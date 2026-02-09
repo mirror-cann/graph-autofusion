@@ -32,7 +32,7 @@
 
 ### **安装pytorch、torch_npu插件**
 当前用例执行时是通过pytorch框架中调用相关算子并执行，因此需要安装pytorch和torch_npu插件。
-安装PyTorch框架和torch_npu插件，请参考[《Ascend Extension for PyTorch 软件安装指南》](https://www.hiascend.com/document/detail/zh/Pytorch/710/configandinstg/instg/insg_0001.html)，请保证与CANN相关包的版本匹配（参见[《版本说明》](https://www.hiascend.com/document/detail/zh/Pytorch/710/releasenote/releasenote_0002.html)），否则功能可能无法正常使用。
+安装PyTorch框架和torch_npu插件，请参考[《Ascend Extension for PyTorch 软件安装指南》](https://www.hiascend.com/document/detail/zh/Pytorch/730/configandinstg/instg/docs/zh/installation_guide/installation_description.md)，请保证与CANN相关包的版本匹配（参见[《版本说明》](https://www.hiascend.com/document/detail/zh/Pytorch/730/releasenote/docs/zh/release_notes/release_notes.md)），否则功能可能无法正常使用。
 
 > 说明:
 >
