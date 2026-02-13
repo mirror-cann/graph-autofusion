@@ -36,7 +36,7 @@
 
 > 说明:
 >
-> PyTorch与PyTorchAdapter（Ascend Extension for PyTorch）版本当前只支持python3.8+（具体详见PyTorchAdapter版本说明），为此，如果需要执行example，需要保证当前python版本满足PyTorch安装要求
+> PyTorch与Ascend Extension for PyTorch版本当前只支持python3.9+（具体详见Ascend Extension for PyTorch版本说明），为此，如果需要执行example，需要保证当前python版本满足PyTorch安装要求。
 
 ## 用例演示
 

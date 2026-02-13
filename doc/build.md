@@ -16,7 +16,7 @@
   ```
 ### 安装社区版cann-toolkit包
 
-根据实际环境，下载对应`Ascend-cann-toolkit_${cann_version}_linux-${arch}.run`包，下载链接为[toolkit x86_64包](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/CANN/20251212_newest/Ascend-cann-toolkit_8.5.0_linux-x86_64.run)、[toolkit aarch64包](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/CANN/20251212_newest/Ascend-cann-toolkit_8.5.0_linux-aarch64.run)。
+根据实际环境，下载对应`Ascend-cann-toolkit_${cann_version}_linux-${arch}.run`包，请选择最新版本，[下载链接](https://mirror-centralrepo.devcloud.cn-north-4.huaweicloud.com/artifactory/cann-run-release/software/9.0.0/)。
 
 ```shell
 # 确保安装包具有可执行权限
