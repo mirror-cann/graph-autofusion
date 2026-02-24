@@ -112,9 +112,9 @@ class BlockNumParser(OptionParser):
             CommonUtility().ascendc_raise_python_err(ERR_CODE,
 f"[Super Kernel] Invalid compile option: {self.key} option should be a digit, {value} is invalid.")
         number = int(value)
-        if number <= 0:
+        if number < 0:
             CommonUtility().ascendc_raise_python_err(ERR_CODE,
-f"[Super Kernel] Invalid compile option: {self.key} option should be positive integer, {number} is invalid."
+f"[Super Kernel] Invalid compile option: {self.key} option should be non-negative integer, {number} is invalid."
             )
         return number
 
