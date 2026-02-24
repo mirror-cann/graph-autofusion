@@ -48,9 +48,52 @@ chmod +x Ascend-cann-toolkit_${cann_version}_linux-${arch}.run
 
 ### 源码下载
 
-```shell
+若您的编译环境可以访问网络，编译过程中将自动下载上述开源第三方软件，可以使用如下命令进行源码下载：
+
+```bash
 git clone https://gitcode.com/cann/graph-autofusion.git
  ```
+
+若您的编译环境无法访问网络，您需要通过下列步骤在联网环境中下载源码及开源软件压缩包，并手动上传至您的编译环境中：
+1. 在联网环境中，进入[本项目主页](https://gitcode.com/cann/graph-autofusion), 通过`下载ZIP`或`clone`按钮，根据指导，完成源码下载。
+2. 下载下列第三方开源软件。
+
+| 开源软件 | 版本 | 下载地址 |
+|---|---|---|
+| makeself | 2.5.0 | [makeself-release-2.5.0-patch1.tar.gz](https://gitcode.com/cann-src-third-party/makeself/releases/download/release-2.5.0-patch1.0/makeself-release-2.5.0-patch1.tar.gz) |
+
+3. 将源码及第三方开源软件上传到离线编译环境中，解压缩源码。
+
+```bash
+# 解压缩源码
+unzip graph-autofusion.zip
+```
+
+4. 在源码同级目录创建open_source目录，将第三方开源软件压缩包放到open_source目录下解压缩后改名。
+
+```bash
+# 创建open_source目录
+mkdir open_source
+# 将第三方开源软件压缩包放到open_source目录下
+mv makeself-release-2.5.0-patch1.tar.gz open_source/
+# 解压缩第三方开源软件压缩包并改名
+cd open_source
+tar -zxvf makeself-release-2.5.0-patch1.tar.gz && mv makeself-release-2.5.0 makeself
+```
+
+5. 完成后文件目录如下：
+
+```bash
+├── graph-autofusion                     # 解压后的源码仓
+│  ├── cmake
+│  └── ...
+├── open_source                          # 三方开源软件
+│  └── makeself
+│     ├── COPYING
+│     ├── Makefile
+│     ├── README.md
+│     └── ...
+```
 
 ### 安装 python 依赖
 
