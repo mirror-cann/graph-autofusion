@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+Copyright (c) 2025 Huawei Technologies Co., Ltd.
+This program is free software, you can redistribute it and/or modify it under the terms and contiditions of
+CANN Open Software License Agreement Version 2.0 (the "License").
+Please refer to the License for details. You may not use this file except in compliance with the License.
+THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+See LICENSE in the root of the software repository for the full text of the License.
+-->
+
+
+<block name="AscendSk" install_own="$username:$usergroup" install_mod="750" install_type="all">
+    <dir_info value="AscendSk" install_mod="550">
+        <path value="$(TARGET_ENV)/include/super_kernel"/>
+    </dir_info>
+
+    <file_info value="ascendsk_lib" src_path="lib/host/" dst_path="ascendsk/lib" install_path="$(TARGET_ENV)/lib64" install_mod="755">
+        <file value="libascendsk.so"/>
+    </file_info>
+    <file_info value="super_kernel_include" src_path="lib/host/" dst_path="ascendsk/include" install_path="$(TARGET_ENV)/include/super_kernel" install_mod="755">
+        <file value="super_kernel.h"/>
+    </file_info>
+</block>

@@ -45,4 +45,7 @@ See LICENSE in the root of the software repository for the full text of the Lice
         <path value="share/info/graph_autofusion" install_mod="750"/>
         <path value="share/info/graph_autofusion/script" install_mod="550"/>
     </dir_info>
+    <block_info dependtree="false" dst_path="" block_conf_path="ascend">
+        <block name="AscendSk"/>
+    </block_info>
 </config>

@@ -51,7 +51,7 @@ testpaths = [
 ]
 
 [tool.coverage.run]
-source = ["src/superkernel"]
+source = ["src/jit/superkernel"]
 omit = [
   "*/tests/*",
   "*/__pycache__/*",
@@ -77,3 +77,6 @@ directory = "coverage/html"
 
 [tool.coverage.xml]
 output = "coverage/coverage.xml"
+
+[tool.setuptools]
+package-dir = {superkernel = "src/jit/superkernel"}

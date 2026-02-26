@@ -14,6 +14,8 @@ set -e
 BASEPATH=$(cd "$(dirname $0)"; pwd)
 BUILD_PATH="${BASEPATH}/build"
 OUTPUT_PATH="${BASEPATH}/build_out"
+CPU_NUM=$(($(cat /proc/cpuinfo | grep "^processor" | wc -l)))
+THREAD_NUM=${CPU_NUM}
 
 # Detect Python command to use
 if [ -n "$VIRTUAL_ENV" ]; then
@@ -27,12 +29,13 @@ fi
 # print usage message
 usage() {
   echo "Usage:"
-  echo "  sh build.sh [-h|--help] [--pkg] [-u|--ut] [-s|--st] [-c|--coverage]"
+  echo "  sh build.sh [-h|--help] [--pkg] [-u|--ut] [-s|--st] [-c|--coverage] [-j]"
   echo "              [--output_path=<PATH>]"
   echo ""
   echo "Options:"
   echo "    -h, --help            Print usage"
   echo "    --pkg                 Build run package"
+  echo "    -j                    Compile thread nums, default is 16, eg: -j 8"
   echo "    -u, --ut              Run all unit test"
   echo "        =superkernel      Run superkernel unit test"
   echo "    -s, --st              Run all system test"
@@ -43,6 +46,25 @@ usage() {
   echo "    --run_example         Run all examples"
   echo "        =superkernel      Run superkernel examples"
   echo ""
+}
+
+check_param_j() {
+  local thread_num=$1
+  if [[ -z "$thread_num" ]]; then
+    echo "ERROR: -j must specify a positive integer (e.g. -j8, -j=16)"
+    usage
+    exit 1
+  fi
+  if [[ ! "$thread_num" =~ ^[1-9][0-9]*$ ]]; then
+    echo "ERROR: -j only support positive integers (0/negative/non-number are not allowed)"
+    usage
+    exit 1
+  fi
+
+  if [[ "$thread_num" -gt "$CPU_NUM" ]]; then
+    thread_num=$CPU_NUM
+  fi
+  echo "$thread_num"
 }
 
 # parse and set options
@@ -79,6 +101,12 @@ checkopts() {
       --pkg)
         ENABLE_BUILD_PACKAGE="on"
         shift
+        ;;
+      -j)
+        local raw_thread_num="$2"
+        raw_thread_num="${raw_thread_num#=}"
+        THREAD_NUM=$(check_param_j "$raw_thread_num")
+        shift 2
         ;;
       -u | --ut)
         ENABLE_UT="on"
@@ -153,7 +181,7 @@ build_package() {
   echo "---------------- Start build run package ----------------"
   mkdir -pv ${BUILD_PATH} &&
   cd ${BUILD_PATH} &&
-  cmake .. && make package &&
+  cmake .. -DCMAKE_INSTALL_PREFIX=${BUILD_PATH} && make -j ${THREAD_NUM} package &&
   mkdir -pv ${OUTPUT_PATH} &&
   cp _CPack_Packages/makeself_staging/cann-graph-autofusion*.run ${OUTPUT_PATH} &&
   output_run_path=`ls -1 ${OUTPUT_PATH}/cann-graph-autofusion*.run 2>/dev/null` &&
