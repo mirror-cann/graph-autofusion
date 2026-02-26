@@ -33,7 +33,7 @@ struct SuperKernelScopeInfo{
 
 class SuperKernelScopeSplitter {
 public:
-    SuperKernelScopeSplitter(const SuperKernelGraph &graph) : graph(graph) { }
+    SuperKernelScopeSplitter(SuperKernelGraph &graph) : graph(graph) { }
     ~SuperKernelScopeSplitter() = default;
     SuperKernelScopeSplitter(const SuperKernelScopeSplitter&) = delete;
     SuperKernelScopeSplitter& operator=(const SuperKernelScopeSplitter&) = delete;
@@ -47,6 +47,6 @@ private:
     uint64_t FindAvailableHeadNode(uint64_t curNodeIdx) const;
     uint64_t GenerateScopeInfosByNodeIdx(uint64_t curNodeIdx);
 
-    const SuperKernelGraph& graph;
+    SuperKernelGraph& graph;
     std::vector<SuperKernelScopeInfo> scopeInfos;
 };

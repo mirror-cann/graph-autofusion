@@ -14,6 +14,7 @@
  */
 
 #include "sk_scope_split.h"
+#include "sk_lock_detector.h"
 
 uint64_t SuperKernelScopeSplitter::FindAvailableHeadNode(uint64_t curNodeIdx) const {
     while (curNodeIdx != INVALID_TASK_ID) {
@@ -45,15 +46,17 @@ uint64_t SuperKernelScopeSplitter::GenerateScopeInfosByNodeIdx(uint64_t curNodeI
 
         uint64_t preNodeIdx = headNodeIdx;
         curNodeIdx = headNodeIdx;
+        LockDetector lockDetector;
         while (curNodeIdx != INVALID_TASK_ID) {
             SuperKernelBaseNode *node = graph.GetNodeById(curNodeIdx);
             if (node == nullptr) {
                 SK_LOGE("node with id %lu not found in graph during generating scope infos\n", curNodeIdx);
                 throw std::runtime_error("Node not found in graph");
             }
-            if (!node->IsFusible()) {
+            if (!node->IsFusible() || !lockDetector.IsFusible(*node, graph)) {
                 scopeStreamInfo.tailNodeIdx = preNodeIdx;
                 curNodeIdx = node->GetNextNodeId();
+                lockDetector.Reset(graph);
                 break;
             }
             scopeInfo.nodes.emplace_back(std::move(node));

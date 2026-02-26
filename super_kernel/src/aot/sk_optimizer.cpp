@@ -252,7 +252,7 @@ void SuperKernelOptimizer::DumpLaunchDebug(const SkHostEntryInfo &entryInfo, con
            (size_t)skEntryArgs->skHeader.dfxOffset);
 }
 
-void SuperKernelOptimizer::Process(const SuperKernelGraph &graph) {
+void SuperKernelOptimizer::Process(SuperKernelGraph &graph) {
     // 切分图为多个子图
     SuperKernelScopeSplitter splitter(graph);
     if(splitter.SplitSingleStreamGraph()) {

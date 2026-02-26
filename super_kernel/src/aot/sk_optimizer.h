@@ -31,7 +31,7 @@ class SuperKernelOptimizer {
 public:
     SuperKernelOptimizer(SuperKernelOptionsManager &opts) : opts(opts) {}
     virtual ~SuperKernelOptimizer() = default;
-    void Process(const SuperKernelGraph &graph);
+    void Process(SuperKernelGraph &graph);
 
 private:
     SuperKernelOptionsManager &opts;
