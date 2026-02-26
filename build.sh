@@ -205,9 +205,9 @@ function build_package_inner(){
   build package
 }
 
-function build_test_part() {
+function build_test_cpp_utest() {
   echo "---------------- Start run cpp utest ----------------" 
-  CUSTOM_OPTION="${CUSTOM_OPTION} -DENABLE_TEST=ON"
+  CUSTOM_OPTION="${CUSTOM_OPTION} -DENABLE_CPP_UTEST=ON"
   mkdir -pv ${BUILD_PATH} &&
   cd ${BUILD_PATH} &&
   build_test
@@ -284,7 +284,7 @@ main() {
   fi
 
   if [ "X$ENABLE_CPP_UTEST" == "Xon" ]; then
-    build_test_part || { echo "Build and run cpp part of unit tests failed."; exit 1; }
+    build_test_cpp_utest || { echo "Build and run cpp part of unit tests failed."; exit 1; }
   fi
 
   if [ "X$ENABLE_UT" == "Xon" ]; then

@@ -27,6 +27,11 @@ super_kernel/kernel_meta
 # ST temporary files
 super_kernel/generated/
 
+# UT temporary files
+super_kernel/tests/aot/third_party/boost/
+super_kernel/tests/aot/third_party/gtest/
+super_kernel/tests/aot/third_party/mockcpp_src/
+
 # Type checker caches
 .mypy_cache/
 

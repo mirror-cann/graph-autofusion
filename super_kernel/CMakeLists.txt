@@ -52,6 +52,7 @@ install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/include/super_kernel/super_kernel.h
     DESTINATION ascendsk/include
 )
 
-if (ENABLE_TEST)
+
+if(ENABLE_CPP_UTEST OR ENABLE_RDV_UTEST)
     add_subdirectory(tests/aot)
 endif()

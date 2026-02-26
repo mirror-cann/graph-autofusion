@@ -15,16 +15,22 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 
-set(GRAPH_AUTOFUSION_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../../)
-set(CMAKE_MODULE_PATH
-    ${CMAKE_CURRENT_SOURCE_DIR}/cmake/module
-    ${GRAPH_AUTOFUSION_ROOT_DIR}/cmake/modules
-    ${CMAKE_MODULE_PATH}
-)
 
-include(cmake/config.cmake)
-include(cmake/intf.cmake)
-include(cmake/func.cmake)
 
-add_subdirectory(ut)
-add_subdirectory(rdv)
+if(ENABLE_CPP_UTEST)
+    set(GRAPH_AUTOFUSION_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../../)
+    set(CMAKE_MODULE_PATH
+        ${CMAKE_CURRENT_SOURCE_DIR}/cmake/module
+        ${GRAPH_AUTOFUSION_ROOT_DIR}/cmake/modules
+        ${CMAKE_MODULE_PATH}
+    )
+
+    include(cmake/config.cmake)
+    include(cmake/intf.cmake)
+    include(cmake/func.cmake)    
+    add_subdirectory(ut)
+endif()
+
+if(ENABLE_RDV_UTEST)
+    add_subdirectory(rdv)
+endif()
