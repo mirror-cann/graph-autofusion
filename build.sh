@@ -16,7 +16,7 @@ BUILD_PATH="${BASEPATH}/build"
 OUTPUT_PATH="${BASEPATH}/build_out"
 CPU_NUM=$(($(cat /proc/cpuinfo | grep "^processor" | wc -l)))
 THREAD_NUM=${CPU_NUM}
-
+CUSTOM_OPTION="-DCMAKE_INSTALL_PREFIX=${BUILD_PATH}"
 # Detect Python command to use
 if [ -n "$VIRTUAL_ENV" ]; then
   PYTHON_CMD="python3"
@@ -29,13 +29,14 @@ fi
 # print usage message
 usage() {
   echo "Usage:"
-  echo "  sh build.sh [-h|--help] [--pkg] [-u|--ut] [-s|--st] [-c|--coverage] [-j]"
+  echo "  sh build.sh [-h|--help] [--pkg] [--cpp_utest] [-u|--ut] [-s|--st] [-c|--coverage] [-j]"
   echo "              [--output_path=<PATH>]"
   echo ""
   echo "Options:"
   echo "    -h, --help            Print usage"
   echo "    --pkg                 Build run package"
   echo "    -j                    Compile thread nums, default is 16, eg: -j 8"
+  echo "    --cpp_utest           Run cpp unit test"
   echo "    -u, --ut              Run all unit test"
   echo "        =superkernel      Run superkernel unit test"
   echo "    -s, --st              Run all system test"
@@ -85,7 +86,7 @@ checkopts() {
   ENABLE_SUPERKERNEL_RUN_EXAMPLE="off"
 
   # Process the options
-  parsed_args=$(getopt -a -o j:hu::s::c -l help,pkg,run_example::,ut::,st::,coverage,output_path: -- "$@") || {
+  parsed_args=$(getopt -a -o j:hu::s::c -l help,pkg,cpp_utest,run_example::,ut::,st::,coverage,output_path: -- "$@") || {
     usage
     exit 1
   }
@@ -144,6 +145,10 @@ checkopts() {
         ENABLE_COVERAGE="on"
         shift
         ;;
+      --cpp_utest)
+        ENABLE_CPP_UTEST="on"
+        shift
+        ;;
       --run_example)
         ENABLE_RUN_EXAMPLE="on"
         case "$2" in
@@ -177,11 +182,43 @@ checkopts() {
   done
 }
 
+function cmake_config()
+{
+  local extra_option="$1"
+  log "Info: cmake config ${CUSTOM_OPTION} ${extra_option} ."
+  cmake .. ${CUSTOM_OPTION} ${extra_option}
+}
+
+function build()
+{
+  local target="$1"
+  cmake --build . --target ${target} -j ${THREAD_NUM}
+}
+
+function build_test() {
+  cmake_config
+  build all
+}
+
+function build_package_inner(){
+  cmake_config
+  build package
+}
+
+function build_test_part() {
+  echo "---------------- Start run cpp utest ----------------" 
+  CUSTOM_OPTION="${CUSTOM_OPTION} -DENABLE_TEST=ON"
+  mkdir -pv ${BUILD_PATH} &&
+  cd ${BUILD_PATH} &&
+  build_test
+  echo "Buid run cpp utest success!" 
+}
+
 build_package() {
   echo "---------------- Start build run package ----------------"
   mkdir -pv ${BUILD_PATH} &&
   cd ${BUILD_PATH} &&
-  cmake .. -DCMAKE_INSTALL_PREFIX=${BUILD_PATH} && make -j ${THREAD_NUM} package &&
+  build_package_inner &&
   mkdir -pv ${OUTPUT_PATH} &&
   cp _CPack_Packages/makeself_staging/cann-graph-autofusion*.run ${OUTPUT_PATH} &&
   output_run_path=`ls -1 ${OUTPUT_PATH}/cann-graph-autofusion*.run 2>/dev/null` &&
@@ -244,6 +281,10 @@ main() {
 
   if [ "X$ENABLE_BUILD_PACKAGE" == "Xon" ]; then
     build_package || { echo "Build run package failed."; exit 1; }
+  fi
+
+  if [ "X$ENABLE_CPP_UTEST" == "Xon" ]; then
+    build_test_part || { echo "Build and run cpp part of unit tests failed."; exit 1; }
   fi
 
   if [ "X$ENABLE_UT" == "Xon" ]; then

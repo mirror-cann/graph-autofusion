@@ -8,23 +8,18 @@
 # ======================================================================================================================
 
 cmake_minimum_required(VERSION 3.16)
-project(super_kernel_aclgraph)
+project(super_kernel_aclgraph_rdv)
 
-set(CMAKE_CXX_STANDARD 14)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
+find_package(ASC REQUIRED PATHS $ENV{ASCEND_HOME_PATH}/compiler/tikcpp/ascendc_kernel_cmake)
+enable_language(ASC)
 
+set(RUN_MODEL 0)
+add_subdirectory(tensor_list)
+add_subdirectory(ops)
 
-set(GRAPH_AUTOFUSION_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../../)
-set(CMAKE_MODULE_PATH
-    ${CMAKE_CURRENT_SOURCE_DIR}/cmake/module
-    ${GRAPH_AUTOFUSION_ROOT_DIR}/cmake/modules
-    ${CMAKE_MODULE_PATH}
+add_executable(main main.cpp)
+
+target_link_libraries(main PRIVATE 
+  ops_interface
+  ascendsk
 )
-
-include(cmake/config.cmake)
-include(cmake/intf.cmake)
-include(cmake/func.cmake)
-
-add_subdirectory(ut)
-add_subdirectory(rdv)

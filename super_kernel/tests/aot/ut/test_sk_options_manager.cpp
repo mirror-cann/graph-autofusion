@@ -1,0 +1,690 @@
+/**
+* Copyright (c) 2025 Huawei Technologies Co., Ltd.
+* This program is free software, you can redistribute it and/or modify it under the terms and conditions of
+* CANN Open Software License Agreement Version 2.0 (the "License").
+* Please refer to the License for details. You may not use this file except in compliance with the License.
+* THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+* INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+* See LICENSE in the root of the software repository for the full text of the License.
+*/
+
+#include <gtest/gtest.h>
+#include "mockcpp/mockcpp.hpp"
+#include <cmath>
+#include <stdlib.h>
+#include <iostream>
+#include <sstream>
+#include <fstream>
+#include <unistd.h>
+#include <memory>
+#define private public
+#define protected public
+#include "sk_options_manager.h"
+
+/**
+ * @brief 测试 fixture 类，用于 SuperKernelOptionsManager 单元测试
+ */
+class SuperKernelOptionsManagerTest : public testing::Test {
+protected:
+    void SetUp() override {
+        // 每个测试用例前的初始化
+        opts_test = std::make_unique<SuperKernelOptionsManager>();
+    }
+
+    void TearDown() override {
+        // 每个测试用例后的清理
+        GlobalMockObject::verify();
+        opts_test.reset();
+    }
+
+    std::unique_ptr<SuperKernelOptionsManager> opts_test;
+};
+
+// ==================== OptOptionBase 基类测试 ====================
+
+TEST_F(SuperKernelOptionsManagerTest, OptOptionBase_GetName)
+{
+    auto option = std::make_unique<OptOptionBase>("test_option", aclskOtionType::PRELOAD_CODE);
+    EXPECT_EQ(option->GetName(), "test_option");
+}
+
+TEST_F(SuperKernelOptionsManagerTest, OptOptionBase_GetType)
+{
+    auto option = std::make_unique<OptOptionBase>("test_option", aclskOtionType::PRELOAD_CODE);
+    EXPECT_EQ(option->GetType(), aclskOtionType::PRELOAD_CODE);
+}
+
+// ==================== NumberOptOption 测试 ====================
+
+TEST_F(SuperKernelOptionsManagerTest, NumberOptOption_GetIntValue_Default)
+{
+    auto option = std::make_unique<NumberOptOption>("preload_code", aclskOtionType::PRELOAD_CODE);
+    EXPECT_EQ(option->GetIntValue(), 0); // 默认值
+}
+
+TEST_F(SuperKernelOptionsManagerTest, NumberOptOption_GetIntValue_WithDefault)
+{
+    auto option = std::make_unique<NumberOptOption>("preload_code", aclskOtionType::PRELOAD_CODE, 1);
+    EXPECT_EQ(option->GetIntValue(), 1);
+}
+
+TEST_F(SuperKernelOptionsManagerTest, NumberOptOption_SetValue_Valid)
+{
+    auto option = std::make_unique<NumberOptOption>("preload_code", aclskOtionType::PRELOAD_CODE, 0, 0, 2);
+    option->SetValue(1);
+    EXPECT_EQ(option->GetIntValue(), 1);
+}
+
+TEST_F(SuperKernelOptionsManagerTest, NumberOptOption_SetValue_OutOfRangeLow)
+{
+    auto option = std::make_unique<NumberOptOption>("preload_code", aclskOtionType::PRELOAD_CODE, 0, 0, 2);
+    option->SetValue(0xFFFFFFFF); // 超出范围
+    EXPECT_EQ(option->GetIntValue(), 0); // 值不应改变
+}
+
+TEST_F(SuperKernelOptionsManagerTest, NumberOptOption_SetValue_OutOfRangeHigh)
+{
+    auto option = std::make_unique<NumberOptOption>("preload_code", aclskOtionType::PRELOAD_CODE, 0, 0, 2);
+    option->SetValue(3); // 超出范围
+    EXPECT_EQ(option->GetIntValue(), 0); // 值不应改变
+}
+
+TEST_F(SuperKernelOptionsManagerTest, NumberOptOption_SetValue_BoundaryMin)
+{
+    auto option = std::make_unique<NumberOptOption>("preload_code", aclskOtionType::PRELOAD_CODE, 0, 1, 10);
+    option->SetValue(1); // 边界值
+    EXPECT_EQ(option->GetIntValue(), 1);
+}
+
+TEST_F(SuperKernelOptionsManagerTest, NumberOptOption_SetValue_BoundaryMax)
+{
+    auto option = std::make_unique<NumberOptOption>("preload_code", aclskOtionType::PRELOAD_CODE, 0, 1, 10);
+    option->SetValue(10); // 边界值
+    EXPECT_EQ(option->GetIntValue(), 10);
+}
+
+// ==================== StringOptOption 测试 ====================
+
+TEST_F(SuperKernelOptionsManagerTest, StringOptOption_GetStringValue_Default)
+{
+    auto option = std::make_unique<StringOptOption>("string_option", aclskOtionType::PRELOAD_CODE);
+    EXPECT_EQ(option->GetStringValue(), "");
+}
+
+TEST_F(SuperKernelOptionsManagerTest, StringOptOption_GetStringValue_WithDefault)
+{
+    auto option = std::make_unique<StringOptOption>("string_option", aclskOtionType::PRELOAD_CODE, "default_value");
+    EXPECT_EQ(option->GetStringValue(), "default_value");
+}
+
+TEST_F(SuperKernelOptionsManagerTest, StringOptOption_SetValue_Valid)
+{
+    auto option = std::make_unique<StringOptOption>("string_option", aclskOtionType::PRELOAD_CODE);
+    option->SetValue("test_value");
+    EXPECT_EQ(option->GetStringValue(), "test_value");
+}
+
+TEST_F(SuperKernelOptionsManagerTest, StringOptOption_SetValue_Empty)
+{
+    auto option = std::make_unique<StringOptOption>("string_option", aclskOtionType::PRELOAD_CODE);
+    option->SetValue("initial");
+    option->SetValue(""); // 空字符串
+    EXPECT_EQ(option->GetStringValue(), "initial"); // 值不应改变
+}
+
+// ==================== StringListOptOption 测试 ====================
+
+TEST_F(SuperKernelOptionsManagerTest, StringListOptOption_GetStringListValue_Default)
+{
+    auto option = std::make_unique<StringListOptOption>("list_option", aclskOtionType::PRELOAD_CODE);
+    EXPECT_EQ(option->GetStringListValue().size(), 0); // 默认为空
+}
+
+TEST_F(SuperKernelOptionsManagerTest, StringListOptOption_GetStringListValue_WithDefault)
+{
+    std::vector<std::string> defaultVal = {"a", "b", "c"};
+    auto option = std::make_unique<StringListOptOption>("list_option", aclskOtionType::PRELOAD_CODE, defaultVal);
+    auto result = option->GetStringListValue();
+    EXPECT_EQ(result.size(), 3);
+    EXPECT_EQ(result[0], "a");
+    EXPECT_EQ(result[1], "b");
+    EXPECT_EQ(result[2], "c");
+}
+
+TEST_F(SuperKernelOptionsManagerTest, StringListOptOption_SetValue_Valid)
+{
+    auto option = std::make_unique<StringListOptOption>("list_option", aclskOtionType::PRELOAD_CODE);
+    std::vector<std::string> val = {"op1", "op2", "op3"};
+    option->SetValue(val);
+    auto result = option->GetStringListValue();
+    EXPECT_EQ(result.size(), 3);
+    EXPECT_EQ(result[0], "op1");
+    EXPECT_EQ(result[1], "op2");
+    EXPECT_EQ(result[2], "op3");
+}
+
+TEST_F(SuperKernelOptionsManagerTest, StringListOptOption_SetValue_Empty)
+{
+    auto option = std::make_unique<StringListOptOption>("list_option", aclskOtionType::PRELOAD_CODE);
+    std::vector<std::string> val = {"initial"};
+    option->SetValue(val);
+    option->SetValue(std::vector<std::string>()); // 空列表
+    EXPECT_EQ(option->GetStringListValue().size(), 1); // 值不应改变
+}
+
+// ==================== MapOptOption 测试 ====================
+
+TEST_F(SuperKernelOptionsManagerTest, MapOptOption_GetMapValue_Default)
+{
+    auto option = std::make_unique<MapOptOption>("map_option", aclskOtionType::PRELOAD_CODE);
+    EXPECT_EQ(option->GetMapValue().size(), 0); // 默认为空
+}
+
+TEST_F(SuperKernelOptionsManagerTest, MapOptOption_GetMapValue_WithDefault)
+{
+    std::unordered_map<std::string, std::vector<std::string>> defaultVal = {
+        {"key1", {"val1", "val2"}},
+        {"key2", {"val3"}}
+    };
+    auto option = std::make_unique<MapOptOption>("map_option", aclskOtionType::PRELOAD_CODE, defaultVal);
+    auto result = option->GetMapValue();
+    EXPECT_EQ(result.size(), 2);
+    EXPECT_EQ(result["key1"].size(), 2);
+    EXPECT_EQ(result["key2"].size(), 1);
+}
+
+TEST_F(SuperKernelOptionsManagerTest, MapOptOption_SetValue_Valid)
+{
+    auto option = std::make_unique<MapOptOption>("map_option", aclskOtionType::PRELOAD_CODE);
+    std::unordered_map<std::string, std::vector<std::string>> val = {
+        {"op1", {"sub1", "sub2"}},
+        {"op2", {"sub3"}}
+    };
+    option->SetValue(val);
+    auto result = option->GetMapValue();
+    EXPECT_EQ(result.size(), 2);
+    EXPECT_EQ(result["op1"].size(), 2);
+    EXPECT_EQ(result["op2"].size(), 1);
+}
+
+TEST_F(SuperKernelOptionsManagerTest, MapOptOption_SetValue_Empty)
+{
+    auto option = std::make_unique<MapOptOption>("map_option", aclskOtionType::PRELOAD_CODE);
+    std::unordered_map<std::string, std::vector<std::string>> val = {{"initial", {"val"}}};
+    option->SetValue(val);
+    option->SetValue(std::unordered_map<std::string, std::vector<std::string>>()); // 空 map
+    EXPECT_EQ(option->GetMapValue().size(), 1); // 值不应改变
+}
+
+// ==================== SuperKernelOptionsManager::AddOption 测试 ====================
+
+TEST_F(SuperKernelOptionsManagerTest, AddOption_Valid)
+{
+    auto option = std::make_unique<NumberOptOption>("preload_code", aclskOtionType::PRELOAD_CODE, 1);
+    opts_test->AddOption(std::move(option));
+    auto result = opts_test->GetOption(aclskOtionType::PRELOAD_CODE);
+    ASSERT_NE(result, nullptr);
+    EXPECT_EQ(result->GetName(), "preload_code");
+}
+
+TEST_F(SuperKernelOptionsManagerTest, AddOption_Nullptr)
+{
+    opts_test->AddOption(nullptr);
+    // 不应崩溃
+    auto result = opts_test->GetOption(aclskOtionType::PRELOAD_CODE);
+    EXPECT_EQ(result, nullptr);
+}
+
+TEST_F(SuperKernelOptionsManagerTest, AddOption_Duplicate)
+{
+    auto option1 = std::make_unique<NumberOptOption>("preload_code", aclskOtionType::PRELOAD_CODE, 1);
+    auto option2 = std::make_unique<NumberOptOption>("preload_code2", aclskOtionType::PRELOAD_CODE, 2);
+    
+    opts_test->AddOption(std::move(option1));
+    opts_test->AddOption(std::move(option2));
+    
+    auto result = opts_test->GetOption(aclskOtionType::PRELOAD_CODE);
+    ASSERT_NE(result, nullptr);
+    // 第一个添加的值应该被保留
+    EXPECT_EQ(static_cast<NumberOptOption*>(result)->GetIntValue(), 1);
+}
+
+TEST_F(SuperKernelOptionsManagerTest, AddOption_Multiple)
+{
+    opts_test->AddOption(std::make_unique<NumberOptOption>("preload_code", aclskOtionType::PRELOAD_CODE, 1));
+    opts_test->AddOption(std::make_unique<NumberOptOption>("split_mode", aclskOtionType::SPLIT_MODE, 4));
+    opts_test->AddOption(std::make_unique<StringOptOption>("string_opt", aclskOtionType::STREAM_FUSION, "value"));
+    
+    ASSERT_NE(opts_test->GetOption(aclskOtionType::PRELOAD_CODE), nullptr);
+    ASSERT_NE(opts_test->GetOption(aclskOtionType::SPLIT_MODE), nullptr);
+    ASSERT_NE(opts_test->GetOption(aclskOtionType::STREAM_FUSION), nullptr);
+}
+
+// ==================== SuperKernelOptionsManager::GetOption 测试 ====================
+
+TEST_F(SuperKernelOptionsManagerTest, GetOption_Found)
+{
+    opts_test->AddOption(std::make_unique<NumberOptOption>("preload_code", aclskOtionType::PRELOAD_CODE, 1));
+    auto result = opts_test->GetOption(aclskOtionType::PRELOAD_CODE);
+    ASSERT_NE(result, nullptr);
+    EXPECT_EQ(result->GetType(), aclskOtionType::PRELOAD_CODE);
+}
+
+TEST_F(SuperKernelOptionsManagerTest, GetOption_NotFound)
+{
+    auto result = opts_test->GetOption(aclskOtionType::PRELOAD_CODE);
+    EXPECT_EQ(result, nullptr);
+}
+
+// ==================== SuperKernelOptionsManager::JudgeDisableKernelDcci 测试 ====================
+
+TEST_F(SuperKernelOptionsManagerTest, JudgeDisableKernelDcci_Match)
+{
+    std::vector<std::string> dcciOps = {"Add", "Mul.*", ".*Op"};
+    EXPECT_TRUE(opts_test->JudgeDisableKernelDcci(dcciOps, "Add"));
+    EXPECT_TRUE(opts_test->JudgeDisableKernelDcci(dcciOps, "Mul"));
+    EXPECT_TRUE(opts_test->JudgeDisableKernelDcci(dcciOps, "SomeOp"));
+}
+
+TEST_F(SuperKernelOptionsManagerTest, JudgeDisableKernelDcci_NoMatch)
+{
+    std::vector<std::string> dcciOps = {"Add", "Mul"};
+    EXPECT_FALSE(opts_test->JudgeDisableKernelDcci(dcciOps, "Sub"));
+    EXPECT_FALSE(opts_test->JudgeDisableKernelDcci(dcciOps, "Div"));
+    EXPECT_FALSE(opts_test->JudgeDisableKernelDcci(dcciOps, "Conv"));
+}
+
+TEST_F(SuperKernelOptionsManagerTest, JudgeDisableKernelDcci_EmptyList)
+{
+    std::vector<std::string> dcciOps;
+    EXPECT_FALSE(opts_test->JudgeDisableKernelDcci(dcciOps, "Add"));
+}
+
+TEST_F(SuperKernelOptionsManagerTest, JudgeDisableKernelDcci_InvalidRegex)
+{
+    std::vector<std::string> dcciOps = {"[invalid(regex"}; // 无效的正则表达式
+    EXPECT_FALSE(opts_test->JudgeDisableKernelDcci(dcciOps, "Add")); // 应返回 false 而不是崩溃
+}
+
+TEST_F(SuperKernelOptionsManagerTest, JudgeDisableKernelDcci_ComplexPattern)
+{
+    std::vector<std::string> dcciOps = {"^Conv2D$", "^MatMul.*", ".*BatchNorm.*$"};
+    EXPECT_TRUE(opts_test->JudgeDisableKernelDcci(dcciOps, "Conv2D"));
+    EXPECT_FALSE(opts_test->JudgeDisableKernelDcci(dcciOps, "Conv2DBackward")); // 不匹配 ^Conv2D$
+    EXPECT_TRUE(opts_test->JudgeDisableKernelDcci(dcciOps, "MatMul"));
+    EXPECT_TRUE(opts_test->JudgeDisableKernelDcci(dcciOps, "MatMulV2"));
+    EXPECT_TRUE(opts_test->JudgeDisableKernelDcci(dcciOps, "BatchNorm"));
+    EXPECT_TRUE(opts_test->JudgeDisableKernelDcci(dcciOps, "SomeBatchNormOp"));
+}
+
+// ==================== SuperKernelOptionsManager::EnableDebug 测试 ====================
+
+TEST_F(SuperKernelOptionsManagerTest, EnableDebug_WithDebugSyncAll)
+{
+    opts_test->AddOption(std::make_unique<NumberOptOption>("debug_sync_all", aclskOtionType::DEBUG_SYNC_ALL, 1));
+    EXPECT_TRUE(opts_test->EnableDebug());
+}
+
+TEST_F(SuperKernelOptionsManagerTest, EnableDebug_WithDisableKernelDcci)
+{
+    opts_test->AddOption(std::make_unique<StringListOptOption>("dcci_disable", aclskOtionType::DEBUG_DCCI_DISABLE_ON_KERNEL));
+    EXPECT_TRUE(opts_test->EnableDebug());
+}
+
+TEST_F(SuperKernelOptionsManagerTest, EnableDebug_WithoutDebugOptions)
+{
+    opts_test->AddOption(std::make_unique<NumberOptOption>("preload_code", aclskOtionType::PRELOAD_CODE, 1));
+    EXPECT_FALSE(opts_test->EnableDebug());
+}
+
+TEST_F(SuperKernelOptionsManagerTest, EnableDebug_WithBothDebugOptions)
+{
+    opts_test->AddOption(std::make_unique<NumberOptOption>("debug_sync_all", aclskOtionType::DEBUG_SYNC_ALL, 1));
+    opts_test->AddOption(std::make_unique<StringListOptOption>("dcci_disable", aclskOtionType::DEBUG_DCCI_DISABLE_ON_KERNEL));
+    EXPECT_TRUE(opts_test->EnableDebug());
+}
+
+// ==================== SuperKernelOptionsManager::SetOptOptionValue 测试 ====================
+
+TEST_F(SuperKernelOptionsManagerTest, SetOptOptionValue_PreloadCode)
+{
+    aclskOption option;
+    option.optionType = aclskOtionType::PRELOAD_CODE;
+    option.preload.preloadMode = 1;
+    
+    opts_test->SetOptOptionValue(&option);
+    
+    auto result = opts_test->GetOption(aclskOtionType::PRELOAD_CODE);
+    ASSERT_NE(result, nullptr);
+    EXPECT_EQ(static_cast<NumberOptOption*>(result)->GetIntValue(), 1);
+}
+
+TEST_F(SuperKernelOptionsManagerTest, SetOptOptionValue_SplitMode)
+{
+    aclskOption option;
+    option.optionType = aclskOtionType::SPLIT_MODE;
+    option.splitMode.splitCnt = 3;
+    
+    opts_test->SetOptOptionValue(&option);
+    
+    auto result = opts_test->GetOption(aclskOtionType::SPLIT_MODE);
+    ASSERT_NE(result, nullptr);
+    EXPECT_EQ(static_cast<NumberOptOption*>(result)->GetIntValue(), 3);
+}
+
+TEST_F(SuperKernelOptionsManagerTest, SetOptOptionValue_DebugDcciDisable)
+{
+    aclskOption option;
+    option.optionType = aclskOtionType::DEBUG_DCCI_DISABLE_ON_KERNEL;
+    
+    const char* kernelNames[] = {"Add", "Mul", ".*Op"};
+    option.disableKernelDcci.kernelNames = const_cast<char**>(kernelNames);
+    option.disableKernelDcci.kernelCnt = 3;
+    
+    opts_test->SetOptOptionValue(&option);
+    
+    auto result = opts_test->GetOption(aclskOtionType::DEBUG_DCCI_DISABLE_ON_KERNEL);
+    ASSERT_NE(result, nullptr);
+    auto strList = static_cast<StringListOptOption*>(result)->GetStringListValue();
+    EXPECT_EQ(strList.size(), 3);
+    EXPECT_EQ(strList[0], "Add");
+    EXPECT_EQ(strList[1], "Mul");
+    EXPECT_EQ(strList[2], ".*Op");
+}
+
+TEST_F(SuperKernelOptionsManagerTest, SetOptOptionValue_DebugSyncAll)
+{
+    aclskOption option;
+    option.optionType = aclskOtionType::DEBUG_SYNC_ALL;
+    option.debugSync.debugSyncAll = 1;
+    
+    opts_test->SetOptOptionValue(&option);
+    
+    auto result = opts_test->GetOption(aclskOtionType::DEBUG_SYNC_ALL);
+    ASSERT_NE(result, nullptr);
+    EXPECT_EQ(static_cast<NumberOptOption*>(result)->GetIntValue(), 1);
+}
+
+TEST_F(SuperKernelOptionsManagerTest, SetOptOptionValue_Unsupported)
+{
+    aclskOption option;
+    option.optionType = aclskOtionType::SK_OPTION_MAX; // 不支持的类型
+    
+    // 不应崩溃
+    opts_test->SetOptOptionValue(&option);
+}
+
+// ==================== SuperKernelOptionsManager::ParseOptions 测试 ====================
+
+TEST_F(SuperKernelOptionsManagerTest, ParseOptions_Nullptr)
+{
+    // 不应崩溃
+    opts_test->ParseOptions(nullptr);
+}
+
+TEST_F(SuperKernelOptionsManagerTest, ParseOptions_SingleOption)
+{
+    aclskOption options[1];
+    options[0].optionType = aclskOtionType::PRELOAD_CODE;
+    options[0].preload.preloadMode = 1;
+    
+    aclskOptions optList;
+    optList.options = options;
+    optList.numOptions = 1;
+    
+    opts_test->ParseOptions(&optList);
+    
+    auto result = opts_test->GetOption(aclskOtionType::PRELOAD_CODE);
+    ASSERT_NE(result, nullptr);
+    EXPECT_EQ(static_cast<NumberOptOption*>(result)->GetIntValue(), 1);
+}
+
+TEST_F(SuperKernelOptionsManagerTest, ParseOptions_MultipleOptions)
+{
+    aclskOption options[3];
+    
+    options[0].optionType = aclskOtionType::PRELOAD_CODE;
+    options[0].preload.preloadMode = 1;
+    
+    options[1].optionType = aclskOtionType::SPLIT_MODE;
+    options[1].splitMode.splitCnt = 4;
+    
+    options[2].optionType = aclskOtionType::DEBUG_SYNC_ALL;
+    options[2].debugSync.debugSyncAll = 1;
+    
+    aclskOptions optList;
+    optList.options = options;
+    optList.numOptions = 3;
+    
+    opts_test->ParseOptions(&optList);
+    
+    auto opt1 = opts_test->GetOption(aclskOtionType::PRELOAD_CODE);
+    auto opt2 = opts_test->GetOption(aclskOtionType::SPLIT_MODE);
+    auto opt3 = opts_test->GetOption(aclskOtionType::DEBUG_SYNC_ALL);
+    
+    ASSERT_NE(opt1, nullptr);
+    ASSERT_NE(opt2, nullptr);
+    ASSERT_NE(opt3, nullptr);
+    
+    EXPECT_EQ(static_cast<NumberOptOption*>(opt1)->GetIntValue(), 1);
+    EXPECT_EQ(static_cast<NumberOptOption*>(opt2)->GetIntValue(), 4);
+    EXPECT_EQ(static_cast<NumberOptOption*>(opt3)->GetIntValue(), 1);
+}
+
+TEST_F(SuperKernelOptionsManagerTest, ParseOptions_DuplicateOption)
+{
+    aclskOption options[2];
+
+    options[0].optionType = aclskOtionType::PRELOAD_CODE;
+    options[0].preload.preloadMode = 1;
+
+    options[1].optionType = aclskOtionType::PRELOAD_CODE; // 重复
+    options[1].preload.preloadMode = 2;
+
+    aclskOptions optList;
+    optList.options = options;
+    optList.numOptions = 2;
+
+    opts_test->ParseOptions(&optList);
+
+    auto result = opts_test->GetOption(aclskOtionType::PRELOAD_CODE);
+    ASSERT_NE(result, nullptr);
+    // 第一个值应该被保留
+    EXPECT_EQ(static_cast<NumberOptOption*>(result)->GetIntValue(), 1);
+}
+
+TEST_F(SuperKernelOptionsManagerTest, ParseOptions_AllOptionTypes)
+{
+    // 测试所有支持的不同选项类型
+    aclskOption options[4];
+    
+    options[0].optionType = aclskOtionType::PRELOAD_CODE;
+    options[0].preload.preloadMode = 1;
+    
+    options[1].optionType = aclskOtionType::SPLIT_MODE;
+    options[1].splitMode.splitCnt = 3;
+    
+    const char* dcciKernels[] = {"Add", "Mul"};
+    options[2].optionType = aclskOtionType::DEBUG_DCCI_DISABLE_ON_KERNEL;
+    options[2].disableKernelDcci.kernelNames = const_cast<char**>(dcciKernels);
+    options[2].disableKernelDcci.kernelCnt = 2;
+    
+    options[3].optionType = aclskOtionType::DEBUG_SYNC_ALL;
+    options[3].debugSync.debugSyncAll = 1;
+    
+    aclskOptions optList;
+    optList.options = options;
+    optList.numOptions = 4;
+    
+    opts_test->ParseOptions(&optList);
+    
+    // 验证所有选项都已正确解析
+    auto opt1 = opts_test->GetOption(aclskOtionType::PRELOAD_CODE);
+    auto opt2 = opts_test->GetOption(aclskOtionType::SPLIT_MODE);
+    auto opt3 = opts_test->GetOption(aclskOtionType::DEBUG_DCCI_DISABLE_ON_KERNEL);
+    auto opt4 = opts_test->GetOption(aclskOtionType::DEBUG_SYNC_ALL);
+    
+    ASSERT_NE(opt1, nullptr);
+    ASSERT_NE(opt2, nullptr);
+    ASSERT_NE(opt3, nullptr);
+    ASSERT_NE(opt4, nullptr);
+    
+    EXPECT_EQ(static_cast<NumberOptOption*>(opt1)->GetIntValue(), 1);
+    EXPECT_EQ(static_cast<NumberOptOption*>(opt2)->GetIntValue(), 3);
+    
+    auto dcciList = static_cast<StringListOptOption*>(opt3)->GetStringListValue();
+    EXPECT_EQ(dcciList.size(), 2);
+    EXPECT_EQ(dcciList[0], "Add");
+    EXPECT_EQ(dcciList[1], "Mul");
+    
+    EXPECT_EQ(static_cast<NumberOptOption*>(opt4)->GetIntValue(), 1);
+}
+
+TEST_F(SuperKernelOptionsManagerTest, ParseOptions_WithPreExistingOptions)
+{
+    // 先添加一些选项
+    opts_test->AddOption(std::make_unique<NumberOptOption>("preload_code", aclskOtionType::PRELOAD_CODE, 0));
+    
+    // 然后解析包含相同类型选项的配置
+    aclskOption options[2];
+    options[0].optionType = aclskOtionType::PRELOAD_CODE;
+    options[0].preload.preloadMode = 1;
+    options[1].optionType = aclskOtionType::SPLIT_MODE;
+    options[1].splitMode.splitCnt = 4;
+    
+    aclskOptions optList;
+    optList.options = options;
+    optList.numOptions = 2;
+    
+    opts_test->ParseOptions(&optList);
+    
+    // 验证新选项没有被覆盖（因为已存在）
+    auto preloadOpt = opts_test->GetOption(aclskOtionType::PRELOAD_CODE);
+    auto splitOpt = opts_test->GetOption(aclskOtionType::SPLIT_MODE);
+    
+    ASSERT_NE(preloadOpt, nullptr);
+    ASSERT_NE(splitOpt, nullptr);
+    
+    // PRELOAD_CODE 应该保持原值（因为已存在）
+    EXPECT_EQ(static_cast<NumberOptOption*>(preloadOpt)->GetIntValue(), 0);
+    // SPLIT_MODE 应该是新值（因为不存在）
+    EXPECT_EQ(static_cast<NumberOptOption*>(splitOpt)->GetIntValue(), 4);
+}
+
+TEST_F(SuperKernelOptionsManagerTest, ParseOptions_MixedValidAndInvalid)
+{
+    // 测试混合有效和无效的选项
+    aclskOption options[3];
+    
+    options[0].optionType = aclskOtionType::PRELOAD_CODE;
+    options[0].preload.preloadMode = 1;
+    
+    options[1].optionType = aclskOtionType::SPLIT_MODE;
+    options[1].splitMode.splitCnt = 2;
+    
+    options[2].optionType = aclskOtionType::DEBUG_SYNC_ALL;
+    options[2].debugSync.debugSyncAll = 1;
+    
+    aclskOptions optList;
+    optList.options = options;
+    optList.numOptions = 3;
+    
+    opts_test->ParseOptions(&optList);
+    
+    // 验证所有有效选项都已解析
+    ASSERT_NE(opts_test->GetOption(aclskOtionType::PRELOAD_CODE), nullptr);
+    ASSERT_NE(opts_test->GetOption(aclskOtionType::SPLIT_MODE), nullptr);
+    ASSERT_NE(opts_test->GetOption(aclskOtionType::DEBUG_SYNC_ALL), nullptr);
+    
+    EXPECT_EQ(static_cast<NumberOptOption*>(opts_test->GetOption(aclskOtionType::PRELOAD_CODE))->GetIntValue(), 1);
+    EXPECT_EQ(static_cast<NumberOptOption*>(opts_test->GetOption(aclskOtionType::SPLIT_MODE))->GetIntValue(), 2);
+    EXPECT_EQ(static_cast<NumberOptOption*>(opts_test->GetOption(aclskOtionType::DEBUG_SYNC_ALL))->GetIntValue(), 1);
+}
+
+TEST_F(SuperKernelOptionsManagerTest, ParseOptions_EmptyOptionsList)
+{
+    // 测试空选项列表
+    aclskOptions optList;
+    optList.options = nullptr;
+    optList.numOptions = 0;
+    
+    // 不应崩溃
+    opts_test->ParseOptions(&optList);
+    
+    // 验证没有选项被添加
+    EXPECT_EQ(opts_test->GetOption(aclskOtionType::PRELOAD_CODE), nullptr);
+}
+
+TEST_F(SuperKernelOptionsManagerTest, ParseOptions_LargeNumberOptions)
+{
+    // 测试大量选项的解析
+    const int numOptions = 10;
+    aclskOption* options = new aclskOption[numOptions];
+    
+    for (int i = 0; i < numOptions; i++) {
+        if (i % 4 == 0) {
+            options[i].optionType = aclskOtionType::PRELOAD_CODE;
+            options[i].preload.preloadMode = i;
+        } else if (i % 4 == 1) {
+            options[i].optionType = aclskOtionType::SPLIT_MODE;
+            options[i].splitMode.splitCnt = i;
+        } else if (i % 4 == 2) {
+            const char* kernelNames[] = {"TestOp"};
+            options[i].optionType = aclskOtionType::DEBUG_DCCI_DISABLE_ON_KERNEL;
+            options[i].disableKernelDcci.kernelNames = const_cast<char**>(kernelNames);
+            options[i].disableKernelDcci.kernelCnt = 1;
+        } else {
+            options[i].optionType = aclskOtionType::DEBUG_SYNC_ALL;
+            options[i].debugSync.debugSyncAll = i % 2;
+        }
+    }
+    
+    aclskOptions optList;
+    optList.options = options;
+    optList.numOptions = numOptions;
+    
+    opts_test->ParseOptions(&optList);
+    
+    // 验证不同类型的选项数量
+    int preloadCount = 0;
+    int splitCount = 0;
+    int dcciCount = 0;
+    int syncCount = 0;
+    
+    for (int i = 0; i < numOptions; i++) {
+        if (i % 4 == 0 && opts_test->GetOption(aclskOtionType::PRELOAD_CODE)) preloadCount++;
+        else if (i % 4 == 1 && opts_test->GetOption(aclskOtionType::SPLIT_MODE)) splitCount++;
+        else if (i % 4 == 2 && opts_test->GetOption(aclskOtionType::DEBUG_DCCI_DISABLE_ON_KERNEL)) dcciCount++;
+        else if (i % 4 == 3 && opts_test->GetOption(aclskOtionType::DEBUG_SYNC_ALL)) syncCount++;
+    }
+    
+    EXPECT_GT(preloadCount, 0);
+    EXPECT_GT(splitCount, 0);
+    EXPECT_GT(dcciCount, 0);
+    EXPECT_GT(syncCount, 0);
+    
+    delete[] options;
+}
+
+// ==================== 综合测试 ====================
+
+TEST_F(SuperKernelOptionsManagerTest, CompleteWorkflow)
+{
+    // 添加多个选项
+    opts_test->AddOption(std::make_unique<NumberOptOption>("preload_code", aclskOtionType::PRELOAD_CODE, 1));
+    opts_test->AddOption(std::make_unique<NumberOptOption>("split_mode", aclskOtionType::SPLIT_MODE, 4));
+    opts_test->AddOption(std::make_unique<NumberOptOption>("debug_sync_all", aclskOtionType::DEBUG_SYNC_ALL, 1));
+    
+    // 验证所有选项都已添加
+    EXPECT_NE(opts_test->GetOption(aclskOtionType::PRELOAD_CODE), nullptr);
+    EXPECT_NE(opts_test->GetOption(aclskOtionType::SPLIT_MODE), nullptr);
+    EXPECT_NE(opts_test->GetOption(aclskOtionType::DEBUG_SYNC_ALL), nullptr);
+    
+    // 验证 debug 模式已启用
+    EXPECT_TRUE(opts_test->EnableDebug());
+    
+    // 验证 DCCI 判断
+    std::vector<std::string> dcciOps = {"Add", "Mul.*"};
+    EXPECT_TRUE(opts_test->JudgeDisableKernelDcci(dcciOps, "Add"));
+    EXPECT_FALSE(opts_test->JudgeDisableKernelDcci(dcciOps, "Sub"));
+}

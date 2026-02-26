@@ -99,8 +99,8 @@ OptOptionBase* SuperKernelOptionsManager::GetOption(const aclskOtionType optType
 bool SuperKernelOptionsManager::JudgeDisableKernelDcci(std::vector<std::string>& dcciOps, const std::string& opName) const {
     for (size_t i = 0; i < dcciOps.size(); i++) {
         try {
-            std::regex pattern(dcciOps[i]);
-            if (std::regex_match(opName, pattern)) {
+            std::regex pattern(dcciOps[i], std::regex_constants::extended);
+            if (std::regex_search(opName, pattern)) {
                 SK_LOGE("op: %s match disable dcci option: %s, op's dcci will be disabled",
                     opName.c_str(), dcciOps[i].c_str());
                 return true;

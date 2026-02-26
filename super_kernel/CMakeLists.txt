@@ -29,7 +29,8 @@ enable_language(ASC)
 if (NOT TARGET sk_kernel)
     add_subdirectory(kernel)
 endif()
-add_subdirectory(tests/aot/runtime)
+
+add_subdirectory(tests/aot/rdv/runtime)
 
 aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/src/aot SRC_FILES)
 
@@ -50,3 +51,7 @@ install(TARGETS ascendsk DESTINATION ascendsk/lib)
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/include/super_kernel/super_kernel.h
     DESTINATION ascendsk/include
 )
+
+if (ENABLE_TEST)
+    add_subdirectory(tests/aot)
+endif()
