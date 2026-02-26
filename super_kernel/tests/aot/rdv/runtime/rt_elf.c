@@ -23,7 +23,7 @@ void get_meta_info(const char *elf, const char *fun, uint32_t *kernel_type, uint
   const Elf64_Shdr *sh_hdr = (const Elf64_Shdr *)(elf + ehdr->e_shoff);
   const char *sh_str_tbl = elf + sh_hdr[ehdr->e_shstrndx].sh_offset;
   printf("elf %p sh cnt %ld fun name %s\n", elf, sh_cnt, fun);
-  int n_len = snprintf_s(meta_name, sizeof(meta_name), "%s.%s", ".ascend.meta", fun);
+  int n_len = snprintf_s(meta_name, sizeof(meta_name), sizeof(meta_name) - 1, "%s.%s", ".ascend.meta", fun);
   if (n_len < 0 || (size_t)n_len >= sizeof(meta_name)) {
     printf("[error] snprintf_s failed or meta_name truncated\n");
     return;

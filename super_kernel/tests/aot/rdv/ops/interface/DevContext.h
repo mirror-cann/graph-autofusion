@@ -37,11 +37,11 @@ public:
 
     template<typename T, bool auto_add = true>
     T* set_ptr_(uint64_t size, T value, const char* mode = "copy") {
-        const uint64_t MAX_SIZE = 64 * 1024 * 1024;  // 64MB
-        if (size == 0 || size > MAX_SIZE) {
-            std::cerr << "invalid size: " << size << std::endl;
-            return nullptr;
-        }
+        // const uint64_t MAX_SIZE = 64 * 1024 * 1024;  // 64MB
+        // if (size == 0 || size > MAX_SIZE) {
+        //     std::cerr << "invalid size: " << size << std::endl;
+        //     return nullptr;
+        // }
         T* ptr = nullptr;
         CHECK_ACL(aclrtMalloc((void **)&ptr, size * sizeof(T), ACL_MEM_MALLOC_HUGE_FIRST));
         if (strcmp(mode, "set") == 0) {

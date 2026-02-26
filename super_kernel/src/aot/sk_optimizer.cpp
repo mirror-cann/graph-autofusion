@@ -29,7 +29,7 @@ bool FileExists(const std::string &path) {
 }
 
 aclrtFuncHandle ResolveSkEntryFunc(const char *funcName) {
-    std::string skEntryPath = "./sk_oop/kernel/sk_entry.o";
+    std::string skEntryPath = "./super_kernel/kernel/sk_entry.o";
     if (!FileExists(skEntryPath)) {
         printf("[sk error] sk_entry.o not found, tried path: %s\n", skEntryPath.c_str());
         return nullptr;
