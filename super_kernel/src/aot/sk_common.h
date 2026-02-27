@@ -24,6 +24,17 @@ enum class SkNodeType: uint32_t {
     NODE_DEFAULT = 4,
 };
 
+inline const char* to_string(SkNodeType type) {
+    switch (type) {
+        case SkNodeType::NODE_KERNEL: return "KERNEL";
+        case SkNodeType::NODE_NOTIFY: return "NOTIFY";
+        case SkNodeType::NODE_WAIT:   return "WAIT";
+        case SkNodeType::NODE_RESET:  return "RESET";
+        case SkNodeType::NODE_DEFAULT: return "DEFAULT";
+        default: return "UNKNOWN";
+    }
+}
+
 enum class SkKernelType: uint32_t {
     AIC_ONLY = 1,
     AIV_ONLY = 2,
@@ -34,14 +45,38 @@ enum class SkKernelType: uint32_t {
     DEFAULT = 0xFFFFFFFF,
 };
 
+inline const char* to_string(SkKernelType type) {
+    switch (type) {
+        case SkKernelType::AIC_ONLY:     return "AIC_ONLY";
+        case SkKernelType::AIV_ONLY:     return "AIV_ONLY";
+        case SkKernelType::MIX_AIV_1_0:  return "MIX_AIV_1_0";
+        case SkKernelType::MIX_AIC_1_0:  return "MIX_AIC_1_0";
+        case SkKernelType::MIX_AIC_1_1:  return "MIX_1_1";
+        case SkKernelType::MIX_AIC_1_2:  return "MIX_1_2";
+        case SkKernelType::DEFAULT:      return "DEFAULT";
+        default: return "UNKNOWN";
+    }
+}
+
 enum class SkTaskType : uint8_t {
     TYPE_FUNC,
     TYPE_SYNC,
     TYPE_PRELOAD,
     TYPE_EVENT_NOTIFY,  // notify <---> wait
     TYPE_EVENT_WAIT,    // notify <---> wait
-    TYPE_MAX = 0xFF,
+    TYPE_MAX,
 };
+
+inline const char* to_string(SkTaskType type) {
+    switch (type) {
+        case SkTaskType::TYPE_FUNC:         return "FUNC";
+        case SkTaskType::TYPE_SYNC:         return "SYNC";
+        case SkTaskType::TYPE_PRELOAD:      return "PRELOAD";
+        case SkTaskType::TYPE_EVENT_NOTIFY: return "EVENT_NOTIFY";
+        case SkTaskType::TYPE_EVENT_WAIT:   return "EVENT_WAIT";
+        default: return "UNKNOWN";
+    }
+}
 
 enum class SkCoreSyncType : uint8_t {
     ALL_SYNC_DEBUG = 0,
@@ -53,6 +88,20 @@ enum class SkCoreSyncType : uint8_t {
     INTER_SYNC_WAIT_AIV_TO_AIC,
     SYNC_NONE,
 };
+
+inline const char* to_string(SkCoreSyncType type) {
+    switch (type) {
+        case SkCoreSyncType::ALL_SYNC_DEBUG:          return "ALL_SYNC_DEBUG";
+        case SkCoreSyncType::CROSS_SYNC_AIC_TO_AIC:   return "CROSS_AIC_TO_AIC";
+        case SkCoreSyncType::CROSS_SYNC_AIV_TO_AIV:   return "CROSS_AIV_TO_AIV";
+        case SkCoreSyncType::INTER_SYNC_SET_AIC_TO_AIV: return "SET_AIC_TO_AIV";
+        case SkCoreSyncType::INTER_SYNC_SET_AIV_TO_AIC: return "SET_AIV_TO_AIC";
+        case SkCoreSyncType::INTER_SYNC_WAIT_AIC_TO_AIV: return "WAIT_AIC_TO_AIC";
+        case SkCoreSyncType::INTER_SYNC_WAIT_AIV_TO_AIC: return "WAIT_AIV_TO_AIC";
+        case SkCoreSyncType::SYNC_NONE:               return "SYNC_NONE";
+        default: return "UNKNOWN";
+    }
+}
 
 
 

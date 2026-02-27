@@ -30,9 +30,9 @@ void GroupedMatmulKernel(uint32_t block_dim, void *stream,
                          uint8_t *offset, uint8_t *antiquantScale, uint8_t *antiquantOffset,
                          uint8_t *groupList, uint8_t *perTokenScale, uint8_t *y,
                          uint8_t *workspace, const GMMTilingData &tiling);
-void WeightQuantBatchMatmulV2Kernel(uint32_t blockDim, void *stream, uint8_t *x, uint8_t *weight, uint8_t *antiquantScale, uint8_t *antiquantOffset, uint8_t *quantScale, uint8_t *quantOffset, uint8_t *bias, uint8_t *y, uint8_t *workspace, const WeightQuantBatchMatmulV2MsdTilingData &tiling);
-void MatmulAdd(uint32_t blockDim, void *stream, uint8_t *x, uint8_t *y);
-void DequantSwiGluQuantDynamicKernel(uint32_t blockDim, void *stream,
+void WeightQuantBatchMatmulV2Kernel(uint32_t numBlocks, void *stream, uint8_t *x, uint8_t *weight, uint8_t *antiquantScale, uint8_t *antiquantOffset, uint8_t *quantScale, uint8_t *quantOffset, uint8_t *bias, uint8_t *y, uint8_t *workspace, const WeightQuantBatchMatmulV2MsdTilingData &tiling);
+void MatmulAdd(uint32_t numBlocks, void *stream, uint8_t *x, uint8_t *y);
+void DequantSwiGluQuantDynamicKernel(uint32_t numBlocks, void *stream,
                                          uint8_t *xGM, uint8_t *weightSscaleGM,
                                          uint8_t *activationScaleGM, uint8_t *biasGM,
                                          uint8_t *quantScaleGM, uint8_t *quantOffsetGM,
@@ -43,7 +43,7 @@ void GroupedMatmulKernelV2(uint32_t block_dim, void *stream,
                          uint8_t *offset, uint8_t *antiquantScale, uint8_t *antiquantOffset,
                          uint8_t *groupList, uint8_t *perTokenScale, uint8_t *y,
                          uint8_t *workspace, const GMMTilingData &tiling);
-void DequantSwiGluQuantDynamicKernel(uint32_t blockDim, void *stream,
+void DequantSwiGluQuantDynamicKernel(uint32_t numBlocks, void *stream,
                                          uint8_t *xGM, uint8_t *weightSscaleGM,
                                          uint8_t *activationScaleGM, uint8_t *biasGM,
                                          uint8_t *quantScaleGM, uint8_t *quantOffsetGM,

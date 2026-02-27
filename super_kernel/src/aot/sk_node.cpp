@@ -104,15 +104,12 @@ ResolvedFunctionInfo ResolveSkFunction(void *binHdl, const char *origName, const
     }
     ResolvedFunctionInfo info{};
     aclrtFuncHandle fhdl = nullptr;
-    aclrtFuncHandle ori_fhdl = nullptr;
-    CHECK_ACL(aclrtBinaryGetFunction((aclrtBinHandle)binHdl, origName, &ori_fhdl));
     CHECK_ACL(aclrtBinaryGetFunction((aclrtBinHandle)binHdl, skName, &fhdl));
     void *addr[2] = {nullptr, nullptr};
     CHECK_ACL(aclrtGetFunctionAddr(fhdl, addr, addr + 1));
     info.funcAddr[0] = (uint64_t)addr[0];
     info.funcAddr[1] = (uint64_t)addr[1];
     info.funcHdl = fhdl;
-    info.oriFuncHdl = ori_fhdl;
     return info;
 }
 
@@ -166,15 +163,15 @@ bool SuperKernelKernelNode::InitNode() {
     SK_LOGI("Kernel node %s for task %u in stream %u can be fused in super kernel.", kernelParams.func_name, nodeIdxInStream, streamIdxInGraph);
     isFusible = true;
 
-    nodeInfos.kernelInfos.skKernelType = kernelParams.sk_kernel_type;
     nodeInfos.kernelInfos.taskRatio[0] = kernelParams.sk_task_ratio[0];
     nodeInfos.kernelInfos.taskRatio[1] = kernelParams.sk_task_ratio[1];
-    nodeInfos.kernelInfos.kernelType = NormalizeKernelType(kernelParams.sk_kernel_type, kernelParams.sk_task_ratio);
+    nodeInfos.kernelInfos.kernelType = NormalizeKernelType(kernelParams.sk_kernel_type, kernelParams.sk_task_ratio); // todo : 通过aclrtGetFunctionAttribute进行获取 参数选项：,ratio也是通过参数选项进行获取
     nodeInfos.kernelInfos.numBlocks = originTask->kernel.numBlocks;
     nodeInfos.kernelInfos.devArgs = originTask->kernel.devArgs;
     nodeInfos.kernelInfos.binHdl = reinterpret_cast<aclrtBinHandle>(kernelParams.binHandle);
+    nodeInfos.kernelInfos.funcHdl = kernelParams.funcHandle;
     if (kernelParams.func_name != nullptr) {
-        nodeInfos.kernelInfos.funcName = kernelParams.func_name;
+        nodeInfos.kernelInfos.funcName = kernelParams.func_name;  // todo ： 需要调用aclrtGetFunctionName进行获取
     }
     if (!nodeInfos.kernelInfos.funcName.empty() && nodeInfos.kernelInfos.binHdl != nullptr) {
         for (size_t i = 0; i < kMaxSplitBinCount; ++i) {
@@ -193,12 +190,75 @@ bool SuperKernelKernelNode::InValidateNode() {
         return false;
     }
     SK_LOGI("Invalidating kernel node %s for task %u in stream %u, which will be fused in super kernel.", kernelParams.func_name, nodeIdxInStream, streamIdxInGraph);
-    kernelParams.flag = ACL_RT_TASK_INVALID;
+    kernelParams.flag = aclrtTaskFlag::ACL_RT_TASK_INVALID;
     if (aclrtTaskSetKernelParams(*originTask, &kernelParams) != ACL_SUCCESS) {
         SK_LOGE("Failed to invalidate kernel node %s for task %u in stream %u", kernelParams.func_name, nodeIdxInStream, streamIdxInGraph);
         return false;
     }
     return true;
+}
+
+bool SuperKernelKernelNode::Update(const UpdateContext &ctx) {
+    // 无参数 → invalid
+    if (ctx.launchInfo == nullptr || ctx.skEntryFunc == nullptr) {
+        return InValidateNode();
+    }
+
+    // 有参数 → 持久化到 RTS buffer
+    aclrtArgsHandle ahdl = nullptr;
+    aclrtParamHandle phdl = nullptr;
+    size_t memSize = 0;
+    size_t devArgsSize = 0;
+    void *buf = nullptr;
+    void *argsPtr = nullptr;
+
+    const size_t MAX_HANDLE_MEM_SIZE = 1024 * 1024;  // 1MB 
+    const size_t MAX_ARGS_MEM_SIZE = 256 * 1024 * 1024;  // 64MB 
+    CHECK_ACL(aclrtKernelArgsGetHandleMemSize(ctx.skEntryFunc, &memSize)); 
+    if (memSize == 0 || memSize > MAX_HANDLE_MEM_SIZE) { 
+        printf("[sk error] invalid memSize: %zu\n", memSize); 
+        return false; 
+    } 
+    ahdl = (aclrtArgsHandle)malloc(memSize);
+    if (ahdl == nullptr) {
+        printf("[sk error] malloc memSize failed\n");
+        return false;
+    }
+    CHECK_ACL(aclrtKernelArgsGetMemSize(ctx.skEntryFunc, ctx.launchInfo->devArgs.get()->skHeader.totalSize, &devArgsSize));
+    if (devArgsSize == 0 || devArgsSize > MAX_ARGS_MEM_SIZE) {
+        printf("[sk error] invalid devArgsSize: %zu\n", devArgsSize);
+        return false;
+    }
+    void *devArgs = nullptr;
+    devArgs = malloc(devArgsSize);
+    if (devArgs == nullptr) {
+        printf("[sk error] malloc devArgsSize failed\n");
+        return false;
+    }
+    CHECK_ACL(aclrtKernelArgsInitByUserMem(ctx.skEntryFunc, ahdl, devArgs, devArgsSize));
+
+    CHECK_ACL(aclrtKernelArgsAppendPlaceHolder(ahdl, &phdl));
+    CHECK_ACL(aclrtKernelArgsGetPlaceHolderBuffer(ahdl, phdl, ctx.launchInfo->devArgs.get()->skHeader.totalSize, (void**)&argsPtr));
+    errno_t err = memcpy_s(argsPtr, ctx.launchInfo->devArgs.get()->skHeader.totalSize, ctx.launchInfo->devArgs.get(), ctx.launchInfo->devArgs.get()->skHeader.totalSize);
+    if (err != 0) {
+        printf("[sk error] memcpy_s failed\n");
+        return false;
+    } 
+    CHECK_ACL(aclrtKernelArgsFinalize(ahdl));
+
+    kernelParams.funcHandle = ctx.skEntryFunc;
+    kernelParams.argsHandle = ahdl;
+    kernelParams.numBlocks = ctx.launchInfo->entryInfo.numBlocks;
+    kernelParams.flag = aclrtTaskFlag::ACL_RT_TASK_VALID;
+
+    bool ret = (aclrtTaskSetKernelParams(*originTask, &kernelParams) == ACL_SUCCESS);
+    if (!ret) {
+        SK_LOGE("Failed to update kernel node %s for task %u in stream %u", kernelParams.func_name, nodeIdxInStream, streamIdxInGraph);
+    } else {
+        SK_LOGI("Updated kernel node %s for task %u in stream %u with argsHandle", kernelParams.func_name, nodeIdxInStream, streamIdxInGraph);
+    }
+
+    return ret;
 }
 
 bool SuperKernelEventNode::InitNode() {
@@ -226,7 +286,7 @@ bool SuperKernelEventNode::InValidateNode() {
         return false;
     }
     SK_LOGI("Invalidating event node with eventId %lu for task %u in stream %u, which will be fused in super kernel.", nodeInfos.syncInfos.eventId, nodeIdxInStream, streamIdxInGraph);
-    eventParams.flag = ACL_RT_TASK_INVALID;
+    eventParams.flag = aclrtTaskFlag::ACL_RT_TASK_INVALID;
     if (aclrtTaskSetEventParams(*originTask, &eventParams) != ACL_SUCCESS) {
         SK_LOGE("Failed to invalidate event node with eventId %lu for task %u in stream %u", nodeInfos.syncInfos.eventId, nodeIdxInStream, streamIdxInGraph);
         return false;
@@ -255,7 +315,7 @@ bool SuperKernelMemoryNode::InValidateNode() {
         return false;
     }
     SK_LOGI("Invalidating memory node with eventId %lu for task %u in stream %u, which will be fused in super kernel.", nodeInfos.syncInfos.eventId, nodeIdxInStream, streamIdxInGraph);
-    memValueParams.flag = ACL_RT_TASK_INVALID;
+    memValueParams.flag = aclrtTaskFlag::ACL_RT_TASK_INVALID;
     if (aclrtTaskSetMemValueParams(*originTask, &memValueParams) != ACL_SUCCESS) {
         SK_LOGE("Failed to invalidate memory node with eventId %lu for task %u in stream %u", nodeInfos.syncInfos.eventId, nodeIdxInStream, streamIdxInGraph);
         return false;

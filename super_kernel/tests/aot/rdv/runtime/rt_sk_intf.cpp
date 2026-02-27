@@ -15,6 +15,7 @@
 #include "acl/acl.h"
 #endif
 
+#include <cstdio>
 #include <deque>
 #include <memory>
 #include <unordered_map>
@@ -57,7 +58,39 @@ public:
 	}
 
     void Replay() {
-        // No-op for stub
+        std::lock_guard<std::mutex> lock(mu_);
+
+        for (auto& bucket : buckets_) {
+            for (auto& task : bucket->tasks) {
+                // 只处理 KERNEL 类型且 VALID 的任务
+                if (task.type != ACL_RT_TASK_KERNEL) {
+                    continue;
+                }
+                if (task.kernel.flag != ACL_RT_TASK_VALID) {
+                    continue;  // INVALID 的跳过（被融合的节点）
+                }
+
+                // 下面的launch似乎有些信息不太对，增加一些打印信息用于debug
+                printf("[sk debug] launch kernel: funcHdl=%p, argsHdl=%p, numBlocks=%u, stream=%p\n",
+                    task.kernel.funcHandle,
+                    task.kernel.argsHandle,
+                    task.kernel.numBlocks,
+                    bucket->handle);
+
+                // 执行 launch
+                if (task.kernel.argsHandle != nullptr && task.kernel.funcHandle != nullptr) {
+                    aclrtLaunchKernelWithConfig(
+                        task.kernel.funcHandle,
+                        task.kernel.numBlocks,
+                        bucket->handle,
+                        nullptr,
+                        task.kernel.argsHandle,
+                        nullptr
+                    );
+                }
+                aclrtSynchronizeStreamWithTimeout(bucket->handle, 1000);
+            }
+        }
     }
 
 	static RtsObjectStub& Instance() {
@@ -176,7 +209,27 @@ public:
 		if (!stored || stored->type != ACL_RT_TASK_KERNEL) {
 			return false;
 		}
-		stored->kernel = *params;
+
+		// 浅拷贝 argsHandle（生命周期由调用方管理）
+		stored->kernel.argsHandle = params->argsHandle;
+
+		// 拷贝其他字段
+		stored->kernel.type = params->type;
+		stored->kernel.flag = params->flag;
+		stored->kernel.funcHandle = params->funcHandle;
+		stored->kernel.binHandle = params->binHandle;
+		stored->kernel.cfg = params->cfg;
+		stored->kernel.taskGrp = params->taskGrp;
+		stored->kernel.devArgs = params->devArgs;
+		stored->kernel.argsSize = params->argsSize;
+		stored->kernel.opInfoPtr = params->opInfoPtr;
+		stored->kernel.opInfoSize = params->opInfoSize;
+		stored->kernel.numBlocks = params->numBlocks;
+		stored->kernel.func_name = params->func_name;
+		stored->kernel.sk_kernel_type = params->sk_kernel_type;
+		stored->kernel.sk_task_ratio[0] = params->sk_task_ratio[0];
+		stored->kernel.sk_task_ratio[1] = params->sk_task_ratio[1];
+		stored->kernel.pExtend = params->pExtend;
 		return true;
 	}
 
@@ -360,7 +413,6 @@ private:
 					rec.kernel.opInfoSize = 0;
 					rec.kernel.numBlocks = info[i].numBlocks;
 					rec.kernel.func_name = info[i].func_name;
-					rec.kernel.sk_bin_hdl = info[i].bin_hdl;
 					rec.kernel.sk_kernel_type = info[i].kernel_type;
 					rec.kernel.sk_task_ratio[0] = info[i].task_ratio[0];
 					rec.kernel.sk_task_ratio[1] = info[i].task_ratio[1];
@@ -514,6 +566,10 @@ void rt_sk_stop_capture(void) {
 void rt_sk_capture_snapshot(void) {
 	RtsObjectStub::Instance().StartCapture();
 	RtsObjectStub::Instance().StopCapture();
+}
+
+void rt_sk_replay(void) {
+	RtsObjectStub::Instance().Replay();
 }
 
 }  // extern "C"

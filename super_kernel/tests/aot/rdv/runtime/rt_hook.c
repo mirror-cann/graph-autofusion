@@ -227,22 +227,22 @@ int rtDevBinaryRegister(const rtDevBinary_t *bin, void **hdl)
   return ret;
 }
 __attribute__((visibility("default")))
-int rtKernelLaunchWithFlagV2(const void *stubFunc, uint32_t blockDim, rtArgsEx_t *argsInfo,
+int rtKernelLaunchWithFlagV2(const void *stubFunc, uint32_t numBlocks, rtArgsEx_t *argsInfo,
   void *smDesc, void *stm, uint32_t flags, const void *cfgInfo)
 {
-  typedef int (*launch_fun)(const void *stubFunc, uint32_t blockDim, rtArgsEx_t *argsInfo,
+  typedef int (*launch_fun)(const void *stubFunc, uint32_t numBlocks, rtArgsEx_t *argsInfo,
     void *smDesc, void *stm, uint32_t flags, const void *cfgInfo);
   static __thread launch_fun fun;
   if (!fun) {
     fun = (launch_fun)get_rt_func("rtKernelLaunchWithFlagV2");
   }
-  add_kernel((const char *)stubFunc, argsInfo->argsSize, argsInfo->args, blockDim, (uint64_t)stm, 1);
+  add_kernel((const char *)stubFunc, argsInfo->argsSize, argsInfo->args, numBlocks, (uint64_t)stm, 1);
   printf("==============rtKernelLaunchWithFlagV2=============\n");
   if (g_rt_dry_run) {
     printf("===============dry run mode ===============\n");
     return 0;
   }
-  return fun(stubFunc, blockDim, argsInfo, smDesc, stm, flags, cfgInfo);
+  return fun(stubFunc, numBlocks, argsInfo, smDesc, stm, flags, cfgInfo);
 }
 __attribute__((visibility("default")))
 int rtFunctionRegister(void *binHandle, const void *stubFunc, const char *stubName,
@@ -259,22 +259,22 @@ int rtFunctionRegister(void *binHandle, const void *stubFunc, const char *stubNa
   return fun(binHandle, stubFunc, stubName, kernelInfoExt, funcMode);
 }
 __attribute__((visibility("default")))
-int rtKernelLaunch(const void *stubFunc, uint32_t blockDim, void *args, uint32_t argsSize,
+int rtKernelLaunch(const void *stubFunc, uint32_t numBlocks, void *args, uint32_t argsSize,
   void *smDesc, void *stm)
 {
-  typedef int (*launch_fun)(const void *stubFunc, uint32_t blockDim, void *args, uint32_t argsSize,
+  typedef int (*launch_fun)(const void *stubFunc, uint32_t numBlocks, void *args, uint32_t argsSize,
     void *smDesc, void *stm);
   static __thread launch_fun fun;
   if (!fun) {
     fun = (launch_fun)get_rt_func("rtKernelLaunch");
   }
-  add_kernel((const char *)stubFunc, argsSize, args, blockDim, (uint64_t)stm, 1);
+  add_kernel((const char *)stubFunc, argsSize, args, numBlocks, (uint64_t)stm, 1);
   printf("==============rtKernelLaunch=============\n");
   if (g_rt_dry_run) {
     printf("===============dry run mode ===============\n");
     return 0;
   }
-  return fun(stubFunc, blockDim, args, argsSize, smDesc, stm);
+  return fun(stubFunc, numBlocks, args, argsSize, smDesc, stm);
 }
 static int __rtsBinaryLoadFromData(const void *data, const uint64_t length, void *cfg, void **binHandle)
 {

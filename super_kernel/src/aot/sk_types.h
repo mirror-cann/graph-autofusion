@@ -15,7 +15,9 @@
 #include <stdint.h>
 #include <iostream>
 #include <cstring>
+#include <limits>
 #include <vector>
+#include <memory>
 
 #include "securec.h"
 #include "acl/acl.h"
@@ -45,105 +47,180 @@ constexpr uint64_t INVALID_TASK_ID = 0xFFFFFFFFFFFFFFFF;
     } while (0);
 
 inline size_t GetTaskQueSize(const TaskQue *que) {
+    if (que == nullptr) {
+        return 0;
+    }
     return sizeof(TaskQue) + que->taskCnt * sizeof(TaskInfo);
 }
 
-struct SkTask {
-    uint32_t blockDim;
-    TaskQue *taskQue;
-    uint32_t funcCnt = 0;
-    SkKernelType nodeType = SkKernelType::DEFAULT;
+class TaskQuePtr {
+    std::unique_ptr<uint8_t[]> data_;
+    TaskQue* taskQue_;
+    size_t capacity_;
 
-    SkTask()
-        : blockDim(0), taskQue(nullptr), funcCnt(0), nodeType(SkKernelType::DEFAULT) {}
-
-    SkTask(const SkTask &) = delete;
-    SkTask &operator=(const SkTask &) = delete;
-
-    SkTask(SkTask &&other) noexcept
-        : blockDim(other.blockDim),
-          taskQue(other.taskQue),
-          funcCnt(other.funcCnt),
-          nodeType(other.nodeType) {
-        other.taskQue = nullptr;
-        other.blockDim = 0;
-        other.funcCnt = 0;
-        other.nodeType = SkKernelType::DEFAULT;
+public:
+    TaskQuePtr(size_t cap) {
+        capacity_ = 0;
+        taskQue_ = nullptr;
+        if (cap > (std::numeric_limits<size_t>::max() - sizeof(TaskQue)) / sizeof(TaskInfo)) {
+            printf("[sk error] TaskQuePtr size overflow, cap=%zu\n", cap);
+            return;
+        }
+        size_t size = sizeof(TaskQue) + sizeof(TaskInfo) * cap;
+        data_ = std::make_unique<uint8_t[]>(size);
+        taskQue_ = reinterpret_cast<TaskQue*>(data_.get());
+        taskQue_->cap = static_cast<uint32_t>(cap);
+        taskQue_->taskCnt = 0;
+        taskQue_->fftsAddr = 0;
+        capacity_ = cap;
     }
 
-    SkTask &operator=(SkTask &&other) noexcept {
+    void expand() {
+        if (taskQue_ == nullptr) {
+            return;
+        }
+
+        size_t extendSize = static_cast<size_t>(taskQue_->cap) * static_cast<size_t>(TASK_QUE_EXPAND_FACTOR);
+        if (extendSize <= taskQue_->cap || extendSize > std::numeric_limits<uint32_t>::max()) {
+            printf("[sk error] TaskQuePtr expand cap overflow, cap=%u\n", taskQue_->cap);
+            return;
+        }
+        if (extendSize > (std::numeric_limits<size_t>::max() - sizeof(TaskQue)) / sizeof(TaskInfo)) {
+            printf("[sk error] TaskQuePtr expand size overflow, extendSize=%zu\n", extendSize);
+            return;
+        }
+        size_t newSize = sizeof(TaskQue) + sizeof(TaskInfo) * extendSize;
+
+        std::unique_ptr<uint8_t[]> newData = std::make_unique<uint8_t[]>(newSize);
+
+        TaskQue* newTaskQue = reinterpret_cast<TaskQue*>(newData.get());
+
+        size_t oldSize = sizeof(TaskQue) + sizeof(TaskInfo) * taskQue_->cap;
+        errno_t err = memcpy_s(newData.get(), newSize, data_.get(), oldSize);
+        if (err != 0) {
+            printf("[sk error] TaskQuePtr expand memcpy failed\n");
+            return;
+        }
+        
+        newTaskQue->cap = static_cast<uint32_t>(extendSize);
+        data_ = std::move(newData);
+        taskQue_ = newTaskQue;
+        capacity_ = extendSize;
+    }
+
+    TaskQue* get() const { return taskQue_; }
+
+    TaskQuePtr() noexcept : data_(nullptr), taskQue_(nullptr), capacity_(0) {}
+
+    TaskQuePtr(TaskQuePtr&& other) noexcept
+        : data_(std::move(other.data_)),
+          taskQue_(other.taskQue_),
+          capacity_(other.capacity_) {
+        other.taskQue_ = nullptr;
+        other.capacity_ = 0;
+    }
+
+    TaskQuePtr& operator=(TaskQuePtr&& other) noexcept {
         if (this != &other) {
-            this->~SkTask();
-            blockDim = other.blockDim;
-            taskQue = other.taskQue;
-            funcCnt = other.funcCnt;
-            nodeType = other.nodeType;
-            other.taskQue = nullptr;
-            other.blockDim = 0;
-            other.funcCnt = 0;
-            other.nodeType = SkKernelType::DEFAULT;
+            data_ = std::move(other.data_);
+            taskQue_ = other.taskQue_;
+            capacity_ = other.capacity_;
+            other.taskQue_ = nullptr;
+            other.capacity_ = 0;
         }
         return *this;
     }
 
-    ~SkTask() {
-        TaskQue *taskQue = this->taskQue;
-        if (taskQue) {
-            taskQue->taskCnt = 0;
-            free(taskQue);
+    TaskQuePtr(const TaskQuePtr&) = delete;
+    TaskQuePtr& operator=(const TaskQuePtr&) = delete;
+};
+
+class DeviceArgsPtr {
+    std::unique_ptr<uint8_t[]> data_;
+    SkDeviceEntryArgs* args_;
+
+public:
+    DeviceArgsPtr(size_t size) {
+        args_ = nullptr;
+        if (size == 0) {
+            return;
         }
+        data_ = std::make_unique<uint8_t[]>(size);
+        args_ = reinterpret_cast<SkDeviceEntryArgs*>(data_.get());
     }
+
+    SkDeviceEntryArgs* get() const { return args_; }
+
+    DeviceArgsPtr() noexcept : data_(nullptr), args_(nullptr) {}
+
+    DeviceArgsPtr(DeviceArgsPtr&& other) noexcept
+        : data_(std::move(other.data_)),
+          args_(other.args_) {
+        other.args_ = nullptr;
+    }
+
+    DeviceArgsPtr& operator=(DeviceArgsPtr&& other) noexcept {
+        if (this != &other) {
+            data_ = std::move(other.data_);
+            args_ = other.args_;
+            other.args_ = nullptr;
+        }
+        return *this;
+    }
+
+    DeviceArgsPtr(const DeviceArgsPtr&) = delete;
+    DeviceArgsPtr& operator=(const DeviceArgsPtr&) = delete;
+};
+
+struct SkTask {
+    uint32_t numBlocks;
+    TaskQuePtr taskQue;
+    uint32_t funcCnt = 0;
+    SkKernelType nodeType = SkKernelType::DEFAULT;
+
+    SkTask() = default;
+    SkTask(const SkTask &) = delete;
+    SkTask &operator=(const SkTask &) = delete;
+    SkTask(SkTask &&) = default;
+    SkTask &operator=(SkTask &&) = default;
 };
 
 struct SkHostEntryInfo {
-    uint32_t blockDim;
+    uint32_t numBlocks;
     uint32_t nodeCnt;
-    const char *funcName;
-    SkDfxInfo *dfxInfos;
+    const char *skEntryFuncName;
 
     SkHostEntryInfo()
-        : blockDim(0), nodeCnt(0), funcName(nullptr), dfxInfos(nullptr) {}
+        : numBlocks(0), nodeCnt(0), skEntryFuncName(nullptr) {}
 
     SkHostEntryInfo(const SkHostEntryInfo &) = delete;
     SkHostEntryInfo &operator=(const SkHostEntryInfo &) = delete;
 
     SkHostEntryInfo(SkHostEntryInfo &&other) noexcept
-        : blockDim(other.blockDim),
+        : numBlocks(other.numBlocks),
           nodeCnt(other.nodeCnt),
-          funcName(other.funcName),
-          dfxInfos(other.dfxInfos) {
-        other.funcName = nullptr;
-        other.dfxInfos = nullptr;
-        other.blockDim = 0;
+          skEntryFuncName(other.skEntryFuncName) {
+        other.skEntryFuncName = nullptr;
+        other.numBlocks = 0;
         other.nodeCnt = 0;
     }
 
     SkHostEntryInfo &operator=(SkHostEntryInfo &&other) noexcept {
         if (this != &other) {
-            this->~SkHostEntryInfo();
-            blockDim = other.blockDim;
+            numBlocks = other.numBlocks;
             nodeCnt = other.nodeCnt;
-            funcName = other.funcName;
-            dfxInfos = other.dfxInfos;
-            other.funcName = nullptr;
-            other.dfxInfos = nullptr;
-            other.blockDim = 0;
+            skEntryFuncName = other.skEntryFuncName;
+            other.skEntryFuncName = nullptr;
+            other.numBlocks = 0;
             other.nodeCnt = 0;
         }
         return *this;
     }
 
-    ~SkHostEntryInfo() {
-        if (this->dfxInfos) {
-            free(this->dfxInfos);
-            this->dfxInfos = nullptr;
-        }
-    }
+    ~SkHostEntryInfo() = default;
 };
 
-struct BuildResult {
-    SkTask aicTask;
-    SkTask aivTask;
+struct SkLaunchInfo {
     SkHostEntryInfo entryInfo;
-    SkDeviceEntryArgs *devArgs;
+    DeviceArgsPtr devArgs;
 };

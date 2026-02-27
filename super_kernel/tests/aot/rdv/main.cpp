@@ -81,5 +81,8 @@ int32_t main(int32_t argc, char *argv[])
     aclmdlRI sub_var1;
     aclskOptions *sub_var2 = nullptr;
     CHECK_ACL(aclskOptimize(sub_var1, sub_var2));
+
+    rt_sk_replay();
+
     return 0;
 }

@@ -32,6 +32,16 @@ enum class SkQueueType : uint8_t {
     UNKNOWN = 0xFF, // 未知/无效类型（用于调试同步等特殊场景）
 };
 
+inline const char* to_string(SkQueueType type) {
+    switch (type) {
+        case SkQueueType::AIC: return "AIC";
+        case SkQueueType::AIV: return "AIV";
+        case SkQueueType::MIX: return "MIX";
+        case SkQueueType::UNKNOWN: return "UNKNOWN";
+        default: return "UNKNOWN";
+    }
+}
+
 // ========== 新的同步数据结构（节点导向，对齐Python实现） ==========
 
 // 同步方向类型（对应Python的 "cub:vec", "vec:cub" 等）
@@ -44,6 +54,19 @@ enum class SyncDirection : uint8_t {
     BOTH,            // 双向同步（MIX -> MIX）
     DEBUG,           // 调试使用的全核同步
 };
+
+inline const char* to_string(SyncDirection dir) {
+    switch (dir) {
+        case SyncDirection::NONE:      return "NONE";
+        case SyncDirection::CUB_TO_CUB: return "CUB_TO_CUB";
+        case SyncDirection::VEC_TO_VEC: return "VEC_TO_VEC";
+        case SyncDirection::CUB_TO_VEC: return "CUB_TO_VEC";
+        case SyncDirection::VEC_TO_CUB: return "VEC_TO_CUB";
+        case SyncDirection::BOTH:       return "BOTH";
+        case SyncDirection::DEBUG:      return "DEBUG";
+        default: return "UNKNOWN";
+    }
+}
 
 // 每个任务的同步信息
 struct TaskSyncInfo {
@@ -68,7 +91,7 @@ public:
     SkTaskBuilder(SuperKernelOptionsManager &opts, const SuperKernelGraph &graph)
         : opts(opts), graph_(graph) {}
 
-    BuildResult Build(const std::vector<SuperKernelBaseNode *> &tasks);
+    SkLaunchInfo Build(const std::vector<SuperKernelBaseNode *> &tasks);
 
 private:
     SuperKernelOptionsManager &opts;
@@ -130,7 +153,8 @@ private:
     void PrintSyncInfo(const char* stage);
 
     SkHostEntryInfo GenEntryInfo(SkTask &skTaskCube, SkTask &skTaskVec);
-    SkDeviceEntryArgs *GenEntryArgs(const SkHostEntryInfo &entryInfo,
-                                             const SkTask &skTaskCube,
-                                             const SkTask &skTaskVec);
+    DeviceArgsPtr GenEntryArgs(const SkTask &skTaskCube,
+                                              const SkTask &skTaskVec,
+                                              const SkDfxInfo *dfxInfos,
+                                              uint32_t dfxCount);
 };

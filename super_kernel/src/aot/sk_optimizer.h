@@ -17,15 +17,12 @@
 
 /**
  * @brief Super Kernel 优化器 - 核心编排类 (Facade Pattern)
- * 
+ *
  * 职责：
  * 1. 解析运行时选项为 OptimizeOptions
  * 2. 从模型中捕获任务信息
  * 3. 使用 SkTaskBuilder 构建优化任务
- * 4. 使用 KernelLauncher 启动内核
- * 
- * 设计：
- * - 直接调用 KernelLauncher（只保留 V2）
+ * 4. 通过 Update 持久化参数到 RTS buffer，支持 replay
  */
 class SuperKernelOptimizer {
 public:
@@ -40,5 +37,5 @@ private:
                                                      const std::vector<uint64_t> &headIds,
                                                      const std::vector<uint64_t> &tailIds) const;
     void Schedule(const SuperKernelScopeInfo &scopeInfo, const SuperKernelGraph &graph);
-    static void DumpLaunchDebug(const SkHostEntryInfo &entryInfo, const SkDeviceEntryArgs *skEntryArgs);
+    void Update(const SuperKernelScopeInfo &scopeInfo, const SkLaunchInfo &launchInfo, aclrtFuncHandle skEntryFunc);
 };

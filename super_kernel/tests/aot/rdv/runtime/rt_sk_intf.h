@@ -94,7 +94,6 @@ typedef struct aclrtTaskKernelParams{
     uint32_t numBlocks;
     // Temporary: embed sk info here instead of aclrtTaskSkInfo.
     const char* func_name;
-    void* sk_bin_hdl;
     uint32_t sk_kernel_type;
     uint32_t sk_task_ratio[2];
     uint32_t reserve1[8];
@@ -163,6 +162,7 @@ aclError aclmdlRIUpdate(aclmdlRI modelRI);
 void rt_sk_start_capture(void);
 void rt_sk_stop_capture(void);
 void rt_sk_capture_snapshot(void);
+void rt_sk_replay(void);
 
 // aclError aclrtGetFunctionSize(aclrtFuncHandle funcHandle, size_t *aicSize, size_t *aivSize);
 // aclError aclrtGetFunctionAttribute(aclrtFuncHandle funcHandle, aclrtFuncAttribute attrType, int64_t *attrValue);

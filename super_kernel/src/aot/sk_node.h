@@ -26,26 +26,31 @@
 
 // Forward declaration
 class SuperKernelGraph;
+struct SkLaunchInfo;
+
+// Update context for node update operations
+struct UpdateContext {
+    SkLaunchInfo* launchInfo = nullptr;
+    aclrtFuncHandle skEntryFunc = nullptr;
+    // Future extensions can be added here
+};
 
 struct ResolvedFunctionInfo {
     uint64_t funcAddr[2] = {0, 0};
     uint64_t prefetchCnt[2] = {0, 0};
     aclrtFuncHandle funcHdl = nullptr;
-    aclrtFuncHandle oriFuncHdl = nullptr;
 };
 
 constexpr size_t kMaxSplitBinCount = 4;
 
 struct KernelInfos {
     SkKernelType kernelType = SkKernelType::DEFAULT;
-    uint32_t skKernelType = 0;
     uint32_t taskRatio[2] = {0, 0};
     uint32_t numBlocks = 0;
     const void *devArgs = nullptr;
     std::string funcName;
     aclrtBinHandle binHdl = nullptr;
     aclrtFuncHandle funcHdl = nullptr;
-    aclrtFuncHandle oriFuncHdl = nullptr;
     ResolvedFunctionInfo resolvedFuncs[4];
 };
 
@@ -113,6 +118,10 @@ public:
 
     virtual const NodeInfos& GetNodeInfos() const { return nodeInfos; }
 
+    virtual bool Update(const UpdateContext &ctx = {}) {
+        return InValidateNode();
+    }
+
     virtual bool InValidateNode() = 0;
 
     // Task Type
@@ -145,6 +154,7 @@ public:
     uint32_t GetNumBlocks() const override { return nodeInfos.kernelInfos.numBlocks; }
     SkKernelType GetKernelType() const override { return nodeInfos.kernelInfos.kernelType; }
     bool InValidateNode() override;
+    bool Update(const UpdateContext &ctx) override;
 private:
     aclrtTaskKernelParams kernelParams;
 };
