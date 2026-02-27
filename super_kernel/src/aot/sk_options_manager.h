@@ -26,6 +26,13 @@
 #include "super_kernel.h"
 
 
+/*!
+ * \brief Base class for optimization options, providing common interface for different option types.
+ *
+ * This abstract base class defines the interface for all optimization option types, including
+ * name, type, and value accessors. Concrete classes (NumberOptOption, StringOptOption, etc.)
+ * implement type-specific value storage and retrieval logic.
+ */
 class OptOptionBase {
 public:
     explicit OptOptionBase(std::string name, aclskOtionType optionTypeIn)
@@ -46,7 +53,6 @@ public:
     virtual void SetValue(const std::string& value) {}
     virtual void SetValue(const std::vector<std::string>& value) {}
     virtual void SetValue(const std::unordered_map<std::string, std::vector<std::string>>& value) {}
-
     virtual uint32_t GetIntValue() const {
         return 0;
     }
@@ -68,6 +74,12 @@ protected:
     aclskOtionType optionType = aclskOtionType::SK_OPTION_MAX;
 };
 
+/*!
+ * \brief Integer-type optimization option with value range validation.
+ *
+ * Stores numeric options with optional minimum and maximum bounds.
+ * Values outside the specified range will be rejected during setting.
+ */
 class NumberOptOption : public OptOptionBase {
 public:
     NumberOptOption(std::string name, aclskOtionType optionTypeIn,
@@ -79,7 +91,6 @@ public:
     {}
 
     void SetValue(const uint32_t value) override;
-
     uint32_t GetIntValue() const override;
 private:
     uint32_t optValue = 0;
@@ -87,6 +98,11 @@ private:
     uint32_t optValueMax = 0;
 };
 
+/*!
+ * \brief String-type optimization option.
+ *
+ * Stores string-based options such as file paths, operation names, or configuration strings.
+ */
 class StringOptOption : public OptOptionBase {
 public:
     StringOptOption(std::string name, aclskOtionType optionTypeIn,
@@ -96,13 +112,18 @@ public:
     {}
 
     void SetValue(const std::string& value) override;
-
     std::string GetStringValue() const override;
 
 private:
     std::string optValue;
 };
 
+/*!
+ * \brief String list-type optimization option.
+ *
+ * Stores collections of string values, useful for multi-valued options
+ * such as operation lists, include directories, or configuration sets.
+ */
 class StringListOptOption : public OptOptionBase {
 public:
     StringListOptOption(std::string name, aclskOtionType optionTypeIn,
@@ -112,13 +133,18 @@ public:
     {}
 
     void SetValue(const std::vector<std::string>& value) override;
-
     std::vector<std::string> GetStringListValue() const override;
 
 private:
     std::vector<std::string> optValue;
 };
 
+/*!
+ * \brief Map-type optimization option with string keys and string list values.
+ *
+ * Stores key-value pairs where each key maps to a list of strings.
+ * Suitable for complex configuration options like operation attributes or named parameter lists.
+ */
 class MapOptOption : public OptOptionBase {
 public:
     MapOptOption(std::string name, aclskOtionType optionTypeIn,
@@ -128,13 +154,26 @@ public:
     {}
 
     void SetValue(const std::unordered_map<std::string, std::vector<std::string>>& value) override;
-
     std::unordered_map<std::string, std::vector<std::string>> GetMapValue() const override;
 
 private:
     std::unordered_map<std::string, std::vector<std::string>> optValue;
 };
 
+/*!
+ * \brief Manager class for super kernel optimization options.
+ *
+ * This class manages a collection of optimization options of various types (integer, string,
+ * string list, map). It provides methods to add, retrieve, and configure options, as well as
+ * utility functions for option validation and filtering.
+ *
+ * Key features:
+ * - Type-safe option storage using polymorphic OptOptionBase hierarchy
+ * - Dynamic option registration and retrieval by type
+ * - DCCI (disable kernel) operation filtering based on configured patterns
+ * - Debug mode control
+ * - Automatic parsing and validation of aclskOptions structures
+ */
 class SuperKernelOptionsManager {
 public:
     SuperKernelOptionsManager() = default;
@@ -143,16 +182,43 @@ public:
     SuperKernelOptionsManager(const SuperKernelOptionsManager&) = default;
     SuperKernelOptionsManager& operator=(const SuperKernelOptionsManager&) = default;
 
+    /*!
+     * \brief Add a new option to the manager
+     * \param option Unique pointer to the option to add (ownership transferred)
+     */
     void AddOption(std::unique_ptr<OptOptionBase> option);
 
+    /*!
+     * \brief Get an option by its type
+     * \param optType The option type to retrieve
+     * \return Pointer to the option, or nullptr if not found
+     */
     OptOptionBase* GetOption(const aclskOtionType optType) const;
 
+    /*!
+     * \brief Judge whether a kernel should be disabled based on DCCI patterns
+     * \param dcciOps List of DCCI operation patterns (may be modified by function)
+     * \param opName The operation name to check against patterns
+     * \return True if the kernel should be disabled, false otherwise
+     */
     bool JudgeDisableKernelDcci(std::vector<std::string>& dcciOps, const std::string& opName) const;
 
+    /*!
+     * \brief Check if debug mode is enabled
+     * \return True if debug mode is enabled, false otherwise
+     */
     bool EnableDebug() const;
 
+    /*!
+     * \brief Set option value from an aclskOption structure
+     * \param option Pointer to the aclskOption structure containing value to set
+     */
     void SetOptOptionValue(aclskOption* option);
 
+    /*!
+     * \brief Parse and populate options from an aclskOptions structure
+     * \param options Pointer to the aclskOptions structure containing all options
+     */
     void ParseOptions(aclskOptions* options);
 
 private:

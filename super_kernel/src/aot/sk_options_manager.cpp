@@ -10,7 +10,7 @@
 
 /*!
  * \file sk_options_manager.cpp
- * \brief
+ * \brief Implementation of SuperKernelOptionsManager and option value classes
  */
 
 #include "sk_options_manager.h"
@@ -50,8 +50,8 @@ void StringListOptOption::SetValue(const std::vector<std::string>& value) {
         SK_LOGE("OptionName: %s, set value is invalid, value is empty", optionName.c_str());
         return;
     }
-    for (int i = 0; i < value.size(); i++) {
-        SK_LOGI("OptionName:%s, value[%d]: %s", optionName.c_str(), i, value[i].c_str());
+    for (size_t i = 0; i < value.size(); i++) {
+        SK_LOGI("OptionName:%s, value[%zu]: %s", optionName.c_str(), i, value[i].c_str());
     }
     optValue = value;
 }
@@ -67,13 +67,20 @@ void MapOptOption::SetValue(const std::unordered_map<std::string, std::vector<st
         SK_LOGE("OptionName:%s, set value is invalid, value is empty", optionName.c_str());
         return;
     }
+    for (const auto& pair : value) {
+        const std::string& key = pair.first;
+        const std::vector<std::string>& valList = pair.second;
+        SK_LOGI("OptionName:%s, key: %s, values:", optionName.c_str(), key.c_str());
+        for (const auto& val : valList) {
+            SK_LOGI("  %s", val.c_str());
+        }
+    }
     optValue = value;
 }
 
 std::unordered_map<std::string, std::vector<std::string>> MapOptOption::GetMapValue() const {
     return optValue;
 }
-
 
 void SuperKernelOptionsManager::AddOption(std::unique_ptr<OptOptionBase> option) {
     if (option == nullptr) {
@@ -106,8 +113,8 @@ bool SuperKernelOptionsManager::JudgeDisableKernelDcci(std::vector<std::string>&
                 return true;
             }
         } catch (const std::regex_error& e) {
-            SK_LOGE("regex error: %s, error code: %d", e.what(), e.code());
-            return false;
+            SK_LOGE("regex error: %s, error code: %d", e.what(), static_cast<int>(e.code()));
+            continue;
         }
     }
     return false;
@@ -115,8 +122,8 @@ bool SuperKernelOptionsManager::JudgeDisableKernelDcci(std::vector<std::string>&
 
 bool SuperKernelOptionsManager::EnableDebug() const {
     auto iter = optionMap.find(aclskOtionType::DEBUG_SYNC_ALL);
-    auto iter1= optionMap.find(aclskOtionType::DEBUG_DCCI_DISABLE_ON_KERNEL);
-    if (iter != optionMap.end() || iter1 != optionMap.end()) {
+    auto iterDcci = optionMap.find(aclskOtionType::DEBUG_DCCI_DISABLE_ON_KERNEL);
+    if (iter != optionMap.end() || iterDcci != optionMap.end()) {
         SK_LOGI("debug mode enabled");
         return true;
     }
@@ -124,37 +131,49 @@ bool SuperKernelOptionsManager::EnableDebug() const {
 }
 
 void SuperKernelOptionsManager::SetOptOptionValue(aclskOption* option) {
+    if (option == nullptr) {
+        SK_LOGE("option is nullptr");
+        return;
+    }
     switch (option->optionType) {
         case aclskOtionType::PRELOAD_CODE:
             {
                 AddOption(std::make_unique<NumberOptOption>("preload_code", option->optionType, 1, 0, 2));
                 auto subOption = GetOption(option->optionType);
-                subOption->SetValue((option->preload.preloadMode));
+                if (subOption != nullptr) {
+                    subOption->SetValue(option->preload.preloadMode);
+                }
                 break;
             }
         case aclskOtionType::SPLIT_MODE:
             {
                 AddOption(std::make_unique<NumberOptOption>("split_mode", option->optionType, 4, 1, 4));
                 auto subOption = GetOption(option->optionType);
-                subOption->SetValue(option->splitMode.splitCnt);
+                if (subOption != nullptr) {
+                    subOption->SetValue(option->splitMode.splitCnt);
+                }
                 break;
             }
         case aclskOtionType::DEBUG_DCCI_DISABLE_ON_KERNEL:
             {
                 AddOption(std::make_unique<StringListOptOption>("dcci_disable_on_kernel", option->optionType));
                 auto subOption = GetOption(option->optionType);
-                std::vector<std::string> vecValue;
-                for (int i = 0; i < option->disableKernelDcci.kernelCnt; i++) {
-                    vecValue.push_back(std::string(option->disableKernelDcci.kernelNames[i]));
+                if (subOption != nullptr) {
+                    std::vector<std::string> vecValue;
+                    for (size_t i = 0; i < static_cast<size_t>(option->disableKernelDcci.kernelCnt); i++) {
+                        vecValue.push_back(std::string(option->disableKernelDcci.kernelNames[i]));
+                    }
+                    subOption->SetValue(vecValue);
                 }
-                subOption->SetValue(vecValue);
                 break;
             }
         case aclskOtionType::DEBUG_SYNC_ALL:
             {
                 AddOption(std::make_unique<NumberOptOption>("debug_sync_all", option->optionType, 0, 0, 1));
                 auto subOption = GetOption(option->optionType);
-                subOption->SetValue(option->debugSync.debugSyncAll);
+                if (subOption != nullptr) {
+                    subOption->SetValue(option->debugSync.debugSyncAll);
+                }
                 break;
             }
         default:
@@ -167,7 +186,7 @@ void SuperKernelOptionsManager::ParseOptions(aclskOptions* options) {
     if (options == nullptr) {
         return;
     }
-    for (int i = 0; i < options->numOptions; i++) {
+    for (size_t i = 0; i < static_cast<size_t>(options->numOptions); i++) {
         auto iter = optionMap.find(options->options[i].optionType);
         if (iter != optionMap.end()) {
             SK_LOGW("OptionName %s already exists", iter->second->GetName().c_str());
