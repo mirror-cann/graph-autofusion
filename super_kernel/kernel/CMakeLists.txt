@@ -7,23 +7,30 @@
 # See LICENSE in the root of the software repository for the full text of the License.
 # ======================================================================================================================
 
-add_library(sk_kernel SHARED sk_entry.asc)
-target_compile_options(sk_kernel PRIVATE
-   $<$<COMPILE_LANGUAGE:ASC>:--npu-arch=dav-2201>
-   $<$<COMPILE_LANGUAGE:ASC>:-D__ASCENDC_SUPERKERNEL_EARLY_START_V2>
-)
-target_include_directories(sk_kernel PUBLIC 
-   ${CMAKE_CURRENT_SOURCE_DIR}/
-   ${CMAKE_CURRENT_SOURCE_DIR}/../src/aot/)
-
-
 ascendc_fatbin_library(sk_entry sk_entry.asc)
 target_compile_options(sk_entry PRIVATE
    $<$<COMPILE_LANGUAGE:ASC>:--npu-arch=dav-2201>
    $<$<COMPILE_LANGUAGE:ASC>:-D__ASCENDC_SUPERKERNEL_EARLY_START_V2>
-   $<$<COMPILE_LANGUAGE:ASC>:-DASCENDC_DEBUG>
 )
 
 target_include_directories(sk_entry PRIVATE
    $<$<COMPILE_LANGUAGE:ASC>:${CMAKE_CURRENT_SOURCE_DIR}/../src/aot/>
+)
+
+set(SK_ENTRY_OBJECT ${CMAKE_CURRENT_BINARY_DIR}/sk_entry.o)
+
+add_custom_command(
+   OUTPUT ${GENERATED_SK_ENTRY_STUB_CPP}
+   COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/../scripts/gen_sk_entry_stub.py
+   ${SK_ENTRY_OBJECT}
+   ${GENERATED_SK_ENTRY_STUB_CPP}
+   DEPENDS
+       sk_entry
+       ${CMAKE_CURRENT_SOURCE_DIR}/../scripts/gen_sk_entry_stub.py
+   COMMENT "Generating sk_entry stub cpp from sk_entry.o"
+   VERBATIM
+)
+
+add_custom_target(generate_entry_stub
+   DEPENDS ${GENERATED_SK_ENTRY_STUB_CPP}
 )

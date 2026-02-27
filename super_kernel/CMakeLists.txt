@@ -26,6 +26,9 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/superkernel-0.1.0-py3-none-any.whl OPT
 find_package(ASC REQUIRED PATHS $ENV{ASCEND_HOME_PATH}/compiler/tikcpp/ascendc_kernel_cmake)
 enable_language(ASC)
 
+set(GENERATED_SK_ENTRY_STUB_CPP "${CMAKE_CURRENT_BINARY_DIR}/kernel/sk_kernel_stub.cpp")
+set_source_files_properties(${GENERATED_SK_ENTRY_STUB_CPP} PROPERTIES GENERATED TRUE)
+
 if (NOT TARGET sk_kernel)
     add_subdirectory(kernel)
 endif()
@@ -36,7 +39,9 @@ aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/src/aot SRC_FILES)
 
 add_library(ascendsk SHARED
     ${SRC_FILES}
+    ${GENERATED_SK_ENTRY_STUB_CPP}
 )
+add_dependencies(ascendsk generate_entry_stub)
 target_compile_options(ascendsk PRIVATE -fPIC)
 target_include_directories(ascendsk PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
@@ -45,7 +50,7 @@ target_include_directories(ascendsk PUBLIC
     PRIVATE
     $ENV{ASCEND_HOME_PATH}/pkg_inc/base
     $ENV{ASCEND_HOME_PATH}/include)
-target_link_libraries(ascendsk PRIVATE rt_hook sk_kernel unified_dlog)
+target_link_libraries(ascendsk PRIVATE rt_hook unified_dlog)
 
 install(TARGETS ascendsk DESTINATION ascendsk/lib)
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/include/super_kernel/super_kernel.h

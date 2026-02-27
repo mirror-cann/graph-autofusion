@@ -19,29 +19,23 @@
 #include "sk_scope_split.h"
 #include "kernel_launcher.h"
 #include "sk_task_builder.h"
+#include "sk_log.h"
 
-
+extern "C" aclrtBinHandle AscendGetEntryBinHandle();
 namespace {
 
-bool FileExists(const std::string &path) {
-    struct stat st;
-    return ::stat(path.c_str(), &st) == 0 && S_ISREG(st.st_mode);
-}
-
 aclrtFuncHandle ResolveSkEntryFunc(const char *funcName) {
-    std::string skEntryPath = "./super_kernel/kernel/sk_entry.o";
-    if (!FileExists(skEntryPath)) {
-        printf("[sk error] sk_entry.o not found, tried path: %s\n", skEntryPath.c_str());
+    aclrtBinHandle bhdl = nullptr;
+    bhdl = AscendGetEntryBinHandle();
+    if (bhdl == nullptr) {
+        SK_LOGE("[sk error] failed to get entry bin handle");
         return nullptr;
     }
-
-    aclrtBinHandle bhdl = nullptr;
-    CHECK_ACL(aclrtBinaryLoadFromFile(skEntryPath.c_str(), nullptr, &bhdl));
 
     aclrtFuncHandle fhdl = nullptr;
     CHECK_ACL(aclrtBinaryGetFunction(bhdl, funcName, &fhdl));
     if (fhdl == nullptr) {
-        printf("[sk error] failed to resolve entry func handle, source: %s\n", skEntryPath.c_str());
+        SK_LOGE("[sk error] failed to resolve entry func handle");
         return nullptr;
     }
     return fhdl;
