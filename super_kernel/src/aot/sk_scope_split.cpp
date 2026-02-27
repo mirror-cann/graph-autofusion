@@ -31,7 +31,7 @@ uint64_t SuperKernelScopeSplitter::FindAvailableHeadNode(uint64_t curNodeIdx) co
     return INVALID_TASK_ID;
 }
 
-uint64_t SuperKernelScopeSplitter::GenerateScopeInfosByNodeIdx(uint64_t curNodeIdx) {
+uint64_t SuperKernelScopeSplitter::GenerateSingleStreamScopeInfosByNodeIdx(uint64_t curNodeIdx) {
     try {
         uint64_t headNodeIdx = FindAvailableHeadNode(curNodeIdx);
         if (headNodeIdx == INVALID_TASK_ID) {
@@ -70,7 +70,7 @@ uint64_t SuperKernelScopeSplitter::GenerateScopeInfosByNodeIdx(uint64_t curNodeI
         scopeInfos.emplace_back(std::move(scopeInfo));
         return curNodeIdx;
     } catch (const std::exception &e) {
-        SK_LOGE("Exception occurred in GenerateScopeInfosByNodeIdx: %s\n", e.what());
+        SK_LOGE("Exception occurred in GenerateSingleStreamScopeInfosByNodeIdx: %s\n", e.what());
         return INVALID_TASK_ID;
     }
 }
@@ -84,7 +84,7 @@ bool SuperKernelScopeSplitter::SplitSingleStreamGraph() {
         SK_LOGI("start splitting stream %zu", streamIdx);
         uint64_t curNodeIdx = headNodes[streamIdx];
         while (curNodeIdx != INVALID_TASK_ID) {
-            curNodeIdx = GenerateScopeInfosByNodeIdx(curNodeIdx);
+            curNodeIdx = GenerateSingleStreamScopeInfosByNodeIdx(curNodeIdx);
         }
     }
     return true;

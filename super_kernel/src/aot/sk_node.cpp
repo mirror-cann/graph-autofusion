@@ -271,7 +271,7 @@ bool SuperKernelEventNode::InitNode() {
     }
     nodeInfos.syncInfos.eventId = eventParams.eventId;
     nodeInfos.syncInfos.addrValue = eventParams.eventAddr;
-    if (eventParams.eventType != aclrtEventType::ACL_RT_EVENT_NORMAL) {
+    if (eventParams.eventType != aclrtEventType::ACL_RT_EVENT_MEMORY) {
          SK_LOGI("Event type is not memory based for task %u in stream %u, which cannot be fused in super kernel.", nodeIdxInStream, streamIdxInGraph);
          return true;
     }

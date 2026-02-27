@@ -45,7 +45,7 @@ public:
 private:
 
     uint64_t FindAvailableHeadNode(uint64_t curNodeIdx) const;
-    uint64_t GenerateScopeInfosByNodeIdx(uint64_t curNodeIdx);
+    uint64_t GenerateSingleStreamScopeInfosByNodeIdx(uint64_t curNodeIdx);
 
     SuperKernelGraph& graph;
     std::vector<SuperKernelScopeInfo> scopeInfos;
