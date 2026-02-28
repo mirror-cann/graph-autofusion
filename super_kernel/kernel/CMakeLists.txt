@@ -25,8 +25,8 @@ add_custom_command(
    ${SK_ENTRY_OBJECT}
    ${GENERATED_SK_ENTRY_STUB_CPP}
    DEPENDS
-       sk_entry
-       ${CMAKE_CURRENT_SOURCE_DIR}/../scripts/gen_sk_entry_stub.py
+      lld_copy_sk_entry
+      ${CMAKE_CURRENT_SOURCE_DIR}/../scripts/gen_sk_entry_stub.py
    COMMENT "Generating sk_entry stub cpp from sk_entry.o"
    VERBATIM
 )
