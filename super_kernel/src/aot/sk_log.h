@@ -15,43 +15,73 @@
 
 #ifndef __SK_LOG_H__
 #define __SK_LOG_H__
+
 #include <csignal>
+#include <string>
 #include "dlog_pub.h"
 
 #define ASCENDC_MODULE_NAME static_cast<int32_t>(ASCENDCKERNEL)
 
+constexpr const char* GetFileName(const char* path)
+{
+    const char* file = path;
+    while (*path != '\0') {
+        if (*path++ == '/') {
+            file = path;
+        }
+    }
+    return file;
+}
+
+void ReportErrorMessageInner(const std::string &code, const char* fmt, ...);
+template <typename ...Arguments>
+void ReportErrorMessage(const char* fmt, Arguments &&... args)
+{
+    std::string errorCode = "EZ9999";
+    return ReportErrorMessageInner(errorCode, fmt, std::forward<Arguments>(args)...);
+}
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#define SK_ASSERT(cond, ret, msg)      \
-    do {                               \
-        if (!(cond)) {                 \
-            msg;                       \
-            ret;                       \
-        }                              \
-    } while (0)
-
-#define SK_LOGE(format, ...)                                                                       \
-    do {                                                                                           \
-        dlog_error(ASCENDC_MODULE_NAME, "[SK][%s] " format "\n", __FUNCTION__, ##__VA_ARGS__);         \
-    } while (0)
-
 #define SK_LOGD(format, ...)                                                                         \
     do {                                                                                             \
-      dlog_debug(ASCENDC_MODULE_NAME, "[%s] " format "\n", __FUNCTION__, ##__VA_ARGS__);             \
+      dlog_debug(ASCENDC_MODULE_NAME, "[SK][[%s:%s] " format "\n", GetFileName(__FILE__), __FUNCTION__, ##__VA_ARGS__);             \
     } while (0)
 
 #define SK_LOGW(format, ...)                                                                         \
     do {                                                                                             \
-      dlog_warn(ASCENDC_MODULE_NAME, "[SK][%s] " format "\n", __FUNCTION__, ##__VA_ARGS__);              \
+      dlog_warn(ASCENDC_MODULE_NAME, "[SK][%s:%s] " format "\n", GetFileName(__FILE__), __FUNCTION__, ##__VA_ARGS__);          \
     } while (0)
 
 #define SK_LOGI(format, ...)                                                                         \
     do {                                                                                             \
-      dlog_info(ASCENDC_MODULE_NAME, "[SK][%s] " format "\n", __FUNCTION__, ##__VA_ARGS__);              \
+      dlog_info(ASCENDC_MODULE_NAME, "[SK][%s:%s] " format "\n", GetFileName(__FILE__), __FUNCTION__, ##__VA_ARGS__);              \
     } while (0)
 
+#define SK_LOGE(format, ...)                                                           \
+    do {                                                                                           \
+        dlog_error(ASCENDC_MODULE_NAME, "[SK][%s:%s] " format "\n", GetFileName(__FILE__), __FUNCTION__, ##__VA_ARGS__);     \
+    } while (0)
+
+#define REPORT_ERROR_MESSAGE(...)              \
+    do {                                       \
+        ReportErrorMessage(__VA_ARGS__);       \
+    } while (0)
+
+#define SK_ASSERT_RETVAL(cond, ret)                               \
+    do {                                                          \
+        if (!(cond)) {                                            \
+            SK_LOGE_WITH_REPORT("Assert %s failed", #cond);       \
+            return (ret);                                         \
+        }                                                         \
+    } while (0)
+
+#define SK_LOGE_WITH_REPORT(format, ...)                                                           \
+    do {                                                                                           \
+        dlog_error(ASCENDC_MODULE_NAME, "[SK][%s:%s] " format "\n", GetFileName(__FILE__), __FUNCTION__, ##__VA_ARGS__);     \
+        REPORT_ERROR_MESSAGE(format, ##__VA_ARGS__);                                                \
+    } while (0)
 #ifdef __cplusplus
 }
 #endif

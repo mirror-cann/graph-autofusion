@@ -999,7 +999,7 @@ void SkTaskBuilder::AddTask(SkTask &skTask, SkDfxInfo *dfxInfos, const std::vect
                 bool disable = opts.JudgeDisableKernelDcci(disableDcciList, kernelInfo.funcName);
                 if (disable)
                 {
-                    taskInfo.debugOptions &= 0xFFFFFFFFFFFFFFFE; // clear bit 0
+                    taskInfo.debugOptions |= 0x1;
                 }
             }
         }
