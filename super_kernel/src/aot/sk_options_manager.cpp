@@ -176,6 +176,15 @@ void SuperKernelOptionsManager::SetOptOptionValue(aclskOption* option) {
                 }
                 break;
             }
+        case aclskOtionType::STREAM_FUSION:
+            {
+                AddOption(std::make_unique<NumberOptOption>("stream_fusion", option->optionType, 0, 0, 1));
+                auto subOption = GetOption(option->optionType);
+                if (subOption != nullptr) {
+                    subOption->SetValue(option->streamFusion.streamFusion);
+                }
+                break;
+            }
         default:
             SK_LOGI("Optiontype: %d is not support now", static_cast<int>(option->optionType));
             break;

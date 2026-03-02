@@ -66,7 +66,7 @@ struct aclskOption {
     union {
         aclskPreloadOption preload;
         aclskSplitModeOption splitMode;
-        aclskStreamFusionOption streaFusion;
+        aclskStreamFusionOption streamFusion;
         aclskDcciOption disableKernelDcci;
         aclskDebugSyncAllOption debugSync;
         aclskKernelMapOption kernelMap;

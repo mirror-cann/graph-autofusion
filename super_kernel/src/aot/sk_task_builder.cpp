@@ -10,7 +10,7 @@
 
 #include "sk_task_builder.h"
 #include "sk_graph.h"
-
+#include "sk_log.h"
 #include <algorithm>
 #include <cstring>
 #include <limits>
@@ -434,6 +434,17 @@ void SkTaskBuilder::ExtractIntraStreamSync(const std::vector<SuperKernelBaseNode
     {
         uint32_t streamIdx = tasks[i]->GetStreamIdxInGraph();
         streamOps[streamIdx].push_back(i);
+    }
+
+    auto streamfusionOption = opts.GetOption(aclskOtionType::STREAM_FUSION);
+    uint32_t streamFusionValue = 0;
+    if (streamfusionOption != nullptr)
+    {
+        streamFusionValue = streamfusionOption->GetIntValue();
+    }
+    if (streamFusionValue == 0 && streamOps.size() > 1) {
+        SK_LOGW("Enter into multi stream fusion mode, but the current stream fusion option is off."
+            "Please confirm whether it is expected");
     }
 
     // 对每个stream内的连续任务插入同步
