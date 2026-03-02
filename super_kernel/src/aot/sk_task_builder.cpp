@@ -38,17 +38,17 @@ static const KernelInfos &GetKernelInfos(const SuperKernelBaseNode *node)
 // dump device entry args
 static void DumpTaskQue(const TaskQue *que, const char *name)
 {
-    printf("[sk info] %s TaskQue: cap=%u, tasks=%u\n", name, que->cap, que->taskCnt);
+    SK_LOGI("%s TaskQue: cap=%u, tasks=%u", name, que->cap, que->taskCnt);
     for (uint32_t i = 0; i < que->taskCnt; ++i)
     {
         const TaskInfo &ti = que->taskInfos[i];
-        printf("[sk info]   [%u] type=%s, idx=%u, blk=%u, kernel=%s, entries=%u, args=0x%llx\n",
-               i, to_string(ti.type), ti.index, ti.blocks,
+        SK_LOGI("[%u] type=%s, idx=%u, blk=%u, kernel=%s, entries=%u, args=0x%llx",
+               i, to_string(ti.type), ti.index, ti.numBlocks,
                to_string(ti.originType), ti.entryCnt,
                (unsigned long long)ti.args);
         for (uint32_t j = 0; j < ti.entryCnt; ++j)
         {
-            printf("[sk info]       entry[%u]=0x%llx\n", j, (unsigned long long)ti.entry[j]);
+            SK_LOGI("      entry[%u]=0x%llx", j, (unsigned long long)ti.entry[j]);
         }
     }
 }
@@ -58,7 +58,7 @@ static void DumpDeviceArgs(const SkDeviceEntryArgs *args)
     const uint8_t *base = (const uint8_t *)args;
 
     const SkHeaderInfo &hdr = args->skHeader;
-    printf("[sk info] SkHeaderInfo: aicOff=%u, aivOff=%u, counterOff=%u, wsOff=%u, dfxOff=%u, nodeCnt=%u, totalSize=%lu\n",
+    SK_LOGI("SkHeaderInfo: aicOff=%u, aivOff=%u, counterOff=%u, wsOff=%u, dfxOff=%u, nodeCnt=%u, totalSize=%lu",
            hdr.aicQueOffset, hdr.aivQueOffset, hdr.counterOffset,
            hdr.wsOffset, hdr.dfxOffset, hdr.nodeCnt, hdr.totalSize);
 
@@ -68,7 +68,7 @@ static void DumpDeviceArgs(const SkDeviceEntryArgs *args)
     const SkDfxInfo *dfx = (const SkDfxInfo *)(base + args->skHeader.dfxOffset);
     for (uint32_t i = 0; i < args->skHeader.nodeCnt; ++i)
     {
-        printf("[sk info] dfx[%u]: bin=0x%llx, func=0x%llx, ori=0x%llx\n",
+        SK_LOGI("dfx[%u]: bin=0x%llx, func=0x%llx, ori=0x%llx",
                i, (unsigned long long)dfx[i].binHdl,
                (unsigned long long)dfx[i].funcHdl,
                (unsigned long long)dfx[i].funcHdlOri);
@@ -122,8 +122,7 @@ static SuperKernelBaseNode *FindKernelNodeInDirection(
 
         if (nextId == INVALID_TASK_ID)
         {
-            printf("[sk error] %s node %zu has no %s-node.\n",
-                   to_string(nodeType), nodeIndex, to_string(direction));
+            SK_LOGE("%s node %zu has no %s-node.", to_string(nodeType), nodeIndex, to_string(direction));
             throw std::runtime_error("[sk error] FindKernelNodeInDirection failed.");
         }
         current = graph.GetNodeById(nextId);
@@ -133,8 +132,7 @@ static SuperKernelBaseNode *FindKernelNodeInDirection(
         }
     }
 
-    printf("[sk error] %s node %zu cannot find KERNEL within %d hops.\n",
-           to_string(nodeType), nodeIndex, maxHops);
+    SK_LOGE("%s node %zu cannot find KERNEL within %d hops.", to_string(nodeType), nodeIndex, maxHops);
     throw std::runtime_error("[sk error] FindKernelNodeInDirection failed.");
 }
 
@@ -191,7 +189,7 @@ static SkQueueType ToQueueType(SkKernelType kernelType)
         break;
     }
 
-    printf("[sk error] unsupported kernel type %s for super kernel, aborting\n", to_string(kernelType));
+    SK_LOGE("unsupported kernel type %s for super kernel, aborting", to_string(kernelType));
     throw std::runtime_error("[sk error] Unsupported kernel type for super kernel.");
 }
 
@@ -232,13 +230,13 @@ static void FilterCancelledTasks(const std::vector<SuperKernelBaseNode *> &tasks
     {
         if (tasks[i]->GetNodeType() == SkNodeType::NODE_NOTIFY && waitEventIds.find(tasks[i]->GetEventId()) != waitEventIds.end())
         {
-            printf("[sk info] Event[%lu] cancelled: NOTIFY task[%zu]\n",
+            SK_LOGI("Event[%lu] cancelled: NOTIFY task[%zu]",
                    tasks[i]->GetEventId(), i);
             continue;
         }
         else if (tasks[i]->GetNodeType() == SkNodeType::NODE_WAIT && notifyEventIds.find(tasks[i]->GetEventId()) != notifyEventIds.end())
         {
-            printf("[sk info] Event[%lu] cancelled: WAIT task[%zu]\n",
+            SK_LOGI("Event[%lu] cancelled: WAIT task[%zu]",
                    tasks[i]->GetEventId(), i);
             continue;
         }
@@ -248,7 +246,7 @@ static void FilterCancelledTasks(const std::vector<SuperKernelBaseNode *> &tasks
         }
     }
 
-    printf("[sk info] Filtered tasks: %zu -> %zu (%zu cancelled)\n",
+    SK_LOGI("Filtered tasks: %zu -> %zu (%zu cancelled)",
            tasks.size(), filteredTasks.size(), tasks.size() - filteredTasks.size());
 }
 
@@ -313,12 +311,12 @@ void SkTaskBuilder::InitTaskSyncInfos(const std::vector<SuperKernelBaseNode *> &
             taskSyncInfos_[i].crossSyncInfo[1] = SyncDirection::VEC_TO_VEC;
             break;
         default:
-            printf("[sk warning] unsupported kernel type for inter-sync, skipping sync insertion\n");
+            SK_LOGW("unsupported kernel type for inter-sync, skipping sync insertion");
             break;
         }
     }
 
-    printf("[sk info] Initialized TaskSyncInfos for %zu tasks (%zu KERNEL, %zu NOTIFY, %zu WAIT)\n",
+    SK_LOGI("Initialized TaskSyncInfos for %zu tasks (%zu KERNEL, %zu NOTIFY, %zu WAIT)",
            tasks.size(), kernelCount, notifyCount, waitCount);
 }
 
@@ -331,7 +329,7 @@ void SkTaskBuilder::InsertSyncEvent(size_t preIdx, size_t currIdx)
     // 生成核内同步方向
     SyncDirection dir = GenSyncDirection(preType, currType);
 
-    printf("[sk info]   InsertSyncEvent: task[%zu](%s) -> task[%zu](%s), dir=%s\n",
+    SK_LOGI("  InsertSyncEvent: task[%zu](%s) -> task[%zu](%s), dir=%s",
            preIdx, to_string(preType), currIdx, to_string(currType), SyncDirectionName(dir));
 
     // 发送方（preIdx）：根据同步方向存储到对应队列
@@ -362,43 +360,45 @@ void SkTaskBuilder::InsertSyncEvent(size_t preIdx, size_t currIdx)
 
 void SkTaskBuilder::PrintSyncInfo(const char *stage)
 {
-    printf("[sk info] %s\n", stage);
-    printf("[sk info] [VEC LIST OP]:\n");
+    SK_LOGI("%s", stage);
+    SK_LOGI("[VEC LIST OP]:");
     for (size_t i = 0; i < taskSyncInfos_.size(); i++)
     {
         auto &info = taskSyncInfos_[i];
         if (UsesAiv(info.queueType))
         {
-            printf("[sk info]   task[%zu](%s): vecSend={", i, to_string(info.queueType));
+            std::string vecSendStr = "vecSend={";
             for (auto &kv : info.vecSendInfo)
             {
-                printf("%zu:%s ", kv.first, SyncDirectionName(kv.second));
+                vecSendStr += std::to_string(kv.first) + ":" + SyncDirectionName(kv.second) + " ";
             }
-            printf("}, vecRecv={");
+            vecSendStr += "}, vecRecv={";
             for (auto &kv : info.vecRecvInfo)
             {
-                printf("%zu:%s ", kv.first, SyncDirectionName(kv.second));
+                vecSendStr += std::to_string(kv.first) + ":" + SyncDirectionName(kv.second) + " ";
             }
-            printf("}\n");
+            vecSendStr += "}";
+            SK_LOGI("  task[%zu](%s): %s", i, to_string(info.queueType), vecSendStr.c_str());
         }
     }
-    printf("[sk info] [CUB LIST OP]:\n");
+    SK_LOGI("[CUB LIST OP]:");
     for (size_t i = 0; i < taskSyncInfos_.size(); i++)
     {
         auto &info = taskSyncInfos_[i];
         if (UsesAic(info.queueType))
         {
-            printf("[sk info]   task[%zu](%s): cubSend={", i, to_string(info.queueType));
+            std::string cubSendStr = "cubSend={";
             for (auto &kv : info.cubSendInfo)
             {
-                printf("%zu:%s ", kv.first, SyncDirectionName(kv.second));
+                cubSendStr += std::to_string(kv.first) + ":" + SyncDirectionName(kv.second) + " ";
             }
-            printf("}, cubRecv={");
+            cubSendStr += "}, cubRecv={";
             for (auto &kv : info.cubRecvInfo)
             {
-                printf("%zu:%s ", kv.first, SyncDirectionName(kv.second));
+                cubSendStr += std::to_string(kv.first) + ":" + SyncDirectionName(kv.second) + " ";
             }
-            printf("}\n");
+            cubSendStr += "}";
+            SK_LOGI("  task[%zu](%s): %s", i, to_string(info.queueType), cubSendStr.c_str());
         }
     }
 }
@@ -407,18 +407,18 @@ void SkTaskBuilder::PrintSyncInfo(const char *stage)
 
 void SkTaskBuilder::PrecomputeSyncRelationsFromGraph(const std::vector<SuperKernelBaseNode *> &tasks)
 {
-    printf("[sk info] ======================== Precomputing Sync Relations from Graph ========================\n");
+    SK_LOGI("======================== Precomputing Sync Relations from Graph ========================");
 
     // 初始化taskSyncInfos_
     InitTaskSyncInfos(tasks);
 
     // 1. 提取同流内的sync关系
-    printf("[sk info] [Sync by stream idx]\n");
+    SK_LOGI("[Sync by stream idx]");
     ExtractIntraStreamSync(tasks);
     // PrintSyncInfo("[After Sync by stream idx]");
 
     // 2. 提取跨流的sync关系（基于事件）
-    printf("[sk info] [Sync by event]\n");
+    SK_LOGI("[Sync by event]");
     ExtractInterStreamSync(tasks);
     // PrintSyncInfo("[After Sync by event]");
 }
@@ -426,7 +426,7 @@ void SkTaskBuilder::PrecomputeSyncRelationsFromGraph(const std::vector<SuperKern
 // label : success
 void SkTaskBuilder::ExtractIntraStreamSync(const std::vector<SuperKernelBaseNode *> &tasks)
 {
-    printf("[sk info] ExtractIntraStreamSync: processing %zu tasks\n", tasks.size());
+    SK_LOGI("ExtractIntraStreamSync: processing %zu tasks", tasks.size());
 
     // 按stream分组（对应Python的insert_sync_by_stream_idx）
     std::map<uint32_t, std::vector<size_t>> streamOps;
@@ -443,8 +443,11 @@ void SkTaskBuilder::ExtractIntraStreamSync(const std::vector<SuperKernelBaseNode
         streamFusionValue = streamfusionOption->GetIntValue();
     }
     if (streamFusionValue == 0 && streamOps.size() > 1) {
-        SK_LOGW("Enter into multi stream fusion mode, but the current stream fusion option is off."
-            "Please confirm whether it is expected");
+        SK_LOGW("Multi stream fusion is triggered with %zu streams detected, "
+            "but aclskStreamFusionOption is off (value=%u). "
+            "To explicitly enable multi stream fusion, set aclskStreamFusionOption to 1. "
+            "Please confirm whether this fusion behavior meets your expectations.",
+            streamOps.size(), streamFusionValue);
     }
 
     // 对每个stream内的连续任务插入同步
@@ -462,7 +465,7 @@ void SkTaskBuilder::ExtractIntraStreamSync(const std::vector<SuperKernelBaseNode
 
 void SkTaskBuilder::ExtractInterStreamSync(const std::vector<SuperKernelBaseNode *> &tasks)
 {
-    printf("[sk info] ExtractInterStreamSync: processing event-based sync\n");
+    SK_LOGI("ExtractInterStreamSync: processing event-based sync");
 
     // 对齐 Python 的 insert_sync_by_event 逻辑
     // C++ 中 NOTIFY/WAIT 是独立的任务节点，会生成 NotifyFunc/WaitFunc
@@ -481,7 +484,7 @@ void SkTaskBuilder::ExtractInterStreamSync(const std::vector<SuperKernelBaseNode
             // NOTIFY 节点是发送方，记录其 eventId
             uint64_t eventId = node->GetEventId();
             eventSendIdx[eventId] = i;
-            printf("[sk info]   Event[%lu] NOTIFY at task[%zu]\n",
+            SK_LOGI("  Event[%lu] NOTIFY at task[%zu]",
                    eventId, i);
         }
         else if (node->GetNodeType() == SkNodeType::NODE_WAIT)
@@ -489,12 +492,12 @@ void SkTaskBuilder::ExtractInterStreamSync(const std::vector<SuperKernelBaseNode
             // WAIT 节点是接收方，记录其 eventId
             uint64_t eventId = node->GetEventId();
             eventRecvIdxs[eventId].push_back(i);
-            printf("[sk info]   Event[%lu] WAIT at task[%zu]\n",
+            SK_LOGI("  Event[%lu] WAIT at task[%zu]",
                    eventId, i);
         }
     }
 
-    printf("[sk info]   Found %zu events with NOTIFY, %zu events with WAIT\n",
+    SK_LOGI("  Found %zu events with NOTIFY, %zu events with WAIT",
            eventSendIdx.size(), eventRecvIdxs.size());
 
     // 建立同步关系：NOTIFY 节点 -> WAIT 节点
@@ -510,7 +513,7 @@ void SkTaskBuilder::ExtractInterStreamSync(const std::vector<SuperKernelBaseNode
                 bool crossStream = (tasks[notifyIdx]->GetStreamIdxInGraph() !=
                                     tasks[waitIdx]->GetStreamIdxInGraph());
 
-                printf("[sk info]   Insert sync: NOTIFY task[%zu] -> WAIT task[%zu] (event=%lu, crossStream=%d)\n",
+                SK_LOGI("  Insert sync: NOTIFY task[%zu] -> WAIT task[%zu] (event=%lu, crossStream=%d)",
                        notifyIdx, waitIdx, eventId, crossStream);
 
                 InsertSyncEvent(notifyIdx, waitIdx);
@@ -523,7 +526,7 @@ void SkTaskBuilder::ExtractInterStreamSync(const std::vector<SuperKernelBaseNode
 
 void SkTaskBuilder::OptimizeSyncRelations()
 {
-    printf("[sk info] ======================== Optimizing Sync Relations ========================\n");
+    SK_LOGI("======================== Optimizing Sync Relations ========================");
     // PrintSyncInfo("[INIT STATE]");
 
     RemoveCrossedLineSync();
@@ -559,7 +562,7 @@ bool SkTaskBuilder::JudgeRemoveCrossSync(size_t sendIdx, size_t recvIdx, bool is
                     // 只需检查 otherSendIdx > sendIdx
                     if (otherSendIdx > sendIdx)
                     {
-                        printf("[sk debug]   Found crossed sync: task[%zu]->task[%zu] crosses with task[%zu]->task[%zu]\n",
+                        SK_LOGD("  Found crossed sync: task[%zu]->task[%zu] crosses with task[%zu]->task[%zu]",
                                otherSendIdx, otherRecvIdx, sendIdx, recvIdx);
                         return true;
                     }
@@ -584,7 +587,7 @@ bool SkTaskBuilder::JudgeRemoveCrossSync(size_t sendIdx, size_t recvIdx, bool is
                     // 只需检查 otherSendIdx > sendIdx
                     if (otherSendIdx > sendIdx)
                     {
-                        printf("[sk debug]   Found crossed sync: task[%zu]->task[%zu] crosses with task[%zu]->task[%zu]\n",
+                        SK_LOGD("  Found crossed sync: task[%zu]->task[%zu] crosses with task[%zu]->task[%zu]",
                                otherSendIdx, otherRecvIdx, sendIdx, recvIdx);
                         return true;
                     }
@@ -621,7 +624,7 @@ void SkTaskBuilder::RemoveSyncInfo(size_t sendIdx, size_t recvIdx, bool isRemove
 
 void SkTaskBuilder::RemoveCrossedLineSync()
 {
-    printf("[sk info] RemoveCrossedLineSync: checking crossed sync relations\n");
+    SK_LOGI("RemoveCrossedLineSync: checking crossed sync relations");
 
     // 检查cub队列的交叉同步（CUB_TO_VEC 方向）
     for (size_t i = 0; i < taskSyncInfos_.size(); i++)
@@ -638,7 +641,7 @@ void SkTaskBuilder::RemoveCrossedLineSync()
         }
         for (size_t recvIdx : toRemove)
         {
-            printf("[sk info]   Remove crossed cub:vec sync: task[%zu] -> task[%zu]\n", i, recvIdx);
+            SK_LOGI("  Remove crossed cub:vec sync: task[%zu] -> task[%zu]", i, recvIdx);
             RemoveSyncInfo(i, recvIdx, false, SyncDirection::CUB_TO_VEC);
             RemoveSyncInfo(recvIdx, i, true, SyncDirection::CUB_TO_VEC);
         }
@@ -659,7 +662,7 @@ void SkTaskBuilder::RemoveCrossedLineSync()
         }
         for (size_t recvIdx : toRemove)
         {
-            printf("[sk info]   Remove crossed vec:cub sync: task[%zu] -> task[%zu]\n", i, recvIdx);
+            SK_LOGI("  Remove crossed vec:cub sync: task[%zu] -> task[%zu]", i, recvIdx);
             RemoveSyncInfo(i, recvIdx, false, SyncDirection::VEC_TO_CUB);
             RemoveSyncInfo(recvIdx, i, true, SyncDirection::VEC_TO_CUB);
         }
@@ -668,7 +671,7 @@ void SkTaskBuilder::RemoveCrossedLineSync()
 
 void SkTaskBuilder::RemoveMultiSendSync()
 {
-    printf("[sk info] RemoveMultiSendSync: removing redundant send sync\n");
+    SK_LOGI("RemoveMultiSendSync: removing redundant send sync");
 
     // 检查vec队列（VEC_TO_CUB 方向）
     for (size_t i = 0; i < taskSyncInfos_.size(); i++)
@@ -690,7 +693,7 @@ void SkTaskBuilder::RemoveMultiSendSync()
                 for (size_t j = 1; j < vecSendList.size(); j++)
                 {
                     size_t recvIdx = vecSendList[j];
-                    printf("[sk info]   Remove multi vec:cub send sync: task[%zu] -> task[%zu]\n", i, recvIdx);
+                    SK_LOGI("  Remove multi vec:cub send sync: task[%zu] -> task[%zu]", i, recvIdx);
                     RemoveSyncInfo(i, recvIdx, false, SyncDirection::VEC_TO_CUB);
                     RemoveSyncInfo(recvIdx, i, true, SyncDirection::VEC_TO_CUB);
                 }
@@ -718,7 +721,7 @@ void SkTaskBuilder::RemoveMultiSendSync()
                 for (size_t j = 1; j < cubSendList.size(); j++)
                 {
                     size_t recvIdx = cubSendList[j];
-                    printf("[sk info]   Remove multi cub:vec send sync: task[%zu] -> task[%zu]\n", i, recvIdx);
+                    SK_LOGI("  Remove multi cub:vec send sync: task[%zu] -> task[%zu]", i, recvIdx);
                     RemoveSyncInfo(i, recvIdx, false, SyncDirection::CUB_TO_VEC);
                     RemoveSyncInfo(recvIdx, i, true, SyncDirection::CUB_TO_VEC);
                 }
@@ -729,7 +732,7 @@ void SkTaskBuilder::RemoveMultiSendSync()
 
 void SkTaskBuilder::RemoveMultiRecvSync()
 {
-    printf("[sk info] RemoveMultiRecvSync: removing redundant recv sync\n");
+    SK_LOGI("RemoveMultiRecvSync: removing redundant recv sync");
 
     // 检查vec队列（CUB_TO_VEC 方向）
     for (size_t i = 0; i < taskSyncInfos_.size(); i++)
@@ -752,7 +755,7 @@ void SkTaskBuilder::RemoveMultiRecvSync()
                 for (size_t j = 1; j < vecRecvList.size(); j++)
                 {
                     size_t sendIdx = vecRecvList[j];
-                    printf("[sk info]   Remove multi cub:vec recv sync: task[%zu] <- task[%zu]\n", i, sendIdx);
+                    SK_LOGI("  Remove multi cub:vec recv sync: task[%zu] <- task[%zu]", i, sendIdx);
                     RemoveSyncInfo(i, sendIdx, true, SyncDirection::CUB_TO_VEC);
                     RemoveSyncInfo(sendIdx, i, false, SyncDirection::CUB_TO_VEC);
                 }
@@ -780,7 +783,7 @@ void SkTaskBuilder::RemoveMultiRecvSync()
                 for (size_t j = 1; j < cubRecvList.size(); j++)
                 {
                     size_t sendIdx = cubRecvList[j];
-                    printf("[sk info]   Remove multi vec:cub recv sync: task[%zu] <- task[%zu]\n", i, sendIdx);
+                    SK_LOGI("  Remove multi vec:cub recv sync: task[%zu] <- task[%zu]", i, sendIdx);
                     RemoveSyncInfo(i, sendIdx, true, SyncDirection::VEC_TO_CUB);
                     RemoveSyncInfo(sendIdx, i, false, SyncDirection::VEC_TO_CUB);
                 }
@@ -817,7 +820,7 @@ static SkCoreSyncType GetSyncTypesForDirection(SyncDirection dir, bool isSend)
     case SyncDirection::BOTH:
         // 不应该再出现，因为 InsertSyncEvent 已经拆分
         syncType = SkCoreSyncType::SYNC_NONE;
-        printf("[sk warn] GetSyncTypesForDirection: unexpected BOTH direction\n");
+        SK_LOGW("GetSyncTypesForDirection: unexpected BOTH direction");
         break;
     case SyncDirection::NONE:
         syncType = SkCoreSyncType::SYNC_NONE;
@@ -827,7 +830,7 @@ static SkCoreSyncType GetSyncTypesForDirection(SyncDirection dir, bool isSend)
         break;
     default:
         syncType = SkCoreSyncType::SYNC_NONE;
-        printf("[sk warn] GetSyncTypesForDirection: unknown direction %s\n", to_string(dir));
+        SK_LOGW("GetSyncTypesForDirection: unknown direction %s", to_string(dir));
         break;
     }
     return syncType;
@@ -871,14 +874,14 @@ DeviceArgsPtr SkTaskBuilder::GenEntryArgs(const SkTask &skTaskCube,
     errno_t err = memcpy_s(dst_aic, aic_que_size, skTaskCube.taskQue.get(), aic_que_size);
     if (err != 0)
     {
-        printf("[sk error] GenEntryArgs memcpy_s AIC queue failed, ret=%d\n", static_cast<int>(err));
+        SK_LOGE("GenEntryArgs memcpy_s AIC queue failed, ret=%d", static_cast<int>(err));
         return DeviceArgsPtr();
     }
     TaskQue *dst_aiv = (TaskQue *)(base + aiv_que_offset);
     err = memcpy_s(dst_aiv, aiv_que_size, skTaskVec.taskQue.get(), aiv_que_size);
     if (err != 0)
     {
-        printf("[sk error] GenEntryArgs memcpy_s AIV queue failed, ret=%d\n", static_cast<int>(err));
+        SK_LOGE("GenEntryArgs memcpy_s AIV queue failed, ret=%d", static_cast<int>(err));
         return DeviceArgsPtr();
     }
     if (counter_size > 0)
@@ -886,7 +889,7 @@ DeviceArgsPtr SkTaskBuilder::GenEntryArgs(const SkTask &skTaskCube,
         err = memset_s(base + counter_offset, counter_size, 0, counter_size);
         if (err != 0)
         {
-            printf("[sk error] GenEntryArgs memset_s counter failed, ret=%d\n", static_cast<int>(err));
+            SK_LOGE("GenEntryArgs memset_s counter failed, ret=%d", static_cast<int>(err));
             return DeviceArgsPtr();
         }
     }
@@ -895,7 +898,7 @@ DeviceArgsPtr SkTaskBuilder::GenEntryArgs(const SkTask &skTaskCube,
         err = memset_s(base + ws_offset, ws_size, 0, ws_size);
         if (err != 0)
         {
-            printf("[sk error] GenEntryArgs memset_s workspace failed, ret=%d\n", static_cast<int>(err));
+            SK_LOGE("GenEntryArgs memset_s workspace failed, ret=%d", static_cast<int>(err));
             return DeviceArgsPtr();
         }
     }
@@ -904,7 +907,7 @@ DeviceArgsPtr SkTaskBuilder::GenEntryArgs(const SkTask &skTaskCube,
         err = memcpy_s((uint8_t *)args.get() + args.get()->skHeader.dfxOffset, dfx_size, dfxInfos, dfxCount * sizeof(SkDfxInfo));
         if (err != 0)
         {
-            printf("[sk error] GenEntryArgs memcpy_s dfx failed, ret=%d\n", static_cast<int>(err));
+            SK_LOGE("GenEntryArgs memcpy_s dfx failed, ret=%d", static_cast<int>(err));
             return DeviceArgsPtr();
         }
     }
@@ -973,11 +976,11 @@ void SkTaskBuilder::AddTask(SkTask &skTask, SkDfxInfo *dfxInfos, const std::vect
         taskInfo.originType = kernelInfo.kernelType;
         if (kernelInfo.kernelType == SkKernelType::MIX_AIC_1_2 && customArg == 1)
         {
-            taskInfo.blocks = kernelInfo.numBlocks * 2;
+            taskInfo.numBlocks = kernelInfo.numBlocks * 2;
         }
         else
         {
-            taskInfo.blocks = kernelInfo.numBlocks;
+            taskInfo.numBlocks = kernelInfo.numBlocks;
         }
 
         for (int i = 0; i < binCount; i++)
@@ -1003,7 +1006,7 @@ void SkTaskBuilder::AddTask(SkTask &skTask, SkDfxInfo *dfxInfos, const std::vect
         if (taskType == SkTaskType::TYPE_FUNC)
         {
             taskInfo.args = (uint64_t)kernelInfo.devArgs;
-            skTask.numBlocks = std::max(skTask.numBlocks, (uint32_t)taskInfo.blocks);
+            skTask.numBlocks = std::max(skTask.numBlocks, (uint32_t)taskInfo.numBlocks);
             skTask.funcCnt++;
             if (!disableDcciList.empty() && !kernelInfo.funcName.empty())
             {
@@ -1046,24 +1049,24 @@ void SkTaskBuilder::DispatchTask(SkTask &skTaskCube, SkTask &skTaskVec, SkDfxInf
         case SkKernelType::AIV_ONLY:
         case SkKernelType::MIX_AIV_1_0:
             AddTask(skTaskVec, dfxInfos, tasks, index, SkKernelType::AIV_ONLY, 1, binCount, taskType);
-            printf("[sk info] task insert: stask %zu, queue=aiv, type=%s, kernel=%s, blocks=%u\n",
+            SK_LOGI("task insert: stask %zu, queue=aiv, type=%s, kernel=%s, numBlocks=%u",
                    index, to_string(taskType), to_string(kernelInfo.kernelType),
                    calcBlocks(kernelInfo, 1));
             break;
         case SkKernelType::AIC_ONLY:
         case SkKernelType::MIX_AIC_1_0:
             AddTask(skTaskCube, dfxInfos, tasks, index, SkKernelType::AIC_ONLY, 0, binCount, taskType);
-            printf("[sk info] task insert: stask %zu, queue=aic, type=%s, kernel=%s, blocks=%u\n",
+            SK_LOGI("task insert: stask %zu, queue=aic, type=%s, kernel=%s, numBlocks=%u",
                    index, to_string(taskType), to_string(kernelInfo.kernelType),
                    calcBlocks(kernelInfo, 0));
             break;
         case SkKernelType::MIX_AIC_1_1:
             AddTask(skTaskCube, dfxInfos, tasks, index, SkKernelType::MIX_AIC_1_1, 0, binCount, taskType);
             AddTask(skTaskVec, dfxInfos, tasks, index, SkKernelType::MIX_AIC_1_1, 1, binCount, taskType);
-            printf("[sk info] task insert: stask %zu, queue=aic, type=%s, kernel=%s, blocks=%u\n",
+            SK_LOGI("task insert: stask %zu, queue=aic, type=%s, kernel=%s, numBlocks=%u",
                    index, to_string(taskType), to_string(kernelInfo.kernelType),
                    calcBlocks(kernelInfo, 0));
-            printf("[sk info] task insert: stask %zu, queue=aiv, type=%s, kernel=%s, blocks=%u\n",
+            SK_LOGI("task insert: stask %zu, queue=aiv, type=%s, kernel=%s, numBlocks=%u",
                    index, to_string(taskType), to_string(kernelInfo.kernelType),
                    calcBlocks(kernelInfo, 1));
             break;
@@ -1072,15 +1075,15 @@ void SkTaskBuilder::DispatchTask(SkTask &skTaskCube, SkTask &skTaskVec, SkDfxInf
             AddTask(skTaskVec, dfxInfos, tasks, index, SkKernelType::MIX_AIC_1_2, 1, binCount, taskType);
             skTaskVec.nodeType = SkKernelType::MIX_AIC_1_2;
             skTaskCube.nodeType = SkKernelType::MIX_AIC_1_2;
-            printf("[sk info] task insert: stask %zu, queue=aic, type=%s, kernel=%s, blocks=%u\n",
+            SK_LOGI(" task insert: stask %zu, queue=aic, type=%s, kernel=%s, numBlocks=%u",
                    index, to_string(taskType), to_string(kernelInfo.kernelType),
                    calcBlocks(kernelInfo, 0));
-            printf("[sk info] task insert: stask %zu, queue=aiv, type=%s, kernel=%s, blocks=%u\n",
+            SK_LOGI(" task insert: stask %zu, queue=aiv, type=%s, kernel=%s, numBlocks=%u",
                    index, to_string(taskType), to_string(kernelInfo.kernelType),
                    calcBlocks(kernelInfo, 1));
             break;
         default:
-            printf("[sk error] unsupported kernel type %s for super kernel, aborting\n", to_string(kernelInfo.kernelType));
+            SK_LOGE("unsupported kernel type %s for super kernel, aborting", to_string(kernelInfo.kernelType));
             throw std::runtime_error("[sk error] Unsupported kernel type for super kernel.");
         }
     }
@@ -1108,7 +1111,7 @@ void SkTaskBuilder::DispatchTask(SkTask &skTaskCube, SkTask &skTaskVec, SkDfxInf
         const auto &syncInfos = tasks[index]->GetNodeInfos().syncInfos;
         uint64_t nodeId = (taskType == SkTaskType::TYPE_EVENT_NOTIFY) ? syncInfos.notifyNodeId : syncInfos.waitNodeId;
         const char *nodeIdName = (taskType == SkTaskType::TYPE_EVENT_NOTIFY) ? "notifyNodeId" : "waitNodeId";
-        printf("[sk info] task insert: stask %zu, queue=%s, type=%s, eventId=%lu, %s=%lu\n",
+        SK_LOGI("task insert: stask %zu, queue=%s, type=%s, eventId=%lu, %s=%lu",
                index, to_string(queueType), to_string(taskType), syncInfos.eventId, nodeIdName, nodeId);
     }
     else
@@ -1126,7 +1129,7 @@ void SkTaskBuilder::DispatchTaskSync(SkTask &skTaskCube, SkTask &skTaskVec, SkDf
     {
         AddTask(skTaskCube, dfxInfos, tasks, index, SkKernelType::DEFAULT, 0, binCount, taskType,
                 static_cast<uint32_t>(syncFlag));
-        printf("[sk info] sync insert: stask %zu, queue=aic, type=%s, flag=%s, prev=%s, next=%s%s%s\n",
+        SK_LOGI("sync insert: stask %zu, queue=aic, type=%s, flag=%s, prev=%s, next=%s%s%s",
                index, to_string(taskType), to_string(syncFlag),
                to_string(prevType), to_string(nextType),
                detail ? ", detail=" : "", detail ? detail : "");
@@ -1135,7 +1138,7 @@ void SkTaskBuilder::DispatchTaskSync(SkTask &skTaskCube, SkTask &skTaskVec, SkDf
     {
         AddTask(skTaskVec, dfxInfos, tasks, index, SkKernelType::DEFAULT, 0, binCount, taskType,
                 static_cast<uint32_t>(syncFlag));
-        printf("[sk info] sync insert: stask %zu, queue=aiv, type=%s, flag=%s, prev=%s, next=%s%s%s\n",
+        SK_LOGI("sync insert: stask %zu, queue=aiv, type=%s, flag=%s, prev=%s, next=%s%s%s",
                index, to_string(taskType), to_string(syncFlag),
                to_string(prevType), to_string(nextType),
                detail ? ", detail=" : "", detail ? detail : "");
@@ -1213,7 +1216,7 @@ void SkTaskBuilder::DispatchSyncTasks(SkTask &skTaskCube, SkTask &skTaskVec, SkD
             break;
         default:
         {
-            printf("[sk error] unknown sync type %s, skipping\n", to_string(syncType));
+            SK_LOGE("unknown sync type %s, skipping", to_string(syncType));
             continue;
         }
         }
@@ -1266,7 +1269,7 @@ SkHostEntryInfo SkTaskBuilder::GenEntryInfo(SkTask &skTaskCube, SkTask &skTaskVe
     }
     else
     {
-        printf("[sk error] both skTaskCube and skTaskVec have no task, aborting\n");
+        SK_LOGE("both skTaskCube and skTaskVec have no task, aborting");
         throw std::runtime_error("No task for super kernel");
     }
 
@@ -1282,7 +1285,7 @@ SkHostEntryInfo SkTaskBuilder::GenEntryInfo(SkTask &skTaskCube, SkTask &skTaskVe
             }
             if (taskInfo.originType == SkKernelType::MIX_AIC_1_1)
             {
-                taskInfo.blocks = taskInfo.blocks * 2;
+                taskInfo.numBlocks = taskInfo.numBlocks * 2;
             }
         }
     }
@@ -1298,7 +1301,7 @@ SkLaunchInfo SkTaskBuilder::Build(const std::vector<SuperKernelBaseNode *> &task
     // 原始任务为空，直接返回
     if (tasks.empty())
     {
-        printf("[sk warning] no task to build for super kernel\n");
+        SK_LOGW("no task to build for super kernel");
         return launchInfo;
     }
 
@@ -1308,7 +1311,7 @@ SkLaunchInfo SkTaskBuilder::Build(const std::vector<SuperKernelBaseNode *> &task
 
     if (filteredTasks.empty())
     {
-        printf("[sk warning] no task to build for super kernel after filtering\n");
+        SK_LOGW("no task to build for super kernel after filtering");
         return launchInfo;
     }
 
@@ -1325,14 +1328,14 @@ SkLaunchInfo SkTaskBuilder::Build(const std::vector<SuperKernelBaseNode *> &task
 
     if (taskCount > (std::numeric_limits<size_t>::max() / sizeof(SkDfxInfo)))
     {
-        printf("[sk error] invalid dfxInfos alloc size, taskCount=%zu\n", taskCount);
+        SK_LOGE("invalid dfxInfos alloc size, taskCount=%zu", taskCount);
         return launchInfo;
     }
 
     std::unique_ptr<SkDfxInfo[]> dfxInfos = std::make_unique<SkDfxInfo[]>(taskCount);
     if (dfxInfos == nullptr)
     {
-        printf("[sk error] malloc dfxInfos failed\n");
+        SK_LOGE("malloc dfxInfos failed");
         return launchInfo;
     }
 
@@ -1375,7 +1378,8 @@ SkLaunchInfo SkTaskBuilder::Build(const std::vector<SuperKernelBaseNode *> &task
 
     for (int i = 0; i < static_cast<int>(taskCount); i++)
     {
-        printf("\n\n[sk info] : ======================== start process %d ========================\n", i);
+        SK_LOGI("======================== start process %d, nodeType=%s ========================", i,
+                 to_string(filteredTasks[i]->GetNodeType()));
 
         auto &info = taskSyncInfos_[i];
 
@@ -1396,7 +1400,8 @@ SkLaunchInfo SkTaskBuilder::Build(const std::vector<SuperKernelBaseNode *> &task
             DispatchTask(aicTask, aivTask, dfxInfos.get(), filteredTasks, i, splitBinCount, SkTaskType::TYPE_EVENT_WAIT);
             break;
         default:
-            printf("[sk warning] process task %d: unsupported node type %s, skipping\n", i, to_string(filteredTasks[i]->GetNodeType()));
+            SK_LOGW("process task %d: unsupported node type %s, skipping (supported types: KERNEL, NOTIFY, WAIT)",
+                    i, to_string(filteredTasks[i]->GetNodeType()));
             break;
         }
 

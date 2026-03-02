@@ -20,6 +20,24 @@
 #include <cstddef>
 #include "acl/acl.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#if defined(_MSC_VER)
+#ifdef FUNC_VISIBILITY
+#define ACL_FUNC_VISIBILITY _declspec(dllexport)
+#else
+#define ACL_FUNC_VISIBILITY
+#endif
+#else
+#ifdef FUNC_VISIBILITY
+#define ACL_FUNC_VISIBILITY __attribute__((visibility("default")))
+#else
+#define ACL_FUNC_VISIBILITY
+#endif
+#endif
+
 enum class aclskOtionType : uint32_t {
     PRELOAD_CODE = 0,
     SPLIT_MODE = 1,
@@ -78,11 +96,24 @@ typedef struct aclskOptions {
     size_t numOptions;
 } aclskOptions;
 
-/*
-model -- aclGraph capture model
-options -- super kernel optimization options
-return -- ACL_ERROR_NONE success, other value fail
-*/
-aclError aclskOptimize(aclmdlRI model, aclskOptions *options);
 
+/**
+ * @ingroup AscendCL
+ * @brief Optimize model with super kernel
+ *
+ * @param model [IN]    Model handle to be optimized
+ * @param options [IN]  Pointer to optimization options
+ *
+ * @retval ACL_ERROR_SUCCESS Optimization succeeded
+ * @retval ACL_ERROR_INVALID_PARAM Invalid parameters
+ * @retval ACL_ERROR_FAILURE Optimization failed
+ *
+ * @see aclskOptions
+ */
+ACL_FUNC_VISIBILITY aclError aclskOptimize(aclmdlRI model, aclskOptions *options);
+
+
+#ifdef __cplusplus
+}
+#endif
 #endif

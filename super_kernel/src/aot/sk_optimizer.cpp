@@ -27,14 +27,14 @@ aclrtFuncHandle ResolveSkEntryFunc(const char *funcName) {
     aclrtBinHandle bhdl = nullptr;
     bhdl = AscendGetEntryBinHandle();
     if (bhdl == nullptr) {
-        SK_LOGE("[sk error] failed to get entry bin handle");
+        SK_LOGE("failed to get entry bin handle: AscendGetEntryBinHandle() returned null");
         return nullptr;
     }
 
     aclrtFuncHandle fhdl = nullptr;
     CHECK_ACL(aclrtBinaryGetFunction(bhdl, funcName, &fhdl));
     if (fhdl == nullptr) {
-        SK_LOGE("[sk error] failed to resolve entry func handle");
+        SK_LOGE("failed to resolve entry func handle: funcName=%s, binHandle=%p", funcName, bhdl);
         return nullptr;
     }
     return fhdl;
@@ -46,19 +46,19 @@ aclrtFuncHandle ResolveSkEntryFunc(const char *funcName) {
 void SuperKernelOptimizer::Schedule(const SuperKernelScopeInfo &scopeInfo,
                                     const SuperKernelGraph &graph) {
     auto taskNodes = scopeInfo.nodes;
-    uint32_t streamIdx = scopeInfo.scopeStreamInfos[0].streamIdx;
     if (taskNodes.empty()) {
-        printf("[sk warning] no task for super kernel optimization\n");
+        SK_LOGW("no tasks for super kernel optimization: scope has 0 nodes");
         return;
     }
-    printf("[sk info] total task count : %zu, streamIdx=%u\n", taskNodes.size(), streamIdx);
+
+    SK_LOGI("total task count for optimization: %zu", taskNodes.size());
 
     SkTaskBuilder builder(opts, graph);
     SkLaunchInfo launchInfo = builder.Build(taskNodes);
 
     aclrtFuncHandle skEntryFunc = ResolveSkEntryFunc(launchInfo.entryInfo.skEntryFuncName);
     if (skEntryFunc == nullptr) {
-        printf("[sk error] failed to resolve sk entry function\n");
+        SK_LOGE("failed to resolve sk entry function: entryFuncName=%s", launchInfo.entryInfo.skEntryFuncName);
         return;
     }
 
@@ -84,9 +84,9 @@ void SuperKernelOptimizer::Process(SuperKernelGraph &graph) {
     // 切分图为多个子图
     SuperKernelScopeSplitter splitter(graph);
     if(splitter.SplitSingleStreamGraph()) {
-        SK_LOGI("graph split into %zu scopes\n", splitter.GetScopeInfos().size());
+        SK_LOGI("graph split into %zu scopes", splitter.GetScopeInfos().size());
     } else {
-        SK_LOGW("graph split failed or no scopes found\n");
+        SK_LOGW("graph split failed or no scopes found: cannot proceed with super kernel optimization");
         return;
     }
 

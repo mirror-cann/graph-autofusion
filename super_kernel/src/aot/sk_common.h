@@ -109,7 +109,7 @@ struct TaskInfo {
     uint32_t index;
     SkTaskType type;
     SkKernelType originType = SkKernelType::DEFAULT;
-    uint8_t blocks;
+    uint8_t numBlocks;
     uint8_t entryCnt;
     uint64_t args;
     uint64_t entry[4];

@@ -42,7 +42,18 @@ add_library(ascendsk SHARED
     ${GENERATED_SK_ENTRY_STUB_CPP}
 )
 add_dependencies(ascendsk generate_entry_stub)
-target_compile_options(ascendsk PRIVATE -fPIC)
+target_compile_options(ascendsk PRIVATE
+    -fPIC
+    -fvisibility=hidden
+    -Werror
+    -fno-common
+    -ftrapv
+)
+
+target_compile_definitions(ascendsk PRIVATE
+    FUNC_VISIBILITY
+)
+
 target_include_directories(ascendsk PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/include/super_kernel

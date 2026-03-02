@@ -429,14 +429,14 @@ __aicore__ inline void GMMQuantMixCoreCompute<mmType, sync>::SetPerTokenQuantSta
         #else 
         uint32_t factor = 0;
         #endif
-        // 2: Indicates the first two blocks of ub are already occupied.
+        // 2: Indicates the first two numBlocks of ub are already occupied.
         factor = !isPerTokenQuant && this->activeType == 0 ? factor : 2;
         uint32_t ubCalSizeFloat = this->ubCalSize * sizeof(float);
         uint32_t offset = factor * ubCalSizeFloat;
         // 2: Indicates a temporary space twice the size is needed.
         sharedTmpLocal = tmpBuff.GetWithOffset<uint8_t>(2 * ubCalSizeFloat, offset);
         if (isPerTokenQuant) {
-            // 2: Indicates the first two blocks of ub are already occupied.
+            // 2: Indicates the first two numBlocks of ub are already occupied.
             mulsResultLocal = tmpBuff.GetWithOffset<float>(this->ubCalSize, 2 * ubCalSizeFloat);
             pertokenBrcbLocal = tmpBuff.GetWithOffset<float>(this->ubCalSize, ubCalSizeFloat);
             if constexpr (isBiasEpilogue_) {
@@ -444,7 +444,7 @@ __aicore__ inline void GMMQuantMixCoreCompute<mmType, sync>::SetPerTokenQuantSta
             }
         }
         if (this->activeType != 0) {
-            // 2: Indicates the first three blocks of ub are already occupied.
+            // 2: Indicates the first three numBlocks of ub are already occupied.
             uint32_t offsetAct = !isPerTokenQuant ? ubCalSizeFloat : 3 * ubCalSizeFloat;
             actResultLocal = tmpBuff.GetWithOffset<float>(this->ubCalSize, offsetAct);
         }

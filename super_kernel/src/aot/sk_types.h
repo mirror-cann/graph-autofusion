@@ -23,6 +23,7 @@
 #include "securec.h"
 #include "acl/acl.h"
 #include "sk_common.h"
+#include "sk_log.h"
 
 constexpr uint32_t K_TYPE_AICORE = 1;
 constexpr uint32_t K_TYPE_AIC = 2;
@@ -64,7 +65,8 @@ public:
         capacity_ = 0;
         taskQue_ = nullptr;
         if (cap > (std::numeric_limits<size_t>::max() - sizeof(TaskQue)) / sizeof(TaskInfo)) {
-            printf("[sk error] TaskQuePtr size overflow, cap=%zu\n", cap);
+            SK_LOGE("TaskQuePtr size overflow: requested cap=%zu, max size=%zu, sizeof(TaskInfo)=%zu",
+                    cap, std::numeric_limits<size_t>::max(), sizeof(TaskInfo));
             return;
         }
         size_t size = sizeof(TaskQue) + sizeof(TaskInfo) * cap;
@@ -83,11 +85,13 @@ public:
 
         size_t extendSize = static_cast<size_t>(taskQue_->cap) * static_cast<size_t>(TASK_QUE_EXPAND_FACTOR);
         if (extendSize <= taskQue_->cap || extendSize > std::numeric_limits<uint32_t>::max()) {
-            printf("[sk error] TaskQuePtr expand cap overflow, cap=%u\n", taskQue_->cap);
+            SK_LOGE("TaskQuePtr expand cap overflow: current cap=%u, expansion factor=%u, max uint32=%u",
+                    taskQue_->cap, TASK_QUE_EXPAND_FACTOR, std::numeric_limits<uint32_t>::max());
             return;
         }
         if (extendSize > (std::numeric_limits<size_t>::max() - sizeof(TaskQue)) / sizeof(TaskInfo)) {
-            printf("[sk error] TaskQuePtr expand size overflow, extendSize=%zu\n", extendSize);
+            SK_LOGE("TaskQuePtr expand size overflow: extendSize=%zu, max size=%zu, sizeof(TaskInfo)=%zu",
+                    extendSize, std::numeric_limits<size_t>::max(), sizeof(TaskInfo));
             return;
         }
         size_t newSize = sizeof(TaskQue) + sizeof(TaskInfo) * extendSize;
@@ -99,10 +103,11 @@ public:
         size_t oldSize = sizeof(TaskQue) + sizeof(TaskInfo) * taskQue_->cap;
         errno_t err = memcpy_s(newData.get(), newSize, data_.get(), oldSize);
         if (err != 0) {
-            printf("[sk error] TaskQuePtr expand memcpy failed\n");
+            SK_LOGE("TaskQuePtr expand memcpy failed: errno=%d, srcSize=%zu, dstSize=%zu",
+                    err, oldSize, newSize);
             return;
         }
-        
+
         newTaskQue->cap = static_cast<uint32_t>(extendSize);
         data_ = std::move(newData);
         taskQue_ = newTaskQue;
@@ -176,10 +181,10 @@ public:
 struct SkTask {
     uint32_t numBlocks;
     TaskQuePtr taskQue;
-    uint32_t funcCnt = 0;
+    uint32_t funcCnt;
     SkKernelType nodeType = SkKernelType::DEFAULT;
 
-    SkTask() = default;
+    SkTask() : numBlocks(0), funcCnt(0) {};
     SkTask(const SkTask &) = delete;
     SkTask &operator=(const SkTask &) = delete;
     SkTask(SkTask &&) = default;

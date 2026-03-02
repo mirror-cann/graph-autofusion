@@ -15,6 +15,10 @@
 #include "sk_graph.h"
 #include "sk_lock_detector.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 aclError aclskOptimize(aclmdlRI model, aclskOptions *options) {
 
     SK_LOGI("enter aclskOptimize");
@@ -72,3 +76,7 @@ aclError aclskOptimize(aclmdlRI model, aclskOptions *options) {
     optimizer.Process(graph);
     return ACL_SUCCESS;
 }
+
+#ifdef __cplusplus
+}
+#endif

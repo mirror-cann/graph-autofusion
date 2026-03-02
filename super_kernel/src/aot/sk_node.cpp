@@ -84,15 +84,18 @@ const FunMap &GetFunMaps() {
 
 std::string LookupSkName(int binIndex, const char *funcName) {
     if (!funcName) {
+        SK_LOGE("invalid function name: funcName is null, binIndex=%d", binIndex);
         throw std::runtime_error("[sk error] invalid function name");
     }
     const auto &maps = GetFunMaps();
     auto binIt = maps.find(binIndex);
     if (binIt == maps.end()) {
+        SK_LOGE("invalid binIndex: binIndex=%d, valid range=[0,3], funcName=%s", binIndex, funcName);
         throw std::runtime_error("[sk error] invalid binIdx");
     }
     auto nameIt = binIt->second.find(funcName);
     if (nameIt == binIt->second.end()) {
+        SK_LOGE("unsupported function name: funcName=%s, binIndex=%d", funcName, binIndex);
         throw std::runtime_error("[sk error] unsupported function name : " + std::string(funcName));
     }
     return nameIt->second;
@@ -100,6 +103,7 @@ std::string LookupSkName(int binIndex, const char *funcName) {
 
 ResolvedFunctionInfo ResolveSkFunction(void *binHdl, const char *origName, const char *skName) {
     if (!binHdl || !origName || !skName) {
+        SK_LOGE("resolve sk function invalid args: binHdl=%p, origName=%p, skName=%p", binHdl, origName, skName);
         throw std::runtime_error("[sk error] resolve sk function invalid args");
     }
     ResolvedFunctionInfo info{};
@@ -216,23 +220,23 @@ bool SuperKernelKernelNode::Update(const UpdateContext &ctx) {
     const size_t MAX_ARGS_MEM_SIZE = 256 * 1024 * 1024;  // 64MB 
     CHECK_ACL(aclrtKernelArgsGetHandleMemSize(ctx.skEntryFunc, &memSize)); 
     if (memSize == 0 || memSize > MAX_HANDLE_MEM_SIZE) { 
-        printf("[sk error] invalid memSize: %zu\n", memSize); 
+        SK_LOGE("invalid memSize: %zu", memSize); 
         return false; 
     } 
     ahdl = (aclrtArgsHandle)malloc(memSize);
     if (ahdl == nullptr) {
-        printf("[sk error] malloc memSize failed\n");
+        SK_LOGE("malloc memSize failed");
         return false;
     }
     CHECK_ACL(aclrtKernelArgsGetMemSize(ctx.skEntryFunc, ctx.launchInfo->devArgs.get()->skHeader.totalSize, &devArgsSize));
     if (devArgsSize == 0 || devArgsSize > MAX_ARGS_MEM_SIZE) {
-        printf("[sk error] invalid devArgsSize: %zu\n", devArgsSize);
+        SK_LOGE("invalid devArgsSize: %zu", devArgsSize);
         return false;
     }
     void *devArgs = nullptr;
     devArgs = malloc(devArgsSize);
     if (devArgs == nullptr) {
-        printf("[sk error] malloc devArgsSize failed\n");
+        SK_LOGE("malloc devArgsSize failed");
         return false;
     }
     CHECK_ACL(aclrtKernelArgsInitByUserMem(ctx.skEntryFunc, ahdl, devArgs, devArgsSize));
@@ -241,7 +245,7 @@ bool SuperKernelKernelNode::Update(const UpdateContext &ctx) {
     CHECK_ACL(aclrtKernelArgsGetPlaceHolderBuffer(ahdl, phdl, ctx.launchInfo->devArgs.get()->skHeader.totalSize, (void**)&argsPtr));
     errno_t err = memcpy_s(argsPtr, ctx.launchInfo->devArgs.get()->skHeader.totalSize, ctx.launchInfo->devArgs.get(), ctx.launchInfo->devArgs.get()->skHeader.totalSize);
     if (err != 0) {
-        printf("[sk error] memcpy_s failed\n");
+        SK_LOGE("memcpy_s failed");
         return false;
     } 
     CHECK_ACL(aclrtKernelArgsFinalize(ahdl));

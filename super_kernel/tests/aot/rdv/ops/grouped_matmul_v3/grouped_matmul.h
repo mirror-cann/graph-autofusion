@@ -20,7 +20,7 @@
 namespace GROUPED_MATMUL {
 
 constexpr uint32_t thresholdBlockNum = 8;   // 8 is obtained by tests, indicating the threshold of basic block numbers
-                                            // in both directions when assigning data blocks to cube cores when using
+                                            // in both directions when assigning data numBlocks to cube cores when using
                                             // diagnal strategy
 #if defined(__CCE_AICORE__) && __CCE_AICORE__ == 200
 constexpr uint32_t thresholdDimM = 1;       // not needs any special strategies
