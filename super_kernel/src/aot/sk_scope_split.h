@@ -13,8 +13,8 @@
  * \brief
  */
 
-#pragma once
-
+#ifndef __SK_SCOPE_SPLIT_H__
+#define __SK_SCOPE_SPLIT_H__
 
 #include "sk_graph.h"
 #include "sk_log.h"
@@ -50,3 +50,5 @@ private:
     SuperKernelGraph& graph;
     std::vector<SuperKernelScopeInfo> scopeInfos;
 };
+
+#endif // __SK_SCOPE_SPLIT_H__

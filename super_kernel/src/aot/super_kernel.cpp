@@ -13,6 +13,7 @@
 #include "sk_options_manager.h"
 #include "sk_optimizer.h"
 #include "sk_graph.h"
+#include "sk_lock_detector.h"
 
 aclError aclskOptimize(aclmdlRI model, aclskOptions *options) {
 
@@ -57,6 +58,9 @@ aclError aclskOptimize(aclmdlRI model, aclskOptions *options) {
     // 使用默认策略（通过编译配置自动选择 V1 或 V2）
     SuperKernelGraph graph(model);
     if (!graph.InitSKGraph()) {
+        return ACL_ERROR_FAILURE;
+    }
+    if (!LockDetector::GetDeviceCores()) {
         return ACL_ERROR_FAILURE;
     }
 

@@ -13,7 +13,8 @@
  * \brief
  */
 
-#pragma once
+#ifndef __SK_GRAPH_H__
+#define __SK_GRAPH_H__
 
 #include <unordered_map>
 #include <unordered_set>
@@ -75,3 +76,5 @@ private:
     uint64_t nextNodeId = 0;
     friend class SuperKernelScopeSplitter;
 };
+
+#endif // __SK_GRAPH_H__

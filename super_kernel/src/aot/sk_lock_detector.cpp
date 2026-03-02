@@ -16,37 +16,40 @@
 #include "sk_lock_detector.h"
 #include "sk_log.h"
 
+int64_t LockDetector::deviceRealCubeNum = 0;
+int64_t LockDetector::deviceRealVecNum = 0;
+
 void LockDetector::Init() {
-    static std::pair<uint64_t, uint64_t> coreInfos = GetDeviceCores();
     nodes.clear();
-    depOpCubeNum = 0; // 依赖算子中 ---换名
-    depOpVecNum = 0; // 依赖算子中
-    superKernelCubeNum = 0; // sk
-    superKernelVecNum = 0;
-    deviceRealCubeNum = coreInfos.first;
-    deviceRealVecNum = coreInfos.second;
+    depOpCubeNum = 0; // visited op cube num outside superkernel
+    depOpVecNum = 0; // visited op vec num outside superkernel
+    superKernelCubeNum = 0; // fused op cube num in superkernel
+    superKernelVecNum = 0; // fused op vec num in superkernel
     skStreamIds.clear();
     isExistWaitFlag = false;
 }
-std::pair<uint64_t, uint64_t> LockDetector::GetDeviceCores() const {
+
+bool LockDetector::GetDeviceCores() {
     // 获取deviceId
     int32_t deviceId;
     aclError ret = aclrtGetDevice(&deviceId);
     if (ret != ACL_SUCCESS) {
-        SK_LOGE("[lock detector] get device failed!!!");
+        SK_LOGE("[lock detector] GetDeviceCores for deviceId failed, ret=%d", ret);
+        return false;
     }
     // 获取CubeNum、VecNum
-    int64_t cubeNum;
-    ret = aclrtGetDeviceInfo(deviceId, ACL_DEV_ATTR_CUBE_CORE_NUM, &cubeNum);
+    ret = aclrtGetDeviceInfo(deviceId, ACL_DEV_ATTR_CUBE_CORE_NUM, &LockDetector::deviceRealCubeNum);
     if (ret != ACL_SUCCESS) {
-        SK_LOGE("[lock detector] get cube num failed!!!");
+        SK_LOGE("[lock detector] GetDeviceCores for cube num failed, ret=%d", ret);
+        return false;
     }
-    int64_t vecNum;
-    ret = aclrtGetDeviceInfo(deviceId, ACL_DEV_ATTR_VECTOR_CORE_NUM, &vecNum);
+    ret = aclrtGetDeviceInfo(deviceId, ACL_DEV_ATTR_VECTOR_CORE_NUM, &LockDetector::deviceRealVecNum);
     if (ret != ACL_SUCCESS) {
-        SK_LOGE("[lock detector] get vector num failed!!!");
+        SK_LOGE("[lock detector] GetDeviceCores for vec num failed, ret=%d", ret);
+        return false;
     }
-    return {cubeNum, vecNum};
+    SK_LOGI("[lock detector] GetDeviceCores success, cube num=%u, vec num=%u ", deviceRealCubeNum, deviceRealVecNum);
+    return true;
 }
 
 std::pair<uint64_t, uint64_t> LockDetector::GetAvailableCores(bool isSuperKernel) const {
@@ -70,8 +73,8 @@ std::pair<uint32_t, uint32_t> LockDetector::GetNodeCoreNum(const SuperKernelBase
     } else if (kernelType == SkKernelType::MIX_AIC_1_2) {
         return {numBlocks, numBlocks << 1};
     } else {
-        // 需要加校验-报错
-        SK_LOGE("[lock detector] Unsupported kernel type to compute core num: %u", kernelType);
+        SK_LOGE("[lock detector] Unsupported kernel type to compute core num, kernelType=%u", kernelType);
+        return {std::numeric_limits<uint32_t>::max(), std::numeric_limits<uint32_t>::max()};
     }
 }
 
@@ -178,7 +181,7 @@ void LockDetector::Reset(SuperKernelGraph& graph) {
     isExistWaitFlag = false;
     for (auto nodeId : nodes) {
         SuperKernelBaseNode* node = graph.GetNodeById(nodeId);
-        node -> SetVisited(false);
+        node->SetVisited(false);
     }
     nodes.clear();
     skStreamIds.clear();
@@ -196,9 +199,7 @@ bool LockDetector::IsFusible(const SuperKernelBaseNode& curNode, SuperKernelGrap
         }
         return !HasDeadlock(notifyNode, graph);
     } else if (curNode.GetNodeType() == SkNodeType::NODE_KERNEL) {
-        // done 在wait后的kernel策略有改变
-        // way1：在wait后，如果有足够的core，则可以fuse，否则不fuse
-        // way2：在第一个wait后，不允许后续融合的kernel 核数大于当前sk的max core num
+        // current way: after first wait in sk, kernel not allow increase core num
         std::pair<uint32_t, uint32_t> coreNum = GetNodeCoreNum(curNode);
         if (isExistWaitFlag){
             return coreNum.first <= superKernelCubeNum && coreNum.second <= superKernelVecNum;
@@ -211,7 +212,7 @@ bool LockDetector::IsFusible(const SuperKernelBaseNode& curNode, SuperKernelGrap
             return false;
         }
     } else {
-        SK_LOGE("no support detector taskType!!! taskType=%u", curNode.GetNodeType());
+        SK_LOGW("no support detector taskType!!! taskType=%u", curNode.GetNodeType());
         return false;
     }
 }

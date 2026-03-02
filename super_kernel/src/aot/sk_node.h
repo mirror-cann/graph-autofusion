@@ -13,7 +13,8 @@
  * \brief
  */
 
-#pragma once
+#ifndef __SK_NODE_H__
+#define __SK_NODE_H__
 
 #include <cstdint>
 #include <memory>
@@ -214,3 +215,5 @@ public:
     bool InitNode() override;
     bool InValidateNode() override;
 };
+
+#endif // __SK_NODE_H__

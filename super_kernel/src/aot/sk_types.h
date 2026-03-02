@@ -8,7 +8,8 @@
 * See LICENSE in the root of the software repository for the full text of the License.
 */
 
-#pragma once
+#ifndef __SK_TYPES_H__
+#define __SK_TYPES_H__
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -224,3 +225,5 @@ struct SkLaunchInfo {
     SkHostEntryInfo entryInfo;
     DeviceArgsPtr devArgs;
 };
+
+#endif // __SK_TYPES_H__

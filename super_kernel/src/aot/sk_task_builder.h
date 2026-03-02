@@ -8,7 +8,8 @@
 * See LICENSE in the root of the software repository for the full text of the License.
 */
 
-#pragma once
+#ifndef __SK_TASK_BUILDER_H__
+#define __SK_TASK_BUILDER_H__
 
 #include "sk_node.h"
 #include "sk_types.h"
@@ -158,3 +159,5 @@ private:
                                               const SkDfxInfo *dfxInfos,
                                               uint32_t dfxCount);
 };
+
+#endif // __SK_TASK_BUILDER_H__
