@@ -121,9 +121,9 @@ bool SuperKernelOptionsManager::JudgeDisableKernelDcci(std::vector<std::string>&
 }
 
 bool SuperKernelOptionsManager::EnableDebug() const {
-    auto iter = optionMap.find(aclskOtionType::DEBUG_SYNC_ALL);
+    auto iterSyncAll = optionMap.find(aclskOtionType::DEBUG_SYNC_ALL);
     auto iterDcci = optionMap.find(aclskOtionType::DEBUG_DCCI_DISABLE_ON_KERNEL);
-    if (iter != optionMap.end() || iterDcci != optionMap.end()) {
+    if (iterSyncAll != optionMap.end() || iterDcci != optionMap.end()) {
         SK_LOGI("debug mode enabled");
         return true;
     }
@@ -132,7 +132,7 @@ bool SuperKernelOptionsManager::EnableDebug() const {
 
 void SuperKernelOptionsManager::SetOptOptionValue(aclskOption* option) {
     if (option == nullptr) {
-        SK_LOGE("option is nullptr");
+        SK_LOGE("sub aclskOption is nullptr");
         return;
     }
     switch (option->optionType) {
@@ -193,6 +193,7 @@ void SuperKernelOptionsManager::SetOptOptionValue(aclskOption* option) {
 
 void SuperKernelOptionsManager::ParseOptions(aclskOptions* options) {
     if (options == nullptr) {
+        SK_LOGI("aclskOption is nullptr");
         return;
     }
     for (size_t i = 0; i < static_cast<size_t>(options->numOptions); i++) {

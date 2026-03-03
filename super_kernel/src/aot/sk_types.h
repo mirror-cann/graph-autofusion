@@ -40,14 +40,6 @@ constexpr uint32_t TASK_QUE_EXPAND_FACTOR = 2;       // TaskQue扩容因子
 constexpr uint32_t MAX_TASK_NUM = 1000;
 constexpr uint64_t INVALID_TASK_ID = 0xFFFFFFFFFFFFFFFF;
 
-#define CHECK_ACL(x)                                                                        \
-    do {                                                                                    \
-        aclError __ret = x;                                                                 \
-        if (__ret != ACL_ERROR_NONE) {                                                      \
-            SK_LOGE("aclError: %d", __ret);                                                 \
-        }                                                                                   \
-    } while (0);
-
 inline size_t GetTaskQueSize(const TaskQue *que) {
     if (que == nullptr) {
         return 0;

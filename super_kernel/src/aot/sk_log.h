@@ -44,6 +44,7 @@ void ReportErrorMessage(const char* fmt, Arguments &&... args)
 #ifdef __cplusplus
 extern "C" {
 #endif
+
 #define SK_LOGD(format, ...)                                                                         \
     do {                                                                                             \
       dlog_debug(ASCENDC_MODULE_NAME, "[SK][[%s:%s] " format "\n", GetFileName(__FILE__), __FUNCTION__, ##__VA_ARGS__);             \
@@ -62,6 +63,14 @@ extern "C" {
 #define SK_LOGE(format, ...)                                                           \
     do {                                                                                           \
         dlog_error(ASCENDC_MODULE_NAME, "[SK][%s:%s] " format "\n", GetFileName(__FILE__), __FUNCTION__, ##__VA_ARGS__);     \
+    } while (0)
+
+#define CHECK_ACL(x)                                                                        \
+    do {                                                                                    \
+        aclError __ret = x;                                                                 \
+        if (__ret != ACL_ERROR_NONE) {                                                      \
+            SK_LOGE("aclError: %d", __ret);                                                 \
+        }                                                                                   \
     } while (0)
 
 #define REPORT_ERROR_MESSAGE(...)              \
