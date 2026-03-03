@@ -44,7 +44,7 @@ constexpr uint64_t INVALID_TASK_ID = 0xFFFFFFFFFFFFFFFF;
     do {                                                                                    \
         aclError __ret = x;                                                                 \
         if (__ret != ACL_ERROR_NONE) {                                                      \
-            std::cerr << __FILE__ << ":" << __LINE__ << " aclError:" << __ret << std::endl; \
+            SK_LOGE("aclError: %d", __ret);                                                 \
         }                                                                                   \
     } while (0);
 

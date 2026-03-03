@@ -915,111 +915,117 @@ DeviceArgsPtr SkTaskBuilder::GenEntryArgs(const SkTask &skTaskCube,
     return args;
 }
 
+std::pair<int, int> SkTaskBuilder::GetPreFetchCnt(const ResolvedFunctionInfo &resolved)
+{
+    std::pair<int, int> preFetchCntValue = std::make_pair(resolved.prefetchCnt[0], resolved.prefetchCnt[1]);
+    auto preLoadOptions = opts.GetOption(aclskOtionType::PRELOAD_CODE);
+    
+    // default: preLoadValue == 1, use func size to prefetch
+    uint32_t preLoadValue = 1;
+    
+    if (preLoadOptions != nullptr) {
+        preLoadValue = preLoadOptions->GetIntValue();
+    }
+    
+    if (preLoadValue == 0) {
+        // use max size to prefetch
+        preFetchCntValue.first = 16;  // cube's max icache size is 32K(16 * 2)
+        preFetchCntValue.second = 8;  // vec's max icache size is 16K(8 * 2)
+    } else if (preLoadValue == 2) {
+        // no preload
+        preFetchCntValue.first = 0;
+        preFetchCntValue.second = 0;
+    }
+    // preLoadValue == 1: use func size (default from resolved.prefetchCnt)
+
+    return preFetchCntValue;
+}
+
 void SkTaskBuilder::AddTask(SkTask &skTask, SkDfxInfo *dfxInfos, const std::vector<SuperKernelBaseNode *> &tasks, size_t index,
                             SkKernelType kernelType, int customArg, int binCount, SkTaskType taskType,
                             uint32_t syncFlag = (uint32_t)SkCoreSyncType::ALL_SYNC_DEBUG)
 {
-    if (index >= tasks.size())
-    {
+    if (index >= tasks.size()) {
         return;
     }
 
     TaskQue *taskQue = skTask.taskQue.get();
-    if (taskQue->taskCnt >= taskQue->cap)
-    {
+    if (taskQue->taskCnt >= taskQue->cap) {
         skTask.taskQue = ExtendTaskQuePtr(std::move(skTask.taskQue));
     }
 
     auto syncAllOptions = opts.GetOption(aclskOtionType::DEBUG_SYNC_ALL);
     uint32_t debugSyncAll = 0;
-    if (syncAllOptions != nullptr)
-    {
+    if (syncAllOptions != nullptr) {
         debugSyncAll = syncAllOptions->GetIntValue();
     }
     auto disableDcciOptions = opts.GetOption(aclskOtionType::DEBUG_DCCI_DISABLE_ON_KERNEL);
     std::vector<std::string> disableDcciList;
-    if (disableDcciOptions != nullptr)
-    {
+    if (disableDcciOptions != nullptr) {
         disableDcciList = disableDcciOptions->GetStringListValue();
     }
 
     TaskInfo &taskInfo = taskQue->taskInfos[taskQue->taskCnt];
     taskInfo.index = index;
 
-    if (taskType == SkTaskType::TYPE_SYNC)
-    {
+    if (taskType == SkTaskType::TYPE_SYNC) {
         taskInfo.type = taskType;
         taskInfo.args = syncFlag;
-        if (opts.EnableDebug() && debugSyncAll == 1)
-        {
+        if (opts.EnableDebug() && debugSyncAll == 1) {
             taskInfo.debugOptions |= 0x2;
         }
-    }
-    else if (taskType == SkTaskType::TYPE_EVENT_NOTIFY || taskType == SkTaskType::TYPE_EVENT_WAIT)
-    {
+    } else if (taskType == SkTaskType::TYPE_EVENT_NOTIFY || taskType == SkTaskType::TYPE_EVENT_WAIT) {
         if (tasks[index]->GetNodeType() != SkNodeType::NODE_NOTIFY &&
-            tasks[index]->GetNodeType() != SkNodeType::NODE_WAIT)
-        {
+            tasks[index]->GetNodeType() != SkNodeType::NODE_WAIT) {
             throw std::runtime_error("[sk error] unsupported node type for EVENT_NOTIFY/EVENT_WAIT task");
         }
         taskInfo.type = taskType;
         taskInfo.args = (uint64_t)tasks[index]->GetNodeInfos().syncInfos.addrValue;
-    }
-    else if (taskType == SkTaskType::TYPE_PRELOAD || taskType == SkTaskType::TYPE_FUNC)
-    {
-        if (tasks[index]->GetNodeType() != SkNodeType::NODE_KERNEL)
-        {
+    } else if (taskType == SkTaskType::TYPE_PRELOAD || taskType == SkTaskType::TYPE_FUNC) {
+        if (tasks[index]->GetNodeType() != SkNodeType::NODE_KERNEL) {
             throw std::runtime_error("[sk error] unsupported node type for PRELOAD/FUNC task");
         }
         const KernelInfos &kernelInfo = tasks[index]->GetNodeInfos().kernelInfos;
         taskInfo.type = taskType;
         taskInfo.originType = kernelInfo.kernelType;
-        if (kernelInfo.kernelType == SkKernelType::MIX_AIC_1_2 && customArg == 1)
-        {
+        if (kernelInfo.kernelType == SkKernelType::MIX_AIC_1_2 && customArg == 1) {
             taskInfo.numBlocks = kernelInfo.numBlocks * 2;
-        }
-        else
-        {
+        } else {
             taskInfo.numBlocks = kernelInfo.numBlocks;
         }
 
-        for (int i = 0; i < binCount; i++)
-        {
+        for (int i = 0; i < binCount; i++) {
             const ResolvedFunctionInfo &resolved = kernelInfo.resolvedFuncs[i];
+            std::pair<int,int> prefetchCntValue = GetPreFetchCnt(resolved);
+            SK_LOGI("kernel name: %s, prefetch count: %d %d",
+                kernelInfo.funcName.c_str(), prefetchCntValue.first, prefetchCntValue.second);
             uint64_t addr = resolved.funcAddr[customArg];
-            taskInfo.args = resolved.prefetchCnt[customArg];
-            if (addr == 0)
-            {
+            taskInfo.args = customArg == 0 ? prefetchCntValue.first : prefetchCntValue.second;
+            if (addr == 0) {
                 throw std::runtime_error("[sk error] unresolved function address");
             }
 
             taskInfo.entryCnt += 1;
             taskInfo.entry[i] = addr;
-            if (taskType == SkTaskType::TYPE_FUNC && dfxInfos)
-            {
+            if (taskType == SkTaskType::TYPE_FUNC && dfxInfos) {
                 dfxInfos[index].binHdl = (uint64_t)kernelInfo.binHdl;
                 dfxInfos[index].funcHdl = (uint64_t)resolved.funcHdl;
                 dfxInfos[index].funcHdlOri = (uint64_t)kernelInfo.funcHdl;
             }
         }
 
-        if (taskType == SkTaskType::TYPE_FUNC)
-        {
+        if (taskType == SkTaskType::TYPE_FUNC) {
             taskInfo.args = (uint64_t)kernelInfo.devArgs;
             skTask.numBlocks = std::max(skTask.numBlocks, (uint32_t)taskInfo.numBlocks);
             skTask.funcCnt++;
-            if (!disableDcciList.empty() && !kernelInfo.funcName.empty())
-            {
+            if (!disableDcciList.empty() && !kernelInfo.funcName.empty()) {
                 bool disable = opts.JudgeDisableKernelDcci(disableDcciList, kernelInfo.funcName);
-                if (disable)
-                {
+                if (disable) {
                     taskInfo.debugOptions |= 0x1;
                 }
             }
         }
-    }
-    else
-    {
+    } else {
         throw std::runtime_error("[sk error] unsupported task type for AddTask");
     }
     taskQue->taskCnt++;

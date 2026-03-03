@@ -100,7 +100,7 @@ private:
 
     // 新的同步信息存储：每个任务维护自己的send/recv信息
     std::vector<TaskSyncInfo> taskSyncInfos_;
-
+    std::pair<int, int> GetPreFetchCnt(const ResolvedFunctionInfo &resolved);
     void AddTask(SkTask &skTask, SkDfxInfo *dfxInfos, const std::vector<SuperKernelBaseNode *> &tasks, size_t index,
                 SkKernelType originType, int customArg, int binCount, SkTaskType taskType,
                 uint32_t syncFlag);
