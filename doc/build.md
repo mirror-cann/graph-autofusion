@@ -34,7 +34,7 @@ chmod +x Ascend-cann-toolkit_${cann_version}_linux-${arch}.run
 
    根据产品型号和环境架构，下载对应`Ascend-cann-${soc_name}-ops-${cann_version}_linux-${arch}.run`包，下载链接如下：
    
-   - Atlas A3 训练系列产品/Atlas A3 推理系列产品：[ops x86_64包](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/CANN/20251212_newest/Ascend-cann-910_93-ops_8.5.0_linux-x86_64.run)、[ops aarch64包](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/CANN/20251212_newest/Ascend-cann-910_93-ops_8.5.0_linux-aarch64.run)。
+   - Atlas A3 训练系列产品/Atlas A3 推理系列产品：[下载链接](https://ascend.devcloud.huaweicloud.com/artifactory/cann-run-mirror/software/master/)。
    
    ```bash
    # 确保安装包具有可执行权限
