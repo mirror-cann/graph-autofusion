@@ -73,8 +73,9 @@ set(LATEST_MANGER_FILES
 set(CONF_FILES
     ${CMAKE_SOURCE_DIR}/scripts/package/common/cfg/path.cfg
 )
-install(FILES ${CMAKE_SOURCE_DIR}/version.info
+install(FILES ${CMAKE_BINARY_DIR}/version.graph-autofusion.info
     DESTINATION share/info/graph_autofusion
+    RENAME version.info
 )
 install(FILES ${CONF_FILES}
     DESTINATION graph_autofusion/conf

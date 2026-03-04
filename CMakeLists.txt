@@ -25,6 +25,11 @@ else()
     option(BUILD_WITH_INSTALLED_DEPENDENCY_CANN_PKG "Build graph_autofusion need cann source code" FALSE)
 endif()
 
+include(cmake/function.cmake)
+include(version.cmake)
+check_pkg_build_deps("graph-autofusion")
+add_version_info_targets()
+
 set(OPEN_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../open_source")
 if(NOT EXISTS ${OPEN_SOURCE_DIR})
     message(STATUS "Build graph_autofusion with dependency communtiy cann pkgs installed")
