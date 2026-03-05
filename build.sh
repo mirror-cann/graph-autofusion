@@ -17,6 +17,7 @@ OUTPUT_PATH="${BASEPATH}/build_out"
 CPU_NUM=$(($(cat /proc/cpuinfo | grep "^processor" | wc -l)))
 THREAD_NUM=${CPU_NUM}
 ASCEND_INSTALL_PATH="${ASCEND_HOME_PATH}"
+BUILD_TYPE="Release"
 CUSTOM_OPTION="-DCMAKE_INSTALL_PREFIX=${BUILD_PATH} -DASCEND_INSTALL_PATH=${ASCEND_INSTALL_PATH}"
 # Detect Python command to use
 if [ -n "$VIRTUAL_ENV" ]; then
@@ -31,7 +32,7 @@ fi
 usage() {
   echo "Usage:"
   echo "  sh build.sh [-h|--help] [--pkg] [--cpp_utest] [-u|--ut] [-s|--st] [-c|--coverage] [-j]"
-  echo "              [--output_path=<PATH>]"
+  echo "              [--output_path=<PATH>] [--build-type=<TYPE>]"
   echo ""
   echo "Options:"
   echo "    -h, --help            Print usage"
@@ -47,6 +48,7 @@ usage() {
   echo "                          Set output path, where the run package will be generated, default ./build_out"
   echo "    --run_example         Run all examples"
   echo "        =superkernel      Run superkernel examples"
+  echo "    --build-type=<TYPE>   Set build type: Debug, Release(default: Release)"
   echo ""
 }
 
@@ -86,8 +88,8 @@ checkopts() {
   ENABLE_RUN_EXAMPLE="off"
   ENABLE_SUPERKERNEL_RUN_EXAMPLE="off"
 
-  # Process the options
-  parsed_args=$(getopt -a -o j:hu::s::c -l help,pkg,cpp_utest,run_example::,ut::,st::,coverage,output_path: -- "$@") || {
+  # Process the options - 添加了 build-type 选项
+  parsed_args=$(getopt -a -o j:hu::s::c -l help,pkg,cpp_utest,run_example::,ut::,st::,coverage,output_path:,build-type: -- "$@") || {
     usage
     exit 1
   }
@@ -170,6 +172,16 @@ checkopts() {
         OUTPUT_PATH="$(realpath $2)"
         shift 2
         ;;
+      --build-type)  # 新增的 build-type 选项
+        BUILD_TYPE="$2"
+        # 验证 BUILD_TYPE 是否有效
+        if [[ ! "$BUILD_TYPE" =~ ^(Debug|Release)$ ]]; then
+          echo "ERROR: Invalid build type: $BUILD_TYPE"
+          echo "       Valid types: Debug, Release"
+          exit 1
+        fi
+        shift 2
+        ;;
       --)
         shift
         break
@@ -181,6 +193,7 @@ checkopts() {
         ;;
     esac
   done
+  
 }
 
 function cmake_config()
