@@ -34,3 +34,16 @@ add_custom_command(
 add_custom_target(generate_entry_stub
    DEPENDS ${GENERATED_SK_ENTRY_STUB_CPP}
 )
+
+ascendc_library(sk_scope STATIC
+    sk_scope_kernel.asc
+)
+
+target_compile_options(sk_scope PRIVATE
+   $<$<COMPILE_LANGUAGE:ASC>:--npu-arch=dav-2201>
+)
+
+target_include_directories(sk_scope PRIVATE
+   ${CMAKE_CURRENT_SOURCE_DIR}/../src/aot/
+   ${CMAKE_CURRENT_SOURCE_DIR}/../tests/aot/rdv/runtime/
+)

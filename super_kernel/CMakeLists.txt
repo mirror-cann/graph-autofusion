@@ -62,7 +62,7 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/superkernel-0.1.0-py3-none-any.whl OPT
 #     $ENV{ASCEND_HOME_PATH}/pkg_inc/
 #     $ENV{ASCEND_HOME_PATH}/pkg_inc/base
 #     $ENV{ASCEND_HOME_PATH}/include)
-# target_link_libraries(ascendsk PRIVATE rt_hook error_manager c_sec unified_dlog)
+# target_link_libraries(ascendsk PRIVATE rt_hook error_manager c_sec unified_dlog sk_scope)
 # 
 # install(TARGETS ascendsk DESTINATION ascendsk/lib)
 # install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/include/super_kernel/super_kernel.h
