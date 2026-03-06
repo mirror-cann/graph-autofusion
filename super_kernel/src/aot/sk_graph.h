@@ -20,6 +20,7 @@
 #include <unordered_set>
 #include <vector>
 #include <memory>
+#include <algorithm>
 
 #include "sk_log.h"
 #include "sk_types.h"
@@ -57,7 +58,11 @@ public:
 
     aclrtStream GetStreamByIndex(uint32_t streamIdx) const;
 
+    // Get all nodeIds sorted in ascending order
+    std::vector<uint64_t> GetSortedNodeIds() const;
+
 private:
+
     uint64_t AllocateNodeId() {
         return nextNodeId++;
     }

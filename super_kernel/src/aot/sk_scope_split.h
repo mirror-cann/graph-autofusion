@@ -16,9 +16,14 @@
 #ifndef __SK_SCOPE_SPLIT_H__
 #define __SK_SCOPE_SPLIT_H__
 
+#include <queue>
+#include <set>
+#include <unordered_map>
+#include <vector>
+
 #include "sk_graph.h"
 #include "sk_log.h"
-
+#include "sk_lock_detector.h"
 struct ScopeStreamInfo {
     uint32_t streamIdx = 0;
     uint64_t headNodeIdx = INVALID_TASK_ID;
@@ -31,6 +36,20 @@ struct SuperKernelScopeInfo{
     std::vector<SuperKernelBaseNode *> nodes;
 };
 
+// Stream state for multi-stream graph splitting
+struct StreamState {
+    uint64_t currentNodeIdx;    // Current node index being processed
+    bool isSuspended;           // Whether the stream is suspended (waiting for notify)
+    uint64_t waitingForNotify;  // Event ID that the stream is waiting for
+    bool isTerminated;          // Whether the stream is terminated (due to deadlock or unfusible)
+
+    StreamState()
+        : currentNodeIdx(INVALID_TASK_ID),
+          isSuspended(false),
+          waitingForNotify(INVALID_TASK_ID),
+          isTerminated(false) {}
+};
+
 class SuperKernelScopeSplitter {
 public:
     SuperKernelScopeSplitter(SuperKernelGraph &graph) : graph(graph) { }
@@ -39,13 +58,49 @@ public:
     SuperKernelScopeSplitter& operator=(const SuperKernelScopeSplitter&) = delete;
     SuperKernelScopeSplitter(SuperKernelScopeSplitter&&) = default;
     SuperKernelScopeSplitter& operator=(SuperKernelScopeSplitter&&) = default;
+
+    bool SplitGraph();
     bool SplitSingleStreamGraph();
+    bool SplitMultiStreamGraph();
     std::vector<SuperKernelScopeInfo>& GetScopeInfos() noexcept { return scopeInfos; }
 
 private:
-
-    uint64_t FindAvailableHeadNode(uint64_t curNodeIdx) const;
+    // Single stream splitting methods
+    uint64_t FindSingleStreamAvailableHeadNode(uint64_t curNodeIdx) const;
     uint64_t GenerateSingleStreamScopeInfosByNodeIdx(uint64_t curNodeIdx);
+
+    // Multi-stream splitting methods
+    void InitNodeHeap(std::unordered_map<uint32_t, StreamState>& streamStates,
+                     const std::set<uint64_t>& visitedNotifies,
+                     const std::set<uint64_t>& processedNodes,
+                     std::priority_queue<uint64_t, std::vector<uint64_t>, std::greater<uint64_t>>& nodeHeap,
+                     LockDetector& lockDetector);
+
+    void TryAddNodeToHeap(uint32_t streamIdx,
+                         std::unordered_map<uint32_t, StreamState>& streamStates,
+                         const std::set<uint64_t>& visitedNotifies,
+                         const std::set<uint64_t>& processedNodes,
+                         std::priority_queue<uint64_t, std::vector<uint64_t>, std::greater<uint64_t>>& nodeHeap,
+                         LockDetector& lockDetector);
+
+    void ProcessNotifyNode(SuperKernelBaseNode* notifyNode,
+                         std::set<uint64_t>& visitedNotifies,
+                         const std::set<uint64_t>& processedNodes,
+                         std::unordered_map<uint32_t, StreamState>& streamStates,
+                         std::priority_queue<uint64_t, std::vector<uint64_t>, std::greater<uint64_t>>& nodeHeap,
+                         LockDetector& lockDetector);
+
+    void ProcessResetNode(SuperKernelBaseNode* resetNode,
+                        std::set<uint64_t>& visitedNotifies,
+                        std::unordered_map<uint32_t, StreamState>& streamStates);
+
+    void AddStreamInfoToScope(SuperKernelScopeInfo& scopeInfo, SuperKernelBaseNode* node);
+
+    void SkipUnfusibleNodes(std::unordered_map<uint32_t, StreamState>& streamStates);
+
+    void ResetStreamStates(std::unordered_map<uint32_t, StreamState>& streamStates);
+
+    bool AllStreamsFinished(const std::unordered_map<uint32_t, StreamState>& streamStates) const;
 
     SuperKernelGraph& graph;
     std::vector<SuperKernelScopeInfo> scopeInfos;

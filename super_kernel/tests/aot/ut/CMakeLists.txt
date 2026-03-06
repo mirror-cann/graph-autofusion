@@ -15,10 +15,18 @@ set(LOCAL_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 add_executable(super_kernel_aot_utest
     ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test_sk_options_manager.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_sk_graph.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_sk_scope_split.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/aclrt_stubs.cpp
     ${GRAPH_AUTOFUSION_ROOT_DIR}/super_kernel/src/aot/sk_options_manager.cpp
+    ${GRAPH_AUTOFUSION_ROOT_DIR}/super_kernel/src/aot/sk_graph.cpp
+    ${GRAPH_AUTOFUSION_ROOT_DIR}/super_kernel/src/aot/sk_scope_split.cpp
+    ${GRAPH_AUTOFUSION_ROOT_DIR}/super_kernel/src/aot/sk_lock_detector.cpp
+    ${GRAPH_AUTOFUSION_ROOT_DIR}/super_kernel/src/aot/sk_node.cpp
 )
 
 target_include_directories(super_kernel_aot_utest PRIVATE
+    ${GRAPH_AUTOFUSION_ROOT_DIR}/super_kernel/tests/aot/rdv/runtime/
     ${GRAPH_AUTOFUSION_ROOT_DIR}/super_kernel/src/aot/
     ${GRAPH_AUTOFUSION_ROOT_DIR}/super_kernel/include/super_kernel/
     $ENV{ASCEND_HOME_PATH}/pkg_inc/base
@@ -37,7 +45,13 @@ target_compile_options(super_kernel_aot_utest PRIVATE
 
 target_link_libraries(super_kernel_aot_utest PRIVATE
     $<BUILD_INTERFACE:intf_llt_pub>
+    error_manager
+    c_sec
     unified_dlog
+)
+
+target_link_directories(super_kernel_aot_utest PRIVATE
+    $ENV{ASCEND_HOME_PATH}/lib64
 )
 
 run_llt_test(

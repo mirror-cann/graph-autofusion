@@ -27,6 +27,11 @@ void LockDetector::Init() {
     superKernelVecNum = 0; // fused op vec num in superkernel
     skStreamIds.clear();
     isExistWaitFlag = false;
+
+    // Initialize device core numbers if not already set
+    if (deviceRealCubeNum == 0 && deviceRealVecNum == 0) {
+        GetDeviceCores();
+    }
 }
 
 bool LockDetector::GetDeviceCores() {

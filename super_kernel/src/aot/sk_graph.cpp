@@ -187,3 +187,13 @@ aclrtStream SuperKernelGraph::GetStreamByIndex(uint32_t streamIdx) const {
     }
     return streams[streamIdx];
 }
+
+std::vector<uint64_t> SuperKernelGraph::GetSortedNodeIds() const {
+    std::vector<uint64_t> nodeIds;
+    nodeIds.reserve(graphMap.size());
+    for (const auto& pair : graphMap) {
+        nodeIds.push_back(pair.first);
+    }
+    std::sort(nodeIds.begin(), nodeIds.end());
+    return nodeIds;
+}
