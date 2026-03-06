@@ -308,9 +308,11 @@ TEST_F(SuperKernelOptionsManagerTest, JudgeDisableKernelDcci_InvalidRegex)
 
 TEST_F(SuperKernelOptionsManagerTest, JudgeDisableKernelDcci_ComplexPattern)
 {
-    std::vector<std::string> dcciOps = {"^Conv2D$", "^MatMul.*", ".*BatchNorm.*$"};
+    // 注意：正则只支持 . 和 *，不支持 ^ 和 $
+    // 使用完全匹配语义，模式需要匹配整个算子名称
+    std::vector<std::string> dcciOps = {"Conv2D", "MatMul.*", ".*BatchNorm.*"};
     EXPECT_TRUE(opts_test->JudgeDisableKernelDcci(dcciOps, "Conv2D"));
-    EXPECT_FALSE(opts_test->JudgeDisableKernelDcci(dcciOps, "Conv2DBackward")); // 不匹配 ^Conv2D$
+    EXPECT_FALSE(opts_test->JudgeDisableKernelDcci(dcciOps, "Conv2DBackward")); // 不匹配 Conv2D
     EXPECT_TRUE(opts_test->JudgeDisableKernelDcci(dcciOps, "MatMul"));
     EXPECT_TRUE(opts_test->JudgeDisableKernelDcci(dcciOps, "MatMulV2"));
     EXPECT_TRUE(opts_test->JudgeDisableKernelDcci(dcciOps, "BatchNorm"));
@@ -664,6 +666,110 @@ TEST_F(SuperKernelOptionsManagerTest, ParseOptions_LargeNumberOptions)
     EXPECT_GT(syncCount, 0);
     
     delete[] options;
+}
+
+// ==================== MatchRegex 单元测试 ====================
+// 仅支持 "." 和 "*" 的正则表达式匹配（完全匹配，非部分匹配）
+//   .   - 匹配任意单个字符
+//   *   - 匹配前一个字符0次或多次
+
+TEST_F(SuperKernelOptionsManagerTest, MatchRegex_ExactMatch)
+{
+    // 精确匹配（无特殊字符）
+    EXPECT_TRUE(opts_test->MatchRegex("abc", "abc"));
+    EXPECT_FALSE(opts_test->MatchRegex("abc", "abcd"));
+    EXPECT_FALSE(opts_test->MatchRegex("abc", "ab"));
+    EXPECT_FALSE(opts_test->MatchRegex("abc", "ABC"));
+}
+
+TEST_F(SuperKernelOptionsManagerTest, MatchRegex_DotMatch)
+{
+    // . 匹配任意单个字符
+    EXPECT_TRUE(opts_test->MatchRegex("a.c", "abc"));
+    EXPECT_TRUE(opts_test->MatchRegex("a.c", "aXc"));
+    EXPECT_TRUE(opts_test->MatchRegex("a.c", "a1c"));
+    EXPECT_FALSE(opts_test->MatchRegex("a.c", "ac"));
+    EXPECT_FALSE(opts_test->MatchRegex("a.c", "abcc"));
+    EXPECT_TRUE(opts_test->MatchRegex(".", "a"));
+    EXPECT_TRUE(opts_test->MatchRegex(".", "b"));
+    EXPECT_FALSE(opts_test->MatchRegex(".", ""));
+    EXPECT_TRUE(opts_test->MatchRegex("..", "ab"));
+    EXPECT_FALSE(opts_test->MatchRegex("..", "a"));
+}
+
+TEST_F(SuperKernelOptionsManagerTest, MatchRegex_StarMatch)
+{
+    // * 匹配前一个字符0次或多次
+    EXPECT_TRUE(opts_test->MatchRegex("ab*c", "ac"));      // b出现0次
+    EXPECT_TRUE(opts_test->MatchRegex("ab*c", "abc"));     // b出现1次
+    EXPECT_TRUE(opts_test->MatchRegex("ab*c", "abbc"));    // b出现2次
+    EXPECT_TRUE(opts_test->MatchRegex("ab*c", "abbbbbbc")); // b出现多次
+    EXPECT_FALSE(opts_test->MatchRegex("ab*c", "axc"));
+    EXPECT_TRUE(opts_test->MatchRegex("a*", ""));          // a出现0次
+    EXPECT_TRUE(opts_test->MatchRegex("a*", "a"));         // a出现1次
+    EXPECT_TRUE(opts_test->MatchRegex("a*", "aaaaa"));     // a出现多次
+}
+
+TEST_F(SuperKernelOptionsManagerTest, MatchRegex_DotStar)
+{
+    // .* 匹配任意字符0次或多次
+    EXPECT_TRUE(opts_test->MatchRegex(".*", "anything"));
+    EXPECT_TRUE(opts_test->MatchRegex(".*", ""));
+    EXPECT_TRUE(opts_test->MatchRegex("a.*b", "ab"));
+    EXPECT_TRUE(opts_test->MatchRegex("a.*b", "axxxb"));
+    EXPECT_TRUE(opts_test->MatchRegex("a.*b", "a123456789b"));
+    EXPECT_FALSE(opts_test->MatchRegex("a.*b", "abc"));    // 没有结尾的b
+}
+
+TEST_F(SuperKernelOptionsManagerTest, MatchRegex_ComplexPatterns)
+{
+    // 复杂模式测试
+    EXPECT_TRUE(opts_test->MatchRegex(".*DequantSwigluQuant.*", "DequantSwigluQuant"));
+    EXPECT_TRUE(opts_test->MatchRegex(".*DequantSwigluQuant.*", "abcDequantSwigluQuant"));
+    EXPECT_TRUE(opts_test->MatchRegex(".*DequantSwigluQuant.*", "DequantSwigluQuantxyz"));
+    EXPECT_TRUE(opts_test->MatchRegex(".*DequantSwigluQuant.*", "abcDequantSwigluQuantxyz"));
+    EXPECT_FALSE(opts_test->MatchRegex(".*DequantSwigluQuant.*", "DequantSwigluQuan"));
+    
+    EXPECT_TRUE(opts_test->MatchRegex("Conv.*", "Conv"));
+    EXPECT_TRUE(opts_test->MatchRegex("Conv.*", "Conv2D"));
+    EXPECT_TRUE(opts_test->MatchRegex("Conv.*", "Convolution"));
+    EXPECT_TRUE(opts_test->MatchRegex("Conv.*", "ConvolutionBackward"));
+    EXPECT_FALSE(opts_test->MatchRegex("Conv.*", "NotConv"));
+}
+
+TEST_F(SuperKernelOptionsManagerTest, MatchRegex_EmptyPattern)
+{
+    // 空模式测试
+    EXPECT_TRUE(opts_test->MatchRegex("", ""));
+    EXPECT_FALSE(opts_test->MatchRegex("", "abc"));
+}
+
+TEST_F(SuperKernelOptionsManagerTest, MatchRegex_MixedPatterns)
+{
+    // 混合模式测试
+    EXPECT_TRUE(opts_test->MatchRegex("a.*b", "ab"));
+    EXPECT_TRUE(opts_test->MatchRegex("a.*b", "a123b"));
+    EXPECT_TRUE(opts_test->MatchRegex("a.b", "aXb"));
+    EXPECT_TRUE(opts_test->MatchRegex("a.b", "a1b"));
+    EXPECT_TRUE(opts_test->MatchRegex("a.*b.*c", "abc"));
+    EXPECT_TRUE(opts_test->MatchRegex("a.*b.*c", "aXXbYYc"));
+    // 完全匹配：模式 "a.*b.*c" 只能匹配到 'c'，文本后面还有 "ZZZ"，无法完全匹配
+    EXPECT_FALSE(opts_test->MatchRegex("a.*b.*c", "aXXXbYYYcZZZ"));
+    // 若要完全匹配，模式应为 "a.*b.*c.*"
+    EXPECT_TRUE(opts_test->MatchRegex("a.*b.*c.*", "aXXXbYYYcZZZ"));
+    EXPECT_FALSE(opts_test->MatchRegex("a.*b.*c", "aXXXc"));
+}
+
+TEST_F(SuperKernelOptionsManagerTest, MatchRegex_DcciScenario)
+{
+    // DCCI 场景测试
+    std::vector<std::string> dcciOps = {"Add", "Mul.*", ".*Op"};
+    EXPECT_TRUE(opts_test->JudgeDisableKernelDcci(dcciOps, "Add"));
+    EXPECT_TRUE(opts_test->JudgeDisableKernelDcci(dcciOps, "Mul"));
+    EXPECT_TRUE(opts_test->JudgeDisableKernelDcci(dcciOps, "MulV2"));
+    EXPECT_TRUE(opts_test->JudgeDisableKernelDcci(dcciOps, "SomeOp"));
+    EXPECT_FALSE(opts_test->JudgeDisableKernelDcci(dcciOps, "Sub"));
+    EXPECT_FALSE(opts_test->JudgeDisableKernelDcci(dcciOps, "Conv"));
 }
 
 // ==================== 综合测试 ====================

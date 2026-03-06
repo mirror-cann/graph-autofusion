@@ -13,6 +13,8 @@
  * \brief Implementation of SuperKernelOptionsManager and option value classes
  */
 
+#include <vector>
+
 #include "sk_options_manager.h"
 #include "sk_log.h"
 
@@ -105,19 +107,47 @@ OptOptionBase* SuperKernelOptionsManager::GetOption(const aclskOtionType optType
 
 bool SuperKernelOptionsManager::JudgeDisableKernelDcci(std::vector<std::string>& dcciOps, const std::string& opName) const {
     for (size_t i = 0; i < dcciOps.size(); i++) {
-        try {
-            std::regex pattern(dcciOps[i], std::regex_constants::extended);
-            if (std::regex_search(opName, pattern)) {
-                SK_LOGI("op: %s match disable dcci option: %s, op's dcci will be disabled",
-                    opName.c_str(), dcciOps[i].c_str());
-                return true;
-            }
-        } catch (const std::regex_error& e) {
-            SK_LOGE("regex error: %s, error code: %d", e.what(), static_cast<int>(e.code()));
-            continue;
+        if (MatchRegex(dcciOps[i], opName)) {
+            SK_LOGI("op: %s match disable dcci option: %s, op's dcci will be disabled",
+                opName.c_str(), dcciOps[i].c_str());
+            return true;
         }
     }
     return false;
+}
+
+bool SuperKernelOptionsManager::MatchRegex(const std::string& pattern, const std::string& opName) {
+    size_t m = opName.size();
+    size_t n = pattern.size();
+
+    auto matches = [&](size_t i, size_t j) {
+        if (i == 0) {
+            return false;
+        }
+        if (pattern[j - 1] == '.') {
+            return true;
+        }
+        return opName[i - 1] == pattern[j - 1];
+    };
+
+    std::vector<std::vector<size_t>> matchFlag(m + 1, std::vector<size_t>(n + 1));
+    matchFlag[0][0] = true;
+    for (size_t i = 0; i <= m; ++i) {
+        for (size_t j = 1; j <= n; ++j) {
+            if (pattern[j - 1] == '*') {
+                matchFlag[i][j] |= matchFlag[i][j - 2];
+                if (matches(i, j - 1)) {
+                    matchFlag[i][j] |= matchFlag[i - 1][j];
+                }
+            }
+            else {
+                if (matches(i, j)) {
+                    matchFlag[i][j] |= matchFlag[i - 1][j - 1];
+                }
+            }
+        }
+    }
+    return matchFlag[m][n];
 }
 
 bool SuperKernelOptionsManager::EnableDebug() const {
@@ -196,6 +226,7 @@ void SuperKernelOptionsManager::ParseOptions(aclskOptions* options) {
         SK_LOGI("aclskOption is nullptr");
         return;
     }
+    SK_LOGI("Options nums: %d\n", static_cast<int>(options->numOptions));
     for (size_t i = 0; i < static_cast<size_t>(options->numOptions); i++) {
         auto iter = optionMap.find(options->options[i].optionType);
         if (iter != optionMap.end()) {

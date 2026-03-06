@@ -996,11 +996,15 @@ void SkTaskBuilder::AddTask(SkTask &skTask, SkDfxInfo *dfxInfos, const std::vect
 
         for (int i = 0; i < binCount; i++) {
             const ResolvedFunctionInfo &resolved = kernelInfo.resolvedFuncs[i];
-            std::pair<int,int> prefetchCntValue = GetPreFetchCnt(resolved);
-            SK_LOGI("kernel name: %s, prefetch count: %d %d",
-                kernelInfo.funcName.c_str(), prefetchCntValue.first, prefetchCntValue.second);
+            if (taskType == SkTaskType::TYPE_PRELOAD) {
+                std::pair<int,int> prefetchCntValue = GetPreFetchCnt(resolved);
+                if (i == 0) {
+                    SK_LOGI("kernel name: %s, prefetch count: %d %d",
+                        kernelInfo.funcName.c_str(), prefetchCntValue.first, prefetchCntValue.second);
+                }
+                taskInfo.args = customArg == 0 ? prefetchCntValue.first : prefetchCntValue.second;
+            }
             uint64_t addr = resolved.funcAddr[customArg];
-            taskInfo.args = customArg == 0 ? prefetchCntValue.first : prefetchCntValue.second;
             if (addr == 0) {
                 throw std::runtime_error("[sk error] unresolved function address");
             }

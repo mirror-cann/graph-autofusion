@@ -204,6 +204,14 @@ public:
     bool JudgeDisableKernelDcci(std::vector<std::string>& dcciOps, const std::string& opName) const;
 
     /*!
+     * \brief Simple regex-like pattern matching without std::regex
+     * \param pattern The regex pattern (supports: . *)
+     * \param text The text to match against
+     * \return True if text matches the pattern, false otherwise
+     */
+    static bool MatchRegex(const std::string& pattern, const std::string& text);
+
+    /*!
      * \brief Check if debug mode is enabled
      * \return True if debug mode is enabled, false otherwise
      */
