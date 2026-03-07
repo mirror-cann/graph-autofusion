@@ -15,15 +15,8 @@
 
 #pragma once
 
-#include <cstdint>
-#include <memory>
+#include "sk_scope_kernel_types.h"
 #include "rt_sk_intf.h"
-
-constexpr uint32_t MAX_SCOPE_NAME_LENN = 256;
-
-struct ScopeKernelArgs {
-    char name[MAX_SCOPE_NAME_LENN] = "";
-};
 
 struct JudgeTaskKernelInfo {
     bool isBegin = true;

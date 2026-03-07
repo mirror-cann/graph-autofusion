@@ -17,8 +17,6 @@
 
 #include <cstring>
 #include <cstdlib>
-#include <cstdint>
-#include <memory>
 
 #include "securec.h"
 #include "sk_log.h"

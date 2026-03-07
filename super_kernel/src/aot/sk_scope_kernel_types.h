@@ -8,27 +8,18 @@
 * See LICENSE in the root of the software repository for the full text of the License.
 */
 
-/* !
- * \file sk_scope_kernel.asc
+/*!
+ * \file sk_scope_kernel_types.h
  * \brief
  */
 
-#include "kernel_operator.h"
-#include "sk_scope_kernel_types.h"
+#pragma once
 
-extern "C" __global__ __vector__ void sk_scope_kernel_begin(ScopeKernelArgs args) {
-}
+#include <cstdint>
+#include <memory>
 
-extern "C" __global__ __vector__ void sk_scope_kernel_end(ScopeKernelArgs args) {
-}
+constexpr uint32_t MAX_SCOPE_NAME_LENN = 256;
 
-extern "C" void sk_scope_kernel_begin_do(void* stream, ScopeKernelArgs args)
-{
-    sk_scope_kernel_begin<<<1, nullptr, stream>>>(args);
-}
-
-extern "C" void sk_scope_kernel_end_do(void* stream, ScopeKernelArgs args)
-{
-    sk_scope_kernel_end<<<1, nullptr, stream>>>(args);
-
-}
+struct ScopeKernelArgs {
+    char name[MAX_SCOPE_NAME_LENN] = "";
+};
