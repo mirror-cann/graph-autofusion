@@ -97,7 +97,7 @@ void SuperKernelOptionsManager::AddOption(std::unique_ptr<OptOptionBase> option)
     optionMap[option->GetType()] = std::move(option);
 }
 
-OptOptionBase* SuperKernelOptionsManager::GetOption(const aclskOtionType optType) const {
+OptOptionBase* SuperKernelOptionsManager::GetOption(aclskOtionType optType) {
     auto iter = optionMap.find(optType);
     if (iter == optionMap.end()) {
         return nullptr;
@@ -105,7 +105,16 @@ OptOptionBase* SuperKernelOptionsManager::GetOption(const aclskOtionType optType
     return iter->second.get();
 }
 
-bool SuperKernelOptionsManager::JudgeDisableKernelDcci(std::vector<std::string>& dcciOps, const std::string& opName) const {
+const OptOptionBase* SuperKernelOptionsManager::GetOption(aclskOtionType optType) const {
+    auto iter = optionMap.find(optType);
+    if (iter == optionMap.end()) {
+        return nullptr;
+    }
+    return iter->second.get();
+}
+
+bool SuperKernelOptionsManager::JudgeDisableKernelDcci(
+    const std::vector<std::string>& dcciOps, const std::string& opName) const {
     for (size_t i = 0; i < dcciOps.size(); i++) {
         if (MatchRegex(dcciOps[i], opName)) {
             SK_LOGI("op: %s match disable dcci option: %s, op's dcci will be disabled",
@@ -119,9 +128,13 @@ bool SuperKernelOptionsManager::JudgeDisableKernelDcci(std::vector<std::string>&
 bool SuperKernelOptionsManager::MatchRegex(const std::string& pattern, const std::string& opName) {
     size_t m = opName.size();
     size_t n = pattern.size();
+    if (n > 0 && pattern[0] == '*') {
+        SK_LOGW("invalid pattern starts with '*': %s", pattern.c_str());
+        return false;
+    }
 
     auto matches = [&](size_t i, size_t j) {
-        if (i == 0) {
+        if (i == 0 || j == 0) {
             return false;
         }
         if (pattern[j - 1] == '.') {
@@ -135,9 +148,11 @@ bool SuperKernelOptionsManager::MatchRegex(const std::string& pattern, const std
     for (size_t i = 0; i <= m; ++i) {
         for (size_t j = 1; j <= n; ++j) {
             if (pattern[j - 1] == '*') {
-                matchFlag[i][j] |= matchFlag[i][j - 2];
-                if (matches(i, j - 1)) {
-                    matchFlag[i][j] |= matchFlag[i - 1][j];
+                if (j >= 2) {
+                    matchFlag[i][j] |= matchFlag[i][j - 2];
+                    if (matches(i, j - 1)) {
+                        matchFlag[i][j] |= matchFlag[i - 1][j];
+                    }
                 }
             }
             else {
@@ -153,14 +168,17 @@ bool SuperKernelOptionsManager::MatchRegex(const std::string& pattern, const std
 bool SuperKernelOptionsManager::EnableDebug() const {
     auto iterSyncAll = optionMap.find(aclskOtionType::DEBUG_SYNC_ALL);
     auto iterDcci = optionMap.find(aclskOtionType::DEBUG_DCCI_DISABLE_ON_KERNEL);
-    if (iterSyncAll != optionMap.end() || iterDcci != optionMap.end()) {
+    const bool enableSyncAll =
+        (iterSyncAll != optionMap.end() && iterSyncAll->second != nullptr && iterSyncAll->second->GetIntValue() == 1);
+    const bool enableDcciDisable = (iterDcci != optionMap.end() && iterDcci->second != nullptr);
+    if (enableSyncAll || enableDcciDisable) {
         SK_LOGI("debug mode enabled");
         return true;
     }
     return false;
 }
 
-void SuperKernelOptionsManager::SetOptOptionValue(aclskOption* option) {
+void SuperKernelOptionsManager::SetOptOptionValue(const aclskOption* option) {
     if (option == nullptr) {
         SK_LOGE("sub aclskOption is nullptr");
         return;
@@ -190,7 +208,19 @@ void SuperKernelOptionsManager::SetOptOptionValue(aclskOption* option) {
                 auto subOption = GetOption(option->optionType);
                 if (subOption != nullptr) {
                     std::vector<std::string> vecValue;
-                    for (size_t i = 0; i < static_cast<size_t>(option->disableKernelDcci.kernelCnt); i++) {
+                    const size_t kernelCnt = static_cast<size_t>(option->disableKernelDcci.kernelCnt);
+                    if (kernelCnt > 0 && option->disableKernelDcci.kernelNames == nullptr) {
+                        SK_LOGE("OptionName:%s, kernelNames is nullptr while kernelCnt is %zu",
+                            subOption->GetName().c_str(), kernelCnt);
+                        break;
+                    }
+                    vecValue.reserve(kernelCnt);
+                    for (size_t i = 0; i < kernelCnt; i++) {
+                        if (option->disableKernelDcci.kernelNames[i] == nullptr) {
+                            SK_LOGW("OptionName:%s, kernelNames[%zu] is nullptr, skip",
+                                subOption->GetName().c_str(), i);
+                            continue;
+                        }
                         vecValue.push_back(std::string(option->disableKernelDcci.kernelNames[i]));
                     }
                     subOption->SetValue(vecValue);
@@ -221,7 +251,7 @@ void SuperKernelOptionsManager::SetOptOptionValue(aclskOption* option) {
     }
 }
 
-void SuperKernelOptionsManager::ParseOptions(aclskOptions* options) {
+void SuperKernelOptionsManager::ParseOptions(const aclskOptions* options) {
     if (options == nullptr) {
         SK_LOGI("aclskOption is nullptr");
         return;

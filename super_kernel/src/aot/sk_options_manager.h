@@ -193,7 +193,8 @@ public:
      * \param optType The option type to retrieve
      * \return Pointer to the option, or nullptr if not found
      */
-    OptOptionBase* GetOption(const aclskOtionType optType) const;
+    OptOptionBase* GetOption(aclskOtionType optType);
+    const OptOptionBase* GetOption(aclskOtionType optType) const;
 
     /*!
      * \brief Judge whether a kernel should be disabled based on DCCI patterns
@@ -201,7 +202,7 @@ public:
      * \param opName The operation name to check against patterns
      * \return True if the kernel should be disabled, false otherwise
      */
-    bool JudgeDisableKernelDcci(std::vector<std::string>& dcciOps, const std::string& opName) const;
+    bool JudgeDisableKernelDcci(const std::vector<std::string>& dcciOps, const std::string& opName) const;
 
     /*!
      * \brief Simple regex-like pattern matching without std::regex
@@ -221,13 +222,13 @@ public:
      * \brief Set option value from an aclskOption structure
      * \param option Pointer to the aclskOption structure containing value to set
      */
-    void SetOptOptionValue(aclskOption* option);
+    void SetOptOptionValue(const aclskOption* option);
 
     /*!
      * \brief Parse and populate options from an aclskOptions structure
      * \param options Pointer to the aclskOptions structure containing all options
      */
-    void ParseOptions(aclskOptions* options);
+    void ParseOptions(const aclskOptions* options);
 
 private:
     std::unordered_map<aclskOtionType, std::unique_ptr<OptOptionBase>> optionMap;
