@@ -9,7 +9,7 @@
 # ----------------------------------------------------------------------------------------------------------
 cmake_minimum_required(VERSION 3.16.0)
 project(super_kernel_aot_ut)
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 14)
 set(LOCAL_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 
 add_executable(super_kernel_aot_utest
@@ -17,6 +17,7 @@ add_executable(super_kernel_aot_utest
     ${CMAKE_CURRENT_SOURCE_DIR}/test_sk_options_manager.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test_sk_graph.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test_sk_scope_split.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_notify_wait_interface.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/aclrt_stubs.cpp
     ${GRAPH_AUTOFUSION_ROOT_DIR}/super_kernel/src/aot/sk_options_manager.cpp
     ${GRAPH_AUTOFUSION_ROOT_DIR}/super_kernel/src/aot/sk_graph.cpp

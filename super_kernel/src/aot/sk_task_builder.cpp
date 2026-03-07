@@ -1118,11 +1118,18 @@ void SkTaskBuilder::DispatchTask(SkTask &skTaskCube, SkTask &skTaskVec, SkDfxInf
             throw std::runtime_error("[sk error] unsupported kernel type for event notify/wait task");
         }
         AddTask(*targetTask, nullptr, tasks, index, SkKernelType::DEFAULT, 0, 0, taskType);
-        const auto &syncInfos = tasks[index]->GetNodeInfos().syncInfos;
-        uint64_t nodeId = (taskType == SkTaskType::TYPE_EVENT_NOTIFY) ? syncInfos.notifyNodeId : syncInfos.waitNodeId;
-        const char *nodeIdName = (taskType == SkTaskType::TYPE_EVENT_NOTIFY) ? "notifyNodeId" : "waitNodeId";
+        uint64_t eventId = tasks[index]->GetEventId();
+        uint64_t nodeId;
+        const char *nodeIdName;
+        if (taskType == SkTaskType::TYPE_EVENT_NOTIFY) {
+            nodeId = tasks[index]->GetNodeId();
+            nodeIdName = "notifyNodeId";
+        } else {
+            nodeId = tasks[index]->GetNodeId();
+            nodeIdName = "waitNodeId";
+        }
         SK_LOGI("task insert: stask %zu, queue=%s, type=%s, eventId=%lu, %s=%lu",
-               index, to_string(queueType), to_string(taskType), syncInfos.eventId, nodeIdName, nodeId);
+               index, to_string(queueType), to_string(taskType), eventId, nodeIdName, nodeId);
     }
     else
     {

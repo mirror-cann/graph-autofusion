@@ -98,6 +98,35 @@ bool SuperKernelGraph::AddEventAssociateReset(uint64_t eventId, uint64_t nodeId)
     return true;
 }
 
+void SuperKernelGraph::BuildWaitNodeAssociations() {
+    for (const auto& it : eventToNodes) {
+        const uint64_t eventId = it.first;
+        const EventInfos& eventInfo = it.second;
+        if (eventInfo.notifyNodeId != INVALID_TASK_ID && !eventInfo.waitNodeIdList.empty()) {
+            auto* notifyNode = GetNodeById(eventInfo.notifyNodeId);
+            if (notifyNode != nullptr &&
+                (notifyNode->GetNodeType() == SkNodeType::NODE_NOTIFY)) {
+                std::vector<uint64_t> waitNodeIds(
+                    eventInfo.waitNodeIdList.begin(),
+                    eventInfo.waitNodeIdList.end());
+                notifyNode->SetCorrespondingWaitNodeIds(waitNodeIds);
+
+                // Set corresponding notify node ID for each wait node
+                for (uint64_t waitNodeId : waitNodeIds) {
+                    auto* waitNode = GetNodeById(waitNodeId);
+                    if (waitNode != nullptr &&
+                        (waitNode->GetNodeType() == SkNodeType::NODE_WAIT)) {
+                        waitNode->SetCorrespondingNotifyNodeId(eventInfo.notifyNodeId);
+                    }
+                }
+
+                SK_LOGI("Built wait node associations for notify node %lu with %zu wait nodes",
+                         eventInfo.notifyNodeId, eventInfo.waitNodeIdList.size());
+            }
+        }
+    }
+}
+
 std::unique_ptr<SuperKernelBaseNode> SuperKernelNodeFactory::CreateNode(std::unique_ptr<aclrtTask> task, aclrtTaskType taskType, uint64_t nodeIdx, uint64_t streamId, uint64_t preNodeId) {
     switch (taskType) {
         case ACL_RT_TASK_KERNEL:
@@ -177,6 +206,10 @@ bool SuperKernelGraph::InitSKGraph() {
             preNodeId = nodeId;
         }
     }
+
+    // Build wait node associations for notify nodes
+    BuildWaitNodeAssociations();
+
     return true;
 }
 

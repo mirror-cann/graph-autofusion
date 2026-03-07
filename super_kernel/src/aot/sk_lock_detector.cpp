@@ -114,7 +114,7 @@ bool LockDetector::HasDeadlock(SuperKernelBaseNode* curNode, SuperKernelGraph& g
         }
     } else if (preNode->GetNodeType() == SkNodeType::NODE_WAIT) {
         // 1. 获取notify
-        uint64_t notifyId = preNode->GetNotifyNodeId();
+        uint64_t notifyId = preNode->GetCorrespondingNotifyNodeId();
         SuperKernelBaseNode* notifyNode = graph.GetNodeById(notifyId);
         if (HasDeadlock(preNode, graph)) {
             SK_LOGI("Deadlock detected in wait node pre-path, waitNodeId=%lu", preNode->GetNodeId());
@@ -129,13 +129,15 @@ bool LockDetector::HasDeadlock(SuperKernelBaseNode* curNode, SuperKernelGraph& g
             }
         }
     } else if (preNode->GetNodeType() == SkNodeType::NODE_NOTIFY) {
-        // 1. 获取wait
-        uint64_t waitId = preNode->GetWaitNodeId();
-        SuperKernelBaseNode* waitNode = graph.GetNodeById(waitId);
-        if (!IsInSKStream(*waitNode)) {
-            if (HasDeadlock(preNode, graph)) {
-                SK_LOGI("Deadlock detected in notify node path, notifyNodeId=%lu", preNode->GetNodeId());
-                return true;
+        // 1. 获取所有wait节点（一对多关系）
+        std::vector<uint64_t> waitIds = preNode->GetCorrespondingWaitNodeIds();
+        for (uint64_t waitId : waitIds) {
+            SuperKernelBaseNode* waitNode = graph.GetNodeById(waitId);
+            if (!IsInSKStream(*waitNode)) {
+                if (HasDeadlock(preNode, graph)) {
+                    SK_LOGI("Deadlock detected in notify node path, notifyNodeId=%lu", preNode->GetNodeId());
+                    return true;
+                }
             }
         }
     }
@@ -197,7 +199,7 @@ bool LockDetector::IsFusible(const SuperKernelBaseNode& curNode, SuperKernelGrap
     if (curNode.GetNodeType() == SkNodeType::NODE_NOTIFY) {
         return true;
     } else if (curNode.GetNodeType() == SkNodeType::NODE_WAIT) {
-        uint64_t notifyId = curNode.GetNotifyNodeId();
+        uint64_t notifyId = curNode.GetCorrespondingNotifyNodeId();
         SuperKernelBaseNode* notifyNode = graph.GetNodeById(notifyId);
         if (!isExistWaitFlag){
             isExistWaitFlag = true;

@@ -19,6 +19,8 @@
 #include <cstdint>
 #include <memory>
 #include <string>
+#include <vector>
+#include <unordered_set>
 
 #include "sk_log.h"
 #include "sk_types.h"
@@ -57,8 +59,12 @@ struct KernelInfos {
 
 struct SyncInfos {
     uint64_t eventId = INVALID_TASK_ID;
-    uint64_t waitNodeId = INVALID_TASK_ID;
-    uint64_t notifyNodeId = INVALID_TASK_ID;
+    // For notify nodes: empty (not used)
+    // For wait nodes: this is the ID of the notify node this wait node waits on
+    uint64_t correspondingNotifyNodeId = INVALID_TASK_ID;
+    // For notify nodes: list of all wait node IDs that wait on this notify
+    // For wait nodes: empty (not used)
+    std::vector<uint64_t> correspondingWaitNodeIds;
     void* addrValue = nullptr;
 };
 
@@ -112,10 +118,18 @@ public:
     virtual uint64_t GetEventId() const { return INVALID_TASK_ID; }
 
     // SuperKernelEventNotifyNode/SuperKernelMemoryNotifyNode specific accessors
-    virtual uint64_t GetNotifyNodeId() const { return INVALID_TASK_ID; }
+    // Get all wait node IDs that wait on this notify node's event (one-to-many relationship)
+    virtual std::vector<uint64_t> GetCorrespondingWaitNodeIds() const { return std::vector<uint64_t>(); }
 
     // SuperKernelEventWaitNode/SuperKernelMemoryWaitNode specific accessors
-    virtual uint64_t GetWaitNodeId() const { return INVALID_TASK_ID; }
+    // Get the notify node ID that this wait node waits on (many-to-one relationship)
+    virtual uint64_t GetCorrespondingNotifyNodeId() const { return INVALID_TASK_ID; }
+
+    // Setter for corresponding wait node IDs (used by SuperKernelGraph to build associations)
+    virtual void SetCorrespondingWaitNodeIds(const std::vector<uint64_t>& waitIds) { }
+
+    // Setter for notify node ID (used by SuperKernelGraph to build associations for wait nodes)
+    virtual void SetCorrespondingNotifyNodeId(uint64_t notifyId) { }
 
     virtual const NodeInfos& GetNodeInfos() const { return nodeInfos; }
 
@@ -173,13 +187,15 @@ private:
 class SuperKernelEventNotifyNode : public SuperKernelEventNode {
 public:
     using SuperKernelEventNode::SuperKernelEventNode;
-    uint64_t GetWaitNodeId() const override { return nodeInfos.syncInfos.waitNodeId; }
+    std::vector<uint64_t> GetCorrespondingWaitNodeIds() const override { return nodeInfos.syncInfos.correspondingWaitNodeIds; }
+    void SetCorrespondingWaitNodeIds(const std::vector<uint64_t>& waitIds) override { nodeInfos.syncInfos.correspondingWaitNodeIds.assign(waitIds.begin(), waitIds.end()); }
 };
 
 class SuperKernelEventWaitNode : public SuperKernelEventNode {
 public:
     using SuperKernelEventNode::SuperKernelEventNode;
-    uint64_t GetNotifyNodeId() const override { return nodeInfos.syncInfos.notifyNodeId; }
+    uint64_t GetCorrespondingNotifyNodeId() const override { return nodeInfos.syncInfos.correspondingNotifyNodeId; }
+    void SetCorrespondingNotifyNodeId(uint64_t notifyId) override { nodeInfos.syncInfos.correspondingNotifyNodeId = notifyId; }
 };
 
 class SuperKernelMemoryNode : public SuperKernelBaseNode {
@@ -195,13 +211,15 @@ private:
 class SuperKernelMemoryNotifyNode : public SuperKernelMemoryNode {
 public:
     using SuperKernelMemoryNode::SuperKernelMemoryNode;
-    uint64_t GetWaitNodeId() const override { return nodeInfos.syncInfos.waitNodeId; }
+    std::vector<uint64_t> GetCorrespondingWaitNodeIds() const override { return nodeInfos.syncInfos.correspondingWaitNodeIds; }
+    void SetCorrespondingWaitNodeIds(const std::vector<uint64_t>& waitIds) override { nodeInfos.syncInfos.correspondingWaitNodeIds.assign(waitIds.begin(), waitIds.end()); }
 };
 
 class SuperKernelMemoryWaitNode : public SuperKernelMemoryNode {
 public:
     using SuperKernelMemoryNode::SuperKernelMemoryNode;
-    uint64_t GetNotifyNodeId() const override { return nodeInfos.syncInfos.notifyNodeId; }
+    uint64_t GetCorrespondingNotifyNodeId() const override { return nodeInfos.syncInfos.correspondingNotifyNodeId; }
+    void SetCorrespondingNotifyNodeId(uint64_t notifyId) override { nodeInfos.syncInfos.correspondingNotifyNodeId = notifyId; }
 };
 
 class SuperKernelMemoryResetNode : public SuperKernelMemoryNode {

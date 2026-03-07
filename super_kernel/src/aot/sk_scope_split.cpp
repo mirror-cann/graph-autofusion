@@ -225,7 +225,7 @@ void SuperKernelScopeSplitter::TryAddNodeToHeap(
 
     // Special case 2: Wait node
     if (nextNode->GetNodeType() == SkNodeType::NODE_WAIT) {
-        uint64_t notifyId = nextNode->GetNotifyNodeId();
+        uint64_t notifyId = nextNode->GetCorrespondingNotifyNodeId();
         SuperKernelBaseNode* notifyNode = graph.GetNodeById(notifyId);
         if (notifyNode == nullptr) {
             SK_LOGW("Notify node %lu not found", notifyId);

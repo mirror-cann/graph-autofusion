@@ -58,7 +58,7 @@ protected:
             nullptr, SkNodeType::NODE_WAIT, 0, streamIdx, INVALID_TASK_ID);
         node->SetNodeId(nodeId);
         node->SetNextNodeId(nextNodeId);
-        node->nodeInfos.syncInfos.notifyNodeId = notifyNodeId;
+        node->nodeInfos.syncInfos.correspondingNotifyNodeId = notifyNodeId;
         // eventId is not used in LockDetector, but needed for eventToNodes mapping
         // We'll set it based on the corresponding notify node's eventId
         node->isFusible = true;
