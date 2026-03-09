@@ -20,6 +20,10 @@
 
 ### **安装驱动与固件**
 编译源码、执行UT/ST时无需安装驱动与固件。运行样例时需要依赖device环境，必须安装相应驱动与固件，安装指导详见[《CANN软件安装指南》](https://www.hiascend.com/document/redirect/CannCommunityInstSoftware)。
+example用例的执行依赖torchair库，torchair库依赖ptorobuf，若在执行过程中，发现import torchair报缺少protobuf的错误信息时，请安装对应的protobuf版本，比如:
+```shell
+pip install "protobuf>=3.13,<4"
+```
 
 ### **安装toolkit包与算子包**
 参考 [《构建指南-安装社区版cann-toolkit包》](../../doc/build.md#安装社区版cann-toolkit包) 章节安装社区版cann-toolkit包；
