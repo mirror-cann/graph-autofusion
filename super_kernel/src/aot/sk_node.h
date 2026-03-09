@@ -21,6 +21,7 @@
 #include <string>
 #include <vector>
 #include <unordered_set>
+#include <bitset>
 
 #include "sk_log.h"
 #include "sk_types.h"
@@ -101,6 +102,7 @@ public:
     uint64_t GetNodeIdxInStream() const { return nodeIdxInStream; }
     uint64_t GetNodeId() const { return nodeId; }
     bool IsFusible() const { return isFusible; }
+    void SetIsFusible(bool fusible) { isFusible = fusible; }
     void SetNodeId(uint64_t inputNodeId) { nodeId = inputNodeId; }
 
     // Node Relationships
@@ -146,6 +148,21 @@ public:
     bool IsVisited() const { return isVisited; }
     void SetVisited(bool inputIsVisited) { isVisited = inputIsVisited; }
 
+    // scope
+    virtual std::string GetScopeName() const { return ""; }
+    virtual bool IsScopeBegin() const { return false; }
+
+    const std::bitset<MAX_SCOPE_NUM>& GetScopeBitFlags() const { 
+        return scopeBitFlags; 
+    }
+    void SetScopeBitFlags(const std::bitset<MAX_SCOPE_NUM>& flags) {
+        scopeBitFlags = flags;
+    }
+    void SetNodeToScope(bool isScope) { isScopeNode = isScope; }
+    bool IsScopeNode() const { return isScopeNode; }
+    void ClearScopeBitFlags() { scopeBitFlags.reset(); }
+    void MarkEventNodeToScope(SuperKernelBaseNode* node);
+
 protected:
     uint32_t streamIdxInGraph;
     uint64_t nodeIdxInStream;
@@ -157,6 +174,9 @@ protected:
     bool isVisited;
     bool isFusible = false;
     NodeInfos nodeInfos;
+    // scope 
+    bool isScopeNode = false;
+    std::bitset<MAX_SCOPE_NUM> scopeBitFlags;
 };
 
 
@@ -170,8 +190,15 @@ public:
     SkKernelType GetKernelType() const override { return nodeInfos.kernelInfos.kernelType; }
     bool InValidateNode() override;
     bool Update(const UpdateContext &ctx) override;
+    virtual std::string GetScopeName() const override {
+        return scopeName;
+    }
+    bool IsScopeBegin() const override { return isScopeBegin; }
+    // const std::string& GetScopeName() const { return scopeName; }
 private:
     aclrtTaskKernelParams kernelParams;
+    bool isScopeBegin = false;
+    std::string scopeName;
 };
 
 class SuperKernelEventNode : public SuperKernelBaseNode {

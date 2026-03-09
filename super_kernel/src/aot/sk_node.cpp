@@ -20,6 +20,7 @@
 #include <string>
 #include <utility>
 #include "sk_node.h"
+#include "sk_scope_launch.h"
 
 namespace {
 using FunMap = std::map<int, std::map<std::string, std::string>>;
@@ -160,6 +161,17 @@ bool SuperKernelKernelNode::InitNode() {
         SK_LOGE("Failed to get kernel params for task %u in stream %u", nodeIdxInStream, streamIdxInGraph);
         return false;
     }
+    JudgeTaskKernelInfo scopeKernelInfo;
+    if (IsScopeKernel(kernelParams, &scopeKernelInfo)){
+        SK_LOGI("Kernel node %s for task %u in stream %u is scope kernel.", kernelParams.func_name, nodeIdxInStream, streamIdxInGraph);
+        isFusible = scopeKernelInfo.isFuseEnable;
+        if (isFusible && scopeKernelInfo.scopeName != nullptr){
+            isScopeBegin = scopeKernelInfo.isBegin;
+            char* rawPtr = scopeKernelInfo.scopeName.get();
+            scopeName = std::string(rawPtr);
+        }
+    }
+    
     if (kernelParams.taskGrp != nullptr) {
         SK_LOGI("Kernel task group is not null for task %u in stream %u, which cannot be fused in super kernel.", nodeIdxInStream, streamIdxInGraph);
         return true;

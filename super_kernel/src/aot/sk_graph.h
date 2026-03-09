@@ -60,6 +60,9 @@ public:
 
     // Get all nodeIds sorted in ascending order
     std::vector<uint64_t> GetSortedNodeIds() const;
+    // mark event to scope by scopebegin/scopeend kernel
+    void MarkEventNodeToScopeBegin(SuperKernelBaseNode* node);
+    void MarkEventNodeToScopeEnd(SuperKernelBaseNode* node);
 
 private:
 
@@ -72,6 +75,7 @@ private:
     bool AddEventAssociateWait(uint64_t eventId, uint64_t nodeId);
     bool AddEventAssociateReset(uint64_t eventId, uint64_t nodeId);
     void BuildWaitNodeAssociations();
+    void UpdateNodeScopeBitFlags();
 
     std::unordered_map<uint64_t, std::unique_ptr<SuperKernelBaseNode>> graphMap;
     std::unordered_map<uint64_t, EventInfos> eventToNodes;
@@ -81,6 +85,9 @@ private:
     aclmdlRI modelRI;
     uint64_t nextNodeId = 0;
     friend class SuperKernelScopeSplitter;
+    // scope
+    std::unordered_map<std::string, uint32_t> unique_scopeNames;
+    bool splitByScope = false;
 };
 
 #endif // __SK_GRAPH_H__

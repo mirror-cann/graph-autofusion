@@ -38,6 +38,7 @@ constexpr uint32_t DEFAULT_COUNTER_COUNT = 75;       // 默认计数器数量（
 constexpr uint32_t TASK_QUE_EXPAND_FACTOR = 2;       // TaskQue扩容因子
 
 constexpr uint32_t MAX_TASK_NUM = 1000;
+constexpr uint32_t MAX_SCOPE_NUM = 64;
 constexpr uint64_t INVALID_TASK_ID = 0xFFFFFFFFFFFFFFFF;
 
 inline size_t GetTaskQueSize(const TaskQue *que) {

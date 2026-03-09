@@ -17,6 +17,8 @@
 
 #include <stdexcept>
 #include <vector>
+#include <cstdint>
+#include <bitset>
 
 void SuperKernelGraph::Update() {
     aclmdlRIUpdate(nullptr);
@@ -127,6 +129,84 @@ void SuperKernelGraph::BuildWaitNodeAssociations() {
     }
 }
 
+void SuperKernelGraph::MarkEventNodeToScopeBegin(SuperKernelBaseNode* node){
+    uint64_t recordId = node->GetNextNodeId();
+    SuperKernelBaseNode* recordNode = GetNodeById(recordId);
+    if (recordNode == nullptr || recordNode->GetNodeType() != SkNodeType::NODE_NOTIFY){
+        SK_LOGW("Failed to find valid notify (record) node after scope begin node %lu, recordNodeId=%lu", 
+                node->GetNodeId(), recordId);
+        return;
+    }
+    uint64_t waitId = recordNode->GetNextNodeId();
+    SuperKernelBaseNode* waitNode = GetNodeById(waitId);
+    if (waitNode == nullptr || waitNode->GetNodeType() != SkNodeType::NODE_WAIT){
+        SK_LOGW("Failed to find valid wait node after notify node %lu, waitNodeId=%lu", 
+                recordNode->GetNodeId(), waitId);
+        return;
+    }
+    recordNode->SetNodeToScope(true);
+    waitNode->SetNodeToScope(true);
+}
+
+void SuperKernelGraph::MarkEventNodeToScopeEnd(SuperKernelBaseNode* node){
+    uint64_t waitId = node->GetPreNodeId();
+    SuperKernelBaseNode* waitNode = GetNodeById(waitId);
+    if (waitNode == nullptr && waitNode->GetNodeType() != SkNodeType::NODE_WAIT){
+        SK_LOGW("Failed to find valid wait node before scope end node %lu, waitNodeId=%lu", 
+                node->GetNodeId(), waitId);
+        return;
+    }
+    uint64_t notifyId = waitNode->GetPreNodeId();
+    SuperKernelBaseNode* notifyNode = GetNodeById(notifyId);
+    if (notifyNode == nullptr || notifyNode->GetNodeType() != SkNodeType::NODE_NOTIFY){
+        SK_LOGW("Failed to find valid notify (record) node before wait node %lu, notifyNodeId=%lu", 
+                waitNode->GetNodeId(), notifyId);
+        return;
+    }
+    recordNode->SetNodeToScope(true);
+    waitNode->SetNodeToScope(true);
+}
+
+
+void SuperKernelGraph::UpdateNodeScopeBitFlags(){
+    std::bitset<MAX_SCOPE_NUM> curScopeBitFlags;  
+    bool curIsFusibleByScope = true;
+    std::vector<uint64_t> orderedNodeIds = GetSortedNodeIds();
+    for (auto nodeId : orderedNodeIds){ 
+        SuperKernelBaseNode* node = GetNodeById(nodeId);
+        if (!node->IsScopeNode()){
+            node->SetIsFusible(curIsFusibleByScope);
+            node->SetScopeBitFlags(curScopeBitFlags);
+        } else { // 是scope类型的kernel node
+            curIsFusibleByScope = node->IsFusible(); // 当前可融合的状态
+            if (curIsFusibleByScope){
+                if (unique_scopeNames.size() >= MAX_SCOPE_NUM && unique_scopeNames.find(node->GetScopeName()) == unique_scopeNames.end()){ 
+                    SK_LOGW("scope num is more than %d, current scope will not take effect", MAX_SCOPE_NUM);
+                    continue;
+                }
+                uint32_t scopeIdx = unique_scopeNames[node->GetScopeName()];
+                if (node->IsScopeBegin()){
+                    curScopeBitFlags.set(scopeIdx);
+                    MarkEventNodeToScopeBegin(node);
+                } else {
+                    node->SetScopeBitFlags(curScopeBitFlags);
+                    curScopeBitFlags.reset(scopeIdx);
+                    MarkEventNodeToScopeEnd(node);
+                    continue;
+                }
+            } else {
+                if (node->IsScopeBegin()){
+                    MarkEventNodeToScopeBegin(node);
+                } else {
+                    MarkEventNodeToScopeEnd(node);
+                    curIsFusibleByScope = true;
+                    continue;
+                }
+            }
+        }
+    }
+}
+
 std::unique_ptr<SuperKernelBaseNode> SuperKernelNodeFactory::CreateNode(std::unique_ptr<aclrtTask> task, aclrtTaskType taskType, uint64_t nodeIdx, uint64_t streamId, uint64_t preNodeId) {
     switch (taskType) {
         case ACL_RT_TASK_KERNEL:
@@ -190,6 +270,16 @@ bool SuperKernelGraph::InitSKGraph() {
                 SK_LOGE("Failed to initialize node for task %u in stream %u", taskIdx, streamIdx);
                 return false;
             }
+            if (node->GetNodeType() == SkNodeType::NODE_KERNEL && node->GetScopeName().length() > 0){
+                node->SetNodeToScope(true);
+                if(unique_scopeNames.size() >= MAX_SCOPE_NUM){
+                    SK_LOGW("The number of scope names is greater than the maximum allowed: %u", MAX_SCOPE_NUM);
+                } else {
+                    if (unique_scopeNames.find(node->GetScopeName()) == unique_scopeNames.end()) {
+                        unique_scopeNames[node->GetScopeName()] = unique_scopeNames.size();
+                    }
+                }
+            }
             uint64_t nodeId = AllocateNodeId(); // todo need init by aclrt
             node->SetNodeId(nodeId);
             if (!AddNode(std::move(node))) {
@@ -207,6 +297,12 @@ bool SuperKernelGraph::InitSKGraph() {
         }
     }
 
+    
+    // update scopeBitFlags
+    if (unique_scopeNames.empty()){
+        splitByScope = true;
+    }
+    UpdateNodeScopeBitFlags();
     // Build wait node associations for notify nodes
     BuildWaitNodeAssociations();
 
