@@ -39,10 +39,15 @@ struct UpdateContext {
     // Future extensions can be added here
 };
 
+struct SknlMapInfo {
+    uint64_t cap;
+    void* globalFunc;
+    void* sknlFunc[4];
+};
+
 struct ResolvedFunctionInfo {
     uint64_t funcAddr[2] = {0, 0};
     uint64_t prefetchCnt[2] = {0, 0};
-    aclrtFuncHandle funcHdl = nullptr;
 };
 
 constexpr size_t kMaxSplitBinCount = 4;
@@ -152,8 +157,8 @@ public:
     virtual std::string GetScopeName() const { return ""; }
     virtual bool IsScopeBegin() const { return false; }
 
-    const std::bitset<MAX_SCOPE_NUM>& GetScopeBitFlags() const { 
-        return scopeBitFlags; 
+    const std::bitset<MAX_SCOPE_NUM>& GetScopeBitFlags() const {
+        return scopeBitFlags;
     }
     void SetScopeBitFlags(const std::bitset<MAX_SCOPE_NUM>& flags) {
         scopeBitFlags = flags;
@@ -174,7 +179,7 @@ protected:
     bool isVisited;
     bool isFusible = false;
     NodeInfos nodeInfos;
-    // scope 
+    // scope
     bool isScopeNode = false;
     std::bitset<MAX_SCOPE_NUM> scopeBitFlags;
 };

@@ -15,107 +15,169 @@
 
 
 #include <map>
+#include <unordered_map>
+#include <array>
 #include <memory>
 #include <stdexcept>
 #include <string>
 #include <utility>
+#include "runtime/kernel.h"
 #include "sk_node.h"
 #include "sk_scope_launch.h"
+#include "sk_common.h"
 
 namespace {
-using FunMap = std::map<int, std::map<std::string, std::string>>;
+using SkBindMap = std::unordered_map<uint64_t, std::array<uint64_t, 4>>;
+using SkAllBinMap = std::unordered_map<aclrtBinHandle, SkBindMap>;
 
-FunMap DefaultMaps() {
-    FunMap maps;
-    maps[0] = {
-        {"_Z8rms_normIDhDhEvPhS0_S0_S0_17RMSNormTilingData", "rms_norm_half_half_sk_mix_aiv"},
-        {"_Z14grouped_matmulIDhDhDhDhDhDhEvPhS0_S0_S0_S0_S0_S0_S0_S0_S0_S0_13GMMTilingData", "grouped_matmul_half_sk"},
-        {"_Z28weight_quant_batch_matmul_v2IDhaDh37WeightQuantBatchMatmulV2MsdTilingDataEvPhS1_S1_S1_S1_S1_S1_S1_S1_T2_", "weight_quant_batch_matmul_v2_half_int8_half_mc_sk"},
-        {"_Z10matmul_addIhLh1ELh2EEvPhS0_", "matmul_add_uint8_sk"},
-        {"_Z20dequant_swiglu_quantI16SwiGluTilingDataEvPhS1_S1_S1_S1_S1_S1_S1_S1_S1_T_", "dequant_swiglu_quant_dynamic_bf16_sk_mix_aiv"},
-        {"clear_ops", "clear_ops_sk"},
-        {"_Z20dequant_swiglu_quantI32DequantSwigluQuantBaseTilingDataEvPhS1_S1_S1_S1_S1_S1_S1_S1_S1_T_", "dequant_swiglu_quant_dynamic_int32_sk_mix_aiv"},
-        {"_Z17grouped_matmul_v2IaiaiimEvPhS0_S0_S0_S0_S0_S0_S0_S0_S0_S0_13GMMTilingData", "grouped_matmul_v2_sk"},
-        {"grouped_matmul_v3", "grouped_matmul_v3_sk"},
-        {"dynamic_quant", "dynamic_quant_sk_mix_aiv"},
+struct CoreFuncInitContext {
+    ResolvedFunctionInfo* info;
+    size_t coreIdx;
+    size_t splitIdx;
+    SkBindMap::iterator bindIt;
+};
+
+SkBindMap InitSuperKernelBindMap(aclrtBinHandle binHdl)
+{
+    struct __attribute__((packed)) SknlValuePayload {
+        uint32_t res;
+        SknlMapInfo info;
     };
-    maps[1] = {
-        {"_Z8rms_normIDhDhEvPhS0_S0_S0_17RMSNormTilingData", "rms_norm_half_half_sk1_mix_aiv"},
-        {"_Z14grouped_matmulIDhDhDhDhDhDhEvPhS0_S0_S0_S0_S0_S0_S0_S0_S0_S0_13GMMTilingData", "grouped_matmul_half_sk1"},
-        {"_Z28weight_quant_batch_matmul_v2IDhaDh37WeightQuantBatchMatmulV2MsdTilingDataEvPhS1_S1_S1_S1_S1_S1_S1_S1_T2_", "weight_quant_batch_matmul_v2_half_int8_half_mc_sk1"},
-        {"_Z10matmul_addIhLh1ELh2EEvPhS0_", "matmul_add_uint8_sk1"},
-        {"_Z20dequant_swiglu_quantI16SwiGluTilingDataEvPhS1_S1_S1_S1_S1_S1_S1_S1_S1_T_", "dequant_swiglu_quant_dynamic_bf16_sk1_mix_aiv"},
-        {"clear_ops", "clear_ops_sk1"},
-        {"_Z20dequant_swiglu_quantI32DequantSwigluQuantBaseTilingDataEvPhS1_S1_S1_S1_S1_S1_S1_S1_S1_T_", "dequant_swiglu_quant_dynamic_int32_sk1_mix_aiv"},
-        {"_Z17grouped_matmul_v2IaiaiimEvPhS0_S0_S0_S0_S0_S0_S0_S0_S0_S0_13GMMTilingData", "grouped_matmul_v2_sk1"},
-        {"grouped_matmul_v3", "grouped_matmul_v3_sk1"},
-        {"dynamic_quant", "dynamic_quant_sk1_mix_aiv"},
-    };
-    maps[2] = {
-        {"_Z8rms_normIDhDhEvPhS0_S0_S0_17RMSNormTilingData", "rms_norm_half_half_sk2_mix_aiv"},
-        {"_Z14grouped_matmulIDhDhDhDhDhDhEvPhS0_S0_S0_S0_S0_S0_S0_S0_S0_S0_13GMMTilingData", "grouped_matmul_half_sk2"},
-        {"_Z28weight_quant_batch_matmul_v2IDhaDh37WeightQuantBatchMatmulV2MsdTilingDataEvPhS1_S1_S1_S1_S1_S1_S1_S1_T2_", "weight_quant_batch_matmul_v2_half_int8_half_mc_sk2"},
-        {"_Z10matmul_addIhLh1ELh2EEvPhS0_", "matmul_add_uint8_sk2"},
-        {"_Z20dequant_swiglu_quantI16SwiGluTilingDataEvPhS1_S1_S1_S1_S1_S1_S1_S1_S1_T_", "dequant_swiglu_quant_dynamic_bf16_sk2_mix_aiv"},
-        {"clear_ops", "clear_ops_sk2"},
-        {"_Z20dequant_swiglu_quantI32DequantSwigluQuantBaseTilingDataEvPhS1_S1_S1_S1_S1_S1_S1_S1_S1_T_", "dequant_swiglu_quant_dynamic_int32_sk2_mix_aiv"},
-        {"_Z17grouped_matmul_v2IaiaiimEvPhS0_S0_S0_S0_S0_S0_S0_S0_S0_S0_13GMMTilingData", "grouped_matmul_v2_sk2"},
-        {"grouped_matmul_v3", "grouped_matmul_v3_sk2"},
-        {"dynamic_quant", "dynamic_quant_sk2_mix_aiv"},
-    };
-    maps[3] = {
-        {"_Z8rms_normIDhDhEvPhS0_S0_S0_17RMSNormTilingData", "rms_norm_half_half_sk3_mix_aiv"},
-        {"_Z14grouped_matmulIDhDhDhDhDhDhEvPhS0_S0_S0_S0_S0_S0_S0_S0_S0_S0_13GMMTilingData", "grouped_matmul_half_sk3"},
-        {"_Z28weight_quant_batch_matmul_v2IDhaDh37WeightQuantBatchMatmulV2MsdTilingDataEvPhS1_S1_S1_S1_S1_S1_S1_S1_T2_", "weight_quant_batch_matmul_v2_half_int8_half_mc_sk3"},
-        {"_Z10matmul_addIhLh1ELh2EEvPhS0_", "matmul_add_uint8_sk3"},
-        {"_Z20dequant_swiglu_quantI16SwiGluTilingDataEvPhS1_S1_S1_S1_S1_S1_S1_S1_S1_T_", "dequant_swiglu_quant_dynamic_bf16_sk3_mix_aiv"},
-        {"clear_ops", "clear_ops_sk3"},
-        {"_Z20dequant_swiglu_quantI32DequantSwigluQuantBaseTilingDataEvPhS1_S1_S1_S1_S1_S1_S1_S1_S1_T_", "dequant_swiglu_quant_dynamic_int32_sk3_mix_aiv"},
-        {"_Z17grouped_matmul_v2IaiaiimEvPhS0_S0_S0_S0_S0_S0_S0_S0_S0_S0_13GMMTilingData", "grouped_matmul_v2_sk3"},
-        {"grouped_matmul_v3", "grouped_matmul_v3_sk3"},
-        {"dynamic_quant", "dynamic_quant_sk3_mix_aiv"},
-    };
-    return maps;
+    constexpr size_t payloadSize = sizeof(SknlValuePayload);
+
+    size_t metaNum = 0;
+    CHECK_ACL(rtBinaryGetMetaNum(binHdl, RT_BINARY_TYPE_SK_INFO, &metaNum));
+
+    SK_LOGI("InitSuperKernelBindMap: binHdl=0x%lx, metaNum=%lu, payloadSize=%zu",
+        (uint64_t)binHdl, metaNum, payloadSize);
+
+    std::vector<uint8_t> dataPool(metaNum * payloadSize);
+    std::vector<size_t> infoSize(metaNum, payloadSize);
+    std::vector<void *> metaDataList(metaNum);
+
+    for (size_t i = 0; i < metaNum; ++i) {
+        metaDataList[i] = &dataPool[i * payloadSize];
+    }
+
+    CHECK_ACL(rtBinaryGetMetaInfo(binHdl, RT_BINARY_TYPE_SK_INFO, metaNum, metaDataList.data(),
+        infoSize.data()));
+
+    SkBindMap bindMap;
+    for (size_t i = 0; i < metaNum; ++i) {
+        SknlValuePayload *payload = (SknlValuePayload *)metaDataList[i];
+        SknlMapInfo localInfo;
+        memcpy_s(&localInfo, sizeof(SknlMapInfo), &(payload->info), sizeof(SknlMapInfo));
+
+        SK_LOGI("InitSuperKernelBindMap: [%zu] globalFunc=0x%lx, skFunc[0]=0x%lx, skFunc[1]=0x%lx, skFunc[2]=0x%lx, skFunc[3]=0x%lx",
+            i, (uint64_t)localInfo.globalFunc,
+            (uint64_t)localInfo.sknlFunc[0],
+            (uint64_t)localInfo.sknlFunc[1],
+            (uint64_t)localInfo.sknlFunc[2],
+            (uint64_t)localInfo.sknlFunc[3]);
+
+        bindMap[(uint64_t)(localInfo.globalFunc)] = {
+            (uint64_t)(localInfo.sknlFunc[0]),
+            (uint64_t)(localInfo.sknlFunc[1]),
+            (uint64_t)(localInfo.sknlFunc[2]),
+            (uint64_t)(localInfo.sknlFunc[3])
+        };
+    }
+    return bindMap;
 }
 
-const FunMap &GetFunMaps() {
-    static const FunMap maps = DefaultMaps();
-    return maps;
+const SkBindMap& GetSkBindMap(aclrtBinHandle binHdl)
+{
+    static SkAllBinMap allBinMap;
+    auto it = allBinMap.find(binHdl);
+    if (it != allBinMap.end()) {
+        return it->second;
+    }
+    allBinMap[binHdl] = InitSuperKernelBindMap(binHdl);
+    return allBinMap[binHdl];
 }
 
-std::string LookupSkName(int binIndex, const char *funcName) {
-    if (!funcName) {
-        SK_LOGE("invalid function name: funcName is null, binIndex=%d", binIndex);
-        throw std::runtime_error("[sk error] invalid function name");
+size_t AlignUpAndClamp(size_t value, size_t coreIdx)
+{
+    constexpr size_t aicFuncMaxPrefetchCnt = 0x4000; // 16k
+    constexpr size_t aivFuncMaxPrefetchCnt = 0x2000; // 8k
+    constexpr size_t alignNum = 0x800; // 2k
+    size_t prefetchCntValue = (value + alignNum - 1) & ~(alignNum - 1); // 以2k为单位向上取整
+    if (coreIdx == 0 && prefetchCntValue > aicFuncMaxPrefetchCnt) {
+        prefetchCntValue = aicFuncMaxPrefetchCnt;
+    } else if (coreIdx == 1 && prefetchCntValue > aivFuncMaxPrefetchCnt) {
+        prefetchCntValue = aivFuncMaxPrefetchCnt;
     }
-    const auto &maps = GetFunMaps();
-    auto binIt = maps.find(binIndex);
-    if (binIt == maps.end()) {
-        SK_LOGE("invalid binIndex: binIndex=%d, valid range=[0,3], funcName=%s", binIndex, funcName);
-        throw std::runtime_error("[sk error] invalid binIdx");
-    }
-    auto nameIt = binIt->second.find(funcName);
-    if (nameIt == binIt->second.end()) {
-        SK_LOGE("unsupported function name: funcName=%s, binIndex=%d", funcName, binIndex);
-        throw std::runtime_error("[sk error] unsupported function name : " + std::string(funcName));
-    }
-    return nameIt->second;
+    return prefetchCntValue;
 }
 
-ResolvedFunctionInfo ResolveSkFunction(void *binHdl, const char *origName, const char *skName) {
-    if (!binHdl || !origName || !skName) {
-        SK_LOGE("resolve sk function invalid args: binHdl=%p, origName=%p, skName=%p", binHdl, origName, skName);
-        throw std::runtime_error("[sk error] resolve sk function invalid args");
+void InitSingleCoreFunc(const CoreFuncInitContext& ctx, aclrtBinHandle binHdl, void *binDevAddr)
+{
+    std::string coreName = "";
+    if (ctx.coreIdx == 0) {
+        coreName = "AIC";
+    } else if (ctx.coreIdx == 1) {
+        coreName = "AIV";
     }
-    ResolvedFunctionInfo info{};
-    aclrtFuncHandle fhdl = nullptr;
-    CHECK_ACL(aclrtBinaryGetFunction((aclrtBinHandle)binHdl, skName, &fhdl));
-    void *addr[2] = {nullptr, nullptr};
-    CHECK_ACL(aclrtGetFunctionAddr(fhdl, addr, addr + 1));
-    info.funcAddr[0] = (uint64_t)addr[0];
-    info.funcAddr[1] = (uint64_t)addr[1];
-    info.funcHdl = fhdl;
-    return info;
+    uint64_t skFuncOffset = ctx.bindIt->second[ctx.splitIdx];
+    ctx.info->funcAddr[ctx.coreIdx] = skFuncOffset + (uint64_t)binDevAddr;
+    void *binHostAddr = nullptr;
+    size_t binHostSize = 0;
+    CHECK_ACL(rtGetBinBuffer(binHdl, RT_BIN_HOST_ADDR, &binHostAddr, &binHostSize));
+    std::string symbolName;
+    uint64_t funcSize = 0;
+    if (GetFuncSymbolInfo(static_cast<const char*>(binHostAddr), binHostSize, skFuncOffset,
+                          symbolName, funcSize)) {
+        ctx.info->prefetchCnt[ctx.coreIdx] = AlignUpAndClamp(funcSize, ctx.coreIdx);
+        SK_LOGI("InitKernelResolvedFuncs: split[%zu] %s symbol=%s, size=0x%lx",
+                ctx.splitIdx, coreName.c_str(), symbolName.c_str(), funcSize);
+    } else {
+        SK_LOGW("InitKernelResolvedFuncs: split[%zu] Failed to get %s symbol info, prefetchCnt[%zu]=0",
+                ctx.splitIdx, coreName.c_str(), ctx.coreIdx);
+    }
+}
+
+bool InitKernelResolvedFuncs(KernelInfos &kernelInfos)
+{
+    aclrtBinHandle binHdl = kernelInfos.binHdl;
+    aclrtFuncHandle oriFuncHdl = kernelInfos.funcHdl;
+    if (binHdl == nullptr || oriFuncHdl == nullptr) {
+        SK_LOGE("InitKernelResolvedFuncs: invalid bin handle or function handle for kernel %s", kernelInfos.funcName.c_str());
+        return false;
+    }
+    SkBindMap bindMap = GetSkBindMap(binHdl);
+    size_t binDevSize = 0;
+    void *binDevAddr = nullptr;
+    CHECK_ACL(aclrtBinaryGetDevAddress(binHdl, &binDevAddr, &binDevSize));
+    void *addr[2] = {nullptr, nullptr}; // {aic addr, aiv addr}
+    CHECK_ACL(aclrtGetFunctionAddr(oriFuncHdl, addr, addr + 1));
+
+    uint64_t aicOffset = (uint64_t)addr[0] - (uint64_t)binDevAddr;
+    uint64_t aivOffset = (uint64_t)addr[1] - (uint64_t)binDevAddr;
+    SK_LOGI("InitKernelResolvedFuncs: funcName=%s, binDevAddr=0x%lx, binDevSize=%lu, aicAddr=0x%lx, aivAddr=0x%lx",
+        kernelInfos.funcName.c_str(), (uint64_t)binDevAddr, binDevSize, (uint64_t)addr[0], (uint64_t)addr[1]);
+    SK_LOGI("InitKernelResolvedFuncs: aicOffset=0x%lx, aivOffset=0x%lx", aicOffset, aivOffset);
+
+    auto aicItor = bindMap.find(aicOffset);
+    auto aivItor = bindMap.find(aivOffset);
+    SK_LOGI("InitKernelResolvedFuncs: bindMap size=%lu, aicFound=%d, aivFound=%d",
+        bindMap.size(), aicItor != bindMap.end(), aivItor != bindMap.end());
+
+    for (size_t i = 0; i < kMaxSplitBinCount; ++i) {
+        ResolvedFunctionInfo info{};
+        if (aicItor != bindMap.end()) {
+            CoreFuncInitContext aicCtx = {&info, 0, i, aicItor};
+            InitSingleCoreFunc(aicCtx, binHdl, binDevAddr);
+        }
+        if (aivItor != bindMap.end()) {
+            CoreFuncInitContext aivCtx = {&info, 1, i, aivItor};
+            InitSingleCoreFunc(aivCtx, binHdl, binDevAddr);
+        }
+        SK_LOGI("InitKernelResolvedFuncs: split[%zu] funcAddr[0]=0x%lx, funcAddr[1]=0x%lx, "
+                "prefetchCnt[0]=0x%lx, prefetchCnt[1]=0x%lx",
+                i, info.funcAddr[0], info.funcAddr[1], info.prefetchCnt[0], info.prefetchCnt[1]);
+        kernelInfos.resolvedFuncs[i] = info;
+    }
+    return true;
 }
 
 SkKernelType NormalizeKernelType(uint32_t kernelType, const uint32_t taskRatio[2]) {
@@ -171,7 +233,7 @@ bool SuperKernelKernelNode::InitNode() {
             scopeName = std::string(rawPtr);
         }
     }
-    
+
     if (kernelParams.taskGrp != nullptr) {
         SK_LOGI("Kernel task group is not null for task %u in stream %u, which cannot be fused in super kernel.", nodeIdxInStream, streamIdxInGraph);
         return true;
@@ -190,12 +252,7 @@ bool SuperKernelKernelNode::InitNode() {
         nodeInfos.kernelInfos.funcName = kernelParams.func_name;  // todo ： 需要调用aclrtGetFunctionName进行获取
     }
     if (!nodeInfos.kernelInfos.funcName.empty() && nodeInfos.kernelInfos.binHdl != nullptr) {
-        for (size_t i = 0; i < kMaxSplitBinCount; ++i) {
-            std::string skName = LookupSkName(static_cast<int>(i), nodeInfos.kernelInfos.funcName.c_str());
-            nodeInfos.kernelInfos.resolvedFuncs[i] = ResolveSkFunction((void *)nodeInfos.kernelInfos.binHdl,
-                                                              nodeInfos.kernelInfos.funcName.c_str(),
-                                                              skName.c_str());
-        }
+        InitKernelResolvedFuncs(nodeInfos.kernelInfos);
     }
     return true;
 }
@@ -228,13 +285,13 @@ bool SuperKernelKernelNode::Update(const UpdateContext &ctx) {
     void *buf = nullptr;
     void *argsPtr = nullptr;
 
-    const size_t MAX_HANDLE_MEM_SIZE = 1024 * 1024;  // 1MB 
-    const size_t MAX_ARGS_MEM_SIZE = 256 * 1024 * 1024;  // 64MB 
-    CHECK_ACL(aclrtKernelArgsGetHandleMemSize(ctx.skEntryFunc, &memSize)); 
-    if (memSize == 0 || memSize > MAX_HANDLE_MEM_SIZE) { 
-        SK_LOGE("invalid memSize: %zu", memSize); 
-        return false; 
-    } 
+    const size_t MAX_HANDLE_MEM_SIZE = 1024 * 1024;  // 1MB
+    const size_t MAX_ARGS_MEM_SIZE = 256 * 1024 * 1024;  // 64MB
+    CHECK_ACL(aclrtKernelArgsGetHandleMemSize(ctx.skEntryFunc, &memSize));
+    if (memSize == 0 || memSize > MAX_HANDLE_MEM_SIZE) {
+        SK_LOGE("invalid memSize: %zu", memSize);
+        return false;
+    }
     ahdl = (aclrtArgsHandle)malloc(memSize);
     if (ahdl == nullptr) {
         SK_LOGE("malloc memSize failed");
@@ -259,7 +316,7 @@ bool SuperKernelKernelNode::Update(const UpdateContext &ctx) {
     if (err != 0) {
         SK_LOGE("memcpy_s failed");
         return false;
-    } 
+    }
     CHECK_ACL(aclrtKernelArgsFinalize(ahdl));
 
     kernelParams.funcHandle = ctx.skEntryFunc;

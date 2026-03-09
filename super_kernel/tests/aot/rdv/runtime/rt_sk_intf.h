@@ -132,6 +132,17 @@ typedef struct aclrtTaskDefaultParams{
     void* pExtend;
 } aclrtTaskDefaultParams;
 
+// Binary metadata type enum (stub for UT)
+typedef enum {
+    RT_BINARY_TYPE_BIN_VERSION = 0U,
+    RT_BINARY_TYPE_DEBUG_INFO = 1U,
+    RT_BINARY_TYPE_DYNAMIC_PARAM = 2U,
+    RT_BINARY_TYPE_OPTIONAL_PARAM = 3U,
+    RT_BINARY_TYPE_RUNTIME_IMPLICIT_INFO = 4U,
+    RT_BINARY_TYPE_SK_INFO = 5U,
+    RT_BINARY_TYPE_MAX
+} rtBinaryMetaType;
+
 typedef struct aclrtTask{
     uint32_t task_id;
     aclrtTaskType type;
@@ -166,6 +177,10 @@ void rt_sk_replay(void);
 
 // aclError aclrtGetFunctionSize(aclrtFuncHandle funcHandle, size_t *aicSize, size_t *aivSize);
 // aclError aclrtGetFunctionAttribute(aclrtFuncHandle funcHandle, aclrtFuncAttribute attrType, int64_t *attrValue);
+
+__attribute__((visibility("default"))) int rtBinaryGetMetaNum(void* binHdl, int type_enum, size_t* metaNum);
+__attribute__((visibility("default"))) int rtBinaryGetMetaData(void* binHdl, int type_enum, size_t metaNum, void** data_list, size_t *size_list);
+__attribute__((visibility("default"))) int rtBinaryGetMetaInfo(void* binHdl, int type_enum, size_t metaNum, void** data_list, size_t *size_list);
 
 #ifdef __cplusplus
 }

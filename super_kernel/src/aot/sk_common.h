@@ -16,6 +16,9 @@
 #ifndef SK_COMMON_H
 #define SK_COMMON_H
 
+#include <string>
+#include <cstddef>
+
 enum class SkNodeType: uint32_t {
     NODE_KERNEL = 0,
     NODE_NOTIFY = 1,
@@ -149,7 +152,6 @@ struct SkWorkSpace {
 
 struct SkDfxInfo {
     uint64_t binHdl;
-    uint64_t funcHdl;
     uint64_t funcHdlOri;
 };
 
@@ -157,4 +159,8 @@ struct SkDeviceEntryArgs {
     SkHeaderInfo skHeader;
     uint8_t data[0];
 };
+
+bool GetFuncSymbolInfo(const char* binAddr, size_t binSize, uint64_t funcAddr,
+                       std::string& symbolName, uint64_t& funcSize);
+
 #endif

@@ -22,6 +22,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <elf.h>
 
 #include "rt_intf.h"
 
@@ -361,4 +362,52 @@ int rtsLaunchKernelWithHostArgs(const void *func_hdl, uint32_t numBlocks, void *
     return 0;
   }
   return fun(func_hdl, numBlocks, stm, cfg, host_args, argsSize, place_holder, cnt);
+}
+
+//////////////////////////////////// meta data parsing //////////////////////////////////////
+
+static void *get_elf_data(void *bin_hdl)
+{
+  void **box = g_rt_elf_hdls;
+  size_t count = g_rt_elf_hdl_cnt;
+  for (int i = count - 1; i >= 0; i--) {
+    if (box[i * 2 + 1] == bin_hdl) {
+      return box[i * 2];
+    }
+  }
+  return NULL;
+}
+
+__attribute__((visibility("default")))
+int rtBinaryGetMetaNum(void* binHdl, int type_enum, size_t* metaNum)
+{
+  (void)binHdl;
+  (void)type_enum;
+  *metaNum = 0;
+  printf("[stub] rtBinaryGetMetaNum called\n");
+  return 0;
+}
+
+__attribute__((visibility("default")))
+int rtBinaryGetMetaData(void* binHdl, int type_enum, size_t metaNum, void** data_list, size_t *size_list)
+{
+  (void)binHdl;
+  (void)type_enum;
+  (void)metaNum;
+  (void)data_list;
+  (void)size_list;
+  printf("[stub] rtBinaryGetMetaData called\n");
+  return 0;
+}
+
+__attribute__((visibility("default")))
+int rtBinaryGetMetaInfo(void* binHdl, int type_enum, size_t metaNum, void** data_list, size_t *size_list)
+{
+  (void)binHdl;
+  (void)type_enum;
+  (void)metaNum;
+  (void)data_list;
+  (void)size_list;
+  printf("[stub] rtBinaryGetMetaInfo called\n");
+  return 0;
 }

@@ -68,9 +68,8 @@ static void DumpDeviceArgs(const SkDeviceEntryArgs *args)
     const SkDfxInfo *dfx = (const SkDfxInfo *)(base + args->skHeader.dfxOffset);
     for (uint32_t i = 0; i < args->skHeader.nodeCnt; ++i)
     {
-        SK_LOGI("dfx[%u]: bin=0x%llx, func=0x%llx, ori=0x%llx",
+        SK_LOGI("dfx[%u]: bin=0x%llx, ori=0x%llx",
                i, (unsigned long long)dfx[i].binHdl,
-               (unsigned long long)dfx[i].funcHdl,
                (unsigned long long)dfx[i].funcHdlOri);
     }
 }
@@ -919,14 +918,14 @@ std::pair<int, int> SkTaskBuilder::GetPreFetchCnt(const ResolvedFunctionInfo &re
 {
     std::pair<int, int> preFetchCntValue = std::make_pair(resolved.prefetchCnt[0], resolved.prefetchCnt[1]);
     auto preLoadOptions = opts.GetOption(aclskOtionType::PRELOAD_CODE);
-    
+
     // default: preLoadValue == 1, use func size to prefetch
     uint32_t preLoadValue = 1;
-    
+
     if (preLoadOptions != nullptr) {
         preLoadValue = preLoadOptions->GetIntValue();
     }
-    
+
     if (preLoadValue == 0) {
         // use max size to prefetch
         preFetchCntValue.first = 16;  // cube's max icache size is 32K(16 * 2)
@@ -1013,7 +1012,6 @@ void SkTaskBuilder::AddTask(SkTask &skTask, SkDfxInfo *dfxInfos, const std::vect
             taskInfo.entry[i] = addr;
             if (taskType == SkTaskType::TYPE_FUNC && dfxInfos) {
                 dfxInfos[index].binHdl = (uint64_t)kernelInfo.binHdl;
-                dfxInfos[index].funcHdl = (uint64_t)resolved.funcHdl;
                 dfxInfos[index].funcHdlOri = (uint64_t)kernelInfo.funcHdl;
             }
         }
