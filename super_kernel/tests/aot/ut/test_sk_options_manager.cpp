@@ -346,6 +346,12 @@ TEST_F(SuperKernelOptionsManagerTest, EnableDebug_WithBothDebugOptions)
     EXPECT_TRUE(opts_test->EnableDebug());
 }
 
+TEST_F(SuperKernelOptionsManagerTest, EnableDebug_WithDebugSyncAllZero)
+{
+    opts_test->AddOption(std::make_unique<NumberOptOption>("debug_sync_all", aclskOtionType::DEBUG_SYNC_ALL, 0));
+    EXPECT_FALSE(opts_test->EnableDebug());
+}
+
 // ==================== SuperKernelOptionsManager::SetOptOptionValue 测试 ====================
 
 TEST_F(SuperKernelOptionsManagerTest, SetOptOptionValue_PreloadCode)
@@ -392,6 +398,42 @@ TEST_F(SuperKernelOptionsManagerTest, SetOptOptionValue_DebugDcciDisable)
     EXPECT_EQ(strList[0], "Add");
     EXPECT_EQ(strList[1], "Mul");
     EXPECT_EQ(strList[2], ".*Op");
+}
+
+TEST_F(SuperKernelOptionsManagerTest, SetOptOptionValue_DebugDcciDisable_NullKernelNames)
+{
+    aclskOption option {};
+    option.optionType = aclskOtionType::DEBUG_DCCI_DISABLE_ON_KERNEL;
+    option.disableKernelDcci.kernelNames = nullptr;
+    option.disableKernelDcci.kernelCnt = 2;
+
+    opts_test->SetOptOptionValue(&option);
+
+    auto result = opts_test->GetOption(aclskOtionType::DEBUG_DCCI_DISABLE_ON_KERNEL);
+    ASSERT_NE(result, nullptr);
+    auto strList = static_cast<StringListOptOption*>(result)->GetStringListValue();
+    EXPECT_TRUE(strList.empty());
+}
+
+TEST_F(SuperKernelOptionsManagerTest, SetOptOptionValue_DebugDcciDisable_WithNullEntry)
+{
+    aclskOption option {};
+    option.optionType = aclskOtionType::DEBUG_DCCI_DISABLE_ON_KERNEL;
+
+    char name0[] = "Add";
+    char name2[] = "Mul";
+    char* kernelNames[] = {name0, nullptr, name2};
+    option.disableKernelDcci.kernelNames = kernelNames;
+    option.disableKernelDcci.kernelCnt = 3;
+
+    opts_test->SetOptOptionValue(&option);
+
+    auto result = opts_test->GetOption(aclskOtionType::DEBUG_DCCI_DISABLE_ON_KERNEL);
+    ASSERT_NE(result, nullptr);
+    auto strList = static_cast<StringListOptOption*>(result)->GetStringListValue();
+    EXPECT_EQ(strList.size(), 2);
+    EXPECT_EQ(strList[0], "Add");
+    EXPECT_EQ(strList[1], "Mul");
 }
 
 TEST_F(SuperKernelOptionsManagerTest, SetOptOptionValue_DebugSyncAll)
@@ -617,6 +659,20 @@ TEST_F(SuperKernelOptionsManagerTest, ParseOptions_EmptyOptionsList)
     EXPECT_EQ(opts_test->GetOption(aclskOtionType::PRELOAD_CODE), nullptr);
 }
 
+TEST_F(SuperKernelOptionsManagerTest, ParseOptions_DebugSyncAllZero_NotEnableDebug)
+{
+    aclskOption options[1];
+    options[0].optionType = aclskOtionType::DEBUG_SYNC_ALL;
+    options[0].debugSync.debugSyncAll = 0;
+
+    aclskOptions optList;
+    optList.options = options;
+    optList.numOptions = 1;
+
+    opts_test->ParseOptions(&optList);
+    EXPECT_FALSE(opts_test->EnableDebug());
+}
+
 TEST_F(SuperKernelOptionsManagerTest, ParseOptions_LargeNumberOptions)
 {
     // 测试大量选项的解析
@@ -742,6 +798,12 @@ TEST_F(SuperKernelOptionsManagerTest, MatchRegex_EmptyPattern)
     // 空模式测试
     EXPECT_TRUE(opts_test->MatchRegex("", ""));
     EXPECT_FALSE(opts_test->MatchRegex("", "abc"));
+}
+
+TEST_F(SuperKernelOptionsManagerTest, MatchRegex_InvalidLeadingStar)
+{
+    EXPECT_FALSE(opts_test->MatchRegex("*abc", "abc"));
+    EXPECT_FALSE(opts_test->MatchRegex("*", ""));
 }
 
 TEST_F(SuperKernelOptionsManagerTest, MatchRegex_MixedPatterns)
