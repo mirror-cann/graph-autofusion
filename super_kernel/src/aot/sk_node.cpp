@@ -227,8 +227,10 @@ bool SuperKernelKernelNode::InitNode() {
     if (IsScopeKernel(kernelParams, &scopeKernelInfo)){
         SK_LOGI("Kernel node %s for task %u in stream %u is scope kernel.", kernelParams.func_name, nodeIdxInStream, streamIdxInGraph);
         isFusible = scopeKernelInfo.isFuseEnable;
+        isScopeNode = true;
         if (isFusible && scopeKernelInfo.scopeName != nullptr){
             isScopeBegin = scopeKernelInfo.isBegin;
+            isScopeEnd = !isScopeBegin;
             char* rawPtr = scopeKernelInfo.scopeName.get();
             scopeName = std::string(rawPtr);
         }

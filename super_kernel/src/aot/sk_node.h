@@ -156,6 +156,7 @@ public:
     // scope
     virtual std::string GetScopeName() const { return ""; }
     virtual bool IsScopeBegin() const { return false; }
+    virtual bool IsScopeEnd() const { return false; }
 
     const std::bitset<MAX_SCOPE_NUM>& GetScopeBitFlags() const {
         return scopeBitFlags;
@@ -163,8 +164,9 @@ public:
     void SetScopeBitFlags(const std::bitset<MAX_SCOPE_NUM>& flags) {
         scopeBitFlags = flags;
     }
-    void SetNodeToScope(bool isScope) { isScopeNode = isScope; }
+    void SetIsScopeNode(bool isScope) { isScopeNode = isScope; }
     bool IsScopeNode() const { return isScopeNode; }
+    bool HasScopeFlags() const { return scopeBitFlags.any(); }
     void ClearScopeBitFlags() { scopeBitFlags.reset(); }
     void MarkEventNodeToScope(SuperKernelBaseNode* node);
 
@@ -199,10 +201,11 @@ public:
         return scopeName;
     }
     bool IsScopeBegin() const override { return isScopeBegin; }
-    // const std::string& GetScopeName() const { return scopeName; }
+    bool IsScopeEnd() const override { return isScopeEnd; }
 private:
     aclrtTaskKernelParams kernelParams;
     bool isScopeBegin = false;
+    bool isScopeEnd = false;
     std::string scopeName;
 };
 

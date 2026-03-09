@@ -129,82 +129,222 @@ void SuperKernelGraph::BuildWaitNodeAssociations() {
     }
 }
 
+// Mark notify and wait nodes following a scope begin kernel node as scope nodes
+// Scope pattern: KernelBegin -> Notify -> Wait -> ...
 void SuperKernelGraph::MarkEventNodeToScopeBegin(SuperKernelBaseNode* node){
-    uint64_t recordId = node->GetNextNodeId();
-    SuperKernelBaseNode* recordNode = GetNodeById(recordId);
-    if (recordNode == nullptr || recordNode->GetNodeType() != SkNodeType::NODE_NOTIFY){
-        SK_LOGW("Failed to find valid notify (record) node after scope begin node %lu, recordNodeId=%lu", 
-                node->GetNodeId(), recordId);
+    uint64_t notifyId = node->GetNextNodeId();
+    SuperKernelBaseNode* notifyNode = GetNodeById(notifyId);
+    if (notifyNode == nullptr || notifyNode->GetNodeType() != SkNodeType::NODE_NOTIFY){
+        SK_LOGW("Failed to find valid notify (record) node after scope begin node %lu, notifyNodeId=%lu",
+                node->GetNodeId(), notifyId);
         return;
     }
-    uint64_t waitId = recordNode->GetNextNodeId();
+    uint64_t waitId = notifyNode->GetNextNodeId();
     SuperKernelBaseNode* waitNode = GetNodeById(waitId);
     if (waitNode == nullptr || waitNode->GetNodeType() != SkNodeType::NODE_WAIT){
-        SK_LOGW("Failed to find valid wait node after notify node %lu, waitNodeId=%lu", 
-                recordNode->GetNodeId(), waitId);
+        SK_LOGW("Failed to find valid wait node after notify node %lu, waitNodeId=%lu",
+                notifyNode->GetNodeId(), waitId);
         return;
     }
-    recordNode->SetNodeToScope(true);
-    waitNode->SetNodeToScope(true);
+    notifyNode->SetIsScopeNode(true);
+    waitNode->SetIsScopeNode(true);
+    SK_LOGD("Marked notify node %lu and wait node %lu as scope nodes for scope begin %lu",
+            notifyId, waitId, node->GetNodeId());
 }
 
+// Mark wait and notify nodes preceding a scope end kernel node as scope nodes
+// Scope pattern: ... -> Notify -> Wait -> KernelEnd
 void SuperKernelGraph::MarkEventNodeToScopeEnd(SuperKernelBaseNode* node){
     uint64_t waitId = node->GetPreNodeId();
     SuperKernelBaseNode* waitNode = GetNodeById(waitId);
-    if (waitNode == nullptr && waitNode->GetNodeType() != SkNodeType::NODE_WAIT){
-        SK_LOGW("Failed to find valid wait node before scope end node %lu, waitNodeId=%lu", 
+    if (waitNode == nullptr || waitNode->GetNodeType() != SkNodeType::NODE_WAIT){
+        SK_LOGW("Failed to find valid wait node before scope end node %lu, waitNodeId=%lu",
                 node->GetNodeId(), waitId);
         return;
     }
     uint64_t notifyId = waitNode->GetPreNodeId();
     SuperKernelBaseNode* notifyNode = GetNodeById(notifyId);
     if (notifyNode == nullptr || notifyNode->GetNodeType() != SkNodeType::NODE_NOTIFY){
-        SK_LOGW("Failed to find valid notify (record) node before wait node %lu, notifyNodeId=%lu", 
+        SK_LOGW("Failed to find valid notify (record) node before wait node %lu, notifyNodeId=%lu",
                 waitNode->GetNodeId(), notifyId);
         return;
     }
-    recordNode->SetNodeToScope(true);
-    waitNode->SetNodeToScope(true);
+    notifyNode->SetIsScopeNode(true);
+    waitNode->SetIsScopeNode(true);
+    SK_LOGD("Marked wait node %lu and notify node %lu as scope nodes for scope end %lu",
+            waitId, notifyId, node->GetNodeId());
 }
 
 
-void SuperKernelGraph::UpdateNodeScopeBitFlags(){
-    std::bitset<MAX_SCOPE_NUM> curScopeBitFlags;  
-    bool curIsFusibleByScope = true;
+// Scope stack entry for tracking nested scope contexts
+struct ScopeStackEntry {
+    uint32_t scopeIdx;    // Scope index used for generating scopeBitFlags
+    std::string scopeName; // Scope name used for matching scope end with scope begin
+    bool isFusible;       // Whether the scope is fusible
+};
+
+// Compute current scope bit flags from the scope stack
+// Only marks fusible scopes to determine which fusible scopes a node belongs to
+static std::bitset<MAX_SCOPE_NUM> ComputeScopeBitFlags(const std::vector<ScopeStackEntry>& scopeStack) {
+    std::bitset<MAX_SCOPE_NUM> flags;
+    for (const auto& entry : scopeStack) {
+        if (entry.isFusible) {
+            flags.set(entry.scopeIdx);
+        }
+    }
+    return flags;
+}
+
+// Check if current scope stack contains any unfusible scope
+// If a node is inside an unfusible scope, the node is also unfusible
+static bool HasUnfusibleScope(const std::vector<ScopeStackEntry>& scopeStack) {
+    for (const auto& entry : scopeStack) {
+        if (!entry.isFusible) {
+            return true;
+        }
+    }
+    return false;
+}
+
+// Parse scope node information to extract scope index, name, and fusible attribute
+// Get scope index for a scope node
+// For fusible scopes, look up index from unique_scopeNames; for unfusible scopes, use MAX_SCOPE_NUM
+static uint32_t GetScopeIdx(SuperKernelBaseNode* node,
+                           const std::unordered_map<std::string, uint32_t>& unique_scopeNames) {
+    bool isFusible = node->IsFusible();
+
+    if (isFusible) {
+        const std::string& scopeName = node->GetScopeName();
+        auto it = unique_scopeNames.find(scopeName);
+        if (it == unique_scopeNames.end()) {
+            SK_LOGW("Fusible scope name '%s' not registered for node %lu",
+                    scopeName.c_str(), node->GetNodeId());
+            return MAX_SCOPE_NUM;
+        }
+        return it->second;
+    }
+
+    // Unfusible scopes use MAX_SCOPE_NUM to avoid conflict with fusible scope indices [0, MAX_SCOPE_NUM-1]
+    // The actual index value is not used since unfusible scopes are excluded from scope bit flags
+    return MAX_SCOPE_NUM;
+}
+
+// Pop the scope with matching name from the stack
+// Searches from top to bottom to find the matching scope and removes only that scope
+// This supports interleaved scope begin/end patterns (e.g., A-B-A-B)
+static bool PopScopeByName(std::vector<ScopeStackEntry>& scopeStack, const std::string& scopeName) {
+    for (int i = static_cast<int>(scopeStack.size()) - 1; i >= 0; --i) {
+        if (scopeStack[i].scopeName == scopeName) {
+            scopeStack.erase(scopeStack.begin() + i);
+            SK_LOGI("Popped scope '%s' at position %d, stack_size=%zu",
+                    scopeName.c_str(), i, scopeStack.size());
+            return true;
+        }
+    }
+    SK_LOGW("Scope end without matching begin: name='%s'", scopeName.c_str());
+    return false;
+}
+
+// Process scope begin node: parse scope info, push to stack, and mark associated event nodes
+static void ProcessScopeBegin(SuperKernelGraph* graph,
+                               SuperKernelBaseNode* node,
+                               std::vector<ScopeStackEntry>& scopeStack,
+                               const std::unordered_map<std::string, uint32_t>& unique_scopeNames) {
+    std::string scopeName = node->GetScopeName();
+    bool isFusible = node->IsFusible();
+    uint32_t scopeIdx = GetScopeIdx(node, unique_scopeNames);
+
+    scopeStack.push_back({scopeIdx, scopeName, isFusible});
+    graph->MarkEventNodeToScopeBegin(node);
+    SK_LOGI("Scope begin: name='%s' idx=%u fusible=%d stack_size=%zu",
+            scopeName.c_str(), scopeIdx, isFusible, scopeStack.size());
+}
+
+// Process scope end node: parse scope info, pop from stack, and mark associated event nodes
+static void ProcessScopeEnd(SuperKernelGraph* graph,
+                             SuperKernelBaseNode* node,
+                             std::vector<ScopeStackEntry>& scopeStack,
+                             const std::unordered_map<std::string, uint32_t>& unique_scopeNames) {
+    std::string scopeName = node->GetScopeName();
+    uint32_t scopeIdx = GetScopeIdx(node, unique_scopeNames);
+
+    graph->MarkEventNodeToScopeEnd(node);
+    SK_LOGI("Scope end: name='%s' idx=%u", scopeName.c_str(), scopeIdx);
+    PopScopeByName(scopeStack, scopeName);
+}
+
+// Log warning if there are unclosed scopes remaining in the stack at the end of graph processing
+static void LogUnclosedScopes(const std::vector<ScopeStackEntry>& scopeStack) {
+    if (!scopeStack.empty()) {
+        SK_LOGW("Found %zu unclosed scope(s) at end of graph:", scopeStack.size());
+        for (const auto& entry : scopeStack) {
+            SK_LOGW("  - Scope '%s' (idx=%u, fusible=%d)", entry.scopeName.c_str(), entry.scopeIdx, entry.isFusible);
+        }
+    }
+}
+
+// Update scope bit flags for all nodes based on scope contexts
+//
+// The algorithm processes nodes in sorted order and maintains a scope stack to track nested scopes:
+// 1. When encountering a scope begin node, push scope info to stack
+// 2. For scope end nodes, compute flags BEFORE popping (node belongs to the scope it closes), then pop
+// 3. For all other nodes (scope begin, notify, wait, regular nodes), compute flags from current stack
+//
+// Scope bit flags indicate which fusible scopes a node belongs to, enabling scope-based fusion decisions
+//
+// Node types:
+// - Scope begin kernel node: marks start of a scope, also belongs to its parent scopes
+// - Scope end kernel node: marks end of a scope, belongs to its parent scopes
+// - Notify/Wait nodes: scope-related synchronization nodes, not scope begin/end
+// - Regular kernel nodes: normal computation nodes
+//
+// Note: Scopes with the same name follow stack semantics (LIFO), allowing nested and sequential scopes
+void SuperKernelGraph::UpdateNodeScopeBitFlags() {
+    std::vector<ScopeStackEntry> scopeStack;
     std::vector<uint64_t> orderedNodeIds = GetSortedNodeIds();
-    for (auto nodeId : orderedNodeIds){ 
+
+    SK_LOGI("Starting UpdateNodeScopeBitFlags, total nodes: %zu", orderedNodeIds.size());
+
+    for (uint64_t nodeId : orderedNodeIds) {
         SuperKernelBaseNode* node = GetNodeById(nodeId);
-        if (!node->IsScopeNode()){
-            node->SetIsFusible(curIsFusibleByScope);
-            node->SetScopeBitFlags(curScopeBitFlags);
-        } else { // 是scope类型的kernel node
-            curIsFusibleByScope = node->IsFusible(); // 当前可融合的状态
-            if (curIsFusibleByScope){
-                if (unique_scopeNames.size() >= MAX_SCOPE_NUM && unique_scopeNames.find(node->GetScopeName()) == unique_scopeNames.end()){ 
-                    SK_LOGW("scope num is more than %d, current scope will not take effect", MAX_SCOPE_NUM);
-                    continue;
-                }
-                uint32_t scopeIdx = unique_scopeNames[node->GetScopeName()];
-                if (node->IsScopeBegin()){
-                    curScopeBitFlags.set(scopeIdx);
-                    MarkEventNodeToScopeBegin(node);
-                } else {
-                    node->SetScopeBitFlags(curScopeBitFlags);
-                    curScopeBitFlags.reset(scopeIdx);
-                    MarkEventNodeToScopeEnd(node);
-                    continue;
-                }
-            } else {
-                if (node->IsScopeBegin()){
-                    MarkEventNodeToScopeBegin(node);
-                } else {
-                    MarkEventNodeToScopeEnd(node);
-                    curIsFusibleByScope = true;
-                    continue;
-                }
+        if (node == nullptr) {
+            SK_LOGE("Node with id %lu not found", nodeId);
+            continue;
+        }
+
+        if (node->IsScopeBegin()) {
+            ProcessScopeBegin(this, node, scopeStack, unique_scopeNames);
+        } else if (node->IsScopeEnd()) {
+            // Scope end nodes belong to their parent scopes, compute flags before popping
+            std::bitset<MAX_SCOPE_NUM> currentScopeFlags = ComputeScopeBitFlags(scopeStack);
+            node->SetScopeBitFlags(currentScopeFlags);
+            SK_LOGD("Set scope flags for scope end node %lu, flags=%s", nodeId,
+                    currentScopeFlags.to_string().substr(0, MAX_SCOPE_NUM).c_str());
+            ProcessScopeEnd(this, node, scopeStack, unique_scopeNames);
+        }
+
+        // Update flags for all nodes except scope end nodes (already handled above)
+        // This includes: scope begin nodes, notify nodes, wait nodes, and regular kernel nodes
+        if (!node->IsScopeEnd()) {
+            std::bitset<MAX_SCOPE_NUM> flags = ComputeScopeBitFlags(scopeStack);
+            node->SetScopeBitFlags(flags);
+
+            // Log flags for regular nodes (non-scope nodes)
+            if (!node->IsScopeNode()) {
+                SK_LOGD("Set scope flags for node %lu, flags=%s, fusible=%d",
+                        nodeId, flags.to_string().substr(0, MAX_SCOPE_NUM).c_str(), node->IsFusible());
+            }
+
+            // Mark regular nodes as unfusible if inside any unfusible scope
+            if (!node->IsScopeNode() && HasUnfusibleScope(scopeStack)) {
+                node->SetIsFusible(false);
+                SK_LOGD("Marked node %lu as unfusible (inside unfusible scope)", nodeId);
             }
         }
     }
+
+    LogUnclosedScopes(scopeStack);
+    SK_LOGI("UpdateNodeScopeBitFlags completed");
 }
 
 std::unique_ptr<SuperKernelBaseNode> SuperKernelNodeFactory::CreateNode(std::unique_ptr<aclrtTask> task, aclrtTaskType taskType, uint64_t nodeIdx, uint64_t streamId, uint64_t preNodeId) {
@@ -270,13 +410,18 @@ bool SuperKernelGraph::InitSKGraph() {
                 SK_LOGE("Failed to initialize node for task %u in stream %u", taskIdx, streamIdx);
                 return false;
             }
-            if (node->GetNodeType() == SkNodeType::NODE_KERNEL && node->GetScopeName().length() > 0){
-                node->SetNodeToScope(true);
-                if(unique_scopeNames.size() >= MAX_SCOPE_NUM){
-                    SK_LOGW("The number of scope names is greater than the maximum allowed: %u", MAX_SCOPE_NUM);
-                } else {
-                    if (unique_scopeNames.find(node->GetScopeName()) == unique_scopeNames.end()) {
-                        unique_scopeNames[node->GetScopeName()] = unique_scopeNames.size();
+            if (node->GetNodeType() == SkNodeType::NODE_KERNEL && node->IsScopeNode()){
+                // Register fusible scopes with scope names to unique_scopeNames for index assignment
+                // This ensures consistent scope indices across the graph for scope bit flag computation
+                if (node->GetScopeName().length() > 0 && node->IsFusible()){
+                    if(unique_scopeNames.size() >= MAX_SCOPE_NUM){
+                        SK_LOGW("The number of scope names is greater than the maximum allowed: %u", MAX_SCOPE_NUM);
+                    } else {
+                        if (unique_scopeNames.find(node->GetScopeName()) == unique_scopeNames.end()) {
+                            unique_scopeNames[node->GetScopeName()] = unique_scopeNames.size();
+                            SK_LOGI("Registered fusible scope '%s' with index %zu",
+                                    node->GetScopeName().c_str(), unique_scopeNames.size() - 1);
+                        }
                     }
                 }
             }
@@ -297,13 +442,7 @@ bool SuperKernelGraph::InitSKGraph() {
         }
     }
 
-    
-    // update scopeBitFlags
-    if (unique_scopeNames.empty()){
-        splitByScope = true;
-    }
     UpdateNodeScopeBitFlags();
-    // Build wait node associations for notify nodes
     BuildWaitNodeAssociations();
 
     return true;

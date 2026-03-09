@@ -85,9 +85,7 @@ private:
     aclmdlRI modelRI;
     uint64_t nextNodeId = 0;
     friend class SuperKernelScopeSplitter;
-    // scope
     std::unordered_map<std::string, uint32_t> unique_scopeNames;
-    bool splitByScope = false;
 };
 
 #endif // __SK_GRAPH_H__

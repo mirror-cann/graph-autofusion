@@ -15,6 +15,7 @@
 
 #include "rt_sk_intf.h"
 #include <cstring>
+#include <cstdio>
 
 extern "C" {
 
@@ -209,6 +210,36 @@ aclError aclrtKernelArgsFinalize(aclrtArgsHandle argsHdl) {
         return ACL_ERROR_INVALID_PARAM;
     }
     return ACL_ERROR_NONE;
+}
+
+// 获取函数名称
+aclError aclrtGetFunctionName(aclrtFuncHandle funcHandle, uint32_t maxLen, char *name) {
+    if (name == nullptr || maxLen == 0) {
+        return ACL_ERROR_INVALID_PARAM;
+    }
+    const char *funcName = "test_function";
+    return ACL_ERROR_NONE;
+}
+
+// 内存复制
+aclError aclrtMemcpy(void *dst, size_t destMax, const void *src, size_t count, aclrtMemcpyKind kind) {
+    if (dst == nullptr || src == nullptr) {
+        return ACL_ERROR_INVALID_PARAM;
+    }
+    if (count > destMax) {
+        return ACL_ERROR_INVALID_PARAM;
+    }
+    return ACL_ERROR_NONE;
+}
+
+// Scope begin stub
+void sk_scope_kernel_begin_do(const char *scopeName, void *args) {
+    // Stub implementation for unit tests
+}
+
+// Scope end stub
+void sk_scope_kernel_end_do(const char *scopeName, void *args) {
+    // Stub implementation for unit tests
 }
 
 } // extern "C"

@@ -17,6 +17,7 @@ add_executable(super_kernel_aot_utest
     ${CMAKE_CURRENT_SOURCE_DIR}/test_sk_options_manager.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test_sk_graph.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test_sk_scope_split.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_node_scope_tagging.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test_notify_wait_interface.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test_rt_metadata_stubs.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/aclrt_stubs.cpp
@@ -25,6 +26,7 @@ add_executable(super_kernel_aot_utest
     ${GRAPH_AUTOFUSION_ROOT_DIR}/super_kernel/src/aot/sk_scope_split.cpp
     ${GRAPH_AUTOFUSION_ROOT_DIR}/super_kernel/src/aot/sk_lock_detector.cpp
     ${GRAPH_AUTOFUSION_ROOT_DIR}/super_kernel/src/aot/sk_node.cpp
+    ${GRAPH_AUTOFUSION_ROOT_DIR}/super_kernel/src/aot/sk_scope_launch.cpp
 )
 
 target_include_directories(super_kernel_aot_utest PRIVATE

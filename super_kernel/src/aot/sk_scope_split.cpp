@@ -124,19 +124,28 @@ void SuperKernelScopeSplitter::AddStreamInfoToScope(SuperKernelScopeInfo& scopeI
         it->nodeSize++;
     }
 }
+
 void SuperKernelScopeSplitter::SkipUnfusibleNodes(
     std::unordered_map<uint32_t, StreamState>& streamStates) {
     for (auto& pair : streamStates) {
-        // Skip unfusible nodes at the current position
+        SK_LOGI("SkipUnfusibleNodes: stream %u, currentNodeIdx=%lu\n",
+                 pair.first, pair.second.currentNodeIdx);
+        // Skip permanently unfusible nodes at the current position
+        // Note: Single nodes cannot cause deadlock (their resource usage < total resources),
+        // so we only skip nodes that are permanently marked as unfusible.
+        // Deadlock detection is only relevant when forming multi-node scopes.
         while (pair.second.currentNodeIdx != INVALID_TASK_ID) {
             SuperKernelBaseNode* node = graph.GetNodeById(pair.second.currentNodeIdx);
+            SK_LOGI("Checking node %lu, IsFusible=%d\n", pair.second.currentNodeIdx, node ? node->IsFusible() : -1);
             if (node != nullptr && !node->IsFusible()) {
-                SK_LOGI("Skipping unfusible node %lu", pair.second.currentNodeIdx);
+                SK_LOGI("Skipping permanently unfusible node %lu (stream %u), nextNodeId=%lu\n", pair.second.currentNodeIdx, pair.first, node->GetNextNodeId());
                 pair.second.currentNodeIdx = node->GetNextNodeId();
             } else {
                 break;
             }
         }
+        SK_LOGI("SkipUnfusibleNodes: stream %u, after skipping currentNodeIdx=%lu\n",
+                 pair.first, pair.second.currentNodeIdx);
     }
 }
 
@@ -153,31 +162,16 @@ void SuperKernelScopeSplitter::ResetStreamStates(
     SkipUnfusibleNodes(streamStates);
 }
 
-bool SuperKernelScopeSplitter::AllStreamsFinished(
-    const std::unordered_map<uint32_t, StreamState>& streamStates) const {
-    for (const auto& pair : streamStates) {
-        const StreamState& state = pair.second;
-        // A stream is considered finished if:
-        // 1. currentNodeIdx is INVALID_TASK_ID (naturally finished), OR
-        // 2. The stream is terminated and will never progress
-        if (state.currentNodeIdx != INVALID_TASK_ID) {
-            return false;
-        }
-    }
-    return true;
-}
-
 void SuperKernelScopeSplitter::InitNodeHeap(
     std::unordered_map<uint32_t, StreamState>& streamStates,
     const std::set<uint64_t>& visitedNotifies,
     const std::set<uint64_t>& processedNodes,
     std::priority_queue<uint64_t, std::vector<uint64_t>, std::greater<uint64_t>>& nodeHeap,
     LockDetector& lockDetector) {
-    // Initialize heap by trying to add current node from each stream
+    // Iterate through all streams, try to add current nodes to heap
     for (auto& pair : streamStates) {
-        uint32_t streamIdx = pair.first;
-        TryAddNodeToHeap(streamIdx, streamStates, visitedNotifies,
-                       processedNodes, nodeHeap, lockDetector);
+        TryAddNodeToHeap(pair.first, streamStates, visitedNotifies,
+                        processedNodes, nodeHeap, lockDetector);
     }
 }
 
@@ -189,6 +183,8 @@ void SuperKernelScopeSplitter::TryAddNodeToHeap(
     std::priority_queue<uint64_t, std::vector<uint64_t>, std::greater<uint64_t>>& nodeHeap,
     LockDetector& lockDetector) {
     StreamState& state = streamStates[streamIdx];
+    SK_LOGI("TryAddNodeToHeap: stream %u, currentNodeIdx=%lu, isTerminated=%d, isSuspended=%d\n",
+             streamIdx, state.currentNodeIdx, state.isTerminated, state.isSuspended);
 
     // Condition 1: Stream is terminated, suspended, or finished
     if (state.isTerminated || state.isSuspended ||
@@ -214,16 +210,16 @@ void SuperKernelScopeSplitter::TryAddNodeToHeap(
     // For simplicity, we'll skip this check as it's unlikely to cause issues
     // and ProcessNotifyNode has protection against duplicates
 
-    // Special case 1: Permanently unfusible node
+    // Special case: Permanently unfusible node
     if (!nextNode->IsFusible()) {
         // Mark stream as terminated (unfusible nodes terminate the current scope)
         state.isTerminated = true;
-        SK_LOGI("Node %lu (stream=%lu) is permanently unfusible, terminate stream in current scope",
-                nextNode->GetNodeId(), streamIdx);
+        SK_LOGI("Node %lu (stream=%lu, type=%s) is permanently unfusible, terminate stream in current scope",
+                nextNode->GetNodeId(), streamIdx, to_string(nextNode->GetNodeType()));
         return;
     }
 
-    // Special case 2: Wait node
+    // Special case: Wait node
     if (nextNode->GetNodeType() == SkNodeType::NODE_WAIT) {
         uint64_t notifyId = nextNode->GetCorrespondingNotifyNodeId();
         SuperKernelBaseNode* notifyNode = graph.GetNodeById(notifyId);
@@ -243,7 +239,7 @@ void SuperKernelScopeSplitter::TryAddNodeToHeap(
             SK_LOGD("Wait node %lu (stream=%lu, eventId=%lu): notify not visited, suspend stream", nextNode->GetNodeId(), streamIdx, eventId);
         }
     }
-    // Special case 3: Deadlock detection (Notify/Reset nodes can also have deadlock)
+    // Check if node is fusible (no deadlock)
     else if (lockDetector.IsFusible(*nextNode, graph)) {
         // Fusible and no deadlock, add to heap
         nodeHeap.push(state.currentNodeIdx);
@@ -325,6 +321,9 @@ bool SuperKernelScopeSplitter::SplitMultiStreamGraph() {
 
     SK_LOGI("Start splitting multi-stream graph, stream count: %zu", streams.size());
 
+    // Reuse the same LockDetector instance for all scopes
+    LockDetector lockDetector;
+
     // Initialize stream states
     std::unordered_map<uint32_t, StreamState> streamStates;
     for (size_t i = 0; i < streams.size(); ++i) {
@@ -339,9 +338,6 @@ bool SuperKernelScopeSplitter::SplitMultiStreamGraph() {
     std::set<uint64_t> processedNodes;
     std::priority_queue<uint64_t, std::vector<uint64_t>, std::greater<uint64_t>> nodeHeap;
 
-    // Reuse the same LockDetector instance for all scopes
-    LockDetector lockDetector;
-
     while (true) {
         SuperKernelScopeInfo scopeInfo;
 
@@ -352,7 +348,7 @@ bool SuperKernelScopeSplitter::SplitMultiStreamGraph() {
         InitNodeHeap(streamStates, visitedNotifies, processedNodes, nodeHeap, lockDetector);
 
         if (nodeHeap.empty()) {
-            SK_LOGI("No fusible nodes in current scope, splitting complete");
+            SK_LOGI("No fusible nodes in current scope, splitting complete, total scopes: %zu", scopeInfos.size());
             break;
         }
 
@@ -422,10 +418,10 @@ bool SuperKernelScopeSplitter::SplitMultiStreamGraph() {
                 if (!nodeIdsStr.empty()) nodeIdsStr += ", ";
                 nodeIdsStr += std::to_string(node->GetNodeId());
             }
-            scopeInfos.emplace_back(std::move(scopeInfo));
-            SK_LOGI("========== Created scope %zu with %zu nodes, %zu streams ==========",
-                     scopeInfos.size() - 1, scopeInfo.nodes.size(), scopeInfo.scopeStreamInfos.size());
+            SK_LOGI("========== Creating scope %zu with %zu nodes, %zu streams ==========",
+                     scopeInfos.size(), scopeInfo.nodes.size(), scopeInfo.scopeStreamInfos.size());
             SK_LOGI("Scope nodes: [%s]", nodeIdsStr.c_str());
+            scopeInfos.emplace_back(std::move(scopeInfo));
         }
 
         // Reset stream states for next scope
