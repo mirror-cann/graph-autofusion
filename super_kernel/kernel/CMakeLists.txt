@@ -35,7 +35,7 @@ add_custom_target(generate_entry_stub
    DEPENDS ${GENERATED_SK_ENTRY_STUB_CPP}
 )
 
-ascendc_library(sk_scope STATIC
+add_library(sk_scope STATIC
     sk_scope_kernel.asc
 )
 
@@ -45,4 +45,6 @@ target_compile_options(sk_scope PRIVATE
 
 target_include_directories(sk_scope PRIVATE
    ${CMAKE_CURRENT_SOURCE_DIR}/../src/aot/
+   $ENV{ASCEND_HOME_PATH}/include/external
+   $ENV{ASCEND_HOME_PATH}/include
 )

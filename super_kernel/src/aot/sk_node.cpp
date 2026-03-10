@@ -215,6 +215,56 @@ bool SuperKernelBaseNode::InitNode() {
     return true;
 }
 
+struct JudgeTaskKernelInfo {
+    bool isBegin = true;
+    bool isFuseEnable = true;
+    std::unique_ptr<char[]> scopeName;
+};
+
+bool IsScopeKernel(aclrtTaskKernelParams params, JudgeTaskKernelInfo* info) {
+    if (params.type != ACL_RT_TASK_KERNEL) {
+        SK_LOGE("current task is not kernel task");
+        return false;
+    }
+    const char* defaultScopeName = "default_sk_scope_name";
+    const char* targetBeginName = "sk_scope_kernel_begin";
+    const char* targetEndName = "sk_scope_kernel_end";
+    char kernelName[MAX_SCOPE_NAME_LENN] = {0};
+    int ret = aclrtGetFunctionName(params.funcHandle, sizeof(kernelName), kernelName);
+    if (ret != ACL_SUCCESS) {
+        SK_LOGE("get kernel name failed, ret: %d", ret);
+        return false;
+    }
+    bool isBegin = (strcmp(kernelName, targetBeginName) == 0);
+    bool isEnd = (strcmp(kernelName, targetEndName) == 0);
+    if (!isBegin && !isEnd) {
+        SK_LOGD("current kernel is not scope kernel, current kernel name is: %s", kernelName);
+        return false;
+    }
+    auto parseArgsAddr = std::make_unique<ScopeKernelArgs>();
+    ret = aclrtMemcpy((void*)parseArgsAddr.get(), sizeof(ScopeKernelArgs), params.devArgs, sizeof(ScopeKernelArgs), 
+        ACL_MEMCPY_DEVICE_TO_HOST);
+    if (ret != ACL_SUCCESS) {
+        SK_LOGE("aclrtMemcpy failed, ret: %d", ret);
+        return false;
+    }
+    parseArgsAddr->name[MAX_SCOPE_NAME_LENN - 1] = '\0';
+    size_t nameLen = strlen(parseArgsAddr->name);
+    info->scopeName = std::make_unique<char[]>(nameLen + 1);
+    errno_t res = memcpy_s(info->scopeName.get(), nameLen + 1, parseArgsAddr->name, nameLen + 1);
+    if (res != EOK) {
+        SK_LOGE("memcpy_s failed, ret: %d", res);
+        return false;
+    }
+    info->isBegin = isBegin;
+    if (strcmp(info->scopeName.get(), defaultScopeName) == 0) {
+        info->isFuseEnable = false;
+    }
+    SK_LOGD("Success parse scope kernel task, kernelName: %s, scopeName: %s, isBegin: %d, isFuseEnable: %d", kernelName, 
+        info->scopeName.get(), info->isBegin, info->isFuseEnable);
+    return true;
+}
+
 bool SuperKernelKernelNode::InitNode() {
     if (!SuperKernelBaseNode::InitNode()) {
         return false;
@@ -246,8 +296,8 @@ bool SuperKernelKernelNode::InitNode() {
     nodeInfos.kernelInfos.taskRatio[0] = kernelParams.sk_task_ratio[0];
     nodeInfos.kernelInfos.taskRatio[1] = kernelParams.sk_task_ratio[1];
     nodeInfos.kernelInfos.kernelType = NormalizeKernelType(kernelParams.sk_kernel_type, kernelParams.sk_task_ratio); // todo : 通过aclrtGetFunctionAttribute进行获取 参数选项：,ratio也是通过参数选项进行获取
-    nodeInfos.kernelInfos.numBlocks = originTask->kernel.numBlocks;
-    nodeInfos.kernelInfos.devArgs = originTask->kernel.devArgs;
+    nodeInfos.kernelInfos.numBlocks = kernelParams.numBlocks;
+    nodeInfos.kernelInfos.devArgs = kernelParams.devArgs;
     nodeInfos.kernelInfos.binHdl = reinterpret_cast<aclrtBinHandle>(kernelParams.binHandle);
     nodeInfos.kernelInfos.funcHdl = kernelParams.funcHandle;
     if (kernelParams.func_name != nullptr) {

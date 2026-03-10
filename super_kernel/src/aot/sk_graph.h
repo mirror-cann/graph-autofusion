@@ -25,7 +25,7 @@
 #include "sk_log.h"
 #include "sk_types.h"
 #include "sk_node.h"
-#include "rt_sk_intf.h"
+#include "acl/acl.h"
 
 class SuperKernelNodeFactory {
 public:

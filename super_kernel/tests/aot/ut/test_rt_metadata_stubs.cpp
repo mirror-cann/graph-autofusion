@@ -9,7 +9,7 @@
 */
 
 #include <gtest/gtest.h>
-#include "rt_sk_intf.h"
+#include "acl/acl.h"
 
 /**
  * @brief Test fixture class for runtime metadata stub functions

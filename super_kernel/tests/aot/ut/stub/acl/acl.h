@@ -1,4 +1,4 @@
-/*
+/**
 * Copyright (c) 2025 Huawei Technologies Co., Ltd.
 * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
 * CANN Open Software License Agreement Version 2.0 (the "License").
@@ -8,15 +8,9 @@
 * See LICENSE in the root of the software repository for the full text of the License.
 */
 
-/*!
- * \file sk_scope_launch.h
- * \brief
- */
+#ifndef INC_EXTERNAL_ACL_ACL_H_
+#define INC_EXTERNAL_ACL_ACL_H_
 
-#pragma once
+#include "acl_rt.h"
 
-#include "sk_scope_kernel_types.h"
-#include "acl/acl.h"
-
-aclError aclskScopeBegin(const char* scopeName, aclrtStream stream);
-aclError aclskScopeEnd(const char* scopeName, aclrtStream stream);
+#endif // INC_EXTERNAL_ACL_ACL_H_

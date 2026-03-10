@@ -1,4 +1,4 @@
-/*
+/**
 * Copyright (c) 2025 Huawei Technologies Co., Ltd.
 * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
 * CANN Open Software License Agreement Version 2.0 (the "License").
@@ -8,15 +8,25 @@
 * See LICENSE in the root of the software repository for the full text of the License.
 */
 
-/*!
- * \file sk_scope_launch.h
- * \brief
- */
+#ifndef __RUNTIME_KERNEL_H_STUB__
+#define __RUNTIME_KERNEL_H_STUB__
 
-#pragma once
+#include <stddef.h>
+#include <stdint.h>
 
-#include "sk_scope_kernel_types.h"
-#include "acl/acl.h"
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-aclError aclskScopeBegin(const char* scopeName, aclrtStream stream);
-aclError aclskScopeEnd(const char* scopeName, aclrtStream stream);
+// Binary metadata type enum - 这些类型定义来自真实的runtime/kernel.h
+// 用于unit test stub
+typedef enum {
+    RT_BIN_HOST_ADDR = 0,
+    RT_BIN_DEVICE_ADDR = 1,
+} rtBinaryAddrType;
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif // __RUNTIME_KERNEL_H_STUB__

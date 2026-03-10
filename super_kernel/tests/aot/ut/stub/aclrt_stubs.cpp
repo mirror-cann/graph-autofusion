@@ -13,24 +13,40 @@
 * @brief Stub implementations for aclrt runtime interfaces used in unit tests
 */
 
-#include "rt_sk_intf.h"
+#include "acl/acl.h"
 #include <cstring>
 #include <cstdio>
 
 extern "C" {
 
-// Error codes - 与 CHECK_ACL 宏中使用的保持一致
+// Error codes
 #ifndef ACL_ERROR_NONE
 #define ACL_ERROR_NONE 0
 #endif
 #define ACL_ERROR_INVALID_PARAM 100001
+
+// Internal task structure for stub implementation
+typedef struct AclrtTaskInternal {
+    uint32_t task_id;
+    aclrtTaskType type;
+    union {
+        aclrtTaskKernelParams kernel;
+        aclrtTaskEventParams event;
+        aclrtTaskDefaultParams def;
+        aclrtTaskMemValueParams memValue;
+    };
+} AclrtTaskInternal;
+
+// Helper to convert void* to internal structure
+static inline AclrtTaskInternal* TaskToInternal(aclrtTask task) {
+    return reinterpret_cast<AclrtTaskInternal*>(task);
+}
 
 // 获取流
 aclError aclmdlRIGetStreams(aclmdlRI modelRI, aclrtStream *streams, uint32_t *numStreams) {
     if (numStreams == nullptr) {
         return ACL_ERROR_INVALID_PARAM;
     }
-    // 在单元测试中,这个函数应该由测试用例设置预期行为
     if (streams != nullptr) {
         *numStreams = 0;
     }
@@ -42,7 +58,6 @@ aclError aclrtStreamGetTasks(aclrtStream stream, aclrtTask *tasks, uint32_t *num
     if (numTasks == nullptr) {
         return ACL_ERROR_INVALID_PARAM;
     }
-    // 在单元测试中,这个函数应该由测试用例设置预期行为
     if (tasks != nullptr) {
         *numTasks = 0;
     }
@@ -51,72 +66,76 @@ aclError aclrtStreamGetTasks(aclrtStream stream, aclrtTask *tasks, uint32_t *num
 
 // 获取任务类型
 aclError aclrtTaskGetType(aclrtTask task, aclrtTaskType *type) {
-    if (type == nullptr) {
+    if (type == nullptr || task == nullptr) {
         return ACL_ERROR_INVALID_PARAM;
     }
-    *type = task.type;
+    AclrtTaskInternal* internal = TaskToInternal(task);
+    *type = internal->type;
     return ACL_ERROR_NONE;
 }
 
 // 获取内核参数
 aclError aclrtTaskGetKernelParams(aclrtTask task, aclrtTaskKernelParams *params) {
-    if (params == nullptr) {
+    if (params == nullptr || task == nullptr) {
         return ACL_ERROR_INVALID_PARAM;
     }
-    *params = task.kernel;
+    AclrtTaskInternal* internal = TaskToInternal(task);
+    *params = internal->kernel;
     return ACL_ERROR_NONE;
 }
 
 // 设置内核参数
 aclError aclrtTaskSetKernelParams(aclrtTask task, aclrtTaskKernelParams *params) {
-    if (params == nullptr) {
+    if (params == nullptr || task == nullptr) {
         return ACL_ERROR_INVALID_PARAM;
     }
-    // 注意:这里需要修改 task 的内容,但由于 task 是按值传递的,
-    // 在真实实现中,task 应该是指针类型
-    // 当前实现中只是返回成功,实际修改需要在调用处处理
+    AclrtTaskInternal* internal = TaskToInternal(task);
+    internal->kernel = *params;
     return ACL_ERROR_NONE;
 }
 
 // 获取事件参数
 aclError aclrtTaskGetEventParams(aclrtTask task, aclrtTaskEventParams *params) {
-    if (params == nullptr) {
+    if (params == nullptr || task == nullptr) {
         return ACL_ERROR_INVALID_PARAM;
     }
-    *params = task.event;
+    AclrtTaskInternal* internal = TaskToInternal(task);
+    *params = internal->event;
     return ACL_ERROR_NONE;
 }
 
 // 设置事件参数
 aclError aclrtTaskSetEventParams(aclrtTask task, aclrtTaskEventParams *params) {
-    if (params == nullptr) {
+    if (params == nullptr || task == nullptr) {
         return ACL_ERROR_INVALID_PARAM;
     }
-    // 注意:这里需要修改 task 的内容
+    AclrtTaskInternal* internal = TaskToInternal(task);
+    internal->event = *params;
     return ACL_ERROR_NONE;
 }
 
 // 获取内存参数
-aclError aclrtTaskGetMemValueParams(aclrtTask task, aclrtMemValueParams *params) {
-    if (params == nullptr) {
+aclError aclrtTaskGetMemValueParams(aclrtTask task, aclrtTaskMemValueParams *params) {
+    if (params == nullptr || task == nullptr) {
         return ACL_ERROR_INVALID_PARAM;
     }
-    *params = task.memValue;
+    AclrtTaskInternal* internal = TaskToInternal(task);
+    *params = internal->memValue;
     return ACL_ERROR_NONE;
 }
 
 // 设置内存参数
-aclError aclrtTaskSetMemValueParams(aclrtTask task, aclrtMemValueParams *params) {
-    if (params == nullptr) {
+aclError aclrtTaskSetMemValueParams(aclrtTask task, aclrtTaskMemValueParams *params) {
+    if (params == nullptr || task == nullptr) {
         return ACL_ERROR_INVALID_PARAM;
     }
-    // 注意:这里需要修改 task 的内容
+    AclrtTaskInternal* internal = TaskToInternal(task);
+    internal->memValue = *params;
     return ACL_ERROR_NONE;
 }
 
 // 更新模型资源信息
 aclError aclmdlRIUpdate(aclmdlRI modelRI) {
-    // 在单元测试中,这个函数应该由测试用例设置预期行为
     return ACL_ERROR_NONE;
 }
 
@@ -135,9 +154,9 @@ aclError aclrtGetDeviceInfo(uint32_t deviceId, aclrtDevAttr attr, int64_t *value
         return ACL_ERROR_INVALID_PARAM;
     }
     if (attr == ACL_DEV_ATTR_CUBE_CORE_NUM) {
-        *value = 32; // 默认值
+        *value = 32;
     } else if (attr == ACL_DEV_ATTR_VECTOR_CORE_NUM) {
-        *value = 32; // 默认值
+        *value = 32;
     }
     return ACL_ERROR_NONE;
 }
@@ -147,7 +166,7 @@ aclError aclrtBinaryGetFunction(aclrtBinHandle binHdl, const char *funcName, acl
     if (funcName == nullptr || funcHdl == nullptr) {
         return ACL_ERROR_INVALID_PARAM;
     }
-    *funcHdl = reinterpret_cast<aclrtFuncHandle>(0x1000); // 返回一个假的句柄
+    *funcHdl = reinterpret_cast<aclrtFuncHandle>(0x1000);
     return ACL_ERROR_NONE;
 }
 
@@ -164,7 +183,7 @@ aclError aclrtKernelArgsGetHandleMemSize(aclrtFuncHandle funcHdl, size_t *memSiz
     if (memSize == nullptr) {
         return ACL_ERROR_INVALID_PARAM;
     }
-    *memSize = 1024; // 默认大小
+    *memSize = 1024;
     return ACL_ERROR_NONE;
 }
 
@@ -173,7 +192,7 @@ aclError aclrtKernelArgsGetMemSize(aclrtFuncHandle funcHdl, size_t argsSize, siz
     if (devArgsSize == nullptr) {
         return ACL_ERROR_INVALID_PARAM;
     }
-    *devArgsSize = 1024; // 默认大小
+    *devArgsSize = 1024;
     return ACL_ERROR_NONE;
 }
 
@@ -186,10 +205,11 @@ aclError aclrtKernelArgsInitByUserMem(aclrtFuncHandle funcHdl, aclrtArgsHandle a
 }
 
 // 添加占位符
-aclError aclrtKernelArgsAppendPlaceHolder(aclrtArgsHandle argsHdl, void **phdl) {
+aclError aclrtKernelArgsAppendPlaceHolder(aclrtArgsHandle argsHdl, aclrtParamHandle *phdl) {
     if (argsHdl == nullptr || phdl == nullptr) {
         return ACL_ERROR_INVALID_PARAM;
     }
+    *phdl = reinterpret_cast<aclrtParamHandle>(0x2000);
     return ACL_ERROR_NONE;
 }
 
@@ -232,14 +252,22 @@ aclError aclrtMemcpy(void *dst, size_t destMax, const void *src, size_t count, a
     return ACL_ERROR_NONE;
 }
 
+// 获取二进制设备地址
+aclError aclrtBinaryGetDevAddress(aclrtBinHandle binHdl, void **devAddr, size_t *devSize) {
+    if (devAddr == nullptr || devSize == nullptr) {
+        return ACL_ERROR_INVALID_PARAM;
+    }
+    *devAddr = nullptr;
+    *devSize = 0;
+    return ACL_ERROR_NONE;
+}
+
 // Scope begin stub
 void sk_scope_kernel_begin_do(const char *scopeName, void *args) {
-    // Stub implementation for unit tests
 }
 
 // Scope end stub
 void sk_scope_kernel_end_do(const char *scopeName, void *args) {
-    // Stub implementation for unit tests
 }
 
 } // extern "C"

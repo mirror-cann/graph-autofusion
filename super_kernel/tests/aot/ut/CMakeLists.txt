@@ -20,21 +20,29 @@ add_executable(super_kernel_aot_utest
     ${CMAKE_CURRENT_SOURCE_DIR}/test_node_scope_tagging.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test_notify_wait_interface.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test_rt_metadata_stubs.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/aclrt_stubs.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/stub/aclrt_stubs.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/stub/rt_stub.cpp
+    ${GRAPH_AUTOFUSION_ROOT_DIR}/super_kernel/src/aot/sk_common.cpp
     ${GRAPH_AUTOFUSION_ROOT_DIR}/super_kernel/src/aot/sk_options_manager.cpp
     ${GRAPH_AUTOFUSION_ROOT_DIR}/super_kernel/src/aot/sk_graph.cpp
     ${GRAPH_AUTOFUSION_ROOT_DIR}/super_kernel/src/aot/sk_scope_split.cpp
     ${GRAPH_AUTOFUSION_ROOT_DIR}/super_kernel/src/aot/sk_lock_detector.cpp
     ${GRAPH_AUTOFUSION_ROOT_DIR}/super_kernel/src/aot/sk_node.cpp
     ${GRAPH_AUTOFUSION_ROOT_DIR}/super_kernel/src/aot/sk_scope_launch.cpp
+    ${GRAPH_AUTOFUSION_ROOT_DIR}/super_kernel/src/aot/sk_log.cpp
 )
 
 target_include_directories(super_kernel_aot_utest PRIVATE
-    ${GRAPH_AUTOFUSION_ROOT_DIR}/super_kernel/tests/aot/rdv/runtime/
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/stub
+    ${CMAKE_CURRENT_SOURCE_DIR}/stub/runtime
+    ${CMAKE_CURRENT_SOURCE_DIR}/stub/acl
+    ${CMAKE_CURRENT_SOURCE_DIR}/stub/base
+    ${CMAKE_CURRENT_SOURCE_DIR}/../third_party/mockcpp_src/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/../third_party/mockcpp_src/include/mockcpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../third_party/boost
     ${GRAPH_AUTOFUSION_ROOT_DIR}/super_kernel/src/aot/
     ${GRAPH_AUTOFUSION_ROOT_DIR}/super_kernel/include/super_kernel/
-    $ENV{ASCEND_HOME_PATH}/pkg_inc/base
-    $ENV{ASCEND_HOME_PATH}/include
 )
 
 target_compile_definitions(super_kernel_aot_utest PRIVATE
@@ -49,13 +57,11 @@ target_compile_options(super_kernel_aot_utest PRIVATE
 
 target_link_libraries(super_kernel_aot_utest PRIVATE
     $<BUILD_INTERFACE:intf_llt_pub>
-    error_manager
-    c_sec
-    unified_dlog
 )
 
 target_link_directories(super_kernel_aot_utest PRIVATE
-    $ENV{ASCEND_HOME_PATH}/lib64
+    ${CMAKE_BINARY_DIR}/mockcpp/lib
+    ${CMAKE_CURRENT_BINARY_DIR}/../mockcpp-prefix/src/mockcpp-build
 )
 
 run_llt_test(
