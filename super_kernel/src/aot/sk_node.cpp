@@ -107,7 +107,7 @@ size_t AlignUpAndClamp(size_t value, size_t coreIdx)
     } else if (coreIdx == 1 && prefetchCntValue > aivFuncMaxPrefetchCnt) {
         prefetchCntValue = aivFuncMaxPrefetchCnt;
     }
-    return prefetchCntValue;
+    return prefetchCntValue / alignNum;
 }
 
 void InitSingleCoreFunc(const CoreFuncInitContext& ctx, aclrtBinHandle binHdl, void *binDevAddr)
@@ -121,7 +121,7 @@ void InitSingleCoreFunc(const CoreFuncInitContext& ctx, aclrtBinHandle binHdl, v
     uint64_t skFuncOffset = ctx.bindIt->second[ctx.splitIdx];
     ctx.info->funcAddr[ctx.coreIdx] = skFuncOffset + (uint64_t)binDevAddr;
     void *binHostAddr = nullptr;
-    size_t binHostSize = 0;
+    uint32_t binHostSize = 0;
     CHECK_ACL(rtGetBinBuffer(binHdl, RT_BIN_HOST_ADDR, &binHostAddr, &binHostSize));
     std::string symbolName;
     uint64_t funcSize = 0;
