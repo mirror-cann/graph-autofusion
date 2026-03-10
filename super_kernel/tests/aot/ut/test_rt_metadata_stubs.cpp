@@ -10,7 +10,7 @@
 
 #include <gtest/gtest.h>
 #include "acl/acl.h"
-
+#include "runtime/kernel.h"
 /**
  * @brief Test fixture class for runtime metadata stub functions
  */

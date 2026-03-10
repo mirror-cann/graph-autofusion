@@ -99,17 +99,29 @@ typedef struct aclrtTaskKernelParams {
     void* pExtend;
 } aclrtTaskKernelParams;
 
-typedef struct aclrtTaskEventParams {
-    aclrtTaskType type;
-    aclrtTaskFlag flag;
-    aclrtEventType eventType;
+typedef struct aclrtNormalEventInfo {
     uint32_t eventId;
-    void *eventAddr;
-    uint64_t value;
-    uint32_t valueSize;
-    uint32_t waitFlag;
-    uint32_t reserve1[8];
-    void* pExtend;
+} aclrtNormalEventInfo;
+
+typedef struct aclrtMemoryEventInfo {
+    void *eventAddr;            // 内存语义的device地址
+    uint64_t value;             // 当前默认是写1
+    uint32_t valueSize;         // 当前默认是1字节
+    uint32_t waitFlag;          // 使用captureWait的默认比较策略
+} aclrtMemoryEventInfo;
+
+typedef struct aclrtTaskEventParams {
+    aclrtTaskType type;         // task类型
+    aclrtTaskFlag flag;         // 当前Task融合时是否删除
+    uint32_t sequenceId;        // Task的序号
+    aclrtEvent event;           // 其他类型Task转Event时，需要先申请event句柄并传递下来，get的时候返回nullptr
+    aclrtEventType eventType;   // 区分是内存语义还是普通event
+    union {
+        aclrtNormalEventInfo normalEventInfo;
+        aclrtMemoryEventInfo memoryEventInfo;
+    } u;
+    uint32_t reserve[8];        // 预留字段
+    void *pExtend;              // 兼容扩展字段
 } aclrtTaskEventParams;
 
 typedef struct aclrtTaskMemValueParams {
@@ -130,16 +142,20 @@ typedef struct aclrtTaskDefaultParams {
     void* pExtend;
 } aclrtTaskDefaultParams;
 
-// Binary metadata type enum
+
+
 typedef enum {
-    RT_BINARY_TYPE_BIN_VERSION = 0U,
-    RT_BINARY_TYPE_DEBUG_INFO = 1U,
-    RT_BINARY_TYPE_DYNAMIC_PARAM = 2U,
-    RT_BINARY_TYPE_OPTIONAL_PARAM = 3U,
-    RT_BINARY_TYPE_RUNTIME_IMPLICIT_INFO = 4U,
-    RT_BINARY_TYPE_SK_INFO = 5U,
-    RT_BINARY_TYPE_MAX
-} rtBinaryMetaType;
+    ACL_KERNEL_TYPE_AICORE = 0, // MIX KERNEL
+    ACL_KERNEL_TYPE_CUBE = 1,   // AI CUBE CORE
+    ACL_KERNEL_TYPE_VECTOR = 2, // AI VECTOR CORE
+    ACL_KERNEL_TYPE_MIX = 3,
+    ACL_KERNEL_TYPE_AICPU = 100,
+} aclrtKernelType;
+
+typedef enum {
+    ACL_FUNC_ATTR_KERNEL_TYPE = 1,
+    ACL_FUNC_ATTR_KERNEL_RATIO = 2,
+} aclrtFuncAttribute;
 
 // Function declarations
 aclError aclmdlRIGetStreams(aclmdlRI modelRI, aclrtStream *streams, uint32_t *numStreams);
@@ -167,15 +183,8 @@ aclError aclrtKernelArgsFinalize(aclrtArgsHandle argsHdl);
 aclError aclrtGetFunctionName(aclrtFuncHandle funcHandle, uint32_t maxLen, char* name);
 aclError aclrtMemcpy(void* dst, size_t destMax, const void* src, size_t count, aclrtMemcpyKind kind);
 aclError aclrtBinaryGetDevAddress(aclrtBinHandle binHdl, void** devAddr, size_t* devSize);
+aclError aclrtGetFunctionAttribute(aclrtFuncHandle funcHandle, aclrtFuncAttribute attrType, int64_t *attrValue);
 
-// Runtime binary metadata API
-int rtBinaryGetMetaNum(void* binHdl, int type_enum, size_t* metaNum);
-int rtBinaryGetMetaData(void* binHdl, int type_enum, size_t metaNum, void** data_list, size_t* size_list);
-int rtBinaryGetMetaInfo(void* binHdl, int type_enum, size_t metaNum, void** data_list, size_t* size_list);
-int rtGetBinBuffer(void* binHdl, int addrType, void** buffer, size_t* size);
-
-#define RT_BIN_HOST_ADDR 0
-#define RT_BIN_DEVICE_ADDR 1
 
 #ifdef __cplusplus
 }

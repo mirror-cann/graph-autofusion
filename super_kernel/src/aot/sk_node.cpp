@@ -25,6 +25,7 @@
 #include "sk_node.h"
 #include "sk_scope_launch.h"
 #include "sk_common.h"
+#include "runtime/kernel.h"
 
 namespace {
 using SkBindMap = std::unordered_map<uint64_t, std::array<uint64_t, 4>>;
@@ -155,6 +156,7 @@ bool InitKernelResolvedFuncs(KernelInfos &kernelInfos)
     uint64_t aivOffset = (uint64_t)addr[1] - (uint64_t)binDevAddr;
     SK_LOGI("InitKernelResolvedFuncs: funcName=%s, binDevAddr=0x%lx, binDevSize=%lu, aicAddr=0x%lx, aivAddr=0x%lx",
         kernelInfos.funcName.c_str(), (uint64_t)binDevAddr, binDevSize, (uint64_t)addr[0], (uint64_t)addr[1]);
+
     SK_LOGI("InitKernelResolvedFuncs: aicOffset=0x%lx, aivOffset=0x%lx", aicOffset, aivOffset);
 
     auto aicItor = bindMap.find(aicOffset);
@@ -172,6 +174,7 @@ bool InitKernelResolvedFuncs(KernelInfos &kernelInfos)
             CoreFuncInitContext aivCtx = {&info, 1, i, aivItor};
             InitSingleCoreFunc(aivCtx, binHdl, binDevAddr);
         }
+
         SK_LOGI("InitKernelResolvedFuncs: split[%zu] funcAddr[0]=0x%lx, funcAddr[1]=0x%lx, "
                 "prefetchCnt[0]=0x%lx, prefetchCnt[1]=0x%lx",
                 i, info.funcAddr[0], info.funcAddr[1], info.prefetchCnt[0], info.prefetchCnt[1]);
@@ -182,14 +185,11 @@ bool InitKernelResolvedFuncs(KernelInfos &kernelInfos)
 
 SkKernelType NormalizeKernelType(uint32_t kernelType, const uint32_t taskRatio[2]) {
     switch (kernelType) {
-        case K_TYPE_AIC:
-        case K_TYPE_AIC_ROLLBACK:
+        case ACL_KERNEL_TYPE_CUBE:
             return SkKernelType::AIC_ONLY;
-        case K_TYPE_AIV:
-        case K_TYPE_AIV_ROLLBACK:
-        case K_TYPE_MIX_AIV_MAIN:
+        case ACL_KERNEL_TYPE_VECTOR:
             return SkKernelType::AIV_ONLY;
-        case K_TYPE_MIX_AIC_MAIN:
+        case ACL_KERNEL_TYPE_MIX:
             if (taskRatio[1] == 0) {
                 return SkKernelType::AIC_ONLY;
             }
@@ -275,7 +275,7 @@ bool SuperKernelKernelNode::InitNode() {
     }
     JudgeTaskKernelInfo scopeKernelInfo;
     if (IsScopeKernel(kernelParams, &scopeKernelInfo)){
-        SK_LOGI("Kernel node %s for task %u in stream %u is scope kernel.", kernelParams.func_name, nodeIdxInStream, streamIdxInGraph);
+        SK_LOGI("Kernel node for task %u in stream %u is scope kernel.", nodeIdxInStream, streamIdxInGraph);
         isFusible = scopeKernelInfo.isFuseEnable;
         isScopeNode = true;
         if (isFusible && scopeKernelInfo.scopeName != nullptr){
@@ -290,19 +290,28 @@ bool SuperKernelKernelNode::InitNode() {
         SK_LOGI("Kernel task group is not null for task %u in stream %u, which cannot be fused in super kernel.", nodeIdxInStream, streamIdxInGraph);
         return true;
     }
-    SK_LOGI("Kernel node %s for task %u in stream %u can be fused in super kernel.", kernelParams.func_name, nodeIdxInStream, streamIdxInGraph);
+    SK_LOGI("Kernel node for task %u in stream %u can be fused in super kernel.", nodeIdxInStream, streamIdxInGraph);
     isFusible = true;
 
-    nodeInfos.kernelInfos.taskRatio[0] = kernelParams.sk_task_ratio[0];
-    nodeInfos.kernelInfos.taskRatio[1] = kernelParams.sk_task_ratio[1];
-    nodeInfos.kernelInfos.kernelType = NormalizeKernelType(kernelParams.sk_kernel_type, kernelParams.sk_task_ratio); // todo : 通过aclrtGetFunctionAttribute进行获取 参数选项：,ratio也是通过参数选项进行获取
+    int64_t kernelType = 0;
+    int64_t taskRatio = 0;
+    CHECK_ACL(aclrtGetFunctionAttribute(kernelParams.funcHandle, ACL_FUNC_ATTR_KERNEL_TYPE, &kernelType));
+    CHECK_ACL(aclrtGetFunctionAttribute(kernelParams.funcHandle, ACL_FUNC_ATTR_KERNEL_RATIO, &taskRatio));
+
+    int16_t* taskRatioInt16 = (int16_t*)(&(taskRatio));
+    uint32_t skTaskTatio[2] = {(uint32_t)(taskRatioInt16[0]), (uint32_t)(taskRatioInt16[1])};
+
+    nodeInfos.kernelInfos.taskRatio[0] = skTaskTatio[0];
+    nodeInfos.kernelInfos.taskRatio[1] = skTaskTatio[1];
+    nodeInfos.kernelInfos.kernelType = NormalizeKernelType((uint32_t)(kernelType), skTaskTatio);
     nodeInfos.kernelInfos.numBlocks = kernelParams.numBlocks;
     nodeInfos.kernelInfos.devArgs = kernelParams.devArgs;
     nodeInfos.kernelInfos.binHdl = reinterpret_cast<aclrtBinHandle>(kernelParams.binHandle);
     nodeInfos.kernelInfos.funcHdl = kernelParams.funcHandle;
-    if (kernelParams.func_name != nullptr) {
-        nodeInfos.kernelInfos.funcName = kernelParams.func_name;  // todo ： 需要调用aclrtGetFunctionName进行获取
-    }
+
+    char tmpFuncName[256] = {0};
+    CHECK_ACL(aclrtGetFunctionName(kernelParams.funcHandle, sizeof(tmpFuncName), tmpFuncName));
+    nodeInfos.kernelInfos.funcName = std::string(tmpFuncName);
     if (!nodeInfos.kernelInfos.funcName.empty() && nodeInfos.kernelInfos.binHdl != nullptr) {
         InitKernelResolvedFuncs(nodeInfos.kernelInfos);
     }
@@ -311,13 +320,13 @@ bool SuperKernelKernelNode::InitNode() {
 
 bool SuperKernelKernelNode::InValidateNode() {
     if (!isFusible) {
-        SK_LOGE("Kernel node %s for task %u in stream %u can not be fused in super kernel, which should not been invalidated.", kernelParams.func_name, nodeIdxInStream, streamIdxInGraph);
+        SK_LOGE("Kernel node for task %u in stream %u can not be fused in super kernel, which should not been invalidated.", nodeIdxInStream, streamIdxInGraph);
         return false;
     }
-    SK_LOGI("Invalidating kernel node %s for task %u in stream %u, which will be fused in super kernel.", kernelParams.func_name, nodeIdxInStream, streamIdxInGraph);
+    SK_LOGI("Invalidating kernel node for task %u in stream %u, which will be fused in super kernel.", nodeIdxInStream, streamIdxInGraph);
     kernelParams.flag = aclrtTaskFlag::ACL_RT_TASK_INVALID;
     if (aclrtTaskSetKernelParams(*originTask, &kernelParams) != ACL_SUCCESS) {
-        SK_LOGE("Failed to invalidate kernel node %s for task %u in stream %u", kernelParams.func_name, nodeIdxInStream, streamIdxInGraph);
+        SK_LOGE("Failed to invalidate kernel node for task %u in stream %u", nodeIdxInStream, streamIdxInGraph);
         return false;
     }
     return true;
@@ -344,6 +353,7 @@ bool SuperKernelKernelNode::Update(const UpdateContext &ctx) {
         SK_LOGE("invalid memSize: %zu", memSize);
         return false;
     }
+
     ahdl = (aclrtArgsHandle)malloc(memSize);
     if (ahdl == nullptr) {
         SK_LOGE("malloc memSize failed");
@@ -378,9 +388,9 @@ bool SuperKernelKernelNode::Update(const UpdateContext &ctx) {
 
     bool ret = (aclrtTaskSetKernelParams(*originTask, &kernelParams) == ACL_SUCCESS);
     if (!ret) {
-        SK_LOGE("Failed to update kernel node %s for task %u in stream %u", kernelParams.func_name, nodeIdxInStream, streamIdxInGraph);
+        SK_LOGE("Failed to update kernel node for task %u in stream %u", nodeIdxInStream, streamIdxInGraph);
     } else {
-        SK_LOGI("Updated kernel node %s for task %u in stream %u with argsHandle", kernelParams.func_name, nodeIdxInStream, streamIdxInGraph);
+        SK_LOGI("Updated kernel node for task %u in stream %u with argsHandle", nodeIdxInStream, streamIdxInGraph);
     }
 
     return ret;
@@ -394,12 +404,15 @@ bool SuperKernelEventNode::InitNode() {
         SK_LOGE("Failed to get event params for task %u in stream %u", nodeIdxInStream, streamIdxInGraph);
         return false;
     }
-    nodeInfos.syncInfos.eventId = eventParams.eventId;
-    nodeInfos.syncInfos.addrValue = eventParams.eventAddr;
+
     if (eventParams.eventType != aclrtEventType::ACL_RT_EVENT_MEMORY) {
          SK_LOGI("Event type is not memory based for task %u in stream %u, which cannot be fused in super kernel.", nodeIdxInStream, streamIdxInGraph);
          return true;
     }
+
+    nodeInfos.syncInfos.eventId = static_cast<uint64_t>(reinterpret_cast<uintptr_t>(eventParams.u.memoryEventInfo.eventAddr));
+    nodeInfos.syncInfos.addrValue = eventParams.u.memoryEventInfo.eventAddr;
+
     SK_LOGI("Event type of task %u in stream %u is memory based, which can be fused in super kernel.", nodeIdxInStream, streamIdxInGraph);
     isFusible = true;
     return true;

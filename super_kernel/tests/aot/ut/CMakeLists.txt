@@ -38,9 +38,6 @@ target_include_directories(super_kernel_aot_utest PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/stub/runtime
     ${CMAKE_CURRENT_SOURCE_DIR}/stub/acl
     ${CMAKE_CURRENT_SOURCE_DIR}/stub/base
-    ${CMAKE_CURRENT_SOURCE_DIR}/../third_party/mockcpp_src/include
-    ${CMAKE_CURRENT_SOURCE_DIR}/../third_party/mockcpp_src/include/mockcpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/../third_party/boost
     ${GRAPH_AUTOFUSION_ROOT_DIR}/super_kernel/src/aot/
     ${GRAPH_AUTOFUSION_ROOT_DIR}/super_kernel/include/super_kernel/
 )
@@ -57,11 +54,6 @@ target_compile_options(super_kernel_aot_utest PRIVATE
 
 target_link_libraries(super_kernel_aot_utest PRIVATE
     $<BUILD_INTERFACE:intf_llt_pub>
-)
-
-target_link_directories(super_kernel_aot_utest PRIVATE
-    ${CMAKE_BINARY_DIR}/mockcpp/lib
-    ${CMAKE_CURRENT_BINARY_DIR}/../mockcpp-prefix/src/mockcpp-build
 )
 
 run_llt_test(

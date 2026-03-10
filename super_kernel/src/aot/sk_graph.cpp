@@ -21,7 +21,7 @@
 #include <bitset>
 
 void SuperKernelGraph::Update() {
-    aclmdlRIUpdate(nullptr);
+    aclmdlRIUpdate(modelRI);
 }
 
 SuperKernelBaseNode* SuperKernelGraph::GetNodeById(uint64_t nodeId) const {

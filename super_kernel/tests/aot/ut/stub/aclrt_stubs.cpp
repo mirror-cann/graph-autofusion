@@ -262,6 +262,16 @@ aclError aclrtBinaryGetDevAddress(aclrtBinHandle binHdl, void **devAddr, size_t 
     return ACL_ERROR_NONE;
 }
 
+aclError aclrtGetFunctionAttribute(aclrtFuncHandle funcHandle, aclrtFuncAttribute attrType, int64_t *attrValue)
+{
+    if (attrType == ACL_FUNC_ATTR_KERNEL_TYPE) {
+        *attrValue = 0; // 默认内核类型
+    } else {
+        *attrValue = 0;
+    }
+    return ACL_ERROR_NONE;
+}
+
 // Scope begin stub
 void sk_scope_kernel_begin_do(const char *scopeName, void *args) {
 }

@@ -10,7 +10,7 @@
 cmake_minimum_required(VERSION 3.16)
 project(ops_interface)
 
-add_library(ops_interface STATIC
+add_library(ops_interface SHARED
     DevContext.cpp
     OpsInterface.cpp
 )
@@ -21,7 +21,7 @@ target_compile_options(ops_interface PRIVATE
 )
 target_include_directories(ops_interface PUBLIC . $ENV{ASCEND_HOME_PATH}/include)
 target_link_directories(ops_interface PUBLIC $<${RUN_MODEL}:$ENV{ASCEND_HOME_PATH}/tools/simulator/Ascend910B1/lib>
-  $ENV{ASCEND_HOME_PATH}/lib64)
+ $ENV{ASCEND_HOME_PATH}/lib64)
 
 target_link_libraries(ops_interface PUBLIC
 rms_norm_kernel 
@@ -33,5 +33,5 @@ clear_ops_kernel
 gmm_kernel_v2 
 gmm_kernel_v3 
 dynamic_quant_kernel
-ascendcl ascend_dump ascendc_runtime runtime error_manager c_sec mmpa profapi unified_dlog rt_hook
+ascendcl ascend_dump ascendc_runtime runtime error_manager c_sec mmpa profapi unified_dlog
 )

@@ -9,9 +9,10 @@
 */
 
 /*!
- * \file sk_common.cpp
- * \brief Utility functions for ELF symbol extraction and caching
- */
+
+* \file sk_common.cpp
+* \brief Utility functions for ELF symbol extraction and caching
+*/
 
 
 #include "sk_common.h"
@@ -38,6 +39,7 @@ SkFuncSymbolTable BuildFuncSymbolTable(const char* binAddr, size_t binSize)
         SK_LOGE("Invalid bin parameters: binAddr=%p, binSize=%zu", binAddr, binSize);
         return funcSymTable;
     }
+
     const Elf64_Ehdr* ehdr = reinterpret_cast<const Elf64_Ehdr*>(binAddr);
     uint64_t shCnt = ehdr->e_shnum;
     const Elf64_Shdr* shHdr = reinterpret_cast<const Elf64_Shdr*>(binAddr + ehdr->e_shoff);
@@ -78,6 +80,7 @@ SkFuncSymbolTable BuildFuncSymbolTable(const char* binAddr, size_t binSize)
             }
         }
     }
+
     SK_LOGI("BuildFuncSymbolTable: total %zu function symbols found", funcSymTable.size());
     return funcSymTable;
 }
@@ -86,6 +89,7 @@ SkFuncSymbolTable BuildFuncSymbolTable(const char* binAddr, size_t binSize)
 
 bool GetFuncSymbolInfo(const char* binAddr, size_t binSize, uint64_t funcAddr,
                        std::string& symbolName, uint64_t& funcSize)
+
 {
     if (binAddr == nullptr || binSize == 0) {
         SK_LOGE("Invalid bin parameters: binAddr=%p, binSize=%zu", binAddr, binSize);

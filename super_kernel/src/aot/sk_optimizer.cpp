@@ -20,6 +20,7 @@
 #include "sk_task_builder.h"
 #include "sk_log.h"
 
+
 extern "C" aclrtBinHandle AscendGetEntryBinHandle();
 namespace {
 
@@ -30,7 +31,6 @@ aclrtFuncHandle ResolveSkEntryFunc(const char *funcName) {
         SK_LOGE("failed to get entry bin handle: AscendGetEntryBinHandle() returned null");
         return nullptr;
     }
-
     aclrtFuncHandle fhdl = nullptr;
     CHECK_ACL(aclrtBinaryGetFunction(bhdl, funcName, &fhdl));
     if (fhdl == nullptr) {

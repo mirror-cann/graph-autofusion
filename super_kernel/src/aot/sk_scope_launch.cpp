@@ -47,18 +47,11 @@ static aclError LaunchScopeKernelImpl(const char* scopeName, aclrtStream stream,
     return ACL_SUCCESS;
 }
 
-aclError aclskScopeBegin(const char* scopeName, aclrtStream stream) {
-    if (scopeName[0] == '\0') {
-        SK_LOGE("Invalid scopeName: name is empty.");
-        return ACL_ERROR_INVALID_PARAM;
+aclError LaunchScopeKernel(const char* scopeName, aclrtStream stream, bool isBegin)
+{   
+    if (isBegin) {
+        return LaunchScopeKernelImpl(scopeName, stream, sk_scope_kernel_begin_do);
+    } else {
+        return LaunchScopeKernelImpl(scopeName, stream, sk_scope_kernel_end_do);
     }
-    return LaunchScopeKernelImpl(scopeName, stream, sk_scope_kernel_begin_do);
-}
-
-aclError aclskScopeEnd(const char* scopeName, aclrtStream stream) {
-    if (scopeName[0] == '\0') {
-        SK_LOGE("Invalid scopeName: name is empty.");
-        return ACL_ERROR_INVALID_PARAM;
-    }
-    return LaunchScopeKernelImpl(scopeName, stream, sk_scope_kernel_end_do);
 }

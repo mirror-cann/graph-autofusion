@@ -15,8 +15,10 @@
 
 #pragma once
 
+
+#include <memory>
 #include "sk_scope_kernel_types.h"
 #include "acl/acl.h"
 
-aclError aclskScopeBegin(const char* scopeName, aclrtStream stream);
-aclError aclskScopeEnd(const char* scopeName, aclrtStream stream);
+aclError LaunchScopeKernel(const char* scopeName, aclrtStream stream, bool isBegin);
+

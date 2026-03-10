@@ -16,9 +16,9 @@
 */
 
 #include "acl/acl.h"
+#include "runtime/kernel.h"
 #include <cstring>
 #include <cstdio>
-
 extern "C" {
 
 // Error codes
@@ -46,7 +46,7 @@ int rtBinaryGetMetaInfo(void* binHdl, int type_enum, size_t metaNum, void** data
 }
 
 // rtGetBinBuffer - stub implementation for unit tests
-int rtGetBinBuffer(void* binHdl, int addrType, void** buffer, size_t* size) {
+int rtGetBinBuffer(void* binHdl, int addrType, void** buffer, uint32_t* size) {
     if (buffer != nullptr) {
         *buffer = nullptr;
     }

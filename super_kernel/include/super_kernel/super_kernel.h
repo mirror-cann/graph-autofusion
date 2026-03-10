@@ -96,7 +96,6 @@ typedef struct aclskOptions {
     size_t numOptions;
 } aclskOptions;
 
-
 /**
  * @ingroup AscendCL
  * @brief Optimize model with super kernel
@@ -111,7 +110,8 @@ typedef struct aclskOptions {
  * @see aclskOptions
  */
 ACL_FUNC_VISIBILITY aclError aclskOptimize(aclmdlRI model, aclskOptions *options);
-
+ACL_FUNC_VISIBILITY aclError aclskScopeBegin(const char* scopeName, aclrtStream stream);
+ACL_FUNC_VISIBILITY aclError aclskScopeEnd(const char* scopeName, aclrtStream stream);
 
 #ifdef __cplusplus
 }

@@ -10,13 +10,14 @@
 
 /*!
  * \file sk_scope_kernel_types.h
- * \brief
+ * \brief Scope kernel common types (usable in both ASC and C++ compilation)
  */
 
 #pragma once
 
 #include <cstdint>
 #include <memory>
+
 
 constexpr uint32_t MAX_SCOPE_NAME_LENN = 256;
 

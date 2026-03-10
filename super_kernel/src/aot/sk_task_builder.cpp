@@ -69,8 +69,8 @@ static void DumpDeviceArgs(const SkDeviceEntryArgs *args)
     for (uint32_t i = 0; i < args->skHeader.nodeCnt; ++i)
     {
         SK_LOGI("dfx[%u]: bin=0x%llx, ori=0x%llx",
-               i, (unsigned long long)dfx[i].binHdl,
-               (unsigned long long)dfx[i].funcHdlOri);
+            i, (unsigned long long)dfx[i].binHdl,
+            (unsigned long long)dfx[i].funcHdlOri);
     }
 }
 
@@ -854,8 +854,10 @@ DeviceArgsPtr SkTaskBuilder::GenEntryArgs(const SkTask &skTaskCube,
     size_t counter_offset = aiv_que_offset + aiv_que_size;
     size_t ws_offset = counter_offset + counter_size;
     size_t dfx_offset = ws_offset + ws_size;
-
     uint64_t total_size = dfx_offset + dfx_size;
+
+    SK_LOGI("sk total args size: %d, header_size: %d, aic_que_size: %d, aiv_que_size: %d, counter_size: %d, ws_size: %d, dfx_size: %d",
+        total_size, header_size, aic_que_size, aiv_que_size, counter_size, ws_size, dfx_size);
     DeviceArgsPtr args(total_size);
     if (args.get() == nullptr)
     {
@@ -1304,6 +1306,7 @@ SkHostEntryInfo SkTaskBuilder::GenEntryInfo(SkTask &skTaskCube, SkTask &skTaskVe
             }
         }
     }
+    SK_LOGI("sk entry fun name: %s, num blocks: %d", entryInfo.skEntryFuncName, entryInfo.numBlocks);
     return entryInfo;
 }
 
@@ -1370,6 +1373,8 @@ SkLaunchInfo SkTaskBuilder::Build(const std::vector<SuperKernelBaseNode *> &task
     // [DEBUG] 下输出最终的同步关系
     if (opts.EnableDebug() && debugSyncAll)
     {
+        SK_LOGI("debug sync all is enabled, now clear all sync info, and only left cross sync info. task count is %d",
+            taskCount);
         for (int i = 0; i < static_cast<int>(taskCount); i++)
         {
             // 清空所有的同步flag信息，强行重置为DEBUG状态
@@ -1383,6 +1388,7 @@ SkLaunchInfo SkTaskBuilder::Build(const std::vector<SuperKernelBaseNode *> &task
     }
     // ========== 阶段3：构建任务队列 ==========
     int preloadCount = 1;
+    SK_LOGI("add preload tasks, preload count is %d, task count is %d", preloadCount, taskCount);
     for (int i = 0; i < preloadCount && i < static_cast<int>(taskCount); i++)
     {
         if (filteredTasks[i]->GetNodeType() == SkNodeType::NODE_KERNEL)
@@ -1391,27 +1397,32 @@ SkLaunchInfo SkTaskBuilder::Build(const std::vector<SuperKernelBaseNode *> &task
         }
     }
 
+    SK_LOGI("Disapatch tasks...");
     for (int i = 0; i < static_cast<int>(taskCount); i++)
     {
-        SK_LOGI("======================== start process %d, nodeType=%s ========================", i,
-                 to_string(filteredTasks[i]->GetNodeType()));
+        SK_LOGI("index=%d, nodeType=%s", i, to_string(filteredTasks[i]->GetNodeType()));
 
         auto &info = taskSyncInfos_[i];
 
-        // 1. 插入核内同步WAIT信号（在任务启动前）
+        // 1. 插入核内同步WAIT信号（在任务启动前
+        SK_LOGI("add sync task for vec recv, vec recv size %d", info.vecRecvInfo.size());
         DispatchSyncTasks(aicTask, aivTask, dfxInfos.get(), filteredTasks, info.vecRecvInfo, i, splitBinCount, false);
+        SK_LOGI("add sync task for vec recv, cub recv size %d", info.cubRecvInfo.size());
         DispatchSyncTasks(aicTask, aivTask, dfxInfos.get(), filteredTasks, info.cubRecvInfo, i, splitBinCount, false);
 
         // 2. 添加功能任务
         switch (filteredTasks[i]->GetNodeType())
         {
         case SkNodeType::NODE_KERNEL:
+            SK_LOGI("add func task, task index is %d", i);
             DispatchTask(aicTask, aivTask, dfxInfos.get(), filteredTasks, i, splitBinCount, SkTaskType::TYPE_FUNC);
             break;
         case SkNodeType::NODE_NOTIFY:
+            SK_LOGI("add notify task, task index is %d", i);
             DispatchTask(aicTask, aivTask, dfxInfos.get(), filteredTasks, i, splitBinCount, SkTaskType::TYPE_EVENT_NOTIFY);
             break;
         case SkNodeType::NODE_WAIT:
+            SK_LOGI("add wait task, task index is %d", i);
             DispatchTask(aicTask, aivTask, dfxInfos.get(), filteredTasks, i, splitBinCount, SkTaskType::TYPE_EVENT_WAIT);
             break;
         default:
@@ -1423,20 +1434,26 @@ SkLaunchInfo SkTaskBuilder::Build(const std::vector<SuperKernelBaseNode *> &task
         // 3. 添加预加载任务
         if (preloadCount > 0 && i + preloadCount < static_cast<int>(taskCount) && filteredTasks[i + preloadCount]->GetNodeType() == SkNodeType::NODE_KERNEL)
         {
+            SK_LOGI("add preload tasks, task index is %d", i + preloadCount);
             DispatchTask(aicTask, aivTask, dfxInfos.get(), filteredTasks, i + preloadCount, splitBinCount, SkTaskType::TYPE_PRELOAD);
         }
 
         // 4. 插入核间同步信号 or 强行为DEBUG信号
+        SK_LOGI("add sync task for cross sync info, cross sync info size %d", info.crossSyncInfo.size());
         DispatchSyncTasks(aicTask, aivTask, dfxInfos.get(), filteredTasks, info.crossSyncInfo, i, splitBinCount, true);
 
-        // 5. 插入核内同步SET信号（在任务结束后）
+        // 5. 插入核内同步SET信号（在任务结束后
+        SK_LOGI("add sync task for vec send, vec send size %d", info.vecSendInfo.size());
         DispatchSyncTasks(aicTask, aivTask, dfxInfos.get(), filteredTasks, info.vecSendInfo, i, splitBinCount, true);
+        SK_LOGI("add sync task for cub send, cub send size %d", info.cubSendInfo.size());
         DispatchSyncTasks(aicTask, aivTask, dfxInfos.get(), filteredTasks, info.cubSendInfo, i, splitBinCount, true);
     }
 
+    SK_LOGI("Get entry info...");
     launchInfo.entryInfo = GenEntryInfo(aicTask, aivTask);
     launchInfo.entryInfo.nodeCnt = static_cast<uint32_t>(taskCount);
 
+    SK_LOGI("Get entry args...");
     launchInfo.devArgs = GenEntryArgs(aicTask, aivTask,
                                       dfxInfos.get(), static_cast<uint32_t>(taskCount));
 

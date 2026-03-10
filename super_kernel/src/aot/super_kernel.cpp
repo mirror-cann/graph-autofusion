@@ -14,6 +14,7 @@
 #include "sk_optimizer.h"
 #include "sk_graph.h"
 #include "sk_lock_detector.h"
+#include "sk_scope_launch.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -38,9 +39,27 @@ aclError aclskOptimize(aclmdlRI model, aclskOptions *options) {
     // 使用新的 SuperKernelOptimizer（支持切图和序列化）
     SuperKernelOptimizer optimizer(opts);
     optimizer.Process(graph);
-
+    graph.Update();
     SK_LOGI("End aclskOptimize");
+    
     return ACL_SUCCESS;
+}
+
+
+aclError aclskScopeBegin(const char* scopeName, aclrtStream stream) {
+    if (scopeName[0] == '\0') {
+        SK_LOGE("Invalid scopeName: name is empty.");
+        return ACL_ERROR_INVALID_PARAM;
+    }
+    return LaunchScopeKernel(scopeName, stream, true);
+}
+
+aclError aclskScopeEnd(const char* scopeName, aclrtStream stream) {
+    if (scopeName[0] == '\0') {
+        SK_LOGE("Invalid scopeName: name is empty.");
+        return ACL_ERROR_INVALID_PARAM;
+    }
+    return LaunchScopeKernel(scopeName, stream, false);
 }
 
 #ifdef __cplusplus

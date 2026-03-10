@@ -30,7 +30,3 @@ if(ENABLE_CPP_UTEST)
     include(cmake/func.cmake)    
     add_subdirectory(ut)
 endif()
-
-if(ENABLE_RDV_UTEST)
-    add_subdirectory(rdv)
-endif()

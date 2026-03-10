@@ -25,6 +25,26 @@ typedef enum {
     RT_BIN_DEVICE_ADDR = 1,
 } rtBinaryAddrType;
 
+// Binary metadata type enum
+typedef enum {
+    RT_BINARY_TYPE_BIN_VERSION = 0U,
+    RT_BINARY_TYPE_DEBUG_INFO = 1U,
+    RT_BINARY_TYPE_DYNAMIC_PARAM = 2U,
+    RT_BINARY_TYPE_OPTIONAL_PARAM = 3U,
+    RT_BINARY_TYPE_RUNTIME_IMPLICIT_INFO = 4U,
+    RT_BINARY_TYPE_SK_INFO = 5U,
+    RT_BINARY_TYPE_MAX
+} rtBinaryMetaType;
+
+#define RT_BIN_HOST_ADDR 0
+#define RT_BIN_DEVICE_ADDR 1
+
+// Runtime binary metadata API
+int rtBinaryGetMetaNum(void* binHdl, int type_enum, size_t* metaNum);
+int rtBinaryGetMetaData(void* binHdl, int type_enum, size_t metaNum, void** data_list, size_t* size_list);
+int rtBinaryGetMetaInfo(void* binHdl, int type_enum, size_t metaNum, void** data_list, size_t* size_list);
+int rtGetBinBuffer(void* binHdl, int addrType, void** buffer, uint32_t* size);
+
 #ifdef __cplusplus
 }
 #endif

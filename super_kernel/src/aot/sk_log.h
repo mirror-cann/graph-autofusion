@@ -60,6 +60,7 @@ extern "C" {
       dlog_info(ASCENDC_MODULE_NAME, "[SK][%s:%s] " format "\n", GetFileName(__FILE__), __FUNCTION__, ##__VA_ARGS__);              \
     } while (0)
 
+
 #define SK_LOGE(format, ...)                                                           \
     do {                                                                                           \
         dlog_error(ASCENDC_MODULE_NAME, "[SK][%s:%s] " format "\n", GetFileName(__FILE__), __FUNCTION__, ##__VA_ARGS__);     \

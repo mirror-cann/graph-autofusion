@@ -23,6 +23,7 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/superkernel-0.1.0-py3-none-any.whl OPT
         DESTINATION ${INSTALL_LIBRARY_DIR}
 )
 
+
 # find_package(ASC REQUIRED PATHS $ENV{ASCEND_HOME_PATH}/compiler/tikcpp/ascendc_kernel_cmake)
 # enable_language(ASC)
 
@@ -66,7 +67,7 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/superkernel-0.1.0-py3-none-any.whl OPT
 #     $ENV{ASCEND_HOME_PATH}/include/external
 #     $ENV{ASCEND_HOME_PATH}/include
 #     )
-# target_link_libraries(ascendsk PUBLIC acl_rt ascendcl ascend_dump runtime error_manager c_sec unified_dlog sk_scope)
+# target_link_libraries(ascendsk PUBLIC sk_scope acl_rt ascendcl ascend_dump runtime error_manager c_sec unified_dlog ascendc_runtime profapi)
 # target_link_directories(ascendsk PUBLIC
 # $ENV{ASCEND_HOME_PATH}/lib64
 # )

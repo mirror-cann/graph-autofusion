@@ -15,10 +15,8 @@
 
 #ifndef SK_COMMON_H
 #define SK_COMMON_H
-
 #include <string>
 #include <cstddef>
-
 enum class SkNodeType: uint32_t {
     NODE_KERNEL = 0,
     NODE_NOTIFY = 1,
@@ -38,14 +36,14 @@ inline const char* to_string(SkNodeType type) {
     }
 }
 
-enum class SkKernelType: uint32_t {
+enum class SkKernelType: uint8_t {
     AIC_ONLY = 1,
     AIV_ONLY = 2,
     MIX_AIV_1_0 = 3,
     MIX_AIC_1_0 = 4,
     MIX_AIC_1_1 = 5,
     MIX_AIC_1_2 = 6,
-    DEFAULT = 0xFFFFFFFF,
+    DEFAULT = 0xFF,
 };
 
 inline const char* to_string(SkKernelType type) {
@@ -99,7 +97,7 @@ inline const char* to_string(SkCoreSyncType type) {
         case SkCoreSyncType::CROSS_SYNC_AIV_TO_AIV:   return "CROSS_AIV_TO_AIV";
         case SkCoreSyncType::INTER_SYNC_SET_AIC_TO_AIV: return "SET_AIC_TO_AIV";
         case SkCoreSyncType::INTER_SYNC_SET_AIV_TO_AIC: return "SET_AIV_TO_AIC";
-        case SkCoreSyncType::INTER_SYNC_WAIT_AIC_TO_AIV: return "WAIT_AIC_TO_AIC";
+        case SkCoreSyncType::INTER_SYNC_WAIT_AIC_TO_AIV: return "WAIT_AIC_TO_AIV";
         case SkCoreSyncType::INTER_SYNC_WAIT_AIV_TO_AIC: return "WAIT_AIV_TO_AIC";
         case SkCoreSyncType::SYNC_NONE:               return "SYNC_NONE";
         default: return "UNKNOWN";
@@ -162,5 +160,6 @@ struct SkDeviceEntryArgs {
 
 bool GetFuncSymbolInfo(const char* binAddr, size_t binSize, uint64_t funcAddr,
                        std::string& symbolName, uint64_t& funcSize);
+
 
 #endif

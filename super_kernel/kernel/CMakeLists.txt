@@ -36,7 +36,7 @@ add_custom_target(generate_entry_stub
 )
 
 add_library(sk_scope STATIC
-    sk_scope_kernel.asc
+   sk_scope_kernel.asc
 )
 
 target_compile_options(sk_scope PRIVATE
