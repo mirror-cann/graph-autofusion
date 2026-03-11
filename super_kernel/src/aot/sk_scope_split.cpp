@@ -97,14 +97,23 @@ bool SuperKernelScopeSplitter::SplitSingleStreamGraph() {
 bool SuperKernelScopeSplitter::SplitGraph() {
     SK_LOGI("start splitting graph into scopes\n");
     const auto& streams = graph.GetStreams();
+    const auto& headNodes = graph.GetHeadNodes();
+    SK_LOGI("Graph has %zu streams", streams.size());
+    for (size_t i = 0; i < streams.size(); ++i) {
+        SK_LOGI("Stream %zu: headNode=%lu", i, headNodes[i]);
+    }
     if (streams.size() == 1) {
+        SK_LOGI("Single stream graph, using SplitSingleStreamGraph");
         return SplitSingleStreamGraph();
     }
+    SK_LOGI("Multi stream graph, using SplitMultiStreamGraph");
     return SplitMultiStreamGraph();
 }
 
 void SuperKernelScopeSplitter::AddStreamInfoToScope(SuperKernelScopeInfo& scopeInfo, SuperKernelBaseNode* node) {
     uint32_t streamIdx = node->GetStreamIdxInGraph();
+    SK_LOGD("AddStreamInfoToScope: node %lu (stream=%u, type=%s)", 
+            node->GetNodeId(), streamIdx, to_string(node->GetNodeType()));
     // Check if stream info already exists
     auto it = std::find_if(scopeInfo.scopeStreamInfos.begin(), scopeInfo.scopeStreamInfos.end(),
                          [streamIdx](const ScopeStreamInfo& info) {
@@ -118,10 +127,13 @@ void SuperKernelScopeSplitter::AddStreamInfoToScope(SuperKernelScopeInfo& scopeI
         newInfo.tailNodeIdx = node->GetNodeId();
         newInfo.nodeSize = 1;
         scopeInfo.scopeStreamInfos.push_back(std::move(newInfo));
+        SK_LOGD("Created new stream info for stream %u, headNode=%lu", streamIdx, node->GetNodeId());
     } else {
         // Update existing stream info
         it->tailNodeIdx = node->GetNodeId();
         it->nodeSize++;
+        SK_LOGD("Updated stream info for stream %u, tailNode=%lu, nodeSize=%lu", 
+                streamIdx, node->GetNodeId(), it->nodeSize);
     }
 }
 
@@ -151,7 +163,10 @@ void SuperKernelScopeSplitter::SkipUnfusibleNodes(
 
 void SuperKernelScopeSplitter::ResetStreamStates(
     std::unordered_map<uint32_t, StreamState>& streamStates) {
+    SK_LOGD("ResetStreamStates: resetting %zu stream states", streamStates.size());
     for (auto& pair : streamStates) {
+        SK_LOGD("ResetStreamStates: stream %u, currentNodeIdx=%lu, isTerminated=%d, isSuspended=%d",
+                pair.first, pair.second.currentNodeIdx, pair.second.isTerminated, pair.second.isSuspended);
         // Only reset temporary states, keep currentNodeIdx
         pair.second.isTerminated = false;
         pair.second.isSuspended = false;
@@ -168,11 +183,14 @@ void SuperKernelScopeSplitter::InitNodeHeap(
     const std::set<uint64_t>& processedNodes,
     std::priority_queue<uint64_t, std::vector<uint64_t>, std::greater<uint64_t>>& nodeHeap,
     LockDetector& lockDetector) {
+    SK_LOGD("InitNodeHeap: iterating %zu streams", streamStates.size());
+    size_t heapSizeBefore = nodeHeap.size();
     // Iterate through all streams, try to add current nodes to heap
     for (auto& pair : streamStates) {
         TryAddNodeToHeap(pair.first, streamStates, visitedNotifies,
                         processedNodes, nodeHeap, lockDetector);
     }
+    SK_LOGD("InitNodeHeap: heap size changed from %zu to %zu", heapSizeBefore, nodeHeap.size());
 }
 
 void SuperKernelScopeSplitter::TryAddNodeToHeap(
@@ -293,15 +311,19 @@ void SuperKernelScopeSplitter::ProcessResetNode(
     std::set<uint64_t>& visitedNotifies,
     std::unordered_map<uint32_t, StreamState>& streamStates) {
     uint64_t eventId = resetNode->GetEventId();
+    SK_LOGD("ProcessResetNode: resetNode=%lu, eventId=%lu", resetNode->GetNodeId(), eventId);
     const auto& eventInfo = graph.eventToNodes.at(eventId);
 
     // Reset clears the notify visitation marker
-    visitedNotifies.erase(eventInfo.notifyNodeId);
+    size_t erasedCount = visitedNotifies.erase(eventInfo.notifyNodeId);
+    SK_LOGD("ProcessResetNode: erased notify %lu from visitedNotifies (erasedCount=%zu)", 
+            eventInfo.notifyNodeId, erasedCount);
 
     // Clear waiting state for all waits of this event
     for (uint64_t waitNodeId : eventInfo.waitNodeIdList) {
         SuperKernelBaseNode* waitNode = graph.GetNodeById(waitNodeId);
         if (waitNode == nullptr) {
+            SK_LOGW("ProcessResetNode: waitNode %lu not found", waitNodeId);
             continue;
         }
 
@@ -311,6 +333,7 @@ void SuperKernelScopeSplitter::ProcessResetNode(
             // Note: After reset, the wait node needs to wait for notify again
             // So we set isSuspended = true
             streamStates[streamIdx].isSuspended = true;
+            SK_LOGD("ProcessResetNode: suspended stream %u, waitNode=%lu", streamIdx, waitNodeId);
         }
     }
 }
@@ -431,6 +454,26 @@ bool SuperKernelScopeSplitter::SplitMultiStreamGraph() {
     SK_LOGI("========== Multi-stream graph splitting complete, total scopes: %zu ==========", scopeInfos.size());
     for (size_t i = 0; i < scopeInfos.size(); ++i) {
         SK_LOGI("Scope %zu: %zu nodes, %zu streams", i, scopeInfos[i].nodes.size(), scopeInfos[i].scopeStreamInfos.size());
+        
+        // Print all nodes in this scope
+        std::string nodeDetails;
+        for (const auto* node : scopeInfos[i].nodes) {
+            if (!nodeDetails.empty()) nodeDetails += ", ";
+            nodeDetails += std::to_string(node->GetNodeId());
+            nodeDetails += "(";
+            nodeDetails += to_string(node->GetNodeType());
+            nodeDetails += ",stream=";
+            nodeDetails += std::to_string(node->GetStreamIdxInGraph());
+            nodeDetails += ")";
+        }
+        SK_LOGI("  Scope %zu nodes: [%s]", i, nodeDetails.c_str());
+        
+        // Print all stream infos in this scope
+        for (size_t j = 0; j < scopeInfos[i].scopeStreamInfos.size(); ++j) {
+            const auto& streamInfo = scopeInfos[i].scopeStreamInfos[j];
+            SK_LOGI("  Scope %zu StreamInfo[%zu]: streamIdx=%u, headNode=%lu, tailNode=%lu, nodeSize=%lu",
+                    i, j, streamInfo.streamIdx, streamInfo.headNodeIdx, streamInfo.tailNodeIdx, streamInfo.nodeSize);
+        }
     }
 
     return true;

@@ -54,7 +54,7 @@ public:
      * @param graph 图对象
      * @return true 可融合，false 不可融合（会导致死锁）
      */
-    bool IsFusible(const SuperKernelBaseNode& curNode, SuperKernelGraph& graph);
+    bool IsFusible(SuperKernelBaseNode& curNode, SuperKernelGraph& graph);
 
 private:
     
@@ -65,6 +65,14 @@ private:
     std::pair<uint32_t, uint32_t> GetNodeCoreNum(const SuperKernelBaseNode& node);
 
     bool IsInSKStream(const SuperKernelBaseNode& node);
+
+    void UpdateNodeInfo(const SuperKernelBaseNode& node);
+
+    void UpdateSKRangeInStream(const SuperKernelBaseNode& node);
+
+    bool IsBeforeSKRange(const SuperKernelBaseNode& node);
+
+    bool IsAfterSKRange(const SuperKernelBaseNode& node);
 
     bool HasDeadlock(SuperKernelBaseNode* curNode, SuperKernelGraph& graph);
 
@@ -80,6 +88,9 @@ private:
     static int64_t deviceRealVecNum;
     std::set<uint32_t> skStreamIds;
     bool isExistWaitFlag;
+    uint32_t nodeNum;
+    uint32_t kernelNodeNum;
+    std::unordered_map<uint32_t, std::pair<uint64_t, uint64_t>> skRangeInStream;
 };
 
 #endif // __SK_LOCK_DETECTOR_H__

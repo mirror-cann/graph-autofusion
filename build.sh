@@ -39,6 +39,7 @@ usage() {
   echo "    --pkg                 Build run package"
   echo "    -j                    Compile thread nums, default is 16, eg: -j 8"
   echo "    --cpp_utest           Run cpp unit test"
+  echo "        --test_case=NAME  Run specific test case (e.g. --test_case=SkScopeSplitTest.*)"
   echo "    -u, --ut              Run all unit test"
   echo "        =superkernel      Run superkernel unit test"
   echo "    -s, --st              Run all system test"
@@ -89,7 +90,7 @@ checkopts() {
   ENABLE_SUPERKERNEL_RUN_EXAMPLE="off"
 
   # Process the options - 添加了 build-type 选项
-  parsed_args=$(getopt -a -o j:hu::s::c -l help,pkg,cpp_utest,run_example::,ut::,st::,coverage,output_path:,build-type: -- "$@") || {
+  parsed_args=$(getopt -a -o j:hu::s::c -l help,pkg,cpp_utest,test_case:,run_example::,ut::,st::,coverage,output_path:,build-type: -- "$@") || {
     usage
     exit 1
   }
@@ -151,6 +152,10 @@ checkopts() {
       --cpp_utest)
         ENABLE_CPP_UTEST="on"
         shift
+        ;;
+      --test_case)
+        CPP_UTEST_FILTER="$2"
+        shift 2
         ;;
       --run_example)
         ENABLE_RUN_EXAMPLE="on"
@@ -220,12 +225,19 @@ function build_package_inner(){
 }
 
 function build_test_cpp_utest() {
-  echo "---------------- Start run cpp utest ----------------" 
+  echo "---------------- Start run cpp utest ----------------"
+  
   CUSTOM_OPTION="${CUSTOM_OPTION} -DENABLE_CPP_UTEST=ON"
+  
+  # Pass gtest filter to cmake if specified
+  if [ -n "${CPP_UTEST_FILTER}" ]; then
+    CUSTOM_OPTION="${CUSTOM_OPTION} -DGTEST_FILTER=--gtest_filter=${CPP_UTEST_FILTER}"
+  fi
+  
   mkdir -pv ${BUILD_PATH} &&
   cd ${BUILD_PATH} &&
   build_test
-  echo "Buid run cpp utest success!" 
+  echo "Build run cpp utest success!"
 }
 
 build_package() {

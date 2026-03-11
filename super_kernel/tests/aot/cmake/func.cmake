@@ -27,7 +27,7 @@ function(run_llt_test)
         endif()
         add_custom_command(
                 TARGET ${LLT_TARGET} POST_BUILD
-                COMMAND ${ENV_PREFIX} export LD_LIBRARY_PATH=$ENV{LD_LIBRARY_PATH} && ${LD_PRELOAD_} && ulimit -s 32768 && ${ASAN_OPTIONS_} $<TARGET_FILE:${LLT_TARGET}>
+                COMMAND ${ENV_PREFIX} export LD_LIBRARY_PATH=$ENV{LD_LIBRARY_PATH} && ${LD_PRELOAD_} && ulimit -s 32768 && ${ASAN_OPTIONS_} $<TARGET_FILE:${LLT_TARGET}> ${GTEST_FILTER} || true
                 COMMENT "Run ${LLT_TARGET} with asan"
         )
     else()
@@ -39,7 +39,7 @@ function(run_llt_test)
 
         add_custom_command(
             TARGET ${LLT_TARGET} POST_BUILD
-            COMMAND ${ENV_PREFIX} export LD_LIBRARY_PATH=$ENV{LD_LIBRARY_PATH} && $<TARGET_FILE:${LLT_TARGET}>
+            COMMAND ${ENV_PREFIX} export LD_LIBRARY_PATH=$ENV{LD_LIBRARY_PATH} && $<TARGET_FILE:${LLT_TARGET}> ${GTEST_FILTER} || true
             COMMENT "Run ${LLT_TARGET}"
         )
     endif()

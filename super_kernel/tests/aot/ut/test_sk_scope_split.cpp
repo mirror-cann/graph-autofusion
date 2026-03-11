@@ -447,36 +447,36 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase7_ConsecutiveUnfusibleNodes)
 
 // ==================== 测试用例 8: 所有流都挂起 ====================
 
-// TEST_F(SuperKernelScopeSplitterTest, TestCase8_AllStreamsSuspended)
-// {
-//     // Stream 0: [Wait1(id=1)] → [K1(id=3)]
-//     // Stream 1: [Wait2(id=2)] → [K2(id=4)]
-//     // Stream 2: [Notify1(id=5)] → [Notify2(id=6)]
-//     // Event1: Wait1(id=1) 等待 Notify1(id=5)
-//     // Event2: Wait2(id=2) 等待 Notify2(id=6)
+TEST_F(SuperKernelScopeSplitterTest, TestCase8_AllStreamsSuspended)
+{
+    // Stream 0: [Wait1(id=1)] → [K1(id=3)]
+    // Stream 1: [Wait2(id=2)] → [K2(id=4)]
+    // Stream 2: [Notify1(id=5)] → [Notify2(id=6)]
+    // Event1: Wait1(id=1) 等待 Notify1(id=5)
+    // Event2: Wait2(id=2) 等待 Notify2(id=6)
 
-//     auto* wait1 = CreateWaitNode(1, 0, 5, 3);
-//     auto* k1 = CreateKernelNode(3, 0, INVALID_TASK_ID);
+    auto* wait1 = CreateWaitNode(1, 0, 5, 3);
+    auto* k1 = CreateKernelNode(3, 0, INVALID_TASK_ID);
 
-//     auto* wait2 = CreateWaitNode(2, 1, 6, 4);
-//     auto* k2 = CreateKernelNode(4, 1, INVALID_TASK_ID);
+    auto* wait2 = CreateWaitNode(2, 1, 6, 4);
+    auto* k2 = CreateKernelNode(4, 1, INVALID_TASK_ID);
 
-//     auto* notify1 = CreateNotifyNode(5, 2, 100, 6);
-//     auto* notify2 = CreateNotifyNode(6, 2, 200, INVALID_TASK_ID);
+    auto* notify1 = CreateNotifyNode(5, 2, 100, 6);
+    auto* notify2 = CreateNotifyNode(6, 2, 200, INVALID_TASK_ID);
 
-//     SetupStreams({{1, 3}, {2, 4}, {5, 6}});
-//     SetupEvent(100, 5, {1});
-//     SetupEvent(200, 6, {2});
+    SetupStreams({{1, 3}, {2, 4}, {5, 6}});
+    SetupEvent(100, 5, {1});
+    SetupEvent(200, 6, {2});
 
-//     SuperKernelScopeSplitter splitter(*graph);
-//     bool result = splitter.SplitMultiStreamGraph();
+    SuperKernelScopeSplitter splitter(*graph);
+    bool result = splitter.SplitMultiStreamGraph();
 
-//     ASSERT_TRUE(result);
-//     const auto& scopeInfos = splitter.GetScopeInfos();
+    ASSERT_TRUE(result);
+    const auto& scopeInfos = splitter.GetScopeInfos();
 
-//     EXPECT_EQ(scopeInfos.size(), 1);
-//     VerifyScope(scopeInfos[0], {1, 2, 3, 4, 5, 6});
-// }
+    EXPECT_EQ(scopeInfos.size(), 1);
+    VerifyScope(scopeInfos[0], {1, 2, 3, 4, 5, 6});
+}
 
 // ==================== 测试用例 9: 三流多 Wait-Notify + 不可融合节点 ====================
 
