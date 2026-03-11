@@ -48,6 +48,10 @@ SkBindMap InitSuperKernelBindMap(aclrtBinHandle binHdl)
 
     size_t metaNum = 0;
     CHECK_ACL(rtBinaryGetMetaNum(binHdl, RT_BINARY_TYPE_SK_INFO, &metaNum));
+    if (metaNum == 0) {
+        SK_LOGW("metaNum is zero!");
+        return SkBindMap();
+    }
 
     SK_LOGI("InitSuperKernelBindMap: binHdl=0x%lx, metaNum=%lu, payloadSize=%zu",
         (uint64_t)binHdl, metaNum, payloadSize);

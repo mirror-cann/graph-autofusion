@@ -14,6 +14,7 @@
 */
 
 #include "acl/acl.h"
+#include "sk_scope_kernel_types.h"
 #include <cstring>
 #include <cstdio>
 
@@ -272,12 +273,16 @@ aclError aclrtGetFunctionAttribute(aclrtFuncHandle funcHandle, aclrtFuncAttribut
     return ACL_ERROR_NONE;
 }
 
-// Scope begin stub
-void sk_scope_kernel_begin_do(const char *scopeName, void *args) {
+// Scope begin stub - signature matches sk_scope_launch.cpp declaration
+void sk_scope_kernel_begin_do(void* stream, ScopeKernelArgs args) {
+    (void)stream;
+    (void)args;
 }
 
-// Scope end stub
-void sk_scope_kernel_end_do(const char *scopeName, void *args) {
+// Scope end stub - signature matches sk_scope_launch.cpp declaration
+void sk_scope_kernel_end_do(void* stream, ScopeKernelArgs args) {
+    (void)stream;
+    (void)args;
 }
 
 } // extern "C"
