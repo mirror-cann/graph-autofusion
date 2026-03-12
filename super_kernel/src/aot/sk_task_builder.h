@@ -27,17 +27,19 @@ class SuperKernelGraph;
 // ========== 队列类型枚举（表示任务运行在哪个队列） ==========
 
 enum class SkQueueType : uint8_t {
-    AIC = 0b00,     // 仅 AIC 队列
-    AIV = 0b01,     // 仅 AIV 队列
-    MIX = 0b10,     // 同时在两个队列
-    UNKNOWN = 0xFF, // 未知/无效类型（用于调试同步等特殊场景）
+    AIC,     // 仅 AIC 队列
+    AIV,     // 仅 AIV 队列
+    MIX_1_1, // 同时在两个队列 (MIX_AIC_1_1)
+    MIX_1_2, // 同时在两个队列 (MIX_AIC_1_2)
+    UNKNOWN, // 未知/无效类型（用于调试同步等特殊场景）
 };
 
 inline const char* to_string(SkQueueType type) {
     switch (type) {
         case SkQueueType::AIC: return "AIC";
         case SkQueueType::AIV: return "AIV";
-        case SkQueueType::MIX: return "MIX";
+        case SkQueueType::MIX_1_1: return "MIX_1_1";
+        case SkQueueType::MIX_1_2: return "MIX_1_2";
         case SkQueueType::UNKNOWN: return "UNKNOWN";
         default: return "UNKNOWN";
     }
@@ -47,25 +49,33 @@ inline const char* to_string(SkQueueType type) {
 
 // 同步方向类型（对应Python的 "cub:vec", "vec:cub" 等）
 enum class SyncDirection : uint8_t {
-    NONE = 0,      // 无同步
-    CUB_TO_CUB,      // AIC -> AIC
-    VEC_TO_VEC,      // AIV -> AIV
-    CUB_TO_VEC,      // AIC -> AIV
-    VEC_TO_CUB,      // AIV -> AIC
-    BOTH,            // 双向同步（MIX -> MIX）
-    DEBUG,           // 调试使用的全核同步
+    NONE = 0,   // 无同步
+    CUB_TO_CUB, // AIC -> AIC
+    VEC_TO_VEC, // AIV -> AIV
+    CUB_TO_VEC, // AIC -> AIV
+    VEC_TO_CUB, // AIV -> AIC
+    MIX_TO_MIX, // 双向同步（MIX -> MIX）
+    ALL_SYNC,      // 全核同步
 };
 
-inline const char* to_string(SyncDirection dir) {
+inline const char *to_string(SyncDirection dir) {
     switch (dir) {
-        case SyncDirection::NONE:      return "NONE";
-        case SyncDirection::CUB_TO_CUB: return "CUB_TO_CUB";
-        case SyncDirection::VEC_TO_VEC: return "VEC_TO_VEC";
-        case SyncDirection::CUB_TO_VEC: return "CUB_TO_VEC";
-        case SyncDirection::VEC_TO_CUB: return "VEC_TO_CUB";
-        case SyncDirection::BOTH:       return "BOTH";
-        case SyncDirection::DEBUG:      return "DEBUG";
-        default: return "UNKNOWN";
+    case SyncDirection::NONE:
+        return "NONE";
+    case SyncDirection::CUB_TO_CUB:
+        return "CUB_TO_CUB";
+    case SyncDirection::VEC_TO_VEC:
+        return "VEC_TO_VEC";
+    case SyncDirection::CUB_TO_VEC:
+        return "CUB_TO_VEC";
+    case SyncDirection::VEC_TO_CUB:
+        return "VEC_TO_CUB";
+    case SyncDirection::MIX_TO_MIX:
+        return "MIX_TO_MIX";
+    case SyncDirection::ALL_SYNC:
+        return "ALL_SYNC";
+    default:
+        return "UNKNOWN";
     }
 }
 
@@ -81,7 +91,7 @@ struct TaskSyncInfo {
     std::map<size_t, SyncDirection> vecSendInfo;  // 发送同步给哪些任务
     std::map<size_t, SyncDirection> vecRecvInfo;  // 从哪些任务接收同步
 
-    // 核间同步方向: 0=CUBE(CUB_TO_CUB), 1=VEC(VEC_TO_VEC), 默认NONE
+    // 核间同步方向: 0=CUBE(CUB_TO_CUB), 1=VEC(VEC_TO_VEC)
     std::map<size_t, SyncDirection> crossSyncInfo;
     
     TaskSyncInfo() : queueType(SkQueueType::UNKNOWN) {}
@@ -92,7 +102,8 @@ public:
     SkTaskBuilder(SuperKernelOptionsManager &opts, const SuperKernelGraph &graph)
         : opts(opts), graph_(graph) {}
 
-    SkLaunchInfo Build(const std::vector<SuperKernelBaseNode *> &tasks);
+    SkLaunchInfo Build(const std::vector<SuperKernelBaseNode *> &tasks,
+                       const std::vector<SuperKernelBaseNode *> &customTasks);
 
 private:
     SuperKernelOptionsManager &opts;
@@ -100,24 +111,27 @@ private:
 
     // 新的同步信息存储：每个任务维护自己的send/recv信息
     std::vector<TaskSyncInfo> taskSyncInfos_;
-    std::pair<int, int> GetPreFetchCnt(const ResolvedFunctionInfo &resolved);
-    void AddTask(SkTask &skTask, SkDfxInfo *dfxInfos, const std::vector<SuperKernelBaseNode *> &tasks, size_t index,
-                SkKernelType originType, int customArg, int binCount, SkTaskType taskType,
-                uint32_t syncFlag);
 
-    void DispatchTask(SkTask &skTaskCube, SkTask &skTaskVec, SkDfxInfo *dfxInfos,
-        const std::vector<SuperKernelBaseNode *> &tasks,
-        size_t index, int binCount, SkTaskType taskType);
-    void DispatchTaskSync(SkTask &skTaskCube, SkTask &skTaskVec, SkDfxInfo *dfxInfos,
-        const std::vector<SuperKernelBaseNode *> &tasks, size_t index, int binCount,
-        SkTaskType taskType, SkCoreSyncType syncFlag, bool addToAicQue, bool addToAivQue,
-        SkQueueType prevType, SkQueueType nextType, const char *detail);
-    
-    // 批量处理同步任务（简化Build循环）
-    void DispatchSyncTasks(SkTask &skTaskCube, SkTask &skTaskVec, SkDfxInfo *dfxInfos,
-                           const std::vector<SuperKernelBaseNode *> &tasks,
+    // 任务添加函数 - 按类型分离
+    std::pair<int, int> GetPreFetchCnt(const ResolvedFunctionInfo &resolved);
+    void AddSyncTask(SkTask &skTask, size_t nodeIndex, SkCoreSyncType syncType);
+    void AddEventTask(SkTask &skTask, SuperKernelBaseNode *node, size_t nodeIndex, SkTaskType taskType);
+    void AddFuncTask(SkTask &skTask, SuperKernelBaseNode *node, SkDfxInfo *dfxInfo,
+                       size_t nodeIndex, int addrIndex, int binCount,
+                       SkTaskType taskType, uint32_t numBlocks);
+
+    void DispatchFuncTask(SkTask &skTaskCube, SkTask &skTaskVec,
+                         SuperKernelBaseNode *node, SkDfxInfo *dfxInfo,
+                         size_t nodeIndex, int binCount, SkTaskType taskType,
+                         SkQueueType queueType);
+    void DispatchEventTask(SkTask &skTaskCube, SkTask &skTaskVec,
+                           SuperKernelBaseNode *node,
+                           size_t nodeIndex, SkTaskType taskType,
+                           SkQueueType queueType);
+
+    void DispatchSyncTasks(SkTask &skTaskCube, SkTask &skTaskVec, size_t nodeIndex,
                            const std::map<size_t, SyncDirection> &syncInfo,
-                           size_t myIdx, int binCount, bool isSend);
+                           bool isSend, SkQueueType queueType);
 
     // ========== 新增：基于Graph拓扑的Sync提取方法 ==========
 

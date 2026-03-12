@@ -36,7 +36,10 @@ struct SkLaunchInfo;
 struct UpdateContext {
     SkLaunchInfo* launchInfo = nullptr;
     aclrtFuncHandle skEntryFunc = nullptr;
-    // Future extensions can be added here
+    // Feature(aclmdIRITaskParams): Replace this raw aclrtTaskEventParams pointer
+    // with aclmdIRITaskParams carrier when post-process switches to IR-task flow.
+    // Optional event update payload for stream-based update path.
+    aclrtTaskEventParams* customParams = nullptr;
 };
 
 struct SknlMapInfo {
@@ -169,6 +172,9 @@ public:
     bool HasScopeFlags() const { return scopeBitFlags.any(); }
     void ClearScopeBitFlags() { scopeBitFlags.reset(); }
     void MarkEventNodeToScope(SuperKernelBaseNode* node);
+public:
+    NodeInfos nodeInfos;
+    std::unique_ptr<aclrtTask> originTask;
 
 protected:
     uint32_t streamIdxInGraph;
@@ -176,11 +182,9 @@ protected:
     uint64_t nodeId;
     uint64_t preNodeId;
     uint64_t nextNodeId;
-    std::unique_ptr<aclrtTask> originTask;
     SkNodeType nodeType;
     bool isVisited;
     bool isFusible = false;
-    NodeInfos nodeInfos;
     // scope
     bool isScopeNode = false;
     std::bitset<MAX_SCOPE_NUM> scopeBitFlags;
@@ -214,6 +218,7 @@ public:
     using SuperKernelBaseNode::SuperKernelBaseNode;
     uint64_t GetEventId() const override { return nodeInfos.syncInfos.eventId; }
     bool InitNode() override;
+    bool Update(const UpdateContext &ctx) override;
     bool InValidateNode() override;
 private:
     aclrtTaskEventParams eventParams;
@@ -238,6 +243,7 @@ public:
     using SuperKernelBaseNode::SuperKernelBaseNode;
     uint64_t GetEventId() const override { return nodeInfos.syncInfos.eventId; }
     bool InitNode() override;
+    bool Update(const UpdateContext &ctx) override;
     bool InValidateNode() override;
 private:
      aclrtTaskMemValueParams memValueParams;

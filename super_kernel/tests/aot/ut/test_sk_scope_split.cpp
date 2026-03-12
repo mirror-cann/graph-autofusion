@@ -258,7 +258,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase1_BasicMultiStreamFusion_NoCrossStr
     SetupStreams({{1, 2, 3}, {4, 5, 6}});
 
     SuperKernelScopeSplitter splitter(*graph);
-    bool result = splitter.SplitMultiStreamGraph();
+    bool result = splitter.SplitGraph();
 
     ASSERT_TRUE(result);
     const auto& scopeInfos = splitter.GetScopeInfos();
@@ -287,7 +287,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase2_SingleCrossStreamWaitNotify)
     SetupEvent(100, 4, {3});
 
     SuperKernelScopeSplitter splitter(*graph);
-    bool result = splitter.SplitMultiStreamGraph();
+    bool result = splitter.SplitGraph();
 
     ASSERT_TRUE(result);
     const auto& scopeInfos = splitter.GetScopeInfos();
@@ -324,7 +324,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase3_MultipleWaitNotify)
     SetupEvent(200, 6, {8});
 
     SuperKernelScopeSplitter splitter(*graph);
-    bool result = splitter.SplitMultiStreamGraph();
+    bool result = splitter.SplitGraph();
 
     ASSERT_TRUE(result);
     const auto& scopeInfos = splitter.GetScopeInfos();
@@ -346,7 +346,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase4_UnfusibleNode_SingleStream)
     SetupStreams({{1, 2, 3}});
 
     SuperKernelScopeSplitter splitter(*graph);
-    bool result = splitter.SplitMultiStreamGraph();
+    bool result = splitter.SplitGraph();
 
     ASSERT_TRUE(result);
     const auto& scopeInfos = splitter.GetScopeInfos();
@@ -372,7 +372,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase5_UnfusibleNode_MultiStream)
     SetupStreams({{1, 2, 3}, {4}});
 
     SuperKernelScopeSplitter splitter(*graph);
-    bool result = splitter.SplitMultiStreamGraph();
+    bool result = splitter.SplitGraph();
 
     ASSERT_TRUE(result);
     const auto& scopeInfos = splitter.GetScopeInfos();
@@ -407,7 +407,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase6_MultipleWaitsWaitingSameNotify)
     SetupEvent(100, 6, {4, 5});
 
     SuperKernelScopeSplitter splitter(*graph);
-    bool result = splitter.SplitMultiStreamGraph();
+    bool result = splitter.SplitGraph();
 
     ASSERT_TRUE(result);
     const auto& scopeInfos = splitter.GetScopeInfos();
@@ -433,7 +433,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase7_ConsecutiveUnfusibleNodes)
     SetupStreams({{1, 2, 3, 4}, {5}});
 
     SuperKernelScopeSplitter splitter(*graph);
-    bool result = splitter.SplitMultiStreamGraph();
+    bool result = splitter.SplitGraph();
 
     ASSERT_TRUE(result);
     const auto& scopeInfos = splitter.GetScopeInfos();
@@ -469,7 +469,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase8_AllStreamsSuspended)
     SetupEvent(200, 6, {2});
 
     SuperKernelScopeSplitter splitter(*graph);
-    bool result = splitter.SplitMultiStreamGraph();
+    bool result = splitter.SplitGraph();
 
     ASSERT_TRUE(result);
     const auto& scopeInfos = splitter.GetScopeInfos();
@@ -512,7 +512,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase9_ThreeStreamsWithMultipleWaitNotif
     SetupEvent(200, 14, {8});
 
     SuperKernelScopeSplitter splitter(*graph);
-    bool result = splitter.SplitMultiStreamGraph();
+    bool result = splitter.SplitGraph();
 
     ASSERT_TRUE(result);
     const auto& scopeInfos = splitter.GetScopeInfos();
@@ -550,7 +550,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase11_NestedWaitNotify)
     SetupEvent(200, 9, {8});
 
     SuperKernelScopeSplitter splitter(*graph);
-    bool result = splitter.SplitMultiStreamGraph();
+    bool result = splitter.SplitGraph();
 
     ASSERT_TRUE(result);
     const auto& scopeInfos = splitter.GetScopeInfos();
@@ -559,9 +559,9 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase11_NestedWaitNotify)
     VerifyScope(scopeInfos[0], {1, 2, 3, 4, 5, 6, 7, 8, 9, 10});
 }
 
-// ==================== 测试用例 12: 单流（回退到单流切分） ====================
+// ==================== 测试用例 12: 单流（统一 SplitGraph 路径） ====================
 
-TEST_F(SuperKernelScopeSplitterTest, TestCase12_SingleStreamFallback)
+TEST_F(SuperKernelScopeSplitterTest, TestCase12_SingleStreamUnifiedPath)
 {
     // Stream 0: [K1(id=1)] → [K2(id=2)] → [K3(id=3)]
 
@@ -577,8 +577,9 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase12_SingleStreamFallback)
     ASSERT_TRUE(result);
     const auto& scopeInfos = splitter.GetScopeInfos();
 
-    // 单流应该使用单流切分算法，可能产生多个 scope
-    EXPECT_GE(scopeInfos.size(), 1);
+    // 单流现在也走统一的 SplitGraph 路径
+    EXPECT_EQ(scopeInfos.size(), 1);
+    VerifyScope(scopeInfos[0], {1, 2, 3});
 }
 
 // ==================== 测试用例 13: 空图 ====================
@@ -588,7 +589,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase13_EmptyGraph)
     SetupStreams({{}});
 
     SuperKernelScopeSplitter splitter(*graph);
-    bool result = splitter.SplitMultiStreamGraph();
+    bool result = splitter.SplitGraph();
 
     ASSERT_TRUE(result);
     const auto& scopeInfos = splitter.GetScopeInfos();
@@ -610,7 +611,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase14_AllUnfusibleNodes)
     SetupStreams({{1, 2}, {3}});
 
     SuperKernelScopeSplitter splitter(*graph);
-    bool result = splitter.SplitMultiStreamGraph();
+    bool result = splitter.SplitGraph();
 
     ASSERT_TRUE(result);
     const auto& scopeInfos = splitter.GetScopeInfos();
@@ -637,7 +638,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase15_StreamOrderVerification)
     SetupStreams({{10, 30, 50}, {20, 40, 60}});
 
     SuperKernelScopeSplitter splitter(*graph);
-    bool result = splitter.SplitMultiStreamGraph();
+    bool result = splitter.SplitGraph();
 
     ASSERT_TRUE(result);
     const auto& scopeInfos = splitter.GetScopeInfos();
@@ -682,7 +683,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase16_MultipleScopesWithWaitNotifyInDi
     SetupEvent(100, 6, {3});
 
     SuperKernelScopeSplitter splitter(*graph);
-    bool result = splitter.SplitMultiStreamGraph();
+    bool result = splitter.SplitGraph();
 
     ASSERT_TRUE(result);
     const auto& scopeInfos = splitter.GetScopeInfos();
@@ -727,7 +728,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase17_FourStreamParallelFusion)
     SetupStreams({{1, 5}, {2, 6}, {3, 7}, {4, 8}});
 
     SuperKernelScopeSplitter splitter(*graph);
-    bool result = splitter.SplitMultiStreamGraph();
+    bool result = splitter.SplitGraph();
 
     ASSERT_TRUE(result);
     const auto& scopeInfos = splitter.GetScopeInfos();
@@ -754,7 +755,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase18_WaitBeforeNotify_ShouldSuspend)
     SetupEvent(100, 4, {1});
 
     SuperKernelScopeSplitter splitter(*graph);
-    bool result = splitter.SplitMultiStreamGraph();
+    bool result = splitter.SplitGraph();
 
     ASSERT_TRUE(result);
     const auto& scopeInfos = splitter.GetScopeInfos();
@@ -794,7 +795,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase19_UnfusibleNodeInMiddle_MultipleSc
     SetupStreams({{1, 2, 3, 4}, {6, 5}});
 
     SuperKernelScopeSplitter splitter(*graph);
-    bool result = splitter.SplitMultiStreamGraph();
+    bool result = splitter.SplitGraph();
 
     ASSERT_TRUE(result);
     const auto& scopeInfos = splitter.GetScopeInfos();
@@ -848,7 +849,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase20_ComplexWaitNotifyChain)
     SetupEvent(400, 8, {16});
 
     SuperKernelScopeSplitter splitter(*graph);
-    bool result = splitter.SplitMultiStreamGraph();
+    bool result = splitter.SplitGraph();
 
     ASSERT_TRUE(result);
     const auto& scopeInfos = splitter.GetScopeInfos();
@@ -884,7 +885,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase21_VerifyStreamStateReset)
     SetupStreams({{1, 2, 3}, {4}});
 
     SuperKernelScopeSplitter splitter(*graph);
-    bool result = splitter.SplitMultiStreamGraph();
+    bool result = splitter.SplitGraph();
 
     ASSERT_TRUE(result);
     const auto& scopeInfos = splitter.GetScopeInfos();
@@ -905,7 +906,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase22_SingleStreamSingleNode)
     SetupStreams({{1}});
 
     SuperKernelScopeSplitter splitter(*graph);
-    bool result = splitter.SplitMultiStreamGraph();
+    bool result = splitter.SplitGraph();
 
     ASSERT_TRUE(result);
     const auto& scopeInfos = splitter.GetScopeInfos();
@@ -929,7 +930,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase23_MultiStreamSingleNodes)
     SetupStreams({{1}, {2}, {3}});
 
     SuperKernelScopeSplitter splitter(*graph);
-    bool result = splitter.SplitMultiStreamGraph();
+    bool result = splitter.SplitGraph();
 
     ASSERT_TRUE(result);
     const auto& scopeInfos = splitter.GetScopeInfos();
@@ -964,7 +965,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase24_ResetStreamStatesResumeSuspended
     SetupEvent(200, 8, {});
 
     SuperKernelScopeSplitter splitter(*graph);
-    bool result = splitter.SplitMultiStreamGraph();
+    bool result = splitter.SplitGraph();
 
     ASSERT_TRUE(result);
     const auto& scopeInfos = splitter.GetScopeInfos();
@@ -1012,7 +1013,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase25_MultipleSuspendResume)
     SetupEvent(200, 6, {5});
 
     SuperKernelScopeSplitter splitter(*graph);
-    bool result = splitter.SplitMultiStreamGraph();
+    bool result = splitter.SplitGraph();
 
     ASSERT_TRUE(result);
     const auto& scopeInfos = splitter.GetScopeInfos();
@@ -1051,7 +1052,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase26_NoScopeNodes_FullGraphFusion)
     graph->unique_scopeNames.clear();
 
     SuperKernelScopeSplitter splitter(*graph);
-    bool result = splitter.SplitMultiStreamGraph();
+    bool result = splitter.SplitGraph();
 
     ASSERT_TRUE(result);
     const auto& scopeInfos = splitter.GetScopeInfos();
@@ -1180,7 +1181,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase29_UnfusibleScope)
     graph->UpdateNodeScopeBitFlags();
 
     SuperKernelScopeSplitter splitter(*graph);
-    bool result = splitter.SplitMultiStreamGraph();
+    bool result = splitter.SplitGraph();
 
     ASSERT_TRUE(result);
     const auto& scopeInfos = splitter.GetScopeInfos();
@@ -1238,7 +1239,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase30_MixedFusibleAndUnfusibleScopes)
     graph->UpdateNodeScopeBitFlags();
 
     SuperKernelScopeSplitter splitter(*graph);
-    bool result = splitter.SplitMultiStreamGraph();
+    bool result = splitter.SplitGraph();
 
     ASSERT_TRUE(result);
     const auto& scopeInfos = splitter.GetScopeInfos();
@@ -1299,7 +1300,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase31_SameScopeNameAcrossStreams)
     graph->unique_scopeNames["scope_A"] = 0;
 
     SuperKernelScopeSplitter splitter(*graph);
-    bool result = splitter.SplitMultiStreamGraph();
+    bool result = splitter.SplitGraph();
 
     ASSERT_TRUE(result);
     const auto& scopeInfos = splitter.GetScopeInfos();
@@ -1340,7 +1341,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase32_NestedScopes)
     graph->UpdateNodeScopeBitFlags();
 
     SuperKernelScopeSplitter splitter(*graph);
-    bool result = splitter.SplitMultiStreamGraph();
+    bool result = splitter.SplitGraph();
 
     ASSERT_TRUE(result);
     const auto& scopeInfos = splitter.GetScopeInfos();
@@ -1393,7 +1394,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase33_ScopeWithCrossStreamDependency)
     graph->unique_scopeNames["scope_A"] = 0;
 
     SuperKernelScopeSplitter splitter(*graph);
-    bool result = splitter.SplitMultiStreamGraph();
+    bool result = splitter.SplitGraph();
 
     ASSERT_TRUE(result);
     const auto& scopeInfos = splitter.GetScopeInfos();
@@ -1428,7 +1429,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase34_ExceedMaxScopeNumLimit)
     SetupStreams({{1, 2, 3}});
 
     SuperKernelScopeSplitter splitter(*graph);
-    bool result = splitter.SplitMultiStreamGraph();
+    bool result = splitter.SplitGraph();
 
     ASSERT_TRUE(result);
     const auto& scopeInfos = splitter.GetScopeInfos();
@@ -1467,7 +1468,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase35_ScopeWithUnfusibleNodes)
     graph->UpdateNodeScopeBitFlags();
 
     SuperKernelScopeSplitter splitter(*graph);
-    bool result = splitter.SplitMultiStreamGraph();
+    bool result = splitter.SplitGraph();
 
     ASSERT_TRUE(result);
     const auto& scopeInfos = splitter.GetScopeInfos();

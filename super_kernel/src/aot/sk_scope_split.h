@@ -34,6 +34,9 @@ struct ScopeStreamInfo {
 struct SuperKernelScopeInfo{
     std::vector<ScopeStreamInfo> scopeStreamInfos;
     std::vector<SuperKernelBaseNode *> nodes;
+    // skMainNodeId;
+    // enterEventInfos: std::vector<std::pair<waitInfo, resetInfo>>;
+    // exitEventInfos: std::vector<std::pair<notifyInfo, waitInfo>>;
 };
 
 // Stream state for multi-stream graph splitting
@@ -60,15 +63,9 @@ public:
     SuperKernelScopeSplitter& operator=(SuperKernelScopeSplitter&&) = default;
 
     bool SplitGraph();
-    bool SplitSingleStreamGraph();
-    bool SplitMultiStreamGraph();
     std::vector<SuperKernelScopeInfo>& GetScopeInfos() noexcept { return scopeInfos; }
 
 private:
-    // Single stream splitting methods
-    uint64_t FindSingleStreamAvailableHeadNode(uint64_t curNodeIdx) const;
-    uint64_t GenerateSingleStreamScopeInfosByNodeIdx(uint64_t curNodeIdx);
-
     // Multi-stream splitting methods
     void InitNodeHeap(std::unordered_map<uint32_t, StreamState>& streamStates,
                      const std::set<uint64_t>& visitedNotifies,

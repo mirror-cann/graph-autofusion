@@ -20,96 +20,6 @@
 #include <unordered_map>
 #include <set>
 
-uint64_t SuperKernelScopeSplitter::FindSingleStreamAvailableHeadNode(uint64_t curNodeIdx) const {
-    while (curNodeIdx != INVALID_TASK_ID) {
-        const SuperKernelBaseNode * node = graph.GetNodeById(curNodeIdx);
-        if (node == nullptr) {
-            SK_LOGE("node with id %lu not found in graph during finding available head node\n", curNodeIdx);
-            return INVALID_TASK_ID;
-        }
-        if (node->GetNodeType() == SkNodeType::NODE_KERNEL && node->IsFusible()) {
-            return curNodeIdx;
-        }
-        curNodeIdx = node->GetNextNodeId();
-    }
-    return INVALID_TASK_ID;
-}
-
-uint64_t SuperKernelScopeSplitter::GenerateSingleStreamScopeInfosByNodeIdx(uint64_t curNodeIdx) {
-    try {
-        uint64_t headNodeIdx = FindSingleStreamAvailableHeadNode(curNodeIdx);
-        if (headNodeIdx == INVALID_TASK_ID) {
-            SK_LOGI("no available head node found starting from node %lu\n", curNodeIdx);
-            return INVALID_TASK_ID;
-        }
-        SK_LOGI("Generating scope infos for head node %lu\n", headNodeIdx);
-        SuperKernelScopeInfo scopeInfo;
-        ScopeStreamInfo scopeStreamInfo;
-        scopeStreamInfo.headNodeIdx = headNodeIdx;
-        scopeStreamInfo.streamIdx = graph.GetNodeById(headNodeIdx)->GetStreamIdxInGraph();
-
-        uint64_t preNodeIdx = headNodeIdx;
-        curNodeIdx = headNodeIdx;
-        LockDetector lockDetector;
-        while (curNodeIdx != INVALID_TASK_ID) {
-            SuperKernelBaseNode *node = graph.GetNodeById(curNodeIdx);
-            if (node == nullptr) {
-                SK_LOGE("node with id %lu not found in graph during generating scope infos\n", curNodeIdx);
-                throw std::runtime_error("Node not found in graph");
-            }
-            if (!node->IsFusible() || !lockDetector.IsFusible(*node, graph)) {
-                scopeStreamInfo.tailNodeIdx = preNodeIdx;
-                curNodeIdx = node->GetNextNodeId();
-                lockDetector.Reset(graph);
-                break;
-            }
-            scopeInfo.nodes.emplace_back(std::move(node));
-            ++scopeStreamInfo.nodeSize;
-            preNodeIdx = curNodeIdx;
-            curNodeIdx = node->GetNextNodeId();
-        }
-        SK_LOGI("Generated scope infos for head node %lu in stream %lu, tail node %lu, node size %lu\n", 
-                scopeStreamInfo.headNodeIdx, scopeStreamInfo.streamIdx, scopeStreamInfo.tailNodeIdx, scopeStreamInfo.nodeSize);
-        scopeInfo.scopeStreamInfos.emplace_back(std::move(scopeStreamInfo));
-        scopeInfos.emplace_back(std::move(scopeInfo));
-        return curNodeIdx;
-    } catch (const std::exception &e) {
-        SK_LOGE("Exception occurred in GenerateSingleStreamScopeInfosByNodeIdx: %s\n", e.what());
-        return INVALID_TASK_ID;
-    }
-}
-
-bool SuperKernelScopeSplitter::SplitSingleStreamGraph() {
-    const auto& streams = graph.GetStreams();
-    const auto& headNodes = graph.GetHeadNodes();
-    SK_LOGI("start splitting single stream graph, stream count: %zu", streams.size());
-    for (size_t streamIdx = 0; streamIdx < streams.size(); ++streamIdx) {
-        SK_LOGI("start splitting stream %zu", streamIdx);
-        uint64_t curNodeIdx = headNodes[streamIdx];
-        while (curNodeIdx != INVALID_TASK_ID) {
-            curNodeIdx = GenerateSingleStreamScopeInfosByNodeIdx(curNodeIdx);
-        }
-    }
-    return true;
-}
-
-
-bool SuperKernelScopeSplitter::SplitGraph() {
-    SK_LOGI("start splitting graph into scopes\n");
-    const auto& streams = graph.GetStreams();
-    const auto& headNodes = graph.GetHeadNodes();
-    SK_LOGI("Graph has %zu streams", streams.size());
-    for (size_t i = 0; i < streams.size(); ++i) {
-        SK_LOGI("Stream %zu: headNode=%lu", i, headNodes[i]);
-    }
-    if (streams.size() == 1) {
-        SK_LOGI("Single stream graph, using SplitSingleStreamGraph");
-        return SplitSingleStreamGraph();
-    }
-    SK_LOGI("Multi stream graph, using SplitMultiStreamGraph");
-    return SplitMultiStreamGraph();
-}
-
 void SuperKernelScopeSplitter::AddStreamInfoToScope(SuperKernelScopeInfo& scopeInfo, SuperKernelBaseNode* node) {
     uint32_t streamIdx = node->GetStreamIdxInGraph();
     SK_LOGD("AddStreamInfoToScope: node %lu (stream=%u, type=%s)", 
@@ -338,7 +248,8 @@ void SuperKernelScopeSplitter::ProcessResetNode(
     }
 }
 
-bool SuperKernelScopeSplitter::SplitMultiStreamGraph() {
+bool SuperKernelScopeSplitter::SplitGraph() {
+    SK_LOGI("start splitting graph into scopes\n");
     const auto& streams = graph.GetStreams();
     const auto& headNodes = graph.GetHeadNodes();
 

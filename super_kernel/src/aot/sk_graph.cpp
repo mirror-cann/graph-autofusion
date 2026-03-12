@@ -355,6 +355,8 @@ std::unique_ptr<SuperKernelBaseNode> SuperKernelNodeFactory::CreateNode(std::uni
             return std::make_unique<SuperKernelEventNotifyNode>(std::move(task), SkNodeType::NODE_NOTIFY, nodeIdx, streamId, preNodeId);
         case ACL_RT_TASK_EVENT_WAIT:
             return std::make_unique<SuperKernelEventWaitNode>(std::move(task), SkNodeType::NODE_WAIT, nodeIdx, streamId, preNodeId);
+        case ACL_RT_TASK_EVENT_RESET:
+            return std::make_unique<SuperKernelMemoryResetNode>(std::move(task), SkNodeType::NODE_RESET, nodeIdx, streamId, preNodeId);
         case ACL_RT_TASK_VALUE_WRITE:
             return std::make_unique<SuperKernelMemoryNotifyNode>(std::move(task), SkNodeType::NODE_NOTIFY, nodeIdx, streamId, preNodeId);
         case ACL_RT_TASK_VALUE_WAIT:

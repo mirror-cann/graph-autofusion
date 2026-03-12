@@ -14,7 +14,10 @@
 #include "sk_types.h"
 #include "sk_options_manager.h"
 #include "sk_scope_split.h"
+#include "sk_scope_postprocess.h"
 #include "sk_graph.h"
+
+class SkTaskBuilder;
 
 /**
  * @brief Super Kernel 优化器 - 核心编排类 (Facade Pattern)
@@ -33,12 +36,13 @@ public:
 
 private:
     SuperKernelOptionsManager &opts;
-    std::vector<std::pair<std::vector<uint64_t>, std::vector<uint64_t>>> SplitGraph(const SuperKernelGraph &graph) const;
-    std::vector<SuperKernelBaseNode*> SerializeSubGraph(const SuperKernelGraph &graph,
-                                                     const std::vector<uint64_t> &headIds,
-                                                     const std::vector<uint64_t> &tailIds) const;
-    void Schedule(const SuperKernelScopeInfo &scopeInfo, const SuperKernelGraph &graph);
-    void Update(const SuperKernelScopeInfo &scopeInfo, const SkLaunchInfo &launchInfo, aclrtFuncHandle skEntryFunc);
+    void Schedule(SuperKernelProcessedScopeInfo &processedScopeInfo,
+                  SuperKernelGraph &graph,
+                  SkTaskBuilder &builder);
+    void Update(SuperKernelProcessedScopeInfo &processedScopeInfo,
+                SuperKernelGraph &graph,
+                const SkLaunchInfo &launchInfo,
+                aclrtFuncHandle skEntryFunc);
 };
 
 #endif // __SK_OPTIMIZER_H__

@@ -22,12 +22,12 @@
 
 static bool UsesAic(SkQueueType type)
 {
-    return type == SkQueueType::AIC || type == SkQueueType::MIX;
+    return type == SkQueueType::AIC || type == SkQueueType::MIX_1_1 || type == SkQueueType::MIX_1_2;
 }
 
 static bool UsesAiv(SkQueueType type)
 {
-    return type == SkQueueType::AIV || type == SkQueueType::MIX;
+    return type == SkQueueType::AIV || type == SkQueueType::MIX_1_1 || type == SkQueueType::MIX_1_2;
 }
 
 static const KernelInfos &GetKernelInfos(const SuperKernelBaseNode *node)
@@ -76,21 +76,6 @@ static void DumpDeviceArgs(const SkDeviceEntryArgs *args)
 
 // ========== 新增：SkTaskBuilder静态方法实现 ==========
 
-static const char *SyncDirectionName(SyncDirection dir)
-{
-    switch (dir)
-    {
-    case SyncDirection::CUB_TO_VEC:
-        return "cub:vec";
-    case SyncDirection::VEC_TO_CUB:
-        return "vec:cub";
-    case SyncDirection::BOTH:
-        return "cub:vec;vec:cub";
-    default:
-        return "unknown";
-    }
-}
-
 // 查找方向枚举
 enum class SearchDirection : uint8_t
 {
@@ -102,37 +87,85 @@ static const char *to_string(SearchDirection dir)
     return (dir == SearchDirection::PREV) ? "PREV" : "NEXT";
 }
 
-// 查找指定方向的 KERNEL 节点，未找到则抛出异常
+// 查找指定方向的 KERNEL 节点，未找到返回 nullptr
 static SuperKernelBaseNode *FindKernelNodeInDirection(
-    size_t nodeIndex,
-    SkNodeType nodeType,
-    const SuperKernelBaseNode *startNode,
-    const SuperKernelGraph &graph,
+    uint64_t startNodeId, const SuperKernelGraph &graph,
     SearchDirection direction,
-    int maxHops = 5)
-{
-    const SuperKernelBaseNode *current = startNode;
+    std::unordered_map<uint64_t, SuperKernelBaseNode *> &cache,
+    int maxHops = 100) {
+    std::vector<uint64_t> path; // 记录遍历路径上的所有节点
+    uint64_t curNodeId = startNodeId;
 
-    for (int hop = 0; hop < maxHops; ++hop)
-    {
-        uint32_t nextId = (direction == SearchDirection::PREV)
-                              ? current->GetPreNodeId()
-                              : current->GetNextNodeId();
+    SuperKernelBaseNode *current;
+    SuperKernelBaseNode *result = nullptr;
 
-        if (nextId == INVALID_TASK_ID)
-        {
-            SK_LOGE("%s node %zu has no %s-node.", to_string(nodeType), nodeIndex, to_string(direction));
-            throw std::runtime_error("[sk error] FindKernelNodeInDirection failed.");
+    auto LogSearchFailure = [&](const char *reason, uint64_t failedNodeId) {
+        std::string pathStr;
+        pathStr.reserve(path.size() * 8);
+        for (size_t idx = 0; idx < path.size(); ++idx) {
+            if (idx > 0) {
+                pathStr += "->";
+            }
+            pathStr += std::to_string(path[idx]);
         }
-        current = graph.GetNodeById(nextId);
-        if (current->GetNodeType() == SkNodeType::NODE_KERNEL)
-        {
-            return const_cast<SuperKernelBaseNode *>(current);
+        if (pathStr.empty()) {
+            pathStr = "empty";
+        }
+        SK_LOGE("FindKernelNodeInDirection failed: startNodeId=%lu, "
+                "direction=%s, reason=%s, failedNodeId=%lu, path=%s",
+                startNodeId, to_string(direction), reason, failedNodeId,
+                pathStr.c_str());
+    };
+
+    for (int i = 0; i < maxHops; ++i) {
+        path.push_back(curNodeId);
+
+        current = graph.GetNodeById(curNodeId);
+        if (current == nullptr) {
+            LogSearchFailure("node-not-found", curNodeId);
+            SK_LOGE("Node with ID %lu not found in graph.", curNodeId);
+            return nullptr;
+        }
+
+        // 检查缓存
+        auto it = cache.find(curNodeId);
+        if (it != cache.end()) {
+            result = it->second;
+        } else if (current->GetNodeType() == SkNodeType::NODE_KERNEL) {
+            result = const_cast<SuperKernelBaseNode *>(current);
+        }
+
+        if (result) {
+            // 缓存路径上的所有节点
+            for (uint64_t nodeId : path) {
+                cache[nodeId] = result;
+            }
+            return result;
+        }
+
+        curNodeId = (direction == SearchDirection::PREV)
+                        ? current->GetPreNodeId()
+                        : current->GetNextNodeId();
+
+        if (curNodeId == INVALID_TASK_ID) {
+            LogSearchFailure("no-next-node", path.back());
+            SK_LOGE("Node ID %lu has no %s-node.", startNodeId,
+                    to_string(direction));
+            return nullptr;
+        }
+
+        // 检查循环
+        if (std::find(path.cbegin(), path.cend(), curNodeId) != path.cend()) {
+            LogSearchFailure("loop-detected", curNodeId);
+            SK_LOGE("Node ID %lu detected loop in %s direction.", startNodeId,
+                    to_string(direction));
+            return nullptr; // 检测到循环，返回nullptr以避免死循环
         }
     }
-
-    SK_LOGE("%s node %zu cannot find KERNEL within %d hops.", to_string(nodeType), nodeIndex, maxHops);
-    throw std::runtime_error("[sk error] FindKernelNodeInDirection failed.");
+    LogSearchFailure("max-hops-exceeded", curNodeId);
+    SK_LOGE("Node ID %lu search exceeded max hops (%d) in %s direction.",
+            startNodeId, maxHops, to_string(direction));
+    return nullptr; // 超过最大跳数仍未找到，返回nullptr；
 }
 
 static SyncDirection GenSyncDirection(SkQueueType preType, SkQueueType currType)
@@ -140,16 +173,18 @@ static SyncDirection GenSyncDirection(SkQueueType preType, SkQueueType currType)
     // 对应Python的gen_sync_name函数
     switch (preType)
     {
-    case SkQueueType::MIX:
-        if (currType == SkQueueType::MIX)
+    case SkQueueType::MIX_1_1:
+    case SkQueueType::MIX_1_2:
+        if (currType == SkQueueType::MIX_1_1 || currType == SkQueueType::MIX_1_2)
         {
-            return SyncDirection::BOTH;
+            return SyncDirection::MIX_TO_MIX;
         }
         return (currType == SkQueueType::AIC) ? SyncDirection::VEC_TO_CUB : SyncDirection::CUB_TO_VEC;
     case SkQueueType::AIC:
         switch (currType)
         {
-        case SkQueueType::MIX:
+        case SkQueueType::MIX_1_1:
+        case SkQueueType::MIX_1_2:
             return SyncDirection::CUB_TO_VEC;
         case SkQueueType::AIC:
             return SyncDirection::CUB_TO_CUB;
@@ -159,7 +194,8 @@ static SyncDirection GenSyncDirection(SkQueueType preType, SkQueueType currType)
     case SkQueueType::AIV:
         switch (currType)
         {
-        case SkQueueType::MIX:
+        case SkQueueType::MIX_1_1:
+        case SkQueueType::MIX_1_2:
             return SyncDirection::VEC_TO_CUB;
         case SkQueueType::AIV:
             return SyncDirection::VEC_TO_VEC;
@@ -182,15 +218,13 @@ static SkQueueType ToQueueType(SkKernelType kernelType)
     case SkKernelType::MIX_AIV_1_0:
         return SkQueueType::AIV;
     case SkKernelType::MIX_AIC_1_1:
+        return SkQueueType::MIX_1_1;
     case SkKernelType::MIX_AIC_1_2:
-        return SkQueueType::MIX;
+        return SkQueueType::MIX_1_2;
     default:
-        break;
-    }
-
-    SK_LOGE("unsupported kernel type %s for super kernel, aborting", to_string(kernelType));
-    throw std::runtime_error("[sk error] Unsupported kernel type for super kernel.");
-}
+        SK_LOGE("unsupported kernel type %s for super kernel, using default value : aic", to_string(kernelType));
+        return SkQueueType::AIC;
+    }}
 
 static TaskQuePtr InitTaskQuePtr(size_t cap)
 {
@@ -249,11 +283,14 @@ static void FilterCancelledTasks(const std::vector<SuperKernelBaseNode *> &tasks
            tasks.size(), filteredTasks.size(), tasks.size() - filteredTasks.size());
 }
 
-// ========== 新增：同步信息初始化 ==========
+// ========== init sync infos ==========
 void SkTaskBuilder::InitTaskSyncInfos(const std::vector<SuperKernelBaseNode *> &tasks)
 {
     taskSyncInfos_.clear();
     taskSyncInfos_.resize(tasks.size());
+
+    // memory search cache for kernel nodes: nodeId -> kernelNode*
+    std::unordered_map<uint64_t, SuperKernelBaseNode*> kernelNodeCache;
 
     size_t kernelCount = 0;
     size_t notifyCount = 0;
@@ -275,8 +312,16 @@ void SkTaskBuilder::InitTaskSyncInfos(const std::vector<SuperKernelBaseNode *> &
         }
         case SkNodeType::NODE_NOTIFY:
         {
-            // NOTIFY 节点：继承前继KERNEL节点的类型
-            auto *kernel = FindKernelNodeInDirection(i, nodeType, tasks[i], graph_, SearchDirection::PREV);
+            // NOTIFY node: inherit type from previous KERNEL node
+            auto *kernel = FindKernelNodeInDirection(tasks[i]->GetPreNodeId(), graph_,
+                                                     SearchDirection::PREV, kernelNodeCache);
+            if (kernel == nullptr) {
+                SK_LOGE("%s node %zu failed to resolve previous KERNEL node, nodeId=%lu",
+                        to_string(nodeType), i, tasks[i]->GetNodeId());
+                throw std::runtime_error("[sk error] notify node cannot resolve previous KERNEL node");
+            }
+            kernelNodeCache[tasks[i]->GetNodeId()] = kernel; // cache current NOTIFY node for future searches
+            // event node only aic launch in aicQueue
             taskSyncInfos_[i].queueType = (ToQueueType(GetKernelInfos(kernel).kernelType) == SkQueueType::AIC)
                                          ? SkQueueType::AIC
                                          : SkQueueType::AIV;
@@ -285,8 +330,16 @@ void SkTaskBuilder::InitTaskSyncInfos(const std::vector<SuperKernelBaseNode *> &
         }
         case SkNodeType::NODE_WAIT:
         {
-            // WAIT 节点：继承后续KERNEL节点的类型
-            auto *kernel = FindKernelNodeInDirection(i, nodeType, tasks[i], graph_, SearchDirection::NEXT);
+            // WAIT node: inherit type from next KERNEL node
+            auto *kernel = FindKernelNodeInDirection(tasks[i]->GetNextNodeId(), graph_,
+                                                     SearchDirection::NEXT, kernelNodeCache);
+            if (kernel == nullptr) {
+                SK_LOGE("%s node %zu failed to resolve next KERNEL node, nodeId=%lu",
+                        to_string(nodeType), i, tasks[i]->GetNodeId());
+                throw std::runtime_error("[sk error] wait node cannot resolve next KERNEL node");
+            }
+            kernelNodeCache[tasks[i]->GetNodeId()] = kernel; // cache current WAIT node for future searches
+            // event node only aic launch in aicQueue
             taskSyncInfos_[i].queueType = (ToQueueType(GetKernelInfos(kernel).kernelType) == SkQueueType::AIC)
                                          ? SkQueueType::AIC
                                          : SkQueueType::AIV;
@@ -294,24 +347,28 @@ void SkTaskBuilder::InitTaskSyncInfos(const std::vector<SuperKernelBaseNode *> &
             break;
         }
         default:
+            SK_LOGW("unsupported node type for sync info initialization, skipping");
             break;
         }
-        // 生成核间同步方向: 0=CUB, 1=VEC
-        switch (taskSyncInfos_[i].queueType)
-        {
-        case SkQueueType::AIC:
-            taskSyncInfos_[i].crossSyncInfo[0] = SyncDirection::CUB_TO_CUB;
-            break;
-        case SkQueueType::AIV:
-            taskSyncInfos_[i].crossSyncInfo[1] = SyncDirection::VEC_TO_VEC;
-            break;
-        case SkQueueType::MIX:
-            taskSyncInfos_[i].crossSyncInfo[0] = SyncDirection::CUB_TO_CUB;
-            taskSyncInfos_[i].crossSyncInfo[1] = SyncDirection::VEC_TO_VEC;
-            break;
-        default:
-            SK_LOGW("unsupported kernel type for inter-sync, skipping sync insertion");
-            break;
+        if(i < tasks.size() - 1){
+            // gen cross sync info: 0=CUB, 1=VEC
+            switch (taskSyncInfos_[i].queueType)
+            {
+            case SkQueueType::AIC:
+                taskSyncInfos_[i].crossSyncInfo[0] = SyncDirection::CUB_TO_CUB;
+                break;
+            case SkQueueType::AIV:
+                taskSyncInfos_[i].crossSyncInfo[1] = SyncDirection::VEC_TO_VEC;
+                break;
+            case SkQueueType::MIX_1_1:
+            case SkQueueType::MIX_1_2:
+                taskSyncInfos_[i].crossSyncInfo[0] = SyncDirection::CUB_TO_CUB;
+                taskSyncInfos_[i].crossSyncInfo[1] = SyncDirection::VEC_TO_VEC;
+                break;
+            default:
+                SK_LOGW("unsupported kernel type for inter-sync, skipping sync insertion");
+                break;
+            }
         }
     }
 
@@ -329,27 +386,27 @@ void SkTaskBuilder::InsertSyncEvent(size_t preIdx, size_t currIdx)
     SyncDirection dir = GenSyncDirection(preType, currType);
 
     SK_LOGI("  InsertSyncEvent: task[%zu](%s) -> task[%zu](%s), dir=%s",
-           preIdx, to_string(preType), currIdx, to_string(currType), SyncDirectionName(dir));
+           preIdx, to_string(preType), currIdx, to_string(currType), to_string(dir));
 
     // 发送方（preIdx）：根据同步方向存储到对应队列
     // CUB_TO_VEC: 在 cub 队列发送 SET，在 vec 队列接收 WAIT
     // VEC_TO_CUB: 在 vec 队列发送 SET，在 cub 队列接收 WAIT
-    // BOTH: 两个方向都需要
-    if (dir == SyncDirection::CUB_TO_VEC || dir == SyncDirection::BOTH)
+    // MIX_TO_MIX: 两个方向都需要
+    if (dir == SyncDirection::CUB_TO_VEC || dir == SyncDirection::MIX_TO_MIX)
     {
         taskSyncInfos_[preIdx].cubSendInfo[currIdx] = SyncDirection::CUB_TO_VEC;
     }
-    if (dir == SyncDirection::VEC_TO_CUB || dir == SyncDirection::BOTH)
+    if (dir == SyncDirection::VEC_TO_CUB || dir == SyncDirection::MIX_TO_MIX)
     {
         taskSyncInfos_[preIdx].vecSendInfo[currIdx] = SyncDirection::VEC_TO_CUB;
     }
 
     // 接收方（currIdx）：根据同步方向存储到对应队列
-    if (dir == SyncDirection::CUB_TO_VEC || dir == SyncDirection::BOTH)
+    if (dir == SyncDirection::CUB_TO_VEC || dir == SyncDirection::MIX_TO_MIX)
     {
         taskSyncInfos_[currIdx].vecRecvInfo[preIdx] = SyncDirection::CUB_TO_VEC;
     }
-    if (dir == SyncDirection::VEC_TO_CUB || dir == SyncDirection::BOTH)
+    if (dir == SyncDirection::VEC_TO_CUB || dir == SyncDirection::MIX_TO_MIX)
     {
         taskSyncInfos_[currIdx].cubRecvInfo[preIdx] = SyncDirection::VEC_TO_CUB;
     }
@@ -369,12 +426,12 @@ void SkTaskBuilder::PrintSyncInfo(const char *stage)
             std::string vecSendStr = "vecSend={";
             for (auto &kv : info.vecSendInfo)
             {
-                vecSendStr += std::to_string(kv.first) + ":" + SyncDirectionName(kv.second) + " ";
+                vecSendStr += std::to_string(kv.first) + ":" + to_string(kv.second) + " ";
             }
             vecSendStr += "}, vecRecv={";
             for (auto &kv : info.vecRecvInfo)
             {
-                vecSendStr += std::to_string(kv.first) + ":" + SyncDirectionName(kv.second) + " ";
+                vecSendStr += std::to_string(kv.first) + ":" + to_string(kv.second) + " ";
             }
             vecSendStr += "}";
             SK_LOGI("  task[%zu](%s): %s", i, to_string(info.queueType), vecSendStr.c_str());
@@ -389,12 +446,12 @@ void SkTaskBuilder::PrintSyncInfo(const char *stage)
             std::string cubSendStr = "cubSend={";
             for (auto &kv : info.cubSendInfo)
             {
-                cubSendStr += std::to_string(kv.first) + ":" + SyncDirectionName(kv.second) + " ";
+                cubSendStr += std::to_string(kv.first) + ":" + to_string(kv.second) + " ";
             }
             cubSendStr += "}, cubRecv={";
             for (auto &kv : info.cubRecvInfo)
             {
-                cubSendStr += std::to_string(kv.first) + ":" + SyncDirectionName(kv.second) + " ";
+                cubSendStr += std::to_string(kv.first) + ":" + to_string(kv.second) + " ";
             }
             cubSendStr += "}";
             SK_LOGI("  task[%zu](%s): %s", i, to_string(info.queueType), cubSendStr.c_str());
@@ -406,7 +463,7 @@ void SkTaskBuilder::PrintSyncInfo(const char *stage)
 
 void SkTaskBuilder::PrecomputeSyncRelationsFromGraph(const std::vector<SuperKernelBaseNode *> &tasks)
 {
-    SK_LOGI("======================== Precomputing Sync Relations from Graph ========================");
+    SK_LOGI("Precomputing Sync Relations from Graph");
 
     // 初始化taskSyncInfos_
     InitTaskSyncInfos(tasks);
@@ -525,7 +582,7 @@ void SkTaskBuilder::ExtractInterStreamSync(const std::vector<SuperKernelBaseNode
 
 void SkTaskBuilder::OptimizeSyncRelations()
 {
-    SK_LOGI("======================== Optimizing Sync Relations ========================");
+    SK_LOGI("Optimizing Sync Relations");
     // PrintSyncInfo("[INIT STATE]");
 
     RemoveCrossedLineSync();
@@ -555,7 +612,7 @@ bool SkTaskBuilder::JudgeRemoveCrossSync(size_t sendIdx, size_t recvIdx, bool is
             {
                 size_t otherSendIdx = kv.first;
                 SyncDirection dir = kv.second;
-                if (dir == SyncDirection::CUB_TO_VEC || dir == SyncDirection::BOTH)
+                if (dir == SyncDirection::CUB_TO_VEC || dir == SyncDirection::MIX_TO_MIX)
                 {
                     // otherRecvIdx < recvIdx 已经由循环条件保证
                     // 只需检查 otherSendIdx > sendIdx
@@ -580,7 +637,7 @@ bool SkTaskBuilder::JudgeRemoveCrossSync(size_t sendIdx, size_t recvIdx, bool is
             {
                 size_t otherSendIdx = kv.first;
                 SyncDirection dir = kv.second;
-                if (dir == SyncDirection::VEC_TO_CUB || dir == SyncDirection::BOTH)
+                if (dir == SyncDirection::VEC_TO_CUB || dir == SyncDirection::MIX_TO_MIX)
                 {
                     // otherRecvIdx < recvIdx 已经由循环条件保证
                     // 只需检查 otherSendIdx > sendIdx
@@ -797,7 +854,7 @@ static SkCoreSyncType GetSyncTypesForDirection(SyncDirection dir, bool isSend)
 {
     SkCoreSyncType syncType = SkCoreSyncType::SYNC_NONE;
 
-    // 注意：现在只会收到 CUB_TO_VEC 或 VEC_TO_CUB，不会再有 BOTH
+    // 注意：现在只会收到 CUB_TO_VEC 或 VEC_TO_CUB，不会再有 MIX_TO_MIX
     switch (dir)
     {
     case SyncDirection::CUB_TO_VEC:
@@ -816,16 +873,16 @@ static SkCoreSyncType GetSyncTypesForDirection(SyncDirection dir, bool isSend)
         // AIV -> AIV
         syncType = SkCoreSyncType::CROSS_SYNC_AIV_TO_AIV;
         break;
-    case SyncDirection::BOTH:
+    case SyncDirection::MIX_TO_MIX:
         // 不应该再出现，因为 InsertSyncEvent 已经拆分
         syncType = SkCoreSyncType::SYNC_NONE;
-        SK_LOGW("GetSyncTypesForDirection: unexpected BOTH direction");
+        SK_LOGW("GetSyncTypesForDirection: unexpected MIX_TO_MIX direction");
         break;
     case SyncDirection::NONE:
         syncType = SkCoreSyncType::SYNC_NONE;
         break;
-    case SyncDirection::DEBUG:
-        syncType = SkCoreSyncType::ALL_SYNC_DEBUG;
+    case SyncDirection::ALL_SYNC:
+        syncType = SkCoreSyncType::ALL_SYNC;
         break;
     default:
         syncType = SkCoreSyncType::SYNC_NONE;
@@ -835,13 +892,10 @@ static SkCoreSyncType GetSyncTypesForDirection(SyncDirection dir, bool isSend)
     return syncType;
 }
 
-// ========== 原有方法（保持不变） ==========
-
 DeviceArgsPtr SkTaskBuilder::GenEntryArgs(const SkTask &skTaskCube,
-                                                const SkTask &skTaskVec,
-                                                const SkDfxInfo *dfxInfos,
-                                                uint32_t dfxCount)
-{
+                                          const SkTask &skTaskVec,
+                                          const SkDfxInfo *dfxInfos,
+                                          uint32_t dfxCount) {
     size_t header_size = sizeof(SkHeaderInfo);
     size_t aic_que_size = GetTaskQueSize(skTaskCube.taskQue.get());
     size_t aiv_que_size = GetTaskQueSize(skTaskVec.taskQue.get());
@@ -916,8 +970,7 @@ DeviceArgsPtr SkTaskBuilder::GenEntryArgs(const SkTask &skTaskCube,
     return args;
 }
 
-std::pair<int, int> SkTaskBuilder::GetPreFetchCnt(const ResolvedFunctionInfo &resolved)
-{
+std::pair<int, int> SkTaskBuilder::GetPreFetchCnt(const ResolvedFunctionInfo &resolved){
     std::pair<int, int> preFetchCntValue = std::make_pair(resolved.prefetchCnt[0], resolved.prefetchCnt[1]);
     auto preLoadOptions = opts.GetOption(aclskOtionType::PRELOAD_CODE);
 
@@ -942,14 +995,8 @@ std::pair<int, int> SkTaskBuilder::GetPreFetchCnt(const ResolvedFunctionInfo &re
     return preFetchCntValue;
 }
 
-void SkTaskBuilder::AddTask(SkTask &skTask, SkDfxInfo *dfxInfos, const std::vector<SuperKernelBaseNode *> &tasks, size_t index,
-                            SkKernelType kernelType, int customArg, int binCount, SkTaskType taskType,
-                            uint32_t syncFlag = (uint32_t)SkCoreSyncType::ALL_SYNC_DEBUG)
+void SkTaskBuilder::AddSyncTask(SkTask &skTask, size_t nodeIndex, SkCoreSyncType syncType)
 {
-    if (index >= tasks.size()) {
-        return;
-    }
-
     TaskQue *taskQue = skTask.taskQue.get();
     if (taskQue->taskCnt >= taskQue->cap) {
         skTask.taskQue = ExtendTaskQuePtr(std::move(skTask.taskQue));
@@ -960,219 +1007,192 @@ void SkTaskBuilder::AddTask(SkTask &skTask, SkDfxInfo *dfxInfos, const std::vect
     if (syncAllOptions != nullptr) {
         debugSyncAll = syncAllOptions->GetIntValue();
     }
+
+    TaskInfo &taskInfo = taskQue->taskInfos[taskQue->taskCnt];
+    taskInfo.index = nodeIndex;
+    taskInfo.type = SkTaskType::TYPE_SYNC;
+    taskInfo.args = static_cast<uint32_t>(syncType);
+    if (opts.EnableDebug() && debugSyncAll == 1) {
+        taskInfo.debugOptions |= 0x2;
+    }
+    taskQue->taskCnt++;
+}
+
+void SkTaskBuilder::AddEventTask(SkTask &skTask, SuperKernelBaseNode *node, size_t nodeIndex, SkTaskType taskType)
+{
+    TaskQue *taskQue = skTask.taskQue.get();
+    if (taskQue->taskCnt >= taskQue->cap) {
+        skTask.taskQue = ExtendTaskQuePtr(std::move(skTask.taskQue));
+    }
+
+    TaskInfo &taskInfo = taskQue->taskInfos[taskQue->taskCnt];
+    taskInfo.index = nodeIndex;
+    taskInfo.type = taskType;
+    taskInfo.args = static_cast<uint64_t>(reinterpret_cast<uintptr_t>(node->GetNodeInfos().syncInfos.addrValue));
+    taskQue->taskCnt++;
+}
+
+void SkTaskBuilder::AddFuncTask(SkTask &skTask, SuperKernelBaseNode *node, SkDfxInfo *dfxInfo,
+                                   size_t nodeIndex, int addrIndex, int binCount,
+                                   SkTaskType taskType, uint32_t numBlocks)
+{
+    TaskQue *taskQue = skTask.taskQue.get();
+    if (taskQue->taskCnt >= taskQue->cap) {
+        skTask.taskQue = ExtendTaskQuePtr(std::move(skTask.taskQue));
+    }
+
     auto disableDcciOptions = opts.GetOption(aclskOtionType::DEBUG_DCCI_DISABLE_ON_KERNEL);
     std::vector<std::string> disableDcciList;
     if (disableDcciOptions != nullptr) {
         disableDcciList = disableDcciOptions->GetStringListValue();
     }
 
+    if (node->GetNodeType() != SkNodeType::NODE_KERNEL) {
+        throw std::runtime_error("[sk error] unsupported node type for KERNEL task");
+    }
+
+    const KernelInfos &kernelInfo = node->GetNodeInfos().kernelInfos;
     TaskInfo &taskInfo = taskQue->taskInfos[taskQue->taskCnt];
-    taskInfo.index = index;
+    taskInfo.index = nodeIndex;
+    taskInfo.type = taskType;
+    taskInfo.originType = kernelInfo.kernelType;
+    taskInfo.numBlocks = numBlocks;
 
-    if (taskType == SkTaskType::TYPE_SYNC) {
-        taskInfo.type = taskType;
-        taskInfo.args = syncFlag;
-        if (opts.EnableDebug() && debugSyncAll == 1) {
-            taskInfo.debugOptions |= 0x2;
-        }
-    } else if (taskType == SkTaskType::TYPE_EVENT_NOTIFY || taskType == SkTaskType::TYPE_EVENT_WAIT) {
-        if (tasks[index]->GetNodeType() != SkNodeType::NODE_NOTIFY &&
-            tasks[index]->GetNodeType() != SkNodeType::NODE_WAIT) {
-            throw std::runtime_error("[sk error] unsupported node type for EVENT_NOTIFY/EVENT_WAIT task");
-        }
-        taskInfo.type = taskType;
-        taskInfo.args = (uint64_t)tasks[index]->GetNodeInfos().syncInfos.addrValue;
-    } else if (taskType == SkTaskType::TYPE_PRELOAD || taskType == SkTaskType::TYPE_FUNC) {
-        if (tasks[index]->GetNodeType() != SkNodeType::NODE_KERNEL) {
-            throw std::runtime_error("[sk error] unsupported node type for PRELOAD/FUNC task");
-        }
-        const KernelInfos &kernelInfo = tasks[index]->GetNodeInfos().kernelInfos;
-        taskInfo.type = taskType;
-        taskInfo.originType = kernelInfo.kernelType;
-        if (kernelInfo.kernelType == SkKernelType::MIX_AIC_1_2 && customArg == 1) {
-            taskInfo.numBlocks = kernelInfo.numBlocks * 2;
-        } else {
-            taskInfo.numBlocks = kernelInfo.numBlocks;
+    for (int i = 0; i < binCount; i++) {
+        const ResolvedFunctionInfo &resolved = kernelInfo.resolvedFuncs[i];
+        if (taskType == SkTaskType::TYPE_PRELOAD) {
+            std::pair<int,int> prefetchCntValue = GetPreFetchCnt(resolved);
+            if (i == 0) {
+                SK_LOGI("kernel name: %s, prefetch count: %d %d",
+                    kernelInfo.funcName.c_str(), prefetchCntValue.first, prefetchCntValue.second);
+            }
+            taskInfo.args = addrIndex == 0 ? prefetchCntValue.first : prefetchCntValue.second;
         }
 
-        for (int i = 0; i < binCount; i++) {
-            const ResolvedFunctionInfo &resolved = kernelInfo.resolvedFuncs[i];
-            if (taskType == SkTaskType::TYPE_PRELOAD) {
-                std::pair<int,int> prefetchCntValue = GetPreFetchCnt(resolved);
-                if (i == 0) {
-                    SK_LOGI("kernel name: %s, prefetch count: %d %d",
-                        kernelInfo.funcName.c_str(), prefetchCntValue.first, prefetchCntValue.second);
-                }
-                taskInfo.args = customArg == 0 ? prefetchCntValue.first : prefetchCntValue.second;
-            }
-            uint64_t addr = resolved.funcAddr[customArg];
-            if (addr == 0) {
-                throw std::runtime_error("[sk error] unresolved function address");
-            }
-
-            taskInfo.entryCnt += 1;
-            taskInfo.entry[i] = addr;
-            if (taskType == SkTaskType::TYPE_FUNC && dfxInfos) {
-                dfxInfos[index].binHdl = (uint64_t)kernelInfo.binHdl;
-                dfxInfos[index].funcHdlOri = (uint64_t)kernelInfo.funcHdl;
-            }
+        uint64_t addr = resolved.funcAddr[addrIndex];
+        if (addr == 0) {
+            throw std::runtime_error("[sk error] unresolved function address");
         }
 
-        if (taskType == SkTaskType::TYPE_FUNC) {
-            taskInfo.args = (uint64_t)kernelInfo.devArgs;
-            skTask.numBlocks = std::max(skTask.numBlocks, (uint32_t)taskInfo.numBlocks);
-            skTask.funcCnt++;
-            if (!disableDcciList.empty() && !kernelInfo.funcName.empty()) {
-                bool disable = opts.JudgeDisableKernelDcci(disableDcciList, kernelInfo.funcName);
-                if (disable) {
-                    taskInfo.debugOptions |= 0x1;
-                }
+        taskInfo.entryCnt++;
+        taskInfo.entry[i] = addr;
+
+        if (taskType == SkTaskType::TYPE_FUNC && dfxInfo) {
+            dfxInfo->binHdl = static_cast<uint64_t>(reinterpret_cast<uintptr_t>(kernelInfo.binHdl));
+            dfxInfo->funcHdlOri = static_cast<uint64_t>(reinterpret_cast<uintptr_t>(kernelInfo.funcHdl));
+        }
+    }
+
+    if (taskType == SkTaskType::TYPE_FUNC) {
+        taskInfo.args = static_cast<uint64_t>(reinterpret_cast<uintptr_t>(kernelInfo.devArgs));
+        skTask.numBlocks = std::max(skTask.numBlocks, static_cast<uint32_t>(taskInfo.numBlocks));
+        skTask.funcCnt++;
+
+        if (!disableDcciList.empty() && !kernelInfo.funcName.empty()) {
+            if (opts.JudgeDisableKernelDcci(disableDcciList, kernelInfo.funcName)) {
+                taskInfo.debugOptions |= 0x1;
             }
         }
-    } else {
-        throw std::runtime_error("[sk error] unsupported task type for AddTask");
     }
     taskQue->taskCnt++;
 }
 
-void SkTaskBuilder::DispatchTask(SkTask &skTaskCube, SkTask &skTaskVec, SkDfxInfo *dfxInfos,
-                                 const std::vector<SuperKernelBaseNode *> &tasks, size_t index,
-                                 int binCount, SkTaskType taskType)
+void SkTaskBuilder::DispatchFuncTask(SkTask &skTaskCube, SkTask &skTaskVec, SuperKernelBaseNode *node, SkDfxInfo *dfxInfo,
+                                     size_t nodeIndex, int binCount, SkTaskType taskType, SkQueueType queueType)
 {
-    auto calcBlocks = [&](const KernelInfos &kernelInfo, int customArg)
+    if (node->GetNodeType() != SkNodeType::NODE_KERNEL)
     {
-        if (kernelInfo.kernelType == SkKernelType::MIX_AIC_1_2 && customArg == 1)
-        {
-            return kernelInfo.numBlocks * 2;
-        }
-        return kernelInfo.numBlocks;
-    };
-    if (taskType == SkTaskType::TYPE_FUNC || taskType == SkTaskType::TYPE_PRELOAD)
-    {
-        if (tasks[index]->GetNodeType() != SkNodeType::NODE_KERNEL)
-        {
-            throw std::runtime_error("[sk error] unsupported node type for FUNC/PRELOAD task");
-        }
-        auto kernelInfo = tasks[index]->GetNodeInfos().kernelInfos;
-        switch (kernelInfo.kernelType)
-        {
-        case SkKernelType::AIV_ONLY:
-        case SkKernelType::MIX_AIV_1_0:
-            AddTask(skTaskVec, dfxInfos, tasks, index, SkKernelType::AIV_ONLY, 1, binCount, taskType);
-            SK_LOGI("task insert: stask %zu, queue=aiv, type=%s, kernel=%s, numBlocks=%u",
-                   index, to_string(taskType), to_string(kernelInfo.kernelType),
-                   calcBlocks(kernelInfo, 1));
-            break;
-        case SkKernelType::AIC_ONLY:
-        case SkKernelType::MIX_AIC_1_0:
-            AddTask(skTaskCube, dfxInfos, tasks, index, SkKernelType::AIC_ONLY, 0, binCount, taskType);
-            SK_LOGI("task insert: stask %zu, queue=aic, type=%s, kernel=%s, numBlocks=%u",
-                   index, to_string(taskType), to_string(kernelInfo.kernelType),
-                   calcBlocks(kernelInfo, 0));
-            break;
-        case SkKernelType::MIX_AIC_1_1:
-            AddTask(skTaskCube, dfxInfos, tasks, index, SkKernelType::MIX_AIC_1_1, 0, binCount, taskType);
-            AddTask(skTaskVec, dfxInfos, tasks, index, SkKernelType::MIX_AIC_1_1, 1, binCount, taskType);
-            SK_LOGI("task insert: stask %zu, queue=aic, type=%s, kernel=%s, numBlocks=%u",
-                   index, to_string(taskType), to_string(kernelInfo.kernelType),
-                   calcBlocks(kernelInfo, 0));
-            SK_LOGI("task insert: stask %zu, queue=aiv, type=%s, kernel=%s, numBlocks=%u",
-                   index, to_string(taskType), to_string(kernelInfo.kernelType),
-                   calcBlocks(kernelInfo, 1));
-            break;
-        case SkKernelType::MIX_AIC_1_2:
-            AddTask(skTaskCube, dfxInfos, tasks, index, SkKernelType::MIX_AIC_1_2, 0, binCount, taskType);
-            AddTask(skTaskVec, dfxInfos, tasks, index, SkKernelType::MIX_AIC_1_2, 1, binCount, taskType);
-            skTaskVec.nodeType = SkKernelType::MIX_AIC_1_2;
-            skTaskCube.nodeType = SkKernelType::MIX_AIC_1_2;
-            SK_LOGI(" task insert: stask %zu, queue=aic, type=%s, kernel=%s, numBlocks=%u",
-                   index, to_string(taskType), to_string(kernelInfo.kernelType),
-                   calcBlocks(kernelInfo, 0));
-            SK_LOGI(" task insert: stask %zu, queue=aiv, type=%s, kernel=%s, numBlocks=%u",
-                   index, to_string(taskType), to_string(kernelInfo.kernelType),
-                   calcBlocks(kernelInfo, 1));
-            break;
-        default:
-            SK_LOGE("unsupported kernel type %s for super kernel, aborting", to_string(kernelInfo.kernelType));
-            throw std::runtime_error("[sk error] Unsupported kernel type for super kernel.");
-        }
+        throw std::runtime_error("[sk error] unsupported node type for FUNC/PRELOAD task");
     }
-    else if (taskType == SkTaskType::TYPE_EVENT_NOTIFY || taskType == SkTaskType::TYPE_EVENT_WAIT)
+    auto kernelInfo = node->GetNodeInfos().kernelInfos;
+    switch (queueType)
     {
-        if (tasks[index]->GetNodeType() != SkNodeType::NODE_NOTIFY &&
-            tasks[index]->GetNodeType() != SkNodeType::NODE_WAIT)
-        {
-            throw std::runtime_error("[sk error] unsupported node type for EVENT_NOTIFY/EVENT_WAIT task");
-        }
-        auto queueType = taskSyncInfos_[index].queueType;
-        SkTask *targetTask = nullptr;
-        switch (queueType)
-        {
-        case SkQueueType::AIC:
-            targetTask = &skTaskCube;
-            break;
-        case SkQueueType::AIV:
-            targetTask = &skTaskVec;
-            break;
-        default:
-            throw std::runtime_error("[sk error] unsupported kernel type for event notify/wait task");
-        }
-        AddTask(*targetTask, nullptr, tasks, index, SkKernelType::DEFAULT, 0, 0, taskType);
-        uint64_t eventId = tasks[index]->GetEventId();
-        uint64_t nodeId;
-        const char *nodeIdName;
-        if (taskType == SkTaskType::TYPE_EVENT_NOTIFY) {
-            nodeId = tasks[index]->GetNodeId();
-            nodeIdName = "notifyNodeId";
-        } else {
-            nodeId = tasks[index]->GetNodeId();
-            nodeIdName = "waitNodeId";
-        }
-        SK_LOGI("task insert: stask %zu, queue=%s, type=%s, eventId=%lu, %s=%lu",
-               index, to_string(queueType), to_string(taskType), eventId, nodeIdName, nodeId);
+    case SkQueueType::AIV:
+    {
+        uint32_t numBlocks = kernelInfo.numBlocks;
+        AddFuncTask(skTaskVec, node, dfxInfo, nodeIndex, 1, binCount, taskType, numBlocks);
+        SK_LOGI("task insert: stask %zu, queue=aiv, type=%s, kernel=%s, numBlocks=%u",
+               nodeIndex, to_string(taskType), to_string(queueType), numBlocks);
+        break;
     }
-    else
+    case SkQueueType::AIC:
     {
-        throw std::runtime_error("[sk error] unsupported task type for DispatchTask");
+        uint32_t numBlocks = kernelInfo.numBlocks;
+        AddFuncTask(skTaskCube, node, dfxInfo, nodeIndex, 0, binCount, taskType, numBlocks);
+        SK_LOGI("task insert: stask %zu, queue=aic, type=%s, kernel=%s, numBlocks=%u",
+               nodeIndex, to_string(taskType), to_string(queueType), numBlocks);
+        break;
+    }
+    case SkQueueType::MIX_1_1:
+    {
+        uint32_t numBlocksAic = kernelInfo.numBlocks;
+        uint32_t numBlocksAiv = kernelInfo.numBlocks;
+        AddFuncTask(skTaskCube, node, dfxInfo, nodeIndex, 0, binCount, taskType, numBlocksAic);
+        AddFuncTask(skTaskVec, node, dfxInfo, nodeIndex, 1, binCount, taskType, numBlocksAiv);
+        SK_LOGI("task insert: stask %zu, queue=aic, type=%s, kernel=%s, numBlocks=%u",
+               nodeIndex, to_string(taskType), to_string(queueType), numBlocksAic);
+        SK_LOGI("task insert: stask %zu, queue=aiv, type=%s, kernel=%s, numBlocks=%u",
+               nodeIndex, to_string(taskType), to_string(queueType), numBlocksAiv);
+        break;
+    }
+    case SkQueueType::MIX_1_2:
+    {
+        uint32_t numBlocksAic = kernelInfo.numBlocks;
+        uint32_t numBlocksAiv = kernelInfo.numBlocks * 2;
+        AddFuncTask(skTaskCube, node, dfxInfo, nodeIndex, 0, binCount, taskType, numBlocksAic);
+        AddFuncTask(skTaskVec, node, dfxInfo, nodeIndex, 1, binCount, taskType, numBlocksAiv);
+        skTaskVec.nodeType = SkKernelType::MIX_AIC_1_2;
+        skTaskCube.nodeType = SkKernelType::MIX_AIC_1_2;
+        SK_LOGI(" task insert: stask %zu, queue=aic, type=%s, kernel=%s, numBlocks=%u",
+               nodeIndex, to_string(taskType), to_string(queueType), numBlocksAic);
+        SK_LOGI(" task insert: stask %zu, queue=aiv, type=%s, kernel=%s, numBlocks=%u",
+               nodeIndex, to_string(taskType), to_string(queueType), numBlocksAiv);
+        break;
+    }
+    default:
+        SK_LOGE("unsupported kernel type %s for super kernel, aborting", to_string(queueType));
+        throw std::runtime_error("[sk error] Unsupported kernel type for super kernel.");
     }
 }
 
-void SkTaskBuilder::DispatchTaskSync(SkTask &skTaskCube, SkTask &skTaskVec, SkDfxInfo *dfxInfos,
-                                     const std::vector<SuperKernelBaseNode *> &tasks, size_t index, int binCount,
-                                     SkTaskType taskType, SkCoreSyncType syncFlag, bool addToAicQue, bool addToAivQue,
-                                     SkQueueType prevType, SkQueueType nextType, const char *detail)
+void SkTaskBuilder::DispatchEventTask(SkTask &skTaskCube, SkTask &skTaskVec, SuperKernelBaseNode *node,
+                                     size_t nodeIndex, SkTaskType taskType, SkQueueType queueType)
 {
-    if (addToAicQue)
+    if (node->GetNodeType() != SkNodeType::NODE_NOTIFY &&
+        node->GetNodeType() != SkNodeType::NODE_WAIT &&
+        node->GetNodeType() != SkNodeType::NODE_RESET)
     {
-        AddTask(skTaskCube, dfxInfos, tasks, index, SkKernelType::DEFAULT, 0, binCount, taskType,
-                static_cast<uint32_t>(syncFlag));
-        SK_LOGI("sync insert: stask %zu, queue=aic, type=%s, flag=%s, prev=%s, next=%s%s%s",
-               index, to_string(taskType), to_string(syncFlag),
-               to_string(prevType), to_string(nextType),
-               detail ? ", detail=" : "", detail ? detail : "");
+        throw std::runtime_error("[sk error] unsupported node type for EVENT_NOTIFY/EVENT_WAIT/EVENT_RESET task");
     }
-    if (addToAivQue)
+    SkTask *targetTask = nullptr;
+    switch (queueType)
     {
-        AddTask(skTaskVec, dfxInfos, tasks, index, SkKernelType::DEFAULT, 0, binCount, taskType,
-                static_cast<uint32_t>(syncFlag));
-        SK_LOGI("sync insert: stask %zu, queue=aiv, type=%s, flag=%s, prev=%s, next=%s%s%s",
-               index, to_string(taskType), to_string(syncFlag),
-               to_string(prevType), to_string(nextType),
-               detail ? ", detail=" : "", detail ? detail : "");
+    case SkQueueType::AIC:
+        targetTask = &skTaskCube;
+        break;
+    case SkQueueType::AIV:
+        targetTask = &skTaskVec;
+        break;
+    case SkQueueType::MIX_1_1:
+    case SkQueueType::MIX_1_2:
+    default:
+        targetTask = &skTaskVec;
+        break;
     }
+    AddEventTask(*targetTask, node, nodeIndex, taskType);
+    uint64_t eventId = node->GetEventId();
+    uint64_t nodeId = node->GetNodeId();
+    SK_LOGI("task insert: stask %zu, [queue=%s], [type=%s], [eventId=%lu], [nodeId=%lu]",
+           nodeIndex, to_string(queueType), to_string(taskType), eventId, nodeId);
 }
 
 // ========== 辅助函数：批量处理同步任务 ==========
 
-void SkTaskBuilder::DispatchSyncTasks(SkTask &skTaskCube, SkTask &skTaskVec, SkDfxInfo *dfxInfos,
-                                      const std::vector<SuperKernelBaseNode *> &tasks,
+void SkTaskBuilder::DispatchSyncTasks(SkTask &skTaskCube, SkTask &skTaskVec, size_t nodeIndex,
                                       const std::map<size_t, SyncDirection> &syncInfo,
-                                      size_t myIdx, int binCount, bool isSend)
+                                      bool isSend, SkQueueType queueType)
 {
-    SkQueueType myType = taskSyncInfos_[myIdx].queueType;
-
-    for (const auto &kv : syncInfo)
-    {
+    for (const auto &kv : syncInfo) {
         size_t peerIdx = kv.first;
         SyncDirection dir = kv.second;
         SkQueueType peerType = taskSyncInfos_[peerIdx].queueType;
@@ -1183,25 +1203,24 @@ void SkTaskBuilder::DispatchSyncTasks(SkTask &skTaskCube, SkTask &skTaskVec, SkD
         bool addToAivQue = false;
         SkQueueType prevType = SkQueueType::UNKNOWN;
         SkQueueType nextType = SkQueueType::UNKNOWN;
-        switch (syncType)
-        {
+        switch (syncType) {
         case SkCoreSyncType::CROSS_SYNC_AIC_TO_AIC:
             addToAicQue = true;
             addToAivQue = false;
-            prevType = myType;
+            prevType = queueType;
             nextType = SkQueueType::UNKNOWN;
             break;
         case SkCoreSyncType::CROSS_SYNC_AIV_TO_AIV:
             addToAicQue = false;
             addToAivQue = true;
-            prevType = myType;
+            prevType = queueType;
             nextType = SkQueueType::UNKNOWN;
             break;
         case SkCoreSyncType::INTER_SYNC_SET_AIV_TO_AIC:
             // AIV SET信号：插入AIV队列
             addToAicQue = false;
             addToAivQue = true;
-            prevType = myType;
+            prevType = queueType;
             nextType = peerType;
             break;
         case SkCoreSyncType::INTER_SYNC_WAIT_AIV_TO_AIC:
@@ -1209,13 +1228,13 @@ void SkTaskBuilder::DispatchSyncTasks(SkTask &skTaskCube, SkTask &skTaskVec, SkD
             addToAicQue = true;
             addToAivQue = false;
             prevType = peerType;
-            nextType = myType;
+            nextType = queueType;
             break;
         case SkCoreSyncType::INTER_SYNC_SET_AIC_TO_AIV:
             // AIC SET信号：插入AIC队列
             addToAicQue = true;
             addToAivQue = false;
-            prevType = myType;
+            prevType = queueType;
             nextType = peerType;
             break;
         case SkCoreSyncType::INTER_SYNC_WAIT_AIC_TO_AIV:
@@ -1223,24 +1242,31 @@ void SkTaskBuilder::DispatchSyncTasks(SkTask &skTaskCube, SkTask &skTaskVec, SkD
             addToAicQue = false;
             addToAivQue = true;
             prevType = peerType;
-            nextType = myType;
+            nextType = queueType;
             break;
-        case SkCoreSyncType::ALL_SYNC_DEBUG:
+        case SkCoreSyncType::ALL_SYNC:
             addToAicQue = true;
             addToAivQue = true;
             prevType = SkQueueType::UNKNOWN;
-            nextType = SkQueueType::UNKNOWN; // special case for debug sync
+            nextType = SkQueueType::UNKNOWN;
             break;
         default:
-        {
             SK_LOGE("unknown sync type %s, skipping", to_string(syncType));
             continue;
         }
-        }
 
-        DispatchTaskSync(skTaskCube, skTaskVec, dfxInfos, tasks, myIdx, binCount,
-                         SkTaskType::TYPE_SYNC, syncType, addToAicQue, addToAivQue,
-                         prevType, nextType, to_string(syncType));
+        if (addToAicQue) {
+            AddSyncTask(skTaskCube, nodeIndex, syncType);
+            SK_LOGI("sync insert: stask %zu, queue=aic, type=%s, flag=%s, prev=%s, next=%s",
+                   nodeIndex, to_string(SkTaskType::TYPE_SYNC), to_string(syncType),
+                   to_string(prevType), to_string(nextType));
+        }
+        if (addToAivQue) {
+            AddSyncTask(skTaskVec, nodeIndex, syncType);
+            SK_LOGI("sync insert: stask %zu, queue=aiv, type=%s, flag=%s, prev=%s, next=%s",
+                   nodeIndex, to_string(SkTaskType::TYPE_SYNC), to_string(syncType),
+                   to_string(prevType), to_string(nextType));
+        }
     }
 }
 
@@ -1310,9 +1336,9 @@ SkHostEntryInfo SkTaskBuilder::GenEntryInfo(SkTask &skTaskCube, SkTask &skTaskVe
     return entryInfo;
 }
 
-// ========== Build方法（使用新的同步逻辑） ==========
-
-SkLaunchInfo SkTaskBuilder::Build(const std::vector<SuperKernelBaseNode *> &tasks)
+// generate the final launch info for super kernel execution
+SkLaunchInfo SkTaskBuilder::Build(const std::vector<SuperKernelBaseNode *> &tasks,
+                                  const std::vector<SuperKernelBaseNode *> &customTasks)
 {
     SkLaunchInfo launchInfo;
 
@@ -1370,6 +1396,12 @@ SkLaunchInfo SkTaskBuilder::Build(const std::vector<SuperKernelBaseNode *> &task
     // ========== 阶段2：后处理优化sync关系 ==========
     OptimizeSyncRelations();
 
+    // ========== stage3: add sync info for custom tasks ==========
+    if(!customTasks.empty()) {
+        SK_LOGI("add sync info for custom tasks, customTaskCount=%zu", customTasks.size());
+        taskSyncInfos_.back().crossSyncInfo[0] = SyncDirection::ALL_SYNC;
+    }
+
     // [DEBUG] 下输出最终的同步关系
     if (opts.EnableDebug() && debugSyncAll)
     {
@@ -1383,47 +1415,52 @@ SkLaunchInfo SkTaskBuilder::Build(const std::vector<SuperKernelBaseNode *> &task
             taskSyncInfos_[i].vecSendInfo.clear();
             taskSyncInfos_[i].cubSendInfo.clear();
             taskSyncInfos_[i].crossSyncInfo.clear();
-            taskSyncInfos_[i].crossSyncInfo[0] = SyncDirection::DEBUG;
+            taskSyncInfos_[i].crossSyncInfo[0] = SyncDirection::ALL_SYNC;
         }
     }
     // ========== 阶段3：构建任务队列 ==========
+    SK_LOGI("start build tasks for super kernel, taskCount=%zu", taskCount);
     int preloadCount = 1;
     SK_LOGI("add preload tasks, preload count is %d, task count is %d", preloadCount, taskCount);
     for (int i = 0; i < preloadCount && i < static_cast<int>(taskCount); i++)
     {
         if (filteredTasks[i]->GetNodeType() == SkNodeType::NODE_KERNEL)
         {
-            DispatchTask(aicTask, aivTask, dfxInfos.get(), filteredTasks, i, splitBinCount, SkTaskType::TYPE_PRELOAD);
+            SkQueueType queueType = taskSyncInfos_[i].queueType;
+            DispatchFuncTask(aicTask, aivTask, filteredTasks[i], dfxInfos.get() + i,
+                             i, splitBinCount, SkTaskType::TYPE_PRELOAD, queueType);
         }
     }
 
-    SK_LOGI("Disapatch tasks...");
+    SK_LOGI("start dispatch tasks...");
     for (int i = 0; i < static_cast<int>(taskCount); i++)
     {
         SK_LOGI("index=%d, nodeType=%s", i, to_string(filteredTasks[i]->GetNodeType()));
 
         auto &info = taskSyncInfos_[i];
+        SkQueueType queueType = info.queueType;
 
-        // 1. 插入核内同步WAIT信号（在任务启动前
+        // 1. 插入核内同步WAIT信号（在任务启动前）
         SK_LOGI("add sync task for vec recv, vec recv size %d", info.vecRecvInfo.size());
-        DispatchSyncTasks(aicTask, aivTask, dfxInfos.get(), filteredTasks, info.vecRecvInfo, i, splitBinCount, false);
+        DispatchSyncTasks(aicTask, aivTask, i, info.vecRecvInfo, false, queueType);
         SK_LOGI("add sync task for vec recv, cub recv size %d", info.cubRecvInfo.size());
-        DispatchSyncTasks(aicTask, aivTask, dfxInfos.get(), filteredTasks, info.cubRecvInfo, i, splitBinCount, false);
+        DispatchSyncTasks(aicTask, aivTask, i, info.cubRecvInfo, false, queueType);
 
         // 2. 添加功能任务
         switch (filteredTasks[i]->GetNodeType())
         {
         case SkNodeType::NODE_KERNEL:
             SK_LOGI("add func task, task index is %d", i);
-            DispatchTask(aicTask, aivTask, dfxInfos.get(), filteredTasks, i, splitBinCount, SkTaskType::TYPE_FUNC);
+            DispatchFuncTask(aicTask, aivTask, filteredTasks[i], dfxInfos.get() + i,
+                             i, splitBinCount, SkTaskType::TYPE_FUNC, queueType);
             break;
         case SkNodeType::NODE_NOTIFY:
             SK_LOGI("add notify task, task index is %d", i);
-            DispatchTask(aicTask, aivTask, dfxInfos.get(), filteredTasks, i, splitBinCount, SkTaskType::TYPE_EVENT_NOTIFY);
+            DispatchEventTask(aicTask, aivTask, filteredTasks[i], i, SkTaskType::TYPE_EVENT_NOTIFY, queueType);
             break;
         case SkNodeType::NODE_WAIT:
             SK_LOGI("add wait task, task index is %d", i);
-            DispatchTask(aicTask, aivTask, dfxInfos.get(), filteredTasks, i, splitBinCount, SkTaskType::TYPE_EVENT_WAIT);
+            DispatchEventTask(aicTask, aivTask, filteredTasks[i], i, SkTaskType::TYPE_EVENT_WAIT, queueType);
             break;
         default:
             SK_LOGW("process task %d: unsupported node type %s, skipping (supported types: KERNEL, NOTIFY, WAIT)",
@@ -1434,19 +1471,61 @@ SkLaunchInfo SkTaskBuilder::Build(const std::vector<SuperKernelBaseNode *> &task
         // 3. 添加预加载任务
         if (preloadCount > 0 && i + preloadCount < static_cast<int>(taskCount) && filteredTasks[i + preloadCount]->GetNodeType() == SkNodeType::NODE_KERNEL)
         {
+            SkQueueType preloadQueueType = taskSyncInfos_[i + preloadCount].queueType;
             SK_LOGI("add preload tasks, task index is %d", i + preloadCount);
-            DispatchTask(aicTask, aivTask, dfxInfos.get(), filteredTasks, i + preloadCount, splitBinCount, SkTaskType::TYPE_PRELOAD);
+            DispatchFuncTask(aicTask, aivTask, filteredTasks[i + preloadCount],
+                             dfxInfos.get() + i + preloadCount, i + preloadCount,
+                             splitBinCount, SkTaskType::TYPE_PRELOAD, preloadQueueType);
         }
 
         // 4. 插入核间同步信号 or 强行为DEBUG信号
         SK_LOGI("add sync task for cross sync info, cross sync info size %d", info.crossSyncInfo.size());
-        DispatchSyncTasks(aicTask, aivTask, dfxInfos.get(), filteredTasks, info.crossSyncInfo, i, splitBinCount, true);
+        DispatchSyncTasks(aicTask, aivTask, i, info.crossSyncInfo, true, queueType);
 
-        // 5. 插入核内同步SET信号（在任务结束后
+        // 5. 插入核内同步SET信号（在任务结束后）
         SK_LOGI("add sync task for vec send, vec send size %d", info.vecSendInfo.size());
-        DispatchSyncTasks(aicTask, aivTask, dfxInfos.get(), filteredTasks, info.vecSendInfo, i, splitBinCount, true);
+        DispatchSyncTasks(aicTask, aivTask, i, info.vecSendInfo, true, queueType);
         SK_LOGI("add sync task for cub send, cub send size %d", info.cubSendInfo.size());
-        DispatchSyncTasks(aicTask, aivTask, dfxInfos.get(), filteredTasks, info.cubSendInfo, i, splitBinCount, true);
+        DispatchSyncTasks(aicTask, aivTask, i, info.cubSendInfo, true, queueType);
+    }
+    SK_LOGI("Finish build tasks for super kernel");
+
+    if(!customTasks.empty()) {
+        SK_LOGI("start process custom tasks");
+        SK_LOGI("direct add custom tasks");
+        constexpr size_t kInvalidCustomTaskIndex =
+            static_cast<size_t>(std::numeric_limits<uint32_t>::max());
+        std::unordered_map<uint64_t, SuperKernelBaseNode*> kernelNodeCache;
+        for (size_t i = 0; i < customTasks.size(); i++) {
+            auto *node = customTasks[i];
+            auto *kernel = FindKernelNodeInDirection(node->GetPreNodeId(), graph_,
+                                                     SearchDirection::PREV, kernelNodeCache);
+            if (kernel == nullptr) {
+                SK_LOGE("custom task %zu: failed to resolve previous KERNEL node, nodeId=%lu, skipping",
+                       i, node->GetNodeId());
+                continue;
+            }
+            // Synthesized event nodes do not belong to any real graph stream.
+            // Keep the existing minimal-impact convention: reuse the scope-tail
+            // anchor recorded in preNodeId and infer queue type from the nearest
+            // previous kernel on that path.
+            auto queueType = (ToQueueType(GetKernelInfos(kernel).kernelType) == SkQueueType::AIC)
+                                         ? SkQueueType::AIC
+                                         : SkQueueType::AIV;
+
+            // Custom tasks are event nodes (notify/wait/reset), use EventTask dispatch
+            if (node->GetNodeType() == SkNodeType::NODE_NOTIFY) {
+                DispatchEventTask(aicTask, aivTask, node, kInvalidCustomTaskIndex,
+                                  SkTaskType::TYPE_EVENT_NOTIFY, queueType);
+            } else if (node->GetNodeType() == SkNodeType::NODE_WAIT) {
+                DispatchEventTask(aicTask, aivTask, node, kInvalidCustomTaskIndex,
+                                  SkTaskType::TYPE_EVENT_WAIT, queueType);
+            } else if (node->GetNodeType() == SkNodeType::NODE_RESET) {
+                DispatchEventTask(aicTask, aivTask, node, kInvalidCustomTaskIndex,
+                                  SkTaskType::TYPE_EVENT_RESET, queueType);
+            }
+        }
+        SK_LOGI("finish process custom tasks");
     }
 
     SK_LOGI("Get entry info...");

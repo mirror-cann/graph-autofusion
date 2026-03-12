@@ -39,8 +39,8 @@ constexpr uint32_t TASK_QUE_EXPAND_FACTOR = 2;       // TaskQue扩容因子
 
 constexpr uint32_t MAX_TASK_NUM = 1000;
 constexpr uint32_t MAX_SCOPE_NUM = 64;
-constexpr uint64_t INVALID_TASK_ID = 0xFFFFFFFFFFFFFFFF;
-
+constexpr uint32_t INVALID_STREAM_ID = std::numeric_limits<uint32_t>::max();
+constexpr uint64_t INVALID_TASK_ID = std::numeric_limits<uint64_t>::max();
 inline size_t GetTaskQueSize(const TaskQue *que) {
     if (que == nullptr) {
         return 0;

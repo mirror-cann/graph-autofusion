@@ -17,6 +17,7 @@
 #include <vector>
 #include "sk_optimizer.h"
 #include "sk_scope_split.h"
+#include "sk_scope_postprocess.h"
 #include "sk_task_builder.h"
 #include "sk_log.h"
 
@@ -43,9 +44,15 @@ aclrtFuncHandle ResolveSkEntryFunc(const char *funcName) {
 } // namespace
 
 // 调度执行任务流节点
-void SuperKernelOptimizer::Schedule(const SuperKernelScopeInfo &scopeInfo,
-                                    const SuperKernelGraph &graph) {
-    auto taskNodes = scopeInfo.nodes;
+void SuperKernelOptimizer::Schedule(SuperKernelProcessedScopeInfo &processedScopeInfo,
+                                    SuperKernelGraph &graph,
+                                    SkTaskBuilder &builder) {
+    const auto &taskNodes = processedScopeInfo.nodes;
+    std::vector<SuperKernelBaseNode *> customTasks;
+    customTasks.reserve(processedScopeInfo.eventNodes.size());
+    for (const auto &eventNode : processedScopeInfo.eventNodes) {
+        customTasks.emplace_back(eventNode.get());
+    }
     if (taskNodes.empty()) {
         SK_LOGW("no tasks for super kernel optimization: scope has 0 nodes");
         return;
@@ -53,8 +60,7 @@ void SuperKernelOptimizer::Schedule(const SuperKernelScopeInfo &scopeInfo,
 
     SK_LOGI("total task count for optimization: %zu", taskNodes.size());
 
-    SkTaskBuilder builder(opts, graph);
-    SkLaunchInfo launchInfo = builder.Build(taskNodes);
+    SkLaunchInfo launchInfo = builder.Build(taskNodes, customTasks);
 
     aclrtFuncHandle skEntryFunc = ResolveSkEntryFunc(launchInfo.entryInfo.skEntryFuncName);
     if (skEntryFunc == nullptr) {
@@ -62,38 +68,97 @@ void SuperKernelOptimizer::Schedule(const SuperKernelScopeInfo &scopeInfo,
         return;
     }
 
-    Update(scopeInfo, launchInfo, skEntryFunc);
+    Update(processedScopeInfo, graph, launchInfo, skEntryFunc);
 }
 
-void SuperKernelOptimizer::Update(const SuperKernelScopeInfo &scopeInfo,
-                                   const SkLaunchInfo &launchInfo,
-                                   aclrtFuncHandle skEntryFunc) {
-    bool foundMain = false;
-    for (auto* node : scopeInfo.nodes) {
-        UpdateContext ctx;
-        if (node->GetNodeType() == SkNodeType::NODE_KERNEL && !foundMain) {
-            ctx.launchInfo = const_cast<SkLaunchInfo*>(&launchInfo);
-            ctx.skEntryFunc = skEntryFunc;
-            foundMain = true;
+void SuperKernelOptimizer::Update(SuperKernelProcessedScopeInfo &processedScopeInfo,
+                                  SuperKernelGraph &graph,
+                                  const SkLaunchInfo &launchInfo,
+                                  aclrtFuncHandle skEntryFunc) {
+    bool skMainNodeUpdated = false;
+    size_t updateFailCount = 0;
+    size_t updateTotalCount = 0;
+    for (auto &streamInfo : processedScopeInfo.updateStreamInfos) {
+        size_t customParamSize = streamInfo.customParams.size();
+        if(streamInfo.nodeSize < customParamSize){
+            SK_LOGE("node size is less than custom params size: nodeSize=%lu, customParamSize=%zu", streamInfo.nodeSize, customParamSize);
+            continue;
         }
-        node->Update(ctx); // 根据不同的ctx执行不同的Update行为，顶层屏蔽细节
+        
+        uint64_t curNodeId = streamInfo.headNodeIdx;
+        size_t eventCnt = 0;
+
+        while (curNodeId != INVALID_TASK_ID) {
+            auto *node = graph.GetNodeById(curNodeId);
+            if (node == nullptr) {
+                SK_LOGE("node not found during stream-based update: nodeId=%lu, streamIdx=%u",
+                        curNodeId, streamInfo.streamIdx);
+                // Continue with next stream when this stream chain is broken.
+                break;
+            }
+            UpdateContext ctx;
+            if (eventCnt < customParamSize){
+                // Feature(aclmdIRITaskParams): customParams source type will change
+                // after post-process migrates from aclrtTaskEventParams to IR-task params.
+                // set front node for stream sync
+                auto &customParams = streamInfo.customParams[eventCnt++];
+                ctx.customParams = &customParams;
+            } else if (curNodeId == processedScopeInfo.skMainNodeId) {
+                // search node for sk launch after front node
+                if (!skMainNodeUpdated){
+                    skMainNodeUpdated = true;
+                    ctx.launchInfo = const_cast<SkLaunchInfo *>(&launchInfo);
+                    ctx.skEntryFunc = skEntryFunc;
+                } else {
+                    SK_LOGE("repeat find sk launch node, skip update kernel and set invalid node");
+                }
+            }
+
+            ++updateTotalCount;
+            if (!node->Update(ctx)) { // default invalid
+                ++updateFailCount;
+                SK_LOGW("node update failed: nodeId=%lu, streamIdx=%u", curNodeId, streamInfo.streamIdx);
+            }
+
+            if (curNodeId == streamInfo.tailNodeIdx) {
+                break;
+            }
+            curNodeId = node->GetNextNodeId();
+        }
+    }
+
+    if (!skMainNodeUpdated) {
+        SK_LOGE("not find sk launch node, sk optimize faild");
+    }
+
+    if (updateFailCount > 0) {
+        SK_LOGW("scope update finished with failures: failed=%zu, total=%zu", updateFailCount, updateTotalCount);
+    } else {
+        SK_LOGI("scope update finished: failed=0, total=%zu", updateTotalCount);
+    }
+
+    if(updateTotalCount != processedScopeInfo.nodes.size()){
+        SK_LOGE("update node count mismatch: expected=%zu, actual=%zu", processedScopeInfo.nodes.size(), updateTotalCount);
     }
 }
 
 void SuperKernelOptimizer::Process(SuperKernelGraph &graph) {
     // 切分图为多个子图
     SuperKernelScopeSplitter splitter(graph);
-    if(splitter.SplitSingleStreamGraph()) {
+    if(splitter.SplitGraph()) {
         SK_LOGI("graph split into %zu scopes", splitter.GetScopeInfos().size());
     } else {
         SK_LOGW("graph split failed or no scopes found: cannot proceed with super kernel optimization");
         return;
     }
+    auto &scopeInfos = splitter.GetScopeInfos();
 
-    auto scopeInfos = splitter.GetScopeInfos();
+    SkTaskBuilder builder(opts, graph);
+    SuperKernelScopePostProcessor postProcessor(graph);
 
     // 逐个处理每个子图
-    for (auto scopeInfo : scopeInfos) {
-        Schedule(scopeInfo, graph);
+    for (auto &scopeInfo : scopeInfos) {
+        SuperKernelProcessedScopeInfo processedScopeInfo = postProcessor.PostProcess(scopeInfo);
+        Schedule(processedScopeInfo, graph, builder);
     }
 }

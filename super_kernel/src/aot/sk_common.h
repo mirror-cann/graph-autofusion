@@ -63,8 +63,9 @@ enum class SkTaskType : uint8_t {
     TYPE_FUNC,
     TYPE_SYNC,
     TYPE_PRELOAD,
-    TYPE_EVENT_NOTIFY,  // notify <---> wait
-    TYPE_EVENT_WAIT,    // notify <---> wait
+    TYPE_EVENT_NOTIFY,
+    TYPE_EVENT_WAIT,
+    TYPE_EVENT_RESET,
     TYPE_MAX,
 };
 
@@ -75,12 +76,13 @@ inline const char* to_string(SkTaskType type) {
         case SkTaskType::TYPE_PRELOAD:      return "PRELOAD";
         case SkTaskType::TYPE_EVENT_NOTIFY: return "EVENT_NOTIFY";
         case SkTaskType::TYPE_EVENT_WAIT:   return "EVENT_WAIT";
+        case SkTaskType::TYPE_EVENT_RESET:  return "EVENT_RESET";
         default: return "UNKNOWN";
     }
 }
 
 enum class SkCoreSyncType : uint8_t {
-    ALL_SYNC_DEBUG = 0,
+    ALL_SYNC = 0,
     CROSS_SYNC_AIC_TO_AIC,
     CROSS_SYNC_AIV_TO_AIV,
     INTER_SYNC_SET_AIC_TO_AIV,
@@ -92,9 +94,9 @@ enum class SkCoreSyncType : uint8_t {
 
 inline const char* to_string(SkCoreSyncType type) {
     switch (type) {
-        case SkCoreSyncType::ALL_SYNC_DEBUG:          return "ALL_SYNC_DEBUG";
-        case SkCoreSyncType::CROSS_SYNC_AIC_TO_AIC:   return "CROSS_AIC_TO_AIC";
-        case SkCoreSyncType::CROSS_SYNC_AIV_TO_AIV:   return "CROSS_AIV_TO_AIV";
+        case SkCoreSyncType::ALL_SYNC:          return "ALL_SYNC";
+        case SkCoreSyncType::CROSS_SYNC_AIC_TO_AIC:   return "AIC_TO_AIC";
+        case SkCoreSyncType::CROSS_SYNC_AIV_TO_AIV:   return "AIV_TO_AIV";
         case SkCoreSyncType::INTER_SYNC_SET_AIC_TO_AIV: return "SET_AIC_TO_AIV";
         case SkCoreSyncType::INTER_SYNC_SET_AIV_TO_AIC: return "SET_AIV_TO_AIC";
         case SkCoreSyncType::INTER_SYNC_WAIT_AIC_TO_AIV: return "WAIT_AIC_TO_AIV";
