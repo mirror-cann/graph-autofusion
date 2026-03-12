@@ -273,13 +273,15 @@ aclError aclrtGetFunctionAttribute(aclrtFuncHandle funcHandle, aclrtFuncAttribut
     return ACL_ERROR_NONE;
 }
 
-// Scope begin stub - signature matches sk_scope_launch.cpp declaration
+aclrtBinHandle AscendGetEntryBinHandle()
+{
+    return reinterpret_cast<aclrtBinHandle>(0x1234);
+} 
+
 void sk_scope_kernel_begin_do(void* stream, ScopeKernelArgs args) {
     (void)stream;
     (void)args;
 }
-
-// Scope end stub - signature matches sk_scope_launch.cpp declaration
 void sk_scope_kernel_end_do(void* stream, ScopeKernelArgs args) {
     (void)stream;
     (void)args;

@@ -21,6 +21,7 @@ extern "C" {
 // Error codes
 static const int ACL_SUCCESS = 0;
 static const int ACL_ERROR_NONE = 0;
+static const int ACL_ERROR_FAILURE = 500001;
 static const int ACL_ERROR_INVALID_PARAM = 100000;
 
 // EOK for secure functions

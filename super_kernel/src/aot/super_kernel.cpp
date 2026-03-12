@@ -45,7 +45,6 @@ aclError aclskOptimize(aclmdlRI model, aclskOptions *options) {
     return ACL_SUCCESS;
 }
 
-
 aclError aclskScopeBegin(const char* scopeName, aclrtStream stream) {
     if (scopeName[0] == '\0') {
         SK_LOGE("Invalid scopeName: name is empty.");

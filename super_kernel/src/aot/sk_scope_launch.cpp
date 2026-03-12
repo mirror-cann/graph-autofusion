@@ -43,6 +43,7 @@ static aclError LaunchScopeKernelImpl(const char* scopeName, aclrtStream stream,
         return ACL_ERROR_INVALID_PARAM;
     }
     args.name[len] = '\0';
+    SK_LOGD("Call scopeKernelImpl, scopeName: %s", scopeName);
     scopeKernelImpl(stream, args);
     return ACL_SUCCESS;
 }
