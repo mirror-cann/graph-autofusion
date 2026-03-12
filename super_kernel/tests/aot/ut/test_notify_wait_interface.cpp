@@ -33,6 +33,20 @@ std::unique_ptr<SuperKernelKernelNode> CreateKernelNode(uint64_t nodeId, uint32_
     auto& nodeInfos = const_cast<NodeInfos&>(node->GetNodeInfos());
     nodeInfos.kernelInfos.numBlocks = numBlocks;
     nodeInfos.kernelInfos.kernelType = kernelType;
+    // Set vecNum and cubeNum based on kernelType and numBlocks
+    if (kernelType == SkKernelType::AIC_ONLY || kernelType == SkKernelType::MIX_AIC_1_0) {
+        nodeInfos.kernelInfos.cubeNum = numBlocks;
+        nodeInfos.kernelInfos.vecNum = 0;
+    } else if (kernelType == SkKernelType::AIV_ONLY || kernelType == SkKernelType::MIX_AIV_1_0) {
+        nodeInfos.kernelInfos.cubeNum = 0;
+        nodeInfos.kernelInfos.vecNum = numBlocks;
+    } else if (kernelType == SkKernelType::MIX_AIC_1_1) {
+        nodeInfos.kernelInfos.cubeNum = numBlocks;
+        nodeInfos.kernelInfos.vecNum = numBlocks;
+    } else if (kernelType == SkKernelType::MIX_AIC_1_2) {
+        nodeInfos.kernelInfos.cubeNum = numBlocks;
+        nodeInfos.kernelInfos.vecNum = numBlocks << 1;
+    }
 
     // Mark as fusible
     node->isFusible = true;

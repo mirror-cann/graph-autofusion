@@ -62,8 +62,6 @@ private:
 
     std::pair<uint64_t, uint64_t> GetAvailableCores(bool isSuperKernel) const;
 
-    std::pair<uint32_t, uint32_t> GetNodeCoreNum(const SuperKernelBaseNode& node);
-
     bool IsInSKStream(const SuperKernelBaseNode& node);
 
     void UpdateNodeInfo(const SuperKernelBaseNode& node);

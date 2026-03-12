@@ -47,6 +47,8 @@ protected:
         // Set kernel parameters to pass LockDetector check
         node->nodeInfos.kernelInfos.numBlocks = 1;
         node->nodeInfos.kernelInfos.kernelType = SkKernelType::AIC_ONLY;
+        node->nodeInfos.kernelInfos.cubeNum = 1;
+        node->nodeInfos.kernelInfos.vecNum = 0;
         SuperKernelBaseNode* ptr = node.get();
         graph->graphMap[nodeId] = std::move(node);
         return ptr;
@@ -118,6 +120,20 @@ protected:
         // Set custom kernel parameters
         node->nodeInfos.kernelInfos.numBlocks = numBlocks;
         node->nodeInfos.kernelInfos.kernelType = kernelType;
+        // Calculate vecNum and cubeNum based on kernelType and numBlocks
+        if (kernelType == SkKernelType::AIC_ONLY || kernelType == SkKernelType::MIX_AIC_1_0) {
+            node->nodeInfos.kernelInfos.cubeNum = numBlocks;
+            node->nodeInfos.kernelInfos.vecNum = 0;
+        } else if (kernelType == SkKernelType::AIV_ONLY || kernelType == SkKernelType::MIX_AIV_1_0) {
+            node->nodeInfos.kernelInfos.cubeNum = 0;
+            node->nodeInfos.kernelInfos.vecNum = numBlocks;
+        } else if (kernelType == SkKernelType::MIX_AIC_1_1) {
+            node->nodeInfos.kernelInfos.cubeNum = numBlocks;
+            node->nodeInfos.kernelInfos.vecNum = numBlocks;
+        } else if (kernelType == SkKernelType::MIX_AIC_1_2) {
+            node->nodeInfos.kernelInfos.cubeNum = numBlocks;
+            node->nodeInfos.kernelInfos.vecNum = numBlocks << 1;
+        }
         SuperKernelBaseNode* ptr = node.get();
         graph->graphMap[nodeId] = std::move(node);
         return ptr;
@@ -133,6 +149,8 @@ protected:
         node->SetIsScopeNode(true);
         node->nodeInfos.kernelInfos.numBlocks = 1;
         node->nodeInfos.kernelInfos.kernelType = SkKernelType::AIC_ONLY;
+        node->nodeInfos.kernelInfos.cubeNum = 1;
+        node->nodeInfos.kernelInfos.vecNum = 0;
         // Set scope name through reflection (need to access private member)
         SuperKernelKernelNode* kernelNode = static_cast<SuperKernelKernelNode*>(node.get());
         kernelNode->scopeName = scopeName;
@@ -152,6 +170,8 @@ protected:
         node->SetIsScopeNode(true);
         node->nodeInfos.kernelInfos.numBlocks = 1;
         node->nodeInfos.kernelInfos.kernelType = SkKernelType::AIC_ONLY;
+        node->nodeInfos.kernelInfos.cubeNum = 1;
+        node->nodeInfos.kernelInfos.vecNum = 0;
         // Set scope name through reflection
         SuperKernelKernelNode* kernelNode = static_cast<SuperKernelKernelNode*>(node.get());
         kernelNode->scopeName = scopeName;
@@ -172,6 +192,8 @@ protected:
         node->SetIsScopeNode(true);
         node->nodeInfos.kernelInfos.numBlocks = 1;
         node->nodeInfos.kernelInfos.kernelType = SkKernelType::AIC_ONLY;
+        node->nodeInfos.kernelInfos.cubeNum = 1;
+        node->nodeInfos.kernelInfos.vecNum = 0;
         SuperKernelKernelNode* kernelNode = static_cast<SuperKernelKernelNode*>(node.get());
         kernelNode->scopeName = "default_sk_scope_name";
         kernelNode->isScopeBegin = true;
@@ -190,6 +212,8 @@ protected:
         node->SetIsScopeNode(true);
         node->nodeInfos.kernelInfos.numBlocks = 1;
         node->nodeInfos.kernelInfos.kernelType = SkKernelType::AIC_ONLY;
+        node->nodeInfos.kernelInfos.cubeNum = 1;
+        node->nodeInfos.kernelInfos.vecNum = 0;
         SuperKernelKernelNode* kernelNode = static_cast<SuperKernelKernelNode*>(node.get());
         kernelNode->scopeName = "default_sk_scope_name";
         kernelNode->isScopeBegin = false;
@@ -1247,14 +1271,9 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase30_MixedFusibleAndUnfusibleScopes)
     // 验证生成了2个scope
     EXPECT_EQ(scopeInfos.size(), 2);
 
-    // 验证scope 0包含[ScopeBegin_A(1), K1(2), ScopeEnd_A(3)]
-    EXPECT_EQ(scopeInfos[0].nodes.size(), 3);
-    std::set<uint64_t> scope0NodeIds;
-    for (const auto* node : scopeInfos[0].nodes) {
-        scope0NodeIds.insert(node->GetNodeId());
-    }
-    std::set<uint64_t> expectedScope0NodeIds = {1, 2, 3};
-    EXPECT_EQ(scope0NodeIds, expectedScope0NodeIds);
+    // 验证scope 0只包含K1(2)，ScopeBegin_A(1)和ScopeEnd_A(3)是scope节点，不放入nodes中
+    EXPECT_EQ(scopeInfos[0].nodes.size(), 1);
+    EXPECT_EQ(scopeInfos[0].nodes[0]->GetNodeId(), 2);
 
     // 验证scope 1只包含K3(id=7)
     EXPECT_EQ(scopeInfos[1].nodes.size(), 1);
@@ -1267,7 +1286,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase30_MixedFusibleAndUnfusibleScopes)
             allProcessedNodes.insert(node->GetNodeId());
         }
     }
-    std::set<uint64_t> expectedNodes = {1, 2, 3, 7}; // 只有可融合的节点被处理
+    std::set<uint64_t> expectedNodes = {2, 7}; // 只有K1和K3是普通kernel节点
     EXPECT_EQ(allProcessedNodes, expectedNodes);
 
     // 验证融合状态
@@ -1305,14 +1324,14 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase31_SameScopeNameAcrossStreams)
     ASSERT_TRUE(result);
     const auto& scopeInfos = splitter.GetScopeInfos();
 
-    // 验证所有节点都被处理
+    // 验证所有普通节点都被处理（scope节点不放入nodes中）
     std::set<uint64_t> allProcessedNodes;
     for (const auto& scope : scopeInfos) {
         for (const auto* node : scope.nodes) {
             allProcessedNodes.insert(node->GetNodeId());
         }
     }
-    std::set<uint64_t> expectedNodes = {1, 2, 3, 4, 5, 6, 7};
+    std::set<uint64_t> expectedNodes = {2, 4, 6}; // 只有普通kernel节点
     EXPECT_EQ(allProcessedNodes, expectedNodes);
 }
 
@@ -1346,14 +1365,14 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase32_NestedScopes)
     ASSERT_TRUE(result);
     const auto& scopeInfos = splitter.GetScopeInfos();
 
-    // 验证所有节点都被处理
+    // 验证所有普通节点都被处理（scope节点不放入nodes中）
     std::set<uint64_t> allProcessedNodes;
     for (const auto& scope : scopeInfos) {
         for (const auto* node : scope.nodes) {
             allProcessedNodes.insert(node->GetNodeId());
         }
     }
-    std::set<uint64_t> expectedNodes = {1, 2, 3, 4, 5, 6};
+    std::set<uint64_t> expectedNodes = {3, 5}; // 只有普通kernel节点K1和K2
     EXPECT_EQ(allProcessedNodes, expectedNodes);
 
     // 验证K1的scopeBitFlags同时包含scope_A和scope_B
@@ -1399,14 +1418,14 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase33_ScopeWithCrossStreamDependency)
     ASSERT_TRUE(result);
     const auto& scopeInfos = splitter.GetScopeInfos();
 
-    // 验证所有节点都被处理
+    // 验证所有非scope节点都被处理（scope节点不放入nodes中，但wait/notify会被添加）
     std::set<uint64_t> allProcessedNodes;
     for (const auto& scope : scopeInfos) {
         for (const auto* node : scope.nodes) {
             allProcessedNodes.insert(node->GetNodeId());
         }
     }
-    std::set<uint64_t> expectedNodes = {1, 2, 3, 4, 5, 6, 7, 8};
+    std::set<uint64_t> expectedNodes = {2, 3, 4, 6, 7, 8}; // K1, Wait1, K2, K3, Notify1, K4
     EXPECT_EQ(allProcessedNodes, expectedNodes);
 }
 
@@ -1434,14 +1453,14 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase34_ExceedMaxScopeNumLimit)
     ASSERT_TRUE(result);
     const auto& scopeInfos = splitter.GetScopeInfos();
 
-    // 验证所有节点都被处理
+    // 验证所有节点都被处理（scope节点不放入nodes中）
     std::set<uint64_t> allProcessedNodes;
     for (const auto& scope : scopeInfos) {
         for (const auto* node : scope.nodes) {
             allProcessedNodes.insert(node->GetNodeId());
         }
     }
-    std::set<uint64_t> expectedNodes = {1, 2, 3};
+    std::set<uint64_t> expectedNodes = {1, 3}; // scopeBegin(2)是scope节点，不放入nodes中
     EXPECT_EQ(allProcessedNodes, expectedNodes);
 }
 
@@ -1476,23 +1495,13 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase35_ScopeWithUnfusibleNodes)
     // 验证生成了2个scope
     EXPECT_EQ(scopeInfos.size(), 2);
 
-    // 验证scope 0包含[ScopeBegin_A(1), K1(2)]
-    EXPECT_EQ(scopeInfos[0].nodes.size(), 2);
-    std::set<uint64_t> scope0NodeIds;
-    for (const auto* node : scopeInfos[0].nodes) {
-        scope0NodeIds.insert(node->GetNodeId());
-    }
-    std::set<uint64_t> expectedScope0NodeIds = {1, 2};
-    EXPECT_EQ(scope0NodeIds, expectedScope0NodeIds);
+    // 验证scope 0只包含K1(2)，ScopeBegin_A(1)是scope节点，不放入nodes中
+    EXPECT_EQ(scopeInfos[0].nodes.size(), 1);
+    EXPECT_EQ(scopeInfos[0].nodes[0]->GetNodeId(), 2);
 
-    // 验证scope 1包含[K2(4), ScopeEnd_A(5)]
-    EXPECT_EQ(scopeInfos[1].nodes.size(), 2);
-    std::set<uint64_t> scope1NodeIds;
-    for (const auto* node : scopeInfos[1].nodes) {
-        scope1NodeIds.insert(node->GetNodeId());
-    }
-    std::set<uint64_t> expectedScope1NodeIds = {4, 5};
-    EXPECT_EQ(scope1NodeIds, expectedScope1NodeIds);
+    // 验证scope 1只包含K2(4)，ScopeEnd_A(5)是scope节点，不放入nodes中
+    EXPECT_EQ(scopeInfos[1].nodes.size(), 1);
+    EXPECT_EQ(scopeInfos[1].nodes[0]->GetNodeId(), 4);
 
     // 验证不可融合的节点没有被包含在任何scope中
     std::set<uint64_t> allProcessedNodes;
@@ -1501,7 +1510,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase35_ScopeWithUnfusibleNodes)
             allProcessedNodes.insert(node->GetNodeId());
         }
     }
-    std::set<uint64_t> expectedNodes = {1, 2, 4, 5}; // 只有可融合的节点被处理
+    std::set<uint64_t> expectedNodes = {2, 4}; // 只有K1和K2是普通kernel节点
     EXPECT_EQ(allProcessedNodes, expectedNodes);
 
     // 验证融合状态

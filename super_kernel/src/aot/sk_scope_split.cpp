@@ -44,22 +44,29 @@ void SuperKernelScopeSplitter::AddStreamInfoToScope(SuperKernelScopeInfo& scopeI
     }
 }
 
-void SuperKernelScopeSplitter::SkipUnfusibleNodes() {
+void SuperKernelScopeSplitter::SkipUnfusibleAndEventNodes() {
     for (auto& pair : streamStates_) {
-        SK_LOGI("SkipUnfusibleNodes: stream %u, currentNodeIdx=%lu",
+        SK_LOGI("SkipUnfusibleAndEventNodes: stream %u, currentNodeIdx=%lu",
                  pair.first, pair.second.currentNodeIdx);
         while (pair.second.currentNodeIdx != INVALID_TASK_ID) {
             SuperKernelBaseNode* node = graph.GetNodeById(pair.second.currentNodeIdx);
-            SK_LOGI("Checking node %lu, IsFusible=%d", pair.second.currentNodeIdx, node ? node->IsFusible() : -1);
-            if (node != nullptr && !node->IsFusible()) {
-                SK_LOGI("Skipping permanently unfusible node %lu (stream %u), nextNodeId=%lu", 
-                        pair.second.currentNodeIdx, pair.first, node->GetNextNodeId());
+            if (node == nullptr) {
+                break;
+            }
+            SkNodeType nodeType = node->GetNodeType();
+            // Skip permanently unfusible nodes and Reset nodes
+            // Wait nodes and Notify nodes are fusible and should not be skipped here
+            // They will be handled by HandleWaitNode and ProcessNotifyNode
+            if (!node->IsFusible() || nodeType == SkNodeType::NODE_RESET) {
+                SK_LOGI("Skipping node %lu (stream %u, type=%s, fusible=%d), nextNodeId=%lu", 
+                        pair.second.currentNodeIdx, pair.first, to_string(nodeType), 
+                        node->IsFusible(), node->GetNextNodeId());
                 pair.second.currentNodeIdx = node->GetNextNodeId();
             } else {
                 break;
             }
         }
-        SK_LOGI("SkipUnfusibleNodes: stream %u, after skipping currentNodeIdx=%lu",
+        SK_LOGI("SkipUnfusibleAndEventNodes: stream %u, after skipping currentNodeIdx=%lu",
                  pair.first, pair.second.currentNodeIdx);
     }
 }
@@ -73,7 +80,7 @@ void SuperKernelScopeSplitter::ResetStreamStates() {
         pair.second.isSuspended = false;
         pair.second.waitingForNotify = INVALID_TASK_ID;
     }
-    SkipUnfusibleNodes();
+    SkipUnfusibleAndEventNodes();
 }
 
 bool SuperKernelScopeSplitter::AllStreamsFinished() const {
@@ -138,7 +145,7 @@ void SuperKernelScopeSplitter::PrintScopeStreamInfos(size_t scopeIdx, const Supe
 }
 
 void SuperKernelScopeSplitter::PrintScopeResults() const {
-    SK_LOGI("========== Multi-stream graph splitting complete, total scopes: %zu ==========", 
+    SK_LOGI("Super Kernel graph splitting complete, total scopes: %zu", 
             scopeInfos.size());
     for (size_t i = 0; i < scopeInfos.size(); ++i) {
         const auto& scope = scopeInfos[i];
@@ -178,6 +185,30 @@ bool SuperKernelScopeSplitter::DetermineCurrentScopeBitFlags() {
     
     SK_LOGI("No fusible node found to determine scopeBitFlags");
     return false;
+}
+
+void SuperKernelScopeSplitter::SetNotifyNodesExpandNum(SuperKernelScopeInfo& scopeInfo) {
+    uint32_t maxExpandVecNum = 0;
+    uint32_t maxExpandCubeNum = 0;
+    std::vector<SuperKernelBaseNode*> notifyNodes;
+    
+    // Find max vec/cube num and collect notify nodes in one pass
+    for (const auto* node : scopeInfo.nodes) {
+        if (node->GetNodeType() == SkNodeType::NODE_KERNEL) {
+            maxExpandVecNum = std::max(maxExpandVecNum, node->GetVecNum());
+            maxExpandCubeNum = std::max(maxExpandCubeNum, node->GetCubeNum());
+        } else if (node->GetNodeType() == SkNodeType::NODE_NOTIFY) {
+            notifyNodes.push_back(const_cast<SuperKernelBaseNode*>(node));
+        }
+    }
+    
+    // Set expand numbers for all notify nodes
+    for (auto* notifyNode : notifyNodes) {
+        notifyNode->SetNotifyExpandVecNum(maxExpandVecNum);
+        notifyNode->SetNotifyExpandCubeNum(maxExpandCubeNum);
+        SK_LOGD("Set Notify node %lu expandVecNum=%u, expandCubeNum=%u", 
+                notifyNode->GetNodeId(), maxExpandVecNum, maxExpandCubeNum);
+    }
 }
 
 void SuperKernelScopeSplitter::InitNodeHeap() {
@@ -345,7 +376,7 @@ bool SuperKernelScopeSplitter::SplitGraph() {
     }
 
     // Skip unfusible nodes at initialization
-    SkipUnfusibleNodes();
+    SkipUnfusibleAndEventNodes();
 
     while (true) {
         SuperKernelScopeInfo scopeInfo;
@@ -368,7 +399,7 @@ bool SuperKernelScopeSplitter::SplitGraph() {
             break;
         }
 
-        SK_LOGI("========== Start processing new scope %zu, heap size: %zu ==========", scopeInfos.size(), nodeHeap_.size());
+        SK_LOGI("Start processing new scope %zu, heap size: %zu", scopeInfos.size(), nodeHeap_.size());
 
         // Phase 2: Main fusion loop
         while (!nodeHeap_.empty()) {
@@ -396,8 +427,10 @@ bool SuperKernelScopeSplitter::SplitGraph() {
                 continue;
             }
 
-            // Add to scope
-            scopeInfo.nodes.push_back(node);
+            // Add to scope, scope nodes do not need to be added to nodes list
+            if (!node->IsScopeNode()) {
+                scopeInfo.nodes.push_back(node);
+            }
             AddStreamInfoToScope(scopeInfo, node);
             processedNodes_.insert(nodeId);
             SK_LOGD("Added node %lu (type=%s, stream=%lu) to scope, total nodes: %zu", nodeId, nodeTypeStr, streamIdx, scopeInfo.nodes.size());
@@ -418,6 +451,9 @@ bool SuperKernelScopeSplitter::SplitGraph() {
             TryAddNodeToHeap(streamIdx);
         }
 
+        // Set Notify nodes' expand numbers
+        SetNotifyNodesExpandNum(scopeInfo);
+
         // Save scope
         if (!scopeInfo.nodes.empty()) {
             std::string nodeIdsStr;
@@ -425,8 +461,7 @@ bool SuperKernelScopeSplitter::SplitGraph() {
                 if (!nodeIdsStr.empty()) nodeIdsStr += ", ";
                 nodeIdsStr += std::to_string(n->GetNodeId());
             }
-            SK_LOGI("========== Creating scope %zu with %zu nodes, %zu streams ==========",
-                     scopeInfos.size(), scopeInfo.nodes.size(), scopeInfo.scopeStreamInfos.size());
+            SK_LOGI("Creating scope %zu with %zu nodes, %zu streams", scopeInfos.size(), scopeInfo.nodes.size(), scopeInfo.scopeStreamInfos.size());
             SK_LOGI("Scope nodes: [%s]", nodeIdsStr.c_str());
             scopeInfos.emplace_back(std::move(scopeInfo));
         }

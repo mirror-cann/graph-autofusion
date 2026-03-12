@@ -67,24 +67,6 @@ std::pair<uint64_t, uint64_t> LockDetector::GetAvailableCores(bool isSuperKernel
     }
 }
 
-std::pair<uint32_t, uint32_t> LockDetector::GetNodeCoreNum(const SuperKernelBaseNode& node) {
-    uint32_t numBlocks = node.GetNumBlocks();
-    SkKernelType kernelType = node.GetKernelType();
-
-    if (kernelType == SkKernelType::AIC_ONLY || kernelType == SkKernelType::MIX_AIC_1_0) {
-        return {numBlocks, 0};
-    } else if (kernelType == SkKernelType::AIV_ONLY || kernelType == SkKernelType::MIX_AIV_1_0) {
-        return {0, numBlocks};
-    } else if (kernelType == SkKernelType::MIX_AIC_1_1) {
-        return {numBlocks, numBlocks};
-    } else if (kernelType == SkKernelType::MIX_AIC_1_2) {
-        return {numBlocks, numBlocks << 1};
-    } else {
-        SK_LOGE("[lock detector] Unsupported kernel type to compute core num, kernelType=%u", kernelType);
-        return {std::numeric_limits<uint32_t>::max(), std::numeric_limits<uint32_t>::max()};
-    }
-}
-
 bool LockDetector::IsInSKStream(const SuperKernelBaseNode& node) {
     return std::find(skStreamIds.begin(), skStreamIds.end(), node.GetStreamIdxInGraph()) != skStreamIds.end();
 }
@@ -111,7 +93,7 @@ bool LockDetector::HasDeadlock(SuperKernelBaseNode* curNode, SuperKernelGraph& g
             }
         } else {
             SK_LOGI("Not enough cores for kernel node, nodeId=%lu, requiredCube=%u, requiredVec=%u",
-                     preNode->GetNodeId(), GetNodeCoreNum(*preNode).first, GetNodeCoreNum(*preNode).second);
+                     preNode->GetNodeId(), preNode->GetCubeNum(), preNode->GetVecNum());
             return true;
         }
     } else if (preNode->GetNodeType() == SkNodeType::NODE_WAIT) {
@@ -150,9 +132,8 @@ bool LockDetector::HasDeadlock(SuperKernelBaseNode* curNode, SuperKernelGraph& g
 }
 
 bool LockDetector::HasEnoughCores(const SuperKernelBaseNode* curNode, bool isSuperKernel) {
-    std::pair<uint32_t, uint32_t> coreNum = GetNodeCoreNum(*curNode);
-    uint32_t curNodeCubeNum = coreNum.first;
-    uint32_t curNodeVecNum = coreNum.second;
+    uint32_t curNodeCubeNum = curNode->GetCubeNum();
+    uint32_t curNodeVecNum = curNode->GetVecNum();
 
     if (isSuperKernel) {
         if(curNodeCubeNum <= superKernelCubeNum && curNodeVecNum <= superKernelVecNum){
@@ -235,7 +216,6 @@ bool LockDetector::IsFusible(SuperKernelBaseNode& curNode, SuperKernelGraph& gra
     // First check if node can be fused, without modifying state
     bool canFuse = false;
     bool shouldSetWaitFlag = false;
-    std::pair<uint32_t, uint32_t> coreNum = {0, 0};
 
     if (curNode.GetNodeType() == SkNodeType::NODE_NOTIFY) {
         canFuse = true;
@@ -267,11 +247,12 @@ bool LockDetector::IsFusible(SuperKernelBaseNode& curNode, SuperKernelGraph& gra
             }
         }
     } else if (curNode.GetNodeType() == SkNodeType::NODE_KERNEL) {
-        coreNum = GetNodeCoreNum(curNode);
+        uint32_t cubeNum = curNode.GetCubeNum();
+        uint32_t vecNum = curNode.GetVecNum();
         SK_LOGD("Kernel node %lu: coreNum={%u, %u}, isExistWaitFlag=%d, superKernelCubeNum=%u, superKernelVecNum=%u",
-                curNode.GetNodeId(), coreNum.first, coreNum.second, isExistWaitFlag, superKernelCubeNum, superKernelVecNum);
+                curNode.GetNodeId(), cubeNum, vecNum, isExistWaitFlag, superKernelCubeNum, superKernelVecNum);
         if (isExistWaitFlag) {
-            canFuse = (coreNum.first <= superKernelCubeNum && coreNum.second <= superKernelVecNum);
+            canFuse = (cubeNum <= superKernelCubeNum && vecNum <= superKernelVecNum);
             SK_LOGD("Kernel node %lu: isExistWaitFlag=true, canFuse=%d", curNode.GetNodeId(), canFuse);
         } else {
             canFuse = HasEnoughCores(&curNode, true);

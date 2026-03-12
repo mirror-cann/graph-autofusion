@@ -318,6 +318,23 @@ bool SuperKernelKernelNode::InitNode() {
     nodeInfos.kernelInfos.binHdl = reinterpret_cast<aclrtBinHandle>(kernelParams.binHandle);
     nodeInfos.kernelInfos.funcHdl = kernelParams.funcHandle;
 
+    // Calculate vecNum and cubeNum based on kernel type and numBlocks
+    uint32_t numBlocks = kernelParams.numBlocks;
+    SkKernelType kt = nodeInfos.kernelInfos.kernelType;
+    if (kt == SkKernelType::AIC_ONLY || kt == SkKernelType::MIX_AIC_1_0) {
+        nodeInfos.kernelInfos.cubeNum = numBlocks;
+        nodeInfos.kernelInfos.vecNum = 0;
+    } else if (kt == SkKernelType::AIV_ONLY || kt == SkKernelType::MIX_AIV_1_0) {
+        nodeInfos.kernelInfos.cubeNum = 0;
+        nodeInfos.kernelInfos.vecNum = numBlocks;
+    } else if (kt == SkKernelType::MIX_AIC_1_1) {
+        nodeInfos.kernelInfos.cubeNum = numBlocks;
+        nodeInfos.kernelInfos.vecNum = numBlocks;
+    } else if (kt == SkKernelType::MIX_AIC_1_2) {
+        nodeInfos.kernelInfos.cubeNum = numBlocks;
+        nodeInfos.kernelInfos.vecNum = numBlocks << 1;
+    }
+
     char tmpFuncName[256] = {0};
     CHECK_ACL(aclrtGetFunctionName(kernelParams.funcHandle, sizeof(tmpFuncName), tmpFuncName));
     nodeInfos.kernelInfos.funcName = std::string(tmpFuncName);

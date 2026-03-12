@@ -59,6 +59,8 @@ struct KernelInfos {
     SkKernelType kernelType = SkKernelType::DEFAULT;
     uint32_t taskRatio[2] = {0, 0};
     uint32_t numBlocks = 0;
+    uint32_t vecNum = 0;      ///< Number of vector cores required
+    uint32_t cubeNum = 0;     ///< Number of cube cores required
     const void *devArgs = nullptr;
     std::string funcName;
     aclrtBinHandle binHdl = nullptr;
@@ -79,13 +81,8 @@ struct SyncInfos {
 
 
 struct NodeInfos {
-    union {
-        KernelInfos kernelInfos;
-        SyncInfos syncInfos;
-    };
-
-    NodeInfos() : kernelInfos() {}
-    ~NodeInfos() {}
+    KernelInfos kernelInfos;
+    SyncInfos syncInfos;
 };
 
 
@@ -100,9 +97,11 @@ public:
           preNodeId(inputPreNodeId),
           nextNodeId(INVALID_TASK_ID),
           isVisited(false),
-          isFusible(false) { }
+          isFusible(false),
+          isScopeNode(false),
+          notifyExpandVecNum(0),
+          notifyExpandCubeNum(0) { }
     virtual ~SuperKernelBaseNode() = default;
-
     virtual bool InitNode();
 
     // Accessors
@@ -123,6 +122,8 @@ public:
     // SuperKernelKernelNode specific accessors
     virtual uint32_t GetNumBlocks() const { return 0; }
     virtual SkKernelType GetKernelType() const { return SkKernelType::DEFAULT; }
+    virtual uint32_t GetVecNum() const { return 0; }
+    virtual uint32_t GetCubeNum() const { return 0; }
 
     // SuperKernelEventNode/SuperKernelMemoryNode specific accessors
     virtual uint64_t GetEventId() const { return INVALID_TASK_ID; }
@@ -171,11 +172,17 @@ public:
     bool IsScopeNode() const { return isScopeNode; }
     void ClearScopeBitFlags() { scopeBitFlags.reset(); }
     void MarkEventNodeToScope(SuperKernelBaseNode* node);
+    
+    // Notify node expand number setters
+    void SetNotifyExpandVecNum(uint32_t vecNum) { notifyExpandVecNum = vecNum; }
+    void SetNotifyExpandCubeNum(uint32_t cubeNum) { notifyExpandCubeNum = cubeNum; }
 public:
     NodeInfos nodeInfos;
     std::unique_ptr<aclrtTask> originTask;
 
 protected:
+    uint32_t notifyExpandVecNum;
+    uint32_t notifyExpandCubeNum;
     uint32_t streamIdxInGraph;
     uint64_t nodeIdxInStream;
     uint64_t nodeId;
@@ -183,9 +190,8 @@ protected:
     uint64_t nextNodeId;
     SkNodeType nodeType;
     bool isVisited;
-    bool isFusible = false;
-    // scope
-    bool isScopeNode = false;
+    bool isFusible;
+    bool isScopeNode;
     std::bitset<MAX_SCOPE_NUM> scopeBitFlags;
 };
 
@@ -198,6 +204,8 @@ public:
     bool InitNode() override;
     uint32_t GetNumBlocks() const override { return nodeInfos.kernelInfos.numBlocks; }
     SkKernelType GetKernelType() const override { return nodeInfos.kernelInfos.kernelType; }
+    uint32_t GetVecNum() const override { return nodeInfos.kernelInfos.vecNum; }
+    uint32_t GetCubeNum() const override { return nodeInfos.kernelInfos.cubeNum; }
     bool InValidateNode() override;
     bool Update(const UpdateContext &ctx) override;
     virtual std::string GetScopeName() const override {

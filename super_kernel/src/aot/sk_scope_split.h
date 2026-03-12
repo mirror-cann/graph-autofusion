@@ -175,15 +175,21 @@ private:
     void AddStreamInfoToScope(SuperKernelScopeInfo& scopeInfo, SuperKernelBaseNode* node);
 
     /*!
-     * \brief Skip over permanently unfusible nodes in all streams
+     * \brief Skip over permanently unfusible nodes, Wait nodes, and Reset nodes in all streams
+     * 
+     * These nodes should not be processed as scope starting points:
+     * - Unfusible nodes: cannot participate in scope fusion
+     * - Wait nodes: depend on Notify nodes from other streams
+     * - Reset nodes: event cleanup, not computational
+     * Notify nodes are fusible and will not be skipped.
      */
-    void SkipUnfusibleNodes();
+    void SkipUnfusibleAndEventNodes();
 
     /*!
      * \brief Reset stream states for the next scope iteration
      * 
      * Resets isTerminated and isSuspended flags while keeping currentNodeIdx.
-     * Also skips unfusible nodes.
+     * Also skips unfusible nodes and event nodes.
      */
     void ResetStreamStates();
 
@@ -211,6 +217,15 @@ private:
      * \brief Print scope splitting results for debugging
      */
     void PrintScopeResults() const;
+
+    /*!
+     * \brief Set Notify nodes' expand numbers to max kernel vec/cube in scope
+     * \param scopeInfo Scope to process
+     * 
+     * This ensures the scope runs before the next scope (which contains waiting Wait nodes).
+     * Without this, deadlock detector would block the Wait nodes incorrectly.
+     */
+    void SetNotifyNodesExpandNum(SuperKernelScopeInfo& scopeInfo);
 
     /*!
      * \brief Get scope names string from scopeBitFlags
