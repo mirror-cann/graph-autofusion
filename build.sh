@@ -227,7 +227,7 @@ function build_package_inner(){
 function build_test_cpp_utest() {
   echo "---------------- Start run cpp utest ----------------"
   
-  CUSTOM_OPTION="${CUSTOM_OPTION} -DENABLE_CPP_UTEST=ON"
+  CUSTOM_OPTION="${CUSTOM_OPTION} -DENABLE_CPP_UTEST=ON -DENABLE_GCOV=ON"
   
   # Pass gtest filter to cmake if specified
   if [ -n "${CPP_UTEST_FILTER}" ]; then

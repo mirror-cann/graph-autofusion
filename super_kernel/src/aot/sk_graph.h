@@ -40,7 +40,7 @@ struct EventInfos {
 
 class SuperKernelGraph {
 public:
-    void Update();
+    aclError Update();
 
     SuperKernelGraph() = default;
     ~SuperKernelGraph() = default;

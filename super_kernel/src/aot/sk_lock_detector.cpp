@@ -36,27 +36,27 @@ void LockDetector::Init() {
     }
 }
 
-bool LockDetector::GetDeviceCores() {
+aclError LockDetector::GetDeviceCores() {
     // 获取deviceId
     int32_t deviceId;
     aclError ret = aclrtGetDevice(&deviceId);
     if (ret != ACL_SUCCESS) {
         SK_LOGE("[lock detector] GetDeviceCores for deviceId failed, ret=%d", ret);
-        return false;
+        return ret;
     }
     // 获取CubeNum、VecNum
     ret = aclrtGetDeviceInfo(deviceId, ACL_DEV_ATTR_CUBE_CORE_NUM, &LockDetector::deviceRealCubeNum);
     if (ret != ACL_SUCCESS) {
         SK_LOGE("[lock detector] GetDeviceCores for cube num failed, ret=%d", ret);
-        return false;
+        return ret;
     }
     ret = aclrtGetDeviceInfo(deviceId, ACL_DEV_ATTR_VECTOR_CORE_NUM, &LockDetector::deviceRealVecNum);
     if (ret != ACL_SUCCESS) {
         SK_LOGE("[lock detector] GetDeviceCores for vec num failed, ret=%d", ret);
-        return false;
+        return ret;
     }
     SK_LOGI("[lock detector] GetDeviceCores success, cube num=%u, vec num=%u ", deviceRealCubeNum, deviceRealVecNum);
-    return true;
+    return ret;
 }
 
 std::pair<uint64_t, uint64_t> LockDetector::GetAvailableCores(bool isSuperKernel) const {

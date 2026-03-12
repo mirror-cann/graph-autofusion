@@ -24,25 +24,34 @@ aclError aclskOptimize(aclmdlRI model, aclskOptions *options) {
 
     SK_LOGI("Begin aclskOptimize");
 
-    // 使用默认策略（通过编译配置自动选择 V1 或 V2）
+    SK_LOGI("Start init sk graph...");
     SuperKernelGraph graph(model);
     if (!graph.InitSKGraph()) {
         return ACL_ERROR_FAILURE;
     }
-    if (!LockDetector::GetDeviceCores()) {
-        return ACL_ERROR_FAILURE;
+    aclError ret = LockDetector::GetDeviceCores();
+    if (ret != ACL_SUCCESS) {
+        return ret;
     }
+    SK_LOGI("End init sk graph");
 
+    SK_LOGI("Start parse sk options...");
     SuperKernelOptionsManager opts;
     opts.ParseOptions(options);
+    SK_LOGI("End parse sk options");
 
-    // 使用新的 SuperKernelOptimizer（支持切图和序列化）
+    SK_LOGI("Start optimize sk graph...");
     SuperKernelOptimizer optimizer(opts);
     optimizer.Process(graph);
-    graph.Update();
+    SK_LOGI("End optimize sk graph");
+
+    SK_LOGI("Start update graph...");
+    ret = graph.Update();
+    SK_LOGI("End update graph");
+
     SK_LOGI("End aclskOptimize");
-    
-    return ACL_SUCCESS;
+
+    return ret;
 }
 
 aclError aclskScopeBegin(const char* scopeName, aclrtStream stream) {

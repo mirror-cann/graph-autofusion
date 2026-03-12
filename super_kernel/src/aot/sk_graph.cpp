@@ -20,8 +20,12 @@
 #include <cstdint>
 #include <bitset>
 
-void SuperKernelGraph::Update() {
-    aclmdlRIUpdate(modelRI);
+aclError SuperKernelGraph::Update() {
+    aclError ret = aclmdlRIUpdate(modelRI);
+    if (ret != ACL_SUCCESS) {
+        SK_LOGE("Failed to update modelRI");
+    }
+    return ret;
 }
 
 SuperKernelBaseNode* SuperKernelGraph::GetNodeById(uint64_t nodeId) const {

@@ -462,7 +462,7 @@ bool SuperKernelEventNode::InitNode() {
     nodeInfos.syncInfos.eventId = static_cast<uint64_t>(reinterpret_cast<uintptr_t>(eventParams.u.memoryEventInfo.eventAddr));
     nodeInfos.syncInfos.addrValue = eventParams.u.memoryEventInfo.eventAddr;
 
-    SK_LOGI("Event type of task %u in stream %u is memory based, which can be fused in super kernel.", nodeIdxInStream, streamIdxInGraph);
+    SK_LOGI("Event type %s of task %u in stream %u is memory based, which can be fused in super kernel.", to_string(GetNodeType()), nodeIdxInStream, streamIdxInGraph);
     isFusible = true;
     return true;
 }

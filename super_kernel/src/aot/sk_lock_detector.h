@@ -40,7 +40,7 @@ public:
     }
 
 
-    static bool GetDeviceCores();
+    static aclError GetDeviceCores();
 
     /**
      * @brief 重置检测器状态
