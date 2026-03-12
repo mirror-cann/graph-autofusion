@@ -35,6 +35,7 @@ add_executable(super_kernel_aot_utest
     ${GRAPH_AUTOFUSION_ROOT_DIR}/super_kernel/src/aot/sk_task_builder.cpp
     ${GRAPH_AUTOFUSION_ROOT_DIR}/super_kernel/src/aot/sk_log.cpp
     ${GRAPH_AUTOFUSION_ROOT_DIR}/super_kernel/src/aot/super_kernel.cpp
+    ${GRAPH_AUTOFUSION_ROOT_DIR}/super_kernel/src/aot/sk_scope_postprocess.cpp
 )
 
 target_include_directories(super_kernel_aot_utest PRIVATE

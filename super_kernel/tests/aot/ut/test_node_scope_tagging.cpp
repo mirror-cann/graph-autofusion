@@ -122,23 +122,23 @@ TEST_F(TestNodeScopeTagging, SetIsScopeNodeFlag) {
     EXPECT_FALSE(node->IsScopeNode());
 }
 
-// Test 6: Verify hasScopeFlags is derived from scopeBitFlags
-TEST_F(TestNodeScopeTagging, HasScopeFlagsDerivedFromScopeBitFlags) {
+// Test 6: Verify scopeBitFlags.any() works correctly
+TEST_F(TestNodeScopeTagging, ScopeBitFlagsAnyWorksCorrectly) {
     auto node = CreateKernelNode(1, 0);
 
-    EXPECT_FALSE(node->HasScopeFlags());
+    EXPECT_FALSE(node->GetScopeBitFlags().any());
 
-    // Setting scopeBitFlags should automatically set hasScopeFlags
+    // Setting scopeBitFlags should make any() return true
     std::bitset<MAX_SCOPE_NUM> flags;
     flags.set(0);
     node->SetScopeBitFlags(flags);
 
-    EXPECT_TRUE(node->HasScopeFlags());
+    EXPECT_TRUE(node->GetScopeBitFlags().any());
 
-    // Clearing scopeBitFlags should automatically clear hasScopeFlags
+    // Clearing scopeBitFlags should make any() return false
     node->ClearScopeBitFlags();
 
-    EXPECT_FALSE(node->HasScopeFlags());
+    EXPECT_FALSE(node->GetScopeBitFlags().any());
 }
 
 // Test 7: Verify scope bit flags are independent between nodes
@@ -268,31 +268,31 @@ TEST_F(TestNodeScopeTagging, MultipleNodesWithDifferentScopeFlags) {
     }
 }
 
-// Test 14: Verify isScopeNode and hasScopeFlags are independent
-TEST_F(TestNodeScopeTagging, IsScopeNodeAndHasScopeFlagsAreIndependent) {
+// Test 14: Verify isScopeNode and scopeBitFlags are are independent
+TEST_F(TestNodeScopeTagging, IsScopeNodeAndScopeBitFlagsAreIndependent) {
     auto node = CreateKernelNode(1, 0);
 
     // Initially both false
     EXPECT_FALSE(node->IsScopeNode());
-    EXPECT_FALSE(node->HasScopeFlags());
+    EXPECT_FALSE(node->GetScopeBitFlags().any());
 
     // Set isScopeNode only
     node->SetIsScopeNode(true);
     EXPECT_TRUE(node->IsScopeNode());
-    EXPECT_FALSE(node->HasScopeFlags());
+    EXPECT_FALSE(node->GetScopeBitFlags().any());
 
-    // Set hasScopeFlags only (via scopeBitFlags)
+    // Set scopeBitFlags only
     node->SetIsScopeNode(false);
     std::bitset<MAX_SCOPE_NUM> flags;
     flags.set(0);
     node->SetScopeBitFlags(flags);
     EXPECT_FALSE(node->IsScopeNode());
-    EXPECT_TRUE(node->HasScopeFlags());
+    EXPECT_TRUE(node->GetScopeBitFlags().any());
 
     // Set both
     node->SetIsScopeNode(true);
     EXPECT_TRUE(node->IsScopeNode());
-    EXPECT_TRUE(node->HasScopeFlags());
+    EXPECT_TRUE(node->GetScopeBitFlags().any());
 }
 
 // Test 15: Verify scope bit flags persist after multiple operations

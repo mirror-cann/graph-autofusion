@@ -208,15 +208,15 @@ static bool HasUnfusibleScope(const std::vector<ScopeStackEntry>& scopeStack) {
 
 // Parse scope node information to extract scope index, name, and fusible attribute
 // Get scope index for a scope node
-// For fusible scopes, look up index from unique_scopeNames; for unfusible scopes, use MAX_SCOPE_NUM
+// For fusible scopes, look up index from scopeNameToIdx; for unfusible scopes, use MAX_SCOPE_NUM
 static uint32_t GetScopeIdx(SuperKernelBaseNode* node,
-                           const std::unordered_map<std::string, uint32_t>& unique_scopeNames) {
+                           const std::unordered_map<std::string, uint32_t>& scopeNameToIdx) {
     bool isFusible = node->IsFusible();
 
     if (isFusible) {
         const std::string& scopeName = node->GetScopeName();
-        auto it = unique_scopeNames.find(scopeName);
-        if (it == unique_scopeNames.end()) {
+        auto it = scopeNameToIdx.find(scopeName);
+        if (it == scopeNameToIdx.end()) {
             SK_LOGW("Fusible scope name '%s' not registered for node %lu",
                     scopeName.c_str(), node->GetNodeId());
             return MAX_SCOPE_NUM;
@@ -249,10 +249,10 @@ static bool PopScopeByName(std::vector<ScopeStackEntry>& scopeStack, const std::
 static void ProcessScopeBegin(SuperKernelGraph* graph,
                                SuperKernelBaseNode* node,
                                std::vector<ScopeStackEntry>& scopeStack,
-                               const std::unordered_map<std::string, uint32_t>& unique_scopeNames) {
+                               const std::unordered_map<std::string, uint32_t>& scopeNameToIdx) {
     std::string scopeName = node->GetScopeName();
     bool isFusible = node->IsFusible();
-    uint32_t scopeIdx = GetScopeIdx(node, unique_scopeNames);
+    uint32_t scopeIdx = GetScopeIdx(node, scopeNameToIdx);
 
     scopeStack.push_back({scopeIdx, scopeName, isFusible});
     graph->MarkEventNodeToScopeBegin(node);
@@ -264,9 +264,9 @@ static void ProcessScopeBegin(SuperKernelGraph* graph,
 static void ProcessScopeEnd(SuperKernelGraph* graph,
                              SuperKernelBaseNode* node,
                              std::vector<ScopeStackEntry>& scopeStack,
-                             const std::unordered_map<std::string, uint32_t>& unique_scopeNames) {
+                             const std::unordered_map<std::string, uint32_t>& scopeNameToIdx) {
     std::string scopeName = node->GetScopeName();
-    uint32_t scopeIdx = GetScopeIdx(node, unique_scopeNames);
+    uint32_t scopeIdx = GetScopeIdx(node, scopeNameToIdx);
 
     graph->MarkEventNodeToScopeEnd(node);
     SK_LOGI("Scope end: name='%s' idx=%u", scopeName.c_str(), scopeIdx);
@@ -313,14 +313,14 @@ void SuperKernelGraph::UpdateNodeScopeBitFlags() {
         }
 
         if (node->IsScopeBegin()) {
-            ProcessScopeBegin(this, node, scopeStack, unique_scopeNames);
+            ProcessScopeBegin(this, node, scopeStack, scopeNameToIdx);
         } else if (node->IsScopeEnd()) {
             // Scope end nodes belong to their parent scopes, compute flags before popping
             std::bitset<MAX_SCOPE_NUM> currentScopeFlags = ComputeScopeBitFlags(scopeStack);
             node->SetScopeBitFlags(currentScopeFlags);
             SK_LOGD("Set scope flags for scope end node %lu, flags=%s", nodeId,
                     currentScopeFlags.to_string().substr(0, MAX_SCOPE_NUM).c_str());
-            ProcessScopeEnd(this, node, scopeStack, unique_scopeNames);
+            ProcessScopeEnd(this, node, scopeStack, scopeNameToIdx);
         }
 
         // Update flags for all nodes except scope end nodes (already handled above)
@@ -413,16 +413,18 @@ bool SuperKernelGraph::InitSKGraph() {
                 return false;
             }
             if (node->GetNodeType() == SkNodeType::NODE_KERNEL && node->IsScopeNode()){
-                // Register fusible scopes with scope names to unique_scopeNames for index assignment
+                // Register fusible scopes with scope names to scopeNameToIdx for index assignment
                 // This ensures consistent scope indices across the graph for scope bit flag computation
                 if (node->GetScopeName().length() > 0 && node->IsFusible()){
-                    if(unique_scopeNames.size() >= MAX_SCOPE_NUM){
+                    if(scopeNameToIdx.size() >= MAX_SCOPE_NUM){
                         SK_LOGW("The number of scope names is greater than the maximum allowed: %u", MAX_SCOPE_NUM);
                     } else {
-                        if (unique_scopeNames.find(node->GetScopeName()) == unique_scopeNames.end()) {
-                            unique_scopeNames[node->GetScopeName()] = unique_scopeNames.size();
-                            SK_LOGI("Registered fusible scope '%s' with index %zu",
-                                    node->GetScopeName().c_str(), unique_scopeNames.size() - 1);
+                        if (scopeNameToIdx.find(node->GetScopeName()) == scopeNameToIdx.end()) {
+                            uint32_t scopeIdx = static_cast<uint32_t>(scopeNameToIdx.size());
+                            scopeNameToIdx[node->GetScopeName()] = scopeIdx;
+                            scopeIdxToName[scopeIdx] = node->GetScopeName();
+                            SK_LOGI("Registered fusible scope '%s' with index %u",
+                                    node->GetScopeName().c_str(), scopeIdx);
                         }
                     }
                 }

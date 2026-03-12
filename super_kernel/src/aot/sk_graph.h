@@ -85,7 +85,8 @@ private:
     aclmdlRI modelRI;
     uint64_t nextNodeId = 0;
     friend class SuperKernelScopeSplitter;
-    std::unordered_map<std::string, uint32_t> unique_scopeNames;
+    std::unordered_map<std::string, uint32_t> scopeNameToIdx;    ///< scopeName -> scopeIdx
+    std::unordered_map<uint32_t, std::string> scopeIdxToName;    ///< scopeIdx -> scopeName (reverse mapping)
 };
 
 #endif // __SK_GRAPH_H__

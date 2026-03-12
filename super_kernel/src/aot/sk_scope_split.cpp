@@ -24,13 +24,11 @@ void SuperKernelScopeSplitter::AddStreamInfoToScope(SuperKernelScopeInfo& scopeI
     uint32_t streamIdx = node->GetStreamIdxInGraph();
     SK_LOGD("AddStreamInfoToScope: node %lu (stream=%u, type=%s)", 
             node->GetNodeId(), streamIdx, to_string(node->GetNodeType()));
-    // Check if stream info already exists
     auto it = std::find_if(scopeInfo.scopeStreamInfos.begin(), scopeInfo.scopeStreamInfos.end(),
                          [streamIdx](const ScopeStreamInfo& info) {
                              return info.streamIdx == streamIdx;
                          });
     if (it == scopeInfo.scopeStreamInfos.end()) {
-        // Create new stream info
         ScopeStreamInfo newInfo;
         newInfo.streamIdx = streamIdx;
         newInfo.headNodeIdx = node->GetNodeId();
@@ -39,7 +37,6 @@ void SuperKernelScopeSplitter::AddStreamInfoToScope(SuperKernelScopeInfo& scopeI
         scopeInfo.scopeStreamInfos.push_back(std::move(newInfo));
         SK_LOGD("Created new stream info for stream %u, headNode=%lu", streamIdx, node->GetNodeId());
     } else {
-        // Update existing stream info
         it->tailNodeIdx = node->GetNodeId();
         it->nodeSize++;
         SK_LOGD("Updated stream info for stream %u, tailNode=%lu, nodeSize=%lu", 
@@ -47,76 +44,158 @@ void SuperKernelScopeSplitter::AddStreamInfoToScope(SuperKernelScopeInfo& scopeI
     }
 }
 
-void SuperKernelScopeSplitter::SkipUnfusibleNodes(
-    std::unordered_map<uint32_t, StreamState>& streamStates) {
-    for (auto& pair : streamStates) {
-        SK_LOGI("SkipUnfusibleNodes: stream %u, currentNodeIdx=%lu\n",
+void SuperKernelScopeSplitter::SkipUnfusibleNodes() {
+    for (auto& pair : streamStates_) {
+        SK_LOGI("SkipUnfusibleNodes: stream %u, currentNodeIdx=%lu",
                  pair.first, pair.second.currentNodeIdx);
-        // Skip permanently unfusible nodes at the current position
-        // Note: Single nodes cannot cause deadlock (their resource usage < total resources),
-        // so we only skip nodes that are permanently marked as unfusible.
-        // Deadlock detection is only relevant when forming multi-node scopes.
         while (pair.second.currentNodeIdx != INVALID_TASK_ID) {
             SuperKernelBaseNode* node = graph.GetNodeById(pair.second.currentNodeIdx);
-            SK_LOGI("Checking node %lu, IsFusible=%d\n", pair.second.currentNodeIdx, node ? node->IsFusible() : -1);
+            SK_LOGI("Checking node %lu, IsFusible=%d", pair.second.currentNodeIdx, node ? node->IsFusible() : -1);
             if (node != nullptr && !node->IsFusible()) {
-                SK_LOGI("Skipping permanently unfusible node %lu (stream %u), nextNodeId=%lu\n", pair.second.currentNodeIdx, pair.first, node->GetNextNodeId());
+                SK_LOGI("Skipping permanently unfusible node %lu (stream %u), nextNodeId=%lu", 
+                        pair.second.currentNodeIdx, pair.first, node->GetNextNodeId());
                 pair.second.currentNodeIdx = node->GetNextNodeId();
             } else {
                 break;
             }
         }
-        SK_LOGI("SkipUnfusibleNodes: stream %u, after skipping currentNodeIdx=%lu\n",
+        SK_LOGI("SkipUnfusibleNodes: stream %u, after skipping currentNodeIdx=%lu",
                  pair.first, pair.second.currentNodeIdx);
     }
 }
 
-void SuperKernelScopeSplitter::ResetStreamStates(
-    std::unordered_map<uint32_t, StreamState>& streamStates) {
-    SK_LOGD("ResetStreamStates: resetting %zu stream states", streamStates.size());
-    for (auto& pair : streamStates) {
+void SuperKernelScopeSplitter::ResetStreamStates() {
+    SK_LOGD("ResetStreamStates: resetting %zu stream states", streamStates_.size());
+    for (auto& pair : streamStates_) {
         SK_LOGD("ResetStreamStates: stream %u, currentNodeIdx=%lu, isTerminated=%d, isSuspended=%d",
                 pair.first, pair.second.currentNodeIdx, pair.second.isTerminated, pair.second.isSuspended);
-        // Only reset temporary states, keep currentNodeIdx
         pair.second.isTerminated = false;
         pair.second.isSuspended = false;
         pair.second.waitingForNotify = INVALID_TASK_ID;
     }
-
-    // Skip unfusible nodes at the start of each new scope
-    SkipUnfusibleNodes(streamStates);
+    SkipUnfusibleNodes();
 }
 
-void SuperKernelScopeSplitter::InitNodeHeap(
-    std::unordered_map<uint32_t, StreamState>& streamStates,
-    const std::set<uint64_t>& visitedNotifies,
-    const std::set<uint64_t>& processedNodes,
-    std::priority_queue<uint64_t, std::vector<uint64_t>, std::greater<uint64_t>>& nodeHeap,
-    LockDetector& lockDetector) {
-    SK_LOGD("InitNodeHeap: iterating %zu streams", streamStates.size());
-    size_t heapSizeBefore = nodeHeap.size();
-    // Iterate through all streams, try to add current nodes to heap
-    for (auto& pair : streamStates) {
-        TryAddNodeToHeap(pair.first, streamStates, visitedNotifies,
-                        processedNodes, nodeHeap, lockDetector);
+bool SuperKernelScopeSplitter::AllStreamsFinished() const {
+    for (const auto& pair : streamStates_) {
+        if (!pair.second.isTerminated && !pair.second.isSuspended &&
+            pair.second.currentNodeIdx != INVALID_TASK_ID) {
+            return false;
+        }
     }
-    SK_LOGD("InitNodeHeap: heap size changed from %zu to %zu", heapSizeBefore, nodeHeap.size());
+    return true;
 }
 
-void SuperKernelScopeSplitter::TryAddNodeToHeap(
-    uint32_t streamIdx,
-    std::unordered_map<uint32_t, StreamState>& streamStates,
-    const std::set<uint64_t>& visitedNotifies,
-    const std::set<uint64_t>& processedNodes,
-    std::priority_queue<uint64_t, std::vector<uint64_t>, std::greater<uint64_t>>& nodeHeap,
-    LockDetector& lockDetector) {
-    StreamState& state = streamStates[streamIdx];
-    SK_LOGI("TryAddNodeToHeap: stream %u, currentNodeIdx=%lu, isTerminated=%d, isSuspended=%d\n",
-             streamIdx, state.currentNodeIdx, state.isTerminated, state.isSuspended);
+void SuperKernelScopeSplitter::ResetSplittingState() {
+    streamStates_.clear();
+    visitedNotifies_.clear();
+    processedNodes_.clear();
+    while (!nodeHeap_.empty()) {
+        nodeHeap_.pop();
+    }
+    lockDetector.Reset(graph);
+    currentScopeBitFlags_.reset();
+}
+
+std::string SuperKernelScopeSplitter::GetScopeNamesFromBitFlags(
+        const std::bitset<MAX_SCOPE_NUM>& scopeBitFlags) const {
+    std::string scopeNames;
+    for (size_t bit = 0; bit < MAX_SCOPE_NUM && bit < scopeBitFlags.size(); ++bit) {
+        if (scopeBitFlags.test(bit)) {
+            auto it = graph.scopeIdxToName.find(static_cast<uint32_t>(bit));
+            if (it != graph.scopeIdxToName.end()) {
+                if (!scopeNames.empty()) scopeNames += ", ";
+                scopeNames += "'";
+                scopeNames += it->second;
+                scopeNames += "'";
+            }
+        }
+    }
+    return scopeNames.empty() ? "(none)" : scopeNames;
+}
+
+void SuperKernelScopeSplitter::PrintScopeNodes(size_t scopeIdx, const SuperKernelScopeInfo& scope) const {
+    std::string nodeDetails;
+    for (const auto* n : scope.nodes) {
+        if (!nodeDetails.empty()) nodeDetails += ", ";
+        nodeDetails += std::to_string(n->GetNodeId());
+        nodeDetails += "(";
+        nodeDetails += to_string(n->GetNodeType());
+        nodeDetails += ",stream=";
+        nodeDetails += std::to_string(n->GetStreamIdxInGraph());
+        nodeDetails += ")";
+    }
+    SK_LOGI("  Scope %zu nodes: [%s]", scopeIdx, nodeDetails.c_str());
+}
+
+void SuperKernelScopeSplitter::PrintScopeStreamInfos(size_t scopeIdx, const SuperKernelScopeInfo& scope) const {
+    for (size_t j = 0; j < scope.scopeStreamInfos.size(); ++j) {
+        const auto& streamInfo = scope.scopeStreamInfos[j];
+        SK_LOGI("  Scope %zu StreamInfo[%zu]: streamIdx=%u, headNode=%lu, tailNode=%lu, nodeSize=%lu",
+                scopeIdx, j, streamInfo.streamIdx, streamInfo.headNodeIdx, 
+                streamInfo.tailNodeIdx, streamInfo.nodeSize);
+    }
+}
+
+void SuperKernelScopeSplitter::PrintScopeResults() const {
+    SK_LOGI("========== Multi-stream graph splitting complete, total scopes: %zu ==========", 
+            scopeInfos.size());
+    for (size_t i = 0; i < scopeInfos.size(); ++i) {
+        const auto& scope = scopeInfos[i];
+        std::string scopeNames = GetScopeNamesFromBitFlags(scope.scopeBitFlags);
+        SK_LOGI("Scope %zu: %zu nodes, %zu streams, scopeBitFlags=%s, scopeNames=[%s]",
+                i, scope.nodes.size(), scope.scopeStreamInfos.size(),
+                scope.scopeBitFlags.to_string().substr(0, MAX_SCOPE_NUM).c_str(),
+                scopeNames.c_str());
+        PrintScopeNodes(i, scope);
+        PrintScopeStreamInfos(i, scope);
+    }
+}
+
+bool SuperKernelScopeSplitter::DetermineCurrentScopeBitFlags() {
+    uint64_t minNodeIdx = UINT64_MAX;
+    SuperKernelBaseNode* minNode = nullptr;
+    
+    for (const auto& pair : streamStates_) {
+        if (!pair.second.isTerminated && !pair.second.isSuspended && 
+            pair.second.currentNodeIdx != INVALID_TASK_ID &&
+            pair.second.currentNodeIdx < minNodeIdx) {
+            SuperKernelBaseNode* node = graph.GetNodeById(pair.second.currentNodeIdx);
+            if (node != nullptr && node->IsFusible()) {
+                minNodeIdx = pair.second.currentNodeIdx;
+                minNode = node;
+            }
+        }
+    }
+    
+    if (minNode != nullptr) {
+        currentScopeBitFlags_ = minNode->GetScopeBitFlags();
+        SK_LOGI("Determined scopeBitFlags from min node %lu (idx=%lu): %s", 
+                minNode->GetNodeId(), minNodeIdx,
+                currentScopeBitFlags_.to_string().substr(0, MAX_SCOPE_NUM).c_str());
+        return true;
+    }
+    
+    SK_LOGI("No fusible node found to determine scopeBitFlags");
+    return false;
+}
+
+void SuperKernelScopeSplitter::InitNodeHeap() {
+    SK_LOGD("InitNodeHeap: iterating %zu streams", streamStates_.size());
+    size_t heapSizeBefore = nodeHeap_.size();
+    for (auto& pair : streamStates_) {
+        TryAddNodeToHeap(pair.first);
+    }
+    SK_LOGD("InitNodeHeap: heap size changed from %zu to %zu", heapSizeBefore, nodeHeap_.size());
+}
+
+void SuperKernelScopeSplitter::TryAddNodeToHeap(uint32_t streamIdx) {
+    StreamState& state = streamStates_[streamIdx];
+    SK_LOGI("TryAddNodeToHeap: stream %u, currentNodeIdx=%lu, isTerminated=%d, isSuspended=%d",
+            streamIdx, state.currentNodeIdx, state.isTerminated, state.isSuspended);
 
     // Condition 1: Stream is terminated, suspended, or finished
-    if (state.isTerminated || state.isSuspended ||
-        state.currentNodeIdx == INVALID_TASK_ID) {
+    if (state.isTerminated || state.isSuspended || state.currentNodeIdx == INVALID_TASK_ID) {
         return;
     }
 
@@ -127,73 +206,84 @@ void SuperKernelScopeSplitter::TryAddNodeToHeap(
     }
 
     // Condition 2: Node already processed
-    if (processedNodes.find(state.currentNodeIdx) != processedNodes.end()) {
+    if (processedNodes_.find(state.currentNodeIdx) != processedNodes_.end()) {
         SK_LOGW("Node %lu already processed, skip", state.currentNodeIdx);
         state.currentNodeIdx = nextNode->GetNextNodeId();
         return;
     }
 
-    // Condition 3: Node already in heap
-    // Note: std::priority_queue doesn't have contains() method, we need to check manually
-    // For simplicity, we'll skip this check as it's unlikely to cause issues
-    // and ProcessNotifyNode has protection against duplicates
+    // Condition 3: Check scopeBitFlags match
+    // Nodes can only fuse with nodes having the same scopeBitFlags
+    if (nextNode->GetScopeBitFlags() != currentScopeBitFlags_) {
+        state.isTerminated = true;
+        SK_LOGI("Node %lu (stream=%u) has different scopeBitFlags, terminate stream in current scope",
+                nextNode->GetNodeId(), streamIdx);
+        return;
+    }
 
-    // Special case: Permanently unfusible node
+    // Condition 4: Permanently unfusible node
     if (!nextNode->IsFusible()) {
-        // Mark stream as terminated (unfusible nodes terminate the current scope)
         state.isTerminated = true;
         SK_LOGI("Node %lu (stream=%lu, type=%s) is permanently unfusible, terminate stream in current scope",
                 nextNode->GetNodeId(), streamIdx, to_string(nextNode->GetNodeType()));
         return;
     }
 
-    // Special case: Wait node
+    // Condition 5: Wait node - special handling
     if (nextNode->GetNodeType() == SkNodeType::NODE_WAIT) {
-        uint64_t notifyId = nextNode->GetCorrespondingNotifyNodeId();
-        SuperKernelBaseNode* notifyNode = graph.GetNodeById(notifyId);
-        if (notifyNode == nullptr) {
-            SK_LOGW("Notify node %lu not found", notifyId);
-            return;
-        }
-        uint64_t eventId = notifyNode->GetEventId();
-        if (visitedNotifies.find(notifyId) != visitedNotifies.end()) {
-            // Notify already visited, can add to heap
-            nodeHeap.push(state.currentNodeIdx);
-            SK_LOGD("Wait node %lu (stream=%lu, eventId=%lu): notify already visited, add to heap", nextNode->GetNodeId(), streamIdx, eventId);
-        } else {
-            // Notify not visited, suspend the stream
-            state.isSuspended = true;
-            state.waitingForNotify = eventId;
-            SK_LOGD("Wait node %lu (stream=%lu, eventId=%lu): notify not visited, suspend stream", nextNode->GetNodeId(), streamIdx, eventId);
-        }
+        HandleWaitNode(nextNode, streamIdx);
+        return;
     }
-    // Check if node is fusible (no deadlock)
-    else if (lockDetector.IsFusible(*nextNode, graph)) {
-        // Fusible and no deadlock, add to heap
-        nodeHeap.push(state.currentNodeIdx);
-        SK_LOGD("Node %lu (stream=%lu, type=%s) fusible, add to heap", nextNode->GetNodeId(), streamIdx, to_string(nextNode->GetNodeType()));
-    }
-    // Otherwise node is unfusible due to deadlock, don't add to heap
-    // Important: currentNodeIdx is NOT advanced here to allow retry in next scope
-    else {
-        SK_LOGD("Node %lu (stream=%lu, type=%s) unfusible due to deadlock, skip", nextNode->GetNodeId(), streamIdx, to_string(nextNode->GetNodeType()));
+
+    // Condition 6: Other node types - check deadlock
+    if (lockDetector.IsFusible(*nextNode, graph)) {
+        nodeHeap_.push(state.currentNodeIdx);
+        SK_LOGD("Node %lu (stream=%lu, type=%s) fusible, add to heap", 
+                nextNode->GetNodeId(), streamIdx, to_string(nextNode->GetNodeType()));
+    } else {
+        state.isTerminated = true;
+        SK_LOGI("Node %lu (stream=%lu, type=%s) causes deadlock, terminate stream",
+                nextNode->GetNodeId(), streamIdx, to_string(nextNode->GetNodeType()));
     }
 }
 
-void SuperKernelScopeSplitter::ProcessNotifyNode(
-    SuperKernelBaseNode* notifyNode,
-    std::set<uint64_t>& visitedNotifies,
-    const std::set<uint64_t>& processedNodes,
-    std::unordered_map<uint32_t, StreamState>& streamStates,
-    std::priority_queue<uint64_t, std::vector<uint64_t>, std::greater<uint64_t>>& nodeHeap,
-    LockDetector& lockDetector) {
+void SuperKernelScopeSplitter::HandleWaitNode(SuperKernelBaseNode* waitNode, uint32_t streamIdx) {
+    StreamState& state = streamStates_[streamIdx];
+    uint64_t notifyId = waitNode->GetCorrespondingNotifyNodeId();
+    SuperKernelBaseNode* notifyNode = graph.GetNodeById(notifyId);
+    
+    if (notifyNode == nullptr) {
+        SK_LOGW("Notify node %lu not found", notifyId);
+        return;
+    }
+    
+    uint64_t eventId = notifyNode->GetEventId();
+    if (visitedNotifies_.find(notifyId) != visitedNotifies_.end()) {
+        // Notify already visited, check deadlock
+        if (lockDetector.IsFusible(*waitNode, graph)) {
+            nodeHeap_.push(state.currentNodeIdx);
+            SK_LOGD("Wait node %lu (stream=%u, eventId=%lu): notify visited, no deadlock, add to heap", 
+                    waitNode->GetNodeId(), streamIdx, eventId);
+        } else {
+            state.isTerminated = true;
+            SK_LOGI("Wait node %lu (stream=%u, eventId=%lu): notify visited but deadlock, terminate",
+                    waitNode->GetNodeId(), streamIdx, eventId);
+        }
+    } else {
+        state.isSuspended = true;
+        state.waitingForNotify = eventId;
+        SK_LOGD("Wait node %lu (stream=%u, eventId=%lu): notify not visited, suspend stream", 
+                waitNode->GetNodeId(), streamIdx, eventId);
+    }
+}
+
+void SuperKernelScopeSplitter::ProcessNotifyNode(SuperKernelBaseNode* notifyNode) {
     uint64_t eventId = notifyNode->GetEventId();
     const auto& eventInfo = graph.eventToNodes.at(eventId);
-    // Mark notify as visited
-    visitedNotifies.insert(notifyNode->GetNodeId());
-    SK_LOGD("Notify node %lu (stream=%lu, eventId=%lu) marked as visited", notifyNode->GetNodeId(), notifyNode->GetStreamIdxInGraph(), eventId);
+    visitedNotifies_.insert(notifyNode->GetNodeId());
+    SK_LOGD("Notify node %lu (stream=%lu, eventId=%lu) marked as visited", 
+            notifyNode->GetNodeId(), notifyNode->GetStreamIdxInGraph(), eventId);
 
-    // Resume streams that are waiting for this notify
     for (uint64_t waitNodeId : eventInfo.waitNodeIdList) {
         SuperKernelBaseNode* waitNode = graph.GetNodeById(waitNodeId);
         if (waitNode == nullptr) {
@@ -202,34 +292,26 @@ void SuperKernelScopeSplitter::ProcessNotifyNode(
         }
 
         uint32_t streamIdx = waitNode->GetStreamIdxInGraph();
-        StreamState& state = streamStates[streamIdx];
+        StreamState& state = streamStates_[streamIdx];
 
-        // If the stream is suspended and waiting for this notify, resume it
         if (state.isSuspended && state.waitingForNotify == eventId) {
             state.isSuspended = false;
             state.waitingForNotify = INVALID_TASK_ID;
             SK_LOGD("Resume stream %lu (was waiting for eventId=%lu)", streamIdx, eventId);
-            // Try to add the current node of this stream to heap
-            TryAddNodeToHeap(streamIdx, streamStates, visitedNotifies,
-                           processedNodes, nodeHeap, lockDetector);
+            TryAddNodeToHeap(streamIdx);
         }
     }
 }
 
-void SuperKernelScopeSplitter::ProcessResetNode(
-    SuperKernelBaseNode* resetNode,
-    std::set<uint64_t>& visitedNotifies,
-    std::unordered_map<uint32_t, StreamState>& streamStates) {
+void SuperKernelScopeSplitter::ProcessResetNode(SuperKernelBaseNode* resetNode) {
     uint64_t eventId = resetNode->GetEventId();
     SK_LOGD("ProcessResetNode: resetNode=%lu, eventId=%lu", resetNode->GetNodeId(), eventId);
     const auto& eventInfo = graph.eventToNodes.at(eventId);
 
-    // Reset clears the notify visitation marker
-    size_t erasedCount = visitedNotifies.erase(eventInfo.notifyNodeId);
+    size_t erasedCount = visitedNotifies_.erase(eventInfo.notifyNodeId);
     SK_LOGD("ProcessResetNode: erased notify %lu from visitedNotifies (erasedCount=%zu)", 
             eventInfo.notifyNodeId, erasedCount);
 
-    // Clear waiting state for all waits of this event
     for (uint64_t waitNodeId : eventInfo.waitNodeIdList) {
         SuperKernelBaseNode* waitNode = graph.GetNodeById(waitNodeId);
         if (waitNode == nullptr) {
@@ -238,11 +320,9 @@ void SuperKernelScopeSplitter::ProcessResetNode(
         }
 
         uint32_t streamIdx = waitNode->GetStreamIdxInGraph();
-        if (streamStates[streamIdx].waitingForNotify == eventId) {
-            streamStates[streamIdx].waitingForNotify = INVALID_TASK_ID;
-            // Note: After reset, the wait node needs to wait for notify again
-            // So we set isSuspended = true
-            streamStates[streamIdx].isSuspended = true;
+        if (streamStates_[streamIdx].waitingForNotify == eventId) {
+            streamStates_[streamIdx].waitingForNotify = INVALID_TASK_ID;
+            streamStates_[streamIdx].isSuspended = true;
             SK_LOGD("ProcessResetNode: suspended stream %u, waitNode=%lu", streamIdx, waitNodeId);
         }
     }
@@ -255,44 +335,45 @@ bool SuperKernelScopeSplitter::SplitGraph() {
 
     SK_LOGI("Start splitting multi-stream graph, stream count: %zu", streams.size());
 
-    // Reuse the same LockDetector instance for all scopes
-    LockDetector lockDetector;
+    // Reset all splitting state before starting
+    ResetSplittingState();
 
     // Initialize stream states
-    std::unordered_map<uint32_t, StreamState> streamStates;
     for (size_t i = 0; i < streams.size(); ++i) {
-        streamStates[i] = StreamState();
-        streamStates[i].currentNodeIdx = headNodes[i];
+        streamStates_[i] = StreamState();
+        streamStates_[i].currentNodeIdx = headNodes[i];
     }
 
     // Skip unfusible nodes at initialization
-    SkipUnfusibleNodes(streamStates);
-
-    std::set<uint64_t> visitedNotifies;
-    std::set<uint64_t> processedNodes;
-    std::priority_queue<uint64_t, std::vector<uint64_t>, std::greater<uint64_t>> nodeHeap;
+    SkipUnfusibleNodes();
 
     while (true) {
         SuperKernelScopeInfo scopeInfo;
+        
+        // Determine scopeBitFlags from the node with minimum currentNodeIdx
+        if (!DetermineCurrentScopeBitFlags()) {
+            SK_LOGI("No fusible node found, splitting complete, total scopes: %zu", scopeInfos.size());
+            break;
+        }
+        scopeInfo.scopeBitFlags = currentScopeBitFlags_;
 
         // Reset deadlock detector at the start of each scope
         lockDetector.Reset(graph);
 
         // Phase 1: Initialize heap
-        InitNodeHeap(streamStates, visitedNotifies, processedNodes, nodeHeap, lockDetector);
+        InitNodeHeap();
 
-        if (nodeHeap.empty()) {
+        if (nodeHeap_.empty()) {
             SK_LOGI("No fusible nodes in current scope, splitting complete, total scopes: %zu", scopeInfos.size());
             break;
         }
 
-        SK_LOGI("========== Start processing new scope %zu, heap size: %zu ==========", scopeInfos.size(), nodeHeap.size());
+        SK_LOGI("========== Start processing new scope %zu, heap size: %zu ==========", scopeInfos.size(), nodeHeap_.size());
 
         // Phase 2: Main fusion loop
-        while (!nodeHeap.empty()) {
-            // Pop the minimum nodeId
-            uint64_t nodeId = nodeHeap.top();
-            nodeHeap.pop();
+        while (!nodeHeap_.empty()) {
+            uint64_t nodeId = nodeHeap_.top();
+            nodeHeap_.pop();
 
             SuperKernelBaseNode* node = graph.GetNodeById(nodeId);
             if (node == nullptr) {
@@ -300,8 +381,7 @@ bool SuperKernelScopeSplitter::SplitGraph() {
                 continue;
             }
 
-            // Safety check: Already processed (should not happen)
-            if (processedNodes.find(nodeId) != processedNodes.end()) {
+            if (processedNodes_.find(nodeId) != processedNodes_.end()) {
                 SK_LOGW("Node %lu already processed, skip", nodeId);
                 continue;
             }
@@ -309,12 +389,9 @@ bool SuperKernelScopeSplitter::SplitGraph() {
             uint32_t streamIdx = node->GetStreamIdxInGraph();
             const char* nodeTypeStr = to_string(node->GetNodeType());
 
-            // Deadlock detection (permanently unfusible nodes already handled in TryAddNodeToHeap)
-            // Reuse single-stream LockDetector interface
+            // Double-check deadlock (already checked in TryAddNodeToHeap, but be safe)
             if (!lockDetector.IsFusible(*node, graph)) {
-                // Unfusible due to deadlock, terminate current scope
-                streamStates[streamIdx].isTerminated = true;
-                // Don't advance currentNodeIdx, will retry in next scope
+                streamStates_[streamIdx].isTerminated = true;
                 SK_LOGI("Node %lu (type=%s, stream=%lu) causes deadlock, terminate current scope", nodeId, nodeTypeStr, streamIdx);
                 continue;
             }
@@ -322,35 +399,31 @@ bool SuperKernelScopeSplitter::SplitGraph() {
             // Add to scope
             scopeInfo.nodes.push_back(node);
             AddStreamInfoToScope(scopeInfo, node);
-            processedNodes.insert(nodeId);
+            processedNodes_.insert(nodeId);
             SK_LOGD("Added node %lu (type=%s, stream=%lu) to scope, total nodes: %zu", nodeId, nodeTypeStr, streamIdx, scopeInfo.nodes.size());
-            // LockDetector internally tracks nodes through IsFusible calls
 
-            // Update stream state: mark current node as processed, advance to next node
-            streamStates[streamIdx].currentNodeIdx = node->GetNextNodeId();
+            // Update stream state: advance to next node
+            streamStates_[streamIdx].currentNodeIdx = node->GetNextNodeId();
 
             // Special case: Notify node (may activate suspended streams)
             if (node->GetNodeType() == SkNodeType::NODE_NOTIFY) {
-                ProcessNotifyNode(node, visitedNotifies, processedNodes,
-                              streamStates, nodeHeap, lockDetector);
+                ProcessNotifyNode(node);
             }
             // Special case: Reset node
             else if (node->GetNodeType() == SkNodeType::NODE_RESET) {
-                ProcessResetNode(node, visitedNotifies, streamStates);
+                ProcessResetNode(node);
             }
 
-            // Process next node of current stream: add to heap or suspend
-            // Key: Only process currentNodeIdx of current stream, guarantee forward traversal
-            TryAddNodeToHeap(streamIdx, streamStates, visitedNotifies,
-                           processedNodes, nodeHeap, lockDetector);
+            // Process next node of current stream
+            TryAddNodeToHeap(streamIdx);
         }
 
         // Save scope
         if (!scopeInfo.nodes.empty()) {
             std::string nodeIdsStr;
-            for (const auto* node : scopeInfo.nodes) {
+            for (const auto* n : scopeInfo.nodes) {
                 if (!nodeIdsStr.empty()) nodeIdsStr += ", ";
-                nodeIdsStr += std::to_string(node->GetNodeId());
+                nodeIdsStr += std::to_string(n->GetNodeId());
             }
             SK_LOGI("========== Creating scope %zu with %zu nodes, %zu streams ==========",
                      scopeInfos.size(), scopeInfo.nodes.size(), scopeInfo.scopeStreamInfos.size());
@@ -359,33 +432,10 @@ bool SuperKernelScopeSplitter::SplitGraph() {
         }
 
         // Reset stream states for next scope
-        ResetStreamStates(streamStates);
+        ResetStreamStates();
     }
 
-    SK_LOGI("========== Multi-stream graph splitting complete, total scopes: %zu ==========", scopeInfos.size());
-    for (size_t i = 0; i < scopeInfos.size(); ++i) {
-        SK_LOGI("Scope %zu: %zu nodes, %zu streams", i, scopeInfos[i].nodes.size(), scopeInfos[i].scopeStreamInfos.size());
-        
-        // Print all nodes in this scope
-        std::string nodeDetails;
-        for (const auto* node : scopeInfos[i].nodes) {
-            if (!nodeDetails.empty()) nodeDetails += ", ";
-            nodeDetails += std::to_string(node->GetNodeId());
-            nodeDetails += "(";
-            nodeDetails += to_string(node->GetNodeType());
-            nodeDetails += ",stream=";
-            nodeDetails += std::to_string(node->GetStreamIdxInGraph());
-            nodeDetails += ")";
-        }
-        SK_LOGI("  Scope %zu nodes: [%s]", i, nodeDetails.c_str());
-        
-        // Print all stream infos in this scope
-        for (size_t j = 0; j < scopeInfos[i].scopeStreamInfos.size(); ++j) {
-            const auto& streamInfo = scopeInfos[i].scopeStreamInfos[j];
-            SK_LOGI("  Scope %zu StreamInfo[%zu]: streamIdx=%u, headNode=%lu, tailNode=%lu, nodeSize=%lu",
-                    i, j, streamInfo.streamIdx, streamInfo.headNodeIdx, streamInfo.tailNodeIdx, streamInfo.nodeSize);
-        }
-    }
+    PrintScopeResults();
 
     return true;
 }

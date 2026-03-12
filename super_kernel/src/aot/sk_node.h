@@ -169,7 +169,6 @@ public:
     }
     void SetIsScopeNode(bool isScope) { isScopeNode = isScope; }
     bool IsScopeNode() const { return isScopeNode; }
-    bool HasScopeFlags() const { return scopeBitFlags.any(); }
     void ClearScopeBitFlags() { scopeBitFlags.reset(); }
     void MarkEventNodeToScope(SuperKernelBaseNode* node);
 public:
