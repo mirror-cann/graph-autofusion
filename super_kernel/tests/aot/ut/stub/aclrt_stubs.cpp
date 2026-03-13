@@ -38,9 +38,20 @@ typedef struct AclrtTaskInternal {
     };
 } AclrtTaskInternal;
 
+// Internal RI task structure for stub implementation
+typedef struct AclmdlRITaskInternal {
+    uint32_t task_id;
+    aclmdlRITaskType type;
+    aclmdlRITaskParams params;
+} AclmdlRITaskInternal;
+
 // Helper to convert void* to internal structure
 static inline AclrtTaskInternal* TaskToInternal(aclrtTask task) {
     return reinterpret_cast<AclrtTaskInternal*>(task);
+}
+
+static inline AclmdlRITaskInternal* RITaskToInternal(aclmdlRITask task) {
+    return reinterpret_cast<AclmdlRITaskInternal*>(task);
 }
 
 // 获取流
@@ -285,6 +296,69 @@ void sk_scope_kernel_begin_do(void* stream, ScopeKernelArgs args) {
 void sk_scope_kernel_end_do(void* stream, ScopeKernelArgs args) {
     (void)stream;
     (void)args;
+}
+
+// ==================== RI Task API Stubs ====================
+
+aclError aclmdlRITaskGetType(aclmdlRITask task, aclmdlRITaskType *type) {
+    if (type == nullptr || task == nullptr) {
+        return ACL_ERROR_INVALID_PARAM;
+    }
+    AclmdlRITaskInternal* internal = RITaskToInternal(task);
+    *type = internal->type;
+    return ACL_ERROR_NONE;
+}
+
+aclError aclmdlRITaskGetParams(aclmdlRITask task, aclmdlRITaskParams* params) {
+    if (params == nullptr || task == nullptr) {
+        return ACL_ERROR_INVALID_PARAM;
+    }
+    AclmdlRITaskInternal* internal = RITaskToInternal(task);
+    *params = internal->params;
+    return ACL_ERROR_NONE;
+}
+
+aclError aclmdlRITaskSetParams(aclmdlRITask task, aclmdlRITaskParams* params) {
+    if (params == nullptr || task == nullptr) {
+        return ACL_ERROR_INVALID_PARAM;
+    }
+    AclmdlRITaskInternal* internal = RITaskToInternal(task);
+    internal->params = *params;
+    return ACL_ERROR_NONE;
+}
+
+aclError aclmdlRITaskDisable(aclmdlRITask task) {
+    if (task == nullptr) {
+        return ACL_ERROR_INVALID_PARAM;
+    }
+    return ACL_ERROR_NONE;
+}
+
+aclError aclmdlRITaskGetSeqId(aclmdlRITask task, uint32_t *id) {
+    if (id == nullptr || task == nullptr) {
+        return ACL_ERROR_INVALID_PARAM;
+    }
+    AclmdlRITaskInternal* internal = RITaskToInternal(task);
+    *id = internal->task_id;
+    return ACL_ERROR_NONE;
+}
+
+aclError aclmdlRIGetTasksByStream(aclrtStream stream, aclmdlRITask *tasks, uint32_t *numTasks) {
+    if (numTasks == nullptr) {
+        return ACL_ERROR_INVALID_PARAM;
+    }
+    if (tasks != nullptr) {
+        *numTasks = 0;
+    }
+    return ACL_ERROR_NONE;
+}
+
+aclError aclrtFunctionGetBinary(aclrtFuncHandle funcHandle, aclrtBinHandle *binHandle) {
+    if (binHandle == nullptr) {
+        return ACL_ERROR_INVALID_PARAM;
+    }
+    *binHandle = nullptr;
+    return ACL_ERROR_NONE;
 }
 
 } // extern "C"

@@ -128,47 +128,37 @@ bool ProcessFrontWaitForStream(SuperKernelGraph& graph, const SuperKernelScopeIn
             curStreamIdx);
     return false;
     // Feature : apply memory addr
-    // apply event for front wait
-    aclrtEvent event;
-    // EventManager::CreateEvent(&event);
-    aclrtTaskEventParams customParams;
-    customParams.type = ACL_RT_TASK_EVENT_RECORD;
-    customParams.flag = ACL_RT_TASK_VALID;
-    customParams.event = event;
-
-    // apply event mermory and get event info
-    aclrtTaskEventParams eventGetParams; // Feature : feature use aclmdIRITaskParams
-    auto notifyTask = workNode->originTask.get();
-    CHECK_ACL(aclrtTaskSetEventParams(notifyTask, &customParams));
-    CHECK_ACL(aclrtTaskGetEventParams(notifyTask, &eventGetParams));
+    void *addr = nullptr;
 
     // Feature : create resetNode for sk optimize
-    auto resetNode = SuperKernelNodeFactory::CreateNode(std::make_unique<aclrtTask>(nullptr), ACL_RT_TASK_EVENT_RESET,
+    auto resetNode = SuperKernelNodeFactory::CreateNode(std::make_unique<aclmdlRITask>(nullptr), ACL_MODEL_RI_TASK_EVENT_RESET,
                                                         INVALID_TASK_ID, scopeStreamInfo.streamIdx, lastNodeId);
-    resetNode->nodeInfos.syncInfos.eventId = eventGetParams.sequenceId;
-    resetNode->nodeInfos.syncInfos.addrValue = eventGetParams.u.memoryEventInfo.eventAddr;
+    resetNode->SetNodeType(SkNodeType::NODE_RESET);
+    resetNode->nodeInfos.syncInfos.eventId = static_cast<uint64_t>(reinterpret_cast<uintptr_t>(addr));
+    resetNode->nodeInfos.syncInfos.addrValue = addr;
+    // record resetNode for sk optimize
+    processedScopeInfo.eventNodes.emplace_back(std::move(resetNode));
+
 
     // Feature cur stream add record event task
-    aclrtTaskEventParams recordParams;
-    recordParams.type = ACL_RT_TASK_EVENT_RECORD;
-    recordParams.flag = ACL_RT_TASK_VALID;
-    recordParams.event = event;
-    processedScopeInfo.updateStreamInfos[curStreamIdx].customParams.emplace_back(recordParams);
+    aclmdlRITaskParams notifyParams;
+    notifyParams.type = ACL_MODEL_RI_TASK_VALUE_WRITE;
+    notifyParams.valueWriteTaskParams.devAddr = addr;
+    notifyParams.valueWriteTaskParams.value = 1;
+    processedScopeInfo.updateStreamInfos[curStreamIdx].customParams.emplace_back(notifyParams);
 
     // Feature prev stream add wait event task
-    aclrtTaskEventParams waitParams;
-    waitParams.type = ACL_RT_TASK_EVENT_WAIT;
-    waitParams.flag = ACL_RT_TASK_VALID;
-    waitParams.event = event;
+    aclmdlRITaskParams waitParams;
+    waitParams.type = ACL_MODEL_RI_TASK_VALUE_WAIT;
+    waitParams.valueWaitTaskParams.devAddr = addr;
+    waitParams.valueWaitTaskParams.value = 1;
+    waitParams.valueWaitTaskParams.flag = 0;
     processedScopeInfo.updateStreamInfos[prevWaitStreamIdx].customParams.emplace(
         processedScopeInfo.updateStreamInfos[prevWaitStreamIdx].customParams.begin(), waitParams);
     if (!EnsureStreamCapacity(processedScopeInfo, curStreamIdx)
         || !EnsureStreamCapacity(processedScopeInfo, prevWaitStreamIdx)) {
         return false;
     }
-
-    // record resetNode for sk optimize
-    processedScopeInfo.eventNodes.emplace_back(std::move(resetNode));
 
     // update info for next step, workNode move
     plans[curStreamIdx].workNode = graph.GetNodeById(workNode->GetNextNodeId());
@@ -201,41 +191,33 @@ bool ProcessBackBlockForStream(const SuperKernelScopeInfo& scopeInfo, std::vecto
     SK_LOGE("back-block process aborted: streamIdx=%u, streamId=%u, lastNodeId=%lu", curStreamIdx,
             scopeStreamInfo.streamIdx, lastNodeId);
     return false;
-    // apply event for back block
-    aclrtEvent event;
-    // EventManager::CreateEvent(&event);
-    aclrtTaskEventParams customParams;
-    customParams.type = ACL_RT_TASK_EVENT_WAIT;
-    customParams.flag = ACL_RT_TASK_VALID;
-    customParams.event = event;
 
-    // apply event memory and get event info
-    aclrtTaskEventParams eventGetParams; // Feature : feature use aclmdIRITaskParams
-    auto waitTask = workNode->originTask.get();
-    CHECK_ACL(aclrtTaskSetEventParams(waitTask, &customParams));
-    CHECK_ACL(aclrtTaskGetEventParams(waitTask, &eventGetParams));
-
+    // todo
+    void* addr = nullptr;
+    
     // create notifyNode for sk optimize
-    auto notifyNode = SuperKernelNodeFactory::CreateNode(std::make_unique<aclrtTask>(nullptr), ACL_RT_TASK_EVENT_RECORD,
+    auto notifyNode = SuperKernelNodeFactory::CreateNode(std::make_unique<aclmdlRITask>(nullptr), ACL_MODEL_RI_TASK_EVENT_RECORD,
                                                          INVALID_TASK_ID, scopeStreamInfo.streamIdx, lastNodeId);
-    notifyNode->nodeInfos.syncInfos.eventId = eventGetParams.sequenceId;
-    notifyNode->nodeInfos.syncInfos.addrValue = eventGetParams.u.memoryEventInfo.eventAddr;
+    notifyNode->SetNodeType(SkNodeType::NODE_NOTIFY);
+    notifyNode->nodeInfos.syncInfos.eventId = static_cast<uint64_t>(reinterpret_cast<uintptr_t>(addr));
+    notifyNode->nodeInfos.syncInfos.addrValue = addr;
 
     // record notifyNode for sk optimize
     processedScopeInfo.eventNodes.emplace_back(std::move(notifyNode));
 
     // cur stream add wait event task
-    aclrtTaskEventParams waitParams;
-    waitParams.type = ACL_RT_TASK_EVENT_WAIT;
-    waitParams.flag = ACL_RT_TASK_VALID;
-    waitParams.event = event;
+    aclmdlRITaskParams waitParams;
+    waitParams.type = ACL_MODEL_RI_TASK_VALUE_WAIT;
+    waitParams.valueWaitTaskParams.devAddr = addr;
+    waitParams.valueWaitTaskParams.value = 1;
+    waitParams.valueWaitTaskParams.flag = 0;
     processedScopeInfo.updateStreamInfos[curStreamIdx].customParams.emplace_back(waitParams);
 
     // cur stream add reset event task
-    aclrtTaskEventParams resetParams;
-    resetParams.type = ACL_RT_TASK_EVENT_RESET;
-    resetParams.flag = ACL_RT_TASK_VALID;
-    resetParams.event = event;
+    aclmdlRITaskParams resetParams;
+    resetParams.type = ACL_MODEL_RI_TASK_VALUE_WRITE;
+    resetParams.valueWriteTaskParams.devAddr = addr;
+    resetParams.valueWriteTaskParams.value = 0;
     processedScopeInfo.updateStreamInfos[curStreamIdx].customParams.emplace_back(resetParams);
     if (!EnsureStreamCapacity(processedScopeInfo, curStreamIdx)) {
         return false;

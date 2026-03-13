@@ -79,6 +79,71 @@ typedef enum aclrtEventType {
     ACL_RT_EVENT_MEMORY,
 } aclrtEventType;
 
+// RI Task types (new API)
+typedef enum aclmdlRITaskType {
+    ACL_MODEL_RI_TASK_DEFAULT,
+    ACL_MODEL_RI_TASK_KERNEL,
+    ACL_MODEL_RI_TASK_EVENT_RECORD,
+    ACL_MODEL_RI_TASK_EVENT_WAIT,
+    ACL_MODEL_RI_TASK_EVENT_RESET,
+    ACL_MODEL_RI_TASK_VALUE_WRITE,
+    ACL_MODEL_RI_TASK_VALUE_WAIT,
+} aclmdlRITaskType;
+
+typedef void *aclmdlRITask;
+
+// RI Task parameter structures (new API)
+typedef struct aclmdlRIKernelTaskParams {
+    aclrtFuncHandle funcHandle;
+    aclrtLaunchKernelCfg* cfg;
+    void* args;
+    uint32_t isHostArgs;
+    size_t argsSize;
+    uint32_t numBlocks;
+    uint32_t rsv[10];
+} aclmdlRIKernelTaskParams;
+
+typedef struct aclmdlRIValueWriteTaskParams {
+    void* devAddr;
+    uint64_t value;
+} aclmdlRIValueWriteTaskParams;
+
+typedef struct aclmdlRIValueWaitTaskParams {
+    void* devAddr;
+    uint64_t value;
+    uint32_t flag;
+} aclmdlRIValueWaitTaskParams;
+
+typedef struct aclmdlRIEventRecordTaskParams {
+    aclrtEvent event;
+} aclmdlRIEventRecordTaskParams;
+
+typedef struct aclmdlRIEventWaitTaskParams {
+    aclrtEvent event;
+} aclmdlRIEventWaitTaskParams;
+
+typedef struct aclmdlRIEventResetTaskParams {
+    aclrtEvent event;
+} aclmdlRIEventResetTaskParams;
+
+typedef struct aclmdlRITaskParams {
+    aclmdlRITaskType type;
+    uint32_t reserved0[3];
+    aclrtTaskGrp taskGrp;
+    void* opInfoPtr;
+    size_t opInfoSize;
+    char reserved1[32];
+    union {
+        char reserved2[128];
+        struct aclmdlRIKernelTaskParams kernelTaskParams;
+        struct aclmdlRIEventRecordTaskParams eventRecordTaskParams;
+        struct aclmdlRIEventWaitTaskParams eventWaitTaskParams;
+        struct aclmdlRIEventResetTaskParams eventResetTaskParams;
+        struct aclmdlRIValueWriteTaskParams valueWriteTaskParams;
+        struct aclmdlRIValueWaitTaskParams valueWaitTaskParams;
+    };
+} aclmdlRITaskParams;
+
 // Task parameter structures
 typedef struct aclrtTaskKernelParams {
     aclrtTaskType type;
@@ -171,6 +236,15 @@ aclError aclrtTaskSetMemValueParams(aclrtTask task, aclrtTaskMemValueParams *par
 aclError aclmdlRIUpdate(aclmdlRI modelRI);
 aclError aclrtGetDeviceInfo(uint32_t deviceId, aclrtDevAttr attr, int64_t *value);
 aclError aclrtGetDevice(int32_t *deviceId);
+
+// RI Task API declarations
+aclError aclmdlRITaskGetType(aclmdlRITask task, aclmdlRITaskType *type);
+aclError aclmdlRITaskGetParams(aclmdlRITask task, aclmdlRITaskParams *params);
+aclError aclmdlRITaskSetParams(aclmdlRITask task, aclmdlRITaskParams *params);
+aclError aclmdlRITaskDisable(aclmdlRITask task);
+aclError aclmdlRITaskGetSeqId(aclmdlRITask task, uint32_t *id);
+aclError aclmdlRIGetTasksByStream(aclrtStream stream, aclmdlRITask *tasks, uint32_t *numTasks);
+aclError aclrtFunctionGetBinary(aclrtFuncHandle funcHandle, aclrtBinHandle *binHandle);
 
 // Binary API
 aclError aclrtBinaryGetFunction(aclrtBinHandle binHdl, const char* funcName, aclrtFuncHandle* funcHdl);

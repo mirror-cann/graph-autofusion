@@ -30,7 +30,7 @@ struct UpdateStreamInfo {
     uint64_t nodeSize = 0;
     // Feature(aclmdIRITaskParams): Replace aclrtTaskEventParams with aclmdIRITaskParams
     // once event memory allocation is switched from runtime task APIs to IR-task APIs.
-    std::vector<aclrtTaskEventParams> customParams; // Feature : feature use aclmdIRITaskParams
+    std::vector<aclmdlRITaskParams> customParams; // Feature : feature use aclmdIRITaskParams
 };
 
 struct SuperKernelProcessedScopeInfo {

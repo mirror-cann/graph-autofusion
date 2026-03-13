@@ -35,7 +35,7 @@ protected:
         auto task = std::make_unique<aclrtTask>();
         auto node = std::make_unique<SuperKernelKernelNode>(
             std::move(task),
-            SkNodeType::NODE_KERNEL,
+            ACL_MODEL_RI_TASK_KERNEL,
             nodeId,
             streamIdx,
             INVALID_TASK_ID

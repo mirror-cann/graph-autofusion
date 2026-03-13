@@ -229,11 +229,7 @@ struct JudgeTaskKernelInfo {
     std::unique_ptr<char[]> scopeName;
 };
 
-bool IsScopeKernel(aclrtTaskKernelParams params, JudgeTaskKernelInfo* info) {
-    if (params.type != ACL_RT_TASK_KERNEL) {
-        SK_LOGE("current task is not kernel task");
-        return false;
-    }
+bool IsScopeKernel(aclmdlRIKernelTaskParams params, JudgeTaskKernelInfo* info) {
     const char* defaultScopeName = "default_sk_scope_name";
     const char* targetBeginName = "sk_scope_kernel_begin";
     const char* targetEndName = "sk_scope_kernel_end";
@@ -250,7 +246,7 @@ bool IsScopeKernel(aclrtTaskKernelParams params, JudgeTaskKernelInfo* info) {
         return false;
     }
     auto parseArgsAddr = std::make_unique<ScopeKernelArgs>();
-    ret = aclrtMemcpy((void*)parseArgsAddr.get(), sizeof(ScopeKernelArgs), params.devArgs, sizeof(ScopeKernelArgs), 
+    ret = aclrtMemcpy((void*)parseArgsAddr.get(), sizeof(ScopeKernelArgs), params.args, sizeof(ScopeKernelArgs), 
         ACL_MEMCPY_DEVICE_TO_HOST);
     if (ret != ACL_SUCCESS) {
         SK_LOGE("aclrtMemcpy failed, ret: %d", ret);
@@ -277,12 +273,14 @@ bool SuperKernelKernelNode::InitNode() {
     if (!SuperKernelBaseNode::InitNode()) {
         return false;
     }
-    aclError aclRet = aclrtTaskGetKernelParams(*originTask, &kernelParams);
+    nodeType = SkNodeType::NODE_KERNEL;
+    aclError aclRet = aclmdlRITaskGetParams(*originTask, &taskParams);
     if (aclRet != ACL_SUCCESS) {
         SK_LOGE("Failed to get kernel params for task %u in stream %u", nodeIdxInStream, streamIdxInGraph);
         return false;
     }
     JudgeTaskKernelInfo scopeKernelInfo;
+    auto &kernelParams = taskParams.kernelTaskParams;
     if (IsScopeKernel(kernelParams, &scopeKernelInfo)){
         SK_LOGI("Kernel node for task %u in stream %u is scope kernel.", nodeIdxInStream, streamIdxInGraph);
         isFusible = scopeKernelInfo.isFuseEnable;
@@ -295,7 +293,7 @@ bool SuperKernelKernelNode::InitNode() {
         }
     }
 
-    if (kernelParams.taskGrp != nullptr) {
+    if (taskParams.taskGrp != nullptr) {
         SK_LOGI("Kernel task group is not null for task %u in stream %u, which cannot be fused in super kernel.", nodeIdxInStream, streamIdxInGraph);
         return true;
     }
@@ -314,8 +312,12 @@ bool SuperKernelKernelNode::InitNode() {
     nodeInfos.kernelInfos.taskRatio[1] = skTaskTatio[1];
     nodeInfos.kernelInfos.kernelType = NormalizeKernelType((uint32_t)(kernelType), skTaskTatio);
     nodeInfos.kernelInfos.numBlocks = kernelParams.numBlocks;
-    nodeInfos.kernelInfos.devArgs = kernelParams.devArgs;
-    nodeInfos.kernelInfos.binHdl = reinterpret_cast<aclrtBinHandle>(kernelParams.binHandle);
+    nodeInfos.kernelInfos.devArgs = kernelParams.args;
+    aclRet = aclrtFunctionGetBinary(kernelParams.funcHandle, &nodeInfos.kernelInfos.binHdl);
+    if (aclRet != ACL_SUCCESS) {
+        SK_LOGE("Failed to get kernel bin handle");
+        return false;
+    }
     nodeInfos.kernelInfos.funcHdl = kernelParams.funcHandle;
 
     // Calculate vecNum and cubeNum based on kernel type and numBlocks
@@ -350,8 +352,7 @@ bool SuperKernelKernelNode::InValidateNode() {
         return false;
     }
     SK_LOGI("Invalidating kernel node for task %u in stream %u, which will be fused in super kernel.", nodeIdxInStream, streamIdxInGraph);
-    kernelParams.flag = aclrtTaskFlag::ACL_RT_TASK_INVALID;
-    aclError aclRet = aclrtTaskSetKernelParams(*originTask, &kernelParams);
+    aclError aclRet = aclmdlRITaskDisable(*originTask);
     if (aclRet != ACL_SUCCESS) {
         SK_LOGE("Failed to invalidate kernel node for task %u in stream %u", nodeIdxInStream, streamIdxInGraph);
         return false;
@@ -367,11 +368,8 @@ bool SuperKernelKernelNode::Update(const UpdateContext &ctx) {
     }
 
     if (ctx.customParams != nullptr) {
-        // Feature : feature use aclmdIRITaskParams
-        SK_LOGE("This Branch depand on runtime, for now skip sk optimize");
-        return false;
         // update kernel with custom params for stream sync
-        aclError aclRet = aclrtTaskSetEventParams(*originTask, ctx.customParams);
+        aclError aclRet = aclmdlRITaskSetParams(*originTask, ctx.customParams);
         if (aclRet != ACL_SUCCESS) {
             SK_LOGE("Failed to set kernel with custom params for task %u in stream %u", nodeIdxInStream, streamIdxInGraph);
             return false;
@@ -379,79 +377,15 @@ bool SuperKernelKernelNode::Update(const UpdateContext &ctx) {
         SK_LOGI("Success to set kernel with custom params for task %u in stream %u", nodeIdxInStream, streamIdxInGraph);
         return true;
     } else if (ctx.launchInfo != nullptr && ctx.skEntryFunc != nullptr) {
-        // Feature : feature use aclmdIRITaskParams
-        // update kernel to sk entry kernel
-        aclrtArgsHandle ahdl = nullptr;
-        aclrtParamHandle phdl = nullptr;
-        size_t memSize = 0;
-        size_t devArgsSize = 0;
-        void *argsPtr = nullptr;
-        const size_t allocMaxSize = std::allocator<uint8_t>{}.max_size();
+        taskParams.kernelTaskParams.args = static_cast<void*>(ctx.launchInfo->devArgs.get());
+        taskParams.kernelTaskParams.argsSize = ctx.launchInfo->devArgs.get()->skHeader.totalSize;
+        taskParams.kernelTaskParams.isHostArgs = true;
 
-        aclError aclRet = aclrtKernelArgsGetHandleMemSize(ctx.skEntryFunc, &memSize);
-        if (aclRet != ACL_SUCCESS) {
-            SK_LOGE("aclrtKernelArgsGetHandleMemSize failed: %d", aclRet);
-            return false;
-        }
-        if (memSize == 0 || memSize > allocMaxSize) {
-            SK_LOGE("invalid memSize: %zu", memSize); 
-            return false; 
-        } 
-        auto ahdlHolder = std::make_unique<uint8_t[]>(memSize);
-        if (!ahdlHolder) {
-            SK_LOGE("malloc memSize failed");
-            return false;
-        }
-        ahdl = reinterpret_cast<aclrtArgsHandle>(ahdlHolder.get());
-        aclRet = aclrtKernelArgsGetMemSize(ctx.skEntryFunc, ctx.launchInfo->devArgs.get()->skHeader.totalSize, &devArgsSize);
-        if (aclRet != ACL_SUCCESS) {
-            SK_LOGE("aclrtKernelArgsGetMemSize failed: %d", aclRet);
-            return false;
-        }
-        if (devArgsSize == 0 || devArgsSize > allocMaxSize) {
-            SK_LOGE("invalid devArgsSize: %zu", devArgsSize);
-            return false;
-        }
-        auto devArgsHolder = std::make_unique<uint8_t[]>(devArgsSize);
-        if (!devArgsHolder) {
-            SK_LOGE("malloc devArgsSize failed");
-            return false;
-        }
-        void *devArgs = reinterpret_cast<void*>(devArgsHolder.get());
-        aclRet = aclrtKernelArgsInitByUserMem(ctx.skEntryFunc, ahdl, devArgs, devArgsSize);
-        if (aclRet != ACL_SUCCESS) {
-            SK_LOGE("aclrtKernelArgsInitByUserMem failed: %d", aclRet);
-            return false;
-        }
+        taskParams.kernelTaskParams.funcHandle = ctx.skEntryFunc;
+        taskParams.kernelTaskParams.numBlocks = ctx.launchInfo->entryInfo.numBlocks;
+        taskParams.type = ACL_MODEL_RI_TASK_KERNEL;
 
-        aclRet = aclrtKernelArgsAppendPlaceHolder(ahdl, &phdl);
-        if (aclRet != ACL_SUCCESS) {
-            SK_LOGE("aclrtKernelArgsAppendPlaceHolder failed: %d", aclRet);
-            return false;
-        }
-        aclRet = aclrtKernelArgsGetPlaceHolderBuffer(
-            ahdl, phdl, ctx.launchInfo->devArgs.get()->skHeader.totalSize, (void **)&argsPtr);
-        if (aclRet != ACL_SUCCESS) {
-            SK_LOGE("aclrtKernelArgsGetPlaceHolderBuffer failed: %d", aclRet);
-            return false;
-        }
-        errno_t err = memcpy_s(argsPtr, ctx.launchInfo->devArgs.get()->skHeader.totalSize, ctx.launchInfo->devArgs.get(), ctx.launchInfo->devArgs.get()->skHeader.totalSize);
-        if (err != 0) {
-            SK_LOGE("memcpy_s failed");
-            return false;
-        } 
-        aclRet = aclrtKernelArgsFinalize(ahdl);
-        if (aclRet != ACL_SUCCESS) {
-            SK_LOGE("aclrtKernelArgsFinalize failed: %d", aclRet);
-            return false;
-        }
-
-        kernelParams.funcHandle = ctx.skEntryFunc;
-        kernelParams.argsHandle = ahdl;
-        kernelParams.numBlocks = ctx.launchInfo->entryInfo.numBlocks;
-        kernelParams.flag = aclrtTaskFlag::ACL_RT_TASK_VALID;
-
-        aclRet = aclrtTaskSetKernelParams(*originTask, &kernelParams);
+        aclError aclRet = aclmdlRITaskSetParams(*originTask, &taskParams);
         if (aclRet != ACL_SUCCESS) {
             SK_LOGE("Failed to update kernel node for task %u in stream %u", nodeIdxInStream, streamIdxInGraph);
             return false;
@@ -462,80 +396,39 @@ bool SuperKernelKernelNode::Update(const UpdateContext &ctx) {
     return InValidateNode();
 }
 
-bool SuperKernelEventNode::InitNode() {
+bool SuperKernelMemoryNode::InitNode() {
     if (!SuperKernelBaseNode::InitNode()) {
         return false;
     }
-    aclError aclRet = aclrtTaskGetEventParams(*originTask, &eventParams);
+    aclError aclRet = aclmdlRITaskGetParams(*originTask, &taskParams);
     if (aclRet != ACL_SUCCESS) {
         SK_LOGE("Failed to get event params for task %u in stream %u", nodeIdxInStream, streamIdxInGraph);
         return false;
     }
 
-    if (eventParams.eventType != aclrtEventType::ACL_RT_EVENT_MEMORY) {
-         SK_LOGI("Event type is not memory based for task %u in stream %u, which cannot be fused in super kernel.", nodeIdxInStream, streamIdxInGraph);
-         return true;
-    }
-
-    nodeInfos.syncInfos.eventId = static_cast<uint64_t>(reinterpret_cast<uintptr_t>(eventParams.u.memoryEventInfo.eventAddr));
-    nodeInfos.syncInfos.addrValue = eventParams.u.memoryEventInfo.eventAddr;
-
-    SK_LOGI("Event type %s of task %u in stream %u is memory based, which can be fused in super kernel.", to_string(GetNodeType()), nodeIdxInStream, streamIdxInGraph);
-    isFusible = true;
-    return true;
-}
-
-bool SuperKernelEventNode::InValidateNode() {
-    if (!isFusible) {
-        SK_LOGE("Event node with eventId %lu for task %u in stream %u can not be fused in super kernel, which should not been invalidated.", nodeInfos.syncInfos.eventId, nodeIdxInStream, streamIdxInGraph);
-        return false;
-    }
-    SK_LOGI("Invalidating event node with eventId %lu for task %u in stream %u, which will be fused in super kernel.", nodeInfos.syncInfos.eventId, nodeIdxInStream, streamIdxInGraph);
-    eventParams.flag = aclrtTaskFlag::ACL_RT_TASK_INVALID;
-    aclError aclRet = aclrtTaskSetEventParams(*originTask, &eventParams);
-    if (aclRet != ACL_SUCCESS) {
-        SK_LOGE("Failed to invalidate event node with eventId %lu for task %u in stream %u", nodeInfos.syncInfos.eventId, nodeIdxInStream, streamIdxInGraph);
-        return false;
-    }
-    return true;
-}
-
-bool SuperKernelEventNode::Update(const UpdateContext &ctx) {
-    if (!isFusible) {
-        SK_LOGE("Event node with eventId %lu for task %u in stream %u is not fusible, update rejected.",
-                nodeInfos.syncInfos.eventId, nodeIdxInStream, streamIdxInGraph);
-        return false;
-    }
-
-    if (ctx.customParams != nullptr) {
-        // Feature : feature use aclmdIRITaskParams
-        SK_LOGE("This Branch depand on runtime, for now skip sk optimize");
-        return false;
-        // update event node with custom params for stream sync
-        aclError aclRet = aclrtTaskSetEventParams(*originTask, ctx.customParams);
-        if (aclRet != ACL_SUCCESS) {
-            SK_LOGE("Failed to set custom params for task %u in stream %u", nodeIdxInStream, streamIdxInGraph);
-            return false;
-        }
-        SK_LOGI("Updated custom params for task %u in stream %u", nodeIdxInStream, streamIdxInGraph);
+    if (rtNodeType != ACL_MODEL_RI_TASK_VALUE_WRITE && rtNodeType != ACL_MODEL_RI_TASK_VALUE_WAIT) {
+        SK_LOGI("Event type is not memory based for task %u in stream %u, which cannot be fused in super kernel.", nodeIdxInStream, streamIdxInGraph);
         return true;
     }
 
-    return InValidateNode();
-}
+    if (rtNodeType == ACL_MODEL_RI_TASK_VALUE_WRITE) {
+        auto& memoryParam = taskParams.valueWriteTaskParams;
+        if (memoryParam.value == 0) {
+            nodeType = SkNodeType::NODE_RESET;
+        }
+        if (memoryParam.value == 1) {
+            nodeType = SkNodeType::NODE_NOTIFY;
+        }
+        nodeInfos.syncInfos.eventId = static_cast<uint64_t>(reinterpret_cast<uintptr_t>(memoryParam.devAddr));
+        nodeInfos.syncInfos.addrValue = memoryParam.devAddr;
+    } else {
+        nodeType = SkNodeType::NODE_WAIT;
+        auto& memoryParam = taskParams.valueWaitTaskParams;
+        nodeInfos.syncInfos.eventId = static_cast<uint64_t>(reinterpret_cast<uintptr_t>(memoryParam.devAddr));
+        nodeInfos.syncInfos.addrValue = memoryParam.devAddr;
+    }
 
-bool SuperKernelMemoryNode::InitNode() {
-    if (!SuperKernelBaseNode::InitNode()) {
-        return false;
-    }
-    aclError aclRet = aclrtTaskGetMemValueParams(*originTask, &memValueParams);
-    if (aclRet != ACL_SUCCESS) {
-        SK_LOGE("Failed to get memory value params for task %u in stream %u", nodeIdxInStream, streamIdxInGraph);
-        return false;
-    }
-    nodeInfos.syncInfos.eventId = reinterpret_cast<uint64_t>(memValueParams.valueAddr);
-    nodeInfos.syncInfos.addrValue = memValueParams.valueAddr;
-    SK_LOGI("Memory value type is write for task %u in stream %u, which can be fused in super kernel.", nodeIdxInStream, streamIdxInGraph);
+    SK_LOGI("Event type of task %u in stream %u is memory based, which can be fused in super kernel.", nodeIdxInStream, streamIdxInGraph);
     isFusible = true;
     return true;
 }
@@ -548,11 +441,8 @@ bool SuperKernelMemoryNode::Update(const UpdateContext &ctx) {
     }
 
     if (ctx.customParams != nullptr) {
-        // Feature : feature use aclmdIRITaskParams
-        SK_LOGE("This Branch depand on runtime, for now skip sk optimize");
-        return false;
         // update memory node with custom params for stream sync
-        aclError aclRet = aclrtTaskSetEventParams(*originTask, ctx.customParams);
+        aclError aclRet = aclmdlRITaskSetParams(*originTask, ctx.customParams);
         if (aclRet != ACL_SUCCESS) {
             SK_LOGE("Failed to set custom params on memory node for task %u in stream %u", nodeIdxInStream, streamIdxInGraph);
             return false;
@@ -570,10 +460,9 @@ bool SuperKernelMemoryNode::InValidateNode() {
         return false;
     }
     SK_LOGI("Invalidating memory node with eventId %lu for task %u in stream %u, which will be fused in super kernel.", nodeInfos.syncInfos.eventId, nodeIdxInStream, streamIdxInGraph);
-    memValueParams.flag = aclrtTaskFlag::ACL_RT_TASK_INVALID;
-    aclError aclRet = aclrtTaskSetMemValueParams(*originTask, &memValueParams);
+    aclError aclRet = aclmdlRITaskDisable(*originTask);
     if (aclRet != ACL_SUCCESS) {
-        SK_LOGE("Failed to invalidate memory node with eventId %lu for task %u in stream %u", nodeInfos.syncInfos.eventId, nodeIdxInStream, streamIdxInGraph);
+        SK_LOGE("Failed to invalidate kernel node for task %u in stream %u", nodeIdxInStream, streamIdxInGraph);
         return false;
     }
     return true;

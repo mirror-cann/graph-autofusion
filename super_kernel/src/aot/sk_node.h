@@ -31,6 +31,7 @@
 class SuperKernelGraph;
 struct SkLaunchInfo;
 
+
 // Update context for node update operations
 struct UpdateContext {
     SkLaunchInfo* launchInfo = nullptr;
@@ -38,7 +39,7 @@ struct UpdateContext {
     // Feature(aclmdIRITaskParams): Replace this raw aclrtTaskEventParams pointer
     // with aclmdIRITaskParams carrier when post-process switches to IR-task flow.
     // Optional event update payload for stream-based update path.
-    aclrtTaskEventParams* customParams = nullptr;
+    aclmdlRITaskParams* customParams = nullptr;
 };
 
 struct SknlMapInfo {
@@ -86,9 +87,9 @@ struct NodeInfos {
 // Base Node Class
 class SuperKernelBaseNode {
 public:
-    SuperKernelBaseNode(std::unique_ptr<aclrtTask> inputOriginTask, SkNodeType inputNodeType, uint64_t inputNodeIdxInStream, uint64_t inputStreamIdxInGraph, uint64_t inputPreNodeId)
+    SuperKernelBaseNode(std::unique_ptr<aclmdlRITask> inputOriginTask, aclmdlRITaskType inputRtNodeType, uint64_t inputNodeIdxInStream, uint64_t inputStreamIdxInGraph, uint64_t inputPreNodeId)
         : originTask(std::move(inputOriginTask)),
-          nodeType(inputNodeType),
+          rtNodeType(inputRtNodeType),
           nodeIdxInStream(inputNodeIdxInStream),
           streamIdxInGraph(inputStreamIdxInGraph),
           preNodeId(inputPreNodeId),
@@ -196,6 +197,10 @@ public:
         return nodeType;
     }
 
+    void SetNodeType(SkNodeType inputNodeType)
+    {
+        nodeType = inputNodeType;
+    }
     // Visitation State
     bool IsVisited() const
     {
@@ -238,9 +243,10 @@ public:
     void SetNotifyExpandCubeNum(uint32_t cubeNum) { notifyExpandCubeNum = cubeNum; }
 public:
     NodeInfos nodeInfos;
-    std::unique_ptr<aclrtTask> originTask;
+    std::unique_ptr<aclmdlRITask> originTask;
 
 protected:
+    aclmdlRITaskParams taskParams;
     uint32_t notifyExpandVecNum;
     uint32_t notifyExpandCubeNum;
     uint32_t streamIdxInGraph;
@@ -249,6 +255,7 @@ protected:
     uint64_t preNodeId;
     uint64_t nextNodeId;
     SkNodeType nodeType;
+    aclmdlRITaskType rtNodeType;
     bool isVisited;
     bool isFusible;
     bool isScopeNode;
@@ -281,51 +288,9 @@ public:
     }
 
 private:
-    aclrtTaskKernelParams kernelParams;
     bool isScopeBegin = false;
     bool isScopeEnd = false;
     std::string scopeName;
-};
-
-class SuperKernelEventNode : public SuperKernelBaseNode {
-public:
-    using SuperKernelBaseNode::SuperKernelBaseNode;
-    uint64_t GetEventId() const override
-    {
-        return nodeInfos.syncInfos.eventId;
-    }
-    bool InitNode() override;
-    bool Update(const UpdateContext& ctx) override;
-    bool InValidateNode() override;
-
-private:
-    aclrtTaskEventParams eventParams;
-};
-
-class SuperKernelEventNotifyNode : public SuperKernelEventNode {
-public:
-    using SuperKernelEventNode::SuperKernelEventNode;
-    std::vector<uint64_t> GetCorrespondingWaitNodeIds() const override
-    {
-        return nodeInfos.syncInfos.correspondingWaitNodeIds;
-    }
-    void SetCorrespondingWaitNodeIds(const std::vector<uint64_t>& waitIds) override
-    {
-        nodeInfos.syncInfos.correspondingWaitNodeIds.assign(waitIds.begin(), waitIds.end());
-    }
-};
-
-class SuperKernelEventWaitNode : public SuperKernelEventNode {
-public:
-    using SuperKernelEventNode::SuperKernelEventNode;
-    uint64_t GetCorrespondingNotifyNodeId() const override
-    {
-        return nodeInfos.syncInfos.correspondingNotifyNodeId;
-    }
-    void SetCorrespondingNotifyNodeId(uint64_t notifyId) override
-    {
-        nodeInfos.syncInfos.correspondingNotifyNodeId = notifyId;
-    }
 };
 
 class SuperKernelMemoryNode : public SuperKernelBaseNode {
@@ -335,17 +300,6 @@ public:
     {
         return nodeInfos.syncInfos.eventId;
     }
-    bool InitNode() override;
-    bool Update(const UpdateContext& ctx) override;
-    bool InValidateNode() override;
-
-private:
-    aclrtTaskMemValueParams memValueParams;
-};
-
-class SuperKernelMemoryNotifyNode : public SuperKernelMemoryNode {
-public:
-    using SuperKernelMemoryNode::SuperKernelMemoryNode;
     std::vector<uint64_t> GetCorrespondingWaitNodeIds() const override
     {
         return nodeInfos.syncInfos.correspondingWaitNodeIds;
@@ -354,11 +308,6 @@ public:
     {
         nodeInfos.syncInfos.correspondingWaitNodeIds.assign(waitIds.begin(), waitIds.end());
     }
-};
-
-class SuperKernelMemoryWaitNode : public SuperKernelMemoryNode {
-public:
-    using SuperKernelMemoryNode::SuperKernelMemoryNode;
     uint64_t GetCorrespondingNotifyNodeId() const override
     {
         return nodeInfos.syncInfos.correspondingNotifyNodeId;
@@ -367,11 +316,9 @@ public:
     {
         nodeInfos.syncInfos.correspondingNotifyNodeId = notifyId;
     }
-};
-
-class SuperKernelMemoryResetNode : public SuperKernelMemoryNode {
-public:
-    using SuperKernelMemoryNode::SuperKernelMemoryNode;
+    bool InitNode() override;
+    bool Update(const UpdateContext& ctx) override;
+    bool InValidateNode() override;
 };
 
 class SuperKernelDefaultNode : public SuperKernelBaseNode {

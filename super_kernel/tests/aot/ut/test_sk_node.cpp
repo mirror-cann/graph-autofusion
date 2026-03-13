@@ -38,21 +38,12 @@ struct JudgeTaskKernelInfo {
     std::unique_ptr<char[]> scopeName;
 };
 
-extern bool IsScopeKernel(aclrtTaskKernelParams params, JudgeTaskKernelInfo* info);
-
-TEST_F(SkNodeTest, IsScopeKernel_Not_Kernel_Task)
-{
-    aclrtTaskKernelParams params;
-    params.type = ACL_RT_TASK_DEFAULT;
-    JudgeTaskKernelInfo info;
-    bool ret = IsScopeKernel(params, &info);
-    EXPECT_EQ(ret, false);
-}
+extern bool IsScopeKernel(aclmdlRIKernelTaskParams params, JudgeTaskKernelInfo* info);
 
 TEST_F(SkNodeTest, IsScopeKernel_GetFunctionName_Failed)
 {
-    aclrtTaskKernelParams params;
-    params.type = ACL_RT_TASK_KERNEL;
+    aclmdlRIKernelTaskParams params{};
+    params.funcHandle = nullptr;
     JudgeTaskKernelInfo info;
     bool ret = IsScopeKernel(params, &info);
     EXPECT_EQ(ret, false);
@@ -77,19 +68,18 @@ int Fake_aclrtMemcpy(void* dst, size_t dstSize, const void* src, size_t count, a
 
 TEST_F(SkNodeTest, IsScopeKernel_Normal_ScopeName)
 {
-    aclrtTaskKernelParams params;
-    params.type = ACL_RT_TASK_KERNEL;
+    aclmdlRIKernelTaskParams params{};
     params.funcHandle = nullptr;
     JudgeTaskKernelInfo info;
     MOCKER(aclrtGetFunctionName).stubs().will(invoke(Fake_aclrtGetFunctionNameBegin));
+    MOCKER(aclrtMemcpy).stubs().will(invoke(Fake_aclrtMemcpy));
     bool ret = IsScopeKernel(params, &info);
     EXPECT_EQ(ret, true);
 }
 
 TEST_F(SkNodeTest, IsScopeKernel_ScopeName_Isnullptr)
 {
-    aclrtTaskKernelParams params;
-    params.type = ACL_RT_TASK_KERNEL;
+    aclmdlRIKernelTaskParams params{};
     params.funcHandle = nullptr;
     JudgeTaskKernelInfo info;
     MOCKER(aclrtGetFunctionName).stubs().will(invoke(Fake_aclrtGetFunctionNameBegin));
