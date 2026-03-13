@@ -14,6 +14,26 @@
   # Ubuntu/Debian操作系统安装命令示例如下，其他操作系统请自行安装
   sudo apt-get install cmake
   ```
+
+### 检查编译环境
+
+安装完成后，建议执行环境检查脚本，确认当前环境是否满足编译要求。
+
+```bash
+bash scripts/check_env.sh
+```
+
+检查结果说明如下：
+
+| 状态 | 含义 | 处理建议 |
+|---|---|---|
+| **[PASS]** | 检查通过 | 无需处理 |
+| **[WARNING]** | 非关键依赖缺失或版本存在偏差 | 建议修复，不影响核心编译 |
+| **[ERROR]** | 关键依赖缺失或版本不兼容 | 必须修复，否则无法编译 |
+
+> [!NOTE] 注意
+> 环境检查脚本中所有的检查项和版本约束严格来源于 docs/build.md 和 super_kernel/requirements-dev.txt，如文档和依赖更新，请同步修改[脚本](../scripts/check_env.sh)
+
 ### 安装社区版cann-toolkit包
 
 根据实际环境，下载对应`Ascend-cann-toolkit_${cann_version}_linux-${arch}.run`包，请选择最新版本，[下载链接](https://ascend.devcloud.huaweicloud.com/artifactory/cann-run-mirror/software/master/)。
