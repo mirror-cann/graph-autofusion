@@ -1,12 +1,12 @@
 /**
-* Copyright (c) 2025 Huawei Technologies Co., Ltd.
-* This program is free software, you can redistribute it and/or modify it under the terms and conditions of
-* CANN Open Software License Agreement Version 2.0 (the "License").
-* Please refer to the License for details. You may not use this file except in compliance with the License.
-* THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
-* INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
-* See LICENSE in the root of the software repository for the full text of the License.
-*/
+ * Copyright (c) 2025 Huawei Technologies Co., Ltd.
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
+ * CANN Open Software License Agreement Version 2.0 (the "License").
+ * Please refer to the License for details. You may not use this file except in compliance with the License.
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+ * See LICENSE in the root of the software repository for the full text of the License.
+ */
 
 /*!
  * \file sk_common.h
@@ -17,7 +17,7 @@
 #define SK_COMMON_H
 #include <string>
 #include <cstddef>
-enum class SkNodeType: uint32_t {
+enum class SkNodeType : uint32_t {
     NODE_KERNEL = 0,
     NODE_NOTIFY = 1,
     NODE_WAIT = 2,
@@ -25,18 +25,25 @@ enum class SkNodeType: uint32_t {
     NODE_DEFAULT = 4,
 };
 
-inline const char* to_string(SkNodeType type) {
+inline const char* to_string(SkNodeType type)
+{
     switch (type) {
-        case SkNodeType::NODE_KERNEL: return "KERNEL";
-        case SkNodeType::NODE_NOTIFY: return "NOTIFY";
-        case SkNodeType::NODE_WAIT:   return "WAIT";
-        case SkNodeType::NODE_RESET:  return "RESET";
-        case SkNodeType::NODE_DEFAULT: return "DEFAULT";
-        default: return "UNKNOWN";
+    case SkNodeType::NODE_KERNEL:
+        return "KERNEL";
+    case SkNodeType::NODE_NOTIFY:
+        return "NOTIFY";
+    case SkNodeType::NODE_WAIT:
+        return "WAIT";
+    case SkNodeType::NODE_RESET:
+        return "RESET";
+    case SkNodeType::NODE_DEFAULT:
+        return "DEFAULT";
+    default:
+        return "UNKNOWN";
     }
 }
 
-enum class SkKernelType: uint8_t {
+enum class SkKernelType : uint8_t {
     AIC_ONLY = 1,
     AIV_ONLY = 2,
     MIX_AIV_1_0 = 3,
@@ -46,16 +53,25 @@ enum class SkKernelType: uint8_t {
     DEFAULT = 0xFF,
 };
 
-inline const char* to_string(SkKernelType type) {
+inline const char* to_string(SkKernelType type)
+{
     switch (type) {
-        case SkKernelType::AIC_ONLY:     return "AIC_ONLY";
-        case SkKernelType::AIV_ONLY:     return "AIV_ONLY";
-        case SkKernelType::MIX_AIV_1_0:  return "MIX_AIV_1_0";
-        case SkKernelType::MIX_AIC_1_0:  return "MIX_AIC_1_0";
-        case SkKernelType::MIX_AIC_1_1:  return "MIX_1_1";
-        case SkKernelType::MIX_AIC_1_2:  return "MIX_1_2";
-        case SkKernelType::DEFAULT:      return "DEFAULT";
-        default: return "UNKNOWN";
+    case SkKernelType::AIC_ONLY:
+        return "AIC_ONLY";
+    case SkKernelType::AIV_ONLY:
+        return "AIV_ONLY";
+    case SkKernelType::MIX_AIV_1_0:
+        return "MIX_AIV_1_0";
+    case SkKernelType::MIX_AIC_1_0:
+        return "MIX_AIC_1_0";
+    case SkKernelType::MIX_AIC_1_1:
+        return "MIX_1_1";
+    case SkKernelType::MIX_AIC_1_2:
+        return "MIX_1_2";
+    case SkKernelType::DEFAULT:
+        return "DEFAULT";
+    default:
+        return "UNKNOWN";
     }
 }
 
@@ -69,15 +85,23 @@ enum class SkTaskType : uint8_t {
     TYPE_MAX,
 };
 
-inline const char* to_string(SkTaskType type) {
+inline const char* to_string(SkTaskType type)
+{
     switch (type) {
-        case SkTaskType::TYPE_FUNC:         return "FUNC";
-        case SkTaskType::TYPE_SYNC:         return "SYNC";
-        case SkTaskType::TYPE_PRELOAD:      return "PRELOAD";
-        case SkTaskType::TYPE_EVENT_NOTIFY: return "EVENT_NOTIFY";
-        case SkTaskType::TYPE_EVENT_WAIT:   return "EVENT_WAIT";
-        case SkTaskType::TYPE_EVENT_RESET:  return "EVENT_RESET";
-        default: return "UNKNOWN";
+    case SkTaskType::TYPE_FUNC:
+        return "FUNC";
+    case SkTaskType::TYPE_SYNC:
+        return "SYNC";
+    case SkTaskType::TYPE_PRELOAD:
+        return "PRELOAD";
+    case SkTaskType::TYPE_EVENT_NOTIFY:
+        return "EVENT_NOTIFY";
+    case SkTaskType::TYPE_EVENT_WAIT:
+        return "EVENT_WAIT";
+    case SkTaskType::TYPE_EVENT_RESET:
+        return "EVENT_RESET";
+    default:
+        return "UNKNOWN";
     }
 }
 
@@ -92,21 +116,29 @@ enum class SkCoreSyncType : uint8_t {
     SYNC_NONE,
 };
 
-inline const char* to_string(SkCoreSyncType type) {
+inline const char* to_string(SkCoreSyncType type)
+{
     switch (type) {
-        case SkCoreSyncType::ALL_SYNC:          return "ALL_SYNC";
-        case SkCoreSyncType::CROSS_SYNC_AIC_TO_AIC:   return "AIC_TO_AIC";
-        case SkCoreSyncType::CROSS_SYNC_AIV_TO_AIV:   return "AIV_TO_AIV";
-        case SkCoreSyncType::INTER_SYNC_SET_AIC_TO_AIV: return "SET_AIC_TO_AIV";
-        case SkCoreSyncType::INTER_SYNC_SET_AIV_TO_AIC: return "SET_AIV_TO_AIC";
-        case SkCoreSyncType::INTER_SYNC_WAIT_AIC_TO_AIV: return "WAIT_AIC_TO_AIV";
-        case SkCoreSyncType::INTER_SYNC_WAIT_AIV_TO_AIC: return "WAIT_AIV_TO_AIC";
-        case SkCoreSyncType::SYNC_NONE:               return "SYNC_NONE";
-        default: return "UNKNOWN";
+    case SkCoreSyncType::ALL_SYNC:
+        return "ALL_SYNC";
+    case SkCoreSyncType::CROSS_SYNC_AIC_TO_AIC:
+        return "AIC_TO_AIC";
+    case SkCoreSyncType::CROSS_SYNC_AIV_TO_AIV:
+        return "AIV_TO_AIV";
+    case SkCoreSyncType::INTER_SYNC_SET_AIC_TO_AIV:
+        return "SET_AIC_TO_AIV";
+    case SkCoreSyncType::INTER_SYNC_SET_AIV_TO_AIC:
+        return "SET_AIV_TO_AIC";
+    case SkCoreSyncType::INTER_SYNC_WAIT_AIC_TO_AIV:
+        return "WAIT_AIC_TO_AIV";
+    case SkCoreSyncType::INTER_SYNC_WAIT_AIV_TO_AIC:
+        return "WAIT_AIV_TO_AIC";
+    case SkCoreSyncType::SYNC_NONE:
+        return "SYNC_NONE";
+    default:
+        return "UNKNOWN";
     }
 }
-
-
 
 struct TaskInfo {
     uint32_t index;
@@ -160,8 +192,7 @@ struct SkDeviceEntryArgs {
     uint8_t data[0];
 };
 
-bool GetFuncSymbolInfo(const char* binAddr, size_t binSize, uint64_t funcAddr,
-                       std::string& symbolName, uint64_t& funcSize);
-
+bool GetFuncSymbolInfo(const char* binAddr, size_t binSize, uint64_t funcAddr, std::string& symbolName,
+                       uint64_t& funcSize);
 
 #endif

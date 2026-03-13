@@ -1,12 +1,12 @@
 /**
-* Copyright (c) 2025 Huawei Technologies Co., Ltd.
-* This program is free software, you can redistribute it and/or modify it under the terms and conditions of
-* CANN Open Software License Agreement Version 2.0 (the "License").
-* Please refer to the License for details. You may not use this file except in compliance with the License.
-* THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
-* INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
-* See LICENSE in the root of the software repository for the full text of the License.
-*/
+ * Copyright (c) 2025 Huawei Technologies Co., Ltd.
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
+ * CANN Open Software License Agreement Version 2.0 (the "License").
+ * Please refer to the License for details. You may not use this file except in compliance with the License.
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+ * See LICENSE in the root of the software repository for the full text of the License.
+ */
 
 /*!
  * \file sk_options_manager.h
@@ -25,7 +25,6 @@
 #include <regex>
 #include "super_kernel.h"
 
-
 /*!
  * \brief Base class for optimization options, providing common interface for different option types.
  *
@@ -35,17 +34,19 @@
  */
 class OptOptionBase {
 public:
-    explicit OptOptionBase(std::string name, aclskOtionType optionTypeIn)
-        : optionName(std::move(name)), optionType(optionTypeIn)
+    explicit OptOptionBase(std::string name, aclskOtionType optionTypeIn) :
+        optionName(std::move(name)), optionType(optionTypeIn)
     {}
 
     virtual ~OptOptionBase() = default;
 
-    virtual const std::string& GetName() const {
+    virtual const std::string& GetName() const
+    {
         return optionName;
     }
 
-    virtual aclskOtionType GetType() const {
+    virtual aclskOtionType GetType() const
+    {
         return optionType;
     }
 
@@ -53,19 +54,23 @@ public:
     virtual void SetValue(const std::string& value) {}
     virtual void SetValue(const std::vector<std::string>& value) {}
     virtual void SetValue(const std::unordered_map<std::string, std::vector<std::string>>& value) {}
-    virtual uint32_t GetIntValue() const {
+    virtual uint32_t GetIntValue() const
+    {
         return 0;
     }
 
-    virtual std::string GetStringValue() const {
+    virtual std::string GetStringValue() const
+    {
         return "";
     }
 
-    virtual std::unordered_map<std::string, std::vector<std::string>> GetMapValue() const {
+    virtual std::unordered_map<std::string, std::vector<std::string>> GetMapValue() const
+    {
         return {};
     }
 
-    virtual std::vector<std::string> GetStringListValue() const {
+    virtual std::vector<std::string> GetStringListValue() const
+    {
         return {};
     }
 
@@ -82,16 +87,15 @@ protected:
  */
 class NumberOptOption : public OptOptionBase {
 public:
-    NumberOptOption(std::string name, aclskOtionType optionTypeIn,
-        uint32_t defaultValue = 0, uint32_t minValue = 0, uint32_t maxValue = 0xffffffff) :
+    NumberOptOption(std::string name, aclskOtionType optionTypeIn, uint32_t defaultValue = 0, uint32_t minValue = 0,
+                    uint32_t maxValue = 0xffffffff) :
         OptOptionBase(std::move(name), optionTypeIn),
-        optValue(defaultValue),
-        optValueMin(minValue),
-        optValueMax(maxValue)
+        optValue(defaultValue), optValueMin(minValue), optValueMax(maxValue)
     {}
 
     void SetValue(const uint32_t value) override;
     uint32_t GetIntValue() const override;
+
 private:
     uint32_t optValue = 0;
     uint32_t optValueMin = 0;
@@ -105,10 +109,8 @@ private:
  */
 class StringOptOption : public OptOptionBase {
 public:
-    StringOptOption(std::string name, aclskOtionType optionTypeIn,
-        std::string defaultValue = {}) :
-        OptOptionBase(std::move(name), optionTypeIn),
-        optValue(defaultValue)
+    StringOptOption(std::string name, aclskOtionType optionTypeIn, std::string defaultValue = {}) :
+        OptOptionBase(std::move(name), optionTypeIn), optValue(defaultValue)
     {}
 
     void SetValue(const std::string& value) override;
@@ -126,10 +128,8 @@ private:
  */
 class StringListOptOption : public OptOptionBase {
 public:
-    StringListOptOption(std::string name, aclskOtionType optionTypeIn,
-        std::vector<std::string> defaultValue = {}) :
-        OptOptionBase(std::move(name), optionTypeIn),
-        optValue(defaultValue)
+    StringListOptOption(std::string name, aclskOtionType optionTypeIn, std::vector<std::string> defaultValue = {}) :
+        OptOptionBase(std::move(name), optionTypeIn), optValue(defaultValue)
     {}
 
     void SetValue(const std::vector<std::string>& value) override;
@@ -148,7 +148,7 @@ private:
 class MapOptOption : public OptOptionBase {
 public:
     MapOptOption(std::string name, aclskOtionType optionTypeIn,
-        std::unordered_map<std::string, std::vector<std::string>> defaultValue = {}) :
+                 std::unordered_map<std::string, std::vector<std::string>> defaultValue = {}) :
         OptOptionBase(std::move(name), optionTypeIn),
         optValue(defaultValue)
     {}

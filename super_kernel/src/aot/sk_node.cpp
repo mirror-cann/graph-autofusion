@@ -368,6 +368,7 @@ bool SuperKernelKernelNode::Update(const UpdateContext &ctx) {
 
     if (ctx.customParams != nullptr) {
         // Feature : feature use aclmdIRITaskParams
+        SK_LOGE("This Branch depand on runtime, for now skip sk optimize");
         return false;
         // update kernel with custom params for stream sync
         aclError aclRet = aclrtTaskSetEventParams(*originTask, ctx.customParams);
@@ -508,6 +509,7 @@ bool SuperKernelEventNode::Update(const UpdateContext &ctx) {
 
     if (ctx.customParams != nullptr) {
         // Feature : feature use aclmdIRITaskParams
+        SK_LOGE("This Branch depand on runtime, for now skip sk optimize");
         return false;
         // update event node with custom params for stream sync
         aclError aclRet = aclrtTaskSetEventParams(*originTask, ctx.customParams);
@@ -547,6 +549,7 @@ bool SuperKernelMemoryNode::Update(const UpdateContext &ctx) {
 
     if (ctx.customParams != nullptr) {
         // Feature : feature use aclmdIRITaskParams
+        SK_LOGE("This Branch depand on runtime, for now skip sk optimize");
         return false;
         // update memory node with custom params for stream sync
         aclError aclRet = aclrtTaskSetEventParams(*originTask, ctx.customParams);
