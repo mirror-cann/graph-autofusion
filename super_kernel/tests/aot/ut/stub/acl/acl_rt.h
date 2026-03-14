@@ -44,6 +44,12 @@ typedef void *aclmdlRI;
 typedef void *aclrtTask;  // void* as per user request
 typedef int aclError;
 
+// Forward declaration for exception info structure
+typedef struct aclrtExceptionInfo aclrtExceptionInfo;
+
+// Exception callback function type
+typedef void (*aclrtExceptionInfoCallbackFunc)(aclrtExceptionInfo* exceptionInfo);
+
 // Memory copy kind
 typedef enum aclrtMemcpyKind {
     ACL_MEMCPY_HOST_TO_HOST,
@@ -260,6 +266,14 @@ aclError aclrtMemcpy(void* dst, size_t destMax, const void* src, size_t count, a
 aclError aclrtBinaryGetDevAddress(aclrtBinHandle binHdl, void** devAddr, size_t* devSize);
 aclError aclrtGetFunctionAttribute(aclrtFuncHandle funcHandle, aclrtFuncAttribute attrType, int64_t *attrValue);
 
+// Memory management
+aclError aclrtMallocHost(void** hostPtr, size_t size);
+aclError aclrtFreeHost(void* hostPtr);
+
+// Exception handling
+aclError aclrtSetExceptionInfoCallback(aclrtExceptionInfoCallbackFunc callback);
+aclError aclrtGetFuncHandleFromExceptionInfo(const aclrtExceptionInfo* exceptionInfo, aclrtFuncHandle* funcHandle);
+aclError aclrtGetArgsFromExceptionInfo(const aclrtExceptionInfo* exceptionInfo, void** args, uint32_t* argsLen);
 
 #ifdef __cplusplus
 }

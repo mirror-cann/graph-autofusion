@@ -23,6 +23,7 @@ add_executable(super_kernel_aot_utest
     ${CMAKE_CURRENT_SOURCE_DIR}/test_notify_wait_interface.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test_rt_metadata_stubs.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test_sk_scope_launch.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_sk_dfx_exception_handler.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stub/aclrt_stubs.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stub/rt_stub.cpp
     ${GRAPH_AUTOFUSION_ROOT_DIR}/super_kernel/src/aot/sk_common.cpp
@@ -36,6 +37,7 @@ add_executable(super_kernel_aot_utest
     ${GRAPH_AUTOFUSION_ROOT_DIR}/super_kernel/src/aot/sk_task_builder.cpp
     ${GRAPH_AUTOFUSION_ROOT_DIR}/super_kernel/src/aot/sk_log.cpp
     ${GRAPH_AUTOFUSION_ROOT_DIR}/super_kernel/src/aot/super_kernel.cpp
+    ${GRAPH_AUTOFUSION_ROOT_DIR}/super_kernel/src/aot/sk_dfx_exception_handler.cpp
     ${GRAPH_AUTOFUSION_ROOT_DIR}/super_kernel/src/aot/sk_scope_postprocess.cpp
 )
 

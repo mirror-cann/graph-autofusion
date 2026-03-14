@@ -17,6 +17,7 @@
 #include "sk_scope_kernel_types.h"
 #include <cstring>
 #include <cstdio>
+#include <cstdlib>
 
 extern "C" {
 
@@ -281,6 +282,57 @@ aclError aclrtGetFunctionAttribute(aclrtFuncHandle funcHandle, aclrtFuncAttribut
     } else {
         *attrValue = 0;
     }
+    return ACL_ERROR_NONE;
+}
+
+// Memory management
+aclError aclrtMallocHost(void** hostPtr, size_t size) {
+    if (hostPtr == nullptr) {
+        return ACL_ERROR_INVALID_PARAM;
+    }
+    // G.RES.02-CPP: 内存申请前，必须对申请内存大小进行合法性校验
+    if (size == 0 || size > 1024 * 1024 * 1024) { // Limit to 1GB
+        return ACL_ERROR_INVALID_PARAM;
+    }
+    *hostPtr = malloc(size);
+    if (*hostPtr == nullptr) {
+        return ACL_ERROR_FAILURE;
+    }
+    return ACL_ERROR_NONE;
+}
+
+aclError aclrtFreeHost(void* hostPtr) {
+    if (hostPtr != nullptr) {
+        free(hostPtr);
+    }
+    return ACL_ERROR_NONE;
+}
+
+// Exception handling
+aclError aclrtSetExceptionInfoCallback(aclrtExceptionInfoCallbackFunc callback) {
+    if (callback == nullptr) {
+        return ACL_ERROR_INVALID_PARAM;
+    }
+    // Stub: just return success, don't actually register the callback
+    return ACL_ERROR_NONE;
+}
+
+aclError aclrtGetFuncHandleFromExceptionInfo(const aclrtExceptionInfo* exceptionInfo, aclrtFuncHandle* funcHandle) {
+    if (exceptionInfo == nullptr || funcHandle == nullptr) {
+        return ACL_ERROR_INVALID_PARAM;
+    }
+    // Stub: return a fake function handle
+    *funcHandle = reinterpret_cast<aclrtFuncHandle>(0x3000);
+    return ACL_ERROR_NONE;
+}
+
+aclError aclrtGetArgsFromExceptionInfo(const aclrtExceptionInfo* exceptionInfo, void** args, uint32_t* argsLen) {
+    if (exceptionInfo == nullptr || args == nullptr || argsLen == nullptr) {
+        return ACL_ERROR_INVALID_PARAM;
+    }
+    // Stub: return fake args pointer and length
+    *args = nullptr;
+    *argsLen = 0;
     return ACL_ERROR_NONE;
 }
 

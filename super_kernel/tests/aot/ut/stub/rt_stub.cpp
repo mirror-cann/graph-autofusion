@@ -17,6 +17,7 @@
 
 #include "acl/acl.h"
 #include "runtime/kernel.h"
+#include "runtime/base.h"
 #include <cstring>
 #include <cstdio>
 extern "C" {
@@ -82,6 +83,16 @@ void rt_sk_capture_snapshot(void) {
 
 void rt_sk_replay(void) {
     // Stub implementation
+}
+
+// rtGetExceptionRegInfo - stub implementation for unit tests
+// Returns success with no cores in error
+rtError_t rtGetExceptionRegInfo(const void* exception, rtExceptionErrRegInfo_t** errRegInfo, uint32_t* coreNum)
+{
+    (void)exception;
+    (void)errRegInfo;
+    *coreNum = 0; // No cores with errors by default
+    return RT_SUCCESS;
 }
 
 } // extern "C"

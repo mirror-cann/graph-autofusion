@@ -175,7 +175,8 @@ struct SkCounterInfo {
     uint32_t index;
     uint8_t launch; // todo：似乎用1个变量就够了， 1表示launch，0表示complete or not launch
     uint8_t exit;
-    uint8_t reserve[2];
+    // dcci single cacheline size is 64bytes
+    uint8_t reserve[58];
 };
 
 struct SkWorkSpace {

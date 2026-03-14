@@ -13,6 +13,7 @@
 #include "sk_options_manager.h"
 #include "sk_optimizer.h"
 #include "sk_graph.h"
+#include "sk_dfx_exception_handler.h"
 #include "sk_lock_detector.h"
 #include "sk_scope_launch.h"
 
@@ -21,6 +22,11 @@ extern "C" {
 #endif
 
 aclError aclskOptimize(aclmdlRI model, aclskOptions *options) {
+    aclError ret = aclrtSetExceptionInfoCallback(SuperKernelExceptionCallBackFunc);
+    if (ret != ACL_SUCCESS) {
+        SK_LOGE("Failed to set exception callback.");
+        return ACL_ERROR_FAILURE;
+    }
 
     SK_LOGI("Begin aclskOptimize");
 
@@ -29,7 +35,7 @@ aclError aclskOptimize(aclmdlRI model, aclskOptions *options) {
     if (!graph.InitSKGraph()) {
         return ACL_ERROR_FAILURE;
     }
-    aclError ret = LockDetector::GetDeviceCores();
+    ret = LockDetector::GetDeviceCores();
     if (ret != ACL_SUCCESS) {
         return ret;
     }
