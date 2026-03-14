@@ -23,6 +23,7 @@
 
 extern "C" void sk_scope_kernel_begin_do(void* stream, ScopeKernelArgs args);
 extern "C" void sk_scope_kernel_end_do(void* stream, ScopeKernelArgs args);
+extern "C" void sk_placeholder_kernel_do(void* stream, ScopeKernelArgs args);
 
 typedef void (*ScopeFuncImpl)(void*, ScopeKernelArgs);
 
@@ -51,8 +52,40 @@ static aclError LaunchScopeKernelImpl(const char* scopeName, aclrtStream stream,
 aclError LaunchScopeKernel(const char* scopeName, aclrtStream stream, bool isBegin)
 {   
     if (isBegin) {
-        return LaunchScopeKernelImpl(scopeName, stream, sk_scope_kernel_begin_do);
+        aclError ret = LaunchScopeKernelImpl(scopeName, stream, sk_scope_kernel_begin_do);
+        if (ret != ACL_SUCCESS) {
+            SK_LOGE("LaunchScopeKernelImpl failed, scopeBegin kernel launch failed, ret: %d", ret);
+            return ret;
+        }
+        ret = LaunchScopeKernelImpl(scopeName, stream, sk_placeholder_kernel_do);
+        if (ret != ACL_SUCCESS) {
+            SK_LOGE("LaunchScopeKernelImpl failed, placeholder kernel launch failed, ret: %d", ret);
+            return ret;
+        }
+        ret = LaunchScopeKernelImpl(scopeName, stream, sk_placeholder_kernel_do);
+        if (ret != ACL_SUCCESS) {
+            SK_LOGE("LaunchScopeKernelImpl failed, placeholder kernel launch failed, ret: %d", ret);
+            return ret;
+        }
+        SK_LOGI("aclskScopeBegin kernel and placeholder kernel launch success! ");
+        return ret;
     } else {
-        return LaunchScopeKernelImpl(scopeName, stream, sk_scope_kernel_end_do);
+        aclError ret = LaunchScopeKernelImpl(scopeName, stream, sk_placeholder_kernel_do);
+        if (ret != ACL_SUCCESS) {
+            SK_LOGE("LaunchScopeKernelImpl failed, placeholder kernel launch failed, ret: %d", ret);
+            return ret;
+        }
+        ret = LaunchScopeKernelImpl(scopeName, stream, sk_placeholder_kernel_do);
+        if (ret != ACL_SUCCESS) {
+            SK_LOGE("LaunchScopeKernelImpl failed, placeholder kernel launch failed, ret: %d", ret);
+            return ret;
+        }
+        ret = LaunchScopeKernelImpl(scopeName, stream, sk_scope_kernel_end_do);
+        if (ret != ACL_SUCCESS) {
+            SK_LOGE("LaunchScopeKernelImpl failed, scopeEnd kernel launch failed, ret: %d", ret);
+            return ret;
+        }
+        SK_LOGI("aclskScopeEnd kernel and placeholder kernel launch success! ");
+        return ret;
     }
 }

@@ -224,13 +224,16 @@ bool SuperKernelBaseNode::InitNode() {
 }
 
 struct JudgeTaskKernelInfo {
-    bool isBegin = true;
+    bool isBegin = false;
+    bool isEnd = false;
+    bool isPlaceholder = false;
     bool isFuseEnable = true;
     std::unique_ptr<char[]> scopeName;
 };
 
 bool IsScopeKernel(aclmdlRIKernelTaskParams params, JudgeTaskKernelInfo* info) {
     const char* defaultScopeName = "default_sk_scope_name";
+    const char* placeholderName = "sk_placeholder_kernel";
     const char* targetBeginName = "sk_scope_kernel_begin";
     const char* targetEndName = "sk_scope_kernel_end";
     char kernelName[MAX_SCOPE_NAME_LENN] = {0};
@@ -241,7 +244,8 @@ bool IsScopeKernel(aclmdlRIKernelTaskParams params, JudgeTaskKernelInfo* info) {
     }
     bool isBegin = (strcmp(kernelName, targetBeginName) == 0);
     bool isEnd = (strcmp(kernelName, targetEndName) == 0);
-    if (!isBegin && !isEnd) {
+    bool isPlaceholder = (strcmp(kernelName, placeholderName) == 0);
+    if (!isBegin && !isEnd && !isPlaceholder) {
         SK_LOGD("current kernel is not scope kernel, current kernel name is: %s", kernelName);
         return false;
     }
@@ -261,6 +265,8 @@ bool IsScopeKernel(aclmdlRIKernelTaskParams params, JudgeTaskKernelInfo* info) {
         return false;
     }
     info->isBegin = isBegin;
+    info->isEnd = isEnd;
+    info->isPlaceholder = isPlaceholder;
     if (strcmp(info->scopeName.get(), defaultScopeName) == 0) {
         info->isFuseEnable = false;
     }
@@ -283,14 +289,17 @@ bool SuperKernelKernelNode::InitNode() {
     auto &kernelParams = taskParams.kernelTaskParams;
     if (IsScopeKernel(kernelParams, &scopeKernelInfo)){
         SK_LOGI("Kernel node for task %u in stream %u is scope kernel.", nodeIdxInStream, streamIdxInGraph);
-        isFusible = scopeKernelInfo.isFuseEnable;
         isScopeNode = true;
+        isFusible = scopeKernelInfo.isFuseEnable;
+        isScopeBegin = scopeKernelInfo.isBegin;
+        isScopeEnd = scopeKernelInfo.isEnd;
+        isPlaceholder = scopeKernelInfo.isPlaceholder;
         if (isFusible && scopeKernelInfo.scopeName != nullptr){
-            isScopeBegin = scopeKernelInfo.isBegin;
-            isScopeEnd = !isScopeBegin;
             char* rawPtr = scopeKernelInfo.scopeName.get();
             scopeName = std::string(rawPtr);
         }
+    } else {
+        isFusible = true;
     }
 
     if (taskParams.taskGrp != nullptr) {
@@ -298,7 +307,6 @@ bool SuperKernelKernelNode::InitNode() {
         return true;
     }
     SK_LOGI("Kernel node for task %u in stream %u can be fused in super kernel.", nodeIdxInStream, streamIdxInGraph);
-    isFusible = true;
 
     int64_t kernelType = 0;
     int64_t taskRatio = 0;

@@ -19,6 +19,7 @@ add_executable(super_kernel_aot_utest
     ${CMAKE_CURRENT_SOURCE_DIR}/test_sk_node.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test_sk_scope_split.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test_node_scope_tagging.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_scope_range.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test_notify_wait_interface.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test_rt_metadata_stubs.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test_sk_scope_launch.cpp

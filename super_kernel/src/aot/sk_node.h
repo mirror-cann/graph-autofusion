@@ -212,18 +212,10 @@ public:
     }
 
     // scope
-    virtual std::string GetScopeName() const
-    {
-        return "";
-    }
-    virtual bool IsScopeBegin() const
-    {
-        return false;
-    }
-    virtual bool IsScopeEnd() const
-    {
-        return false;
-    }
+    virtual std::string GetScopeName() const { return ""; }
+    virtual bool IsScopeBegin() const { return false; }
+    virtual bool IsScopeEnd() const { return false; }
+    virtual bool IsScopePlaceholder() const { return false; }
 
     const std::bitset<MAX_SCOPE_NUM>& GetScopeBitFlags() const
     {
@@ -278,18 +270,13 @@ public:
     {
         return scopeName;
     }
-    bool IsScopeBegin() const override
-    {
-        return isScopeBegin;
-    }
-    bool IsScopeEnd() const override
-    {
-        return isScopeEnd;
-    }
-
+    bool IsScopeBegin() const override { return isScopeBegin; }
+    bool IsScopeEnd() const override { return isScopeEnd; }
+    bool IsScopePlaceholder() const override { return isPlaceholder; }
 private:
     bool isScopeBegin = false;
     bool isScopeEnd = false;
+    bool isPlaceholder = false;
     std::string scopeName;
 };
 

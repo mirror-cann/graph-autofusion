@@ -133,60 +133,6 @@ void SuperKernelGraph::BuildWaitNodeAssociations() {
     }
 }
 
-// Mark notify and wait nodes following a scope begin kernel node as scope nodes
-// Scope pattern: KernelBegin -> Notify -> Wait -> ...
-void SuperKernelGraph::MarkEventNodeToScopeBegin(SuperKernelBaseNode* node){
-    uint64_t notifyId = node->GetNextNodeId();
-    SuperKernelBaseNode* notifyNode = GetNodeById(notifyId);
-    if (notifyNode == nullptr || notifyNode->GetNodeType() != SkNodeType::NODE_NOTIFY){
-        SK_LOGW("Failed to find valid notify (record) node after scope begin node %lu, notifyNodeId=%lu",
-                node->GetNodeId(), notifyId);
-        return;
-    }
-    uint64_t waitId = notifyNode->GetNextNodeId();
-    SuperKernelBaseNode* waitNode = GetNodeById(waitId);
-    if (waitNode == nullptr || waitNode->GetNodeType() != SkNodeType::NODE_WAIT){
-        SK_LOGW("Failed to find valid wait node after notify node %lu, waitNodeId=%lu",
-                notifyNode->GetNodeId(), waitId);
-        return;
-    }
-    notifyNode->SetIsScopeNode(true);
-    waitNode->SetIsScopeNode(true);
-    SK_LOGD("Marked notify node %lu and wait node %lu as scope nodes for scope begin %lu",
-            notifyId, waitId, node->GetNodeId());
-}
-
-// Mark wait and notify nodes preceding a scope end kernel node as scope nodes
-// Scope pattern: ... -> Notify -> Wait -> KernelEnd
-void SuperKernelGraph::MarkEventNodeToScopeEnd(SuperKernelBaseNode* node){
-    uint64_t waitId = node->GetPreNodeId();
-    SuperKernelBaseNode* waitNode = GetNodeById(waitId);
-    if (waitNode == nullptr || waitNode->GetNodeType() != SkNodeType::NODE_WAIT){
-        SK_LOGW("Failed to find valid wait node before scope end node %lu, waitNodeId=%lu",
-                node->GetNodeId(), waitId);
-        return;
-    }
-    uint64_t notifyId = waitNode->GetPreNodeId();
-    SuperKernelBaseNode* notifyNode = GetNodeById(notifyId);
-    if (notifyNode == nullptr || notifyNode->GetNodeType() != SkNodeType::NODE_NOTIFY){
-        SK_LOGW("Failed to find valid notify (record) node before wait node %lu, notifyNodeId=%lu",
-                waitNode->GetNodeId(), notifyId);
-        return;
-    }
-    notifyNode->SetIsScopeNode(true);
-    waitNode->SetIsScopeNode(true);
-    SK_LOGD("Marked wait node %lu and notify node %lu as scope nodes for scope end %lu",
-            waitId, notifyId, node->GetNodeId());
-}
-
-
-// Scope stack entry for tracking nested scope contexts
-struct ScopeStackEntry {
-    uint32_t scopeIdx;    // Scope index used for generating scopeBitFlags
-    std::string scopeName; // Scope name used for matching scope end with scope begin
-    bool isFusible;       // Whether the scope is fusible
-};
-
 // Compute current scope bit flags from the scope stack
 // Only marks fusible scopes to determine which fusible scopes a node belongs to
 static std::bitset<MAX_SCOPE_NUM> ComputeScopeBitFlags(const std::vector<ScopeStackEntry>& scopeStack) {
@@ -259,7 +205,6 @@ static void ProcessScopeBegin(SuperKernelGraph* graph,
     uint32_t scopeIdx = GetScopeIdx(node, scopeNameToIdx);
 
     scopeStack.push_back({scopeIdx, scopeName, isFusible});
-    graph->MarkEventNodeToScopeBegin(node);
     SK_LOGI("Scope begin: name='%s' idx=%u fusible=%d stack_size=%zu",
             scopeName.c_str(), scopeIdx, isFusible, scopeStack.size());
 }
@@ -272,7 +217,6 @@ static void ProcessScopeEnd(SuperKernelGraph* graph,
     std::string scopeName = node->GetScopeName();
     uint32_t scopeIdx = GetScopeIdx(node, scopeNameToIdx);
 
-    graph->MarkEventNodeToScopeEnd(node);
     SK_LOGI("Scope end: name='%s' idx=%u", scopeName.c_str(), scopeIdx);
     PopScopeByName(scopeStack, scopeName);
 }
@@ -346,7 +290,6 @@ void SuperKernelGraph::UpdateNodeScopeBitFlags() {
             }
         }
     }
-
     LogUnclosedScopes(scopeStack);
     SK_LOGI("UpdateNodeScopeBitFlags completed");
 }

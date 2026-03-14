@@ -55,7 +55,7 @@ aclError aclskOptimize(aclmdlRI model, aclskOptions *options) {
 }
 
 aclError aclskScopeBegin(const char* scopeName, aclrtStream stream) {
-    if (scopeName[0] == '\0') {
+    if (scopeName != nullptr && scopeName[0] == '\0') {
         SK_LOGE("Invalid scopeName: name is empty.");
         return ACL_ERROR_INVALID_PARAM;
     }
@@ -63,7 +63,7 @@ aclError aclskScopeBegin(const char* scopeName, aclrtStream stream) {
 }
 
 aclError aclskScopeEnd(const char* scopeName, aclrtStream stream) {
-    if (scopeName[0] == '\0') {
+    if (scopeName != nullptr && scopeName[0] == '\0') {
         SK_LOGE("Invalid scopeName: name is empty.");
         return ACL_ERROR_INVALID_PARAM;
     }

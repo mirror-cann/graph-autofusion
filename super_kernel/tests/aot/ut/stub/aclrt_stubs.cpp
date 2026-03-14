@@ -297,6 +297,11 @@ void sk_scope_kernel_end_do(void* stream, ScopeKernelArgs args) {
     (void)stream;
     (void)args;
 }
+// Scope placeholder stub
+void sk_placeholder_kernel_do(void* stream, ScopeKernelArgs args) {
+    (void)stream;
+    (void)args;
+}
 
 // ==================== RI Task API Stubs ====================
 
