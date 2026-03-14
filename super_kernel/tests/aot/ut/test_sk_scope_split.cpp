@@ -96,7 +96,7 @@ protected:
                                                 uint64_t nextNodeId = INVALID_TASK_ID,
                                                 uint32_t cubeNum = 1000, uint32_t vecNum = 0) {
         auto node = std::make_unique<SuperKernelKernelNode>(
-            nullptr, SkNodeType::NODE_KERNEL, 0, streamIdx, INVALID_TASK_ID);
+            nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, streamIdx, INVALID_TASK_ID);
         node->SetNodeId(nodeId);
         node->SetNextNodeId(nextNodeId);
         node->isFusible = true;

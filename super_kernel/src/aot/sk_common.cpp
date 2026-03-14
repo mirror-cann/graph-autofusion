@@ -81,7 +81,7 @@ SkFuncSymbolTable BuildFuncSymbolTable(const char* binAddr, size_t binSize)
         }
     }
 
-    SK_LOGI("BuildFuncSymbolTable: total %zu function symbols found", funcSymTable.size());
+    SK_LOGI("total %zu function symbols found", funcSymTable.size());
     return funcSymTable;
 }
 
@@ -98,7 +98,7 @@ bool GetFuncSymbolInfo(const char* binAddr, size_t binSize, uint64_t funcAddr,
     static SkBinSymbolTable symbolTable;
     auto cacheIt = symbolTable.find(binAddr);
     if (cacheIt == symbolTable.end()) {
-        SK_LOGI("GetFuncSymbolInfo: Building symbol table for binAddr=%p", binAddr);
+        SK_LOGI("Building symbol table for binAddr=%p", binAddr);
         symbolTable[binAddr] = BuildFuncSymbolTable(binAddr, binSize);
         cacheIt = symbolTable.find(binAddr);
     }
@@ -108,10 +108,10 @@ bool GetFuncSymbolInfo(const char* binAddr, size_t binSize, uint64_t funcAddr,
     if (it != funcSymTable.end()) {
         symbolName = it->second.name;
         funcSize = it->second.size;
-        SK_LOGI("GetFuncSymbolInfo: Found symbol: name=%s, addr=0x%lx, size=0x%lx",
+        SK_LOGI("Found symbol: name=%s, addr=0x%lx, size=0x%lx",
                 symbolName.c_str(), funcAddr, funcSize);
         return true;
     }
-    SK_LOGW("GetFuncSymbolInfo: Function symbol not found for addr=0x%lx", funcAddr);
+    SK_LOGW("Function symbol not found for addr=0x%lx", funcAddr);
     return false;
 }

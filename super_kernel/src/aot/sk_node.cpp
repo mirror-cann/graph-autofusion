@@ -56,7 +56,7 @@ SkBindMap InitSuperKernelBindMap(aclrtBinHandle binHdl)
         return SkBindMap();
     }
 
-    SK_LOGI("InitSuperKernelBindMap: binHdl=0x%lx, metaNum=%lu, payloadSize=%zu",
+    SK_LOGI("binHdl=0x%lx, metaNum=%lu, payloadSize=%zu",
         (uint64_t)binHdl, metaNum, payloadSize);
 
     std::vector<uint8_t> dataPool(metaNum * payloadSize);
@@ -76,7 +76,7 @@ SkBindMap InitSuperKernelBindMap(aclrtBinHandle binHdl)
         SknlMapInfo localInfo;
         memcpy_s(&localInfo, sizeof(SknlMapInfo), &(payload->info), sizeof(SknlMapInfo));
 
-        SK_LOGI("InitSuperKernelBindMap: [%zu] globalFunc=0x%lx, skFunc[0]=0x%lx, skFunc[1]=0x%lx, skFunc[2]=0x%lx, skFunc[3]=0x%lx",
+        SK_LOGI("[%zu] globalFunc=0x%lx, skFunc[0]=0x%lx, skFunc[1]=0x%lx, skFunc[2]=0x%lx, skFunc[3]=0x%lx",
             i, (uint64_t)localInfo.globalFunc,
             (uint64_t)localInfo.sknlFunc[0],
             (uint64_t)localInfo.sknlFunc[1],
@@ -136,10 +136,10 @@ void InitSingleCoreFunc(const CoreFuncInitContext& ctx, aclrtBinHandle binHdl, v
     if (GetFuncSymbolInfo(static_cast<const char*>(binHostAddr), binHostSize, skFuncOffset,
                           symbolName, funcSize)) {
         ctx.info->prefetchCnt[ctx.coreIdx] = AlignUpAndClamp(funcSize, ctx.coreIdx);
-        SK_LOGI("InitKernelResolvedFuncs: split[%zu] %s symbol=%s, size=0x%lx",
+        SK_LOGI("split[%zu] %s symbol=%s, size=0x%lx",
                 ctx.splitIdx, coreName.c_str(), symbolName.c_str(), funcSize);
     } else {
-        SK_LOGW("InitKernelResolvedFuncs: split[%zu] Failed to get %s symbol info, prefetchCnt[%zu]=0",
+        SK_LOGW("split[%zu] Failed to get %s symbol info, prefetchCnt[%zu]=0",
                 ctx.splitIdx, coreName.c_str(), ctx.coreIdx);
     }
 }
@@ -149,7 +149,7 @@ bool InitKernelResolvedFuncs(KernelInfos &kernelInfos)
     aclrtBinHandle binHdl = kernelInfos.binHdl;
     aclrtFuncHandle oriFuncHdl = kernelInfos.funcHdl;
     if (binHdl == nullptr || oriFuncHdl == nullptr) {
-        SK_LOGE("InitKernelResolvedFuncs: invalid bin handle or function handle for kernel %s", kernelInfos.funcName.c_str());
+        SK_LOGE("invalid bin handle or function handle for kernel %s", kernelInfos.funcName.c_str());
         return false;
     }
     SkBindMap bindMap = GetSkBindMap(binHdl);
@@ -161,14 +161,14 @@ bool InitKernelResolvedFuncs(KernelInfos &kernelInfos)
 
     uint64_t aicOffset = (uint64_t)addr[0] - (uint64_t)binDevAddr;
     uint64_t aivOffset = (uint64_t)addr[1] - (uint64_t)binDevAddr;
-    SK_LOGI("InitKernelResolvedFuncs: funcName=%s, binDevAddr=0x%lx, binDevSize=%lu, aicAddr=0x%lx, aivAddr=0x%lx",
+    SK_LOGI("funcName=%s, binDevAddr=0x%lx, binDevSize=%lu, aicAddr=0x%lx, aivAddr=0x%lx",
         kernelInfos.funcName.c_str(), (uint64_t)binDevAddr, binDevSize, (uint64_t)addr[0], (uint64_t)addr[1]);
 
-    SK_LOGI("InitKernelResolvedFuncs: aicOffset=0x%lx, aivOffset=0x%lx", aicOffset, aivOffset);
+    SK_LOGI("aicOffset=0x%lx, aivOffset=0x%lx", aicOffset, aivOffset);
 
     auto aicItor = bindMap.find(aicOffset);
     auto aivItor = bindMap.find(aivOffset);
-    SK_LOGI("InitKernelResolvedFuncs: bindMap size=%lu, aicFound=%d, aivFound=%d",
+    SK_LOGI("bindMap size=%lu, aicFound=%d, aivFound=%d",
         bindMap.size(), aicItor != bindMap.end(), aivItor != bindMap.end());
 
     for (size_t i = 0; i < kMaxSplitBinCount; ++i) {
@@ -182,7 +182,7 @@ bool InitKernelResolvedFuncs(KernelInfos &kernelInfos)
             InitSingleCoreFunc(aivCtx, binHdl, binDevAddr);
         }
 
-        SK_LOGI("InitKernelResolvedFuncs: split[%zu] funcAddr[0]=0x%lx, funcAddr[1]=0x%lx, "
+        SK_LOGI("split[%zu] funcAddr[0]=0x%lx, funcAddr[1]=0x%lx, "
                 "prefetchCnt[0]=0x%lx, prefetchCnt[1]=0x%lx",
                 i, info.funcAddr[0], info.funcAddr[1], info.prefetchCnt[0], info.prefetchCnt[1]);
         kernelInfos.resolvedFuncs[i] = info;

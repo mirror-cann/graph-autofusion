@@ -47,25 +47,25 @@ extern "C" {
 
 #define SK_LOGD(format, ...)                                                                                           \
     do {                                                                                                               \
-        dlog_debug(ASCENDC_MODULE_NAME, "[SK][[%s:%s] " format "\n", GetFileName(__FILE__), __FUNCTION__,              \
+        dlog_debug(ASCENDC_MODULE_NAME, "[SK][%s] " format "\n", __FUNCTION__,                                         \
                    ##__VA_ARGS__);                                                                                     \
     } while (0)
 
 #define SK_LOGW(format, ...)                                                                                           \
     do {                                                                                                               \
-        dlog_warn(ASCENDC_MODULE_NAME, "[SK][%s:%s] " format "\n", GetFileName(__FILE__), __FUNCTION__,                \
+        dlog_warn(ASCENDC_MODULE_NAME, "[SK][%s] " format "\n", __FUNCTION__,                                          \
                   ##__VA_ARGS__);                                                                                      \
     } while (0)
 
 #define SK_LOGI(format, ...)                                                                                           \
     do {                                                                                                               \
-        dlog_info(ASCENDC_MODULE_NAME, "[SK][%s:%s] " format "\n", GetFileName(__FILE__), __FUNCTION__,                \
+        dlog_info(ASCENDC_MODULE_NAME, "[SK][%s] " format "\n",  __FUNCTION__,                                         \
                   ##__VA_ARGS__);                                                                                      \
     } while (0)
 
 #define SK_LOGE(format, ...)                                                                                           \
     do {                                                                                                               \
-        dlog_error(ASCENDC_MODULE_NAME, "[SK][%s:%s] " format "\n", GetFileName(__FILE__), __FUNCTION__,               \
+        dlog_error(ASCENDC_MODULE_NAME, "[SK][%s] " format "\n",  __FUNCTION__,                                        \
                    ##__VA_ARGS__);                                                                                     \
     } while (0)
 
@@ -92,7 +92,7 @@ extern "C" {
 
 #define SK_LOGE_WITH_REPORT(format, ...)                                                                               \
     do {                                                                                                               \
-        dlog_error(ASCENDC_MODULE_NAME, "[SK][%s:%s] " format "\n", GetFileName(__FILE__), __FUNCTION__,               \
+        dlog_error(ASCENDC_MODULE_NAME, "[SK][%s] " format "\n",  __FUNCTION__,                                        \
                    ##__VA_ARGS__);                                                                                     \
         REPORT_ERROR_MESSAGE(format, ##__VA_ARGS__);                                                                   \
     } while (0)
