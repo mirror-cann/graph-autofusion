@@ -91,6 +91,24 @@ protected:
         return ptr;
     }
 
+    // Helper function to create a kernel node with high core requirement
+    SuperKernelBaseNode* CreateLargeKernelNode(uint64_t nodeId, uint32_t streamIdx, 
+                                                uint64_t nextNodeId = INVALID_TASK_ID,
+                                                uint32_t cubeNum = 1000, uint32_t vecNum = 0) {
+        auto node = std::make_unique<SuperKernelKernelNode>(
+            nullptr, SkNodeType::NODE_KERNEL, 0, streamIdx, INVALID_TASK_ID);
+        node->SetNodeId(nodeId);
+        node->SetNextNodeId(nextNodeId);
+        node->isFusible = true;
+        node->nodeInfos.kernelInfos.numBlocks = 1;
+        node->nodeInfos.kernelInfos.kernelType = SkKernelType::AIC_ONLY;
+        node->nodeInfos.kernelInfos.cubeNum = cubeNum;
+        node->nodeInfos.kernelInfos.vecNum = vecNum;
+        SuperKernelBaseNode* ptr = node.get();
+        graph->graphMap[nodeId] = std::move(node);
+        return ptr;
+    }
+
     // Helper function to create an unfusible kernel node
     SuperKernelBaseNode* CreateUnfusibleKernelNode(uint64_t nodeId, uint32_t streamIdx, uint64_t nextNodeId = INVALID_TASK_ID) {
         auto node = std::make_unique<SuperKernelKernelNode>(
@@ -2349,4 +2367,109 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase55_ScopeBitFlagsWithEventSynchroniz
     // Scope 1: K3(3), K6(6) (scope=1)
     EXPECT_EQ(scopeInfos[1].scopeBitFlags, scope1);
     EXPECT_EQ(scopeInfos[1].nodes.size(), 2);
+}
+
+// ==================== 测试用例 36: 跨流依赖形成死锁 ====================
+
+TEST_F(SuperKernelScopeSplitterTest, TestCase36_CrossStreamDeadlock)
+{
+    // 测试场景：跨流 Wait-Notify 依赖导致死锁
+    // 这种情况下，InitialScopeSplitPass 会处理 Wait 节点的 suspend/resume
+    //
+    // 图结构（无 scope 节点，整图参与切分）：
+    // Stream 0: [K1(id=1)] → [Wait1(id=2)] → [K2(id=3)]
+    // Stream 1: [K3(id=4)] → [Notify1(id=5)] → [K4(id=6)]
+    // Event1: Wait1(id=2) 等待 Notify1(id=5)
+    //
+    // 处理流程：
+    // 1. K1(1) 和 K3(4) 首先被发现（节点 ID 最小）
+    // 2. Wait1(2) 发现其对应的 Notify1(5) 尚未被访问，触发 suspend
+    // 3. Notify1(5) 被处理，触发 resume Wait1(2)
+    // 4. 最终所有节点被融合到一个 scope
+
+    // Stream 0: K1 → Wait1 → K2
+    auto* k1 = CreateKernelNode(1, 0, 2);
+    auto* wait1 = CreateWaitNode(2, 0, 5, 3);  // 等待 Notify1(id=5)
+    auto* k2 = CreateKernelNode(3, 0, INVALID_TASK_ID);
+
+    // Stream 1: K3 → Notify1 → K4
+    auto* k3 = CreateKernelNode(4, 1, 5);
+    auto* notify1 = CreateNotifyNode(5, 1, 100, 6);
+    auto* k4 = CreateKernelNode(6, 1, INVALID_TASK_ID);
+
+    SetupStreams({{1, 2, 3}, {4, 5, 6}});
+    SetupEvent(100, 5, {2});
+
+    SuperKernelScopeSplitter splitter(*graph);
+    bool result = splitter.SplitGraph();
+
+    ASSERT_TRUE(result);
+    const auto& scopeInfos = splitter.GetScopeInfos();
+
+    // 所有节点应该被融合到一个 scope
+    EXPECT_EQ(scopeInfos.size(), 1);
+
+    // 验证所有节点都被处理
+    std::set<uint64_t> allProcessedNodes;
+    for (const auto* node : scopeInfos[0].nodes) {
+        allProcessedNodes.insert(node->GetNodeId());
+    }
+    std::set<uint64_t> expectedNodes = {1, 2, 3, 4, 5, 6};
+    EXPECT_EQ(allProcessedNodes, expectedNodes);
+}
+
+// ==================== 测试用例 37: DeadlockRefinePass 切分 Scope ====================
+
+TEST_F(SuperKernelScopeSplitterTest, TestCase37_DeadlockRefinePassSplitsScope)
+{
+    // 测试场景：构造一个在 DeadlockRefinePass 中检测到死锁并切分 scope 的情况
+    //
+    // 图结构（无 scope 节点）：
+    // Stream 0: [K1(id=1)] → [Wait1(id=2)] → [K_Large(id=3)]  (K_Large 需要大量核心)
+    // Stream 1: [K2(id=4)] → [Notify1(id=5)] → [K3(id=6)]
+    // Event1: Wait1(id=2) 等待 Notify1(id=5)
+    //
+    // InitialScopeSplitPass 会将所有节点放入同一个 scope，
+    // 但在 DeadlockRefinePass 中，LockDetector 会检测到：
+    // - Wait1 设置了 isExistWaitFlag=true
+    // - K_Large 的核心数超过了 superKernelCubeNum（即 Wait 之前节点的最大核心数）
+    // - 因此 LockDetector::IsFusible 返回 false
+    // - DeadlockRefinePass 在 Wait 节点处切分 scope
+
+    // Stream 0: K1 → Wait1 → K_Large (需要大量核心)
+    auto* k1 = CreateKernelNode(1, 0, 2);
+    k1->nodeInfos.kernelInfos.cubeNum = 2;  // K1 需要 2 个 cube 核心
+    auto* wait1 = CreateWaitNode(2, 0, 5, 3);  // 等待 Notify1(id=5)
+    auto* k_large = CreateLargeKernelNode(3, 0, INVALID_TASK_ID, 1000, 0);  // 需要 1000 个核心
+
+    // Stream 1: K2 → Notify1 → K3
+    auto* k2 = CreateKernelNode(4, 1, 5);
+    auto* notify1 = CreateNotifyNode(5, 1, 100, 6);
+    auto* k3 = CreateKernelNode(6, 1, INVALID_TASK_ID);
+
+    SetupStreams({{1, 2, 3}, {4, 5, 6}});
+    SetupEvent(100, 5, {2});   // Wait1 等待 Notify1
+
+    SuperKernelScopeSplitter splitter(*graph);
+    bool result = splitter.SplitGraph();
+
+    ASSERT_TRUE(result);
+    const auto& scopeInfos = splitter.GetScopeInfos();
+
+    // 由于 K_Large 需要的核心数超过限制，DeadlockRefinePass 应该在 Wait1 处切分 scope
+    // 期望生成 2 个 scope：
+    // - Scope 0: K1(1), K2(4), Notify1(5) (Wait 之前的节点)
+    // - Scope 1: K_Large(3), K3(6) (Wait 之后的节点，Wait 节点本身不放入任何 scope)
+    EXPECT_EQ(scopeInfos.size(), 2);
+
+    // 验证所有节点都被处理（包括 Notify 节点）
+    std::set<uint64_t> allProcessedNodes;
+    for (const auto& scope : scopeInfos) {
+        for (const auto* node : scope.nodes) {
+            allProcessedNodes.insert(node->GetNodeId());
+        }
+    }
+    // Notify 节点也会被处理
+    std::set<uint64_t> expectedNodes = {1, 3, 4, 5, 6};
+    EXPECT_EQ(allProcessedNodes, expectedNodes);
 }

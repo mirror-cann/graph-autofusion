@@ -1,12 +1,12 @@
 /**
- * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
- * CANN Open Software License Agreement Version 2.0 (the "License").
- * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
- * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
- * See LICENSE in the root of the software repository for the full text of the License.
- */
+* Copyright (c) 2025 Huawei Technologies Co., Ltd.
+* This program is free software, you can redistribute it and/or modify it under the terms and conditions of
+* CANN Open Software License Agreement Version 2.0 (the "License").
+* Please refer to the License for details. You may not use this file except in compliance with the License.
+* THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+* INCLUDING NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+* See LICENSE in the root of the software repository for the full text of the License.
+*/
 
 /*!
  * \file sk_scope_split.h
@@ -15,25 +15,16 @@
  * This module implements the scope splitting algorithm for multi-stream graphs.
  * A "scope" represents a group of nodes that can be fused into a single Super Kernel.
  * 
+ * Architecture:
+ * The scope splitting is implemented as a multi-pass pipeline, similar to compiler passes:
+ * - Pass 1: Initial scope splitting based on fusibility and scopeBitFlags
+ * - Pass 2: Deadlock detection and scope refinement
+ * - Future passes can be added for additional optimizations
+ * 
  * Key Concepts:
  * - Scope: A collection of nodes from potentially multiple streams that can be fused together
  * - ScopeBitFlags: Bit flags that identify which scope a node belongs to
- *   - Nodes with the same ScopeBitFlags can be fused into the same scope
- *   - Nodes with different ScopeBitFlags cannot be fused together
- * - Deadlock Detection: Prevents circular dependencies between streams that would cause hangs
- * 
- * Splitting Algorithm:
- * 1. For each scope, determine ScopeBitFlags from the node with minimum node ID
- * 2. Add nodes to heap based on their node ID (priority queue ensures ordered processing)
- * 3. For each node, check:
- *    - ScopeBitFlags match (nodes with different flags go to different scopes)
- *    - Node is fusible (not permanently marked unfusible)
- *    - No deadlock would occur (checked via LockDetector)
- * 4. Special handling for event nodes (Wait/Notify/Reset):
- *    - Wait: Suspend stream until corresponding Notify is processed
- *    - Notify: Resume suspended streams waiting for this event
- *    - Reset: Clear event state for reuse
- * 5. When no more nodes can be added, start a new scope
+ * - Deadlock Detection: Prevents circular dependencies between streams
  */
 
 #ifndef __SK_SCOPE_SPLIT_H__
@@ -78,9 +69,167 @@ struct StreamState {
           isTerminated(false) {}
 };
 
+// ============ Pass Base Class ============
+
+/*!
+ * \class ScopeSplitPass
+ * \brief Base class for scope splitting passes
+ */
+class ScopeSplitPass {
+public:
+    explicit ScopeSplitPass(SuperKernelGraph& inputGraph) : graph_(inputGraph) {}
+    virtual ~ScopeSplitPass() = default;
+    
+    /*!
+     * \brief Execute the pass on the given scopes
+     * \param scopes Input/output scope list
+     * \return true on success
+     */
+    virtual bool Run(std::vector<SuperKernelScopeInfo>& scopes) = 0;
+    
+    virtual std::string GetName() const = 0;
+
+    // ============ Debug/Logging Utilities (public static for reuse) ============
+    
+    /*!
+     * \brief Print scope splitting results for debugging
+     * \param scopes Scope list to print
+     * \param graph Graph for scope name lookup
+     */
+    static void PrintScopeResults(const std::vector<SuperKernelScopeInfo>& scopes, 
+                                   const SuperKernelGraph& graph);
+    
+    /*!
+     * \brief Get scope names string from scopeBitFlags
+     * \param scopeBitFlags Bit flags to convert
+     * \param graph Graph for scope name lookup
+     * \return Comma-separated scope names string
+     */
+    static std::string GetScopeNamesFromBitFlags(const std::bitset<MAX_SCOPE_NUM>& scopeBitFlags,
+                                                  const SuperKernelGraph& graph);
+    
+    /*!
+     * \brief Print nodes in a scope
+     * \param scopeIdx Scope index
+     * \param scope Scope info
+     */
+    static void PrintScopeNodes(size_t scopeIdx, const SuperKernelScopeInfo& scope);
+    
+    /*!
+     * \brief Print stream infos in a scope
+     * \param scopeIdx Scope index
+     * \param scope Scope info
+     */
+    static void PrintScopeStreamInfos(size_t scopeIdx, const SuperKernelScopeInfo& scope);
+
+protected:
+    SuperKernelGraph& graph_;
+};
+
+// ============ Pass 1: Initial Scope Split ============
+
+/*!
+ * \class InitialScopeSplitPass
+ * \brief Pass 1: Split graph into initial scopes based on fusibility and scopeBitFlags
+ * 
+ * This pass performs coarse-grained scope splitting:
+ * - Groups nodes by scopeBitFlags
+ * - Respects fusibility constraints
+ * - Handles Wait/Notify synchronization
+ * - Does NOT perform deadlock detection
+ */
+class InitialScopeSplitPass : public ScopeSplitPass {
+public:
+    explicit InitialScopeSplitPass(SuperKernelGraph& inputGraph);
+    ~InitialScopeSplitPass() = default;
+    
+    bool Run(std::vector<SuperKernelScopeInfo>& scopes) override;
+    std::string GetName() const override { return "InitialScopeSplitPass"; }
+
+private:
+    // ============ Stream State Management ============
+    void InitStreamStates();
+    void ResetStreamStates();
+    void SkipUnfusibleNodes();
+    bool AllStreamsFinished() const;
+    bool DetermineCurrentScopeBitFlags();
+    
+    // ============ Node Processing ============
+    void InitNodeHeap();
+    void TryAddNodeToHeap(uint32_t streamIdx);
+    void HandleWaitNode(SuperKernelBaseNode* waitNode, uint32_t streamIdx);
+    void ProcessNotifyNode(SuperKernelBaseNode* notifyNode);
+    void ProcessResetNode(SuperKernelBaseNode* resetNode);
+    
+    // ============ Scope Building ============
+    void AddStreamInfoToScope(SuperKernelScopeInfo& scopeInfo, SuperKernelBaseNode* node);
+    bool BuildCurrentScope(SuperKernelScopeInfo& scopeInfo);
+    
+    // ============ Member Variables ============
+    std::unordered_map<uint32_t, StreamState> streamStates_;
+    std::set<uint64_t> visitedNotifies_;
+    std::set<uint64_t> processedNodes_;
+    std::priority_queue<uint64_t, std::vector<uint64_t>, std::greater<uint64_t>> nodeHeap_;
+    std::bitset<MAX_SCOPE_NUM> currentScopeBitFlags_;
+};
+
+// ============ Pass 2: Deadlock Detection and Refinement ============
+
+/*!
+ * \class DeadlockRefinePass
+ * \brief Pass 2: Detect deadlocks and refine scopes
+ * 
+ * This pass performs fine-grained scope refinement:
+ * - Detects deadlocks within each scope
+ * - Splits scopes at Wait nodes that would cause deadlocks
+ * - The Wait node that triggers deadlock is NOT included in either split scope
+ */
+class DeadlockRefinePass : public ScopeSplitPass {
+public:
+    explicit DeadlockRefinePass(SuperKernelGraph& inputGraph);
+    ~DeadlockRefinePass() = default;
+    
+    bool Run(std::vector<SuperKernelScopeInfo>& scopes) override;
+    std::string GetName() const override { return "DeadlockRefinePass"; }
+
+private:
+    /*!
+     * \brief Find deadlock point in a scope
+     * \param scope Scope to check
+     * \param deadlockNode Output: node that causes deadlock (nullptr if no deadlock)
+     * \param deadlockWaitNode Output: first Wait node before deadlock (nullptr if no deadlock)
+     * \return true if deadlock found
+     */
+    bool FindDeadlockInScope(const SuperKernelScopeInfo& scope, 
+                             SuperKernelBaseNode** deadlockNode,
+                             SuperKernelBaseNode** deadlockWaitNode);
+    
+    /*!
+     * \brief Split a scope at a Wait node
+     * \param scope Original scope
+     * \param waitNode Wait node to split at (not included in either result)
+     * \param scopeBefore Output: scope before Wait node
+     * \param scopeAfter Output: scope after Wait node
+     */
+    void SplitScopeAtWaitNode(const SuperKernelScopeInfo& scope,
+                              SuperKernelBaseNode* waitNode,
+                              SuperKernelScopeInfo& scopeBefore,
+                              SuperKernelScopeInfo& scopeAfter);
+    
+    /*!
+     * \brief Rebuild stream infos for a scope
+     * \param scope Scope to rebuild
+     */
+    void RebuildStreamInfos(SuperKernelScopeInfo& scope);
+    
+    LockDetector lockDetector_;
+};
+
+// ============ Main Splitter Class ============
+
 /*!
  * \class SuperKernelScopeSplitter
- * \brief Splits a multi-stream graph into scopes for Super Kernel fusion
+ * \brief Main class that orchestrates scope splitting passes
  * 
  * Usage:
  *   SuperKernelScopeSplitter splitter(graph);
@@ -89,7 +238,7 @@ struct StreamState {
  */
 class SuperKernelScopeSplitter {
 public:
-    explicit SuperKernelScopeSplitter(SuperKernelGraph& graph) : graph(graph) {}
+    explicit SuperKernelScopeSplitter(SuperKernelGraph& inputGraph);
     ~SuperKernelScopeSplitter() = default;
     SuperKernelScopeSplitter(const SuperKernelScopeSplitter&) = delete;
     SuperKernelScopeSplitter& operator=(const SuperKernelScopeSplitter&) = delete;
@@ -97,7 +246,7 @@ public:
     SuperKernelScopeSplitter& operator=(SuperKernelScopeSplitter&&) = default;
 
     /*!
-     * \brief Split graph into scopes
+     * \brief Split graph into scopes using multi-pass pipeline
      * \return true on success
      */
     bool SplitGraph();
@@ -106,158 +255,23 @@ public:
      * \brief Get the resulting scope information
      * \return Reference to vector of scope information
      */
-    std::vector<SuperKernelScopeInfo>& GetScopeInfos() noexcept { return scopeInfos; }
-
-private:
-    // ============ Single Stream Methods ============
-    
-    /*!
-     * \brief Find the first fusible kernel node starting from given index
-     * \param curNodeIdx Starting node index
-     * \return Index of first fusible kernel node, or INVALID_TASK_ID if none found
-     */
-    uint64_t FindSingleStreamAvailableHeadNode(uint64_t curNodeIdx) const;
+    std::vector<SuperKernelScopeInfo>& GetScopeInfos() noexcept { return scopeInfos_; }
 
     /*!
-     * \brief Generate scope info starting from a head node (single stream)
-     * \param curNodeIdx Starting node index
-     * \return Next node index after the generated scope
+     * \brief Set Notify nodes' expand numbers to max kernel vec/cube in a scope
+     * Should be called immediately after each scope is generated
+     * \param scope Scope to process
      */
-    uint64_t GenerateSingleStreamScopeInfosByNodeIdx(uint64_t curNodeIdx);
-
-    // ============ Multi-Stream Methods ============
-    
-    /*!
-     * \brief Initialize the node heap by trying to add current nodes from all streams
-     */
-    void InitNodeHeap();
+    static void SetNotifyNodesExpandNumForScope(SuperKernelScopeInfo& scope);
 
     /*!
-     * \brief Try to add the current node of a stream to the heap
-     * \param streamIdx Stream index to process
-     * 
-     * This method checks:
-     * - Stream state (not terminated/suspended)
-     * - Node not already processed
-     * - ScopeBitFlags match
-     * - Node is fusible
-     * - No deadlock would occur
+     * \brief Print final scope results
      */
-    void TryAddNodeToHeap(uint32_t streamIdx);
+    void PrintFinalResults() const;
 
-    /*!
-     * \brief Process a Notify node - resume suspended streams
-     * \param notifyNode The Notify node being processed
-     */
-    void ProcessNotifyNode(SuperKernelBaseNode* notifyNode);
-
-    /*!
-     * \brief Process a Reset node - clear event state
-     * \param resetNode The Reset node being processed
-     */
-    void ProcessResetNode(SuperKernelBaseNode* resetNode);
-
-    /*!
-     * \brief Handle Wait node in TryAddNodeToHeap
-     * \param waitNode The Wait node to process
-     * \param streamIdx Stream index
-     */
-    void HandleWaitNode(SuperKernelBaseNode* waitNode, uint32_t streamIdx);
-
-    /*!
-     * \brief Add stream info to a scope when a node is added
-     * \param scopeInfo Scope to update
-     * \param node Node being added
-     */
-    void AddStreamInfoToScope(SuperKernelScopeInfo& scopeInfo, SuperKernelBaseNode* node);
-
-    /*!
-     * \brief Skip over permanently unfusible nodes, Wait nodes, and Reset nodes in all streams
-     * 
-     * These nodes should not be processed as scope starting points:
-     * - Unfusible nodes: cannot participate in scope fusion
-     * - Wait nodes: depend on Notify nodes from other streams
-     * - Reset nodes: event cleanup, not computational
-     * Notify nodes are fusible and will not be skipped.
-     */
-    void SkipUnfusibleAndEventNodes();
-
-    /*!
-     * \brief Reset stream states for the next scope iteration
-     * 
-     * Resets isTerminated and isSuspended flags while keeping currentNodeIdx.
-     * Also skips unfusible nodes and event nodes.
-     */
-    void ResetStreamStates();
-
-    /*!
-     * \brief Check if all streams have finished processing
-     * \return true if all streams are terminated, suspended, or finished
-     */
-    bool AllStreamsFinished() const;
-
-    /*!
-     * \brief Determine currentScopeBitFlags from the node with minimum currentNodeIdx
-     * \return false if no fusible node found (should end splitting)
-     * 
-     * The scope's bit flags are determined by the node with the smallest ID
-     * among all streams' current nodes. This ensures consistent scope boundaries.
-     */
-    bool DetermineCurrentScopeBitFlags();
-
-    /*!
-     * \brief Reset all splitting state (called before starting splitting)
-     */
-    void ResetSplittingState();
-
-    /*!
-     * \brief Print scope splitting results for debugging
-     */
-    void PrintScopeResults() const;
-
-    /*!
-     * \brief Set Notify nodes' expand numbers to max kernel vec/cube in scope
-     * \param scopeInfo Scope to process
-     * 
-     * This ensures the scope runs before the next scope (which contains waiting Wait nodes).
-     * Without this, deadlock detector would block the Wait nodes incorrectly.
-     */
-    void SetNotifyNodesExpandNum(SuperKernelScopeInfo& scopeInfo);
-
-    /*!
-     * \brief Get scope names string from scopeBitFlags
-     * \param scopeBitFlags Bit flags to convert
-     * \return Comma-separated scope names string
-     */
-    std::string GetScopeNamesFromBitFlags(const std::bitset<MAX_SCOPE_NUM>& scopeBitFlags) const;
-
-    /*!
-     * \brief Print nodes in a scope
-     * \param scopeIdx Scope index
-     * \param scope Scope info
-     */
-    void PrintScopeNodes(size_t scopeIdx, const SuperKernelScopeInfo& scope) const;
-
-    /*!
-     * \brief Print stream infos in a scope
-     * \param scopeIdx Scope index
-     * \param scope Scope info
-     */
-    void PrintScopeStreamInfos(size_t scopeIdx, const SuperKernelScopeInfo& scope) const;
-
-    // ============ Member Variables ============
-    
-    SuperKernelGraph& graph;                              ///< Reference to the graph being split
-    std::vector<SuperKernelScopeInfo> scopeInfos;         ///< Resulting scope information
-
-    // Multi-stream splitting state (used as member variables to simplify function signatures)
-    std::unordered_map<uint32_t, StreamState> streamStates_;  ///< Per-stream processing state
-    std::set<uint64_t> visitedNotifies_;                      ///< Set of visited Notify node IDs
-    std::set<uint64_t> processedNodes_;                       ///< Set of processed node IDs
-    std::priority_queue<uint64_t, std::vector<uint64_t>, 
-                        std::greater<uint64_t>> nodeHeap_;    ///< Min-heap of candidate node IDs
-    LockDetector lockDetector;                                ///< Deadlock detection utility
-    std::bitset<MAX_SCOPE_NUM> currentScopeBitFlags_;         ///< Current scope's bit flags
+    SuperKernelGraph& graph_;
+    std::vector<SuperKernelScopeInfo> scopeInfos_;
+    std::vector<std::unique_ptr<ScopeSplitPass>> passes_;
 };
 
 #endif // __SK_SCOPE_SPLIT_H__

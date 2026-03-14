@@ -81,6 +81,24 @@ public:
     void MarkEventNodeToScopeBegin(SuperKernelBaseNode* node);
     void MarkEventNodeToScopeEnd(SuperKernelBaseNode* node);
 
+    // Get event info by event id
+    const EventInfos* GetEventInfo(uint64_t eventId) const
+    {
+        auto it = eventToNodes.find(eventId);
+        return it != eventToNodes.end() ? &it->second : nullptr;
+    }
+
+    // Get scope name by scope index
+    bool GetScopeNameByIdx(uint32_t scopeIdx, std::string& scopeName) const
+    {
+        auto it = scopeIdxToName.find(scopeIdx);
+        if (it != scopeIdxToName.end()) {
+            scopeName = it->second;
+            return true;
+        }
+        return false;
+    }
+
 private:
     uint64_t AllocateNodeId()
     {
@@ -101,7 +119,6 @@ private:
     std::vector<aclrtStream> streams;
     aclmdlRI modelRI;
     uint64_t nextNodeId = 0;
-    friend class SuperKernelScopeSplitter;
     std::unordered_map<std::string, uint32_t> scopeNameToIdx;    ///< scopeName -> scopeIdx
     std::unordered_map<uint32_t, std::string> scopeIdxToName;    ///< scopeIdx -> scopeName (reverse mapping)
 };
