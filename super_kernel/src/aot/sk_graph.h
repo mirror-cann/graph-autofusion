@@ -39,13 +39,6 @@ struct EventInfos {
     std::unordered_set<uint64_t> waitNodeIdList;
 };
 
-// Scope stack entry for tracking nested scope contexts
-struct ScopeStackEntry {
-    uint32_t scopeIdx = INVALID_SCOPE_ID;    // Scope index used for generating scopeBitFlags
-    std::string scopeName; // Scope name used for matching scope end with scope begin
-    bool isFusible = true;       // Whether the scope is fusible
-};
-
 class SuperKernelGraph {
 public:
     aclError Update();

@@ -24,7 +24,10 @@ add_executable(super_kernel_aot_utest
     ${CMAKE_CURRENT_SOURCE_DIR}/test_rt_metadata_stubs.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test_sk_scope_launch.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test_sk_dfx_exception_handler.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_sk_scope_postprocess.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_sk_task_builder.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stub/aclrt_stubs.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/stub/ut_common_stubs.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stub/rt_stub.cpp
     ${GRAPH_AUTOFUSION_ROOT_DIR}/super_kernel/src/aot/sk_common.cpp
     ${GRAPH_AUTOFUSION_ROOT_DIR}/super_kernel/src/aot/sk_options_manager.cpp

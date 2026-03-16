@@ -19,6 +19,11 @@
 extern "C" {
 #endif
 
+void SkUtSetSecurecMemcpyFailOnCall(int hitOnCall);
+void SkUtSetSecurecMemsetFailOnCall(int hitOnCall);
+int SkUtSecurecShouldFailMemcpy();
+int SkUtSecurecShouldFailMemset();
+
 // Define errno_t type for secure functions
 #ifndef _ERRNO_T_DEFINED
 #define _ERRNO_T_DEFINED
@@ -29,6 +34,9 @@ typedef int errno_t;
 
 SECUREC_INLINE errno_t memcpy_s(void* dest, size_t destMax, const void* src, size_t count)
 {
+    if (SkUtSecurecShouldFailMemcpy() != 0) {
+        return -1;
+    }
     if (dest == NULL || src == NULL || destMax < count) {
         return -1;
     }
@@ -38,6 +46,9 @@ SECUREC_INLINE errno_t memcpy_s(void* dest, size_t destMax, const void* src, siz
 
 SECUREC_INLINE errno_t memset_s(void* dest, size_t destMax, int c, size_t count)
 {
+    if (SkUtSecurecShouldFailMemset() != 0) {
+        return -1;
+    }
     if (dest == NULL || destMax < count) {
         return -1;
     }

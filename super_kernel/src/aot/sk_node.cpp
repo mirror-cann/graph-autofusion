@@ -388,12 +388,12 @@ bool SuperKernelKernelNode::Update(const UpdateContext &ctx) {
         }
         SK_LOGI("Success to set kernel with custom params for task %u in stream %u", nodeIdxInStream, streamIdxInGraph);
         return true;
-    } else if (ctx.launchInfo != nullptr && ctx.skEntryFunc != nullptr) {
-        taskParams.kernelTaskParams.args = static_cast<void*>(ctx.launchInfo->devArgs.get());
-        taskParams.kernelTaskParams.argsSize = ctx.launchInfo->devArgs.get()->skHeader.totalSize;
+    } else if (ctx.launchInfo != nullptr && ctx.launchInfo->entryInfo.skEntryFunc != nullptr) {
+        taskParams.kernelTaskParams.args = static_cast<void*>(ctx.launchInfo->devArgs.Get());
+        taskParams.kernelTaskParams.argsSize = ctx.launchInfo->devArgs.Get()->skHeader.totalSize;
         taskParams.kernelTaskParams.isHostArgs = true;
 
-        taskParams.kernelTaskParams.funcHandle = ctx.skEntryFunc;
+        taskParams.kernelTaskParams.funcHandle = ctx.launchInfo->entryInfo.skEntryFunc;
         taskParams.kernelTaskParams.numBlocks = ctx.launchInfo->entryInfo.numBlocks;
         taskParams.type = ACL_MODEL_RI_TASK_KERNEL;
 

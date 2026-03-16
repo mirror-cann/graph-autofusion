@@ -19,6 +19,7 @@
 #include <limits>
 #include <vector>
 #include <memory>
+#include <new>
 
 #include "securec.h"
 #include "acl/acl.h"
@@ -42,13 +43,6 @@ constexpr uint32_t MAX_SCOPE_NUM = 64;
 constexpr uint32_t INVALID_SCOPE_ID = std::numeric_limits<uint32_t>::max();
 constexpr uint32_t INVALID_STREAM_ID = std::numeric_limits<uint32_t>::max();
 constexpr uint64_t INVALID_TASK_ID = std::numeric_limits<uint64_t>::max();
-inline size_t GetTaskQueSize(const TaskQue* que)
-{
-    if (que == nullptr) {
-        return 0;
-    }
-    return sizeof(TaskQue) + que->taskCnt * sizeof(TaskInfo);
-}
 
 class TaskQuePtr {
     std::unique_ptr<uint8_t[]> data_;
@@ -56,40 +50,43 @@ class TaskQuePtr {
     size_t capacity_;
 
 public:
-    TaskQuePtr(size_t cap)
+    bool Init(size_t cap)
     {
+        data_.reset();
         capacity_ = 0;
         taskQue_ = nullptr;
         if (cap > (std::numeric_limits<size_t>::max() - sizeof(TaskQue)) / sizeof(TaskInfo)) {
             SK_LOGE("TaskQuePtr size overflow: requested cap=%zu, max size=%zu, sizeof(TaskInfo)=%zu", cap,
                     std::numeric_limits<size_t>::max(), sizeof(TaskInfo));
-            return;
+            return false;
         }
         size_t size = sizeof(TaskQue) + sizeof(TaskInfo) * cap;
-        data_ = std::make_unique<uint8_t[]>(size);
-        taskQue_ = reinterpret_cast<TaskQue*>(data_.get());
-        taskQue_->cap = static_cast<uint32_t>(cap);
-        taskQue_->taskCnt = 0;
-        taskQue_->fftsAddr = 0;
+        std::unique_ptr<uint8_t[]> newData = std::make_unique<uint8_t[]>(size);
+        TaskQue* newTaskQue = reinterpret_cast<TaskQue*>(newData.get());
+        newTaskQue->cap = static_cast<uint32_t>(cap);
+        newTaskQue->taskCnt = 0;
+        data_ = std::move(newData);
+        taskQue_ = newTaskQue;
         capacity_ = cap;
+        return true;
     }
 
-    void expand()
+    bool Expand()
     {
         if (taskQue_ == nullptr) {
-            return;
+            return false;
         }
 
         size_t extendSize = static_cast<size_t>(taskQue_->cap) * static_cast<size_t>(TASK_QUE_EXPAND_FACTOR);
         if (extendSize <= taskQue_->cap || extendSize > std::numeric_limits<uint32_t>::max()) {
             SK_LOGE("TaskQuePtr expand cap overflow: current cap=%u, expansion factor=%u, max uint32=%u", taskQue_->cap,
                     TASK_QUE_EXPAND_FACTOR, std::numeric_limits<uint32_t>::max());
-            return;
+            return false;
         }
         if (extendSize > (std::numeric_limits<size_t>::max() - sizeof(TaskQue)) / sizeof(TaskInfo)) {
             SK_LOGE("TaskQuePtr expand size overflow: extendSize=%zu, max size=%zu, sizeof(TaskInfo)=%zu", extendSize,
                     std::numeric_limits<size_t>::max(), sizeof(TaskInfo));
-            return;
+            return false;
         }
         size_t newSize = sizeof(TaskQue) + sizeof(TaskInfo) * extendSize;
 
@@ -101,13 +98,14 @@ public:
         errno_t err = memcpy_s(newData.get(), newSize, data_.get(), oldSize);
         if (err != 0) {
             SK_LOGE("TaskQuePtr expand memcpy failed: errno=%d, srcSize=%zu, dstSize=%zu", err, oldSize, newSize);
-            return;
+            return false;
         }
 
         newTaskQue->cap = static_cast<uint32_t>(extendSize);
         data_ = std::move(newData);
         taskQue_ = newTaskQue;
         capacity_ = extendSize;
+        return true;
     }
 
     TaskQue* get() const
@@ -145,17 +143,20 @@ class DeviceArgsPtr {
     SkDeviceEntryArgs* args_;
 
 public:
-    DeviceArgsPtr(size_t size)
+    bool Init(size_t size)
     {
+        data_.reset();
         args_ = nullptr;
         if (size == 0) {
-            return;
+            return false;
         }
-        data_ = std::make_unique<uint8_t[]>(size);
-        args_ = reinterpret_cast<SkDeviceEntryArgs*>(data_.get());
+        std::unique_ptr<uint8_t[]> newData = std::make_unique<uint8_t[]>(size);
+        args_ = reinterpret_cast<SkDeviceEntryArgs*>(newData.get());
+        data_ = std::move(newData);
+        return true;
     }
 
-    SkDeviceEntryArgs* get() const
+    SkDeviceEntryArgs* Get() const
     {
         return args_;
     }
@@ -187,6 +188,42 @@ struct SkTask {
     uint32_t funcCnt;
     SkKernelType nodeType = SkKernelType::DEFAULT;
 
+    bool Init(size_t cap)
+    {
+        return taskQue.Init(cap);
+    }
+
+    TaskQue* GetTaskQue()
+    {
+        TaskQue* queue = taskQue.get();
+        if (queue == nullptr) {
+            return nullptr;
+        }
+
+        if (queue->taskCnt >= queue->cap) {
+            if (!taskQue.Expand()) {
+                return nullptr;
+            }
+            queue = taskQue.get();
+        }
+
+        return (queue != nullptr && queue->taskCnt < queue->cap) ? queue : nullptr;
+    }
+
+    const TaskQue* GetTaskQue() const
+    {
+        return taskQue.get();
+    }
+
+    size_t GetTaskQueSize() const
+    {
+        const TaskQue* queue = taskQue.get();
+        if (queue == nullptr) {
+            return 0;
+        }
+        return sizeof(TaskQue) + queue->taskCnt * sizeof(TaskInfo);
+    }
+
     SkTask() : numBlocks(0), funcCnt(0){};
     SkTask(const SkTask&) = delete;
     SkTask& operator=(const SkTask&) = delete;
@@ -197,19 +234,21 @@ struct SkTask {
 struct SkHostEntryInfo {
     uint32_t numBlocks;
     uint32_t nodeCnt;
-    const char* skEntryFuncName;
+    SkKernelType entryType;
+    aclrtFuncHandle skEntryFunc;
 
-    SkHostEntryInfo() : numBlocks(0), nodeCnt(0), skEntryFuncName(nullptr) {}
+    SkHostEntryInfo() : numBlocks(0), nodeCnt(0), entryType(SkKernelType::DEFAULT), skEntryFunc(nullptr) {}
 
     SkHostEntryInfo(const SkHostEntryInfo&) = delete;
     SkHostEntryInfo& operator=(const SkHostEntryInfo&) = delete;
 
     SkHostEntryInfo(SkHostEntryInfo&& other) noexcept :
-        numBlocks(other.numBlocks), nodeCnt(other.nodeCnt), skEntryFuncName(other.skEntryFuncName)
+        numBlocks(other.numBlocks), nodeCnt(other.nodeCnt), entryType(other.entryType), skEntryFunc(other.skEntryFunc)
     {
-        other.skEntryFuncName = nullptr;
+        other.skEntryFunc = nullptr;
         other.numBlocks = 0;
         other.nodeCnt = 0;
+        other.entryType = SkKernelType::DEFAULT;
     }
 
     SkHostEntryInfo& operator=(SkHostEntryInfo&& other) noexcept
@@ -217,10 +256,12 @@ struct SkHostEntryInfo {
         if (this != &other) {
             numBlocks = other.numBlocks;
             nodeCnt = other.nodeCnt;
-            skEntryFuncName = other.skEntryFuncName;
-            other.skEntryFuncName = nullptr;
+            entryType = other.entryType;
+            skEntryFunc = other.skEntryFunc;
+            other.skEntryFunc = nullptr;
             other.numBlocks = 0;
             other.nodeCnt = 0;
+            other.entryType = SkKernelType::DEFAULT;
         }
         return *this;
     }

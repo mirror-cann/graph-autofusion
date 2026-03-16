@@ -74,6 +74,53 @@ struct StreamPostPlan {
     SuperKernelBaseNode* workNode = nullptr;
 };
 
+std::vector<SuperKernelBaseNode*> FilterCancelledTasks(const std::vector<SuperKernelBaseNode*>& tasks)
+{
+    // Constraints:
+    // 1) Within one scope, each event has at most one NOTIFY and may have multiple WAIT nodes.
+    // 2) All WAIT nodes for that event are recorded in syncInfos.correspondingWaitNodeIds.
+
+    std::vector<SuperKernelBaseNode*> filteredTasks;
+    filteredTasks.reserve(tasks.size());
+    // Core invariant per eventId after pass-1:
+    // eventCounts[eventId] = expected_wait_count_from_notify - observed_wait_count.
+    // A value of 0 means notify-side expectation matches observed waits exactly.
+    std::unordered_map<uint64_t, int64_t> eventCounts;
+
+    // First pass: accumulate expected-vs-observed WAIT balance per eventId.
+    for (size_t i = 0; i < tasks.size(); i++) {
+        if (tasks[i]->GetNodeType() == SkNodeType::NODE_NOTIFY) {
+            eventCounts[tasks[i]->GetEventId()] += tasks[i]->GetNodeInfos().syncInfos.correspondingWaitNodeIds.size();
+        } else if (tasks[i]->GetNodeType() == SkNodeType::NODE_WAIT) {
+            eventCounts[tasks[i]->GetEventId()]--;
+        }
+    }
+
+    // Second pass:
+    // WAIT cancellation condition: corresponding NOTIFY exists.
+    // NOTIFY cancellation condition: all WAITs of this event are cancellable.
+    for (size_t i = 0; i < tasks.size(); i++) {
+        const uint64_t eventId = tasks[i]->GetEventId();
+
+        // Notify is removable only when expected and observed waits are fully matched.
+        if (tasks[i]->GetNodeType() == SkNodeType::NODE_NOTIFY && eventCounts[tasks[i]->GetEventId()] == 0) {
+            SK_LOGI("Event[%lu] cancelled in post-process: NOTIFY task[%zu]", tasks[i]->GetEventId(), i);
+            continue;
+        // WAIT is removable while the per-event balance remains non-negative.
+        // Under the constraints above, a negative value means this scope has WAITs
+        // for this event but no corresponding NOTIFY.
+        } else if (tasks[i]->GetNodeType() == SkNodeType::NODE_WAIT && eventCounts[tasks[i]->GetEventId()] >= 0) {
+            SK_LOGI("Event[%lu] cancelled in post-process: WAIT task[%zu]", tasks[i]->GetEventId(), i);
+            continue;
+        }
+        filteredTasks.push_back(tasks[i]);
+    }
+
+    SK_LOGI("scope post-process filtered tasks: %zu -> %zu (%zu cancelled)", tasks.size(), filteredTasks.size(),
+            tasks.size() - filteredTasks.size());
+    return filteredTasks;
+}
+
 bool EnsureStreamCapacity(const SuperKernelProcessedScopeInfo& processedScopeInfo, uint32_t checkStreamIdx)
 {
     const auto& streamInfo = processedScopeInfo.updateStreamInfos[checkStreamIdx];
@@ -231,25 +278,28 @@ SuperKernelProcessedScopeInfo SuperKernelScopePostProcessor::PostProcess(SuperKe
 {
     // Implementation for post-processing scopes
 
-    SuperKernelProcessedScopeInfo processedScopeInfo;
-    if (scopeInfo.nodes.empty()) {
-        SK_LOGI("scope post-process skipped: empty scope nodes");
-        return processedScopeInfo;
-    }
     uint32_t streamCount = scopeInfo.scopeStreamInfos.size();
+    SK_LOGI("scope post-process begin: streamCount=%u, nodeCount=%zu", streamCount, scopeInfo.nodes.size());
+
+    std::vector<SuperKernelBaseNode*> filteredTasks = FilterCancelledTasks(scopeInfo.nodes);
+    if (filteredTasks.empty()) {
+        SK_LOGE("scope post-process failed: no task remains after cancelling notify/wait pairs");
+        return {};
+    }
+
     // init
-    processedScopeInfo.nodes = scopeInfo.nodes;
+    SuperKernelProcessedScopeInfo processedScopeInfo;
+    processedScopeInfo.nodes = std::move(filteredTasks);
     processedScopeInfo.skMainNodeId = INVALID_TASK_ID;
     processedScopeInfo.updateStreamInfos.resize(streamCount);
 
-    uint64_t lastNodeId = scopeInfo.nodes.back()->GetNodeId();
+    uint64_t lastNodeId = processedScopeInfo.nodes.back()->GetNodeId();
     uint32_t mainStreamIdx = INVALID_STREAM_ID;
 
     std::vector<StreamPostPlan> plans(streamCount);
     std::vector<uint32_t> streamOrder;
     streamOrder.reserve(streamCount);
     uint32_t needFrontWaitCount = 0;
-    SK_LOGI("scope post-process begin: streamCount=%u, nodeCount=%zu", streamCount, scopeInfo.nodes.size());
 
     // pass1: collect per-stream info and boundary plans
     for (uint32_t curStreamIdx = 0; curStreamIdx < streamCount; ++curStreamIdx) {

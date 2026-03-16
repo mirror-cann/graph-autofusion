@@ -27,7 +27,9 @@ extern "C" void sk_placeholder_kernel_do(void* stream, ScopeKernelArgs args);
 
 typedef void (*ScopeFuncImpl)(void*, ScopeKernelArgs);
 
-static aclError LaunchScopeKernelImpl(const char* scopeName, aclrtStream stream, ScopeFuncImpl scopeKernelImpl) {
+namespace {
+
+aclError LaunchScopeKernelImpl(const char* scopeName, aclrtStream stream, ScopeFuncImpl scopeKernelImpl) {
     ScopeKernelArgs args;
     if (scopeName == nullptr) {
         scopeName = "default_sk_scope_name";
@@ -48,6 +50,8 @@ static aclError LaunchScopeKernelImpl(const char* scopeName, aclrtStream stream,
     scopeKernelImpl(stream, args);
     return ACL_SUCCESS;
 }
+
+} // namespace
 
 aclError LaunchScopeKernel(const char* scopeName, aclrtStream stream, bool isBegin)
 {   

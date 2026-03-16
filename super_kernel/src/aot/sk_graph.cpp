@@ -133,9 +133,18 @@ void SuperKernelGraph::BuildWaitNodeAssociations() {
     }
 }
 
+namespace {
+
+// Scope stack entry for tracking nested scope contexts
+struct ScopeStackEntry {
+    uint32_t scopeIdx = INVALID_SCOPE_ID;
+    std::string scopeName;
+    bool isFusible = true;
+};
+
 // Compute current scope bit flags from the scope stack
 // Only marks fusible scopes to determine which fusible scopes a node belongs to
-static std::bitset<MAX_SCOPE_NUM> ComputeScopeBitFlags(const std::vector<ScopeStackEntry>& scopeStack) {
+std::bitset<MAX_SCOPE_NUM> ComputeScopeBitFlags(const std::vector<ScopeStackEntry>& scopeStack) {
     std::bitset<MAX_SCOPE_NUM> flags;
     for (const auto& entry : scopeStack) {
         if (entry.isFusible) {
@@ -147,7 +156,7 @@ static std::bitset<MAX_SCOPE_NUM> ComputeScopeBitFlags(const std::vector<ScopeSt
 
 // Check if current scope stack contains any unfusible scope
 // If a node is inside an unfusible scope, the node is also unfusible
-static bool HasUnfusibleScope(const std::vector<ScopeStackEntry>& scopeStack) {
+bool HasUnfusibleScope(const std::vector<ScopeStackEntry>& scopeStack) {
     for (const auto& entry : scopeStack) {
         if (!entry.isFusible) {
             return true;
@@ -159,8 +168,8 @@ static bool HasUnfusibleScope(const std::vector<ScopeStackEntry>& scopeStack) {
 // Parse scope node information to extract scope index, name, and fusible attribute
 // Get scope index for a scope node
 // For fusible scopes, look up index from scopeNameToIdx; for unfusible scopes, use MAX_SCOPE_NUM
-static uint32_t GetScopeIdx(SuperKernelBaseNode* node,
-                           const std::unordered_map<std::string, uint32_t>& scopeNameToIdx) {
+uint32_t GetScopeIdx(SuperKernelBaseNode* node,
+                    const std::unordered_map<std::string, uint32_t>& scopeNameToIdx) {
     bool isFusible = node->IsFusible();
 
     if (isFusible) {
@@ -182,7 +191,7 @@ static uint32_t GetScopeIdx(SuperKernelBaseNode* node,
 // Pop the scope with matching name from the stack
 // Searches from top to bottom to find the matching scope and removes only that scope
 // This supports interleaved scope begin/end patterns (e.g., A-B-A-B)
-static bool PopScopeByName(std::vector<ScopeStackEntry>& scopeStack, const std::string& scopeName) {
+bool PopScopeByName(std::vector<ScopeStackEntry>& scopeStack, const std::string& scopeName) {
     for (int i = static_cast<int>(scopeStack.size()) - 1; i >= 0; --i) {
         if (scopeStack[i].scopeName == scopeName) {
             scopeStack.erase(scopeStack.begin() + i);
@@ -196,10 +205,10 @@ static bool PopScopeByName(std::vector<ScopeStackEntry>& scopeStack, const std::
 }
 
 // Process scope begin node: parse scope info, push to stack, and mark associated event nodes
-static void ProcessScopeBegin(SuperKernelGraph* graph,
-                               SuperKernelBaseNode* node,
-                               std::vector<ScopeStackEntry>& scopeStack,
-                               const std::unordered_map<std::string, uint32_t>& scopeNameToIdx) {
+void ProcessScopeBegin(SuperKernelGraph* graph,
+                      SuperKernelBaseNode* node,
+                      std::vector<ScopeStackEntry>& scopeStack,
+                      const std::unordered_map<std::string, uint32_t>& scopeNameToIdx) {
     std::string scopeName = node->GetScopeName();
     bool isFusible = node->IsFusible();
     uint32_t scopeIdx = GetScopeIdx(node, scopeNameToIdx);
@@ -210,10 +219,10 @@ static void ProcessScopeBegin(SuperKernelGraph* graph,
 }
 
 // Process scope end node: parse scope info, pop from stack, and mark associated event nodes
-static void ProcessScopeEnd(SuperKernelGraph* graph,
-                             SuperKernelBaseNode* node,
-                             std::vector<ScopeStackEntry>& scopeStack,
-                             const std::unordered_map<std::string, uint32_t>& scopeNameToIdx) {
+void ProcessScopeEnd(SuperKernelGraph* graph,
+                    SuperKernelBaseNode* node,
+                    std::vector<ScopeStackEntry>& scopeStack,
+                    const std::unordered_map<std::string, uint32_t>& scopeNameToIdx) {
     std::string scopeName = node->GetScopeName();
     uint32_t scopeIdx = GetScopeIdx(node, scopeNameToIdx);
 
@@ -222,7 +231,7 @@ static void ProcessScopeEnd(SuperKernelGraph* graph,
 }
 
 // Log warning if there are unclosed scopes remaining in the stack at the end of graph processing
-static void LogUnclosedScopes(const std::vector<ScopeStackEntry>& scopeStack) {
+void LogUnclosedScopes(const std::vector<ScopeStackEntry>& scopeStack) {
     if (!scopeStack.empty()) {
         SK_LOGW("Found %zu unclosed scope(s) at end of graph:", scopeStack.size());
         for (const auto& entry : scopeStack) {
@@ -230,6 +239,8 @@ static void LogUnclosedScopes(const std::vector<ScopeStackEntry>& scopeStack) {
         }
     }
 }
+
+} // namespace
 
 // Update scope bit flags for all nodes based on scope contexts
 //

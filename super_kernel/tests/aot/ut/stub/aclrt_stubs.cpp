@@ -14,12 +14,201 @@
 */
 
 #include "acl/acl.h"
-#include "sk_scope_kernel_types.h"
 #include <cstring>
 #include <cstdio>
 #include <cstdlib>
+#include <stdexcept>
+#include <vector>
+
+namespace {
+
+aclError g_aclmdlRIGetStreamsRet[2] = {ACL_SUCCESS, ACL_SUCCESS};
+aclError g_aclrtStreamGetTasksRet[2] = {ACL_SUCCESS, ACL_SUCCESS};
+aclError g_aclrtTaskGetTypeRet = ACL_SUCCESS;
+aclError g_aclrtGetDeviceRet = ACL_SUCCESS;
+aclError g_aclrtGetDeviceInfoRet = ACL_SUCCESS;
+aclError g_aclmdlRIUpdateRet = ACL_SUCCESS;
+int g_throwOnAclmdlRIGetStreams = 0;
+int g_binaryGetFunctionNullHandle = 0;
+
+uint32_t g_streamNum = 0;
+std::vector<uint32_t> g_streamTaskNums;
+std::vector<std::vector<aclrtTaskType>> g_taskTypes;
+
+void EnsureStreamStorage(uint32_t streamIdx)
+{
+    if (g_streamTaskNums.size() <= streamIdx) {
+        g_streamTaskNums.resize(streamIdx + 1, 0);
+    }
+    if (g_taskTypes.size() <= streamIdx) {
+        g_taskTypes.resize(streamIdx + 1);
+    }
+}
+
+void EnsureTaskStorage(uint32_t streamIdx, uint32_t taskIdx)
+{
+    EnsureStreamStorage(streamIdx);
+    if (g_taskTypes[streamIdx].size() <= taskIdx) {
+        g_taskTypes[streamIdx].resize(taskIdx + 1, ACL_RT_TASK_KERNEL);
+    }
+}
+
+}
 
 extern "C" {
+
+void SkUtResetCommonStubControls();
+
+void SkUtResetTestControls()
+{
+    g_aclmdlRIGetStreamsRet[0] = ACL_SUCCESS;
+    g_aclmdlRIGetStreamsRet[1] = ACL_SUCCESS;
+    g_aclrtStreamGetTasksRet[0] = ACL_SUCCESS;
+    g_aclrtStreamGetTasksRet[1] = ACL_SUCCESS;
+    g_aclrtTaskGetTypeRet = ACL_SUCCESS;
+    g_aclrtGetDeviceRet = ACL_SUCCESS;
+    g_aclrtGetDeviceInfoRet = ACL_SUCCESS;
+    g_aclmdlRIUpdateRet = ACL_SUCCESS;
+    g_throwOnAclmdlRIGetStreams = 0;
+    g_binaryGetFunctionNullHandle = 0;
+    SkUtResetCommonStubControls();
+
+    g_streamNum = 0;
+    g_streamTaskNums.clear();
+    g_taskTypes.clear();
+}
+
+void SkUtSetAclmdlRIGetStreamsRet(int phase, aclError ret)
+{
+    if (phase < 0 || phase > 1) {
+        return;
+    }
+    g_aclmdlRIGetStreamsRet[phase] = ret;
+}
+
+void SkUtSetAclrtStreamGetTasksRet(int phase, aclError ret)
+{
+    if (phase < 0 || phase > 1) {
+        return;
+    }
+    g_aclrtStreamGetTasksRet[phase] = ret;
+}
+
+void SkUtSetAclrtTaskGetTypeRet(aclError ret)
+{
+    g_aclrtTaskGetTypeRet = ret;
+}
+
+void SkUtSetAclrtGetDeviceRet(aclError ret)
+{
+    g_aclrtGetDeviceRet = ret;
+}
+
+void SkUtSetAclrtGetDeviceInfoRet(aclError ret)
+{
+    g_aclrtGetDeviceInfoRet = ret;
+}
+
+void SkUtSetAclmdlRIUpdateRet(aclError ret)
+{
+    g_aclmdlRIUpdateRet = ret;
+}
+
+void SkUtSetThrowOnAclmdlRIGetStreams(int enable)
+{
+    g_throwOnAclmdlRIGetStreams = enable;
+}
+
+void SkUtSetBinaryGetFunctionNullHandle(int enable)
+{
+    g_binaryGetFunctionNullHandle = enable;
+}
+
+aclError SkUtGetAclmdlRIGetStreamsRet(int phase)
+{
+    if (phase < 0 || phase > 1) {
+        return ACL_SUCCESS;
+    }
+    return g_aclmdlRIGetStreamsRet[phase];
+}
+
+aclError SkUtGetAclrtStreamGetTasksRet(int phase)
+{
+    if (phase < 0 || phase > 1) {
+        return ACL_SUCCESS;
+    }
+    return g_aclrtStreamGetTasksRet[phase];
+}
+
+aclError SkUtGetAclrtTaskGetTypeRet()
+{
+    return g_aclrtTaskGetTypeRet;
+}
+
+aclError SkUtGetAclrtGetDeviceRet()
+{
+    return g_aclrtGetDeviceRet;
+}
+
+aclError SkUtGetAclrtGetDeviceInfoRet()
+{
+    return g_aclrtGetDeviceInfoRet;
+}
+
+aclError SkUtGetAclmdlRIUpdateRet()
+{
+    return g_aclmdlRIUpdateRet;
+}
+
+int SkUtGetThrowOnAclmdlRIGetStreams()
+{
+    return g_throwOnAclmdlRIGetStreams;
+}
+
+void SkUtSetModelStreamNum(uint32_t streamNum)
+{
+    g_streamNum = streamNum;
+    if (g_streamTaskNums.size() < streamNum) {
+        g_streamTaskNums.resize(streamNum, 0);
+    }
+    if (g_taskTypes.size() < streamNum) {
+        g_taskTypes.resize(streamNum);
+    }
+}
+
+uint32_t SkUtGetModelStreamNum()
+{
+    return g_streamNum;
+}
+
+void SkUtSetStreamTaskNum(uint32_t streamIdx, uint32_t taskNum)
+{
+    EnsureStreamStorage(streamIdx);
+    g_streamTaskNums[streamIdx] = taskNum;
+    g_taskTypes[streamIdx].resize(taskNum, ACL_RT_TASK_KERNEL);
+}
+
+uint32_t SkUtGetStreamTaskNum(uint32_t streamIdx)
+{
+    if (streamIdx >= g_streamTaskNums.size()) {
+        return 0;
+    }
+    return g_streamTaskNums[streamIdx];
+}
+
+void SkUtSetTaskType(uint32_t streamIdx, uint32_t taskIdx, aclrtTaskType type)
+{
+    EnsureTaskStorage(streamIdx, taskIdx);
+    g_taskTypes[streamIdx][taskIdx] = type;
+}
+
+aclrtTaskType SkUtGetTaskType(uint32_t streamIdx, uint32_t taskIdx)
+{
+    if (streamIdx >= g_taskTypes.size() || taskIdx >= g_taskTypes[streamIdx].size()) {
+        return ACL_RT_TASK_KERNEL;
+    }
+    return g_taskTypes[streamIdx][taskIdx];
+}
 
 // Error codes
 #ifndef ACL_ERROR_NONE
@@ -57,33 +246,78 @@ static inline AclmdlRITaskInternal* RITaskToInternal(aclmdlRITask task) {
 
 // 获取流
 aclError aclmdlRIGetStreams(aclmdlRI modelRI, aclrtStream *streams, uint32_t *numStreams) {
+    (void)modelRI;
+    if (SkUtGetThrowOnAclmdlRIGetStreams() != 0) {
+        throw std::runtime_error("ut-injected aclmdlRIGetStreams exception");
+    }
+    const int phase = (streams == nullptr ? 0 : 1);
+    aclError forcedRet = SkUtGetAclmdlRIGetStreamsRet(phase);
+    if (forcedRet != ACL_SUCCESS) {
+        return forcedRet;
+    }
     if (numStreams == nullptr) {
         return ACL_ERROR_INVALID_PARAM;
     }
-    if (streams != nullptr) {
-        *numStreams = 0;
+    uint32_t streamNum = SkUtGetModelStreamNum();
+    if (streams == nullptr) {
+        *numStreams = streamNum;
+        return ACL_ERROR_NONE;
     }
+
+    for (uint32_t i = 0; i < streamNum; ++i) {
+        streams[i] = reinterpret_cast<aclrtStream>(static_cast<uintptr_t>(i + 1));
+    }
+    *numStreams = streamNum;
     return ACL_ERROR_NONE;
 }
 
 // 获取任务
 aclError aclrtStreamGetTasks(aclrtStream stream, aclrtTask *tasks, uint32_t *numTasks) {
+    const int phase = (tasks == nullptr ? 0 : 1);
+    aclError forcedRet = SkUtGetAclrtStreamGetTasksRet(phase);
+    if (forcedRet != ACL_SUCCESS) {
+        return forcedRet;
+    }
     if (numTasks == nullptr) {
         return ACL_ERROR_INVALID_PARAM;
     }
-    if (tasks != nullptr) {
-        *numTasks = 0;
+    uint32_t streamIdx = 0;
+    if (stream != nullptr) {
+        streamIdx = static_cast<uint32_t>(reinterpret_cast<uintptr_t>(stream) - 1U);
     }
+    uint32_t taskNum = SkUtGetStreamTaskNum(streamIdx);
+    if (tasks == nullptr) {
+        *numTasks = taskNum;
+        return ACL_ERROR_NONE;
+    }
+
+    for (uint32_t i = 0; i < taskNum; ++i) {
+        uintptr_t taskHandle = (static_cast<uintptr_t>(streamIdx + 1) << 32U) | static_cast<uintptr_t>(i + 1);
+        tasks[i] = reinterpret_cast<aclrtTask>(taskHandle);
+    }
+    *numTasks = taskNum;
     return ACL_ERROR_NONE;
 }
 
 // 获取任务类型
 aclError aclrtTaskGetType(aclrtTask task, aclrtTaskType *type) {
+    aclError forcedRet = SkUtGetAclrtTaskGetTypeRet();
+    if (forcedRet != ACL_SUCCESS) {
+        return forcedRet;
+    }
     if (type == nullptr || task == nullptr) {
         return ACL_ERROR_INVALID_PARAM;
     }
-    AclrtTaskInternal* internal = TaskToInternal(task);
-    *type = internal->type;
+    uintptr_t taskHandle = reinterpret_cast<uintptr_t>(task);
+    uint32_t streamIdx = static_cast<uint32_t>((taskHandle >> 32U) & 0xFFFFFFFFU);
+    uint32_t taskIdx = static_cast<uint32_t>(taskHandle & 0xFFFFFFFFU);
+    if (streamIdx > 0) {
+        streamIdx -= 1U;
+    }
+    if (taskIdx > 0) {
+        taskIdx -= 1U;
+    }
+    *type = SkUtGetTaskType(streamIdx, taskIdx);
     return ACL_ERROR_NONE;
 }
 
@@ -149,11 +383,20 @@ aclError aclrtTaskSetMemValueParams(aclrtTask task, aclrtTaskMemValueParams *par
 
 // 更新模型资源信息
 aclError aclmdlRIUpdate(aclmdlRI modelRI) {
+    (void)modelRI;
+    aclError forcedRet = SkUtGetAclmdlRIUpdateRet();
+    if (forcedRet != ACL_SUCCESS) {
+        return forcedRet;
+    }
     return ACL_ERROR_NONE;
 }
 
 // 获取设备
 aclError aclrtGetDevice(int32_t *deviceId) {
+    aclError forcedRet = SkUtGetAclrtGetDeviceRet();
+    if (forcedRet != ACL_SUCCESS) {
+        return forcedRet;
+    }
     if (deviceId == nullptr) {
         return ACL_ERROR_INVALID_PARAM;
     }
@@ -163,6 +406,11 @@ aclError aclrtGetDevice(int32_t *deviceId) {
 
 // 获取设备信息
 aclError aclrtGetDeviceInfo(uint32_t deviceId, aclrtDevAttr attr, int64_t *value) {
+    (void)deviceId;
+    aclError forcedRet = SkUtGetAclrtGetDeviceInfoRet();
+    if (forcedRet != ACL_SUCCESS) {
+        return forcedRet;
+    }
     if (value == nullptr) {
         return ACL_ERROR_INVALID_PARAM;
     }
@@ -178,6 +426,10 @@ aclError aclrtGetDeviceInfo(uint32_t deviceId, aclrtDevAttr attr, int64_t *value
 aclError aclrtBinaryGetFunction(aclrtBinHandle binHdl, const char *funcName, aclrtFuncHandle *funcHdl) {
     if (funcName == nullptr || funcHdl == nullptr) {
         return ACL_ERROR_INVALID_PARAM;
+    }
+    if (g_binaryGetFunctionNullHandle != 0) {
+        *funcHdl = nullptr;
+        return ACL_ERROR_NONE;
     }
     *funcHdl = reinterpret_cast<aclrtFuncHandle>(0x1000);
     return ACL_ERROR_NONE;
@@ -334,25 +586,6 @@ aclError aclrtGetArgsFromExceptionInfo(const aclrtExceptionInfo* exceptionInfo, 
     *args = nullptr;
     *argsLen = 0;
     return ACL_ERROR_NONE;
-}
-
-aclrtBinHandle AscendGetEntryBinHandle()
-{
-    return reinterpret_cast<aclrtBinHandle>(0x1234);
-} 
-
-void sk_scope_kernel_begin_do(void* stream, ScopeKernelArgs args) {
-    (void)stream;
-    (void)args;
-}
-void sk_scope_kernel_end_do(void* stream, ScopeKernelArgs args) {
-    (void)stream;
-    (void)args;
-}
-// Scope placeholder stub
-void sk_placeholder_kernel_do(void* stream, ScopeKernelArgs args) {
-    (void)stream;
-    (void)args;
 }
 
 // ==================== RI Task API Stubs ====================

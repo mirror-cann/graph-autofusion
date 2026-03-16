@@ -21,66 +21,47 @@
 #include "sk_task_builder.h"
 #include "sk_log.h"
 
-extern "C" aclrtBinHandle AscendGetEntryBinHandle();
-namespace {
-
-aclrtFuncHandle ResolveSkEntryFunc(const char* funcName)
-{
-    aclrtBinHandle bhdl = nullptr;
-    bhdl = AscendGetEntryBinHandle();
-    if (bhdl == nullptr) {
-        SK_LOGE("failed to get entry bin handle: AscendGetEntryBinHandle() returned null");
-        return nullptr;
-    }
-    aclrtFuncHandle fhdl = nullptr;
-    CHECK_ACL(aclrtBinaryGetFunction(bhdl, funcName, &fhdl));
-    if (fhdl == nullptr) {
-        SK_LOGE("failed to resolve entry func handle: funcName=%s, binHandle=%p", funcName, bhdl);
-        return nullptr;
-    }
-    return fhdl;
-}
-
-} // namespace
-
 // Schedule task-stream nodes for super-kernel launch.
-void SuperKernelOptimizer::Schedule(SuperKernelProcessedScopeInfo& processedScopeInfo, SuperKernelGraph& graph,
+bool SuperKernelOptimizer::Schedule(SuperKernelProcessedScopeInfo& processedScopeInfo, SuperKernelGraph& graph,
                                     SkTaskBuilder& builder)
 {
     const auto& taskNodes = processedScopeInfo.nodes;
+    if (taskNodes.empty()) {
+        SK_LOGW("no tasks for super kernel optimization: scope has 0 nodes");
+        return true;
+    }
+
     std::vector<SuperKernelBaseNode*> customTasks;
     customTasks.reserve(processedScopeInfo.eventNodes.size());
     for (const auto& eventNode : processedScopeInfo.eventNodes) {
         customTasks.emplace_back(eventNode.get());
-    }
-    if (taskNodes.empty()) {
-        SK_LOGW("no tasks for super kernel optimization: scope has 0 nodes");
-        return;
     }
 
     SK_LOGI("schedule scope: taskCount=%zu, customTaskCount=%zu, updateStreamCount=%zu", taskNodes.size(),
             customTasks.size(), processedScopeInfo.updateStreamInfos.size());
 
     SkLaunchInfo launchInfo = builder.Build(taskNodes, customTasks);
-    SK_LOGI("schedule scope: build finished, entryFuncName=%s", launchInfo.entryInfo.skEntryFuncName);
-
-    aclrtFuncHandle skEntryFunc = ResolveSkEntryFunc(launchInfo.entryInfo.skEntryFuncName);
-    if (skEntryFunc == nullptr) {
-        SK_LOGE("failed to resolve sk entry function: entryFuncName=%s", launchInfo.entryInfo.skEntryFuncName);
-        return;
+    if (launchInfo.entryInfo.skEntryFunc == nullptr || launchInfo.devArgs.Get() == nullptr) {
+        SK_LOGE("schedule failed: build launch info failed");
+        return false;
     }
+    SK_LOGI("schedule scope: build finished, entryType=%s, entryFuncHandle=%p",
+            to_string(launchInfo.entryInfo.entryType), launchInfo.entryInfo.skEntryFunc);
 
-    Update(processedScopeInfo, graph, launchInfo, skEntryFunc);
+    if (!Update(processedScopeInfo, graph, launchInfo)) {
+        SK_LOGE("schedule failed: scope update failed");
+        return false;
+    }
+    return true;
 }
 
-void SuperKernelOptimizer::Update(SuperKernelProcessedScopeInfo& processedScopeInfo, SuperKernelGraph& graph,
-                                  const SkLaunchInfo& launchInfo, aclrtFuncHandle skEntryFunc)
+bool SuperKernelOptimizer::Update(SuperKernelProcessedScopeInfo& processedScopeInfo, SuperKernelGraph& graph,
+                                  const SkLaunchInfo& launchInfo)
 {
-    SK_LOGI("scope update begin: streamCount=%zu, nodeCount=%zu", processedScopeInfo.updateStreamInfos.size(),
-            processedScopeInfo.nodes.size());
+    SK_LOGI("scope update begin: streamCount=%zu", processedScopeInfo.updateStreamInfos.size());
     bool skMainNodeUpdated = false;
-    size_t updateFailCount = 0;
     size_t updateTotalCount = 0;
+
     for (auto& streamInfo : processedScopeInfo.updateStreamInfos) {
         SK_LOGI("update stream begin: streamId=%u, headNodeId=%lu, tailNodeId=%lu, nodeSize=%lu, customParamSize=%zu",
                 streamInfo.streamIdx, streamInfo.headNodeIdx, streamInfo.tailNodeIdx, streamInfo.nodeSize,
@@ -89,7 +70,7 @@ void SuperKernelOptimizer::Update(SuperKernelProcessedScopeInfo& processedScopeI
         if (streamInfo.nodeSize < customParamSize) {
             SK_LOGE("node size is less than custom params size: nodeSize=%lu, customParamSize=%zu", streamInfo.nodeSize,
                     customParamSize);
-            continue;
+            return false;
         }
 
         uint64_t curNodeId = streamInfo.headNodeIdx;
@@ -100,8 +81,7 @@ void SuperKernelOptimizer::Update(SuperKernelProcessedScopeInfo& processedScopeI
             if (node == nullptr) {
                 SK_LOGE("node not found during stream-based update: nodeId=%lu, streamIdx=%u", curNodeId,
                         streamInfo.streamIdx);
-                // Continue with next stream when this stream chain is broken.
-                break;
+                return false;
             }
             UpdateContext ctx;
             if (eventCnt < customParamSize) {
@@ -115,16 +95,15 @@ void SuperKernelOptimizer::Update(SuperKernelProcessedScopeInfo& processedScopeI
                 if (!skMainNodeUpdated) {
                     skMainNodeUpdated = true;
                     ctx.launchInfo = const_cast<SkLaunchInfo*>(&launchInfo);
-                    ctx.skEntryFunc = skEntryFunc;
                 } else {
-                    SK_LOGE("repeat find sk launch node, skip update kernel and set invalid node");
+                    SK_LOGW("repeat find sk launch node, skip update kernel and set invalid node");
                 }
             }
 
             ++updateTotalCount;
             if (!node->Update(ctx)) { // default invalid
-                ++updateFailCount;
-                SK_LOGW("node update failed: nodeId=%lu, streamIdx=%u", curNodeId, streamInfo.streamIdx);
+                SK_LOGE("node update failed: nodeId=%lu, streamIdx=%u", curNodeId, streamInfo.streamIdx);
+                return false;
             }
 
             if (curNodeId == streamInfo.tailNodeIdx) {
@@ -136,30 +115,24 @@ void SuperKernelOptimizer::Update(SuperKernelProcessedScopeInfo& processedScopeI
     }
 
     if (!skMainNodeUpdated) {
-        SK_LOGE("not find sk launch node, sk optimize faild");
+        SK_LOGE("not find sk launch node, sk optimize failed");
+        return false;
     }
 
-    if (updateFailCount > 0) {
-        SK_LOGW("scope update finished with failures: failed=%zu, total=%zu", updateFailCount, updateTotalCount);
-    } else {
-        SK_LOGI("scope update finished: failed=0, total=%zu", updateTotalCount);
-    }
+    SK_LOGI("scope update finished: update total nodes=%zu", updateTotalCount);
 
-    if (updateTotalCount != processedScopeInfo.nodes.size()) {
-        SK_LOGE("update node count mismatch: expected=%zu, actual=%zu", processedScopeInfo.nodes.size(),
-                updateTotalCount);
-    }
+    return true;
 }
 
-void SuperKernelOptimizer::Process(SuperKernelGraph& graph)
+bool SuperKernelOptimizer::Process(SuperKernelGraph& graph)
 {
     // Split graph into multiple scopes.
     SuperKernelScopeSplitter splitter(graph);
     if (splitter.SplitGraph()) {
         SK_LOGI("graph split into %zu scopes", splitter.GetScopeInfos().size());
     } else {
-        SK_LOGW("graph split failed or no scopes found: cannot proceed with super kernel optimization");
-        return;
+        SK_LOGE("graph split failed or no scopes found: cannot proceed with super kernel optimization");
+        return false;
     }
     auto& scopeInfos = splitter.GetScopeInfos();
 
@@ -171,9 +144,12 @@ void SuperKernelOptimizer::Process(SuperKernelGraph& graph)
     for (auto& scopeInfo : scopeInfos) {
         SK_LOGI("process scope begin: scopeIndex=%zu", scopeIndex);
         SuperKernelProcessedScopeInfo processedScopeInfo = postProcessor.PostProcess(scopeInfo);
-        Schedule(processedScopeInfo, graph, builder);
-        SK_LOGI("process scope end: scopeIndex=%zu, processedNodeCount=%zu", scopeIndex, processedScopeInfo.nodes.size());
+        if (!Schedule(processedScopeInfo, graph, builder)) {
+            SK_LOGE("process scope failed: scopeIndex=%zu, schedule/update returned false", scopeIndex);
+            return false;
+        }
         ++scopeIndex;
     }
     SK_LOGI("super kernel process finished: scopeCount=%zu", scopeInfos.size());
+    return true;
 }

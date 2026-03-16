@@ -29,7 +29,6 @@ aclError aclskOptimize(aclmdlRI model, aclskOptions *options) {
     }
 
     SK_LOGI("Begin aclskOptimize");
-
     SK_LOGI("Start init sk graph...");
     SuperKernelGraph graph(model);
     if (!graph.InitSKGraph()) {
@@ -48,7 +47,10 @@ aclError aclskOptimize(aclmdlRI model, aclskOptions *options) {
 
     SK_LOGI("Start optimize sk graph...");
     SuperKernelOptimizer optimizer(opts);
-    optimizer.Process(graph);
+    if (!optimizer.Process(graph)) {
+        SK_LOGE("aclskOptimize failed: optimize sk graph failed");
+        return ACL_ERROR_FAILURE;
+    }
     SK_LOGI("End optimize sk graph");
 
     SK_LOGI("Start update graph...");
@@ -56,7 +58,6 @@ aclError aclskOptimize(aclmdlRI model, aclskOptions *options) {
     SK_LOGI("End update graph");
 
     SK_LOGI("End aclskOptimize");
-
     return ret;
 }
 

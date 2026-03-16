@@ -157,7 +157,6 @@ struct TaskInfo {
 struct TaskQue {
     uint32_t taskCnt;
     uint32_t cap;
-    uint64_t fftsAddr;
     TaskInfo taskInfos[0];
 };
 

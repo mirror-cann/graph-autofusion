@@ -32,13 +32,13 @@ class SuperKernelOptimizer {
 public:
     SuperKernelOptimizer(SuperKernelOptionsManager& opts) : opts(opts) {}
     virtual ~SuperKernelOptimizer() = default;
-    void Process(SuperKernelGraph& graph);
+    bool Process(SuperKernelGraph& graph);
 
 private:
     SuperKernelOptionsManager& opts;
-    void Schedule(SuperKernelProcessedScopeInfo& processedScopeInfo, SuperKernelGraph& graph, SkTaskBuilder& builder);
-    void Update(SuperKernelProcessedScopeInfo& processedScopeInfo, SuperKernelGraph& graph,
-                const SkLaunchInfo& launchInfo, aclrtFuncHandle skEntryFunc);
+    bool Schedule(SuperKernelProcessedScopeInfo& processedScopeInfo, SuperKernelGraph& graph, SkTaskBuilder& builder);
+    bool Update(SuperKernelProcessedScopeInfo& processedScopeInfo, SuperKernelGraph& graph,
+                const SkLaunchInfo& launchInfo);
 };
 
 #endif // __SK_OPTIMIZER_H__

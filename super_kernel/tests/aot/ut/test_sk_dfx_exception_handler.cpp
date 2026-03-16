@@ -219,12 +219,10 @@ TEST_F(SkDfxExceptionHandlerTest, ExtractTaskQueue_WithTaskCounts)
     TaskQue* aicQueue = reinterpret_cast<TaskQue*>(buffer + headerInfo.aicQueOffset);
     aicQueue->taskCnt = 2;
     aicQueue->cap = 10;
-    aicQueue->fftsAddr = 0x1000;
 
     TaskQue* aivQueue = reinterpret_cast<TaskQue*>(buffer + headerInfo.aivQueOffset);
     aivQueue->taskCnt = 3;
     aivQueue->cap = 10;
-    aivQueue->fftsAddr = 0x2000;
 
     handler->skDeviceEntryArgsHost = deviceArgs;
     handler->skHeaderInfoHost = &headerInfo;

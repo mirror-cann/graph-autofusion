@@ -107,7 +107,9 @@ struct TaskSyncInfo {
 
 class SkTaskBuilder {
 public:
-    SkTaskBuilder(SuperKernelOptionsManager& opts, const SuperKernelGraph& graph) : opts(opts), graph_(graph) {}
+    SkTaskBuilder(SuperKernelOptionsManager& opts, const SuperKernelGraph& graph) :
+        opts(opts), graph_(graph)
+    {}
 
     SkLaunchInfo Build(const std::vector<SuperKernelBaseNode*>& tasks,
                        const std::vector<SuperKernelBaseNode*>& customTasks);
@@ -121,26 +123,26 @@ private:
 
     // Task insertion helpers, separated by task type
     std::pair<int, int> GetPreFetchCnt(const ResolvedFunctionInfo& resolved);
-    void AddSyncTask(SkTask& skTask, size_t nodeIndex, SkCoreSyncType syncType);
-    void AddEventTask(SkTask& skTask, SuperKernelBaseNode* node, size_t nodeIndex, SkTaskType taskType);
-    void AddFuncTask(SkTask& skTask, SuperKernelBaseNode* node, SkDfxInfo* dfxInfo, size_t nodeIndex, int addrIndex,
+    bool AddSyncTask(SkTask& skTask, size_t nodeIndex, SkCoreSyncType syncType);
+    bool AddEventTask(SkTask& skTask, SuperKernelBaseNode* node, size_t nodeIndex, SkTaskType taskType);
+    bool AddFuncTask(SkTask& skTask, SuperKernelBaseNode* node, SkDfxInfo* dfxInfo, size_t nodeIndex, int addrIndex,
                      int binCount, SkTaskType taskType, uint32_t numBlocks);
 
-    void DispatchFuncTask(SkTask& skTaskCube, SkTask& skTaskVec, SuperKernelBaseNode* node, SkDfxInfo* dfxInfo,
+    bool DispatchFuncTask(SkTask& skTaskCube, SkTask& skTaskVec, SuperKernelBaseNode* node, SkDfxInfo* dfxInfo,
                           size_t nodeIndex, int binCount, SkTaskType taskType, SkQueueType queueType);
-    void DispatchEventTask(SkTask& skTaskCube, SkTask& skTaskVec, SuperKernelBaseNode* node, size_t nodeIndex,
+    bool DispatchEventTask(SkTask& skTaskCube, SkTask& skTaskVec, SuperKernelBaseNode* node, size_t nodeIndex,
                            SkTaskType taskType, SkQueueType queueType);
 
-    void DispatchSyncTasks(SkTask& skTaskCube, SkTask& skTaskVec, size_t nodeIndex,
+    bool DispatchSyncTasks(SkTask& skTaskCube, SkTask& skTaskVec, size_t nodeIndex,
                            const std::map<size_t, SyncDirection>& syncInfo, bool isSend, SkQueueType queueType);
 
     // ========== Graph-topology-based sync extraction ==========
 
     // Initialize taskSyncInfos_
-    void InitTaskSyncInfos(const std::vector<SuperKernelBaseNode*>& tasks);
+    bool InitTaskSyncInfos(const std::vector<SuperKernelBaseNode*>& tasks);
 
     // Precompute sync relations (based on graph topology)
-    void PrecomputeSyncRelationsFromGraph(const std::vector<SuperKernelBaseNode*>& tasks);
+    bool PrecomputeSyncRelationsFromGraph(const std::vector<SuperKernelBaseNode*>& tasks);
 
     // Extract intra-stream sync relations (based on GetNextNodeId)
     void ExtractIntraStreamSync(const std::vector<SuperKernelBaseNode*>& tasks);
