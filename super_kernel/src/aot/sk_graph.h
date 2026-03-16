@@ -93,6 +93,11 @@ public:
     }
 
 private:
+    uint64_t AllocateNodeId()
+    {
+        return nextNodeId++;
+    }
+
     bool AddNode(std::unique_ptr<SuperKernelBaseNode> node);
     bool AddEventAssociateNotify(uint64_t eventId, uint64_t nodeId);
     bool AddEventAssociateWait(uint64_t eventId, uint64_t nodeId);
@@ -105,6 +110,7 @@ private:
     std::vector<uint64_t> nodeSizeInStream;
     std::vector<aclrtStream> streams;
     aclmdlRI modelRI;
+    uint64_t nextNodeId = 0;
     std::unordered_map<std::string, uint32_t> scopeNameToIdx;    ///< scopeName -> scopeIdx
     std::unordered_map<uint32_t, std::string> scopeIdxToName;    ///< scopeIdx -> scopeName (reverse mapping)
 };

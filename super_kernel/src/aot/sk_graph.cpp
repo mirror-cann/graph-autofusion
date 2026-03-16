@@ -393,7 +393,8 @@ bool SuperKernelGraph::InitSKGraph() {
                     }
                 }
             }
-            uint64_t nodeId = node->GetNodeId();
+            uint64_t nodeId = AllocateNodeId(); // todo need init by aclrt
+            node->SetNodeId(nodeId);
             if (!AddNode(std::move(node))) {
                 SK_LOGE("Failed to add node for task %u in stream %u to graph", taskIdx, streamIdx);
                 return false;
