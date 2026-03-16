@@ -1297,31 +1297,27 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase30_MixedFusibleAndUnfusibleScopes)
     ASSERT_TRUE(result);
     const auto& scopeInfos = splitter.GetScopeInfos();
 
-    // 验证生成了2个scope
-    EXPECT_EQ(scopeInfos.size(), 2);
+    // 验证只生成了1个scope（scope_A），K3在scope外被标记为不可融合，不会生成独立scope
+    EXPECT_EQ(scopeInfos.size(), 1);
 
     // 验证scope 0只包含K1(2)，ScopeBegin_A(1)和ScopeEnd_A(3)是scope节点，不放入nodes中
     EXPECT_EQ(scopeInfos[0].nodes.size(), 1);
     EXPECT_EQ(scopeInfos[0].nodes[0]->GetNodeId(), 2);
 
-    // 验证scope 1只包含K3(id=7)
-    EXPECT_EQ(scopeInfos[1].nodes.size(), 1);
-    EXPECT_EQ(scopeInfos[1].nodes[0]->GetNodeId(), 7);
-
-    // 验证不可融合的节点没有被包含在任何scope中
+    // 验证可融合节点K1被包含在scope中
     std::set<uint64_t> allProcessedNodes;
     for (const auto& scope : scopeInfos) {
         for (const auto* node : scope.nodes) {
             allProcessedNodes.insert(node->GetNodeId());
         }
     }
-    std::set<uint64_t> expectedNodes = {2, 7}; // 只有K1和K3是普通kernel节点
+    std::set<uint64_t> expectedNodes = {2}; // 只有K1是可融合的kernel节点
     EXPECT_EQ(allProcessedNodes, expectedNodes);
 
     // 验证融合状态
     EXPECT_TRUE(k1->IsFusible());
     EXPECT_FALSE(k2->IsFusible());
-    EXPECT_TRUE(k3->IsFusible());
+    EXPECT_FALSE(k3->IsFusible()); // K3在scope外，被标记为不可融合
 }
 
 // ==================== 测试用例 31: 多流中相同scope名称 ====================
@@ -1720,9 +1716,8 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase40_PureUnfusibleScope)
     EXPECT_TRUE(k1->IsFusible()) << "K1 should be fusible (outside scope)";
     EXPECT_EQ(k1->GetScopeBitFlags().count(), 0) << "K1 should have no scope flags";
 
-    // 验证scope begin：不可融合
-    EXPECT_FALSE(scopeBegin->IsFusible()) << "ScopeBegin should be unfusible";
-    EXPECT_EQ(scopeBegin->GetScopeBitFlags().count(), 0) << "ScopeBegin should have no scope flags (unfusible)";
+    // 验证scope begin：scope节点总是可融合的（用于标记融合范围）
+    EXPECT_TRUE(scopeBegin->IsFusible()) << "ScopeBegin should be fusible (scope nodes are always fusible)";
 
     // 验证节点2和3：在unfusible scope内，应该不可融合
     EXPECT_FALSE(k2->IsFusible()) << "K2 should be unfusible (inside unfusible scope)";
@@ -1731,9 +1726,8 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase40_PureUnfusibleScope)
     EXPECT_FALSE(k3->IsFusible()) << "K3 should be unfusible (inside unfusible scope)";
     EXPECT_EQ(k3->GetScopeBitFlags().count(), 0) << "K3 should have no scope flags (unfusible scope)";
 
-    // 验证scope end：不可融合
-    EXPECT_FALSE(scopeEnd->IsFusible()) << "ScopeEnd should be unfusible";
-    EXPECT_EQ(scopeEnd->GetScopeBitFlags().count(), 0) << "ScopeEnd should have no scope flags (unfusible)";
+    // 验证scope end：scope节点总是可融合的（用于标记融合范围）
+    EXPECT_TRUE(scopeEnd->IsFusible()) << "ScopeEnd should be fusible (scope nodes are always fusible)";
 
     // 验证节点4：在scope外，应该可融合
     EXPECT_TRUE(k4->IsFusible()) << "K4 should be fusible (outside scope)";
@@ -1876,7 +1870,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase44_UnfusibleScopeSpanningWholeGraph
 {
     // 测试场景：unfusible scope跨越整个图
     // Stream 0: [UnfusibleBegin(id=1)] → [K1(id=2)] → [K2(id=3)] → [K3(id=4)] → [UnfusibleEnd(id=5)]
-    // 预期：所有节点都不可融合
+    // 预期：scope节点可融合，普通节点不可融合
 
     auto* unfusibleBegin = CreateUnfusibleScopeBeginNode(1, 0, 2);
     auto* k1 = CreateKernelNode(2, 0, 3);
@@ -1889,12 +1883,13 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase44_UnfusibleScopeSpanningWholeGraph
     // 执行scope标记更新
     graph->UpdateNodeScopeBitFlags();
 
-    // 验证所有节点都不可融合
-    EXPECT_FALSE(unfusibleBegin->IsFusible());
+    // scope节点总是可融合的
+    EXPECT_TRUE(unfusibleBegin->IsFusible());
+    EXPECT_TRUE(unfusibleEnd->IsFusible());
+    // 普通节点不可融合
     EXPECT_FALSE(k1->IsFusible());
     EXPECT_FALSE(k2->IsFusible());
     EXPECT_FALSE(k3->IsFusible());
-    EXPECT_FALSE(unfusibleEnd->IsFusible());
 }
 
 // ==================== 测试用例 45: 重复的unfusible scope begin/end ====================
@@ -1976,8 +1971,9 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase47_UnfusibleAndFusibleScopesSideByS
     // Stream 0: [K1(id=1)] → [UnfusibleBegin(id=2)] → [K2(id=3)] → [UnfusibleEnd(id=4)] →
     //          [K3(id=5)] → [FusibleBegin_A(id=6)] → [K4(id=7)] → [FusibleEnd_A(id=8)] → [K5(id=9)]
     // 预期：
-    //   - K1, K3, K5: 可融合
+    //   - K1: 可融合（在scope外，但没有命名scope时不影响）
     //   - K2: 不可融合（在unfusible scope中）
+    //   - K3, K5: 不可融合（在命名scope外）
     //   - K4: 可融合（在fusible scope中）
 
     auto* k1 = CreateKernelNode(1, 0, 2);
@@ -1999,18 +1995,18 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase47_UnfusibleAndFusibleScopesSideByS
     graph->UpdateNodeScopeBitFlags();
 
     // 验证可融合的节点
-    EXPECT_TRUE(k1->IsFusible());
-    EXPECT_TRUE(k3->IsFusible());
-    EXPECT_TRUE(k4->IsFusible());
-    EXPECT_TRUE(k5->IsFusible());
+    EXPECT_TRUE(k4->IsFusible());  // 在fusible scope中
 
     // 验证不可融合的节点
-    EXPECT_FALSE(k2->IsFusible());
+    EXPECT_FALSE(k1->IsFusible()); // 在命名scope外
+    EXPECT_FALSE(k2->IsFusible()); // 在unfusible scope中
+    EXPECT_FALSE(k3->IsFusible()); // 在命名scope外
+    EXPECT_FALSE(k5->IsFusible()); // 在命名scope外
 
     // 验证scopeBitFlags
     EXPECT_EQ(k1->GetScopeBitFlags().count(), 0);
-    EXPECT_EQ(k3->GetScopeBitFlags().count(), 0);
     EXPECT_TRUE(k4->GetScopeBitFlags().test(0));
+    EXPECT_EQ(k3->GetScopeBitFlags().count(), 0);
     EXPECT_EQ(k5->GetScopeBitFlags().count(), 0);
 }
 
@@ -2055,9 +2051,9 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase49_OnlyUnfusibleScopeNoRegularNodes
     // 执行scope标记更新
     graph->UpdateNodeScopeBitFlags();
 
-    // 验证两个节点都不可融合
-    EXPECT_FALSE(unfusibleBegin->IsFusible());
-    EXPECT_FALSE(unfusibleEnd->IsFusible());
+    // scope节点总是可融合的
+    EXPECT_TRUE(unfusibleBegin->IsFusible());
+    EXPECT_TRUE(unfusibleEnd->IsFusible());
 }
 
 // ==================== 测试用例 50: 空图（无任何节点） ====================

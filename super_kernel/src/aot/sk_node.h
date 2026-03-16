@@ -101,6 +101,8 @@ public:
     virtual ~SuperKernelBaseNode() = default;
     virtual bool InitNode();
 
+    virtual const std::string GetNodeName() const = 0;
+
     // Accessors
     uint32_t GetStreamIdxInGraph() const
     {
@@ -211,7 +213,7 @@ public:
     }
 
     // scope
-    virtual std::string GetScopeName() const { return ""; }
+    virtual const std::string GetScopeName() const { return ""; }
     virtual bool IsScopeBegin() const { return false; }
     virtual bool IsScopeEnd() const { return false; }
     virtual bool IsScopePlaceholder() const { return false; }
@@ -263,9 +265,14 @@ public:
     SkKernelType GetKernelType() const override { return nodeInfos.kernelInfos.kernelType; }
     uint32_t GetVecNum() const override { return nodeInfos.kernelInfos.vecNum; }
     uint32_t GetCubeNum() const override { return nodeInfos.kernelInfos.cubeNum; }
+
+    const std::string GetNodeName() const override
+    {
+        return nodeInfos.kernelInfos.funcName;
+    }
     bool InValidateNode() override;
     bool Update(const UpdateContext& ctx) override;
-    virtual std::string GetScopeName() const override
+    const std::string GetScopeName() const override
     {
         return scopeName;
     }
@@ -302,6 +309,20 @@ public:
     {
         nodeInfos.syncInfos.correspondingNotifyNodeId = notifyId;
     }
+
+    const std::string GetNodeName() const override
+    {
+        std::string memoryNodeName;
+        if (rtNodeType == ACL_MODEL_RI_TASK_VALUE_WRITE) {
+            memoryNodeName = "NotifyNode_";
+        } else if (rtNodeType == ACL_MODEL_RI_TASK_VALUE_WAIT) {
+            memoryNodeName = "WaitNode_";
+        } else {
+            memoryNodeName = "UnknownMemoryNode_";
+        }
+        memoryNodeName += std::to_string(GetEventId());
+        return memoryNodeName;
+    }
     bool InitNode() override;
     bool Update(const UpdateContext& ctx) override;
     bool InValidateNode() override;
@@ -312,6 +333,12 @@ public:
     using SuperKernelBaseNode::SuperKernelBaseNode;
     bool InitNode() override;
     bool InValidateNode() override;
+
+    const std::string GetNodeName() const override
+    {
+        static const std::string defaultNodeName = "DefaultNode";
+        return defaultNodeName;
+    }
 };
 
 #endif // __SK_NODE_H__

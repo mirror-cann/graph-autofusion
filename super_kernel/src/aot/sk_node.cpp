@@ -274,7 +274,7 @@ bool IsScopeKernel(aclmdlRIKernelTaskParams params, JudgeTaskKernelInfo* info) {
     if (strcmp(info->scopeName.get(), defaultScopeName) == 0) {
         info->isFuseEnable = false;
     }
-    SK_LOGD("Success parse scope kernel task, kernelName: %s, scopeName: %s, isBegin: %d, isFuseEnable: %d", kernelName, 
+    SK_LOGI("Success parse scope kernel task, kernelName: %s, scopeName: %s, isBegin: %d, isFuseEnable: %d", kernelName, 
         info->scopeName.get(), info->isBegin, info->isFuseEnable);
     return true;
 }

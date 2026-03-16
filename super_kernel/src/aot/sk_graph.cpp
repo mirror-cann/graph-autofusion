@@ -263,7 +263,11 @@ void SuperKernelGraph::UpdateNodeScopeBitFlags() {
     std::vector<uint64_t> orderedNodeIds = GetSortedNodeIds();
 
     SK_LOGI("Starting UpdateNodeScopeBitFlags, total nodes: %zu", orderedNodeIds.size());
-
+    bool outOfScopeFusible = true;
+    if (!scopeNameToIdx.empty()) {
+        outOfScopeFusible = false;
+        SK_LOGI("Super Kernel has named scopes, out-of-scope nodes will be marked as unfusible");
+    }
     for (uint64_t nodeId : orderedNodeIds) {
         SuperKernelBaseNode* node = GetNodeById(nodeId);
         if (node == nullptr) {
@@ -277,8 +281,6 @@ void SuperKernelGraph::UpdateNodeScopeBitFlags() {
             // Scope end nodes belong to their parent scopes, compute flags before popping
             std::bitset<MAX_SCOPE_NUM> currentScopeFlags = ComputeScopeBitFlags(scopeStack);
             node->SetScopeBitFlags(currentScopeFlags);
-            SK_LOGD("Set scope flags for scope end node %lu, flags=%s", nodeId,
-                    currentScopeFlags.to_string().substr(0, MAX_SCOPE_NUM).c_str());
             ProcessScopeEnd(this, node, scopeStack, scopeNameToIdx);
         }
 
@@ -288,18 +290,26 @@ void SuperKernelGraph::UpdateNodeScopeBitFlags() {
             std::bitset<MAX_SCOPE_NUM> flags = ComputeScopeBitFlags(scopeStack);
             node->SetScopeBitFlags(flags);
 
-            // Log flags for regular nodes (non-scope nodes)
-            if (!node->IsScopeNode()) {
-                SK_LOGD("Set scope flags for node %lu, flags=%s, fusible=%d",
-                        nodeId, flags.to_string().substr(0, MAX_SCOPE_NUM).c_str(), node->IsFusible());
+            if (!outOfScopeFusible && scopeStack.empty()) {
+                // If there are named scopes, mark nodes outside of any scope as unfusible
+                node->SetIsFusible(false);
+                SK_LOGI("Marked node %s, id: %lu as unfusible (outside of any named scope)", node->GetNodeName().c_str(), nodeId);
             }
-
             // Mark regular nodes as unfusible if inside any unfusible scope
             if (!node->IsScopeNode() && HasUnfusibleScope(scopeStack)) {
                 node->SetIsFusible(false);
-                SK_LOGD("Marked node %lu as unfusible (inside unfusible scope)", nodeId);
+                SK_LOGI("Marked node %s, id: %lu as unfusible (inside unfusible scope)", node->GetNodeName().c_str(), nodeId);
             }
         }
+
+        // scope nodes are always fusible - they mark fusion boundaries and can be fused themselves
+        if (node->IsScopeNode()) {
+            node->SetIsFusible(true);
+        }
+        SK_LOGI("Processed node %s, id: %lu: type=%d, scopeFlags=%s, isFusible=%d, stackSize=%zu",
+                node->GetNodeName().c_str(), nodeId, static_cast<int>(node->GetNodeType()),
+                node->GetScopeBitFlags().to_string().substr(0, MAX_SCOPE_NUM).c_str(),
+                node->IsFusible(), scopeStack.size());
     }
     LogUnclosedScopes(scopeStack);
     SK_LOGI("UpdateNodeScopeBitFlags completed");

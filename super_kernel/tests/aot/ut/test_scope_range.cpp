@@ -114,14 +114,14 @@ TEST_F(TestScopeSplitRange, TestNodeWithUnfusibleScope) {
 
     graph->UpdateNodeScopeBitFlags();
 
-    // All nodes inside unfusible scope should be marked as unfusible
-    EXPECT_FALSE(scopeBeginNode->IsFusible());  // scope begin node itself can be fusible or unfusible
-    EXPECT_FALSE(scopeNodePlaceholder_1->IsFusible());
-    EXPECT_FALSE(scopeNodePlaceholder_2->IsFusible());
+    // Scope nodes are always fusible (they mark fusion boundaries)
+    EXPECT_TRUE(scopeBeginNode->IsFusible());
+    EXPECT_TRUE(scopeNodePlaceholder_1->IsFusible());
+    EXPECT_TRUE(scopeNodePlaceholder_2->IsFusible());
     EXPECT_FALSE(node1->IsFusible());  // node inside unfusible scope
-    EXPECT_FALSE(scopeNodePlaceholder_3->IsFusible());
-    EXPECT_FALSE(scopeNodePlaceholder_4->IsFusible());
-    EXPECT_FALSE(scopeEndNode->IsFusible());
+    EXPECT_TRUE(scopeNodePlaceholder_3->IsFusible());
+    EXPECT_TRUE(scopeNodePlaceholder_4->IsFusible());
+    EXPECT_TRUE(scopeEndNode->IsFusible());
     EXPECT_TRUE(node2->IsFusible());
 }
 
@@ -207,14 +207,14 @@ TEST_F(TestScopeSplitRange, TestRealScenarioWithMixedScopeInterleaving) {
 
     graph->UpdateNodeScopeBitFlags();
 
-    // Node 0: unfusible scope begin
-    EXPECT_FALSE(node0->IsFusible());
+    // Node 0: unfusible scope begin - scope nodes are always fusible
+    EXPECT_TRUE(node0->IsFusible());
     EXPECT_TRUE(node0->GetScopeBitFlags().none());
 
-    // Node 1-2: inside unfusible scope, should be marked unfusible
-    EXPECT_FALSE(node1->IsFusible());
+    // Node 1-2: inside unfusible scope, scope nodes are always fusible
+    EXPECT_TRUE(node1->IsFusible());
     EXPECT_TRUE(node1->GetScopeBitFlags().none());
-    EXPECT_FALSE(node2->IsFusible());
+    EXPECT_TRUE(node2->IsFusible());
     EXPECT_TRUE(node2->GetScopeBitFlags().none());
 
     // Node 3: regular node in unfusible scope
@@ -225,27 +225,27 @@ TEST_F(TestScopeSplitRange, TestRealScenarioWithMixedScopeInterleaving) {
     EXPECT_TRUE(node4->IsFusible());
     EXPECT_TRUE(node4->GetScopeBitFlags().test(0));
 
-    // Node 5-6: inside both unfusible and fusible scopes, should be unfusible
+    // Node 5-6: inside both unfusible and fusible scopes, scope nodes are always fusible
     EXPECT_TRUE(node5->IsFusible());
     EXPECT_TRUE(node5->GetScopeBitFlags().test(0));
     EXPECT_TRUE(node6->IsFusible());
     EXPECT_TRUE(node6->GetScopeBitFlags().test(0));
 
-    // Node 7-8: inside both scopes, should be unfusible
-    EXPECT_FALSE(node7->IsFusible());
+    // Node 7-8: inside both scopes, scope nodes are always fusible
+    EXPECT_TRUE(node7->IsFusible());
     EXPECT_TRUE(node7->GetScopeBitFlags().test(0));
-    EXPECT_FALSE(node8->IsFusible());
+    EXPECT_TRUE(node8->IsFusible());
     EXPECT_TRUE(node8->GetScopeBitFlags().test(0));
 
-    // Node 9: scope end for unfusible scope
-    EXPECT_FALSE(node9->IsFusible());
+    // Node 9: scope end for unfusible scope - scope nodes are always fusible
+    EXPECT_TRUE(node9->IsFusible());
     EXPECT_TRUE(node9->GetScopeBitFlags().test(0));
 
     // Node 10: regular node, only in fusible scope now (unfusible scope ended)
     EXPECT_TRUE(node10->IsFusible());
     EXPECT_TRUE(node10->GetScopeBitFlags().test(0));
 
-    // Node 11-12: only in fusible scope
+    // Node 11-12: only in fusible scope, scope nodes are always fusible
     EXPECT_TRUE(node11->IsFusible());
     EXPECT_TRUE(node11->GetScopeBitFlags().test(0));
     EXPECT_TRUE(node12->IsFusible());
@@ -339,8 +339,8 @@ TEST_F(TestScopeSplitRange, TestMultipleSequentialSameScope) {
     EXPECT_TRUE(scopeEndA1->IsFusible());
     EXPECT_TRUE(scopeEndA1->GetScopeBitFlags().test(0));
 
-    // Node between two scopeA instances: should NOT be in scopeA
-    EXPECT_TRUE(nodeBetween->IsFusible());
+    // Node between two scopeA instances: should NOT be in scopeA, marked unfusible (outside named scope)
+    EXPECT_FALSE(nodeBetween->IsFusible());
     EXPECT_TRUE(nodeBetween->GetScopeBitFlags().none());
 
     // Second scopeA: nodes should be in scopeA again
@@ -355,8 +355,8 @@ TEST_F(TestScopeSplitRange, TestMultipleSequentialSameScope) {
     EXPECT_TRUE(scopeEndA2->IsFusible());
     EXPECT_TRUE(scopeEndA2->GetScopeBitFlags().test(0));
 
-    // Node after all scopes: should NOT be in scopeA
-    EXPECT_TRUE(nodeAfter->IsFusible());
+    // Node after all scopes: should NOT be in scopeA, marked unfusible (outside named scope)
+    EXPECT_FALSE(nodeAfter->IsFusible());
     EXPECT_TRUE(nodeAfter->GetScopeBitFlags().none());
 }
 

@@ -54,11 +54,15 @@ void ScopeSplitPass::PrintScopeNodes(size_t scopeIdx, const SuperKernelScopeInfo
     std::string nodeDetails;
     for (const auto* n : scope.nodes) {
         if (!nodeDetails.empty()) nodeDetails += ", ";
+        nodeDetails += n->GetNodeName();
+        nodeDetails += " ";
         nodeDetails += std::to_string(n->GetNodeId());
         nodeDetails += "(";
         nodeDetails += to_string(n->GetNodeType());
         nodeDetails += ",stream=";
         nodeDetails += std::to_string(n->GetStreamIdxInGraph());
+        nodeDetails += ",nodeIdxInStream=";
+        nodeDetails += std::to_string(n->GetNodeIdxInStream());
         nodeDetails += ")";
     }
     SK_LOGI("  Scope %zu nodes: [%s]", scopeIdx, nodeDetails.c_str());
@@ -116,15 +120,6 @@ void InitialScopeSplitPass::SkipUnfusibleNodes() {
     }
 }
 
-bool InitialScopeSplitPass::AllStreamsFinished() const {
-    for (const auto& pair : streamStates_) {
-        if (!pair.second.isTerminated && !pair.second.isSuspended &&
-            pair.second.currentNodeIdx != INVALID_TASK_ID) {
-            return false;
-        }
-    }
-    return true;
-}
 
 bool InitialScopeSplitPass::DetermineCurrentScopeBitFlags() {
     uint64_t minNodeIdx = UINT64_MAX;
@@ -463,8 +458,8 @@ bool DeadlockRefinePass::Run(std::vector<SuperKernelScopeInfo>& scopes) {
                 SuperKernelScopeInfo scopeBefore, scopeAfter;
                 SplitScopeAtWaitNode(scope, deadlockWaitNode, scopeBefore, scopeAfter);
                 
-                SK_LOGI("Scope %zu: Deadlock detected at node %lu, splitting at Wait node %lu",
-                        i, deadlockNode->GetNodeId(), deadlockWaitNode->GetNodeId());
+                SK_LOGI("Scope %zu: Deadlock detected at node %s, id: %lu, splitting at Wait node %lu",
+                        i, deadlockNode->GetNodeName().c_str(), deadlockNode->GetNodeId(), deadlockWaitNode->GetNodeId());
                 SK_LOGI("  Before split: %zu nodes", scope.nodes.size());
                 SK_LOGI("  After split: scopeBefore=%zu nodes, scopeAfter=%zu nodes",
                         scopeBefore.nodes.size(), scopeAfter.nodes.size());
@@ -481,8 +476,8 @@ bool DeadlockRefinePass::Run(std::vector<SuperKernelScopeInfo>& scopes) {
                 splitCount++;
             } else {
                 // No Wait node found, keep original scope
-                SK_LOGW("Scope %zu: Deadlock at node %lu but no Wait node found to split",
-                        i, deadlockNode->GetNodeId());
+                SK_LOGW("Scope %zu: Deadlock at node %s, id: %lu but no Wait node found to split",
+                        i, deadlockNode->GetNodeName().c_str(), deadlockNode->GetNodeId());
                 // Set Notify nodes expand numbers for original scope
                 SuperKernelScopeSplitter::SetNotifyNodesExpandNumForScope(scope);
                 refinedScopes.push_back(std::move(scope));
@@ -551,7 +546,7 @@ void SuperKernelScopeSplitter::SetNotifyNodesExpandNumForScope(SuperKernelScopeI
     for (auto* notifyNode : notifyNodes) {
         notifyNode->SetNotifyExpandVecNum(maxExpandVecNum);
         notifyNode->SetNotifyExpandCubeNum(maxExpandCubeNum);
-        SK_LOGD("Set Notify node %lu expandVecNum=%u, expandCubeNum=%u", 
+        SK_LOGI("Set Notify node %lu expandVecNum=%u, expandCubeNum=%u", 
                 notifyNode->GetNodeId(), maxExpandVecNum, maxExpandCubeNum);
     }
 }
