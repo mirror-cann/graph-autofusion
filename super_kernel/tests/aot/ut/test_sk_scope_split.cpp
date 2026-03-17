@@ -144,6 +144,7 @@ protected:
             nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, streamIdx, INVALID_TASK_ID);
         node->SetNodeId(nodeId);
         node->SetNextNodeId(nextNodeId);
+        node->nodeType = SkNodeType::NODE_KERNEL;
         // Mark as fusible for testing
         node->isFusible = true;
         // Set custom kernel parameters

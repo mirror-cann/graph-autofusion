@@ -326,6 +326,8 @@ public:
     bool InitNode() override;
     bool Update(const UpdateContext& ctx) override;
     bool InValidateNode() override;
+    uint32_t GetVecNum() const override { return notifyExpandVecNum; }
+    uint32_t GetCubeNum() const override { return notifyExpandCubeNum; }
 };
 
 class SuperKernelDefaultNode : public SuperKernelBaseNode {

@@ -1,0 +1,449 @@
+/**
+* Copyright (c) 2025 Huawei Technologies Co., Ltd.
+* This program is free software, you can redistribute it and/or modify it under the terms and conditions of
+* CANN Open Software License Agreement Version 2.0 (the "License").
+* Please refer to the License for details. You may not use this file except in compliance with the License.
+* THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+* INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+* See LICENSE in the root of the software repository for the full text of the License.
+*/
+
+/*!
+ * \file test_node_scope_tagging.cpp
+ * \brief Unit tests for verifying scope tagging functionality on nodes
+ */
+
+#include <gtest/gtest.h>
+#include <memory>
+#include <bitset>
+
+#define private public
+#define protected public
+#include "sk_node.h"
+#include "sk_types.h"
+#include "sk_graph.h"
+#include "sk_log.h"
+#include "sk_lock_detector.h"
+
+class TestLockDetector: public ::testing::Test {
+protected:
+    void SetUp() override {
+        graph = std::make_unique<SuperKernelGraph>();
+        // Initialize device core numbers for LockDetector
+        LockDetector::GetDeviceCores();
+    }
+
+    void TearDown() override {
+        graph.reset();
+    }
+
+    // Helper function to create a wait node
+    SuperKernelBaseNode* CreateWaitNode(uint64_t nodeId, uint32_t streamIdx, uint64_t preNodeId = INVALID_TASK_ID, uint64_t nextNodeId = INVALID_TASK_ID, uint64_t notifyNodeId = INVALID_TASK_ID) {
+        auto node = std::make_unique<SuperKernelMemoryNode>(
+            nullptr, ACL_MODEL_RI_TASK_VALUE_WAIT, 0, streamIdx, INVALID_TASK_ID);
+        node->SetNodeId(nodeId);
+        node->SetNextNodeId(nextNodeId);
+        node->SetPreNodeId(preNodeId);
+        node->nodeInfos.syncInfos.correspondingNotifyNodeId = notifyNodeId;
+        // eventId is not used in LockDetector, but needed for eventToNodes mapping
+        // We'll set it based on the corresponding notify node's eventId
+        node->isFusible = true;
+        node->nodeType = SkNodeType::NODE_WAIT;
+        SuperKernelBaseNode* ptr = node.get();
+        graph->graphMap[nodeId] = std::move(node);
+        return ptr;
+    }
+
+    // Helper function to create a notify node
+    SuperKernelBaseNode* CreateNotifyNode(uint64_t nodeId, uint32_t streamIdx, uint64_t preNodeId = INVALID_TASK_ID, uint64_t nextNodeId = INVALID_TASK_ID, uint64_t eventId = INVALID_TASK_ID, std::vector<uint64_t> waitNodeIds = {}) {
+        auto node = std::make_unique<SuperKernelMemoryNode>(
+            nullptr, ACL_MODEL_RI_TASK_VALUE_WRITE, 0, streamIdx, INVALID_TASK_ID);
+        node->SetNodeId(nodeId);
+        node->SetNextNodeId(nextNodeId);
+        node->SetPreNodeId(preNodeId);
+        node->nodeInfos.syncInfos.eventId = eventId;
+        node->isFusible = true;
+        node->nodeType = SkNodeType::NODE_NOTIFY;
+        node->nodeInfos.syncInfos.correspondingWaitNodeIds = waitNodeIds;
+        SuperKernelBaseNode* ptr = node.get();
+        graph->graphMap[nodeId] = std::move(node);
+        return ptr;
+    }
+
+    // Helper function to create a kernel node with custom core counts
+    SuperKernelBaseNode* CreateKernelNodeWithCores(uint64_t nodeId, uint32_t streamIdx, uint64_t preNodeId, uint64_t nextNodeId,
+                                                     uint32_t numBlocks, SkKernelType kernelType) {
+        auto node = std::make_unique<SuperKernelKernelNode>(
+            nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, streamIdx, INVALID_TASK_ID);
+        node->SetNodeId(nodeId);
+        node->SetNextNodeId(nextNodeId);
+        node->SetPreNodeId(preNodeId);
+        node->nodeType = SkNodeType::NODE_KERNEL;
+        // Mark as fusible for testing
+        node->isFusible = true;
+        // Set custom kernel parameters
+        node->nodeInfos.kernelInfos.numBlocks = numBlocks;
+        node->nodeInfos.kernelInfos.kernelType = kernelType;
+        // Calculate vecNum and cubeNum based on kernelType and numBlocks
+        if (kernelType == SkKernelType::AIC_ONLY || kernelType == SkKernelType::MIX_AIC_1_0) {
+            node->nodeInfos.kernelInfos.cubeNum = numBlocks;
+            node->nodeInfos.kernelInfos.vecNum = 0;
+        } else if (kernelType == SkKernelType::AIV_ONLY || kernelType == SkKernelType::MIX_AIV_1_0) {
+            node->nodeInfos.kernelInfos.cubeNum = 0;
+            node->nodeInfos.kernelInfos.vecNum = numBlocks;
+        } else if (kernelType == SkKernelType::MIX_AIC_1_1) {
+            node->nodeInfos.kernelInfos.cubeNum = numBlocks;
+            node->nodeInfos.kernelInfos.vecNum = numBlocks;
+        } else if (kernelType == SkKernelType::MIX_AIC_1_2) {
+            node->nodeInfos.kernelInfos.cubeNum = numBlocks;
+            node->nodeInfos.kernelInfos.vecNum = numBlocks << 1;
+        }
+        SuperKernelBaseNode* ptr = node.get();
+        graph->graphMap[nodeId] = std::move(node);
+        return ptr;
+    }
+
+    // Helper function to setup streams in graph
+    void *SetupStreams(const std::vector<std::vector<uint64_t>>& streamNodes) {
+        graph->streams.clear();
+        graph->headNodes.clear();
+
+        for (const auto& nodes : streamNodes) {
+            graph->streams.emplace_back();
+            if (!nodes.empty()) {
+                graph->headNodes.push_back(nodes[0]);
+            } else {
+                graph->headNodes.push_back(INVALID_TASK_ID);
+            }
+        }
+    }
+
+    // Helper function to setup event mapping
+    void SetupEvent(uint64_t eventId, uint64_t notifyNodeId, const std::vector<uint64_t>& waitNodeIds) {
+        EventInfos eventInfo;
+        eventInfo.notifyNodeId = notifyNodeId;
+        for (auto waitNodeId : waitNodeIds) {
+            eventInfo.waitNodeIdList.insert(waitNodeId);
+        }
+        graph->eventToNodes[eventId] = eventInfo;
+        std::cout << "[SetupEvent] event=1 , notifyNodeId=" << graph->eventToNodes[1].notifyNodeId << ", waitNodeIds= [";
+        for (size_t i = 0; i < graph->eventToNodes[1].waitNodeIdList.size(); ++i) {
+            if (i > 0) std::cout << ",";
+            std::cout << waitNodeIds[i];
+        }
+        std::cout << "]" << std::endl;
+        std::cout.flush();  // 立即刷新缓冲区
+
+    }
+    std::unique_ptr<SuperKernelGraph> graph;
+    LockDetector lockDetector;
+};
+// Test 1: one stream, kernel node (after wait node) exceeds max sk cube/vec num 
+TEST_F(TestLockDetector, SingleStreamKernelFirst) {
+    // ======================= graph =======================
+    /*                               sk
+    stream0: k0(8c) -> n1(eventid=1) -> k2(4c) -> n3(notify) -> k4(8v) -> k5(6c,6v) -> w6(eventid=1) -> k7(4c,8v) -> k8(8c,8v)
+                            ↑                                                                   ↓
+                            └───────────────────────────────────────────────────────────────────┘
+    */
+    // 依次传kernel(4c), notify, kernel(8v), kernel(6c,6v), wait, kernel(4c,8v), kernel(8c,8v) 验证LockDetector值的状态、返回的融合结果、图上节点初始visited状态、reset后的状态
+    auto* k0 = CreateKernelNodeWithCores(0, 0, INVALID_TASK_ID, 1, 8, SkKernelType::AIC_ONLY);
+    auto* n1 = CreateNotifyNode(1, 0, 0, 2, 1);
+    auto* k2 = CreateKernelNodeWithCores(2, 0, 1, 3, 4, SkKernelType::AIC_ONLY); // nodeid, streamid, nextnodeid, numblocks, kerneltype
+    auto* n3 = CreateNotifyNode(3, 0, 2, 4, 2); // nodeid, streamid, eventid, nextnodeid
+    auto* k4 = CreateKernelNodeWithCores(4, 0, 3, 5, 8, SkKernelType::AIV_ONLY);
+    auto* k5 = CreateKernelNodeWithCores(5, 0, 4, 6, 6, SkKernelType::MIX_AIC_1_1);
+    auto* w6 = CreateWaitNode(6, 0, 5, 7, 1); // nodeid, streamid, eventid, nextnodeid
+    auto* k7 = CreateKernelNodeWithCores(7, 0, 6, 8, 4, SkKernelType::MIX_AIC_1_2);
+    auto* k8 = CreateKernelNodeWithCores(8, 0, 7, INVALID_TASK_ID, 8, SkKernelType::MIX_AIC_1_1);
+    SetupStreams({{0, 1, 2, 3, 4, 5, 6, 7, 8}});
+    SetupEvent(1, 1, {6}); // eventid, notifynodeid, waitnodeidlist
+    // sk - node 1
+    EXPECT_TRUE(lockDetector.IsFusible(*k2, *graph));
+    EXPECT_TRUE(k2->isVisited);
+    EXPECT_EQ(lockDetector.superKernelCubeNum, 4);
+    EXPECT_EQ(lockDetector.superKernelVecNum, 0);
+    // sk - node 2
+    EXPECT_TRUE(lockDetector.IsFusible(*n3, *graph));
+    EXPECT_TRUE(n3->isVisited);
+    EXPECT_EQ(lockDetector.superKernelCubeNum, 4);
+    EXPECT_EQ(lockDetector.superKernelVecNum, 0);
+    // sk - node 3
+    EXPECT_TRUE(lockDetector.IsFusible(*k4, *graph));
+    EXPECT_TRUE(k4->isVisited);
+    EXPECT_EQ(lockDetector.superKernelCubeNum, 4);
+    EXPECT_EQ(lockDetector.superKernelVecNum, 8);
+    // sk - node 4
+    EXPECT_TRUE(lockDetector.IsFusible(*k5, *graph));
+    EXPECT_TRUE(k5->isVisited);
+    EXPECT_EQ(lockDetector.superKernelCubeNum, 6);
+    EXPECT_EQ(lockDetector.superKernelVecNum, 8);
+    // sk - node 5
+    EXPECT_TRUE(lockDetector.IsFusible(*w6, *graph));
+    EXPECT_TRUE(k5->isVisited);
+    // sk - node 6
+    EXPECT_TRUE(lockDetector.IsFusible(*k7, *graph));
+    EXPECT_TRUE(k5->isVisited);
+    // sk - node 7
+    EXPECT_FALSE(lockDetector.IsFusible(*k8, *graph));
+    EXPECT_EQ(lockDetector.skStreamIds, std::set<uint32_t>{0});
+    lockDetector.Reset(*graph);
+    EXPECT_FALSE(k2->isVisited);
+    EXPECT_FALSE(n3->isVisited);
+    EXPECT_FALSE(k4->isVisited);
+    EXPECT_FALSE(k5->isVisited);
+    EXPECT_FALSE(w6->isVisited);
+    EXPECT_FALSE(k7->isVisited);
+    EXPECT_FALSE(k8->isVisited);
+    
+}
+
+// Test 2: one stream wait node not exists deadlock
+TEST_F(TestLockDetector, SingleStreamWaitFirst) {
+    // ======================= graph =======================
+    /*
+    stream0: k0(8c) -> notify(eventid=1) -> k2(4c) -> n3(notify) -> k4(8v) -> k5(6c,6v) -> w6(eventid=1) -> k7(4c,8v) -> k8(8c,8v)
+                                                                                                ↑
+                                ┌───────────────────────────────────────────────────────────────┘
+                                ↑
+    stream1: k9(4c,8v) -> notify(eventid=1) -> k11(4c,4v)
+    */
+    // 依次传wait、kernel(4c,8v)、wait、kernel(4c,4v)
+    auto* k0 = CreateKernelNodeWithCores(0, 0, INVALID_TASK_ID, 1, 8, SkKernelType::AIC_ONLY);
+    auto* n1 = CreateNotifyNode(1, 0, 0, 2, 10, {}); // nodeid, streamid, next, eventid
+    auto* k2 = CreateKernelNodeWithCores(2, 0, 1, 3, 4, SkKernelType::AIC_ONLY);
+    auto* n3 = CreateNotifyNode(3, 0, 2, 4, 11, {});
+    auto* k4 = CreateKernelNodeWithCores(4, 0, 3, 5, 8, SkKernelType::AIV_ONLY);
+    auto* k5 = CreateKernelNodeWithCores(5, 0, 4, 6, 6, SkKernelType::MIX_AIC_1_1);
+    auto* w6 = CreateWaitNode(6, 0, 5, 7, 10);
+    auto* k7 = CreateKernelNodeWithCores(7, 0, 6, 8, 4, SkKernelType::MIX_AIC_1_2);
+    auto* k8 = CreateKernelNodeWithCores(8, 0, 7, INVALID_TASK_ID, 8, SkKernelType::MIX_AIC_1_1);
+    auto* k9 = CreateKernelNodeWithCores(9, 1, INVALID_TASK_ID, 10, 4, SkKernelType::MIX_AIC_1_2);
+    auto* n10 = CreateNotifyNode(10, 1, 9, 11, 1, {6});
+    auto* k11 = CreateKernelNodeWithCores(11, 1, 10, INVALID_TASK_ID, 4, SkKernelType::MIX_AIC_1_1);
+    SetupStreams({{0, 1, 2, 3, 4, 5, 6, 7, 8}, {9, 10, 11}});
+    SetupEvent(1, 10, {6});
+    // sk - node 1
+    EXPECT_TRUE(lockDetector.IsFusible(*k2, *graph));
+    EXPECT_TRUE(k2->isVisited);
+    EXPECT_EQ(lockDetector.superKernelCubeNum, 4);
+    EXPECT_EQ(lockDetector.superKernelVecNum, 0);
+    // sk - node 2
+    EXPECT_TRUE(lockDetector.IsFusible(*n3, *graph));
+    EXPECT_TRUE(n3->isVisited);
+    // sk - node 3
+    EXPECT_TRUE(lockDetector.IsFusible(*k4, *graph));
+    EXPECT_TRUE(k4->isVisited);
+    EXPECT_EQ(lockDetector.superKernelCubeNum, 4);
+    EXPECT_EQ(lockDetector.superKernelVecNum, 8);
+    // sk - node 4
+    EXPECT_TRUE(lockDetector.IsFusible(*k5, *graph));
+    EXPECT_TRUE(k5->isVisited);
+    EXPECT_EQ(lockDetector.superKernelCubeNum, 6);
+    EXPECT_EQ(lockDetector.superKernelVecNum, 8);
+    // // sk - node 5
+    EXPECT_TRUE(lockDetector.IsFusible(*w6, *graph));
+    EXPECT_TRUE(w6->isVisited);
+    EXPECT_TRUE(k9->isVisited);
+    EXPECT_TRUE(n10->isVisited);
+    // sk - node 6
+    EXPECT_TRUE(lockDetector.IsFusible(*k7, *graph));
+    EXPECT_TRUE(k7->isVisited);
+    EXPECT_EQ(lockDetector.superKernelCubeNum, 6);
+    EXPECT_EQ(lockDetector.superKernelVecNum, 8);
+    // sk - node 7
+    EXPECT_FALSE(lockDetector.IsFusible(*k8, *graph));
+    EXPECT_EQ(lockDetector.superKernelCubeNum, 6);
+    EXPECT_EQ(lockDetector.superKernelVecNum, 8);
+
+    EXPECT_EQ(lockDetector.skStreamIds, std::set<uint32_t>{0});
+    lockDetector.Reset(*graph);
+    EXPECT_FALSE(k0->isVisited);
+    EXPECT_FALSE(n1->isVisited);
+    EXPECT_FALSE(k2->isVisited);
+    EXPECT_FALSE(n3->isVisited);
+    EXPECT_FALSE(k4->isVisited);
+    EXPECT_FALSE(k5->isVisited);
+    EXPECT_FALSE(w6->isVisited);
+    EXPECT_FALSE(k7->isVisited);
+    EXPECT_FALSE(k8->isVisited);
+    EXPECT_FALSE(k9->isVisited);
+    EXPECT_FALSE(n10->isVisited);
+    EXPECT_FALSE(k11->isVisited);
+
+}
+
+// Test 3: one stream wait node exists dead lock 
+TEST_F(TestLockDetector, SingleStreamWaitFirstRejects) {
+    // ======================= graph =======================
+    /*
+    stream0: k0(8c) -> notify(eventid=1) -> k2(4c) -> n3(notify) -> k4(8v) -> k5(6c,6v) -> w6(eventid=1) -> k7(4c,8v) -> k8(8c,8v)
+                                                                                                ↑
+                                ┌───────────────────────────────────────────────────────────────┘
+                                ↑
+    stream1: k9(24c,24v) -> notify(eventid=1) -> k11(4c,4v)
+    */
+    // 依次传wait、kernel(4c,8v)、wait、kernel(4c,4v)
+    auto* k0 = CreateKernelNodeWithCores(0, 0, INVALID_TASK_ID, 1, 8, SkKernelType::AIC_ONLY);
+    auto* n1 = CreateNotifyNode(1, 0, 0, 2, 10, {}); // nodeid, streamid, next, eventid
+    auto* k2 = CreateKernelNodeWithCores(2, 0, 1, 3, 4, SkKernelType::AIC_ONLY);
+    auto* n3 = CreateNotifyNode(3, 0, 2, 4, 11, {});
+    auto* k4 = CreateKernelNodeWithCores(4, 0, 3, 5, 8, SkKernelType::AIV_ONLY);
+    auto* k5 = CreateKernelNodeWithCores(5, 0, 4, 6, 6, SkKernelType::MIX_AIC_1_1);
+    auto* w6 = CreateWaitNode(6, 0, 5, 7, 10);
+    auto* k7 = CreateKernelNodeWithCores(7, 0, 6, 8, 4, SkKernelType::MIX_AIC_1_2);
+    auto* k8 = CreateKernelNodeWithCores(8, 0, 7, INVALID_TASK_ID, 8, SkKernelType::MIX_AIC_1_1);
+    auto* k9 = CreateKernelNodeWithCores(9, 1, INVALID_TASK_ID, 10, 24, SkKernelType::MIX_AIC_1_2);
+    auto* n10 = CreateNotifyNode(10, 1, 9, 11, 1, {6});
+    auto* k11 = CreateKernelNodeWithCores(11, 1, 10, INVALID_TASK_ID, 4, SkKernelType::MIX_AIC_1_1);
+    SetupStreams({{0, 1, 2, 3, 4, 5, 6, 7, 8}, {9, 10, 11}});
+    SetupEvent(1, 10, {6});
+    // sk - node 1
+    EXPECT_TRUE(lockDetector.IsFusible(*k2, *graph));
+    EXPECT_TRUE(k2->isVisited);
+    EXPECT_EQ(lockDetector.superKernelCubeNum, 4);
+    EXPECT_EQ(lockDetector.superKernelVecNum, 0);
+    // sk - node 2
+    EXPECT_TRUE(lockDetector.IsFusible(*n3, *graph));
+    EXPECT_TRUE(n3->isVisited);
+    // sk - node 3
+    EXPECT_TRUE(lockDetector.IsFusible(*k4, *graph));
+    EXPECT_TRUE(k4->isVisited);
+    EXPECT_EQ(lockDetector.superKernelCubeNum, 4);
+    EXPECT_EQ(lockDetector.superKernelVecNum, 8);
+    // sk - node 4
+    EXPECT_TRUE(lockDetector.IsFusible(*k5, *graph));
+    EXPECT_TRUE(k5->isVisited);
+    EXPECT_EQ(lockDetector.superKernelCubeNum, 6);
+    EXPECT_EQ(lockDetector.superKernelVecNum, 8);
+    // // sk - node 5
+    EXPECT_FALSE(lockDetector.IsFusible(*w6, *graph));
+    EXPECT_TRUE(n10->isVisited);
+
+    EXPECT_EQ(lockDetector.skStreamIds, std::set<uint32_t>{0});
+    lockDetector.Reset(*graph);
+    EXPECT_FALSE(k0->isVisited);
+    EXPECT_FALSE(n1->isVisited);
+    EXPECT_FALSE(k2->isVisited);
+    EXPECT_FALSE(n3->isVisited);
+    EXPECT_FALSE(k4->isVisited);
+    EXPECT_FALSE(k5->isVisited);
+    EXPECT_FALSE(w6->isVisited);
+    EXPECT_FALSE(k7->isVisited);
+    EXPECT_FALSE(k8->isVisited);
+    EXPECT_FALSE(k9->isVisited);
+    EXPECT_FALSE(n10->isVisited);
+    EXPECT_FALSE(k11->isVisited);
+
+}
+
+// Test 4: one stream multi wait
+TEST_F(TestLockDetector, SingleStreamMultiWait) {
+// ======================= graph =======================
+    /*
+    stream0: k0(8c) -> notify(eventid=3) -> k2(4c) -> w3(eid=1) -> k4(8v) -> k5(6c,6v) -> w6(eid=2) -> k7(4c,8v) -> k8(8c,8v)
+                                                          ↑                                      ↑
+                                ┌─────────────────────────┘      ┌───────────────────────────────┘
+                                ↑                                ↑
+    stream1: k9(4c,8v) -> notify(eventid=1) -> k11(4c,4v) -> notify(eid=2)
+    */
+    // 依次传wait、kernel(4c,8v)、wait、kernel(4c,4v)
+    auto* k0 = CreateKernelNodeWithCores(0, 0, INVALID_TASK_ID, 1, 8, SkKernelType::AIC_ONLY);
+    auto* n1 = CreateNotifyNode(1, 0, 0, 2, 10, {}); // nodeid, streamid, next, eventid
+    auto* k2 = CreateKernelNodeWithCores(2, 0, 1, 3, 10, SkKernelType::MIX_AIC_1_2);
+    auto* w3 = CreateWaitNode(3, 0, 2, 4, 10);
+    auto* k4 = CreateKernelNodeWithCores(4, 0, 3, 5, 8, SkKernelType::AIV_ONLY);
+    auto* k5 = CreateKernelNodeWithCores(5, 0, 4, 6, 6, SkKernelType::MIX_AIC_1_1);
+    auto* w6 = CreateWaitNode(6, 0, 5, 7, 12);
+    auto* k7 = CreateKernelNodeWithCores(7, 0, 6, 8, 4, SkKernelType::MIX_AIC_1_2);
+    auto* k8 = CreateKernelNodeWithCores(8, 0, 7, INVALID_TASK_ID, 12, SkKernelType::MIX_AIC_1_1);
+    auto* k9 = CreateKernelNodeWithCores(9, 1, INVALID_TASK_ID, 10, 4, SkKernelType::MIX_AIC_1_2);
+    auto* n10 = CreateNotifyNode(10, 1, 9, 11, 1, {3});
+    auto* k11 = CreateKernelNodeWithCores(11, 1, 10, INVALID_TASK_ID, 4, SkKernelType::MIX_AIC_1_1);
+    auto* n12 = CreateNotifyNode(12, 1, 11, INVALID_TASK_ID, 2, {6});
+    SetupStreams({{0, 1, 2, 3, 4, 5, 6, 7, 8}, {9, 10, 11}});
+    SetupEvent(1, 10, {6});
+    // sk - node 1
+    EXPECT_TRUE(lockDetector.IsFusible(*k2, *graph));
+    EXPECT_TRUE(k2->isVisited);
+    EXPECT_EQ(lockDetector.superKernelCubeNum, 10);
+    EXPECT_EQ(lockDetector.superKernelVecNum, 20);
+    // sk - node 2
+    EXPECT_TRUE(lockDetector.IsFusible(*w3, *graph));
+    EXPECT_TRUE(w3->isVisited);
+    // sk - node 3
+    EXPECT_TRUE(lockDetector.IsFusible(*k4, *graph));
+    EXPECT_TRUE(k4->isVisited);
+    EXPECT_EQ(lockDetector.superKernelCubeNum, 10);
+    EXPECT_EQ(lockDetector.superKernelVecNum, 20);
+    // sk - node 4
+    EXPECT_TRUE(lockDetector.IsFusible(*k5, *graph));
+    EXPECT_TRUE(k5->isVisited);
+    EXPECT_EQ(lockDetector.superKernelCubeNum, 10);
+    EXPECT_EQ(lockDetector.superKernelVecNum, 20);
+    // // sk - node 5
+    EXPECT_TRUE(lockDetector.IsFusible(*w6, *graph));
+    EXPECT_TRUE(w6->isVisited);
+    EXPECT_TRUE(k9->isVisited);
+    EXPECT_TRUE(n10->isVisited);
+    // sk - node 6
+    EXPECT_TRUE(lockDetector.IsFusible(*k7, *graph));
+    EXPECT_TRUE(k7->isVisited);
+    EXPECT_EQ(lockDetector.superKernelCubeNum, 10);
+    EXPECT_EQ(lockDetector.superKernelVecNum, 20);
+    // sk - node 7
+    EXPECT_FALSE(lockDetector.IsFusible(*k8, *graph));
+    EXPECT_EQ(lockDetector.superKernelCubeNum, 10);
+    EXPECT_EQ(lockDetector.superKernelVecNum, 20);
+
+    EXPECT_EQ(lockDetector.skStreamIds, std::set<uint32_t>{0});
+    lockDetector.Reset(*graph);
+    EXPECT_FALSE(k0->isVisited);
+    EXPECT_FALSE(n1->isVisited);
+    EXPECT_FALSE(k2->isVisited);
+    EXPECT_FALSE(w3->isVisited);
+    EXPECT_FALSE(k4->isVisited);
+    EXPECT_FALSE(k5->isVisited);
+    EXPECT_FALSE(w6->isVisited);
+    EXPECT_FALSE(k7->isVisited);
+    EXPECT_FALSE(k8->isVisited);
+    EXPECT_FALSE(k9->isVisited);
+    EXPECT_FALSE(n10->isVisited);
+    EXPECT_FALSE(k11->isVisited);
+    EXPECT_FALSE(n12->isVisited);
+
+}
+
+// Test 5: one stream, exceed device cores
+TEST_F(TestLockDetector, SingleStreamExceedDeviceCores) {
+    auto* k0 = CreateKernelNodeWithCores(0, 0, INVALID_TASK_ID, 1, 40, SkKernelType::AIC_ONLY);
+    SetupStreams({{0}});
+    EXPECT_FALSE(lockDetector.IsFusible(*k0, *graph));
+    lockDetector.Reset(*graph);
+}
+
+// Test 6: one stream, notify node of wait node not in graph
+TEST_F(TestLockDetector, SingleStreamNotifyOutsideSK) {
+    auto* k0 = CreateKernelNodeWithCores(0, 0, INVALID_TASK_ID, 1, 20, SkKernelType::AIC_ONLY);
+    auto* w1 = CreateWaitNode(1, 0, 0, INVALID_TASK_ID, 10);
+    SetupStreams({{0}});
+    SetupEvent(1, 10, {1});
+    EXPECT_TRUE(lockDetector.IsFusible(*k0, *graph));
+    EXPECT_FALSE(lockDetector.IsFusible(*w1, *graph));
+    lockDetector.Reset(*graph);
+}
+
+TEST_F(TestLockDetector, SingleStreamNotifyHasCore) {
+    // ======================= graph =======================
+    /*
+    stream0: k0(8c) -> notify(eventid=1) -> k2(4c) -> n3(notify) 
+    */
+    // kernel(4c)、wait、kernel(4c,4v)
+    auto* k0 = CreateKernelNodeWithCores(0, 0, INVALID_TASK_ID, 1, 8, SkKernelType::AIC_ONLY);
+    auto* n1 = CreateNotifyNode(1, 0, 0, 2, 10, {}); // nodeid, streamid, next, eventid
+    auto* k2 = CreateKernelNodeWithCores(2, 0, 1, 3, 4, SkKernelType::AIC_ONLY);
+    auto* n3 = CreateNotifyNode(3, 0, 2, 4, 11, {});
+    n3->SetNotifyExpandVecNum(40);
+    EXPECT_TRUE(lockDetector.IsFusible(*k2, *graph));
+    EXPECT_FALSE(lockDetector.IsFusible(*n3, *graph));
+}

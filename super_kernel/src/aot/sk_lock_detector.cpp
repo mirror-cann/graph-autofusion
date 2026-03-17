@@ -72,6 +72,8 @@ bool LockDetector::IsInSKStream(const SuperKernelBaseNode& node) {
 }
 
 bool LockDetector::HasDeadlock(SuperKernelBaseNode* curNode, SuperKernelGraph& graph) {
+    curNode->SetVisited(true);
+    nodes.emplace_back(curNode->GetNodeId());
     if (curNode->GetPreNodeId() == INVALID_TASK_ID) {
         return false;
     }
@@ -83,8 +85,6 @@ bool LockDetector::HasDeadlock(SuperKernelBaseNode* curNode, SuperKernelGraph& g
     if (preNode->IsVisited()) {
         return false;
     }
-    curNode->SetVisited(true);
-    nodes.emplace_back(preNode->GetNodeId());
     if (preNode->GetNodeType() == SkNodeType::NODE_KERNEL) {
         if (HasEnoughCores(preNode, false)) {
             if (HasDeadlock(preNode, graph)) {
@@ -113,6 +113,15 @@ bool LockDetector::HasDeadlock(SuperKernelBaseNode* curNode, SuperKernelGraph& g
             }
         }
     } else if (preNode->GetNodeType() == SkNodeType::NODE_NOTIFY) {
+        uint32_t cubeNum = curNode->GetCubeNum();
+        uint32_t vecNum = curNode->GetVecNum();
+        if (cubeNum > 0 || vecNum > 0) {
+            if (!HasEnoughCores(preNode, false)) {
+                SK_LOGI("Not enough cores for notify node, nodeId=%lu, requiredCube=%u, requiredVec=%u",
+                         preNode->GetNodeId(), cubeNum, vecNum);
+                return true;
+            }
+        }
         // 1. 获取所有wait节点（一对多关系）
         std::vector<uint64_t> waitIds = preNode->GetCorrespondingWaitNodeIds();
         for (uint64_t waitId : waitIds) {
@@ -218,32 +227,51 @@ bool LockDetector::IsFusible(SuperKernelBaseNode& curNode, SuperKernelGraph& gra
     bool shouldSetWaitFlag = false;
 
     if (curNode.GetNodeType() == SkNodeType::NODE_NOTIFY) {
-        canFuse = true;
+        uint32_t cubeNum = curNode.GetCubeNum();
+        uint32_t vecNum = curNode.GetVecNum();
+        if (cubeNum == 0 && vecNum == 0) {
+            canFuse = true;
+            SK_LOGD("Notify node %lu not needed core resource, can fuse", curNode.GetNodeId());
+        } else {
+            SK_LOGE("Notify node %lu in SK range, which not allowed core num more than 0", curNode.GetNodeId());
+        }
     } else if (curNode.GetNodeType() == SkNodeType::NODE_WAIT) {
         uint64_t notifyId = curNode.GetCorrespondingNotifyNodeId();
         SuperKernelBaseNode* notifyNode = graph.GetNodeById(notifyId);
-        if (IsAfterSKRange(*notifyNode)) {
-            SK_LOGD("Wait node %lu: notify %lu is after SK range, cannot fuse", curNode.GetNodeId(), notifyId);
+        if (notifyNode == nullptr) {
             canFuse = false;
-        } else if (IsBeforeSKRange(*notifyNode)) {
-            SK_LOGD("Wait node %lu: notify %lu is before SK range, can fuse", curNode.GetNodeId(), notifyId);
-            canFuse = true;
-        } else if (nodeNum == 0) {
-            SK_LOGD("Wait node %lu: first node in scope, can fuse", curNode.GetNodeId());
-            canFuse = true;
-        } else {
-            SK_LOGD("Wait node %lu: checking shouldSetWaitFlag, nodeNum=%u, kernelNodeNum=%u, isExistWaitFlag=%d",
-                    curNode.GetNodeId(), nodeNum, kernelNodeNum, isExistWaitFlag);
-            if (!isExistWaitFlag && nodeNum > 0 && kernelNodeNum > 0) {
-                shouldSetWaitFlag = true;
-            }
-            if (notifyNode->IsVisited()) {
-                SK_LOGD("Wait node %lu: notify %lu already visited, can fuse", curNode.GetNodeId(), notifyId);
+        } else if (notifyNode->GetCubeNum() > 0 || notifyNode->GetVecNum() > 0) {
+            if (HasEnoughCores(notifyNode, false)){
+                SK_LOGD("Wait node %lu: notify %lu has enough cores, can fuse", curNode.GetNodeId(), notifyId);
                 canFuse = true;
             } else {
-                bool hasDeadlock = HasDeadlock(notifyNode, graph);
-                SK_LOGD("Wait node %lu: notify %lu not visited, HasDeadlock=%d", curNode.GetNodeId(), notifyId, hasDeadlock);
-                canFuse = !hasDeadlock;
+                SK_LOGD("Wait node %lu: notify %lu has not enough cores, cannot fuse", curNode.GetNodeId(), notifyId);
+                canFuse = false;
+            }
+        } else {
+            if (IsAfterSKRange(*notifyNode)) {
+                SK_LOGD("Wait node %lu: notify %lu is after SK range, cannot fuse", curNode.GetNodeId(), notifyId);
+                canFuse = false;
+            } else if (IsBeforeSKRange(*notifyNode)) {
+                SK_LOGD("Wait node %lu: notify %lu is before SK range, can fuse", curNode.GetNodeId(), notifyId);
+                canFuse = true;
+            } else if (nodeNum == 0) {
+                SK_LOGD("Wait node %lu: first node in scope, can fuse", curNode.GetNodeId());
+                canFuse = true;
+            } else {
+                SK_LOGD("Wait node %lu: checking shouldSetWaitFlag, nodeNum=%u, kernelNodeNum=%u, isExistWaitFlag=%d",
+                        curNode.GetNodeId(), nodeNum, kernelNodeNum, isExistWaitFlag);
+                if (!isExistWaitFlag && nodeNum > 0 && kernelNodeNum > 0) {
+                    shouldSetWaitFlag = true;
+                }
+                if (notifyNode->IsVisited()) {
+                    SK_LOGD("Wait node %lu: notify %lu already visited, can fuse", curNode.GetNodeId(), notifyId);
+                    canFuse = true;
+                } else {
+                    bool hasDeadlock = HasDeadlock(notifyNode, graph);
+                    SK_LOGD("Wait node %lu: notify %lu not visited, HasDeadlock=%d", curNode.GetNodeId(), notifyId, hasDeadlock);
+                    canFuse = !hasDeadlock;
+                }
             }
         }
     } else if (curNode.GetNodeType() == SkNodeType::NODE_KERNEL) {

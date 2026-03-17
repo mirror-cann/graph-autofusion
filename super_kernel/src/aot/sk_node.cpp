@@ -310,8 +310,6 @@ bool SuperKernelKernelNode::InitNode() {
         SK_LOGI("Kernel task group is not null for task %u in stream %u, which cannot be fused in super kernel.", nodeIdxInStream, streamIdxInGraph);
         return true;
     }
-    SK_LOGI("Kernel node for task %u in stream %u can be fused in super kernel.", nodeIdxInStream, streamIdxInGraph);
-
     int64_t kernelType = 0;
     int64_t taskRatio = 0;
     CHECK_ACL(aclrtGetFunctionAttribute(kernelParams.funcHandle, ACL_FUNC_ATTR_KERNEL_TYPE, &kernelType));

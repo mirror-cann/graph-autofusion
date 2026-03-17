@@ -347,8 +347,6 @@ bool InitialScopeSplitPass::Run(std::vector<SuperKernelScopeInfo>& scopes) {
             SK_LOGI("Built scope %zu with %zu nodes, scopeBitFlags=%s",
                     scopeCount, scopeInfo.nodes.size(),
                     scopeInfo.scopeBitFlags.to_string().substr(0, MAX_SCOPE_NUM).c_str());
-            // Set Notify nodes expand numbers immediately after scope is generated
-            SuperKernelScopeSplitter::SetNotifyNodesExpandNumForScope(scopeInfo);
             scopes.push_back(std::move(scopeInfo));
             scopeCount++;
         }
