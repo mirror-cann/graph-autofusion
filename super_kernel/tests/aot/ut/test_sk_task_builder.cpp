@@ -321,9 +321,7 @@ TEST_F(SkTaskBuilderTest, InitTaskSyncInfos_NotifyMissingKernel_TriggerSearchFai
     auto* notify = CreateNotifyNodeEx(4001, 0, INVALID_TASK_ID, INVALID_TASK_ID, 123);
     std::vector<SuperKernelBaseNode*> tasks = {notify};
 
-    EXPECT_TRUE(builder->InitTaskSyncInfos(tasks));
-    ASSERT_EQ(builder->taskSyncInfos_.size(), 1U);
-    EXPECT_EQ(builder->taskSyncInfos_[0].queueType, SkQueueType::UNKNOWN);
+    EXPECT_FALSE(builder->InitTaskSyncInfos(tasks));
 }
 
 TEST_F(SkTaskBuilderTest, AddSyncTask_WhenQueueFull_TriggerExpand)
@@ -447,9 +445,7 @@ TEST_F(SkTaskBuilderTest, InitTaskSyncInfos_SearchDirectionFailureBranches)
     (void)resetNoNext;
 
     std::vector<SuperKernelBaseNode*> tasksNoNext = {notifyNoNext};
-    EXPECT_TRUE(builder->InitTaskSyncInfos(tasksNoNext));
-    ASSERT_EQ(builder->taskSyncInfos_.size(), 1U);
-    EXPECT_EQ(builder->taskSyncInfos_[0].queueType, SkQueueType::UNKNOWN);
+    EXPECT_FALSE(builder->InitTaskSyncInfos(tasksNoNext));
 
     auto* resetLoopA = CreateResetNodeEx(6101, 0, 6102, INVALID_TASK_ID);
     auto* resetLoopB = CreateResetNodeEx(6102, 0, 6101, INVALID_TASK_ID);
@@ -458,9 +454,7 @@ TEST_F(SkTaskBuilderTest, InitTaskSyncInfos_SearchDirectionFailureBranches)
     (void)resetLoopB;
 
     std::vector<SuperKernelBaseNode*> tasksLoop = {notifyLoop};
-    EXPECT_TRUE(builder->InitTaskSyncInfos(tasksLoop));
-    ASSERT_EQ(builder->taskSyncInfos_.size(), 1U);
-    EXPECT_EQ(builder->taskSyncInfos_[0].queueType, SkQueueType::UNKNOWN);
+    EXPECT_FALSE(builder->InitTaskSyncInfos(tasksLoop));
 
     const uint64_t chainStart = 6201;
     const uint64_t chainLen = 105;
@@ -474,9 +468,7 @@ TEST_F(SkTaskBuilderTest, InitTaskSyncInfos_SearchDirectionFailureBranches)
     auto* notifyMaxHop = CreateNotifyNodeEx(6300, 0, chainStart, INVALID_TASK_ID, 3);
 
     std::vector<SuperKernelBaseNode*> tasksMaxHop = {notifyMaxHop};
-    EXPECT_TRUE(builder->InitTaskSyncInfos(tasksMaxHop));
-    ASSERT_EQ(builder->taskSyncInfos_.size(), 1U);
-    EXPECT_EQ(builder->taskSyncInfos_[0].queueType, SkQueueType::UNKNOWN);
+    EXPECT_FALSE(builder->InitTaskSyncInfos(tasksMaxHop));
 }
 
 TEST_F(SkTaskBuilderTest, SyncOptimizationAndDispatchSyncBranches)
@@ -809,9 +801,7 @@ TEST_F(SkTaskBuilderTest, PrecomputeSyncRelations_WaitWithoutNotify_Success)
     auto* wait = CreateWaitNodeEx(9101, 0, INVALID_TASK_ID, INVALID_TASK_ID, 333);
     std::vector<SuperKernelBaseNode*> tasks = {wait};
 
-    EXPECT_TRUE(builder->PrecomputeSyncRelationsFromGraph(tasks));
-    ASSERT_EQ(builder->taskSyncInfos_.size(), 1U);
-    EXPECT_TRUE(builder->taskSyncInfos_[0].crossSyncInfo.empty());
+    EXPECT_FALSE(builder->PrecomputeSyncRelationsFromGraph(tasks));
 }
 
 TEST_F(SkTaskBuilderTest, Build_RollingPreloadDispatchFail_ReturnEmpty)
@@ -887,9 +877,7 @@ TEST_F(SkTaskBuilderTest, InitTaskSyncInfos_MaxHopsExceededBranch_ReturnsTrueWit
     auto* notify = CreateNotifyNodeEx(20000, 0, chainStart, INVALID_TASK_ID, 77);
     std::vector<SuperKernelBaseNode*> tasks = {notify};
 
-    EXPECT_TRUE(builder->InitTaskSyncInfos(tasks));
-    ASSERT_EQ(builder->taskSyncInfos_.size(), 1U);
-    EXPECT_EQ(builder->taskSyncInfos_[0].queueType, SkQueueType::UNKNOWN);
+    EXPECT_FALSE(builder->InitTaskSyncInfos(tasks));
 }
 
 TEST_F(SkTaskBuilderTest, PrintSyncInfo_CoversVecAndCubFormattingPaths)

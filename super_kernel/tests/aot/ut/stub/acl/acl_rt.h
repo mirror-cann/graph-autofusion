@@ -49,6 +49,11 @@ typedef struct aclrtExceptionInfo aclrtExceptionInfo;
 
 // Exception callback function type
 typedef void (*aclrtExceptionInfoCallbackFunc)(aclrtExceptionInfo* exceptionInfo);
+typedef void (*aclmdlRIDestroyCallbackFunc)(void* userData);
+
+typedef enum aclrtMemMallocPolicy {
+    ACL_MEM_MALLOC_HUGE_FIRST = 0,
+} aclrtMemMallocPolicy;
 
 // Memory copy kind
 typedef enum aclrtMemcpyKind {
@@ -267,8 +272,12 @@ aclError aclrtBinaryGetDevAddress(aclrtBinHandle binHdl, void** devAddr, size_t*
 aclError aclrtGetFunctionAttribute(aclrtFuncHandle funcHandle, aclrtFuncAttribute attrType, int64_t *attrValue);
 
 // Memory management
+aclError aclrtMalloc(void** devPtr, size_t size, aclrtMemMallocPolicy policy);
+aclError aclrtFree(void* devPtr);
 aclError aclrtMallocHost(void** hostPtr, size_t size);
 aclError aclrtFreeHost(void* hostPtr);
+
+aclError aclmdlRIDestroyRegisterCallback(aclmdlRI modelRI, aclmdlRIDestroyCallbackFunc callback, void* userData);
 
 // Exception handling
 aclError aclrtSetExceptionInfoCallback(aclrtExceptionInfoCallbackFunc callback);

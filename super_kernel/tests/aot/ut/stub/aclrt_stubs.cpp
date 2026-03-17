@@ -14,201 +14,13 @@
 */
 
 #include "acl/acl.h"
+#include "ut_common_stubs.h"
 #include <cstring>
 #include <cstdio>
 #include <cstdlib>
 #include <stdexcept>
-#include <vector>
-
-namespace {
-
-aclError g_aclmdlRIGetStreamsRet[2] = {ACL_SUCCESS, ACL_SUCCESS};
-aclError g_aclrtStreamGetTasksRet[2] = {ACL_SUCCESS, ACL_SUCCESS};
-aclError g_aclrtTaskGetTypeRet = ACL_SUCCESS;
-aclError g_aclrtGetDeviceRet = ACL_SUCCESS;
-aclError g_aclrtGetDeviceInfoRet = ACL_SUCCESS;
-aclError g_aclmdlRIUpdateRet = ACL_SUCCESS;
-int g_throwOnAclmdlRIGetStreams = 0;
-int g_binaryGetFunctionNullHandle = 0;
-
-uint32_t g_streamNum = 0;
-std::vector<uint32_t> g_streamTaskNums;
-std::vector<std::vector<aclrtTaskType>> g_taskTypes;
-
-void EnsureStreamStorage(uint32_t streamIdx)
-{
-    if (g_streamTaskNums.size() <= streamIdx) {
-        g_streamTaskNums.resize(streamIdx + 1, 0);
-    }
-    if (g_taskTypes.size() <= streamIdx) {
-        g_taskTypes.resize(streamIdx + 1);
-    }
-}
-
-void EnsureTaskStorage(uint32_t streamIdx, uint32_t taskIdx)
-{
-    EnsureStreamStorage(streamIdx);
-    if (g_taskTypes[streamIdx].size() <= taskIdx) {
-        g_taskTypes[streamIdx].resize(taskIdx + 1, ACL_RT_TASK_KERNEL);
-    }
-}
-
-}
 
 extern "C" {
-
-void SkUtResetCommonStubControls();
-
-void SkUtResetTestControls()
-{
-    g_aclmdlRIGetStreamsRet[0] = ACL_SUCCESS;
-    g_aclmdlRIGetStreamsRet[1] = ACL_SUCCESS;
-    g_aclrtStreamGetTasksRet[0] = ACL_SUCCESS;
-    g_aclrtStreamGetTasksRet[1] = ACL_SUCCESS;
-    g_aclrtTaskGetTypeRet = ACL_SUCCESS;
-    g_aclrtGetDeviceRet = ACL_SUCCESS;
-    g_aclrtGetDeviceInfoRet = ACL_SUCCESS;
-    g_aclmdlRIUpdateRet = ACL_SUCCESS;
-    g_throwOnAclmdlRIGetStreams = 0;
-    g_binaryGetFunctionNullHandle = 0;
-    SkUtResetCommonStubControls();
-
-    g_streamNum = 0;
-    g_streamTaskNums.clear();
-    g_taskTypes.clear();
-}
-
-void SkUtSetAclmdlRIGetStreamsRet(int phase, aclError ret)
-{
-    if (phase < 0 || phase > 1) {
-        return;
-    }
-    g_aclmdlRIGetStreamsRet[phase] = ret;
-}
-
-void SkUtSetAclrtStreamGetTasksRet(int phase, aclError ret)
-{
-    if (phase < 0 || phase > 1) {
-        return;
-    }
-    g_aclrtStreamGetTasksRet[phase] = ret;
-}
-
-void SkUtSetAclrtTaskGetTypeRet(aclError ret)
-{
-    g_aclrtTaskGetTypeRet = ret;
-}
-
-void SkUtSetAclrtGetDeviceRet(aclError ret)
-{
-    g_aclrtGetDeviceRet = ret;
-}
-
-void SkUtSetAclrtGetDeviceInfoRet(aclError ret)
-{
-    g_aclrtGetDeviceInfoRet = ret;
-}
-
-void SkUtSetAclmdlRIUpdateRet(aclError ret)
-{
-    g_aclmdlRIUpdateRet = ret;
-}
-
-void SkUtSetThrowOnAclmdlRIGetStreams(int enable)
-{
-    g_throwOnAclmdlRIGetStreams = enable;
-}
-
-void SkUtSetBinaryGetFunctionNullHandle(int enable)
-{
-    g_binaryGetFunctionNullHandle = enable;
-}
-
-aclError SkUtGetAclmdlRIGetStreamsRet(int phase)
-{
-    if (phase < 0 || phase > 1) {
-        return ACL_SUCCESS;
-    }
-    return g_aclmdlRIGetStreamsRet[phase];
-}
-
-aclError SkUtGetAclrtStreamGetTasksRet(int phase)
-{
-    if (phase < 0 || phase > 1) {
-        return ACL_SUCCESS;
-    }
-    return g_aclrtStreamGetTasksRet[phase];
-}
-
-aclError SkUtGetAclrtTaskGetTypeRet()
-{
-    return g_aclrtTaskGetTypeRet;
-}
-
-aclError SkUtGetAclrtGetDeviceRet()
-{
-    return g_aclrtGetDeviceRet;
-}
-
-aclError SkUtGetAclrtGetDeviceInfoRet()
-{
-    return g_aclrtGetDeviceInfoRet;
-}
-
-aclError SkUtGetAclmdlRIUpdateRet()
-{
-    return g_aclmdlRIUpdateRet;
-}
-
-int SkUtGetThrowOnAclmdlRIGetStreams()
-{
-    return g_throwOnAclmdlRIGetStreams;
-}
-
-void SkUtSetModelStreamNum(uint32_t streamNum)
-{
-    g_streamNum = streamNum;
-    if (g_streamTaskNums.size() < streamNum) {
-        g_streamTaskNums.resize(streamNum, 0);
-    }
-    if (g_taskTypes.size() < streamNum) {
-        g_taskTypes.resize(streamNum);
-    }
-}
-
-uint32_t SkUtGetModelStreamNum()
-{
-    return g_streamNum;
-}
-
-void SkUtSetStreamTaskNum(uint32_t streamIdx, uint32_t taskNum)
-{
-    EnsureStreamStorage(streamIdx);
-    g_streamTaskNums[streamIdx] = taskNum;
-    g_taskTypes[streamIdx].resize(taskNum, ACL_RT_TASK_KERNEL);
-}
-
-uint32_t SkUtGetStreamTaskNum(uint32_t streamIdx)
-{
-    if (streamIdx >= g_streamTaskNums.size()) {
-        return 0;
-    }
-    return g_streamTaskNums[streamIdx];
-}
-
-void SkUtSetTaskType(uint32_t streamIdx, uint32_t taskIdx, aclrtTaskType type)
-{
-    EnsureTaskStorage(streamIdx, taskIdx);
-    g_taskTypes[streamIdx][taskIdx] = type;
-}
-
-aclrtTaskType SkUtGetTaskType(uint32_t streamIdx, uint32_t taskIdx)
-{
-    if (streamIdx >= g_taskTypes.size() || taskIdx >= g_taskTypes[streamIdx].size()) {
-        return ACL_RT_TASK_KERNEL;
-    }
-    return g_taskTypes[streamIdx][taskIdx];
-}
 
 // Error codes
 #ifndef ACL_ERROR_NONE
@@ -427,7 +239,7 @@ aclError aclrtBinaryGetFunction(aclrtBinHandle binHdl, const char *funcName, acl
     if (funcName == nullptr || funcHdl == nullptr) {
         return ACL_ERROR_INVALID_PARAM;
     }
-    if (g_binaryGetFunctionNullHandle != 0) {
+    if (SkUtGetBinaryGetFunctionNullHandle() != 0) {
         *funcHdl = nullptr;
         return ACL_ERROR_NONE;
     }
@@ -538,6 +350,39 @@ aclError aclrtGetFunctionAttribute(aclrtFuncHandle funcHandle, aclrtFuncAttribut
 }
 
 // Memory management
+aclError aclrtMalloc(void** devPtr, size_t size, aclrtMemMallocPolicy policy)
+{
+    (void)policy;
+    if (devPtr == nullptr || size == 0) {
+        return ACL_ERROR_INVALID_PARAM;
+    }
+    aclError forcedRet = SkUtGetAclrtMallocRet();
+    if (forcedRet != ACL_SUCCESS) {
+        return forcedRet;
+    }
+    // G.RES.02-CPP: 内存申请前，必须对申请内存大小进行合法性校验
+    if (size == 0 || size > 1024 * 1024 * 1024) { // Limit to 1GB
+        return ACL_ERROR_INVALID_PARAM;
+    }
+    *devPtr = malloc(size);
+    if (*devPtr == nullptr) {
+        return ACL_ERROR_FAILURE;
+    }
+    return ACL_ERROR_NONE;
+}
+
+aclError aclrtFree(void* devPtr)
+{
+    aclError forcedRet = SkUtGetAclrtFreeRet();
+    if (forcedRet != ACL_SUCCESS) {
+        return forcedRet;
+    }
+    if (devPtr != nullptr) {
+        free(devPtr);
+    }
+    return ACL_ERROR_NONE;
+}
+
 aclError aclrtMallocHost(void** hostPtr, size_t size) {
     if (hostPtr == nullptr) {
         return ACL_ERROR_INVALID_PARAM;
@@ -558,6 +403,18 @@ aclError aclrtFreeHost(void* hostPtr) {
         free(hostPtr);
     }
     return ACL_ERROR_NONE;
+}
+
+aclError aclmdlRIDestroyRegisterCallback(aclmdlRI modelRI, aclmdlRIDestroyCallbackFunc callback, void* userData)
+{
+    aclError forcedRet = SkUtGetAclmdlRIDestroyRegisterCallbackRet();
+    if (forcedRet != ACL_SUCCESS) {
+        return forcedRet;
+    }
+    if (modelRI == nullptr || callback == nullptr) {
+        return ACL_ERROR_INVALID_PARAM;
+    }
+    return SkUtRegisterModelDestroyCallback(modelRI, callback, userData);
 }
 
 // Exception handling

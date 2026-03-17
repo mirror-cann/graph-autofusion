@@ -15,13 +15,30 @@
 #include "sk_graph.h"
 #include "sk_dfx_exception_handler.h"
 #include "sk_lock_detector.h"
+#include "sk_resource_manager.h"
 #include "sk_scope_launch.h"
+
+namespace {
+class CurrentModelGuard {
+public:
+    explicit CurrentModelGuard(aclmdlRI model)
+    {
+        SkResourceManager::SetCurrentModel(model);
+    }
+
+    ~CurrentModelGuard()
+    {
+        SkResourceManager::SetCurrentModel(nullptr);
+    }
+};
+}
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 aclError aclskOptimize(aclmdlRI model, aclskOptions *options) {
+    CurrentModelGuard modelGuard(model);
     aclError ret = aclrtSetExceptionInfoCallback(SuperKernelExceptionCallBackFunc);
     if (ret != ACL_SUCCESS) {
         SK_LOGE("Failed to set exception callback.");

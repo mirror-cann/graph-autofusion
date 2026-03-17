@@ -35,9 +35,6 @@ struct SkLaunchInfo;
 // Update context for node update operations
 struct UpdateContext {
     SkLaunchInfo* launchInfo = nullptr;
-    // Feature(aclmdIRITaskParams): Replace this raw aclrtTaskEventParams pointer
-    // with aclmdIRITaskParams carrier when post-process switches to IR-task flow.
-    // Optional event update payload for stream-based update path.
     aclmdlRITaskParams* customParams = nullptr;
 };
 

@@ -26,7 +26,12 @@ void SkUtSetAclrtTaskGetTypeRet(aclError ret);
 void SkUtSetAclrtGetDeviceRet(aclError ret);
 void SkUtSetAclrtGetDeviceInfoRet(aclError ret);
 void SkUtSetAclmdlRIUpdateRet(aclError ret);
+void SkUtSetAclmdlRIDestroyRegisterCallbackRet(aclError ret);
+void SkUtSetAclrtMallocRet(aclError ret);
+void SkUtSetAclrtFreeRet(aclError ret);
 void SkUtSetThrowOnAclmdlRIGetStreams(int enable);
+void SkUtSetDestroyRegisterCallbackDelayUs(uint32_t delayUs);
+int SkUtGetBinaryGetFunctionNullHandle();
 
 aclError SkUtGetAclmdlRIGetStreamsRet(int phase);
 aclError SkUtGetAclrtStreamGetTasksRet(int phase);
@@ -34,7 +39,15 @@ aclError SkUtGetAclrtTaskGetTypeRet();
 aclError SkUtGetAclrtGetDeviceRet();
 aclError SkUtGetAclrtGetDeviceInfoRet();
 aclError SkUtGetAclmdlRIUpdateRet();
+aclError SkUtGetAclmdlRIDestroyRegisterCallbackRet();
+aclError SkUtGetAclrtMallocRet();
+aclError SkUtGetAclrtFreeRet();
 int SkUtGetThrowOnAclmdlRIGetStreams();
+uint32_t SkUtGetDestroyRegisterCallbackCallCount();
+aclError SkUtRegisterModelDestroyCallback(aclmdlRI modelRI, aclmdlRIDestroyCallbackFunc callback, void* userData);
+
+aclError SkUtInvokeModelDestroyCallback(aclmdlRI modelRI);
+size_t SkUtGetModelDestroyCallbackCount();
 
 void SkUtSetModelStreamNum(uint32_t streamNum);
 uint32_t SkUtGetModelStreamNum();

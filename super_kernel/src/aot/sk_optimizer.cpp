@@ -85,8 +85,6 @@ bool SuperKernelOptimizer::Update(SuperKernelProcessedScopeInfo& processedScopeI
             }
             UpdateContext ctx;
             if (eventCnt < customParamSize) {
-                // Feature(aclmdIRITaskParams): customParams source type will change
-                // after post-process migrates from aclrtTaskEventParams to IR-task params.
                 // set front node for stream sync
                 auto& customParams = streamInfo.customParams[eventCnt++];
                 ctx.customParams = &customParams;

@@ -15,6 +15,10 @@
 
 #include "acl/acl.h"
 #include "sk_scope_kernel_types.h"
+#include <chrono>
+#include <thread>
+#include <unordered_map>
+#include <vector>
 
 namespace {
 
@@ -23,6 +27,43 @@ int g_securecMemcpyFailOnCall = -1;
 int g_securecMemcpySeen = 0;
 int g_securecMemsetFailOnCall = -1;
 int g_securecMemsetSeen = 0;
+
+aclError g_aclmdlRIGetStreamsRet[2] = {ACL_SUCCESS, ACL_SUCCESS};
+aclError g_aclrtStreamGetTasksRet[2] = {ACL_SUCCESS, ACL_SUCCESS};
+aclError g_aclrtTaskGetTypeRet = ACL_SUCCESS;
+aclError g_aclrtGetDeviceRet = ACL_SUCCESS;
+aclError g_aclrtGetDeviceInfoRet = ACL_SUCCESS;
+aclError g_aclmdlRIUpdateRet = ACL_SUCCESS;
+aclError g_aclmdlRIDestroyRegisterCallbackRet = ACL_SUCCESS;
+aclError g_aclrtMallocRet = ACL_SUCCESS;
+aclError g_aclrtFreeRet = ACL_SUCCESS;
+int g_throwOnAclmdlRIGetStreams = 0;
+int g_binaryGetFunctionNullHandle = 0;
+uint32_t g_destroyRegisterCallbackDelayUs = 0;
+uint32_t g_destroyRegisterCallbackCallCount = 0;
+
+std::unordered_map<aclmdlRI, std::pair<aclmdlRIDestroyCallbackFunc, void*>> g_modelDestroyCallbacks;
+uint32_t g_streamNum = 0;
+std::vector<uint32_t> g_streamTaskNums;
+std::vector<std::vector<aclrtTaskType>> g_taskTypes;
+
+void EnsureStreamStorage(uint32_t streamIdx)
+{
+    if (g_streamTaskNums.size() <= streamIdx) {
+        g_streamTaskNums.resize(streamIdx + 1, 0);
+    }
+    if (g_taskTypes.size() <= streamIdx) {
+        g_taskTypes.resize(streamIdx + 1);
+    }
+}
+
+void EnsureTaskStorage(uint32_t streamIdx, uint32_t taskIdx)
+{
+    EnsureStreamStorage(streamIdx);
+    if (g_taskTypes[streamIdx].size() <= taskIdx) {
+        g_taskTypes[streamIdx].resize(taskIdx + 1, ACL_RT_TASK_KERNEL);
+    }
+}
 
 } // namespace
 
@@ -35,6 +76,240 @@ void SkUtResetCommonStubControls()
     g_securecMemcpySeen = 0;
     g_securecMemsetFailOnCall = -1;
     g_securecMemsetSeen = 0;
+
+    g_aclmdlRIGetStreamsRet[0] = ACL_SUCCESS;
+    g_aclmdlRIGetStreamsRet[1] = ACL_SUCCESS;
+    g_aclrtStreamGetTasksRet[0] = ACL_SUCCESS;
+    g_aclrtStreamGetTasksRet[1] = ACL_SUCCESS;
+    g_aclrtTaskGetTypeRet = ACL_SUCCESS;
+    g_aclrtGetDeviceRet = ACL_SUCCESS;
+    g_aclrtGetDeviceInfoRet = ACL_SUCCESS;
+    g_aclmdlRIUpdateRet = ACL_SUCCESS;
+    g_aclmdlRIDestroyRegisterCallbackRet = ACL_SUCCESS;
+    g_aclrtMallocRet = ACL_SUCCESS;
+    g_aclrtFreeRet = ACL_SUCCESS;
+    g_throwOnAclmdlRIGetStreams = 0;
+    g_binaryGetFunctionNullHandle = 0;
+    g_destroyRegisterCallbackDelayUs = 0;
+    g_destroyRegisterCallbackCallCount = 0;
+    g_modelDestroyCallbacks.clear();
+
+    g_streamNum = 0;
+    g_streamTaskNums.clear();
+    g_taskTypes.clear();
+}
+
+void SkUtResetTestControls()
+{
+    SkUtResetCommonStubControls();
+}
+
+void SkUtSetAclmdlRIGetStreamsRet(int phase, aclError ret)
+{
+    if (phase < 0 || phase > 1) {
+        return;
+    }
+    g_aclmdlRIGetStreamsRet[phase] = ret;
+}
+
+void SkUtSetAclrtStreamGetTasksRet(int phase, aclError ret)
+{
+    if (phase < 0 || phase > 1) {
+        return;
+    }
+    g_aclrtStreamGetTasksRet[phase] = ret;
+}
+
+void SkUtSetAclrtTaskGetTypeRet(aclError ret)
+{
+    g_aclrtTaskGetTypeRet = ret;
+}
+
+void SkUtSetAclrtGetDeviceRet(aclError ret)
+{
+    g_aclrtGetDeviceRet = ret;
+}
+
+void SkUtSetAclrtGetDeviceInfoRet(aclError ret)
+{
+    g_aclrtGetDeviceInfoRet = ret;
+}
+
+void SkUtSetAclmdlRIUpdateRet(aclError ret)
+{
+    g_aclmdlRIUpdateRet = ret;
+}
+
+void SkUtSetAclmdlRIDestroyRegisterCallbackRet(aclError ret)
+{
+    g_aclmdlRIDestroyRegisterCallbackRet = ret;
+}
+
+void SkUtSetAclrtMallocRet(aclError ret)
+{
+    g_aclrtMallocRet = ret;
+}
+
+void SkUtSetAclrtFreeRet(aclError ret)
+{
+    g_aclrtFreeRet = ret;
+}
+
+void SkUtSetThrowOnAclmdlRIGetStreams(int enable)
+{
+    g_throwOnAclmdlRIGetStreams = enable;
+}
+
+void SkUtSetDestroyRegisterCallbackDelayUs(uint32_t delayUs)
+{
+    g_destroyRegisterCallbackDelayUs = delayUs;
+}
+
+void SkUtSetBinaryGetFunctionNullHandle(int enable)
+{
+    g_binaryGetFunctionNullHandle = enable;
+}
+
+aclError SkUtGetAclmdlRIGetStreamsRet(int phase)
+{
+    if (phase < 0 || phase > 1) {
+        return ACL_SUCCESS;
+    }
+    return g_aclmdlRIGetStreamsRet[phase];
+}
+
+aclError SkUtGetAclrtStreamGetTasksRet(int phase)
+{
+    if (phase < 0 || phase > 1) {
+        return ACL_SUCCESS;
+    }
+    return g_aclrtStreamGetTasksRet[phase];
+}
+
+aclError SkUtGetAclrtTaskGetTypeRet()
+{
+    return g_aclrtTaskGetTypeRet;
+}
+
+aclError SkUtGetAclrtGetDeviceRet()
+{
+    return g_aclrtGetDeviceRet;
+}
+
+aclError SkUtGetAclrtGetDeviceInfoRet()
+{
+    return g_aclrtGetDeviceInfoRet;
+}
+
+aclError SkUtGetAclmdlRIUpdateRet()
+{
+    return g_aclmdlRIUpdateRet;
+}
+
+aclError SkUtGetAclmdlRIDestroyRegisterCallbackRet()
+{
+    return g_aclmdlRIDestroyRegisterCallbackRet;
+}
+
+aclError SkUtGetAclrtMallocRet()
+{
+    return g_aclrtMallocRet;
+}
+
+aclError SkUtGetAclrtFreeRet()
+{
+    return g_aclrtFreeRet;
+}
+
+int SkUtGetThrowOnAclmdlRIGetStreams()
+{
+    return g_throwOnAclmdlRIGetStreams;
+}
+
+uint32_t SkUtGetDestroyRegisterCallbackCallCount()
+{
+    return g_destroyRegisterCallbackCallCount;
+}
+
+int SkUtGetBinaryGetFunctionNullHandle()
+{
+    return g_binaryGetFunctionNullHandle;
+}
+
+aclError SkUtRegisterModelDestroyCallback(aclmdlRI modelRI, aclmdlRIDestroyCallbackFunc callback, void* userData)
+{
+    if (modelRI == nullptr || callback == nullptr) {
+        return ACL_ERROR_INVALID_PARAM;
+    }
+    ++g_destroyRegisterCallbackCallCount;
+    if (g_destroyRegisterCallbackDelayUs > 0U) {
+        std::this_thread::sleep_for(std::chrono::microseconds(g_destroyRegisterCallbackDelayUs));
+    }
+    g_modelDestroyCallbacks[modelRI] = std::make_pair(callback, userData);
+    return ACL_SUCCESS;
+}
+
+aclError SkUtInvokeModelDestroyCallback(aclmdlRI modelRI)
+{
+    auto it = g_modelDestroyCallbacks.find(modelRI);
+    if (it == g_modelDestroyCallbacks.end()) {
+        return ACL_ERROR_INVALID_PARAM;
+    }
+    auto callback = it->second.first;
+    void* userData = it->second.second;
+    g_modelDestroyCallbacks.erase(it);
+    callback(userData);
+    return ACL_SUCCESS;
+}
+
+size_t SkUtGetModelDestroyCallbackCount()
+{
+    return g_modelDestroyCallbacks.size();
+}
+
+void SkUtSetModelStreamNum(uint32_t streamNum)
+{
+    g_streamNum = streamNum;
+    if (g_streamTaskNums.size() < streamNum) {
+        g_streamTaskNums.resize(streamNum, 0);
+    }
+    if (g_taskTypes.size() < streamNum) {
+        g_taskTypes.resize(streamNum);
+    }
+}
+
+uint32_t SkUtGetModelStreamNum()
+{
+    return g_streamNum;
+}
+
+void SkUtSetStreamTaskNum(uint32_t streamIdx, uint32_t taskNum)
+{
+    EnsureStreamStorage(streamIdx);
+    g_streamTaskNums[streamIdx] = taskNum;
+    g_taskTypes[streamIdx].resize(taskNum, ACL_RT_TASK_KERNEL);
+}
+
+uint32_t SkUtGetStreamTaskNum(uint32_t streamIdx)
+{
+    if (streamIdx >= g_streamTaskNums.size()) {
+        return 0;
+    }
+    return g_streamTaskNums[streamIdx];
+}
+
+void SkUtSetTaskType(uint32_t streamIdx, uint32_t taskIdx, aclrtTaskType type)
+{
+    EnsureTaskStorage(streamIdx, taskIdx);
+    g_taskTypes[streamIdx][taskIdx] = type;
+}
+
+aclrtTaskType SkUtGetTaskType(uint32_t streamIdx, uint32_t taskIdx)
+{
+    if (streamIdx >= g_taskTypes.size() || taskIdx >= g_taskTypes[streamIdx].size()) {
+        return ACL_RT_TASK_KERNEL;
+    }
+    return g_taskTypes[streamIdx][taskIdx];
 }
 
 void SkUtSetEntryBinHandleNull(int enable)
