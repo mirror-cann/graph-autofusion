@@ -220,7 +220,7 @@ bool SuperKernelBaseNode::InitNode() {
         SK_LOGE("Origin task is null for nodeIdxInStream %lu in streamIdxInGraph %u", nodeIdxInStream, streamIdxInGraph);
         return false;
     }
-    if (aclmdlRITaskGetSeqId(originTask.get(), reinterpret_cast<uint32_t *>(&nodeId)) != ACL_SUCCESS) {
+    if (aclmdlRITaskGetSeqId(*originTask, reinterpret_cast<uint32_t *>(&nodeId)) != ACL_SUCCESS) {
         SK_LOGE("Failed to get nodeId for nodeIdxInStream %lu in streamIdxInGraph %u", nodeIdxInStream, streamIdxInGraph);
         return false;
     }
