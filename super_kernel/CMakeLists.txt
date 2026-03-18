@@ -42,6 +42,7 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/superkernel-0.1.0-py3-none-any.whl OPT
 # )
 # add_dependencies(ascendsk generate_entry_stub)
 # target_compile_options(ascendsk PRIVATE
+#     -std=c++17
 #     -g
 #     -O0
 #     -fPIC

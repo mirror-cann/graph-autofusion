@@ -36,9 +36,13 @@ using SkAllBinMap = std::unordered_map<aclrtBinHandle, SkBindMap>;
 
 struct CoreFuncInitContext {
     ResolvedFunctionInfo* info;
-    size_t coreIdx;
-    size_t splitIdx;
     SkBindMap::iterator bindIt;
+    size_t splitIdx;
+};
+
+enum class CoreType: uint32_t {
+    AIC,
+    AIV,
 };
 
 SkBindMap InitSuperKernelBindMap(aclrtBinHandle binHdl)
@@ -50,7 +54,10 @@ SkBindMap InitSuperKernelBindMap(aclrtBinHandle binHdl)
     constexpr size_t payloadSize = sizeof(SknlValuePayload);
 
     size_t metaNum = 0;
-    CHECK_ACL(rtBinaryGetMetaNum(binHdl, RT_BINARY_TYPE_SK_INFO, &metaNum));
+    if (int ret = rtBinaryGetMetaNum(binHdl, RT_BINARY_TYPE_SK_INFO, &metaNum) != 0) {
+        SK_LOGE("InitSuperKernelBindMap: rtBinaryGetMetaNum failed, ret=%d", ret);
+        return SkBindMap();
+    }
     if (metaNum == 0) {
         SK_LOGW("metaNum is zero!");
         return SkBindMap();
@@ -67,8 +74,11 @@ SkBindMap InitSuperKernelBindMap(aclrtBinHandle binHdl)
         metaDataList[i] = &dataPool[i * payloadSize];
     }
 
-    CHECK_ACL(rtBinaryGetMetaInfo(binHdl, RT_BINARY_TYPE_SK_INFO, metaNum, metaDataList.data(),
-        infoSize.data()));
+    if (int ret = rtBinaryGetMetaInfo(binHdl, RT_BINARY_TYPE_SK_INFO, metaNum, metaDataList.data(),
+        infoSize.data()) != 0) {
+        SK_LOGE("InitSuperKernelBindMap: rtBinaryGetMetaInfo failed, ret=%d", ret);
+        return SkBindMap();
+    }
 
     SkBindMap bindMap;
     for (size_t i = 0; i < metaNum; ++i) {
@@ -106,8 +116,8 @@ const SkBindMap& GetSkBindMap(aclrtBinHandle binHdl)
 
 size_t AlignUpAndClamp(size_t value, size_t coreIdx)
 {
-    constexpr size_t aicFuncMaxPrefetchCnt = 0x4000; // 16k
-    constexpr size_t aivFuncMaxPrefetchCnt = 0x2000; // 8k
+    constexpr size_t aicFuncMaxPrefetchCnt = 0x800 * 16; // 32k
+    constexpr size_t aivFuncMaxPrefetchCnt = 0x800 * 8; // 16k
     constexpr size_t alignNum = 0x800; // 2k
     size_t prefetchCntValue = (value + alignNum - 1) & ~(alignNum - 1); // 以2k为单位向上取整
     if (coreIdx == 0 && prefetchCntValue > aicFuncMaxPrefetchCnt) {
@@ -118,30 +128,66 @@ size_t AlignUpAndClamp(size_t value, size_t coreIdx)
     return prefetchCntValue / alignNum;
 }
 
-void InitSingleCoreFunc(const CoreFuncInitContext& ctx, aclrtBinHandle binHdl, void *binDevAddr)
+template <CoreType coreType>
+bool InitSingleCoreFunc(const CoreFuncInitContext& ctx, aclrtBinHandle binHdl, void *binDevAddr, uint32_t& validFuncNum)
 {
     std::string coreName = "";
-    if (ctx.coreIdx == 0) {
+    if constexpr (coreType == CoreType::AIC) {
         coreName = "AIC";
-    } else if (ctx.coreIdx == 1) {
+    } else {
         coreName = "AIV";
     }
+    constexpr uint32_t coreTypeId = static_cast<uint32_t>(coreType); // 0 : aic, 1 : aiv
     uint64_t skFuncOffset = ctx.bindIt->second[ctx.splitIdx];
-    ctx.info->funcAddr[ctx.coreIdx] = skFuncOffset + (uint64_t)binDevAddr;
+    ctx.info->funcAddr[coreTypeId] = skFuncOffset + (uint64_t)binDevAddr;
     void *binHostAddr = nullptr;
     uint32_t binHostSize = 0;
-    CHECK_ACL(rtGetBinBuffer(binHdl, RT_BIN_HOST_ADDR, &binHostAddr, &binHostSize));
-    std::string symbolName;
+    if (int ret = rtGetBinBuffer(binHdl, RT_BIN_HOST_ADDR, &binHostAddr, &binHostSize) != 0) {
+        SK_LOGE("InitSingleCoreFunc: split[%zu] rtGetBinBuffer failed for %s, ret=%d", ctx.splitIdx,
+            coreName.c_str(), ret);
+        return false;
+    }
+    std::string symbolName = "";
     uint64_t funcSize = 0;
     if (GetFuncSymbolInfo(static_cast<const char*>(binHostAddr), binHostSize, skFuncOffset,
                           symbolName, funcSize)) {
-        ctx.info->prefetchCnt[ctx.coreIdx] = AlignUpAndClamp(funcSize, ctx.coreIdx);
+        ctx.info->prefetchCnt[coreTypeId] = AlignUpAndClamp(funcSize, coreTypeId);
         SK_LOGI("split[%zu] %s symbol=%s, size=0x%lx",
                 ctx.splitIdx, coreName.c_str(), symbolName.c_str(), funcSize);
     } else {
-        SK_LOGW("split[%zu] Failed to get %s symbol info, prefetchCnt[%zu]=0",
-                ctx.splitIdx, coreName.c_str(), ctx.coreIdx);
+        ctx.info->prefetchCnt[coreTypeId] = coreTypeId == 0 ? 16 : 8;
+        SK_LOGW("split[%zu] Failed to get %s symbol info, default prefetchCnt[%zu]=%u",
+                ctx.splitIdx, coreName.c_str(), coreTypeId, ctx.info->prefetchCnt[coreTypeId]);
     }
+    if (ctx.splitIdx > 0 && ctx.bindIt->second[ctx.splitIdx] == ctx.bindIt->second[0]) {
+        SK_LOGI("InitSingleCoreFunc: split[%zu] %s function is not sk sub op", ctx.splitIdx, coreName.c_str());
+    }
+    validFuncNum++;
+    return true;
+}
+
+bool InitSingleSplitFunc(ResolvedFunctionInfo &info, size_t splitIdx,
+    const SkBindMap &bindMap, SkBindMap::iterator aicIt, SkBindMap::iterator aivIt,
+    aclrtBinHandle binHdl, void *binDevAddr, uint32_t &resolvedNum)
+{
+    bool res = false;
+    uint32_t validFuncNum = 0;
+    if (aicIt != bindMap.end()) {
+        CoreFuncInitContext aicCtx = {&info, aicIt, splitIdx};
+        res |= InitSingleCoreFunc<CoreType::AIC>(aicCtx, binHdl, binDevAddr, validFuncNum);
+    }
+    if (aivIt != bindMap.end()) {
+        CoreFuncInitContext aivCtx = {&info, aivIt, splitIdx};
+        res |= InitSingleCoreFunc<CoreType::AIV>(aivCtx, binHdl, binDevAddr, validFuncNum);
+    }
+    if (!res) {
+        SK_LOGE("Failed to initialize kernel function in sk Node split[%zu]", splitIdx);
+        return false;
+    }
+    if (validFuncNum > 0) {
+        resolvedNum++;
+    }
+    return true;
 }
 
 bool InitKernelResolvedFuncs(KernelInfos &kernelInfos)
@@ -163,29 +209,27 @@ bool InitKernelResolvedFuncs(KernelInfos &kernelInfos)
     uint64_t aivOffset = (uint64_t)addr[1] - (uint64_t)binDevAddr;
     SK_LOGI("funcName=%s, binDevAddr=0x%lx, binDevSize=%lu, aicAddr=0x%lx, aivAddr=0x%lx",
         kernelInfos.funcName.c_str(), (uint64_t)binDevAddr, binDevSize, (uint64_t)addr[0], (uint64_t)addr[1]);
-
     SK_LOGI("aicOffset=0x%lx, aivOffset=0x%lx", aicOffset, aivOffset);
-
     auto aicItor = bindMap.find(aicOffset);
     auto aivItor = bindMap.find(aivOffset);
     SK_LOGI("bindMap size=%lu, aicFound=%d, aivFound=%d",
         bindMap.size(), aicItor != bindMap.end(), aivItor != bindMap.end());
-
+    kernelInfos.resolvedNum = 0;
     for (size_t i = 0; i < kMaxSplitBinCount; ++i) {
         ResolvedFunctionInfo info{};
-        if (aicItor != bindMap.end()) {
-            CoreFuncInitContext aicCtx = {&info, 0, i, aicItor};
-            InitSingleCoreFunc(aicCtx, binHdl, binDevAddr);
+        if (!InitSingleSplitFunc(info, i, bindMap, aicItor, aivItor,
+                            binHdl, binDevAddr, kernelInfos.resolvedNum)) {
+            SK_LOGE("Failed to initialize kernel function in sk Node split[%zu]", i);
+            return false;
         }
-        if (aivItor != bindMap.end()) {
-            CoreFuncInitContext aivCtx = {&info, 1, i, aivItor};
-            InitSingleCoreFunc(aivCtx, binHdl, binDevAddr);
-        }
-
+        kernelInfos.resolvedFuncs[i] = info;
         SK_LOGI("split[%zu] funcAddr[0]=0x%lx, funcAddr[1]=0x%lx, "
                 "prefetchCnt[0]=0x%lx, prefetchCnt[1]=0x%lx",
                 i, info.funcAddr[0], info.funcAddr[1], info.prefetchCnt[0], info.prefetchCnt[1]);
-        kernelInfos.resolvedFuncs[i] = info;
+    }
+    if (kernelInfos.resolvedNum == 2) { // sk balance
+        kernelInfos.resolvedFuncs[2] = kernelInfos.resolvedFuncs[0];
+        kernelInfos.resolvedFuncs[3] = kernelInfos.resolvedFuncs[1];
     }
     return true;
 }
@@ -254,7 +298,7 @@ bool IsScopeKernel(aclmdlRIKernelTaskParams params, JudgeTaskKernelInfo* info) {
         return false;
     }
     auto parseArgsAddr = std::make_unique<ScopeKernelArgs>();
-    ret = aclrtMemcpy((void*)parseArgsAddr.get(), sizeof(ScopeKernelArgs), params.args, sizeof(ScopeKernelArgs), 
+    ret = aclrtMemcpy((void*)parseArgsAddr.get(), sizeof(ScopeKernelArgs), params.args, sizeof(ScopeKernelArgs),
         ACL_MEMCPY_DEVICE_TO_HOST);
     if (ret != ACL_SUCCESS) {
         SK_LOGE("aclrtMemcpy failed, ret: %d", ret);
@@ -274,7 +318,7 @@ bool IsScopeKernel(aclmdlRIKernelTaskParams params, JudgeTaskKernelInfo* info) {
     if (strcmp(info->scopeName.get(), defaultScopeName) == 0) {
         info->isFuseEnable = false;
     }
-    SK_LOGI("Success parse scope kernel task, kernelName: %s, scopeName: %s, isBegin: %d, isFuseEnable: %d", kernelName, 
+    SK_LOGI("Success parse scope kernel task, kernelName: %s, scopeName: %s, isBegin: %d, isFuseEnable: %d", kernelName,
         info->scopeName.get(), info->isBegin, info->isFuseEnable);
     return true;
 }

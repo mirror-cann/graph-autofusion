@@ -54,6 +54,7 @@ constexpr size_t kMaxSplitBinCount = 4;
 struct KernelInfos {
     SkKernelType kernelType = SkKernelType::DEFAULT;
     uint32_t taskRatio[2] = {0, 0};
+    uint32_t resolvedNum = 0;
     uint32_t numBlocks = 0;
     uint32_t vecNum = 0;      ///< Number of vector cores required
     uint32_t cubeNum = 0;     ///< Number of cube cores required
@@ -227,7 +228,7 @@ public:
     bool IsScopeNode() const { return isScopeNode; }
     void ClearScopeBitFlags() { scopeBitFlags.reset(); }
     void MarkEventNodeToScope(SuperKernelBaseNode* node);
-    
+
     // Notify node expand number setters
     void SetNotifyExpandVecNum(uint32_t vecNum) { notifyExpandVecNum = vecNum; }
     void SetNotifyExpandCubeNum(uint32_t cubeNum) { notifyExpandCubeNum = cubeNum; }

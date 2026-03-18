@@ -969,7 +969,10 @@ bool SkTaskBuilder::AddFuncTask(SkTask& skTask, SuperKernelBaseNode* node, SkDfx
     taskInfo.type = taskType;
     taskInfo.originType = kernelInfo.kernelType;
     taskInfo.numBlocks = numBlocks;
-
+    if (kernelInfo.resolvedNum != binCount) {
+        SK_LOGW("[sk error] mismatch num between sub sk registered and sk option, funcName: %s, registered: %d,"
+            "option: %d", kernelInfo.funcName.c_str(), kernelInfo.resolvedNum, binCount);
+    }
     for (int i = 0; i < binCount; i++) {
         const ResolvedFunctionInfo& resolved = kernelInfo.resolvedFuncs[i];
         if (taskType == SkTaskType::TYPE_PRELOAD) {
