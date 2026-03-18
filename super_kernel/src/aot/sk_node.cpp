@@ -22,6 +22,7 @@
 #include <cstdint>
 #include <stdexcept>
 #include <string>
+#include <sstream>
 #include <utility>
 #include "runtime/kernel.h"
 #include "sk_log.h"
@@ -264,10 +265,12 @@ bool SuperKernelBaseNode::InitNode() {
         SK_LOGE("Origin task is null for nodeIdxInStream %lu in streamIdxInGraph %u", nodeIdxInStream, streamIdxInGraph);
         return false;
     }
-    if (aclmdlRITaskGetSeqId(*originTask, reinterpret_cast<uint32_t *>(&nodeId)) != ACL_SUCCESS) {
+    uint32_t seqId = 0;
+    if (aclmdlRITaskGetSeqId(*originTask, &seqId) != ACL_SUCCESS) {
         SK_LOGE("Failed to get nodeId for nodeIdxInStream %lu in streamIdxInGraph %u", nodeIdxInStream, streamIdxInGraph);
         return false;
     }
+    nodeId = static_cast<uint64_t>(seqId);
     return true;
 }
 
@@ -285,9 +288,9 @@ bool IsScopeKernel(aclmdlRIKernelTaskParams params, JudgeTaskKernelInfo* info) {
     const char* targetBeginName = "sk_scope_kernel_begin";
     const char* targetEndName = "sk_scope_kernel_end";
     char kernelName[MAX_SCOPE_NAME_LENN] = {0};
-    int ret = aclrtGetFunctionName(params.funcHandle, sizeof(kernelName), kernelName);
+    int32_t ret = aclrtGetFunctionName(params.funcHandle, sizeof(kernelName), kernelName);
     if (ret != ACL_SUCCESS) {
-        SK_LOGE("get kernel name failed, ret: %d", ret);
+        SK_LOGE("IsScopeKernel: Failed to get kernel name for funcHandle, ret: %d", ret);
         return false;
     }
     bool isBegin = (strcmp(kernelName, targetBeginName) == 0);
@@ -301,7 +304,7 @@ bool IsScopeKernel(aclmdlRIKernelTaskParams params, JudgeTaskKernelInfo* info) {
     ret = aclrtMemcpy((void*)parseArgsAddr.get(), sizeof(ScopeKernelArgs), params.args, sizeof(ScopeKernelArgs),
         ACL_MEMCPY_DEVICE_TO_HOST);
     if (ret != ACL_SUCCESS) {
-        SK_LOGE("aclrtMemcpy failed, ret: %d", ret);
+        SK_LOGE("IsScopeKernel: Failed to copy kernel args from device to host, ret: %d, direction=DEVICE_TO_HOST", ret);
         return false;
     }
     parseArgsAddr->name[MAX_SCOPE_NAME_LENN - 1] = '\0';
@@ -309,7 +312,7 @@ bool IsScopeKernel(aclmdlRIKernelTaskParams params, JudgeTaskKernelInfo* info) {
     info->scopeName = std::make_unique<char[]>(nameLen + 1);
     errno_t res = memcpy_s(info->scopeName.get(), nameLen + 1, parseArgsAddr->name, nameLen + 1);
     if (res != 0) {
-        SK_LOGE("memcpy_s failed, ret: %d", res);
+        SK_LOGE("IsScopeKernel: Failed to copy scope name '%s', memcpy_s error code: %d", parseArgsAddr->name, res);
         return false;
     }
     info->isBegin = isBegin;
@@ -359,8 +362,8 @@ bool SuperKernelKernelNode::InitNode() {
     CHECK_ACL(aclrtGetFunctionAttribute(kernelParams.funcHandle, ACL_FUNC_ATTR_KERNEL_TYPE, &kernelType));
     CHECK_ACL(aclrtGetFunctionAttribute(kernelParams.funcHandle, ACL_FUNC_ATTR_KERNEL_RATIO, &taskRatio));
 
-    int16_t* taskRatioInt16 = (int16_t*)(&(taskRatio));
-    uint32_t skTaskTatio[2] = {(uint32_t)(taskRatioInt16[0]), (uint32_t)(taskRatioInt16[1])};
+    const int16_t* taskRatioInt16 = reinterpret_cast<const int16_t*>(&taskRatio);
+    uint32_t skTaskTatio[2] = {static_cast<uint32_t>(taskRatioInt16[0]), static_cast<uint32_t>(taskRatioInt16[1])};
 
     nodeInfos.kernelInfos.taskRatio[0] = skTaskTatio[0];
     nodeInfos.kernelInfos.taskRatio[1] = skTaskTatio[1];
@@ -369,7 +372,8 @@ bool SuperKernelKernelNode::InitNode() {
     nodeInfos.kernelInfos.devArgs = kernelParams.args;
     aclRet = aclrtFunctionGetBinary(kernelParams.funcHandle, &nodeInfos.kernelInfos.binHdl);
     if (aclRet != ACL_SUCCESS) {
-        SK_LOGE("Failed to get kernel bin handle");
+        SK_LOGE("SuperKernelKernelNode::InitNode: Failed to get kernel bin handle for funcName=%s, ret=%d",
+                 nodeInfos.kernelInfos.funcName.c_str(), aclRet);
         return false;
     }
     nodeInfos.kernelInfos.funcHdl = kernelParams.funcHandle;
@@ -412,6 +416,15 @@ bool SuperKernelKernelNode::InValidateNode() {
         return false;
     }
     return true;
+}
+
+std::string SuperKernelKernelNode::FormatNodeInfo() const {
+    std::ostringstream oss;
+    oss << "[nodeId:" << nodeId 
+        << ", streamIdxInGraph:" << streamIdxInGraph 
+        << ", nodeIdxInStream:" << nodeIdxInStream 
+        << "] - Kernel:" << nodeInfos.kernelInfos.funcName;
+    return oss.str();
 }
 
 bool SuperKernelKernelNode::Update(const UpdateContext &ctx) {
@@ -522,6 +535,19 @@ bool SuperKernelMemoryNode::InValidateNode() {
     return true;
 }
 
+std::string SuperKernelMemoryNode::FormatNodeInfo() const {
+    std::ostringstream oss;
+    const char* eventType = (rtNodeType == ACL_MODEL_RI_TASK_VALUE_WRITE) ? "Notify" : "Wait";
+    uint64_t eventId = GetEventId();
+    
+    oss << "[nodeId:" << nodeId 
+        << ", streamIdxInGraph:" << streamIdxInGraph 
+        << ", nodeIdxInStream:" << nodeIdxInStream 
+        << "] - Event:" << eventType << "(eventId:0x" << std::hex << eventId << std::dec << ")";
+    
+    return oss.str();
+}
+
 bool SuperKernelDefaultNode::InitNode() {
     if (!SuperKernelBaseNode::InitNode()) {
         return false;
@@ -533,4 +559,13 @@ bool SuperKernelDefaultNode::InitNode() {
 bool SuperKernelDefaultNode::InValidateNode() {
     SK_LOGE("Default task type for task %lu in stream %u should not be invalidated.", nodeIdxInStream, streamIdxInGraph);
     return false;
+}
+
+std::string SuperKernelDefaultNode::FormatNodeInfo() const {
+    std::ostringstream oss;
+    oss << "[nodeId:" << nodeId 
+        << ", streamIdxInGraph:" << streamIdxInGraph 
+        << ", nodeIdxInStream:" << nodeIdxInStream 
+        << "] - Default";
+    return oss.str();
 }

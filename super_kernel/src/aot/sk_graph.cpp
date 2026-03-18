@@ -64,7 +64,12 @@ bool SuperKernelGraph::AddNode(std::unique_ptr<SuperKernelBaseNode> node) {
     }
 
     if (graphMap.find(nodeId) != graphMap.end()) {
-        SK_LOGE("Node with id %lu already exists in graph", nodeId);
+        SuperKernelBaseNode* existingNode = graphMap[nodeId].get();
+        SK_LOGE("Duplicate node ID detected! Node with id %lu already exists in graph", nodeId);
+        SK_LOGE("  Existing node: %s", existingNode->FormatNodeInfo().c_str());
+        SK_LOGE("  New node to add: %s", node->FormatNodeInfo().c_str());
+        SK_LOGE("  Duplicate nodeId=%lu, Please check for duplicate node assignments in stream %lu",
+                 nodeId, node->GetStreamIdxInGraph());
         return false;
     }
     graphMap[nodeId] = std::move(node);
@@ -74,7 +79,8 @@ bool SuperKernelGraph::AddNode(std::unique_ptr<SuperKernelBaseNode> node) {
 bool SuperKernelGraph::AddEventAssociateNotify(uint64_t eventId, uint64_t nodeId) {
     auto &eventInfo = eventToNodes[eventId];
     if (eventInfo.notifyNodeId != INVALID_TASK_ID) {
-        SK_LOGE("Notify event already associated with node %lu", eventInfo.notifyNodeId);
+        SK_LOGE("Notify event 0x%lx already associated with node %lu, cannot reassociate with node %lu",
+                 eventId, eventInfo.notifyNodeId, nodeId);
         return false;
     }
     eventInfo.notifyNodeId = nodeId;
@@ -84,7 +90,8 @@ bool SuperKernelGraph::AddEventAssociateNotify(uint64_t eventId, uint64_t nodeId
 bool SuperKernelGraph::AddEventAssociateWait(uint64_t eventId, uint64_t nodeId) {
     auto &eventInfo = eventToNodes[eventId];
     if (eventInfo.waitNodeIdList.find(nodeId) != eventInfo.waitNodeIdList.end()) {
-        SK_LOGE("Wait event already associated with node %lu", nodeId);
+        SK_LOGE("Wait event 0x%lx already associated with node %lu, cannot reassociate with same node",
+                 eventId, nodeId);
         return false;
     }
     eventInfo.waitNodeIdList.insert(nodeId);
@@ -96,7 +103,8 @@ bool SuperKernelGraph::AddEventAssociateReset(uint64_t eventId, uint64_t nodeId)
     auto &eventInfo = eventToNodes[eventId];
 
     if (eventInfo.resetNodeId != INVALID_TASK_ID) {
-        SK_LOGE("Reset event already associated with node %lu", eventInfo.resetNodeId);
+        SK_LOGE("Reset event 0x%lx already associated with node %lu, cannot reassociate with node %lu",
+                 eventId, eventInfo.resetNodeId, nodeId);
         return false;
     }
     eventInfo.resetNodeId = nodeId;
@@ -105,6 +113,7 @@ bool SuperKernelGraph::AddEventAssociateReset(uint64_t eventId, uint64_t nodeId)
 }
 
 void SuperKernelGraph::BuildWaitNodeAssociations() {
+    SK_LOGI("BuildWaitNodeAssociations: Starting to build wait node associations, total events: %zu", eventToNodes.size());
     for (const auto& it : eventToNodes) {
         const uint64_t eventId = it.first;
         const EventInfos& eventInfo = it.second;
@@ -117,20 +126,29 @@ void SuperKernelGraph::BuildWaitNodeAssociations() {
                     eventInfo.waitNodeIdList.end());
                 notifyNode->SetCorrespondingWaitNodeIds(waitNodeIds);
 
+                SK_LOGI("Processing event 0x%lx: notify node %lu has %zu wait nodes",
+                        eventId, eventInfo.notifyNodeId, waitNodeIds.size());
+
                 // Set corresponding notify node ID for each wait node
                 for (uint64_t waitNodeId : waitNodeIds) {
                     auto* waitNode = GetNodeById(waitNodeId);
                     if (waitNode != nullptr &&
                         (waitNode->GetNodeType() == SkNodeType::NODE_WAIT)) {
                         waitNode->SetCorrespondingNotifyNodeId(eventInfo.notifyNodeId);
+                        SK_LOGD("Associated wait node %lu with notify node %lu",
+                                waitNodeId, eventInfo.notifyNodeId);
                     }
                 }
 
                 SK_LOGI("Built wait node associations for notify node %lu with %zu wait nodes",
                          eventInfo.notifyNodeId, eventInfo.waitNodeIdList.size());
+            } else {
+                SK_LOGE("Event 0x%lx: notify node %lu is invalid or not a notify node",
+                        eventId, eventInfo.notifyNodeId);
             }
         }
     }
+    SK_LOGI("BuildWaitNodeAssociations: Completed building all wait node associations");
 }
 
 namespace {
@@ -176,7 +194,7 @@ uint32_t GetScopeIdx(SuperKernelBaseNode* node,
         const std::string& scopeName = node->GetScopeName();
         auto it = scopeNameToIdx.find(scopeName);
         if (it == scopeNameToIdx.end()) {
-            SK_LOGW("Fusible scope name '%s' not registered for node %lu",
+            SK_LOGE("Fusible scope name '%s' not registered for node %lu (node marked fusible but scope not in registry), graph structure error",
                     scopeName.c_str(), node->GetNodeId());
             return MAX_SCOPE_NUM;
         }
@@ -200,7 +218,8 @@ bool PopScopeByName(std::vector<ScopeStackEntry>& scopeStack, const std::string&
             return true;
         }
     }
-    SK_LOGW("Scope end without matching begin: name='%s'", scopeName.c_str());
+    SK_LOGE("Scope end without matching begin: name='%s', graph structure error (missing corresponding scope begin)",
+            scopeName.c_str());
     return false;
 }
 
@@ -233,9 +252,10 @@ void ProcessScopeEnd(SuperKernelGraph* graph,
 // Log warning if there are unclosed scopes remaining in the stack at the end of graph processing
 void LogUnclosedScopes(const std::vector<ScopeStackEntry>& scopeStack) {
     if (!scopeStack.empty()) {
-        SK_LOGW("Found %zu unclosed scope(s) at end of graph:", scopeStack.size());
+        SK_LOGE("Found %zu unclosed scope(s) at end of graph: graph structure error (missing scope end nodes)",
+                scopeStack.size());
         for (const auto& entry : scopeStack) {
-            SK_LOGW("  - Scope '%s' (idx=%u, fusible=%d)", entry.scopeName.c_str(), entry.scopeIdx, entry.isFusible);
+            SK_LOGE("  - Scope '%s' (idx=%u, fusible=%d)", entry.scopeName.c_str(), entry.scopeIdx, entry.isFusible);
         }
     }
 }
@@ -271,7 +291,7 @@ void SuperKernelGraph::UpdateNodeScopeBitFlags() {
     for (uint64_t nodeId : orderedNodeIds) {
         SuperKernelBaseNode* node = GetNodeById(nodeId);
         if (node == nullptr) {
-            SK_LOGE("Node with id %lu not found", nodeId);
+            SK_LOGE("UpdateNodeScopeBitFlags: Node with id %lu not found", nodeId);
             continue;
         }
 
@@ -293,21 +313,21 @@ void SuperKernelGraph::UpdateNodeScopeBitFlags() {
             if (!outOfScopeFusible && scopeStack.empty()) {
                 // If there are named scopes, mark nodes outside of any scope as unfusible
                 node->SetIsFusible(false);
-                SK_LOGI("Marked node %s, id: %lu as unfusible (outside of any named scope)", node->GetNodeName().c_str(), nodeId);
+                SK_LOGI("Marked node %s as unfusible (outside of any named scope)", node->FormatNodeInfo().c_str());
             }
             // Mark regular nodes as unfusible if inside any unfusible scope
             if (!node->IsScopeNode() && HasUnfusibleScope(scopeStack)) {
                 node->SetIsFusible(false);
-                SK_LOGI("Marked node %s, id: %lu as unfusible (inside unfusible scope)", node->GetNodeName().c_str(), nodeId);
+                SK_LOGI("Marked node %s as unfusible (inside unfusible scope)", node->FormatNodeInfo().c_str());
             }
         }
 
-        // scope nodes are always fusible - they mark fusion boundaries and can be fused themselves
+        // scope nodes are always marked as fusible
         if (node->IsScopeNode()) {
             node->SetIsFusible(true);
         }
-        SK_LOGI("Processed node %s, id: %lu: type=%d, scopeFlags=%s, isFusible=%d, stackSize=%zu",
-                node->GetNodeName().c_str(), nodeId, static_cast<int>(node->GetNodeType()),
+        SK_LOGI("Processed node %s: type=%d, scopeFlags=%s, isFusible=%d, stackSize=%zu",
+                node->FormatNodeInfo().c_str(), static_cast<int>(node->GetNodeType()),
                 node->GetScopeBitFlags().to_string().substr(0, MAX_SCOPE_NUM).c_str(),
                 node->IsFusible(), scopeStack.size());
     }
@@ -331,17 +351,21 @@ std::unique_ptr<SuperKernelBaseNode> SuperKernelNodeFactory::CreateNode(std::uni
 }
 
 bool SuperKernelGraph::InitSKGraph() {
+    SK_LOGI("Starting to initialize SuperKernel graph");
+    
     uint32_t streamNum = 0;
     aclError ret = aclmdlRIGetStreams(modelRI, nullptr, &streamNum);
     if (ret != ACL_SUCCESS) {
-        SK_LOGE("Failed to get number of streams in model RI");
+        SK_LOGE("Failed to get number of streams in model RI, ret=%d", ret);
         return false;
     }
+    SK_LOGI("Get %u streams from model RI", streamNum);
+    
     streams.clear();
     streams.resize(streamNum);
     ret = aclmdlRIGetStreams(modelRI, streams.data(), &streamNum);
     if (ret != ACL_SUCCESS) {
-        SK_LOGE("Failed to get streams in model RI");
+        SK_LOGE("Failed to get streams in model RI, ret=%d", ret);
         return false;
     }
 
@@ -350,30 +374,33 @@ bool SuperKernelGraph::InitSKGraph() {
         uint32_t taskNum = 0;
         ret = aclmdlRIGetTasksByStream(streams[streamIdx], nullptr, &taskNum);
         if (ret != ACL_SUCCESS) {
-            SK_LOGE("Failed to get number of tasks in stream %u", streamIdx);
+            SK_LOGE("Failed to get number of tasks in stream %u, ret=%d", streamIdx, ret);
             return false;
         }
         if (taskNum > MAX_TASK_NUM) {
             tasks = std::make_unique<aclmdlRITask[]>(taskNum);
+            SK_LOGI("Reallocated task array to %u tasks for stream %u", taskNum, streamIdx);
         }
         ret = aclmdlRIGetTasksByStream(streams[streamIdx], tasks.get(), &taskNum);
         if (ret != ACL_SUCCESS) {
-            SK_LOGE("Failed to get tasks in stream %u", streamIdx);
+            SK_LOGE("Failed to get tasks in stream %u, ret=%d", streamIdx, ret);
             return false;
         }
         nodeSizeInStream.emplace_back(taskNum);
         SK_LOGI("Stream %u has %u tasks", streamIdx, taskNum);
+        
         uint64_t preNodeId = INVALID_TASK_ID;
         for (uint32_t taskIdx = 0; taskIdx < taskNum; ++taskIdx) {
             aclmdlRITaskType taskType;
             ret = aclmdlRITaskGetType(tasks[taskIdx], &taskType);
             if (ret != ACL_SUCCESS) {
-                SK_LOGE("Failed to get task type for task %u in stream %u", taskIdx, streamIdx);
+                SK_LOGE("Failed to get task type for task %u in stream %u, ret=%d", taskIdx, streamIdx, ret);
                 return false;
             }
             auto node = SuperKernelNodeFactory::CreateNode(std::make_unique<aclmdlRITask>(tasks[taskIdx]), taskType, taskIdx, streamIdx, preNodeId);
             if (!node->InitNode()) {
-                SK_LOGE("Failed to initialize node for task %u in stream %u", taskIdx, streamIdx);
+                SK_LOGE("Failed to initialize node for task %u in stream %u (taskType=%u, nodeId=%lu)",
+                         taskIdx, streamIdx, taskType, node->GetNodeId());
                 return false;
             }
             if (node->GetNodeType() == SkNodeType::NODE_KERNEL && node->IsScopeNode()){
@@ -387,20 +414,22 @@ bool SuperKernelGraph::InitSKGraph() {
                             uint32_t scopeIdx = static_cast<uint32_t>(scopeNameToIdx.size());
                             scopeNameToIdx[node->GetScopeName()] = scopeIdx;
                             scopeIdxToName[scopeIdx] = node->GetScopeName();
-                            SK_LOGI("Registered fusible scope '%s' with index %u",
-                                    node->GetScopeName().c_str(), scopeIdx);
+                            SK_LOGI("Registered fusible scope '%s' with index %u at stream %u task %u",
+                                    node->GetScopeName().c_str(), scopeIdx, streamIdx, taskIdx);
                         }
                     }
                 }
             }
             uint64_t nodeId = node->GetNodeId();
             if (!AddNode(std::move(node))) {
-                SK_LOGE("Failed to add node for task %u in stream %u to graph", taskIdx, streamIdx);
+                SK_LOGE("Failed to add node for task %u in stream %u to graph (likely duplicate node ID %lu)",
+                         taskIdx, streamIdx, nodeId);
                 return false;
             }
 
             if (taskIdx == 0) {
                 headNodes.push_back(nodeId);
+                SK_LOGI("Stream %u: Added head node %lu", streamIdx, nodeId);
             }
             if (preNodeId != INVALID_TASK_ID) {
                 graphMap[preNodeId]->SetNextNodeId(nodeId);
@@ -408,10 +437,17 @@ bool SuperKernelGraph::InitSKGraph() {
             preNodeId = nodeId;
         }
     }
-
+    
+    SK_LOGI("Total nodes added: %zu, total streams: %u", graphMap.size(), streamNum);
+    SK_LOGI("Starting UpdateNodeScopeBitFlags");
     UpdateNodeScopeBitFlags();
+    SK_LOGI("UpdateNodeScopeBitFlags completed");
+    SK_LOGI("Starting BuildWaitNodeAssociations");
     BuildWaitNodeAssociations();
-
+    SK_LOGI("BuildWaitNodeAssociations completed");
+    
+    SK_LOGI("Successfully initialized SuperKernel graph with %zu nodes and %zu streams",
+            graphMap.size(), streams.size());
     return true;
 }
 

@@ -99,7 +99,18 @@ public:
     virtual ~SuperKernelBaseNode() = default;
     virtual bool InitNode();
 
-    virtual const std::string GetNodeName() const = 0;
+    /**
+     * @brief Format complete node information for logging
+     * @return Formatted string with nodeId, streamIdxInGraph, nodeIdxInStream, and node-specific info
+     *
+     * Format: [nodeId:lu, streamIdxInGraph:u, nodeIdxInStream:lu] - {node-specific-info}
+     * Examples:
+     *   Kernel: [nodeId:123, streamIdxInGraph:0, nodeIdxInStream:5] - Kernel:func_name
+     *   Notify: [nodeId:124, streamIdxInGraph:0, nodeIdxInStream:6] - Event:Notify(eventId:0x7ff8a0)
+     *   Wait:    [nodeId:125, streamIdxInGraph:0, nodeIdxInStream:7] - Event:Wait(eventId:0x7ff8a0)
+     *   Default: [nodeId:126, streamIdxInGraph:0, nodeIdxInStream:8] - Default
+     */
+    virtual std::string FormatNodeInfo() const = 0;
 
     // Accessors
     uint32_t GetStreamIdxInGraph() const
@@ -264,10 +275,7 @@ public:
     uint32_t GetVecNum() const override { return nodeInfos.kernelInfos.vecNum; }
     uint32_t GetCubeNum() const override { return nodeInfos.kernelInfos.cubeNum; }
 
-    const std::string GetNodeName() const override
-    {
-        return nodeInfos.kernelInfos.funcName;
-    }
+    std::string FormatNodeInfo() const override;
     bool InValidateNode() override;
     bool Update(const UpdateContext& ctx) override;
     const std::string GetScopeName() const override
@@ -308,19 +316,7 @@ public:
         nodeInfos.syncInfos.correspondingNotifyNodeId = notifyId;
     }
 
-    const std::string GetNodeName() const override
-    {
-        std::string memoryNodeName;
-        if (rtNodeType == ACL_MODEL_RI_TASK_VALUE_WRITE) {
-            memoryNodeName = "NotifyNode_";
-        } else if (rtNodeType == ACL_MODEL_RI_TASK_VALUE_WAIT) {
-            memoryNodeName = "WaitNode_";
-        } else {
-            memoryNodeName = "UnknownMemoryNode_";
-        }
-        memoryNodeName += std::to_string(GetEventId());
-        return memoryNodeName;
-    }
+    std::string FormatNodeInfo() const override;
     bool InitNode() override;
     bool Update(const UpdateContext& ctx) override;
     bool InValidateNode() override;
@@ -334,11 +330,7 @@ public:
     bool InitNode() override;
     bool InValidateNode() override;
 
-    const std::string GetNodeName() const override
-    {
-        static const std::string defaultNodeName = "DefaultNode";
-        return defaultNodeName;
-    }
+    std::string FormatNodeInfo() const override;
 };
 
 #endif // __SK_NODE_H__
