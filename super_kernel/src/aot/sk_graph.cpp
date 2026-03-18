@@ -117,6 +117,116 @@ bool SuperKernelGraph::AddEventAssociateWait(uint64_t eventId, uint64_t nodeId) 
     return true;
 }
 
+
+/**
+ * @brief Build event associations and establish send-receive relationships between nodes
+ *
+ * This function traverses all event information to establish direct send-receive relationships
+ * between NOTIFY nodes and WAIT nodes associated with each event:
+ * 1. For each event, find the nearest KERNEL node before the NOTIFY node as the sender node
+ * 2. For each WAIT node, find the nearest KERNEL node after it as the receiver node
+ * 3. Establish bidirectional association between sender and receiver nodes
+ *
+ * @return true Association establishment successful
+ * @return false Association establishment failed (current implementation always returns true)
+ *
+ * @note This function is mainly used to build the task dependency graph within super kernel,
+ *       facilitating subsequent graph optimization and execution
+ */
+bool SuperKernelGraph::AddEventAssociate() {
+    SK_LOGI("Start to build event associations, total events: %zu", eventToNodes.size());
+
+    uint32_t totalProcessed = 0;
+    uint32_t skipDueToNoNotify = 0;
+    uint32_t skipDueToNoSendNode = 0;
+    uint32_t skipDueToNoWaitNode = 0;
+    uint32_t successAssociations = 0;
+
+    // Traverse all event information
+    for (auto iter = eventToNodes.begin(); iter != eventToNodes.end(); iter++) {
+        uint64_t eventId = iter->first;                     // Event ID
+        uint64_t notifyId = iter->second.notifyNodeId;      // NOTIFY node ID
+        std::unordered_set<uint64_t> waitIdSet = iter->second.waitNodeIdList;  // WAIT node ID set
+        uint64_t resetId = iter->second.resetNodeId;       // RESET node ID (currently unused)
+
+        SK_LOGD("Processing event 0x%lx: notify=%lu, wait_count=%zu, reset=%lu",
+                eventId, notifyId, waitIdSet.size(), resetId);
+
+        // Skip if the event has no associated NOTIFY node
+        if (INVALID_TASK_ID == notifyId) {
+            SK_LOGD("Event 0x%lx has no notify node, skip", eventId);
+            skipDueToNoNotify++;
+            continue;
+        }
+
+        // Search backward from NOTIFY node to find the first KERNEL node as sender node
+        // This ensures the sender is the actual compute kernel rather than event notification node
+        auto nodeId = graphMap[notifyId]->GetPreNodeId();
+        while (nodeId != INVALID_TASK_ID && graphMap[nodeId]->GetNodeType() != SkNodeType::NODE_KERNEL) {
+            nodeId = graphMap[nodeId]->GetPreNodeId();
+        }
+
+        // Skip this event if no KERNEL node found before NOTIFY node
+        if (nodeId == INVALID_TASK_ID) {
+            SK_LOGW("Event 0x%lx: cannot find KERNEL node before notify node %lu, skip",
+                    eventId, notifyId);
+            skipDueToNoSendNode++;
+            continue;
+        }
+
+        auto sendNode = graphMap[nodeId].get();
+        if (sendNode == nullptr) {
+            SK_LOGE("Failed to cast node %lu to SuperKernelSendNode", nodeId);
+            continue;
+        }
+
+        SK_LOGD("Event 0x%lx: send node found (id=%lu), starting to process %zu wait nodes",
+                eventId, nodeId, waitIdSet.size());
+
+        // Traverse all WAIT nodes associated with this event
+        for (auto waitId : waitIdSet) {
+            // Search forward from WAIT node to find the first KERNEL node as receiver node
+            // This ensures the receiver is the actual compute kernel that needs synchronization
+            while (waitId != INVALID_TASK_ID && graphMap[waitId]->GetNodeType() != SkNodeType::NODE_KERNEL) {
+                waitId = graphMap[waitId]->GetNextNodeId();
+            }
+
+            // Skip this WAIT node if no KERNEL node found after it
+            if (waitId == INVALID_TASK_ID) {
+                SK_LOGW("Event 0x%lx: cannot find KERNEL node after wait node, skip one wait association",
+                        eventId);
+                skipDueToNoWaitNode++;
+                continue;
+            }
+
+            auto recvNode = graphMap[waitId].get();
+            if (recvNode == nullptr) {
+                SK_LOGE("Failed to cast node %lu to SuperKernelSendNode", waitId);
+                continue;
+            }
+
+            // Establish bidirectional association:
+            // 1. Receiver node records which sender nodes it needs to wait for
+            // 2. Sender node records which receiver nodes it needs to notify
+            recvNode->receiveNodeId.insert(nodeId);
+            sendNode->sendToNodeId.insert(waitId);
+
+            SK_LOGD("Event 0x%lx: built association - send(node %lu) -> wait(node %lu)",
+                    eventId, nodeId, waitId);
+            successAssociations++;
+        }
+
+        totalProcessed++;
+    }
+
+    SK_LOGI("Event association build completed: processed=%u, success=%u, "
+            "skip(no_notify)=%u, skip(no_send)=%u, skip(no_wait)=%u",
+            totalProcessed, successAssociations, skipDueToNoNotify,
+            skipDueToNoSendNode, skipDueToNoWaitNode);
+
+    return true;
+}
+
 bool SuperKernelGraph::AddEventAssociateReset(uint64_t eventId, uint64_t nodeId) {
     auto &eventInfo = eventToNodes[eventId];
 
@@ -472,6 +582,7 @@ bool SuperKernelGraph::InitSKGraph() {
     SK_LOGI("UpdateNodeScopeBitFlags completed");
     SK_LOGI("Starting BuildWaitNodeAssociations");
     BuildWaitNodeAssociations();
+    AddEventAssociate();
     SK_LOGI("BuildWaitNodeAssociations completed");
     
     SK_LOGI("Successfully initialized SuperKernel graph with %zu nodes and %zu streams",

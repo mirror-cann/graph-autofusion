@@ -108,6 +108,7 @@ private:
     bool AddEventAssociateNotify(uint64_t eventId, uint64_t nodeId);
     bool AddEventAssociateWait(uint64_t eventId, uint64_t nodeId);
     bool AddEventAssociateReset(uint64_t eventId, uint64_t nodeId);
+    bool AddEventAssociate();
     void BuildWaitNodeAssociations();
     void UpdateNodeScopeBitFlags();
     std::unordered_map<uint64_t, std::unique_ptr<SuperKernelBaseNode>> graphMap;

@@ -482,20 +482,30 @@ bool SuperKernelMemoryNode::InitNode() {
 
     if (rtNodeType != ACL_MODEL_RI_TASK_VALUE_WRITE && rtNodeType != ACL_MODEL_RI_TASK_VALUE_WAIT) {
         switch (rtNodeType) {
-            case ACL_MODEL_RI_TASK_EVENT_RECORD:
+            case ACL_MODEL_RI_TASK_EVENT_RECORD: {
+                auto &eventParam = taskParams.eventRecordTaskParams;
                 nodeType = SkNodeType::NODE_NOTIFY;
+                nodeInfos.syncInfos.eventId = (uint64_t)eventParam.event;
                 break;
-            case ACL_MODEL_RI_TASK_EVENT_WAIT:
+            }
+            case ACL_MODEL_RI_TASK_EVENT_WAIT: {
+                auto &eventParam = taskParams.eventWaitTaskParams;
                 nodeType = SkNodeType::NODE_WAIT;
+                nodeInfos.syncInfos.eventId = (uint64_t)eventParam.event;
                 break;
-            case ACL_MODEL_RI_TASK_EVENT_RESET:
+            }
+            case ACL_MODEL_RI_TASK_EVENT_RESET: {
+                auto &eventParam = taskParams.eventResetTaskParams;
                 nodeType = SkNodeType::NODE_RESET;
+                nodeInfos.syncInfos.eventId = (uint64_t)eventParam.event;
                 break;
+            }
             default:
                 SK_LOGE("Unsupported event type %u for task %u in stream %u, which cannot be fused in super kernel.", rtNodeType, nodeIdxInStream, streamIdxInGraph);
                 return false;
         }
         SK_LOGI("Event type is not memory based for task %u in stream %u, which cannot be fused in super kernel.", nodeIdxInStream, streamIdxInGraph);
+        
         return true;
     }
 

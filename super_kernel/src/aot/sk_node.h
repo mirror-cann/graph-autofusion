@@ -245,9 +245,12 @@ public:
     // Notify node expand number setters
     void SetNotifyExpandVecNum(uint32_t vecNum) { notifyExpandVecNum = vecNum; }
     void SetNotifyExpandCubeNum(uint32_t cubeNum) { notifyExpandCubeNum = cubeNum; }
+
 public:
     NodeInfos nodeInfos;
     std::unique_ptr<aclmdlRITask> originTask;
+    std::unordered_set<uint64_t> sendToNodeId;
+    std::unordered_set<uint64_t> receiveNodeId;
 
 protected:
     aclmdlRITaskParams taskParams;

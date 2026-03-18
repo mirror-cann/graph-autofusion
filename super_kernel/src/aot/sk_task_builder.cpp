@@ -479,64 +479,64 @@ void SkTaskBuilder::ExtractIntraStreamSync(const std::vector<SuperKernelBaseNode
             totalInsertedSyncEdges);
 }
 
+/**
+ * @brief Extract inter-stream synchronization relationships based on task dependencies
+ *
+ * This function identifies synchronization requirements between different execution streams
+ * by analyzing task dependencies. It inserts sync events (NOTIFY/WAIT pairs) to establish
+ * proper synchronization boundaries when tasks from different streams need to coordinate.
+ *
+ * @param tasks Vector of super kernel base nodes to analyze
+ *
+ * @note This function works in two phases:
+ *       1. Build a task ID set for quick lookup
+ *       2. For each KERNEL node, check its successors and insert sync events
+ *          when the successor is also in the current task set
+ */
 void SkTaskBuilder::ExtractInterStreamSync(const std::vector<SuperKernelBaseNode*>& tasks)
 {
-    SK_LOGI("ExtractInterStreamSync: processing event-based sync");
+    SK_LOGI("ExtractInterStreamSync: starting to extract inter-stream synchronization relationships");
+    SK_LOGI("ExtractInterStreamSync: total number of tasks to process = %zu", tasks.size());
 
     // Aligned with Python insert_sync_by_event behavior.
     // In C++, NOTIFY/WAIT are standalone nodes mapped to NotifyFunc/WaitFunc.
     // Sync relation is modeled as: NOTIFY node -> WAIT node.
 
-    std::unordered_map<uint64_t, size_t> eventSendIdx;               // eventId -> NOTIFY task index
-    std::unordered_map<uint64_t, std::vector<size_t>> eventRecvIdxs; // eventId -> WAIT task index list
-
-    // Traverse tasks and extract event relations from NOTIFY/WAIT nodes.
+    // Phase 1: Build task ID set for O(1) lookup
+    std::unordered_set<uint64_t> taskIds;
     for (size_t i = 0; i < tasks.size(); i++) {
         SuperKernelBaseNode* node = tasks[i];
-
-        if (node->GetNodeType() == SkNodeType::NODE_NOTIFY) {
-            // NOTIFY node is sender.
-            uint64_t eventId = node->GetEventId();
-            eventSendIdx[eventId] = i;
-            SK_LOGI("  Event[%lu] NOTIFY at task[%zu]", eventId, i);
-        } else if (node->GetNodeType() == SkNodeType::NODE_WAIT) {
-            // WAIT node is receiver.
-            uint64_t eventId = node->GetEventId();
-            eventRecvIdxs[eventId].push_back(i);
-            SK_LOGI("  Event[%lu] WAIT at task[%zu]", eventId, i);
-        }
+        taskIds.insert(node->GetNodeId());
     }
+    SK_LOGI("ExtractInterStreamSync: built task ID set with %zu unique IDs", taskIds.size());
 
-    SK_LOGI("  Found %zu events with NOTIFY, %zu events with WAIT", eventSendIdx.size(), eventRecvIdxs.size());
-
-    // Build sync relations: NOTIFY task -> WAIT task.
-    size_t insertedByEvent = 0;
-    for (const auto& eventPair : eventSendIdx) {
-        uint64_t eventId = eventPair.first;
-        size_t notifyIdx = eventPair.second;
-        auto recvIt = eventRecvIdxs.find(eventId);
-        if (recvIt != eventRecvIdxs.end()) {
-            for (size_t waitIdx : recvIt->second) {
-                bool crossStream = (tasks[notifyIdx]->GetStreamIdxInGraph() != tasks[waitIdx]->GetStreamIdxInGraph());
-
-                SK_LOGI("  Insert sync: NOTIFY task[%zu] -> WAIT task[%zu] (event=%lu, crossStream=%d)", notifyIdx,
-                        waitIdx, eventId, crossStream);
-
-                InsertSyncEvent(notifyIdx, waitIdx);
-                ++insertedByEvent;
+    // Phase 2: Traverse tasks and insert sync events for KERNEL nodes
+    uint32_t syncEventCount = 0;
+    for (size_t i = 0; i < tasks.size(); i++) {
+        SuperKernelBaseNode* node = tasks[i];
+        auto preNodeId = node->GetNodeId();
+        SkNodeType nodeType = node->GetNodeType();
+        // Only process KERNEL nodes for synchronization
+        if (nodeType == SkNodeType::NODE_KERNEL) {
+            SK_LOGD("ExtractInterStreamSync: processing KERNEL node %lu with %zu successors",
+                    preNodeId, node->sendToNodeId.size());
+            // Check each successor to determine if sync event is needed
+            for (auto nextId : node->sendToNodeId) {
+                // If successor is in the current task set, insert sync event
+                if (taskIds.find(nextId) != taskIds.end()) {
+                    SK_LOGD("ExtractInterStreamSync: inserting sync event between %lu -> %lu",
+                            preNodeId, nextId);
+                    InsertSyncEvent(preNodeId, nextId);
+                    syncEventCount++;
+                } else {
+                    SK_LOGD("ExtractInterStreamSync: skipping external successor %lu (not in task set)",
+                            nextId);
+                }
             }
-        } else {
-            SK_LOGI("  Event[%lu] has NOTIFY but no WAIT, notifyTask=%zu", eventId, notifyIdx);
         }
     }
 
-    for (const auto& recvPair : eventRecvIdxs) {
-        if (eventSendIdx.find(recvPair.first) == eventSendIdx.end()) {
-            SK_LOGI("  Event[%lu] has WAIT but no NOTIFY, waitCount=%zu", recvPair.first, recvPair.second.size());
-        }
-    }
-
-    SK_LOGI("ExtractInterStreamSync complete: insertedSyncEdges=%zu", insertedByEvent);
+    SK_LOGI("ExtractInterStreamSync: completed, inserted %u sync events", syncEventCount);
 }
 
 // ========== Sync optimization (aligned with Python behavior) ==========

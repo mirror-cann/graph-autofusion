@@ -190,7 +190,7 @@ bool ProcessFrontWaitForStream(SuperKernelGraph& graph, const SuperKernelScopeIn
     waitParams.type = ACL_MODEL_RI_TASK_VALUE_WAIT;
     waitParams.valueWaitTaskParams.devAddr = addr;
     waitParams.valueWaitTaskParams.value = 1;
-    waitParams.valueWaitTaskParams.flag = 0;
+    waitParams.valueWaitTaskParams.flag = 1;
     processedScopeInfo.updateStreamInfos[prevWaitStreamIdx].customParams.emplace(
         processedScopeInfo.updateStreamInfos[prevWaitStreamIdx].customParams.begin(), waitParams);
     if (!EnsureStreamCapacity(processedScopeInfo, curStreamIdx)
@@ -240,7 +240,7 @@ bool ProcessBackBlockForStream(const SuperKernelScopeInfo& scopeInfo, std::vecto
     waitParams.type = ACL_MODEL_RI_TASK_VALUE_WAIT;
     waitParams.valueWaitTaskParams.devAddr = addr;
     waitParams.valueWaitTaskParams.value = 1;
-    waitParams.valueWaitTaskParams.flag = 0;
+    waitParams.valueWaitTaskParams.flag = 1;
     processedScopeInfo.updateStreamInfos[curStreamIdx].customParams.emplace_back(waitParams);
 
     // cur stream add reset event task
