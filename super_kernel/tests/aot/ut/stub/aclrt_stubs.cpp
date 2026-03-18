@@ -329,6 +329,17 @@ aclError aclrtMemcpy(void *dst, size_t destMax, const void *src, size_t count, a
     return ACL_ERROR_NONE;
 }
 
+// 内存设置
+aclError aclrtMemset(void *devPtr, size_t maxCount, int value, size_t count) {
+    if (devPtr == nullptr) {
+        return ACL_ERROR_INVALID_PARAM;
+    }
+    if (count > maxCount) {
+        return ACL_ERROR_INVALID_PARAM;
+    }
+    return ACL_ERROR_NONE;
+}
+
 // 获取二进制设备地址
 aclError aclrtBinaryGetDevAddress(aclrtBinHandle binHdl, void **devAddr, size_t *devSize) {
     if (devAddr == nullptr || devSize == nullptr) {

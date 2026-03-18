@@ -21,40 +21,6 @@
 #include "sk_task_builder.h"
 #include "sk_log.h"
 
-// Schedule task-stream nodes for super-kernel launch.
-bool SuperKernelOptimizer::Schedule(SuperKernelProcessedScopeInfo& processedScopeInfo, SuperKernelGraph& graph,
-                                    SkTaskBuilder& builder)
-{
-    const auto& taskNodes = processedScopeInfo.nodes;
-    if (taskNodes.empty()) {
-        SK_LOGW("no tasks for super kernel optimization: scope has 0 nodes");
-        return true;
-    }
-
-    std::vector<SuperKernelBaseNode*> customTasks;
-    customTasks.reserve(processedScopeInfo.eventNodes.size());
-    for (const auto& eventNode : processedScopeInfo.eventNodes) {
-        customTasks.emplace_back(eventNode.get());
-    }
-
-    SK_LOGI("schedule scope: taskCount=%zu, customTaskCount=%zu, updateStreamCount=%zu", taskNodes.size(),
-            customTasks.size(), processedScopeInfo.updateStreamInfos.size());
-
-    SkLaunchInfo launchInfo = builder.Build(taskNodes, customTasks);
-    if (launchInfo.entryInfo.skEntryFunc == nullptr || launchInfo.devArgs.Get() == nullptr) {
-        SK_LOGE("schedule failed: build launch info failed");
-        return false;
-    }
-    SK_LOGI("schedule scope: build finished, entryType=%s, entryFuncHandle=%p",
-            to_string(launchInfo.entryInfo.entryType), launchInfo.entryInfo.skEntryFunc);
-
-    if (!Update(processedScopeInfo, graph, launchInfo)) {
-        SK_LOGE("schedule failed: scope update failed");
-        return false;
-    }
-    return true;
-}
-
 bool SuperKernelOptimizer::Update(SuperKernelProcessedScopeInfo& processedScopeInfo, SuperKernelGraph& graph,
                                   const SkLaunchInfo& launchInfo)
 {
@@ -94,7 +60,7 @@ bool SuperKernelOptimizer::Update(SuperKernelProcessedScopeInfo& processedScopeI
                     skMainNodeUpdated = true;
                     ctx.launchInfo = const_cast<SkLaunchInfo*>(&launchInfo);
                 } else {
-                    SK_LOGW("repeat find sk launch node, skip update kernel and set invalid node");
+                    SK_LOGI("repeat find sk launch node, skip update kernel and set invalid node");
                 }
             }
 
@@ -119,6 +85,65 @@ bool SuperKernelOptimizer::Update(SuperKernelProcessedScopeInfo& processedScopeI
 
     SK_LOGI("scope update finished: update total nodes=%zu", updateTotalCount);
 
+    return true;
+}
+
+bool SuperKernelOptimizer::UpdateScopeNode(SuperKernelProcessedScopeInfo& processedScopeInfo, SuperKernelGraph& graph)
+{
+    if (processedScopeInfo.nodes.empty()) {
+        for (auto& streamInfo : processedScopeInfo.updateStreamInfos) {
+            uint64_t curNodeId = streamInfo.headNodeIdx;
+            while (curNodeId != INVALID_TASK_ID) {
+                auto* node = graph.GetNodeById(curNodeId);
+                if (!node->IsScopeNode()) {
+                    continue;
+                }
+                UpdateContext ctx;
+                if (!node->Update(ctx)) { // default invalid
+                    SK_LOGE("node update failed: nodeId=%lu, streamIdx=%u", curNodeId, streamInfo.streamIdx);
+                    return false;
+                }
+            }
+        }
+    }
+    return true;
+}
+
+// Schedule task-stream nodes for super-kernel launch.
+bool SuperKernelOptimizer::Schedule(SuperKernelProcessedScopeInfo& processedScopeInfo, SuperKernelGraph& graph,
+                                    SkTaskBuilder& builder)
+{
+    const auto& taskNodes = processedScopeInfo.nodes;
+    if (taskNodes.empty()) {
+        SK_LOGI("no tasks for super kernel optimization: scope has 0 nodes for optimization, skip scheduling and updating");
+        if (!UpdateScopeNode(processedScopeInfo, graph)) {
+            SK_LOGE("scope node update failed for empty task list");
+            return false;
+        }
+        return true;
+    }
+
+    std::vector<SuperKernelBaseNode*> customTasks;
+    customTasks.reserve(processedScopeInfo.eventNodes.size());
+    for (const auto& eventNode : processedScopeInfo.eventNodes) {
+        customTasks.emplace_back(eventNode.get());
+    }
+
+    SK_LOGI("schedule scope: taskCount=%zu, customTaskCount=%zu, updateStreamCount=%zu", taskNodes.size(),
+            customTasks.size(), processedScopeInfo.updateStreamInfos.size());
+
+    SkLaunchInfo launchInfo = builder.Build(taskNodes, customTasks);
+    if (launchInfo.entryInfo.skEntryFunc == nullptr || launchInfo.devArgs.Get() == nullptr) {
+        SK_LOGE("schedule failed: build launch info failed");
+        return false;
+    }
+    SK_LOGI("schedule scope: build finished, entryType=%s, entryFuncHandle=%p",
+            to_string(launchInfo.entryInfo.entryType), launchInfo.entryInfo.skEntryFunc);
+
+    if (!Update(processedScopeInfo, graph, launchInfo)) {
+        SK_LOGE("schedule failed: scope update failed");
+        return false;
+    }
     return true;
 }
 

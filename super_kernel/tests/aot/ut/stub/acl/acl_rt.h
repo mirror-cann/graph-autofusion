@@ -267,7 +267,6 @@ aclError aclrtKernelArgsAppendPlaceHolder(aclrtArgsHandle argsHdl, aclrtParamHan
 aclError aclrtKernelArgsGetPlaceHolderBuffer(aclrtArgsHandle argsHdl, aclrtParamHandle phdl, size_t bufferSize, void** buffer);
 aclError aclrtKernelArgsFinalize(aclrtArgsHandle argsHdl);
 aclError aclrtGetFunctionName(aclrtFuncHandle funcHandle, uint32_t maxLen, char* name);
-aclError aclrtMemcpy(void* dst, size_t destMax, const void* src, size_t count, aclrtMemcpyKind kind);
 aclError aclrtBinaryGetDevAddress(aclrtBinHandle binHdl, void** devAddr, size_t* devSize);
 aclError aclrtGetFunctionAttribute(aclrtFuncHandle funcHandle, aclrtFuncAttribute attrType, int64_t *attrValue);
 
@@ -276,6 +275,8 @@ aclError aclrtMalloc(void** devPtr, size_t size, aclrtMemMallocPolicy policy);
 aclError aclrtFree(void* devPtr);
 aclError aclrtMallocHost(void** hostPtr, size_t size);
 aclError aclrtFreeHost(void* hostPtr);
+aclError aclrtMemcpy(void* dst, size_t destMax, const void* src, size_t count, aclrtMemcpyKind kind);
+aclError aclrtMemset(void* devPtr, size_t maxCount, int value, size_t count);
 
 aclError aclmdlRIDestroyRegisterCallback(aclmdlRI modelRI, aclmdlRIDestroyCallbackFunc callback, void* userData);
 

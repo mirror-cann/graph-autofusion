@@ -41,7 +41,7 @@ aclError LaunchScopeKernelImpl(const char* scopeName, aclrtStream stream, ScopeF
         return ACL_ERROR_INVALID_PARAM;
     }
     errno_t ret = memcpy_s(args.name, maxLen, scopeName, len);
-    if (ret != EOK) {
+    if (ret != 0) {
         SK_LOGE("memcpy_s failed, ret: %d", ret);
         return ACL_ERROR_INVALID_PARAM;
     }

@@ -360,7 +360,7 @@ void SkTaskBuilder::InsertSyncEvent(size_t preIdx, size_t currIdx)
     // VEC_TO_CUB: send SET in vec queue, receive WAIT in cub queue.
     // MIX_TO_MIX: both directions are required.
     if (dir == SyncDirection::CUB_TO_VEC || dir == SyncDirection::MIX_TO_MIX) {
-        taskSyncInfos_[preIdx].cubSendInfo[currIdx] = SyncDirection::CUB_TO_VEC;  
+        taskSyncInfos_[preIdx].cubSendInfo[currIdx] = SyncDirection::CUB_TO_VEC;
     }
     if (dir == SyncDirection::VEC_TO_CUB || dir == SyncDirection::MIX_TO_MIX) {
         taskSyncInfos_[preIdx].vecSendInfo[currIdx] = SyncDirection::VEC_TO_CUB;

@@ -9,12 +9,6 @@
  */
 
 #include "sk_resource_manager.h"
-
-#include <mutex>
-#include <unordered_map>
-#include <unordered_set>
-#include <vector>
-
 #include "sk_log.h"
 
 std::mutex SkResourceManager::resourceMutex_;
@@ -57,18 +51,14 @@ aclError SkResourceManager::EnsureDestroyCallbackRegistered(aclmdlRI model)
     }
 
     registeredModels_.insert(model);
+    SK_LOGI("register model destroy callback success: model=%p", model);
     return ACL_SUCCESS;
 }
 
 aclError SkResourceManager::AllocForModel(aclmdlRI model, void** addr, size_t bytes)
 {
-    if (addr == nullptr || bytes == 0U) {
+    if (addr == nullptr || bytes == 0U || model == nullptr) {
         SK_LOGE("resource alloc invalid param: model=%p, addr=%p, bytes=%zu", model, addr, bytes);
-        return ACL_ERROR_INVALID_PARAM;
-    }
-
-    if (model == nullptr) {
-        SK_LOGE("resource alloc failed: current model is null, bytes=%zu", bytes);
         return ACL_ERROR_INVALID_PARAM;
     }
 
@@ -78,9 +68,16 @@ aclError SkResourceManager::AllocForModel(aclmdlRI model, void** addr, size_t by
     }
 
     ret = aclrtMalloc(addr, bytes, ACL_MEM_MALLOC_HUGE_FIRST);
-    if (ret != ACL_SUCCESS || *addr == nullptr) {
+    if (ret != ACL_SUCCESS) {
         SK_LOGE("resource alloc by aclrtMalloc failed: model=%p, bytes=%zu, ret=%d", model, bytes, ret);
-        return ret == ACL_SUCCESS ? ACL_ERROR_FAILURE : ret;
+        return ret;
+    }
+    ret = aclrtMemset(*addr, bytes, 0, bytes);
+    if(ret != ACL_SUCCESS) {
+        SK_LOGE("resource memset by aclrtMemset failed: model=%p, addr=%p, bytes=%zu, ret=%d", model, *addr, bytes, ret);
+        aclrtFree(*addr);
+        *addr = nullptr;
+        return ret;
     }
 
     std::lock_guard<std::mutex> lock(resourceMutex_);
@@ -91,6 +88,7 @@ aclError SkResourceManager::AllocForModel(aclmdlRI model, void** addr, size_t by
 
 aclError SkResourceManager::ReleaseRecord(const ResourceRecord& record, aclmdlRI model)
 {
+    SK_LOGI("release resource record: model=%p, addr=%p, bytes=%zu", model, record.addr, record.bytes);
     if (record.addr == nullptr) {
         return ACL_SUCCESS;
     }
@@ -108,10 +106,13 @@ aclError SkResourceManager::ReleaseRecord(const ResourceRecord& record, aclmdlRI
         SK_LOGE("unknown resource kind in model destroy callback: model=%p, addr=%p", model, record.addr);
         return ACL_ERROR_FAILURE;
     }
+    SK_LOGI("resource free success in model destroy callback: model=%p, addr=%p, bytes=%zu", model, record.addr, record.bytes);
+    return ACL_SUCCESS;
 }
 
 void SkResourceManager::OnModelDestroy(void* userData)
 {
+    SK_LOGI("sk resource manager OnModelDestroy called: model=%p", userData);
     aclmdlRI model = reinterpret_cast<aclmdlRI>(userData);
     std::vector<ResourceRecord> resources;
 
@@ -131,4 +132,5 @@ void SkResourceManager::OnModelDestroy(void* userData)
             SK_LOGE("Failed to release some resources during model destroy: model=%p, ret=%d", model, ret);
         }
     }
+    SK_LOGI("sk resource manager OnModelDestroy completed: model=%p", model);
 }

@@ -171,7 +171,7 @@ bool ProcessFrontWaitForStream(SuperKernelGraph& graph, const SuperKernelScopeIn
     // cur stream add record event task
     aclmdlRITaskParams notifyParams;
     errno_t err = memset_s(&notifyParams, sizeof(notifyParams), 0, sizeof(notifyParams));
-    if (err != EOK) {
+    if (err != 0) {
         SK_LOGE("front-wait memset_s notify params failed, ret=%d", static_cast<int>(err));
         return false;
     }
@@ -183,7 +183,7 @@ bool ProcessFrontWaitForStream(SuperKernelGraph& graph, const SuperKernelScopeIn
     // prev stream add wait event task
     aclmdlRITaskParams waitParams;
     err = memset_s(&waitParams, sizeof(waitParams), 0, sizeof(waitParams));
-    if (err != EOK) {
+    if (err != 0) {
         SK_LOGE("front-wait memset_s wait params failed, ret=%d", static_cast<int>(err));
         return false;
     }
@@ -233,7 +233,7 @@ bool ProcessBackBlockForStream(const SuperKernelScopeInfo& scopeInfo, std::vecto
     // cur stream add wait event task
     aclmdlRITaskParams waitParams;
     errno_t err = memset_s(&waitParams, sizeof(waitParams), 0, sizeof(waitParams));
-    if (err != EOK) {
+    if (err != 0) {
         SK_LOGE("back-block memset_s wait params failed, ret=%d", static_cast<int>(err));
         return false;
     }
@@ -246,7 +246,7 @@ bool ProcessBackBlockForStream(const SuperKernelScopeInfo& scopeInfo, std::vecto
     // cur stream add reset event task
     aclmdlRITaskParams resetParams;
     err = memset_s(&resetParams, sizeof(resetParams), 0, sizeof(resetParams));
-    if (err != EOK) {
+    if (err != 0) {
         SK_LOGE("back-block memset_s reset params failed, ret=%d", static_cast<int>(err));
         return false;
     }
