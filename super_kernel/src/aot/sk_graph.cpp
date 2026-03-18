@@ -25,6 +25,8 @@ aclError SuperKernelGraph::Update() {
     if (ret != ACL_SUCCESS) {
         SK_LOGE("Failed to update modelRI");
     }
+    // Clear shape info memory after update completes
+    ClearShapeInfoPtrList();
     return ret;
 }
 

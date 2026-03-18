@@ -28,6 +28,7 @@ add_executable(super_kernel_aot_utest
     ${CMAKE_CURRENT_SOURCE_DIR}/test_sk_scope_postprocess.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test_sk_resource_manager.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test_sk_task_builder.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_sk_profiling.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stub/aclrt_stubs.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stub/ut_common_stubs.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stub/rt_stub.cpp

@@ -25,6 +25,7 @@
 #include "acl/acl.h"
 #include "sk_common.h"
 #include "sk_log.h"
+#include "aprof_pub.h"
 
 constexpr uint32_t K_TYPE_AICORE = 1;
 constexpr uint32_t K_TYPE_AIC = 2;
@@ -269,9 +270,23 @@ struct SkHostEntryInfo {
     ~SkHostEntryInfo() = default;
 };
 
+struct CacheopInfoBasic {
+    uint32_t taskType; // 算子的任务类型 
+    uint32_t numBlocks; // blockdim
+    uint64_t nodeId; //算子名的hashid
+    uint64_t opType; //算子类型的hashid
+    uint64_t attrId{0}; // 本次attr拼接放这里
+    uint64_t reserve2{0};    // 不做处理
+    uint32_t opFlag;//记录op属性标记的bitmap，bit0代表是否使能了HF32
+    uint32_t tensorNum;//tensor个数
+    MsrofTensorData tensorData[0];
+};
+
 struct SkLaunchInfo {
     SkHostEntryInfo entryInfo;
     DeviceArgsPtr devArgs;
+    void* cacheInfo; // sk融合算子的shape信息，由sk_optimizer.cpp在构建launchInfo时填充，实际类型是CacheopInfoBasic，包含一个可变长度的tensorData数组
+    size_t cacheopInfoSize;
 };
 
 #endif // __SK_TYPES_H__

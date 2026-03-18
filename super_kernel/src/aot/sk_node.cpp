@@ -371,6 +371,8 @@ bool SuperKernelKernelNode::InitNode() {
     nodeInfos.kernelInfos.kernelType = NormalizeKernelType((uint32_t)(kernelType), skTaskTatio);
     nodeInfos.kernelInfos.numBlocks = kernelParams.numBlocks;
     nodeInfos.kernelInfos.devArgs = kernelParams.args;
+    nodeInfos.kernelInfos.opInfoPtr = taskParams.opInfoPtr;
+    nodeInfos.kernelInfos.opInfoSize = taskParams.opInfoSize;
     aclRet = aclrtFunctionGetBinary(kernelParams.funcHandle, &nodeInfos.kernelInfos.binHdl);
     if (aclRet != ACL_SUCCESS) {
         SK_LOGE("Failed to get kernel bin handle for funcName=%s, ret=%d",
@@ -452,8 +454,11 @@ bool SuperKernelKernelNode::Update(const UpdateContext &ctx) {
         taskParams.kernelTaskParams.funcHandle = ctx.launchInfo->entryInfo.skEntryFunc;
         taskParams.kernelTaskParams.numBlocks = ctx.launchInfo->entryInfo.numBlocks;
         taskParams.type = ACL_MODEL_RI_TASK_KERNEL;
+        taskParams.opInfoPtr = ctx.launchInfo->cacheInfo;
+ 	    taskParams.opInfoSize = ctx.launchInfo->cacheopInfoSize;
 
         aclError aclRet = aclmdlRITaskSetParams(*originTask, &taskParams);
+
         if (aclRet != ACL_SUCCESS) {
             SK_LOGE("Failed to update kernel node for task %u in stream %u", nodeIdxInStream, streamIdxInGraph);
             return false;
