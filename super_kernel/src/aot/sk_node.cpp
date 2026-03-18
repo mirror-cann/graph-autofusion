@@ -328,6 +328,7 @@ bool IsScopeKernel(aclmdlRIKernelTaskParams params, JudgeTaskKernelInfo* info) {
 
 bool SuperKernelKernelNode::InitNode() {
     if (!SuperKernelBaseNode::InitNode()) {
+        SK_LOGE("Failed to init node for nodeIdxInStream %lu in streamIdxInGraph %u", nodeIdxInStream, streamIdxInGraph);
         return false;
     }
     nodeType = SkNodeType::NODE_KERNEL;
@@ -372,7 +373,7 @@ bool SuperKernelKernelNode::InitNode() {
     nodeInfos.kernelInfos.devArgs = kernelParams.args;
     aclRet = aclrtFunctionGetBinary(kernelParams.funcHandle, &nodeInfos.kernelInfos.binHdl);
     if (aclRet != ACL_SUCCESS) {
-        SK_LOGE("SuperKernelKernelNode::InitNode: Failed to get kernel bin handle for funcName=%s, ret=%d",
+        SK_LOGE("Failed to get kernel bin handle for funcName=%s, ret=%d",
                  nodeInfos.kernelInfos.funcName.c_str(), aclRet);
         return false;
     }
@@ -465,6 +466,7 @@ bool SuperKernelKernelNode::Update(const UpdateContext &ctx) {
 
 bool SuperKernelMemoryNode::InitNode() {
     if (!SuperKernelBaseNode::InitNode()) {
+        SK_LOGE("Failed to init memory node for task %u in stream %u", nodeIdxInStream, streamIdxInGraph);
         return false;
     }
     aclError aclRet = aclmdlRITaskGetParams(*originTask, &taskParams);
@@ -474,6 +476,20 @@ bool SuperKernelMemoryNode::InitNode() {
     }
 
     if (rtNodeType != ACL_MODEL_RI_TASK_VALUE_WRITE && rtNodeType != ACL_MODEL_RI_TASK_VALUE_WAIT) {
+        switch (rtNodeType) {
+            case ACL_MODEL_RI_TASK_EVENT_RECORD:
+                nodeType = SkNodeType::NODE_NOTIFY;
+                break;
+            case ACL_MODEL_RI_TASK_EVENT_WAIT:
+                nodeType = SkNodeType::NODE_WAIT;
+                break;
+            case ACL_MODEL_RI_TASK_EVENT_RESET:
+                nodeType = SkNodeType::NODE_RESET;
+                break;
+            default:
+                SK_LOGE("Unsupported event type %u for task %u in stream %u, which cannot be fused in super kernel.", rtNodeType, nodeIdxInStream, streamIdxInGraph);
+                return false;
+        }
         SK_LOGI("Event type is not memory based for task %u in stream %u, which cannot be fused in super kernel.", nodeIdxInStream, streamIdxInGraph);
         return true;
     }
@@ -550,8 +566,10 @@ std::string SuperKernelMemoryNode::FormatNodeInfo() const {
 
 bool SuperKernelDefaultNode::InitNode() {
     if (!SuperKernelBaseNode::InitNode()) {
+        SK_LOGE("Failed to init default node for task %u in stream %u", nodeIdxInStream, streamIdxInGraph);
         return false;
     }
+    nodeType = SkNodeType::NODE_DEFAULT;
     SK_LOGI("Default task type for task %lu in stream %u, which cannot be fused in super kernel.", nodeIdxInStream, streamIdxInGraph);
     return true;
 }

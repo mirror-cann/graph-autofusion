@@ -79,8 +79,18 @@ bool SuperKernelGraph::AddNode(std::unique_ptr<SuperKernelBaseNode> node) {
 bool SuperKernelGraph::AddEventAssociateNotify(uint64_t eventId, uint64_t nodeId) {
     auto &eventInfo = eventToNodes[eventId];
     if (eventInfo.notifyNodeId != INVALID_TASK_ID) {
-        SK_LOGE("Notify event 0x%lx already associated with node %lu, cannot reassociate with node %lu",
-                 eventId, eventInfo.notifyNodeId, nodeId);
+        // Get the already bound node information
+        SuperKernelBaseNode* existingNode = GetNodeById(eventInfo.notifyNodeId);
+        SuperKernelBaseNode* newNode = GetNodeById(nodeId);
+        
+        SK_LOGE("Notify event 0x%lx already associated, cannot reassociate!", eventId);
+        SK_LOGE("  Existing bound node: node_id=%lu, details=%s",
+                 eventInfo.notifyNodeId,
+                 existingNode ? existingNode->FormatNodeInfo().c_str() : "NOT_FOUND");
+        SK_LOGE("  Attempting to bind: node_id=%lu, details=%s",
+                 nodeId,
+                 newNode ? newNode->FormatNodeInfo().c_str() : "NOT_FOUND");
+        SK_LOGE("  Please check for duplicate event bindings in the graph.");
         return false;
     }
     eventInfo.notifyNodeId = nodeId;
@@ -90,8 +100,14 @@ bool SuperKernelGraph::AddEventAssociateNotify(uint64_t eventId, uint64_t nodeId
 bool SuperKernelGraph::AddEventAssociateWait(uint64_t eventId, uint64_t nodeId) {
     auto &eventInfo = eventToNodes[eventId];
     if (eventInfo.waitNodeIdList.find(nodeId) != eventInfo.waitNodeIdList.end()) {
-        SK_LOGE("Wait event 0x%lx already associated with node %lu, cannot reassociate with same node",
-                 eventId, nodeId);
+        // Get the node information for duplicate WAIT binding
+        SuperKernelBaseNode* existingNode = GetNodeById(nodeId);
+        
+        SK_LOGE("Wait event 0x%lx already associated with this node, cannot reassociate!", eventId);
+        SK_LOGE("  Duplicate WAIT node: node_id=%lu, details=%s",
+                 nodeId,
+                 existingNode ? existingNode->FormatNodeInfo().c_str() : "NOT_FOUND");
+        SK_LOGE("  Please check for duplicate WAIT event bindings in the graph.");
         return false;
     }
     eventInfo.waitNodeIdList.insert(nodeId);
@@ -103,8 +119,18 @@ bool SuperKernelGraph::AddEventAssociateReset(uint64_t eventId, uint64_t nodeId)
     auto &eventInfo = eventToNodes[eventId];
 
     if (eventInfo.resetNodeId != INVALID_TASK_ID) {
-        SK_LOGE("Reset event 0x%lx already associated with node %lu, cannot reassociate with node %lu",
-                 eventId, eventInfo.resetNodeId, nodeId);
+        // Get the already bound node information
+        SuperKernelBaseNode* existingNode = GetNodeById(eventInfo.resetNodeId);
+        SuperKernelBaseNode* newNode = GetNodeById(nodeId);
+        
+        SK_LOGE("Reset event 0x%lx already associated, cannot reassociate!", eventId);
+        SK_LOGE("  Existing bound node: node_id=%lu, details=%s",
+                 eventInfo.resetNodeId,
+                 existingNode ? existingNode->FormatNodeInfo().c_str() : "NOT_FOUND");
+        SK_LOGE("  Attempting to bind: node_id=%lu, details=%s",
+                 nodeId,
+                 newNode ? newNode->FormatNodeInfo().c_str() : "NOT_FOUND");
+        SK_LOGE("  Please check for duplicate RESET event bindings in the graph.");
         return false;
     }
     eventInfo.resetNodeId = nodeId;

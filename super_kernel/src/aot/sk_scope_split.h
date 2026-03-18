@@ -151,6 +151,8 @@ private:
     void InitStreamStates();
     void ResetStreamStates();
     void SkipUnfusibleNodes();
+    bool SkipUnfusibleNodesForStream(uint32_t streamIdx);
+    bool ProcessUnfusibleWaitNode(uint32_t streamIdx, SuperKernelBaseNode* waitNode);
     bool AllStreamsFinished() const;
     bool DetermineCurrentScopeBitFlags();
     
