@@ -356,7 +356,6 @@ void SkTaskBuilder::InsertSyncEvent(size_t preIdx, size_t currIdx)
     }
 }
 
-// ========== 打印同步信息（调试用） ==========
 
 void SkTaskBuilder::PrintSyncInfo(const char *stage)
 {

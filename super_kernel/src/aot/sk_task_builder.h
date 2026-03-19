@@ -30,7 +30,7 @@ enum class SkQueueType : uint8_t {
     AIC = 0b00,     // 仅 AIC 队列
     AIV = 0b01,     // 仅 AIV 队列
     MIX = 0b10,     // 同时在两个队列
-    UNKNOWN = 0xFF, // 未知/无效类型（用于调试同步等特殊场景）
+    UNKNOWN = 0xFF, // 未知/无效类型
 };
 
 inline const char* to_string(SkQueueType type) {
@@ -53,7 +53,7 @@ enum class SyncDirection : uint8_t {
     CUB_TO_VEC,      // AIC -> AIV
     VEC_TO_CUB,      // AIV -> AIC
     BOTH,            // 双向同步（MIX -> MIX）
-    DEBUG,           // 调试使用的全核同步
+    DEBUG,           // 
 };
 
 inline const char* to_string(SyncDirection dir) {
@@ -150,7 +150,7 @@ private:
     // 辅助方法：移除同步信息
     void RemoveSyncInfo(size_t sendIdx, size_t recvIdx, bool isRemoveRecv, SyncDirection dirToRemove);
     
-    // 打印同步信息（调试用）
+    // 打印同步信息
     void PrintSyncInfo(const char* stage);
 
     SkHostEntryInfo GenEntryInfo(SkTask &skTaskCube, SkTask &skTaskVec);
