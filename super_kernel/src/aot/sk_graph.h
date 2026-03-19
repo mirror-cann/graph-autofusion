@@ -71,9 +71,6 @@ public:
 
     // Get all nodeIds sorted in ascending order
     std::vector<uint64_t> GetSortedNodeIds() const;
-    // mark event to scope by scopebegin/scopeend kernel
-    void MarkEventNodeToScopeBegin(SuperKernelBaseNode* node);
-    void MarkEventNodeToScopeEnd(SuperKernelBaseNode* node);
 
     // Get event info by event id
     const EventInfos* GetEventInfo(uint64_t eventId) const
@@ -105,9 +102,9 @@ public:
 
 private:
     bool AddNode(std::unique_ptr<SuperKernelBaseNode> node);
-    bool AddEventAssociateNotify(uint64_t eventId, uint64_t nodeId);
-    bool AddEventAssociateWait(uint64_t eventId, uint64_t nodeId);
-    bool AddEventAssociateReset(uint64_t eventId, uint64_t nodeId);
+    bool AddEventAssociateNotify(uint64_t eventId, SuperKernelBaseNode* node);
+    bool AddEventAssociateWait(uint64_t eventId, SuperKernelBaseNode* node);
+    bool AddEventAssociateReset(uint64_t eventId, SuperKernelBaseNode* node);
     bool AddEventAssociate();
     void BuildWaitNodeAssociations();
     void UpdateNodeScopeBitFlags();

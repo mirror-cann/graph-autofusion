@@ -56,7 +56,7 @@ SkBindMap InitSuperKernelBindMap(aclrtBinHandle binHdl)
 
     size_t metaNum = 0;
     if (int ret = rtBinaryGetMetaNum(binHdl, RT_BINARY_TYPE_SK_INFO, &metaNum) != 0) {
-        SK_LOGI("InitSuperKernelBindMap: rtBinaryGetMetaNum failed, ret=%d", ret);
+        SK_LOGI("rtBinaryGetMetaNum failed, ret=%d", ret);
         return SkBindMap();
     }
     if (metaNum == 0) {
@@ -77,7 +77,7 @@ SkBindMap InitSuperKernelBindMap(aclrtBinHandle binHdl)
 
     if (int ret = rtBinaryGetMetaInfo(binHdl, RT_BINARY_TYPE_SK_INFO, metaNum, metaDataList.data(),
         infoSize.data()) != 0) {
-        SK_LOGE("InitSuperKernelBindMap: rtBinaryGetMetaInfo failed, ret=%d", ret);
+        SK_LOGE("rtBinaryGetMetaInfo failed, ret=%d", ret);
         return SkBindMap();
     }
 
@@ -144,7 +144,7 @@ bool InitSingleCoreFunc(const CoreFuncInitContext& ctx, aclrtBinHandle binHdl, v
     void *binHostAddr = nullptr;
     uint32_t binHostSize = 0;
     if (int ret = rtGetBinBuffer(binHdl, RT_BIN_HOST_ADDR, &binHostAddr, &binHostSize) != 0) {
-        SK_LOGE("InitSingleCoreFunc: split[%zu] rtGetBinBuffer failed for %s, ret=%d", ctx.splitIdx,
+        SK_LOGE("split[%zu] rtGetBinBuffer failed for %s, ret=%d", ctx.splitIdx,
             coreName.c_str(), ret);
         return false;
     }
@@ -161,7 +161,7 @@ bool InitSingleCoreFunc(const CoreFuncInitContext& ctx, aclrtBinHandle binHdl, v
                 ctx.splitIdx, coreName.c_str(), coreTypeId, ctx.info->prefetchCnt[coreTypeId]);
     }
     if (ctx.splitIdx > 0 && ctx.bindIt->second[ctx.splitIdx] == ctx.bindIt->second[0]) {
-        SK_LOGI("InitSingleCoreFunc: split[%zu] %s function is not sk sub op", ctx.splitIdx, coreName.c_str());
+        SK_LOGI("split[%zu] %s function is not sk sub op", ctx.splitIdx, coreName.c_str());
     }
     validFuncNum++;
     return true;
@@ -294,7 +294,7 @@ bool IsScopeKernel(aclmdlRIKernelTaskParams params, JudgeTaskKernelInfo* info) {
     char kernelName[MAX_SCOPE_NAME_LENN] = {0};
     int32_t ret = aclrtGetFunctionName(params.funcHandle, sizeof(kernelName), kernelName);
     if (ret != ACL_SUCCESS) {
-        SK_LOGE("IsScopeKernel: Failed to get kernel name for funcHandle, ret: %d", ret);
+        SK_LOGE("Failed to get kernel name for funcHandle, ret: %d", ret);
         return false;
     }
     bool isBegin = (strcmp(kernelName, targetBeginName) == 0);
@@ -308,7 +308,7 @@ bool IsScopeKernel(aclmdlRIKernelTaskParams params, JudgeTaskKernelInfo* info) {
     ret = aclrtMemcpy((void*)parseArgsAddr.get(), sizeof(ScopeKernelArgs), params.args, sizeof(ScopeKernelArgs),
         ACL_MEMCPY_DEVICE_TO_HOST);
     if (ret != ACL_SUCCESS) {
-        SK_LOGE("IsScopeKernel: Failed to copy kernel args from device to host, ret: %d, direction=DEVICE_TO_HOST", ret);
+        SK_LOGE("Failed to copy kernel args from device to host, ret: %d, direction=DEVICE_TO_HOST", ret);
         return false;
     }
     parseArgsAddr->name[MAX_SCOPE_NAME_LENN - 1] = '\0';
@@ -316,7 +316,7 @@ bool IsScopeKernel(aclmdlRIKernelTaskParams params, JudgeTaskKernelInfo* info) {
     info->scopeName = std::make_unique<char[]>(nameLen + 1);
     errno_t res = memcpy_s(info->scopeName.get(), nameLen + 1, parseArgsAddr->name, nameLen + 1);
     if (res != 0) {
-        SK_LOGE("IsScopeKernel: Failed to copy scope name '%s', memcpy_s error code: %d", parseArgsAddr->name, res);
+        SK_LOGE("Failed to copy scope name '%s', memcpy_s error code: %d", parseArgsAddr->name, res);
         return false;
     }
     info->isBegin = isBegin;

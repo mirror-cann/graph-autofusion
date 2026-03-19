@@ -67,6 +67,34 @@ struct StreamState {
           isSuspended(false),
           waitingForNotify(INVALID_TASK_ID),
           isTerminated(false) {}
+
+    /*!
+     * \brief Format stream state information for logging
+     * \return Formatted string describing the stream state
+     */
+    std::string FormatStreamStateInfo() const {
+        std::string info = "currentNodeIdx=";
+        if (currentNodeIdx == INVALID_TASK_ID) {
+            info += "INVALID";
+        } else {
+            info += std::to_string(currentNodeIdx);
+        }
+
+        info += ", isSuspended=";
+        info += (isSuspended ? "true" : "false");
+
+        info += ", waitingForNotify=";
+        if (waitingForNotify == INVALID_TASK_ID) {
+            info += "INVALID";
+        } else {
+            info += "0x" + std::to_string(waitingForNotify);
+        }
+
+        info += ", isTerminated=";
+        info += (isTerminated ? "true" : "false");
+
+        return info;
+    }
 };
 
 // ============ Pass Base Class ============
@@ -149,8 +177,8 @@ public:
 private:
     // ============ Stream State Management ============
     void InitStreamStates();
-    void ResetStreamStates();
-    void SkipUnfusibleNodes();
+    bool ResetStreamStates();  // Changed from void to bool to propagate errors
+    bool SkipUnfusibleNodes();  // Changed from void to bool to propagate errors
     bool SkipUnfusibleNodesForStream(uint32_t streamIdx);
     bool ProcessUnfusibleWaitNode(uint32_t streamIdx, SuperKernelBaseNode* waitNode);
     bool AllStreamsFinished() const;
@@ -162,10 +190,15 @@ private:
     void HandleWaitNode(SuperKernelBaseNode* waitNode, uint32_t streamIdx);
     void ProcessNotifyNode(SuperKernelBaseNode* notifyNode);
     void ProcessResetNode(SuperKernelBaseNode* resetNode);
+    bool HandleUnfusibleNotifyNode(SuperKernelBaseNode* notifyNode, uint32_t streamIdx);
+    bool ResumeSuspendedWaitStreams(SuperKernelBaseNode* notifyNode, uint32_t notifyStreamIdx);
     
     // ============ Scope Building ============
     void AddStreamInfoToScope(SuperKernelScopeInfo& scopeInfo, SuperKernelBaseNode* node);
     bool BuildCurrentScope(SuperKernelScopeInfo& scopeInfo);
+
+    // ============ Diagnostic Logging ============
+    void LogFusibleNodeSearchResult();
     
     // ============ Member Variables ============
     std::unordered_map<uint32_t, StreamState> streamStates_;
