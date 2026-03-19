@@ -192,6 +192,15 @@ struct SkDeviceEntryArgs {
     uint8_t data[0];
 };
 
+namespace sk {
+struct SkSystemArgs {
+    uint16_t skBlockIdx;    // sub-kernel block idx
+    uint16_t skBlockNum;    // sub-kernel block num
+    uint16_t skTaskSyncCfg; // sync type for "early-start"
+    uint8_t reserve[10];
+};
+}
+
 bool GetFuncSymbolInfo(const char* binAddr, size_t binSize, uint64_t funcAddr, std::string& symbolName,
                        uint64_t& funcSize);
 
