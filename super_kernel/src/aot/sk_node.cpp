@@ -56,11 +56,11 @@ SkBindMap InitSuperKernelBindMap(aclrtBinHandle binHdl)
 
     size_t metaNum = 0;
     if (int ret = rtBinaryGetMetaNum(binHdl, RT_BINARY_TYPE_SK_INFO, &metaNum) != 0) {
-        SK_LOGE("InitSuperKernelBindMap: rtBinaryGetMetaNum failed, ret=%d", ret);
+        SK_LOGI("InitSuperKernelBindMap: rtBinaryGetMetaNum failed, ret=%d", ret);
         return SkBindMap();
     }
     if (metaNum == 0) {
-        SK_LOGW("metaNum is zero!");
+        SK_LOGI("metaNum is zero!");
         return SkBindMap();
     }
 
@@ -200,6 +200,10 @@ bool InitKernelResolvedFuncs(KernelInfos &kernelInfos)
         return false;
     }
     SkBindMap bindMap = GetSkBindMap(binHdl);
+    if (bindMap.empty()) {
+        SK_LOGI("bindMap is empty for kernel %s", kernelInfos.funcName.c_str());
+        return false;
+    }
     size_t binDevSize = 0;
     void *binDevAddr = nullptr;
     CHECK_ACL(aclrtBinaryGetDevAddress(binHdl, &binDevAddr, &binDevSize));
@@ -401,8 +405,8 @@ bool SuperKernelKernelNode::InitNode() {
     char tmpFuncName[256] = {0};
     CHECK_ACL(aclrtGetFunctionName(kernelParams.funcHandle, sizeof(tmpFuncName), tmpFuncName));
     nodeInfos.kernelInfos.funcName = std::string(tmpFuncName);
-    if (!nodeInfos.kernelInfos.funcName.empty() && nodeInfos.kernelInfos.binHdl != nullptr) {
-        InitKernelResolvedFuncs(nodeInfos.kernelInfos);
+    if (!isScopeNode && !nodeInfos.kernelInfos.funcName.empty() && nodeInfos.kernelInfos.binHdl != nullptr) {
+        isFusible = InitKernelResolvedFuncs(nodeInfos.kernelInfos);
     }
     return true;
 }
