@@ -61,7 +61,7 @@ struct KernelInfos {
     const void *devArgs = nullptr;
     void* opInfoPtr = nullptr;
     size_t opInfoSize = 0;
-    std::string funcName;
+    std::string funcName = "Unknown";
     aclrtBinHandle binHdl = nullptr;
     aclrtFuncHandle funcHdl = nullptr;
     ResolvedFunctionInfo resolvedFuncs[4];
@@ -75,6 +75,8 @@ struct SyncInfos {
     // For notify nodes: list of all wait node IDs that wait on this notify
     // For wait nodes: empty (not used)
     std::vector<uint64_t> correspondingWaitNodeIds;
+    // For event nodes, the corresponding reset node ID
+    uint64_t correspondingResetNodeId = INVALID_TASK_ID;
     void* addrValue = nullptr;
 };
 
@@ -88,16 +90,20 @@ class SuperKernelBaseNode {
 public:
     SuperKernelBaseNode(std::unique_ptr<aclmdlRITask> inputOriginTask, aclmdlRITaskType inputRtNodeType, uint64_t inputNodeIdxInStream, uint64_t inputStreamIdxInGraph, uint64_t inputPreNodeId)
         : originTask(std::move(inputOriginTask)),
+          taskParams({}),
           rtNodeType(inputRtNodeType),
-          nodeIdxInStream(inputNodeIdxInStream),
+          notifyExpandVecNum(0),
+          notifyExpandCubeNum(0),
           streamIdxInGraph(inputStreamIdxInGraph),
+          nodeIdxInStream(inputNodeIdxInStream),
+          nodeId(INVALID_TASK_ID),
           preNodeId(inputPreNodeId),
           nextNodeId(INVALID_TASK_ID),
+          nodeType(SkNodeType::NODE_DEFAULT),
           isVisited(false),
           isFusible(false),
           isScopeNode(false),
-          notifyExpandVecNum(0),
-          notifyExpandCubeNum(0) { }
+          isUpdate(false) { }
     virtual ~SuperKernelBaseNode() = default;
     virtual bool InitNode();
 
@@ -196,10 +202,7 @@ public:
         return nodeInfos;
     }
 
-    virtual bool Update(const UpdateContext& ctx = {})
-    {
-        return InValidateNode();
-    }
+    virtual bool Update(const UpdateContext& ctx = {});
 
     virtual bool InValidateNode() = 0;
 
@@ -246,6 +249,10 @@ public:
     void SetNotifyExpandVecNum(uint32_t vecNum) { notifyExpandVecNum = vecNum; }
     void SetNotifyExpandCubeNum(uint32_t cubeNum) { notifyExpandCubeNum = cubeNum; }
 
+    // for update
+    bool IsUpdated() const { return isUpdate; }
+    void SetUpdate(bool update) { isUpdate = update; }
+
 public:
     NodeInfos nodeInfos;
     std::unique_ptr<aclmdlRITask> originTask;
@@ -266,6 +273,7 @@ protected:
     bool isVisited;
     bool isFusible;
     bool isScopeNode;
+    bool isUpdate;
     std::bitset<MAX_SCOPE_NUM> scopeBitFlags;
 };
 

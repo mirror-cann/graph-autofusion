@@ -100,6 +100,9 @@ public:
         shapeInfoPtrList.clear();
     }
 
+    // Expand update nodes
+    bool ExpandUpdateNodes(std::vector<SuperKernelBaseNode*>& needUpdateNodes);
+
 private:
     bool AddNode(std::unique_ptr<SuperKernelBaseNode> node);
     bool AddEventAssociateNotify(uint64_t eventId, SuperKernelBaseNode* node);
@@ -117,6 +120,7 @@ private:
     std::unordered_map<std::string, uint32_t> scopeNameToIdx;    ///< scopeName -> scopeIdx
     std::unordered_map<uint32_t, std::string> scopeIdxToName;    ///< scopeIdx -> scopeName (reverse mapping)
     std::vector<std::unique_ptr<uint8_t[]>> shapeInfoPtrList;    ///< profiling sk shape info memory, lifecycle follows graph
+    std::unordered_set<SuperKernelBaseNode*> needUpdateNodes;      ///< event nodes that need to be marked with scope bit flags after scope processing 
 };
 
 #endif // __SK_GRAPH_H__

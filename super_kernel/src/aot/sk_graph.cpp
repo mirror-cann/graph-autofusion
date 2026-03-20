@@ -21,6 +21,46 @@
 #include <bitset>
 
 aclError SuperKernelGraph::Update() {
+    for(auto node : needUpdateNodes) {
+        if (node == nullptr) {
+            SK_LOGE("Null node found in needUpdateNodes");
+            return ACL_ERROR_FAILURE;
+        }
+        if (!node->IsUpdated()) {
+            aclmdlRITaskParams customParams = {};
+            auto addrValue = node->nodeInfos.syncInfos.addrValue;
+            switch (node->GetNodeType()) {
+                case SkNodeType::NODE_NOTIFY: {
+                    customParams.type = ACL_MODEL_RI_TASK_VALUE_WRITE;
+                    customParams.valueWriteTaskParams.value = 1;
+                    customParams.valueWriteTaskParams.devAddr = addrValue;
+                    break;
+                }
+                case SkNodeType::NODE_WAIT: {
+                    customParams.type = ACL_MODEL_RI_TASK_VALUE_WAIT;
+                    customParams.valueWaitTaskParams.value = 1;
+                    customParams.valueWaitTaskParams.flag = 1;
+                    customParams.valueWaitTaskParams.devAddr = addrValue;
+                    break;
+                }
+                case SkNodeType::NODE_RESET: {
+                    customParams.type = ACL_MODEL_RI_TASK_VALUE_WRITE;
+                    customParams.valueWriteTaskParams.value = 0;
+                    customParams.valueWriteTaskParams.devAddr = addrValue;
+                    break;
+                }
+                default:
+                    SK_LOGE("Unsupported node type for event update: %u", static_cast<uint32_t>(node->GetNodeType()));
+                    return ACL_ERROR_FAILURE;
+            }
+            UpdateContext ctx;
+            ctx.customParams = &customParams;
+            if(!node->Update(ctx)){
+                SK_LOGE("Failed to update event node %lu in stream %u", node->GetNodeId(), node->GetStreamIdxInGraph());
+                return ACL_ERROR_FAILURE;
+            }
+        }
+    }
     aclError ret = aclmdlRIUpdate(modelRI);
     if (ret != ACL_SUCCESS) {
         SK_LOGE("Failed to update modelRI");
@@ -28,6 +68,15 @@ aclError SuperKernelGraph::Update() {
     // Clear shape info memory after update completes
     ClearShapeInfoPtrList();
     return ret;
+}
+
+bool SuperKernelGraph::ExpandUpdateNodes(std::vector<SuperKernelBaseNode*>& customNodes) {
+    for (auto* node : customNodes) {
+        if (node != nullptr && needUpdateNodes.find(node) == needUpdateNodes.end()) {
+            needUpdateNodes.insert(node);
+        }
+    }
+    return true;
 }
 
 SuperKernelBaseNode* SuperKernelGraph::GetNodeById(uint64_t nodeId) const {

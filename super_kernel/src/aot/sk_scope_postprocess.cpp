@@ -169,24 +169,14 @@ bool ProcessFrontWaitForStream(SuperKernelGraph& graph, const SuperKernelScopeIn
     processedScopeInfo.eventNodes.emplace_back(std::move(resetNode));
 
     // cur stream add record event task
-    aclmdlRITaskParams notifyParams;
-    errno_t err = memset_s(&notifyParams, sizeof(notifyParams), 0, sizeof(notifyParams));
-    if (err != 0) {
-        SK_LOGE("front-wait memset_s notify params failed, ret=%d", static_cast<int>(err));
-        return false;
-    }
+    aclmdlRITaskParams notifyParams = {};
     notifyParams.type = ACL_MODEL_RI_TASK_VALUE_WRITE;
     notifyParams.valueWriteTaskParams.devAddr = addr;
     notifyParams.valueWriteTaskParams.value = 1;
     processedScopeInfo.updateStreamInfos[curStreamIdx].customParams.emplace_back(notifyParams);
 
     // prev stream add wait event task
-    aclmdlRITaskParams waitParams;
-    err = memset_s(&waitParams, sizeof(waitParams), 0, sizeof(waitParams));
-    if (err != 0) {
-        SK_LOGE("front-wait memset_s wait params failed, ret=%d", static_cast<int>(err));
-        return false;
-    }
+    aclmdlRITaskParams waitParams = {};
     waitParams.type = ACL_MODEL_RI_TASK_VALUE_WAIT;
     waitParams.valueWaitTaskParams.devAddr = addr;
     waitParams.valueWaitTaskParams.value = 1;
@@ -231,12 +221,7 @@ bool ProcessBackBlockForStream(const SuperKernelScopeInfo& scopeInfo, std::vecto
     processedScopeInfo.eventNodes.emplace_back(std::move(notifyNode));
 
     // cur stream add wait event task
-    aclmdlRITaskParams waitParams;
-    errno_t err = memset_s(&waitParams, sizeof(waitParams), 0, sizeof(waitParams));
-    if (err != 0) {
-        SK_LOGE("back-block memset_s wait params failed, ret=%d", static_cast<int>(err));
-        return false;
-    }
+    aclmdlRITaskParams waitParams = {};
     waitParams.type = ACL_MODEL_RI_TASK_VALUE_WAIT;
     waitParams.valueWaitTaskParams.devAddr = addr;
     waitParams.valueWaitTaskParams.value = 1;
@@ -244,12 +229,7 @@ bool ProcessBackBlockForStream(const SuperKernelScopeInfo& scopeInfo, std::vecto
     processedScopeInfo.updateStreamInfos[curStreamIdx].customParams.emplace_back(waitParams);
 
     // cur stream add reset event task
-    aclmdlRITaskParams resetParams;
-    err = memset_s(&resetParams, sizeof(resetParams), 0, sizeof(resetParams));
-    if (err != 0) {
-        SK_LOGE("back-block memset_s reset params failed, ret=%d", static_cast<int>(err));
-        return false;
-    }
+    aclmdlRITaskParams resetParams = {};
     resetParams.type = ACL_MODEL_RI_TASK_VALUE_WRITE;
     resetParams.valueWriteTaskParams.devAddr = addr;
     resetParams.valueWriteTaskParams.value = 0;
@@ -355,11 +335,80 @@ bool GetMainAndSubStreamOrder(SuperKernelGraph& graph, std::vector<StreamPostPla
     return true;
 }
 
+bool ApplyEventMemoryResource(SuperKernelGraph& graph, SuperKernelBaseNode* eventNode,
+                              std::vector<SuperKernelBaseNode*>& needUpdateNodes)
+{
+    // Constraint : eventNode.syncInfos have all associated node
+    auto& syncInfos = eventNode->nodeInfos.syncInfos;
+    // Determine whether the event has already been allocated memory. If not, then request memory allocation.
+    if (syncInfos.addrValue != nullptr) {
+        // already applied
+        SK_LOGI("event memory already applied: eventId=%lu, addr=%p", syncInfos.eventId, syncInfos.addrValue);
+        return true;
+    } else {
+        // check syncInfos
+        if (syncInfos.correspondingNotifyNodeId == INVALID_TASK_ID || syncInfos.correspondingWaitNodeIds.empty()
+            || syncInfos.correspondingResetNodeId == INVALID_TASK_ID) {
+            SK_LOGE("event syncInfos invalid: eventId=%lu, NotifyNodeId=%lu, WaitNodeIdsSize=%zu, ResetNodeId=%lu",
+                    syncInfos.eventId, syncInfos.correspondingNotifyNodeId, syncInfos.correspondingWaitNodeIds.size(),
+                    syncInfos.correspondingResetNodeId);
+            return false;
+        }
+        SK_LOGI("event memory allocated start ...");
+        void* addr = nullptr;
+        aclError allocRet = SkResourceManager::ValueMemory(&addr);
+        if (allocRet != ACL_SUCCESS || addr == nullptr) {
+            SK_LOGE("event memory alloc failed: eventId=%lu, ret=%d", syncInfos.eventId, allocRet);
+            return false;
+        }
+        // notify sync info update
+        auto notifyNode = graph.GetNodeById(syncInfos.correspondingNotifyNodeId);
+        if (notifyNode == nullptr) {
+            SK_LOGE("notify event node not found in graph during event memory apply: notifyNodeId=%lu",
+                    syncInfos.correspondingNotifyNodeId);
+            return false;
+        }
+        // wait sync info update
+        notifyNode->nodeInfos.syncInfos.addrValue = addr;
+        needUpdateNodes.emplace_back(notifyNode);
+        SK_LOGI("Updated notify node addrValue: nodeId=%lu, addr=%p", notifyNode->GetNodeId(), addr);
+        for (auto waitNodeId : syncInfos.correspondingWaitNodeIds) {
+            auto waitNode = graph.GetNodeById(waitNodeId);
+            if (waitNode == nullptr) {
+                SK_LOGE("wait event node not found in graph during event memory apply: waitNodeId=%lu", waitNodeId);
+                return false;
+            }
+            waitNode->nodeInfos.syncInfos.addrValue = addr;
+            needUpdateNodes.emplace_back(waitNode);
+            SK_LOGI("Updated wait node addrValue: nodeId=%lu, addr=%p", waitNode->GetNodeId(), addr);
+        }
+        // reset sync info update
+        auto resetNode = graph.GetNodeById(syncInfos.correspondingResetNodeId);
+        if (resetNode == nullptr) {
+            SK_LOGE("reset event node not found in graph during event memory apply: resetNodeId=%lu",
+                    syncInfos.correspondingResetNodeId);
+            return false;
+        }
+        resetNode->nodeInfos.syncInfos.addrValue = addr;
+        needUpdateNodes.emplace_back(resetNode);
+        SK_LOGI("Updated reset node addrValue: nodeId=%lu, addr=%p", resetNode->GetNodeId(), addr);
+        SK_LOGI("event memory allocated end: eventId=%lu, addr=%p", syncInfos.eventId, syncInfos.addrValue);
+    }
+
+    syncInfos = eventNode->nodeInfos.syncInfos;
+    if (syncInfos.addrValue == nullptr) {
+        SK_LOGE("event memory apply failed: eventId=%lu, addr is nullptr", syncInfos.eventId);
+        return false;
+    }
+    return true;
+}
+
 } // namespace
 
 SuperKernelProcessedScopeInfo SuperKernelScopePostProcessor::PostProcess(SuperKernelScopeInfo& scopeInfo)
 {
     // Implementation for post-processing scopes
+    // Constraint : directed acyclic graph
 
     uint32_t streamCount = scopeInfo.scopeStreamInfos.size();
     SK_LOGI("scope post-process begin: streamCount=%u, nodeCount=%zu", streamCount, scopeInfo.nodes.size());
@@ -370,7 +419,7 @@ SuperKernelProcessedScopeInfo SuperKernelScopePostProcessor::PostProcess(SuperKe
         return {};
     }
 
-    // init
+    // init processedScopeInfo
     SuperKernelProcessedScopeInfo processedScopeInfo;
     processedScopeInfo.nodes = std::move(filteredTasks);
     processedScopeInfo.skMainNodeId = INVALID_TASK_ID;
@@ -378,6 +427,7 @@ SuperKernelProcessedScopeInfo SuperKernelScopePostProcessor::PostProcess(SuperKe
 
     std::vector<StreamPostPlan> plans(streamCount);
     uint32_t needFrontWaitCount = 0;
+    std::vector<SuperKernelBaseNode*> needUpdateNodes;
 
     // pass1: collect per-stream info and boundary plans
     for (uint32_t curStreamIdx = 0; curStreamIdx < streamCount; ++curStreamIdx) {
@@ -411,6 +461,28 @@ SuperKernelProcessedScopeInfo SuperKernelScopePostProcessor::PostProcess(SuperKe
             "stream plan collected: streamIdx=%u, streamId=%u, head=%lu, tail=%lu, nodeSize=%lu, needFrontWait=%d, needBackBlock=%d",
             curStreamIdx, scopeStreamInfo.streamIdx, scopeStreamInfo.headNodeIdx, scopeStreamInfo.tailNodeIdx,
             scopeStreamInfo.nodeSize, plans[curStreamIdx].needFrontWait, plans[curStreamIdx].needBackBlock);
+
+        auto curNode = headNode;
+        while (curNode != nullptr) {
+            auto nodeType = curNode->GetNodeType();
+            switch (curNode->GetNodeType()) {
+                case SkNodeType::NODE_NOTIFY:
+                case SkNodeType::NODE_WAIT:
+                case SkNodeType::NODE_RESET:
+                    if (!ApplyEventMemoryResource(graph, curNode, needUpdateNodes)) {
+                        SK_LOGE("event memory resource apply failed during post-process: nodeId=%lu, nodeType=%d",
+                                curNode->GetNodeId(), static_cast<int>(nodeType));
+                        return {};
+                    }
+                    break;
+                default:
+                    break;
+            }
+            if (curNode == tailNode) {
+                break;
+            }
+            curNode = graph.GetNodeById(curNode->GetNextNodeId());
+        }
     }
     SK_LOGI("scope pass1 done: streamCount=%u, needFrontWaitCount=%u", streamCount, needFrontWaitCount);
 
@@ -449,6 +521,12 @@ SuperKernelProcessedScopeInfo SuperKernelScopePostProcessor::PostProcess(SuperKe
 
         SK_LOGI("scope pass3 stream end: streamIdx=%u, streamId=%u, remainFrontWait=%u", curStreamIdx,
                 processedScopeInfo.updateStreamInfos[curStreamIdx].streamIdx, needFrontWaitCount);
+    }
+
+    // pass4: record nodes that need update for graph update
+    if (!graph.ExpandUpdateNodes(needUpdateNodes)) {
+        SK_LOGE("scope pass4 failed to record update nodes for graph update");
+        return {};
     }
 
     size_t totalCustomParamSize = 0;
