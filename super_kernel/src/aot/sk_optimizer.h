@@ -17,8 +17,6 @@
 #include "sk_scope_postprocess.h"
 #include "sk_graph.h"
 
-constexpr uint32_t SHAPE_MAX_TENSOR_NUM = 800;
-
 class SkTaskBuilder;
 
 /**
@@ -42,7 +40,6 @@ private:
     bool Update(SuperKernelProcessedScopeInfo& processedScopeInfo, SuperKernelGraph& graph,
                 const SkLaunchInfo& launchInfo);
     bool UpdateScopeNode(SuperKernelProcessedScopeInfo& processedScopeInfo, SuperKernelGraph& graph);
-    bool SkProfiling(const SuperKernelProcessedScopeInfo &scopeInfo, SkLaunchInfo &launchInfo, SuperKernelGraph& graph);
 };
 
 #endif // __SK_OPTIMIZER_H__

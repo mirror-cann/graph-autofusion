@@ -172,7 +172,6 @@ private:
 
     SkHostEntryInfo GenEntryInfo(SkTask& skTaskCube, SkTask& skTaskVec);
     DeviceArgsPtr GenEntryArgs(const SkTask& skTaskCube, const SkTask& skTaskVec, const SkDfxInfo* dfxInfos,
-                               uint32_t dfxCount);
-};
-
+                               uint32_t dfxCount, const SkEventConfig *eventConfig = nullptr);
+};                           
 #endif // __SK_TASK_BUILDER_H__

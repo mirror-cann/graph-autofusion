@@ -37,6 +37,7 @@ struct SuperKernelProcessedScopeInfo {
     // Own synthesized event nodes created in post-process.
     std::vector<std::unique_ptr<SuperKernelBaseNode>> eventNodes;
     uint64_t skMainNodeId = INVALID_TASK_ID;
+    uint32_t scopeIdx = 0;
 };
 
 class SuperKernelScopePostProcessor {

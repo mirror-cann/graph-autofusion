@@ -117,6 +117,7 @@ private:
     std::vector<uint64_t> nodeSizeInStream;
     std::vector<aclrtStream> streams;
     aclmdlRI modelRI;
+    friend class SuperKernelOptimizer;
     std::unordered_map<std::string, uint32_t> scopeNameToIdx;    ///< scopeName -> scopeIdx
     std::unordered_map<uint32_t, std::string> scopeIdxToName;    ///< scopeIdx -> scopeName (reverse mapping)
     std::vector<std::unique_ptr<uint8_t[]>> shapeInfoPtrList;    ///< profiling sk shape info memory, lifecycle follows graph

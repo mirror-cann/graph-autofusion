@@ -71,21 +71,11 @@ inline char* MsprofId2Str(size_t id) {
 
 /**
  * @brief Get profiling path (stub implementation)
- * @param path Output path buffer
- * @param len Buffer length
- * @return 0 on success
+ * @return Static string of profiling path
  */
-inline int MsprofGetPath(char* path, size_t len) {
-    if (path != nullptr && len > 0) {
-        const char* defaultPath = "/tmp/msprof";
-        size_t copyLen = strlen(defaultPath);
-        if (copyLen >= len) {
-            copyLen = len - 1;
-        }
-        (void)memcpy_s(path, copyLen, defaultPath, copyLen);
-        path[copyLen] = '\0';
-    }
-    return 0;
+inline char* MsprofGetPath() {
+    static char profPath[] = "/tmp/prof_output/mindstudio_profiler_output";
+    return profPath;
 }
 
 #endif // APROF_PUB_H

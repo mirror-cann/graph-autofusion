@@ -17,6 +17,7 @@
 #include "sk_lock_detector.h"
 #include "sk_resource_manager.h"
 #include "sk_scope_launch.h"
+#include "sk_event_recorder.h"
 
 namespace {
 class CurrentModelGuard {
@@ -56,6 +57,10 @@ aclError aclskOptimize(aclmdlRI model, aclskOptions *options) {
         return ret;
     }
     SK_LOGI("End init sk graph");
+    
+    SK_LOGI("Start init sk time profiling  event recorder...");
+    SkEventRecorder::Instance().Init(); // 初始化事件记录器（如果ASCEND_PROF_SK_ON=1环境变量开启）
+    SK_LOGI("End init sk time profiling event recorder");
 
     SK_LOGI("Start parse sk options...");
     SuperKernelOptionsManager opts;

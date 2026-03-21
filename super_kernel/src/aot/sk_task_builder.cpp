@@ -18,6 +18,7 @@
 #include <new>
 #include <string>
 #include "securec.h"
+#include "sk_event_recorder.h"
 
 extern "C" aclrtBinHandle AscendGetEntryBinHandle();
 
@@ -107,8 +108,8 @@ void DumpDeviceArgs(const SkDeviceEntryArgs* args)
     const uint8_t* base = (const uint8_t*)args;
 
     const SkHeaderInfo& hdr = args->skHeader;
-    SK_LOGD("SkHeaderInfo: aicOff=%u, aivOff=%u, counterOff=%u, wsOff=%u, dfxOff=%u, nodeCnt=%u, totalSize=%lu",
-            hdr.aicQueOffset, hdr.aivQueOffset, hdr.counterOffset, hdr.wsOffset, hdr.dfxOffset, hdr.nodeCnt,
+    SK_LOGD("SkHeaderInfo: aicOff=%u, aivOff=%u, counterOff=%u, wsOff=%u, dfxOff=%u, eventConfigOff=%u, nodeCnt=%u, totalSize=%lu\n",
+            hdr.aicQueOffset, hdr.aivQueOffset, hdr.counterOffset, hdr.wsOffset, hdr.dfxOffset, hdr.eventConfigOffset, hdr.nodeCnt,
             hdr.totalSize);
 
     DumpTaskQue((const TaskQue*)(base + args->skHeader.aicQueOffset), "AIC");
@@ -806,7 +807,7 @@ SkCoreSyncType GetSyncTypesForDirection(SyncDirection dir, bool isSend)
 } // namespace
 
 DeviceArgsPtr SkTaskBuilder::GenEntryArgs(const SkTask& skTaskCube, const SkTask& skTaskVec, const SkDfxInfo* dfxInfos,
-                                          uint32_t dfxCount)
+                                          uint32_t dfxCount, const SkEventConfig *eventConfig)
 {
     size_t header_size = sizeof(SkHeaderInfo);
     size_t aic_que_size = skTaskCube.GetTaskQueSize();
@@ -814,13 +815,15 @@ DeviceArgsPtr SkTaskBuilder::GenEntryArgs(const SkTask& skTaskCube, const SkTask
     size_t counter_size = DEFAULT_COUNTER_COUNT * sizeof(SkCounterInfo);
     size_t ws_size = sizeof(SkWorkSpace);
     size_t dfx_size = dfxCount * sizeof(SkDfxInfo);
+    size_t event_config_size = sizeof(SkEventConfig);
 
     size_t aic_que_offset = header_size;
     size_t aiv_que_offset = aic_que_offset + aic_que_size;
     size_t counter_offset = aiv_que_offset + aiv_que_size;
     size_t ws_offset = counter_offset + counter_size;
     size_t dfx_offset = ws_offset + ws_size;
-    uint64_t total_size = dfx_offset + dfx_size;
+    size_t event_config_offset = dfx_offset + dfx_size;
+    uint64_t total_size = event_config_offset + event_config_size;
 
     SK_LOGI(
         "sk total args size: %d, header_size: %d, aic_que_size: %d, aiv_que_size: %d, counter_size: %d, ws_size: %d, dfx_size: %d",
@@ -835,6 +838,7 @@ DeviceArgsPtr SkTaskBuilder::GenEntryArgs(const SkTask& skTaskCube, const SkTask
     args.Get()->skHeader.counterOffset = counter_offset;
     args.Get()->skHeader.wsOffset = ws_offset;
     args.Get()->skHeader.dfxOffset = dfx_offset;
+    args.Get()->skHeader.eventConfigOffset = event_config_offset;
     args.Get()->skHeader.totalSize = total_size;
 
     uint8_t* base = (uint8_t*)args.Get();
@@ -872,6 +876,21 @@ DeviceArgsPtr SkTaskBuilder::GenEntryArgs(const SkTask& skTaskCube, const SkTask
             return {};
         }
     }
+    
+    // 写入事件配置
+    SkEventConfig *dstEventConfig = (SkEventConfig *)(base + event_config_offset);
+    if (eventConfig != nullptr) {
+        err = memcpy_s(dstEventConfig, event_config_size, eventConfig, event_config_size);
+        if (err != 0) {
+            SK_LOGE("GenEntryArgs memcpy_s eventConfig failed, ret=%d\n", static_cast<int>(err));
+            return DeviceArgsPtr();
+        }
+    } else {
+        // 默认值：禁用事件记录
+        memset_s(dstEventConfig, event_config_size, 0, event_config_size);
+        dstEventConfig->enabled = 0;
+    }
+    
     args.Get()->skHeader.nodeCnt = dfxCount;
     return args;
 }
@@ -1210,32 +1229,55 @@ SkHostEntryInfo SkTaskBuilder::GenEntryInfo(SkTask& skTaskCube, SkTask& skTaskVe
     bool enableDebug = opts.EnableDebug();
     const char* entryFuncName = nullptr;
     bool isMix12 = false;
+    // 检查打点环境变量是否开启（只有等于 "1" 时才启用）
+    const char* env = std::getenv(ENV_SK_EVENT_RECORD);
+    bool shouldEnable = (env != nullptr && std::string(env) == "1");
     if (skTaskCube.funcCnt == 0 && skTaskVec.funcCnt > 0) {
-        entryFuncName = enableDebug == false ? "sk_entry_aiv" : "sk_entry_aiv_debug";
+        if (shouldEnable) {
+            entryFuncName = "sk_entry_aiv_dump_profiling";
+        } else {
+            entryFuncName = enableDebug == false ? "sk_entry_aiv" : "sk_entry_aiv_debug";
+        }
         entryInfo.entryType = SkKernelType::AIV_ONLY;
         entryInfo.numBlocks = skTaskVec.numBlocks;
         skTaskCube.numBlocks = 0;
     } else if (skTaskCube.funcCnt > 0 && skTaskVec.funcCnt == 0) {
-        entryFuncName = enableDebug == false ? "sk_entry_aic" : "sk_entry_aic_debug";
+        if (shouldEnable) {
+            entryFuncName = "sk_entry_aic_dump_profiling";
+        } else {
+            entryFuncName = enableDebug == false ? "sk_entry_aic" : "sk_entry_aic_debug";
+        }
         entryInfo.entryType = SkKernelType::AIC_ONLY;
         entryInfo.numBlocks = skTaskCube.numBlocks;
         skTaskVec.numBlocks = 0;
     } else if (skTaskCube.funcCnt > 0 && skTaskVec.funcCnt > 0) {
         uint32_t mix_1_2_aiv_numBlocks = (skTaskVec.numBlocks + 1) / 2;
         if (skTaskCube.nodeType == SkKernelType::MIX_AIC_1_2 && skTaskVec.nodeType == SkKernelType::MIX_AIC_1_2) {
-            entryFuncName = enableDebug == false ? "sk_entry_mix12" : "sk_entry_mix12_debug";
+            if (shouldEnable) {
+                entryFuncName = "sk_entry_mix12_dump_profiling";
+            } else {
+                entryFuncName = enableDebug == false ? "sk_entry_mix12" : "sk_entry_mix12_debug";
+            }
             entryInfo.entryType = SkKernelType::MIX_AIC_1_2;
             isMix12 = true;
             entryInfo.numBlocks = std::max(skTaskCube.numBlocks, mix_1_2_aiv_numBlocks);
             skTaskCube.numBlocks = entryInfo.numBlocks;
             skTaskVec.numBlocks = entryInfo.numBlocks * 2;
         } else if (skTaskVec.numBlocks <= skTaskCube.numBlocks) {
-            entryFuncName = enableDebug == false ? "sk_entry_mix11" : "sk_entry_mix11_debug";
+            if (shouldEnable) {
+                entryFuncName = "sk_entry_mix11_dump_profiling";
+            } else {
+                entryFuncName = enableDebug == false ? "sk_entry_mix11" : "sk_entry_mix11_debug";
+            }
             entryInfo.entryType = SkKernelType::MIX_AIC_1_1;
             entryInfo.numBlocks = skTaskCube.numBlocks;
             skTaskVec.numBlocks = skTaskCube.numBlocks;
         } else {
-            entryFuncName = enableDebug == false ? "sk_entry_mix12" : "sk_entry_mix12_debug";
+            if (shouldEnable) {
+                entryFuncName = "sk_entry_mix12_dump_profiling";
+            } else {
+                entryFuncName = enableDebug == false ? "sk_entry_mix12" : "sk_entry_mix12_debug";
+            }
             entryInfo.entryType = SkKernelType::MIX_AIC_1_2;
             isMix12 = true;
             entryInfo.numBlocks = std::max(skTaskCube.numBlocks, mix_1_2_aiv_numBlocks);

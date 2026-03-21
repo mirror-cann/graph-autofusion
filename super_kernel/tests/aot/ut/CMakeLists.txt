@@ -9,7 +9,7 @@
 # ----------------------------------------------------------------------------------------------------------
 cmake_minimum_required(VERSION 3.16.0)
 project(super_kernel_aot_ut)
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 set(LOCAL_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 
 add_executable(super_kernel_aot_utest
@@ -29,6 +29,7 @@ add_executable(super_kernel_aot_utest
     ${CMAKE_CURRENT_SOURCE_DIR}/test_sk_resource_manager.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test_sk_task_builder.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test_sk_profiling.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_sk_event_recorder.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stub/aclrt_stubs.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stub/ut_common_stubs.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stub/rt_stub.cpp
@@ -46,6 +47,7 @@ add_executable(super_kernel_aot_utest
     ${GRAPH_AUTOFUSION_ROOT_DIR}/super_kernel/src/aot/sk_dfx_exception_handler.cpp
     ${GRAPH_AUTOFUSION_ROOT_DIR}/super_kernel/src/aot/sk_resource_manager.cpp
     ${GRAPH_AUTOFUSION_ROOT_DIR}/super_kernel/src/aot/sk_scope_postprocess.cpp
+    ${GRAPH_AUTOFUSION_ROOT_DIR}/super_kernel/src/aot/sk_event_recorder.cpp
 )
 
 target_include_directories(super_kernel_aot_utest PRIVATE
@@ -70,6 +72,7 @@ target_compile_options(super_kernel_aot_utest PRIVATE
 
 target_link_libraries(super_kernel_aot_utest PRIVATE
     $<BUILD_INTERFACE:intf_llt_pub>
+    stdc++fs
 )
 
 run_llt_test(

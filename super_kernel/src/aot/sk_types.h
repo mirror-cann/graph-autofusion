@@ -287,6 +287,9 @@ struct SkLaunchInfo {
     DeviceArgsPtr devArgs;
     void* cacheInfo; // sk融合算子的shape信息，由sk_optimizer.cpp在构建launchInfo时填充，实际类型是CacheopInfoBasic，包含一个可变长度的tensorData数组
     size_t cacheopInfoSize;
+    void* eventGmAddr;  // 事件记录 GM 地址
+    uint64_t modelRI;   // modelRI 标识
+    uint32_t skId;      // SK 标识
 };
 
 #endif // __SK_TYPES_H__

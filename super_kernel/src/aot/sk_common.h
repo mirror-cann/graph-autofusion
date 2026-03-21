@@ -166,6 +166,7 @@ struct SkHeaderInfo {
     uint32_t counterOffset;
     uint32_t wsOffset;
     uint32_t dfxOffset;
+    uint32_t eventConfigOffset;  // 算子打印事件配置偏移量
     uint32_t nodeCnt;
     uint64_t totalSize;
 };
@@ -190,6 +191,33 @@ struct SkDfxInfo {
 struct SkDeviceEntryArgs {
     SkHeaderInfo skHeader;
     uint8_t data[0];
+};
+// ==================== 事件记录相关结构体 ====================
+// Kernel 侧的时间记录结构体
+struct SkKernelEventRecord {
+    uint64_t modelRI;     // modelRI 标识
+    uint32_t skId;        // SK 标识
+    uint32_t nodeId;      // 算子节点 ID
+    uint8_t blockIdx;      // block 索引
+    uint8_t blockNum;
+    uint64_t startTime;   // 开始时间戳
+    uint64_t endTime;     // 结束时间戳
+};
+
+
+// 每个 core 的缓冲区头部（Kernel 侧）
+struct SkKernelEventCoreBuf {
+    uint32_t offset;  // 当前写入偏移
+    uint32_t reserved;         // 保留字段
+};
+
+// 事件记录配置信息（放在 SkHeaderInfo 的 dfxOffset 位置）
+struct SkEventConfig {
+    uint64_t eventGmAddr;   // 事件记录 GM 基地址
+    uint64_t modelRI;       // modelRI 标识
+    uint32_t skId;          // SK 标识
+    uint8_t enabled;       // 是否启用
+    uint32_t reserved;      // 保留字段
 };
 
 bool GetFuncSymbolInfo(const char* binAddr, size_t binSize, uint64_t funcAddr, std::string& symbolName,

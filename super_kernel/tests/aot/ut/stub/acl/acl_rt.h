@@ -270,6 +270,12 @@ aclError aclrtGetFunctionName(aclrtFuncHandle funcHandle, uint32_t maxLen, char*
 aclError aclrtBinaryGetDevAddress(aclrtBinHandle binHdl, void** devAddr, size_t* devSize);
 aclError aclrtGetFunctionAttribute(aclrtFuncHandle funcHandle, aclrtFuncAttribute attrType, int64_t *attrValue);
 
+// Memory management functions
+aclError aclrtSetDevice(int32_t deviceId);
+aclError aclrtMalloc(void **devPtr, size_t size, aclrtMemMallocPolicy policy);
+aclError aclrtMemset(void *devPtr, size_t destMax, int value, size_t count);
+aclError aclrtFree(void *devPtr);
+
 // Memory management
 aclError aclrtMalloc(void** devPtr, size_t size, aclrtMemMallocPolicy policy);
 aclError aclrtFree(void* devPtr);

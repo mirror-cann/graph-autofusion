@@ -519,4 +519,12 @@ aclError aclrtFunctionGetBinary(aclrtFuncHandle funcHandle, aclrtBinHandle *binH
     return ACL_ERROR_NONE;
 }
 
+// Stub implementations for SkEventRecorder tests
+static char g_stubDeviceMemory[1024 * 1024];  // 1MB stub memory
+
+aclError aclrtSetDevice(int32_t deviceId) {
+    (void)deviceId;
+    return ACL_SUCCESS;
+}
+
 } // extern "C"

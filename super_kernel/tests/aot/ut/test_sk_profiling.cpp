@@ -18,6 +18,7 @@
 #include "sk_node.h"
 #include "sk_optimizer.h"
 #include "sk_options_manager.h"
+#include "sk_event_recorder.h"
 
 static std::unique_ptr<SuperKernelKernelNode> CreateKernelNodeWithCacheInfo(
     uint64_t nodeId, uint32_t tensorNum = 0, uint64_t attrId = 0, uint32_t opFlag = 0) {
@@ -87,7 +88,7 @@ TEST_F(SkProfilingTest, NumBlocks_Encoding_Mix11) {
     launchInfo.entryInfo.numBlocks = 8;
     launchInfo.entryInfo.entryType = SkKernelType::MIX_AIC_1_1;
 
-    SuperKernelOptimizer(*opts).SkProfiling(scopeInfo, launchInfo, graph);
+    SkProfiling(scopeInfo, launchInfo, graph);
 
     CacheopInfoBasic* result = static_cast<CacheopInfoBasic*>(launchInfo.cacheInfo);
     ASSERT_NE(result, nullptr);
@@ -99,7 +100,7 @@ TEST_F(SkProfilingTest, NumBlocks_Encoding_Mix12) {
     launchInfo.entryInfo.numBlocks = 4;
     launchInfo.entryInfo.entryType = SkKernelType::MIX_AIC_1_2;
 
-    SuperKernelOptimizer(*opts).SkProfiling(scopeInfo, launchInfo, graph);
+    SkProfiling(scopeInfo, launchInfo, graph);
 
     CacheopInfoBasic* result = static_cast<CacheopInfoBasic*>(launchInfo.cacheInfo);
     ASSERT_NE(result, nullptr);
@@ -111,7 +112,7 @@ TEST_F(SkProfilingTest, NumBlocks_NoEncoding_AicOnly) {
     launchInfo.entryInfo.numBlocks = 64;
     launchInfo.entryInfo.entryType = SkKernelType::AIC_ONLY;
 
-    SuperKernelOptimizer(*opts).SkProfiling(scopeInfo, launchInfo, graph);
+    SkProfiling(scopeInfo, launchInfo, graph);
 
     CacheopInfoBasic* result = static_cast<CacheopInfoBasic*>(launchInfo.cacheInfo);
     ASSERT_NE(result, nullptr);
@@ -123,7 +124,7 @@ TEST_F(SkProfilingTest, NumBlocks_NoEncoding_AivOnly) {
     launchInfo.entryInfo.numBlocks = 128;
     launchInfo.entryInfo.entryType = SkKernelType::AIV_ONLY;
 
-    SuperKernelOptimizer(*opts).SkProfiling(scopeInfo, launchInfo, graph);
+    SkProfiling(scopeInfo, launchInfo, graph);
 
     CacheopInfoBasic* result = static_cast<CacheopInfoBasic*>(launchInfo.cacheInfo);
     ASSERT_NE(result, nullptr);
@@ -135,7 +136,7 @@ TEST_F(SkProfilingTest, NumBlocks_Boundary_Zero) {
     launchInfo.entryInfo.numBlocks = 0;
     launchInfo.entryInfo.entryType = SkKernelType::MIX_AIC_1_1;
 
-    SuperKernelOptimizer(*opts).SkProfiling(scopeInfo, launchInfo, graph);
+    SkProfiling(scopeInfo, launchInfo, graph);
 
     CacheopInfoBasic* result = static_cast<CacheopInfoBasic*>(launchInfo.cacheInfo);
     ASSERT_NE(result, nullptr);
@@ -147,7 +148,7 @@ TEST_F(SkProfilingTest, NumBlocks_Boundary_MaxUint16) {
     launchInfo.entryInfo.numBlocks = 65535;
     launchInfo.entryInfo.entryType = SkKernelType::MIX_AIC_1_1;
 
-    SuperKernelOptimizer(*opts).SkProfiling(scopeInfo, launchInfo, graph);
+    SkProfiling(scopeInfo, launchInfo, graph);
 
     CacheopInfoBasic* result = static_cast<CacheopInfoBasic*>(launchInfo.cacheInfo);
     ASSERT_NE(result, nullptr);
@@ -164,7 +165,7 @@ TEST_F(SkProfilingTest, TaskType_AlwaysMixAic) {
     launchInfo.entryInfo.numBlocks = 8;
     launchInfo.entryInfo.entryType = SkKernelType::AIC_ONLY;
 
-    SuperKernelOptimizer(*opts).SkProfiling(scopeInfo, launchInfo, graph);
+    SkProfiling(scopeInfo, launchInfo, graph);
 
     CacheopInfoBasic* result = static_cast<CacheopInfoBasic*>(launchInfo.cacheInfo);
     ASSERT_NE(result, nullptr);
@@ -177,7 +178,7 @@ TEST_F(SkProfilingTest, NodeId_Mix11) {
     launchInfo.entryInfo.numBlocks = 8;
     launchInfo.entryInfo.entryType = SkKernelType::MIX_AIC_1_1;
 
-    SuperKernelOptimizer(*opts).SkProfiling(scopeInfo, launchInfo, graph);
+    SkProfiling(scopeInfo, launchInfo, graph);
 
     CacheopInfoBasic* result = static_cast<CacheopInfoBasic*>(launchInfo.cacheInfo);
     ASSERT_NE(result, nullptr);
@@ -190,7 +191,7 @@ TEST_F(SkProfilingTest, NodeId_Mix12) {
     launchInfo.entryInfo.numBlocks = 8;
     launchInfo.entryInfo.entryType = SkKernelType::MIX_AIC_1_2;
 
-    SuperKernelOptimizer(*opts).SkProfiling(scopeInfo, launchInfo, graph);
+    SkProfiling(scopeInfo, launchInfo, graph);
 
     CacheopInfoBasic* result = static_cast<CacheopInfoBasic*>(launchInfo.cacheInfo);
     ASSERT_NE(result, nullptr);
@@ -203,7 +204,7 @@ TEST_F(SkProfilingTest, NodeId_AicOnly) {
     launchInfo.entryInfo.numBlocks = 8;
     launchInfo.entryInfo.entryType = SkKernelType::AIC_ONLY;
 
-    SuperKernelOptimizer(*opts).SkProfiling(scopeInfo, launchInfo, graph);
+    SkProfiling(scopeInfo, launchInfo, graph);
 
     CacheopInfoBasic* result = static_cast<CacheopInfoBasic*>(launchInfo.cacheInfo);
     ASSERT_NE(result, nullptr);
@@ -216,7 +217,7 @@ TEST_F(SkProfilingTest, NodeId_AivOnly) {
     launchInfo.entryInfo.numBlocks = 8;
     launchInfo.entryInfo.entryType = SkKernelType::AIV_ONLY;
 
-    SuperKernelOptimizer(*opts).SkProfiling(scopeInfo, launchInfo, graph);
+    SkProfiling(scopeInfo, launchInfo, graph);
 
     CacheopInfoBasic* result = static_cast<CacheopInfoBasic*>(launchInfo.cacheInfo);
     ASSERT_NE(result, nullptr);
@@ -230,7 +231,7 @@ TEST_F(SkProfilingTest, OpType_AlwaysSuperKernel) {
     launchInfo.entryInfo.numBlocks = 8;
     launchInfo.entryInfo.entryType = SkKernelType::AIC_ONLY;
 
-    SuperKernelOptimizer(*opts).SkProfiling(scopeInfo, launchInfo, graph);
+    SkProfiling(scopeInfo, launchInfo, graph);
 
     CacheopInfoBasic* result = static_cast<CacheopInfoBasic*>(launchInfo.cacheInfo);
     ASSERT_NE(result, nullptr);
@@ -244,7 +245,7 @@ TEST_F(SkProfilingTest, AttrId_SingleNode) {
     launchInfo.entryInfo.numBlocks = 8;
     launchInfo.entryInfo.entryType = SkKernelType::AIC_ONLY;
 
-    SuperKernelOptimizer(*opts).SkProfiling(scopeInfo, launchInfo, graph);
+    SkProfiling(scopeInfo, launchInfo, graph);
 
     CacheopInfoBasic* result = static_cast<CacheopInfoBasic*>(launchInfo.cacheInfo);
     ASSERT_NE(result, nullptr);
@@ -258,7 +259,7 @@ TEST_F(SkProfilingTest, AttrId_MultipleNodes) {
     launchInfo.entryInfo.numBlocks = 8;
     launchInfo.entryInfo.entryType = SkKernelType::AIC_ONLY;
 
-    SuperKernelOptimizer(*opts).SkProfiling(scopeInfo, launchInfo, graph);
+    SkProfiling(scopeInfo, launchInfo, graph);
 
     CacheopInfoBasic* result = static_cast<CacheopInfoBasic*>(launchInfo.cacheInfo);
     ASSERT_NE(result, nullptr);
@@ -273,7 +274,7 @@ TEST_F(SkProfilingTest, OpFlag_SingleNode) {
     launchInfo.entryInfo.numBlocks = 8;
     launchInfo.entryInfo.entryType = SkKernelType::AIC_ONLY;
 
-    SuperKernelOptimizer(*opts).SkProfiling(scopeInfo, launchInfo, graph);
+    SkProfiling(scopeInfo, launchInfo, graph);
 
     CacheopInfoBasic* result = static_cast<CacheopInfoBasic*>(launchInfo.cacheInfo);
     ASSERT_NE(result, nullptr);
@@ -287,7 +288,7 @@ TEST_F(SkProfilingTest, OpFlag_Aggregation) {
     launchInfo.entryInfo.numBlocks = 8;
     launchInfo.entryInfo.entryType = SkKernelType::AIC_ONLY;
 
-    SuperKernelOptimizer(*opts).SkProfiling(scopeInfo, launchInfo, graph);
+    SkProfiling(scopeInfo, launchInfo, graph);
 
     CacheopInfoBasic* result = static_cast<CacheopInfoBasic*>(launchInfo.cacheInfo);
     ASSERT_NE(result, nullptr);
@@ -299,7 +300,7 @@ TEST_F(SkProfilingTest, TensorNum_EmptyNodes) {
     launchInfo.entryInfo.numBlocks = 8;
     launchInfo.entryInfo.entryType = SkKernelType::AIC_ONLY;
 
-    SuperKernelOptimizer(*opts).SkProfiling(scopeInfo, launchInfo, graph);
+    SkProfiling(scopeInfo, launchInfo, graph);
 
     CacheopInfoBasic* result = static_cast<CacheopInfoBasic*>(launchInfo.cacheInfo);
     ASSERT_NE(result, nullptr);
@@ -311,7 +312,7 @@ TEST_F(SkProfilingTest, TensorNum_SingleNode) {
     launchInfo.entryInfo.numBlocks = 8;
     launchInfo.entryInfo.entryType = SkKernelType::AIC_ONLY;
 
-    SuperKernelOptimizer(*opts).SkProfiling(scopeInfo, launchInfo, graph);
+    SkProfiling(scopeInfo, launchInfo, graph);
 
     CacheopInfoBasic* result = static_cast<CacheopInfoBasic*>(launchInfo.cacheInfo);
     ASSERT_NE(result, nullptr);
@@ -324,7 +325,7 @@ TEST_F(SkProfilingTest, TensorNum_MultipleNodes) {
     launchInfo.entryInfo.numBlocks = 8;
     launchInfo.entryInfo.entryType = SkKernelType::AIC_ONLY;
 
-    SuperKernelOptimizer(*opts).SkProfiling(scopeInfo, launchInfo, graph);
+    SkProfiling(scopeInfo, launchInfo, graph);
 
     CacheopInfoBasic* result = static_cast<CacheopInfoBasic*>(launchInfo.cacheInfo);
     ASSERT_NE(result, nullptr);
@@ -337,7 +338,7 @@ TEST_F(SkProfilingTest, Reserve_DefaultZero) {
     launchInfo.entryInfo.numBlocks = 8;
     launchInfo.entryInfo.entryType = SkKernelType::AIC_ONLY;
 
-    SuperKernelOptimizer(*opts).SkProfiling(scopeInfo, launchInfo, graph);
+    SkProfiling(scopeInfo, launchInfo, graph);
 
     CacheopInfoBasic* result = static_cast<CacheopInfoBasic*>(launchInfo.cacheInfo);
     ASSERT_NE(result, nullptr);
