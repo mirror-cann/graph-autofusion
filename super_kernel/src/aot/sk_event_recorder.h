@@ -18,7 +18,6 @@
 #include <string>
 #include <mutex>
 #include <memory>
-#include <filesystem>
 #include "sk_types.h"
 #include "sk_common.h"
 #include "sk_file_guard.h"

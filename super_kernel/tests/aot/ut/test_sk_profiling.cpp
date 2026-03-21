@@ -30,7 +30,10 @@ static std::unique_ptr<SuperKernelKernelNode> CreateKernelNodeWithCacheInfo(
             nodeId, 0, INVALID_TASK_ID).release());
     
     std::unique_ptr<SuperKernelKernelNode> kernelNode(node);
-    kernelNode->SetNodeId(nodeId); 
+    kernelNode->SetNodeId(nodeId);
+    
+    // Set nodeType directly since InitNode() requires real task object
+    kernelNode->SetNodeType(SkNodeType::NODE_KERNEL);
 
     auto& nodeInfos = const_cast<NodeInfos&>(kernelNode->GetNodeInfos());
     nodeInfos.kernelInfos.numBlocks = 8;

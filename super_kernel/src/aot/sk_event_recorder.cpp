@@ -13,7 +13,7 @@
 #include <cstring>
 #include <unistd.h>
 #include <sys/time.h>
-#include <filesystem>
+#include <fstream>
 #include "acl/acl.h"
 #include "sk_log.h"
 #include "aprof_pub.h"
@@ -234,9 +234,7 @@ void SkEventRecorder::DumpModelData(SkEventRecorder* recorder) {
 
 void* SkEventRecorder::DumpThreadFunc(void* arg) {
     SkEventRecorder* recorder = static_cast<SkEventRecorder*>(arg);
-    
     SK_LOGI("[sk time profiling] Global dump thread started\n");
-    
     while (recorder->globalRunning.load()) {
         // 遍历所有 device，处理每个激活的 device
         for (uint32_t i = 0; i < SK_EVENT_MAX_DEVICE_NUM; i++) {
@@ -250,7 +248,6 @@ void* SkEventRecorder::DumpThreadFunc(void* arg) {
         }
         usleep(100000); // 100ms 轮询间隔
     }
-    
     // 最后一次刷新所有 device
     for (uint32_t i = 0; i < SK_EVENT_MAX_DEVICE_NUM; i++) {
         SkEventDeviceCtx* ctx = &recorder->deviceCtxs[i];
@@ -275,12 +272,19 @@ void* SkEventRecorder::DumpThreadFunc(void* arg) {
             if (ctx->active.load()) {
                 std::string srcFile = recorder->outputDir + "/sk_event_dev_device_" + std::to_string(i) + ".json";
                 std::string dstFile = recorder->outputDir + "/mindstudio_profiler_output/sk_event_dev_device_" + std::to_string(i) + ".json";
-
                 // 复制文件
-                std::error_code ec;
-                if (!std::filesystem::copy_file(srcFile, dstFile, std::filesystem::copy_options::overwrite_existing, ec)) {
-                    SK_LOGE("[sk time profiling] Failed to copy file from %s to %s: %s\n", 
-                            srcFile.c_str(), dstFile.c_str(), ec.message().c_str());
+                std::ifstream srcStream(srcFile, std::ios::binary);
+                std::ofstream dstStream(dstFile, std::ios::binary | std::ios::trunc);
+                if (!srcStream || !dstStream) {
+                    SK_LOGE("[sk time profiling] Failed to open file for copy: %s -> %s\n",
+                            srcFile.c_str(), dstFile.c_str());
+                    recorder->SkProfilingShutdown();
+                    return nullptr;
+                }
+                dstStream << srcStream.rdbuf(); 
+                if (!dstStream.good()) {
+                    SK_LOGE("[sk time profiling] Failed to copy file from %s to %s\n",
+                            srcFile.c_str(), dstFile.c_str());
                     recorder->SkProfilingShutdown();
                     return nullptr;
                 }
@@ -290,7 +294,6 @@ void* SkEventRecorder::DumpThreadFunc(void* arg) {
             }
         }
     }
-
     SK_LOGI("[sk time profiling] Global dump thread stopped\n");
     return nullptr;
 }
