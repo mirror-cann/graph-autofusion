@@ -53,6 +53,8 @@ enum class SkKernelType : uint8_t {
     DEFAULT = 0xFF,
 };
 
+constexpr size_t SK_KERNEL_TYPE_COUNT = 6;
+
 inline const char* to_string(SkKernelType type)
 {
     switch (type) {
@@ -222,5 +224,31 @@ struct SkEventConfig {
 
 bool GetFuncSymbolInfo(const char* binAddr, size_t binSize, uint64_t funcAddr, std::string& symbolName,
                        uint64_t& funcSize);
+
+namespace sk {
+/*
+ASCENDC_SUPER_KERNEL_EARLY_START_AIC_TO_AIC : 0b00;
+ASCENDC_SUPER_KERNEL_EARLY_START_AIC_TO_AIV : 0b01;
+ASCENDC_SUPER_KERNEL_EARLY_START_AIC_TO_MIX : 0b10;
+ASCENDC_SUPER_KERNEL_EARLY_START_AIV_TO_AIC : 0b0100;
+ASCENDC_SUPER_KERNEL_EARLY_START_AIV_TO_AIV : 0b0101;
+ASCENDC_SUPER_KERNEL_EARLY_START_AIV_TO_MIX : 0b0110;
+ASCENDC_SUPER_KERNEL_EARLY_START_MIX_TO_AIC : 0b1000;
+ASCENDC_SUPER_KERNEL_EARLY_START_MIX_TO_AIV : 0b1001;
+ASCENDC_SUPER_KERNEL_EARLY_START_MIX_TO_MIX : 0b1010;
+*/
+
+constexpr uint16_t SYNC_COMBINATION_TABLE[SK_KERNEL_TYPE_COUNT][SK_KERNEL_TYPE_COUNT] = {
+//                  AIC_ONLY | AIV_ONLY | MIX_AIV_1_0 | MIX_AIC_1_0 | MIX_AIC_1_1 | MIX_AIC_1_2
+/* AIC_ONLY */    { 0b00,      0b01,      0b10,         0b10,         0b10,         0b10   },
+/* AIV_ONLY */    { 0b0100,    0b0101,    0b0110,       0b0110,       0b0110,       0b0110 },
+/* MIX_AIV_1_0 */ { 0b1000,    0b1001,    0b1010,       0b1010,       0b1010,       0b1010 },
+/* MIX_AIC_1_0 */ { 0b1000,    0b1001,    0b1010,       0b1010,       0b1010,       0b1010 },
+/* MIX_AIC_1_1 */ { 0b1000,    0b1001,    0b1010,       0b1010,       0b1010,       0b1010 },
+/* MIX_AIC_1_2 */ { 0b1000,    0b1001,    0b1010,       0b1010,       0b1010,       0b1010 },
+};
+
+constexpr uint16_t INVALID_SYNC_COMBINATION = 0xFFFF;
+} // namespace sk
 
 #endif
