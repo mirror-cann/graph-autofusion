@@ -256,7 +256,7 @@ private:
      * \param scope Scope to rebuild
      */
     void RebuildStreamInfos(SuperKernelScopeInfo& scope);
-    
+
     LockDetector lockDetector_;
 };
 

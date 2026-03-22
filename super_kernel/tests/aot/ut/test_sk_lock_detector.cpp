@@ -29,6 +29,7 @@ class TestLockDetector: public ::testing::Test {
 protected:
     void SetUp() override {
         graph = std::make_unique<SuperKernelGraph>();
+        lockDetector = std::make_unique<LockDetector>(*graph);
         // Initialize device core numbers for LockDetector
         LockDetector::GetDeviceCores();
     }
@@ -136,7 +137,7 @@ protected:
 
     }
     std::unique_ptr<SuperKernelGraph> graph;
-    LockDetector lockDetector;
+    std::unique_ptr<LockDetector> lockDetector;
 };
 // Test 1: one stream, kernel node (after wait node) exceeds max sk cube/vec num 
 TEST_F(TestLockDetector, SingleStreamKernelFirst) {
@@ -159,35 +160,35 @@ TEST_F(TestLockDetector, SingleStreamKernelFirst) {
     SetupStreams({{0, 1, 2, 3, 4, 5, 6, 7, 8}});
     SetupEvent(1, 1, {6}); // eventid, notifynodeid, waitnodeidlist
     // sk - node 1
-    EXPECT_TRUE(lockDetector.IsFusible(*k2, *graph));
+    EXPECT_TRUE(lockDetector->IsFusible(*k2));
     EXPECT_TRUE(k2->isVisited);
-    EXPECT_EQ(lockDetector.superKernelCubeNum, 4);
-    EXPECT_EQ(lockDetector.superKernelVecNum, 0);
+    EXPECT_EQ(lockDetector->superKernelCubeNum, 4);
+    EXPECT_EQ(lockDetector->superKernelVecNum, 0);
     // sk - node 2
-    EXPECT_TRUE(lockDetector.IsFusible(*n3, *graph));
+    EXPECT_TRUE(lockDetector->IsFusible(*n3));
     EXPECT_TRUE(n3->isVisited);
-    EXPECT_EQ(lockDetector.superKernelCubeNum, 4);
-    EXPECT_EQ(lockDetector.superKernelVecNum, 0);
+    EXPECT_EQ(lockDetector->superKernelCubeNum, 4);
+    EXPECT_EQ(lockDetector->superKernelVecNum, 0);
     // sk - node 3
-    EXPECT_TRUE(lockDetector.IsFusible(*k4, *graph));
+    EXPECT_TRUE(lockDetector->IsFusible(*k4));
     EXPECT_TRUE(k4->isVisited);
-    EXPECT_EQ(lockDetector.superKernelCubeNum, 4);
-    EXPECT_EQ(lockDetector.superKernelVecNum, 8);
+    EXPECT_EQ(lockDetector->superKernelCubeNum, 4);
+    EXPECT_EQ(lockDetector->superKernelVecNum, 8);
     // sk - node 4
-    EXPECT_TRUE(lockDetector.IsFusible(*k5, *graph));
+    EXPECT_TRUE(lockDetector->IsFusible(*k5));
     EXPECT_TRUE(k5->isVisited);
-    EXPECT_EQ(lockDetector.superKernelCubeNum, 6);
-    EXPECT_EQ(lockDetector.superKernelVecNum, 8);
+    EXPECT_EQ(lockDetector->superKernelCubeNum, 6);
+    EXPECT_EQ(lockDetector->superKernelVecNum, 8);
     // sk - node 5
-    EXPECT_TRUE(lockDetector.IsFusible(*w6, *graph));
+    EXPECT_TRUE(lockDetector->IsFusible(*w6));
     EXPECT_TRUE(k5->isVisited);
     // sk - node 6
-    EXPECT_TRUE(lockDetector.IsFusible(*k7, *graph));
+    EXPECT_TRUE(lockDetector->IsFusible(*k7));
     EXPECT_TRUE(k5->isVisited);
     // sk - node 7
-    EXPECT_FALSE(lockDetector.IsFusible(*k8, *graph));
-    EXPECT_EQ(lockDetector.skStreamIds, std::set<uint32_t>{0});
-    lockDetector.Reset(*graph);
+    EXPECT_FALSE(lockDetector->IsFusible(*k8));
+    EXPECT_EQ(lockDetector->skStreamIds, std::set<uint32_t>{0});
+    lockDetector->Reset();
     EXPECT_FALSE(k2->isVisited);
     EXPECT_FALSE(n3->isVisited);
     EXPECT_FALSE(k4->isVisited);
@@ -224,40 +225,40 @@ TEST_F(TestLockDetector, SingleStreamWaitFirst) {
     SetupStreams({{0, 1, 2, 3, 4, 5, 6, 7, 8}, {9, 10, 11}});
     SetupEvent(1, 10, {6});
     // sk - node 1
-    EXPECT_TRUE(lockDetector.IsFusible(*k2, *graph));
+    EXPECT_TRUE(lockDetector->IsFusible(*k2));
     EXPECT_TRUE(k2->isVisited);
-    EXPECT_EQ(lockDetector.superKernelCubeNum, 4);
-    EXPECT_EQ(lockDetector.superKernelVecNum, 0);
+    EXPECT_EQ(lockDetector->superKernelCubeNum, 4);
+    EXPECT_EQ(lockDetector->superKernelVecNum, 0);
     // sk - node 2
-    EXPECT_TRUE(lockDetector.IsFusible(*n3, *graph));
+    EXPECT_TRUE(lockDetector->IsFusible(*n3));
     EXPECT_TRUE(n3->isVisited);
     // sk - node 3
-    EXPECT_TRUE(lockDetector.IsFusible(*k4, *graph));
+    EXPECT_TRUE(lockDetector->IsFusible(*k4));
     EXPECT_TRUE(k4->isVisited);
-    EXPECT_EQ(lockDetector.superKernelCubeNum, 4);
-    EXPECT_EQ(lockDetector.superKernelVecNum, 8);
+    EXPECT_EQ(lockDetector->superKernelCubeNum, 4);
+    EXPECT_EQ(lockDetector->superKernelVecNum, 8);
     // sk - node 4
-    EXPECT_TRUE(lockDetector.IsFusible(*k5, *graph));
+    EXPECT_TRUE(lockDetector->IsFusible(*k5));
     EXPECT_TRUE(k5->isVisited);
-    EXPECT_EQ(lockDetector.superKernelCubeNum, 6);
-    EXPECT_EQ(lockDetector.superKernelVecNum, 8);
+    EXPECT_EQ(lockDetector->superKernelCubeNum, 6);
+    EXPECT_EQ(lockDetector->superKernelVecNum, 8);
     // // sk - node 5
-    EXPECT_TRUE(lockDetector.IsFusible(*w6, *graph));
+    EXPECT_TRUE(lockDetector->IsFusible(*w6));
     EXPECT_TRUE(w6->isVisited);
     EXPECT_TRUE(k9->isVisited);
     EXPECT_TRUE(n10->isVisited);
     // sk - node 6
-    EXPECT_TRUE(lockDetector.IsFusible(*k7, *graph));
+    EXPECT_TRUE(lockDetector->IsFusible(*k7));
     EXPECT_TRUE(k7->isVisited);
-    EXPECT_EQ(lockDetector.superKernelCubeNum, 6);
-    EXPECT_EQ(lockDetector.superKernelVecNum, 8);
+    EXPECT_EQ(lockDetector->superKernelCubeNum, 6);
+    EXPECT_EQ(lockDetector->superKernelVecNum, 8);
     // sk - node 7
-    EXPECT_FALSE(lockDetector.IsFusible(*k8, *graph));
-    EXPECT_EQ(lockDetector.superKernelCubeNum, 6);
-    EXPECT_EQ(lockDetector.superKernelVecNum, 8);
+    EXPECT_FALSE(lockDetector->IsFusible(*k8));
+    EXPECT_EQ(lockDetector->superKernelCubeNum, 6);
+    EXPECT_EQ(lockDetector->superKernelVecNum, 8);
 
-    EXPECT_EQ(lockDetector.skStreamIds, std::set<uint32_t>{0});
-    lockDetector.Reset(*graph);
+    EXPECT_EQ(lockDetector->skStreamIds, std::set<uint32_t>{0});
+    lockDetector->Reset();
     EXPECT_FALSE(k0->isVisited);
     EXPECT_FALSE(n1->isVisited);
     EXPECT_FALSE(k2->isVisited);
@@ -299,29 +300,29 @@ TEST_F(TestLockDetector, SingleStreamWaitFirstRejects) {
     SetupStreams({{0, 1, 2, 3, 4, 5, 6, 7, 8}, {9, 10, 11}});
     SetupEvent(1, 10, {6});
     // sk - node 1
-    EXPECT_TRUE(lockDetector.IsFusible(*k2, *graph));
+    EXPECT_TRUE(lockDetector->IsFusible(*k2));
     EXPECT_TRUE(k2->isVisited);
-    EXPECT_EQ(lockDetector.superKernelCubeNum, 4);
-    EXPECT_EQ(lockDetector.superKernelVecNum, 0);
+    EXPECT_EQ(lockDetector->superKernelCubeNum, 4);
+    EXPECT_EQ(lockDetector->superKernelVecNum, 0);
     // sk - node 2
-    EXPECT_TRUE(lockDetector.IsFusible(*n3, *graph));
+    EXPECT_TRUE(lockDetector->IsFusible(*n3));
     EXPECT_TRUE(n3->isVisited);
     // sk - node 3
-    EXPECT_TRUE(lockDetector.IsFusible(*k4, *graph));
+    EXPECT_TRUE(lockDetector->IsFusible(*k4));
     EXPECT_TRUE(k4->isVisited);
-    EXPECT_EQ(lockDetector.superKernelCubeNum, 4);
-    EXPECT_EQ(lockDetector.superKernelVecNum, 8);
+    EXPECT_EQ(lockDetector->superKernelCubeNum, 4);
+    EXPECT_EQ(lockDetector->superKernelVecNum, 8);
     // sk - node 4
-    EXPECT_TRUE(lockDetector.IsFusible(*k5, *graph));
+    EXPECT_TRUE(lockDetector->IsFusible(*k5));
     EXPECT_TRUE(k5->isVisited);
-    EXPECT_EQ(lockDetector.superKernelCubeNum, 6);
-    EXPECT_EQ(lockDetector.superKernelVecNum, 8);
+    EXPECT_EQ(lockDetector->superKernelCubeNum, 6);
+    EXPECT_EQ(lockDetector->superKernelVecNum, 8);
     // // sk - node 5
-    EXPECT_FALSE(lockDetector.IsFusible(*w6, *graph));
+    EXPECT_FALSE(lockDetector->IsFusible(*w6));
     EXPECT_TRUE(n10->isVisited);
 
-    EXPECT_EQ(lockDetector.skStreamIds, std::set<uint32_t>{0});
-    lockDetector.Reset(*graph);
+    EXPECT_EQ(lockDetector->skStreamIds, std::set<uint32_t>{0});
+    lockDetector->Reset();
     EXPECT_FALSE(k0->isVisited);
     EXPECT_FALSE(n1->isVisited);
     EXPECT_FALSE(k2->isVisited);
@@ -364,40 +365,40 @@ TEST_F(TestLockDetector, SingleStreamMultiWait) {
     SetupStreams({{0, 1, 2, 3, 4, 5, 6, 7, 8}, {9, 10, 11}});
     SetupEvent(1, 10, {6});
     // sk - node 1
-    EXPECT_TRUE(lockDetector.IsFusible(*k2, *graph));
+    EXPECT_TRUE(lockDetector->IsFusible(*k2));
     EXPECT_TRUE(k2->isVisited);
-    EXPECT_EQ(lockDetector.superKernelCubeNum, 10);
-    EXPECT_EQ(lockDetector.superKernelVecNum, 20);
+    EXPECT_EQ(lockDetector->superKernelCubeNum, 10);
+    EXPECT_EQ(lockDetector->superKernelVecNum, 20);
     // sk - node 2
-    EXPECT_TRUE(lockDetector.IsFusible(*w3, *graph));
+    EXPECT_TRUE(lockDetector->IsFusible(*w3));
     EXPECT_TRUE(w3->isVisited);
     // sk - node 3
-    EXPECT_TRUE(lockDetector.IsFusible(*k4, *graph));
+    EXPECT_TRUE(lockDetector->IsFusible(*k4));
     EXPECT_TRUE(k4->isVisited);
-    EXPECT_EQ(lockDetector.superKernelCubeNum, 10);
-    EXPECT_EQ(lockDetector.superKernelVecNum, 20);
+    EXPECT_EQ(lockDetector->superKernelCubeNum, 10);
+    EXPECT_EQ(lockDetector->superKernelVecNum, 20);
     // sk - node 4
-    EXPECT_TRUE(lockDetector.IsFusible(*k5, *graph));
+    EXPECT_TRUE(lockDetector->IsFusible(*k5));
     EXPECT_TRUE(k5->isVisited);
-    EXPECT_EQ(lockDetector.superKernelCubeNum, 10);
-    EXPECT_EQ(lockDetector.superKernelVecNum, 20);
+    EXPECT_EQ(lockDetector->superKernelCubeNum, 10);
+    EXPECT_EQ(lockDetector->superKernelVecNum, 20);
     // // sk - node 5
-    EXPECT_TRUE(lockDetector.IsFusible(*w6, *graph));
+    EXPECT_TRUE(lockDetector->IsFusible(*w6));
     EXPECT_TRUE(w6->isVisited);
     EXPECT_TRUE(k9->isVisited);
     EXPECT_TRUE(n10->isVisited);
     // sk - node 6
-    EXPECT_TRUE(lockDetector.IsFusible(*k7, *graph));
+    EXPECT_TRUE(lockDetector->IsFusible(*k7));
     EXPECT_TRUE(k7->isVisited);
-    EXPECT_EQ(lockDetector.superKernelCubeNum, 10);
-    EXPECT_EQ(lockDetector.superKernelVecNum, 20);
+    EXPECT_EQ(lockDetector->superKernelCubeNum, 10);
+    EXPECT_EQ(lockDetector->superKernelVecNum, 20);
     // sk - node 7
-    EXPECT_FALSE(lockDetector.IsFusible(*k8, *graph));
-    EXPECT_EQ(lockDetector.superKernelCubeNum, 10);
-    EXPECT_EQ(lockDetector.superKernelVecNum, 20);
+    EXPECT_FALSE(lockDetector->IsFusible(*k8));
+    EXPECT_EQ(lockDetector->superKernelCubeNum, 10);
+    EXPECT_EQ(lockDetector->superKernelVecNum, 20);
 
-    EXPECT_EQ(lockDetector.skStreamIds, std::set<uint32_t>{0});
-    lockDetector.Reset(*graph);
+    EXPECT_EQ(lockDetector->skStreamIds, std::set<uint32_t>{0});
+    lockDetector->Reset();
     EXPECT_FALSE(k0->isVisited);
     EXPECT_FALSE(n1->isVisited);
     EXPECT_FALSE(k2->isVisited);
@@ -418,8 +419,8 @@ TEST_F(TestLockDetector, SingleStreamMultiWait) {
 TEST_F(TestLockDetector, SingleStreamExceedDeviceCores) {
     auto* k0 = CreateKernelNodeWithCores(0, 0, INVALID_TASK_ID, 1, 40, SkKernelType::AIC_ONLY);
     SetupStreams({{0}});
-    EXPECT_FALSE(lockDetector.IsFusible(*k0, *graph));
-    lockDetector.Reset(*graph);
+    EXPECT_FALSE(lockDetector->IsFusible(*k0));
+    lockDetector->Reset();
 }
 
 // Test 6: one stream, notify node of wait node not in graph
@@ -428,22 +429,31 @@ TEST_F(TestLockDetector, SingleStreamNotifyOutsideSK) {
     auto* w1 = CreateWaitNode(1, 0, 0, INVALID_TASK_ID, 10);
     SetupStreams({{0}});
     SetupEvent(1, 10, {1});
-    EXPECT_TRUE(lockDetector.IsFusible(*k0, *graph));
-    EXPECT_FALSE(lockDetector.IsFusible(*w1, *graph));
-    lockDetector.Reset(*graph);
+    EXPECT_TRUE(lockDetector->IsFusible(*k0));
+    EXPECT_FALSE(lockDetector->IsFusible(*w1));
+    lockDetector->Reset();
 }
 
 TEST_F(TestLockDetector, SingleStreamNotifyHasCore) {
     // ======================= graph =======================
     /*
-    stream0: k0(8c) -> notify(eventid=1) -> k2(4c) -> n3(notify) 
+    stream0: k0(8c) -> notify(eventid=1) -> k2(4c) -> n3(notify) -> W4
+    stream1: n5
     */
     // kernel(4c)、wait、kernel(4c,4v)
     auto* k0 = CreateKernelNodeWithCores(0, 0, INVALID_TASK_ID, 1, 8, SkKernelType::AIC_ONLY);
     auto* n1 = CreateNotifyNode(1, 0, 0, 2, 10, {}); // nodeid, streamid, next, eventid
     auto* k2 = CreateKernelNodeWithCores(2, 0, 1, 3, 4, SkKernelType::AIC_ONLY);
     auto* n3 = CreateNotifyNode(3, 0, 2, 4, 11, {});
-    n3->SetNotifyExpandVecNum(40);
-    EXPECT_TRUE(lockDetector.IsFusible(*k2, *graph));
-    EXPECT_FALSE(lockDetector.IsFusible(*n3, *graph));
+    auto* w4 = CreateWaitNode(4, 0, 3, INVALID_TASK_ID, 5);
+    auto* n5 = CreateNotifyNode(5, 1, INVALID_TASK_ID, INVALID_TASK_ID, 1, {4});
+    SetupStreams({{0, 1, 2, 3, 4}, {5}});
+
+    SetupEvent(1, 5, {4});
+
+    n5->SetNotifyExpandVecNum(40);
+    EXPECT_TRUE(lockDetector->IsFusible(*k2));
+    EXPECT_TRUE(lockDetector->IsFusible(*n3));
+    EXPECT_FALSE(lockDetector->IsFusible(*w4));
+    lockDetector->Reset();
 }

@@ -33,29 +33,38 @@
  */
 class LockDetector {
 public:
-    LockDetector()
+    /**
+     * @brief 构造函数，传入图对象
+     * @param graph 图对象引用
+     */
+    explicit LockDetector(SuperKernelGraph& graph)
     {
-        Init();
+        Init(graph);
+    }
+
+    ~LockDetector()
+    {
+        if (graph_ != nullptr) {
+            Reset();
+        }
     }
 
     static aclError GetDeviceCores();
 
     /**
      * @brief 重置检测器状态
-     * @param curNode 当前节点
      */
-    void Reset(SuperKernelGraph& graph);
+    void Reset();
 
     /**
      * @brief 判断节点是否可融合到SuperKernel中
      * @param curNode 待检测的节点
-     * @param graph 图对象
      * @return true 可融合，false 不可融合（会导致死锁）
      */
-    bool IsFusible(SuperKernelBaseNode& curNode, SuperKernelGraph& graph);
+    bool IsFusible(SuperKernelBaseNode& curNode);
 
 private:
-    void Init();
+    void Init(SuperKernelGraph& graph);
 
     std::pair<uint64_t, uint64_t> GetAvailableCores(bool isSuperKernel) const;
 
@@ -69,7 +78,19 @@ private:
 
     bool IsAfterSKRange(const SuperKernelBaseNode& node);
 
-    bool HasDeadlock(SuperKernelBaseNode* curNode, SuperKernelGraph& graph);
+    bool HasDeadlock(SuperKernelBaseNode* curNode);
+
+    bool CheckKernelNodeDeadlock(SuperKernelBaseNode* preNode);
+
+    bool CheckWaitNodeDeadlock(SuperKernelBaseNode* preNode);
+
+    bool CheckNotifyNodeDeadlock(SuperKernelBaseNode* preNode);
+
+    bool GetWaitNodeFusibleStatus(SuperKernelBaseNode& curNode);
+
+    bool CheckNotifyInSKStream(SuperKernelBaseNode& curNode, SuperKernelBaseNode& notifyNode);
+
+    bool GetFusibleStatus(SuperKernelBaseNode& curNode);
 
     bool HasEnoughCores(const SuperKernelBaseNode* curNode, bool isSuperKernel);
 
@@ -85,6 +106,7 @@ private:
     uint32_t nodeNum;
     uint32_t kernelNodeNum;
     std::unordered_map<uint32_t, std::pair<uint64_t, uint64_t>> skRangeInStream;
+    SuperKernelGraph* graph_;  // 存储graph指针，用于析构时调用Reset
 };
 
 #endif // __SK_LOCK_DETECTOR_H__

@@ -702,13 +702,13 @@ bool InitialScopeSplitPass::Run(std::vector<SuperKernelScopeInfo>& scopes) {
 // ============ DeadlockRefinePass Implementation ============
 
 DeadlockRefinePass::DeadlockRefinePass(SuperKernelGraph& inputGraph)
-    : ScopeSplitPass(inputGraph), lockDetector_() {}
+    : ScopeSplitPass(inputGraph), lockDetector_(graph_) {}
 
 bool DeadlockRefinePass::FindDeadlockInScope(const SuperKernelScopeInfo& scope,
                                               SuperKernelBaseNode** deadlockNode,
                                               SuperKernelBaseNode** deadlockWaitNode) {
     SK_LOGI("[DeadlockRefine] checking scope with %zu nodes for deadlock", scope.nodes.size());
-    lockDetector_.Reset(graph_);
+    lockDetector_.Reset();
 
     // Track the most recent Wait node seen before each node
     SuperKernelBaseNode* lastWaitNode = nullptr;
@@ -724,7 +724,7 @@ bool DeadlockRefinePass::FindDeadlockInScope(const SuperKernelScopeInfo& scope,
         }
 
         // Check for deadlock
-        if (!lockDetector_.IsFusible(*const_cast<SuperKernelBaseNode*>(node), graph_)) {
+        if (!lockDetector_.IsFusible(*const_cast<SuperKernelBaseNode*>(node))) {
             *deadlockNode = const_cast<SuperKernelBaseNode*>(node);
             *deadlockWaitNode = lastWaitNode;  // The nearest Wait node before deadlock point
             SK_LOGI("Deadlock detected at node %s (position %zu)",
