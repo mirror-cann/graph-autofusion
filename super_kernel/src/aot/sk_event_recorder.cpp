@@ -540,6 +540,7 @@ void SkEventRecorder::SkProfilingShutdown() {
         }
     }
     enabled = false;
+    SK_LOGI("[sk time profiling] ===================== End dump the time of superkernel =======================\n");
 }
 
 void SkEventRecorder::AddNodeInfoMapping(uint64_t modelRI, uint32_t skId, uint32_t nodeId,
@@ -592,7 +593,7 @@ const char* GetEntryFuncNameByOpType(SkKernelType& opType) {
     }
 
     // Unknown opType
-    SK_LOGE("opType is not in the enum class SkKernelType");
+    SK_LOGE("[sk shape profiling] opType is not in the enum class SkKernelType");
     return nullptr;
 }
 
@@ -601,7 +602,6 @@ bool SkProfiling(const SuperKernelProcessedScopeInfo &scopeInfo, SkLaunchInfo &l
     SK_LOGI("[sk shape profiling] =============== Start shape profiling ===================");
     SkHostEntryInfo& skEntryInfo = launchInfo.entryInfo;
     
-    uint32_t taskType = MSPROF_GE_TASK_TYPE_MIX_AIC; //全部填mix_aic 4
     uint32_t opFlag = 0; //记录op属性标记的bitmap，bit0代表是否使能了HF32
     std::string combinedAttrIdStr;
     uint32_t maxTensorNum = SHAPE_MAX_TENSOR_NUM;
@@ -612,7 +612,7 @@ bool SkProfiling(const SuperKernelProcessedScopeInfo &scopeInfo, SkLaunchInfo &l
     for (size_t i = 0; i < scopeInfo.nodes.size(); ++i) {
         SuperKernelBaseNode* node = scopeInfo.nodes[i];
         if (node == nullptr) {
-            SK_LOGE("[sk profiling] Failed to get node, node is nullptr");
+            SK_LOGE("[sk shape profiling] Failed to get node, node is nullptr");
             return false;
         }
         SkNodeType nodeType = node->GetNodeType();
@@ -636,7 +636,7 @@ bool SkProfiling(const SuperKernelProcessedScopeInfo &scopeInfo, SkLaunchInfo &l
     size_t totalSize = sizeof(CacheopInfoBasic) + totalTensorNum * sizeof(MsrofTensorData);
     auto ptr = std::make_unique<uint8_t[]>(totalSize);
     if (ptr == nullptr) {
-        SK_LOGE("[sk profiling] Failed to allocate memory for launchInfo.cacheInfo\n");
+        SK_LOGE("[sk shape profiling] Failed to allocate memory for launchInfo.cacheInfo\n");
         return false;
     }
 
@@ -645,7 +645,7 @@ bool SkProfiling(const SuperKernelProcessedScopeInfo &scopeInfo, SkLaunchInfo &l
     graph.AddShapeInfoPtr(std::move(ptr));
     errno_t ret = memset_s(launchInfo.cacheInfo, totalSize, 0, totalSize);
     if (ret != EOK) {
-        SK_LOGE("[sk profiling] memset_s launchInfo.cacheInfo failed, ret=%d\n",  ret);
+        SK_LOGE("[sk shape profiling] memset_s launchInfo.cacheInfo failed, ret=%d\n",  ret);
     }
     launchInfo.cacheopInfoSize = totalSize;
     uint8_t *dest = static_cast<uint8_t *>(launchInfo.cacheInfo);
@@ -685,14 +685,14 @@ bool SkProfiling(const SuperKernelProcessedScopeInfo &scopeInfo, SkLaunchInfo &l
                     errno_t ret = memcpy_s(dest + destOffset, totalSize - destOffset,
                                             &msTensor, sizeof(MsrofTensorData));
                     if (ret != EOK) {
-                        SK_LOGE("[sk profiling] memcpy_s failed, ret=%d\n",  ret);
+                        SK_LOGE("[sk shape profiling] memcpy_s failed, ret=%d\n",  ret);
                         return false;
                     }
                     destOffset += sizeof(MsrofTensorData);
                 }
             }
             else {
-                SK_LOGE("[sk profiling] warning: kernelInfos.opInfoSize should be greater than or equal to kernelInfos.opInfoPtr \n");
+                SK_LOGE("[sk shape profiling] warning: kernelInfos.opInfoSize should be greater than or equal to kernelInfos.opInfoPtr \n");
             }
         }
     }
@@ -702,7 +702,11 @@ bool SkProfiling(const SuperKernelProcessedScopeInfo &scopeInfo, SkLaunchInfo &l
         MsprofStr2Id(combinedAttrIdStr.c_str(), combinedAttrIdStr.length());
 
     CacheopInfoBasic cacheopInfoBasic;
-    cacheopInfoBasic.taskType = taskType;
+    if (skEntryInfo.entryType == SkKernelType::AIV_ONLY || skEntryInfo.entryType == SkKernelType::MIX_AIV_1_0) {
+        cacheopInfoBasic.taskType = MSPROF_GE_TASK_TYPE_MIX_AIV;
+    } else {
+        cacheopInfoBasic.taskType = MSPROF_GE_TASK_TYPE_MIX_AIC;
+    }
     // numBlocks 编码：高16位表示mix模式类型，低16位为实际numBlocks
     // sk_entry_mix11 -> 高16位=1, sk_entry_mix12 -> 高16位=2
     uint32_t numBlocks = skEntryInfo.numBlocks;
@@ -717,7 +721,7 @@ bool SkProfiling(const SuperKernelProcessedScopeInfo &scopeInfo, SkLaunchInfo &l
     if (skEntryFuncName != nullptr) {
         cacheopInfoBasic.nodeId = MsprofStr2Id(skEntryFuncName, strlen(skEntryFuncName));
     } else {
-        SK_LOGE("[sk profiling] Failed to get entry func name\n");
+        SK_LOGE("[sk shape profiling] Failed to get entry func name\n");
         return false;
     }
     const char* opTypeStr = "SuperKernel";
@@ -727,7 +731,7 @@ bool SkProfiling(const SuperKernelProcessedScopeInfo &scopeInfo, SkLaunchInfo &l
     cacheopInfoBasic.tensorNum = totalTensorNum; 
     ret = memcpy_s(dest, sizeof(CacheopInfoBasic), &cacheopInfoBasic, sizeof(CacheopInfoBasic));
     if (ret != EOK) {
-        SK_LOGE("[sk profiling] memcpy_s cacheopInfoBasic failed, ret=%d\n",  ret);
+        SK_LOGE("[sk shape profiling] memcpy_s cacheopInfoBasic failed, ret=%d\n",  ret);
     }
     const CacheopInfoBasic* cacheInfoPtr = static_cast<const CacheopInfoBasic*>(launchInfo.cacheInfo);
     SK_LOGI("[sk shape profiling] sk shape information verify: taskType=%u, numBlocks=%u, nodeId=%lu, opType=%lu, attrId=%lu, opFlag=%u, tensorNum=%u, infoSize=%lu\n",
