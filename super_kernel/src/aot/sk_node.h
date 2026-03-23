@@ -69,6 +69,7 @@ struct KernelInfos {
 
 struct SyncInfos {
     uint64_t eventId = INVALID_TASK_ID;
+    void* addrValue = nullptr;
     // For notify nodes: empty (not used)
     // For wait nodes: this is the ID of the notify node this wait node waits on
     uint64_t correspondingNotifyNodeId = INVALID_TASK_ID;
@@ -76,8 +77,10 @@ struct SyncInfos {
     // For wait nodes: empty (not used)
     std::vector<uint64_t> correspondingWaitNodeIds;
     // For event nodes, the corresponding reset node ID
-    uint64_t correspondingResetNodeId = INVALID_TASK_ID;
-    void* addrValue = nullptr;
+    std::vector<uint64_t> correspondingResetNodeIds;
+    std::vector<uint64_t> correspondingMemoryWriteNodeIds;
+    uint64_t memoryValue;
+    uint32_t flag;
 };
 
 struct NodeInfos {
@@ -184,6 +187,11 @@ public:
         return std::vector<uint64_t>();
     }
 
+    virtual std::vector<uint64_t> GetCorrespondingMemoryWriteNodeIds() const
+    {
+        return std::vector<uint64_t>();
+    }
+
     // SuperKernelEventWaitNode/SuperKernelMemoryWaitNode specific accessors
     // Get the notify node ID that this wait node waits on (many-to-one relationship)
     virtual uint64_t GetCorrespondingNotifyNodeId() const
@@ -196,6 +204,8 @@ public:
 
     // Setter for notify node ID (used by SuperKernelGraph to build associations for wait nodes)
     virtual void SetCorrespondingNotifyNodeId(uint64_t notifyId) {}
+
+    virtual void SetCorrespondingMemoryWriteNodeId(const std::vector<uint64_t>& memortWriteIds) {}
 
     virtual const NodeInfos& GetNodeInfos() const
     {
@@ -327,6 +337,15 @@ public:
     void SetCorrespondingNotifyNodeId(uint64_t notifyId) override
     {
         nodeInfos.syncInfos.correspondingNotifyNodeId = notifyId;
+    }
+
+    void SetCorrespondingMemoryWriteNodeId(const std::vector<uint64_t>& memortWriteIds) {
+        nodeInfos.syncInfos.correspondingMemoryWriteNodeIds.assign(memortWriteIds.begin(), memortWriteIds.end());
+    }
+
+    std::vector<uint64_t> GetCorrespondingMemoryWriteNodeIds() const override
+    {
+        return nodeInfos.syncInfos.correspondingMemoryWriteNodeIds;
     }
 
     std::string FormatNodeInfo() const override;

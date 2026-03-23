@@ -527,26 +527,26 @@ bool SuperKernelMemoryNode::InitNode() {
 
         return true;
     }
-
+    
     if (rtNodeType == ACL_MODEL_RI_TASK_VALUE_WRITE) {
         auto& memoryParam = taskParams.valueWriteTaskParams;
-        if (memoryParam.value == 0) {
-            nodeType = SkNodeType::NODE_RESET;
-        }
-        if (memoryParam.value == 1) {
-            nodeType = SkNodeType::NODE_NOTIFY;
-        }
+        nodeType = SkNodeType::NODE_MEMORY_WRITE;
         nodeInfos.syncInfos.eventId = static_cast<uint64_t>(reinterpret_cast<uintptr_t>(memoryParam.devAddr));
         nodeInfos.syncInfos.addrValue = memoryParam.devAddr;
+        nodeInfos.syncInfos.memoryValue = memoryParam.value;
+        isFusible = true;
     } else {
-        nodeType = SkNodeType::NODE_WAIT;
+        nodeType = SkNodeType::NODE_MEMORY_WAIT;
         auto& memoryParam = taskParams.valueWaitTaskParams;
         nodeInfos.syncInfos.eventId = static_cast<uint64_t>(reinterpret_cast<uintptr_t>(memoryParam.devAddr));
         nodeInfos.syncInfos.addrValue = memoryParam.devAddr;
+        nodeInfos.syncInfos.memoryValue = memoryParam.value;
+        nodeInfos.syncInfos.flag = memoryParam.flag;
+        isFusible = false;
     }
 
     SK_LOGI("Event type of task %lu is memory based, which can be fused in super kernel.", nodeId);
-    isFusible = true;
+    
     return true;
 }
 

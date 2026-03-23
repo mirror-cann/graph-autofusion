@@ -346,12 +346,17 @@ bool ApplyEventMemoryResource(SuperKernelGraph& graph, SuperKernelBaseNode* even
         SK_LOGI("event memory already applied: eventId=%lu, addr=%p", syncInfos.eventId, syncInfos.addrValue);
         return true;
     } else {
+        auto eventId = eventNode->GetEventId();
+        auto eventInfos = graph.GetEventInfo(eventId);
+        if (eventInfos == nullptr) {
+            return false;
+        }
         // check syncInfos
-        if (syncInfos.correspondingNotifyNodeId == INVALID_TASK_ID || syncInfos.correspondingWaitNodeIds.empty()
-            || syncInfos.correspondingResetNodeId == INVALID_TASK_ID) {
+        if (eventInfos->notifyNodeId == INVALID_TASK_ID || eventInfos->waitNodeIdList.empty()
+            || eventInfos->resetNodeIdList.empty()) {
             SK_LOGE("event syncInfos invalid: eventId=%lu, NotifyNodeId=%lu, WaitNodeIdsSize=%zu, ResetNodeId=%lu",
-                    syncInfos.eventId, syncInfos.correspondingNotifyNodeId, syncInfos.correspondingWaitNodeIds.size(),
-                    syncInfos.correspondingResetNodeId);
+                    syncInfos.eventId, eventInfos->notifyNodeId, eventInfos->waitNodeIdList.size(),
+                    eventInfos->resetNodeIdList);
             return false;
         }
         SK_LOGI("event memory allocated start ...");
@@ -362,17 +367,17 @@ bool ApplyEventMemoryResource(SuperKernelGraph& graph, SuperKernelBaseNode* even
             return false;
         }
         // notify sync info update
-        auto notifyNode = graph.GetNodeById(syncInfos.correspondingNotifyNodeId);
+        auto notifyNode = graph.GetNodeById(eventInfos->notifyNodeId);
         if (notifyNode == nullptr) {
             SK_LOGE("notify event node not found in graph during event memory apply: notifyNodeId=%lu",
-                    syncInfos.correspondingNotifyNodeId);
+                    eventInfos->notifyNodeId);
             return false;
         }
         // wait sync info update
         notifyNode->nodeInfos.syncInfos.addrValue = addr;
         needUpdateNodes.emplace_back(notifyNode);
         SK_LOGI("Updated notify node addrValue: nodeId=%lu, addr=%p", notifyNode->GetNodeId(), addr);
-        for (auto waitNodeId : syncInfos.correspondingWaitNodeIds) {
+        for (auto waitNodeId : eventInfos->waitNodeIdList) {
             auto waitNode = graph.GetNodeById(waitNodeId);
             if (waitNode == nullptr) {
                 SK_LOGE("wait event node not found in graph during event memory apply: waitNodeId=%lu", waitNodeId);
@@ -383,16 +388,18 @@ bool ApplyEventMemoryResource(SuperKernelGraph& graph, SuperKernelBaseNode* even
             SK_LOGI("Updated wait node addrValue: nodeId=%lu, addr=%p", waitNode->GetNodeId(), addr);
         }
         // reset sync info update
-        auto resetNode = graph.GetNodeById(syncInfos.correspondingResetNodeId);
-        if (resetNode == nullptr) {
-            SK_LOGE("reset event node not found in graph during event memory apply: resetNodeId=%lu",
-                    syncInfos.correspondingResetNodeId);
-            return false;
+        for (auto resetNodeId: eventInfos->resetNodeIdList) {
+            auto resetNode = graph.GetNodeById(resetNodeId);
+            if (resetNode == nullptr) {
+                SK_LOGE("reset event node not found in graph during event memory apply: resetNodeId=%lu",
+                    resetNodeId);
+                return false;
+            }
+            resetNode->nodeInfos.syncInfos.addrValue = addr;
+            needUpdateNodes.emplace_back(resetNode);
+            SK_LOGI("Updated reset node addrValue: nodeId=%lu, addr=%p", resetNode->GetNodeId(), addr);
+            SK_LOGI("event memory allocated end: eventId=%lu, addr=%p", syncInfos.eventId, syncInfos.addrValue);
         }
-        resetNode->nodeInfos.syncInfos.addrValue = addr;
-        needUpdateNodes.emplace_back(resetNode);
-        SK_LOGI("Updated reset node addrValue: nodeId=%lu, addr=%p", resetNode->GetNodeId(), addr);
-        SK_LOGI("event memory allocated end: eventId=%lu, addr=%p", syncInfos.eventId, syncInfos.addrValue);
     }
 
     syncInfos = eventNode->nodeInfos.syncInfos;

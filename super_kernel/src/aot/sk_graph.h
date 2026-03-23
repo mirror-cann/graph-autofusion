@@ -36,7 +36,12 @@ public:
 
 struct EventInfos {
     uint64_t notifyNodeId = INVALID_TASK_ID;
-    uint64_t resetNodeId = INVALID_TASK_ID;
+    std::unordered_set<uint64_t> resetNodeIdList;
+    std::unordered_set<uint64_t> waitNodeIdList;
+};
+
+struct MemoryInfos {
+    std::unordered_set<uint64_t> writeNodeIdList;
     std::unordered_set<uint64_t> waitNodeIdList;
 };
 
@@ -108,11 +113,17 @@ private:
     bool AddEventAssociateNotify(uint64_t eventId, SuperKernelBaseNode* node);
     bool AddEventAssociateWait(uint64_t eventId, SuperKernelBaseNode* node);
     bool AddEventAssociateReset(uint64_t eventId, SuperKernelBaseNode* node);
+    bool AddMemoryAssociateWrite(uint64_t eventId, SuperKernelBaseNode* node);
+    bool AddMemoryAssociateWait(uint64_t eventId, SuperKernelBaseNode* node);
     bool AddEventAssociate();
-    void BuildWaitNodeAssociations();
+    void BuildEventNodeAssociations();
+    bool PostProcessMemoryNode();
+    bool ProcessMemoryWriteNodes(const uint64_t eventId, const MemoryInfos& memoryInfo,
+                               const uint64_t memoryWaitValue, const uint32_t waitFlag);
     void UpdateNodeScopeBitFlags();
     std::unordered_map<uint64_t, std::unique_ptr<SuperKernelBaseNode>> graphMap;
     std::unordered_map<uint64_t, EventInfos> eventToNodes;
+    std::unordered_map<uint64_t, MemoryInfos> memoryToNodes;
     std::vector<uint64_t> headNodes;
     std::vector<uint64_t> nodeSizeInStream;
     std::vector<aclrtStream> streams;

@@ -15,6 +15,7 @@
 
 #include "sk_graph.h"
 
+#include <optional>
 #include <stdexcept>
 #include <vector>
 #include <cstdint>
@@ -110,6 +111,18 @@ bool SuperKernelGraph::AddNode(std::unique_ptr<SuperKernelBaseNode> node) {
                 return false;
             }
             break;
+        case SkNodeType::NODE_MEMORY_WRITE:
+            if (!AddMemoryAssociateWrite(eventId, node.get())) {
+                SK_LOGE("Failed to associate memory write event %lu with node %lu", eventId, nodeId);
+                return false;
+            }
+            break;
+        case SkNodeType::NODE_MEMORY_WAIT:
+            if (!AddMemoryAssociateWait(eventId, node.get())) {
+                SK_LOGE("Failed to associate memory wait event %lu with node %lu", eventId, nodeId);
+                return false;
+            }
+            break;
         default:
             break;
     }
@@ -127,12 +140,45 @@ bool SuperKernelGraph::AddNode(std::unique_ptr<SuperKernelBaseNode> node) {
     return true;
 }
 
+bool SuperKernelGraph::AddMemoryAssociateWrite(uint64_t eventId, SuperKernelBaseNode* node) {
+    auto &memoryInfo = memoryToNodes[eventId];
+    uint64_t nodeId = node->GetNodeId();
+    if (memoryInfo.writeNodeIdList.find(nodeId) != memoryInfo.waitNodeIdList.end()) {
+        // Get the node information for duplicate memory write node binding
+        SuperKernelBaseNode* existingNode = GetNodeById(nodeId);
+        SK_LOGE("memory event 0x%lx already associated with this node, cannot reassociate!", eventId);
+        SK_LOGE("  Duplicate memory write node: node_id=%lu, details=%s",
+                 nodeId,
+                 existingNode ? existingNode->FormatNodeInfo().c_str() : "NOT_FOUND");
+        SK_LOGE("  Please check for duplicate memory write node bindings in the graph.");
+        return false;
+    }
+    memoryInfo.writeNodeIdList.insert(nodeId);
+    return true;
+}
+
+bool SuperKernelGraph::AddMemoryAssociateWait(uint64_t eventId, SuperKernelBaseNode* node) {
+    auto &memoryInfo = memoryToNodes[eventId];
+    uint64_t nodeId = node->GetNodeId();
+    if (memoryInfo.waitNodeIdList.find(nodeId) != memoryInfo.waitNodeIdList.end()) {
+        // Get the node information for duplicate memory wait node binding
+        SuperKernelBaseNode* existingNode = GetNodeById(nodeId);
+        SK_LOGE("memory event 0x%lx already associated with this node, cannot reassociate!", eventId);
+        SK_LOGE("  Duplicate memory wait node: node_id=%lu, details=%s",
+                 nodeId,
+                 existingNode ? existingNode->FormatNodeInfo().c_str() : "NOT_FOUND");
+        SK_LOGE("  Please check for duplicate memory wait node bindings in the graph.");
+        return false;
+    }
+    memoryInfo.waitNodeIdList.insert(nodeId);
+    return true;
+}
+
 bool SuperKernelGraph::AddEventAssociateNotify(uint64_t eventId, SuperKernelBaseNode* node) {
     auto &eventInfo = eventToNodes[eventId];
     if (eventInfo.notifyNodeId != INVALID_TASK_ID) {
         // Get the already bound node information
         SuperKernelBaseNode* existingNode = GetNodeById(eventInfo.notifyNodeId);
-
         SK_LOGE("Notify event 0x%lx already associated, cannot reassociate!", eventId);
         SK_LOGE("  Existing bound node: node_id=%lu, details=%s",
                  eventInfo.notifyNodeId,
@@ -166,6 +212,21 @@ bool SuperKernelGraph::AddEventAssociateWait(uint64_t eventId, SuperKernelBaseNo
     return true;
 }
 
+bool SuperKernelGraph::AddEventAssociateReset(uint64_t eventId, SuperKernelBaseNode* node) {
+    auto &eventInfo = eventToNodes[eventId];
+    uint64_t nodeId = node->GetNodeId();
+    if (eventInfo.resetNodeIdList.find(nodeId) != eventInfo.resetNodeIdList.end()) {
+        SK_LOGE("Reset event 0x%lx already associated, cannot reassociate!", eventId);
+        SK_LOGE("  Existing bound node: node_id=%lu, details=%s",
+                 nodeId, node ? node->FormatNodeInfo().c_str() : "NOT_FOUND");
+        SK_LOGE("  Attempting to bind: node_id=%lu, details=%s",
+                nodeId, node->FormatNodeInfo().c_str());
+        SK_LOGE("  Please check for duplicate RESET event bindings in the graph.");
+        return false;
+    }
+    eventInfo.resetNodeIdList.insert(nodeId);
+    return true;
+}
 
 /**
  * @brief Build event associations and establish send-receive relationships between nodes
@@ -196,10 +257,9 @@ bool SuperKernelGraph::AddEventAssociate() {
         uint64_t eventId = iter->first;                     // Event ID
         uint64_t notifyId = iter->second.notifyNodeId;      // NOTIFY node ID
         std::unordered_set<uint64_t> waitIdSet = iter->second.waitNodeIdList;  // WAIT node ID set
-        uint64_t resetId = iter->second.resetNodeId;       // RESET node ID (currently unused)
 
-        SK_LOGD("Processing event 0x%lx: notify=%lu, wait_count=%zu, reset=%lu",
-                eventId, notifyId, waitIdSet.size(), resetId);
+        SK_LOGD("Processing event 0x%lx: notify=%lu, wait_count=%zu",
+                eventId, notifyId, waitIdSet.size());
 
         // Skip if the event has no associated NOTIFY node
         if (INVALID_TASK_ID == notifyId) {
@@ -276,29 +336,7 @@ bool SuperKernelGraph::AddEventAssociate() {
     return true;
 }
 
-bool SuperKernelGraph::AddEventAssociateReset(uint64_t eventId, SuperKernelBaseNode* node) {
-    auto &eventInfo = eventToNodes[eventId];
-
-    if (eventInfo.resetNodeId != INVALID_TASK_ID) {
-        // Get the already bound node information
-        SuperKernelBaseNode* existingNode = GetNodeById(eventInfo.resetNodeId);
-
-        SK_LOGE("Reset event 0x%lx already associated, cannot reassociate!", eventId);
-        SK_LOGE("  Existing bound node: node_id=%lu, details=%s",
-                 eventInfo.resetNodeId,
-                 existingNode ? existingNode->FormatNodeInfo().c_str() : "NOT_FOUND");
-        SK_LOGE("  Attempting to bind: node_id=%lu, details=%s",
-                 node->GetNodeId(),
-                 node->FormatNodeInfo().c_str());
-        SK_LOGE("  Please check for duplicate RESET event bindings in the graph.");
-        return false;
-    }
-    eventInfo.resetNodeId = node->GetNodeId();
-
-    return true;
-}
-
-void SuperKernelGraph::BuildWaitNodeAssociations() {
+void SuperKernelGraph::BuildEventNodeAssociations() {
     SK_LOGI("Starting to build wait node associations, total events: %zu", eventToNodes.size());
     for (const auto& it : eventToNodes) {
         const uint64_t eventId = it.first;
@@ -333,8 +371,186 @@ void SuperKernelGraph::BuildWaitNodeAssociations() {
                         eventId, eventInfo.notifyNodeId);
             }
         }
+        if (!eventInfo.resetNodeIdList.empty()) {
+            for (auto resetNodeId : eventInfo.resetNodeIdList) {
+                auto* resetNode = GetNodeById(resetNodeId);
+                if (resetNode != nullptr &&
+                    (resetNode->GetNodeType() == SkNodeType::NODE_RESET)) {
+                    resetNode->nodeInfos.syncInfos.correspondingResetNodeIds.assign(
+                        eventInfo.resetNodeIdList.begin(), eventInfo.resetNodeIdList.end());
+                    SK_LOGD("Associated reset node %lu has %lu reset nodes",
+                        resetNodeId, eventInfo.resetNodeIdList.size());
+                }
+            }
+        }
     }
-    SK_LOGI("Completed building all wait node associations");
+    SK_LOGI("Completed building all event node associations");
+}
+
+bool SuperKernelGraph::ProcessMemoryWriteNodes(const uint64_t eventId, const MemoryInfos& memoryInfo,
+    const uint64_t memoryWaitValue, const uint32_t waitFlag)
+{
+    std::vector<uint64_t> notifyIdVec;
+    std::vector<uint64_t> resetIdVec;
+
+    // Iterate through all memory write nodes and classify them as Notify or Reset nodes based on waitFlag
+    // waitFlag definitions:
+    //   0x0: >= comparison mode
+    //   0x1: == equality mode
+    //   0x2: & bitwise AND mode
+    //   0x3: ~| bitwise OR with NOT mode
+    for (const auto writeNodeId : memoryInfo.writeNodeIdList) {
+        auto* writeNode = GetNodeById(writeNodeId);
+        // Only process valid MEMORY_WRITE type nodes
+        if (writeNode == nullptr || writeNode->GetNodeType() != SkNodeType::NODE_MEMORY_WRITE) {
+            continue;
+        }
+        const uint64_t writeMemoryValue = writeNode->nodeInfos.syncInfos.memoryValue;
+        bool isNotify = false;
+        // Calculate whether notification condition is satisfied based on different waitFlag values
+        switch (waitFlag) {
+            case 0x0:
+                // Greater than or equal mode: trigger notification when written value >= wait value
+                isNotify = (writeMemoryValue >= memoryWaitValue);
+                break;
+            case 0x1:
+                // Equal mode: trigger notification when written value == wait value
+                isNotify = (writeMemoryValue == memoryWaitValue);
+                break;
+            case 0x2:
+                // Bitwise AND mode: trigger notification when (written value & wait value) != 0
+                isNotify = ((writeMemoryValue & memoryWaitValue) != 0);
+                break;
+            case 0x3:
+                // Bitwise OR with NOT mode: trigger notification when ~(written value | wait value) != 0
+                isNotify = ((~(writeMemoryValue | memoryWaitValue)) != 0);
+                break;
+            default:
+                // Undefined waitFlag, do not trigger notification by default
+                isNotify = false;
+                SK_LOGW("Unknown waitFlag %u for event %lu, treated as reset node",
+                    waitFlag, eventId);
+                break;
+        }
+
+        // Classify nodes into corresponding vectors based on judgment result
+        if (isNotify) {
+            notifyIdVec.push_back(writeNodeId);
+        } else {
+            resetIdVec.push_back(writeNodeId);
+        }
+    }
+    if (notifyIdVec.size() > 1) {
+        SK_LOGE("there exits multi memory write node which is notify, it is illegal, eventId: %lu",
+            eventId);
+        return false;
+    } else if (notifyIdVec.size() == 1) {
+        auto* writeNode = GetNodeById(notifyIdVec[0]);
+        SK_LOGD("there exits only one memory write node which is notify, it may cause dead lock, details=%s",
+            writeNode->FormatNodeInfo().c_str());
+        writeNode->SetNodeType(SkNodeType::NODE_NOTIFY);
+        writeNode->SetIsFusible(true);
+        if (!AddEventAssociateNotify(eventId, writeNode)) {
+            SK_LOGE("Failed to associate notify event %lu with node %lu", eventId, notifyIdVec[0]);
+            return false;
+        }
+        for (auto waitNodeId : memoryInfo.waitNodeIdList) {
+            auto* waitNode = GetNodeById(waitNodeId);
+            if (waitNode != nullptr &&
+                (waitNode->GetNodeType() == SkNodeType::NODE_MEMORY_WAIT)) {
+                waitNode->SetNodeType(SkNodeType::NODE_WAIT);
+                waitNode->SetIsFusible(true);
+                if (!AddEventAssociateWait(eventId, waitNode)) {
+                    SK_LOGE("Failed to associate wait event %lu with node %lu", eventId, waitNodeId);
+                    return false;
+                }
+            }
+        }
+    }
+    if (!resetIdVec.empty()) {
+        for (auto resetId: resetIdVec) {
+            auto* resetNode = GetNodeById(resetId);
+            resetNode->SetNodeType(SkNodeType::NODE_RESET);
+            resetNode->SetIsFusible(false);
+            if (!AddEventAssociateReset(eventId, resetNode)) {
+                SK_LOGE("Failed to associate reset event %lu with node %lu", eventId, resetIdVec[0]);
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+bool SuperKernelGraph::PostProcessMemoryNode() {
+    SK_LOGI("Starting to build memory node associations, total events: %zu", memoryToNodes.size());
+    for (const auto& it : memoryToNodes) {
+        const uint64_t eventId = it.first;
+        const MemoryInfos& memoryInfo = it.second;
+        if (memoryInfo.writeNodeIdList.empty() && !memoryInfo.waitNodeIdList.empty()) {
+            // No memory write exists, meaning the memory write is outside modelRI,
+            // therefore change all waits to event semantics, but they cannot be fused.
+            for (auto waitNodeId : memoryInfo.waitNodeIdList) {
+                auto* waitNode = GetNodeById(waitNodeId);
+                if (waitNode != nullptr &&
+                    (waitNode->GetNodeType() == SkNodeType::NODE_MEMORY_WAIT)) {
+                    waitNode->SetNodeType(SkNodeType::NODE_WAIT);
+                    waitNode->SetIsFusible(false);
+                }
+            }
+        } else if (!memoryInfo.writeNodeIdList.empty() && memoryInfo.waitNodeIdList.empty()) {
+            // only exists memory write nodes, mask it as unfusible
+            for (auto writeNodeId : memoryInfo.writeNodeIdList) {
+                auto* writeNode = GetNodeById(writeNodeId);
+                if (writeNode != nullptr &&
+                    (writeNode->GetNodeType() == SkNodeType::NODE_MEMORY_WRITE)) {
+                    writeNode->SetIsFusible(false);
+                }
+            }
+        } else {
+            // Check consistency of memoryValue and flag in waitNode list
+            std::optional<std::pair<uint64_t, uint32_t>> firstWaitInfo;
+
+            for (auto waitNodeId : memoryInfo.waitNodeIdList) {
+                auto* waitNode = GetNodeById(waitNodeId);
+                if (waitNode == nullptr || 
+                    waitNode->GetNodeType() != SkNodeType::NODE_MEMORY_WAIT) {
+                    continue;
+                }
+
+                const uint64_t memoryValue = waitNode->nodeInfos.syncInfos.memoryValue;
+                const uint32_t flag = waitNode->nodeInfos.syncInfos.flag;
+
+                if (!firstWaitInfo.has_value()) {
+                    firstWaitInfo = {memoryValue, flag};
+                } else if (memoryValue != firstWaitInfo->first || flag != firstWaitInfo->second) {
+                    // Inconsistent wait parameters found, log all waitNode details
+                    SK_LOGE("waitNode list contains inconsistent memoryValue/flag combinations, eventId: %lu",
+                        eventId);
+                    for (auto waitNodeId : memoryInfo.waitNodeIdList) {
+                        auto* waitNode = GetNodeById(waitNodeId);
+                        if (waitNode != nullptr && (waitNode->GetNodeType() == SkNodeType::NODE_MEMORY_WAIT)) {
+                            SK_LOGE("eventId: %lu, waitNodeId: %lu, memoryValue: %lu, flag: %u",
+                            eventId,
+                            waitNodeId,
+                            waitNode->nodeInfos.syncInfos.memoryValue,
+                            waitNode->nodeInfos.syncInfos.flag);
+                        }
+                    }
+                    return false;
+                }
+            }
+
+            uint64_t memoryWaitValue = firstWaitInfo->first;
+            uint32_t waitFlag = firstWaitInfo->second;
+
+            bool ret = ProcessMemoryWriteNodes(eventId, memoryInfo, memoryWaitValue, waitFlag);
+            if (!ret) {
+                return ret;
+            }
+        }
+    }
+    SK_LOGI("Completed building all memory node associations");
+    return true;
 }
 
 namespace {
@@ -628,10 +844,21 @@ bool SuperKernelGraph::InitSKGraph() {
     SK_LOGI("Starting UpdateNodeScopeBitFlags");
     UpdateNodeScopeBitFlags();
     SK_LOGI("UpdateNodeScopeBitFlags completed");
-    SK_LOGI("Starting BuildWaitNodeAssociations");
-    BuildWaitNodeAssociations();
+
+    SK_LOGI("Starting PostProcessMemoryNode");
+    bool flag = PostProcessMemoryNode();
+    SK_LOGI("PostProcessMemoryNode completed");
+    if (!flag) {
+        return flag;
+    }
+
+    SK_LOGI("Starting BuildEventNodeAssociations");
+    BuildEventNodeAssociations();
+    SK_LOGI("BuildEventNodeAssociations completed");
+
+    SK_LOGI("Starting AddEventAssociate");
     AddEventAssociate();
-    SK_LOGI("BuildWaitNodeAssociations completed");
+    SK_LOGI("AddEventAssociate completed");
     
     SK_LOGI("Successfully initialized SuperKernel graph with %zu nodes and %zu streams",
             graphMap.size(), streams.size());

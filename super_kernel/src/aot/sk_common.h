@@ -22,7 +22,9 @@ enum class SkNodeType : uint32_t {
     NODE_NOTIFY = 1,
     NODE_WAIT = 2,
     NODE_RESET = 3,
-    NODE_DEFAULT = 4,
+    NODE_MEMORY_WRITE = 4,
+    NODE_MEMORY_WAIT = 5,
+    NODE_DEFAULT = 6,
 };
 
 inline const char* to_string(SkNodeType type)
