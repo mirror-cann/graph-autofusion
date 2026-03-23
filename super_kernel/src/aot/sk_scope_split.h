@@ -57,13 +57,13 @@ struct SuperKernelScopeInfo {
  * \brief Processing state for a single stream during multi-stream splitting
  */
 struct StreamState {
-    uint64_t currentNodeIdx;              ///< Current node being processed
+    uint64_t currentNodeId;              ///< Current node being processed
     bool isSuspended;                     ///< True if waiting for Notify event
     uint64_t waitingForNotify;            ///< Event ID being waited for (if suspended)
     bool isTerminated;                    ///< True if stream cannot continue in current scope
 
     StreamState()
-        : currentNodeIdx(INVALID_TASK_ID),
+        : currentNodeId(INVALID_TASK_ID),
           isSuspended(false),
           waitingForNotify(INVALID_TASK_ID),
           isTerminated(false) {}
@@ -73,11 +73,11 @@ struct StreamState {
      * \return Formatted string describing the stream state
      */
     std::string FormatStreamStateInfo() const {
-        std::string info = "currentNodeIdx=";
-        if (currentNodeIdx == INVALID_TASK_ID) {
+        std::string info = "currentNodeId=";
+        if (currentNodeId == INVALID_TASK_ID) {
             info += "INVALID";
         } else {
-            info += std::to_string(currentNodeIdx);
+            info += std::to_string(currentNodeId);
         }
 
         info += ", isSuspended=";

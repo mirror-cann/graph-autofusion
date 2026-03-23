@@ -2494,8 +2494,8 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase38_ResumeSuspendedWaitStreams_WaitN
     // 设置 event 对应不存在的 wait 节点
     SetupEvent(100, 3, {999});
 
-    // 关键：调用 BuildWaitNodeAssociations 建立 Notify 和 Wait 的关联
-    graph->BuildWaitNodeAssociations();
+    // 关键：调用 BuildEventNodeAssociations 建立 Notify 和 Wait 的关联
+    graph->BuildEventNodeAssociations();
 
     SuperKernelScopeSplitter splitter(*graph);
     bool result = splitter.SplitGraph();
@@ -2532,8 +2532,8 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase39_ResumeSuspendedWaitStreams_SkipU
     SetupStreams({{1, 2, 3}, {4}});
     SetupEvent(100, 4, {1});
 
-    // 关键：调用 BuildWaitNodeAssociations 建立 Notify 和 Wait 的关联
-    graph->BuildWaitNodeAssociations();
+    // 关键：调用 BuildEventNodeAssociations 建立 Notify 和 Wait 的关联
+    graph->BuildEventNodeAssociations();
 
     SuperKernelScopeSplitter splitter(*graph);
     bool result = splitter.SplitGraph();
@@ -2565,8 +2565,8 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase40_HandleUnfusibleNotifyNode_ErrorP
     SetupStreams({{1, 2}, {3}});
     SetupEvent(100, 3, {999});
 
-    // 关键：调用 BuildWaitNodeAssociations 建立 Notify 和 Wait 的关联
-    graph->BuildWaitNodeAssociations();
+    // 关键：调用 BuildEventNodeAssociations 建立 Notify 和 Wait 的关联
+    graph->BuildEventNodeAssociations();
 
     SuperKernelScopeSplitter splitter(*graph);
     bool result = splitter.SplitGraph();
@@ -2602,8 +2602,8 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase41_MultipleWaitNodes_PartialExisten
     SetupStreams({{1, 2}, {3, 4}, {5}});
     SetupEvent(100, 5, {1, 999}); // 第二个 wait 节点不存在
 
-    // 关键：调用 BuildWaitNodeAssociations 建立 Notify 和 Wait 的关联
-    graph->BuildWaitNodeAssociations();
+    // 关键：调用 BuildEventNodeAssociations 建立 Notify 和 Wait 的关联
+    graph->BuildEventNodeAssociations();
 
     SuperKernelScopeSplitter splitter(*graph);
     bool result = splitter.SplitGraph();
@@ -2633,8 +2633,8 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase42_ResumeSuspendedWaitStreams_Succe
     SetupStreams({{1, 2}, {3, 4}});
     SetupEvent(100, 3, {1});
 
-    // 关键：调用 BuildWaitNodeAssociations 建立 Notify 和 Wait 的关联
-    graph->BuildWaitNodeAssociations();
+    // 关键：调用 BuildEventNodeAssociations 建立 Notify 和 Wait 的关联
+    graph->BuildEventNodeAssociations();
 
     SuperKernelScopeSplitter splitter(*graph);
     bool result = splitter.SplitGraph();
@@ -2681,8 +2681,8 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase43_ResumeSuspendedWaitStreams_Succe
     SetupStreams({{1, 2}, {3, 4}, {5, 6}});
     SetupEvent(100, 5, {1, 3});
 
-    // 关键：调用 BuildWaitNodeAssociations 建立 Notify 和 Wait 的关联
-    graph->BuildWaitNodeAssociations();
+    // 关键：调用 BuildEventNodeAssociations 建立 Notify 和 Wait 的关联
+    graph->BuildEventNodeAssociations();
 
     SuperKernelScopeSplitter splitter(*graph);
     bool result = splitter.SplitGraph();

@@ -82,7 +82,7 @@ void InitialScopeSplitPass::InitStreamStates() {
     streamStates_.clear();
     for (size_t i = 0; i < streams.size(); ++i) {
         streamStates_[i] = StreamState();
-        streamStates_[i].currentNodeIdx = headNodes[i];
+        streamStates_[i].currentNodeId = headNodes[i];
         SK_LOGI("  Stream %u: initialized with head node %lu",
                 static_cast<uint32_t>(i), headNodes[i]);
     }
@@ -96,8 +96,8 @@ bool InitialScopeSplitPass::ResetStreamStates() {
         pair.second.isTerminated = false;
         pair.second.isSuspended = false;
         pair.second.waitingForNotify = INVALID_TASK_ID;
-        SK_LOGD("  Stream %u: reset, currentNodeIdx=%lu",
-                streamIdx, pair.second.currentNodeIdx);
+        SK_LOGD("  Stream %u: reset, currentNodeId=%lu",
+                streamIdx, pair.second.currentNodeId);
     }
     SK_LOGI("[SplitScope] starting to skip unfusible nodes");
     if (!SkipUnfusibleNodes()) {
@@ -151,18 +151,18 @@ bool InitialScopeSplitPass::SkipUnfusibleNodesForStream(uint32_t streamIdx) {
     StreamState& state = streamStates_[streamIdx];
     uint32_t skipCount = 0;
 
-    // If stream has already ended (currentNodeIdx == INVALID_TASK_ID), return success
+    // If stream has already ended (currentNodeId == INVALID_TASK_ID), return success
     // This is a normal case and should not be considered an error
-    if (state.currentNodeIdx == INVALID_TASK_ID) {
-        SK_LOGD("Stream %u: Already at end (currentNodeIdx=INVALID), nothing to skip", streamIdx);
+    if (state.currentNodeId == INVALID_TASK_ID) {
+        SK_LOGD("Stream %u: Already at end (currentNodeId=INVALID), nothing to skip", streamIdx);
         return true;
     }
 
-    while (state.currentNodeIdx != INVALID_TASK_ID) {
-        SuperKernelBaseNode* node = graph_.GetNodeById(state.currentNodeIdx);
+    while (state.currentNodeId != INVALID_TASK_ID) {
+        SuperKernelBaseNode* node = graph_.GetNodeById(state.currentNodeId);
         if (node == nullptr) {
             SK_LOGE("Stream %u: node %lu not found (graph integrity error)",
-                    streamIdx, state.currentNodeIdx);
+                    streamIdx, state.currentNodeId);
             return false;
         }
 
@@ -205,13 +205,13 @@ bool InitialScopeSplitPass::SkipUnfusibleNodesForStream(uint32_t streamIdx) {
         }
 
         // All unfusible nodes are skipped, advance to next node
-        state.currentNodeIdx = node->GetNextNodeId();
+        state.currentNodeId = node->GetNextNodeId();
         skipCount++;
     }
 
     if (skipCount > 0) {
         SK_LOGI("Stream %u: Skipped %u unfusible nodes, next node=%lu",
-                streamIdx, skipCount, state.currentNodeIdx);
+                streamIdx, skipCount, state.currentNodeId);
     }
 
     // Return true if stream is still active or has reached its end
@@ -225,8 +225,8 @@ bool InitialScopeSplitPass::SkipUnfusibleNodesForStream(uint32_t streamIdx) {
  * \param streamIdx The stream index
  * \param waitNode The unfusible WAIT node to process
  *
- * \return true if the WAIT node should be skipped (advance currentNodeIdx),
- *         false if the stream should be suspended (keep currentNodeIdx)
+ * \return true if the WAIT node should be skipped (advance currentNodeId),
+ *         false if the stream should be suspended (keep currentNodeId)
  *
  * Processing logic:
  * 1. Find the corresponding NOTIFY node
@@ -251,7 +251,7 @@ bool InitialScopeSplitPass::ProcessUnfusibleWaitNode(uint32_t streamIdx, SuperKe
         processedNodes_.insert(waitNode->GetNodeId());  // Add to processed nodes
         SK_LOGI("Stream %u: Unfusible wait node %s: notify %lu already visited, skipping and added to processedNodes_",
                 streamIdx, waitNode->FormatNodeInfo().c_str(), notifyId);
-        return true;  // Should skip (advance currentNodeIdx)
+        return true;  // Should skip (advance currentNodeId)
     } else {
         // Notify not visited, suspend the stream
         StreamState& state = streamStates_[streamIdx];
@@ -260,7 +260,7 @@ bool InitialScopeSplitPass::ProcessUnfusibleWaitNode(uint32_t streamIdx, SuperKe
         state.waitingForNotify = eventId;
         SK_LOGI("Stream %u: Unfusible wait node %s: notify %lu not visited, suspending stream (eventId=0x%lx)",
                 streamIdx, waitNode->FormatNodeInfo().c_str(), notifyId, eventId);
-        return false;  // Should NOT skip (keep currentNodeIdx for wait node)
+        return false;  // Should NOT skip (keep currentNodeId for wait node)
     }
 }
 
@@ -274,12 +274,12 @@ bool InitialScopeSplitPass::DetermineCurrentScopeBitFlags() {
     for (const auto& pair : streamStates_) {
         uint32_t streamIdx = pair.first;
         if (!pair.second.isTerminated && !pair.second.isSuspended &&
-            pair.second.currentNodeIdx != INVALID_TASK_ID) {
+            pair.second.currentNodeId != INVALID_TASK_ID) {
             activeStreams++;
-            if (pair.second.currentNodeIdx < minNodeIdx) {
-                SuperKernelBaseNode* node = graph_.GetNodeById(pair.second.currentNodeIdx);
+            if (pair.second.currentNodeId < minNodeIdx) {
+                SuperKernelBaseNode* node = graph_.GetNodeById(pair.second.currentNodeId);
                 if (node != nullptr && node->IsFusible()) {
-                    minNodeIdx = pair.second.currentNodeIdx;
+                    minNodeIdx = pair.second.currentNodeId;
                     minNode = node;
                     SK_LOGD("Stream %u: candidate min node %s (nodeIdx=%lu)",
                             streamIdx, node->FormatNodeInfo().c_str(), minNodeIdx);
@@ -319,24 +319,24 @@ void InitialScopeSplitPass::InitNodeHeap() {
 void InitialScopeSplitPass::TryAddNodeToHeap(uint32_t streamIdx) {
     StreamState& state = streamStates_[streamIdx];
 
-    if (state.isTerminated || state.isSuspended || state.currentNodeIdx == INVALID_TASK_ID) {
-        SK_LOGD("Stream %u: skipped (terminated=%d, suspended=%d, currentNodeIdx=%lu)",
-                streamIdx, state.isTerminated, state.isSuspended, state.currentNodeIdx);
+    if (state.isTerminated || state.isSuspended || state.currentNodeId == INVALID_TASK_ID) {
+        SK_LOGD("Stream %u: skipped (terminated=%d, suspended=%d, currentNodeId=%lu)",
+                streamIdx, state.isTerminated, state.isSuspended, state.currentNodeId);
         return;
     }
 
-    SuperKernelBaseNode* node = graph_.GetNodeById(state.currentNodeIdx);
+    SuperKernelBaseNode* node = graph_.GetNodeById(state.currentNodeId);
     if (node == nullptr) {
         SK_LOGE("Stream %u: node %lu not found, terminating stream (graph integrity error: nodeId not in graph)",
-                streamIdx, state.currentNodeIdx);
-        state.currentNodeIdx = INVALID_TASK_ID;
+                streamIdx, state.currentNodeId);
+        state.currentNodeId = INVALID_TASK_ID;
         return;
     }
 
-    if (processedNodes_.find(state.currentNodeIdx) != processedNodes_.end()) {
+    if (processedNodes_.find(state.currentNodeId) != processedNodes_.end()) {
         SK_LOGD("Stream %u: node %lu already processed, advancing",
-                streamIdx, state.currentNodeIdx);
-        state.currentNodeIdx = node->GetNextNodeId();
+                streamIdx, state.currentNodeId);
+        state.currentNodeId = node->GetNextNodeId();
         TryAddNodeToHeap(streamIdx);
         return;
     }
@@ -367,7 +367,7 @@ void InitialScopeSplitPass::TryAddNodeToHeap(uint32_t streamIdx) {
     }
 
     // Add to heap (no deadlock check in this pass)
-    nodeHeap_.push(state.currentNodeIdx);
+    nodeHeap_.push(state.currentNodeId);
     SK_LOGD("Stream %u: added node %s to heap, heap size=%zu",
             streamIdx, node->FormatNodeInfo().c_str(), nodeHeap_.size());
 }
@@ -378,7 +378,8 @@ void InitialScopeSplitPass::HandleWaitNode(SuperKernelBaseNode* waitNode, uint32
     SuperKernelBaseNode* notifyNode = graph_.GetNodeById(notifyId);
 
     if (notifyNode == nullptr) {
-        SK_LOGE("Stream %u: Wait node %s's notify node %lu not found",
+        nodeHeap_.push(state.currentNodeId);
+        SK_LOGI("Stream %u: Wait node %s's notify node %lu not found, adding wait node to heap to avoid hanging",
                 streamIdx, waitNode->FormatNodeInfo().c_str(), notifyId);
         return;
     }
@@ -386,7 +387,7 @@ void InitialScopeSplitPass::HandleWaitNode(SuperKernelBaseNode* waitNode, uint32
     uint64_t eventId = notifyNode->GetEventId();
     if (visitedNotifies_.find(notifyId) != visitedNotifies_.end()) {
         // Notify already visited, add fusible wait node to heap
-        nodeHeap_.push(state.currentNodeIdx);
+        nodeHeap_.push(state.currentNodeId);
         SK_LOGD("Stream %u: Wait node %s: notify %lu already visited, adding to heap",
                 streamIdx, waitNode->FormatNodeInfo().c_str(), notifyId);
     } else {
@@ -464,11 +465,11 @@ void InitialScopeSplitPass::ProcessResetNode(SuperKernelBaseNode* resetNode) {
             streamStates_[streamIdx].waitingForNotify = INVALID_TASK_ID;
             streamStates_[streamIdx].isSuspended = true;
             suspendedCount++;
-            SK_LOGD("Suspended stream %u for wait node %s (eventId=0x%lx)",
+            SK_LOGE("Suspended stream %u for wait node %s (eventId=0x%lx)",
                     streamIdx, waitNode->FormatNodeInfo().c_str(), eventId);
         }
     }
-    SK_LOGD("Suspended %u streams due to reset", suspendedCount);
+    SK_LOGE("Suspended %u streams due to reset", suspendedCount);
 }
 
 bool InitialScopeSplitPass::HandleUnfusibleNotifyNode(SuperKernelBaseNode* notifyNode, uint32_t streamIdx) {
@@ -525,7 +526,7 @@ bool InitialScopeSplitPass::ResumeSuspendedWaitStreams(SuperKernelBaseNode* noti
 void InitialScopeSplitPass::LogFusibleNodeSearchResult() {
     SK_LOGI("[FindFusibleNodes] No fusible nodes found in any stream");
 
-    // Check if all streams have finished (currentNodeIdx == INVALID_TASK_ID)
+    // Check if all streams have finished (currentNodeId == INVALID_TASK_ID)
     bool allStreamsFinished = true;
     std::vector<uint32_t> nonFinishedStreamIdxs;
 
@@ -533,17 +534,17 @@ void InitialScopeSplitPass::LogFusibleNodeSearchResult() {
         uint32_t streamIdx = pair.first;
         const StreamState& state = pair.second;
 
-        if (state.currentNodeIdx != INVALID_TASK_ID) {
+        if (state.currentNodeId != INVALID_TASK_ID) {
             allStreamsFinished = false;
             nonFinishedStreamIdxs.push_back(streamIdx);
         }
     }
 
     if (allStreamsFinished) {
-        SK_LOGI("[FindFusibleNodes] All streams have finished (all currentNodeIdx are INVALID_TASK_ID)");
+        SK_LOGI("[FindFusibleNodes] All streams have finished (all currentNodeId are INVALID_TASK_ID)");
     } else {
         // ERROR level when there are streams not finished but no fusible nodes found
-        SK_LOGE("[FindFusibleNodes] Found %zu streams with non-INVALID currentNodeIdx but no fusible nodes",
+        SK_LOGE("[FindFusibleNodes] Found %zu streams with non-INVALID currentNodeId but no fusible nodes",
                 nonFinishedStreamIdxs.size());
 
         // Print detailed information about streams that haven't finished
@@ -553,8 +554,8 @@ void InitialScopeSplitPass::LogFusibleNodeSearchResult() {
             SK_LOGE("[FindFusibleNodes] Stream %u state: %s", streamIdx, stateInfo.c_str());
 
             // If there's a current node, try to get more information
-            if (state.currentNodeIdx != INVALID_TASK_ID) {
-                SuperKernelBaseNode* node = graph_.GetNodeById(state.currentNodeIdx);
+            if (state.currentNodeId != INVALID_TASK_ID) {
+                SuperKernelBaseNode* node = graph_.GetNodeById(state.currentNodeId);
                 if (node != nullptr) {
                     bool isFusible = node->IsFusible();
                     SkNodeType nodeType = node->GetNodeType();
@@ -619,7 +620,7 @@ bool InitialScopeSplitPass::BuildCurrentScope(SuperKernelScopeInfo& scopeInfo) {
 
         // Advance stream
         uint64_t nextNodeId = node->GetNextNodeId();
-        streamStates_[streamIdx].currentNodeIdx = nextNodeId;
+        streamStates_[streamIdx].currentNodeId = nextNodeId;
 
         // Handle special nodes
         if (node->GetNodeType() == SkNodeType::NODE_NOTIFY) {

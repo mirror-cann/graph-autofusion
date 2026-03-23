@@ -586,14 +586,43 @@ bool SuperKernelMemoryNode::InValidateNode() {
 
 std::string SuperKernelMemoryNode::FormatNodeInfo() const {
     std::ostringstream oss;
-    const char* eventType = (rtNodeType == ACL_MODEL_RI_TASK_VALUE_WRITE) ? "Notify" : "Wait";
+    const char* eventType = nullptr;
+    switch (rtNodeType) {
+        case ACL_MODEL_RI_TASK_EVENT_RECORD:
+            eventType = "EventNotify";
+            break;
+        case ACL_MODEL_RI_TASK_EVENT_WAIT:
+            eventType = "EventWait";
+            break;
+        case ACL_MODEL_RI_TASK_EVENT_RESET:
+            eventType = "EventReset";
+            break;
+        case ACL_MODEL_RI_TASK_VALUE_WRITE:
+            oss << "[nodeId:" << nodeId 
+                << ", streamIdxInGraph:" << streamIdxInGraph 
+                << ", nodeIdxInStream:" << nodeIdxInStream 
+                << "] - MemoryWrite(value:0x" << std::hex << nodeInfos.syncInfos.memoryValue 
+                << std::dec << ", eventId:0x" << std::hex << GetEventId() << std::dec << ")";
+            return oss.str();
+        case ACL_MODEL_RI_TASK_VALUE_WAIT:
+            oss << "[nodeId:" << nodeId 
+                << ", streamIdxInGraph:" << streamIdxInGraph 
+                << ", nodeIdxInStream:" << nodeIdxInStream 
+                << "] - MemoryWait(flag:0x" << std::hex << nodeInfos.syncInfos.flag 
+                << ", value:0x" << std::hex << nodeInfos.syncInfos.memoryValue 
+                << std::dec << ", eventId:0x" << std::hex << GetEventId() << std::dec << ")";
+            return oss.str();
+        default:
+            eventType = "Unknown";
+            break;
+    }
     uint64_t eventId = GetEventId();
-    
+
     oss << "[nodeId:" << nodeId 
         << ", streamIdxInGraph:" << streamIdxInGraph 
         << ", nodeIdxInStream:" << nodeIdxInStream 
-        << "] - Event:" << eventType << "(eventId:0x" << std::hex << eventId << std::dec << ")";
-    
+        << "] - " << eventType << "(eventId:0x" << std::hex << eventId << std::dec << ")";
+
     return oss.str();
 }
 
