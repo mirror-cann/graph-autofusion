@@ -438,6 +438,8 @@ SuperKernelProcessedScopeInfo SuperKernelScopePostProcessor::PostProcess(SuperKe
 
     // pass1: collect per-stream info and boundary plans
     for (uint32_t curStreamIdx = 0; curStreamIdx < streamCount; ++curStreamIdx) {
+        SK_LOGI("scope pass1 collect stream info: streamIdx=%u, nodeSize=%lu", curStreamIdx,
+                scopeInfo.scopeStreamInfos[curStreamIdx].nodeSize);
         auto& scopeStreamInfo = scopeInfo.scopeStreamInfos[curStreamIdx];
         processedScopeInfo.updateStreamInfos[curStreamIdx].streamIdx = scopeStreamInfo.streamIdx;
         processedScopeInfo.updateStreamInfos[curStreamIdx].nodeSize = scopeStreamInfo.nodeSize;

@@ -172,6 +172,7 @@ struct SkHeaderInfo {
     uint32_t dfxOffset;
     uint32_t eventConfigOffset;  // 算子打印事件配置偏移量
     uint32_t nodeCnt;
+    uint8_t reserve[4];
     uint64_t totalSize;
 };
 

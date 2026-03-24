@@ -29,27 +29,28 @@ aclError SuperKernelGraph::Update() {
         }
         if (!node->IsUpdated()) {
             aclmdlRITaskParams customParams = {};
-            auto addrValue = node->nodeInfos.syncInfos.addrValue;
             switch (node->GetNodeType()) {
                 case SkNodeType::NODE_NOTIFY: {
                     customParams.type = ACL_MODEL_RI_TASK_VALUE_WRITE;
                     customParams.valueWriteTaskParams.value = 1;
-                    customParams.valueWriteTaskParams.devAddr = addrValue;
+                    customParams.valueWriteTaskParams.devAddr = node->nodeInfos.syncInfos.addrValue;
                     break;
                 }
                 case SkNodeType::NODE_WAIT: {
                     customParams.type = ACL_MODEL_RI_TASK_VALUE_WAIT;
                     customParams.valueWaitTaskParams.value = 1;
                     customParams.valueWaitTaskParams.flag = 1;
-                    customParams.valueWaitTaskParams.devAddr = addrValue;
+                    customParams.valueWaitTaskParams.devAddr = node->nodeInfos.syncInfos.addrValue;
                     break;
                 }
                 case SkNodeType::NODE_RESET: {
                     customParams.type = ACL_MODEL_RI_TASK_VALUE_WRITE;
                     customParams.valueWriteTaskParams.value = 0;
-                    customParams.valueWriteTaskParams.devAddr = addrValue;
+                    customParams.valueWriteTaskParams.devAddr = node->nodeInfos.syncInfos.addrValue;
                     break;
                 }
+                case SkNodeType::NODE_KERNEL:
+                    break; // invalid node
                 default:
                     SK_LOGE("Unsupported node type for event update: %u", static_cast<uint32_t>(node->GetNodeType()));
                     return ACL_ERROR_FAILURE;

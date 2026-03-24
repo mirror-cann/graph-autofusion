@@ -385,8 +385,8 @@ bool SuperKernelKernelNode::InitNode() {
     const int16_t* taskRatioInt16 = reinterpret_cast<const int16_t*>(&taskRatio);
     uint32_t skTaskTatio[2] = {static_cast<uint32_t>(taskRatioInt16[0]), static_cast<uint32_t>(taskRatioInt16[1])};
 
-    nodeInfos.kernelInfos.taskRatio[0] = skTaskTatio[0];
-    nodeInfos.kernelInfos.taskRatio[1] = skTaskTatio[1];
+    nodeInfos.kernelInfos.taskRatio[0] = skTaskTatio[1];
+    nodeInfos.kernelInfos.taskRatio[1] = skTaskTatio[0];
     nodeInfos.kernelInfos.kernelType = NormalizeKernelType((uint32_t)(kernelType), skTaskTatio);
     nodeInfos.kernelInfos.numBlocks = kernelParams.numBlocks;
     nodeInfos.kernelInfos.devArgs = kernelParams.args;
@@ -457,6 +457,19 @@ bool SuperKernelKernelNode::Update(const UpdateContext &ctx) {
     }
 
     if (ctx.customParams != nullptr) {
+        // check update value
+        switch (ctx.customParams->type) {
+            case ACL_MODEL_RI_TASK_VALUE_WRITE:
+            case ACL_MODEL_RI_TASK_VALUE_WAIT:
+                if (ctx.customParams->valueWriteTaskParams.devAddr == nullptr) {
+                    SK_LOGE("Custom params for kernel node %s has null devAddr, invalid params.", FormatNodeInfo().c_str());
+                    return false;
+                }
+                break;
+            default:
+                SK_LOGI("custom param type : %u not in check list, which will direct update, %s", ctx.customParams->type, FormatNodeInfo().c_str());
+                break;
+        }
         // update kernel with custom params for stream sync
         aclError aclRet = aclmdlRITaskSetParams(*originTask, ctx.customParams);
         if (aclRet != ACL_SUCCESS) {
@@ -557,6 +570,19 @@ bool SuperKernelMemoryNode::Update(const UpdateContext &ctx) {
     }
 
     if (ctx.customParams != nullptr) {
+        // check update value
+        switch (ctx.customParams->type) {
+            case ACL_MODEL_RI_TASK_VALUE_WRITE:
+            case ACL_MODEL_RI_TASK_VALUE_WAIT:
+                if (ctx.customParams->valueWriteTaskParams.devAddr == nullptr) {
+                    SK_LOGE("Custom params for kernel node %s has null devAddr, invalid params.", FormatNodeInfo().c_str());
+                    return false;
+                }
+                break;
+            default:
+                SK_LOGI("custom param type : %u not in check list, which will direct update, %s", ctx.customParams->type, FormatNodeInfo().c_str());
+                break;
+        }
         // update memory node with custom params for stream sync
         aclError aclRet = aclmdlRITaskSetParams(*originTask, ctx.customParams);
         if (aclRet != ACL_SUCCESS) {
