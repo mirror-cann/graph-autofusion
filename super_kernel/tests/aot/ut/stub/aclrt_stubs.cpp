@@ -28,18 +28,6 @@ extern "C" {
 #endif
 #define ACL_ERROR_INVALID_PARAM 100001
 
-// Internal task structure for stub implementation
-typedef struct AclrtTaskInternal {
-    uint32_t task_id;
-    aclrtTaskType type;
-    union {
-        aclrtTaskKernelParams kernel;
-        aclrtTaskEventParams event;
-        aclrtTaskDefaultParams def;
-        aclrtTaskMemValueParams memValue;
-    };
-} AclrtTaskInternal;
-
 // Internal RI task structure for stub implementation
 typedef struct AclmdlRITaskInternal {
     uint32_t task_id;
@@ -47,10 +35,6 @@ typedef struct AclmdlRITaskInternal {
     aclmdlRITaskParams params;
 } AclmdlRITaskInternal;
 
-// Helper to convert void* to internal structure
-static inline AclrtTaskInternal* TaskToInternal(aclrtTask task) {
-    return reinterpret_cast<AclrtTaskInternal*>(task);
-}
 
 static inline AclmdlRITaskInternal* RITaskToInternal(aclmdlRITask task) {
     return reinterpret_cast<AclmdlRITaskInternal*>(task);
@@ -130,66 +114,6 @@ aclError aclrtTaskGetType(aclrtTask task, aclrtTaskType *type) {
         taskIdx -= 1U;
     }
     *type = SkUtGetTaskType(streamIdx, taskIdx);
-    return ACL_ERROR_NONE;
-}
-
-// 获取内核参数
-aclError aclrtTaskGetKernelParams(aclrtTask task, aclrtTaskKernelParams *params) {
-    if (params == nullptr || task == nullptr) {
-        return ACL_ERROR_INVALID_PARAM;
-    }
-    AclrtTaskInternal* internal = TaskToInternal(task);
-    *params = internal->kernel;
-    return ACL_ERROR_NONE;
-}
-
-// 设置内核参数
-aclError aclrtTaskSetKernelParams(aclrtTask task, aclrtTaskKernelParams *params) {
-    if (params == nullptr || task == nullptr) {
-        return ACL_ERROR_INVALID_PARAM;
-    }
-    AclrtTaskInternal* internal = TaskToInternal(task);
-    internal->kernel = *params;
-    return ACL_ERROR_NONE;
-}
-
-// 获取事件参数
-aclError aclrtTaskGetEventParams(aclrtTask task, aclrtTaskEventParams *params) {
-    if (params == nullptr || task == nullptr) {
-        return ACL_ERROR_INVALID_PARAM;
-    }
-    AclrtTaskInternal* internal = TaskToInternal(task);
-    *params = internal->event;
-    return ACL_ERROR_NONE;
-}
-
-// 设置事件参数
-aclError aclrtTaskSetEventParams(aclrtTask task, aclrtTaskEventParams *params) {
-    if (params == nullptr || task == nullptr) {
-        return ACL_ERROR_INVALID_PARAM;
-    }
-    AclrtTaskInternal* internal = TaskToInternal(task);
-    internal->event = *params;
-    return ACL_ERROR_NONE;
-}
-
-// 获取内存参数
-aclError aclrtTaskGetMemValueParams(aclrtTask task, aclrtTaskMemValueParams *params) {
-    if (params == nullptr || task == nullptr) {
-        return ACL_ERROR_INVALID_PARAM;
-    }
-    AclrtTaskInternal* internal = TaskToInternal(task);
-    *params = internal->memValue;
-    return ACL_ERROR_NONE;
-}
-
-// 设置内存参数
-aclError aclrtTaskSetMemValueParams(aclrtTask task, aclrtTaskMemValueParams *params) {
-    if (params == nullptr || task == nullptr) {
-        return ACL_ERROR_INVALID_PARAM;
-    }
-    AclrtTaskInternal* internal = TaskToInternal(task);
-    internal->memValue = *params;
     return ACL_ERROR_NONE;
 }
 
@@ -525,6 +449,20 @@ static char g_stubDeviceMemory[1024 * 1024];  // 1MB stub memory
 aclError aclrtSetDevice(int32_t deviceId) {
     (void)deviceId;
     return ACL_SUCCESS;
+}
+
+// 获取流ID
+aclError aclrtStreamGetId(aclrtStream stream, int32_t *streamId) {
+    aclError forcedRet = SkUtGetAclrtStreamGetIdRet();
+    if (forcedRet != ACL_SUCCESS) {
+        return forcedRet;
+    }
+    if (streamId == nullptr || stream == nullptr) {
+        return ACL_ERROR_INVALID_PARAM;
+    }
+    uint32_t streamIdx = static_cast<uint32_t>(reinterpret_cast<uintptr_t>(stream) - 1U);
+    *streamId = SkUtGetStreamId(streamIdx);
+    return ACL_ERROR_NONE;
 }
 
 } // extern "C"

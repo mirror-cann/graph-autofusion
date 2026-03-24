@@ -40,7 +40,7 @@ protected:
     SuperKernelBaseNode* CreateKernelNode(uint64_t nodeId)
     {
         auto node = std::make_unique<SuperKernelKernelNode>(
-            nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_TASK_ID);
+            nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_STREAM_ID, INVALID_TASK_ID);
         node->SetNodeType(SkNodeType::NODE_KERNEL);
         node->SetNodeId(nodeId);
         node->SetPreNodeId(INVALID_TASK_ID);
@@ -54,7 +54,7 @@ protected:
                                             uint64_t nextNodeId, SkKernelType kernelType = SkKernelType::AIC_ONLY)
     {
         auto node = std::make_unique<SuperKernelKernelNode>(
-            nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, streamIdx, preNodeId);
+            nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, streamIdx, INVALID_STREAM_ID, preNodeId);
         node->SetNodeType(SkNodeType::NODE_KERNEL);
         node->SetNodeId(nodeId);
         node->SetPreNodeId(preNodeId);
@@ -78,7 +78,7 @@ protected:
                                             uint64_t nextNodeId, uint64_t eventId)
     {
         auto node = std::make_unique<SuperKernelMemoryNode>(
-            nullptr, ACL_MODEL_RI_TASK_EVENT_RECORD, 0, streamIdx, preNodeId);
+            nullptr, ACL_MODEL_RI_TASK_EVENT_RECORD, 0, streamIdx, INVALID_STREAM_ID, preNodeId);
         node->SetNodeType(SkNodeType::NODE_NOTIFY);
         node->SetNodeId(nodeId);
         node->SetPreNodeId(preNodeId);
@@ -94,7 +94,7 @@ protected:
                                           uint64_t nextNodeId, uint64_t eventId)
     {
         auto node = std::make_unique<SuperKernelMemoryNode>(
-            nullptr, ACL_MODEL_RI_TASK_EVENT_WAIT, 0, streamIdx, preNodeId);
+            nullptr, ACL_MODEL_RI_TASK_EVENT_WAIT, 0, streamIdx, INVALID_STREAM_ID, preNodeId);
         node->SetNodeType(SkNodeType::NODE_WAIT);
         node->SetNodeId(nodeId);
         node->SetPreNodeId(preNodeId);
@@ -110,7 +110,7 @@ protected:
                                            uint64_t nextNodeId)
     {
         auto node = std::make_unique<SuperKernelMemoryNode>(
-            nullptr, ACL_MODEL_RI_TASK_EVENT_RESET, 0, streamIdx, preNodeId);
+            nullptr, ACL_MODEL_RI_TASK_EVENT_RESET, 0, streamIdx, INVALID_STREAM_ID, preNodeId);
         node->SetNodeType(SkNodeType::NODE_RESET);
         node->SetNodeId(nodeId);
         node->SetPreNodeId(preNodeId);
@@ -140,7 +140,7 @@ TEST_F(SkTaskBuilderTest, Build_EmptyTasks_ReturnEmptyLaunchInfo)
 TEST_F(SkTaskBuilderTest, InitTaskSyncInfos_UnsupportedNodeType_ReturnFalse)
 {
     auto resetNode = std::make_unique<SuperKernelMemoryNode>(
-        nullptr, ACL_MODEL_RI_TASK_EVENT_RESET, 0, 0, INVALID_TASK_ID);
+        nullptr, ACL_MODEL_RI_TASK_EVENT_RESET, 0, 0, INVALID_STREAM_ID, INVALID_TASK_ID);
     resetNode->SetNodeType(SkNodeType::NODE_RESET);
     resetNode->SetNodeId(21);
     resetNode->SetPreNodeId(INVALID_TASK_ID);
@@ -158,7 +158,7 @@ TEST_F(SkTaskBuilderTest, InitTaskSyncInfos_UnsupportedNodeType_ReturnFalse)
 TEST_F(SkTaskBuilderTest, Build_UnsupportedNodeType_ReturnEmptyLaunchInfo)
 {
     auto resetNode = std::make_unique<SuperKernelMemoryNode>(
-        nullptr, ACL_MODEL_RI_TASK_EVENT_RESET, 0, 0, INVALID_TASK_ID);
+        nullptr, ACL_MODEL_RI_TASK_EVENT_RESET, 0, 0, INVALID_STREAM_ID, INVALID_TASK_ID);
     resetNode->SetNodeType(SkNodeType::NODE_RESET);
     resetNode->SetNodeId(22);
     resetNode->SetPreNodeId(INVALID_TASK_ID);

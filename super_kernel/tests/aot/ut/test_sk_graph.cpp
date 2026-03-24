@@ -49,7 +49,7 @@ TEST_F(SuperKernelGraphTest, GetSortedNodeIds_EmptyGraph)
 TEST_F(SuperKernelGraphTest, GetSortedNodeIds_SingleNode)
 {
     auto node = std::make_unique<SuperKernelKernelNode>(
-        nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_TASK_ID);
+        nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_STREAM_ID, INVALID_TASK_ID);
     node->SetNodeId(5);
     graph->graphMap[5] = std::move(node);
 
@@ -61,7 +61,7 @@ TEST_F(SuperKernelGraphTest, GetSortedNodeIds_SingleNode)
 TEST_F(SuperKernelGraphTest, GetSortedNodeIds_SingleNodeWithMinId)
 {
     auto node = std::make_unique<SuperKernelKernelNode>(
-        nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_TASK_ID);
+        nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_STREAM_ID, INVALID_TASK_ID);
     node->SetNodeId(0);
     graph->graphMap[0] = std::move(node);
 
@@ -73,7 +73,7 @@ TEST_F(SuperKernelGraphTest, GetSortedNodeIds_SingleNodeWithMinId)
 TEST_F(SuperKernelGraphTest, GetSortedNodeIds_SingleNodeWithMaxId)
 {
     auto node = std::make_unique<SuperKernelKernelNode>(
-        nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_TASK_ID);
+        nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_STREAM_ID, INVALID_TASK_ID);
     node->SetNodeId(100);
     graph->graphMap[100] = std::move(node);
 
@@ -87,11 +87,11 @@ TEST_F(SuperKernelGraphTest, GetSortedNodeIds_SingleNodeWithMaxId)
 TEST_F(SuperKernelGraphTest, GetSortedNodeIds_MultipleNodes_Sequential)
 {
     graph->graphMap[1] = std::make_unique<SuperKernelKernelNode>(
-        nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_TASK_ID);
+        nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_STREAM_ID, INVALID_TASK_ID);
     graph->graphMap[2] = std::make_unique<SuperKernelKernelNode>(
-        nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_TASK_ID);
+        nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_STREAM_ID, INVALID_TASK_ID);
     graph->graphMap[3] = std::make_unique<SuperKernelKernelNode>(
-        nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_TASK_ID);
+        nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_STREAM_ID, INVALID_TASK_ID);
 
     auto sortedIds = graph->GetSortedNodeIds();
     EXPECT_EQ(sortedIds.size(), 3);
@@ -103,11 +103,11 @@ TEST_F(SuperKernelGraphTest, GetSortedNodeIds_MultipleNodes_Sequential)
 TEST_F(SuperKernelGraphTest, GetSortedNodeIds_MultipleNodes_ReverseOrder)
 {
     graph->graphMap[3] = std::make_unique<SuperKernelKernelNode>(
-        nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_TASK_ID);
+        nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_STREAM_ID, INVALID_TASK_ID);
     graph->graphMap[2] = std::make_unique<SuperKernelKernelNode>(
-        nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_TASK_ID);
+        nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_STREAM_ID, INVALID_TASK_ID);
     graph->graphMap[1] = std::make_unique<SuperKernelKernelNode>(
-        nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_TASK_ID);
+        nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_STREAM_ID, INVALID_TASK_ID);
 
     auto sortedIds = graph->GetSortedNodeIds();
     EXPECT_EQ(sortedIds.size(), 3);
@@ -119,15 +119,15 @@ TEST_F(SuperKernelGraphTest, GetSortedNodeIds_MultipleNodes_ReverseOrder)
 TEST_F(SuperKernelGraphTest, GetSortedNodeIds_MultipleNodes_RandomOrder)
 {
     graph->graphMap[5] = std::make_unique<SuperKernelKernelNode>(
-        nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_TASK_ID);
+        nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_STREAM_ID, INVALID_TASK_ID);
     graph->graphMap[2] = std::make_unique<SuperKernelKernelNode>(
-        nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_TASK_ID);
+        nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_STREAM_ID, INVALID_TASK_ID);
     graph->graphMap[8] = std::make_unique<SuperKernelKernelNode>(
-        nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_TASK_ID);
+        nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_STREAM_ID, INVALID_TASK_ID);
     graph->graphMap[1] = std::make_unique<SuperKernelKernelNode>(
-        nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_TASK_ID);
+        nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_STREAM_ID, INVALID_TASK_ID);
     graph->graphMap[10] = std::make_unique<SuperKernelKernelNode>(
-        nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_TASK_ID);
+        nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_STREAM_ID, INVALID_TASK_ID);
 
     auto sortedIds = graph->GetSortedNodeIds();
     EXPECT_EQ(sortedIds.size(), 5);
@@ -143,11 +143,11 @@ TEST_F(SuperKernelGraphTest, GetSortedNodeIds_MultipleNodes_RandomOrder)
 TEST_F(SuperKernelGraphTest, GetSortedNodeIds_Boundary_ZeroId)
 {
     graph->graphMap[0] = std::make_unique<SuperKernelKernelNode>(
-        nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_TASK_ID);
+        nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_STREAM_ID, INVALID_TASK_ID);
     graph->graphMap[1] = std::make_unique<SuperKernelKernelNode>(
-        nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_TASK_ID);
+        nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_STREAM_ID, INVALID_TASK_ID);
     graph->graphMap[2] = std::make_unique<SuperKernelKernelNode>(
-        nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_TASK_ID);
+        nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_STREAM_ID, INVALID_TASK_ID);
 
     auto sortedIds = graph->GetSortedNodeIds();
     EXPECT_EQ(sortedIds.size(), 3);
@@ -159,11 +159,11 @@ TEST_F(SuperKernelGraphTest, GetSortedNodeIds_Boundary_ZeroId)
 TEST_F(SuperKernelGraphTest, GetSortedNodeIds_Boundary_LargeIdGap)
 {
     graph->graphMap[1] = std::make_unique<SuperKernelKernelNode>(
-        nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_TASK_ID);
+        nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_STREAM_ID, INVALID_TASK_ID);
     graph->graphMap[1000] = std::make_unique<SuperKernelKernelNode>(
-        nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_TASK_ID);
+        nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_STREAM_ID, INVALID_TASK_ID);
     graph->graphMap[500] = std::make_unique<SuperKernelKernelNode>(
-        nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_TASK_ID);
+        nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_STREAM_ID, INVALID_TASK_ID);
 
     auto sortedIds = graph->GetSortedNodeIds();
     EXPECT_EQ(sortedIds.size(), 3);
@@ -175,11 +175,11 @@ TEST_F(SuperKernelGraphTest, GetSortedNodeIds_Boundary_LargeIdGap)
 TEST_F(SuperKernelGraphTest, GetSortedNodeIds_Boundary_NonContiguousIds)
 {
     graph->graphMap[10] = std::make_unique<SuperKernelKernelNode>(
-        nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_TASK_ID);
+        nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_STREAM_ID, INVALID_TASK_ID);
     graph->graphMap[20] = std::make_unique<SuperKernelKernelNode>(
-        nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_TASK_ID);
+        nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_STREAM_ID, INVALID_TASK_ID);
     graph->graphMap[30] = std::make_unique<SuperKernelKernelNode>(
-        nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_TASK_ID);
+        nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_STREAM_ID, INVALID_TASK_ID);
 
     auto sortedIds = graph->GetSortedNodeIds();
     EXPECT_EQ(sortedIds.size(), 3);
@@ -193,11 +193,11 @@ TEST_F(SuperKernelGraphTest, GetSortedNodeIds_Boundary_NonContiguousIds)
 TEST_F(SuperKernelGraphTest, GetSortedNodeIds_MultipleCalls_SameGraph)
 {
     graph->graphMap[3] = std::make_unique<SuperKernelKernelNode>(
-        nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_TASK_ID);
+        nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_STREAM_ID, INVALID_TASK_ID);
     graph->graphMap[1] = std::make_unique<SuperKernelKernelNode>(
-        nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_TASK_ID);
+        nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_STREAM_ID, INVALID_TASK_ID);
     graph->graphMap[2] = std::make_unique<SuperKernelKernelNode>(
-        nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_TASK_ID);
+        nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_STREAM_ID, INVALID_TASK_ID);
 
     auto sortedIds1 = graph->GetSortedNodeIds();
     auto sortedIds2 = graph->GetSortedNodeIds();
@@ -211,9 +211,9 @@ TEST_F(SuperKernelGraphTest, GetSortedNodeIds_MultipleCalls_SameGraph)
 TEST_F(SuperKernelGraphTest, GetSortedNodeIds_MultipleCalls_AfterModification)
 {
     graph->graphMap[2] = std::make_unique<SuperKernelKernelNode>(
-        nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_TASK_ID);
+        nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_STREAM_ID, INVALID_TASK_ID);
     graph->graphMap[1] = std::make_unique<SuperKernelKernelNode>(
-        nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_TASK_ID);
+        nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_STREAM_ID, INVALID_TASK_ID);
 
     auto sortedIds1 = graph->GetSortedNodeIds();
     EXPECT_EQ(sortedIds1.size(), 2);
@@ -221,7 +221,7 @@ TEST_F(SuperKernelGraphTest, GetSortedNodeIds_MultipleCalls_AfterModification)
     EXPECT_EQ(sortedIds1[1], 2);
 
     graph->graphMap[3] = std::make_unique<SuperKernelKernelNode>(
-        nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_TASK_ID);
+        nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_STREAM_ID, INVALID_TASK_ID);
 
     auto sortedIds2 = graph->GetSortedNodeIds();
     EXPECT_EQ(sortedIds2.size(), 3);
@@ -235,11 +235,11 @@ TEST_F(SuperKernelGraphTest, GetSortedNodeIds_MultipleCalls_AfterModification)
 TEST_F(SuperKernelGraphTest, GetSortedNodeIds_MixedNodeTypes)
 {
     graph->graphMap[1] = std::make_unique<SuperKernelKernelNode>(
-        nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_TASK_ID);
+        nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_STREAM_ID, INVALID_TASK_ID);
     graph->graphMap[3] = std::make_unique<SuperKernelMemoryNode>(
-        nullptr, ACL_MODEL_RI_TASK_VALUE_WRITE, 0, 0, INVALID_TASK_ID);
+        nullptr, ACL_MODEL_RI_TASK_VALUE_WRITE, 0, 0, INVALID_STREAM_ID, INVALID_TASK_ID);
     graph->graphMap[2] = std::make_unique<SuperKernelMemoryNode>(
-        nullptr, ACL_MODEL_RI_TASK_VALUE_WAIT, 0, 0, INVALID_TASK_ID);
+        nullptr, ACL_MODEL_RI_TASK_VALUE_WAIT, 0, 0, INVALID_STREAM_ID, INVALID_TASK_ID);
 
     auto sortedIds = graph->GetSortedNodeIds();
     EXPECT_EQ(sortedIds.size(), 3);
@@ -256,7 +256,7 @@ TEST_F(SuperKernelGraphTest, GetSortedNodeIds_LargeScale)
     for (uint32_t i = 0; i < numNodes; ++i) {
         uint64_t nodeId = numNodes - i;  // Insert in reverse order
         graph->graphMap[nodeId] = std::make_unique<SuperKernelKernelNode>(
-            nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_TASK_ID);
+            nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_STREAM_ID, INVALID_TASK_ID);
     }
 
     auto sortedIds = graph->GetSortedNodeIds();
@@ -278,7 +278,7 @@ TEST_F(SuperKernelGraphTest, GetSortedNodeIds_LargeScale_RandomInsertion)
 
     for (uint64_t nodeId : nodeIds) {
         graph->graphMap[nodeId] = std::make_unique<SuperKernelKernelNode>(
-            nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_TASK_ID);
+            nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_STREAM_ID, INVALID_TASK_ID);
     }
 
     auto sortedIds = graph->GetSortedNodeIds();
@@ -297,9 +297,9 @@ TEST_F(SuperKernelGraphTest, GetSortedNodeIds_LargeScale_RandomInsertion)
 TEST_F(SuperKernelGraphTest, GetSortedNodeIds_ConstMethod)
 {
     graph->graphMap[2] = std::make_unique<SuperKernelKernelNode>(
-        nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_TASK_ID);
+        nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_STREAM_ID, INVALID_TASK_ID);
     graph->graphMap[1] = std::make_unique<SuperKernelKernelNode>(
-        nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_TASK_ID);
+        nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_STREAM_ID, INVALID_TASK_ID);
 
     const SuperKernelGraph* constGraph = graph.get();
     auto sortedIds = constGraph->GetSortedNodeIds();
@@ -314,11 +314,11 @@ TEST_F(SuperKernelGraphTest, GetSortedNodeIds_ConstMethod)
 TEST_F(SuperKernelGraphTest, GetSortedNodeIds_NoDuplicateIds)
 {
     graph->graphMap[1] = std::make_unique<SuperKernelKernelNode>(
-        nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_TASK_ID);
+        nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_STREAM_ID, INVALID_TASK_ID);
     graph->graphMap[2] = std::make_unique<SuperKernelKernelNode>(
-        nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_TASK_ID);
+        nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_STREAM_ID, INVALID_TASK_ID);
     graph->graphMap[3] = std::make_unique<SuperKernelKernelNode>(
-        nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_TASK_ID);
+        nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_STREAM_ID, INVALID_TASK_ID);
 
     auto sortedIds = graph->GetSortedNodeIds();
     EXPECT_EQ(sortedIds.size(), 3);
@@ -336,7 +336,7 @@ TEST_F(SuperKernelGraphTest, GetSortedNodeIds_Integrity_AllIdsPresent)
 
     for (uint64_t nodeId : expectedIds) {
         graph->graphMap[nodeId] = std::make_unique<SuperKernelKernelNode>(
-            nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_TASK_ID);
+            nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_STREAM_ID, INVALID_TASK_ID);
     }
 
     auto sortedIds = graph->GetSortedNodeIds();
@@ -351,11 +351,11 @@ TEST_F(SuperKernelGraphTest, GetSortedNodeIds_Integrity_AllIdsPresent)
 TEST_F(SuperKernelGraphTest, GetSortedNodeIds_Integrity_NoExtraIds)
 {
     graph->graphMap[3] = std::make_unique<SuperKernelKernelNode>(
-        nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_TASK_ID);
+        nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_STREAM_ID, INVALID_TASK_ID);
     graph->graphMap[1] = std::make_unique<SuperKernelKernelNode>(
-        nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_TASK_ID);
+        nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_STREAM_ID, INVALID_TASK_ID);
     graph->graphMap[2] = std::make_unique<SuperKernelKernelNode>(
-        nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_TASK_ID);
+        nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_STREAM_ID, INVALID_TASK_ID);
 
     auto sortedIds = graph->GetSortedNodeIds();
     EXPECT_EQ(sortedIds.size(), 3);

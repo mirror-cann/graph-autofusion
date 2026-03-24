@@ -37,6 +37,7 @@ aclError g_aclmdlRIUpdateRet = ACL_SUCCESS;
 aclError g_aclmdlRIDestroyRegisterCallbackRet = ACL_SUCCESS;
 aclError g_aclrtMallocRet = ACL_SUCCESS;
 aclError g_aclrtFreeRet = ACL_SUCCESS;
+aclError g_aclrtStreamGetIdRet = ACL_SUCCESS;
 int g_throwOnAclmdlRIGetStreams = 0;
 int g_binaryGetFunctionNullHandle = 0;
 uint32_t g_destroyRegisterCallbackDelayUs = 0;
@@ -46,6 +47,7 @@ std::unordered_map<aclmdlRI, std::pair<aclmdlRIDestroyCallbackFunc, void*>> g_mo
 uint32_t g_streamNum = 0;
 std::vector<uint32_t> g_streamTaskNums;
 std::vector<std::vector<aclrtTaskType>> g_taskTypes;
+std::vector<int32_t> g_streamIds;
 
 void EnsureStreamStorage(uint32_t streamIdx)
 {
@@ -88,6 +90,7 @@ void SkUtResetCommonStubControls()
     g_aclmdlRIDestroyRegisterCallbackRet = ACL_SUCCESS;
     g_aclrtMallocRet = ACL_SUCCESS;
     g_aclrtFreeRet = ACL_SUCCESS;
+    g_aclrtStreamGetIdRet = ACL_SUCCESS;
     g_throwOnAclmdlRIGetStreams = 0;
     g_binaryGetFunctionNullHandle = 0;
     g_destroyRegisterCallbackDelayUs = 0;
@@ -97,6 +100,7 @@ void SkUtResetCommonStubControls()
     g_streamNum = 0;
     g_streamTaskNums.clear();
     g_taskTypes.clear();
+    g_streamIds.clear();
 }
 
 void SkUtResetTestControls()
@@ -153,6 +157,11 @@ void SkUtSetAclrtMallocRet(aclError ret)
 void SkUtSetAclrtFreeRet(aclError ret)
 {
     g_aclrtFreeRet = ret;
+}
+
+void SkUtSetAclrtStreamGetIdRet(aclError ret)
+{
+    g_aclrtStreamGetIdRet = ret;
 }
 
 void SkUtSetThrowOnAclmdlRIGetStreams(int enable)
@@ -221,6 +230,11 @@ aclError SkUtGetAclrtFreeRet()
     return g_aclrtFreeRet;
 }
 
+aclError SkUtGetAclrtStreamGetIdRet()
+{
+    return g_aclrtStreamGetIdRet;
+}
+
 int SkUtGetThrowOnAclmdlRIGetStreams()
 {
     return g_throwOnAclmdlRIGetStreams;
@@ -275,6 +289,9 @@ void SkUtSetModelStreamNum(uint32_t streamNum)
     }
     if (g_taskTypes.size() < streamNum) {
         g_taskTypes.resize(streamNum);
+    }
+    if (g_streamIds.size() < streamNum) {
+        g_streamIds.resize(streamNum, -1);
     }
 }
 
@@ -345,6 +362,22 @@ int SkUtSecurecShouldFailMemset()
     }
     ++g_securecMemsetSeen;
     return g_securecMemsetSeen == g_securecMemsetFailOnCall ? 1 : 0;
+}
+
+void SkUtSetStreamId(uint32_t streamIdx, int32_t streamId)
+{
+    if (g_streamIds.size() <= streamIdx) {
+        g_streamIds.resize(streamIdx + 1, -1);
+    }
+    g_streamIds[streamIdx] = streamId;
+}
+
+int32_t SkUtGetStreamId(uint32_t streamIdx)
+{
+    if (streamIdx >= g_streamIds.size()) {
+        return -1;
+    }
+    return g_streamIds[streamIdx];
 }
 
 aclrtBinHandle AscendGetEntryBinHandle()

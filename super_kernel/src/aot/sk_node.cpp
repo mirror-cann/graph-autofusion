@@ -444,6 +444,7 @@ bool SuperKernelKernelNode::InValidateNode() {
 std::string SuperKernelKernelNode::FormatNodeInfo() const {
     std::ostringstream oss;
     oss << "[nodeId:" << nodeId 
+        << ", streamId:" << streamId 
         << ", streamIdxInGraph:" << streamIdxInGraph 
         << ", nodeIdxInStream:" << nodeIdxInStream 
         << "] - Kernel:" << nodeInfos.kernelInfos.funcName;
@@ -518,25 +519,35 @@ bool SuperKernelMemoryNode::InitNode() {
                 auto &eventParam = taskParams.eventRecordTaskParams;
                 nodeType = SkNodeType::NODE_NOTIFY;
                 nodeInfos.syncInfos.eventId = (uint64_t)eventParam.event;
+                nodeInfos.syncInfos.eventFlag = eventParam.eventFlag;
                 break;
             }
             case ACL_MODEL_RI_TASK_EVENT_WAIT: {
                 auto &eventParam = taskParams.eventWaitTaskParams;
                 nodeType = SkNodeType::NODE_WAIT;
                 nodeInfos.syncInfos.eventId = (uint64_t)eventParam.event;
+                nodeInfos.syncInfos.eventFlag = eventParam.eventFlag;
                 break;
             }
             case ACL_MODEL_RI_TASK_EVENT_RESET: {
                 auto &eventParam = taskParams.eventResetTaskParams;
                 nodeType = SkNodeType::NODE_RESET;
                 nodeInfos.syncInfos.eventId = (uint64_t)eventParam.event;
+                nodeInfos.syncInfos.eventFlag = eventParam.eventFlag;
                 break;
             }
             default:
                 SK_LOGE("Unsupported event type %u for %s, which cannot be fused in super kernel.", rtNodeType, FormatNodeInfo().c_str());
                 return false;
         }
-        SK_LOGI("Event type is not memory based for task %lu, which cannot be fused in super kernel.", nodeId);
+        if ((nodeInfos.syncInfos.eventFlag & ACL_EVENT_EXTERNAL) == 0) {
+            isFusible = true;
+            SK_LOGI("Event %s: internal to ModelRI, fusible in super kernel",
+                    FormatNodeInfo().c_str());
+        } else {
+            SK_LOGI("Event %s: has external dependencies, cannot be fused in super kernel",
+                    FormatNodeInfo().c_str());
+        }
 
         return true;
     }
@@ -554,7 +565,7 @@ bool SuperKernelMemoryNode::InitNode() {
         nodeInfos.syncInfos.eventId = static_cast<uint64_t>(reinterpret_cast<uintptr_t>(memoryParam.devAddr));
         nodeInfos.syncInfos.addrValue = memoryParam.devAddr;
         nodeInfos.syncInfos.memoryValue = memoryParam.value;
-        nodeInfos.syncInfos.flag = memoryParam.flag;
+        nodeInfos.syncInfos.memoryWaitFlag = memoryParam.flag;
         isFusible = false;
     }
 
@@ -625,6 +636,7 @@ std::string SuperKernelMemoryNode::FormatNodeInfo() const {
             break;
         case ACL_MODEL_RI_TASK_VALUE_WRITE:
             oss << "[nodeId:" << nodeId 
+                << ", streamId:" << streamId 
                 << ", streamIdxInGraph:" << streamIdxInGraph 
                 << ", nodeIdxInStream:" << nodeIdxInStream 
                 << "] - MemoryWrite(value:0x" << std::hex << nodeInfos.syncInfos.memoryValue 
@@ -632,9 +644,10 @@ std::string SuperKernelMemoryNode::FormatNodeInfo() const {
             return oss.str();
         case ACL_MODEL_RI_TASK_VALUE_WAIT:
             oss << "[nodeId:" << nodeId 
+                << ", streamId:" << streamId 
                 << ", streamIdxInGraph:" << streamIdxInGraph 
                 << ", nodeIdxInStream:" << nodeIdxInStream 
-                << "] - MemoryWait(flag:0x" << std::hex << nodeInfos.syncInfos.flag 
+                << "] - MemoryWait(flag:0x" << std::hex << nodeInfos.syncInfos.memoryWaitFlag 
                 << ", value:0x" << std::hex << nodeInfos.syncInfos.memoryValue 
                 << std::dec << ", eventId:0x" << std::hex << GetEventId() << std::dec << ")";
             return oss.str();
@@ -643,11 +656,14 @@ std::string SuperKernelMemoryNode::FormatNodeInfo() const {
             break;
     }
     uint64_t eventId = GetEventId();
+    uint64_t eventFlag = nodeInfos.syncInfos.eventFlag;
 
-    oss << "[nodeId:" << nodeId 
-        << ", streamIdxInGraph:" << streamIdxInGraph 
-        << ", nodeIdxInStream:" << nodeIdxInStream 
-        << "] - " << eventType << "(eventId:0x" << std::hex << eventId << std::dec << ")";
+    oss << "[nodeId:" << nodeId
+        << ", streamId:" << streamId 
+        << ", streamIdxInGraph:" << streamIdxInGraph
+        << ", nodeIdxInStream:" << nodeIdxInStream
+        << "] - " << eventType << "(eventId:0x" << std::hex << eventId
+        << ", eventFlag:0x" << eventFlag << std::dec << ")";
 
     return oss.str();
 }
@@ -670,6 +686,7 @@ bool SuperKernelDefaultNode::InValidateNode() {
 std::string SuperKernelDefaultNode::FormatNodeInfo() const {
     std::ostringstream oss;
     oss << "[nodeId:" << nodeId 
+        << ", streamId:" << streamId 
         << ", streamIdxInGraph:" << streamIdxInGraph 
         << ", nodeIdxInStream:" << nodeIdxInStream 
         << "] - Default";

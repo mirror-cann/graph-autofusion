@@ -25,7 +25,7 @@ std::unique_ptr<SuperKernelKernelNode> CreateKernelNode(uint64_t nodeId, uint32_
                                                        uint32_t numBlocks = 1,
                                                        SkKernelType kernelType = SkKernelType::AIC_ONLY) {
     auto node = std::make_unique<SuperKernelKernelNode>(
-        nullptr, ACL_MODEL_RI_TASK_KERNEL, nodeId, streamIdx, preNodeId);
+        nullptr, ACL_MODEL_RI_TASK_KERNEL, nodeId, streamIdx, INVALID_STREAM_ID, preNodeId);
     node->SetNodeId(nodeId);
     node->SetNextNodeId(nextNodeId);
 
@@ -59,7 +59,7 @@ std::unique_ptr<SuperKernelMemoryNode> CreateWaitNode(uint64_t nodeId, uint32_t 
                                                       uint64_t preNodeId, uint64_t nextNodeId,
                                                       uint64_t notifyId) {
     auto node = std::make_unique<SuperKernelMemoryNode>(
-        nullptr, ACL_MODEL_RI_TASK_VALUE_WAIT, nodeId, streamIdx, preNodeId);
+        nullptr, ACL_MODEL_RI_TASK_VALUE_WAIT, nodeId, streamIdx, INVALID_STREAM_ID, preNodeId);
     node->SetNodeId(nodeId);
     node->SetNextNodeId(nextNodeId);
 
@@ -80,7 +80,7 @@ std::unique_ptr<SuperKernelMemoryNode> CreateNotifyNode(uint64_t nodeId, uint32_
                                                          uint64_t eventId,
                                                          const std::vector<uint64_t>& waitNodeIds = std::vector<uint64_t>()) {
     auto node = std::make_unique<SuperKernelMemoryNode>(
-        nullptr, ACL_MODEL_RI_TASK_VALUE_WRITE, nodeId, streamIdx, preNodeId);
+        nullptr, ACL_MODEL_RI_TASK_VALUE_WRITE, nodeId, streamIdx, INVALID_STREAM_ID, preNodeId);
     node->SetNodeId(nodeId);
     node->SetNextNodeId(nextNodeId);
 
@@ -101,7 +101,7 @@ std::unique_ptr<SuperKernelMemoryNode> CreateResetNode(uint64_t nodeId, uint32_t
                                                         uint64_t preNodeId, uint64_t nextNodeId,
                                                         uint64_t eventId) {
     auto node = std::make_unique<SuperKernelMemoryNode>(
-        nullptr, ACL_MODEL_RI_TASK_VALUE_WRITE, nodeId, streamIdx, preNodeId);
+        nullptr, ACL_MODEL_RI_TASK_VALUE_WRITE, nodeId, streamIdx, INVALID_STREAM_ID, preNodeId);
     node->SetNodeId(nodeId);
     node->SetNextNodeId(nextNodeId);
 
@@ -210,7 +210,7 @@ TEST_F(NotifyWaitInterfaceTest, TestCase3_MemoryNotifyWaitInterface) {
     // Create memory notify node with wait node
     std::vector<uint64_t> waitNodeIds = {4};
     auto memoryNotifyNode = std::make_unique<SuperKernelMemoryNode>(
-        nullptr, ACL_MODEL_RI_TASK_VALUE_WRITE, 1, 0, INVALID_TASK_ID);
+        nullptr, ACL_MODEL_RI_TASK_VALUE_WRITE, 1, 0, INVALID_STREAM_ID, INVALID_TASK_ID);
     memoryNotifyNode->SetNodeId(1);
     memoryNotifyNode->SetNextNodeId(2);
     auto& notifyInfos = const_cast<NodeInfos&>(memoryNotifyNode->GetNodeInfos());
@@ -225,7 +225,7 @@ TEST_F(NotifyWaitInterfaceTest, TestCase3_MemoryNotifyWaitInterface) {
     graph->graphMap[3] = CreateKernelNode(3, 1, INVALID_TASK_ID, 4);
 
     auto memoryWaitNode = std::make_unique<SuperKernelMemoryNode>(
-        nullptr, ACL_MODEL_RI_TASK_VALUE_WAIT, 4, 1, 3);
+        nullptr, ACL_MODEL_RI_TASK_VALUE_WAIT, 4, 1, INVALID_STREAM_ID, 3);
     memoryWaitNode->SetNodeId(4);
     memoryWaitNode->SetNextNodeId(5);
     auto& waitInfos = const_cast<NodeInfos&>(memoryWaitNode->GetNodeInfos());

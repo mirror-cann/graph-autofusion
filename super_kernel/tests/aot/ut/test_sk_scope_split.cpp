@@ -43,7 +43,7 @@ protected:
     // Helper function to create a kernel node
     SuperKernelBaseNode* CreateKernelNode(uint64_t nodeId, uint32_t streamIdx, uint64_t nextNodeId = INVALID_TASK_ID) {
         auto node = std::make_unique<SuperKernelKernelNode>(
-            nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, streamIdx, INVALID_TASK_ID);
+            nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, streamIdx, INVALID_STREAM_ID, INVALID_TASK_ID);
         node->nodeType = SkNodeType::NODE_KERNEL;
         node->SetNodeId(nodeId);
         node->SetNextNodeId(nextNodeId);
@@ -62,7 +62,7 @@ protected:
     // Helper function to create a wait node
     SuperKernelBaseNode* CreateWaitNode(uint64_t nodeId, uint32_t streamIdx, uint64_t notifyNodeId, uint64_t nextNodeId = INVALID_TASK_ID) {
         auto node = std::make_unique<SuperKernelMemoryNode>(
-            nullptr, ACL_MODEL_RI_TASK_VALUE_WAIT, 0, streamIdx, INVALID_TASK_ID);
+            nullptr, ACL_MODEL_RI_TASK_VALUE_WAIT, 0, streamIdx, INVALID_STREAM_ID, INVALID_TASK_ID);
         node->SetNodeId(nodeId);
         node->SetNextNodeId(nextNodeId);
         node->nodeInfos.syncInfos.correspondingNotifyNodeId = notifyNodeId;
@@ -79,7 +79,7 @@ protected:
     // Helper function to create a notify node
     SuperKernelBaseNode* CreateNotifyNode(uint64_t nodeId, uint32_t streamIdx, uint64_t eventId, uint64_t nextNodeId = INVALID_TASK_ID) {
         auto node = std::make_unique<SuperKernelMemoryNode>(
-            nullptr, ACL_MODEL_RI_TASK_VALUE_WRITE, 0, streamIdx, INVALID_TASK_ID);
+            nullptr, ACL_MODEL_RI_TASK_VALUE_WRITE, 0, streamIdx, INVALID_STREAM_ID, INVALID_TASK_ID);
         node->SetNodeId(nodeId);
         node->SetNextNodeId(nextNodeId);
         node->nodeInfos.syncInfos.eventId = eventId;
@@ -96,7 +96,7 @@ protected:
                                                 uint64_t nextNodeId = INVALID_TASK_ID,
                                                 uint32_t cubeNum = 1000, uint32_t vecNum = 0) {
         auto node = std::make_unique<SuperKernelKernelNode>(
-            nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, streamIdx, INVALID_TASK_ID);
+            nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, streamIdx, INVALID_STREAM_ID, INVALID_TASK_ID);
         node->SetNodeId(nodeId);
         node->SetNextNodeId(nextNodeId);
         node->isFusible = true;
@@ -112,7 +112,7 @@ protected:
     // Helper function to create an unfusible kernel node
     SuperKernelBaseNode* CreateUnfusibleKernelNode(uint64_t nodeId, uint32_t streamIdx, uint64_t nextNodeId = INVALID_TASK_ID) {
         auto node = std::make_unique<SuperKernelKernelNode>(
-            nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, streamIdx, INVALID_TASK_ID);
+            nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, streamIdx, INVALID_STREAM_ID, INVALID_TASK_ID);
         node->SetNodeId(nodeId);
         node->SetNextNodeId(nextNodeId);
         // Explicitly mark as unfusible
@@ -125,7 +125,7 @@ protected:
     // Helper function to create a reset node
     SuperKernelBaseNode* CreateResetNode(uint64_t nodeId, uint32_t streamIdx, uint64_t eventId, uint64_t nextNodeId = INVALID_TASK_ID) {
         auto node = std::make_unique<SuperKernelMemoryNode>(
-            nullptr, ACL_MODEL_RI_TASK_VALUE_WRITE, 0, streamIdx, INVALID_TASK_ID);
+            nullptr, ACL_MODEL_RI_TASK_VALUE_WRITE, 0, streamIdx, INVALID_STREAM_ID, INVALID_TASK_ID);
         node->SetNodeId(nodeId);
         node->SetNextNodeId(nextNodeId);
         node->nodeInfos.syncInfos.eventId = eventId;
@@ -141,7 +141,7 @@ protected:
     SuperKernelBaseNode* CreateKernelNodeWithCores(uint64_t nodeId, uint32_t streamIdx, uint64_t nextNodeId,
                                                      uint32_t numBlocks, SkKernelType kernelType) {
         auto node = std::make_unique<SuperKernelKernelNode>(
-            nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, streamIdx, INVALID_TASK_ID);
+            nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, streamIdx, INVALID_STREAM_ID, INVALID_TASK_ID);
         node->SetNodeId(nodeId);
         node->SetNextNodeId(nextNodeId);
         node->nodeType = SkNodeType::NODE_KERNEL;
@@ -172,7 +172,7 @@ protected:
     // Helper function to create a scope begin node (fusible)
     SuperKernelBaseNode* CreateScopeBeginNode(uint64_t nodeId, uint32_t streamIdx, const std::string& scopeName, uint64_t nextNodeId = INVALID_TASK_ID) {
         auto node = std::make_unique<SuperKernelKernelNode>(
-            nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, streamIdx, INVALID_TASK_ID);
+            nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, streamIdx, INVALID_STREAM_ID, INVALID_TASK_ID);
         node->SetNodeId(nodeId);
         node->SetNextNodeId(nextNodeId);
         node->isFusible = true;
@@ -193,7 +193,7 @@ protected:
     // Helper function to create a scope end node (fusible)
     SuperKernelBaseNode* CreateScopeEndNode(uint64_t nodeId, uint32_t streamIdx, const std::string& scopeName, uint64_t nextNodeId = INVALID_TASK_ID) {
         auto node = std::make_unique<SuperKernelKernelNode>(
-            nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, streamIdx, INVALID_TASK_ID);
+            nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, streamIdx, INVALID_STREAM_ID, INVALID_TASK_ID);
         node->SetNodeId(nodeId);
         node->SetNextNodeId(nextNodeId);
         node->isFusible = true;
@@ -215,7 +215,7 @@ protected:
     // Helper function to create an unfusible scope begin node
     SuperKernelBaseNode* CreateUnfusibleScopeBeginNode(uint64_t nodeId, uint32_t streamIdx, uint64_t nextNodeId = INVALID_TASK_ID) {
         auto node = std::make_unique<SuperKernelKernelNode>(
-            nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, streamIdx, INVALID_TASK_ID);
+            nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, streamIdx, INVALID_STREAM_ID, INVALID_TASK_ID);
         node->SetNodeId(nodeId);
         node->SetNextNodeId(nextNodeId);
         node->isFusible = false;
@@ -235,7 +235,7 @@ protected:
     // Helper function to create an unfusible scope end node
     SuperKernelBaseNode* CreateUnfusibleScopeEndNode(uint64_t nodeId, uint32_t streamIdx, uint64_t nextNodeId = INVALID_TASK_ID) {
         auto node = std::make_unique<SuperKernelKernelNode>(
-            nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, streamIdx, INVALID_TASK_ID);
+            nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, streamIdx, INVALID_STREAM_ID, INVALID_TASK_ID);
         node->SetNodeId(nodeId);
         node->SetNextNodeId(nextNodeId);
         node->isFusible = false;

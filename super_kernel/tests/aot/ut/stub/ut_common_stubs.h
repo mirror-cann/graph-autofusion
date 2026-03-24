@@ -29,6 +29,7 @@ void SkUtSetAclmdlRIUpdateRet(aclError ret);
 void SkUtSetAclmdlRIDestroyRegisterCallbackRet(aclError ret);
 void SkUtSetAclrtMallocRet(aclError ret);
 void SkUtSetAclrtFreeRet(aclError ret);
+void SkUtSetAclrtStreamGetIdRet(aclError ret);
 void SkUtSetThrowOnAclmdlRIGetStreams(int enable);
 void SkUtSetDestroyRegisterCallbackDelayUs(uint32_t delayUs);
 int SkUtGetBinaryGetFunctionNullHandle();
@@ -42,6 +43,7 @@ aclError SkUtGetAclmdlRIUpdateRet();
 aclError SkUtGetAclmdlRIDestroyRegisterCallbackRet();
 aclError SkUtGetAclrtMallocRet();
 aclError SkUtGetAclrtFreeRet();
+aclError SkUtGetAclrtStreamGetIdRet();
 int SkUtGetThrowOnAclmdlRIGetStreams();
 uint32_t SkUtGetDestroyRegisterCallbackCallCount();
 aclError SkUtRegisterModelDestroyCallback(aclmdlRI modelRI, aclmdlRIDestroyCallbackFunc callback, void* userData);
@@ -63,6 +65,9 @@ void SkUtSetSecurecMemcpyFailOnCall(int hitOnCall);
 void SkUtSetSecurecMemsetFailOnCall(int hitOnCall);
 int SkUtSecurecShouldFailMemcpy();
 int SkUtSecurecShouldFailMemset();
+
+void SkUtSetStreamId(uint32_t streamIdx, int32_t streamId);
+int32_t SkUtGetStreamId(uint32_t streamIdx);
 
 #ifdef __cplusplus
 }

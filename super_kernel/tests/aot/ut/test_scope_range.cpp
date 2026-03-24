@@ -42,6 +42,7 @@ protected:
             ACL_MODEL_RI_TASK_KERNEL,
             nodeId,
             streamIdx,
+            INVALID_STREAM_ID,
             INVALID_TASK_ID
         );
         node->SetNodeId(nodeId);
@@ -59,6 +60,7 @@ protected:
             ACL_MODEL_RI_TASK_KERNEL,
             nodeId,
             streamIdx,
+            INVALID_STREAM_ID,
             INVALID_TASK_ID
         );
         node->SetNodeId(nodeId);

@@ -341,6 +341,14 @@ void InitialScopeSplitPass::TryAddNodeToHeap(uint32_t streamIdx) {
         return;
     }
 
+    // Check scopeBitFlags match
+    if (node->GetScopeBitFlags() != currentScopeBitFlags_) {
+        SK_LOGD("Stream %u: node %s scopeBitFlags mismatch, terminating stream",
+                streamIdx, node->FormatNodeInfo().c_str());
+        state.isTerminated = true;
+        return;
+    }
+
     // Handle Wait nodes: check if corresponding notify has been visited
     if (node->GetNodeType() == SkNodeType::NODE_WAIT) {
         HandleWaitNode(node, streamIdx);
@@ -348,14 +356,6 @@ void InitialScopeSplitPass::TryAddNodeToHeap(uint32_t streamIdx) {
         // 1. Add wait node to heap (if notify already visited)
         // 2. Suspend the stream (if notify not yet visited)
         return;  // Don't continue with normal processing
-    }
-
-    // Check scopeBitFlags match
-    if (node->GetScopeBitFlags() != currentScopeBitFlags_) {
-        SK_LOGD("Stream %u: node %s scopeBitFlags mismatch, terminating stream",
-                streamIdx, node->FormatNodeInfo().c_str());
-        state.isTerminated = true;
-        return;
     }
 
     // Check fusibility

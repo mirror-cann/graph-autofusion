@@ -27,7 +27,7 @@ static std::unique_ptr<SuperKernelKernelNode> CreateKernelNodeWithCacheInfo(
         SuperKernelNodeFactory::CreateNode(
             std::make_unique<aclmdlRITask>(nullptr),
             ACL_MODEL_RI_TASK_KERNEL,
-            nodeId, 0, INVALID_TASK_ID).release());
+            nodeId, 0, INVALID_STREAM_ID, INVALID_TASK_ID).release());
     
     std::unique_ptr<SuperKernelKernelNode> kernelNode(node);
     kernelNode->SetNodeId(nodeId);

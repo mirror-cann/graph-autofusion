@@ -29,6 +29,8 @@ static const int ACL_ERROR_INVALID_PARAM = 100000;
 #define EOK 0
 #endif
 
+#define ACL_EVENT_EXTERNAL                0x00000020U
+
 // Basic types
 typedef void *aclrtStream;
 typedef void *aclrtEvent;
@@ -127,14 +129,17 @@ typedef struct aclmdlRIValueWaitTaskParams {
 
 typedef struct aclmdlRIEventRecordTaskParams {
     aclrtEvent event;
+    uint64_t eventFlag;
 } aclmdlRIEventRecordTaskParams;
 
 typedef struct aclmdlRIEventWaitTaskParams {
     aclrtEvent event;
+    uint64_t eventFlag;
 } aclmdlRIEventWaitTaskParams;
 
 typedef struct aclmdlRIEventResetTaskParams {
     aclrtEvent event;
+    uint64_t eventFlag;
 } aclmdlRIEventResetTaskParams;
 
 typedef struct aclmdlRITaskParams {
@@ -155,71 +160,6 @@ typedef struct aclmdlRITaskParams {
     };
 } aclmdlRITaskParams;
 
-// Task parameter structures
-typedef struct aclrtTaskKernelParams {
-    aclrtTaskType type;
-    aclrtTaskFlag flag;
-    aclrtFuncHandle funcHandle;
-    aclrtBinHandle binHandle;
-    aclrtLaunchKernelCfg* cfg;
-    aclrtArgsHandle argsHandle;
-    aclrtTaskGrp taskGrp;
-    void* devArgs;
-    size_t argsSize;
-    void* opInfoPtr;
-    size_t opInfoSize;
-    uint32_t numBlocks;
-    const char* func_name;
-    uint32_t sk_kernel_type;
-    uint32_t sk_task_ratio[2];
-    uint32_t reserve1[8];
-    void* pExtend;
-} aclrtTaskKernelParams;
-
-typedef struct aclrtNormalEventInfo {
-    uint32_t eventId;
-} aclrtNormalEventInfo;
-
-typedef struct aclrtMemoryEventInfo {
-    void *eventAddr;            // 内存语义的device地址
-    uint64_t value;             // 当前默认是写1
-    uint32_t valueSize;         // 当前默认是1字节
-    uint32_t waitFlag;          // 使用captureWait的默认比较策略
-} aclrtMemoryEventInfo;
-
-typedef struct aclrtTaskEventParams {
-    aclrtTaskType type;         // task类型
-    aclrtTaskFlag flag;         // 当前Task融合时是否删除
-    uint32_t sequenceId;        // Task的序号
-    aclrtEvent event;           // 其他类型Task转Event时，需要先申请event句柄并传递下来，get的时候返回nullptr
-    aclrtEventType eventType;   // 区分是内存语义还是普通event
-    union {
-        aclrtNormalEventInfo normalEventInfo;
-        aclrtMemoryEventInfo memoryEventInfo;
-    } u;
-    uint32_t reserve[8];        // 预留字段
-    void *pExtend;              // 兼容扩展字段
-} aclrtTaskEventParams;
-
-typedef struct aclrtTaskMemValueParams {
-    aclrtTaskType type;
-    aclrtTaskFlag flag;
-    void *valueAddr;
-    uint64_t value;
-    uint32_t valueSize;
-    uint32_t waitFlag;
-    uint32_t reserve1[8];
-    void* pExtend;
-} aclrtTaskMemValueParams;
-
-typedef struct aclrtTaskDefaultParams {
-    aclrtTaskType type;
-    aclrtTaskFlag flag;
-    uint32_t reserve1[8];
-    void* pExtend;
-} aclrtTaskDefaultParams;
-
-
 
 typedef enum {
     ACL_KERNEL_TYPE_AICORE = 0, // MIX KERNEL
@@ -238,15 +178,10 @@ typedef enum {
 aclError aclmdlRIGetStreams(aclmdlRI modelRI, aclrtStream *streams, uint32_t *numStreams);
 aclError aclrtStreamGetTasks(aclrtStream stream, aclrtTask *tasks, uint32_t *numTasks);
 aclError aclrtTaskGetType(aclrtTask task, aclrtTaskType *type);
-aclError aclrtTaskGetKernelParams(aclrtTask task, aclrtTaskKernelParams *params);
-aclError aclrtTaskSetKernelParams(aclrtTask task, aclrtTaskKernelParams *params);
-aclError aclrtTaskGetEventParams(aclrtTask task, aclrtTaskEventParams *params);
-aclError aclrtTaskSetEventParams(aclrtTask task, aclrtTaskEventParams *params);
-aclError aclrtTaskGetMemValueParams(aclrtTask task, aclrtTaskMemValueParams *params);
-aclError aclrtTaskSetMemValueParams(aclrtTask task, aclrtTaskMemValueParams *params);
 aclError aclmdlRIUpdate(aclmdlRI modelRI);
 aclError aclrtGetDeviceInfo(uint32_t deviceId, aclrtDevAttr attr, int64_t *value);
 aclError aclrtGetDevice(int32_t *deviceId);
+aclError aclrtStreamGetId(aclrtStream stream, int32_t *streamId);
 
 // RI Task API declarations
 aclError aclmdlRITaskGetType(aclmdlRITask task, aclmdlRITaskType *type);

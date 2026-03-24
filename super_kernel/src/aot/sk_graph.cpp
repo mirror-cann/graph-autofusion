@@ -519,7 +519,7 @@ bool SuperKernelGraph::PostProcessMemoryNode() {
                 }
 
                 const uint64_t memoryValue = waitNode->nodeInfos.syncInfos.memoryValue;
-                const uint32_t flag = waitNode->nodeInfos.syncInfos.flag;
+                const uint32_t flag = waitNode->nodeInfos.syncInfos.memoryWaitFlag;
 
                 if (!firstWaitInfo.has_value()) {
                     firstWaitInfo = {memoryValue, flag};
@@ -530,11 +530,7 @@ bool SuperKernelGraph::PostProcessMemoryNode() {
                     for (auto waitNodeId : memoryInfo.waitNodeIdList) {
                         auto* waitNode = GetNodeById(waitNodeId);
                         if (waitNode != nullptr && (waitNode->GetNodeType() == SkNodeType::NODE_MEMORY_WAIT)) {
-                            SK_LOGE("eventId: %lu, waitNodeId: %lu, memoryValue: %lu, flag: %u",
-                            eventId,
-                            waitNodeId,
-                            waitNode->nodeInfos.syncInfos.memoryValue,
-                            waitNode->nodeInfos.syncInfos.flag);
+                            SK_LOGE("%s", waitNode->FormatNodeInfo().c_str());
                         }
                     }
                     return false;
@@ -738,18 +734,18 @@ void SuperKernelGraph::UpdateNodeScopeBitFlags() {
     SK_LOGI("UpdateNodeScopeBitFlags completed");
 }
 
-std::unique_ptr<SuperKernelBaseNode> SuperKernelNodeFactory::CreateNode(std::unique_ptr<aclmdlRITask> task, aclmdlRITaskType taskType, uint64_t nodeIdx, uint64_t streamId, uint64_t preNodeId) {
+std::unique_ptr<SuperKernelBaseNode> SuperKernelNodeFactory::CreateNode(std::unique_ptr<aclmdlRITask> task, aclmdlRITaskType taskType, uint64_t nodeIdx, uint64_t streamIdxInGraph, int32_t streamId, uint64_t preNodeId) {
     switch (taskType) {
         case ACL_MODEL_RI_TASK_KERNEL:
-            return std::make_unique<SuperKernelKernelNode>(std::move(task), taskType, nodeIdx, streamId, preNodeId);
+            return std::make_unique<SuperKernelKernelNode>(std::move(task), taskType, nodeIdx, streamIdxInGraph, streamId, preNodeId);
         case ACL_MODEL_RI_TASK_EVENT_RECORD:
         case ACL_MODEL_RI_TASK_EVENT_WAIT:
         case ACL_MODEL_RI_TASK_EVENT_RESET:
         case ACL_MODEL_RI_TASK_VALUE_WRITE:
         case ACL_MODEL_RI_TASK_VALUE_WAIT:
-            return std::make_unique<SuperKernelMemoryNode>(std::move(task), taskType, nodeIdx, streamId, preNodeId);
+            return std::make_unique<SuperKernelMemoryNode>(std::move(task), taskType, nodeIdx, streamIdxInGraph, streamId, preNodeId);
         default:
-            return std::make_unique<SuperKernelDefaultNode>(std::move(task), taskType, nodeIdx, streamId, preNodeId);
+            return std::make_unique<SuperKernelDefaultNode>(std::move(task), taskType, nodeIdx, streamIdxInGraph, streamId, preNodeId);
     }
 }
 
@@ -800,7 +796,16 @@ bool SuperKernelGraph::InitSKGraph() {
                 SK_LOGE("Failed to get task type for task %u in stream %u, ret=%d", taskIdx, streamIdx, ret);
                 return false;
             }
-            auto node = SuperKernelNodeFactory::CreateNode(std::make_unique<aclmdlRITask>(tasks[taskIdx]), taskType, taskIdx, streamIdx, preNodeId);
+
+            // Get real stream ID from stream handle
+            int32_t realStreamId = -1;
+            ret = aclrtStreamGetId(streams[streamIdx], &realStreamId);
+            if (ret != ACL_SUCCESS) {
+                SK_LOGE("Failed to get stream ID for stream %u, ret=%d", streamIdx, ret);
+                return false;
+            }
+
+            auto node = SuperKernelNodeFactory::CreateNode(std::make_unique<aclmdlRITask>(tasks[taskIdx]), taskType, taskIdx, streamIdx, realStreamId, preNodeId);
             if (!node->InitNode()) {
                 SK_LOGE("Failed to initialize node for task %u in stream %u (taskType=%u, nodeId=%lu)",
                          taskIdx, streamIdx, taskType, node->GetNodeId());

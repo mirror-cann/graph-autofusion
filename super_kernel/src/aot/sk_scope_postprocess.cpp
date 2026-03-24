@@ -161,7 +161,7 @@ bool ProcessFrontWaitForStream(SuperKernelGraph& graph, const SuperKernelScopeIn
     // create resetNode for sk optimize
     auto resetNode =
         SuperKernelNodeFactory::CreateNode(std::make_unique<aclmdlRITask>(nullptr), ACL_MODEL_RI_TASK_EVENT_RESET,
-                                           INVALID_TASK_ID, scopeStreamInfo.streamIdx, lastNodeId);
+                                           INVALID_TASK_ID, scopeStreamInfo.streamIdx, INVALID_STREAM_ID, lastNodeId);
     resetNode->SetNodeType(SkNodeType::NODE_RESET);
     resetNode->nodeInfos.syncInfos.eventId = static_cast<uint64_t>(reinterpret_cast<uintptr_t>(addr));
     resetNode->nodeInfos.syncInfos.addrValue = addr;
@@ -212,7 +212,7 @@ bool ProcessBackBlockForStream(const SuperKernelScopeInfo& scopeInfo, std::vecto
     // create notifyNode for sk optimize
     auto notifyNode =
         SuperKernelNodeFactory::CreateNode(std::make_unique<aclmdlRITask>(nullptr), ACL_MODEL_RI_TASK_EVENT_RECORD,
-                                           INVALID_TASK_ID, scopeStreamInfo.streamIdx, lastNodeId);
+                                           INVALID_TASK_ID, scopeStreamInfo.streamIdx, INVALID_STREAM_ID, lastNodeId);
     notifyNode->SetNodeType(SkNodeType::NODE_NOTIFY);
     notifyNode->nodeInfos.syncInfos.eventId = static_cast<uint64_t>(reinterpret_cast<uintptr_t>(addr));
     notifyNode->nodeInfos.syncInfos.addrValue = addr;

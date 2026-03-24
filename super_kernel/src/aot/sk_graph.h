@@ -31,7 +31,7 @@
 class SuperKernelNodeFactory {
 public:
     static std::unique_ptr<SuperKernelBaseNode> CreateNode(std::unique_ptr<aclmdlRITask> task, aclmdlRITaskType taskType,
-                                                           uint64_t nodeIdx, uint64_t streamId, uint64_t preNodeId);
+                                                           uint64_t nodeIdx, uint64_t streamIdxInGraph, int32_t streamId, uint64_t preNodeId);
 };
 
 struct EventInfos {

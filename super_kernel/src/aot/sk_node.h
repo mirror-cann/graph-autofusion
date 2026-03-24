@@ -79,8 +79,9 @@ struct SyncInfos {
     // For event nodes, the corresponding reset node ID
     std::vector<uint64_t> correspondingResetNodeIds;
     std::vector<uint64_t> correspondingMemoryWriteNodeIds;
-    uint64_t memoryValue;
-    uint32_t flag;
+    uint64_t memoryValue = std::numeric_limits<uint64_t>::max();
+    uint32_t memoryWaitFlag = std::numeric_limits<uint32_t>::max();
+    uint64_t eventFlag = std::numeric_limits<uint64_t>::max();
 };
 
 struct NodeInfos {
@@ -91,13 +92,15 @@ struct NodeInfos {
 // Base Node Class
 class SuperKernelBaseNode {
 public:
-    SuperKernelBaseNode(std::unique_ptr<aclmdlRITask> inputOriginTask, aclmdlRITaskType inputRtNodeType, uint64_t inputNodeIdxInStream, uint64_t inputStreamIdxInGraph, uint64_t inputPreNodeId)
+    SuperKernelBaseNode(std::unique_ptr<aclmdlRITask> inputOriginTask, aclmdlRITaskType inputRtNodeType,
+                        uint64_t inputNodeIdxInStream, uint64_t inputStreamIdxInGraph, int32_t inputStreamId, uint64_t inputPreNodeId)
         : originTask(std::move(inputOriginTask)),
           taskParams({}),
           rtNodeType(inputRtNodeType),
           notifyExpandVecNum(0),
           notifyExpandCubeNum(0),
           streamIdxInGraph(inputStreamIdxInGraph),
+          streamId(inputStreamId),
           nodeIdxInStream(inputNodeIdxInStream),
           nodeId(INVALID_TASK_ID),
           preNodeId(inputPreNodeId),
@@ -127,6 +130,10 @@ public:
     uint32_t GetStreamIdxInGraph() const
     {
         return streamIdxInGraph;
+    }
+    int32_t GetStreamId() const
+    {
+        return streamId;
     }
     uint64_t GetNodeIdxInStream() const
     {
@@ -274,6 +281,7 @@ protected:
     uint32_t notifyExpandVecNum;
     uint32_t notifyExpandCubeNum;
     uint32_t streamIdxInGraph;
+    int32_t streamId;
     uint64_t nodeIdxInStream;
     uint64_t nodeId;
     uint64_t preNodeId;

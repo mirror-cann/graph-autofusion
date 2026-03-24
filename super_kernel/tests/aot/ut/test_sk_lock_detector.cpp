@@ -41,7 +41,7 @@ protected:
     // Helper function to create a wait node
     SuperKernelBaseNode* CreateWaitNode(uint64_t nodeId, uint32_t streamIdx, uint64_t preNodeId = INVALID_TASK_ID, uint64_t nextNodeId = INVALID_TASK_ID, uint64_t notifyNodeId = INVALID_TASK_ID) {
         auto node = std::make_unique<SuperKernelMemoryNode>(
-            nullptr, ACL_MODEL_RI_TASK_VALUE_WAIT, 0, streamIdx, INVALID_TASK_ID);
+            nullptr, ACL_MODEL_RI_TASK_VALUE_WAIT, 0, streamIdx, INVALID_STREAM_ID, INVALID_TASK_ID);
         node->SetNodeId(nodeId);
         node->SetNextNodeId(nextNodeId);
         node->SetPreNodeId(preNodeId);
@@ -58,7 +58,7 @@ protected:
     // Helper function to create a notify node
     SuperKernelBaseNode* CreateNotifyNode(uint64_t nodeId, uint32_t streamIdx, uint64_t preNodeId = INVALID_TASK_ID, uint64_t nextNodeId = INVALID_TASK_ID, uint64_t eventId = INVALID_TASK_ID, std::vector<uint64_t> waitNodeIds = {}) {
         auto node = std::make_unique<SuperKernelMemoryNode>(
-            nullptr, ACL_MODEL_RI_TASK_VALUE_WRITE, 0, streamIdx, INVALID_TASK_ID);
+            nullptr, ACL_MODEL_RI_TASK_VALUE_WRITE, 0, streamIdx, INVALID_STREAM_ID, INVALID_TASK_ID);
         node->SetNodeId(nodeId);
         node->SetNextNodeId(nextNodeId);
         node->SetPreNodeId(preNodeId);
@@ -75,7 +75,7 @@ protected:
     SuperKernelBaseNode* CreateKernelNodeWithCores(uint64_t nodeId, uint32_t streamIdx, uint64_t preNodeId, uint64_t nextNodeId,
                                                      uint32_t numBlocks, SkKernelType kernelType) {
         auto node = std::make_unique<SuperKernelKernelNode>(
-            nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, streamIdx, INVALID_TASK_ID);
+            nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, streamIdx, INVALID_STREAM_ID, INVALID_TASK_ID);
         node->SetNodeId(nodeId);
         node->SetNextNodeId(nextNodeId);
         node->SetPreNodeId(preNodeId);
