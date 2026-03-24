@@ -349,6 +349,7 @@ bool ApplyEventMemoryResource(SuperKernelGraph& graph, SuperKernelBaseNode* even
         auto eventId = eventNode->GetEventId();
         auto eventInfos = graph.GetEventInfo(eventId);
         if (eventInfos == nullptr) {
+            SK_LOGE("event not found in graph: event infos=%s", eventNode->FormatNodeInfo().c_str());
             return false;
         }
         // check syncInfos

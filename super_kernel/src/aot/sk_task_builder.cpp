@@ -353,8 +353,10 @@ void SkTaskBuilder::InsertSyncEvent(size_t preIdx, size_t currIdx)
     // Generate sync direction between producer and consumer.
     SyncDirection dir = GenSyncDirection(preType, currType);
 
-    SK_LOGI("  InsertSyncEvent: task[%zu](%s) -> task[%zu](%s), dir=%s", preIdx, to_string(preType), currIdx,
-            to_string(currType), to_string(dir));
+    SK_LOGI("  InsertSyncEvent: task[%zu](%s)(nodeId=%lu) -> task[%zu](%s)(nodeId=%lu), dir=%s",
+            preIdx, to_string(preType), indexToNodeId_[preIdx],
+            currIdx, to_string(currType), indexToNodeId_[currIdx],
+            to_string(dir));
 
     // Sender side (preIdx): record send relation in the corresponding queue metadata.
     // CUB_TO_VEC: send SET in cub queue, receive WAIT in vec queue.
@@ -434,9 +436,9 @@ bool SkTaskBuilder::PrecomputeSyncRelationsFromGraph(const std::vector<SuperKern
 
     // 2. Extract inter-stream sync relations based on events.
     SK_LOGI("[Sync by event]");
-    ExtractInterStreamSync(tasks);
+    bool flag = ExtractInterStreamSync(tasks);
     // PrintSyncInfo("[After Sync by event]");
-    return true;
+    return flag;
 }
 
 // label : success
@@ -449,6 +451,8 @@ void SkTaskBuilder::ExtractIntraStreamSync(const std::vector<SuperKernelBaseNode
     for (size_t i = 0; i < tasks.size(); i++) {
         uint32_t streamIdx = tasks[i]->GetStreamIdxInGraph();
         streamOps[streamIdx].push_back(i);
+        nodeIdToIndex_[tasks[i]->GetNodeId()] = i;
+        indexToNodeId_[i] = tasks[i]->GetNodeId();
     }
 
     auto streamfusionOption = opts.GetOption(aclskOtionType::STREAM_FUSION);
@@ -494,7 +498,7 @@ void SkTaskBuilder::ExtractIntraStreamSync(const std::vector<SuperKernelBaseNode
  *       2. For each KERNEL node, check its successors and insert sync events
  *          when the successor is also in the current task set
  */
-void SkTaskBuilder::ExtractInterStreamSync(const std::vector<SuperKernelBaseNode*>& tasks)
+bool SkTaskBuilder::ExtractInterStreamSync(const std::vector<SuperKernelBaseNode*>& tasks)
 {
     SK_LOGI("ExtractInterStreamSync: starting to extract inter-stream synchronization relationships");
     SK_LOGI("ExtractInterStreamSync: total number of tasks to process = %zu", tasks.size());
@@ -527,7 +531,11 @@ void SkTaskBuilder::ExtractInterStreamSync(const std::vector<SuperKernelBaseNode
                 if (taskIds.find(nextId) != taskIds.end()) {
                     SK_LOGD("ExtractInterStreamSync: inserting sync event between %lu -> %lu",
                             preNodeId, nextId);
-                    InsertSyncEvent(preNodeId, nextId);
+                    if (nodeIdToIndex_.find(preNodeId) == nodeIdToIndex_.end() || nodeIdToIndex_.find(nextId) == nodeIdToIndex_.end()) {
+                        SK_LOGE("NodeId not exists in task nodes, node id is %ld, %lu", preNodeId, nextId);
+                        return false;
+                    }
+                    InsertSyncEvent(nodeIdToIndex_[preNodeId], nodeIdToIndex_[nextId]);
                     syncEventCount++;
                 } else {
                     SK_LOGD("ExtractInterStreamSync: skipping external successor %lu (not in task set)",
@@ -538,6 +546,7 @@ void SkTaskBuilder::ExtractInterStreamSync(const std::vector<SuperKernelBaseNode
     }
 
     SK_LOGI("ExtractInterStreamSync: completed, inserted %u sync events", syncEventCount);
+    return true;
 }
 
 // ========== Sync optimization (aligned with Python behavior) ==========

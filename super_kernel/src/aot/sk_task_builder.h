@@ -120,6 +120,8 @@ private:
 
     // Sync metadata storage: each task maintains its own send/recv maps
     std::vector<TaskSyncInfo> taskSyncInfos_;
+    std::unordered_map<uint64_t, size_t> nodeIdToIndex_;
+    std::unordered_map<size_t, uint64_t> indexToNodeId_;
 
     // Task insertion helpers, separated by task type
     std::pair<int, int> GetPreFetchCnt(const ResolvedFunctionInfo& resolved);
@@ -148,7 +150,7 @@ private:
     void ExtractIntraStreamSync(const std::vector<SuperKernelBaseNode*>& tasks);
 
     // Extract inter-stream sync relations (event-based)
-    void ExtractInterStreamSync(const std::vector<SuperKernelBaseNode*>& tasks);
+    bool ExtractInterStreamSync(const std::vector<SuperKernelBaseNode*>& tasks);
 
     // ========== Core sync insertion (aligned with Python insert_sync_event) ==========
 

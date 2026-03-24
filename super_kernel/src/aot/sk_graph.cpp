@@ -57,7 +57,7 @@ aclError SuperKernelGraph::Update() {
             }
             UpdateContext ctx;
             ctx.customParams = &customParams;
-            if(!node->Update(ctx)){
+            if (!node->Update(ctx)) {
                 SK_LOGE("Failed to update event node %lu in stream %u", node->GetNodeId(), node->GetStreamIdxInGraph());
                 return ACL_ERROR_FAILURE;
             }
@@ -76,6 +76,7 @@ bool SuperKernelGraph::ExpandUpdateNodes(std::vector<SuperKernelBaseNode*>& cust
     for (auto* node : customNodes) {
         if (node != nullptr && needUpdateNodes.find(node) == needUpdateNodes.end()) {
             needUpdateNodes.insert(node);
+            SK_LOGI("Insert into sk graph needUpdateNodes, node info: %s", node->FormatNodeInfo().c_str());
         }
     }
     return true;
