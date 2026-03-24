@@ -45,15 +45,6 @@ bool SkEventRecorder::Init() {
 
     enabled = true;
     globalRunning.store(true);
-    // 初始化输出目录
-    outputDir = GetBasePath();
-    if (outputDir.empty()) {
-        SK_LOGE("[sk time profiling] Failed to get output directory, stop dumping the time information of sk\n");
-        SK_LOGE("[sk time profiling] ===================== End dump the time of superkernel =======================\n");
-        enabled = false;
-        globalRunning.store(false);
-        return false;
-    }
     
     // 启动单个全局后台线程用于搬运解析记录事件
     int ret = pthread_create(&dumpThread, nullptr, DumpThreadFunc, this);
@@ -96,6 +87,14 @@ SkEventDeviceCtx* SkEventRecorder::CreateDeviceCtx(uint32_t deviceId) {
     SkEventDeviceCtx* ctx = &deviceCtxs[deviceId];
     ctx->recorder = this; // 设置回调指针
     
+    // 1. 初始化输出目录
+    ctx->outputDir = GetBasePath();
+    if (ctx->outputDir.empty()) {
+        SK_LOGE("[sk time profiling] Failed to get output directory for device %u\n", deviceId);
+        SkProfilingShutdown();
+        return nullptr;
+    }
+
     // 2. 分配 GM 内存
     aclError allocRet = SkResourceManager::ValueMemory(&ctx->gmAddr, SK_EVENT_TOTAL_SIZE);
     if (allocRet != ACL_SUCCESS || ctx->gmAddr == nullptr) {
@@ -121,7 +120,7 @@ SkEventDeviceCtx* SkEventRecorder::CreateDeviceCtx(uint32_t deviceId) {
     // 4. 创建临时输出文件（用于存储 node 事件）
     char filename[SPRINT_LEN_BUFFER];
     errno_t snpRet = snprintf_s(filename, sizeof(filename), sizeof(filename) - 1,
-                            "%s/sk_event_dev_device_%u.tmp.json", outputDir.c_str(), deviceId);
+                            "%s/sk_event_dev_device_%u.tmp.json", ctx->outputDir.c_str(), deviceId);
     if (snpRet < 0) {
         SK_LOGE("[sk time profiling] snprintf_s filename failed for device %u, ret=%d\n", deviceId, snpRet);
         SkProfilingShutdown();
@@ -169,7 +168,7 @@ void SkEventRecorder::DumpModelData(SkEventRecorder* recorder) {
             SK_LOGI("[sk time profiling] Start dump model time, device:%u\n", i);
             char finalFile[SPRINT_LEN_BUFFER];
             errno_t finalRet = snprintf_s(finalFile, sizeof(finalFile), sizeof(finalFile) - 1,
-                                    "%s/sk_event_dev_device_%u.json", recorder->outputDir.c_str(), i);
+                                    "%s/sk_event_dev_device_%u.json", ctx->outputDir.c_str(), i);
             if (finalRet < 0) {
                 SK_LOGE("[sk time profiling] snprintf_s finalFile failed for device %u, ret=%d\n", i, finalRet);
                 SkProfilingShutdown();
@@ -221,7 +220,7 @@ void SkEventRecorder::DumpModelData(SkEventRecorder* recorder) {
             // 删除子算子耗时信息临时文件路径, 如果程序意外退出，则保留子算子耗时信息文件
             char tmpFile[SPRINT_LEN_BUFFER];
             errno_t tmpRet = snprintf_s(tmpFile, sizeof(tmpFile), sizeof(tmpFile) - 1,
-                          "%s/sk_event_dev_device_%u.tmp.json", recorder->outputDir.c_str(), i);
+                          "%s/sk_event_dev_device_%u.tmp.json", ctx->outputDir.c_str(), i);
             if (tmpRet < 0) {
                 SK_LOGE("[sk time profiling] snprintf_s tmpFile failed for device %u, ret=%d\n", i, tmpRet);
             } else {
@@ -262,36 +261,35 @@ void* SkEventRecorder::DumpThreadFunc(void* arg) {
     recorder->DumpModelData(recorder);
     
     // 复制 JSON 文件到 mindstudio_profiler_output路径
-    if (recorder->outputDir.empty()) {
-        SK_LOGE("[sk time profiling] mindstudio_profiler_output floder is not find, sk profiling file will store in PROF floder\n");
-        recorder->SkProfilingShutdown();
-        return nullptr;
-    } else {
-        for (uint32_t i = 0; i < SK_EVENT_MAX_DEVICE_NUM; i++) {
-            SkEventDeviceCtx* ctx = &recorder->deviceCtxs[i];
-            if (ctx->active.load()) {
-                std::string srcFile = recorder->outputDir + "/sk_event_dev_device_" + std::to_string(i) + ".json";
-                std::string dstFile = recorder->outputDir + "/mindstudio_profiler_output/sk_event_dev_device_" + std::to_string(i) + ".json";
-                // 复制文件
-                std::ifstream srcStream(srcFile, std::ios::binary);
-                std::ofstream dstStream(dstFile, std::ios::binary | std::ios::trunc);
-                if (!srcStream || !dstStream) {
-                    SK_LOGE("[sk time profiling] Failed to open file for copy: %s -> %s\n",
-                            srcFile.c_str(), dstFile.c_str());
-                    recorder->SkProfilingShutdown();
-                    return nullptr;
-                }
-                dstStream << srcStream.rdbuf(); 
-                if (!dstStream.good()) {
-                    SK_LOGE("[sk time profiling] Failed to copy file from %s to %s\n",
-                            srcFile.c_str(), dstFile.c_str());
-                    recorder->SkProfilingShutdown();
-                    return nullptr;
-                }
-                // 删除算子耗时的临时文件
-                remove(srcFile.c_str());
-                SK_LOGI("[sk time profiling] Successfully saved profiling file to mindstudio_profiler_output: %s\n", dstFile.c_str());
+    for (uint32_t i = 0; i < SK_EVENT_MAX_DEVICE_NUM; i++) {
+        SkEventDeviceCtx* ctx = &recorder->deviceCtxs[i];
+        if (ctx->active.load()) {
+            if (ctx->outputDir.empty()) {
+                SK_LOGE("[sk time profiling] mindstudio_profiler_output folder is not found for device %u, sk profiling file will store in PROF folder\n", i);
+                recorder->SkProfilingShutdown();
+                return nullptr;
             }
+            std::string srcFile = ctx->outputDir + "/sk_event_dev_device_" + std::to_string(i) + ".json";
+            std::string dstFile = ctx->outputDir + "/mindstudio_profiler_output/sk_event_dev_device_" + std::to_string(i) + ".json";
+            // 复制文件
+            std::ifstream srcStream(srcFile, std::ios::binary);
+            std::ofstream dstStream(dstFile, std::ios::binary | std::ios::trunc);
+            if (!srcStream || !dstStream) {
+                SK_LOGE("[sk time profiling] Failed to open file for copy: %s -> %s\n",
+                        srcFile.c_str(), dstFile.c_str());
+                recorder->SkProfilingShutdown();
+                return nullptr;
+            }
+            dstStream << srcStream.rdbuf(); 
+            if (!dstStream.good()) {
+                SK_LOGE("[sk time profiling] Failed to copy file from %s to %s\n",
+                        srcFile.c_str(), dstFile.c_str());
+                recorder->SkProfilingShutdown();
+                return nullptr;
+            }
+            // 删除算子耗时的临时文件
+            remove(srcFile.c_str());
+            SK_LOGI("[sk time profiling] Successfully saved profiling file to mindstudio_profiler_output: %s\n", dstFile.c_str());
         }
     }
     SK_LOGI("[sk time profiling] Global dump thread stopped\n");

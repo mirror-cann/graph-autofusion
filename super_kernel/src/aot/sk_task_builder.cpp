@@ -1234,7 +1234,7 @@ SkHostEntryInfo SkTaskBuilder::GenEntryInfo(SkTask& skTaskCube, SkTask& skTaskVe
     bool shouldEnable = (env != nullptr && std::string(env) == "1");
     if (skTaskCube.funcCnt == 0 && skTaskVec.funcCnt > 0) {
         if (shouldEnable) {
-            entryFuncName = "sk_entry_aiv_dump_profiling";
+            entryFuncName = enableDebug == false ? "sk_entry_aiv_dump_profiling" : "sk_entry_aiv_debug_dump_profiling";
         } else {
             entryFuncName = enableDebug == false ? "sk_entry_aiv" : "sk_entry_aiv_debug";
         }
@@ -1243,7 +1243,7 @@ SkHostEntryInfo SkTaskBuilder::GenEntryInfo(SkTask& skTaskCube, SkTask& skTaskVe
         skTaskCube.numBlocks = 0;
     } else if (skTaskCube.funcCnt > 0 && skTaskVec.funcCnt == 0) {
         if (shouldEnable) {
-            entryFuncName = "sk_entry_aic_dump_profiling";
+            entryFuncName = enableDebug == false ? "sk_entry_aic_dump_profiling" : "sk_entry_aic_debug_dump_profiling";
         } else {
             entryFuncName = enableDebug == false ? "sk_entry_aic" : "sk_entry_aic_debug";
         }
@@ -1254,7 +1254,7 @@ SkHostEntryInfo SkTaskBuilder::GenEntryInfo(SkTask& skTaskCube, SkTask& skTaskVe
         uint32_t mix_1_2_aiv_numBlocks = (skTaskVec.numBlocks + 1) / 2;
         if (skTaskCube.nodeType == SkKernelType::MIX_AIC_1_2 && skTaskVec.nodeType == SkKernelType::MIX_AIC_1_2) {
             if (shouldEnable) {
-                entryFuncName = "sk_entry_mix12_dump_profiling";
+                entryFuncName = enableDebug == false ? "sk_entry_mix12_dump_profiling" : "sk_entry_mix12_debug_dump_profiling";
             } else {
                 entryFuncName = enableDebug == false ? "sk_entry_mix12" : "sk_entry_mix12_debug";
             }
@@ -1265,7 +1265,7 @@ SkHostEntryInfo SkTaskBuilder::GenEntryInfo(SkTask& skTaskCube, SkTask& skTaskVe
             skTaskVec.numBlocks = entryInfo.numBlocks * 2;
         } else if (skTaskVec.numBlocks <= skTaskCube.numBlocks) {
             if (shouldEnable) {
-                entryFuncName = "sk_entry_mix11_dump_profiling";
+                entryFuncName = enableDebug == false ? "sk_entry_mix11_dump_profiling" : "sk_entry_mix11_debug_dump_profiling";
             } else {
                 entryFuncName = enableDebug == false ? "sk_entry_mix11" : "sk_entry_mix11_debug";
             }
@@ -1274,7 +1274,7 @@ SkHostEntryInfo SkTaskBuilder::GenEntryInfo(SkTask& skTaskCube, SkTask& skTaskVe
             skTaskVec.numBlocks = skTaskCube.numBlocks;
         } else {
             if (shouldEnable) {
-                entryFuncName = "sk_entry_mix12_dump_profiling";
+                entryFuncName = enableDebug == false ? "sk_entry_mix12_dump_profiling" : "sk_entry_mix12_debug_dump_profiling";
             } else {
                 entryFuncName = enableDebug == false ? "sk_entry_mix12" : "sk_entry_mix12_debug";
             }

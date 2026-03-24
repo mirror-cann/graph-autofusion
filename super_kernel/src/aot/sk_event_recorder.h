@@ -61,6 +61,7 @@ struct SkEventDeviceCtx {
     std::unique_ptr<uint8_t[]> hostBuf;                        // Host 缓冲区 (RAII)
     uint32_t deviceId = 0;                                     // Device ID
     uint32_t totalSize = 0;                                    // 总大小
+    std::string outputDir;                                     // 每个device的profiling输出目录路径
     FileGuard outputFp;                                        // 小算子的时间信息文件的输出文件句柄 (RAII)
     uint64_t lastOffset[SK_EVENT_CORE_NUM]{};                  // 每个core的上次读取位置
     SkEventRecorder* recorder = nullptr;                        // 回调指针
@@ -126,7 +127,6 @@ private:
 
 private:
     bool enabled = false; // 打点是否执行
-    std::string outputDir;  // profiling输出目录路径
     std::atomic_bool globalRunning{false};  // 全局打点解析线程运行状态
     pthread_t dumpThread;                   // 全局打点解析后台线程
     std::mutex mutex;

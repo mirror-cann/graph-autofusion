@@ -64,9 +64,10 @@ private:
 // 从 MsprofGetPath 返回的路径中提取profiling路径, 
 // 返回路径类似 父目录/profiling/0002_3675077_20260321093945052_ascend_pt/PROF_000001_20260321093945081_03675077MGDRRBBN
 static std::string GetBasePath() {
-    auto* pathRaw = MsprofGetPath();
+    const char* pathRaw = MsprofGetPath();
     if (pathRaw == nullptr || pathRaw[0] == '\0') {
-        SK_LOGW("[sk time profiling] MsprofGetPath returned empty path\n");
+        SK_LOGE("[sk time profiling] MsprofGetPath returned empty path\n");
+        SK_LOGI("[sk time profiling] Profiler should start before than net start, Please check it\n");
         return "";
     }
     std::string path(pathRaw);
