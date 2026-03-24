@@ -283,10 +283,6 @@ bool SuperKernelBaseNode::Update(const UpdateContext &ctx) {
         SK_LOGE("Task has already been updated, can't update again, %s", FormatNodeInfo().c_str());
         return false;
     }
-    if (!isFusible) {
-        SK_LOGE("Task is not fusible, update rejected, %s", FormatNodeInfo().c_str());
-        return false;
-    }
 
     isUpdate = true;
     SK_LOGI("Updating node for task : %lu.", nodeId);
@@ -427,10 +423,6 @@ bool SuperKernelKernelNode::InitNode() {
 }
 
 bool SuperKernelKernelNode::InValidateNode() {
-    if (!isFusible) {
-        SK_LOGE("Kernel node %s cannot be fused in super kernel, which should not been invalidated.", FormatNodeInfo().c_str());
-        return false;
-    }
     SK_LOGI("Invalidating kernel node for task %lu, which will be fused in super kernel.", nodeId);
     aclError aclRet = aclmdlRITaskDisable(*originTask);
     if (aclRet != ACL_SUCCESS) {
@@ -586,7 +578,7 @@ bool SuperKernelMemoryNode::Update(const UpdateContext &ctx) {
             case ACL_MODEL_RI_TASK_VALUE_WRITE:
             case ACL_MODEL_RI_TASK_VALUE_WAIT:
                 if (ctx.customParams->valueWriteTaskParams.devAddr == nullptr) {
-                    SK_LOGE("Custom params for kernel node %s has null devAddr, invalid params.", FormatNodeInfo().c_str());
+                    SK_LOGE("Custom params for memory node %s has null devAddr, invalid params.", FormatNodeInfo().c_str());
                     return false;
                 }
                 break;
@@ -608,14 +600,10 @@ bool SuperKernelMemoryNode::Update(const UpdateContext &ctx) {
 }
 
 bool SuperKernelMemoryNode::InValidateNode() {
-    if (!isFusible) {
-        SK_LOGE("Memory node %s cannot be fused in super kernel, which should not been invalidated.", FormatNodeInfo().c_str());
-        return false;
-    }
     SK_LOGI("Invalidating memory node with eventId %lu for task %lu, which will be fused in super kernel.", nodeInfos.syncInfos.eventId, nodeId);
     aclError aclRet = aclmdlRITaskDisable(*originTask);
     if (aclRet != ACL_SUCCESS) {
-        SK_LOGE("Failed to invalidate kernel node %s", FormatNodeInfo().c_str());
+        SK_LOGE("Failed to invalidate memory node %s", FormatNodeInfo().c_str());
         return false;
     }
     return true;

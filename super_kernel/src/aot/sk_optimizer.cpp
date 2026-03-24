@@ -48,7 +48,7 @@ bool SuperKernelOptimizer::Update(SuperKernelProcessedScopeInfo& processedScopeI
         while (curNodeId != INVALID_TASK_ID) {
             auto* node = graph.GetNodeById(curNodeId);
             if (node == nullptr) {
-                SK_LOGE("node not found during stream-based update: nodeId=%lu, streamIdx=%u", curNodeId,
+                SK_LOGE("node not found during stream-based update: nodeId=%lu, streamId=%u", curNodeId,
                         streamInfo.streamIdx);
                 return false;
             }
@@ -69,7 +69,7 @@ bool SuperKernelOptimizer::Update(SuperKernelProcessedScopeInfo& processedScopeI
 
             ++updateTotalCount;
             if (!node->Update(ctx)) { // default invalid
-                SK_LOGE("node update failed: nodeId=%lu, streamIdx=%u", curNodeId, streamInfo.streamIdx);
+                SK_LOGE("node update failed: nodeId=%lu, streamId=%u", curNodeId, streamInfo.streamIdx);
                 return false;
             }
 
@@ -91,15 +91,15 @@ bool SuperKernelOptimizer::Update(SuperKernelProcessedScopeInfo& processedScopeI
     return true;
 }
 
-bool SuperKernelOptimizer::ExpandScopeNodes(SuperKernelScopeInfo& ScopeInfo, SuperKernelGraph& graph)
+bool SuperKernelOptimizer::ExpandScopeNodes(SuperKernelScopeInfo& scopeInfo, SuperKernelGraph& graph)
 {
     std::vector<SuperKernelBaseNode*> needUpdateNodes;
-    for (auto& streamInfo : ScopeInfo.scopeStreamInfos) {
+    for (auto& streamInfo : scopeInfo.scopeStreamInfos) {
         uint64_t curNodeId = streamInfo.headNodeIdx;
         while (curNodeId != INVALID_TASK_ID) {
             auto* curNode = graph.GetNodeById(curNodeId);
             if (curNode == nullptr) {
-                SK_LOGE("node not found during scope node update: nodeId=%lu, streamIdx=%u", curNodeId,
+                SK_LOGE("node not found during scope node update: nodeId=%lu, streamId=%u", curNodeId,
                         streamInfo.streamIdx);
                 return false;
             }
@@ -178,24 +178,23 @@ bool SuperKernelOptimizer::Process(SuperKernelGraph& graph)
     SuperKernelScopePostProcessor postProcessor(graph);
 
     // Process each scope sequentially.
-    size_t scopeIndex = 0;
-    for (auto& scopeInfo : scopeInfos) {
-        SK_LOGI("process scope begin: scopeIndex=%zu", scopeIndex);
+    for (size_t scopeIdx = 0; scopeIdx < scopeInfos.size(); ++scopeIdx) {
+        auto& scopeInfo = scopeInfos[scopeIdx];
+        SK_LOGI("process scope begin: scopeIdx=%zu", scopeIdx);
         SuperKernelProcessedScopeInfo processedScopeInfo = postProcessor.PostProcess(scopeInfo);
         if (processedScopeInfo.nodes.empty()) {
-            SK_LOGI("scope has no nodes after post-process, skipping scheduling: scopeIndex=%zu", scopeIndex);
+            SK_LOGI("scope has no nodes after post-process, skipping scheduling: scopeIdx=%zu", scopeIdx);
             if (!ExpandScopeNodes(scopeInfo, graph)) {
-                SK_LOGE("failed to expand scope nodes: scopeIndex=%zu", scopeIndex);
+                SK_LOGE("failed to expand scope nodes: scopeIdx=%zu", scopeIdx);
                 return false;
             }
             continue;
         }
-        processedScopeInfo.scopeIdx = static_cast<uint32_t>(scopeIndex);
+        processedScopeInfo.scopeIdx = static_cast<uint32_t>(scopeIdx);
         if (!Schedule(processedScopeInfo, graph, builder)) {
-            SK_LOGE("process scope failed: scopeIndex=%zu, schedule/update returned false", scopeIndex);
+            SK_LOGE("process scope failed: scopeIdx=%zu, schedule/update returned false", scopeIdx);
             return false;
         }
-        ++scopeIndex;
     }
     SK_LOGI("super kernel process finished: scopeCount=%zu", scopeInfos.size());
     return true;

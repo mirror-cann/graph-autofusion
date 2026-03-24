@@ -92,13 +92,13 @@ SkQueueType InferFirstKernelEventQueueType(const std::vector<SuperKernelBaseNode
 // dump device entry args
 void DumpTaskQue(const TaskQue* que, const char* name)
 {
-    SK_LOGD("%s TaskQue: cap=%u, tasks=%u", name, que->cap, que->taskCnt);
+    SK_LOGI("%s TaskQue: cap=%u, tasks=%u", name, que->cap, que->taskCnt);
     for (uint32_t i = 0; i < que->taskCnt; ++i) {
         const TaskInfo& ti = que->taskInfos[i];
-        SK_LOGD("[%u] type=%s, idx=%u, blk=%u, kernel=%s, entries=%u, args=0x%llx", i, to_string(ti.type), ti.index,
+        SK_LOGI("[%u] type=%s, idx=%u, blk=%u, kernel=%s, entries=%u, args=0x%llx", i, to_string(ti.type), ti.index,
                 ti.numBlocks, to_string(ti.originType), ti.entryCnt, (unsigned long long)ti.args);
         for (uint32_t j = 0; j < ti.entryCnt; ++j) {
-            SK_LOGD("      entry[%u]=0x%llx", j, (unsigned long long)ti.entry[j]);
+            SK_LOGI("      entry[%u]=0x%llx", j, (unsigned long long)ti.entry[j]);
         }
     }
 }
@@ -108,7 +108,7 @@ void DumpDeviceArgs(const SkDeviceEntryArgs* args)
     const uint8_t* base = (const uint8_t*)args;
 
     const SkHeaderInfo& hdr = args->skHeader;
-    SK_LOGD("SkHeaderInfo: aicOff=%u, aivOff=%u, counterOff=%u, wsOff=%u, dfxOff=%u, eventConfigOff=%u, nodeCnt=%u, totalSize=%lu\n",
+    SK_LOGI("SkHeaderInfo: aicOff=%u, aivOff=%u, counterOff=%u, wsOff=%u, dfxOff=%u, eventConfigOff=%u, nodeCnt=%u, totalSize=%lu\n",
             hdr.aicQueOffset, hdr.aivQueOffset, hdr.counterOffset, hdr.wsOffset, hdr.dfxOffset, hdr.eventConfigOffset, hdr.nodeCnt,
             hdr.totalSize);
 
@@ -117,7 +117,7 @@ void DumpDeviceArgs(const SkDeviceEntryArgs* args)
 
     const SkDfxInfo* dfx = (const SkDfxInfo*)(base + args->skHeader.dfxOffset);
     for (uint32_t i = 0; i < args->skHeader.nodeCnt; ++i) {
-        SK_LOGD("dfx[%u]: bin=0x%llx, ori=0x%llx", i, (unsigned long long)dfx[i].binHdl,
+        SK_LOGI("dfx[%u]: bin=0x%llx, ori=0x%llx", i, (unsigned long long)dfx[i].binHdl,
                 (unsigned long long)dfx[i].funcHdlOri);
     }
 }
@@ -155,7 +155,7 @@ SuperKernelBaseNode* FindKernelNodeInDirection(uint64_t startNodeId, const Super
         if (pathStr.empty()) {
             pathStr = "empty";
         }
-        SK_LOGE("FindKernelNodeInDirection failed: startNodeId=%lu, "
+        SK_LOGI("FindKernelNodeInDirection failed: startNodeId=%lu, "
                 "direction=%s, reason=%s, failedNodeId=%lu, path=%s",
                 startNodeId, to_string(direction), reason, failedNodeId, pathStr.c_str());
     };
@@ -166,7 +166,7 @@ SuperKernelBaseNode* FindKernelNodeInDirection(uint64_t startNodeId, const Super
         current = graph.GetNodeById(curNodeId);
         if (current == nullptr) {
             LogSearchFailure("node-not-found", curNodeId);
-            SK_LOGE("Node with ID %lu not found in graph.", curNodeId);
+            SK_LOGI("Node with ID %lu not found in graph.", curNodeId);
             return nullptr;
         }
 
@@ -194,19 +194,19 @@ SuperKernelBaseNode* FindKernelNodeInDirection(uint64_t startNodeId, const Super
 
         if (curNodeId == INVALID_TASK_ID) {
             LogSearchFailure("no-next-node", path.back());
-            SK_LOGE("Node ID %lu has no %s-node.", startNodeId, to_string(direction));
+            SK_LOGI("nodeId:%lu has no %s-node.", startNodeId, to_string(direction));
             return nullptr;
         }
 
         // Detect loops to avoid infinite traversal.
         if (std::find(path.cbegin(), path.cend(), curNodeId) != path.cend()) {
             LogSearchFailure("loop-detected", curNodeId);
-            SK_LOGE("Node ID %lu detected loop in %s direction.", startNodeId, to_string(direction));
+            SK_LOGI("nodeId:%lu detected loop in %s direction.", startNodeId, to_string(direction));
             return nullptr; // Loop detected.
         }
     }
     LogSearchFailure("max-hops-exceeded", curNodeId);
-    SK_LOGE("Node ID %lu search exceeded max hops (%d) in %s direction.", startNodeId, maxHops, to_string(direction));
+    SK_LOGI("nodeId:%lu search exceeded max hops (%d) in %s direction.", startNodeId, maxHops, to_string(direction));
     return nullptr; // Exceeded traversal budget.
 }
 
@@ -523,13 +523,13 @@ bool SkTaskBuilder::ExtractInterStreamSync(const std::vector<SuperKernelBaseNode
         SkNodeType nodeType = node->GetNodeType();
         // Only process KERNEL nodes for synchronization
         if (nodeType == SkNodeType::NODE_KERNEL) {
-            SK_LOGD("ExtractInterStreamSync: processing KERNEL node %lu with %zu successors",
+            SK_LOGI("ExtractInterStreamSync: processing KERNEL node %lu with %zu successors",
                     preNodeId, node->sendToNodeId.size());
             // Check each successor to determine if sync event is needed
             for (auto nextId : node->sendToNodeId) {
                 // If successor is in the current task set, insert sync event
                 if (taskIds.find(nextId) != taskIds.end()) {
-                    SK_LOGD("ExtractInterStreamSync: inserting sync event between %lu -> %lu",
+                    SK_LOGI("ExtractInterStreamSync: inserting sync event between %lu -> %lu",
                             preNodeId, nextId);
                     if (nodeIdToIndex_.find(preNodeId) == nodeIdToIndex_.end() || nodeIdToIndex_.find(nextId) == nodeIdToIndex_.end()) {
                         SK_LOGE("NodeId not exists in task nodes, node id is %ld, %lu", preNodeId, nextId);
@@ -538,7 +538,7 @@ bool SkTaskBuilder::ExtractInterStreamSync(const std::vector<SuperKernelBaseNode
                     InsertSyncEvent(nodeIdToIndex_[preNodeId], nodeIdToIndex_[nextId]);
                     syncEventCount++;
                 } else {
-                    SK_LOGD("ExtractInterStreamSync: skipping external successor %lu (not in task set)",
+                    SK_LOGI("ExtractInterStreamSync: skipping external successor %lu (not in task set)",
                             nextId);
                 }
             }
@@ -582,7 +582,7 @@ bool SkTaskBuilder::JudgeRemoveCrossSync(size_t sendIdx, size_t recvIdx, bool is
                     // otherRecvIdx < recvIdx is guaranteed by loop condition.
                     // Only verify otherSendIdx > sendIdx.
                     if (otherSendIdx > sendIdx) {
-                        SK_LOGD("  Found crossed sync: task[%zu]->task[%zu] crosses with task[%zu]->task[%zu]",
+                        SK_LOGI("  Found crossed sync: task[%zu]->task[%zu] crosses with task[%zu]->task[%zu]",
                                 otherSendIdx, otherRecvIdx, sendIdx, recvIdx);
                         return true;
                     }
@@ -600,7 +600,7 @@ bool SkTaskBuilder::JudgeRemoveCrossSync(size_t sendIdx, size_t recvIdx, bool is
                     // otherRecvIdx < recvIdx is guaranteed by loop condition.
                     // Only verify otherSendIdx > sendIdx.
                     if (otherSendIdx > sendIdx) {
-                        SK_LOGD("  Found crossed sync: task[%zu]->task[%zu] crosses with task[%zu]->task[%zu]",
+                        SK_LOGI("  Found crossed sync: task[%zu]->task[%zu] crosses with task[%zu]->task[%zu]",
                                 otherSendIdx, otherRecvIdx, sendIdx, recvIdx);
                         return true;
                     }
