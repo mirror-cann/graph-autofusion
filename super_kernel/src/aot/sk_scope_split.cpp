@@ -17,6 +17,182 @@
 #include "sk_common.h"
 #include <algorithm>
 
+// ============ IsolatedEventNodePreprocessPass Implementation ============
+
+IsolatedEventNodePreprocessPass::IsolatedEventNodePreprocessPass(SuperKernelGraph& inputGraph)
+    : ScopeSplitPass(inputGraph), markedCount_(0) {}
+
+bool IsolatedEventNodePreprocessPass::IsEventNode(SuperKernelBaseNode* node) const {
+    if (node == nullptr) {
+        return false;
+    }
+
+    SkNodeType nodeType = node->GetNodeType();
+    return (nodeType == SkNodeType::NODE_NOTIFY ||
+            nodeType == SkNodeType::NODE_WAIT ||
+            nodeType == SkNodeType::NODE_RESET ||
+            nodeType == SkNodeType::NODE_MEMORY_WRITE ||
+            nodeType == SkNodeType::NODE_MEMORY_WAIT);
+}
+
+bool IsolatedEventNodePreprocessPass::IsFusibleNonEventNode(SuperKernelBaseNode* node) const {
+    if (node == nullptr || !node->IsFusible()) {
+        return false;
+    }
+
+    // Event nodes are not considered fusible non-event nodes
+    if (IsEventNode(node)) {
+        return false;
+    }
+
+    // Default nodes are also not fusible non-event nodes
+    if (node->GetNodeType() == SkNodeType::NODE_DEFAULT) {
+        return false;
+    }
+
+    return true;
+}
+
+bool IsolatedEventNodePreprocessPass::HasFusibleNonEventNodeBefore(SuperKernelBaseNode* node) {
+    if (node == nullptr) {
+        return false;
+    }
+
+    // Traverse backward from the previous node
+    uint64_t currentId = node->GetPreNodeId();
+
+    while (currentId != INVALID_TASK_ID) {
+        SuperKernelBaseNode* currentNode = graph_.GetNodeById(currentId);
+        if (currentNode == nullptr) {
+            SK_LOGE("Node %lu not found in graph while checking before nodes", currentId);
+            break;
+        }
+
+        // If we find a fusible non-event node, return true
+        if (IsFusibleNonEventNode(currentNode)) {
+            SK_LOGD("Found fusible non-event node %s before event node %s",
+                    currentNode->FormatNodeInfo().c_str(),
+                    node->FormatNodeInfo().c_str());
+            return true;
+        }
+
+        // Move to the previous node
+        currentId = currentNode->GetPreNodeId();
+    }
+
+    return false;
+}
+
+bool IsolatedEventNodePreprocessPass::HasFusibleNonEventNodeAfter(SuperKernelBaseNode* node) {
+    if (node == nullptr) {
+        return false;
+    }
+
+    // Traverse forward from the next node
+    uint64_t currentId = node->GetNextNodeId();
+
+    while (currentId != INVALID_TASK_ID) {
+        SuperKernelBaseNode* currentNode = graph_.GetNodeById(currentId);
+        if (currentNode == nullptr) {
+            SK_LOGE("Node %lu not found in graph while checking after nodes", currentId);
+            break;
+        }
+
+        // If we find a fusible non-event node, return true
+        if (IsFusibleNonEventNode(currentNode)) {
+            SK_LOGD("Found fusible non-event node %s after event node %s",
+                    currentNode->FormatNodeInfo().c_str(),
+                    node->FormatNodeInfo().c_str());
+            return true;
+        }
+
+        // Move to the next node
+        currentId = currentNode->GetNextNodeId();
+    }
+
+    return false;
+}
+
+uint32_t IsolatedEventNodePreprocessPass::ProcessStream(uint32_t streamIdx) {
+    uint32_t streamMarkedCount = 0;
+    const auto& streams = graph_.GetStreams();
+
+    if (streamIdx >= streams.size()) {
+        SK_LOGE("Stream index %u is out of range (total streams: %zu)",
+                streamIdx, streams.size());
+        return 0;
+    }
+
+    SK_LOGI("[IsolatedEventPreprocess] processing stream %u", streamIdx);
+
+    // Get the head node of this stream
+    const auto& headNodes = graph_.GetHeadNodes();
+    if (streamIdx >= headNodes.size()) {
+        SK_LOGE("Head node index %u is out of range", streamIdx);
+        return 0;
+    }
+
+    // Traverse all nodes in the stream
+    uint64_t currentNodeId = headNodes[streamIdx];
+    while (currentNodeId != INVALID_TASK_ID) {
+        SuperKernelBaseNode* node = graph_.GetNodeById(currentNodeId);
+        if (node == nullptr) {
+            SK_LOGE("Node %lu not found in graph while processing stream %u",
+                    currentNodeId, streamIdx);
+            break;
+        }
+
+        // Check if this is a fusible event node
+        if (node->IsFusible() && IsEventNode(node)) {
+            bool hasFusibleBefore = HasFusibleNonEventNodeBefore(node);
+            bool hasFusibleAfter = HasFusibleNonEventNodeAfter(node);
+
+            // If the event node has no fusible non-event nodes before AND after,
+            // mark it as non-fusible
+            if (!hasFusibleBefore && !hasFusibleAfter) {
+                node->SetIsFusible(false);
+                streamMarkedCount++;
+                SK_LOGI("Marked isolated event node %s in stream %u as non-fusible "
+                        "(no fusible non-event nodes before or after)",
+                        node->FormatNodeInfo().c_str(), streamIdx);
+            }
+        }
+
+        // Move to the next node
+        currentNodeId = node->GetNextNodeId();
+    }
+
+    if (streamMarkedCount > 0) {
+        SK_LOGI("[IsolatedEventPreprocess] stream %u: marked %u isolated event nodes as non-fusible",
+                streamIdx, streamMarkedCount);
+    }
+
+    return streamMarkedCount;
+}
+
+bool IsolatedEventNodePreprocessPass::Run(std::vector<SuperKernelScopeInfo>& scopes) {
+    SK_LOGI("[IsolatedEventPreprocess] %s pass starting execution", GetName().c_str());
+
+    // The input scopes parameter is not used in this pass
+    // This pass directly modifies the graph by marking isolated event nodes as non-fusible
+    (void)scopes;
+
+    markedCount_ = 0;
+    const auto& streams = graph_.GetStreams();
+    SK_LOGI("[IsolatedEventPreprocess] processing %zu streams", streams.size());
+
+    // Process each stream
+    for (size_t i = 0; i < streams.size(); ++i) {
+        uint32_t streamMarkedCount = ProcessStream(static_cast<uint32_t>(i));
+        markedCount_ += streamMarkedCount;
+    }
+
+    SK_LOGI("[IsolatedEventPreprocess] %s pass completed, marked %u isolated event nodes as non-fusible",
+            GetName().c_str(), markedCount_);
+
+    return true;
+}
+
 // ============ ScopeSplitPass Base Class Implementation ============
 
 void ScopeSplitPass::PrintScopeResults(const std::vector<SuperKernelScopeInfo>& scopes,
@@ -52,12 +228,10 @@ std::string ScopeSplitPass::GetScopeNamesFromBitFlags(const std::bitset<MAX_SCOP
 }
 
 void ScopeSplitPass::PrintScopeNodes(size_t scopeIdx, const SuperKernelScopeInfo& scope) {
-    std::string nodeDetails;
-    for (const auto* n : scope.nodes) {
-        if (!nodeDetails.empty()) nodeDetails += ", ";
-        nodeDetails += n->FormatNodeInfo();
+    SK_LOGI("  Scope %zu nodes: %zu", scopeIdx, scope.nodes.size());
+    for (size_t i = 0; i < scope.nodes.size(); ++i) {
+        SK_LOGI("    [%zu] %s", i, scope.nodes[i]->FormatNodeInfo().c_str());
     }
-    SK_LOGI("  Scope %zu nodes: [%s]", scopeIdx, nodeDetails.c_str());
 }
 
 void ScopeSplitPass::PrintScopeStreamInfos(size_t scopeIdx, const SuperKernelScopeInfo& scope) {
@@ -341,6 +515,14 @@ void InitialScopeSplitPass::TryAddNodeToHeap(uint32_t streamIdx) {
         return;
     }
 
+    // Check fusibility
+    if (!node->IsFusible()) {
+        SK_LOGD("Stream %u: node %s is not fusible, terminating stream",
+                streamIdx, node->FormatNodeInfo().c_str());
+        state.isTerminated = true;
+        return;
+    }
+
     // Check scopeBitFlags match
     if (node->GetScopeBitFlags() != currentScopeBitFlags_) {
         SK_LOGD("Stream %u: node %s scopeBitFlags mismatch, terminating stream",
@@ -356,14 +538,6 @@ void InitialScopeSplitPass::TryAddNodeToHeap(uint32_t streamIdx) {
         // 1. Add wait node to heap (if notify already visited)
         // 2. Suspend the stream (if notify not yet visited)
         return;  // Don't continue with normal processing
-    }
-
-    // Check fusibility
-    if (!node->IsFusible()) {
-        SK_LOGD("Stream %u: node %s is not fusible, terminating stream",
-                streamIdx, node->FormatNodeInfo().c_str());
-        state.isTerminated = true;
-        return;
     }
 
     // Add to heap (no deadlock check in this pass)
@@ -592,7 +766,6 @@ bool InitialScopeSplitPass::BuildCurrentScope(SuperKernelScopeInfo& scopeInfo) {
     SK_LOGI("[SplitScope] starting to build current scope");
     scopeInfo.scopeBitFlags = currentScopeBitFlags_;
 
-    size_t nodeCount = 0;
     while (!nodeHeap_.empty()) {
         uint64_t nodeId = nodeHeap_.top();
         nodeHeap_.pop();
@@ -609,12 +782,9 @@ bool InitialScopeSplitPass::BuildCurrentScope(SuperKernelScopeInfo& scopeInfo) {
         uint32_t streamIdx = node->GetStreamIdxInGraph();
 
         // Add to scope
-        if (!node->IsScopeNode()) {
-            scopeInfo.nodes.push_back(node);
-            nodeCount++;
-            SK_LOGD("Added node %s to scope (count=%zu)",
-                    node->FormatNodeInfo().c_str(), nodeCount);
-        }
+        scopeInfo.nodes.push_back(node);
+        SK_LOGD("Added node %s to scope (count=%zu)",
+                node->FormatNodeInfo().c_str(), scopeInfo.nodes.size());
         AddStreamInfoToScope(scopeInfo, node);
         processedNodes_.insert(nodeId);
 
@@ -634,7 +804,7 @@ bool InitialScopeSplitPass::BuildCurrentScope(SuperKernelScopeInfo& scopeInfo) {
     }
 
     SK_LOGI("[SplitScope] built scope with %zu nodes, %zu stream infos",
-            nodeCount, scopeInfo.scopeStreamInfos.size());
+            scopeInfo.nodes.size(), scopeInfo.scopeStreamInfos.size());
     return true;  // Empty scope is not an error, allow it to be skipped in Run()
 }
 
@@ -791,6 +961,65 @@ void DeadlockRefinePass::RebuildStreamInfos(SuperKernelScopeInfo& scope) {
     }
 }
 
+ScopeProcessResult DeadlockRefinePass::ProcessSingleScope(
+    SuperKernelScopeInfo&& scopeToProcess,
+    std::vector<SuperKernelScopeInfo>& outputScopes,
+    std::optional<SuperKernelScopeInfo>& pendingScope) {
+    pendingScope.reset();
+
+    SuperKernelScopeInfo workingScope = std::move(scopeToProcess);
+    if (workingScope.nodes.empty()) {
+        SK_LOGI("[DeadlockRefine] ProcessSingleScope called with empty scope, nothing to do");
+        return ScopeProcessResult::NO_DEADLOCK;
+    }
+
+    SuperKernelBaseNode* deadlockNode = nullptr;
+    SuperKernelBaseNode* deadlockWaitNode = nullptr;
+
+    if (!FindDeadlockInScope(workingScope, &deadlockNode, &deadlockWaitNode)) {
+        // No deadlock: whole scope is safe
+        SuperKernelScopeSplitter::SetNotifyNodesExpandNumForScope(workingScope);
+        SK_LOGI("[DeadlockRefine] Scope has no deadlock, added as a whole with %zu nodes",
+                workingScope.nodes.size());
+        outputScopes.push_back(std::move(workingScope));
+        return ScopeProcessResult::NO_DEADLOCK;
+    }
+
+    // Deadlock found but no suitable Wait node to split at: treat as fatal
+    if (deadlockWaitNode == nullptr) {
+        SK_LOGE("[DeadlockRefine] Deadlock at node %s but no Wait node found to split; refinement failed",
+                deadlockNode != nullptr ? deadlockNode->FormatNodeInfo().c_str() : "<null>");
+        return ScopeProcessResult::DEADLOCK_UNRESOLVED;
+    }
+
+    // Deadlock found and we have a Wait node to split at
+    SuperKernelScopeInfo scopeBefore;
+    SuperKernelScopeInfo scopeAfter;
+    SplitScopeAtWaitNode(workingScope, deadlockWaitNode, scopeBefore, scopeAfter);
+
+    SK_LOGI("[DeadlockRefine] Deadlock detected at node %s, splitting at Wait node %s",
+            deadlockNode->FormatNodeInfo().c_str(), deadlockWaitNode->FormatNodeInfo().c_str());
+    SK_LOGI("[DeadlockRefine]   Before split: original=%zu nodes, scopeBefore=%zu, scopeAfter=%zu",
+            workingScope.nodes.size(), scopeBefore.nodes.size(), scopeAfter.nodes.size());
+
+    if (!scopeBefore.nodes.empty()) {
+        SuperKernelScopeSplitter::SetNotifyNodesExpandNumForScope(scopeBefore);
+        outputScopes.push_back(std::move(scopeBefore));
+    } else {
+        SK_LOGI("[DeadlockRefine] scopeBefore is empty after split, no scope added before Wait node");
+    }
+
+    if (!scopeAfter.nodes.empty()) {
+        pendingScope = std::move(scopeAfter);
+        SK_LOGI("[DeadlockRefine] scopeAfter has %zu nodes and will be processed further",
+                pendingScope->nodes.size());
+    } else {
+        SK_LOGI("[DeadlockRefine] scopeAfter is empty, no further processing required for this scope");
+    }
+
+    return ScopeProcessResult::DEADLOCK_RESOLVED;
+}
+
 bool DeadlockRefinePass::Run(std::vector<SuperKernelScopeInfo>& scopes) {
     SK_LOGI("[DeadlockRefine] %s pass starting execution", GetName().c_str());
     SK_LOGI("[DeadlockRefine] input scopes count: %zu", scopes.size());
@@ -799,44 +1028,37 @@ bool DeadlockRefinePass::Run(std::vector<SuperKernelScopeInfo>& scopes) {
     size_t splitCount = 0;
     
     for (size_t i = 0; i < scopes.size(); ++i) {
-        auto& scope = scopes[i];
-        SuperKernelBaseNode* deadlockNode = nullptr;
-        SuperKernelBaseNode* deadlockWaitNode = nullptr;
-        
-        if (FindDeadlockInScope(scope, &deadlockNode, &deadlockWaitNode)) {
-            if (deadlockWaitNode != nullptr) {
-                // Split at Wait node
-                SuperKernelScopeInfo scopeBefore, scopeAfter;
-                SplitScopeAtWaitNode(scope, deadlockWaitNode, scopeBefore, scopeAfter);
+        SK_LOGI("[DeadlockRefine] Processing scope index %zu with %zu nodes", i, scopes[i].nodes.size());
 
-                SK_LOGI("Scope %zu: Deadlock detected at node %s, splitting at Wait node %s",
-                        i, deadlockNode->FormatNodeInfo().c_str(), deadlockWaitNode->FormatNodeInfo().c_str());
-                SK_LOGI("  Before split: %zu nodes", scope.nodes.size());
-                SK_LOGI("  After split: scopeBefore=%zu nodes, scopeAfter=%zu nodes",
-                        scopeBefore.nodes.size(), scopeAfter.nodes.size());
+        SuperKernelScopeInfo currentScope = std::move(scopes[i]);
+        std::optional<SuperKernelScopeInfo> pendingScope;
 
-                // Set Notify nodes expand numbers immediately after scope is generated
-                if (!scopeBefore.nodes.empty()) {
-                    SuperKernelScopeSplitter::SetNotifyNodesExpandNumForScope(scopeBefore);
-                    refinedScopes.push_back(std::move(scopeBefore));
-                }
-                if (!scopeAfter.nodes.empty()) {
-                    SuperKernelScopeSplitter::SetNotifyNodesExpandNumForScope(scopeAfter);
-                    refinedScopes.push_back(std::move(scopeAfter));
-                }
-                splitCount++;
-            } else {
-                // No Wait node found, keep original scope
-                SK_LOGW("Scope %zu: Deadlock at node %s but no Wait node found to split",
-                        i, deadlockNode->FormatNodeInfo().c_str());
-                // Set Notify nodes expand numbers for original scope
-                SuperKernelScopeSplitter::SetNotifyNodesExpandNumForScope(scope);
-                refinedScopes.push_back(std::move(scope));
+        // Repeatedly process currentScope; any remaining part after a split is
+        // returned via pendingScope and processed in the next iteration. This
+        // ensures that for an original scope that is split into multiple
+        // pieces, the resulting scopes are emitted in order and remain
+        // contiguous in refinedScopes.
+        while (true) {
+            ScopeProcessResult result = ProcessSingleScope(std::move(currentScope), refinedScopes, pendingScope);
+
+            if (result == ScopeProcessResult::DEADLOCK_UNRESOLVED) {
+                SK_LOGE("[DeadlockRefine] Scope %zu: deadlock detected and cannot be resolved, aborting refinement",
+                        i);
+                scopes.clear();
+                return false;
             }
-        } else {
-            // Set Notify nodes expand numbers for unchanged scope
-            SuperKernelScopeSplitter::SetNotifyNodesExpandNumForScope(scope);
-            refinedScopes.push_back(std::move(scope));
+
+            if (result == ScopeProcessResult::DEADLOCK_RESOLVED) {
+                splitCount++;
+            }
+
+            if (!pendingScope.has_value()) {
+                // No remaining part to process for this original scope
+                break;
+            }
+
+            currentScope = std::move(*pendingScope);
+            pendingScope.reset();
         }
     }
     
@@ -850,10 +1072,14 @@ bool DeadlockRefinePass::Run(std::vector<SuperKernelScopeInfo>& scopes) {
 
 // ============ SuperKernelScopeSplitter Implementation ============
 
-SuperKernelScopeSplitter::SuperKernelScopeSplitter(SuperKernelGraph& inputGraph) 
+SuperKernelScopeSplitter::SuperKernelScopeSplitter(SuperKernelGraph& inputGraph)
     : graph_(inputGraph) {
-    // Initialize passes
+    // Initialize passes in execution order
+    // Pass 0: Preprocess to mark isolated event nodes as non-fusible
+    passes_.push_back(std::make_unique<IsolatedEventNodePreprocessPass>(inputGraph));
+    // Pass 1: Initial scope splitting
     passes_.push_back(std::make_unique<InitialScopeSplitPass>(inputGraph));
+    // Pass 2: Deadlock detection and refinement
     passes_.push_back(std::make_unique<DeadlockRefinePass>(inputGraph));
 }
 

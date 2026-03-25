@@ -116,9 +116,10 @@ std::vector<SuperKernelBaseNode*> FilterCancelledTasks(const std::vector<SuperKe
             SK_LOGI("Event[%lu] cancelled in post-process: WAIT task[%zu]", tasks[i]->GetEventId(), i);
             continue;
         }
-        filteredTasks.push_back(tasks[i]);
+        if (!tasks[i]->IsScopeNode()) {
+            filteredTasks.push_back(tasks[i]);
+        }
     }
-
     SK_LOGI("scope post-process filtered tasks: %zu -> %zu (%zu cancelled)", tasks.size(), filteredTasks.size(),
             tasks.size() - filteredTasks.size());
     return filteredTasks;

@@ -30,6 +30,7 @@
 #ifndef __SK_SCOPE_SPLIT_H__
 #define __SK_SCOPE_SPLIT_H__
 
+#include <optional>
 #include <queue>
 #include <set>
 #include <unordered_map>
@@ -154,12 +155,75 @@ protected:
     SuperKernelGraph& graph_;
 };
 
+// ============ Pass 0: Isolated Event Node Preprocess ============
+
+/*!
+ * \class IsolatedEventNodePreprocessPass
+ * \brief Pass 0: Preprocess to mark isolated event nodes as non-fusible
+ *
+ * This pass marks isolated event nodes as non-fusible to prevent them from being
+ * included in scopes. An event node is considered isolated if it has no fusible
+ * nodes of other types before or after it in the same stream.
+ *
+ * Isolation criteria:
+ * - For each stream, traverse nodes sequentially
+ * - Check each fusible event node (NODE_NOTIFY, NODE_WAIT, NODE_RESET, NODE_MEMORY_WRITE, NODE_MEMORY_WAIT)
+ * - If the event node has no fusible non-event nodes before AND after it in the stream,
+ *   mark it as non-fusible
+ */
+class IsolatedEventNodePreprocessPass : public ScopeSplitPass {
+public:
+    explicit IsolatedEventNodePreprocessPass(SuperKernelGraph& inputGraph);
+    ~IsolatedEventNodePreprocessPass() = default;
+
+    bool Run(std::vector<SuperKernelScopeInfo>& scopes) override;
+    std::string GetName() const override { return "IsolatedEventNodePreprocessPass"; }
+
+private:
+    /*!
+     * \brief Check if a node is an event node type
+     * \param node Node to check
+     * \return true if the node is an event node type
+     */
+    bool IsEventNode(SuperKernelBaseNode* node) const;
+
+    /*!
+     * \brief Check if a node is a fusible non-event node type (e.g., KERNEL)
+     * \param node Node to check
+     * \return true if the node is a fusible non-event node
+     */
+    bool IsFusibleNonEventNode(SuperKernelBaseNode* node) const;
+
+    /*!
+     * \brief Process a single stream and mark isolated event nodes
+     * \param streamIdx Stream index to process
+     * \return Number of isolated event nodes marked
+     */
+    uint32_t ProcessStream(uint32_t streamIdx);
+
+    /*!
+     * \brief Check if an event node has fusible non-event nodes before it in the stream
+     * \param node Event node to check
+     * \return true if there are fusible non-event nodes before this node
+     */
+    bool HasFusibleNonEventNodeBefore(SuperKernelBaseNode* node);
+
+    /*!
+     * \brief Check if an event node has fusible non-event nodes after it in the stream
+     * \param node Event node to check
+     * \return true if there are fusible non-event nodes after this node
+     */
+    bool HasFusibleNonEventNodeAfter(SuperKernelBaseNode* node);
+
+    uint32_t markedCount_;  ///< Total number of isolated event nodes marked
+};
+
 // ============ Pass 1: Initial Scope Split ============
 
 /*!
  * \class InitialScopeSplitPass
  * \brief Pass 1: Split graph into initial scopes based on fusibility and scopeBitFlags
- * 
+ *
  * This pass performs coarse-grained scope splitting:
  * - Groups nodes by scopeBitFlags
  * - Respects fusibility constraints
@@ -211,6 +275,16 @@ private:
 // ============ Pass 2: Deadlock Detection and Refinement ============
 
 /*!
+ * \enum ScopeProcessResult
+ * \brief Result of processing a single scope for deadlock detection
+ */
+enum class ScopeProcessResult {
+    NO_DEADLOCK,           ///< No deadlock found, scope is safe and added to outputScopes
+    DEADLOCK_RESOLVED,     ///< Deadlock found and successfully split, remaining part returned via pendingScope
+    DEADLOCK_UNRESOLVED    ///< Deadlock found but cannot split (no Wait node), caller should treat as fatal and abort
+};
+
+/*!
  * \class DeadlockRefinePass
  * \brief Pass 2: Detect deadlocks and refine scopes
  * 
@@ -235,10 +309,10 @@ private:
      * \param deadlockWaitNode Output: first Wait node before deadlock (nullptr if no deadlock)
      * \return true if deadlock found
      */
-    bool FindDeadlockInScope(const SuperKernelScopeInfo& scope, 
+    bool FindDeadlockInScope(const SuperKernelScopeInfo& scope,
                              SuperKernelBaseNode** deadlockNode,
                              SuperKernelBaseNode** deadlockWaitNode);
-    
+
     /*!
      * \brief Split a scope at a Wait node
      * \param scope Original scope
@@ -256,6 +330,27 @@ private:
      * \param scope Scope to rebuild
      */
     void RebuildStreamInfos(SuperKernelScopeInfo& scope);
+    
+        /*!
+        * \brief Process a single scope with deadlock detection and one-step splitting.
+        *
+        * This function either:
+        * - Detects no deadlock and moves the whole scope into outputScopes; or
+        * - Detects a deadlock and splits at the nearest preceding Wait node, moving
+        *   the front part into outputScopes and returning the remaining part via
+        *   pendingScope; or
+        * - Detects an unresolvable deadlock (no suitable Wait node), in which case
+        *   the caller should treat this as a fatal error and abort refinement.
+        *
+        * \param scopeToProcess The scope to process (moved)
+        * \param outputScopes Vector to store deadlock-free scopes produced from the front part
+        * \param pendingScope Optional: remaining part of the scope that still needs processing
+        * \return Result of the processing (NO_DEADLOCK, DEADLOCK_RESOLVED, or DEADLOCK_UNRESOLVED)
+        */
+    	ScopeProcessResult ProcessSingleScope(
+    		SuperKernelScopeInfo&& scopeToProcess,
+    		std::vector<SuperKernelScopeInfo>& outputScopes,
+    		std::optional<SuperKernelScopeInfo>& pendingScope);
 
     LockDetector lockDetector_;
 };

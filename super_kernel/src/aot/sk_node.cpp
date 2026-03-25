@@ -538,7 +538,7 @@ bool SuperKernelMemoryNode::InitNode() {
                 SK_LOGE("Unsupported event type %u for %s, which cannot be fused in super kernel.", rtNodeType, FormatNodeInfo().c_str());
                 return false;
         }
-        if ((nodeInfos.syncInfos.eventFlag & ACL_EVENT_EXTERNAL) == 0) {
+        if ((rtNodeType != ACL_MODEL_RI_TASK_EVENT_RESET) && ((nodeInfos.syncInfos.eventFlag & ACL_EVENT_EXTERNAL) == 0)) {
             isFusible = true;
             SK_LOGI("Event %s: internal to ModelRI, fusible in super kernel",
                     FormatNodeInfo().c_str());

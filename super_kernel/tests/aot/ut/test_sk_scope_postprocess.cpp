@@ -53,6 +53,7 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_NotifyWaitPairCancelled_Succ
     notifyNode->SetNextNodeId(2);
     notifyNode->nodeInfos.syncInfos.eventId = 100;
     notifyNode->nodeInfos.syncInfos.correspondingWaitNodeIds = {2};
+    notifyNode->isFusible = true;
 
     auto waitNode = std::make_unique<SuperKernelMemoryNode>(
         nullptr, ACL_MODEL_RI_TASK_EVENT_WAIT, 1, 0, INVALID_STREAM_ID, 1);
@@ -62,6 +63,7 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_NotifyWaitPairCancelled_Succ
     waitNode->SetNextNodeId(INVALID_TASK_ID);
     waitNode->nodeInfos.syncInfos.eventId = 100;
     waitNode->nodeInfos.syncInfos.correspondingNotifyNodeId = 1;
+    waitNode->isFusible = true;
 
     SuperKernelScopeInfo scopeInfo;
     scopeInfo.nodes.push_back(notifyNode.get());
@@ -94,6 +96,7 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_NotifyOneToManyWaits_AllCanc
     notifyNode->SetNextNodeId(4);
     notifyNode->nodeInfos.syncInfos.eventId = 200;
     notifyNode->nodeInfos.syncInfos.correspondingWaitNodeIds = {4, 5};
+    notifyNode->isFusible = true;
 
     auto waitNode1 = std::make_unique<SuperKernelMemoryNode>(
         nullptr, ACL_MODEL_RI_TASK_EVENT_WAIT, 1, 0, INVALID_STREAM_ID, 3);
@@ -103,6 +106,7 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_NotifyOneToManyWaits_AllCanc
     waitNode1->SetNextNodeId(5);
     waitNode1->nodeInfos.syncInfos.eventId = 200;
     waitNode1->nodeInfos.syncInfos.correspondingNotifyNodeId = 3;
+    waitNode1->isFusible = true;
 
     auto waitNode2 = std::make_unique<SuperKernelMemoryNode>(
         nullptr, ACL_MODEL_RI_TASK_EVENT_WAIT, 2, 1, INVALID_STREAM_ID, INVALID_TASK_ID);
@@ -112,6 +116,7 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_NotifyOneToManyWaits_AllCanc
     waitNode2->SetNextNodeId(INVALID_TASK_ID);
     waitNode2->nodeInfos.syncInfos.eventId = 200;
     waitNode2->nodeInfos.syncInfos.correspondingNotifyNodeId = 3;
+    waitNode2->isFusible = true;
 
     SuperKernelScopeInfo scopeInfo;
     scopeInfo.nodes.push_back(notifyNode.get());
@@ -153,6 +158,7 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_NotifyWithoutWait_NoKernelCa
     notifyNode->SetPreNodeId(INVALID_TASK_ID);
     notifyNode->SetNextNodeId(INVALID_TASK_ID);
     notifyNode->nodeInfos.syncInfos.eventId = 300;
+    notifyNode->isFusible = true;
 
     SuperKernelScopeInfo scopeInfo;
     scopeInfo.nodes.push_back(notifyNode.get());
@@ -222,6 +228,7 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_StreamHeadMissing_Failed)
     kernelNode->SetNodeId(31);
     kernelNode->SetPreNodeId(INVALID_TASK_ID);
     kernelNode->SetNextNodeId(INVALID_TASK_ID);
+    kernelNode->isFusible = true;
 
     SuperKernelScopeInfo scopeInfo;
     scopeInfo.nodes.push_back(kernelNode.get());
@@ -372,6 +379,7 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_NoKernelCandidate_Failed)
     notifyNode->SetPreNodeId(INVALID_TASK_ID);
     notifyNode->SetNextNodeId(INVALID_TASK_ID);
     notifyNode->nodeInfos.syncInfos.eventId = 101;
+    notifyNode->isFusible = true;
 
     SuperKernelScopeInfo scopeInfo;
     scopeInfo.nodes.push_back(notifyNode.get());
