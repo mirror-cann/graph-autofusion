@@ -27,7 +27,7 @@ void ScopeSplitPass::PrintScopeResults(const std::vector<SuperKernelScopeInfo>& 
         std::string scopeNames = GetScopeNamesFromBitFlags(scope.scopeBitFlags, graph);
         SK_LOGI("Scope %zu: %zu nodes, %zu streams, scopeBitFlags=%s, scopeNames=[%s]",
                 i, scope.nodes.size(), scope.scopeStreamInfos.size(),
-                scope.scopeBitFlags.to_string().substr(0, MAX_SCOPE_NUM).c_str(),
+                graph.BitsetToString(scope.scopeBitFlags).c_str(),
                 scopeNames.c_str());
         PrintScopeNodes(i, scope);
         PrintScopeStreamInfos(i, scope);
@@ -293,7 +293,7 @@ bool InitialScopeSplitPass::DetermineCurrentScopeBitFlags() {
         std::string scopeNames = ScopeSplitPass::GetScopeNamesFromBitFlags(currentScopeBitFlags_, graph_);
         SK_LOGI("Found min node %s, scopeBitFlags=%s, scopeNames=[%s], active streams=%u",
                 minNode->FormatNodeInfo().c_str(),
-                currentScopeBitFlags_.to_string().substr(0, MAX_SCOPE_NUM).c_str(),
+                graph_.BitsetToString(currentScopeBitFlags_).c_str(),
                 scopeNames.c_str(), activeStreams);
         return true;
     }
@@ -559,7 +559,7 @@ void InitialScopeSplitPass::LogFusibleNodeSearchResult() {
                 if (node != nullptr) {
                     bool isFusible = node->IsFusible();
                     SkNodeType nodeType = node->GetNodeType();
-                    std::string scopeBitFlagsStr = node->GetScopeBitFlags().to_string().substr(0, MAX_SCOPE_NUM);
+                    std::string scopeBitFlagsStr = graph_.BitsetToString(node->GetScopeBitFlags());
                     SK_LOGE("[FindFusibleNodes] Stream %u current node: %s, isFusible=%d, nodeType=%d, scopeBitFlags=%s",
                             streamIdx, node->FormatNodeInfo().c_str(), isFusible,
                             static_cast<int>(nodeType), scopeBitFlagsStr.c_str());

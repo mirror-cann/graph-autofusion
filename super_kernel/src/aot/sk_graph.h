@@ -104,7 +104,7 @@ public:
     void ClearShapeInfoPtrList() {
         shapeInfoPtrList.clear();
     }
-
+    std::string BitsetToString(const std::bitset<MAX_SCOPE_NUM>& bitset) const;
     // Expand update nodes
     bool ExpandUpdateNodes(std::vector<SuperKernelBaseNode*>& needUpdateNodes);
 

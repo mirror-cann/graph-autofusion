@@ -21,6 +21,17 @@
 #include <cstdint>
 #include <bitset>
 
+
+std::string SuperKernelGraph::BitsetToString(const std::bitset<MAX_SCOPE_NUM>& bitset) const
+{
+    std::string strTmp = bitset.to_string();
+    if (scopeNameToIdx.size() == 0) {
+        return "0";
+    }
+    std::string revStr(strTmp.rbegin(), strTmp.rend());
+    return revStr.substr(0, scopeNameToIdx.size());
+}
+
 aclError SuperKernelGraph::Update() {
     for(auto node : needUpdateNodes) {
         if (node == nullptr) {
@@ -343,6 +354,8 @@ void SuperKernelGraph::BuildEventNodeAssociations() {
     for (const auto& it : eventToNodes) {
         const uint64_t eventId = it.first;
         const EventInfos& eventInfo = it.second;
+        SK_LOGI("Processing event 0x%lx, notify nodeId: %lu, wait node size: %zu, reset node size: %zu",
+                eventId, eventInfo.notifyNodeId, eventInfo.waitNodeIdList.size(), eventInfo.resetNodeIdList.size());
         if (eventInfo.notifyNodeId != INVALID_TASK_ID && !eventInfo.waitNodeIdList.empty()) {
             auto* notifyNode = GetNodeById(eventInfo.notifyNodeId);
             if (notifyNode != nullptr &&
@@ -352,8 +365,8 @@ void SuperKernelGraph::BuildEventNodeAssociations() {
                     eventInfo.waitNodeIdList.end());
                 notifyNode->SetCorrespondingWaitNodeIds(waitNodeIds);
 
-                SK_LOGI("Processing event 0x%lx: notify node %lu has %zu wait nodes",
-                        eventId, eventInfo.notifyNodeId, waitNodeIds.size());
+                SK_LOGI("notify node %lu has %zu wait nodes",
+                        eventInfo.notifyNodeId, waitNodeIds.size());
 
                 // Set corresponding notify node ID for each wait node
                 for (uint64_t waitNodeId : waitNodeIds) {
@@ -365,9 +378,6 @@ void SuperKernelGraph::BuildEventNodeAssociations() {
                                 waitNodeId, eventInfo.notifyNodeId);
                     }
                 }
-
-                SK_LOGI("Built wait node associations for notify node %lu with %zu wait nodes",
-                         eventInfo.notifyNodeId, eventInfo.waitNodeIdList.size());
             } else {
                 SK_LOGE("Event 0x%lx: notify node %lu is invalid or not a notify node",
                         eventId, eventInfo.notifyNodeId);
@@ -726,9 +736,9 @@ void SuperKernelGraph::UpdateNodeScopeBitFlags() {
         if (node->IsScopeNode()) {
             node->SetIsFusible(true);
         }
-        SK_LOGI("Processed node %s: type=%d, scopeFlags=%s, isFusible=%d, stackSize=%zu",
-                node->FormatNodeInfo().c_str(), static_cast<int>(node->GetNodeType()),
-                node->GetScopeBitFlags().to_string().substr(0, MAX_SCOPE_NUM).c_str(),
+        SK_LOGI("Processed node %s: type=%s, scopeFlags=%s, isFusible=%d, stackSize=%zu",
+                node->FormatNodeInfo().c_str(), to_string(node->GetNodeType()),
+                BitsetToString(node->GetScopeBitFlags()).c_str(),
                 node->IsFusible(), scopeStack.size());
     }
     LogUnclosedScopes(scopeStack);

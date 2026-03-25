@@ -17,6 +17,7 @@
 #define SK_COMMON_H
 #include <string>
 #include <cstddef>
+#include <bitset>
 enum class SkNodeType : uint32_t {
     NODE_KERNEL = 0,
     NODE_NOTIFY = 1,
@@ -38,6 +39,10 @@ inline const char* to_string(SkNodeType type)
         return "WAIT";
     case SkNodeType::NODE_RESET:
         return "RESET";
+    case SkNodeType::NODE_MEMORY_WRITE:
+        return "MEMORY_WRITE";
+    case SkNodeType::NODE_MEMORY_WAIT:
+        return "MEMORY_WAIT";
     case SkNodeType::NODE_DEFAULT:
         return "DEFAULT";
     default:
@@ -227,6 +232,7 @@ struct SkEventConfig {
 
 bool GetFuncSymbolInfo(const char* binAddr, size_t binSize, uint64_t funcAddr, std::string& symbolName,
                        uint64_t& funcSize);
+
 
 namespace sk {
 /*

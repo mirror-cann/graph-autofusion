@@ -439,7 +439,7 @@ std::string SuperKernelKernelNode::FormatNodeInfo() const {
         << ", streamId:" << streamId 
         << ", streamIdxInGraph:" << streamIdxInGraph 
         << ", nodeIdxInStream:" << nodeIdxInStream 
-        << "] - Kernel:" << nodeInfos.kernelInfos.funcName;
+        << ", Kernel name:" << nodeInfos.kernelInfos.funcName << "]";
     return oss.str();
 }
 
@@ -627,17 +627,17 @@ std::string SuperKernelMemoryNode::FormatNodeInfo() const {
                 << ", streamId:" << streamId 
                 << ", streamIdxInGraph:" << streamIdxInGraph 
                 << ", nodeIdxInStream:" << nodeIdxInStream 
-                << "] - MemoryWrite(value:0x" << std::hex << nodeInfos.syncInfos.memoryValue 
-                << std::dec << ", eventId:0x" << std::hex << GetEventId() << std::dec << ")";
+                << ", MemoryWrite(value:0x" << std::hex << nodeInfos.syncInfos.memoryValue 
+                << std::dec << ", eventId:0x" << std::hex << GetEventId() << std::dec << ")]";
             return oss.str();
         case ACL_MODEL_RI_TASK_VALUE_WAIT:
             oss << "[nodeId:" << nodeId 
                 << ", streamId:" << streamId 
                 << ", streamIdxInGraph:" << streamIdxInGraph 
                 << ", nodeIdxInStream:" << nodeIdxInStream 
-                << "] - MemoryWait(flag:0x" << std::hex << nodeInfos.syncInfos.memoryWaitFlag 
+                << ", MemoryWait(flag:0x" << std::hex << nodeInfos.syncInfos.memoryWaitFlag 
                 << ", value:0x" << std::hex << nodeInfos.syncInfos.memoryValue 
-                << std::dec << ", eventId:0x" << std::hex << GetEventId() << std::dec << ")";
+                << std::dec << ", eventId:0x" << std::hex << GetEventId() << std::dec << ")]";
             return oss.str();
         default:
             eventType = "Unknown";
@@ -650,8 +650,8 @@ std::string SuperKernelMemoryNode::FormatNodeInfo() const {
         << ", streamId:" << streamId 
         << ", streamIdxInGraph:" << streamIdxInGraph
         << ", nodeIdxInStream:" << nodeIdxInStream
-        << "] - " << eventType << "(eventId:0x" << std::hex << eventId
-        << ", eventFlag:0x" << eventFlag << std::dec << ")";
+        << ", " << eventType << "(eventId:0x" << std::hex << eventId
+        << ", eventFlag:0x" << eventFlag << std::dec << ")]";
 
     return oss.str();
 }
@@ -677,6 +677,6 @@ std::string SuperKernelDefaultNode::FormatNodeInfo() const {
         << ", streamId:" << streamId 
         << ", streamIdxInGraph:" << streamIdxInGraph 
         << ", nodeIdxInStream:" << nodeIdxInStream 
-        << "] - Default";
+        << ", type: Default]";
     return oss.str();
 }
