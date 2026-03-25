@@ -41,7 +41,7 @@ struct CoreFuncInitContext {
     size_t splitIdx;
 };
 
-enum class CoreType: uint32_t {
+enum class SkNodeCoreType: uint32_t {
     AIC,
     AIV,
 };
@@ -94,6 +94,11 @@ SkBindMap InitSuperKernelBindMap(aclrtBinHandle binHdl)
             (uint64_t)localInfo.sknlFunc[2],
             (uint64_t)localInfo.sknlFunc[3]);
 
+        auto it = bindMap.find((uint64_t)(localInfo.globalFunc));
+        if (it != bindMap.end()) {
+            SK_LOGE("InitSuperKernelBindMap: globalFunc=0x%lx is duplicated", (uint64_t)localInfo.globalFunc);
+            continue;
+        }
         bindMap[(uint64_t)(localInfo.globalFunc)] = {
             (uint64_t)(localInfo.sknlFunc[0]),
             (uint64_t)(localInfo.sknlFunc[1]),
@@ -129,11 +134,11 @@ size_t AlignUpAndClamp(size_t value, size_t coreIdx)
     return prefetchCntValue / alignNum;
 }
 
-template <CoreType coreType>
+template <SkNodeCoreType coreType>
 bool InitSingleCoreFunc(const CoreFuncInitContext& ctx, aclrtBinHandle binHdl, void *binDevAddr, uint32_t& validFuncNum)
 {
     std::string coreName = "";
-    if (coreType == CoreType::AIC) {
+    if (coreType == SkNodeCoreType::AIC) {
         coreName = "AIC";
     } else {
         coreName = "AIV";
@@ -161,9 +166,10 @@ bool InitSingleCoreFunc(const CoreFuncInitContext& ctx, aclrtBinHandle binHdl, v
                 ctx.splitIdx, coreName.c_str(), coreTypeId, ctx.info->prefetchCnt[coreTypeId]);
     }
     if (ctx.splitIdx > 0 && ctx.bindIt->second[ctx.splitIdx] == ctx.bindIt->second[0]) {
-        SK_LOGI("split[%zu] %s function is not sk sub op", ctx.splitIdx, coreName.c_str());
+        SK_LOGI("InitSingleCoreFunc: split[%zu] %s function is not sk sub op", ctx.splitIdx, coreName.c_str());
+    } else {
+        validFuncNum++;
     }
-    validFuncNum++;
     return true;
 }
 
@@ -175,11 +181,11 @@ bool InitSingleSplitFunc(ResolvedFunctionInfo &info, size_t splitIdx,
     uint32_t validFuncNum = 0;
     if (aicIt != bindMap.end()) {
         CoreFuncInitContext aicCtx = {&info, aicIt, splitIdx};
-        res |= InitSingleCoreFunc<CoreType::AIC>(aicCtx, binHdl, binDevAddr, validFuncNum);
+        res |= InitSingleCoreFunc<SkNodeCoreType::AIC>(aicCtx, binHdl, binDevAddr, validFuncNum);
     }
     if (aivIt != bindMap.end()) {
         CoreFuncInitContext aivCtx = {&info, aivIt, splitIdx};
-        res |= InitSingleCoreFunc<CoreType::AIV>(aivCtx, binHdl, binDevAddr, validFuncNum);
+        res |= InitSingleCoreFunc<SkNodeCoreType::AIV>(aivCtx, binHdl, binDevAddr, validFuncNum);
     }
     if (!res) {
         SK_LOGE("Failed to initialize kernel function in sk Node split[%zu]", splitIdx);
@@ -435,10 +441,10 @@ bool SuperKernelKernelNode::InValidateNode() {
 
 std::string SuperKernelKernelNode::FormatNodeInfo() const {
     std::ostringstream oss;
-    oss << "[nodeId:" << nodeId 
-        << ", streamId:" << streamId 
-        << ", streamIdxInGraph:" << streamIdxInGraph 
-        << ", nodeIdxInStream:" << nodeIdxInStream 
+    oss << "[nodeId:" << nodeId
+        << ", streamId:" << streamId
+        << ", streamIdxInGraph:" << streamIdxInGraph
+        << ", nodeIdxInStream:" << nodeIdxInStream
         << ", Kernel name:" << nodeInfos.kernelInfos.funcName << "]";
     return oss.str();
 }
@@ -543,7 +549,7 @@ bool SuperKernelMemoryNode::InitNode() {
 
         return true;
     }
-    
+
     if (rtNodeType == ACL_MODEL_RI_TASK_VALUE_WRITE) {
         auto& memoryParam = taskParams.valueWriteTaskParams;
         nodeType = SkNodeType::NODE_MEMORY_WRITE;
@@ -562,7 +568,7 @@ bool SuperKernelMemoryNode::InitNode() {
     }
 
     SK_LOGI("Event type of task %lu is memory based, which can be fused in super kernel.", nodeId);
-    
+
     return true;
 }
 
@@ -623,20 +629,20 @@ std::string SuperKernelMemoryNode::FormatNodeInfo() const {
             eventType = "EventReset";
             break;
         case ACL_MODEL_RI_TASK_VALUE_WRITE:
-            oss << "[nodeId:" << nodeId 
-                << ", streamId:" << streamId 
-                << ", streamIdxInGraph:" << streamIdxInGraph 
-                << ", nodeIdxInStream:" << nodeIdxInStream 
-                << ", MemoryWrite(value:0x" << std::hex << nodeInfos.syncInfos.memoryValue 
+            oss << "[nodeId:" << nodeId
+                << ", streamId:" << streamId
+                << ", streamIdxInGraph:" << streamIdxInGraph
+                << ", nodeIdxInStream:" << nodeIdxInStream
+                << ", MemoryWrite(value:0x" << std::hex << nodeInfos.syncInfos.memoryValue
                 << std::dec << ", eventId:0x" << std::hex << GetEventId() << std::dec << ")]";
             return oss.str();
         case ACL_MODEL_RI_TASK_VALUE_WAIT:
-            oss << "[nodeId:" << nodeId 
-                << ", streamId:" << streamId 
-                << ", streamIdxInGraph:" << streamIdxInGraph 
-                << ", nodeIdxInStream:" << nodeIdxInStream 
-                << ", MemoryWait(flag:0x" << std::hex << nodeInfos.syncInfos.memoryWaitFlag 
-                << ", value:0x" << std::hex << nodeInfos.syncInfos.memoryValue 
+            oss << "[nodeId:" << nodeId
+                << ", streamId:" << streamId
+                << ", streamIdxInGraph:" << streamIdxInGraph
+                << ", nodeIdxInStream:" << nodeIdxInStream
+                << ", MemoryWait(flag:0x" << std::hex << nodeInfos.syncInfos.memoryWaitFlag
+                << ", value:0x" << std::hex << nodeInfos.syncInfos.memoryValue
                 << std::dec << ", eventId:0x" << std::hex << GetEventId() << std::dec << ")]";
             return oss.str();
         default:
@@ -647,7 +653,7 @@ std::string SuperKernelMemoryNode::FormatNodeInfo() const {
     uint64_t eventFlag = nodeInfos.syncInfos.eventFlag;
 
     oss << "[nodeId:" << nodeId
-        << ", streamId:" << streamId 
+        << ", streamId:" << streamId
         << ", streamIdxInGraph:" << streamIdxInGraph
         << ", nodeIdxInStream:" << nodeIdxInStream
         << ", " << eventType << "(eventId:0x" << std::hex << eventId
@@ -673,10 +679,10 @@ bool SuperKernelDefaultNode::InValidateNode() {
 
 std::string SuperKernelDefaultNode::FormatNodeInfo() const {
     std::ostringstream oss;
-    oss << "[nodeId:" << nodeId 
-        << ", streamId:" << streamId 
-        << ", streamIdxInGraph:" << streamIdxInGraph 
-        << ", nodeIdxInStream:" << nodeIdxInStream 
+    oss << "[nodeId:" << nodeId
+        << ", streamId:" << streamId
+        << ", streamIdxInGraph:" << streamIdxInGraph
+        << ", nodeIdxInStream:" << nodeIdxInStream
         << ", type: Default]";
     return oss.str();
 }
