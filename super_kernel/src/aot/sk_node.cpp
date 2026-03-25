@@ -449,7 +449,7 @@ bool SuperKernelKernelNode::Update(const UpdateContext &ctx) {
         return false;
     }
 
-    if (ctx.customParams != nullptr) {
+    if (ctx.customParams != nullptr && ctx.customParams->type != 0) {
         // check update value
         switch (ctx.customParams->type) {
             case ACL_MODEL_RI_TASK_VALUE_WRITE:
@@ -572,7 +572,7 @@ bool SuperKernelMemoryNode::Update(const UpdateContext &ctx) {
         return false;
     }
 
-    if (ctx.customParams != nullptr) {
+    if (ctx.customParams != nullptr && ctx.customParams->type != 0) {
         // check update value
         switch (ctx.customParams->type) {
             case ACL_MODEL_RI_TASK_VALUE_WRITE:

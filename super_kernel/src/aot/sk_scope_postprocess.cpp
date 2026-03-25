@@ -541,8 +541,7 @@ SuperKernelProcessedScopeInfo SuperKernelScopePostProcessor::PostProcess(SuperKe
                                                 subStreamOrder)) {
         return {};
     }
-    SK_LOGI("select main stream and sub stream done: mainStreamId=%u, subStreamOrderSize=%zu",
-            processedScopeInfo.updateStreamInfos[mainStreamIdx].streamIdx, subStreamOrder.size());
+    SK_LOGI("select main stream and sub stream done.");
 
     // step 3: process front wait and back block
     uint32_t prevWaitStreamIdx = mainStreamIdx;

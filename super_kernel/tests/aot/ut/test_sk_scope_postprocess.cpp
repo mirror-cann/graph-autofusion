@@ -183,6 +183,7 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_SingleKernel_SelectMainNode_
     kernelNode->SetNodeId(11);
     kernelNode->SetPreNodeId(INVALID_TASK_ID);
     kernelNode->SetNextNodeId(INVALID_TASK_ID);
+    kernelNode->SetIsFusible(true);
 
     SuperKernelScopeInfo scopeInfo;
     scopeInfo.nodes.push_back(kernelNode.get());
@@ -253,6 +254,7 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_FrontWait_Success)
     stream0Node0->SetNodeId(10);
     stream0Node0->SetPreNodeId(INVALID_TASK_ID);
     stream0Node0->SetNextNodeId(11);
+    stream0Node0->SetIsFusible(true);
 
     auto stream0Node1 = std::make_unique<SuperKernelKernelNode>(
         nullptr, ACL_MODEL_RI_TASK_KERNEL, 1, 0, INVALID_STREAM_ID, 10);
@@ -261,6 +263,7 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_FrontWait_Success)
     stream0Node1->SetNodeId(11);
     stream0Node1->SetPreNodeId(10);
     stream0Node1->SetNextNodeId(INVALID_TASK_ID);
+    stream0Node1->SetIsFusible(true);
 
     auto stream1Node0 = std::make_unique<SuperKernelKernelNode>(
         nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 1, INVALID_STREAM_ID, 19);
@@ -269,6 +272,7 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_FrontWait_Success)
     stream1Node0->SetNodeId(20);
     stream1Node0->SetPreNodeId(19);
     stream1Node0->SetNextNodeId(INVALID_TASK_ID);
+    stream1Node0->SetIsFusible(true);
 
     SuperKernelScopeInfo scopeInfo;
     scopeInfo.nodes = {stream0Node0.get(), stream0Node1.get(), stream1Node0.get()};
@@ -310,6 +314,7 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_BackBlock_Success)
     stream0Node0->SetNodeId(40);
     stream0Node0->SetPreNodeId(INVALID_TASK_ID);
     stream0Node0->SetNextNodeId(INVALID_TASK_ID);
+    stream0Node0->SetIsFusible(true);
 
     auto stream1Node0 = std::make_unique<SuperKernelKernelNode>(
         nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 1, INVALID_STREAM_ID, INVALID_TASK_ID);
@@ -318,6 +323,7 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_BackBlock_Success)
     stream1Node0->SetNodeId(50);
     stream1Node0->SetPreNodeId(INVALID_TASK_ID);
     stream1Node0->SetNextNodeId(51);
+    stream1Node0->SetIsFusible(true);
 
     auto stream1Node1 = std::make_unique<SuperKernelKernelNode>(
         nullptr, ACL_MODEL_RI_TASK_KERNEL, 1, 1, INVALID_STREAM_ID, 50);
@@ -326,6 +332,7 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_BackBlock_Success)
     stream1Node1->SetNodeId(51);
     stream1Node1->SetPreNodeId(50);
     stream1Node1->SetNextNodeId(INVALID_TASK_ID);
+    stream1Node1->SetIsFusible(true);
 
     SuperKernelScopeInfo scopeInfo;
     scopeInfo.nodes = {stream0Node0.get(), stream1Node0.get(), stream1Node1.get()};
@@ -395,6 +402,7 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_MultiStreamKernelOnly_Succes
     stream0Node0->SetNodeId(70);
     stream0Node0->SetPreNodeId(INVALID_TASK_ID);
     stream0Node0->SetNextNodeId(INVALID_TASK_ID);
+    stream0Node0->SetIsFusible(true);
 
     auto stream1Node0 = std::make_unique<SuperKernelKernelNode>(
         nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 1, INVALID_STREAM_ID, INVALID_TASK_ID);
@@ -403,6 +411,7 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_MultiStreamKernelOnly_Succes
     stream1Node0->SetNodeId(80);
     stream1Node0->SetPreNodeId(INVALID_TASK_ID);
     stream1Node0->SetNextNodeId(INVALID_TASK_ID);
+    stream1Node0->SetIsFusible(true);
 
     SuperKernelScopeInfo scopeInfo;
     scopeInfo.nodes = {stream0Node0.get(), stream1Node0.get()};
@@ -441,6 +450,7 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_MainSelectReserveBoundaryAnd
     stream0Node0->SetNodeId(90);
     stream0Node0->SetPreNodeId(1);
     stream0Node0->SetNextNodeId(INVALID_TASK_ID);
+    stream0Node0->SetIsFusible(true);
 
     auto stream1Node0 = std::make_unique<SuperKernelKernelNode>(
         nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 1, INVALID_STREAM_ID, 2);
@@ -449,6 +459,7 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_MainSelectReserveBoundaryAnd
     stream1Node0->SetNodeId(100);
     stream1Node0->SetPreNodeId(2);
     stream1Node0->SetNextNodeId(101);
+    stream1Node0->SetIsFusible(true);
 
     SuperKernelScopeInfo scopeInfo;
     scopeInfo.nodes = {stream0Node0.get(), stream1Node0.get()};
@@ -488,6 +499,7 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_FrontWaitMoveWorkNodePath_Su
     s0n0->SetNodeId(200);
     s0n0->SetPreNodeId(1);
     s0n0->SetNextNodeId(201);
+    s0n0->SetIsFusible(true);
 
     auto s0n1 = std::make_unique<SuperKernelKernelNode>(nullptr, ACL_MODEL_RI_TASK_KERNEL, 1, 0, INVALID_STREAM_ID, 200);
     s0n1->SetNodeType(SkNodeType::NODE_KERNEL);
@@ -495,6 +507,7 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_FrontWaitMoveWorkNodePath_Su
     s0n1->SetNodeId(201);
     s0n1->SetPreNodeId(200);
     s0n1->SetNextNodeId(INVALID_TASK_ID);
+    s0n1->SetIsFusible(true);
 
     auto s1n0 = std::make_unique<SuperKernelKernelNode>(nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 1, INVALID_STREAM_ID, 2);
     s1n0->SetNodeType(SkNodeType::NODE_KERNEL);
@@ -502,6 +515,7 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_FrontWaitMoveWorkNodePath_Su
     s1n0->SetNodeId(300);
     s1n0->SetPreNodeId(2);
     s1n0->SetNextNodeId(301);
+    s1n0->SetIsFusible(true);
 
     auto s1n1 = std::make_unique<SuperKernelKernelNode>(nullptr, ACL_MODEL_RI_TASK_KERNEL, 1, 1, INVALID_STREAM_ID, 300);
     s1n1->SetNodeType(SkNodeType::NODE_KERNEL);
@@ -509,6 +523,7 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_FrontWaitMoveWorkNodePath_Su
     s1n1->SetNodeId(301);
     s1n1->SetPreNodeId(300);
     s1n1->SetNextNodeId(INVALID_TASK_ID);
+    s1n1->SetIsFusible(true);
 
     SuperKernelScopeInfo scopeInfo;
     scopeInfo.nodes = {s0n0.get(), s0n1.get(), s1n0.get(), s1n1.get()};
@@ -550,6 +565,7 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_MidScopeTwoStreamsThreePlusT
     s0n0->SetNodeId(1000);
     s0n0->SetPreNodeId(900);
     s0n0->SetNextNodeId(1001);
+    s0n0->SetIsFusible(true);
 
     auto s0n1 = std::make_unique<SuperKernelKernelNode>(nullptr, ACL_MODEL_RI_TASK_KERNEL, 1, 0, INVALID_STREAM_ID, 1000);
     s0n1->SetNodeType(SkNodeType::NODE_KERNEL);
@@ -557,6 +573,7 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_MidScopeTwoStreamsThreePlusT
     s0n1->SetNodeId(1001);
     s0n1->SetPreNodeId(1000);
     s0n1->SetNextNodeId(1002);
+    s0n1->SetIsFusible(true);
 
     auto s0n2 = std::make_unique<SuperKernelKernelNode>(nullptr, ACL_MODEL_RI_TASK_KERNEL, 2, 0, INVALID_STREAM_ID, 1001);
     s0n2->SetNodeType(SkNodeType::NODE_KERNEL);
@@ -564,6 +581,7 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_MidScopeTwoStreamsThreePlusT
     s0n2->SetNodeId(1002);
     s0n2->SetPreNodeId(1001);
     s0n2->SetNextNodeId(1003);
+    s0n2->SetIsFusible(true);
 
     auto s1n0 = std::make_unique<SuperKernelKernelNode>(nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 1, INVALID_STREAM_ID, 1900);
     s1n0->SetNodeType(SkNodeType::NODE_KERNEL);
@@ -571,6 +589,7 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_MidScopeTwoStreamsThreePlusT
     s1n0->SetNodeId(2000);
     s1n0->SetPreNodeId(1900);
     s1n0->SetNextNodeId(2001);
+    s1n0->SetIsFusible(true);
 
     auto s1n1 = std::make_unique<SuperKernelKernelNode>(nullptr, ACL_MODEL_RI_TASK_KERNEL, 1, 1, INVALID_STREAM_ID, 2000);
     s1n1->SetNodeType(SkNodeType::NODE_KERNEL);
@@ -578,6 +597,7 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_MidScopeTwoStreamsThreePlusT
     s1n1->SetNodeId(2001);
     s1n1->SetPreNodeId(2000);
     s1n1->SetNextNodeId(2002);
+    s1n1->SetIsFusible(true);
 
     SuperKernelScopeInfo scopeInfo;
     scopeInfo.nodes = {s0n0.get(), s0n1.get(), s0n2.get(), s1n0.get(), s1n1.get()};
@@ -622,6 +642,7 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_ThreeStreams_TwoMidOneFull_S
     s0n0->SetNodeId(10000);
     s0n0->SetPreNodeId(9000);
     s0n0->SetNextNodeId(10001);
+    s0n0->SetIsFusible(true);
 
     auto s0n1 = std::make_unique<SuperKernelKernelNode>(nullptr, ACL_MODEL_RI_TASK_KERNEL, 1, 0, INVALID_STREAM_ID, 10000);
     s0n1->SetNodeType(SkNodeType::NODE_KERNEL);
@@ -629,6 +650,7 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_ThreeStreams_TwoMidOneFull_S
     s0n1->SetNodeId(10001);
     s0n1->SetPreNodeId(10000);
     s0n1->SetNextNodeId(10002);
+    s0n1->SetIsFusible(true);
 
     auto s0n2 = std::make_unique<SuperKernelKernelNode>(nullptr, ACL_MODEL_RI_TASK_KERNEL, 2, 0, INVALID_STREAM_ID, 10001);
     s0n2->SetNodeType(SkNodeType::NODE_KERNEL);
@@ -636,6 +658,7 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_ThreeStreams_TwoMidOneFull_S
     s0n2->SetNodeId(10002);
     s0n2->SetPreNodeId(10001);
     s0n2->SetNextNodeId(10003);
+    s0n2->SetIsFusible(true);
 
     // stream1: middle scope with 3 kernels (has pre and next)
     auto s1n0 = std::make_unique<SuperKernelKernelNode>(nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 1, INVALID_STREAM_ID, 19000);
@@ -644,6 +667,7 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_ThreeStreams_TwoMidOneFull_S
     s1n0->SetNodeId(20000);
     s1n0->SetPreNodeId(19000);
     s1n0->SetNextNodeId(20001);
+    s1n0->SetIsFusible(true);
 
     auto s1n1 = std::make_unique<SuperKernelKernelNode>(nullptr, ACL_MODEL_RI_TASK_KERNEL, 1, 1, INVALID_STREAM_ID, 20000);
     s1n1->SetNodeType(SkNodeType::NODE_KERNEL);
@@ -651,6 +675,7 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_ThreeStreams_TwoMidOneFull_S
     s1n1->SetNodeId(20001);
     s1n1->SetPreNodeId(20000);
     s1n1->SetNextNodeId(20002);
+    s1n1->SetIsFusible(true);
 
     auto s1n2 = std::make_unique<SuperKernelKernelNode>(nullptr, ACL_MODEL_RI_TASK_KERNEL, 2, 1, INVALID_STREAM_ID, 20001);
     s1n2->SetNodeType(SkNodeType::NODE_KERNEL);
@@ -658,6 +683,7 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_ThreeStreams_TwoMidOneFull_S
     s1n2->SetNodeId(20002);
     s1n2->SetPreNodeId(20001);
     s1n2->SetNextNodeId(20003);
+    s1n2->SetIsFusible(true);
 
     // stream2: full scope with 2 kernels (no pre and no next)
     auto s2n0 = std::make_unique<SuperKernelKernelNode>(nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 2, INVALID_STREAM_ID, INVALID_TASK_ID);
@@ -666,6 +692,7 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_ThreeStreams_TwoMidOneFull_S
     s2n0->SetNodeId(30000);
     s2n0->SetPreNodeId(INVALID_TASK_ID);
     s2n0->SetNextNodeId(30001);
+    s2n0->SetIsFusible(true);
 
     auto s2n1 = std::make_unique<SuperKernelKernelNode>(nullptr, ACL_MODEL_RI_TASK_KERNEL, 1, 2, INVALID_STREAM_ID, 30000);
     s2n1->SetNodeType(SkNodeType::NODE_KERNEL);
@@ -673,6 +700,7 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_ThreeStreams_TwoMidOneFull_S
     s2n1->SetNodeId(30001);
     s2n1->SetPreNodeId(30000);
     s2n1->SetNextNodeId(INVALID_TASK_ID);
+    s2n1->SetIsFusible(true);
 
     SuperKernelScopeInfo scopeInfo;
     scopeInfo.nodes = {s0n0.get(), s0n1.get(), s0n2.get(), s1n0.get(), s1n1.get(), s1n2.get(), s2n0.get(), s2n1.get()};
