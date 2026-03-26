@@ -92,15 +92,18 @@ TEST_F(TestScopeSplitRange, TestNodeWithSingleScope) {
 
     graph->UpdateNodeScopeBitFlags();
     EXPECT_TRUE(node1->GetScopeBitFlags().none());
+    EXPECT_FALSE(node1->IsFusible());
     EXPECT_TRUE(scopeBeginNode->GetScopeBitFlags().test(0));
     EXPECT_TRUE(scopeNodePlaceholder_1->GetScopeBitFlags().test(0));
     EXPECT_TRUE(scopeNodePlaceholder_2->GetScopeBitFlags().test(0));
     EXPECT_TRUE(node2->GetScopeBitFlags().test(0));
+    EXPECT_TRUE(node2->IsFusible());
     EXPECT_FALSE(node3->IsFusible());
     EXPECT_TRUE(scopeNodePlaceholder_3->GetScopeBitFlags().test(0));
     EXPECT_TRUE(scopeNodePlaceholder_4->GetScopeBitFlags().test(0));
     EXPECT_TRUE(scopeEndNode->GetScopeBitFlags().test(0));
     EXPECT_TRUE(node4->GetScopeBitFlags().none());
+    EXPECT_FALSE(node4->IsFusible());
 }
 
 // Test 2: Verify node with unfusible scope (scopeName传nullptr时不可融合）

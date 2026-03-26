@@ -186,7 +186,7 @@ TEST_F(TestLockDetector, SingleStreamKernelFirst) {
     EXPECT_TRUE(lockDetector->IsFusible(*k7));
     EXPECT_TRUE(k5->isVisited);
     // sk - node 7
-    EXPECT_FALSE(lockDetector->IsFusible(*k8));
+    EXPECT_TRUE(lockDetector->IsFusible(*k8));
     EXPECT_EQ(lockDetector->skStreamIds, std::set<uint32_t>{0});
     lockDetector->Reset();
     EXPECT_FALSE(k2->isVisited);
@@ -253,8 +253,8 @@ TEST_F(TestLockDetector, SingleStreamWaitFirst) {
     EXPECT_EQ(lockDetector->superKernelCubeNum, 6);
     EXPECT_EQ(lockDetector->superKernelVecNum, 8);
     // sk - node 7
-    EXPECT_FALSE(lockDetector->IsFusible(*k8));
-    EXPECT_EQ(lockDetector->superKernelCubeNum, 6);
+    EXPECT_TRUE(lockDetector->IsFusible(*k8));
+    EXPECT_EQ(lockDetector->superKernelCubeNum, 8);
     EXPECT_EQ(lockDetector->superKernelVecNum, 8);
 
     EXPECT_EQ(lockDetector->skStreamIds, std::set<uint32_t>{0});
@@ -393,8 +393,8 @@ TEST_F(TestLockDetector, SingleStreamMultiWait) {
     EXPECT_EQ(lockDetector->superKernelCubeNum, 10);
     EXPECT_EQ(lockDetector->superKernelVecNum, 20);
     // sk - node 7
-    EXPECT_FALSE(lockDetector->IsFusible(*k8));
-    EXPECT_EQ(lockDetector->superKernelCubeNum, 10);
+    EXPECT_TRUE(lockDetector->IsFusible(*k8));
+    EXPECT_EQ(lockDetector->superKernelCubeNum, 12);
     EXPECT_EQ(lockDetector->superKernelVecNum, 20);
 
     EXPECT_EQ(lockDetector->skStreamIds, std::set<uint32_t>{0});
