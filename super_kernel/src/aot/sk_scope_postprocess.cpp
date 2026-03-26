@@ -107,13 +107,13 @@ std::vector<SuperKernelBaseNode*> FilterCancelledTasks(const std::vector<SuperKe
 
         // Notify is removable only when expected and observed waits are fully matched.
         if (tasks[i]->GetNodeType() == SkNodeType::NODE_NOTIFY && eventCounts[tasks[i]->GetEventId()] == 0) {
-            SK_LOGI("Event[%lu] cancelled in post-process: NOTIFY task[%zu]", tasks[i]->GetEventId(), i);
+            SK_LOGI("Event[%lx] cancelled in post-process: NOTIFY task[%zu]", tasks[i]->GetEventId(), i);
             continue;
         // WAIT is removable while the per-event balance remains non-negative.
         // Under the constraints above, a negative value means this scope has WAITs
         // for this event but no corresponding NOTIFY.
         } else if (tasks[i]->GetNodeType() == SkNodeType::NODE_WAIT && eventCounts[tasks[i]->GetEventId()] >= 0) {
-            SK_LOGI("Event[%lu] cancelled in post-process: WAIT task[%zu]", tasks[i]->GetEventId(), i);
+            SK_LOGI("Event[%lx] cancelled in post-process: WAIT task[%zu]", tasks[i]->GetEventId(), i);
             continue;
         }
         if (!tasks[i]->IsScopeNode()) {
@@ -359,72 +359,72 @@ bool ApplyEventMemoryResource(SuperKernelGraph& graph, SuperKernelBaseNode* even
 {
     // Constraint : eventNode.syncInfos have all associated node
     auto& syncInfos = eventNode->nodeInfos.syncInfos;
-    // Determine whether the event has already been allocated memory. If not, then request memory allocation.
-    if (syncInfos.addrValue != nullptr) {
-        // already applied
-        SK_LOGI("event memory already applied: eventId=%lu, addr=%p", syncInfos.eventId, syncInfos.addrValue);
-        return true;
-    } else {
-        auto eventId = eventNode->GetEventId();
-        auto eventInfos = graph.GetEventInfo(eventId);
-        if (eventInfos == nullptr) {
-            SK_LOGE("event not found in graph: event infos=%s", eventNode->FormatNodeInfo().c_str());
-            return false;
-        }
-        // check syncInfos
-        if (eventInfos->notifyNodeId == INVALID_TASK_ID || eventInfos->waitNodeIdList.empty()
-            || eventInfos->resetNodeIdList.empty()) {
-            SK_LOGE("event syncInfos invalid: eventId=%lu, NotifyNodeId=%lu, WaitNodeIdsSize=%zu, ResetNodeId=%lu",
-                    syncInfos.eventId, eventInfos->notifyNodeId, eventInfos->waitNodeIdList.size(),
-                    eventInfos->resetNodeIdList);
-            return false;
-        }
+
+    auto eventId = eventNode->GetEventId();
+    auto eventInfos = graph.GetEventInfo(eventId);
+    if (eventInfos == nullptr) {
+        SK_LOGE("event not found in graph: event infos=%s", eventNode->FormatNodeInfo().c_str());
+        return false;
+    }
+    // check syncInfos
+    if (eventInfos->notifyNodeId == INVALID_TASK_ID || eventInfos->waitNodeIdList.empty()
+        || eventInfos->resetNodeIdList.empty()) {
+        SK_LOGE("event syncInfos invalid: eventId=%lu, NotifyNodeId=%lu, WaitNodeIdsSize=%zu, ResetNodeId=%lu",
+                syncInfos.eventId, eventInfos->notifyNodeId, eventInfos->waitNodeIdList.size(),
+                eventInfos->resetNodeIdList);
+        return false;
+    }
+
+    void* addr = syncInfos.addrValue;
+    if (syncInfos.addrValue == nullptr) {
         SK_LOGI("event memory allocated start ...");
-        void* addr = nullptr;
         aclError allocRet = SkResourceManager::ValueMemory(&addr);
         if (allocRet != ACL_SUCCESS || addr == nullptr) {
-            SK_LOGE("event memory alloc failed: eventId=%lu, ret=%d", syncInfos.eventId, allocRet);
+            SK_LOGE("event memory alloc failed: eventId=%lx, ret=%d", syncInfos.eventId, allocRet);
             return false;
         }
-        // notify sync info update
-        auto notifyNode = graph.GetNodeById(eventInfos->notifyNodeId);
-        if (notifyNode == nullptr) {
-            SK_LOGE("notify event node not found in graph during event memory apply: notifyNodeId=%lu",
-                    eventInfos->notifyNodeId);
+    } else {
+        SK_LOGI("event memory already applied: eventId=%lx, addr=%p", syncInfos.eventId, syncInfos.addrValue);
+    }
+
+    // notify sync info update
+    auto notifyNode = graph.GetNodeById(eventInfos->notifyNodeId);
+    if (notifyNode == nullptr) {
+        SK_LOGE("notify event node not found in graph during event memory apply: notifyNodeId=%lu",
+                eventInfos->notifyNodeId);
+        return false;
+    }
+    // wait sync info update
+    notifyNode->nodeInfos.syncInfos.addrValue = addr;
+    needUpdateNodes.emplace_back(notifyNode);
+    SK_LOGI("Updated notify node addrValue: nodeId=%lu, addr=%p", notifyNode->GetNodeId(), addr);
+    for (auto waitNodeId : eventInfos->waitNodeIdList) {
+        auto waitNode = graph.GetNodeById(waitNodeId);
+        if (waitNode == nullptr) {
+            SK_LOGE("wait event node not found in graph during event memory apply: waitNodeId=%lu", waitNodeId);
             return false;
         }
-        // wait sync info update
-        notifyNode->nodeInfos.syncInfos.addrValue = addr;
-        needUpdateNodes.emplace_back(notifyNode);
-        SK_LOGI("Updated notify node addrValue: nodeId=%lu, addr=%p", notifyNode->GetNodeId(), addr);
-        for (auto waitNodeId : eventInfos->waitNodeIdList) {
-            auto waitNode = graph.GetNodeById(waitNodeId);
-            if (waitNode == nullptr) {
-                SK_LOGE("wait event node not found in graph during event memory apply: waitNodeId=%lu", waitNodeId);
-                return false;
-            }
-            waitNode->nodeInfos.syncInfos.addrValue = addr;
-            needUpdateNodes.emplace_back(waitNode);
-            SK_LOGI("Updated wait node addrValue: nodeId=%lu, addr=%p", waitNode->GetNodeId(), addr);
+        waitNode->nodeInfos.syncInfos.addrValue = addr;
+        needUpdateNodes.emplace_back(waitNode);
+        SK_LOGI("Updated wait node addrValue: nodeId=%lu, addr=%p", waitNode->GetNodeId(), addr);
+    }
+    // reset sync info update
+    for (auto resetNodeId: eventInfos->resetNodeIdList) {
+        auto resetNode = graph.GetNodeById(resetNodeId);
+        if (resetNode == nullptr) {
+            SK_LOGE("reset event node not found in graph during event memory apply: resetNodeId=%lu",
+                resetNodeId);
+            return false;
         }
-        // reset sync info update
-        for (auto resetNodeId: eventInfos->resetNodeIdList) {
-            auto resetNode = graph.GetNodeById(resetNodeId);
-            if (resetNode == nullptr) {
-                SK_LOGE("reset event node not found in graph during event memory apply: resetNodeId=%lu",
-                    resetNodeId);
-                return false;
-            }
-            resetNode->nodeInfos.syncInfos.addrValue = addr;
-            needUpdateNodes.emplace_back(resetNode);
-            SK_LOGI("Updated reset node addrValue: nodeId=%lu, addr=%p", resetNode->GetNodeId(), addr);
-            SK_LOGI("event memory allocated end: eventId=%lu, addr=%p", syncInfos.eventId, syncInfos.addrValue);
-        }
+        resetNode->nodeInfos.syncInfos.addrValue = addr;
+        needUpdateNodes.emplace_back(resetNode);
+        SK_LOGI("Updated reset node addrValue: nodeId=%lu, addr=%p", resetNode->GetNodeId(), addr);
+        SK_LOGI("event memory allocated end: eventId=%lx, addr=%p", syncInfos.eventId, syncInfos.addrValue);
     }
 
     syncInfos = eventNode->nodeInfos.syncInfos;
     if (syncInfos.addrValue == nullptr) {
-        SK_LOGE("event memory apply failed: eventId=%lu, addr is nullptr", syncInfos.eventId);
+        SK_LOGE("event memory apply failed: eventId=%lx, addr is nullptr", syncInfos.eventId);
         return false;
     }
     return true;

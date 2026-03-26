@@ -1138,7 +1138,7 @@ bool SkTaskBuilder::DispatchEventTask(SkTask& skTaskCube, SkTask& skTaskVec, Sup
     }
     uint64_t eventId = node->GetEventId();
     uint64_t nodeId = node->GetNodeId();
-    SK_LOGI("task insert: stask %zu, [queue=%s], [type=%s], [eventId=%lu], [nodeId=%lu]", nodeIndex,
+    SK_LOGI("task insert: stask %zu, [queue=%s], [type=%s], [eventId=%lx], [nodeId=%lu]", nodeIndex,
             to_string(queueType), to_string(taskType), eventId, nodeId);
     return true;
 }
