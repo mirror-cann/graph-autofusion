@@ -2487,11 +2487,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase37_DeadlockRefinePassSplitsScope)
     // Event1: Wait1(id=2) 等待 Notify1(id=5)
     //
     // InitialScopeSplitPass 会将所有节点放入同一个 scope，
-    // 但在 DeadlockRefinePass 中，LockDetector 会检测到：
-    // - Wait1 设置了 isExistWaitFlag=true
-    // - K_Large 的核心数超过了 superKernelCubeNum（即 Wait 之前节点的最大核心数）
-    // - 因此 LockDetector::IsFusible 返回 false
-    // - DeadlockRefinePass 在 Wait 节点处切分 scope
+    // 在 DeadlockRefinePass 中，LockDetector 检测放开wait后的kernel 核数限制，k_large可融：
 
     // Stream 0: K1 → Wait1 → K_Large (需要较多核心，但不超过设备能力)
     auto* k1 = CreateKernelNode(1, 0, 2);
@@ -2519,7 +2515,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase37_DeadlockRefinePassSplitsScope)
     // 期望生成 2 个 scope：
     // - Scope 0: K1(1), K2(4), Notify1(5) (Wait 之前的节点)
     // - Scope 1: K_Large(3), K3(6) (Wait 之后的节点，Wait 节点本身不放入任何 scope)
-    EXPECT_EQ(scopeInfos.size(), 2);
+    EXPECT_EQ(scopeInfos.size(), 1);
 
     // 验证所有节点都被处理（包括 Notify 节点）
     std::set<uint64_t> allProcessedNodes;
@@ -2529,7 +2525,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase37_DeadlockRefinePassSplitsScope)
         }
     }
     // Notify 节点也会被处理
-    std::set<uint64_t> expectedNodes = {1, 3, 4, 5, 6};
+    std::set<uint64_t> expectedNodes = {1, 2, 3, 4, 5, 6};
     EXPECT_EQ(allProcessedNodes, expectedNodes);
 }
 

@@ -87,7 +87,7 @@ bool SuperKernelGraph::ExpandUpdateNodes(std::vector<SuperKernelBaseNode*>& cust
     for (auto* node : customNodes) {
         if (node != nullptr && needUpdateNodes.find(node) == needUpdateNodes.end()) {
             needUpdateNodes.insert(node);
-            SK_LOGI("Insert into sk graph needUpdateNodes, node info: %s", node->FormatNodeInfo().c_str());
+            SK_LOGI("Insert into sk graph needUpdateNodes, node info: %s", node->Format().c_str());
         }
     }
     return true;
@@ -143,8 +143,8 @@ bool SuperKernelGraph::AddNode(std::unique_ptr<SuperKernelBaseNode> node) {
     if (graphMap.find(nodeId) != graphMap.end()) {
         SuperKernelBaseNode* existingNode = graphMap[nodeId].get();
         SK_LOGE("Duplicate node ID detected! Node with id %lu already exists in graph", nodeId);
-        SK_LOGE("  Existing node: %s", existingNode->FormatNodeInfo().c_str());
-        SK_LOGE("  New node to add: %s", node->FormatNodeInfo().c_str());
+        SK_LOGE("  Existing node: %s", existingNode->Format().c_str());
+        SK_LOGE("  New node to add: %s", node->Format().c_str());
         SK_LOGE("  Duplicate nodeId=%lu, Please check for duplicate node assignments in stream %lu",
                  nodeId, node->GetStreamIdxInGraph());
         return false;
@@ -162,7 +162,7 @@ bool SuperKernelGraph::AddMemoryAssociateWrite(uint64_t eventId, SuperKernelBase
         SK_LOGE("memory event 0x%lx already associated with this node, cannot reassociate!", eventId);
         SK_LOGE("  Duplicate memory write node: node_id=%lu, details=%s",
                  nodeId,
-                 existingNode ? existingNode->FormatNodeInfo().c_str() : "NOT_FOUND");
+                 existingNode ? existingNode->Format().c_str() : "NOT_FOUND");
         SK_LOGE("  Please check for duplicate memory write node bindings in the graph.");
         return false;
     }
@@ -179,7 +179,7 @@ bool SuperKernelGraph::AddMemoryAssociateWait(uint64_t eventId, SuperKernelBaseN
         SK_LOGE("memory event 0x%lx already associated with this node, cannot reassociate!", eventId);
         SK_LOGE("  Duplicate memory wait node: node_id=%lu, details=%s",
                  nodeId,
-                 existingNode ? existingNode->FormatNodeInfo().c_str() : "NOT_FOUND");
+                 existingNode ? existingNode->Format().c_str() : "NOT_FOUND");
         SK_LOGE("  Please check for duplicate memory wait node bindings in the graph.");
         return false;
     }
@@ -195,10 +195,10 @@ bool SuperKernelGraph::AddEventAssociateNotify(uint64_t eventId, SuperKernelBase
         SK_LOGE("Notify event 0x%lx already associated, cannot reassociate!", eventId);
         SK_LOGE("  Existing bound node: node_id=%lu, details=%s",
                  eventInfo.notifyNodeId,
-                 existingNode ? existingNode->FormatNodeInfo().c_str() : "NOT_FOUND");
+                 existingNode ? existingNode->Format().c_str() : "NOT_FOUND");
         SK_LOGE("  Attempting to bind: node_id=%lu, details=%s",
                  node->GetNodeId(),
-                 node->FormatNodeInfo().c_str());
+                 node->Format().c_str());
         SK_LOGE("  Please check for duplicate event bindings in the graph.");
         return false;
     }
@@ -216,7 +216,7 @@ bool SuperKernelGraph::AddEventAssociateWait(uint64_t eventId, SuperKernelBaseNo
         SK_LOGE("Wait event 0x%lx already associated with this node, cannot reassociate!", eventId);
         SK_LOGE("  Duplicate WAIT node: node_id=%lu, details=%s",
                  nodeId,
-                 existingNode ? existingNode->FormatNodeInfo().c_str() : "NOT_FOUND");
+                 existingNode ? existingNode->Format().c_str() : "NOT_FOUND");
         SK_LOGE("  Please check for duplicate WAIT event bindings in the graph.");
         return false;
     }
@@ -231,9 +231,9 @@ bool SuperKernelGraph::AddEventAssociateReset(uint64_t eventId, SuperKernelBaseN
     if (eventInfo.resetNodeIdList.find(nodeId) != eventInfo.resetNodeIdList.end()) {
         SK_LOGE("Reset event 0x%lx already associated, cannot reassociate!", eventId);
         SK_LOGE("  Existing bound node: node_id=%lu, details=%s",
-                 nodeId, node ? node->FormatNodeInfo().c_str() : "NOT_FOUND");
+                 nodeId, node ? node->Format().c_str() : "NOT_FOUND");
         SK_LOGE("  Attempting to bind: node_id=%lu, details=%s",
-                nodeId, node->FormatNodeInfo().c_str());
+                nodeId, node->Format().c_str());
         SK_LOGE("  Please check for duplicate RESET event bindings in the graph.");
         return false;
     }
@@ -459,7 +459,7 @@ bool SuperKernelGraph::ProcessMemoryWriteNodes(const uint64_t eventId, const Mem
     } else if (notifyIdVec.size() == 1) {
         auto* writeNode = GetNodeById(notifyIdVec[0]);
         SK_LOGD("there exits only one memory write node which is notify, it may cause dead lock, details=%s",
-            writeNode->FormatNodeInfo().c_str());
+            writeNode->Format().c_str());
         writeNode->SetNodeType(SkNodeType::NODE_NOTIFY);
         writeNode->SetIsFusible(true);
         if (!AddEventAssociateNotify(eventId, writeNode)) {
@@ -541,7 +541,7 @@ bool SuperKernelGraph::PostProcessMemoryNode() {
                     for (auto waitNodeId : memoryInfo.waitNodeIdList) {
                         auto* waitNode = GetNodeById(waitNodeId);
                         if (waitNode != nullptr && (waitNode->GetNodeType() == SkNodeType::NODE_MEMORY_WAIT)) {
-                            SK_LOGE("%s", waitNode->FormatNodeInfo().c_str());
+                            SK_LOGE("%s", waitNode->Format().c_str());
                         }
                     }
                     return false;
@@ -723,12 +723,12 @@ void SuperKernelGraph::UpdateNodeScopeBitFlags() {
             if (!outOfScopeFusible && scopeStack.empty()) {
                 // If there are named scopes, mark nodes outside of any scope as unfusible
                 node->SetIsFusible(false);
-                SK_LOGI("Marked node %s as unfusible (outside of any named scope)", node->FormatNodeInfo().c_str());
+                SK_LOGI("Marked node %s as unfusible (outside of any named scope)", node->Format().c_str());
             }
             // Mark regular nodes as unfusible if inside any unfusible scope
             if (!node->IsScopeNode() && HasUnfusibleScope(scopeStack)) {
                 node->SetIsFusible(false);
-                SK_LOGI("Marked node %s as unfusible (inside unfusible scope)", node->FormatNodeInfo().c_str());
+                SK_LOGI("Marked node %s as unfusible (inside unfusible scope)", node->Format().c_str());
             }
         }
 
@@ -737,7 +737,7 @@ void SuperKernelGraph::UpdateNodeScopeBitFlags() {
             node->SetIsFusible(true);
         }
         SK_LOGI("Processed node %s: type=%s, scopeFlags=%s, isFusible=%d, stackSize=%zu",
-                node->FormatNodeInfo().c_str(), to_string(node->GetNodeType()),
+                node->Format().c_str(), to_string(node->GetNodeType()),
                 BitsetToString(node->GetScopeBitFlags()).c_str(),
                 node->IsFusible(), scopeStack.size());
     }

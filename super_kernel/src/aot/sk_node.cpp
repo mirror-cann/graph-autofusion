@@ -272,12 +272,12 @@ SkKernelType NormalizeKernelType(uint32_t kernelType, const uint32_t taskRatio[2
 
 bool SuperKernelBaseNode::InitNode() {
     if (originTask == nullptr) {
-        SK_LOGE("Origin task is null for %s", FormatNodeInfo().c_str());
+        SK_LOGE("Origin task is null for %s", Format().c_str());
         return false;
     }
     uint32_t seqId = 0;
     if (aclmdlRITaskGetSeqId(*originTask, &seqId) != ACL_SUCCESS) {
-        SK_LOGE("Failed to get nodeId for %s", FormatNodeInfo().c_str());
+        SK_LOGE("Failed to get nodeId for %s", Format().c_str());
         return false;
     }
     nodeId = static_cast<uint64_t>(seqId);
@@ -286,7 +286,7 @@ bool SuperKernelBaseNode::InitNode() {
 
 bool SuperKernelBaseNode::Update(const UpdateContext &ctx) {
     if (isUpdate) {
-        SK_LOGE("Task has already been updated, can't update again, %s", FormatNodeInfo().c_str());
+        SK_LOGE("Task has already been updated, can't update again, %s", Format().c_str());
         return false;
     }
 
@@ -349,13 +349,13 @@ bool IsScopeKernel(aclmdlRIKernelTaskParams params, JudgeTaskKernelInfo* info) {
 
 bool SuperKernelKernelNode::InitNode() {
     if (!SuperKernelBaseNode::InitNode()) {
-        SK_LOGE("Failed to init kernel node for %s", FormatNodeInfo().c_str());
+        SK_LOGE("Failed to init kernel node for %s", Format().c_str());
         return false;
     }
     nodeType = SkNodeType::NODE_KERNEL;
     aclError aclRet = aclmdlRITaskGetParams(*originTask, &taskParams);
     if (aclRet != ACL_SUCCESS) {
-        SK_LOGE("Failed to get kernel params for %s", FormatNodeInfo().c_str());
+        SK_LOGE("Failed to get kernel params for %s", Format().c_str());
         return false;
     }
     JudgeTaskKernelInfo scopeKernelInfo;
@@ -397,7 +397,7 @@ bool SuperKernelKernelNode::InitNode() {
     aclRet = aclrtFunctionGetBinary(kernelParams.funcHandle, &nodeInfos.kernelInfos.binHdl);
     if (aclRet != ACL_SUCCESS) {
         SK_LOGE("Failed to get kernel bin handle for %s, ret=%d",
-                 FormatNodeInfo().c_str(), aclRet);
+                 Format().c_str(), aclRet);
         return false;
     }
     nodeInfos.kernelInfos.funcHdl = kernelParams.funcHandle;
@@ -432,26 +432,48 @@ bool SuperKernelKernelNode::InValidateNode() {
     SK_LOGI("Invalidating kernel node for task %lu, which will be fused in super kernel.", nodeId);
     aclError aclRet = aclmdlRITaskDisable(*originTask);
     if (aclRet != ACL_SUCCESS) {
-        SK_LOGE("Failed to invalidate kernel node %s", FormatNodeInfo().c_str());
+        SK_LOGE("Failed to invalidate kernel node %s", Format().c_str());
         return false;
     }
     SK_LOGI("Invalidated kernel node for task %lu successfully", nodeId);
     return true;
 }
 
-std::string SuperKernelKernelNode::FormatNodeInfo() const {
+std::string SuperKernelKernelNode::Format() const {
     std::ostringstream oss;
-    oss << "[nodeId:" << nodeId
-        << ", streamId:" << streamId
-        << ", streamIdxInGraph:" << streamIdxInGraph
-        << ", nodeIdxInStream:" << nodeIdxInStream
-        << ", Kernel name:" << nodeInfos.kernelInfos.funcName << "]";
+    oss << "[nodeId:" << nodeId 
+        << ", streamId:" << streamId 
+        << ", streamIdxInGraph:" << streamIdxInGraph 
+        << ", nodeIdxInStream:" << nodeIdxInStream 
+        << "] - " << nodeInfos.kernelInfos.Format();
+    return oss.str();
+}
+
+std::string KernelInfos::Format() const {
+    std::ostringstream oss;
+    oss << "KernelInfos{funcName:" << funcName
+        << ", kernelType:" << to_string(kernelType)
+        << ", taskRatio:[" << taskRatio[0] << "," << taskRatio[1] << "]"
+        << ", numBlocks:" << numBlocks
+        << ", cubeNum:" << cubeNum
+        << ", vecNum:" << vecNum
+        << ", resolvedNum:" << resolvedNum;
+    if (binHdl != nullptr) {
+        oss << ", binHdl:0x" << std::hex << reinterpret_cast<uintptr_t>(binHdl) << std::dec;
+    }
+    if (funcHdl != nullptr) {
+        oss << ", funcHdl:0x" << std::hex << reinterpret_cast<uintptr_t>(funcHdl) << std::dec;
+    }
+    if (devArgs != nullptr) {
+        oss << ", devArgs:0x" << std::hex << reinterpret_cast<uintptr_t>(devArgs) << std::dec;
+    }
+    oss << "}";
     return oss.str();
 }
 
 bool SuperKernelKernelNode::Update(const UpdateContext &ctx) {
     if (!SuperKernelBaseNode::Update(ctx)) {
-        SK_LOGE("Failed to update base node for %s", FormatNodeInfo().c_str());
+        SK_LOGE("Failed to update base node for %s", Format().c_str());
         return false;
     }
 
@@ -461,18 +483,18 @@ bool SuperKernelKernelNode::Update(const UpdateContext &ctx) {
             case ACL_MODEL_RI_TASK_VALUE_WRITE:
             case ACL_MODEL_RI_TASK_VALUE_WAIT:
                 if (ctx.customParams->valueWriteTaskParams.devAddr == nullptr) {
-                    SK_LOGE("Custom params for kernel node %s has null devAddr, invalid params.", FormatNodeInfo().c_str());
+                    SK_LOGE("Custom params for kernel node %s has null devAddr, invalid params.", Format().c_str());
                     return false;
                 }
                 break;
             default:
-                SK_LOGI("custom param type : %u not in check list, which will direct update, %s", ctx.customParams->type, FormatNodeInfo().c_str());
+                SK_LOGI("custom param type : %u not in check list, which will direct update, %s", ctx.customParams->type, Format().c_str());
                 break;
         }
         // update kernel with custom params for stream sync
         aclError aclRet = aclmdlRITaskSetParams(*originTask, ctx.customParams);
         if (aclRet != ACL_SUCCESS) {
-            SK_LOGE("Failed to set kernel with custom params for %s", FormatNodeInfo().c_str());
+            SK_LOGE("Failed to set kernel with custom params for %s", Format().c_str());
             return false;
         }
         SK_LOGI("Success to set kernel with custom params for task %lu", nodeId);
@@ -491,7 +513,7 @@ bool SuperKernelKernelNode::Update(const UpdateContext &ctx) {
         aclError aclRet = aclmdlRITaskSetParams(*originTask, &taskParams);
 
         if (aclRet != ACL_SUCCESS) {
-            SK_LOGE("Failed to update kernel node %s", FormatNodeInfo().c_str());
+            SK_LOGE("Failed to update kernel node %s", Format().c_str());
             return false;
         }
         SK_LOGI("Updated kernel node for task %lu with argsHandle", nodeId);
@@ -502,12 +524,12 @@ bool SuperKernelKernelNode::Update(const UpdateContext &ctx) {
 
 bool SuperKernelMemoryNode::InitNode() {
     if (!SuperKernelBaseNode::InitNode()) {
-        SK_LOGE("Failed to init memory node for %s", FormatNodeInfo().c_str());
+        SK_LOGE("Failed to init memory node for %s", Format().c_str());
         return false;
     }
     aclError aclRet = aclmdlRITaskGetParams(*originTask, &taskParams);
     if (aclRet != ACL_SUCCESS) {
-        SK_LOGE("Failed to get event params for %s", FormatNodeInfo().c_str());
+        SK_LOGE("Failed to get event params for %s", Format().c_str());
         return false;
     }
 
@@ -535,16 +557,16 @@ bool SuperKernelMemoryNode::InitNode() {
                 break;
             }
             default:
-                SK_LOGE("Unsupported event type %u for %s, which cannot be fused in super kernel.", rtNodeType, FormatNodeInfo().c_str());
+                SK_LOGE("Unsupported event type %u for %s, which cannot be fused in super kernel.", rtNodeType, Format().c_str());
                 return false;
         }
         if ((rtNodeType != ACL_MODEL_RI_TASK_EVENT_RESET) && ((nodeInfos.syncInfos.eventFlag & ACL_EVENT_EXTERNAL) == 0)) {
             isFusible = true;
             SK_LOGI("Event %s: internal to ModelRI, fusible in super kernel",
-                    FormatNodeInfo().c_str());
+                    Format().c_str());
         } else {
             SK_LOGI("Event %s: has external dependencies, cannot be fused in super kernel",
-                    FormatNodeInfo().c_str());
+                    Format().c_str());
         }
 
         return true;
@@ -574,7 +596,7 @@ bool SuperKernelMemoryNode::InitNode() {
 
 bool SuperKernelMemoryNode::Update(const UpdateContext &ctx) {
     if (!SuperKernelBaseNode::Update(ctx)) {
-        SK_LOGE("Failed to update base node for %s", FormatNodeInfo().c_str());
+        SK_LOGE("Failed to update base node for %s", Format().c_str());
         return false;
     }
 
@@ -584,18 +606,18 @@ bool SuperKernelMemoryNode::Update(const UpdateContext &ctx) {
             case ACL_MODEL_RI_TASK_VALUE_WRITE:
             case ACL_MODEL_RI_TASK_VALUE_WAIT:
                 if (ctx.customParams->valueWriteTaskParams.devAddr == nullptr) {
-                    SK_LOGE("Custom params for memory node %s has null devAddr, invalid params.", FormatNodeInfo().c_str());
+                    SK_LOGE("Custom params for memory node %s has null devAddr, invalid params.", Format().c_str());
                     return false;
                 }
                 break;
             default:
-                SK_LOGI("custom param type : %u not in check list, which will direct update, %s", ctx.customParams->type, FormatNodeInfo().c_str());
+                SK_LOGI("custom param type : %u not in check list, which will direct update, %s", ctx.customParams->type, Format().c_str());
                 break;
         }
         // update memory node with custom params for stream sync
         aclError aclRet = aclmdlRITaskSetParams(*originTask, ctx.customParams);
         if (aclRet != ACL_SUCCESS) {
-            SK_LOGE("Failed to set custom params on memory node %s", FormatNodeInfo().c_str());
+            SK_LOGE("Failed to set custom params on memory node %s", Format().c_str());
             return false;
         }
         SK_LOGI("Updated memory node via custom params for task %lu", nodeId);
@@ -609,13 +631,13 @@ bool SuperKernelMemoryNode::InValidateNode() {
     SK_LOGI("Invalidating memory node with eventId %lu for task %lu, which will be fused in super kernel.", nodeInfos.syncInfos.eventId, nodeId);
     aclError aclRet = aclmdlRITaskDisable(*originTask);
     if (aclRet != ACL_SUCCESS) {
-        SK_LOGE("Failed to invalidate memory node %s", FormatNodeInfo().c_str());
+        SK_LOGE("Failed to invalidate memory node %s", Format().c_str());
         return false;
     }
     return true;
 }
 
-std::string SuperKernelMemoryNode::FormatNodeInfo() const {
+std::string SuperKernelMemoryNode::Format() const {
     std::ostringstream oss;
     const char* eventType = nullptr;
     switch (rtNodeType) {
@@ -664,7 +686,7 @@ std::string SuperKernelMemoryNode::FormatNodeInfo() const {
 
 bool SuperKernelDefaultNode::InitNode() {
     if (!SuperKernelBaseNode::InitNode()) {
-        SK_LOGE("Failed to init default node for %s", FormatNodeInfo().c_str());
+        SK_LOGE("Failed to init default node for %s", Format().c_str());
         return false;
     }
     nodeType = SkNodeType::NODE_DEFAULT;
@@ -673,11 +695,11 @@ bool SuperKernelDefaultNode::InitNode() {
 }
 
 bool SuperKernelDefaultNode::InValidateNode() {
-    SK_LOGE("Default task type for %s should not be invalidated.", FormatNodeInfo().c_str());
+    SK_LOGE("Default task type for %s should not be invalidated.", Format().c_str());
     return false;
 }
 
-std::string SuperKernelDefaultNode::FormatNodeInfo() const {
+std::string SuperKernelDefaultNode::Format() const {
     std::ostringstream oss;
     oss << "[nodeId:" << nodeId
         << ", streamId:" << streamId

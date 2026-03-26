@@ -181,14 +181,14 @@ bool LockDetector::HasEnoughCores(const SuperKernelBaseNode* curNode, bool isSup
     if (isSuperKernel) {
         if(curNodeCubeNum <= superKernelCubeNum && curNodeVecNum <= superKernelVecNum){
             SK_LOGD("[lock detector] Node %s: within current SK limits (cube %u<=%u, vec %u<=%u)",
-                    curNode->FormatNodeInfo().c_str(), curNodeCubeNum, superKernelCubeNum,
+                    curNode->Format().c_str(), curNodeCubeNum, superKernelCubeNum,
                     curNodeVecNum, superKernelVecNum);
             return true;
         }
     } else {
         if(curNodeCubeNum <= depOpCubeNum && curNodeVecNum <= depOpVecNum){
             SK_LOGD("[lock detector] Node %s: within current depOp limits (cube %u<=%u, vec %u<=%u)",
-                    curNode->FormatNodeInfo().c_str(), curNodeCubeNum, depOpCubeNum,
+                    curNode->Format().c_str(), curNodeCubeNum, depOpCubeNum,
                     curNodeVecNum, depOpVecNum);
             return true;
         }
@@ -200,12 +200,12 @@ bool LockDetector::HasEnoughCores(const SuperKernelBaseNode* curNode, bool isSup
             superKernelCubeNum = std::max(superKernelCubeNum, curNodeCubeNum);
             superKernelVecNum = std::max(superKernelVecNum, curNodeVecNum);
             SK_LOGD("[lock detector] Node %s: allocated from device (cube %u, vec %u), new SK limits: cube %u, vec %u",
-                    curNode->FormatNodeInfo().c_str(), curNodeCubeNum, curNodeVecNum,
+                    curNode->Format().c_str(), curNodeCubeNum, curNodeVecNum,
                     superKernelCubeNum, superKernelVecNum);
             return true;
         } else {
             SK_LOGD("[lock detector] Node %s: insufficient cores for SK (required: cube %u, vec %u, available: cube %u, vec %u)",
-                    curNode->FormatNodeInfo().c_str(), curNodeCubeNum, curNodeVecNum,
+                    curNode->Format().c_str(), curNodeCubeNum, curNodeVecNum,
                     availableCores.first, availableCores.second);
             return false;
         }
@@ -214,12 +214,12 @@ bool LockDetector::HasEnoughCores(const SuperKernelBaseNode* curNode, bool isSup
             depOpCubeNum = std::max(depOpCubeNum, curNodeCubeNum);
             depOpVecNum = std::max(depOpVecNum, curNodeVecNum);
             SK_LOGD("[lock detector] Node %s: allocated from device (cube %u, vec %u), new depOp limits: cube %u, vec %u",
-                    curNode->FormatNodeInfo().c_str(), curNodeCubeNum, curNodeVecNum,
+                    curNode->Format().c_str(), curNodeCubeNum, curNodeVecNum,
                     depOpCubeNum, depOpVecNum);
             return true;
         } else {
             SK_LOGD("[lock detector] Node %s: insufficient cores for depOp (required: cube %u, vec %u, available: cube %u, vec %u)",
-                    curNode->FormatNodeInfo().c_str(), curNodeCubeNum, curNodeVecNum,
+                    curNode->Format().c_str(), curNodeCubeNum, curNodeVecNum,
                     availableCores.first, availableCores.second);
             return false;
         }
@@ -286,7 +286,7 @@ bool LockDetector::GetWaitNodeFusibleStatus(SuperKernelBaseNode& curNode) {
     
     if (notifyNode == nullptr) {
         SK_LOGE("[lock detector] Wait node %s: notify node %lu not found", 
-                curNode.FormatNodeInfo().c_str(), notifyId);
+                curNode.Format().c_str(), notifyId);
         return false;
     }
     
@@ -294,12 +294,12 @@ bool LockDetector::GetWaitNodeFusibleStatus(SuperKernelBaseNode& curNode) {
     if (notifyNode->GetCubeNum() > 0 || notifyNode->GetVecNum() > 0) {
         bool canFuse = HasEnoughCores(notifyNode, false);
         SK_LOGD("[lock detector] Wait node %s: notify %s has cores, canFuse=%d",
-                curNode.FormatNodeInfo().c_str(), notifyNode->FormatNodeInfo().c_str(), canFuse);
+                curNode.Format().c_str(), notifyNode->Format().c_str(), canFuse);
         return canFuse;
     }
     
     if (nodeNum == 0) {
-        SK_LOGD("[lock detector] Wait node %s: first node in scope, cannot fuse", curNode.FormatNodeInfo().c_str());
+        SK_LOGD("[lock detector] Wait node %s: first node in scope, cannot fuse", curNode.Format().c_str());
         return false;
     }
     
@@ -310,29 +310,30 @@ bool LockDetector::GetWaitNodeFusibleStatus(SuperKernelBaseNode& curNode) {
     // notify node is in different stream, check for deadlock
     bool hasDeadlock = HasDeadlock(notifyNode);
     SK_LOGD("[lock detector] Wait node %s: notify %s HasDeadlock=%d",
-            curNode.FormatNodeInfo().c_str(), notifyNode->FormatNodeInfo().c_str(), hasDeadlock);
+            curNode.Format().c_str(), notifyNode->Format().c_str(), hasDeadlock);
     return !hasDeadlock;
 }
 
 bool LockDetector::CheckNotifyInSKStream(SuperKernelBaseNode& curNode, SuperKernelBaseNode& notifyNode) {
     if (IsAfterSKRange(notifyNode)) {
         SK_LOGE("[lock detector] Wait node %s: notify %s is after SK range, cannot fuse",
-                curNode.FormatNodeInfo().c_str(), notifyNode.FormatNodeInfo().c_str());
+                curNode.Format().c_str(), notifyNode.Format().c_str());
+        isExistWaitFlag = false;
         return false;
     }
     SK_LOGD("[lock detector] Wait node %s: notify %s is before SK range, can fuse",
-            curNode.FormatNodeInfo().c_str(), notifyNode.FormatNodeInfo().c_str());
+            curNode.Format().c_str(), notifyNode.Format().c_str());
     return true;
 }
 
 bool LockDetector::GetFusibleStatus(SuperKernelBaseNode& curNode) {
     if (curNode.GetNodeType() == SkNodeType::NODE_NOTIFY) {
         if (curNode.GetCubeNum() == 0 && curNode.GetVecNum() == 0) {
-            SK_LOGD("[lock detector] Notify node %s: not needed core resource, can fuse", curNode.FormatNodeInfo().c_str());
+            SK_LOGD("[lock detector] Notify node %s: not needed core resource, can fuse", curNode.Format().c_str());
             return true;
         } else {
             SK_LOGE("[lock detector] Notify node %s: in SK range with coreNum>0 (cube %u, vec %u), which not allowed",
-                    curNode.FormatNodeInfo().c_str(), curNode.GetCubeNum(), curNode.GetVecNum());
+                    curNode.Format().c_str(), curNode.GetCubeNum(), curNode.GetVecNum());
             return false;
         }
     } else if (curNode.GetNodeType() == SkNodeType::NODE_WAIT) {
@@ -341,10 +342,10 @@ bool LockDetector::GetFusibleStatus(SuperKernelBaseNode& curNode) {
         uint32_t cubeNum = curNode.GetCubeNum();
         uint32_t vecNum = curNode.GetVecNum();
         SK_LOGD("[lock detector] Kernel node %s: coreNum={%u, %u}, superKernelCubeNum=%u, superKernelVecNum=%u",
-                curNode.FormatNodeInfo().c_str(), cubeNum, vecNum, superKernelCubeNum, superKernelVecNum);
+                curNode.Format().c_str(), cubeNum, vecNum, superKernelCubeNum, superKernelVecNum);
         return HasEnoughCores(&curNode, true);
     } else {
-        SK_LOGW("[lock detector] Node %s: unsupported taskType=%u", curNode.FormatNodeInfo().c_str(), curNode.GetNodeType());
+        SK_LOGW("[lock detector] Node %s: unsupported taskType=%u", curNode.Format().c_str(), curNode.GetNodeType());
         return false;
     }
 }
@@ -352,12 +353,12 @@ bool LockDetector::GetFusibleStatus(SuperKernelBaseNode& curNode) {
 bool LockDetector::IsFusible(SuperKernelBaseNode& curNode) {
     // If node already visited (already checked or fused), return true directly without modifying state
     if (curNode.IsVisited()) {
-        SK_LOGD("[lock detector] Node %s: already visited, can fuse", curNode.FormatNodeInfo().c_str());
+        SK_LOGD("[lock detector] Node %s: already visited, can fuse", curNode.Format().c_str());
         return true;
     }
 
     SK_LOGI("[lock detector] IsFusible: Checking node %s, current state: nodeNum=%u, kernelNodeNum=%u",
-            curNode.FormatNodeInfo().c_str(), nodeNum, kernelNodeNum);
+            curNode.Format().c_str(), nodeNum, kernelNodeNum);
     bool canFuse = GetFusibleStatus(curNode);
     // Only modify state if node can be fused
     if (canFuse) {
@@ -370,10 +371,10 @@ bool LockDetector::IsFusible(SuperKernelBaseNode& curNode) {
         if (curNode.GetNodeType() == SkNodeType::NODE_KERNEL) {
             // HasEnoughCores already updated superKernelCubeNum/superKernelVecNum 
             kernelNodeNum++;
-            SK_LOGD("[lock detector] Kernel node %s: fused, kernelNodeNum now %u", curNode.FormatNodeInfo().c_str(), kernelNodeNum);
+            SK_LOGD("[lock detector] Kernel node %s: fused, kernelNodeNum now %u", curNode.Format().c_str(), kernelNodeNum);
         }
     } else {
-        SK_LOGI("[lock detector] Node %s: cannot be fused", curNode.FormatNodeInfo().c_str());
+        SK_LOGI("[lock detector] Node %s: cannot be fused", curNode.Format().c_str());
     }
 
     return canFuse;

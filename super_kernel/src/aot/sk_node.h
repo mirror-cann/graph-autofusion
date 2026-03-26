@@ -65,6 +65,8 @@ struct KernelInfos {
     aclrtBinHandle binHdl = nullptr;
     aclrtFuncHandle funcHdl = nullptr;
     ResolvedFunctionInfo resolvedFuncs[4];
+
+    std::string Format() const;
 };
 
 struct SyncInfos {
@@ -124,7 +126,7 @@ public:
      *   Wait:    [nodeId:125, streamIdxInGraph:0, nodeIdxInStream:7] - Event:Wait(eventId:0x7ff8a0)
      *   Default: [nodeId:126, streamIdxInGraph:0, nodeIdxInStream:8] - Default
      */
-    virtual std::string FormatNodeInfo() const = 0;
+    virtual std::string Format() const = 0;
 
     // Accessors
     uint32_t GetStreamIdxInGraph() const
@@ -306,7 +308,7 @@ public:
     uint32_t GetVecNum() const override { return nodeInfos.kernelInfos.vecNum; }
     uint32_t GetCubeNum() const override { return nodeInfos.kernelInfos.cubeNum; }
 
-    std::string FormatNodeInfo() const override;
+    std::string Format() const override;
     bool InValidateNode() override;
     bool Update(const UpdateContext& ctx) override;
     const std::string GetScopeName() const override
@@ -356,7 +358,7 @@ public:
         return nodeInfos.syncInfos.correspondingMemoryWriteNodeIds;
     }
 
-    std::string FormatNodeInfo() const override;
+    std::string Format() const override;
     bool InitNode() override;
     bool Update(const UpdateContext& ctx) override;
     bool InValidateNode() override;
@@ -370,7 +372,7 @@ public:
     bool InitNode() override;
     bool InValidateNode() override;
 
-    std::string FormatNodeInfo() const override;
+    std::string Format() const override;
 };
 
 #endif // __SK_NODE_H__

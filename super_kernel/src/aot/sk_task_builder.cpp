@@ -1417,7 +1417,7 @@ SkLaunchInfo SkTaskBuilder::Build(const std::vector<SuperKernelBaseNode*>& tasks
     SK_LOGI("start dispatch tasks...");
     for (int i = 0; i < static_cast<int>(taskCount); i++) {
         SK_LOGI("index=%d, nodeType=%s, nodeInfo=%s", i, to_string(tasks[i]->GetNodeType()),
-                tasks[i]->FormatNodeInfo().c_str());
+                tasks[i]->Format().c_str());
 
         auto& info = taskSyncInfos_[i];
         SkQueueType queueType = info.queueType;
