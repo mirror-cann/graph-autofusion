@@ -15,10 +15,10 @@ See LICENSE in the root of the software repository for the full text of the Lice
         <path value="$(TARGET_ENV)/include/super_kernel"/>
     </dir_info>
 
-    <!--<file_info value="ascendsk_lib" src_path="lib/host/" dst_path="ascendsk/lib" install_path="$(TARGET_ENV)/lib64" install_mod="755">
+    <file_info value="ascendsk_lib" src_path="lib/host/" dst_path="ascendsk/lib" install_path="$(TARGET_ENV)/lib64" install_mod="755">
         <file value="libascendsk.so"/>
     </file_info>
     <file_info value="super_kernel_include" src_path="lib/host/" dst_path="ascendsk/include" install_path="$(TARGET_ENV)/include/super_kernel" install_mod="755">
         <file value="super_kernel.h"/>
-    </file_info>-->
+    </file_info>
 </block>

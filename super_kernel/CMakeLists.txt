@@ -24,60 +24,58 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/superkernel-0.1.0-py3-none-any.whl OPT
 )
 
 
-# find_package(ASC REQUIRED PATHS $ENV{ASCEND_HOME_PATH}/compiler/tikcpp/ascendc_kernel_cmake)
-# enable_language(ASC)
+find_package(ASC REQUIRED PATHS $ENV{ASCEND_HOME_PATH}/compiler/tikcpp/ascendc_kernel_cmake)
+enable_language(ASC)
 
-# set(GENERATED_SK_ENTRY_STUB_CPP "${CMAKE_CURRENT_BINARY_DIR}/kernel/sk_kernel_stub.cpp")
-# set_source_files_properties(${GENERATED_SK_ENTRY_STUB_CPP} PROPERTIES GENERATED TRUE)
+set(GENERATED_SK_ENTRY_STUB_CPP "${CMAKE_CURRENT_BINARY_DIR}/kernel/sk_kernel_stub.cpp")
+set_source_files_properties(${GENERATED_SK_ENTRY_STUB_CPP} PROPERTIES GENERATED TRUE)
 
-# if (NOT TARGET sk_kernel)
-#     add_subdirectory(kernel)
-# endif()
+if (NOT TARGET sk_kernel)
+    add_subdirectory(kernel)
+endif()
 
-# aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/src/aot SRC_FILES)
+aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/src/aot SRC_FILES)
 
-# add_library(ascendsk SHARED
-#     ${SRC_FILES}
-#     ${GENERATED_SK_ENTRY_STUB_CPP}
-# )
-# add_dependencies(ascendsk generate_entry_stub)
-# target_compile_options(ascendsk PRIVATE
-#     -std=c++17
-#     -g
-#     -O0
-#     -fPIC
-#     -fvisibility=hidden
-#     -Werror
-#     -fno-common
-#     -ftrapv
-# )
+add_library(ascendsk SHARED
+    ${SRC_FILES}
+    ${GENERATED_SK_ENTRY_STUB_CPP}
+)
+add_dependencies(ascendsk generate_entry_stub)
+target_compile_options(ascendsk PRIVATE
+    -std=c++17
+    -fPIC
+    -fvisibility=hidden
+    -Werror
+    -fno-common
+    -ftrapv
+)
 
-# target_compile_definitions(ascendsk PRIVATE
-#     FUNC_VISIBILITY
-# )
+target_compile_definitions(ascendsk PRIVATE
+    FUNC_VISIBILITY
+)
 
-# target_include_directories(ascendsk PUBLIC
-#     ${CMAKE_CURRENT_SOURCE_DIR}
-#     ${CMAKE_CURRENT_SOURCE_DIR}/include/super_kernel
-#     ${CMAKE_CURRENT_SOURCE_DIR}/src/aot
-#     PRIVATE
-#     $ENV{ASCEND_HOME_PATH}/pkg_inc/
-#     $ENV{ASCEND_HOME_PATH}/pkg_inc/runtime
-#     $ENV{ASCEND_HOME_PATH}/pkg_inc/profiling
-#     $ENV{ASCEND_HOME_PATH}/pkg_inc/base
-#     $ENV{ASCEND_HOME_PATH}/include/external
-#     $ENV{ASCEND_HOME_PATH}/include
-#     )
-# target_link_libraries(ascendsk PUBLIC sk_scope acl_rt ascendcl ascend_dump runtime error_manager c_sec unified_dlog ascendc_runtime profapi profimpl msprofiler)
-# target_link_directories(ascendsk PUBLIC
-# $ENV{ASCEND_HOME_PATH}/lib64
-# )
-# install(TARGETS ascendsk DESTINATION ascendsk/lib)
-# install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/include/super_kernel/super_kernel.h
-#     DESTINATION ascendsk/include
-# )
+target_include_directories(ascendsk PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/super_kernel
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/aot
+    PRIVATE
+    $ENV{ASCEND_HOME_PATH}/pkg_inc/
+    $ENV{ASCEND_HOME_PATH}/pkg_inc/runtime
+    $ENV{ASCEND_HOME_PATH}/pkg_inc/profiling
+    $ENV{ASCEND_HOME_PATH}/pkg_inc/base
+    $ENV{ASCEND_HOME_PATH}/include/external
+    $ENV{ASCEND_HOME_PATH}/include
+    )
+target_link_libraries(ascendsk PUBLIC sk_scope acl_rt ascendcl ascend_dump runtime error_manager c_sec unified_dlog ascendc_runtime profapi profimpl msprofiler)
+target_link_directories(ascendsk PUBLIC
+$ENV{ASCEND_HOME_PATH}/lib64
+)
+install(TARGETS ascendsk DESTINATION ascendsk/lib)
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/include/super_kernel/super_kernel.h
+    DESTINATION ascendsk/include
+)
 
 
-# if(ENABLE_CPP_UTEST OR ENABLE_RDV_UTEST)
-#     add_subdirectory(tests/aot)
-# endif()
+if(ENABLE_CPP_UTEST OR ENABLE_RDV_UTEST)
+    add_subdirectory(tests/aot)
+endif()

@@ -18,6 +18,7 @@
 #include <string>
 #include <cstddef>
 #include <bitset>
+#include <cstdint>
 enum class SkNodeType : uint32_t {
     NODE_KERNEL = 0,
     NODE_NOTIFY = 1,
