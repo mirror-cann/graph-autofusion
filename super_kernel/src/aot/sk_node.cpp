@@ -385,10 +385,10 @@ bool SuperKernelKernelNode::InitNode() {
     CHECK_ACL(aclrtGetFunctionAttribute(kernelParams.funcHandle, ACL_FUNC_ATTR_KERNEL_RATIO, &taskRatio));
 
     const int16_t* taskRatioInt16 = reinterpret_cast<const int16_t*>(&taskRatio);
-    uint32_t skTaskTatio[2] = {static_cast<uint32_t>(taskRatioInt16[0]), static_cast<uint32_t>(taskRatioInt16[1])};
+    uint32_t skTaskTatio[2] = {static_cast<uint32_t>(taskRatioInt16[1]), static_cast<uint32_t>(taskRatioInt16[0])};
 
-    nodeInfos.kernelInfos.taskRatio[0] = skTaskTatio[1];
-    nodeInfos.kernelInfos.taskRatio[1] = skTaskTatio[0];
+    nodeInfos.kernelInfos.taskRatio[0] = skTaskTatio[0];
+    nodeInfos.kernelInfos.taskRatio[1] = skTaskTatio[1];
     nodeInfos.kernelInfos.kernelType = NormalizeKernelType((uint32_t)(kernelType), skTaskTatio);
     nodeInfos.kernelInfos.numBlocks = kernelParams.numBlocks;
     nodeInfos.kernelInfos.devArgs = kernelParams.args;
