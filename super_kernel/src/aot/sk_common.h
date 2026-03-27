@@ -162,6 +162,7 @@ struct TaskInfo {
     // 1： debug_dcci_disable_on_kernel
     // 2： debug_sync_all
     uint64_t debugOptions;
+    uint64_t reserved;
 };
 
 struct TaskQue {

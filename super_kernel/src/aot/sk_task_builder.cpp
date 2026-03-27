@@ -1010,6 +1010,7 @@ bool SkTaskBuilder::AddFuncTask(SkTask& skTask, SuperKernelBaseNode* node, SkDfx
                         prefetchCntValue.second);
             }
             taskInfo.args = addrIndex == 0 ? prefetchCntValue.first : prefetchCntValue.second;
+            taskInfo.reserved = static_cast<uint64_t>(reinterpret_cast<uintptr_t>(kernelInfo.devArgs));
         }
 
         uint64_t addr = resolved.funcAddr[addrIndex];
