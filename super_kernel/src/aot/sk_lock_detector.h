@@ -94,7 +94,10 @@ private:
 
     bool HasEnoughCores(const SuperKernelBaseNode* curNode, bool isSuperKernel);
 
+    void RollbackVisitedState(std::vector<uint64_t>& visitedNodes);
+
     std::vector<uint64_t> nodes; // visited nodes
+    std::vector<uint64_t> tempVisitedNodes; // temporary visited nodes for HasDeadlock
     uint32_t depOpCubeNum;       // visited op cube num outside superkernel
     uint32_t depOpVecNum;        // visited op vec num outside superkernel
     uint32_t superKernelCubeNum; // fused op cube num in superkernel
@@ -102,7 +105,6 @@ private:
     static int64_t deviceRealCubeNum;
     static int64_t deviceRealVecNum;
     std::set<uint32_t> skStreamIds;
-    bool isExistWaitFlag;
     uint32_t nodeNum;
     uint32_t kernelNodeNum;
     std::unordered_map<uint32_t, std::pair<uint64_t, uint64_t>> skRangeInStream;

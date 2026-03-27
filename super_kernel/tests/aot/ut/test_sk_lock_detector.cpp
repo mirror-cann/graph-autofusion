@@ -319,7 +319,7 @@ TEST_F(TestLockDetector, SingleStreamWaitFirstRejects) {
     EXPECT_EQ(lockDetector->superKernelVecNum, 8);
     // // sk - node 5
     EXPECT_FALSE(lockDetector->IsFusible(*w6));
-    EXPECT_TRUE(n10->isVisited);
+    EXPECT_FALSE(n10->isVisited);
 
     EXPECT_EQ(lockDetector->skStreamIds, std::set<uint32_t>{0});
     lockDetector->Reset();
