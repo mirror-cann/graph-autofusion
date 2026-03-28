@@ -179,7 +179,8 @@ def test_sk_1_stream_2_ops(
     }
     kernel_name = "te_superkernel_1_stream_2_ops"
 
-    super_kernel.compile(kernel_info, kernel_name)
+    with OpContext('super_kernel'):
+        super_kernel.compile(kernel_info, kernel_name)
     
     scenario_dir = data_dir / golden_codegen_path
         
@@ -422,7 +423,8 @@ def test_sk_2_stream_2_ops(
         with OpContext('dynamic'):
             super_kernel.compile(kernel_info, kernel_name)
     else:
-        super_kernel.compile(kernel_info, kernel_name)
+        with OpContext('super_kernel'):
+            super_kernel.compile(kernel_info, kernel_name)
 
     scenario_dir = data_dir / golden_codegen_path
     
@@ -503,8 +505,8 @@ def test_sk_1_stream_3_ops(
         ],
     }
     kernel_name = "te_superkernel_1_stream_3_ops"
-
-    super_kernel.compile(kernel_info, kernel_name)
+    with OpContext('super_kernel'):
+        super_kernel.compile(kernel_info, kernel_name)
 
     scenario_dir = data_dir / golden_codegen_path
 
@@ -604,7 +606,8 @@ def test_sk_2_stream_4_ops(soc_version, tmp_dir, data_dir, json_dir, \
         ],
     }
     kernel_name = "te_superkernel_2_stream_4_ops"
-    super_kernel.compile(kernel_info, kernel_name)
+    with OpContext('super_kernel'):
+        super_kernel.compile(kernel_info, kernel_name)
     scenario_dir = data_dir / golden_codegen_path
     validate_codegen_output(kernel_meta_dir, kernel_name, scenario_dir / "expect_sk_code.cc")
     validate_compile_options(kernel_meta_dir, kernel_name, golden_options)
