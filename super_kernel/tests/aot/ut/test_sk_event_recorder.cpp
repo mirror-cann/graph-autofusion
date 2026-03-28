@@ -57,26 +57,31 @@ protected:
     void SetUp() override {
         // 清理环境变量
         unsetenv("ASCEND_PROF_SK_ON");
-        // 清理测试文件
-        for (int i = 0; i < 4; i++) {
-            std::string tmpFile = "sk_event_dev_device_" + std::to_string(i) + ".tmp.json";
-            std::string finalFile = "sk_event_dev_device_" + std::to_string(i) + ".json";
-            remove(tmpFile.c_str());
-            remove(finalFile.c_str());
-        }
+        // 清理测试文件和目录
+        CleanupTestFiles();
     }
 
     void TearDown() override {
         // 确保每次测试后 recorder 被重置
         SkEventRecorder::Instance().SkProfilingShutdown();
         unsetenv("ASCEND_PROF_SK_ON");
-        // 清理测试文件
+        // 清理测试文件和目录
+        CleanupTestFiles();
+    }
+
+    // 辅助函数：清理测试文件和目录
+    void CleanupTestFiles() {
+        pid_t pid = getpid();
         for (int i = 0; i < 4; i++) {
-            std::string tmpFile = "sk_event_dev_device_" + std::to_string(i) + ".tmp.json";
-            std::string finalFile = "sk_event_dev_device_" + std::to_string(i) + ".json";
-            remove(tmpFile.c_str());
+            // 新路径：./sk_meta/<pid>/
+            std::string finalFile = "./sk_meta/" + std::to_string(pid) + "/sk_event_dev_device_" + std::to_string(i) + ".json";
             remove(finalFile.c_str());
         }
+        // 清理 sk_meta/<pid> 目录
+        std::string pidDir = "./sk_meta/" + std::to_string(pid);
+        rmdir(pidDir.c_str());
+        // 尝试清理 sk_meta 目录（如果为空）
+        rmdir("./sk_meta");
     }
 
     // 辅助函数：创建模拟的事件数据
@@ -115,6 +120,7 @@ protected:
         ctx->gmAddr = malloc(SK_EVENT_TOTAL_SIZE);
         ctx->hostBuf = std::make_unique<uint8_t[]>(SK_EVENT_TOTAL_SIZE);
         (void)memset_s(ctx->hostBuf.get(), SK_EVENT_TOTAL_SIZE, 0, SK_EVENT_TOTAL_SIZE);
+        ctx->outputDir = SkEventRecorder::CreateOutputDir();  // 设置输出目录
         ctx->outputFp.Close();  // FileGuard 默认构造已经是无效状态
         for (uint32_t i = 0; i < SK_EVENT_CORE_NUM; i++) {
             ctx->lastOffset[i] = sizeof(SkKernelEventRecord);
@@ -403,17 +409,16 @@ TEST_F(SkEventRecorderTest, DumpDeviceDataNullPointers) {
 // Test 28: DumpDeviceData 跳过没有 NodeInfo 的事件
 TEST_F(SkEventRecorderTest, DumpDeviceDataSkipsEventsWithoutNodeInfo) {
     InitMockDeviceCtx(0);
-    
+
     SkEventDeviceCtx* ctx = &SkEventRecorder::Instance().deviceCtxs[0];
-    
+
     // 创建事件数据但不添加 NodeInfo
     CreateMockEventData(ctx, 0, 999, 999, 999, 100, 200, 0, 1);
-    
+
     SkEventRecorder::Instance().DumpDeviceData(ctx);
-    
-    // 统计数据不应被更新
-    EXPECT_EQ(ctx->skCoreTimeStats.count(999), 0);
-    
+
+    // 不应该崩溃，正常处理完成
+
     CleanupMockDeviceCtx(0);
 }
 
@@ -430,6 +435,7 @@ TEST_F(SkEventRecorderTest, CreateDeviceCtxBasic) {
         EXPECT_EQ(ctx->deviceId, 0);
         EXPECT_EQ(ctx->active.load(), 1);
         EXPECT_EQ(ctx->totalSize, SK_EVENT_TOTAL_SIZE);
+        EXPECT_FALSE(ctx->outputDir.empty());  // 输出目录应被设置
 
         // 清理
         if (ctx->gmAddr) {
@@ -439,8 +445,9 @@ TEST_F(SkEventRecorderTest, CreateDeviceCtxBasic) {
         ctx->hostBuf.reset();
         ctx->active.store(0);
 
-        // 删除临时文件
-        remove("sk_event_dev_device_0.tmp.json");
+        // 删除文件
+        std::string jsonFile = ctx->outputDir + "/sk_event_dev_device_0.json";
+        remove(jsonFile.c_str());
     }
 }
 
@@ -467,8 +474,8 @@ TEST_F(SkEventRecorderTest, ShutdownDoesNothingWhenDisabled) {
     EXPECT_FALSE(SkEventRecorder::Instance().IsEnabled());
 }
 
-// Test 32: Shutdown 合并文件（有统计数据）
-TEST_F(SkEventRecorderTest, ShutdownMergesFiles) {
+// Test 32: Shutdown 创建最终文件
+TEST_F(SkEventRecorderTest, ShutdownCreatesFinalFile) {
     InitMockDeviceCtx(0);
     SkEventRecorder::Instance().enabled = true;
 
@@ -476,44 +483,25 @@ TEST_F(SkEventRecorderTest, ShutdownMergesFiles) {
 
     // 创建临时文件
     char tmpFile[512];
-    (void)snprintf_s(tmpFile, sizeof(tmpFile), sizeof(tmpFile) - 1, "sk_event_dev_device_%u.tmp.json", 0);
+    (void)snprintf_s(tmpFile, sizeof(tmpFile), sizeof(tmpFile) - 1,
+                     "%s/sk_event_dev_device_%u.json", ctx->outputDir.c_str(), 0);
     ctx->outputFp.Open(tmpFile, "wb");
     if (ctx->outputFp.IsValid()) {
         const char* jsonStart = "[{}]";
         fwrite(jsonStart, 1, strlen(jsonStart), ctx->outputFp.Get());
     }
 
-    // 添加统计数据
-    ctx->modelCoreTimeStats[100][0].minStartTime = 1000;
-    ctx->modelCoreTimeStats[100][0].maxEndTime = 2000;
-    ctx->skCoreTimeStats[100][1][0].minStartTime = 1500;
-    ctx->skCoreTimeStats[100][1][0].maxEndTime = 2500;
-    ctx->skCoreTimeStats[100][1][0].blockIdx = 0;
-    ctx->skCoreTimeStats[100][1][0].blockNum = 1;
-
     // 执行 Shutdown（不启动线程）
     SkEventRecorder::Instance().globalRunning.store(false);
 
-    // 模拟 Shutdown 中的文件合并逻辑
-    char finalFile[512];
-    (void)snprintf_s(finalFile, sizeof(finalFile), sizeof(finalFile) - 1, "sk_event_dev_device_%u.json", 0);
-
     ctx->outputFp.Close();
-
-    FILE* finalFp = fopen(finalFile, "wb");
-    if (finalFp != nullptr) {
-        const char* jsonStart = "[{}";
-        fwrite(jsonStart, 1, strlen(jsonStart), finalFp);
-        fclose(finalFp);
-    }
 
     // 验证文件创建
     struct stat buffer;
-    EXPECT_EQ(stat(finalFile, &buffer), 0);
+    EXPECT_EQ(stat(tmpFile, &buffer), 0);
 
     // 清理
     remove(tmpFile);
-    remove(finalFile);
     CleanupMockDeviceCtx(0);
 }
 
@@ -699,13 +687,16 @@ TEST_F(SkEventRecorderTest, GetGmAddrForDeviceDoubleCheckLocking) {
 
         // 清理
         SkEventDeviceCtx* ctx = &SkEventRecorder::Instance().deviceCtxs[0];
+        std::string outputDir = ctx->outputDir;  // 保存路径用于清理
         if (ctx->gmAddr) {
             aclrtFree(ctx->gmAddr);
             ctx->gmAddr = nullptr;
         }
         ctx->hostBuf.reset();
         ctx->active.store(0);
-        remove("sk_event_dev_device_0.tmp.json");
+        // 删除文件
+        std::string jsonFile = outputDir + "/sk_event_dev_device_0.json";
+        remove(jsonFile.c_str());
     }
 }
 

@@ -50,9 +50,10 @@ struct SkCoreTimeStats {
     uint64_t minStartTime = UINT64_MAX;  // 最小起始时间
     uint64_t maxEndTime = 0;              // 最大结束时间
     uint32_t blockIdx = 0; 
-    uint32_t blockNum = 0;              
+    uint32_t blockNum = 0;
+    std::string startNodeName;
+    std::string endNodeName;             
 };
-
 // ==================== Device 上下文 ====================
 class SkEventRecorder;
 struct SkEventDeviceCtx {
@@ -65,11 +66,12 @@ struct SkEventDeviceCtx {
     FileGuard outputFp;                                        // 小算子的时间信息文件的输出文件句柄 (RAII)
     uint64_t lastOffset[SK_EVENT_CORE_NUM]{};                  // 每个core的上次读取位置
     SkEventRecorder* recorder = nullptr;                        // 回调指针
-    
-    // sk 级别时间统计：modelRI -> skId -> coreId -> stats
-    std::unordered_map<uint64_t, std::unordered_map<uint32_t, std::unordered_map<uint32_t, SkCoreTimeStats>>> skCoreTimeStats;
-    // model 级别时间统计：modelRI -> coreId -> stats
-    std::unordered_map<uint64_t, std::unordered_map<uint32_t, SkCoreTimeStats>> modelCoreTimeStats;
+
+    // 每个 core 的 sk的node起始名称字符串
+    std::vector<std::string> startNodeNames{SK_EVENT_CORE_NUM};
+    std::vector<std::string> endNodeNames{SK_EVENT_CORE_NUM};
+    // 1代表当前node是sk的开始node
+    std::vector<uint8_t> startNodeFlags = std::vector<uint8_t>(SK_EVENT_CORE_NUM, 1);
 };
 
 
@@ -100,10 +102,13 @@ public:
 private:
     SkEventRecorder() = default;
     ~SkEventRecorder();
-    
+
+    // 创建输出目录 sk_meta/<pid>，返回目录路径
+    static std::string CreateOutputDir();
+
     // 创建 device 上下文（带加锁）
     SkEventDeviceCtx* CreateDeviceCtx(uint32_t deviceId);
-    
+
     // 后台线程入口
     static void* DumpThreadFunc(void* arg);
 
@@ -116,14 +121,8 @@ private:
     bool WriteNodeEventToJson(SkEventDeviceCtx* ctx, const SkKernelEventRecord* record,
                               uint32_t core, const SkNodeInfo& nodeInfo);
 
-    // 更新统计信息
-    void UpdateTimeStats(SkEventDeviceCtx* ctx, const SkKernelEventRecord* record, uint32_t core);
-
-    // 输出 model 级别统计事件到 JSON 文件
-    bool WriteModelEventsToJson(SkEventDeviceCtx* ctx, FILE* finalFp);
-
     // 输出 sk 级别统计事件到 JSON 文件
-    bool WriteSkEventsToJson(SkEventDeviceCtx* ctx, FILE* finalFp);
+    bool WriteSkEventToJson(SkEventDeviceCtx* ctx, const SkKernelEventRecord* record, uint32_t core);
 
 private:
     bool enabled = false; // 打点是否执行
