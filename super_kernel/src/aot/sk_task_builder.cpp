@@ -265,76 +265,81 @@ bool SkTaskBuilder::InitTaskSyncInfos(const std::vector<SuperKernelBaseNode*>& t
         SkNodeType nodeType = tasks[i]->GetNodeType();
 
         switch (nodeType) {
-        case SkNodeType::NODE_KERNEL: {
-            // KERNEL node: assign queueType from kernel type.
-            const KernelInfos& kernelInfo = GetKernelInfos(tasks[i]);
-            taskSyncInfos_[i].queueType = ToQueueType(kernelInfo.kernelType);
-            kernelCount++;
-            break;
-        }
-        case SkNodeType::NODE_NOTIFY: {
-            // NOTIFY node: inherit type from previous KERNEL node
-            auto* kernel =
-                FindKernelNodeInDirection(tasks[i]->GetPreNodeId(), graph_, SearchDirection::PREV, kernelNodeCache);
-            if (kernel == nullptr) {
-                if (firstKernelEventQueueType == SkQueueType::UNKNOWN) {
-                    SK_LOGE("%s node %zu failed to resolve previous KERNEL node and fallback queue type is UNKNOWN, nodeId=%lu",
-                            to_string(nodeType), i, tasks[i]->GetNodeId());
-                    return false;
-                }
-                taskSyncInfos_[i].queueType = firstKernelEventQueueType;
-                SK_LOGI("%s node %zu failed to resolve previous KERNEL node, nodeId=%lu, fallback = %s",
-                        to_string(nodeType), i, tasks[i]->GetNodeId(), to_string(taskSyncInfos_[i].queueType));
-            } else {
-                kernelNodeCache[tasks[i]->GetNodeId()] = kernel; // cache current NOTIFY node for future searches
-                // Event nodes are executed on a single queue selected by nearest kernel type.
-                taskSyncInfos_[i].queueType = ToEventQueueType(ToQueueType(GetKernelInfos(kernel).kernelType));
+            case SkNodeType::NODE_KERNEL: {
+                // KERNEL node: assign queueType from kernel type.
+                const KernelInfos& kernelInfo = GetKernelInfos(tasks[i]);
+                taskSyncInfos_[i].queueType = ToQueueType(kernelInfo.kernelType);
+                kernelCount++;
+                break;
             }
-            notifyCount++;
-            break;
-        }
-        case SkNodeType::NODE_WAIT: {
-            // WAIT node: inherit type from next KERNEL node
-            auto* kernel =
-                FindKernelNodeInDirection(tasks[i]->GetNextNodeId(), graph_, SearchDirection::NEXT, kernelNodeCache);
-            if (kernel == nullptr) {
-                if (firstKernelEventQueueType == SkQueueType::UNKNOWN) {
-                    SK_LOGE("%s node %zu failed to resolve next KERNEL node and fallback queue type is UNKNOWN, nodeId=%lu",
+            case SkNodeType::NODE_NOTIFY: {
+                // NOTIFY node: inherit type from previous KERNEL node
+                auto* kernel =
+                    FindKernelNodeInDirection(tasks[i]->GetPreNodeId(), graph_, SearchDirection::PREV, kernelNodeCache);
+                if (kernel == nullptr) {
+                    if (firstKernelEventQueueType == SkQueueType::UNKNOWN) {
+                        SK_LOGE(
+                            "%s node %zu failed to resolve previous KERNEL node and fallback queue type is UNKNOWN, nodeId=%lu",
                             to_string(nodeType), i, tasks[i]->GetNodeId());
-                    return false;
+                        return false;
+                    }
+                    taskSyncInfos_[i].queueType = firstKernelEventQueueType;
+                    SK_LOGI("%s node %zu failed to resolve previous KERNEL node, nodeId=%lu, fallback = %s",
+                            to_string(nodeType), i, tasks[i]->GetNodeId(), to_string(taskSyncInfos_[i].queueType));
+                } else {
+                    kernelNodeCache[tasks[i]->GetNodeId()] = kernel; // cache current NOTIFY node for future searches
+                    // Event nodes are executed on a single queue selected by nearest kernel type.
+                    taskSyncInfos_[i].queueType = ToEventQueueType(ToQueueType(GetKernelInfos(kernel).kernelType));
                 }
-                taskSyncInfos_[i].queueType = firstKernelEventQueueType;
-                SK_LOGI("%s node %zu failed to resolve next KERNEL node, nodeId=%lu, fallback = %s",
-                        to_string(nodeType), i, tasks[i]->GetNodeId(), to_string(taskSyncInfos_[i].queueType));
-            } else {
-                kernelNodeCache[tasks[i]->GetNodeId()] = kernel; // cache current WAIT node for future searches
-                // Event nodes are executed on a single queue selected by nearest kernel type.
-                taskSyncInfos_[i].queueType = ToEventQueueType(ToQueueType(GetKernelInfos(kernel).kernelType));
+                notifyCount++;
+                break;
             }
-            waitCount++;
-            break;
+            case SkNodeType::NODE_WAIT: {
+                // WAIT node: inherit type from next KERNEL node
+                auto* kernel = FindKernelNodeInDirection(tasks[i]->GetNextNodeId(), graph_, SearchDirection::NEXT,
+                                                         kernelNodeCache);
+                if (kernel == nullptr) {
+                    if (firstKernelEventQueueType == SkQueueType::UNKNOWN) {
+                        SK_LOGE(
+                            "%s node %zu failed to resolve next KERNEL node and fallback queue type is UNKNOWN, nodeId=%lu",
+                            to_string(nodeType), i, tasks[i]->GetNodeId());
+                        return false;
+                    }
+                    taskSyncInfos_[i].queueType = firstKernelEventQueueType;
+                    SK_LOGI("%s node %zu failed to resolve next KERNEL node, nodeId=%lu, fallback = %s",
+                            to_string(nodeType), i, tasks[i]->GetNodeId(), to_string(taskSyncInfos_[i].queueType));
+                } else {
+                    kernelNodeCache[tasks[i]->GetNodeId()] = kernel; // cache current WAIT node for future searches
+                    // Event nodes are executed on a single queue selected by nearest kernel type.
+                    taskSyncInfos_[i].queueType = ToEventQueueType(ToQueueType(GetKernelInfos(kernel).kernelType));
+                }
+                waitCount++;
+                break;
+            }
+            default:
+                SK_LOGE("unsupported node type for sync info initialization");
+                return false;
         }
-        default:
-            SK_LOGE("unsupported node type for sync info initialization");
-            return false;
-        }
-        if (i < tasks.size() - 1) {
+
+        if(nodeType !=  SkNodeType::NODE_NOTIFY)
+
+        if (nodeType !=  SkNodeType::NODE_NOTIFY && i < tasks.size() - 1) {
             // Initialize default cross-sync hints: 0=CUB, 1=VEC.
             switch (taskSyncInfos_[i].queueType) {
-            case SkQueueType::AIC:
-                taskSyncInfos_[i].crossSyncInfo[0] = SyncDirection::CUB_TO_CUB;
-                break;
-            case SkQueueType::AIV:
-                taskSyncInfos_[i].crossSyncInfo[1] = SyncDirection::VEC_TO_VEC;
-                break;
-            case SkQueueType::MIX_1_1:
-            case SkQueueType::MIX_1_2:
-                taskSyncInfos_[i].crossSyncInfo[0] = SyncDirection::CUB_TO_CUB;
-                taskSyncInfos_[i].crossSyncInfo[1] = SyncDirection::VEC_TO_VEC;
-                break;
-            default:
-                SK_LOGE("unsupported kernel type : %s for inter-sync.", to_string(taskSyncInfos_[i].queueType));
-                return false;
+                case SkQueueType::AIC:
+                    taskSyncInfos_[i].crossSyncInfo[0] = SyncDirection::CUB_TO_CUB;
+                    break;
+                case SkQueueType::AIV:
+                    taskSyncInfos_[i].crossSyncInfo[1] = SyncDirection::VEC_TO_VEC;
+                    break;
+                case SkQueueType::MIX_1_1:
+                case SkQueueType::MIX_1_2:
+                    taskSyncInfos_[i].crossSyncInfo[0] = SyncDirection::CUB_TO_CUB;
+                    taskSyncInfos_[i].crossSyncInfo[1] = SyncDirection::VEC_TO_VEC;
+                    break;
+                default:
+                    SK_LOGE("unsupported kernel type : %s for inter-sync.", to_string(taskSyncInfos_[i].queueType));
+                    return false;
             }
         }
     }

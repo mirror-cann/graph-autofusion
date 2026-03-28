@@ -86,6 +86,7 @@ bool SuperKernelOptimizer::Update(SuperKernelProcessedScopeInfo& processedScopeI
         return false;
     }
 
+    graph.SetUpdateFlag(true); // set graph update flag
     SK_LOGI("scope update finished: update total nodes=%zu", updateTotalCount);
 
     return true;

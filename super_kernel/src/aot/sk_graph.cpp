@@ -33,6 +33,10 @@ std::string SuperKernelGraph::BitsetToString(const std::bitset<MAX_SCOPE_NUM>& b
 }
 
 aclError SuperKernelGraph::Update() {
+    if (!needUpdate && needUpdateNodes.empty()) {
+        SK_LOGI("No update needed for SuperKernelGraph");
+        return ACL_SUCCESS;
+    }
     for(auto node : needUpdateNodes) {
         if (node == nullptr) {
             SK_LOGE("Null node found in needUpdateNodes");

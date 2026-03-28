@@ -107,6 +107,10 @@ public:
     std::string BitsetToString(const std::bitset<MAX_SCOPE_NUM>& bitset) const;
     // Expand update nodes
     bool ExpandUpdateNodes(std::vector<SuperKernelBaseNode*>& needUpdateNodes);
+    void SetUpdateFlag(bool flag)
+    {
+        needUpdate = flag;
+    }
 
 private:
     bool AddNode(std::unique_ptr<SuperKernelBaseNode> node);
@@ -133,6 +137,7 @@ private:
     std::unordered_map<uint32_t, std::string> scopeIdxToName;    ///< scopeIdx -> scopeName (reverse mapping)
     std::vector<std::unique_ptr<uint8_t[]>> shapeInfoPtrList;    ///< profiling sk shape info memory, lifecycle follows graph
     std::unordered_set<SuperKernelBaseNode*> needUpdateNodes;      ///< event nodes that need to be marked with scope bit flags after scope processing 
+    bool needUpdate = false;
 };
 
 #endif // __SK_GRAPH_H__
