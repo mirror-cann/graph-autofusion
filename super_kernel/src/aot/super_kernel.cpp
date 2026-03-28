@@ -39,6 +39,9 @@ extern "C" {
 #endif
 
 aclError aclskOptimize(aclmdlRI model, aclskOptions *options) {
+    // Initialize logger (controlled by environment variable ASCEND_OP_COMPILE_SAVE_KERNEL_META)
+    InitSkLogger(model);
+    
     CurrentModelGuard modelGuard(model);
     aclError ret = aclrtSetExceptionInfoCallback(SuperKernelExceptionCallBackFunc);
     if (ret != ACL_SUCCESS) {
@@ -59,7 +62,7 @@ aclError aclskOptimize(aclmdlRI model, aclskOptions *options) {
     SK_LOGI("End init sk graph");
     
     SK_LOGI("Start init sk time profiling  event recorder...");
-    SkEventRecorder::Instance().Init(); // 初始化事件记录器（如果ASCEND_PROF_SK_ON=1环境变量开启）
+    SkEventRecorder::Instance().Init(); // Initialize event recorder (if ASCEND_PROF_SK_ON=1 environment variable is set)
     SK_LOGI("End init sk time profiling event recorder");
 
     SK_LOGI("Start parse sk options...");

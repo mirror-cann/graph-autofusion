@@ -151,6 +151,15 @@ public:
      */
     static void PrintScopeStreamInfos(size_t scopeIdx, const SuperKernelScopeInfo& scope);
 
+private:
+    /*!
+     * \brief Print detailed scope information to current log context
+     * \param scopes Scope list to print
+     * \param graph Graph for scope name lookup
+     */
+    static void PrintScopeDetails(const std::vector<SuperKernelScopeInfo>& scopes,
+                                   const SuperKernelGraph& graph);
+
 protected:
     SuperKernelGraph& graph_;
 };

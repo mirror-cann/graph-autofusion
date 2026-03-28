@@ -740,6 +740,13 @@ void SuperKernelGraph::UpdateNodeScopeBitFlags() {
         if (node->IsScopeNode()) {
             node->SetIsFusible(true);
         }
+        {
+            SK_LOG_CONTEXT_SIMPLE("sk_node_detail.log");
+            SK_LOGI("Processed node %s: type=%s, scopeFlags=%s, isFusible=%d, stackSize=%zu",
+                    node->Format().c_str(), to_string(node->GetNodeType()),
+                    BitsetToString(node->GetScopeBitFlags()).c_str(),
+                    node->IsFusible(), scopeStack.size());
+        }
         SK_LOGI("Processed node %s: type=%s, scopeFlags=%s, isFusible=%d, stackSize=%zu",
                 node->Format().c_str(), to_string(node->GetNodeType()),
                 BitsetToString(node->GetScopeBitFlags()).c_str(),

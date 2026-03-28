@@ -1,27 +1,110 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
- * CANN Open Software License Agreement Version 2.0 (the "License").
+ * This program is free software, you can redistribute it and/or modify it 
+ * under the terms of CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
- * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
+ * EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
+ * MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
 
 /*!
  * \file sk_log.h
- * \brief
+ * \brief Super Kernel Log Module (Merged File Logger)
+ * 
+ * Features:
+ * 1. Supports on/off control, passthrough to dlog_* when disabled
+ * 2. Creates directory structure: sk_meta/{Pid}/{ModelRI} when enabled
+ * 3. Provides five log levels: trace/debug/info/warning/error
+ * 4. Supports segmentation for long logs
+ * 5. RAII-style log context manager
+ * 6. Thread-safe file handle management
  */
 
 #ifndef __SK_LOG_H__
 #define __SK_LOG_H__
 
 #include <csignal>
+#include <cstdarg>
 #include <string>
+#include <unordered_map>
+#include <memory>
+#include <mutex>
+#include <atomic>
+#include <fstream>
+#include <sstream>
+#include <cstring>
+#include <chrono>
+#include <iomanip>
+#include <thread>
+#include <unistd.h>
+#include <sys/stat.h>
+#include <cstdlib>
 #include "dlog_pub.h"
 
+// Forward declaration for aclmdlRI
+typedef void* aclmdlRI;
+
+// ==================== CANN Module Definition ====================
 #define ASCENDC_MODULE_NAME static_cast<int32_t>(ASCENDCKERNEL)
 
+// ==================== Low-Level Log Macros (SK_DLOG*) ====================
+// These macros directly call dlog_* interfaces, used for passthrough
+#define SK_DLOGD(format, ...)                                                                                          \
+    do {                                                                                                               \
+        dlog_debug(ASCENDC_MODULE_NAME, "[SK][%s] " format "\n", __FUNCTION__,                                         \
+                   ##__VA_ARGS__);                                                                                     \
+    } while (0)
+
+#define SK_DLOGW(format, ...)                                                                                          \
+    do {                                                                                                               \
+        dlog_warn(ASCENDC_MODULE_NAME, "[SK][%s] " format "\n", __FUNCTION__,                                          \
+                  ##__VA_ARGS__);                                                                                      \
+    } while (0)
+
+#define SK_DLOGI(format, ...)                                                                                          \
+    do {                                                                                                               \
+        dlog_info(ASCENDC_MODULE_NAME, "[SK][%s] " format "\n",  __FUNCTION__,                                         \
+                  ##__VA_ARGS__);                                                                                      \
+    } while (0)
+
+#define SK_DLOGE(format, ...)                                                                                          \
+    do {                                                                                                               \
+        dlog_error(ASCENDC_MODULE_NAME, "[SK][%s] " format "\n",  __FUNCTION__,                                        \
+                   ##__VA_ARGS__);                                                                                     \
+    } while (0)
+
+// ==================== Helper Macro Definitions ====================
+#define CHECK_ACL(x)                                                                                                   \
+    do {                                                                                                               \
+        aclError __ret = x;                                                                                            \
+        if (__ret != ACL_ERROR_NONE) {                                                                                 \
+            SK_DLOGE("aclError: %d", __ret);                                                                           \
+        }                                                                                                              \
+    } while (0)
+
+#define REPORT_ERROR_MESSAGE(...)                                                                                      \
+    do {                                                                                                               \
+        ReportErrorMessage(__VA_ARGS__);                                                                               \
+    } while (0)
+
+#define SK_ASSERT_RETVAL(cond, ret)                                                                                    \
+    do {                                                                                                               \
+        if (!(cond)) {                                                                                                 \
+            SK_DLOGE_WITH_REPORT("Assert %s failed", #cond);                                                           \
+            return (ret);                                                                                              \
+        }                                                                                                              \
+    } while (0)
+
+#define SK_DLOGE_WITH_REPORT(format, ...)                                                                              \
+    do {                                                                                                               \
+        dlog_error(ASCENDC_MODULE_NAME, "[SK][%s] " format "\n",  __FUNCTION__,                                        \
+                   ##__VA_ARGS__);                                                                                     \
+        REPORT_ERROR_MESSAGE(format, ##__VA_ARGS__);                                                                   \
+    } while (0)
+
+// ==================== Helper Functions ====================
 constexpr const char* GetFileName(const char* path)
 {
     const char* file = path;
@@ -34,6 +117,7 @@ constexpr const char* GetFileName(const char* path)
 }
 
 void ReportErrorMessageInner(const std::string& code, const char* fmt, ...);
+
 template <typename... Arguments>
 void ReportErrorMessage(const char* fmt, Arguments&&... args)
 {
@@ -41,63 +125,341 @@ void ReportErrorMessage(const char* fmt, Arguments&&... args)
     return ReportErrorMessageInner(errorCode, fmt, std::forward<Arguments>(args)...);
 }
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+// ==================== File Logger Namespace ====================
+namespace sk {
+namespace logger {
 
-#define SK_LOGD(format, ...)                                                                                           \
-    do {                                                                                                               \
-        dlog_debug(ASCENDC_MODULE_NAME, "[SK][%s] " format "\n", __FUNCTION__,                                         \
-                   ##__VA_ARGS__);                                                                                     \
-    } while (0)
+// ==================== Log Level Enumeration ====================
+enum class LogLevel : uint8_t {
+    TRACE = 0,
+    DEBUG = 1,
+    INFO = 2,
+    WARNING = 3,
+    ERROR = 4,
+    OFF = 5  // Disable all logs
+};
 
-#define SK_LOGW(format, ...)                                                                                           \
-    do {                                                                                                               \
-        dlog_warn(ASCENDC_MODULE_NAME, "[SK][%s] " format "\n", __FUNCTION__,                                          \
-                  ##__VA_ARGS__);                                                                                      \
-    } while (0)
-
-#define SK_LOGI(format, ...)                                                                                           \
-    do {                                                                                                               \
-        dlog_info(ASCENDC_MODULE_NAME, "[SK][%s] " format "\n",  __FUNCTION__,                                         \
-                  ##__VA_ARGS__);                                                                                      \
-    } while (0)
-
-#define SK_LOGE(format, ...)                                                                                           \
-    do {                                                                                                               \
-        dlog_error(ASCENDC_MODULE_NAME, "[SK][%s] " format "\n",  __FUNCTION__,                                        \
-                   ##__VA_ARGS__);                                                                                     \
-    } while (0)
-
-#define CHECK_ACL(x)                                                                                                   \
-    do {                                                                                                               \
-        aclError __ret = x;                                                                                            \
-        if (__ret != ACL_ERROR_NONE) {                                                                                 \
-            SK_LOGE("aclError: %d", __ret);                                                                            \
-        }                                                                                                              \
-    } while (0)
-
-#define REPORT_ERROR_MESSAGE(...)                                                                                      \
-    do {                                                                                                               \
-        ReportErrorMessage(__VA_ARGS__);                                                                               \
-    } while (0)
-
-#define SK_ASSERT_RETVAL(cond, ret)                                                                                    \
-    do {                                                                                                               \
-        if (!(cond)) {                                                                                                 \
-            SK_LOGE_WITH_REPORT("Assert %s failed", #cond);                                                            \
-            return (ret);                                                                                              \
-        }                                                                                                              \
-    } while (0)
-
-#define SK_LOGE_WITH_REPORT(format, ...)                                                                               \
-    do {                                                                                                               \
-        dlog_error(ASCENDC_MODULE_NAME, "[SK][%s] " format "\n",  __FUNCTION__,                                        \
-                   ##__VA_ARGS__);                                                                                     \
-        REPORT_ERROR_MESSAGE(format, ##__VA_ARGS__);                                                                   \
-    } while (0)
-#ifdef __cplusplus
+// Convert log level to string
+inline const char* LogLevelToString(LogLevel level) {
+    switch (level) {
+        case LogLevel::TRACE:   return "TRACE";
+        case LogLevel::DEBUG:   return "DEBUG";
+        case LogLevel::INFO:    return "INFO";
+        case LogLevel::WARNING: return "WARN";
+        case LogLevel::ERROR:   return "ERROR";
+        default:                return "UNKNOWN";
+    }
 }
-#endif
+
+// ==================== Configuration Structure ====================
+struct LoggerConfig {
+    bool enabled = false;                    // Enable file logging
+    LogLevel minLevel = LogLevel::INFO;      // Minimum log level
+    std::string baseDir = "sk_meta";         // Base directory name
+    aclmdlRI modelRI = nullptr;               // Model RI pointer
+    size_t maxFileSize = 100 * 1024 * 1024;  // Max file size: 100MB
+    size_t maxLineLength = 4096;              // Max line length (for segmentation)
+    bool enableTimestamp = true;              // Add timestamp
+    bool enablePidTid = true;                 // Add process/thread ID
+};
+
+// ==================== File Handle Information ====================
+struct FileHandleInfo {
+    std::string filePath;           // Full file path
+    std::ofstream fileStream;       // File stream
+    size_t currentSize = 0;         // Current file size
+    size_t writeCount = 0;          // Write count
+    std::chrono::system_clock::time_point createTime; // Creation time
+    
+    FileHandleInfo() = default;
+    FileHandleInfo(const FileHandleInfo&) = delete;
+    FileHandleInfo& operator=(const FileHandleInfo&) = delete;
+    
+    FileHandleInfo(FileHandleInfo&& other) noexcept
+        : filePath(std::move(other.filePath))
+        , fileStream(std::move(other.fileStream))
+        , currentSize(other.currentSize)
+        , writeCount(other.writeCount)
+        , createTime(other.createTime) {}
+    
+    FileHandleInfo& operator=(FileHandleInfo&& other) noexcept {
+        if (this != &other) {
+            if (fileStream.is_open()) {
+                fileStream.close();
+            }
+            filePath = std::move(other.filePath);
+            fileStream = std::move(other.fileStream);
+            currentSize = other.currentSize;
+            writeCount = other.writeCount;
+            createTime = other.createTime;
+        }
+        return *this;
+    }
+    
+    ~FileHandleInfo() {
+        if (fileStream.is_open()) {
+            fileStream.flush();
+            fileStream.close();
+        }
+    }
+};
+
+// ==================== File Handle Manager ====================
+class FileHandleManager {
+public:
+    static FileHandleManager& Instance() {
+        static FileHandleManager instance;
+        return instance;
+    }
+    
+    // Register log file
+    bool RegisterFile(const std::string& name, const std::string& path);
+    
+    // Switch to specified file handle
+    bool SwitchToFile(const std::string& name);
+    
+    // Switch to default handle
+    void SwitchToDefault();
+    
+    // Write log
+    bool Write(const std::string& name, const std::string& content);
+    
+    // Write to current handle
+    bool WriteToCurrent(const std::string& content);
+    
+    // Get current handle name
+    std::string GetCurrentHandle() const;
+    
+    // Get file size
+    size_t GetFileSize(const std::string& name);
+    
+    // Close specified file
+    void CloseFile(const std::string& name);
+    
+    // Initialize default file
+    bool InitializeDefault(const std::string& baseDir, pid_t pid, aclmdlRI model);
+    
+private:
+    FileHandleManager();
+    ~FileHandleManager();
+    
+    FileHandleManager(const FileHandleManager&) = delete;
+    FileHandleManager& operator=(const FileHandleManager&) = delete;
+    
+private:
+    std::unordered_map<std::string, FileHandleInfo> handles_;
+    mutable std::mutex mutex_;
+    
+    // Thread-local current handle to avoid multi-threading conflicts
+    static thread_local std::string currentHandle_;
+};
+
+// ==================== RAII Log Context Manager ====================
+class LogContextGuard {
+public:
+    explicit LogContextGuard(const std::string& fileName, const std::string& filePath);
+    ~LogContextGuard();
+    
+    // Disable copy
+    LogContextGuard(const LogContextGuard&) = delete;
+    LogContextGuard& operator=(const LogContextGuard&) = delete;
+    
+    // Support move
+    LogContextGuard(LogContextGuard&& other) noexcept;
+    LogContextGuard& operator=(LogContextGuard&& other) noexcept;
+    
+    bool IsActive() const { return active_; }
+    
+private:
+    std::string previousHandle_;
+    bool active_;
+};
+
+// ==================== Main Logger Class ====================
+class FileLogger {
+public:
+    static FileLogger& Instance();
+    
+    // Initialize
+    bool Initialize(const LoggerConfig& config);
+    
+    // Core log interface
+    template<typename... Args>
+    void LogWithPassthrough(LogLevel level, const char* funcName, 
+                            const char* fileName, int lineNum,
+                            const char* format, Args&&... args) {
+        // 1. Always passthrough to SK_DLOG* (preserve original behavior)
+        PassthroughToSKLog(level, funcName, format, std::forward<Args>(args)...);
+        
+        // 2. Write to file if enabled
+        if (config_.enabled && level >= config_.minLevel) {
+            std::string message = FormatMessage(level, funcName, fileName, lineNum, format, std::forward<Args>(args)...);
+            WriteLog(message);
+        }
+    }
+    
+    // File handle management
+    bool RegisterLogFile(const std::string& name, const std::string& subPath = "");
+    bool SwitchToFile(const std::string& name);
+    void SwitchToDefault();
+    
+    // RAII context management
+    std::unique_ptr<LogContextGuard> CreateContext(const std::string& fileName,
+                                                    aclmdlRI model = nullptr);
+    
+    // Configuration management
+    void SetEnabled(bool enabled);
+    bool IsEnabled() const;
+    void SetMinLevel(LogLevel level);
+    void SetModelRI(aclmdlRI modelRI);
+    bool IsInitialized() const;
+    
+private:
+    FileLogger() = default;
+    ~FileLogger() = default;
+    
+    FileLogger(const FileLogger&) = delete;
+    FileLogger& operator=(const FileLogger&) = delete;
+    
+    // Format message (using variadic arguments to avoid format-security warning)
+    std::string FormatMessage(LogLevel level, const char* funcName,
+                              const char* fileName, int lineNum,
+                              const char* format, ...);
+    
+    void WriteLog(const std::string& message);
+    
+    // Low-level log calls (avoid template-macro conflicts)
+    void LogDebugImpl(const char* format, ...);
+    void LogInfoImpl(const char* format, ...);
+    void LogWarnImpl(const char* format, ...);
+    void LogErrorImpl(const char* format, ...);
+    
+    template<typename... Args>
+    void PassthroughToSKLog(LogLevel level, const char* funcName,
+                            const char* format, Args&&... args) {
+        switch (level) {
+            case LogLevel::TRACE:
+            case LogLevel::DEBUG:
+                LogDebugImpl(format, std::forward<Args>(args)...);
+                break;
+            case LogLevel::INFO:
+                LogInfoImpl(format, std::forward<Args>(args)...);
+                break;
+            case LogLevel::WARNING:
+                LogWarnImpl(format, std::forward<Args>(args)...);
+                break;
+            case LogLevel::ERROR:
+                LogErrorImpl(format, std::forward<Args>(args)...);
+                break;
+            default:
+                break;
+        }
+    }
+
+private:
+    LoggerConfig config_;
+    std::atomic<bool> initialized_{false};
+    pid_t pid_{0};
+    mutable std::mutex mutex_;
+};
+
+} // namespace logger
+} // namespace sk
+
+// ==================== User Log Macros (SK_LOG*) ====================
+// These macros provide passthrough + file logging functionality
+// Note: __FILE__ and __LINE__ are passed to capture actual call site
+#define SK_LOGT(format, ...) \
+    sk::logger::FileLogger::Instance().LogWithPassthrough( \
+        sk::logger::LogLevel::TRACE, __FUNCTION__, __FILE__, __LINE__, format, ##__VA_ARGS__)
+
+#define SK_LOGD(format, ...) \
+    sk::logger::FileLogger::Instance().LogWithPassthrough( \
+        sk::logger::LogLevel::DEBUG, __FUNCTION__, __FILE__, __LINE__, format, ##__VA_ARGS__)
+
+#define SK_LOGI(format, ...) \
+    sk::logger::FileLogger::Instance().LogWithPassthrough( \
+        sk::logger::LogLevel::INFO, __FUNCTION__, __FILE__, __LINE__, format, ##__VA_ARGS__)
+
+#define SK_LOGW(format, ...) \
+    sk::logger::FileLogger::Instance().LogWithPassthrough( \
+        sk::logger::LogLevel::WARNING, __FUNCTION__, __FILE__, __LINE__, format, ##__VA_ARGS__)
+
+#define SK_LOGE(format, ...) \
+    sk::logger::FileLogger::Instance().LogWithPassthrough( \
+        sk::logger::LogLevel::ERROR, __FUNCTION__, __FILE__, __LINE__, format, ##__VA_ARGS__)
+
+// ==================== RAII Context Macros ====================
+#define SK_LOG_CONTEXT(fileName, modelRI) \
+    auto _sk_log_context_guard = sk::logger::FileLogger::Instance().CreateContext(fileName, modelRI)
+
+#define SK_LOG_CONTEXT_SIMPLE(fileName) \
+    auto _sk_log_context_guard = sk::logger::FileLogger::Instance().CreateContext(fileName)
+
+// ==================== Global Initialization Helper Functions and Macros ====================
+
+// Note: ModelRIToString is now defined in sk_common.h
+
+/**
+ * @brief Initialize logger with aclmdlRI pointer
+ * @param model Model RI pointer (will be converted to string internally)
+ * 
+ * Reads environment variable ASCEND_OP_COMPILE_SAVE_KERNEL_META to enable/disable file logging.
+ * - ASCEND_OP_COMPILE_SAVE_KERNEL_META=1: Enable file logging
+ * - ASCEND_OP_COMPILE_SAVE_KERNEL_META=0 or unset: Disable file logging
+ * 
+ * @example
+ *   InitSkLogger(model);
+ *   // Creates directory: sk_meta/{pid}/model_305419896/
+ */
+inline void InitSkLogger(aclmdlRI model) {
+    // Read environment variable
+    const char* envVar = std::getenv("ASCEND_OP_COMPILE_SAVE_KERNEL_META");
+    bool enabled = false;
+    
+    if (envVar != nullptr) {
+        std::string value(envVar);
+        // Trim leading and trailing whitespace
+        value.erase(0, value.find_first_not_of(" \t\n\r\f\v"));
+        value.erase(value.find_last_not_of(" \t\n\r\f\v") + 1);
+        
+        // Check if value is "1" (enable file logging)
+        enabled = (value == "1");
+        
+        if (enabled) {
+            SK_DLOGI("File logger enabled by environment variable ASCEND_OP_COMPILE_SAVE_KERNEL_META=1");
+        } else {
+            SK_DLOGI("File logger disabled by environment variable ASCEND_OP_COMPILE_SAVE_KERNEL_META=%s", value.c_str());
+        }
+    } else {
+        SK_DLOGI("File logger disabled (environment variable ASCEND_OP_COMPILE_SAVE_KERNEL_META not set)");
+    }
+    
+    // Initialize file logger
+    sk::logger::LoggerConfig config;
+    config.enabled = enabled;
+    config.modelRI = model;
+    config.minLevel = sk::logger::LogLevel::DEBUG;
+    config.baseDir = "sk_meta";
+    
+    if (!sk::logger::FileLogger::Instance().Initialize(config)) {
+        SK_DLOGW("Failed to initialize file logger, falling back to dlog only");
+        // Disable file logging on initialization failure
+        sk::logger::FileLogger::Instance().SetEnabled(false);
+    }
+}
+
+// Manual initialization function
+bool InitializeSkFileLogger(bool enabled, aclmdlRI model = nullptr,
+                             sk::logger::LogLevel minLevel = sk::logger::LogLevel::INFO);
+
+#define INIT_SK_FILE_LOGGER(modelRI) \
+    InitializeSkFileLogger(true, modelRI, sk::logger::LogLevel::DEBUG)
+
+#define INIT_SK_FILE_LOGGER_MINIMAL(modelRI) \
+    InitializeSkFileLogger(true, modelRI, sk::logger::LogLevel::INFO)
+
+#define DISABLE_SK_FILE_LOGGER() \
+    sk::logger::FileLogger::Instance().SetEnabled(false)
 
 #endif // __SK_LOG_H__

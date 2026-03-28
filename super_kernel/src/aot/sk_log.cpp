@@ -1,23 +1,29 @@
 /**
-* Copyright (c) 2025 Huawei Technologies Co., Ltd.
-* This program is free software, you can redistribute it and/or modify it under the terms and conditions of
-* CANN Open Software License Agreement Version 2.0 (the "License").
-* Please refer to the License for details. You may not use this file except in compliance with the License.
-* THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
-* INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
-* See LICENSE in the root of the software repository for the full text of the License.
-*/
+ * Copyright (c) 2025 Huawei Technologies Co., Ltd.
+ * This program is free software, you can redistribute it and/or modify it 
+ * under the terms of CANN Open Software License Agreement Version 2.0 (the "License").
+ * Please refer to the License for details. You may not use this file except in compliance with the License.
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
+ * EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
+ * MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+ * See LICENSE in the root of the software repository for the full text of the License.
+ */
 
 /*!
  * \file sk_log.cpp
- * \brief
+ * \brief Super Kernel Log Module Implementation (Merged File Logger)
  */
 
-#include <vector>
 #include "sk_log.h"
+#include "sk_common.h"
 #include "securec.h"
 #include "base/err_mgr.h"
+#include <iostream>
+#include <cstdarg>
+#include <cstdlib>
+#include <limits.h>
 
+// ==================== Original Error Report Function ====================
 constexpr size_t LIMIT_PREDEFINED_MESSAGE = 1024U;
 
 void ReportErrorMessageInner(const std::string &code, const char* fmt, ...)
@@ -27,7 +33,7 @@ void ReportErrorMessageInner(const std::string &code, const char* fmt, ...)
     va_start(argList, fmt);
     auto ret = vsnprintf_s(buf.data(), LIMIT_PREDEFINED_MESSAGE, LIMIT_PREDEFINED_MESSAGE - 1U, fmt, argList);
     if (ret == -1) {
-        SK_LOGW("Construct error message failed, maybe the length of error message exceed limits: %zu", 
+        SK_DLOGE("Construct error message failed, maybe the length of error message exceed limits: %zu", 
             LIMIT_PREDEFINED_MESSAGE);
     }
     va_end(argList);
@@ -36,3 +42,463 @@ void ReportErrorMessageInner(const std::string &code, const char* fmt, ...)
     REPORT_PREDEFINED_ERR_MSG(code.c_str(), msgKey, msgValue);
 }
 
+// ==================== FileHandleManager Implementation ====================
+namespace sk {
+namespace logger {
+
+bool FileHandleManager::RegisterFile(const std::string& name, const std::string& path) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    
+    if (handles_.find(name) != handles_.end()) {
+        return true; // Already registered
+    }
+    
+    FileHandleInfo handle;
+    handle.filePath = path;
+    handle.fileStream.open(path, std::ios::app | std::ios::out);
+    
+    if (!handle.fileStream.is_open()) {
+        SK_DLOGE("Failed to open log file: %s", path.c_str());
+        return false;
+    }
+    
+    handle.createTime = std::chrono::system_clock::now();
+    
+    // Get current file size for existing files
+    handle.fileStream.seekp(0, std::ios::end);
+    handle.currentSize = static_cast<size_t>(handle.fileStream.tellp());
+    
+    handles_.emplace(name, std::move(handle));
+    return true;
+}
+
+bool FileHandleManager::SwitchToFile(const std::string& name) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    
+    auto it = handles_.find(name);
+    if (it == handles_.end()) {
+        SK_DLOGE("File handle not found: %s", name.c_str());
+        return false;
+    }
+    
+    currentHandle_ = name;
+    return true;
+}
+
+void FileHandleManager::SwitchToDefault() {
+    std::lock_guard<std::mutex> lock(mutex_);
+    currentHandle_ = "default";
+}
+
+bool FileHandleManager::Write(const std::string& name, const std::string& content) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    
+    auto it = handles_.find(name);
+    if (it == handles_.end() || !it->second.fileStream.is_open()) {
+        return false;
+    }
+    
+    auto& handle = it->second;
+    handle.fileStream << content;
+    handle.fileStream.flush();
+    
+    handle.currentSize += content.size();
+    handle.writeCount++;
+    
+    return true;
+}
+
+bool FileHandleManager::WriteToCurrent(const std::string& content) {
+    return Write(currentHandle_, content);
+}
+
+std::string FileHandleManager::GetCurrentHandle() const {
+    std::lock_guard<std::mutex> lock(mutex_);
+    return currentHandle_;
+}
+
+size_t FileHandleManager::GetFileSize(const std::string& name) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    
+    auto it = handles_.find(name);
+    if (it == handles_.end()) {
+        return 0;
+    }
+    return it->second.currentSize;
+}
+
+void FileHandleManager::CloseFile(const std::string& name) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    
+    auto it = handles_.find(name);
+    if (it != handles_.end()) {
+        if (it->second.fileStream.is_open()) {
+            it->second.fileStream.flush();
+            it->second.fileStream.close();
+        }
+        handles_.erase(it);
+    }
+}
+
+bool FileHandleManager::InitializeDefault(const std::string& baseDir, pid_t pid, aclmdlRI model) {
+    // Use unified path generator with model
+    std::string dirPath = GetSkMetaPath(model);
+    if (!CreateDirectoryRecursive(dirPath)) {
+        return false;
+    }
+    
+    std::string defaultPath = dirPath + "/super_kernel.log";
+    return RegisterFile("default", defaultPath);
+}
+
+// Thread-local current handle initialization
+thread_local std::string FileHandleManager::currentHandle_ = "default";
+
+FileHandleManager::FileHandleManager() {}
+
+FileHandleManager::~FileHandleManager() {
+    std::lock_guard<std::mutex> lock(mutex_);
+    for (auto& pair : handles_) {
+        if (pair.second.fileStream.is_open()) {
+            pair.second.fileStream.flush();
+            pair.second.fileStream.close();
+        }
+    }
+}
+
+// ==================== LogContextGuard Implementation ====================
+LogContextGuard::LogContextGuard(const std::string& fileName, const std::string& filePath)
+    : previousHandle_(FileHandleManager::Instance().GetCurrentHandle())
+    , active_(false)
+{
+    if (!FileHandleManager::Instance().RegisterFile(fileName, filePath)) {
+        SK_DLOGE("Failed to register log file: %s", fileName.c_str());
+        return;
+    }
+    
+    if (!FileHandleManager::Instance().SwitchToFile(fileName)) {
+        SK_DLOGE("Failed to switch to log file: %s", fileName.c_str());
+        return;
+    }
+    
+    active_ = true;
+}
+
+LogContextGuard::~LogContextGuard() {
+    if (active_ && !previousHandle_.empty()) {
+        // Restore to previous handle, not just default
+        FileHandleManager::Instance().SwitchToFile(previousHandle_);
+    }
+}
+
+LogContextGuard::LogContextGuard(LogContextGuard&& other) noexcept
+    : previousHandle_(std::move(other.previousHandle_))
+    , active_(other.active_)
+{
+    other.active_ = false;
+}
+
+LogContextGuard& LogContextGuard::operator=(LogContextGuard&& other) noexcept {
+    if (this != &other) {
+        if (active_) {
+            FileHandleManager::Instance().SwitchToDefault();
+        }
+        previousHandle_ = std::move(other.previousHandle_);
+        active_ = other.active_;
+        other.active_ = false;
+    }
+    return *this;
+}
+
+// ==================== FileLogger Implementation ====================
+FileLogger& FileLogger::Instance() {
+    static FileLogger instance;
+    return instance;
+}
+
+bool FileLogger::Initialize(const LoggerConfig& config) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    
+    if (initialized_.load()) {
+        return true;
+    }
+    
+    config_ = config;
+    
+    if (!config_.enabled) {
+        SK_DLOGI("File logger is disabled");
+        initialized_.store(true);
+        return true;
+    }
+    
+    // Use common utility to create sk_meta directory structure
+    std::string logDir = CreateSkMetaDirectory(config_.modelRI);
+    if (logDir.empty() && config_.enabled) {
+        SK_DLOGE("Failed to create sk_meta directory");
+        return false;
+    }
+    
+    // Extract PID from created directory
+    pid_ = getpid();
+    
+    // Step 5: Initialize default file handle with modelRI
+    if (!FileHandleManager::Instance().InitializeDefault(config_.baseDir, pid_, config_.modelRI)) {
+        SK_DLOGE("Failed to initialize default file handle");
+        return false;
+    }
+    
+    initialized_.store(true);
+    
+    // Convert to absolute path for better visibility
+    char absPath[PATH_MAX] = {0};  // Initialize buffer with zeros
+    if (realpath(logDir.c_str(), absPath) != nullptr) {
+        // Ensure null termination
+        absPath[PATH_MAX - 1] = '\0';
+        SK_DLOGI("File logger initialized: dir=%s", absPath);
+    } else {
+        SK_DLOGI("File logger initialized: dir=%s", logDir.c_str());
+    }
+    return true;
+}
+
+bool FileLogger::RegisterLogFile(const std::string& name, const std::string& subPath) {
+    if (!initialized_.load() || !config_.enabled) {
+        return false;
+    }
+    
+    // Use unified path generator
+    std::string basePath = GetSkMetaPath(config_.modelRI);
+    std::string filePath = basePath + "/" + name;
+    
+    // If subPath provided, insert it before filename
+    if (!subPath.empty()) {
+        filePath = basePath + "/" + SanitizePathComponent(subPath) + "/" + name;
+    }
+    
+    // Ensure directory exists using common utility
+    size_t lastSlash = filePath.find_last_of('/');
+    if (lastSlash != std::string::npos) {
+        std::string dir = filePath.substr(0, lastSlash);
+        if (!CreateDirectoryRecursive(dir)) {
+            return false;
+        }
+    }
+    
+    return FileHandleManager::Instance().RegisterFile(name, filePath);
+}
+
+bool FileLogger::SwitchToFile(const std::string& name) {
+    if (!initialized_.load() || !config_.enabled) {
+        return false;
+    }
+    return FileHandleManager::Instance().SwitchToFile(name);
+}
+
+void FileLogger::SwitchToDefault() {
+    FileHandleManager::Instance().SwitchToDefault();
+}
+
+std::unique_ptr<LogContextGuard> FileLogger::CreateContext(const std::string& fileName,
+                                                            aclmdlRI model) {
+    if (!initialized_.load() || !config_.enabled) {
+        return nullptr;
+    }
+    
+    // Use provided model or default config model
+    aclmdlRI useModel = (model != nullptr) ? model : config_.modelRI;
+    
+    // Use common utility to create directory
+    std::string dirPath = CreateSkMetaDirectory(useModel);
+    
+    if (dirPath.empty()) {
+        SK_DLOGE("Failed to create directory for context");
+        return nullptr;
+    }
+    
+    std::string filePath = dirPath + "/" + fileName;
+    
+    return std::make_unique<LogContextGuard>(fileName, filePath);
+}
+
+void FileLogger::SetEnabled(bool enabled) {
+    config_.enabled = enabled;
+}
+
+bool FileLogger::IsEnabled() const {
+    return config_.enabled;
+}
+
+void FileLogger::SetMinLevel(LogLevel level) {
+    config_.minLevel = level;
+}
+
+void FileLogger::SetModelRI(aclmdlRI modelRI) {
+    config_.modelRI = modelRI;
+}
+
+bool FileLogger::IsInitialized() const {
+    return initialized_.load();
+}
+
+std::string FileLogger::FormatMessage(LogLevel level, const char* funcName,
+                                      const char* fileName, int lineNum,
+                                      const char* format, ...) {
+    std::ostringstream oss;
+    
+    // Timestamp
+    if (config_.enableTimestamp) {
+        auto now = std::chrono::system_clock::now();
+        auto time_t = std::chrono::system_clock::to_time_t(now);
+        auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+            now.time_since_epoch()) % 1000;
+        
+        oss << std::put_time(std::localtime(&time_t), "%Y-%m-%d %H:%M:%S");
+        oss << "." << std::setfill('0') << std::setw(3) << ms.count();
+        oss << " ";
+    }
+    
+    // Process/Thread ID
+    if (config_.enablePidTid) {
+        oss << "[" << pid_ << ":" << std::this_thread::get_id() << "] ";
+    }
+    
+    // Log level
+    oss << "[" << LogLevelToString(level) << "] ";
+    
+    // File name and line number (extract just the filename from full path)
+    if (fileName != nullptr) {
+        const char* baseName = strrchr(fileName, '/');
+        if (baseName != nullptr) {
+            baseName++; // Skip '/'
+        } else {
+            baseName = fileName;
+        }
+        oss << "[" << baseName << ":" << lineNum << "] ";
+    }
+    
+    // Function name
+    if (funcName != nullptr) {
+        oss << "[" << funcName << "] ";
+    }
+    
+    // Log content - use secure function
+    va_list args;
+    va_start(args, format);
+    char buffer[4096];
+    int ret = vsnprintf_s(buffer, sizeof(buffer), sizeof(buffer) - 1, format, args);
+    va_end(args);
+    
+    if (ret < 0) {
+        // Format error, use error message
+        oss << "[FORMAT_ERROR] ";
+        oss << "Failed to format log message\n";
+    } else {
+        oss << buffer << "\n";
+    }
+    
+    return oss.str();
+}
+
+void FileLogger::WriteLog(const std::string& message) {
+    if (message.empty()) {
+        return;
+    }
+    
+    // Long log segmentation handling
+    if (message.size() > config_.maxLineLength) {
+        size_t offset = 0;
+        size_t segmentNum = 0;
+        
+        while (offset < message.size()) {
+            size_t length = std::min(config_.maxLineLength, message.size() - offset);
+            std::string segment;
+            
+            if (segmentNum == 0) {
+                segment = message.substr(offset, length);
+            } else {
+                segment = "[CONT:" + std::to_string(segmentNum) + "] " + 
+                          message.substr(offset, length);
+            }
+            
+            FileHandleManager::Instance().WriteToCurrent(segment);
+            offset += length;
+            segmentNum++;
+        }
+    } else {
+        FileHandleManager::Instance().WriteToCurrent(message);
+    }
+}
+
+// Low-level log call implementation
+void FileLogger::LogDebugImpl(const char* format, ...) {
+    va_list args;
+    va_start(args, format);
+    // Use low-level macro SK_DLOGD, need to format message first
+    char buffer[4096];
+    int ret = vsnprintf_s(buffer, sizeof(buffer), sizeof(buffer) - 1, format, args);
+    if (ret >= 0) {
+        SK_DLOGD("%s", buffer);
+    } else {
+        SK_DLOGE("[FORMAT_ERROR] Failed to format log message");
+    }
+    va_end(args);
+}
+
+void FileLogger::LogInfoImpl(const char* format, ...) {
+    va_list args;
+    va_start(args, format);
+    char buffer[4096];
+    int ret = vsnprintf_s(buffer, sizeof(buffer), sizeof(buffer) - 1, format, args);
+    if (ret >= 0) {
+        SK_DLOGI("%s", buffer);
+    } else {
+        SK_DLOGE("[FORMAT_ERROR] Failed to format log message");
+    }
+    va_end(args);
+}
+
+void FileLogger::LogWarnImpl(const char* format, ...) {
+    va_list args;
+    va_start(args, format);
+    char buffer[4096];
+    int ret = vsnprintf_s(buffer, sizeof(buffer), sizeof(buffer) - 1, format, args);
+    if (ret >= 0) {
+        SK_DLOGW("%s", buffer);
+    } else {
+        SK_DLOGE("[FORMAT_ERROR] Failed to format log message");
+    }
+    va_end(args);
+}
+
+void FileLogger::LogErrorImpl(const char* format, ...) {
+    va_list args;
+    va_start(args, format);
+    char buffer[4096];
+    int ret = vsnprintf_s(buffer, sizeof(buffer), sizeof(buffer) - 1, format, args);
+    if (ret >= 0) {
+        SK_DLOGE("%s", buffer);
+    } else {
+        SK_DLOGE("[FORMAT_ERROR] Failed to format log message");
+    }
+    va_end(args);
+}
+
+} // namespace logger
+} // namespace sk
+
+// ==================== Global Initialization Helper Functions ====================
+
+bool InitializeSkFileLogger(bool enabled, aclmdlRI model,
+                             sk::logger::LogLevel minLevel) {
+    sk::logger::LoggerConfig config;
+    config.enabled = enabled;
+    config.modelRI = model;
+    config.minLevel = minLevel;
+    
+    if (!sk::logger::FileLogger::Instance().Initialize(config)) {
+        // Disable file logging on initialization failure
+        sk::logger::FileLogger::Instance().SetEnabled(false);
+        return false;
+    }
+    return true;
+}
