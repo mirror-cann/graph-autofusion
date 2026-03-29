@@ -180,51 +180,13 @@ TEST_F(SkProfilingTest, NodeId_Mix11) {
     scopeInfo.nodes.push_back(CreateKernelNodeWithCacheInfo(1, 0).release());
     launchInfo.entryInfo.numBlocks = 8;
     launchInfo.entryInfo.entryType = SkKernelType::MIX_AIC_1_1;
+    launchInfo.skFuncName = "Unknown";
 
     SkProfiling(scopeInfo, launchInfo, graph);
 
     CacheopInfoBasic* result = static_cast<CacheopInfoBasic*>(launchInfo.cacheInfo);
     ASSERT_NE(result, nullptr);
-    uint64_t expectedNodeId = MsprofStr2Id("sk_entry_mix11", strlen("sk_entry_mix11"));
-    EXPECT_EQ(result->nodeId, expectedNodeId);
-}
-
-TEST_F(SkProfilingTest, NodeId_Mix12) {
-    scopeInfo.nodes.push_back(CreateKernelNodeWithCacheInfo(1, 0).release());
-    launchInfo.entryInfo.numBlocks = 8;
-    launchInfo.entryInfo.entryType = SkKernelType::MIX_AIC_1_2;
-
-    SkProfiling(scopeInfo, launchInfo, graph);
-
-    CacheopInfoBasic* result = static_cast<CacheopInfoBasic*>(launchInfo.cacheInfo);
-    ASSERT_NE(result, nullptr);
-    uint64_t expectedNodeId = MsprofStr2Id("sk_entry_mix12", strlen("sk_entry_mix12"));
-    EXPECT_EQ(result->nodeId, expectedNodeId);
-}
-
-TEST_F(SkProfilingTest, NodeId_AicOnly) {
-    scopeInfo.nodes.push_back(CreateKernelNodeWithCacheInfo(1, 0).release());
-    launchInfo.entryInfo.numBlocks = 8;
-    launchInfo.entryInfo.entryType = SkKernelType::AIC_ONLY;
-
-    SkProfiling(scopeInfo, launchInfo, graph);
-
-    CacheopInfoBasic* result = static_cast<CacheopInfoBasic*>(launchInfo.cacheInfo);
-    ASSERT_NE(result, nullptr);
-    uint64_t expectedNodeId = MsprofStr2Id("sk_entry_aic", strlen("sk_entry_aic"));
-    EXPECT_EQ(result->nodeId, expectedNodeId);
-}
-
-TEST_F(SkProfilingTest, NodeId_AivOnly) {
-    scopeInfo.nodes.push_back(CreateKernelNodeWithCacheInfo(1, 0).release());
-    launchInfo.entryInfo.numBlocks = 8;
-    launchInfo.entryInfo.entryType = SkKernelType::AIV_ONLY;
-
-    SkProfiling(scopeInfo, launchInfo, graph);
-
-    CacheopInfoBasic* result = static_cast<CacheopInfoBasic*>(launchInfo.cacheInfo);
-    ASSERT_NE(result, nullptr);
-    uint64_t expectedNodeId = MsprofStr2Id("sk_entry_aiv", strlen("sk_entry_aiv"));
+    uint64_t expectedNodeId = MsprofStr2Id("Unknown", strlen("Unknown"));
     EXPECT_EQ(result->nodeId, expectedNodeId);
 }
 

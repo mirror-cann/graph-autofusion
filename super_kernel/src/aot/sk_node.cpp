@@ -372,13 +372,9 @@ bool SuperKernelKernelNode::InitNode() {
             scopeName = std::string(rawPtr);
         }
     } else {
-        isFusible = true;
+        SK_LOGI("Kernel node for task %lu is normal kernel.", nodeId);
     }
 
-    if (taskParams.taskGrp != nullptr) {
-        SK_LOGI("Kernel task group is not null for task %lu, which cannot be fused in super kernel.", nodeId);
-        return true;
-    }
     int64_t kernelType = 0;
     int64_t taskRatio = 0;
     CHECK_ACL(aclrtGetFunctionAttribute(kernelParams.funcHandle, ACL_FUNC_ATTR_KERNEL_TYPE, &kernelType));
@@ -425,6 +421,12 @@ bool SuperKernelKernelNode::InitNode() {
     if (!isScopeNode && !nodeInfos.kernelInfos.funcName.empty() && nodeInfos.kernelInfos.binHdl != nullptr) {
         isFusible = InitKernelResolvedFuncs(nodeInfos.kernelInfos);
     }
+
+    if (taskParams.taskGrp != nullptr) {
+        SK_LOGI("Kernel task group is not null for task %lu, which cannot be fused in super kernel.", nodeId);
+        isFusible = false;
+    }
+
     return true;
 }
 

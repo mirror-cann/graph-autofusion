@@ -1328,7 +1328,7 @@ SkHostEntryInfo SkTaskBuilder::GenEntryInfo(SkTask& skTaskCube, SkTask& skTaskVe
 }
 
 // generate the final launch info for super kernel execution
-SkLaunchInfo SkTaskBuilder::Build(const std::vector<SuperKernelBaseNode*>& tasks,
+SkLaunchInfo SkTaskBuilder::Build(std::string skFuncName, const std::vector<SuperKernelBaseNode*>& tasks,
                                   const std::vector<SuperKernelBaseNode*>& customTasks)
 {
     // Post-process should already guarantee non-empty tasks.
@@ -1584,5 +1584,6 @@ SkLaunchInfo SkTaskBuilder::Build(const std::vector<SuperKernelBaseNode*>& tasks
     SkLaunchInfo launchInfo;
     launchInfo.entryInfo = std::move(entryInfo);
     launchInfo.devArgs = std::move(devArgs);
+    launchInfo.skFuncName = skFuncName;
     return launchInfo;
 }

@@ -130,7 +130,7 @@ TEST_F(SkTaskBuilderTest, Build_EmptyTasks_ReturnEmptyLaunchInfo)
     std::vector<SuperKernelBaseNode*> tasks;
     std::vector<SuperKernelBaseNode*> customTasks;
 
-    SkLaunchInfo launchInfo = builder->Build(tasks, customTasks);
+    SkLaunchInfo launchInfo = builder->Build("Unknown", tasks, customTasks);
 
     EXPECT_EQ(launchInfo.entryInfo.skEntryFunc, nullptr);
     EXPECT_EQ(launchInfo.entryInfo.nodeCnt, 0U);
@@ -170,7 +170,7 @@ TEST_F(SkTaskBuilderTest, Build_UnsupportedNodeType_ReturnEmptyLaunchInfo)
 
     graph->graphMap[22] = std::move(resetNode);
 
-    SkLaunchInfo launchInfo = builder->Build(tasks, customTasks);
+    SkLaunchInfo launchInfo = builder->Build("Unknown", tasks, customTasks);
 
     EXPECT_EQ(launchInfo.entryInfo.skEntryFunc, nullptr);
     EXPECT_EQ(launchInfo.entryInfo.nodeCnt, 0U);
@@ -311,7 +311,7 @@ TEST_F(SkTaskBuilderTest, Build_DebugMode_TriggerDumpHelpers)
     std::vector<SuperKernelBaseNode*> tasks;
     tasks.push_back(CreateKernelNodeEx(3001, 0, INVALID_TASK_ID, INVALID_TASK_ID, SkKernelType::AIC_ONLY));
 
-    SkLaunchInfo launchInfo = builder->Build(tasks, {});
+    SkLaunchInfo launchInfo = builder->Build("Unknown", tasks, {});
     EXPECT_NE(launchInfo.entryInfo.skEntryFunc, nullptr);
     EXPECT_NE(launchInfo.devArgs.Get(), nullptr);
 }
@@ -398,7 +398,7 @@ TEST_F(SkTaskBuilderTest, Build_CustomTaskMissingPreviousKernel_FallbackAndSucce
 
     std::vector<SuperKernelBaseNode*> tasks = {graph->GetNodeById(5004)};
     std::vector<SuperKernelBaseNode*> customTasks = {customWait};
-    SkLaunchInfo launchInfo = builder->Build(tasks, customTasks);
+    SkLaunchInfo launchInfo = builder->Build("Unknown", tasks, customTasks);
 
     // Missing previous kernel for custom WAIT now falls back to AIV queue instead of hard-fail.
     EXPECT_NE(launchInfo.entryInfo.skEntryFunc, nullptr);
@@ -415,7 +415,7 @@ TEST_F(SkTaskBuilderTest, Build_CustomTaskUnsupportedNodeType_ReturnEmpty)
 
     std::vector<SuperKernelBaseNode*> tasks = {graph->GetNodeById(5006)};
     std::vector<SuperKernelBaseNode*> customTasks = {customKernel};
-    SkLaunchInfo launchInfo = builder->Build(tasks, customTasks);
+    SkLaunchInfo launchInfo = builder->Build("Unknown", tasks, customTasks);
 
     EXPECT_EQ(launchInfo.entryInfo.skEntryFunc, nullptr);
     EXPECT_EQ(launchInfo.devArgs.Get(), nullptr);
@@ -540,7 +540,7 @@ TEST_F(SkTaskBuilderTest, Build_WithCustomNotifyWaitReset_Success)
     std::vector<SuperKernelBaseNode*> tasks = {graph->GetNodeById(7001), graph->GetNodeById(7002)};
     std::vector<SuperKernelBaseNode*> customTasks = {cNotify, cWait, cReset};
 
-    SkLaunchInfo launchInfo = builder->Build(tasks, customTasks);
+    SkLaunchInfo launchInfo = builder->Build("Unknown", tasks, customTasks);
     EXPECT_NE(launchInfo.entryInfo.skEntryFunc, nullptr);
     EXPECT_NE(launchInfo.devArgs.Get(), nullptr);
 }
@@ -649,7 +649,7 @@ TEST_F(SkTaskBuilderTest, Build_WithNotifyAndWaitNodes_Success)
     std::vector<SuperKernelBaseNode*> tasks = {
         graph->GetNodeById(8201), graph->GetNodeById(8202), graph->GetNodeById(8203), graph->GetNodeById(8204)};
 
-    SkLaunchInfo launchInfo = builder->Build(tasks, {});
+    SkLaunchInfo launchInfo = builder->Build("Unknown", tasks, {});
     EXPECT_NE(launchInfo.entryInfo.skEntryFunc, nullptr);
     EXPECT_NE(launchInfo.devArgs.Get(), nullptr);
 }
@@ -778,7 +778,7 @@ TEST_F(SkTaskBuilderTest, Build_OnlyEventTask_GenEntryInfoFail)
     auto* notify = CreateNotifyNodeEx(8801, 0, INVALID_TASK_ID, INVALID_TASK_ID, 201);
     std::vector<SuperKernelBaseNode*> tasks = {notify};
 
-    SkLaunchInfo launchInfo = builder->Build(tasks, {});
+    SkLaunchInfo launchInfo = builder->Build("Unknown", tasks, {});
     EXPECT_EQ(launchInfo.entryInfo.skEntryFunc, nullptr);
     EXPECT_EQ(launchInfo.devArgs.Get(), nullptr);
 }
@@ -791,7 +791,7 @@ TEST_F(SkTaskBuilderTest, Build_ResolveEntryHandleAtBuildStage_WhenBinNotReady_R
     auto* kernel = CreateKernelNodeEx(8911, 0, INVALID_TASK_ID, INVALID_TASK_ID, SkKernelType::AIC_ONLY);
     std::vector<SuperKernelBaseNode*> tasks = {kernel};
 
-    SkLaunchInfo launchInfo = builder->Build(tasks, {});
+    SkLaunchInfo launchInfo = builder->Build("Unknown", tasks, {});
     EXPECT_EQ(launchInfo.entryInfo.skEntryFunc, nullptr);
     EXPECT_EQ(launchInfo.devArgs.Get(), nullptr);
 }
@@ -815,7 +815,7 @@ TEST_F(SkTaskBuilderTest, Build_RollingPreloadDispatchFail_ReturnEmpty)
     k->nodeInfos.kernelInfos.resolvedFuncs[0].funcAddr[0] = 0;
 
     std::vector<SuperKernelBaseNode*> tasks = {notify, kernel};
-    SkLaunchInfo launchInfo = builder->Build(tasks, {});
+    SkLaunchInfo launchInfo = builder->Build("Unknown", tasks, {});
 
     EXPECT_EQ(launchInfo.entryInfo.skEntryFunc, nullptr);
     EXPECT_EQ(launchInfo.devArgs.Get(), nullptr);
@@ -831,7 +831,7 @@ TEST_F(SkTaskBuilderTest, Build_CustomTaskUnsupportedType_ReturnEmpty)
     std::vector<SuperKernelBaseNode*> tasks = {kernel};
     std::vector<SuperKernelBaseNode*> customTasks = {customKernel};
 
-    SkLaunchInfo launchInfo = builder->Build(tasks, customTasks);
+    SkLaunchInfo launchInfo = builder->Build("Unknown", tasks, customTasks);
     EXPECT_EQ(launchInfo.entryInfo.skEntryFunc, nullptr);
     EXPECT_EQ(launchInfo.devArgs.Get(), nullptr);
 }
@@ -1027,7 +1027,7 @@ TEST_F(SkTaskBuilderTest, Build_DfxMemsetFail_ReturnEmpty)
     tasks.push_back(CreateKernelNodeEx(40001, 0, INVALID_TASK_ID, INVALID_TASK_ID, SkKernelType::AIC_ONLY));
 
     SkUtSetSecurecMemsetFailOnCall(1);
-    SkLaunchInfo launchInfo = builder->Build(tasks, {});
+    SkLaunchInfo launchInfo = builder->Build("Unknown", tasks, {});
     EXPECT_EQ(launchInfo.entryInfo.skEntryFunc, nullptr);
     EXPECT_EQ(launchInfo.devArgs.Get(), nullptr);
 }

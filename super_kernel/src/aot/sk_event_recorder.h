@@ -45,15 +45,6 @@ constexpr uint32_t SHAPE_MAX_TENSOR_NUM = 800;
 static const char* ENV_SK_EVENT_RECORD = "ASCEND_PROF_SK_ON";
 constexpr uint32_t  SPRINT_LEN_BUFFER = 1024;
 
-// ==================== skId+coreId 时间统计结构体 ====================
-struct SkCoreTimeStats {
-    uint64_t minStartTime = UINT64_MAX;  // 最小起始时间
-    uint64_t maxEndTime = 0;              // 最大结束时间
-    uint32_t blockIdx = 0; 
-    uint32_t blockNum = 0;
-    std::string startNodeName;
-    std::string endNodeName;             
-};
 // ==================== Device 上下文 ====================
 class SkEventRecorder;
 struct SkEventDeviceCtx {
@@ -66,12 +57,6 @@ struct SkEventDeviceCtx {
     FileGuard outputFp;                                        // 小算子的时间信息文件的输出文件句柄 (RAII)
     uint64_t lastOffset[SK_EVENT_CORE_NUM]{};                  // 每个core的上次读取位置
     SkEventRecorder* recorder = nullptr;                        // 回调指针
-
-    // 每个 core 的 sk的node起始名称字符串
-    std::vector<std::string> startNodeNames{SK_EVENT_CORE_NUM};
-    std::vector<std::string> endNodeNames{SK_EVENT_CORE_NUM};
-    // 1代表当前node是sk的开始node
-    std::vector<uint8_t> startNodeFlags = std::vector<uint8_t>(SK_EVENT_CORE_NUM, 1);
 };
 
 
@@ -98,6 +83,12 @@ public:
 
     // 获取 NodeInfo（线程安全）
     SkNodeInfo GetNodeInfo(uint64_t modelRI, uint32_t skId, uint32_t nodeId) const;
+
+    // 添加 skName 映射（线程安全）
+    void AddSkNameMapping(uint64_t modelRI, uint32_t skId, const std::string& skName);
+
+    // 获取 skName（线程安全）
+    std::string GetSkName(uint64_t modelRI, uint32_t skId) const;
 
 private:
     SkEventRecorder() = default;
@@ -136,6 +127,9 @@ private:
     std::unordered_map<uint64_t,
                        std::unordered_map<uint32_t,
                                           std::unordered_map<uint32_t, SkNodeInfo>>> nodeInfoMap;
+
+    // SkName 映射表：modelRI -> skId -> skName
+    std::unordered_map<uint64_t, std::unordered_map<uint32_t, std::string>> skNameMap;
 };
 
 // ==================== sk profiling 性能分析相关函数 ====================

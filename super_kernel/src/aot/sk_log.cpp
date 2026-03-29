@@ -429,60 +429,6 @@ void FileLogger::WriteLog(const std::string& message) {
     }
 }
 
-// Low-level log call implementation
-void FileLogger::LogDebugImpl(const char* format, ...) {
-    va_list args;
-    va_start(args, format);
-    // Use low-level macro SK_DLOGD, need to format message first
-    char buffer[4096];
-    int ret = vsnprintf_s(buffer, sizeof(buffer), sizeof(buffer) - 1, format, args);
-    if (ret >= 0) {
-        SK_DLOGD("%s", buffer);
-    } else {
-        SK_DLOGE("[FORMAT_ERROR] Failed to format log message");
-    }
-    va_end(args);
-}
-
-void FileLogger::LogInfoImpl(const char* format, ...) {
-    va_list args;
-    va_start(args, format);
-    char buffer[4096];
-    int ret = vsnprintf_s(buffer, sizeof(buffer), sizeof(buffer) - 1, format, args);
-    if (ret >= 0) {
-        SK_DLOGI("%s", buffer);
-    } else {
-        SK_DLOGE("[FORMAT_ERROR] Failed to format log message");
-    }
-    va_end(args);
-}
-
-void FileLogger::LogWarnImpl(const char* format, ...) {
-    va_list args;
-    va_start(args, format);
-    char buffer[4096];
-    int ret = vsnprintf_s(buffer, sizeof(buffer), sizeof(buffer) - 1, format, args);
-    if (ret >= 0) {
-        SK_DLOGW("%s", buffer);
-    } else {
-        SK_DLOGE("[FORMAT_ERROR] Failed to format log message");
-    }
-    va_end(args);
-}
-
-void FileLogger::LogErrorImpl(const char* format, ...) {
-    va_list args;
-    va_start(args, format);
-    char buffer[4096];
-    int ret = vsnprintf_s(buffer, sizeof(buffer), sizeof(buffer) - 1, format, args);
-    if (ret >= 0) {
-        SK_DLOGE("%s", buffer);
-    } else {
-        SK_DLOGE("[FORMAT_ERROR] Failed to format log message");
-    }
-    va_end(args);
-}
-
 } // namespace logger
 } // namespace sk
 

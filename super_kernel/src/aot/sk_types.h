@@ -290,6 +290,7 @@ struct SkLaunchInfo {
     void* eventGmAddr;  // 事件记录 GM 地址
     uint64_t modelRI;   // modelRI 标识
     uint32_t skId;      // SK 标识
+    std::string skFuncName = "Unknown"; // SK function name for profiling and debugging
 };
 
 #endif // __SK_TYPES_H__

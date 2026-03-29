@@ -292,10 +292,9 @@ bool SkEventRecorder::WriteSkEventToJson(SkEventDeviceCtx* ctx, const SkKernelEv
     double tsStart = (double)record->startTime / TICK_US_MULTIPLER;
     double tsEnd = (double)record->endTime / TICK_US_MULTIPLER;
     char jsonLine[SPRINT_LEN_BUFFER];
-    std::string skName = "skId: " + std::to_string(record->skId) + "   startNodeName: " + ctx->startNodeNames[core]
-                            + "   endNodeName: " + ctx->endNodeNames[core];
+    std::string skName = SkEventRecorder::Instance().GetSkName(record->modelRI, record->skId);
     int len = snprintf_s(jsonLine, sizeof(jsonLine), sizeof(jsonLine) - 1,
-        "\"ph\":\"X\",\"name\":\"[%u/%u] skId :%s\",\"pid\":\"%s\",\"tid\":%u,"
+        "\"ph\":\"X\",\"name\":\"[%u/%u] %s\",\"pid\":\"%s\",\"tid\":%u,"
         "\"ts\":%f,\"dur\":%f,\"args\":{\"modelRI\":%lu,\"skId\":%u,\"deviceId\":%u,\"coreId\":%u}},\n{}]",
         record->blockIdx, record->blockNum, skName.c_str(), CoreIsAiv(core) ? "AIV" : "AIC", core,
         tsStart, (record->endTime > record->startTime) ? (tsEnd - tsStart) : 0,
@@ -358,20 +357,14 @@ void SkEventRecorder::DumpDeviceData(SkEventDeviceCtx* ctx) {
                 // 写入node 信息 查询 NodeInfo
                 SkNodeInfo nodeInfo = SkEventRecorder::Instance().GetNodeInfo(record->modelRI, record->skId, record->nodeId);
                 if (nodeInfo.nodeName != "") {
-                    if (ctx->startNodeFlags[core] == 1) { // 更新sk开始node名字
-                        ctx->startNodeNames[core] = nodeInfo.nodeName;
-                        ctx->startNodeFlags[core] = 0;
-                    }
                     // 写入 JSON trace 文件
                     if (!WriteNodeEventToJson(ctx, record, core, nodeInfo)) {
                         SK_LOGE("[sk time profiling] Failed to write node event to json, device %u, ret=%d\n", ctx->deviceId, ret);
                         return;
                     }
-                    ctx->endNodeNames[core] = nodeInfo.nodeName; // 更新sk末尾node名字
                 }
             } else if (record->nodeId == UINT32_MAX) {
                 // 写入sk信息
-                ctx->startNodeFlags[core] = 1;
                 if (!WriteSkEventToJson(ctx, record, core)) {
                     SK_LOGE("[sk time profiling] Failed to write sk event to json, device %u, ret=%d\n", ctx->deviceId, ret);
                     return;
@@ -447,32 +440,25 @@ SkNodeInfo SkEventRecorder::GetNodeInfo(uint64_t modelRI, uint32_t skId, uint32_
     return nodeIt->second;
 }
 
-// ==================== 性能分析相关函数 ====================
-
-const char* GetEntryFuncNameByOpType(SkKernelType& opType) {
-    // sk_entry_aiv
-    if (opType == SkKernelType::AIV_ONLY || opType == SkKernelType::MIX_AIV_1_0) {
-        return "sk_entry_aiv";
-    }
-
-    // sk_entry_aic
-    if (opType == SkKernelType::AIC_ONLY || opType == SkKernelType::MIX_AIC_1_0) {
-        return "sk_entry_aic";
-    }
-    // sk_entry_mix11
-    if (opType == SkKernelType::MIX_AIC_1_1) {
-        return "sk_entry_mix11";
-    }
-    // sk_entry_mix12
-    if (opType == SkKernelType::MIX_AIC_1_2) {
-        return "sk_entry_mix12";
-    }
-
-    // Unknown opType
-    SK_LOGE("[sk shape profiling] opType is not in the enum class SkKernelType");
-    return nullptr;
+void SkEventRecorder::AddSkNameMapping(uint64_t modelRI, uint32_t skId, const std::string& skName) {
+    std::lock_guard<std::mutex> lock(nodeInfoMapMutex);
+    skNameMap[modelRI][skId] = skName;
 }
 
+std::string SkEventRecorder::GetSkName(uint64_t modelRI, uint32_t skId) const {
+    std::lock_guard<std::mutex> lock(nodeInfoMapMutex);
+    auto modelIt = skNameMap.find(modelRI);
+    if (modelIt == skNameMap.end()) {
+        return "";
+    }
+    auto skIt = modelIt->second.find(skId);
+    if (skIt == modelIt->second.end()) {
+        return "";
+    }
+    return skIt->second;
+}
+
+// ==================== 性能分析相关函数 ====================
 bool SkProfiling(const SuperKernelProcessedScopeInfo &scopeInfo, SkLaunchInfo &launchInfo,
                                         SuperKernelGraph& graph) {
     SK_LOGI("[sk shape profiling] =============== Start shape profiling ===================");
@@ -593,7 +579,7 @@ bool SkProfiling(const SuperKernelProcessedScopeInfo &scopeInfo, SkLaunchInfo &l
     } else {
         cacheopInfoBasic.numBlocks = numBlocks;
     }
-    const char* skEntryFuncName = GetEntryFuncNameByOpType(skEntryInfo.entryType);
+    const char* skEntryFuncName = launchInfo.skFuncName.c_str();
     if (skEntryFuncName != nullptr) {
         cacheopInfoBasic.nodeId = MsprofStr2Id(skEntryFuncName, strlen(skEntryFuncName));
     } else {
@@ -655,6 +641,8 @@ bool DumpProfilingDetail(const std::vector<SuperKernelBaseNode *> &taskNodes, Sk
                     launchInfo.modelRI, launchInfo.skId, static_cast<uint32_t>(nodeId), funcName, nodeInfos.kernelInfos.numBlocks);
             }
         }
+        // 添加sk和sk名字映射
+        SkEventRecorder::Instance().AddSkNameMapping(launchInfo.modelRI, launchInfo.skId, launchInfo.skFuncName);
     } else {
         launchInfo.eventGmAddr = nullptr;
         launchInfo.modelRI = 0;

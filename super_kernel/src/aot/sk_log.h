@@ -27,6 +27,7 @@
 
 #include <csignal>
 #include <cstdarg>
+#include <cstdio>
 #include <string>
 #include <unordered_map>
 #include <memory>
@@ -283,15 +284,11 @@ public:
     // Initialize
     bool Initialize(const LoggerConfig& config);
     
-    // Core log interface
+    // Write log to file if enabled (called by SK_LOG* macros after passthrough)
     template<typename... Args>
-    void LogWithPassthrough(LogLevel level, const char* funcName, 
-                            const char* fileName, int lineNum,
-                            const char* format, Args&&... args) {
-        // 1. Always passthrough to SK_DLOG* (preserve original behavior)
-        PassthroughToSKLog(level, funcName, format, std::forward<Args>(args)...);
-        
-        // 2. Write to file if enabled
+    void WriteLogIfEnabled(LogLevel level, const char* funcName, 
+                           const char* fileName, int lineNum,
+                           const char* format, Args&&... args) {
         if (config_.enabled && level >= config_.minLevel) {
             std::string message = FormatMessage(level, funcName, fileName, lineNum, format, std::forward<Args>(args)...);
             WriteLog(message);
@@ -327,34 +324,6 @@ private:
                               const char* format, ...);
     
     void WriteLog(const std::string& message);
-    
-    // Low-level log calls (avoid template-macro conflicts)
-    void LogDebugImpl(const char* format, ...);
-    void LogInfoImpl(const char* format, ...);
-    void LogWarnImpl(const char* format, ...);
-    void LogErrorImpl(const char* format, ...);
-    
-    template<typename... Args>
-    void PassthroughToSKLog(LogLevel level, const char* funcName,
-                            const char* format, Args&&... args) {
-        switch (level) {
-            case LogLevel::TRACE:
-            case LogLevel::DEBUG:
-                LogDebugImpl(format, std::forward<Args>(args)...);
-                break;
-            case LogLevel::INFO:
-                LogInfoImpl(format, std::forward<Args>(args)...);
-                break;
-            case LogLevel::WARNING:
-                LogWarnImpl(format, std::forward<Args>(args)...);
-                break;
-            case LogLevel::ERROR:
-                LogErrorImpl(format, std::forward<Args>(args)...);
-                break;
-            default:
-                break;
-        }
-    }
 
 private:
     LoggerConfig config_;
@@ -368,26 +337,43 @@ private:
 
 // ==================== User Log Macros (SK_LOG*) ====================
 // These macros provide passthrough + file logging functionality
-// Note: __FILE__ and __LINE__ are passed to capture actual call site
-#define SK_LOGT(format, ...) \
-    sk::logger::FileLogger::Instance().LogWithPassthrough( \
-        sk::logger::LogLevel::TRACE, __FUNCTION__, __FILE__, __LINE__, format, ##__VA_ARGS__)
+// Design: Directly call SK_DLOG* for passthrough (captures real __FUNCTION__),
+//         then write to file if enabled
 
-#define SK_LOGD(format, ...) \
-    sk::logger::FileLogger::Instance().LogWithPassthrough( \
-        sk::logger::LogLevel::DEBUG, __FUNCTION__, __FILE__, __LINE__, format, ##__VA_ARGS__)
+#define SK_LOGT(format, ...)                                                                             \
+    do {                                                                                                 \
+        SK_DLOGD(format, ##__VA_ARGS__);                                                                 \
+        sk::logger::FileLogger::Instance().WriteLogIfEnabled(                                            \
+            sk::logger::LogLevel::TRACE, __FUNCTION__, __FILE__, __LINE__, format, ##__VA_ARGS__);       \
+    } while (0)
 
-#define SK_LOGI(format, ...) \
-    sk::logger::FileLogger::Instance().LogWithPassthrough( \
-        sk::logger::LogLevel::INFO, __FUNCTION__, __FILE__, __LINE__, format, ##__VA_ARGS__)
+#define SK_LOGD(format, ...)                                                                             \
+    do {                                                                                                 \
+        SK_DLOGD(format, ##__VA_ARGS__);                                                                 \
+        sk::logger::FileLogger::Instance().WriteLogIfEnabled(                                            \
+            sk::logger::LogLevel::DEBUG, __FUNCTION__, __FILE__, __LINE__, format, ##__VA_ARGS__);      \
+    } while (0)
 
-#define SK_LOGW(format, ...) \
-    sk::logger::FileLogger::Instance().LogWithPassthrough( \
-        sk::logger::LogLevel::WARNING, __FUNCTION__, __FILE__, __LINE__, format, ##__VA_ARGS__)
+#define SK_LOGI(format, ...)                                                                             \
+    do {                                                                                                 \
+        SK_DLOGI(format, ##__VA_ARGS__);                                                                 \
+        sk::logger::FileLogger::Instance().WriteLogIfEnabled(                                            \
+            sk::logger::LogLevel::INFO, __FUNCTION__, __FILE__, __LINE__, format, ##__VA_ARGS__);        \
+    } while (0)
 
-#define SK_LOGE(format, ...) \
-    sk::logger::FileLogger::Instance().LogWithPassthrough( \
-        sk::logger::LogLevel::ERROR, __FUNCTION__, __FILE__, __LINE__, format, ##__VA_ARGS__)
+#define SK_LOGW(format, ...)                                                                             \
+    do {                                                                                                 \
+        SK_DLOGW(format, ##__VA_ARGS__);                                                                 \
+        sk::logger::FileLogger::Instance().WriteLogIfEnabled(                                            \
+            sk::logger::LogLevel::WARNING, __FUNCTION__, __FILE__, __LINE__, format, ##__VA_ARGS__);     \
+    } while (0)
+
+#define SK_LOGE(format, ...)                                                                             \
+    do {                                                                                                 \
+        SK_DLOGE(format, ##__VA_ARGS__);                                                                 \
+        sk::logger::FileLogger::Instance().WriteLogIfEnabled(                                            \
+            sk::logger::LogLevel::ERROR, __FUNCTION__, __FILE__, __LINE__, format, ##__VA_ARGS__);       \
+    } while (0)
 
 // ==================== RAII Context Macros ====================
 #define SK_LOG_CONTEXT(fileName, modelRI) \

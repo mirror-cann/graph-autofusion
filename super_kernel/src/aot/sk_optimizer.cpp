@@ -24,6 +24,40 @@
 #include "securec.h"
 #include "sk_event_recorder.h"
 
+namespace {
+std::string GetSkFuncName(const std::vector<SuperKernelBaseNode*>& nodes, uint32_t scopeIdx)
+{
+    size_t startNodeIdx = nodes.size();
+    size_t endNodeIdx = 0;
+    for (size_t i = 0; i < nodes.size(); i++) {
+        if (nodes[i]->GetNodeType() == SkNodeType::NODE_KERNEL) {
+            if (i < startNodeIdx) {
+                startNodeIdx = i;
+            }
+            if (i > endNodeIdx) {
+                endNodeIdx = i;
+            }
+        }
+    }
+    const NodeInfos& startNodeInfos = nodes[startNodeIdx]->GetNodeInfos();
+    const NodeInfos& endNodeInfos = nodes[endNodeIdx]->GetNodeInfos();
+
+    std::string skName = "skId: " + std::to_string(scopeIdx) + "__startNodeName: " + startNodeInfos.kernelInfos.funcName 
+                            + "__endNodeName: " + endNodeInfos.kernelInfos.funcName;
+    return skName;
+}
+
+void PrintSKNodes(std::string skFuncName, SuperKernelProcessedScopeInfo& processedScopeInfo)
+{
+    auto &scopeIdx = processedScopeInfo.scopeIdx;
+    auto &nodes = processedScopeInfo.nodes;
+    SK_LOGI("  SK Function: %s, scope id: %zu, Node Count: %zu", skFuncName.c_str(), scopeIdx, nodes.size());
+    for (size_t i = 0; i < nodes.size(); ++i) {
+        SK_LOGI("    [%zu] %s", i, nodes[i]->Format().c_str());
+    }
+}
+} // namespace
+
 bool SuperKernelOptimizer::Update(SuperKernelProcessedScopeInfo& processedScopeInfo, SuperKernelGraph& graph,
                                   const SkLaunchInfo& launchInfo)
 {
@@ -128,6 +162,9 @@ bool SuperKernelOptimizer::Schedule(SuperKernelProcessedScopeInfo& processedScop
         return false;
     }
 
+    std::string skFuncName = GetSkFuncName(taskNodes, processedScopeInfo.scopeIdx);
+    PrintSKNodes(skFuncName, processedScopeInfo);
+
     std::vector<SuperKernelBaseNode*> customTasks;
     customTasks.reserve(processedScopeInfo.eventNodes.size());
     for (const auto& eventNode : processedScopeInfo.eventNodes) {
@@ -137,7 +174,7 @@ bool SuperKernelOptimizer::Schedule(SuperKernelProcessedScopeInfo& processedScop
     SK_LOGI("schedule scope: taskCount=%zu, customTaskCount=%zu, updateStreamCount=%zu", taskNodes.size(),
             customTasks.size(), processedScopeInfo.updateStreamInfos.size());
 
-    SkLaunchInfo launchInfo = builder.Build(taskNodes, customTasks);
+    SkLaunchInfo launchInfo = builder.Build(skFuncName, taskNodes, customTasks);
 
     if (!SkProfiling(processedScopeInfo, launchInfo, graph)) {
         SK_LOGE("SkProfiling failed");
@@ -153,8 +190,8 @@ bool SuperKernelOptimizer::Schedule(SuperKernelProcessedScopeInfo& processedScop
         SK_LOGE("schedule failed: build launch info failed");
         return false;
     }
-    SK_LOGI("schedule scope: build finished, entryType=%s, entryFuncHandle=%p",
-            to_string(launchInfo.entryInfo.entryType), launchInfo.entryInfo.skEntryFunc);
+    SK_LOGI("schedule scope: build finished, entryType=%s, entryFuncHandle=%p, skFuncName=%s",
+            to_string(launchInfo.entryInfo.entryType), launchInfo.entryInfo.skEntryFunc, launchInfo.skFuncName.c_str());
 
     if (!Update(processedScopeInfo, graph, launchInfo)) {
         SK_LOGE("schedule failed: scope update failed");

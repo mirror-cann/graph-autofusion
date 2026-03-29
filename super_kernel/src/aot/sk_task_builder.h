@@ -111,7 +111,7 @@ public:
         opts(opts), graph_(graph)
     {}
 
-    SkLaunchInfo Build(const std::vector<SuperKernelBaseNode*>& tasks,
+    SkLaunchInfo Build(std::string skFuncName, const std::vector<SuperKernelBaseNode*>& tasks,
                        const std::vector<SuperKernelBaseNode*>& customTasks);
 
 private:

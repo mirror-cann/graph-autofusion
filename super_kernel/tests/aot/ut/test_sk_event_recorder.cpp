@@ -519,18 +519,6 @@ TEST_F(SkEventRecorderTest, ShutdownReleasesResources) {
     EXPECT_EQ(SkEventRecorder::Instance().deviceCtxs[1].hostBuf, nullptr);
 }
 
-// ==================== 结构体测试 ====================
-
-// Test 35: SkCoreTimeStats 初始值
-TEST_F(SkEventRecorderTest, CoreTimeStatsInitialValues) {
-    SkCoreTimeStats stats;
-    
-    EXPECT_EQ(stats.minStartTime, UINT64_MAX);
-    EXPECT_EQ(stats.maxEndTime, 0);
-    EXPECT_EQ(stats.blockIdx, 0);
-    EXPECT_EQ(stats.blockNum, 0);
-}
-
 // Test 36: SkKernelEventRecord 结构体大小验证
 TEST_F(SkEventRecorderTest, EventRecordSize) {
     EXPECT_LE(sizeof(SkKernelEventRecord), 64);

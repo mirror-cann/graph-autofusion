@@ -335,7 +335,7 @@ bool GetMainAndSubStreamOrder(SuperKernelGraph& graph, std::vector<StreamPostPla
         }
     }
 
-    if (mainStreamIdx == INVALID_STREAM_ID ||processedScopeInfo.skMainNodeId == INVALID_TASK_ID) {
+    if (mainStreamIdx == INVALID_STREAM_ID || processedScopeInfo.skMainNodeId == INVALID_TASK_ID) {
         SK_LOGE("failed to find main SK node in scope during post-process, skip update");
         return false;
     }
@@ -463,7 +463,7 @@ SuperKernelProcessedScopeInfo SuperKernelScopePostProcessor::PostProcess(SuperKe
 
     std::vector<SuperKernelBaseNode*> filteredTasks = FilterCancelledTasks(scopeInfo.nodes);
     if (filteredTasks.empty()) {
-        SK_LOGE("scope post-process failed: no task remains after cancelling notify/wait pairs");
+        SK_LOGI("scope post-process failed: no task remains after cancelling notify/wait pairs");
         return {};
     }
 
