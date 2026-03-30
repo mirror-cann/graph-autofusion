@@ -266,7 +266,7 @@ superkernel_ut() {
   if [ "X$ENABLE_COVERAGE" == "Xon" ]; then
     ${PYTHON_CMD} -m pytest tests/ut -m ut \
                                      --cov-config=scripts/sk_ut_cfg.toml \
-                                     --cov=src/superkernel \
+                                     --cov=superkernel \
                                      --cov-report=term-missing \
                                      --cov-report=html \
                                      --cov-report=xml
@@ -280,7 +280,7 @@ superkernel_st() {
   cd ${BASEPATH}/super_kernel &&
   if [ "X$ENABLE_COVERAGE" == "Xon" ]; then
     ${PYTHON_CMD} -m pytest tests/st -m st --cov-config=scripts/sk_st_cfg.toml \
-                                     --cov=src/superkernel \
+                                     --cov=superkernel \
                                      --cov-report=term-missing \
                                      --cov-report=html \
                                      --cov-report=xml
