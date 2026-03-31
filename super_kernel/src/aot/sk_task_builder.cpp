@@ -131,83 +131,123 @@ const char* to_string(SearchDirection dir)
     return (dir == SearchDirection::PREV) ? "PREV" : "NEXT";
 }
 
-// Find a KERNEL node in the given direction, return nullptr when not found.
-SuperKernelBaseNode* FindKernelNodeInDirection(uint64_t startNodeId, const SuperKernelGraph& graph,
-                                               SearchDirection direction,
-                                               std::unordered_map<uint64_t, SuperKernelBaseNode*>& cache,
-                                               int maxHops = 100)
+std::string BuildSearchPathString(const std::vector<uint64_t>& path)
 {
-    std::vector<uint64_t> path; // Track all visited node IDs along traversal path.
+    std::string pathStr;
+    pathStr.reserve(path.size() * 8);
+    for (size_t idx = 0; idx < path.size(); ++idx) {
+        if (idx > 0) {
+            pathStr += "->";
+        }
+        pathStr += std::to_string(path[idx]);
+    }
+    return pathStr.empty() ? "empty" : pathStr;
+}
+
+void LogKernelSearchFailure(uint64_t startNodeId, SearchDirection direction, const std::vector<uint64_t>& path,
+                            const char* reason, uint64_t failedNodeId)
+{
+    std::string pathStr = BuildSearchPathString(path);
+    SK_LOGI("FindKernelNodeInDirection failed: startNodeId=%lu, direction=%s, reason=%s, failedNodeId=%lu, path=%s",
+            startNodeId, to_string(direction), reason, failedNodeId, pathStr.c_str());
+}
+
+const SuperKernelBaseNode* ResolveCurrentKernel(uint64_t curNodeId, const SuperKernelBaseNode* current,
+                                                const std::unordered_map<uint64_t, const SuperKernelBaseNode*>& cache)
+{
+    auto it = cache.find(curNodeId);
+    if (it != cache.end()) {
+        return it->second;
+    }
+    if (current->GetNodeType() == SkNodeType::NODE_KERNEL) {
+        return current;
+    }
+    return nullptr;
+}
+
+bool CacheTraversedNodes(const SuperKernelGraph& graph, const std::vector<uint64_t>& path, SkNodeType startNodeType,
+                         const SuperKernelBaseNode* result,
+                         std::unordered_map<uint64_t, const SuperKernelBaseNode*>& cache, uint64_t& failedNodeId)
+{
+    // This cache is intentionally direction-agnostic: we only care whether a node
+    // has already been attached to a reusable kernel for later inference.
+    for (uint64_t nodeId : path) {
+        auto* pathNode = graph.GetNodeById(nodeId);
+        if (pathNode == nullptr) {
+            failedNodeId = nodeId;
+            return false;
+        }
+        auto nodeType = pathNode->GetNodeType();
+        if (nodeType == SkNodeType::NODE_KERNEL || nodeType == startNodeType) {
+            cache[nodeId] = result;
+        }
+    }
+    return true;
+}
+
+// Find a KERNEL node in the given direction, return nullptr when not found.
+const SuperKernelBaseNode* FindKernelNodeInDirection(uint64_t startNodeId, const SuperKernelGraph& graph,
+                                                     SearchDirection direction,
+                                                     std::unordered_map<uint64_t, const SuperKernelBaseNode*>& cache,
+                                                     int maxHops = 100)
+{
+    
+    if (startNodeId == INVALID_TASK_ID) {
+        SK_LOGI("FindKernelNodeInDirection skipped: startNodeId is INVALID_TASK_ID, direction=%s",
+                to_string(direction));
+        return nullptr;
+    }
+
+    const auto* startNode = graph.GetNodeById(startNodeId);
+    if (startNode == nullptr) {
+        SK_LOGI("FindKernelNodeInDirection failed: startNodeId=%lu, direction=%s, reason=start-node-not-found",
+                startNodeId, to_string(direction));
+        return nullptr;
+    }
+    const SkNodeType startNodeType = startNode->GetNodeType();
+
     uint64_t curNodeId = startNodeId;
-
-    SuperKernelBaseNode* current;
-    SuperKernelBaseNode* result = nullptr;
-
-    auto LogSearchFailure = [&](const char* reason, uint64_t failedNodeId) {
-        std::string pathStr;
-        pathStr.reserve(path.size() * 8);
-        for (size_t idx = 0; idx < path.size(); ++idx) {
-            if (idx > 0) {
-                pathStr += "->";
-            }
-            pathStr += std::to_string(path[idx]);
-        }
-        if (pathStr.empty()) {
-            pathStr = "empty";
-        }
-        SK_LOGI("FindKernelNodeInDirection failed: startNodeId=%lu, "
-                "direction=%s, reason=%s, failedNodeId=%lu, path=%s",
-                startNodeId, to_string(direction), reason, failedNodeId, pathStr.c_str());
-    };
-
+    std::vector<uint64_t> path; // Track all visited node IDs along traversal path.
     for (int i = 0; i < maxHops; ++i) {
         path.push_back(curNodeId);
 
-        current = graph.GetNodeById(curNodeId);
+        const auto* current = graph.GetNodeById(curNodeId);
         if (current == nullptr) {
-            LogSearchFailure("node-not-found", curNodeId);
+            LogKernelSearchFailure(startNodeId, direction, path, "node-not-found", curNodeId);
             SK_LOGI("Node with ID %lu not found in graph.", curNodeId);
             return nullptr;
         }
 
-        // Check cache first.
-        auto it = cache.find(curNodeId);
-        if (it != cache.end()) {
-            result = it->second;
-        } else if (current->GetNodeType() == SkNodeType::NODE_KERNEL) {
-            result = const_cast<SuperKernelBaseNode*>(current);
-        }
-
+        const auto* result = ResolveCurrentKernel(curNodeId, current, cache);
         if (result) {
-            // Cache every traversed node to accelerate future lookups.
-            auto startNodeTye = graph.GetNodeById(startNodeId)->GetNodeType();
-            for (uint64_t nodeId : path) {
-                auto nodeType = graph.GetNodeById(nodeId)->GetNodeType();
-                if (nodeType == SkNodeType::NODE_KERNEL || nodeType == startNodeTye) {
-                    cache[nodeId] = result;
-                }
+            uint64_t failedNodeId = INVALID_TASK_ID;
+            if (!CacheTraversedNodes(graph, path, startNodeType, result, cache, failedNodeId)) {
+                LogKernelSearchFailure(startNodeId, direction, path, "path-node-not-found-during-cache-fill",
+                                       failedNodeId);
+                return nullptr;
             }
             return result;
         }
 
         curNodeId = (direction == SearchDirection::PREV) ? current->GetPreNodeId() : current->GetNextNodeId();
-
         if (curNodeId == INVALID_TASK_ID) {
-            LogSearchFailure("no-next-node", path.back());
+            const char* reason =
+                (direction == SearchDirection::PREV) ? "no-suitable-prev-node" : "no-suitable-next-node";
+            LogKernelSearchFailure(startNodeId, direction, path, reason, path.back());
             SK_LOGI("nodeId:%lu has no %s-node.", startNodeId, to_string(direction));
             return nullptr;
         }
 
-        // Detect loops to avoid infinite traversal.
         if (std::find(path.cbegin(), path.cend(), curNodeId) != path.cend()) {
-            LogSearchFailure("loop-detected", curNodeId);
+            LogKernelSearchFailure(startNodeId, direction, path, "loop-detected", curNodeId);
             SK_LOGI("nodeId:%lu detected loop in %s direction.", startNodeId, to_string(direction));
-            return nullptr; // Loop detected.
+            return nullptr;
         }
     }
-    LogSearchFailure("max-hops-exceeded", curNodeId);
+
+    LogKernelSearchFailure(startNodeId, direction, path, "max-hops-exceeded", curNodeId);
     SK_LOGI("nodeId:%lu search exceeded max hops (%d) in %s direction.", startNodeId, maxHops, to_string(direction));
-    return nullptr; // Exceeded traversal budget.
+    return nullptr;
 }
 
 SyncDirection GenSyncDirection(SkQueueType preType, SkQueueType currType)
@@ -254,7 +294,7 @@ bool SkTaskBuilder::InitTaskSyncInfos(const std::vector<SuperKernelBaseNode*>& t
     taskSyncInfos_.resize(tasks.size());
 
     // Lookup cache for nearest kernel nodes: nodeId -> kernelNode*
-    std::unordered_map<uint64_t, SuperKernelBaseNode*> kernelNodeCache;
+    std::unordered_map<uint64_t, const SuperKernelBaseNode*> kernelNodeCache;
 
     size_t kernelCount = 0;
     size_t notifyCount = 0;
@@ -1508,7 +1548,7 @@ SkLaunchInfo SkTaskBuilder::Build(std::string skFuncName, const std::vector<Supe
         SK_LOGI("start process custom tasks");
         SK_LOGI("direct add custom tasks");
         constexpr size_t kInvalidCustomTaskIndex = static_cast<size_t>(std::numeric_limits<uint32_t>::max());
-        std::unordered_map<uint64_t, SuperKernelBaseNode*> kernelNodeCache;
+        std::unordered_map<uint64_t, const SuperKernelBaseNode*> kernelNodeCache;
         SkQueueType firstKernelEventQueueType = InferFirstKernelEventQueueType(tasks);
         for (size_t i = 0; i < customTasks.size(); i++) {
             auto* node = customTasks[i];

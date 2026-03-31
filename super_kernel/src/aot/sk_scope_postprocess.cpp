@@ -304,6 +304,8 @@ bool GetMainAndSubStreamOrder(SuperKernelGraph& graph, std::vector<StreamPostPla
             processedScopeInfo.skMainNodeId = plans[0].candidateNodeId;
             return true;
         }
+        SK_LOGI("only one stream in scope but candidate node invalid, skip update: streamId=%u", 
+                processedScopeInfo.updateStreamInfos[0].streamIdx);
         return false;
     }
 
@@ -336,11 +338,11 @@ bool GetMainAndSubStreamOrder(SuperKernelGraph& graph, std::vector<StreamPostPla
     }
 
     if (mainStreamIdx == INVALID_STREAM_ID || processedScopeInfo.skMainNodeId == INVALID_TASK_ID) {
-        SK_LOGE("failed to find main SK node in scope during post-process, skip update");
+        SK_LOGI("failed to find main SK node in scope during post-process, skip update");
         return false;
     }
     if (entrySubStreamIdx == INVALID_STREAM_ID) {
-        SK_LOGE("failed to find entry sub stream in scope during post-process, skip update");
+        SK_LOGI("failed to find entry sub stream in scope during post-process, skip update");
         return false;
     }
 
