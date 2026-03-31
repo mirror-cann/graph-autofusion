@@ -263,6 +263,7 @@ superkernel_run_example() {
 superkernel_ut() {
   echo "---------------- Start UT ----------------"
   cd ${BASEPATH}/super_kernel &&
+  ${PYTHON_CMD} -m pip install -e . --force-reinstall --no-deps -q &&
   if [ "X$ENABLE_COVERAGE" == "Xon" ]; then
     ${PYTHON_CMD} -m pytest tests/ut -m ut \
                                      --cov-config=scripts/sk_ut_cfg.toml \
@@ -278,6 +279,7 @@ superkernel_ut() {
 superkernel_st() {
   echo "---------------- Start ST ----------------"
   cd ${BASEPATH}/super_kernel &&
+  ${PYTHON_CMD} -m pip install -e . --force-reinstall --no-deps -q &&
   if [ "X$ENABLE_COVERAGE" == "Xon" ]; then
     ${PYTHON_CMD} -m pytest tests/st -m st --cov-config=scripts/sk_st_cfg.toml \
                                      --cov=superkernel \
