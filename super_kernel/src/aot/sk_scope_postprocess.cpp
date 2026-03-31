@@ -432,6 +432,16 @@ bool ApplyEventMemoryResource(SuperKernelGraph& graph, SuperKernelBaseNode* even
     return true;
 }
 
+uint32_t GetKernelCnt(const std::vector<SuperKernelBaseNode*>& tasks){
+    uint32_t kernelCnt = 0;
+    for(auto& task: tasks){
+        if(task->GetNodeType() == SkNodeType::NODE_KERNEL){
+            kernelCnt++;
+        }
+    }
+    return kernelCnt;
+}
+
 } // namespace
 
 SuperKernelProcessedScopeInfo SuperKernelScopePostProcessor::PostProcess(SuperKernelScopeInfo& scopeInfo)
@@ -468,6 +478,13 @@ SuperKernelProcessedScopeInfo SuperKernelScopePostProcessor::PostProcess(SuperKe
         SK_LOGI("scope post-process failed: no task remains after cancelling notify/wait pairs");
         return {};
     }
+
+    uint32_t kernelCnt = GetKernelCnt(filteredTasks);
+    if (kernelCnt == 0){
+        SK_LOGI("scope post-process failed: no kernel task remains after filtering");
+        return {};
+    }
+    SK_LOGI("kernel count after filtering: %u", kernelCnt);
 
     // init processedScopeInfo
     SuperKernelProcessedScopeInfo processedScopeInfo;

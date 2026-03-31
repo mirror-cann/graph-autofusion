@@ -27,7 +27,7 @@
 namespace {
 std::string GetSkFuncName(const std::vector<SuperKernelBaseNode*>& nodes, uint32_t scopeIdx)
 {
-    size_t startNodeIdx = nodes.size();
+    size_t startNodeIdx = nodes.size() - 1;
     size_t endNodeIdx = 0;
     for (size_t i = 0; i < nodes.size(); i++) {
         if (nodes[i]->GetNodeType() == SkNodeType::NODE_KERNEL) {
