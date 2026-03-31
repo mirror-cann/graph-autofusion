@@ -35,7 +35,7 @@
 #include <set>
 #include <unordered_map>
 #include <vector>
-
+#include "sk_candidate_heap.h"
 #include "sk_graph.h"
 #include "sk_log.h"
 #include "sk_lock_detector.h"
@@ -277,7 +277,7 @@ private:
     std::unordered_map<uint32_t, StreamState> streamStates_;
     std::set<uint64_t> visitedNotifies_;
     std::set<uint64_t> processedNodes_;
-    std::priority_queue<uint64_t, std::vector<uint64_t>, std::greater<uint64_t>> nodeHeap_;
+    SkCandidateHeap nodeHeap_;
     std::bitset<MAX_SCOPE_NUM> currentScopeBitFlags_;
 };
 

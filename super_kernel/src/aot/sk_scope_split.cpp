@@ -258,7 +258,7 @@ void ScopeSplitPass::PrintScopeStreamInfos(size_t scopeIdx, const SuperKernelSco
 // ============ InitialScopeSplitPass Implementation ============
 
 InitialScopeSplitPass::InitialScopeSplitPass(SuperKernelGraph& inputGraph)
-    : ScopeSplitPass(inputGraph) {}
+    : ScopeSplitPass(inputGraph), nodeHeap_(inputGraph, SkHeapType::PRIORITY_QUEUE) {}
 
 void InitialScopeSplitPass::InitStreamStates() {
     SK_LOGI("[SplitScope] initializing stream states for %s", GetName().c_str());
@@ -492,9 +492,7 @@ bool InitialScopeSplitPass::DetermineCurrentScopeBitFlags() {
 
 void InitialScopeSplitPass::InitNodeHeap() {
     SK_LOGI("[SplitScope] initializing node heap for current scope");
-    while (!nodeHeap_.empty()) {
-        nodeHeap_.pop();
-    }
+    nodeHeap_.reset();
     size_t addedNodes = 0;
     for (auto& pair : streamStates_) {
         TryAddNodeToHeap(pair.first);
@@ -779,8 +777,7 @@ bool InitialScopeSplitPass::BuildCurrentScope(SuperKernelScopeInfo& scopeInfo) {
     scopeInfo.scopeBitFlags = currentScopeBitFlags_;
 
     while (!nodeHeap_.empty()) {
-        uint64_t nodeId = nodeHeap_.top();
-        nodeHeap_.pop();
+        uint64_t nodeId = nodeHeap_.pop();
 
         SuperKernelBaseNode* node = graph_.GetNodeById(nodeId);
         if (node == nullptr) {
