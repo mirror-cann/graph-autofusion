@@ -142,19 +142,13 @@ void SkCandidateHeap::clear()
 
 void SkCandidateHeap::reset()
 {
-    while (!nodeHeap_.empty()) {
-        nodeHeap_.pop();
-    }
-    kernelNodes_.clear();
-    nonKernelNodes_.clear();
-    prevKernelTypeClass_ = KernelTypeClass::OTHER;
-    prevStreamIdx_ = 0;
-    isFirstSelection_ = true;
+    clear();
 }
 
 void SkCandidateHeap::ResetSelectionState()
 {
     prevKernelTypeClass_ = KernelTypeClass::OTHER;
+    prevKernelStreamIdx_ = 0;
     prevStreamIdx_ = 0;
     isFirstSelection_ = true;
 }
