@@ -107,7 +107,14 @@ bool LockDetector::HasDeadlock(SuperKernelBaseNode* curNode) {
         case SkNodeType::NODE_NOTIFY:
             hasDeadlock = CheckNotifyNodeDeadlock(preNode);
             break;
+        case SkNodeType::NODE_DEFAULT:
+            hasDeadlock = HasDeadlock(preNode);
+            break;
+        case SkNodeType::NODE_RESET:
+            hasDeadlock = HasDeadlock(preNode);
+            break;
         default:
+            SK_LOGD("nodeId: %u, unsupported node type %u in HasDeadlock", preNode->GetNodeId(), preNode->GetNodeType());
             break;
     }
 
@@ -387,8 +394,8 @@ bool LockDetector::IsFusible(SuperKernelBaseNode& curNode) {
         if (curNode.GetNodeType() == SkNodeType::NODE_KERNEL) {
             // HasEnoughCores already updated superKernelCubeNum/superKernelVecNum 
             kernelNodeNum++;
-            SK_LOGD("[lock detector] Kernel node %s: fused, kernelNodeNum now %u", curNode.Format().c_str(), kernelNodeNum);
         }
+        SK_LOGD("[lock detector] fused nodeId=%s, nodeType=%u, nodeNum=%u, SuperKernelCubeNum=%u, SuperKernelVecNum=%u, depOpCubeNum=%u, depOpVecNum=%u", curNode.Format().c_str(), curNode.GetNodeType(), nodeNum, superKernelCubeNum, superKernelVecNum, depOpCubeNum, depOpVecNum);
     } else {
         SK_LOGI("[lock detector] Node %s: cannot be fused", curNode.Format().c_str());
     }
