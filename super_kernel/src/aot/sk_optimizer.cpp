@@ -47,14 +47,23 @@ std::string GetSkFuncName(const std::vector<SuperKernelBaseNode*>& nodes, uint32
     return skName;
 }
 
-void PrintSKNodes(std::string skFuncName, SuperKernelProcessedScopeInfo& processedScopeInfo)
+void PrintSKNodesDetail(std::string skFuncName, SuperKernelProcessedScopeInfo& processedScopeInfo)
 {
-    auto &scopeIdx = processedScopeInfo.scopeIdx;
-    auto &nodes = processedScopeInfo.nodes;
+    auto& scopeIdx = processedScopeInfo.scopeIdx;
+    auto& nodes = processedScopeInfo.nodes;
     SK_LOGI("  SK Function: %s, scope id: %zu, Node Count: %zu", skFuncName.c_str(), scopeIdx, nodes.size());
     for (size_t i = 0; i < nodes.size(); ++i) {
         SK_LOGI("    [%zu] %s", i, nodes[i]->Format().c_str());
     }
+}
+
+void PrintSKNodes(std::string skFuncName, SuperKernelProcessedScopeInfo& processedScopeInfo)
+{
+    {
+        SK_LOG_CONTEXT_SIMPLE("sk_fused_nodes.log");
+        PrintSKNodesDetail(skFuncName, processedScopeInfo);
+    }
+    PrintSKNodesDetail(skFuncName, processedScopeInfo);
 }
 } // namespace
 

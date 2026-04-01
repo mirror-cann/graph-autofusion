@@ -90,36 +90,44 @@ SkQueueType InferFirstKernelEventQueueType(const std::vector<SuperKernelBaseNode
 }
 
 // dump device entry args
-void DumpTaskQue(const TaskQue* que, const char* name)
+void DumpTaskQueDetail(const TaskQue* que, const char* name)
 {
-    SK_LOGI("%s TaskQue: cap=%u, tasks=%u", name, que->cap, que->taskCnt);
+    SK_LOGD("%s TaskQue: cap=%u, tasks=%u", name, que->cap, que->taskCnt);
     for (uint32_t i = 0; i < que->taskCnt; ++i) {
         const TaskInfo& ti = que->taskInfos[i];
-        SK_LOGI("[%u] type=%s, idx=%u, blk=%u, kernel=%s, entries=%u, args=0x%llx", i, to_string(ti.type), ti.index,
-                ti.numBlocks, to_string(ti.originType), ti.entryCnt, (unsigned long long)ti.args);
+        SK_LOGD("[%u] type=%s, idx=%u, blk=%u, entries=%u, args=0x%llx", i, to_string(ti.type), ti.index,
+                ti.numBlocks, ti.entryCnt, (unsigned long long)ti.args);
         for (uint32_t j = 0; j < ti.entryCnt; ++j) {
-            SK_LOGI("      entry[%u]=0x%llx", j, (unsigned long long)ti.entry[j]);
+            SK_LOGD("   entry[%u]=0x%llx", j, (unsigned long long)ti.entry[j]);
         }
     }
 }
 
-void DumpDeviceArgs(const SkDeviceEntryArgs* args)
+void DumpDeviceArgsDetail(std::string skFuncName, const SkDeviceEntryArgs* args)
 {
+    SK_LOGD("Dumping device args for function: %s", skFuncName.c_str());
     const uint8_t* base = (const uint8_t*)args;
-
     const SkHeaderInfo& hdr = args->skHeader;
-    SK_LOGI("SkHeaderInfo: aicOff=%u, aivOff=%u, counterOff=%u, wsOff=%u, dfxOff=%u, eventConfigOff=%u, nodeCnt=%u, totalSize=%lu\n",
+    SK_LOGD("SkHeaderInfo: aicOff=%u, aivOff=%u, counterOff=%u, wsOff=%u, dfxOff=%u, eventConfigOff=%u, nodeCnt=%u, totalSize=%lu\n",
             hdr.aicQueOffset, hdr.aivQueOffset, hdr.counterOffset, hdr.wsOffset, hdr.dfxOffset, hdr.eventConfigOffset, hdr.nodeCnt,
             hdr.totalSize);
 
-    DumpTaskQue((const TaskQue*)(base + args->skHeader.aicQueOffset), "AIC");
-    DumpTaskQue((const TaskQue*)(base + args->skHeader.aivQueOffset), "AIV");
+    DumpTaskQueDetail((const TaskQue*)(base + args->skHeader.aicQueOffset), "AIC");
+    DumpTaskQueDetail((const TaskQue*)(base + args->skHeader.aivQueOffset), "AIV");
 
     const SkDfxInfo* dfx = (const SkDfxInfo*)(base + args->skHeader.dfxOffset);
     for (uint32_t i = 0; i < args->skHeader.nodeCnt; ++i) {
-        SK_LOGI("dfx[%u]: bin=0x%llx, ori=0x%llx", i, (unsigned long long)dfx[i].binHdl,
+        SK_LOGD("dfx[%u]: bin=0x%llx, ori=0x%llx", i, (unsigned long long)dfx[i].binHdl,
                 (unsigned long long)dfx[i].funcHdlOri);
     }
+}
+
+void DumpDeviceArgs(std::string skFuncName, const SkDeviceEntryArgs* args){
+    {
+        SK_LOG_CONTEXT_SIMPLE("sk_device_args.log");
+        DumpDeviceArgsDetail(skFuncName, args);
+    }
+    DumpDeviceArgsDetail(skFuncName, args);
 }
 
 // ========== SkTaskBuilder static helper implementations ==========
@@ -577,7 +585,7 @@ bool SkTaskBuilder::ExtractInterStreamSync(const std::vector<SuperKernelBaseNode
                     SK_LOGI("ExtractInterStreamSync: inserting sync event between %lu -> %lu",
                             preNodeId, nextId);
                     if (nodeIdToIndex_.find(preNodeId) == nodeIdToIndex_.end() || nodeIdToIndex_.find(nextId) == nodeIdToIndex_.end()) {
-                        SK_LOGE("NodeId not exists in task nodes, node id is %ld, %lu", preNodeId, nextId);
+                        SK_LOGE("NodeId not exists in task nodes, node id is %lu, %lu", preNodeId, nextId);
                         return false;
                     }
                     InsertSyncEvent(nodeIdToIndex_[preNodeId], nodeIdToIndex_[nextId]);
@@ -1043,7 +1051,7 @@ bool SkTaskBuilder::AddFuncTask(SkTask& skTask, SuperKernelBaseNode* node, SkDfx
     taskInfo.originType = kernelInfo.kernelType;
     taskInfo.numBlocks = numBlocks;
     if (kernelInfo.resolvedNum != binCount) {
-        SK_LOGW("[sk error] mismatch num between sub sk registered and sk option, funcName: %s, registered: %d,"
+        SK_LOGW("mismatch num between sub sk registered and sk option, funcName: %s, registered: %d,"
             "option: %d", kernelInfo.funcName.c_str(), kernelInfo.resolvedNum, binCount);
     }
     for (int i = 0; i < binCount; i++) {
@@ -1099,59 +1107,59 @@ bool SkTaskBuilder::DispatchFuncTask(SkTask& skTaskCube, SkTask& skTaskVec, Supe
     }
     auto kernelInfo = node->GetNodeInfos().kernelInfos;
     switch (queueType) {
-    case SkQueueType::AIV: {
-        uint32_t numBlocks = kernelInfo.numBlocks;
-        if (!AddFuncTask(skTaskVec, node, dfxInfo, nodeIndex, 1, binCount, taskType, numBlocks)) {
-            return false;
+        case SkQueueType::AIV: {
+            uint32_t numBlocks = kernelInfo.numBlocks;
+            if (!AddFuncTask(skTaskVec, node, dfxInfo, nodeIndex, 1, binCount, taskType, numBlocks)) {
+                return false;
+            }
+            SK_LOGI("    task insert: task %zu, [queue=AIV], [type=%s], [kernelType=%s], [nodeInfo=%s]", nodeIndex,
+                    to_string(taskType), to_string(queueType), node->Format().c_str());
+            break;
         }
-        SK_LOGI("task insert: stask %zu, queue=aiv, type=%s, kernel=%s, numBlocks=%u", nodeIndex, to_string(taskType),
-                to_string(queueType), numBlocks);
-        break;
-    }
-    case SkQueueType::AIC: {
-        uint32_t numBlocks = kernelInfo.numBlocks;
-        if (!AddFuncTask(skTaskCube, node, dfxInfo, nodeIndex, 0, binCount, taskType, numBlocks)) {
-            return false;
+        case SkQueueType::AIC: {
+            uint32_t numBlocks = kernelInfo.numBlocks;
+            if (!AddFuncTask(skTaskCube, node, dfxInfo, nodeIndex, 0, binCount, taskType, numBlocks)) {
+                return false;
+            }
+            SK_LOGI("    task insert: task %zu, [queue=AIC], [type=%s], [kernelType=%s], [nodeInfo=%s]", nodeIndex,
+                    to_string(taskType), to_string(queueType), node->Format().c_str());
+            break;
         }
-        SK_LOGI("task insert: stask %zu, queue=aic, type=%s, kernel=%s, numBlocks=%u", nodeIndex, to_string(taskType),
-                to_string(queueType), numBlocks);
-        break;
-    }
-    case SkQueueType::MIX_1_1: {
-        uint32_t numBlocksAic = kernelInfo.numBlocks;
-        uint32_t numBlocksAiv = kernelInfo.numBlocks;
-        if (!AddFuncTask(skTaskCube, node, dfxInfo, nodeIndex, 0, binCount, taskType, numBlocksAic)) {
-            return false;
+        case SkQueueType::MIX_1_1: {
+            uint32_t numBlocksAic = kernelInfo.numBlocks;
+            uint32_t numBlocksAiv = kernelInfo.numBlocks;
+            if (!AddFuncTask(skTaskCube, node, dfxInfo, nodeIndex, 0, binCount, taskType, numBlocksAic)) {
+                return false;
+            }
+            if (!AddFuncTask(skTaskVec, node, dfxInfo, nodeIndex, 1, binCount, taskType, numBlocksAiv)) {
+                return false;
+            }
+            SK_LOGI("    task insert: task %zu, [queue=AIC], [type=%s], [kernelType=%s], [nodeInfo=%s]", nodeIndex,
+                    to_string(taskType), to_string(queueType), node->Format().c_str());
+            SK_LOGI("    task insert: task %zu, [queue=AIV], [type=%s], [kernelType=%s], [nodeInfo=%s]", nodeIndex,
+                    to_string(taskType), to_string(queueType), node->Format().c_str());
+            break;
         }
-        if (!AddFuncTask(skTaskVec, node, dfxInfo, nodeIndex, 1, binCount, taskType, numBlocksAiv)) {
-            return false;
+        case SkQueueType::MIX_1_2: {
+            uint32_t numBlocksAic = kernelInfo.numBlocks;
+            uint32_t numBlocksAiv = kernelInfo.numBlocks * 2;
+            if (!AddFuncTask(skTaskCube, node, dfxInfo, nodeIndex, 0, binCount, taskType, numBlocksAic)) {
+                return false;
+            }
+            if (!AddFuncTask(skTaskVec, node, dfxInfo, nodeIndex, 1, binCount, taskType, numBlocksAiv)) {
+                return false;
+            }
+            skTaskVec.nodeType = SkKernelType::MIX_AIC_1_2;
+            skTaskCube.nodeType = SkKernelType::MIX_AIC_1_2;
+            SK_LOGI("    task insert: task %zu, [queue=AIC], [type=%s], [kernelType=%s], [nodeInfo=%s]", nodeIndex,
+                    to_string(taskType), to_string(queueType), node->Format().c_str());
+            SK_LOGI("    task insert: task %zu, [queue=AIV], [type=%s], [kernelType=%s], [nodeInfo=%s]", nodeIndex,
+                    to_string(taskType), to_string(queueType), node->Format().c_str());
+            break;
         }
-        SK_LOGI("task insert: stask %zu, queue=aic, type=%s, kernel=%s, numBlocks=%u", nodeIndex, to_string(taskType),
-                to_string(queueType), numBlocksAic);
-        SK_LOGI("task insert: stask %zu, queue=aiv, type=%s, kernel=%s, numBlocks=%u", nodeIndex, to_string(taskType),
-                to_string(queueType), numBlocksAiv);
-        break;
-    }
-    case SkQueueType::MIX_1_2: {
-        uint32_t numBlocksAic = kernelInfo.numBlocks;
-        uint32_t numBlocksAiv = kernelInfo.numBlocks * 2;
-        if (!AddFuncTask(skTaskCube, node, dfxInfo, nodeIndex, 0, binCount, taskType, numBlocksAic)) {
+        default:
+            SK_LOGE("DispatchFuncTask failed: unsupported kernel type %s for super kernel", to_string(queueType));
             return false;
-        }
-        if (!AddFuncTask(skTaskVec, node, dfxInfo, nodeIndex, 1, binCount, taskType, numBlocksAiv)) {
-            return false;
-        }
-        skTaskVec.nodeType = SkKernelType::MIX_AIC_1_2;
-        skTaskCube.nodeType = SkKernelType::MIX_AIC_1_2;
-        SK_LOGI(" task insert: stask %zu, queue=aic, type=%s, kernel=%s, numBlocks=%u", nodeIndex, to_string(taskType),
-                to_string(queueType), numBlocksAic);
-        SK_LOGI(" task insert: stask %zu, queue=aiv, type=%s, kernel=%s, numBlocks=%u", nodeIndex, to_string(taskType),
-                to_string(queueType), numBlocksAiv);
-        break;
-    }
-    default:
-        SK_LOGE("DispatchFuncTask failed: unsupported kernel type %s for super kernel", to_string(queueType));
-        return false;
     }
     return true;
 }
@@ -1165,27 +1173,29 @@ bool SkTaskBuilder::DispatchEventTask(SkTask& skTaskCube, SkTask& skTaskVec, Sup
         return false;
     }
     SkTask* targetTask = nullptr;
+    std::string targetQue;
     switch (queueType) {
-    case SkQueueType::AIC:
-        targetTask = &skTaskCube;
-        break;
-    case SkQueueType::AIV:
-        targetTask = &skTaskVec;
-        break;
-    case SkQueueType::MIX_1_1:
-    case SkQueueType::MIX_1_2:
-    default:
-        targetTask = &skTaskVec;
-        break;
+        case SkQueueType::AIC:
+            targetTask = &skTaskCube;
+            targetQue = "AIC";
+            break;
+        case SkQueueType::AIV:
+            targetTask = &skTaskVec;
+            targetQue = "AIV";
+            break;
+        case SkQueueType::MIX_1_1:
+        case SkQueueType::MIX_1_2:
+        default:
+            targetTask = &skTaskVec;
+            targetQue = "AIV";
+            break;
     }
     if (!AddEventTask(*targetTask, node, nodeIndex, taskType)) {
         SK_LOGE("DispatchEventTask failed: add event task failed");
         return false;
     }
-    uint64_t eventId = node->GetEventId();
-    uint64_t nodeId = node->GetNodeId();
-    SK_LOGI("task insert: stask %zu, [queue=%s], [type=%s], [eventId=%lx], [nodeId=%lu]", nodeIndex,
-            to_string(queueType), to_string(taskType), eventId, nodeId);
+    SK_LOGI("    task insert: task %zu, [queue=%s], [type=%s], [nodeInfo=%s]", nodeIndex, targetQue.c_str(),
+            to_string(taskType), node->Format().c_str());
     return true;
 }
 
@@ -1263,7 +1273,7 @@ bool SkTaskBuilder::DispatchSyncTasks(SkTask& skTaskCube, SkTask& skTaskVec, siz
                 SK_LOGE("DispatchSyncTasks failed: add sync task to aic queue failed");
                 return false;
             }
-            SK_LOGI("sync insert: stask %zu, queue=aic, type=%s, flag=%s, prev=%s, next=%s", nodeIndex,
+            SK_LOGI("    task insert: task %zu, [queue=AIC], [type=%s], [flag=%s], [prev=%s, next=%s]", nodeIndex,
                     to_string(SkTaskType::TYPE_SYNC), to_string(syncType), to_string(prevType), to_string(nextType));
         }
         if (addToAivQue) {
@@ -1271,7 +1281,7 @@ bool SkTaskBuilder::DispatchSyncTasks(SkTask& skTaskCube, SkTask& skTaskVec, siz
                 SK_LOGE("DispatchSyncTasks failed: add sync task to aiv queue failed");
                 return false;
             }
-            SK_LOGI("sync insert: stask %zu, queue=aiv, type=%s, flag=%s, prev=%s, next=%s", nodeIndex,
+            SK_LOGI("    task insert: task %zu, [queue=AIV], [type=%s], [flag=%s], [prev=%s, next=%s]", nodeIndex,
                     to_string(SkTaskType::TYPE_SYNC), to_string(syncType), to_string(prevType), to_string(nextType));
         }
     }
@@ -1448,7 +1458,7 @@ SkLaunchInfo SkTaskBuilder::Build(std::string skFuncName, const std::vector<Supe
     // ========== Phase 4: construct final task queues ==========
     SK_LOGI("start build tasks for super kernel, taskCount=%zu", taskCount);
     int preloadCount = 1;
-    SK_LOGI("add preload tasks, preload count is %d, task count is %d", preloadCount, taskCount);
+    SK_LOGI("add tasks preload, preload count is %d, task count is %d", preloadCount, taskCount);
     for (int i = 0; i < preloadCount && i < static_cast<int>(taskCount); i++) {
         if (tasks[i]->GetNodeType() == SkNodeType::NODE_KERNEL) {
             SkQueueType queueType = taskSyncInfos_[i].queueType;
@@ -1469,12 +1479,12 @@ SkLaunchInfo SkTaskBuilder::Build(std::string skFuncName, const std::vector<Supe
         SkQueueType queueType = info.queueType;
 
         // 1. Insert intra-kernel WAIT sync before task execution.
-        SK_LOGI("add sync task for vec recv, vec recv size %d", info.vecRecvInfo.size());
+        SK_LOGI("add task sync for vec recv, vec recv size %zu", info.vecRecvInfo.size());
         if (!DispatchSyncTasks(aicTask, aivTask, i, info.vecRecvInfo, false, queueType)) {
             SK_LOGE("Build failed: dispatch vec recv sync failed at task index %d", i);
             return {};
         }
-        SK_LOGI("add sync task for vec recv, cub recv size %d", info.cubRecvInfo.size());
+        SK_LOGI("add task sync for cub recv, cub recv size %zu", info.cubRecvInfo.size());
         if (!DispatchSyncTasks(aicTask, aivTask, i, info.cubRecvInfo, false, queueType)) {
             SK_LOGE("Build failed: dispatch cub recv sync failed at task index %d", i);
             return {};
@@ -1483,7 +1493,7 @@ SkLaunchInfo SkTaskBuilder::Build(std::string skFuncName, const std::vector<Supe
         // 2. Add function/event task.
         switch (tasks[i]->GetNodeType()) {
         case SkNodeType::NODE_KERNEL:
-            SK_LOGI("add func task, task index is %d", i);
+            SK_LOGI("add task func, task index is %d", i);
             if (!DispatchFuncTask(aicTask, aivTask, tasks[i], dfxInfos + i, i, splitBinCount,
                                   SkTaskType::TYPE_FUNC, queueType)) {
                 SK_LOGE("Build failed: function dispatch failed at task index %d", i);
@@ -1491,14 +1501,14 @@ SkLaunchInfo SkTaskBuilder::Build(std::string skFuncName, const std::vector<Supe
             }
             break;
         case SkNodeType::NODE_NOTIFY:
-            SK_LOGI("add notify task, task index is %d", i);
+            SK_LOGI("add task notify, task index is %d", i);
             if (!DispatchEventTask(aicTask, aivTask, tasks[i], i, SkTaskType::TYPE_EVENT_NOTIFY, queueType)) {
                 SK_LOGE("Build failed: notify dispatch failed at task index %d", i);
                 return {};
             }
             break;
         case SkNodeType::NODE_WAIT:
-            SK_LOGI("add wait task, task index is %d", i);
+            SK_LOGI("add task wait, task index is %d", i);
             if (!DispatchEventTask(aicTask, aivTask, tasks[i], i, SkTaskType::TYPE_EVENT_WAIT, queueType)) {
                 SK_LOGE("Build failed: wait dispatch failed at task index %d", i);
                 return {};
@@ -1514,7 +1524,7 @@ SkLaunchInfo SkTaskBuilder::Build(std::string skFuncName, const std::vector<Supe
         if (preloadCount > 0 && i + preloadCount < static_cast<int>(taskCount)
             && tasks[i + preloadCount]->GetNodeType() == SkNodeType::NODE_KERNEL) {
             SkQueueType preloadQueueType = taskSyncInfos_[i + preloadCount].queueType;
-            SK_LOGI("add preload tasks, task index is %d", i + preloadCount);
+            SK_LOGI("add tasks preload, task index is %d", i + preloadCount);
             if (!DispatchFuncTask(aicTask, aivTask, tasks[i + preloadCount], dfxInfos + i + preloadCount,
                                   i + preloadCount, splitBinCount, SkTaskType::TYPE_PRELOAD, preloadQueueType)) {
                 SK_LOGE("Build failed: rolling preload dispatch failed at task index %d", i + preloadCount);
@@ -1523,19 +1533,19 @@ SkLaunchInfo SkTaskBuilder::Build(std::string skFuncName, const std::vector<Supe
         }
 
         // 4. Insert cross-core sync (or forced debug sync).
-        SK_LOGI("add sync task for cross sync info, cross sync info size %d", info.crossSyncInfo.size());
+        SK_LOGI("add sync task for cross sync info, cross sync info size %zu", info.crossSyncInfo.size());
         if (!DispatchSyncTasks(aicTask, aivTask, i, info.crossSyncInfo, true, queueType)) {
             SK_LOGE("Build failed: dispatch cross sync failed at task index %d", i);
             return {};
         }
 
         // 5. Insert intra-kernel SET sync after task execution.
-        SK_LOGI("add sync task for vec send, vec send size %d", info.vecSendInfo.size());
+        SK_LOGI("add sync task for vec send, vec send size %zu", info.vecSendInfo.size());
         if (!DispatchSyncTasks(aicTask, aivTask, i, info.vecSendInfo, true, queueType)) {
             SK_LOGE("Build failed: dispatch vec send sync failed at task index %d", i);
             return {};
         }
-        SK_LOGI("add sync task for cub send, cub send size %d", info.cubSendInfo.size());
+        SK_LOGI("add sync task for cub send, cub send size %zu", info.cubSendInfo.size());
         if (!DispatchSyncTasks(aicTask, aivTask, i, info.cubSendInfo, true, queueType)) {
             SK_LOGE("Build failed: dispatch cub send sync failed at task index %d", i);
             return {};
@@ -1617,9 +1627,7 @@ SkLaunchInfo SkTaskBuilder::Build(std::string skFuncName, const std::vector<Supe
         return {};
     }
 
-    if (opts.EnableDebug()) {
-        DumpDeviceArgs(devArgs.Get());
-    }
+    DumpDeviceArgs(skFuncName, devArgs.Get());
 
     SkLaunchInfo launchInfo;
     launchInfo.entryInfo = std::move(entryInfo);
