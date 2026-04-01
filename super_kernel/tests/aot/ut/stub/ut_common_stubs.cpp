@@ -380,7 +380,7 @@ int32_t SkUtGetStreamId(uint32_t streamIdx)
     return g_streamIds[streamIdx];
 }
 
-aclrtBinHandle AscendGetEntryBinHandle()
+extern "C" aclrtBinHandle AscendGetEntryBinHandle()
 {
     if (g_entryBinHandleNull != 0) {
         return nullptr;

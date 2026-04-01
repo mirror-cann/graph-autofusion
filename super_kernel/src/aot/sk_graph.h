@@ -59,6 +59,7 @@ public:
     bool InitSKGraph();
 
     SuperKernelBaseNode* GetNodeById(uint64_t nodeId) const;
+    aclmdlRI GetModelRI() const { return modelRI; }
     const std::vector<uint64_t>& GetHeadNodes() const
     {
         return headNodes;

@@ -45,6 +45,7 @@ enum class aclskOtionType : uint32_t {
     DEBUG_DCCI_DISABLE_ON_KERNEL = 3,
     DEBUG_SYNC_ALL = 4,
     KERNEL_MAP = 5,
+    CONSTANT_CODEGEN = 6,  // 常量化代码生成选项
     SK_OPTION_MAX = 0xFFFFFFFF
 };
 
@@ -79,6 +80,14 @@ typedef struct aclskKernelMapOption {
     size_t numKernels;
 } aclskKernelMapOption;
 
+/**
+ * 常量化代码生成选项
+ * enableConstant: 1 启用常量化, 0 禁用常量化
+ */
+typedef struct aclskConstantCodegenOption {
+    uint32_t enableConstant;
+} aclskConstantCodegenOption;
+
 struct aclskOption {
     aclskOtionType optionType;
     union {
@@ -88,6 +97,7 @@ struct aclskOption {
         aclskDcciOption disableKernelDcci;
         aclskDebugSyncAllOption debugSync;
         aclskKernelMapOption kernelMap;
+        aclskConstantCodegenOption constantCodegen;
     };
 };
 

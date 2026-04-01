@@ -295,6 +295,17 @@ public:
         }
     }
     
+    // ========== 线程局部 modelRI 管理 ==========
+    // 设置当前线程的 modelRI（用于多 model 场景）
+    static void SetCurrentModelRI(aclmdlRI model) {
+        currentModelRI_ = model;
+    }
+    
+    // 获取当前线程的 modelRI
+    static aclmdlRI GetCurrentModelRI() {
+        return currentModelRI_;
+    }
+    
     // File handle management
     bool RegisterLogFile(const std::string& name, const std::string& subPath = "");
     bool SwitchToFile(const std::string& name);
@@ -324,12 +335,18 @@ private:
                               const char* format, ...);
     
     void WriteLog(const std::string& message);
+    
+    // 获取当前有效的 modelRI（优先使用线程局部变量，其次使用 config_）
+    aclmdlRI GetEffectiveModelRI() const;
 
 private:
     LoggerConfig config_;
     std::atomic<bool> initialized_{false};
     pid_t pid_{0};
     mutable std::mutex mutex_;
+    
+    // 线程局部的 modelRI（支持多 model 场景）
+    static thread_local aclmdlRI currentModelRI_;
 };
 
 } // namespace logger
@@ -399,6 +416,9 @@ private:
  *   // Creates directory: sk_meta/{pid}/model_305419896/
  */
 inline void InitSkLogger(aclmdlRI model) {
+    // 设置线程局部的 modelRI（支持多 model 场景）
+    sk::logger::FileLogger::SetCurrentModelRI(model);
+    
     // Read environment variable
     const char* envVar = std::getenv("ASCEND_OP_COMPILE_SAVE_KERNEL_META");
     bool enabled = false;

@@ -147,12 +147,19 @@ bool FileHandleManager::InitializeDefault(const std::string& baseDir, pid_t pid,
         return false;
     }
     
+    // 为不同 model 创建唯一的 handle 名称
+    std::string modelStr = ModelRIToString(model);
+    std::string handleName = "model_" + SanitizePathComponent(modelStr);
+    
     std::string defaultPath = dirPath + "/super_kernel.log";
-    return RegisterFile("default", defaultPath);
+    return RegisterFile(handleName, defaultPath);
 }
 
 // Thread-local current handle initialization
 thread_local std::string FileHandleManager::currentHandle_ = "default";
+
+// 线程局部 modelRI 初始化
+thread_local aclmdlRI FileLogger::currentModelRI_ = nullptr;
 
 FileHandleManager::FileHandleManager() {}
 
@@ -219,9 +226,13 @@ FileLogger& FileLogger::Instance() {
 bool FileLogger::Initialize(const LoggerConfig& config) {
     std::lock_guard<std::mutex> lock(mutex_);
     
-    if (initialized_.load()) {
+    // 如果已初始化且 modelRI 相同，直接返回
+    if (initialized_.load() && config_.modelRI == config.modelRI) {
         return true;
     }
+    
+    // 如果 modelRI 改变，需要为新 modelRI 创建日志文件
+    bool isNewModel = (initialized_.load() && config_.modelRI != config.modelRI);
     
     config_ = config;
     
@@ -241,11 +252,18 @@ bool FileLogger::Initialize(const LoggerConfig& config) {
     // Extract PID from created directory
     pid_ = getpid();
     
-    // Step 5: Initialize default file handle with modelRI
-    if (!FileHandleManager::Instance().InitializeDefault(config_.baseDir, pid_, config_.modelRI)) {
-        SK_DLOGE("Failed to initialize default file handle");
+    // 为新 modelRI 注册日志文件
+    std::string modelStr = ModelRIToString(config_.modelRI);
+    std::string handleName = "model_" + SanitizePathComponent(modelStr);
+    std::string defaultPath = logDir + "/super_kernel.log";
+    
+    if (!FileHandleManager::Instance().RegisterFile(handleName, defaultPath)) {
+        SK_DLOGE("Failed to register log file for model: %s", modelStr.c_str());
         return false;
     }
+    
+    // 切换到新的日志文件
+    FileHandleManager::Instance().SwitchToFile(handleName);
     
     initialized_.store(true);
     
@@ -254,11 +272,21 @@ bool FileLogger::Initialize(const LoggerConfig& config) {
     if (realpath(logDir.c_str(), absPath) != nullptr) {
         // Ensure null termination
         absPath[PATH_MAX - 1] = '\0';
-        SK_DLOGI("File logger initialized: dir=%s", absPath);
+        SK_DLOGI("File logger initialized: dir=%s, model=%s", absPath, modelStr.c_str());
     } else {
-        SK_DLOGI("File logger initialized: dir=%s", logDir.c_str());
+        SK_DLOGI("File logger initialized: dir=%s, model=%s", logDir.c_str(), modelStr.c_str());
     }
     return true;
+}
+
+// 获取当前有效的 modelRI
+aclmdlRI FileLogger::GetEffectiveModelRI() const {
+    // 优先使用线程局部变量
+    if (currentModelRI_ != nullptr) {
+        return currentModelRI_;
+    }
+    // 其次使用配置中的 modelRI
+    return config_.modelRI;
 }
 
 bool FileLogger::RegisterLogFile(const std::string& name, const std::string& subPath) {
@@ -266,8 +294,11 @@ bool FileLogger::RegisterLogFile(const std::string& name, const std::string& sub
         return false;
     }
     
+    // 使用 GetEffectiveModelRI 获取当前有效的 modelRI
+    aclmdlRI useModel = GetEffectiveModelRI();
+    
     // Use unified path generator
-    std::string basePath = GetSkMetaPath(config_.modelRI);
+    std::string basePath = GetSkMetaPath(useModel);
     std::string filePath = basePath + "/" + name;
     
     // If subPath provided, insert it before filename
@@ -284,7 +315,11 @@ bool FileLogger::RegisterLogFile(const std::string& name, const std::string& sub
         }
     }
     
-    return FileHandleManager::Instance().RegisterFile(name, filePath);
+    // 为不同 model 创建唯一的 handle 名称
+    std::string modelStr = ModelRIToString(useModel);
+    std::string handleName = "model_" + SanitizePathComponent(modelStr) + "_" + name;
+    
+    return FileHandleManager::Instance().RegisterFile(handleName, filePath);
 }
 
 bool FileLogger::SwitchToFile(const std::string& name) {
@@ -304,8 +339,8 @@ std::unique_ptr<LogContextGuard> FileLogger::CreateContext(const std::string& fi
         return nullptr;
     }
     
-    // Use provided model or default config model
-    aclmdlRI useModel = (model != nullptr) ? model : config_.modelRI;
+    // Use provided model or GetEffectiveModelRI
+    aclmdlRI useModel = (model != nullptr) ? model : GetEffectiveModelRI();
     
     // Use common utility to create directory
     std::string dirPath = CreateSkMetaDirectory(useModel);
@@ -317,7 +352,11 @@ std::unique_ptr<LogContextGuard> FileLogger::CreateContext(const std::string& fi
     
     std::string filePath = dirPath + "/" + fileName;
     
-    return std::make_unique<LogContextGuard>(fileName, filePath);
+    // 为不同 model 创建唯一的 handle 名称
+    std::string modelStr = ModelRIToString(useModel);
+    std::string handleName = "model_" + SanitizePathComponent(modelStr) + "_" + fileName;
+    
+    return std::make_unique<LogContextGuard>(handleName, filePath);
 }
 
 void FileLogger::SetEnabled(bool enabled) {
@@ -404,6 +443,23 @@ void FileLogger::WriteLog(const std::string& message) {
         return;
     }
     
+    // 获取当前 handle，判断是否在 LogContextGuard 上下文中
+    std::string currentHandle = FileHandleManager::Instance().GetCurrentHandle();
+    std::string targetHandle;
+    
+    // 如果当前 handle 是 "default" 或以 "model_" 开头但没有额外后缀，
+    // 说明没有通过 LogContextGuard 切换到非 default 日志
+    // 此时需要根据当前 modelRI 计算正确的 handle
+    if (currentHandle == "default" || currentHandle.find('_') == currentHandle.rfind('_')) {
+        // 没有在 LogContextGuard 上下文中，使用 modelRI 计算 handle
+        aclmdlRI useModel = GetEffectiveModelRI();
+        std::string modelStr = ModelRIToString(useModel);
+        targetHandle = "model_" + SanitizePathComponent(modelStr);
+    } else {
+        // 在 LogContextGuard 上下文中，使用当前 handle
+        targetHandle = currentHandle;
+    }
+    
     // Long log segmentation handling
     if (message.size() > config_.maxLineLength) {
         size_t offset = 0;
@@ -420,12 +476,12 @@ void FileLogger::WriteLog(const std::string& message) {
                           message.substr(offset, length);
             }
             
-            FileHandleManager::Instance().WriteToCurrent(segment);
+            FileHandleManager::Instance().Write(targetHandle, segment);
             offset += length;
             segmentNum++;
         }
     } else {
-        FileHandleManager::Instance().WriteToCurrent(message);
+        FileHandleManager::Instance().Write(targetHandle, message);
     }
 }
 

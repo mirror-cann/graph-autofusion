@@ -14,6 +14,8 @@
  */
 
 #include <vector>
+#include <cstdlib>
+#include <string>
 
 #include "sk_options_manager.h"
 #include "sk_log.h"
@@ -243,6 +245,17 @@ void SuperKernelOptionsManager::SetOptOptionValue(const aclskOption* option) {
                 if (subOption != nullptr) {
                     subOption->SetValue(option->streamFusion.streamFusion);
                 }
+                break;
+            }
+        case aclskOtionType::CONSTANT_CODEGEN:
+            {
+                // 默认关闭常量化代码生成（值为1启用，0禁用）
+                AddOption(std::make_unique<NumberOptOption>("constant_codegen", option->optionType, 0, 0, 1));
+                auto subOption = GetOption(option->optionType);
+                if (subOption != nullptr) {
+                    subOption->SetValue(option->constantCodegen.enableConstant);
+                }
+                SK_LOGI("Constant codegen option set: enable=%u", option->constantCodegen.enableConstant);
                 break;
             }
         default:

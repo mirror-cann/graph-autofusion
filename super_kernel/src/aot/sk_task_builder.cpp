@@ -11,6 +11,7 @@
 #include "sk_task_builder.h"
 #include "sk_graph.h"
 #include "sk_log.h"
+#include "sk_constant_codegen.h"  // 常量化代码生成模块
 #include <algorithm>
 #include <cstring>
 #include <limits>
@@ -1297,6 +1298,55 @@ SkHostEntryInfo SkTaskBuilder::GenEntryInfo(SkTask& skTaskCube, SkTask& skTaskVe
     // 检查打点环境变量是否开启（只有等于 "1" 时才启用）
     const char* env = std::getenv(ENV_SK_EVENT_RECORD);
     bool shouldEnable = (env != nullptr && std::string(env) == "1");
+    
+    // ========== 1. 首先尝试常量化代码生成 ==========
+    auto [constantFunc, constantType] = TryGenerateConstantFuncHandle(
+        skTaskCube, skTaskVec, opts, graph_.GetModelRI());
+    
+    if (constantFunc != nullptr) {
+        // 常量化成功，直接使用特化的 funcHandle
+        entryInfo.skEntryFunc = constantFunc;
+        entryInfo.entryType = constantType;
+        
+        // 根据 kernelType 设置 numBlocks
+        if (constantType == SkKernelType::AIV_ONLY) {
+            entryInfo.numBlocks = skTaskVec.numBlocks;
+            skTaskCube.numBlocks = 0;
+        } else if (constantType == SkKernelType::AIC_ONLY) {
+            entryInfo.numBlocks = skTaskCube.numBlocks;
+            skTaskVec.numBlocks = 0;
+        } else if (constantType == SkKernelType::MIX_AIC_1_2) {
+            uint32_t mix_1_2_aiv_numBlocks = (skTaskVec.numBlocks + 1) / 2;
+            entryInfo.numBlocks = std::max(skTaskCube.numBlocks, mix_1_2_aiv_numBlocks);
+            skTaskCube.numBlocks = entryInfo.numBlocks;
+            skTaskVec.numBlocks = entryInfo.numBlocks * 2;
+            isMix12 = true;
+        } else { // MIX_AIC_1_1
+            entryInfo.numBlocks = skTaskCube.numBlocks;
+            skTaskVec.numBlocks = skTaskCube.numBlocks;
+        }
+        
+        SK_LOGI("sk entry resolved via CONSTANT_CODEGEN: type=%s, funcHandle=%p, numBlocks=%u",
+                to_string(entryInfo.entryType), entryInfo.skEntryFunc, entryInfo.numBlocks);
+        
+        // 处理 MIX_AIC_1_2 的 numBlocks 调整
+        if (isMix12) {
+            auto* taskQue = skTaskVec.GetTaskQue();
+            for (auto i = 0; i < taskQue->taskCnt; i++) {
+                TaskInfo& taskInfo = taskQue->taskInfos[i];
+                if (taskInfo.type == SkTaskType::TYPE_FUNC && 
+                    taskInfo.originType == SkKernelType::MIX_AIC_1_1) {
+                    taskInfo.numBlocks = taskInfo.numBlocks * 2;
+                }
+            }
+        }
+        
+        return entryInfo;
+    }
+    
+    // ========== 2. 常量化失败，回退到原有逻辑 ==========
+    SK_LOGI("Constant codegen disabled or failed, falling back to default entry resolution");
+    
     if (skTaskCube.funcCnt == 0 && skTaskVec.funcCnt > 0) {
         if (shouldEnable) {
             entryFuncName = enableDebug == false ? "sk_entry_aiv_dump_profiling" : "sk_entry_aiv_debug_dump_profiling";
