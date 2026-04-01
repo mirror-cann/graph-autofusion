@@ -241,10 +241,10 @@ TEST_F(SkCandidateHeapTest, Pop_NonKernelNodes_SortedByNodeId)
     EXPECT_TRUE(heap.empty());
 }
 
-// ==================== Kernel 节点优先级测试 ====================
+// ==================== 非 Kernel 节点优先级测试 ====================
 
-// 测试 Kernel 节点优先于非 Kernel 节点
-TEST_F(SkCandidateHeapTest, Pop_KernelPrioritizedOverNonKernel)
+// 测试非 Kernel 节点优先于 Kernel 节点
+TEST_F(SkCandidateHeapTest, Pop_NonKernelPrioritizedOverKernel)
 {
     SkCandidateHeap heap(*graph, SkHeapType::CUSTOMIZE_QUEUE);
     uint64_t notify1 = CreateNotifyNode(1);
@@ -255,13 +255,14 @@ TEST_F(SkCandidateHeapTest, Pop_KernelPrioritizedOverNonKernel)
     heap.push(kernel2);
     heap.push(wait3);
 
-    // Kernel 节点应该优先弹出，即使它的 nodeId 不是最小的
+    // 非 Kernel 节点应该优先弹出（按 nodeId 排序）
+    // 先弹出 notify1 (nodeId 最小的非 kernel 节点)
     uint64_t poppedId = heap.pop();
-    EXPECT_EQ(poppedId, kernel2);
+    EXPECT_EQ(poppedId, notify1);
 }
 
-// 测试混合节点：先弹出所有 Kernel，再弹出非 Kernel
-TEST_F(SkCandidateHeapTest, Pop_MixedNodes_KernelFirst)
+// 测试混合节点：先弹出所有非 Kernel，再弹出 Kernel
+TEST_F(SkCandidateHeapTest, Pop_MixedNodes_NonKernelFirst)
 {
     SkCandidateHeap heap(*graph, SkHeapType::CUSTOMIZE_QUEUE);
     uint64_t notify1 = CreateNotifyNode(1);
@@ -274,12 +275,12 @@ TEST_F(SkCandidateHeapTest, Pop_MixedNodes_KernelFirst)
     heap.push(kernel3);
     heap.push(wait4);
 
-    // 先弹出 kernel 节点（按 nodeId 排序）
-    EXPECT_EQ(heap.pop(), 2U);
-    EXPECT_EQ(heap.pop(), 3U);
-    // 然后弹出非 kernel 节点（按 nodeId 排序）
+    // 先弹出非 kernel 节点（按 nodeId 排序）
     EXPECT_EQ(heap.pop(), 1U);
     EXPECT_EQ(heap.pop(), 4U);
+    // 然后弹出 kernel 节点（按 kernel 选择规则）
+    EXPECT_EQ(heap.pop(), 2U);
+    EXPECT_EQ(heap.pop(), 3U);
     EXPECT_TRUE(heap.empty());
 }
 
@@ -444,14 +445,16 @@ TEST_F(SkCandidateHeapTest, Reset_InitializesAllVariablesAndState)
     heap.push(notify2);
     heap.push(kernel3);
     
-    // Pop 两个 kernel 节点以更新状态
-    heap.pop();  // kernel1 (VEC, stream 0)
-    heap.pop();  // kernel3 (CUBE, stream 1)
+    // 非 kernel 节点优先弹出：先弹出 notify2
+    // 然后弹出 kernel 节点：kernel1 (VEC, stream 0)，kernel3 (CUBE, stream 1)
+    heap.pop();  // notify2 (非 kernel 节点)
+    heap.pop();  // kernel1 (VEC, stream 0) - 第一次选择，nodeId 最小
+    heap.pop();  // kernel3 (CUBE, stream 1) - 前序是 VEC，优先选不同流的 CUBE
     
     // 验证状态已被更新
     EXPECT_EQ(heap.GetPrevKernelTypeClass(), SkCandidateHeap::KernelTypeClass::CUBE);
     EXPECT_EQ(heap.GetPrevStreamIdx(), 1U);
-    EXPECT_FALSE(heap.empty());  // notify2 还在
+    EXPECT_TRUE(heap.empty());  // 所有节点都已弹出
     
     // 调用 Reset
     heap.reset();
@@ -474,7 +477,9 @@ TEST_F(SkCandidateHeapTest, Reset_CanReuseAfterReset)
     CreateNotifyNode(2);
     heap.push(1);
     heap.push(2);
-    heap.pop();
+    // 非 kernel 优先弹出：先弹 notify2，再弹 kernel1
+    heap.pop();  // notify2
+    heap.pop();  // kernel1
     
     // Reset
     heap.reset();
@@ -491,8 +496,12 @@ TEST_F(SkCandidateHeapTest, Reset_CanReuseAfterReset)
     EXPECT_EQ(heap.size(), 2U);
     EXPECT_TRUE(heap.HasKernelNodes());
     
-    // 第一次选择：没有 MIX 节点，选择 nodeId 最小的 kernel 节点
+    // 非 kernel 节点优先弹出：wait4 先弹出
     uint64_t poppedId = heap.pop();
+    EXPECT_EQ(poppedId, wait4);
+    
+    // 然后弹出 kernel 节点
+    poppedId = heap.pop();
     EXPECT_EQ(poppedId, kernel3);
     EXPECT_EQ(heap.GetPrevKernelTypeClass(), SkCandidateHeap::KernelTypeClass::VEC);
 }
@@ -634,20 +643,20 @@ TEST_F(SkCandidateHeapTest, ComplexScenario_MixedNodeTypes)
     heap.push(wait5);
     heap.push(kernel6);
 
-    // 弹出顺序：
-    // 1. kernel1 (VEC, stream 0) - 第一次选择，没有 MIX，nodeId 最小
-    // 2. kernel2 (CUBE, stream 1) - 前序是 VEC，优先选不同流的 CUBE
-    // 3. kernel3 (VEC, stream 0) - 前序是 CUBE，优先选不同流的 VEC
-    // 4. kernel6 (CUBE, stream 1) - 前序是 VEC，优先选不同流的 CUBE
-    // 5. notify4 - 非 kernel 节点，按 nodeId 排序
-    // 6. wait5 - 非 kernel 节点，按 nodeId 排序
+    // 弹出顺序（非 kernel 节点优先）：
+    // 1. notify4 - 非 kernel 节点，nodeId 最小
+    // 2. wait5 - 非 kernel 节点，nodeId 次小
+    // 3. kernel1 (VEC, stream 0) - 第一次选择 kernel，没有 MIX，nodeId 最小
+    // 4. kernel2 (CUBE, stream 1) - 前序是 VEC，优先选不同流的 CUBE
+    // 5. kernel3 (VEC, stream 0) - 前序是 CUBE，优先选不同流的 VEC
+    // 6. kernel6 (CUBE, stream 1) - 前序是 VEC，优先选不同流的 CUBE
 
-    EXPECT_EQ(heap.pop(), 1U);
-    EXPECT_EQ(heap.pop(), 2U);
-    EXPECT_EQ(heap.pop(), 3U);
-    EXPECT_EQ(heap.pop(), 6U);
-    EXPECT_EQ(heap.pop(), 4U);
-    EXPECT_EQ(heap.pop(), 5U);
+    EXPECT_EQ(heap.pop(), 4U);  // notify4
+    EXPECT_EQ(heap.pop(), 5U);  // wait5
+    EXPECT_EQ(heap.pop(), 1U);  // kernel1
+    EXPECT_EQ(heap.pop(), 2U);  // kernel2
+    EXPECT_EQ(heap.pop(), 3U);  // kernel3
+    EXPECT_EQ(heap.pop(), 6U);  // kernel6
     EXPECT_TRUE(heap.empty());
 }
 

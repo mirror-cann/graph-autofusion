@@ -71,7 +71,21 @@ uint64_t SkCandidateHeap::pop()
 
     SuperKernelBaseNode* selectedNode = nullptr;
 
-    // KERNEL nodes have priority over non-kernel nodes
+    if (!nonKernelNodes_.empty()) {
+        selectedNode = SelectNextNonKernelNode();
+        if (selectedNode != nullptr) {
+            nonKernelNodes_.erase(selectedNode);
+
+            // For non-kernel nodes, update stream index but keep kernel type class
+            prevStreamIdx_ = selectedNode->GetStreamIdxInGraph();
+            // Note: non-kernel nodes don't change the kernel type class
+
+            SK_LOGD("SkCandidateHeap::pop: selected non-kernel node %s, remaining nonKernelCount=%zu",
+                selectedNode->Format().c_str(), nonKernelNodes_.size());
+            return selectedNode->GetNodeId();
+        }
+    }
+
     if (!kernelNodes_.empty()) {
         selectedNode = SelectNextKernelNode();
         if (selectedNode != nullptr) {
@@ -85,22 +99,6 @@ uint64_t SkCandidateHeap::pop()
 
             SK_LOGD("SkCandidateHeap::pop: selected kernel node %s, remaining kernelCount=%zu",
                     selectedNode->Format().c_str(), kernelNodes_.size());
-            return selectedNode->GetNodeId();
-        }
-    }
-
-    // Only select from non-kernel nodes when no kernel nodes are available
-    if (!nonKernelNodes_.empty()) {
-        selectedNode = SelectNextNonKernelNode();
-        if (selectedNode != nullptr) {
-            nonKernelNodes_.erase(selectedNode);
-
-            // For non-kernel nodes, update stream index but keep kernel type class
-            prevStreamIdx_ = selectedNode->GetStreamIdxInGraph();
-            // Note: non-kernel nodes don't change the kernel type class
-
-            SK_LOGD("SkCandidateHeap::pop: selected non-kernel node %s, remaining nonKernelCount=%zu",
-                selectedNode->Format().c_str(), nonKernelNodes_.size());
             return selectedNode->GetNodeId();
         }
     }

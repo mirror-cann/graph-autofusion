@@ -32,15 +32,15 @@ enum class SkHeapType : uint8_t {
  * It supports multiple node types: KERNEL, NOTIFY, WAIT, RESET.
  *
  * Selection rules:
- * 1. When there are KERNEL nodes in the heap:
- *    - KERNEL nodes have priority and are selected according to SkTaskSorter::SelectNextNode rules:
+ * 1. When there are non-KERNEL nodes (NOTIFY/WAIT/RESET) in the heap:
+ *    - Non-KERNEL nodes have priority and are selected by nodeId (smallest first)
+ * 2. When there are no non-KERNEL nodes:
+ *    - KERNEL nodes are selected according to SkTaskSorter::SelectNextNode rules:
  *      - First selection: choose node with smallest nodeId
  *      - After MIX: prefer MIX (prioritize different stream)
  *      - After VEC: prefer CUBE (prioritize different stream)
  *      - After CUBE: prefer VEC (prioritize different stream)
  *      - Default: prefer node from different stream, then smallest nodeId
- * 2. When there are no KERNEL nodes:
- *    - NOTIFY/WAIT/RESET nodes are selected by nodeId (smallest first)
  *
  * The class tracks the previous kernel's type and stream index to implement the selection rules.
  */
