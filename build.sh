@@ -263,31 +263,31 @@ superkernel_run_example() {
 superkernel_ut() {
   echo "---------------- Start UT ----------------"
   cd ${BASEPATH}/super_kernel &&
-  ${PYTHON_CMD} -m pip install -e . --force-reinstall --no-deps -q &&
+  ${PYTHON_CMD} -m pip install -e .[dev] --force-reinstall -q &&
   if [ "X$ENABLE_COVERAGE" == "Xon" ]; then
-    ${PYTHON_CMD} -m pytest tests/ut -m ut \
+    ${PYTHON_CMD} -m pytest tests/ut -m ut -n auto \
                                      --cov-config=scripts/sk_ut_cfg.toml \
                                      --cov=superkernel \
                                      --cov-report=term-missing \
                                      --cov-report=html \
                                      --cov-report=xml
   else
-    ${PYTHON_CMD} -m pytest tests/ut -m ut
+    ${PYTHON_CMD} -m pytest tests/ut -m ut -n auto
   fi
 }
 
 superkernel_st() {
   echo "---------------- Start ST ----------------"
   cd ${BASEPATH}/super_kernel &&
-  ${PYTHON_CMD} -m pip install -e . --force-reinstall --no-deps -q &&
+  ${PYTHON_CMD} -m pip install -e .[dev] --force-reinstall -q &&
   if [ "X$ENABLE_COVERAGE" == "Xon" ]; then
-    ${PYTHON_CMD} -m pytest tests/st -m st --cov-config=scripts/sk_st_cfg.toml \
+    ${PYTHON_CMD} -m pytest tests/st -m st -n auto --cov-config=scripts/sk_st_cfg.toml \
                                      --cov=superkernel \
                                      --cov-report=term-missing \
                                      --cov-report=html \
                                      --cov-report=xml
   else
-    ${PYTHON_CMD} -m pytest tests/st -m st
+    ${PYTHON_CMD} -m pytest tests/st -m st -n auto
   fi
 }
 
