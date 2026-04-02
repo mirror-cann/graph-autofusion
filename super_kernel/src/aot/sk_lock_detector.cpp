@@ -136,8 +136,14 @@ bool LockDetector::CheckKernelNodeDeadlock(SuperKernelBaseNode* preNode) {
 
 bool LockDetector::CheckWaitNodeDeadlock(SuperKernelBaseNode* preNode) {
     uint64_t notifyId = preNode->GetCorrespondingNotifyNodeId();
-    SuperKernelBaseNode* notifyNode = graph_->GetNodeById(notifyId);
     // Case 1: notify node not in modelRI
+    if (notifyId == INVALID_TASK_ID) {
+        SK_LOGI("Deadlock detected in wait node, waitNodeId=%lu, notifyNodeId=%lu is not in graph", 
+            preNode->GetNodeId(), notifyId);
+        return true;
+    }
+    SuperKernelBaseNode* notifyNode = graph_->GetNodeById(notifyId);
+    // abnormal case, notify node not found
     if (notifyNode == nullptr) {
         SK_LOGE("[lock detector] CheckWaitNodeDeadlock: notifyNode %lu not found for waitNode %lu",
                 notifyId, preNode->GetNodeId());
@@ -295,8 +301,14 @@ bool LockDetector::IsAfterSKRange(const SuperKernelBaseNode& curNode) {
 
 bool LockDetector::GetWaitNodeFusibleStatus(SuperKernelBaseNode& curNode) {
     uint64_t notifyId = curNode.GetCorrespondingNotifyNodeId();
-    SuperKernelBaseNode* notifyNode = graph_->GetNodeById(notifyId);
     // Case 1: notify node not in modelRI
+    if (notifyId == INVALID_TASK_ID) {
+        SK_LOGD("[lock detector] Wait node %s: notify node %lu not found in graph", 
+                curNode.Format().c_str(), notifyId);
+        return false;
+    }
+    SuperKernelBaseNode* notifyNode = graph_->GetNodeById(notifyId);
+    // abnormal case: notify node not found
     if (notifyNode == nullptr) {
         SK_LOGE("[lock detector] Wait node %s: notify node %lu not found", 
                 curNode.Format().c_str(), notifyId);

@@ -422,6 +422,11 @@ bool InitialScopeSplitPass::SkipUnfusibleNodesForStream(uint32_t streamIdx) {
  */
 bool InitialScopeSplitPass::ProcessUnfusibleWaitNode(uint32_t streamIdx, SuperKernelBaseNode* waitNode) {
     uint64_t notifyId = waitNode->GetCorrespondingNotifyNodeId();
+    if (notifyId == INVALID_TASK_ID) {
+        SK_LOGI("Stream %u: Wait node %s's notify node %lu not found in graph",
+                streamIdx, waitNode->Format().c_str(), notifyId);
+        return true;
+    }
     SuperKernelBaseNode* notifyNode = graph_.GetNodeById(notifyId);
 
     // Error handling: notify node not found
