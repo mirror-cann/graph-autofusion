@@ -37,7 +37,7 @@ PASS_COUNT=0
 # 版本要求 (严格来源于 docs/build.md)
 #
 # build.md 原文:
-#   - Python3 >= 3.8.0, <= 3.11.4
+#   - Python3 >= 3.8.0
 #   - CMake >= 3.16.0 （建议使用3.20.0版本）
 #   - CANN Toolkit (必需)
 #   - CANN ops    (必需)
@@ -46,7 +46,6 @@ PASS_COUNT=0
 #   29 个 Python 包，均有版本下限，部分有上限
 # ==============================================================================
 REQUIRED_PYTHON_MIN="3.8.0"
-REQUIRED_PYTHON_MAX="3.11.4"
 REQUIRED_CMAKE_MIN="3.16.0"
 REQUIRED_CMAKE_RECOMMEND="3.20.0"
 
@@ -148,8 +147,8 @@ if [ -f /etc/os-release ]; then
 fi
 
 # ==================== 2. Python3 ====================
-# build.md: Python3 >= 3.8.0, <= 3.11.4
-print_header "2. Python3 [build.md: >= $REQUIRED_PYTHON_MIN, <= $REQUIRED_PYTHON_MAX]"
+# build.md: Python3 >= 3.8.0
+print_header "2. Python3 [build.md: >= $REQUIRED_PYTHON_MIN]"
 
 PYTHON_CMD=""
 if check_command python3; then
@@ -165,13 +164,11 @@ fi
 if [ -n "$PYTHON_CMD" ]; then
     log_info "$PYTHON_CMD --version: $PYTHON_RAW → $PYTHON_VER"
 
-    if version_ge "$PYTHON_VER" "$REQUIRED_PYTHON_MIN" && version_le "$PYTHON_VER" "$REQUIRED_PYTHON_MAX"; then
-        log_pass "Python $PYTHON_VER (在 $REQUIRED_PYTHON_MIN - $REQUIRED_PYTHON_MAX 范围内)"
-    elif ! version_ge "$PYTHON_VER" "$REQUIRED_PYTHON_MIN"; then
-        log_error "Python 版本过低: $PYTHON_VER (build.md 要求 >= $REQUIRED_PYTHON_MIN)"
+    if version_ge "$PYTHON_VER" "$REQUIRED_PYTHON_MIN"; then
+        log_pass "Python $PYTHON_VER (>= $REQUIRED_PYTHON_MIN)"
     else
-        log_error "Python 版本过高: $PYTHON_VER (build.md 要求 <= $REQUIRED_PYTHON_MAX)"
-        log_info "请安装 Python $REQUIRED_PYTHON_MIN - $REQUIRED_PYTHON_MAX"
+        log_error "Python 版本过低: $PYTHON_VER (build.md 要求 >= $REQUIRED_PYTHON_MIN)"
+        log_info "请安装 Python >= $REQUIRED_PYTHON_MIN"
     fi
 
     # Python 开发头文件
@@ -202,7 +199,7 @@ if [ -n "$PYTHON_CMD" ]; then
         log_info "build.md: python3 -m venv venv && source venv/bin/activate"
     fi
 else
-    log_error "未安装 Python3 (build.md 要求 >= $REQUIRED_PYTHON_MIN, <= $REQUIRED_PYTHON_MAX)"
+    log_error "未安装 Python3 (build.md 要求 >= $REQUIRED_PYTHON_MIN)"
     log_info "安装 (Ubuntu): sudo apt-get install python3 python3-dev python3-pip python3-venv"
 fi
 
