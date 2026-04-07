@@ -46,6 +46,7 @@ enum class aclskOtionType : uint32_t {
     DEBUG_SYNC_ALL = 4,
     KERNEL_MAP = 5,
     CONSTANT_CODEGEN = 6,  // 常量化代码生成选项
+    OPS_LAYOUT_OPTIMIZE = 7, // 优化多流算子排布
     SK_OPTION_MAX = 0xFFFFFFFF
 };
 
@@ -80,6 +81,10 @@ typedef struct aclskKernelMapOption {
     size_t numKernels;
 } aclskKernelMapOption;
 
+typedef struct aclskOpsLayoutOptimizeOption {
+    uint32_t enableOpsLayoutOptimize;
+} aclskOpsLayoutOptimizeOption;
+
 /**
  * 常量化代码生成选项
  * enableConstant: 1 启用常量化, 0 禁用常量化
@@ -98,6 +103,7 @@ struct aclskOption {
         aclskDebugSyncAllOption debugSync;
         aclskKernelMapOption kernelMap;
         aclskConstantCodegenOption constantCodegen;
+        aclskOpsLayoutOptimizeOption layoutOptimize;
     };
 };
 

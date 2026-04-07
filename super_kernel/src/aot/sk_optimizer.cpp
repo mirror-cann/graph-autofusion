@@ -212,7 +212,7 @@ bool SuperKernelOptimizer::Schedule(SuperKernelProcessedScopeInfo& processedScop
 bool SuperKernelOptimizer::Process(SuperKernelGraph& graph)
 {
     // Split graph into multiple scopes.
-    SuperKernelScopeSplitter splitter(graph);
+    SuperKernelScopeSplitter splitter(graph, opts);
     if (splitter.SplitGraph()) {
         SK_LOGI("graph split into %zu scopes", splitter.GetScopeInfos().size());
     } else {

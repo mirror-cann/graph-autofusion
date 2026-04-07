@@ -39,6 +39,7 @@
 #include "sk_graph.h"
 #include "sk_log.h"
 #include "sk_lock_detector.h"
+#include "sk_options_manager.h"
 
 struct ScopeStreamInfo {
     uint32_t streamIdx = 0;              ///< Stream index in the graph
@@ -241,9 +242,9 @@ private:
  */
 class InitialScopeSplitPass : public ScopeSplitPass {
 public:
-    explicit InitialScopeSplitPass(SuperKernelGraph& inputGraph);
+    explicit InitialScopeSplitPass(SuperKernelGraph& inputGraph, SkHeapType heapType);
     ~InitialScopeSplitPass() = default;
-    
+
     bool Run(std::vector<SuperKernelScopeInfo>& scopes) override;
     std::string GetName() const override { return "InitialScopeSplitPass"; }
 
@@ -377,7 +378,7 @@ private:
  */
 class SuperKernelScopeSplitter {
 public:
-    explicit SuperKernelScopeSplitter(SuperKernelGraph& inputGraph);
+    explicit SuperKernelScopeSplitter(SuperKernelGraph& inputGraph, SuperKernelOptionsManager& opts);
     ~SuperKernelScopeSplitter() = default;
     SuperKernelScopeSplitter(const SuperKernelScopeSplitter&) = delete;
     SuperKernelScopeSplitter& operator=(const SuperKernelScopeSplitter&) = delete;

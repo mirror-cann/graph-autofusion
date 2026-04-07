@@ -18,6 +18,7 @@
 #include "sk_graph.h"
 #include "sk_node.h"
 #include "sk_scope_split.h"
+#include "sk_options_manager.h"
 
 // Helper function to create a kernel node
 std::unique_ptr<SuperKernelKernelNode> CreateKernelNode(uint64_t nodeId, uint32_t streamIdx,
@@ -123,15 +124,18 @@ class NotifyWaitInterfaceTest : public testing::Test {
 protected:
     void SetUp() override {
         graph = std::make_unique<SuperKernelGraph>();
-        splitter = std::make_unique<SuperKernelScopeSplitter>(*graph);
+        opts = std::make_unique<SuperKernelOptionsManager>();
+        splitter = std::make_unique<SuperKernelScopeSplitter>(*graph, *opts);
     }
 
     void TearDown() override {
         splitter.reset();
+        opts.reset();
         graph.reset();
     }
 
     std::unique_ptr<SuperKernelGraph> graph;
+    std::unique_ptr<SuperKernelOptionsManager> opts;
     std::unique_ptr<SuperKernelScopeSplitter> splitter;
 };
 

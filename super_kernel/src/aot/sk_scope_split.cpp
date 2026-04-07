@@ -257,8 +257,8 @@ void ScopeSplitPass::PrintScopeStreamInfos(size_t scopeIdx, const SuperKernelSco
 
 // ============ InitialScopeSplitPass Implementation ============
 
-InitialScopeSplitPass::InitialScopeSplitPass(SuperKernelGraph& inputGraph)
-    : ScopeSplitPass(inputGraph), nodeHeap_(inputGraph, SkHeapType::PRIORITY_QUEUE) {}
+InitialScopeSplitPass::InitialScopeSplitPass(SuperKernelGraph& inputGraph, SkHeapType heapType)
+    : ScopeSplitPass(inputGraph), nodeHeap_(inputGraph, heapType) {}
 
 void InitialScopeSplitPass::InitStreamStates() {
     SK_LOGI("[SplitScope] initializing stream states for %s", GetName().c_str());
@@ -1086,13 +1086,18 @@ bool DeadlockRefinePass::Run(std::vector<SuperKernelScopeInfo>& scopes) {
 
 // ============ SuperKernelScopeSplitter Implementation ============
 
-SuperKernelScopeSplitter::SuperKernelScopeSplitter(SuperKernelGraph& inputGraph)
+SuperKernelScopeSplitter::SuperKernelScopeSplitter(SuperKernelGraph& inputGraph, SuperKernelOptionsManager& opts)
     : graph_(inputGraph) {
+    auto opsLayoutOptimize = opts.GetOption(aclskOtionType::OPS_LAYOUT_OPTIMIZE);
+    SkHeapType heapType = SkHeapType::PRIORITY_QUEUE;
+    if (opsLayoutOptimize != nullptr) {
+        heapType = static_cast<SkHeapType>(opsLayoutOptimize->GetIntValue());
+    }
     // Initialize passes in execution order
     // Pass 0: Preprocess to mark isolated event nodes as non-fusible
     passes_.push_back(std::make_unique<IsolatedEventNodePreprocessPass>(inputGraph));
     // Pass 1: Initial scope splitting
-    passes_.push_back(std::make_unique<InitialScopeSplitPass>(inputGraph));
+    passes_.push_back(std::make_unique<InitialScopeSplitPass>(inputGraph, heapType));
     // Pass 2: Deadlock detection and refinement
     passes_.push_back(std::make_unique<DeadlockRefinePass>(inputGraph));
 }

@@ -21,6 +21,7 @@
 #include "sk_scope_split.h"
 #include "sk_node.h"
 #include "sk_lock_detector.h"
+#include "sk_options_manager.h"
 
 /**
  * @brief Test fixture class for SuperKernelScopeSplitter unit tests
@@ -31,11 +32,13 @@ protected:
         // Clear any lingering mock state from previous tests
         GlobalMockObject::verify();
         graph = std::make_unique<SuperKernelGraph>();
+        opts = std::make_unique<SuperKernelOptionsManager>();
         LockDetector::GetDeviceCores();
     }
 
     void TearDown() override {
         graph.reset();
+        opts.reset();
         // Clear mock state
         GlobalMockObject::verify();
     }
@@ -315,6 +318,7 @@ protected:
     }
 
     std::unique_ptr<SuperKernelGraph> graph;
+    std::unique_ptr<SuperKernelOptionsManager> opts;
 };
 
 // ==================== 测试用例 1: 基本多流融合（无跨流依赖） ====================
@@ -334,7 +338,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase1_BasicMultiStreamFusion_NoCrossStr
 
     SetupStreams({{1, 2, 3}, {4, 5, 6}});
 
-    SuperKernelScopeSplitter splitter(*graph);
+    SuperKernelScopeSplitter splitter(*graph, *opts);
     bool result = splitter.SplitGraph();
 
     ASSERT_TRUE(result);
@@ -363,7 +367,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase2_SingleCrossStreamWaitNotify)
     SetupStreams({{1, 3, 5}, {2, 4, 6}});
     SetupEvent(100, 4, {3});
 
-    SuperKernelScopeSplitter splitter(*graph);
+    SuperKernelScopeSplitter splitter(*graph, *opts);
     bool result = splitter.SplitGraph();
 
     ASSERT_TRUE(result);
@@ -400,7 +404,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase3_MultipleWaitNotify)
     SetupEvent(100, 5, {4});
     SetupEvent(200, 6, {8});
 
-    SuperKernelScopeSplitter splitter(*graph);
+    SuperKernelScopeSplitter splitter(*graph, *opts);
     bool result = splitter.SplitGraph();
 
     ASSERT_TRUE(result);
@@ -422,7 +426,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase4_UnfusibleNode_SingleStream)
 
     SetupStreams({{1, 2, 3}});
 
-    SuperKernelScopeSplitter splitter(*graph);
+    SuperKernelScopeSplitter splitter(*graph, *opts);
     bool result = splitter.SplitGraph();
 
     ASSERT_TRUE(result);
@@ -448,7 +452,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase5_UnfusibleNode_MultiStream)
 
     SetupStreams({{1, 2, 3}, {4}});
 
-    SuperKernelScopeSplitter splitter(*graph);
+    SuperKernelScopeSplitter splitter(*graph, *opts);
     bool result = splitter.SplitGraph();
 
     ASSERT_TRUE(result);
@@ -483,7 +487,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase6_MultipleWaitsWaitingSameNotify)
     SetupStreams({{1, 4, 7}, {2, 5, 8}, {3, 6, 9}});
     SetupEvent(100, 6, {4, 5});
 
-    SuperKernelScopeSplitter splitter(*graph);
+    SuperKernelScopeSplitter splitter(*graph, *opts);
     bool result = splitter.SplitGraph();
 
     ASSERT_TRUE(result);
@@ -509,7 +513,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase7_ConsecutiveUnfusibleNodes)
 
     SetupStreams({{1, 2, 3, 4}, {5}});
 
-    SuperKernelScopeSplitter splitter(*graph);
+    SuperKernelScopeSplitter splitter(*graph, *opts);
     bool result = splitter.SplitGraph();
 
     ASSERT_TRUE(result);
@@ -545,7 +549,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase8_AllStreamsSuspended)
     SetupEvent(100, 5, {1});
     SetupEvent(200, 6, {2});
 
-    SuperKernelScopeSplitter splitter(*graph);
+    SuperKernelScopeSplitter splitter(*graph, *opts);
     bool result = splitter.SplitGraph();
 
     ASSERT_TRUE(result);
@@ -588,7 +592,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase9_ThreeStreamsWithMultipleWaitNotif
     SetupEvent(100, 4, {5});
     SetupEvent(200, 14, {8});
 
-    SuperKernelScopeSplitter splitter(*graph);
+    SuperKernelScopeSplitter splitter(*graph, *opts);
     bool result = splitter.SplitGraph();
 
     ASSERT_TRUE(result);
@@ -626,7 +630,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase11_NestedWaitNotify)
     SetupEvent(100, 5, {4});
     SetupEvent(200, 9, {8});
 
-    SuperKernelScopeSplitter splitter(*graph);
+    SuperKernelScopeSplitter splitter(*graph, *opts);
     bool result = splitter.SplitGraph();
 
     ASSERT_TRUE(result);
@@ -648,7 +652,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase12_SingleStreamUnifiedPath)
 
     SetupStreams({{1, 2, 3}});
 
-    SuperKernelScopeSplitter splitter(*graph);
+    SuperKernelScopeSplitter splitter(*graph, *opts);
     bool result = splitter.SplitGraph();
 
     ASSERT_TRUE(result);
@@ -665,7 +669,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase13_EmptyGraph)
 {
     SetupStreams({{}});
 
-    SuperKernelScopeSplitter splitter(*graph);
+    SuperKernelScopeSplitter splitter(*graph, *opts);
     bool result = splitter.SplitGraph();
 
     ASSERT_TRUE(result);
@@ -687,7 +691,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase14_AllUnfusibleNodes)
 
     SetupStreams({{1, 2}, {3}});
 
-    SuperKernelScopeSplitter splitter(*graph);
+    SuperKernelScopeSplitter splitter(*graph, *opts);
     bool result = splitter.SplitGraph();
 
     ASSERT_TRUE(result);
@@ -714,7 +718,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase15_StreamOrderVerification)
 
     SetupStreams({{10, 30, 50}, {20, 40, 60}});
 
-    SuperKernelScopeSplitter splitter(*graph);
+    SuperKernelScopeSplitter splitter(*graph, *opts);
     bool result = splitter.SplitGraph();
 
     ASSERT_TRUE(result);
@@ -759,7 +763,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase16_MultipleScopesWithWaitNotifyInDi
     SetupStreams({{1, 3, 5}, {2, 4, 6}});
     SetupEvent(100, 6, {3});
 
-    SuperKernelScopeSplitter splitter(*graph);
+    SuperKernelScopeSplitter splitter(*graph, *opts);
     bool result = splitter.SplitGraph();
 
     ASSERT_TRUE(result);
@@ -804,7 +808,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase17_FourStreamParallelFusion)
 
     SetupStreams({{1, 5}, {2, 6}, {3, 7}, {4, 8}});
 
-    SuperKernelScopeSplitter splitter(*graph);
+    SuperKernelScopeSplitter splitter(*graph, *opts);
     bool result = splitter.SplitGraph();
 
     ASSERT_TRUE(result);
@@ -831,7 +835,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase18_WaitBeforeNotify_ShouldSuspend)
     SetupStreams({{1, 3}, {2, 4}});
     SetupEvent(100, 4, {1});
 
-    SuperKernelScopeSplitter splitter(*graph);
+    SuperKernelScopeSplitter splitter(*graph, *opts);
     bool result = splitter.SplitGraph();
 
     ASSERT_TRUE(result);
@@ -871,7 +875,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase19_UnfusibleNodeInMiddle_MultipleSc
 
     SetupStreams({{1, 2, 3, 4}, {6, 5}});
 
-    SuperKernelScopeSplitter splitter(*graph);
+    SuperKernelScopeSplitter splitter(*graph, *opts);
     bool result = splitter.SplitGraph();
 
     ASSERT_TRUE(result);
@@ -925,7 +929,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase20_ComplexWaitNotifyChain)
     SetupEvent(300, 15, {7});
     SetupEvent(400, 8, {16});
 
-    SuperKernelScopeSplitter splitter(*graph);
+    SuperKernelScopeSplitter splitter(*graph, *opts);
     bool result = splitter.SplitGraph();
 
     ASSERT_TRUE(result);
@@ -961,7 +965,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase21_VerifyStreamStateReset)
 
     SetupStreams({{1, 2, 3}, {4}});
 
-    SuperKernelScopeSplitter splitter(*graph);
+    SuperKernelScopeSplitter splitter(*graph, *opts);
     bool result = splitter.SplitGraph();
 
     ASSERT_TRUE(result);
@@ -982,7 +986,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase22_SingleStreamSingleNode)
 
     SetupStreams({{1}});
 
-    SuperKernelScopeSplitter splitter(*graph);
+    SuperKernelScopeSplitter splitter(*graph, *opts);
     bool result = splitter.SplitGraph();
 
     ASSERT_TRUE(result);
@@ -1006,7 +1010,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase23_MultiStreamSingleNodes)
 
     SetupStreams({{1}, {2}, {3}});
 
-    SuperKernelScopeSplitter splitter(*graph);
+    SuperKernelScopeSplitter splitter(*graph, *opts);
     bool result = splitter.SplitGraph();
 
     ASSERT_TRUE(result);
@@ -1041,7 +1045,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase24_ResetStreamStatesResumeSuspended
     SetupEvent(100, 4, {3});
     SetupEvent(200, 8, {});
 
-    SuperKernelScopeSplitter splitter(*graph);
+    SuperKernelScopeSplitter splitter(*graph, *opts);
     bool result = splitter.SplitGraph();
 
     ASSERT_TRUE(result);
@@ -1089,7 +1093,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase25_MultipleSuspendResume)
     SetupEvent(100, 2, {1});
     SetupEvent(200, 6, {5});
 
-    SuperKernelScopeSplitter splitter(*graph);
+    SuperKernelScopeSplitter splitter(*graph, *opts);
     bool result = splitter.SplitGraph();
 
     ASSERT_TRUE(result);
@@ -1128,7 +1132,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase26_NoScopeNodes_FullGraphFusion)
     // 初始化graph，确保没有scope标记
     graph->scopeNameToIdx.clear();
 
-    SuperKernelScopeSplitter splitter(*graph);
+    SuperKernelScopeSplitter splitter(*graph, *opts);
     bool result = splitter.SplitGraph();
 
     ASSERT_TRUE(result);
@@ -1258,7 +1262,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase29_UnfusibleScope)
     // 执行scope标记更新，将K2和K3标记为不可融合
     graph->UpdateNodeScopeBitFlags();
 
-    SuperKernelScopeSplitter splitter(*graph);
+    SuperKernelScopeSplitter splitter(*graph, *opts);
     bool result = splitter.SplitGraph();
 
     ASSERT_TRUE(result);
@@ -1322,7 +1326,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase30_MixedFusibleAndUnfusibleScopes)
     // 执行scope标记更新，将K2标记为不可融合
     graph->UpdateNodeScopeBitFlags();
 
-    SuperKernelScopeSplitter splitter(*graph);
+    SuperKernelScopeSplitter splitter(*graph, *opts);
     bool result = splitter.SplitGraph();
 
     ASSERT_TRUE(result);
@@ -1384,7 +1388,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase31_SameScopeNameAcrossStreams)
     // 初始化scope名称（相同名称使用相同索引）
     graph->scopeNameToIdx["scope_A"] = 0;
 
-    SuperKernelScopeSplitter splitter(*graph);
+    SuperKernelScopeSplitter splitter(*graph, *opts);
     bool result = splitter.SplitGraph();
 
     ASSERT_TRUE(result);
@@ -1431,7 +1435,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase32_NestedScopes)
     // 执行scope标记更新
     graph->UpdateNodeScopeBitFlags();
 
-    SuperKernelScopeSplitter splitter(*graph);
+    SuperKernelScopeSplitter splitter(*graph, *opts);
     bool result = splitter.SplitGraph();
 
     ASSERT_TRUE(result);
@@ -1487,7 +1491,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase33_ScopeWithCrossStreamDependency)
     // 初始化scope名称
     graph->scopeNameToIdx["scope_A"] = 0;
 
-    SuperKernelScopeSplitter splitter(*graph);
+    SuperKernelScopeSplitter splitter(*graph, *opts);
     bool result = splitter.SplitGraph();
 
     ASSERT_TRUE(result);
@@ -1525,7 +1529,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase34_ExceedMaxScopeNumLimit)
 
     SetupStreams({{1, 2, 3}});
 
-    SuperKernelScopeSplitter splitter(*graph);
+    SuperKernelScopeSplitter splitter(*graph, *opts);
     bool result = splitter.SplitGraph();
 
     ASSERT_TRUE(result);
@@ -1570,7 +1574,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase35_ScopeWithUnfusibleNodes)
     // 执行scope标记更新
     graph->UpdateNodeScopeBitFlags();
 
-    SuperKernelScopeSplitter splitter(*graph);
+    SuperKernelScopeSplitter splitter(*graph, *opts);
     bool result = splitter.SplitGraph();
 
     ASSERT_TRUE(result);
@@ -2154,7 +2158,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase51_DifferentScopeBitFlagsSplitIntoD
 
     SetupStreams({{1, 2}, {3}});
 
-    SuperKernelScopeSplitter splitter(*graph);
+    SuperKernelScopeSplitter splitter(*graph, *opts);
     bool result = splitter.SplitGraph();
 
     ASSERT_TRUE(result);
@@ -2196,7 +2200,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase52_NoScopeBitFlagsOnlyFuseWithNoFla
 
     SetupStreams({{1, 2, 3}});
 
-    SuperKernelScopeSplitter splitter(*graph);
+    SuperKernelScopeSplitter splitter(*graph, *opts);
     bool result = splitter.SplitGraph();
 
     ASSERT_TRUE(result);
@@ -2251,7 +2255,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase53_MultipleScopeBitFlagsBits)
 
     SetupStreams({{1, 2, 3}, {4, 5}});
 
-    SuperKernelScopeSplitter splitter(*graph);
+    SuperKernelScopeSplitter splitter(*graph, *opts);
     bool result = splitter.SplitGraph();
 
     ASSERT_TRUE(result);
@@ -2333,7 +2337,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase54_ComplexMultiStreamMultiScopeBitF
 
     SetupEvent(100, 19, {27});  // Event 100: Notify1(19) → Wait1(27)
 
-    SuperKernelScopeSplitter splitter(*graph);
+    SuperKernelScopeSplitter splitter(*graph, *opts);
     bool result = splitter.SplitGraph();
 
     ASSERT_TRUE(result);
@@ -2406,7 +2410,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase55_ScopeBitFlagsWithEventSynchroniz
     SetupStreams({{1, 2, 3}, {4, 5, 6}});
     SetupEvent(100, 5, {2});
 
-    SuperKernelScopeSplitter splitter(*graph);
+    SuperKernelScopeSplitter splitter(*graph, *opts);
     bool result = splitter.SplitGraph();
 
     ASSERT_TRUE(result);
@@ -2457,7 +2461,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase36_CrossStreamDeadlock)
     SetupStreams({{1, 2, 3}, {4, 5, 6}});
     SetupEvent(100, 5, {2});
 
-    SuperKernelScopeSplitter splitter(*graph);
+    SuperKernelScopeSplitter splitter(*graph, *opts);
     bool result = splitter.SplitGraph();
 
     ASSERT_TRUE(result);
@@ -2504,7 +2508,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase37_DeadlockRefinePassSplitsScope)
     SetupStreams({{1, 2, 3}, {4, 5, 6}});
     SetupEvent(100, 5, {2});   // Wait1 等待 Notify1
 
-    SuperKernelScopeSplitter splitter(*graph);
+    SuperKernelScopeSplitter splitter(*graph, *opts);
     bool result = splitter.SplitGraph();
 
     ASSERT_TRUE(result);
@@ -2555,7 +2559,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase38_ResumeSuspendedWaitStreams_WaitN
     // 关键：调用 BuildEventNodeAssociations 建立 Notify 和 Wait 的关联
     graph->BuildEventNodeAssociations();
 
-    SuperKernelScopeSplitter splitter(*graph);
+    SuperKernelScopeSplitter splitter(*graph, *opts);
     bool result = splitter.SplitGraph();
 
     // 由于 Wait 节点不存在，应该返回 false
@@ -2593,7 +2597,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase39_ResumeSuspendedWaitStreams_SkipU
     // 关键：调用 BuildEventNodeAssociations 建立 Notify 和 Wait 的关联
     graph->BuildEventNodeAssociations();
 
-    SuperKernelScopeSplitter splitter(*graph);
+    SuperKernelScopeSplitter splitter(*graph, *opts);
     bool result = splitter.SplitGraph();
 
     // 由于 SkipUnfusibleNodesForStream 会在正常情况下成功，
@@ -2626,7 +2630,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase40_HandleUnfusibleNotifyNode_ErrorP
     // 关键：调用 BuildEventNodeAssociations 建立 Notify 和 Wait 的关联
     graph->BuildEventNodeAssociations();
 
-    SuperKernelScopeSplitter splitter(*graph);
+    SuperKernelScopeSplitter splitter(*graph, *opts);
     bool result = splitter.SplitGraph();
 
     // HandleUnfusibleNotifyNode 应该返回 false，导致 SkipUnfusibleNodesForStream 返回 false
@@ -2663,7 +2667,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase41_MultipleWaitNodes_PartialExisten
     // 关键：调用 BuildEventNodeAssociations 建立 Notify 和 Wait 的关联
     graph->BuildEventNodeAssociations();
 
-    SuperKernelScopeSplitter splitter(*graph);
+    SuperKernelScopeSplitter splitter(*graph, *opts);
     bool result = splitter.SplitGraph();
 
     // 应该在 Wait2 不存在时返回 false
@@ -2694,7 +2698,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase42_ResumeSuspendedWaitStreams_Succe
     // 关键：调用 BuildEventNodeAssociations 建立 Notify 和 Wait 的关联
     graph->BuildEventNodeAssociations();
 
-    SuperKernelScopeSplitter splitter(*graph);
+    SuperKernelScopeSplitter splitter(*graph, *opts);
     bool result = splitter.SplitGraph();
 
     // 应该成功处理
@@ -2742,7 +2746,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase43_ResumeSuspendedWaitStreams_Succe
     // 关键：调用 BuildEventNodeAssociations 建立 Notify 和 Wait 的关联
     graph->BuildEventNodeAssociations();
 
-    SuperKernelScopeSplitter splitter(*graph);
+    SuperKernelScopeSplitter splitter(*graph, *opts);
     bool result = splitter.SplitGraph();
 
     // 应该成功处理
@@ -2777,7 +2781,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase44_SkipUnfusibleNodesForStream_Node
 
     SetupStreams({{1}});
 
-    SuperKernelScopeSplitter splitter(*graph);
+    SuperKernelScopeSplitter splitter(*graph, *opts);
     bool result = splitter.SplitGraph();
 
     // 由于节点不存在，应该返回 false
@@ -3050,7 +3054,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase54_FullPipelineWithIsolatedEventNod
 
     SetupStreams({{1}});
 
-    SuperKernelScopeSplitter splitter(*graph);
+    SuperKernelScopeSplitter splitter(*graph, *opts);
     bool result = splitter.SplitGraph();
 
     EXPECT_TRUE(result);
@@ -3078,7 +3082,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase55_TrulyIsolatedEventNodes)
 
     SetupStreams({{1}, {2}});
 
-    SuperKernelScopeSplitter splitter(*graph);
+    SuperKernelScopeSplitter splitter(*graph, *opts);
     bool result = splitter.SplitGraph();
 
     EXPECT_TRUE(result);

@@ -258,6 +258,16 @@ void SuperKernelOptionsManager::SetOptOptionValue(const aclskOption* option) {
                 SK_LOGI("Constant codegen option set: enable=%u", option->constantCodegen.enableConstant);
                 break;
             }
+        case aclskOtionType::OPS_LAYOUT_OPTIMIZE:
+            {
+                AddOption(std::make_unique<NumberOptOption>("ops_layout_optimize", option->optionType, 0, 0, 1));
+                auto subOption = GetOption(option->optionType);
+                if (subOption != nullptr) {
+                    subOption->SetValue(option->layoutOptimize.enableOpsLayoutOptimize);
+                }
+                SK_LOGI("Ops layout optimize option set: enable=%u", option->layoutOptimize.enableOpsLayoutOptimize);
+                break;
+            }
         default:
             SK_LOGI("Optiontype: %d is not support now", static_cast<int>(option->optionType));
             break;
