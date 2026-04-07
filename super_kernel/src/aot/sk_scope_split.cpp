@@ -564,15 +564,15 @@ void InitialScopeSplitPass::TryAddNodeToHeap(uint32_t streamIdx) {
 void InitialScopeSplitPass::HandleWaitNode(SuperKernelBaseNode* waitNode, uint32_t streamIdx) {
     StreamState& state = streamStates_[streamIdx];
     uint64_t notifyId = waitNode->GetCorrespondingNotifyNodeId();
-    SuperKernelBaseNode* notifyNode = graph_.GetNodeById(notifyId);
-
-    if (notifyNode == nullptr) {
+    
+    if (notifyId == INVALID_TASK_ID) {
         nodeHeap_.push(state.currentNodeId);
         SK_LOGI("Stream %u: Wait node %s's notify node %lu not found, adding wait node to heap to avoid hanging",
                 streamIdx, waitNode->Format().c_str(), notifyId);
         return;
     }
 
+    SuperKernelBaseNode* notifyNode = graph_.GetNodeById(notifyId);
     uint64_t eventId = notifyNode->GetEventId();
     if (visitedNotifies_.find(notifyId) != visitedNotifies_.end()) {
         // Notify already visited, add fusible wait node to heap
