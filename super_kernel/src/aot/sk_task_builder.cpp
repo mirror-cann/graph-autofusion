@@ -515,7 +515,7 @@ void SkTaskBuilder::ExtractIntraStreamSync(const std::vector<SuperKernelBaseNode
         streamFusionValue = streamfusionOption->GetIntValue();
     }
     if (streamFusionValue == 0 && streamOps.size() > 1) {
-        SK_LOGI("Multi stream fusion is triggered with %zu streams detected, "
+        SK_LOGW("Multi stream fusion is triggered with %zu streams detected, "
                 "but aclskStreamFusionOption is off (value=%u). "
                 "To explicitly enable multi stream fusion, set aclskStreamFusionOption to 1. "
                 "Please confirm whether this fusion behavior meets your expectations.",
