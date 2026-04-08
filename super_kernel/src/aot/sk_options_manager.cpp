@@ -22,8 +22,9 @@
 
 void NumberOptOption::SetValue(const uint32_t value) {
     if (value < optValueMin || value > optValueMax) {
-        SK_LOGE("OptionName: %s, set value is invalid, value is %u, valid range is [%u, %u]",
-            optionName.c_str(), value, optValueMin, optValueMax);
+        SK_LOGW("OptionName: %s, set value is invalid, value is %u, valid range is [%u, %u],"
+            " the process will use default value: %u",
+            optionName.c_str(), value, optValueMin, optValueMax, optValue);
         return;
     }
     SK_LOGI("OptionName: %s, set value: %u", optionName.c_str(), value);
@@ -37,7 +38,7 @@ uint32_t NumberOptOption::GetIntValue() const {
 
 void StringOptOption::SetValue(const std::string& value) {
     if (value.empty()) {
-        SK_LOGE("OptionName: %s, set value is invalid, value is empty", optionName.c_str());
+        SK_LOGW("OptionName: %s, set value is invalid, value is empty", optionName.c_str());
         return;
     }
     SK_LOGI("OptionName: %s, set value: %s", optionName.c_str(), value.c_str());
@@ -51,7 +52,7 @@ std::string StringOptOption::GetStringValue() const {
 
 void StringListOptOption::SetValue(const std::vector<std::string>& value) {
     if (value.empty()) {
-        SK_LOGE("OptionName: %s, set value is invalid, value is empty", optionName.c_str());
+        SK_LOGW("OptionName: %s, set value is invalid, value is empty", optionName.c_str());
         return;
     }
     for (size_t i = 0; i < value.size(); i++) {
@@ -68,7 +69,7 @@ std::vector<std::string> StringListOptOption::GetStringListValue() const {
 
 void MapOptOption::SetValue(const std::unordered_map<std::string, std::vector<std::string>>& value) {
     if (value.empty()) {
-        SK_LOGE("OptionName:%s, set value is invalid, value is empty", optionName.c_str());
+        SK_LOGW("OptionName:%s, set value is invalid, value is empty", optionName.c_str());
         return;
     }
     for (const auto& pair : value) {
@@ -93,7 +94,7 @@ void SuperKernelOptionsManager::AddOption(std::unique_ptr<OptOptionBase> option)
     }
     auto iter = optionMap.find(option->GetType());
     if (iter != optionMap.end()) {
-        SK_LOGE("OptionName:%s, already exists", option->GetName().c_str());
+        SK_LOGW("OptionName:%s, already exists", option->GetName().c_str());
         return;
     }
     optionMap[option->GetType()] = std::move(option);
@@ -182,7 +183,7 @@ bool SuperKernelOptionsManager::EnableDebug() const {
 
 void SuperKernelOptionsManager::SetOptOptionValue(const aclskOption* option) {
     if (option == nullptr) {
-        SK_LOGE("sub aclskOption is nullptr");
+        SK_LOGW("sub aclskOption is nullptr");
         return;
     }
     switch (option->optionType) {
@@ -212,7 +213,7 @@ void SuperKernelOptionsManager::SetOptOptionValue(const aclskOption* option) {
                     std::vector<std::string> vecValue;
                     const size_t kernelCnt = static_cast<size_t>(option->disableKernelDcci.kernelCnt);
                     if (kernelCnt > 0 && option->disableKernelDcci.kernelNames == nullptr) {
-                        SK_LOGE("OptionName:%s, kernelNames is nullptr while kernelCnt is %zu",
+                        SK_LOGW("OptionName:%s, kernelNames is nullptr while kernelCnt is %zu",
                             subOption->GetName().c_str(), kernelCnt);
                         break;
                     }
