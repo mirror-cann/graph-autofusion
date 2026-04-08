@@ -510,7 +510,7 @@ void SkTaskBuilder::ExtractIntraStreamSync(const std::vector<SuperKernelBaseNode
     }
 
     auto streamfusionOption = opts.GetOption(aclskOtionType::STREAM_FUSION);
-    uint32_t streamFusionValue = 0;
+    uint32_t streamFusionValue = 1;
     if (streamfusionOption != nullptr) {
         streamFusionValue = streamfusionOption->GetIntValue();
     }

@@ -240,7 +240,7 @@ void SuperKernelOptionsManager::SetOptOptionValue(const aclskOption* option) {
             }
         case aclskOtionType::STREAM_FUSION:
             {
-                AddOption(std::make_unique<NumberOptOption>("stream_fusion", option->optionType, 0, 0, 1));
+                AddOption(std::make_unique<NumberOptOption>("stream_fusion", option->optionType, 1, 0, 1));
                 auto subOption = GetOption(option->optionType);
                 if (subOption != nullptr) {
                     subOption->SetValue(option->streamFusion.streamFusion);
