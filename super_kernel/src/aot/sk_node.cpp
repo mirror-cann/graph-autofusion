@@ -24,9 +24,8 @@
 #include <string>
 #include <sstream>
 #include <utility>
-#include "runtime/kernel.h"
-#include "sk_log.h"
 #include "sk_node.h"
+#include "sk_log.h"
 #include "sk_scope_launch.h"
 #include "sk_common.h"
 #include "runtime/kernel.h"
@@ -45,6 +44,56 @@ enum class SkNodeCoreType: uint32_t {
     AIC,
     AIV,
 };
+
+constexpr int32_t ACL_FUNC_ATTR_KERNEL_SCHMODE_PLACEHOLDER = 3;
+ 	 
+SchoModeState ParseSchoModeState(int64_t rawValue)
+{
+    constexpr int64_t SCHO_MODE_OFF_VALUE = 0;
+    constexpr int64_t SCHO_MODE_ON_VALUE = 1;
+    if (rawValue == SCHO_MODE_OFF_VALUE) {
+        return SchoModeState::SCHO_MODE_OFF;
+    }
+    if (rawValue == SCHO_MODE_ON_VALUE) {
+        return SchoModeState::SCHO_MODE_ON;
+    }
+    SK_LOGE("Invalid schmode value: %ld, valid value is 0 or 1", rawValue);
+    return SchoModeState::NONE;
+}
+
+SchoModeState GetSchoModeFromFuncAttr(aclrtFuncHandle funcHandle)
+{
+    int64_t funcAttrSchoModeValue = 0;
+    aclError aclRet = ACL_SUCCESS;
+    CHECK_ACL(aclRet = aclrtGetFunctionAttribute(funcHandle,
+        static_cast<aclrtFuncAttribute>(ACL_FUNC_ATTR_KERNEL_SCHMODE_PLACEHOLDER), &funcAttrSchoModeValue));
+    if (aclRet != ACL_SUCCESS) {
+        SK_LOGE("Failed to query function attribute schmode, ret=%d", aclRet);
+        return SchoModeState::NONE;
+    }
+    return ParseSchoModeState(funcAttrSchoModeValue);
+}
+
+SchoModeState GetSchoModeFromKernelCfg(aclrtLaunchKernelCfg* launchKernelCfg)
+{
+    if (launchKernelCfg == nullptr) {
+        return SchoModeState::NONE;
+    }
+    if ((launchKernelCfg->numAttrs == 0) || (launchKernelCfg->attrs == nullptr)) {
+        SK_LOGE("launchKernelCfg->attrs is null while numAttrs=%zu", launchKernelCfg->numAttrs);
+        return SchoModeState::NONE;
+    }
+
+    SchoModeState schoModeState = SchoModeState::NONE;
+    for (size_t attrIdx = 0; attrIdx < launchKernelCfg->numAttrs; ++attrIdx) {
+        const aclrtLaunchKernelAttr& launchAttr = launchKernelCfg->attrs[attrIdx];
+        if (launchAttr.id != ACL_RT_LAUNCH_KERNEL_ATTR_SCHEM_MODE) {
+            continue;
+        }
+        schoModeState = ParseSchoModeState(static_cast<int64_t>(launchAttr.value.schemMode));
+    }
+    return schoModeState;
+}
 
 SkBindMap InitSuperKernelBindMap(aclrtBinHandle binHdl)
 {
@@ -391,6 +440,9 @@ bool SuperKernelKernelNode::InitNode() {
     nodeInfos.kernelInfos.devArgs = kernelParams.args;
     nodeInfos.kernelInfos.opInfoPtr = taskParams.opInfoPtr;
     nodeInfos.kernelInfos.opInfoSize = taskParams.opInfoSize;
+    nodeInfos.kernelInfos.launchKernelCfg = kernelParams.cfg;
+    // which will be set by GetSchoMode() in future
+ 	nodeInfos.kernelInfos.isSchoModeOn = false;
     aclRet = aclrtFunctionGetBinary(kernelParams.funcHandle, &nodeInfos.kernelInfos.binHdl);
     if (aclRet != ACL_SUCCESS) {
         SK_LOGE("Failed to get kernel bin handle for %s, ret=%d",
@@ -431,6 +483,26 @@ bool SuperKernelKernelNode::InitNode() {
     return true;
 }
 
+bool SuperKernelKernelNode::GetSchoMode() const
+{
+    const aclmdlRIKernelTaskParams& kernelParams = taskParams.kernelTaskParams;
+    const SchoModeState funcAttrSchoModeState = GetSchoModeFromFuncAttr(kernelParams.funcHandle);
+    const SchoModeState launchCfgSchoModeState = GetSchoModeFromKernelCfg(kernelParams.cfg);
+
+    SchoModeState finalSchoModeState = SchoModeState::SCHO_MODE_OFF;
+    if (launchCfgSchoModeState != SchoModeState::NONE) {
+        finalSchoModeState = launchCfgSchoModeState;
+    } else if (funcAttrSchoModeState != SchoModeState::NONE) {
+        finalSchoModeState = funcAttrSchoModeState;
+    }
+
+    SK_LOGI("schmode detect result: funcAttrState=%ld, launchCfgState=%ld, finalState=%ld",
+        static_cast<int64_t>(funcAttrSchoModeState),
+        static_cast<int64_t>(launchCfgSchoModeState),
+        static_cast<int64_t>(finalSchoModeState));
+    return finalSchoModeState == SchoModeState::SCHO_MODE_ON;
+}
+
 bool SuperKernelKernelNode::InValidateNode() {
     SK_LOGI("Invalidating kernel node for task %lu, which will be fused in super kernel.", nodeId);
     aclError aclRet = aclmdlRITaskDisable(*originTask);
@@ -460,12 +532,16 @@ std::string KernelInfos::Format() const {
         << ", numBlocks:" << numBlocks
         << ", cubeNum:" << cubeNum
         << ", vecNum:" << vecNum
+        << ", isSchoModeOn:" << isSchoModeOn
         << ", resolvedNum:" << resolvedNum;
     if (binHdl != nullptr) {
         oss << ", binHdl:0x" << std::hex << reinterpret_cast<uintptr_t>(binHdl) << std::dec;
     }
     if (funcHdl != nullptr) {
         oss << ", funcHdl:0x" << std::hex << reinterpret_cast<uintptr_t>(funcHdl) << std::dec;
+    }
+    if (launchKernelCfg != nullptr) {
+        oss << ", launchKernelCfg:0x" << std::hex << reinterpret_cast<uintptr_t>(launchKernelCfg) << std::dec;
     }
     if (devArgs != nullptr) {
         oss << ", devArgs:0x" << std::hex << reinterpret_cast<uintptr_t>(devArgs) << std::dec;

@@ -152,6 +152,12 @@ public:
      */
     static void PrintScopeStreamInfos(size_t scopeIdx, const SuperKernelScopeInfo& scope);
 
+    /*!
+     * \brief Rebuild stream infos for a scope
+     * \param scope Scope to rebuild
+     */
+    static void RebuildStreamInfos(SuperKernelScopeInfo& scope);
+
 private:
     /*!
      * \brief Print detailed scope information to current log context
@@ -334,35 +340,85 @@ private:
                               SuperKernelBaseNode* waitNode,
                               SuperKernelScopeInfo& scopeBefore,
                               SuperKernelScopeInfo& scopeAfter);
-    
+
     /*!
-     * \brief Rebuild stream infos for a scope
-     * \param scope Scope to rebuild
-     */
-    void RebuildStreamInfos(SuperKernelScopeInfo& scope);
-    
-        /*!
-        * \brief Process a single scope with deadlock detection and one-step splitting.
-        *
-        * This function either:
-        * - Detects no deadlock and moves the whole scope into outputScopes; or
-        * - Detects a deadlock and splits at the nearest preceding Wait node, moving
-        *   the front part into outputScopes and returning the remaining part via
-        *   pendingScope; or
-        * - Detects an unresolvable deadlock (no suitable Wait node), in which case
-        *   the caller should treat this as a fatal error and abort refinement.
-        *
-        * \param scopeToProcess The scope to process (moved)
-        * \param outputScopes Vector to store deadlock-free scopes produced from the front part
-        * \param pendingScope Optional: remaining part of the scope that still needs processing
-        * \return Result of the processing (NO_DEADLOCK, DEADLOCK_RESOLVED, or DEADLOCK_UNRESOLVED)
-        */
-    	ScopeProcessResult ProcessSingleScope(
-    		SuperKernelScopeInfo&& scopeToProcess,
-    		std::vector<SuperKernelScopeInfo>& outputScopes,
-    		std::optional<SuperKernelScopeInfo>& pendingScope);
+    * \brief Process a single scope with deadlock detection and one-step splitting.
+    *
+    * This function either:
+    * - Detects no deadlock and moves the whole scope into outputScopes; or
+    * - Detects a deadlock and splits at the nearest preceding Wait node, moving
+    *   the front part into outputScopes and returning the remaining part via
+    *   pendingScope; or
+    * - Detects an unresolvable deadlock (no suitable Wait node), in which case
+    *   the caller should treat this as a fatal error and abort refinement.
+    *
+    * \param scopeToProcess The scope to process (moved)
+    * \param outputScopes Vector to store deadlock-free scopes produced from the front part
+    * \param pendingScope Optional: remaining part of the scope that still needs processing
+    * \return Result of the processing (NO_DEADLOCK, DEADLOCK_RESOLVED, or DEADLOCK_UNRESOLVED)
+    */
+    ScopeProcessResult ProcessSingleScope(
+        SuperKernelScopeInfo&& scopeToProcess,
+        std::vector<SuperKernelScopeInfo>& outputScopes,
+        std::optional<SuperKernelScopeInfo>& pendingScope);
 
     LockDetector lockDetector_;
+};
+
+// ============ Pass 3: SchoMode Kernel Core Split Refinement ============
+
+/*!
+ * \enum SchoModeScopeProcessResult
+ * \brief Result of processing a single scope for SchoMode kernel split refinement
+ */
+enum class SchoModeScopeProcessResult {
+    NO_SPLIT,          ///< No split required, scope is output as-is
+    SPLIT_RESOLVED     ///< Split required and completed, remaining part returned via pendingScope
+};
+
+/*!
+ * \class SchoModeKernelSplitPass
+ * \brief Pass 3: Refine scopes based on SchoMode kernel core trend
+ *
+ * Rules:
+ * - Traverse nodes in a scope and merge kernel core requirement using max(cube), max(vec)
+ * - When a kernel node with IsSchoModeOn()==true is encountered:
+ *   - If its core requirement is greater than merged previous requirement, keep merging
+ *   - If its core requirement is smaller than merged previous requirement, split at this node
+ * - Split point kernel is included in the "after" scope
+ */
+class SchoModeKernelSplitPass : public ScopeSplitPass {
+public:
+    explicit SchoModeKernelSplitPass(SuperKernelGraph& inputGraph);
+    ~SchoModeKernelSplitPass() = default;
+
+    bool Run(std::vector<SuperKernelScopeInfo>& scopes) override;
+    std::string GetName() const override { return "SchoModeKernelSplitPass"; }
+
+private:
+    /*!
+     * \brief Process a single scope and split if SchoMode rule requires
+     * \param scopeToProcess Input scope to process (moved)
+     * \param outputScopes Output refined scopes
+     * \param pendingScope Remaining part after split, if any
+     * \return Processing result
+     */
+    SchoModeScopeProcessResult ProcessSingleScope(
+        SuperKernelScopeInfo&& scopeToProcess,
+        std::vector<SuperKernelScopeInfo>& outputScopes,
+        std::optional<SuperKernelScopeInfo>& pendingScope);
+
+    /*!
+     * \brief Split a scope at the split node (split node belongs to scopeAfter)
+     * \param scope Original scope
+     * \param splitNode Node where split happens
+     * \param scopeBefore Output: nodes before splitNode
+     * \param scopeAfter Output: nodes from splitNode to end
+     */
+    void SplitScopeAtNode(const SuperKernelScopeInfo& scope,
+                          SuperKernelBaseNode* splitNode,
+                          SuperKernelScopeInfo& scopeBefore,
+                          SuperKernelScopeInfo& scopeAfter);
 };
 
 // ============ Main Splitter Class ============

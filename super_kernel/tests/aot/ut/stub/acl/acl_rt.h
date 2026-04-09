@@ -39,12 +39,45 @@ typedef void *aclrtNotify;
 typedef void *aclrtTaskGrp;
 typedef void *aclrtFuncHandle;
 typedef void *aclrtBinHandle;
-typedef void *aclrtLaunchKernelCfg;
+
 typedef void *aclrtArgsHandle;
 typedef void *aclrtParamHandle;
 typedef void *aclmdlRI;
 typedef void *aclrtTask;  // void* as per user request
 typedef int aclError;
+
+typedef enum aclrtLaunchKernelAttrId {
+    ACL_RT_LAUNCH_KERNEL_ATTR_SCHEM_MODE = 1,
+    ACL_RT_LAUNCH_KERNEL_ATTR_DYN_UBUF_SIZE = 2,
+    ACL_RT_LAUNCH_KERNEL_ATTR_ENGINE_TYPE = 3,
+    ACL_RT_LAUNCH_KERNEL_ATTR_BLOCKDIM_OFFSET = 4,
+    ACL_RT_LAUNCH_KERNEL_ATTR_BLOCK_TASK_PREFETCH = 5,
+    ACL_RT_LAUNCH_KERNEL_ATTR_DATA_DUMP = 6,
+    ACL_RT_LAUNCH_KERNEL_ATTR_TIMEOUT = 7,
+    // ACL_RT_LAUNCH_KERNEL_ATTR_TIMEOUT and ACL_RT_LAUNCH_KERNEL_ATTR_TIMEOUT_US cannot be carried at the same time
+    ACL_RT_LAUNCH_KERNEL_ATTR_TIMEOUT_US = 8,
+} aclrtLaunchKernelAttrId;
+
+typedef union aclrtLaunchKernelAttrValue {
+    uint8_t schemMode;
+    uint32_t localMemorySize;
+    uint32_t dynUBufSize;
+    uint8_t engineType;
+    uint8_t isBlockTaskPrefetch;
+    uint8_t isDataDump;
+    uint16_t timeout;
+    uint32_t rsv[4];
+} aclrtLaunchKernelAttrValue;
+
+typedef struct aclrtLaunchKernelAttr {
+    aclrtLaunchKernelAttrId id;
+    aclrtLaunchKernelAttrValue value;
+} aclrtLaunchKernelAttr;
+
+typedef struct aclrtLaunchKernelCfg {
+    aclrtLaunchKernelAttr *attrs;
+    size_t numAttrs;
+} aclrtLaunchKernelCfg;
 
 // Forward declaration for exception info structure
 typedef struct aclrtExceptionInfo aclrtExceptionInfo;
