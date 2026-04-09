@@ -18,7 +18,7 @@ testpaths = [
 ]
 
 [tool.coverage.run]
-source = ["src/superkernel"]
+source = ["superkernel"]
 omit = [
   "*/tests/*",
   "*/__pycache__/*",

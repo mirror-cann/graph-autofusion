@@ -323,6 +323,7 @@ def compile_superkernel(ctx: SkCompileContext, sub_kernels: list[KernelResult]):
         }
         kernel_name = "te_superkernel_1"
 
-        super_kernel.compile(kernel_info, kernel_name)
+        with OpContext('super_kernel'):
+            super_kernel.compile(kernel_info, kernel_name)
 
         return SuperkernelResult(kernel_meta_dir, kernel_name)

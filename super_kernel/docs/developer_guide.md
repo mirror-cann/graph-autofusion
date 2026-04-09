@@ -91,7 +91,7 @@ super_kernel/
 - **仅 UT 覆盖率**：
   ```bash
   pytest tests/ut -m ut \
-    --cov=src/superkernel \
+    --cov=superkernel \
     --cov-report=term-missing \
     --cov-report=html \
     --cov-report=xml
@@ -99,7 +99,7 @@ super_kernel/
 - **仅 ST 覆盖率**：
   ```bash
   pytest tests/st -m st \
-    --cov=src/superkernel \
+    --cov=superkernel \
     --cov-report=term-missing \
     --cov-report=html \
     --cov-report=xml
@@ -107,7 +107,7 @@ super_kernel/
 - **UT + ST 综合覆盖率**：
   ```bash
   pytest \
-    --cov=src/superkernel \
+    --cov=superkernel \
     --cov-report=term-missing \
     --cov-report=html \
     --cov-report=xml
