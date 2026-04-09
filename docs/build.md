@@ -2,65 +2,7 @@
 
 ## 1. 环境准备
 
-本项目支持源码编译，在源码编译前，需要确保已经安装CANN软件（Ascend-cann-toolkit和Ascend-cann-ops（可选）），若运行业务，还需要安装NPU驱动和固件。
-
-软件安装方式请根据如下描述进行选择：
-
-| 安装方式       | 说明                                                         | 使用场景                                                     |
-| :------------- | :----------------------------------------------------------- | :----------------------------------------------------------- |
-| 使用WebIDE安装 | WebIDE可提供在线直接运行的昇腾环境，当前可提供单机算力，默认安装最新商发版CANN软件包（目前是CANN 8.5.0）和固件/驱动包。 | 适用于没有昇腾设备的开发者。                                 |
-| 手动安装软件包 | -                                                            | 适用有昇腾设备，想体验手动安装CANN包或体验最新master分支能力的开发者。 |
-
-### 方式一：使用WebIDE安装
-
-对于无环境的用户，可直接使用WebIDE开发平台，即“**算子一站式开发平台**”，该平台为您提供在线可直接运行的昇腾环境，环境中已安装必备的软件包，无需手动安装。更多关于开发平台的介绍请参考[LINK](https://gitcode.com/org/cann/discussions/54)。
-
-1. 进入开源项目，单击“`云开发`”按钮，使用已认证过的华为云账号登录。若未注册或认证，请根据页面提示进行注册和认证。
-
-   <img src="./figures/cloudIDE.png" alt="云平台"  width="750px" height="90px">
-
-2. 根据页面提示创建并启动云开发环境，单击“`连接 > WebIDE`”进入算子一站式开发平台，开源项目的资源默认在`/mnt/workspace`目录下。
-
-   <img src="./figures/webIDE.png" alt="云平台"  width="1000px" height="150px">
-
-### 方式二：手动安装软件包
-
-1. **安装驱动与固件（可选，仅运行业务依赖）**
-
-    驱动与固件的下载和安装操作请参考《[CANN软件安装指南](https://www.hiascend.com/document/redirect/CannCommunityInstWizard)》中“准备软件包”和“安装NPU驱动和固件”章节。驱动与固件是运行样例依赖，若仅编译环境，可以不安装。
-
-2. **安装CANN包**    
-
-   **场景1：体验master版本能力或基于master版本进行开发**
-
-     请单击[下载链接](https://ascend.devcloud.huaweicloud.com/artifactory/cann-run-mirror/software/master)获取最新时间版本，并根据产品型号和环境架构下载对应包。安装命令如下，更多指导请参考[CANN软件安装指南](https://www.hiascend.com/document/redirect/CannCommunityInstWizard)。
-
-     1. 安装CANN Toolkit开发套件包。
-
-        ```bash
-        # 确保安装包具有可执行权限
-        chmod +x Ascend-cann-toolkit_${cann_version}_linux-${arch}.run
-        # 安装命令
-        /Ascend-cann-toolkit_${cann_version}_linux-${arch}.run --install --install-path=${install_path}
-        ```
-    
-     2. 安装CANN ops算子包。
-
-        ```bash
-        # 确保安装包具有可执行权限
-        chmod +x Ascend-cann-${soc_name}-ops_${cann_version}_linux-${arch}.run
-        # 安装命令
-        ./Ascend-cann-${soc_name}-ops_${cann_version}_linux-${arch}.run --install --install-path=${install_path}
-        ```
-
-    - `${cann_version}`：表示CANN包版本号。
-    - `${arch}`：表示CPU架构，如`aarch64`、`x86_64`。
-    - `${install_path}`：表示指定安装路径，需要与Toolkit包安装在相同路径，root用户默认安装在`/usr/local/Ascend`目录。
-    - `${soc_name}`表示NPU型号名称。
-
-   **场景2：体验已发布版本能力或基于已发布版本进行开发**
-
-    如果您想体验**官网正式发布的CANN包**能力，请访问[CANN官网下载中心](https://www.hiascend.com/cann/download)，选择对应版本CANN软件包（仅支持CANN 8.5.0及后续版本）进行安装。   
+在源码编译前，请先完成基础环境搭建。具体操作请参见[快速安装](quick_install.md)。
 
 ## 2. 环境验证
 
@@ -144,6 +86,8 @@ git clone https://gitcode.com/cann/graph-autofusion.git
 以下所列为源码编译用到的依赖，请注意版本要求：
 
 - Python3 >= 3.8.0 (建议使用Python虚拟环境)
+  > [!NOTE]说明
+  > - python宣布3.8.x已经EOL，CANN将在10.0.0停止对该版本的支持，请升级到>=3.9.x的版本
 
   1. 创建虚拟环境并激活：
 
