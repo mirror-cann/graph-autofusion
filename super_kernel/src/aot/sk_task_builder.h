@@ -175,5 +175,13 @@ private:
     SkHostEntryInfo GenEntryInfo(SkTask& skTaskCube, SkTask& skTaskVec);
     DeviceArgsPtr GenEntryArgs(const SkTask& skTaskCube, const SkTask& skTaskVec, const SkDfxInfo* dfxInfos,
                                uint32_t dfxCount, const SkEventConfig *eventConfig = nullptr);
+
+    // DFX info update helpers
+    bool UpdateDfxInfo(SkDfxInfo* dfxInfo, const KernelInfos& kernelInfo, const ResolvedFunctionInfo& resolved,
+                      int binIndex, int addrIndex);
+    // Helper to process core function size (AIC/AIV)
+    bool ProcessCoreFuncSize(SkDfxInfo* dfxInfo, const void* binHostAddr, uint32_t binHostSize,
+                            const ResolvedFunctionInfo& resolved, int coreIndex, int binIndex,
+                            const char* coreName);
 };                           
 #endif // __SK_TASK_BUILDER_H__

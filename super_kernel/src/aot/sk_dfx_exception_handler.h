@@ -55,6 +55,7 @@ private:
     void PrintDfxInfo() const;
     bool ParseAndPrintSubKernelSymbols(aclrtExceptionInfo *exceptionInfo);
     KernelFuncName GetOrLoadKernelSymbols(uint32_t opId);
+    void IdentifyErrorNodeByPC(uint32_t coreId, rtCoreType_t coreType, uint64_t startPC, uint64_t currentPC);
     void PrintCoreSymbols(uint32_t coreId, rtCoreType_t coreType, uint64_t startPC, uint64_t currentPC);
     void PrintSymbolByCoreId(uint32_t coreId, rtCoreType_t coreType, uint64_t startPC, uint64_t currentPC,
                             const KernelFuncName &kernelFuncName);
@@ -78,6 +79,7 @@ private:
     void *aivTaskQueDevPtr;          // Reserved for recording device address (for debugging)
     uint32_t aicTaskCnt;
     uint32_t aivTaskCnt;
+    bool hasOpTrace_;                // Whether sk_entry name contains "op_trace"
 
     aclError CheckError(aclError ret, const char *errorMsg);
 };

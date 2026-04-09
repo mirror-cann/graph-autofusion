@@ -20,6 +20,7 @@
 #include <string>
 #include "securec.h"
 #include "sk_event_recorder.h"
+#include "runtime/kernel.h"
 
 extern "C" aclrtBinHandle AscendGetEntryBinHandle();
 
@@ -118,8 +119,16 @@ void DumpDeviceArgsDetail(std::string skFuncName, const SkDeviceEntryArgs* args)
 
     const SkDfxInfo* dfx = (const SkDfxInfo*)(base + args->skHeader.dfxOffset);
     for (uint32_t i = 0; i < args->skHeader.nodeCnt; ++i) {
-        SK_LOGD("dfx[%u]: bin=0x%llx, ori=0x%llx", i, (unsigned long long)dfx[i].binHdl,
-                (unsigned long long)dfx[i].funcHdlOri);
+        SK_LOGD("dfx[%u]: bin=0x%llx, ori=0x%llx, aicSize=0x%x, aivSize=0x%x",
+                i, (unsigned long long)dfx[i].binHdl,
+                (unsigned long long)dfx[i].funcHdlOri,
+                dfx[i].aicSize, dfx[i].aivSize);
+        SK_LOGD("  entryAic[0]=0x%llx, entryAic[1]=0x%llx, entryAic[2]=0x%llx, entryAic[3]=0x%llx",
+                (unsigned long long)dfx[i].entryAic[0], (unsigned long long)dfx[i].entryAic[1],
+                (unsigned long long)dfx[i].entryAic[2], (unsigned long long)dfx[i].entryAic[3]);
+        SK_LOGD("  entryAiv[0]=0x%llx, entryAiv[1]=0x%llx, entryAiv[2]=0x%llx, entryAiv[3]=0x%llx",
+                (unsigned long long)dfx[i].entryAiv[0], (unsigned long long)dfx[i].entryAiv[1],
+                (unsigned long long)dfx[i].entryAiv[2], (unsigned long long)dfx[i].entryAiv[3]);
     }
 }
 
@@ -1025,6 +1034,82 @@ bool SkTaskBuilder::AddEventTask(SkTask& skTask, SuperKernelBaseNode* node, size
     return true;
 }
 
+bool SkTaskBuilder::ProcessCoreFuncSize(SkDfxInfo* dfxInfo, const void* binHostAddr, uint32_t binHostSize,
+                                        const ResolvedFunctionInfo& resolved, int coreIndex, int binIndex,
+                                        const char* coreName)
+{
+    SK_LOGD("ProcessCoreFuncSize: Processing %s (coreIndex=%d), funcAddr=0x%lx, funcOffset=0x%lx",
+            coreName, coreIndex, resolved.funcAddr[coreIndex], resolved.funcOffset[coreIndex]);
+    
+    std::string symbolName;
+    uint64_t funcSize = 0;
+    bool getInfoRet = GetFuncSymbolInfo(static_cast<const char*>(binHostAddr), binHostSize,
+                                        resolved.funcOffset[coreIndex], symbolName, funcSize);
+    SK_LOGD("ProcessCoreFuncSize: GetFuncSymbolInfo(%s) returned=%d, offset=0x%lx, symbolName=%s, size=0x%lx",
+            coreName, getInfoRet, resolved.funcOffset[coreIndex], symbolName.c_str(), funcSize);
+    
+    if (getInfoRet) {
+        if (coreIndex == 0) {
+            dfxInfo->aicSize = static_cast<uint32_t>(funcSize);
+            dfxInfo->entryAic[binIndex] = resolved.funcAddr[0];
+            SK_LOGD("ProcessCoreFuncSize: Set aicSize=0x%x, entryAic[%d]=0x%lx",
+                    dfxInfo->aicSize, binIndex, dfxInfo->entryAic[binIndex]);
+        } else if (coreIndex == 1) {
+            dfxInfo->aivSize = static_cast<uint32_t>(funcSize);
+            dfxInfo->entryAiv[binIndex] = resolved.funcAddr[1];
+            SK_LOGD("ProcessCoreFuncSize: Set aivSize=0x%x, entryAiv[%d]=0x%lx",
+                    dfxInfo->aivSize, binIndex, dfxInfo->entryAiv[binIndex]);
+        }
+        return true;
+    }
+    
+    SK_LOGW("ProcessCoreFuncSize: GetFuncSymbolInfo failed for %s", coreName);
+    return false;
+}
+
+bool SkTaskBuilder::UpdateDfxInfo(SkDfxInfo* dfxInfo, const KernelInfos& kernelInfo,
+                                  const ResolvedFunctionInfo& resolved, int binIndex, int addrIndex)
+{
+    if (dfxInfo == nullptr) {
+        return true;
+    }
+
+    SK_LOGD("UpdateDfxInfo: Processing dfxInfo for binIndex=%d, addrIndex=%d, funcName=%s",
+            binIndex, addrIndex, kernelInfo.funcName.c_str());
+    
+    dfxInfo->binHdl = static_cast<uint64_t>(reinterpret_cast<uintptr_t>(kernelInfo.binHdl));
+    dfxInfo->funcHdlOri = static_cast<uint64_t>(reinterpret_cast<uintptr_t>(kernelInfo.funcHdl));
+    SK_LOGD("UpdateDfxInfo: binHdl=0x%lx, funcHdlOri=0x%lx",
+            dfxInfo->binHdl, dfxInfo->funcHdlOri);
+
+    void *binHostAddr = nullptr;
+    uint32_t binHostSize = 0;
+    int rtRet = rtGetBinBuffer(kernelInfo.binHdl, RT_BIN_HOST_ADDR, &binHostAddr, &binHostSize);
+    if (rtRet != 0) {
+        SK_LOGW("UpdateDfxInfo: Failed to get bin buffer, rtRet=%d, using default size 0", rtRet);
+        return true;
+    }
+    
+    SK_LOGD("UpdateDfxInfo: Successfully got bin buffer, binHostAddr=0x%lx, binHostSize=%u",
+            (uint64_t)binHostAddr, binHostSize);
+
+    if (addrIndex == 0 && resolved.funcAddr[0] != 0) {
+        ProcessCoreFuncSize(dfxInfo, binHostAddr, binHostSize, resolved, 0, binIndex, "AIC");
+    } else {
+        SK_LOGD("UpdateDfxInfo: Skipping AIC processing, addrIndex=%d, funcAddr[0]=0x%lx",
+                addrIndex, resolved.funcAddr[0]);
+    }
+
+    if (addrIndex == 1 && resolved.funcAddr[1] != 0) {
+        ProcessCoreFuncSize(dfxInfo, binHostAddr, binHostSize, resolved, 1, binIndex, "AIV");
+    } else {
+        SK_LOGD("UpdateDfxInfo: Skipping AIV processing, addrIndex=%d, funcAddr[1]=0x%lx",
+                addrIndex, resolved.funcAddr[1]);
+    }
+    
+    return true;
+}
+
 bool SkTaskBuilder::AddFuncTask(SkTask& skTask, SuperKernelBaseNode* node, SkDfxInfo* dfxInfo, size_t nodeIndex,
                                 int addrIndex, int binCount, SkTaskType taskType, uint32_t numBlocks)
 {
@@ -1078,8 +1163,7 @@ bool SkTaskBuilder::AddFuncTask(SkTask& skTask, SuperKernelBaseNode* node, SkDfx
         taskInfo.entry[i] = addr;
 
         if (taskType == SkTaskType::TYPE_FUNC && dfxInfo) {
-            dfxInfo->binHdl = static_cast<uint64_t>(reinterpret_cast<uintptr_t>(kernelInfo.binHdl));
-            dfxInfo->funcHdlOri = static_cast<uint64_t>(reinterpret_cast<uintptr_t>(kernelInfo.funcHdl));
+            UpdateDfxInfo(dfxInfo, kernelInfo, resolved, i, addrIndex);
         }
     }
 
@@ -1289,15 +1373,73 @@ bool SkTaskBuilder::DispatchSyncTasks(SkTask& skTaskCube, SkTask& skTaskVec, siz
     return true;
 }
 
+// ========== 辅助函数：根据配置生成 entry 函数名 ==========
+namespace {
+
+// entryFuncName 配置标记
+enum class EntryFuncFlag : uint8_t {
+    NONE = 0,
+    DEBUG = 1 << 0,
+    DUMP_PROFILING = 1 << 1,
+    OP_TRACE = 1 << 2,
+};
+
+/**
+ * @brief 根据 kernel 类型获取基础 entry 函数名
+ */
+const char* GetBaseEntryFuncName(SkKernelType kernelType)
+{
+    switch (kernelType) {
+    case SkKernelType::AIV_ONLY:
+        return "sk_entry_aiv";
+    case SkKernelType::AIC_ONLY:
+        return "sk_entry_aic";
+    case SkKernelType::MIX_AIC_1_1:
+        return "sk_entry_mix11";
+    case SkKernelType::MIX_AIC_1_2:
+        return "sk_entry_mix12";
+    default:
+        return "sk_entry_aic";
+    }
+}
+
+/**
+ * @brief 根据标记位组合生成最终的 entry 函数名
+ */
+std::string BuildEntryFuncName(const char* baseName, EntryFuncFlag flags)
+{
+    std::string funcName = baseName;
+    uint8_t flagValue = static_cast<uint8_t>(flags);
+    if ((flagValue & static_cast<uint8_t>(EntryFuncFlag::DEBUG)) != 0) {
+        funcName += "_debug";
+    }
+    if ((flagValue & static_cast<uint8_t>(EntryFuncFlag::DUMP_PROFILING)) != 0) {
+        funcName += "_dump_profiling";
+    }
+    if ((flagValue & static_cast<uint8_t>(EntryFuncFlag::OP_TRACE)) != 0) {
+        funcName += "_op_trace";
+    }
+    return funcName;
+}
+
+} // namespace
+
 SkHostEntryInfo SkTaskBuilder::GenEntryInfo(SkTask& skTaskCube, SkTask& skTaskVec)
 {
     SkHostEntryInfo entryInfo;
     bool enableDebug = opts.EnableDebug();
-    const char* entryFuncName = nullptr;
-    bool isMix12 = false;
-    // 检查打点环境变量是否开启（只有等于 "1" 时才启用）
-    const char* env = std::getenv(ENV_SK_EVENT_RECORD);
-    bool shouldEnable = (env != nullptr && std::string(env) == "1");
+    
+    // ========== 读取环境变量配置 ==========
+    // ASCEND_PROF_SK_ON: 启用 profiling 功能
+    const char* profilingEnv = std::getenv("ASCEND_PROF_SK_ON");
+    bool enableProfiling = (profilingEnv != nullptr && std::string(profilingEnv) == "1");
+    
+    // ASCEND_SK_OP_TRACE_ON: 启用 op_trace 功能
+    const char* opTraceEnv = std::getenv("ASCEND_SK_OP_TRACE_ON");
+    bool enableOpTrace = (opTraceEnv != nullptr && std::string(opTraceEnv) == "1");
+    
+    SK_LOGI("GenEntryInfo: enableDebug=%d, enableProfiling=%d, enableOpTrace=%d",
+            enableDebug, enableProfiling, enableOpTrace);
     
     // ========== 1. 首先尝试常量化代码生成 ==========
     auto [constantFunc, constantType] = TryGenerateConstantFuncHandle(
@@ -1309,6 +1451,7 @@ SkHostEntryInfo SkTaskBuilder::GenEntryInfo(SkTask& skTaskCube, SkTask& skTaskVe
         entryInfo.entryType = constantType;
         
         // 根据 kernelType 设置 numBlocks
+        bool isMix12 = false;
         if (constantType == SkKernelType::AIV_ONLY) {
             entryInfo.numBlocks = skTaskVec.numBlocks;
             skTaskCube.numBlocks = 0;
@@ -1347,53 +1490,32 @@ SkHostEntryInfo SkTaskBuilder::GenEntryInfo(SkTask& skTaskCube, SkTask& skTaskVe
     // ========== 2. 常量化失败，回退到原有逻辑 ==========
     SK_LOGI("Constant codegen disabled or failed, falling back to default entry resolution");
     
+    // 根据 task 分布确定 kernel 类型和 numBlocks
+    SkKernelType kernelType = SkKernelType::AIC_ONLY;
+    bool isMix12 = false;
+    
     if (skTaskCube.funcCnt == 0 && skTaskVec.funcCnt > 0) {
-        if (shouldEnable) {
-            entryFuncName = enableDebug == false ? "sk_entry_aiv_dump_profiling" : "sk_entry_aiv_debug_dump_profiling";
-        } else {
-            entryFuncName = enableDebug == false ? "sk_entry_aiv" : "sk_entry_aiv_debug";
-        }
-        entryInfo.entryType = SkKernelType::AIV_ONLY;
+        kernelType = SkKernelType::AIV_ONLY;
         entryInfo.numBlocks = skTaskVec.numBlocks;
         skTaskCube.numBlocks = 0;
     } else if (skTaskCube.funcCnt > 0 && skTaskVec.funcCnt == 0) {
-        if (shouldEnable) {
-            entryFuncName = enableDebug == false ? "sk_entry_aic_dump_profiling" : "sk_entry_aic_debug_dump_profiling";
-        } else {
-            entryFuncName = enableDebug == false ? "sk_entry_aic" : "sk_entry_aic_debug";
-        }
-        entryInfo.entryType = SkKernelType::AIC_ONLY;
+        kernelType = SkKernelType::AIC_ONLY;
         entryInfo.numBlocks = skTaskCube.numBlocks;
         skTaskVec.numBlocks = 0;
     } else if (skTaskCube.funcCnt > 0 && skTaskVec.funcCnt > 0) {
         uint32_t mix_1_2_aiv_numBlocks = (skTaskVec.numBlocks + 1) / 2;
         if (skTaskCube.nodeType == SkKernelType::MIX_AIC_1_2 && skTaskVec.nodeType == SkKernelType::MIX_AIC_1_2) {
-            if (shouldEnable) {
-                entryFuncName = enableDebug == false ? "sk_entry_mix12_dump_profiling" : "sk_entry_mix12_debug_dump_profiling";
-            } else {
-                entryFuncName = enableDebug == false ? "sk_entry_mix12" : "sk_entry_mix12_debug";
-            }
-            entryInfo.entryType = SkKernelType::MIX_AIC_1_2;
+            kernelType = SkKernelType::MIX_AIC_1_2;
             isMix12 = true;
             entryInfo.numBlocks = std::max(skTaskCube.numBlocks, mix_1_2_aiv_numBlocks);
             skTaskCube.numBlocks = entryInfo.numBlocks;
             skTaskVec.numBlocks = entryInfo.numBlocks * 2;
         } else if (skTaskVec.numBlocks <= skTaskCube.numBlocks) {
-            if (shouldEnable) {
-                entryFuncName = enableDebug == false ? "sk_entry_mix11_dump_profiling" : "sk_entry_mix11_debug_dump_profiling";
-            } else {
-                entryFuncName = enableDebug == false ? "sk_entry_mix11" : "sk_entry_mix11_debug";
-            }
-            entryInfo.entryType = SkKernelType::MIX_AIC_1_1;
+            kernelType = SkKernelType::MIX_AIC_1_1;
             entryInfo.numBlocks = skTaskCube.numBlocks;
             skTaskVec.numBlocks = skTaskCube.numBlocks;
         } else {
-            if (shouldEnable) {
-                entryFuncName = enableDebug == false ? "sk_entry_mix12_dump_profiling" : "sk_entry_mix12_debug_dump_profiling";
-            } else {
-                entryFuncName = enableDebug == false ? "sk_entry_mix12" : "sk_entry_mix12_debug";
-            }
-            entryInfo.entryType = SkKernelType::MIX_AIC_1_2;
+            kernelType = SkKernelType::MIX_AIC_1_2;
             isMix12 = true;
             entryInfo.numBlocks = std::max(skTaskCube.numBlocks, mix_1_2_aiv_numBlocks);
             skTaskCube.numBlocks = entryInfo.numBlocks;
@@ -1403,15 +1525,34 @@ SkHostEntryInfo SkTaskBuilder::GenEntryInfo(SkTask& skTaskCube, SkTask& skTaskVe
         SK_LOGE("both skTaskCube and skTaskVec have no task, aborting");
         return {};
     }
-
-    entryInfo.skEntryFunc = ResolveSkEntryFunc(entryFuncName);
+    
+    entryInfo.entryType = kernelType;
+    
+    // ========== 3. 根据配置构建 entryFuncName ==========
+    uint8_t flags = static_cast<uint8_t>(EntryFuncFlag::NONE);
+    if (enableDebug) {
+        flags = flags | static_cast<uint8_t>(EntryFuncFlag::DEBUG);
+    }
+    if (enableProfiling) {
+        flags = flags | static_cast<uint8_t>(EntryFuncFlag::DUMP_PROFILING);
+    }
+    if (enableOpTrace) {
+        flags = flags | static_cast<uint8_t>(EntryFuncFlag::OP_TRACE);
+    }
+    EntryFuncFlag funcFlags = static_cast<EntryFuncFlag>(flags);
+    
+    const char* baseName = GetBaseEntryFuncName(kernelType);
+    std::string entryFuncName = BuildEntryFuncName(baseName, funcFlags);
+    
+    entryInfo.skEntryFunc = ResolveSkEntryFunc(entryFuncName.c_str());
     if (entryInfo.skEntryFunc == nullptr) {
-        SK_LOGE("failed to resolve sk entry function: entryFuncName=%s", entryFuncName);
+        SK_LOGE("failed to resolve sk entry function: entryFuncName=%s", entryFuncName.c_str());
         return {};
     }
-
-    auto* taskQue = skTaskVec.GetTaskQue();
+    
+    // ========== 4. 处理 MIX_AIC_1_2 的 numBlocks 调整 ==========
     if (isMix12) {
+        auto* taskQue = skTaskVec.GetTaskQue();
         for (auto i = 0; i < taskQue->taskCnt; i++) {
             TaskInfo& taskInfo = taskQue->taskInfos[i];
             if (taskInfo.type != SkTaskType::TYPE_FUNC) {
@@ -1422,8 +1563,9 @@ SkHostEntryInfo SkTaskBuilder::GenEntryInfo(SkTask& skTaskCube, SkTask& skTaskVe
             }
         }
     }
-    SK_LOGI("sk entry resolved: type=%s, funcName=%s, funcHandle=%p, numBlocks=%d", to_string(entryInfo.entryType),
-            entryFuncName, entryInfo.skEntryFunc, entryInfo.numBlocks);
+    
+    SK_LOGI("sk entry resolved: type=%s, funcName=%s, funcHandle=%p, numBlocks=%d", 
+            to_string(entryInfo.entryType), entryFuncName.c_str(), entryInfo.skEntryFunc, entryInfo.numBlocks);
     return entryInfo;
 }
 

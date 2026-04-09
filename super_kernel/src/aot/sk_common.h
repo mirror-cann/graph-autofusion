@@ -102,6 +102,14 @@ enum class SkTaskType : uint8_t {
     TYPE_MAX,
 };
 
+enum class SkOpTraceType : uint8_t {
+    ORIGIN = 0,
+    SK_ENTRY_LAUNCHED,
+    OP_LAUNCHED,
+    OP_FINISHED,
+    SK_ENTRY_FINISHED,
+};
+
 inline const char* to_string(SkTaskType type)
 {
     switch (type) {
@@ -205,6 +213,10 @@ struct SkWorkSpace {
 struct SkDfxInfo {
     uint64_t binHdl;
     uint64_t funcHdlOri;
+    uint32_t aicSize;
+    uint32_t aivSize;
+    uint64_t entryAic[4];
+    uint64_t entryAiv[4];
 };
 
 struct SkDeviceEntryArgs {

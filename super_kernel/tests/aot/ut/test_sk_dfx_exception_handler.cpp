@@ -37,6 +37,67 @@ protected:
     std::unique_ptr<SuperKernelExceptionHandler> handler;
 };
 
+// ==================== Helper Functions for Test Setup ====================
+
+// Helper: Set up single-node DFX info on stack buffer for IdentifyErrorNodeByPC tests
+static void SetupSingleDfxNode(uint8_t* buffer, uint32_t aicSize, uint32_t aivSize,
+    const uint32_t entryAic[4], const uint32_t entryAiv[4],
+    SkHeaderInfo& headerInfo, SkDeviceEntryArgs*& deviceArgs, SkDfxInfo*& dfxInfo,
+    SuperKernelExceptionHandler* h)
+{
+    headerInfo = {0, 0, 0, 0, 0, 0, 1};
+    headerInfo.dfxOffset = sizeof(SkHeaderInfo);
+    headerInfo.nodeCnt = 1;
+
+    deviceArgs = reinterpret_cast<SkDeviceEntryArgs*>(buffer);
+    deviceArgs->skHeader = headerInfo;
+
+    dfxInfo = reinterpret_cast<SkDfxInfo*>(buffer + headerInfo.dfxOffset);
+    dfxInfo->binHdl = 0xAAA;
+    dfxInfo->funcHdlOri = 0xBBB;
+    dfxInfo->aicSize = aicSize;
+    dfxInfo->aivSize = aivSize;
+    for (int i = 0; i < 4; i++) {
+        dfxInfo->entryAic[i] = entryAic[i];
+        dfxInfo->entryAiv[i] = entryAiv[i];
+    }
+
+    h->skDeviceEntryArgsHost = deviceArgs;
+    h->skHeaderInfoHost = &headerInfo;
+}
+
+// Helper: Allocate and setup heap buffer for PrintCoreSymbols / PrintAllCoreSymbols tests
+static uint8_t* SetupOpTraceTestBuffer(uint32_t nodeCnt, bool hasDfx,
+    SkHeaderInfo& headerInfo, SkDeviceEntryArgs*& deviceArgs, SuperKernelExceptionHandler* h)
+{
+    uint32_t totalSize = sizeof(SkHeaderInfo) + sizeof(SkCounterInfo) * 75;
+    if (hasDfx && nodeCnt > 0) {
+        totalSize += sizeof(SkDfxInfo) * nodeCnt;
+    }
+
+    headerInfo = {0, 0, 0, 0, 0, 0, nodeCnt};
+    headerInfo.counterOffset = sizeof(SkHeaderInfo);
+    if (hasDfx && nodeCnt > 0) {
+        headerInfo.dfxOffset = sizeof(SkHeaderInfo) + sizeof(SkCounterInfo) * 75;
+    }
+    headerInfo.totalSize = totalSize;
+
+    const size_t allocSize = totalSize;
+    if (allocSize == 0 || allocSize > 1024 * 1024) {
+        return nullptr;
+    }
+
+    uint8_t* buf = reinterpret_cast<uint8_t*>(malloc(allocSize));
+    (void)memset_s(buf, allocSize, 0, allocSize);
+    deviceArgs = reinterpret_cast<SkDeviceEntryArgs*>(buf);
+    deviceArgs->skHeader = headerInfo;
+
+    h->skDeviceEntryArgsHost = deviceArgs;
+    h->skHeaderInfoHost = &headerInfo;
+
+    return buf;
+}
+
 // ==================== Helper Functions Tests ====================
 
 TEST_F(SkDfxExceptionHandlerTest, StartsWith_ValidPrefix)
@@ -368,4 +429,448 @@ TEST_F(SkDfxExceptionHandlerTest, SuperKernelExceptionCallBackFunc_WithValidInfo
 
     // Should not crash
     SUCCEED();
+}
+
+// ==================== IdentifyErrorNodeByPC Tests (Commit 1 & 2) ====================
+
+TEST_F(SkDfxExceptionHandlerTest, IdentifyErrorNodeByPC_CurrentPCZero_ShouldReturnEarly)
+{
+    // Setup minimal SkHeaderInfo with valid dfxOffset and nodeCnt
+    uint32_t skDeviceEntryArgsSize = sizeof(SkHeaderInfo) + sizeof(SkDfxInfo);
+    SkHeaderInfo headerInfo{0, 0, 0, 0, 0, 0, 1};
+    headerInfo.dfxOffset = sizeof(SkHeaderInfo);
+    headerInfo.nodeCnt = 1;
+
+    uint8_t buffer[1024] = {0};
+    SkDeviceEntryArgs* deviceArgs = reinterpret_cast<SkDeviceEntryArgs*>(buffer);
+    deviceArgs->skHeader = headerInfo;
+
+    handler->skDeviceEntryArgsHost = deviceArgs;
+    handler->skHeaderInfoHost = &headerInfo;
+
+    // currentPC == 0 should return immediately (fix for pc 0 bug)
+    handler->IdentifyErrorNodeByPC(0, RT_CORE_TYPE_AIC, 0x1000, 0);
+    SUCCEED();
+}
+
+TEST_F(SkDfxExceptionHandlerTest, IdentifyErrorNodeByPC_DfxOffsetZero_ShouldReturnEarly)
+{
+    uint32_t skDeviceEntryArgsSize = sizeof(SkHeaderInfo);
+    SkHeaderInfo headerInfo{0, 0, 0, 0, 0, 0, 1}; // dfxOffset = 0
+
+    handler->skDeviceEntryArgsHost = reinterpret_cast<SkDeviceEntryArgs*>(&headerInfo);
+    handler->skHeaderInfoHost = &headerInfo;
+
+    handler->IdentifyErrorNodeByPC(0, RT_CORE_TYPE_AIC, 0x1000, 0x2000);
+    SUCCEED();
+}
+
+TEST_F(SkDfxExceptionHandlerTest, IdentifyErrorNodeByPC_NodeCntZero_ShouldReturnEarly)
+{
+    uint32_t skDeviceEntryArgsSize = sizeof(SkHeaderInfo) + sizeof(SkDfxInfo);
+    SkHeaderInfo headerInfo{0, 0, 0, 0, 0, 0, 0}; // nodeCnt = 0
+    headerInfo.dfxOffset = sizeof(SkHeaderInfo);
+
+    uint8_t buffer[1024] = {0};
+    SkDeviceEntryArgs* deviceArgs = reinterpret_cast<SkDeviceEntryArgs*>(buffer);
+    deviceArgs->skHeader = headerInfo;
+
+    handler->skDeviceEntryArgsHost = deviceArgs;
+    handler->skHeaderInfoHost = &headerInfo;
+
+    handler->IdentifyErrorNodeByPC(0, RT_CORE_TYPE_AIC, 0x1000, 0x2000);
+    SUCCEED();
+}
+
+TEST_F(SkDfxExceptionHandlerTest, IdentifyErrorNodeByPC_MatchAICEntry)
+{
+    // Setup: one node with AIC entry at 0x1000, size 0x200
+    uint8_t buffer[1024] = {0};
+    SkHeaderInfo headerInfo;
+    SkDeviceEntryArgs* deviceArgs;
+    SkDfxInfo* dfxInfo;
+
+    uint32_t entryAic[4] = {0x1000, 0, 0, 0};
+    uint32_t entryAiv[4] = {0, 0, 0, 0};
+    SetupSingleDfxNode(buffer, 0x200, 0, entryAic, entryAiv,
+        headerInfo, deviceArgs, dfxInfo, handler.get());
+
+    // Mock aclrtGetFunctionName for the found node
+    MOCKER(aclrtGetFunctionName).stubs().will(invoke(Fake_aclrtGetFunctionName_sk_entry));
+
+    // currentPC = 0x1100 falls within [0x1000, 0x1200) -> should match node[0]
+    handler->IdentifyErrorNodeByPC(5, RT_CORE_TYPE_AIC, 0x1000, 0x1100);
+    SUCCEED();
+}
+
+TEST_F(SkDfxExceptionHandlerTest, IdentifyErrorNodeByPC_MatchAIVEntry)
+{
+    // Setup: one node with AIV entry at 0x3000, size 0x100
+    uint8_t buffer[1024] = {0};
+    SkHeaderInfo headerInfo;
+    SkDeviceEntryArgs* deviceArgs;
+    SkDfxInfo* dfxInfo;
+
+    uint32_t entryAic[4] = {0, 0, 0, 0};
+    uint32_t entryAiv[4] = {0x3000, 0, 0, 0};
+    SetupSingleDfxNode(buffer, 0, 0x100, entryAic, entryAiv,
+        headerInfo, deviceArgs, dfxInfo, handler.get());
+
+    MOCKER(aclrtGetFunctionName).stubs().will(invoke(Fake_aclrtGetFunctionName_sk_entry));
+
+    // currentPC = 0x3050 falls within [0x3000, 0x3100) -> should match node[0]'s AIV entry
+    handler->IdentifyErrorNodeByPC(30, RT_CORE_TYPE_AIV, 0x3000, 0x3050);
+    SUCCEED();
+}
+
+TEST_F(SkDfxExceptionHandlerTest, IdentifyErrorNodeByPC_NoMatch_ShouldLogNoSubKernelMatched)
+{
+    // Setup: one node with AIC entry at 0x1000, size 0x100
+    uint8_t buffer[1024] = {0};
+    SkHeaderInfo headerInfo;
+    SkDeviceEntryArgs* deviceArgs;
+    SkDfxInfo* dfxInfo;
+
+    uint32_t entryAic[4] = {0x1000, 0, 0, 0};
+    uint32_t entryAiv[4] = {0, 0, 0, 0};
+    SetupSingleDfxNode(buffer, 0x100, 0, entryAic, entryAiv,
+        headerInfo, deviceArgs, dfxInfo, handler.get());
+
+    // currentPC = 0xFFFF is outside any entry range -> no match
+    handler->IdentifyErrorNodeByPC(5, RT_CORE_TYPE_AIC, 0x1000, 0xFFFF);
+    SUCCEED();
+}
+
+TEST_F(SkDfxExceptionHandlerTest, IdentifyErrorNodeByPC_SkipInvalidZeroEntries)
+{
+    // Setup: node with entryAic[0]=0 (invalid, should skip), entryAic[1]=valid
+    uint8_t buffer[1024] = {0};
+    SkHeaderInfo headerInfo;
+    SkDeviceEntryArgs* deviceArgs;
+    SkDfxInfo* dfxInfo;
+
+    uint32_t entryAic[4] = {0, 0x2000, 0, 0};
+    uint32_t entryAiv[4] = {0, 0, 0, 0};
+    SetupSingleDfxNode(buffer, 0x200, 0, entryAic, entryAiv,
+        headerInfo, deviceArgs, dfxInfo, handler.get());
+
+    MOCKER(aclrtGetFunctionName).stubs().will(invoke(Fake_aclrtGetFunctionName_sk_entry));
+
+    // PC should match entryAic[1] which is at 0x2100 (within [0x2000, 0x2200))
+    handler->IdentifyErrorNodeByPC(5, RT_CORE_TYPE_AIC, 0x2000, 0x2100);
+    SUCCEED();
+}
+
+TEST_F(SkDfxExceptionHandlerTest, IdentifyErrorNodeByPC_PCBoundaryExactEnd_NotIncluded)
+{
+    // Test that endAddr is exclusive: currentPC == entryAddr + funcSize should NOT match
+    uint8_t buffer[1024] = {0};
+    SkHeaderInfo headerInfo;
+    SkDeviceEntryArgs* deviceArgs;
+    SkDfxInfo* dfxInfo;
+
+    uint32_t entryAic[4] = {0x1000, 0, 0, 0};
+    uint32_t entryAiv[4] = {0, 0, 0, 0};
+    SetupSingleDfxNode(buffer, 0x100, 0, entryAic, entryAiv,
+        headerInfo, deviceArgs, dfxInfo, handler.get());
+
+    // currentPC == endAddr (0x1100), should NOT match because range is [entryAddr, endAddr)
+    handler->IdentifyErrorNodeByPC(5, RT_CORE_TYPE_AIC, 0x1000, 0x1100);
+    SUCCEED();
+}
+
+// ==================== hasOpTrace_ Tests (Commit 4) ====================
+
+// Mock for aclrtGetFunctionName - returns sk_entry with op_trace
+aclError Fake_aclrtGetFunctionName_op_trace(void* funcHandle, uint32_t maxLen, char* name)
+{
+    (void)funcHandle;
+    snprintf_s(name, maxLen, maxLen, "%s", "sk_entry_aic_op_trace");
+    return ACL_SUCCESS;
+}
+
+TEST_F(SkDfxExceptionHandlerTest, IsSuperKernelException_WithOpTrace_SetHasOpTraceTrue)
+{
+    aclrtExceptionInfo* exceptionInfo = reinterpret_cast<aclrtExceptionInfo*>(0x500);
+
+    MOCKER(aclrtGetFuncHandleFromExceptionInfo).stubs().will(invoke(Fake_aclrtGetFuncHandleFromExceptionInfo_Success));
+    MOCKER(aclrtGetFunctionName).stubs().will(invoke(Fake_aclrtGetFunctionName_op_trace));
+
+    bool result = handler->IsSuperKernelException(exceptionInfo);
+    EXPECT_TRUE(result);
+    EXPECT_TRUE(handler->hasOpTrace_);
+}
+
+TEST_F(SkDfxExceptionHandlerTest, IsSuperKernelException_WithoutOpTrace_SetHasOpTraceFalse)
+{
+    aclrtExceptionInfo* exceptionInfo = reinterpret_cast<aclrtExceptionInfo*>(0x500);
+
+    MOCKER(aclrtGetFuncHandleFromExceptionInfo).stubs().will(invoke(Fake_aclrtGetFuncHandleFromExceptionInfo_Success));
+    MOCKER(aclrtGetFunctionName).stubs().will(invoke(Fake_aclrtGetFunctionName_sk_entry)); // plain sk_entry, no op_trace
+
+    bool result = handler->IsSuperKernelException(exceptionInfo);
+    EXPECT_TRUE(result);
+    EXPECT_FALSE(handler->hasOpTrace_);
+}
+
+// Mock for aclrtGetFunctionName - returns sk_entry with op_trace in middle of name
+aclError Fake_aclrtGetFunctionName_op_trace_middle(void* funcHandle, uint32_t maxLen, char* name)
+{
+    (void)funcHandle;
+    snprintf_s(name, maxLen, maxLen, "%s", "sk_entry_mix11_op_trace_debug");
+    return ACL_SUCCESS;
+}
+
+TEST_F(SkDfxExceptionHandlerTest, IsSuperKernelException_OpTraceInMiddleOfName)
+{
+    aclrtExceptionInfo* exceptionInfo = reinterpret_cast<aclrtExceptionInfo*>(0x500);
+
+    MOCKER(aclrtGetFuncHandleFromExceptionInfo).stubs().will(invoke(Fake_aclrtGetFuncHandleFromExceptionInfo_Success));
+    MOCKER(aclrtGetFunctionName).stubs().will(invoke(Fake_aclrtGetFunctionName_op_trace_middle));
+
+    bool result = handler->IsSuperKernelException(exceptionInfo);
+    EXPECT_TRUE(result);
+    EXPECT_TRUE(handler->hasOpTrace_);
+}
+
+// ==================== PrintCoreSymbols Enhanced Tests (Commit 4) ====================
+
+TEST_F(SkDfxExceptionHandlerTest, PrintCoreSymbols_HasOpTraceFalse_ShouldReturnEarly)
+{
+    handler->hasOpTrace_ = false;
+
+    // Even with valid setup, should return early when hasOpTrace_ is false
+    handler->PrintCoreSymbols(0, RT_CORE_TYPE_AIC, 0x1000, 0x2000);
+    SUCCEED();
+}
+
+TEST_F(SkDfxExceptionHandlerTest, PrintCoreSymbols_LaunchOrigin_NoSKExecutedYet)
+{
+    handler->hasOpTrace_ = true;
+
+    SkHeaderInfo headerInfo;
+    SkDeviceEntryArgs* deviceArgs;
+    uint8_t* buffer = SetupOpTraceTestBuffer(0, false, headerInfo, deviceArgs, handler.get());
+    if (buffer == nullptr) {
+        return;
+    }
+
+    // Set counterInfo for core 0: launch = ORIGIN(0), meaning no SK executed yet
+    SkCounterInfo* counterInfo = reinterpret_cast<SkCounterInfo*>(buffer + headerInfo.counterOffset);
+    counterInfo[0].index = 0;
+    counterInfo[0].launch = static_cast<uint8_t>(SkOpTraceType::ORIGIN);  // 0
+    counterInfo[0].exit = 0;
+
+    handler->PrintCoreSymbols(0, RT_CORE_TYPE_AIC, 0, 0);
+
+    free(buffer);
+    SUCCEED();
+}
+
+TEST_F(SkDfxExceptionHandlerTest, PrintCoreSymbols_LaunchSKEntryLaunched_PrintNextOp)
+{
+    handler->hasOpTrace_ = true;
+
+    SkHeaderInfo headerInfo;
+    SkDeviceEntryArgs* deviceArgs;
+    uint8_t* buffer = SetupOpTraceTestBuffer(2, true, headerInfo, deviceArgs, handler.get());
+    if (buffer == nullptr) {
+        return;
+    }
+
+    // Set counterInfo for core 0: launch = SK_ENTRY_LAUNCHED(1), opId = 0
+    SkCounterInfo* counterInfo = reinterpret_cast<SkCounterInfo*>(buffer + headerInfo.counterOffset);
+    counterInfo[0].index = 0;
+    counterInfo[0].launch = static_cast<uint8_t>(SkOpTraceType::SK_ENTRY_LAUNCHED);  // 1
+    counterInfo[0].exit = 0;
+
+    // Setup DFX info so GetOrLoadKernelSymbols can find func name
+    SkDfxInfo* dfxInfo = reinterpret_cast<SkDfxInfo*>(buffer + headerInfo.dfxOffset);
+    dfxInfo[0].funcHdlOri = 0xDEAD0001;
+    dfxInfo[1].funcHdlOri = 0xDEAD0002;
+
+    // Mock aclrtGetFunctionName for loading kernel symbols
+    MOCKER(aclrtGetFunctionName).stubs().will(invoke(Fake_aclrtGetFunctionName_other));
+
+    handler->PrintCoreSymbols(0, RT_CORE_TYPE_AIC, 0x1000, 0x2000);
+
+    free(buffer);
+    SUCCEED();
+}
+
+TEST_F(SkDfxExceptionHandlerTest, PrintCoreSymbols_LaunchOPLaunched_PrintCurrentOp)
+{
+    handler->hasOpTrace_ = true;
+
+    SkHeaderInfo headerInfo;
+    SkDeviceEntryArgs* deviceArgs;
+    uint8_t* buffer = SetupOpTraceTestBuffer(3, true, headerInfo, deviceArgs, handler.get());
+    if (buffer == nullptr) {
+        return;
+    }
+
+    // Set counterInfo for core 0: launch = OP_LAUNCHED(2), opId = 1
+    SkCounterInfo* counterInfo = reinterpret_cast<SkCounterInfo*>(buffer + headerInfo.counterOffset);
+    counterInfo[0].index = 1;
+    counterInfo[0].launch = static_cast<uint8_t>(SkOpTraceType::OP_LAUNCHED);  // 2
+    counterInfo[0].exit = 0;
+
+    SkDfxInfo* dfxInfo = reinterpret_cast<SkDfxInfo*>(buffer + headerInfo.dfxOffset);
+    dfxInfo[0].funcHdlOri = 0xDEAD0001;
+    dfxInfo[1].funcHdlOri = 0xDEAD0002;
+    dfxInfo[2].funcHdlOri = 0xDEAD0003;
+
+    MOCKER(aclrtGetFunctionName).stubs().will(invoke(Fake_aclrtGetFunctionName_sk_entry));
+
+    handler->PrintCoreSymbols(0, RT_CORE_TYPE_AIC, 0x1000, 0x2000);
+
+    free(buffer);
+    SUCCEED();
+}
+
+TEST_F(SkDfxExceptionHandlerTest, PrintCoreSymbols_LaunchOPFinished_PrintCurrentAndNextOp)
+{
+    handler->hasOpTrace_ = true;
+
+    SkHeaderInfo headerInfo;
+    SkDeviceEntryArgs* deviceArgs;
+    uint8_t* buffer = SetupOpTraceTestBuffer(3, true, headerInfo, deviceArgs, handler.get());
+    if (buffer == nullptr) {
+        return;
+    }
+
+    // Set counterInfo for core 0: launch = OP_FINISHED(3), opId = 1
+    SkCounterInfo* counterInfo = reinterpret_cast<SkCounterInfo*>(buffer + headerInfo.counterOffset);
+    counterInfo[0].index = 1;
+    counterInfo[0].launch = static_cast<uint8_t>(SkOpTraceType::OP_FINISHED);  // 3
+    counterInfo[0].exit = 1;
+
+    SkDfxInfo* dfxInfo = reinterpret_cast<SkDfxInfo*>(buffer + headerInfo.dfxOffset);
+    dfxInfo[0].funcHdlOri = 0xDEAD0001;
+    dfxInfo[1].funcHdlOri = 0xDEAD0002;
+    dfxInfo[2].funcHdlOri = 0xDEAD0003;
+
+    MOCKER(aclrtGetFunctionName).stubs().will(invoke(Fake_aclrtGetFunctionName_other));
+
+    handler->PrintCoreSymbols(0, RT_CORE_TYPE_AIC, 0x1000, 0x2000);
+
+    free(buffer);
+    SUCCEED();
+}
+
+TEST_F(SkDfxExceptionHandlerTest, PrintCoreSymbols_LaunchSKEntryFinished)
+{
+    handler->hasOpTrace_ = true;
+
+    SkHeaderInfo headerInfo;
+    SkDeviceEntryArgs* deviceArgs;
+    uint8_t* buffer = SetupOpTraceTestBuffer(0, false, headerInfo, deviceArgs, handler.get());
+    if (buffer == nullptr) {
+        return;
+    }
+
+    // Set counterInfo: launch = SK_ENTRY_FINISHED(4)
+    SkCounterInfo* counterInfo = reinterpret_cast<SkCounterInfo*>(buffer + headerInfo.counterOffset);
+    counterInfo[0].index = 99;
+    counterInfo[0].launch = static_cast<uint8_t>(SkOpTraceType::SK_ENTRY_FINISHED);  // 4
+    counterInfo[0].exit = 1;
+
+    handler->PrintCoreSymbols(0, RT_CORE_TYPE_AIC, 0x1000, 0x2000);
+
+    free(buffer);
+    SUCCEED();
+}
+
+TEST_F(SkDfxExceptionHandlerTest, PrintCoreSymbols_LaunchUnknownValue)
+{
+    handler->hasOpTrace_ = true;
+
+    SkHeaderInfo headerInfo;
+    SkDeviceEntryArgs* deviceArgs;
+    uint8_t* buffer = SetupOpTraceTestBuffer(0, false, headerInfo, deviceArgs, handler.get());
+    if (buffer == nullptr) {
+        return;
+    }
+
+    // Set counterInfo: launch = unknown value 255
+    SkCounterInfo* counterInfo = reinterpret_cast<SkCounterInfo*>(buffer + headerInfo.counterOffset);
+    counterInfo[0].index = 0;
+    counterInfo[0].launch = 255;  // Unknown status
+    counterInfo[0].exit = 0;
+
+    handler->PrintCoreSymbols(0, RT_CORE_TYPE_AIC, 0x1000, 0x2000);
+
+    free(buffer);
+    SUCCEED();
+}
+
+// ==================== PrintAllCoreSymbols Tests (Commit 4) ====================
+
+TEST_F(SkDfxExceptionHandlerTest, PrintAllCoreSymbols_HasOpTraceFalse_ShouldReturnEarly)
+{
+    handler->hasOpTrace_ = false;
+
+    // Should return immediately without iterating cores
+    handler->PrintAllCoreSymbols();
+    SUCCEED();
+}
+
+TEST_F(SkDfxExceptionHandlerTest, PrintAllCoreSymbols_HasOpTraceTrue_IterateCores)
+{
+    handler->hasOpTrace_ = true;
+
+    SkHeaderInfo headerInfo;
+    SkDeviceEntryArgs* deviceArgs;
+    uint8_t* buffer = SetupOpTraceTestBuffer(0, false, headerInfo, deviceArgs, handler.get());
+    if (buffer == nullptr) {
+        return;
+    }
+
+    // Set some counter info for cores
+    SkCounterInfo* counterInfo = reinterpret_cast<SkCounterInfo*>(buffer + headerInfo.counterOffset);
+    for (uint32_t i = 0; i < 75; ++i) {
+        counterInfo[i].index = i % 5;
+        counterInfo[i].launch = static_cast<uint8_t>(SkOpTraceType::ORIGIN);
+        counterInfo[i].exit = 0;
+    }
+
+    // Should iterate through all 75 cores
+    handler->PrintAllCoreSymbols();
+
+    free(buffer);
+    SUCCEED();
+}
+
+// ==================== GetOrLoadKernelSymbols Additional Tests ====================
+
+TEST_F(SkDfxExceptionHandlerTest, GetOrLoadKernelSymbols_OpIdExceedsNodeCnt_ReturnEmpty)
+{
+    handler->opSymbolCache.clear();
+
+    SkHeaderInfo headerInfo;
+    SkDeviceEntryArgs* deviceArgs;
+
+    // Use a custom size for this test (1024)
+    uint32_t totalSize = sizeof(SkHeaderInfo) + sizeof(SkDfxInfo) * 2;
+    headerInfo = {0, 0, 0, 0, 0, 0, 2};
+    headerInfo.dfxOffset = sizeof(SkHeaderInfo);
+    headerInfo.totalSize = totalSize;
+
+    const size_t allocSize = 1024;
+    if (allocSize == 0 || allocSize > 1024 * 1024) {
+        return;
+    }
+    uint8_t* buffer = reinterpret_cast<uint8_t*>(malloc(allocSize));
+    (void)memset_s(buffer, allocSize, 0, allocSize);
+    deviceArgs = reinterpret_cast<SkDeviceEntryArgs*>(buffer);
+    deviceArgs->skHeader = headerInfo;
+
+    handler->skDeviceEntryArgsHost = deviceArgs;
+    handler->skHeaderInfoHost = &headerInfo;
+
+    // opId=5 exceeds nodeCnt=2, should return empty name
+    KernelFuncName result = handler->GetOrLoadKernelSymbols(5);
+    EXPECT_EQ(result.name, "");
+
+    free(buffer);
 }

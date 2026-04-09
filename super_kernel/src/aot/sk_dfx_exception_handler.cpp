@@ -31,6 +31,7 @@ SuperKernelExceptionHandler::SuperKernelExceptionHandler()
     , aivTaskQueDevPtr(nullptr)
     , aicTaskCnt(0)
     , aivTaskCnt(0)
+    , hasOpTrace_(false)
 {
 }
 
@@ -66,6 +67,9 @@ void SuperKernelExceptionHandler::HandleException(aclrtExceptionInfo *exceptionI
         FreeResources();
         return;
     }
+
+    // Print op trace for all cores
+    PrintAllCoreSymbols();
 
     FreeResources();
 }
@@ -228,11 +232,28 @@ void SuperKernelExceptionHandler::PrintDfxInfo() const {
 
     if (skHeaderInfoHost->dfxOffset > 0) {
         SkDfxInfo *dfxInfo = reinterpret_cast<SkDfxInfo*>(dataBase + skHeaderInfoHost->dfxOffset);
-        SK_LOGI("=== SkDfxInfo (offset=%u, nodeCnt=%u) ===",
+        SK_LOGE("=== SkDfxInfo (offset=%u, nodeCnt=%u) ===",
                 skHeaderInfoHost->dfxOffset, skHeaderInfoHost->nodeCnt);
         for (uint32_t i = 0; i < skHeaderInfoHost->nodeCnt; ++i) {
-            SK_LOGI("  [node %u] binHdl=0x%lx, funcHdlOri=0x%lx",
-                    i, dfxInfo[i].binHdl, dfxInfo[i].funcHdlOri);
+            SK_LOGE("  [node %u] binHdl=0x%lx, funcHdlOri=0x%lx, aicSize=0x%x, aivSize=0x%x",
+                    i, dfxInfo[i].binHdl, dfxInfo[i].funcHdlOri,
+                    dfxInfo[i].aicSize, dfxInfo[i].aivSize);
+            aclrtFuncHandle funcHdl = reinterpret_cast<aclrtFuncHandle>(dfxInfo[i].funcHdlOri);
+            char funcName[256] = {0};
+            aclError ret = aclrtGetFunctionName(funcHdl, sizeof(funcName), funcName);
+            if (ret == ACL_SUCCESS) {
+                SK_LOGE("    Function name: %s", funcName);
+            } else {
+                SK_LOGE("    Failed to get function name for node[%u], ret=%d", i, ret);
+            }
+            for (int j = 0; j < 4; ++j) {
+                if (dfxInfo[i].entryAic[j] != 0) {
+                    SK_LOGE("    entryAic[%d]=0x%lx", j, dfxInfo[i].entryAic[j]);
+                }
+                if (dfxInfo[i].entryAiv[j] != 0) {
+                    SK_LOGE("    entryAiv[%d]=0x%lx", j, dfxInfo[i].entryAiv[j]);
+                }
+            }
         }
     }
 }
@@ -304,10 +325,75 @@ KernelFuncName SuperKernelExceptionHandler::GetOrLoadKernelSymbols(uint32_t opId
     return kernelFuncName;
 }
 
+void SuperKernelExceptionHandler::IdentifyErrorNodeByPC(uint32_t coreId, rtCoreType_t coreType,
+                                                     uint64_t startPC, uint64_t currentPC) {
+    if (skHeaderInfoHost->dfxOffset == 0 || skHeaderInfoHost->nodeCnt == 0 || currentPC == 0) {
+        return;
+    }
+
+    uint8_t *dataBase = reinterpret_cast<uint8_t*>(skDeviceEntryArgsHost);
+    SkDfxInfo *dfxInfo = reinterpret_cast<SkDfxInfo*>(dataBase + skHeaderInfoHost->dfxOffset);
+
+    const char *coreTypeName = (coreType == RT_CORE_TYPE_AIC) ? "AIC" : "AIV";
+
+    // Iterate through all nodes to find which one's entry range contains currentPC
+    for (uint32_t i = 0; i < skHeaderInfoHost->nodeCnt; ++i) {
+        uint64_t* entries = (coreType == RT_CORE_TYPE_AIC) ? dfxInfo[i].entryAic : dfxInfo[i].entryAiv;
+        uint32_t funcSize = (coreType == RT_CORE_TYPE_AIC) ? dfxInfo[i].aicSize : dfxInfo[i].aivSize;
+
+        for (int j = 0; j < 4; ++j) {
+            if (entries[j] == 0) {
+                continue;  // Skip invalid entries
+            }
+
+            uint64_t entryAddr = entries[j];
+            uint64_t endAddr = entryAddr + funcSize;
+
+            // Check if currentPC falls within this entry's range [entryAddr, entryAddr + funcSize)
+            if (currentPC >= entryAddr && currentPC < endAddr) {
+                SK_LOGE("============================================================");
+                SK_LOGE("[Core %u] CoreType: %s", coreId, coreTypeName);
+                SK_LOGE("[Core %u] startPC: 0x%lx", coreId, startPC);
+                SK_LOGE("[Core %u] CurrentPC: 0x%lx", coreId, currentPC);
+                SK_LOGE("[Core %u] Found in node[%u], entry[%d]", coreId, i, j);
+                SK_LOGE("[Core %u] Entry address: 0x%lx", coreId, entryAddr);
+                SK_LOGE("[Core %u] End address: 0x%lx", coreId, endAddr);
+                SK_LOGE("[Core %u] Function size: 0x%x (%u bytes)", coreId, funcSize, funcSize);
+                
+                // Get function name for this node
+                aclrtFuncHandle funcHdl = reinterpret_cast<aclrtFuncHandle>(dfxInfo[i].funcHdlOri);
+                char funcName[256] = {0};
+                aclError ret = aclrtGetFunctionName(funcHdl, sizeof(funcName), funcName);
+                if (ret == ACL_SUCCESS) {
+                    SK_LOGE("[Core %u] Function name: %s", coreId, funcName);
+                } else {
+                    SK_LOGE("Failed to get function name for node[%u], ret=%d", i, ret);
+                }
+                SK_LOGE("============================================================");
+                
+                return;  // Found the error node
+            }
+        }
+    }
+
+    SK_LOGE("============================================================");
+    SK_LOGE("[Core %u] No sub kernel matched, aicore error occurred in sk entry.", coreId);
+    SK_LOGE("[Core %u] CoreType: %s", coreId, coreTypeName);
+    SK_LOGE("[Core %u] startPC: 0x%lx", coreId, startPC);
+    SK_LOGE("[Core %u] CurrentPC: 0x%lx", coreId, currentPC);
+    SK_LOGE("============================================================");
+
+    return;  // No matching entry found
+}
+
 void SuperKernelExceptionHandler::PrintCoreSymbols(uint32_t coreId, rtCoreType_t coreType,
                                                   uint64_t startPC, uint64_t currentPC) {
     if (coreId >= aicoreNums) {
         SK_LOGE("coreId=%u exceeds aicoreNums=%u", coreId, aicoreNums);
+        return;
+    }
+
+    if (!hasOpTrace_) {
         return;
     }
 
@@ -323,12 +409,10 @@ void SuperKernelExceptionHandler::PrintCoreSymbols(uint32_t coreId, rtCoreType_t
     SK_LOGE("[Core %u] Type=%s, launch=%u, exit=%u, opId=%u",
             coreId, coreTypeName, launch, exit, opId);
 
-    if (launch == 1) {
-        // Sub-kernel is running, print current operator symbols
-        SK_LOGE("[Core %u] Currently running opId=%u", coreId, opId);
-        KernelFuncName kernelFuncName = GetOrLoadKernelSymbols(opId);
-        PrintSymbolByCoreId(coreId, coreType, startPC, currentPC, kernelFuncName);
-    } else if (launch == 0) {
+    if (launch == static_cast<uint8_t>(SkOpTraceType::ORIGIN)) {
+        // args initialized to 0, if ORIGIN means no SK has been executed yet
+        SK_LOGE("[Core %u] No SK entry executed yet.", coreId);
+    } else if (launch == static_cast<uint8_t>(SkOpTraceType::SK_ENTRY_LAUNCHED)) {
         // SK operator just started, no sub-kernel executed yet, print next operator symbols
         SK_LOGE("[Core %u] SK started but no sub-kernel executed yet, checking next operators", coreId);
 
@@ -340,7 +424,12 @@ void SuperKernelExceptionHandler::PrintCoreSymbols(uint32_t coreId, rtCoreType_t
         } else {
             SK_LOGE("[Core %u] > No next operator (opId=%u/%u)", coreId, opId, skHeaderInfoHost->nodeCnt);
         }
-    } else if (launch == 2) {
+    } else if (launch == static_cast<uint8_t>(SkOpTraceType::OP_LAUNCHED)) {
+        // Sub-kernel is running, print current operator symbols
+        SK_LOGE("[Core %u] Currently running opId=%u", coreId, opId);
+        KernelFuncName kernelFuncName = GetOrLoadKernelSymbols(opId);
+        PrintSymbolByCoreId(coreId, coreType, startPC, currentPC, kernelFuncName);
+    } else if (launch == static_cast<uint8_t>(SkOpTraceType::OP_FINISHED)) {
         // Sub-kernel has finished execution, current opId is the last executed operator, print current and next operator symbols
         SK_LOGE("[Core %u] opId=%u finished, checking current and next operators", coreId, opId);
 
@@ -357,12 +446,19 @@ void SuperKernelExceptionHandler::PrintCoreSymbols(uint32_t coreId, rtCoreType_t
         } else {
             SK_LOGE("[Core %u] > No next operator (opId=%u/%u)", coreId, opId, skHeaderInfoHost->nodeCnt);
         }
+    } else if (launch == static_cast<uint8_t>(SkOpTraceType::SK_ENTRY_FINISHED)) {
+        // SK operator execution completed
+        SK_LOGE("[Core %u] SK entry operator execution completed.", coreId);
     } else {
         SK_LOGE("[Core %u] Unknown launch status: %u", coreId, launch);
     }
 }
 
 void SuperKernelExceptionHandler::PrintAllCoreSymbols() {
+    if (!hasOpTrace_) {
+        return;
+    }
+
     SK_LOGE("==================================================");
     SK_LOGE("=== Sub-kernel running info on all %u cores ===", aicoreNums);
     SK_LOGE("==================================================");
@@ -393,14 +489,14 @@ bool SuperKernelExceptionHandler::ParseAndPrintSubKernelSymbols(aclrtExceptionIn
     SK_LOGE("====================================================");
     for (uint32_t i = 0; i < exceptionRegInfo.coreNum; i++) {
         rtExceptionErrRegInfo_t coreErrRegInfo = exceptionRegInfo.errRegInfo[i];
-        PrintCoreSymbols(coreErrRegInfo.coreId,
-                        static_cast<rtCoreType_t>(coreErrRegInfo.coreType),
+        rtCoreType_t coreType = static_cast<rtCoreType_t>(coreErrRegInfo.coreType);
+        // Always try to identify error node by PC address first
+        IdentifyErrorNodeByPC(coreErrRegInfo.coreId, coreType, coreErrRegInfo.startPC, coreErrRegInfo.currentPC);
+
+        PrintCoreSymbols(coreErrRegInfo.coreId, coreType,
                         coreErrRegInfo.startPC,
                         coreErrRegInfo.currentPC);
     }
-
-    // Then print symbols for all 75 cores
-    PrintAllCoreSymbols();
 
     return true;
 }
@@ -456,11 +552,15 @@ bool SuperKernelExceptionHandler::IsSuperKernelException(aclrtExceptionInfo *exc
 
     // Check if function name starts with sk_entry (e.g., sk_entry, sk_entry_aiv, sk_entry_mix11, etc.)
     if (!StartsWith(funcName, "sk_entry")) {
-        SK_LOGD("Function name '%s' does not start with 'sk_entry', skipping", funcName);
+        SK_LOGD("fault kernel_name '%s' does not start with 'sk_entry', skipping", funcName);
         return false;
     }
 
-    SK_LOGE("Exception is from superkernel function '%s', proceeding with handling", funcName);
+    // Check if function name contains "op_trace" for additional symbol printing
+    hasOpTrace_ = (strstr(funcName, "op_trace") != nullptr);
+
+    SK_LOGE("Exception is from superkernel function '%s', op_trace=%s, proceeding with handling",
+            funcName, hasOpTrace_ ? "true" : "false");
     return true;
 }
 

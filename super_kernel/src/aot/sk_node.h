@@ -47,6 +47,7 @@ struct SknlMapInfo {
 struct ResolvedFunctionInfo {
     uint64_t funcAddr[2] = {0, 0};
     uint64_t prefetchCnt[2] = {0, 0};
+    uint64_t funcOffset[2] = {0, 0};  // Offset within the bin file for AIC/AIV
 };
 
 constexpr size_t kMaxSplitBinCount = 4;

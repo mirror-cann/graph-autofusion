@@ -146,6 +146,7 @@ bool InitSingleCoreFunc(const CoreFuncInitContext& ctx, aclrtBinHandle binHdl, v
     constexpr uint32_t coreTypeId = static_cast<uint32_t>(coreType); // 0 : aic, 1 : aiv
     uint64_t skFuncOffset = ctx.bindIt->second[ctx.splitIdx];
     ctx.info->funcAddr[coreTypeId] = skFuncOffset + (uint64_t)binDevAddr;
+    ctx.info->funcOffset[coreTypeId] = skFuncOffset;  // Save offset for dfx info
     void *binHostAddr = nullptr;
     uint32_t binHostSize = 0;
     if (int ret = rtGetBinBuffer(binHdl, RT_BIN_HOST_ADDR, &binHostAddr, &binHostSize) != 0) {
