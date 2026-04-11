@@ -17,9 +17,10 @@
  * 
  * Architecture:
  * The scope splitting is implemented as a multi-pass pipeline, similar to compiler passes:
- * - Pass 1: Initial scope splitting based on fusibility and scopeBitFlags
- * - Pass 2: Deadlock detection and scope refinement
- * - Future passes can be added for additional optimizations
+ * - Pass 0: Initial scope splitting based on fusibility and scopeBitFlags
+ * - Pass 1: Deadlock detection and scope refinement
+ * - Pass 2: SchoMode kernel core trend based split refinement
+ * - Pass 3: Remove event-only streams from scopes
  * 
  * Key Concepts:
  * - Scope: A collection of nodes from potentially multiple streams that can be fused together
@@ -171,29 +172,30 @@ protected:
     SuperKernelGraph& graph_;
 };
 
-// ============ Pass 0: Isolated Event Node Preprocess ============
+// ============ Pass 3: Event-Only Stream Remove (after SchoModeKernelSplit) ============
 
 /*!
- * \class IsolatedEventNodePreprocessPass
- * \brief Pass 0: Preprocess to mark isolated event nodes as non-fusible
+ * \class EventOnlyStreamRemovePass
+ * \brief Pass 3: Remove event-only streams from scopes after all refinements
  *
- * This pass marks isolated event nodes as non-fusible to prevent them from being
- * included in scopes. An event node is considered isolated if it has no fusible
- * nodes of other types before or after it in the same stream.
+ * This pass runs after SchoModeKernelSplitPass to clean up scopes by removing streams
+ * that contain only event nodes (NODE_NOTIFY, NODE_WAIT, NODE_RESET, NODE_MEMORY_WRITE,
+ * NODE_MEMORY_WAIT). Such streams provide no computational benefit and can be
+ * safely removed to optimize the scope structure.
  *
- * Isolation criteria:
- * - For each stream, traverse nodes sequentially
- * - Check each fusible event node (NODE_NOTIFY, NODE_WAIT, NODE_RESET, NODE_MEMORY_WRITE, NODE_MEMORY_WAIT)
- * - If the event node has no fusible non-event nodes before AND after it in the stream,
- *   mark it as non-fusible
+ * Processing logic:
+ * - For each scope, collect nodes by stream
+ * - If a stream's nodes are ALL event nodes, remove that stream from the scope
+ * - Update scope.nodes and scope.scopeStreamInfos accordingly
+ * - Remove empty scopes after processing
  */
-class IsolatedEventNodePreprocessPass : public ScopeSplitPass {
+class EventOnlyStreamRemovePass : public ScopeSplitPass {
 public:
-    explicit IsolatedEventNodePreprocessPass(SuperKernelGraph& inputGraph);
-    ~IsolatedEventNodePreprocessPass() = default;
+    explicit EventOnlyStreamRemovePass(SuperKernelGraph& inputGraph);
+    ~EventOnlyStreamRemovePass() = default;
 
     bool Run(std::vector<SuperKernelScopeInfo>& scopes) override;
-    std::string GetName() const override { return "IsolatedEventNodePreprocessPass"; }
+    std::string GetName() const override { return "EventOnlyStreamRemovePass"; }
 
 private:
     /*!
@@ -204,34 +206,36 @@ private:
     bool IsEventNode(SuperKernelBaseNode* node) const;
 
     /*!
-     * \brief Check if a node is a fusible non-event node type (e.g., KERNEL)
-     * \param node Node to check
-     * \return true if the node is a fusible non-event node
+     * \brief Collect nodes grouped by stream index for a scope
+     * \param scope Scope to analyze
+     * \param streamNodes Output: map from stream index to list of nodes
      */
-    bool IsFusibleNonEventNode(SuperKernelBaseNode* node) const;
+    void CollectNodesPerStream(const SuperKernelScopeInfo& scope,
+                               std::unordered_map<uint32_t, std::vector<SuperKernelBaseNode*>>& streamNodes);
 
     /*!
-     * \brief Process a single stream and mark isolated event nodes
-     * \param streamIdx Stream index to process
-     * \return Number of isolated event nodes marked
+     * \brief Check if all nodes in a vector are event nodes
+     * \param nodes Vector of nodes to check
+     * \return true if all nodes are event nodes (and vector is non-empty)
      */
-    uint32_t ProcessStream(uint32_t streamIdx);
+    bool IsStreamAllEventNodes(const std::vector<SuperKernelBaseNode*>& nodes) const;
 
     /*!
-     * \brief Check if an event node has fusible non-event nodes before it in the stream
-     * \param node Event node to check
-     * \return true if there are fusible non-event nodes before this node
+     * \brief Remove all nodes of a stream from a scope
+     * \param scope Scope to modify
+     * \param streamIdx Stream index to remove
+     * \param nodesCount Number of nodes being removed (for logging)
      */
-    bool HasFusibleNonEventNodeBefore(SuperKernelBaseNode* node);
+    void RemoveStreamFromScope(SuperKernelScopeInfo& scope, uint32_t streamIdx, size_t nodesCount);
 
     /*!
-     * \brief Check if an event node has fusible non-event nodes after it in the stream
-     * \param node Event node to check
-     * \return true if there are fusible non-event nodes after this node
+     * \brief Process a single scope and remove event-only streams
+     * \param scope Scope to process
+     * \return Number of nodes removed
      */
-    bool HasFusibleNonEventNodeAfter(SuperKernelBaseNode* node);
+    uint32_t ProcessScope(SuperKernelScopeInfo& scope);
 
-    uint32_t markedCount_;  ///< Total number of isolated event nodes marked
+    uint32_t removedCount_;  ///< Total number of nodes removed
 };
 
 // ============ Pass 1: Initial Scope Split ============
