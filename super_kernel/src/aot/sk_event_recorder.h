@@ -116,11 +116,12 @@ private:
     bool WriteSkEventToJson(SkEventDeviceCtx* ctx, const SkKernelEventRecord* record, uint32_t core);
 
 private:
-    bool enabled = false; // 打点是否执行
+    std::atomic_bool enabled{false}; // 打点是否执行
     std::atomic_bool globalRunning{false};  // 全局打点解析线程运行状态
     pthread_t dumpThread;                   // 全局打点解析后台线程
+    std::once_flag initFlag_;               // 保证 Init() 创建后台线程只执行一次
     std::mutex mutex;
-    SkEventDeviceCtx deviceCtxs[SK_EVENT_MAX_DEVICE_NUM]; // device上下文列表
+    SkEventDeviceCtx deviceCtxs; // device上下文列表
 
     // NodeInfo 映射表：modelRI -> skId -> nodeId -> NodeInfo
     mutable std::mutex nodeInfoMapMutex;

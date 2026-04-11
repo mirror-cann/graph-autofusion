@@ -14,6 +14,8 @@
 #include <cstddef>
 #include <cstdint>
 #include <mutex>
+#include <sys/types.h>
+#include <unistd.h>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -39,6 +41,10 @@ public:
     static void SetCurrentModel(aclmdlRI model);
     static aclError ValueMemory(void** addr, size_t bytes = kDefaultValueMemoryBytes);
 
+    // Pid resource management (bound to pid)
+    static aclError PidMemory(void** addr, size_t bytes = kDefaultValueMemoryBytes);
+    static aclError ReleasePidMemory();
+
     SkResourceManager(const SkResourceManager&) = delete;
     SkResourceManager& operator=(const SkResourceManager&) = delete;
 
@@ -50,9 +56,12 @@ private:
     static std::unordered_map<aclmdlRI, std::vector<ResourceRecord>> modelResources_;
     static std::unordered_set<aclmdlRI> registeredModels_;
     static thread_local aclmdlRI currentModel_;
+    std::unordered_map<pid_t, std::vector<ResourceRecord>> pidResources_;
 
     aclError AllocForModel(aclmdlRI model, void** addr, size_t bytes);
-    static aclError ReleaseRecord(const ResourceRecord& record, aclmdlRI model);
+    static aclError ReleaseRecord(const ResourceRecord& record);
+    aclError AllocForPid(pid_t pid, void** addr, size_t bytes);
+    aclError OnPidDestroy(pid_t pid);
     aclError EnsureDestroyCallbackRegistered(aclmdlRI model);
     static void OnModelDestroy(void* userData);
 };

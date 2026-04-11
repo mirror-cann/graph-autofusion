@@ -25,7 +25,7 @@
 #include "sk_event_recorder.h"
 
 namespace {
-std::string GetSkFuncName(const std::vector<SuperKernelBaseNode*>& nodes, uint32_t scopeIdx)
+std::string GetSkFuncName(const std::vector<SuperKernelBaseNode*>& nodes, uint32_t scopeIdx, std::string scopeName)
 {
     size_t startNodeIdx = nodes.size() - 1;
     size_t endNodeIdx = 0;
@@ -42,7 +42,7 @@ std::string GetSkFuncName(const std::vector<SuperKernelBaseNode*>& nodes, uint32
     const NodeInfos& startNodeInfos = nodes[startNodeIdx]->GetNodeInfos();
     const NodeInfos& endNodeInfos = nodes[endNodeIdx]->GetNodeInfos();
 
-    std::string skName = "skId: " + std::to_string(scopeIdx) + "__startNodeName: " + startNodeInfos.kernelInfos.funcName 
+    std::string skName = "scopeName: " + scopeName + "__skId: " + std::to_string(scopeIdx) + "__startNodeName: " + startNodeInfos.kernelInfos.funcName 
                             + "__endNodeName: " + endNodeInfos.kernelInfos.funcName;
     return skName;
 }
@@ -171,7 +171,7 @@ bool SuperKernelOptimizer::Schedule(SuperKernelProcessedScopeInfo& processedScop
         return false;
     }
 
-    std::string skFuncName = GetSkFuncName(taskNodes, processedScopeInfo.scopeIdx);
+    std::string skFuncName = GetSkFuncName(taskNodes, processedScopeInfo.scopeIdx, processedScopeInfo.scopeName);
     PrintSKNodes(skFuncName, processedScopeInfo);
 
     std::vector<SuperKernelBaseNode*> customTasks;
@@ -238,6 +238,7 @@ bool SuperKernelOptimizer::Process(SuperKernelGraph& graph)
             continue;
         }
         processedScopeInfo.scopeIdx = static_cast<uint32_t>(scopeIdx);
+        processedScopeInfo.scopeName = ScopeSplitPass::GetScopeNamesFromBitFlags(scopeInfo.scopeBitFlags, graph);
         if (!Schedule(processedScopeInfo, graph, builder)) {
             SK_LOGE("process scope failed: scopeIdx=%zu, schedule/update returned false", scopeIdx);
             return false;

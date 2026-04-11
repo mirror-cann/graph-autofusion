@@ -139,13 +139,13 @@ TEST_F(SkResourceManagerTest, ReleaseRecord_NullAddrOrUnknownKind_CoverBranches)
     nullRecord.kind = SkResourceManager::ResourceKind::kDeviceMemory;
     nullRecord.addr = nullptr;
     nullRecord.bytes = 0U;
-    EXPECT_EQ(SkResourceManager::ReleaseRecord(nullRecord, model), ACL_SUCCESS);
+    EXPECT_EQ(SkResourceManager::ReleaseRecord(nullRecord), ACL_SUCCESS);
 
     SkResourceManager::ResourceRecord unknownRecord;
     unknownRecord.kind = static_cast<SkResourceManager::ResourceKind>(255);
     unknownRecord.addr = reinterpret_cast<void*>(0x1);
     unknownRecord.bytes = 8U;
-    EXPECT_EQ(SkResourceManager::ReleaseRecord(unknownRecord, model), ACL_ERROR_FAILURE);
+    EXPECT_EQ(SkResourceManager::ReleaseRecord(unknownRecord), ACL_ERROR_FAILURE);
 }
 
 TEST_F(SkResourceManagerTest, OnModelDestroy_WhileRegistering_NotifyPathCovered)
@@ -175,4 +175,107 @@ TEST_F(SkResourceManagerTest, OnModelDestroy_WhileRegistering_NotifyPathCovered)
     const uint32_t registerCallCountBefore = SkUtGetDestroyRegisterCallbackCallCount();
     EXPECT_EQ(SkResourceManager::GetInstance().EnsureDestroyCallbackRegistered(model), ACL_SUCCESS);
     EXPECT_EQ(SkUtGetDestroyRegisterCallbackCallCount(), registerCallCountBefore + 1U);
+}
+
+TEST_F(SkResourceManagerTest, AllocForPid_InvalidInputs_ReturnInvalidParam)
+{
+    auto& rm = SkResourceManager::GetInstance();
+    void* addr = nullptr;
+
+    EXPECT_EQ(rm.AllocForPid(1001, nullptr, 64), ACL_ERROR_INVALID_PARAM);
+    EXPECT_EQ(rm.AllocForPid(1001, &addr, 0U), ACL_ERROR_INVALID_PARAM);
+}
+
+TEST_F(SkResourceManagerTest, AllocForPid_MallocFail_ReturnFailure)
+{
+    auto& rm = SkResourceManager::GetInstance();
+    void* addr = nullptr;
+
+    SkUtSetAclrtMallocRet(ACL_ERROR_FAILURE);
+    EXPECT_EQ(rm.AllocForPid(1001, &addr, 64), ACL_ERROR_FAILURE);
+}
+
+TEST_F(SkResourceManagerTest, AllocForPid_MemsetFail_FreeAllocatedMemory)
+{
+    auto& rm = SkResourceManager::GetInstance();
+    void* addr = nullptr;
+
+    SkUtSetAclrtMallocRet(ACL_SUCCESS);
+    SkUtSetSecurecMemsetFailOnCall(1);
+    EXPECT_EQ(rm.AllocForPid(1001, &addr, 64), ACL_ERROR_FAILURE);
+}
+
+TEST_F(SkResourceManagerTest, AllocForPid_Success_ReturnValidAddr)
+{
+    auto& rm = SkResourceManager::GetInstance();
+    void* addr = nullptr;
+
+    EXPECT_EQ(rm.AllocForPid(1001, &addr, 64), ACL_SUCCESS);
+    ASSERT_NE(addr, nullptr);
+
+    EXPECT_EQ(rm.OnPidDestroy(1001), ACL_SUCCESS);
+}
+
+TEST_F(SkResourceManagerTest, PidMemory_InvalidInputs_ReturnInvalidParam)
+{
+    void* addr = nullptr;
+
+    EXPECT_EQ(SkResourceManager::PidMemory(nullptr), ACL_ERROR_INVALID_PARAM);
+    EXPECT_EQ(SkResourceManager::PidMemory(&addr, 0U), ACL_ERROR_INVALID_PARAM);
+}
+
+TEST_F(SkResourceManagerTest, PidMemory_AllocAndRelease_Success)
+{
+    void* addrA = nullptr;
+    void* addrB = nullptr;
+
+    EXPECT_EQ(SkResourceManager::PidMemory(&addrA), ACL_SUCCESS);
+    EXPECT_EQ(SkResourceManager::PidMemory(&addrB), ACL_SUCCESS);
+    ASSERT_NE(addrA, nullptr);
+    ASSERT_NE(addrB, nullptr);
+
+    EXPECT_EQ(SkResourceManager::ReleasePidMemory(), ACL_SUCCESS);
+}
+
+TEST_F(SkResourceManagerTest, OnPidDestroy_NoResources_ReturnSuccess)
+{
+    auto& rm = SkResourceManager::GetInstance();
+    EXPECT_EQ(rm.OnPidDestroy(9999), ACL_SUCCESS);
+}
+
+TEST_F(SkResourceManagerTest, OnPidDestroy_FreeFail_LogErrorButContinue)
+{
+    auto& rm = SkResourceManager::GetInstance();
+    void* addr = nullptr;
+    EXPECT_EQ(rm.AllocForPid(2001, &addr, 64), ACL_SUCCESS);
+    ASSERT_NE(addr, nullptr);
+
+    SkUtSetAclrtFreeRet(ACL_ERROR_FAILURE);
+    EXPECT_EQ(rm.OnPidDestroy(2001), ACL_SUCCESS);
+}
+
+TEST_F(SkResourceManagerTest, OnPidDestroy_DestroyCalledTwice_ReturnSuccess)
+{
+    auto& rm = SkResourceManager::GetInstance();
+    void* addr = nullptr;
+    EXPECT_EQ(rm.AllocForPid(3001, &addr, 64), ACL_SUCCESS);
+    ASSERT_NE(addr, nullptr);
+
+    EXPECT_EQ(rm.OnPidDestroy(3001), ACL_SUCCESS);
+    EXPECT_EQ(rm.OnPidDestroy(3001), ACL_SUCCESS);
+}
+
+TEST_F(SkResourceManagerTest, PidMemory_DifferentPids_IndependentRelease)
+{
+    auto& rm = SkResourceManager::GetInstance();
+    void* addrA = nullptr;
+    void* addrB = nullptr;
+
+    EXPECT_EQ(rm.AllocForPid(4001, &addrA, 64), ACL_SUCCESS);
+    EXPECT_EQ(rm.AllocForPid(4002, &addrB, 64), ACL_SUCCESS);
+    ASSERT_NE(addrA, nullptr);
+    ASSERT_NE(addrB, nullptr);
+
+    EXPECT_EQ(rm.OnPidDestroy(4001), ACL_SUCCESS);
+    EXPECT_EQ(rm.OnPidDestroy(4002), ACL_SUCCESS);
 }

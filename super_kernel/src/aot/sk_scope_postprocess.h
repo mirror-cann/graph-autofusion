@@ -38,6 +38,7 @@ struct SuperKernelProcessedScopeInfo {
     std::vector<std::unique_ptr<SuperKernelBaseNode>> eventNodes;
     uint64_t skMainNodeId = INVALID_TASK_ID;
     uint32_t scopeIdx = 0;
+    std::string scopeName;
 };
 
 class SuperKernelScopePostProcessor {
