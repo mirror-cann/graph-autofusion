@@ -595,6 +595,11 @@ void InitialScopeSplitPass::HandleWaitNode(SuperKernelBaseNode* waitNode, uint32
     }
 
     SuperKernelBaseNode* notifyNode = graph_.GetNodeById(notifyId);
+    if (notifyNode == nullptr) {
+        SK_LOGE("Stream %u: Wait node %s: failed to get notify node by id %lu",
+                streamIdx, waitNode->Format().c_str(), notifyId);
+        return;
+    }
     uint64_t eventId = notifyNode->GetEventId();
     if (visitedNotifies_.find(notifyId) != visitedNotifies_.end()) {
         // Notify already visited, add fusible wait node to heap
