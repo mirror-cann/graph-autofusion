@@ -96,6 +96,8 @@ bool SuperKernelExceptionHandler::CopySkDeviceEntryArgsToHost() {
     SK_LOGI("---Total SkDeviceEntryArgs size: %lu bytes", skHeaderInfoHost->totalSize);
     if (CheckError(aclrtMallocHost((void **)(&skDeviceEntryArgsHost), skHeaderInfoHost->totalSize),
                    "aclrtMallocHost for skDeviceEntryArgsHost") != ACL_SUCCESS) {
+        aclrtFreeHost(skHeaderInfoHost);
+        skHeaderInfoHost = nullptr;
         return false;
     }
 
@@ -103,6 +105,8 @@ bool SuperKernelExceptionHandler::CopySkDeviceEntryArgsToHost() {
                                 skDeviceEntryArgsDev, skHeaderInfoHost->totalSize,
                                 ACL_MEMCPY_DEVICE_TO_HOST),
                    "aclrtMemcpy for skDeviceEntryArgs") != ACL_SUCCESS) {
+        aclrtFreeHost(skHeaderInfoHost);
+        skHeaderInfoHost = nullptr;
         return false;
     }
 
@@ -507,7 +511,8 @@ void SuperKernelExceptionHandler::FreeResources() {
         skDeviceEntryArgsHost = nullptr;
     }
 
-    // skHeaderInfoHost points inside skDeviceEntryArgsHost, no need to free separately
+    // skHeaderInfoHost points inside skDeviceEntryArgsHost (normal path, no separate free needed),
+    // or has already been freed in error paths of CopySkDeviceEntryArgsToHost().
     skHeaderInfoHost = nullptr;
 }
 
