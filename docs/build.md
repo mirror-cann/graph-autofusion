@@ -84,9 +84,11 @@ git clone https://gitcode.com/cann/graph-autofusion.git
 #### 4.2.1 安装依赖
 
 以下所列为源码编译用到的依赖，请注意版本要求：
+> [!NOTE] 注意
+> 如使用镜像方式进行项目体验，所有依赖已包含在[init_env.sh](../scripts/init_env.sh)中，可跳过此安装依赖步骤。
 
 - Python3 >= 3.8.0 (建议使用Python虚拟环境)
-  > [!NOTE]说明
+  > [!NOTE] 说明
   > - python宣布3.8.x已经EOL，CANN将在10.0.0停止对该版本的支持，请升级到>=3.9.x的版本
 
   1. 创建虚拟环境并激活：

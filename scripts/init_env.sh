@@ -84,7 +84,7 @@ install_cann() {
 
     log_info "Installing CANN toolkit..."
     chmod +x "$toolkit_pkg"
-    ./$toolkit_pkg --full --install-path="$INSTALL_PATH" || {
+    ./$toolkit_pkg --full --quiet --install-path="$INSTALL_PATH" || {
         log_error "Failed to install toolkit"
         return 1
     }
@@ -92,7 +92,7 @@ install_cann() {
     if [ "$INSTALL_OPS" = true ]; then
         log_info "Installing CANN ops..."
         chmod +x "$ops_pkg"
-        ./$ops_pkg --install --install-path="$INSTALL_PATH" || {
+        ./$ops_pkg --install --quiet --install-path="$INSTALL_PATH" || {
             log_warn "Ops installation may have issues (this can be normal on non-NPU systems)"
         }
     fi
@@ -108,7 +108,7 @@ install_system_deps() {
     log_info "Checking system dependencies..."
 
     if check_command apt-get; then
-        apt-get update -qq 2>/dev/null
+        apt-get update 2>/dev/null
         local pkgs=""
         check_command curl || pkgs="$pkgs curl"
         check_command wget || pkgs="$pkgs wget"
@@ -121,10 +121,13 @@ install_system_deps() {
         check_command automake || pkgs="$pkgs automake"
         check_command libtoolize || pkgs="$pkgs libtool"
         check_command gperf || pkgs="$pkgs gperf"
-        
+        check_command sshd || check_command ssh || pkgs="$pkgs openssh-server"
+        # Python dev packages needed for compiling Python extensions (coverage, etc.)
+        dpkg -l | grep -q "^ii  python3-dev " 2>/dev/null || pkgs="$pkgs python3-dev"
+
         if [ -n "$pkgs" ]; then
             log_info "Installing:$pkgs"
-            apt-get install -y -qq $pkgs 2>/dev/null || log_warn "Some packages may have failed"
+            apt-get install -y $pkgs 2>/dev/null || log_warn "Some packages may have failed"
         fi
     elif check_command yum; then
         local pkgs=""
@@ -138,10 +141,13 @@ install_system_deps() {
         check_command automake || pkgs="$pkgs automake"
         check_command libtoolize || pkgs="$pkgs libtool"
         check_command gperf || pkgs="$pkgs gperf"
-        
+        check_command sshd || check_command ssh || pkgs="$pkgs openssh-server"
+        # Python dev packages needed for compiling Python extensions (coverage, etc.)
+        rpm -q python3-devel &>/dev/null || pkgs="$pkgs python3-devel"
+
         if [ -n "$pkgs" ]; then
             log_info "Installing:$pkgs"
-            yum install -y -q $pkgs 2>/dev/null || log_warn "Some packages may have failed"
+            yum install -y $pkgs 2>/dev/null || log_warn "Some packages may have failed"
         fi
     fi
 
@@ -152,13 +158,37 @@ install_system_deps() {
     check_command automake && log_info "automake: $(automake --version 2>&1 | head -1)" || log_warn "automake: not installed"
     check_command libtoolize && log_info "libtool: $(libtoolize --version 2>&1 | head -1)" || log_warn "libtool: not installed"
     check_command gperf && log_info "gperf: $(gperf --version 2>&1 | head -1)" || log_warn "gperf: not installed"
+    check_command sshd && log_info "sshd: available" || log_warn "sshd: not installed"
 
     # Fix libz.so.1 issue
     log_info "Checking and fixing libz.so.1."
     if check_command apt-get; then
-        apt-get install --reinstall zlib1g -y -qq >/dev/null 2>&1 || log_warn "Failed to reinstall zlib1g"
+        apt-get install --reinstall zlib1g -y >/dev/null 2>&1 || log_warn "Failed to reinstall zlib1g"
     elif check_command yum; then
-        yum reinstall zlib -y -q >/dev/null 2>&1 || log_warn "Failed to reinstall zlib"
+        yum reinstall zlib -y >/dev/null 2>&1 || log_warn "Failed to reinstall zlib"
+    fi
+
+    # Start SSH service if available
+    log_info "Checking SSH service status..."
+    if check_command sshd; then
+        # Check if SSH is already running
+        if ! pgrep -x "sshd" > /dev/null; then
+            log_info "Starting SSH service..."
+            if check_command service; then
+                service ssh start 2>/dev/null || service sshd start 2>/dev/null || log_warn "Failed to start SSH service"
+            elif check_command systemctl; then
+                systemctl start ssh 2>/dev/null || systemctl start sshd 2>/dev/null || log_warn "Failed to start SSH service"
+            elif [ -f /etc/init.d/ssh ]; then
+                /etc/init.d/ssh start 2>/dev/null || log_warn "Failed to start SSH service"
+            elif [ -f /etc/init.d/sshd ]; then
+                /etc/init.d/sshd start 2>/dev/null || log_warn "Failed to start SSH service"
+            else
+                # Direct start sshd
+                sshd 2>/dev/null || log_warn "Failed to start SSH service"
+            fi
+        else
+            log_info "SSH service is already running"
+        fi
     fi
 }
 
@@ -167,8 +197,13 @@ install_python_deps() {
 
     local python="python3"
     check_command python3 || python="python"
-    
+
     log_info "Python: $($python --version 2>&1)"
+
+    # Configure pip to use faster mirror (Tsinghua University mirror)
+    local pip_index_url="https://pypi.tuna.tsinghua.edu.cn/simple"
+    local pip_trusted_host="pypi.tuna.tsinghua.edu.cn"
+    log_info "Using pip mirror: $pip_index_url"
 
     local required=("pytest>=9.0.1" "coverage>=7.10.0" "pytest-cov>=7.0.0" "pybind11>=2.13.0")
     local to_install=()
@@ -180,15 +215,15 @@ install_python_deps() {
 
     if [ ${#to_install[@]} -ne 0 ]; then
         log_info "Installing Python packages: ${to_install[*]}"
-        $python -m pip install --upgrade pip --quiet 2>/dev/null || true
+        $python -m pip install --upgrade pip --index-url "$pip_index_url" --trusted-host "$pip_trusted_host" 2>/dev/null || true
 
         local failed=()
         for pkg in "${to_install[@]}"; do
-            echo -n "  Installing $pkg... "
-            if $python -m pip install "$pkg" --quiet 2>/dev/null; then
-                echo "✓"
+            echo "  Installing $pkg..."
+            if $python -m pip install --default-timeout=180 "$pkg" --index-url "$pip_index_url" --trusted-host "$pip_trusted_host"; then
+                echo "  ✓ $pkg installed"
             else
-                echo "✗"
+                echo "  ✗ $pkg failed"
                 failed+=("$pkg")
             fi
         done
@@ -204,6 +239,28 @@ install_python_deps() {
 
     check_command pytest && log_info "pytest: $(pytest --version 2>&1 | head -1)" || true
     check_command coverage && log_info "coverage: $(coverage --version 2>&1 | head -1)" || true
+
+    # Install super_kernel Python dependencies
+    local super_kernel_reqs="../super_kernel/requirements-dev.txt"
+    if [ -f "$super_kernel_reqs" ]; then
+        log_info "Installing super_kernel Python dependencies from requirements-dev.txt..."
+        # Filter out harmless dependency warnings but preserve actual errors
+        local install_output
+        install_output=$($python -m pip install -r "$super_kernel_reqs" --index-url "$pip_index_url" --trusted-host "$pip_trusted_host" 2>&1)
+        local install_status=$?
+
+        # Show output, filtering only the specific harmless warnings
+        echo "$install_output" | grep -v "dependency resolver does not currently take into account" || true
+
+        # Check installation result
+        if [ $install_status -eq 0 ] && $python -c "import numpy, scipy, pytest" 2>/dev/null; then
+            log_info "super_kernel dependencies installed successfully"
+        else
+            log_warn "Failed to install super_kernel dependencies, try manually: $python -m pip install -r $super_kernel_reqs"
+        fi
+    else
+        log_warn "super_kernel requirements file not found: $super_kernel_reqs"
+    fi
 }
 
 show_help() {

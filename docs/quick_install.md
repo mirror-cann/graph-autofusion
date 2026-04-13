@@ -113,7 +113,7 @@
 > **说明**：
 > - 默认进行CANN包和算子包的安装。
 > - 对于其他芯片型号，请使用 `--chip-type` 参数指定对应的型号（如 `950`、`A3` ）。可选参数具体参考[
-init_env.sh](https://gitcode.com/cann/graph-autofusion/blob/master/scripts/init_env.sh)
+init_env.sh](../scripts/init_env.sh)
 
 ### 方式三：手动安装软件包
 
