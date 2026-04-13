@@ -36,10 +36,8 @@ public:
 
 private:
     SuperKernelOptionsManager& opts;
-    bool Schedule(SuperKernelProcessedScopeInfo& processedScopeInfo, SuperKernelGraph& graph, SkTaskBuilder& builder);
-    bool Update(SuperKernelProcessedScopeInfo& processedScopeInfo, SuperKernelGraph& graph,
-                const SkLaunchInfo& launchInfo);
-    bool ExpandScopeNodes(SuperKernelScopeInfo& ScopeInfo, SuperKernelGraph& graph);
+    bool Schedule(SuperKernelScopeInfo& scopeInfo, SuperKernelGraph& graph, SkTaskBuilder& builder);
+    bool Update(SuperKernelScopeInfo& scopeInfo, SuperKernelGraph& graph, const SkLaunchInfo& launchInfo);
 };
 
 #endif // __SK_OPTIMIZER_H__

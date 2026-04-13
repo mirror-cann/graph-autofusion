@@ -739,6 +739,7 @@ void SuperKernelGraph::UpdateNodeScopeBitFlags() {
         // scope nodes are always marked as fusible
         if (node->IsScopeNode()) {
             node->SetIsFusible(true);
+            needUpdateNodes.insert(node);
         }
         {
             SK_LOG_CONTEXT_SIMPLE("sk_node_detail.log");

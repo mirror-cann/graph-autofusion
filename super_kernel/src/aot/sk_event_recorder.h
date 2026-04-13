@@ -138,10 +138,9 @@ private:
 const char* GetEntryFuncNameByOpType(SkKernelType& opType);
 
 // 性能分析处理
-bool SkProfiling(const SuperKernelProcessedScopeInfo& scopeInfo, SkLaunchInfo& launchInfo, 
-                  SuperKernelGraph& graph);
+bool SkProfiling(const SuperKernelScopeInfo& scopeInfo, SkLaunchInfo& launchInfo, SuperKernelGraph& graph);
 
 // 详细性能分析数据输出
 bool DumpProfilingDetail(const std::vector<SuperKernelBaseNode*>& taskNodes, SkLaunchInfo& launchInfo,
-                         const SuperKernelProcessedScopeInfo& scopeInfo, aclmdlRI modelRI);
+                         const SuperKernelScopeInfo& scopeInfo, aclmdlRI modelRI);
 #endif // SK_EVENT_RECORDER_H

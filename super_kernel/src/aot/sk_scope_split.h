@@ -49,10 +49,54 @@ struct ScopeStreamInfo {
     uint64_t nodeSize = 0;               ///< Number of nodes from this stream in scope
 };
 
+enum class ScopeFailReason : uint8_t {
+    NONE = 0,
+    VALIDATION_FAILED,
+    NO_TASK,
+    NO_KERNEL,
+    EVENT_MEMORY_APPLY_FAILED,
+    STREAM_BOUNDARY_INVALID,
+    STREAM_SELECT_FAILED,
+    SUB_STREAM_SYNC_FAILED,
+};
+struct ScopeExtInfo {
+    std::vector<std::vector<aclmdlRITaskParams>> customParamsList; ///< Custom parameters for each stream
+    std::vector<SuperKernelBaseNode*> filteredNodes;               ///< Post-processed nodes used for scheduling
+    std::vector<std::unique_ptr<SuperKernelBaseNode>> eventNodes;  ///< Synthesized event nodes for stream sync
+    uint64_t skMainNodeId = INVALID_TASK_ID;                       ///< Main launch node ID for this scope
+    uint32_t scopeIdx = 0;
+    std::string scopeName;
+    ScopeFailReason failReason = ScopeFailReason::NONE;
+};
+
+inline const char* to_string(ScopeFailReason reason)
+{
+    switch (reason) {
+        case ScopeFailReason::NONE:
+            return "NONE";
+        case ScopeFailReason::VALIDATION_FAILED:
+            return "VALIDATION_FAILED";
+        case ScopeFailReason::NO_TASK:
+            return "NO_TASK";
+        case ScopeFailReason::NO_KERNEL:
+            return "NO_KERNEL";
+        case ScopeFailReason::EVENT_MEMORY_APPLY_FAILED:
+            return "EVENT_MEMORY_APPLY_FAILED";
+        case ScopeFailReason::STREAM_BOUNDARY_INVALID:
+            return "STREAM_BOUNDARY_INVALID";
+        case ScopeFailReason::STREAM_SELECT_FAILED:
+            return "STREAM_SELECT_FAILED";
+        case ScopeFailReason::SUB_STREAM_SYNC_FAILED:
+            return "SUB_STREAM_SYNC_FAILED";
+        default:
+            return "UNKNOWN";
+    }
+}
 struct SuperKernelScopeInfo {
     std::vector<ScopeStreamInfo> scopeStreamInfos;  ///< Per-stream information
     std::vector<SuperKernelBaseNode*> nodes;        ///< All nodes in this scope (ordered by node ID)
     std::bitset<MAX_SCOPE_NUM> scopeBitFlags;       ///< Scope bit flags (all nodes must have matching flags)
+    ScopeExtInfo extInfo;                           ///< Extended info for post-processing and scheduling
 };
 
 /*!

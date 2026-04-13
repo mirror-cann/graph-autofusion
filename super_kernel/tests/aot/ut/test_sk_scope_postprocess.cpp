@@ -80,11 +80,12 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_NotifyWaitPairCancelled_Succ
     graph->graphMap[2] = std::move(waitNode);
 
     SuperKernelScopePostProcessor postProcessor(*graph);
-    SuperKernelProcessedScopeInfo processed = postProcessor.PostProcess(scopeInfo);
+    bool result = postProcessor.PostProcess(scopeInfo);
 
-    EXPECT_TRUE(processed.nodes.empty());
-    EXPECT_TRUE(processed.updateStreamInfos.empty());
-    EXPECT_EQ(processed.skMainNodeId, INVALID_TASK_ID);
+    EXPECT_FALSE(result);
+    EXPECT_TRUE(scopeInfo.extInfo.filteredNodes.empty());
+    EXPECT_EQ(scopeInfo.extInfo.skMainNodeId, INVALID_TASK_ID);
+    EXPECT_EQ(scopeInfo.extInfo.failReason, ScopeFailReason::NO_TASK);
 }
 
 TEST_F(SuperKernelScopePostprocessTest, PostProcess_NotifyOneToManyWaits_AllCancelled_Success)
@@ -142,14 +143,15 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_NotifyOneToManyWaits_AllCanc
     graph->graphMap[5] = std::move(waitNode2);
 
     SuperKernelScopePostProcessor postProcessor(*graph);
-    SuperKernelProcessedScopeInfo processed = postProcessor.PostProcess(scopeInfo);
+    bool result = postProcessor.PostProcess(scopeInfo);
 
-    EXPECT_TRUE(processed.nodes.empty());
-    EXPECT_TRUE(processed.updateStreamInfos.empty());
-    EXPECT_EQ(processed.skMainNodeId, INVALID_TASK_ID);
+    EXPECT_FALSE(result);
+    EXPECT_TRUE(scopeInfo.extInfo.filteredNodes.empty());
+    EXPECT_EQ(scopeInfo.extInfo.skMainNodeId, INVALID_TASK_ID);
+    EXPECT_EQ(scopeInfo.extInfo.failReason, ScopeFailReason::NO_TASK);
 }
 
-TEST_F(SuperKernelScopePostprocessTest, PostProcess_NotifyWithoutWait_NoKernelCandidate_Failed)
+TEST_F(SuperKernelScopePostprocessTest, PostProcess_NotifyWithoutWait_NoKernelCandidate_SkipSuccess)
 {
     auto notifyNode = std::make_unique<SuperKernelMemoryNode>(
         nullptr, ACL_MODEL_RI_TASK_EVENT_RECORD, 0, 0, INVALID_STREAM_ID, INVALID_TASK_ID);
@@ -173,11 +175,12 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_NotifyWithoutWait_NoKernelCa
     graph->graphMap[6] = std::move(notifyNode);
 
     SuperKernelScopePostProcessor postProcessor(*graph);
-    SuperKernelProcessedScopeInfo processed = postProcessor.PostProcess(scopeInfo);
+    bool result = postProcessor.PostProcess(scopeInfo);
 
-    EXPECT_TRUE(processed.nodes.empty());
-    EXPECT_TRUE(processed.updateStreamInfos.empty());
-    EXPECT_EQ(processed.skMainNodeId, INVALID_TASK_ID);
+    EXPECT_FALSE(result);
+    EXPECT_TRUE(scopeInfo.extInfo.filteredNodes.empty());
+    EXPECT_EQ(scopeInfo.extInfo.skMainNodeId, INVALID_TASK_ID);
+    EXPECT_EQ(scopeInfo.extInfo.failReason, ScopeFailReason::NO_TASK);
 }
 
 TEST_F(SuperKernelScopePostprocessTest, PostProcess_SingleKernel_SelectMainNode_Success)
@@ -204,19 +207,20 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_SingleKernel_SelectMainNode_
     graph->graphMap[11] = std::move(kernelNode);
 
     SuperKernelScopePostProcessor postProcessor(*graph);
-    SuperKernelProcessedScopeInfo processed = postProcessor.PostProcess(scopeInfo);
+    bool result = postProcessor.PostProcess(scopeInfo);
 
-    ASSERT_EQ(processed.nodes.size(), 1U);
-    EXPECT_EQ(processed.nodes[0]->GetNodeId(), 11U);
-    EXPECT_EQ(processed.skMainNodeId, 11U);
+    EXPECT_TRUE(result);
+    ASSERT_EQ(scopeInfo.extInfo.filteredNodes.size(), 1U);
+    EXPECT_EQ(scopeInfo.extInfo.filteredNodes[0]->GetNodeId(), 11U);
+    EXPECT_EQ(scopeInfo.extInfo.skMainNodeId, 11U);
 
-    ASSERT_EQ(processed.updateStreamInfos.size(), 1U);
-    EXPECT_EQ(processed.updateStreamInfos[0].streamIdx, 3U);
-    EXPECT_EQ(processed.updateStreamInfos[0].headNodeIdx, 11U);
-    EXPECT_EQ(processed.updateStreamInfos[0].tailNodeIdx, 11U);
-    EXPECT_EQ(processed.updateStreamInfos[0].nodeSize, 1U);
-    EXPECT_TRUE(processed.updateStreamInfos[0].customParams.empty());
-    EXPECT_TRUE(processed.eventNodes.empty());
+    ASSERT_EQ(scopeInfo.scopeStreamInfos.size(), 1U);
+    EXPECT_EQ(scopeInfo.scopeStreamInfos[0].streamIdx, 3U);
+    EXPECT_EQ(scopeInfo.scopeStreamInfos[0].headNodeIdx, 11U);
+    EXPECT_EQ(scopeInfo.scopeStreamInfos[0].tailNodeIdx, 11U);
+    EXPECT_EQ(scopeInfo.scopeStreamInfos[0].nodeSize, 1U);
+    EXPECT_TRUE(scopeInfo.extInfo.customParamsList.empty() || scopeInfo.extInfo.customParamsList[0].empty());
+    EXPECT_TRUE(scopeInfo.extInfo.eventNodes.empty());
 }
 
 TEST_F(SuperKernelScopePostprocessTest, PostProcess_StreamHeadMissing_Failed)
@@ -243,11 +247,12 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_StreamHeadMissing_Failed)
     graph->graphMap[31] = std::move(kernelNode);
 
     SuperKernelScopePostProcessor postProcessor(*graph);
-    SuperKernelProcessedScopeInfo processed = postProcessor.PostProcess(scopeInfo);
+    bool result = postProcessor.PostProcess(scopeInfo);
 
-    EXPECT_TRUE(processed.nodes.empty());
-    EXPECT_TRUE(processed.updateStreamInfos.empty());
-    EXPECT_EQ(processed.skMainNodeId, INVALID_TASK_ID);
+    EXPECT_FALSE(result);
+    EXPECT_TRUE(scopeInfo.extInfo.filteredNodes.empty());
+    EXPECT_EQ(scopeInfo.extInfo.skMainNodeId, INVALID_TASK_ID);
+    EXPECT_EQ(scopeInfo.extInfo.failReason, ScopeFailReason::VALIDATION_FAILED);
 }
 
 TEST_F(SuperKernelScopePostprocessTest, PostProcess_FrontWait_Success)
@@ -303,11 +308,12 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_FrontWait_Success)
     graph->graphMap[20] = std::move(stream1Node0);
 
     SuperKernelScopePostProcessor postProcessor(*graph);
-    SuperKernelProcessedScopeInfo processed = postProcessor.PostProcess(scopeInfo);
+    bool result = postProcessor.PostProcess(scopeInfo);
 
-    EXPECT_FALSE(processed.nodes.empty());
-    EXPECT_FALSE(processed.updateStreamInfos.empty());
-    EXPECT_NE(processed.skMainNodeId, INVALID_TASK_ID);
+    EXPECT_TRUE(result);
+    EXPECT_FALSE(scopeInfo.extInfo.filteredNodes.empty());
+    EXPECT_FALSE(scopeInfo.scopeStreamInfos.empty());
+    EXPECT_NE(scopeInfo.extInfo.skMainNodeId, INVALID_TASK_ID);
 }
 
 TEST_F(SuperKernelScopePostprocessTest, PostProcess_BackBlock_Success)
@@ -363,14 +369,15 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_BackBlock_Success)
     graph->graphMap[51] = std::move(stream1Node1);
 
     SuperKernelScopePostProcessor postProcessor(*graph);
-    SuperKernelProcessedScopeInfo processed = postProcessor.PostProcess(scopeInfo);
+    bool result = postProcessor.PostProcess(scopeInfo);
 
-    EXPECT_FALSE(processed.nodes.empty());
-    EXPECT_FALSE(processed.updateStreamInfos.empty());
-    EXPECT_NE(processed.skMainNodeId, INVALID_TASK_ID);
+    EXPECT_TRUE(result);
+    EXPECT_FALSE(scopeInfo.extInfo.filteredNodes.empty());
+    EXPECT_FALSE(scopeInfo.scopeStreamInfos.empty());
+    EXPECT_NE(scopeInfo.extInfo.skMainNodeId, INVALID_TASK_ID);
 }
 
-TEST_F(SuperKernelScopePostprocessTest, PostProcess_NoKernelCandidate_Failed)
+TEST_F(SuperKernelScopePostprocessTest, PostProcess_NoKernelCandidate_SkipSuccess)
 {
     auto notifyNode = std::make_unique<SuperKernelMemoryNode>(
         nullptr, ACL_MODEL_RI_TASK_EVENT_RECORD, 0, 0, INVALID_STREAM_ID, INVALID_TASK_ID);
@@ -394,11 +401,43 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_NoKernelCandidate_Failed)
     graph->graphMap[60] = std::move(notifyNode);
 
     SuperKernelScopePostProcessor postProcessor(*graph);
-    SuperKernelProcessedScopeInfo processed = postProcessor.PostProcess(scopeInfo);
+    bool result = postProcessor.PostProcess(scopeInfo);
 
-    EXPECT_TRUE(processed.nodes.empty());
-    EXPECT_TRUE(processed.updateStreamInfos.empty());
-    EXPECT_EQ(processed.skMainNodeId, INVALID_TASK_ID);
+    EXPECT_FALSE(result);
+    EXPECT_TRUE(scopeInfo.extInfo.filteredNodes.empty());
+    EXPECT_EQ(scopeInfo.extInfo.skMainNodeId, INVALID_TASK_ID);
+    EXPECT_EQ(scopeInfo.extInfo.failReason, ScopeFailReason::NO_TASK);
+}
+
+TEST_F(SuperKernelScopePostprocessTest, PostProcess_NoKernelAfterFilter_SkipSuccess)
+{
+    auto defaultNode = std::make_unique<SuperKernelKernelNode>(
+        nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_STREAM_ID, INVALID_TASK_ID);
+    defaultNode->SetNodeType(SkNodeType::NODE_DEFAULT);
+    defaultNode->SetNodeId(61);
+    defaultNode->SetPreNodeId(INVALID_TASK_ID);
+    defaultNode->SetNextNodeId(INVALID_TASK_ID);
+    defaultNode->SetIsFusible(true);
+
+    SuperKernelScopeInfo scopeInfo;
+    scopeInfo.nodes.push_back(defaultNode.get());
+
+    ScopeStreamInfo streamInfo;
+    streamInfo.streamIdx = 0;
+    streamInfo.headNodeIdx = 61;
+    streamInfo.tailNodeIdx = 61;
+    streamInfo.nodeSize = 1;
+    scopeInfo.scopeStreamInfos.push_back(streamInfo);
+
+    graph->graphMap[61] = std::move(defaultNode);
+
+    SuperKernelScopePostProcessor postProcessor(*graph);
+    bool result = postProcessor.PostProcess(scopeInfo);
+
+    EXPECT_FALSE(result);
+    EXPECT_TRUE(scopeInfo.extInfo.filteredNodes.empty());
+    EXPECT_EQ(scopeInfo.extInfo.skMainNodeId, INVALID_TASK_ID);
+    EXPECT_EQ(scopeInfo.extInfo.failReason, ScopeFailReason::NO_KERNEL);
 }
 
 TEST_F(SuperKernelScopePostprocessTest, PostProcess_MultiStreamKernelOnly_Success)
@@ -442,11 +481,12 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_MultiStreamKernelOnly_Succes
     graph->graphMap[80] = std::move(stream1Node0);
 
     SuperKernelScopePostProcessor postProcessor(*graph);
-    SuperKernelProcessedScopeInfo processed = postProcessor.PostProcess(scopeInfo);
+    bool result = postProcessor.PostProcess(scopeInfo);
 
-    ASSERT_EQ(processed.nodes.size(), 2U);
-    ASSERT_EQ(processed.updateStreamInfos.size(), 2U);
-    EXPECT_TRUE(processed.skMainNodeId == 70U || processed.skMainNodeId == 80U);
+    EXPECT_TRUE(result);
+    ASSERT_EQ(scopeInfo.extInfo.filteredNodes.size(), 2U);
+    ASSERT_EQ(scopeInfo.scopeStreamInfos.size(), 2U);
+    EXPECT_TRUE(scopeInfo.extInfo.skMainNodeId == 70U || scopeInfo.extInfo.skMainNodeId == 80U);
 }
 
 TEST_F(SuperKernelScopePostprocessTest, PostProcess_MainSelectReserveBoundaryAndMissingNext_Failed)
@@ -490,11 +530,12 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_MainSelectReserveBoundaryAnd
     graph->graphMap[100] = std::move(stream1Node0);
 
     SuperKernelScopePostProcessor postProcessor(*graph);
-    SuperKernelProcessedScopeInfo processed = postProcessor.PostProcess(scopeInfo);
+    bool result = postProcessor.PostProcess(scopeInfo);
 
-    EXPECT_TRUE(processed.nodes.empty());
-    EXPECT_TRUE(processed.updateStreamInfos.empty());
-    EXPECT_EQ(processed.skMainNodeId, INVALID_TASK_ID);
+    EXPECT_FALSE(result);
+    EXPECT_TRUE(scopeInfo.extInfo.filteredNodes.empty());
+    EXPECT_EQ(scopeInfo.extInfo.skMainNodeId, INVALID_TASK_ID);
+    EXPECT_EQ(scopeInfo.extInfo.failReason, ScopeFailReason::VALIDATION_FAILED);
 }
 
 TEST_F(SuperKernelScopePostprocessTest, PostProcess_FrontWaitMoveWorkNodePath_Success)
@@ -556,11 +597,12 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_FrontWaitMoveWorkNodePath_Su
     graph->graphMap[301] = std::move(s1n1);
 
     SuperKernelScopePostProcessor postProcessor(*graph);
-    SuperKernelProcessedScopeInfo processed = postProcessor.PostProcess(scopeInfo);
+    bool result = postProcessor.PostProcess(scopeInfo);
 
-    EXPECT_FALSE(processed.nodes.empty());
-    EXPECT_FALSE(processed.updateStreamInfos.empty());
-    EXPECT_NE(processed.skMainNodeId, INVALID_TASK_ID);
+    EXPECT_TRUE(result);
+    EXPECT_FALSE(scopeInfo.extInfo.filteredNodes.empty());
+    EXPECT_FALSE(scopeInfo.scopeStreamInfos.empty());
+    EXPECT_NE(scopeInfo.extInfo.skMainNodeId, INVALID_TASK_ID);
 }
 
 TEST_F(SuperKernelScopePostprocessTest, PostProcess_MidScopeTwoStreamsThreePlusTwo_SelectSecondAsMain_Success)
@@ -631,12 +673,13 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_MidScopeTwoStreamsThreePlusT
     graph->graphMap[2001] = std::move(s1n1);
 
     SuperKernelScopePostProcessor postProcessor(*graph);
-    SuperKernelProcessedScopeInfo processed = postProcessor.PostProcess(scopeInfo);
+    bool result = postProcessor.PostProcess(scopeInfo);
 
-    EXPECT_FALSE(processed.nodes.empty());
-    ASSERT_EQ(processed.updateStreamInfos.size(), 2U);
-    EXPECT_EQ(processed.skMainNodeId, 2001U);
-    EXPECT_FALSE(processed.eventNodes.empty());
+    EXPECT_TRUE(result);
+    EXPECT_FALSE(scopeInfo.extInfo.filteredNodes.empty());
+    ASSERT_EQ(scopeInfo.scopeStreamInfos.size(), 2U);
+    EXPECT_EQ(scopeInfo.extInfo.skMainNodeId, 2001U);
+    EXPECT_FALSE(scopeInfo.extInfo.eventNodes.empty());
 }
 
 TEST_F(SuperKernelScopePostprocessTest, PostProcess_ThreeStreams_TwoMidOneFull_Success)
@@ -743,10 +786,104 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_ThreeStreams_TwoMidOneFull_S
     graph->graphMap[30001] = std::move(s2n1);
 
     SuperKernelScopePostProcessor postProcessor(*graph);
-    SuperKernelProcessedScopeInfo processed = postProcessor.PostProcess(scopeInfo);
+    bool result = postProcessor.PostProcess(scopeInfo);
 
-    EXPECT_FALSE(processed.nodes.empty());
-    EXPECT_EQ(processed.nodes.size(), 8U);
-    ASSERT_EQ(processed.updateStreamInfos.size(), 3U);
-    EXPECT_NE(processed.skMainNodeId, INVALID_TASK_ID);
+    EXPECT_TRUE(result);
+    EXPECT_FALSE(scopeInfo.extInfo.filteredNodes.empty());
+    EXPECT_EQ(scopeInfo.extInfo.filteredNodes.size(), 8U);
+    ASSERT_EQ(scopeInfo.scopeStreamInfos.size(), 3U);
+    EXPECT_NE(scopeInfo.extInfo.skMainNodeId, INVALID_TASK_ID);
+}
+
+TEST_F(SuperKernelScopePostprocessTest, PostProcess_StreamSelectFailed_EventAddrNotPrepared)
+{
+    ScopedModelContext modelCtx(reinterpret_cast<aclmdlRI>(0x1));
+
+    auto stream0Kernel = std::make_unique<SuperKernelKernelNode>(
+        nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_STREAM_ID, 1);
+    stream0Kernel->SetNodeType(SkNodeType::NODE_KERNEL);
+    stream0Kernel->nodeInfos.kernelInfos.kernelType = SkKernelType::AIC_ONLY;
+    stream0Kernel->SetNodeId(10);
+    stream0Kernel->SetPreNodeId(1);
+    stream0Kernel->SetNextNodeId(11);
+    stream0Kernel->SetIsFusible(true);
+
+    auto stream1Kernel = std::make_unique<SuperKernelKernelNode>(
+        nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 1, INVALID_STREAM_ID, 2);
+    stream1Kernel->SetNodeType(SkNodeType::NODE_KERNEL);
+    stream1Kernel->nodeInfos.kernelInfos.kernelType = SkKernelType::AIC_ONLY;
+    stream1Kernel->SetNodeId(20);
+    stream1Kernel->SetPreNodeId(2);
+    stream1Kernel->SetNextNodeId(21);
+    stream1Kernel->SetIsFusible(true);
+
+    auto notifyNode = std::make_unique<SuperKernelMemoryNode>(
+        nullptr, ACL_MODEL_RI_TASK_EVENT_RECORD, 1, 0, INVALID_STREAM_ID, INVALID_TASK_ID);
+    notifyNode->SetNodeType(SkNodeType::NODE_NOTIFY);
+    notifyNode->SetNodeId(30);
+    notifyNode->nodeInfos.syncInfos.eventId = 100;
+    notifyNode->nodeInfos.syncInfos.correspondingWaitNodeIds = {40};
+    notifyNode->SetIsFusible(true);
+
+    auto resetNode = std::make_unique<SuperKernelMemoryNode>(
+        nullptr, ACL_MODEL_RI_TASK_EVENT_RESET, 2, 0, INVALID_STREAM_ID, INVALID_TASK_ID);
+    resetNode->SetNodeType(SkNodeType::NODE_RESET);
+    resetNode->SetNodeId(31);
+    resetNode->nodeInfos.syncInfos.eventId = 100;
+    resetNode->SetIsFusible(true);
+
+    auto waitNode = std::make_unique<SuperKernelMemoryNode>(
+        nullptr, ACL_MODEL_RI_TASK_EVENT_WAIT, 0, 2, INVALID_STREAM_ID, INVALID_TASK_ID);
+    waitNode->SetNodeType(SkNodeType::NODE_WAIT);
+    waitNode->SetNodeId(40);
+    waitNode->nodeInfos.syncInfos.eventId = 100;
+    waitNode->nodeInfos.syncInfos.correspondingNotifyNodeId = 30;
+    waitNode->SetIsFusible(true);
+
+    SuperKernelScopeInfo scopeInfo;
+    scopeInfo.nodes = {stream0Kernel.get(), stream1Kernel.get(), notifyNode.get(), resetNode.get()};
+
+    ScopeStreamInfo stream0;
+    stream0.streamIdx = 0;
+    stream0.headNodeIdx = 10;
+    stream0.tailNodeIdx = 10;
+    stream0.nodeSize = 1;
+
+    ScopeStreamInfo stream1;
+    stream1.streamIdx = 1;
+    stream1.headNodeIdx = 20;
+    stream1.tailNodeIdx = 20;
+    stream1.nodeSize = 1;
+
+    scopeInfo.scopeStreamInfos = {stream0, stream1};
+
+    graph->graphMap[10] = std::move(stream0Kernel);
+    graph->graphMap[20] = std::move(stream1Kernel);
+    graph->graphMap[30] = std::move(notifyNode);
+    graph->graphMap[31] = std::move(resetNode);
+    graph->graphMap[40] = std::move(waitNode);
+
+    EventInfos eventInfos;
+    eventInfos.notifyNodeId = 30;
+    eventInfos.waitNodeIdList.insert(40);
+    eventInfos.resetNodeIdList.insert(31);
+    graph->eventToNodes[100] = std::move(eventInfos);
+
+    SuperKernelScopePostProcessor postProcessor(*graph);
+    bool result = postProcessor.PostProcess(scopeInfo);
+
+    EXPECT_FALSE(result);
+    EXPECT_EQ(scopeInfo.extInfo.failReason, ScopeFailReason::STREAM_SELECT_FAILED);
+    EXPECT_TRUE(scopeInfo.extInfo.filteredNodes.empty());
+    EXPECT_EQ(scopeInfo.extInfo.skMainNodeId, INVALID_TASK_ID);
+
+    auto* notifyAfter = graph->GetNodeById(30);
+    auto* resetAfter = graph->GetNodeById(31);
+    auto* waitAfter = graph->GetNodeById(40);
+    ASSERT_NE(notifyAfter, nullptr);
+    ASSERT_NE(resetAfter, nullptr);
+    ASSERT_NE(waitAfter, nullptr);
+    EXPECT_EQ(notifyAfter->nodeInfos.syncInfos.addrValue, nullptr);
+    EXPECT_EQ(resetAfter->nodeInfos.syncInfos.addrValue, nullptr);
+    EXPECT_EQ(waitAfter->nodeInfos.syncInfos.addrValue, nullptr);
 }

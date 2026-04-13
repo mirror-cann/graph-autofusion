@@ -152,7 +152,6 @@ const char* to_string(SearchDirection dir)
 std::string BuildSearchPathString(const std::vector<uint64_t>& path)
 {
     std::string pathStr;
-    pathStr.reserve(path.size() * 8);
     for (size_t idx = 0; idx < path.size(); ++idx) {
         if (idx > 0) {
             pathStr += "->";

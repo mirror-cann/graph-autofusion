@@ -62,6 +62,8 @@ uint64_t FindKernelNodeWithFrontReserve(SuperKernelGraph& graph, SuperKernelBase
             return curNode->GetNodeId();
         }
         if (curNode->GetNodeId() == tailNodeId || curNode->GetNextNodeId() == INVALID_TASK_ID) {
+            SK_LOGI("find kernel with reserve stopped at boundary: currentNodeId=%lu, tailNodeId=%lu, nextNodeId=%lu",
+                    curNode->GetNodeId(), tailNodeId, curNode->GetNextNodeId());
             break;
         }
         curNode = graph.GetNodeById(curNode->GetNextNodeId());
@@ -70,12 +72,6 @@ uint64_t FindKernelNodeWithFrontReserve(SuperKernelGraph& graph, SuperKernelBase
             headNode == nullptr ? INVALID_TASK_ID : headNode->GetNodeId(), tailNodeId, frontReserveCount);
     return INVALID_TASK_ID;
 }
-
-struct StreamPostPlan {
-    bool needFrontWait = false;
-    bool needBackBlock = false;
-    uint64_t candidateNodeId = INVALID_TASK_ID; // candidate node id for sk main node
-};
 
 std::vector<SuperKernelBaseNode*> FilterCancelledTasks(const std::vector<SuperKernelBaseNode*>& tasks)
 {
@@ -92,10 +88,11 @@ std::vector<SuperKernelBaseNode*> FilterCancelledTasks(const std::vector<SuperKe
 
     // step 1: accumulate expected-vs-observed WAIT balance per eventId.
     for (size_t i = 0; i < tasks.size(); i++) {
-        if (tasks[i]->GetNodeType() == SkNodeType::NODE_NOTIFY) {
-            eventCounts[tasks[i]->GetEventId()] += tasks[i]->GetNodeInfos().syncInfos.correspondingWaitNodeIds.size();
-        } else if (tasks[i]->GetNodeType() == SkNodeType::NODE_WAIT) {
-            eventCounts[tasks[i]->GetEventId()]--;
+        auto &curNode = tasks[i];
+        if (curNode->GetNodeType() == SkNodeType::NODE_NOTIFY) {
+            eventCounts[curNode->GetEventId()] += curNode->GetNodeInfos().syncInfos.correspondingWaitNodeIds.size();
+        } else if (curNode->GetNodeType() == SkNodeType::NODE_WAIT) {
+            eventCounts[curNode->GetEventId()]--;
         }
     }
 
@@ -103,21 +100,29 @@ std::vector<SuperKernelBaseNode*> FilterCancelledTasks(const std::vector<SuperKe
     // WAIT cancellation condition: corresponding NOTIFY exists.
     // NOTIFY cancellation condition: all WAITs of this event are cancellable.
     for (size_t i = 0; i < tasks.size(); i++) {
-        const uint64_t eventId = tasks[i]->GetEventId();
-
-        // Notify is removable only when expected and observed waits are fully matched.
-        if (tasks[i]->GetNodeType() == SkNodeType::NODE_NOTIFY && eventCounts[tasks[i]->GetEventId()] == 0) {
-            SK_LOGI("Event[%lx] cancelled in post-process: NOTIFY task[%zu]", tasks[i]->GetEventId(), i);
+        auto &curNode = tasks[i];
+        auto eventId = curNode->GetEventId();
+        auto nodeType = curNode->GetNodeType();
+        // Notify and Reset is removable only when expected and observed waits are fully matched.
+        if (nodeType == SkNodeType::NODE_NOTIFY && eventCounts[eventId] == 0) {
+            SK_LOGI("Event[%lx] cancelled in post-process: NOTIFY node info : %s", eventId,
+                    curNode->Format().c_str());
             continue;
-        // WAIT is removable while the per-event balance remains non-negative.
-        // Under the constraints above, a negative value means this scope has WAITs
-        // for this event but no corresponding NOTIFY.
-        } else if (tasks[i]->GetNodeType() == SkNodeType::NODE_WAIT && eventCounts[tasks[i]->GetEventId()] >= 0) {
-            SK_LOGI("Event[%lx] cancelled in post-process: WAIT task[%zu]", tasks[i]->GetEventId(), i);
+        } else if (nodeType == SkNodeType::NODE_RESET && eventCounts.count(eventId)
+                   && eventCounts[eventId] == 0) {
+            SK_LOGI("Event[%lx] cancelled in post-process: RESET node info : %s", eventId,
+                    curNode->Format().c_str());
+            continue;
+            // WAIT is removable while the per-event balance remains non-negative.
+            // Under the constraints above, a negative value means this scope has WAITs
+            // for this event but no corresponding NOTIFY.
+        } else if (nodeType == SkNodeType::NODE_WAIT && eventCounts[eventId] >= 0) {
+            SK_LOGI("Event[%lx] cancelled in post-process: WAIT node info : %s", eventId,
+                    curNode->Format().c_str());
             continue;
         }
-        if (!tasks[i]->IsScopeNode()) {
-            filteredTasks.push_back(tasks[i]);
+        if (!curNode->IsScopeNode()) {
+            filteredTasks.push_back(curNode);
         }
     }
     SK_LOGI("scope post-process filtered tasks: %zu -> %zu (%zu cancelled)", tasks.size(), filteredTasks.size(),
@@ -125,24 +130,24 @@ std::vector<SuperKernelBaseNode*> FilterCancelledTasks(const std::vector<SuperKe
     return filteredTasks;
 }
 
-bool EnsureStreamCapacity(const UpdateStreamInfo& streamInfo)
+bool EnsureStreamCapacity(const ScopeStreamInfo& streamInfo, const std::vector<aclmdlRITaskParams>& customParams)
 {
     SK_LOGI("stream capacity check: streamId=%u, nodeSize=%lu, customParamSize=%zu",
-            streamInfo.streamIdx, streamInfo.nodeSize, streamInfo.customParams.size());
-    if (streamInfo.customParams.size() > streamInfo.nodeSize) {
+            streamInfo.streamIdx, streamInfo.nodeSize, customParams.size());
+    if (customParams.size() > streamInfo.nodeSize) {
         SK_LOGE("scope post-process overflow: streamId=%u, nodeSize=%lu, customParamSize=%zu", streamInfo.streamIdx,
-                streamInfo.nodeSize, streamInfo.customParams.size());
+                streamInfo.nodeSize, customParams.size());
         return false;
     }
     return true;
 }
 
-bool ProcessFrontWaitForStream(SuperKernelGraph& graph, const SuperKernelScopeInfo& scopeInfo,
-                               std::vector<StreamPostPlan>& plans, SuperKernelProcessedScopeInfo& processedScopeInfo,
-                               uint32_t curStreamIdx, uint64_t lastNodeId, uint32_t& needFrontWaitCount,
-                               uint32_t& prevWaitStreamIdx)
+bool ProcessFrontWaitForStream(SuperKernelGraph& graph, ScopeExtInfo& extInfo,
+                               const std::vector<ScopeStreamInfo>& scopeStreamInfos,
+                               std::vector<StreamPostPlan>& plans, uint32_t curStreamIdx, uint64_t lastNodeId,
+                               uint32_t& needFrontWaitCount, uint32_t& prevWaitStreamIdx)
 {
-    auto& scopeStreamInfo = scopeInfo.scopeStreamInfos[curStreamIdx];
+    auto& scopeStreamInfo = scopeStreamInfos[curStreamIdx];
     SK_LOGI("front-wait process begin: streamId=%u, prevWaitStreamIdx=%u, remainFrontWait=%u",
             scopeStreamInfo.streamIdx, prevWaitStreamIdx, needFrontWaitCount);
     needFrontWaitCount--;
@@ -166,14 +171,14 @@ bool ProcessFrontWaitForStream(SuperKernelGraph& graph, const SuperKernelScopeIn
     resetNode->nodeInfos.syncInfos.eventId = static_cast<uint64_t>(reinterpret_cast<uintptr_t>(addr));
     resetNode->nodeInfos.syncInfos.addrValue = addr;
     // record resetNode for sk optimize
-    processedScopeInfo.eventNodes.emplace_back(std::move(resetNode));
+    extInfo.eventNodes.emplace_back(std::move(resetNode));
 
     // cur stream add record event task
     aclmdlRITaskParams notifyParams = {};
     notifyParams.type = ACL_MODEL_RI_TASK_VALUE_WRITE;
     notifyParams.valueWriteTaskParams.devAddr = addr;
     notifyParams.valueWriteTaskParams.value = 1;
-    processedScopeInfo.updateStreamInfos[curStreamIdx].customParams.emplace_back(notifyParams);
+    extInfo.customParamsList[curStreamIdx].emplace_back(notifyParams);
 
     // prev stream add wait event task
     aclmdlRITaskParams waitParams = {};
@@ -181,10 +186,19 @@ bool ProcessFrontWaitForStream(SuperKernelGraph& graph, const SuperKernelScopeIn
     waitParams.valueWaitTaskParams.devAddr = addr;
     waitParams.valueWaitTaskParams.value = 1;
     waitParams.valueWaitTaskParams.flag = 1;
-    processedScopeInfo.updateStreamInfos[prevWaitStreamIdx].customParams.emplace(
-        processedScopeInfo.updateStreamInfos[prevWaitStreamIdx].customParams.begin(), waitParams);
-    if (!EnsureStreamCapacity(processedScopeInfo.updateStreamInfos[curStreamIdx])
-        || !EnsureStreamCapacity(processedScopeInfo.updateStreamInfos[prevWaitStreamIdx])) {
+    extInfo.customParamsList[prevWaitStreamIdx].emplace(
+        extInfo.customParamsList[prevWaitStreamIdx].begin(), waitParams);
+    if (!EnsureStreamCapacity(scopeStreamInfos[curStreamIdx], extInfo.customParamsList[curStreamIdx])) {
+        SK_LOGE("front-wait capacity check failed: curStreamId=%u, nodeSize=%lu, customParamSize=%zu",
+                scopeStreamInfo.streamIdx, scopeStreamInfo.nodeSize,
+                extInfo.customParamsList[curStreamIdx].size());
+        return false;
+    }
+    if (!EnsureStreamCapacity(scopeStreamInfos[prevWaitStreamIdx], extInfo.customParamsList[prevWaitStreamIdx])) {
+        SK_LOGE("front-wait capacity check failed: prevStreamId=%u, nodeSize=%lu, customParamSize=%zu",
+                scopeStreamInfos[prevWaitStreamIdx].streamIdx,
+                scopeStreamInfos[prevWaitStreamIdx].nodeSize,
+                extInfo.customParamsList[prevWaitStreamIdx].size());
         return false;
     }
 
@@ -193,11 +207,10 @@ bool ProcessFrontWaitForStream(SuperKernelGraph& graph, const SuperKernelScopeIn
     return true;
 }
 
-bool ProcessBackBlockForStream(const SuperKernelScopeInfo& scopeInfo, std::vector<StreamPostPlan>& plans,
-                               SuperKernelProcessedScopeInfo& processedScopeInfo, uint32_t curStreamIdx,
-                               uint64_t lastNodeId)
+bool ProcessBackBlockForStream(ScopeExtInfo& extInfo, const std::vector<ScopeStreamInfo>& scopeStreamInfos,
+                               std::vector<StreamPostPlan>& plans, uint32_t curStreamIdx, uint64_t lastNodeId)
 {
-    auto& scopeStreamInfo = scopeInfo.scopeStreamInfos[curStreamIdx];
+    auto& scopeStreamInfo = scopeStreamInfos[curStreamIdx];
     SK_LOGI("back-block process begin: streamId=%u", scopeStreamInfo.streamIdx);
 
     // apply value memory addr
@@ -218,7 +231,7 @@ bool ProcessBackBlockForStream(const SuperKernelScopeInfo& scopeInfo, std::vecto
     notifyNode->nodeInfos.syncInfos.addrValue = addr;
 
     // record notifyNode for sk optimize
-    processedScopeInfo.eventNodes.emplace_back(std::move(notifyNode));
+    extInfo.eventNodes.emplace_back(std::move(notifyNode));
 
     // cur stream add wait event task
     aclmdlRITaskParams waitParams = {};
@@ -226,33 +239,34 @@ bool ProcessBackBlockForStream(const SuperKernelScopeInfo& scopeInfo, std::vecto
     waitParams.valueWaitTaskParams.devAddr = addr;
     waitParams.valueWaitTaskParams.value = 1;
     waitParams.valueWaitTaskParams.flag = 1;
-    processedScopeInfo.updateStreamInfos[curStreamIdx].customParams.emplace_back(waitParams);
+    extInfo.customParamsList[curStreamIdx].emplace_back(waitParams);
 
     // cur stream add reset event task
     aclmdlRITaskParams resetParams = {};
     resetParams.type = ACL_MODEL_RI_TASK_VALUE_WRITE;
     resetParams.valueWriteTaskParams.devAddr = addr;
     resetParams.valueWriteTaskParams.value = 0;
-    processedScopeInfo.updateStreamInfos[curStreamIdx].customParams.emplace_back(resetParams);
-    if (!EnsureStreamCapacity(processedScopeInfo.updateStreamInfos[curStreamIdx])) {
+    extInfo.customParamsList[curStreamIdx].emplace_back(resetParams);
+    if (!EnsureStreamCapacity(scopeStreamInfo, extInfo.customParamsList[curStreamIdx])) {
+        SK_LOGE("back-block capacity check failed: streamId=%u, nodeSize=%lu, customParamSize=%zu",
+                scopeStreamInfo.streamIdx, scopeStreamInfo.nodeSize,
+                extInfo.customParamsList[curStreamIdx].size());
         return false;
     }
     return true;
 }
 
-bool GetMainAndSubStreamOrder(SuperKernelGraph& graph, std::vector<StreamPostPlan>& plans,
-                                            SuperKernelProcessedScopeInfo& processedScopeInfo,
-                                            uint32_t needFrontWaitCount, uint32_t& mainStreamIdx,
-                                            std::vector<uint32_t>& subStreamOrder)
-{
-    const uint32_t streamCount = processedScopeInfo.updateStreamInfos.size();
-    std::vector<uint32_t> subStreamCandidate;
-    std::vector<uint32_t> mainStreamCandidate;
-    std::vector<uint32_t> subStreamEntryCandidate;
-    uint32_t entrySubStreamIdx = INVALID_STREAM_ID;
-    subStreamOrder.clear();
-    subStreamOrder.reserve(streamCount);
+struct StreamCandidates {
+    std::vector<uint32_t> mainStream;
+    std::vector<uint32_t> subStream;
+    std::vector<uint32_t> subStreamEntry;
+};
 
+bool CollectStreamCandidates(SuperKernelGraph& graph, const std::vector<ScopeStreamInfo>& scopeStreamInfos,
+                             std::vector<StreamPostPlan>& plans, uint32_t needFrontWaitCount,
+                             StreamCandidates& candidates)
+{
+    const uint32_t streamCount = scopeStreamInfos.size();
     for (uint32_t curStreamIdx = 0; curStreamIdx < streamCount; ++curStreamIdx) {
         bool isMainStreamCandidate = false;
         bool isSubStreamCandidate = false;
@@ -261,83 +275,116 @@ bool GetMainAndSubStreamOrder(SuperKernelGraph& graph, std::vector<StreamPostPla
         const uint32_t otherFrontWaitCount = needFrontWaitCount - (plans[curStreamIdx].needFrontWait ? 1U : 0U);
         const uint32_t mainFrontReserveCount = otherFrontWaitCount > 0 ? 1U : 0U;
         uint64_t candidateNodeId = FindKernelNodeWithFrontReserve(
-            graph, graph.GetNodeById(processedScopeInfo.updateStreamInfos[curStreamIdx].headNodeIdx),
-            processedScopeInfo.updateStreamInfos[curStreamIdx].tailNodeIdx, mainFrontReserveCount);
+            graph, graph.GetNodeById(scopeStreamInfos[curStreamIdx].headNodeIdx),
+            scopeStreamInfos[curStreamIdx].tailNodeIdx, mainFrontReserveCount);
         if (candidateNodeId != INVALID_TASK_ID) {
-            mainStreamCandidate.push_back(curStreamIdx);
+            candidates.mainStream.push_back(curStreamIdx);
             plans[curStreamIdx].candidateNodeId = candidateNodeId;
             isMainStreamCandidate = true;
-            SK_LOGI("main stream candidate added: streamId=%u, candidateNodeId=%lu", 
-                    processedScopeInfo.updateStreamInfos[curStreamIdx].streamIdx, candidateNodeId);
+            SK_LOGI("main stream candidate added: streamId=%u, candidateNodeId=%lu",
+                    scopeStreamInfos[curStreamIdx].streamIdx, candidateNodeId);
         }
 
+        // Each frontWait/backBlock requires 2 nodes: frontWait for notify/wait, backBlock for wait/reset
         uint32_t frontWaitNodeCount = 2 * (plans[curStreamIdx].needFrontWait ? 1U : 0U);
         uint32_t backBlockNodeCount = 2 * (plans[curStreamIdx].needBackBlock ? 1U : 0U);
         uint32_t needNodeCount = frontWaitNodeCount + backBlockNodeCount;
-        if (needNodeCount <= processedScopeInfo.updateStreamInfos[curStreamIdx].nodeSize) {
-            subStreamCandidate.push_back(curStreamIdx);
+        if (needNodeCount <= scopeStreamInfos[curStreamIdx].nodeSize) {
+            candidates.subStream.push_back(curStreamIdx);
             isSubStreamCandidate = true;
-            SK_LOGI("sub stream candidate added: streamId=%u, needNodeCount=%u", 
-                    processedScopeInfo.updateStreamInfos[curStreamIdx].streamIdx, needNodeCount);
+            SK_LOGI("sub stream candidate added: streamId=%u, needNodeCount=%u",
+                    scopeStreamInfos[curStreamIdx].streamIdx, needNodeCount);
         }
 
         needNodeCount = needNodeCount - (plans[curStreamIdx].needFrontWait ? 1U : 0U);
-        if (needNodeCount <= processedScopeInfo.updateStreamInfos[curStreamIdx].nodeSize) {
-            subStreamEntryCandidate.push_back(curStreamIdx);
+        if (needNodeCount <= scopeStreamInfos[curStreamIdx].nodeSize) {
+            candidates.subStreamEntry.push_back(curStreamIdx);
             isSubStreamEntryCandidate = true;
-            SK_LOGI("sub stream entry candidate added: streamId=%u, needNodeCount=%u", 
-                    processedScopeInfo.updateStreamInfos[curStreamIdx].streamIdx, needNodeCount);
+            SK_LOGI("sub stream entry candidate added: streamId=%u, needNodeCount=%u",
+                    scopeStreamInfos[curStreamIdx].streamIdx, needNodeCount);
         }
 
-        if(!isMainStreamCandidate && !isSubStreamCandidate && !isSubStreamEntryCandidate) {
+        if (!isMainStreamCandidate && !isSubStreamCandidate && !isSubStreamEntryCandidate) {
             SK_LOGI("streamId=%u does not meet the requirements for being mainStream and subStream.",
-                    processedScopeInfo.updateStreamInfos[curStreamIdx].streamIdx);
+                    scopeStreamInfos[curStreamIdx].streamIdx);
             SK_LOGI("   1.stream have not candidate node, reserve num=%u", mainFrontReserveCount);
             SK_LOGI("   2.stream capacity insufficient for sub stream: nodeSize=%lu, but minimun required=%u",
-                    processedScopeInfo.updateStreamInfos[curStreamIdx].nodeSize, needNodeCount);
+                    scopeStreamInfos[curStreamIdx].nodeSize, needNodeCount);
             return false;
         }
     }
+    return true;
+}
 
-    if (streamCount == 1) {
-        if (plans[0].candidateNodeId != INVALID_TASK_ID) {
-            processedScopeInfo.skMainNodeId = plans[0].candidateNodeId;
-            return true;
-        }
-        SK_LOGI("only one stream in scope but candidate node invalid, skip update: streamId=%u", 
-                processedScopeInfo.updateStreamInfos[0].streamIdx);
-        return false;
-    }
-
-    for (auto candidateMainStreamIdx : mainStreamCandidate) {
-        for (auto candidateEntrySubStreamIdx : subStreamEntryCandidate) {
-            size_t localStreamCnt = subStreamCandidate.size();
+bool SelectMainAndEntryStream(const std::vector<StreamPostPlan>& plans, const StreamCandidates& candidates,
+                              uint32_t streamCount, uint32_t& mainStreamIdx, uint32_t& entrySubStreamIdx,
+                              uint64_t& skMainNodeId)
+{
+    for (auto candidateMainStreamIdx : candidates.mainStream) {
+        for (auto candidateEntrySubStreamIdx : candidates.subStreamEntry) {
             if (candidateEntrySubStreamIdx == candidateMainStreamIdx) {
                 continue;
             }
-            auto it = find(subStreamCandidate.begin(), subStreamCandidate.end(), candidateMainStreamIdx);
-            if (it == subStreamCandidate.end()) {
+            size_t localStreamCnt = candidates.subStream.size();
+            auto itMain = find(candidates.subStream.begin(), candidates.subStream.end(), candidateMainStreamIdx);
+            if (itMain == candidates.subStream.end()) {
                 ++localStreamCnt;
             }
-            it = find(subStreamCandidate.begin(), subStreamCandidate.end(), candidateEntrySubStreamIdx);
-            if (it == subStreamCandidate.end()) {
+            auto itEntry = find(candidates.subStream.begin(), candidates.subStream.end(), candidateEntrySubStreamIdx);
+            if (itEntry == candidates.subStream.end()) {
                 ++localStreamCnt;
             }
             if (localStreamCnt == streamCount) {
                 mainStreamIdx = candidateMainStreamIdx;
-                processedScopeInfo.skMainNodeId = plans[candidateMainStreamIdx].candidateNodeId;
+                skMainNodeId = plans[candidateMainStreamIdx].candidateNodeId;
                 entrySubStreamIdx = candidateEntrySubStreamIdx;
-                break;
+                return true;
             }
         }
-        if (mainStreamIdx != INVALID_STREAM_ID && processedScopeInfo.skMainNodeId != INVALID_TASK_ID) {
-            SK_LOGI("main stream and entry sub stream selected: mainStreamIdx=%u, entrySubStreamIdx=%u",
-                        mainStreamIdx, entrySubStreamIdx);
-            break;
+    }
+    return false;
+}
+
+void BuildSubStreamOrder(const StreamCandidates& candidates, uint32_t mainStreamIdx, uint32_t entrySubStreamIdx,
+                         std::vector<uint32_t>& subStreamOrder)
+{
+    subStreamOrder.clear();
+    for (auto curStreamIdx : candidates.subStream) {
+        if (curStreamIdx != mainStreamIdx && curStreamIdx != entrySubStreamIdx) {
+            subStreamOrder.push_back(curStreamIdx);
         }
     }
+    subStreamOrder.push_back(entrySubStreamIdx);
+}
 
-    if (mainStreamIdx == INVALID_STREAM_ID || processedScopeInfo.skMainNodeId == INVALID_TASK_ID) {
+bool GetMainAndSubStreamOrder(SuperKernelGraph& graph, std::vector<StreamPostPlan>& plans,
+                              const std::vector<ScopeStreamInfo>& scopeStreamInfos, ScopeExtInfo& extInfo,
+                              uint32_t needFrontWaitCount, uint32_t& mainStreamIdx,
+                              std::vector<uint32_t>& subStreamOrder)
+{
+    const uint32_t streamCount = scopeStreamInfos.size();
+    StreamCandidates candidates;
+    subStreamOrder.clear();
+    subStreamOrder.reserve(streamCount);
+
+    if (!CollectStreamCandidates(graph, scopeStreamInfos, plans, needFrontWaitCount, candidates)) {
+        return false;
+    }
+
+    // Handle single stream case
+    if (streamCount == 1) {
+        if (plans[0].candidateNodeId != INVALID_TASK_ID) {
+            extInfo.skMainNodeId = plans[0].candidateNodeId;
+            return true;
+        }
+        SK_LOGE("single stream in scope but no candidate main node found, streamId=%u", scopeStreamInfos[0].streamIdx);
+        return false;
+    }
+
+    // Select main and entry stream
+    uint32_t entrySubStreamIdx = INVALID_STREAM_ID;
+    if (!SelectMainAndEntryStream(plans, candidates, streamCount, mainStreamIdx, entrySubStreamIdx,
+                                  extInfo.skMainNodeId)) {
         SK_LOGI("failed to find main SK node in scope during post-process, skip update");
         return false;
     }
@@ -345,91 +392,95 @@ bool GetMainAndSubStreamOrder(SuperKernelGraph& graph, std::vector<StreamPostPla
         SK_LOGI("failed to find entry sub stream in scope during post-process, skip update");
         return false;
     }
+    SK_LOGI("main stream and entry sub stream selected: mainStreamIdx=%u, entrySubStreamIdx=%u",
+            mainStreamIdx, entrySubStreamIdx);
 
-    for (auto curStreamIdx : subStreamCandidate) {
-        if (curStreamIdx == mainStreamIdx || curStreamIdx == entrySubStreamIdx) {
-            continue;
-        }
-        subStreamOrder.push_back(curStreamIdx);
+    BuildSubStreamOrder(candidates, mainStreamIdx, entrySubStreamIdx, subStreamOrder);
+    return true;
+}
+
+bool ValidateEventInfo(SuperKernelGraph& graph, SuperKernelBaseNode* eventNode, const EventInfos*& eventInfos)
+{
+    auto eventId = eventNode->GetEventId();
+    eventInfos = graph.GetEventInfo(eventId);
+    if (eventInfos == nullptr) {
+        SK_LOGE("event not found in graph: event infos=%s", eventNode->Format().c_str());
+        return false;
     }
-    subStreamOrder.push_back(entrySubStreamIdx);
+    if (eventInfos->notifyNodeId == INVALID_TASK_ID || eventInfos->waitNodeIdList.empty()
+        || eventInfos->resetNodeIdList.empty()) {
+        SK_LOGE("event syncInfos invalid: eventId=%lx, NotifyNodeId=%lu, WaitNodeIdsSize=%zu, ResetNodeIdsSize=%zu",
+                eventNode->GetEventId(), eventInfos->notifyNodeId, eventInfos->waitNodeIdList.size(),
+                eventInfos->resetNodeIdList.size());
+        return false;
+    }
+    return true;
+}
+
+bool AllocateEventMemory(void*& addr, uint64_t eventId)
+{
+    if (addr != nullptr) {
+        SK_LOGI("event memory already applied: eventId=%lx, addr=%p", eventId, addr);
+        return true;
+    }
+    SK_LOGI("event memory allocated start ...");
+    aclError allocRet = SkResourceManager::ValueMemory(&addr);
+    if (allocRet != ACL_SUCCESS || addr == nullptr) {
+        SK_LOGE("event memory alloc failed: eventId=%lx, ret=%d", eventId, allocRet);
+        return false;
+    }
+    return true;
+}
+
+bool UpdateEventNodeAddr(SuperKernelGraph& graph, uint64_t nodeId, void* addr,
+                         std::vector<SuperKernelBaseNode*>& needUpdateNodes, const char* nodeType)
+{
+    auto node = graph.GetNodeById(nodeId);
+    if (node == nullptr) {
+        SK_LOGE("%s event node not found in graph during event memory apply: nodeId=%lu", nodeType, nodeId);
+        return false;
+    }
+    node->nodeInfos.syncInfos.addrValue = addr;
+    needUpdateNodes.emplace_back(node);
+    SK_LOGI("Updated %s node addrValue: nodeId=%lu, addr=%p", nodeType, node->GetNodeId(), addr);
     return true;
 }
 
 bool ApplyEventMemoryResource(SuperKernelGraph& graph, SuperKernelBaseNode* eventNode,
                               std::vector<SuperKernelBaseNode*>& needUpdateNodes)
 {
-    // Constraint : eventNode.syncInfos have all associated node
     auto& syncInfos = eventNode->nodeInfos.syncInfos;
-
-    auto eventId = eventNode->GetEventId();
-    auto eventInfos = graph.GetEventInfo(eventId);
-    if (eventInfos == nullptr) {
-        SK_LOGE("event not found in graph: event infos=%s", eventNode->Format().c_str());
-        return false;
-    }
-    // check syncInfos
-    if (eventInfos->notifyNodeId == INVALID_TASK_ID || eventInfos->waitNodeIdList.empty()
-        || eventInfos->resetNodeIdList.empty()) {
-        SK_LOGE("event syncInfos invalid: eventId=%lu, NotifyNodeId=%lu, WaitNodeIdsSize=%zu, ResetNodeId=%lu",
-                syncInfos.eventId, eventInfos->notifyNodeId, eventInfos->waitNodeIdList.size(),
-                eventInfos->resetNodeIdList);
+    const EventInfos* eventInfos = nullptr;
+    if (!ValidateEventInfo(graph, eventNode, eventInfos)) {
         return false;
     }
 
     void* addr = syncInfos.addrValue;
-    if (syncInfos.addrValue == nullptr) {
-        SK_LOGI("event memory allocated start ...");
-        aclError allocRet = SkResourceManager::ValueMemory(&addr);
-        if (allocRet != ACL_SUCCESS || addr == nullptr) {
-            SK_LOGE("event memory alloc failed: eventId=%lx, ret=%d", syncInfos.eventId, allocRet);
-            return false;
-        }
-    } else {
-        SK_LOGI("event memory already applied: eventId=%lx, addr=%p", syncInfos.eventId, syncInfos.addrValue);
-    }
-
-    // notify sync info update
-    auto notifyNode = graph.GetNodeById(eventInfos->notifyNodeId);
-    if (notifyNode == nullptr) {
-        SK_LOGE("notify event node not found in graph during event memory apply: notifyNodeId=%lu",
-                eventInfos->notifyNodeId);
+    if (!AllocateEventMemory(addr, syncInfos.eventId)) {
         return false;
     }
-    // wait sync info update
-    notifyNode->nodeInfos.syncInfos.addrValue = addr;
-    needUpdateNodes.emplace_back(notifyNode);
-    SK_LOGI("Updated notify node addrValue: nodeId=%lu, addr=%p", notifyNode->GetNodeId(), addr);
+
+    // Update notify node
+    if (!UpdateEventNodeAddr(graph, eventInfos->notifyNodeId, addr, needUpdateNodes, "notify")) {
+        return false;
+    }
+
+    // Update wait nodes
     for (auto waitNodeId : eventInfos->waitNodeIdList) {
-        auto waitNode = graph.GetNodeById(waitNodeId);
-        if (waitNode == nullptr) {
-            SK_LOGE("wait event node not found in graph during event memory apply: waitNodeId=%lu", waitNodeId);
+        if (!UpdateEventNodeAddr(graph, waitNodeId, addr, needUpdateNodes, "wait")) {
             return false;
         }
-        waitNode->nodeInfos.syncInfos.addrValue = addr;
-        needUpdateNodes.emplace_back(waitNode);
-        SK_LOGI("Updated wait node addrValue: nodeId=%lu, addr=%p", waitNode->GetNodeId(), addr);
-    }
-    // reset sync info update
-    for (auto resetNodeId: eventInfos->resetNodeIdList) {
-        auto resetNode = graph.GetNodeById(resetNodeId);
-        if (resetNode == nullptr) {
-            SK_LOGE("reset event node not found in graph during event memory apply: resetNodeId=%lu",
-                resetNodeId);
-            return false;
-        }
-        resetNode->nodeInfos.syncInfos.addrValue = addr;
-        needUpdateNodes.emplace_back(resetNode);
-        SK_LOGI("Updated reset node addrValue: nodeId=%lu, addr=%p", resetNode->GetNodeId(), addr);
-        SK_LOGI("event memory allocated end: eventId=%lx, addr=%p", syncInfos.eventId, syncInfos.addrValue);
     }
 
-    syncInfos = eventNode->nodeInfos.syncInfos;
-    if (syncInfos.addrValue == nullptr) {
-        SK_LOGE("event memory apply failed: eventId=%lx, addr is nullptr", syncInfos.eventId);
-        return false;
+    // Update reset nodes
+    for (auto resetNodeId : eventInfos->resetNodeIdList) {
+        if (!UpdateEventNodeAddr(graph, resetNodeId, addr, needUpdateNodes, "reset")) {
+            return false;
+        }
     }
-    return true;
+
+    SK_LOGI("event memory allocated end: eventId=%lx, addr=%p", syncInfos.eventId, addr);
+    return addr != nullptr;
 }
 
 uint32_t GetKernelCnt(const std::vector<SuperKernelBaseNode*>& tasks){
@@ -444,24 +495,21 @@ uint32_t GetKernelCnt(const std::vector<SuperKernelBaseNode*>& tasks){
 
 } // namespace
 
-SuperKernelProcessedScopeInfo SuperKernelScopePostProcessor::PostProcess(SuperKernelScopeInfo& scopeInfo)
+bool SuperKernelScopePostProcessor::ValidateScopeStreamNodes(const SuperKernelScopeInfo& scopeInfo)
 {
-    // Implementation for post-processing scopes
-    // Constraint : directed acyclic graph
-
-    for (auto& streamInfo : scopeInfo.scopeStreamInfos) {
+    for (const auto& streamInfo : scopeInfo.scopeStreamInfos) {
         uint64_t curNodeId = streamInfo.headNodeIdx;
         while (curNodeId != INVALID_TASK_ID) {
             auto* curNode = graph.GetNodeById(curNodeId);
             if (curNode == nullptr) {
                 SK_LOGE("node not found during scope post process: nodeId=%lu, streamId=%u", curNodeId,
                         streamInfo.streamIdx);
-                return {};
+                return false;
             }
             if (!curNode->IsFusible()) {
                 SK_LOGE("node is not fusible during scope post process: nodeId=%lu, streamId=%u", curNodeId,
                         streamInfo.streamIdx);
-                return {};
+                return false;
             }
             if (curNodeId == streamInfo.tailNodeIdx) {
                 break;
@@ -469,135 +517,178 @@ SuperKernelProcessedScopeInfo SuperKernelScopePostProcessor::PostProcess(SuperKe
             curNodeId = curNode->GetNextNodeId();
         }
     }
+    return true;
+}
 
-    uint32_t streamCount = scopeInfo.scopeStreamInfos.size();
-    SK_LOGI("scope post-process begin: streamCount=%u, nodeCount=%zu", streamCount, scopeInfo.nodes.size());
-
-    std::vector<SuperKernelBaseNode*> filteredTasks = FilterCancelledTasks(scopeInfo.nodes);
-    if (filteredTasks.empty()) {
-        SK_LOGI("scope post-process failed: no task remains after cancelling notify/wait pairs");
-        return {};
-    }
-
-    uint32_t kernelCnt = GetKernelCnt(filteredTasks);
-    if (kernelCnt == 0){
-        SK_LOGI("scope post-process failed: no kernel task remains after filtering");
-        return {};
-    }
-    SK_LOGI("kernel count after filtering: %u", kernelCnt);
-
-    // init processedScopeInfo
-    SuperKernelProcessedScopeInfo processedScopeInfo;
-    processedScopeInfo.nodes = std::move(filteredTasks);
-    processedScopeInfo.skMainNodeId = INVALID_TASK_ID;
-    processedScopeInfo.updateStreamInfos.resize(streamCount);
-
-    std::vector<StreamPostPlan> plans(streamCount);
-    uint32_t needFrontWaitCount = 0;
-    std::vector<SuperKernelBaseNode*> needUpdateNodes;
-
-    // step 0: apply event memory resource for filtered task
-    for(auto node: processedScopeInfo.nodes) {
+bool SuperKernelScopePostProcessor::ApplyEventMemoryForFilteredTasks(
+    std::vector<SuperKernelBaseNode*>& filteredNodes, std::vector<SuperKernelBaseNode*>& needUpdateNodes)
+{
+    for (auto node : filteredNodes) {
         auto nodeType = node->GetNodeType();
-        switch (nodeType) {
-            case SkNodeType::NODE_NOTIFY:
-            case SkNodeType::NODE_WAIT:
-            case SkNodeType::NODE_RESET:
-                if (!ApplyEventMemoryResource(graph, node, needUpdateNodes)) {
-                    SK_LOGE("event memory resource apply failed during post-process: nodeId=%lu, nodeType=%d",
-                            node->GetNodeId(), static_cast<int>(nodeType));
-                    return {};
-                }
-                break;
-            default:
-                break;
+        if (nodeType == SkNodeType::NODE_NOTIFY || nodeType == SkNodeType::NODE_WAIT
+            || nodeType == SkNodeType::NODE_RESET) {
+            if (!ApplyEventMemoryResource(graph, node, needUpdateNodes)) {
+                SK_LOGE("event memory resource apply failed during post-process: nodeId=%lu, nodeType=%d",
+                        node->GetNodeId(), static_cast<int>(nodeType));
+                return false;
+            }
         }
     }
     SK_LOGI("applied event memory resource for filtered tasks, needUpdateNodesSize=%zu", needUpdateNodes.size());
+    return true;
+}
 
-    // step 1: collect per-stream info and boundary plans
+bool SuperKernelScopePostProcessor::CollectStreamBoundaryPlans(const SuperKernelScopeInfo& scopeInfo,
+                                                               std::vector<StreamPostPlan>& plans,
+                                                               uint32_t& needFrontWaitCount)
+{
+    uint32_t streamCount = scopeInfo.scopeStreamInfos.size();
     for (uint32_t curStreamIdx = 0; curStreamIdx < streamCount; ++curStreamIdx) {
         SK_LOGI("collect stream info: streamIdx=%u, nodeSize=%lu", curStreamIdx,
                 scopeInfo.scopeStreamInfos[curStreamIdx].nodeSize);
-        auto& scopeStreamInfo = scopeInfo.scopeStreamInfos[curStreamIdx];
-        processedScopeInfo.updateStreamInfos[curStreamIdx].streamIdx = scopeStreamInfo.streamIdx;
-        processedScopeInfo.updateStreamInfos[curStreamIdx].nodeSize = scopeStreamInfo.nodeSize;
-        processedScopeInfo.updateStreamInfos[curStreamIdx].headNodeIdx = scopeStreamInfo.headNodeIdx;
-        processedScopeInfo.updateStreamInfos[curStreamIdx].tailNodeIdx = scopeStreamInfo.tailNodeIdx;
+        const auto& scopeStreamInfo = scopeInfo.scopeStreamInfos[curStreamIdx];
 
         auto* headNode = graph.GetNodeById(scopeStreamInfo.headNodeIdx);
         auto* tailNode = graph.GetNodeById(scopeStreamInfo.tailNodeIdx);
         if (headNode == nullptr) {
             SK_LOGE("head node not found in graph during post-process: head=%lu", scopeStreamInfo.headNodeIdx);
-            return {};
+            return false;
         }
         if (tailNode == nullptr) {
             SK_LOGE("tail node not found in graph during post-process: tail=%lu", scopeStreamInfo.tailNodeIdx);
-            return {};
+            return false;
         }
 
-        if (headNode != nullptr && headNode->GetPreNodeId() != INVALID_TASK_ID) {
-            // judge whether front need wait
+        if (headNode->GetPreNodeId() != INVALID_TASK_ID) {
             plans[curStreamIdx].needFrontWait = true;
             needFrontWaitCount++;
         }
-        if (tailNode != nullptr && tailNode->GetNextNodeId() != INVALID_TASK_ID) {
-            // judge whether back need block
+        if (tailNode->GetNextNodeId() != INVALID_TASK_ID) {
             plans[curStreamIdx].needBackBlock = true;
         }
-        SK_LOGI("stream plan collected: streamId=%u, headNodeId=%lu, tailNodeId=%lu, nodeSize=%lu, needFrontWait=%d,\
-             needBackBlock=%d",
+        SK_LOGI("stream plan collected: streamId=%u, headNodeId=%lu, tailNodeId=%lu, nodeSize=%lu, needFrontWait=%d, needBackBlock=%d",
                 scopeStreamInfo.streamIdx, scopeStreamInfo.headNodeIdx, scopeStreamInfo.tailNodeIdx,
                 scopeStreamInfo.nodeSize, plans[curStreamIdx].needFrontWait, plans[curStreamIdx].needBackBlock);
     }
     SK_LOGI("collect stream done: streamCount=%u, needFrontWaitCount=%u", streamCount, needFrontWaitCount);
+    return true;
+}
 
-    // step 2: select main stream and entry sub stream.
-    // For each candidate stream, only other streams can force the future main
-    // stream to reserve its first original node for an inserted wait event.
-    uint32_t mainStreamIdx = INVALID_STREAM_ID;
-    std::vector<uint32_t> subStreamOrder;
-    if (!GetMainAndSubStreamOrder(graph, plans, processedScopeInfo, needFrontWaitCount, mainStreamIdx,
-                                                subStreamOrder)) {
-        return {};
-    }
-    SK_LOGI("select main stream and sub stream done.");
-
-    // step 3: process front wait and back block
+bool SuperKernelScopePostProcessor::ProcessSubStreamSyncEvents(
+    SuperKernelScopeInfo& scopeInfo, ScopeExtInfo& tempExtInfo, std::vector<StreamPostPlan>& plans,
+    uint32_t mainStreamIdx, const std::vector<uint32_t>& subStreamOrder, uint32_t needFrontWaitCount)
+{
     uint32_t prevWaitStreamIdx = mainStreamIdx;
-    uint64_t lastNodeId = processedScopeInfo.nodes.back()->GetNodeId();
+    uint64_t lastNodeId = tempExtInfo.filteredNodes.back()->GetNodeId();
+    SK_LOGI("scope post-process front-wait and back-block begin: lastNodeId=%lu", lastNodeId);
+
     for (uint32_t curStreamIdx : subStreamOrder) {
         if (plans[curStreamIdx].needFrontWait
-            && !ProcessFrontWaitForStream(graph, scopeInfo, plans, processedScopeInfo, curStreamIdx, lastNodeId,
-                                          needFrontWaitCount, prevWaitStreamIdx)) {
+            && !ProcessFrontWaitForStream(graph, tempExtInfo, scopeInfo.scopeStreamInfos, plans, curStreamIdx,
+                                          lastNodeId, needFrontWaitCount, prevWaitStreamIdx)) {
             SK_LOGE("process front-wait failed streamId=%u, nodeSize=%lu, FrontWait=%u",
-                    processedScopeInfo.updateStreamInfos[curStreamIdx].streamIdx,
-                    processedScopeInfo.updateStreamInfos[curStreamIdx].nodeSize, plans[curStreamIdx].needFrontWait);
-            return {};
+                    scopeInfo.scopeStreamInfos[curStreamIdx].streamIdx,
+                    scopeInfo.scopeStreamInfos[curStreamIdx].nodeSize, plans[curStreamIdx].needFrontWait);
+            return false;
         }
 
         if (plans[curStreamIdx].needBackBlock
-            && !ProcessBackBlockForStream(scopeInfo, plans, processedScopeInfo, curStreamIdx, lastNodeId)) {
+            && !ProcessBackBlockForStream(tempExtInfo, scopeInfo.scopeStreamInfos, plans, curStreamIdx, lastNodeId)) {
             SK_LOGE("process back-block failed streamId=%u, nodeSize=%lu, BackBlock=%u",
-                    processedScopeInfo.updateStreamInfos[curStreamIdx].streamIdx,
-                    processedScopeInfo.updateStreamInfos[curStreamIdx].nodeSize, plans[curStreamIdx].needBackBlock);
-            return {};
+                    scopeInfo.scopeStreamInfos[curStreamIdx].streamIdx,
+                    scopeInfo.scopeStreamInfos[curStreamIdx].nodeSize, plans[curStreamIdx].needBackBlock);
+            return false;
         }
     }
     SK_LOGI("scope post-process front-wait and back-block processing done for all sub streams");
+    return true;
+}
 
-    // step 4: record nodes that need update for graph update
-    if (!graph.ExpandUpdateNodes(needUpdateNodes)) {
-        SK_LOGE("expand update node failed to record update nodes for graph update");
-        return {};
-    }
+bool SuperKernelScopePostProcessor::FinalizePostProcess(SuperKernelScopeInfo& scopeInfo, ScopeExtInfo& tempExtInfo,
+                                                        std::vector<SuperKernelBaseNode*>& needUpdateNodes)
+{
+    graph.ExpandUpdateNodes(needUpdateNodes);
     SK_LOGI("expand update node done, needUpdateNodesSize=%zu", needUpdateNodes.size());
 
     size_t totalCustomParamSize = 0;
-    for (const auto& streamInfo : processedScopeInfo.updateStreamInfos) {
-        totalCustomParamSize += streamInfo.customParams.size();
+    for (const auto& customParams : tempExtInfo.customParamsList) {
+        totalCustomParamSize += customParams.size();
     }
     SK_LOGI("scope post-process end: streamCount=%u, skMainNodeId=%lu, eventNodeCount=%zu, totalCustomParamSize=%zu",
-            streamCount, processedScopeInfo.skMainNodeId, processedScopeInfo.eventNodes.size(), totalCustomParamSize);
-    return processedScopeInfo;
+            scopeInfo.scopeStreamInfos.size(), tempExtInfo.skMainNodeId,
+            tempExtInfo.eventNodes.size(), totalCustomParamSize);
+
+    scopeInfo.extInfo = std::move(tempExtInfo);
+    return true;
+}
+
+bool SuperKernelScopePostProcessor::PostProcess(SuperKernelScopeInfo& scopeInfo)
+{
+    scopeInfo.extInfo = ScopeExtInfo {};
+    // Step 1: Validate all nodes in scope streams
+    if (!ValidateScopeStreamNodes(scopeInfo)) {
+        scopeInfo.extInfo.failReason = ScopeFailReason::VALIDATION_FAILED;
+        return false;
+    }
+
+    uint32_t streamCount = scopeInfo.scopeStreamInfos.size();
+    SK_LOGI("scope post-process begin: streamCount=%u, nodeCount=%zu", streamCount, scopeInfo.nodes.size());
+
+    // Step 2: Filter cancelled tasks
+    std::vector<SuperKernelBaseNode*> filteredTasks = FilterCancelledTasks(scopeInfo.nodes);
+    if (filteredTasks.empty()) {
+        SK_LOGI("scope post-process unprocessable: no task remains after cancelling notify/wait pairs");
+        scopeInfo.extInfo.failReason = ScopeFailReason::NO_TASK;
+        return false;
+    }
+
+    // Step 3: Skip scope when no kernel remains after filtering
+    if (GetKernelCnt(filteredTasks) == 0) {
+        SK_LOGI("scope post-process unprocessable: no kernel task remains after filtering");
+        scopeInfo.extInfo.failReason = ScopeFailReason::NO_KERNEL;
+        return false;
+    }
+
+    // Step 4: Initialize temp extInfo
+    ScopeExtInfo tempExtInfo;
+    tempExtInfo.filteredNodes = std::move(filteredTasks);
+    tempExtInfo.skMainNodeId = INVALID_TASK_ID;
+    tempExtInfo.customParamsList.resize(streamCount);
+
+    std::vector<StreamPostPlan> plans(streamCount);
+    uint32_t needFrontWaitCount = 0;
+    std::vector<SuperKernelBaseNode*> needUpdateNodes;
+
+    // Step 5: Collect stream boundary plans
+    if (!CollectStreamBoundaryPlans(scopeInfo, plans, needFrontWaitCount)) {
+        scopeInfo.extInfo.failReason = ScopeFailReason::STREAM_BOUNDARY_INVALID;
+        return false;
+    }
+
+    // Step 6: Select main stream and sub stream order
+    uint32_t mainStreamIdx = INVALID_STREAM_ID;
+    std::vector<uint32_t> subStreamOrder;
+    if (!GetMainAndSubStreamOrder(graph, plans, scopeInfo.scopeStreamInfos, tempExtInfo, needFrontWaitCount,
+                                  mainStreamIdx, subStreamOrder)) {
+        SK_LOGI("scope post-process unprocessable: failed to select main stream and sub stream");
+        scopeInfo.extInfo.failReason = ScopeFailReason::STREAM_SELECT_FAILED;
+        return false;
+    }
+    SK_LOGI("select main stream and sub stream done.");
+
+    // Step 7: Process sync events for sub streams
+    if (!ProcessSubStreamSyncEvents(scopeInfo, tempExtInfo, plans, mainStreamIdx, subStreamOrder, needFrontWaitCount)) {
+        scopeInfo.extInfo.failReason = ScopeFailReason::SUB_STREAM_SYNC_FAILED;
+        return false;
+    }
+
+    // Step 8: Apply event memory resource
+    if (!ApplyEventMemoryForFilteredTasks(tempExtInfo.filteredNodes, needUpdateNodes)) {
+        scopeInfo.extInfo.failReason = ScopeFailReason::EVENT_MEMORY_APPLY_FAILED;
+        return false;
+    }
+
+    // Step 9: Finalize and assign result
+    tempExtInfo.failReason = ScopeFailReason::NONE;
+    return FinalizePostProcess(scopeInfo, tempExtInfo, needUpdateNodes);
 }
