@@ -37,6 +37,7 @@ aclError g_aclmdlRIUpdateRet = ACL_SUCCESS;
 aclError g_aclmdlRIDestroyRegisterCallbackRet = ACL_SUCCESS;
 aclError g_aclrtMallocRet = ACL_SUCCESS;
 aclError g_aclrtFreeRet = ACL_SUCCESS;
+aclError g_aclrtMemsetRet = ACL_SUCCESS;
 aclError g_aclrtStreamGetIdRet = ACL_SUCCESS;
 int g_throwOnAclmdlRIGetStreams = 0;
 int g_binaryGetFunctionNullHandle = 0;
@@ -90,6 +91,7 @@ void SkUtResetCommonStubControls()
     g_aclmdlRIDestroyRegisterCallbackRet = ACL_SUCCESS;
     g_aclrtMallocRet = ACL_SUCCESS;
     g_aclrtFreeRet = ACL_SUCCESS;
+    g_aclrtMemsetRet = ACL_SUCCESS;
     g_aclrtStreamGetIdRet = ACL_SUCCESS;
     g_throwOnAclmdlRIGetStreams = 0;
     g_binaryGetFunctionNullHandle = 0;
@@ -228,6 +230,16 @@ aclError SkUtGetAclrtMallocRet()
 aclError SkUtGetAclrtFreeRet()
 {
     return g_aclrtFreeRet;
+}
+
+void SkUtSetAclrtMemsetRet(aclError ret)
+{
+    g_aclrtMemsetRet = ret;
+}
+
+aclError SkUtGetAclrtMemsetRet()
+{
+    return g_aclrtMemsetRet;
 }
 
 aclError SkUtGetAclrtStreamGetIdRet()

@@ -65,6 +65,12 @@ protected:
         // 确保每次测试后 recorder 被重置
         SkEventRecorder::Instance().SkProfilingShutdown();
         unsetenv("ASCEND_PROF_SK_ON");
+        // 重置 call_once 标志，使后续测试的 Init() 可以重新执行
+        SkEventRecorder::Instance().initFlag_.~once_flag();
+        new (&SkEventRecorder::Instance().initFlag_) std::once_flag();
+        // 重置 static 成员变量
+        SkEventRecorder::coreSize_ = SK_EVENT_DEFAULT_CORE_SIZE;
+        SkEventRecorder::totalSize_ = SK_EVENT_CORE_NUM * SK_EVENT_DEFAULT_CORE_SIZE;
         // 清理测试文件和目录
         CleanupTestFiles();
     }
@@ -91,7 +97,7 @@ protected:
                              uint8_t blockIdx = 0, uint8_t blockNum = 1) {
         uint8_t* hostBuf = ctx->hostBuf.get();
         SkKernelEventCoreBuf* coreBuf = reinterpret_cast<SkKernelEventCoreBuf*>(
-            hostBuf + coreId * SK_EVENT_CORE_SIZE);
+            hostBuf + coreId * SkEventRecorder::coreSize_);
 
         // 设置 offset 以便 DumpDeviceData 能读取到数据
         uint32_t newOffset = sizeof(SkKernelEventCoreBuf) + sizeof(SkKernelEventRecord);
@@ -99,7 +105,7 @@ protected:
 
         // 写入事件记录
         SkKernelEventRecord* record = reinterpret_cast<SkKernelEventRecord*>(
-            hostBuf + coreId * SK_EVENT_CORE_SIZE + sizeof(SkKernelEventRecord));
+            hostBuf + coreId * SkEventRecorder::coreSize_ + sizeof(SkKernelEventRecord));
         record->modelRI = modelRI;
         record->skId = skId;
         record->nodeId = nodeId;
@@ -113,13 +119,13 @@ protected:
     }
 
     // 辅助函数：初始化一个模拟的设备上下文
-    void InitMockDeviceCtx(uint32_t deviceId) {
-        SkEventDeviceCtx* ctx = &SkEventRecorder::Instance().deviceCtxs[deviceId];
-        ctx->deviceId = deviceId;
-        ctx->totalSize = SK_EVENT_TOTAL_SIZE;
-        ctx->gmAddr = malloc(SK_EVENT_TOTAL_SIZE);
-        ctx->hostBuf = std::make_unique<uint8_t[]>(SK_EVENT_TOTAL_SIZE);
-        (void)memset_s(ctx->hostBuf.get(), SK_EVENT_TOTAL_SIZE, 0, SK_EVENT_TOTAL_SIZE);
+    void InitMockDeviceCtx() {
+        SkEventDeviceCtx* ctx = &SkEventRecorder::Instance().deviceCtxs;
+        ctx->deviceId = 0;
+        ctx->totalSize = SkEventRecorder::totalSize_;
+        ctx->gmAddr = malloc(SkEventRecorder::totalSize_);
+        ctx->hostBuf = std::make_unique<uint8_t[]>(SkEventRecorder::totalSize_);
+        (void)memset_s(ctx->hostBuf.get(), SkEventRecorder::totalSize_, 0, SkEventRecorder::totalSize_);
         ctx->outputDir = SkEventRecorder::CreateOutputDir();  // 设置输出目录
         ctx->outputFp.Close();  // FileGuard 默认构造已经是无效状态
         for (uint32_t i = 0; i < SK_EVENT_CORE_NUM; i++) {
@@ -129,8 +135,8 @@ protected:
     }
 
     // 辅助函数：清理模拟的设备上下文
-    void CleanupMockDeviceCtx(uint32_t deviceId) {
-        SkEventDeviceCtx* ctx = &SkEventRecorder::Instance().deviceCtxs[deviceId];
+    void CleanupMockDeviceCtx() {
+        SkEventDeviceCtx* ctx = &SkEventRecorder::Instance().deviceCtxs;
         if (ctx->gmAddr) {
             free(ctx->gmAddr);
             ctx->gmAddr = nullptr;
@@ -158,9 +164,9 @@ TEST_F(SkEventRecorderTest, DisabledByDefault) {
     EXPECT_FALSE(SkEventRecorder::Instance().IsEnabled());
 }
 
-// Test 3: 环境变量设置为 "1" 时启用
-TEST_F(SkEventRecorderTest, EnabledWhenEnvSetToOne) {
-    setenv("ASCEND_PROF_SK_ON", "1", 1);
+// Test 3: 环境变量设置为 "64" 时启用（64KB coreSize）
+TEST_F(SkEventRecorderTest, EnabledWhenEnvSetToValidSize) {
+    setenv("ASCEND_PROF_SK_ON", "64", 1);
     
     bool result = SkEventRecorder::Instance().Init();
     EXPECT_TRUE(result);
@@ -369,7 +375,7 @@ TEST_F(SkEventRecorderTest, GetGmAddrForDeviceReturnsNullForInvalidDeviceId) {
 // Test 21: GetGmAddrForDevice 已激活的设备返回缓存地址
 TEST_F(SkEventRecorderTest, GetGmAddrForDeviceReturnsCachedAddr) {
     // 手动初始化一个设备上下文
-    InitMockDeviceCtx(0);
+    InitMockDeviceCtx();
     SkEventRecorder::Instance().enabled = true;
     
     void* firstCallAddr = SkEventRecorder::Instance().GetGmAddrForDevice(0);
@@ -379,20 +385,20 @@ TEST_F(SkEventRecorderTest, GetGmAddrForDeviceReturnsCachedAddr) {
     void* secondCallAddr = SkEventRecorder::Instance().GetGmAddrForDevice(0);
     EXPECT_EQ(firstCallAddr, secondCallAddr);
     
-    CleanupMockDeviceCtx(0);
+    CleanupMockDeviceCtx();
 }
 
 // ==================== DumpDeviceData 测试 ====================
 
 // Test 23: DumpDeviceData 空数据处理
 TEST_F(SkEventRecorderTest, DumpDeviceDataEmptyData) {
-    InitMockDeviceCtx(0);
+    InitMockDeviceCtx();
     
     // 没有事件数据
-    SkEventRecorder::Instance().DumpDeviceData(&SkEventRecorder::Instance().deviceCtxs[0]);
+    SkEventRecorder::Instance().DumpDeviceData(&SkEventRecorder::Instance().deviceCtxs);
     
     // 不应该崩溃
-    CleanupMockDeviceCtx(0);
+    CleanupMockDeviceCtx();
 }
 
 // Test 24: DumpDeviceData 空 gmAddr 或 hostBuf
@@ -408,9 +414,9 @@ TEST_F(SkEventRecorderTest, DumpDeviceDataNullPointers) {
 
 // Test 28: DumpDeviceData 跳过没有 NodeInfo 的事件
 TEST_F(SkEventRecorderTest, DumpDeviceDataSkipsEventsWithoutNodeInfo) {
-    InitMockDeviceCtx(0);
+    InitMockDeviceCtx();
 
-    SkEventDeviceCtx* ctx = &SkEventRecorder::Instance().deviceCtxs[0];
+    SkEventDeviceCtx* ctx = &SkEventRecorder::Instance().deviceCtxs;
 
     // 创建事件数据但不添加 NodeInfo
     CreateMockEventData(ctx, 0, 999, 999, 999, 100, 200, 0, 1);
@@ -419,7 +425,7 @@ TEST_F(SkEventRecorderTest, DumpDeviceDataSkipsEventsWithoutNodeInfo) {
 
     // 不应该崩溃，正常处理完成
 
-    CleanupMockDeviceCtx(0);
+    CleanupMockDeviceCtx();
 }
 
 // ==================== CreateDeviceCtx 测试 ====================
@@ -434,7 +440,7 @@ TEST_F(SkEventRecorderTest, CreateDeviceCtxBasic) {
         EXPECT_NE(ctx->hostBuf, nullptr);
         EXPECT_EQ(ctx->deviceId, 0);
         EXPECT_EQ(ctx->active.load(), 1);
-        EXPECT_EQ(ctx->totalSize, SK_EVENT_TOTAL_SIZE);
+        EXPECT_EQ(ctx->totalSize, SkEventRecorder::totalSize_);
         EXPECT_FALSE(ctx->outputDir.empty());  // 输出目录应被设置
 
         // 清理
@@ -455,7 +461,7 @@ TEST_F(SkEventRecorderTest, CreateDeviceCtxBasic) {
 
 // Test 30: Shutdown 后 IsEnabled 返回 false
 TEST_F(SkEventRecorderTest, IsEnabledFalseAfterShutdown) {
-    setenv("ASCEND_PROF_SK_ON", "1", 1);
+    setenv("ASCEND_PROF_SK_ON", "64", 1);
     SkEventRecorder::Instance().Init();
     EXPECT_TRUE(SkEventRecorder::Instance().IsEnabled());
     
@@ -476,10 +482,10 @@ TEST_F(SkEventRecorderTest, ShutdownDoesNothingWhenDisabled) {
 
 // Test 32: Shutdown 创建最终文件
 TEST_F(SkEventRecorderTest, ShutdownCreatesFinalFile) {
-    InitMockDeviceCtx(0);
+    InitMockDeviceCtx();
     SkEventRecorder::Instance().enabled = true;
 
-    SkEventDeviceCtx* ctx = &SkEventRecorder::Instance().deviceCtxs[0];
+    SkEventDeviceCtx* ctx = &SkEventRecorder::Instance().deviceCtxs;
 
     // 创建临时文件
     char tmpFile[512];
@@ -502,21 +508,19 @@ TEST_F(SkEventRecorderTest, ShutdownCreatesFinalFile) {
 
     // 清理
     remove(tmpFile);
-    CleanupMockDeviceCtx(0);
+    CleanupMockDeviceCtx();
 }
 
 // Test 33: Shutdown 释放资源
 TEST_F(SkEventRecorderTest, ShutdownReleasesResources) {
-    InitMockDeviceCtx(0);
-    InitMockDeviceCtx(1);
+    InitMockDeviceCtx();
     SkEventRecorder::Instance().enabled = true;
     
     // 调用 Shutdown
     SkEventRecorder::Instance().SkProfilingShutdown();
     
     // 验证资源被释放
-    EXPECT_EQ(SkEventRecorder::Instance().deviceCtxs[0].hostBuf, nullptr);
-    EXPECT_EQ(SkEventRecorder::Instance().deviceCtxs[1].hostBuf, nullptr);
+    EXPECT_EQ(SkEventRecorder::Instance().deviceCtxs.hostBuf, nullptr);
 }
 
 // Test 36: SkKernelEventRecord 结构体大小验证
@@ -541,7 +545,7 @@ TEST_F(SkEventRecorderTest, DeviceCtxInitialState) {
 
 // Test 39: Init 多次调用安全性
 TEST_F(SkEventRecorderTest, MultipleInitCalls) {
-    setenv("ASCEND_PROF_SK_ON", "1", 1);
+    setenv("ASCEND_PROF_SK_ON", "64", 1);
     
     bool result1 = SkEventRecorder::Instance().Init();
     bool result2 = SkEventRecorder::Instance().Init();
@@ -588,20 +592,21 @@ TEST_F(SkEventRecorderTest, LongNodeName) {
 TEST_F(SkEventRecorderTest, ConstantsVerification) {
     EXPECT_EQ(SK_EVENT_MAX_DEVICE_NUM, 16);
     EXPECT_EQ(SK_EVENT_CORE_NUM, 75);
-    EXPECT_EQ(SK_EVENT_CORE_SIZE, 1024 * 1024);
-    EXPECT_EQ(SK_EVENT_TOTAL_SIZE, SK_EVENT_CORE_NUM * SK_EVENT_CORE_SIZE);
+    EXPECT_EQ(SK_EVENT_DEFAULT_CORE_SIZE, 1024 * 1024);
+    EXPECT_EQ(SkEventRecorder::coreSize_, SK_EVENT_DEFAULT_CORE_SIZE);
+    EXPECT_EQ(SkEventRecorder::totalSize_, SK_EVENT_CORE_NUM * SK_EVENT_DEFAULT_CORE_SIZE);
 }
 
-// ==================== 析构函数测试 ====================
+// ==================== Init/Shutdown 生命周期测试 ====================
 
-// Test 44: 析构函数调用 Shutdown
-TEST_F(SkEventRecorderTest, DestructorCallsShutdown) {
-    // 创建一个新的 recorder 实例来测试析构
-    // 由于是单例，这里主要验证多次 Shutdown 的安全性
-    setenv("ASCEND_PROF_SK_ON", "1", 1);
+// Test 44: Init 成功后 Shutdown 能正确关闭
+TEST_F(SkEventRecorderTest, InitShutdownLifecycle) {
+    // 设置 64KB coreSize（已对齐，无需向上取整）
+    setenv("ASCEND_PROF_SK_ON", "64", 1);
     SkEventRecorder::Instance().Init();
-    
-    // 析构函数会在程序结束时调用，这里手动调用 Shutdown
+    EXPECT_TRUE(SkEventRecorder::Instance().IsEnabled());
+    EXPECT_EQ(SkEventRecorder::coreSize_, 64U * 1024U);
+
     SkEventRecorder::Instance().SkProfilingShutdown();
     EXPECT_FALSE(SkEventRecorder::Instance().IsEnabled());
 }
@@ -610,35 +615,31 @@ TEST_F(SkEventRecorderTest, DestructorCallsShutdown) {
 
 // Test 45: DumpThreadFunc 可以被安全调用
 TEST_F(SkEventRecorderTest, DumpThreadFuncCanBeCalledSafely) {
-    InitMockDeviceCtx(0);
+    InitMockDeviceCtx();
     
     // 直接调用 DumpThreadFunc 的单次迭代逻辑
     SkEventRecorder::Instance().globalRunning.store(false);  // 立即停止
     
     // 手动调用 DumpDeviceData
-    SkEventRecorder::Instance().DumpDeviceData(&SkEventRecorder::Instance().deviceCtxs[0]);
+    SkEventRecorder::Instance().DumpDeviceData(&SkEventRecorder::Instance().deviceCtxs);
     
     // 不应该崩溃
-    CleanupMockDeviceCtx(0);
+    CleanupMockDeviceCtx();
 }
 
-// Test 46: DumpThreadFunc 处理多个设备
-TEST_F(SkEventRecorderTest, DumpThreadFuncHandlesMultipleDevices) {
-    InitMockDeviceCtx(0);
-    InitMockDeviceCtx(1);
+// Test 46: DumpThreadFunc 处理单个设备
+TEST_F(SkEventRecorderTest, DumpThreadFuncHandlesSingleDevice) {
+    InitMockDeviceCtx();
     
     SkEventRecorder::Instance().globalRunning.store(false);
     
-    // 手动调用每个设备的 DumpDeviceData
-    for (uint32_t i = 0; i < SK_EVENT_MAX_DEVICE_NUM; i++) {
-        SkEventDeviceCtx* ctx = &SkEventRecorder::Instance().deviceCtxs[i];
-        if (ctx->active.load()) {
-            SkEventRecorder::Instance().DumpDeviceData(ctx);
-        }
+    // 手动调用 DumpDeviceData
+    SkEventDeviceCtx* ctx = &SkEventRecorder::Instance().deviceCtxs;
+    if (ctx->active.load()) {
+        SkEventRecorder::Instance().DumpDeviceData(ctx);
     }
     
-    CleanupMockDeviceCtx(0);
-    CleanupMockDeviceCtx(1);
+    CleanupMockDeviceCtx();
 }
 
 // ==================== 边界条件测试 ====================
@@ -674,7 +675,7 @@ TEST_F(SkEventRecorderTest, GetGmAddrForDeviceDoubleCheckLocking) {
         EXPECT_EQ(addr1, addr2);
 
         // 清理
-        SkEventDeviceCtx* ctx = &SkEventRecorder::Instance().deviceCtxs[0];
+        SkEventDeviceCtx* ctx = &SkEventRecorder::Instance().deviceCtxs;
         std::string outputDir = ctx->outputDir;  // 保存路径用于清理
         if (ctx->gmAddr) {
             aclrtFree(ctx->gmAddr);

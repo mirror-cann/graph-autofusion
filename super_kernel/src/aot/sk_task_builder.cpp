@@ -1431,7 +1431,7 @@ SkHostEntryInfo SkTaskBuilder::GenEntryInfo(SkTask& skTaskCube, SkTask& skTaskVe
     // ========== 读取环境变量配置 ==========
     // ASCEND_PROF_SK_ON: 启用 profiling 功能
     const char* profilingEnv = std::getenv("ASCEND_PROF_SK_ON");
-    bool enableProfiling = (profilingEnv != nullptr && std::string(profilingEnv) == "1");
+    bool enableProfiling = (profilingEnv != nullptr && std::string(profilingEnv) != "0");
     
     // ASCEND_SK_OP_TRACE_ON: 启用 op_trace 功能
     const char* opTraceEnv = std::getenv("ASCEND_SK_OP_TRACE_ON");

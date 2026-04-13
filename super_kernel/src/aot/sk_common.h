@@ -248,7 +248,7 @@ struct SkEventConfig {
     uint64_t modelRI;       // modelRI 标识
     uint32_t skId;          // SK 标识
     uint8_t enabled;       // 是否启用
-    uint32_t reserved;      // 保留字段
+    uint32_t coreSize;      // 每个core的缓冲区大小（字节）
 };
 
 bool GetFuncSymbolInfo(const char* binAddr, size_t binSize, uint64_t funcAddr, std::string& symbolName,

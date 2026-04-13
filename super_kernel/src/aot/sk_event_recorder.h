@@ -32,8 +32,7 @@ struct SkNodeInfo {
 // ==================== 常量定义 ====================
 constexpr uint32_t SK_EVENT_MAX_DEVICE_NUM = 16;
 constexpr uint32_t SK_EVENT_CORE_NUM = 75;           // 每个 device 的 core 数
-constexpr uint32_t SK_EVENT_CORE_SIZE = 1024 * 1024; // 每个 core 1MB
-constexpr uint32_t SK_EVENT_TOTAL_SIZE = SK_EVENT_CORE_NUM * SK_EVENT_CORE_SIZE; // 75MB
+constexpr uint32_t SK_EVENT_DEFAULT_CORE_SIZE = 1024 * 1024; // 默认每个 core 1MB
 #if defined(NPU_ARCH) && NPU_ARCH == 310
 constexpr uint32_t TICK_US_MULTIPLER = 1000;
 #else
@@ -77,6 +76,9 @@ public:
     // 是否启用
     bool IsEnabled() const { return enabled; }
 
+    static uint32_t GetCoreSize() { return coreSize_; }
+    static uint32_t GetTotalSize() { return totalSize_; }
+
     // 添加 modelRI -> skId -> nodeId -> (nodeName, numBlocks) 映射（线程安全）
     void AddNodeInfoMapping(uint64_t modelRI, uint32_t skId, uint32_t nodeId,
                             const std::string& nodeName, uint32_t numBlocks);
@@ -96,6 +98,9 @@ private:
 
     // 创建输出目录 sk_meta/<pid>，返回目录路径
     static std::string CreateOutputDir();
+
+    // 根据环境变量计算并设置 coreSize 和 totalSize，返回是否启用
+    static bool ParseEnvAndSetSize();
 
     // 创建 device 上下文（带加锁）
     SkEventDeviceCtx* CreateDeviceCtx(uint32_t deviceId);
@@ -122,6 +127,9 @@ private:
     std::once_flag initFlag_;               // 保证 Init() 创建后台线程只执行一次
     std::mutex mutex;
     SkEventDeviceCtx deviceCtxs; // device上下文列表
+
+    static uint32_t coreSize_;   // 每个 core 的profiling 记录的gm缓冲区大小（字节），由环境变量决定
+    static uint32_t totalSize_;  // 总缓冲区大小 = SK_EVENT_CORE_NUM * coreSize_
 
     // NodeInfo 映射表：modelRI -> skId -> nodeId -> NodeInfo
     mutable std::mutex nodeInfoMapMutex;

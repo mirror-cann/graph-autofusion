@@ -201,7 +201,7 @@ TEST_F(SkResourceManagerTest, AllocForPid_MemsetFail_FreeAllocatedMemory)
     void* addr = nullptr;
 
     SkUtSetAclrtMallocRet(ACL_SUCCESS);
-    SkUtSetSecurecMemsetFailOnCall(1);
+    SkUtSetAclrtMemsetRet(ACL_ERROR_FAILURE);
     EXPECT_EQ(rm.AllocForPid(1001, &addr, 64), ACL_ERROR_FAILURE);
 }
 

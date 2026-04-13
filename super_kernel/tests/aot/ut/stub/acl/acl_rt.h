@@ -136,6 +136,11 @@ typedef enum aclmdlRITaskType {
     ACL_MODEL_RI_TASK_VALUE_WAIT,
 } aclmdlRITaskType;
 
+typedef enum aclmdlRICaptureMode {
+    ACL_MODEL_RI_CAPTURE_MODE_GLOBAL = 0,
+    ACL_MODEL_RI_CAPTURE_MODE_RELAXED,
+} aclmdlRICaptureMode;
+
 typedef void *aclmdlRITask;
 
 // RI Task parameter structures (new API)
@@ -224,6 +229,7 @@ aclError aclmdlRITaskDisable(aclmdlRITask task);
 aclError aclmdlRITaskGetSeqId(aclmdlRITask task, uint32_t *id);
 aclError aclmdlRIGetTasksByStream(aclrtStream stream, aclmdlRITask *tasks, uint32_t *numTasks);
 aclError aclrtFunctionGetBinary(aclrtFuncHandle funcHandle, aclrtBinHandle *binHandle);
+aclError aclmdlRICaptureThreadExchangeMode(aclmdlRICaptureMode *mode);
 
 // Binary API
 aclError aclrtBinaryGetFunction(aclrtBinHandle binHdl, const char* funcName, aclrtFuncHandle* funcHdl);

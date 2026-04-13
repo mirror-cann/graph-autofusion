@@ -255,6 +255,10 @@ aclError aclrtMemcpy(void *dst, size_t destMax, const void *src, size_t count, a
 
 // 内存设置
 aclError aclrtMemset(void *devPtr, size_t maxCount, int value, size_t count) {
+    aclError ctrlRet = SkUtGetAclrtMemsetRet();
+    if (ctrlRet != ACL_SUCCESS) {
+        return ctrlRet;
+    }
     if (devPtr == nullptr) {
         return ACL_ERROR_INVALID_PARAM;
     }
@@ -431,6 +435,18 @@ aclError aclmdlRIGetTasksByStream(aclrtStream stream, aclmdlRITask *tasks, uint3
     }
     if (tasks != nullptr) {
         *numTasks = 0;
+    }
+    return ACL_ERROR_NONE;
+}
+
+aclError aclmdlRICaptureThreadExchangeMode(aclmdlRICaptureMode *mode) {
+    if (mode == nullptr) {
+        return ACL_ERROR_INVALID_PARAM;
+    }
+    if (*mode == ACL_MODEL_RI_CAPTURE_MODE_GLOBAL) {
+        *mode = ACL_MODEL_RI_CAPTURE_MODE_RELAXED;
+    } else {
+        *mode = ACL_MODEL_RI_CAPTURE_MODE_GLOBAL;
     }
     return ACL_ERROR_NONE;
 }
