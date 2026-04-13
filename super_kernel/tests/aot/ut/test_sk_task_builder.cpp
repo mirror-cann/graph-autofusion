@@ -283,7 +283,7 @@ TEST_F(SkTaskBuilderTest, EntryInfoAndArgs_GenerateSuccessfully)
 
 TEST_F(SkTaskBuilderTest, GetPreFetchCnt_OptionBranches)
 {
-    opts->AddOption(std::make_unique<NumberOptOption>("preload", aclskOtionType::PRELOAD_CODE, 1, 0, 2));
+    opts->AddOption(std::make_unique<NumberOptOption>("preload", aclskOptionType::PRELOAD_CODE, 1, 0, 2));
     ResolvedFunctionInfo resolved{};
     resolved.prefetchCnt[0] = 3;
     resolved.prefetchCnt[1] = 4;
@@ -292,12 +292,12 @@ TEST_F(SkTaskBuilderTest, GetPreFetchCnt_OptionBranches)
     EXPECT_EQ(p1.first, 3);
     EXPECT_EQ(p1.second, 4);
 
-    opts->GetOption(aclskOtionType::PRELOAD_CODE)->SetValue(0);
+    opts->GetOption(aclskOptionType::PRELOAD_CODE)->SetValue(0);
     auto p2 = builder->GetPreFetchCnt(resolved);
     EXPECT_EQ(p2.first, 16);
     EXPECT_EQ(p2.second, 8);
 
-    opts->GetOption(aclskOtionType::PRELOAD_CODE)->SetValue(2);
+    opts->GetOption(aclskOptionType::PRELOAD_CODE)->SetValue(2);
     auto p3 = builder->GetPreFetchCnt(resolved);
     EXPECT_EQ(p3.first, 0);
     EXPECT_EQ(p3.second, 0);
@@ -305,8 +305,8 @@ TEST_F(SkTaskBuilderTest, GetPreFetchCnt_OptionBranches)
 
 TEST_F(SkTaskBuilderTest, Build_DebugMode_TriggerDumpHelpers)
 {
-    opts->AddOption(std::make_unique<NumberOptOption>("split_mode", aclskOtionType::SPLIT_MODE, 1, 1, 4));
-    opts->AddOption(std::make_unique<NumberOptOption>("debug_sync_all", aclskOtionType::DEBUG_SYNC_ALL, 1, 0, 1));
+    opts->AddOption(std::make_unique<NumberOptOption>("split_mode", aclskOptionType::SPLIT_MODE, 1, 1, 4));
+    opts->AddOption(std::make_unique<NumberOptOption>("debug_sync_all", aclskOptionType::DEBUG_SYNC_ALL, 1, 0, 1));
 
     std::vector<SuperKernelBaseNode*> tasks;
     tasks.push_back(CreateKernelNodeEx(3001, 0, INVALID_TASK_ID, INVALID_TASK_ID, SkKernelType::AIC_ONLY));
@@ -390,7 +390,7 @@ TEST_F(SkTaskBuilderTest, DispatchSyncTasks_UnknownSyncType_SkipsAndReturnsTrue)
 
 TEST_F(SkTaskBuilderTest, Build_CustomTaskMissingPreviousKernel_FallbackAndSucceed)
 {
-    opts->AddOption(std::make_unique<NumberOptOption>("split_mode", aclskOtionType::SPLIT_MODE, 1, 1, 4));
+    opts->AddOption(std::make_unique<NumberOptOption>("split_mode", aclskOptionType::SPLIT_MODE, 1, 1, 4));
 
     auto* kernel = CreateKernelNodeEx(5004, 0, INVALID_TASK_ID, INVALID_TASK_ID, SkKernelType::AIC_ONLY);
     auto* customWait = CreateWaitNodeEx(5005, 0, INVALID_TASK_ID, INVALID_TASK_ID, 100);
@@ -407,7 +407,7 @@ TEST_F(SkTaskBuilderTest, Build_CustomTaskMissingPreviousKernel_FallbackAndSucce
 
 TEST_F(SkTaskBuilderTest, Build_CustomTaskUnsupportedNodeType_ReturnEmpty)
 {
-    opts->AddOption(std::make_unique<NumberOptOption>("split_mode", aclskOtionType::SPLIT_MODE, 1, 1, 4));
+    opts->AddOption(std::make_unique<NumberOptOption>("split_mode", aclskOptionType::SPLIT_MODE, 1, 1, 4));
 
     auto* kernel = CreateKernelNodeEx(5006, 0, INVALID_TASK_ID, INVALID_TASK_ID, SkKernelType::AIC_ONLY);
     auto* customKernel = CreateKernelNodeEx(5007, 0, INVALID_TASK_ID, INVALID_TASK_ID, SkKernelType::AIC_ONLY);
@@ -526,7 +526,7 @@ TEST_F(SkTaskBuilderTest, SyncOptimizationAndDispatchSyncBranches)
 
 TEST_F(SkTaskBuilderTest, Build_WithCustomNotifyWaitReset_Success)
 {
-    opts->AddOption(std::make_unique<NumberOptOption>("split_mode", aclskOtionType::SPLIT_MODE, 1, 1, 4));
+    opts->AddOption(std::make_unique<NumberOptOption>("split_mode", aclskOptionType::SPLIT_MODE, 1, 1, 4));
 
     auto* k0 = CreateKernelNodeEx(7001, 0, INVALID_TASK_ID, INVALID_TASK_ID, SkKernelType::MIX_AIC_1_1);
     auto* k1 = CreateKernelNodeEx(7002, 1, INVALID_TASK_ID, INVALID_TASK_ID, SkKernelType::MIX_AIC_1_2);
@@ -570,7 +570,7 @@ TEST_F(SkTaskBuilderTest, AddTasks_NullQueueAndDispatchQueueSelection)
 TEST_F(SkTaskBuilderTest, DispatchFuncTask_MixFailureAndDcciBranch)
 {
     opts->AddOption(std::make_unique<StringListOptOption>(
-        "dcci_disable", aclskOtionType::DEBUG_DCCI_DISABLE_ON_KERNEL, std::vector<std::string>{"k"}));
+        "dcci_disable", aclskOptionType::DEBUG_DCCI_DISABLE_ON_KERNEL, std::vector<std::string>{"k"}));
 
     SkTask aic;
     SkTask aiv;
@@ -635,7 +635,7 @@ TEST_F(SkTaskBuilderTest, GenEntryInfo_AllModeBranches)
 
 TEST_F(SkTaskBuilderTest, Build_WithNotifyAndWaitNodes_Success)
 {
-    opts->AddOption(std::make_unique<NumberOptOption>("split_mode", aclskOtionType::SPLIT_MODE, 1, 1, 4));
+    opts->AddOption(std::make_unique<NumberOptOption>("split_mode", aclskOptionType::SPLIT_MODE, 1, 1, 4));
 
     auto* k0 = CreateKernelNodeEx(8201, 0, INVALID_TASK_ID, 8202, SkKernelType::AIC_ONLY);
     auto* n1 = CreateNotifyNodeEx(8202, 0, 8201, 8203, 101);
@@ -785,7 +785,7 @@ TEST_F(SkTaskBuilderTest, Build_OnlyEventTask_GenEntryInfoFail)
 
 TEST_F(SkTaskBuilderTest, Build_ResolveEntryHandleAtBuildStage_WhenBinNotReady_ReturnEmpty)
 {
-    opts->AddOption(std::make_unique<NumberOptOption>("split_mode", aclskOtionType::SPLIT_MODE, 1, 1, 4));
+    opts->AddOption(std::make_unique<NumberOptOption>("split_mode", aclskOptionType::SPLIT_MODE, 1, 1, 4));
     SkUtSetEntryBinHandleNull(1);
 
     auto* kernel = CreateKernelNodeEx(8911, 0, INVALID_TASK_ID, INVALID_TASK_ID, SkKernelType::AIC_ONLY);
@@ -806,7 +806,7 @@ TEST_F(SkTaskBuilderTest, PrecomputeSyncRelations_WaitWithoutNotify_Success)
 
 TEST_F(SkTaskBuilderTest, Build_RollingPreloadDispatchFail_ReturnEmpty)
 {
-    opts->AddOption(std::make_unique<NumberOptOption>("split_mode", aclskOtionType::SPLIT_MODE, 1, 1, 4));
+    opts->AddOption(std::make_unique<NumberOptOption>("split_mode", aclskOptionType::SPLIT_MODE, 1, 1, 4));
 
     auto* notify = CreateNotifyNodeEx(9501, 0, INVALID_TASK_ID, 9502, 5001);
     auto* kernel = CreateKernelNodeEx(9502, 0, 9501, INVALID_TASK_ID, SkKernelType::AIC_ONLY);
@@ -823,7 +823,7 @@ TEST_F(SkTaskBuilderTest, Build_RollingPreloadDispatchFail_ReturnEmpty)
 
 TEST_F(SkTaskBuilderTest, Build_CustomTaskUnsupportedType_ReturnEmpty)
 {
-    opts->AddOption(std::make_unique<NumberOptOption>("split_mode", aclskOtionType::SPLIT_MODE, 1, 1, 4));
+    opts->AddOption(std::make_unique<NumberOptOption>("split_mode", aclskOptionType::SPLIT_MODE, 1, 1, 4));
 
     auto* kernel = CreateKernelNodeEx(9001, 0, INVALID_TASK_ID, INVALID_TASK_ID, SkKernelType::AIC_ONLY);
     auto* customKernel = CreateKernelNodeEx(9002, 0, 9001, INVALID_TASK_ID, SkKernelType::AIC_ONLY);
@@ -897,7 +897,7 @@ TEST_F(SkTaskBuilderTest, PrintSyncInfo_CoversVecAndCubFormattingPaths)
 
 TEST_F(SkTaskBuilderTest, ExtractIntraStreamSync_StreamFusionOffMultiStreamBranch)
 {
-    opts->AddOption(std::make_unique<NumberOptOption>("stream_fusion", aclskOtionType::STREAM_FUSION, 0, 0, 1));
+    opts->AddOption(std::make_unique<NumberOptOption>("stream_fusion", aclskOptionType::STREAM_FUSION, 0, 0, 1));
 
     auto* k0 = CreateKernelNodeEx(30001, 0, INVALID_TASK_ID, INVALID_TASK_ID, SkKernelType::AIC_ONLY);
     auto* k1 = CreateKernelNodeEx(30002, 1, INVALID_TASK_ID, INVALID_TASK_ID, SkKernelType::AIV_ONLY);

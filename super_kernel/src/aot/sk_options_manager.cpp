@@ -100,7 +100,7 @@ void SuperKernelOptionsManager::AddOption(std::unique_ptr<OptOptionBase> option)
     optionMap[option->GetType()] = std::move(option);
 }
 
-OptOptionBase* SuperKernelOptionsManager::GetOption(aclskOtionType optType) {
+OptOptionBase* SuperKernelOptionsManager::GetOption(aclskOptionType optType) {
     auto iter = optionMap.find(optType);
     if (iter == optionMap.end()) {
         return nullptr;
@@ -108,7 +108,7 @@ OptOptionBase* SuperKernelOptionsManager::GetOption(aclskOtionType optType) {
     return iter->second.get();
 }
 
-const OptOptionBase* SuperKernelOptionsManager::GetOption(aclskOtionType optType) const {
+const OptOptionBase* SuperKernelOptionsManager::GetOption(aclskOptionType optType) const {
     auto iter = optionMap.find(optType);
     if (iter == optionMap.end()) {
         return nullptr;
@@ -169,8 +169,8 @@ bool SuperKernelOptionsManager::MatchRegex(const std::string& pattern, const std
 }
 
 bool SuperKernelOptionsManager::EnableDebug() const {
-    auto iterSyncAll = optionMap.find(aclskOtionType::DEBUG_SYNC_ALL);
-    auto iterDcci = optionMap.find(aclskOtionType::DEBUG_DCCI_DISABLE_ON_KERNEL);
+    auto iterSyncAll = optionMap.find(aclskOptionType::DEBUG_SYNC_ALL);
+    auto iterDcci = optionMap.find(aclskOptionType::DEBUG_DCCI_DISABLE_ON_KERNEL);
     const bool enableSyncAll =
         (iterSyncAll != optionMap.end() && iterSyncAll->second != nullptr && iterSyncAll->second->GetIntValue() == 1);
     const bool enableDcciDisable = (iterDcci != optionMap.end() && iterDcci->second != nullptr);
@@ -187,7 +187,7 @@ void SuperKernelOptionsManager::SetOptOptionValue(const aclskOption* option) {
         return;
     }
     switch (option->optionType) {
-        case aclskOtionType::PRELOAD_CODE:
+        case aclskOptionType::PRELOAD_CODE:
             {
                 AddOption(std::make_unique<NumberOptOption>("preload_code", option->optionType, 1, 0, 2));
                 auto subOption = GetOption(option->optionType);
@@ -196,7 +196,7 @@ void SuperKernelOptionsManager::SetOptOptionValue(const aclskOption* option) {
                 }
                 break;
             }
-        case aclskOtionType::SPLIT_MODE:
+        case aclskOptionType::SPLIT_MODE:
             {
                 AddOption(std::make_unique<NumberOptOption>("split_mode", option->optionType, 4, 1, 4));
                 auto subOption = GetOption(option->optionType);
@@ -205,7 +205,7 @@ void SuperKernelOptionsManager::SetOptOptionValue(const aclskOption* option) {
                 }
                 break;
             }
-        case aclskOtionType::DEBUG_DCCI_DISABLE_ON_KERNEL:
+        case aclskOptionType::DEBUG_DCCI_DISABLE_ON_KERNEL:
             {
                 AddOption(std::make_unique<StringListOptOption>("dcci_disable_on_kernel", option->optionType));
                 auto subOption = GetOption(option->optionType);
@@ -230,7 +230,7 @@ void SuperKernelOptionsManager::SetOptOptionValue(const aclskOption* option) {
                 }
                 break;
             }
-        case aclskOtionType::DEBUG_SYNC_ALL:
+        case aclskOptionType::DEBUG_SYNC_ALL:
             {
                 AddOption(std::make_unique<NumberOptOption>("debug_sync_all", option->optionType, 0, 0, 1));
                 auto subOption = GetOption(option->optionType);
@@ -239,7 +239,7 @@ void SuperKernelOptionsManager::SetOptOptionValue(const aclskOption* option) {
                 }
                 break;
             }
-        case aclskOtionType::STREAM_FUSION:
+        case aclskOptionType::STREAM_FUSION:
             {
                 AddOption(std::make_unique<NumberOptOption>("stream_fusion", option->optionType, 1, 0, 1));
                 auto subOption = GetOption(option->optionType);
@@ -248,7 +248,7 @@ void SuperKernelOptionsManager::SetOptOptionValue(const aclskOption* option) {
                 }
                 break;
             }
-        case aclskOtionType::CONSTANT_CODEGEN:
+        case aclskOptionType::CONSTANT_CODEGEN:
             {
                 // 默认关闭常量化代码生成（值为1启用，0禁用）
                 AddOption(std::make_unique<NumberOptOption>("constant_codegen", option->optionType, 0, 0, 1));
@@ -259,14 +259,25 @@ void SuperKernelOptionsManager::SetOptOptionValue(const aclskOption* option) {
                 SK_LOGI("Constant codegen option set: enable=%u", option->constantCodegen.enableConstant);
                 break;
             }
-        case aclskOtionType::OPS_LAYOUT_OPTIMIZE:
+        case aclskOptionType::AUTO_OP_PARALLEL:
             {
-                AddOption(std::make_unique<NumberOptOption>("ops_layout_optimize", option->optionType, 0, 0, 1));
+                AddOption(std::make_unique<NumberOptOption>("auto_op_parallel", option->optionType, 0, 0, 1));
                 auto subOption = GetOption(option->optionType);
                 if (subOption != nullptr) {
-                    subOption->SetValue(option->layoutOptimize.enableOpsLayoutOptimize);
+                    subOption->SetValue(option->autoOpParallel.enableAutoOpParallel);
                 }
-                SK_LOGI("Ops layout optimize option set: enable=%u", option->layoutOptimize.enableOpsLayoutOptimize);
+                SK_LOGI("Auto op parallel option set: enable=%u", option->autoOpParallel.enableAutoOpParallel);
+                break;
+            }
+        case aclskOptionType::DEBUG_CROSS_CORE_SYNC_CHECK:
+            {
+                AddOption(std::make_unique<NumberOptOption>("debug_cross_core_sync_check", option->optionType, 0, 0, 1));
+                auto subOption = GetOption(option->optionType);
+                if (subOption != nullptr) {
+                    subOption->SetValue(option->debugCrossCoreSyncCheck.enableCrossCoreSyncCheck);
+                }
+                SK_LOGI("Debug cross-core sync check option set: enable=%u",
+                    option->debugCrossCoreSyncCheck.enableCrossCoreSyncCheck);
                 break;
             }
         default:

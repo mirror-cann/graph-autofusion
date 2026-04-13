@@ -38,7 +38,7 @@ extern "C" {
 #endif
 #endif
 
-enum class aclskOtionType : uint32_t {
+enum class aclskOptionType : uint32_t {
     PRELOAD_CODE = 0,
     SPLIT_MODE = 1,
     STREAM_FUSION = 2,
@@ -46,7 +46,12 @@ enum class aclskOtionType : uint32_t {
     DEBUG_SYNC_ALL = 4,
     KERNEL_MAP = 5,
     CONSTANT_CODEGEN = 6,  // 常量化代码生成选项
-    OPS_LAYOUT_OPTIMIZE = 7, // 优化多流算子排布
+    AUTO_OP_PARALLEL = 7,  // 优化多流算子排布
+    DEBUG_DCCI_BEFORE_KERNEL_START = 8,
+    DEBUG_OP_EXEC_TRACE = 9,
+    DEBUG_CROSS_CORE_SYNC_CHECK = 10,
+    OPT_EXTEND_OPTION = 11,   // 扩展选项，预留后续使用
+    DEBUG_EXTEND_OPTION = 12, // 扩展选项，预留后续使用
     SK_OPTION_MAX = 0xFFFFFFFF
 };
 
@@ -81,9 +86,21 @@ typedef struct aclskKernelMapOption {
     size_t numKernels;
 } aclskKernelMapOption;
 
-typedef struct aclskOpsLayoutOptimizeOption {
-    uint32_t enableOpsLayoutOptimize;
-} aclskOpsLayoutOptimizeOption;
+typedef struct aclskAutoOpParallelOption {
+    uint32_t enableAutoOpParallel;
+} aclskAutoOpParallelOption;
+
+typedef struct aclskDebugOpExecTraceOption {
+    uint32_t enableOpExecTrace;
+} aclskDebugOpExecTraceOption;
+
+typedef struct aclskDebugCrossCoreSyncCheckOption {
+    uint32_t enableCrossCoreSyncCheck;
+} aclskDebugCrossCoreSyncCheckOption;
+
+typedef struct aclskExtendOption {
+    char* value;
+} aclskExtendOption;
 
 /**
  * 常量化代码生成选项
@@ -94,7 +111,7 @@ typedef struct aclskConstantCodegenOption {
 } aclskConstantCodegenOption;
 
 struct aclskOption {
-    aclskOtionType optionType;
+    aclskOptionType optionType;
     union {
         aclskPreloadOption preload;
         aclskSplitModeOption splitMode;
@@ -103,7 +120,12 @@ struct aclskOption {
         aclskDebugSyncAllOption debugSync;
         aclskKernelMapOption kernelMap;
         aclskConstantCodegenOption constantCodegen;
-        aclskOpsLayoutOptimizeOption layoutOptimize;
+        aclskAutoOpParallelOption autoOpParallel;
+        aclskDcciOption dcciBeforeKernelStart;
+        aclskDebugOpExecTraceOption debugOpExecTrace;
+        aclskDebugCrossCoreSyncCheckOption debugCrossCoreSyncCheck;
+        aclskExtendOption optExtend;
+        aclskExtendOption debugExtend;
     };
 };
 

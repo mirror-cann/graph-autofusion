@@ -796,7 +796,7 @@ std::pair<aclrtFuncHandle, SkKernelType> TryGenerateConstantFuncHandle(
     }
     
     // 然后检查选项（选项优先级高于环境变量）
-    auto constantOpt = opts.GetOption(aclskOtionType::CONSTANT_CODEGEN);
+    auto constantOpt = opts.GetOption(aclskOptionType::CONSTANT_CODEGEN);
     if (constantOpt != nullptr) {
         if (constantOpt->GetIntValue() == 1) {
             enableConstant = true;

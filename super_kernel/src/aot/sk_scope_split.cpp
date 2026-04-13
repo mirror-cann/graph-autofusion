@@ -1194,10 +1194,10 @@ bool SchoModeKernelSplitPass::Run(std::vector<SuperKernelScopeInfo>& scopes) {
 
 SuperKernelScopeSplitter::SuperKernelScopeSplitter(SuperKernelGraph& inputGraph, SuperKernelOptionsManager& opts)
     : graph_(inputGraph) {
-    auto opsLayoutOptimize = opts.GetOption(aclskOtionType::OPS_LAYOUT_OPTIMIZE);
+    auto autoOpParallel = opts.GetOption(aclskOptionType::AUTO_OP_PARALLEL);
     SkHeapType heapType = SkHeapType::PRIORITY_QUEUE;
-    if (opsLayoutOptimize != nullptr) {
-        heapType = static_cast<SkHeapType>(opsLayoutOptimize->GetIntValue());
+    if (autoOpParallel != nullptr) {
+        heapType = static_cast<SkHeapType>(autoOpParallel->GetIntValue());
     }
     // Initialize passes in execution order
     // Pass 0: Initial scope splitting

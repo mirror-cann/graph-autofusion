@@ -518,7 +518,7 @@ void SkTaskBuilder::ExtractIntraStreamSync(const std::vector<SuperKernelBaseNode
         indexToNodeId_[i] = tasks[i]->GetNodeId();
     }
 
-    auto streamfusionOption = opts.GetOption(aclskOtionType::STREAM_FUSION);
+    auto streamfusionOption = opts.GetOption(aclskOptionType::STREAM_FUSION);
     uint32_t streamFusionValue = 1;
     if (streamfusionOption != nullptr) {
         streamFusionValue = streamfusionOption->GetIntValue();
@@ -970,7 +970,7 @@ DeviceArgsPtr SkTaskBuilder::GenEntryArgs(const SkTask& skTaskCube, const SkTask
 std::pair<int, int> SkTaskBuilder::GetPreFetchCnt(const ResolvedFunctionInfo& resolved)
 {
     std::pair<int, int> preFetchCntValue = std::make_pair(resolved.prefetchCnt[0], resolved.prefetchCnt[1]);
-    auto preLoadOptions = opts.GetOption(aclskOtionType::PRELOAD_CODE);
+    auto preLoadOptions = opts.GetOption(aclskOptionType::PRELOAD_CODE);
 
     // default: preLoadValue == 1, use func size to prefetch
     uint32_t preLoadValue = 1;
@@ -1001,7 +1001,7 @@ bool SkTaskBuilder::AddSyncTask(SkTask& skTask, size_t nodeIndex, SkCoreSyncType
         return false;
     }
 
-    auto syncAllOptions = opts.GetOption(aclskOtionType::DEBUG_SYNC_ALL);
+    auto syncAllOptions = opts.GetOption(aclskOptionType::DEBUG_SYNC_ALL);
     uint32_t debugSyncAll = 0;
     if (syncAllOptions != nullptr) {
         debugSyncAll = syncAllOptions->GetIntValue();
@@ -1119,7 +1119,7 @@ bool SkTaskBuilder::AddFuncTask(SkTask& skTask, SuperKernelBaseNode* node, SkDfx
         return false;
     }
 
-    auto disableDcciOptions = opts.GetOption(aclskOtionType::DEBUG_DCCI_DISABLE_ON_KERNEL);
+    auto disableDcciOptions = opts.GetOption(aclskOptionType::DEBUG_DCCI_DISABLE_ON_KERNEL);
     std::vector<std::string> disableDcciList;
     if (disableDcciOptions != nullptr) {
         disableDcciList = disableDcciOptions->GetStringListValue();
@@ -1593,7 +1593,7 @@ SkLaunchInfo SkTaskBuilder::Build(std::string skFuncName, const std::vector<Supe
         return {};
     }
 
-    const auto* debugSyncOpt = opts.GetOption(aclskOtionType::DEBUG_SYNC_ALL);
+    const auto* debugSyncOpt = opts.GetOption(aclskOptionType::DEBUG_SYNC_ALL);
     const bool debugSyncAll = (debugSyncOpt != nullptr && debugSyncOpt->GetIntValue() != 0);
 
     if (taskCount > (std::numeric_limits<size_t>::max() / sizeof(SkDfxInfo))) {
@@ -1611,7 +1611,7 @@ SkLaunchInfo SkTaskBuilder::Build(std::string skFuncName, const std::vector<Supe
     }
 
     int splitBinCount = 4;
-    auto splitOptions = opts.GetOption(aclskOtionType::SPLIT_MODE);
+    auto splitOptions = opts.GetOption(aclskOptionType::SPLIT_MODE);
     if (splitOptions != nullptr) {
         splitBinCount = splitOptions->GetIntValue();
     }

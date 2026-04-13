@@ -34,7 +34,7 @@
  */
 class OptOptionBase {
 public:
-    explicit OptOptionBase(std::string name, aclskOtionType optionTypeIn) :
+    explicit OptOptionBase(std::string name, aclskOptionType optionTypeIn) :
         optionName(std::move(name)), optionType(optionTypeIn)
     {}
 
@@ -45,7 +45,7 @@ public:
         return optionName;
     }
 
-    virtual aclskOtionType GetType() const
+    virtual aclskOptionType GetType() const
     {
         return optionType;
     }
@@ -76,7 +76,7 @@ public:
 
 protected:
     std::string optionName;
-    aclskOtionType optionType = aclskOtionType::SK_OPTION_MAX;
+    aclskOptionType optionType = aclskOptionType::SK_OPTION_MAX;
 };
 
 /*!
@@ -87,7 +87,7 @@ protected:
  */
 class NumberOptOption : public OptOptionBase {
 public:
-    NumberOptOption(std::string name, aclskOtionType optionTypeIn, uint32_t defaultValue = 0, uint32_t minValue = 0,
+    NumberOptOption(std::string name, aclskOptionType optionTypeIn, uint32_t defaultValue = 0, uint32_t minValue = 0,
                     uint32_t maxValue = 0xffffffff) :
         OptOptionBase(std::move(name), optionTypeIn),
         optValue(defaultValue), optValueMin(minValue), optValueMax(maxValue)
@@ -109,7 +109,7 @@ private:
  */
 class StringOptOption : public OptOptionBase {
 public:
-    StringOptOption(std::string name, aclskOtionType optionTypeIn, std::string defaultValue = {}) :
+    StringOptOption(std::string name, aclskOptionType optionTypeIn, std::string defaultValue = {}) :
         OptOptionBase(std::move(name), optionTypeIn), optValue(defaultValue)
     {}
 
@@ -128,7 +128,7 @@ private:
  */
 class StringListOptOption : public OptOptionBase {
 public:
-    StringListOptOption(std::string name, aclskOtionType optionTypeIn, std::vector<std::string> defaultValue = {}) :
+    StringListOptOption(std::string name, aclskOptionType optionTypeIn, std::vector<std::string> defaultValue = {}) :
         OptOptionBase(std::move(name), optionTypeIn), optValue(defaultValue)
     {}
 
@@ -147,7 +147,7 @@ private:
  */
 class MapOptOption : public OptOptionBase {
 public:
-    MapOptOption(std::string name, aclskOtionType optionTypeIn,
+    MapOptOption(std::string name, aclskOptionType optionTypeIn,
                  std::unordered_map<std::string, std::vector<std::string>> defaultValue = {}) :
         OptOptionBase(std::move(name), optionTypeIn),
         optValue(defaultValue)
@@ -193,8 +193,8 @@ public:
      * \param optType The option type to retrieve
      * \return Pointer to the option, or nullptr if not found
      */
-    OptOptionBase* GetOption(aclskOtionType optType);
-    const OptOptionBase* GetOption(aclskOtionType optType) const;
+    OptOptionBase* GetOption(aclskOptionType optType);
+    const OptOptionBase* GetOption(aclskOptionType optType) const;
 
     /*!
      * \brief Judge whether a kernel should be disabled based on DCCI patterns
@@ -231,7 +231,7 @@ public:
     void ParseOptions(const aclskOptions* options);
 
 private:
-    std::unordered_map<aclskOtionType, std::unique_ptr<OptOptionBase>> optionMap;
+    std::unordered_map<aclskOptionType, std::unique_ptr<OptOptionBase>> optionMap;
 };
 
 #endif
