@@ -17,12 +17,12 @@
 #include "sk_common.h"
 #include <algorithm>
 
-// ============ EventOnlyStreamRemovePass Implementation ============
+// ============ IsolatedEventNodePreprocessPass Implementation ============
 
-EventOnlyStreamRemovePass::EventOnlyStreamRemovePass(SuperKernelGraph& inputGraph)
-    : ScopeSplitPass(inputGraph), removedCount_(0) {}
+IsolatedEventNodePreprocessPass::IsolatedEventNodePreprocessPass(SuperKernelGraph& inputGraph)
+    : ScopeSplitPass(inputGraph), markedCount_(0) {}
 
-bool EventOnlyStreamRemovePass::IsEventNode(SuperKernelBaseNode* node) const {
+bool IsolatedEventNodePreprocessPass::IsEventNode(SuperKernelBaseNode* node) const {
     if (node == nullptr) {
         return false;
     }
@@ -35,129 +35,160 @@ bool EventOnlyStreamRemovePass::IsEventNode(SuperKernelBaseNode* node) const {
             nodeType == SkNodeType::NODE_MEMORY_WAIT);
 }
 
-void EventOnlyStreamRemovePass::CollectNodesPerStream(
-    const SuperKernelScopeInfo& scope,
-    std::unordered_map<uint32_t, std::vector<SuperKernelBaseNode*>>& streamNodes) {
-    streamNodes.clear();
-    for (auto* node : scope.nodes) {
-        if (node == nullptr) {
-            continue;
-        }
-        uint32_t streamIdx = node->GetStreamIdxInGraph();
-        streamNodes[streamIdx].push_back(node);
-    }
-}
-
-bool EventOnlyStreamRemovePass::IsStreamAllEventNodes(
-    const std::vector<SuperKernelBaseNode*>& nodes) const {
-    if (nodes.empty()) {
+bool IsolatedEventNodePreprocessPass::IsFusibleNonEventNode(SuperKernelBaseNode* node) const {
+    if (node == nullptr || !node->IsFusible()) {
         return false;
     }
-    for (auto* node : nodes) {
-        if (node == nullptr) {
-            continue;
-        }
-        if (!IsEventNode(node)) {
-            return false;
-        }
+
+    // Event nodes are not considered fusible non-event nodes
+    if (IsEventNode(node)) {
+        return false;
     }
+
+    // Default nodes are also not fusible non-event nodes
+    if (node->GetNodeType() == SkNodeType::NODE_DEFAULT) {
+        return false;
+    }
+
     return true;
 }
 
-void EventOnlyStreamRemovePass::RemoveStreamFromScope(
-    SuperKernelScopeInfo& scope,
-    uint32_t streamIdx,
-    size_t nodesCount) {
-    // Remove nodes belonging to this stream from scope.nodes
-    auto newEnd = std::remove_if(scope.nodes.begin(), scope.nodes.end(),
-        [streamIdx, this](SuperKernelBaseNode* node) {
-            if (node == nullptr) {
-                return false;
-            }
-            return node->GetStreamIdxInGraph() == streamIdx;
-        });
-    scope.nodes.erase(newEnd, scope.nodes.end());
-
-    // Remove stream info for this stream
-    auto streamInfoIt = std::find_if(scope.scopeStreamInfos.begin(), scope.scopeStreamInfos.end(),
-        [streamIdx](const ScopeStreamInfo& info) {
-            return info.streamIdx == streamIdx;
-        });
-    if (streamInfoIt != scope.scopeStreamInfos.end()) {
-        scope.scopeStreamInfos.erase(streamInfoIt);
+bool IsolatedEventNodePreprocessPass::HasFusibleNonEventNodeBefore(SuperKernelBaseNode* node) {
+    if (node == nullptr) {
+        return false;
     }
 
-    removedCount_ += static_cast<uint32_t>(nodesCount);
+    // Traverse backward from the previous node
+    uint64_t currentId = node->GetPreNodeId();
+
+    while (currentId != INVALID_TASK_ID) {
+        SuperKernelBaseNode* currentNode = graph_.GetNodeById(currentId);
+        if (currentNode == nullptr) {
+            SK_LOGE("Node %lu not found in graph while checking before nodes", currentId);
+            break;
+        }
+
+        // If we find a fusible non-event node, return true
+        if (IsFusibleNonEventNode(currentNode)) {
+            SK_LOGI("Found fusible non-event node %s before event node %s",
+                    currentNode->Format().c_str(),
+                    node->Format().c_str());
+            return true;
+        }
+
+        // Move to the previous node
+        currentId = currentNode->GetPreNodeId();
+    }
+
+    return false;
 }
 
-uint32_t EventOnlyStreamRemovePass::ProcessScope(SuperKernelScopeInfo& scope) {
-    if (scope.nodes.empty()) {
+bool IsolatedEventNodePreprocessPass::HasFusibleNonEventNodeAfter(SuperKernelBaseNode* node) {
+    if (node == nullptr) {
+        return false;
+    }
+
+    // Traverse forward from the next node
+    uint64_t currentId = node->GetNextNodeId();
+
+    while (currentId != INVALID_TASK_ID) {
+        SuperKernelBaseNode* currentNode = graph_.GetNodeById(currentId);
+        if (currentNode == nullptr) {
+            SK_LOGE("Node %lu not found in graph while checking after nodes", currentId);
+            break;
+        }
+
+        // If we find a fusible non-event node, return true
+        if (IsFusibleNonEventNode(currentNode)) {
+            SK_LOGI("Found fusible non-event node %s after event node %s",
+                    currentNode->Format().c_str(),
+                    node->Format().c_str());
+            return true;
+        }
+
+        // Move to the next node
+        currentId = currentNode->GetNextNodeId();
+    }
+
+    return false;
+}
+
+uint32_t IsolatedEventNodePreprocessPass::ProcessStream(uint32_t streamIdx) {
+    uint32_t streamMarkedCount = 0;
+    const auto& streams = graph_.GetStreams();
+
+    if (streamIdx >= streams.size()) {
+        SK_LOGE("Stream index %u is out of range (total streams: %zu)",
+                streamIdx, streams.size());
         return 0;
     }
 
-    std::unordered_map<uint32_t, std::vector<SuperKernelBaseNode*>> streamNodes;
-    CollectNodesPerStream(scope, streamNodes);
+    SK_LOGI("[IsolatedEventPreprocess] processing stream %u", streamIdx);
 
-    uint32_t scopeRemovedCount = 0;
-    std::vector<uint32_t> streamsToRemove;
-
-    // Identify streams that should be removed
-    for (const auto& pair : streamNodes) {
-        uint32_t streamIdx = pair.first;
-        const auto& nodes = pair.second;
-
-        if (IsStreamAllEventNodes(nodes)) {
-            streamsToRemove.push_back(streamIdx);
-            SK_LOGI("[EventOnlyStreamRemove] Stream %u in scope has all event nodes (%zu nodes), will remove",
-                    streamIdx, nodes.size());
-        }
+    // Get the head node of this stream
+    const auto& headNodes = graph_.GetHeadNodes();
+    if (streamIdx >= headNodes.size()) {
+        SK_LOGE("Head node index %u is out of range", streamIdx);
+        return 0;
     }
 
-    // Remove identified streams
-    for (uint32_t streamIdx : streamsToRemove) {
-        auto it = streamNodes.find(streamIdx);
-        if (it != streamNodes.end()) {
-            size_t nodesCount = it->second.size();
-            RemoveStreamFromScope(scope, streamIdx, nodesCount);
-            scopeRemovedCount += static_cast<uint32_t>(nodesCount);
-            SK_LOGI("[EventOnlyStreamRemove] Removed stream %u with %zu nodes from scope",
-                    streamIdx, nodesCount);
+    // Traverse all nodes in the stream
+    uint64_t currentNodeId = headNodes[streamIdx];
+    while (currentNodeId != INVALID_TASK_ID) {
+        SuperKernelBaseNode* node = graph_.GetNodeById(currentNodeId);
+        if (node == nullptr) {
+            SK_LOGE("Node %lu not found in graph while processing stream %u",
+                    currentNodeId, streamIdx);
+            break;
         }
+
+        // Check if this is a fusible event node
+        if (node->IsFusible() && IsEventNode(node)) {
+            bool hasFusibleBefore = HasFusibleNonEventNodeBefore(node);
+            bool hasFusibleAfter = HasFusibleNonEventNodeAfter(node);
+
+            // If the event node has no fusible non-event nodes before AND after,
+            // mark it as non-fusible
+            if (!hasFusibleBefore && !hasFusibleAfter) {
+                node->SetIsFusible(false);
+                streamMarkedCount++;
+                SK_LOGI("Marked isolated event node %s in stream %u as non-fusible "
+                        "(no fusible non-event nodes before or after)",
+                        node->Format().c_str(), streamIdx);
+            }
+        }
+
+        // Move to the next node
+        currentNodeId = node->GetNextNodeId();
     }
 
-    return scopeRemovedCount;
+    if (streamMarkedCount > 0) {
+        SK_LOGI("[IsolatedEventPreprocess] stream %u: marked %u isolated event nodes as non-fusible",
+                streamIdx, streamMarkedCount);
+    }
+
+    return streamMarkedCount;
 }
 
-bool EventOnlyStreamRemovePass::Run(std::vector<SuperKernelScopeInfo>& scopes) {
-    SK_LOGI("[EventOnlyStreamRemove] %s pass starting execution", GetName().c_str());
+bool IsolatedEventNodePreprocessPass::Run(std::vector<SuperKernelScopeInfo>& scopes) {
+    SK_LOGI("[IsolatedEventPreprocess] %s pass starting execution", GetName().c_str());
 
-    removedCount_ = 0;
-    SK_LOGI("[EventOnlyStreamRemove] processing %zu scopes", scopes.size());
+    // The input scopes parameter is not used in this pass
+    // This pass directly modifies the graph by marking isolated event nodes as non-fusible
+    (void)scopes;
 
-    size_t emptyScopeCount = 0;
-    for (size_t i = 0; i < scopes.size(); ++i) {
-        uint32_t scopeRemoved = ProcessScope(scopes[i]);
-        removedCount_ += scopeRemoved;
+    markedCount_ = 0;
+    const auto& streams = graph_.GetStreams();
+    SK_LOGI("[IsolatedEventPreprocess] processing %zu streams", streams.size());
 
-        if (scopes[i].nodes.empty()) {
-            emptyScopeCount++;
-        }
-
-        SK_LOGI("[EventOnlyStreamRemove] Scope %zu: after processing, %zu nodes remain, %zu streams remain",
-                i, scopes[i].nodes.size(), scopes[i].scopeStreamInfos.size());
+    // Process each stream
+    for (size_t i = 0; i < streams.size(); ++i) {
+        uint32_t streamMarkedCount = ProcessStream(static_cast<uint32_t>(i));
+        markedCount_ += streamMarkedCount;
     }
 
-    // Remove empty scopes from the list
-    if (emptyScopeCount > 0) {
-        auto newEnd = std::remove_if(scopes.begin(), scopes.end(),
-            [](const SuperKernelScopeInfo& s) { return s.nodes.empty(); });
-        scopes.erase(newEnd, scopes.end());
-        SK_LOGI("[EventOnlyStreamRemove] Removed %zu empty scopes, %zu scopes remain",
-                emptyScopeCount, scopes.size());
-    }
-
-    SK_LOGI("[EventOnlyStreamRemove] %s pass completed, removed %u event-only stream nodes total",
-            GetName().c_str(), removedCount_);
+    SK_LOGI("[IsolatedEventPreprocess] %s pass completed, marked %u isolated event nodes as non-fusible",
+            GetName().c_str(), markedCount_);
 
     return true;
 }
@@ -1200,14 +1231,14 @@ SuperKernelScopeSplitter::SuperKernelScopeSplitter(SuperKernelGraph& inputGraph,
         heapType = static_cast<SkHeapType>(autoOpParallel->GetIntValue());
     }
     // Initialize passes in execution order
-    // Pass 0: Initial scope splitting
+    // Pass 0: Preprocess to mark isolated event nodes as non-fusible
+    passes_.push_back(std::make_unique<IsolatedEventNodePreprocessPass>(inputGraph));
+    // Pass 1: Initial scope splitting
     passes_.push_back(std::make_unique<InitialScopeSplitPass>(inputGraph, heapType));
-    // Pass 1: Deadlock detection and refinement
+    // Pass 2: Deadlock detection and refinement
     passes_.push_back(std::make_unique<DeadlockRefinePass>(inputGraph));
-    // Pass 2: SchoMode kernel core trend based split refinement
+    // Pass 3: SchoMode kernel core trend based split refinement
     passes_.push_back(std::make_unique<SchoModeKernelSplitPass>(inputGraph));
-    // Pass 3: Remove event-only streams from scopes
-    passes_.push_back(std::make_unique<EventOnlyStreamRemovePass>(inputGraph));
 }
 
 bool SuperKernelScopeSplitter::SplitGraph() {
