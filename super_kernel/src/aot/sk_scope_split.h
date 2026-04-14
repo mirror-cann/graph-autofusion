@@ -35,6 +35,7 @@
 #include <queue>
 #include <set>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 #include "sk_candidate_heap.h"
 #include "sk_graph.h"
@@ -67,6 +68,12 @@ struct ScopeExtInfo {
     uint32_t scopeIdx = 0;
     std::string scopeName;
     ScopeFailReason failReason = ScopeFailReason::NONE;
+    
+    ScopeExtInfo() = default;
+    ScopeExtInfo(const ScopeExtInfo&) = delete;
+    ScopeExtInfo& operator=(const ScopeExtInfo&) = delete;
+    ScopeExtInfo(ScopeExtInfo&&) = default;
+    ScopeExtInfo& operator=(ScopeExtInfo&&) = default;
 };
 
 inline const char* to_string(ScopeFailReason reason)
@@ -92,11 +99,39 @@ inline const char* to_string(ScopeFailReason reason)
             return "UNKNOWN";
     }
 }
-struct SuperKernelScopeInfo {
-    std::vector<ScopeStreamInfo> scopeStreamInfos;  ///< Per-stream information
-    std::vector<SuperKernelBaseNode*> nodes;        ///< All nodes in this scope (ordered by node ID)
-    std::bitset<MAX_SCOPE_NUM> scopeBitFlags;       ///< Scope bit flags (all nodes must have matching flags)
-    ScopeExtInfo extInfo;                           ///< Extended info for post-processing and scheduling
+class SuperKernelScopeInfo {
+public:
+    SuperKernelScopeInfo() = default;
+    ~SuperKernelScopeInfo() = default;
+    SuperKernelScopeInfo(const SuperKernelScopeInfo&) = delete;
+    SuperKernelScopeInfo& operator=(const SuperKernelScopeInfo&) = delete;
+    SuperKernelScopeInfo(SuperKernelScopeInfo&&) = default;
+    SuperKernelScopeInfo& operator=(SuperKernelScopeInfo&&) = default;
+
+    // ============ ScopeStreamInfos ============
+    const std::vector<ScopeStreamInfo>& GetScopeStreamInfos() const { return scopeStreamInfos_; }
+    void SetScopeStreamInfos(std::vector<ScopeStreamInfo> infos) { scopeStreamInfos_ = std::move(infos); }
+    void AddScopeStreamInfo(const ScopeStreamInfo& info) { scopeStreamInfos_.push_back(info); }
+
+    // ============ Nodes ============
+    const std::vector<SuperKernelBaseNode*>& GetNodes() const { return nodes_; }
+    void SetNodes(std::vector<SuperKernelBaseNode*> nodes) { nodes_ = std::move(nodes); }
+    void AddNode(SuperKernelBaseNode* node) { nodes_.push_back(node); }
+
+    // ============ ScopeBitFlags ============
+    const std::bitset<MAX_SCOPE_NUM>& GetScopeBitFlags() const { return scopeBitFlags_; }
+    void SetScopeBitFlags(const std::bitset<MAX_SCOPE_NUM>& flags) { scopeBitFlags_ = flags; }
+
+    // ============ ExtInfo ============
+    const ScopeExtInfo& GetExtInfo() const { return extInfo_; }
+    void SetExtInfo(ScopeExtInfo&& extInfo) { extInfo_ = std::move(extInfo); }
+    ScopeExtInfo& MutableExtInfo() { return extInfo_; }
+
+private:
+    std::vector<ScopeStreamInfo> scopeStreamInfos_;  ///< Per-stream information
+    std::vector<SuperKernelBaseNode*> nodes_;        ///< All nodes in this scope (ordered by node ID)
+    std::bitset<MAX_SCOPE_NUM> scopeBitFlags_;       ///< Scope bit flags (all nodes must have matching flags)
+    ScopeExtInfo extInfo_;                           ///< Extended info for post-processing and scheduling
 };
 
 /*!

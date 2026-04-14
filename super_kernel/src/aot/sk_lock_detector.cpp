@@ -96,6 +96,12 @@ bool LockDetector::HasDeadlock(SuperKernelBaseNode* curNode) {
         return false;
     }
 
+    // when prenode has been fused in sk
+    // if streams of sk with prenode intersects with the stream of current sk, means prenode has been executed
+    if (HasIntersection(preNode->GetScopeStreamIds(), skStreamIds)){
+        return false;
+    }
+
     bool hasDeadlock = true;
     switch (preNode->GetNodeType()) {
         case SkNodeType::NODE_KERNEL:
@@ -299,6 +305,15 @@ bool LockDetector::IsAfterSKRange(const SuperKernelBaseNode& curNode) {
     return nodeId > skRangeInStream[streamId].second;
 }
 
+bool LockDetector::HasIntersection(const std::unordered_set<uint32_t>& lhsStreams, const std::unordered_set<uint32_t>& rhsStreams) {
+    for (const auto& streamId : lhsStreams) {
+        if (rhsStreams.count(streamId) > 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
 bool LockDetector::GetWaitNodeFusibleStatus(SuperKernelBaseNode& curNode) {
     uint64_t notifyId = curNode.GetCorrespondingNotifyNodeId();
     // Case 1: notify node not in modelRI
@@ -310,7 +325,7 @@ bool LockDetector::GetWaitNodeFusibleStatus(SuperKernelBaseNode& curNode) {
     SuperKernelBaseNode* notifyNode = graph_->GetNodeById(notifyId);
     // abnormal case: notify node not found
     if (notifyNode == nullptr) {
-        SK_LOGE("[lock detector] Wait node %s: notify node %lu not found", 
+        SK_LOGE("[lock detector] Wait node %s: notify node %lu not found in graph", 
                 curNode.Format().c_str(), notifyId);
         return false;
     }
@@ -322,6 +337,12 @@ bool LockDetector::GetWaitNodeFusibleStatus(SuperKernelBaseNode& curNode) {
     // Case 3: notify node is in the same SK stream
     if (IsInSKStream(*notifyNode)) {
         return CheckNotifyInSKStream(curNode, *notifyNode);
+    }
+
+    // Case 4: notify node is in other sk, which cover multi stream. these stream intersect with the stream of wait node
+    //         Note: will not receive wait node which notify after it (in scope)
+    if (HasIntersection(skStreamIds, notifyNode->GetScopeStreamIds())) {
+        return true;
     }
     
     // Case 4: notify node has core resource requirement

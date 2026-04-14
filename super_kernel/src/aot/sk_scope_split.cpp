@@ -39,7 +39,7 @@ void EventOnlyStreamRemovePass::CollectNodesPerStream(
     const SuperKernelScopeInfo& scope,
     std::unordered_map<uint32_t, std::vector<SuperKernelBaseNode*>>& streamNodes) {
     streamNodes.clear();
-    for (auto* node : scope.nodes) {
+    for (auto* node : scope.GetNodes()) {
         if (node == nullptr) {
             continue;
         }
@@ -69,29 +69,33 @@ void EventOnlyStreamRemovePass::RemoveStreamFromScope(
     uint32_t streamIdx,
     size_t nodesCount) {
     // Remove nodes belonging to this stream from scope.nodes
-    auto newEnd = std::remove_if(scope.nodes.begin(), scope.nodes.end(),
+    auto nodes = scope.GetNodes();
+    auto newEnd = std::remove_if(nodes.begin(), nodes.end(),
         [streamIdx, this](SuperKernelBaseNode* node) {
             if (node == nullptr) {
                 return false;
             }
             return node->GetStreamIdxInGraph() == streamIdx;
         });
-    scope.nodes.erase(newEnd, scope.nodes.end());
+    nodes.erase(newEnd, nodes.end());
+    scope.SetNodes(std::move(nodes));
 
     // Remove stream info for this stream
-    auto streamInfoIt = std::find_if(scope.scopeStreamInfos.begin(), scope.scopeStreamInfos.end(),
+    auto scopeStreamInfos = scope.GetScopeStreamInfos();
+    auto streamInfoIt = std::find_if(scopeStreamInfos.begin(), scopeStreamInfos.end(),
         [streamIdx](const ScopeStreamInfo& info) {
             return info.streamIdx == streamIdx;
         });
-    if (streamInfoIt != scope.scopeStreamInfos.end()) {
-        scope.scopeStreamInfos.erase(streamInfoIt);
+    if (streamInfoIt != scopeStreamInfos.end()) {
+        scopeStreamInfos.erase(streamInfoIt);
+        scope.SetScopeStreamInfos(std::move(scopeStreamInfos));
     }
 
     removedCount_ += static_cast<uint32_t>(nodesCount);
 }
 
 uint32_t EventOnlyStreamRemovePass::ProcessScope(SuperKernelScopeInfo& scope) {
-    if (scope.nodes.empty()) {
+    if (scope.GetNodes().empty()) {
         return 0;
     }
 
@@ -139,18 +143,18 @@ bool EventOnlyStreamRemovePass::Run(std::vector<SuperKernelScopeInfo>& scopes) {
         uint32_t scopeRemoved = ProcessScope(scopes[i]);
         removedCount_ += scopeRemoved;
 
-        if (scopes[i].nodes.empty()) {
+        if (scopes[i].GetNodes().empty()) {
             emptyScopeCount++;
         }
 
         SK_LOGI("[EventOnlyStreamRemove] Scope %zu: after processing, %zu nodes remain, %zu streams remain",
-                i, scopes[i].nodes.size(), scopes[i].scopeStreamInfos.size());
+                i, scopes[i].GetNodes().size(), scopes[i].GetScopeStreamInfos().size());
     }
 
     // Remove empty scopes from the list
     if (emptyScopeCount > 0) {
         auto newEnd = std::remove_if(scopes.begin(), scopes.end(),
-            [](const SuperKernelScopeInfo& s) { return s.nodes.empty(); });
+            [](const SuperKernelScopeInfo& s) { return s.GetNodes().empty(); });
         scopes.erase(newEnd, scopes.end());
         SK_LOGI("[EventOnlyStreamRemove] Removed %zu empty scopes, %zu scopes remain",
                 emptyScopeCount, scopes.size());
@@ -169,10 +173,10 @@ void ScopeSplitPass::PrintScopeDetails(const std::vector<SuperKernelScopeInfo>& 
     SK_LOGI("[SplitScopeResult] Printing scope split results, total scopes: %zu", scopes.size());
     for (size_t i = 0; i < scopes.size(); ++i) {
         const auto& scope = scopes[i];
-        std::string scopeNames = GetScopeNamesFromBitFlags(scope.scopeBitFlags, graph);
+        std::string scopeNames = GetScopeNamesFromBitFlags(scope.GetScopeBitFlags(), graph);
         SK_LOGI("Scope %zu: %zu nodes, %zu streams, scopeBitFlags=%s, scopeNames=[%s]",
-                i, scope.nodes.size(), scope.scopeStreamInfos.size(),
-                graph.BitsetToString(scope.scopeBitFlags).c_str(),
+                i, scope.GetNodes().size(), scope.GetScopeStreamInfos().size(),
+                graph.BitsetToString(scope.GetScopeBitFlags()).c_str(),
                 scopeNames.c_str());
         PrintScopeNodes(i, scope);
         PrintScopeStreamInfos(i, scope);
@@ -209,15 +213,17 @@ std::string ScopeSplitPass::GetScopeNamesFromBitFlags(const std::bitset<MAX_SCOP
 }
 
 void ScopeSplitPass::PrintScopeNodes(size_t scopeIdx, const SuperKernelScopeInfo& scope) {
-    SK_LOGI("  Scope %zu nodes: %zu", scopeIdx, scope.nodes.size());
-    for (size_t i = 0; i < scope.nodes.size(); ++i) {
-        SK_LOGI("    [%zu] %s", i, scope.nodes[i]->Format().c_str());
+    const auto& nodes = scope.GetNodes();
+    SK_LOGI("  Scope %zu nodes: %zu", scopeIdx, nodes.size());
+    for (size_t i = 0; i < nodes.size(); ++i) {
+        SK_LOGI("    [%zu] %s", i, nodes[i]->Format().c_str());
     }
 }
 
 void ScopeSplitPass::PrintScopeStreamInfos(size_t scopeIdx, const SuperKernelScopeInfo& scope) {
-    for (size_t j = 0; j < scope.scopeStreamInfos.size(); ++j) {
-        const auto& streamInfo = scope.scopeStreamInfos[j];
+    const auto& scopeStreamInfos = scope.GetScopeStreamInfos();
+    for (size_t j = 0; j < scopeStreamInfos.size(); ++j) {
+        const auto& streamInfo = scopeStreamInfos[j];
         SK_LOGI("  Scope %zu StreamInfo[%zu]: streamIdx=%u, headNode=%lu, tailNode=%lu, nodeSize=%lu",
                 scopeIdx, j, streamInfo.streamIdx, streamInfo.headNodeIdx, 
                 streamInfo.tailNodeIdx, streamInfo.nodeSize);
@@ -225,25 +231,26 @@ void ScopeSplitPass::PrintScopeStreamInfos(size_t scopeIdx, const SuperKernelSco
 }
 
 void ScopeSplitPass::RebuildStreamInfos(SuperKernelScopeInfo& scope) {
-    scope.scopeStreamInfos.clear();
-    for (const auto* node : scope.nodes) {
+    std::vector<ScopeStreamInfo> newStreamInfos;
+    for (const auto* node : scope.GetNodes()) {
         uint32_t streamIdx = node->GetStreamIdxInGraph();
-        auto it = std::find_if(scope.scopeStreamInfos.begin(), scope.scopeStreamInfos.end(),
+        auto it = std::find_if(newStreamInfos.begin(), newStreamInfos.end(),
                               [streamIdx](const ScopeStreamInfo& info) {
                                   return info.streamIdx == streamIdx;
                               });
-        if (it == scope.scopeStreamInfos.end()) {
+        if (it == newStreamInfos.end()) {
             ScopeStreamInfo newInfo;
             newInfo.streamIdx = streamIdx;
             newInfo.headNodeIdx = node->GetNodeId();
             newInfo.tailNodeIdx = node->GetNodeId();
             newInfo.nodeSize = 1;
-            scope.scopeStreamInfos.push_back(std::move(newInfo));
+            newStreamInfos.push_back(std::move(newInfo));
         } else {
             it->tailNodeIdx = node->GetNodeId();
             it->nodeSize++;
         }
     }
+    scope.SetScopeStreamInfos(std::move(newStreamInfos));
 }
 
 // ============ InitialScopeSplitPass Implementation ============
@@ -756,26 +763,28 @@ void InitialScopeSplitPass::LogFusibleNodeSearchResult() {
 
 void InitialScopeSplitPass::AddStreamInfoToScope(SuperKernelScopeInfo& scopeInfo, SuperKernelBaseNode* node) {
     uint32_t streamIdx = node->GetStreamIdxInGraph();
-    auto it = std::find_if(scopeInfo.scopeStreamInfos.begin(), scopeInfo.scopeStreamInfos.end(),
+    auto scopeStreamInfos = scopeInfo.GetScopeStreamInfos();
+    auto it = std::find_if(scopeStreamInfos.begin(), scopeStreamInfos.end(),
                           [streamIdx](const ScopeStreamInfo& info) {
                               return info.streamIdx == streamIdx;
                           });
-    if (it == scopeInfo.scopeStreamInfos.end()) {
+    if (it == scopeStreamInfos.end()) {
         ScopeStreamInfo newInfo;
         newInfo.streamIdx = streamIdx;
         newInfo.headNodeIdx = node->GetNodeId();
         newInfo.tailNodeIdx = node->GetNodeId();
         newInfo.nodeSize = 1;
-        scopeInfo.scopeStreamInfos.push_back(std::move(newInfo));
+        scopeStreamInfos.push_back(std::move(newInfo));
     } else {
         it->tailNodeIdx = node->GetNodeId();
         it->nodeSize++;
     }
+    scopeInfo.SetScopeStreamInfos(std::move(scopeStreamInfos));
 }
 
 bool InitialScopeSplitPass::BuildCurrentScope(SuperKernelScopeInfo& scopeInfo) {
     SK_LOGI("[SplitScope] starting to build current scope");
-    scopeInfo.scopeBitFlags = currentScopeBitFlags_;
+    scopeInfo.SetScopeBitFlags(currentScopeBitFlags_);
 
     while (!nodeHeap_.empty()) {
         uint64_t nodeId = nodeHeap_.pop();
@@ -792,9 +801,9 @@ bool InitialScopeSplitPass::BuildCurrentScope(SuperKernelScopeInfo& scopeInfo) {
         uint32_t streamIdx = node->GetStreamIdxInGraph();
 
         // Add to scope
-        scopeInfo.nodes.push_back(node);
+        scopeInfo.AddNode(node);
         SK_LOGI("Added node %s to scope (count=%zu)",
-                node->Format().c_str(), scopeInfo.nodes.size());
+                node->Format().c_str(), scopeInfo.GetNodes().size());
         AddStreamInfoToScope(scopeInfo, node);
         processedNodes_.insert(nodeId);
 
@@ -814,7 +823,7 @@ bool InitialScopeSplitPass::BuildCurrentScope(SuperKernelScopeInfo& scopeInfo) {
     }
 
     SK_LOGI("[SplitScope] built scope with %zu nodes, %zu stream infos",
-            scopeInfo.nodes.size(), scopeInfo.scopeStreamInfos.size());
+            scopeInfo.GetNodes().size(), scopeInfo.GetScopeStreamInfos().size());
     return true;  // Empty scope is not an error, allow it to be skipped in Run()
 }
 
@@ -848,15 +857,15 @@ bool InitialScopeSplitPass::Run(std::vector<SuperKernelScopeInfo>& scopes) {
 
         SuperKernelScopeInfo scopeInfo;
         if (BuildCurrentScope(scopeInfo)) {
-            if (!scopeInfo.nodes.empty()) {
-                std::string scopeNames = ScopeSplitPass::GetScopeNamesFromBitFlags(scopeInfo.scopeBitFlags, graph_);
+            if (!scopeInfo.GetNodes().empty()) {
+                std::string scopeNames = ScopeSplitPass::GetScopeNamesFromBitFlags(scopeInfo.GetScopeBitFlags(), graph_);
                 SK_LOGI("%s: Built scope %zu with %zu nodes, %zu streams, scopeNames=[%s]",
-                        GetName().c_str(), scopeCount, scopeInfo.nodes.size(),
-                        scopeInfo.scopeStreamInfos.size(), scopeNames.c_str());
+                        GetName().c_str(), scopeCount, scopeInfo.GetNodes().size(),
+                        scopeInfo.GetScopeStreamInfos().size(), scopeNames.c_str());
                 scopes.push_back(std::move(scopeInfo));
             } else {
                 // Empty scope: skip it and continue to next iteration
-                std::string scopeNames = ScopeSplitPass::GetScopeNamesFromBitFlags(scopeInfo.scopeBitFlags, graph_);
+                std::string scopeNames = ScopeSplitPass::GetScopeNamesFromBitFlags(scopeInfo.GetScopeBitFlags(), graph_);
                 SK_LOGI("%s: Empty scope %zu skipped, scopeNames=[%s], continuing",
                         GetName().c_str(), scopeCount, scopeNames.c_str());
             }
@@ -888,15 +897,16 @@ DeadlockRefinePass::DeadlockRefinePass(SuperKernelGraph& inputGraph)
 bool DeadlockRefinePass::FindDeadlockInScope(const SuperKernelScopeInfo& scope,
                                               SuperKernelBaseNode** deadlockNode,
                                               SuperKernelBaseNode** deadlockWaitNode) {
-    SK_LOGI("[DeadlockRefine] checking scope with %zu nodes for deadlock", scope.nodes.size());
+    const auto& nodes = scope.GetNodes();
+    SK_LOGI("[DeadlockRefine] checking scope with %zu nodes for deadlock", nodes.size());
     lockDetector_.Reset();
 
     // Track the most recent Wait node seen before each node
     SuperKernelBaseNode* lastWaitNode = nullptr;
 
     // Check each node for deadlock, keeping track of the nearest preceding Wait node
-    for (size_t i = 0; i < scope.nodes.size(); ++i) {
-        const auto* node = scope.nodes[i];
+    for (size_t i = 0; i < nodes.size(); ++i) {
+        const auto* node = nodes[i];
         // Update lastWaitNode when we encounter a Wait node
         if (node->GetNodeType() == SkNodeType::NODE_WAIT) {
             lastWaitNode = const_cast<SuperKernelBaseNode*>(node);
@@ -927,21 +937,21 @@ void DeadlockRefinePass::SplitScopeAtWaitNode(const SuperKernelScopeInfo& scope,
                                                SuperKernelBaseNode* waitNode,
                                                SuperKernelScopeInfo& scopeBefore,
                                                SuperKernelScopeInfo& scopeAfter) {
-    scopeBefore.scopeBitFlags = scope.scopeBitFlags;
-    scopeAfter.scopeBitFlags = scope.scopeBitFlags;
+    scopeBefore.SetScopeBitFlags(scope.GetScopeBitFlags());
+    scopeAfter.SetScopeBitFlags(scope.GetScopeBitFlags());
     
     bool foundWait = false;
     
-    for (const auto* node : scope.nodes) {
+    for (const auto* node : scope.GetNodes()) {
         if (node == waitNode) {
             foundWait = true;
             continue;  // Don't include Wait node in either scope
         }
         
         if (!foundWait) {
-            scopeBefore.nodes.push_back(const_cast<SuperKernelBaseNode*>(node));
+            scopeBefore.AddNode(const_cast<SuperKernelBaseNode*>(node));
         } else {
-            scopeAfter.nodes.push_back(const_cast<SuperKernelBaseNode*>(node));
+            scopeAfter.AddNode(const_cast<SuperKernelBaseNode*>(node));
         }
     }
     
@@ -956,7 +966,7 @@ ScopeProcessResult DeadlockRefinePass::ProcessSingleScope(
     pendingScope.reset();
 
     SuperKernelScopeInfo workingScope = std::move(scopeToProcess);
-    if (workingScope.nodes.empty()) {
+    if (workingScope.GetNodes().empty()) {
         SK_LOGI("[DeadlockRefine] ProcessSingleScope called with empty scope, nothing to do");
         return ScopeProcessResult::NO_DEADLOCK;
     }
@@ -968,7 +978,7 @@ ScopeProcessResult DeadlockRefinePass::ProcessSingleScope(
         // No deadlock: whole scope is safe
         SuperKernelScopeSplitter::SetNotifyNodesExpandNumForScope(workingScope);
         SK_LOGI("[DeadlockRefine] Scope has no deadlock, added as a whole with %zu nodes",
-                workingScope.nodes.size());
+                workingScope.GetNodes().size());
         outputScopes.push_back(std::move(workingScope));
         return ScopeProcessResult::NO_DEADLOCK;
     }
@@ -988,19 +998,19 @@ ScopeProcessResult DeadlockRefinePass::ProcessSingleScope(
     SK_LOGI("[DeadlockRefine] Deadlock detected at node %s, splitting at Wait node %s",
             deadlockNode->Format().c_str(), deadlockWaitNode->Format().c_str());
     SK_LOGI("[DeadlockRefine]   Before split: original=%zu nodes, scopeBefore=%zu, scopeAfter=%zu",
-            workingScope.nodes.size(), scopeBefore.nodes.size(), scopeAfter.nodes.size());
+            workingScope.GetNodes().size(), scopeBefore.GetNodes().size(), scopeAfter.GetNodes().size());
 
-    if (!scopeBefore.nodes.empty()) {
+    if (!scopeBefore.GetNodes().empty()) {
         SuperKernelScopeSplitter::SetNotifyNodesExpandNumForScope(scopeBefore);
         outputScopes.push_back(std::move(scopeBefore));
     } else {
         SK_LOGI("[DeadlockRefine] scopeBefore is empty after split, no scope added before Wait node");
     }
 
-    if (!scopeAfter.nodes.empty()) {
+    if (!scopeAfter.GetNodes().empty()) {
         pendingScope = std::move(scopeAfter);
         SK_LOGI("[DeadlockRefine] scopeAfter has %zu nodes and will be processed further",
-                pendingScope->nodes.size());
+                pendingScope->GetNodes().size());
     } else {
         SK_LOGI("[DeadlockRefine] scopeAfter is empty, no further processing required for this scope");
     }
@@ -1016,7 +1026,7 @@ bool DeadlockRefinePass::Run(std::vector<SuperKernelScopeInfo>& scopes) {
     size_t splitCount = 0;
     
     for (size_t i = 0; i < scopes.size(); ++i) {
-        SK_LOGI("[DeadlockRefine] Processing scope index %zu with %zu nodes", i, scopes[i].nodes.size());
+        SK_LOGI("[DeadlockRefine] Processing scope index %zu with %zu nodes", i, scopes[i].GetNodes().size());
 
         SuperKernelScopeInfo currentScope = std::move(scopes[i]);
         std::optional<SuperKernelScopeInfo> pendingScope;
@@ -1067,18 +1077,18 @@ void SchoModeKernelSplitPass::SplitScopeAtNode(const SuperKernelScopeInfo& scope
                                                SuperKernelBaseNode* splitNode,
                                                SuperKernelScopeInfo& scopeBefore,
                                                SuperKernelScopeInfo& scopeAfter) {
-    scopeBefore.scopeBitFlags = scope.scopeBitFlags;
-    scopeAfter.scopeBitFlags = scope.scopeBitFlags;
+    scopeBefore.SetScopeBitFlags(scope.GetScopeBitFlags());
+    scopeAfter.SetScopeBitFlags(scope.GetScopeBitFlags());
 
     bool foundSplit = false;
-    for (const auto* node : scope.nodes) {
+    for (const auto* node : scope.GetNodes()) {
         if (node == splitNode) {
             foundSplit = true;
         }
         if (!foundSplit) {
-            scopeBefore.nodes.push_back(const_cast<SuperKernelBaseNode*>(node));
+            scopeBefore.AddNode(const_cast<SuperKernelBaseNode*>(node));
         } else {
-            scopeAfter.nodes.push_back(const_cast<SuperKernelBaseNode*>(node));
+            scopeAfter.AddNode(const_cast<SuperKernelBaseNode*>(node));
         }
     }
 
@@ -1093,7 +1103,7 @@ SchoModeScopeProcessResult SchoModeKernelSplitPass::ProcessSingleScope(
     pendingScope.reset();
 
     SuperKernelScopeInfo workingScope = std::move(scopeToProcess);
-    if (workingScope.nodes.empty()) {
+    if (workingScope.GetNodes().empty()) {
         SK_LOGI("[SchoModeSplit] ProcessSingleScope called with empty scope, nothing to do");
         return SchoModeScopeProcessResult::NO_SPLIT;
     }
@@ -1102,8 +1112,9 @@ SchoModeScopeProcessResult SchoModeKernelSplitPass::ProcessSingleScope(
     uint32_t mergedVecNum = 0;
     bool hasMergedKernel = false;
 
-    for (size_t i = 0; i < workingScope.nodes.size(); ++i) {
-        SuperKernelBaseNode* node = workingScope.nodes[i];
+    auto& nodes = workingScope.GetNodes();
+    for (size_t i = 0; i < nodes.size(); ++i) {
+        SuperKernelBaseNode* node = nodes[i];
         if (node == nullptr || node->GetNodeType() != SkNodeType::NODE_KERNEL) {
             continue;
         }
@@ -1132,13 +1143,13 @@ SchoModeScopeProcessResult SchoModeKernelSplitPass::ProcessSingleScope(
                         node->Format().c_str(),
                         mergedCubeNum, mergedVecNum,
                         curCubeNum, curVecNum,
-                        scopeBefore.nodes.size(), scopeAfter.nodes.size());
+                        scopeBefore.GetNodes().size(), scopeAfter.GetNodes().size());
 
-                if (!scopeBefore.nodes.empty()) {
+                if (!scopeBefore.GetNodes().empty()) {
                     SuperKernelScopeSplitter::SetNotifyNodesExpandNumForScope(scopeBefore);
                     outputScopes.push_back(std::move(scopeBefore));
                 }
-                if (!scopeAfter.nodes.empty()) {
+                if (!scopeAfter.GetNodes().empty()) {
                     pendingScope = std::move(scopeAfter);
                 }
                 return SchoModeScopeProcessResult::SPLIT_RESOLVED;
@@ -1163,7 +1174,7 @@ bool SchoModeKernelSplitPass::Run(std::vector<SuperKernelScopeInfo>& scopes) {
     size_t splitCount = 0;
 
     for (size_t i = 0; i < scopes.size(); ++i) {
-        SK_LOGI("[SchoModeSplit] Processing scope index %zu with %zu nodes", i, scopes[i].nodes.size());
+        SK_LOGI("[SchoModeSplit] Processing scope index %zu with %zu nodes", i, scopes[i].GetNodes().size());
         SuperKernelScopeInfo currentScope = std::move(scopes[i]);
         std::optional<SuperKernelScopeInfo> pendingScope;
 
@@ -1237,13 +1248,20 @@ void SuperKernelScopeSplitter::SetNotifyNodesExpandNumForScope(SuperKernelScopeI
     std::vector<SuperKernelBaseNode*> notifyNodes;
     
     // Find max vec/cube num and collect notify nodes
-    for (const auto* node : scope.nodes) {
+    std::unordered_set<uint32_t> scopeStreamIds;
+    for (const auto* node : scope.GetNodes()) {
         if (node->GetNodeType() == SkNodeType::NODE_KERNEL) {
             maxExpandVecNum = std::max(maxExpandVecNum, node->GetVecNum());
             maxExpandCubeNum = std::max(maxExpandCubeNum, node->GetCubeNum());
         } else if (node->GetNodeType() == SkNodeType::NODE_NOTIFY) {
             notifyNodes.push_back(const_cast<SuperKernelBaseNode*>(node));
         }
+        scopeStreamIds.insert(node->GetStreamIdxInGraph());
+    }
+    
+    // Set scopeStreamIds for all nodes in the scope
+    for (auto* node : scope.GetNodes()) {
+        node->SetScopeStreamIds(scopeStreamIds);
     }
     
     // Set expand numbers for all notify nodes

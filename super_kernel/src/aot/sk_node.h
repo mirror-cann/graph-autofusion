@@ -22,6 +22,7 @@
 #include <vector>
 #include <unordered_set>
 #include <bitset>
+#include <set>
 
 #include "sk_log.h"
 #include "sk_types.h"
@@ -271,6 +272,8 @@ public:
     // Notify node expand number setters
     void SetNotifyExpandVecNum(uint32_t vecNum) { notifyExpandVecNum = vecNum; }
     void SetNotifyExpandCubeNum(uint32_t cubeNum) { notifyExpandCubeNum = cubeNum; }
+    void SetScopeStreamIds(const std::unordered_set<uint32_t>& streamIds) { scopeStreamIds = streamIds; }
+    const std::unordered_set<uint32_t>& GetScopeStreamIds() const { return scopeStreamIds; }
 
     // for update
     bool IsUpdated() const { return isUpdate; }
@@ -298,6 +301,7 @@ protected:
     bool isFusible;
     bool isScopeNode;
     bool isUpdate;
+    std::unordered_set<uint32_t> scopeStreamIds;
     std::bitset<MAX_SCOPE_NUM> scopeBitFlags;
 };
 

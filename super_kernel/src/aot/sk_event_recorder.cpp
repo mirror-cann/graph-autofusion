@@ -519,8 +519,9 @@ bool SkProfiling(const SuperKernelScopeInfo &scopeInfo, SkLaunchInfo &launchInfo
     // ====== 第一遍遍历：计算总 tensor 数量，并收集 NODE_KERNEL 类型的节点 ======
     uint32_t totalTensorNum = 0;
     std::vector<SuperKernelBaseNode*> kernelNodes;
-    for (size_t i = 0; i < scopeInfo.extInfo.filteredNodes.size(); ++i) {
-        SuperKernelBaseNode* node = scopeInfo.extInfo.filteredNodes[i];
+    const auto& filteredNodes = scopeInfo.GetExtInfo().filteredNodes;
+    for (size_t i = 0; i < filteredNodes.size(); ++i) {
+        SuperKernelBaseNode* node = filteredNodes[i];
         if (node == nullptr) {
             SK_LOGE("[sk shape profiling] Failed to get node, node is nullptr");
             return false;
@@ -663,7 +664,7 @@ bool DumpProfilingDetail(const std::vector<SuperKernelBaseNode*>& taskNodes, SkL
                 return false;
             }
         launchInfo.modelRI = static_cast<uint64_t>(reinterpret_cast<uintptr_t>(modelRI));  // modelRI只有一个void*，先用hash值作为modelRI的id，后续可以改成更合理的来源
-        launchInfo.skId = scopeInfo.extInfo.scopeIdx;
+        launchInfo.skId = scopeInfo.GetExtInfo().scopeIdx;
         SK_LOGI("[sk time profiling] Event recording enabled, gm_addr=%p, modelRI=%lu, skId=%u\n", launchInfo.eventGmAddr, launchInfo.modelRI, launchInfo.skId);
         
         // 更新 devArgs 中的事件配置

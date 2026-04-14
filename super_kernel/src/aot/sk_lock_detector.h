@@ -78,6 +78,8 @@ private:
 
     bool IsAfterSKRange(const SuperKernelBaseNode& node);
 
+    bool HasIntersection(const std::unordered_set<uint32_t>& lhsStreams, const std::unordered_set<uint32_t>& rhsStreams);
+
     bool HasDeadlock(SuperKernelBaseNode* curNode);
 
     bool CheckKernelNodeDeadlock(SuperKernelBaseNode* preNode);
@@ -104,7 +106,7 @@ private:
     uint32_t superKernelVecNum;  // fused op vec num in superkernel
     static int64_t deviceRealCubeNum;
     static int64_t deviceRealVecNum;
-    std::set<uint32_t> skStreamIds;
+    std::unordered_set<uint32_t> skStreamIds;
     uint32_t nodeNum;
     uint32_t kernelNodeNum;
     std::unordered_map<uint32_t, std::pair<uint64_t, uint64_t>> skRangeInStream;

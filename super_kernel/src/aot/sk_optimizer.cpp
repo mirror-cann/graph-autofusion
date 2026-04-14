@@ -51,8 +51,8 @@ std::string GetSkFuncName(const std::vector<SuperKernelBaseNode*>& nodes, uint32
 
 void PrintSKNodesDetail(std::string skFuncName, SuperKernelScopeInfo& scopeInfo)
 {
-    auto& scopeIdx = scopeInfo.extInfo.scopeIdx;
-    auto& nodes = scopeInfo.extInfo.filteredNodes;
+    auto& scopeIdx = scopeInfo.GetExtInfo().scopeIdx;
+    auto& nodes = scopeInfo.GetExtInfo().filteredNodes;
     SK_LOGI("  SK Function: %s, scope id: %zu, Node Count: %zu", skFuncName.c_str(), scopeIdx, nodes.size());
     for (size_t i = 0; i < nodes.size(); ++i) {
         SK_LOGI("    [%zu] %s", i, nodes[i]->Format().c_str());
@@ -72,13 +72,15 @@ void PrintSKNodes(std::string skFuncName, SuperKernelScopeInfo& scopeInfo)
 bool SuperKernelOptimizer::Update(SuperKernelScopeInfo& scopeInfo, SuperKernelGraph& graph,
                                   const SkLaunchInfo& launchInfo)
 {
-    SK_LOGI("scope update begin: streamCount=%zu", scopeInfo.scopeStreamInfos.size());
+    SK_LOGI("scope update begin: streamCount=%zu", scopeInfo.GetScopeStreamInfos().size());
     bool skMainNodeUpdated = false;
     size_t updateTotalCount = 0;
 
-    for (size_t streamIdx = 0; streamIdx < scopeInfo.scopeStreamInfos.size(); ++streamIdx) {
-        auto& streamInfo = scopeInfo.scopeStreamInfos[streamIdx];
-        auto& customParams = scopeInfo.extInfo.customParamsList[streamIdx];
+    auto& scopeStreamInfos = scopeInfo.GetScopeStreamInfos();
+    auto& extInfo = scopeInfo.MutableExtInfo();
+    for (size_t streamIdx = 0; streamIdx < scopeStreamInfos.size(); ++streamIdx) {
+        auto& streamInfo = scopeStreamInfos[streamIdx];
+        auto& customParams = extInfo.customParamsList[streamIdx];
         SK_LOGI("update stream begin: streamId=%u, headNodeId=%lu, tailNodeId=%lu, nodeSize=%lu, customParamSize=%zu",
                 streamInfo.streamIdx, streamInfo.headNodeIdx, streamInfo.tailNodeIdx, streamInfo.nodeSize,
                 customParams.size());
@@ -103,7 +105,7 @@ bool SuperKernelOptimizer::Update(SuperKernelScopeInfo& scopeInfo, SuperKernelGr
             if (eventCnt < customParamSize) {
                 auto& curCustomParams = customParams[eventCnt++];
                 ctx.customParams = &curCustomParams;
-            } else if (curNodeId == scopeInfo.extInfo.skMainNodeId) {
+            } else if (curNodeId == extInfo.skMainNodeId) {
                 if (!skMainNodeUpdated) {
                     skMainNodeUpdated = true;
                     ctx.launchInfo = const_cast<SkLaunchInfo*>(&launchInfo);
@@ -140,23 +142,23 @@ bool SuperKernelOptimizer::Update(SuperKernelScopeInfo& scopeInfo, SuperKernelGr
 bool SuperKernelOptimizer::Schedule(SuperKernelScopeInfo& scopeInfo, SuperKernelGraph& graph,
                                     SkTaskBuilder& builder)
 {
-    const auto& taskNodes = scopeInfo.extInfo.filteredNodes;
+    const auto& taskNodes = scopeInfo.GetExtInfo().filteredNodes;
     if (taskNodes.empty()) {
         SK_LOGE("no tasks for super kernel optimization: scope has 0 nodes for optimization");
         return false;
     }
 
-    std::string skFuncName = GetSkFuncName(taskNodes, scopeInfo.extInfo.scopeIdx, scopeInfo.extInfo.scopeName);
+    std::string skFuncName = GetSkFuncName(taskNodes, scopeInfo.GetExtInfo().scopeIdx, scopeInfo.GetExtInfo().scopeName);
     PrintSKNodes(skFuncName, scopeInfo);
 
     std::vector<SuperKernelBaseNode*> customTasks;
-    customTasks.reserve(scopeInfo.extInfo.eventNodes.size());
-    for (const auto& eventNode : scopeInfo.extInfo.eventNodes) {
+    customTasks.reserve(scopeInfo.GetExtInfo().eventNodes.size());
+    for (const auto& eventNode : scopeInfo.GetExtInfo().eventNodes) {
         customTasks.emplace_back(eventNode.get());
     }
 
     SK_LOGI("schedule scope: taskCount=%zu, customTaskCount=%zu, updateStreamCount=%zu", taskNodes.size(),
-            customTasks.size(), scopeInfo.scopeStreamInfos.size());
+            customTasks.size(), scopeInfo.GetScopeStreamInfos().size());
 
     SkLaunchInfo launchInfo = builder.Build(skFuncName, taskNodes, customTasks);
 
@@ -202,16 +204,16 @@ bool SuperKernelOptimizer::Process(SuperKernelGraph& graph)
         SK_LOGI("process scope begin: scopeIdx=%zu", scopeIdx);
         if (!postProcessor.PostProcess(scopeInfo)) {
             SK_LOGI("scope unprocessable after post-process, skip schedule/update: scopeIdx=%zu, reason=%s",
-                    scopeIdx, to_string(scopeInfo.extInfo.failReason));
+                    scopeIdx, to_string(scopeInfo.GetExtInfo().failReason));
             continue;
         }
-        if (scopeInfo.extInfo.filteredNodes.empty()) {
+        if (scopeInfo.GetExtInfo().filteredNodes.empty()) {
             SK_LOGI("scope has no nodes after post-process, skipping schedule/update: scopeIdx=%zu", scopeIdx);
             continue;
         }
 
-        scopeInfo.extInfo.scopeIdx = static_cast<uint32_t>(scopeIdx);
-        scopeInfo.extInfo.scopeName = ScopeSplitPass::GetScopeNamesFromBitFlags(scopeInfo.scopeBitFlags, graph);
+        scopeInfo.MutableExtInfo().scopeIdx = static_cast<uint32_t>(scopeIdx);
+        scopeInfo.MutableExtInfo().scopeName = ScopeSplitPass::GetScopeNamesFromBitFlags(scopeInfo.GetScopeBitFlags(), graph);
         if (!Schedule(scopeInfo, graph, builder)) {
             SK_LOGE("process scope failed: scopeIdx=%zu, schedule/update returned false", scopeIdx);
             return false;

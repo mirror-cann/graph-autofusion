@@ -497,7 +497,7 @@ uint32_t GetKernelCnt(const std::vector<SuperKernelBaseNode*>& tasks){
 
 bool SuperKernelScopePostProcessor::ValidateScopeStreamNodes(const SuperKernelScopeInfo& scopeInfo)
 {
-    for (const auto& streamInfo : scopeInfo.scopeStreamInfos) {
+    for (const auto& streamInfo : scopeInfo.GetScopeStreamInfos()) {
         uint64_t curNodeId = streamInfo.headNodeIdx;
         while (curNodeId != INVALID_TASK_ID) {
             auto* curNode = graph.GetNodeById(curNodeId);
@@ -542,11 +542,11 @@ bool SuperKernelScopePostProcessor::CollectStreamBoundaryPlans(const SuperKernel
                                                                std::vector<StreamPostPlan>& plans,
                                                                uint32_t& needFrontWaitCount)
 {
-    uint32_t streamCount = scopeInfo.scopeStreamInfos.size();
+    uint32_t streamCount = scopeInfo.GetScopeStreamInfos().size();
     for (uint32_t curStreamIdx = 0; curStreamIdx < streamCount; ++curStreamIdx) {
         SK_LOGI("collect stream info: streamIdx=%u, nodeSize=%lu", curStreamIdx,
-                scopeInfo.scopeStreamInfos[curStreamIdx].nodeSize);
-        const auto& scopeStreamInfo = scopeInfo.scopeStreamInfos[curStreamIdx];
+                scopeInfo.GetScopeStreamInfos()[curStreamIdx].nodeSize);
+        const auto& scopeStreamInfo = scopeInfo.GetScopeStreamInfos()[curStreamIdx];
 
         auto* headNode = graph.GetNodeById(scopeStreamInfo.headNodeIdx);
         auto* tailNode = graph.GetNodeById(scopeStreamInfo.tailNodeIdx);
@@ -582,21 +582,22 @@ bool SuperKernelScopePostProcessor::ProcessSubStreamSyncEvents(
     uint64_t lastNodeId = tempExtInfo.filteredNodes.back()->GetNodeId();
     SK_LOGI("scope post-process front-wait and back-block begin: lastNodeId=%lu", lastNodeId);
 
+    auto& scopeStreamInfos = scopeInfo.GetScopeStreamInfos();
     for (uint32_t curStreamIdx : subStreamOrder) {
         if (plans[curStreamIdx].needFrontWait
-            && !ProcessFrontWaitForStream(graph, tempExtInfo, scopeInfo.scopeStreamInfos, plans, curStreamIdx,
+            && !ProcessFrontWaitForStream(graph, tempExtInfo, scopeStreamInfos, plans, curStreamIdx,
                                           lastNodeId, needFrontWaitCount, prevWaitStreamIdx)) {
             SK_LOGE("process front-wait failed streamId=%u, nodeSize=%lu, FrontWait=%u",
-                    scopeInfo.scopeStreamInfos[curStreamIdx].streamIdx,
-                    scopeInfo.scopeStreamInfos[curStreamIdx].nodeSize, plans[curStreamIdx].needFrontWait);
+                    scopeStreamInfos[curStreamIdx].streamIdx,
+                    scopeStreamInfos[curStreamIdx].nodeSize, plans[curStreamIdx].needFrontWait);
             return false;
         }
 
         if (plans[curStreamIdx].needBackBlock
-            && !ProcessBackBlockForStream(tempExtInfo, scopeInfo.scopeStreamInfos, plans, curStreamIdx, lastNodeId)) {
+            && !ProcessBackBlockForStream(tempExtInfo, scopeStreamInfos, plans, curStreamIdx, lastNodeId)) {
             SK_LOGE("process back-block failed streamId=%u, nodeSize=%lu, BackBlock=%u",
-                    scopeInfo.scopeStreamInfos[curStreamIdx].streamIdx,
-                    scopeInfo.scopeStreamInfos[curStreamIdx].nodeSize, plans[curStreamIdx].needBackBlock);
+                    scopeStreamInfos[curStreamIdx].streamIdx,
+                    scopeStreamInfos[curStreamIdx].nodeSize, plans[curStreamIdx].needBackBlock);
             return false;
         }
     }
@@ -615,37 +616,37 @@ bool SuperKernelScopePostProcessor::FinalizePostProcess(SuperKernelScopeInfo& sc
         totalCustomParamSize += customParams.size();
     }
     SK_LOGI("scope post-process end: streamCount=%u, skMainNodeId=%lu, eventNodeCount=%zu, totalCustomParamSize=%zu",
-            scopeInfo.scopeStreamInfos.size(), tempExtInfo.skMainNodeId,
+            scopeInfo.GetScopeStreamInfos().size(), tempExtInfo.skMainNodeId,
             tempExtInfo.eventNodes.size(), totalCustomParamSize);
 
-    scopeInfo.extInfo = std::move(tempExtInfo);
+    scopeInfo.SetExtInfo(std::move(tempExtInfo));
     return true;
 }
 
 bool SuperKernelScopePostProcessor::PostProcess(SuperKernelScopeInfo& scopeInfo)
 {
-    scopeInfo.extInfo = ScopeExtInfo {};
+    scopeInfo.SetExtInfo(ScopeExtInfo {});
     // Step 1: Validate all nodes in scope streams
     if (!ValidateScopeStreamNodes(scopeInfo)) {
-        scopeInfo.extInfo.failReason = ScopeFailReason::VALIDATION_FAILED;
+        scopeInfo.MutableExtInfo().failReason = ScopeFailReason::VALIDATION_FAILED;
         return false;
     }
 
-    uint32_t streamCount = scopeInfo.scopeStreamInfos.size();
-    SK_LOGI("scope post-process begin: streamCount=%u, nodeCount=%zu", streamCount, scopeInfo.nodes.size());
+    uint32_t streamCount = scopeInfo.GetScopeStreamInfos().size();
+    SK_LOGI("scope post-process begin: streamCount=%u, nodeCount=%zu", streamCount, scopeInfo.GetNodes().size());
 
     // Step 2: Filter cancelled tasks
-    std::vector<SuperKernelBaseNode*> filteredTasks = FilterCancelledTasks(scopeInfo.nodes);
+    std::vector<SuperKernelBaseNode*> filteredTasks = FilterCancelledTasks(scopeInfo.GetNodes());
     if (filteredTasks.empty()) {
         SK_LOGI("scope post-process unprocessable: no task remains after cancelling notify/wait pairs");
-        scopeInfo.extInfo.failReason = ScopeFailReason::NO_TASK;
+        scopeInfo.MutableExtInfo().failReason = ScopeFailReason::NO_TASK;
         return false;
     }
 
     // Step 3: Skip scope when no kernel remains after filtering
     if (GetKernelCnt(filteredTasks) == 0) {
         SK_LOGI("scope post-process unprocessable: no kernel task remains after filtering");
-        scopeInfo.extInfo.failReason = ScopeFailReason::NO_KERNEL;
+        scopeInfo.MutableExtInfo().failReason = ScopeFailReason::NO_KERNEL;
         return false;
     }
 
@@ -661,30 +662,30 @@ bool SuperKernelScopePostProcessor::PostProcess(SuperKernelScopeInfo& scopeInfo)
 
     // Step 5: Collect stream boundary plans
     if (!CollectStreamBoundaryPlans(scopeInfo, plans, needFrontWaitCount)) {
-        scopeInfo.extInfo.failReason = ScopeFailReason::STREAM_BOUNDARY_INVALID;
+        scopeInfo.MutableExtInfo().failReason = ScopeFailReason::STREAM_BOUNDARY_INVALID;
         return false;
     }
 
     // Step 6: Select main stream and sub stream order
     uint32_t mainStreamIdx = INVALID_STREAM_ID;
     std::vector<uint32_t> subStreamOrder;
-    if (!GetMainAndSubStreamOrder(graph, plans, scopeInfo.scopeStreamInfos, tempExtInfo, needFrontWaitCount,
+    if (!GetMainAndSubStreamOrder(graph, plans, scopeInfo.GetScopeStreamInfos(), tempExtInfo, needFrontWaitCount,
                                   mainStreamIdx, subStreamOrder)) {
         SK_LOGI("scope post-process unprocessable: failed to select main stream and sub stream");
-        scopeInfo.extInfo.failReason = ScopeFailReason::STREAM_SELECT_FAILED;
+        scopeInfo.MutableExtInfo().failReason = ScopeFailReason::STREAM_SELECT_FAILED;
         return false;
     }
     SK_LOGI("select main stream and sub stream done.");
 
     // Step 7: Process sync events for sub streams
     if (!ProcessSubStreamSyncEvents(scopeInfo, tempExtInfo, plans, mainStreamIdx, subStreamOrder, needFrontWaitCount)) {
-        scopeInfo.extInfo.failReason = ScopeFailReason::SUB_STREAM_SYNC_FAILED;
+        scopeInfo.MutableExtInfo().failReason = ScopeFailReason::SUB_STREAM_SYNC_FAILED;
         return false;
     }
 
     // Step 8: Apply event memory resource
     if (!ApplyEventMemoryForFilteredTasks(tempExtInfo.filteredNodes, needUpdateNodes)) {
-        scopeInfo.extInfo.failReason = ScopeFailReason::EVENT_MEMORY_APPLY_FAILED;
+        scopeInfo.MutableExtInfo().failReason = ScopeFailReason::EVENT_MEMORY_APPLY_FAILED;
         return false;
     }
 
