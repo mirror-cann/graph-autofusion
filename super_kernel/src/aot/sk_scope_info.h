@@ -114,18 +114,18 @@ public:
     SuperKernelScopeInfo& operator=(SuperKernelScopeInfo&&) = default;
 
     // ============ ScopeStreamInfos ============
-    const std::vector<ScopeStreamInfo>& GetScopeStreamInfos() const { return scopeStreamInfos; }
-    void SetScopeStreamInfos(std::vector<ScopeStreamInfo> infos) { scopeStreamInfos = std::move(infos); }
-    void AddScopeStreamInfo(const ScopeStreamInfo& info) { scopeStreamInfos.push_back(info); }
+    const std::vector<ScopeStreamInfo>& GetScopeStreamInfos() const { return scopeStreamInfos_; }
+    void SetScopeStreamInfos(std::vector<ScopeStreamInfo> infos) { scopeStreamInfos_ = std::move(infos); }
+    void AddScopeStreamInfo(const ScopeStreamInfo& info) { scopeStreamInfos_.push_back(info); }
 
     // ============ Nodes ============
-    const std::vector<SuperKernelBaseNode*>& GetNodes() const { return nodes; }
-    void SetNodes(std::vector<SuperKernelBaseNode*> nodeList) { nodes = std::move(nodeList); }
-    void AddNode(SuperKernelBaseNode* node) { nodes.push_back(node); }
+    const std::vector<SuperKernelBaseNode*>& GetNodes() const { return nodes_; }
+    void SetNodes(std::vector<SuperKernelBaseNode*> nodeList) { nodes_ = std::move(nodeList); }
+    void AddNode(SuperKernelBaseNode* node) { nodes_.push_back(node); }
 
     // ============ ScopeBitFlags ============
-    const std::bitset<MAX_SCOPE_NUM>& GetScopeBitFlags() const { return scopeBitFlags; }
-    void SetScopeBitFlags(const std::bitset<MAX_SCOPE_NUM>& flags) { scopeBitFlags = flags; }
+    const std::bitset<MAX_SCOPE_NUM>& GetScopeBitFlags() const { return scopeBitFlags_; }
+    void SetScopeBitFlags(const std::bitset<MAX_SCOPE_NUM>& flags) { scopeBitFlags_ = flags; }
 
     // ============ ExtInfo ============
     const ScopeExtInfo& GetExtInfo() const { return extInfo_; }
@@ -133,9 +133,9 @@ public:
     ScopeExtInfo& MutableExtInfo() { return extInfo_; }
 
 private:
-    std::vector<ScopeStreamInfo> scopeStreamInfos;  ///< Per-stream information (public for compatibility)
-    std::vector<SuperKernelBaseNode*> nodes;        ///< All nodes in this scope (public for compatibility)
-    std::bitset<MAX_SCOPE_NUM> scopeBitFlags;       ///< Scope bit flags (public for compatibility)
+    std::vector<ScopeStreamInfo> scopeStreamInfos_;  ///< Per-stream information
+    std::vector<SuperKernelBaseNode*> nodes_;        ///< All nodes in this scope
+    std::bitset<MAX_SCOPE_NUM> scopeBitFlags_;       ///< Scope bit flags
     ScopeExtInfo extInfo_;  ///< Extended info for post-processing and scheduling
 };
 

@@ -89,6 +89,9 @@ struct StreamState {
     }
 };
 
+// Forward declaration
+class SuperKernelScopeSplitter;
+
 // ============ Pass Base Class ============
 
 /*!
@@ -97,26 +100,38 @@ struct StreamState {
  */
 class ScopeSplitPass {
 public:
-    explicit ScopeSplitPass(SuperKernelGraph& inputGraph) : graph_(inputGraph) {}
+    explicit ScopeSplitPass(SuperKernelGraph& inputGraph) : graph_(inputGraph), splitter_(nullptr) {}
     virtual ~ScopeSplitPass() = default;
-    
+
     /*!
      * \brief Execute the pass on the given scopes
      * \param scopes Input/output scope list
      * \return true on success
      */
     virtual bool Run(std::vector<SuperKernelScopeInfo>& scopes) = 0;
-    
+
     virtual std::string GetName() const = 0;
 
+    /*!
+     * \brief Set the splitter reference for re-split requests
+     * \param splitter Reference to the splitter
+     */
+    void SetSplitter(SuperKernelScopeSplitter* splitter) { splitter_ = splitter; }
+
+    /*!
+     * \brief Request a re-split of the graph
+     * Called by passes when they modify node fusibility and need the pipeline to re-run
+     */
+    void RequestResplit();
+
     // ============ Debug/Logging Utilities (public static for reuse) ============
-    
+
     /*!
      * \brief Print scope splitting results for debugging
      * \param scopes Scope list to print
      * \param graph Graph for scope name lookup
      */
-    static void PrintScopeResults(const std::vector<SuperKernelScopeInfo>& scopes, 
+    static void PrintScopeResults(const std::vector<SuperKernelScopeInfo>& scopes,
                                    const SuperKernelGraph& graph);
     
     /*!
@@ -159,24 +174,29 @@ private:
 
 protected:
     SuperKernelGraph& graph_;
+    SuperKernelScopeSplitter* splitter_;  ///< Reference to splitter for re-split requests
 };
 
 // ============ Pass 3: Event-Only Stream Remove (after SchoModeKernelSplit) ============
 
 /*!
  * \class EventOnlyStreamRemovePass
- * \brief Pass 3: Remove event-only streams from scopes after all refinements
+ * \brief Pass 3: Mark event-only stream nodes as non-fusible to trigger re-split
  *
- * This pass runs after SchoModeKernelSplitPass to clean up scopes by removing streams
- * that contain only event nodes (NODE_NOTIFY, NODE_WAIT, NODE_RESET, NODE_MEMORY_WRITE,
- * NODE_MEMORY_WAIT). Such streams provide no computational benefit and can be
- * safely removed to optimize the scope structure.
+ * This pass runs after SchoModeKernelSplitPass to detect scopes that contain streams
+ * with only event nodes (NODE_NOTIFY, NODE_WAIT, NODE_RESET, NODE_MEMORY_WRITE,
+ * NODE_MEMORY_WAIT). Instead of removing such streams directly, it marks all event
+ * nodes in those streams as non-fusible and signals the pipeline to re-run scope
+ * splitting from the beginning.
+ *
+ * This approach prevents potential deadlocks that could occur if nodes are removed
+ * from scopes after deadlock detection has already been performed.
  *
  * Processing logic:
  * - For each scope, collect nodes by stream
- * - If a stream's nodes are ALL event nodes, remove that stream from the scope
- * - Update scope.nodes and scope.scopeStreamInfos accordingly
- * - Remove empty scopes after processing
+ * - If a stream's nodes are ALL event nodes, mark them as non-fusible
+ * - Clear scopes to signal re-split is needed
+ * - The pipeline will re-run from Pass 0 with updated fusibility
  */
 class EventOnlyStreamRemovePass : public ScopeSplitPass {
 public:
@@ -210,21 +230,13 @@ private:
     bool IsStreamAllEventNodes(const std::vector<SuperKernelBaseNode*>& nodes) const;
 
     /*!
-     * \brief Remove all nodes of a stream from a scope
-     * \param scope Scope to modify
-     * \param streamIdx Stream index to remove
-     * \param nodesCount Number of nodes being removed (for logging)
-     */
-    void RemoveStreamFromScope(SuperKernelScopeInfo& scope, uint32_t streamIdx, size_t nodesCount);
-
-    /*!
-     * \brief Process a single scope and remove event-only streams
+     * \brief Process a single scope and mark event-only stream nodes as non-fusible
      * \param scope Scope to process
-     * \return Number of nodes removed
+     * \return Number of nodes marked as non-fusible
      */
     uint32_t ProcessScope(SuperKernelScopeInfo& scope);
 
-    uint32_t removedCount_;  ///< Total number of nodes removed
+    uint32_t markedCount_;    ///< Total number of nodes marked as non-fusible
 };
 
 // ============ Pass 1: Initial Scope Split ============
@@ -447,6 +459,18 @@ public:
     std::vector<SuperKernelScopeInfo>& GetScopeInfos() noexcept { return scopeInfos_; }
 
     /*!
+     * \brief Request a re-split of the graph
+     * Called by passes when they modify node fusibility and need the pipeline to re-run
+     */
+    void RequestResplit() { needResplit_ = true; }
+
+    /*!
+     * \brief Check if a re-split has been requested
+     * \return true if re-split is needed
+     */
+    bool NeedsResplit() const { return needResplit_; }
+
+    /*!
      * \brief Print final scope results
      */
     void PrintFinalResults() const;
@@ -454,6 +478,7 @@ public:
     SuperKernelGraph& graph_;
     std::vector<SuperKernelScopeInfo> scopeInfos_;
     std::vector<std::unique_ptr<ScopeSplitPass>> passes_;
+    bool needResplit_ = false;  ///< Flag to signal re-split is needed
 };
 
 #endif // __SK_SCOPE_SPLIT_H__

@@ -20,7 +20,7 @@
 // ============ EventOnlyStreamRemovePass Implementation ============
 
 EventOnlyStreamRemovePass::EventOnlyStreamRemovePass(SuperKernelGraph& inputGraph)
-    : ScopeSplitPass(inputGraph), removedCount_(0) {}
+    : ScopeSplitPass(inputGraph), markedCount_(0) {}
 
 bool EventOnlyStreamRemovePass::IsEventNode(SuperKernelBaseNode* node) const {
     if (node == nullptr) {
@@ -64,36 +64,6 @@ bool EventOnlyStreamRemovePass::IsStreamAllEventNodes(
     return true;
 }
 
-void EventOnlyStreamRemovePass::RemoveStreamFromScope(
-    SuperKernelScopeInfo& scope,
-    uint32_t streamIdx,
-    size_t nodesCount) {
-    // Remove nodes belonging to this stream from scope.nodes
-    auto nodes = scope.GetNodes();
-    auto newEnd = std::remove_if(nodes.begin(), nodes.end(),
-        [streamIdx, this](SuperKernelBaseNode* node) {
-            if (node == nullptr) {
-                return false;
-            }
-            return node->GetStreamIdxInGraph() == streamIdx;
-        });
-    nodes.erase(newEnd, nodes.end());
-    scope.SetNodes(std::move(nodes));
-
-    // Remove stream info for this stream
-    auto scopeStreamInfos = scope.GetScopeStreamInfos();
-    auto streamInfoIt = std::find_if(scopeStreamInfos.begin(), scopeStreamInfos.end(),
-        [streamIdx](const ScopeStreamInfo& info) {
-            return info.streamIdx == streamIdx;
-        });
-    if (streamInfoIt != scopeStreamInfos.end()) {
-        scopeStreamInfos.erase(streamInfoIt);
-        scope.SetScopeStreamInfos(std::move(scopeStreamInfos));
-    }
-
-    removedCount_ += static_cast<uint32_t>(nodesCount);
-}
-
 uint32_t EventOnlyStreamRemovePass::ProcessScope(SuperKernelScopeInfo& scope) {
     if (scope.GetNodes().empty()) {
         return 0;
@@ -102,66 +72,56 @@ uint32_t EventOnlyStreamRemovePass::ProcessScope(SuperKernelScopeInfo& scope) {
     std::unordered_map<uint32_t, std::vector<SuperKernelBaseNode*>> streamNodes;
     CollectNodesPerStream(scope, streamNodes);
 
-    uint32_t scopeRemovedCount = 0;
-    std::vector<uint32_t> streamsToRemove;
+    uint32_t scopeMarkedCount = 0;
 
-    // Identify streams that should be removed
+    // Identify streams that have all event nodes and mark them as non-fusible
     for (const auto& pair : streamNodes) {
         uint32_t streamIdx = pair.first;
         const auto& nodes = pair.second;
 
         if (IsStreamAllEventNodes(nodes)) {
-            streamsToRemove.push_back(streamIdx);
-            SK_LOGI("[EventOnlyStreamRemove] Stream %u in scope has all event nodes (%zu nodes), will remove",
+            // Mark all event nodes in this stream as non-fusible
+            for (auto* node : nodes) {
+                if (node != nullptr && node->IsFusible()) {
+                    node->SetIsFusible(false);
+                    scopeMarkedCount++;
+                    SK_LOGI("[EventOnlyStreamRemove] Marked event node %lu in stream %u as non-fusible",
+                            node->GetNodeId(), streamIdx);
+                }
+            }
+            SK_LOGI("[EventOnlyStreamRemove] Stream %u in scope has all event nodes (%zu nodes), marked as non-fusible",
                     streamIdx, nodes.size());
         }
     }
 
-    // Remove identified streams
-    for (uint32_t streamIdx : streamsToRemove) {
-        auto it = streamNodes.find(streamIdx);
-        if (it != streamNodes.end()) {
-            size_t nodesCount = it->second.size();
-            RemoveStreamFromScope(scope, streamIdx, nodesCount);
-            scopeRemovedCount += static_cast<uint32_t>(nodesCount);
-            SK_LOGI("[EventOnlyStreamRemove] Removed stream %u with %zu nodes from scope",
-                    streamIdx, nodesCount);
-        }
-    }
-
-    return scopeRemovedCount;
+    return scopeMarkedCount;
 }
 
 bool EventOnlyStreamRemovePass::Run(std::vector<SuperKernelScopeInfo>& scopes) {
     SK_LOGI("[EventOnlyStreamRemove] %s pass starting execution", GetName().c_str());
 
-    removedCount_ = 0;
+    markedCount_ = 0;
     SK_LOGI("[EventOnlyStreamRemove] processing %zu scopes", scopes.size());
 
-    size_t emptyScopeCount = 0;
     for (size_t i = 0; i < scopes.size(); ++i) {
-        uint32_t scopeRemoved = ProcessScope(scopes[i]);
-        removedCount_ += scopeRemoved;
+        uint32_t scopeMarked = ProcessScope(scopes[i]);
+        markedCount_ += scopeMarked;
 
-        if (scopes[i].GetNodes().empty()) {
-            emptyScopeCount++;
-        }
-
-        SK_LOGI("[EventOnlyStreamRemove] Scope %zu: after processing, %zu nodes remain, %zu streams remain",
-                i, scopes[i].GetNodes().size(), scopes[i].GetScopeStreamInfos().size());
+        SK_LOGI("[EventOnlyStreamRemove] Scope %zu: after processing, %zu nodes, %zu streams, marked %u nodes",
+                i, scopes[i].GetNodes().size(), scopes[i].GetScopeStreamInfos().size(), scopeMarked);
     }
 
-    // Remove empty scopes from the list
-    if (emptyScopeCount > 0) {
-        auto newEnd = std::remove_if(scopes.begin(), scopes.end(),
-            [](const SuperKernelScopeInfo& s) { return s.GetNodes().empty(); });
-        scopes.erase(newEnd, scopes.end());
-        SK_LOGI("[EventOnlyStreamRemove] Removed %zu empty scopes, %zu scopes remain",
-                emptyScopeCount, scopes.size());
+    // If any nodes were marked as non-fusible, signal that re-split is needed
+    // and clear all scopes so they will be regenerated
+    if (markedCount_ > 0) {
+        SK_LOGI("[EventOnlyStreamRemove] Marked %u event-only stream nodes as non-fusible, requesting re-split",
+                markedCount_);
+        scopes.clear();  // Clear scopes so they will be regenerated
+        RequestResplit();
     }
 
-    SK_LOGI("[EventOnlyStreamRemove] %s pass completed, removed %u event-only stream nodes total",
-            GetName().c_str(), removedCount_);
+    SK_LOGI("[EventOnlyStreamRemove] %s pass completed, marked %u event-only stream nodes total",
+            GetName().c_str(), markedCount_);
 
     return true;
 }
@@ -227,6 +187,12 @@ void ScopeSplitPass::PrintScopeStreamInfos(size_t scopeIdx, const SuperKernelSco
         SK_LOGI("  Scope %zu StreamInfo[%zu]: streamIdx=%u, headNode=%lu, tailNode=%lu, nodeSize=%lu",
                 scopeIdx, j, streamInfo.streamIdx, streamInfo.headNodeIdx, 
                 streamInfo.tailNodeIdx, streamInfo.nodeSize);
+    }
+}
+
+void ScopeSplitPass::RequestResplit() {
+    if (splitter_ != nullptr) {
+        splitter_->RequestResplit();
     }
 }
 
@@ -1222,23 +1188,57 @@ SuperKernelScopeSplitter::SuperKernelScopeSplitter(SuperKernelGraph& inputGraph,
     passes_.push_back(std::make_unique<SchoModeKernelSplitPass>(inputGraph));
     // Pass 3: Remove event-only streams from scopes
     passes_.push_back(std::make_unique<EventOnlyStreamRemovePass>(inputGraph));
+
+    // Set splitter reference for all passes to enable re-split requests
+    for (auto& pass : passes_) {
+        pass->SetSplitter(this);
+    }
 }
 
 bool SuperKernelScopeSplitter::SplitGraph() {
     SK_LOGI("[ScopeSplitPipeline] starting scope splitting pipeline");
-    
     scopeInfos_.clear();
+    needResplit_ = false;
 
-    // Run all passes
-    for (auto& pass : passes_) {
-        SK_LOGI("[ScopeSplitPipeline] running pass: %s", pass->GetName().c_str());
-        if (!pass->Run(scopeInfos_)) {
-            SK_LOGE("[ScopeSplitPipeline] pass %s failed (input scopes: %zu)", pass->GetName().c_str(), scopeInfos_.size());
-            return false;
+    const uint32_t maxIterations = 10;  // Maximum re-split iterations to prevent infinite loops
+    uint32_t iteration = 0;
+
+    do {
+        iteration++;
+        needResplit_ = false;
+        scopeInfos_.clear();
+
+        SK_LOGI("[ScopeSplitPipeline] iteration %u", iteration);
+        {
+            SK_LOG_CONTEXT_SIMPLE("sk_scope_split.log");
+            SK_LOGI("==========[ScopeSplitPipeline] iteration %u==========", iteration);
         }
-    }
-    
-    // SetNotifyNodesExpandNum is now called immediately after each scope is generated
+
+        // Run all passes
+        for (auto& pass : passes_) {
+            SK_LOGI("[ScopeSplitPipeline] running pass: %s", pass->GetName().c_str());
+            {
+                SK_LOG_CONTEXT_SIMPLE("sk_scope_split.log");
+                SK_LOGI("===========[ScopeSplitPipeline] running pass: %s==========", pass->GetName().c_str());
+            }
+            if (!pass->Run(scopeInfos_)) {
+                SK_LOGE("[ScopeSplitPipeline] pass %s failed (input scopes: %zu)", pass->GetName().c_str(), scopeInfos_.size());
+                return false;
+            }
+
+            // Check if re-split was requested by EventOnlyStreamRemovePass
+            if (needResplit_) {
+                SK_LOGI("[ScopeSplitPipeline] re-split requested by %s, starting new iteration",
+                        pass->GetName().c_str());
+                break;  // Exit pass loop and start new iteration
+            }
+        }
+
+        if (iteration >= maxIterations) {
+            SK_LOGW("[ScopeSplitPipeline] reached maximum iterations (%u), stopping", maxIterations);
+            break;
+        }
+    } while (needResplit_);
 
     PrintFinalResults();
 
@@ -1247,5 +1247,9 @@ bool SuperKernelScopeSplitter::SplitGraph() {
 
 void SuperKernelScopeSplitter::PrintFinalResults() const {
     SK_LOGI("[ScopeSplitPipeline] scope splitting complete, total scopes: %zu", scopeInfos_.size());
+    {
+        SK_LOG_CONTEXT_SIMPLE("sk_scope_split.log");
+        SK_LOGI("==========[ScopeSplitPipeline] scope splitting complete, total scopes: %zu==========", scopeInfos_.size());
+    }
     ScopeSplitPass::PrintScopeResults(scopeInfos_, graph_);
 }

@@ -306,9 +306,9 @@ protected:
 
     // Helper function to verify scope result
     void VerifyScope(const SuperKernelScopeInfo& scope, const std::vector<uint64_t>& expectedNodeIds) {
-        EXPECT_EQ(scope.nodes.size(), expectedNodeIds.size());
+        EXPECT_EQ(scope.nodes_.size(), expectedNodeIds.size());
         std::vector<uint64_t> actualNodeIds;
-        for (const auto* node : scope.nodes) {
+        for (const auto* node : scope.nodes_) {
             actualNodeIds.push_back(node->GetNodeId());
         }
         std::sort(actualNodeIds.begin(), actualNodeIds.end());
@@ -342,7 +342,7 @@ protected:
     // Helper function to build a test scope from a node list
     SuperKernelScopeInfo BuildTestScope(const std::vector<SuperKernelBaseNode*>& nodeList) {
         SuperKernelScopeInfo scope;
-        scope.nodes = nodeList;
+        scope.nodes_ = nodeList;
         return scope;
     }
 
@@ -565,8 +565,11 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase8_AllStreamsSuspended)
     // Event1: Wait1(id=1) 等待 Notify1(id=5)
     // Event2: Wait2(id=2) 等待 Notify2(id=6)
     //
-    // 说明：EventOnlyStreamRemovePass运行在SchoModeKernelSplitPass之后
-    // Stream 2只有Notify节点，会被移除。但Stream 0和1有Kernel，Wait节点作为同步节点保留
+    // 说明：EventOnlyStreamRemovePass会检测到Stream 2只有Notify节点
+    // 将Notify节点标记为non-fusible，触发重新切图
+    // 重新切图后，Notify节点不参与融合
+    // 由于Wait节点等待的Notify不在任何scope中，Wait节点无法形成有效同步
+    // 预期：生成1个scope，包含K1和K2（没有Wait节点，因为Notify不可融合）
 
     auto* wait1 = CreateWaitNode(1, 0, 5, 3);
     auto* k1 = CreateKernelNode(3, 0, INVALID_TASK_ID);
@@ -587,9 +590,11 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase8_AllStreamsSuspended)
     ASSERT_TRUE(result);
     const auto& scopeInfos = splitter.GetScopeInfos();
 
+    // Notify节点被标记为non-fusible后不参与融合
+    // 重新切图后，只有Kernel节点参与融合
     EXPECT_EQ(scopeInfos.size(), 1);
-    // Stream 0和Stream 1的Wait和Kernel节点都会保留（Wait作为同步节点）
-    VerifyScope(scopeInfos[0], {1, 2, 3, 4});
+    // Scope应包含K1和K2两个Kernel节点
+    VerifyScope(scopeInfos[0], {3, 4});
 }
 
 // ==================== 测试用例 9: 三流多 Wait-Notify + 不可融合节点 ====================
@@ -761,7 +766,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase15_StreamOrderVerification)
     VerifyScope(scopeInfos[0], {10, 20, 30, 40, 50, 60});
 
     // 验证流内顺序
-    const auto& scopeNodes = scopeInfos[0].nodes;
+    const auto& scopeNodes = scopeInfos[0].nodes_;
     for (const auto* node : scopeNodes) {
         uint32_t streamIdx = node->GetStreamIdxInGraph();
         uint64_t nodeId = node->GetNodeId();
@@ -808,7 +813,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase16_MultipleScopesWithWaitNotifyInDi
     // 所有节点都应该被融合
     std::vector<uint64_t> allNodeIds;
     for (const auto& scope : scopeInfos) {
-        for (const auto* node : scope.nodes) {
+        for (const auto* node : scope.nodes_) {
             allNodeIds.push_back(node->GetNodeId());
         }
     }
@@ -878,7 +883,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase18_WaitBeforeNotify_ShouldSuspend)
     VerifyScope(scopeInfos[0], {1, 2, 3, 4});
 
     // 验证 Wait1 在 Notify1 之后处理
-    const auto& scopeNodes = scopeInfos[0].nodes;
+    const auto& scopeNodes = scopeInfos[0].nodes_;
     size_t waitPos = 0, notifyPos = 0;
     for (size_t i = 0; i < scopeNodes.size(); ++i) {
         if (scopeNodes[i]->GetNodeId() == 1) {
@@ -974,7 +979,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase20_ComplexWaitNotifyChain)
     // 所有节点都应该被融合
     std::vector<uint64_t> allNodeIds;
     for (const auto& scope : scopeInfos) {
-        for (const auto* node : scope.nodes) {
+        for (const auto* node : scope.nodes_) {
             allNodeIds.push_back(node->GetNodeId());
         }
     }
@@ -1091,7 +1096,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase24_ResetStreamStatesResumeSuspended
     // 验证所有节点都被处理
     std::set<uint64_t> allProcessedNodes;
     for (const auto& scope : scopeInfos) {
-        for (const auto* node : scope.nodes) {
+        for (const auto* node : scope.nodes_) {
             allProcessedNodes.insert(node->GetNodeId());
         }
     }
@@ -1135,7 +1140,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase25_MultipleSuspendResume)
     // 验证所有节点都被处理
     std::set<uint64_t> allProcessedNodes;
     for (const auto& scope : scopeInfos) {
-        for (const auto* node : scope.nodes) {
+        for (const auto* node : scope.nodes_) {
             allProcessedNodes.insert(node->GetNodeId());
         }
     }
@@ -1305,19 +1310,19 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase29_UnfusibleScope)
     EXPECT_EQ(scopeInfos.size(), 2);
 
     // 验证scope 0包含K1(1)和UnfusibleBegin(2)
-    EXPECT_EQ(scopeInfos[0].nodes.size(), 2);
-    EXPECT_EQ(scopeInfos[0].nodes[0]->GetNodeId(), 1);
-    EXPECT_EQ(scopeInfos[0].nodes[1]->GetNodeId(), 2);
+    EXPECT_EQ(scopeInfos[0].nodes_.size(), 2);
+    EXPECT_EQ(scopeInfos[0].nodes_[0]->GetNodeId(), 1);
+    EXPECT_EQ(scopeInfos[0].nodes_[1]->GetNodeId(), 2);
 
     // 验证scope 1包含UnfusibleEnd(5)和K4(6)
-    EXPECT_EQ(scopeInfos[1].nodes.size(), 2);
-    EXPECT_EQ(scopeInfos[1].nodes[0]->GetNodeId(), 5);
-    EXPECT_EQ(scopeInfos[1].nodes[1]->GetNodeId(), 6);
+    EXPECT_EQ(scopeInfos[1].nodes_.size(), 2);
+    EXPECT_EQ(scopeInfos[1].nodes_[0]->GetNodeId(), 5);
+    EXPECT_EQ(scopeInfos[1].nodes_[1]->GetNodeId(), 6);
 
     // 验证所有可融合节点和scope节点被包含在scope中
     std::set<uint64_t> allProcessedNodes;
     for (const auto& scope : scopeInfos) {
-        for (const auto* node : scope.nodes) {
+        for (const auto* node : scope.nodes_) {
             allProcessedNodes.insert(node->GetNodeId());
         }
     }
@@ -1369,23 +1374,23 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase30_MixedFusibleAndUnfusibleScopes)
     EXPECT_EQ(scopeInfos.size(), 3);
 
     // 验证scope 0包含ScopeBegin_A(1), K1(2), ScopeEnd_A(3)
-    EXPECT_EQ(scopeInfos[0].nodes.size(), 3);
-    EXPECT_EQ(scopeInfos[0].nodes[0]->GetNodeId(), 1);
-    EXPECT_EQ(scopeInfos[0].nodes[1]->GetNodeId(), 2);
-    EXPECT_EQ(scopeInfos[0].nodes[2]->GetNodeId(), 3);
+    EXPECT_EQ(scopeInfos[0].nodes_.size(), 3);
+    EXPECT_EQ(scopeInfos[0].nodes_[0]->GetNodeId(), 1);
+    EXPECT_EQ(scopeInfos[0].nodes_[1]->GetNodeId(), 2);
+    EXPECT_EQ(scopeInfos[0].nodes_[2]->GetNodeId(), 3);
 
     // 验证scope 1包含UnfusibleBegin(4)
-    EXPECT_EQ(scopeInfos[1].nodes.size(), 1);
-    EXPECT_EQ(scopeInfos[1].nodes[0]->GetNodeId(), 4);
+    EXPECT_EQ(scopeInfos[1].nodes_.size(), 1);
+    EXPECT_EQ(scopeInfos[1].nodes_[0]->GetNodeId(), 4);
 
     // 验证scope 2包含UnfusibleEnd(6)
-    EXPECT_EQ(scopeInfos[2].nodes.size(), 1);
-    EXPECT_EQ(scopeInfos[2].nodes[0]->GetNodeId(), 6);
+    EXPECT_EQ(scopeInfos[2].nodes_.size(), 1);
+    EXPECT_EQ(scopeInfos[2].nodes_[0]->GetNodeId(), 6);
 
     // 验证所有可融合节点和scope节点被包含在scope中
     std::set<uint64_t> allProcessedNodes;
     for (const auto& scope : scopeInfos) {
-        for (const auto* node : scope.nodes) {
+        for (const auto* node : scope.nodes_) {
             allProcessedNodes.insert(node->GetNodeId());
         }
     }
@@ -1433,7 +1438,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase31_SameScopeNameAcrossStreams)
     // 验证所有节点都被包含在scope中（包括scope节点）
     std::set<uint64_t> allProcessedNodes;
     for (const auto& scope : scopeInfos) {
-        for (const auto* node : scope.nodes) {
+        for (const auto* node : scope.nodes_) {
             allProcessedNodes.insert(node->GetNodeId());
         }
     }
@@ -1480,7 +1485,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase32_NestedScopes)
     // 验证所有节点都被包含在scope中（包括scope节点）
     std::set<uint64_t> allProcessedNodes;
     for (const auto& scope : scopeInfos) {
-        for (const auto* node : scope.nodes) {
+        for (const auto* node : scope.nodes_) {
             allProcessedNodes.insert(node->GetNodeId());
         }
     }
@@ -1536,7 +1541,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase33_ScopeWithCrossStreamDependency)
     // 验证所有节点都被包含在scope中（包括scope节点和wait/notify节点）
     std::set<uint64_t> allProcessedNodes;
     for (const auto& scope : scopeInfos) {
-        for (const auto* node : scope.nodes) {
+        for (const auto* node : scope.nodes_) {
             allProcessedNodes.insert(node->GetNodeId());
         }
     }
@@ -1574,7 +1579,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase34_ExceedMaxScopeNumLimit)
     // 验证所有节点都被包含在scope中（包括scope节点）
     std::set<uint64_t> allProcessedNodes;
     for (const auto& scope : scopeInfos) {
-        for (const auto* node : scope.nodes) {
+        for (const auto* node : scope.nodes_) {
             allProcessedNodes.insert(node->GetNodeId());
         }
     }
@@ -1617,19 +1622,19 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase35_ScopeWithUnfusibleNodes)
     EXPECT_EQ(scopeInfos.size(), 2);
 
     // 验证scope 0包含ScopeBegin_A(1)和K1(2)
-    EXPECT_EQ(scopeInfos[0].nodes.size(), 2);
-    EXPECT_EQ(scopeInfos[0].nodes[0]->GetNodeId(), 1);
-    EXPECT_EQ(scopeInfos[0].nodes[1]->GetNodeId(), 2);
+    EXPECT_EQ(scopeInfos[0].nodes_.size(), 2);
+    EXPECT_EQ(scopeInfos[0].nodes_[0]->GetNodeId(), 1);
+    EXPECT_EQ(scopeInfos[0].nodes_[1]->GetNodeId(), 2);
 
     // 验证scope 1包含K2(4)和ScopeEnd_A(5)
-    EXPECT_EQ(scopeInfos[1].nodes.size(), 2);
-    EXPECT_EQ(scopeInfos[1].nodes[0]->GetNodeId(), 4);
-    EXPECT_EQ(scopeInfos[1].nodes[1]->GetNodeId(), 5);
+    EXPECT_EQ(scopeInfos[1].nodes_.size(), 2);
+    EXPECT_EQ(scopeInfos[1].nodes_[0]->GetNodeId(), 4);
+    EXPECT_EQ(scopeInfos[1].nodes_[1]->GetNodeId(), 5);
 
     // 验证不可融合的节点没有被包含在任何scope中
     std::set<uint64_t> allProcessedNodes;
     for (const auto& scope : scopeInfos) {
-        for (const auto* node : scope.nodes) {
+        for (const auto* node : scope.nodes_) {
             allProcessedNodes.insert(node->GetNodeId());
         }
     }
@@ -2202,12 +2207,12 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase51_DifferentScopeBitFlagsSplitIntoD
 
     // Scope 0: K1, K3 (相同 ScopeBitFlags)
     // Scope 1: K2 (不同 ScopeBitFlags)
-    EXPECT_EQ(scopeInfos[0].nodes.size(), 2);
-    EXPECT_EQ(scopeInfos[1].nodes.size(), 1);
+    EXPECT_EQ(scopeInfos[0].nodes_.size(), 2);
+    EXPECT_EQ(scopeInfos[1].nodes_.size(), 1);
 
     // 验证 ScopeBitFlags
-    EXPECT_EQ(scopeInfos[0].scopeBitFlags, flags0);
-    EXPECT_EQ(scopeInfos[1].scopeBitFlags, flags1);
+    EXPECT_EQ(scopeInfos[0].scopeBitFlags_, flags0);
+    EXPECT_EQ(scopeInfos[1].scopeBitFlags_, flags1);
 }
 
 // ==================== 测试用例 52: 无 ScopeBitFlags 的节点只能和无 ScopeBitFlags 的节点融合 ====================
@@ -2245,12 +2250,12 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase52_NoScopeBitFlagsOnlyFuseWithNoFla
     // Scope 0: K1 (scope=0)
     // Scope 1: K2 (no flags)
     // Scope 2: K3 (scope=1)
-    EXPECT_EQ(scopeInfos[0].nodes.size(), 1);
-    EXPECT_EQ(scopeInfos[1].nodes.size(), 1);
-    EXPECT_EQ(scopeInfos[2].nodes.size(), 1);
-    EXPECT_EQ(scopeInfos[0].nodes[0]->GetNodeId(), 1);
-    EXPECT_EQ(scopeInfos[1].nodes[0]->GetNodeId(), 2);
-    EXPECT_EQ(scopeInfos[2].nodes[0]->GetNodeId(), 3);
+    EXPECT_EQ(scopeInfos[0].nodes_.size(), 1);
+    EXPECT_EQ(scopeInfos[1].nodes_.size(), 1);
+    EXPECT_EQ(scopeInfos[2].nodes_.size(), 1);
+    EXPECT_EQ(scopeInfos[0].nodes_[0]->GetNodeId(), 1);
+    EXPECT_EQ(scopeInfos[1].nodes_[0]->GetNodeId(), 2);
+    EXPECT_EQ(scopeInfos[2].nodes_[0]->GetNodeId(), 3);
 }
 
 // ==================== 测试用例 53: 多个 ScopeBitFlags 位同时设置 ====================
@@ -2298,8 +2303,8 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase53_MultipleScopeBitFlagsBits)
     EXPECT_EQ(scopeInfos.size(), 3);
 
     // Scope 0: K1, K2, K4 (flags=011)
-    EXPECT_EQ(scopeInfos[0].nodes.size(), 3);
-    EXPECT_EQ(scopeInfos[0].scopeBitFlags, flags011);
+    EXPECT_EQ(scopeInfos[0].nodes_.size(), 3);
+    EXPECT_EQ(scopeInfos[0].scopeBitFlags_, flags011);
 
     // Scope 1: K3 (flags=001) 或 K5 (flags=111)，取决于处理顺序
     // Scope 2: 另一个
@@ -2382,8 +2387,8 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase54_ComplexMultiStreamMultiScopeBitF
     // 验证每个 scope 的 ScopeBitFlags
     int scope0Count = 0, scope1Count = 0;
     for (const auto& scope : scopeInfos) {
-        if (scope.scopeBitFlags == scope0) scope0Count++;
-        else if (scope.scopeBitFlags == scope1) scope1Count++;
+        if (scope.scopeBitFlags_ == scope0) scope0Count++;
+        else if (scope.scopeBitFlags_ == scope1) scope1Count++;
     }
     EXPECT_EQ(scope0Count, 1);
     EXPECT_EQ(scope1Count, 1);
@@ -2391,15 +2396,15 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase54_ComplexMultiStreamMultiScopeBitF
     // 验证总节点数 = 32
     size_t totalNodes = 0;
     for (const auto& scope : scopeInfos) {
-        totalNodes += scope.nodes.size();
+        totalNodes += scope.nodes_.size();
     }
     EXPECT_EQ(totalNodes, 32);
 
     // 验证每个 scope 的节点数
     // Scope 0: 16 nodes (Stream 0 + Stream 2)
     // Scope 1: 16 nodes (Stream 1 + Stream 3)
-    EXPECT_EQ(scopeInfos[0].nodes.size(), 16);
-    EXPECT_EQ(scopeInfos[1].nodes.size(), 16);
+    EXPECT_EQ(scopeInfos[0].nodes_.size(), 16);
+    EXPECT_EQ(scopeInfos[1].nodes_.size(), 16);
 }
 
 // ==================== 测试用例 55: ScopeBitFlags 与事件同步交互 ====================
@@ -2455,12 +2460,12 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase55_ScopeBitFlagsWithEventSynchroniz
     // Scope 0: K1, K4, Notify1(5), Wait1(2) (scope=0)
     // 节点按 ID 排序: K1(1), Wait1(2), K3(3), K4(4), Notify1(5), K6(6)
     // 但 K3 和 K6 因为 scopeBitFlags 不匹配，在第二个 scope
-    EXPECT_EQ(scopeInfos[0].scopeBitFlags, scope0);
-    EXPECT_EQ(scopeInfos[0].nodes.size(), 4);
+    EXPECT_EQ(scopeInfos[0].scopeBitFlags_, scope0);
+    EXPECT_EQ(scopeInfos[0].nodes_.size(), 4);
 
     // Scope 1: K3(3), K6(6) (scope=1)
-    EXPECT_EQ(scopeInfos[1].scopeBitFlags, scope1);
-    EXPECT_EQ(scopeInfos[1].nodes.size(), 2);
+    EXPECT_EQ(scopeInfos[1].scopeBitFlags_, scope1);
+    EXPECT_EQ(scopeInfos[1].nodes_.size(), 2);
 }
 
 // ==================== 测试用例 36: 跨流依赖形成死锁 ====================
@@ -2505,7 +2510,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase36_CrossStreamDeadlock)
 
     // 验证所有节点都被处理
     std::set<uint64_t> allProcessedNodes;
-    for (const auto* node : scopeInfos[0].nodes) {
+    for (const auto* node : scopeInfos[0].nodes_) {
         allProcessedNodes.insert(node->GetNodeId());
     }
     std::set<uint64_t> expectedNodes = {1, 2, 3, 4, 5, 6};
@@ -2557,7 +2562,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase37_DeadlockRefinePassSplitsScope)
     // 验证所有节点都被处理（包括 Notify 节点）
     std::set<uint64_t> allProcessedNodes;
     for (const auto& scope : scopeInfos) {
-        for (const auto* node : scope.nodes) {
+        for (const auto* node : scope.nodes_) {
             allProcessedNodes.insert(node->GetNodeId());
         }
     }
@@ -2742,7 +2747,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase42_ResumeSuspendedWaitStreams_Succe
     // 不可融合的 Wait(1) 和 Notify(3) 节点被跳过，不会出现在 scope 中
     std::set<uint64_t> allProcessedNodes;
     for (const auto& scope : scopeInfos) {
-        for (const auto* node : scope.nodes) {
+        for (const auto* node : scope.nodes_) {
             allProcessedNodes.insert(node->GetNodeId());
         }
     }
@@ -2790,7 +2795,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase43_ResumeSuspendedWaitStreams_Succe
     // 不可融合的 Wait(1, 3) 和 Notify(5) 节点被跳过，不会出现在 scope 中
     std::set<uint64_t> allProcessedNodes;
     for (const auto& scope : scopeInfos) {
-        for (const auto* node : scope.nodes) {
+        for (const auto* node : scope.nodes_) {
             allProcessedNodes.insert(node->GetNodeId());
         }
     }
@@ -2823,15 +2828,16 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase44_SkipUnfusibleNodesForStream_Node
 
 // ==================== 测试用例 45-55: EventOnlyStreamRemovePass 专项测试 ====================
 
-// ==================== 测试用例 45: EventOnlyStreamRemovePass - 单个纯Event节点的Stream被移除 ====================
+// ==================== 测试用例 45: EventOnlyStreamRemovePass - 单个纯Event节点的Stream被标记为non-fusible ====================
 
 TEST_F(SuperKernelScopeSplitterTest, TestCase45_EventOnlyStream_RemovePass)
 {
-    // 测试场景：scope中某个stream只包含Event节点，应该被移除
+    // 测试场景：scope中某个stream只包含Event节点
+    // 新逻辑：标记为non-fusible，清空scopes触发重新切图
     //
     // Scope包含两个stream:
-    // Stream 0: [Notify1] - 只有Event节点，应该被移除
-    // Stream 1: [K1] - 有Kernel节点，保留
+    // Stream 0: [Notify1] - 只有Event节点，被标记为non-fusible
+    // Stream 1: [K1] - 有Kernel节点，保持不变
 
     auto* notify1 = CreateNotifyNode(1, 0, 0x100, INVALID_TASK_ID);
     auto* k1 = CreateKernelNode(2, 1, INVALID_TASK_ID);
@@ -2841,31 +2847,32 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase45_EventOnlyStream_RemovePass)
     // 手动构建scope，包含两个stream的节点
     std::vector<SuperKernelScopeInfo> scopes;
     SuperKernelScopeInfo scope;
-    scope.nodes.push_back(notify1);
-    scope.nodes.push_back(k1);
+    scope.nodes_.push_back(notify1);
+    scope.nodes_.push_back(k1);
     ScopeStreamInfo info0{0, 1, 1, 1};
     ScopeStreamInfo info1{1, 2, 2, 1};
-    scope.scopeStreamInfos.push_back(info0);
-    scope.scopeStreamInfos.push_back(info1);
+    scope.scopeStreamInfos_.push_back(info0);
+    scope.scopeStreamInfos_.push_back(info1);
     scopes.push_back(std::move(scope));
 
     EventOnlyStreamRemovePass removePass(*graph);
     bool result = removePass.Run(scopes);
 
     EXPECT_TRUE(result);
-    // Stream 0被移除，只剩Stream 1
-    EXPECT_EQ(scopes.size(), 1);
-    EXPECT_EQ(scopes[0].nodes.size(), 1);
-    EXPECT_EQ(scopes[0].scopeStreamInfos.size(), 1);
-    EXPECT_EQ(scopes[0].scopeStreamInfos[0].streamIdx, 1);
+    // Notify节点被标记为non-fusible
+    EXPECT_FALSE(notify1->IsFusible());
+    // Kernel节点保持不变
+    EXPECT_TRUE(k1->IsFusible());
+    // scopes被清空以触发重新切图
+    EXPECT_EQ(scopes.size(), 0);
 }
 
-// ==================== 测试用例 46: EventOnlyStreamRemovePass - 所有Stream都是纯Event节点，scope被清空 ====================
+// ==================== 测试用例 46: EventOnlyStreamRemovePass - 所有Stream都是纯Event节点，全部标记为non-fusible ====================
 
 TEST_F(SuperKernelScopeSplitterTest, TestCase46_AllEventOnlyStreams_ScopeRemoved)
 {
     // 测试场景：scope中所有stream都只包含Event节点
-    // 整个scope应该被移除
+    // 新逻辑：所有event节点被标记为non-fusible，清空scopes触发重新切图
 
     auto* notify1 = CreateNotifyNode(1, 0, 0x100, INVALID_TASK_ID);
     auto* wait1 = CreateWaitNode(2, 1, 100, INVALID_TASK_ID);
@@ -2874,31 +2881,35 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase46_AllEventOnlyStreams_ScopeRemoved
 
     std::vector<SuperKernelScopeInfo> scopes;
     SuperKernelScopeInfo scope;
-    scope.nodes.push_back(notify1);
-    scope.nodes.push_back(wait1);
+    scope.nodes_.push_back(notify1);
+    scope.nodes_.push_back(wait1);
     ScopeStreamInfo info0{0, 1, 1, 1};
     ScopeStreamInfo info1{1, 2, 2, 1};
-    scope.scopeStreamInfos.push_back(info0);
-    scope.scopeStreamInfos.push_back(info1);
+    scope.scopeStreamInfos_.push_back(info0);
+    scope.scopeStreamInfos_.push_back(info1);
     scopes.push_back(std::move(scope));
 
     EventOnlyStreamRemovePass removePass(*graph);
     bool result = removePass.Run(scopes);
 
     EXPECT_TRUE(result);
-    // 整个scope被移除
+    // 所有event节点被标记为non-fusible
+    EXPECT_FALSE(notify1->IsFusible());
+    EXPECT_FALSE(wait1->IsFusible());
+    // scopes被清空以触发重新切图
     EXPECT_EQ(scopes.size(), 0);
 }
 
-// ==================== 测试用例 47: EventOnlyStreamRemovePass - 混合Stream，部分移除 ====================
+// ==================== 测试用例 47: EventOnlyStreamRemovePass - 混合Stream，纯Event stream被标记 ====================
 
 TEST_F(SuperKernelScopeSplitterTest, TestCase47_MixedStreams_PartialRemove)
 {
-    // 测试场景：多个stream，部分纯Event被移除，部分保留
+    // 测试场景：多个stream，部分纯Event被标记为non-fusible
+    // 新逻辑：标记纯event stream的节点为non-fusible，清空scopes触发重新切图
     //
-    // Stream 0: [Notify1] - 纯Event，移除
-    // Stream 1: [K1] → [Notify2] → [K2] - 有Kernel，保留
-    // Stream 2: [Wait1] → [Reset1] - 纯Event，移除
+    // Stream 0: [Notify1] - 纯Event，被标记为non-fusible
+    // Stream 1: [K1] → [Notify2] → [K2] - 有Kernel，Notify2保持不变（混合stream）
+    // Stream 2: [Wait1] → [Reset1] - 纯Event，被标记为non-fusible
 
     auto* notify1 = CreateNotifyNode(1, 0, 0x100, INVALID_TASK_ID);
     auto* k1 = CreateKernelNode(2, 1, 3);
@@ -2915,29 +2926,34 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase47_MixedStreams_PartialRemove)
 
     std::vector<SuperKernelScopeInfo> scopes;
     SuperKernelScopeInfo scope;
-    scope.nodes.push_back(notify1);
-    scope.nodes.push_back(k1);
-    scope.nodes.push_back(notify2);
-    scope.nodes.push_back(k2);
-    scope.nodes.push_back(wait1);
-    scope.nodes.push_back(reset1);
+    scope.nodes_.push_back(notify1);
+    scope.nodes_.push_back(k1);
+    scope.nodes_.push_back(notify2);
+    scope.nodes_.push_back(k2);
+    scope.nodes_.push_back(wait1);
+    scope.nodes_.push_back(reset1);
     ScopeStreamInfo info0{0, 1, 1, 1};
     ScopeStreamInfo info1{1, 2, 4, 3};
     ScopeStreamInfo info2{2, 5, 6, 2};
-    scope.scopeStreamInfos.push_back(info0);
-    scope.scopeStreamInfos.push_back(info1);
-    scope.scopeStreamInfos.push_back(info2);
+    scope.scopeStreamInfos_.push_back(info0);
+    scope.scopeStreamInfos_.push_back(info1);
+    scope.scopeStreamInfos_.push_back(info2);
     scopes.push_back(std::move(scope));
 
     EventOnlyStreamRemovePass removePass(*graph);
     bool result = removePass.Run(scopes);
 
     EXPECT_TRUE(result);
-    EXPECT_EQ(scopes.size(), 1);
-    // 只剩下Stream 1的节点
-    EXPECT_EQ(scopes[0].nodes.size(), 3);
-    EXPECT_EQ(scopes[0].scopeStreamInfos.size(), 1);
-    EXPECT_EQ(scopes[0].scopeStreamInfos[0].streamIdx, 1);
+    // Stream 0和Stream 2的纯event节点被标记为non-fusible
+    EXPECT_FALSE(notify1->IsFusible());
+    EXPECT_FALSE(wait1->IsFusible());
+    EXPECT_FALSE(reset1->IsFusible());
+    // Stream 1的节点保持不变
+    EXPECT_TRUE(k1->IsFusible());
+    EXPECT_TRUE(notify2->IsFusible());  // 混合stream中的event节点不被标记
+    EXPECT_TRUE(k2->IsFusible());
+    // scopes被清空以触发重新切图
+    EXPECT_EQ(scopes.size(), 0);
 }
 
 // ==================== 测试用例 48: EventOnlyStreamRemovePass - 无Event节点的Stream保留 ====================
@@ -2954,10 +2970,10 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase48_NoEventNodes_StreamKept)
 
     std::vector<SuperKernelScopeInfo> scopes;
     SuperKernelScopeInfo scope;
-    scope.nodes.push_back(k1);
-    scope.nodes.push_back(k2);
+    scope.nodes_.push_back(k1);
+    scope.nodes_.push_back(k2);
     ScopeStreamInfo info0{0, 1, 2, 2};
-    scope.scopeStreamInfos.push_back(info0);
+    scope.scopeStreamInfos_.push_back(info0);
     scopes.push_back(std::move(scope));
 
     EventOnlyStreamRemovePass removePass(*graph);
@@ -2965,7 +2981,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase48_NoEventNodes_StreamKept)
 
     EXPECT_TRUE(result);
     EXPECT_EQ(scopes.size(), 1);
-    EXPECT_EQ(scopes[0].nodes.size(), 2);
+    EXPECT_EQ(scopes[0].nodes_.size(), 2);
 }
 
 // ==================== 测试用例 49: EventOnlyStreamRemovePass - Kernel+Event混合Stream保留 ====================
@@ -2984,11 +3000,11 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase49_KernelWithEvent_StreamKept)
 
     std::vector<SuperKernelScopeInfo> scopes;
     SuperKernelScopeInfo scope;
-    scope.nodes.push_back(k1);
-    scope.nodes.push_back(notify1);
-    scope.nodes.push_back(k2);
+    scope.nodes_.push_back(k1);
+    scope.nodes_.push_back(notify1);
+    scope.nodes_.push_back(k2);
     ScopeStreamInfo info0{0, 1, 3, 3};
-    scope.scopeStreamInfos.push_back(info0);
+    scope.scopeStreamInfos_.push_back(info0);
     scopes.push_back(std::move(scope));
 
     EventOnlyStreamRemovePass removePass(*graph);
@@ -2996,7 +3012,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase49_KernelWithEvent_StreamKept)
 
     EXPECT_TRUE(result);
     EXPECT_EQ(scopes.size(), 1);
-    EXPECT_EQ(scopes[0].nodes.size(), 3);
+    EXPECT_EQ(scopes[0].nodes_.size(), 3);
 }
 
 // ==================== 测试用例 50: EventOnlyStreamRemovePass - 空Scope处理 ====================
@@ -3004,6 +3020,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase49_KernelWithEvent_StreamKept)
 TEST_F(SuperKernelScopeSplitterTest, TestCase50_EmptyScope_NoOp)
 {
     // 测试场景：空scope应该正常处理
+    // 新逻辑：空scope不触发标记，不触发重新切图
 
     std::vector<SuperKernelScopeInfo> scopes;
     SuperKernelScopeInfo emptyScope;
@@ -3013,15 +3030,16 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase50_EmptyScope_NoOp)
     bool result = removePass.Run(scopes);
 
     EXPECT_TRUE(result);
-    // 空scope被移除
-    EXPECT_EQ(scopes.size(), 0);
+    // 空scope保持不变（没有节点被标记，不触发重新切图）
+    EXPECT_EQ(scopes.size(), 1);
 }
 
 // ==================== 测试用例 51: EventOnlyStreamRemovePass - 多个Scope处理 ====================
 
 TEST_F(SuperKernelScopeSplitterTest, TestCase51_MultipleScopes_Processed)
 {
-    // 测试场景：多个scope，分别处理
+    // 测试场景：多个scope，其中一个有纯event stream
+    // 新逻辑：标记节点，清空scopes触发重新切图
 
     auto* k1 = CreateKernelNode(1, 0, INVALID_TASK_ID);
     auto* notify1 = CreateNotifyNode(2, 1, 0x100, INVALID_TASK_ID);
@@ -3031,30 +3049,32 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase51_MultipleScopes_Processed)
 
     std::vector<SuperKernelScopeInfo> scopes;
 
-    // Scope 0: 有Kernel，保留
+    // Scope 0: 有Kernel
     SuperKernelScopeInfo scope0;
-    scope0.nodes.push_back(k1);
-    scope0.scopeStreamInfos.push_back({0, 1, 1, 1});
+    scope0.nodes_.push_back(k1);
+    scope0.scopeStreamInfos_.push_back({0, 1, 1, 1});
     scopes.push_back(std::move(scope0));
 
-    // Scope 1: 只有Event，移除
+    // Scope 1: 只有Event
     SuperKernelScopeInfo scope1;
-    scope1.nodes.push_back(notify1);
-    scope1.scopeStreamInfos.push_back({1, 2, 2, 1});
+    scope1.nodes_.push_back(notify1);
+    scope1.scopeStreamInfos_.push_back({1, 2, 2, 1});
     scopes.push_back(std::move(scope1));
 
-    // Scope 2: 有Kernel，保留
+    // Scope 2: 有Kernel
     SuperKernelScopeInfo scope2;
-    scope2.nodes.push_back(k2);
-    scope2.scopeStreamInfos.push_back({2, 3, 3, 1});
+    scope2.nodes_.push_back(k2);
+    scope2.scopeStreamInfos_.push_back({2, 3, 3, 1});
     scopes.push_back(std::move(scope2));
 
     EventOnlyStreamRemovePass removePass(*graph);
     bool result = removePass.Run(scopes);
 
     EXPECT_TRUE(result);
-    // Scope 1被移除，剩下2个
-    EXPECT_EQ(scopes.size(), 2);
+    // notify1被标记为non-fusible
+    EXPECT_FALSE(notify1->IsFusible());
+    // scopes被清空以触发重新切图
+    EXPECT_EQ(scopes.size(), 0);
 }
 
 // ==================== 测试用例 52: EventOnlyStreamRemovePass - 完整Pipeline集成测试 ====================
@@ -3089,7 +3109,8 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase52_FullPipelineWithEventOnlyStream)
 
 TEST_F(SuperKernelScopeSplitterTest, TestCase53_AdjacentEventNodes_StreamRemoved)
 {
-    // 测试场景：一个stream中有多个相邻的Event节点，全部是Event，应该被移除
+    // 测试场景：一个stream中有多个相邻的Event节点，全部是Event
+    // 新逻辑：标记为non-fusible，清空scopes触发重新切图
 
     auto* notify1 = CreateNotifyNode(1, 0, 0x100, 2);
     auto* wait1 = CreateWaitNode(2, 0, 100, 3);
@@ -3102,17 +3123,21 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase53_AdjacentEventNodes_StreamRemoved
 
     std::vector<SuperKernelScopeInfo> scopes;
     SuperKernelScopeInfo scope;
-    scope.nodes.push_back(notify1);
-    scope.nodes.push_back(wait1);
-    scope.nodes.push_back(reset1);
-    scope.scopeStreamInfos.push_back({0, 1, 3, 3});
+    scope.nodes_.push_back(notify1);
+    scope.nodes_.push_back(wait1);
+    scope.nodes_.push_back(reset1);
+    scope.scopeStreamInfos_.push_back({0, 1, 3, 3});
     scopes.push_back(std::move(scope));
 
     EventOnlyStreamRemovePass removePass(*graph);
     bool result = removePass.Run(scopes);
 
     EXPECT_TRUE(result);
-    // 整个scope被移除（因为唯一的stream全是Event节点）
+    // 所有event节点被标记为non-fusible
+    EXPECT_FALSE(notify1->IsFusible());
+    EXPECT_FALSE(wait1->IsFusible());
+    EXPECT_FALSE(reset1->IsFusible());
+    // scopes被清空以触发重新切图
     EXPECT_EQ(scopes.size(), 0);
 }
 
@@ -3188,7 +3213,7 @@ TEST_F(SuperKernelScopeSplitterTest, SchoMode_SingleNode_NoSplit)
 
     EXPECT_TRUE(result);
     EXPECT_EQ(inputScopes.size(), 1);       // 只有一个scope
-    EXPECT_EQ(inputScopes[0].nodes.size(), 1); // 包含该节点
+    EXPECT_EQ(inputScopes[0].nodes_.size(), 1); // 包含该节点
 }
 
 // ==================== SchoMode 测试 3: 所有非SchoMode节点不分割 ====================
@@ -3207,7 +3232,7 @@ TEST_F(SuperKernelScopeSplitterTest, SchoMode_AllNonSchoModeNodes_NoSplit)
 
     EXPECT_TRUE(result);
     EXPECT_EQ(inputScopes.size(), 1);        // 不分割，保持1个scope
-    EXPECT_EQ(inputScopes[0].nodes.size(), 3); // 3个节点全部保留
+    EXPECT_EQ(inputScopes[0].nodes_.size(), 3); // 3个节点全部保留
 }
 
 // ==================== SchoMode 测试 4: SchoMode节点Core递增不分割 ====================
@@ -3226,7 +3251,7 @@ TEST_F(SuperKernelScopeSplitterTest, SchoMode_IncreasingCores_NoSplit)
 
     EXPECT_TRUE(result);
     EXPECT_EQ(inputScopes.size(), 1);        // core递增，不分割
-    EXPECT_EQ(inputScopes[0].nodes.size(), 3); // 全部在一个scope中
+    EXPECT_EQ(inputScopes[0].nodes_.size(), 3); // 全部在一个scope中
 }
 
 // ==================== SchoMode 测试 5: SchoMode节点Core相等不分割 ====================
@@ -3245,7 +3270,7 @@ TEST_F(SuperKernelScopeSplitterTest, SchoMode_EqualCores_NoSplit)
 
     EXPECT_TRUE(result);
     EXPECT_EQ(inputScopes.size(), 1);         // core相等，不分割
-    EXPECT_EQ(inputScopes[0].nodes.size(), 3); // 全部在一个scope中
+    EXPECT_EQ(inputScopes[0].nodes_.size(), 3); // 全部在一个scope中
 }
 
 // ==================== SchoMode 测试 6: SchoMode Core下降时连续分割 ====================
@@ -3266,14 +3291,14 @@ TEST_F(SuperKernelScopeSplitterTest, SchoMode_DecreasingCube_SplitAtDropPoint)
     EXPECT_TRUE(result);
     EXPECT_EQ(inputScopes.size(), 3);  // 连续下降，分成3个scope
     // scope0: 只有 k1
-    ASSERT_GE(inputScopes[0].nodes.size(), 1);
-    EXPECT_EQ(inputScopes[0].nodes[0]->GetNodeId(), 1);
+    ASSERT_GE(inputScopes[0].nodes_.size(), 1);
+    EXPECT_EQ(inputScopes[0].nodes_[0]->GetNodeId(), 1);
     // scope1: 只有 k2
-    ASSERT_GE(inputScopes[1].nodes.size(), 1);
-    EXPECT_EQ(inputScopes[1].nodes[0]->GetNodeId(), 2);
+    ASSERT_GE(inputScopes[1].nodes_.size(), 1);
+    EXPECT_EQ(inputScopes[1].nodes_[0]->GetNodeId(), 2);
     // scope2: 只有 k3
-    ASSERT_GE(inputScopes[2].nodes.size(), 1);
-    EXPECT_EQ(inputScopes[2].nodes[0]->GetNodeId(), 3);
+    ASSERT_GE(inputScopes[2].nodes_.size(), 1);
+    EXPECT_EQ(inputScopes[2].nodes_[0]->GetNodeId(), 3);
 }
 
 // ==================== SchoMode 测试 7: SchoMode Vec下降连续分割 ====================
@@ -3294,14 +3319,14 @@ TEST_F(SuperKernelScopeSplitterTest, SchoMode_DecreasingVec_SplitAtDropPoint)
     EXPECT_TRUE(result);
     EXPECT_EQ(inputScopes.size(), 3);  // 连续下降，分成3个scope
     // scope0: k1
-    ASSERT_GE(inputScopes[0].nodes.size(), 1);
-    EXPECT_EQ(inputScopes[0].nodes[0]->GetNodeId(), 1);
+    ASSERT_GE(inputScopes[0].nodes_.size(), 1);
+    EXPECT_EQ(inputScopes[0].nodes_[0]->GetNodeId(), 1);
     // scope1: k2
-    ASSERT_GE(inputScopes[1].nodes.size(), 1);
-    EXPECT_EQ(inputScopes[1].nodes[0]->GetNodeId(), 2);
+    ASSERT_GE(inputScopes[1].nodes_.size(), 1);
+    EXPECT_EQ(inputScopes[1].nodes_[0]->GetNodeId(), 2);
     // scope2: k3
-    ASSERT_GE(inputScopes[2].nodes.size(), 1);
-    EXPECT_EQ(inputScopes[2].nodes[0]->GetNodeId(), 3);
+    ASSERT_GE(inputScopes[2].nodes_.size(), 1);
+    EXPECT_EQ(inputScopes[2].nodes_[0]->GetNodeId(), 3);
 }
 
 // ==================== SchoMode 测试 8: 混合SchoMode与非SchoMode节点 ====================
@@ -3322,8 +3347,8 @@ TEST_F(SuperKernelScopeSplitterTest, SchoMode_MixedWithNonSchoMode_NonSchoModeIg
     EXPECT_TRUE(result);
     // merged: k1=(8,4), k2(max)=(8,4), k3是SchoMode且(4,2)<(8,4) => 分割！
     EXPECT_EQ(inputScopes.size(), 2);  // 在k3处分割
-    EXPECT_EQ(inputScopes[0].nodes[0]->GetNodeId(), 1);  // scopeBefore含k1,k2
-    EXPECT_EQ(inputScopes[1].nodes[0]->GetNodeId(), 3);  // scopeAfter从k3开始
+    EXPECT_EQ(inputScopes[0].nodes_[0]->GetNodeId(), 1);  // scopeBefore含k1,k2
+    EXPECT_EQ(inputScopes[1].nodes_[0]->GetNodeId(), 3);  // scopeAfter从k3开始
 }
 
 // ==================== SchoMode 测试 9: 多次连续分割 ====================
@@ -3344,12 +3369,12 @@ TEST_F(SuperKernelScopeSplitterTest, SchoMode_MultipleSplits_ConsecutiveDrops)
     EXPECT_TRUE(result);
     EXPECT_EQ(inputScopes.size(), 3);  // 连续下降，分成3个scope
     // 每个scope包含一个节点
-    EXPECT_EQ(inputScopes[0].nodes.size(), 1);
-    EXPECT_EQ(inputScopes[0].nodes[0]->GetNodeId(), 1);
-    EXPECT_EQ(inputScopes[1].nodes.size(), 1);
-    EXPECT_EQ(inputScopes[1].nodes[0]->GetNodeId(), 2);
-    EXPECT_EQ(inputScopes[2].nodes.size(), 1);
-    EXPECT_EQ(inputScopes[2].nodes[0]->GetNodeId(), 3);
+    EXPECT_EQ(inputScopes[0].nodes_.size(), 1);
+    EXPECT_EQ(inputScopes[0].nodes_[0]->GetNodeId(), 1);
+    EXPECT_EQ(inputScopes[1].nodes_.size(), 1);
+    EXPECT_EQ(inputScopes[1].nodes_[0]->GetNodeId(), 2);
+    EXPECT_EQ(inputScopes[2].nodes_.size(), 1);
+    EXPECT_EQ(inputScopes[2].nodes_[0]->GetNodeId(), 3);
 }
 
 // ==================== SchoMode 测试 10: 先增后降模式 ====================
@@ -3371,11 +3396,11 @@ TEST_F(SuperKernelScopeSplitterTest, SchoMode_IncreaseThenDecrease_SplitOnlyAtDr
     EXPECT_TRUE(result);
     EXPECT_EQ(inputScopes.size(), 2);  // 只在k4处分割一次
     // scopeBefore: k1,k2,k3
-    EXPECT_EQ(inputScopes[0].nodes.size(), 3);
-    EXPECT_EQ(inputScopes[0].nodes[0]->GetNodeId(), 1);
+    EXPECT_EQ(inputScopes[0].nodes_.size(), 3);
+    EXPECT_EQ(inputScopes[0].nodes_[0]->GetNodeId(), 1);
     // scopeAfter: k4
-    EXPECT_EQ(inputScopes[1].nodes.size(), 1);
-    EXPECT_EQ(inputScopes[1].nodes[0]->GetNodeId(), 4);
+    EXPECT_EQ(inputScopes[1].nodes_.size(), 1);
+    EXPECT_EQ(inputScopes[1].nodes_[0]->GetNodeId(), 4);
 }
 
 // ==================== SchoMode 测试 11: 多个输入Scope独立处理 ====================
@@ -3401,9 +3426,9 @@ TEST_F(SuperKernelScopeSplitterTest, SchoMode_MultipleInputScopes_ProcessedIndep
     // 验证各scope内容
     bool foundK1 = false, foundK2 = false, foundK3K4 = false;
     for (const auto& scope : inputScopes) {
-        if (scope.nodes.size() == 1 && scope.nodes[0]->GetNodeId() == 1) foundK1 = true;
-        if (scope.nodes.size() == 1 && scope.nodes[0]->GetNodeId() == 2) foundK2 = true;
-        if (scope.nodes.size() == 2) foundK3K4 = true;  // k3,k4在一起
+        if (scope.nodes_.size() == 1 && scope.nodes_[0]->GetNodeId() == 1) foundK1 = true;
+        if (scope.nodes_.size() == 1 && scope.nodes_[0]->GetNodeId() == 2) foundK2 = true;
+        if (scope.nodes_.size() == 2) foundK3K4 = true;  // k3,k4在一起
     }
     EXPECT_TRUE(foundK1);
     EXPECT_TRUE(foundK2);
@@ -3446,8 +3471,8 @@ TEST_F(SuperKernelScopeSplitterTest, SchoMode_LargerCubeSmallerVec_Split)
 
     EXPECT_TRUE(result);
     EXPECT_EQ(inputScopes.size(), 2);  // vec减小触发分割
-    EXPECT_EQ(inputScopes[0].nodes.size(), 1);
-    EXPECT_EQ(inputScopes[1].nodes.size(), 1);
+    EXPECT_EQ(inputScopes[0].nodes_.size(), 1);
+    EXPECT_EQ(inputScopes[1].nodes_.size(), 1);
 }
 
 // ==================== SchoMode 测试 14: Pass名称验证 ====================

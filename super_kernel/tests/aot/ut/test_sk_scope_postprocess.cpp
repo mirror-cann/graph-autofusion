@@ -66,15 +66,15 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_NotifyWaitPairCancelled_Succ
     waitNode->isFusible = true;
 
     SuperKernelScopeInfo scopeInfo;
-    scopeInfo.nodes.push_back(notifyNode.get());
-    scopeInfo.nodes.push_back(waitNode.get());
+    scopeInfo.nodes_.push_back(notifyNode.get());
+    scopeInfo.nodes_.push_back(waitNode.get());
 
     ScopeStreamInfo streamInfo;
     streamInfo.streamIdx = 0;
     streamInfo.headNodeIdx = 1;
     streamInfo.tailNodeIdx = 2;
     streamInfo.nodeSize = 2;
-    scopeInfo.scopeStreamInfos.push_back(streamInfo);
+    scopeInfo.scopeStreamInfos_.push_back(streamInfo);
 
     graph->graphMap[1] = std::move(notifyNode);
     graph->graphMap[2] = std::move(waitNode);
@@ -120,9 +120,9 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_NotifyOneToManyWaits_AllCanc
     waitNode2->isFusible = true;
 
     SuperKernelScopeInfo scopeInfo;
-    scopeInfo.nodes.push_back(notifyNode.get());
-    scopeInfo.nodes.push_back(waitNode1.get());
-    scopeInfo.nodes.push_back(waitNode2.get());
+    scopeInfo.nodes_.push_back(notifyNode.get());
+    scopeInfo.nodes_.push_back(waitNode1.get());
+    scopeInfo.nodes_.push_back(waitNode2.get());
 
     ScopeStreamInfo stream0;
     stream0.streamIdx = 0;
@@ -136,7 +136,7 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_NotifyOneToManyWaits_AllCanc
     stream1.tailNodeIdx = 5;
     stream1.nodeSize = 1;
 
-    scopeInfo.scopeStreamInfos = {stream0, stream1};
+    scopeInfo.scopeStreamInfos_ = {stream0, stream1};
 
     graph->graphMap[3] = std::move(notifyNode);
     graph->graphMap[4] = std::move(waitNode1);
@@ -163,14 +163,14 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_NotifyWithoutWait_NoKernelCa
     notifyNode->isFusible = true;
 
     SuperKernelScopeInfo scopeInfo;
-    scopeInfo.nodes.push_back(notifyNode.get());
+    scopeInfo.nodes_.push_back(notifyNode.get());
 
     ScopeStreamInfo stream0;
     stream0.streamIdx = 0;
     stream0.headNodeIdx = 6;
     stream0.tailNodeIdx = 6;
     stream0.nodeSize = 1;
-    scopeInfo.scopeStreamInfos.push_back(stream0);
+    scopeInfo.scopeStreamInfos_.push_back(stream0);
 
     graph->graphMap[6] = std::move(notifyNode);
 
@@ -195,14 +195,14 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_SingleKernel_SelectMainNode_
     kernelNode->SetIsFusible(true);
 
     SuperKernelScopeInfo scopeInfo;
-    scopeInfo.nodes.push_back(kernelNode.get());
+    scopeInfo.nodes_.push_back(kernelNode.get());
 
     ScopeStreamInfo streamInfo;
     streamInfo.streamIdx = 3;
     streamInfo.headNodeIdx = 11;
     streamInfo.tailNodeIdx = 11;
     streamInfo.nodeSize = 1;
-    scopeInfo.scopeStreamInfos.push_back(streamInfo);
+    scopeInfo.scopeStreamInfos_.push_back(streamInfo);
 
     graph->graphMap[11] = std::move(kernelNode);
 
@@ -214,11 +214,11 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_SingleKernel_SelectMainNode_
     EXPECT_EQ(scopeInfo.extInfo_.filteredNodes[0]->GetNodeId(), 11U);
     EXPECT_EQ(scopeInfo.extInfo_.skMainNodeId, 11U);
 
-    ASSERT_EQ(scopeInfo.scopeStreamInfos.size(), 1U);
-    EXPECT_EQ(scopeInfo.scopeStreamInfos[0].streamIdx, 3U);
-    EXPECT_EQ(scopeInfo.scopeStreamInfos[0].headNodeIdx, 11U);
-    EXPECT_EQ(scopeInfo.scopeStreamInfos[0].tailNodeIdx, 11U);
-    EXPECT_EQ(scopeInfo.scopeStreamInfos[0].nodeSize, 1U);
+    ASSERT_EQ(scopeInfo.scopeStreamInfos_.size(), 1U);
+    EXPECT_EQ(scopeInfo.scopeStreamInfos_[0].streamIdx, 3U);
+    EXPECT_EQ(scopeInfo.scopeStreamInfos_[0].headNodeIdx, 11U);
+    EXPECT_EQ(scopeInfo.scopeStreamInfos_[0].tailNodeIdx, 11U);
+    EXPECT_EQ(scopeInfo.scopeStreamInfos_[0].nodeSize, 1U);
     EXPECT_TRUE(scopeInfo.extInfo_.customParamsList.empty() || scopeInfo.extInfo_.customParamsList[0].empty());
     EXPECT_TRUE(scopeInfo.extInfo_.eventNodes.empty());
 }
@@ -235,14 +235,14 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_StreamHeadMissing_Failed)
     kernelNode->isFusible = true;
 
     SuperKernelScopeInfo scopeInfo;
-    scopeInfo.nodes.push_back(kernelNode.get());
+    scopeInfo.nodes_.push_back(kernelNode.get());
 
     ScopeStreamInfo streamInfo;
     streamInfo.streamIdx = 0;
     streamInfo.headNodeIdx = 999;
     streamInfo.tailNodeIdx = 31;
     streamInfo.nodeSize = 1;
-    scopeInfo.scopeStreamInfos.push_back(streamInfo);
+    scopeInfo.scopeStreamInfos_.push_back(streamInfo);
 
     graph->graphMap[31] = std::move(kernelNode);
 
@@ -287,7 +287,7 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_FrontWait_Success)
     stream1Node0->SetIsFusible(true);
 
     SuperKernelScopeInfo scopeInfo;
-    scopeInfo.nodes = {stream0Node0.get(), stream0Node1.get(), stream1Node0.get()};
+    scopeInfo.nodes_ = {stream0Node0.get(), stream0Node1.get(), stream1Node0.get()};
 
     ScopeStreamInfo stream0;
     stream0.streamIdx = 0;
@@ -301,7 +301,7 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_FrontWait_Success)
     stream1.tailNodeIdx = 20;
     stream1.nodeSize = 1;
 
-    scopeInfo.scopeStreamInfos = {stream0, stream1};
+    scopeInfo.scopeStreamInfos_ = {stream0, stream1};
 
     graph->graphMap[10] = std::move(stream0Node0);
     graph->graphMap[11] = std::move(stream0Node1);
@@ -312,7 +312,7 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_FrontWait_Success)
 
     EXPECT_TRUE(result);
     EXPECT_FALSE(scopeInfo.extInfo_.filteredNodes.empty());
-    EXPECT_FALSE(scopeInfo.scopeStreamInfos.empty());
+    EXPECT_FALSE(scopeInfo.scopeStreamInfos_.empty());
     EXPECT_NE(scopeInfo.extInfo_.skMainNodeId, INVALID_TASK_ID);
 }
 
@@ -348,7 +348,7 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_BackBlock_Success)
     stream1Node1->SetIsFusible(true);
 
     SuperKernelScopeInfo scopeInfo;
-    scopeInfo.nodes = {stream0Node0.get(), stream1Node0.get(), stream1Node1.get()};
+    scopeInfo.nodes_ = {stream0Node0.get(), stream1Node0.get(), stream1Node1.get()};
 
     ScopeStreamInfo stream0;
     stream0.streamIdx = 0;
@@ -362,7 +362,7 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_BackBlock_Success)
     stream1.tailNodeIdx = 50;
     stream1.nodeSize = 1;
 
-    scopeInfo.scopeStreamInfos = {stream0, stream1};
+    scopeInfo.scopeStreamInfos_ = {stream0, stream1};
 
     graph->graphMap[40] = std::move(stream0Node0);
     graph->graphMap[50] = std::move(stream1Node0);
@@ -373,7 +373,7 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_BackBlock_Success)
 
     EXPECT_TRUE(result);
     EXPECT_FALSE(scopeInfo.extInfo_.filteredNodes.empty());
-    EXPECT_FALSE(scopeInfo.scopeStreamInfos.empty());
+    EXPECT_FALSE(scopeInfo.scopeStreamInfos_.empty());
     EXPECT_NE(scopeInfo.extInfo_.skMainNodeId, INVALID_TASK_ID);
 }
 
@@ -389,14 +389,14 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_NoKernelCandidate_SkipSucces
     notifyNode->isFusible = true;
 
     SuperKernelScopeInfo scopeInfo;
-    scopeInfo.nodes.push_back(notifyNode.get());
+    scopeInfo.nodes_.push_back(notifyNode.get());
 
     ScopeStreamInfo streamInfo;
     streamInfo.streamIdx = 0;
     streamInfo.headNodeIdx = 60;
     streamInfo.tailNodeIdx = 60;
     streamInfo.nodeSize = 1;
-    scopeInfo.scopeStreamInfos.push_back(streamInfo);
+    scopeInfo.scopeStreamInfos_.push_back(streamInfo);
 
     graph->graphMap[60] = std::move(notifyNode);
 
@@ -420,14 +420,14 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_NoKernelAfterFilter_SkipSucc
     defaultNode->SetIsFusible(true);
 
     SuperKernelScopeInfo scopeInfo;
-    scopeInfo.nodes.push_back(defaultNode.get());
+    scopeInfo.nodes_.push_back(defaultNode.get());
 
     ScopeStreamInfo streamInfo;
     streamInfo.streamIdx = 0;
     streamInfo.headNodeIdx = 61;
     streamInfo.tailNodeIdx = 61;
     streamInfo.nodeSize = 1;
-    scopeInfo.scopeStreamInfos.push_back(streamInfo);
+    scopeInfo.scopeStreamInfos_.push_back(streamInfo);
 
     graph->graphMap[61] = std::move(defaultNode);
 
@@ -461,7 +461,7 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_MultiStreamKernelOnly_Succes
     stream1Node0->SetIsFusible(true);
 
     SuperKernelScopeInfo scopeInfo;
-    scopeInfo.nodes = {stream0Node0.get(), stream1Node0.get()};
+    scopeInfo.nodes_ = {stream0Node0.get(), stream1Node0.get()};
 
     ScopeStreamInfo stream0;
     stream0.streamIdx = 0;
@@ -475,7 +475,7 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_MultiStreamKernelOnly_Succes
     stream1.tailNodeIdx = 80;
     stream1.nodeSize = 1;
 
-    scopeInfo.scopeStreamInfos = {stream0, stream1};
+    scopeInfo.scopeStreamInfos_ = {stream0, stream1};
 
     graph->graphMap[70] = std::move(stream0Node0);
     graph->graphMap[80] = std::move(stream1Node0);
@@ -485,7 +485,7 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_MultiStreamKernelOnly_Succes
 
     EXPECT_TRUE(result);
     ASSERT_EQ(scopeInfo.extInfo_.filteredNodes.size(), 2U);
-    ASSERT_EQ(scopeInfo.scopeStreamInfos.size(), 2U);
+    ASSERT_EQ(scopeInfo.scopeStreamInfos_.size(), 2U);
     EXPECT_TRUE(scopeInfo.extInfo_.skMainNodeId == 70U || scopeInfo.extInfo_.skMainNodeId == 80U);
 }
 
@@ -510,7 +510,7 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_MainSelectReserveBoundaryAnd
     stream1Node0->SetIsFusible(true);
 
     SuperKernelScopeInfo scopeInfo;
-    scopeInfo.nodes = {stream0Node0.get(), stream1Node0.get()};
+    scopeInfo.nodes_ = {stream0Node0.get(), stream1Node0.get()};
 
     ScopeStreamInfo stream0;
     stream0.streamIdx = 0;
@@ -524,7 +524,7 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_MainSelectReserveBoundaryAnd
     stream1.tailNodeIdx = 999; // Tail missing in graph; reserve-step traversal uses missing next path.
     stream1.nodeSize = 1;
 
-    scopeInfo.scopeStreamInfos = {stream0, stream1};
+    scopeInfo.scopeStreamInfos_ = {stream0, stream1};
 
     graph->graphMap[90] = std::move(stream0Node0);
     graph->graphMap[100] = std::move(stream1Node0);
@@ -575,7 +575,7 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_FrontWaitMoveWorkNodePath_Su
     s1n1->SetIsFusible(true);
 
     SuperKernelScopeInfo scopeInfo;
-    scopeInfo.nodes = {s0n0.get(), s0n1.get(), s1n0.get(), s1n1.get()};
+    scopeInfo.nodes_ = {s0n0.get(), s0n1.get(), s1n0.get(), s1n1.get()};
 
     ScopeStreamInfo stream0;
     stream0.streamIdx = 0;
@@ -589,7 +589,7 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_FrontWaitMoveWorkNodePath_Su
     stream1.tailNodeIdx = 301;
     stream1.nodeSize = 2;
 
-    scopeInfo.scopeStreamInfos = {stream0, stream1};
+    scopeInfo.scopeStreamInfos_ = {stream0, stream1};
 
     graph->graphMap[200] = std::move(s0n0);
     graph->graphMap[201] = std::move(s0n1);
@@ -601,7 +601,7 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_FrontWaitMoveWorkNodePath_Su
 
     EXPECT_TRUE(result);
     EXPECT_FALSE(scopeInfo.extInfo_.filteredNodes.empty());
-    EXPECT_FALSE(scopeInfo.scopeStreamInfos.empty());
+    EXPECT_FALSE(scopeInfo.scopeStreamInfos_.empty());
     EXPECT_NE(scopeInfo.extInfo_.skMainNodeId, INVALID_TASK_ID);
 }
 
@@ -650,7 +650,7 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_MidScopeTwoStreamsThreePlusT
     s1n1->SetIsFusible(true);
 
     SuperKernelScopeInfo scopeInfo;
-    scopeInfo.nodes = {s0n0.get(), s0n1.get(), s0n2.get(), s1n0.get(), s1n1.get()};
+    scopeInfo.nodes_ = {s0n0.get(), s0n1.get(), s0n2.get(), s1n0.get(), s1n1.get()};
 
     ScopeStreamInfo stream0;
     stream0.streamIdx = 0;
@@ -664,7 +664,7 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_MidScopeTwoStreamsThreePlusT
     stream1.tailNodeIdx = 2001;
     stream1.nodeSize = 2;
 
-    scopeInfo.scopeStreamInfos = {stream0, stream1};
+    scopeInfo.scopeStreamInfos_ = {stream0, stream1};
 
     graph->graphMap[1000] = std::move(s0n0);
     graph->graphMap[1001] = std::move(s0n1);
@@ -677,7 +677,7 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_MidScopeTwoStreamsThreePlusT
 
     EXPECT_TRUE(result);
     EXPECT_FALSE(scopeInfo.extInfo_.filteredNodes.empty());
-    ASSERT_EQ(scopeInfo.scopeStreamInfos.size(), 2U);
+    ASSERT_EQ(scopeInfo.scopeStreamInfos_.size(), 2U);
     EXPECT_EQ(scopeInfo.extInfo_.skMainNodeId, 2001U);
     EXPECT_FALSE(scopeInfo.extInfo_.eventNodes.empty());
 }
@@ -754,7 +754,7 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_ThreeStreams_TwoMidOneFull_S
     s2n1->SetIsFusible(true);
 
     SuperKernelScopeInfo scopeInfo;
-    scopeInfo.nodes = {s0n0.get(), s0n1.get(), s0n2.get(), s1n0.get(), s1n1.get(), s1n2.get(), s2n0.get(), s2n1.get()};
+    scopeInfo.nodes_ = {s0n0.get(), s0n1.get(), s0n2.get(), s1n0.get(), s1n1.get(), s1n2.get(), s2n0.get(), s2n1.get()};
 
     ScopeStreamInfo stream0;
     stream0.streamIdx = 0;
@@ -774,7 +774,7 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_ThreeStreams_TwoMidOneFull_S
     stream2.tailNodeIdx = 30001;
     stream2.nodeSize = 2;
 
-    scopeInfo.scopeStreamInfos = {stream0, stream1, stream2};
+    scopeInfo.scopeStreamInfos_ = {stream0, stream1, stream2};
 
     graph->graphMap[10000] = std::move(s0n0);
     graph->graphMap[10001] = std::move(s0n1);
@@ -791,7 +791,7 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_ThreeStreams_TwoMidOneFull_S
     EXPECT_TRUE(result);
     EXPECT_FALSE(scopeInfo.extInfo_.filteredNodes.empty());
     EXPECT_EQ(scopeInfo.extInfo_.filteredNodes.size(), 8U);
-    ASSERT_EQ(scopeInfo.scopeStreamInfos.size(), 3U);
+    ASSERT_EQ(scopeInfo.scopeStreamInfos_.size(), 3U);
     EXPECT_NE(scopeInfo.extInfo_.skMainNodeId, INVALID_TASK_ID);
 }
 
@@ -841,7 +841,7 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_StreamSelectFailed_EventAddr
     waitNode->SetIsFusible(true);
 
     SuperKernelScopeInfo scopeInfo;
-    scopeInfo.nodes = {stream0Kernel.get(), stream1Kernel.get(), notifyNode.get(), resetNode.get()};
+    scopeInfo.nodes_ = {stream0Kernel.get(), stream1Kernel.get(), notifyNode.get(), resetNode.get()};
 
     ScopeStreamInfo stream0;
     stream0.streamIdx = 0;
@@ -855,7 +855,7 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_StreamSelectFailed_EventAddr
     stream1.tailNodeIdx = 20;
     stream1.nodeSize = 1;
 
-    scopeInfo.scopeStreamInfos = {stream0, stream1};
+    scopeInfo.scopeStreamInfos_ = {stream0, stream1};
 
     graph->graphMap[10] = std::move(stream0Kernel);
     graph->graphMap[20] = std::move(stream1Kernel);
