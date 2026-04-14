@@ -62,7 +62,7 @@ protected:
         opts = std::make_unique<SuperKernelOptionsManager>();
     }
     void TearDown() override {
-        for (auto* node : scopeInfo.extInfo.filteredNodes) {
+        for (auto* node : scopeInfo.extInfo_.filteredNodes) {
             if (node != nullptr) {
                 auto& nodeInfos = const_cast<NodeInfos&>(node->GetNodeInfos());
                 if (nodeInfos.kernelInfos.opInfoPtr != nullptr) {
@@ -72,7 +72,7 @@ protected:
                 delete node;
             }
         }
-        scopeInfo.extInfo.filteredNodes.clear();
+        scopeInfo.extInfo_.filteredNodes.clear();
         // launchInfo.cacheInfo is managed by graph.shapeInfoPtrList, cleared automatically
         graph.ClearShapeInfoPtrList();
     }
@@ -87,7 +87,7 @@ protected:
 // ============================================================================
 
 TEST_F(SkProfilingTest, NumBlocks_Encoding_Mix11) {
-    scopeInfo.extInfo.filteredNodes.push_back(CreateKernelNodeWithCacheInfo(1, 1).release());
+    scopeInfo.extInfo_.filteredNodes.push_back(CreateKernelNodeWithCacheInfo(1, 1).release());
     launchInfo.entryInfo.numBlocks = 8;
     launchInfo.entryInfo.entryType = SkKernelType::MIX_AIC_1_1;
 
@@ -99,7 +99,7 @@ TEST_F(SkProfilingTest, NumBlocks_Encoding_Mix11) {
 }
 
 TEST_F(SkProfilingTest, NumBlocks_Encoding_Mix12) {
-    scopeInfo.extInfo.filteredNodes.push_back(CreateKernelNodeWithCacheInfo(1, 1).release());
+    scopeInfo.extInfo_.filteredNodes.push_back(CreateKernelNodeWithCacheInfo(1, 1).release());
     launchInfo.entryInfo.numBlocks = 4;
     launchInfo.entryInfo.entryType = SkKernelType::MIX_AIC_1_2;
 
@@ -111,7 +111,7 @@ TEST_F(SkProfilingTest, NumBlocks_Encoding_Mix12) {
 }
 
 TEST_F(SkProfilingTest, NumBlocks_NoEncoding_AicOnly) {
-    scopeInfo.extInfo.filteredNodes.push_back(CreateKernelNodeWithCacheInfo(1, 1).release());
+    scopeInfo.extInfo_.filteredNodes.push_back(CreateKernelNodeWithCacheInfo(1, 1).release());
     launchInfo.entryInfo.numBlocks = 64;
     launchInfo.entryInfo.entryType = SkKernelType::AIC_ONLY;
 
@@ -123,7 +123,7 @@ TEST_F(SkProfilingTest, NumBlocks_NoEncoding_AicOnly) {
 }
 
 TEST_F(SkProfilingTest, NumBlocks_NoEncoding_AivOnly) {
-    scopeInfo.extInfo.filteredNodes.push_back(CreateKernelNodeWithCacheInfo(1, 1).release());
+    scopeInfo.extInfo_.filteredNodes.push_back(CreateKernelNodeWithCacheInfo(1, 1).release());
     launchInfo.entryInfo.numBlocks = 128;
     launchInfo.entryInfo.entryType = SkKernelType::AIV_ONLY;
 
@@ -135,7 +135,7 @@ TEST_F(SkProfilingTest, NumBlocks_NoEncoding_AivOnly) {
 }
 
 TEST_F(SkProfilingTest, NumBlocks_Boundary_Zero) {
-    scopeInfo.extInfo.filteredNodes.push_back(CreateKernelNodeWithCacheInfo(1, 1).release());
+    scopeInfo.extInfo_.filteredNodes.push_back(CreateKernelNodeWithCacheInfo(1, 1).release());
     launchInfo.entryInfo.numBlocks = 0;
     launchInfo.entryInfo.entryType = SkKernelType::MIX_AIC_1_1;
 
@@ -147,7 +147,7 @@ TEST_F(SkProfilingTest, NumBlocks_Boundary_Zero) {
 }
 
 TEST_F(SkProfilingTest, NumBlocks_Boundary_MaxUint16) {
-    scopeInfo.extInfo.filteredNodes.push_back(CreateKernelNodeWithCacheInfo(1, 1).release());
+    scopeInfo.extInfo_.filteredNodes.push_back(CreateKernelNodeWithCacheInfo(1, 1).release());
     launchInfo.entryInfo.numBlocks = 65535;
     launchInfo.entryInfo.entryType = SkKernelType::MIX_AIC_1_1;
 
@@ -164,7 +164,7 @@ TEST_F(SkProfilingTest, NumBlocks_Boundary_MaxUint16) {
 
 // taskType 字段测试
 TEST_F(SkProfilingTest, TaskType_AlwaysMixAic) {
-    scopeInfo.extInfo.filteredNodes.push_back(CreateKernelNodeWithCacheInfo(1, 0).release());
+    scopeInfo.extInfo_.filteredNodes.push_back(CreateKernelNodeWithCacheInfo(1, 0).release());
     launchInfo.entryInfo.numBlocks = 8;
     launchInfo.entryInfo.entryType = SkKernelType::AIC_ONLY;
 
@@ -177,7 +177,7 @@ TEST_F(SkProfilingTest, TaskType_AlwaysMixAic) {
 
 // nodeId 字段测试 (基于 entryType)
 TEST_F(SkProfilingTest, NodeId_Mix11) {
-    scopeInfo.extInfo.filteredNodes.push_back(CreateKernelNodeWithCacheInfo(1, 0).release());
+    scopeInfo.extInfo_.filteredNodes.push_back(CreateKernelNodeWithCacheInfo(1, 0).release());
     launchInfo.entryInfo.numBlocks = 8;
     launchInfo.entryInfo.entryType = SkKernelType::MIX_AIC_1_1;
     launchInfo.skFuncName = "Unknown";
@@ -192,7 +192,7 @@ TEST_F(SkProfilingTest, NodeId_Mix11) {
 
 // opType 字段测试 (固定为 "SuperKernel")
 TEST_F(SkProfilingTest, OpType_AlwaysSuperKernel) {
-    scopeInfo.extInfo.filteredNodes.push_back(CreateKernelNodeWithCacheInfo(1, 0).release());
+    scopeInfo.extInfo_.filteredNodes.push_back(CreateKernelNodeWithCacheInfo(1, 0).release());
     launchInfo.entryInfo.numBlocks = 8;
     launchInfo.entryInfo.entryType = SkKernelType::AIC_ONLY;
 
@@ -206,7 +206,7 @@ TEST_F(SkProfilingTest, OpType_AlwaysSuperKernel) {
 
 // attrId 字段测试
 TEST_F(SkProfilingTest, AttrId_SingleNode) {
-    scopeInfo.extInfo.filteredNodes.push_back(CreateKernelNodeWithCacheInfo(1, 1, 12345, 0).release());
+    scopeInfo.extInfo_.filteredNodes.push_back(CreateKernelNodeWithCacheInfo(1, 1, 12345, 0).release());
     launchInfo.entryInfo.numBlocks = 8;
     launchInfo.entryInfo.entryType = SkKernelType::AIC_ONLY;
 
@@ -219,8 +219,8 @@ TEST_F(SkProfilingTest, AttrId_SingleNode) {
 }
 
 TEST_F(SkProfilingTest, AttrId_MultipleNodes) {
-    scopeInfo.extInfo.filteredNodes.push_back(CreateKernelNodeWithCacheInfo(1, 1, 100, 0).release());
-    scopeInfo.extInfo.filteredNodes.push_back(CreateKernelNodeWithCacheInfo(2, 1, 200, 0).release());
+    scopeInfo.extInfo_.filteredNodes.push_back(CreateKernelNodeWithCacheInfo(1, 1, 100, 0).release());
+    scopeInfo.extInfo_.filteredNodes.push_back(CreateKernelNodeWithCacheInfo(2, 1, 200, 0).release());
     launchInfo.entryInfo.numBlocks = 8;
     launchInfo.entryInfo.entryType = SkKernelType::AIC_ONLY;
 
@@ -235,7 +235,7 @@ TEST_F(SkProfilingTest, AttrId_MultipleNodes) {
 
 // opFlag 字段测试
 TEST_F(SkProfilingTest, OpFlag_SingleNode) {
-    scopeInfo.extInfo.filteredNodes.push_back(CreateKernelNodeWithCacheInfo(1, 1, 0, 5).release());
+    scopeInfo.extInfo_.filteredNodes.push_back(CreateKernelNodeWithCacheInfo(1, 1, 0, 5).release());
     launchInfo.entryInfo.numBlocks = 8;
     launchInfo.entryInfo.entryType = SkKernelType::AIC_ONLY;
 
@@ -247,9 +247,9 @@ TEST_F(SkProfilingTest, OpFlag_SingleNode) {
 }
 
 TEST_F(SkProfilingTest, OpFlag_Aggregation) {
-    scopeInfo.extInfo.filteredNodes.push_back(CreateKernelNodeWithCacheInfo(1, 1, 0, 1).release());
-    scopeInfo.extInfo.filteredNodes.push_back(CreateKernelNodeWithCacheInfo(2, 1, 0, 2).release());
-    scopeInfo.extInfo.filteredNodes.push_back(CreateKernelNodeWithCacheInfo(3, 1, 0, 4).release());
+    scopeInfo.extInfo_.filteredNodes.push_back(CreateKernelNodeWithCacheInfo(1, 1, 0, 1).release());
+    scopeInfo.extInfo_.filteredNodes.push_back(CreateKernelNodeWithCacheInfo(2, 1, 0, 2).release());
+    scopeInfo.extInfo_.filteredNodes.push_back(CreateKernelNodeWithCacheInfo(3, 1, 0, 4).release());
     launchInfo.entryInfo.numBlocks = 8;
     launchInfo.entryInfo.entryType = SkKernelType::AIC_ONLY;
 
@@ -273,7 +273,7 @@ TEST_F(SkProfilingTest, TensorNum_EmptyNodes) {
 }
 
 TEST_F(SkProfilingTest, TensorNum_SingleNode) {
-    scopeInfo.extInfo.filteredNodes.push_back(CreateKernelNodeWithCacheInfo(1, 3).release());
+    scopeInfo.extInfo_.filteredNodes.push_back(CreateKernelNodeWithCacheInfo(1, 3).release());
     launchInfo.entryInfo.numBlocks = 8;
     launchInfo.entryInfo.entryType = SkKernelType::AIC_ONLY;
 
@@ -285,8 +285,8 @@ TEST_F(SkProfilingTest, TensorNum_SingleNode) {
 }
 
 TEST_F(SkProfilingTest, TensorNum_MultipleNodes) {
-    scopeInfo.extInfo.filteredNodes.push_back(CreateKernelNodeWithCacheInfo(1, 2).release());
-    scopeInfo.extInfo.filteredNodes.push_back(CreateKernelNodeWithCacheInfo(2, 3).release());
+    scopeInfo.extInfo_.filteredNodes.push_back(CreateKernelNodeWithCacheInfo(1, 2).release());
+    scopeInfo.extInfo_.filteredNodes.push_back(CreateKernelNodeWithCacheInfo(2, 3).release());
     launchInfo.entryInfo.numBlocks = 8;
     launchInfo.entryInfo.entryType = SkKernelType::AIC_ONLY;
 
@@ -299,7 +299,7 @@ TEST_F(SkProfilingTest, TensorNum_MultipleNodes) {
 
 // reserve 字段测试
 TEST_F(SkProfilingTest, Reserve_DefaultZero) {
-    scopeInfo.extInfo.filteredNodes.push_back(CreateKernelNodeWithCacheInfo(1, 0).release());
+    scopeInfo.extInfo_.filteredNodes.push_back(CreateKernelNodeWithCacheInfo(1, 0).release());
     launchInfo.entryInfo.numBlocks = 8;
     launchInfo.entryInfo.entryType = SkKernelType::AIC_ONLY;
 

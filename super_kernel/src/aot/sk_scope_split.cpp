@@ -976,7 +976,7 @@ ScopeProcessResult DeadlockRefinePass::ProcessSingleScope(
 
     if (!FindDeadlockInScope(workingScope, &deadlockNode, &deadlockWaitNode)) {
         // No deadlock: whole scope is safe
-        SuperKernelScopeSplitter::SetNotifyNodesExpandNumForScope(workingScope);
+        lockDetector_.SetNotifyNodesExpandNumForScope(workingScope);
         SK_LOGI("[DeadlockRefine] Scope has no deadlock, added as a whole with %zu nodes",
                 workingScope.GetNodes().size());
         outputScopes.push_back(std::move(workingScope));
@@ -1001,7 +1001,7 @@ ScopeProcessResult DeadlockRefinePass::ProcessSingleScope(
             workingScope.GetNodes().size(), scopeBefore.GetNodes().size(), scopeAfter.GetNodes().size());
 
     if (!scopeBefore.GetNodes().empty()) {
-        SuperKernelScopeSplitter::SetNotifyNodesExpandNumForScope(scopeBefore);
+        lockDetector_.SetNotifyNodesExpandNumForScope(scopeBefore);
         outputScopes.push_back(std::move(scopeBefore));
     } else {
         SK_LOGI("[DeadlockRefine] scopeBefore is empty after split, no scope added before Wait node");
@@ -1021,10 +1021,15 @@ ScopeProcessResult DeadlockRefinePass::ProcessSingleScope(
 bool DeadlockRefinePass::Run(std::vector<SuperKernelScopeInfo>& scopes) {
     SK_LOGI("[DeadlockRefine] %s pass starting execution", GetName().c_str());
     SK_LOGI("[DeadlockRefine] input scopes count: %zu", scopes.size());
-    
+
+    // Reset notify expand numbers for all input scopes to ensure pass is reentrant
+    for (auto& scope : scopes) {
+        lockDetector_.ResetNotifyExpandNumForScope(scope);
+    }
+
     std::vector<SuperKernelScopeInfo> refinedScopes;
     size_t splitCount = 0;
-    
+
     for (size_t i = 0; i < scopes.size(); ++i) {
         SK_LOGI("[DeadlockRefine] Processing scope index %zu with %zu nodes", i, scopes[i].GetNodes().size());
 
@@ -1059,7 +1064,7 @@ bool DeadlockRefinePass::Run(std::vector<SuperKernelScopeInfo>& scopes) {
             pendingScope.reset();
         }
     }
-    
+
     scopes = std::move(refinedScopes);
 
     SK_LOGI("[DeadlockRefine] %s pass completed, split %zu scopes, total scopes: %zu",
@@ -1146,7 +1151,6 @@ SchoModeScopeProcessResult SchoModeKernelSplitPass::ProcessSingleScope(
                         scopeBefore.GetNodes().size(), scopeAfter.GetNodes().size());
 
                 if (!scopeBefore.GetNodes().empty()) {
-                    SuperKernelScopeSplitter::SetNotifyNodesExpandNumForScope(scopeBefore);
                     outputScopes.push_back(std::move(scopeBefore));
                 }
                 if (!scopeAfter.GetNodes().empty()) {
@@ -1161,7 +1165,6 @@ SchoModeScopeProcessResult SchoModeKernelSplitPass::ProcessSingleScope(
         mergedVecNum = std::max(mergedVecNum, curVecNum);
     }
 
-    SuperKernelScopeSplitter::SetNotifyNodesExpandNumForScope(workingScope);
     outputScopes.push_back(std::move(workingScope));
     return SchoModeScopeProcessResult::NO_SPLIT;
 }
@@ -1236,41 +1239,10 @@ bool SuperKernelScopeSplitter::SplitGraph() {
     }
     
     // SetNotifyNodesExpandNum is now called immediately after each scope is generated
-    
-    PrintFinalResults();
-    
-    return true;
-}
 
-void SuperKernelScopeSplitter::SetNotifyNodesExpandNumForScope(SuperKernelScopeInfo& scope) {
-    uint32_t maxExpandVecNum = 0;
-    uint32_t maxExpandCubeNum = 0;
-    std::vector<SuperKernelBaseNode*> notifyNodes;
-    
-    // Find max vec/cube num and collect notify nodes
-    std::unordered_set<uint32_t> scopeStreamIds;
-    for (const auto* node : scope.GetNodes()) {
-        if (node->GetNodeType() == SkNodeType::NODE_KERNEL) {
-            maxExpandVecNum = std::max(maxExpandVecNum, node->GetVecNum());
-            maxExpandCubeNum = std::max(maxExpandCubeNum, node->GetCubeNum());
-        } else if (node->GetNodeType() == SkNodeType::NODE_NOTIFY) {
-            notifyNodes.push_back(const_cast<SuperKernelBaseNode*>(node));
-        }
-        scopeStreamIds.insert(node->GetStreamIdxInGraph());
-    }
-    
-    // Set scopeStreamIds for all nodes in the scope
-    for (auto* node : scope.GetNodes()) {
-        node->SetScopeStreamIds(scopeStreamIds);
-    }
-    
-    // Set expand numbers for all notify nodes
-    for (auto* notifyNode : notifyNodes) {
-        notifyNode->SetNotifyExpandVecNum(maxExpandVecNum);
-        notifyNode->SetNotifyExpandCubeNum(maxExpandCubeNum);
-        SK_LOGI("Set Notify node %lu expandVecNum=%u, expandCubeNum=%u", 
-                notifyNode->GetNodeId(), maxExpandVecNum, maxExpandCubeNum);
-    }
+    PrintFinalResults();
+
+    return true;
 }
 
 void SuperKernelScopeSplitter::PrintFinalResults() const {

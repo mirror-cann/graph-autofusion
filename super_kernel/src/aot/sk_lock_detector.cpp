@@ -435,3 +435,44 @@ bool LockDetector::IsFusible(SuperKernelBaseNode& curNode) {
 
     return canFuse;
 }
+
+void LockDetector::SetNotifyNodesExpandNumForScope(SuperKernelScopeInfo& scope) {
+    uint32_t maxExpandVecNum = 0;
+    uint32_t maxExpandCubeNum = 0;
+    std::vector<SuperKernelBaseNode*> notifyNodes;
+
+    // Find max vec/cube num and collect notify nodes
+    for (const auto* node : scope.GetNodes()) {
+        if (node == nullptr) {
+            continue;
+        }
+        if (node->GetNodeType() == SkNodeType::NODE_KERNEL) {
+            maxExpandVecNum = std::max(maxExpandVecNum, node->GetVecNum());
+            maxExpandCubeNum = std::max(maxExpandCubeNum, node->GetCubeNum());
+        } else if (node->GetNodeType() == SkNodeType::NODE_NOTIFY) {
+            notifyNodes.push_back(const_cast<SuperKernelBaseNode*>(node));
+        }
+    }
+
+    // Set expand numbers for all notify nodes
+    for (auto* notifyNode : notifyNodes) {
+        notifyNode->SetNotifyExpandVecNum(maxExpandVecNum);
+        notifyNode->SetNotifyExpandCubeNum(maxExpandCubeNum);
+        SK_LOGI("[lock detector] Set Notify node %lu expandVecNum=%u, expandCubeNum=%u",
+                notifyNode->GetNodeId(), maxExpandVecNum, maxExpandCubeNum);
+    }
+}
+
+void LockDetector::ResetNotifyExpandNumForScope(SuperKernelScopeInfo& scope) {
+    for (auto* node : scope.GetNodes()) {
+        if (node == nullptr) {
+            continue;
+        }
+        if (node->GetNodeType() == SkNodeType::NODE_NOTIFY) {
+            node->SetNotifyExpandVecNum(0);
+            node->SetNotifyExpandCubeNum(0);
+            SK_LOGD("[lock detector] Reset Notify node %lu expandVecNum=0, expandCubeNum=0",
+                    node->GetNodeId());
+        }
+    }
+}

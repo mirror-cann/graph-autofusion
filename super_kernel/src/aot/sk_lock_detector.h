@@ -23,6 +23,7 @@
 #include "sk_types.h"
 #include "sk_node.h"
 #include "sk_graph.h"
+#include "sk_scope_info.h"
 #include "acl/acl.h"
 
 /**
@@ -62,6 +63,24 @@ public:
      * @return true 可融合，false 不可融合（会导致死锁）
      */
     bool IsFusible(SuperKernelBaseNode& curNode);
+
+    /**
+     * @brief 设置scope中Notify节点的expand number
+     * @param scope Scope信息
+     *
+     * 该函数遍历scope中的所有节点，找出最大的vec/cube num，
+     * 并将其设置到所有Notify节点上。
+     */
+    void SetNotifyNodesExpandNumForScope(SuperKernelScopeInfo& scope);
+
+    /**
+     * @brief 重置scope中Notify节点的expand number为0
+     * @param scope Scope信息
+     *
+     * 该函数将scope中所有Notify节点的expandVecNum和expandCubeNum重置为0，
+     * 用于在死锁检测Pass结束时复原节点状态，使得Pass可重入。
+     */
+    void ResetNotifyExpandNumForScope(SuperKernelScopeInfo& scope);
 
 private:
     void Init(SuperKernelGraph& graph);

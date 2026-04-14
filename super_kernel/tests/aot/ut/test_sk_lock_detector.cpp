@@ -187,7 +187,7 @@ TEST_F(TestLockDetector, SingleStreamKernelFirst) {
     EXPECT_TRUE(k5->isVisited);
     // sk - node 7
     EXPECT_TRUE(lockDetector->IsFusible(*k8));
-    EXPECT_EQ(lockDetector->skStreamIds, std::set<uint32_t>{0});
+    EXPECT_EQ(lockDetector->skStreamIds, std::unordered_set<uint32_t>{0});
     lockDetector->Reset();
     EXPECT_FALSE(k2->isVisited);
     EXPECT_FALSE(n3->isVisited);
@@ -257,7 +257,7 @@ TEST_F(TestLockDetector, SingleStreamWaitFirst) {
     EXPECT_EQ(lockDetector->superKernelCubeNum, 8);
     EXPECT_EQ(lockDetector->superKernelVecNum, 8);
 
-    EXPECT_EQ(lockDetector->skStreamIds, std::set<uint32_t>{0});
+    EXPECT_EQ(lockDetector->skStreamIds, std::unordered_set<uint32_t>{0});
     lockDetector->Reset();
     EXPECT_FALSE(k0->isVisited);
     EXPECT_FALSE(n1->isVisited);
@@ -321,7 +321,7 @@ TEST_F(TestLockDetector, SingleStreamWaitFirstRejects) {
     EXPECT_FALSE(lockDetector->IsFusible(*w6));
     EXPECT_FALSE(n10->isVisited);
 
-    EXPECT_EQ(lockDetector->skStreamIds, std::set<uint32_t>{0});
+    EXPECT_EQ(lockDetector->skStreamIds, std::unordered_set<uint32_t>{0});
     lockDetector->Reset();
     EXPECT_FALSE(k0->isVisited);
     EXPECT_FALSE(n1->isVisited);
@@ -397,7 +397,7 @@ TEST_F(TestLockDetector, SingleStreamMultiWait) {
     EXPECT_EQ(lockDetector->superKernelCubeNum, 12);
     EXPECT_EQ(lockDetector->superKernelVecNum, 20);
 
-    EXPECT_EQ(lockDetector->skStreamIds, std::set<uint32_t>{0});
+    EXPECT_EQ(lockDetector->skStreamIds, std::unordered_set<uint32_t>{0});
     lockDetector->Reset();
     EXPECT_FALSE(k0->isVisited);
     EXPECT_FALSE(n1->isVisited);
