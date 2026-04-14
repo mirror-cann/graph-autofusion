@@ -30,11 +30,13 @@ protected:
     void SetUp() override {
         graph = std::make_unique<SuperKernelGraph>();
         lockDetector = std::make_unique<LockDetector>(*graph);
+        lockDetector->Reset();
         // Initialize device core numbers for LockDetector
         LockDetector::GetDeviceCores();
     }
 
     void TearDown() override {
+        lockDetector->Reset();
         graph.reset();
     }
 
@@ -105,7 +107,7 @@ protected:
     }
 
     // Helper function to setup streams in graph
-    void *SetupStreams(const std::vector<std::vector<uint64_t>>& streamNodes) {
+    void SetupStreams(const std::vector<std::vector<uint64_t>>& streamNodes) {
         graph->streams.clear();
         graph->headNodes.clear();
 

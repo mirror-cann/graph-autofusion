@@ -13,12 +13,128 @@
  * \brief Implementation of SuperKernelOptionsManager and option value classes
  */
 
+#include <cctype>
 #include <vector>
 #include <cstdlib>
 #include <string>
 
 #include "sk_options_manager.h"
 #include "sk_log.h"
+
+namespace {
+constexpr size_t kMaxExtendOptionLength = 1024;
+
+std::string TrimString(const std::string& input)
+{
+    size_t start = 0;
+    while (start < input.size() && std::isspace(static_cast<unsigned char>(input[start])) != 0) {
+        ++start;
+    }
+    size_t end = input.size();
+    while (end > start && std::isspace(static_cast<unsigned char>(input[end - 1])) != 0) {
+        --end;
+    }
+    return input.substr(start, end - start);
+}
+
+std::vector<std::string> SplitString(const std::string& input, char delimiter)
+{
+    std::vector<std::string> tokens;
+    size_t start = 0;
+    while (start <= input.size()) {
+        size_t end = input.find(delimiter, start);
+        if (end == std::string::npos) {
+            tokens.push_back(input.substr(start));
+            break;
+        }
+        tokens.push_back(input.substr(start, end - start));
+        start = end + 1;
+    }
+    return tokens;
+}
+
+bool IsValidExtendOptionToken(const std::string& token, bool allowSlash)
+{
+    if (token.empty()) {
+        return false;
+    }
+    for (char ch : token) {
+        const unsigned char uchar = static_cast<unsigned char>(ch);
+        if (std::isalnum(uchar) != 0 || ch == '_' || ch == '-' || ch == '.') {
+            continue;
+        }
+        if (allowSlash && ch == '/') {
+            continue;
+        }
+        return false;
+    }
+    return true;
+}
+
+bool ParseAndValidateExtendOptionValue(const char* rawValue, const std::string& optionName,
+    std::unordered_map<std::string, std::vector<std::string>>& parsedValue)
+{
+    if (rawValue == nullptr) {
+        SK_LOGW("OptionName:%s, raw extend value is nullptr", optionName.c_str());
+        return false;
+    }
+
+    const std::string input(rawValue);
+    if (input.size() > kMaxExtendOptionLength) {
+        SK_LOGW("OptionName:%s, raw extend value is too long: %zu", optionName.c_str(), input.size());
+        return false;
+    }
+
+    const std::string trimmedInput = TrimString(input);
+    if (trimmedInput.empty()) {
+        SK_LOGW("OptionName:%s, raw extend value is empty after trim", optionName.c_str());
+        return false;
+    }
+
+    std::unordered_map<std::string, std::vector<std::string>> tmpResult;
+    const std::vector<std::string> pairs = SplitString(trimmedInput, ':');
+    for (const std::string& rawPair : pairs) {
+        const std::string pair = TrimString(rawPair);
+        if (pair.empty()) {
+            SK_LOGW("OptionName:%s, extend pair is empty", optionName.c_str());
+            return false;
+        }
+
+        const size_t eqPos = pair.find('=');
+        if (eqPos == std::string::npos || eqPos == 0 || eqPos == pair.size() - 1 ||
+            pair.find('=', eqPos + 1) != std::string::npos) {
+            SK_LOGW("OptionName:%s, extend pair format is invalid: %s", optionName.c_str(), pair.c_str());
+            return false;
+        }
+
+        const std::string key = TrimString(pair.substr(0, eqPos));
+        if (!IsValidExtendOptionToken(key, false)) {
+            SK_LOGW("OptionName:%s, extend key is invalid: %s", optionName.c_str(), key.c_str());
+            return false;
+        }
+        if (tmpResult.find(key) != tmpResult.end()) {
+            SK_LOGW("OptionName:%s, extend key is duplicated: %s", optionName.c_str(), key.c_str());
+            return false;
+        }
+
+        const std::vector<std::string> rawValues = SplitString(pair.substr(eqPos + 1), ',');
+        std::vector<std::string> valueList;
+        valueList.reserve(rawValues.size());
+        for (const std::string& rawSubValue : rawValues) {
+            const std::string value = TrimString(rawSubValue);
+            if (!IsValidExtendOptionToken(value, true)) {
+                SK_LOGW("OptionName:%s, extend value is invalid: %s", optionName.c_str(), value.c_str());
+                return false;
+            }
+            valueList.push_back(value);
+        }
+        tmpResult.emplace(key, std::move(valueList));
+    }
+
+    parsedValue = std::move(tmpResult);
+    return true;
+}
+}
 
 void NumberOptOption::SetValue(const uint32_t value) {
     if (value < optValueMin || value > optValueMax) {
@@ -236,6 +352,32 @@ void SuperKernelOptionsManager::SetOptOptionValue(const aclskOption* option) {
                 auto subOption = GetOption(option->optionType);
                 if (subOption != nullptr) {
                     subOption->SetValue(option->debugSync.debugSyncAll);
+                }
+                break;
+            }
+        case aclskOptionType::OPT_EXTEND_OPTION:
+            {
+                AddOption(std::make_unique<MapOptOption>("opt_extend_option", option->optionType));
+                auto subOption = GetOption(option->optionType);
+                if (subOption != nullptr) {
+                    std::unordered_map<std::string, std::vector<std::string>> parsedValue;
+                    if (ParseAndValidateExtendOptionValue(
+                        option->optExtend.value, subOption->GetName(), parsedValue)) {
+                        subOption->SetValue(parsedValue);
+                    }
+                }
+                break;
+            }
+        case aclskOptionType::DEBUG_EXTEND_OPTION:
+            {
+                AddOption(std::make_unique<MapOptOption>("debug_extend_option", option->optionType));
+                auto subOption = GetOption(option->optionType);
+                if (subOption != nullptr) {
+                    std::unordered_map<std::string, std::vector<std::string>> parsedValue;
+                    if (ParseAndValidateExtendOptionValue(
+                        option->debugExtend.value, subOption->GetName(), parsedValue)) {
+                        subOption->SetValue(parsedValue);
+                    }
                 }
                 break;
             }

@@ -28,6 +28,7 @@
 #define private public
 #define protected public
 #include "sk_event_recorder.h"
+#include "sk_resource_manager.h"
 
 // 辅助函数：复制源文件中的 CoreIsAiv 逻辑用于测试
 // 源文件中的 static 函数无法直接调用，这里复制相同逻辑
@@ -64,6 +65,13 @@ protected:
     void TearDown() override {
         // 确保每次测试后 recorder 被重置
         SkEventRecorder::Instance().SkProfilingShutdown();
+        (void)SkResourceManager::ReleasePidMemory();
+        SkEventRecorder::Instance().deviceCtxs.gmAddr = nullptr;
+        SkEventRecorder::Instance().deviceCtxs.hostBuf.reset();
+        SkEventRecorder::Instance().deviceCtxs.outputFp.Close();
+        SkEventRecorder::Instance().deviceCtxs.outputDir.clear();
+        SkEventRecorder::Instance().deviceCtxs.active.store(0);
+        SkEventRecorder::Instance().deviceCtxs.totalSize = 0;
         unsetenv("ASCEND_PROF_SK_ON");
         // 重置 call_once 标志，使后续测试的 Init() 可以重新执行
         SkEventRecorder::Instance().initFlag_.~once_flag();
@@ -445,7 +453,7 @@ TEST_F(SkEventRecorderTest, CreateDeviceCtxBasic) {
 
         // 清理
         if (ctx->gmAddr) {
-            aclrtFree(ctx->gmAddr);
+            EXPECT_EQ(SkResourceManager::ReleasePidMemory(), ACL_SUCCESS);
             ctx->gmAddr = nullptr;
         }
         ctx->hostBuf.reset();
@@ -678,7 +686,7 @@ TEST_F(SkEventRecorderTest, GetGmAddrForDeviceDoubleCheckLocking) {
         SkEventDeviceCtx* ctx = &SkEventRecorder::Instance().deviceCtxs;
         std::string outputDir = ctx->outputDir;  // 保存路径用于清理
         if (ctx->gmAddr) {
-            aclrtFree(ctx->gmAddr);
+            EXPECT_EQ(SkResourceManager::ReleasePidMemory(), ACL_SUCCESS);
             ctx->gmAddr = nullptr;
         }
         ctx->hostBuf.reset();
@@ -688,4 +696,3 @@ TEST_F(SkEventRecorderTest, GetGmAddrForDeviceDoubleCheckLocking) {
         remove(jsonFile.c_str());
     }
 }
-

@@ -449,6 +449,123 @@ TEST_F(SuperKernelOptionsManagerTest, SetOptOptionValue_DebugSyncAll)
     EXPECT_EQ(static_cast<NumberOptOption*>(result)->GetIntValue(), 1);
 }
 
+TEST_F(SuperKernelOptionsManagerTest, SetOptOptionValue_OptExtendOption_TrimmedValid)
+{
+    aclskOption option {};
+    option.optionType = aclskOptionType::OPT_EXTEND_OPTION;
+    std::string rawValue = "  key1=value1 : key2=value2,value3  ";
+    option.optExtend.value = const_cast<char*>(rawValue.c_str());
+
+    opts_test->SetOptOptionValue(&option);
+
+    auto result = opts_test->GetOption(aclskOptionType::OPT_EXTEND_OPTION);
+    ASSERT_NE(result, nullptr);
+    auto valueMap = static_cast<MapOptOption*>(result)->GetMapValue();
+    ASSERT_EQ(valueMap.size(), 2);
+    EXPECT_EQ(valueMap["key1"].size(), 1);
+    EXPECT_EQ(valueMap["key1"][0], "value1");
+    EXPECT_EQ(valueMap["key2"].size(), 2);
+    EXPECT_EQ(valueMap["key2"][0], "value2");
+    EXPECT_EQ(valueMap["key2"][1], "value3");
+}
+
+TEST_F(SuperKernelOptionsManagerTest, SetOptOptionValue_OptExtendOption_InvalidDangerousChar)
+{
+    aclskOption option {};
+    option.optionType = aclskOptionType::OPT_EXTEND_OPTION;
+    std::string rawValue = "key1=value1:key2=rm -rf /";
+    option.optExtend.value = const_cast<char*>(rawValue.c_str());
+
+    opts_test->SetOptOptionValue(&option);
+
+    auto result = opts_test->GetOption(aclskOptionType::OPT_EXTEND_OPTION);
+    ASSERT_NE(result, nullptr);
+    EXPECT_TRUE(static_cast<MapOptOption*>(result)->GetMapValue().empty());
+}
+
+TEST_F(SuperKernelOptionsManagerTest, SetOptOptionValue_OptExtendOption_EmptyAfterTrim)
+{
+    aclskOption option {};
+    option.optionType = aclskOptionType::OPT_EXTEND_OPTION;
+    std::string rawValue = "   ";
+    option.optExtend.value = const_cast<char*>(rawValue.c_str());
+
+    opts_test->SetOptOptionValue(&option);
+
+    auto result = opts_test->GetOption(aclskOptionType::OPT_EXTEND_OPTION);
+    ASSERT_NE(result, nullptr);
+    EXPECT_TRUE(static_cast<MapOptOption*>(result)->GetMapValue().empty());
+}
+
+TEST_F(SuperKernelOptionsManagerTest, SetOptOptionValue_DebugExtendOption_Nullptr)
+{
+    aclskOption option {};
+    option.optionType = aclskOptionType::DEBUG_EXTEND_OPTION;
+    option.debugExtend.value = nullptr;
+
+    opts_test->SetOptOptionValue(&option);
+
+    auto result = opts_test->GetOption(aclskOptionType::DEBUG_EXTEND_OPTION);
+    ASSERT_NE(result, nullptr);
+    EXPECT_TRUE(static_cast<MapOptOption*>(result)->GetMapValue().empty());
+}
+
+TEST_F(SuperKernelOptionsManagerTest, SetOptOptionValue_DebugExtendOption_EmptyString)
+{
+    aclskOption option {};
+    option.optionType = aclskOptionType::DEBUG_EXTEND_OPTION;
+    std::string rawValue = "";
+    option.debugExtend.value = const_cast<char*>(rawValue.c_str());
+
+    opts_test->SetOptOptionValue(&option);
+
+    auto result = opts_test->GetOption(aclskOptionType::DEBUG_EXTEND_OPTION);
+    ASSERT_NE(result, nullptr);
+    EXPECT_TRUE(static_cast<MapOptOption*>(result)->GetMapValue().empty());
+}
+
+TEST_F(SuperKernelOptionsManagerTest, SetOptOptionValue_DebugExtendOption_TooLong)
+{
+    aclskOption option {};
+    option.optionType = aclskOptionType::DEBUG_EXTEND_OPTION;
+    std::string rawValue(1025, 'a');
+    option.debugExtend.value = const_cast<char*>(rawValue.c_str());
+
+    opts_test->SetOptOptionValue(&option);
+
+    auto result = opts_test->GetOption(aclskOptionType::DEBUG_EXTEND_OPTION);
+    ASSERT_NE(result, nullptr);
+    EXPECT_TRUE(static_cast<MapOptOption*>(result)->GetMapValue().empty());
+}
+
+TEST_F(SuperKernelOptionsManagerTest, SetOptOptionValue_DebugExtendOption_DuplicateKey)
+{
+    aclskOption option {};
+    option.optionType = aclskOptionType::DEBUG_EXTEND_OPTION;
+    std::string rawValue = "key1=value1:key1=value2";
+    option.debugExtend.value = const_cast<char*>(rawValue.c_str());
+
+    opts_test->SetOptOptionValue(&option);
+
+    auto result = opts_test->GetOption(aclskOptionType::DEBUG_EXTEND_OPTION);
+    ASSERT_NE(result, nullptr);
+    EXPECT_TRUE(static_cast<MapOptOption*>(result)->GetMapValue().empty());
+}
+
+TEST_F(SuperKernelOptionsManagerTest, SetOptOptionValue_DebugExtendOption_EmptySubValue)
+{
+    aclskOption option {};
+    option.optionType = aclskOptionType::DEBUG_EXTEND_OPTION;
+    std::string rawValue = "key1=value1,,value3";
+    option.debugExtend.value = const_cast<char*>(rawValue.c_str());
+
+    opts_test->SetOptOptionValue(&option);
+
+    auto result = opts_test->GetOption(aclskOptionType::DEBUG_EXTEND_OPTION);
+    ASSERT_NE(result, nullptr);
+    EXPECT_TRUE(static_cast<MapOptOption*>(result)->GetMapValue().empty());
+}
+
 TEST_F(SuperKernelOptionsManagerTest, SetOptOptionValue_Unsupported)
 {
     aclskOption option;
@@ -582,6 +699,42 @@ TEST_F(SuperKernelOptionsManagerTest, ParseOptions_AllOptionTypes)
     EXPECT_EQ(dcciList[1], "Mul");
     
     EXPECT_EQ(static_cast<NumberOptOption*>(opt4)->GetIntValue(), 1);
+}
+
+TEST_F(SuperKernelOptionsManagerTest, ParseOptions_ExtendOptions)
+{
+    aclskOption options[2] {};
+    std::string optValue = "  level=2,3  ";
+    std::string debugValue = "trace=on:path=/tmp/sk_meta";
+
+    options[0].optionType = aclskOptionType::OPT_EXTEND_OPTION;
+    options[0].optExtend.value = const_cast<char*>(optValue.c_str());
+
+    options[1].optionType = aclskOptionType::DEBUG_EXTEND_OPTION;
+    options[1].debugExtend.value = const_cast<char*>(debugValue.c_str());
+
+    aclskOptions optList;
+    optList.options = options;
+    optList.numOptions = 2;
+
+    opts_test->ParseOptions(&optList);
+
+    auto optExtend = opts_test->GetOption(aclskOptionType::OPT_EXTEND_OPTION);
+    auto debugExtend = opts_test->GetOption(aclskOptionType::DEBUG_EXTEND_OPTION);
+
+    ASSERT_NE(optExtend, nullptr);
+    ASSERT_NE(debugExtend, nullptr);
+    auto optValueMap = static_cast<MapOptOption*>(optExtend)->GetMapValue();
+    auto debugValueMap = static_cast<MapOptOption*>(debugExtend)->GetMapValue();
+    ASSERT_EQ(optValueMap.size(), 1);
+    ASSERT_EQ(debugValueMap.size(), 2);
+    EXPECT_EQ(optValueMap["level"].size(), 2);
+    EXPECT_EQ(optValueMap["level"][0], "2");
+    EXPECT_EQ(optValueMap["level"][1], "3");
+    EXPECT_EQ(debugValueMap["trace"].size(), 1);
+    EXPECT_EQ(debugValueMap["trace"][0], "on");
+    EXPECT_EQ(debugValueMap["path"].size(), 1);
+    EXPECT_EQ(debugValueMap["path"][0], "/tmp/sk_meta");
 }
 
 TEST_F(SuperKernelOptionsManagerTest, ParseOptions_WithPreExistingOptions)
