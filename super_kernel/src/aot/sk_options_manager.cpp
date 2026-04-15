@@ -287,10 +287,12 @@ bool SuperKernelOptionsManager::MatchRegex(const std::string& pattern, const std
 bool SuperKernelOptionsManager::EnableDebug() const {
     auto iterSyncAll = optionMap.find(aclskOptionType::DEBUG_SYNC_ALL);
     auto iterDcci = optionMap.find(aclskOptionType::DEBUG_DCCI_DISABLE_ON_KERNEL);
+    auto iterDcciBeforeKernelStart = optionMap.find(aclskOptionType::DEBUG_DCCI_BEFORE_KERNEL_START);
     const bool enableSyncAll =
         (iterSyncAll != optionMap.end() && iterSyncAll->second != nullptr && iterSyncAll->second->GetIntValue() == 1);
     const bool enableDcciDisable = (iterDcci != optionMap.end() && iterDcci->second != nullptr);
-    if (enableSyncAll || enableDcciDisable) {
+    const bool enableDcciBeforeKernelStart = (iterDcciBeforeKernelStart != optionMap.end() && iterDcciBeforeKernelStart->second != nullptr);
+    if (enableSyncAll || enableDcciDisable || enableDcciBeforeKernelStart) {
         SK_LOGI("debug mode enabled");
         return true;
     }
@@ -341,6 +343,31 @@ void SuperKernelOptionsManager::SetOptOptionValue(const aclskOption* option) {
                             continue;
                         }
                         vecValue.push_back(std::string(option->disableKernelDcci.kernelNames[i]));
+                    }
+                    subOption->SetValue(vecValue);
+                }
+                break;
+            }
+        case aclskOptionType::DEBUG_DCCI_BEFORE_KERNEL_START:
+            {
+                AddOption(std::make_unique<StringListOptOption>("dcci_before_kernel_start", option->optionType));
+                auto subOption = GetOption(option->optionType);
+                if (subOption != nullptr) {
+                    std::vector<std::string> vecValue;
+                    const size_t kernelCnt = static_cast<size_t>(option->dcciBeforeKernelStart.kernelCnt);
+                    if (kernelCnt > 0 && option->dcciBeforeKernelStart.kernelNames == nullptr) {
+                        SK_LOGW("OptionName:%s, kernelNames is nullptr while kernelCnt is %zu",
+                            subOption->GetName().c_str(), kernelCnt);
+                        break;
+                    }
+                    vecValue.reserve(kernelCnt);
+                    for (size_t i = 0; i < kernelCnt; i++) {
+                        if (option->dcciBeforeKernelStart.kernelNames[i] == nullptr) {
+                            SK_LOGW("OptionName:%s, kernelNames[%zu] is nullptr, skip",
+                                subOption->GetName().c_str(), i);
+                            continue;
+                        }
+                        vecValue.push_back(std::string(option->dcciBeforeKernelStart.kernelNames[i]));
                     }
                     subOption->SetValue(vecValue);
                 }

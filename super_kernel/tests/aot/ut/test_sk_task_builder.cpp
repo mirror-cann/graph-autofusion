@@ -596,6 +596,25 @@ TEST_F(SkTaskBuilderTest, DispatchFuncTask_MixFailureAndDcciBranch)
     EXPECT_FALSE(builder->DispatchFuncTask(aic, aiv, mix12, &dfx, 2, 1, SkTaskType::TYPE_FUNC, SkQueueType::MIX_1_2));
 }
 
+TEST_F(SkTaskBuilderTest, AddFuncTask_DcciBeforeKernelStart_SetsDebugFlag)
+{
+    opts->AddOption(std::make_unique<StringListOptOption>(
+        "dcci_before_kernel_start",
+        aclskOptionType::DEBUG_DCCI_BEFORE_KERNEL_START,
+        std::vector<std::string>{"k"}));
+
+    SkTask aic;
+    ASSERT_TRUE(aic.taskQue.Init(8));
+
+    auto* kernel = CreateKernelNodeEx(8103, 0, INVALID_TASK_ID, INVALID_TASK_ID, SkKernelType::AIC_ONLY);
+    SkDfxInfo dfx {};
+
+    ASSERT_TRUE(builder->AddFuncTask(aic, kernel, &dfx, 0, 0, 1, SkTaskType::TYPE_FUNC, 1));
+
+    TaskInfo& funcTask = aic.taskQue.get()->taskInfos[aic.taskQue.get()->taskCnt - 1];
+    EXPECT_NE((funcTask.debugOptions & 0x4U), 0U);
+}
+
 TEST_F(SkTaskBuilderTest, GenEntryInfo_AllModeBranches)
 {
     SkTask aic;
