@@ -279,3 +279,102 @@ TEST_F(SkResourceManagerTest, PidMemory_DifferentPids_IndependentRelease)
     EXPECT_EQ(rm.OnPidDestroy(4001), ACL_SUCCESS);
     EXPECT_EQ(rm.OnPidDestroy(4002), ACL_SUCCESS);
 }
+
+// ==================== ResourceInvalidateCallback 测试 ====================
+
+TEST_F(SkResourceManagerTest, InvalidateCallback_InvokedOnPidDestroy_WithResources)
+{
+    auto& rm = SkResourceManager::GetInstance();
+    void* addr = nullptr;
+    EXPECT_EQ(rm.AllocForPid(5001, &addr, 64), ACL_SUCCESS);
+    ASSERT_NE(addr, nullptr);
+
+    bool callbackInvoked = false;
+    SkResourceManager::RegisterResourceInvalidateCallback([&callbackInvoked]() {
+        callbackInvoked = true;
+    });
+
+    EXPECT_EQ(rm.OnPidDestroy(5001), ACL_SUCCESS);
+    EXPECT_TRUE(callbackInvoked);
+}
+
+TEST_F(SkResourceManagerTest, InvalidateCallback_NotInvoked_WhenNoResources)
+{
+    auto& rm = SkResourceManager::GetInstance();
+
+    bool callbackInvoked = false;
+    SkResourceManager::RegisterResourceInvalidateCallback([&callbackInvoked]() {
+        callbackInvoked = true;
+    });
+
+    // pid 9999 has no resources registered
+    EXPECT_EQ(rm.OnPidDestroy(9999), ACL_SUCCESS);
+    EXPECT_FALSE(callbackInvoked);
+}
+
+TEST_F(SkResourceManagerTest, InvalidateCallback_NotInvoked_AfterCleared)
+{
+    auto& rm = SkResourceManager::GetInstance();
+    void* addr = nullptr;
+    EXPECT_EQ(rm.AllocForPid(5002, &addr, 64), ACL_SUCCESS);
+    ASSERT_NE(addr, nullptr);
+
+    bool callbackInvoked = false;
+    SkResourceManager::RegisterResourceInvalidateCallback([&callbackInvoked]() {
+        callbackInvoked = true;
+    });
+
+    // 清除回调
+    SkResourceManager::RegisterResourceInvalidateCallback(nullptr);
+
+    EXPECT_EQ(rm.OnPidDestroy(5002), ACL_SUCCESS);
+    EXPECT_FALSE(callbackInvoked);
+}
+
+TEST_F(SkResourceManagerTest, InvalidateCallback_InvokedBeforeMemoryFree)
+{
+    auto& rm = SkResourceManager::GetInstance();
+    void* addr = nullptr;
+    EXPECT_EQ(rm.AllocForPid(5003, &addr, 64), ACL_SUCCESS);
+    ASSERT_NE(addr, nullptr);
+
+    std::string order;
+    SkResourceManager::RegisterResourceInvalidateCallback([&order]() {
+        order += "callback;";
+    });
+
+    // 用 stub 让 aclrtFree 在调用时记录顺序
+    SkUtSetAclrtFreeRet(ACL_SUCCESS);
+
+    EXPECT_EQ(rm.OnPidDestroy(5003), ACL_SUCCESS);
+    // 回调应该在释放内存之前被调用
+    EXPECT_EQ(order, "callback;");
+}
+
+TEST_F(SkResourceManagerTest, InvalidateCallback_CanBeNullptr)
+{
+    // 注册 nullptr 回调不应崩溃
+    SkResourceManager::RegisterResourceInvalidateCallback(nullptr);
+    EXPECT_TRUE(true); // 仅验证不崩溃
+}
+
+TEST_F(SkResourceManagerTest, InvalidateCallback_CanBeReplaced)
+{
+    auto& rm = SkResourceManager::GetInstance();
+    void* addr = nullptr;
+    EXPECT_EQ(rm.AllocForPid(5004, &addr, 64), ACL_SUCCESS);
+    ASSERT_NE(addr, nullptr);
+
+    int callbackVersion = 0;
+    SkResourceManager::RegisterResourceInvalidateCallback([&callbackVersion]() {
+        callbackVersion = 1;
+    });
+
+    // 替换为新的回调
+    SkResourceManager::RegisterResourceInvalidateCallback([&callbackVersion]() {
+        callbackVersion = 2;
+    });
+
+    EXPECT_EQ(rm.OnPidDestroy(5004), ACL_SUCCESS);
+    EXPECT_EQ(callbackVersion, 2); // 只有最新的回调被调用
+}

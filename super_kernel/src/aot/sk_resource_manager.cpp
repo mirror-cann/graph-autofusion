@@ -15,6 +15,7 @@ std::mutex SkResourceManager::resourceMutex_;
 std::unordered_map<aclmdlRI, std::vector<SkResourceManager::ResourceRecord>> SkResourceManager::modelResources_;
 std::unordered_set<aclmdlRI> SkResourceManager::registeredModels_;
 thread_local aclmdlRI SkResourceManager::currentModel_ = nullptr;
+SkResourceManager::ResourceInvalidateCallback SkResourceManager::invalidateCallback_;
 
 SkResourceManager& SkResourceManager::GetInstance()
 {
@@ -39,7 +40,18 @@ aclError SkResourceManager::PidMemory(void** addr, size_t bytes)
 
 aclError SkResourceManager::ReleasePidMemory()
 {
-    return GetInstance().OnPidDestroy(getpid()); 
+    return GetInstance().OnPidDestroy(getpid());
+}
+
+SkResourceManager::~SkResourceManager()
+{
+    SkResourceManager::ReleasePidMemory();
+}
+
+void SkResourceManager::RegisterResourceInvalidateCallback(ResourceInvalidateCallback cb)
+{
+    std::lock_guard<std::mutex> lock(resourceMutex_);
+    invalidateCallback_ = std::move(cb);
 }
 
 aclError SkResourceManager::EnsureDestroyCallbackRegistered(aclmdlRI model)
@@ -158,6 +170,11 @@ aclError SkResourceManager::OnPidDestroy(pid_t pid)
             resources.swap(it->second);
             pidResources_.erase(it);
         }
+    }
+
+    // 释放内存前通知持有方（如 SkEventRecorder）置空指针，防止继续使用已释放地址
+    if (!resources.empty() && invalidateCallback_) {
+        invalidateCallback_();
     }
 
     for (const auto& record : resources) {

@@ -40,7 +40,8 @@ SkEventRecorder& SkEventRecorder::Instance() {
 
 SkEventRecorder::~SkEventRecorder() {
     SkProfilingShutdown();
-    SkResourceManager::ReleasePidMemory();
+    // 清空回调，防止 SkResourceManager比SkEventRecorder 后析构时调用已销毁的 deviceCtxs
+    SkResourceManager::RegisterResourceInvalidateCallback(nullptr);
 }
 
 std::string SkEventRecorder::CreateOutputDir() {
@@ -196,6 +197,13 @@ SkEventDeviceCtx* SkEventRecorder::CreateDeviceCtx(uint32_t deviceId) {
         return nullptr;
     }
     SK_LOGI("[sk time profiling] Malloc device gm addr, device %u, addr: %p\n", deviceId, ctx->gmAddr);
+
+    // 释放指针交给SkResourceManager管理，注册资源失效回调：当 SkResourceManager 释放 GM 内存前，将 gmAddr 置空
+    // 防止 DumpThreadFunc 线程继续使用已释放的地址
+    SkResourceManager::RegisterResourceInvalidateCallback([ctx]() {
+        ctx->gmAddr = nullptr;
+    });
+
     // 3. 分配 host 缓冲区（使用智能指针，RAII 管理）
     ctx->hostBuf = std::make_unique<uint8_t[]>(totalSize_);
     if (ctx->hostBuf == nullptr) {
