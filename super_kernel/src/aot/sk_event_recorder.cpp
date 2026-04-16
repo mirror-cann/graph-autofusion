@@ -664,7 +664,7 @@ bool DumpProfilingDetail(const std::vector<SuperKernelBaseNode*>& taskNodes, SkL
                 return false;
             }
         launchInfo.modelRI = static_cast<uint64_t>(reinterpret_cast<uintptr_t>(modelRI));  // modelRI只有一个void*，先用hash值作为modelRI的id，后续可以改成更合理的来源
-        launchInfo.skId = scopeInfo.GetExtInfo().scopeIdx;
+        launchInfo.skId = static_cast<uint32_t>(scopeInfo.GetScopeId());
         SK_LOGI("[sk time profiling] Event recording enabled, gm_addr=%p, modelRI=%lu, skId=%u\n", launchInfo.eventGmAddr, launchInfo.modelRI, launchInfo.skId);
         
         // 更新 devArgs 中的事件配置

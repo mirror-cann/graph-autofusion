@@ -31,6 +31,7 @@ add_executable(super_kernel_aot_utest
     ${CMAKE_CURRENT_SOURCE_DIR}/test_sk_profiling.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test_sk_event_recorder.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test_sk_candidate_heap.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_sk_scope_info.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stub/aclrt_stubs.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stub/ut_common_stubs.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stub/rt_stub.cpp

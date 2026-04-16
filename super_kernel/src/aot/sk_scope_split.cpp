@@ -988,11 +988,6 @@ bool DeadlockRefinePass::Run(std::vector<SuperKernelScopeInfo>& scopes) {
     SK_LOGI("[DeadlockRefine] %s pass starting execution", GetName().c_str());
     SK_LOGI("[DeadlockRefine] input scopes count: %zu", scopes.size());
 
-    // Reset notify expand numbers for all input scopes to ensure pass is reentrant
-    for (auto& scope : scopes) {
-        lockDetector_.ResetNotifyExpandNumForScope(scope);
-    }
-
     std::vector<SuperKernelScopeInfo> refinedScopes;
     size_t splitCount = 0;
 
@@ -1032,6 +1027,11 @@ bool DeadlockRefinePass::Run(std::vector<SuperKernelScopeInfo>& scopes) {
     }
 
     scopes = std::move(refinedScopes);
+
+    // Reset notify expand numbers for all scopes to ensure pass is reentrant
+    for (auto& scope : scopes) {
+        lockDetector_.ResetNotifyExpandNumForScope(scope);
+    }
 
     SK_LOGI("[DeadlockRefine] %s pass completed, split %zu scopes, total scopes: %zu",
             GetName().c_str(), splitCount, scopes.size());

@@ -51,6 +51,37 @@ enum class ScopeFailReason : uint8_t {
 };
 
 /*!
+ * \class ScopeIdGenerator
+ * \brief Singleton class for generating unique scope IDs
+ *
+ * This generator ensures each scope gets a unique ID at creation time.
+ * The ID is not recycled when scope is destroyed, allowing full lifecycle tracking.
+ * Uses uint16_t for compact storage; logs INFO when wraparound occurs (every 65536 scopes).
+ */
+class ScopeIdGenerator {
+public:
+    static ScopeIdGenerator& Instance() {
+        static ScopeIdGenerator instance;
+        return instance;
+    }
+
+    uint16_t NextId() {
+        uint16_t id = nextId_++;
+        if (nextId_ == 0) {
+            SK_LOGI("ScopeId wraparound detected: scope ID counter reset to 0 after reaching maximum");
+        }
+        return id;
+    }
+
+private:
+    ScopeIdGenerator() : nextId_(0) {}
+    ScopeIdGenerator(const ScopeIdGenerator&) = delete;
+    ScopeIdGenerator& operator=(const ScopeIdGenerator&) = delete;
+
+    uint16_t nextId_;
+};
+
+/*!
  * \struct ScopeExtInfo
  * \brief Extended information for scope post-processing and scheduling
  */
@@ -59,7 +90,6 @@ struct ScopeExtInfo {
     std::vector<SuperKernelBaseNode*> filteredNodes;               ///< Post-processed nodes used for scheduling
     std::vector<std::unique_ptr<SuperKernelBaseNode>> eventNodes;  ///< Synthesized event nodes for stream sync
     uint64_t skMainNodeId = INVALID_TASK_ID;                       ///< Main launch node ID for this scope
-    uint32_t scopeIdx = 0;
     std::string scopeName;
     ScopeFailReason failReason = ScopeFailReason::NONE;
 
@@ -106,12 +136,28 @@ inline const char* to_string(ScopeFailReason reason)
  */
 class SuperKernelScopeInfo {
 public:
-    SuperKernelScopeInfo() = default;
+    SuperKernelScopeInfo() : scopeId_(ScopeIdGenerator::Instance().NextId()) {}
     ~SuperKernelScopeInfo() = default;
     SuperKernelScopeInfo(const SuperKernelScopeInfo&) = delete;
     SuperKernelScopeInfo& operator=(const SuperKernelScopeInfo&) = delete;
-    SuperKernelScopeInfo(SuperKernelScopeInfo&&) = default;
-    SuperKernelScopeInfo& operator=(SuperKernelScopeInfo&&) = default;
+    SuperKernelScopeInfo(SuperKernelScopeInfo&& other) noexcept
+        : scopeId_(other.scopeId_),
+          scopeStreamInfos_(std::move(other.scopeStreamInfos_)),
+          nodes_(std::move(other.nodes_)),
+          scopeBitFlags_(other.scopeBitFlags_),
+          extInfo_(std::move(other.extInfo_)) {}
+    SuperKernelScopeInfo& operator=(SuperKernelScopeInfo&& other) noexcept {
+        if (this != &other) {
+            scopeId_ = other.scopeId_;
+            scopeStreamInfos_ = std::move(other.scopeStreamInfos_);
+            nodes_ = std::move(other.nodes_);
+            scopeBitFlags_ = other.scopeBitFlags_;
+            extInfo_ = std::move(other.extInfo_);
+        }
+        return *this;
+    }
+
+    uint16_t GetScopeId() const { return scopeId_; }
 
     // ============ ScopeStreamInfos ============
     const std::vector<ScopeStreamInfo>& GetScopeStreamInfos() const { return scopeStreamInfos_; }
@@ -133,10 +179,11 @@ public:
     ScopeExtInfo& MutableExtInfo() { return extInfo_; }
 
 private:
-    std::vector<ScopeStreamInfo> scopeStreamInfos_;  ///< Per-stream information
-    std::vector<SuperKernelBaseNode*> nodes_;        ///< All nodes in this scope
-    std::bitset<MAX_SCOPE_NUM> scopeBitFlags_;       ///< Scope bit flags
-    ScopeExtInfo extInfo_;  ///< Extended info for post-processing and scheduling
+    uint16_t scopeId_;                              ///< Unique scope ID assigned at creation
+    std::vector<ScopeStreamInfo> scopeStreamInfos_; ///< Per-stream information
+    std::vector<SuperKernelBaseNode*> nodes_;       ///< All nodes in this scope
+    std::bitset<MAX_SCOPE_NUM> scopeBitFlags_;      ///< Scope bit flags
+    ScopeExtInfo extInfo_;                          ///< Extended info for post-processing and scheduling
 };
 
 #endif // __SK_SCOPE_INFO_H__

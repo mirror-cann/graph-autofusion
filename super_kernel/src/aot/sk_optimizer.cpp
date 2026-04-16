@@ -25,7 +25,7 @@
 #include "sk_event_recorder.h"
 
 namespace {
-std::string GetSkFuncName(const std::vector<SuperKernelBaseNode*>& nodes, uint32_t scopeIdx, const std::string& scopeName)
+std::string GetSkFuncName(const std::vector<SuperKernelBaseNode*>& nodes, uint16_t scopeId, const std::string& scopeName)
 {
     const SuperKernelBaseNode* startKernelNode = nullptr;
     const SuperKernelBaseNode* endKernelNode = nullptr;
@@ -40,20 +40,20 @@ std::string GetSkFuncName(const std::vector<SuperKernelBaseNode*>& nodes, uint32
 
     std::string scopePrefix = scopeName.empty() ? "" : "scopeName: " + scopeName + "__";
     if (startKernelNode == nullptr || endKernelNode == nullptr) {
-        return scopePrefix + "skId: " + std::to_string(scopeIdx) + "__no_kernel_scope";
+        return scopePrefix + "skId: " + std::to_string(scopeId) + "__no_kernel_scope";
     }
 
     const NodeInfos& startNodeInfos = startKernelNode->GetNodeInfos();
     const NodeInfos& endNodeInfos = endKernelNode->GetNodeInfos();
-    return scopePrefix + "skId: " + std::to_string(scopeIdx) + "__startNodeName: "
+    return scopePrefix + "skId: " + std::to_string(scopeId) + "__startNodeName: "
         + startNodeInfos.kernelInfos.funcName + "__endNodeName: " + endNodeInfos.kernelInfos.funcName;
 }
 
 void PrintSKNodesDetail(std::string skFuncName, SuperKernelScopeInfo& scopeInfo)
 {
-    auto& scopeIdx = scopeInfo.GetExtInfo().scopeIdx;
+    uint16_t scopeId = scopeInfo.GetScopeId();
     auto& nodes = scopeInfo.GetExtInfo().filteredNodes;
-    SK_LOGI("  SK Function: %s, scope id: %zu, Node Count: %zu", skFuncName.c_str(), scopeIdx, nodes.size());
+    SK_LOGI("  SK Function: %s, scope id: %u, Node Count: %zu", skFuncName.c_str(), scopeId, nodes.size());
     for (size_t i = 0; i < nodes.size(); ++i) {
         SK_LOGI("    [%zu] %s", i, nodes[i]->Format().c_str());
     }
@@ -148,7 +148,7 @@ bool SuperKernelOptimizer::Schedule(SuperKernelScopeInfo& scopeInfo, SuperKernel
         return false;
     }
 
-    std::string skFuncName = GetSkFuncName(taskNodes, scopeInfo.GetExtInfo().scopeIdx, scopeInfo.GetExtInfo().scopeName);
+    std::string skFuncName = GetSkFuncName(taskNodes, scopeInfo.GetScopeId(), scopeInfo.GetExtInfo().scopeName);
     PrintSKNodes(skFuncName, scopeInfo);
 
     std::vector<SuperKernelBaseNode*> customTasks;
@@ -199,23 +199,22 @@ bool SuperKernelOptimizer::Process(SuperKernelGraph& graph)
     SkTaskBuilder builder(opts, graph);
     SuperKernelScopePostProcessor postProcessor(graph);
 
-    for (size_t scopeIdx = 0; scopeIdx < scopeInfos.size(); ++scopeIdx) {
-        auto& scopeInfo = scopeInfos[scopeIdx];
-        SK_LOGI("process scope begin: scopeIdx=%zu", scopeIdx);
+    for (size_t i = 0; i < scopeInfos.size(); ++i) {
+        auto& scopeInfo = scopeInfos[i];
+        SK_LOGI("process scope begin: scopeId=%u", scopeInfo.GetScopeId());
         if (!postProcessor.PostProcess(scopeInfo)) {
-            SK_LOGI("scope unprocessable after post-process, skip schedule/update: scopeIdx=%zu, reason=%s",
-                    scopeIdx, to_string(scopeInfo.GetExtInfo().failReason));
+            SK_LOGI("scope unprocessable after post-process, skip schedule/update: scopeId=%u, reason=%s",
+                    scopeInfo.GetScopeId(), to_string(scopeInfo.GetExtInfo().failReason));
             continue;
         }
         if (scopeInfo.GetExtInfo().filteredNodes.empty()) {
-            SK_LOGI("scope has no nodes after post-process, skipping schedule/update: scopeIdx=%zu", scopeIdx);
+            SK_LOGI("scope has no nodes after post-process, skipping schedule/update: scopeId=%u", scopeInfo.GetScopeId());
             continue;
         }
 
-        scopeInfo.MutableExtInfo().scopeIdx = static_cast<uint32_t>(scopeIdx);
         scopeInfo.MutableExtInfo().scopeName = ScopeSplitPass::GetScopeNamesFromBitFlags(scopeInfo.GetScopeBitFlags(), graph);
         if (!Schedule(scopeInfo, graph, builder)) {
-            SK_LOGE("process scope failed: scopeIdx=%zu, schedule/update returned false", scopeIdx);
+            SK_LOGE("process scope failed: scopeId=%u, schedule/update returned false", scopeInfo.GetScopeId());
             return false;
         }
     }

@@ -2591,7 +2591,7 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase38_OrphanNotifyMarkedUnfusibleAndSk
 
     std::set<uint64_t> allProcessedNodes;
     for (const auto& scope : splitter.GetScopeInfos()) {
-        for (const auto* node : scope.nodes) {
+        for (const auto* node : scope.nodes_) {
             allProcessedNodes.insert(node->GetNodeId());
         }
     }
