@@ -377,23 +377,25 @@ bool SkTaskBuilder::InitTaskSyncInfos(const std::vector<SuperKernelBaseNode*>& t
                 SK_LOGE("unsupported node type for sync info initialization");
                 return false;
         }
-
-        if(nodeType !=  SkNodeType::NODE_NOTIFY)
-
+        
         if (nodeType !=  SkNodeType::NODE_NOTIFY && i < tasks.size() - 1) {
-            // Initialize default cross-sync hints: 0=CUB, 1=VEC.
-            switch (taskSyncInfos_[i].queueType) {
-                case SkQueueType::AIC:
-                    taskSyncInfos_[i].crossSyncInfo[0] = SyncDirection::CUB_TO_CUB;
-                    break;
-                case SkQueueType::AIV:
-                    taskSyncInfos_[i].crossSyncInfo[1] = SyncDirection::VEC_TO_VEC;
-                    break;
-                case SkQueueType::MIX_1_1:
-                case SkQueueType::MIX_1_2:
-                    taskSyncInfos_[i].crossSyncInfo[0] = SyncDirection::CUB_TO_CUB;
-                    taskSyncInfos_[i].crossSyncInfo[1] = SyncDirection::VEC_TO_VEC;
-                    break;
+                // Initialize default cross-sync hints for AIC/AIV.
+                switch (taskSyncInfos_[i].queueType) {
+                    case SkQueueType::AIC:
+                        taskSyncInfos_[i].crossSyncInfo[static_cast<size_t>(SkQueueType::AIC)] =
+                            SyncDirection::CUB_TO_CUB;
+                        break;
+                    case SkQueueType::AIV:
+                        taskSyncInfos_[i].crossSyncInfo[static_cast<size_t>(SkQueueType::AIV)] =
+                            SyncDirection::VEC_TO_VEC;
+                        break;
+                    case SkQueueType::MIX_1_1:
+                    case SkQueueType::MIX_1_2:
+                        taskSyncInfos_[i].crossSyncInfo[static_cast<size_t>(SkQueueType::AIC)] =
+                            SyncDirection::CUB_TO_CUB;
+                        taskSyncInfos_[i].crossSyncInfo[static_cast<size_t>(SkQueueType::AIV)] =
+                            SyncDirection::VEC_TO_VEC;
+                        break;
                 default:
                     SK_LOGE("unsupported kernel type : %s for inter-sync.", to_string(taskSyncInfos_[i].queueType));
                     return false;
@@ -613,7 +615,7 @@ bool SkTaskBuilder::ExtractInterStreamSync(const std::vector<SuperKernelBaseNode
 
 // ========== Sync optimization (aligned with Python behavior) ==========
 
-void SkTaskBuilder::OptimizeSyncRelations()
+void SkTaskBuilder::OptimizeSyncRelations(const std::vector<SuperKernelBaseNode*>& tasks)
 {
     SK_LOGI("Optimizing Sync Relations");
     // PrintSyncInfo("[INIT STATE]");
@@ -624,6 +626,8 @@ void SkTaskBuilder::OptimizeSyncRelations()
     RemoveMultiSendSync();
     RemoveMultiRecvSync();
     // PrintSyncInfo("[AFTER REMOVE MULTI EVENT SYNC]");
+
+    RemoveRedundantCrossSync(tasks);
 }
 
 bool SkTaskBuilder::JudgeRemoveCrossSync(size_t sendIdx, size_t recvIdx, bool isCubToVec)
@@ -830,6 +834,65 @@ void SkTaskBuilder::RemoveMultiRecvSync()
     }
 }
 
+namespace {
+size_t PickCandidateKernelIdx(size_t lastAicKernelIdx, size_t lastAivKernelIdx,
+                              SkQueueType queueType, size_t invalidIdx)
+{
+    size_t candidateIdx = invalidIdx;
+    if (queueType == SkQueueType::AIC) {
+        candidateIdx = lastAicKernelIdx;
+    } else if (queueType == SkQueueType::AIV) {
+        candidateIdx = lastAivKernelIdx;
+    } else {
+        SK_LOGE("Unexpected queue type %s for WAIT node, cannot determine candidate kernel for redundant sync removal.",
+                to_string(queueType));
+        return invalidIdx;
+    }
+    return candidateIdx;
+}
+} // namespace
+
+void SkTaskBuilder::RemoveRedundantCrossSync(const std::vector<SuperKernelBaseNode*>& tasks)
+{
+    const size_t invalidIdx = static_cast<size_t>(INVALID_TASK_ID);
+    size_t lastAicKernelIdx = invalidIdx;
+    size_t lastAivKernelIdx = invalidIdx;
+
+    for (size_t i = 0; i < tasks.size(); ++i) {
+        const auto nodeType = tasks[i]->GetNodeType();
+        auto& info = taskSyncInfos_[i];
+        if (nodeType == SkNodeType::NODE_KERNEL) {
+            if (UsesAic(info.queueType)) {
+                lastAicKernelIdx = i;
+            }
+            if (UsesAiv(info.queueType)) {
+                lastAivKernelIdx = i;
+            }
+            continue;
+        }
+        if (nodeType != SkNodeType::NODE_WAIT) {
+            continue;
+        }
+        const size_t candidateKernelIdx =
+            PickCandidateKernelIdx(lastAicKernelIdx, lastAivKernelIdx, info.queueType, invalidIdx);
+        if (candidateKernelIdx == invalidIdx) {
+            continue;
+        }
+
+        auto& candidateInfo = taskSyncInfos_[candidateKernelIdx];
+        if (info.queueType == SkQueueType::AIC && candidateInfo.cubSendInfo.empty()) {
+            candidateInfo.crossSyncInfo.erase(static_cast<size_t>(SkQueueType::AIC));
+            SK_LOGI("Remove redundant cross sync: task[%zu] -> task[%zu], remove CUB_TO_CUB hint",
+                    candidateKernelIdx, i);
+        } else if (info.queueType == SkQueueType::AIV && candidateInfo.vecSendInfo.empty()) {
+            candidateInfo.crossSyncInfo.erase(static_cast<size_t>(SkQueueType::AIV));
+            SK_LOGI("Remove redundant cross sync: task[%zu] -> task[%zu], remove VEC_TO_VEC hint",
+                    candidateKernelIdx, i);
+        } else {
+            SK_LOGI("No redundant cross sync to remove for task[%zu] -> task[%zu]", candidateKernelIdx, i);
+        }
+    }
+}
 // ========== Sync task insertion ==========
 
 namespace {
@@ -1636,12 +1699,12 @@ SkLaunchInfo SkTaskBuilder::Build(std::string skFuncName, const std::vector<Supe
 
     // ========== Phase 2: optimize sync relations ==========
     SK_LOGI("Build phase-2 begin: optimize sync relations");
-    OptimizeSyncRelations();
+    OptimizeSyncRelations(tasks);
 
     // ========== Phase 3: attach sync metadata for custom tasks ==========
     if (!customTasks.empty()) {
         SK_LOGI("add sync info for custom tasks, customTaskCount=%zu", customTasks.size());
-        taskSyncInfos_.back().crossSyncInfo[0] = SyncDirection::ALL_SYNC;
+        taskSyncInfos_.back().crossSyncInfo[static_cast<size_t>(SkQueueType::AIC)] = SyncDirection::ALL_SYNC;
     }
 
     // In debug mode, force all tasks into ALL_SYNC for traceability.
@@ -1655,7 +1718,7 @@ SkLaunchInfo SkTaskBuilder::Build(std::string skFuncName, const std::vector<Supe
             taskSyncInfos_[i].vecSendInfo.clear();
             taskSyncInfos_[i].cubSendInfo.clear();
             taskSyncInfos_[i].crossSyncInfo.clear();
-            taskSyncInfos_[i].crossSyncInfo[0] = SyncDirection::ALL_SYNC;
+            taskSyncInfos_[i].crossSyncInfo[static_cast<size_t>(SkQueueType::AIC)] = SyncDirection::ALL_SYNC;
         }
     }
     // ========== Phase 4: construct final task queues ==========

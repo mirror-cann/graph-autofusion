@@ -158,10 +158,11 @@ private:
     void InsertSyncEvent(size_t preIdx, size_t currIdx);
 
     // ========== Optimization methods ==========
-    void OptimizeSyncRelations();
+    void OptimizeSyncRelations(const std::vector<SuperKernelBaseNode*>& tasks);
     void RemoveCrossedLineSync();
     void RemoveMultiSendSync();
     void RemoveMultiRecvSync();
+    void RemoveRedundantCrossSync(const std::vector<SuperKernelBaseNode*>& tasks);
 
     // Helper: determine whether crossed sync can be removed
     bool JudgeRemoveCrossSync(size_t sendIdx, size_t recvIdx, bool isCubToVec);

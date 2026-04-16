@@ -211,7 +211,7 @@ TEST_F(SkTaskBuilderTest, PrecomputeAndOptimizeSyncRelations_Smoke)
 
     ASSERT_TRUE(builder->PrecomputeSyncRelationsFromGraph(tasks));
     builder->PrintSyncInfo("ut-before-opt");
-    builder->OptimizeSyncRelations();
+    builder->OptimizeSyncRelations(tasks);
     builder->PrintSyncInfo("ut-after-opt");
 }
 
@@ -502,7 +502,13 @@ TEST_F(SkTaskBuilderTest, SyncOptimizationAndDispatchSyncBranches)
     builder->taskSyncInfos_[4].cubRecvInfo[2] = SyncDirection::VEC_TO_CUB;
     builder->taskSyncInfos_[4].cubRecvInfo[1] = SyncDirection::VEC_TO_CUB;
 
-    builder->OptimizeSyncRelations();
+    std::vector<SuperKernelBaseNode*> tasksForOptimize;
+    tasksForOptimize.reserve(builder->taskSyncInfos_.size());
+    for (size_t idx = 0; idx < builder->taskSyncInfos_.size(); ++idx) {
+        auto* node = CreateKernelNodeEx(6500 + idx, 0, INVALID_TASK_ID, INVALID_TASK_ID, SkKernelType::AIC_ONLY);
+        tasksForOptimize.push_back(node);
+    }
+    builder->OptimizeSyncRelations(tasksForOptimize);
 
     SkTask aic;
     SkTask aiv;
