@@ -2571,6 +2571,35 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase37_DeadlockRefinePassSplitsScope)
     EXPECT_EQ(allProcessedNodes, expectedNodes);
 }
 
+TEST_F(SuperKernelScopeSplitterTest, TestCase38_OrphanNotifyMarkedUnfusibleAndSkipped)
+{
+    auto* notify1 = CreateNotifyNode(1, 0, 100, 2);
+    CreateKernelNode(2, 0, INVALID_TASK_ID);
+
+    SetupStreams({{1, 2}});
+    SetupEvent(100, 1, {});
+
+    graph->BuildEventNodeAssociations();
+
+    EXPECT_FALSE(notify1->IsFusible());
+    EXPECT_TRUE(notify1->GetCorrespondingWaitNodeIds().empty());
+
+    SuperKernelScopeSplitter splitter(*graph, *opts);
+    bool result = splitter.SplitGraph();
+
+    EXPECT_TRUE(result);
+
+    std::set<uint64_t> allProcessedNodes;
+    for (const auto& scope : splitter.GetScopeInfos()) {
+        for (const auto* node : scope.nodes) {
+            allProcessedNodes.insert(node->GetNodeId());
+        }
+    }
+
+    std::set<uint64_t> expectedNodes = {2};
+    EXPECT_EQ(allProcessedNodes, expectedNodes);
+}
+
 // ==================== 测试用例 38: ResumeSuspendedWaitStreams 错误处理 - Wait节点不存在 ====================
 
 TEST_F(SuperKernelScopeSplitterTest, TestCase38_ResumeSuspendedWaitStreams_WaitNodeNotFound)

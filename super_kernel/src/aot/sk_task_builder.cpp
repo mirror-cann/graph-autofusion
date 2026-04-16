@@ -25,6 +25,15 @@
 extern "C" aclrtBinHandle AscendGetEntryBinHandle();
 
 namespace {
+constexpr size_t kCounterAlignBytes = 64;
+
+inline size_t AlignUp(size_t value, size_t align)
+{
+    if (align == 0) {
+        return value;
+    }
+    return ((value + align - 1) / align) * align;
+}
 
 SkQueueType ToQueueType(SkKernelType kernelType)
 {
@@ -110,8 +119,8 @@ void DumpDeviceArgsDetail(std::string skFuncName, const SkDeviceEntryArgs* args)
     SK_LOGD("Dumping device args for function: %s", skFuncName.c_str());
     const uint8_t* base = (const uint8_t*)args;
     const SkHeaderInfo& hdr = args->skHeader;
-    SK_LOGD("SkHeaderInfo: aicOff=%u, aivOff=%u, counterOff=%u, wsOff=%u, dfxOff=%u, eventConfigOff=%u, nodeCnt=%u, totalSize=%lu\n",
-            hdr.aicQueOffset, hdr.aivQueOffset, hdr.counterOffset, hdr.wsOffset, hdr.dfxOffset, hdr.eventConfigOffset, hdr.nodeCnt,
+    SK_LOGD("SkHeaderInfo: aicOff=%u, aivOff=%u, counterOff=%u, dfxOff=%u, eventConfigOff=%u, nodeCnt=%u, totalSize=%lu\n",
+            hdr.aicQueOffset, hdr.aivQueOffset, hdr.counterOffset, hdr.dfxOffset, hdr.eventConfigOffset, hdr.nodeCnt,
             hdr.totalSize);
 
     DumpTaskQueDetail((const TaskQue*)(base + args->skHeader.aicQueOffset), "AIC");
@@ -947,21 +956,20 @@ DeviceArgsPtr SkTaskBuilder::GenEntryArgs(const SkTask& skTaskCube, const SkTask
     size_t aic_que_size = skTaskCube.GetTaskQueSize();
     size_t aiv_que_size = skTaskVec.GetTaskQueSize();
     size_t counter_size = DEFAULT_COUNTER_COUNT * sizeof(SkCounterInfo);
-    size_t ws_size = sizeof(SkWorkSpace);
     size_t dfx_size = dfxCount * sizeof(SkDfxInfo);
     size_t event_config_size = sizeof(SkEventConfig);
 
     size_t aic_que_offset = header_size;
     size_t aiv_que_offset = aic_que_offset + aic_que_size;
-    size_t counter_offset = aiv_que_offset + aiv_que_size;
-    size_t ws_offset = counter_offset + counter_size;
-    size_t dfx_offset = ws_offset + ws_size;
+    size_t counter_offset = AlignUp(aiv_que_offset + aiv_que_size, kCounterAlignBytes);
+    size_t dfx_offset = counter_offset + counter_size;
     size_t event_config_offset = dfx_offset + dfx_size;
     uint64_t total_size = event_config_offset + event_config_size;
 
     SK_LOGI(
-        "sk total args size: %d, header_size: %d, aic_que_size: %d, aiv_que_size: %d, counter_size: %d, ws_size: %d, dfx_size: %d",
-        total_size, header_size, aic_que_size, aiv_que_size, counter_size, ws_size, dfx_size);
+        "sk total args size: %lu, header_size: %zu, aic_que_size: %zu, aiv_que_size: %zu, "
+        "counter_size: %zu, dfx_size: %zu, counter_offset: %zu",
+        total_size, header_size, aic_que_size, aiv_que_size, counter_size, dfx_size, counter_offset);
     DeviceArgsPtr args;
     if (!args.Init(total_size)) {
         SK_LOGE("GenEntryArgs init device args failed, total_size=%lu", total_size);
@@ -970,7 +978,6 @@ DeviceArgsPtr SkTaskBuilder::GenEntryArgs(const SkTask& skTaskCube, const SkTask
     args.Get()->skHeader.aicQueOffset = aic_que_offset;
     args.Get()->skHeader.aivQueOffset = aiv_que_offset;
     args.Get()->skHeader.counterOffset = counter_offset;
-    args.Get()->skHeader.wsOffset = ws_offset;
     args.Get()->skHeader.dfxOffset = dfx_offset;
     args.Get()->skHeader.eventConfigOffset = event_config_offset;
     args.Get()->skHeader.totalSize = total_size;
@@ -992,13 +999,6 @@ DeviceArgsPtr SkTaskBuilder::GenEntryArgs(const SkTask& skTaskCube, const SkTask
         err = memset_s(base + counter_offset, counter_size, 0, counter_size);
         if (err != 0) {
             SK_LOGE("GenEntryArgs memset_s counter failed, ret=%d", static_cast<int>(err));
-            return {};
-        }
-    }
-    if (ws_size > 0) {
-        err = memset_s(base + ws_offset, ws_size, 0, ws_size);
-        if (err != 0) {
-            SK_LOGE("GenEntryArgs memset_s workspace failed, ret=%d", static_cast<int>(err));
             return {};
         }
     }

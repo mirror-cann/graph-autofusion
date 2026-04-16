@@ -179,7 +179,6 @@ void SuperKernelExceptionHandler::PrintSkHeaderInfo() const {
     SK_LOGI("aicQueOffset: %u", skHeaderInfoHost->aicQueOffset);
     SK_LOGI("aivQueOffset: %u", skHeaderInfoHost->aivQueOffset);
     SK_LOGI("counterOffset: %u", skHeaderInfoHost->counterOffset);
-    SK_LOGI("wsOffset: %u", skHeaderInfoHost->wsOffset);
     SK_LOGI("dfxOffset: %u", skHeaderInfoHost->dfxOffset);
     SK_LOGI("nodeCnt: %u", skHeaderInfoHost->nodeCnt);
     SK_LOGI("totalSize: %lu", skHeaderInfoHost->totalSize);

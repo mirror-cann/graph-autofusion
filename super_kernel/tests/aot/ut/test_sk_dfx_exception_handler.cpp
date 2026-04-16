@@ -45,7 +45,7 @@ static void SetupSingleDfxNode(uint8_t* buffer, uint32_t aicSize, uint32_t aivSi
     SkHeaderInfo& headerInfo, SkDeviceEntryArgs*& deviceArgs, SkDfxInfo*& dfxInfo,
     SuperKernelExceptionHandler* h)
 {
-    headerInfo = {0, 0, 0, 0, 0, 0, 1};
+    headerInfo = {};
     headerInfo.dfxOffset = sizeof(SkHeaderInfo);
     headerInfo.nodeCnt = 1;
 
@@ -75,7 +75,8 @@ static uint8_t* SetupOpTraceTestBuffer(uint32_t nodeCnt, bool hasDfx,
         totalSize += sizeof(SkDfxInfo) * nodeCnt;
     }
 
-    headerInfo = {0, 0, 0, 0, 0, 0, nodeCnt};
+    headerInfo = {};
+    headerInfo.nodeCnt = nodeCnt;
     headerInfo.counterOffset = sizeof(SkHeaderInfo);
     if (hasDfx && nodeCnt > 0) {
         headerInfo.dfxOffset = sizeof(SkHeaderInfo) + sizeof(SkCounterInfo) * 75;
@@ -251,7 +252,8 @@ TEST_F(SkDfxExceptionHandlerTest, ExtractTaskQueue_EmptyOffsets)
 {
     // Setup minimal SkHeaderInfo
     uint32_t skDeviceEntryArgsSize = sizeof(SkHeaderInfo);
-    SkHeaderInfo headerInfo{0, 0, 0, 0, 0, 0, skDeviceEntryArgsSize};
+    SkHeaderInfo headerInfo{};
+    headerInfo.totalSize = skDeviceEntryArgsSize;
     handler->skHeaderInfoHost = &headerInfo;
 
     bool result = handler->ExtractTaskQueue();
@@ -268,8 +270,8 @@ TEST_F(SkDfxExceptionHandlerTest, ExtractTaskQueue_WithTaskCounts)
     headerInfo.aicQueOffset = skDeviceEntryArgsSize;
     headerInfo.aivQueOffset = skDeviceEntryArgsSize + sizeof(TaskQue) + sizeof(TaskInfo);
     headerInfo.counterOffset = 0;
-    headerInfo.wsOffset = 0;
     headerInfo.dfxOffset = 0;
+    headerInfo.eventConfigOffset = 0;
     headerInfo.nodeCnt = 0;
     headerInfo.totalSize = 1024;
 
@@ -370,7 +372,8 @@ TEST_F(SkDfxExceptionHandlerTest, PrintAllCoreSymbols_DefaultAicoreNums)
 {
     // Setup minimal required structures
     uint32_t skDeviceEntryArgsSize = sizeof(SkHeaderInfo);
-    SkHeaderInfo headerInfo{0, 0, 0, 0, 0, 0, skDeviceEntryArgsSize};
+    SkHeaderInfo headerInfo{};
+    headerInfo.totalSize = skDeviceEntryArgsSize;
     handler->skHeaderInfoHost = &headerInfo;
 
     const size_t allocSize = 1024;
@@ -436,8 +439,7 @@ TEST_F(SkDfxExceptionHandlerTest, SuperKernelExceptionCallBackFunc_WithValidInfo
 TEST_F(SkDfxExceptionHandlerTest, IdentifyErrorNodeByPC_CurrentPCZero_ShouldReturnEarly)
 {
     // Setup minimal SkHeaderInfo with valid dfxOffset and nodeCnt
-    uint32_t skDeviceEntryArgsSize = sizeof(SkHeaderInfo) + sizeof(SkDfxInfo);
-    SkHeaderInfo headerInfo{0, 0, 0, 0, 0, 0, 1};
+    SkHeaderInfo headerInfo{};
     headerInfo.dfxOffset = sizeof(SkHeaderInfo);
     headerInfo.nodeCnt = 1;
 
@@ -455,8 +457,8 @@ TEST_F(SkDfxExceptionHandlerTest, IdentifyErrorNodeByPC_CurrentPCZero_ShouldRetu
 
 TEST_F(SkDfxExceptionHandlerTest, IdentifyErrorNodeByPC_DfxOffsetZero_ShouldReturnEarly)
 {
-    uint32_t skDeviceEntryArgsSize = sizeof(SkHeaderInfo);
-    SkHeaderInfo headerInfo{0, 0, 0, 0, 0, 0, 1}; // dfxOffset = 0
+    SkHeaderInfo headerInfo{};
+    headerInfo.nodeCnt = 1; // dfxOffset = 0
 
     handler->skDeviceEntryArgsHost = reinterpret_cast<SkDeviceEntryArgs*>(&headerInfo);
     handler->skHeaderInfoHost = &headerInfo;
@@ -467,8 +469,7 @@ TEST_F(SkDfxExceptionHandlerTest, IdentifyErrorNodeByPC_DfxOffsetZero_ShouldRetu
 
 TEST_F(SkDfxExceptionHandlerTest, IdentifyErrorNodeByPC_NodeCntZero_ShouldReturnEarly)
 {
-    uint32_t skDeviceEntryArgsSize = sizeof(SkHeaderInfo) + sizeof(SkDfxInfo);
-    SkHeaderInfo headerInfo{0, 0, 0, 0, 0, 0, 0}; // nodeCnt = 0
+    SkHeaderInfo headerInfo{}; // nodeCnt = 0
     headerInfo.dfxOffset = sizeof(SkHeaderInfo);
 
     uint8_t buffer[1024] = {0};
@@ -852,7 +853,8 @@ TEST_F(SkDfxExceptionHandlerTest, GetOrLoadKernelSymbols_OpIdExceedsNodeCnt_Retu
 
     // Use a custom size for this test (1024)
     uint32_t totalSize = sizeof(SkHeaderInfo) + sizeof(SkDfxInfo) * 2;
-    headerInfo = {0, 0, 0, 0, 0, 0, 2};
+    headerInfo = {};
+    headerInfo.nodeCnt = 2;
     headerInfo.dfxOffset = sizeof(SkHeaderInfo);
     headerInfo.totalSize = totalSize;
 

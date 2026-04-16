@@ -1020,7 +1020,7 @@ TEST_F(SkTaskBuilderTest, GenEntryArgs_MemsetCounterFail_ReturnEmpty)
     EXPECT_EQ(devArgs.Get(), nullptr);
 }
 
-TEST_F(SkTaskBuilderTest, GenEntryArgs_MemsetWorkspaceFail_ReturnEmpty)
+TEST_F(SkTaskBuilderTest, GenEntryArgs_WithoutWorkspace_IgnoresSecondMemsetFailure)
 {
     SkTask aic;
     SkTask aiv;
@@ -1030,7 +1030,26 @@ TEST_F(SkTaskBuilderTest, GenEntryArgs_MemsetWorkspaceFail_ReturnEmpty)
     SkDfxInfo dfx{};
     SkUtSetSecurecMemsetFailOnCall(2);
     DeviceArgsPtr devArgs = builder->GenEntryArgs(aic, aiv, &dfx, 1);
-    EXPECT_EQ(devArgs.Get(), nullptr);
+    ASSERT_NE(devArgs.Get(), nullptr);
+    EXPECT_EQ(devArgs.Get()->skHeader.dfxOffset,
+              devArgs.Get()->skHeader.counterOffset + DEFAULT_COUNTER_COUNT * sizeof(SkCounterInfo));
+}
+
+TEST_F(SkTaskBuilderTest, GenEntryArgs_CounterOffsetAlignedTo64Bytes)
+{
+    SkTask aic;
+    SkTask aiv;
+    ASSERT_TRUE(aic.taskQue.Init(1));
+    ASSERT_TRUE(aiv.taskQue.Init(1));
+
+    SkDfxInfo dfx{};
+    DeviceArgsPtr devArgs = builder->GenEntryArgs(aic, aiv, &dfx, 1);
+    ASSERT_NE(devArgs.Get(), nullptr);
+
+    size_t rawCounterOffset = sizeof(SkHeaderInfo) + aic.GetTaskQueSize() + aiv.GetTaskQueSize();
+    EXPECT_NE(rawCounterOffset % 64, 0U);
+    EXPECT_EQ(devArgs.Get()->skHeader.counterOffset % 64, 0U);
+    EXPECT_GE(devArgs.Get()->skHeader.counterOffset, rawCounterOffset);
 }
 
 TEST_F(SkTaskBuilderTest, GenEntryArgs_MemcpyDfxFail_ReturnEmpty)

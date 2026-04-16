@@ -190,11 +190,10 @@ struct SkHeaderInfo {
     uint32_t aicQueOffset;
     uint32_t aivQueOffset;
     uint32_t counterOffset;
-    uint32_t wsOffset;
     uint32_t dfxOffset;
     uint32_t eventConfigOffset;  // 算子打印事件配置偏移量
     uint32_t nodeCnt;
-    uint8_t reserve[4];
+    uint32_t reserve[2];
     uint64_t totalSize;
 };
 
@@ -204,10 +203,6 @@ struct SkCounterInfo {
     uint8_t exit;
     // dcci single cacheline size is 64bytes
     uint8_t reserve[58];
-};
-
-struct SkWorkSpace {
-    uint32_t workspace[8 * 1024];
 };
 
 struct SkDfxInfo {

@@ -386,6 +386,19 @@ void SuperKernelGraph::BuildEventNodeAssociations() {
                 SK_LOGE("Event 0x%lx: notify node %lu is invalid or not a notify node",
                         eventId, eventInfo.notifyNodeId);
             }
+        } else if (eventInfo.notifyNodeId != INVALID_TASK_ID && eventInfo.waitNodeIdList.empty()) {
+            // Notify without any wait consumer is not fusible in current modelRI.
+            // Keep node type unchanged, but prevent entering scope fusion pipeline.
+            auto* notifyNode = GetNodeById(eventInfo.notifyNodeId);
+            if (notifyNode != nullptr && notifyNode->GetNodeType() == SkNodeType::NODE_NOTIFY) {
+                notifyNode->SetIsFusible(false);
+                notifyNode->SetCorrespondingWaitNodeIds({});
+                SK_LOGW("Event 0x%lx: notify node %lu has no wait node in modelRI, mark as unfusible",
+                        eventId, eventInfo.notifyNodeId);
+            } else {
+                SK_LOGE("Event 0x%lx: orphan notify node %lu is invalid or not a notify node",
+                        eventId, eventInfo.notifyNodeId);
+            }
         }
         if (!eventInfo.resetNodeIdList.empty()) {
             for (auto resetNodeId : eventInfo.resetNodeIdList) {
