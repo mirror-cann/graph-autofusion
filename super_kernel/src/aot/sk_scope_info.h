@@ -103,7 +103,7 @@ struct ScopeExtInfo {
 /*!
  * \brief Convert ScopeFailReason to string
  */
-inline const char* to_string(ScopeFailReason reason)
+inline const char* ScopeFailReasonToStr(ScopeFailReason reason)
 {
     switch (reason) {
         case ScopeFailReason::NONE:

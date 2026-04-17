@@ -27,8 +27,53 @@
 #include "sk_node.h"
 #include "sk_log.h"
 #include "sk_scope_launch.h"
+#include "sk_scope_info.h"
+#include "sk_lock_detector.h"
 #include "sk_common.h"
 #include "runtime/kernel.h"
+
+// Implementation of FusionFailReasonInfo methods (requires complete ScopeFailReason/DeadlockFailReason definition)
+FusionFailReasonInfo::FusionFailReasonInfo(FusionFailReason p, ScopeFailReason s)
+    : primary(p), scopeDetailValue(static_cast<uint8_t>(s)) {}
+
+FusionFailReasonInfo::FusionFailReasonInfo(FusionFailReason p, DeadlockFailReason d)
+    : primary(p), deadlockDetailValue(static_cast<uint8_t>(d)) {}
+
+ScopeFailReason FusionFailReasonInfo::GetScopeDetail() const {
+    return static_cast<ScopeFailReason>(scopeDetailValue);
+}
+
+void FusionFailReasonInfo::SetScopeDetail(ScopeFailReason s) {
+    scopeDetailValue = static_cast<uint8_t>(s);
+}
+
+DeadlockFailReason FusionFailReasonInfo::GetDeadlockDetail() const {
+    return static_cast<DeadlockFailReason>(deadlockDetailValue);
+}
+
+void FusionFailReasonInfo::SetDeadlockDetail(DeadlockFailReason d) {
+    deadlockDetailValue = static_cast<uint8_t>(d);
+}
+
+std::string FusionFailReasonToStr(const FusionFailReasonInfo& info) {
+    std::string result = FusionFailReasonToStr(info.primary);
+    if (info.primary == FusionFailReason::SCOPE_FUSE_PART) {
+        ScopeFailReason scopeDetail = info.GetScopeDetail();
+        if (scopeDetail != ScopeFailReason::NONE) {
+            result += " [";
+            result += ScopeFailReasonToStr(scopeDetail);
+            result += "]";
+        }
+    } else if (info.primary == FusionFailReason::EXIST_DEADLOCK) {
+        DeadlockFailReason deadlockDetail = info.GetDeadlockDetail();
+        if (deadlockDetail != DeadlockFailReason::NOT_FIND_DEADLOCK) {
+            result += " [";
+            result += DeadlockFailReasonToStr(deadlockDetail);
+            result += "]";
+        }
+    }
+    return result;
+}
 
 namespace {
 using SkBindMap = std::unordered_map<uint64_t, std::array<uint64_t, 4>>;
@@ -473,11 +518,15 @@ bool SuperKernelKernelNode::InitNode() {
     nodeInfos.kernelInfos.funcName = std::string(tmpFuncName);
     if (!isScopeNode && !nodeInfos.kernelInfos.funcName.empty() && nodeInfos.kernelInfos.binHdl != nullptr) {
         isFusible = InitKernelResolvedFuncs(nodeInfos.kernelInfos);
+        if (!isFusible) {
+            SetFusionFailReason(FusionFailReason::BINDMAP_EMPTY);
+        }
     }
 
     if (taskParams.taskGrp != nullptr) {
         SK_LOGI("Kernel task group is not null for task %lu, which cannot be fused in super kernel.", nodeId);
         isFusible = false;
+        SetFusionFailReason(FusionFailReason::TASK_GROUP_EMPTY);
     }
 
     return true;
@@ -633,10 +682,12 @@ bool SuperKernelMemoryNode::InitNode() {
                 nodeType = SkNodeType::NODE_RESET;
                 nodeInfos.syncInfos.eventId = (uint64_t)eventParam.event;
                 nodeInfos.syncInfos.eventFlag = eventParam.eventFlag;
+                SetFusionFailReason(FusionFailReason::RESET_TYPE_NODE); 
                 break;
             }
             default:
                 SK_LOGE("Unsupported event type %u for %s, which cannot be fused in super kernel.", rtNodeType, Format().c_str());
+                SetFusionFailReason(FusionFailReason::UNSUPPORT_EVENT_TYPE); 
                 return false;
         }
         if ((rtNodeType != ACL_MODEL_RI_TASK_EVENT_RESET) && ((nodeInfos.syncInfos.eventFlag & ACL_EVENT_EXTERNAL) == 0)) {
@@ -644,6 +695,9 @@ bool SuperKernelMemoryNode::InitNode() {
             SK_LOGI("Event %s: internal to ModelRI, fusible in super kernel",
                     Format().c_str());
         } else {
+            if (fusionFailReason_ == FusionFailReason::CAN_FUSE){
+                SetFusionFailReason(FusionFailReason::EXTERNAL_DEPEND); 
+            }
             SK_LOGI("Event %s: has external dependencies, cannot be fused in super kernel",
                     Format().c_str());
         }
@@ -665,6 +719,7 @@ bool SuperKernelMemoryNode::InitNode() {
         nodeInfos.syncInfos.addrValue = memoryParam.devAddr;
         nodeInfos.syncInfos.memoryValue = memoryParam.value;
         nodeInfos.syncInfos.memoryWaitFlag = memoryParam.flag;
+
         isFusible = false;
     }
 

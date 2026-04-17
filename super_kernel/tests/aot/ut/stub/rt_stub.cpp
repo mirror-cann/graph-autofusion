@@ -95,4 +95,13 @@ rtError_t rtGetExceptionRegInfo(const void* exception, rtExceptionErrRegInfo_t**
     return RT_SUCCESS;
 }
 
+// aclmdlRIDebugJsonPrint - stub implementation for unit tests
+// Always returns success for UT stub mode
+aclError aclmdlRIDebugJsonPrint(aclmdlRI model, const char* path, uint32_t flag) {
+    (void)model;
+    (void)path;
+    (void)flag;
+    return ACL_SUCCESS;
+}
+
 } // extern "C"

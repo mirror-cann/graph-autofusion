@@ -204,7 +204,16 @@ bool SuperKernelOptimizer::Process(SuperKernelGraph& graph)
         SK_LOGI("process scope begin: scopeId=%u", scopeInfo.GetScopeId());
         if (!postProcessor.PostProcess(scopeInfo)) {
             SK_LOGI("scope unprocessable after post-process, skip schedule/update: scopeId=%u, reason=%s",
-                    scopeInfo.GetScopeId(), to_string(scopeInfo.GetExtInfo().failReason));
+                    scopeInfo.GetScopeId(), ScopeFailReasonToStr(scopeInfo.GetExtInfo().failReason));
+            ScopeFailReason failReason = scopeInfo.GetExtInfo().failReason;
+            
+            // Set fusion fail reason for all nodes in this scope with scope detail
+            for (auto* node : scopeInfo.GetNodes()) {
+                if (node != nullptr) {
+                    node->SetFusionFailReason(FusionFailReason::SCOPE_FUSE_PART, failReason);
+                    node->SetIsFusible(false);
+                }
+            }
             continue;
         }
         if (scopeInfo.GetExtInfo().filteredNodes.empty()) {
@@ -218,6 +227,10 @@ bool SuperKernelOptimizer::Process(SuperKernelGraph& graph)
             return false;
         }
     }
+    
+    // Dump all nodes' fusion fail reasons after all scopes are processed
+    graph.DumpFusionFailReasons();
+    
     SK_LOGI("super kernel process finished: scopeCount=%zu", scopeInfos.size());
     return true;
 }

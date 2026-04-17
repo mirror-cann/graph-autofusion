@@ -32,6 +32,69 @@
 class SuperKernelGraph;
 struct SkLaunchInfo;
 
+// Forward declaration for ScopeFailReason (defined in sk_scope_info.h)
+enum class ScopeFailReason : uint8_t;
+
+// Forward declaration for DeadlockFailReason (defined in sk_lock_detector.h)
+enum class DeadlockFailReason : uint8_t;
+
+// unfused reason
+enum class FusionFailReason {
+    CAN_FUSE,               // 0：可以融合（默认）
+    BINDMAP_EMPTY,      // 1：bindmap为空
+    TASK_GROUP_EMPTY,   // 2：task group为空
+    RESET_TYPE_NODE,    // 3: reset 类型会放到最后
+    NOT_IN_SCOPE,       // 4: 不在融合范围
+    IN_UNFUSIBLE_SCOPE, // 5: 标定不可融
+    ISOLATED_EVENT,     // 6：存在孤立事件
+    EXIST_DEADLOCK,     // 7：存在死锁
+    SCOPE_FUSE_PART,    // 8：scope融合失败（具体原因见 ScopeFailReason）
+    EXTERNAL_DEPEND,    // 9: event存在外部依赖
+    UNSUPPORT_EVENT_TYPE, // 10: event类型不支持
+};
+
+// Fusion fail reason with optional scope/deadlock detail
+// Note: scopeDetailValue stores ScopeFailReason as uint8_t to avoid circular dependency
+// Note: deadlockDetailValue stores DeadlockFailReason as uint8_t to avoid circular dependency
+struct FusionFailReasonInfo {
+    FusionFailReason primary = FusionFailReason::CAN_FUSE;
+    uint8_t scopeDetailValue = 0;       // ScopeFailReason::NONE
+    uint8_t deadlockDetailValue = 0;    // DeadlockFailReason::NOT_FIND_DEADLOCK
+    
+    FusionFailReasonInfo() = default;
+    explicit FusionFailReasonInfo(FusionFailReason p) : primary(p) {}
+    FusionFailReasonInfo(FusionFailReason p, ScopeFailReason s);
+    FusionFailReasonInfo(FusionFailReason p, DeadlockFailReason d);
+    
+    ScopeFailReason GetScopeDetail() const;
+    void SetScopeDetail(ScopeFailReason s);
+    
+    DeadlockFailReason GetDeadlockDetail() const;
+    void SetDeadlockDetail(DeadlockFailReason d);
+    
+    bool operator==(FusionFailReason p) const { return primary == p; }
+    bool operator!=(FusionFailReason p) const { return primary != p; }
+};
+
+inline const char* FusionFailReasonToStr(FusionFailReason reason) {
+    switch (reason) {
+        case FusionFailReason::CAN_FUSE:              return "node can fuse";
+        case FusionFailReason::BINDMAP_EMPTY:     return "bindMap is empty, please check config SK_BIND";
+        case FusionFailReason::TASK_GROUP_EMPTY:   return "Kernel task group is not null";
+        case FusionFailReason::RESET_TYPE_NODE:    return "reset type node in end";
+        case FusionFailReason::NOT_IN_SCOPE:      return "node not in fusion scope";
+        case FusionFailReason::IN_UNFUSIBLE_SCOPE: return "node in unfusible scope";
+        case FusionFailReason::ISOLATED_EVENT:    return "Isolated event node may cause resource shortage in multi-stream scenarios";
+        case FusionFailReason::EXIST_DEADLOCK:    return "exist deadlock";
+        case FusionFailReason::SCOPE_FUSE_PART:   return "scope fuse failed";
+        case FusionFailReason::EXTERNAL_DEPEND:   return "event node has external dependency";
+        case FusionFailReason::UNSUPPORT_EVENT_TYPE: return "unsupport event type";
+        default:                                  return "UNKNOWN_REASON";
+    }
+}
+
+// Declaration - implementation in sk_node.cpp after including sk_scope_info.h
+std::string FusionFailReasonToStr(const FusionFailReasonInfo& info);
 
 // Update context for node update operations
 struct UpdateContext {
@@ -279,11 +342,27 @@ public:
     bool IsUpdated() const { return isUpdate; }
     void SetUpdate(bool update) { isUpdate = update; }
 
+    // Fusion fail reason setters
+    void SetFusionFailReason(FusionFailReason reason, ScopeFailReason scopeReason = static_cast<ScopeFailReason>(0)) {
+        fusionFailReason_.primary = reason;
+        fusionFailReason_.SetScopeDetail(scopeReason);
+    }
+    void SetFusionFailReason(FusionFailReason reason, DeadlockFailReason deadlockReason) {
+        fusionFailReason_.primary = reason;
+        fusionFailReason_.SetDeadlockDetail(deadlockReason);
+    }
+    void SetFusionFailReason(const FusionFailReasonInfo& info) { fusionFailReason_ = info; }
+    
+    // Fusion fail reason getters
+    FusionFailReason GetFusionFailReason() const { return fusionFailReason_.primary; }
+    const FusionFailReasonInfo& GetFusionFailReasonInfo() const { return fusionFailReason_; }
+
 public:
     NodeInfos nodeInfos;
     std::unique_ptr<aclmdlRITask> originTask;
     std::unordered_set<uint64_t> sendToNodeId;
     std::unordered_set<uint64_t> receiveNodeId;
+    FusionFailReasonInfo fusionFailReason_;
 
 protected:
     aclmdlRITaskParams taskParams;

@@ -121,6 +121,7 @@ bool LockDetector::HasDeadlock(SuperKernelBaseNode* curNode) {
             break;
         default:
             SK_LOGD("nodeId: %u, unsupported node type %u in HasDeadlock", preNode->GetNodeId(), preNode->GetNodeType());
+            deadlockReason_ = DeadlockFailReason::NO_SUPPORT_NODE;
             break;
     }
 
@@ -131,6 +132,7 @@ bool LockDetector::CheckKernelNodeDeadlock(SuperKernelBaseNode* preNode) {
     if (!HasEnoughCores(preNode, false)) {
         SK_LOGI("Not enough cores for kernel node, nodeId=%lu, requiredCube=%u, requiredVec=%u",
                  preNode->GetNodeId(), preNode->GetCubeNum(), preNode->GetVecNum());
+        deadlockReason_ = DeadlockFailReason::KERNEL_INSUFFICIENT_CORES;
         return true;
     }
     if (HasDeadlock(preNode)) {
@@ -146,6 +148,7 @@ bool LockDetector::CheckWaitNodeDeadlock(SuperKernelBaseNode* preNode) {
     if (notifyId == INVALID_TASK_ID) {
         SK_LOGI("Deadlock detected in wait node, waitNodeId=%lu, notifyNodeId=%lu is not in graph", 
             preNode->GetNodeId(), notifyId);
+        deadlockReason_ = DeadlockFailReason::NOTIFY_NOT_IN_GRAPH;
         return true;
     }
     SuperKernelBaseNode* notifyNode = graph_->GetNodeById(notifyId);
@@ -153,10 +156,12 @@ bool LockDetector::CheckWaitNodeDeadlock(SuperKernelBaseNode* preNode) {
     if (notifyNode == nullptr) {
         SK_LOGE("[lock detector] CheckWaitNodeDeadlock: notifyNode %lu not found for waitNode %lu",
                 notifyId, preNode->GetNodeId());
+        deadlockReason_ = DeadlockFailReason::NOTIFY_INVALID;
         return true;
     }
     // Case 2: notify node is after sk range, 
     if (IsAfterSKRange(*notifyNode)) {
+        deadlockReason_ = DeadlockFailReason::NOTIFY_AFTER_SK_RANGE;
         return true;
     }
     // Case 3: check node before wait node in current stream
@@ -181,6 +186,7 @@ bool LockDetector::CheckNotifyNodeDeadlock(SuperKernelBaseNode* preNode) {
     if ((cubeNum > 0 || vecNum > 0) && !HasEnoughCores(preNode, false)) {
         SK_LOGI("Not enough cores for notify node, nodeId=%lu, requiredCube=%u, requiredVec=%u",
                  preNode->GetNodeId(), cubeNum, vecNum);
+        deadlockReason_ = DeadlockFailReason::NOTIFY_INSUFFICIENT_CORES;
         return true;
     }
     std::vector<uint64_t> waitIds = preNode->GetCorrespondingWaitNodeIds();
@@ -272,6 +278,7 @@ void LockDetector::Reset() {
     superKernelVecNum = 0;
     nodeNum = 0;
     kernelNodeNum = 0;
+    deadlockReason_ = DeadlockFailReason::NOT_FIND_DEADLOCK;
 
     RollbackVisitedState(nodes);
     skStreamIds.clear();
@@ -320,6 +327,7 @@ bool LockDetector::GetWaitNodeFusibleStatus(SuperKernelBaseNode& curNode) {
     if (notifyId == INVALID_TASK_ID) {
         SK_LOGD("[lock detector] Wait node %s: notify node %lu not found in graph", 
                 curNode.Format().c_str(), notifyId);
+        deadlockReason_ = DeadlockFailReason::NOTIFY_NOT_IN_GRAPH;
         return false;
     }
     SuperKernelBaseNode* notifyNode = graph_->GetNodeById(notifyId);
@@ -327,11 +335,13 @@ bool LockDetector::GetWaitNodeFusibleStatus(SuperKernelBaseNode& curNode) {
     if (notifyNode == nullptr) {
         SK_LOGE("[lock detector] Wait node %s: notify node %lu not found in graph", 
                 curNode.Format().c_str(), notifyId);
+        deadlockReason_ = DeadlockFailReason::NOTIFY_INVALID;
         return false;
     }
     // Case 2: first wait
     if (nodeNum == 0) {
         SK_LOGD("[lock detector] Wait node %s: first node in scope, cannot fuse", curNode.Format().c_str());
+        deadlockReason_ = DeadlockFailReason::FIRST_WAIT;
         return false;
     }
     // Case 3: notify node is in the same SK stream
@@ -345,7 +355,7 @@ bool LockDetector::GetWaitNodeFusibleStatus(SuperKernelBaseNode& curNode) {
         return true;
     }
     
-    // Case 4: notify node has core resource requirement
+    // Case 5: notify node has core resource requirement
     if (notifyNode->GetCubeNum() > 0 || notifyNode->GetVecNum() > 0) {
         bool canFuse = HasEnoughCores(notifyNode, false);
         SK_LOGD("[lock detector] Wait node %s: notify %s has cores, canFuse=%d",
@@ -353,11 +363,12 @@ bool LockDetector::GetWaitNodeFusibleStatus(SuperKernelBaseNode& curNode) {
         if (canFuse) {
             tempVisitedNodes.emplace_back(notifyNode->GetNodeId());
         } else {
+            deadlockReason_ = DeadlockFailReason::NOTIFY_INSUFFICIENT_CORES;
             return canFuse;
         }
     }
     
-    // Case 5: notify node is in different stream, check for deadlock
+    // Case 6: notify node is in different stream, check for deadlock
     bool hasDeadlock = HasDeadlock(notifyNode);
     SK_LOGD("[lock detector] Wait node %s: notify %s HasDeadlock=%d",
             curNode.Format().c_str(), notifyNode->Format().c_str(), hasDeadlock);
@@ -368,6 +379,7 @@ bool LockDetector::CheckNotifyInSKStream(SuperKernelBaseNode& curNode, SuperKern
     if (IsAfterSKRange(notifyNode)) {
         SK_LOGE("[lock detector] Wait node %s: notify %s is after SK range, cannot fuse",
                 curNode.Format().c_str(), notifyNode.Format().c_str());
+        deadlockReason_ = DeadlockFailReason::NOTIFY_AFTER_SK_RANGE;
         return false;
     }
     SK_LOGD("[lock detector] Wait node %s: notify %s is before SK range, can fuse",
@@ -383,6 +395,7 @@ bool LockDetector::GetFusibleStatus(SuperKernelBaseNode& curNode) {
         } else {
             SK_LOGE("[lock detector] Notify node %s: in SK range with coreNum>0 (cube %u, vec %u), which not allowed",
                     curNode.Format().c_str(), curNode.GetCubeNum(), curNode.GetVecNum());
+            deadlockReason_ = DeadlockFailReason::NOTIFY_INVALID;
             return false;
         }
     } else if (curNode.GetNodeType() == SkNodeType::NODE_WAIT) {
@@ -415,6 +428,7 @@ bool LockDetector::IsFusible(SuperKernelBaseNode& curNode) {
 
     SK_LOGI("[lock detector] IsFusible: Checking node %s, current state: nodeNum=%u, kernelNodeNum=%u",
             curNode.Format().c_str(), nodeNum, kernelNodeNum);
+    deadlockReason_ = DeadlockFailReason::NOT_FIND_DEADLOCK;  // Reset before checking
     bool canFuse = GetFusibleStatus(curNode);
     // Only modify state if node can be fused
     if (canFuse) {
@@ -431,6 +445,10 @@ bool LockDetector::IsFusible(SuperKernelBaseNode& curNode) {
         SK_LOGD("[lock detector] fused nodeId=%s, nodeType=%u, nodeNum=%u, SuperKernelCubeNum=%u, SuperKernelVecNum=%u, depOpCubeNum=%u, depOpVecNum=%u", curNode.Format().c_str(), curNode.GetNodeType(), nodeNum, superKernelCubeNum, superKernelVecNum, depOpCubeNum, depOpVecNum);
     } else {
         SK_LOGI("[lock detector] Node %s: cannot be fused", curNode.Format().c_str());
+        // If deadlock was detected, set the failure reason with detail
+        if (deadlockReason_ != DeadlockFailReason::NOT_FIND_DEADLOCK) {
+            curNode.SetFusionFailReason(FusionFailReason::EXIST_DEADLOCK, deadlockReason_);
+        }
     }
 
     return canFuse;

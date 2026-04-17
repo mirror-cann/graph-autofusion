@@ -501,6 +501,7 @@ bool SuperKernelGraph::ProcessMemoryWriteNodes(const uint64_t eventId, const Mem
             auto* resetNode = GetNodeById(resetId);
             resetNode->SetNodeType(SkNodeType::NODE_RESET);
             resetNode->SetIsFusible(false);
+            resetNode->SetFusionFailReason(FusionFailReason::RESET_TYPE_NODE);
             if (!AddEventAssociateReset(eventId, resetNode)) {
                 SK_LOGE("Failed to associate reset event %lu with node %lu", eventId, resetIdVec[0]);
                 return false;
@@ -524,6 +525,7 @@ bool SuperKernelGraph::PostProcessMemoryNode() {
                     (waitNode->GetNodeType() == SkNodeType::NODE_MEMORY_WAIT)) {
                     waitNode->SetNodeType(SkNodeType::NODE_WAIT);
                     waitNode->SetIsFusible(false);
+                    
                 }
             }
         } else if (!memoryInfo.writeNodeIdList.empty() && memoryInfo.waitNodeIdList.empty()) {
@@ -740,11 +742,13 @@ void SuperKernelGraph::UpdateNodeScopeBitFlags() {
             if (!outOfScopeFusible && scopeStack.empty()) {
                 // If there are named scopes, mark nodes outside of any scope as unfusible
                 node->SetIsFusible(false);
+                node->SetFusionFailReason(FusionFailReason::NOT_IN_SCOPE);
                 SK_LOGI("Marked node %s as unfusible (outside of any named scope)", node->Format().c_str());
             }
             // Mark regular nodes as unfusible if inside any unfusible scope
             if (!node->IsScopeNode() && HasUnfusibleScope(scopeStack)) {
                 node->SetIsFusible(false);
+                node->SetFusionFailReason(FusionFailReason::IN_UNFUSIBLE_SCOPE);
                 SK_LOGI("Marked node %s as unfusible (inside unfusible scope)", node->Format().c_str());
             }
         }
@@ -923,4 +927,70 @@ std::vector<uint64_t> SuperKernelGraph::GetSortedNodeIds() const {
     }
     std::sort(nodeIds.begin(), nodeIds.end());
     return nodeIds;
+}
+
+SuperKernelGraph::FusionFailStats SuperKernelGraph::CollectFusionFailStats() {
+    FusionFailStats stats;
+    std::vector<uint64_t> sortedNodeIds = GetSortedNodeIds();
+    
+    for (uint64_t nodeId : sortedNodeIds) {
+        SuperKernelBaseNode* node = GetNodeById(nodeId);
+        if (node == nullptr) {
+            continue;
+        }
+        
+        const FusionFailReasonInfo& reasonInfo = node->fusionFailReason_;
+        bool isFusible = node->IsFusible();
+        std::string reasonStr = FusionFailReasonToStr(reasonInfo);
+        
+        // Update statistics
+        if (isFusible) {
+            stats.fusibleCount++;
+        } else {
+            stats.unfusibleCount++;
+            stats.reasonStats[reasonStr]++;
+        }
+        
+        // Collect node log entry
+        std::string logEntry = "Node " + node->Format() + ": isFusible: " + 
+                               std::to_string(isFusible) + ", reason: " + reasonStr;
+        stats.nodeLogEntries.push_back(std::move(logEntry));
+    }
+    
+    return stats;
+}
+
+void SuperKernelGraph::DumpFusionFailReasons() {
+    SK_LOGI("Starting to dump fusion fail reasons for all nodes");
+    
+    // Collect statistics and output to log file
+    FusionFailStats stats;
+    {
+        SK_LOG_CONTEXT_SIMPLE("sk_fusion_fail_reasons.log");
+        stats = CollectFusionFailStats();
+        // Output node log entries to sk_fusion_fail_reasons.log
+        for (const auto& entry : stats.nodeLogEntries) {
+            SK_LOGI("%s", entry.c_str());
+        }
+    }
+    
+    // Output summary to plog (outside log context)
+    for (const auto& entry : stats.nodeLogEntries) {
+        SK_LOGI("%s", entry.c_str());
+    }
+    
+    // Print summary statistics
+    SK_LOGI("Fusion fail reasons summary:");
+    SK_LOGI("  Total nodes: %zu", graphMap.size());
+    SK_LOGI("  Fusible nodes: %zu", stats.fusibleCount);
+    SK_LOGI("  Unfusible nodes: %zu", stats.unfusibleCount);
+    
+    if (stats.unfusibleCount > 0) {
+        SK_LOGI("  Failure reason breakdown:");
+        for (const auto& pair : stats.reasonStats) {
+            SK_LOGI("    %s: %zu nodes", pair.first.c_str(), pair.second);
+        }
+    }
+    
+    SK_LOGI("Completed dumping fusion fail reasons");
 }

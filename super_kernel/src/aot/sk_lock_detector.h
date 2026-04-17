@@ -26,6 +26,47 @@
 #include "sk_scope_info.h"
 #include "acl/acl.h"
 
+/*!
+ * \enum DeadlockFailReason
+ * \brief Detailed failure reasons for deadlock detection
+ */
+enum class DeadlockFailReason : uint8_t {
+    NOT_FIND_DEADLOCK = 0,
+    KERNEL_INSUFFICIENT_CORES,      ///< Kernel node requires more cores than available
+    NOTIFY_NOT_IN_GRAPH,       ///< Wait node's notify not found in graph
+    NOTIFY_AFTER_SK_RANGE,     ///< Notify node is after SK range
+    NOTIFY_INVALID,         ///< Deadlock detected in wait node's pre-path
+    NOTIFY_INSUFFICIENT_CORES,      ///< Notify node requires more cores than available
+    FIRST_WAIT,                ///< First wait node in the graph is locked
+    NO_SUPPORT_NODE,            ///< Not support node type in waiting for nodes
+};
+/*!
+ * \brief Convert DeadlockFailReason to string
+ */
+inline const char* DeadlockFailReasonToStr(DeadlockFailReason reason)
+{
+    switch (reason) {
+        case DeadlockFailReason::NOT_FIND_DEADLOCK:
+            return "not find deadlock";
+        case DeadlockFailReason::KERNEL_INSUFFICIENT_CORES:
+            return "The wait node depends on a kernel node that requires more cores than available";
+        case DeadlockFailReason::NOTIFY_INSUFFICIENT_CORES:
+            return "The wait node depends on a notify node that it requires more cores, becauce the notify node is in other SK";
+        case DeadlockFailReason::NOTIFY_NOT_IN_GRAPH:
+            return "The wait node depends on a notify node that it is not in graph";
+        case DeadlockFailReason::NOTIFY_AFTER_SK_RANGE:
+            return "The wait node depends on a notify node that it is after SK range";
+        case DeadlockFailReason::NOTIFY_INVALID:
+            return "In check deadlock of this wait node, get invalid notify node";
+        case DeadlockFailReason::FIRST_WAIT:
+            return "The wait node is first node in scope";
+        case DeadlockFailReason::NO_SUPPORT_NODE:
+            return "The wait node waiting for unsupport node type";
+        default:
+            return "UNKNOWN REASON";
+    }
+}
+
 /**
  * @class LockDetector
  * @brief 死锁检测器，用于检测SuperKernel融合时是否会引入死锁
@@ -56,6 +97,11 @@ public:
      * @brief 重置检测器状态
      */
     void Reset();
+
+    /**
+     * @brief 获取最近一次检测到的死锁原因
+     */
+    DeadlockFailReason GetDeadlockReason() const { return deadlockReason_; }
 
     /**
      * @brief 判断节点是否可融合到SuperKernel中
@@ -130,6 +176,7 @@ private:
     uint32_t kernelNodeNum;
     std::unordered_map<uint32_t, std::pair<uint64_t, uint64_t>> skRangeInStream;
     SuperKernelGraph* graph_;  // 存储graph指针，用于析构时调用Reset
+    DeadlockFailReason deadlockReason_ = DeadlockFailReason::NOT_FIND_DEADLOCK;  // 当前检测到的死锁原因
 };
 
 #endif // __SK_LOCK_DETECTOR_H__

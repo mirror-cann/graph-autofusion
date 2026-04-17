@@ -84,6 +84,7 @@ uint32_t EventOnlyStreamRemovePass::ProcessScope(SuperKernelScopeInfo& scope) {
             for (auto* node : nodes) {
                 if (node != nullptr && node->IsFusible()) {
                     node->SetIsFusible(false);
+                    node->SetFusionFailReason(FusionFailReason::ISOLATED_EVENT);
                     scopeMarkedCount++;
                     SK_LOGI("[EventOnlyStreamRemove] Marked event node %lu in stream %u as non-fusible",
                             node->GetNodeId(), streamIdx);
@@ -960,7 +961,7 @@ ScopeProcessResult DeadlockRefinePass::ProcessSingleScope(
     SuperKernelScopeInfo scopeBefore;
     SuperKernelScopeInfo scopeAfter;
     SplitScopeAtWaitNode(workingScope, deadlockWaitNode, scopeBefore, scopeAfter);
-
+    deadlockNode->SetFusionFailReason(FusionFailReason::EXIST_DEADLOCK);
     SK_LOGI("[DeadlockRefine] Deadlock detected at node %s, splitting at Wait node %s",
             deadlockNode->Format().c_str(), deadlockWaitNode->Format().c_str());
     SK_LOGI("[DeadlockRefine]   Before split: original=%zu nodes, scopeBefore=%zu, scopeAfter=%zu",

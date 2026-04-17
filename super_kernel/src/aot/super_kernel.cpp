@@ -32,6 +32,41 @@ public:
         SkResourceManager::SetCurrentModel(nullptr);
     }
 };
+
+/**
+ * @brief Dump graph to JSON file for debugging
+ * @param model Model RI handle
+ * @param metaDir Meta directory path
+ * @param deviceId Device ID
+ * @param suffix Filename suffix (e.g., "before" or "after")
+ * @return aclError status
+ */
+aclError DumpGraphJson(aclmdlRI model, const std::string& metaDir, int32_t deviceId, const std::string& suffix) {
+    std::string jsonPath = metaDir + "/sk_graph_rts_" + suffix + "_" + std::to_string(deviceId) + ".json";
+    aclError ret = aclmdlRIDebugJsonPrint(model, jsonPath.c_str(), 0);
+    if (ret != ACL_SUCCESS) {
+        SK_LOGE("Failed to print json file: %s", jsonPath.c_str());
+        return ACL_ERROR_FAILURE;
+    }
+    return ACL_SUCCESS;
+}
+
+/**
+ * @brief Get device ID and create meta directory for graph dumping
+ * @param model Model RI handle
+ * @param deviceId Output device ID
+ * @param metaDir Output meta directory path
+ * @return aclError status
+ */
+aclError PrepareGraphDumpEnv(aclmdlRI model, int32_t& deviceId, std::string& metaDir) {
+    aclError ret = aclrtGetDevice(&deviceId);
+    if (ret != ACL_SUCCESS) {
+        SK_LOGE("Failed to get device id.");
+        return ACL_ERROR_FAILURE;
+    }
+    metaDir = CreateSkMetaDirectory(model);
+    return ACL_SUCCESS;
+}
 }
 
 #ifdef __cplusplus
@@ -39,11 +74,24 @@ extern "C" {
 #endif
 
 aclError aclskOptimize(aclmdlRI model, aclskOptions *options) {
+
+    int32_t deviceId;
+    std::string metaDir;
+    aclError ret = PrepareGraphDumpEnv(model, deviceId, metaDir);
+    if (ret != ACL_SUCCESS) {
+        return ret;
+    }
+
+    ret = DumpGraphJson(model, metaDir, deviceId, "before");
+    if (ret != ACL_SUCCESS) {
+        return ret;
+    }
+
     // Initialize logger (controlled by environment variable ASCEND_OP_COMPILE_SAVE_KERNEL_META)
     InitSkLogger(model);
     
     CurrentModelGuard modelGuard(model);
-    aclError ret = aclrtSetExceptionInfoCallback(SuperKernelExceptionCallBackFunc);
+    ret = aclrtSetExceptionInfoCallback(SuperKernelExceptionCallBackFunc);
     if (ret != ACL_SUCCESS) {
         SK_LOGE("Failed to set exception callback.");
         return ACL_ERROR_FAILURE;
@@ -83,7 +131,11 @@ aclError aclskOptimize(aclmdlRI model, aclskOptions *options) {
     SK_LOGI("End update graph");
 
     SK_LOGI("End aclskOptimize");
-    return ret;
+    ret = DumpGraphJson(model, metaDir, deviceId, "after");
+    if (ret != ACL_SUCCESS) {
+        return ret;
+    }
+    return ACL_SUCCESS;
 }
 
 aclError aclskScopeBegin(const char* scopeName, aclrtStream stream) {

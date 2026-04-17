@@ -113,7 +113,20 @@ public:
         needUpdate = flag;
     }
 
+    // Dump all nodes' fusion fail reasons to log file
+    void DumpFusionFailReasons();
+
+    // Fusion fail reasons statistics
+    struct FusionFailStats {
+        std::unordered_map<std::string, size_t> reasonStats;
+        size_t fusibleCount = 0;
+        size_t unfusibleCount = 0;
+        std::vector<std::string> nodeLogEntries;
+    };
+
 private:
+    // Collect fusion fail reasons statistics for all nodes
+    FusionFailStats CollectFusionFailStats();
     bool AddNode(std::unique_ptr<SuperKernelBaseNode> node);
     bool AddEventAssociateNotify(uint64_t eventId, SuperKernelBaseNode* node);
     bool AddEventAssociateWait(uint64_t eventId, SuperKernelBaseNode* node);
