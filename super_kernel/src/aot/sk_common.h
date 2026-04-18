@@ -176,6 +176,8 @@ struct TaskInfo {
     // 根据bit位确定option选项
     // 1： debug_dcci_disable_on_kernel
     // 2： debug_sync_all
+    // 4： debug_dcci_before_kernel_start
+    // 8： debug_dcci_after_kernel_end
     uint64_t debugOptions;
     uint64_t reserved;
 };

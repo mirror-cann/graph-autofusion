@@ -1183,14 +1183,20 @@ bool SkTaskBuilder::AddFuncTask(SkTask& skTask, SuperKernelBaseNode* node, SkDfx
 
     auto disableDcciOptions = opts.GetOption(aclskOptionType::DEBUG_DCCI_DISABLE_ON_KERNEL);
     auto dcciBeforeKernelStartOptions = opts.GetOption(aclskOptionType::DEBUG_DCCI_BEFORE_KERNEL_START);
+    auto dcciAfterKernelEndOptions = opts.GetOption(aclskOptionType::DEBUG_DCCI_AFTER_KERNEL_END);
     std::vector<std::string> disableDcciList;
     std::vector<std::string> dcciBeforeKernelStartList;
+    std::vector<std::string> dcciAfterKernelEndList;
     if (disableDcciOptions != nullptr) {
         disableDcciList = disableDcciOptions->GetStringListValue();
     }
 
     if (dcciBeforeKernelStartOptions != nullptr) {
         dcciBeforeKernelStartList = dcciBeforeKernelStartOptions->GetStringListValue();
+    }
+
+    if (dcciAfterKernelEndOptions != nullptr) {
+        dcciAfterKernelEndList = dcciAfterKernelEndOptions->GetStringListValue();
     }
 
     if (node->GetNodeType() != SkNodeType::NODE_KERNEL) {
@@ -1249,6 +1255,12 @@ bool SkTaskBuilder::AddFuncTask(SkTask& skTask, SuperKernelBaseNode* node, SkDfx
         if (!dcciBeforeKernelStartList.empty() && !kernelInfo.funcName.empty()) {
             if (opts.JudgeDisableKernelDcci(dcciBeforeKernelStartList, kernelInfo.funcName)) {
                 taskInfo.debugOptions |= 0x4;
+            }
+        }
+
+        if (!dcciAfterKernelEndList.empty() && !kernelInfo.funcName.empty()) {
+            if (opts.JudgeDisableKernelDcci(dcciAfterKernelEndList, kernelInfo.funcName)) {
+                taskInfo.debugOptions |= 0x8;
             }
         }
     }

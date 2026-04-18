@@ -340,6 +340,13 @@ TEST_F(SuperKernelOptionsManagerTest, EnableDebug_WithDcciBeforeKernelStart)
     EXPECT_TRUE(opts_test->EnableDebug());
 }
 
+TEST_F(SuperKernelOptionsManagerTest, EnableDebug_WithDcciAfterKernelEnd)
+{
+    opts_test->AddOption(std::make_unique<StringListOptOption>(
+        "dcci_after_kernel_end", aclskOptionType::DEBUG_DCCI_AFTER_KERNEL_END));
+    EXPECT_TRUE(opts_test->EnableDebug());
+}
+
 TEST_F(SuperKernelOptionsManagerTest, EnableDebug_WithoutDebugOptions)
 {
     opts_test->AddOption(std::make_unique<NumberOptOption>("preload_code", aclskOptionType::PRELOAD_CODE, 1));
@@ -486,6 +493,41 @@ TEST_F(SuperKernelOptionsManagerTest, SetOptOptionValue_DcciBeforeKernelStart_Nu
     opts_test->SetOptOptionValue(&option);
 
     auto result = opts_test->GetOption(aclskOptionType::DEBUG_DCCI_BEFORE_KERNEL_START);
+    ASSERT_NE(result, nullptr);
+    auto strList = static_cast<StringListOptOption*>(result)->GetStringListValue();
+    EXPECT_TRUE(strList.empty());
+}
+
+TEST_F(SuperKernelOptionsManagerTest, SetOptOptionValue_DcciAfterKernelEnd)
+{
+    aclskOption option {};
+    option.optionType = aclskOptionType::DEBUG_DCCI_AFTER_KERNEL_END;
+
+    const char* kernelNames[] = {"Add", "Mul", ".*Op"};
+    option.dcciAfterKernelEnd.kernelNames = const_cast<char**>(kernelNames);
+    option.dcciAfterKernelEnd.kernelCnt = 3;
+
+    opts_test->SetOptOptionValue(&option);
+
+    auto result = opts_test->GetOption(aclskOptionType::DEBUG_DCCI_AFTER_KERNEL_END);
+    ASSERT_NE(result, nullptr);
+    auto strList = static_cast<StringListOptOption*>(result)->GetStringListValue();
+    EXPECT_EQ(strList.size(), 3);
+    EXPECT_EQ(strList[0], "Add");
+    EXPECT_EQ(strList[1], "Mul");
+    EXPECT_EQ(strList[2], ".*Op");
+}
+
+TEST_F(SuperKernelOptionsManagerTest, SetOptOptionValue_DcciAfterKernelEnd_NullKernelNames)
+{
+    aclskOption option {};
+    option.optionType = aclskOptionType::DEBUG_DCCI_AFTER_KERNEL_END;
+    option.dcciAfterKernelEnd.kernelNames = nullptr;
+    option.dcciAfterKernelEnd.kernelCnt = 2;
+
+    opts_test->SetOptOptionValue(&option);
+
+    auto result = opts_test->GetOption(aclskOptionType::DEBUG_DCCI_AFTER_KERNEL_END);
     ASSERT_NE(result, nullptr);
     auto strList = static_cast<StringListOptOption*>(result)->GetStringListValue();
     EXPECT_TRUE(strList.empty());

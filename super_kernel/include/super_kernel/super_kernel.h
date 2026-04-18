@@ -52,6 +52,7 @@ enum class aclskOptionType : uint32_t {
     DEBUG_CROSS_CORE_SYNC_CHECK = 10,
     OPT_EXTEND_OPTION = 11,   // 扩展选项，预留后续使用
     DEBUG_EXTEND_OPTION = 12, // 扩展选项，预留后续使用
+    DEBUG_DCCI_AFTER_KERNEL_END = 13,
     SK_OPTION_MAX = 0xFFFFFFFF
 };
 
@@ -126,6 +127,7 @@ struct aclskOption {
         aclskDebugCrossCoreSyncCheckOption debugCrossCoreSyncCheck;
         aclskExtendOption optExtend;
         aclskExtendOption debugExtend;
+        aclskDcciOption dcciAfterKernelEnd;
     };
 };
 

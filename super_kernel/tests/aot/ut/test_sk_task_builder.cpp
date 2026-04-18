@@ -621,6 +621,47 @@ TEST_F(SkTaskBuilderTest, AddFuncTask_DcciBeforeKernelStart_SetsDebugFlag)
     EXPECT_NE((funcTask.debugOptions & 0x4U), 0U);
 }
 
+TEST_F(SkTaskBuilderTest, AddFuncTask_DcciAfterKernelEnd_SetsDebugFlag)
+{
+    opts->AddOption(std::make_unique<StringListOptOption>(
+        "dcci_after_kernel_end",
+        aclskOptionType::DEBUG_DCCI_AFTER_KERNEL_END,
+        std::vector<std::string>{"k"}));
+
+    SkTask aic;
+    ASSERT_TRUE(aic.taskQue.Init(8));
+
+    auto* kernel = CreateKernelNodeEx(8104, 0, INVALID_TASK_ID, INVALID_TASK_ID, SkKernelType::AIC_ONLY);
+    SkDfxInfo dfx {};
+
+    ASSERT_TRUE(builder->AddFuncTask(aic, kernel, &dfx, 0, 0, 1, SkTaskType::TYPE_FUNC, 1));
+
+    TaskInfo& funcTask = aic.taskQue.get()->taskInfos[aic.taskQue.get()->taskCnt - 1];
+    EXPECT_NE((funcTask.debugOptions & 0x8U), 0U);
+}
+
+TEST_F(SkTaskBuilderTest, AddFuncTask_DcciAfterKernelEnd_OverridesDisableFlag)
+{
+    opts->AddOption(std::make_unique<StringListOptOption>(
+        "dcci_disable", aclskOptionType::DEBUG_DCCI_DISABLE_ON_KERNEL, std::vector<std::string>{"k"}));
+    opts->AddOption(std::make_unique<StringListOptOption>(
+        "dcci_after_kernel_end",
+        aclskOptionType::DEBUG_DCCI_AFTER_KERNEL_END,
+        std::vector<std::string>{"k"}));
+
+    SkTask aic;
+    ASSERT_TRUE(aic.taskQue.Init(8));
+
+    auto* kernel = CreateKernelNodeEx(8105, 0, INVALID_TASK_ID, INVALID_TASK_ID, SkKernelType::AIC_ONLY);
+    SkDfxInfo dfx {};
+
+    ASSERT_TRUE(builder->AddFuncTask(aic, kernel, &dfx, 0, 0, 1, SkTaskType::TYPE_FUNC, 1));
+
+    TaskInfo& funcTask = aic.taskQue.get()->taskInfos[aic.taskQue.get()->taskCnt - 1];
+    EXPECT_NE((funcTask.debugOptions & 0x1U), 0U);
+    EXPECT_NE((funcTask.debugOptions & 0x8U), 0U);
+}
+
 TEST_F(SkTaskBuilderTest, GenEntryInfo_AllModeBranches)
 {
     SkTask aic;
