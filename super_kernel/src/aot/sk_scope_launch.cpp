@@ -35,7 +35,7 @@ aclError LaunchScopeKernelImpl(const char* scopeName, aclrtStream stream, ScopeF
         scopeName = "default_sk_scope_name";
     }
     size_t len = strlen(scopeName);
-    size_t maxLen = MAX_SCOPE_NAME_LENN - 1;
+    size_t maxLen = MAX_SCOPE_NAME_LEN - 1;
     if (len > maxLen) {
         SK_LOGE("scope name length: %zu exceeds maximum allowed size: %zu", len, maxLen);
         return ACL_ERROR_INVALID_PARAM;

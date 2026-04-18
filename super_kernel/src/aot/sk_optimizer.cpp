@@ -72,7 +72,8 @@ void PrintSKNodes(std::string skFuncName, SuperKernelScopeInfo& scopeInfo)
 bool SuperKernelOptimizer::Update(SuperKernelScopeInfo& scopeInfo, SuperKernelGraph& graph,
                                   const SkLaunchInfo& launchInfo)
 {
-    SK_LOGI("scope update begin: streamCount=%zu", scopeInfo.GetScopeStreamInfos().size());
+    const std::string& scopeName = scopeInfo.GetExtInfo().scopeName;
+    SK_LOGI("scope update begin: scopeName=%s, streamCount=%zu", scopeName.c_str(), scopeInfo.GetScopeStreamInfos().size());
     bool skMainNodeUpdated = false;
     size_t updateTotalCount = 0;
 
@@ -81,8 +82,8 @@ bool SuperKernelOptimizer::Update(SuperKernelScopeInfo& scopeInfo, SuperKernelGr
     for (size_t streamIdx = 0; streamIdx < scopeStreamInfos.size(); ++streamIdx) {
         auto& streamInfo = scopeStreamInfos[streamIdx];
         auto& customParams = extInfo.customParamsList[streamIdx];
-        SK_LOGI("update stream begin: streamId=%u, headNodeId=%lu, tailNodeId=%lu, nodeSize=%lu, customParamSize=%zu",
-                streamInfo.streamIdx, streamInfo.headNodeIdx, streamInfo.tailNodeIdx, streamInfo.nodeSize,
+        SK_LOGI("update stream begin: scopeName=%s, streamId=%u, headNodeId=%lu, tailNodeId=%lu, nodeSize=%lu, customParamSize=%zu",
+                scopeName.c_str(), streamInfo.streamIdx, streamInfo.headNodeIdx, streamInfo.tailNodeIdx, streamInfo.nodeSize,
                 customParams.size());
         size_t customParamSize = customParams.size();
         if (streamInfo.nodeSize < customParamSize) {
@@ -125,7 +126,7 @@ bool SuperKernelOptimizer::Update(SuperKernelScopeInfo& scopeInfo, SuperKernelGr
             }
             curNodeId = node->GetNextNodeId();
         }
-        SK_LOGI("update stream end: streamId=%u, visitedNodes=%zu", streamInfo.streamIdx, eventCnt);
+        SK_LOGI("update stream end: scopeName=%s, streamId=%u, visitedNodes=%zu", scopeName.c_str(), streamInfo.streamIdx, eventCnt);
     }
 
     if (!skMainNodeUpdated) {
@@ -134,7 +135,7 @@ bool SuperKernelOptimizer::Update(SuperKernelScopeInfo& scopeInfo, SuperKernelGr
     }
 
     graph.SetUpdateFlag(true);
-    SK_LOGI("scope update finished: update total nodes=%zu", updateTotalCount);
+    SK_LOGI("scope update finished: scopeName=%s, updateTotalNodes=%zu", scopeName.c_str(), updateTotalCount);
     return true;
 }
 

@@ -130,8 +130,10 @@ bool EventOnlyStreamRemovePass::Run(std::vector<SuperKernelScopeInfo>& scopes) {
 // ============ ScopeSplitPass Base Class Implementation ============
 
 void ScopeSplitPass::PrintScopeDetails(const std::vector<SuperKernelScopeInfo>& scopes,
-                                       const SuperKernelGraph& graph) {
-    SK_LOGI("[SplitScopeResult] Printing scope split results, total scopes: %zu", scopes.size());
+                                       const SuperKernelGraph& graph,
+                                       const char* passName) {
+    SK_LOGI("========== Scope split results begin: pass=%s, totalScopes=%zu ==========",
+            passName, scopes.size());
     for (size_t i = 0; i < scopes.size(); ++i) {
         const auto& scope = scopes[i];
         std::string scopeNames = GetScopeNamesFromBitFlags(scope.GetScopeBitFlags(), graph);
@@ -142,18 +144,20 @@ void ScopeSplitPass::PrintScopeDetails(const std::vector<SuperKernelScopeInfo>& 
         PrintScopeNodes(i, scope);
         PrintScopeStreamInfos(i, scope);
     }
+    SK_LOGI("========== Scope split results end: pass=%s ==========", passName);
 }
 
 void ScopeSplitPass::PrintScopeResults(const std::vector<SuperKernelScopeInfo>& scopes,
-                                        const SuperKernelGraph& graph) {
+                                       const SuperKernelGraph& graph,
+                                       const char* passName) {
     // Log to dedicated file first
     {
         SK_LOG_CONTEXT_SIMPLE("sk_scope_split.log");
-        PrintScopeDetails(scopes, graph);
+        PrintScopeDetails(scopes, graph, passName);
     }
     
     // Also log to default log for visibility
-    PrintScopeDetails(scopes, graph);
+    PrintScopeDetails(scopes, graph, passName);
 }
 
 std::string ScopeSplitPass::GetScopeNamesFromBitFlags(const std::bitset<MAX_SCOPE_NUM>& scopeBitFlags,
@@ -852,7 +856,7 @@ bool InitialScopeSplitPass::Run(std::vector<SuperKernelScopeInfo>& scopes) {
     }
 
     SK_LOGI("[SplitScopeResult] %s pass completed, total scopes generated: %zu", GetName().c_str(), scopes.size());
-    PrintScopeResults(scopes, graph_);
+    PrintScopeResults(scopes, graph_, GetName().c_str());
     return true;
 }
 
@@ -1036,7 +1040,7 @@ bool DeadlockRefinePass::Run(std::vector<SuperKernelScopeInfo>& scopes) {
 
     SK_LOGI("[DeadlockRefine] %s pass completed, split %zu scopes, total scopes: %zu",
             GetName().c_str(), splitCount, scopes.size());
-    PrintScopeResults(scopes, graph_);
+    PrintScopeResults(scopes, graph_, GetName().c_str());
     return true;
 }
 
@@ -1167,7 +1171,7 @@ bool SchoModeKernelSplitPass::Run(std::vector<SuperKernelScopeInfo>& scopes) {
     scopes = std::move(resScopes);
     SK_LOGI("[SchoModeSplit] %s pass completed, split %zu scopes, total scopes: %zu",
             GetName().c_str(), splitCount, scopes.size());
-    PrintScopeResults(scopes, graph_);
+    PrintScopeResults(scopes, graph_, GetName().c_str());
     return true;
 }
 
@@ -1241,16 +1245,7 @@ bool SuperKernelScopeSplitter::SplitGraph() {
         }
     } while (needResplit_);
 
-    PrintFinalResults();
+    ScopeSplitPass::PrintScopeResults(scopeInfos_, graph_, "ScopeSplitPipelineFinal");
 
     return true;
-}
-
-void SuperKernelScopeSplitter::PrintFinalResults() const {
-    SK_LOGI("[ScopeSplitPipeline] scope splitting complete, total scopes: %zu", scopeInfos_.size());
-    {
-        SK_LOG_CONTEXT_SIMPLE("sk_scope_split.log");
-        SK_LOGI("==========[ScopeSplitPipeline] scope splitting complete, total scopes: %zu==========", scopeInfos_.size());
-    }
-    ScopeSplitPass::PrintScopeResults(scopeInfos_, graph_);
 }

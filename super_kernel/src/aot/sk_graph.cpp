@@ -21,7 +21,6 @@
 #include <cstdint>
 #include <bitset>
 
-
 std::string SuperKernelGraph::BitsetToString(const std::bitset<MAX_SCOPE_NUM>& bitset) const
 {
     std::string strTmp = bitset.to_string();
@@ -112,31 +111,31 @@ bool SuperKernelGraph::AddNode(std::unique_ptr<SuperKernelBaseNode> node) {
     switch (node->GetNodeType()) {
         case SkNodeType::NODE_NOTIFY:
             if (!AddEventAssociateNotify(eventId, node.get())) {
-                SK_LOGE("Failed to associate notify event %lu with node %lu", eventId, nodeId);
+                SK_LOGE("Failed to associate notify event 0x%lx with node %lu", eventId, nodeId);
                 return false;
             }
             break;
         case SkNodeType::NODE_WAIT:
             if (!AddEventAssociateWait(eventId, node.get())) {
-                SK_LOGE("Failed to associate wait event %lu with node %lu", eventId, nodeId);
+                SK_LOGE("Failed to associate wait event 0x%lx with node %lu", eventId, nodeId);
                 return false;
             }
             break;
         case SkNodeType::NODE_RESET:
             if (!AddEventAssociateReset(eventId, node.get())) {
-                SK_LOGE("Failed to associate reset event %lu with node %lu", eventId, nodeId);
+                SK_LOGE("Failed to associate reset event 0x%lx with node %lu", eventId, nodeId);
                 return false;
             }
             break;
         case SkNodeType::NODE_MEMORY_WRITE:
             if (!AddMemoryAssociateWrite(eventId, node.get())) {
-                SK_LOGE("Failed to associate memory write event %lu with node %lu", eventId, nodeId);
+                SK_LOGE("Failed to associate memory write event 0x%lx with node %lu", eventId, nodeId);
                 return false;
             }
             break;
         case SkNodeType::NODE_MEMORY_WAIT:
             if (!AddMemoryAssociateWait(eventId, node.get())) {
-                SK_LOGE("Failed to associate memory wait event %lu with node %lu", eventId, nodeId);
+                SK_LOGE("Failed to associate memory wait event 0x%lx with node %lu", eventId, nodeId);
                 return false;
             }
             break;
@@ -470,7 +469,7 @@ bool SuperKernelGraph::ProcessMemoryWriteNodes(const uint64_t eventId, const Mem
         }
     }
     if (notifyIdVec.size() > 1) {
-        SK_LOGE("there exits multi memory write node which is notify, it is illegal, eventId: %lu",
+        SK_LOGE("there exits multi memory write node which is notify, it is illegal, eventId: 0x%lx",
             eventId);
         return false;
     } else if (notifyIdVec.size() == 1) {
@@ -480,7 +479,7 @@ bool SuperKernelGraph::ProcessMemoryWriteNodes(const uint64_t eventId, const Mem
         writeNode->SetNodeType(SkNodeType::NODE_NOTIFY);
         writeNode->SetIsFusible(true);
         if (!AddEventAssociateNotify(eventId, writeNode)) {
-            SK_LOGE("Failed to associate notify event %lu with node %lu", eventId, notifyIdVec[0]);
+            SK_LOGE("Failed to associate notify event 0x%lx with node %lu", eventId, notifyIdVec[0]);
             return false;
         }
         for (auto waitNodeId : memoryInfo.waitNodeIdList) {
@@ -490,7 +489,7 @@ bool SuperKernelGraph::ProcessMemoryWriteNodes(const uint64_t eventId, const Mem
                 waitNode->SetNodeType(SkNodeType::NODE_WAIT);
                 waitNode->SetIsFusible(true);
                 if (!AddEventAssociateWait(eventId, waitNode)) {
-                    SK_LOGE("Failed to associate wait event %lu with node %lu", eventId, waitNodeId);
+                    SK_LOGE("Failed to associate wait event 0x%lx with node %lu", eventId, waitNodeId);
                     return false;
                 }
             }
@@ -503,7 +502,7 @@ bool SuperKernelGraph::ProcessMemoryWriteNodes(const uint64_t eventId, const Mem
             resetNode->SetIsFusible(false);
             resetNode->SetFusionFailReason(FusionFailReason::RESET_TYPE_NODE);
             if (!AddEventAssociateReset(eventId, resetNode)) {
-                SK_LOGE("Failed to associate reset event %lu with node %lu", eventId, resetIdVec[0]);
+                SK_LOGE("Failed to associate reset event 0x%lx with node %lu", eventId, resetIdVec[0]);
                 return false;
             }
         }

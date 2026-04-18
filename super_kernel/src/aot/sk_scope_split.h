@@ -132,7 +132,8 @@ public:
      * \param graph Graph for scope name lookup
      */
     static void PrintScopeResults(const std::vector<SuperKernelScopeInfo>& scopes,
-                                   const SuperKernelGraph& graph);
+                                  const SuperKernelGraph& graph,
+                                  const char* passName);
     
     /*!
      * \brief Get scope names string from scopeBitFlags
@@ -170,7 +171,8 @@ private:
      * \param graph Graph for scope name lookup
      */
     static void PrintScopeDetails(const std::vector<SuperKernelScopeInfo>& scopes,
-                                   const SuperKernelGraph& graph);
+                                  const SuperKernelGraph& graph,
+                                  const char* passName);
 
 protected:
     SuperKernelGraph& graph_;
@@ -469,11 +471,6 @@ public:
      * \return true if re-split is needed
      */
     bool NeedsResplit() const { return needResplit_; }
-
-    /*!
-     * \brief Print final scope results
-     */
-    void PrintFinalResults() const;
 
     SuperKernelGraph& graph_;
     std::vector<SuperKernelScopeInfo> scopeInfos_;

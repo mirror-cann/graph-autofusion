@@ -61,7 +61,7 @@ int Fake_aclrtMemcpy(void* dst, size_t dstSize, const void* src, size_t count, a
     ScopeKernelArgs fakeArgs;
     const char* defaultName = "default_sk_scope_name";
     snprintf_s(fakeArgs.name, sizeof(fakeArgs.name), sizeof(fakeArgs.name), "%s", defaultName);
-    fakeArgs.name[MAX_SCOPE_NAME_LENN - 1] = '\0';
+    fakeArgs.name[MAX_SCOPE_NAME_LEN - 1] = '\0';
     memcpy_s(dst, sizeof(ScopeKernelArgs), &fakeArgs, sizeof(ScopeKernelArgs));
     return 0;
 }
@@ -87,4 +87,3 @@ TEST_F(SkNodeTest, IsScopeKernel_ScopeName_Isnullptr)
     bool ret = IsScopeKernel(params, &info);
     EXPECT_EQ(ret, true);
 }
-

@@ -291,7 +291,7 @@ public:
 
     virtual bool Update(const UpdateContext& ctx = {});
 
-    virtual bool InValidateNode() = 0;
+    virtual aclError InValidateNode();
 
     // Task Type
     SkNodeType GetNodeType() const
@@ -366,6 +366,8 @@ public:
 
 protected:
     aclmdlRITaskParams taskParams;
+    void LogNodeUpdateResult(const aclmdlRITaskParams* taskParams) const;
+    const char* GetUpdateTargetTypeName(aclmdlRITaskType type) const;
     uint32_t notifyExpandVecNum;
     uint32_t notifyExpandCubeNum;
     uint32_t streamIdxInGraph;
@@ -396,7 +398,6 @@ public:
     uint32_t GetCubeNum() const override { return nodeInfos.kernelInfos.cubeNum; }
     bool GetSchoMode() const override;
     std::string Format() const override;
-    bool InValidateNode() override;
     bool Update(const UpdateContext& ctx) override;
     const std::string GetScopeName() const override
     {
@@ -449,7 +450,6 @@ public:
     std::string Format() const override;
     bool InitNode() override;
     bool Update(const UpdateContext& ctx) override;
-    bool InValidateNode() override;
     uint32_t GetVecNum() const override { return notifyExpandVecNum; }
     uint32_t GetCubeNum() const override { return notifyExpandCubeNum; }
 };
@@ -458,7 +458,7 @@ class SuperKernelDefaultNode : public SuperKernelBaseNode {
 public:
     using SuperKernelBaseNode::SuperKernelBaseNode;
     bool InitNode() override;
-    bool InValidateNode() override;
+    aclError InValidateNode() override;
 
     std::string Format() const override;
 };

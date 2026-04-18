@@ -71,9 +71,9 @@ TEST_F(SkScopeLaunchTest, LaunchScopeKernel_EmptyScopeName)
 
 TEST_F(SkScopeLaunchTest, LaunchScopeKernel_MaxLengthScopeName)
 {
-    char scopeName[MAX_SCOPE_NAME_LENN];
-    (void)memset_s(scopeName, sizeof(scopeName), 'a', MAX_SCOPE_NAME_LENN - 1);
-    scopeName[MAX_SCOPE_NAME_LENN - 1] = '\0';
+    char scopeName[MAX_SCOPE_NAME_LEN];
+    (void)memset_s(scopeName, sizeof(scopeName), 'a', MAX_SCOPE_NAME_LEN - 1);
+    scopeName[MAX_SCOPE_NAME_LEN - 1] = '\0';
     aclrtStream stream = nullptr;
     aclError ret = LaunchScopeKernel(scopeName, stream, true);
     EXPECT_EQ(ret, ACL_SUCCESS);
@@ -81,9 +81,9 @@ TEST_F(SkScopeLaunchTest, LaunchScopeKernel_MaxLengthScopeName)
 
 TEST_F(SkScopeLaunchTest, LaunchScopeKernel_ExceedMaxLengthScopeName)
 {
-    char scopeName[MAX_SCOPE_NAME_LENN + 10];
-    (void)memset_s(scopeName, sizeof(scopeName), 'a', MAX_SCOPE_NAME_LENN + 9);
-    scopeName[MAX_SCOPE_NAME_LENN + 9] = '\0';
+    char scopeName[MAX_SCOPE_NAME_LEN + 10];
+    (void)memset_s(scopeName, sizeof(scopeName), 'a', MAX_SCOPE_NAME_LEN + 9);
+    scopeName[MAX_SCOPE_NAME_LEN + 9] = '\0';
     aclrtStream stream = nullptr;
     aclError ret = LaunchScopeKernel(scopeName, stream, true);
     EXPECT_EQ(ret, ACL_ERROR_INVALID_PARAM);

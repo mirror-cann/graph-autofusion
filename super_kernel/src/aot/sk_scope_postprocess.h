@@ -40,7 +40,7 @@ public:
 
 private:
     bool ValidateScopeStreamNodes(const SuperKernelScopeInfo& scopeInfo);
-    bool ApplyEventMemoryForFilteredTasks(std::vector<SuperKernelBaseNode*>& filteredNodes,
+    bool ApplyEventMemoryForFilteredNodes(std::vector<SuperKernelBaseNode*>& filteredNodes,
                                           std::vector<SuperKernelBaseNode*>& needUpdateNodes);
     bool CollectStreamBoundaryPlans(const SuperKernelScopeInfo& scopeInfo, std::vector<StreamPostPlan>& plans,
                                     uint32_t& needFrontWaitCount);

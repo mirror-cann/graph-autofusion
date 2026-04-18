@@ -18,8 +18,8 @@
 #include <cstdint>
 #include <memory>
 
-constexpr uint32_t MAX_SCOPE_NAME_LENN = 256;
+constexpr uint32_t MAX_SCOPE_NAME_LEN = 256;
 
 struct ScopeKernelArgs {
-    char name[MAX_SCOPE_NAME_LENN] = "";
+    char name[MAX_SCOPE_NAME_LEN] = "";
 };

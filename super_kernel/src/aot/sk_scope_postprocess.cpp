@@ -73,22 +73,22 @@ uint64_t FindKernelNodeWithFrontReserve(SuperKernelGraph& graph, SuperKernelBase
     return INVALID_TASK_ID;
 }
 
-std::vector<SuperKernelBaseNode*> FilterCancelledTasks(const std::vector<SuperKernelBaseNode*>& tasks)
+std::vector<SuperKernelBaseNode*> FilterCancelledNodes(const std::vector<SuperKernelBaseNode*>& nodes)
 {
     // Constraints:
     // 1) Within one scope, each event has at most one NOTIFY and may have multiple WAIT nodes.
     // 2) All WAIT nodes for that event are recorded in syncInfos.correspondingWaitNodeIds.
 
-    std::vector<SuperKernelBaseNode*> filteredTasks;
-    filteredTasks.reserve(tasks.size());
+    std::vector<SuperKernelBaseNode*> filteredNodes;
+    filteredNodes.reserve(nodes.size());
     // Core invariant per eventId after step 1:
     // eventCounts[eventId] = expected_wait_count_from_notify - observed_wait_count.
     // A value of 0 means notify-side expectation matches observed waits exactly.
     std::unordered_map<uint64_t, int64_t> eventCounts;
 
     // step 1: accumulate expected-vs-observed WAIT balance per eventId.
-    for (size_t i = 0; i < tasks.size(); i++) {
-        auto &curNode = tasks[i];
+    for (size_t i = 0; i < nodes.size(); i++) {
+        auto &curNode = nodes[i];
         if (curNode->GetNodeType() == SkNodeType::NODE_NOTIFY) {
             eventCounts[curNode->GetEventId()] += curNode->GetNodeInfos().syncInfos.correspondingWaitNodeIds.size();
         } else if (curNode->GetNodeType() == SkNodeType::NODE_WAIT) {
@@ -99,35 +99,35 @@ std::vector<SuperKernelBaseNode*> FilterCancelledTasks(const std::vector<SuperKe
     // step 2:
     // WAIT cancellation condition: corresponding NOTIFY exists.
     // NOTIFY cancellation condition: all WAITs of this event are cancellable.
-    for (size_t i = 0; i < tasks.size(); i++) {
-        auto &curNode = tasks[i];
+    for (size_t i = 0; i < nodes.size(); i++) {
+        auto &curNode = nodes[i];
         auto eventId = curNode->GetEventId();
         auto nodeType = curNode->GetNodeType();
         // Notify and Reset is removable only when expected and observed waits are fully matched.
         if (nodeType == SkNodeType::NODE_NOTIFY && eventCounts[eventId] == 0) {
-            SK_LOGI("Event[%lx] cancelled in post-process: NOTIFY node info : %s", eventId,
+            SK_LOGI("Event[0x%lx] cancelled in post-process: NOTIFY node info : %s", eventId,
                     curNode->Format().c_str());
             continue;
         } else if (nodeType == SkNodeType::NODE_RESET && eventCounts.count(eventId)
                    && eventCounts[eventId] == 0) {
-            SK_LOGI("Event[%lx] cancelled in post-process: RESET node info : %s", eventId,
+            SK_LOGI("Event[0x%lx] cancelled in post-process: RESET node info : %s", eventId,
                     curNode->Format().c_str());
             continue;
             // WAIT is removable while the per-event balance remains non-negative.
             // Under the constraints above, a negative value means this scope has WAITs
             // for this event but no corresponding NOTIFY.
         } else if (nodeType == SkNodeType::NODE_WAIT && eventCounts[eventId] >= 0) {
-            SK_LOGI("Event[%lx] cancelled in post-process: WAIT node info : %s", eventId,
+            SK_LOGI("Event[0x%lx] cancelled in post-process: WAIT node info : %s", eventId,
                     curNode->Format().c_str());
             continue;
         }
         if (!curNode->IsScopeNode()) {
-            filteredTasks.push_back(curNode);
+            filteredNodes.push_back(curNode);
         }
     }
-    SK_LOGI("scope post-process filtered tasks: %zu -> %zu (%zu cancelled)", tasks.size(), filteredTasks.size(),
-            tasks.size() - filteredTasks.size());
-    return filteredTasks;
+    SK_LOGI("scope post-process filtered nodes: %zu -> %zu (%zu cancelled)", nodes.size(), filteredNodes.size(),
+            nodes.size() - filteredNodes.size());
+    return filteredNodes;
 }
 
 bool EnsureStreamCapacity(const ScopeStreamInfo& streamInfo, const std::vector<aclmdlRITaskParams>& customParams)
@@ -409,7 +409,7 @@ bool ValidateEventInfo(SuperKernelGraph& graph, SuperKernelBaseNode* eventNode, 
     }
     if (eventInfos->notifyNodeId == INVALID_TASK_ID || eventInfos->waitNodeIdList.empty()
         || eventInfos->resetNodeIdList.empty()) {
-        SK_LOGE("event syncInfos invalid: eventId=%lx, NotifyNodeId=%lu, WaitNodeIdsSize=%zu, ResetNodeIdsSize=%zu",
+        SK_LOGE("event syncInfos invalid: eventId=0x%lx, NotifyNodeId=%lu, WaitNodeIdsSize=%zu, ResetNodeIdsSize=%zu",
                 eventNode->GetEventId(), eventInfos->notifyNodeId, eventInfos->waitNodeIdList.size(),
                 eventInfos->resetNodeIdList.size());
         return false;
@@ -420,13 +420,13 @@ bool ValidateEventInfo(SuperKernelGraph& graph, SuperKernelBaseNode* eventNode, 
 bool AllocateEventMemory(void*& addr, uint64_t eventId)
 {
     if (addr != nullptr) {
-        SK_LOGI("event memory already applied: eventId=%lx, addr=%p", eventId, addr);
+        SK_LOGI("event memory already applied: eventId=0x%lx, addr=%p", eventId, addr);
         return true;
     }
     SK_LOGI("event memory allocated start ...");
     aclError allocRet = SkResourceManager::ValueMemory(&addr);
     if (allocRet != ACL_SUCCESS || addr == nullptr) {
-        SK_LOGE("event memory alloc failed: eventId=%lx, ret=%d", eventId, allocRet);
+        SK_LOGE("event memory alloc failed: eventId=0x%lx, ret=%d", eventId, allocRet);
         return false;
     }
     return true;
@@ -479,14 +479,14 @@ bool ApplyEventMemoryResource(SuperKernelGraph& graph, SuperKernelBaseNode* even
         }
     }
 
-    SK_LOGI("event memory allocated end: eventId=%lx, addr=%p", syncInfos.eventId, addr);
+    SK_LOGI("event memory allocated end: eventId=0x%lx, addr=%p", syncInfos.eventId, addr);
     return addr != nullptr;
 }
 
-uint32_t GetKernelCnt(const std::vector<SuperKernelBaseNode*>& tasks){
+uint32_t GetKernelNodeCount(const std::vector<SuperKernelBaseNode*>& nodes){
     uint32_t kernelCnt = 0;
-    for(auto& task: tasks){
-        if(task->GetNodeType() == SkNodeType::NODE_KERNEL){
+    for (auto& node : nodes) {
+        if (node->GetNodeType() == SkNodeType::NODE_KERNEL) {
             kernelCnt++;
         }
     }
@@ -520,7 +520,7 @@ bool SuperKernelScopePostProcessor::ValidateScopeStreamNodes(const SuperKernelSc
     return true;
 }
 
-bool SuperKernelScopePostProcessor::ApplyEventMemoryForFilteredTasks(
+bool SuperKernelScopePostProcessor::ApplyEventMemoryForFilteredNodes(
     std::vector<SuperKernelBaseNode*>& filteredNodes, std::vector<SuperKernelBaseNode*>& needUpdateNodes)
 {
     for (auto node : filteredNodes) {
@@ -534,7 +534,7 @@ bool SuperKernelScopePostProcessor::ApplyEventMemoryForFilteredTasks(
             }
         }
     }
-    SK_LOGI("applied event memory resource for filtered tasks, needUpdateNodesSize=%zu", needUpdateNodes.size());
+    SK_LOGI("applied event memory resource for filtered nodes, needUpdateNodesSize=%zu", needUpdateNodes.size());
     return true;
 }
 
@@ -635,24 +635,24 @@ bool SuperKernelScopePostProcessor::PostProcess(SuperKernelScopeInfo& scopeInfo)
     uint32_t streamCount = scopeInfo.GetScopeStreamInfos().size();
     SK_LOGI("scope post-process begin: streamCount=%u, nodeCount=%zu", streamCount, scopeInfo.GetNodes().size());
 
-    // Step 2: Filter cancelled tasks
-    std::vector<SuperKernelBaseNode*> filteredTasks = FilterCancelledTasks(scopeInfo.GetNodes());
-    if (filteredTasks.empty()) {
-        SK_LOGI("scope post-process unprocessable: no task remains after cancelling notify/wait pairs");
+    // Step 2: Filter cancelled nodes
+    std::vector<SuperKernelBaseNode*> filteredNodes = FilterCancelledNodes(scopeInfo.GetNodes());
+    if (filteredNodes.empty()) {
+        SK_LOGI("scope post-process unprocessable: no node remains after cancelling notify/wait pairs");
         scopeInfo.MutableExtInfo().failReason = ScopeFailReason::NO_TASK;
         return false;
     }
 
     // Step 3: Skip scope when no kernel remains after filtering
-    if (GetKernelCnt(filteredTasks) == 0) {
-        SK_LOGI("scope post-process unprocessable: no kernel task remains after filtering");
+    if (GetKernelNodeCount(filteredNodes) == 0) {
+        SK_LOGI("scope post-process unprocessable: no kernel node remains after filtering");
         scopeInfo.MutableExtInfo().failReason = ScopeFailReason::NO_KERNEL;
         return false;
     }
 
     // Step 4: Initialize temp extInfo
     ScopeExtInfo tempExtInfo;
-    tempExtInfo.filteredNodes = std::move(filteredTasks);
+    tempExtInfo.filteredNodes = std::move(filteredNodes);
     tempExtInfo.skMainNodeId = INVALID_TASK_ID;
     tempExtInfo.customParamsList.resize(streamCount);
 
@@ -684,7 +684,7 @@ bool SuperKernelScopePostProcessor::PostProcess(SuperKernelScopeInfo& scopeInfo)
     }
 
     // Step 8: Apply event memory resource
-    if (!ApplyEventMemoryForFilteredTasks(tempExtInfo.filteredNodes, needUpdateNodes)) {
+    if (!ApplyEventMemoryForFilteredNodes(tempExtInfo.filteredNodes, needUpdateNodes)) {
         scopeInfo.MutableExtInfo().failReason = ScopeFailReason::EVENT_MEMORY_APPLY_FAILED;
         return false;
     }
