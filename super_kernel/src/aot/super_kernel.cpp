@@ -13,6 +13,7 @@
 #include "sk_options_manager.h"
 #include "sk_optimizer.h"
 #include "sk_graph.h"
+#include "sk_node.h"
 #include "sk_dfx_exception_handler.h"
 #include "sk_lock_detector.h"
 #include "sk_resource_manager.h"
@@ -130,6 +131,12 @@ aclError aclskOptimize(aclmdlRI model, aclskOptions *options) {
     ret = graph.Update();
     SK_LOGI("End update graph");
 
+    // Dump kernel binaries to bin_files directory under meta directory
+    std::string binPath = CreateSkMetaDirectory(model);
+    if (!DumpKernelBinaries(graph, binPath)) {
+        SK_LOGW("Failed to dump kernel binaries: %s/bin_files", binPath.c_str());
+        // Not a fatal error, continue
+    }
     SK_LOGI("End aclskOptimize");
     ret = DumpGraphJson(model, metaDir, deviceId, "after");
     if (ret != ACL_SUCCESS) {

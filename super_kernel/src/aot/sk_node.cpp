@@ -16,6 +16,7 @@
 
 #include <map>
 #include <unordered_map>
+#include <unordered_set>
 #include <array>
 #include <memory>
 #include <limits>
@@ -23,6 +24,7 @@
 #include <stdexcept>
 #include <string>
 #include <sstream>
+#include <fstream>
 #include <utility>
 #include "sk_node.h"
 #include "sk_log.h"
@@ -31,6 +33,8 @@
 #include "sk_lock_detector.h"
 #include "sk_common.h"
 #include "runtime/kernel.h"
+
+extern "C" aclrtBinHandle AscendGetEntryBinHandle();
 
 // Implementation of FusionFailReasonInfo methods (requires complete ScopeFailReason/DeadlockFailReason definition)
 FusionFailReasonInfo::FusionFailReasonInfo(FusionFailReason p, ScopeFailReason s)
@@ -841,4 +845,127 @@ std::string SuperKernelDefaultNode::Format() const {
         << ", nodeIdxInStream:" << nodeIdxInStream
         << ", type: Default]";
     return oss.str();
+}
+
+// ============================================================================
+// Kernel Binary Dump Functions
+// ============================================================================
+
+// Forward declarations
+static uint32_t DumpKernelBinariesToDir(const SuperKernelGraph& graph, const std::string& kernelBinsDir);
+static uint32_t DumpSkEntryBinary(const std::string& kernelBinsDir);
+
+bool DumpKernelBinaries(const SuperKernelGraph& graph, const std::string& binPath) {
+    SK_LOGI("Starting to dump kernel binaries to: %s", binPath.c_str());
+    
+    // binPath is the base directory, create bin_files subdirectory under it
+    std::string baseDir = binPath.empty() ? "." : binPath;
+    std::string kernelBinsDir = baseDir + "/bin_files";
+    
+    // Create kernel_bins directory
+    if (!CreateDirectoryRecursive(kernelBinsDir)) {
+        SK_LOGE("Failed to create kernel binaries directory: %s", kernelBinsDir.c_str());
+        return false;
+    }
+    
+    // Dump kernel binaries and SK entry binary
+    uint32_t kernelCount = DumpKernelBinariesToDir(graph, kernelBinsDir);
+    kernelCount += DumpSkEntryBinary(kernelBinsDir);
+    
+    SK_LOGI("Successfully dumped %u kernel binaries to directory: %s", kernelCount, kernelBinsDir.c_str());
+    return true;
+}
+
+uint32_t DumpKernelBinariesToDir(const SuperKernelGraph& graph, const std::string& kernelBinsDir) {
+    // Track unique binaries (deduplicate by binHdl address)
+    std::unordered_set<uint64_t> seenBinHdls;
+    uint32_t kernelCount = 0;
+    
+    std::vector<uint64_t> sortedNodeIds = graph.GetSortedNodeIds();
+    for (uint64_t nodeId : sortedNodeIds) {
+        const SuperKernelBaseNode* node = graph.GetNodeById(nodeId);
+        if (node == nullptr) { 
+            SK_LOGE("Failed to get node %lu from graph", nodeId);
+        }
+        // Only process KERNEL type nodes
+        if (node->GetNodeType() != SkNodeType::NODE_KERNEL) {
+            continue;
+        }
+        // Skip scope-type kernels (scope begin/end/placeholder)
+        if (node->IsScopeBegin() || node->IsScopeEnd() || node->IsScopePlaceholder()) {
+            continue;
+        }
+        const KernelInfos& kernelInfo = node->GetNodeInfos().kernelInfos;
+        uint64_t binHdl = reinterpret_cast<uint64_t>(kernelInfo.binHdl);
+        
+        // Skip if we've already processed this binHdl
+        if (binHdl == 0 || seenBinHdls.count(binHdl) > 0) {
+            continue;
+        }
+        seenBinHdls.insert(binHdl);
+        
+        // Get binary buffer
+        void* binHostAddr = nullptr;
+        uint32_t binHostSize = 0;
+        int rtRet = rtGetBinBuffer(kernelInfo.binHdl, RT_BIN_HOST_ADDR, &binHostAddr, &binHostSize);
+        if (rtRet != 0 || binHostAddr == nullptr || binHostSize == 0) {
+            SK_LOGW("Failed to get bin buffer for kernel %s, rtRet=%d, addr=%p, size=%u",
+                    kernelInfo.funcName.c_str(), rtRet, binHostAddr, binHostSize);
+            continue;
+        }
+        
+        // Generate safe filename from kernel function name
+        std::string safeName = SanitizePathComponent(kernelInfo.funcName);
+        // Limit filename length (keep last part if too long)
+        const size_t maxFilenameLen = 200;
+        if (safeName.length() > maxFilenameLen) {
+            safeName = safeName.substr(safeName.length() - maxFilenameLen);
+        }
+        std::string oFilePath = kernelBinsDir + "/" + safeName + ".o";
+        
+        // Write binary to individual .o file
+        std::ofstream outFile(oFilePath, std::ios::binary);
+        if (!outFile.is_open()) {
+            SK_LOGW("Failed to open file for writing: %s", oFilePath.c_str());
+            continue;
+        }
+        
+        outFile.write(static_cast<char*>(binHostAddr), binHostSize);
+        outFile.close();
+        
+        kernelCount++;
+        SK_LOGI("Dumped kernel binary: %s, size=%u", oFilePath.c_str(), binHostSize);
+    }
+    return kernelCount;
+}
+
+uint32_t DumpSkEntryBinary(const std::string& kernelBinsDir) {
+    aclrtBinHandle entryBinHandle = AscendGetEntryBinHandle();
+    if (entryBinHandle == nullptr) {
+        SK_LOGI("SK entry bin handle is null, skip SK binary dump");
+        return 0;
+    }
+    
+    void* entryBinAddr = nullptr;
+    uint32_t entryBinSize = 0;
+    int rtRet = rtGetBinBuffer(entryBinHandle, RT_BIN_HOST_ADDR, &entryBinAddr, &entryBinSize);
+    if (rtRet != 0 || entryBinAddr == nullptr || entryBinSize == 0) {
+        SK_LOGW("Failed to get SK entry bin buffer, rtRet=%d", rtRet);
+        return 0;
+    }
+    
+    // Save SK entry binary as sk_entry.o
+    std::string skOFilePath = kernelBinsDir + "/sk_entry.o";
+    
+    std::ofstream skOutFile(skOFilePath, std::ios::binary);
+    if (!skOutFile.is_open()) {
+        SK_LOGW("Failed to open SK binary file for writing: %s", skOFilePath.c_str());
+        return 0;
+    }
+    
+    skOutFile.write(static_cast<char*>(entryBinAddr), entryBinSize);
+    skOutFile.close();
+    
+    SK_LOGI("Dumped SK entry binary: %s, size=%u", skOFilePath.c_str(), entryBinSize);
+    return 1;
 }

@@ -463,4 +463,8 @@ public:
     std::string Format() const override;
 };
 
+// Kernel binary dump function
+class SuperKernelGraph;
+bool DumpKernelBinaries(const SuperKernelGraph& graph, const std::string& binPath);
+
 #endif // __SK_NODE_H__
