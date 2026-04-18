@@ -28,7 +28,6 @@
 #define private public
 #define protected public
 #include "sk_event_recorder.h"
-#include "sk_resource_manager.h"
 
 // 辅助函数：复制源文件中的 CoreIsAiv 逻辑用于测试
 // 源文件中的 static 函数无法直接调用，这里复制相同逻辑
@@ -65,8 +64,8 @@ protected:
     void TearDown() override {
         // 确保每次测试后 recorder 被重置
         SkEventRecorder::Instance().SkProfilingShutdown();
-        (void)SkResourceManager::ReleasePidMemory();
-        SkEventRecorder::Instance().deviceCtxs.gmAddr = nullptr;
+        // gmAddr 现在是 unique_ptr，通过 reset 释放
+        SkEventRecorder::Instance().deviceCtxs.gmAddr.reset();
         SkEventRecorder::Instance().deviceCtxs.hostBuf.reset();
         SkEventRecorder::Instance().deviceCtxs.outputFp.Close();
         SkEventRecorder::Instance().deviceCtxs.outputDir.clear();
@@ -131,7 +130,11 @@ protected:
         SkEventDeviceCtx* ctx = &SkEventRecorder::Instance().deviceCtxs;
         ctx->deviceId = 0;
         ctx->totalSize = SkEventRecorder::totalSize_;
-        ctx->gmAddr = malloc(SkEventRecorder::totalSize_);
+        // gmAddr 是 unique_ptr，这里用 malloc 分配并通过 release 手动管理（测试环境无 aclrtMalloc）
+        // 注意：GmAddrDeleter 调用 aclrtFree，但测试中用 malloc 分配，
+        // 所以 CleanupMockDeviceCtx 中需要先 release 再 free
+        void* rawPtr = malloc(SkEventRecorder::totalSize_);
+        ctx->gmAddr.reset(rawPtr);
         ctx->hostBuf = std::make_unique<uint8_t[]>(SkEventRecorder::totalSize_);
         (void)memset_s(ctx->hostBuf.get(), SkEventRecorder::totalSize_, 0, SkEventRecorder::totalSize_);
         ctx->outputDir = SkEventRecorder::CreateOutputDir();  // 设置输出目录
@@ -146,8 +149,9 @@ protected:
     void CleanupMockDeviceCtx() {
         SkEventDeviceCtx* ctx = &SkEventRecorder::Instance().deviceCtxs;
         if (ctx->gmAddr) {
-            free(ctx->gmAddr);
-            ctx->gmAddr = nullptr;
+            // 测试中用 malloc 分配，不能让 unique_ptr 析构调 aclrtFree，先 release 再 free
+            void* rawPtr = ctx->gmAddr.release();
+            free(rawPtr);
         }
         ctx->hostBuf.reset();
         ctx->outputFp.Close();  // 使用 FileGuard 的 Close 方法
@@ -412,8 +416,7 @@ TEST_F(SkEventRecorderTest, DumpDeviceDataEmptyData) {
 // Test 24: DumpDeviceData 空 gmAddr 或 hostBuf
 TEST_F(SkEventRecorderTest, DumpDeviceDataNullPointers) {
     SkEventDeviceCtx ctx;
-    ctx.gmAddr = nullptr;
-    ctx.hostBuf = nullptr;
+    // gmAddr 和 hostBuf 默认构造就是 nullptr 的 unique_ptr
     ctx.deviceId = 0;
     
     // 不应该崩溃
@@ -452,10 +455,7 @@ TEST_F(SkEventRecorderTest, CreateDeviceCtxBasic) {
         EXPECT_FALSE(ctx->outputDir.empty());  // 输出目录应被设置
 
         // 清理
-        if (ctx->gmAddr) {
-            EXPECT_EQ(SkResourceManager::ReleasePidMemory(), ACL_SUCCESS);
-            ctx->gmAddr = nullptr;
-        }
+        ctx->gmAddr.reset();
         ctx->hostBuf.reset();
         ctx->active.store(0);
 
@@ -542,8 +542,8 @@ TEST_F(SkEventRecorderTest, DeviceCtxInitialState) {
     SkEventDeviceCtx ctx;
 
     EXPECT_EQ(ctx.active.load(), 0);
-    EXPECT_EQ(ctx.gmAddr, nullptr);
-    EXPECT_EQ(ctx.hostBuf, nullptr);
+    EXPECT_EQ(ctx.gmAddr.get(), nullptr);
+    EXPECT_EQ(ctx.hostBuf.get(), nullptr);
     EXPECT_EQ(ctx.deviceId, 0);
     EXPECT_EQ(ctx.totalSize, 0);
     EXPECT_FALSE(ctx.outputFp.IsValid());  // FileGuard 默认无效状态
@@ -685,10 +685,7 @@ TEST_F(SkEventRecorderTest, GetGmAddrForDeviceDoubleCheckLocking) {
         // 清理
         SkEventDeviceCtx* ctx = &SkEventRecorder::Instance().deviceCtxs;
         std::string outputDir = ctx->outputDir;  // 保存路径用于清理
-        if (ctx->gmAddr) {
-            EXPECT_EQ(SkResourceManager::ReleasePidMemory(), ACL_SUCCESS);
-            ctx->gmAddr = nullptr;
-        }
+        ctx->gmAddr.reset();
         ctx->hostBuf.reset();
         ctx->active.store(0);
         // 删除文件

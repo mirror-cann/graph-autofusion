@@ -18,7 +18,6 @@
 #include "acl/acl.h"
 #include "sk_log.h"
 #include "aprof_pub.h"
-#include "sk_resource_manager.h"
 #include "sk_file_guard.h"
 
 #define CHECK_ACL_RETURN(x)                                                                  \
@@ -40,8 +39,7 @@ SkEventRecorder& SkEventRecorder::Instance() {
 
 SkEventRecorder::~SkEventRecorder() {
     SkProfilingShutdown();
-    // 清空回调，防止 SkResourceManager比SkEventRecorder 后析构时调用已销毁的 deviceCtxs
-    SkResourceManager::RegisterResourceInvalidateCallback(nullptr);
+    SK_LOGI("[sk time profiling] ~SkEventRecorder completed\n");
 }
 
 std::string SkEventRecorder::CreateOutputDir() {
@@ -157,24 +155,24 @@ void* SkEventRecorder::GetGmAddrForDevice(uint32_t deviceId) {
     
     // Double-check locking：确保每个 device 只初始化一次
     if (ctx->active.load()) {
-        SK_LOGI("[sk time profiling] End get device gm addr on device: %u, addr: %p\n", deviceId, ctx->gmAddr);
-        return ctx->gmAddr;
+        SK_LOGI("[sk time profiling] End get device gm addr on device: %u, addr: %p\n", deviceId, ctx->gmAddr.get());
+        return ctx->gmAddr.get();
     }
     
     std::lock_guard<std::mutex> lock(mutex);
     if (ctx->active.load() || ctx->gmAddr != nullptr) {
-        SK_LOGI("[sk time profiling] Device gm addr already exists for device %u, addr: %p\n", deviceId, ctx->gmAddr);
-        SK_LOGI("[sk time profiling] End get device gm addr on device: %u, addr: %p\n", deviceId, ctx->gmAddr);
-        return ctx->gmAddr;
+        SK_LOGI("[sk time profiling] Device gm addr already exists for device %u, addr: %p\n", deviceId, ctx->gmAddr.get());
+        SK_LOGI("[sk time profiling] End get device gm addr on device: %u, addr: %p\n", deviceId, ctx->gmAddr.get());
+        return ctx->gmAddr.get();
     } else {
         SK_LOGI("[sk time profiling] Device buffer not allocated yet, allocating now for device %u\n", deviceId);
         // 创建上下文
         ctx = CreateDeviceCtx(deviceId);
-        SK_LOGI("[sk time profiling] Device gm addr created for device: %u, addr: %p\n", deviceId, ctx->gmAddr);
+        SK_LOGI("[sk time profiling] Device gm addr created for device: %u, addr: %p\n", deviceId, ctx->gmAddr.get());
         SK_LOGI("[sk time profiling] End get device gm addr on device: %u\n", deviceId);
     }
     
-    return ctx ? ctx->gmAddr : nullptr;
+    return ctx ? ctx->gmAddr.get() : nullptr;
 }
 
 SkEventDeviceCtx* SkEventRecorder::CreateDeviceCtx(uint32_t deviceId) {
@@ -190,19 +188,21 @@ SkEventDeviceCtx* SkEventRecorder::CreateDeviceCtx(uint32_t deviceId) {
     }
 
     // 2. 分配 GM 内存
-    aclError allocRet = SkResourceManager::PidMemory(&ctx->gmAddr, totalSize_);
-    if (allocRet != ACL_SUCCESS || ctx->gmAddr == nullptr) {
+    void* rawGmAddr = nullptr;
+    aclError allocRet = aclrtMalloc(&rawGmAddr, totalSize_, ACL_MEM_MALLOC_HUGE_FIRST);
+    if (allocRet != ACL_SUCCESS || rawGmAddr == nullptr) {
         SK_LOGE("[sk time profiling] Failed to malloc GM for device %u, ret=%d\n", deviceId, allocRet);
         SkProfilingShutdown();
         return nullptr;
     }
-    SK_LOGI("[sk time profiling] Malloc device gm addr, device %u, addr: %p\n", deviceId, ctx->gmAddr);
-
-    // 释放指针交给SkResourceManager管理，注册资源失效回调：当 SkResourceManager 释放 GM 内存前，将 gmAddr 置空
-    // 防止 DumpThreadFunc 线程继续使用已释放的地址
-    SkResourceManager::RegisterResourceInvalidateCallback([ctx]() {
-        ctx->gmAddr = nullptr;
-    });
+    ctx->gmAddr.reset(rawGmAddr);
+    allocRet = aclrtMemset(rawGmAddr, totalSize_, 0, totalSize_);
+    if (allocRet != ACL_SUCCESS) {
+        SK_LOGE("[sk time profiling] Failed to memset GM for device %u, ret=%d\n", deviceId, allocRet);
+        SkProfilingShutdown();
+        return nullptr;
+    }
+    SK_LOGI("[sk time profiling] Malloc device gm addr, device %u, addr: %p\n", deviceId, ctx->gmAddr.get());
 
     // 3. 分配 host 缓冲区（使用智能指针，RAII 管理）
     ctx->hostBuf = std::make_unique<uint8_t[]>(totalSize_);
@@ -252,7 +252,7 @@ SkEventDeviceCtx* SkEventRecorder::CreateDeviceCtx(uint32_t deviceId) {
     ctx->active.store(1);
     
     SK_LOGI("[sk time profiling] Created context for device %u, GM addr=%p\n", 
-           deviceId, ctx->gmAddr);
+           deviceId, ctx->gmAddr.get());
     
     return ctx;
 }
@@ -392,7 +392,7 @@ void SkEventRecorder::DumpDeviceData(SkEventDeviceCtx* ctx) {
 
     aclmdlRICaptureMode mode = ACL_MODEL_RI_CAPTURE_MODE_RELAXED; // support CAPTURE MODE GLOBAL on host, when using device printf
     CHECK_ACL_RETURN(aclmdlRICaptureThreadExchangeMode(&mode));
-    CHECK_ACL_RETURN(aclrtMemcpy(ctx->hostBuf.get(), ctx->totalSize, ctx->gmAddr, ctx->totalSize, ACL_MEMCPY_DEVICE_TO_HOST));
+    CHECK_ACL_RETURN(aclrtMemcpy(ctx->hostBuf.get(), ctx->totalSize, ctx->gmAddr.get(), ctx->totalSize, ACL_MEMCPY_DEVICE_TO_HOST));
     CHECK_ACL_RETURN(aclmdlRICaptureThreadExchangeMode(&mode));
     
     uint8_t* hostBuf = ctx->hostBuf.get();
@@ -456,10 +456,10 @@ void SkEventRecorder::SkProfilingShutdown() {
     globalRunning.store(false);
     pthread_join(dumpThread, nullptr);
     
-    // 释放所有资源 device空间由SkResourceManager独立负责释放
+    // 释放所有资源
     SkEventDeviceCtx* ctx = &deviceCtxs;
     if (ctx->active.load()) {
-        // hostBuf 由 unique_ptr 自动释放，无需手动 free
+        // hostBuf unique_ptr 自动释放，无需手动 free
         ctx->hostBuf.reset();
         ctx->active.store(0);
     }

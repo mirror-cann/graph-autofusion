@@ -15,7 +15,6 @@ std::mutex SkResourceManager::resourceMutex_;
 std::unordered_map<aclmdlRI, std::vector<SkResourceManager::ResourceRecord>> SkResourceManager::modelResources_;
 std::unordered_set<aclmdlRI> SkResourceManager::registeredModels_;
 thread_local aclmdlRI SkResourceManager::currentModel_ = nullptr;
-SkResourceManager::ResourceInvalidateCallback SkResourceManager::invalidateCallback_;
 
 SkResourceManager& SkResourceManager::GetInstance()
 {
@@ -31,27 +30,6 @@ void SkResourceManager::SetCurrentModel(aclmdlRI model)
 aclError SkResourceManager::ValueMemory(void** addr, size_t bytes)
 {
     return GetInstance().AllocForModel(currentModel_, addr, bytes);
-}
-
-aclError SkResourceManager::PidMemory(void** addr, size_t bytes)
-{
-    return GetInstance().AllocForPid(getpid(), addr, bytes);
-}
-
-aclError SkResourceManager::ReleasePidMemory()
-{
-    return GetInstance().OnPidDestroy(getpid());
-}
-
-SkResourceManager::~SkResourceManager()
-{
-    SkResourceManager::ReleasePidMemory();
-}
-
-void SkResourceManager::RegisterResourceInvalidateCallback(ResourceInvalidateCallback cb)
-{
-    std::lock_guard<std::mutex> lock(resourceMutex_);
-    invalidateCallback_ = std::move(cb);
 }
 
 aclError SkResourceManager::EnsureDestroyCallbackRegistered(aclmdlRI model)
@@ -129,62 +107,6 @@ aclError SkResourceManager::ReleaseRecord(const ResourceRecord& record)
         return ACL_ERROR_FAILURE;
     }
     SK_LOGI("resource free success: addr=%p, bytes=%zu", record.addr, record.bytes);
-    return ACL_SUCCESS;
-}
-
-aclError SkResourceManager::AllocForPid(pid_t pid, void** addr, size_t bytes)
-{
-    if (addr == nullptr || bytes == 0U) {
-        SK_LOGE("pid resource alloc invalid param: pid=%d, addr=%p, bytes=%zu", pid, addr, bytes);
-        return ACL_ERROR_INVALID_PARAM;
-    }
-
-    aclError ret = aclrtMalloc(addr, bytes, ACL_MEM_MALLOC_HUGE_FIRST);
-    if (ret != ACL_SUCCESS) {
-        SK_LOGE("pid resource alloc by aclrtMalloc failed: pid=%d, bytes=%zu, ret=%d", pid, bytes, ret);
-        return ret;
-    }
-    ret = aclrtMemset(*addr, bytes, 0, bytes);
-    if (ret != ACL_SUCCESS) {
-        SK_LOGE("pid resource memset by aclrtMemset failed: pid=%d, addr=%p, bytes=%zu, ret=%d", pid, *addr, bytes, ret);
-        aclrtFree(*addr);
-        *addr = nullptr;
-        return ret;
-    }
-
-    std::lock_guard<std::mutex> lock(resourceMutex_);
-    pidResources_[pid].push_back(ResourceRecord{ResourceKind::kDeviceMemory, *addr, bytes});
-    SK_LOGI("pid resource alloc success: pid=%d, addr=%p, bytes=%zu", pid, *addr, bytes);
-    return ACL_SUCCESS;
-}
-
-aclError SkResourceManager::OnPidDestroy(pid_t pid)
-{
-    SK_LOGI("sk resource manager OnPidDestroy called: pid=%d", pid);
-    std::vector<ResourceRecord> resources;
-
-    {
-        std::lock_guard<std::mutex> lock(resourceMutex_);
-        auto it = pidResources_.find(pid);
-        if (it != pidResources_.end()) {
-            resources.swap(it->second);
-            pidResources_.erase(it);
-        }
-    }
-
-    // 释放内存前通知持有方（如 SkEventRecorder）置空指针，防止继续使用已释放地址
-    if (!resources.empty() && invalidateCallback_) {
-        invalidateCallback_();
-    }
-
-    for (const auto& record : resources) {
-        SK_LOGI("release resource record: pid=%d, addr=%p, bytes=%zu", pid, record.addr, record.bytes);
-        aclError ret = ReleaseRecord(record);
-        if (ret != ACL_SUCCESS) {
-            SK_LOGE("Failed to release some resources during pid release: pid=%d, ret=%d", pid, ret);
-        }
-    }
-    SK_LOGI("sk resource manager OnPidDestroy completed: pid=%d, released %zu resources", pid, resources.size());
     return ACL_SUCCESS;
 }
 

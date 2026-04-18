@@ -11,10 +11,8 @@
 #ifndef SK_RESOURCE_MANAGER_H
 #define SK_RESOURCE_MANAGER_H
 
-#include <atomic>
 #include <cstddef>
 #include <cstdint>
-#include <functional>
 #include <mutex>
 #include <sys/types.h>
 #include <unistd.h>
@@ -43,32 +41,20 @@ public:
     static void SetCurrentModel(aclmdlRI model);
     static aclError ValueMemory(void** addr, size_t bytes = kDefaultValueMemoryBytes);
 
-    // Pid resource management (bound to pid)
-    static aclError PidMemory(void** addr, size_t bytes = kDefaultValueMemoryBytes);
-    static aclError ReleasePidMemory();
-
-    // 注册资源失效回调，在释放 GM 内存之前调用（通知持有方置空指针）
-    using ResourceInvalidateCallback = std::function<void()>;
-    static void RegisterResourceInvalidateCallback(ResourceInvalidateCallback cb);
-
     SkResourceManager(const SkResourceManager&) = delete;
     SkResourceManager& operator=(const SkResourceManager&) = delete;
 
 private:
     SkResourceManager() = default;
-    ~SkResourceManager();
+    ~SkResourceManager() = default;
 
     static std::mutex resourceMutex_;
     static std::unordered_map<aclmdlRI, std::vector<ResourceRecord>> modelResources_;
     static std::unordered_set<aclmdlRI> registeredModels_;
     static thread_local aclmdlRI currentModel_;
-    static ResourceInvalidateCallback invalidateCallback_;
-    std::unordered_map<pid_t, std::vector<ResourceRecord>> pidResources_;
 
     aclError AllocForModel(aclmdlRI model, void** addr, size_t bytes);
     static aclError ReleaseRecord(const ResourceRecord& record);
-    aclError AllocForPid(pid_t pid, void** addr, size_t bytes);
-    aclError OnPidDestroy(pid_t pid);
     aclError EnsureDestroyCallbackRegistered(aclmdlRI model);
     static void OnModelDestroy(void* userData);
 };

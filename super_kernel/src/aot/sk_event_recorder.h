@@ -46,9 +46,16 @@ constexpr uint32_t  SPRINT_LEN_BUFFER = 1024;
 
 // ==================== Device 上下文 ====================
 class SkEventRecorder;
+// GM 内存释放函数，用于 unique_ptr 自定义 deleter
+inline void GmAddrDeleter(void* ptr) {
+    if (ptr != nullptr) {
+        aclrtFree(ptr);
+    }
+}
+
 struct SkEventDeviceCtx {
     std::atomic_int active{0};                                  // 默认不激活
-    void* gmAddr = nullptr;                                    // GM 内存地址
+    std::unique_ptr<void, decltype(&GmAddrDeleter)> gmAddr{nullptr, GmAddrDeleter}; // GM 内存地址 (RAII)
     std::unique_ptr<uint8_t[]> hostBuf;                        // Host 缓冲区 (RAII)
     uint32_t deviceId = 0;                                     // Device ID
     uint32_t totalSize = 0;                                    // 总大小
