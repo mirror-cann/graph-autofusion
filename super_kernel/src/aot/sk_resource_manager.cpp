@@ -99,6 +99,8 @@ aclError SkResourceManager::ReleaseRecord(const ResourceRecord& record)
         if (ret != ACL_SUCCESS) {
             SK_LOGE("resource free failed: addr=%p, bytes=%zu, ret=%d",
                     record.addr, record.bytes, ret);
+        } else {
+            SK_LOGI("resource free success: addr=%p, bytes=%zu", record.addr, record.bytes);
         }
         return ret;
     }
@@ -106,8 +108,6 @@ aclError SkResourceManager::ReleaseRecord(const ResourceRecord& record)
         SK_LOGE("unknown resource kind: addr=%p", record.addr);
         return ACL_ERROR_FAILURE;
     }
-    SK_LOGI("resource free success: addr=%p, bytes=%zu", record.addr, record.bytes);
-    return ACL_SUCCESS;
 }
 
 void SkResourceManager::OnModelDestroy(void* userData)
