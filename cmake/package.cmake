@@ -47,10 +47,22 @@ set(SCRIPTS_FILES
     ${CMAKE_SOURCE_DIR}/scripts/package/common/sh/common_interface.csh
     ${CMAKE_SOURCE_DIR}/scripts/package/common/sh/common_interface.fish
     ${CMAKE_SOURCE_DIR}/scripts/package/common/sh/version_compatiable.inc
+    ${CMAKE_SOURCE_DIR}/scripts/package/graph_autofusion/scripts/cleanup.sh
+    ${CMAKE_SOURCE_DIR}/scripts/package/graph_autofusion/scripts/help.info
+    ${CMAKE_SOURCE_DIR}/scripts/package/graph_autofusion/scripts/install.sh
+    ${CMAKE_SOURCE_DIR}/scripts/package/graph_autofusion/scripts/run_graph_autofusion_install.sh
+    ${CMAKE_SOURCE_DIR}/scripts/package/graph_autofusion/scripts/run_graph_autofusion_uninstall.sh
+    ${CMAKE_SOURCE_DIR}/scripts/package/graph_autofusion/scripts/run_graph_autofusion_upgrade.sh
+    ${CMAKE_SOURCE_DIR}/scripts/package/graph_autofusion/scripts/uninstall.sh
+    ${CMAKE_SOURCE_DIR}/scripts/package/graph_autofusion/scripts/ver_check.sh
 )
 
 install(FILES ${SCRIPTS_FILES}
     DESTINATION share/info/graph_autofusion/script
+    PERMISSIONS
+    OWNER_READ OWNER_WRITE OWNER_EXECUTE  # 文件权限
+    GROUP_READ GROUP_EXECUTE
+    WORLD_READ WORLD_EXECUTE
 )
 set(COMMON_FILES
     ${CMAKE_SOURCE_DIR}/scripts/package/common/sh/install_common_parser.sh
@@ -78,16 +90,17 @@ install(FILES ${CMAKE_BINARY_DIR}/version.graph-autofusion.info
     RENAME version.info
 )
 install(FILES ${CONF_FILES}
-    DESTINATION graph_autofusion/conf
+    DESTINATION ${CMAKE_SYSTEM_PROCESSOR}-linux/conf
 )
 install(FILES ${PACKAGE_FILES}
     DESTINATION share/info/graph_autofusion/script
 )
-install(FILES ${LATEST_MANGER_FILES}
-    DESTINATION latest_manager
+
+install(TARGETS ascendsk
+    DESTINATION ${CMAKE_SYSTEM_PROCESSOR}-linux/lib64
 )
-install(DIRECTORY ${CMAKE_SOURCE_DIR}/scripts/package/latest_manager/scripts/
-    DESTINATION latest_manager
+install(FILES super_kernel/include/super_kernel/super_kernel.h
+    DESTINATION ${CMAKE_SYSTEM_PROCESSOR}-linux/include/super_kernel
 )
 
 # ============= CPack =============

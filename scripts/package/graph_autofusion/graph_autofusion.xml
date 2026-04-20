@@ -20,8 +20,9 @@ See LICENSE in the root of the software repository for the full text of the Lice
         <version>package/graph_autofusion/version.xml</version>
         <cleanup>share/info/graph_autofusion/script/cleanup.sh</cleanup>
         <parallel>true</parallel>
+        <copy_all>true</copy_all>
     </package_info>
-    <generate_info value="graph_autofusion_version.h" dst_path="share/info/graph_autofusion" install_path="$(TARGET_ENV)/include/version" install_mod="440" install_type="devel" generator="version_header">
+    <generate_info value="graph_autofusion_version.h" dst_path="$(TARGET_ENV)/include/version" install_path="$(TARGET_ENV)/include/version" install_mod="440" install_type="devel" generator="version_header">
         <GRAPH_AUTOFUSION_VERSION>$(ASCEND_VER)</GRAPH_AUTOFUSION_VERSION>
         <GRAPH_AUTOFUSION_TIMESTAMP>$(TIMESTAMP_NO)</GRAPH_AUTOFUSION_TIMESTAMP>
     </generate_info>
@@ -35,7 +36,7 @@ See LICENSE in the root of the software repository for the full text of the Lice
         <file value="script" entity="true"/>
         <file value="version.info"/>
     </file_info>
-    <block_info dependtree="false" dst_path="graph_autofusion" block_conf_path="ascend">
+    <block_info dependtree="false" dst_path="" block_conf_path="ascend">
         <block name="EngineeringCommon"/>
         <block name="EngineeringFiles"/>
     </block_info>

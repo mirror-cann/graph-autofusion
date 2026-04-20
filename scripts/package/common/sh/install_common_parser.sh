@@ -1057,8 +1057,10 @@ do_chmod_file_dir() {
     local package="$5"
     local ret
 
-    foreach_filelist "NA" "change_mod_and_own_files" "$install_type" "$install_path" "copy del move" "$filelist_path" "${feature_param}" "no" "concurrency"
-    ret="$?" && [ $ret -ne 0 ] && return $ret
+    if [ "$COPY_ALL" != "y" ] || [ "$INSTALL_FOR_ALL" = "y" ]; then
+        foreach_filelist "NA" "change_mod_and_own_files" "$install_type" "$install_path" "copy del move" "$filelist_path" "${feature_param}" "no" "concurrency"
+        ret="$?" && [ $ret -ne 0 ] && return $ret
+    fi
 
     foreach_filelist "NA" "change_mod_and_own_files_recursive" "$install_type" "$install_path" "copy_entity" "$filelist_path" "${feature_param}" "no" "concurrency"
     ret="$?" && [ $ret -ne 0 ] && return $ret
@@ -1964,9 +1966,14 @@ DOCKER_ROOT=""
 INSTALL_PATH=""
 # 输入的latest_dir
 INPUT_LATEST_DIR=""
+COPY_ALL=""
 
 while true; do
     case "$1" in
+    --copy_all)
+        COPY_ALL="y"
+        shift
+        ;;
     --spc-install | -i)
         OPERATE_TYPE="spc_install"
         shift

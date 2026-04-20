@@ -32,7 +32,7 @@ fi
 usage() {
   echo "Usage:"
   echo "  sh build.sh [-h|--help] [--pkg] [--cpp_utest] [-u|--ut] [-s|--st] [-c|--coverage] [-j]"
-  echo "              [--output_path=<PATH>] [--build-type=<TYPE>]"
+  echo "              [--output_path=<PATH>] [--cann_3rd_lib_path=<PATH>] [--build-type=<TYPE>]"
   echo ""
   echo "Options:"
   echo "    -h, --help            Print usage"
@@ -49,6 +49,10 @@ usage() {
   echo "                          Set output path, where the run package will be generated, default ./build_out"
   echo "    --run_example         Run all examples"
   echo "        =superkernel      Run superkernel examples"
+  echo "    --cann_3rd_lib_path=<PATH>"
+  echo "                          Set third_party package install path, default ./output/third_party"
+  echo "                          (Third_party package will cost a little time during the first compilation," 
+  echo "                          it will skip compilation to save time during subsequent builds)" 
   echo "    --build-type=<TYPE>   Set build type: Debug, Release(default: Release)"
   echo ""
 }
@@ -88,9 +92,10 @@ checkopts() {
   ENABLE_SUPERKERNEL_ST="off"
   ENABLE_RUN_EXAMPLE="off"
   ENABLE_SUPERKERNEL_RUN_EXAMPLE="off"
+  CANN_3RD_LIB_PATH="$BASEPATH/output/third_party"
 
   # Process the options - 添加了 build-type 选项
-  parsed_args=$(getopt -a -o j:hu::s::c -l help,pkg,cpp_utest,test_case:,run_example::,ut::,st::,coverage,output_path:,build-type: -- "$@") || {
+  parsed_args=$(getopt -a -o j:hu::s::c -l help,pkg,cpp_utest,test_case:,run_example::,ut::,st::,coverage,output_path:,cann_3rd_lib_path:,build-type: -- "$@") || {
     usage
     exit 1
   }
@@ -177,6 +182,10 @@ checkopts() {
         OUTPUT_PATH="$(realpath $2)"
         shift 2
         ;;
+      --cann_3rd_lib_path)
+        CANN_3RD_LIB_PATH="$(realpath $2)"
+        shift 2
+        ;;
       --build-type)  # 新增的 build-type 选项
         BUILD_TYPE="$2"
         # 验证 BUILD_TYPE 是否有效
@@ -220,7 +229,7 @@ function build_test() {
 }
 
 function build_package_inner(){
-  cmake_config
+  cmake_config "-DCANN_3RD_LIB_PATH=${CANN_3RD_LIB_PATH}"
   build package
 }
 

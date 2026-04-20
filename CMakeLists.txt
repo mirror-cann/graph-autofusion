@@ -8,9 +8,10 @@
 # ======================================================================================================================
 
 cmake_minimum_required(VERSION 3.16.0)
+include(cmake/fetch_cann_cmake.cmake)
 project(graph-autofusion)
 
-
+init_cann_project()
 include(cmake/dependencies.cmake)
 set(CMAKE_C_FLAGS_RELEASE "")
 set(CMAKE_CXX_FLAGS_RELEASE "")
@@ -28,8 +29,8 @@ endif()
 
 include(cmake/function.cmake)
 include(version.cmake)
-check_pkg_build_deps("graph-autofusion")
-add_version_info_targets()
+check_cann_pkg_build_deps("graph-autofusion")
+add_cann_version_info_targets()
 
 set(OPEN_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../open_source")
 if(NOT EXISTS ${OPEN_SOURCE_DIR})
