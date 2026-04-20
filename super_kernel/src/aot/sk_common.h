@@ -195,7 +195,7 @@ struct SkHeaderInfo {
     uint32_t dfxOffset;
     uint32_t eventConfigOffset;  // 算子打印事件配置偏移量
     uint32_t nodeCnt;
-    uint32_t reserve[2];
+    uint64_t modelRIIdAndSkScopeId;
     uint64_t totalSize;
 };
 
@@ -214,6 +214,10 @@ struct SkDfxInfo {
     uint32_t aivSize;
     uint64_t entryAic[4];
     uint64_t entryAiv[4];
+    uint32_t numBlocks;   // 算子所需的 block 数量
+    uint32_t cubeNum;     // 算子所需的 cube core 数量
+    uint32_t vecNum;      // 算子所需的 vec core 数量
+    uint32_t reserved;    // 保留对齐
 };
 
 struct SkDeviceEntryArgs {

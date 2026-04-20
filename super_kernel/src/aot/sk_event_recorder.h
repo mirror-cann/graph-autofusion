@@ -99,6 +99,15 @@ public:
     // 获取 skName（线程安全）
     std::string GetSkName(uint64_t modelRI, uint32_t skId) const;
 
+    // 注册 modelRI 并返回 index（线程安全，不依赖 profiling 开关）
+    uint16_t RegisterModelRI(uint64_t modelRI);
+
+    // 通过 index 获取原始 modelRI（线程安全，不依赖 profiling 开关）
+    uint64_t GetModelRIByIndex(uint16_t index) const;
+
+    // 打印所有 modelRI 映射表（线程安全）
+    void PrintModelRIIndexMap() const;
+
 private:
     SkEventRecorder() = default;
     ~SkEventRecorder();
@@ -146,6 +155,11 @@ private:
 
     // SkName 映射表：modelRI -> skId -> skName
     std::unordered_map<uint64_t, std::unordered_map<uint32_t, std::string>> skNameMap;
+
+    // modelRI index 映射表：index -> modelRI（不依赖 profiling 开关，始终可用）
+    mutable std::mutex modelRIIndexMapMutex;
+    std::vector<uint64_t> modelRIIndexMap;  // index -> modelRI
+    std::unordered_map<uint64_t, uint16_t> modelRIToIndexMap;  // modelRI -> index（用于去重）
 };
 
 // ==================== sk profiling 性能分析相关函数 ====================

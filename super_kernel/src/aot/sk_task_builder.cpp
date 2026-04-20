@@ -128,10 +128,11 @@ void DumpDeviceArgsDetail(std::string skFuncName, const SkDeviceEntryArgs* args)
 
     const SkDfxInfo* dfx = (const SkDfxInfo*)(base + args->skHeader.dfxOffset);
     for (uint32_t i = 0; i < args->skHeader.nodeCnt; ++i) {
-        SK_LOGD("dfx[%u]: bin=0x%llx, ori=0x%llx, aicSize=0x%x, aivSize=0x%x",
+        SK_LOGD("dfx[%u]: bin=0x%llx, ori=0x%llx, aicSize=0x%x, aivSize=0x%x, numBlocks=%u, cubeNum=%u, vecNum=%u",
                 i, (unsigned long long)dfx[i].binHdl,
                 (unsigned long long)dfx[i].funcHdlOri,
-                dfx[i].aicSize, dfx[i].aivSize);
+                dfx[i].aicSize, dfx[i].aivSize,
+                dfx[i].numBlocks, dfx[i].cubeNum, dfx[i].vecNum);
         SK_LOGD("  entryAic[0]=0x%llx, entryAic[1]=0x%llx, entryAic[2]=0x%llx, entryAic[3]=0x%llx",
                 (unsigned long long)dfx[i].entryAic[0], (unsigned long long)dfx[i].entryAic[1],
                 (unsigned long long)dfx[i].entryAic[2], (unsigned long long)dfx[i].entryAic[3]);
@@ -1141,8 +1142,11 @@ bool SkTaskBuilder::UpdateDfxInfo(SkDfxInfo* dfxInfo, const KernelInfos& kernelI
     
     dfxInfo->binHdl = static_cast<uint64_t>(reinterpret_cast<uintptr_t>(kernelInfo.binHdl));
     dfxInfo->funcHdlOri = static_cast<uint64_t>(reinterpret_cast<uintptr_t>(kernelInfo.funcHdl));
-    SK_LOGD("UpdateDfxInfo: binHdl=0x%lx, funcHdlOri=0x%lx",
-            dfxInfo->binHdl, dfxInfo->funcHdlOri);
+    dfxInfo->numBlocks = kernelInfo.numBlocks;
+    dfxInfo->cubeNum = kernelInfo.cubeNum;
+    dfxInfo->vecNum = kernelInfo.vecNum;
+    SK_LOGD("UpdateDfxInfo: binHdl=0x%lx, funcHdlOri=0x%lx, numBlocks=%u, cubeNum=%u, vecNum=%u",
+            dfxInfo->binHdl, dfxInfo->funcHdlOri, dfxInfo->numBlocks, dfxInfo->cubeNum, dfxInfo->vecNum);
 
     void *binHostAddr = nullptr;
     uint32_t binHostSize = 0;

@@ -20,6 +20,7 @@
 #include "sk_dfx_exception_handler.h"
 #include "sk_log.h"
 #include "sk_types.h"
+#include "sk_event_recorder.h"
 
 SuperKernelExceptionHandler::SuperKernelExceptionHandler()
     : aicoreNums(DEFAULT_COUNTER_COUNT)
@@ -67,6 +68,9 @@ void SuperKernelExceptionHandler::HandleException(aclrtExceptionInfo *exceptionI
         FreeResources();
         return;
     }
+
+    // Print modelRI index mapping table for debugging
+    SkEventRecorder::Instance().PrintModelRIIndexMap();
 
     // Print op trace for all cores
     PrintAllCoreSymbols();
@@ -182,6 +186,11 @@ void SuperKernelExceptionHandler::PrintSkHeaderInfo() const {
     SK_LOGI("dfxOffset: %u", skHeaderInfoHost->dfxOffset);
     SK_LOGI("nodeCnt: %u", skHeaderInfoHost->nodeCnt);
     SK_LOGI("totalSize: %lu", skHeaderInfoHost->totalSize);
+    uint16_t modelRIIdx = static_cast<uint16_t>((skHeaderInfoHost->modelRIIdAndSkScopeId >> 32) & 0xFFFF);
+    uint16_t skScopeId = static_cast<uint16_t>((skHeaderInfoHost->modelRIIdAndSkScopeId >> 16) & 0xFFFF);
+    uint64_t originalModelRI = SkEventRecorder::Instance().GetModelRIByIndex(modelRIIdx);
+    SK_LOGI("modelRIIdAndSkScopeId: 0x%lx (modelRIIdx=%u, skScopeId=%u, originalModelRI=0x%lx)",
+            skHeaderInfoHost->modelRIIdAndSkScopeId, modelRIIdx, skScopeId, originalModelRI);
 }
 
 void SuperKernelExceptionHandler::ExtractAndPrintSkInfo() {
@@ -238,9 +247,10 @@ void SuperKernelExceptionHandler::PrintDfxInfo() const {
         SK_LOGE("=== SkDfxInfo (offset=%u, nodeCnt=%u) ===",
                 skHeaderInfoHost->dfxOffset, skHeaderInfoHost->nodeCnt);
         for (uint32_t i = 0; i < skHeaderInfoHost->nodeCnt; ++i) {
-            SK_LOGE("  [node %u] binHdl=0x%lx, funcHdlOri=0x%lx, aicSize=0x%x, aivSize=0x%x",
+            SK_LOGE("  [node %u] binHdl=0x%lx, funcHdlOri=0x%lx, aicSize=0x%x, aivSize=0x%x, numBlocks=%u, cubeNum=%u, vecNum=%u",
                     i, dfxInfo[i].binHdl, dfxInfo[i].funcHdlOri,
-                    dfxInfo[i].aicSize, dfxInfo[i].aivSize);
+                    dfxInfo[i].aicSize, dfxInfo[i].aivSize,
+                    dfxInfo[i].numBlocks, dfxInfo[i].cubeNum, dfxInfo[i].vecNum);
             aclrtFuncHandle funcHdl = reinterpret_cast<aclrtFuncHandle>(dfxInfo[i].funcHdlOri);
             char funcName[256] = {0};
             aclError ret = aclrtGetFunctionName(funcHdl, sizeof(funcName), funcName);
@@ -338,6 +348,9 @@ void SuperKernelExceptionHandler::IdentifyErrorNodeByPC(uint32_t coreId, rtCoreT
     SkDfxInfo *dfxInfo = reinterpret_cast<SkDfxInfo*>(dataBase + skHeaderInfoHost->dfxOffset);
 
     const char *coreTypeName = (coreType == RT_CORE_TYPE_AIC) ? "AIC" : "AIV";
+    uint16_t modelRIIdx = static_cast<uint16_t>((skHeaderInfoHost->modelRIIdAndSkScopeId >> 32) & 0xFFFF);
+    uint16_t skScopeId = static_cast<uint16_t>((skHeaderInfoHost->modelRIIdAndSkScopeId >> 16) & 0xFFFF);
+    uint64_t originalModelRI = SkEventRecorder::Instance().GetModelRIByIndex(modelRIIdx);
 
     // Iterate through all nodes to find which one's entry range contains currentPC
     for (uint32_t i = 0; i < skHeaderInfoHost->nodeCnt; ++i) {
@@ -355,13 +368,16 @@ void SuperKernelExceptionHandler::IdentifyErrorNodeByPC(uint32_t coreId, rtCoreT
             // Check if currentPC falls within this entry's range [entryAddr, entryAddr + funcSize)
             if (currentPC >= entryAddr && currentPC < endAddr) {
                 SK_LOGE("============================================================");
+                SK_LOGE("[Core %u] ModelRIIdx=%u, OriginalModelRI=0x%lx, SkScopeId=%u", coreId, modelRIIdx, originalModelRI, skScopeId);
                 SK_LOGE("[Core %u] CoreType: %s", coreId, coreTypeName);
-                SK_LOGE("[Core %u] startPC: 0x%lx", coreId, startPC);
+                SK_LOGE("[Core %u] StartPC: 0x%lx", coreId, startPC);
                 SK_LOGE("[Core %u] CurrentPC: 0x%lx", coreId, currentPC);
                 SK_LOGE("[Core %u] Found in node[%u], entry[%d]", coreId, i, j);
                 SK_LOGE("[Core %u] Entry address: 0x%lx", coreId, entryAddr);
                 SK_LOGE("[Core %u] End address: 0x%lx", coreId, endAddr);
                 SK_LOGE("[Core %u] Function size: 0x%x (%u bytes)", coreId, funcSize, funcSize);
+                SK_LOGE("[Core %u] numBlocks=%u, cubeNum=%u, vecNum=%u", coreId,
+                        dfxInfo[i].numBlocks, dfxInfo[i].cubeNum, dfxInfo[i].vecNum);
                 
                 // Get function name for this node
                 aclrtFuncHandle funcHdl = reinterpret_cast<aclrtFuncHandle>(dfxInfo[i].funcHdlOri);
@@ -372,6 +388,19 @@ void SuperKernelExceptionHandler::IdentifyErrorNodeByPC(uint32_t coreId, rtCoreT
                 } else {
                     SK_LOGE("Failed to get function name for node[%u], ret=%d", i, ret);
                 }
+
+                // Find and print devArgs from task queue for this node
+                TaskQue *taskQue = (coreType == RT_CORE_TYPE_AIC)
+                    ? reinterpret_cast<TaskQue*>(dataBase + skHeaderInfoHost->aicQueOffset)
+                    : reinterpret_cast<TaskQue*>(dataBase + skHeaderInfoHost->aivQueOffset);
+                uint32_t taskCnt = (coreType == RT_CORE_TYPE_AIC) ? aicTaskCnt : aivTaskCnt;
+                for (uint32_t t = 0; t < taskCnt; ++t) {
+                    if (taskQue->taskInfos[t].index == i && taskQue->taskInfos[t].type == SkTaskType::TYPE_FUNC) {
+                        SK_LOGE("[Core %u] node[%u] devArgs: 0x%lx", coreId, i, taskQue->taskInfos[t].args);
+                        break;
+                    }
+                }
+
                 SK_LOGE("============================================================");
                 
                 return;  // Found the error node
@@ -381,6 +410,7 @@ void SuperKernelExceptionHandler::IdentifyErrorNodeByPC(uint32_t coreId, rtCoreT
 
     SK_LOGE("============================================================");
     SK_LOGE("[Core %u] No sub kernel matched, aicore error occurred in sk entry.", coreId);
+    SK_LOGE("[Core %u] ModelRIIdx=%u, OriginalModelRI=0x%lx, SkScopeId=%u", coreId, modelRIIdx, originalModelRI, skScopeId);
     SK_LOGE("[Core %u] CoreType: %s", coreId, coreTypeName);
     SK_LOGE("[Core %u] startPC: 0x%lx", coreId, startPC);
     SK_LOGE("[Core %u] CurrentPC: 0x%lx", coreId, currentPC);

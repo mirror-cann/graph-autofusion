@@ -514,6 +514,40 @@ std::string SkEventRecorder::GetSkName(uint64_t modelRI, uint32_t skId) const {
     return skIt->second;
 }
 
+uint16_t SkEventRecorder::RegisterModelRI(uint64_t modelRI) {
+    std::lock_guard<std::mutex> lock(modelRIIndexMapMutex);
+    // 如果已注册，返回已有 index
+    auto it = modelRIToIndexMap.find(modelRI);
+    if (it != modelRIToIndexMap.end()) {
+        return it->second;
+    }
+    // 新注册，index 为当前 vector 大小
+    uint16_t index = static_cast<uint16_t>(modelRIIndexMap.size());
+    if (modelRIIndexMap.size() >= UINT16_MAX) {
+        SK_LOGE("[sk] modelRIIndexMap is full (max=%u), cannot register more modelRI\n", UINT16_MAX);
+        return 0;  // 溢出保护
+    }
+    modelRIIndexMap.push_back(modelRI);
+    modelRIToIndexMap[modelRI] = index;
+    return index;
+}
+
+uint64_t SkEventRecorder::GetModelRIByIndex(uint16_t index) const {
+    std::lock_guard<std::mutex> lock(modelRIIndexMapMutex);
+    if (index >= modelRIIndexMap.size()) {
+        return 0;
+    }
+    return modelRIIndexMap[index];
+}
+
+void SkEventRecorder::PrintModelRIIndexMap() const {
+    std::lock_guard<std::mutex> lock(modelRIIndexMapMutex);
+    SK_LOGE("=== modelRI Index Map (total=%zu) ===", modelRIIndexMap.size());
+    for (size_t i = 0; i < modelRIIndexMap.size(); ++i) {
+        SK_LOGE("  [%zu] modelRI=0x%lx", i, modelRIIndexMap[i]);
+    }
+}
+
 // ==================== 性能分析相关函数 ====================
 bool SkProfiling(const SuperKernelScopeInfo &scopeInfo, SkLaunchInfo &launchInfo,
                                         SuperKernelGraph& graph) {
@@ -663,6 +697,15 @@ bool SkProfiling(const SuperKernelScopeInfo &scopeInfo, SkLaunchInfo &launchInfo
 bool DumpProfilingDetail(const std::vector<SuperKernelBaseNode*>& taskNodes, SkLaunchInfo& launchInfo,
                                 const SuperKernelScopeInfo& scopeInfo, aclmdlRI modelRI) {
     // 获取事件记录 GM 地址并更新 devArgs 中的事件配置
+    // 填充 devArgs 中的 modelRIIdAndSkScopeId（不依赖 profiling 开关）
+    uint64_t fullModelRI = static_cast<uint64_t>(reinterpret_cast<uintptr_t>(modelRI));
+    if (launchInfo.devArgs.Get() != nullptr) {
+        uint16_t modelRIIdx = SkEventRecorder::Instance().RegisterModelRI(fullModelRI);
+        uint16_t skScopeId = scopeInfo.GetScopeId();
+        launchInfo.devArgs.Get()->skHeader.modelRIIdAndSkScopeId =
+            (static_cast<uint64_t>(modelRIIdx) << 32) | (static_cast<uint64_t>(skScopeId) << 16);
+    }
+
     if (SkEventRecorder::Instance().IsEnabled()) {
         int32_t deviceId = 0;
         aclrtGetDevice(&deviceId);

@@ -71,6 +71,9 @@ protected:
         SkEventRecorder::Instance().deviceCtxs.outputDir.clear();
         SkEventRecorder::Instance().deviceCtxs.active.store(0);
         SkEventRecorder::Instance().deviceCtxs.totalSize = 0;
+        // 清理 modelRIIndexMap
+        SkEventRecorder::Instance().modelRIIndexMap.clear();
+        SkEventRecorder::Instance().modelRIToIndexMap.clear();
         unsetenv("ASCEND_PROF_SK_ON");
         // 重置 call_once 标志，使后续测试的 Init() 可以重新执行
         SkEventRecorder::Instance().initFlag_.~once_flag();
@@ -691,5 +694,221 @@ TEST_F(SkEventRecorderTest, GetGmAddrForDeviceDoubleCheckLocking) {
         // 删除文件
         std::string jsonFile = outputDir + "/sk_event_dev_device_0.json";
         remove(jsonFile.c_str());
+    }
+}
+
+// ==================== RegisterModelRI / GetModelRIByIndex / PrintModelRIIndexMap 测试 ====================
+
+// Test: RegisterModelRI 基本注册，返回 index 0
+TEST_F(SkEventRecorderTest, RegisterModelRI_FirstRegistrationReturnsZero) {
+    uint16_t idx = SkEventRecorder::Instance().RegisterModelRI(0x123456789ABCDEF0);
+    EXPECT_EQ(idx, 0);
+}
+
+// Test: RegisterModelRI 多次注册不同 modelRI，index 递增
+TEST_F(SkEventRecorderTest, RegisterModelRI_MultipleRegistrationsIncrementIndex) {
+    uint16_t idx0 = SkEventRecorder::Instance().RegisterModelRI(0xAAAA);
+    uint16_t idx1 = SkEventRecorder::Instance().RegisterModelRI(0xBBBB);
+    uint16_t idx2 = SkEventRecorder::Instance().RegisterModelRI(0xCCCC);
+    EXPECT_EQ(idx0, 0);
+    EXPECT_EQ(idx1, 1);
+    EXPECT_EQ(idx2, 2);
+}
+
+// Test: RegisterModelRI 重复注册同一个 modelRI，返回相同 index（去重）
+TEST_F(SkEventRecorderTest, RegisterModelRI_DuplicateRegistrationReturnsSameIndex) {
+    uint16_t idx1 = SkEventRecorder::Instance().RegisterModelRI(0xDEAD);
+    uint16_t idx2 = SkEventRecorder::Instance().RegisterModelRI(0xDEAD);
+    EXPECT_EQ(idx1, idx2);
+}
+
+// Test: GetModelRIByIndex 通过 index 反查原始 modelRI
+TEST_F(SkEventRecorderTest, GetModelRIByIndex_ReturnsOriginalModelRI) {
+    uint64_t modelRI1 = 0x1234567812345678;
+    uint64_t modelRI2 = 0xAABBCCDDAABBCCDD;
+    uint16_t idx1 = SkEventRecorder::Instance().RegisterModelRI(modelRI1);
+    uint16_t idx2 = SkEventRecorder::Instance().RegisterModelRI(modelRI2);
+
+    EXPECT_EQ(SkEventRecorder::Instance().GetModelRIByIndex(idx1), modelRI1);
+    EXPECT_EQ(SkEventRecorder::Instance().GetModelRIByIndex(idx2), modelRI2);
+}
+
+// Test: GetModelRIByIndex 越界 index 返回 0
+TEST_F(SkEventRecorderTest, GetModelRIByIndex_OutOfRangeReturnsZero) {
+    SkEventRecorder::Instance().RegisterModelRI(0x1111);
+    EXPECT_EQ(SkEventRecorder::Instance().GetModelRIByIndex(100), 0);
+    EXPECT_EQ(SkEventRecorder::Instance().GetModelRIByIndex(UINT16_MAX), 0);
+}
+
+// Test: GetModelRIByIndex 空 map 时返回 0
+TEST_F(SkEventRecorderTest, GetModelRIByIndex_EmptyMapReturnsZero) {
+    EXPECT_EQ(SkEventRecorder::Instance().GetModelRIByIndex(0), 0);
+}
+
+// Test: PrintModelRIIndexMap 不崩溃
+TEST_F(SkEventRecorderTest, PrintModelRIIndexMap_DoesNotCrash) {
+    SkEventRecorder::Instance().RegisterModelRI(0xAAAA);
+    SkEventRecorder::Instance().RegisterModelRI(0xBBBB);
+    SkEventRecorder::Instance().PrintModelRIIndexMap();
+    SUCCEED();
+}
+
+// Test: PrintModelRIIndexMap 空 map 时不崩溃
+TEST_F(SkEventRecorderTest, PrintModelRIIndexMap_EmptyMapDoesNotCrash) {
+    SkEventRecorder::Instance().PrintModelRIIndexMap();
+    SUCCEED();
+}
+
+// ==================== modelRIIdAndSkScopeId 编码测试 ====================
+
+// Test: modelRIIdAndSkScopeId 编码格式验证
+// 布局: modelRIIdx(16bit)[47:32] | skScopeId(16bit)[31:16] | 低16bit预留[15:0]
+TEST_F(SkEventRecorderTest, ModelRIIdAndSkScopeId_EncodingLayout) {
+    uint64_t modelRI = 0x123456789ABCDEF0;
+    uint16_t skScopeId = 42;
+
+    uint16_t modelRIIdx = SkEventRecorder::Instance().RegisterModelRI(modelRI);
+    uint64_t encoded = (static_cast<uint64_t>(modelRIIdx) << 32) | (static_cast<uint64_t>(skScopeId) << 16);
+
+    // 解码验证
+    uint16_t decodedIdx = static_cast<uint16_t>((encoded >> 32) & 0xFFFF);
+    uint16_t decodedScopeId = static_cast<uint16_t>((encoded >> 16) & 0xFFFF);
+    uint16_t decodedLow16 = static_cast<uint16_t>(encoded & 0xFFFF);
+
+    EXPECT_EQ(decodedIdx, modelRIIdx);
+    EXPECT_EQ(decodedScopeId, skScopeId);
+    EXPECT_EQ(decodedLow16, 0);  // 低16bit预留，应为0
+}
+
+// Test: modelRIIdAndSkScopeId 编码后能通过 index 反查原始 modelRI
+TEST_F(SkEventRecorderTest, ModelRIIdAndSkScopeId_EncodeDecodeRoundTrip) {
+    uint64_t modelRI = 0xDEADBEEFCAFEBABE;
+    uint16_t skScopeId = 100;
+
+    uint16_t modelRIIdx = SkEventRecorder::Instance().RegisterModelRI(modelRI);
+    uint64_t encoded = (static_cast<uint64_t>(modelRIIdx) << 32) | (static_cast<uint64_t>(skScopeId) << 16);
+
+    // 从编码中解码出 index
+    uint16_t decodedIdx = static_cast<uint16_t>((encoded >> 32) & 0xFFFF);
+    // 通过 index 反查原始 modelRI
+    uint64_t recoveredModelRI = SkEventRecorder::Instance().GetModelRIByIndex(decodedIdx);
+
+    EXPECT_EQ(recoveredModelRI, modelRI);
+}
+
+// Test: RegisterModelRI 不依赖 profiling 开关
+TEST_F(SkEventRecorderTest, RegisterModelRI_WorksWhenProfilingDisabled) {
+    // 不设置 ASCEND_PROF_SK_ON，profiling 未启用
+    ASSERT_FALSE(SkEventRecorder::Instance().IsEnabled());
+
+    uint64_t modelRI = 0x5555555555555555;
+    uint16_t idx = SkEventRecorder::Instance().RegisterModelRI(modelRI);
+    uint64_t recovered = SkEventRecorder::Instance().GetModelRIByIndex(idx);
+    EXPECT_EQ(recovered, modelRI);
+}
+
+// Test: RegisterModelRI 线程安全
+TEST_F(SkEventRecorderTest, RegisterModelRI_ThreadSafe) {
+    const int numThreads = 4;
+    const int opsPerThread = 100;
+    std::vector<std::thread> threads;
+    std::vector<uint16_t> results[numThreads];
+
+    for (int t = 0; t < numThreads; t++) {
+        threads.emplace_back([&, t]() {
+            for (int i = 0; i < opsPerThread; i++) {
+                uint64_t modelRI = static_cast<uint64_t>(t) * 1000 + i;
+                uint16_t idx = SkEventRecorder::Instance().RegisterModelRI(modelRI);
+                results[t].push_back(idx);
+            }
+        });
+    }
+
+    for (auto& thread : threads) {
+        thread.join();
+    }
+
+    // 验证：所有注册的 modelRI 都能通过 index 反查回来
+    for (int t = 0; t < numThreads; t++) {
+        for (int i = 0; i < opsPerThread; i++) {
+            uint64_t modelRI = static_cast<uint64_t>(t) * 1000 + i;
+            uint16_t idx = results[t][i];
+            EXPECT_EQ(SkEventRecorder::Instance().GetModelRIByIndex(idx), modelRI);
+        }
+    }
+}
+
+// Test: RegisterModelRI 重复注册线程安全（去重）
+TEST_F(SkEventRecorderTest, RegisterModelRI_DuplicateRegistrationThreadSafe) {
+    const int numThreads = 4;
+    std::vector<std::thread> threads;
+    std::vector<uint16_t> results(numThreads);
+
+    uint64_t sharedModelRI = 0x9999999999999999;
+
+    for (int t = 0; t < numThreads; t++) {
+        threads.emplace_back([&, t]() {
+            results[t] = SkEventRecorder::Instance().RegisterModelRI(sharedModelRI);
+        });
+    }
+
+    for (auto& thread : threads) {
+        thread.join();
+    }
+
+    // 所有线程应得到相同的 index
+    for (int t = 1; t < numThreads; t++) {
+        EXPECT_EQ(results[0], results[t]);
+    }
+}
+
+// Test: SkHeaderInfo::modelRIIdAndSkScopeId 字段偏移和大小验证
+TEST_F(SkEventRecorderTest, SkHeaderInfoModelRIIdAndSkScopeId_FieldVerification) {
+    // 验证 modelRIIdAndSkScopeId 字段存在且为 uint64_t
+    SkHeaderInfo headerInfo = {};
+    headerInfo.modelRIIdAndSkScopeId = 0x0001000200000000ULL;
+    EXPECT_EQ(headerInfo.modelRIIdAndSkScopeId, 0x0001000200000000ULL);
+
+    // 验证字段大小
+    EXPECT_EQ(sizeof(headerInfo.modelRIIdAndSkScopeId), sizeof(uint64_t));
+
+    // 验证可以正确编码/解码
+    uint16_t modelRIIdx = 1;
+    uint16_t skScopeId = 2;
+    headerInfo.modelRIIdAndSkScopeId =
+        (static_cast<uint64_t>(modelRIIdx) << 32) | (static_cast<uint64_t>(skScopeId) << 16);
+    EXPECT_EQ(static_cast<uint16_t>((headerInfo.modelRIIdAndSkScopeId >> 32) & 0xFFFF), modelRIIdx);
+    EXPECT_EQ(static_cast<uint16_t>((headerInfo.modelRIIdAndSkScopeId >> 16) & 0xFFFF), skScopeId);
+}
+
+// Test: 多个不同 modelRI 注册后完整编解码验证
+TEST_F(SkEventRecorderTest, ModelRIIdAndSkScopeId_MultipleModelRIEndToEnd) {
+    struct TestItem {
+        uint64_t modelRI;
+        uint16_t skScopeId;
+    };
+
+    std::vector<TestItem> items = {
+        {0xAAAAAAA1, 10},
+        {0xAAAAAAA2, 20},
+        {0xAAAAAAA3, 30},
+    };
+
+    std::vector<uint64_t> encodedValues;
+
+    for (const auto& item : items) {
+        uint16_t modelRIIdx = SkEventRecorder::Instance().RegisterModelRI(item.modelRI);
+        uint64_t encoded = (static_cast<uint64_t>(modelRIIdx) << 32) | (static_cast<uint64_t>(item.skScopeId) << 16);
+        encodedValues.push_back(encoded);
+    }
+
+    // 验证每个编码值可以解码回原始值
+    for (size_t i = 0; i < items.size(); i++) {
+        uint16_t decodedIdx = static_cast<uint16_t>((encodedValues[i] >> 32) & 0xFFFF);
+        uint16_t decodedScopeId = static_cast<uint16_t>((encodedValues[i] >> 16) & 0xFFFF);
+        uint64_t recoveredModelRI = SkEventRecorder::Instance().GetModelRIByIndex(decodedIdx);
+
+        EXPECT_EQ(recoveredModelRI, items[i].modelRI);
+        EXPECT_EQ(decodedScopeId, items[i].skScopeId);
     }
 }

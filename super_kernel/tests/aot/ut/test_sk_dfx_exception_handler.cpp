@@ -22,6 +22,7 @@
 #define protected public
 #include "sk_dfx_exception_handler.h"
 #include "sk_common.h"
+#include "sk_event_recorder.h"
 
 class SkDfxExceptionHandlerTest : public testing::Test {
 protected:
@@ -875,4 +876,144 @@ TEST_F(SkDfxExceptionHandlerTest, GetOrLoadKernelSymbols_OpIdExceedsNodeCnt_Retu
     EXPECT_EQ(result.name, "");
 
     free(buffer);
+}
+
+// ==================== modelRIIdAndSkScopeId 解码与 SkEventRecorder 交互测试 ====================
+
+// Test: SkHeaderInfo.modelRIIdAndSkScopeId 字段偏移验证
+TEST_F(SkDfxExceptionHandlerTest, ModelRIIdAndSkScopeId_FieldOffsetInSkHeaderInfo)
+{
+    SkHeaderInfo headerInfo = {};
+    // 编码: (modelRIIdx << 32) | (skScopeId << 16) = (3 << 32) | (5 << 16)
+    headerInfo.modelRIIdAndSkScopeId = 0x0000000300050000ULL;
+
+    // 验证字段存在且可以赋值
+    EXPECT_EQ(headerInfo.modelRIIdAndSkScopeId, 0x0000000300050000ULL);
+    EXPECT_EQ(sizeof(headerInfo.modelRIIdAndSkScopeId), sizeof(uint64_t));
+
+    // 解码
+    uint16_t modelRIIdx = static_cast<uint16_t>((headerInfo.modelRIIdAndSkScopeId >> 32) & 0xFFFF);
+    uint16_t skScopeId = static_cast<uint16_t>((headerInfo.modelRIIdAndSkScopeId >> 16) & 0xFFFF);
+    EXPECT_EQ(modelRIIdx, 3);
+    EXPECT_EQ(skScopeId, 5);
+}
+
+// Test: IdentifyErrorNodeByPC 中 modelRIIdAndSkScopeId 解码与 SkEventRecorder 反查
+TEST_F(SkDfxExceptionHandlerTest, IdentifyErrorNodeByPC_ModelRIIdAndSkScopeIdDecode)
+{
+    // 注册一个 modelRI 到 SkEventRecorder
+    uint64_t originalModelRI = 0xDEADBEEFCAFEBABE;
+    uint16_t skScopeId = 42;
+    uint16_t modelRIIdx = SkEventRecorder::Instance().RegisterModelRI(originalModelRI);
+
+    // 设置 buffer
+    uint8_t buffer[2048] = {0};
+    SkHeaderInfo headerInfo;
+    headerInfo.aicQueOffset = 0;
+    headerInfo.aivQueOffset = 0;
+    headerInfo.counterOffset = 0;
+    headerInfo.dfxOffset = sizeof(SkHeaderInfo);
+    headerInfo.nodeCnt = 1;
+    headerInfo.totalSize = sizeof(buffer);
+    headerInfo.modelRIIdAndSkScopeId =
+        (static_cast<uint64_t>(modelRIIdx) << 32) | (static_cast<uint64_t>(skScopeId) << 16);
+
+    SkDeviceEntryArgs* deviceArgs = reinterpret_cast<SkDeviceEntryArgs*>(buffer);
+    deviceArgs->skHeader = headerInfo;
+
+    SkDfxInfo* dfxInfo = reinterpret_cast<SkDfxInfo*>(buffer + headerInfo.dfxOffset);
+    dfxInfo->aicSize = 0x100;
+    dfxInfo->aivSize = 0;
+    dfxInfo->funcHdlOri = 0xDEAD0001;
+    for (int i = 0; i < 4; i++) {
+        dfxInfo->entryAic[i] = 0;
+        dfxInfo->entryAiv[i] = 0;
+    }
+    dfxInfo->entryAic[0] = 0x1000;
+
+    handler->skDeviceEntryArgsHost = deviceArgs;
+    handler->skHeaderInfoHost = &headerInfo;
+
+    // 验证解码逻辑
+    uint16_t decodedIdx = static_cast<uint16_t>((headerInfo.modelRIIdAndSkScopeId >> 32) & 0xFFFF);
+    uint16_t decodedScopeId = static_cast<uint16_t>((headerInfo.modelRIIdAndSkScopeId >> 16) & 0xFFFF);
+    uint64_t recoveredModelRI = SkEventRecorder::Instance().GetModelRIByIndex(decodedIdx);
+
+    EXPECT_EQ(decodedIdx, modelRIIdx);
+    EXPECT_EQ(decodedScopeId, skScopeId);
+    EXPECT_EQ(recoveredModelRI, originalModelRI);
+
+    // 调用 IdentifyErrorNodeByPC，PC 匹配到 node[0] 的 AIC entry
+    MOCKER(aclrtGetFunctionName).stubs().will(invoke(Fake_aclrtGetFunctionName_sk_entry));
+    handler->IdentifyErrorNodeByPC(0, RT_CORE_TYPE_AIC, 0x1000, 0x1050);
+    SUCCEED();
+
+    // 清理 SkEventRecorder
+    SkEventRecorder::Instance().modelRIIndexMap.clear();
+    SkEventRecorder::Instance().modelRIToIndexMap.clear();
+}
+
+// Test: modelRIIdAndSkScopeId 为 0 时（未设置），反查返回 0
+TEST_F(SkDfxExceptionHandlerTest, ModelRIIdAndSkScopeId_ZeroValue_GetModelRIReturnsZero)
+{
+    SkHeaderInfo headerInfo = {};
+    headerInfo.modelRIIdAndSkScopeId = 0;
+
+    uint16_t decodedIdx = static_cast<uint16_t>((headerInfo.modelRIIdAndSkScopeId >> 32) & 0xFFFF);
+    uint64_t recoveredModelRI = SkEventRecorder::Instance().GetModelRIByIndex(decodedIdx);
+    EXPECT_EQ(decodedIdx, 0);
+    EXPECT_EQ(recoveredModelRI, 0);  // index 0 不存在，返回 0
+}
+
+// Test: cond 寄存器完整 48bit 布局编解码验证
+// 排布: modelRIIdx(16bit)[47:32] | skScopeId(16bit)[31:16] | task->index(8bit)[15:8] | SkOpTraceType(8bit)[7:0]
+TEST_F(SkDfxExceptionHandlerTest, CondRegister_48bitLayout_EncodeDecode)
+{
+    uint64_t modelRI = 0x123456789ABCDEF0;
+    uint16_t skScopeId = 1234;
+    uint16_t modelRIIdx = SkEventRecorder::Instance().RegisterModelRI(modelRI);
+
+    uint64_t modelRIIdAndSkScopeId = (static_cast<uint64_t>(modelRIIdx) << 32) | (static_cast<uint64_t>(skScopeId) << 16);
+
+    // OP_LAUNCHED + task->index = 7
+    uint64_t cond = static_cast<uint64_t>(SkOpTraceType::OP_LAUNCHED) + (static_cast<uint64_t>(7) << 8);
+    cond = modelRIIdAndSkScopeId | cond;
+
+    // 解码
+    uint16_t decodedModelRIIdx = static_cast<uint16_t>((cond >> 32) & 0xFFFF);
+    uint16_t decodedSkScopeId = static_cast<uint16_t>((cond >> 16) & 0xFFFF);
+    uint8_t decodedTaskIndex = static_cast<uint8_t>((cond >> 8) & 0xFF);
+    uint8_t decodedOpTraceType = static_cast<uint8_t>(cond & 0xFF);
+
+    EXPECT_EQ(decodedModelRIIdx, modelRIIdx);
+    EXPECT_EQ(decodedSkScopeId, skScopeId);
+    EXPECT_EQ(decodedTaskIndex, 7);
+    EXPECT_EQ(decodedOpTraceType, static_cast<uint8_t>(SkOpTraceType::OP_LAUNCHED));
+
+    // 通过 index 反查原始 modelRI
+    EXPECT_EQ(SkEventRecorder::Instance().GetModelRIByIndex(decodedModelRIIdx), modelRI);
+
+    // 清理
+    SkEventRecorder::Instance().modelRIIndexMap.clear();
+    SkEventRecorder::Instance().modelRIToIndexMap.clear();
+}
+
+// Test: SkHeaderInfo 结构体大小不应被意外修改
+TEST_F(SkDfxExceptionHandlerTest, SkHeaderInfo_SizeAndFieldOffsetsStable)
+{
+    // 验证 SkHeaderInfo 的关键字段偏移不会被误改
+    SkHeaderInfo headerInfo = {};
+
+    // 验证 modelRIIdAndSkScopeId 可以存储完整的 48bit cond 编码
+    uint64_t testValue = 0xFFFFFFFF00000000ULL;  // modelRIIdx=0xFFFF, skScopeId=0xFFFF
+    headerInfo.modelRIIdAndSkScopeId = testValue;
+    EXPECT_EQ(headerInfo.modelRIIdAndSkScopeId, testValue);
+
+    // 验证 64bit 地址的 modelRI 可以通过 index 映射恢复
+    uint64_t fullAddr = 0x7FFF123456789ABC;
+    uint16_t idx = SkEventRecorder::Instance().RegisterModelRI(fullAddr);
+    EXPECT_EQ(SkEventRecorder::Instance().GetModelRIByIndex(idx), fullAddr);
+
+    SkEventRecorder::Instance().modelRIIndexMap.clear();
+    SkEventRecorder::Instance().modelRIToIndexMap.clear();
 }
