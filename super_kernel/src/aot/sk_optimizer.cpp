@@ -14,6 +14,7 @@
 #include <string>
 #include <stdexcept>
 #include <sys/stat.h>
+#include <unordered_map>
 #include <vector>
 #include "sk_optimizer.h"
 #include "sk_scope_split.h"
@@ -67,7 +68,124 @@ void PrintSKNodes(std::string skFuncName, SuperKernelScopeInfo& scopeInfo)
     }
     PrintSKNodesDetail(skFuncName, scopeInfo);
 }
+
+void PrintTaskNodesDetail(const std::vector<SuperKernelBaseNode*>& nodes, const char* tag)
+{
+    SK_LOGI("%s: node count=%zu", tag, nodes.size());
+    for (size_t i = 0; i < nodes.size(); ++i) {
+        SuperKernelBaseNode* node = nodes[i];
+        if (node == nullptr) {
+            SK_LOGI("  [%zu] nullptr", i);
+            continue;
+        }
+        SK_LOGI("  [%zu] %s", i, node->Format().c_str());
+    }
+}
 } // namespace
+
+std::vector<SuperKernelBaseNode*> SuperKernelOptimizer::ReorderWaitNodesForTaskBuild(
+    const std::vector<SuperKernelBaseNode*>& taskNodes) const
+{
+    if (!ShouldReorderWaitNodesForTaskBuild()) {
+        SK_LOGI("task reorder disabled: auto_op_parallel is not CUSTOMIZE_QUEUE");
+        return taskNodes;
+    }
+
+    struct PendingWaitNode {
+        SuperKernelBaseNode* node = nullptr;
+        size_t originalIdx = 0;
+        size_t targetKernelIdx = 0;
+    };
+
+    const size_t invalidKernelIdx = taskNodes.size();
+    std::unordered_map<uint32_t, size_t> nextKernelIdxByStream;
+    std::vector<size_t> waitTargetKernelIdx(taskNodes.size(), invalidKernelIdx);
+
+    for (size_t idx = taskNodes.size(); idx > 0; --idx) {
+        size_t curIdx = idx - 1;
+        SuperKernelBaseNode* node = taskNodes[curIdx];
+
+        uint32_t streamIdx = node->GetStreamIdxInGraph();
+        if (node->GetNodeType() == SkNodeType::NODE_KERNEL) {
+            nextKernelIdxByStream[streamIdx] = curIdx;
+        } else if (node->GetNodeType() == SkNodeType::NODE_WAIT) {
+            auto kernelIt = nextKernelIdxByStream.find(streamIdx);
+            if (kernelIt != nextKernelIdxByStream.end()) {
+                waitTargetKernelIdx[curIdx] = kernelIt->second;
+            }
+        }
+    }
+
+    size_t moveCount = 0;
+    std::vector<PendingWaitNode> pendingWaitNodes;
+    std::vector<SuperKernelBaseNode*> reorderedTaskNodes;
+    reorderedTaskNodes.reserve(taskNodes.size());
+
+    auto flushPendingWaitNodes = [&](size_t currentIdx) {
+        std::vector<PendingWaitNode> remainedWaitNodes;
+        remainedWaitNodes.reserve(pendingWaitNodes.size());
+        bool hasReadyWaitNode = false;
+        for (const auto& pendingWaitNode : pendingWaitNodes) {
+            if (pendingWaitNode.targetKernelIdx > currentIdx) {
+                remainedWaitNodes.push_back(pendingWaitNode);
+                continue;
+            }
+
+            hasReadyWaitNode = true;
+            size_t finalIdx = reorderedTaskNodes.size();
+            reorderedTaskNodes.push_back(pendingWaitNode.node);
+            if (finalIdx != pendingWaitNode.originalIdx) {
+                ++moveCount;
+            }
+            SK_LOGI("task reorder: place deferred wait node, waitNodeId=%lu, streamIdx=%u, originalIdx=%zu, finalIdx=%zu, targetKernelIdx=%zu",
+                    pendingWaitNode.node->GetNodeId(), pendingWaitNode.node->GetStreamIdxInGraph(),
+                    pendingWaitNode.originalIdx, finalIdx, pendingWaitNode.targetKernelIdx);
+        }
+        if (!hasReadyWaitNode) {
+            return;
+        }
+        pendingWaitNodes.swap(remainedWaitNodes);
+    };
+
+    for (size_t idx = 0; idx < taskNodes.size(); ++idx) {
+        SuperKernelBaseNode* node = taskNodes[idx];
+        if (node->GetNodeType() == SkNodeType::NODE_WAIT) {
+            uint32_t streamIdx = node->GetStreamIdxInGraph();
+            if (waitTargetKernelIdx[idx] == invalidKernelIdx) {
+                SK_LOGI("task reorder: keep wait node in place, waitNodeId=%lu, "
+                    "streamIdx=%u, originalIdx=%zu, reason=no later kernel in same stream",
+                    node->GetNodeId(), streamIdx, idx);
+                flushPendingWaitNodes(idx);
+                reorderedTaskNodes.push_back(node);
+                continue;
+            }
+
+            SuperKernelBaseNode* targetKernelNode = taskNodes[waitTargetKernelIdx[idx]];
+            SK_LOGI("task reorder: defer wait node for same-stream kernel, waitNodeId=%lu, "
+                "streamIdx=%u, originalIdx=%zu, targetKernelIdx=%zu, targetKernelNodeId=%lu",
+                node->GetNodeId(), streamIdx, idx, waitTargetKernelIdx[idx],
+                targetKernelNode == nullptr ? INVALID_TASK_ID : targetKernelNode->GetNodeId());
+            pendingWaitNodes.push_back({node, idx, waitTargetKernelIdx[idx]});
+            continue;
+        }
+
+        flushPendingWaitNodes(idx);
+        reorderedTaskNodes.push_back(node);
+    }
+
+    flushPendingWaitNodes(taskNodes.size());
+    SK_LOGI("task reorder finished: originalCount=%zu, moveCount=%zu", taskNodes.size(), moveCount);
+    return reorderedTaskNodes;
+}
+
+bool SuperKernelOptimizer::ShouldReorderWaitNodesForTaskBuild() const
+{
+    const auto* autoOpParallel = opts.GetOption(aclskOptionType::AUTO_OP_PARALLEL);
+    if (autoOpParallel == nullptr) {
+        return false;
+    }
+    return static_cast<SkHeapType>(autoOpParallel->GetIntValue()) == SkHeapType::CUSTOMIZE_QUEUE;
+}
 
 bool SuperKernelOptimizer::Update(SuperKernelScopeInfo& scopeInfo, SuperKernelGraph& graph,
                                   const SkLaunchInfo& launchInfo)
@@ -148,9 +266,16 @@ bool SuperKernelOptimizer::Schedule(SuperKernelScopeInfo& scopeInfo, SuperKernel
         SK_LOGE("no tasks for super kernel optimization: scope has 0 nodes for optimization");
         return false;
     }
+    std::vector<SuperKernelBaseNode*> reorderedTaskNodes = ReorderWaitNodesForTaskBuild(taskNodes);
+    if (reorderedTaskNodes.size() != taskNodes.size()) {
+        SK_LOGE("task reorder produced invalid size: originalCount=%zu, reorderedCount=%zu",
+                taskNodes.size(), reorderedTaskNodes.size());
+        return false;
+    }
 
-    std::string skFuncName = GetSkFuncName(taskNodes, scopeInfo.GetScopeId(), scopeInfo.GetExtInfo().scopeName);
+    std::string skFuncName = GetSkFuncName(reorderedTaskNodes, scopeInfo.GetScopeId(), scopeInfo.GetExtInfo().scopeName);
     PrintSKNodes(skFuncName, scopeInfo);
+    PrintTaskNodesDetail(reorderedTaskNodes, "reordered task nodes");
 
     std::vector<SuperKernelBaseNode*> customTasks;
     customTasks.reserve(scopeInfo.GetExtInfo().eventNodes.size());
@@ -158,16 +283,16 @@ bool SuperKernelOptimizer::Schedule(SuperKernelScopeInfo& scopeInfo, SuperKernel
         customTasks.emplace_back(eventNode.get());
     }
 
-    SK_LOGI("schedule scope: taskCount=%zu, customTaskCount=%zu, updateStreamCount=%zu", taskNodes.size(),
+    SK_LOGI("schedule scope: taskCount=%zu, customTaskCount=%zu, updateStreamCount=%zu", reorderedTaskNodes.size(),
             customTasks.size(), scopeInfo.GetScopeStreamInfos().size());
 
-    SkLaunchInfo launchInfo = builder.Build(skFuncName, taskNodes, customTasks);
+    SkLaunchInfo launchInfo = builder.Build(skFuncName, reorderedTaskNodes, customTasks);
 
     if (!SkProfiling(scopeInfo, launchInfo, graph)) {
         SK_LOGE("SkProfiling failed");
         return false;
     }
-    if (!DumpProfilingDetail(taskNodes, launchInfo, scopeInfo, graph.modelRI)) {
+    if (!DumpProfilingDetail(reorderedTaskNodes, launchInfo, scopeInfo, graph.modelRI)) {
         SK_LOGE("Dump sk time profiling detail failed");
         return false;
     }

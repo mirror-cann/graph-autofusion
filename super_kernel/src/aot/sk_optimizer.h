@@ -13,6 +13,7 @@
 
 #include "sk_types.h"
 #include "sk_options_manager.h"
+#include "sk_candidate_heap.h"
 #include "sk_scope_split.h"
 #include "sk_scope_postprocess.h"
 #include "sk_graph.h"
@@ -36,6 +37,9 @@ public:
 
 private:
     SuperKernelOptionsManager& opts;
+    bool ShouldReorderWaitNodesForTaskBuild() const;
+    std::vector<SuperKernelBaseNode*> ReorderWaitNodesForTaskBuild(
+        const std::vector<SuperKernelBaseNode*>& taskNodes) const;
     bool Schedule(SuperKernelScopeInfo& scopeInfo, SuperKernelGraph& graph, SkTaskBuilder& builder);
     bool Update(SuperKernelScopeInfo& scopeInfo, SuperKernelGraph& graph, const SkLaunchInfo& launchInfo);
 };
