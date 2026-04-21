@@ -106,8 +106,8 @@ void DumpTaskQueDetail(const TaskQue* que, const char* name)
     SK_LOGD("%s TaskQue: cap=%u, tasks=%u", name, que->cap, que->taskCnt);
     for (uint32_t i = 0; i < que->taskCnt; ++i) {
         const TaskInfo& ti = que->taskInfos[i];
-        SK_LOGD("[%u] type=%s, idx=%u, blk=%u, entries=%u, args=0x%llx", i, to_string(ti.type), ti.index,
-                ti.numBlocks, ti.entryCnt, (unsigned long long)ti.args);
+        SK_LOGD("[%u] type=%s, idx=%u, blk=%u, entries=%u, args=0x%llx, debugOptions=0x%llx", i, to_string(ti.type), ti.index,
+                ti.numBlocks, ti.entryCnt, (unsigned long long)ti.args, (unsigned long long)ti.debugOptions);
         for (uint32_t j = 0; j < ti.entryCnt; ++j) {
             SK_LOGD("   entry[%u]=0x%llx", j, (unsigned long long)ti.entry[j]);
         }
