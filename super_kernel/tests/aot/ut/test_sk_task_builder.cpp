@@ -195,6 +195,88 @@ TEST_F(SkTaskBuilderTest, InitTaskSyncInfos_KernelNotifyWait_Success)
     ASSERT_EQ(builder->taskSyncInfos_.size(), tasks.size());
 }
 
+TEST_F(SkTaskBuilderTest, InitTaskSyncInfos_MixWaitDependentPreviousTask_UsesSameAicQueue)
+{
+    auto* k1 = CreateKernelNodeEx(101, 0, INVALID_TASK_ID, 102, SkKernelType::AIC_ONLY);
+    auto* w2 = CreateWaitNodeEx(102, 0, 101, 103, 55);
+    auto* k3 = CreateKernelNodeEx(103, 0, 102, INVALID_TASK_ID, SkKernelType::MIX_AIC_1_1);
+    (void)k1;
+    (void)w2;
+    (void)k3;
+
+    std::vector<SuperKernelBaseNode*> tasks = {
+        graph->GetNodeById(101), graph->GetNodeById(102), graph->GetNodeById(103)};
+
+    ASSERT_TRUE(builder->InitTaskSyncInfos(tasks));
+    ASSERT_EQ(builder->taskSyncInfos_[1].queueType, SkQueueType::AIC);
+}
+
+TEST_F(SkTaskBuilderTest, InitTaskSyncInfos_MixWaitDependentPreviousTask_UsesSameAivQueue)
+{
+    auto* k1 = CreateKernelNodeEx(201, 0, INVALID_TASK_ID, 202, SkKernelType::AIV_ONLY);
+    auto* w2 = CreateWaitNodeEx(202, 0, 201, 203, 66);
+    auto* k3 = CreateKernelNodeEx(203, 0, 202, INVALID_TASK_ID, SkKernelType::MIX_AIC_1_2);
+    (void)k1;
+    (void)w2;
+    (void)k3;
+
+    std::vector<SuperKernelBaseNode*> tasks = {
+        graph->GetNodeById(201), graph->GetNodeById(202), graph->GetNodeById(203)};
+
+    ASSERT_TRUE(builder->InitTaskSyncInfos(tasks));
+    ASSERT_EQ(builder->taskSyncInfos_[1].queueType, SkQueueType::AIV);
+}
+
+TEST_F(SkTaskBuilderTest, InitTaskSyncInfos_MixWaitAccurateDirectDependency_UsesSameQueue)
+{
+    auto* k1 = CreateKernelNodeEx(211, 0, INVALID_TASK_ID, INVALID_TASK_ID, SkKernelType::AIC_ONLY);
+    auto* w2 = CreateWaitNodeEx(212, 1, 211, 213, 67);
+    auto* k3 = CreateKernelNodeEx(213, 1, 212, INVALID_TASK_ID, SkKernelType::MIX_AIC_1_2);
+    k1->sendToNodeId.insert(213);
+    k3->receiveNodeId.insert(211);
+    (void)k1;
+    (void)w2;
+    (void)k3;
+
+    std::vector<SuperKernelBaseNode*> tasks = {
+        graph->GetNodeById(211), graph->GetNodeById(212), graph->GetNodeById(213)};
+
+    ASSERT_TRUE(builder->InitTaskSyncInfos(tasks));
+    ASSERT_EQ(builder->taskSyncInfos_[1].queueType, SkQueueType::AIC);
+}
+
+TEST_F(SkTaskBuilderTest, InitTaskSyncInfos_MixWaitAfterMixTask_FallbackAivQueue)
+{
+    auto* k1 = CreateKernelNodeEx(301, 0, INVALID_TASK_ID, 302, SkKernelType::MIX_AIC_1_1);
+    auto* w2 = CreateWaitNodeEx(302, 0, 301, 303, 77);
+    auto* k3 = CreateKernelNodeEx(303, 0, 302, INVALID_TASK_ID, SkKernelType::MIX_AIC_1_2);
+    (void)k1;
+    (void)w2;
+    (void)k3;
+
+    std::vector<SuperKernelBaseNode*> tasks = {
+        graph->GetNodeById(301), graph->GetNodeById(302), graph->GetNodeById(303)};
+
+    ASSERT_TRUE(builder->InitTaskSyncInfos(tasks));
+    ASSERT_EQ(builder->taskSyncInfos_[1].queueType, SkQueueType::AIV);
+}
+
+TEST_F(SkTaskBuilderTest, InitTaskSyncInfos_MixWaitNonDependentPreviousTask_UsesOppositeQueue)
+{
+    auto* k4 = CreateKernelNodeEx(404, 1, INVALID_TASK_ID, 402, SkKernelType::AIC_ONLY);
+    auto* w2 = CreateWaitNodeEx(402, 1, 404, 403, 88);
+    auto* k3 = CreateKernelNodeEx(403, 0, 402, INVALID_TASK_ID, SkKernelType::MIX_AIC_1_1);
+    (void)k4;
+    (void)w2;
+    (void)k3;
+
+    std::vector<SuperKernelBaseNode*> tasks = {
+        graph->GetNodeById(404), graph->GetNodeById(402), graph->GetNodeById(403)};
+
+    ASSERT_TRUE(builder->InitTaskSyncInfos(tasks));
+    ASSERT_EQ(builder->taskSyncInfos_[1].queueType, SkQueueType::AIV);
+}
+
 TEST_F(SkTaskBuilderTest, PrecomputeAndOptimizeSyncRelations_Smoke)
 {
     auto* k1 = CreateKernelNodeEx(10, 0, INVALID_TASK_ID, 11, SkKernelType::AIC_ONLY);

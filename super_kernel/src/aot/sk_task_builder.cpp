@@ -100,6 +100,27 @@ SkQueueType InferFirstKernelEventQueueType(const std::vector<SuperKernelBaseNode
     return SkQueueType::UNKNOWN;
 }
 
+SkQueueType ResolveMixWaitEventQueueType(const SuperKernelBaseNode* prevKernel, const SuperKernelBaseNode* mixKernel)
+{
+    if (prevKernel == nullptr) {
+        return SkQueueType::AIV;
+    }
+
+    SkQueueType prevKernelQueueType =
+        (prevKernel == nullptr) ? SkQueueType::UNKNOWN : ToQueueType(GetKernelInfos(prevKernel).kernelType);
+
+    if (prevKernelQueueType != SkQueueType::AIC && prevKernelQueueType != SkQueueType::AIV) {
+        return SkQueueType::AIV;
+    }
+
+    const bool sameStream = prevKernel->GetStreamIdxInGraph() == mixKernel->GetStreamIdxInGraph();
+    const bool hasDirectDep = prevKernel->sendToNodeId.count(mixKernel->GetNodeId()) > 0 ||
+                              mixKernel->receiveNodeId.count(prevKernel->GetNodeId()) > 0;
+    return (sameStream || hasDirectDep) ? prevKernelQueueType
+                                        : ((prevKernelQueueType == SkQueueType::AIV) ? SkQueueType::AIC
+                                                                                     : SkQueueType::AIV);
+}
+
 // dump device entry args
 void DumpTaskQueDetail(const TaskQue* que, const char* name)
 {
@@ -327,7 +348,7 @@ bool SkTaskBuilder::InitTaskSyncInfos(const std::vector<SuperKernelBaseNode*>& t
     size_t notifyCount = 0;
     size_t waitCount = 0;
     SkQueueType firstKernelEventQueueType = InferFirstKernelEventQueueType(tasks);
-
+    SuperKernelBaseNode* prevKernelTask = nullptr;
     for (size_t i = 0; i < tasks.size(); i++) {
         SkNodeType nodeType = tasks[i]->GetNodeType();
 
@@ -336,6 +357,7 @@ bool SkTaskBuilder::InitTaskSyncInfos(const std::vector<SuperKernelBaseNode*>& t
                 // KERNEL node: assign queueType from kernel type.
                 const KernelInfos& kernelInfo = GetKernelInfos(tasks[i]);
                 taskSyncInfos_[i].queueType = ToQueueType(kernelInfo.kernelType);
+                prevKernelTask = tasks[i];
                 kernelCount++;
                 break;
             }
@@ -378,7 +400,12 @@ bool SkTaskBuilder::InitTaskSyncInfos(const std::vector<SuperKernelBaseNode*>& t
                 } else {
                     kernelNodeCache[tasks[i]->GetNodeId()] = kernel; // cache current WAIT node for future searches
                     // Event nodes are executed on a single queue selected by nearest kernel type.
-                    taskSyncInfos_[i].queueType = ToEventQueueType(ToQueueType(GetKernelInfos(kernel).kernelType));
+                    SkQueueType nextKernelQueueType = ToQueueType(GetKernelInfos(kernel).kernelType);
+                    if (nextKernelQueueType != SkQueueType::AIC && nextKernelQueueType != SkQueueType::AIV) {
+                        taskSyncInfos_[i].queueType = ResolveMixWaitEventQueueType(prevKernelTask, kernel);
+                    } else {
+                        taskSyncInfos_[i].queueType = ToEventQueueType(nextKernelQueueType);
+                    }
                 }
                 waitCount++;
                 break;
