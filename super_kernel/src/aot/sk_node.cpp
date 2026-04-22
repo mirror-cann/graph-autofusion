@@ -95,7 +95,13 @@ enum class SkNodeCoreType: uint32_t {
 };
 
 constexpr int32_t ACL_FUNC_ATTR_KERNEL_SCHMODE_PLACEHOLDER = 3;
- 	 
+constexpr uint64_t INVALID_SK_BIND_VALUE = 0xffffffffffffffffULL;
+
+bool HasInvalidSkBindValue(const std::array<uint64_t, 4> &sknlFuncs)
+{
+    return sknlFuncs[0] == INVALID_SK_BIND_VALUE;
+}
+
 SchoModeState ParseSchoModeState(int64_t rawValue)
 {
     constexpr int64_t SCHO_MODE_OFF_VALUE = 0;
@@ -192,17 +198,21 @@ SkBindMap InitSuperKernelBindMap(aclrtBinHandle binHdl)
             (uint64_t)localInfo.sknlFunc[2],
             (uint64_t)localInfo.sknlFunc[3]);
 
-        auto it = bindMap.find((uint64_t)(localInfo.globalFunc));
-        if (it != bindMap.end()) {
-            SK_LOGE("InitSuperKernelBindMap: globalFunc=0x%lx is duplicated", (uint64_t)localInfo.globalFunc);
-            continue;
-        }
-        bindMap[(uint64_t)(localInfo.globalFunc)] = {
+        const auto globalFunc = (uint64_t)(localInfo.globalFunc);
+        const std::array<uint64_t, 4> sknlFuncs = {
             (uint64_t)(localInfo.sknlFunc[0]),
             (uint64_t)(localInfo.sknlFunc[1]),
             (uint64_t)(localInfo.sknlFunc[2]),
             (uint64_t)(localInfo.sknlFunc[3])
         };
+        auto it = bindMap.find(globalFunc);
+        if (it != bindMap.end() && it->second != sknlFuncs) {
+            SK_LOGE("InitSuperKernelBindMap: globalFunc=0x%lx is duplicated with different value",
+                globalFunc);
+            it->second[0] = INVALID_SK_BIND_VALUE;
+            continue;
+        }
+        bindMap[globalFunc] = sknlFuncs;
     }
     return bindMap;
 }
@@ -322,6 +332,16 @@ bool InitKernelResolvedFuncs(KernelInfos &kernelInfos)
     SK_LOGI("aicOffset=0x%lx, aivOffset=0x%lx", aicOffset, aivOffset);
     auto aicItor = bindMap.find(aicOffset);
     auto aivItor = bindMap.find(aivOffset);
+    if (aicItor != bindMap.end() && HasInvalidSkBindValue(aicItor->second)) {
+        SK_LOGE("Invalid sk bind map for globalFunc=0x%lx, kernel %s has duplicated entries with different values",
+            aicItor->first, kernelInfos.funcName.c_str());
+        return false;
+    }
+    if (aivItor != bindMap.end() && HasInvalidSkBindValue(aivItor->second)) {
+        SK_LOGE("Invalid sk bind map for globalFunc=0x%lx, kernel %s has duplicated entries with different values",
+            aivItor->first, kernelInfos.funcName.c_str());
+        return false;
+    }
     SK_LOGI("bindMap size=%lu, aicFound=%d, aivFound=%d",
         bindMap.size(), aicItor != bindMap.end(), aivItor != bindMap.end());
     kernelInfos.resolvedNum = 0;
@@ -618,10 +638,10 @@ bool SuperKernelKernelNode::GetSchoMode() const
 
 std::string SuperKernelKernelNode::Format() const {
     std::ostringstream oss;
-    oss << "[nodeId:" << nodeId 
-        << ", streamId:" << streamId 
-        << ", streamIdxInGraph:" << streamIdxInGraph 
-        << ", nodeIdxInStream:" << nodeIdxInStream 
+    oss << "[nodeId:" << nodeId
+        << ", streamId:" << streamId
+        << ", streamIdxInGraph:" << streamIdxInGraph
+        << ", nodeIdxInStream:" << nodeIdxInStream
         << "] - " << nodeInfos.kernelInfos.Format();
     return oss.str();
 }
@@ -741,12 +761,12 @@ bool SuperKernelMemoryNode::InitNode() {
                 nodeType = SkNodeType::NODE_RESET;
                 nodeInfos.syncInfos.eventId = (uint64_t)eventParam.event;
                 nodeInfos.syncInfos.eventFlag = eventParam.eventFlag;
-                SetFusionFailReason(FusionFailReason::RESET_TYPE_NODE); 
+                SetFusionFailReason(FusionFailReason::RESET_TYPE_NODE);
                 break;
             }
             default:
                 SK_LOGE("Unsupported event type %u for %s, which cannot be fused in super kernel.", rtNodeType, Format().c_str());
-                SetFusionFailReason(FusionFailReason::UNSUPPORT_EVENT_TYPE); 
+                SetFusionFailReason(FusionFailReason::UNSUPPORT_EVENT_TYPE);
                 return false;
         }
         if ((rtNodeType != ACL_MODEL_RI_TASK_EVENT_RESET) && ((nodeInfos.syncInfos.eventFlag & ACL_EVENT_EXTERNAL) == 0)) {
@@ -755,7 +775,7 @@ bool SuperKernelMemoryNode::InitNode() {
                     Format().c_str());
         } else {
             if (fusionFailReason_ == FusionFailReason::CAN_FUSE){
-                SetFusionFailReason(FusionFailReason::EXTERNAL_DEPEND); 
+                SetFusionFailReason(FusionFailReason::EXTERNAL_DEPEND);
             }
             SK_LOGI("Event %s: has external dependencies, cannot be fused in super kernel",
                     Format().c_str());
@@ -908,21 +928,21 @@ static uint32_t DumpSkEntryBinary(const std::string& kernelBinsDir);
 
 bool DumpKernelBinaries(const SuperKernelGraph& graph, const std::string& binPath) {
     SK_LOGI("Starting to dump kernel binaries to: %s", binPath.c_str());
-    
+
     // binPath is the base directory, create bin_files subdirectory under it
     std::string baseDir = binPath.empty() ? "." : binPath;
     std::string kernelBinsDir = baseDir + "/bin_files";
-    
+
     // Create kernel_bins directory
     if (!CreateDirectoryRecursive(kernelBinsDir)) {
         SK_LOGE("Failed to create kernel binaries directory: %s", kernelBinsDir.c_str());
         return false;
     }
-    
+
     // Dump kernel binaries and SK entry binary
     uint32_t kernelCount = DumpKernelBinariesToDir(graph, kernelBinsDir);
     kernelCount += DumpSkEntryBinary(kernelBinsDir);
-    
+
     SK_LOGI("Successfully dumped %u kernel binaries to directory: %s", kernelCount, kernelBinsDir.c_str());
     return true;
 }
@@ -931,11 +951,11 @@ uint32_t DumpKernelBinariesToDir(const SuperKernelGraph& graph, const std::strin
     // Track unique binaries (deduplicate by binHdl address)
     std::unordered_set<uint64_t> seenBinHdls;
     uint32_t kernelCount = 0;
-    
+
     std::vector<uint64_t> sortedNodeIds = graph.GetSortedNodeIds();
     for (uint64_t nodeId : sortedNodeIds) {
         const SuperKernelBaseNode* node = graph.GetNodeById(nodeId);
-        if (node == nullptr) { 
+        if (node == nullptr) {
             SK_LOGE("Failed to get node %lu from graph", nodeId);
         }
         // Only process KERNEL type nodes
@@ -948,13 +968,13 @@ uint32_t DumpKernelBinariesToDir(const SuperKernelGraph& graph, const std::strin
         }
         const KernelInfos& kernelInfo = node->GetNodeInfos().kernelInfos;
         uint64_t binHdl = reinterpret_cast<uint64_t>(kernelInfo.binHdl);
-        
+
         // Skip if we've already processed this binHdl
         if (binHdl == 0 || seenBinHdls.count(binHdl) > 0) {
             continue;
         }
         seenBinHdls.insert(binHdl);
-        
+
         // Get binary buffer
         void* binHostAddr = nullptr;
         uint32_t binHostSize = 0;
@@ -964,7 +984,7 @@ uint32_t DumpKernelBinariesToDir(const SuperKernelGraph& graph, const std::strin
                     kernelInfo.funcName.c_str(), rtRet, binHostAddr, binHostSize);
             continue;
         }
-        
+
         // Generate safe filename from kernel function name
         std::string safeName = SanitizePathComponent(kernelInfo.funcName);
         // Limit filename length (keep last part if too long)
@@ -973,17 +993,17 @@ uint32_t DumpKernelBinariesToDir(const SuperKernelGraph& graph, const std::strin
             safeName = safeName.substr(safeName.length() - maxFilenameLen);
         }
         std::string oFilePath = kernelBinsDir + "/" + safeName + ".o";
-        
+
         // Write binary to individual .o file
         std::ofstream outFile(oFilePath, std::ios::binary);
         if (!outFile.is_open()) {
             SK_LOGW("Failed to open file for writing: %s", oFilePath.c_str());
             continue;
         }
-        
+
         outFile.write(static_cast<char*>(binHostAddr), binHostSize);
         outFile.close();
-        
+
         kernelCount++;
         SK_LOGI("Dumped kernel binary: %s, size=%u", oFilePath.c_str(), binHostSize);
     }
@@ -996,7 +1016,7 @@ uint32_t DumpSkEntryBinary(const std::string& kernelBinsDir) {
         SK_LOGI("SK entry bin handle is null, skip SK binary dump");
         return 0;
     }
-    
+
     void* entryBinAddr = nullptr;
     uint32_t entryBinSize = 0;
     int rtRet = rtGetBinBuffer(entryBinHandle, RT_BIN_HOST_ADDR, &entryBinAddr, &entryBinSize);
@@ -1004,19 +1024,19 @@ uint32_t DumpSkEntryBinary(const std::string& kernelBinsDir) {
         SK_LOGW("Failed to get SK entry bin buffer, rtRet=%d", rtRet);
         return 0;
     }
-    
+
     // Save SK entry binary as sk_entry.o
     std::string skOFilePath = kernelBinsDir + "/sk_entry.o";
-    
+
     std::ofstream skOutFile(skOFilePath, std::ios::binary);
     if (!skOutFile.is_open()) {
         SK_LOGW("Failed to open SK binary file for writing: %s", skOFilePath.c_str());
         return 0;
     }
-    
+
     skOutFile.write(static_cast<char*>(entryBinAddr), entryBinSize);
     skOutFile.close();
-    
+
     SK_LOGI("Dumped SK entry binary: %s, size=%u", skOFilePath.c_str(), entryBinSize);
     return 1;
 }
