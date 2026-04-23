@@ -58,7 +58,6 @@ SkEventRecorder& SkEventRecorder::Instance() {
 
 SkEventRecorder::~SkEventRecorder() {
     SkProfilingShutdown();
-    SK_LOGI("[sk time profiling] ~SkEventRecorder completed\n");
 }
 
 std::string SkEventRecorder::CreateOutputDir() {
@@ -542,8 +541,6 @@ void SkEventRecorder::SkProfilingShutdown() {
         return;
     }
     
-    SK_LOGI("[sk time profiling] Shutting down event recorder\n");
-    
     // 停止全局后台线程
     globalRunning.store(false);
     pthread_join(dumpThread, nullptr);
@@ -557,7 +554,6 @@ void SkEventRecorder::SkProfilingShutdown() {
     }
     
     enabled.store(false);
-    SK_LOGI("[sk time profiling] ===================== End dump the time of superkernel =======================\n");
 }
 
 void SkEventRecorder::AddNodeInfoMapping(uint64_t modelRI, uint32_t skId, uint32_t nodeId,
