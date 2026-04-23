@@ -32,6 +32,25 @@
 uint32_t SkEventRecorder::coreSize_ = SK_EVENT_DEFAULT_CORE_SIZE;
 uint32_t SkEventRecorder::totalSize_ = SK_EVENT_CORE_NUM * SK_EVENT_DEFAULT_CORE_SIZE;
 
+// ==================== Msprof 回调相关 ====================
+constexpr size_t ASCENDC_KERNEL_ID = 69;
+
+// 代表profiling开和关，初始值为0，每次回调一次，原子变量值就加1，然后非0的偶数表示关闭
+static std::atomic<uint32_t> g_profSignal{0};
+
+static int32_t AscendProfilingCallBack(uint32_t type, void *data, uint32_t len)
+{
+    (void)data;
+    (void)len;
+
+    SK_LOGI("[sk time profiling] AscendProfilingCallBack triggered, type=%u\n", type);
+
+    uint32_t val = g_profSignal.fetch_add(1, std::memory_order_relaxed) + 1;
+    SK_LOGI("[sk time profiling] Prof signal updated to %u (even=%d)\n", val, (val % 2 == 0 && val != 0));
+
+    return 0;
+}
+
 SkEventRecorder& SkEventRecorder::Instance() {
     static SkEventRecorder instance;
     return instance;
@@ -103,6 +122,14 @@ bool SkEventRecorder::Init() {
         }
         // 所有初始化完成后再标记为启用，确保其他线程看到 enabled==true 时一切就绪
         enabled.store(true);
+
+        // 注册 Msprof 回调，profiling 结束时获取输出路径
+        int32_t profRet = MsprofRegisterCallback(ASCENDC_KERNEL_ID, AscendProfilingCallBack);
+        if (profRet != 0) {
+            SK_LOGW("[sk time profiling] MsprofRegisterCallback failed, ret=%d\n", profRet);
+        } else {
+            SK_LOGI("[sk time profiling] MsprofRegisterCallback success\n");
+        }
         
         SK_LOGI("[sk time profiling] Event recorder enabled with single dump thread\n");
     });
@@ -257,6 +284,57 @@ SkEventDeviceCtx* SkEventRecorder::CreateDeviceCtx(uint32_t deviceId) {
     return ctx;
 }
 
+void SkEventRecorder::CopyOutputToProfPath(SkEventDeviceCtx* ctx) {
+    if (!ctx->outputFp.IsValid()) {
+        SK_LOGI("[sk time profiling] Output file is not valid, skip copy\n");
+        return;
+    }
+
+    // 获取并缓存 profiling 路径
+    {
+        std::lock_guard<std::mutex> lock(profBasePathMutex);
+        if (profBasePath.empty()) {
+            std::string path = GetBasePath();
+            if (!path.empty()) {
+                profBasePath = std::move(path);
+                SK_LOGI("[sk time profiling] Cached profiling base path: %s\n", profBasePath.c_str());
+            }
+        }
+    }
+    if (profBasePath.empty()) {
+        SK_LOGW("[sk time profiling] No profiling base path available, skip copy output file\n");
+        return;
+    }
+
+    // 先 flush 源文件
+    fflush(ctx->outputFp.Get());
+
+    // 构造源文件和目标文件路径
+    std::string srcFilename = ctx->outputDir + "/sk_event_dev_device_" + std::to_string(ctx->deviceId) + ".json";
+    std::string dstFilename = profBasePath + "/sk_event_dev_device_" + std::to_string(ctx->deviceId) + ".json";
+
+    // 使用 C++ fstream 复制文件
+    std::ifstream src(srcFilename, std::ios::binary);
+    if (!src.is_open()) {
+        SK_LOGE("[sk time profiling] Failed to open source file for copy: %s\n", srcFilename.c_str());
+        return;
+    }
+
+    std::ofstream dst(dstFilename, std::ios::binary);
+    if (!dst.is_open()) {
+        SK_LOGE("[sk time profiling] Failed to open destination file for copy: %s\n", dstFilename.c_str());
+        return;
+    }
+
+    dst << src.rdbuf();
+
+    if (!dst) {
+        SK_LOGE("[sk time profiling] Failed to copy file content\n");
+    } else {
+        SK_LOGI("[sk time profiling] Copied output file from %s to %s\n", srcFilename.c_str(), dstFilename.c_str());
+    }
+}
+
 // core id 大于25就是aiv
 static bool CoreIsAiv(int coreId) {
     return coreId >= 25;
@@ -265,11 +343,18 @@ void* SkEventRecorder::DumpThreadFunc(void* arg) {
     SkEventRecorder* recorder = static_cast<SkEventRecorder*>(arg);
     SK_LOGI("[sk time profiling] Global dump thread started\n");
     while (recorder->globalRunning.load()) {
-        // 遍历所有 device，处理每个激活的 device
+        // 处理激活的 device
         SkEventDeviceCtx* ctx = &recorder->deviceCtxs;
         if (ctx->active.load()) {
             // 写入node的耗时信息
             recorder->DumpDeviceData(ctx);
+        }
+        // 检查 profiling 关闭信号（非0偶数）
+        uint32_t sig = g_profSignal.load(std::memory_order_relaxed);
+        if (sig != 0 && (sig % 2 == 0)) {
+            recorder->CopyOutputToProfPath(ctx);
+            // 重置信号，避免重复复制
+            g_profSignal.store(0, std::memory_order_relaxed);
         }
         usleep(100000); // 100ms 轮询间隔
     }
@@ -277,6 +362,13 @@ void* SkEventRecorder::DumpThreadFunc(void* arg) {
     SkEventDeviceCtx* ctx = &recorder->deviceCtxs;
     if (ctx->active.load()) {
         recorder->DumpDeviceData(ctx);
+    }
+
+    // 终止读取时再检查 profiling 关闭信号（非0偶数）
+    uint32_t sig = g_profSignal.load(std::memory_order_relaxed);
+    if (sig != 0 && (sig % 2 == 0)) {
+        recorder->CopyOutputToProfPath(ctx);
+        g_profSignal.store(0, std::memory_order_relaxed);
     }
     
     SK_LOGI("[sk time profiling] Global dump thread stopped\n");

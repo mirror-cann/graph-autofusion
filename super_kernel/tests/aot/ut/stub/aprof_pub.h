@@ -78,4 +78,16 @@ inline char* MsprofGetPath() {
     return profPath;
 }
 
+/**
+ * @brief Register profiling callback (stub implementation)
+ * @param type Profiling callback type
+ * @param callback Callback function pointer
+ * @return 0 on success
+ */
+inline int32_t MsprofRegisterCallback(uint32_t type, int32_t (*callback)(uint32_t, void*, uint32_t)) {
+    (void)type;
+    (void)callback;
+    return 0;
+}
+
 #endif // APROF_PUB_H

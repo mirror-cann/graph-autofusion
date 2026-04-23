@@ -136,12 +136,17 @@ private:
     // 输出 sk 级别统计事件到 JSON 文件
     bool WriteSkEventToJson(SkEventDeviceCtx* ctx, const SkKernelEventRecord* record, uint32_t core);
 
+    // 将输出文件复制到 profiling 路径
+    void CopyOutputToProfPath(SkEventDeviceCtx* ctx);
+
 private:
     std::atomic_bool enabled{false}; // 打点是否执行
     std::atomic_bool globalRunning{false};  // 全局打点解析线程运行状态
     pthread_t dumpThread;                   // 全局打点解析后台线程
     std::once_flag initFlag_;               // 保证 Init() 创建后台线程只执行一次
     std::mutex mutex;
+    std::mutex profBasePathMutex;           // 保护 profBasePath 的互斥锁
+    std::string profBasePath;               // 缓存的 profiling 输出路径
     SkEventDeviceCtx deviceCtxs; // device上下文列表
 
     static uint32_t coreSize_;   // 每个 core 的profiling 记录的gm缓冲区大小（字节），由环境变量决定

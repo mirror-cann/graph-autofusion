@@ -74,12 +74,6 @@ static std::string GetBasePath() {
     }
     std::string path(pathRaw);
 
-    const std::string suffix = "/mindstudio_profiler_output";
-    if (path.size() >= suffix.size() &&
-        path.substr(path.size() - suffix.size()) == suffix) {
-        path = path.substr(0, path.size() - suffix.size());
-    }
-
     SK_DLOGI("[sk time profiling] Output directory: %s\n", path.c_str());
     return path;
 }
