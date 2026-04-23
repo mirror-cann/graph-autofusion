@@ -178,6 +178,7 @@ struct TaskInfo {
     // 2： debug_sync_all
     // 4： debug_dcci_before_kernel_start
     // 8： debug_dcci_after_kernel_end
+    // 16： debug_cross_core_sync_check
     uint64_t debugOptions;
     uint64_t reserved;
 };

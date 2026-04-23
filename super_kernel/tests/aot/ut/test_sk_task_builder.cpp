@@ -1198,3 +1198,158 @@ TEST_F(SkTaskBuilderTest, Build_DfxMemsetFail_ReturnEmpty)
     EXPECT_EQ(launchInfo.entryInfo.skEntryFunc, nullptr);
     EXPECT_EQ(launchInfo.devArgs.Get(), nullptr);
 }
+
+// ==================== DEBUG_CROSS_CORE_SYNC_CHECK: AddFuncTask debugOptions bit 0x10 测试 ====================
+
+TEST_F(SkTaskBuilderTest, AddFuncTask_CrossCoreSyncCheck_SetsDebugFlag)
+{
+    opts->AddOption(std::make_unique<NumberOptOption>(
+        "debug_cross_core_sync_check", aclskOptionType::DEBUG_CROSS_CORE_SYNC_CHECK, 1, 0, 1));
+
+    SkTask aic;
+    ASSERT_TRUE(aic.taskQue.Init(8));
+
+    auto* kernel = CreateKernelNodeEx(41001, 0, INVALID_TASK_ID, INVALID_TASK_ID, SkKernelType::AIC_ONLY);
+    SkDfxInfo dfx{};
+
+    ASSERT_TRUE(builder->AddFuncTask(aic, kernel, &dfx, 0, 0, 1, SkTaskType::TYPE_FUNC, 1));
+
+    TaskInfo& funcTask = aic.taskQue.get()->taskInfos[aic.taskQue.get()->taskCnt - 1];
+    EXPECT_NE((funcTask.debugOptions & 0x10U), 0U);
+}
+
+TEST_F(SkTaskBuilderTest, AddFuncTask_CrossCoreSyncCheckNotSet_NoDebugFlag)
+{
+    // 不设置 DEBUG_CROSS_CORE_SYNC_CHECK option
+    SkTask aic;
+    ASSERT_TRUE(aic.taskQue.Init(8));
+
+    auto* kernel = CreateKernelNodeEx(41002, 0, INVALID_TASK_ID, INVALID_TASK_ID, SkKernelType::AIC_ONLY);
+    SkDfxInfo dfx{};
+
+    ASSERT_TRUE(builder->AddFuncTask(aic, kernel, &dfx, 0, 0, 1, SkTaskType::TYPE_FUNC, 1));
+
+    TaskInfo& funcTask = aic.taskQue.get()->taskInfos[aic.taskQue.get()->taskCnt - 1];
+    EXPECT_EQ((funcTask.debugOptions & 0x10U), 0U);
+}
+
+TEST_F(SkTaskBuilderTest, AddFuncTask_CrossCoreSyncCheckZero_NoDebugFlag)
+{
+    opts->AddOption(std::make_unique<NumberOptOption>(
+        "debug_cross_core_sync_check", aclskOptionType::DEBUG_CROSS_CORE_SYNC_CHECK, 0, 0, 1));
+
+    SkTask aic;
+    ASSERT_TRUE(aic.taskQue.Init(8));
+
+    auto* kernel = CreateKernelNodeEx(41003, 0, INVALID_TASK_ID, INVALID_TASK_ID, SkKernelType::AIC_ONLY);
+    SkDfxInfo dfx{};
+
+    ASSERT_TRUE(builder->AddFuncTask(aic, kernel, &dfx, 0, 0, 1, SkTaskType::TYPE_FUNC, 1));
+
+    TaskInfo& funcTask = aic.taskQue.get()->taskInfos[aic.taskQue.get()->taskCnt - 1];
+    EXPECT_EQ((funcTask.debugOptions & 0x10U), 0U);
+}
+
+TEST_F(SkTaskBuilderTest, AddFuncTask_CrossCoreSyncCheck_CombinedWithOtherDebugFlags)
+{
+    opts->AddOption(std::make_unique<NumberOptOption>(
+        "debug_cross_core_sync_check", aclskOptionType::DEBUG_CROSS_CORE_SYNC_CHECK, 1, 0, 1));
+    opts->AddOption(std::make_unique<StringListOptOption>(
+        "dcci_disable", aclskOptionType::DEBUG_DCCI_DISABLE_ON_KERNEL, std::vector<std::string>{"k"}));
+
+    SkTask aic;
+    ASSERT_TRUE(aic.taskQue.Init(8));
+
+    auto* kernel = CreateKernelNodeEx(41004, 0, INVALID_TASK_ID, INVALID_TASK_ID, SkKernelType::AIC_ONLY);
+    SkDfxInfo dfx{};
+
+    ASSERT_TRUE(builder->AddFuncTask(aic, kernel, &dfx, 0, 0, 1, SkTaskType::TYPE_FUNC, 1));
+
+    TaskInfo& funcTask = aic.taskQue.get()->taskInfos[aic.taskQue.get()->taskCnt - 1];
+    // Both bit 0x1 (dcci_disable) and bit 0x10 (cross_core_sync_check) should be set
+    EXPECT_NE((funcTask.debugOptions & 0x1U), 0U);
+    EXPECT_NE((funcTask.debugOptions & 0x10U), 0U);
+}
+
+// ==================== DEBUG_OP_EXEC_TRACE: GenEntryInfo enableOpTrace 测试 ====================
+
+TEST_F(SkTaskBuilderTest, GenEntryInfo_DebugOpExecTrace_EnablesOpTrace)
+{
+    opts->AddOption(std::make_unique<NumberOptOption>(
+        "debug_op_exec_trace", aclskOptionType::DEBUG_OP_EXEC_TRACE, 1, 0, 1));
+
+    SkTask aic;
+    SkTask aiv;
+    aic.funcCnt = 1;
+    aic.numBlocks = 1;
+    ASSERT_TRUE(aic.taskQue.Init(8));
+
+    SkHostEntryInfo entryInfo = builder->GenEntryInfo(aic, aiv);
+    ASSERT_NE(entryInfo.skEntryFunc, nullptr);
+}
+
+TEST_F(SkTaskBuilderTest, GenEntryInfo_DebugOpExecTraceZero_DisablesOpTrace)
+{
+    opts->AddOption(std::make_unique<NumberOptOption>(
+        "debug_op_exec_trace", aclskOptionType::DEBUG_OP_EXEC_TRACE, 0, 0, 1));
+
+    SkTask aic;
+    SkTask aiv;
+    aic.funcCnt = 1;
+    aic.numBlocks = 1;
+    ASSERT_TRUE(aic.taskQue.Init(8));
+
+    SkHostEntryInfo entryInfo = builder->GenEntryInfo(aic, aiv);
+    ASSERT_NE(entryInfo.skEntryFunc, nullptr);
+}
+
+// ==================== DEBUG_CROSS_CORE_SYNC_CHECK: GenEntryInfo force enableOpTrace 测试 ====================
+
+TEST_F(SkTaskBuilderTest, GenEntryInfo_DebugCrossCoreSyncCheck_ForceEnablesOpTrace)
+{
+    opts->AddOption(std::make_unique<NumberOptOption>(
+        "debug_cross_core_sync_check", aclskOptionType::DEBUG_CROSS_CORE_SYNC_CHECK, 1, 0, 1));
+
+    SkTask aic;
+    SkTask aiv;
+    aic.funcCnt = 1;
+    aic.numBlocks = 1;
+    ASSERT_TRUE(aic.taskQue.Init(8));
+
+    SkHostEntryInfo entryInfo = builder->GenEntryInfo(aic, aiv);
+    ASSERT_NE(entryInfo.skEntryFunc, nullptr);
+}
+
+TEST_F(SkTaskBuilderTest, GenEntryInfo_DebugOpExecTraceAndCrossCoreSyncCheck_BothEnableOpTrace)
+{
+    opts->AddOption(std::make_unique<NumberOptOption>(
+        "debug_op_exec_trace", aclskOptionType::DEBUG_OP_EXEC_TRACE, 1, 0, 1));
+    opts->AddOption(std::make_unique<NumberOptOption>(
+        "debug_cross_core_sync_check", aclskOptionType::DEBUG_CROSS_CORE_SYNC_CHECK, 1, 0, 1));
+
+    SkTask aic;
+    SkTask aiv;
+    aic.funcCnt = 1;
+    aic.numBlocks = 1;
+    ASSERT_TRUE(aic.taskQue.Init(8));
+
+    SkHostEntryInfo entryInfo = builder->GenEntryInfo(aic, aiv);
+    ASSERT_NE(entryInfo.skEntryFunc, nullptr);
+}
+
+// ==================== Build 集成测试: DEBUG_CROSS_CORE_SYNC_CHECK ====================
+
+TEST_F(SkTaskBuilderTest, Build_WithDebugCrossCoreSyncCheck_Success)
+{
+    opts->AddOption(std::make_unique<NumberOptOption>("split_mode", aclskOptionType::SPLIT_MODE, 1, 1, 4));
+    opts->AddOption(std::make_unique<NumberOptOption>(
+        "debug_cross_core_sync_check", aclskOptionType::DEBUG_CROSS_CORE_SYNC_CHECK, 1, 0, 1));
+
+    auto* kernel = CreateKernelNodeEx(42001, 0, INVALID_TASK_ID, INVALID_TASK_ID, SkKernelType::AIC_ONLY);
+
+    std::vector<SuperKernelBaseNode*> tasks = {kernel};
+    SkLaunchInfo launchInfo = builder->Build("Unknown", tasks, {});
+
+    EXPECT_NE(launchInfo.entryInfo.skEntryFunc, nullptr);
+    EXPECT_NE(launchInfo.devArgs.Get(), nullptr);
+}

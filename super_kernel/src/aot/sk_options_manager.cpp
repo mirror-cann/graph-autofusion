@@ -478,6 +478,17 @@ void SuperKernelOptionsManager::SetOptOptionValue(const aclskOption* option) {
                     option->debugCrossCoreSyncCheck.enableCrossCoreSyncCheck);
                 break;
             }
+        case aclskOptionType::DEBUG_OP_EXEC_TRACE:
+            {
+                AddOption(std::make_unique<NumberOptOption>("debug_op_exec_trace", option->optionType, 0, 0, 1));
+                auto subOption = GetOption(option->optionType);
+                if (subOption != nullptr) {
+                    subOption->SetValue(option->debugOpExecTrace.enableOpExecTrace);
+                }
+                SK_LOGI("Debug op exec trace option set: enable=%u",
+                    option->debugOpExecTrace.enableOpExecTrace);
+                break;
+            }
         default:
             SK_LOGI("Optiontype: %d is not support now", static_cast<int>(option->optionType));
             break;

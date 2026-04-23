@@ -1071,6 +1071,62 @@ TEST_F(SuperKernelOptionsManagerTest, MatchRegex_DcciScenario)
     EXPECT_FALSE(opts_test->JudgeDisableKernelDcci(dcciOps, "Conv"));
 }
 
+// ==================== SetOptOptionValue: DEBUG_OP_EXEC_TRACE 测试 ====================
+
+TEST_F(SuperKernelOptionsManagerTest, SetOptOptionValue_DebugOpExecTrace_Enable)
+{
+    aclskOption option {};
+    option.optionType = aclskOptionType::DEBUG_OP_EXEC_TRACE;
+    option.debugOpExecTrace.enableOpExecTrace = 1;
+
+    opts_test->SetOptOptionValue(&option);
+
+    auto result = opts_test->GetOption(aclskOptionType::DEBUG_OP_EXEC_TRACE);
+    ASSERT_NE(result, nullptr);
+    EXPECT_EQ(static_cast<NumberOptOption*>(result)->GetIntValue(), 1);
+}
+
+TEST_F(SuperKernelOptionsManagerTest, SetOptOptionValue_DebugOpExecTrace_Disable)
+{
+    aclskOption option {};
+    option.optionType = aclskOptionType::DEBUG_OP_EXEC_TRACE;
+    option.debugOpExecTrace.enableOpExecTrace = 0;
+
+    opts_test->SetOptOptionValue(&option);
+
+    auto result = opts_test->GetOption(aclskOptionType::DEBUG_OP_EXEC_TRACE);
+    ASSERT_NE(result, nullptr);
+    EXPECT_EQ(static_cast<NumberOptOption*>(result)->GetIntValue(), 0);
+}
+
+// ==================== SetOptOptionValue: DEBUG_CROSS_CORE_SYNC_CHECK 测试 ====================
+
+TEST_F(SuperKernelOptionsManagerTest, SetOptOptionValue_DebugCrossCoreSyncCheck_Enable)
+{
+    aclskOption option {};
+    option.optionType = aclskOptionType::DEBUG_CROSS_CORE_SYNC_CHECK;
+    option.debugCrossCoreSyncCheck.enableCrossCoreSyncCheck = 1;
+
+    opts_test->SetOptOptionValue(&option);
+
+    auto result = opts_test->GetOption(aclskOptionType::DEBUG_CROSS_CORE_SYNC_CHECK);
+    ASSERT_NE(result, nullptr);
+    EXPECT_EQ(static_cast<NumberOptOption*>(result)->GetIntValue(), 1);
+}
+
+TEST_F(SuperKernelOptionsManagerTest, SetOptOptionValue_DebugCrossCoreSyncCheck_Disable)
+{
+    aclskOption option {};
+    option.optionType = aclskOptionType::DEBUG_CROSS_CORE_SYNC_CHECK;
+    option.debugCrossCoreSyncCheck.enableCrossCoreSyncCheck = 0;
+
+    opts_test->SetOptOptionValue(&option);
+
+    auto result = opts_test->GetOption(aclskOptionType::DEBUG_CROSS_CORE_SYNC_CHECK);
+    ASSERT_NE(result, nullptr);
+    EXPECT_EQ(static_cast<NumberOptOption*>(result)->GetIntValue(), 0);
+}
+
 // ==================== 综合测试 ====================
 
 TEST_F(SuperKernelOptionsManagerTest, CompleteWorkflow)

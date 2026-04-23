@@ -1215,6 +1215,11 @@ bool SkTaskBuilder::AddFuncTask(SkTask& skTask, SuperKernelBaseNode* node, SkDfx
     auto disableDcciOptions = opts.GetOption(aclskOptionType::DEBUG_DCCI_DISABLE_ON_KERNEL);
     auto dcciBeforeKernelStartOptions = opts.GetOption(aclskOptionType::DEBUG_DCCI_BEFORE_KERNEL_START);
     auto dcciAfterKernelEndOptions = opts.GetOption(aclskOptionType::DEBUG_DCCI_AFTER_KERNEL_END);
+    auto crossCoreSyncCheckOptions = opts.GetOption(aclskOptionType::DEBUG_CROSS_CORE_SYNC_CHECK);
+    uint32_t debugCrossCoreSyncCheck = 0;
+    if (crossCoreSyncCheckOptions != nullptr) {
+        debugCrossCoreSyncCheck = crossCoreSyncCheckOptions->GetIntValue();
+    }
     std::vector<std::string> disableDcciList;
     std::vector<std::string> dcciBeforeKernelStartList;
     std::vector<std::string> dcciAfterKernelEndList;
@@ -1293,6 +1298,10 @@ bool SkTaskBuilder::AddFuncTask(SkTask& skTask, SuperKernelBaseNode* node, SkDfx
             if (opts.JudgeDisableKernelDcci(dcciAfterKernelEndList, kernelInfo.funcName)) {
                 taskInfo.debugOptions |= 0x8;
             }
+        }
+
+        if (debugCrossCoreSyncCheck == 1) {
+            taskInfo.debugOptions |= 0x10;
         }
     }
     taskQue->taskCnt++;
@@ -1551,9 +1560,15 @@ SkHostEntryInfo SkTaskBuilder::GenEntryInfo(SkTask& skTaskCube, SkTask& skTaskVe
     const char* profilingEnv = std::getenv("ASCEND_PROF_SK_ON");
     bool enableProfiling = (profilingEnv != nullptr && std::string(profilingEnv) != "0");
     
-    // ASCEND_SK_OP_TRACE_ON: 启用 op_trace 功能
-    const char* opTraceEnv = std::getenv("ASCEND_SK_OP_TRACE_ON");
-    bool enableOpTrace = (opTraceEnv != nullptr && std::string(opTraceEnv) == "1");
+    // DEBUG_OP_EXEC_TRACE: 启用 op_trace 功能
+    auto opExecTraceOpt = opts.GetOption(aclskOptionType::DEBUG_OP_EXEC_TRACE);
+    bool enableOpTrace = (opExecTraceOpt != nullptr && opExecTraceOpt->GetIntValue() == 1);
+
+    // DEBUG_CROSS_CORE_SYNC_CHECK: 启用 cross core sync 校验，需要 op_trace 内核
+    auto crossCoreSyncCheckOpt = opts.GetOption(aclskOptionType::DEBUG_CROSS_CORE_SYNC_CHECK);
+    if (crossCoreSyncCheckOpt != nullptr && crossCoreSyncCheckOpt->GetIntValue() == 1) {
+        enableOpTrace = true;
+    }
     
     SK_LOGI("GenEntryInfo: enableDebug=%d, enableProfiling=%d, enableOpTrace=%d",
             enableDebug, enableProfiling, enableOpTrace);
