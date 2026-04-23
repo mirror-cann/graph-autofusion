@@ -230,7 +230,7 @@ function build_test() {
 
 function build_package_inner(){
   cmake_config "-DCANN_3RD_LIB_PATH=${CANN_3RD_LIB_PATH}"
-  build package
+  build "all package"
 }
 
 function build_test_cpp_utest() {

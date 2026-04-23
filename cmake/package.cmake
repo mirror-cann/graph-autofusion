@@ -39,6 +39,7 @@ install(DIRECTORY ${script_prefix}/
     OWNER_READ OWNER_WRITE OWNER_EXECUTE  # 目录权限
     GROUP_READ GROUP_EXECUTE
     WORLD_READ WORLD_EXECUTE
+    COMPONENT graph-autofusion
 )
 set(SCRIPTS_FILES
     ${CMAKE_SOURCE_DIR}/scripts/package/common/sh/check_version_required.awk
@@ -63,6 +64,7 @@ install(FILES ${SCRIPTS_FILES}
     OWNER_READ OWNER_WRITE OWNER_EXECUTE  # 文件权限
     GROUP_READ GROUP_EXECUTE
     WORLD_READ WORLD_EXECUTE
+    COMPONENT graph-autofusion
 )
 set(COMMON_FILES
     ${CMAKE_SOURCE_DIR}/scripts/package/common/sh/install_common_parser.sh
@@ -88,19 +90,24 @@ set(CONF_FILES
 install(FILES ${CMAKE_BINARY_DIR}/version.graph-autofusion.info
     DESTINATION share/info/graph_autofusion
     RENAME version.info
+    COMPONENT graph-autofusion
 )
 install(FILES ${CONF_FILES}
     DESTINATION ${CMAKE_SYSTEM_PROCESSOR}-linux/conf
+    COMPONENT graph-autofusion
 )
 install(FILES ${PACKAGE_FILES}
     DESTINATION share/info/graph_autofusion/script
+    COMPONENT graph-autofusion
 )
 
 install(TARGETS ascendsk
     DESTINATION ${CMAKE_SYSTEM_PROCESSOR}-linux/lib64
+    COMPONENT graph-autofusion
 )
 install(FILES super_kernel/include/super_kernel/super_kernel.h
     DESTINATION ${CMAKE_SYSTEM_PROCESSOR}-linux/include/super_kernel
+    COMPONENT graph-autofusion
 )
 
 # ============= CPack =============

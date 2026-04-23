@@ -19,8 +19,9 @@ add_custom_command(
         && echo "Build superkernel wheel package end"
         DEPENDS ${SUPER_KERNEL_SRC} pyproject.toml
 )
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/superkernel-0.1.0-py3-none-any.whl OPTIONAL
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/superkernel-0.1.0-py3-none-any.whl ${INSTALL_OPTIONAL}
         DESTINATION ${INSTALL_LIBRARY_DIR}
+        COMPONENT graph-autofusion
 )
 
 
@@ -70,9 +71,10 @@ target_link_libraries(ascendsk PUBLIC sk_scope acl_rt acl_rtc ascendcl ascend_du
 target_link_directories(ascendsk PUBLIC
 $ENV{ASCEND_HOME_PATH}/lib64
 )
-install(TARGETS ascendsk DESTINATION ascendsk/lib)
+install(TARGETS ascendsk DESTINATION ascendsk/lib COMPONENT graph-autofusion)
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/include/super_kernel/super_kernel.h
     DESTINATION ascendsk/include
+    COMPONENT graph-autofusion
 )
 
 
