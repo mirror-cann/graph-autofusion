@@ -988,8 +988,8 @@ DeviceArgsPtr SkTaskBuilder::GenEntryArgs(const SkTask& skTaskCube, const SkTask
     size_t event_config_size = sizeof(SkEventConfig);
 
     size_t aic_que_offset = header_size;
-    size_t aiv_que_offset = aic_que_offset + aic_que_size;
-    size_t counter_offset = AlignUp(aiv_que_offset + aiv_que_size, kCounterAlignBytes);
+    size_t aiv_que_offset = aic_que_offset + aic_que_size * 4;
+    size_t counter_offset = AlignUp(aiv_que_offset + aiv_que_size * 4, kCounterAlignBytes);
     size_t dfx_offset = counter_offset + counter_size;
     size_t event_config_offset = dfx_offset + dfx_size;
     uint64_t total_size = event_config_offset + event_config_size;
@@ -1003,6 +1003,8 @@ DeviceArgsPtr SkTaskBuilder::GenEntryArgs(const SkTask& skTaskCube, const SkTask
         SK_LOGE("GenEntryArgs init device args failed, total_size=%lu", total_size);
         return {};
     }
+    args.Get()->skHeader.aicQueSize = aic_que_size;
+    args.Get()->skHeader.aivQueSize = aiv_que_size;
     args.Get()->skHeader.aicQueOffset = aic_que_offset;
     args.Get()->skHeader.aivQueOffset = aiv_que_offset;
     args.Get()->skHeader.counterOffset = counter_offset;
@@ -1011,18 +1013,28 @@ DeviceArgsPtr SkTaskBuilder::GenEntryArgs(const SkTask& skTaskCube, const SkTask
     args.Get()->skHeader.totalSize = total_size;
 
     uint8_t* base = (uint8_t*)args.Get();
-    TaskQue* dst_aic = (TaskQue*)(base + aic_que_offset);
-    errno_t err = memcpy_s(dst_aic, aic_que_size, skTaskCube.GetTaskQue(), aic_que_size);
-    if (err != 0) {
-        SK_LOGE("GenEntryArgs memcpy_s AIC queue failed, ret=%d", static_cast<int>(err));
-        return {};
+
+    errno_t err = 0;
+    // Copy AIC queues
+    for (size_t i = 0; i < 4; i++) {
+        err = memcpy_s(base + aic_que_offset + i * aic_que_size,
+                aic_que_size, skTaskCube.GetTaskQue(), aic_que_size);
+        if (err != 0) {
+            SK_LOGE("GenEntryArgs memcpy_s AIC queue%zu failed, ret=%d", i + 1, err);
+            return {};
+        }
     }
-    TaskQue* dst_aiv = (TaskQue*)(base + aiv_que_offset);
-    err = memcpy_s(dst_aiv, aiv_que_size, skTaskVec.GetTaskQue(), aiv_que_size);
-    if (err != 0) {
-        SK_LOGE("GenEntryArgs memcpy_s AIV queue failed, ret=%d", static_cast<int>(err));
-        return {};
+
+    // Copy AIV queues
+    for (size_t i = 0; i < 4; i++) {
+        err = memcpy_s(base + aiv_que_offset + i * aiv_que_size,
+                    aiv_que_size, skTaskVec.GetTaskQue(), aiv_que_size);
+        if (err != 0) {
+            SK_LOGE("GenEntryArgs memcpy_s AIV queue%zu failed, ret=%d", i + 1, err);
+            return {};
+        }
     }
+
     if (counter_size > 0) {
         err = memset_s(base + counter_offset, counter_size, 0, counter_size);
         if (err != 0) {

@@ -190,6 +190,8 @@ struct TaskQue {
 };
 
 struct SkHeaderInfo {
+    uint32_t aicQueSize;
+    uint32_t aivQueSize;
     uint32_t aicQueOffset;
     uint32_t aivQueOffset;
     uint32_t counterOffset;
