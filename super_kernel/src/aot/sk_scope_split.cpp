@@ -1044,12 +1044,12 @@ bool DeadlockRefinePass::Run(std::vector<SuperKernelScopeInfo>& scopes) {
     return true;
 }
 
-// ============ SchoModeKernelSplitPass Implementation ============
+// ============ ScheModeKernelSplitPass Implementation ============
 
-SchoModeKernelSplitPass::SchoModeKernelSplitPass(SuperKernelGraph& inputGraph)
+ScheModeKernelSplitPass::ScheModeKernelSplitPass(SuperKernelGraph& inputGraph)
     : ScopeSplitPass(inputGraph) {}
 
-void SchoModeKernelSplitPass::SplitScopeAtNode(const SuperKernelScopeInfo& scope,
+void ScheModeKernelSplitPass::SplitScopeAtNode(const SuperKernelScopeInfo& scope,
                                                SuperKernelBaseNode* splitNode,
                                                SuperKernelScopeInfo& scopeBefore,
                                                SuperKernelScopeInfo& scopeAfter) {
@@ -1072,7 +1072,7 @@ void SchoModeKernelSplitPass::SplitScopeAtNode(const SuperKernelScopeInfo& scope
     RebuildStreamInfos(scopeAfter);
 }
 
-SchoModeScopeProcessResult SchoModeKernelSplitPass::ProcessSingleScope(
+ScheModeScopeProcessResult ScheModeKernelSplitPass::ProcessSingleScope(
     SuperKernelScopeInfo&& scopeToProcess,
     std::vector<SuperKernelScopeInfo>& outputScopes,
     std::optional<SuperKernelScopeInfo>& pendingScope) {
@@ -1080,8 +1080,8 @@ SchoModeScopeProcessResult SchoModeKernelSplitPass::ProcessSingleScope(
 
     SuperKernelScopeInfo workingScope = std::move(scopeToProcess);
     if (workingScope.GetNodes().empty()) {
-        SK_LOGI("[SchoModeSplit] ProcessSingleScope called with empty scope, nothing to do");
-        return SchoModeScopeProcessResult::NO_SPLIT;
+        SK_LOGI("[ScheModeSplit] ProcessSingleScope called with empty scope, nothing to do");
+        return ScheModeScopeProcessResult::NO_SPLIT;
     }
 
     uint32_t mergedCubeNum = 0;
@@ -1105,16 +1105,19 @@ SchoModeScopeProcessResult SchoModeKernelSplitPass::ProcessSingleScope(
             continue;
         }
 
-        if (node->IsSchoModeOn()) {
-            // Compare current SchoMode kernel core requirement with merged previous requirement.
-            bool isSmallerThanMerged = ((curCubeNum < mergedCubeNum) || (curVecNum < mergedVecNum));
+        if (node->IsScheModeOn()) {
+            // Ignore zero-valued dimensions when judging whether the current kernel
+            // regresses versus the merged requirement.
+            const bool isCubeSmallerThanMerged = (curCubeNum != 0) && (curCubeNum < mergedCubeNum);
+            const bool isVecSmallerThanMerged = (curVecNum != 0) && (curVecNum < mergedVecNum);
+            bool isSmallerThanMerged = isCubeSmallerThanMerged || isVecSmallerThanMerged;
 
             if (isSmallerThanMerged) {
                 SuperKernelScopeInfo scopeBefore;
                 SuperKernelScopeInfo scopeAfter;
                 SplitScopeAtNode(workingScope, node, scopeBefore, scopeAfter);
 
-                SK_LOGI("[SchoModeSplit] split required at SchoMode kernel %s, mergedCore={cube:%u, vec:%u}, "
+                SK_LOGI("[ScheModeSplit] split required at ScheMode kernel %s, mergedCore={cube:%u, vec:%u}, "
                         "currentCore={cube:%u, vec:%u}, scopeBefore=%zu, scopeAfter=%zu",
                         node->Format().c_str(),
                         mergedCubeNum, mergedVecNum,
@@ -1127,7 +1130,7 @@ SchoModeScopeProcessResult SchoModeKernelSplitPass::ProcessSingleScope(
                 if (!scopeAfter.GetNodes().empty()) {
                     pendingScope = std::move(scopeAfter);
                 }
-                return SchoModeScopeProcessResult::SPLIT_RESOLVED;
+                return ScheModeScopeProcessResult::SPLIT_RESOLVED;
             }
         }
 
@@ -1137,25 +1140,25 @@ SchoModeScopeProcessResult SchoModeKernelSplitPass::ProcessSingleScope(
     }
 
     outputScopes.push_back(std::move(workingScope));
-    return SchoModeScopeProcessResult::NO_SPLIT;
+    return ScheModeScopeProcessResult::NO_SPLIT;
 }
 
-bool SchoModeKernelSplitPass::Run(std::vector<SuperKernelScopeInfo>& scopes) {
-    SK_LOGI("[SchoModeSplit] %s pass starting execution", GetName().c_str());
-    SK_LOGI("[SchoModeSplit] input scopes count: %zu", scopes.size());
+bool ScheModeKernelSplitPass::Run(std::vector<SuperKernelScopeInfo>& scopes) {
+    SK_LOGI("[ScheModeSplit] %s pass starting execution", GetName().c_str());
+    SK_LOGI("[ScheModeSplit] input scopes count: %zu", scopes.size());
 
     std::vector<SuperKernelScopeInfo> resScopes;
     size_t splitCount = 0;
 
     for (size_t i = 0; i < scopes.size(); ++i) {
-        SK_LOGI("[SchoModeSplit] Processing scope index %zu with %zu nodes", i, scopes[i].GetNodes().size());
+        SK_LOGI("[ScheModeSplit] Processing scope index %zu with %zu nodes", i, scopes[i].GetNodes().size());
         SuperKernelScopeInfo currentScope = std::move(scopes[i]);
         std::optional<SuperKernelScopeInfo> pendingScope;
 
         while (true) {
-            SchoModeScopeProcessResult result = ProcessSingleScope(std::move(currentScope),
+            ScheModeScopeProcessResult result = ProcessSingleScope(std::move(currentScope),
                 resScopes, pendingScope);
-            if (result == SchoModeScopeProcessResult::SPLIT_RESOLVED) {
+            if (result == ScheModeScopeProcessResult::SPLIT_RESOLVED) {
                 splitCount++;
             }
 
@@ -1169,7 +1172,7 @@ bool SchoModeKernelSplitPass::Run(std::vector<SuperKernelScopeInfo>& scopes) {
     }
 
     scopes = std::move(resScopes);
-    SK_LOGI("[SchoModeSplit] %s pass completed, split %zu scopes, total scopes: %zu",
+    SK_LOGI("[ScheModeSplit] %s pass completed, split %zu scopes, total scopes: %zu",
             GetName().c_str(), splitCount, scopes.size());
     PrintScopeResults(scopes, graph_, GetName().c_str());
     return true;
@@ -1189,8 +1192,8 @@ SuperKernelScopeSplitter::SuperKernelScopeSplitter(SuperKernelGraph& inputGraph,
     passes_.push_back(std::make_unique<InitialScopeSplitPass>(inputGraph, heapType));
     // Pass 1: Deadlock detection and refinement
     passes_.push_back(std::make_unique<DeadlockRefinePass>(inputGraph));
-    // Pass 2: SchoMode kernel core trend based split refinement
-    passes_.push_back(std::make_unique<SchoModeKernelSplitPass>(inputGraph));
+    // Pass 2: ScheMode kernel core trend based split refinement
+    passes_.push_back(std::make_unique<ScheModeKernelSplitPass>(inputGraph));
     // Pass 3: Remove event-only streams from scopes
     passes_.push_back(std::make_unique<EventOnlyStreamRemovePass>(inputGraph));
 

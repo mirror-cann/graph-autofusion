@@ -130,7 +130,7 @@ struct KernelInfos {
     aclrtBinHandle binHdl = nullptr;
     aclrtFuncHandle funcHdl = nullptr;
     aclrtLaunchKernelCfg* launchKernelCfg = nullptr;
-    bool isSchoModeOn = false;
+    bool isScheModeOn = false;
     ResolvedFunctionInfo resolvedFuncs[4];
 
     std::string Format() const;
@@ -249,8 +249,8 @@ public:
     virtual SkKernelType GetKernelType() const { return SkKernelType::DEFAULT; }
     virtual uint32_t GetVecNum() const { return 0; }
     virtual uint32_t GetCubeNum() const { return 0; }
-    virtual bool IsSchoModeOn() const { return false; }
-    virtual bool GetSchoMode() const { return false; }
+    virtual bool IsScheModeOn() const { return false; }
+    virtual bool GetScheMode() const { return false; }
     // SuperKernelEventNode/SuperKernelMemoryNode specific accessors
     virtual uint64_t GetEventId() const
     {
@@ -396,7 +396,7 @@ public:
     SkKernelType GetKernelType() const override { return nodeInfos.kernelInfos.kernelType; }
     uint32_t GetVecNum() const override { return nodeInfos.kernelInfos.vecNum; }
     uint32_t GetCubeNum() const override { return nodeInfos.kernelInfos.cubeNum; }
-    bool GetSchoMode() const override;
+    bool GetScheMode() const override;
     std::string Format() const override;
     bool Update(const UpdateContext& ctx) override;
     const std::string GetScopeName() const override
@@ -406,7 +406,7 @@ public:
     bool IsScopeBegin() const override { return isScopeBegin; }
     bool IsScopeEnd() const override { return isScopeEnd; }
     bool IsScopePlaceholder() const override { return isPlaceholder; }
-    bool IsSchoModeOn() const override { return nodeInfos.kernelInfos.isSchoModeOn; }
+    bool IsScheModeOn() const override { return nodeInfos.kernelInfos.isScheModeOn; }
 private:
     bool isScopeBegin = false;
     bool isScopeEnd = false;

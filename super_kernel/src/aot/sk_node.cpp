@@ -94,7 +94,7 @@ enum class SkNodeCoreType: uint32_t {
     AIV,
 };
 
-constexpr int32_t ACL_FUNC_ATTR_KERNEL_SCHMODE_PLACEHOLDER = 3;
+constexpr int32_t ACL_FUNC_ATTR_KERNEL_SCHEMODE_PLACEHOLDER = 3;
 constexpr uint64_t INVALID_SK_BIND_VALUE = 0xffffffffffffffffULL;
 
 bool HasInvalidSkBindValue(const std::array<uint64_t, 4> &sknlFuncs)
@@ -102,52 +102,44 @@ bool HasInvalidSkBindValue(const std::array<uint64_t, 4> &sknlFuncs)
     return sknlFuncs[0] == INVALID_SK_BIND_VALUE;
 }
 
-SchoModeState ParseSchoModeState(int64_t rawValue)
+ScheModeState ParseScheModeState(int64_t rawValue)
 {
-    constexpr int64_t SCHO_MODE_OFF_VALUE = 0;
-    constexpr int64_t SCHO_MODE_ON_VALUE = 1;
-    if (rawValue == SCHO_MODE_OFF_VALUE) {
-        return SchoModeState::SCHO_MODE_OFF;
+    constexpr int64_t SCHE_MODE_OFF_VALUE = 0;
+    constexpr int64_t SCHE_MODE_ON_VALUE = 1;
+    if (rawValue == SCHE_MODE_OFF_VALUE) {
+        return ScheModeState::SCHE_MODE_OFF;
     }
-    if (rawValue == SCHO_MODE_ON_VALUE) {
-        return SchoModeState::SCHO_MODE_ON;
+    if (rawValue == SCHE_MODE_ON_VALUE) {
+        return ScheModeState::SCHE_MODE_ON;
     }
-    SK_LOGE("Invalid schmode value: %ld, valid value is 0 or 1", rawValue);
-    return SchoModeState::NONE;
+    SK_LOGE("Invalid schemode value: %ld, valid value is 0 or 1", rawValue);
+    return ScheModeState::NONE;
 }
 
-SchoModeState GetSchoModeFromFuncAttr(aclrtFuncHandle funcHandle)
+ScheModeState GetScheModeFromFuncAttr(aclrtFuncHandle funcHandle)
 {
-    int64_t funcAttrSchoModeValue = 0;
+    int64_t funcAttrScheModeValue = 0;
     aclError aclRet = ACL_SUCCESS;
     CHECK_ACL(aclRet = aclrtGetFunctionAttribute(funcHandle,
-        static_cast<aclrtFuncAttribute>(ACL_FUNC_ATTR_KERNEL_SCHMODE_PLACEHOLDER), &funcAttrSchoModeValue));
+        static_cast<aclrtFuncAttribute>(ACL_FUNC_ATTR_KERNEL_SCHED_MODE), &funcAttrScheModeValue));
     if (aclRet != ACL_SUCCESS) {
-        SK_LOGE("Failed to query function attribute schmode, ret=%d", aclRet);
-        return SchoModeState::NONE;
+        SK_LOGE("Failed to query function attribute schemode, ret=%d", aclRet);
+        return ScheModeState::NONE;
     }
-    return ParseSchoModeState(funcAttrSchoModeValue);
+    return ParseScheModeState(funcAttrScheModeValue);
 }
 
-SchoModeState GetSchoModeFromKernelCfg(aclrtLaunchKernelCfg* launchKernelCfg)
+ScheModeState GetScheModeFromKernelTask(aclmdlRITask kernelTask)
 {
-    if (launchKernelCfg == nullptr) {
-        return SchoModeState::NONE;
-    }
-    if ((launchKernelCfg->numAttrs == 0) || (launchKernelCfg->attrs == nullptr)) {
-        SK_LOGE("launchKernelCfg->attrs is null while numAttrs=%zu", launchKernelCfg->numAttrs);
-        return SchoModeState::NONE;
-    }
+    SK_LOGI("Query kernel task schemode begin, kernelTask=%p", kernelTask);
+    aclError aclRet = ACL_SUCCESS;
+    aclrtLaunchKernelAttrValue launchAttr;
 
-    SchoModeState schoModeState = SchoModeState::NONE;
-    for (size_t attrIdx = 0; attrIdx < launchKernelCfg->numAttrs; ++attrIdx) {
-        const aclrtLaunchKernelAttr& launchAttr = launchKernelCfg->attrs[attrIdx];
-        if (launchAttr.id != ACL_RT_LAUNCH_KERNEL_ATTR_SCHEM_MODE) {
-            continue;
-        }
-        schoModeState = ParseSchoModeState(static_cast<int64_t>(launchAttr.value.schemMode));
-    }
-    return schoModeState;
+    ScheModeState scheModeState = ScheModeState::NONE;
+    scheModeState = ParseScheModeState(static_cast<int64_t>(launchAttr.schemMode));
+    SK_LOGI("Query kernel task schemode end, kernelTask=%p, rawSchemMode=%ld, parsedState=%ld",
+        kernelTask, static_cast<int64_t>(launchAttr.schemMode), static_cast<int64_t>(scheModeState));
+    return ScheModeState::NONE;
 }
 
 SkBindMap InitSuperKernelBindMap(aclrtBinHandle binHdl)
@@ -570,8 +562,7 @@ bool SuperKernelKernelNode::InitNode() {
     nodeInfos.kernelInfos.opInfoPtr = taskParams.opInfoPtr;
     nodeInfos.kernelInfos.opInfoSize = taskParams.opInfoSize;
     nodeInfos.kernelInfos.launchKernelCfg = kernelParams.cfg;
-    // which will be set by GetSchoMode() in future
- 	nodeInfos.kernelInfos.isSchoModeOn = false;
+ 	nodeInfos.kernelInfos.isScheModeOn = GetScheMode();
     aclRet = aclrtFunctionGetBinary(kernelParams.funcHandle, &nodeInfos.kernelInfos.binHdl);
     if (aclRet != ACL_SUCCESS) {
         SK_LOGE("Failed to get kernel bin handle for %s, ret=%d",
@@ -616,24 +607,24 @@ bool SuperKernelKernelNode::InitNode() {
     return true;
 }
 
-bool SuperKernelKernelNode::GetSchoMode() const
+bool SuperKernelKernelNode::GetScheMode() const
 {
     const aclmdlRIKernelTaskParams& kernelParams = taskParams.kernelTaskParams;
-    const SchoModeState funcAttrSchoModeState = GetSchoModeFromFuncAttr(kernelParams.funcHandle);
-    const SchoModeState launchCfgSchoModeState = GetSchoModeFromKernelCfg(kernelParams.cfg);
+    const ScheModeState funcAttrScheModeState = GetScheModeFromFuncAttr(kernelParams.funcHandle);
+    const ScheModeState launchAttrScheModeState = GetScheModeFromKernelTask(*originTask);
 
-    SchoModeState finalSchoModeState = SchoModeState::SCHO_MODE_OFF;
-    if (launchCfgSchoModeState != SchoModeState::NONE) {
-        finalSchoModeState = launchCfgSchoModeState;
-    } else if (funcAttrSchoModeState != SchoModeState::NONE) {
-        finalSchoModeState = funcAttrSchoModeState;
+    ScheModeState finalScheModeState = ScheModeState::SCHE_MODE_OFF;
+    if (launchAttrScheModeState != ScheModeState::NONE) {
+        finalScheModeState = launchAttrScheModeState;
+    } else if (funcAttrScheModeState != ScheModeState::NONE) {
+        finalScheModeState = funcAttrScheModeState;
     }
 
-    SK_LOGI("schmode detect result: funcAttrState=%ld, launchCfgState=%ld, finalState=%ld",
-        static_cast<int64_t>(funcAttrSchoModeState),
-        static_cast<int64_t>(launchCfgSchoModeState),
-        static_cast<int64_t>(finalSchoModeState));
-    return finalSchoModeState == SchoModeState::SCHO_MODE_ON;
+    SK_LOGI("schemode detect result: funcAttrState=%ld, launchAttrState=%ld, finalState=%ld",
+        static_cast<int64_t>(funcAttrScheModeState),
+        static_cast<int64_t>(launchAttrScheModeState),
+        static_cast<int64_t>(finalScheModeState));
+    return finalScheModeState == ScheModeState::SCHE_MODE_ON;
 }
 
 std::string SuperKernelKernelNode::Format() const {
@@ -654,7 +645,7 @@ std::string KernelInfos::Format() const {
         << ", numBlocks:" << numBlocks
         << ", cubeNum:" << cubeNum
         << ", vecNum:" << vecNum
-        << ", isSchoModeOn:" << isSchoModeOn
+        << ", isScheModeOn:" << isScheModeOn
         << ", resolvedNum:" << resolvedNum;
     if (binHdl != nullptr) {
         oss << ", binHdl:0x" << std::hex << reinterpret_cast<uintptr_t>(binHdl) << std::dec;

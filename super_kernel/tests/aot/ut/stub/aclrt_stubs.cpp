@@ -429,6 +429,41 @@ aclError aclmdlRITaskGetSeqId(aclmdlRITask task, uint32_t *id) {
     return ACL_ERROR_NONE;
 }
 
+aclError aclmdlRIKernelTaskGetAttribute(aclmdlRITask task, aclrtLaunchKernelAttrId attrId, aclrtLaunchKernelAttrValue *attrValue)
+{
+    if (task == nullptr || attrValue == nullptr) {
+        return ACL_ERROR_INVALID_PARAM;
+    }
+
+    AclmdlRITaskInternal* internal = RITaskToInternal(task);
+    if (internal->type != ACL_MODEL_RI_TASK_KERNEL) {
+        return ACL_ERROR_INVALID_PARAM;
+    }
+
+    std::memset(attrValue, 0, sizeof(*attrValue));
+    if (attrId != ACL_RT_LAUNCH_KERNEL_ATTR_SCHEM_MODE) {
+        return ACL_ERROR_NONE;
+    }
+
+    aclrtLaunchKernelCfg* cfg = internal->params.kernelTaskParams.cfg;
+    if (cfg == nullptr || cfg->attrs == nullptr || cfg->numAttrs == 0) {
+        attrValue->schemMode = 0;
+        return ACL_ERROR_NONE;
+    }
+
+    for (size_t attrIdx = 0; attrIdx < cfg->numAttrs; ++attrIdx) {
+        const aclrtLaunchKernelAttr& launchAttr = cfg->attrs[attrIdx];
+        if (launchAttr.id != attrId) {
+            continue;
+        }
+        *attrValue = launchAttr.value;
+        return ACL_ERROR_NONE;
+    }
+
+    attrValue->schemMode = 0;
+    return ACL_ERROR_NONE;
+}
+
 aclError aclmdlRIGetTasksByStream(aclrtStream stream, aclmdlRITask *tasks, uint32_t *numTasks) {
     if (numTasks == nullptr) {
         return ACL_ERROR_INVALID_PARAM;

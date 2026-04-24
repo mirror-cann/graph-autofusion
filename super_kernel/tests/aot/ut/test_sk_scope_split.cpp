@@ -317,10 +317,10 @@ protected:
         EXPECT_EQ(actualNodeIds, sortedExpected);
     }
 
-    // Helper function to create a kernel node with SchoMode configuration
-    SuperKernelBaseNode* CreateSchoModeKernelNode(uint64_t nodeId, uint32_t streamIdx,
+    // Helper function to create a kernel node with ScheMode configuration
+    SuperKernelBaseNode* CreateScheModeKernelNode(uint64_t nodeId, uint32_t streamIdx,
                                                    uint32_t cubeNum, uint32_t vecNum,
-                                                   bool isSchoModeOn = true,
+                                                   bool isScheModeOn = true,
                                                    uint64_t nextNodeId = INVALID_TASK_ID) {
         auto node = std::make_unique<SuperKernelKernelNode>(
             nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, streamIdx, INVALID_STREAM_ID, INVALID_TASK_ID);
@@ -332,8 +332,8 @@ protected:
         node->nodeInfos.kernelInfos.kernelType = SkKernelType::AIC_ONLY;
         node->nodeInfos.kernelInfos.cubeNum = cubeNum;
         node->nodeInfos.kernelInfos.vecNum = vecNum;
-        // 打桩：直接设置 isSchoModeOn
-        node->nodeInfos.kernelInfos.isSchoModeOn = isSchoModeOn;
+        // 打桩：直接设置 isScheModeOn
+        node->nodeInfos.kernelInfos.isScheModeOn = isScheModeOn;
         SuperKernelBaseNode* ptr = node.get();
         graph->graphMap[nodeId] = std::move(node);
         return ptr;
@@ -3212,32 +3212,32 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase55_MultipleOnlyEventNodes)
     EXPECT_EQ(scopes.size(), 0);
 }
 
-// ==================== SchoModeKernelSplitPass 专项测试用例 ====================
+// ==================== ScheModeKernelSplitPass 专项测试用例 ====================
 
-// ==================== SchoMode 测试 1: 空Scope被丢弃 ====================
-TEST_F(SuperKernelScopeSplitterTest, SchoMode_EmptyScope_Dropped)
+// ==================== ScheMode 测试 1: 空Scope被丢弃 ====================
+TEST_F(SuperKernelScopeSplitterTest, ScheMode_EmptyScope_Dropped)
 {
     // 空的 scope 会被 Pass 丢弃（不添加到 outputScopes）
     std::vector<SuperKernelScopeInfo> inputScopes;
     inputScopes.push_back(BuildTestScope({}));
 
-    SchoModeKernelSplitPass pass(*graph);
+    ScheModeKernelSplitPass pass(*graph);
     bool result = pass.Run(inputScopes);
 
     EXPECT_TRUE(result);
     EXPECT_EQ(inputScopes.size(), 0);   // 空scope被丢弃
 }
 
-// ==================== SchoMode 测试 2: 单个节点不分割 ====================
-TEST_F(SuperKernelScopeSplitterTest, SchoMode_SingleNode_NoSplit)
+// ==================== ScheMode 测试 2: 单个节点不分割 ====================
+TEST_F(SuperKernelScopeSplitterTest, ScheMode_SingleNode_NoSplit)
 {
-    // 单个 kernel 节点（无论是否是 SchoMode），不应触发分割
-    auto* k1 = CreateSchoModeKernelNode(1, 0, 4, 2, true);
+    // 单个 kernel 节点（无论是否是 ScheMode），不应触发分割
+    auto* k1 = CreateScheModeKernelNode(1, 0, 4, 2, true);
 
     std::vector<SuperKernelScopeInfo> inputScopes;
     inputScopes.push_back(BuildTestScope({k1}));
 
-    SchoModeKernelSplitPass pass(*graph);
+    ScheModeKernelSplitPass pass(*graph);
     bool result = pass.Run(inputScopes);
 
     EXPECT_TRUE(result);
@@ -3245,18 +3245,18 @@ TEST_F(SuperKernelScopeSplitterTest, SchoMode_SingleNode_NoSplit)
     EXPECT_EQ(inputScopes[0].nodes_.size(), 1); // 包含该节点
 }
 
-// ==================== SchoMode 测试 3: 所有非SchoMode节点不分割 ====================
-TEST_F(SuperKernelScopeSplitterTest, SchoMode_AllNonSchoModeNodes_NoSplit)
+// ==================== ScheMode 测试 3: 所有非ScheMode节点不分割 ====================
+TEST_F(SuperKernelScopeSplitterTest, ScheMode_AllNonScheModeNodes_NoSplit)
 {
-    // 多个普通 kernel 节点（isSchoModeOn=false），core递增，但不应触发分割
-    auto* k1 = CreateSchoModeKernelNode(1, 0, 2, 1, false, 2);
-    auto* k2 = CreateSchoModeKernelNode(2, 0, 4, 2, false, 3);
-    auto* k3 = CreateSchoModeKernelNode(3, 0, 8, 4, false);
+    // 多个普通 kernel 节点（isScheModeOn=false），core递增，但不应触发分割
+    auto* k1 = CreateScheModeKernelNode(1, 0, 2, 1, false, 2);
+    auto* k2 = CreateScheModeKernelNode(2, 0, 4, 2, false, 3);
+    auto* k3 = CreateScheModeKernelNode(3, 0, 8, 4, false);
 
     std::vector<SuperKernelScopeInfo> inputScopes;
     inputScopes.push_back(BuildTestScope({k1, k2, k3}));
 
-    SchoModeKernelSplitPass pass(*graph);
+    ScheModeKernelSplitPass pass(*graph);
     bool result = pass.Run(inputScopes);
 
     EXPECT_TRUE(result);
@@ -3264,18 +3264,18 @@ TEST_F(SuperKernelScopeSplitterTest, SchoMode_AllNonSchoModeNodes_NoSplit)
     EXPECT_EQ(inputScopes[0].nodes_.size(), 3); // 3个节点全部保留
 }
 
-// ==================== SchoMode 测试 4: SchoMode节点Core递增不分割 ====================
-TEST_F(SuperKernelScopeSplitterTest, SchoMode_IncreasingCores_NoSplit)
+// ==================== ScheMode 测试 4: ScheMode节点Core递增不分割 ====================
+TEST_F(SuperKernelScopeSplitterTest, ScheMode_IncreasingCores_NoSplit)
 {
-    // SchoMode 节点的 core 需求递增 (2,1) -> (4,2) -> (8,4)，不应触发分割
-    auto* k1 = CreateSchoModeKernelNode(1, 0, 2, 1, true, 2);
-    auto* k2 = CreateSchoModeKernelNode(2, 0, 4, 2, true, 3);
-    auto* k3 = CreateSchoModeKernelNode(3, 0, 8, 4, true);
+    // ScheMode 节点的 core 需求递增 (2,1) -> (4,2) -> (8,4)，不应触发分割
+    auto* k1 = CreateScheModeKernelNode(1, 0, 2, 1, true, 2);
+    auto* k2 = CreateScheModeKernelNode(2, 0, 4, 2, true, 3);
+    auto* k3 = CreateScheModeKernelNode(3, 0, 8, 4, true);
 
     std::vector<SuperKernelScopeInfo> inputScopes;
     inputScopes.push_back(BuildTestScope({k1, k2, k3}));
 
-    SchoModeKernelSplitPass pass(*graph);
+    ScheModeKernelSplitPass pass(*graph);
     bool result = pass.Run(inputScopes);
 
     EXPECT_TRUE(result);
@@ -3283,18 +3283,18 @@ TEST_F(SuperKernelScopeSplitterTest, SchoMode_IncreasingCores_NoSplit)
     EXPECT_EQ(inputScopes[0].nodes_.size(), 3); // 全部在一个scope中
 }
 
-// ==================== SchoMode 测试 5: SchoMode节点Core相等不分割 ====================
-TEST_F(SuperKernelScopeSplitterTest, SchoMode_EqualCores_NoSplit)
+// ==================== ScheMode 测试 5: ScheMode节点Core相等不分割 ====================
+TEST_F(SuperKernelScopeSplitterTest, ScheMode_EqualCores_NoSplit)
 {
-    // SchoMode 节点的 core 需求相等 (4,2) == (4,2)，不应触发分割
-    auto* k1 = CreateSchoModeKernelNode(1, 0, 4, 2, true, 2);
-    auto* k2 = CreateSchoModeKernelNode(2, 0, 4, 2, true, 3);
-    auto* k3 = CreateSchoModeKernelNode(3, 0, 4, 2, true);
+    // ScheMode 节点的 core 需求相等 (4,2) == (4,2)，不应触发分割
+    auto* k1 = CreateScheModeKernelNode(1, 0, 4, 2, true, 2);
+    auto* k2 = CreateScheModeKernelNode(2, 0, 4, 2, true, 3);
+    auto* k3 = CreateScheModeKernelNode(3, 0, 4, 2, true);
 
     std::vector<SuperKernelScopeInfo> inputScopes;
     inputScopes.push_back(BuildTestScope({k1, k2, k3}));
 
-    SchoModeKernelSplitPass pass(*graph);
+    ScheModeKernelSplitPass pass(*graph);
     bool result = pass.Run(inputScopes);
 
     EXPECT_TRUE(result);
@@ -3302,19 +3302,19 @@ TEST_F(SuperKernelScopeSplitterTest, SchoMode_EqualCores_NoSplit)
     EXPECT_EQ(inputScopes[0].nodes_.size(), 3); // 全部在一个scope中
 }
 
-// ==================== SchoMode 测试 6: SchoMode Core下降时连续分割 ====================
-TEST_F(SuperKernelScopeSplitterTest, SchoMode_DecreasingCube_SplitAtDropPoint)
+// ==================== ScheMode 测试 6: ScheMode Core下降时连续分割 ====================
+TEST_F(SuperKernelScopeSplitterTest, ScheMode_DecreasingCube_SplitAtDropPoint)
 {
-    // 核心：k1(8,4) -> k2(4,2) [SchoMode, cube下降] -> k3(2,1) [继续下降]
+    // 核心：k1(8,4) -> k2(4,2) [ScheMode, cube下降] -> k3(2,1) [继续下降]
     // 第一次分割在 k2，第二次分割在 k3（因为k3相对于k2的merged(4,2)仍然更小）
-    auto* k1 = CreateSchoModeKernelNode(1, 0, 8, 4, true, 2);
-    auto* k2 = CreateSchoModeKernelNode(2, 0, 4, 2, true, 3);  // 第一次分割点
-    auto* k3 = CreateSchoModeKernelNode(3, 0, 2, 1, true);     // 第二次分割点
+    auto* k1 = CreateScheModeKernelNode(1, 0, 8, 4, true, 2);
+    auto* k2 = CreateScheModeKernelNode(2, 0, 4, 2, true, 3);  // 第一次分割点
+    auto* k3 = CreateScheModeKernelNode(3, 0, 2, 1, true);     // 第二次分割点
 
     std::vector<SuperKernelScopeInfo> inputScopes;
     inputScopes.push_back(BuildTestScope({k1, k2, k3}));
 
-    SchoModeKernelSplitPass pass(*graph);
+    ScheModeKernelSplitPass pass(*graph);
     bool result = pass.Run(inputScopes);
 
     EXPECT_TRUE(result);
@@ -3330,19 +3330,19 @@ TEST_F(SuperKernelScopeSplitterTest, SchoMode_DecreasingCube_SplitAtDropPoint)
     EXPECT_EQ(inputScopes[2].nodes_[0]->GetNodeId(), 3);
 }
 
-// ==================== SchoMode 测试 7: SchoMode Vec下降连续分割 ====================
-TEST_F(SuperKernelScopeSplitterTest, SchoMode_DecreasingVec_SplitAtDropPoint)
+// ==================== ScheMode 测试 7: ScheMode Vec下降连续分割 ====================
+TEST_F(SuperKernelScopeSplitterTest, ScheMode_DecreasingVec_SplitAtDropPoint)
 {
-    // 核心：k1(4,8) -> k2(4,4) [SchoMode, vec下降] -> k3(4,2) [继续下降]
+    // 核心：k1(4,8) -> k2(4,4) [ScheMode, vec下降] -> k3(4,2) [继续下降]
     // vec 连续下降，每次都会触发分割
-    auto* k1 = CreateSchoModeKernelNode(1, 0, 4, 8, true, 2);
-    auto* k2 = CreateSchoModeKernelNode(2, 0, 4, 4, true, 3);  // vec下降，第一次分割点
-    auto* k3 = CreateSchoModeKernelNode(3, 0, 4, 2, true);     // vec继续下降，第二次分割点
+    auto* k1 = CreateScheModeKernelNode(1, 0, 4, 8, true, 2);
+    auto* k2 = CreateScheModeKernelNode(2, 0, 4, 4, true, 3);  // vec下降，第一次分割点
+    auto* k3 = CreateScheModeKernelNode(3, 0, 4, 2, true);     // vec继续下降，第二次分割点
 
     std::vector<SuperKernelScopeInfo> inputScopes;
     inputScopes.push_back(BuildTestScope({k1, k2, k3}));
 
-    SchoModeKernelSplitPass pass(*graph);
+    ScheModeKernelSplitPass pass(*graph);
     bool result = pass.Run(inputScopes);
 
     EXPECT_TRUE(result);
@@ -3358,41 +3358,41 @@ TEST_F(SuperKernelScopeSplitterTest, SchoMode_DecreasingVec_SplitAtDropPoint)
     EXPECT_EQ(inputScopes[2].nodes_[0]->GetNodeId(), 3);
 }
 
-// ==================== SchoMode 测试 8: 混合SchoMode与非SchoMode节点 ====================
-TEST_F(SuperKernelScopeSplitterTest, SchoMode_MixedWithNonSchoMode_NonSchoModeIgnored)
+// ==================== ScheMode 测试 8: 混合ScheMode与非ScheMode节点 ====================
+TEST_F(SuperKernelScopeSplitterTest, ScheMode_MixedWithNonScheMode_NonScheModeIgnored)
 {
-    // k1(SchoMode, 8,4) -> k2(非SchoMode, 2,1) -> k3(SchoMode, 4,2)
-    // k2 不是 SchoMode，应被忽略（max merge），不会触发分割
-    auto* k1 = CreateSchoModeKernelNode(1, 0, 8, 4, true, 2);
-    auto* k2 = CreateSchoModeKernelNode(2, 0, 2, 1, false, 3);  // 非SchoMode，忽略
-    auto* k3 = CreateSchoModeKernelNode(3, 0, 4, 2, true);      // SchoMode但比merged小？不，max后是(8,4), (4,2)更小！
+    // k1(ScheMode, 8,4) -> k2(非ScheMode, 2,1) -> k3(ScheMode, 4,2)
+    // k2 不是 ScheMode，应被忽略（max merge），不会触发分割
+    auto* k1 = CreateScheModeKernelNode(1, 0, 8, 4, true, 2);
+    auto* k2 = CreateScheModeKernelNode(2, 0, 2, 1, false, 3);  // 非ScheMode，忽略
+    auto* k3 = CreateScheModeKernelNode(3, 0, 4, 2, true);      // ScheMode但比merged小？不，max后是(8,4), (4,2)更小！
 
     std::vector<SuperKernelScopeInfo> inputScopes;
     inputScopes.push_back(BuildTestScope({k1, k2, k3}));
 
-    SchoModeKernelSplitPass pass(*graph);
+    ScheModeKernelSplitPass pass(*graph);
     bool result = pass.Run(inputScopes);
 
     EXPECT_TRUE(result);
-    // merged: k1=(8,4), k2(max)=(8,4), k3是SchoMode且(4,2)<(8,4) => 分割！
+    // merged: k1=(8,4), k2(max)=(8,4), k3是ScheMode且(4,2)<(8,4) => 分割！
     EXPECT_EQ(inputScopes.size(), 2);  // 在k3处分割
     EXPECT_EQ(inputScopes[0].nodes_[0]->GetNodeId(), 1);  // scopeBefore含k1,k2
     EXPECT_EQ(inputScopes[1].nodes_[0]->GetNodeId(), 3);  // scopeAfter从k3开始
 }
 
-// ==================== SchoMode 测试 9: 多次连续分割 ====================
-TEST_F(SuperKernelScopeSplitterTest, SchoMode_MultipleSplits_ConsecutiveDrops)
+// ==================== ScheMode 测试 9: 多次连续分割 ====================
+TEST_F(SuperKernelScopeSplitterTest, ScheMode_MultipleSplits_ConsecutiveDrops)
 {
     // k1(8,4) -> k2(4,2)[降,分割] -> k3(2,1)[再降,再分割]
     // 应产生多次分割，最终得到3个scope
-    auto* k1 = CreateSchoModeKernelNode(1, 0, 8, 4, true, 2);
-    auto* k2 = CreateSchoModeKernelNode(2, 0, 4, 2, true, 3);  // 第一次分割点
-    auto* k3 = CreateSchoModeKernelNode(3, 0, 2, 1, true);     // 第二次分割点
+    auto* k1 = CreateScheModeKernelNode(1, 0, 8, 4, true, 2);
+    auto* k2 = CreateScheModeKernelNode(2, 0, 4, 2, true, 3);  // 第一次分割点
+    auto* k3 = CreateScheModeKernelNode(3, 0, 2, 1, true);     // 第二次分割点
 
     std::vector<SuperKernelScopeInfo> inputScopes;
     inputScopes.push_back(BuildTestScope({k1, k2, k3}));
 
-    SchoModeKernelSplitPass pass(*graph);
+    ScheModeKernelSplitPass pass(*graph);
     bool result = pass.Run(inputScopes);
 
     EXPECT_TRUE(result);
@@ -3406,20 +3406,20 @@ TEST_F(SuperKernelScopeSplitterTest, SchoMode_MultipleSplits_ConsecutiveDrops)
     EXPECT_EQ(inputScopes[2].nodes_[0]->GetNodeId(), 3);
 }
 
-// ==================== SchoMode 测试 10: 先增后降模式 ====================
-TEST_F(SuperKernelScopeSplitterTest, SchoMode_IncreaseThenDecrease_SplitOnlyAtDrop)
+// ==================== ScheMode 测试 10: 先增后降模式 ====================
+TEST_F(SuperKernelScopeSplitterTest, ScheMode_IncreaseThenDecrease_SplitOnlyAtDrop)
 {
     // k1(2,1) -> k2(4,2)[增] -> k3(8,4)[增] -> k4(4,2)[降,分割]
     // 前三个递增不分割，在k4处才分割
-    auto* k1 = CreateSchoModeKernelNode(1, 0, 2, 1, true, 2);
-    auto* k2 = CreateSchoModeKernelNode(2, 0, 4, 2, true, 3);
-    auto* k3 = CreateSchoModeKernelNode(3, 0, 8, 4, true, 4);
-    auto* k4 = CreateSchoModeKernelNode(4, 0, 4, 2, true);  // 分割点
+    auto* k1 = CreateScheModeKernelNode(1, 0, 2, 1, true, 2);
+    auto* k2 = CreateScheModeKernelNode(2, 0, 4, 2, true, 3);
+    auto* k3 = CreateScheModeKernelNode(3, 0, 8, 4, true, 4);
+    auto* k4 = CreateScheModeKernelNode(4, 0, 4, 2, true);  // 分割点
 
     std::vector<SuperKernelScopeInfo> inputScopes;
     inputScopes.push_back(BuildTestScope({k1, k2, k3, k4}));
 
-    SchoModeKernelSplitPass pass(*graph);
+    ScheModeKernelSplitPass pass(*graph);
     bool result = pass.Run(inputScopes);
 
     EXPECT_TRUE(result);
@@ -3432,21 +3432,21 @@ TEST_F(SuperKernelScopeSplitterTest, SchoMode_IncreaseThenDecrease_SplitOnlyAtDr
     EXPECT_EQ(inputScopes[1].nodes_[0]->GetNodeId(), 4);
 }
 
-// ==================== SchoMode 测试 11: 多个输入Scope独立处理 ====================
-TEST_F(SuperKernelScopeSplitterTest, SchoMode_MultipleInputScopes_ProcessedIndependently)
+// ==================== ScheMode 测试 11: 多个输入Scope独立处理 ====================
+TEST_F(SuperKernelScopeSplitterTest, ScheMode_MultipleInputScopes_ProcessedIndependently)
 {
     // Scope A: k1(4,2)->k2(2,1) [应分割]
     // Scope B: k3(2,1)->k4(4,2) [不分割]
-    auto* k1 = CreateSchoModeKernelNode(1, 0, 4, 2, true, 2);
-    auto* k2 = CreateSchoModeKernelNode(2, 0, 2, 1, true);
-    auto* k3 = CreateSchoModeKernelNode(3, 0, 2, 1, true, 4);
-    auto* k4 = CreateSchoModeKernelNode(4, 0, 4, 2, true);
+    auto* k1 = CreateScheModeKernelNode(1, 0, 4, 2, true, 2);
+    auto* k2 = CreateScheModeKernelNode(2, 0, 2, 1, true);
+    auto* k3 = CreateScheModeKernelNode(3, 0, 2, 1, true, 4);
+    auto* k4 = CreateScheModeKernelNode(4, 0, 4, 2, true);
 
     std::vector<SuperKernelScopeInfo> inputScopes;
     inputScopes.push_back(BuildTestScope({k1, k2}));
     inputScopes.push_back(BuildTestScope({k3, k4}));
 
-    SchoModeKernelSplitPass pass(*graph);
+    ScheModeKernelSplitPass pass(*graph);
     bool result = pass.Run(inputScopes);
 
     EXPECT_TRUE(result);
@@ -3464,38 +3464,38 @@ TEST_F(SuperKernelScopeSplitterTest, SchoMode_MultipleInputScopes_ProcessedIndep
     EXPECT_TRUE(foundK3K4);
 }
 
-// ==================== SchoMode 测试 12: Cube相同Vec更小时分割 ====================
-TEST_F(SuperKernelScopeSplitterTest, SchoMode_SameCubeSmallerVec_Split)
+// ==================== ScheMode 测试 12: Cube相同Vec更小时分割 ====================
+TEST_F(SuperKernelScopeSplitterTest, ScheMode_SameCubeSmallerVec_Split)
 {
     // k1(4,4) -> k2(4,2) [cube相同但vec更小]
     // 条件: (curCube < mergedCube || curVec < mergedVec) 且不是greater
     // curCube==mergedCube, curVec<mergedVec => isSmallerThanMerged=true
-    auto* k1 = CreateSchoModeKernelNode(1, 0, 4, 4, true, 2);
-    auto* k2 = CreateSchoModeKernelNode(2, 0, 4, 2, true);
+    auto* k1 = CreateScheModeKernelNode(1, 0, 4, 4, true, 2);
+    auto* k2 = CreateScheModeKernelNode(2, 0, 4, 2, true);
 
     std::vector<SuperKernelScopeInfo> inputScopes;
     inputScopes.push_back(BuildTestScope({k1, k2}));
 
-    SchoModeKernelSplitPass pass(*graph);
+    ScheModeKernelSplitPass pass(*graph);
     bool result = pass.Run(inputScopes);
 
     EXPECT_TRUE(result);
     EXPECT_EQ(inputScopes.size(), 2);  // vec下降触发分割
 }
 
-// ==================== SchoMode 测试 13: Cube更大但Vec更小时分割 ====================
-TEST_F(SuperKernelScopeSplitterTest, SchoMode_LargerCubeSmallerVec_Split)
+// ==================== ScheMode 测试 13: Cube更大但Vec更小时分割 ====================
+TEST_F(SuperKernelScopeSplitterTest, ScheMode_LargerCubeSmallerVec_Split)
 {
     // k1(4,4) -> k2(8,2) [cube增大但vec减小]
     // 判断条件: (curCube < mergedCube) || (curVec < mergedVec)
     // (8 < 4) || (2 < 4) = false || true = true => 触发分割
-    auto* k1 = CreateSchoModeKernelNode(1, 0, 4, 4, true, 2);
-    auto* k2 = CreateSchoModeKernelNode(2, 0, 8, 2, true);
+    auto* k1 = CreateScheModeKernelNode(1, 0, 4, 4, true, 2);
+    auto* k2 = CreateScheModeKernelNode(2, 0, 8, 2, true);
 
     std::vector<SuperKernelScopeInfo> inputScopes;
     inputScopes.push_back(BuildTestScope({k1, k2}));
 
-    SchoModeKernelSplitPass pass(*graph);
+    ScheModeKernelSplitPass pass(*graph);
     bool result = pass.Run(inputScopes);
 
     EXPECT_TRUE(result);
@@ -3504,27 +3504,48 @@ TEST_F(SuperKernelScopeSplitterTest, SchoMode_LargerCubeSmallerVec_Split)
     EXPECT_EQ(inputScopes[1].nodes_.size(), 1);
 }
 
-// ==================== SchoMode 测试 14: Pass名称验证 ====================
-TEST_F(SuperKernelScopeSplitterTest, SchoMode_PassName_Verification)
+// ==================== ScheMode 测试 14: 当前维度为0时忽略该维判断 ====================
+TEST_F(SuperKernelScopeSplitterTest, ScheMode_ZeroDimension_IgnoredInSplitJudgement)
 {
-    SchoModeKernelSplitPass pass(*graph);
-    EXPECT_EQ(pass.GetName(), "SchoModeKernelSplitPass");
+    // k1(4,4) -> k2(0,8) -> k3(8,0)
+    // k2 的 cube=0，不参与判断；vec 上升，不应分割。
+    // k3 的 vec=0，不参与判断；cube 维持更大，也不应分割。
+    auto* k1 = CreateScheModeKernelNode(1, 0, 4, 4, true, 2);
+    auto* k2 = CreateScheModeKernelNode(2, 0, 0, 8, true, 3);
+    auto* k3 = CreateScheModeKernelNode(3, 0, 8, 0, true);
+
+    std::vector<SuperKernelScopeInfo> inputScopes;
+    inputScopes.push_back(BuildTestScope({k1, k2, k3}));
+
+    ScheModeKernelSplitPass pass(*graph);
+    bool result = pass.Run(inputScopes);
+
+    EXPECT_TRUE(result);
+    EXPECT_EQ(inputScopes.size(), 1);
+    EXPECT_EQ(inputScopes[0].nodes_.size(), 3);
 }
 
-// ==================== SchoMode 测试 15: Run返回值始终为true ====================
-TEST_F(SuperKernelScopeSplitterTest, SchoMode_RunAlwaysReturnsTrue)
+// ==================== ScheMode 测试 15: Pass名称验证 ====================
+TEST_F(SuperKernelScopeSplitterTest, ScheMode_PassName_Verification)
+{
+    ScheModeKernelSplitPass pass(*graph);
+    EXPECT_EQ(pass.GetName(), "ScheModeKernelSplitPass");
+}
+
+// ==================== ScheMode 测试 16: Run返回值始终为true ====================
+TEST_F(SuperKernelScopeSplitterTest, ScheMode_RunAlwaysReturnsTrue)
 {
     // 各种输入场景下Run都应返回true
     {   // 空输入
         std::vector<SuperKernelScopeInfo> emptyScopes;
-        SchoModeKernelSplitPass pass(*graph);
+        ScheModeKernelSplitPass pass(*graph);
         EXPECT_TRUE(pass.Run(emptyScopes));
     }
     {   // 正常输入
-        auto* k1 = CreateSchoModeKernelNode(1, 0, 4, 2, true);
+        auto* k1 = CreateScheModeKernelNode(1, 0, 4, 2, true);
         std::vector<SuperKernelScopeInfo> scopes;
         scopes.push_back(BuildTestScope({k1}));
-        SchoModeKernelSplitPass pass(*graph);
+        ScheModeKernelSplitPass pass(*graph);
         EXPECT_TRUE(pass.Run(scopes));
     }
 }

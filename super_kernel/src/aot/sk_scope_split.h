@@ -19,7 +19,7 @@
  * The scope splitting is implemented as a multi-pass pipeline, similar to compiler passes:
  * - Pass 0: Initial scope splitting based on fusibility and scopeBitFlags
  * - Pass 1: Deadlock detection and scope refinement
- * - Pass 2: SchoMode kernel core trend based split refinement
+ * - Pass 2: ScheMode kernel core trend based split refinement
  * - Pass 3: Remove event-only streams from scopes
  * 
  * Key Concepts:
@@ -179,13 +179,13 @@ protected:
     SuperKernelScopeSplitter* splitter_;  ///< Reference to splitter for re-split requests
 };
 
-// ============ Pass 3: Event-Only Stream Remove (after SchoModeKernelSplit) ============
+// ============ Pass 3: Event-Only Stream Remove (after ScheModeKernelSplit) ============
 
 /*!
  * \class EventOnlyStreamRemovePass
  * \brief Pass 3: Mark event-only stream nodes as non-fusible to trigger re-split
  *
- * This pass runs after SchoModeKernelSplitPass to detect scopes that contain streams
+ * This pass runs after ScheModeKernelSplitPass to detect scopes that contain streams
  * with only event nodes (NODE_NOTIFY, NODE_WAIT, NODE_RESET, NODE_MEMORY_WRITE,
  * NODE_MEMORY_WAIT). Instead of removing such streams directly, it marks all event
  * nodes in those streams as non-fusible and signals the pipeline to re-run scope
@@ -372,45 +372,45 @@ private:
     LockDetector lockDetector_;
 };
 
-// ============ Pass 3: SchoMode Kernel Core Split Refinement ============
+// ============ Pass 3: ScheMode Kernel Core Split Refinement ============
 
 /*!
- * \enum SchoModeScopeProcessResult
- * \brief Result of processing a single scope for SchoMode kernel split refinement
+ * \enum ScheModeScopeProcessResult
+ * \brief Result of processing a single scope for ScheMode kernel split refinement
  */
-enum class SchoModeScopeProcessResult {
+enum class ScheModeScopeProcessResult {
     NO_SPLIT,          ///< No split required, scope is output as-is
     SPLIT_RESOLVED     ///< Split required and completed, remaining part returned via pendingScope
 };
 
 /*!
- * \class SchoModeKernelSplitPass
- * \brief Pass 3: Refine scopes based on SchoMode kernel core trend
+ * \class ScheModeKernelSplitPass
+ * \brief Pass 3: Refine scopes based on ScheMode kernel core trend
  *
  * Rules:
  * - Traverse nodes in a scope and merge kernel core requirement using max(cube), max(vec)
- * - When a kernel node with IsSchoModeOn()==true is encountered:
+ * - When a kernel node with IsScheModeOn()==true is encountered:
  *   - If its core requirement is greater than merged previous requirement, keep merging
  *   - If its core requirement is smaller than merged previous requirement, split at this node
  * - Split point kernel is included in the "after" scope
  */
-class SchoModeKernelSplitPass : public ScopeSplitPass {
+class ScheModeKernelSplitPass : public ScopeSplitPass {
 public:
-    explicit SchoModeKernelSplitPass(SuperKernelGraph& inputGraph);
-    ~SchoModeKernelSplitPass() = default;
+    explicit ScheModeKernelSplitPass(SuperKernelGraph& inputGraph);
+    ~ScheModeKernelSplitPass() = default;
 
     bool Run(std::vector<SuperKernelScopeInfo>& scopes) override;
-    std::string GetName() const override { return "SchoModeKernelSplitPass"; }
+    std::string GetName() const override { return "ScheModeKernelSplitPass"; }
 
 private:
     /*!
-     * \brief Process a single scope and split if SchoMode rule requires
+     * \brief Process a single scope and split if ScheMode rule requires
      * \param scopeToProcess Input scope to process (moved)
      * \param outputScopes Output refined scopes
      * \param pendingScope Remaining part after split, if any
      * \return Processing result
      */
-    SchoModeScopeProcessResult ProcessSingleScope(
+    ScheModeScopeProcessResult ProcessSingleScope(
         SuperKernelScopeInfo&& scopeToProcess,
         std::vector<SuperKernelScopeInfo>& outputScopes,
         std::optional<SuperKernelScopeInfo>& pendingScope);
