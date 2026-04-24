@@ -1160,6 +1160,7 @@ TEST_F(SkTaskBuilderTest, GenEntryArgs_WithoutWorkspace_IgnoresSecondMemsetFailu
 
 TEST_F(SkTaskBuilderTest, GenEntryArgs_CounterOffsetAlignedTo64Bytes)
 {
+    constexpr size_t queueShardCount = 4;
     SkTask aic;
     SkTask aiv;
     ASSERT_TRUE(aic.taskQue.Init(1));
@@ -1169,7 +1170,13 @@ TEST_F(SkTaskBuilderTest, GenEntryArgs_CounterOffsetAlignedTo64Bytes)
     DeviceArgsPtr devArgs = builder->GenEntryArgs(aic, aiv, &dfx, 1);
     ASSERT_NE(devArgs.Get(), nullptr);
 
-    size_t rawCounterOffset = sizeof(SkHeaderInfo) + aic.GetTaskQueSize() + aiv.GetTaskQueSize();
+    size_t expectedAicOffset = sizeof(SkHeaderInfo);
+    size_t expectedAivOffset = expectedAicOffset + aic.GetTaskQueSize() * queueShardCount;
+    size_t rawCounterOffset = expectedAivOffset + aiv.GetTaskQueSize() * queueShardCount;
+    EXPECT_EQ(devArgs.Get()->skHeader.aicQueSize, aic.GetTaskQueSize());
+    EXPECT_EQ(devArgs.Get()->skHeader.aivQueSize, aiv.GetTaskQueSize());
+    EXPECT_EQ(devArgs.Get()->skHeader.aicQueOffset, expectedAicOffset);
+    EXPECT_EQ(devArgs.Get()->skHeader.aivQueOffset, expectedAivOffset);
     EXPECT_NE(rawCounterOffset % 64, 0U);
     EXPECT_EQ(devArgs.Get()->skHeader.counterOffset % 64, 0U);
     EXPECT_GE(devArgs.Get()->skHeader.counterOffset, rawCounterOffset);
