@@ -136,7 +136,7 @@ ScheModeState GetScheModeFromKernelTask(aclmdlRITask kernelTask)
     aclrtLaunchKernelAttrValue launchAttr;
 
     ScheModeState scheModeState = ScheModeState::NONE;
-    scheModeState = ParseScheModeState(static_cast<int64_t>(launchAttr.schemMode));
+    scheModeState = ParseScheModeState(static_cast<int64_t>(0));
     SK_LOGI("Query kernel task schemode end, kernelTask=%p, rawSchemMode=%ld, parsedState=%ld",
         kernelTask, static_cast<int64_t>(launchAttr.schemMode), static_cast<int64_t>(scheModeState));
     return ScheModeState::NONE;
