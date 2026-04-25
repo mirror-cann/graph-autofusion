@@ -14,6 +14,7 @@ See LICENSE in the root of the software repository for the full text of the Lice
     <package_info>
         <product_name>cann</product_name>
         <func_name>graph-autofusion</func_name>
+        <share_info_name>graph_autofusion</share_info_name>
         <suffix>run</suffix>
         <install_script>share/info/graph_autofusion/script/install.sh</install_script>
         <help>share/info/graph_autofusion/script/help.info</help>
@@ -34,6 +35,7 @@ See LICENSE in the root of the software repository for the full text of the Lice
     <version_info install="true" install_path="graph_autofusion" install_own="$username:$usergroup" install_mod="440"/>
     <file_info value="graph_autofusion_script" copy_type="source" src_path="" dst_path="share/info/graph_autofusion" install_path="share/info/graph_autofusion">
         <file value="script" entity="true"/>
+        <file value="filelist.csv" copy_type="delivery" dst_path="share/info/graph_autofusion/script" install_path="share/info/graph_autofusion/script"/>
         <file value="version.info"/>
     </file_info>
     <block_info dependtree="false" dst_path="" block_conf_path="ascend">

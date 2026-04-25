@@ -23,10 +23,9 @@ endif ()
 # 打印路径
 message(STATUS "CMAKE_INSTALL_PREFIX = ${CMAKE_INSTALL_PREFIX}")
 message(STATUS "CMAKE_SOURCE_DIR = ${CMAKE_SOURCE_DIR}")
+message(STATUS "CANN_CMAKE_DIR = ${CANN_CMAKE_DIR}")
 message(STATUS "CMAKE_BINARY_DIR = ${CMAKE_BINARY_DIR}")
 set(ARCH_LINUX_PATH "${ARCH}-linux")
-
-include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/third_party/makeself-fetch.cmake)
 
 set(script_prefix ${CMAKE_CURRENT_SOURCE_DIR}/scripts/package/graph_autofusion/scripts)
 install(DIRECTORY ${script_prefix}/
@@ -42,12 +41,12 @@ install(DIRECTORY ${script_prefix}/
     COMPONENT graph-autofusion
 )
 set(SCRIPTS_FILES
-    ${CMAKE_SOURCE_DIR}/scripts/package/common/sh/check_version_required.awk
-    ${CMAKE_SOURCE_DIR}/scripts/package/common/sh/common_func.inc
-    ${CMAKE_SOURCE_DIR}/scripts/package/common/sh/common_interface.bash
-    ${CMAKE_SOURCE_DIR}/scripts/package/common/sh/common_interface.csh
-    ${CMAKE_SOURCE_DIR}/scripts/package/common/sh/common_interface.fish
-    ${CMAKE_SOURCE_DIR}/scripts/package/common/sh/version_compatiable.inc
+    ${CANN_CMAKE_DIR}/scripts/install/check_version_required.awk
+    ${CANN_CMAKE_DIR}/scripts/install/common_func.inc
+    ${CANN_CMAKE_DIR}/scripts/install/common_interface.sh
+    ${CANN_CMAKE_DIR}/scripts/install/common_interface.csh
+    ${CANN_CMAKE_DIR}/scripts/install/common_interface.fish
+    ${CANN_CMAKE_DIR}/scripts/install/version_compatiable.inc
     ${CMAKE_SOURCE_DIR}/scripts/package/graph_autofusion/scripts/cleanup.sh
     ${CMAKE_SOURCE_DIR}/scripts/package/graph_autofusion/scripts/help.info
     ${CMAKE_SOURCE_DIR}/scripts/package/graph_autofusion/scripts/install.sh
@@ -67,25 +66,19 @@ install(FILES ${SCRIPTS_FILES}
     COMPONENT graph-autofusion
 )
 set(COMMON_FILES
-    ${CMAKE_SOURCE_DIR}/scripts/package/common/sh/install_common_parser.sh
-    ${CMAKE_SOURCE_DIR}/scripts/package/common/sh/common_func_v2.inc
-    ${CMAKE_SOURCE_DIR}/scripts/package/common/sh/common_installer.inc
-    ${CMAKE_SOURCE_DIR}/scripts/package/common/sh/script_operator.inc
-    ${CMAKE_SOURCE_DIR}/scripts/package/common/sh/version_cfg.inc
+    ${CANN_CMAKE_DIR}/scripts/install/install_common_parser.sh
+    ${CANN_CMAKE_DIR}/scripts/install/common_func_v2.inc
+    ${CANN_CMAKE_DIR}/scripts/install/common_installer.inc
+    ${CANN_CMAKE_DIR}/scripts/install/script_operator.inc
+    ${CANN_CMAKE_DIR}/scripts/install/version_cfg.inc
 )
 
 set(PACKAGE_FILES
     ${COMMON_FILES}
-    ${CMAKE_SOURCE_DIR}/scripts/package/common/sh/multi_version.inc
-)
-set(LATEST_MANGER_FILES
-    ${COMMON_FILES}
-    ${CMAKE_SOURCE_DIR}/scripts/package/common/sh/common_func.inc
-    ${CMAKE_SOURCE_DIR}/scripts/package/common/sh/version_compatiable.inc
-    ${CMAKE_SOURCE_DIR}/scripts/package/common/sh/check_version_required.awk
+    ${CANN_CMAKE_DIR}/scripts/install/multi_version.inc
 )
 set(CONF_FILES
-    ${CMAKE_SOURCE_DIR}/scripts/package/common/cfg/path.cfg
+    ${CANN_CMAKE_DIR}/scripts/package/cfg/path.cfg
 )
 install(FILES ${CMAKE_BINARY_DIR}/version.graph-autofusion.info
     DESTINATION share/info/graph_autofusion
@@ -110,23 +103,4 @@ install(FILES super_kernel/include/super_kernel/super_kernel.h
     COMPONENT graph-autofusion
 )
 
-# ============= CPack =============
-set(CPACK_PACKAGE_NAME "${PROJECT_NAME}")
-set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")
-set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}-${CMAKE_SYSTEM_NAME}")
-
-set(CPACK_INSTALL_PREFIX "/")
-
-set(CPACK_CMAKE_SOURCE_DIR "${CMAKE_SOURCE_DIR}")
-set(CPACK_CMAKE_BINARY_DIR "${CMAKE_BINARY_DIR}")
-set(CPACK_CMAKE_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}")
-set(CPACK_CMAKE_CURRENT_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
-set(CPACK_ARCH "${ARCH}")
-set(CPACK_SET_DESTDIR ON)
-set(CPACK_GENERATOR External)
-set(CPACK_EXTERNAL_PACKAGE_SCRIPT "${CMAKE_SOURCE_DIR}/cmake/makeself.cmake")
-set(CPACK_EXTERNAL_ENABLE_STAGING true)
-set(CPACK_PACKAGE_DIRECTORY "${CMAKE_BINARY_DIR}")
-
-message(STATUS "CMAKE_INSTALL_PREFIX = ${CMAKE_INSTALL_PREFIX}")
-include(CPack)
+set_cann_cpack_config(graph-autofusion ENABLE_DEVICE ${ENABLE_DEVICE} SHARE_INFO_NAME graph_autofusion)

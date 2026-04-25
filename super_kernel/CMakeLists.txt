@@ -24,7 +24,6 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/superkernel-0.1.0-py3-none-any.whl ${I
         COMPONENT graph-autofusion
 )
 
-
 find_package(ASC REQUIRED PATHS $ENV{ASCEND_HOME_PATH}/compiler/tikcpp/ascendc_kernel_cmake)
 enable_language(ASC)
 
@@ -71,12 +70,6 @@ target_link_libraries(ascendsk PUBLIC sk_scope acl_rt acl_rtc ascendcl ascend_du
 target_link_directories(ascendsk PUBLIC
 $ENV{ASCEND_HOME_PATH}/lib64
 )
-install(TARGETS ascendsk DESTINATION ascendsk/lib COMPONENT graph-autofusion)
-install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/include/super_kernel/super_kernel.h
-    DESTINATION ascendsk/include
-    COMPONENT graph-autofusion
-)
-
 
 if(ENABLE_CPP_UTEST OR ENABLE_RDV_UTEST)
     add_subdirectory(tests/aot)
