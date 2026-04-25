@@ -29,6 +29,14 @@ else
 fi
 
 # print usage message
+function log()
+{
+  local commoninfo="$1"
+  local timestr
+  timestr=$(date '+%Y-%m-%d %H:%M:%S.%N ' | cut -b 1-23)
+  echo "[${timestr}]${commoninfo}"
+}
+
 usage() {
   echo "Usage:"
   echo "  sh build.sh [-h|--help] [--pkg] [--cpp_utest] [-u|--ut] [-s|--st] [-c|--coverage] [-j]"
