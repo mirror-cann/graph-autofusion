@@ -1201,10 +1201,10 @@ SuperKernelScopeSplitter::SuperKernelScopeSplitter(SuperKernelGraph& inputGraph,
     // Initialize passes in execution order
     // Pass 0: Initial scope splitting
     passes_.push_back(std::make_unique<InitialScopeSplitPass>(inputGraph, heapType));
-    // Pass 1: Deadlock detection and refinement
-    passes_.push_back(std::make_unique<DeadlockRefinePass>(inputGraph));
-    // Pass 2: ScheMode kernel core trend based split refinement
+    // Pass 1: ScheMode kernel core trend based split refinement 
     passes_.push_back(std::make_unique<ScheModeKernelSplitPass>(inputGraph));
+    // Pass 2: Deadlock detection and refinement	 
+    passes_.push_back(std::make_unique<DeadlockRefinePass>(inputGraph)); 
     // Pass 3 (conditional): Default node process pass
     if (enableTaskBreakerBypass_) {
         passes_.push_back(std::make_unique<DefaultNodeProcessPass>(inputGraph));

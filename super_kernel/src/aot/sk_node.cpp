@@ -112,7 +112,7 @@ ScheModeState ParseScheModeState(int64_t rawValue)
     if (rawValue == SCHE_MODE_ON_VALUE) {
         return ScheModeState::SCHE_MODE_ON;
     }
-    SK_LOGE("Invalid schemode value: %ld, valid value is 0 or 1", rawValue);
+    SK_LOGW("Invalid schemode value: %ld, valid value is 0 or 1", rawValue);
     return ScheModeState::NONE;
 }
 
@@ -134,12 +134,17 @@ ScheModeState GetScheModeFromKernelTask(aclmdlRITask kernelTask)
     SK_LOGI("Query kernel task schemode begin, kernelTask=%p", kernelTask);
     aclError aclRet = ACL_SUCCESS;
     aclrtLaunchKernelAttrValue launchAttr;
-
+    aclRet = aclmdlRIKernelTaskGetAttribute(kernelTask,
+        static_cast<aclrtLaunchKernelAttrId>(ACL_RT_LAUNCH_KERNEL_ATTR_SCHEM_MODE), &launchAttr);
+    if (aclRet != ACL_SUCCESS) {
+        SK_LOGE("Failed to get task launch attribute schemode, ret=%d", aclRet);
+        return ScheModeState::NONE;
+    }
     ScheModeState scheModeState = ScheModeState::NONE;
-    scheModeState = ParseScheModeState(static_cast<int64_t>(0));
+    scheModeState = ParseScheModeState(static_cast<int64_t>(launchAttr.schemMode));
     SK_LOGI("Query kernel task schemode end, kernelTask=%p, rawSchemMode=%ld, parsedState=%ld",
         kernelTask, static_cast<int64_t>(launchAttr.schemMode), static_cast<int64_t>(scheModeState));
-    return ScheModeState::NONE;
+    return scheModeState;
 }
 
 SkBindMap InitSuperKernelBindMap(aclrtBinHandle binHdl)
