@@ -53,6 +53,7 @@ enum class aclskOptionType : uint32_t {
     OPT_EXTEND_OPTION = 11,   // 扩展选项，预留后续使用
     DEBUG_EXTEND_OPTION = 12, // 扩展选项，预留后续使用
     DEBUG_DCCI_AFTER_KERNEL_END = 13,
+    TASK_BREAKER_BYPASS = 14, // Default节点优化融合选项
     SK_OPTION_MAX = 0xFFFFFFFF
 };
 
@@ -111,6 +112,10 @@ typedef struct aclskConstantCodegenOption {
     uint32_t enableConstant;
 } aclskConstantCodegenOption;
 
+typedef struct aclskTaskBreakerBypassOption {
+    uint32_t enableTaskBreakerBypass;  // 1启用(默认), 0禁用
+} aclskTaskBreakerBypassOption;
+
 struct aclskOption {
     aclskOptionType optionType;
     union {
@@ -128,6 +133,7 @@ struct aclskOption {
         aclskExtendOption optExtend;
         aclskExtendOption debugExtend;
         aclskDcciOption dcciAfterKernelEnd;
+        aclskTaskBreakerBypassOption taskBreakerBypass;
     };
 };
 

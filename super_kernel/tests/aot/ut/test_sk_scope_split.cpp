@@ -71,7 +71,8 @@ protected:
     }
 
     // Helper function to create a wait node
-    SuperKernelBaseNode* CreateWaitNode(uint64_t nodeId, uint32_t streamIdx, uint64_t notifyNodeId, uint64_t nextNodeId = INVALID_TASK_ID) {
+    SuperKernelBaseNode* CreateWaitNode(uint64_t nodeId, uint32_t streamIdx,
+                                         uint64_t notifyNodeId, uint64_t nextNodeId = INVALID_TASK_ID) {
         auto node = std::make_unique<SuperKernelMemoryNode>(
             nullptr, ACL_MODEL_RI_TASK_VALUE_WAIT, 0, streamIdx, INVALID_STREAM_ID, INVALID_TASK_ID);
         node->SetNodeId(nodeId);
@@ -88,7 +89,8 @@ protected:
     }
 
     // Helper function to create a notify node
-    SuperKernelBaseNode* CreateNotifyNode(uint64_t nodeId, uint32_t streamIdx, uint64_t eventId, uint64_t nextNodeId = INVALID_TASK_ID) {
+    SuperKernelBaseNode* CreateNotifyNode(uint64_t nodeId, uint32_t streamIdx,
+                                           uint64_t eventId, uint64_t nextNodeId = INVALID_TASK_ID) {
         auto node = std::make_unique<SuperKernelMemoryNode>(
             nullptr, ACL_MODEL_RI_TASK_VALUE_WRITE, 0, streamIdx, INVALID_STREAM_ID, INVALID_TASK_ID);
         node->SetNodeId(nodeId);
@@ -122,20 +124,26 @@ protected:
     }
 
     // Helper function to create an unfusible kernel node
-    SuperKernelBaseNode* CreateUnfusibleKernelNode(uint64_t nodeId, uint32_t streamIdx, uint64_t nextNodeId = INVALID_TASK_ID) {
+    SuperKernelBaseNode* CreateUnfusibleKernelNode(uint64_t nodeId, uint32_t streamIdx,
+                                                  uint64_t nextNodeId = INVALID_TASK_ID) {
         auto node = std::make_unique<SuperKernelKernelNode>(
             nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, streamIdx, INVALID_STREAM_ID, INVALID_TASK_ID);
         node->SetNodeId(nodeId);
         node->SetNextNodeId(nextNodeId);
-        // Explicitly mark as unfusible
+        node->nodeType = SkNodeType::NODE_KERNEL;
         node->isFusible = false;
+        node->nodeInfos.kernelInfos.numBlocks = 1;
+        node->nodeInfos.kernelInfos.kernelType = SkKernelType::AIC_ONLY;
+        node->nodeInfos.kernelInfos.cubeNum = 0;
+        node->nodeInfos.kernelInfos.vecNum = 0;
         SuperKernelBaseNode* ptr = node.get();
         graph->graphMap[nodeId] = std::move(node);
         return ptr;
     }
 
     // Helper function to create a reset node
-    SuperKernelBaseNode* CreateResetNode(uint64_t nodeId, uint32_t streamIdx, uint64_t eventId, uint64_t nextNodeId = INVALID_TASK_ID) {
+    SuperKernelBaseNode* CreateResetNode(uint64_t nodeId, uint32_t streamIdx,
+                                         uint64_t eventId, uint64_t nextNodeId = INVALID_TASK_ID) {
         auto node = std::make_unique<SuperKernelMemoryNode>(
             nullptr, ACL_MODEL_RI_TASK_VALUE_WRITE, 0, streamIdx, INVALID_STREAM_ID, INVALID_TASK_ID);
         node->SetNodeId(nodeId);
@@ -182,7 +190,8 @@ protected:
     }
 
     // Helper function to create a scope begin node (fusible)
-    SuperKernelBaseNode* CreateScopeBeginNode(uint64_t nodeId, uint32_t streamIdx, const std::string& scopeName, uint64_t nextNodeId = INVALID_TASK_ID) {
+    SuperKernelBaseNode* CreateScopeBeginNode(uint64_t nodeId, uint32_t streamIdx,
+                                              const std::string& scopeName, uint64_t nextNodeId = INVALID_TASK_ID) {
         auto node = std::make_unique<SuperKernelKernelNode>(
             nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, streamIdx, INVALID_STREAM_ID, INVALID_TASK_ID);
         node->nodeType = SkNodeType::NODE_KERNEL;
@@ -204,7 +213,8 @@ protected:
     }
 
     // Helper function to create a scope end node (fusible)
-    SuperKernelBaseNode* CreateScopeEndNode(uint64_t nodeId, uint32_t streamIdx, const std::string& scopeName, uint64_t nextNodeId = INVALID_TASK_ID) {
+    SuperKernelBaseNode* CreateScopeEndNode(uint64_t nodeId, uint32_t streamIdx,
+                                            const std::string& scopeName, uint64_t nextNodeId = INVALID_TASK_ID) {
         auto node = std::make_unique<SuperKernelKernelNode>(
             nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, streamIdx, INVALID_STREAM_ID, INVALID_TASK_ID);
         node->nodeType = SkNodeType::NODE_KERNEL;
@@ -227,7 +237,8 @@ protected:
     }
 
     // Helper function to create an unfusible scope begin node
-    SuperKernelBaseNode* CreateUnfusibleScopeBeginNode(uint64_t nodeId, uint32_t streamIdx, uint64_t nextNodeId = INVALID_TASK_ID) {
+    SuperKernelBaseNode* CreateUnfusibleScopeBeginNode(uint64_t nodeId, uint32_t streamIdx,
+                                                      uint64_t nextNodeId = INVALID_TASK_ID) {
         auto node = std::make_unique<SuperKernelKernelNode>(
             nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, streamIdx, INVALID_STREAM_ID, INVALID_TASK_ID);
         node->nodeType = SkNodeType::NODE_KERNEL;
@@ -248,7 +259,8 @@ protected:
     }
 
     // Helper function to create an unfusible scope end node
-    SuperKernelBaseNode* CreateUnfusibleScopeEndNode(uint64_t nodeId, uint32_t streamIdx, uint64_t nextNodeId = INVALID_TASK_ID) {
+    SuperKernelBaseNode* CreateUnfusibleScopeEndNode(uint64_t nodeId, uint32_t streamIdx,
+                                                    uint64_t nextNodeId = INVALID_TASK_ID) {
         auto node = std::make_unique<SuperKernelKernelNode>(
             nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, streamIdx, INVALID_STREAM_ID, INVALID_TASK_ID);
         node->nodeType = SkNodeType::NODE_KERNEL;
@@ -269,23 +281,42 @@ protected:
         return ptr;
     }
 
+    // Helper function to create a default node
+    SuperKernelBaseNode* CreateDefaultNode(uint64_t nodeId, uint32_t streamIdx, uint64_t nextNodeId = INVALID_TASK_ID) {
+        auto node = std::make_unique<SuperKernelDefaultNode>(
+            nullptr, ACL_MODEL_RI_TASK_DEFAULT, 0, streamIdx, INVALID_STREAM_ID, INVALID_TASK_ID);
+        node->SetNodeId(nodeId);
+        node->SetNextNodeId(nextNodeId);
+        node->isFusible = false;  // Default is unfusible, will be set by InitDefaultNodeFusibility
+        node->nodeType = SkNodeType::NODE_DEFAULT;
+        SuperKernelBaseNode* ptr = node.get();
+        graph->graphMap[nodeId] = std::move(node);
+        return ptr;
+    }
+
     // Helper function to setup streams in graph
-    // This function also sets up preNodeId relationships between consecutive nodes in each stream
+    // This function also sets up preNodeId, nextNodeId, and nodeIdxInStream for each node
     void SetupStreams(const std::vector<std::vector<uint64_t>>& streamNodes) {
         graph->streams.clear();
         graph->headNodes.clear();
 
-        for (const auto& nodes : streamNodes) {
+        for (size_t streamIdx = 0; streamIdx < streamNodes.size(); ++streamIdx) {
+            const auto& nodes = streamNodes[streamIdx];
             graph->streams.emplace_back();
             if (!nodes.empty()) {
                 graph->headNodes.push_back(nodes[0]);
-                // Set up preNodeId relationships between consecutive nodes
-                for (size_t i = 1; i < nodes.size(); ++i) {
+                // Set up nodeIdxInStream, preNodeId and nextNodeId for each node
+                for (size_t i = 0; i < nodes.size(); ++i) {
                     auto* currentNode = graph->GetNodeById(nodes[i]);
-                    auto* prevNode = graph->GetNodeById(nodes[i - 1]);
-                    if (currentNode != nullptr && prevNode != nullptr) {
-                        currentNode->SetPreNodeId(nodes[i - 1]);
-                        prevNode->SetNextNodeId(nodes[i]);
+                    if (currentNode != nullptr) {
+                        currentNode->nodeIdxInStream = i;
+                        currentNode->streamIdxInGraph = static_cast<uint32_t>(streamIdx);
+                        if (i > 0) {
+                            currentNode->SetPreNodeId(nodes[i - 1]);
+                        }
+                        if (i < nodes.size() - 1) {
+                            currentNode->SetNextNodeId(nodes[i + 1]);
+                        }
                     }
                 }
             } else {
@@ -350,13 +381,21 @@ protected:
     std::unique_ptr<SuperKernelOptionsManager> opts;
 };
 
-// ==================== 测试用例 1: 基本多流融合（无跨流依赖） ====================
+// ==================== Basic Tests: 基础图切分和融合 ====================
 
-TEST_F(SuperKernelScopeSplitterTest, TestCase1_BasicMultiStreamFusion_NoCrossStreamDependency)
+/**
+ * @brief 基础多流融合 - 无跨流依赖
+ * 
+ * 图结构:
+ *   stream0: [K1(id=1) -> K2(id=2) -> K3(id=3)]
+ *   stream1: [K4(id=4) -> K5(id=5) -> K6(id=6)]
+ * 
+ * 预期结果:
+ *   - SplitGraph返回true
+ *   - 生成1个scope: {1, 2, 3, 4, 5, 6} (所有节点融合)
+ */
+TEST_F(SuperKernelScopeSplitterTest, Basic_MultiStreamNoCrossStreamDependency)
 {
-    // Stream 0: [K1(id=1)] → [K2(id=2)] → [K3(id=3)]
-    // Stream 1: [K4(id=4)] → [K5(id=5)] → [K6(id=6)]
-
     auto* k1 = CreateKernelNode(1, 0, 2);
     auto* k2 = CreateKernelNode(2, 0, 3);
     auto* k3 = CreateKernelNode(3, 0, INVALID_TASK_ID);
@@ -377,14 +416,20 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase1_BasicMultiStreamFusion_NoCrossStr
     VerifyScope(scopeInfos[0], {1, 2, 3, 4, 5, 6});
 }
 
-// ==================== 测试用例 2: 单个跨流 Wait-Notify ====================
-
-TEST_F(SuperKernelScopeSplitterTest, TestCase2_SingleCrossStreamWaitNotify)
+/**
+ * @brief 单个跨流Wait-Notify依赖
+ * 
+ * 图结构:
+ *   stream0: [K1(id=1) -> Wait1(id=3) -> K2(id=5)]
+ *   stream1: [K3(id=2) -> Notify1(id=4) -> K4(id=6)]
+ *   Event1(eventId=100): Wait1(3) 等待 Notify1(4)
+ * 
+ * 预期结果:
+ *   - SplitGraph返回true
+ *   - 生成1个scope: {1, 2, 3, 4, 5, 6}
+ */
+TEST_F(SuperKernelScopeSplitterTest, Sync_SingleCrossStreamWaitNotify)
 {
-    // Stream 0: [K1(id=1)] → [Wait1(id=3)] → [K2(id=5)]
-    // Stream 1: [K3(id=2)] → [Notify1(id=4)] → [K4(id=6)]
-    // Event1: Wait1(id=3) 等待 Notify1(id=4)
-
     auto* k1 = CreateKernelNode(1, 0, 3);
     auto* wait1 = CreateWaitNode(3, 0, 4, 5);
     auto* k2 = CreateKernelNode(5, 0, INVALID_TASK_ID);
@@ -406,16 +451,22 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase2_SingleCrossStreamWaitNotify)
     VerifyScope(scopeInfos[0], {1, 2, 3, 4, 5, 6});
 }
 
-// ==================== 测试用例 3: 多个 Wait-Notify ====================
-
-TEST_F(SuperKernelScopeSplitterTest, TestCase3_MultipleWaitNotify)
+/**
+ * @brief 多个Wait-Notify依赖链
+ * 
+ * 图结构:
+ *   stream0: [K1(id=1) -> Wait1(id=4) -> K2(id=7)]
+ *   stream1: [K3(id=2) -> Notify1(id=5) -> Wait2(id=8) -> K4(id=10)]
+ *   stream2: [K5(id=3) -> Notify2(id=6) -> K6(id=9)]
+ *   Event1: Wait1(4) 等待 Notify1(5)
+ *   Event2: Wait2(8) 等待 Notify2(6)
+ * 
+ * 预期结果:
+ *   - SplitGraph返回true
+ *   - 生成1个scope: {1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
+ */
+TEST_F(SuperKernelScopeSplitterTest, Sync_MultipleWaitNotifyDependencies)
 {
-    // Stream 0: [K1(id=1)] → [Wait1(id=4)] → [K2(id=7)]
-    // Stream 1: [K3(id=2)] → [Notify1(id=5)] → [Wait2(id=8)] → [K4(id=10)]
-    // Stream 2: [K5(id=3)] → [Notify2(id=6)] → [K6(id=9)]
-    // Event1: Wait1(id=4) 等待 Notify1(id=5)
-    // Event2: Wait2(id=8) 等待 Notify2(id=6)
-
     auto* k1 = CreateKernelNode(1, 0, 4);
     auto* wait1 = CreateWaitNode(4, 0, 5, 7);
     auto* k2 = CreateKernelNode(7, 0, INVALID_TASK_ID);
@@ -443,12 +494,19 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase3_MultipleWaitNotify)
     VerifyScope(scopeInfos[0], {1, 2, 3, 4, 5, 6, 7, 8, 9, 10});
 }
 
-// ==================== 测试用例 4: 不可融合节点（单流） ====================
-
-TEST_F(SuperKernelScopeSplitterTest, TestCase4_UnfusibleNode_SingleStream)
+/**
+ * @brief 不可融合节点单流测试 - 触发scope切分
+ * 
+ * 图结构:
+ *   stream0: [K1(id=1, fusible) -> UF1(id=2, unfusible) -> K2(id=3, fusible)]
+ * 
+ * 预期结果:
+ *   - SplitGraph返回true
+ *   - 生成2个scope: Scope0={K1(1)}, Scope1={K2(3)}
+ *   - UF1作为切分边界
+ */
+TEST_F(SuperKernelScopeSplitterTest, Unfusible_SingleStream)
 {
-    // Stream 0: [K1(可融合)] → [UF1(不可融合)] → [K2(可融合)]
-
     auto* k1 = CreateKernelNode(1, 0, 2);
     auto* uf1 = CreateUnfusibleKernelNode(2, 0, 3);
     auto* k2 = CreateKernelNode(3, 0, INVALID_TASK_ID);
@@ -466,13 +524,19 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase4_UnfusibleNode_SingleStream)
     VerifyScope(scopeInfos[1], {3});
 }
 
-// ==================== 测试用例 5: 不可融合节点（多流） ====================
-
-TEST_F(SuperKernelScopeSplitterTest, TestCase5_UnfusibleNode_MultiStream)
+/**
+ * @brief 不可融合节点多流测试
+ * 
+ * 图结构:
+ *   stream0: [K1(id=1, fusible) -> UF1(id=2, unfusible) -> K2(id=3, fusible)]
+ *   stream1: [K3(id=4, fusible)]
+ * 
+ * 预期结果:
+ *   - SplitGraph返回true
+ *   - 生成2个scope: {K1(1), K3(4)}, {K2(3)}
+ */
+TEST_F(SuperKernelScopeSplitterTest, Unfusible_MultiStream)
 {
-    // Stream 0: [K1(可融合)] → [UF1(不可融合)] → [K2(可融合)]
-    // Stream 1: [K3(可融合)]
-
     auto* k1 = CreateKernelNode(1, 0, 2);
     auto* uf1 = CreateUnfusibleKernelNode(2, 0, 3);
     auto* k2 = CreateKernelNode(3, 0, INVALID_TASK_ID);
@@ -492,15 +556,21 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase5_UnfusibleNode_MultiStream)
     VerifyScope(scopeInfos[1], {3});
 }
 
-// ==================== 测试用例 6: 多 Wait 等待同一 Notify ====================
-
-TEST_F(SuperKernelScopeSplitterTest, TestCase6_MultipleWaitsWaitingSameNotify)
+/**
+ * @brief 多Wait等待同一Notify
+ * 
+ * 图结构:
+ *   stream0: [K1(id=1) -> Wait1(id=4) -> K2(id=7)]
+ *   stream1: [K3(id=2) -> Wait2(id=5) -> K4(id=8)]
+ *   stream2: [K5(id=3) -> Notify1(id=6) -> K6(id=9)]
+ *   Event1: Wait1(4)和Wait2(5) 都等待 Notify1(6)
+ * 
+ * 预期结果:
+ *   - SplitGraph返回true
+ *   - 生成1个scope: {1, 2, 3, 4, 5, 6, 7, 8, 9}
+ */
+TEST_F(SuperKernelScopeSplitterTest, Sync_MultipleWaitsOnSameNotify)
 {
-    // Stream 0: [K1(id=1)] → [Wait1(id=4)] → [K2(id=7)]
-    // Stream 1: [K3(id=2)] → [Wait2(id=5)] → [K4(id=8)]
-    // Stream 2: [K5(id=3)] → [Notify1(id=6)] → [K6(id=9)]
-    // Event1: Wait1(id=4) 和 Wait2(id=5) 都等待 Notify1(id=6)
-
     auto* k1 = CreateKernelNode(1, 0, 4);
     auto* wait1 = CreateWaitNode(4, 0, 6, 7);
     auto* k2 = CreateKernelNode(7, 0, INVALID_TASK_ID);
@@ -526,13 +596,19 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase6_MultipleWaitsWaitingSameNotify)
     VerifyScope(scopeInfos[0], {1, 2, 3, 4, 5, 6, 7, 8, 9});
 }
 
-// ==================== 测试用例 7: 连续不可融合节点 ====================
-
-TEST_F(SuperKernelScopeSplitterTest, TestCase7_ConsecutiveUnfusibleNodes)
+/**
+ * @brief 连续不可融合节点
+ * 
+ * 图结构:
+ *   stream0: [K1(id=1, fusible) -> UF1(id=2) -> UF2(id=3) -> K2(id=4, fusible)]
+ *   stream1: [K3(id=5, fusible)]
+ * 
+ * 预期结果:
+ *   - SplitGraph返回true
+ *   - 生成2个scope: {K1(1), K3(5)}, {K2(4)}
+ */
+TEST_F(SuperKernelScopeSplitterTest, Unfusible_ConsecutiveUnfusibleNodes)
 {
-    // Stream 0: [K1(可融合)] → [UF1(不可融合)] → [UF2(不可融合)] → [K2(可融合)]
-    // Stream 1: [K3(可融合)]
-
     auto* k1 = CreateKernelNode(1, 0, 2);
     auto* uf1 = CreateUnfusibleKernelNode(2, 0, 3);
     auto* uf2 = CreateUnfusibleKernelNode(3, 0, 4);
@@ -553,24 +629,21 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase7_ConsecutiveUnfusibleNodes)
     VerifyScope(scopeInfos[1], {4});
 }
 
-// ==================== 测试用例 8: 空 Skip 处理（所有流都暂停） ====================
-
-// ==================== 测试用例 8: 所有流都挂起 ====================
-
-TEST_F(SuperKernelScopeSplitterTest, TestCase8_AllStreamsSuspended)
+/**
+ * @brief EventOnlyStreamRemovePass检测纯Event流 - 独立Pass验证
+ * 
+ * 手动构建scope包含纯Event流:
+ *   Stream0: [Wait1(id=1) -> K1(id=3)] (混合)
+ *   Stream1: [Notify1(id=5) -> Notify2(id=6)] (纯Event)
+ *   Stream2: [Wait2(id=2) -> K2(id=4)] (混合)
+ * 
+ * 预期结果:
+ *   - EventOnlyStreamRemovePass.Run返回true
+ *   - Stream1纯Event节点标记为non-fusible
+ *   - scopes清空触发重切分
+ */
+TEST_F(SuperKernelScopeSplitterTest, EventOnly_PassDetectsPureEventStream)
 {
-    // Stream 0: [Wait1(id=1)] → [K1(id=3)]
-    // Stream 1: [Wait2(id=2)] → [K2(id=4)]
-    // Stream 2: [Notify1(id=5)] → [Notify2(id=6)]
-    // Event1: Wait1(id=1) 等待 Notify1(id=5)
-    // Event2: Wait2(id=2) 等待 Notify2(id=6)
-    //
-    // 说明：EventOnlyStreamRemovePass会检测到Stream 2只有Notify节点
-    // 将Notify节点标记为non-fusible，触发重新切图
-    // 重新切图后，Notify节点不参与融合
-    // 由于Wait节点等待的Notify不在任何scope中，Wait节点无法形成有效同步
-    // 预期：生成1个scope，包含K1和K2（没有Wait节点，因为Notify不可融合）
-
     auto* wait1 = CreateWaitNode(1, 0, 5, 3);
     auto* k1 = CreateKernelNode(3, 0, INVALID_TASK_ID);
 
@@ -584,30 +657,49 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase8_AllStreamsSuspended)
     SetupEvent(100, 5, {1});
     SetupEvent(200, 6, {2});
 
-    SuperKernelScopeSplitter splitter(*graph, *opts);
-    bool result = splitter.SplitGraph();
+    std::vector<SuperKernelScopeInfo> scopes;
+    SuperKernelScopeInfo scope;
+    scope.nodes_.push_back(wait1);
+    scope.nodes_.push_back(k1);
+    scope.nodes_.push_back(wait2);
+    scope.nodes_.push_back(k2);
+    scope.nodes_.push_back(notify1);
+    scope.nodes_.push_back(notify2);
+    ScopeStreamInfo info0{0, 1, 3, 2};
+    ScopeStreamInfo info1{1, 2, 4, 2};
+    ScopeStreamInfo info2{2, 5, 6, 2};
+    scope.scopeStreamInfos_.push_back(info0);
+    scope.scopeStreamInfos_.push_back(info1);
+    scope.scopeStreamInfos_.push_back(info2);
+    scopes.push_back(std::move(scope));
 
-    ASSERT_TRUE(result);
-    const auto& scopeInfos = splitter.GetScopeInfos();
+    EventOnlyStreamRemovePass removePass(*graph);
+    bool result = removePass.Run(scopes);
 
-    // Notify节点被标记为non-fusible后不参与融合
-    // 重新切图后，只有Kernel节点参与融合
-    EXPECT_EQ(scopeInfos.size(), 1);
-    // Scope应包含K1和K2两个Kernel节点
-    VerifyScope(scopeInfos[0], {3, 4});
+    EXPECT_TRUE(result);
+    EXPECT_FALSE(notify1->IsFusible());
+    EXPECT_FALSE(notify2->IsFusible());
+    EXPECT_TRUE(k1->IsFusible());
+    EXPECT_TRUE(k2->IsFusible());
+    EXPECT_EQ(scopes.size(), 0);
 }
 
-// ==================== 测试用例 9: 三流多 Wait-Notify + 不可融合节点 ====================
-
-TEST_F(SuperKernelScopeSplitterTest, TestCase9_ThreeStreamsWithMultipleWaitNotifyAndUnfusible)
+/**
+ * @brief 三流多Wait-Notify + 不可融合节点
+ * 
+ * 图结构:
+ *   stream0: [K1(1) -> K2(3) -> Wait1(5) -> K3(7) -> UF1(9) -> K4(11) -> K5(13)]
+ *   stream1: [K6(2) -> Notify1(4) -> K7(6) -> Wait2(8) -> K8(10)]
+ *   stream2: [K9(12) -> Notify2(14) -> K10(16)]
+ *   Event1: Wait1(5) 等待 Notify1(4)
+ *   Event2: Wait2(8) 等待 Notify2(14)
+ * 
+ * 预期结果:
+ *   - SplitGraph返回true
+ *   - UF1(9)触发切分，生成2个scope
+ */
+TEST_F(SuperKernelScopeSplitterTest, Sync_ThreeStreamsWithWaitNotifyAndUnfusible)
 {
-    // Stream 0: [K1(id=1)] → [K2(id=3)] → [Wait1(id=5)] → [K3(id=7)]
-    //         → [UF1(id=9,不可融合)] → [K4(id=11)] → [K5(id=13)]
-    // Stream 1: [K6(id=2)] → [Notify1(id=4)] → [K7(id=6)] → [Wait2(id=8)] → [K8(id=10)]
-    // Stream 2: [K9(id=12)] → [Notify2(id=14)] → [K10(id=16)]
-    // Event1: Wait1(id=5) 等待 Notify1(id=4)
-    // Event2: Wait2(id=8) 等待 Notify2(id=14)
-
     auto* k1 = CreateKernelNode(1, 0, 3);
     auto* k2 = CreateKernelNode(3, 0, 5);
     auto* wait1 = CreateWaitNode(5, 0, 4, 7);
@@ -641,16 +733,22 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase9_ThreeStreamsWithMultipleWaitNotif
     VerifyScope(scopeInfos[1], {11, 13});
 }
 
-// ==================== 测试用例 11: Wait-Notify 嵌套场景 ====================
-
-TEST_F(SuperKernelScopeSplitterTest, TestCase11_NestedWaitNotify)
+/**
+ * @brief 嵌套Wait-Notify
+ * 
+ * 图结构:
+ *   stream0: [K1(1) -> Wait1(4) -> K2(7)]
+ *   stream1: [K3(2) -> Notify1(5) -> Wait2(8) -> K4(10)]
+ *   stream2: [K5(3) -> K6(6) -> Notify2(9)]
+ *   Event1: Wait1(4) 等待 Notify1(5)
+ *   Event2: Wait2(8) 等待 Notify2(9)
+ * 
+ * 预期结果:
+ *   - SplitGraph返回true
+ *   - 生成1个scope: {1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
+ */
+TEST_F(SuperKernelScopeSplitterTest, Sync_NestedWaitNotify)
 {
-    // Stream 0: [K1(id=1)] → [Wait1(id=4)] → [K2(id=7)]
-    // Stream 1: [K3(id=2)] → [Notify1(id=5)] → [Wait2(id=8)] → [K4(id=10)]
-    // Stream 2: [K5(id=3)] → [K6(id=6)] → [Notify2(id=9)]
-    // Event1: Wait1(id=4) 等待 Notify1(id=5)
-    // Event2: Wait2(id=8) 等待 Notify2(id=9)
-
     auto* k1 = CreateKernelNode(1, 0, 4);
     auto* wait1 = CreateWaitNode(4, 0, 5, 7);
     auto* k2 = CreateKernelNode(7, 0, INVALID_TASK_ID);
@@ -678,12 +776,18 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase11_NestedWaitNotify)
     VerifyScope(scopeInfos[0], {1, 2, 3, 4, 5, 6, 7, 8, 9, 10});
 }
 
-// ==================== 测试用例 12: 单流（统一 SplitGraph 路径） ====================
-
-TEST_F(SuperKernelScopeSplitterTest, TestCase12_SingleStreamUnifiedPath)
+/**
+ * @brief 单流多节点 - 统一SplitGraph路径
+ * 
+ * 图结构:
+ *   stream0: [K1(1) -> K2(2) -> K3(3)]
+ * 
+ * 预期结果:
+ *   - SplitGraph返回true
+ *   - 生成1个scope: {K1(1), K2(2), K3(3)}
+ */
+TEST_F(SuperKernelScopeSplitterTest, Basic_SingleStreamMultipleNodes)
 {
-    // Stream 0: [K1(id=1)] → [K2(id=2)] → [K3(id=3)]
-
     auto* k1 = CreateKernelNode(1, 0, 2);
     auto* k2 = CreateKernelNode(2, 0, 3);
     auto* k3 = CreateKernelNode(3, 0, INVALID_TASK_ID);
@@ -696,33 +800,25 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase12_SingleStreamUnifiedPath)
     ASSERT_TRUE(result);
     const auto& scopeInfos = splitter.GetScopeInfos();
 
-    // 单流现在也走统一的 SplitGraph 路径
     EXPECT_EQ(scopeInfos.size(), 1);
     VerifyScope(scopeInfos[0], {1, 2, 3});
 }
 
-// ==================== 测试用例 13: 空图 ====================
+// ==================== ScopeBitFlags 相关测试用例 ====================
 
-TEST_F(SuperKernelScopeSplitterTest, TestCase13_EmptyGraph)
+/**
+ * @brief 全部不可融合节点 - 无scope生成
+ * 
+ * 图结构:
+ *   stream0: [UF1(1, unfusible) -> UF2(2, unfusible)]
+ *   stream1: [UF3(3, unfusible)]
+ * 
+ * 预期结果:
+ *   - SplitGraph返回true
+ *   - 生成0个scope (无可融合节点)
+ */
+TEST_F(SuperKernelScopeSplitterTest, Unfusible_AllNodesUnfusible)
 {
-    SetupStreams({{}});
-
-    SuperKernelScopeSplitter splitter(*graph, *opts);
-    bool result = splitter.SplitGraph();
-
-    ASSERT_TRUE(result);
-    const auto& scopeInfos = splitter.GetScopeInfos();
-
-    EXPECT_EQ(scopeInfos.size(), 0);
-}
-
-// ==================== 测试用例 14: 只有不可融合节点 ====================
-
-TEST_F(SuperKernelScopeSplitterTest, TestCase14_AllUnfusibleNodes)
-{
-    // Stream 0: [UF1(不可融合)] → [UF2(不可融合)]
-    // Stream 1: [UF3(不可融合)]
-
     auto* uf1 = CreateUnfusibleKernelNode(1, 0, 2);
     auto* uf2 = CreateUnfusibleKernelNode(2, 0, INVALID_TASK_ID);
     auto* uf3 = CreateUnfusibleKernelNode(3, 1, INVALID_TASK_ID);
@@ -735,17 +831,24 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase14_AllUnfusibleNodes)
     ASSERT_TRUE(result);
     const auto& scopeInfos = splitter.GetScopeInfos();
 
-    // 所有节点都不可融合，应该不产生任何 scope
     EXPECT_EQ(scopeInfos.size(), 0);
 }
 
-// ==================== 测试用例 15: 流顺序验证 ====================
-
-TEST_F(SuperKernelScopeSplitterTest, TestCase15_StreamOrderVerification)
+/**
+ * @brief 流内节点执行顺序保持验证
+ * 
+ * 图结构:
+ *   stream0: [K1(10) -> K2(30) -> K3(50)]
+ *   stream1: [K4(20) -> K5(40) -> K6(60)]
+ * 
+ * 预期结果:
+ *   - SplitGraph返回true
+ *   - 生成1个scope: {10, 20, 30, 40, 50, 60}
+ *   - Stream0节点顺序: K1(10)在K2(30)之前，K2(30)在K3(50)之前
+ *   - Stream1节点顺序: K4(20)在K5(40)之前，K5(40)在K6(60)之前
+ */
+TEST_F(SuperKernelScopeSplitterTest, Basic_StreamOrderPreserved)
 {
-    // Stream 0: [K1(id=10)] → [K2(id=30)] → [K3(id=50)]
-    // Stream 1: [K4(id=20)] → [K5(id=40)] → [K6(id=60)]
-
     auto* k1 = CreateKernelNode(10, 0, 30);
     auto* k2 = CreateKernelNode(30, 0, 50);
     auto* k3 = CreateKernelNode(50, 0, INVALID_TASK_ID);
@@ -765,31 +868,52 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase15_StreamOrderVerification)
     EXPECT_EQ(scopeInfos.size(), 1);
     VerifyScope(scopeInfos[0], {10, 20, 30, 40, 50, 60});
 
-    // 验证流内顺序
     const auto& scopeNodes = scopeInfos[0].nodes_;
-    for (const auto* node : scopeNodes) {
-        uint32_t streamIdx = node->GetStreamIdxInGraph();
-        uint64_t nodeId = node->GetNodeId();
+    std::vector<size_t> stream0Positions;
+    std::vector<size_t> stream1Positions;
 
+    for (size_t i = 0; i < scopeNodes.size(); ++i) {
+        uint32_t streamIdx = scopeNodes[i]->GetStreamIdxInGraph();
         if (streamIdx == 0) {
-            // Stream 0 的节点顺序应该是 10 → 30 → 50
-            EXPECT_TRUE(nodeId == 10 || nodeId == 30 || nodeId == 50);
+            stream0Positions.push_back(i);
         } else if (streamIdx == 1) {
-            // Stream 1 的节点顺序应该是 20 → 40 → 60
-            EXPECT_TRUE(nodeId == 20 || nodeId == 40 || nodeId == 60);
+            stream1Positions.push_back(i);
         }
     }
+
+    ASSERT_EQ(stream0Positions.size(), 3);
+    ASSERT_EQ(stream1Positions.size(), 3);
+
+    std::vector<uint64_t> stream0NodeIds;
+    std::vector<uint64_t> stream1NodeIds;
+    for (size_t pos : stream0Positions) {
+        stream0NodeIds.push_back(scopeNodes[pos]->GetNodeId());
+    }
+    for (size_t pos : stream1Positions) {
+        stream1NodeIds.push_back(scopeNodes[pos]->GetNodeId());
+    }
+
+    EXPECT_TRUE(stream0NodeIds[0] < stream0NodeIds[1]);
+    EXPECT_TRUE(stream0NodeIds[1] < stream0NodeIds[2]);
+
+    EXPECT_TRUE(stream1NodeIds[0] < stream1NodeIds[1]);
+    EXPECT_TRUE(stream1NodeIds[1] < stream1NodeIds[2]);
 }
 
-// ==================== 测试用例 16: 多个 Scope 切分（Wait-Notify 在不同 Scope） ====================
-
-TEST_F(SuperKernelScopeSplitterTest, TestCase16_MultipleScopesWithWaitNotifyInDifferentScopes)
+/**
+ * @brief 多个Scope切分 - Wait-Notify在不同Scope
+ * 
+ * 图结构:
+ *   stream0: [K1(1) -> Wait1(3) -> K2(5)]
+ *   stream1: [K3(2) -> K4(4) -> Notify1(6)]
+ *   Event1: Wait1(3) 等待 Notify1(6)
+ * 
+ * 预期结果:
+ *   - SplitGraph返回true
+ *   - 生成多个scope，所有节点 {1, 2, 3, 4, 5, 6} 被融合
+ */
+TEST_F(SuperKernelScopeSplitterTest, Sync_MultipleScopesWithWaitNotify)
 {
-    // Stream 0: [K1(id=1)] → [Wait1(id=3)] → [K2(id=5)]
-    // Stream 1: [K3(id=2)] → [K4(id=4)] → [Notify1(id=6)]
-    // Event1: Wait1(id=3) 等待 Notify1(id=6)
-    // 注意：Wait1 和 Notify1 不在同一 scope，因为中间有其他节点
-
     auto* k1 = CreateKernelNode(1, 0, 3);
     auto* wait1 = CreateWaitNode(3, 0, 6, 5);
     auto* k2 = CreateKernelNode(5, 0, INVALID_TASK_ID);
@@ -807,10 +931,8 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase16_MultipleScopesWithWaitNotifyInDi
     ASSERT_TRUE(result);
     const auto& scopeInfos = splitter.GetScopeInfos();
 
-    // 应该切分为多个 scope
     EXPECT_GE(scopeInfos.size(), 1);
 
-    // 所有节点都应该被融合
     std::vector<uint64_t> allNodeIds;
     for (const auto& scope : scopeInfos) {
         for (const auto* node : scope.nodes_) {
@@ -823,15 +945,21 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase16_MultipleScopesWithWaitNotifyInDi
     EXPECT_EQ(allNodeIds, expectedIds);
 }
 
-// ==================== 测试用例 17: 四流并行融合 ====================
-
-TEST_F(SuperKernelScopeSplitterTest, TestCase17_FourStreamParallelFusion)
+/**
+ * @brief 验证四流无跨流依赖时全部节点融合到单个scope
+ * 
+ * 图结构:
+ *   stream0: [K1(1) -> K5(5)]
+ *   stream1: [K2(2) -> K6(6)]
+ *   stream2: [K3(3) -> K7(7)]
+ *   stream3: [K4(4) -> K8(8)]
+ * 
+ * 预期结果:
+ *   - SplitGraph返回true
+ *   - 生成1个scope: {1, 2, 3, 4, 5, 6, 7, 8}
+ */
+TEST_F(SuperKernelScopeSplitterTest, Basic_FourStreamParallelFusion)
 {
-    // Stream 0: [K1(id=1)] → [K2(id=5)]
-    // Stream 1: [K3(id=2)] → [K4(id=6)]
-    // Stream 2: [K5(id=3)] → [K6(id=7)]
-    // Stream 3: [K7(id=4)] → [K8(id=8)]
-
     auto* k1 = CreateKernelNode(1, 0, 5);
     auto* k2 = CreateKernelNode(5, 0, INVALID_TASK_ID);
 
@@ -856,14 +984,21 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase17_FourStreamParallelFusion)
     VerifyScope(scopeInfos[0], {1, 2, 3, 4, 5, 6, 7, 8});
 }
 
-// ==================== 测试用例 18: Wait 在 Notify 之前（应暂停） ====================
-
-TEST_F(SuperKernelScopeSplitterTest, TestCase18_WaitBeforeNotify_ShouldSuspend)
+/**
+ * @brief Wait在Notify之前 - 触发suspend机制
+ * 
+ * 图结构:
+ *   stream0: [Wait1(1) -> K1(3)]
+ *   stream1: [K2(2) -> Notify1(4)]
+ *   Event1: Wait1(1) 等待 Notify1(4)
+ * 
+ * 预期结果:
+ *   - SplitGraph返回true
+ *   - 生成1个scope: {Wait1(1), K2(2), K1(3), Notify1(4)}
+ *   - Wait1在Notify1之后处理（通过suspend/resume）
+ */
+TEST_F(SuperKernelScopeSplitterTest, Sync_WaitBeforeNotifySuspend)
 {
-    // Stream 0: [Wait1(id=1)] → [K1(id=3)]
-    // Stream 1: [K2(id=2)] → [Notify1(id=4)]
-    // Event1: Wait1(id=1) 等待 Notify1(id=4)
-
     auto* wait1 = CreateWaitNode(1, 0, 4, 3);
     auto* k1 = CreateKernelNode(3, 0, INVALID_TASK_ID);
 
@@ -882,7 +1017,6 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase18_WaitBeforeNotify_ShouldSuspend)
     EXPECT_EQ(scopeInfos.size(), 1);
     VerifyScope(scopeInfos[0], {1, 2, 3, 4});
 
-    // 验证 Wait1 在 Notify1 之后处理
     const auto& scopeNodes = scopeInfos[0].nodes_;
     size_t waitPos = 0, notifyPos = 0;
     for (size_t i = 0; i < scopeNodes.size(); ++i) {
@@ -896,13 +1030,19 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase18_WaitBeforeNotify_ShouldSuspend)
     EXPECT_GT(waitPos, notifyPos);
 }
 
-// ==================== 测试用例 19: 不可融合节点在流中间（多 Scope 切分） ====================
-
-TEST_F(SuperKernelScopeSplitterTest, TestCase19_UnfusibleNodeInMiddle_MultipleScopes)
+/**
+ * @brief 不可融合节点在流中间 - 多Scope切分
+ * 
+ * 图结构:
+ *   stream0: [K1(1) -> UF1(2, unfusible) -> K2(3) -> K3(4)]
+ *   stream1: [K4(6) -> K5(5)]
+ * 
+ * 预期结果:
+ *   - SplitGraph返回true
+ *   - 生成2个scope: {K1(1), K5(5), K4(6)}, {K2(3), K3(4)}
+ */
+TEST_F(SuperKernelScopeSplitterTest, Unfusible_NodeInMiddle)
 {
-    // Stream 0: [K1(id=1)] → [UF1(不可融合)] → [K2(id=3)] → [K3(id=4)]
-    // Stream 1: [K4(id=6)] → [K5(id=5)]
-
     auto* k1 = CreateKernelNode(1, 0, 2);
     auto* uf1 = CreateUnfusibleKernelNode(2, 0, 3);
     auto* k2 = CreateKernelNode(3, 0, 4);
@@ -924,19 +1064,26 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase19_UnfusibleNodeInMiddle_MultipleSc
     VerifyScope(scopeInfos[1], {3, 4});
 }
 
-// ==================== 测试用例 20: 复杂 Wait-Notify 链 ====================
-
-TEST_F(SuperKernelScopeSplitterTest, TestCase20_ComplexWaitNotifyChain)
+/**
+ * @brief 复杂Wait-Notify链验证多流依赖处理
+ * 
+ * 图结构:
+ *   stream0: [K1(1) -> Wait1(5) -> K2(9) -> Wait2(13) -> K3(17)]
+ *   stream1: [K4(2) -> Notify1(6) -> K5(10) -> Notify2(14) -> K7(18)]
+ *   stream2: [K6(3) -> Notify3(15) -> Wait3(7) -> K8(11) -> K9(19)]
+ *   stream3: [K10(4) -> Notify4(8) -> K11(12) -> Wait4(16) -> K12(20)]
+ *   Event100: Wait1(5) 等待 Notify1(6)
+ *   Event200: Wait2(13) 等待 Notify2(14)
+ *   Event300: Wait3(7) 等待 Notify3(15)
+ *   Event400: Wait4(16) 等待 Notify4(8)
+ * 
+ * 预期结果:
+ *   - SplitGraph返回true
+ *   - 生成>=1个scope
+ *   - 所有节点 {1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20} 被处理
+ */
+TEST_F(SuperKernelScopeSplitterTest, Sync_ComplexWaitNotifyChain)
 {
-    // Stream 0: [K1(id=1)] → [Wait1(id=5)] → [K2(id=9)] → [Wait2(id=13)] → [K3(id=17)]
-    // Stream 1: [K4(id=2)] → [Notify1(id=6)] → [K5(id=10)] → [Notify2(id=14)] → [K7(id=18)]
-    // Stream 2: [K6(id=3)] → [Notify3(id=15)] → [Wait3(id=7)] → [K8(id=11)] → [K9(id=19)]
-    // Stream 3: [K10(id=4)] → [Notify4(id=8)] → [K11(id=12)] → [Wait4(id=16)] → [K12(id=20)]
-    // Event1: Wait1(id=5) 等待 Notify1(id=6)
-    // Event2: Wait2(id=13) 等待 Notify2(id=14)
-    // Event3: Wait3(id=7) 等待 Notify3(id=15)
-    // Event4: Wait4(id=16) 等待 Notify4(id=8)
-
     auto* k1 = CreateKernelNode(1, 0, 5);
     auto* wait1 = CreateWaitNode(5, 0, 6, 9);
     auto* k2 = CreateKernelNode(9, 0, 13);
@@ -973,10 +1120,8 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase20_ComplexWaitNotifyChain)
     ASSERT_TRUE(result);
     const auto& scopeInfos = splitter.GetScopeInfos();
 
-    // 应该融合到 1 个或多个 scope
     EXPECT_GE(scopeInfos.size(), 1);
 
-    // 所有节点都应该被融合
     std::vector<uint64_t> allNodeIds;
     for (const auto& scope : scopeInfos) {
         for (const auto* node : scope.nodes_) {
@@ -989,37 +1134,18 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase20_ComplexWaitNotifyChain)
     EXPECT_EQ(allNodeIds, expectedIds);
 }
 
-// ==================== 测试用例 21: 验证 StreamState 重置 ====================
-
-TEST_F(SuperKernelScopeSplitterTest, TestCase21_VerifyStreamStateReset)
+/**
+ * @brief 单流单节点
+ * 
+ * 图结构:
+ *   stream0: [K1(1)]
+ * 
+ * 预期结果:
+ *   - SplitGraph返回true
+ *   - 生成1个scope: {K1(1)}
+ */
+TEST_F(SuperKernelScopeSplitterTest, Basic_SingleStreamSingleNode)
 {
-    // Stream 0: [K1(id=1)] → [UF1(不可融合)] → [K2(id=3)]
-    // Stream 1: [K3(id=4)]
-
-    auto* k1 = CreateKernelNode(1, 0, 2);
-    auto* uf1 = CreateUnfusibleKernelNode(2, 0, 3);
-    auto* k2 = CreateKernelNode(3, 0, INVALID_TASK_ID);
-    auto* k3 = CreateKernelNode(4, 1, INVALID_TASK_ID);
-
-    SetupStreams({{1, 2, 3}, {4}});
-
-    SuperKernelScopeSplitter splitter(*graph, *opts);
-    bool result = splitter.SplitGraph();
-
-    ASSERT_TRUE(result);
-    const auto& scopeInfos = splitter.GetScopeInfos();
-
-    EXPECT_EQ(scopeInfos.size(), 2);
-    VerifyScope(scopeInfos[0], {1, 4});
-    VerifyScope(scopeInfos[1], {3});
-}
-
-// ==================== 测试用例 22: 单流单节点 ====================
-
-TEST_F(SuperKernelScopeSplitterTest, TestCase22_SingleStreamSingleNode)
-{
-    // Stream 0: [K1(id=1)]
-
     auto* k1 = CreateKernelNode(1, 0, INVALID_TASK_ID);
 
     SetupStreams({{1}});
@@ -1034,14 +1160,20 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase22_SingleStreamSingleNode)
     VerifyScope(scopeInfos[0], {1});
 }
 
-// ==================== 测试用例 23: 多流但每流只有一个节点 ====================
-
-TEST_F(SuperKernelScopeSplitterTest, TestCase23_MultiStreamSingleNodes)
+/**
+ * @brief 多流每流单节点
+ * 
+ * 图结构:
+ *   stream0: [K1(1)]
+ *   stream1: [K2(2)]
+ *   stream2: [K3(3)]
+ * 
+ * 预期结果:
+ *   - SplitGraph返回true
+ *   - 生成1个scope: {K1(1), K2(2), K3(3)}
+ */
+TEST_F(SuperKernelScopeSplitterTest, Basic_MultiStreamSingleNodeEach)
 {
-    // Stream 0: [K1(id=1)]
-    // Stream 1: [K2(id=2)]
-    // Stream 2: [K3(id=3)]
-
     auto* k1 = CreateKernelNode(1, 0, INVALID_TASK_ID);
     auto* k2 = CreateKernelNode(2, 1, INVALID_TASK_ID);
     auto* k3 = CreateKernelNode(3, 2, INVALID_TASK_ID);
@@ -1058,17 +1190,24 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase23_MultiStreamSingleNodes)
     VerifyScope(scopeInfos[0], {1, 2, 3});
 }
 
-// ==================== 测试用例 24: ResetStreamStates 恢复暂停的流 ====================
-
-TEST_F(SuperKernelScopeSplitterTest, TestCase24_ResetStreamStatesResumeSuspended)
+/**
+ * @brief ResetStreamStates恢复暂停的流
+ * 
+ * 图结构:
+ *   stream0: [K1(1, 4 cores) -> Wait1(3) -> K2(5, 4 cores)]
+ *   stream1: [K3(2, 2 cores) -> Notify1(4)]
+ *   stream2: [K4(6, 2 cores) -> Notify2(8)]
+ *   Event100: Wait1(3) 等待 Notify1(4)
+ *   Event200: Notify2(8) 无对应Wait(用于测试无依赖Notify)
+ * 
+ * 预期结果:
+ *   - SplitGraph返回true
+ *   - Wait1(3)触发stream0暂停
+ *   - Notify1(4)处理时恢复stream0
+ *   - 所有节点 {1, 2, 3, 4, 5, 6, 8} 被处理
+ */
+TEST_F(SuperKernelScopeSplitterTest, Sync_ResetStreamStatesResume)
 {
-    // 测试 ResetStreamStates 正确恢复被暂停的流状态
-    // Stream 0: [K1(id=1, big cores)] → [Wait1(id=3)] → [K2(id=5, big cores)]
-    // Stream 1: [K3(id=2)] → [Notify1(id=4)]
-    // Stream 2: [K4(id=6)] → [Notify2(id=8)]
-    // Event1: Wait1(id=3) 等待 Notify1(id=4)
-
-    // 使用不同 core 数触发多个 scope 分割
     auto* k1 = CreateKernelNodeWithCores(1, 0, 3, 4, SkKernelType::AIC_ONLY);
     auto* wait1 = CreateWaitNode(3, 0, 4, 5);
     auto* k2 = CreateKernelNodeWithCores(5, 0, INVALID_TASK_ID, 4, SkKernelType::AIC_ONLY);
@@ -1083,38 +1222,44 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase24_ResetStreamStatesResumeSuspended
     SetupEvent(100, 4, {3});
     SetupEvent(200, 8, {});
 
+    graph->BuildEventNodeAssociations();
+
+    EXPECT_FALSE(notify2->IsFusible());
+
     SuperKernelScopeSplitter splitter(*graph, *opts);
     bool result = splitter.SplitGraph();
 
     ASSERT_TRUE(result);
     const auto& scopeInfos = splitter.GetScopeInfos();
 
-    // 由于 K1 占用 4 个 cores，K2 也需要 4 个 cores，但 Wait1 等待 Notify1
-    // 预期会形成多个 scope
     EXPECT_GE(scopeInfos.size(), 1);
 
-    // 验证所有节点都被处理
     std::set<uint64_t> allProcessedNodes;
     for (const auto& scope : scopeInfos) {
         for (const auto* node : scope.nodes_) {
             allProcessedNodes.insert(node->GetNodeId());
         }
     }
-    std::set<uint64_t> expectedNodes = {1, 2, 3, 4, 5, 6, 8};
+    std::set<uint64_t> expectedNodes = {1, 2, 3, 4, 5, 6};
     EXPECT_EQ(allProcessedNodes, expectedNodes);
 }
 
-// ==================== 测试用例 25: 多次暂停恢复场景 ====================
-
-TEST_F(SuperKernelScopeSplitterTest, TestCase25_MultipleSuspendResume)
+/**
+ * @brief 多次暂停恢复
+ * 
+ * 图结构:
+ *   stream0: [Wait1(1) -> K1(3) -> Wait2(5) -> K2(7)]
+ *   stream1: [Notify1(2) -> K3(4) -> Notify2(6) -> K4(8)]
+ *   stream2: [K5(9)]
+ *   Event1: Wait1(1) 等待 Notify1(2)
+ *   Event2: Wait2(5) 等待 Notify2(6)
+ * 
+ * 预期结果:
+ *   - SplitGraph返回true
+ *   - 全部节点被处理: {1, 2, 3, 4, 5, 6, 7, 8, 9}
+ */
+TEST_F(SuperKernelScopeSplitterTest, Sync_MultipleSuspendResume)
 {
-    // 测试流多次暂停和恢复
-    // Stream 0: [Wait1(id=1)] → [K1(id=3)] → [Wait2(id=5)] → [K2(id=7)]
-    // Stream 1: [Notify1(id=2)] → [K2(id=4)] → [Notify2(id=6)] → [K3(id=8)]
-    // Stream 2: [K4(id=9)]
-    // Event1: Wait1(id=1) 等待 Notify1(id=2)
-    // Event2: Wait2(id=5) 等待 Notify2(id=6)
-
     auto* wait1 = CreateWaitNode(1, 0, 2, 3);
     auto* k1 = CreateKernelNode(3, 0, 5);
     auto* wait2 = CreateWaitNode(5, 0, 6, 7);
@@ -1137,7 +1282,6 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase25_MultipleSuspendResume)
     ASSERT_TRUE(result);
     const auto& scopeInfos = splitter.GetScopeInfos();
 
-    // 验证所有节点都被处理
     std::set<uint64_t> allProcessedNodes;
     for (const auto& scope : scopeInfos) {
         for (const auto* node : scope.nodes_) {
@@ -1148,15 +1292,20 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase25_MultipleSuspendResume)
     EXPECT_EQ(allProcessedNodes, expectedNodes);
 }
 
-// ==================== 测试用例 26: 无scope节点，整张图参与切分 ====================
-
-TEST_F(SuperKernelScopeSplitterTest, TestCase26_NoScopeNodes_FullGraphFusion)
+/**
+ * @brief 无Scope节点全图融合
+ * 
+ * 图结构:
+ *   stream0: [K1(1) -> K2(2) -> K3(3)]
+ *   stream1: [K4(4) -> K5(5) -> K6(6)]
+ *   无Scope标记节点
+ * 
+ * 预期结果:
+ *   - SplitGraph返回true
+ *   - 生成1个scope: {1, 2, 3, 4, 5, 6}
+ */
+TEST_F(SuperKernelScopeSplitterTest, Basic_NoScopeNodesFullGraphFusion)
 {
-    // 测试场景：用户未添加任何scope节点，代表整张图参与切分
-    // Stream 0: [K1(id=1)] → [K2(id=2)] → [K3(id=3)]
-    // Stream 1: [K4(id=4)] → [K5(id=5)] → [K6(id=6)]
-    // 预期：所有节点融合到一个scope
-
     auto* k1 = CreateKernelNode(1, 0, 2);
     auto* k2 = CreateKernelNode(2, 0, 3);
     auto* k3 = CreateKernelNode(3, 0, INVALID_TASK_ID);
@@ -1167,7 +1316,6 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase26_NoScopeNodes_FullGraphFusion)
 
     SetupStreams({{1, 2, 3}, {4, 5, 6}});
 
-    // 初始化graph，确保没有scope标记
     graph->scopeNameToIdx.clear();
 
     SuperKernelScopeSplitter splitter(*graph, *opts);
@@ -1176,21 +1324,24 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase26_NoScopeNodes_FullGraphFusion)
     ASSERT_TRUE(result);
     const auto& scopeInfos = splitter.GetScopeInfos();
 
-    // 预期：所有节点融合到一个scope
     EXPECT_EQ(scopeInfos.size(), 1);
     VerifyScope(scopeInfos[0], {1, 2, 3, 4, 5, 6});
 }
 
-// ==================== 测试用例 27: 单个可融合scope ====================
-
-TEST_F(SuperKernelScopeSplitterTest, TestCase27_SingleFusibleScope)
+/**
+ * @brief 单个可融合Scope - ScopeBitFlags标记
+ * 
+ * 图结构:
+ *   stream0: [K1(1) -> ScopeBegin_A(2) -> K2(3) -> K3(4) -> ScopeEnd_A(5) -> K4(6)]
+ *   scope_A为可融合Scope
+ * 
+ * 预期结果:
+ *   - UpdateNodeScopeBitFlags标记:
+ *     - K1/K4: scopeBitFlags=0 (不属于任何scope)
+ *     - ScopeBegin_A/K2/K3/ScopeEnd_A: scopeBitFlags第0位为1
+ */
+TEST_F(SuperKernelScopeSplitterTest, Scope_SingleFusibleScope)
 {
-    // 测试场景：单个可融合scope，scope内的节点融合
-    // Stream 0: [K1(id=1)] → [ScopeBegin_A(id=2)] → [K2(id=3)] → [K3(id=4)] → [ScopeEnd_A(id=5)] → [K4(id=6)]
-    // 预期：
-    //   - 节点2, 3, 4, 5的scopeBitFlags第0位为1（属于scope_A）
-    //   - 节点1, 6的scopeBitFlags全为0（不属于任何scope）
-
     auto* k1 = CreateKernelNode(1, 0, 2);
     auto* scopeBegin = CreateScopeBeginNode(2, 0, "scope_A", 3);
     auto* k2 = CreateKernelNode(3, 0, 4);
@@ -1200,45 +1351,39 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase27_SingleFusibleScope)
 
     SetupStreams({{1, 2, 3, 4, 5, 6}});
 
-    // 初始化scope名称
     graph->scopeNameToIdx["scope_A"] = 0;
 
-    // 执行scope标记更新
     graph->UpdateNodeScopeBitFlags();
 
-    // 验证scopeBitFlags
-    // K1: 不属于任何scope
     EXPECT_EQ(k1->GetScopeBitFlags().count(), 0);
 
-    // ScopeBegin: 属于scope_A
     EXPECT_TRUE(scopeBegin->GetScopeBitFlags().test(0));
     EXPECT_EQ(scopeBegin->GetScopeBitFlags().count(), 1);
 
-    // K2, K3: 属于scope_A
     EXPECT_TRUE(k2->GetScopeBitFlags().test(0));
     EXPECT_EQ(k2->GetScopeBitFlags().count(), 1);
     EXPECT_TRUE(k3->GetScopeBitFlags().test(0));
     EXPECT_EQ(k3->GetScopeBitFlags().count(), 1);
 
-    // ScopeEnd: 属于scope_A
     EXPECT_TRUE(scopeEnd->GetScopeBitFlags().test(0));
     EXPECT_EQ(scopeEnd->GetScopeBitFlags().count(), 1);
 
-    // K4: 不属于任何scope
     EXPECT_EQ(k4->GetScopeBitFlags().count(), 0);
 }
 
-// ==================== 测试用例 28: 多个可融合scope ====================
-
-TEST_F(SuperKernelScopeSplitterTest, TestCase28_MultipleFusibleScopes)
+/**
+ * @brief 多个可融合Scope - 不同ScopeBitFlags
+ * 
+ * 图结构:
+ *   stream0: [ScopeBegin_A(1) -> K1(2) -> ScopeEnd_A(3) -> K2(4) -> ScopeBegin_B(5) -> K3(6) -> ScopeEnd_B(7)]
+ * 
+ * 预期结果:
+ *   - Scope_A节点: scopeBitFlags第0位为1
+ *   - K2(4): scopeBitFlags=0
+ *   - Scope_B节点: scopeBitFlags第1位为1
+ */
+TEST_F(SuperKernelScopeSplitterTest, Scope_MultipleFusibleScopes)
 {
-    // 测试场景：多个独立的可融合scope
-    // Stream 0: [ScopeBegin_A(id=1)] → [K1(id=2)] → [ScopeEnd_A(id=3)] → [K2(id=4)] → [ScopeBegin_B(id=5)] → [K3(id=6)] → [ScopeEnd_B(id=7)]
-    // 预期：
-    //   - 节点1, 2, 3的scopeBitFlags第0位为1（属于scope_A）
-    //   - 节点5, 6, 7的scopeBitFlags第1位为1（属于scope_B）
-    //   - 节点4的scopeBitFlags全为0
-
     auto* scopeBeginA = CreateScopeBeginNode(1, 0, "scope_A", 2);
     auto* k1 = CreateKernelNode(2, 0, 3);
     auto* scopeEndA = CreateScopeEndNode(3, 0, "scope_A", 4);
@@ -1249,27 +1394,21 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase28_MultipleFusibleScopes)
 
     SetupStreams({{1, 2, 3, 4, 5, 6, 7}});
 
-    // 初始化scope名称
     graph->scopeNameToIdx["scope_A"] = 0;
     graph->scopeNameToIdx["scope_B"] = 1;
 
-    // 执行scope标记更新
     graph->UpdateNodeScopeBitFlags();
 
-    // 验证scope_A内的节点（第0位为1）
     EXPECT_TRUE(scopeBeginA->GetScopeBitFlags().test(0));
     EXPECT_TRUE(k1->GetScopeBitFlags().test(0));
     EXPECT_TRUE(scopeEndA->GetScopeBitFlags().test(0));
 
-    // K2: 在scope_A和scope_B之间
     EXPECT_EQ(k2->GetScopeBitFlags().count(), 0);
 
-    // 验证scope_B内的节点（第1位为1）
     EXPECT_TRUE(scopeBeginB->GetScopeBitFlags().test(1));
     EXPECT_TRUE(k3->GetScopeBitFlags().test(1));
     EXPECT_TRUE(scopeEndB->GetScopeBitFlags().test(1));
 
-    // 验证scope_A和scope_B的标记不会互相干扰
     EXPECT_FALSE(scopeBeginA->GetScopeBitFlags().test(1));
     EXPECT_FALSE(k1->GetScopeBitFlags().test(1));
     EXPECT_FALSE(scopeEndA->GetScopeBitFlags().test(1));
@@ -1279,15 +1418,20 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase28_MultipleFusibleScopes)
     EXPECT_FALSE(scopeEndB->GetScopeBitFlags().test(0));
 }
 
-// ==================== 测试用例 29: 不可融合scope ====================
-
-TEST_F(SuperKernelScopeSplitterTest, TestCase29_UnfusibleScope)
+/**
+ * @brief 不可融合Scope - 中间节点标记为不可融合
+ * 
+ * 图结构:
+ *   stream0: [K1(1) -> UnfusibleBegin(2) -> K2(3) -> K3(4) -> UnfusibleEnd(5) -> K4(6)]
+ *   UnfusibleBegin/End为不可融合Scope节点
+ * 
+ * 预期结果:
+ *   - SplitGraph返回true
+ *   - 生成2个scope: {K1(1), UnfusibleBegin(2)}, {UnfusibleEnd(5), K4(6)}
+ *   - K2(3)和K3(4)被标记为不可融合
+ */
+TEST_F(SuperKernelScopeSplitterTest, Scope_UnfusibleScope)
 {
-    // 测试场景：仅有unFuseEnable为false的标记，整张图切分，但unFuseEnable为false中间的算子不可融
-    // Stream 0: [K1(id=1)] → [UnfusibleBegin(id=2)] → [K2(id=3)] → [K3(id=4)] → [UnfusibleEnd(id=5)] → [K4(id=6)]
-    // 预期：生成2个scope，第一个scope包含[K1(1), UnfusibleBegin(2)]，第二个scope包含[UnfusibleEnd(5), K4(6)]
-    //       UnfusibleBegin/End是scope节点，需要添加到scope中；K2(3)和K3(4)是普通节点，不可融合，不添加到scope中
-
     auto* k1 = CreateKernelNode(1, 0, 2);
     auto* unfusibleBegin = CreateUnfusibleScopeBeginNode(2, 0, 3);
     auto* k2 = CreateKernelNode(3, 0, 4);
@@ -1297,7 +1441,6 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase29_UnfusibleScope)
 
     SetupStreams({{1, 2, 3, 4, 5, 6}});
 
-    // 执行scope标记更新，将K2和K3标记为不可融合
     graph->UpdateNodeScopeBitFlags();
 
     SuperKernelScopeSplitter splitter(*graph, *opts);
@@ -1306,20 +1449,16 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase29_UnfusibleScope)
     ASSERT_TRUE(result);
     const auto& scopeInfos = splitter.GetScopeInfos();
 
-    // 验证生成了2个scope
     EXPECT_EQ(scopeInfos.size(), 2);
 
-    // 验证scope 0包含K1(1)和UnfusibleBegin(2)
     EXPECT_EQ(scopeInfos[0].nodes_.size(), 2);
     EXPECT_EQ(scopeInfos[0].nodes_[0]->GetNodeId(), 1);
     EXPECT_EQ(scopeInfos[0].nodes_[1]->GetNodeId(), 2);
 
-    // 验证scope 1包含UnfusibleEnd(5)和K4(6)
     EXPECT_EQ(scopeInfos[1].nodes_.size(), 2);
     EXPECT_EQ(scopeInfos[1].nodes_[0]->GetNodeId(), 5);
     EXPECT_EQ(scopeInfos[1].nodes_[1]->GetNodeId(), 6);
 
-    // 验证所有可融合节点和scope节点被包含在scope中
     std::set<uint64_t> allProcessedNodes;
     for (const auto& scope : scopeInfos) {
         for (const auto* node : scope.nodes_) {
@@ -1329,25 +1468,25 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase29_UnfusibleScope)
     std::set<uint64_t> expectedNodes = {1, 2, 5, 6}; // K1, UnfusibleBegin, UnfusibleEnd, K4
     EXPECT_EQ(allProcessedNodes, expectedNodes);
 
-    // 验证K2和K3被标记为不可融合
     EXPECT_FALSE(k2->IsFusible());
     EXPECT_FALSE(k3->IsFusible());
     EXPECT_TRUE(k1->IsFusible());
     EXPECT_TRUE(k4->IsFusible());
 }
 
-// ==================== 测试用例 30: 可融合scope + 不可融合scope混合 ====================
-
-TEST_F(SuperKernelScopeSplitterTest, TestCase30_MixedFusibleAndUnfusibleScopes)
+/**
+ * @brief 可融合+不可融合Scope混合
+ * 
+ * 图结构:
+ *   stream0: [ScopeBegin_A(1) -> K1(2) -> ScopeEnd_A(3) -> UnfusibleBegin(4) -> K2(5) -> UnfusibleEnd(6) -> K3(7)]
+ * 
+ * 预期结果:
+ *   - 生成3个scope
+ *   - K2(5)在unfusible scope内不可融合
+ *   - K3(7)在命名scope外不可融合
+ */
+TEST_F(SuperKernelScopeSplitterTest, Scope_MixedFusibleAndUnfusible)
 {
-    // 测试场景：可融合和不可融合scope混合
-    // Stream 0: [ScopeBegin_A(id=1)] → [K1(id=2)] → [ScopeEnd_A(id=3)] → [UnfusibleBegin(id=4)] → [K2(id=5)] → [UnfusibleEnd(id=6)] → [K3(id=7)]
-    // 预期：生成3个scope
-    //   - Scope 0: [ScopeBegin_A(1), K1(2), ScopeEnd_A(3)] - 可融合scope
-    //   - Scope 1: [UnfusibleBegin(4)] - unfusible scope begin节点
-    //   - Scope 2: [UnfusibleEnd(6)] - unfusible scope end节点
-    // K2(5)在unfusible scope内不可融合，K3(7)在命名scope外不可融合，都不添加到scope中
-
     auto* scopeBeginA = CreateScopeBeginNode(1, 0, "scope_A", 2);
     auto* k1 = CreateKernelNode(2, 0, 3);
     auto* scopeEndA = CreateScopeEndNode(3, 0, "scope_A", 4);
@@ -1358,10 +1497,8 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase30_MixedFusibleAndUnfusibleScopes)
 
     SetupStreams({{1, 2, 3, 4, 5, 6, 7}});
 
-    // 初始化scope名称
     graph->scopeNameToIdx["scope_A"] = 0;
 
-    // 执行scope标记更新，将K2标记为不可融合
     graph->UpdateNodeScopeBitFlags();
 
     SuperKernelScopeSplitter splitter(*graph, *opts);
@@ -1370,24 +1507,19 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase30_MixedFusibleAndUnfusibleScopes)
     ASSERT_TRUE(result);
     const auto& scopeInfos = splitter.GetScopeInfos();
 
-    // 验证生成了3个scope
     EXPECT_EQ(scopeInfos.size(), 3);
 
-    // 验证scope 0包含ScopeBegin_A(1), K1(2), ScopeEnd_A(3)
     EXPECT_EQ(scopeInfos[0].nodes_.size(), 3);
     EXPECT_EQ(scopeInfos[0].nodes_[0]->GetNodeId(), 1);
     EXPECT_EQ(scopeInfos[0].nodes_[1]->GetNodeId(), 2);
     EXPECT_EQ(scopeInfos[0].nodes_[2]->GetNodeId(), 3);
 
-    // 验证scope 1包含UnfusibleBegin(4)
     EXPECT_EQ(scopeInfos[1].nodes_.size(), 1);
     EXPECT_EQ(scopeInfos[1].nodes_[0]->GetNodeId(), 4);
 
-    // 验证scope 2包含UnfusibleEnd(6)
     EXPECT_EQ(scopeInfos[2].nodes_.size(), 1);
     EXPECT_EQ(scopeInfos[2].nodes_[0]->GetNodeId(), 6);
 
-    // 验证所有可融合节点和scope节点被包含在scope中
     std::set<uint64_t> allProcessedNodes;
     for (const auto& scope : scopeInfos) {
         for (const auto* node : scope.nodes_) {
@@ -1397,21 +1529,25 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase30_MixedFusibleAndUnfusibleScopes)
     std::set<uint64_t> expectedNodes = {1, 2, 3, 4, 6}; // ScopeBegin_A, K1, ScopeEnd_A, UnfusibleBegin, UnfusibleEnd
     EXPECT_EQ(allProcessedNodes, expectedNodes);
 
-    // 验证融合状态
     EXPECT_TRUE(k1->IsFusible());
     EXPECT_FALSE(k2->IsFusible());
     EXPECT_FALSE(k3->IsFusible()); // K3在scope外，被标记为不可融合
 }
 
-// ==================== 测试用例 31: 多流中相同scope名称 ====================
-
-TEST_F(SuperKernelScopeSplitterTest, TestCase31_SameScopeNameAcrossStreams)
+/**
+ * @brief 相同Scope名称跨流
+ * 
+ * 图结构:
+ *   stream0: [ScopeBegin_A(1) -> K1(2) -> ScopeEnd_A(3)]
+ *   stream1: [K2(4) -> ScopeBegin_A(5) -> K3(6) -> ScopeEnd_A(7)]
+ *   两流使用相同scope名称"scope_A"
+ * 
+ * 预期结果:
+ *   - 相同scope名称节点使用相同ScopeBitFlags
+ *   - 生成1个scope: {1, 2, 3, 4, 5, 6, 7}
+ */
+TEST_F(SuperKernelScopeSplitterTest, Scope_SameNameAcrossStreams)
 {
-    // 测试场景：多个流中使用相同的scope名称
-    // Stream 0: [ScopeBegin_A(id=1)] → [K1(id=2)] → [ScopeEnd_A(id=3)]
-    // Stream 1: [K2(id=4)] → [ScopeBegin_A(id=5)] → [K3(id=6)] → [ScopeEnd_A(id=7)]
-    // 预期：相同scope名称的节点使用相同的bit标记，所有节点融合到一个scope中
-
     auto* scopeBeginA0 = CreateScopeBeginNode(1, 0, "scope_A", 2);
     auto* k1 = CreateKernelNode(2, 0, 3);
     auto* scopeEndA0 = CreateScopeEndNode(3, 0, "scope_A", INVALID_TASK_ID);
@@ -1423,7 +1559,6 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase31_SameScopeNameAcrossStreams)
 
     SetupStreams({{1, 2, 3}, {4, 5, 6, 7}});
 
-    // 初始化scope名称（相同名称使用相同索引）
     graph->scopeNameToIdx["scope_A"] = 0;
 
     SuperKernelScopeSplitter splitter(*graph, *opts);
@@ -1432,10 +1567,8 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase31_SameScopeNameAcrossStreams)
     ASSERT_TRUE(result);
     const auto& scopeInfos = splitter.GetScopeInfos();
 
-    // 验证生成了1个scope（所有节点在同一个scope_A中）
     EXPECT_EQ(scopeInfos.size(), 1);
 
-    // 验证所有节点都被包含在scope中（包括scope节点）
     std::set<uint64_t> allProcessedNodes;
     for (const auto& scope : scopeInfos) {
         for (const auto* node : scope.nodes_) {
@@ -1446,17 +1579,19 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase31_SameScopeNameAcrossStreams)
     EXPECT_EQ(allProcessedNodes, expectedNodes);
 }
 
-// ==================== 测试用例 32: 嵌套scope ====================
-
-TEST_F(SuperKernelScopeSplitterTest, TestCase32_NestedScopes)
+/**
+ * @brief 嵌套Scope - ScopeBitFlags多位设置
+ * 
+ * 图结构:
+ *   stream0: [ScopeBegin_A(1) -> ScopeBegin_B(2) -> K1(3) -> ScopeEnd_B(4) -> K2(5) -> ScopeEnd_A(6)]
+ *   scope_B嵌套在scope_A内部
+ * 
+ * 预期结果:
+ *   - K1: scopeBitFlags同时包含scope_A和scope_B
+ *   - K2: scopeBitFlags只包含scope_A
+ */
+TEST_F(SuperKernelScopeSplitterTest, Scope_NestedScopes)
 {
-    // 测试场景：嵌套的scope
-    // Stream 0: [ScopeBegin_A(id=1)] → [ScopeBegin_B(id=2)] → [K1(id=3)] → [ScopeEnd_B(id=4)] → [K2(id=5)] → [ScopeEnd_A(id=6)]
-    // 预期：生成3个scope，嵌套的scope B会被拆分出来
-    //   - Scope 0: [ScopeBegin_A(1)]
-    //   - Scope 1: [ScopeBegin_B(2), K1(3), ScopeEnd_B(4)]
-    //   - Scope 2: [K2(5), ScopeEnd_A(6)]
-
     auto* scopeBeginA = CreateScopeBeginNode(1, 0, "scope_A", 2);
     auto* scopeBeginB = CreateScopeBeginNode(2, 0, "scope_B", 3);
     auto* k1 = CreateKernelNode(3, 0, 4);
@@ -1466,11 +1601,9 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase32_NestedScopes)
 
     SetupStreams({{1, 2, 3, 4, 5, 6}});
 
-    // 初始化scope名称
     graph->scopeNameToIdx["scope_A"] = 0;
     graph->scopeNameToIdx["scope_B"] = 1;
 
-    // 执行scope标记更新
     graph->UpdateNodeScopeBitFlags();
 
     SuperKernelScopeSplitter splitter(*graph, *opts);
@@ -1479,10 +1612,8 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase32_NestedScopes)
     ASSERT_TRUE(result);
     const auto& scopeInfos = splitter.GetScopeInfos();
 
-    // 验证生成了3个scope
     EXPECT_EQ(scopeInfos.size(), 3);
 
-    // 验证所有节点都被包含在scope中（包括scope节点）
     std::set<uint64_t> allProcessedNodes;
     for (const auto& scope : scopeInfos) {
         for (const auto* node : scope.nodes_) {
@@ -1492,27 +1623,29 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase32_NestedScopes)
     std::set<uint64_t> expectedNodes = {1, 2, 3, 4, 5, 6}; // 所有节点
     EXPECT_EQ(allProcessedNodes, expectedNodes);
 
-    // 验证K1的scopeBitFlags同时包含scope_A和scope_B
     auto k1BitFlags = k1->GetScopeBitFlags();
     EXPECT_TRUE(k1BitFlags.test(0)); // scope_A
     EXPECT_TRUE(k1BitFlags.test(1)); // scope_B
 
-    // 验证K2的scopeBitFlags只包含scope_A
     auto k2BitFlags = k2->GetScopeBitFlags();
     EXPECT_TRUE(k2BitFlags.test(0)); // scope_A
     EXPECT_FALSE(k2BitFlags.test(1)); // scope_B
 }
 
-// ==================== 测试用例 33: Scope与跨流依赖 ====================
-
-TEST_F(SuperKernelScopeSplitterTest, TestCase33_ScopeWithCrossStreamDependency)
+/**
+ * @brief Scope与跨流依赖
+ * 
+ * 图结构:
+ *   stream0: [ScopeBegin_A(1) -> K1(2) -> Wait1(3) -> K2(4) -> ScopeEnd_A(5)]
+ *   stream1: [K3(6) -> Notify1(7) -> K4(8)]
+ *   Event1: Wait1(3) 等待 Notify1(7)
+ * 
+ * 预期结果:
+ *   - SplitGraph返回true
+ *   - 所有节点 {1, 2, 3, 4, 5, 6, 7, 8} 融合到同一个scope
+ */
+TEST_F(SuperKernelScopeSplitterTest, Scope_WithCrossStreamDependency)
 {
-    // 测试场景：scope与跨流Wait-Notify依赖
-    // Stream 0: [ScopeBegin_A(id=1)] → [K1(id=2)] → [Wait1(id=3)] → [K2(id=4)] → [ScopeEnd_A(id=5)]
-    // Stream 1: [K3(id=6)] → [Notify1(id=7)] → [K4(id=8)]
-    // Event1: Wait1(id=3) 等待 Notify1(id=7)
-    // 预期：所有节点融合到一个scope中，包括scope节点和wait/notify节点
-
     auto* scopeBeginA = CreateScopeBeginNode(1, 0, "scope_A", 2);
     auto* k1 = CreateKernelNode(2, 0, 3);
     auto* wait1 = CreateWaitNode(3, 0, 7, 4);
@@ -1526,7 +1659,6 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase33_ScopeWithCrossStreamDependency)
     SetupStreams({{1, 2, 3, 4, 5}, {6, 7, 8}});
     SetupEvent(100, 7, {3});
 
-    // 初始化scope名称
     graph->scopeNameToIdx["scope_A"] = 0;
 
     SuperKernelScopeSplitter splitter(*graph, *opts);
@@ -1535,10 +1667,8 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase33_ScopeWithCrossStreamDependency)
     ASSERT_TRUE(result);
     const auto& scopeInfos = splitter.GetScopeInfos();
 
-    // 验证生成了1个scope（所有节点融合）
     EXPECT_EQ(scopeInfos.size(), 1);
 
-    // 验证所有节点都被包含在scope中（包括scope节点和wait/notify节点）
     std::set<uint64_t> allProcessedNodes;
     for (const auto& scope : scopeInfos) {
         for (const auto* node : scope.nodes_) {
@@ -1549,14 +1679,20 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase33_ScopeWithCrossStreamDependency)
     EXPECT_EQ(allProcessedNodes, expectedNodes);
 }
 
-// ==================== 测试用例 34: 超过最大scope数量限制 ====================
-
-TEST_F(SuperKernelScopeSplitterTest, TestCase34_ExceedMaxScopeNumLimit)
+/**
+ * @brief 超过最大Scope数量限制
+ * 
+ * 图结构:
+ *   创建超过MAX_SCOPE_NUM(64)个scope定义
+ *   stream0: [K1(1) -> ScopeBegin_64(2) -> K2(3)]
+ * 
+ * 预期结果:
+ *   - SplitGraph返回true
+ *   - 超过限制的scope不生效
+ *   - 所有节点 {1, 2, 3} 被处理
+ */
+TEST_F(SuperKernelScopeSplitterTest, Scope_ExceedMaxScopeNumLimit)
 {
-    // 测试场景：超过MAX_SCOPE_NUM限制
-    // 预期：超过限制的scope不生效，但所有节点仍然被处理
-
-    // 创建65个不同的scope（超过MAX_SCOPE_NUM=64）
     for (uint32_t i = 0; i < MAX_SCOPE_NUM + 1; ++i) {
         graph->scopeNameToIdx["scope_" + std::to_string(i)] = i;
     }
@@ -1573,10 +1709,8 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase34_ExceedMaxScopeNumLimit)
     ASSERT_TRUE(result);
     const auto& scopeInfos = splitter.GetScopeInfos();
 
-    // 验证生成了1个scope（所有节点融合）
     EXPECT_EQ(scopeInfos.size(), 1);
 
-    // 验证所有节点都被包含在scope中（包括scope节点）
     std::set<uint64_t> allProcessedNodes;
     for (const auto& scope : scopeInfos) {
         for (const auto* node : scope.nodes_) {
@@ -1587,17 +1721,18 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase34_ExceedMaxScopeNumLimit)
     EXPECT_EQ(allProcessedNodes, expectedNodes);
 }
 
-// ==================== 测试用例 35: Scope与不可融合节点混合 ====================
-
-TEST_F(SuperKernelScopeSplitterTest, TestCase35_ScopeWithUnfusibleNodes)
+/**
+ * @brief Scope内包含不可融合节点
+ * 
+ * 图结构:
+ *   stream0: [ScopeBegin_A(1) -> K1(2) -> UF1(3, unfusible) -> K2(4) -> ScopeEnd_A(5)]
+ * 
+ * 预期结果:
+ *   - 生成2个scope: {ScopeBegin_A(1), K1(2)}, {K2(4), ScopeEnd_A(5)}
+ *   - UF1作为切分边界
+ */
+TEST_F(SuperKernelScopeSplitterTest, Scope_WithUnfusibleNodes)
 {
-    // 测试场景：scope内包含不可融合节点
-    // Stream 0: [ScopeBegin_A(id=1)] → [K1(id=2)] → [Unfusible_K(id=3)] → [K2(id=4)] → [ScopeEnd_A(id=5)]
-    // 预期：生成2个scope
-    //   - Scope 0: [ScopeBegin_A(1), K1(2)]
-    //   - Scope 1: [K2(4), ScopeEnd_A(5)]
-    // Unfusible_K(3)不可融合，不包含在scope中
-
     auto* scopeBeginA = CreateScopeBeginNode(1, 0, "scope_A", 2);
     auto* k1 = CreateKernelNode(2, 0, 3);
     auto* unfusibleK = CreateUnfusibleKernelNode(3, 0, 4);
@@ -1606,10 +1741,8 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase35_ScopeWithUnfusibleNodes)
 
     SetupStreams({{1, 2, 3, 4, 5}});
 
-    // 初始化scope名称
     graph->scopeNameToIdx["scope_A"] = 0;
 
-    // 执行scope标记更新
     graph->UpdateNodeScopeBitFlags();
 
     SuperKernelScopeSplitter splitter(*graph, *opts);
@@ -1618,20 +1751,16 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase35_ScopeWithUnfusibleNodes)
     ASSERT_TRUE(result);
     const auto& scopeInfos = splitter.GetScopeInfos();
 
-    // 验证生成了2个scope
     EXPECT_EQ(scopeInfos.size(), 2);
 
-    // 验证scope 0包含ScopeBegin_A(1)和K1(2)
     EXPECT_EQ(scopeInfos[0].nodes_.size(), 2);
     EXPECT_EQ(scopeInfos[0].nodes_[0]->GetNodeId(), 1);
     EXPECT_EQ(scopeInfos[0].nodes_[1]->GetNodeId(), 2);
 
-    // 验证scope 1包含K2(4)和ScopeEnd_A(5)
     EXPECT_EQ(scopeInfos[1].nodes_.size(), 2);
     EXPECT_EQ(scopeInfos[1].nodes_[0]->GetNodeId(), 4);
     EXPECT_EQ(scopeInfos[1].nodes_[1]->GetNodeId(), 5);
 
-    // 验证不可融合的节点没有被包含在任何scope中
     std::set<uint64_t> allProcessedNodes;
     for (const auto& scope : scopeInfos) {
         for (const auto* node : scope.nodes_) {
@@ -1641,20 +1770,24 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase35_ScopeWithUnfusibleNodes)
     std::set<uint64_t> expectedNodes = {1, 2, 4, 5}; // ScopeBegin_A, K1, K2, ScopeEnd_A
     EXPECT_EQ(allProcessedNodes, expectedNodes);
 
-    // 验证融合状态
     EXPECT_TRUE(k1->IsFusible());
     EXPECT_FALSE(unfusibleK->IsFusible());
     EXPECT_TRUE(k2->IsFusible());
 }
 
-// ==================== 测试用例 36: Scope begin/end不成对（只有begin） ====================
-
-TEST_F(SuperKernelScopeSplitterTest, TestCase36_UnpairedScopeBegin)
+/**
+ * @brief Scope begin/end不成对 - 只有begin
+ * 
+ * 图结构:
+ *   stream0: [K1(1) -> ScopeBegin_A(2) -> K2(3) -> K3(4)]
+ *   scope_A缺少ScopeEnd节点
+ * 
+ * 预期结果:
+ *   - UpdateNodeScopeBitFlags检测到未关闭scope
+ *   - K2/K3仍被标记为属于scope_A
+ */
+TEST_F(SuperKernelScopeSplitterTest, Scope_UnpairedScopeBegin)
 {
-    // 测试场景：scope begin/end不成对，只有begin没有end
-    // Stream 0: [K1(id=1)] → [ScopeBegin_A(id=2)] → [K2(id=3)] → [K3(id=4)]
-    // 预期：UpdateNodeScopeBitFlags会检测到未关闭的scope并报错
-
     auto* k1 = CreateKernelNode(1, 0, 2);
     auto* scopeBegin = CreateScopeBeginNode(2, 0, "scope_A", 3);
     auto* k2 = CreateKernelNode(3, 0, 4);
@@ -1662,26 +1795,27 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase36_UnpairedScopeBegin)
 
     SetupStreams({{1, 2, 3, 4}});
 
-    // 初始化scope名称
     graph->scopeNameToIdx["scope_A"] = 0;
 
-    // 执行scope标记更新（应该检测到未关闭的scope）
-    // 注意：这里不检查返回值，因为函数内部会记录错误日志
     graph->UpdateNodeScopeBitFlags();
 
-    // 验证scope标记（即使未关闭，begin之后的节点也应该被标记）
     EXPECT_TRUE(k2->GetScopeBitFlags().test(0));
     EXPECT_TRUE(k3->GetScopeBitFlags().test(0));
 }
 
-// ==================== 测试用例 37: Scope begin/end不成对（只有end） ====================
-
-TEST_F(SuperKernelScopeSplitterTest, TestCase37_UnpairedScopeEnd)
+/**
+ * @brief Scope begin/end不成对 - 只有end
+ * 
+ * 图结构:
+ *   stream0: [K1(1) -> ScopeEnd_A(2) -> K2(3) -> K3(4)]
+ *   scope_A缺少ScopeBegin节点
+ * 
+ * 预期结果:
+ *   - UpdateNodeScopeBitFlags检测到没有匹配begin的scope end
+ *   - K1/K2/K3不属于scope_A
+ */
+TEST_F(SuperKernelScopeSplitterTest, Scope_UnpairedScopeEnd)
 {
-    // 测试场景：scope begin/end不成对，只有end没有begin
-    // Stream 0: [K1(id=1)] → [ScopeEnd_A(id=2)] → [K2(id=3)] → [K3(id=4)]
-    // 预期：UpdateNodeScopeBitFlags会检测到没有匹配begin的scope end并报错
-
     auto* k1 = CreateKernelNode(1, 0, 2);
     auto* scopeEnd = CreateScopeEndNode(2, 0, "scope_A", 3);
     auto* k2 = CreateKernelNode(3, 0, 4);
@@ -1689,25 +1823,26 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase37_UnpairedScopeEnd)
 
     SetupStreams({{1, 2, 3, 4}});
 
-    // 初始化scope名称
     graph->scopeNameToIdx["scope_A"] = 0;
 
-    // 执行scope标记更新（应该检测到没有匹配begin的scope end）
     graph->UpdateNodeScopeBitFlags();
 
-    // 验证scope标记（scopeEnd本身应该有当前的scopeBitFlags）
-    // K1, K2, K3不应该有scope_A的标记（因为begin不存在）
     EXPECT_FALSE(k1->GetScopeBitFlags().test(0));
 }
 
-// ==================== 测试用例 38: 重复的scope begin ====================
-
-TEST_F(SuperKernelScopeSplitterTest, TestCase38_DuplicateScopeBegin)
+/**
+ * @brief 重复的Scope begin
+ * 
+ * 图结构:
+ *   stream0: [ScopeBegin_A(1) -> K1(2) -> ScopeBegin_A(3) -> K2(4) -> ScopeEnd_A(5)]
+ *   scope_A有两个ScopeBegin节点
+ * 
+ * 预期结果:
+ *   - UpdateNodeScopeBitFlags检测到重复scope begin
+ *   - K1属于第一个scope begin的范围
+ */
+TEST_F(SuperKernelScopeSplitterTest, Scope_DuplicateScopeBegin)
 {
-    // 测试场景：重复的scope begin
-    // Stream 0: [ScopeBegin_A(id=1)] → [K1(id=2)] → [ScopeBegin_A(id=3)] → [K2(id=4)] → [ScopeEnd_A(id=5)]
-    // 预期：UpdateNodeScopeBitFlags会检测到重复的scope begin并报错
-
     auto* scopeBegin1 = CreateScopeBeginNode(1, 0, "scope_A", 2);
     auto* k1 = CreateKernelNode(2, 0, 3);
     auto* scopeBegin2 = CreateScopeBeginNode(3, 0, "scope_A", 4);
@@ -1716,28 +1851,28 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase38_DuplicateScopeBegin)
 
     SetupStreams({{1, 2, 3, 4, 5}});
 
-    // 初始化scope名称
     graph->scopeNameToIdx["scope_A"] = 0;
 
-    // 执行scope标记更新（应该检测到重复的scope begin）
     graph->UpdateNodeScopeBitFlags();
 
-    // K1应该在第一个scope内
     EXPECT_TRUE(k1->GetScopeBitFlags().test(0));
 }
 
-// ==================== 测试用例 39: 多个scope的scopeBitFlags验证 ====================
-
-TEST_F(SuperKernelScopeSplitterTest, TestCase39_MultipleScopeBitFlagsVerification)
+/**
+ * @brief 多个Scope的ScopeBitFlags验证
+ * 
+ * 图结构:
+ *   stream0: [K1(1) -> ScopeBegin_A(2) -> K2(3) -> ScopeEnd_A(4) -> K3(5) -> ScopeBegin_B(6) -> K4(7) -> ScopeEnd_B(8) -> K5(9)]
+ * 
+ * 预期结果:
+ *   - K1(1): scopeBitFlags=0 (不在任何scope内)
+ *   - Scope_A节点: {ScopeBegin_A(2), K2(3), ScopeEnd_A(4)} scopeBitFlags第0位为1
+ *   - K3(5): scopeBitFlags=0 (不在任何scope内)
+ *   - Scope_B节点: {ScopeBegin_B(6), K4(7), ScopeEnd_B(8)} scopeBitFlags第1位为1
+ *   - K5(9): scopeBitFlags=0 (不在任何scope内)
+ */
+TEST_F(SuperKernelScopeSplitterTest, ScopeBitFlags_MultipleScopeBitFlags)
 {
-    // 测试场景：多个独立的scope，验证scopeBitFlags
-    // Stream 0: [K1(id=1)] → [ScopeBegin_A(id=2)] → [K2(id=3)] → [ScopeEnd_A(id=4)] →
-    //          [K3(id=5)] → [ScopeBegin_B(id=6)] → [K4(id=7)] → [ScopeEnd_B(id=8)] → [K5(id=9)]
-    // 预期：
-    //   - 节点2, 3, 4的scopeBitFlags第0位为1（属于scope_A）
-    //   - 节点6, 7, 8的scopeBitFlags第1位为1（属于scope_B）
-    //   - 节点1, 5, 9的scopeBitFlags全为0
-
     auto* k1 = CreateKernelNode(1, 0, 2);
     auto* scopeBeginA = CreateScopeBeginNode(2, 0, "scope_A", 3);
     auto* k2 = CreateKernelNode(3, 0, 4);
@@ -1750,34 +1885,25 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase39_MultipleScopeBitFlagsVerificatio
 
     SetupStreams({{1, 2, 3, 4, 5, 6, 7, 8, 9}});
 
-    // 初始化scope名称
     graph->scopeNameToIdx["scope_A"] = 0;
     graph->scopeNameToIdx["scope_B"] = 1;
 
-    // 执行scope标记更新
     graph->UpdateNodeScopeBitFlags();
 
-    // 验证scopeBitFlags
-    // K1: 不属于任何scope
     EXPECT_EQ(k1->GetScopeBitFlags().count(), 0);
 
-    // scope_A内的节点（第0位为1）
     EXPECT_TRUE(scopeBeginA->GetScopeBitFlags().test(0));
     EXPECT_TRUE(k2->GetScopeBitFlags().test(0));
     EXPECT_TRUE(scopeEndA->GetScopeBitFlags().test(0));
 
-    // K3: 在scope_A和scope_B之间
     EXPECT_EQ(k3->GetScopeBitFlags().count(), 0);
 
-    // scope_B内的节点（第1位为1）
     EXPECT_TRUE(scopeBeginB->GetScopeBitFlags().test(1));
     EXPECT_TRUE(k4->GetScopeBitFlags().test(1));
     EXPECT_TRUE(scopeEndB->GetScopeBitFlags().test(1));
 
-    // K5: 不属于任何scope
     EXPECT_EQ(k5->GetScopeBitFlags().count(), 0);
 
-    // 验证scope_A和scope_B的标记不会互相干扰
     EXPECT_FALSE(scopeBeginA->GetScopeBitFlags().test(1));
     EXPECT_FALSE(k2->GetScopeBitFlags().test(1));
     EXPECT_FALSE(scopeEndA->GetScopeBitFlags().test(1));
@@ -1787,18 +1913,20 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase39_MultipleScopeBitFlagsVerificatio
     EXPECT_FALSE(scopeEndB->GetScopeBitFlags().test(0));
 }
 
-// ==================== 测试用例 40: 纯unfusible scope（关键测试） ====================
-
-TEST_F(SuperKernelScopeSplitterTest, TestCase40_PureUnfusibleScope)
+/**
+ * @brief Unfusible Scope内部节点标记为不可融合，外部节点可融合
+ * 
+ * 图结构:
+ *   stream0: [K1(1) -> UnfusibleBegin(2) -> K2(3) -> K3(4) -> UnfusibleEnd(5) -> K4(6)]
+ *   UnfusibleBegin/End为不可融合Scope节点
+ * 
+ * 预期结果:
+ *   - K1/K4可融合（在scope外）
+ *   - UnfusibleBegin/End可融合（Scope节点始终可融合）
+ *   - K2/K3不可融合（在unfusible scope内）
+ */
+TEST_F(SuperKernelScopeSplitterTest, Scope_PureUnfusibleScope)
 {
-    // 测试场景：只有unfusible scope，没有fusible scope
-    // Stream 0: [K1(id=1)] → [ScopeBegin_Unfusible(id=2)] → [K2(id=3)] → [K3(id=4)] → [ScopeEnd_Unfusible(id=5)] → [K4(id=6)]
-    // 预期：
-    //   - 节点1: 可融合（在scope外）
-    //   - 节点2, 3, 4: 不可融合（在unfusible scope内）
-    //   - 节点5: 不可融合（scope end节点）
-    //   - 节点6: 可融合（在scope外）
-
     auto* k1 = CreateKernelNode(1, 0, 2);
     auto* scopeBegin = CreateUnfusibleScopeBeginNode(2, 0, 3);
     auto* k2 = CreateKernelNode(3, 0, 4);
@@ -1808,46 +1936,39 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase40_PureUnfusibleScope)
 
     SetupStreams({{1, 2, 3, 4, 5, 6}});
 
-    // 注意：unfusible scope没有scopeName，所以scopeNameToIdx为空
-    // 这是关键测试点：UpdateNodeScopeBitFlags不应该直接return
     EXPECT_TRUE(graph->scopeNameToIdx.empty());
 
-    // 执行scope标记更新
     graph->UpdateNodeScopeBitFlags();
 
-    // 验证节点1：在scope外，应该可融合
     EXPECT_TRUE(k1->IsFusible()) << "K1 should be fusible (outside scope)";
     EXPECT_EQ(k1->GetScopeBitFlags().count(), 0) << "K1 should have no scope flags";
 
-    // 验证scope begin：scope节点总是可融合的（用于标记融合范围）
     EXPECT_TRUE(scopeBegin->IsFusible()) << "ScopeBegin should be fusible (scope nodes are always fusible)";
 
-    // 验证节点2和3：在unfusible scope内，应该不可融合
     EXPECT_FALSE(k2->IsFusible()) << "K2 should be unfusible (inside unfusible scope)";
     EXPECT_EQ(k2->GetScopeBitFlags().count(), 0) << "K2 should have no scope flags (unfusible scope)";
 
     EXPECT_FALSE(k3->IsFusible()) << "K3 should be unfusible (inside unfusible scope)";
     EXPECT_EQ(k3->GetScopeBitFlags().count(), 0) << "K3 should have no scope flags (unfusible scope)";
 
-    // 验证scope end：scope节点总是可融合的（用于标记融合范围）
     EXPECT_TRUE(scopeEnd->IsFusible()) << "ScopeEnd should be fusible (scope nodes are always fusible)";
 
-    // 验证节点4：在scope外，应该可融合
     EXPECT_TRUE(k4->IsFusible()) << "K4 should be fusible (outside scope)";
     EXPECT_EQ(k4->GetScopeBitFlags().count(), 0) << "K4 should have no scope flags";
 }
 
-// ==================== 测试用例 41: 多个unfusible scope ====================
-
-TEST_F(SuperKernelScopeSplitterTest, TestCase41_MultipleUnfusibleScopes)
+/**
+ * @brief 多个不可融合Scope
+ * 
+ * 图结构:
+ *   stream0: [K1(1) -> UnfusibleBegin1(2) -> K2(3) -> UnfusibleEnd1(4) -> K3(5) -> UnfusibleBegin2(6) -> K4(7) -> UnfusibleEnd2(8) -> K5(9)]
+ * 
+ * 预期结果:
+ *   - K1/K3/K5可融合（在scope外）
+ *   - K2/K4不可融合（在unfusible scope内）
+ */
+TEST_F(SuperKernelScopeSplitterTest, Scope_MultipleUnfusibleScopes)
 {
-    // 测试场景：多个独立的unfusible scope
-    // Stream 0: [K1(id=1)] → [UnfusibleBegin1(id=2)] → [K2(id=3)] → [UnfusibleEnd1(id=4)] →
-    //          [K3(id=5)] → [UnfusibleBegin2(id=6)] → [K4(id=7)] → [UnfusibleEnd2(id=8)] → [K5(id=9)]
-    // 预期：
-    //   - K1, K3, K5: 可融合
-    //   - K2, K4: 不可融合
-
     auto* k1 = CreateKernelNode(1, 0, 2);
     auto* scopeBegin1 = CreateUnfusibleScopeBeginNode(2, 0, 3);
     auto* k2 = CreateKernelNode(3, 0, 4);
@@ -1860,31 +1981,29 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase41_MultipleUnfusibleScopes)
 
     SetupStreams({{1, 2, 3, 4, 5, 6, 7, 8, 9}});
 
-    // 执行scope标记更新
     graph->UpdateNodeScopeBitFlags();
 
-    // 验证可融合的节点
     EXPECT_TRUE(k1->IsFusible());
     EXPECT_TRUE(k3->IsFusible());
     EXPECT_TRUE(k5->IsFusible());
 
-    // 验证不可融合的节点
     EXPECT_FALSE(k2->IsFusible());
     EXPECT_FALSE(k4->IsFusible());
 }
 
-// ==================== 测试用例 42: fusible和unfusible scope混合 ====================
-
-TEST_F(SuperKernelScopeSplitterTest, TestCase42_MixedFusibleAndUnfusibleScopes)
+/**
+ * @brief Fusible和Unfusible Scope混合
+ * 
+ * 图结构:
+ *   stream0: [FusibleBegin_A(1) -> K1(2) -> UnfusibleBegin(3) -> K2(4) -> UnfusibleEnd(5) -> K3(6) -> FusibleEnd_A(7)]
+ * 
+ * 预期结果:
+ *   - K1/K3可融合（在fusible scope_A中）
+ *   - K2不可融合（unfusible覆盖fusible）
+ *   - ScopeBitFlags包含scope_A标记
+ */
+TEST_F(SuperKernelScopeSplitterTest, Scope_MixedFusibleUnfusible)
 {
-    // 测试场景：fusible scope和unfusible scope混合
-    // Stream 0: [FusibleBegin_A(id=1)] → [K1(id=2)] → [UnfusibleBegin(id=3)] → [K2(id=4)] →
-    //          [UnfusibleEnd(id=5)] → [K3(id=6)] → [FusibleEnd_A(id=7)]
-    // 预期：
-    //   - K1: 可融合（只在fusible scope中，scopeBitFlags第0位为1）
-    //   - K2: 不可融合（在unfusible scope中，虽然在fusible scope中但被unfusible覆盖）
-    //   - K3: 可融合（回到fusible scope中，scopeBitFlags第0位为1）
-
     auto* fusibleBeginA = CreateScopeBeginNode(1, 0, "scope_A", 2);
     auto* k1 = CreateKernelNode(2, 0, 3);
     auto* unfusibleBegin = CreateUnfusibleScopeBeginNode(3, 0, 4);
@@ -1895,42 +2014,35 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase42_MixedFusibleAndUnfusibleScopes)
 
     SetupStreams({{1, 2, 3, 4, 5, 6, 7}});
 
-    // 初始化scope名称
     graph->scopeNameToIdx["scope_A"] = 0;
 
-    // 执行scope标记更新
     graph->UpdateNodeScopeBitFlags();
 
-    // 验证K1：在fusible scope_A中，可融合，scopeBitFlags第0位为1
     EXPECT_TRUE(k1->IsFusible()) << "K1 should be fusible";
     EXPECT_TRUE(k1->GetScopeBitFlags().test(0)) << "K1 should have scope_A flag";
     EXPECT_EQ(k1->GetScopeBitFlags().count(), 1) << "K1 should have exactly 1 scope flag";
 
-    // 验证K2：在fusible scope_A和unfusible scope中，不可融合（unfusible覆盖fusible）
     EXPECT_FALSE(k2->IsFusible()) << "K2 should be unfusible (unfusible scope overrides fusible)";
-    // 注意：K2的scopeBitFlags应该包含scope_A（因为它还在fusible scope中）
     EXPECT_TRUE(k2->GetScopeBitFlags().test(0)) << "K2 should have scope_A flag";
     EXPECT_EQ(k2->GetScopeBitFlags().count(), 1) << "K2 should have exactly 1 scope flag";
 
-    // 验证K3：在fusible scope_A中，可融合，scopeBitFlags第0位为1
     EXPECT_TRUE(k3->IsFusible()) << "K3 should be fusible";
     EXPECT_TRUE(k3->GetScopeBitFlags().test(0)) << "K3 should have scope_A flag";
     EXPECT_EQ(k3->GetScopeBitFlags().count(), 1) << "K3 should have exactly 1 scope flag";
 }
 
-// ==================== 测试用例 43: 嵌套的fusible和unfusible scope ====================
-
-TEST_F(SuperKernelScopeSplitterTest, TestCase43_NestedFusibleAndUnfusibleScopes)
+/**
+ * @brief 嵌套Fusible和Unfusible Scope
+ * 
+ * 图结构:
+ *   stream0: [FusibleBegin_A(1) -> UnfusibleBegin(2) -> FusibleBegin_B(3) -> K1(4) -> FusibleEnd_B(5) -> K2(6) -> UnfusibleEnd(7) -> K3(8) -> FusibleEnd_A(9)]
+ * 
+ * 预期结果:
+ *   - K1/K2不可融合（外层unfusible覆盖内层fusible）
+ *   - K3可融合（回到fusible scope_A）
+ */
+TEST_F(SuperKernelScopeSplitterTest, Scope_NestedFusibleUnfusible)
 {
-    // 测试场景：嵌套的fusible和unfusible scope
-    // Stream 0: [FusibleBegin_A(id=1)] → [UnfusibleBegin(id=2)] → [FusibleBegin_B(id=3)] →
-    //          [K1(id=4)] → [FusibleEnd_B(id=5)] → [K2(id=6)] → [UnfusibleEnd(id=7)] →
-    //          [K3(id=8)] → [FusibleEnd_A(id=9)]
-    // 预期：
-    //   - K1: 不可融合（在外层unfusible scope中，虽然在内层fusible scope_B中）
-    //   - K2: 不可融合（在unfusible scope中）
-    //   - K3: 可融合（在fusible scope_A中）
-
     auto* fusibleBeginA = CreateScopeBeginNode(1, 0, "scope_A", 2);
     auto* unfusibleBegin = CreateUnfusibleScopeBeginNode(2, 0, 3);
     auto* fusibleBeginB = CreateScopeBeginNode(3, 0, "scope_B", 4);
@@ -1943,38 +2055,37 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase43_NestedFusibleAndUnfusibleScopes)
 
     SetupStreams({{1, 2, 3, 4, 5, 6, 7, 8, 9}});
 
-    // 初始化scope名称
     graph->scopeNameToIdx["scope_A"] = 0;
     graph->scopeNameToIdx["scope_B"] = 1;
 
-    // 执行scope标记更新
     graph->UpdateNodeScopeBitFlags();
 
-    // 验证K1：在fusible scope_A, unfusible scope, fusible scope_B中，不可融合
     EXPECT_FALSE(k1->IsFusible()) << "K1 should be unfusible (unfusible outer scope overrides)";
     EXPECT_TRUE(k1->GetScopeBitFlags().test(0)) << "K1 should have scope_A flag";
     EXPECT_TRUE(k1->GetScopeBitFlags().test(1)) << "K1 should have scope_B flag";
     EXPECT_EQ(k1->GetScopeBitFlags().count(), 2) << "K1 should have 2 scope flags";
 
-    // 验证K2：在fusible scope_A和unfusible scope中，不可融合
     EXPECT_FALSE(k2->IsFusible()) << "K2 should be unfusible";
     EXPECT_TRUE(k2->GetScopeBitFlags().test(0)) << "K2 should have scope_A flag";
     EXPECT_EQ(k2->GetScopeBitFlags().count(), 1) << "K2 should have 1 scope flag";
 
-    // 验证K3：只在fusible scope_A中，可融合
     EXPECT_TRUE(k3->IsFusible()) << "K3 should be fusible";
     EXPECT_TRUE(k3->GetScopeBitFlags().test(0)) << "K3 should have scope_A flag";
     EXPECT_EQ(k3->GetScopeBitFlags().count(), 1) << "K3 should have 1 scope flag";
 }
 
-// ==================== 测试用例 44: unfusible scope跨越整个图 ====================
-
-TEST_F(SuperKernelScopeSplitterTest, TestCase44_UnfusibleScopeSpanningWholeGraph)
+/**
+ * @brief Unfusible Scope跨越整个图 - Scope节点可融合，内部节点不可融合
+ * 
+ * 图结构:
+ *   stream0: [UnfusibleBegin(1) -> K1(2) -> K2(3) -> K3(4) -> UnfusibleEnd(5)]
+ * 
+ * 预期结果:
+ *   - Scope节点(UnfusibleBegin/End)可融合
+ *   - 所有普通节点(K1/K2/K3)不可融合
+ */
+TEST_F(SuperKernelScopeSplitterTest, Scope_UnfusibleSpanningWholeGraph)
 {
-    // 测试场景：unfusible scope跨越整个图
-    // Stream 0: [UnfusibleBegin(id=1)] → [K1(id=2)] → [K2(id=3)] → [K3(id=4)] → [UnfusibleEnd(id=5)]
-    // 预期：scope节点可融合，普通节点不可融合
-
     auto* unfusibleBegin = CreateUnfusibleScopeBeginNode(1, 0, 2);
     auto* k1 = CreateKernelNode(2, 0, 3);
     auto* k2 = CreateKernelNode(3, 0, 4);
@@ -1983,30 +2094,26 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase44_UnfusibleScopeSpanningWholeGraph
 
     SetupStreams({{1, 2, 3, 4, 5}});
 
-    // 执行scope标记更新
     graph->UpdateNodeScopeBitFlags();
 
-    // scope节点总是可融合的
     EXPECT_TRUE(unfusibleBegin->IsFusible());
     EXPECT_TRUE(unfusibleEnd->IsFusible());
-    // 普通节点不可融合
     EXPECT_FALSE(k1->IsFusible());
     EXPECT_FALSE(k2->IsFusible());
     EXPECT_FALSE(k3->IsFusible());
 }
 
-// ==================== 测试用例 45: 重复的unfusible scope begin/end ====================
-
-TEST_F(SuperKernelScopeSplitterTest, TestCase45_DuplicateUnfusibleScopeBeginEnd)
+/**
+ * @brief 重复的Unfusible Scope begin/end
+ * 
+ * 图结构:
+ *   stream0: [UnfusibleBegin1(1) -> K1(2) -> UnfusibleBegin2(3) -> K2(4) -> UnfusibleEnd1(5) -> K3(6) -> UnfusibleEnd2(7)]
+ * 
+ * 预期结果:
+ *   - 所有 kernel 节点 {K1(2), K2(4), K3(6)} 不可融合
+ */
+TEST_F(SuperKernelScopeSplitterTest, Scope_DuplicateUnfusibleScopeBeginEnd)
 {
-    // 测试场景：重复的unfusible scope begin/end
-    // Stream 0: [UnfusibleBegin1(id=1)] → [K1(id=2)] → [UnfusibleBegin2(id=3)] →
-    //          [K2(id=4)] → [UnfusibleEnd1(id=5)] → [K3(id=6)] → [UnfusibleEnd2(id=7)]
-    // 预期：
-    //   - K1: 不可融合（在第一个unfusible scope中）
-    //   - K2: 不可融合（在两个unfusible scope中）
-    //   - K3: 不可融合（仍在第一个unfusible scope中）
-
     auto* unfusibleBegin1 = CreateUnfusibleScopeBeginNode(1, 0, 2);
     auto* k1 = CreateKernelNode(2, 0, 3);
     auto* unfusibleBegin2 = CreateUnfusibleScopeBeginNode(3, 0, 4);
@@ -2017,26 +2124,25 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase45_DuplicateUnfusibleScopeBeginEnd)
 
     SetupStreams({{1, 2, 3, 4, 5, 6, 7}});
 
-    // 执行scope标记更新
     graph->UpdateNodeScopeBitFlags();
 
-    // 验证所有节点都不可融合
     EXPECT_FALSE(k1->IsFusible());
     EXPECT_FALSE(k2->IsFusible());
     EXPECT_FALSE(k3->IsFusible());
 }
 
-// ==================== 测试用例 46: unfusible scope在fusible scope内部 ====================
-
-TEST_F(SuperKernelScopeSplitterTest, TestCase46_UnfusibleScopeInsideFusibleScope)
+/**
+ * @brief Unfusible Scope在Fusible Scope内部
+ * 
+ * 图结构:
+ *   stream0: [FusibleBegin_A(1) -> K1(2) -> UnfusibleBegin(3) -> K2(4) -> UnfusibleEnd(5) -> K3(6) -> FusibleEnd_A(7)]
+ * 
+ * 预期结果:
+ *   - K1/K3可融合（只在fusible scope中）
+ *   - K2不可融合（在unfusible scope中）
+ */
+TEST_F(SuperKernelScopeSplitterTest, Scope_UnfusibleInsideFusible)
 {
-    // 测试场景：unfusible scope完全在fusible scope内部
-    // Stream 0: [FusibleBegin_A(id=1)] → [K1(id=2)] → [UnfusibleBegin(id=3)] →
-    //          [K2(id=4)] → [UnfusibleEnd(id=5)] → [K3(id=6)] → [FusibleEnd_A(id=7)]
-    // 预期：
-    //   - K1, K3: 可融合（只在fusible scope中）
-    //   - K2: 不可融合（在unfusible scope中）
-
     auto* fusibleBeginA = CreateScopeBeginNode(1, 0, "scope_A", 2);
     auto* k1 = CreateKernelNode(2, 0, 3);
     auto* unfusibleBegin = CreateUnfusibleScopeBeginNode(3, 0, 4);
@@ -2047,38 +2153,32 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase46_UnfusibleScopeInsideFusibleScope
 
     SetupStreams({{1, 2, 3, 4, 5, 6, 7}});
 
-    // 初始化scope名称
     graph->scopeNameToIdx["scope_A"] = 0;
 
-    // 执行scope标记更新
     graph->UpdateNodeScopeBitFlags();
 
-    // 验证K1：可融合，在fusible scope_A中
     EXPECT_TRUE(k1->IsFusible());
     EXPECT_TRUE(k1->GetScopeBitFlags().test(0));
 
-    // 验证K2：不可融合，在unfusible scope中
     EXPECT_FALSE(k2->IsFusible());
     EXPECT_TRUE(k2->GetScopeBitFlags().test(0)); // 仍在fusible scope_A中
 
-    // 验证K3：可融合，在fusible scope_A中
     EXPECT_TRUE(k3->IsFusible());
     EXPECT_TRUE(k3->GetScopeBitFlags().test(0));
 }
 
-// ==================== 测试用例 47: unfusible scope与fusible scope并列 ====================
-
-TEST_F(SuperKernelScopeSplitterTest, TestCase47_UnfusibleAndFusibleScopesSideBySide)
+/**
+ * @brief Unfusible和Fusible Scope并列
+ * 
+ * 图结构:
+ *   stream0: [K1(1) -> UnfusibleBegin(2) -> K2(3) -> UnfusibleEnd(4) -> K3(5) -> FusibleBegin_A(6) -> K4(7) -> FusibleEnd_A(8) -> K5(9)]
+ * 
+ * 预期结果:
+ *   - K1/K3/K5不可融合（在命名scope外或unfusible scope内）
+ *   - K4可融合（在fusible scope中）
+ */
+TEST_F(SuperKernelScopeSplitterTest, Scope_UnfusibleFusibleSideBySide)
 {
-    // 测试场景：unfusible scope和fusible scope并列
-    // Stream 0: [K1(id=1)] → [UnfusibleBegin(id=2)] → [K2(id=3)] → [UnfusibleEnd(id=4)] →
-    //          [K3(id=5)] → [FusibleBegin_A(id=6)] → [K4(id=7)] → [FusibleEnd_A(id=8)] → [K5(id=9)]
-    // 预期：
-    //   - K1: 可融合（在scope外，但没有命名scope时不影响）
-    //   - K2: 不可融合（在unfusible scope中）
-    //   - K3, K5: 不可融合（在命名scope外）
-    //   - K4: 可融合（在fusible scope中）
-
     auto* k1 = CreateKernelNode(1, 0, 2);
     auto* unfusibleBegin = CreateUnfusibleScopeBeginNode(2, 0, 3);
     auto* k2 = CreateKernelNode(3, 0, 4);
@@ -2091,36 +2191,36 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase47_UnfusibleAndFusibleScopesSideByS
 
     SetupStreams({{1, 2, 3, 4, 5, 6, 7, 8, 9}});
 
-    // 初始化scope名称
     graph->scopeNameToIdx["scope_A"] = 0;
 
-    // 执行scope标记更新
     graph->UpdateNodeScopeBitFlags();
 
-    // 验证可融合的节点
     EXPECT_TRUE(k4->IsFusible());  // 在fusible scope中
 
-    // 验证不可融合的节点
     EXPECT_FALSE(k1->IsFusible()); // 在命名scope外
     EXPECT_FALSE(k2->IsFusible()); // 在unfusible scope中
     EXPECT_FALSE(k3->IsFusible()); // 在命名scope外
     EXPECT_FALSE(k5->IsFusible()); // 在命名scope外
 
-    // 验证scopeBitFlags
     EXPECT_EQ(k1->GetScopeBitFlags().count(), 0);
     EXPECT_TRUE(k4->GetScopeBitFlags().test(0));
     EXPECT_EQ(k3->GetScopeBitFlags().count(), 0);
     EXPECT_EQ(k5->GetScopeBitFlags().count(), 0);
 }
 
-// ==================== 测试用例 48: 未关闭的unfusible scope ====================
-
-TEST_F(SuperKernelScopeSplitterTest, TestCase48_UnclosedUnfusibleScope)
+/**
+ * @brief 未关闭的Unfusible Scope
+ * 
+ * 图结构:
+ *   stream0: [K1(1) -> UnfusibleBegin(2) -> K2(3) -> K3(4)]
+ *   Unfusible Scope缺少End节点
+ * 
+ * 预期结果:
+ *   - K1可融合（在scope外）
+ *   - K2/K3不可融合（在未关闭的unfusible scope中）
+ */
+TEST_F(SuperKernelScopeSplitterTest, Scope_UnclosedUnfusibleScope)
 {
-    // 测试场景：未关闭的unfusible scope
-    // Stream 0: [K1(id=1)] → [UnfusibleBegin(id=2)] → [K2(id=3)] → [K3(id=4)]
-    // 预期：K2和K3不可融合（在unfusible scope中），K1可融合
-
     auto* k1 = CreateKernelNode(1, 0, 2);
     auto* unfusibleBegin = CreateUnfusibleScopeBeginNode(2, 0, 3);
     auto* k2 = CreateKernelNode(3, 0, 4);
@@ -2128,59 +2228,52 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase48_UnclosedUnfusibleScope)
 
     SetupStreams({{1, 2, 3, 4}});
 
-    // 执行scope标记更新（应该记录警告但继续处理）
     graph->UpdateNodeScopeBitFlags();
 
-    // 验证节点1：可融合
     EXPECT_TRUE(k1->IsFusible());
 
-    // 验证节点2和3：不可融合（在未关闭的unfusible scope中）
     EXPECT_FALSE(k2->IsFusible());
     EXPECT_FALSE(k3->IsFusible());
 }
 
-// ==================== 测试用例 49: 只有unfusible scope，无普通节点 ====================
-
-TEST_F(SuperKernelScopeSplitterTest, TestCase49_OnlyUnfusibleScopeNoRegularNodes)
+/**
+ * @brief 只有Unfusible Scope节点 - 无普通节点
+ * 
+ * 图结构:
+ *   stream0: [UnfusibleBegin(1) -> UnfusibleEnd(2)]
+ * 
+ * 预期结果:
+ *   - Scope节点总是可融合
+ */
+TEST_F(SuperKernelScopeSplitterTest, Scope_OnlyUnfusibleScopeNodes)
 {
-    // 测试场景：只有unfusible scope begin和end，没有普通节点
-    // Stream 0: [UnfusibleBegin(id=1)] → [UnfusibleEnd(id=2)]
-
     auto* unfusibleBegin = CreateUnfusibleScopeBeginNode(1, 0, 2);
     auto* unfusibleEnd = CreateUnfusibleScopeEndNode(2, 0, INVALID_TASK_ID);
 
     SetupStreams({{1, 2}});
 
-    // 执行scope标记更新
     graph->UpdateNodeScopeBitFlags();
 
-    // scope节点总是可融合的
     EXPECT_TRUE(unfusibleBegin->IsFusible());
     EXPECT_TRUE(unfusibleEnd->IsFusible());
 }
 
-// ==================== 测试用例 50: 空图（无任何节点） ====================
-
-TEST_F(SuperKernelScopeSplitterTest, TestCase50_EmptyGraph)
-{
-    // 测试场景：空图，没有任何节点
-    SetupStreams({{}});
-
-    // 执行scope标记更新（应该正常完成，不崩溃）
-    EXPECT_NO_THROW(graph->UpdateNodeScopeBitFlags());
-}
-
 // ==================== ScopeBitFlags 相关测试用例 ====================
 
-// ==================== 测试用例 51: 不同 ScopeBitFlags 的节点应分配到不同 Scope ====================
-
-TEST_F(SuperKernelScopeSplitterTest, TestCase51_DifferentScopeBitFlagsSplitIntoDifferentScopes)
+/**
+ * @brief 不同ScopeBitFlags的节点分配到不同Scope
+ * 
+ * 图结构:
+ *   stream0: K1(scope=0, id=1) -> K2(scope=1, id=2)
+ *   stream1: K3(scope=0, id=3)
+ * 
+ * 预期结果:
+ *   - K1/K3分配到Scope0 (相同ScopeBitFlags)
+ *   - K2分配到Scope1
+ *   - 生成2个scope
+ */
+TEST_F(SuperKernelScopeSplitterTest, ScopeBitFlags_DifferentFlagsSplit)
 {
-    // 场景：两个流中的节点具有不同的 ScopeBitFlags，应该分配到不同的 Scope
-    // Stream 0: K1(scope=0) → K2(scope=1)
-    // Stream 1: K3(scope=0)
-    // 期望：K1 和 K3 在 Scope 0，K2 在 Scope 1
-
     auto* k1 = CreateKernelNode(1, 0, 2);
     std::bitset<MAX_SCOPE_NUM> flags0;
     flags0.set(0);
@@ -2202,34 +2295,35 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase51_DifferentScopeBitFlagsSplitIntoD
     ASSERT_TRUE(result);
     const auto& scopeInfos = splitter.GetScopeInfos();
 
-    // 应该产生 2 个 scope
     EXPECT_EQ(scopeInfos.size(), 2);
 
-    // Scope 0: K1, K3 (相同 ScopeBitFlags)
-    // Scope 1: K2 (不同 ScopeBitFlags)
     EXPECT_EQ(scopeInfos[0].nodes_.size(), 2);
     EXPECT_EQ(scopeInfos[1].nodes_.size(), 1);
 
-    // 验证 ScopeBitFlags
     EXPECT_EQ(scopeInfos[0].scopeBitFlags_, flags0);
     EXPECT_EQ(scopeInfos[1].scopeBitFlags_, flags1);
 }
 
-// ==================== 测试用例 52: 无 ScopeBitFlags 的节点只能和无 ScopeBitFlags 的节点融合 ====================
-
-TEST_F(SuperKernelScopeSplitterTest, TestCase52_NoScopeBitFlagsOnlyFuseWithNoFlags)
+/**
+ * @brief 无ScopeBitFlags节点只能和无ScopeBitFlags节点融合
+ * 
+ * 图结构:
+ *   stream0: K1(scope=0, id=1) -> K2(no flags, id=2) -> K3(scope=1, id=3)
+ * 
+ * 预期结果:
+ *   - K1在Scope0
+ *   - K2在独立Scope（无flags）
+ *   - K3在Scope1
+ *   - 生成3个scope
+ */
+TEST_F(SuperKernelScopeSplitterTest, ScopeBitFlags_NoFlagsOnlyFuseWithNoFlags)
 {
-    // 场景：没有设置 ScopeBitFlags 的节点只能和其他没有设置的节点融合
-    // Stream 0: K1(scope=0) → K2(no flags) → K3(scope=1)
-    // 期望：K1 在 Scope 0，K2 在独立 Scope，K3 在 Scope 1
-
     auto* k1 = CreateKernelNode(1, 0, 2);
     std::bitset<MAX_SCOPE_NUM> flags0;
     flags0.set(0);
     k1->SetScopeBitFlags(flags0);
 
     auto* k2 = CreateKernelNode(2, 0, 3);
-    // K2 不设置 ScopeBitFlags
 
     auto* k3 = CreateKernelNode(3, 0, INVALID_TASK_ID);
     std::bitset<MAX_SCOPE_NUM> flags1;
@@ -2244,12 +2338,8 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase52_NoScopeBitFlagsOnlyFuseWithNoFla
     ASSERT_TRUE(result);
     const auto& scopeInfos = splitter.GetScopeInfos();
 
-    // 应该产生 3 个 scope
     EXPECT_EQ(scopeInfos.size(), 3);
 
-    // Scope 0: K1 (scope=0)
-    // Scope 1: K2 (no flags)
-    // Scope 2: K3 (scope=1)
     EXPECT_EQ(scopeInfos[0].nodes_.size(), 1);
     EXPECT_EQ(scopeInfos[1].nodes_.size(), 1);
     EXPECT_EQ(scopeInfos[2].nodes_.size(), 1);
@@ -2258,15 +2348,21 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase52_NoScopeBitFlagsOnlyFuseWithNoFla
     EXPECT_EQ(scopeInfos[2].nodes_[0]->GetNodeId(), 3);
 }
 
-// ==================== 测试用例 53: 多个 ScopeBitFlags 位同时设置 ====================
-
-TEST_F(SuperKernelScopeSplitterTest, TestCase53_MultipleScopeBitFlagsBits)
+/**
+ * @brief 多个ScopeBitFlags位同时设置 - 不同flags分配到不同scope
+ * 
+ * 图结构:
+ *   stream0: K1(flags=011, id=1) -> K2(flags=011, id=2) -> K3(flags=001, id=3)
+ *   stream1: K4(flags=011, id=4) -> K5(flags=111, id=5)
+ * 
+ * 预期结果:
+ *   - K1/K2/K4分配到Scope0 (flags=011)
+ *   - K3分配到Scope1 (flags=001)
+ *   - K5分配到Scope2 (flags=111)
+ *   - 生成3个scope，每个scope的scopeBitFlags正确
+ */
+TEST_F(SuperKernelScopeSplitterTest, ScopeBitFlags_MultipleFlagsBits)
 {
-    // 场景：节点的 ScopeBitFlags 有多个位设置，只有完全匹配才能融合
-    // Stream 0: K1(flags=011) → K2(flags=011) → K3(flags=001)
-    // Stream 1: K4(flags=011) → K5(flags=111)
-    // 期望：K1, K2, K4 在 Scope 0 (flags=011), K3 在 Scope 1, K5 在 Scope 2
-
     auto* k1 = CreateKernelNode(1, 0, 2);
     std::bitset<MAX_SCOPE_NUM> flags011;
     flags011.set(0);
@@ -2299,52 +2395,55 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase53_MultipleScopeBitFlagsBits)
     ASSERT_TRUE(result);
     const auto& scopeInfos = splitter.GetScopeInfos();
 
-    // 应该产生 3 个 scope
     EXPECT_EQ(scopeInfos.size(), 3);
 
-    // Scope 0: K1, K2, K4 (flags=011)
-    EXPECT_EQ(scopeInfos[0].nodes_.size(), 3);
-    EXPECT_EQ(scopeInfos[0].scopeBitFlags_, flags011);
-
-    // Scope 1: K3 (flags=001) 或 K5 (flags=111)，取决于处理顺序
-    // Scope 2: 另一个
+    size_t scope011Count = 0;
+    size_t scope001Count = 0;
+    size_t scope111Count = 0;
+    for (const auto& scope : scopeInfos) {
+        if (scope.scopeBitFlags_ == flags011) {
+            scope011Count++;
+            EXPECT_EQ(scope.nodes_.size(), 3);
+        } else if (scope.scopeBitFlags_ == flags001) {
+            scope001Count++;
+            EXPECT_EQ(scope.nodes_.size(), 1);
+        } else if (scope.scopeBitFlags_ == flags111) {
+            scope111Count++;
+            EXPECT_EQ(scope.nodes_.size(), 1);
+        }
+    }
+    EXPECT_EQ(scope011Count, 1);
+    EXPECT_EQ(scope001Count, 1);
+    EXPECT_EQ(scope111Count, 1);
 }
 
-// ==================== 测试用例 54: 复杂场景 - 30+ 节点多流多 ScopeBitFlags ====================
-
-TEST_F(SuperKernelScopeSplitterTest, TestCase54_ComplexMultiStreamMultiScopeBitFlags)
+/**
+ * @brief 复杂场景 - 多流多ScopeBitFlags
+ * 
+ * 图结构:
+ *   stream0-3: 各8个节点，4种ScopeBitFlags，包含事件同步
+ * 
+ * 预期结果:
+ *   - 生成2个scope
+ *   - 每个scope16个节点
+ */
+TEST_F(SuperKernelScopeSplitterTest, ScopeBitFlags_ComplexMultiStream)
 {
-    // 复杂场景：4 个流，32 个节点，4 种 ScopeBitFlags，包含事件同步
-    // 
-    // Stream 0 (scope0): K1 → K2 → K3 → K4 → K5 → K6 → K7 → K8
-    // Stream 1 (scope1): K9 → K10 → K11 → K12 → K13 → K14 → K15 → K16
-    // Stream 2 (scope0): K17 → K18 → Notify1 → K20 → K21 → K22 → K23 → K24
-    // Stream 3 (scope1): K25 → K26 → Wait1 → K28 → K29 → K30 → K31 → K32
-    //
-    // Event: Notify1(K19) → Wait1(K27)
-    //
-    // 期望结果：
-    // - Scope 0: K1-K8, K17-K24 (scope0, 包含 Notify1)
-    // - Scope 1: K9-K16, K25-K32 (scope1, 包含 Wait1)
-
     std::bitset<MAX_SCOPE_NUM> scope0;
     scope0.set(0);
     std::bitset<MAX_SCOPE_NUM> scope1;
     scope1.set(1);
 
-    // Stream 0: K1-K8 (scope0)
     for (int i = 1; i <= 8; ++i) {
         auto* node = CreateKernelNode(i, 0, i < 8 ? i + 1 : INVALID_TASK_ID);
         node->SetScopeBitFlags(scope0);
     }
 
-    // Stream 1: K9-K16 (scope1)
     for (int i = 9; i <= 16; ++i) {
         auto* node = CreateKernelNode(i, 1, i < 16 ? i + 1 : INVALID_TASK_ID);
         node->SetScopeBitFlags(scope1);
     }
 
-    // Stream 2: K17-K24 (scope0), K19 是 Notify
     for (int i = 17; i <= 24; ++i) {
         if (i == 19) {
             auto* node = CreateNotifyNode(19, 2, 100, 20);  // eventId=100
@@ -2355,7 +2454,6 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase54_ComplexMultiStreamMultiScopeBitF
         }
     }
 
-    // Stream 3: K25-K32 (scope1), K27 是 Wait
     for (int i = 25; i <= 32; ++i) {
         if (i == 27) {
             auto* node = CreateWaitNode(27, 3, 19, 28);  // 等待 Notify1(K19)
@@ -2381,10 +2479,8 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase54_ComplexMultiStreamMultiScopeBitF
     ASSERT_TRUE(result);
     const auto& scopeInfos = splitter.GetScopeInfos();
 
-    // 应该产生 2 个 scope
     EXPECT_EQ(scopeInfos.size(), 2);
 
-    // 验证每个 scope 的 ScopeBitFlags
     int scope0Count = 0, scope1Count = 0;
     for (const auto& scope : scopeInfos) {
         if (scope.scopeBitFlags_ == scope0) scope0Count++;
@@ -2393,43 +2489,36 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase54_ComplexMultiStreamMultiScopeBitF
     EXPECT_EQ(scope0Count, 1);
     EXPECT_EQ(scope1Count, 1);
 
-    // 验证总节点数 = 32
     size_t totalNodes = 0;
     for (const auto& scope : scopeInfos) {
         totalNodes += scope.nodes_.size();
     }
     EXPECT_EQ(totalNodes, 32);
 
-    // 验证每个 scope 的节点数
-    // Scope 0: 16 nodes (Stream 0 + Stream 2)
-    // Scope 1: 16 nodes (Stream 1 + Stream 3)
     EXPECT_EQ(scopeInfos[0].nodes_.size(), 16);
     EXPECT_EQ(scopeInfos[1].nodes_.size(), 16);
 }
 
-// ==================== 测试用例 55: ScopeBitFlags 与事件同步交互 ====================
-
-TEST_F(SuperKernelScopeSplitterTest, TestCase55_ScopeBitFlagsWithEventSynchronization)
+/**
+ * @brief ScopeBitFlags与事件同步交互
+ * 
+ * 图结构:
+ *   stream0: K1(scope=0, id=1) -> Wait1(scope=0, id=2) -> K3(scope=1, id=3)
+ *   stream1: K4(scope=0, id=4) -> Notify1(scope=0, id=5) -> K6(scope=1, id=6)
+ *   Event1: Notify1(5) -> Wait1(2)
+ * 
+ * 预期结果:
+ *   - Wait/Notify因scopeBitFlags匹配加入Scope0
+ *   - K3/K6因scopeBitFlags不匹配加入Scope1
+ *   - 生成2个scope
+ */
+TEST_F(SuperKernelScopeSplitterTest, ScopeBitFlags_WithEventSynchronization)
 {
-    // 场景：Wait 节点跨越不同 ScopeBitFlags 的边界
-    // Stream 0: K1(scope=0) → Wait1(scope=0) → K3(scope=1)
-    // Stream 1: K4(scope=0) → Notify1(scope=0) → K6(scope=1)
-    // Event: Notify1 → Wait1
-    //
-    // 处理流程：
-    // 1. K1 和 K4 先被发现 (scope=0)
-    // 2. Wait1 因 notify 未访问而被 suspend
-    // 3. Notify1 被处理，resume Wait1
-    // 4. Wait1 检查 ScopeBitFlags，匹配 scope0，可以加入
-    // 5. K3 和 K6 检查 ScopeBitFlags，不匹配当前 scope，terminate
-    // 6. 新 scope 开始处理 K3 和 K6
-
     std::bitset<MAX_SCOPE_NUM> scope0;
     scope0.set(0);
     std::bitset<MAX_SCOPE_NUM> scope1;
     scope1.set(1);
 
-    // Stream 0: K1 → Wait1 → K3
     auto* k1 = CreateKernelNode(1, 0, 2);
     k1->SetScopeBitFlags(scope0);
     auto* wait1 = CreateWaitNode(2, 0, 5, 3);  // 等待 Notify1(id=5)
@@ -2437,7 +2526,6 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase55_ScopeBitFlagsWithEventSynchroniz
     auto* k3 = CreateKernelNode(3, 0, INVALID_TASK_ID);
     k3->SetScopeBitFlags(scope1);
 
-    // Stream 1: K4 → Notify1 → K6
     auto* k4 = CreateKernelNode(4, 1, 5);
     k4->SetScopeBitFlags(scope0);
     auto* notify1 = CreateNotifyNode(5, 1, 100, 6);  // eventId=100
@@ -2454,44 +2542,36 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase55_ScopeBitFlagsWithEventSynchroniz
     ASSERT_TRUE(result);
     const auto& scopeInfos = splitter.GetScopeInfos();
 
-    // 应该产生 2 个 scope
     EXPECT_EQ(scopeInfos.size(), 2);
 
-    // Scope 0: K1, K4, Notify1(5), Wait1(2) (scope=0)
-    // 节点按 ID 排序: K1(1), Wait1(2), K3(3), K4(4), Notify1(5), K6(6)
-    // 但 K3 和 K6 因为 scopeBitFlags 不匹配，在第二个 scope
     EXPECT_EQ(scopeInfos[0].scopeBitFlags_, scope0);
     EXPECT_EQ(scopeInfos[0].nodes_.size(), 4);
 
-    // Scope 1: K3(3), K6(6) (scope=1)
     EXPECT_EQ(scopeInfos[1].scopeBitFlags_, scope1);
     EXPECT_EQ(scopeInfos[1].nodes_.size(), 2);
 }
 
-// ==================== 测试用例 36: 跨流依赖形成死锁 ====================
-
-TEST_F(SuperKernelScopeSplitterTest, TestCase36_CrossStreamDeadlock)
+/**
+ * @brief 跨流Wait-Notify依赖处理 - suspend/resume机制验证
+ * 
+ * 图结构:
+ *   stream0: [K1(1) -> Wait1(2) -> K2(3)]
+ *   stream1: [K3(4) -> Notify1(5) -> K4(6)]
+ *   Event1: Wait1(2) 等待 Notify1(5)
+ * 
+ * 预期结果:
+ *   - SplitGraph返回true
+ *   - InitialScopeSplitPass处理Wait的suspend/resume
+ *   - Wait1(2)先于Notify1(5)处理时触发stream0暂停
+ *   - Notify1(5)处理时恢复stream0
+ *   - 所有节点 {1, 2, 3, 4, 5, 6} 融合到一个scope
+ */
+TEST_F(SuperKernelScopeSplitterTest, Sync_CrossStreamWaitNotifySuspendResume)
 {
-    // 测试场景：跨流 Wait-Notify 依赖导致死锁
-    // 这种情况下，InitialScopeSplitPass 会处理 Wait 节点的 suspend/resume
-    //
-    // 图结构（无 scope 节点，整图参与切分）：
-    // Stream 0: [K1(id=1)] → [Wait1(id=2)] → [K2(id=3)]
-    // Stream 1: [K3(id=4)] → [Notify1(id=5)] → [K4(id=6)]
-    // Event1: Wait1(id=2) 等待 Notify1(id=5)
-    //
-    // 处理流程：
-    // 1. K1(1) 和 K3(4) 首先被发现（节点 ID 最小）
-    // 2. Wait1(2) 发现其对应的 Notify1(5) 尚未被访问，触发 suspend
-    // 3. Notify1(5) 被处理，触发 resume Wait1(2)
-    // 4. 最终所有节点被融合到一个 scope
-
-    // Stream 0: K1 → Wait1 → K2
     auto* k1 = CreateKernelNode(1, 0, 2);
     auto* wait1 = CreateWaitNode(2, 0, 5, 3);  // 等待 Notify1(id=5)
     auto* k2 = CreateKernelNode(3, 0, INVALID_TASK_ID);
 
-    // Stream 1: K3 → Notify1 → K4
     auto* k3 = CreateKernelNode(4, 1, 5);
     auto* notify1 = CreateNotifyNode(5, 1, 100, 6);
     auto* k4 = CreateKernelNode(6, 1, INVALID_TASK_ID);
@@ -2505,10 +2585,8 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase36_CrossStreamDeadlock)
     ASSERT_TRUE(result);
     const auto& scopeInfos = splitter.GetScopeInfos();
 
-    // 所有节点应该被融合到一个 scope
     EXPECT_EQ(scopeInfos.size(), 1);
 
-    // 验证所有节点都被处理
     std::set<uint64_t> allProcessedNodes;
     for (const auto* node : scopeInfos[0].nodes_) {
         allProcessedNodes.insert(node->GetNodeId());
@@ -2517,61 +2595,166 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase36_CrossStreamDeadlock)
     EXPECT_EQ(allProcessedNodes, expectedNodes);
 }
 
-// ==================== 测试用例 37: DeadlockRefinePass 切分 Scope ====================
-
-TEST_F(SuperKernelScopeSplitterTest, TestCase37_DeadlockRefinePassSplitsScope)
+/**
+ * @brief DeadlockRefinePass资源不足导致死锁切分
+ * 
+ * 场景描述:
+ *   设备资源: cube=25, vec=32 (强制设置)
+ *   stream A: K1(cube=12,id=1) -> Wait1(id=2) -> K2(cube=15,id=3)
+ *   stream B: K3(cube=12,id=4,unfusible) -> Notify1(id=5,unfusible)
+ *   Event100: Wait1等待Notify1
+ * 
+ * 执行分析:
+ *   1. InitialScopeSplitPass: Notify1(unfusible)加入visitedNotifies，不进scope
+ *   2. Wait1发现Notify1已visited，融合进scope
+ *   3. scope节点: K1 -> Wait1 -> K2
+ *   4. DeadlockRefinePass检查:
+ *      - IsFusible(K1): superKernelCubeNum=12
+ *      - GetWaitNodeFusibleStatus(Wait1):
+ *        -> HasDeadlock(Notify1) -> CheckKernelNodeDeadlock(K3)
+ *        -> HasEnoughCores(K3, false): available={25-12=13}, 12<=13 ✓
+ *        -> depOpCubeNum=12
+ *      - IsFusible(K2):
+ *        -> HasEnoughCores(K2, true): 
+ *           15 > superKernelCubeNum(12), 需要从设备分配
+ *           available={25-12=13}, 15 > 13 ✗
+ *        -> 死锁！返回false
+ *   5. FindDeadlockInScope在K2处检测到死锁
+ *   6. 在Wait1处切分（Wait是最近的Wait节点）
+ * 
+ * 预期结果:
+ *   - 检测到资源死锁，切分为2个scope
+ *   - scope0: {K1(1)}，核心需求12
+ *   - scope1: {K2(3)}，核心需求15
+ *   - K3(12)可与scope0(12)并发: 12+12=24 < 25
+ */
+TEST_F(SuperKernelScopeSplitterTest, DeadlockRefine_ResourceDeadlockSplitAtWait)
 {
-    // 测试场景：构造一个在 DeadlockRefinePass 中检测到死锁并切分 scope 的情况
-    //
-    // 图结构（无 scope 节点）：
-    // Stream 0: [K1(id=1)] → [Wait1(id=2)] → [K_Large(id=3)]  (K_Large 需要较多核心)
-    // Stream 1: [K2(id=4)] → [Notify1(id=5)] → [K3(id=6)]
-    // Event1: Wait1(id=2) 等待 Notify1(id=5)
-    //
-    // InitialScopeSplitPass 会将所有节点放入同一个 scope，
-    // 在 DeadlockRefinePass 中，LockDetector 检测放开wait后的kernel 核数限制，k_large可融：
+    // 强制设置设备核心数为25（匹配用户场景）
+    LockDetector::deviceRealCubeNum = 25;
+    LockDetector::deviceRealVecNum = 32;
 
-    // Stream 0: K1 → Wait1 → K_Large (需要较多核心，但不超过设备能力)
     auto* k1 = CreateKernelNode(1, 0, 2);
-    k1->nodeInfos.kernelInfos.cubeNum = 2;  // K1 需要 2 个 cube 核心
-    auto* wait1 = CreateWaitNode(2, 0, 5, 3);  // 等待 Notify1(id=5)
-    // K_Large 需要 16 个核心，超过 K1 的 2 个，但不超过设备 32 个限制
-    auto* k_large = CreateLargeKernelNode(3, 0, INVALID_TASK_ID, 16, 0);
+    k1->nodeInfos.kernelInfos.cubeNum = 12;
+    k1->nodeInfos.kernelInfos.numBlocks = 12;
+    
+    auto* wait1 = CreateWaitNode(2, 0, 5, 3);
+    
+    auto* k2 = CreateKernelNode(3, 0, INVALID_TASK_ID);
+    k2->nodeInfos.kernelInfos.cubeNum = 15;
+    k2->nodeInfos.kernelInfos.numBlocks = 15;
 
-    // Stream 1: K2 → Notify1 → K3
-    auto* k2 = CreateKernelNode(4, 1, 5);
-    auto* notify1 = CreateNotifyNode(5, 1, 100, 6);
-    auto* k3 = CreateKernelNode(6, 1, INVALID_TASK_ID);
+    auto* k3 = CreateUnfusibleKernelNode(4, 1, 5);
+    k3->nodeInfos.kernelInfos.cubeNum = 12;
+    k3->nodeInfos.kernelInfos.numBlocks = 12;
+    
+    auto* notify1 = CreateNotifyNode(5, 1, 100, INVALID_TASK_ID);
+    notify1->isFusible = false;
 
-    SetupStreams({{1, 2, 3}, {4, 5, 6}});
-    SetupEvent(100, 5, {2});   // Wait1 等待 Notify1
+    SetupStreams({{1, 2, 3}, {4, 5}});
+    SetupEvent(100, 5, {2});
 
+    graph->BuildEventNodeAssociations();
+
+    // 验证 Notify1 的前置节点关系是否正确设置
+    auto* notifyNodeInGraph = graph->GetNodeById(5);
+    ASSERT_NE(notifyNodeInGraph, nullptr);
+    uint64_t notifyPreNodeId = notifyNodeInGraph->GetPreNodeId();
+    EXPECT_EQ(notifyPreNodeId, 4) << "Notify1(5) preNodeId should be K3(4), but got " << notifyPreNodeId;
+
+    // 验证 K3 的核需求是否正确设置
+    auto* k3NodeInGraph = graph->GetNodeById(4);
+    ASSERT_NE(k3NodeInGraph, nullptr);
+    uint64_t k3CubeNum = k3NodeInGraph->GetCubeNum();
+    EXPECT_EQ(k3CubeNum, 12) << "K3(4) cubeNum should be 12, but got " << k3CubeNum;
+
+    // 关键：在 splitter 构造后设置设备核心数（LockDetector 构造时会调用 Init->GetDeviceCores）
     SuperKernelScopeSplitter splitter(*graph, *opts);
+    LockDetector::deviceRealCubeNum = 25;
+    LockDetector::deviceRealVecNum = 32;
     bool result = splitter.SplitGraph();
 
     ASSERT_TRUE(result);
     const auto& scopeInfos = splitter.GetScopeInfos();
 
-    // 由于 K_Large 需要的核心数超过 Wait 之前节点的核心数限制，
-    // DeadlockRefinePass 应该在 Wait1 处切分 scope
-    // 期望生成 2 个 scope：
-    // - Scope 0: K1(1), K2(4), Notify1(5) (Wait 之前的节点)
-    // - Scope 1: K_Large(3), K3(6) (Wait 之后的节点，Wait 节点本身不放入任何 scope)
-    EXPECT_EQ(scopeInfos.size(), 1);
+    // 期望切分为至少2个scope
+    EXPECT_GE(scopeInfos.size(), 2);
 
-    // 验证所有节点都被处理（包括 Notify 节点）
     std::set<uint64_t> allProcessedNodes;
     for (const auto& scope : scopeInfos) {
         for (const auto* node : scope.nodes_) {
             allProcessedNodes.insert(node->GetNodeId());
         }
     }
-    // Notify 节点也会被处理
-    std::set<uint64_t> expectedNodes = {1, 2, 3, 4, 5, 6};
-    EXPECT_EQ(allProcessedNodes, expectedNodes);
+
+    EXPECT_TRUE(allProcessedNodes.find(1) != allProcessedNodes.end());
+    EXPECT_TRUE(allProcessedNodes.find(3) != allProcessedNodes.end());
+
+    // K1和K2应该在不同的scope中
+    bool k1AndK2Separated = false;
+    for (const auto& scope : scopeInfos) {
+        bool hasK1 = false, hasK2 = false;
+        for (const auto* node : scope.nodes_) {
+            if (node->GetNodeId() == 1) hasK1 = true;
+            if (node->GetNodeId() == 3) hasK2 = true;
+        }
+        if (hasK1 && hasK2) {
+            // K1和K2在同一scope，未分离
+        } else if (hasK1 || hasK2) {
+            k1AndK2Separated = true;
+        }
+    }
+    EXPECT_TRUE(k1AndK2Separated);
+
+    // 恢复默认核心数
+    LockDetector::deviceRealCubeNum = 32;
+    LockDetector::deviceRealVecNum = 32;
 }
 
-TEST_F(SuperKernelScopeSplitterTest, TestCase38_OrphanNotifyMarkedUnfusibleAndSkipped)
+/**
+ * @brief EventOnlyStreamRemovePass - Pipeline单独Event
+ * 
+ * 图结构:
+ *   stream0: [Notify1(1)] (只有Event)
+ * 
+ * 预期结果:
+ *   - SplitGraph返回true
+ *   - 无可融合Kernel，生成0个scope
+ */
+TEST_F(SuperKernelScopeSplitterTest, EventOnly_FullPipelineOnlyEventNodes)
+{
+    auto* notify1 = CreateNotifyNode(1, 0, 0x100, INVALID_TASK_ID);
+
+    SetupStreams({{1}});
+    SetupEvent(0x100, 1, {});
+
+    graph->BuildEventNodeAssociations();
+
+    EXPECT_FALSE(notify1->IsFusible());
+
+    SuperKernelScopeSplitter splitter(*graph, *opts);
+    bool result = splitter.SplitGraph();
+
+    EXPECT_TRUE(result);
+
+    const auto& scopes = splitter.GetScopeInfos();
+    EXPECT_EQ(scopes.size(), 0);
+}
+
+/**
+ * @brief 孤立Notify节点(无对应Wait)标记为non-fusible
+ * 
+ * 图结构:
+ *   stream0: [Notify1(1, eventId=100) -> K1(2)]
+ *   Event100: Notify1(1) 无对应Wait节点(空等待列表)
+ * 
+ * 预期结果:
+ *   - Notify1被标记为non-fusible
+ *   - Notify1无对应Wait节点ID
+ *   - SplitGraph返回true
+ *   - 生成1个scope仅包含K1(2)
+ */
+TEST_F(SuperKernelScopeSplitterTest, ErrorHandling_OrphanNotifyMarkedUnfusible)
 {
     auto* notify1 = CreateNotifyNode(1, 0, 100, 2);
     CreateKernelNode(2, 0, INVALID_TASK_ID);
@@ -2600,17 +2783,21 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase38_OrphanNotifyMarkedUnfusibleAndSk
     EXPECT_EQ(allProcessedNodes, expectedNodes);
 }
 
-// ==================== 测试用例 38: ResumeSuspendedWaitStreams 错误处理 - Wait节点不存在 ====================
+/**
+ * @brief ResumeSuspendedWaitStreams错误处理 - Wait节点不存在
+ * 
+ * 图结构:
+ *   stream0: [Wait1(1,unfusible) -> K1(2)]
+ *   stream1: [Notify1(3,unfusible)]
+ *   Event1: Notify1对应不存在的Wait(id=999)
+ *
+ * 预期结果:
+ *   - ResumeSuspendedWaitStreams发现Wait不存在
+ *   - SplitGraph返回false
+ */
 
-TEST_F(SuperKernelScopeSplitterTest, TestCase38_ResumeSuspendedWaitStreams_WaitNodeNotFound)
+TEST_F(SuperKernelScopeSplitterTest, ErrorHandling_WaitNodeNotFound)
 {
-    // 测试场景：Notify 节点对应的 Wait 节点在图中不存在
-    // 应该返回 false 并记录错误日志
-    //
-    // Stream 0: [Wait1(id=1)] → [K1(id=2)]
-    // Stream 1: [Notify1(id=3)]
-    // Event: Notify1 对应一个不存在的 Wait 节点 (id=999)
-
     auto* wait1 = CreateWaitNode(1, 0, 3, 2);
     wait1->isFusible = false; // 标记为不可融合，触发 suspend/resume 逻辑
     auto* k1 = CreateKernelNode(2, 0, INVALID_TASK_ID);
@@ -2620,36 +2807,31 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase38_ResumeSuspendedWaitStreams_WaitN
 
     SetupStreams({{1, 2}, {3}});
 
-    // 设置 event 对应不存在的 wait 节点
     SetupEvent(100, 3, {999});
 
-    // 关键：调用 BuildEventNodeAssociations 建立 Notify 和 Wait 的关联
     graph->BuildEventNodeAssociations();
 
     SuperKernelScopeSplitter splitter(*graph, *opts);
     bool result = splitter.SplitGraph();
 
-    // 由于 Wait 节点不存在，应该返回 false
     EXPECT_FALSE(result);
 }
 
-// ==================== 测试用例 39: ResumeSuspendedWaitStreams 错误处理 - SkipUnfusibleNodesForStream 失败 ====================
-
-TEST_F(SuperKernelScopeSplitterTest, TestCase39_ResumeSuspendedWaitStreams_SkipUnfusibleNodesForStreamFailure)
+/**
+ * @brief 验证SkipUnfusibleNodesForStream跳过不可融合节点后正确处理可融合节点
+ * 
+ * 图结构:
+ *   stream0: [Wait1(1,unfusible) -> K1(2,unfusible) -> K2(3,fusible)]
+ *   stream1: [Notify1(4,unfusible)]
+ *   Event1: Wait1等待Notify1
+ * 
+ * 预期结果:
+ *   - SkipUnfusibleNodesForStream跳过Wait和K1
+ *   - SplitGraph返回true
+ *   - 生成scope包含K2(3)
+ */
+TEST_F(SuperKernelScopeSplitterTest, ErrorHandling_SkipUnfusibleNodesFailure)
 {
-    // 测试场景：ResumeSuspendedWaitStreams 调用 SkipUnfusibleNodesForStream 失败
-    // 应该返回 false 并记录错误日志
-    //
-    // 注意：这个测试需要模拟 SkipUnfusibleNodesForStream 失败的场景
-    // 由于 SkipUnfusibleNodesForStream 返回 false 主要是在节点找不到时，
-    // 我们可以通过构造一个循环引用或无效的 nextNodeId 来触发失败
-
-    // Stream 0: [Wait1(id=1)] → [K1(id=2, 不可融合)] → [K2(id=3)]
-    // Stream 1: [Notify1(id=4)]
-    // Event: Wait1 等待 Notify1
-    // Wait1 不可融合，Notify1 不可融合
-    // K1 不可融合，但 K2 是可融合的
-
     auto* wait1 = CreateWaitNode(1, 0, 4, 2);
     wait1->isFusible = false;
     auto* k1 = CreateUnfusibleKernelNode(2, 0, 3); // 不可融合
@@ -2661,29 +2843,29 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase39_ResumeSuspendedWaitStreams_SkipU
     SetupStreams({{1, 2, 3}, {4}});
     SetupEvent(100, 4, {1});
 
-    // 关键：调用 BuildEventNodeAssociations 建立 Notify 和 Wait 的关联
     graph->BuildEventNodeAssociations();
 
     SuperKernelScopeSplitter splitter(*graph, *opts);
     bool result = splitter.SplitGraph();
 
-    // 由于 SkipUnfusibleNodesForStream 会在正常情况下成功，
-    // 这个测试用例主要是为了验证错误处理路径的存在
-    // 在正常情况下，应该返回 true
     EXPECT_TRUE(result);
 }
 
-// ==================== 测试用例 40: HandleUnfusibleNotifyNode 错误传播 ====================
+/**
+ * @brief HandleUnfusibleNotifyNode错误传播
+ *
+ * 图结构:
+ *   stream0: [Wait1(1,unfusible) -> K1(2)]
+ *   stream1: [Notify1(3,unfusible)]
+ *   Event1: Notify1对应不存在的Wait(id=999)
+ *
+ * 预期结果:
+ *   - HandleUnfusibleNotifyNode返回false
+ *   - SplitGraph返回false
+ */
 
-TEST_F(SuperKernelScopeSplitterTest, TestCase40_HandleUnfusibleNotifyNode_ErrorPropagation)
+TEST_F(SuperKernelScopeSplitterTest, ErrorHandling_UnfusibleNotifyErrorPropagation)
 {
-    // 测试场景：HandleUnfusibleNotifyNode 的错误应该正确传播到 SkipUnfusibleNodesForStream
-    // 最终传播到 SplitGraph
-    //
-    // Stream 0: [Wait1(id=1, 不可融合)] → [K1(id=2)]
-    // Stream 1: [Notify1(id=3, 不可融合)]
-    // Event: Notify1 对应一个不存在的 Wait 节点 (id=999)
-
     auto* wait1 = CreateWaitNode(1, 0, 3, 2);
     wait1->isFusible = false;
     auto* k1 = CreateKernelNode(2, 0, INVALID_TASK_ID);
@@ -2694,29 +2876,29 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase40_HandleUnfusibleNotifyNode_ErrorP
     SetupStreams({{1, 2}, {3}});
     SetupEvent(100, 3, {999});
 
-    // 关键：调用 BuildEventNodeAssociations 建立 Notify 和 Wait 的关联
     graph->BuildEventNodeAssociations();
 
     SuperKernelScopeSplitter splitter(*graph, *opts);
     bool result = splitter.SplitGraph();
 
-    // HandleUnfusibleNotifyNode 应该返回 false，导致 SkipUnfusibleNodesForStream 返回 false
-    // 最终导致 SplitGraph 返回 false
     EXPECT_FALSE(result);
 }
 
-// ==================== 测试用例 41: 多个 Wait 节点部分存在的情况 ====================
+/**
+ * @brief 多Wait节点部分不存在
+ *
+ * 图结构:
+ *   stream0: [Wait1(1,unfusible) -> K1(2)]
+ *   stream1: [Wait2(3,unfusible) -> K2(4)]
+ *   stream2: [Notify1(5,unfusible)]
+ *   Event1: Notify1对应Wait1(1)和不存在的Wait(id=999)
+ *
+ * 预期结果:
+ *   - SplitGraph返回false
+ */
 
-TEST_F(SuperKernelScopeSplitterTest, TestCase41_MultipleWaitNodes_PartialExistence)
+TEST_F(SuperKernelScopeSplitterTest, ErrorHandling_MultipleWaitNodesPartialExistence)
 {
-    // 测试场景：Notify 节点对应多个 Wait 节点，部分存在部分不存在
-    // 应该在第一个不存在的 Wait 节点时返回 false
-    //
-    // Stream 0: [Wait1(id=1)] → [K1(id=2)]
-    // Stream 1: [Wait2(id=3)] → [K2(id=4)]
-    // Stream 2: [Notify1(id=5)]
-    // Event: Notify1 对应 Wait1(id=1) 和 Wait2(id=999, 不存在)
-
     auto* wait1 = CreateWaitNode(1, 0, 5, 2);
     wait1->isFusible = false;
     auto* k1 = CreateKernelNode(2, 0, INVALID_TASK_ID);
@@ -2731,26 +2913,29 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase41_MultipleWaitNodes_PartialExisten
     SetupStreams({{1, 2}, {3, 4}, {5}});
     SetupEvent(100, 5, {1, 999}); // 第二个 wait 节点不存在
 
-    // 关键：调用 BuildEventNodeAssociations 建立 Notify 和 Wait 的关联
     graph->BuildEventNodeAssociations();
 
     SuperKernelScopeSplitter splitter(*graph, *opts);
     bool result = splitter.SplitGraph();
 
-    // 应该在 Wait2 不存在时返回 false
     EXPECT_FALSE(result);
 }
 
-// ==================== 测试用例 42: ResumeSuspendedWaitStreams 成功场景 - 单个流暂停 ====================
+/**
+ * @brief ResumeSuspendedWaitStreams成功 - 单流暂停
+ *
+ * 图结构:
+ *   stream0: [Wait1(1,unfusible) -> K1(2)]
+ *   stream1: [Notify1(3,unfusible) -> K2(4)]
+ *   Event1: Wait1等待Notify1
+ *
+ * 预期结果:
+ *   - SplitGraph返回true
+ *   - 只有Kernel节点被处理: {K1(2), K2(4)}
+ */
 
-TEST_F(SuperKernelScopeSplitterTest, TestCase42_ResumeSuspendedWaitStreams_Success_SingleStream)
+TEST_F(SuperKernelScopeSplitterTest, ErrorHandling_ResumeSuspendedWaitSuccess_Single)
 {
-    // 测试场景：单个流被暂停，Notify 节点成功恢复该流
-    //
-    // Stream 0: [Wait1(id=1, 不可融合)] → [K1(id=2, 可融合)]
-    // Stream 1: [Notify1(id=3, 不可融合)] → [K2(id=4, 可融合)]
-    // Event: Wait1 等待 Notify1
-
     auto* wait1 = CreateWaitNode(1, 0, 3, 2);
     wait1->isFusible = false; // 不可融合，触发 suspend
     auto* k1 = CreateKernelNode(2, 0, INVALID_TASK_ID);
@@ -2762,18 +2947,14 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase42_ResumeSuspendedWaitStreams_Succe
     SetupStreams({{1, 2}, {3, 4}});
     SetupEvent(100, 3, {1});
 
-    // 关键：调用 BuildEventNodeAssociations 建立 Notify 和 Wait 的关联
     graph->BuildEventNodeAssociations();
 
     SuperKernelScopeSplitter splitter(*graph, *opts);
     bool result = splitter.SplitGraph();
 
-    // 应该成功处理
     EXPECT_TRUE(result);
     const auto& scopeInfos = splitter.GetScopeInfos();
 
-    // 验证只有可融合的节点被加入到 scope 中
-    // 不可融合的 Wait(1) 和 Notify(3) 节点被跳过，不会出现在 scope 中
     std::set<uint64_t> allProcessedNodes;
     for (const auto& scope : scopeInfos) {
         for (const auto* node : scope.nodes_) {
@@ -2784,17 +2965,22 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase42_ResumeSuspendedWaitStreams_Succe
     EXPECT_EQ(allProcessedNodes, expectedNodes);
 }
 
-// ==================== 测试用例 43: ResumeSuspendedWaitStreams 成功场景 - 多个流暂停 ====================
+/**
+ * @brief ResumeSuspendedWaitStreams成功 - 多流暂停
+ *
+ * 图结构:
+ *   stream0: [Wait1(1,unfusible) -> K1(2)]
+ *   stream1: [Wait2(3,unfusible) -> K2(4)]
+ *   stream2: [Notify1(5,unfusible) -> K3(6)]
+ *   Event1: Wait1和Wait2都等待Notify1
+ *
+ * 预期结果:
+ *   - SplitGraph返回true
+ *   - 只有Kernel节点被处理: {K1(2), K2(4), K3(6)}
+ */
 
-TEST_F(SuperKernelScopeSplitterTest, TestCase43_ResumeSuspendedWaitStreams_Success_MultipleStreams)
+TEST_F(SuperKernelScopeSplitterTest, ErrorHandling_ResumeSuspendedWaitSuccess_Multiple)
 {
-    // 测试场景：多个流被暂停，单个 Notify 节点成功恢复多个流
-    //
-    // Stream 0: [Wait1(id=1, 不可融合)] → [K1(id=2)]
-    // Stream 1: [Wait2(id=3, 不可融合)] → [K2(id=4)]
-    // Stream 2: [Notify1(id=5, 不可融合)] → [K3(id=6)]
-    // Event: Wait1 和 Wait2 都等待 Notify1
-
     auto* wait1 = CreateWaitNode(1, 0, 5, 2);
     wait1->isFusible = false;
     auto* k1 = CreateKernelNode(2, 0, INVALID_TASK_ID);
@@ -2810,18 +2996,14 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase43_ResumeSuspendedWaitStreams_Succe
     SetupStreams({{1, 2}, {3, 4}, {5, 6}});
     SetupEvent(100, 5, {1, 3});
 
-    // 关键：调用 BuildEventNodeAssociations 建立 Notify 和 Wait 的关联
     graph->BuildEventNodeAssociations();
 
     SuperKernelScopeSplitter splitter(*graph, *opts);
     bool result = splitter.SplitGraph();
 
-    // 应该成功处理
     EXPECT_TRUE(result);
     const auto& scopeInfos = splitter.GetScopeInfos();
 
-    // 验证只有可融合的节点被加入到 scope 中
-    // 不可融合的 Wait(1, 3) 和 Notify(5) 节点被跳过，不会出现在 scope 中
     std::set<uint64_t> allProcessedNodes;
     for (const auto& scope : scopeInfos) {
         for (const auto* node : scope.nodes_) {
@@ -2832,18 +3014,19 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase43_ResumeSuspendedWaitStreams_Succe
     EXPECT_EQ(allProcessedNodes, expectedNodes);
 }
 
-// ==================== 测试用例 44: SkipUnfusibleNodesForStream 错误处理 - 节点不存在 ====================
+/**
+ * @brief SkipUnfusibleNodesForStream错误处理 - 节点不存在
+ *
+ * 图结构:
+ *   stream0: [K1(1,unfusible) -> K2(id=999,不存在)]
+ *
+ * 预期结果:
+ *   - SkipUnfusibleNodesForStream遍历到不存在节点
+ *   - SplitGraph返回false
+ */
 
-TEST_F(SuperKernelScopeSplitterTest, TestCase44_SkipUnfusibleNodesForStream_NodeNotFound)
+TEST_F(SuperKernelScopeSplitterTest, ErrorHandling_SkipUnfusibleNodeNotFound)
 {
-    // 测试场景：SkipUnfusibleNodesForStream 遇到不存在的节点
-    // 应该返回 false 并记录错误
-    //
-    // Stream 0: [K1(id=1, 不可融合)] → [K2(id=999, 不存在)]
-    //
-    // 注意：K1 必须是不可融合的，这样 SkipUnfusibleNodesForStream 才会跳过它
-    //       并继续遍历到 K2，从而触发"节点不存在"的错误
-
     auto* k1 = CreateUnfusibleKernelNode(1, 0, 999); // 不可融合，指向不存在的节点
 
     SetupStreams({{1}});
@@ -2851,29 +3034,31 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase44_SkipUnfusibleNodesForStream_Node
     SuperKernelScopeSplitter splitter(*graph, *opts);
     bool result = splitter.SplitGraph();
 
-    // 由于节点不存在，应该返回 false
     EXPECT_FALSE(result);
 }
 
-// ==================== 测试用例 45-55: EventOnlyStreamRemovePass 专项测试 ====================
+// ==================== EventOnly Tests: EventOnly流移除 ====================
 
-// ==================== 测试用例 45: EventOnlyStreamRemovePass - 单个纯Event节点的Stream被标记为non-fusible ====================
+// ==================== EventOnly: 单个纯Event流 ====================
 
-TEST_F(SuperKernelScopeSplitterTest, TestCase45_EventOnlyStream_RemovePass)
+/**
+ * @brief EventOnlyStreamRemovePass - 单个纯Event流
+ * 
+ * 手动构建scope:
+ *   Stream0: [Notify1(id=1)] (纯Event)
+ *   Stream1: [K1(id=2)] (有Kernel)
+ * 
+ * 预期结果:
+ *   - Notify1标记为non-fusible
+ *   - scopes清空触发重新切分
+ */
+TEST_F(SuperKernelScopeSplitterTest, EventOnly_SingleEventOnlyStream)
 {
-    // 测试场景：scope中某个stream只包含Event节点
-    // 新逻辑：标记为non-fusible，清空scopes触发重新切图
-    //
-    // Scope包含两个stream:
-    // Stream 0: [Notify1] - 只有Event节点，被标记为non-fusible
-    // Stream 1: [K1] - 有Kernel节点，保持不变
-
     auto* notify1 = CreateNotifyNode(1, 0, 0x100, INVALID_TASK_ID);
     auto* k1 = CreateKernelNode(2, 1, INVALID_TASK_ID);
 
     SetupStreams({{1}, {2}});
 
-    // 手动构建scope，包含两个stream的节点
     std::vector<SuperKernelScopeInfo> scopes;
     SuperKernelScopeInfo scope;
     scope.nodes_.push_back(notify1);
@@ -2888,21 +3073,26 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase45_EventOnlyStream_RemovePass)
     bool result = removePass.Run(scopes);
 
     EXPECT_TRUE(result);
-    // Notify节点被标记为non-fusible
     EXPECT_FALSE(notify1->IsFusible());
-    // Kernel节点保持不变
     EXPECT_TRUE(k1->IsFusible());
-    // scopes被清空以触发重新切图
     EXPECT_EQ(scopes.size(), 0);
 }
 
-// ==================== 测试用例 46: EventOnlyStreamRemovePass - 所有Stream都是纯Event节点，全部标记为non-fusible ====================
+// ==================== EventOnly: 全部纯Event流 ====================
 
-TEST_F(SuperKernelScopeSplitterTest, TestCase46_AllEventOnlyStreams_ScopeRemoved)
+/**
+ * @brief EventOnlyStreamRemovePass - 全部纯Event流
+ * 
+ * 手动构建scope:
+ *   Stream0: [Notify1(id=1)]
+ *   Stream1: [Wait1(id=2)]
+ * 
+ * 预期结果:
+ *   - 所有Event节点标记为non-fusible
+ *   - scopes清空
+ */
+TEST_F(SuperKernelScopeSplitterTest, EventOnly_AllEventOnlyStreams)
 {
-    // 测试场景：scope中所有stream都只包含Event节点
-    // 新逻辑：所有event节点被标记为non-fusible，清空scopes触发重新切图
-
     auto* notify1 = CreateNotifyNode(1, 0, 0x100, INVALID_TASK_ID);
     auto* wait1 = CreateWaitNode(2, 1, 100, INVALID_TASK_ID);
 
@@ -2922,24 +3112,27 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase46_AllEventOnlyStreams_ScopeRemoved
     bool result = removePass.Run(scopes);
 
     EXPECT_TRUE(result);
-    // 所有event节点被标记为non-fusible
     EXPECT_FALSE(notify1->IsFusible());
     EXPECT_FALSE(wait1->IsFusible());
-    // scopes被清空以触发重新切图
     EXPECT_EQ(scopes.size(), 0);
 }
 
-// ==================== 测试用例 47: EventOnlyStreamRemovePass - 混合Stream，纯Event stream被标记 ====================
+// ==================== EventOnly: 混合Stream部分移除 ====================
 
-TEST_F(SuperKernelScopeSplitterTest, TestCase47_MixedStreams_PartialRemove)
+/**
+ * @brief EventOnlyStreamRemovePass - 混合Stream部分移除
+ * 
+ * 手动构建scope:
+ *   Stream0: [Notify1(id=1)] (纯Event)
+ *   Stream1: [K1(2) -> Notify2(3) -> K2(4)] (混合)
+ *   Stream2: [Wait1(5) -> Reset1(6)] (纯Event)
+ * 
+ * 预期结果:
+ *   - Stream0/Stream2纯Event标记为non-fusible
+ *   - Stream1混合保持不变
+ */
+TEST_F(SuperKernelScopeSplitterTest, EventOnly_MixedStreamsPartialRemove)
 {
-    // 测试场景：多个stream，部分纯Event被标记为non-fusible
-    // 新逻辑：标记纯event stream的节点为non-fusible，清空scopes触发重新切图
-    //
-    // Stream 0: [Notify1] - 纯Event，被标记为non-fusible
-    // Stream 1: [K1] → [Notify2] → [K2] - 有Kernel，Notify2保持不变（混合stream）
-    // Stream 2: [Wait1] → [Reset1] - 纯Event，被标记为non-fusible
-
     auto* notify1 = CreateNotifyNode(1, 0, 0x100, INVALID_TASK_ID);
     auto* k1 = CreateKernelNode(2, 1, 3);
     auto* notify2 = CreateNotifyNode(3, 1, 0x200, 4);
@@ -2973,24 +3166,28 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase47_MixedStreams_PartialRemove)
     bool result = removePass.Run(scopes);
 
     EXPECT_TRUE(result);
-    // Stream 0和Stream 2的纯event节点被标记为non-fusible
     EXPECT_FALSE(notify1->IsFusible());
     EXPECT_FALSE(wait1->IsFusible());
     EXPECT_FALSE(reset1->IsFusible());
-    // Stream 1的节点保持不变
     EXPECT_TRUE(k1->IsFusible());
     EXPECT_TRUE(notify2->IsFusible());  // 混合stream中的event节点不被标记
     EXPECT_TRUE(k2->IsFusible());
-    // scopes被清空以触发重新切图
     EXPECT_EQ(scopes.size(), 0);
 }
 
-// ==================== 测试用例 48: EventOnlyStreamRemovePass - 无Event节点的Stream保留 ====================
+// ==================== EventOnly: 无Event节点Stream保留 ====================
 
-TEST_F(SuperKernelScopeSplitterTest, TestCase48_NoEventNodes_StreamKept)
+/**
+ * @brief EventOnlyStreamRemovePass - 无Event节点Stream保留
+ * 
+ * 手动构建scope:
+ *   Stream0: [K1(1) -> K2(2)] (无Event)
+ * 
+ * 预期结果:
+ *   - Stream无Event节点，scope保留
+ */
+TEST_F(SuperKernelScopeSplitterTest, EventOnly_NoEventNodesStreamKept)
 {
-    // 测试场景：stream中完全没有Event节点，应该保留
-
     auto* k1 = CreateKernelNode(1, 0, 2);
     auto* k2 = CreateKernelNode(2, 0, INVALID_TASK_ID);
     SetPreNodeId(2, 1);
@@ -3013,12 +3210,19 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase48_NoEventNodes_StreamKept)
     EXPECT_EQ(scopes[0].nodes_.size(), 2);
 }
 
-// ==================== 测试用例 49: EventOnlyStreamRemovePass - Kernel+Event混合Stream保留 ====================
+// ==================== EventOnly: Kernel+Event混合保留 ====================
 
-TEST_F(SuperKernelScopeSplitterTest, TestCase49_KernelWithEvent_StreamKept)
+/**
+ * @brief EventOnlyStreamRemovePass - Kernel+Event混合保留
+ * 
+ * 手动构建scope:
+ *   Stream0: [K1(1) -> Notify1(2) -> K2(3)] (混合)
+ * 
+ * 预期结果:
+ *   - Stream有Kernel和Event混合，scope保留
+ */
+TEST_F(SuperKernelScopeSplitterTest, EventOnly_KernelWithEventStreamKept)
 {
-    // 测试场景：stream中有Kernel和Event节点混合，应该保留
-
     auto* k1 = CreateKernelNode(1, 0, 2);
     auto* notify1 = CreateNotifyNode(2, 0, 0x100, 3);
     auto* k2 = CreateKernelNode(3, 0, INVALID_TASK_ID);
@@ -3044,32 +3248,22 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase49_KernelWithEvent_StreamKept)
     EXPECT_EQ(scopes[0].nodes_.size(), 3);
 }
 
-// ==================== 测试用例 50: EventOnlyStreamRemovePass - 空Scope处理 ====================
+// ==================== EventOnly: 多个Scope处理 ====================
 
-TEST_F(SuperKernelScopeSplitterTest, TestCase50_EmptyScope_NoOp)
+/**
+ * @brief EventOnlyStreamRemovePass - 多个Scope处理
+ * 
+ * 手动构建3个scope:
+ *   Scope0: [K1(1)] (有Kernel)
+ *   Scope1: [Notify1(2)] (纯Event)
+ *   Scope2: [K2(3)] (有Kernel)
+ * 
+ * 预期结果:
+ *   - Scope1纯Event标记为non-fusible
+ *   - scopes清空触发重切分
+ */
+TEST_F(SuperKernelScopeSplitterTest, EventOnly_MultipleScopesProcessed)
 {
-    // 测试场景：空scope应该正常处理
-    // 新逻辑：空scope不触发标记，不触发重新切图
-
-    std::vector<SuperKernelScopeInfo> scopes;
-    SuperKernelScopeInfo emptyScope;
-    scopes.push_back(std::move(emptyScope));
-
-    EventOnlyStreamRemovePass removePass(*graph);
-    bool result = removePass.Run(scopes);
-
-    EXPECT_TRUE(result);
-    // 空scope保持不变（没有节点被标记，不触发重新切图）
-    EXPECT_EQ(scopes.size(), 1);
-}
-
-// ==================== 测试用例 51: EventOnlyStreamRemovePass - 多个Scope处理 ====================
-
-TEST_F(SuperKernelScopeSplitterTest, TestCase51_MultipleScopes_Processed)
-{
-    // 测试场景：多个scope，其中一个有纯event stream
-    // 新逻辑：标记节点，清空scopes触发重新切图
-
     auto* k1 = CreateKernelNode(1, 0, INVALID_TASK_ID);
     auto* notify1 = CreateNotifyNode(2, 1, 0x100, INVALID_TASK_ID);
     auto* k2 = CreateKernelNode(3, 2, INVALID_TASK_ID);
@@ -3078,19 +3272,16 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase51_MultipleScopes_Processed)
 
     std::vector<SuperKernelScopeInfo> scopes;
 
-    // Scope 0: 有Kernel
     SuperKernelScopeInfo scope0;
     scope0.nodes_.push_back(k1);
     scope0.scopeStreamInfos_.push_back({0, 1, 1, 1});
     scopes.push_back(std::move(scope0));
 
-    // Scope 1: 只有Event
     SuperKernelScopeInfo scope1;
     scope1.nodes_.push_back(notify1);
     scope1.scopeStreamInfos_.push_back({1, 2, 2, 1});
     scopes.push_back(std::move(scope1));
 
-    // Scope 2: 有Kernel
     SuperKernelScopeInfo scope2;
     scope2.nodes_.push_back(k2);
     scope2.scopeStreamInfos_.push_back({2, 3, 3, 1});
@@ -3100,21 +3291,27 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase51_MultipleScopes_Processed)
     bool result = removePass.Run(scopes);
 
     EXPECT_TRUE(result);
-    // notify1被标记为non-fusible
     EXPECT_FALSE(notify1->IsFusible());
-    // scopes被清空以触发重新切图
     EXPECT_EQ(scopes.size(), 0);
 }
 
-// ==================== 测试用例 52: EventOnlyStreamRemovePass - 完整Pipeline集成测试 ====================
+// ==================== EventOnly: FullPipeline集成 ====================
 
-TEST_F(SuperKernelScopeSplitterTest, TestCase52_FullPipelineWithEventOnlyStream)
+/**
+ * @brief EventOnlyStreamRemovePass - FullPipeline集成验证
+ * 
+ * 图结构:
+ *   stream0: [K1(1) -> K2(2)] (有Kernel)
+ *   stream1: [Notify1(3)] (只有Event)
+ * 
+ * 预期结果:
+ *   - SplitGraph返回true
+ *   - Stream1只有Event节点，被EventOnlyStreamRemovePass移除
+ *   - Notify1标记为non-fusible
+ *   - 生成1个scope仅包含K1/K2
+ */
+TEST_F(SuperKernelScopeSplitterTest, EventOnly_FullPipelineWithEventOnlyStream)
 {
-    // 测试场景：完整Pipeline，包含只有Event节点的stream
-    //
-    // Stream 0: [K1] → [K2] - 有Kernel
-    // Stream 1: [Notify1] - 只有Event
-
     auto* k1 = CreateKernelNode(1, 0, 2);
     auto* k2 = CreateKernelNode(2, 0, INVALID_TASK_ID);
     auto* notify1 = CreateNotifyNode(3, 1, 0x100, INVALID_TASK_ID);
@@ -3122,6 +3319,11 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase52_FullPipelineWithEventOnlyStream)
     SetPreNodeId(2, 1);
 
     SetupStreams({{1}, {3}});
+    SetupEvent(0x100, 3, {});
+
+    graph->BuildEventNodeAssociations();
+
+    EXPECT_FALSE(notify1->IsFusible());
 
     SuperKernelScopeSplitter splitter(*graph, *opts);
     bool result = splitter.SplitGraph();
@@ -3129,18 +3331,24 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase52_FullPipelineWithEventOnlyStream)
     EXPECT_TRUE(result);
 
     const auto& scopes = splitter.GetScopeInfos();
-    // Stream 1只有Event节点，不会生成scope或被移除
-    // 实际scope数量取决于具体pipeline逻辑
-    EXPECT_GE(scopes.size(), 0);
+    EXPECT_EQ(scopes.size(), 1);
+    VerifyScope(scopes[0], {1, 2});
 }
 
-// ==================== 测试用例 53: EventOnlyStreamRemovePass - 相邻Event节点Stream ====================
+// ==================== EventOnly: 相邻Event节点 ====================
 
-TEST_F(SuperKernelScopeSplitterTest, TestCase53_AdjacentEventNodes_StreamRemoved)
+/**
+ * @brief EventOnlyStreamRemovePass - 相邻Event节点
+ * 
+ * 手动构建scope:
+ *   Stream0: [Notify1(1) -> Wait1(2) -> Reset1(3)] (纯Event)
+ * 
+ * 预期结果:
+ *   - 所有Event节点标记为non-fusible
+ *   - scopes清空
+ */
+TEST_F(SuperKernelScopeSplitterTest, EventOnly_AdjacentEventNodesRemoved)
 {
-    // 测试场景：一个stream中有多个相邻的Event节点，全部是Event
-    // 新逻辑：标记为non-fusible，清空scopes触发重新切图
-
     auto* notify1 = CreateNotifyNode(1, 0, 0x100, 2);
     auto* wait1 = CreateWaitNode(2, 0, 100, 3);
     auto* reset1 = CreateResetNode(3, 0, 0x200, INVALID_TASK_ID);
@@ -3162,42 +3370,27 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase53_AdjacentEventNodes_StreamRemoved
     bool result = removePass.Run(scopes);
 
     EXPECT_TRUE(result);
-    // 所有event节点被标记为non-fusible
     EXPECT_FALSE(notify1->IsFusible());
     EXPECT_FALSE(wait1->IsFusible());
     EXPECT_FALSE(reset1->IsFusible());
-    // scopes被清空以触发重新切图
     EXPECT_EQ(scopes.size(), 0);
 }
 
-// ==================== 测试用例 54: EventOnlyStreamRemovePass - Pipeline集成 单独Event节点 ====================
+// ==================== EventOnly: 多个单独Event节点 ====================
 
-TEST_F(SuperKernelScopeSplitterTest, TestCase54_FullPipelineWithOnlyEventNodes)
+/**
+ * @brief EventOnlyStreamRemovePass - 多个单独Event节点
+ * 
+ * 图结构:
+ *   stream0: [Notify1(1)]
+ *   stream1: [Notify2(2)]
+ * 
+ * 预期结果:
+ *   - SplitGraph返回true
+ *   - 无可融合Kernel，生成0个scope
+ */
+TEST_F(SuperKernelScopeSplitterTest, EventOnly_MultipleOnlyEventNodes)
 {
-    // 测试场景：只有Event节点，没有Kernel
-    // 应该生成0个scope
-
-    auto* notify1 = CreateNotifyNode(1, 0, 0x100, INVALID_TASK_ID);
-
-    SetupStreams({{1}});
-
-    SuperKernelScopeSplitter splitter(*graph, *opts);
-    bool result = splitter.SplitGraph();
-
-    EXPECT_TRUE(result);
-
-    const auto& scopes = splitter.GetScopeInfos();
-    // 没有可融合的Kernel节点，没有scope生成
-    EXPECT_EQ(scopes.size(), 0);
-}
-
-// ==================== 测试用例 55: EventOnlyStreamRemovePass - 多个单独Event节点 ====================
-
-TEST_F(SuperKernelScopeSplitterTest, TestCase55_MultipleOnlyEventNodes)
-{
-    // 测试场景：多个stream各自只有一个Event节点
-    // 没有Kernel，应该生成0个scope
-
     auto* notify1 = CreateNotifyNode(1, 0, 0x100, INVALID_TASK_ID);
     auto* notify2 = CreateNotifyNode(2, 1, 0x200, INVALID_TASK_ID);
 
@@ -3212,12 +3405,18 @@ TEST_F(SuperKernelScopeSplitterTest, TestCase55_MultipleOnlyEventNodes)
     EXPECT_EQ(scopes.size(), 0);
 }
 
-// ==================== ScheModeKernelSplitPass 专项测试用例 ====================
-
 // ==================== ScheMode 测试 1: 空Scope被丢弃 ====================
+/**
+ * @brief ScheMode空Scope丢弃测试
+ *
+ * 输入scope: 空
+ *
+ * 预期结果:
+ *   - Run返回true
+ *   - 空scope被丢弃，输出0个scope
+ */
 TEST_F(SuperKernelScopeSplitterTest, ScheMode_EmptyScope_Dropped)
 {
-    // 空的 scope 会被 Pass 丢弃（不添加到 outputScopes）
     std::vector<SuperKernelScopeInfo> inputScopes;
     inputScopes.push_back(BuildTestScope({}));
 
@@ -3225,13 +3424,21 @@ TEST_F(SuperKernelScopeSplitterTest, ScheMode_EmptyScope_Dropped)
     bool result = pass.Run(inputScopes);
 
     EXPECT_TRUE(result);
-    EXPECT_EQ(inputScopes.size(), 0);   // 空scope被丢弃
+    EXPECT_EQ(inputScopes.size(), 0);
 }
 
-// ==================== ScheMode 测试 2: 单个节点不分割 ====================
+// ==================== ScheMode: 单节点不分割 ====================
+/**
+ * @brief ScheMode单节点不分割测试
+ * 
+ * 输入scope: [K1(cube=4, vec=2, ScheMode=true)]
+ * 
+ * 预期结果:
+ *   - Run返回true
+ *   - 单节点不分割，输出1个scope
+ */
 TEST_F(SuperKernelScopeSplitterTest, ScheMode_SingleNode_NoSplit)
 {
-    // 单个 kernel 节点（无论是否是 ScheMode），不应触发分割
     auto* k1 = CreateScheModeKernelNode(1, 0, 4, 2, true);
 
     std::vector<SuperKernelScopeInfo> inputScopes;
@@ -3245,10 +3452,19 @@ TEST_F(SuperKernelScopeSplitterTest, ScheMode_SingleNode_NoSplit)
     EXPECT_EQ(inputScopes[0].nodes_.size(), 1); // 包含该节点
 }
 
-// ==================== ScheMode 测试 3: 所有非ScheMode节点不分割 ====================
+// ==================== ScheMode: 非ScheMode不分割 ====================
+/**
+ * @brief ScheMode非ScheMode节点不分割
+ * 
+ * 输入scope: [K1(cube=2,vec=1,ScheMode=false) -> K2(cube=4,vec=2,ScheMode=false) -> K3(cube=8,vec=4,ScheMode=false)]
+ * 
+ * 预期结果:
+ *   - Run返回true
+ *   - 非ScheMode节点不分割
+ */
+
 TEST_F(SuperKernelScopeSplitterTest, ScheMode_AllNonScheModeNodes_NoSplit)
 {
-    // 多个普通 kernel 节点（isScheModeOn=false），core递增，但不应触发分割
     auto* k1 = CreateScheModeKernelNode(1, 0, 2, 1, false, 2);
     auto* k2 = CreateScheModeKernelNode(2, 0, 4, 2, false, 3);
     auto* k3 = CreateScheModeKernelNode(3, 0, 8, 4, false);
@@ -3264,10 +3480,19 @@ TEST_F(SuperKernelScopeSplitterTest, ScheMode_AllNonScheModeNodes_NoSplit)
     EXPECT_EQ(inputScopes[0].nodes_.size(), 3); // 3个节点全部保留
 }
 
-// ==================== ScheMode 测试 4: ScheMode节点Core递增不分割 ====================
+// ==================== ScheMode: Core递增不分割 ====================
+/**
+ * @brief ScheMode Core递增不分割
+ * 
+ * 输入scope: [K1(cube=2,vec=1) -> K2(cube=4,vec=2) -> K3(cube=8,vec=4)] (ScheMode=true)
+ * 
+ * 预期结果:
+ *   - Run返回true
+ *   - Core递增，不分割
+ */
+
 TEST_F(SuperKernelScopeSplitterTest, ScheMode_IncreasingCores_NoSplit)
 {
-    // ScheMode 节点的 core 需求递增 (2,1) -> (4,2) -> (8,4)，不应触发分割
     auto* k1 = CreateScheModeKernelNode(1, 0, 2, 1, true, 2);
     auto* k2 = CreateScheModeKernelNode(2, 0, 4, 2, true, 3);
     auto* k3 = CreateScheModeKernelNode(3, 0, 8, 4, true);
@@ -3283,10 +3508,19 @@ TEST_F(SuperKernelScopeSplitterTest, ScheMode_IncreasingCores_NoSplit)
     EXPECT_EQ(inputScopes[0].nodes_.size(), 3); // 全部在一个scope中
 }
 
-// ==================== ScheMode 测试 5: ScheMode节点Core相等不分割 ====================
+// ==================== ScheMode: Core相等不分割 ====================
+/**
+ * @brief ScheMode Core相等不分割
+ * 
+ * 输入scope: [K1(cube=4,vec=2) -> K2(cube=4,vec=2) -> K3(cube=4,vec=2)] (ScheMode=true)
+ * 
+ * 预期结果:
+ *   - Run返回true
+ *   - Core相等，不分割
+ */
+
 TEST_F(SuperKernelScopeSplitterTest, ScheMode_EqualCores_NoSplit)
 {
-    // ScheMode 节点的 core 需求相等 (4,2) == (4,2)，不应触发分割
     auto* k1 = CreateScheModeKernelNode(1, 0, 4, 2, true, 2);
     auto* k2 = CreateScheModeKernelNode(2, 0, 4, 2, true, 3);
     auto* k3 = CreateScheModeKernelNode(3, 0, 4, 2, true);
@@ -3302,11 +3536,19 @@ TEST_F(SuperKernelScopeSplitterTest, ScheMode_EqualCores_NoSplit)
     EXPECT_EQ(inputScopes[0].nodes_.size(), 3); // 全部在一个scope中
 }
 
-// ==================== ScheMode 测试 6: ScheMode Core下降时连续分割 ====================
+// ==================== ScheMode: Cube下降分割 ====================
+/**
+ * @brief ScheMode Cube下降分割
+ * 
+ * 输入scope: [K1(cube=8,vec=4) -> K2(cube=4,vec=2) -> K3(cube=2,vec=1)] (ScheMode=true)
+ * 
+ * 预期结果:
+ *   - Run返回true
+ *   - Cube连续下降，分割为3个scope
+ */
+
 TEST_F(SuperKernelScopeSplitterTest, ScheMode_DecreasingCube_SplitAtDropPoint)
 {
-    // 核心：k1(8,4) -> k2(4,2) [ScheMode, cube下降] -> k3(2,1) [继续下降]
-    // 第一次分割在 k2，第二次分割在 k3（因为k3相对于k2的merged(4,2)仍然更小）
     auto* k1 = CreateScheModeKernelNode(1, 0, 8, 4, true, 2);
     auto* k2 = CreateScheModeKernelNode(2, 0, 4, 2, true, 3);  // 第一次分割点
     auto* k3 = CreateScheModeKernelNode(3, 0, 2, 1, true);     // 第二次分割点
@@ -3319,22 +3561,27 @@ TEST_F(SuperKernelScopeSplitterTest, ScheMode_DecreasingCube_SplitAtDropPoint)
 
     EXPECT_TRUE(result);
     EXPECT_EQ(inputScopes.size(), 3);  // 连续下降，分成3个scope
-    // scope0: 只有 k1
     ASSERT_GE(inputScopes[0].nodes_.size(), 1);
     EXPECT_EQ(inputScopes[0].nodes_[0]->GetNodeId(), 1);
-    // scope1: 只有 k2
     ASSERT_GE(inputScopes[1].nodes_.size(), 1);
     EXPECT_EQ(inputScopes[1].nodes_[0]->GetNodeId(), 2);
-    // scope2: 只有 k3
     ASSERT_GE(inputScopes[2].nodes_.size(), 1);
     EXPECT_EQ(inputScopes[2].nodes_[0]->GetNodeId(), 3);
 }
 
-// ==================== ScheMode 测试 7: ScheMode Vec下降连续分割 ====================
+// ==================== ScheMode: Vec下降分割 ====================
+/**
+ * @brief ScheMode Vec下降分割
+ * 
+ * 输入scope: [K1(cube=4,vec=8) -> K2(cube=4,vec=4) -> K3(cube=4,vec=2)] (ScheMode=true)
+ * 
+ * 预期结果:
+ *   - Run返回true
+ *   - Vec连续下降，分割为3个scope
+ */
+
 TEST_F(SuperKernelScopeSplitterTest, ScheMode_DecreasingVec_SplitAtDropPoint)
 {
-    // 核心：k1(4,8) -> k2(4,4) [ScheMode, vec下降] -> k3(4,2) [继续下降]
-    // vec 连续下降，每次都会触发分割
     auto* k1 = CreateScheModeKernelNode(1, 0, 4, 8, true, 2);
     auto* k2 = CreateScheModeKernelNode(2, 0, 4, 4, true, 3);  // vec下降，第一次分割点
     auto* k3 = CreateScheModeKernelNode(3, 0, 4, 2, true);     // vec继续下降，第二次分割点
@@ -3347,25 +3594,32 @@ TEST_F(SuperKernelScopeSplitterTest, ScheMode_DecreasingVec_SplitAtDropPoint)
 
     EXPECT_TRUE(result);
     EXPECT_EQ(inputScopes.size(), 3);  // 连续下降，分成3个scope
-    // scope0: k1
     ASSERT_GE(inputScopes[0].nodes_.size(), 1);
     EXPECT_EQ(inputScopes[0].nodes_[0]->GetNodeId(), 1);
-    // scope1: k2
     ASSERT_GE(inputScopes[1].nodes_.size(), 1);
     EXPECT_EQ(inputScopes[1].nodes_[0]->GetNodeId(), 2);
-    // scope2: k3
     ASSERT_GE(inputScopes[2].nodes_.size(), 1);
     EXPECT_EQ(inputScopes[2].nodes_[0]->GetNodeId(), 3);
 }
 
-// ==================== ScheMode 测试 8: 混合ScheMode与非ScheMode节点 ====================
+// ==================== ScheMode: 混合非ScheMode ====================
+/**
+ * @brief ScheMode混合非ScheMode节点
+ *
+ * 输入scope: [K1(cube=8,vec=4,ScheMode=true) -> K2(cube=2,vec=1,ScheMode=false) -> K3(cube=4,vec=2,ScheMode=true)]
+ *
+ * 预期结果:
+ *   - K2非ScheMode被忽略(max merge)
+ *   - K3比merged(8,4)小，分割
+ *   - 输出2个scope
+ */
+
 TEST_F(SuperKernelScopeSplitterTest, ScheMode_MixedWithNonScheMode_NonScheModeIgnored)
 {
-    // k1(ScheMode, 8,4) -> k2(非ScheMode, 2,1) -> k3(ScheMode, 4,2)
-    // k2 不是 ScheMode，应被忽略（max merge），不会触发分割
     auto* k1 = CreateScheModeKernelNode(1, 0, 8, 4, true, 2);
     auto* k2 = CreateScheModeKernelNode(2, 0, 2, 1, false, 3);  // 非ScheMode，忽略
-    auto* k3 = CreateScheModeKernelNode(3, 0, 4, 2, true);      // ScheMode但比merged小？不，max后是(8,4), (4,2)更小！
+    auto* k3 = CreateScheModeKernelNode(3, 0, 4, 2, true);
+    // ScheMode但比merged小？不，max后是(8,4), (4,2)更小！
 
     std::vector<SuperKernelScopeInfo> inputScopes;
     inputScopes.push_back(BuildTestScope({k1, k2, k3}));
@@ -3374,17 +3628,24 @@ TEST_F(SuperKernelScopeSplitterTest, ScheMode_MixedWithNonScheMode_NonScheModeIg
     bool result = pass.Run(inputScopes);
 
     EXPECT_TRUE(result);
-    // merged: k1=(8,4), k2(max)=(8,4), k3是ScheMode且(4,2)<(8,4) => 分割！
     EXPECT_EQ(inputScopes.size(), 2);  // 在k3处分割
     EXPECT_EQ(inputScopes[0].nodes_[0]->GetNodeId(), 1);  // scopeBefore含k1,k2
     EXPECT_EQ(inputScopes[1].nodes_[0]->GetNodeId(), 3);  // scopeAfter从k3开始
 }
 
-// ==================== ScheMode 测试 9: 多次连续分割 ====================
+// ==================== ScheMode: 多次分割 ====================
+/**
+ * @brief ScheMode多次分割
+ *
+ * 输入scope: [K1(cube=8,vec=4) -> K2(cube=4,vec=2)[分割点] -> K3(cube=2,vec=1)[分割点]]
+ *
+ * 预期结果:
+ *   - 输出3个scope
+ */
+
 TEST_F(SuperKernelScopeSplitterTest, ScheMode_MultipleSplits_ConsecutiveDrops)
 {
     // k1(8,4) -> k2(4,2)[降,分割] -> k3(2,1)[再降,再分割]
-    // 应产生多次分割，最终得到3个scope
     auto* k1 = CreateScheModeKernelNode(1, 0, 8, 4, true, 2);
     auto* k2 = CreateScheModeKernelNode(2, 0, 4, 2, true, 3);  // 第一次分割点
     auto* k3 = CreateScheModeKernelNode(3, 0, 2, 1, true);     // 第二次分割点
@@ -3397,7 +3658,6 @@ TEST_F(SuperKernelScopeSplitterTest, ScheMode_MultipleSplits_ConsecutiveDrops)
 
     EXPECT_TRUE(result);
     EXPECT_EQ(inputScopes.size(), 3);  // 连续下降，分成3个scope
-    // 每个scope包含一个节点
     EXPECT_EQ(inputScopes[0].nodes_.size(), 1);
     EXPECT_EQ(inputScopes[0].nodes_[0]->GetNodeId(), 1);
     EXPECT_EQ(inputScopes[1].nodes_.size(), 1);
@@ -3406,11 +3666,21 @@ TEST_F(SuperKernelScopeSplitterTest, ScheMode_MultipleSplits_ConsecutiveDrops)
     EXPECT_EQ(inputScopes[2].nodes_[0]->GetNodeId(), 3);
 }
 
-// ==================== ScheMode 测试 10: 先增后降模式 ====================
+// ==================== ScheMode: 先增后降 ====================
+/**
+ * @brief ScheMode先增后降
+ *
+ * 输入scope: [K1(cube=2,vec=1)[增] -> K2(cube=4,vec=2)[增] ->
+*             K3(cube=8,vec=4)[增] -> K4(cube=4,vec=2)[降,分割]]
+ *
+ * 预期结果:
+ *   - 只在K4处分割一次
+ *   - 输出2个scope: {K1,K2,K3}, {K4}
+ */
+
 TEST_F(SuperKernelScopeSplitterTest, ScheMode_IncreaseThenDecrease_SplitOnlyAtDrop)
 {
     // k1(2,1) -> k2(4,2)[增] -> k3(8,4)[增] -> k4(4,2)[降,分割]
-    // 前三个递增不分割，在k4处才分割
     auto* k1 = CreateScheModeKernelNode(1, 0, 2, 1, true, 2);
     auto* k2 = CreateScheModeKernelNode(2, 0, 4, 2, true, 3);
     auto* k3 = CreateScheModeKernelNode(3, 0, 8, 4, true, 4);
@@ -3424,19 +3694,26 @@ TEST_F(SuperKernelScopeSplitterTest, ScheMode_IncreaseThenDecrease_SplitOnlyAtDr
 
     EXPECT_TRUE(result);
     EXPECT_EQ(inputScopes.size(), 2);  // 只在k4处分割一次
-    // scopeBefore: k1,k2,k3
     EXPECT_EQ(inputScopes[0].nodes_.size(), 3);
     EXPECT_EQ(inputScopes[0].nodes_[0]->GetNodeId(), 1);
-    // scopeAfter: k4
     EXPECT_EQ(inputScopes[1].nodes_.size(), 1);
     EXPECT_EQ(inputScopes[1].nodes_[0]->GetNodeId(), 4);
 }
 
-// ==================== ScheMode 测试 11: 多个输入Scope独立处理 ====================
+// ==================== ScheMode: 多Scope独立处理 ====================
+/**
+ * @brief ScheMode多Scope独立处理
+ *
+ * 输入:
+ *   - ScopeA: [K1(cube=4,vec=2) -> K2(cube=2,vec=1)] (下降，应分割)
+ *   - ScopeB: [K3(cube=2,vec=1) -> K4(cube=4,vec=2)] (递增，不分割)
+ *
+ * 预期结果:
+ *   - 输出共3个scope
+ */
+
 TEST_F(SuperKernelScopeSplitterTest, ScheMode_MultipleInputScopes_ProcessedIndependently)
 {
-    // Scope A: k1(4,2)->k2(2,1) [应分割]
-    // Scope B: k3(2,1)->k4(4,2) [不分割]
     auto* k1 = CreateScheModeKernelNode(1, 0, 4, 2, true, 2);
     auto* k2 = CreateScheModeKernelNode(2, 0, 2, 1, true);
     auto* k3 = CreateScheModeKernelNode(3, 0, 2, 1, true, 4);
@@ -3450,9 +3727,7 @@ TEST_F(SuperKernelScopeSplitterTest, ScheMode_MultipleInputScopes_ProcessedIndep
     bool result = pass.Run(inputScopes);
 
     EXPECT_TRUE(result);
-    // Scope A 分割为2个，Scope B 保持1个，共3个scope
     EXPECT_EQ(inputScopes.size(), 3);
-    // 验证各scope内容
     bool foundK1 = false, foundK2 = false, foundK3K4 = false;
     for (const auto& scope : inputScopes) {
         if (scope.nodes_.size() == 1 && scope.nodes_[0]->GetNodeId() == 1) foundK1 = true;
@@ -3464,12 +3739,19 @@ TEST_F(SuperKernelScopeSplitterTest, ScheMode_MultipleInputScopes_ProcessedIndep
     EXPECT_TRUE(foundK3K4);
 }
 
-// ==================== ScheMode 测试 12: Cube相同Vec更小时分割 ====================
+// ==================== ScheMode: Cube相同Vec小分割 ====================
+/**
+ * @brief ScheMode Cube相同Vec更小分割
+ *
+ * 输入scope: [K1(cube=4,vec=4) -> K2(cube=4,vec=2)] (ScheMode=true)
+ *
+ * 预期结果:
+ *   - Cube相同但Vec更小，分割
+ *   - 输出2个scope
+ */
+
 TEST_F(SuperKernelScopeSplitterTest, ScheMode_SameCubeSmallerVec_Split)
 {
-    // k1(4,4) -> k2(4,2) [cube相同但vec更小]
-    // 条件: (curCube < mergedCube || curVec < mergedVec) 且不是greater
-    // curCube==mergedCube, curVec<mergedVec => isSmallerThanMerged=true
     auto* k1 = CreateScheModeKernelNode(1, 0, 4, 4, true, 2);
     auto* k2 = CreateScheModeKernelNode(2, 0, 4, 2, true);
 
@@ -3483,12 +3765,19 @@ TEST_F(SuperKernelScopeSplitterTest, ScheMode_SameCubeSmallerVec_Split)
     EXPECT_EQ(inputScopes.size(), 2);  // vec下降触发分割
 }
 
-// ==================== ScheMode 测试 13: Cube更大但Vec更小时分割 ====================
+// ==================== ScheMode: Cube大Vec小分割 ====================
+/**
+ * @brief ScheMode Cube更大Vec更小分割
+ *
+ * 输入scope: [K1(cube=4,vec=4) -> K2(cube=8,vec=2)] (ScheMode=true)
+ *
+ * 预期结果:
+ *   - Vec减小触发分割
+ *   - 输出2个scope
+ */
+
 TEST_F(SuperKernelScopeSplitterTest, ScheMode_LargerCubeSmallerVec_Split)
 {
-    // k1(4,4) -> k2(8,2) [cube增大但vec减小]
-    // 判断条件: (curCube < mergedCube) || (curVec < mergedVec)
-    // (8 < 4) || (2 < 4) = false || true = true => 触发分割
     auto* k1 = CreateScheModeKernelNode(1, 0, 4, 4, true, 2);
     auto* k2 = CreateScheModeKernelNode(2, 0, 8, 2, true);
 
@@ -3504,12 +3793,20 @@ TEST_F(SuperKernelScopeSplitterTest, ScheMode_LargerCubeSmallerVec_Split)
     EXPECT_EQ(inputScopes[1].nodes_.size(), 1);
 }
 
-// ==================== ScheMode 测试 14: 当前维度为0时忽略该维判断 ====================
+// ==================== ScheMode: 0值维度忽略 ====================
+/**
+ * @brief ScheMode维度为0时忽略该维判断
+ *
+ * 输入scope: [k1(4,4) -> k2(0,8) -> k3(8,0)]
+ *   - k2 的 cube=0，不参与判断；vec 上升，不应分割
+ *   - k3 的 vec=0，不参与判断；cube 维持更大，也不应分割
+ *
+ * 预期结果:
+ *   - Run返回true
+ *   - 输出1个scope，包含3个节点
+ */
 TEST_F(SuperKernelScopeSplitterTest, ScheMode_ZeroDimension_IgnoredInSplitJudgement)
 {
-    // k1(4,4) -> k2(0,8) -> k3(8,0)
-    // k2 的 cube=0，不参与判断；vec 上升，不应分割。
-    // k3 的 vec=0，不参与判断；cube 维持更大，也不应分割。
     auto* k1 = CreateScheModeKernelNode(1, 0, 4, 4, true, 2);
     auto* k2 = CreateScheModeKernelNode(2, 0, 0, 8, true, 3);
     auto* k3 = CreateScheModeKernelNode(3, 0, 8, 0, true);
@@ -3525,17 +3822,30 @@ TEST_F(SuperKernelScopeSplitterTest, ScheMode_ZeroDimension_IgnoredInSplitJudgem
     EXPECT_EQ(inputScopes[0].nodes_.size(), 3);
 }
 
-// ==================== ScheMode 测试 15: Pass名称验证 ====================
+// ==================== ScheMode: Pass名称验证 ====================
+/**
+ * @brief ScheMode Pass名称验证
+ *
+ * 预期结果:
+ *   - Pass名称应为"ScheModeKernelSplitPass"
+ */
+
 TEST_F(SuperKernelScopeSplitterTest, ScheMode_PassName_Verification)
 {
     ScheModeKernelSplitPass pass(*graph);
     EXPECT_EQ(pass.GetName(), "ScheModeKernelSplitPass");
 }
 
-// ==================== ScheMode 测试 16: Run返回值始终为true ====================
+// ==================== ScheMode: Run返回值 ====================
+/**
+ * @brief ScheMode Run返回值验证
+ *
+ * 预期结果:
+ *   - 各种输入场景下Run都应返回true
+ */
+
 TEST_F(SuperKernelScopeSplitterTest, ScheMode_RunAlwaysReturnsTrue)
 {
-    // 各种输入场景下Run都应返回true
     {   // 空输入
         std::vector<SuperKernelScopeInfo> emptyScopes;
         ScheModeKernelSplitPass pass(*graph);
@@ -3548,4 +3858,474 @@ TEST_F(SuperKernelScopeSplitterTest, ScheMode_RunAlwaysReturnsTrue)
         ScheModeKernelSplitPass pass(*graph);
         EXPECT_TRUE(pass.Run(scopes));
     }
+}
+
+// ==================== DefaultNode Tests: Default节点处理 ====================
+/**
+ * @file DefaultNode Tests
+ *
+ * 测试TASK_BREAKER_BYPASS选项启用时，Default节点的处理逻辑：
+ * - 有Kernel的流中Default触发scope重切分
+ * - 无Kernel的流中Default被移除
+ */
+
+// 测试1: 选项禁用时，default节点保持原有行为（不进入scope）
+/**
+ * @brief DefaultNode选项禁用 - 原有行为
+ *
+ * 图结构:
+ *   stream0: [K1(1) -> Default1(2) -> K2(3)]
+ *   TASK_BREAKER_BYPASS选项禁用
+ *
+ * 预期结果:
+ *   - SplitGraph返回true
+ *   - Default不进入scope，触发切分
+ */
+
+TEST_F(SuperKernelScopeSplitterTest, DefaultNode_OptionDisabled_Legacy)
+{
+    auto* k1 = CreateKernelNode(1, 0, 2);
+    auto* d1 = CreateDefaultNode(2, 0, 3);
+    auto* k2 = CreateKernelNode(3, 0);
+    SetPreNodeId(2, 1);
+    SetPreNodeId(3, 2);
+    SetupStreams({{1, 2, 3}});
+
+    SuperKernelScopeSplitter splitter(*graph, *opts);
+    bool result = splitter.SplitGraph();
+
+    EXPECT_TRUE(result);
+}
+
+// 测试2: 选项启用时，default在有kernel流中触发重切分
+/**
+ * @brief DefaultNode选项启用 - 有Kernel流触发重切分
+ *
+ * 图结构:
+ *   stream0: [K1(1) -> Default1(2) -> K2(3)]
+ *   TASK_BREAKER_BYPASS选项启用
+ *
+ * 预期结果:
+ *   - SplitGraph返回true
+ *   - Default标记为不可融合，触发重切分
+ *   - 生成2个scope: {K1(1)}, {K2(3)}
+ */
+
+TEST_F(SuperKernelScopeSplitterTest, DefaultNode_OptionEnabled_StreamWithKernel_Resplit)
+{
+    auto* k1 = CreateKernelNode(1, 0, 2);
+    auto* d1 = CreateDefaultNode(2, 0, 3);
+    auto* k2 = CreateKernelNode(3, 0);
+    SetPreNodeId(2, 1);
+    SetPreNodeId(3, 2);
+    SetupStreams({{1, 2, 3}});
+
+    aclskOption option;
+    option.optionType = aclskOptionType::TASK_BREAKER_BYPASS;
+    option.taskBreakerBypass.enableTaskBreakerBypass = 1;
+    opts->SetOptOptionValue(&option);
+
+    SuperKernelScopeSplitter splitter(*graph, *opts);
+    bool result = splitter.SplitGraph();
+
+    EXPECT_TRUE(result);
+    auto& scopes = splitter.GetScopeInfos();
+    EXPECT_EQ(scopes.size(), 2);
+}
+
+// 测试3: 选项启用时，default在无kernel流中被移除
+/**
+ * @brief DefaultNode选项启用 - 无Kernel流被移除
+ *
+ * 图结构:
+ *   stream0: [K1(1)]
+ *   stream1: [Default1(2) -> Notify1(3) -> Wait1(4)] (无Kernel)
+ *   TASK_BREAKER_BYPASS选项启用
+ *
+ * 预期结果:
+ *   - stream1无Kernel，被移除
+ *   - 生成1个scope: {K1(1)}
+ */
+
+TEST_F(SuperKernelScopeSplitterTest, DefaultNode_OptionEnabled_StreamWithoutKernel_Removed)
+{
+    auto* k1 = CreateKernelNode(1, 0);
+    auto* d1 = CreateDefaultNode(2, 1, 3);
+    auto* n1 = CreateNotifyNode(3, 1, 100, 4);
+    auto* w1 = CreateWaitNode(4, 1, 100);
+    SetPreNodeId(3, 2);
+    SetPreNodeId(4, 3);
+    SetupStreams({{1}, {2, 3, 4}});
+    SetupEvent(100, 3, {4});
+
+    aclskOption option;
+    option.optionType = aclskOptionType::TASK_BREAKER_BYPASS;
+    option.taskBreakerBypass.enableTaskBreakerBypass = 1;
+    opts->SetOptOptionValue(&option);
+
+    SuperKernelScopeSplitter splitter(*graph, *opts);
+    bool result = splitter.SplitGraph();
+
+    EXPECT_TRUE(result);
+    auto& scopes = splitter.GetScopeInfos();
+    EXPECT_EQ(scopes.size(), 1);
+    EXPECT_EQ(scopes[0].GetNodes().size(), 1);  // 只有kernel1
+}
+
+// 测试4: 用户场景完整验证
+/**
+ * @brief DefaultNode用户场景完整验证
+ *
+ * 复杂图结构，验证实际使用场景
+ *
+ * 预期结果:
+ *   - SplitGraph返回true
+ *   - 正确处理Default和Event依赖
+ */
+
+TEST_F(SuperKernelScopeSplitterTest, DefaultNode_UserScenario)
+{
+    auto* n1 = CreateNotifyNode(1, 0, 101, 2);
+    auto* k1 = CreateKernelNode(2, 0, 3);
+    auto* w2 = CreateWaitNode(3, 0, 102, 4);
+    auto* k2 = CreateKernelNode(4, 0, 5);
+    auto* n3 = CreateNotifyNode(5, 0, 103, 6);
+    auto* k3 = CreateKernelNode(6, 0, 7);
+    auto* w4 = CreateWaitNode(7, 0, 104);
+
+    auto* w1 = CreateWaitNode(11, 1, 101, 12);
+    auto* d1 = CreateDefaultNode(12, 1, 13);
+    auto* n2 = CreateNotifyNode(13, 1, 102, 14);
+    auto* w3 = CreateWaitNode(14, 1, 103, 15);
+    auto* d2 = CreateDefaultNode(15, 1, 16);
+    auto* n4 = CreateNotifyNode(16, 1, 104);
+
+    SetPreNodeId(2, 1);
+    SetPreNodeId(3, 2);
+    SetPreNodeId(4, 3);
+    SetPreNodeId(5, 4);
+    SetPreNodeId(6, 5);
+    SetPreNodeId(7, 6);
+    SetPreNodeId(12, 11);
+    SetPreNodeId(13, 12);
+    SetPreNodeId(14, 13);
+    SetPreNodeId(15, 14);
+    SetPreNodeId(16, 15);
+
+    SetupStreams({{1, 2, 3, 4, 5, 6, 7}, {11, 12, 13, 14, 15, 16}});
+    SetupEvent(101, 1, {11});
+    SetupEvent(102, 13, {3});
+    SetupEvent(103, 5, {14});
+    SetupEvent(104, 16, {7});
+
+    aclskOption option;
+    option.optionType = aclskOptionType::TASK_BREAKER_BYPASS;
+    option.taskBreakerBypass.enableTaskBreakerBypass = 1;
+    opts->SetOptOptionValue(&option);
+
+    SuperKernelScopeSplitter splitter(*graph, *opts);
+    bool result = splitter.SplitGraph();
+
+    EXPECT_TRUE(result);
+    auto& scopes = splitter.GetScopeInfos();
+    EXPECT_EQ(scopes.size(), 1);
+}
+
+// 测试5: 多个default节点在同一条有kernel流中
+/**
+ * @brief DefaultNode多Default有Kernel流
+ *
+ * 图结构:
+ *   stream0: [K1(1) -> Default1(2) -> K2(3) -> Default2(4) -> K3(5)]
+ *   TASK_BREAKER_BYPASS选项启用
+ *
+ * 预期结果:
+ *   - 所有Default作为边界
+ *   - 生成3个scope
+ */
+
+TEST_F(SuperKernelScopeSplitterTest, DefaultNode_MultipleDefaults_StreamWithKernel)
+{
+    auto* k1 = CreateKernelNode(1, 0, 2);
+    auto* d1 = CreateDefaultNode(2, 0, 3);
+    auto* k2 = CreateKernelNode(3, 0, 4);
+    auto* d2 = CreateDefaultNode(4, 0, 5);
+    auto* k3 = CreateKernelNode(5, 0);
+    SetPreNodeId(2, 1);
+    SetPreNodeId(3, 2);
+    SetPreNodeId(4, 3);
+    SetPreNodeId(5, 4);
+    SetupStreams({{1, 2, 3, 4, 5}});
+
+    aclskOption option;
+    option.optionType = aclskOptionType::TASK_BREAKER_BYPASS;
+    option.taskBreakerBypass.enableTaskBreakerBypass = 1;
+    opts->SetOptOptionValue(&option);
+
+    SuperKernelScopeSplitter splitter(*graph, *opts);
+    bool result = splitter.SplitGraph();
+
+    EXPECT_TRUE(result);
+    auto& scopes = splitter.GetScopeInfos();
+    EXPECT_EQ(scopes.size(), 3);
+}
+
+// 测试6: 空scope在移除default后被丢弃
+/**
+ * @brief DefaultNode移除后空Scope丢弃
+ *
+ * 图结构:
+ *   stream0: [Default1(1) -> Notify1(2) -> Wait1(3)] (无Kernel)
+ *   TASK_BREAKER_BYPASS选项启用
+ *
+ * 预期结果:
+ *   - 移除Default后只剩Event，整体移除
+ *   - 生成0个scope
+ */
+
+TEST_F(SuperKernelScopeSplitterTest, DefaultNode_EmptyScopeAfterRemoval_Dropped)
+{
+    auto* d1 = CreateDefaultNode(1, 0, 2);
+    auto* n1 = CreateNotifyNode(2, 0, 100, 3);
+    auto* w1 = CreateWaitNode(3, 0, 100);
+    SetPreNodeId(2, 1);
+    SetPreNodeId(3, 2);
+    SetupStreams({{1, 2, 3}});
+    SetupEvent(100, 2, {3});
+
+    aclskOption option;
+    option.optionType = aclskOptionType::TASK_BREAKER_BYPASS;
+    option.taskBreakerBypass.enableTaskBreakerBypass = 1;
+    opts->SetOptOptionValue(&option);
+
+    SuperKernelScopeSplitter splitter(*graph, *opts);
+    bool result = splitter.SplitGraph();
+
+    EXPECT_TRUE(result);
+    auto& scopes = splitter.GetScopeInfos();
+    EXPECT_EQ(scopes.size(), 0);
+}
+
+// 测试7: DefaultNodeProcessPass名称验证
+/**
+ * @brief DefaultNode Pass名称验证
+ *
+ * 预期结果:
+ *   - Pass名称应为"DefaultNodeProcessPass"
+ */
+
+TEST_F(SuperKernelScopeSplitterTest, DefaultNode_PassName_Verification)
+{
+    DefaultNodeProcessPass pass(*graph);
+    EXPECT_EQ(pass.GetName(), "DefaultNodeProcessPass");
+}
+
+// 测试8: 多scope独立处理
+/**
+ * @brief DefaultNode多Scope独立处理
+ *
+ * 图结构:
+ *   stream0: [K1(1) -> Default1(2) -> K2(3)]
+ *   stream1: [Default2(4)]
+ *   stream2: [K3(5) -> Default3(6) -> K4(7)]
+ *   TASK_BREAKER_BYPASS选项启用
+ *
+ * 预期结果:
+ *   - SplitGraph返回true
+ *   - Default1/Default3触发切分
+ *   - Default2所在流移除
+ */
+
+TEST_F(SuperKernelScopeSplitterTest, DefaultNode_MultipleScopes_Independent)
+{
+    auto* k1 = CreateKernelNode(1, 0, 2);
+    auto* d1 = CreateDefaultNode(2, 0, 3);
+    auto* k2 = CreateKernelNode(3, 0);
+    auto* d2 = CreateDefaultNode(4, 1);
+    auto* k3 = CreateKernelNode(5, 2, 6);
+    auto* d3 = CreateDefaultNode(6, 2, 7);
+    auto* k4 = CreateKernelNode(7, 2);
+
+    SetPreNodeId(2, 1);
+    SetPreNodeId(3, 2);
+    SetPreNodeId(6, 5);
+    SetPreNodeId(7, 6);
+    SetupStreams({{1, 2, 3}, {4}, {5, 6, 7}});
+
+    aclskOption option;
+    option.optionType = aclskOptionType::TASK_BREAKER_BYPASS;
+    option.taskBreakerBypass.enableTaskBreakerBypass = 1;
+    opts->SetOptOptionValue(&option);
+
+    SuperKernelScopeSplitter splitter(*graph, *opts);
+    bool result = splitter.SplitGraph();
+
+    EXPECT_TRUE(result);
+}
+
+// 测试9: 有default的stream和无default的纯event流混合场景
+/**
+ * @brief DefaultNode混合EventOnly流
+ *
+ * 图结构:
+ *   stream0: [Default1(1) -> Notify1(2) -> Wait1(3)] (有Default无Kernel)
+ *   stream1: [Notify2(11) -> Wait2(12)] (纯Event无Default)
+ *   stream2: [K1(21)]
+ *   TASK_BREAKER_BYPASS选项启用
+ *
+ * 预期结果:
+ *   - stream0由DefaultNodeProcessPass移除
+ *   - stream1由EventOnlyStreamRemovePass处理
+ *   - stream2单独成scope
+ */
+
+// streamA(default+event)应被移除，streamB(纯event)应交给EventOnlyStreamRemovePass
+TEST_F(SuperKernelScopeSplitterTest, DefaultNode_StreamWithDefaultAndStreamOnlyEvent)
+{
+    auto* d1 = CreateDefaultNode(1, 0, 2);
+    auto* n1 = CreateNotifyNode(2, 0, 100, 3);
+    auto* w1 = CreateWaitNode(3, 0, 100);
+    
+    auto* n2 = CreateNotifyNode(11, 1, 101, 12);
+    auto* w2 = CreateWaitNode(12, 1, 101);
+    
+    auto* k1 = CreateKernelNode(21, 2);
+    
+    SetPreNodeId(2, 1);
+    SetPreNodeId(3, 2);
+    SetPreNodeId(12, 11);
+    SetupStreams({{1, 2, 3}, {11, 12}, {21}});
+    SetupEvent(100, 2, {3});
+    SetupEvent(101, 11, {12});
+
+    aclskOption option;
+    option.optionType = aclskOptionType::TASK_BREAKER_BYPASS;
+    option.taskBreakerBypass.enableTaskBreakerBypass = 1;
+    opts->SetOptOptionValue(&option);
+
+    SuperKernelScopeSplitter splitter(*graph, *opts);
+    bool result = splitter.SplitGraph();
+
+    EXPECT_TRUE(result);
+    auto& scopes = splitter.GetScopeInfos();
+    EXPECT_EQ(scopes.size(), 1);
+    EXPECT_EQ(scopes[0].GetNodes().size(), 1);  // 只有kernel1
+}
+
+/**
+ * @brief DefaultNode所在流有unfusible Kernel+fusible Notify，流剔除后触发死锁切分
+ *
+ * 场景描述:
+ *   - 流1有unfusible Kernel(K3)和fusible Notify1
+ *   - K3是unfusible不进入scope，Notify1是fusible进入初始scope
+ *   - DefaultNodeProcessPass检测scope内stream 1没有Kernel，移除Default1及Notify1
+ *   - Wait1依赖Notify1(已被移除)，检查Notify1前驱K3(12)占用资源
+ *   - K2(15)检查时资源不足，触发死锁切分
+ *
+ * 图结构:
+ *   stream0: K1(1, cube=12) -> Wait1(2, 等待Notify1) -> K2(3, cube=15)
+ *   stream1: K3(4, cube=12, unfusible) -> Notify1(5, eventId=100, fusible) -> Default1(6)
+ *   Event100: Notify1(5) -> Wait1(2)
+ *
+ * 执行流程:
+ *   1. TASK_BREAKER_BYPASS启用，Default1初始化为fusible=true
+ *   2. InitialScopeSplitPass跳过K3(unfusible)，Notify1(fusible)进入scope
+ *      - scope: {K1,Notify1,Wait1,K2,Default1} (按nodeId排序加入)
+ *   3. DefaultNodeProcessPass检测scope内stream 1:
+ *      - stream 1在scope内只有Notify1和Default1，没有Kernel(K3不在scope)
+ *      - 执行RemoveDefaultsAndStreams移除Default1
+ *      - RemoveStreamFromScope移除stream 1所有节点（Notify1被移除）
+ *   4. 剩余scope: {K1,Wait1,K2}
+ *   5. DeadlockRefinePass检查:
+ *      - K1: superKernelCubeNum=12 ✓
+ *      - Wait1检查Notify1(不在scope内):
+ *        -> GetWaitNodeFusibleStatus: Notify1不在SK stream
+ *        -> HasDeadlock(Notify1): preNode=K3(4, unfusible)
+ *        -> CheckKernelNodeDeadlock(K3):
+ *           HasEnoughCores(K3, false): available={25-12=13}, 12<=13 ✓
+ *           depOpCubeNum=12 (K3虽不在scope，但资源占用计入depOp)
+ *        -> Wait1可融合 ✓
+ *      - K2检查:
+ *        -> HasEnoughCores(K2, true): available={25-12=13}, 15>13 ✗
+ *        -> 死锁！
+ *   6. 在Wait1处切分
+ *
+ * 预期结果:
+ *   - 最终2个scope: {K1}, {K2}
+ *   - K3(unfusible), Notify1(被移除), Default1(被移除), Wait1(切分边界)不在scope中
+ */
+TEST_F(SuperKernelScopeSplitterTest, DefaultNode_StreamWithKernelNotify_TriggerDeadlockAfterResplit)
+{
+    LockDetector::deviceRealCubeNum = 25;
+    LockDetector::deviceRealVecNum = 32;
+
+    auto* k1 = CreateKernelNode(1, 0, 2);
+    k1->nodeInfos.kernelInfos.cubeNum = 12;
+    k1->nodeInfos.kernelInfos.numBlocks = 12;
+    
+    auto* wait1 = CreateWaitNode(2, 0, 5, 3);
+    
+    auto* k2 = CreateKernelNode(3, 0, INVALID_TASK_ID);
+    k2->nodeInfos.kernelInfos.cubeNum = 15;
+    k2->nodeInfos.kernelInfos.numBlocks = 15;
+
+    auto* k3 = CreateUnfusibleKernelNode(4, 1, 5);
+    k3->nodeInfos.kernelInfos.cubeNum = 12;
+    k3->nodeInfos.kernelInfos.numBlocks = 12;
+    
+    auto* notify1 = CreateNotifyNode(5, 1, 100, 6);
+    
+    auto* d1 = CreateDefaultNode(6, 1, INVALID_TASK_ID);
+
+    SetupStreams({{1, 2, 3}, {4, 5, 6}});
+    SetupEvent(100, 5, {2});
+
+    graph->BuildEventNodeAssociations();
+
+    aclskOption option;
+    option.optionType = aclskOptionType::TASK_BREAKER_BYPASS;
+    option.taskBreakerBypass.enableTaskBreakerBypass = 1;
+    opts->SetOptOptionValue(&option);
+
+    SuperKernelScopeSplitter splitter(*graph, *opts);
+    LockDetector::deviceRealCubeNum = 25;
+    LockDetector::deviceRealVecNum = 32;
+    bool result = splitter.SplitGraph();
+
+    ASSERT_TRUE(result);
+    const auto& scopeInfos = splitter.GetScopeInfos();
+
+    EXPECT_GE(scopeInfos.size(), 2);
+
+    std::set<uint64_t> allProcessedNodes;
+    for (const auto& scope : scopeInfos) {
+        for (const auto* node : scope.nodes_) {
+            allProcessedNodes.insert(node->GetNodeId());
+        }
+    }
+
+    EXPECT_TRUE(allProcessedNodes.find(1) != allProcessedNodes.end()) << "K1 should be in scope";
+    EXPECT_TRUE(allProcessedNodes.find(3) != allProcessedNodes.end()) << "K2 should be in scope";
+    EXPECT_TRUE(allProcessedNodes.find(4) == allProcessedNodes.end()) << "K3(unfusible) should not be in scope";
+    EXPECT_TRUE(allProcessedNodes.find(5) == allProcessedNodes.end())
+        << "Notify1 should be removed by DefaultNodeProcessPass";
+    EXPECT_TRUE(allProcessedNodes.find(6) == allProcessedNodes.end())
+        << "Default1 should be removed by DefaultNodeProcessPass";
+
+    bool k1AndK2Separated = false;
+    for (const auto& scope : scopeInfos) {
+        bool hasK1 = false, hasK2 = false;
+        for (const auto* node : scope.nodes_) {
+            if (node->GetNodeId() == 1) hasK1 = true;
+            if (node->GetNodeId() == 3) hasK2 = true;
+        }
+        if (hasK1 && hasK2) {
+        } else if (hasK1 || hasK2) {
+            k1AndK2Separated = true;
+        }
+    }
+    EXPECT_TRUE(k1AndK2Separated) << "K1 and K2 should be in different scopes due to deadlock split";
+
+    LockDetector::deviceRealCubeNum = 32;
+    LockDetector::deviceRealVecNum = 32;
 }

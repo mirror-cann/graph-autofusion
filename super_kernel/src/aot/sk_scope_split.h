@@ -428,6 +428,51 @@ private:
                           SuperKernelScopeInfo& scopeAfter);
 };
 
+// ============ Default Node Process Pass ============
+
+/*!
+ * \struct DefaultNodeInfo
+ * \brief Information about default nodes in a scope
+ */
+struct DefaultNodeInfo {
+    std::vector<SuperKernelBaseNode*> defaultNodes;  ///< Default nodes in scope
+    std::unordered_set<uint32_t> streamIndices;      ///< Stream indices containing defaults
+};
+
+/*!
+ * \class DefaultNodeProcessPass
+ * \brief Pass for processing default nodes in scopes
+ *
+ * Processing logic (each scope independently):
+ * 1. Collect default nodes and their stream indices
+ * 2. Check if those streams have kernel nodes in scope
+ * 3. Branch:
+ *    - Has kernel: mark defaults unfusible -> trigger resplit
+ *    - No kernel: remove defaults and those streams
+ *
+ * Rules:
+ * - Default in stream with kernel -> mark unfusible -> becomes boundary
+ * - Default in stream without kernel -> remove -> execute via original task
+ */
+class DefaultNodeProcessPass : public ScopeSplitPass {
+public:
+    explicit DefaultNodeProcessPass(SuperKernelGraph& inputGraph);
+    ~DefaultNodeProcessPass() = default;
+
+    bool Run(std::vector<SuperKernelScopeInfo>& scopes) override;
+    std::string GetName() const override { return "DefaultNodeProcessPass"; }
+
+private:
+    uint32_t ProcessSingleScope(SuperKernelScopeInfo& scope);
+    
+    DefaultNodeInfo CollectDefaultNodesInScope(const SuperKernelScopeInfo& scope);
+    bool HasKernelInStreams(const SuperKernelScopeInfo& scope, 
+                            const std::unordered_set<uint32_t>& streamIndices);
+    void MarkDefaultsUnfusible(const std::vector<SuperKernelBaseNode*>& defaultNodes);
+    void RemoveDefaultsAndStreams(SuperKernelScopeInfo& scope, const DefaultNodeInfo& info);
+    void RemoveStreamFromScope(SuperKernelScopeInfo& scope, uint32_t streamIdx);
+};
+
 // ============ Main Splitter Class ============
 
 /*!
@@ -475,7 +520,12 @@ public:
     SuperKernelGraph& graph_;
     std::vector<SuperKernelScopeInfo> scopeInfos_;
     std::vector<std::unique_ptr<ScopeSplitPass>> passes_;
-    bool needResplit_ = false;  ///< Flag to signal re-split is needed
+    bool needResplit_ = false;
+
+private:
+    void InitDefaultNodeFusibility();
+    SuperKernelOptionsManager* opts_ = nullptr;
+    bool enableTaskBreakerBypass_ = false;
 };
 
 #endif // __SK_SCOPE_SPLIT_H__

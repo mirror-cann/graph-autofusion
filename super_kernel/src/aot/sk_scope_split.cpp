@@ -1038,6 +1038,9 @@ bool DeadlockRefinePass::Run(std::vector<SuperKernelScopeInfo>& scopes) {
         lockDetector_.ResetNotifyExpandNumForScope(scope);
     }
 
+    // Reset visited state to ensure pass is reentrant
+    lockDetector_.Reset();
+
     SK_LOGI("[DeadlockRefine] %s pass completed, split %zu scopes, total scopes: %zu",
             GetName().c_str(), splitCount, scopes.size());
     PrintScopeResults(scopes, graph_, GetName().c_str());
@@ -1181,7 +1184,15 @@ bool ScheModeKernelSplitPass::Run(std::vector<SuperKernelScopeInfo>& scopes) {
 // ============ SuperKernelScopeSplitter Implementation ============
 
 SuperKernelScopeSplitter::SuperKernelScopeSplitter(SuperKernelGraph& inputGraph, SuperKernelOptionsManager& opts)
-    : graph_(inputGraph) {
+    : graph_(inputGraph), opts_(&opts) {
+    auto taskBreakerBypassOpt = opts.GetOption(aclskOptionType::TASK_BREAKER_BYPASS);
+    enableTaskBreakerBypass_ = (taskBreakerBypassOpt != nullptr && taskBreakerBypassOpt->GetIntValue() == 1);
+    if (enableTaskBreakerBypass_) {
+        SK_LOGI("[ScopeSplitter] TASK_BREAKER_BYPASS enabled, using new split pipeline");
+    } else {
+        SK_LOGI("[ScopeSplitter] TASK_BREAKER_BYPASS disabled, using legacy pipeline");
+    }
+
     auto autoOpParallel = opts.GetOption(aclskOptionType::AUTO_OP_PARALLEL);
     SkHeapType heapType = SkHeapType::PRIORITY_QUEUE;
     if (autoOpParallel != nullptr) {
@@ -1194,7 +1205,13 @@ SuperKernelScopeSplitter::SuperKernelScopeSplitter(SuperKernelGraph& inputGraph,
     passes_.push_back(std::make_unique<DeadlockRefinePass>(inputGraph));
     // Pass 2: ScheMode kernel core trend based split refinement
     passes_.push_back(std::make_unique<ScheModeKernelSplitPass>(inputGraph));
-    // Pass 3: Remove event-only streams from scopes
+    // Pass 3 (conditional): Default node process pass
+    if (enableTaskBreakerBypass_) {
+        passes_.push_back(std::make_unique<DefaultNodeProcessPass>(inputGraph));
+        // Pass 4: Second deadlock detection pass (after default removal)
+        passes_.push_back(std::make_unique<DeadlockRefinePass>(inputGraph));
+    }
+    // Pass 5 (or 3 if bypass disabled): Remove event-only streams from scopes
     passes_.push_back(std::make_unique<EventOnlyStreamRemovePass>(inputGraph));
 
     // Set splitter reference for all passes to enable re-split requests
@@ -1203,12 +1220,38 @@ SuperKernelScopeSplitter::SuperKernelScopeSplitter(SuperKernelGraph& inputGraph,
     }
 }
 
+void SuperKernelScopeSplitter::InitDefaultNodeFusibility() {
+    if (!enableTaskBreakerBypass_) {
+        return;
+    }
+    SK_LOGI("[ScopeSplitter] Initializing default node fusibility for TASK_BREAKER_BYPASS");
+    uint32_t count = 0;
+    const auto& headNodes = graph_.GetHeadNodes();
+    for (uint64_t headNodeId : headNodes) {
+        uint64_t nodeId = headNodeId;
+        while (nodeId != INVALID_TASK_ID) {
+            SuperKernelBaseNode* node = graph_.GetNodeById(nodeId);
+            if (node == nullptr) {
+                break;
+            }
+            if (node->GetNodeType() == SkNodeType::NODE_DEFAULT) {
+                node->SetIsFusible(true);
+                count++;
+                SK_LOGI("[ScopeSplitter] Default node %s set isFusible=true", node->Format().c_str());
+            }
+            nodeId = node->GetNextNodeId();
+        }
+    }
+    SK_LOGI("[ScopeSplitter] Initialized %u default nodes as fusible", count);
+}
+
 bool SuperKernelScopeSplitter::SplitGraph() {
     SK_LOGI("[ScopeSplitPipeline] starting scope splitting pipeline");
+    InitDefaultNodeFusibility();
     scopeInfos_.clear();
     needResplit_ = false;
 
-    const uint32_t maxIterations = 10;  // Maximum re-split iterations to prevent infinite loops
+    const uint32_t maxIterations = 10;
     uint32_t iteration = 0;
 
     do {
@@ -1222,7 +1265,6 @@ bool SuperKernelScopeSplitter::SplitGraph() {
             SK_LOGI("==========[ScopeSplitPipeline] iteration %u==========", iteration);
         }
 
-        // Run all passes
         for (auto& pass : passes_) {
             SK_LOGI("[ScopeSplitPipeline] running pass: %s", pass->GetName().c_str());
             {
@@ -1234,11 +1276,9 @@ bool SuperKernelScopeSplitter::SplitGraph() {
                 return false;
             }
 
-            // Check if re-split was requested by EventOnlyStreamRemovePass
             if (needResplit_) {
-                SK_LOGI("[ScopeSplitPipeline] re-split requested by %s, starting new iteration",
-                        pass->GetName().c_str());
-                break;  // Exit pass loop and start new iteration
+                SK_LOGI("[ScopeSplitPipeline] re-split requested by %s, starting new iteration", pass->GetName().c_str());
+                break;
             }
         }
 
@@ -1250,5 +1290,130 @@ bool SuperKernelScopeSplitter::SplitGraph() {
 
     ScopeSplitPass::PrintScopeResults(scopeInfos_, graph_, "ScopeSplitPipelineFinal");
 
+    return true;
+}
+
+// ============ DefaultNodeProcessPass Implementation ============
+
+DefaultNodeProcessPass::DefaultNodeProcessPass(SuperKernelGraph& inputGraph)
+    : ScopeSplitPass(inputGraph) {}
+
+DefaultNodeInfo DefaultNodeProcessPass::CollectDefaultNodesInScope(
+    const SuperKernelScopeInfo& scope) {
+    DefaultNodeInfo info;
+    for (const auto* node : scope.GetNodes()) {
+        if (node->GetNodeType() == SkNodeType::NODE_DEFAULT) {
+            info.defaultNodes.push_back(const_cast<SuperKernelBaseNode*>(node));
+            info.streamIndices.insert(node->GetStreamIdxInGraph());
+        }
+    }
+    return info;
+}
+
+bool DefaultNodeProcessPass::HasKernelInStreams(
+    const SuperKernelScopeInfo& scope, const std::unordered_set<uint32_t>& streamIndices) {
+    for (const auto* node : scope.GetNodes()) {
+        if (node->GetNodeType() != SkNodeType::NODE_KERNEL) {
+            continue;
+        }
+        uint32_t streamIdx = node->GetStreamIdxInGraph();
+        if (streamIndices.find(streamIdx) != streamIndices.end()) {
+            SK_LOGI("[DefaultNodeProcess] Stream %u has kernel: %s", streamIdx, node->Format().c_str());
+            return true;
+        }
+    }
+    return false;
+}
+
+void DefaultNodeProcessPass::MarkDefaultsUnfusible(const std::vector<SuperKernelBaseNode*>& defaultNodes) {
+    for (auto* node : defaultNodes) {
+        node->SetIsFusible(false);
+        SK_LOGI("[DefaultNodeProcess] Default %s marked unfusible (stream has kernel)",
+                node->Format().c_str());
+    }
+}
+
+void DefaultNodeProcessPass::RemoveDefaultsAndStreams(SuperKernelScopeInfo& scope, const DefaultNodeInfo& info) {
+    // Step 1: 移除所有default节点
+    auto nodes = scope.GetNodes();
+    std::vector<SuperKernelBaseNode*> remaining;
+    for (auto* node : nodes) {
+        if (node->GetNodeType() == SkNodeType::NODE_DEFAULT) {
+            SK_LOGI("[DefaultNodeProcess] Removing default: %s", node->Format().c_str());
+            continue;
+        }
+        remaining.push_back(node);
+    }
+    scope.SetNodes(std::move(remaining));
+    
+    // Step 2: 移除default所在流（移除default后只剩event）
+    for (uint32_t streamIdx : info.streamIndices) {
+        RemoveStreamFromScope(scope, streamIdx);
+    }
+    RebuildStreamInfos(scope);
+}
+
+void DefaultNodeProcessPass::RemoveStreamFromScope(SuperKernelScopeInfo& scope, uint32_t streamIdx) {
+    auto nodes = scope.GetNodes();
+    std::vector<SuperKernelBaseNode*> remaining;
+    for (auto* node : nodes) {
+        if (node->GetStreamIdxInGraph() != streamIdx) {
+            remaining.push_back(node);
+        } else {
+            SK_LOGI("[DefaultNodeProcess] Removing event node: %s (stream %u)", node->Format().c_str(), streamIdx);
+        }
+    }
+    scope.SetNodes(std::move(remaining));
+}
+
+uint32_t DefaultNodeProcessPass::ProcessSingleScope(SuperKernelScopeInfo& scope) {
+    // 1. 收集scope内default节点及其所在流
+    auto defaultInfo = CollectDefaultNodesInScope(scope);
+    if (defaultInfo.defaultNodes.empty()) {
+        return 0;  // 无default，不处理
+    }
+    
+    SK_LOGI("[DefaultNodeProcess] Scope has %zu default nodes in %zu streams",
+            defaultInfo.defaultNodes.size(), defaultInfo.streamIndices.size());
+    
+    // 2. 检查这些流在scope内是否有kernel
+    bool hasKernel = HasKernelInStreams(scope, defaultInfo.streamIndices);
+    
+    // 3. 按场景处理
+    if (hasKernel) {
+        // 场景1: 有kernel → 标记default不可融合，触发重切分
+        MarkDefaultsUnfusible(defaultInfo.defaultNodes);
+        return static_cast<uint32_t>(defaultInfo.defaultNodes.size());
+    } else {
+        // 场景2: 无kernel → 移除default和这些流
+        RemoveDefaultsAndStreams(scope, defaultInfo);
+        return 0;
+    }
+}
+
+bool DefaultNodeProcessPass::Run(std::vector<SuperKernelScopeInfo>& scopes) {
+    SK_LOGI("[DefaultNodeProcess] Run starting, scopes: %zu", scopes.size());
+    uint32_t totalMarked = 0;
+    for (size_t i = 0; i < scopes.size(); ++i) {
+        uint32_t marked = ProcessSingleScope(scopes[i]);
+        totalMarked += marked;
+    }
+    if (totalMarked > 0) {
+        SK_LOGI("[DefaultNodeProcess] %u defaults marked unfusible, triggering resplit", totalMarked);
+        scopes.clear();
+        RequestResplit();
+        return true;
+    }
+    std::vector<SuperKernelScopeInfo> valid;
+    for (size_t i = 0; i < scopes.size(); ++i) {
+        if (!scopes[i].GetNodes().empty()) {
+            valid.push_back(std::move(scopes[i]));
+        } else {
+            SK_LOGI("[DefaultNodeProcess] Scope %zu empty after removal, dropping", i);
+        }
+    }
+    scopes = std::move(valid);
+    SK_LOGI("[DefaultNodeProcess] Run completed, scopes: %zu", scopes.size());
+    PrintScopeResults(scopes, graph_, GetName().c_str());
     return true;
 }

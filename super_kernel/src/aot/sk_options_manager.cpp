@@ -489,6 +489,16 @@ void SuperKernelOptionsManager::SetOptOptionValue(const aclskOption* option) {
                     option->debugOpExecTrace.enableOpExecTrace);
                 break;
             }
+        case aclskOptionType::TASK_BREAKER_BYPASS:
+            {
+                AddOption(std::make_unique<NumberOptOption>("task_breaker_bypass", option->optionType, 0, 0, 1));
+                auto subOption = GetOption(option->optionType);
+                if (subOption != nullptr) {
+                    subOption->SetValue(option->taskBreakerBypass.enableTaskBreakerBypass);
+                }
+                SK_LOGI("Task breaker bypass option set: enable=%u", option->taskBreakerBypass.enableTaskBreakerBypass);
+                break;
+            }
         default:
             SK_LOGI("Optiontype: %d is not support now", static_cast<int>(option->optionType));
             break;
