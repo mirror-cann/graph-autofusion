@@ -968,7 +968,7 @@ ScopeProcessResult DeadlockRefinePass::ProcessSingleScope(
     deadlockNode->SetFusionFailReason(FusionFailReason::EXIST_DEADLOCK);
     SK_LOGI("[DeadlockRefine] Deadlock detected at node %s, splitting at Wait node %s",
             deadlockNode->Format().c_str(), deadlockWaitNode->Format().c_str());
-    SK_LOGI("[DeadlockRefine]   Before split: original=%zu nodes, scopeBefore=%zu, scopeAfter=%zu",
+    SK_LOGI("[DeadlockRefine] Before split: original=%zu nodes, scopeBefore=%zu, scopeAfter=%zu",
             workingScope.GetNodes().size(), scopeBefore.GetNodes().size(), scopeAfter.GetNodes().size());
 
     if (!scopeBefore.GetNodes().empty()) {

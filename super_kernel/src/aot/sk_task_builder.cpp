@@ -248,7 +248,7 @@ const SuperKernelBaseNode* FindKernelNodeInDirection(uint64_t startNodeId, const
 
     const auto* startNode = graph.GetNodeById(startNodeId);
     if (startNode == nullptr) {
-        SK_LOGI("FindKernelNodeInDirection failed: startNodeId=%lu, direction=%s, reason=start-node-not-found",
+        SK_LOGI("FindKernelNodeInDirection incomplete: startNodeId=%lu, direction=%s, reason=start-node-not-found",
                 startNodeId, to_string(direction));
         return nullptr;
     }
@@ -373,7 +373,7 @@ bool SkTaskBuilder::InitTaskSyncInfos(const std::vector<SuperKernelBaseNode*>& t
                         return false;
                     }
                     taskSyncInfos_[i].queueType = firstKernelEventQueueType;
-                    SK_LOGI("%s node %zu failed to resolve previous KERNEL node, nodeId=%lu, fallback = %s",
+                    SK_LOGI("%s node %zu unable to resolve previous KERNEL node, nodeId=%lu, fallback = %s",
                             to_string(nodeType), i, tasks[i]->GetNodeId(), to_string(taskSyncInfos_[i].queueType));
                 } else {
                     kernelNodeCache[tasks[i]->GetNodeId()] = kernel; // cache current NOTIFY node for future searches
@@ -395,7 +395,7 @@ bool SkTaskBuilder::InitTaskSyncInfos(const std::vector<SuperKernelBaseNode*>& t
                         return false;
                     }
                     taskSyncInfos_[i].queueType = firstKernelEventQueueType;
-                    SK_LOGI("%s node %zu failed to resolve next KERNEL node, nodeId=%lu, fallback = %s",
+                    SK_LOGI("%s node %zu unable to resolve next KERNEL node, nodeId=%lu, fallback = %s",
                             to_string(nodeType), i, tasks[i]->GetNodeId(), to_string(taskSyncInfos_[i].queueType));
                 } else {
                     kernelNodeCache[tasks[i]->GetNodeId()] = kernel; // cache current WAIT node for future searches
@@ -1632,7 +1632,7 @@ SkHostEntryInfo SkTaskBuilder::GenEntryInfo(SkTask& skTaskCube, SkTask& skTaskVe
     }
     
     // ========== 2. 常量化失败，回退到原有逻辑 ==========
-    SK_LOGI("Constant codegen disabled or failed, falling back to default entry resolution");
+    SK_LOGI("Constant codegen disabled or unsuccessful, falling back to default entry resolution");
     
     // 根据 task 分布确定 kernel 类型和 numBlocks
     SkKernelType kernelType = SkKernelType::AIC_ONLY;
@@ -1779,7 +1779,7 @@ SkLaunchInfo SkTaskBuilder::Build(std::string skFuncName, const std::vector<Supe
 
     // In debug mode, force all tasks into ALL_SYNC for traceability.
     if (opts.EnableDebug() && debugSyncAll) {
-        SK_LOGI("debug sync all is enabled, now clear all sync info, and only left cross sync info. task count is %d",
+        SK_LOGI("tracing sync all is enabled, now clear all sync info, and only left cross sync info. task count is %d",
                 taskCount);
         for (int i = 0; i < static_cast<int>(taskCount); i++) {
             // Clear all sync metadata and force ALL_SYNC in debug mode.
@@ -1911,7 +1911,7 @@ SkLaunchInfo SkTaskBuilder::Build(std::string skFuncName, const std::vector<Supe
                     return {};
                 }
                 queueType = firstKernelEventQueueType;
-                SK_LOGI("custom task %zu: failed to resolve previous KERNEL node, nodeId=%lu, fallback = %s", i,
+                SK_LOGI("custom task %zu: unable to resolve previous KERNEL node, nodeId=%lu, fallback = %s", i,
                         node->GetNodeId(), to_string(queueType));
             } else {
                 queueType = ToEventQueueType(ToQueueType(GetKernelInfos(kernel).kernelType));

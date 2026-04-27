@@ -307,8 +307,8 @@ bool CollectStreamCandidates(SuperKernelGraph& graph, const std::vector<ScopeStr
         if (!isMainStreamCandidate && !isSubStreamCandidate && !isSubStreamEntryCandidate) {
             SK_LOGI("streamId=%u does not meet the requirements for being mainStream and subStream.",
                     scopeStreamInfos[curStreamIdx].streamIdx);
-            SK_LOGI("   1.stream have not candidate node, reserve num=%u", mainFrontReserveCount);
-            SK_LOGI("   2.stream capacity insufficient for sub stream: nodeSize=%lu, but minimun required=%u",
+            SK_LOGI("1.stream have not candidate node, reserve num=%u", mainFrontReserveCount);
+            SK_LOGI("2.stream capacity insufficient for sub stream: nodeSize=%lu, but minimum required=%u",
                     scopeStreamInfos[curStreamIdx].nodeSize, needNodeCount);
             return false;
         }
