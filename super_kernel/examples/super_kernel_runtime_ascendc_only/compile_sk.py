@@ -41,6 +41,9 @@ MAGIC_MAPPING = {
     "RT_DEV_BINARY_MAGIC_ELF_AICUBE": 0x41494343
 }
 
+DEFAULT_SOC_VERSION = "Ascend910_9391"
+SOC_VERSION_ENV_KEYS = ("SUPERKERNEL_COMPILE_SOC_VERSION", "ASCEND_COMPILE_SOC_VERSION", "ASCEND_SOC_VERSION")
+
 
 @dataclasses.dataclass
 class BinData:
@@ -193,10 +196,33 @@ class SuperkernelResult(KernelResult):
         self._output = value
 
 
+def get_compile_soc_version():
+    for env_key in SOC_VERSION_ENV_KEYS:
+        soc_version = os.getenv(env_key)
+        if soc_version:
+            return soc_version
+
+    try:
+        ascendcl = ctypes.CDLL("libascendcl.so")
+        ascendcl.aclrtGetSocName.argtypes = []
+        ascendcl.aclrtGetSocName.restype = ctypes.c_char_p
+        soc_name = ascendcl.aclrtGetSocName()
+        if soc_name:
+            return soc_name.decode("utf-8")
+    except (AttributeError, OSError, UnicodeDecodeError):
+        pass
+
+    return DEFAULT_SOC_VERSION
+
+
+def set_example_compile_soc_info():
+    set_current_compile_soc_info(get_compile_soc_version())
+
+
 def _compile_sub_kernel(kernel_meta_dir, op_name, op_type, func, extend_op_info: dict = None):
     current_build_config()[kernel_meta_parent_dir] = kernel_meta_dir
     current_build_config()[tbe_debug_level] = 0
-    set_current_compile_soc_info("Ascend910_9391")
+    set_example_compile_soc_info()
 
     # compile_op 函数一开始就会对 global_var_storage 做 reset，因此直接如下配置是无法生效的：
     # global_var_storage.set_variable("ascendc_compile_debug_config", True)
@@ -298,8 +324,7 @@ def compile_superkernel(ctx: SkCompileContext, sub_kernels: list[KernelResult]):
         kernel_meta_dir = tmp_dir / "superkernel_1"
 
         global_var_storage.set_variable("ascendc_compile_debug_config", True)
-        soc_version = "Ascend910_9391"
-        set_current_compile_soc_info(soc_version)
+        set_example_compile_soc_info()
 
         current_build_config()[kernel_meta_parent_dir] = str(kernel_meta_dir)
         current_build_config()[op_debug_config] = ["dump_cce"]
