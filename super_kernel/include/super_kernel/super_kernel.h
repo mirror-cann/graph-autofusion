@@ -42,17 +42,17 @@ enum class aclskOptionType : uint32_t {
     PRELOAD_CODE = 0,
     SPLIT_MODE = 1,
     STREAM_FUSION = 2,
-    DEBUG_DCCI_DISABLE_ON_KERNEL = 3,
+    DCCI_DISABLE_ON_KERNEL = 3,
     DEBUG_SYNC_ALL = 4,
     KERNEL_MAP = 5,
     CONSTANT_CODEGEN = 6,  // 常量化代码生成选项
     AUTO_OP_PARALLEL = 7,  // 优化多流算子排布
-    DEBUG_DCCI_BEFORE_KERNEL_START = 8,
+    DCCI_BEFORE_KERNEL_START = 8,
     DEBUG_OP_EXEC_TRACE = 9,
     DEBUG_CROSS_CORE_SYNC_CHECK = 10,
     OPT_EXTEND_OPTION = 11,   // 扩展选项，预留后续使用
     DEBUG_EXTEND_OPTION = 12, // 扩展选项，预留后续使用
-    DEBUG_DCCI_AFTER_KERNEL_END = 13,
+    DCCI_AFTER_KERNEL_END = 13,
     TASK_BREAKER_BYPASS = 14, // Default节点优化融合选项
     SK_OPTION_MAX = 0xFFFFFFFF
 };

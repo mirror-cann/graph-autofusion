@@ -658,7 +658,7 @@ TEST_F(SkTaskBuilderTest, AddTasks_NullQueueAndDispatchQueueSelection)
 TEST_F(SkTaskBuilderTest, DispatchFuncTask_MixFailureAndDcciBranch)
 {
     opts->AddOption(std::make_unique<StringListOptOption>(
-        "dcci_disable", aclskOptionType::DEBUG_DCCI_DISABLE_ON_KERNEL, std::vector<std::string>{"k"}));
+        "dcci_disable", aclskOptionType::DCCI_DISABLE_ON_KERNEL, std::vector<std::string>{"k"}));
 
     SkTask aic;
     SkTask aiv;
@@ -688,7 +688,7 @@ TEST_F(SkTaskBuilderTest, AddFuncTask_DcciBeforeKernelStart_SetsDebugFlag)
 {
     opts->AddOption(std::make_unique<StringListOptOption>(
         "dcci_before_kernel_start",
-        aclskOptionType::DEBUG_DCCI_BEFORE_KERNEL_START,
+        aclskOptionType::DCCI_BEFORE_KERNEL_START,
         std::vector<std::string>{"k"}));
 
     SkTask aic;
@@ -707,7 +707,7 @@ TEST_F(SkTaskBuilderTest, AddFuncTask_DcciAfterKernelEnd_SetsDebugFlag)
 {
     opts->AddOption(std::make_unique<StringListOptOption>(
         "dcci_after_kernel_end",
-        aclskOptionType::DEBUG_DCCI_AFTER_KERNEL_END,
+        aclskOptionType::DCCI_AFTER_KERNEL_END,
         std::vector<std::string>{"k"}));
 
     SkTask aic;
@@ -725,10 +725,10 @@ TEST_F(SkTaskBuilderTest, AddFuncTask_DcciAfterKernelEnd_SetsDebugFlag)
 TEST_F(SkTaskBuilderTest, AddFuncTask_DcciAfterKernelEnd_OverridesDisableFlag)
 {
     opts->AddOption(std::make_unique<StringListOptOption>(
-        "dcci_disable", aclskOptionType::DEBUG_DCCI_DISABLE_ON_KERNEL, std::vector<std::string>{"k"}));
+        "dcci_disable", aclskOptionType::DCCI_DISABLE_ON_KERNEL, std::vector<std::string>{"k"}));
     opts->AddOption(std::make_unique<StringListOptOption>(
         "dcci_after_kernel_end",
-        aclskOptionType::DEBUG_DCCI_AFTER_KERNEL_END,
+        aclskOptionType::DCCI_AFTER_KERNEL_END,
         std::vector<std::string>{"k"}));
 
     SkTask aic;
@@ -1262,7 +1262,7 @@ TEST_F(SkTaskBuilderTest, AddFuncTask_CrossCoreSyncCheck_CombinedWithOtherDebugF
     opts->AddOption(std::make_unique<NumberOptOption>(
         "debug_cross_core_sync_check", aclskOptionType::DEBUG_CROSS_CORE_SYNC_CHECK, 1, 0, 1));
     opts->AddOption(std::make_unique<StringListOptOption>(
-        "dcci_disable", aclskOptionType::DEBUG_DCCI_DISABLE_ON_KERNEL, std::vector<std::string>{"k"}));
+        "dcci_disable", aclskOptionType::DCCI_DISABLE_ON_KERNEL, std::vector<std::string>{"k"}));
 
     SkTask aic;
     ASSERT_TRUE(aic.taskQue.Init(8));

@@ -1224,9 +1224,9 @@ bool SkTaskBuilder::AddFuncTask(SkTask& skTask, SuperKernelBaseNode* node, SkDfx
         return false;
     }
 
-    auto disableDcciOptions = opts.GetOption(aclskOptionType::DEBUG_DCCI_DISABLE_ON_KERNEL);
-    auto dcciBeforeKernelStartOptions = opts.GetOption(aclskOptionType::DEBUG_DCCI_BEFORE_KERNEL_START);
-    auto dcciAfterKernelEndOptions = opts.GetOption(aclskOptionType::DEBUG_DCCI_AFTER_KERNEL_END);
+    auto disableDcciOptions = opts.GetOption(aclskOptionType::DCCI_DISABLE_ON_KERNEL);
+    auto dcciBeforeKernelStartOptions = opts.GetOption(aclskOptionType::DCCI_BEFORE_KERNEL_START);
+    auto dcciAfterKernelEndOptions = opts.GetOption(aclskOptionType::DCCI_AFTER_KERNEL_END);
     auto crossCoreSyncCheckOptions = opts.GetOption(aclskOptionType::DEBUG_CROSS_CORE_SYNC_CHECK);
     uint32_t debugCrossCoreSyncCheck = 0;
     if (crossCoreSyncCheckOptions != nullptr) {

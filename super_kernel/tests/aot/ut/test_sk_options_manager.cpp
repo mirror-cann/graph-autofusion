@@ -329,22 +329,22 @@ TEST_F(SuperKernelOptionsManagerTest, EnableDebug_WithDebugSyncAll)
 
 TEST_F(SuperKernelOptionsManagerTest, EnableDebug_WithDisableKernelDcci)
 {
-    opts_test->AddOption(std::make_unique<StringListOptOption>("dcci_disable", aclskOptionType::DEBUG_DCCI_DISABLE_ON_KERNEL));
-    EXPECT_TRUE(opts_test->EnableDebug());
+    opts_test->AddOption(std::make_unique<StringListOptOption>("dcci_disable", aclskOptionType::DCCI_DISABLE_ON_KERNEL));
+    EXPECT_FALSE(opts_test->EnableDebug());
 }
 
 TEST_F(SuperKernelOptionsManagerTest, EnableDebug_WithDcciBeforeKernelStart)
 {
     opts_test->AddOption(std::make_unique<StringListOptOption>(
-        "dcci_before_kernel_start", aclskOptionType::DEBUG_DCCI_BEFORE_KERNEL_START));
-    EXPECT_TRUE(opts_test->EnableDebug());
+        "dcci_before_kernel_start", aclskOptionType::DCCI_BEFORE_KERNEL_START));
+    EXPECT_FALSE(opts_test->EnableDebug());
 }
 
 TEST_F(SuperKernelOptionsManagerTest, EnableDebug_WithDcciAfterKernelEnd)
 {
     opts_test->AddOption(std::make_unique<StringListOptOption>(
-        "dcci_after_kernel_end", aclskOptionType::DEBUG_DCCI_AFTER_KERNEL_END));
-    EXPECT_TRUE(opts_test->EnableDebug());
+        "dcci_after_kernel_end", aclskOptionType::DCCI_AFTER_KERNEL_END));
+    EXPECT_FALSE(opts_test->EnableDebug());
 }
 
 TEST_F(SuperKernelOptionsManagerTest, EnableDebug_WithoutDebugOptions)
@@ -356,7 +356,7 @@ TEST_F(SuperKernelOptionsManagerTest, EnableDebug_WithoutDebugOptions)
 TEST_F(SuperKernelOptionsManagerTest, EnableDebug_WithBothDebugOptions)
 {
     opts_test->AddOption(std::make_unique<NumberOptOption>("debug_sync_all", aclskOptionType::DEBUG_SYNC_ALL, 1));
-    opts_test->AddOption(std::make_unique<StringListOptOption>("dcci_disable", aclskOptionType::DEBUG_DCCI_DISABLE_ON_KERNEL));
+    opts_test->AddOption(std::make_unique<StringListOptOption>("dcci_disable", aclskOptionType::DCCI_DISABLE_ON_KERNEL));
     EXPECT_TRUE(opts_test->EnableDebug());
 }
 
@@ -397,7 +397,7 @@ TEST_F(SuperKernelOptionsManagerTest, SetOptOptionValue_SplitMode)
 TEST_F(SuperKernelOptionsManagerTest, SetOptOptionValue_DebugDcciDisable)
 {
     aclskOption option;
-    option.optionType = aclskOptionType::DEBUG_DCCI_DISABLE_ON_KERNEL;
+    option.optionType = aclskOptionType::DCCI_DISABLE_ON_KERNEL;
     
     const char* kernelNames[] = {"Add", "Mul", ".*Op"};
     option.disableKernelDcci.kernelNames = const_cast<char**>(kernelNames);
@@ -405,7 +405,7 @@ TEST_F(SuperKernelOptionsManagerTest, SetOptOptionValue_DebugDcciDisable)
     
     opts_test->SetOptOptionValue(&option);
     
-    auto result = opts_test->GetOption(aclskOptionType::DEBUG_DCCI_DISABLE_ON_KERNEL);
+    auto result = opts_test->GetOption(aclskOptionType::DCCI_DISABLE_ON_KERNEL);
     ASSERT_NE(result, nullptr);
     auto strList = static_cast<StringListOptOption*>(result)->GetStringListValue();
     EXPECT_EQ(strList.size(), 3);
@@ -417,13 +417,13 @@ TEST_F(SuperKernelOptionsManagerTest, SetOptOptionValue_DebugDcciDisable)
 TEST_F(SuperKernelOptionsManagerTest, SetOptOptionValue_DebugDcciDisable_NullKernelNames)
 {
     aclskOption option {};
-    option.optionType = aclskOptionType::DEBUG_DCCI_DISABLE_ON_KERNEL;
+    option.optionType = aclskOptionType::DCCI_DISABLE_ON_KERNEL;
     option.disableKernelDcci.kernelNames = nullptr;
     option.disableKernelDcci.kernelCnt = 2;
 
     opts_test->SetOptOptionValue(&option);
 
-    auto result = opts_test->GetOption(aclskOptionType::DEBUG_DCCI_DISABLE_ON_KERNEL);
+    auto result = opts_test->GetOption(aclskOptionType::DCCI_DISABLE_ON_KERNEL);
     ASSERT_NE(result, nullptr);
     auto strList = static_cast<StringListOptOption*>(result)->GetStringListValue();
     EXPECT_TRUE(strList.empty());
@@ -432,7 +432,7 @@ TEST_F(SuperKernelOptionsManagerTest, SetOptOptionValue_DebugDcciDisable_NullKer
 TEST_F(SuperKernelOptionsManagerTest, SetOptOptionValue_DebugDcciDisable_WithNullEntry)
 {
     aclskOption option {};
-    option.optionType = aclskOptionType::DEBUG_DCCI_DISABLE_ON_KERNEL;
+    option.optionType = aclskOptionType::DCCI_DISABLE_ON_KERNEL;
 
     char name0[] = "Add";
     char name2[] = "Mul";
@@ -442,7 +442,7 @@ TEST_F(SuperKernelOptionsManagerTest, SetOptOptionValue_DebugDcciDisable_WithNul
 
     opts_test->SetOptOptionValue(&option);
 
-    auto result = opts_test->GetOption(aclskOptionType::DEBUG_DCCI_DISABLE_ON_KERNEL);
+    auto result = opts_test->GetOption(aclskOptionType::DCCI_DISABLE_ON_KERNEL);
     ASSERT_NE(result, nullptr);
     auto strList = static_cast<StringListOptOption*>(result)->GetStringListValue();
     EXPECT_EQ(strList.size(), 2);
@@ -466,7 +466,7 @@ TEST_F(SuperKernelOptionsManagerTest, SetOptOptionValue_DebugSyncAll)
 TEST_F(SuperKernelOptionsManagerTest, SetOptOptionValue_DcciBeforeKernelStart)
 {
     aclskOption option {};
-    option.optionType = aclskOptionType::DEBUG_DCCI_BEFORE_KERNEL_START;
+    option.optionType = aclskOptionType::DCCI_BEFORE_KERNEL_START;
 
     const char* kernelNames[] = {"Add", "Mul", ".*Op"};
     option.dcciBeforeKernelStart.kernelNames = const_cast<char**>(kernelNames);
@@ -474,7 +474,7 @@ TEST_F(SuperKernelOptionsManagerTest, SetOptOptionValue_DcciBeforeKernelStart)
 
     opts_test->SetOptOptionValue(&option);
 
-    auto result = opts_test->GetOption(aclskOptionType::DEBUG_DCCI_BEFORE_KERNEL_START);
+    auto result = opts_test->GetOption(aclskOptionType::DCCI_BEFORE_KERNEL_START);
     ASSERT_NE(result, nullptr);
     auto strList = static_cast<StringListOptOption*>(result)->GetStringListValue();
     EXPECT_EQ(strList.size(), 3);
@@ -486,13 +486,13 @@ TEST_F(SuperKernelOptionsManagerTest, SetOptOptionValue_DcciBeforeKernelStart)
 TEST_F(SuperKernelOptionsManagerTest, SetOptOptionValue_DcciBeforeKernelStart_NullKernelNames)
 {
     aclskOption option {};
-    option.optionType = aclskOptionType::DEBUG_DCCI_BEFORE_KERNEL_START;
+    option.optionType = aclskOptionType::DCCI_BEFORE_KERNEL_START;
     option.dcciBeforeKernelStart.kernelNames = nullptr;
     option.dcciBeforeKernelStart.kernelCnt = 2;
 
     opts_test->SetOptOptionValue(&option);
 
-    auto result = opts_test->GetOption(aclskOptionType::DEBUG_DCCI_BEFORE_KERNEL_START);
+    auto result = opts_test->GetOption(aclskOptionType::DCCI_BEFORE_KERNEL_START);
     ASSERT_NE(result, nullptr);
     auto strList = static_cast<StringListOptOption*>(result)->GetStringListValue();
     EXPECT_TRUE(strList.empty());
@@ -501,7 +501,7 @@ TEST_F(SuperKernelOptionsManagerTest, SetOptOptionValue_DcciBeforeKernelStart_Nu
 TEST_F(SuperKernelOptionsManagerTest, SetOptOptionValue_DcciAfterKernelEnd)
 {
     aclskOption option {};
-    option.optionType = aclskOptionType::DEBUG_DCCI_AFTER_KERNEL_END;
+    option.optionType = aclskOptionType::DCCI_AFTER_KERNEL_END;
 
     const char* kernelNames[] = {"Add", "Mul", ".*Op"};
     option.dcciAfterKernelEnd.kernelNames = const_cast<char**>(kernelNames);
@@ -509,7 +509,7 @@ TEST_F(SuperKernelOptionsManagerTest, SetOptOptionValue_DcciAfterKernelEnd)
 
     opts_test->SetOptOptionValue(&option);
 
-    auto result = opts_test->GetOption(aclskOptionType::DEBUG_DCCI_AFTER_KERNEL_END);
+    auto result = opts_test->GetOption(aclskOptionType::DCCI_AFTER_KERNEL_END);
     ASSERT_NE(result, nullptr);
     auto strList = static_cast<StringListOptOption*>(result)->GetStringListValue();
     EXPECT_EQ(strList.size(), 3);
@@ -521,13 +521,13 @@ TEST_F(SuperKernelOptionsManagerTest, SetOptOptionValue_DcciAfterKernelEnd)
 TEST_F(SuperKernelOptionsManagerTest, SetOptOptionValue_DcciAfterKernelEnd_NullKernelNames)
 {
     aclskOption option {};
-    option.optionType = aclskOptionType::DEBUG_DCCI_AFTER_KERNEL_END;
+    option.optionType = aclskOptionType::DCCI_AFTER_KERNEL_END;
     option.dcciAfterKernelEnd.kernelNames = nullptr;
     option.dcciAfterKernelEnd.kernelCnt = 2;
 
     opts_test->SetOptOptionValue(&option);
 
-    auto result = opts_test->GetOption(aclskOptionType::DEBUG_DCCI_AFTER_KERNEL_END);
+    auto result = opts_test->GetOption(aclskOptionType::DCCI_AFTER_KERNEL_END);
     ASSERT_NE(result, nullptr);
     auto strList = static_cast<StringListOptOption*>(result)->GetStringListValue();
     EXPECT_TRUE(strList.empty());
@@ -750,7 +750,7 @@ TEST_F(SuperKernelOptionsManagerTest, ParseOptions_AllOptionTypes)
     options[1].splitMode.splitCnt = 3;
     
     const char* dcciKernels[] = {"Add", "Mul"};
-    options[2].optionType = aclskOptionType::DEBUG_DCCI_DISABLE_ON_KERNEL;
+    options[2].optionType = aclskOptionType::DCCI_DISABLE_ON_KERNEL;
     options[2].disableKernelDcci.kernelNames = const_cast<char**>(dcciKernels);
     options[2].disableKernelDcci.kernelCnt = 2;
     
@@ -766,7 +766,7 @@ TEST_F(SuperKernelOptionsManagerTest, ParseOptions_AllOptionTypes)
     // 验证所有选项都已正确解析
     auto opt1 = opts_test->GetOption(aclskOptionType::PRELOAD_CODE);
     auto opt2 = opts_test->GetOption(aclskOptionType::SPLIT_MODE);
-    auto opt3 = opts_test->GetOption(aclskOptionType::DEBUG_DCCI_DISABLE_ON_KERNEL);
+    auto opt3 = opts_test->GetOption(aclskOptionType::DCCI_DISABLE_ON_KERNEL);
     auto opt4 = opts_test->GetOption(aclskOptionType::DEBUG_SYNC_ALL);
     
     ASSERT_NE(opt1, nullptr);
@@ -925,7 +925,7 @@ TEST_F(SuperKernelOptionsManagerTest, ParseOptions_LargeNumberOptions)
             options[i].splitMode.splitCnt = i;
         } else if (i % 4 == 2) {
             const char* kernelNames[] = {"TestOp"};
-            options[i].optionType = aclskOptionType::DEBUG_DCCI_DISABLE_ON_KERNEL;
+            options[i].optionType = aclskOptionType::DCCI_DISABLE_ON_KERNEL;
             options[i].disableKernelDcci.kernelNames = const_cast<char**>(kernelNames);
             options[i].disableKernelDcci.kernelCnt = 1;
         } else {
@@ -949,7 +949,7 @@ TEST_F(SuperKernelOptionsManagerTest, ParseOptions_LargeNumberOptions)
     for (int i = 0; i < numOptions; i++) {
         if (i % 4 == 0 && opts_test->GetOption(aclskOptionType::PRELOAD_CODE)) preloadCount++;
         else if (i % 4 == 1 && opts_test->GetOption(aclskOptionType::SPLIT_MODE)) splitCount++;
-        else if (i % 4 == 2 && opts_test->GetOption(aclskOptionType::DEBUG_DCCI_DISABLE_ON_KERNEL)) dcciCount++;
+        else if (i % 4 == 2 && opts_test->GetOption(aclskOptionType::DCCI_DISABLE_ON_KERNEL)) dcciCount++;
         else if (i % 4 == 3 && opts_test->GetOption(aclskOptionType::DEBUG_SYNC_ALL)) syncCount++;
     }
     
