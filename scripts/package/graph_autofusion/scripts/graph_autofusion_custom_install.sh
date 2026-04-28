@@ -364,6 +364,14 @@ custom_install() {
         fi
     fi
 
+    local autofuse_python_dir="${common_parse_dir}/python/site-packages/autofuse"
+    if [ -d "${autofuse_python_dir}" ]; then
+        log "INFO" "pre-compiling autofuse python scripts..."
+        python3 -m compileall -q "${autofuse_python_dir}" 2>/dev/null || true
+        chmod -R 550 "${autofuse_python_dir}/__pycache__" 2>/dev/null || true
+        log "INFO" "autofuse python scripts pre-compiled."
+    fi
+
     return 0
 }
 

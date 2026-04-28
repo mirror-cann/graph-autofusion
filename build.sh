@@ -55,11 +55,12 @@ usage() {
   echo "Usage:"
   echo "  sh build.sh [-h|--help] [--pkg] [-u|--ut] [-s|--st] [--impl=<py|cpp|all>]"
   echo "              [--module=<name>] [-c|--coverage] [-j]"
-  echo "              [--output_path=<PATH>] [--cann_3rd_lib_path=<PATH>] [--build-type=<TYPE>]"
+  echo "              [--output_path=<PATH>] [--cann_3rd_lib_path=<PATH>] [--build-type=<TYPE>] [--no-autofuse]"
   echo ""
   echo "Options:"
   echo "    -h, --help            Print usage"
   echo "    --pkg                 Build run package"
+  echo "    --no-autofuse         Skip autofuse backend build/package artifacts"
   echo "    -j                    Compile thread nums, default is 16, eg: -j 8"
   echo "    -u, --ut              Run unit tests for supported implementations"
   echo "    -s, --st              Run system tests for supported implementations"
@@ -191,9 +192,10 @@ checkopts() {
   TEST_IMPL_MODE="all"
   TARGET_MODULE="all"
   CANN_3RD_LIB_PATH="$BASEPATH/output/third_party"
+  ENABLE_AUTOFUSE="on"
 
   # Process the options - 添加了 build-type 选项
-  parsed_args=$(getopt -a -o j:husc -l help,pkg,impl:,module:,test_case:,run_example,ut,st,coverage,output_path:,cann_3rd_lib_path:,build-type: -- "$@") || {
+  parsed_args=$(getopt -a -o j:husc -l help,pkg,autofuse,no-autofuse,impl:,module:,test_case:,run_example,ut,st,coverage,output_path:,cann_3rd_lib_path:,build-type: -- "$@") || {
     usage
     exit 1
   }
@@ -208,6 +210,14 @@ checkopts() {
         ;;
       --pkg)
         ENABLE_BUILD_PACKAGE="on"
+        shift
+        ;;
+      --autofuse)
+        ENABLE_AUTOFUSE="on"
+        shift
+        ;;
+      --no-autofuse)
+        ENABLE_AUTOFUSE="off"
         shift
         ;;
       -j)
@@ -316,6 +326,15 @@ checkopts() {
 function cmake_config()
 {
   local extra_option="$1"
+  if [ "X$ENABLE_AUTOFUSE" == "Xon" ]; then
+    extra_option="${extra_option} -DBUILD_AUTOFUSE=ON"
+    if [ -n "${CANN_3RD_LIB_PATH}" ]; then
+      extra_option="${extra_option} -DASCEND_CANN_3RD_LIB_PATH=${CANN_3RD_LIB_PATH}"
+    fi
+  fi
+  if [ "X$ENABLE_AUTOFUSE" == "Xoff" ]; then
+    extra_option="${extra_option} -DBUILD_AUTOFUSE=OFF"
+  fi
   echo "Info: cmake config ${CUSTOM_OPTION} ${extra_option} ."
   cmake .. ${CUSTOM_OPTION} ${extra_option}
 }
@@ -324,6 +343,24 @@ function build()
 {
   local target="$1"
   cmake --build . --target ${target} -j ${THREAD_NUM}
+}
+
+function prepare_autofuse_third_party() {
+  local third_party_dir="${CANN_3RD_LIB_PATH}"
+  local script_path="${BASEPATH}/autofuse/build_third_party.sh"
+  if [ "X$ENABLE_AUTOFUSE" != "Xon" ]; then
+    return
+  fi
+  if [ -z "${third_party_dir}" ]; then
+    third_party_dir="${BASEPATH}/autofuse/output/third_party"
+  fi
+  if [ ! -f "${script_path}" ]; then
+    echo "Build autofuse failed: missing ${script_path}"
+    exit 1
+  fi
+
+  echo "---------------- Prepare autofuse third_party in ${third_party_dir} ----------------"
+  bash "${script_path}" "${third_party_dir}" "${THREAD_NUM}" "" "" "0" || { echo "Prepare autofuse third_party failed."; exit 1; }
 }
 
 clean_coverage_artifacts() {
@@ -456,6 +493,16 @@ main() {
   checkopts "$@"
 
   clean_coverage_artifacts
+
+  if [ "X$ENABLE_AUTOFUSE" == "Xon" ]; then
+    echo "---------------- Start build autofuse ----------------"
+    prepare_autofuse_third_party
+    mkdir -pv ${BUILD_PATH} &&
+    cd ${BUILD_PATH} &&
+    cmake_config "-DCANN_3RD_LIB_PATH=${CANN_3RD_LIB_PATH}" &&
+    build all || { echo "Build autofuse failed."; exit 1; }
+    echo "Build autofuse success!"
+  fi
 
   if [ "X$ENABLE_BUILD_PACKAGE" == "Xon" ]; then
     build_package || { echo "Build run package failed."; exit 1; }

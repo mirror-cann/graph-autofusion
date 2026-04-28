@@ -45,4 +45,11 @@ set(INSTALL_LIBRARY_DIR graph_autofusion/lib)
 
 add_subdirectory(super_kernel)
 
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/autofuse/CMakeLists.txt")
+    option(BUILD_AUTOFUSE "Build autofuse backend modules" ON)
+    if(BUILD_AUTOFUSE)
+        add_subdirectory(autofuse)
+    endif()
+endif()
+
 include(cmake/package.cmake)

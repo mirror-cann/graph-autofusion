@@ -1,0 +1,539 @@
+cmake_minimum_required(VERSION 3.16)
+project(graph_autofusion_autofuse CXX C)
+cmake_policy(SET CMP0079 NEW)
+
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fstack-protector-all -Wl,-z,now")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fstack-protector-all -Wl,-z,now")
+
+if(NOT MDC_COMPILE_RUNTIME)
+    add_compile_options(-D_GLIBCXX_USE_CXX11_ABI=0)
+else()
+    add_compile_options(-D_GLIBCXX_USE_CXX11_ABI=${USE_CXX11_ABI})
+endif()
+
+if (EXISTS "${CMAKE_SOURCE_DIR}/.dev_env")
+    if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/.dev_env")
+        set(ENABLE_OPEN_SRC True)
+        file(STRINGS "${CMAKE_SOURCE_DIR}/.dev_env" DEV_ENV_LINES)
+        foreach (line IN LISTS DEV_ENV_LINES)
+            string(STRIP "${line}" line)
+            if (line MATCHES "^([^=]+)=(.*)$")
+                set(var_name "${CMAKE_MATCH_1}")
+                set(var_value "${CMAKE_MATCH_2}")
+                string(STRIP "${var_name}" var_name)
+                string(STRIP "${var_value}" var_value)
+                set(${var_name} ${var_value})
+            endif ()
+        endforeach ()
+        set(ASCEND_INSTALL_PATH ${ASCEND_INSTALL_PATH}/latest)
+    endif ()
+endif ()
+set(ASCEND_ROOT ${ASCEND_INSTALL_PATH})
+set(ASCEND_INSTALL_PATH ${ASCEND_INSTALL_PATH})
+
+if(EXISTS "${ASCEND_ROOT}/x86_64-linux")
+    set(ASCEND_PLATFORM_DIR ${ASCEND_ROOT}/x86_64-linux)
+elseif(EXISTS "${ASCEND_ROOT}/aarch64-linux")
+    set(ASCEND_PLATFORM_DIR ${ASCEND_ROOT}/aarch64-linux)
+else()
+    set(ASCEND_PLATFORM_DIR ${ASCEND_ROOT})
+endif()
+
+if(DEFINED METADEF_INSTALL_PATH)
+    if(EXISTS "${METADEF_INSTALL_PATH}/x86_64-linux")
+        set(METADEF_PLATFORM_DIR ${METADEF_INSTALL_PATH}/x86_64-linux)
+    elseif(EXISTS "${METADEF_INSTALL_PATH}/aarch64-linux")
+        set(METADEF_PLATFORM_DIR ${METADEF_INSTALL_PATH}/aarch64-linux)
+    else()
+        set(METADEF_PLATFORM_DIR ${METADEF_INSTALL_PATH})
+    endif()
+else()
+    set(METADEF_PLATFORM_DIR ${ASCEND_PLATFORM_DIR})
+endif()
+
+if(NOT EXISTS "${METADEF_PLATFORM_DIR}/include/proto/symbolizer.proto")
+    set(METADEF_LOCAL_BUILD /home/xingzhixiong/TSPD_CODE/metadef/build/_CPack_Packages/makeself_staging/metadef)
+    if(EXISTS "${METADEF_LOCAL_BUILD}/include/proto/symbolizer.proto")
+        message(STATUS "Using local metadef build for symbolizer.proto: ${METADEF_LOCAL_BUILD}")
+        set(METADEF_PLATFORM_DIR ${METADEF_LOCAL_BUILD})
+    endif()
+endif()
+
+list(APPEND CMAKE_PREFIX_PATH ${ASCEND_PLATFORM_DIR})
+list(APPEND CMAKE_PREFIX_PATH ${ASCEND_PLATFORM_DIR}/include)
+
+set(CODE_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR})
+set(GE_METADEF_DIR ${CODE_ROOT_DIR}/graph_metadef)
+set(GE_METADEF_INC_DIR ${CODE_ROOT_DIR}/inc/graph_metadef)
+set(METADEF_PROTO_DIR ${GE_METADEF_DIR}/proto)
+
+if (NOT DEFINED ASCEND_CANN_3RD_LIB_PATH)
+    set(ASCEND_CANN_3RD_LIB_PATH ${CMAKE_CURRENT_SOURCE_DIR}/output/third_party)
+endif ()
+
+if (NOT EXISTS "${ASCEND_CANN_3RD_LIB_PATH}")
+    message(FATAL_ERROR "Error: Directory \"${ASCEND_CANN_3RD_LIB_PATH}\" does not exist!\n"
+            "Please using build_third_party.sh compile first.")
+endif ()
+
+list(APPEND CMAKE_MODULE_PATH
+    ${ASCEND_CANN_3RD_LIB_PATH}/cmake/modules
+    ${GE_METADEF_DIR}/cmake/modules
+    ${CODE_ROOT_DIR}/cmake/modules
+    ${CODE_ROOT_DIR}/cmake/third_party/scripts/modules
+)
+
+list(APPEND CMAKE_PREFIX_PATH
+    ${ASCEND_CANN_3RD_LIB_PATH}/json
+    ${ASCEND_CANN_3RD_LIB_PATH}/openssl
+    ${ASCEND_CANN_3RD_LIB_PATH}/protoc
+    ${ASCEND_CANN_3RD_LIB_PATH}/protoc_grpc
+    ${ASCEND_CANN_3RD_LIB_PATH}/grpc
+    ${ASCEND_CANN_3RD_LIB_PATH}/protobuf_static
+    ${ASCEND_CANN_3RD_LIB_PATH}/ascend_protobuf
+    ${ASCEND_CANN_3RD_LIB_PATH}/ascend_protobuf_static
+    ${ASCEND_CANN_3RD_LIB_PATH}/gtest_shared/lib64/cmake/GTest
+    ${ASCEND_CANN_3RD_LIB_PATH}/gtest
+    ${ASCEND_CANN_3RD_LIB_PATH}/benchmark
+    ${ASCEND_CANN_3RD_LIB_PATH}/pybind11
+    ${ASCEND_CANN_3RD_LIB_PATH}/symengine/lib/cmake/symengine
+    ${ASCEND_CANN_3RD_LIB_PATH}/boost/lib/cmake/Boost-1.87.0
+)
+
+link_directories(${ASCEND_ROOT}/lib64)
+link_directories(${ASCEND_PLATFORM_DIR}/lib64)
+include_directories(${GE_METADEF_INC_DIR})
+include_directories(${GE_METADEF_INC_DIR}/common)
+include_directories(${GE_METADEF_INC_DIR}/external)
+include_directories(${GE_METADEF_INC_DIR}/external/graph)
+include_directories(${GE_METADEF_INC_DIR}/graph)
+include_directories(${GE_METADEF_INC_DIR}/graph/ascendc_ir)
+include_directories(${GE_METADEF_INC_DIR}/graph/ascendc_ir/ascendc_ir_core)
+include_directories(${GE_METADEF_INC_DIR}/graph/ascendc_ir/utils)
+include_directories(${GE_METADEF_INC_DIR}/graph/utils)
+include_directories(${GE_METADEF_DIR})
+include_directories(${GE_METADEF_DIR}/graph)
+include_directories(${CODE_ROOT_DIR}/autofuse)
+include_directories(${CODE_ROOT_DIR}/common)
+include_directories(${CODE_ROOT_DIR}/ascendc/api)
+include_directories(${CODE_ROOT_DIR}/compiler/py_module)
+include_directories(${CODE_ROOT_DIR}/ascir/meta)
+include_directories(${CODE_ROOT_DIR}/att)
+include_directories(${CODE_ROOT_DIR}/inc)
+include_directories(${ASCEND_ROOT}/include)
+include_directories(${ASCEND_PLATFORM_DIR})
+include_directories(${ASCEND_PLATFORM_DIR}/include)
+include_directories(${ASCEND_PLATFORM_DIR}/include/external)
+include_directories(${ASCEND_INSTALL_PATH}/pkg_inc)
+include_directories(${ASCEND_INSTALL_PATH}/pkg_inc/base)
+include_directories(${ASCEND_INSTALL_PATH}/pkg_inc/common)
+include_directories(${ASCEND_INSTALL_PATH}/pkg_inc/profiling)
+include_directories(${ASCEND_INSTALL_PATH}/pkg_inc/toolchain)
+include_directories(${ASCEND_INSTALL_PATH}/pkg_inc/trace)
+include_directories(${METADEF_PLATFORM_DIR}/include)
+include_directories(${METADEF_PLATFORM_DIR}/include/graph_metadef)
+include_directories(${METADEF_PLATFORM_DIR}/include/graph_metadef/graph)
+include_directories(${METADEF_PLATFORM_DIR}/pkg_inc)
+include_directories(${METADEF_PLATFORM_DIR}/pkg_inc/profiling)
+if(EXISTS /home/xingzhixiong/TSPD_CODE/metadef/inc/external)
+    include_directories(/home/xingzhixiong/TSPD_CODE/metadef/inc/external)
+endif()
+if(NOT EXISTS "${ASCEND_INSTALL_PATH}/pkg_inc")
+    if(DEFINED RUN_TEST AND RUN_TEST EQUAL 1)
+        include_directories(${CMAKE_SOURCE_DIR}/tests/depends/securec)
+    endif()
+endif()
+
+if(EXISTS "${ASCEND_PLATFORM_DIR}/pkg_inc/runtime/runtime/dev.h" OR EXISTS "${ASCEND_ROOT}/pkg_inc/runtime/runtime/dev.h")
+    include_directories(${ASCEND_ROOT}/pkg_inc)
+    include_directories(${ASCEND_PLATFORM_DIR}/pkg_inc/runtime)
+    include_directories(${ASCEND_ROOT}/pkg_inc/runtime)
+    include_directories(${ASCEND_ROOT}/pkg_inc/profiling)
+    include_directories(${ASCEND_ROOT}/pkg_inc/trace)
+else()
+    include_directories(${ASCEND_ROOT}/include/experiment)
+    include_directories(${ASCEND_ROOT}/include/experiment/runtime)
+    include_directories(${ASCEND_ROOT}/include/experiment/msprof)
+    include_directories(${ASCEND_ROOT}/include/experiment/atrace/utrace)
+endif()
+include_directories(${CMAKE_BINARY_DIR}/proto/metadef_protos)
+
+find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
+find_package(json REQUIRED)
+if(DEFINED RUN_TEST AND RUN_TEST EQUAL 1)
+    find_package(GTest CONFIG REQUIRED)
+endif()
+find_package(Boost CONFIG REQUIRED)
+find_package(SymEngine CONFIG REQUIRED)
+add_library(symengine_static STATIC IMPORTED)
+set_target_properties(symengine_static PROPERTIES
+    IMPORTED_LOCATION "${SymEngine_DIR}/../../libsymengine.a"
+    INTERFACE_INCLUDE_DIRECTORIES "${SymEngine_DIR}/../../../include"
+)
+find_package(protoc MODULE REQUIRED)
+find_package(ascend_protobuf_shared MODULE REQUIRED)
+find_package(unified_dlog)
+find_package(mmpa)
+find_package(runtime)
+find_package(atrace)
+find_package(securec)
+
+if (DEFINED unified_dlog_INCLUDE_DIR)
+    get_filename_component(UNIFIED_DLOG_PKG_INC_DIR "${unified_dlog_INCLUDE_DIR}" DIRECTORY)
+    include_directories(${UNIFIED_DLOG_PKG_INC_DIR})
+endif()
+if (DEFINED runtime_SHARED_LIBRARY)
+    get_filename_component(ASCEND_FOUND_LIB_DIR "${runtime_SHARED_LIBRARY}" DIRECTORY)
+    link_directories(${ASCEND_FOUND_LIB_DIR})
+endif()
+
+include(GoogleTest)
+set(CMAKE_GTEST_DISCOVER_TESTS_DISCOVERY_MODE PRE_TEST)
+
+if (NOT TARGET intf_pub)
+    add_library(intf_pub INTERFACE)
+    target_compile_options(intf_pub INTERFACE -Wall -fPIC -fstack-protector-strong)
+endif()
+
+if (NOT TARGET autofuse_shared_visibility)
+    add_library(autofuse_shared_visibility INTERFACE)
+    if (NOT TARGET_SYSTEM_NAME STREQUAL "Windows")
+        target_compile_options(autofuse_shared_visibility INTERFACE
+            -fvisibility=default
+            -fno-visibility-inlines-hidden
+        )
+    endif ()
+endif ()
+
+function(autofuse_apply_shared_visibility target_name)
+    target_link_libraries(${target_name} PRIVATE autofuse_shared_visibility)
+endfunction()
+
+add_library(depends INTERFACE)
+target_link_directories(depends INTERFACE
+    ${ASCEND_ROOT}/x86_64-linux/devlib)
+
+if (DEFINED RUN_TEST)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fprofile-arcs -ftest-coverage")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fprofile-arcs -ftest-coverage")
+endif ()
+
+add_library(aihac_codegen SHARED)
+set_target_properties(aihac_codegen PROPERTIES OUTPUT_NAME aihac_codegen_af)
+
+add_subdirectory(graph_metadef/proto)
+add_subdirectory(inc/graph_metadef)
+add_subdirectory(graph_metadef/graph)
+add_subdirectory(ascendc)
+add_subdirectory(ascir)
+add_subdirectory(optimize)
+add_subdirectory(att)
+add_subdirectory(codegen)
+add_subdirectory(common)
+if (IS_DIRECTORY "${CODE_ROOT_DIR}/v35")
+    add_subdirectory(v35)
+endif()
+if(NOT DEFINED RUN_TEST OR NOT RUN_TEST EQUAL 1)
+    add_subdirectory(compiler)
+endif ()
+
+if (DEFINED RUN_TEST AND RUN_TEST EQUAL 1 AND IS_DIRECTORY "${CODE_ROOT_DIR}/tests")
+    add_subdirectory(tests)
+endif()
+
+add_definitions(-DFORMULAS_PERF)
+
+target_compile_definitions(aihac_codegen PRIVATE
+    google=ascend_private
+)
+
+target_compile_options(aihac_codegen PRIVATE
+    -O2
+    -fPIC
+    -fno-common
+    -Wfloat-equal
+    -Wextra
+    -Wall
+    -Werror
+)
+
+target_link_options(aihac_codegen PRIVATE
+    -rdynamic
+    -Wl,-Bsymbolic
+    -Wl,--exclude-libs,All
+    $<$<CONFIG:Release>:-s>
+)
+
+target_link_libraries(aihac_codegen PUBLIC
+    $<BUILD_INTERFACE:ascir_ops_headers>
+    $<BUILD_INTERFACE:atrace_headers>
+    graph
+    graph_base
+    aihac_ir
+    aihac_ir_register
+    aihac_symbolizer
+    $<BUILD_INTERFACE:ge_log_utils>
+    $<BUILD_INTERFACE:ascendc_api_extend>
+    error_manager
+    c_sec
+    unified_dlog
+    runtime
+    atrace_share
+    mmpa
+    json
+    ascend_protobuf
+    symengine
+    Boost::boost
+    -lgcov
+)
+
+if(NOT DEFINED RUN_TEST OR NOT RUN_TEST EQUAL 1)
+set(AUTOFUSE_INSTALL_COMPONENT graph-autofusion)
+set(AUTOFUSE_INSTALL_LIB_DIR ${CMAKE_SYSTEM_PROCESSOR}-linux/lib64)
+set(AUTOFUSE_INSTALL_PYTHON_DIR python/site-packages)
+set(AUTOFUSE_INSTALL_INCLUDE_DIR ${CMAKE_SYSTEM_PROCESSOR}-linux/include/autofuse)
+
+install(TARGETS aihac_codegen
+    LIBRARY DESTINATION ${AUTOFUSE_INSTALL_LIB_DIR}
+            COMPONENT ${AUTOFUSE_INSTALL_COMPONENT}
+            OPTIONAL
+    ARCHIVE DESTINATION ${AUTOFUSE_INSTALL_LIB_DIR}
+            COMPONENT ${AUTOFUSE_INSTALL_COMPONENT}
+            OPTIONAL
+)
+
+install(TARGETS aihac_ir aihac_ir_register
+    LIBRARY DESTINATION ${AUTOFUSE_INSTALL_LIB_DIR}
+            COMPONENT ${AUTOFUSE_INSTALL_COMPONENT}
+            OPTIONAL
+    ARCHIVE DESTINATION ${AUTOFUSE_INSTALL_LIB_DIR}
+            COMPONENT ${AUTOFUSE_INSTALL_COMPONENT}
+            OPTIONAL
+)
+
+install(TARGETS graph graph_base aihac_symbolizer
+    LIBRARY DESTINATION ${AUTOFUSE_INSTALL_LIB_DIR} OPTIONAL
+    COMPONENT ${AUTOFUSE_INSTALL_COMPONENT}
+)
+
+install(TARGETS pyautofuse
+    LIBRARY DESTINATION ${AUTOFUSE_INSTALL_PYTHON_DIR}/autofuse OPTIONAL
+    COMPONENT ${AUTOFUSE_INSTALL_COMPONENT}
+)
+
+install(FILES
+        compiler/python/__init__.py
+        compiler/python/asc_codegen_compile.py
+        compiler/python/ascbc_kernel_compile.py
+        compiler/python/compile_adapter.py
+        compiler/python/ascendc_compile.py
+        compiler/python/ascir_api.py
+    DESTINATION ${AUTOFUSE_INSTALL_PYTHON_DIR}/autofuse
+    PERMISSIONS OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE
+    OPTIONAL
+    COMPONENT ${AUTOFUSE_INSTALL_COMPONENT}
+)
+
+install(DIRECTORY ${CODE_ROOT_DIR}/inc/autoschedule/
+    DESTINATION ${AUTOFUSE_INSTALL_INCLUDE_DIR}/autoschedule
+    COMPONENT ${AUTOFUSE_INSTALL_COMPONENT}
+    FILES_MATCHING PATTERN "*.h"
+)
+
+install(DIRECTORY ${CODE_ROOT_DIR}/inc/backend/
+    DESTINATION ${AUTOFUSE_INSTALL_INCLUDE_DIR}/backend
+    COMPONENT ${AUTOFUSE_INSTALL_COMPONENT}
+    FILES_MATCHING PATTERN "*.h"
+)
+
+install(DIRECTORY ${CODE_ROOT_DIR}/inc/fusion/
+    DESTINATION ${AUTOFUSE_INSTALL_INCLUDE_DIR}/fusion
+    COMPONENT ${AUTOFUSE_INSTALL_COMPONENT}
+    FILES_MATCHING PATTERN "*.h"
+)
+
+install(DIRECTORY ${CODE_ROOT_DIR}/inc/autofuse_frame/
+    DESTINATION ${AUTOFUSE_INSTALL_INCLUDE_DIR}/autofuse_frame
+    COMPONENT ${AUTOFUSE_INSTALL_COMPONENT}
+    FILES_MATCHING PATTERN "*.h"
+)
+
+install(FILES
+        ${CODE_ROOT_DIR}/inc/common/autofuse_base_type.h
+        ${CODE_ROOT_DIR}/inc/common/platform_context.h
+    DESTINATION ${AUTOFUSE_INSTALL_INCLUDE_DIR}/common
+    COMPONENT ${AUTOFUSE_INSTALL_COMPONENT}
+)
+
+install(FILES
+        ${CODE_ROOT_DIR}/autofuse/utils/auto_fuse_config.h
+    DESTINATION ${AUTOFUSE_INSTALL_INCLUDE_DIR}/utils
+    COMPONENT ${AUTOFUSE_INSTALL_COMPONENT}
+)
+
+install(FILES
+        ${CODE_ROOT_DIR}/ascir/meta/ascend_graph_code_dumper.h
+    DESTINATION ${AUTOFUSE_INSTALL_INCLUDE_DIR}/ascir/meta
+    COMPONENT ${AUTOFUSE_INSTALL_COMPONENT}
+)
+
+install(FILES
+        ${CODE_ROOT_DIR}/common/common_utils.h
+        ${CODE_ROOT_DIR}/common/schedule_result.h
+    DESTINATION ${AUTOFUSE_INSTALL_INCLUDE_DIR}/common
+    COMPONENT ${AUTOFUSE_INSTALL_COMPONENT}
+)
+
+install(FILES
+        ${CODE_ROOT_DIR}/att/base/base_types.h
+    DESTINATION ${AUTOFUSE_INSTALL_INCLUDE_DIR}/base
+    COMPONENT ${AUTOFUSE_INSTALL_COMPONENT}
+)
+
+install(FILES
+        ${CODE_ROOT_DIR}/inc/graph_metadef/graph/ascendc_ir/ascendc_ir_check.h
+        ${CODE_ROOT_DIR}/inc/graph_metadef/graph/ascendc_ir/ascir_register.h
+        ${CODE_ROOT_DIR}/inc/graph_metadef/graph/ascendc_ir/ascir_registry.h
+    DESTINATION ${AUTOFUSE_INSTALL_INCLUDE_DIR}/graph_metadef/graph/ascendc_ir
+    COMPONENT ${AUTOFUSE_INSTALL_COMPONENT}
+)
+
+# ascendc_ir_def.h includes "attr_store.h" with a bare filename.
+# GE adds ascendc_ir_core to its include path, so install alongside other ascendc_ir_core headers.
+install(FILES ${CODE_ROOT_DIR}/inc/graph_metadef/graph/attr_store.h
+    DESTINATION ${AUTOFUSE_INSTALL_INCLUDE_DIR}/graph_metadef/graph/ascendc_ir/ascendc_ir_core
+    COMPONENT ${AUTOFUSE_INSTALL_COMPONENT}
+)
+
+# Bridge header for GE to add nodes into AscGraph without instantiating af-internal types.
+install(FILES ${CODE_ROOT_DIR}/inc/graph_metadef/graph/ascendc_ir/ascendc_ir_core/asc_graph_ge_bridge.h
+    DESTINATION ${AUTOFUSE_INSTALL_INCLUDE_DIR}/graph_metadef/graph/ascendc_ir/ascendc_ir_core
+    COMPONENT ${AUTOFUSE_INSTALL_COMPONENT}
+)
+
+# attr_store.h includes "attribute_group/af_attr_group_base.h".
+# GE adds graph_metadef/graph to its include path.
+install(FILES ${CODE_ROOT_DIR}/inc/graph_metadef/graph/attribute_group/af_attr_group_base.h
+    DESTINATION ${AUTOFUSE_INSTALL_INCLUDE_DIR}/graph_metadef/graph/attribute_group
+    COMPONENT ${AUTOFUSE_INSTALL_COMPONENT}
+)
+
+# ascendc_ir_def.h includes "serialization/attr_serializer_registry.h" (internal impl dir).
+# GE adds graph_metadef/graph to its include path.
+install(FILES
+        ${GE_METADEF_DIR}/graph/serialization/attr_serializer_registry.h
+        ${GE_METADEF_DIR}/graph/serialization/attr_serializer.h
+    DESTINATION ${AUTOFUSE_INSTALL_INCLUDE_DIR}/graph_metadef/graph/serialization
+    COMPONENT ${AUTOFUSE_INSTALL_COMPONENT}
+)
+
+# ascendc_ir_def.h includes "graph/symbolizer/symbolic.h" and symbol_operator/symbol_checker.
+# GE adds graph_metadef/graph to its include path.
+install(FILES
+        ${CODE_ROOT_DIR}/inc/graph_metadef/graph/symbolizer/symbolic.h
+        ${CODE_ROOT_DIR}/inc/graph_metadef/graph/symbolizer/symbol_operator.h
+        ${CODE_ROOT_DIR}/inc/graph_metadef/graph/symbolizer/symbol_checker.h
+    DESTINATION ${AUTOFUSE_INSTALL_INCLUDE_DIR}/graph_metadef/graph/symbolizer
+    COMPONENT ${AUTOFUSE_INSTALL_COMPONENT}
+)
+
+install(FILES ${CODE_ROOT_DIR}/inc/graph_metadef/graph/debug/ge_util.h
+    DESTINATION ${AUTOFUSE_INSTALL_INCLUDE_DIR}/graph_metadef/graph/debug
+    COMPONENT ${AUTOFUSE_INSTALL_COMPONENT}
+)
+
+# ascir_ops.h depends on af::ascir::cg types defined in cg_utils.h and its dependencies.
+install(FILES
+        ${CODE_ROOT_DIR}/inc/graph_metadef/graph/utils/cg_utils.h
+        ${CODE_ROOT_DIR}/inc/graph_metadef/graph/utils/axis_utils.h
+        ${CODE_ROOT_DIR}/inc/graph_metadef/graph/utils/node_utils_ex.h
+        ${CODE_ROOT_DIR}/inc/graph_metadef/graph/utils/dtype_transform_utils.h
+    DESTINATION ${AUTOFUSE_INSTALL_INCLUDE_DIR}/graph_metadef/graph/utils
+    COMPONENT ${AUTOFUSE_INSTALL_COMPONENT}
+)
+
+# ascir/meta headers keep source-relative layout.
+install(FILES
+        ${CODE_ROOT_DIR}/ascir/meta/ascir.h
+        ${CODE_ROOT_DIR}/ascir/meta/ascir_ops_utils.h
+        ${CODE_ROOT_DIR}/ascir/meta/ascir_utils.h
+    DESTINATION ${AUTOFUSE_INSTALL_INCLUDE_DIR}/ascir/meta
+    COMPONENT ${AUTOFUSE_INSTALL_COMPONENT}
+)
+
+# generated ascir_ops.h (produced by ascir_builtin_ops_header at build time)
+install(FILES ${CMAKE_BINARY_DIR}/ascir_builtin_ops/ascir_ops.h
+    DESTINATION ${AUTOFUSE_INSTALL_INCLUDE_DIR}/ascir
+    OPTIONAL
+    COMPONENT ${AUTOFUSE_INSTALL_COMPONENT}
+)
+
+# Keep only the minimal relative-neighbor headers required by ascir_ops.h.
+install(FILES ${CODE_ROOT_DIR}/inc/graph_metadef/graph/ascendc_ir/ascend_reg_ops.h
+    DESTINATION ${AUTOFUSE_INSTALL_INCLUDE_DIR}/ascir/ascendc_ir
+    COMPONENT ${AUTOFUSE_INSTALL_COMPONENT}
+)
+
+install(FILES
+        ${CODE_ROOT_DIR}/inc/graph_metadef/graph/ascendc_ir/ascendc_ir_core/ascendc_ir.h
+        ${CODE_ROOT_DIR}/inc/graph_metadef/graph/ascendc_ir/ascendc_ir_core/ascendc_ir_def.h
+    DESTINATION ${AUTOFUSE_INSTALL_INCLUDE_DIR}/ascir/ascendc_ir/ascendc_ir_core
+    COMPONENT ${AUTOFUSE_INSTALL_COMPONENT}
+)
+
+install(FILES
+        ${CODE_ROOT_DIR}/inc/graph_metadef/graph/ascendc_ir/ascendc_ir_core/ascendc_ir.h
+        ${CODE_ROOT_DIR}/inc/graph_metadef/graph/ascendc_ir/ascendc_ir_core/ascendc_ir_def.h
+    DESTINATION ${AUTOFUSE_INSTALL_INCLUDE_DIR}/graph_metadef/graph/ascendc_ir/ascendc_ir_core
+    COMPONENT ${AUTOFUSE_INSTALL_COMPONENT}
+)
+
+install(FILES
+        ${CMAKE_BINARY_DIR}/proto/metadef_protos/proto/af_ir.pb.h
+        ${CMAKE_BINARY_DIR}/proto/metadef_protos/proto/af_ascendc_ir.pb.h
+    DESTINATION ${AUTOFUSE_INSTALL_INCLUDE_DIR}/proto
+)
+
+install(FILES
+        ${CMAKE_BINARY_DIR}/proto/metadef_protos/proto/af_attr_group_base.pb.h
+    DESTINATION ${AUTOFUSE_INSTALL_INCLUDE_DIR}/proto
+)
+
+install(FILES
+        ${CODE_ROOT_DIR}/inc/graph_metadef/external/graph/operator.h
+    DESTINATION ${AUTOFUSE_INSTALL_INCLUDE_DIR}/graph_metadef/external/graph
+    COMPONENT ${AUTOFUSE_INSTALL_COMPONENT}
+)
+
+install(FILES
+        ${CODE_ROOT_DIR}/inc/graph_metadef/graph/anchor.h
+        ${CODE_ROOT_DIR}/inc/graph_metadef/graph/node.h
+    DESTINATION ${AUTOFUSE_INSTALL_INCLUDE_DIR}/graph_metadef/graph
+    COMPONENT ${AUTOFUSE_INSTALL_COMPONENT}
+)
+
+install(FILES
+        ${CODE_ROOT_DIR}/inc/graph_metadef/graph/ascendc_ir/utils/asc_graph_utils.h
+        ${CODE_ROOT_DIR}/inc/graph_metadef/graph/ascendc_ir/utils/asc_tensor_utils.h
+        ${CODE_ROOT_DIR}/inc/graph_metadef/graph/ascendc_ir/utils/ascendc_ir_dump_utils.h
+    DESTINATION ${AUTOFUSE_INSTALL_INCLUDE_DIR}/graph_metadef/graph/ascendc_ir/utils
+    COMPONENT ${AUTOFUSE_INSTALL_COMPONENT}
+)
+
+install(FILES ${CODE_ROOT_DIR}/inc/graph_metadef/graph/ascendc_ir/utils/cg_calc_tmp_buff_common_funcs.h
+    DESTINATION ${AUTOFUSE_INSTALL_INCLUDE_DIR}/ascir/ascendc_ir/utils
+    COMPONENT ${AUTOFUSE_INSTALL_COMPONENT}
+)
+
+install(FILES
+        ${CODE_ROOT_DIR}/inc/graph_metadef/graph/utils/cg_utils.h
+        ${CODE_ROOT_DIR}/inc/graph_metadef/graph/utils/axis_utils.h
+        ${CODE_ROOT_DIR}/inc/graph_metadef/graph/utils/node_utils_ex.h
+        ${CODE_ROOT_DIR}/inc/graph_metadef/graph/utils/dtype_transform_utils.h
+    DESTINATION ${AUTOFUSE_INSTALL_INCLUDE_DIR}/ascir/utils
+    COMPONENT ${AUTOFUSE_INSTALL_COMPONENT}
+)
+
+endif()

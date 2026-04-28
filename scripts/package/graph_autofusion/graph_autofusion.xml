@@ -16,6 +16,7 @@ See LICENSE in the root of the software repository for the full text of the Lice
         <func_name>graph-autofusion</func_name>
         <share_info_name>graph_autofusion</share_info_name>
         <suffix>run</suffix>
+        <expand_asterisk>true</expand_asterisk>
         <install_script>share/info/graph_autofusion/script/install.sh</install_script>
         <help>share/info/graph_autofusion/script/help.info</help>
         <version>package/graph_autofusion/version.xml</version>
@@ -42,13 +43,16 @@ See LICENSE in the root of the software repository for the full text of the Lice
         <block name="EngineeringCommon"/>
         <block name="EngineeringFiles"/>
     </block_info>
-    <dir_info value="graph_autofusion" install_path="graph_autofusion" install_mod="550" install_type="all">
-        <path value="share" install_mod="750"/>
-        <path value="share/info" install_mod="750"/>
-        <path value="share/info/graph_autofusion" install_mod="750"/>
-        <path value="share/info/graph_autofusion/script" install_mod="550"/>
+    <dir_info value="graph_autofusion" install_path="graph_autofusion" install_mod="555" install_type="all">
+        <path value="share" install_mod="755"/>
+        <path value="share/info" install_mod="755"/>
+        <path value="share/info/graph_autofusion" install_mod="755"/>
+        <path value="share/info/graph_autofusion/script" install_mod="555"/>
     </dir_info>
-    <block_info dependtree="false" dst_path="" block_conf_path="ascend">
+    <block_info dependtree="false" dst_path="" block_conf_path="ascend" optional="true">
         <block name="AscendSk"/>
+    </block_info>
+    <block_info dependtree="false" dst_path="" block_conf_path="ascend" optional="true">
+        <block name="AutofuseBackend"/>
     </block_info>
 </config>

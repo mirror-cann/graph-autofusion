@@ -1,0 +1,13 @@
+syntax = "proto3";
+import "af_ir.proto";
+
+message AfOtherGroupDef {
+  map<string, af.proto.AttrDef> attr = 1;
+}
+
+message AfAttrGroupsDef {
+  AfOtherGroupDef other_group_def = 1;
+  oneof attr_group {
+      af.proto.AscendCIROpAttrGroupsDef op_attr_group = 2;
+  }
+}

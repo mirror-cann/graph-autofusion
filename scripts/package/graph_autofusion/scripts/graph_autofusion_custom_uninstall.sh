@@ -102,7 +102,7 @@ recreate_common_stub_softlink() {
         return
     fi
     local pwdbak="$(pwd)"
-    cd $stub_dir && [ -f "$arch_name/libgraph.so" ] && chmod u+w . && ln -s "$arch_name/libgraph.so" libgraph.so
+    cd $stub_dir && [ -f "$arch_name/libgraph_af.so" ] && chmod u+w . && ln -s "$arch_name/libgraph_af.so" libgraph_af.so
     cd $pwdbak
 }
 
