@@ -11,6 +11,7 @@ venv/
 # Build artifacts
 build/
 build_out/
+output/
 dist/
 *.egg-info/
 

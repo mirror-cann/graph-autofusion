@@ -36,7 +36,7 @@ enum class DeadlockFailReason : uint8_t {
     NOTIFY_NOT_IN_GRAPH,       ///< Wait node's notify not found in graph
     NOTIFY_AFTER_SK_RANGE,     ///< Notify node is after SK range
     NOTIFY_INVALID,         ///< Deadlock detected in wait node's pre-path
-    NOTIFY_INSUFFICIENT_CORES,      ///< Notify node requires more cores than available
+    NOTIFY_INSUFFICIENT_CORES,      ///< Notify node in other SK that requires more cores than available
     FIRST_WAIT,                ///< First wait node in the graph is locked
     NO_SUPPORT_NODE,            ///< Not support node type in waiting for nodes
 };
@@ -51,7 +51,7 @@ inline const char* DeadlockFailReasonToStr(DeadlockFailReason reason)
         case DeadlockFailReason::KERNEL_INSUFFICIENT_CORES:
             return "The wait node depends on a kernel node that requires more cores than available";
         case DeadlockFailReason::NOTIFY_INSUFFICIENT_CORES:
-            return "The wait node depends on a notify node that it requires more cores, becauce the notify node is in other SK";
+            return "The wait node depends on a notify node which has fused in other SK that it requires more cores";
         case DeadlockFailReason::NOTIFY_NOT_IN_GRAPH:
             return "The wait node depends on a notify node that it is not in graph";
         case DeadlockFailReason::NOTIFY_AFTER_SK_RANGE:

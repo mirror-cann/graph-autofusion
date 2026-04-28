@@ -56,6 +56,7 @@ aclError LaunchScopeKernelImpl(const char* scopeName, aclrtStream stream, ScopeF
 aclError LaunchScopeKernel(const char* scopeName, aclrtStream stream, bool isBegin)
 {   
     if (isBegin) {
+        SK_LOGI("aclskScopeBegin kernel and placeholder kernel launch start!");
         aclError ret = LaunchScopeKernelImpl(scopeName, stream, sk_scope_kernel_begin_do);
         if (ret != ACL_SUCCESS) {
             SK_LOGE("LaunchScopeKernelImpl failed, scopeBegin kernel launch failed, ret: %d", ret);
@@ -74,6 +75,7 @@ aclError LaunchScopeKernel(const char* scopeName, aclrtStream stream, bool isBeg
         SK_LOGI("aclskScopeBegin kernel and placeholder kernel launch success! ");
         return ret;
     } else {
+        SK_LOGI("aclskScopeEnd kernel and placeholder kernel launch start! ");
         aclError ret = LaunchScopeKernelImpl(scopeName, stream, sk_placeholder_kernel_do);
         if (ret != ACL_SUCCESS) {
             SK_LOGE("LaunchScopeKernelImpl failed, placeholder kernel launch failed, ret: %d", ret);

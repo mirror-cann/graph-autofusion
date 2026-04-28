@@ -256,7 +256,7 @@ struct SkEventConfig {
 };
 
 bool GetFuncSymbolInfo(const char* binAddr, size_t binSize, uint64_t funcAddr, std::string& symbolName,
-                       uint64_t& funcSize);
+                       uint64_t& funcSize, std::string& symbolBind);
 
 enum class ScheModeState : uint8_t {
     SCHE_MODE_OFF = 0,

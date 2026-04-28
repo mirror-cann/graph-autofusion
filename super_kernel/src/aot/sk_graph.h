@@ -26,6 +26,7 @@
 #include "sk_log.h"
 #include "sk_types.h"
 #include "sk_node.h"
+#include "sk_scope_info.h"
 #include "acl/acl.h"
 
 class SuperKernelNodeFactory {
@@ -113,15 +114,26 @@ public:
         needUpdate = flag;
     }
 
+    // Parse original scopes from graph (before any splitting)
+    // 3 cases:
+    // 1. Has scopename non-empty scope nodes: group by scopeBitFlags
+    // 2. No scope nodes at all: all nodes as one scope
+    // 3. Only scopename empty scope nodes: all non-scope nodes as one scope
+    void ParseOriginalScopes();
+    
+    // Get original scope infos (parsed before splitting)
+    const std::vector<OriginalScopeInfo>& GetOriginalScopeInfos() const { return originalScopeInfos_; }
+
     // Dump all nodes' fusion fail reasons to log file
-    void DumpFusionFailReasons();
+    void DumpFusionFailReasons(const std::vector<SuperKernelScopeInfo>& processedScopeInfos);
 
     // Fusion fail reasons statistics
     struct FusionFailStats {
         std::unordered_map<std::string, size_t> reasonStats;
         size_t fusibleCount = 0;
         size_t unfusibleCount = 0;
-        std::vector<std::string> nodeLogEntries;
+        std::vector<std::string> nodeLogEntries;         // All nodes (for plog)
+        std::vector<std::string> unfusibleNodeLogEntries; // Only unfusible nodes (for log file)
     };
 
 private:
@@ -149,6 +161,7 @@ private:
     friend class SuperKernelOptimizer;
     std::unordered_map<std::string, uint32_t> scopeNameToIdx;    ///< scopeName -> scopeIdx
     std::unordered_map<uint32_t, std::string> scopeIdxToName;    ///< scopeIdx -> scopeName (reverse mapping)
+    std::vector<OriginalScopeInfo> originalScopeInfos_;          ///< Original scopes before any splitting
     std::vector<std::unique_ptr<uint8_t[]>> shapeInfoPtrList;    ///< profiling sk shape info memory, lifecycle follows graph
     std::unordered_set<SuperKernelBaseNode*> needUpdateNodes;      ///< event nodes that need to be marked with scope bit flags after scope processing 
     bool needUpdate = false;

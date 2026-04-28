@@ -424,6 +424,7 @@ bool LockDetector::GetFusibleStatus(SuperKernelBaseNode& curNode) {
         return true;
     } else {
         SK_LOGW("[lock detector] Node %s: unsupported taskType=%u", curNode.Format().c_str(), curNode.GetNodeType());
+        deadlockReason_ = DeadlockFailReason::NO_SUPPORT_NODE;
         return false;
     }
 }
@@ -454,6 +455,7 @@ bool LockDetector::IsFusible(SuperKernelBaseNode& curNode) {
         SK_LOGD("[lock detector] fused nodeId=%s, nodeType=%u, nodeNum=%u, SuperKernelCubeNum=%u, SuperKernelVecNum=%u, depOpCubeNum=%u, depOpVecNum=%u", curNode.Format().c_str(), curNode.GetNodeType(), nodeNum, superKernelCubeNum, superKernelVecNum, depOpCubeNum, depOpVecNum);
     } else {
         SK_LOGI("[lock detector] Node %s: cannot be fused", curNode.Format().c_str());
+        curNode.SetIsFusible(false);
         // If deadlock was detected, set the failure reason with detail
         if (deadlockReason_ != DeadlockFailReason::NOT_FIND_DEADLOCK) {
             curNode.SetFusionFailReason(FusionFailReason::EXIST_DEADLOCK, deadlockReason_);

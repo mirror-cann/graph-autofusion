@@ -23,3 +23,5 @@ endif ()
 
 find_package(unified_dlog MODULE REQUIRED)
 
+include(cmake/third_party/json.cmake)
+

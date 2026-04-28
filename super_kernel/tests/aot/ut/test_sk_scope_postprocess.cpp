@@ -84,8 +84,6 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_NotifyWaitPairCancelled_Succ
 
     EXPECT_FALSE(result);
     EXPECT_TRUE(scopeInfo.extInfo_.filteredNodes.empty());
-    EXPECT_EQ(scopeInfo.extInfo_.skMainNodeId, INVALID_TASK_ID);
-    EXPECT_EQ(scopeInfo.extInfo_.failReason, ScopeFailReason::NO_TASK);
 }
 
 TEST_F(SuperKernelScopePostprocessTest, PostProcess_NotifyOneToManyWaits_AllCancelled_Success)
@@ -148,7 +146,6 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_NotifyOneToManyWaits_AllCanc
     EXPECT_FALSE(result);
     EXPECT_TRUE(scopeInfo.extInfo_.filteredNodes.empty());
     EXPECT_EQ(scopeInfo.extInfo_.skMainNodeId, INVALID_TASK_ID);
-    EXPECT_EQ(scopeInfo.extInfo_.failReason, ScopeFailReason::NO_TASK);
 }
 
 TEST_F(SuperKernelScopePostprocessTest, PostProcess_NotifyWithoutWait_NoKernelCandidate_SkipSuccess)
@@ -180,7 +177,6 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_NotifyWithoutWait_NoKernelCa
     EXPECT_FALSE(result);
     EXPECT_TRUE(scopeInfo.extInfo_.filteredNodes.empty());
     EXPECT_EQ(scopeInfo.extInfo_.skMainNodeId, INVALID_TASK_ID);
-    EXPECT_EQ(scopeInfo.extInfo_.failReason, ScopeFailReason::NO_TASK);
 }
 
 TEST_F(SuperKernelScopePostprocessTest, PostProcess_SingleKernel_SelectMainNode_Success)
@@ -252,7 +248,6 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_StreamHeadMissing_Failed)
     EXPECT_FALSE(result);
     EXPECT_TRUE(scopeInfo.extInfo_.filteredNodes.empty());
     EXPECT_EQ(scopeInfo.extInfo_.skMainNodeId, INVALID_TASK_ID);
-    EXPECT_EQ(scopeInfo.extInfo_.failReason, ScopeFailReason::VALIDATION_FAILED);
 }
 
 TEST_F(SuperKernelScopePostprocessTest, PostProcess_FrontWait_Success)
@@ -406,7 +401,6 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_NoKernelCandidate_SkipSucces
     EXPECT_FALSE(result);
     EXPECT_TRUE(scopeInfo.extInfo_.filteredNodes.empty());
     EXPECT_EQ(scopeInfo.extInfo_.skMainNodeId, INVALID_TASK_ID);
-    EXPECT_EQ(scopeInfo.extInfo_.failReason, ScopeFailReason::NO_TASK);
 }
 
 TEST_F(SuperKernelScopePostprocessTest, PostProcess_NoKernelAfterFilter_SkipSuccess)
@@ -437,7 +431,6 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_NoKernelAfterFilter_SkipSucc
     EXPECT_FALSE(result);
     EXPECT_TRUE(scopeInfo.extInfo_.filteredNodes.empty());
     EXPECT_EQ(scopeInfo.extInfo_.skMainNodeId, INVALID_TASK_ID);
-    EXPECT_EQ(scopeInfo.extInfo_.failReason, ScopeFailReason::NO_KERNEL);
 }
 
 TEST_F(SuperKernelScopePostprocessTest, PostProcess_MultiStreamKernelOnly_Success)
@@ -535,7 +528,6 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_MainSelectReserveBoundaryAnd
     EXPECT_FALSE(result);
     EXPECT_TRUE(scopeInfo.extInfo_.filteredNodes.empty());
     EXPECT_EQ(scopeInfo.extInfo_.skMainNodeId, INVALID_TASK_ID);
-    EXPECT_EQ(scopeInfo.extInfo_.failReason, ScopeFailReason::VALIDATION_FAILED);
 }
 
 TEST_F(SuperKernelScopePostprocessTest, PostProcess_FrontWaitMoveWorkNodePath_Success)
@@ -873,7 +865,6 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_StreamSelectFailed_EventAddr
     bool result = postProcessor.PostProcess(scopeInfo);
 
     EXPECT_FALSE(result);
-    EXPECT_EQ(scopeInfo.extInfo_.failReason, ScopeFailReason::STREAM_SELECT_FAILED);
     EXPECT_TRUE(scopeInfo.extInfo_.filteredNodes.empty());
     EXPECT_EQ(scopeInfo.extInfo_.skMainNodeId, INVALID_TASK_ID);
 

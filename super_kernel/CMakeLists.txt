@@ -66,7 +66,7 @@ target_include_directories(ascendsk PUBLIC
     $ENV{ASCEND_HOME_PATH}/include/external
     $ENV{ASCEND_HOME_PATH}/include
     )
-target_link_libraries(ascendsk PUBLIC sk_scope acl_rt acl_rtc ascendcl ascend_dump runtime error_manager c_sec unified_dlog ascendc_runtime profapi profimpl msprofiler)
+target_link_libraries(ascendsk PUBLIC sk_scope acl_rt acl_rtc ascendcl ascend_dump runtime error_manager c_sec unified_dlog ascendc_runtime profapi profimpl msprofiler json)
 target_link_directories(ascendsk PUBLIC
 $ENV{ASCEND_HOME_PATH}/lib64
 )

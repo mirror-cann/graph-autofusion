@@ -54,7 +54,7 @@ enum class aclskOptionType : uint32_t {
     DEBUG_EXTEND_OPTION = 12, // 扩展选项，预留后续使用
     DCCI_AFTER_KERNEL_END = 13,
     TASK_BREAKER_BYPASS = 14, // Default节点优化融合选项
-    SK_OPTION_MAX = 0xFFFFFFFF
+    SK_OPTION_MAX
 };
 
 typedef struct aclskPreloadOption {

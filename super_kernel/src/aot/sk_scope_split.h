@@ -164,6 +164,21 @@ public:
      */
     static void RebuildStreamInfos(SuperKernelScopeInfo& scope);
 
+    /*!
+     * \brief Get kernel nodes from a scope
+     * \param scope Scope to extract kernel nodes from
+     * \return Vector of kernel node IDs
+     */
+    static std::vector<uint64_t> GetKernelNodeIds(const SuperKernelScopeInfo& scope);
+
+    /*!
+     * \brief Check if two scopes have the same kernel nodes
+     * \param scope1 First scope
+     * \param scope2 Second scope
+     * \return true if kernel node sets are identical
+     */
+    static bool HasSameKernelNodes(const SuperKernelScopeInfo& scope1, const SuperKernelScopeInfo& scope2);
+
 private:
     /*!
      * \brief Print detailed scope information to current log context
@@ -267,6 +282,7 @@ private:
     bool ResetStreamStates();  // Changed from void to bool to propagate errors
     bool SkipUnfusibleNodes();  // Changed from void to bool to propagate errors
     bool SkipUnfusibleNodesForStream(uint32_t streamIdx);
+    bool ProcessUnfusibleNodeForSkip(uint32_t streamIdx, SuperKernelBaseNode* node);
     bool ProcessUnfusibleWaitNode(uint32_t streamIdx, SuperKernelBaseNode* waitNode);
     bool AllStreamsFinished() const;
     bool DetermineCurrentScopeBitFlags();
@@ -293,6 +309,10 @@ private:
     std::set<uint64_t> processedNodes_;
     SkCandidateHeap nodeHeap_;
     std::bitset<MAX_SCOPE_NUM> currentScopeBitFlags_;
+    std::unordered_map<uint32_t, ScopeBreakInfo> streamBreakInfos_;  // Per-stream break info (last one wins)
+    ScopeBreakInfo currentScopeBreakInfo_;  // Current scope's primary break reason
+    ScopeBreakInfo scopeStartBreakInfo_;    // Break reason from skipped nodes at scope start
+    SuperKernelScopeInfo* currentScope_ = nullptr;  // Pointer to scope currently being built
 };
 
 // ============ Pass 2: Deadlock Detection and Refinement ============
@@ -517,6 +537,16 @@ public:
      */
     bool NeedsResplit() const { return needResplit_; }
 
+    /*!
+     * \brief Print scope break reason report for debugging
+     */
+    void PrintScopeBreakReasonReport();
+
+    /*!
+     * \brief Print all scopes detail
+     */
+    static void PrintAllScopesDetail(const std::vector<SuperKernelScopeInfo>& scopeInfos);
+
     SuperKernelGraph& graph_;
     std::vector<SuperKernelScopeInfo> scopeInfos_;
     std::vector<std::unique_ptr<ScopeSplitPass>> passes_;
@@ -527,5 +557,10 @@ private:
     SuperKernelOptionsManager* opts_ = nullptr;
     bool enableTaskBreakerBypass_ = false;
 };
+
+// Declaration for FindRootBreakInfo
+ScopeBreakInfo FindRootBreakInfo(const SuperKernelScopeInfo& scope,
+                                 const std::unordered_map<uint16_t, size_t>& scopeIdToIdx,
+                                 const std::vector<SuperKernelScopeInfo>& scopeInfos);
 
 #endif // __SK_SCOPE_SPLIT_H__

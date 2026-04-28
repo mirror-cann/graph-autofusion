@@ -14,12 +14,15 @@
  */
 
 #include "sk_graph.h"
+#include "sk_dump_json.h"
+#include "sk_scope_split.h"
 
 #include <optional>
 #include <stdexcept>
 #include <vector>
 #include <cstdint>
 #include <bitset>
+#include <unordered_map>
 
 std::string SuperKernelGraph::BitsetToString(const std::bitset<MAX_SCOPE_NUM>& bitset) const
 {
@@ -391,6 +394,7 @@ void SuperKernelGraph::BuildEventNodeAssociations() {
             auto* notifyNode = GetNodeById(eventInfo.notifyNodeId);
             if (notifyNode != nullptr && notifyNode->GetNodeType() == SkNodeType::NODE_NOTIFY) {
                 notifyNode->SetIsFusible(false);
+                notifyNode->SetFusionFailReason(FusionFailReason::NOTIFY_NO_WAIT_NODE);
                 notifyNode->SetCorrespondingWaitNodeIds({});
                 SK_LOGW("Event 0x%lx: notify node %lu has no wait node in modelRI, mark as unfusible",
                         eventId, eventInfo.notifyNodeId);
@@ -524,7 +528,7 @@ bool SuperKernelGraph::PostProcessMemoryNode() {
                     (waitNode->GetNodeType() == SkNodeType::NODE_MEMORY_WAIT)) {
                     waitNode->SetNodeType(SkNodeType::NODE_WAIT);
                     waitNode->SetIsFusible(false);
-                    
+                    waitNode->SetFusionFailReason(FusionFailReason::MEMORY_WAIT_NODE_ONLY);
                 }
             }
         } else if (!memoryInfo.writeNodeIdList.empty() && memoryInfo.waitNodeIdList.empty()) {
@@ -534,6 +538,7 @@ bool SuperKernelGraph::PostProcessMemoryNode() {
                 if (writeNode != nullptr &&
                     (writeNode->GetNodeType() == SkNodeType::NODE_MEMORY_WRITE)) {
                     writeNode->SetIsFusible(false);
+                    writeNode->SetFusionFailReason(FusionFailReason::MEMORY_WRITE_NODE_ONLY);
                 }
             }
         } else {
@@ -773,6 +778,154 @@ void SuperKernelGraph::UpdateNodeScopeBitFlags() {
     SK_LOGI("UpdateNodeScopeBitFlags completed");
 }
 
+namespace {
+// ============ ParseOriginalScopes Helper Functions ============
+
+struct ScopeNodeTypes {
+    bool hasNamedScopeNode = false;
+    bool hasUnnamedScopeNode = false;
+};
+
+ScopeNodeTypes CheckScopeNodeTypes(const std::vector<uint64_t>& orderedNodeIds, SuperKernelGraph* graph) 
+{
+    ScopeNodeTypes types;
+    for (uint64_t nodeId : orderedNodeIds) {
+        SuperKernelBaseNode* node = graph->GetNodeById(nodeId);
+        if (node == nullptr || !node->IsScopeNode() || !node->IsScopeBegin()) {
+            continue;
+        }
+        if (node->GetScopeName().empty()) {
+            types.hasUnnamedScopeNode = true;
+        } else {
+            types.hasNamedScopeNode = true;
+        }
+    }
+    return types;
+}
+
+bool IsValidNodeForScope(SuperKernelBaseNode* node) 
+{
+    if (node == nullptr) return false;
+    if (node->IsScopeBegin() || node->IsScopeEnd() || node->IsScopePlaceholder()) {
+        return false;
+    }
+    return !node->GetScopeBitFlags().none();
+}
+
+void GroupNodesByScopeBitFlags(const std::vector<uint64_t>& orderedNodeIds,
+                                SuperKernelGraph* graph,
+                                std::vector<OriginalScopeInfo>& scopeInfos) {
+    std::unordered_map<std::bitset<MAX_SCOPE_NUM>, OriginalScopeInfo> scopeGroups;
+    
+    for (uint64_t nodeId : orderedNodeIds) {
+        SuperKernelBaseNode* node = graph->GetNodeById(nodeId);
+        if (!IsValidNodeForScope(node)) {
+            continue;
+        }
+        std::bitset<MAX_SCOPE_NUM> flags = node->GetScopeBitFlags();
+        scopeGroups[flags].nodeIds.push_back(nodeId);
+        scopeGroups[flags].scopeBitFlags = flags;
+    }
+    
+    for (auto& pair : scopeGroups) {
+        pair.second.scopeId = static_cast<uint16_t>(scopeInfos.size());
+        scopeInfos.push_back(std::move(pair.second));
+    }
+}
+
+void CreateSingleScopeFromAllNodes(const std::vector<uint64_t>& orderedNodeIds,
+                                    SuperKernelGraph* graph,
+                                    std::vector<OriginalScopeInfo>& scopeInfos) 
+{
+    OriginalScopeInfo info;
+    info.scopeId = 0;
+    
+    for (uint64_t nodeId : orderedNodeIds) {
+        SuperKernelBaseNode* node = graph->GetNodeById(nodeId);
+        if (node == nullptr) {
+            continue;
+        }
+        info.nodeIds.push_back(nodeId);
+        info.scopeBitFlags = node->GetScopeBitFlags();
+    }
+    
+    if (!info.nodeIds.empty()) {
+        scopeInfos.push_back(std::move(info));
+    }
+}
+
+void CreateScopesExcludingUnnamed(const std::vector<uint64_t>& orderedNodeIds,
+                                   SuperKernelGraph* graph,
+                                   std::vector<OriginalScopeInfo>& scopeInfos) 
+{
+    OriginalScopeInfo info;
+    info.scopeId = 0;
+    bool insideUnnamedScope = false;
+    
+    for (uint64_t nodeId : orderedNodeIds) {
+        SuperKernelBaseNode* node = graph->GetNodeById(nodeId);
+        if (node == nullptr) {
+            continue;
+        }
+        
+        if (node->IsScopeBegin()) {
+            if (node->GetScopeName().empty()) {
+                insideUnnamedScope = true;
+            }
+            continue;
+        }
+        
+        if (node->IsScopeEnd()) {
+            if (insideUnnamedScope) {
+                insideUnnamedScope = false;
+            }
+            continue;
+        }
+        
+        if (node->IsScopePlaceholder() || insideUnnamedScope) {
+            continue;
+        }
+        
+        info.nodeIds.push_back(nodeId);
+        info.scopeBitFlags = node->GetScopeBitFlags();
+    }
+    
+    if (!info.nodeIds.empty()) {
+        scopeInfos.push_back(std::move(info));
+    }
+}
+
+}  // namespace
+
+void SuperKernelGraph::ParseOriginalScopes() 
+{
+    originalScopeInfos_.clear();
+    
+    std::vector<uint64_t> orderedNodeIds = GetSortedNodeIds();
+    ScopeNodeTypes scopeTypes = CheckScopeNodeTypes(orderedNodeIds, this);
+    
+    SK_LOGI("ParseOriginalScopes: hasNamedScopeNode=%d, hasUnnamedScopeNode=%d",
+            scopeTypes.hasNamedScopeNode, scopeTypes.hasUnnamedScopeNode);
+    
+    // Case 1: Has named scope nodes - group by scopeBitFlags
+    if (scopeTypes.hasNamedScopeNode) {
+        SK_LOGI("ParseOriginalScopes: case 1 - has named scope nodes, group by scopeBitFlags");
+        GroupNodesByScopeBitFlags(orderedNodeIds, this, originalScopeInfos_);
+    }
+    // Case 2: No scope nodes at all - all nodes as one scope
+    else if (!scopeTypes.hasUnnamedScopeNode) {
+        SK_LOGI("ParseOriginalScopes: case 2 - no scope nodes, all nodes as one scope");
+        CreateSingleScopeFromAllNodes(orderedNodeIds, this, originalScopeInfos_);
+    }
+    // Case 3: Only unnamed scope nodes - exclude nodes inside unnamed scopes
+    else {
+        SK_LOGI("ParseOriginalScopes: case 3 - only unnamed scope nodes, exclude nodes inside unnamed scopes");
+        CreateScopesExcludingUnnamed(orderedNodeIds, this, originalScopeInfos_);
+    }
+    
+    SK_LOGI("ParseOriginalScopes completed: %zu original scopes", originalScopeInfos_.size());
+}
+
 std::unique_ptr<SuperKernelBaseNode> SuperKernelNodeFactory::CreateNode(std::unique_ptr<aclmdlRITask> task, aclmdlRITaskType taskType, uint64_t nodeIdx, uint64_t streamIdxInGraph, int32_t streamId, uint64_t preNodeId) {
     switch (taskType) {
         case ACL_MODEL_RI_TASK_KERNEL:
@@ -890,6 +1043,10 @@ bool SuperKernelGraph::InitSKGraph() {
     UpdateNodeScopeBitFlags();
     SK_LOGI("UpdateNodeScopeBitFlags completed");
 
+    SK_LOGI("Starting ParseOriginalScopes");
+    ParseOriginalScopes();
+    SK_LOGI("ParseOriginalScopes completed");
+
     SK_LOGI("Starting PostProcessMemoryNode");
     bool flag = PostProcessMemoryNode();
     SK_LOGI("PostProcessMemoryNode completed");
@@ -907,6 +1064,7 @@ bool SuperKernelGraph::InitSKGraph() {
     
     SK_LOGI("Successfully initialized SuperKernel graph with %zu nodes and %zu streams",
             graphMap.size(), streams.size());
+    
     return true;
 }
 
@@ -950,33 +1108,53 @@ SuperKernelGraph::FusionFailStats SuperKernelGraph::CollectFusionFailStats() {
             stats.reasonStats[reasonStr]++;
         }
         
-        // Collect node log entry
+        // Collect node log entry for all nodes (for plog)
         std::string logEntry = "Node " + node->Format() + ": isFusible: " + 
                                std::to_string(isFusible) + ", reason: " + reasonStr;
         stats.nodeLogEntries.push_back(std::move(logEntry));
+        
+        // Collect unfusible KERNEL node log entry only (for log file)
+        if (!isFusible && node->GetNodeType() == SkNodeType::NODE_KERNEL) {
+            stats.unfusibleNodeLogEntries.push_back(
+                "Node " + node->Format() + ": reason: " + reasonStr);
+        }
     }
     
     return stats;
 }
 
-void SuperKernelGraph::DumpFusionFailReasons() {
+void SuperKernelGraph::DumpFusionFailReasons(const std::vector<SuperKernelScopeInfo>& processedScopeInfos) 
+{
     SK_LOGI("Starting to dump fusion fail reasons for all nodes");
     
-    // Collect statistics and output to log file
+    // Collect statistics
     FusionFailStats stats;
+    stats = CollectFusionFailStats();
+    
+    // Output unfusible nodes to log file (sk_fusion_fail_reasons.log)
     {
         SK_LOG_CONTEXT_SIMPLE("sk_fusion_fail_reasons.log");
-        stats = CollectFusionFailStats();
-        // Output node log entries to sk_fusion_fail_reasons.log
-        for (const auto& entry : stats.nodeLogEntries) {
+        SK_LOGI("unfusible kernel:");
+        for (const auto& entry : stats.unfusibleNodeLogEntries) {
             SK_LOGI("%s", entry.c_str());
         }
-    }
+        
+        // Print original scopes before fusion (from ParseOriginalScopes)
+        PrintOriginalScopes(*this);
+        
+        // Print scopes after fusion
+        PrintFusedScopes(*this, processedScopeInfos);
+    }  // End of SK_LOG_CONTEXT_SIMPLE block
     
-    // Output summary to plog (outside log context)
-    for (const auto& entry : stats.nodeLogEntries) {
+    // Output unfusible KERNEL nodes to plog (same as log file)
+    for (const auto& entry : stats.unfusibleNodeLogEntries) {
         SK_LOGI("%s", entry.c_str());
     }
+    
+    // Print original scope to fused scope mapping
+    SK_LOGI("Original Scope to Fused Scope Mapping:");
+    PrintOriginalScopes(*this);
+    PrintFusedScopes(*this, processedScopeInfos);
     
     // Print summary statistics
     SK_LOGI("Fusion fail reasons summary:");

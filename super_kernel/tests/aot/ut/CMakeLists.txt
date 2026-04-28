@@ -33,6 +33,7 @@ add_executable(super_kernel_aot_utest
     ${CMAKE_CURRENT_SOURCE_DIR}/test_sk_event_recorder.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test_sk_candidate_heap.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test_sk_scope_info.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_sk_dump_json.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stub/aclrt_stubs.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stub/ut_common_stubs.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stub/rt_stub.cpp
@@ -77,6 +78,7 @@ target_compile_options(super_kernel_aot_utest PRIVATE
 
 target_link_libraries(super_kernel_aot_utest PRIVATE
     $<BUILD_INTERFACE:intf_llt_pub>
+    json
 )
 
 run_llt_test(

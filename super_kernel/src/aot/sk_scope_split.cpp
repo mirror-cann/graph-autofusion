@@ -16,6 +16,7 @@
 #include "sk_scope_split.h"
 #include "sk_common.h"
 #include <algorithm>
+#include <unordered_map>
 
 // ============ EventOnlyStreamRemovePass Implementation ============
 
@@ -137,10 +138,11 @@ void ScopeSplitPass::PrintScopeDetails(const std::vector<SuperKernelScopeInfo>& 
     for (size_t i = 0; i < scopes.size(); ++i) {
         const auto& scope = scopes[i];
         std::string scopeNames = GetScopeNamesFromBitFlags(scope.GetScopeBitFlags(), graph);
-        SK_LOGI("Scope %zu: %zu nodes, %zu streams, scopeBitFlags=%s, scopeNames=[%s]",
-                i, scope.GetNodes().size(), scope.GetScopeStreamInfos().size(),
+        SK_LOGI("Scope %zu (scopeId=%u): %zu nodes, %zu streams, scopeBitFlags=%s, scopeNames=[%s]",
+                i, scope.GetScopeId(), scope.GetNodes().size(), scope.GetScopeStreamInfos().size(),
                 graph.BitsetToString(scope.GetScopeBitFlags()).c_str(),
                 scopeNames.c_str());
+        SK_LOGI("  BreakInfo: %s", scope.GetBreakInfo().Format().c_str());
         PrintScopeNodes(i, scope);
         PrintScopeStreamInfos(i, scope);
     }
@@ -224,6 +226,25 @@ void ScopeSplitPass::RebuildStreamInfos(SuperKernelScopeInfo& scope) {
     scope.SetScopeStreamInfos(std::move(newStreamInfos));
 }
 
+std::vector<uint64_t> ScopeSplitPass::GetKernelNodeIds(const SuperKernelScopeInfo& scope) {
+    std::vector<uint64_t> kernelIds;
+    for (const auto* node : scope.GetNodes()) {
+        if (node != nullptr && node->GetNodeType() == SkNodeType::NODE_KERNEL) {
+            kernelIds.push_back(node->GetNodeId());
+        }
+    }
+    std::sort(kernelIds.begin(), kernelIds.end());
+    return kernelIds;
+}
+
+bool ScopeSplitPass::HasSameKernelNodes(const SuperKernelScopeInfo& scope1, const SuperKernelScopeInfo& scope2) {
+    std::vector<uint64_t> kernels1 = GetKernelNodeIds(scope1);
+    std::vector<uint64_t> kernels2 = GetKernelNodeIds(scope2);
+    return kernels1 == kernels2;
+}
+
+
+
 // ============ InitialScopeSplitPass Implementation ============
 
 InitialScopeSplitPass::InitialScopeSplitPass(SuperKernelGraph& inputGraph, SkHeapType heapType)
@@ -246,6 +267,15 @@ void InitialScopeSplitPass::InitStreamStates() {
 
 bool InitialScopeSplitPass::ResetStreamStates() {
     SK_LOGI("[SplitScope] resetting all stream states for next scope");
+    
+    // Save the scopeStartBreakInfo_ before reset (it was set during SkipUnfusibleNodes)
+    // This will be used for the next scope's break reason if applicable
+    
+    // Clear stream-specific break info for next scope
+    streamBreakInfos_.clear();
+    currentScopeBreakInfo_ = ScopeBreakInfo();
+    scopeStartBreakInfo_ = ScopeBreakInfo();  // Will be set again during SkipUnfusibleNodes
+    
     for (auto& pair : streamStates_) {
         uint32_t streamIdx = pair.first;
         pair.second.isTerminated = false;
@@ -306,8 +336,6 @@ bool InitialScopeSplitPass::SkipUnfusibleNodesForStream(uint32_t streamIdx) {
     StreamState& state = streamStates_[streamIdx];
     uint32_t skipCount = 0;
 
-    // If stream has already ended (currentNodeId == INVALID_TASK_ID), return success
-    // This is a normal case and should not be considered an error
     if (state.currentNodeId == INVALID_TASK_ID) {
         SK_LOGI("Stream %u: Already at end (currentNodeId=INVALID), nothing to skip", streamIdx);
         return true;
@@ -316,61 +344,62 @@ bool InitialScopeSplitPass::SkipUnfusibleNodesForStream(uint32_t streamIdx) {
     while (state.currentNodeId != INVALID_TASK_ID) {
         SuperKernelBaseNode* node = graph_.GetNodeById(state.currentNodeId);
         if (node == nullptr) {
-            SK_LOGE("Stream %u: node %lu not found (graph integrity error)",
-                    streamIdx, state.currentNodeId);
+            SK_LOGE("Stream %u: node %lu not found (graph integrity error)", streamIdx, state.currentNodeId);
             return false;
         }
-
-        // Fusible node: stop skipping and return
         if (node->IsFusible()) {
-            SK_LOGI("Stream %u: Found fusible node %s, stop skipping",
-                    streamIdx, node->Format().c_str());
+            SK_LOGI("Stream %u: Found fusible node %s, stop skipping", streamIdx, node->Format().c_str());
             break;
         }
 
-        // Unfusible node: process special cases and decide whether to continue
-        SkNodeType nodeType = node->GetNodeType();
-
-        // Special case 1: Unfusible WAIT node
-        if (nodeType == SkNodeType::NODE_WAIT) {
-            bool shouldSkip = ProcessUnfusibleWaitNode(streamIdx, node);
-            if (!shouldSkip) {
-                // Wait node needs to wait, suspend stream and stop skipping
-                SK_LOGI("Stream %u: Suspended on unfusible wait node %s",
-                        streamIdx, node->Format().c_str());
-                break;
+        bool shouldContinue = ProcessUnfusibleNodeForSkip(streamIdx, node);
+        if (!shouldContinue) {
+            // Check if suspended (not an error) or failed (error)
+            SkNodeType nodeType = node->GetNodeType();
+            if (nodeType == SkNodeType::NODE_WAIT) {
+                // Suspended on wait node - not an error, just stop
+                return true;
             }
-            SK_LOGI("Stream %u: Skipping unfusible wait node %s",
-                    streamIdx, node->Format().c_str());
-            // Wait node can be skipped, continue to next node
+            // Other failures - propagate error
+            return false;
         }
-        // Special case 2: Unfusible NOTIFY node
-        else if (nodeType == SkNodeType::NODE_NOTIFY) {
-            if (!HandleUnfusibleNotifyNode(node, streamIdx)) {
-                SK_LOGE("Stream %u: Failed to handle unfusible notify node %s, abort processing",
-                        streamIdx, node->Format().c_str());
-                return false;
-            }
-        }
-        // Other unfusible nodes: skip and add to processed nodes
-        else {
-            processedNodes_.insert(node->GetNodeId());
-            SK_LOGI("Stream %u: Skipping unfusible node %s (type=%d), added to processedNodes",
-                    streamIdx, node->Format().c_str(), static_cast<int>(nodeType));
-        }
-
-        // All unfusible nodes are skipped, advance to next node
         state.currentNodeId = node->GetNextNodeId();
         skipCount++;
     }
 
     if (skipCount > 0) {
-        SK_LOGI("Stream %u: Skipped %u unfusible nodes, next node=%lu",
-                streamIdx, skipCount, state.currentNodeId);
+        SK_LOGI("Stream %u: Skipped %u unfusible nodes, next node=%lu", streamIdx, skipCount, state.currentNodeId);
     }
+    return true;
+}
 
-    // Return true if stream is still active or has reached its end
-    // Only return false if there was an error (node not found)
+/*!
+ * \brief Process an unfusible node during skip phase
+ * \param streamIdx The stream index
+ * \param node The unfusible node to process
+ * \return true if should continue skipping, false to stop
+ */
+bool InitialScopeSplitPass::ProcessUnfusibleNodeForSkip(uint32_t streamIdx, SuperKernelBaseNode* node) {
+    SkNodeType nodeType = node->GetNodeType();
+
+    if (nodeType == SkNodeType::NODE_WAIT) {
+        bool shouldSkip = ProcessUnfusibleWaitNode(streamIdx, node);
+        if (!shouldSkip) {
+            SK_LOGI("Stream %u: Suspended on unfusible wait node %s", streamIdx, node->Format().c_str());
+            return false;
+        }
+        SK_LOGI("Stream %u: Skipping unfusible wait node %s", streamIdx, node->Format().c_str());
+    } else if (nodeType == SkNodeType::NODE_NOTIFY) {
+        if (!HandleUnfusibleNotifyNode(node, streamIdx)) {
+            SK_LOGE("Stream %u: Failed to handle unfusible notify node %s, abort processing",
+                    streamIdx, node->Format().c_str());
+            return false;
+        }
+    } else {
+        processedNodes_.insert(node->GetNodeId());
+        SK_LOGI("Stream %u: Skipping unfusible node %s (type=%d), added to processedNodes",
+                streamIdx, node->Format().c_str(), static_cast<int>(nodeType));
+    }
     return true;
 }
 
@@ -504,6 +533,19 @@ void InitialScopeSplitPass::TryAddNodeToHeap(uint32_t streamIdx) {
         SK_LOGI("Stream %u: node %s is not fusible, terminating stream",
                 streamIdx, node->Format().c_str());
         state.isTerminated = true;
+
+        // Set break info using builder pattern
+        currentScope_->MutableBreakInfo()
+            .SetReason(ScopeBreakReason::UNFUSIBLE_NODE)
+            .SetTriggerNode(node->GetNodeId(), streamIdx)
+            .SetFusionFailReason(node->GetFusionFailReasonInfo())
+            .SetDetail("unfused node causes scope break");
+
+        SK_LOGI("Current scope has %zu nodes", currentScope_->GetNodes().size());
+        // Record break info (overwrites previous, keeping last one)
+        
+        std::string detail = "Node " + std::to_string(node->GetNodeId()) + " is unfusible: " +
+                             FusionFailReasonToStr(node->GetFusionFailReasonInfo());
         return;
     }
 
@@ -756,6 +798,7 @@ void InitialScopeSplitPass::AddStreamInfoToScope(SuperKernelScopeInfo& scopeInfo
 bool InitialScopeSplitPass::BuildCurrentScope(SuperKernelScopeInfo& scopeInfo) {
     SK_LOGI("[SplitScope] starting to build current scope");
     scopeInfo.SetScopeBitFlags(currentScopeBitFlags_);
+    currentScope_ = &scopeInfo;
 
     while (!nodeHeap_.empty()) {
         uint64_t nodeId = nodeHeap_.pop();
@@ -795,6 +838,7 @@ bool InitialScopeSplitPass::BuildCurrentScope(SuperKernelScopeInfo& scopeInfo) {
 
     SK_LOGI("[SplitScope] built scope with %zu nodes, %zu stream infos",
             scopeInfo.GetNodes().size(), scopeInfo.GetScopeStreamInfos().size());
+    currentScope_ = nullptr;
     return true;  // Empty scope is not an error, allow it to be skipped in Run()
 }
 
@@ -804,6 +848,9 @@ bool InitialScopeSplitPass::Run(std::vector<SuperKernelScopeInfo>& scopes) {
     scopes.clear();
     processedNodes_.clear();
     visitedNotifies_.clear();
+    streamBreakInfos_.clear();
+    currentScopeBreakInfo_ = ScopeBreakInfo();
+    scopeStartBreakInfo_ = ScopeBreakInfo();
 
     SK_LOGI("%s: Initializing stream states", GetName().c_str());
     InitStreamStates();
@@ -830,9 +877,10 @@ bool InitialScopeSplitPass::Run(std::vector<SuperKernelScopeInfo>& scopes) {
         if (BuildCurrentScope(scopeInfo)) {
             if (!scopeInfo.GetNodes().empty()) {
                 std::string scopeNames = ScopeSplitPass::GetScopeNamesFromBitFlags(scopeInfo.GetScopeBitFlags(), graph_);
-                SK_LOGI("%s: Built scope %zu with %zu nodes, %zu streams, scopeNames=[%s]",
+                SK_LOGI("%s: Built scope %zu with %zu nodes, %zu streams, scopeNames=[%s], breakReason=%s",
                         GetName().c_str(), scopeCount, scopeInfo.GetNodes().size(),
-                        scopeInfo.GetScopeStreamInfos().size(), scopeNames.c_str());
+                        scopeInfo.GetScopeStreamInfos().size(), scopeNames.c_str(),
+                        scopeInfo.GetBreakInfo().Format().c_str());
                 scopes.push_back(std::move(scopeInfo));
             } else {
                 // Empty scope: skip it and continue to next iteration
@@ -930,6 +978,31 @@ void DeadlockRefinePass::SplitScopeAtWaitNode(const SuperKernelScopeInfo& scope,
     RebuildStreamInfos(scopeAfter);
 }
 
+/**
+ * @brief Setup break info for scopeAfter after deadlock split
+ */
+static void SetupScopeAfterBreakInfo(SuperKernelScopeInfo& scopeAfter,
+                                     const ScopeBreakInfo& originalBreakInfo,
+                                     uint16_t originalScopeId,
+                                     SuperKernelBaseNode* deadlockNode,
+                                     SuperKernelBaseNode* deadlockWaitNode,
+                                     bool hasSameKernelAsOriginal) {
+    if (hasSameKernelAsOriginal) {
+        scopeAfter.MutableBreakInfo() = originalBreakInfo;
+        SK_LOGI("[DeadlockRefine] scopeAfter kernel same as original, inherits break info");
+    } else {
+        scopeAfter.MutableBreakInfo()
+            .SetReason(ScopeBreakReason::DEADLOCK_DETECTED)
+            .SetTriggerNode(deadlockNode->GetNodeId(), deadlockNode->GetStreamIdxInGraph())
+            .SetFusionFailReason(FusionFailReason::EXIST_DEADLOCK)
+            .SetDetail("Deadlock at node " + std::to_string(deadlockNode->GetNodeId()) +
+                       ", split at Wait node " + std::to_string(deadlockWaitNode->GetNodeId()));
+        SK_LOGI("[DeadlockRefine] scopeAfter kernel different, gets deadlock break info");
+    }
+    scopeAfter.MutableBreakInfo().SetParentScopeId(originalScopeId);
+    SK_LOGI("[DeadlockRefine] scopeAfter break info: %s", scopeAfter.GetBreakInfo().Format().c_str());
+}
+
 ScopeProcessResult DeadlockRefinePass::ProcessSingleScope(
     SuperKernelScopeInfo&& scopeToProcess,
     std::vector<SuperKernelScopeInfo>& outputScopes,
@@ -961,6 +1034,10 @@ ScopeProcessResult DeadlockRefinePass::ProcessSingleScope(
         return ScopeProcessResult::DEADLOCK_UNRESOLVED;
     }
 
+    // Save original scope's break info before split
+    const ScopeBreakInfo& originalBreakInfo = workingScope.GetBreakInfo();
+    uint16_t originalScopeId = workingScope.GetScopeId();
+
     // Deadlock found and we have a Wait node to split at
     SuperKernelScopeInfo scopeBefore;
     SuperKernelScopeInfo scopeAfter;
@@ -970,6 +1047,17 @@ ScopeProcessResult DeadlockRefinePass::ProcessSingleScope(
             deadlockNode->Format().c_str(), deadlockWaitNode->Format().c_str());
     SK_LOGI("[DeadlockRefine] Before split: original=%zu nodes, scopeBefore=%zu, scopeAfter=%zu",
             workingScope.GetNodes().size(), scopeBefore.GetNodes().size(), scopeAfter.GetNodes().size());
+
+    // Set break info: scopeBefore always inherits original
+    scopeBefore.SetBreakInfo(originalBreakInfo);
+    SK_LOGI("[DeadlockRefine] scopeBefore inherits break info: %s", scopeBefore.GetBreakInfo().Format().c_str());
+    
+    // Check if scopeAfter has same kernel nodes as original scope
+    bool hasSameKernelAsOriginal = HasSameKernelNodes(scopeAfter, workingScope);
+    
+    // Setup scopeAfter break info
+    SetupScopeAfterBreakInfo(scopeAfter, originalBreakInfo, originalScopeId,
+                             deadlockNode, deadlockWaitNode, hasSameKernelAsOriginal);
 
     if (!scopeBefore.GetNodes().empty()) {
         lockDetector_.SetNotifyNodesExpandNumForScope(scopeBefore);
@@ -1116,6 +1204,10 @@ ScheModeScopeProcessResult ScheModeKernelSplitPass::ProcessSingleScope(
             bool isSmallerThanMerged = isCubeSmallerThanMerged || isVecSmallerThanMerged;
 
             if (isSmallerThanMerged) {
+                // Save original scope's break info before split
+                const ScopeBreakInfo& originalBreakInfo = workingScope.GetBreakInfo();
+                uint16_t originalScopeId = workingScope.GetScopeId();
+
                 SuperKernelScopeInfo scopeBefore;
                 SuperKernelScopeInfo scopeAfter;
                 SplitScopeAtNode(workingScope, node, scopeBefore, scopeAfter);
@@ -1126,6 +1218,33 @@ ScheModeScopeProcessResult ScheModeKernelSplitPass::ProcessSingleScope(
                         mergedCubeNum, mergedVecNum,
                         curCubeNum, curVecNum,
                         scopeBefore.GetNodes().size(), scopeAfter.GetNodes().size());
+
+                // Set break info: scopeBefore always inherits original
+                scopeBefore.SetBreakInfo(originalBreakInfo);
+                SK_LOGI("[SchoModeSplit] scopeBefore inherits break info: %s", scopeBefore.GetBreakInfo().Format().c_str());
+
+                // Check if scopeAfter has same kernel nodes as original
+                bool hasSameKernelAsOriginal = HasSameKernelNodes(scopeAfter, workingScope);
+                
+                // Always set parentScopeId for scopeAfter
+                if (hasSameKernelAsOriginal) {
+                    // Kernel same: inherit original breakInfo (reason)
+                    scopeAfter.MutableBreakInfo() = originalBreakInfo;
+                    SK_LOGI("[SchoModeSplit] scopeAfter kernel same as original, inherits break info");
+                } else {
+                    // Kernel different: new break info for scopeAfter
+                    scopeAfter.MutableBreakInfo()
+                        .SetReason(ScopeBreakReason::SCHOMODE_CORE_DROP)
+                        .SetTriggerNode(node->GetNodeId(), node->GetStreamIdxInGraph())
+                        .SetDetail("SchoMode core drop at node " + std::to_string(node->GetNodeId()) +
+                                   ": merged(" + std::to_string(mergedCubeNum) + "," +
+                                   std::to_string(mergedVecNum) + ") -> cur(" +
+                                   std::to_string(curCubeNum) + "," +
+                                   std::to_string(curVecNum) + ")");
+                    SK_LOGI("[SchoModeSplit] scopeAfter kernel different, gets SchoMode break info");
+                }
+                scopeAfter.MutableBreakInfo().SetParentScopeId(originalScopeId);
+                SK_LOGI("[SchoModeSplit] scopeAfter break info: %s", scopeAfter.GetBreakInfo().Format().c_str());
 
                 if (!scopeBefore.GetNodes().empty()) {
                     outputScopes.push_back(std::move(scopeBefore));
@@ -1290,6 +1409,9 @@ bool SuperKernelScopeSplitter::SplitGraph() {
 
     ScopeSplitPass::PrintScopeResults(scopeInfos_, graph_, "ScopeSplitPipelineFinal");
 
+    // Print Scope Break Reason Report
+    PrintScopeBreakReasonReport();
+
     return true;
 }
 
@@ -1328,6 +1450,7 @@ bool DefaultNodeProcessPass::HasKernelInStreams(
 void DefaultNodeProcessPass::MarkDefaultsUnfusible(const std::vector<SuperKernelBaseNode*>& defaultNodes) {
     for (auto* node : defaultNodes) {
         node->SetIsFusible(false);
+        node->SetFusionFailReason(FusionFailReason::DEFAULT_NODE);
         SK_LOGI("[DefaultNodeProcess] Default %s marked unfusible (stream has kernel)",
                 node->Format().c_str());
     }
@@ -1416,4 +1539,170 @@ bool DefaultNodeProcessPass::Run(std::vector<SuperKernelScopeInfo>& scopes) {
     SK_LOGI("[DefaultNodeProcess] Run completed, scopes: %zu", scopes.size());
     PrintScopeResults(scopes, graph_, GetName().c_str());
     return true;
+}
+
+// ============ PrintScopeBreakReasonReport Helper Functions ============
+
+std::string FormatNodeIds(const SuperKernelScopeInfo& scope) 
+{
+    std::string result;
+    for (const auto* node : scope.GetNodes()) {
+        if (node != nullptr) {
+            if (!result.empty()) result += ", ";
+            result += std::to_string(node->GetNodeId());
+        }
+    }
+    return result;
+}
+
+std::string FormatKernelIds(const std::vector<uint64_t>& kernelIds, size_t maxDisplay = SIZE_MAX) 
+{
+    std::string result;
+    size_t limit = (maxDisplay == SIZE_MAX) ? kernelIds.size() : maxDisplay;
+    for (size_t j = 0; j < kernelIds.size() && j < limit; ++j) {
+        if (j > 0) result += ", ";
+        result += std::to_string(kernelIds[j]);
+    }
+    if (kernelIds.size() > limit) result += "...";
+    return result;
+}
+
+std::unordered_map<uint16_t, size_t> BuildScopeIdIndexMap(const std::vector<SuperKernelScopeInfo>& scopeInfos) 
+{
+    std::unordered_map<uint16_t, size_t> map;
+    for (size_t i = 0; i < scopeInfos.size(); ++i) {
+        map[scopeInfos[i].GetScopeId()] = i;
+    }
+    return map;
+}
+
+void PrintScopeSummary(const SuperKernelScopeInfo& scope, size_t idx) 
+{
+    SK_LOGI("Scope %zu (scopeId=%u): %zu nodes", idx, scope.GetScopeId(), scope.GetNodes().size());
+}
+
+void PrintFusionStatus(const ScopeExtInfo& extInfo) 
+{
+    SK_LOGI("  FusionStatus: %s, FailReason: %s",
+            ScopeFusionStatusToStr(extInfo.fusionStatus), ScopeFailReasonToStr(extInfo.failReason));
+}
+
+void PrintBreakInfoFields(const ScopeBreakInfo& breakInfo) 
+{
+    SK_LOGI("  BreakInfo fields:");
+    SK_LOGI("    reason: %s", ScopeBreakReasonToStr(breakInfo.GetReason()));
+    SK_LOGI("    triggerNodeId: %lu", breakInfo.GetTriggerNodeId());
+    SK_LOGI("    triggerStreamIdx: %u", breakInfo.GetTriggerStreamIdx());
+    SK_LOGI("    parentScopeId: %u", breakInfo.GetParentScopeId());
+    SK_LOGI("    fusionFailReason: %s", FusionFailReasonToStr(breakInfo.GetFusionFailReason()));
+    SK_LOGI("    detail: %s", breakInfo.GetDetail().empty() ? "(none)" : breakInfo.GetDetail().c_str());
+}
+
+void PrintRootBreakInfo(const ScopeBreakInfo& rootInfo) 
+{
+    SK_LOGI("  Root BreakInfo (from root scope chain):");
+    SK_LOGI("    reason: %s", ScopeBreakReasonToStr(rootInfo.GetReason()));
+    SK_LOGI("    triggerNodeId: %lu", rootInfo.GetTriggerNodeId());
+    SK_LOGI("    triggerStreamIdx: %u", rootInfo.GetTriggerStreamIdx());
+    SK_LOGI("    fusionFailReason: %s", FusionFailReasonToStr(rootInfo.GetFusionFailReason()));
+    SK_LOGI("    detail: %s", rootInfo.GetDetail().empty() ? "(none)" : rootInfo.GetDetail().c_str());
+}
+
+void PrintTriggerNode(const ScopeBreakInfo& breakInfo, SuperKernelGraph& graph) 
+{
+    if (breakInfo.GetTriggerNodeId() == INVALID_TASK_ID) return;
+    SuperKernelBaseNode* node = graph.GetNodeById(breakInfo.GetTriggerNodeId());
+    if (node != nullptr) {
+        SK_LOGI("  Trigger node: %s", node->Format().c_str());
+    }
+}
+
+void PrintKernelNodes(const std::vector<uint64_t>& kernelIds) 
+{
+    if (kernelIds.empty()) return;
+    SK_LOGI("  Kernel nodes: %zu (ids: %s)", kernelIds.size(), FormatKernelIds(kernelIds, 5).c_str());
+}
+
+std::unordered_map<ScopeBreakReason, size_t> CountRootBreakReasons(
+    const std::vector<SuperKernelScopeInfo>& scopeInfos,
+    const std::unordered_map<uint16_t, size_t>& scopeIdToIdx) 
+{
+    std::unordered_map<ScopeBreakReason, size_t> counts;
+    for (const auto& scope : scopeInfos) {
+        ScopeBreakInfo rootInfo = FindRootBreakInfo(scope, scopeIdToIdx, scopeInfos);
+        counts[rootInfo.GetReason()]++;
+    }
+    return counts;
+}
+
+void PrintRootBreakReasonSummary(const std::unordered_map<ScopeBreakReason, size_t>& rootReasonCounts) 
+{
+    SK_LOGI("Root Break Reason Summary:");
+    for (const auto& pair : rootReasonCounts) {
+        SK_LOGI("  %s: %zu scopes", ScopeBreakReasonToStr(pair.first), pair.second);
+    }
+}
+ScopeBreakInfo FindRootBreakInfo(const SuperKernelScopeInfo& scope,
+                                 const std::unordered_map<uint16_t, size_t>& scopeIdToIdx,
+                                 const std::vector<SuperKernelScopeInfo>& scopeInfos) {
+    const SuperKernelScopeInfo* currentScope = &scope;
+    while (currentScope->GetBreakInfo().GetParentScopeId() != 0) {
+        auto it = scopeIdToIdx.find(currentScope->GetBreakInfo().GetParentScopeId());
+        if (it != scopeIdToIdx.end()) {
+            currentScope = &scopeInfos[it->second];
+        } else {
+            break;
+        }
+    }
+    return currentScope->GetBreakInfo();
+}
+
+void SuperKernelScopeSplitter::PrintAllScopesDetail(const std::vector<SuperKernelScopeInfo>& scopeInfos) 
+{
+    SK_LOGI("All Scopes Detail");
+    for (size_t i = 0; i < scopeInfos.size(); ++i) {
+        const auto& scope = scopeInfos[i];
+        std::string nodeIdsStr = FormatNodeIds(scope);
+        std::string kernelIdsStr = FormatKernelIds(ScopeSplitPass::GetKernelNodeIds(scope));
+        SK_LOGI("  [%zu] scopeId=%u, allNodeIds=[%s], kernelIds=[%s], breakReason=%s",
+                i, scope.GetScopeId(), nodeIdsStr.c_str(), kernelIdsStr.c_str(),
+                scope.GetBreakInfo().Format().c_str());
+    }
+}
+
+void SuperKernelScopeSplitter::PrintScopeBreakReasonReport() 
+{
+    SK_LOGI("Scope Break Reason Report");
+    SK_LOGI("Total scopes: %zu", scopeInfos_.size());
+    
+    auto scopeIdToIdx = BuildScopeIdIndexMap(scopeInfos_);
+    
+    // Print all scopes detail
+    PrintAllScopesDetail(scopeInfos_);
+    
+    // Analysis section
+    SK_LOGI("Scope Break Reason Analysis");
+    for (size_t i = 0; i < scopeInfos_.size(); ++i) {
+        const auto& scope = scopeInfos_[i];
+        const auto& breakInfo = scope.GetBreakInfo();
+        const auto& extInfo = scope.GetExtInfo();
+        
+        PrintScopeSummary(scope, i);
+        PrintFusionStatus(extInfo);
+        PrintBreakInfoFields(breakInfo);
+
+        if (breakInfo.GetParentScopeId() != 0) {
+            ScopeBreakInfo rootInfo = FindRootBreakInfo(scope, scopeIdToIdx, scopeInfos_);
+            PrintRootBreakInfo(rootInfo);
+        }
+        
+        PrintTriggerNode(breakInfo, graph_);
+        PrintKernelNodes(ScopeSplitPass::GetKernelNodeIds(scope));
+    }
+    
+    // Summary statistics
+    auto rootReasonCounts = CountRootBreakReasons(scopeInfos_, scopeIdToIdx);
+    PrintRootBreakReasonSummary(rootReasonCounts);
+    
+    SK_LOGI("End of Scope Break Reason Report");
 }

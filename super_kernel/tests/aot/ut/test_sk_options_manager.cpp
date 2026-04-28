@@ -653,7 +653,7 @@ TEST_F(SuperKernelOptionsManagerTest, SetOptOptionValue_DebugExtendOption_EmptyS
 TEST_F(SuperKernelOptionsManagerTest, SetOptOptionValue_Unsupported)
 {
     aclskOption option;
-    option.optionType = aclskOptionType::SK_OPTION_MAX; // 不支持的类型
+    option.optionType = static_cast<aclskOptionType>(100); // 不支持的类型
     
     // 不应崩溃
     opts_test->SetOptOptionValue(&option);

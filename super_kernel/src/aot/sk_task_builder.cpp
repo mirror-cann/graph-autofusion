@@ -10,6 +10,7 @@
 
 #include "sk_task_builder.h"
 #include "sk_graph.h"
+#include "sk_dump_json.h"
 #include "sk_log.h"
 #include "sk_constant_codegen.h"  // 常量化代码生成模块
 #include <algorithm>
@@ -1145,10 +1146,11 @@ bool SkTaskBuilder::ProcessCoreFuncSize(SkDfxInfo* dfxInfo, const void* binHostA
     
     std::string symbolName;
     uint64_t funcSize = 0;
+    std::string symbolBind;
     bool getInfoRet = GetFuncSymbolInfo(static_cast<const char*>(binHostAddr), binHostSize,
-                                        resolved.funcOffset[coreIndex], symbolName, funcSize);
-    SK_LOGD("ProcessCoreFuncSize: GetFuncSymbolInfo(%s) returned=%d, offset=0x%lx, symbolName=%s, size=0x%lx",
-            coreName, getInfoRet, resolved.funcOffset[coreIndex], symbolName.c_str(), funcSize);
+                                        resolved.funcOffset[coreIndex], symbolName, funcSize, symbolBind);
+    SK_LOGD("ProcessCoreFuncSize: GetFuncSymbolInfo(%s) returned=%d, offset=0x%lx, symbolName=%s, size=0x%lx, bind=%s",
+            coreName, getInfoRet, resolved.funcOffset[coreIndex], symbolName.c_str(), funcSize, symbolBind.c_str());
     
     if (getInfoRet) {
         if (coreIndex == 0) {
@@ -1969,5 +1971,12 @@ SkLaunchInfo SkTaskBuilder::Build(std::string skFuncName, const std::vector<Supe
     launchInfo.entryInfo = std::move(entryInfo);
     launchInfo.devArgs = std::move(devArgs);
     launchInfo.skFuncName = skFuncName;
+
+    // Dump task queues to JSON for debugging
+    SK_LOGI("DumpSkTaskQueueToJson: starting to dump task queues");
+    if (!DumpSkTaskQueueToJson(graph_, aicTask, aivTask)) {
+        SK_LOGW("Failed to dump task queues to JSON, continuing...");
+    }
+
     return launchInfo;
 }
