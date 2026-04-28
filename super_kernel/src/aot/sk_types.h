@@ -39,8 +39,8 @@ constexpr uint32_t K_TYPE_AIV_ROLLBACK = 7;
 constexpr uint32_t DEFAULT_COUNTER_COUNT = 75; // 默认计数器数量（对应平台AIC/AIV核心数）
 constexpr uint32_t TASK_QUE_EXPAND_FACTOR = 2; // TaskQue扩容因子
 
-constexpr uint32_t MAX_TASK_NUM = 1000;
-constexpr uint32_t MAX_SCOPE_NUM = 256;
+constexpr uint32_t MAX_TASK_NUM = 1024;
+constexpr uint32_t MAX_SCOPE_NUM = 1024;
 constexpr uint32_t INVALID_SCOPE_ID = std::numeric_limits<uint32_t>::max();
 constexpr uint32_t INVALID_STREAM_ID = std::numeric_limits<uint32_t>::max();
 constexpr uint64_t INVALID_TASK_ID = std::numeric_limits<uint64_t>::max();
