@@ -170,10 +170,10 @@ def setup_super_kernel_option_parsers() -> ParserFactory:
 
 def parse_super_kernel_options(option_string: str, convert_underscore_to_hyphen: bool = False) -> bool:
     factory = setup_super_kernel_option_parsers()
+    if not option_string or not option_string.strip():
+        return {}
     # Strip leading and trailing quotes, which may be introduced by json.dumps
     option_string = option_string.strip('"')
-    if not option_string.strip():
-        return {}
     pairs = [part_option.strip() for part_option in option_string.split(':') if part_option.strip()]
     result_options = {}
     for pair in pairs:
