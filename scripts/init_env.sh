@@ -61,8 +61,8 @@ install_cann() {
 
     local toolkit_pkg="Ascend-cann-toolkit_${CANN_VERSION}_linux-${arch}.run"
     local ops_pkg="Ascend-cann-${CHIP_TYPE}-ops_${CANN_VERSION}_linux-${arch}.run"
-    local toolkit_url="${cann_url}/${arch}/${toolkit_pkg}"
-    local ops_url="${cann_url}/${arch}/${ops_pkg}"
+    local toolkit_url="${cann_url}/${toolkit_pkg}"
+    local ops_url="${cann_url}/${ops_pkg}"
 
     if [ ! -f "$toolkit_pkg" ]; then
         log_info "Downloading CANN toolkit (${arch})..."
