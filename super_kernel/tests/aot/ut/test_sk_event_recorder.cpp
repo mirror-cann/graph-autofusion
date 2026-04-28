@@ -1012,3 +1012,67 @@ TEST_F(SkEventRecorderTest, EnvValueMinimumOne) {
 
     SkEventRecorder::Instance().SkProfilingShutdown();
 }
+
+// ==================== DumpThreadFunc 文件大小检查测试 ====================
+
+// Test 58: 没有检测到profiling关闭补复制
+TEST_F(SkEventRecorderTest, DumpThreadFuncDstMissingTriggersReCopy) {
+    InitMockDeviceCtx();
+    SkEventRecorder::Instance().enabled = true;
+
+    SkEventDeviceCtx* ctx = &SkEventRecorder::Instance().deviceCtxs;
+
+    // 创建源 json 文件：先写内容后关闭，再以 "rb" 重新打开
+    // 这样 outputFp.IsValid()=true（CopyOutputToProfPath 不跳过），
+    // 同时文件内容已落盘（ifstream 读取不会与写锁冲突卡住）
+    char srcFile[512];
+    (void)snprintf_s(srcFile, sizeof(srcFile), sizeof(srcFile) - 1,
+                     "%s/sk_event_dev_device_%u.json", ctx->outputDir.c_str(), ctx->deviceId);
+    ctx->outputFp.Open(srcFile, "wb");
+    ASSERT_TRUE(ctx->outputFp.IsValid());
+    const char* jsonContent = "[{\"node\":\"test_node\",\"start\":100,\"end\":200}]";
+    fwrite(jsonContent, 1, strlen(jsonContent), ctx->outputFp.Get());
+    ctx->outputFp.Close();
+    // 以 "rb" 重新打开，IsValid()=true，且 ifstream 读同一文件不会冲突
+    ctx->outputFp.Open(srcFile, "rb");
+    ASSERT_TRUE(ctx->outputFp.IsValid());
+
+    // 设置 profBasePath
+    std::string profDir = "/tmp/sk_test_prof_missing_" + std::to_string(getpid());
+    mkdir(profDir.c_str(), 0755);
+    {
+        std::lock_guard<std::mutex> lock(SkEventRecorder::Instance().profBasePathMutex);
+        SkEventRecorder::Instance().profBasePath = profDir;
+    }
+
+    // 确保目标文件不存在
+    std::string dstFile = profDir + "/sk_event_dev_device_" + std::to_string(ctx->deviceId) + ".json";
+    remove(dstFile.c_str());
+
+    // 让 globalRunning=false，使 DumpThreadFunc 的 while 循环立即退出
+    SkEventRecorder::Instance().globalRunning.store(false);
+    ctx->active.store(0);
+    // 设置 g_profSignal 为非0值，覆盖367-373行代码路径
+    SkEventRecorder::SetProfSignal(1);
+    SkEventRecorder::DumpThreadFunc(&SkEventRecorder::Instance());
+
+    // 验证目标文件已被创建且大小 > 10
+    struct stat afterStat;
+    EXPECT_EQ(stat(dstFile.c_str(), &afterStat), 0);
+    EXPECT_GT(afterStat.st_size, 10);
+
+    // 覆盖378-394行代码路径
+    remove(dstFile.c_str());
+    SkEventRecorder::SetProfSignal(0);
+    SkEventRecorder::DumpThreadFunc(&SkEventRecorder::Instance());
+
+    // 验证目标文件已被创建且大小 > 10
+    EXPECT_EQ(stat(dstFile.c_str(), &afterStat), 0);
+    EXPECT_GT(afterStat.st_size, 10);
+
+    remove(dstFile.c_str());
+    rmdir(profDir.c_str());
+    CleanupMockDeviceCtx();
+}
+
+
