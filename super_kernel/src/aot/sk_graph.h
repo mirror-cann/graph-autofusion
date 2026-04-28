@@ -29,6 +29,8 @@
 #include "sk_scope_info.h"
 #include "acl/acl.h"
 
+class SuperKernelOptionsManager;
+
 class SuperKernelNodeFactory {
 public:
     static std::unique_ptr<SuperKernelBaseNode> CreateNode(std::unique_ptr<aclmdlRITask> task, aclmdlRITaskType taskType,
@@ -57,6 +59,7 @@ public:
     SuperKernelGraph(SuperKernelGraph&&) = default;
     SuperKernelGraph& operator=(SuperKernelGraph&&) = default;
     SuperKernelGraph(aclmdlRI modelRI) : modelRI(modelRI) {}
+    SuperKernelGraph(aclmdlRI modelRI, const SuperKernelOptionsManager& opts) : modelRI(modelRI), opts_(&opts) {}
     bool InitSKGraph();
 
     SuperKernelBaseNode* GetNodeById(uint64_t nodeId) const;
@@ -113,7 +116,6 @@ public:
     {
         needUpdate = flag;
     }
-
     // Parse original scopes from graph (before any splitting)
     // 3 cases:
     // 1. Has scopename non-empty scope nodes: group by scopeBitFlags
@@ -147,9 +149,10 @@ private:
     bool AddMemoryAssociateWait(uint64_t eventId, SuperKernelBaseNode* node);
     bool AddEventAssociate();
     void BuildEventNodeAssociations();
+    uint32_t GetValueBreakerBypass() const;
     bool PostProcessMemoryNode();
     bool ProcessMemoryWriteNodes(const uint64_t eventId, const MemoryInfos& memoryInfo,
-                               const uint64_t memoryWaitValue, const uint32_t waitFlag);
+                                 const uint64_t memoryWaitValue, const uint32_t waitFlag);
     void UpdateNodeScopeBitFlags();
     std::unordered_map<uint64_t, std::unique_ptr<SuperKernelBaseNode>> graphMap;
     std::unordered_map<uint64_t, EventInfos> eventToNodes;
@@ -165,6 +168,7 @@ private:
     std::vector<std::unique_ptr<uint8_t[]>> shapeInfoPtrList;    ///< profiling sk shape info memory, lifecycle follows graph
     std::unordered_set<SuperKernelBaseNode*> needUpdateNodes;      ///< event nodes that need to be marked with scope bit flags after scope processing 
     bool needUpdate = false;
+    const SuperKernelOptionsManager* opts_ = nullptr;
 };
 
 #endif // __SK_GRAPH_H__

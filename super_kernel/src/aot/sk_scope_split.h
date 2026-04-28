@@ -338,7 +338,7 @@ enum class ScopeProcessResult {
  */
 class DeadlockRefinePass : public ScopeSplitPass {
 public:
-    explicit DeadlockRefinePass(SuperKernelGraph& inputGraph);
+    DeadlockRefinePass(SuperKernelGraph& inputGraph, SuperKernelOptionsManager& opts);
     ~DeadlockRefinePass() = default;
     
     bool Run(std::vector<SuperKernelScopeInfo>& scopes) override;

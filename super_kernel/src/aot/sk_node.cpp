@@ -769,78 +769,97 @@ bool SuperKernelKernelNode::Update(const UpdateContext &ctx) {
 }
 
 bool SuperKernelMemoryNode::InitNode() {
+    // Cache formatted string to avoid repeated formatting
+    const std::string nodeFormat = Format();
+    const char* formatStr = nodeFormat.c_str();
+
     if (!SuperKernelBaseNode::InitNode()) {
-        SK_LOGE("Failed to init memory node for %s", Format().c_str());
-        return false;
-    }
-    aclError aclRet = aclmdlRITaskGetParams(*originTask, &taskParams);
-    if (aclRet != ACL_SUCCESS) {
-        SK_LOGE("Failed to get event params for %s", Format().c_str());
+        SK_LOGE("Failed to init memory node for %s", formatStr);
         return false;
     }
 
+    aclError aclRet = aclmdlRITaskGetParams(*originTask, &taskParams);
+    if (aclRet != ACL_SUCCESS) {
+        SK_LOGE("Failed to get task params (aclRet=%d) for %s", aclRet, formatStr);
+        return false;
+    }
+
+    // Handle event-based synchronization nodes
     if (rtNodeType != ACL_MODEL_RI_TASK_VALUE_WRITE && rtNodeType != ACL_MODEL_RI_TASK_VALUE_WAIT) {
         switch (rtNodeType) {
             case ACL_MODEL_RI_TASK_EVENT_RECORD: {
-                auto &eventParam = taskParams.eventRecordTaskParams;
+                const auto &eventParam = taskParams.eventRecordTaskParams;
                 nodeType = SkNodeType::NODE_NOTIFY;
-                nodeInfos.syncInfos.eventId = (uint64_t)eventParam.event;
+                nodeInfos.syncInfos.eventId = reinterpret_cast<uintptr_t>(eventParam.event);
                 nodeInfos.syncInfos.eventFlag = eventParam.eventFlag;
+                nodeInfos.syncInfos.memoryValue = SK_DEFAULT_NOTIFY_VALUE;
+                nodeInfos.syncInfos.memoryWaitFlag = SK_DEFAULT_WRITE_FLAG;
                 break;
             }
             case ACL_MODEL_RI_TASK_EVENT_WAIT: {
-                auto &eventParam = taskParams.eventWaitTaskParams;
+                const auto &eventParam = taskParams.eventWaitTaskParams;
                 nodeType = SkNodeType::NODE_WAIT;
-                nodeInfos.syncInfos.eventId = (uint64_t)eventParam.event;
+                nodeInfos.syncInfos.eventId = reinterpret_cast<uintptr_t>(eventParam.event);
                 nodeInfos.syncInfos.eventFlag = eventParam.eventFlag;
+                nodeInfos.syncInfos.memoryValue = SK_DEFAULT_WAIT_VALUE;
+                nodeInfos.syncInfos.memoryWaitFlag = static_cast<uint32_t>(SkMemoryWaitFlag::EQ);
                 break;
             }
             case ACL_MODEL_RI_TASK_EVENT_RESET: {
-                auto &eventParam = taskParams.eventResetTaskParams;
+                const auto &eventParam = taskParams.eventResetTaskParams;
                 nodeType = SkNodeType::NODE_RESET;
-                nodeInfos.syncInfos.eventId = (uint64_t)eventParam.event;
+                nodeInfos.syncInfos.eventId = reinterpret_cast<uintptr_t>(eventParam.event);
                 nodeInfos.syncInfos.eventFlag = eventParam.eventFlag;
-                SetFusionFailReason(FusionFailReason::RESET_TYPE_NODE);
+                nodeInfos.syncInfos.memoryValue = SK_DEFAULT_RESET_VALUE;
+                nodeInfos.syncInfos.memoryWaitFlag = SK_DEFAULT_WRITE_FLAG;
                 break;
             }
             default:
-                SK_LOGE("Unsupported event type %u for %s, which cannot be fused in super kernel.", rtNodeType, Format().c_str());
+                SK_LOGE("Unsupported event type %u for %s, which cannot be fused in super kernel.",
+                        rtNodeType, formatStr);
                 SetFusionFailReason(FusionFailReason::UNSUPPORT_EVENT_TYPE);
                 return false;
         }
-        if ((rtNodeType != ACL_MODEL_RI_TASK_EVENT_RESET) && ((nodeInfos.syncInfos.eventFlag & ACL_EVENT_EXTERNAL) == 0)) {
-            isFusible = true;
-            SK_LOGI("Event %s: internal to ModelRI, fusible in super kernel",
-                    Format().c_str());
+
+        // Check if event can be fused: must be internal (not external) and not a reset operation
+        const bool isInternalEvent = (nodeInfos.syncInfos.eventFlag & ACL_EVENT_EXTERNAL) == 0;
+        const bool isNotReset = (rtNodeType != ACL_MODEL_RI_TASK_EVENT_RESET);
+        isFusible = isNotReset && isInternalEvent;
+
+        if (isFusible) {
+            SK_LOGI("Event %s: internal to ModelRI, fusible in super kernel", formatStr);
         } else {
-            if (fusionFailReason_ == FusionFailReason::CAN_FUSE){
+            if (fusionFailReason_ == FusionFailReason::CAN_FUSE) {
                 SetFusionFailReason(FusionFailReason::EXTERNAL_DEPEND);
             }
-            SK_LOGI("Event %s: has external dependencies, cannot be fused in super kernel",
-                    Format().c_str());
+            SK_LOGI("Event %s: has external dependencies or is reset, cannot be fused in super kernel",
+                    formatStr);
         }
 
         return true;
     }
 
+    // Handle memory-based synchronization nodes
     if (rtNodeType == ACL_MODEL_RI_TASK_VALUE_WRITE) {
-        auto& memoryParam = taskParams.valueWriteTaskParams;
+        const auto& memoryParam = taskParams.valueWriteTaskParams;
         nodeType = SkNodeType::NODE_MEMORY_WRITE;
         nodeInfos.syncInfos.eventId = static_cast<uint64_t>(reinterpret_cast<uintptr_t>(memoryParam.devAddr));
         nodeInfos.syncInfos.addrValue = memoryParam.devAddr;
         nodeInfos.syncInfos.memoryValue = memoryParam.value;
-        isFusible = true;
     } else {
+        const auto& memoryParam = taskParams.valueWaitTaskParams;
         nodeType = SkNodeType::NODE_MEMORY_WAIT;
-        auto& memoryParam = taskParams.valueWaitTaskParams;
         nodeInfos.syncInfos.eventId = static_cast<uint64_t>(reinterpret_cast<uintptr_t>(memoryParam.devAddr));
         nodeInfos.syncInfos.addrValue = memoryParam.devAddr;
         nodeInfos.syncInfos.memoryValue = memoryParam.value;
         nodeInfos.syncInfos.memoryWaitFlag = memoryParam.flag;
-        isFusible = false;
     }
 
-    SK_LOGI("Memory node %lu was initialized with memory-based sync semantics.", nodeId);
+    if (nodeInfos.syncInfos.addrValue == nullptr) {
+        SK_LOGE("Memory node %s has null device address, which is invalid for super kernel fusion.", formatStr);
+        return false;
+    }
+    SK_LOGI("Memory node %s default not fusible, but it may be bypassed", formatStr);
 
     return true;
 }

@@ -11,13 +11,31 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 #include <memory>
+#include <limits>
 #include <vector>
 
 #define private public
 #define protected public
+#include "super_kernel.h"
 #include "sk_graph.h"
 #include "sk_node.h"
 #include "sk_lock_detector.h"
+#include "sk_options_manager.h"
+
+namespace {
+
+struct TestRITask {
+    uint32_t taskId;
+    aclmdlRITaskType type;
+    aclmdlRITaskParams params;
+};
+
+std::unique_ptr<aclmdlRITask> MakeTaskHandle(TestRITask& task)
+{
+    return std::make_unique<aclmdlRITask>(reinterpret_cast<aclmdlRITask>(&task));
+}
+
+} // namespace
 
 /**
  * @brief Test fixture class for SuperKernelGraph unit tests
@@ -25,13 +43,64 @@
 class SuperKernelGraphTest : public testing::Test {
 protected:
     void SetUp() override {
-        graph = std::make_unique<SuperKernelGraph>();
+        opts = std::make_unique<SuperKernelOptionsManager>();
+        graph = std::make_unique<SuperKernelGraph>(nullptr, *opts);
     }
 
     void TearDown() override {
         graph.reset();
+        opts.reset();
     }
 
+    void ResetGraph()
+    {
+        graph = std::make_unique<SuperKernelGraph>(nullptr, *opts);
+    }
+
+    void ConfigureValueBreakerBypass(uint32_t value)
+    {
+        aclskOption option {};
+        option.optionType = aclskOptionType::AGGRESSIVE_OPT_STRATEGIES;
+        option.aggressiveOpts.valueBreakerBypass = value;
+        opts->SetOptOptionValue(&option);
+    }
+
+    SuperKernelMemoryNode* CreateMemoryNode(uint64_t nodeId, SkNodeType nodeType, uint64_t eventId,
+                                            uint64_t memoryValue,
+                                            uint32_t waitFlag = std::numeric_limits<uint32_t>::max())
+    {
+        const auto taskType = (nodeType == SkNodeType::NODE_MEMORY_WAIT) ?
+            ACL_MODEL_RI_TASK_VALUE_WAIT : ACL_MODEL_RI_TASK_VALUE_WRITE;
+        auto node = std::make_unique<SuperKernelMemoryNode>(
+            nullptr, taskType, 0, 0, INVALID_STREAM_ID, INVALID_TASK_ID);
+        node->SetNodeId(nodeId);
+        node->SetNodeType(nodeType);
+        node->SetIsFusible(false);
+        node->nodeInfos.syncInfos.eventId = eventId;
+        node->nodeInfos.syncInfos.addrValue = reinterpret_cast<void*>(0x1000 + nodeId);
+        node->nodeInfos.syncInfos.memoryValue = memoryValue;
+        node->nodeInfos.syncInfos.memoryWaitFlag = waitFlag;
+        auto* ptr = node.get();
+        graph->graphMap[nodeId] = std::move(node);
+        return ptr;
+    }
+
+    SuperKernelMemoryNode* CreateEventNodeWithTask(TestRITask& task, uint64_t nodeId, SkNodeType nodeType,
+                                                   aclmdlRITaskType taskType, void* addrValue)
+    {
+        task.taskId = static_cast<uint32_t>(nodeId);
+        task.type = taskType;
+        auto node = std::make_unique<SuperKernelMemoryNode>(
+            MakeTaskHandle(task), taskType, 0, 0, INVALID_STREAM_ID, INVALID_TASK_ID);
+        node->SetNodeId(nodeId);
+        node->SetNodeType(nodeType);
+        node->nodeInfos.syncInfos.addrValue = addrValue;
+        auto* ptr = node.get();
+        graph->graphMap[nodeId] = std::move(node);
+        return ptr;
+    }
+
+    std::unique_ptr<SuperKernelOptionsManager> opts;
     std::unique_ptr<SuperKernelGraph> graph;
 };
 
@@ -170,6 +239,114 @@ TEST_F(SuperKernelGraphTest, GetSortedNodeIds_Boundary_LargeIdGap)
     EXPECT_EQ(sortedIds[0], 1);
     EXPECT_EQ(sortedIds[1], 500);
     EXPECT_EQ(sortedIds[2], 1000);
+}
+
+TEST_F(SuperKernelGraphTest, PostProcessMemoryNode_OnlyWriteTurnsIntoNotifyAndKeepsFusible)
+{
+    constexpr uint64_t kEventId = 0x101;
+    auto* writeNode = CreateMemoryNode(1, SkNodeType::NODE_MEMORY_WRITE, kEventId, 7);
+    graph->memoryToNodes[kEventId].writeNodeIdList.insert(writeNode->GetNodeId());
+
+    ASSERT_TRUE(graph->PostProcessMemoryNode());
+    graph->BuildEventNodeAssociations();
+
+    EXPECT_EQ(writeNode->GetNodeType(), SkNodeType::NODE_NOTIFY);
+    EXPECT_TRUE(writeNode->IsFusible());
+    EXPECT_EQ(graph->eventToNodes[kEventId].notifyNodeId, writeNode->GetNodeId());
+    EXPECT_EQ(writeNode->GetCorrespondingMemoryWriteNodeIds(), std::vector<uint64_t>({writeNode->GetNodeId()}));
+}
+
+TEST_F(SuperKernelGraphTest, PostProcessMemoryNode_OnlyWaitTurnsIntoWaitAndUnfusible)
+{
+    constexpr uint64_t kEventId = 0x151;
+    auto* waitNode = CreateMemoryNode(1, SkNodeType::NODE_MEMORY_WAIT, kEventId, 5,
+                                      static_cast<uint32_t>(SkMemoryWaitFlag::EQ));
+    graph->memoryToNodes[kEventId].waitNodeIdList.insert(waitNode->GetNodeId());
+
+    ASSERT_TRUE(graph->PostProcessMemoryNode());
+
+    EXPECT_EQ(waitNode->GetNodeType(), SkNodeType::NODE_WAIT);
+    EXPECT_FALSE(waitNode->IsFusible());
+    EXPECT_EQ(graph->GetEventInfo(kEventId), nullptr);
+}
+
+TEST_F(SuperKernelGraphTest, PostProcessMemoryNode_ValueBreakerBypassPairedWaitDisabledBlocksFusion)
+{
+    constexpr uint64_t kEventId = 0x202;
+    auto* writeNode = CreateMemoryNode(1, SkNodeType::NODE_MEMORY_WRITE, kEventId, 3);
+    auto* waitNode = CreateMemoryNode(2, SkNodeType::NODE_MEMORY_WAIT, kEventId, 3,
+                                      static_cast<uint32_t>(SkMemoryWaitFlag::EQ));
+    graph->memoryToNodes[kEventId].writeNodeIdList.insert(writeNode->GetNodeId());
+    graph->memoryToNodes[kEventId].waitNodeIdList.insert(waitNode->GetNodeId());
+
+    ASSERT_TRUE(graph->PostProcessMemoryNode());
+    EXPECT_EQ(writeNode->GetNodeType(), SkNodeType::NODE_NOTIFY);
+    EXPECT_EQ(waitNode->GetNodeType(), SkNodeType::NODE_WAIT);
+    EXPECT_FALSE(writeNode->IsFusible());
+    EXPECT_FALSE(waitNode->IsFusible());
+}
+
+TEST_F(SuperKernelGraphTest, PostProcessMemoryNode_PairedWaitDisabledStillChecksMemoryRule)
+{
+    constexpr uint64_t kEventId = 0x203;
+    auto* writeNode = CreateMemoryNode(1, SkNodeType::NODE_MEMORY_WRITE, kEventId, 0);
+    auto* waitNode = CreateMemoryNode(2, SkNodeType::NODE_MEMORY_WAIT, kEventId, 3,
+                                      static_cast<uint32_t>(SkMemoryWaitFlag::EQ));
+    graph->memoryToNodes[kEventId].writeNodeIdList.insert(writeNode->GetNodeId());
+    graph->memoryToNodes[kEventId].waitNodeIdList.insert(waitNode->GetNodeId());
+
+    EXPECT_FALSE(graph->PostProcessMemoryNode());
+}
+
+TEST_F(SuperKernelGraphTest, PostProcessMemoryNode_ValueBreakerBypassPairedWaitEnabledConvertsMemoryEvent)
+{
+    constexpr uint64_t kEventId = 0x202;
+    auto* writeNode = CreateMemoryNode(1, SkNodeType::NODE_MEMORY_WRITE, kEventId, 3);
+    auto* waitNode = CreateMemoryNode(2, SkNodeType::NODE_MEMORY_WAIT, kEventId, 3,
+                                      static_cast<uint32_t>(SkMemoryWaitFlag::EQ));
+    graph->memoryToNodes[kEventId].writeNodeIdList.insert(writeNode->GetNodeId());
+    graph->memoryToNodes[kEventId].waitNodeIdList.insert(waitNode->GetNodeId());
+    ConfigureValueBreakerBypass(ACLSK_VALUE_BREAKER_BYPASS_PAIRED_WAIT);
+
+    ASSERT_TRUE(graph->PostProcessMemoryNode());
+    EXPECT_EQ(writeNode->GetNodeType(), SkNodeType::NODE_NOTIFY);
+    EXPECT_EQ(waitNode->GetNodeType(), SkNodeType::NODE_WAIT);
+    EXPECT_TRUE(writeNode->IsFusible());
+    EXPECT_TRUE(waitNode->IsFusible());
+}
+
+TEST_F(SuperKernelGraphTest, PostProcessMemoryNode_ValueBreakerBypassPairedWaitEnabledConvertsReset)
+{
+    constexpr uint64_t kEventId = 0x204;
+    auto* notifyNode = CreateMemoryNode(1, SkNodeType::NODE_MEMORY_WRITE, kEventId, 3);
+    auto* resetNode = CreateMemoryNode(2, SkNodeType::NODE_MEMORY_WRITE, kEventId, 0);
+    auto* waitNode = CreateMemoryNode(3, SkNodeType::NODE_MEMORY_WAIT, kEventId, 3,
+                                      static_cast<uint32_t>(SkMemoryWaitFlag::EQ));
+    graph->memoryToNodes[kEventId].writeNodeIdList.insert(notifyNode->GetNodeId());
+    graph->memoryToNodes[kEventId].writeNodeIdList.insert(resetNode->GetNodeId());
+    graph->memoryToNodes[kEventId].waitNodeIdList.insert(waitNode->GetNodeId());
+    ConfigureValueBreakerBypass(ACLSK_VALUE_BREAKER_BYPASS_PAIRED_WAIT);
+
+    ASSERT_TRUE(graph->PostProcessMemoryNode());
+    EXPECT_EQ(notifyNode->GetNodeType(), SkNodeType::NODE_NOTIFY);
+    EXPECT_TRUE(notifyNode->IsFusible());
+    EXPECT_EQ(resetNode->GetNodeType(), SkNodeType::NODE_RESET);
+    EXPECT_TRUE(resetNode->IsFusible());
+    EXPECT_EQ(waitNode->GetNodeType(), SkNodeType::NODE_WAIT);
+    EXPECT_TRUE(waitNode->IsFusible());
+}
+
+TEST_F(SuperKernelGraphTest, PostProcessMemoryNode_ValueBreakerBypassRejectsUnpairedPairedWait)
+{
+    constexpr uint64_t kEventId = 0x233;
+    auto* writeNode = CreateMemoryNode(1, SkNodeType::NODE_MEMORY_WRITE, kEventId, 0);
+    auto* waitNode = CreateMemoryNode(2, SkNodeType::NODE_MEMORY_WAIT, kEventId, 3,
+                                      static_cast<uint32_t>(SkMemoryWaitFlag::EQ));
+    graph->memoryToNodes[kEventId].writeNodeIdList.insert(writeNode->GetNodeId());
+    graph->memoryToNodes[kEventId].waitNodeIdList.insert(waitNode->GetNodeId());
+    ConfigureValueBreakerBypass(ACLSK_VALUE_BREAKER_BYPASS_PAIRED_WAIT);
+
+    EXPECT_FALSE(graph->PostProcessMemoryNode());
 }
 
 TEST_F(SuperKernelGraphTest, GetSortedNodeIds_Boundary_NonContiguousIds)
@@ -783,4 +960,333 @@ TEST_F(SuperKernelGraphTest, CollectFusionFailStats_WithNodes)
     auto stats = graph->CollectFusionFailStats();
     EXPECT_EQ(stats.fusibleCount, 1);
     EXPECT_EQ(stats.unfusibleCount, 1);
+}
+
+// ==================== PostProcessMemoryNode Extended Tests ====================
+
+TEST_F(SuperKernelGraphTest, PostProcessMemoryNode_EmptyMemoryMap_ReturnsTrue)
+{
+    // No entries in memoryToNodes
+    EXPECT_TRUE(graph->PostProcessMemoryNode());
+}
+
+TEST_F(SuperKernelGraphTest, PostProcessMemoryNode_OnlyWriteWithResetValue_TurnsIntoReset)
+{
+    constexpr uint64_t kEventId = 0x301;
+    // memoryValue = 0 means reset value (SK_DEFAULT_RESET_VALUE = 0)
+    auto* writeNode = CreateMemoryNode(1, SkNodeType::NODE_MEMORY_WRITE, kEventId, 0);
+    graph->memoryToNodes[kEventId].writeNodeIdList.insert(writeNode->GetNodeId());
+
+    ASSERT_TRUE(graph->PostProcessMemoryNode());
+    graph->BuildEventNodeAssociations();
+
+    EXPECT_EQ(writeNode->GetNodeType(), SkNodeType::NODE_RESET);
+    EXPECT_TRUE(writeNode->IsFusible());
+    EXPECT_TRUE(graph->eventToNodes[kEventId].resetNodeIdList.count(writeNode->GetNodeId()) > 0);
+}
+
+TEST_F(SuperKernelGraphTest, PostProcessMemoryNode_OnlyWaitNullptrNode_Skipped)
+{
+    constexpr uint64_t kEventId = 0x401;
+    // Insert a waitNodeId that has no corresponding node in graphMap
+    graph->memoryToNodes[kEventId].waitNodeIdList.insert(9999);
+
+    // Should not crash; the nullptr check skips the node
+    EXPECT_TRUE(graph->PostProcessMemoryNode());
+}
+
+TEST_F(SuperKernelGraphTest, PostProcessMemoryNode_OnlyWaitNonMemoryWaitType_Skipped)
+{
+    constexpr uint64_t kEventId = 0x402;
+    // Create a kernel node and add its id to waitNodeIdList
+    auto node = std::make_unique<SuperKernelKernelNode>(
+        nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_STREAM_ID, INVALID_TASK_ID);
+    node->SetNodeId(10);
+    graph->graphMap[10] = std::move(node);
+    graph->memoryToNodes[kEventId].waitNodeIdList.insert(10);
+
+    // The node type is not NODE_MEMORY_WAIT, so SetIsFusible(false) is skipped
+    EXPECT_TRUE(graph->PostProcessMemoryNode());
+    // Kernel node's IsFusible should remain at its default
+    EXPECT_EQ(graph->GetNodeById(10)->IsFusible(), false);
+}
+
+TEST_F(SuperKernelGraphTest, PostProcessMemoryNode_OnlyWriteNonMemoryWriteType_Skipped)
+{
+    constexpr uint64_t kEventId = 0x403;
+    // Create a kernel node and add its id to writeNodeIdList
+    auto node = std::make_unique<SuperKernelKernelNode>(
+        nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_STREAM_ID, INVALID_TASK_ID);
+    node->SetNodeId(20);
+    node->SetNodeType(SkNodeType::NODE_KERNEL);
+    graph->graphMap[20] = std::move(node);
+    graph->memoryToNodes[kEventId].writeNodeIdList.insert(20);
+
+    // The node type is not NODE_MEMORY_WRITE, so it's skipped entirely
+    EXPECT_TRUE(graph->PostProcessMemoryNode());
+    EXPECT_EQ(graph->GetNodeById(20)->GetNodeType(), SkNodeType::NODE_KERNEL);
+}
+
+TEST_F(SuperKernelGraphTest, PostProcessMemoryNode_InconsistentWaitParams_ReturnsFalse)
+{
+    constexpr uint64_t kEventId = 0x501;
+    auto* writeNode = CreateMemoryNode(1, SkNodeType::NODE_MEMORY_WRITE, kEventId, 3);
+    // Two wait nodes with different memoryValue
+    auto* waitNode1 = CreateMemoryNode(2, SkNodeType::NODE_MEMORY_WAIT, kEventId, 3,
+                                        static_cast<uint32_t>(SkMemoryWaitFlag::EQ));
+    auto* waitNode2 = CreateMemoryNode(3, SkNodeType::NODE_MEMORY_WAIT, kEventId, 7,
+                                        static_cast<uint32_t>(SkMemoryWaitFlag::EQ));
+
+    graph->memoryToNodes[kEventId].writeNodeIdList.insert(writeNode->GetNodeId());
+    graph->memoryToNodes[kEventId].waitNodeIdList.insert(waitNode1->GetNodeId());
+    graph->memoryToNodes[kEventId].waitNodeIdList.insert(waitNode2->GetNodeId());
+    ConfigureValueBreakerBypass(ACLSK_VALUE_BREAKER_BYPASS_PAIRED_WAIT);
+
+    EXPECT_FALSE(graph->PostProcessMemoryNode());
+}
+
+TEST_F(SuperKernelGraphTest, PostProcessMemoryNode_InconsistentWaitFlag_ReturnsFalse)
+{
+    constexpr uint64_t kEventId = 0x502;
+    auto* writeNode = CreateMemoryNode(1, SkNodeType::NODE_MEMORY_WRITE, kEventId, 3);
+    // Two wait nodes with same memoryValue but different flags
+    auto* waitNode1 = CreateMemoryNode(2, SkNodeType::NODE_MEMORY_WAIT, kEventId, 3,
+                                        static_cast<uint32_t>(SkMemoryWaitFlag::EQ));
+    auto* waitNode2 = CreateMemoryNode(3, SkNodeType::NODE_MEMORY_WAIT, kEventId, 3,
+                                        static_cast<uint32_t>(SkMemoryWaitFlag::GEQ));
+
+    graph->memoryToNodes[kEventId].writeNodeIdList.insert(writeNode->GetNodeId());
+    graph->memoryToNodes[kEventId].waitNodeIdList.insert(waitNode1->GetNodeId());
+    graph->memoryToNodes[kEventId].waitNodeIdList.insert(waitNode2->GetNodeId());
+    ConfigureValueBreakerBypass(ACLSK_VALUE_BREAKER_BYPASS_PAIRED_WAIT);
+
+    EXPECT_FALSE(graph->PostProcessMemoryNode());
+}
+
+TEST_F(SuperKernelGraphTest, PostProcessMemoryNode_ValueBreakerBypassUnpairedWait_UpgradesWaitToNodeWait)
+{
+    constexpr uint64_t kEventId = 0x603;
+    auto* waitNode = CreateMemoryNode(2, SkNodeType::NODE_MEMORY_WAIT, kEventId, 5,
+                                      static_cast<uint32_t>(SkMemoryWaitFlag::EQ));
+    graph->memoryToNodes[kEventId].waitNodeIdList.insert(waitNode->GetNodeId());
+    ConfigureValueBreakerBypass(ACLSK_VALUE_BREAKER_BYPASS_UNPAIRED_WAIT);
+
+    ASSERT_TRUE(graph->PostProcessMemoryNode());
+
+    EXPECT_EQ(waitNode->GetNodeType(), SkNodeType::NODE_WAIT);
+    EXPECT_TRUE(waitNode->IsFusible());
+}
+
+TEST_F(SuperKernelGraphTest, PostProcessMemoryNode_InvalidWaitNodeInConsistencyCheck_ReturnsFalse)
+{
+    constexpr uint64_t kEventId = 0x701;
+    auto* writeNode = CreateMemoryNode(1, SkNodeType::NODE_MEMORY_WRITE, kEventId, 3);
+    // Insert a non-existent nodeId and a valid wait node
+    auto* waitNode = CreateMemoryNode(2, SkNodeType::NODE_MEMORY_WAIT, kEventId, 3,
+                                       static_cast<uint32_t>(SkMemoryWaitFlag::EQ));
+    graph->memoryToNodes[kEventId].writeNodeIdList.insert(writeNode->GetNodeId());
+    graph->memoryToNodes[kEventId].waitNodeIdList.insert(waitNode->GetNodeId());
+    graph->memoryToNodes[kEventId].waitNodeIdList.insert(8888); // non-existent nodeId
+    ConfigureValueBreakerBypass(ACLSK_VALUE_BREAKER_BYPASS_PAIRED_WAIT);
+
+    // The consistency check should fail because GetNodeById(8888) returns nullptr
+    EXPECT_FALSE(graph->PostProcessMemoryNode());
+}
+
+TEST_F(SuperKernelGraphTest, PostProcessMemoryNode_WrongNodeTypeInConsistencyCheck_ReturnsFalse)
+{
+    constexpr uint64_t kEventId = 0x702;
+    auto* writeNode = CreateMemoryNode(1, SkNodeType::NODE_MEMORY_WRITE, kEventId, 3);
+    // Create a kernel node and put it in the wait list
+    auto kernelNode = std::make_unique<SuperKernelKernelNode>(
+        nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_STREAM_ID, INVALID_TASK_ID);
+    kernelNode->SetNodeId(99);
+    graph->graphMap[99] = std::move(kernelNode);
+
+    auto* waitNode = CreateMemoryNode(2, SkNodeType::NODE_MEMORY_WAIT, kEventId, 3,
+                                       static_cast<uint32_t>(SkMemoryWaitFlag::EQ));
+    graph->memoryToNodes[kEventId].writeNodeIdList.insert(writeNode->GetNodeId());
+    graph->memoryToNodes[kEventId].waitNodeIdList.insert(waitNode->GetNodeId());
+    graph->memoryToNodes[kEventId].waitNodeIdList.insert(99); // kernel node in wait list
+    ConfigureValueBreakerBypass(ACLSK_VALUE_BREAKER_BYPASS_PAIRED_WAIT);
+
+    // The consistency check should fail because node 99 is not NODE_MEMORY_WAIT
+    EXPECT_FALSE(graph->PostProcessMemoryNode());
+}
+
+TEST_F(SuperKernelGraphTest, PostProcessMemoryNode_MultipleEvents_ProcessedIndependently)
+{
+    constexpr uint64_t kEvent1 = 0x801;
+    constexpr uint64_t kEvent2 = 0x802;
+
+    // Event1: only write
+    auto* writeNode1 = CreateMemoryNode(1, SkNodeType::NODE_MEMORY_WRITE, kEvent1, 5);
+    graph->memoryToNodes[kEvent1].writeNodeIdList.insert(writeNode1->GetNodeId());
+
+    // Event2: only wait
+    auto* waitNode2 = CreateMemoryNode(2, SkNodeType::NODE_MEMORY_WAIT, kEvent2, 5,
+                                        static_cast<uint32_t>(SkMemoryWaitFlag::EQ));
+    graph->memoryToNodes[kEvent2].waitNodeIdList.insert(waitNode2->GetNodeId());
+
+    ASSERT_TRUE(graph->PostProcessMemoryNode());
+
+    // Event1: write should become notify
+    EXPECT_EQ(writeNode1->GetNodeType(), SkNodeType::NODE_NOTIFY);
+    EXPECT_TRUE(writeNode1->IsFusible());
+
+    // Event2: wait should become an unfusible event wait
+    EXPECT_EQ(waitNode2->GetNodeType(), SkNodeType::NODE_WAIT);
+    EXPECT_FALSE(waitNode2->IsFusible());
+}
+
+TEST_F(SuperKernelGraphTest, PostProcessMemoryNode_MultipleOnlyWriteNodes_SameEvent)
+{
+    constexpr uint64_t kEventId = 0x901;
+    auto* writeNode1 = CreateMemoryNode(1, SkNodeType::NODE_MEMORY_WRITE, kEventId, 5);
+    auto* writeNode2 = CreateMemoryNode(2, SkNodeType::NODE_MEMORY_WRITE, kEventId, 0);
+    graph->memoryToNodes[kEventId].writeNodeIdList.insert(writeNode1->GetNodeId());
+    graph->memoryToNodes[kEventId].writeNodeIdList.insert(writeNode2->GetNodeId());
+
+    ASSERT_TRUE(graph->PostProcessMemoryNode());
+    graph->BuildEventNodeAssociations();
+
+    // writeNode1: memoryValue=5 != 0 → NODE_NOTIFY
+    EXPECT_EQ(writeNode1->GetNodeType(), SkNodeType::NODE_NOTIFY);
+    EXPECT_TRUE(writeNode1->IsFusible());
+
+    // writeNode2: memoryValue=0 == SK_DEFAULT_RESET_VALUE → NODE_RESET
+    EXPECT_EQ(writeNode2->GetNodeType(), SkNodeType::NODE_RESET);
+    EXPECT_TRUE(writeNode2->IsFusible());
+}
+
+TEST_F(SuperKernelGraphTest, PostProcessMemoryNode_MultipleOnlyWaitNodes_AllUnfusible)
+{
+    constexpr uint64_t kEventId = 0x902;
+    auto* waitNode1 = CreateMemoryNode(1, SkNodeType::NODE_MEMORY_WAIT, kEventId, 5,
+                                        static_cast<uint32_t>(SkMemoryWaitFlag::EQ));
+    auto* waitNode2 = CreateMemoryNode(2, SkNodeType::NODE_MEMORY_WAIT, kEventId, 7,
+                                        static_cast<uint32_t>(SkMemoryWaitFlag::GEQ));
+    graph->memoryToNodes[kEventId].waitNodeIdList.insert(waitNode1->GetNodeId());
+    graph->memoryToNodes[kEventId].waitNodeIdList.insert(waitNode2->GetNodeId());
+
+    ASSERT_TRUE(graph->PostProcessMemoryNode());
+
+    EXPECT_EQ(waitNode1->GetNodeType(), SkNodeType::NODE_WAIT);
+    EXPECT_FALSE(waitNode1->IsFusible());
+    EXPECT_EQ(waitNode2->GetNodeType(), SkNodeType::NODE_WAIT);
+    EXPECT_FALSE(waitNode2->IsFusible());
+}
+
+TEST_F(SuperKernelGraphTest, PostProcessMemoryNode_ConsistentWaitParams_Succeeds)
+{
+    constexpr uint64_t kEventId = 0xB01;
+    auto* writeNode = CreateMemoryNode(1, SkNodeType::NODE_MEMORY_WRITE, kEventId, 3);
+    // Two wait nodes with same memoryValue and same flag
+    auto* waitNode1 = CreateMemoryNode(2, SkNodeType::NODE_MEMORY_WAIT, kEventId, 3,
+                                        static_cast<uint32_t>(SkMemoryWaitFlag::EQ));
+    auto* waitNode2 = CreateMemoryNode(3, SkNodeType::NODE_MEMORY_WAIT, kEventId, 3,
+                                        static_cast<uint32_t>(SkMemoryWaitFlag::EQ));
+    graph->memoryToNodes[kEventId].writeNodeIdList.insert(writeNode->GetNodeId());
+    graph->memoryToNodes[kEventId].waitNodeIdList.insert(waitNode1->GetNodeId());
+    graph->memoryToNodes[kEventId].waitNodeIdList.insert(waitNode2->GetNodeId());
+    ConfigureValueBreakerBypass(ACLSK_VALUE_BREAKER_BYPASS_PAIRED_WAIT);
+
+    ASSERT_TRUE(graph->PostProcessMemoryNode());
+
+    EXPECT_TRUE(writeNode->IsFusible());
+    EXPECT_EQ(waitNode1->GetNodeType(), SkNodeType::NODE_WAIT);
+    EXPECT_TRUE(waitNode1->IsFusible());
+    EXPECT_EQ(waitNode2->GetNodeType(), SkNodeType::NODE_WAIT);
+    EXPECT_TRUE(waitNode2->IsFusible());
+}
+
+TEST_F(SuperKernelGraphTest, PostProcessMemoryNode_PairedWaitSupportsAllMemoryWaitFlags)
+{
+    struct Case {
+        uint64_t eventId;
+        uint64_t writeValue;
+        uint64_t waitValue;
+        SkMemoryWaitFlag flag;
+    };
+    const std::vector<Case> cases = {
+        {0xC01, 5, 3, SkMemoryWaitFlag::GEQ},
+        {0xC02, 0x4, 0xC, SkMemoryWaitFlag::AND},
+        {0xC03, 0x1, 0x2, SkMemoryWaitFlag::NOR},
+    };
+
+    for (const auto& item : cases) {
+        const uint64_t baseNodeId = item.eventId & 0xFF;
+        auto* writeNode = CreateMemoryNode(baseNodeId, SkNodeType::NODE_MEMORY_WRITE, item.eventId, item.writeValue);
+        auto* waitNode = CreateMemoryNode(baseNodeId + 100, SkNodeType::NODE_MEMORY_WAIT, item.eventId,
+                                          item.waitValue, static_cast<uint32_t>(item.flag));
+        graph->memoryToNodes[item.eventId].writeNodeIdList.insert(writeNode->GetNodeId());
+        graph->memoryToNodes[item.eventId].waitNodeIdList.insert(waitNode->GetNodeId());
+    }
+    ConfigureValueBreakerBypass(ACLSK_VALUE_BREAKER_BYPASS_PAIRED_WAIT);
+
+    ASSERT_TRUE(graph->PostProcessMemoryNode());
+
+    for (const auto& item : cases) {
+        const uint64_t baseNodeId = item.eventId & 0xFF;
+        EXPECT_EQ(graph->GetNodeById(baseNodeId)->GetNodeType(), SkNodeType::NODE_NOTIFY);
+        EXPECT_EQ(graph->GetNodeById(baseNodeId + 100)->GetNodeType(), SkNodeType::NODE_WAIT);
+    }
+}
+
+TEST_F(SuperKernelGraphTest, PostProcessMemoryNode_PairedWaitUnknownFlagReturnsFalse)
+{
+    constexpr uint64_t kEventId = 0xC10;
+    auto* writeNode = CreateMemoryNode(1, SkNodeType::NODE_MEMORY_WRITE, kEventId, 3);
+    auto* waitNode = CreateMemoryNode(2, SkNodeType::NODE_MEMORY_WAIT, kEventId, 3, 0xFF);
+    graph->memoryToNodes[kEventId].writeNodeIdList.insert(writeNode->GetNodeId());
+    graph->memoryToNodes[kEventId].waitNodeIdList.insert(waitNode->GetNodeId());
+    ConfigureValueBreakerBypass(ACLSK_VALUE_BREAKER_BYPASS_PAIRED_WAIT);
+
+    EXPECT_FALSE(graph->PostProcessMemoryNode());
+}
+
+TEST_F(SuperKernelGraphTest, PostProcessMemoryNode_OnlyWriteDuplicateAssociationsFail)
+{
+    constexpr uint64_t kNotifyEvent = 0xC13;
+    auto* notifyNode = CreateMemoryNode(1, SkNodeType::NODE_MEMORY_WRITE, kNotifyEvent, 7);
+    graph->memoryToNodes[kNotifyEvent].writeNodeIdList.insert(notifyNode->GetNodeId());
+    graph->eventToNodes[kNotifyEvent].notifyNodeId = 999;
+    EXPECT_FALSE(graph->PostProcessMemoryNode());
+
+    ResetGraph();
+    constexpr uint64_t kResetEvent = 0xC14;
+    auto* resetNode = CreateMemoryNode(2, SkNodeType::NODE_MEMORY_WRITE, kResetEvent, 0);
+    graph->memoryToNodes[kResetEvent].writeNodeIdList.insert(resetNode->GetNodeId());
+    graph->eventToNodes[kResetEvent].resetNodeIdList.insert(resetNode->GetNodeId());
+    EXPECT_FALSE(graph->PostProcessMemoryNode());
+}
+
+TEST_F(SuperKernelGraphTest, Update_MemoryDerivedEventUsesDefaultValueAndFlag)
+{
+    TestRITask notifyTask{};
+    TestRITask waitTask{};
+    TestRITask resetTask{};
+    auto* notifyNode = CreateEventNodeWithTask(notifyTask, 10, SkNodeType::NODE_NOTIFY,
+                                               ACL_MODEL_RI_TASK_EVENT_RECORD, reinterpret_cast<void*>(0x1000));
+    auto* waitNode = CreateEventNodeWithTask(waitTask, 11, SkNodeType::NODE_WAIT,
+                                             ACL_MODEL_RI_TASK_EVENT_WAIT, reinterpret_cast<void*>(0x2000));
+    auto* resetNode = CreateEventNodeWithTask(resetTask, 12, SkNodeType::NODE_RESET,
+                                              ACL_MODEL_RI_TASK_EVENT_RESET, reinterpret_cast<void*>(0x3000));
+    std::vector<SuperKernelBaseNode*> updateNodes = {notifyNode, waitNode, resetNode};
+    ASSERT_TRUE(graph->ExpandUpdateNodes(updateNodes));
+
+    EXPECT_EQ(graph->Update(), ACL_SUCCESS);
+
+    EXPECT_EQ(notifyTask.params.type, ACL_MODEL_RI_TASK_VALUE_WRITE);
+    EXPECT_EQ(notifyTask.params.valueWriteTaskParams.devAddr, reinterpret_cast<void*>(0x1000));
+    EXPECT_EQ(notifyTask.params.valueWriteTaskParams.value, SK_DEFAULT_NOTIFY_VALUE);
+
+    EXPECT_EQ(waitTask.params.type, ACL_MODEL_RI_TASK_VALUE_WAIT);
+    EXPECT_EQ(waitTask.params.valueWaitTaskParams.devAddr, reinterpret_cast<void*>(0x2000));
+    EXPECT_EQ(waitTask.params.valueWaitTaskParams.value, SK_DEFAULT_WAIT_VALUE);
+    EXPECT_EQ(waitTask.params.valueWaitTaskParams.flag, static_cast<uint32_t>(SkMemoryWaitFlag::EQ));
+
+    EXPECT_EQ(resetTask.params.type, ACL_MODEL_RI_TASK_VALUE_WRITE);
+    EXPECT_EQ(resetTask.params.valueWriteTaskParams.devAddr, reinterpret_cast<void*>(0x3000));
+    EXPECT_EQ(resetTask.params.valueWriteTaskParams.value, SK_DEFAULT_RESET_VALUE);
 }

@@ -73,6 +73,32 @@ uint64_t FindKernelNodeWithFrontReserve(SuperKernelGraph& graph, SuperKernelBase
     return INVALID_TASK_ID;
 }
 
+bool IsMemoryDerivedNotify(const SuperKernelBaseNode* node)
+{
+    return node != nullptr && node->GetNodeType() == SkNodeType::NODE_NOTIFY &&
+        !node->GetCorrespondingMemoryWriteNodeIds().empty();
+}
+
+bool HasMatchedWaitsInScope(const SuperKernelBaseNode* node)
+{
+    return node != nullptr && !node->GetCorrespondingWaitNodeIds().empty();
+}
+
+bool ShouldCancelBalancedNotify(const SuperKernelBaseNode* node)
+{
+    if (node == nullptr || node->GetNodeType() != SkNodeType::NODE_NOTIFY) {
+        return false;
+    }
+
+    if (!IsMemoryDerivedNotify(node)) {
+        return true;
+    }
+
+    // Memory-derived notify carries VALUE_WRITE semantics. Keep write-only
+    // memory notify, but cancel paired write+wait when both sides are in scope.
+    return HasMatchedWaitsInScope(node);
+}
+
 std::vector<SuperKernelBaseNode*> FilterCancelledNodes(const std::vector<SuperKernelBaseNode*>& nodes)
 {
     // Constraints:
@@ -105,9 +131,11 @@ std::vector<SuperKernelBaseNode*> FilterCancelledNodes(const std::vector<SuperKe
         auto nodeType = curNode->GetNodeType();
         // Notify and Reset is removable only when expected and observed waits are fully matched.
         if (nodeType == SkNodeType::NODE_NOTIFY && eventCounts[eventId] == 0) {
-            SK_LOGI("Event[0x%lx] cancelled in post-process: NOTIFY node info : %s", eventId,
-                    curNode->Format().c_str());
-            continue;
+            if (ShouldCancelBalancedNotify(curNode)) {
+                SK_LOGI("Event[0x%lx] cancelled in post-process: NOTIFY node info : %s", eventId,
+                        curNode->Format().c_str());
+                continue;
+            }
         } else if (nodeType == SkNodeType::NODE_RESET && eventCounts.count(eventId)
                    && eventCounts[eventId] == 0) {
             SK_LOGI("Event[0x%lx] cancelled in post-process: RESET node info : %s", eventId,
@@ -177,15 +205,15 @@ bool ProcessFrontWaitForStream(SuperKernelGraph& graph, ScopeExtInfo& extInfo,
     aclmdlRITaskParams notifyParams = {};
     notifyParams.type = ACL_MODEL_RI_TASK_VALUE_WRITE;
     notifyParams.valueWriteTaskParams.devAddr = addr;
-    notifyParams.valueWriteTaskParams.value = 1;
+    notifyParams.valueWriteTaskParams.value = SK_DEFAULT_NOTIFY_VALUE;
     extInfo.customParamsList[curStreamIdx].emplace_back(notifyParams);
 
     // prev stream add wait event task
     aclmdlRITaskParams waitParams = {};
     waitParams.type = ACL_MODEL_RI_TASK_VALUE_WAIT;
     waitParams.valueWaitTaskParams.devAddr = addr;
-    waitParams.valueWaitTaskParams.value = 1;
-    waitParams.valueWaitTaskParams.flag = 1;
+    waitParams.valueWaitTaskParams.value = SK_DEFAULT_WAIT_VALUE;
+    waitParams.valueWaitTaskParams.flag = static_cast<uint32_t>(SkMemoryWaitFlag::EQ);
     extInfo.customParamsList[prevWaitStreamIdx].emplace(
         extInfo.customParamsList[prevWaitStreamIdx].begin(), waitParams);
     if (!EnsureStreamCapacity(scopeStreamInfos[curStreamIdx], extInfo.customParamsList[curStreamIdx])) {
@@ -237,15 +265,15 @@ bool ProcessBackBlockForStream(ScopeExtInfo& extInfo, const std::vector<ScopeStr
     aclmdlRITaskParams waitParams = {};
     waitParams.type = ACL_MODEL_RI_TASK_VALUE_WAIT;
     waitParams.valueWaitTaskParams.devAddr = addr;
-    waitParams.valueWaitTaskParams.value = 1;
-    waitParams.valueWaitTaskParams.flag = 1;
+    waitParams.valueWaitTaskParams.value = SK_DEFAULT_WAIT_VALUE;
+    waitParams.valueWaitTaskParams.flag = static_cast<uint32_t>(SkMemoryWaitFlag::EQ);
     extInfo.customParamsList[curStreamIdx].emplace_back(waitParams);
 
     // cur stream add reset event task
     aclmdlRITaskParams resetParams = {};
     resetParams.type = ACL_MODEL_RI_TASK_VALUE_WRITE;
     resetParams.valueWriteTaskParams.devAddr = addr;
-    resetParams.valueWriteTaskParams.value = 0;
+    resetParams.valueWriteTaskParams.value = SK_DEFAULT_RESET_VALUE;
     extInfo.customParamsList[curStreamIdx].emplace_back(resetParams);
     if (!EnsureStreamCapacity(scopeStreamInfo, extInfo.customParamsList[curStreamIdx])) {
         SK_LOGE("back-block capacity check failed: streamId=%u, nodeSize=%lu, customParamSize=%zu",
@@ -272,44 +300,57 @@ bool CollectStreamCandidates(SuperKernelGraph& graph, const std::vector<ScopeStr
         bool isSubStreamCandidate = false;
         bool isSubStreamEntryCandidate = false;
 
-        const uint32_t otherFrontWaitCount = needFrontWaitCount - (plans[curStreamIdx].needFrontWait ? 1U : 0U);
+        // Cache current stream info to avoid repeated indexing
+        const auto& curStreamInfo = scopeStreamInfos[curStreamIdx];
+        const auto& curPlan = plans[curStreamIdx];
+
+        // Calculate front wait count for other streams (prevent unsigned underflow)
+        const uint32_t curFrontWaitCount = curPlan.needFrontWait ? 1U : 0U;
+        const uint32_t otherFrontWaitCount = (needFrontWaitCount >= curFrontWaitCount) ?
+                                              (needFrontWaitCount - curFrontWaitCount) : 0U;
         const uint32_t mainFrontReserveCount = otherFrontWaitCount > 0 ? 1U : 0U;
+
         uint64_t candidateNodeId = FindKernelNodeWithFrontReserve(
-            graph, graph.GetNodeById(scopeStreamInfos[curStreamIdx].headNodeIdx),
-            scopeStreamInfos[curStreamIdx].tailNodeIdx, mainFrontReserveCount);
+            graph, graph.GetNodeById(curStreamInfo.headNodeIdx),
+            curStreamInfo.tailNodeIdx, mainFrontReserveCount);
         if (candidateNodeId != INVALID_TASK_ID) {
             candidates.mainStream.push_back(curStreamIdx);
             plans[curStreamIdx].candidateNodeId = candidateNodeId;
             isMainStreamCandidate = true;
             SK_LOGI("main stream candidate added: streamId=%u, candidateNodeId=%lu",
-                    scopeStreamInfos[curStreamIdx].streamIdx, candidateNodeId);
+                    curStreamInfo.streamIdx, candidateNodeId);
         }
 
         // Each frontWait/backBlock requires 2 nodes: frontWait for notify/wait, backBlock for wait/reset
-        uint32_t frontWaitNodeCount = 2 * (plans[curStreamIdx].needFrontWait ? 1U : 0U);
-        uint32_t backBlockNodeCount = 2 * (plans[curStreamIdx].needBackBlock ? 1U : 0U);
-        uint32_t needNodeCount = frontWaitNodeCount + backBlockNodeCount;
-        if (needNodeCount <= scopeStreamInfos[curStreamIdx].nodeSize) {
+        const uint32_t frontWaitNodeCount = 2U * (curPlan.needFrontWait ? 1U : 0U);
+        const uint32_t backBlockNodeCount = 2U * (curPlan.needBackBlock ? 1U : 0U);
+        const uint32_t subStreamNeedCount = frontWaitNodeCount + backBlockNodeCount;
+
+        if (subStreamNeedCount <= curStreamInfo.nodeSize) {
             candidates.subStream.push_back(curStreamIdx);
             isSubStreamCandidate = true;
             SK_LOGI("sub stream candidate added: streamId=%u, needNodeCount=%u",
-                    scopeStreamInfos[curStreamIdx].streamIdx, needNodeCount);
+                    curStreamInfo.streamIdx, subStreamNeedCount);
         }
 
-        needNodeCount = needNodeCount - (plans[curStreamIdx].needFrontWait ? 1U : 0U);
-        if (needNodeCount <= scopeStreamInfos[curStreamIdx].nodeSize) {
+        // SubStreamEntry requires one less node (can reuse frontWait from entry stream)
+        const uint32_t subStreamEntryNeedCount = subStreamNeedCount - curFrontWaitCount;
+        if (subStreamEntryNeedCount <= curStreamInfo.nodeSize) {
             candidates.subStreamEntry.push_back(curStreamIdx);
             isSubStreamEntryCandidate = true;
             SK_LOGI("sub stream entry candidate added: streamId=%u, needNodeCount=%u",
-                    scopeStreamInfos[curStreamIdx].streamIdx, needNodeCount);
+                    curStreamInfo.streamIdx, subStreamEntryNeedCount);
         }
 
         if (!isMainStreamCandidate && !isSubStreamCandidate && !isSubStreamEntryCandidate) {
-            SK_LOGI("streamId=%u does not meet the requirements for being mainStream and subStream.",
-                    scopeStreamInfos[curStreamIdx].streamIdx);
-            SK_LOGI("1.stream have not candidate node, reserve num=%u", mainFrontReserveCount);
-            SK_LOGI("2.stream capacity insufficient for sub stream: nodeSize=%lu, but minimum required=%u",
-                    scopeStreamInfos[curStreamIdx].nodeSize, needNodeCount);
+            SK_LOGI("streamId=%u does not meet the requirements for any candidate type:",
+                    curStreamInfo.streamIdx);
+            SK_LOGI("1. mainStream: no candidate node found (reserveRequirement=%u)",
+                    mainFrontReserveCount);
+            SK_LOGI("2. subStream: nodeSize=%lu, required=%u",
+                    curStreamInfo.nodeSize, subStreamNeedCount);
+            SK_LOGI("3. subStreamEntry: nodeSize=%lu, required=%u",
+                    curStreamInfo.nodeSize, subStreamEntryNeedCount);
             return false;
         }
     }

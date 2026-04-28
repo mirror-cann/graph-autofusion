@@ -26,6 +26,8 @@
 #include "sk_scope_info.h"
 #include "acl/acl.h"
 
+class SuperKernelOptionsManager;
+
 /*!
  * \enum DeadlockFailReason
  * \brief Detailed failure reasons for deadlock detection
@@ -80,6 +82,11 @@ public:
      * @param graph 图对象引用
      */
     explicit LockDetector(SuperKernelGraph& graph)
+    {
+        Init(graph);
+    }
+
+    LockDetector(SuperKernelGraph& graph, const SuperKernelOptionsManager& opts) : opts_(&opts)
     {
         Init(graph);
     }
@@ -158,6 +165,7 @@ private:
     bool CheckNotifyInSKStream(SuperKernelBaseNode& curNode, SuperKernelBaseNode& notifyNode);
 
     bool GetFusibleStatus(SuperKernelBaseNode& curNode);
+    bool ShouldBypassValueWaitDeadlock(const SuperKernelBaseNode& curNode) const;
 
     bool HasEnoughCores(const SuperKernelBaseNode* curNode, bool isSuperKernel);
 
@@ -176,6 +184,7 @@ private:
     uint32_t kernelNodeNum;
     std::unordered_map<uint32_t, std::pair<uint64_t, uint64_t>> skRangeInStream;
     SuperKernelGraph* graph_;  // 存储graph指针，用于析构时调用Reset
+    const SuperKernelOptionsManager* opts_ = nullptr;
     DeadlockFailReason deadlockReason_ = DeadlockFailReason::NOT_FIND_DEADLOCK;  // 当前检测到的死锁原因
 };
 

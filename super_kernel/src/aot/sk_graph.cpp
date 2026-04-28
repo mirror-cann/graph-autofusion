@@ -15,7 +15,9 @@
 
 #include "sk_graph.h"
 #include "sk_dump_json.h"
+#include "sk_options_manager.h"
 #include "sk_scope_split.h"
+#include "super_kernel.h"
 
 #include <optional>
 #include <stdexcept>
@@ -23,6 +25,65 @@
 #include <cstdint>
 #include <bitset>
 #include <unordered_map>
+
+namespace {
+
+uint64_t ResolveEventValue(const SuperKernelBaseNode* node)
+{
+    const auto& syncInfos = node->GetNodeInfos().syncInfos;
+    if (syncInfos.memoryValue != std::numeric_limits<uint64_t>::max()) {
+        return syncInfos.memoryValue;
+    }
+
+    switch (node->GetNodeType()) {
+        case SkNodeType::NODE_NOTIFY:
+            return SK_DEFAULT_NOTIFY_VALUE;
+        case SkNodeType::NODE_WAIT:
+            return SK_DEFAULT_WAIT_VALUE;
+        case SkNodeType::NODE_RESET:
+            return SK_DEFAULT_RESET_VALUE;
+        default:
+            return 0;
+    }
+}
+
+uint32_t ResolveEventWaitFlag(const SuperKernelBaseNode* node)
+{
+    const auto& syncInfos = node->GetNodeInfos().syncInfos;
+    if (node->GetNodeType() != SkNodeType::NODE_WAIT) {
+        return SK_DEFAULT_WRITE_FLAG;
+    }
+    if (syncInfos.memoryWaitFlag != std::numeric_limits<uint32_t>::max()) {
+        return syncInfos.memoryWaitFlag;
+    }
+    return static_cast<uint32_t>(SkMemoryWaitFlag::EQ);
+}
+
+bool IsMemoryDerivedEventNode(const SuperKernelBaseNode& node)
+{
+    return !node.GetCorrespondingMemoryWriteNodeIds().empty();
+}
+
+bool IsNotifyByMemoryWaitRule(uint64_t writeMemoryValue, uint64_t memoryWaitValue,
+                              uint32_t waitFlag, uint64_t eventId)
+{
+    switch (static_cast<SkMemoryWaitFlag>(waitFlag)) {
+        case SkMemoryWaitFlag::GEQ:
+            return writeMemoryValue >= memoryWaitValue;
+        case SkMemoryWaitFlag::EQ:
+            return writeMemoryValue == memoryWaitValue;
+        case SkMemoryWaitFlag::AND:
+            return (writeMemoryValue & memoryWaitValue) != 0;
+        case SkMemoryWaitFlag::NOR:
+            return (~(writeMemoryValue | memoryWaitValue)) != 0;
+        default:
+            SK_LOGW("Unknown waitFlag %u for event %lu, treated as reset node", waitFlag, eventId);
+            return false;
+    }
+}
+
+} // namespace
+
 
 std::string SuperKernelGraph::BitsetToString(const std::bitset<MAX_SCOPE_NUM>& bitset) const
 {
@@ -49,20 +110,20 @@ aclError SuperKernelGraph::Update() {
             switch (node->GetNodeType()) {
                 case SkNodeType::NODE_NOTIFY: {
                     customParams.type = ACL_MODEL_RI_TASK_VALUE_WRITE;
-                    customParams.valueWriteTaskParams.value = 1;
+                    customParams.valueWriteTaskParams.value = ResolveEventValue(node);
                     customParams.valueWriteTaskParams.devAddr = node->nodeInfos.syncInfos.addrValue;
                     break;
                 }
                 case SkNodeType::NODE_WAIT: {
                     customParams.type = ACL_MODEL_RI_TASK_VALUE_WAIT;
-                    customParams.valueWaitTaskParams.value = 1;
-                    customParams.valueWaitTaskParams.flag = 1;
+                    customParams.valueWaitTaskParams.value = ResolveEventValue(node);
+                    customParams.valueWaitTaskParams.flag = ResolveEventWaitFlag(node);
                     customParams.valueWaitTaskParams.devAddr = node->nodeInfos.syncInfos.addrValue;
                     break;
                 }
                 case SkNodeType::NODE_RESET: {
                     customParams.type = ACL_MODEL_RI_TASK_VALUE_WRITE;
-                    customParams.valueWriteTaskParams.value = 0;
+                    customParams.valueWriteTaskParams.value = ResolveEventValue(node);
                     customParams.valueWriteTaskParams.devAddr = node->nodeInfos.syncInfos.addrValue;
                     break;
                 }
@@ -389,15 +450,18 @@ void SuperKernelGraph::BuildEventNodeAssociations() {
                         eventId, eventInfo.notifyNodeId);
             }
         } else if (eventInfo.notifyNodeId != INVALID_TASK_ID && eventInfo.waitNodeIdList.empty()) {
-            // Notify without any wait consumer is not fusible in current modelRI.
-            // Keep node type unchanged, but prevent entering scope fusion pipeline.
             auto* notifyNode = GetNodeById(eventInfo.notifyNodeId);
             if (notifyNode != nullptr && notifyNode->GetNodeType() == SkNodeType::NODE_NOTIFY) {
-                notifyNode->SetIsFusible(false);
-                notifyNode->SetFusionFailReason(FusionFailReason::NOTIFY_NO_WAIT_NODE);
-                notifyNode->SetCorrespondingWaitNodeIds({});
-                SK_LOGW("Event 0x%lx: notify node %lu has no wait node in modelRI, mark as unfusible",
-                        eventId, eventInfo.notifyNodeId);
+                if (IsMemoryDerivedEventNode(*notifyNode)) {
+                    SK_LOGI("Event 0x%lx: memory-derived notify node %lu keeps fusible without in-scope waits",
+                            eventId, eventInfo.notifyNodeId);
+                } else {
+                    notifyNode->SetIsFusible(false);
+                    notifyNode->SetFusionFailReason(FusionFailReason::NOTIFY_NO_WAIT_NODE);
+                    notifyNode->SetCorrespondingWaitNodeIds({});
+                    SK_LOGI("Event 0x%lx: notify node %lu has no wait node in modelRI, mark as unfusible",
+                            eventId, eventInfo.notifyNodeId);
+                }
             } else {
                 SK_LOGE("Event 0x%lx: orphan notify node %lu is invalid or not a notify node",
                         eventId, eventInfo.notifyNodeId);
@@ -419,18 +483,25 @@ void SuperKernelGraph::BuildEventNodeAssociations() {
     SK_LOGI("Completed building all event node associations");
 }
 
+uint32_t SuperKernelGraph::GetValueBreakerBypass() const
+{
+    if (opts_ == nullptr) {
+        return ACLSK_VALUE_BREAKER_BYPASS_NONE;
+    }
+    const auto* option = static_cast<const AggressiveOptStrategiesOption*>(
+        opts_->GetOption(aclskOptionType::AGGRESSIVE_OPT_STRATEGIES));
+    return option == nullptr ? ACLSK_VALUE_BREAKER_BYPASS_NONE : option->GetValue().valueBreakerBypass;
+}
+
 bool SuperKernelGraph::ProcessMemoryWriteNodes(const uint64_t eventId, const MemoryInfos& memoryInfo,
     const uint64_t memoryWaitValue, const uint32_t waitFlag)
 {
+    const uint32_t valueBreakerBypass = GetValueBreakerBypass();
     std::vector<uint64_t> notifyIdVec;
     std::vector<uint64_t> resetIdVec;
 
-    // Iterate through all memory write nodes and classify them as Notify or Reset nodes based on waitFlag
-    // waitFlag definitions:
-    //   0x0: >= comparison mode
-    //   0x1: == equality mode
-    //   0x2: & bitwise AND mode
-    //   0x3: ~| bitwise OR with NOT mode
+    // Iterate through all memory write nodes and classify them as notify/reset
+    // according to the runtime-compatible memory wait rule.
     for (const auto writeNodeId : memoryInfo.writeNodeIdList) {
         auto* writeNode = GetNodeById(writeNodeId);
         // Only process valid MEMORY_WRITE type nodes
@@ -438,32 +509,7 @@ bool SuperKernelGraph::ProcessMemoryWriteNodes(const uint64_t eventId, const Mem
             continue;
         }
         const uint64_t writeMemoryValue = writeNode->nodeInfos.syncInfos.memoryValue;
-        bool isNotify = false;
-        // Calculate whether notification condition is satisfied based on different waitFlag values
-        switch (waitFlag) {
-            case 0x0:
-                // Greater than or equal mode: trigger notification when written value >= wait value
-                isNotify = (writeMemoryValue >= memoryWaitValue);
-                break;
-            case 0x1:
-                // Equal mode: trigger notification when written value == wait value
-                isNotify = (writeMemoryValue == memoryWaitValue);
-                break;
-            case 0x2:
-                // Bitwise AND mode: trigger notification when (written value & wait value) != 0
-                isNotify = ((writeMemoryValue & memoryWaitValue) != 0);
-                break;
-            case 0x3:
-                // Bitwise OR with NOT mode: trigger notification when ~(written value | wait value) != 0
-                isNotify = ((~(writeMemoryValue | memoryWaitValue)) != 0);
-                break;
-            default:
-                // Undefined waitFlag, do not trigger notification by default
-                isNotify = false;
-                SK_LOGW("Unknown waitFlag %u for event %lu, treated as reset node",
-                    waitFlag, eventId);
-                break;
-        }
+        const bool isNotify = IsNotifyByMemoryWaitRule(writeMemoryValue, memoryWaitValue, waitFlag, eventId);
 
         // Classify nodes into corresponding vectors based on judgment result
         if (isNotify) {
@@ -476,37 +522,51 @@ bool SuperKernelGraph::ProcessMemoryWriteNodes(const uint64_t eventId, const Mem
         SK_LOGE("there exits multi memory write node which is notify, it is illegal, eventId: 0x%lx",
             eventId);
         return false;
-    } else if (notifyIdVec.size() == 1) {
-        auto* writeNode = GetNodeById(notifyIdVec[0]);
-        SK_LOGD("there exits only one memory write node which is notify, it may cause dead lock, details=%s",
-            writeNode->Format().c_str());
-        writeNode->SetNodeType(SkNodeType::NODE_NOTIFY);
-        writeNode->SetIsFusible(true);
-        if (!AddEventAssociateNotify(eventId, writeNode)) {
-            SK_LOGE("Failed to associate notify event 0x%lx with node %lu", eventId, notifyIdVec[0]);
-            return false;
-        }
-        for (auto waitNodeId : memoryInfo.waitNodeIdList) {
-            auto* waitNode = GetNodeById(waitNodeId);
-            if (waitNode != nullptr &&
-                (waitNode->GetNodeType() == SkNodeType::NODE_MEMORY_WAIT)) {
-                waitNode->SetNodeType(SkNodeType::NODE_WAIT);
-                waitNode->SetIsFusible(true);
-                if (!AddEventAssociateWait(eventId, waitNode)) {
-                    SK_LOGE("Failed to associate wait event 0x%lx with node %lu", eventId, waitNodeId);
-                    return false;
-                }
+    } else if (notifyIdVec.empty()) {
+        SK_LOGE("paired memory event 0x%lx does not satisfy memory wait rule, no notify node generated",
+            eventId);
+        return false;
+    }
+
+    // value_breaker_bypass is a wait-oriented bitmask
+    const bool enablePairedWaitBypass =
+        (valueBreakerBypass & ACLSK_VALUE_BREAKER_BYPASS_PAIRED_WAIT) != 0;
+    if (!enablePairedWaitBypass) {
+        SK_LOGI("value_breaker_bypass=%d does not enable 0b01 paired write/wait bypass, "
+            "keep paired memory event 0x%lx unfusible",
+            valueBreakerBypass, eventId);
+    }
+
+    auto* writeNode = GetNodeById(notifyIdVec[0]);
+    SK_LOGD("there exits only one memory write node which is notify, it may cause dead lock, details=%s",
+        writeNode->Format().c_str());
+    static_cast<SuperKernelMemoryNode*>(writeNode)->SetCorrespondingMemoryWriteNodeId({notifyIdVec[0]});
+    writeNode->SetNodeType(SkNodeType::NODE_NOTIFY);
+    writeNode->SetIsFusible(enablePairedWaitBypass);
+    if (!AddEventAssociateNotify(eventId, writeNode)) {
+        SK_LOGE("Failed to associate notify event 0x%lx with node %lu", eventId, notifyIdVec[0]);
+        return false;
+    }
+    for (auto waitNodeId : memoryInfo.waitNodeIdList) {
+        auto* waitNode = GetNodeById(waitNodeId);
+        if (waitNode != nullptr &&
+            (waitNode->GetNodeType() == SkNodeType::NODE_MEMORY_WAIT)) {
+            waitNode->SetNodeType(SkNodeType::NODE_WAIT);
+            waitNode->SetIsFusible(enablePairedWaitBypass);
+            if (!AddEventAssociateWait(eventId, waitNode)) {
+                SK_LOGE("Failed to associate wait event 0x%lx with node %lu", eventId, waitNodeId);
+                return false;
             }
         }
     }
     if (!resetIdVec.empty()) {
         for (auto resetId: resetIdVec) {
             auto* resetNode = GetNodeById(resetId);
+            static_cast<SuperKernelMemoryNode*>(resetNode)->SetCorrespondingMemoryWriteNodeId({resetId});
             resetNode->SetNodeType(SkNodeType::NODE_RESET);
-            resetNode->SetIsFusible(false);
-            resetNode->SetFusionFailReason(FusionFailReason::RESET_TYPE_NODE);
+            resetNode->SetIsFusible(enablePairedWaitBypass);
             if (!AddEventAssociateReset(eventId, resetNode)) {
-                SK_LOGE("Failed to associate reset event 0x%lx with node %lu", eventId, resetIdVec[0]);
+                SK_LOGE("Failed to associate reset event 0x%lx with node %lu", eventId, resetId);
                 return false;
             }
         }
@@ -516,29 +576,65 @@ bool SuperKernelGraph::ProcessMemoryWriteNodes(const uint64_t eventId, const Mem
 
 bool SuperKernelGraph::PostProcessMemoryNode() {
     SK_LOGI("Starting to build memory node associations, total events: %zu", memoryToNodes.size());
+    const uint32_t valueBreakerBypass = GetValueBreakerBypass();
+    // value_breaker_bypass is a wait-oriented bitmask
+    const bool enableUnpairedWaitBypass =
+        (valueBreakerBypass & ACLSK_VALUE_BREAKER_BYPASS_UNPAIRED_WAIT) != 0;
     for (const auto& it : memoryToNodes) {
         const uint64_t eventId = it.first;
         const MemoryInfos& memoryInfo = it.second;
         if (memoryInfo.writeNodeIdList.empty() && !memoryInfo.waitNodeIdList.empty()) {
-            // No memory write exists, meaning the memory write is outside modelRI,
-            // therefore change all waits to event semantics, but they cannot be fused.
-            for (auto waitNodeId : memoryInfo.waitNodeIdList) {
-                auto* waitNode = GetNodeById(waitNodeId);
-                if (waitNode != nullptr &&
-                    (waitNode->GetNodeType() == SkNodeType::NODE_MEMORY_WAIT)) {
-                    waitNode->SetNodeType(SkNodeType::NODE_WAIT);
-                    waitNode->SetIsFusible(false);
-                    waitNode->SetFusionFailReason(FusionFailReason::MEMORY_WAIT_NODE_ONLY);
+            // No memory write exists, meaning the memory write is outside modelRI.
+            if (enableUnpairedWaitBypass) {
+                SK_LOGI("value_breaker_bypass=0x%x enables 0b10 unpaired wait bypass, mark memory wait event 0x%lx as notify",
+                        valueBreakerBypass, eventId);
+                for (auto waitNodeId : memoryInfo.waitNodeIdList) {
+                    auto* waitNode = GetNodeById(waitNodeId);
+                    if (waitNode != nullptr &&
+                        (waitNode->GetNodeType() == SkNodeType::NODE_MEMORY_WAIT)) {
+                        waitNode->SetNodeType(SkNodeType::NODE_WAIT);
+                        waitNode->SetIsFusible(true);
+                        if (!AddEventAssociateWait(eventId, waitNode)) {
+                            SK_LOGE("Failed to associate wait event 0x%lx with node %lu", eventId, waitNodeId);
+                            return false;
+                        }
+                    }
+                }
+            } else {
+                // No bypass: keep memory wait semantics unchanged and block fusion for this path.
+                for (auto waitNodeId : memoryInfo.waitNodeIdList) {
+                    auto* waitNode = GetNodeById(waitNodeId);
+                    if (waitNode != nullptr &&
+                        (waitNode->GetNodeType() == SkNodeType::NODE_MEMORY_WAIT)) {
+                        waitNode->SetNodeType(SkNodeType::NODE_WAIT);
+                        waitNode->SetIsFusible(false);
+                        waitNode->SetFusionFailReason(FusionFailReason::MEMORY_WAIT_NODE_ONLY);
+                    }
                 }
             }
         } else if (!memoryInfo.writeNodeIdList.empty() && memoryInfo.waitNodeIdList.empty()) {
-            // only exists memory write nodes, mask it as unfusible
+            // only exists memory write nodes, treat them as write-only memory events.
             for (auto writeNodeId : memoryInfo.writeNodeIdList) {
                 auto* writeNode = GetNodeById(writeNodeId);
                 if (writeNode != nullptr &&
                     (writeNode->GetNodeType() == SkNodeType::NODE_MEMORY_WRITE)) {
-                    writeNode->SetIsFusible(false);
-                    writeNode->SetFusionFailReason(FusionFailReason::MEMORY_WRITE_NODE_ONLY);
+                    const uint64_t writeMemoryValue = ResolveEventValue(writeNode);
+                    const bool isReset = (writeMemoryValue == SK_DEFAULT_RESET_VALUE);
+                    static_cast<SuperKernelMemoryNode*>(writeNode)->SetCorrespondingMemoryWriteNodeId({writeNodeId});
+                    const auto targetType = isReset ? SkNodeType::NODE_RESET : SkNodeType::NODE_NOTIFY;
+                    writeNode->SetNodeType(targetType);
+                    writeNode->SetIsFusible(true);
+                    if (isReset) {
+                        if (!AddEventAssociateReset(eventId, writeNode)) {
+                            SK_LOGE("Failed to associate reset event %lu with node %lu", eventId, writeNodeId);
+                            return false;
+                        }
+                    } else {
+                        if (!AddEventAssociateNotify(eventId, writeNode)) {
+                            SK_LOGE("Failed to associate notify event %lu with node %lu", eventId, writeNodeId);
+                            return false;
+                        }
+                    }
                 }
             }
         } else {
@@ -549,7 +645,8 @@ bool SuperKernelGraph::PostProcessMemoryNode() {
                 auto* waitNode = GetNodeById(waitNodeId);
                 if (waitNode == nullptr || 
                     waitNode->GetNodeType() != SkNodeType::NODE_MEMORY_WAIT) {
-                    continue;
+                    SK_LOGE("Invalid wait node found for event %lu, %s", eventId, waitNode ? waitNode->Format().c_str() : "NOT_FOUND");
+                    return false;
                 }
 
                 const uint64_t memoryValue = waitNode->nodeInfos.syncInfos.memoryValue;
@@ -576,6 +673,7 @@ bool SuperKernelGraph::PostProcessMemoryNode() {
 
             bool ret = ProcessMemoryWriteNodes(eventId, memoryInfo, memoryWaitValue, waitFlag);
             if (!ret) {
+                SK_LOGE("Failed to process paired memory write nodes, eventId: 0x%lx", eventId);
                 return ret;
             }
         }

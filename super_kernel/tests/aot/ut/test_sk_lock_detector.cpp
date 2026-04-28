@@ -19,20 +19,31 @@
 
 #define private public
 #define protected public
+#include "super_kernel.h"
 #include "sk_node.h"
 #include "sk_types.h"
 #include "sk_graph.h"
 #include "sk_log.h"
+#include "sk_options_manager.h"
 #include "sk_lock_detector.h"
 
 class TestLockDetector: public ::testing::Test {
 protected:
     void SetUp() override {
+        opts = std::make_unique<SuperKernelOptionsManager>();
         graph = std::make_unique<SuperKernelGraph>();
-        lockDetector = std::make_unique<LockDetector>(*graph);
+        lockDetector = std::make_unique<LockDetector>(*graph, *opts);
         lockDetector->Reset();
         // Initialize device core numbers for LockDetector
         LockDetector::GetDeviceCores();
+    }
+
+    void ConfigureValueBreakerBypass(uint32_t value)
+    {
+        aclskOption option {};
+        option.optionType = aclskOptionType::AGGRESSIVE_OPT_STRATEGIES;
+        option.aggressiveOpts.valueBreakerBypass = value;
+        opts->SetOptOptionValue(&option);
     }
 
     void TearDown() override {
@@ -68,6 +79,23 @@ protected:
         node->isFusible = true;
         node->nodeType = SkNodeType::NODE_NOTIFY;
         node->nodeInfos.syncInfos.correspondingWaitNodeIds = waitNodeIds;
+        SuperKernelBaseNode* ptr = node.get();
+        graph->graphMap[nodeId] = std::move(node);
+        return ptr;
+    }
+
+    SuperKernelBaseNode* CreateResetNode(uint64_t nodeId, uint32_t streamIdx, uint64_t preNodeId = INVALID_TASK_ID,
+                                         uint64_t nextNodeId = INVALID_TASK_ID, uint64_t eventId = INVALID_TASK_ID)
+    {
+        auto node = std::make_unique<SuperKernelMemoryNode>(
+            nullptr, ACL_MODEL_RI_TASK_VALUE_WRITE, 0, streamIdx, INVALID_STREAM_ID, INVALID_TASK_ID);
+        node->SetNodeId(nodeId);
+        node->SetNextNodeId(nextNodeId);
+        node->SetPreNodeId(preNodeId);
+        node->nodeInfos.syncInfos.eventId = eventId;
+        node->nodeInfos.syncInfos.memoryValue = SK_DEFAULT_RESET_VALUE;
+        node->isFusible = true;
+        node->nodeType = SkNodeType::NODE_RESET;
         SuperKernelBaseNode* ptr = node.get();
         graph->graphMap[nodeId] = std::move(node);
         return ptr;
@@ -139,6 +167,7 @@ protected:
 
     }
     std::unique_ptr<SuperKernelGraph> graph;
+    std::unique_ptr<SuperKernelOptionsManager> opts;
     std::unique_ptr<LockDetector> lockDetector;
 };
 // Test 1: one stream, kernel node (after wait node) exceeds max sk cube/vec num 
@@ -458,4 +487,43 @@ TEST_F(TestLockDetector, SingleStreamNotifyHasCore) {
     EXPECT_TRUE(lockDetector->IsFusible(*n3));
     EXPECT_FALSE(lockDetector->IsFusible(*w4));
     lockDetector->Reset();
+}
+
+TEST_F(TestLockDetector, ResetNodeNoCoreResourceCanFuse)
+{
+    auto* reset = CreateResetNode(1, 0, INVALID_TASK_ID, INVALID_TASK_ID, 1);
+    SetupStreams({{1}});
+
+    EXPECT_TRUE(lockDetector->IsFusible(*reset));
+    EXPECT_TRUE(reset->isVisited);
+    EXPECT_EQ(lockDetector->GetDeadlockReason(), DeadlockFailReason::NOT_FIND_DEADLOCK);
+    EXPECT_EQ(lockDetector->superKernelCubeNum, 0);
+    EXPECT_EQ(lockDetector->superKernelVecNum, 0);
+    EXPECT_EQ(lockDetector->skStreamIds, std::unordered_set<uint32_t>{0});
+}
+
+TEST_F(TestLockDetector, MemoryDerivedPairedWaitKeepsDeadlockDetectionWithValueBreakerPairedFlag)
+{
+    auto* notify = CreateNotifyNode(10, 1, INVALID_TASK_ID, INVALID_TASK_ID, 1, {1});
+    auto* wait = CreateWaitNode(1, 0, INVALID_TASK_ID, INVALID_TASK_ID, 10);
+    wait->nodeInfos.syncInfos.addrValue = reinterpret_cast<void*>(0x1234);
+
+    ConfigureValueBreakerBypass(ACLSK_VALUE_BREAKER_BYPASS_PAIRED_WAIT);
+
+    EXPECT_FALSE(lockDetector->IsFusible(*wait));
+    EXPECT_FALSE(wait->isVisited);
+    EXPECT_EQ(lockDetector->GetDeadlockReason(), DeadlockFailReason::FIRST_WAIT);
+    (void)notify;
+}
+
+TEST_F(TestLockDetector, MemoryDerivedUnpairedWaitBypassesDeadlockDetectionWithValueBreakerBypass)
+{
+    auto* wait = CreateWaitNode(1, 0, INVALID_TASK_ID, INVALID_TASK_ID, INVALID_TASK_ID);
+    wait->nodeInfos.syncInfos.addrValue = reinterpret_cast<void*>(0x1234);
+
+    ConfigureValueBreakerBypass(ACLSK_VALUE_BREAKER_BYPASS_UNPAIRED_WAIT);
+
+    EXPECT_TRUE(lockDetector->IsFusible(*wait));
+    EXPECT_TRUE(wait->isVisited);
+    EXPECT_EQ(lockDetector->GetDeadlockReason(), DeadlockFailReason::NOT_FIND_DEADLOCK);
 }

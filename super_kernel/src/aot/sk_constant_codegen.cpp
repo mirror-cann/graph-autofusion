@@ -64,6 +64,13 @@ enum class SkCoreSyncType : uint8_t {
     SYNC_NONE,
 };
 
+enum class SkMemoryWaitFlag : uint32_t {
+    GEQ = 0x0,
+    EQ = 0x1,
+    AND = 0x2,
+    NOR = 0x3,
+};
+
 struct TaskInfo {
     uint32_t index;
     SkTaskType type;
@@ -88,55 +95,89 @@ typedef void (*sk_sub_func)(const __gm__ void *param, const sk::SkSystemArgs *sy
 namespace AscendC {
 
 template<bool aic_flag>
-__aicore__ inline void NotifyFunc(uint64_t param) {
+__aicore__ inline void NotifyFunc(uint64_t param, uint64_t value) {
     if constexpr(aic_flag) {
         if (get_block_idx() == 0) {
             __gm__ uint64_t *notifyLock = reinterpret_cast<__gm__ uint64_t *>(param);
-            *notifyLock = 1;
+            *notifyLock = value;
             dcci(notifyLock, 0, 2);
         }
     } else {
         if (AscendC::GetBlockIdx() == 0) {
             __gm__ uint64_t *notifyLock = reinterpret_cast<__gm__ uint64_t *>(param);
-            *notifyLock = 1;
+            *notifyLock = value;
             dcci(notifyLock, 0, 2);
         }
     }
 }
 
 template<bool aic_flag>
-__aicore__ inline void WaitFunc(uint64_t param) {
+__aicore__ inline void WaitFunc(uint64_t param, uint64_t value, uint32_t flag) {
     if constexpr(aic_flag) {
         if (get_block_idx() == 0) {
             __gm__ volatile uint64_t *waitLock = reinterpret_cast<__gm__ uint64_t *>(param);
-            dcci(waitLock, 0, 2);
-            while(*waitLock != 1) {
+            if (flag == static_cast<uint32_t>(SkMemoryWaitFlag::GEQ)) {
                 dcci(waitLock, 0, 2);
+                while (*waitLock < value) {
+                    dcci(waitLock, 0, 2);
+                }
+            } else if (flag == static_cast<uint32_t>(SkMemoryWaitFlag::EQ)) {
+                dcci(waitLock, 0, 2);
+                while (*waitLock != value) {
+                    dcci(waitLock, 0, 2);
+                }
+            } else if (flag == static_cast<uint32_t>(SkMemoryWaitFlag::AND)) {
+                dcci(waitLock, 0, 2);
+                while ((*waitLock & value) == 0) {
+                    dcci(waitLock, 0, 2);
+                }
+            } else {
+                dcci(waitLock, 0, 2);
+                while ((~(*waitLock | value)) == 0) {
+                    dcci(waitLock, 0, 2);
+                }
             }
         }
     } else {
         if (AscendC::GetBlockIdx() == 0) {
             __gm__ volatile uint64_t *waitLock = reinterpret_cast<__gm__ uint64_t *>(param);
-            dcci(waitLock, 0, 2);
-            while(*waitLock != 1) {
+            if (flag == static_cast<uint32_t>(SkMemoryWaitFlag::GEQ)) {
                 dcci(waitLock, 0, 2);
+                while (*waitLock < value) {
+                    dcci(waitLock, 0, 2);
+                }
+            } else if (flag == static_cast<uint32_t>(SkMemoryWaitFlag::EQ)) {
+                dcci(waitLock, 0, 2);
+                while (*waitLock != value) {
+                    dcci(waitLock, 0, 2);
+                }
+            } else if (flag == static_cast<uint32_t>(SkMemoryWaitFlag::AND)) {
+                dcci(waitLock, 0, 2);
+                while ((*waitLock & value) == 0) {
+                    dcci(waitLock, 0, 2);
+                }
+            } else {
+                dcci(waitLock, 0, 2);
+                while ((~(*waitLock | value)) == 0) {
+                    dcci(waitLock, 0, 2);
+                }
             }
         }
     }
 }
 
 template<bool aic_flag>
-__aicore__ inline void ResetFunc(uint64_t param) {
+__aicore__ inline void ResetFunc(uint64_t param, uint64_t value) {
     if constexpr(aic_flag) {
         if (get_block_idx() == 0) {
             __gm__ uint64_t *resetLock = reinterpret_cast<__gm__ uint64_t *>(param);
-            *resetLock = 0;
+            *resetLock = value;
             dcci(resetLock, 0, 2);
         }
     } else {
         if (AscendC::GetBlockIdx() == 0) {
             __gm__ uint64_t *resetLock = reinterpret_cast<__gm__ uint64_t *>(param);
-            *resetLock = 0;
+            *resetLock = value;
             dcci(resetLock, 0, 2);
         }
     }
@@ -393,18 +434,26 @@ std::string ConstantCodeGenerator::GenerateTaskExecutionForSplit(
             break;
         }
         case SkTaskType::TYPE_EVENT_NOTIFY: {
-            code << "        if ASCEND_IS_AIC { AscendC::NotifyFunc<true>(" << Hex64ToStr(task.args) << "); }\n";
-            code << "        if ASCEND_IS_AIV { AscendC::NotifyFunc<false>(" << Hex64ToStr(task.args) << "); }\n";
+            code << "        if ASCEND_IS_AIC { AscendC::NotifyFunc<true>(" << Hex64ToStr(task.args)
+                 << ", " << Hex64ToStr(task.entry[0]) << "); }\n";
+            code << "        if ASCEND_IS_AIV { AscendC::NotifyFunc<false>(" << Hex64ToStr(task.args)
+                 << ", " << Hex64ToStr(task.entry[0]) << "); }\n";
             break;
         }
         case SkTaskType::TYPE_EVENT_WAIT: {
-            code << "        if ASCEND_IS_AIC { AscendC::WaitFunc<true>(" << Hex64ToStr(task.args) << "); }\n";
-            code << "        if ASCEND_IS_AIV { AscendC::WaitFunc<false>(" << Hex64ToStr(task.args) << "); }\n";
+            code << "        if ASCEND_IS_AIC { AscendC::WaitFunc<true>(" << Hex64ToStr(task.args)
+                 << ", " << Hex64ToStr(task.entry[0]) << ", "
+                 << static_cast<uint32_t>(task.reserved) << "U); }\n";
+            code << "        if ASCEND_IS_AIV { AscendC::WaitFunc<false>(" << Hex64ToStr(task.args)
+                 << ", " << Hex64ToStr(task.entry[0]) << ", "
+                 << static_cast<uint32_t>(task.reserved) << "U); }\n";
             break;
         }
         case SkTaskType::TYPE_EVENT_RESET: {
-            code << "        if ASCEND_IS_AIC { AscendC::ResetFunc<true>(" << Hex64ToStr(task.args) << "); }\n";
-            code << "        if ASCEND_IS_AIV { AscendC::ResetFunc<false>(" << Hex64ToStr(task.args) << "); }\n";
+            code << "        if ASCEND_IS_AIC { AscendC::ResetFunc<true>(" << Hex64ToStr(task.args)
+                 << ", " << Hex64ToStr(task.entry[0]) << "); }\n";
+            code << "        if ASCEND_IS_AIV { AscendC::ResetFunc<false>(" << Hex64ToStr(task.args)
+                 << ", " << Hex64ToStr(task.entry[0]) << "); }\n";
             break;
         }
         default:

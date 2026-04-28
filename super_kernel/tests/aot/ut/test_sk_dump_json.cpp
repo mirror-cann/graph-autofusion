@@ -393,15 +393,15 @@ TEST_F(SkTaskTest, TaskWithData)
 
 // ==================== SuperKernelGraph Tests ====================
 
-class SuperKernelGraphTest : public SkDumpJsonTest {};
+class DumpJsonSuperKernelGraphTest : public SkDumpJsonTest {};
 
-TEST_F(SuperKernelGraphTest, EmptyGraph)
+TEST_F(DumpJsonSuperKernelGraphTest, EmptyGraph)
 {
     SuperKernelGraph graph(nullptr);
     EXPECT_EQ(graph.GetSortedNodeIds().size(), 0);
 }
 
-TEST_F(SuperKernelGraphTest, GraphWithSingleNode)
+TEST_F(DumpJsonSuperKernelGraphTest, GraphWithSingleNode)
 {
     SuperKernelGraph graph(nullptr);
     auto node = CreateKernelNode(10);
@@ -413,7 +413,7 @@ TEST_F(SuperKernelGraphTest, GraphWithSingleNode)
     EXPECT_EQ(sortedIds[0], 10);
 }
 
-TEST_F(SuperKernelGraphTest, GraphWithMultipleNodes)
+TEST_F(DumpJsonSuperKernelGraphTest, GraphWithMultipleNodes)
 {
     SuperKernelGraph graph(nullptr);
 
