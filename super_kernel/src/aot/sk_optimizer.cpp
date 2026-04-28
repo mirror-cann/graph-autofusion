@@ -320,20 +320,19 @@ bool SuperKernelOptimizer::Process(SuperKernelGraph& graph)
         SK_LOGE("graph split failed or no scopes found: cannot proceed with super kernel optimization");
         return false;
     }
-    auto& scopeInfos = splitter.GetScopeInfos();
+    // Save scope infos for later access (e.g., dump to JSON)
+    processedScopeInfos_ = std::move(splitter.GetScopeInfos());
 
     SkTaskBuilder builder(opts, graph);
     SuperKernelScopePostProcessor postProcessor(graph);
 
-    for (size_t i = 0; i < scopeInfos.size(); ++i) {
-        auto& scopeInfo = scopeInfos[i];
+    for (size_t i = 0; i < processedScopeInfos_.size(); ++i) {
+        auto& scopeInfo = processedScopeInfos_[i];
         SK_LOGI("process scope begin: scopeId=%u", scopeInfo.GetScopeId());
         if (!postProcessor.PostProcess(scopeInfo)) {
             SK_LOGI("scope unprocessable after post-process, skip schedule/update: scopeId=%u, reason=%s",
                     scopeInfo.GetScopeId(), ScopeFailReasonToStr(scopeInfo.GetExtInfo().failReason));
-            ScopeFailReason failReason = scopeInfo.GetExtInfo().failReason;
-            
-            // Set fusion fail reason for all nodes in this scope with scope detail
+            ScopeFailReason failReason = scopeInfo.GetExtInfo().failReason;            // Set fusion fail reason for all nodes in this scope with scope detail
             for (auto* node : scopeInfo.GetNodes()) {
                 if (node != nullptr) {
                     node->SetFusionFailReason(FusionFailReason::SCOPE_FUSE_PART, failReason);
@@ -355,8 +354,8 @@ bool SuperKernelOptimizer::Process(SuperKernelGraph& graph)
     }
     
     // Dump all nodes' fusion fail reasons after all scopes are processed
-    graph.DumpFusionFailReasons();
+    graph.DumpFusionFailReasons(processedScopeInfos_);
     
-    SK_LOGI("super kernel process finished: scopeCount=%zu", scopeInfos.size());
+    SK_LOGI("super kernel process finished: scopeCount=%zu", processedScopeInfos_.size());
     return true;
 }

@@ -8,6 +8,7 @@
 # See LICENSE in the root of the software repository for the full text of the License.
 # ----------------------------------------------------------------------------------------------------------
 set(GENERATE_CPP_COV ${GRAPH_AUTOFUSION_ROOT_DIR}/super_kernel/tests/aot/cmake/tools/generate_cpp_cov.sh)
+set(RUN_LLT_BINARY ${GRAPH_AUTOFUSION_ROOT_DIR}/super_kernel/tests/aot/cmake/tools/run_llt_binary.sh)
 
 set(third_party_TEM_DIR ${GRAPH_AUTOFUSION_ROOT_DIR}/build/tmp)
 

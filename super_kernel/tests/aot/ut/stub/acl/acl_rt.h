@@ -210,6 +210,7 @@ typedef enum {
 typedef enum {
     ACL_FUNC_ATTR_KERNEL_TYPE = 1,
     ACL_FUNC_ATTR_KERNEL_RATIO = 2,
+    ACL_FUNC_ATTR_KERNEL_SCHED_MODE = 3,
 } aclrtFuncAttribute;
 
 // Function declarations
@@ -229,6 +230,7 @@ aclError aclmdlRITaskSetParams(aclmdlRITask task, aclmdlRITaskParams *params);
 aclError aclmdlRITaskDisable(aclmdlRITask task);
 aclError aclmdlRITaskGetSeqId(aclmdlRITask task, uint32_t *id);
 aclError aclmdlRIGetTasksByStream(aclrtStream stream, aclmdlRITask *tasks, uint32_t *numTasks);
+aclError aclmdlRIKernelTaskGetAttribute(aclmdlRITask task, aclrtLaunchKernelAttrId attrId, aclrtLaunchKernelAttrValue *attrValue);
 aclError aclrtFunctionGetBinary(aclrtFuncHandle funcHandle, aclrtBinHandle *binHandle);
 aclError aclmdlRICaptureThreadExchangeMode(aclmdlRICaptureMode *mode);
 

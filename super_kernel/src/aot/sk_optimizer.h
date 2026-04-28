@@ -17,6 +17,7 @@
 #include "sk_scope_split.h"
 #include "sk_scope_postprocess.h"
 #include "sk_graph.h"
+#include "sk_scope_info.h"
 
 class SkTaskBuilder;
 
@@ -35,11 +36,19 @@ public:
     virtual ~SuperKernelOptimizer() = default;
     bool Process(SuperKernelGraph& graph);
 
+    /*!
+     * @brief Get the processed scope infos after fusion
+     * @return Const reference to the vector of scope infos
+     * @note Only valid after Process() has been called successfully
+     */
+    const std::vector<SuperKernelScopeInfo>& GetScopeInfos() const { return processedScopeInfos_; }
+
 private:
     SuperKernelOptionsManager& opts;
     bool ShouldReorderWaitNodesForTaskBuild() const;
     std::vector<SuperKernelBaseNode*> ReorderWaitNodesForTaskBuild(
         const std::vector<SuperKernelBaseNode*>& taskNodes) const;
+    std::vector<SuperKernelScopeInfo> processedScopeInfos_;
     bool Schedule(SuperKernelScopeInfo& scopeInfo, SuperKernelGraph& graph, SkTaskBuilder& builder);
     bool Update(SuperKernelScopeInfo& scopeInfo, SuperKernelGraph& graph, const SkLaunchInfo& launchInfo);
 };

@@ -10,36 +10,40 @@
 function(run_llt_test)
     cmake_parse_arguments(LLT "" "TARGET;TASK_NUM;ENV_FILE" "" ${ARGN})
 
+    set(_llt_run_target run_${LLT_TARGET})
+
     if (ENABLE_ASAN)
         execute_process(COMMAND ${CMAKE_C_COMPILER} -dumpversion OUTPUT_VARIABLE GCC_MAJOR)
         string(REGEX MATCHALL "[0-9]+" GCC_MAJOR ${GCC_MAJOR})
         if("${CMAKE_HOST_SYSTEM_PROCESSOR}" STREQUAL "x86_64")
-            set(LD_PRELOAD_ "LD_PRELOAD=/usr/lib/gcc/x86_64-linux-gnu/${GCC_MAJOR}/libasan.so:/usr/lib/gcc/x86_64-linux-gnu/${GCC_MAJOR}/libstdc++.so")
+            set(LD_PRELOAD_ "/usr/lib/gcc/x86_64-linux-gnu/${GCC_MAJOR}/libasan.so:/usr/lib/gcc/x86_64-linux-gnu/${GCC_MAJOR}/libstdc++.so")
         else()
-            set(LD_PRELOAD_ "LD_PRELOAD=/usr/lib/gcc/aarch64-linux-gnu/${GCC_MAJOR}/libasan.so:/usr/lib/gcc/aarch64-linux-gnu/${GCC_MAJOR}/libstdc++.so")
+            set(LD_PRELOAD_ "/usr/lib/gcc/aarch64-linux-gnu/${GCC_MAJOR}/libasan.so:/usr/lib/gcc/aarch64-linux-gnu/${GCC_MAJOR}/libstdc++.so")
         endif()
         # 谨慎修改 ASAN_OPTIONS_ 取值, 当前出现 ASAN 告警会使 UT 失败.
-        set(ASAN_OPTIONS_ "ASAN_OPTIONS=detect_leaks=0:halt_on_error=0")
+        set(ASAN_OPTIONS_ "detect_leaks=0:halt_on_error=0")
         if(LLT_ENV_FILE)
-            set(ENV_PREFIX . ${LLT_ENV_FILE} && )
+            set(ENV_FILE_PATH ${LLT_ENV_FILE})
         else()
-            set(ENV_PREFIX "")
+            set(ENV_FILE_PATH "__EMPTY__")
         endif()
-        add_custom_command(
-                TARGET ${LLT_TARGET} POST_BUILD
-                COMMAND ${ENV_PREFIX} export LD_LIBRARY_PATH=$ENV{LD_LIBRARY_PATH} && ${LD_PRELOAD_} && ulimit -s 32768 && ${ASAN_OPTIONS_} $<TARGET_FILE:${LLT_TARGET}> ${GTEST_FILTER} || true
+        add_custom_target(
+                ${_llt_run_target}
+                COMMAND bash ${RUN_LLT_BINARY} "${ENV_FILE_PATH}" "$ENV{LD_LIBRARY_PATH}" "${LD_PRELOAD_}" "${ASAN_OPTIONS_}" $<TARGET_FILE:${LLT_TARGET}> ${GTEST_FILTER}
+                DEPENDS ${LLT_TARGET}
                 COMMENT "Run ${LLT_TARGET} with asan"
         )
     else()
         if(LLT_ENV_FILE)
-            set(ENV_PREFIX . ${LLT_ENV_FILE} && )
+            set(ENV_FILE_PATH ${LLT_ENV_FILE})
         else()
-            set(ENV_PREFIX "")
+            set(ENV_FILE_PATH "__EMPTY__")
         endif()
 
-        add_custom_command(
-            TARGET ${LLT_TARGET} POST_BUILD
-            COMMAND ${ENV_PREFIX} export LD_LIBRARY_PATH=$ENV{LD_LIBRARY_PATH} && $<TARGET_FILE:${LLT_TARGET}> ${GTEST_FILTER} || true
+        add_custom_target(
+            ${_llt_run_target}
+            COMMAND bash ${RUN_LLT_BINARY} "${ENV_FILE_PATH}" "$ENV{LD_LIBRARY_PATH}" "__EMPTY__" "__EMPTY__" $<TARGET_FILE:${LLT_TARGET}> ${GTEST_FILTER}
+            DEPENDS ${LLT_TARGET}
             COMMENT "Run ${LLT_TARGET}"
         )
     endif()
@@ -48,18 +52,18 @@ function(run_llt_test)
         set(_collect_coverage_data_target collect_coverage_data)
 
         get_filename_component(_ops_builtin_bin_path ${CMAKE_BINARY_DIR} DIRECTORY)
-        set(_cov_report ${CMAKE_BINARY_DIR}/cov_report)
-        set(_cov_html ${_cov_report})
+        set(_cov_report ${GRAPH_AUTOFUSION_ROOT_DIR}/super_kernel/coverage/cpp_ut)
+        set(_cov_html ${_cov_report}/html)
         set(_cov_data ${_cov_report}/coverage.info)
 
         if (NOT TARGET ${_collect_coverage_data_target})
-            add_custom_target(${_collect_coverage_data_target} ALL
-                    COMMAND bash ${GENERATE_CPP_COV} ${_ops_builtin_bin_path} ${_cov_data} ${_cov_html} ENV{ASCEND_HOME_PATH}
+            add_custom_target(${_collect_coverage_data_target}
+                    COMMAND bash ${GENERATE_CPP_COV} ${_ops_builtin_bin_path} ${_cov_data} ${_cov_html} $ENV{ASCEND_HOME_PATH}
                     COMMENT "Run collect coverage data"
             )
         endif()
 
-        add_dependencies(${_collect_coverage_data_target} ${LLT_TARGET})
+        add_dependencies(${_collect_coverage_data_target} ${_llt_run_target})
     endif()
 endfunction(run_llt_test)
 

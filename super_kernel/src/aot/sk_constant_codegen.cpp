@@ -590,7 +590,7 @@ ConstantCodeGenResult ConstantCodeGenerator::CompileAndResolve(
         if (logSize > 0) {
             std::vector<char> logBuf(logSize);
             aclrtcGetCompileLog(prog, logBuf.data());
-            SK_LOGE("aclrtc compilation failed:\n%s", logBuf.data());
+            SK_LOGE("aclrtc compilation failed: %s", logBuf.data());
         }
         aclrtcDestroyProg(&prog);
         return result;

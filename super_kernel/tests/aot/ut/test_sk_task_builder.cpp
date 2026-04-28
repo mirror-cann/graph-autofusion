@@ -195,6 +195,88 @@ TEST_F(SkTaskBuilderTest, InitTaskSyncInfos_KernelNotifyWait_Success)
     ASSERT_EQ(builder->taskSyncInfos_.size(), tasks.size());
 }
 
+TEST_F(SkTaskBuilderTest, InitTaskSyncInfos_MixWaitDependentPreviousTask_UsesSameAicQueue)
+{
+    auto* k1 = CreateKernelNodeEx(101, 0, INVALID_TASK_ID, 102, SkKernelType::AIC_ONLY);
+    auto* w2 = CreateWaitNodeEx(102, 0, 101, 103, 55);
+    auto* k3 = CreateKernelNodeEx(103, 0, 102, INVALID_TASK_ID, SkKernelType::MIX_AIC_1_1);
+    (void)k1;
+    (void)w2;
+    (void)k3;
+
+    std::vector<SuperKernelBaseNode*> tasks = {
+        graph->GetNodeById(101), graph->GetNodeById(102), graph->GetNodeById(103)};
+
+    ASSERT_TRUE(builder->InitTaskSyncInfos(tasks));
+    ASSERT_EQ(builder->taskSyncInfos_[1].queueType, SkQueueType::AIC);
+}
+
+TEST_F(SkTaskBuilderTest, InitTaskSyncInfos_MixWaitDependentPreviousTask_UsesSameAivQueue)
+{
+    auto* k1 = CreateKernelNodeEx(201, 0, INVALID_TASK_ID, 202, SkKernelType::AIV_ONLY);
+    auto* w2 = CreateWaitNodeEx(202, 0, 201, 203, 66);
+    auto* k3 = CreateKernelNodeEx(203, 0, 202, INVALID_TASK_ID, SkKernelType::MIX_AIC_1_2);
+    (void)k1;
+    (void)w2;
+    (void)k3;
+
+    std::vector<SuperKernelBaseNode*> tasks = {
+        graph->GetNodeById(201), graph->GetNodeById(202), graph->GetNodeById(203)};
+
+    ASSERT_TRUE(builder->InitTaskSyncInfos(tasks));
+    ASSERT_EQ(builder->taskSyncInfos_[1].queueType, SkQueueType::AIV);
+}
+
+TEST_F(SkTaskBuilderTest, InitTaskSyncInfos_MixWaitAccurateDirectDependency_UsesSameQueue)
+{
+    auto* k1 = CreateKernelNodeEx(211, 0, INVALID_TASK_ID, INVALID_TASK_ID, SkKernelType::AIC_ONLY);
+    auto* w2 = CreateWaitNodeEx(212, 1, 211, 213, 67);
+    auto* k3 = CreateKernelNodeEx(213, 1, 212, INVALID_TASK_ID, SkKernelType::MIX_AIC_1_2);
+    k1->sendToNodeId.insert(213);
+    k3->receiveNodeId.insert(211);
+    (void)k1;
+    (void)w2;
+    (void)k3;
+
+    std::vector<SuperKernelBaseNode*> tasks = {
+        graph->GetNodeById(211), graph->GetNodeById(212), graph->GetNodeById(213)};
+
+    ASSERT_TRUE(builder->InitTaskSyncInfos(tasks));
+    ASSERT_EQ(builder->taskSyncInfos_[1].queueType, SkQueueType::AIC);
+}
+
+TEST_F(SkTaskBuilderTest, InitTaskSyncInfos_MixWaitAfterMixTask_FallbackAivQueue)
+{
+    auto* k1 = CreateKernelNodeEx(301, 0, INVALID_TASK_ID, 302, SkKernelType::MIX_AIC_1_1);
+    auto* w2 = CreateWaitNodeEx(302, 0, 301, 303, 77);
+    auto* k3 = CreateKernelNodeEx(303, 0, 302, INVALID_TASK_ID, SkKernelType::MIX_AIC_1_2);
+    (void)k1;
+    (void)w2;
+    (void)k3;
+
+    std::vector<SuperKernelBaseNode*> tasks = {
+        graph->GetNodeById(301), graph->GetNodeById(302), graph->GetNodeById(303)};
+
+    ASSERT_TRUE(builder->InitTaskSyncInfos(tasks));
+    ASSERT_EQ(builder->taskSyncInfos_[1].queueType, SkQueueType::AIV);
+}
+
+TEST_F(SkTaskBuilderTest, InitTaskSyncInfos_MixWaitNonDependentPreviousTask_UsesOppositeQueue)
+{
+    auto* k4 = CreateKernelNodeEx(404, 1, INVALID_TASK_ID, 402, SkKernelType::AIC_ONLY);
+    auto* w2 = CreateWaitNodeEx(402, 1, 404, 403, 88);
+    auto* k3 = CreateKernelNodeEx(403, 0, 402, INVALID_TASK_ID, SkKernelType::MIX_AIC_1_1);
+    (void)k4;
+    (void)w2;
+    (void)k3;
+
+    std::vector<SuperKernelBaseNode*> tasks = {
+        graph->GetNodeById(404), graph->GetNodeById(402), graph->GetNodeById(403)};
+
+    ASSERT_TRUE(builder->InitTaskSyncInfos(tasks));
+    ASSERT_EQ(builder->taskSyncInfos_[1].queueType, SkQueueType::AIV);
+}
+
 TEST_F(SkTaskBuilderTest, PrecomputeAndOptimizeSyncRelations_Smoke)
 {
     auto* k1 = CreateKernelNodeEx(10, 0, INVALID_TASK_ID, 11, SkKernelType::AIC_ONLY);
@@ -576,7 +658,7 @@ TEST_F(SkTaskBuilderTest, AddTasks_NullQueueAndDispatchQueueSelection)
 TEST_F(SkTaskBuilderTest, DispatchFuncTask_MixFailureAndDcciBranch)
 {
     opts->AddOption(std::make_unique<StringListOptOption>(
-        "dcci_disable", aclskOptionType::DEBUG_DCCI_DISABLE_ON_KERNEL, std::vector<std::string>{"k"}));
+        "dcci_disable", aclskOptionType::DCCI_DISABLE_ON_KERNEL, std::vector<std::string>{"k"}));
 
     SkTask aic;
     SkTask aiv;
@@ -606,7 +688,7 @@ TEST_F(SkTaskBuilderTest, AddFuncTask_DcciBeforeKernelStart_SetsDebugFlag)
 {
     opts->AddOption(std::make_unique<StringListOptOption>(
         "dcci_before_kernel_start",
-        aclskOptionType::DEBUG_DCCI_BEFORE_KERNEL_START,
+        aclskOptionType::DCCI_BEFORE_KERNEL_START,
         std::vector<std::string>{"k"}));
 
     SkTask aic;
@@ -625,7 +707,7 @@ TEST_F(SkTaskBuilderTest, AddFuncTask_DcciAfterKernelEnd_SetsDebugFlag)
 {
     opts->AddOption(std::make_unique<StringListOptOption>(
         "dcci_after_kernel_end",
-        aclskOptionType::DEBUG_DCCI_AFTER_KERNEL_END,
+        aclskOptionType::DCCI_AFTER_KERNEL_END,
         std::vector<std::string>{"k"}));
 
     SkTask aic;
@@ -643,10 +725,10 @@ TEST_F(SkTaskBuilderTest, AddFuncTask_DcciAfterKernelEnd_SetsDebugFlag)
 TEST_F(SkTaskBuilderTest, AddFuncTask_DcciAfterKernelEnd_OverridesDisableFlag)
 {
     opts->AddOption(std::make_unique<StringListOptOption>(
-        "dcci_disable", aclskOptionType::DEBUG_DCCI_DISABLE_ON_KERNEL, std::vector<std::string>{"k"}));
+        "dcci_disable", aclskOptionType::DCCI_DISABLE_ON_KERNEL, std::vector<std::string>{"k"}));
     opts->AddOption(std::make_unique<StringListOptOption>(
         "dcci_after_kernel_end",
-        aclskOptionType::DEBUG_DCCI_AFTER_KERNEL_END,
+        aclskOptionType::DCCI_AFTER_KERNEL_END,
         std::vector<std::string>{"k"}));
 
     SkTask aic;
@@ -1078,6 +1160,7 @@ TEST_F(SkTaskBuilderTest, GenEntryArgs_WithoutWorkspace_IgnoresSecondMemsetFailu
 
 TEST_F(SkTaskBuilderTest, GenEntryArgs_CounterOffsetAlignedTo64Bytes)
 {
+    constexpr size_t queueShardCount = 4;
     SkTask aic;
     SkTask aiv;
     ASSERT_TRUE(aic.taskQue.Init(1));
@@ -1087,7 +1170,13 @@ TEST_F(SkTaskBuilderTest, GenEntryArgs_CounterOffsetAlignedTo64Bytes)
     DeviceArgsPtr devArgs = builder->GenEntryArgs(aic, aiv, &dfx, 1);
     ASSERT_NE(devArgs.Get(), nullptr);
 
-    size_t rawCounterOffset = sizeof(SkHeaderInfo) + aic.GetTaskQueSize() + aiv.GetTaskQueSize();
+    size_t expectedAicOffset = sizeof(SkHeaderInfo);
+    size_t expectedAivOffset = expectedAicOffset + aic.GetTaskQueSize() * queueShardCount;
+    size_t rawCounterOffset = expectedAivOffset + aiv.GetTaskQueSize() * queueShardCount;
+    EXPECT_EQ(devArgs.Get()->skHeader.aicQueSize, aic.GetTaskQueSize());
+    EXPECT_EQ(devArgs.Get()->skHeader.aivQueSize, aiv.GetTaskQueSize());
+    EXPECT_EQ(devArgs.Get()->skHeader.aicQueOffset, expectedAicOffset);
+    EXPECT_EQ(devArgs.Get()->skHeader.aivQueOffset, expectedAivOffset);
     EXPECT_NE(rawCounterOffset % 64, 0U);
     EXPECT_EQ(devArgs.Get()->skHeader.counterOffset % 64, 0U);
     EXPECT_GE(devArgs.Get()->skHeader.counterOffset, rawCounterOffset);
@@ -1115,4 +1204,159 @@ TEST_F(SkTaskBuilderTest, Build_DfxMemsetFail_ReturnEmpty)
     SkLaunchInfo launchInfo = builder->Build("Unknown", tasks, {});
     EXPECT_EQ(launchInfo.entryInfo.skEntryFunc, nullptr);
     EXPECT_EQ(launchInfo.devArgs.Get(), nullptr);
+}
+
+// ==================== DEBUG_CROSS_CORE_SYNC_CHECK: AddFuncTask debugOptions bit 0x10 测试 ====================
+
+TEST_F(SkTaskBuilderTest, AddFuncTask_CrossCoreSyncCheck_SetsDebugFlag)
+{
+    opts->AddOption(std::make_unique<NumberOptOption>(
+        "debug_cross_core_sync_check", aclskOptionType::DEBUG_CROSS_CORE_SYNC_CHECK, 1, 0, 1));
+
+    SkTask aic;
+    ASSERT_TRUE(aic.taskQue.Init(8));
+
+    auto* kernel = CreateKernelNodeEx(41001, 0, INVALID_TASK_ID, INVALID_TASK_ID, SkKernelType::AIC_ONLY);
+    SkDfxInfo dfx{};
+
+    ASSERT_TRUE(builder->AddFuncTask(aic, kernel, &dfx, 0, 0, 1, SkTaskType::TYPE_FUNC, 1));
+
+    TaskInfo& funcTask = aic.taskQue.get()->taskInfos[aic.taskQue.get()->taskCnt - 1];
+    EXPECT_NE((funcTask.debugOptions & 0x10U), 0U);
+}
+
+TEST_F(SkTaskBuilderTest, AddFuncTask_CrossCoreSyncCheckNotSet_NoDebugFlag)
+{
+    // 不设置 DEBUG_CROSS_CORE_SYNC_CHECK option
+    SkTask aic;
+    ASSERT_TRUE(aic.taskQue.Init(8));
+
+    auto* kernel = CreateKernelNodeEx(41002, 0, INVALID_TASK_ID, INVALID_TASK_ID, SkKernelType::AIC_ONLY);
+    SkDfxInfo dfx{};
+
+    ASSERT_TRUE(builder->AddFuncTask(aic, kernel, &dfx, 0, 0, 1, SkTaskType::TYPE_FUNC, 1));
+
+    TaskInfo& funcTask = aic.taskQue.get()->taskInfos[aic.taskQue.get()->taskCnt - 1];
+    EXPECT_EQ((funcTask.debugOptions & 0x10U), 0U);
+}
+
+TEST_F(SkTaskBuilderTest, AddFuncTask_CrossCoreSyncCheckZero_NoDebugFlag)
+{
+    opts->AddOption(std::make_unique<NumberOptOption>(
+        "debug_cross_core_sync_check", aclskOptionType::DEBUG_CROSS_CORE_SYNC_CHECK, 0, 0, 1));
+
+    SkTask aic;
+    ASSERT_TRUE(aic.taskQue.Init(8));
+
+    auto* kernel = CreateKernelNodeEx(41003, 0, INVALID_TASK_ID, INVALID_TASK_ID, SkKernelType::AIC_ONLY);
+    SkDfxInfo dfx{};
+
+    ASSERT_TRUE(builder->AddFuncTask(aic, kernel, &dfx, 0, 0, 1, SkTaskType::TYPE_FUNC, 1));
+
+    TaskInfo& funcTask = aic.taskQue.get()->taskInfos[aic.taskQue.get()->taskCnt - 1];
+    EXPECT_EQ((funcTask.debugOptions & 0x10U), 0U);
+}
+
+TEST_F(SkTaskBuilderTest, AddFuncTask_CrossCoreSyncCheck_CombinedWithOtherDebugFlags)
+{
+    opts->AddOption(std::make_unique<NumberOptOption>(
+        "debug_cross_core_sync_check", aclskOptionType::DEBUG_CROSS_CORE_SYNC_CHECK, 1, 0, 1));
+    opts->AddOption(std::make_unique<StringListOptOption>(
+        "dcci_disable", aclskOptionType::DCCI_DISABLE_ON_KERNEL, std::vector<std::string>{"k"}));
+
+    SkTask aic;
+    ASSERT_TRUE(aic.taskQue.Init(8));
+
+    auto* kernel = CreateKernelNodeEx(41004, 0, INVALID_TASK_ID, INVALID_TASK_ID, SkKernelType::AIC_ONLY);
+    SkDfxInfo dfx{};
+
+    ASSERT_TRUE(builder->AddFuncTask(aic, kernel, &dfx, 0, 0, 1, SkTaskType::TYPE_FUNC, 1));
+
+    TaskInfo& funcTask = aic.taskQue.get()->taskInfos[aic.taskQue.get()->taskCnt - 1];
+    // Both bit 0x1 (dcci_disable) and bit 0x10 (cross_core_sync_check) should be set
+    EXPECT_NE((funcTask.debugOptions & 0x1U), 0U);
+    EXPECT_NE((funcTask.debugOptions & 0x10U), 0U);
+}
+
+// ==================== DEBUG_OP_EXEC_TRACE: GenEntryInfo enableOpTrace 测试 ====================
+
+TEST_F(SkTaskBuilderTest, GenEntryInfo_DebugOpExecTrace_EnablesOpTrace)
+{
+    opts->AddOption(std::make_unique<NumberOptOption>(
+        "debug_op_exec_trace", aclskOptionType::DEBUG_OP_EXEC_TRACE, 1, 0, 1));
+
+    SkTask aic;
+    SkTask aiv;
+    aic.funcCnt = 1;
+    aic.numBlocks = 1;
+    ASSERT_TRUE(aic.taskQue.Init(8));
+
+    SkHostEntryInfo entryInfo = builder->GenEntryInfo(aic, aiv);
+    ASSERT_NE(entryInfo.skEntryFunc, nullptr);
+}
+
+TEST_F(SkTaskBuilderTest, GenEntryInfo_DebugOpExecTraceZero_DisablesOpTrace)
+{
+    opts->AddOption(std::make_unique<NumberOptOption>(
+        "debug_op_exec_trace", aclskOptionType::DEBUG_OP_EXEC_TRACE, 0, 0, 1));
+
+    SkTask aic;
+    SkTask aiv;
+    aic.funcCnt = 1;
+    aic.numBlocks = 1;
+    ASSERT_TRUE(aic.taskQue.Init(8));
+
+    SkHostEntryInfo entryInfo = builder->GenEntryInfo(aic, aiv);
+    ASSERT_NE(entryInfo.skEntryFunc, nullptr);
+}
+
+// ==================== DEBUG_CROSS_CORE_SYNC_CHECK: GenEntryInfo force enableOpTrace 测试 ====================
+
+TEST_F(SkTaskBuilderTest, GenEntryInfo_DebugCrossCoreSyncCheck_ForceEnablesOpTrace)
+{
+    opts->AddOption(std::make_unique<NumberOptOption>(
+        "debug_cross_core_sync_check", aclskOptionType::DEBUG_CROSS_CORE_SYNC_CHECK, 1, 0, 1));
+
+    SkTask aic;
+    SkTask aiv;
+    aic.funcCnt = 1;
+    aic.numBlocks = 1;
+    ASSERT_TRUE(aic.taskQue.Init(8));
+
+    SkHostEntryInfo entryInfo = builder->GenEntryInfo(aic, aiv);
+    ASSERT_NE(entryInfo.skEntryFunc, nullptr);
+}
+
+TEST_F(SkTaskBuilderTest, GenEntryInfo_DebugOpExecTraceAndCrossCoreSyncCheck_BothEnableOpTrace)
+{
+    opts->AddOption(std::make_unique<NumberOptOption>(
+        "debug_op_exec_trace", aclskOptionType::DEBUG_OP_EXEC_TRACE, 1, 0, 1));
+    opts->AddOption(std::make_unique<NumberOptOption>(
+        "debug_cross_core_sync_check", aclskOptionType::DEBUG_CROSS_CORE_SYNC_CHECK, 1, 0, 1));
+
+    SkTask aic;
+    SkTask aiv;
+    aic.funcCnt = 1;
+    aic.numBlocks = 1;
+    ASSERT_TRUE(aic.taskQue.Init(8));
+
+    SkHostEntryInfo entryInfo = builder->GenEntryInfo(aic, aiv);
+    ASSERT_NE(entryInfo.skEntryFunc, nullptr);
+}
+
+// ==================== Build 集成测试: DEBUG_CROSS_CORE_SYNC_CHECK ====================
+
+TEST_F(SkTaskBuilderTest, Build_WithDebugCrossCoreSyncCheck_Success)
+{
+    opts->AddOption(std::make_unique<NumberOptOption>("split_mode", aclskOptionType::SPLIT_MODE, 1, 1, 4));
+    opts->AddOption(std::make_unique<NumberOptOption>(
+        "debug_cross_core_sync_check", aclskOptionType::DEBUG_CROSS_CORE_SYNC_CHECK, 1, 0, 1));
+
+    auto* kernel = CreateKernelNodeEx(42001, 0, INVALID_TASK_ID, INVALID_TASK_ID, SkKernelType::AIC_ONLY);
+
+    std::vector<SuperKernelBaseNode*> tasks = {kernel};
+    SkLaunchInfo launchInfo = builder->Build("Unknown", tasks, {});
+
+    EXPECT_NE(launchInfo.entryInfo.skEntryFunc, nullptr);
+    EXPECT_NE(launchInfo.devArgs.Get(), nullptr);
 }

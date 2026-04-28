@@ -307,8 +307,8 @@ bool CollectStreamCandidates(SuperKernelGraph& graph, const std::vector<ScopeStr
         if (!isMainStreamCandidate && !isSubStreamCandidate && !isSubStreamEntryCandidate) {
             SK_LOGI("streamId=%u does not meet the requirements for being mainStream and subStream.",
                     scopeStreamInfos[curStreamIdx].streamIdx);
-            SK_LOGI("   1.stream have not candidate node, reserve num=%u", mainFrontReserveCount);
-            SK_LOGI("   2.stream capacity insufficient for sub stream: nodeSize=%lu, but minimun required=%u",
+            SK_LOGI("1.stream have not candidate node, reserve num=%u", mainFrontReserveCount);
+            SK_LOGI("2.stream capacity insufficient for sub stream: nodeSize=%lu, but minimum required=%u",
                     scopeStreamInfos[curStreamIdx].nodeSize, needNodeCount);
             return false;
         }
@@ -620,6 +620,7 @@ bool SuperKernelScopePostProcessor::FinalizePostProcess(SuperKernelScopeInfo& sc
             tempExtInfo.eventNodes.size(), totalCustomParamSize);
 
     scopeInfo.SetExtInfo(std::move(tempExtInfo));
+    scopeInfo.MutableExtInfo().fusionStatus = ScopeFusionStatus::SUCCESS;
     return true;
 }
 
@@ -628,7 +629,6 @@ bool SuperKernelScopePostProcessor::PostProcess(SuperKernelScopeInfo& scopeInfo)
     scopeInfo.SetExtInfo(ScopeExtInfo {});
     // Step 1: Validate all nodes in scope streams
     if (!ValidateScopeStreamNodes(scopeInfo)) {
-        scopeInfo.MutableExtInfo().failReason = ScopeFailReason::VALIDATION_FAILED;
         return false;
     }
 
@@ -639,14 +639,12 @@ bool SuperKernelScopePostProcessor::PostProcess(SuperKernelScopeInfo& scopeInfo)
     std::vector<SuperKernelBaseNode*> filteredNodes = FilterCancelledNodes(scopeInfo.GetNodes());
     if (filteredNodes.empty()) {
         SK_LOGI("scope post-process unprocessable: no node remains after cancelling notify/wait pairs");
-        scopeInfo.MutableExtInfo().failReason = ScopeFailReason::NO_TASK;
         return false;
     }
 
     // Step 3: Skip scope when no kernel remains after filtering
     if (GetKernelNodeCount(filteredNodes) == 0) {
         SK_LOGI("scope post-process unprocessable: no kernel node remains after filtering");
-        scopeInfo.MutableExtInfo().failReason = ScopeFailReason::NO_KERNEL;
         return false;
     }
 
@@ -662,7 +660,6 @@ bool SuperKernelScopePostProcessor::PostProcess(SuperKernelScopeInfo& scopeInfo)
 
     // Step 5: Collect stream boundary plans
     if (!CollectStreamBoundaryPlans(scopeInfo, plans, needFrontWaitCount)) {
-        scopeInfo.MutableExtInfo().failReason = ScopeFailReason::STREAM_BOUNDARY_INVALID;
         return false;
     }
 
@@ -672,20 +669,17 @@ bool SuperKernelScopePostProcessor::PostProcess(SuperKernelScopeInfo& scopeInfo)
     if (!GetMainAndSubStreamOrder(graph, plans, scopeInfo.GetScopeStreamInfos(), tempExtInfo, needFrontWaitCount,
                                   mainStreamIdx, subStreamOrder)) {
         SK_LOGI("scope post-process unprocessable: failed to select main stream and sub stream");
-        scopeInfo.MutableExtInfo().failReason = ScopeFailReason::STREAM_SELECT_FAILED;
         return false;
     }
     SK_LOGI("select main stream and sub stream done.");
 
     // Step 7: Process sync events for sub streams
     if (!ProcessSubStreamSyncEvents(scopeInfo, tempExtInfo, plans, mainStreamIdx, subStreamOrder, needFrontWaitCount)) {
-        scopeInfo.MutableExtInfo().failReason = ScopeFailReason::SUB_STREAM_SYNC_FAILED;
         return false;
     }
 
     // Step 8: Apply event memory resource
     if (!ApplyEventMemoryForFilteredNodes(tempExtInfo.filteredNodes, needUpdateNodes)) {
-        scopeInfo.MutableExtInfo().failReason = ScopeFailReason::EVENT_MEMORY_APPLY_FAILED;
         return false;
     }
 

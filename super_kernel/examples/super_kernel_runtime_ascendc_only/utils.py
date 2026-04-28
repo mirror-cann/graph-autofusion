@@ -30,7 +30,7 @@ def print_float_array_ptr(float_array_ptr, count=20):
         count: 要打印的元素数量，如果为None则打印全部
     """
     if float_array_ptr is None:
-        print("指针为None")
+        print("The pointer is None")
         return
 
     # 获取数组内容
@@ -42,7 +42,7 @@ def print_float_array_ptr(float_array_ptr, count=20):
     else:
         count = min(count, len(array_content))
 
-    print(f"浮点数组 (前{count}个元素):")
+    print(f"Float array (first {count} elements):")
     for i in range(count):
         print(f"  [{i}] = {array_content[i]}")
 

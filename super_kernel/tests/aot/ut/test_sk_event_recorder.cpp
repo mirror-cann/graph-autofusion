@@ -113,9 +113,9 @@ protected:
         uint32_t newOffset = sizeof(SkKernelEventCoreBuf) + sizeof(SkKernelEventRecord);
         coreBuf->offset = newOffset;
 
-        // 写入事件记录
+        // 写入事件记录（紧跟在 SkKernelEventCoreBuf 头部之后）
         SkKernelEventRecord* record = reinterpret_cast<SkKernelEventRecord*>(
-            hostBuf + coreId * SkEventRecorder::coreSize_ + sizeof(SkKernelEventRecord));
+            hostBuf + coreId * SkEventRecorder::coreSize_ + sizeof(SkKernelEventCoreBuf));
         record->modelRI = modelRI;
         record->skId = skId;
         record->nodeId = nodeId;
@@ -125,7 +125,7 @@ protected:
         record->endTime = endTime;
 
         // 重置 lastOffset 以便重新读取
-        ctx->lastOffset[coreId] = sizeof(SkKernelEventRecord);
+        ctx->lastOffset[coreId] = sizeof(SkKernelEventCoreBuf);
     }
 
     // 辅助函数：初始化一个模拟的设备上下文
@@ -143,7 +143,7 @@ protected:
         ctx->outputDir = SkEventRecorder::CreateOutputDir();  // 设置输出目录
         ctx->outputFp.Close();  // FileGuard 默认构造已经是无效状态
         for (uint32_t i = 0; i < SK_EVENT_CORE_NUM; i++) {
-            ctx->lastOffset[i] = sizeof(SkKernelEventRecord);
+            ctx->lastOffset[i] = sizeof(SkKernelEventCoreBuf);
         }
         ctx->active.store(1);
     }
@@ -911,4 +911,104 @@ TEST_F(SkEventRecorderTest, ModelRIIdAndSkScopeId_MultipleModelRIEndToEnd) {
         EXPECT_EQ(recoveredModelRI, items[i].modelRI);
         EXPECT_EQ(decodedScopeId, items[i].skScopeId);
     }
+}
+// ==================== SkName 映射测试 ====================
+
+// Test 49: AddSkNameMapping 和 GetSkName 基本功能
+TEST_F(SkEventRecorderTest, AddAndGetSkName) {
+    uint64_t modelRI = 100;
+    uint32_t skId = 1;
+    std::string skName = "test_super_kernel";
+
+    SkEventRecorder::Instance().AddSkNameMapping(modelRI, skId, skName);
+
+    std::string result = SkEventRecorder::Instance().GetSkName(modelRI, skId);
+    EXPECT_EQ(result, skName);
+}
+
+// Test 50: GetSkName 获取不存在的映射
+TEST_F(SkEventRecorderTest, GetNonExistentSkName) {
+    std::string result = SkEventRecorder::Instance().GetSkName(999, 999);
+    EXPECT_TRUE(result.empty());
+}
+
+// Test 51: 多个 SkName 映射
+TEST_F(SkEventRecorderTest, MultipleSkNameMappings) {
+    SkEventRecorder::Instance().AddSkNameMapping(1, 1, "sk_1_1");
+    SkEventRecorder::Instance().AddSkNameMapping(1, 2, "sk_1_2");
+    SkEventRecorder::Instance().AddSkNameMapping(2, 1, "sk_2_1");
+
+    EXPECT_EQ(SkEventRecorder::Instance().GetSkName(1, 1), "sk_1_1");
+    EXPECT_EQ(SkEventRecorder::Instance().GetSkName(1, 2), "sk_1_2");
+    EXPECT_EQ(SkEventRecorder::Instance().GetSkName(2, 1), "sk_2_1");
+}
+
+// Test 52: SkName 映射覆盖
+TEST_F(SkEventRecorderTest, SkNameMappingOverwrite) {
+    SkEventRecorder::Instance().AddSkNameMapping(100, 1, "old_sk");
+    SkEventRecorder::Instance().AddSkNameMapping(100, 1, "new_sk");
+
+    std::string result = SkEventRecorder::Instance().GetSkName(100, 1);
+    EXPECT_EQ(result, "new_sk");
+}
+
+// ==================== ParseEnvAndSetSize 边界测试 ====================
+
+// Test 53: 环境变量非对齐值向上取整
+TEST_F(SkEventRecorderTest, EnvValueAlignmentRoundUp) {
+    // 100KB 应向上取整到 128KB（64 的倍数）
+    setenv("ASCEND_PROF_SK_ON", "100", 1);
+
+    SkEventRecorder::Instance().Init();
+    EXPECT_TRUE(SkEventRecorder::Instance().IsEnabled());
+    // 100 向上取整到 128，coreSize = 128 * 1024
+    EXPECT_EQ(SkEventRecorder::coreSize_, 128U * 1024U);
+
+    SkEventRecorder::Instance().SkProfilingShutdown();
+}
+
+// Test 54: 环境变量已经是对齐值
+TEST_F(SkEventRecorderTest, EnvValueAlreadyAligned) {
+    // 128KB 已是 64 的倍数，无需取整
+    setenv("ASCEND_PROF_SK_ON", "128", 1);
+
+    SkEventRecorder::Instance().Init();
+    EXPECT_TRUE(SkEventRecorder::Instance().IsEnabled());
+    EXPECT_EQ(SkEventRecorder::coreSize_, 128U * 1024U);
+
+    SkEventRecorder::Instance().SkProfilingShutdown();
+}
+
+// Test 55: 环境变量超过 5MB 应失败
+TEST_F(SkEventRecorderTest, EnvValueTooLarge) {
+    // 5121KB > 5MB，应失败
+    setenv("ASCEND_PROF_SK_ON", "5121", 1);
+
+    bool result = SkEventRecorder::Instance().Init();
+    EXPECT_FALSE(result);
+    EXPECT_FALSE(SkEventRecorder::Instance().IsEnabled());
+}
+
+// Test 56: 环境变量超过 1MB 但小于 5MB 应成功
+TEST_F(SkEventRecorderTest, EnvValueLargeButValid) {
+    // 2048KB = 2MB，大于 1MB 但小于 5MB，应成功
+    setenv("ASCEND_PROF_SK_ON", "2048", 1);
+
+    SkEventRecorder::Instance().Init();
+    EXPECT_TRUE(SkEventRecorder::Instance().IsEnabled());
+    EXPECT_EQ(SkEventRecorder::coreSize_, 2048U * 1024U);
+
+    SkEventRecorder::Instance().SkProfilingShutdown();
+}
+
+// Test 57: 环境变量边界值 1KB（最小非零值，向上取整到 64KB）
+TEST_F(SkEventRecorderTest, EnvValueMinimumOne) {
+    setenv("ASCEND_PROF_SK_ON", "1", 1);
+
+    SkEventRecorder::Instance().Init();
+    EXPECT_TRUE(SkEventRecorder::Instance().IsEnabled());
+    // 1 向上取整到 64
+    EXPECT_EQ(SkEventRecorder::coreSize_, 64U * 1024U);
+
+    SkEventRecorder::Instance().SkProfilingShutdown();
 }

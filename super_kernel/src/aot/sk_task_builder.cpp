@@ -10,6 +10,7 @@
 
 #include "sk_task_builder.h"
 #include "sk_graph.h"
+#include "sk_dump_json.h"
 #include "sk_log.h"
 #include "sk_constant_codegen.h"  // 常量化代码生成模块
 #include <algorithm>
@@ -100,14 +101,35 @@ SkQueueType InferFirstKernelEventQueueType(const std::vector<SuperKernelBaseNode
     return SkQueueType::UNKNOWN;
 }
 
+SkQueueType ResolveMixWaitEventQueueType(const SuperKernelBaseNode* prevKernel, const SuperKernelBaseNode* mixKernel)
+{
+    if (prevKernel == nullptr) {
+        return SkQueueType::AIV;
+    }
+
+    SkQueueType prevKernelQueueType =
+        (prevKernel == nullptr) ? SkQueueType::UNKNOWN : ToQueueType(GetKernelInfos(prevKernel).kernelType);
+
+    if (prevKernelQueueType != SkQueueType::AIC && prevKernelQueueType != SkQueueType::AIV) {
+        return SkQueueType::AIV;
+    }
+
+    const bool sameStream = prevKernel->GetStreamIdxInGraph() == mixKernel->GetStreamIdxInGraph();
+    const bool hasDirectDep = prevKernel->sendToNodeId.count(mixKernel->GetNodeId()) > 0 ||
+                              mixKernel->receiveNodeId.count(prevKernel->GetNodeId()) > 0;
+    return (sameStream || hasDirectDep) ? prevKernelQueueType
+                                        : ((prevKernelQueueType == SkQueueType::AIV) ? SkQueueType::AIC
+                                                                                     : SkQueueType::AIV);
+}
+
 // dump device entry args
 void DumpTaskQueDetail(const TaskQue* que, const char* name)
 {
     SK_LOGD("%s TaskQue: cap=%u, tasks=%u", name, que->cap, que->taskCnt);
     for (uint32_t i = 0; i < que->taskCnt; ++i) {
         const TaskInfo& ti = que->taskInfos[i];
-        SK_LOGD("[%u] type=%s, idx=%u, blk=%u, entries=%u, args=0x%llx", i, to_string(ti.type), ti.index,
-                ti.numBlocks, ti.entryCnt, (unsigned long long)ti.args);
+        SK_LOGD("[%u] type=%s, idx=%u, blk=%u, entries=%u, args=0x%llx, debugOptions=0x%llx", i, to_string(ti.type), ti.index,
+                ti.numBlocks, ti.entryCnt, (unsigned long long)ti.args, (unsigned long long)ti.debugOptions);
         for (uint32_t j = 0; j < ti.entryCnt; ++j) {
             SK_LOGD("   entry[%u]=0x%llx", j, (unsigned long long)ti.entry[j]);
         }
@@ -227,7 +249,7 @@ const SuperKernelBaseNode* FindKernelNodeInDirection(uint64_t startNodeId, const
 
     const auto* startNode = graph.GetNodeById(startNodeId);
     if (startNode == nullptr) {
-        SK_LOGI("FindKernelNodeInDirection failed: startNodeId=%lu, direction=%s, reason=start-node-not-found",
+        SK_LOGI("FindKernelNodeInDirection incomplete: startNodeId=%lu, direction=%s, reason=start-node-not-found",
                 startNodeId, to_string(direction));
         return nullptr;
     }
@@ -327,7 +349,7 @@ bool SkTaskBuilder::InitTaskSyncInfos(const std::vector<SuperKernelBaseNode*>& t
     size_t notifyCount = 0;
     size_t waitCount = 0;
     SkQueueType firstKernelEventQueueType = InferFirstKernelEventQueueType(tasks);
-
+    SuperKernelBaseNode* prevKernelTask = nullptr;
     for (size_t i = 0; i < tasks.size(); i++) {
         SkNodeType nodeType = tasks[i]->GetNodeType();
 
@@ -336,6 +358,7 @@ bool SkTaskBuilder::InitTaskSyncInfos(const std::vector<SuperKernelBaseNode*>& t
                 // KERNEL node: assign queueType from kernel type.
                 const KernelInfos& kernelInfo = GetKernelInfos(tasks[i]);
                 taskSyncInfos_[i].queueType = ToQueueType(kernelInfo.kernelType);
+                prevKernelTask = tasks[i];
                 kernelCount++;
                 break;
             }
@@ -351,7 +374,7 @@ bool SkTaskBuilder::InitTaskSyncInfos(const std::vector<SuperKernelBaseNode*>& t
                         return false;
                     }
                     taskSyncInfos_[i].queueType = firstKernelEventQueueType;
-                    SK_LOGI("%s node %zu failed to resolve previous KERNEL node, nodeId=%lu, fallback = %s",
+                    SK_LOGI("%s node %zu unable to resolve previous KERNEL node, nodeId=%lu, fallback = %s",
                             to_string(nodeType), i, tasks[i]->GetNodeId(), to_string(taskSyncInfos_[i].queueType));
                 } else {
                     kernelNodeCache[tasks[i]->GetNodeId()] = kernel; // cache current NOTIFY node for future searches
@@ -373,12 +396,17 @@ bool SkTaskBuilder::InitTaskSyncInfos(const std::vector<SuperKernelBaseNode*>& t
                         return false;
                     }
                     taskSyncInfos_[i].queueType = firstKernelEventQueueType;
-                    SK_LOGI("%s node %zu failed to resolve next KERNEL node, nodeId=%lu, fallback = %s",
+                    SK_LOGI("%s node %zu unable to resolve next KERNEL node, nodeId=%lu, fallback = %s",
                             to_string(nodeType), i, tasks[i]->GetNodeId(), to_string(taskSyncInfos_[i].queueType));
                 } else {
                     kernelNodeCache[tasks[i]->GetNodeId()] = kernel; // cache current WAIT node for future searches
                     // Event nodes are executed on a single queue selected by nearest kernel type.
-                    taskSyncInfos_[i].queueType = ToEventQueueType(ToQueueType(GetKernelInfos(kernel).kernelType));
+                    SkQueueType nextKernelQueueType = ToQueueType(GetKernelInfos(kernel).kernelType);
+                    if (nextKernelQueueType != SkQueueType::AIC && nextKernelQueueType != SkQueueType::AIV) {
+                        taskSyncInfos_[i].queueType = ResolveMixWaitEventQueueType(prevKernelTask, kernel);
+                    } else {
+                        taskSyncInfos_[i].queueType = ToEventQueueType(nextKernelQueueType);
+                    }
                 }
                 waitCount++;
                 break;
@@ -961,8 +989,8 @@ DeviceArgsPtr SkTaskBuilder::GenEntryArgs(const SkTask& skTaskCube, const SkTask
     size_t event_config_size = sizeof(SkEventConfig);
 
     size_t aic_que_offset = header_size;
-    size_t aiv_que_offset = aic_que_offset + aic_que_size;
-    size_t counter_offset = AlignUp(aiv_que_offset + aiv_que_size, kCounterAlignBytes);
+    size_t aiv_que_offset = aic_que_offset + aic_que_size * 4;
+    size_t counter_offset = AlignUp(aiv_que_offset + aiv_que_size * 4, kCounterAlignBytes);
     size_t dfx_offset = counter_offset + counter_size;
     size_t event_config_offset = dfx_offset + dfx_size;
     uint64_t total_size = event_config_offset + event_config_size;
@@ -976,6 +1004,8 @@ DeviceArgsPtr SkTaskBuilder::GenEntryArgs(const SkTask& skTaskCube, const SkTask
         SK_LOGE("GenEntryArgs init device args failed, total_size=%lu", total_size);
         return {};
     }
+    args.Get()->skHeader.aicQueSize = aic_que_size;
+    args.Get()->skHeader.aivQueSize = aiv_que_size;
     args.Get()->skHeader.aicQueOffset = aic_que_offset;
     args.Get()->skHeader.aivQueOffset = aiv_que_offset;
     args.Get()->skHeader.counterOffset = counter_offset;
@@ -984,18 +1014,28 @@ DeviceArgsPtr SkTaskBuilder::GenEntryArgs(const SkTask& skTaskCube, const SkTask
     args.Get()->skHeader.totalSize = total_size;
 
     uint8_t* base = (uint8_t*)args.Get();
-    TaskQue* dst_aic = (TaskQue*)(base + aic_que_offset);
-    errno_t err = memcpy_s(dst_aic, aic_que_size, skTaskCube.GetTaskQue(), aic_que_size);
-    if (err != 0) {
-        SK_LOGE("GenEntryArgs memcpy_s AIC queue failed, ret=%d", static_cast<int>(err));
-        return {};
+
+    errno_t err = 0;
+    // Copy AIC queues
+    for (size_t i = 0; i < 4; i++) {
+        err = memcpy_s(base + aic_que_offset + i * aic_que_size,
+                aic_que_size, skTaskCube.GetTaskQue(), aic_que_size);
+        if (err != 0) {
+            SK_LOGE("GenEntryArgs memcpy_s AIC queue%zu failed, ret=%d", i + 1, err);
+            return {};
+        }
     }
-    TaskQue* dst_aiv = (TaskQue*)(base + aiv_que_offset);
-    err = memcpy_s(dst_aiv, aiv_que_size, skTaskVec.GetTaskQue(), aiv_que_size);
-    if (err != 0) {
-        SK_LOGE("GenEntryArgs memcpy_s AIV queue failed, ret=%d", static_cast<int>(err));
-        return {};
+
+    // Copy AIV queues
+    for (size_t i = 0; i < 4; i++) {
+        err = memcpy_s(base + aiv_que_offset + i * aiv_que_size,
+                    aiv_que_size, skTaskVec.GetTaskQue(), aiv_que_size);
+        if (err != 0) {
+            SK_LOGE("GenEntryArgs memcpy_s AIV queue%zu failed, ret=%d", i + 1, err);
+            return {};
+        }
     }
+
     if (counter_size > 0) {
         err = memset_s(base + counter_offset, counter_size, 0, counter_size);
         if (err != 0) {
@@ -1106,10 +1146,11 @@ bool SkTaskBuilder::ProcessCoreFuncSize(SkDfxInfo* dfxInfo, const void* binHostA
     
     std::string symbolName;
     uint64_t funcSize = 0;
+    std::string symbolBind;
     bool getInfoRet = GetFuncSymbolInfo(static_cast<const char*>(binHostAddr), binHostSize,
-                                        resolved.funcOffset[coreIndex], symbolName, funcSize);
-    SK_LOGD("ProcessCoreFuncSize: GetFuncSymbolInfo(%s) returned=%d, offset=0x%lx, symbolName=%s, size=0x%lx",
-            coreName, getInfoRet, resolved.funcOffset[coreIndex], symbolName.c_str(), funcSize);
+                                        resolved.funcOffset[coreIndex], symbolName, funcSize, symbolBind);
+    SK_LOGD("ProcessCoreFuncSize: GetFuncSymbolInfo(%s) returned=%d, offset=0x%lx, symbolName=%s, size=0x%lx, bind=%s",
+            coreName, getInfoRet, resolved.funcOffset[coreIndex], symbolName.c_str(), funcSize, symbolBind.c_str());
     
     if (getInfoRet) {
         if (coreIndex == 0) {
@@ -1185,9 +1226,14 @@ bool SkTaskBuilder::AddFuncTask(SkTask& skTask, SuperKernelBaseNode* node, SkDfx
         return false;
     }
 
-    auto disableDcciOptions = opts.GetOption(aclskOptionType::DEBUG_DCCI_DISABLE_ON_KERNEL);
-    auto dcciBeforeKernelStartOptions = opts.GetOption(aclskOptionType::DEBUG_DCCI_BEFORE_KERNEL_START);
-    auto dcciAfterKernelEndOptions = opts.GetOption(aclskOptionType::DEBUG_DCCI_AFTER_KERNEL_END);
+    auto disableDcciOptions = opts.GetOption(aclskOptionType::DCCI_DISABLE_ON_KERNEL);
+    auto dcciBeforeKernelStartOptions = opts.GetOption(aclskOptionType::DCCI_BEFORE_KERNEL_START);
+    auto dcciAfterKernelEndOptions = opts.GetOption(aclskOptionType::DCCI_AFTER_KERNEL_END);
+    auto crossCoreSyncCheckOptions = opts.GetOption(aclskOptionType::DEBUG_CROSS_CORE_SYNC_CHECK);
+    uint32_t debugCrossCoreSyncCheck = 0;
+    if (crossCoreSyncCheckOptions != nullptr) {
+        debugCrossCoreSyncCheck = crossCoreSyncCheckOptions->GetIntValue();
+    }
     std::vector<std::string> disableDcciList;
     std::vector<std::string> dcciBeforeKernelStartList;
     std::vector<std::string> dcciAfterKernelEndList;
@@ -1266,6 +1312,10 @@ bool SkTaskBuilder::AddFuncTask(SkTask& skTask, SuperKernelBaseNode* node, SkDfx
             if (opts.JudgeDisableKernelDcci(dcciAfterKernelEndList, kernelInfo.funcName)) {
                 taskInfo.debugOptions |= 0x8;
             }
+        }
+
+        if (debugCrossCoreSyncCheck == 1) {
+            taskInfo.debugOptions |= 0x10;
         }
     }
     taskQue->taskCnt++;
@@ -1524,9 +1574,15 @@ SkHostEntryInfo SkTaskBuilder::GenEntryInfo(SkTask& skTaskCube, SkTask& skTaskVe
     const char* profilingEnv = std::getenv("ASCEND_PROF_SK_ON");
     bool enableProfiling = (profilingEnv != nullptr && std::string(profilingEnv) != "0");
     
-    // ASCEND_SK_OP_TRACE_ON: 启用 op_trace 功能
-    const char* opTraceEnv = std::getenv("ASCEND_SK_OP_TRACE_ON");
-    bool enableOpTrace = (opTraceEnv != nullptr && std::string(opTraceEnv) == "1");
+    // DEBUG_OP_EXEC_TRACE: 启用 op_trace 功能
+    auto opExecTraceOpt = opts.GetOption(aclskOptionType::DEBUG_OP_EXEC_TRACE);
+    bool enableOpTrace = (opExecTraceOpt != nullptr && opExecTraceOpt->GetIntValue() == 1);
+
+    // DEBUG_CROSS_CORE_SYNC_CHECK: 启用 cross core sync 校验，需要 op_trace 内核
+    auto crossCoreSyncCheckOpt = opts.GetOption(aclskOptionType::DEBUG_CROSS_CORE_SYNC_CHECK);
+    if (crossCoreSyncCheckOpt != nullptr && crossCoreSyncCheckOpt->GetIntValue() == 1) {
+        enableOpTrace = true;
+    }
     
     SK_LOGI("GenEntryInfo: enableDebug=%d, enableProfiling=%d, enableOpTrace=%d",
             enableDebug, enableProfiling, enableOpTrace);
@@ -1578,7 +1634,7 @@ SkHostEntryInfo SkTaskBuilder::GenEntryInfo(SkTask& skTaskCube, SkTask& skTaskVe
     }
     
     // ========== 2. 常量化失败，回退到原有逻辑 ==========
-    SK_LOGI("Constant codegen disabled or failed, falling back to default entry resolution");
+    SK_LOGI("Constant codegen disabled or unsuccessful, falling back to default entry resolution");
     
     // 根据 task 分布确定 kernel 类型和 numBlocks
     SkKernelType kernelType = SkKernelType::AIC_ONLY;
@@ -1725,7 +1781,7 @@ SkLaunchInfo SkTaskBuilder::Build(std::string skFuncName, const std::vector<Supe
 
     // In debug mode, force all tasks into ALL_SYNC for traceability.
     if (opts.EnableDebug() && debugSyncAll) {
-        SK_LOGI("debug sync all is enabled, now clear all sync info, and only left cross sync info. task count is %d",
+        SK_LOGI("tracing sync all is enabled, now clear all sync info, and only left cross sync info. task count is %d",
                 taskCount);
         for (int i = 0; i < static_cast<int>(taskCount); i++) {
             // Clear all sync metadata and force ALL_SYNC in debug mode.
@@ -1857,7 +1913,7 @@ SkLaunchInfo SkTaskBuilder::Build(std::string skFuncName, const std::vector<Supe
                     return {};
                 }
                 queueType = firstKernelEventQueueType;
-                SK_LOGI("custom task %zu: failed to resolve previous KERNEL node, nodeId=%lu, fallback = %s", i,
+                SK_LOGI("custom task %zu: unable to resolve previous KERNEL node, nodeId=%lu, fallback = %s", i,
                         node->GetNodeId(), to_string(queueType));
             } else {
                 queueType = ToEventQueueType(ToQueueType(GetKernelInfos(kernel).kernelType));
@@ -1915,5 +1971,12 @@ SkLaunchInfo SkTaskBuilder::Build(std::string skFuncName, const std::vector<Supe
     launchInfo.entryInfo = std::move(entryInfo);
     launchInfo.devArgs = std::move(devArgs);
     launchInfo.skFuncName = skFuncName;
+
+    // Dump task queues to JSON for debugging
+    SK_LOGI("DumpSkTaskQueueToJson: starting to dump task queues");
+    if (!DumpSkTaskQueueToJson(graph_, aicTask, aivTask)) {
+        SK_LOGW("Failed to dump task queues to JSON, continuing...");
+    }
+
     return launchInfo;
 }

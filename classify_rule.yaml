@@ -15,11 +15,11 @@ superkernel:
   team: "superkernel"
   src:
     release:
-      - superkernel/src
+      - super_kernel/src
     unrelease:
-      - superkernel/tests
-      - superkernel/docs
-      - superkernel/examples
+      - super_kernel/tests
+      - super_kernel/docs
+      - super_kernel/examples
   llt:
     ut_check: true
     st_check: true

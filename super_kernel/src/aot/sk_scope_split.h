@@ -19,7 +19,7 @@
  * The scope splitting is implemented as a multi-pass pipeline, similar to compiler passes:
  * - Pass 0: Initial scope splitting based on fusibility and scopeBitFlags
  * - Pass 1: Deadlock detection and scope refinement
- * - Pass 2: SchoMode kernel core trend based split refinement
+ * - Pass 2: ScheMode kernel core trend based split refinement
  * - Pass 3: Remove event-only streams from scopes
  * 
  * Key Concepts:
@@ -164,6 +164,21 @@ public:
      */
     static void RebuildStreamInfos(SuperKernelScopeInfo& scope);
 
+    /*!
+     * \brief Get kernel nodes from a scope
+     * \param scope Scope to extract kernel nodes from
+     * \return Vector of kernel node IDs
+     */
+    static std::vector<uint64_t> GetKernelNodeIds(const SuperKernelScopeInfo& scope);
+
+    /*!
+     * \brief Check if two scopes have the same kernel nodes
+     * \param scope1 First scope
+     * \param scope2 Second scope
+     * \return true if kernel node sets are identical
+     */
+    static bool HasSameKernelNodes(const SuperKernelScopeInfo& scope1, const SuperKernelScopeInfo& scope2);
+
 private:
     /*!
      * \brief Print detailed scope information to current log context
@@ -179,13 +194,13 @@ protected:
     SuperKernelScopeSplitter* splitter_;  ///< Reference to splitter for re-split requests
 };
 
-// ============ Pass 3: Event-Only Stream Remove (after SchoModeKernelSplit) ============
+// ============ Pass 3: Event-Only Stream Remove (after ScheModeKernelSplit) ============
 
 /*!
  * \class EventOnlyStreamRemovePass
  * \brief Pass 3: Mark event-only stream nodes as non-fusible to trigger re-split
  *
- * This pass runs after SchoModeKernelSplitPass to detect scopes that contain streams
+ * This pass runs after ScheModeKernelSplitPass to detect scopes that contain streams
  * with only event nodes (NODE_NOTIFY, NODE_WAIT, NODE_RESET, NODE_MEMORY_WRITE,
  * NODE_MEMORY_WAIT). Instead of removing such streams directly, it marks all event
  * nodes in those streams as non-fusible and signals the pipeline to re-run scope
@@ -267,6 +282,7 @@ private:
     bool ResetStreamStates();  // Changed from void to bool to propagate errors
     bool SkipUnfusibleNodes();  // Changed from void to bool to propagate errors
     bool SkipUnfusibleNodesForStream(uint32_t streamIdx);
+    bool ProcessUnfusibleNodeForSkip(uint32_t streamIdx, SuperKernelBaseNode* node);
     bool ProcessUnfusibleWaitNode(uint32_t streamIdx, SuperKernelBaseNode* waitNode);
     bool AllStreamsFinished() const;
     bool DetermineCurrentScopeBitFlags();
@@ -293,6 +309,10 @@ private:
     std::set<uint64_t> processedNodes_;
     SkCandidateHeap nodeHeap_;
     std::bitset<MAX_SCOPE_NUM> currentScopeBitFlags_;
+    std::unordered_map<uint32_t, ScopeBreakInfo> streamBreakInfos_;  // Per-stream break info (last one wins)
+    ScopeBreakInfo currentScopeBreakInfo_;  // Current scope's primary break reason
+    ScopeBreakInfo scopeStartBreakInfo_;    // Break reason from skipped nodes at scope start
+    SuperKernelScopeInfo* currentScope_ = nullptr;  // Pointer to scope currently being built
 };
 
 // ============ Pass 2: Deadlock Detection and Refinement ============
@@ -372,45 +392,45 @@ private:
     LockDetector lockDetector_;
 };
 
-// ============ Pass 3: SchoMode Kernel Core Split Refinement ============
+// ============ Pass 3: ScheMode Kernel Core Split Refinement ============
 
 /*!
- * \enum SchoModeScopeProcessResult
- * \brief Result of processing a single scope for SchoMode kernel split refinement
+ * \enum ScheModeScopeProcessResult
+ * \brief Result of processing a single scope for ScheMode kernel split refinement
  */
-enum class SchoModeScopeProcessResult {
+enum class ScheModeScopeProcessResult {
     NO_SPLIT,          ///< No split required, scope is output as-is
     SPLIT_RESOLVED     ///< Split required and completed, remaining part returned via pendingScope
 };
 
 /*!
- * \class SchoModeKernelSplitPass
- * \brief Pass 3: Refine scopes based on SchoMode kernel core trend
+ * \class ScheModeKernelSplitPass
+ * \brief Pass 3: Refine scopes based on ScheMode kernel core trend
  *
  * Rules:
  * - Traverse nodes in a scope and merge kernel core requirement using max(cube), max(vec)
- * - When a kernel node with IsSchoModeOn()==true is encountered:
+ * - When a kernel node with IsScheModeOn()==true is encountered:
  *   - If its core requirement is greater than merged previous requirement, keep merging
  *   - If its core requirement is smaller than merged previous requirement, split at this node
  * - Split point kernel is included in the "after" scope
  */
-class SchoModeKernelSplitPass : public ScopeSplitPass {
+class ScheModeKernelSplitPass : public ScopeSplitPass {
 public:
-    explicit SchoModeKernelSplitPass(SuperKernelGraph& inputGraph);
-    ~SchoModeKernelSplitPass() = default;
+    explicit ScheModeKernelSplitPass(SuperKernelGraph& inputGraph);
+    ~ScheModeKernelSplitPass() = default;
 
     bool Run(std::vector<SuperKernelScopeInfo>& scopes) override;
-    std::string GetName() const override { return "SchoModeKernelSplitPass"; }
+    std::string GetName() const override { return "ScheModeKernelSplitPass"; }
 
 private:
     /*!
-     * \brief Process a single scope and split if SchoMode rule requires
+     * \brief Process a single scope and split if ScheMode rule requires
      * \param scopeToProcess Input scope to process (moved)
      * \param outputScopes Output refined scopes
      * \param pendingScope Remaining part after split, if any
      * \return Processing result
      */
-    SchoModeScopeProcessResult ProcessSingleScope(
+    ScheModeScopeProcessResult ProcessSingleScope(
         SuperKernelScopeInfo&& scopeToProcess,
         std::vector<SuperKernelScopeInfo>& outputScopes,
         std::optional<SuperKernelScopeInfo>& pendingScope);
@@ -426,6 +446,51 @@ private:
                           SuperKernelBaseNode* splitNode,
                           SuperKernelScopeInfo& scopeBefore,
                           SuperKernelScopeInfo& scopeAfter);
+};
+
+// ============ Default Node Process Pass ============
+
+/*!
+ * \struct DefaultNodeInfo
+ * \brief Information about default nodes in a scope
+ */
+struct DefaultNodeInfo {
+    std::vector<SuperKernelBaseNode*> defaultNodes;  ///< Default nodes in scope
+    std::unordered_set<uint32_t> streamIndices;      ///< Stream indices containing defaults
+};
+
+/*!
+ * \class DefaultNodeProcessPass
+ * \brief Pass for processing default nodes in scopes
+ *
+ * Processing logic (each scope independently):
+ * 1. Collect default nodes and their stream indices
+ * 2. Check if those streams have kernel nodes in scope
+ * 3. Branch:
+ *    - Has kernel: mark defaults unfusible -> trigger resplit
+ *    - No kernel: remove defaults and those streams
+ *
+ * Rules:
+ * - Default in stream with kernel -> mark unfusible -> becomes boundary
+ * - Default in stream without kernel -> remove -> execute via original task
+ */
+class DefaultNodeProcessPass : public ScopeSplitPass {
+public:
+    explicit DefaultNodeProcessPass(SuperKernelGraph& inputGraph);
+    ~DefaultNodeProcessPass() = default;
+
+    bool Run(std::vector<SuperKernelScopeInfo>& scopes) override;
+    std::string GetName() const override { return "DefaultNodeProcessPass"; }
+
+private:
+    uint32_t ProcessSingleScope(SuperKernelScopeInfo& scope);
+    
+    DefaultNodeInfo CollectDefaultNodesInScope(const SuperKernelScopeInfo& scope);
+    bool HasKernelInStreams(const SuperKernelScopeInfo& scope, 
+                            const std::unordered_set<uint32_t>& streamIndices);
+    void MarkDefaultsUnfusible(const std::vector<SuperKernelBaseNode*>& defaultNodes);
+    void RemoveDefaultsAndStreams(SuperKernelScopeInfo& scope, const DefaultNodeInfo& info);
+    void RemoveStreamFromScope(SuperKernelScopeInfo& scope, uint32_t streamIdx);
 };
 
 // ============ Main Splitter Class ============
@@ -472,10 +537,30 @@ public:
      */
     bool NeedsResplit() const { return needResplit_; }
 
+    /*!
+     * \brief Print scope break reason report for debugging
+     */
+    void PrintScopeBreakReasonReport();
+
+    /*!
+     * \brief Print all scopes detail
+     */
+    static void PrintAllScopesDetail(const std::vector<SuperKernelScopeInfo>& scopeInfos);
+
     SuperKernelGraph& graph_;
     std::vector<SuperKernelScopeInfo> scopeInfos_;
     std::vector<std::unique_ptr<ScopeSplitPass>> passes_;
-    bool needResplit_ = false;  ///< Flag to signal re-split is needed
+    bool needResplit_ = false;
+
+private:
+    void InitDefaultNodeFusibility();
+    SuperKernelOptionsManager* opts_ = nullptr;
+    bool enableTaskBreakerBypass_ = false;
 };
+
+// Declaration for FindRootBreakInfo
+ScopeBreakInfo FindRootBreakInfo(const SuperKernelScopeInfo& scope,
+                                 const std::unordered_map<uint16_t, size_t>& scopeIdToIdx,
+                                 const std::vector<SuperKernelScopeInfo>& scopeInfos);
 
 #endif // __SK_SCOPE_SPLIT_H__

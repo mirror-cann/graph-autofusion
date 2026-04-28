@@ -174,10 +174,11 @@ struct TaskInfo {
     uint64_t args;
     uint64_t entry[4];
     // 根据bit位确定option选项
-    // 1： debug_dcci_disable_on_kernel
+    // 1： dcci_disable_on_kernel
     // 2： debug_sync_all
-    // 4： debug_dcci_before_kernel_start
-    // 8： debug_dcci_after_kernel_end
+    // 4： dcci_before_kernel_start
+    // 8： dcci_after_kernel_end
+    // 16： debug_cross_core_sync_check
     uint64_t debugOptions;
     uint64_t reserved;
 };
@@ -189,6 +190,8 @@ struct TaskQue {
 };
 
 struct SkHeaderInfo {
+    uint32_t aicQueSize;
+    uint32_t aivQueSize;
     uint32_t aicQueOffset;
     uint32_t aivQueOffset;
     uint32_t counterOffset;
@@ -253,11 +256,11 @@ struct SkEventConfig {
 };
 
 bool GetFuncSymbolInfo(const char* binAddr, size_t binSize, uint64_t funcAddr, std::string& symbolName,
-                       uint64_t& funcSize);
+                       uint64_t& funcSize, std::string& symbolBind);
 
-enum class SchoModeState : uint8_t {
-    SCHO_MODE_OFF = 0,
-    SCHO_MODE_ON = 1,
+enum class ScheModeState : uint8_t {
+    SCHE_MODE_OFF = 0,
+    SCHE_MODE_ON = 1,
     NONE = 0xff,
 };
 

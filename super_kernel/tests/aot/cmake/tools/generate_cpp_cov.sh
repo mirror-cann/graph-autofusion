@@ -20,6 +20,14 @@ LCOV_COMPAT_MODE=""
 LCOV_MAJOR_VERSION=0
 LCOV_CAPTURE_OPTS=()
 LCOV_FILTER_OPTS=()
+CPP_UT_COVERAGE_EXPECTED="${CPP_UT_COVERAGE_EXPECTED:-80}"
+
+progress() {
+  local _current="$1"
+  local _total="$2"
+  local _message="$3"
+  logging "[${_current}/${_total}] ${_message}"
+}
 
 init_lcov_compat_options() {
   LCOV_VERSION="$(lcov --version 2>/dev/null | awk '{print $NF}')"
@@ -33,16 +41,22 @@ init_lcov_compat_options() {
   if (( LCOV_MAJOR_VERSION >= 2 )); then
     LCOV_COMPAT_MODE="modern"
     LCOV_CAPTURE_OPTS=(
+      --quiet
       --ignore-errors mismatch,mismatch,negative,gcov
       --rc geninfo_unexecuted_blocks=1
     )
     LCOV_FILTER_OPTS=(
+      --quiet
       --ignore-errors mismatch,mismatch,negative,gcov,empty,unused
     )
   else
     LCOV_COMPAT_MODE="legacy"
     LCOV_CAPTURE_OPTS=(
+      --quiet
       --ignore-errors gcov
+    )
+    LCOV_FILTER_OPTS=(
+      --quiet
     )
   fi
 
@@ -121,7 +135,56 @@ generate_html() {
   if [[ ! -d "${_out_path}" ]]; then
     mk_dir "${_out_path}"
   fi
-  genhtml "${_filtered_file}" -o "${_out_path}"
+  genhtml "${_filtered_file}" \
+          --quiet \
+          --legend \
+          --title "graph-autofusion AOT C++ Coverage" \
+          --prefix "${_src}" \
+          -o "${_out_path}"
+}
+
+print_summary() {
+  local _filtered_file="$1"
+  local _html_path="$2"
+
+  logging "Coverage tracefile: ${_filtered_file}"
+  logging "Coverage html report: ${_html_path}/index.html"
+  lcov --summary "${_filtered_file}" | sed 's/^/[INFO] /'
+}
+
+print_low_coverage_files() {
+  local _filtered_file="$1"
+  local _threshold="$2"
+  local _under_threshold
+
+  _under_threshold="$(
+    lcov --list "${_filtered_file}" | awk -F'|' -v threshold="${_threshold}" '
+      /^[[:space:]]*Filename[[:space:]]*\|/ { next }
+      /^=+/ { next }
+      /^[[:space:]]*Total:/ { next }
+      NF >= 2 {
+        file = $1
+        rate = $2
+        gsub(/^[[:space:]]+|[[:space:]]+$/, "", file)
+        gsub(/^[[:space:]]+|[[:space:]]+$/, "", rate)
+        sub(/%.*/, "", rate)
+        if (file != "" && rate != "" && rate + 0 < threshold) {
+          printf "%s %.1f%%\n", file, rate + 0
+        }
+      }
+    '
+  )"
+
+  if [[ -z "${_under_threshold}" ]]; then
+    logging "All files meet the expected line coverage threshold (${_threshold}%)."
+    return
+  fi
+
+  logging "Files below expected line coverage threshold (${_threshold}%):"
+  while IFS= read -r _line; do
+    [[ -z "${_line}" ]] && continue
+    logging "  ${_line}"
+  done <<< "${_under_threshold}"
 }
 
 
@@ -135,6 +198,12 @@ _cov_file="$2"
 _out="$3"
 _cann_path="$4"
 
+progress 1 4 "Capturing AOT C++ coverage data"
 generate_coverage "${_src}" "${_cov_file}" "${_cann_path}"
+progress 2 4 "Filtering AOT C++ coverage data"
 filter_coverage   "${_cov_file}" "${_cov_file}_filtered"
+progress 3 4 "Generating AOT C++ coverage html report"
 generate_html     "${_cov_file}_filtered" "${_out}"
+progress 4 4 "Summarizing AOT C++ coverage results"
+print_summary     "${_cov_file}_filtered" "${_out}"
+print_low_coverage_files "${_cov_file}_filtered" "${CPP_UT_COVERAGE_EXPECTED}"

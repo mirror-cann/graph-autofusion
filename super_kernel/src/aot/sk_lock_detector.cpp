@@ -272,6 +272,11 @@ void LockDetector::Reset() {
     SK_LOGD("[lock detector] Previous state: depOpCubeNum=%u, depOpVecNum=%u, superKernelCubeNum=%u, superKernelVecNum=%u, nodeNum=%u, kernelNodeNum=%u",
             depOpCubeNum, depOpVecNum, superKernelCubeNum, superKernelVecNum, nodeNum, kernelNodeNum);
 
+    size_t nodesCount = nodes.size();
+    size_t tempVisitedNodesCount = tempVisitedNodes.size();
+    size_t streamIdsCount = skStreamIds.size();
+    size_t streamRangesCount = skRangeInStream.size();
+
     depOpCubeNum = 0;
     depOpVecNum = 0;
     superKernelCubeNum = 0;
@@ -281,10 +286,11 @@ void LockDetector::Reset() {
     deadlockReason_ = DeadlockFailReason::NOT_FIND_DEADLOCK;
 
     RollbackVisitedState(nodes);
+    RollbackVisitedState(tempVisitedNodes);
     skStreamIds.clear();
     skRangeInStream.clear();
-    SK_LOGD("[lock detector] Reset: Completed, cleared %zu nodes, %zu stream IDs, %zu stream ranges",
-            nodes.size(), skStreamIds.size(), skRangeInStream.size());
+    SK_LOGD("[lock detector] Reset: Completed, cleared %zu nodes, %zu tempVisitedNodes, %zu stream IDs, %zu stream ranges",
+            nodesCount, tempVisitedNodesCount, streamIdsCount, streamRangesCount);
 }
 
 void LockDetector::UpdateSKRangeInStream(const SuperKernelBaseNode& curNode) {
@@ -413,8 +419,12 @@ bool LockDetector::GetFusibleStatus(SuperKernelBaseNode& curNode) {
         SK_LOGD("[lock detector] Kernel node %s: coreNum={%u, %u}, superKernelCubeNum=%u, superKernelVecNum=%u",
                 curNode.Format().c_str(), cubeNum, vecNum, superKernelCubeNum, superKernelVecNum);
         return HasEnoughCores(&curNode, true);
+    } else if (curNode.GetNodeType() == SkNodeType::NODE_DEFAULT) {
+        SK_LOGD("[lock detector] Default node %s: no core resource, can fuse", curNode.Format().c_str());
+        return true;
     } else {
         SK_LOGW("[lock detector] Node %s: unsupported taskType=%u", curNode.Format().c_str(), curNode.GetNodeType());
+        deadlockReason_ = DeadlockFailReason::NO_SUPPORT_NODE;
         return false;
     }
 }
@@ -445,6 +455,7 @@ bool LockDetector::IsFusible(SuperKernelBaseNode& curNode) {
         SK_LOGD("[lock detector] fused nodeId=%s, nodeType=%u, nodeNum=%u, SuperKernelCubeNum=%u, SuperKernelVecNum=%u, depOpCubeNum=%u, depOpVecNum=%u", curNode.Format().c_str(), curNode.GetNodeType(), nodeNum, superKernelCubeNum, superKernelVecNum, depOpCubeNum, depOpVecNum);
     } else {
         SK_LOGI("[lock detector] Node %s: cannot be fused", curNode.Format().c_str());
+        curNode.SetIsFusible(false);
         // If deadlock was detected, set the failure reason with detail
         if (deadlockReason_ != DeadlockFailReason::NOT_FIND_DEADLOCK) {
             curNode.SetFusionFailReason(FusionFailReason::EXIST_DEADLOCK, deadlockReason_);

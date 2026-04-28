@@ -25,6 +25,19 @@
 #include "sk_node.h"
 
 /*!
+ * \struct OriginalScopeInfo
+ * \brief Simple structure to store original scope info (for dumping)
+ *        Used to preserve scope information before any splitting
+ */
+struct OriginalScopeInfo {
+    uint16_t scopeId;
+    std::bitset<MAX_SCOPE_NUM> scopeBitFlags;
+    std::vector<uint64_t> nodeIds;
+
+    const std::bitset<MAX_SCOPE_NUM>& GetScopeBitFlags() const { return scopeBitFlags; }
+};
+
+/*!
  * \struct ScopeStreamInfo
  * \brief Information about a single stream within a scope
  */
@@ -36,18 +49,150 @@ struct ScopeStreamInfo {
 };
 
 /*!
+ * \enum ScopeFusionStatus
+ * \brief Fusion status for scope after PostProcess
+ */
+enum class ScopeFusionStatus : uint8_t {
+    FAILED = 0,     // Scope fusion failed (initial state)
+    SUCCESS,        // Scope fusion succeeded after PostProcess
+};
+
+/*!
+ * \brief Convert ScopeFusionStatus to string
+ */
+inline const char* ScopeFusionStatusToStr(ScopeFusionStatus status) {
+    switch (status) {
+        case ScopeFusionStatus::FAILED:
+            return "FAILED";
+        case ScopeFusionStatus::SUCCESS:
+            return "SUCCESS";
+        default:
+            return "UNKNOWN";
+    }
+}
+
+/*!
  * \enum ScopeFailReason
- * \brief Failure reasons for scope processing
+ * \brief Failure reasons for scope processing (when fusion failed)
  */
 enum class ScopeFailReason : uint8_t {
     NONE = 0,
-    VALIDATION_FAILED,
-    NO_TASK,
-    NO_KERNEL,
-    EVENT_MEMORY_APPLY_FAILED,
-    STREAM_BOUNDARY_INVALID,
-    STREAM_SELECT_FAILED,
-    SUB_STREAM_SYNC_FAILED,
+    STREAM_SYNC_FAIL, // Insufficient resources are needed for scope fusion
+};
+
+/*!
+ * \enum ScopeBreakReason
+ * \brief Reasons why a scope boundary was created (scope was split)
+ */
+enum class ScopeBreakReason : uint8_t {
+    NONE,                    // No break reason (initial scope or last scope)
+    UNFUSIBLE_NODE,          // Encountered unfusible node
+    DEADLOCK_DETECTED,       // Deadlock detection triggered split
+    SCHOMODE_CORE_DROP,      // SchoMode core number dropped
+};
+
+/*!
+ * \brief Convert ScopeBreakReason to string
+ */
+inline const char* ScopeBreakReasonToStr(ScopeBreakReason reason) {
+    switch (reason) {
+        case ScopeBreakReason::UNFUSIBLE_NODE:
+            return "There exists unfusible node in scope";
+        case ScopeBreakReason::DEADLOCK_DETECTED:
+            return "There exists deadlock in scope";
+        case ScopeBreakReason::SCHOMODE_CORE_DROP:
+            return "There exists an operator for full kernel synchronization, and the number of kernels of this operator is less than the maximum number of kernels of the fused superkernel";
+        default:
+            return "UNKNOWN REASON";
+    }
+}
+
+/*!
+ * \class ScopeBreakInfo
+ * \brief Information about why a scope boundary was created
+ */
+class ScopeBreakInfo {
+public:
+    ScopeBreakInfo() = default;
+
+    // Builder-style setters for convenient construction
+    ScopeBreakInfo& SetReason(ScopeBreakReason r) {
+        reason = r;
+        return *this;
+    }
+
+    ScopeBreakInfo& SetTriggerNode(uint64_t nodeId, uint32_t streamIdx = 0) {
+        triggerNodeId = nodeId;
+        triggerStreamIdx = streamIdx;
+        return *this;
+    }
+
+    ScopeBreakInfo& SetTriggerStreamIdx(uint32_t streamIdx) {
+        triggerStreamIdx = streamIdx;
+        return *this;
+    }
+
+    ScopeBreakInfo& SetFusionFailReason(const FusionFailReasonInfo& failInfo) {
+        fusionFailReason = failInfo;
+        return *this;
+    }
+
+    ScopeBreakInfo& SetFusionFailReason(FusionFailReason failReason) {
+        fusionFailReason = FusionFailReasonInfo(failReason);
+        return *this;
+    }
+
+    ScopeBreakInfo& SetParentScopeId(uint16_t id) {
+        parentScopeId = id;
+        return *this;
+    }
+
+    ScopeBreakInfo& SetDetail(const std::string& d) {
+        detail = d;
+        return *this;
+    }
+
+    ScopeBreakInfo& SetDetail(std::string&& d) {
+        detail = std::move(d);
+        return *this;
+    }
+
+    // Getters
+    ScopeBreakReason GetReason() const { return reason; }
+    uint64_t GetTriggerNodeId() const { return triggerNodeId; }
+    uint32_t GetTriggerStreamIdx() const { return triggerStreamIdx; }
+    const FusionFailReasonInfo& GetFusionFailReason() const { return fusionFailReason; }
+    uint16_t GetParentScopeId() const { return parentScopeId; }
+    const std::string& GetDetail() const { return detail; }
+
+    std::string Format() const {
+        std::string result = "reason=" + std::string(ScopeBreakReasonToStr(reason));
+        if (triggerNodeId != INVALID_TASK_ID) {
+            result += ", triggerNode=" + std::to_string(triggerNodeId);
+        }
+        if (triggerStreamIdx != 0 || triggerNodeId != INVALID_TASK_ID) {
+            result += ", triggerStream=" + std::to_string(triggerStreamIdx);
+        }
+        if (reason == ScopeBreakReason::UNFUSIBLE_NODE ||
+            reason == ScopeBreakReason::DEADLOCK_DETECTED) {
+            result += ", fusionReason=" + FusionFailReasonToStr(fusionFailReason);
+        }
+        if (parentScopeId != 0) {
+            result += ", parentScope=" + std::to_string(parentScopeId);
+        }
+        if (!detail.empty()) {
+            result += ", detail=\"" + detail + "\"";
+        }
+        return result;
+    }
+
+private:
+    ScopeBreakReason reason = ScopeBreakReason::NONE;
+    uint64_t triggerNodeId = INVALID_TASK_ID;      // Node that triggered the break
+    uint32_t triggerStreamIdx = 0;                 // Stream of trigger node
+    FusionFailReasonInfo fusionFailReason;         // Detailed fusion failure reason (if applicable)
+    uint16_t parentScopeId = 0;                    // Parent scope ID (split from, for tracing split chain)
+    std::string detail;                            // Human-readable description
 };
 
 /*!
@@ -91,7 +236,8 @@ struct ScopeExtInfo {
     std::vector<std::unique_ptr<SuperKernelBaseNode>> eventNodes;  ///< Synthesized event nodes for stream sync
     uint64_t skMainNodeId = INVALID_TASK_ID;                       ///< Main launch node ID for this scope
     std::string scopeName;
-    ScopeFailReason failReason = ScopeFailReason::NONE;
+    ScopeFusionStatus fusionStatus = ScopeFusionStatus::FAILED;    ///< Fusion status (initial: FAILED, PostProcess success: SUCCESS)
+    ScopeFailReason failReason = ScopeFailReason::NONE;            ///< Failure reason when fusion failed
 
     ScopeExtInfo() = default;
     ScopeExtInfo(const ScopeExtInfo&) = delete;
@@ -106,24 +252,10 @@ struct ScopeExtInfo {
 inline const char* ScopeFailReasonToStr(ScopeFailReason reason)
 {
     switch (reason) {
-        case ScopeFailReason::NONE:
-            return "NONE";
-        case ScopeFailReason::VALIDATION_FAILED:
-            return "VALIDATION_FAILED";
-        case ScopeFailReason::NO_TASK:
-            return "NO_TASK";
-        case ScopeFailReason::NO_KERNEL:
-            return "NO_KERNEL";
-        case ScopeFailReason::EVENT_MEMORY_APPLY_FAILED:
-            return "EVENT_MEMORY_APPLY_FAILED";
-        case ScopeFailReason::STREAM_BOUNDARY_INVALID:
-            return "STREAM_BOUNDARY_INVALID";
-        case ScopeFailReason::STREAM_SELECT_FAILED:
-            return "STREAM_SELECT_FAILED";
-        case ScopeFailReason::SUB_STREAM_SYNC_FAILED:
-            return "SUB_STREAM_SYNC_FAILED";
+        case ScopeFailReason::STREAM_SYNC_FAIL:
+            return "Insufficient resources are needed for scope fusion";
         default:
-            return "UNKNOWN";
+            return "UNKNOWN REASON";
     }
 }
 
@@ -145,6 +277,7 @@ public:
           scopeStreamInfos_(std::move(other.scopeStreamInfos_)),
           nodes_(std::move(other.nodes_)),
           scopeBitFlags_(other.scopeBitFlags_),
+          breakInfo_(std::move(other.breakInfo_)),
           extInfo_(std::move(other.extInfo_)) {}
     SuperKernelScopeInfo& operator=(SuperKernelScopeInfo&& other) noexcept {
         if (this != &other) {
@@ -152,6 +285,7 @@ public:
             scopeStreamInfos_ = std::move(other.scopeStreamInfos_);
             nodes_ = std::move(other.nodes_);
             scopeBitFlags_ = other.scopeBitFlags_;
+            breakInfo_ = std::move(other.breakInfo_);
             extInfo_ = std::move(other.extInfo_);
         }
         return *this;
@@ -173,6 +307,19 @@ public:
     const std::bitset<MAX_SCOPE_NUM>& GetScopeBitFlags() const { return scopeBitFlags_; }
     void SetScopeBitFlags(const std::bitset<MAX_SCOPE_NUM>& flags) { scopeBitFlags_ = flags; }
 
+    // ============ BreakInfo ============
+    const ScopeBreakInfo& GetBreakInfo() const { return breakInfo_; }
+    ScopeBreakInfo& MutableBreakInfo() { return breakInfo_; }
+    void SetBreakInfo(const ScopeBreakInfo& info) { breakInfo_ = info; }
+    void SetBreakInfo(ScopeBreakInfo&& info) { breakInfo_ = std::move(info); }
+
+    // Convenience method to set break info with builder pattern
+    void SetBreakReason(ScopeBreakReason reason, uint64_t triggerNodeId = INVALID_TASK_ID,
+                         uint32_t triggerStreamIdx = 0) {
+        breakInfo_.SetReason(reason)
+                  .SetTriggerNode(triggerNodeId, triggerStreamIdx);
+    }
+
     // ============ ExtInfo ============
     const ScopeExtInfo& GetExtInfo() const { return extInfo_; }
     void SetExtInfo(ScopeExtInfo&& extInfo) { extInfo_ = std::move(extInfo); }
@@ -183,6 +330,7 @@ private:
     std::vector<ScopeStreamInfo> scopeStreamInfos_; ///< Per-stream information
     std::vector<SuperKernelBaseNode*> nodes_;       ///< All nodes in this scope
     std::bitset<MAX_SCOPE_NUM> scopeBitFlags_;      ///< Scope bit flags
+    ScopeBreakInfo breakInfo_;                      ///< Break reason for this scope boundary
     ScopeExtInfo extInfo_;                          ///< Extended info for post-processing and scheduling
 };
 

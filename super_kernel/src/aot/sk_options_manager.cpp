@@ -286,17 +286,9 @@ bool SuperKernelOptionsManager::MatchRegex(const std::string& pattern, const std
 
 bool SuperKernelOptionsManager::EnableDebug() const {
     auto iterSyncAll = optionMap.find(aclskOptionType::DEBUG_SYNC_ALL);
-    auto iterDcci = optionMap.find(aclskOptionType::DEBUG_DCCI_DISABLE_ON_KERNEL);
-    auto iterDcciBeforeKernelStart = optionMap.find(aclskOptionType::DEBUG_DCCI_BEFORE_KERNEL_START);
-    auto iterDcciAfterKernelEnd = optionMap.find(aclskOptionType::DEBUG_DCCI_AFTER_KERNEL_END);
     const bool enableSyncAll =
         (iterSyncAll != optionMap.end() && iterSyncAll->second != nullptr && iterSyncAll->second->GetIntValue() == 1);
-    const bool enableDcciDisable = (iterDcci != optionMap.end() && iterDcci->second != nullptr);
-    const bool enableDcciBeforeKernelStart =
-        (iterDcciBeforeKernelStart != optionMap.end() && iterDcciBeforeKernelStart->second != nullptr);
-    const bool enableDcciAfterKernelEnd =
-        (iterDcciAfterKernelEnd != optionMap.end() && iterDcciAfterKernelEnd->second != nullptr);
-    if (enableSyncAll || enableDcciDisable || enableDcciBeforeKernelStart || enableDcciAfterKernelEnd) {
+    if (enableSyncAll) {
         SK_LOGI("debug mode enabled");
         return true;
     }
@@ -327,7 +319,7 @@ void SuperKernelOptionsManager::SetOptOptionValue(const aclskOption* option) {
                 }
                 break;
             }
-        case aclskOptionType::DEBUG_DCCI_DISABLE_ON_KERNEL:
+        case aclskOptionType::DCCI_DISABLE_ON_KERNEL:
             {
                 AddOption(std::make_unique<StringListOptOption>("dcci_disable_on_kernel", option->optionType));
                 auto subOption = GetOption(option->optionType);
@@ -352,7 +344,7 @@ void SuperKernelOptionsManager::SetOptOptionValue(const aclskOption* option) {
                 }
                 break;
             }
-        case aclskOptionType::DEBUG_DCCI_BEFORE_KERNEL_START:
+        case aclskOptionType::DCCI_BEFORE_KERNEL_START:
             {
                 AddOption(std::make_unique<StringListOptOption>("dcci_before_kernel_start", option->optionType));
                 auto subOption = GetOption(option->optionType);
@@ -377,7 +369,7 @@ void SuperKernelOptionsManager::SetOptOptionValue(const aclskOption* option) {
                 }
                 break;
             }
-        case aclskOptionType::DEBUG_DCCI_AFTER_KERNEL_END:
+        case aclskOptionType::DCCI_AFTER_KERNEL_END:
             {
                 AddOption(std::make_unique<StringListOptOption>("dcci_after_kernel_end", option->optionType));
                 auto subOption = GetOption(option->optionType);
@@ -476,6 +468,27 @@ void SuperKernelOptionsManager::SetOptOptionValue(const aclskOption* option) {
                 }
                 SK_LOGI("Debug cross-core sync check option set: enable=%u",
                     option->debugCrossCoreSyncCheck.enableCrossCoreSyncCheck);
+                break;
+            }
+        case aclskOptionType::DEBUG_OP_EXEC_TRACE:
+            {
+                AddOption(std::make_unique<NumberOptOption>("debug_op_exec_trace", option->optionType, 0, 0, 1));
+                auto subOption = GetOption(option->optionType);
+                if (subOption != nullptr) {
+                    subOption->SetValue(option->debugOpExecTrace.enableOpExecTrace);
+                }
+                SK_LOGI("Debug op exec trace option set: enable=%u",
+                    option->debugOpExecTrace.enableOpExecTrace);
+                break;
+            }
+        case aclskOptionType::TASK_BREAKER_BYPASS:
+            {
+                AddOption(std::make_unique<NumberOptOption>("task_breaker_bypass", option->optionType, 0, 0, 1));
+                auto subOption = GetOption(option->optionType);
+                if (subOption != nullptr) {
+                    subOption->SetValue(option->taskBreakerBypass.enableTaskBreakerBypass);
+                }
+                SK_LOGI("Task breaker bypass option set: enable=%u", option->taskBreakerBypass.enableTaskBreakerBypass);
                 break;
             }
         default:

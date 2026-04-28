@@ -359,6 +359,9 @@ custom_install() {
                 return 1
             fi
         fi
+        if [ -d "${common_parse_dir}/graph_autofusion" ]; then
+            rm -rf ${common_parse_dir}/graph_autofusion
+        fi
     fi
 
     return 0
