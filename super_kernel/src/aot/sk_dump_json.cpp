@@ -39,93 +39,15 @@
 #include "runtime/kernel.h"
 
 using Json = nlohmann::ordered_json;
+SkBindMap InitSuperKernelBindMap(aclrtBinHandle binHdl);
 
 namespace {
-
-// Types for resolved function info (duplicated from sk_node.h for this file)
-using SkBindMap = std::unordered_map<uint64_t, std::array<uint64_t, 4>>;
-
-struct SknlMapInfo {
-    uint64_t cap;
-    void* globalFunc;
-    void* sknlFunc[4];
-};
-
-struct DumpResolvedFunctionInfo {
-    uint64_t funcAddr[2] = {0, 0};
-    uint64_t funcOffset[2] = {0, 0};
-    uint64_t prefetchCnt[2] = {0, 0};
-    std::string symbolBind[2] = {"", ""};
-};
-
-constexpr size_t K_MAX_SPLIT_BIN_COUNT = 4;
-
-/**
- * @brief Initialize bind map from binary
- */
-SkBindMap InitSkBindMapForDump(aclrtBinHandle binHdl) 
-{
-    struct __attribute__((packed)) SknlValuePayload {
-        uint32_t res;
-        SknlMapInfo info;
-    };
-    constexpr size_t payloadSize = sizeof(SknlValuePayload);
-
-    size_t metaNum = 0;
-    if (int ret = rtBinaryGetMetaNum(binHdl, RT_BINARY_TYPE_SK_INFO, &metaNum) != 0) {
-        SK_LOGW("rtBinaryGetMetaNum failed, ret=%d", ret);
-        return SkBindMap();
-    }
-    if (metaNum == 0) {
-        SK_LOGW("metaNum is zero for binHdl=0x%lx", (uint64_t)binHdl);
-        return SkBindMap();
-    }
-
-    SK_LOGI("binHdl=0x%lx, metaNum=%zu, payloadSize=%zu",
-            (uint64_t)binHdl, metaNum, payloadSize);
-
-    std::vector<uint8_t> dataPool(metaNum * payloadSize);
-    std::vector<size_t> infoSize(metaNum, payloadSize);
-    std::vector<void*> metaDataList(metaNum);
-
-    for (size_t i = 0; i < metaNum; ++i) {
-        metaDataList[i] = &dataPool[i * payloadSize];
-    }
-
-    if (int ret = rtBinaryGetMetaInfo(binHdl, RT_BINARY_TYPE_SK_INFO, metaNum,
-                                      metaDataList.data(), infoSize.data()) != 0) {
-        SK_LOGW("rtBinaryGetMetaInfo failed, ret=%d", ret);
-        return SkBindMap();
-    }
-
-    SkBindMap bindMap;
-    for (size_t i = 0; i < metaNum; ++i) {
-        SknlValuePayload* payload = (SknlValuePayload*)metaDataList[i];
-        SknlMapInfo localInfo;
-        memcpy_s(&localInfo, sizeof(SknlMapInfo), &(payload->info), sizeof(SknlMapInfo));
-
-        SK_LOGI("[%zu] globalFunc=0x%lx, skFunc[0]=0x%lx, skFunc[1]=0x%lx, skFunc[2]=0x%lx, skFunc[3]=0x%lx",
-                i, (uint64_t)localInfo.globalFunc,
-                (uint64_t)localInfo.sknlFunc[0],
-                (uint64_t)localInfo.sknlFunc[1],
-                (uint64_t)localInfo.sknlFunc[2],
-                (uint64_t)localInfo.sknlFunc[3]);
-
-        bindMap[(uint64_t)(localInfo.globalFunc)] = {
-            (uint64_t)(localInfo.sknlFunc[0]),
-            (uint64_t)(localInfo.sknlFunc[1]),
-            (uint64_t)(localInfo.sknlFunc[2]),
-            (uint64_t)(localInfo.sknlFunc[3])
-        };
-    }
-    return bindMap;
-}
 
 /**
  * @brief Fill symbol info for a single core type (AIC/AIV) in resolved function info
  */
 static void FillSymbolInfoForCore(aclrtBinHandle binHdl, uint64_t skFuncOffset,
-                                   uint32_t coreIdx, DumpResolvedFunctionInfo& info) 
+                                   uint32_t coreIdx, ResolvedFunctionInfo& info) 
 {
     void* binHostAddr = nullptr;
     uint32_t binHostSize = 0;
@@ -145,7 +67,7 @@ static void FillSymbolInfoForCore(aclrtBinHandle binHdl, uint64_t skFuncOffset,
  * @brief Get resolved function info from kernel function handle
  */
 void GetResolvedFuncsForDump(aclrtFuncHandle funcHandle, aclrtBinHandle binHdl,
-                             DumpResolvedFunctionInfo resolvedFuncs[],
+                             ResolvedFunctionInfo resolvedFuncs[],
                              uint32_t& resolvedNum) 
 {
     resolvedNum = 0;
@@ -154,7 +76,7 @@ void GetResolvedFuncsForDump(aclrtFuncHandle funcHandle, aclrtBinHandle binHdl,
     }
 
     // Get bind map and function address
-    SkBindMap bindMap = InitSkBindMapForDump(binHdl);
+    SkBindMap bindMap = InitSuperKernelBindMap(binHdl);
     if (bindMap.empty()) {
         return;
     }
@@ -176,7 +98,7 @@ void GetResolvedFuncsForDump(aclrtFuncHandle funcHandle, aclrtBinHandle binHdl,
 
     // Process each split bin
     for (size_t i = 0; i < K_MAX_SPLIT_BIN_COUNT; ++i) {
-        DumpResolvedFunctionInfo& info = resolvedFuncs[i];
+        ResolvedFunctionInfo& info = resolvedFuncs[i];
         uint32_t validFuncNum = 0;
 
         if (aicItor != bindMap.end()) {
@@ -198,29 +120,6 @@ void GetResolvedFuncsForDump(aclrtFuncHandle funcHandle, aclrtBinHandle binHdl,
         if (validFuncNum > 0) {
             resolvedFuncs[resolvedNum++] = info;
         }
-    }
-}
-
-/**
- * @brief Convert aclmdlRITaskType to string
- */
-const char* TaskTypeToString(aclmdlRITaskType type) 
-{
-    switch (type) {
-        case ACL_MODEL_RI_TASK_KERNEL:
-            return "KERNEL";
-        case ACL_MODEL_RI_TASK_VALUE_WRITE:
-            return "VALUE_WRITE";
-        case ACL_MODEL_RI_TASK_VALUE_WAIT:
-            return "VALUE_WAIT";
-        case ACL_MODEL_RI_TASK_EVENT_RECORD:
-            return "NOTIFY";
-        case ACL_MODEL_RI_TASK_EVENT_WAIT:
-            return "WAIT";
-        case ACL_MODEL_RI_TASK_EVENT_RESET:
-            return "RESET";
-        default:
-            return "UNKNOWN";
     }
 }
 
@@ -247,7 +146,6 @@ void AddScopeInfo(Json& nodeJson, const SuperKernelBaseNode* node, const SuperKe
     } else {
         nodeJson["scopeName"] = scopeName;
     }
-    nodeJson["scopeFlags"] = graph.BitsetToString(node->GetScopeBitFlags());
     nodeJson["isScopeNode"] = node->IsScopeNode();
     nodeJson["isScopeBegin"] = node->IsScopeBegin();
     nodeJson["isScopeEnd"] = node->IsScopeEnd();
@@ -334,37 +232,37 @@ void AddBasicKernelInfo(Json& kernelInfos, const KernelInfos& kernelInfo)
 /**
  * @brief Convert single kernel attribute to JSON
  */
-Json KernelAttrToJson(const aclrtLaunchKernelAttr& attr) 
+Json KernelAttrToJson(const aclrtLaunchKernelAttr& launchKernelAttr) 
 {
-    Json attrJson;
-    attrJson["id"] = static_cast<int>(attr.id);
-    switch (attr.id) {
+    Json KernelAttrJson;
+    KernelAttrJson["id"] = static_cast<int>(launchKernelAttr.id);
+    switch (launchKernelAttr.id) {
         case ACL_RT_LAUNCH_KERNEL_ATTR_SCHEM_MODE:
-            attrJson["schemMode"] = attr.value.schemMode;
+            KernelAttrJson["schemMode"] = launchKernelAttr.value.schemMode;
             break;
         case ACL_RT_LAUNCH_KERNEL_ATTR_DYN_UBUF_SIZE:
-            attrJson["dynUBufSize"] = attr.value.dynUBufSize;
+            KernelAttrJson["dynUBufSize"] = launchKernelAttr.value.dynUBufSize;
             break;
         case ACL_RT_LAUNCH_KERNEL_ATTR_ENGINE_TYPE:
-            attrJson["engineType"] = attr.value.engineType;
+            KernelAttrJson["engineType"] = launchKernelAttr.value.engineType;
             break;
         case ACL_RT_LAUNCH_KERNEL_ATTR_BLOCK_TASK_PREFETCH:
-            attrJson["blockTaskPrefetch"] = attr.value.isBlockTaskPrefetch;
+            KernelAttrJson["blockTaskPrefetch"] = launchKernelAttr.value.isBlockTaskPrefetch;
             break;
         case ACL_RT_LAUNCH_KERNEL_ATTR_DATA_DUMP:
-            attrJson["dataDump"] = attr.value.isDataDump;
+            KernelAttrJson["dataDump"] = launchKernelAttr.value.isDataDump;
             break;
         case ACL_RT_LAUNCH_KERNEL_ATTR_TIMEOUT:
-            attrJson["timeout"] = attr.value.timeout;
+            KernelAttrJson["timeout"] = launchKernelAttr.value.timeout;
             break;
         case ACL_RT_LAUNCH_KERNEL_ATTR_TIMEOUT_US:
-            attrJson["timeoutUs"] = attr.value.timeout;
+            KernelAttrJson["timeoutUs"] = launchKernelAttr.value.timeout;
             break;
         default:
-            attrJson["rawValue"] = attr.value.rsv[0];
+            KernelAttrJson["rawValue"] = launchKernelAttr.value.rsv[0];
             break;
     }
-    return attrJson;
+    return KernelAttrJson;
 }
 
 /**
@@ -386,18 +284,18 @@ void AddLaunchKernelCfgAttrs(Json& kernelInfos, const KernelInfos& kernelInfo)
 /**
  * @brief Convert single resolved function info to JSON
  */
-Json ResolvedFuncToJson(const ResolvedFunctionInfo& rf) 
+Json ResolvedFuncToJson(const ResolvedFunctionInfo& resolvedFunctionInfo) 
 {
-    Json jf;
-    jf["funcAddr"][0] = Uint64ToHexString(rf.funcAddr[0]);
-    jf["funcAddr"][1] = Uint64ToHexString(rf.funcAddr[1]);
-    jf["prefetchCnt"][0] = rf.prefetchCnt[0];
-    jf["prefetchCnt"][1] = rf.prefetchCnt[1];
-    jf["funcOffset"][0] = Uint64ToHexString(rf.funcOffset[0]);
-    jf["funcOffset"][1] = Uint64ToHexString(rf.funcOffset[1]);
-    jf["symbolBind"][0] = rf.symbolBind[0];
-    jf["symbolBind"][1] = rf.symbolBind[1];
-    return jf;
+    Json jsonFuncInfo;
+    jsonFuncInfo["funcAddr"][0] = Uint64ToHexString(resolvedFunctionInfo.funcAddr[0]);
+    jsonFuncInfo["funcAddr"][1] = Uint64ToHexString(resolvedFunctionInfo.funcAddr[1]);
+    jsonFuncInfo["prefetchCnt"][0] = resolvedFunctionInfo.prefetchCnt[0];
+    jsonFuncInfo["prefetchCnt"][1] = resolvedFunctionInfo.prefetchCnt[1];
+    jsonFuncInfo["funcOffset"][0] = Uint64ToHexString(resolvedFunctionInfo.funcOffset[0]);
+    jsonFuncInfo["funcOffset"][1] = Uint64ToHexString(resolvedFunctionInfo.funcOffset[1]);
+    jsonFuncInfo["symbolBind"][0] = resolvedFunctionInfo.symbolBind[0];
+    jsonFuncInfo["symbolBind"][1] = resolvedFunctionInfo.symbolBind[1];
+    return jsonFuncInfo;
 }
 
 /**
@@ -493,24 +391,24 @@ void AddNotifyNodeInfos(Json& nodeJson, const SuperKernelBaseNode* node)
 /**
  * @brief Override kernelInfos fields from updated task params
  */
-void OverrideKernelInfos(Json& nodeJson, const aclmdlRITaskParams& tp) 
+void OverrideKernelInfos(Json& nodeJson, const aclmdlRITaskParams& taskParams) 
 {
-    nodeJson["kernelInfos"]["numBlocks"] = tp.kernelTaskParams.numBlocks;
-    nodeJson["kernelInfos"]["funcHandle"] = PtrToHexString(tp.kernelTaskParams.funcHandle);
-    nodeJson["kernelInfos"]["devArgs"] = PtrToHexString(tp.kernelTaskParams.args);
-    nodeJson["kernelInfos"]["argsSize"] = tp.kernelTaskParams.argsSize;
-    nodeJson["kernelInfos"]["isHostArgs"] = tp.kernelTaskParams.isHostArgs;
-    nodeJson["kernelInfos"]["opInfoPtr"] = PtrToHexString(tp.opInfoPtr);
-    nodeJson["kernelInfos"]["opInfoSize"] = tp.opInfoSize;
+    nodeJson["kernelInfos"]["numBlocks"] = taskParams.kernelTaskParams.numBlocks;
+    nodeJson["kernelInfos"]["funcHandle"] = PtrToHexString(taskParams.kernelTaskParams.funcHandle);
+    nodeJson["kernelInfos"]["devArgs"] = PtrToHexString(taskParams.kernelTaskParams.args);
+    nodeJson["kernelInfos"]["argsSize"] = taskParams.kernelTaskParams.argsSize;
+    nodeJson["kernelInfos"]["isHostArgs"] = taskParams.kernelTaskParams.isHostArgs;
+    nodeJson["kernelInfos"]["opInfoPtr"] = PtrToHexString(taskParams.opInfoPtr);
+    nodeJson["kernelInfos"]["opInfoSize"] = taskParams.opInfoSize;
 }
 
 /**
  * @brief Override syncInfos fields from updated task params
  */
-void OverrideSyncInfos(Json& nodeJson, const aclmdlRITaskParams& tp) 
+void OverrideSyncInfos(Json& nodeJson, const aclmdlRITaskParams& taskParams) 
 {
-    nodeJson["syncInfos"]["addrValue"] = PtrToHexString(tp.valueWriteTaskParams.devAddr);
-    nodeJson["syncInfos"]["memoryValue"] = tp.valueWriteTaskParams.value;
+    nodeJson["syncInfos"]["addrValue"] = PtrToHexString(taskParams.valueWriteTaskParams.devAddr);
+    nodeJson["syncInfos"]["memoryValue"] = taskParams.valueWriteTaskParams.value;
 }
 
 /**
@@ -757,14 +655,17 @@ bool DumpGraphNodesToJson(const SuperKernelGraph& graph)
  * @param graph Reference to the SuperKernelGraph to get modelRI
  * @return Full path for JSON output
  */
-std::string GetTaskQueueJsonOutputPath(const SuperKernelGraph& graph) 
+bool GetTaskQueueJsonOutputPath(const SuperKernelGraph& graph, std::string& outputPath) 
 {
     std::string metaDir = CreateSkMetaDirectory(graph.GetModelRI());
     if (metaDir.empty()) {
         SK_LOGE("Failed to create sk_meta directory for task queue JSON dump");
-        return "";
+        outputPath.clear(); 
+        return false;
     }
-    return metaDir + "/sk_task_queue.json";
+    
+    outputPath = metaDir + "/sk_task_queue.json";
+    return true;
 }
 
 /**
@@ -820,7 +721,12 @@ bool DumpSkTaskQueueToJson(const SuperKernelGraph& graph, const SkTask& aicTask,
     }
     SK_LOGI("Starting to dump SkTask queues to JSON");
     
-    std::string jsonPath = GetTaskQueueJsonOutputPath(graph);
+    std::string jsonPath;
+    bool ret = GetTaskQueueJsonOutputPath(graph, jsonPath);
+    if (!ret) {
+        SK_LOGE("Dump task queue json failed: get path failed");
+        return false;
+    }
     if (jsonPath.empty()) {
         SK_LOGE("Failed to get task queue JSON output path");
         return false;
@@ -860,14 +766,17 @@ bool DumpSkTaskQueueToJson(const SuperKernelGraph& graph, const SkTask& aicTask,
  * @param graph Reference to the SuperKernelGraph to get modelRI
  * @return Full path for JSON output
  */
-std::string GetFusedGraphJsonOutputPath(const SuperKernelGraph& graph) 
+bool GetFusedGraphJsonOutputPath(const SuperKernelGraph& graph, std::string& outputPath) 
 {
     std::string metaDir = CreateSkMetaDirectory(graph.GetModelRI());
     if (metaDir.empty()) {
         SK_LOGE("Failed to create sk_meta directory for fused graph JSON dump");
-        return "";
+        outputPath.clear();
+        return false;
     }
-    return metaDir + "/sk_graph_after.json";
+    
+    outputPath = metaDir + "/sk_graph_after.json";
+    return true;
 }
 
 /**
@@ -906,7 +815,6 @@ Json ScopeToNestedJson(const SuperKernelScopeInfo& scopeInfo, size_t scopeIndex,
     } else {
         scopeJson["scopeName"] = scopeName;
     }
-    scopeJson["scopeBitFlags"] = graph.BitsetToString(scopeInfo.GetScopeBitFlags());
 
     // Collect all node IDs in this scope
     std::vector<uint64_t> nodeIds;
@@ -1117,7 +1025,12 @@ bool DumpFusedGraphToJson(const SuperKernelGraph& graph, const std::vector<Super
     }
     SK_LOGI("Starting to dump fused SuperKernel graph to JSON with nested structure");
 
-    std::string jsonPath = GetFusedGraphJsonOutputPath(graph);
+    std::string jsonPath;
+    bool pathOk = GetFusedGraphJsonOutputPath(graph, jsonPath);
+    if (!pathOk) {
+        SK_LOGE("Failed to get fused graph json output path");
+        return false;
+    }
     if (jsonPath.empty()) {
         SK_LOGE("Failed to get fused graph JSON output path");
         return false;
@@ -1142,43 +1055,7 @@ bool DumpFusedGraphToJson(const SuperKernelGraph& graph, const std::vector<Super
 
 namespace {
 
-/**
- * @brief Get task type string from aclmdlRITaskType
- */
-const char* GetTaskTypeString(aclmdlRITaskType type) {
-    switch (type) {
-        case ACL_MODEL_RI_TASK_KERNEL:
-            return "KERNEL";
-        case ACL_MODEL_RI_TASK_VALUE_WRITE:
-            return "VALUE_WRITE";
-        case ACL_MODEL_RI_TASK_VALUE_WAIT:
-            return "VALUE_WAIT";
-        case ACL_MODEL_RI_TASK_EVENT_RECORD:
-            return "EVENT_RECORD";
-        case ACL_MODEL_RI_TASK_EVENT_WAIT:
-            return "EVENT_WAIT";
-        case ACL_MODEL_RI_TASK_EVENT_RESET:
-            return "EVENT_RESET";
-        default:
-            return "UNKNOWN";
-    }
-}
 
-/**
- * @brief Get kernel type string from kernelType value
- */
-const char* GetKernelTypeString(int64_t kernelType) {
-    switch (kernelType) {
-        case ACL_KERNEL_TYPE_CUBE:
-            return "CUBE";
-        case ACL_KERNEL_TYPE_VECTOR:
-            return "VECTOR";
-        case ACL_KERNEL_TYPE_MIX:
-            return "MIX";
-        default:
-            return "UNKNOWN";
-    }
-}
 
 /**
  * @brief Add basic kernel parameters to JSON
@@ -1202,24 +1079,20 @@ static void AddBasicKernelParams(Json& kernelParamsJson, const aclmdlRIKernelTas
         kernelParamsJson["binHandle"] = PtrToHexString(binHdl);
     }
 
-    // Get kernel type
     int64_t kernelType = 0;
-    if (aclrtGetFunctionAttribute(kernelParams.funcHandle,
-            static_cast<aclrtFuncAttribute>(ACL_FUNC_ATTR_KERNEL_TYPE), &kernelType) == ACL_SUCCESS) {
-        kernelParamsJson["kernelType"] = GetKernelTypeString(kernelType);
-        kernelParamsJson["kernelTypeInt"] = static_cast<int>(kernelType);
-    }
+    int64_t taskRatioVal = 0;
+    CHECK_ACL(aclrtGetFunctionAttribute(kernelParams.funcHandle, ACL_FUNC_ATTR_KERNEL_TYPE, &kernelType));
+    CHECK_ACL(aclrtGetFunctionAttribute(kernelParams.funcHandle, ACL_FUNC_ATTR_KERNEL_RATIO, &taskRatioVal));
 
-    // Get task ratio
-    int64_t taskRatio = 0;
-    if (aclrtGetFunctionAttribute(kernelParams.funcHandle,
-            static_cast<aclrtFuncAttribute>(ACL_FUNC_ATTR_KERNEL_RATIO), &taskRatio) == ACL_SUCCESS) {
-        const int16_t* taskRatioInt16 = reinterpret_cast<const int16_t*>(&taskRatio);
-        kernelParamsJson["taskRatio"] = Json::array({
-            static_cast<uint32_t>(taskRatioInt16[1]),
-            static_cast<uint32_t>(taskRatioInt16[0])
-        });
-    }
+    const int16_t* taskRatioInt16 = reinterpret_cast<const int16_t*>(&taskRatioVal);
+    uint32_t skTaskRatio[2] = {
+        static_cast<uint32_t>(taskRatioInt16[1]),
+        static_cast<uint32_t>(taskRatioInt16[0])
+    };
+
+    kernelParamsJson["kernelTypeInt"] = static_cast<int>(kernelType);
+    kernelParamsJson["kernelType"] = GetKernelTypeString(static_cast<uint32_t>(kernelType), skTaskRatio);
+    kernelParamsJson["taskRatio"] = Json::array({ skTaskRatio[0], skTaskRatio[1] });
 }
 
 /**
@@ -1228,7 +1101,7 @@ static void AddBasicKernelParams(Json& kernelParamsJson, const aclmdlRIKernelTas
 static void AddResolvedFuncsToJson(Json& kernelParamsJson, aclrtFuncHandle funcHandle,
                                    aclrtBinHandle binHdl) 
 {
-    DumpResolvedFunctionInfo dumpResolvedFuncs[K_MAX_SPLIT_BIN_COUNT];
+    ResolvedFunctionInfo dumpResolvedFuncs[K_MAX_SPLIT_BIN_COUNT];
     uint32_t resolvedNum = 0;
     GetResolvedFuncsForDump(funcHandle, binHdl, dumpResolvedFuncs, resolvedNum);
     kernelParamsJson["resolvedNum"] = resolvedNum;
@@ -1377,7 +1250,7 @@ Json TaskToJson(uint32_t taskIdx, int32_t streamId,
     }
     // taskIdx is the index within the stream (from enumeration)
     taskJson["streamId"] = streamId;
-    taskJson["taskType"] = GetTaskTypeString(taskType);
+    taskJson["taskType"] = TaskTypeToString(taskType);
     taskJson["taskTypeInt"] = static_cast<int>(taskType);
 
     
@@ -1414,18 +1287,23 @@ void ProcessTaskToJson(Json& tasksJson, uint32_t taskIdx, int32_t streamId,
     aclmdlRITaskType taskType;
     ret = aclmdlRITaskGetType(task, &taskType);
     if (ret != ACL_SUCCESS) {
-        SK_LOGW("Failed to get task type for task %u, ret=%d", taskIdx, ret);
+        SK_LOGE("Failed to get task type for task %u, ret=%d", taskIdx, ret);
         return;
     }
 
-    aclmdlRITaskParams params;
-    ret = aclmdlRITaskGetParams(task, &params);
-    if (ret != ACL_SUCCESS) {
-        SK_LOGW("Failed to get task params for task %u, ret=%d", taskIdx, ret);
+    aclmdlRITaskParams params{};
+    const aclmdlRITaskParams* paramsPtr = nullptr;
+
+    if (taskType != ACL_MODEL_RI_TASK_DEFAULT) {
+        ret = aclmdlRITaskGetParams(task, &params);
+        if (ret == ACL_SUCCESS) {
+            paramsPtr = &params;
+        } else {
+            SK_LOGE("Failed to get task params for task %u, ret=%d", taskIdx, ret);
+        }
     }
 
-    tasksJson.push_back(TaskToJson(taskIdx, streamId,
-                                    taskType, (ret == ACL_SUCCESS) ? &params : nullptr, task));
+    tasksJson.push_back(TaskToJson(taskIdx, streamId, taskType, paramsPtr, task));
     totalTasks++;
 }
 
@@ -1440,8 +1318,8 @@ Json ProcessStreamToJson(aclrtStream stream, uint32_t streamIdx, size_t& totalTa
     int32_t streamId = -1;
     ret = aclrtStreamGetId(stream, &streamId);
     if (ret != ACL_SUCCESS) {
-        SK_LOGW("Failed to get stream ID for stream %u, ret=%d", streamIdx, ret);
-        streamId = -1;
+        SK_LOGE("Failed to get stream ID for stream %u, ret=%d", streamIdx, ret);
+        return streamJson;
     }
 
     uint32_t taskNum = 0;
@@ -1591,7 +1469,61 @@ bool GetStreamsFromModelRI(aclmdlRI modelRI, const char* logPrefix, uint32_t& st
  * @param fileName Custom filename for the output JSON file (without .json suffix)
  * @return true if successful, false otherwise
  */
-bool DumpRawTasksToJson(aclmdlRI modelRI, const std::string& fileName, int32_t deviceId) 
+
+} // anonymous namespace
+
+Json OptionsManagerToJson(const SuperKernelOptionsManager& optsMgr)
+{
+    Json rootJson;
+
+    std::vector<OptionDumpInfo> allOptionInfos = CollectAllOptions(optsMgr);
+
+    Json optionJsonArray = Json::array();
+    for (const auto& optionInfo : allOptionInfos) {
+        Json currentOptionJson;
+        currentOptionJson["name"] = optionInfo.name;
+        currentOptionJson["type"] = optionInfo.type;
+
+        switch (optionInfo.valueType) {
+            case OptionDumpInfo::ValueType::INT:
+                currentOptionJson["value"] = optionInfo.intValue;
+                break;
+            case OptionDumpInfo::ValueType::STRING_LIST:
+                currentOptionJson["value"] = optionInfo.stringListValue;
+                break;
+            case OptionDumpInfo::ValueType::MAP: {
+                Json mapJson;
+                for (const auto& pair : optionInfo.mapValue) {
+                    mapJson[pair.first] = pair.second;
+                }
+                currentOptionJson["value"] = mapJson;
+                break;
+            }
+            default:
+                break;
+        }
+
+        optionJsonArray.push_back(currentOptionJson);
+    }
+
+    rootJson["numOptions"] = allOptionInfos.size();
+    rootJson["options"] = optionJsonArray;
+
+    return rootJson;
+}
+
+/**
+ * @brief Dump raw task information from modelRI to JSON file
+ *
+ * This is a wrapper function that calls the internal implementation.
+ *
+ * @param modelRI The model RI handle
+ * @param fileName Custom filename for the output JSON file (without .json suffix)
+ * @return true if successful, false otherwise
+ */
+
+bool DumpModelRITasksToJson(aclmdlRI modelRI, int32_t deviceId, 
+    const SuperKernelOptionsManager* optsMgr, const std::string& fileName) 
 {
     if (modelRI == nullptr) {
         SK_LOGE("modelRI is null, cannot dump raw tasks");
@@ -1611,112 +1543,14 @@ bool DumpRawTasksToJson(aclmdlRI modelRI, const std::string& fileName, int32_t d
         return false;
     }
 
-    Json rawTaskJson = InitRootJson(modelRI, deviceId);
-    rawTaskJson["totalStreams"] = streamNum;
+    Json rootJson = InitRootJson(modelRI, deviceId);
+    rootJson["totalStreams"] = streamNum;
 
-    return CollectAndWriteTasksToJson(rawTaskJson, modelRI, streamNum, streams, fileName);
-}
-
-} // anonymous namespace
-
-/**
- * @brief Dump raw task information from modelRI to JSON file
- *
- * This is a wrapper function that calls the internal implementation.
- *
- * @param modelRI The model RI handle
- * @param fileName Custom filename for the output JSON file (without .json suffix)
- * @return true if successful, false otherwise
- */
-bool DumpModelRITasksToJson(aclmdlRI modelRI, const std::string& fileName, int32_t deviceId) 
-{
-    return DumpRawTasksToJson(modelRI, fileName, deviceId);
-}
-
-Json OptionsManagerToJson(const SuperKernelOptionsManager& optsMgr) 
-{
-    Json optionsJson;
-    optionsJson["numOptions"] = 0;
-    
-    Json optionsArray = Json::array();
-    uint32_t count = 0;
-    
-    for (int32_t i = 0; i < static_cast<int32_t>(aclskOptionType::SK_OPTION_MAX); ++i) {
-        const OptOptionBase* opt = optsMgr.GetOption(static_cast<aclskOptionType>(i));
-        if (opt == nullptr) {
-            continue;
-        }
-        
-        Json optJson;
-        optJson["name"] = opt->GetName();
-        optJson["type"] = static_cast<int>(opt->GetType());
-        
-        switch (opt->GetType()) {
-            case aclskOptionType::PRELOAD_CODE:
-            case aclskOptionType::SPLIT_MODE:
-            case aclskOptionType::DEBUG_SYNC_ALL:
-            case aclskOptionType::STREAM_FUSION:
-            case aclskOptionType::CONSTANT_CODEGEN:
-            case aclskOptionType::AUTO_OP_PARALLEL:
-            case aclskOptionType::DEBUG_CROSS_CORE_SYNC_CHECK:
-                optJson["value"] = opt->GetIntValue();
-                break;
-            case aclskOptionType::DCCI_DISABLE_ON_KERNEL:
-            case aclskOptionType::DCCI_BEFORE_KERNEL_START:
-            case aclskOptionType::DCCI_AFTER_KERNEL_END:
-                optJson["value"] = opt->GetStringListValue();
-                break;
-            case aclskOptionType::OPT_EXTEND_OPTION:
-            case aclskOptionType::DEBUG_EXTEND_OPTION:
-                {
-                    Json mapJson;
-                    auto mapValue = opt->GetMapValue();
-                    for (const auto& pair : mapValue) {
-                        mapJson[pair.first] = pair.second;
-                    }
-                    optJson["value"] = mapJson;
-                }
-                break;
-            default:
-                break;
-        }
-        
-        optionsArray.push_back(optJson);
-        count++;
-    }
-    
-    optionsJson["numOptions"] = count;
-    optionsJson["options"] = optionsArray;
-    
-    return optionsJson;
-}
-
-bool DumpModelRITasksToJsonWithOpts(aclmdlRI modelRI, const std::string& fileName,
-                                    int32_t deviceId, const SuperKernelOptionsManager& optsMgr) 
-{
-    if (modelRI == nullptr) {
-        SK_LOGE("modelRI is null, cannot dump raw tasks");
-        return false;
+    if (optsMgr != nullptr) {
+        rootJson["options"] = OptionsManagerToJson(*optsMgr);
     }
 
-    if (!sk::logger::FileLogger::Instance().IsEnabled()) {
-        SK_LOGI("File logger is disabled, skip raw task JSON dump");
-        return true;
-    }
-
-    SK_LOGI("Starting to dump raw task information with options from modelRI to JSON: %s", fileName.c_str());
-
-    uint32_t streamNum = 0;
-    std::vector<aclrtStream> streams;
-    if (!GetStreamsFromModelRI(modelRI, "modelRI", streamNum, streams)) {
-        return false;
-    }
-
-    Json rawTaskJson = InitRootJson(modelRI, deviceId);
-    rawTaskJson["totalStreams"] = streamNum;
-    rawTaskJson["options"] = OptionsManagerToJson(optsMgr);
-
-    return CollectAndWriteTasksToJson(rawTaskJson, modelRI, streamNum, streams, fileName);
+    return CollectAndWriteTasksToJson(rootJson, modelRI, streamNum, streams, fileName);
 }
 
 /**

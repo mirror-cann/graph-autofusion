@@ -1596,7 +1596,7 @@ void PrintBreakInfoFields(const ScopeBreakInfo& breakInfo)
     SK_LOGI("    triggerNodeId: %lu", breakInfo.GetTriggerNodeId());
     SK_LOGI("    triggerStreamIdx: %u", breakInfo.GetTriggerStreamIdx());
     SK_LOGI("    parentScopeId: %u", breakInfo.GetParentScopeId());
-    SK_LOGI("    fusionFailReason: %s", FusionFailReasonToStr(breakInfo.GetFusionFailReason()));
+    SK_LOGI("    fusionFailReason: %s", FusionFailReasonToStr(breakInfo.GetFusionFailReason()).c_str());
     SK_LOGI("    detail: %s", breakInfo.GetDetail().empty() ? "(none)" : breakInfo.GetDetail().c_str());
 }
 
@@ -1606,7 +1606,7 @@ void PrintRootBreakInfo(const ScopeBreakInfo& rootInfo)
     SK_LOGI("    reason: %s", ScopeBreakReasonToStr(rootInfo.GetReason()));
     SK_LOGI("    triggerNodeId: %lu", rootInfo.GetTriggerNodeId());
     SK_LOGI("    triggerStreamIdx: %u", rootInfo.GetTriggerStreamIdx());
-    SK_LOGI("    fusionFailReason: %s", FusionFailReasonToStr(rootInfo.GetFusionFailReason()));
+    SK_LOGI("    fusionFailReason: %s", FusionFailReasonToStr(rootInfo.GetFusionFailReason()).c_str());
     SK_LOGI("    detail: %s", rootInfo.GetDetail().empty() ? "(none)" : rootInfo.GetDetail().c_str());
 }
 
@@ -1690,7 +1690,6 @@ void SuperKernelScopeSplitter::PrintScopeBreakReasonReport()
         const auto& extInfo = scope.GetExtInfo();
         
         PrintScopeSummary(scope, i);
-        PrintFusionStatus(extInfo);
         PrintBreakInfoFields(breakInfo);
 
         if (breakInfo.GetParentScopeId() != 0) {

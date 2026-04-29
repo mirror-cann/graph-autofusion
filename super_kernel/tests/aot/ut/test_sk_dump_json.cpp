@@ -442,35 +442,16 @@ class DumpModelRITasksToJsonTest : public SkDumpJsonTest {};
 
 TEST_F(DumpModelRITasksToJsonTest, NullModelRI)
 {
-    bool result = DumpModelRITasksToJson(nullptr, "test_dump", 0);
-    // Result depends on whether directory creation succeeds
-    (void)result;
+    SuperKernelOptionsManager optsMgr;
+    bool result = DumpModelRITasksToJson(nullptr, 0, &optsMgr, "test_dump_opts");
+    EXPECT_FALSE(result);
 }
 
 TEST_F(DumpModelRITasksToJsonTest, DisabledLogger)
 {
     sk::logger::FileLogger::Instance().SetEnabled(false);
-    bool result = DumpModelRITasksToJson(nullptr, "test_dump_disabled", 0);
-    EXPECT_FALSE(result);
-    sk::logger::FileLogger::Instance().SetEnabled(true);
-}
-
-// ==================== DumpModelRITasksToJsonWithOpts Tests ====================
-
-class DumpModelRITasksToJsonWithOptsTest : public SkDumpJsonTest {};
-
-TEST_F(DumpModelRITasksToJsonWithOptsTest, NullModelRI)
-{
     SuperKernelOptionsManager optsMgr;
-    bool result = DumpModelRITasksToJsonWithOpts(nullptr, "test_dump_opts", 0, optsMgr);
-    EXPECT_FALSE(result);
-}
-
-TEST_F(DumpModelRITasksToJsonWithOptsTest, DisabledLogger)
-{
-    sk::logger::FileLogger::Instance().SetEnabled(false);
-    SuperKernelOptionsManager optsMgr;
-    bool result = DumpModelRITasksToJsonWithOpts(nullptr, "test_dump_opts_disabled", 0, optsMgr);
+    bool result = DumpModelRITasksToJson(nullptr, 0, &optsMgr, "test_dump_opts_disabled");
     EXPECT_FALSE(result);
     sk::logger::FileLogger::Instance().SetEnabled(true);
 }
@@ -629,18 +610,16 @@ TEST_F(SkDumpJsonDirectHelperTest, TaskAndKernelTypeStringHelpers)
     EXPECT_STREQ(TaskTypeToString(ACL_MODEL_RI_TASK_EVENT_RESET), "RESET");
     EXPECT_STREQ(TaskTypeToString(ACL_MODEL_RI_TASK_DEFAULT), "UNKNOWN");
 
-    EXPECT_STREQ(GetTaskTypeString(ACL_MODEL_RI_TASK_KERNEL), "KERNEL");
-    EXPECT_STREQ(GetTaskTypeString(ACL_MODEL_RI_TASK_VALUE_WRITE), "VALUE_WRITE");
-    EXPECT_STREQ(GetTaskTypeString(ACL_MODEL_RI_TASK_VALUE_WAIT), "VALUE_WAIT");
-    EXPECT_STREQ(GetTaskTypeString(ACL_MODEL_RI_TASK_EVENT_RECORD), "EVENT_RECORD");
-    EXPECT_STREQ(GetTaskTypeString(ACL_MODEL_RI_TASK_EVENT_WAIT), "EVENT_WAIT");
-    EXPECT_STREQ(GetTaskTypeString(ACL_MODEL_RI_TASK_EVENT_RESET), "EVENT_RESET");
-    EXPECT_STREQ(GetTaskTypeString(ACL_MODEL_RI_TASK_DEFAULT), "UNKNOWN");
+    uint32_t taskRatio[2] = {1, 0};
+    EXPECT_STREQ(GetKernelTypeString(ACL_KERNEL_TYPE_CUBE, taskRatio), "AIC_ONLY");
+    EXPECT_STREQ(GetKernelTypeString(ACL_KERNEL_TYPE_VECTOR, taskRatio), "AIV_ONLY");
+    EXPECT_STREQ(GetKernelTypeString(ACL_KERNEL_TYPE_MIX, taskRatio), "AIC_ONLY");
+    taskRatio[1] = 1;
+    EXPECT_STREQ(GetKernelTypeString(ACL_KERNEL_TYPE_MIX, taskRatio), "MIX_AIC_1_1");
+    taskRatio[1] = 2;
+    EXPECT_STREQ(GetKernelTypeString(ACL_KERNEL_TYPE_MIX, taskRatio), "MIX_AIC_1_2");
 
-    EXPECT_STREQ(GetKernelTypeString(ACL_KERNEL_TYPE_CUBE), "CUBE");
-    EXPECT_STREQ(GetKernelTypeString(ACL_KERNEL_TYPE_VECTOR), "VECTOR");
-    EXPECT_STREQ(GetKernelTypeString(ACL_KERNEL_TYPE_MIX), "MIX");
-    EXPECT_STREQ(GetKernelTypeString(ACL_KERNEL_TYPE_AICPU), "UNKNOWN");
+    EXPECT_STREQ(GetKernelTypeString(ACL_KERNEL_TYPE_AICPU, taskRatio), "DEFAULT");
 
     EXPECT_EQ(PtrToHexString(reinterpret_cast<void*>(0x1234)), "0x1234");
     EXPECT_EQ(Uint64ToHexString(0xabcd), "0xabcd");
@@ -692,10 +671,10 @@ TEST_F(SkDumpJsonDirectHelperTest, KernelAttrToJsonCoversKnownAndRawAttributes)
 TEST_F(SkDumpJsonDirectHelperTest, BinaryBindMapAndResolvedFuncsCoverSuccessAndFailurePaths)
 {
     aclrtBinHandle binHdl = reinterpret_cast<aclrtBinHandle>(0xaaaa);
-    EXPECT_TRUE(InitSkBindMapForDump(binHdl).empty());
+    EXPECT_TRUE(InitSuperKernelBindMap(binHdl).empty());
 
     MOCKER(rtBinaryGetMetaNum).stubs().will(invoke(FakeRtBinaryGetMetaNumFailure));
-    EXPECT_TRUE(InitSkBindMapForDump(binHdl).empty());
+    EXPECT_TRUE(InitSuperKernelBindMap(binHdl).empty());
 }
 
 TEST_F(SkDumpJsonDirectHelperTest, BinaryBindMapAndResolvedFuncsSerializeResolvedEntries)
@@ -707,12 +686,12 @@ TEST_F(SkDumpJsonDirectHelperTest, BinaryBindMapAndResolvedFuncsSerializeResolve
     MOCKER(aclrtBinaryGetDevAddress).stubs().will(invoke(FakeAclrtBinaryGetDevAddressForDump));
 
     aclrtBinHandle binHdl = reinterpret_cast<aclrtBinHandle>(0xbbbb);
-    SkBindMap bindMap = InitSkBindMapForDump(binHdl);
+    SkBindMap bindMap = InitSuperKernelBindMap(binHdl);
     EXPECT_EQ(bindMap.size(), 2);
     EXPECT_EQ(bindMap[0x100][0], 0x1000);
     EXPECT_EQ(bindMap[0x200][3], 0x2300);
 
-    DumpResolvedFunctionInfo resolvedFuncs[K_MAX_SPLIT_BIN_COUNT];
+    ResolvedFunctionInfo resolvedFuncs[K_MAX_SPLIT_BIN_COUNT];
     uint32_t resolvedNum = 0;
     GetResolvedFuncsForDump(reinterpret_cast<aclrtFuncHandle>(0xcccc), binHdl, resolvedFuncs, resolvedNum);
     EXPECT_EQ(resolvedNum, K_MAX_SPLIT_BIN_COUNT);
@@ -729,7 +708,7 @@ TEST_F(SkDumpJsonDirectHelperTest, BinaryBindMapMetaInfoFailureReturnsEmpty)
 {
     MOCKER(rtBinaryGetMetaNum).stubs().will(invoke(FakeRtBinaryGetMetaNumSuccess));
     MOCKER(rtBinaryGetMetaInfo).stubs().will(invoke(FakeRtBinaryGetMetaInfoFailure));
-    EXPECT_TRUE(InitSkBindMapForDump(reinterpret_cast<aclrtBinHandle>(0xdddd)).empty());
+    EXPECT_TRUE(InitSuperKernelBindMap(reinterpret_cast<aclrtBinHandle>(0xdddd)).empty());
 }
 
 TEST_F(SkDumpJsonDirectHelperTest, KernelNodeToJsonIncludesAttrsResolvedFuncsAndUpdatedParams)
@@ -1109,7 +1088,7 @@ TEST_F(SkDumpJsonDirectHelperTest, RawTaskParamJsonCoversAllTaskTypes)
     EXPECT_EQ(kernelTaskJson["taskType"], "KERNEL");
     EXPECT_EQ(kernelTaskJson["kernelParams"]["numBlocks"], 64);
     EXPECT_EQ(kernelTaskJson["kernelParams"]["taskGrp"], "0x100");
-    EXPECT_EQ(kernelTaskJson["kernelParams"]["kernelType"], "UNKNOWN");
+    EXPECT_EQ(kernelTaskJson["kernelParams"]["kernelType"], "DEFAULT");
     EXPECT_EQ(kernelTaskJson["kernelParams"]["taskRatio"].size(), 2);
 
     params = {};
@@ -1238,25 +1217,25 @@ TEST_F(SkDumpJsonDirectHelperTest, RawTaskDumpCoversStreamCollectionAndErrorPath
     SkUtSetStreamId(1, 101);
 
     sk::logger::FileLogger::Instance().SetEnabled(true);
-    EXPECT_TRUE(DumpModelRITasksToJson(modelRI, "ut_raw_tasks", 0));
+    EXPECT_TRUE(DumpModelRITasksToJson(modelRI, 0, nullptr, "ut_raw_tasks"));
 
     SuperKernelOptionsManager optsMgr;
-    EXPECT_TRUE(DumpModelRITasksToJsonWithOpts(modelRI, "ut_raw_tasks_opts", 1, optsMgr));
+    EXPECT_TRUE(DumpModelRITasksToJson(modelRI, 1, &optsMgr, "ut_raw_tasks_opts"));
 
     SkUtSetAclrtStreamGetIdRet(ACL_ERROR_FAILURE);
-    EXPECT_TRUE(DumpModelRITasksToJson(modelRI, "ut_raw_tasks_stream_id_fail", 2));
+    EXPECT_TRUE(DumpModelRITasksToJson(modelRI, 2, nullptr, "ut_raw_tasks_stream_id_fail"));
 
     SkUtResetTestControls();
     SkUtSetAclmdlRIGetStreamsRet(0, ACL_ERROR_FAILURE);
-    EXPECT_FALSE(DumpModelRITasksToJson(modelRI, "ut_raw_tasks_stream_count_fail", 0));
+    EXPECT_FALSE(DumpModelRITasksToJson(modelRI, 0, nullptr, "ut_raw_tasks_stream_count_fail"));
 
     SkUtResetTestControls();
     SkUtSetModelStreamNum(1);
     SkUtSetAclmdlRIGetStreamsRet(1, ACL_ERROR_FAILURE);
-    EXPECT_FALSE(DumpModelRITasksToJson(modelRI, "ut_raw_tasks_stream_fetch_fail", 0));
+    EXPECT_FALSE(DumpModelRITasksToJson(modelRI, 0, nullptr, "ut_raw_tasks_stream_fetch_fail"));
 
     sk::logger::FileLogger::Instance().SetEnabled(false);
-    EXPECT_TRUE(DumpModelRITasksToJson(modelRI, "ut_raw_tasks_disabled", 0));
+    EXPECT_TRUE(DumpModelRITasksToJson(modelRI, 0, nullptr, "ut_raw_tasks_disabled"));
     SkUtResetTestControls();
 }
 
@@ -1629,9 +1608,9 @@ TEST_F(OptionsManagerToJsonTest, OptionsManagerWithAllOptionTypes)
     EXPECT_EQ(optionsJson["options"].size(), 12);
 }
 
-// ==================== DumpModelRITasksToJsonWithOpts Comprehensive Tests ====================
+// ==================== DumpModelRITasksToJson Comprehensive Tests ====================
 
-TEST_F(DumpModelRITasksToJsonWithOptsTest, WithMultipleOptions)
+TEST_F(DumpModelRITasksToJsonTest, WithMultipleOptions)
 {
     sk::logger::FileLogger::Instance().SetEnabled(true);
     
@@ -1649,13 +1628,13 @@ TEST_F(DumpModelRITasksToJsonWithOptsTest, WithMultipleOptions)
     auto* splitOpt = optsMgr.GetOption(aclskOptionType::SPLIT_MODE);
     if (splitOpt != nullptr) splitOpt->SetValue(3);
 
-    EXPECT_TRUE(DumpModelRITasksToJsonWithOpts(modelRI, "ut_raw_tasks_with_multi_opts", 0, optsMgr));
+    EXPECT_TRUE(DumpModelRITasksToJson(modelRI, 0, &optsMgr, "ut_raw_tasks_with_multi_opts"));
     
     sk::logger::FileLogger::Instance().SetEnabled(false);
     SkUtResetTestControls();
 }
 
-TEST_F(DumpModelRITasksToJsonWithOptsTest, WithStringListOptions)
+TEST_F(DumpModelRITasksToJsonTest, WithStringListOptions)
 {
     sk::logger::FileLogger::Instance().SetEnabled(true);
     
@@ -1673,13 +1652,13 @@ TEST_F(DumpModelRITasksToJsonWithOptsTest, WithStringListOptions)
         opt->SetValue(kernels);
     }
 
-    EXPECT_TRUE(DumpModelRITasksToJsonWithOpts(modelRI, "ut_raw_tasks_with_string_list_opts", 0, optsMgr));
+    EXPECT_TRUE(DumpModelRITasksToJson(modelRI, 0, &optsMgr, "ut_raw_tasks_with_string_list_opts"));
     
     sk::logger::FileLogger::Instance().SetEnabled(false);
     SkUtResetTestControls();
 }
 
-TEST_F(DumpModelRITasksToJsonWithOptsTest, WithMapOptions)
+TEST_F(DumpModelRITasksToJsonTest, WithMapOptions)
 {
     sk::logger::FileLogger::Instance().SetEnabled(true);
     
@@ -1699,7 +1678,7 @@ TEST_F(DumpModelRITasksToJsonWithOptsTest, WithMapOptions)
         opt->SetValue(extendValue);
     }
 
-    EXPECT_TRUE(DumpModelRITasksToJsonWithOpts(modelRI, "ut_raw_tasks_with_map_opts", 0, optsMgr));
+    EXPECT_TRUE(DumpModelRITasksToJson(modelRI, 0, &optsMgr, "ut_raw_tasks_with_map_opts"));
     
     sk::logger::FileLogger::Instance().SetEnabled(false);
     SkUtResetTestControls();
