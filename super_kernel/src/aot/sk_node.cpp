@@ -36,6 +36,8 @@
 
 extern "C" aclrtBinHandle AscendGetEntryBinHandle();
 
+constexpr uint64_t INVALID_SK_BIND_VALUE = 0xffffffffffffffffULL;
+
 // Implementation of FusionFailReasonInfo methods (requires complete ScopeFailReason/DeadlockFailReason definition)
 FusionFailReasonInfo::FusionFailReasonInfo(FusionFailReason reason, ScopeFailReason scopeReason)
     : primary(reason), scopeDetailValue(static_cast<uint8_t>(scopeReason)) {}
@@ -108,74 +110,6 @@ std::string FusionFailReasonToStr(const FusionFailReasonInfo& info) {
     return result;
 }
 
-namespace {
-using SkBindMap = std::unordered_map<uint64_t, std::array<uint64_t, 4>>;
-using SkAllBinMap = std::unordered_map<aclrtBinHandle, SkBindMap>;
-
-struct CoreFuncInitContext {
-    ResolvedFunctionInfo* info;
-    SkBindMap::iterator bindIt;
-    size_t splitIdx;
-};
-
-enum class SkNodeCoreType: uint32_t {
-    AIC,
-    AIV,
-};
-
-constexpr int32_t ACL_FUNC_ATTR_KERNEL_SCHEMODE_PLACEHOLDER = 3;
-constexpr uint64_t INVALID_SK_BIND_VALUE = 0xffffffffffffffffULL;
-
-bool HasInvalidSkBindValue(const std::array<uint64_t, 4> &sknlFuncs)
-{
-    return sknlFuncs[0] == INVALID_SK_BIND_VALUE;
-}
-
-ScheModeState ParseScheModeState(int64_t rawValue)
-{
-    constexpr int64_t SCHE_MODE_OFF_VALUE = 0;
-    constexpr int64_t SCHE_MODE_ON_VALUE = 1;
-    if (rawValue == SCHE_MODE_OFF_VALUE) {
-        return ScheModeState::SCHE_MODE_OFF;
-    }
-    if (rawValue == SCHE_MODE_ON_VALUE) {
-        return ScheModeState::SCHE_MODE_ON;
-    }
-    SK_LOGW("Invalid schemode value: %ld, valid value is 0 or 1", rawValue);
-    return ScheModeState::NONE;
-}
-
-ScheModeState GetScheModeFromFuncAttr(aclrtFuncHandle funcHandle)
-{
-    int64_t funcAttrScheModeValue = 0;
-    aclError aclRet = ACL_SUCCESS;
-    CHECK_ACL(aclRet = aclrtGetFunctionAttribute(funcHandle,
-        static_cast<aclrtFuncAttribute>(ACL_FUNC_ATTR_KERNEL_SCHEMODE_PLACEHOLDER), &funcAttrScheModeValue));
-    if (aclRet != ACL_SUCCESS) {
-        SK_LOGE("Failed to query function attribute schemode, ret=%d", aclRet);
-        return ScheModeState::NONE;
-    }
-    return ParseScheModeState(funcAttrScheModeValue);
-}
-
-ScheModeState GetScheModeFromKernelTask(aclmdlRITask kernelTask)
-{
-    SK_LOGI("Query kernel task schemode begin, kernelTask=%p", kernelTask);
-    aclError aclRet = ACL_SUCCESS;
-    aclrtLaunchKernelAttrValue launchAttr;
-    aclRet = aclmdlRIKernelTaskGetAttribute(kernelTask,
-        static_cast<aclrtLaunchKernelAttrId>(ACL_RT_LAUNCH_KERNEL_ATTR_SCHEM_MODE), &launchAttr);
-    if (aclRet != ACL_SUCCESS) {
-        SK_LOGE("Failed to get task launch attribute schemode, ret=%d", aclRet);
-        return ScheModeState::NONE;
-    }
-    ScheModeState scheModeState = ScheModeState::NONE;
-    scheModeState = ParseScheModeState(static_cast<int64_t>(launchAttr.schemMode));
-    SK_LOGI("Query kernel task schemode end, kernelTask=%p, rawSchemMode=%ld, parsedState=%ld",
-        kernelTask, static_cast<int64_t>(launchAttr.schemMode), static_cast<int64_t>(scheModeState));
-    return scheModeState;
-}
-
 SkBindMap InitSuperKernelBindMap(aclrtBinHandle binHdl)
 {
     struct __attribute__((packed)) SknlValuePayload {
@@ -241,6 +175,73 @@ SkBindMap InitSuperKernelBindMap(aclrtBinHandle binHdl)
         bindMap[globalFunc] = sknlFuncs;
     }
     return bindMap;
+}
+
+namespace {
+using SkBindMap = std::unordered_map<uint64_t, std::array<uint64_t, 4>>;
+using SkAllBinMap = std::unordered_map<aclrtBinHandle, SkBindMap>;
+
+struct CoreFuncInitContext {
+    ResolvedFunctionInfo* info;
+    SkBindMap::iterator bindIt;
+    size_t splitIdx;
+};
+
+enum class SkNodeCoreType: uint32_t {
+    AIC,
+    AIV,
+};
+
+constexpr int32_t ACL_FUNC_ATTR_KERNEL_SCHEMODE_PLACEHOLDER = 3;
+
+bool HasInvalidSkBindValue(const std::array<uint64_t, 4> &sknlFuncs)
+{
+    return sknlFuncs[0] == INVALID_SK_BIND_VALUE;
+}
+
+ScheModeState ParseScheModeState(int64_t rawValue)
+{
+    constexpr int64_t SCHE_MODE_OFF_VALUE = 0;
+    constexpr int64_t SCHE_MODE_ON_VALUE = 1;
+    if (rawValue == SCHE_MODE_OFF_VALUE) {
+        return ScheModeState::SCHE_MODE_OFF;
+    }
+    if (rawValue == SCHE_MODE_ON_VALUE) {
+        return ScheModeState::SCHE_MODE_ON;
+    }
+    SK_LOGW("Invalid schemode value: %ld, valid value is 0 or 1", rawValue);
+    return ScheModeState::NONE;
+}
+
+ScheModeState GetScheModeFromFuncAttr(aclrtFuncHandle funcHandle)
+{
+    int64_t funcAttrScheModeValue = 0;
+    aclError aclRet = ACL_SUCCESS;
+    CHECK_ACL(aclRet = aclrtGetFunctionAttribute(funcHandle,
+        static_cast<aclrtFuncAttribute>(ACL_FUNC_ATTR_KERNEL_SCHEMODE_PLACEHOLDER), &funcAttrScheModeValue));
+    if (aclRet != ACL_SUCCESS) {
+        SK_LOGE("Failed to query function attribute schemode, ret=%d", aclRet);
+        return ScheModeState::NONE;
+    }
+    return ParseScheModeState(funcAttrScheModeValue);
+}
+
+ScheModeState GetScheModeFromKernelTask(aclmdlRITask kernelTask)
+{
+    SK_LOGI("Query kernel task schemode begin, kernelTask=%p", kernelTask);
+    aclError aclRet = ACL_SUCCESS;
+    aclrtLaunchKernelAttrValue launchAttr;
+    aclRet = aclmdlRIKernelTaskGetAttribute(kernelTask,
+        static_cast<aclrtLaunchKernelAttrId>(ACL_RT_LAUNCH_KERNEL_ATTR_SCHEM_MODE), &launchAttr);
+    if (aclRet != ACL_SUCCESS) {
+        SK_LOGE("Failed to get task launch attribute schemode, ret=%d", aclRet);
+        return ScheModeState::NONE;
+    }
+    ScheModeState scheModeState = ScheModeState::NONE;
+    scheModeState = ParseScheModeState(static_cast<int64_t>(launchAttr.schemMode));
+    SK_LOGI("Query kernel task schemode end, kernelTask=%p, rawSchemMode=%ld, parsedState=%ld",
+        kernelTask, static_cast<int64_t>(launchAttr.schemMode), static_cast<int64_t>(scheModeState));
+    return scheModeState;
 }
 
 const SkBindMap& GetSkBindMap(aclrtBinHandle binHdl)
@@ -366,7 +367,7 @@ bool InitKernelResolvedFuncs(KernelInfos &kernelInfos)
     SK_LOGI("bindMap size=%lu, aicFound=%d, aivFound=%d",
         bindMap.size(), aicItor != bindMap.end(), aivItor != bindMap.end());
     kernelInfos.resolvedNum = 0;
-    for (size_t i = 0; i < kMaxSplitBinCount; ++i) {
+    for (size_t i = 0; i < K_MAX_SPLIT_BIN_COUNT; ++i) {
         ResolvedFunctionInfo info{};
         if (!InitSingleSplitFunc(info, i, bindMap, aicItor, aivItor,
                             binHdl, binDevAddr, kernelInfos.resolvedNum)) {
@@ -410,6 +411,28 @@ SkKernelType NormalizeKernelType(uint32_t kernelType, const uint32_t taskRatio[2
 }
 
 } // namespace
+
+/**
+ * @brief Get kernel type string from kernelType value
+ */
+const char* GetKernelTypeString(uint32_t kernelType, const uint32_t taskRatio[2])
+{
+    // 直接复用你原来匿名空间里的逻辑！
+    SkKernelType skType = NormalizeKernelType(kernelType, taskRatio);
+
+    switch (skType) {
+        case SkKernelType::AIC_ONLY:
+            return "AIC_ONLY";
+        case SkKernelType::AIV_ONLY:
+            return "AIV_ONLY";
+        case SkKernelType::MIX_AIC_1_1:
+            return "MIX_AIC_1_1";
+        case SkKernelType::MIX_AIC_1_2:
+            return "MIX_AIC_1_2";
+        default:
+            return "DEFAULT";
+    }
+}
 
 // Implementation of AlignUpAndClamp (declared in sk_node.h)
 size_t AlignUpAndClamp(size_t value, size_t coreIdx)

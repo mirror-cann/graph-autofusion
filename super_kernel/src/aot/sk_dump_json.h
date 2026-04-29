@@ -83,7 +83,7 @@ bool DumpSkTaskQueueToJson(const SuperKernelGraph& graph, const SkTask& aicTask,
 bool DumpFusedGraphToJson(const SuperKernelGraph& graph, const std::vector<SuperKernelScopeInfo>& scopeInfos);
 
 /**
- * @brief Dump raw task information from modelRI to JSON file
+ * @brief Dump raw task information from modelRI to JSON file with options
  *
  * Directly retrieves task information from modelRI using the following interfaces:
  * - aclmdlRIGetStreams: Get all streams
@@ -100,23 +100,10 @@ bool DumpFusedGraphToJson(const SuperKernelGraph& graph, const std::vector<Super
  * @param modelRI The model RI handle
  * @param fileName Custom filename for the output JSON file (without .json suffix)
  * @param deviceId The device ID
- * @return true if dump successful, false otherwise
- */
-bool DumpModelRITasksToJson(aclmdlRI modelRI, const std::string& fileName, int32_t deviceId);
-
-/**
- * @brief Dump raw task information from modelRI to JSON file with options
- *
- * Same as DumpModelRITasksToJson, but also includes options information in the JSON output.
- *
- * @param modelRI The model RI handle
- * @param fileName Custom filename for the output JSON file (without .json suffix)
- * @param deviceId The device ID
  * @param optsMgr Reference to SuperKernelOptionsManager containing parsed options
  * @return true if dump successful, false otherwise
  */
-bool DumpModelRITasksToJsonWithOpts(aclmdlRI modelRI, const std::string& fileName,
-                                    int32_t deviceId, const SuperKernelOptionsManager& optsMgr);
+bool DumpModelRITasksToJson(aclmdlRI, int32_t, const SuperKernelOptionsManager*, const std::string&);
 
 /**
  * @brief Print original scopes before fusion to current log context

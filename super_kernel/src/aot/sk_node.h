@@ -145,6 +145,8 @@ inline const char* FusionFailReasonToStr(FusionFailReason reason) {
     }
 }
 
+// Declaration for dump json
+const char* GetKernelTypeString(uint32_t kernelType, const uint32_t taskRatio[2]);
 // Declaration - implementation in sk_node.cpp after including sk_scope_info.h
 std::string FusionFailReasonToStr(const FusionFailReasonInfo& info);
 
@@ -167,7 +169,7 @@ struct ResolvedFunctionInfo {
     std::string symbolBind[2] = {"", ""};  // Symbol binding type: GLOBAL/WEAK/LOCAL
 };
 
-constexpr size_t kMaxSplitBinCount = 4;
+constexpr size_t K_MAX_SPLIT_BIN_COUNT = 4;
 
 struct KernelInfos {
     SkKernelType kernelType = SkKernelType::DEFAULT;
@@ -421,6 +423,8 @@ public:
     // Invalidation status accessor
     bool IsInvalidated() const { return isInvalidated; }
     void SetInvalidated(bool invalidated) { isInvalidated = invalidated; }
+
+    SkBindMap InitSuperKernelBindMap(aclrtBinHandle binHdl);
 
 public:
     NodeInfos nodeInfos;

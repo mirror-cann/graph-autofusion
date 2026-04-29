@@ -23,6 +23,8 @@
 #include <vector>
 #include <stdexcept>
 #include <regex>
+#include <string>
+#include <map>
 #include "super_kernel.h"
 
 /*!
@@ -256,5 +258,72 @@ public:
 private:
     std::unordered_map<aclskOptionType, std::unique_ptr<OptOptionBase>> optionMap;
 };
+
+struct OptionDumpInfo {
+    std::string name;
+    int32_t type = -1;
+
+    // 三种可能的值
+    int64_t intValue = 0;
+    std::vector<std::string> stringListValue;
+    std::unordered_map<std::string, std::vector<std::string>> mapValue;
+
+    // 标记当前是哪种类型
+    enum class ValueType {
+        INT,
+        STRING_LIST,
+        MAP,
+        NONE
+    } valueType = ValueType::NONE;
+};
+
+inline std::vector<OptionDumpInfo> CollectAllOptions(const SuperKernelOptionsManager& optsMgr)
+{
+    std::vector<OptionDumpInfo> infos;
+
+    for (int32_t i = 0; i < static_cast<int32_t>(aclskOptionType::SK_OPTION_MAX); ++i) {
+        auto type = static_cast<aclskOptionType>(i);
+        const OptOptionBase* opt = optsMgr.GetOption(type);
+        if (!opt) continue;
+
+        OptionDumpInfo info;
+        info.name = opt->GetName();
+        info.type = static_cast<int>(type);
+
+        // 按类型填充纯数据，不做任何格式化
+        switch (type) {
+            case aclskOptionType::PRELOAD_CODE:
+            case aclskOptionType::SPLIT_MODE:
+            case aclskOptionType::DEBUG_SYNC_ALL:
+            case aclskOptionType::STREAM_FUSION:
+            case aclskOptionType::CONSTANT_CODEGEN:
+            case aclskOptionType::AUTO_OP_PARALLEL:
+            case aclskOptionType::DEBUG_CROSS_CORE_SYNC_CHECK:
+                info.valueType = OptionDumpInfo::ValueType::INT;
+                info.intValue = opt->GetIntValue();
+                break;
+
+            case aclskOptionType::DCCI_DISABLE_ON_KERNEL:
+            case aclskOptionType::DCCI_BEFORE_KERNEL_START:
+            case aclskOptionType::DCCI_AFTER_KERNEL_END:
+                info.valueType = OptionDumpInfo::ValueType::STRING_LIST;
+                info.stringListValue = opt->GetStringListValue();
+                break;
+
+            case aclskOptionType::OPT_EXTEND_OPTION:
+            case aclskOptionType::DEBUG_EXTEND_OPTION:
+                info.valueType = OptionDumpInfo::ValueType::MAP;
+                info.mapValue = opt->GetMapValue();
+                break;
+
+            default:
+                break;
+        }
+
+        infos.push_back(std::move(info));
+    }
+
+    return infos;
+}
 
 #endif

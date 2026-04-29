@@ -293,4 +293,23 @@ struct SkLaunchInfo {
     std::string skFuncName = "Unknown"; // SK function name for profiling and debugging
 };
 
+inline const char* TaskTypeToString(aclmdlRITaskType type) {
+    switch (type) {
+        case ACL_MODEL_RI_TASK_KERNEL:
+            return "KERNEL";
+        case ACL_MODEL_RI_TASK_VALUE_WRITE:
+            return "VALUE_WRITE";
+        case ACL_MODEL_RI_TASK_VALUE_WAIT:
+            return "VALUE_WAIT";
+        case ACL_MODEL_RI_TASK_EVENT_RECORD:
+            return "NOTIFY";
+        case ACL_MODEL_RI_TASK_EVENT_WAIT:
+            return "WAIT";
+        case ACL_MODEL_RI_TASK_EVENT_RESET:
+            return "RESET";
+        default:
+            return "UNKNOWN";
+    }
+}
+
 #endif // __SK_TYPES_H__
