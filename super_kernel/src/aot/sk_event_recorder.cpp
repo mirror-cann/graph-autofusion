@@ -283,6 +283,10 @@ SkEventDeviceCtx* SkEventRecorder::CreateDeviceCtx(uint32_t deviceId) {
     return ctx;
 }
 
+void SkEventRecorder::SetProfSignal(uint32_t val) {
+    g_profSignal.store(val, std::memory_order_relaxed);
+}
+
 void SkEventRecorder::CopyOutputToProfPath(SkEventDeviceCtx* ctx) {
     if (!ctx->outputFp.IsValid()) {
         SK_LOGI("[sk time profiling] Output file is not valid, skip copy\n");
@@ -363,11 +367,30 @@ void* SkEventRecorder::DumpThreadFunc(void* arg) {
         recorder->DumpDeviceData(ctx);
     }
 
-    // 终止读取时再检查 profiling 关闭信号（非0偶数）
+    // 终止读取时再检查 profiling 关闭信号, 如果没有检测到profiling关闭信号，就在线程结束复制一份
     uint32_t sig = g_profSignal.load(std::memory_order_relaxed);
-    if (sig != 0 && (sig % 2 == 0)) {
+    if (sig != 0) {
         recorder->CopyOutputToProfPath(ctx);
         g_profSignal.store(0, std::memory_order_relaxed);
+        SK_LOGI("[sk time profiling] The end singal of profiling missing, re-copying\n");
+    }
+
+    // 如果profiling路径下的json文件为空, 复制完整版json到profiling路径
+    {
+        std::string cachedProfBasePath;
+        {
+            std::lock_guard<std::mutex> lock(recorder->profBasePathMutex);
+            cachedProfBasePath = recorder->profBasePath;
+        }
+        if (!cachedProfBasePath.empty()) {
+            std::string dstFile = cachedProfBasePath + "/sk_event_dev_device_" + std::to_string(ctx->deviceId) + ".json";
+            struct stat fileStat;
+            // 检查目标 json 文件是否存在且大于 10 字节
+            if (stat(dstFile.c_str(), &fileStat) != 0 || fileStat.st_size <= 10) {
+                SK_LOGI("[sk time profiling] Target json file missing or too small (%s), re-copying\n", dstFile.c_str());
+                recorder->CopyOutputToProfPath(ctx);
+            }
+        }
     }
     
     SK_LOGI("[sk time profiling] Global dump thread stopped\n");

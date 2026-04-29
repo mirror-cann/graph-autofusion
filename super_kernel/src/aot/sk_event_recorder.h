@@ -139,6 +139,9 @@ private:
     // 将输出文件复制到 profiling 路径
     void CopyOutputToProfPath(SkEventDeviceCtx* ctx);
 
+    // 设置 g_profSignal,代表profiling开启状态
+    static void SetProfSignal(uint32_t val);
+
 private:
     std::atomic_bool enabled{false}; // 打点是否执行
     std::atomic_bool globalRunning{false};  // 全局打点解析线程运行状态
