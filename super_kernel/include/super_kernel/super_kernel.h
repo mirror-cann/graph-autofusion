@@ -110,9 +110,9 @@ typedef struct aclskExtendOption {
  *  - taskBreakerBypass: enable default-node bypass when set to 1
  *
  * aggressiveOpts.valueBreakerBypass is a bitmask-style value-memory wait policy:
- *  - ACLSK_VALUE_BREAKER_BYPASS_NONE (0b00): reject write/wait pairing relation, keep wait unfusible
- *  - ACLSK_VALUE_BREAKER_BYPASS_PAIRED_WAIT (0b01): for paired write+wait, existing rule must pass or SK exits
- *  - ACLSK_VALUE_BREAKER_BYPASS_UNPAIRED_WAIT (0b10): for waits whose writes are outside modelRI, allow wait fusion
+ *  - ACLSK_VALUE_BREAKER_BYPASS_NONE (0b00): reject notify/wait pairing relation, keep wait unfusible
+ *  - ACLSK_VALUE_BREAKER_BYPASS_PAIRED_WAIT (0b01): for paired notify+wait, existing rule must pass or SK exits
+ *  - ACLSK_VALUE_BREAKER_BYPASS_UNPAIRED_WAIT (0b10): for waits without notify after rule check, allow wait fusion
  */
 enum aclskValueBreakerBypassFlag : uint32_t {
     ACLSK_VALUE_BREAKER_BYPASS_NONE = 0b00U,

@@ -817,19 +817,22 @@ bool SuperKernelMemoryNode::InitNode() {
                 return false;
         }
 
-        // Check if event can be fused: must be internal (not external) and not a reset operation
-        const bool isInternalEvent = (nodeInfos.syncInfos.eventFlag & ACL_EVENT_EXTERNAL) == 0;
-        const bool isNotReset = (rtNodeType != ACL_MODEL_RI_TASK_EVENT_RESET);
-        isFusible = isNotReset && isInternalEvent;
-
-        if (isFusible) {
+        // Check internal (not external)
+        if ((nodeInfos.syncInfos.eventFlag & ACL_EVENT_EXTERNAL) == 0) {
+            isFusible = true;
             SK_LOGI("Event %s: internal to ModelRI, fusible in super kernel", Format().c_str());
         } else {
-            if (fusionFailReason_ == FusionFailReason::CAN_FUSE) {
-                SetFusionFailReason(FusionFailReason::EXTERNAL_DEPEND);
-            }
+            isFusible = false;
+            SetFusionFailReason(FusionFailReason::EXTERNAL_DEPEND);
             SK_LOGI("Event %s: has external dependencies or is reset, cannot be fused in super kernel",
                     Format().c_str());
+        }
+
+        // Reset nodes preserve synchronization semantics only and must not enter fusion.
+        if (rtNodeType == ACL_MODEL_RI_TASK_EVENT_RESET) {
+            isFusible = false;
+            SetFusionFailReason(FusionFailReason::RESET_TYPE_NODE);
+            SK_LOGI("Event %s: is reset type, cannot be fused in super kernel", Format().c_str());
         }
 
         return true;

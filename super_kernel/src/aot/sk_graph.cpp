@@ -518,53 +518,63 @@ bool SuperKernelGraph::ProcessMemoryWriteNodes(const uint64_t eventId, const Mem
             resetIdVec.push_back(writeNodeId);
         }
     }
-    if (notifyIdVec.size() > 1) {
-        SK_LOGE("there exits multi memory write node which is notify, it is illegal, eventId: 0x%lx",
-            eventId);
-        return false;
-    } else if (notifyIdVec.empty()) {
-        SK_LOGE("paired memory event 0x%lx does not satisfy memory wait rule, no notify node generated",
-            eventId);
-        return false;
-    }
 
     // value_breaker_bypass is a wait-oriented bitmask
     const bool enablePairedWaitBypass =
         (valueBreakerBypass & ACLSK_VALUE_BREAKER_BYPASS_PAIRED_WAIT) != 0;
-    if (!enablePairedWaitBypass) {
-        SK_LOGI("value_breaker_bypass=%d does not enable 0b01 paired write/wait bypass, "
-            "keep paired memory event 0x%lx unfusible",
-            valueBreakerBypass, eventId);
+    const bool enableUnpairedWaitBypass =
+        (valueBreakerBypass & ACLSK_VALUE_BREAKER_BYPASS_UNPAIRED_WAIT) != 0;
+
+    bool waitFusible = false;
+    // check notify size and apply corresponding bypass policy
+    if (notifyIdVec.size() > 1) {
+        SK_LOGE("there exits multi memory write node which is notify, it is illegal, eventId: 0x%lx",
+            eventId);
+        return false;
+    } else if (notifyIdVec.size() == 1) {
+        auto* writeNode = GetNodeById(notifyIdVec[0]);
+        SK_LOGD("there exits only one memory write node which is notify, it may cause dead lock, details=%s",
+            writeNode->Format().c_str());
+        static_cast<SuperKernelMemoryNode*>(writeNode)->SetCorrespondingMemoryWriteNodeId({notifyIdVec[0]});
+        writeNode->SetNodeType(SkNodeType::NODE_NOTIFY);
+        writeNode->SetIsFusible(enablePairedWaitBypass);
+        if (!AddEventAssociateNotify(eventId, writeNode)) {
+            SK_LOGE("Failed to associate notify event 0x%lx with node %lu", eventId, notifyIdVec[0]);
+            return false;
+        }
+        waitFusible = enablePairedWaitBypass;
+        if (enablePairedWaitBypass) {
+            SK_LOGI("value_breaker_bypass=%d enable 0b01 paired notify/wait bypass, "
+                "convert paired event 0x%lx to fusible",
+                valueBreakerBypass, eventId);
+        }
+    } else {
+        waitFusible = enableUnpairedWaitBypass;
+        if (enableUnpairedWaitBypass) {
+            SK_LOGI("value_breaker_bypass=%d enable 0b10 unpaired wait bypass, "
+                "convert unpaired wait event 0x%lx to fusible",
+                valueBreakerBypass, eventId);
+        }
     }
 
-    auto* writeNode = GetNodeById(notifyIdVec[0]);
-    SK_LOGD("there exits only one memory write node which is notify, it may cause dead lock, details=%s",
-        writeNode->Format().c_str());
-    static_cast<SuperKernelMemoryNode*>(writeNode)->SetCorrespondingMemoryWriteNodeId({notifyIdVec[0]});
-    writeNode->SetNodeType(SkNodeType::NODE_NOTIFY);
-    writeNode->SetIsFusible(enablePairedWaitBypass);
-    if (!AddEventAssociateNotify(eventId, writeNode)) {
-        SK_LOGE("Failed to associate notify event 0x%lx with node %lu", eventId, notifyIdVec[0]);
-        return false;
-    }
     for (auto waitNodeId : memoryInfo.waitNodeIdList) {
         auto* waitNode = GetNodeById(waitNodeId);
         if (waitNode != nullptr &&
             (waitNode->GetNodeType() == SkNodeType::NODE_MEMORY_WAIT)) {
             waitNode->SetNodeType(SkNodeType::NODE_WAIT);
-            waitNode->SetIsFusible(enablePairedWaitBypass);
+            waitNode->SetIsFusible(waitFusible);
             if (!AddEventAssociateWait(eventId, waitNode)) {
                 SK_LOGE("Failed to associate wait event 0x%lx with node %lu", eventId, waitNodeId);
                 return false;
             }
         }
     }
+    // Reset nodes preserve event ordering but do not enter fusion.
     if (!resetIdVec.empty()) {
         for (auto resetId: resetIdVec) {
             auto* resetNode = GetNodeById(resetId);
             static_cast<SuperKernelMemoryNode*>(resetNode)->SetCorrespondingMemoryWriteNodeId({resetId});
             resetNode->SetNodeType(SkNodeType::NODE_RESET);
-            resetNode->SetIsFusible(enablePairedWaitBypass);
             if (!AddEventAssociateReset(eventId, resetNode)) {
                 SK_LOGE("Failed to associate reset event 0x%lx with node %lu", eventId, resetId);
                 return false;
@@ -586,29 +596,19 @@ bool SuperKernelGraph::PostProcessMemoryNode() {
         if (memoryInfo.writeNodeIdList.empty() && !memoryInfo.waitNodeIdList.empty()) {
             // No memory write exists, meaning the memory write is outside modelRI.
             if (enableUnpairedWaitBypass) {
-                SK_LOGI("value_breaker_bypass=0x%x enables 0b10 unpaired wait bypass, mark memory wait event 0x%lx as notify",
-                        valueBreakerBypass, eventId);
-                for (auto waitNodeId : memoryInfo.waitNodeIdList) {
-                    auto* waitNode = GetNodeById(waitNodeId);
-                    if (waitNode != nullptr &&
-                        (waitNode->GetNodeType() == SkNodeType::NODE_MEMORY_WAIT)) {
-                        waitNode->SetNodeType(SkNodeType::NODE_WAIT);
-                        waitNode->SetIsFusible(true);
-                        if (!AddEventAssociateWait(eventId, waitNode)) {
-                            SK_LOGE("Failed to associate wait event 0x%lx with node %lu", eventId, waitNodeId);
-                            return false;
-                        }
-                    }
-                }
-            } else {
-                // No bypass: keep memory wait semantics unchanged and block fusion for this path.
-                for (auto waitNodeId : memoryInfo.waitNodeIdList) {
-                    auto* waitNode = GetNodeById(waitNodeId);
-                    if (waitNode != nullptr &&
-                        (waitNode->GetNodeType() == SkNodeType::NODE_MEMORY_WAIT)) {
-                        waitNode->SetNodeType(SkNodeType::NODE_WAIT);
-                        waitNode->SetIsFusible(false);
-                        waitNode->SetFusionFailReason(FusionFailReason::MEMORY_WAIT_NODE_ONLY);
+                SK_LOGI("value_breaker_bypass=0x%x enables 0b10 unpaired wait bypass, "
+                        "mark wait event 0x%lx as fusible",
+                    valueBreakerBypass, eventId);
+            }
+            for (auto waitNodeId : memoryInfo.waitNodeIdList) {
+                auto* waitNode = GetNodeById(waitNodeId);
+                if (waitNode != nullptr &&
+                    (waitNode->GetNodeType() == SkNodeType::NODE_MEMORY_WAIT)) {
+                    waitNode->SetNodeType(SkNodeType::NODE_WAIT);
+                    waitNode->SetIsFusible(enableUnpairedWaitBypass);
+                    if (!AddEventAssociateWait(eventId, waitNode)) {
+                        SK_LOGE("Failed to associate wait event 0x%lx with node %lu", eventId, waitNodeId);
+                        return false;
                     }
                 }
             }
