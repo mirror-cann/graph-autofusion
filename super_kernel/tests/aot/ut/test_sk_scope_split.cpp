@@ -3544,18 +3544,19 @@ TEST_F(SuperKernelScopeSplitterTest, ScheMode_AllNonScheModeNodes_NoSplit)
     EXPECT_EQ(inputScopes[0].nodes_.size(), 3); // 3个节点全部保留
 }
 
-// ==================== ScheMode: Core递增不分割 ====================
+// ==================== ScheMode: Core递增分割(CORE_RISE) ====================
 /**
- * @brief ScheMode Core递增不分割
+ * @brief ScheMode Core递增触发分割(CORE_RISE)
  * 
  * 输入scope: [K1(cube=2,vec=1) -> K2(cube=4,vec=2) -> K3(cube=8,vec=4)] (ScheMode=true)
  * 
  * 预期结果:
  *   - Run返回true
- *   - Core递增，不分割
+ *   - 前面融合了ScheMode算子后，核数递增也需要断开
+ *   - K2比K1核数大(CORE_RISE)，K3比K2核数大(CORE_RISE)，分割为3个scope
  */
 
-TEST_F(SuperKernelScopeSplitterTest, ScheMode_IncreasingCores_NoSplit)
+TEST_F(SuperKernelScopeSplitterTest, ScheMode_IncreasingCores_SplitAtRisePoint)
 {
     auto* k1 = CreateScheModeKernelNode(1, 0, 2, 1, true, 2);
     auto* k2 = CreateScheModeKernelNode(2, 0, 4, 2, true, 3);
@@ -3568,8 +3569,13 @@ TEST_F(SuperKernelScopeSplitterTest, ScheMode_IncreasingCores_NoSplit)
     bool result = pass.Run(inputScopes);
 
     EXPECT_TRUE(result);
-    EXPECT_EQ(inputScopes.size(), 1);        // core递增，不分割
-    EXPECT_EQ(inputScopes[0].nodes_.size(), 3); // 全部在一个scope中
+    EXPECT_EQ(inputScopes.size(), 3);  // core递增，每个上升点都分割
+    ASSERT_GE(inputScopes[0].nodes_.size(), 1);
+    EXPECT_EQ(inputScopes[0].nodes_[0]->GetNodeId(), 1);
+    ASSERT_GE(inputScopes[1].nodes_.size(), 1);
+    EXPECT_EQ(inputScopes[1].nodes_[0]->GetNodeId(), 2);
+    ASSERT_GE(inputScopes[2].nodes_.size(), 1);
+    EXPECT_EQ(inputScopes[2].nodes_[0]->GetNodeId(), 3);
 }
 
 // ==================== ScheMode: Core相等不分割 ====================
@@ -3742,9 +3748,9 @@ TEST_F(SuperKernelScopeSplitterTest, ScheMode_MultipleSplits_ConsecutiveDrops)
  *   - 输出2个scope: {K1,K2,K3}, {K4}
  */
 
-TEST_F(SuperKernelScopeSplitterTest, ScheMode_IncreaseThenDecrease_SplitOnlyAtDrop)
+TEST_F(SuperKernelScopeSplitterTest, ScheMode_IncreaseThenDecrease_SplitAtRiseAndDrop)
 {
-    // k1(2,1) -> k2(4,2)[增] -> k3(8,4)[增] -> k4(4,2)[降,分割]
+    // k1(2,1) -> k2(4,2)[增,CORE_RISE] -> k3(8,4)[增,CORE_RISE] -> k4(4,2)[降,CORE_DROP]
     auto* k1 = CreateScheModeKernelNode(1, 0, 2, 1, true, 2);
     auto* k2 = CreateScheModeKernelNode(2, 0, 4, 2, true, 3);
     auto* k3 = CreateScheModeKernelNode(3, 0, 8, 4, true, 4);
@@ -3757,11 +3763,15 @@ TEST_F(SuperKernelScopeSplitterTest, ScheMode_IncreaseThenDecrease_SplitOnlyAtDr
     bool result = pass.Run(inputScopes);
 
     EXPECT_TRUE(result);
-    EXPECT_EQ(inputScopes.size(), 2);  // 只在k4处分割一次
-    EXPECT_EQ(inputScopes[0].nodes_.size(), 3);
+    EXPECT_EQ(inputScopes.size(), 4);  // k2,k3核数上升分割，k4核数下降分割
+    EXPECT_EQ(inputScopes[0].nodes_.size(), 1);
     EXPECT_EQ(inputScopes[0].nodes_[0]->GetNodeId(), 1);
     EXPECT_EQ(inputScopes[1].nodes_.size(), 1);
-    EXPECT_EQ(inputScopes[1].nodes_[0]->GetNodeId(), 4);
+    EXPECT_EQ(inputScopes[1].nodes_[0]->GetNodeId(), 2);
+    EXPECT_EQ(inputScopes[2].nodes_.size(), 1);
+    EXPECT_EQ(inputScopes[2].nodes_[0]->GetNodeId(), 3);
+    EXPECT_EQ(inputScopes[3].nodes_.size(), 1);
+    EXPECT_EQ(inputScopes[3].nodes_[0]->GetNodeId(), 4);
 }
 
 // ==================== ScheMode: 多Scope独立处理 ====================
@@ -3791,16 +3801,18 @@ TEST_F(SuperKernelScopeSplitterTest, ScheMode_MultipleInputScopes_ProcessedIndep
     bool result = pass.Run(inputScopes);
 
     EXPECT_TRUE(result);
-    EXPECT_EQ(inputScopes.size(), 3);
-    bool foundK1 = false, foundK2 = false, foundK3K4 = false;
+    EXPECT_EQ(inputScopes.size(), 4);
+    bool foundK1 = false, foundK2 = false, foundK3 = false, foundK4 = false;
     for (const auto& scope : inputScopes) {
         if (scope.nodes_.size() == 1 && scope.nodes_[0]->GetNodeId() == 1) foundK1 = true;
         if (scope.nodes_.size() == 1 && scope.nodes_[0]->GetNodeId() == 2) foundK2 = true;
-        if (scope.nodes_.size() == 2) foundK3K4 = true;  // k3,k4在一起
+        if (scope.nodes_.size() == 1 && scope.nodes_[0]->GetNodeId() == 3) foundK3 = true;
+        if (scope.nodes_.size() == 1 && scope.nodes_[0]->GetNodeId() == 4) foundK4 = true;
     }
     EXPECT_TRUE(foundK1);
     EXPECT_TRUE(foundK2);
-    EXPECT_TRUE(foundK3K4);
+    EXPECT_TRUE(foundK3);
+    EXPECT_TRUE(foundK4);
 }
 
 // ==================== ScheMode: Cube相同Vec小分割 ====================
@@ -3871,6 +3883,9 @@ TEST_F(SuperKernelScopeSplitterTest, ScheMode_LargerCubeSmallerVec_Split)
  */
 TEST_F(SuperKernelScopeSplitterTest, ScheMode_ZeroDimension_IgnoredInSplitJudgement)
 {
+    // k1(4,4) -> k2(0,8) -> k3(8,0)
+    // k2 的 cube=0 不参与判断，但 vec=8 > merged_vec=4，触发 CORE_RISE 分割
+    // k3 的 vec=0 不参与判断，但 cube=8 > merged_cube=0，触发 CORE_RISE 分割
     auto* k1 = CreateScheModeKernelNode(1, 0, 4, 4, true, 2);
     auto* k2 = CreateScheModeKernelNode(2, 0, 0, 8, true, 3);
     auto* k3 = CreateScheModeKernelNode(3, 0, 8, 0, true);
@@ -3882,8 +3897,154 @@ TEST_F(SuperKernelScopeSplitterTest, ScheMode_ZeroDimension_IgnoredInSplitJudgem
     bool result = pass.Run(inputScopes);
 
     EXPECT_TRUE(result);
-    EXPECT_EQ(inputScopes.size(), 1);
-    EXPECT_EQ(inputScopes[0].nodes_.size(), 3);
+    EXPECT_EQ(inputScopes.size(), 3);  // k2 vec上升 + k3 cube上升各触发CORE_RISE分割
+    ASSERT_GE(inputScopes[0].nodes_.size(), 1);
+    EXPECT_EQ(inputScopes[0].nodes_[0]->GetNodeId(), 1);
+    ASSERT_GE(inputScopes[1].nodes_.size(), 1);
+    EXPECT_EQ(inputScopes[1].nodes_[0]->GetNodeId(), 2);
+    ASSERT_GE(inputScopes[2].nodes_.size(), 1);
+    EXPECT_EQ(inputScopes[2].nodes_[0]->GetNodeId(), 3);
+}
+
+// ==================== ScheMode: 非ScheMode算子核数上升分割(CORE_RISE) ====================
+/**
+ * @brief 前面融合了ScheMode算子后，后续非ScheMode算子核数上升也分割
+ *
+ * 输入scope: [K1(cube=4,vec=2,ScheMode=true) -> K2(cube=8,vec=4,ScheMode=false)]
+ *
+ * 预期结果:
+ *   - K2非ScheMode但核数大于merged(4,2)，触发CORE_RISE分割
+ *   - 输出2个scope
+ */
+TEST_F(SuperKernelScopeSplitterTest, ScheMode_NonScheModeCoreRise_Split)
+{
+    auto* k1 = CreateScheModeKernelNode(1, 0, 4, 2, true, 2);
+    auto* k2 = CreateScheModeKernelNode(2, 0, 8, 4, false);  // 非ScheMode但核数大
+
+    std::vector<SuperKernelScopeInfo> inputScopes;
+    inputScopes.push_back(BuildTestScope({k1, k2}));
+
+    ScheModeKernelSplitPass pass(*graph);
+    bool result = pass.Run(inputScopes);
+
+    EXPECT_TRUE(result);
+    EXPECT_EQ(inputScopes.size(), 2);  // K2核数上升触发CORE_RISE分割
+    EXPECT_EQ(inputScopes[0].nodes_.size(), 1);
+    EXPECT_EQ(inputScopes[0].nodes_[0]->GetNodeId(), 1);
+    EXPECT_EQ(inputScopes[1].nodes_.size(), 1);
+    EXPECT_EQ(inputScopes[1].nodes_[0]->GetNodeId(), 2);
+}
+
+// ==================== ScheMode: ScheMode算子后非ScheMode核数上升Cube分割 ====================
+/**
+ * @brief 前面融合了ScheMode算子后，后续非ScheMode算子仅cube上升也分割
+ *
+ * 输入scope: [K1(cube=4,vec=4,ScheMode=true) -> K2(cube=8,vec=2,ScheMode=false)]
+ *
+ * 预期结果:
+ *   - K2的cube=8 > merged_cube=4，触发CORE_RISE分割
+ *   - 输出2个scope
+ */
+TEST_F(SuperKernelScopeSplitterTest, ScheMode_NonScheModeCubeRise_Split)
+{
+    auto* k1 = CreateScheModeKernelNode(1, 0, 4, 4, true, 2);
+    auto* k2 = CreateScheModeKernelNode(2, 0, 8, 2, false);  // cube上升，vec下降
+
+    std::vector<SuperKernelScopeInfo> inputScopes;
+    inputScopes.push_back(BuildTestScope({k1, k2}));
+
+    ScheModeKernelSplitPass pass(*graph);
+    bool result = pass.Run(inputScopes);
+
+    EXPECT_TRUE(result);
+    EXPECT_EQ(inputScopes.size(), 2);  // K2的cube上升触发CORE_RISE分割
+}
+
+// ==================== ScheMode: 无ScheMode算子时核数上升不分割 ====================
+/**
+ * @brief 所有算子都未开启ScheMode时，核数上升不分割
+ *
+ * 输入scope: [K1(cube=2,vec=1,ScheMode=false) -> K2(cube=4,vec=2,ScheMode=false)]
+ *
+ * 预期结果:
+ *   - 没有ScheMode算子，核数上升不触发分割
+ *   - 输出1个scope
+ */
+TEST_F(SuperKernelScopeSplitterTest, ScheMode_NoScheModeCoreRise_NoSplit)
+{
+    auto* k1 = CreateScheModeKernelNode(1, 0, 2, 1, false, 2);
+    auto* k2 = CreateScheModeKernelNode(2, 0, 4, 2, false);
+
+    std::vector<SuperKernelScopeInfo> inputScopes;
+    inputScopes.push_back(BuildTestScope({k1, k2}));
+
+    ScheModeKernelSplitPass pass(*graph);
+    bool result = pass.Run(inputScopes);
+
+    EXPECT_TRUE(result);
+    EXPECT_EQ(inputScopes.size(), 1);  // 无ScheMode，核数上升不分割
+    EXPECT_EQ(inputScopes[0].nodes_.size(), 2);
+}
+
+// ==================== ScheMode: 混合ScheMode先降后升分割 ====================
+/**
+ * @brief ScheMode算子后先降后升，分别触发CORE_DROP和CORE_RISE分割
+ *
+ * 输入scope: [K1(cube=8,vec=4,ScheMode=true) -> K2(cube=4,vec=2,ScheMode=true) -> K3(cube=6,vec=3,ScheMode=false)]
+ *
+ * 预期结果:
+ *   - K2比K1核数小，CORE_DROP分割
+ *   - K3比K2核数大且K2开启了ScheMode，CORE_RISE分割
+ *   - 输出3个scope
+ */
+TEST_F(SuperKernelScopeSplitterTest, ScheMode_CoreDropThenRise_SplitAtDropAndRise)
+{
+    auto* k1 = CreateScheModeKernelNode(1, 0, 8, 4, true, 2);
+    auto* k2 = CreateScheModeKernelNode(2, 0, 4, 2, true, 3);   // CORE_DROP分割点
+    auto* k3 = CreateScheModeKernelNode(3, 0, 6, 3, false);     // CORE_RISE分割点
+
+    std::vector<SuperKernelScopeInfo> inputScopes;
+    inputScopes.push_back(BuildTestScope({k1, k2, k3}));
+
+    ScheModeKernelSplitPass pass(*graph);
+    bool result = pass.Run(inputScopes);
+
+    EXPECT_TRUE(result);
+    EXPECT_EQ(inputScopes.size(), 3);  // k2处CORE_DROP分割，k3处CORE_RISE分割
+    ASSERT_GE(inputScopes[0].nodes_.size(), 1);
+    EXPECT_EQ(inputScopes[0].nodes_[0]->GetNodeId(), 1);
+    ASSERT_GE(inputScopes[1].nodes_.size(), 1);
+    EXPECT_EQ(inputScopes[1].nodes_[0]->GetNodeId(), 2);
+    ASSERT_GE(inputScopes[2].nodes_.size(), 1);
+    EXPECT_EQ(inputScopes[2].nodes_[0]->GetNodeId(), 3);
+}
+
+// ==================== ScheMode: 非ScheMode算子作为首节点后ScheMode核数上升分割 ====================
+/**
+ * @brief 首节点非ScheMode，第二个ScheMode算子核数上升也分割
+ *
+ * 输入scope: [K1(cube=2,vec=1,ScheMode=false) -> K2(cube=4,vec=2,ScheMode=true)]
+ *
+ * 预期结果:
+ *   - K1非ScheMode，hasMergedScheMode=false，不触发CORE_RISE
+ *   - K2开启ScheMode，比merged(2,1)核数大
+ *   - 但K2自身是ScheMode节点，只检查CORE_DROP不检查CORE_RISE
+ *   - 输出1个scope（不分割）
+ */
+TEST_F(SuperKernelScopeSplitterTest, ScheMode_NonScheModeFirst_ScheModeRise_NoSplit)
+{
+    auto* k1 = CreateScheModeKernelNode(1, 0, 2, 1, false, 2);
+    auto* k2 = CreateScheModeKernelNode(2, 0, 4, 2, true);
+
+    std::vector<SuperKernelScopeInfo> inputScopes;
+    inputScopes.push_back(BuildTestScope({k1, k2}));
+
+    ScheModeKernelSplitPass pass(*graph);
+    bool result = pass.Run(inputScopes);
+
+    EXPECT_TRUE(result);
+    EXPECT_EQ(inputScopes.size(), 1);  // K1非ScheMode，K2虽核数上升但自身ScheMode只检查CORE_DROP
+    EXPECT_EQ(inputScopes[0].nodes_.size(), 2);
 }
 
 // ==================== ScheMode: Pass名称验证 ====================

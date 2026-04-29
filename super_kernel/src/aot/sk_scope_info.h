@@ -89,6 +89,7 @@ enum class ScopeBreakReason : uint8_t {
     UNFUSIBLE_NODE,          // Encountered unfusible node
     DEADLOCK_DETECTED,       // Deadlock detection triggered split
     SCHOMODE_CORE_DROP,      // SchoMode core number dropped
+    SCHOMODE_CORE_RISE,      // SchoMode core number rose after merged ScheMode kernels
 };
 
 /*!
@@ -102,6 +103,8 @@ inline const char* ScopeBreakReasonToStr(ScopeBreakReason reason) {
             return "There exists deadlock in scope";
         case ScopeBreakReason::SCHOMODE_CORE_DROP:
             return "There exists an operator for full kernel synchronization, and the number of kernels of this operator is less than the maximum number of kernels of the fused superkernel";
+        case ScopeBreakReason::SCHOMODE_CORE_RISE:
+            return "There exists an operator for full kernel synchronization, and the number of kernels of this operator is greater than the maximum number of kernels of the previously fused superkernel";
         default:
             return "UNKNOWN REASON";
     }

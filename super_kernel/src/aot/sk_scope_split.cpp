@@ -1179,6 +1179,7 @@ ScheModeScopeProcessResult ScheModeKernelSplitPass::ProcessSingleScope(
     uint32_t mergedCubeNum = 0;
     uint32_t mergedVecNum = 0;
     bool hasMergedKernel = false;
+    bool hasMergedScheMode = false;
 
     auto& nodes = workingScope.GetNodes();
     for (size_t i = 0; i < nodes.size(); ++i) {
@@ -1194,72 +1195,95 @@ ScheModeScopeProcessResult ScheModeKernelSplitPass::ProcessSingleScope(
             mergedCubeNum = curCubeNum;
             mergedVecNum = curVecNum;
             hasMergedKernel = true;
+            hasMergedScheMode = node->IsScheModeOn();
             continue;
         }
+
+        bool needSplit = false;
+        ScopeBreakReason breakReason = ScopeBreakReason::NONE;
 
         if (node->IsScheModeOn()) {
             // Ignore zero-valued dimensions when judging whether the current kernel
             // regresses versus the merged requirement.
             const bool isCubeSmallerThanMerged = (curCubeNum != 0) && (curCubeNum < mergedCubeNum);
             const bool isVecSmallerThanMerged = (curVecNum != 0) && (curVecNum < mergedVecNum);
-            bool isSmallerThanMerged = isCubeSmallerThanMerged || isVecSmallerThanMerged;
-
-            if (isSmallerThanMerged) {
-                // Save original scope's break info before split
-                const ScopeBreakInfo& originalBreakInfo = workingScope.GetBreakInfo();
-                uint16_t originalScopeId = workingScope.GetScopeId();
-
-                SuperKernelScopeInfo scopeBefore;
-                SuperKernelScopeInfo scopeAfter;
-                SplitScopeAtNode(workingScope, node, scopeBefore, scopeAfter);
-
-                SK_LOGI("[ScheModeSplit] split required at ScheMode kernel %s, mergedCore={cube:%u, vec:%u}, "
-                        "currentCore={cube:%u, vec:%u}, scopeBefore=%zu, scopeAfter=%zu",
-                        node->Format().c_str(),
-                        mergedCubeNum, mergedVecNum,
-                        curCubeNum, curVecNum,
-                        scopeBefore.GetNodes().size(), scopeAfter.GetNodes().size());
-
-                // Set break info: scopeBefore always inherits original
-                scopeBefore.SetBreakInfo(originalBreakInfo);
-                SK_LOGI("[SchoModeSplit] scopeBefore inherits break info: %s", scopeBefore.GetBreakInfo().Format().c_str());
-
-                // Check if scopeAfter has same kernel nodes as original
-                bool hasSameKernelAsOriginal = HasSameKernelNodes(scopeAfter, workingScope);
-                
-                // Always set parentScopeId for scopeAfter
-                if (hasSameKernelAsOriginal) {
-                    // Kernel same: inherit original breakInfo (reason)
-                    scopeAfter.MutableBreakInfo() = originalBreakInfo;
-                    SK_LOGI("[SchoModeSplit] scopeAfter kernel same as original, inherits break info");
-                } else {
-                    // Kernel different: new break info for scopeAfter
-                    scopeAfter.MutableBreakInfo()
-                        .SetReason(ScopeBreakReason::SCHOMODE_CORE_DROP)
-                        .SetTriggerNode(node->GetNodeId(), node->GetStreamIdxInGraph())
-                        .SetDetail("SchoMode core drop at node " + std::to_string(node->GetNodeId()) +
-                                   ": merged(" + std::to_string(mergedCubeNum) + "," +
-                                   std::to_string(mergedVecNum) + ") -> cur(" +
-                                   std::to_string(curCubeNum) + "," +
-                                   std::to_string(curVecNum) + ")");
-                    SK_LOGI("[SchoModeSplit] scopeAfter kernel different, gets SchoMode break info");
-                }
-                scopeAfter.MutableBreakInfo().SetParentScopeId(originalScopeId);
-                SK_LOGI("[SchoModeSplit] scopeAfter break info: %s", scopeAfter.GetBreakInfo().Format().c_str());
-
-                if (!scopeBefore.GetNodes().empty()) {
-                    outputScopes.push_back(std::move(scopeBefore));
-                }
-                if (!scopeAfter.GetNodes().empty()) {
-                    pendingScope = std::move(scopeAfter);
-                }
-                return ScheModeScopeProcessResult::SPLIT_RESOLVED;
+            if (isCubeSmallerThanMerged || isVecSmallerThanMerged) {
+                needSplit = true;
+                breakReason = ScopeBreakReason::SCHOMODE_CORE_DROP;
             }
+        }
+
+        // If previous fused operators had ScheMode on, check if any subsequent kernel
+        // (regardless of its own ScheMode status) requires more cores than the merged
+        // requirement — this also requires a split.
+        if (!needSplit && hasMergedScheMode) {
+            const bool isCubeBiggerThanMerged = (curCubeNum != 0) && (curCubeNum > mergedCubeNum);
+            const bool isVecBiggerThanMerged = (curVecNum != 0) && (curVecNum > mergedVecNum);
+            if (isCubeBiggerThanMerged || isVecBiggerThanMerged) {
+                needSplit = true;
+                breakReason = ScopeBreakReason::SCHOMODE_CORE_RISE;
+            }
+        }
+
+        if (needSplit) {
+            // Save original scope's break info before split
+            const ScopeBreakInfo& originalBreakInfo = workingScope.GetBreakInfo();
+            uint16_t originalScopeId = workingScope.GetScopeId();
+
+            SuperKernelScopeInfo scopeBefore;
+            SuperKernelScopeInfo scopeAfter;
+            SplitScopeAtNode(workingScope, node, scopeBefore, scopeAfter);
+
+            SK_LOGI("[ScheModeSplit] split required at kernel %s, mergedCore={cube:%u, vec:%u}, "
+                    "currentCore={cube:%u, vec:%u}, reason=%s, scopeBefore=%zu, scopeAfter=%zu",
+                    node->Format().c_str(),
+                    mergedCubeNum, mergedVecNum,
+                    curCubeNum, curVecNum,
+                    ScopeBreakReasonToStr(breakReason),
+                    scopeBefore.GetNodes().size(), scopeAfter.GetNodes().size());
+
+            // Set break info: scopeBefore always inherits original
+            scopeBefore.SetBreakInfo(originalBreakInfo);
+            SK_LOGI("[ScheModeSplit] scopeBefore inherits break info: %s", scopeBefore.GetBreakInfo().Format().c_str());
+
+            // Check if scopeAfter has same kernel nodes as original
+            bool hasSameKernelAsOriginal = HasSameKernelNodes(scopeAfter, workingScope);
+            
+            // Always set parentScopeId for scopeAfter
+            if (hasSameKernelAsOriginal) {
+                // Kernel same: inherit original breakInfo (reason)
+                scopeAfter.MutableBreakInfo() = originalBreakInfo;
+                SK_LOGI("[ScheModeSplit] scopeAfter kernel same as original, inherits break info");
+            } else {
+                // Kernel different: new break info for scopeAfter
+                bool isCoreDrop = (breakReason == ScopeBreakReason::SCHOMODE_CORE_DROP);
+                scopeAfter.MutableBreakInfo()
+                    .SetReason(breakReason)
+                    .SetTriggerNode(node->GetNodeId(), node->GetStreamIdxInGraph())
+                    .SetDetail("SchoMode core " + std::string(isCoreDrop ? "drop" : "rise") +
+                               " at node " + std::to_string(node->GetNodeId()) +
+                               ": merged(" + std::to_string(mergedCubeNum) + "," +
+                               std::to_string(mergedVecNum) + ") -> cur(" +
+                               std::to_string(curCubeNum) + "," +
+                               std::to_string(curVecNum) + ")");
+                SK_LOGI("[ScheModeSplit] scopeAfter kernel different, gets SchoMode break info");
+            }
+            scopeAfter.MutableBreakInfo().SetParentScopeId(originalScopeId);
+            SK_LOGI("[ScheModeSplit] scopeAfter break info: %s", scopeAfter.GetBreakInfo().Format().c_str());
+
+            if (!scopeBefore.GetNodes().empty()) {
+                outputScopes.push_back(std::move(scopeBefore));
+            }
+            if (!scopeAfter.GetNodes().empty()) {
+                pendingScope = std::move(scopeAfter);
+            }
+            return ScheModeScopeProcessResult::SPLIT_RESOLVED;
         }
 
         // Merge kernel core requirement with max strategy (same as lock detector style).
         mergedCubeNum = std::max(mergedCubeNum, curCubeNum);
         mergedVecNum = std::max(mergedVecNum, curVecNum);
+        hasMergedScheMode = hasMergedScheMode || node->IsScheModeOn();
     }
 
     outputScopes.push_back(std::move(workingScope));
