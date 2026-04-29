@@ -667,7 +667,7 @@ install_run() {
         new_echo "INFO" "install ${graph_autofusion_install_path_param} ${graph_autofusion_install_type}"
         log "INFO" "install ${graph_autofusion_install_path_param} ${graph_autofusion_install_type}"
         bash "${curpath}/run_graph_autofusion_install.sh" "install" "${graph_autofusion_input_install_path}" "${graph_autofusion_install_type}" \
-            "${is_quiet}" "${pylocal}" "${input_setenv}" "${docker_root}" "${in_install_for_all}" "$pkg_version_dir"
+            "${is_quiet}" "${pylocal}" "${input_setenv}" "${docker_root}" "${in_install_for_all}" "$pkg_version_dir" "${install_autofuse}"
         if [ $? -eq 0 ]; then
             update_version_info_version
             log "INFO" "graph_autofusion package installed successfully! The new version takes effect immediately."
@@ -708,7 +708,7 @@ upgrade_run() {
         new_echo "INFO" "upgrade ${graph_autofusion_install_path_param} ${graph_autofusion_install_type}"
         log "INFO" "upgrade ${graph_autofusion_install_path_param} ${graph_autofusion_install_type}"
         bash "${curpath}/run_graph_autofusion_upgrade.sh" "upgrade" "${graph_autofusion_input_install_path}" "${graph_autofusion_install_type}" \
-            "${is_quiet}" "${pylocal}" "${input_setenv}" "${docker_root}" "${in_install_for_all}" "$pkg_version_dir"
+            "${is_quiet}" "${pylocal}" "${input_setenv}" "${docker_root}" "${in_install_for_all}" "$pkg_version_dir" "${install_autofuse}"
         if [ $? -eq 0 ]; then
             update_version_info_version
             log "INFO" "graph_autofusion package upgraded successfully! The new version takes effect immediately."
@@ -871,6 +871,7 @@ uninstall=n
 upgrade=n
 installmode=""
 pylocal=n
+install_autofuse=n
 install_path_cmd="--install-path"
 input_install_path=""
 install_top_path=""
@@ -1007,6 +1008,10 @@ do
         ;;
     --pylocal)
         pylocal=y
+        shift
+        ;;
+    --autofuse)
+        install_autofuse=y
         shift
         ;;
     --extract=*)

@@ -15,6 +15,7 @@ is_quiet=n
 pylocal=n
 in_install_for_all=n
 docker_root=""
+install_autofuse="n"
 curpath=$(dirname $(readlink -f "$0"))
 common_func_path="${curpath}/common_func.inc"
 pkg_version_path="${curpath}/../version.info"
@@ -30,6 +31,7 @@ if [ $1 ]; then
     pylocal="$5"
     docker_root="$7"
     pkg_version_dir="$9"
+    install_autofuse="${10}"
 fi
 
 if [ "x${docker_root}" != "x" ]; then
@@ -80,6 +82,24 @@ echo_progress() {
     log "INFO" "install upgradePercentage:$1%"
 }
 
+create_filtered_filelist() {
+    local src_filelist="$1"
+    local dst_filelist="$2"
+    if [ "$install_autofuse" = "y" ]; then
+        cp "$src_filelist" "$dst_filelist"
+    else
+        python3 - "$src_filelist" "$dst_filelist" <<'PY'
+import sys
+from pathlib import Path
+src = Path(sys.argv[1])
+dst = Path(sys.argv[2])
+lines = src.read_text().splitlines()
+filtered = [line for line in lines if 'python/site-packages/autofuse' not in line]
+dst.write_text("\n".join(filtered) + "\n")
+PY
+    fi
+}
+
 create_latest_linux_softlink() {
     if [ "$pkg_is_multi_version" = "true" ] && [ "$hetero_arch" = "y" ]; then
         local linux_path="$(realpath $common_parse_dir/..)"
@@ -96,13 +116,28 @@ create_latest_linux_softlink() {
 new_install() {
     echo_progress 10
 
+    local filtered_filelist
+    filtered_filelist="$(mktemp /tmp/graph_autofusion_filelist.install.XXXXXX.csv)"
+    if [ $? -ne 0 ]; then
+        log "ERROR" "ERR_NO:0x0085;ERR_DES:failed to create temporary filelist."
+        return 1
+    fi
+    create_filtered_filelist "$curpath/filelist.csv" "$filtered_filelist"
+    if [ $? -ne 0 ]; then
+        rm -f "$filtered_filelist"
+        log "ERROR" "ERR_NO:0x0085;ERR_DES:failed to prepare install filelist."
+        return 1
+    fi
+
     # 执行安装
-    custom_options="--custom-options=--common-parse-dir=$common_parse_dir,--logfile=$logfile,--stage=install,--quiet=$is_quiet,--pylocal=$pylocal"
-    sh "$curpath/install_common_parser.sh" --copy_all --package="graph_autofusion" --install --username="$username" --usergroup="$usergroup" --set-cann-uninstall \
+    custom_options="--custom-options=--common-parse-dir=$common_parse_dir,--logfile=$logfile,--stage=install,--quiet=$is_quiet,--pylocal=$pylocal,--autofuse=$install_autofuse"
+    sh "$curpath/install_common_parser.sh" --package="graph_autofusion" --install --username="$username" --usergroup="$usergroup" --set-cann-uninstall \
         --version=$pkg_version --version-dir=$pkg_version_dir --use-share-info \
         $in_install_for_all --docker-root="$docker_root" \
-        $custom_options "$common_parse_type" "$input_install_dir" "$curpath/filelist.csv"
-    if [ $? -ne 0 ]; then
+        $custom_options "$common_parse_type" "$input_install_dir" "$filtered_filelist"
+    local ret=$?
+    rm -f "$filtered_filelist"
+    if [ $ret -ne 0 ]; then
         log "ERROR" "ERR_NO:0x0085;ERR_DES:failed to install package."
         return 1
     fi

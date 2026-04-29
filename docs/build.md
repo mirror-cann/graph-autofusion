@@ -197,6 +197,7 @@ bash build.sh --pkg
   > - --pylocal       安装 run 包时，是否将包内的 .whl 跟随 run 包安装路径来安装。  
   >   - 若选择该参数，则 .whl 安装在`${ascend_install_path}/cann/python/site-packages`路径下。
   >   - 若不选择该参数，则 .whl 安装在本地 python 路径下，例如`/usr/local/python3.7.5/lib/python3.7/site-packages`。
+  > - --autofuse      当前装包默认不安装autofuse组件相关编译产物，需要添加此选项来安装autofuse。
   > - 更多安装选项请使用 --help 选项查看。  
 
 - 卸载
