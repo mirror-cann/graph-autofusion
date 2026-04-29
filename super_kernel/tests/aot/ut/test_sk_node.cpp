@@ -476,6 +476,7 @@ TEST_F(SkNodeTest, MemoryNodeInitNode_EventResetInternalNotFusible)
     ASSERT_TRUE(node.InitNode());
     EXPECT_EQ(node.GetNodeType(), SkNodeType::NODE_RESET);
     EXPECT_FALSE(node.IsFusible());
+    EXPECT_EQ(node.GetFusionFailReason(), FusionFailReason::RESET_TYPE_NODE);
     EXPECT_EQ(node.nodeInfos.syncInfos.eventId, 0x3000U);
     EXPECT_EQ(node.nodeInfos.syncInfos.memoryValue, SK_DEFAULT_RESET_VALUE);
     EXPECT_EQ(node.nodeInfos.syncInfos.memoryWaitFlag, SK_DEFAULT_WRITE_FLAG);
