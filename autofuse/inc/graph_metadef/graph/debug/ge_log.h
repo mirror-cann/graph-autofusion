@@ -128,7 +128,7 @@ inline std::string GE_GET_ERRORNO_STR_FUNC(uint32_t) { return ""; }
   do {                                                             \
     const bool _b = (expr);                                        \
     if (_b) {                                                      \
-      GELOGE(ge::FAILED, __VA_ARGS__);                             \
+      GELOGI(__VA_ARGS__);                             \
       return (special_return);                                     \
     }                                                              \
   } while (false)

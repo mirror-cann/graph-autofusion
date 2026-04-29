@@ -163,7 +163,7 @@ inline __simt_callee__ __aicore__ void ComputeDestPositionAndSrcPosition(INDEX_S
 }
 
 template <typename T1, typename T2, typename INDEX_SIZE_T, int32_t SRC_NUMBER>
-inline __aicore__ void CommonCalOffset(uint32_t &dst_p, INDEX_SIZE_T &param_offset) {
+inline __simt_callee__ __aicore__ void CommonCalOffset(uint32_t &dst_p, INDEX_SIZE_T &param_offset) {
   if constexpr (SRC_NUMBER == 2) {
     param_offset = param_offset >> 1;
     dst_p = dst_p >> 1;
@@ -177,7 +177,7 @@ inline __aicore__ void CommonCalOffset(uint32_t &dst_p, INDEX_SIZE_T &param_offs
 }
 
 template <typename T1, typename T2, typename INDEX_SIZE_T, int32_t SRC_NUMBER, bool negative_index_support>
-inline __aicore__ void CopyInCase1(__ubuf__ T1 *dst, __gm__ T1 *x1_gm, __gm__ T2 *x2_gm, uint32_t dst_p, const INDEX_SIZE_T & x1_gather_dim_size, const INDEX_SIZE_T &y_offset) {
+inline __simt_callee__ __aicore__ void CopyInCase1(__ubuf__ T1 *dst, __gm__ T1 *x1_gm, __gm__ T2 *x2_gm, uint32_t dst_p, const INDEX_SIZE_T & x1_gather_dim_size, const INDEX_SIZE_T &y_offset) {
   T2 param_offset = x2_gm[y_offset];
   if constexpr (negative_index_support) {
     if (unlikely(param_offset < 0)) {
