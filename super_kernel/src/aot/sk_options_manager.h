@@ -160,6 +160,29 @@ private:
     std::unordered_map<std::string, std::vector<std::string>> optValue;
 };
 
+template <typename T>
+class StructOptOption : public OptOptionBase {
+public:
+    StructOptOption(std::string name, aclskOptionType optionTypeIn, T defaultValue = {}) :
+        OptOptionBase(std::move(name), optionTypeIn), optValue(defaultValue)
+    {}
+
+    void SetValue(const T& value)
+    {
+        optValue = value;
+    }
+
+    const T& GetValue() const
+    {
+        return optValue;
+    }
+
+private:
+    T optValue {};
+};
+
+using AggressiveOptStrategiesOption = StructOptOption<aclskAggressiveOptStrategies>;
+
 /*!
  * \brief Manager class for super kernel optimization options.
  *

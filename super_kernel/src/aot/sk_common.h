@@ -165,6 +165,36 @@ inline const char* to_string(SkCoreSyncType type)
     }
 }
 
+// Memory wait rule for VALUE_WAIT tasks.
+// The numeric values must stay aligned with runtime's aclrtValueWait flag definition.
+enum class SkMemoryWaitFlag : uint32_t {
+    GEQ = 0x0,  // Wait until *addr >= value
+    EQ = 0x1,   // Wait until *addr == value
+    AND = 0x2,  // Wait until (*addr & value) != 0
+    NOR = 0x3,  // Wait until ~(*addr | value) != 0
+};
+
+inline const char* to_string(SkMemoryWaitFlag flag)
+{
+    switch (flag) {
+    case SkMemoryWaitFlag::GEQ:
+        return "GEQ";
+    case SkMemoryWaitFlag::EQ:
+        return "EQ";
+    case SkMemoryWaitFlag::AND:
+        return "AND";
+    case SkMemoryWaitFlag::NOR:
+        return "NOR";
+    default:
+        return "UNKNOWN";
+    }
+}
+
+constexpr uint64_t SK_DEFAULT_NOTIFY_VALUE = 1;
+constexpr uint64_t SK_DEFAULT_WAIT_VALUE = 1;
+constexpr uint64_t SK_DEFAULT_RESET_VALUE = 0;
+constexpr uint32_t SK_DEFAULT_WRITE_FLAG = 0;
+
 struct TaskInfo {
     uint32_t index;
     SkTaskType type;
@@ -182,6 +212,28 @@ struct TaskInfo {
     uint64_t debugOptions;
     uint64_t reserved;
 };
+
+inline void SetEventTaskArgs(TaskInfo& taskInfo, uint64_t addr, uint64_t value, uint32_t flag)
+{
+    taskInfo.args = addr;
+    taskInfo.entry[0] = value;
+    taskInfo.reserved = static_cast<uint64_t>(flag);
+}
+
+inline uint64_t GetEventTaskAddr(const TaskInfo& taskInfo)
+{
+    return taskInfo.args;
+}
+
+inline uint64_t GetEventTaskValue(const TaskInfo& taskInfo)
+{
+    return taskInfo.entry[0];
+}
+
+inline uint32_t GetEventTaskFlag(const TaskInfo& taskInfo)
+{
+    return static_cast<uint32_t>(taskInfo.reserved);
+}
 
 struct TaskQue {
     uint32_t taskCnt;

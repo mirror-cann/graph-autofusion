@@ -31,6 +31,21 @@
 #include "runtime/kernel.h"
 #include "securec.h"
 
+namespace {
+
+struct TestRITask {
+    uint32_t taskId;
+    aclmdlRITaskType type;
+    aclmdlRITaskParams params;
+};
+
+std::unique_ptr<aclmdlRITask> MakeTaskHandle(TestRITask& task)
+{
+    return std::make_unique<aclmdlRITask>(reinterpret_cast<aclmdlRITask>(&task));
+}
+
+} // namespace
+
 class SkNodeTest : public testing::Test {
 protected:
     void SetUp() override {
@@ -397,4 +412,147 @@ TEST_F(SkNodeTest, DumpKernelBinaries_EnabledDumpsKernelAndEntryBinary)
     MOCKER(aclrtBinaryGetDevAddress).stubs().will(invoke(FakeAclrtBinaryGetDevAddressForNodeDump));
 
     EXPECT_TRUE(DumpKernelBinaries(graph, MakeTmpDir("dump_graph")));
+}
+
+TEST_F(SkNodeTest, MemoryNodeInitNode_NullOriginTask_ReturnsFalse)
+{
+    SuperKernelMemoryNode node(nullptr, ACL_MODEL_RI_TASK_EVENT_RECORD, 0, 0, INVALID_STREAM_ID, INVALID_TASK_ID);
+
+    EXPECT_FALSE(node.InitNode());
+}
+
+TEST_F(SkNodeTest, MemoryNodeInitNode_EventRecordInternalFusible)
+{
+    TestRITask task{};
+    task.taskId = 101;
+    task.type = ACL_MODEL_RI_TASK_EVENT_RECORD;
+    task.params.eventRecordTaskParams.event = reinterpret_cast<aclrtEvent>(0x1000);
+    task.params.eventRecordTaskParams.eventFlag = 0;
+
+    SuperKernelMemoryNode node(MakeTaskHandle(task), ACL_MODEL_RI_TASK_EVENT_RECORD, 0, 0,
+                               INVALID_STREAM_ID, INVALID_TASK_ID);
+
+    ASSERT_TRUE(node.InitNode());
+    EXPECT_EQ(node.GetNodeId(), 101U);
+    EXPECT_EQ(node.GetNodeType(), SkNodeType::NODE_NOTIFY);
+    EXPECT_TRUE(node.IsFusible());
+    EXPECT_EQ(node.nodeInfos.syncInfos.eventId, 0x1000U);
+    EXPECT_EQ(node.nodeInfos.syncInfos.eventFlag, 0U);
+    EXPECT_EQ(node.nodeInfos.syncInfos.memoryValue, SK_DEFAULT_NOTIFY_VALUE);
+    EXPECT_EQ(node.nodeInfos.syncInfos.memoryWaitFlag, SK_DEFAULT_WRITE_FLAG);
+}
+
+TEST_F(SkNodeTest, MemoryNodeInitNode_EventWaitExternalNotFusible)
+{
+    TestRITask task{};
+    task.taskId = 102;
+    task.type = ACL_MODEL_RI_TASK_EVENT_WAIT;
+    task.params.eventWaitTaskParams.event = reinterpret_cast<aclrtEvent>(0x2000);
+    task.params.eventWaitTaskParams.eventFlag = ACL_EVENT_EXTERNAL;
+
+    SuperKernelMemoryNode node(MakeTaskHandle(task), ACL_MODEL_RI_TASK_EVENT_WAIT, 0, 0,
+                               INVALID_STREAM_ID, INVALID_TASK_ID);
+
+    ASSERT_TRUE(node.InitNode());
+    EXPECT_EQ(node.GetNodeType(), SkNodeType::NODE_WAIT);
+    EXPECT_FALSE(node.IsFusible());
+    EXPECT_EQ(node.nodeInfos.syncInfos.eventId, 0x2000U);
+    EXPECT_EQ(node.nodeInfos.syncInfos.eventFlag, ACL_EVENT_EXTERNAL);
+    EXPECT_EQ(node.nodeInfos.syncInfos.memoryValue, SK_DEFAULT_WAIT_VALUE);
+    EXPECT_EQ(node.nodeInfos.syncInfos.memoryWaitFlag, static_cast<uint32_t>(SkMemoryWaitFlag::EQ));
+}
+
+TEST_F(SkNodeTest, MemoryNodeInitNode_EventResetInternalNotFusible)
+{
+    TestRITask task{};
+    task.taskId = 103;
+    task.type = ACL_MODEL_RI_TASK_EVENT_RESET;
+    task.params.eventResetTaskParams.event = reinterpret_cast<aclrtEvent>(0x3000);
+    task.params.eventResetTaskParams.eventFlag = 0;
+
+    SuperKernelMemoryNode node(MakeTaskHandle(task), ACL_MODEL_RI_TASK_EVENT_RESET, 0, 0,
+                               INVALID_STREAM_ID, INVALID_TASK_ID);
+
+    ASSERT_TRUE(node.InitNode());
+    EXPECT_EQ(node.GetNodeType(), SkNodeType::NODE_RESET);
+    EXPECT_FALSE(node.IsFusible());
+    EXPECT_EQ(node.nodeInfos.syncInfos.eventId, 0x3000U);
+    EXPECT_EQ(node.nodeInfos.syncInfos.memoryValue, SK_DEFAULT_RESET_VALUE);
+    EXPECT_EQ(node.nodeInfos.syncInfos.memoryWaitFlag, SK_DEFAULT_WRITE_FLAG);
+}
+
+TEST_F(SkNodeTest, MemoryNodeInitNode_UnsupportedEventType_ReturnsFalse)
+{
+    TestRITask task{};
+    task.taskId = 104;
+    task.type = ACL_MODEL_RI_TASK_KERNEL;
+
+    SuperKernelMemoryNode node(MakeTaskHandle(task), ACL_MODEL_RI_TASK_KERNEL, 0, 0,
+                               INVALID_STREAM_ID, INVALID_TASK_ID);
+
+    EXPECT_FALSE(node.InitNode());
+}
+
+TEST_F(SkNodeTest, MemoryNodeInitNode_ValueWriteAndWait)
+{
+    TestRITask writeTask{};
+    writeTask.taskId = 105;
+    writeTask.type = ACL_MODEL_RI_TASK_VALUE_WRITE;
+    writeTask.params.valueWriteTaskParams.devAddr = reinterpret_cast<void*>(0x4000);
+    writeTask.params.valueWriteTaskParams.value = 0x55;
+    SuperKernelMemoryNode writeNode(MakeTaskHandle(writeTask), ACL_MODEL_RI_TASK_VALUE_WRITE, 0, 0,
+                                    INVALID_STREAM_ID, INVALID_TASK_ID);
+
+    ASSERT_TRUE(writeNode.InitNode());
+    EXPECT_EQ(writeNode.GetNodeType(), SkNodeType::NODE_MEMORY_WRITE);
+    EXPECT_FALSE(writeNode.IsFusible());
+    EXPECT_EQ(writeNode.nodeInfos.syncInfos.eventId, 0x4000U);
+    EXPECT_EQ(writeNode.nodeInfos.syncInfos.addrValue, reinterpret_cast<void*>(0x4000));
+    EXPECT_EQ(writeNode.nodeInfos.syncInfos.memoryValue, 0x55U);
+
+    TestRITask waitTask{};
+    waitTask.taskId = 106;
+    waitTask.type = ACL_MODEL_RI_TASK_VALUE_WAIT;
+    waitTask.params.valueWaitTaskParams.devAddr = reinterpret_cast<void*>(0x5000);
+    waitTask.params.valueWaitTaskParams.value = 0x66;
+    waitTask.params.valueWaitTaskParams.flag = static_cast<uint32_t>(SkMemoryWaitFlag::AND);
+    SuperKernelMemoryNode waitNode(MakeTaskHandle(waitTask), ACL_MODEL_RI_TASK_VALUE_WAIT, 0, 0,
+                                   INVALID_STREAM_ID, INVALID_TASK_ID);
+
+    ASSERT_TRUE(waitNode.InitNode());
+    EXPECT_EQ(waitNode.GetNodeType(), SkNodeType::NODE_MEMORY_WAIT);
+    EXPECT_FALSE(waitNode.IsFusible());
+    EXPECT_EQ(waitNode.nodeInfos.syncInfos.eventId, 0x5000U);
+    EXPECT_EQ(waitNode.nodeInfos.syncInfos.addrValue, reinterpret_cast<void*>(0x5000));
+    EXPECT_EQ(waitNode.nodeInfos.syncInfos.memoryValue, 0x66U);
+    EXPECT_EQ(waitNode.nodeInfos.syncInfos.memoryWaitFlag, static_cast<uint32_t>(SkMemoryWaitFlag::AND));
+}
+
+TEST_F(SkNodeTest, MemoryNodeInitNode_ValueWriteNullAddr_ReturnsFalse)
+{
+    TestRITask task{};
+    task.taskId = 107;
+    task.type = ACL_MODEL_RI_TASK_VALUE_WRITE;
+    task.params.valueWriteTaskParams.devAddr = nullptr;
+    task.params.valueWriteTaskParams.value = 0x55;
+
+    SuperKernelMemoryNode node(MakeTaskHandle(task), ACL_MODEL_RI_TASK_VALUE_WRITE, 0, 0,
+                               INVALID_STREAM_ID, INVALID_TASK_ID);
+
+    EXPECT_FALSE(node.InitNode());
+}
+
+TEST_F(SkNodeTest, MemoryNodeInitNode_ValueWaitNullAddr_ReturnsFalse)
+{
+    TestRITask task{};
+    task.taskId = 108;
+    task.type = ACL_MODEL_RI_TASK_VALUE_WAIT;
+    task.params.valueWaitTaskParams.devAddr = nullptr;
+    task.params.valueWaitTaskParams.value = 0x66;
+    task.params.valueWaitTaskParams.flag = static_cast<uint32_t>(SkMemoryWaitFlag::EQ);
+
+    SuperKernelMemoryNode node(MakeTaskHandle(task), ACL_MODEL_RI_TASK_VALUE_WAIT, 0, 0,
+                               INVALID_STREAM_ID, INVALID_TASK_ID);
+
+    EXPECT_FALSE(node.InitNode());
 }

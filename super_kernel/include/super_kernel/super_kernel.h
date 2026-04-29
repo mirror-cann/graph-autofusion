@@ -53,7 +53,7 @@ enum class aclskOptionType : uint32_t {
     OPT_EXTEND_OPTION = 11,   // 扩展选项，预留后续使用
     DEBUG_EXTEND_OPTION = 12, // 扩展选项，预留后续使用
     DCCI_AFTER_KERNEL_END = 13,
-    TASK_BREAKER_BYPASS = 14, // Default节点优化融合选项
+    AGGRESSIVE_OPT_STRATEGIES = 14, // aggressive fusion strategy options
     SK_OPTION_MAX
 };
 
@@ -105,16 +105,34 @@ typedef struct aclskExtendOption {
 } aclskExtendOption;
 
 /**
+ * aggressiveOpts carries aggressive fusion strategy switches:
+ *  - eventBreakerBypass: reserved for event breaker policy
+ *  - taskBreakerBypass: enable default-node bypass when set to 1
+ *
+ * aggressiveOpts.valueBreakerBypass is a bitmask-style value-memory wait policy:
+ *  - ACLSK_VALUE_BREAKER_BYPASS_NONE (0b00): reject write/wait pairing relation, keep wait unfusible
+ *  - ACLSK_VALUE_BREAKER_BYPASS_PAIRED_WAIT (0b01): for paired write+wait, existing rule must pass or SK exits
+ *  - ACLSK_VALUE_BREAKER_BYPASS_UNPAIRED_WAIT (0b10): for waits whose writes are outside modelRI, allow wait fusion
+ */
+enum aclskValueBreakerBypassFlag : uint32_t {
+    ACLSK_VALUE_BREAKER_BYPASS_NONE = 0b00U,
+    ACLSK_VALUE_BREAKER_BYPASS_PAIRED_WAIT = 0b01U,
+    ACLSK_VALUE_BREAKER_BYPASS_UNPAIRED_WAIT = 0b10U
+};
+
+typedef struct aclskAggressiveOptStrategies {
+    uint32_t eventBreakerBypass;
+    uint32_t valueBreakerBypass;
+    uint32_t taskBreakerBypass;
+} aclskAggressiveOptStrategies;
+
+/**
  * 常量化代码生成选项
  * enableConstant: 1 启用常量化, 0 禁用常量化
  */
 typedef struct aclskConstantCodegenOption {
     uint32_t enableConstant;
 } aclskConstantCodegenOption;
-
-typedef struct aclskTaskBreakerBypassOption {
-    uint32_t enableTaskBreakerBypass;  // 1启用(默认), 0禁用
-} aclskTaskBreakerBypassOption;
 
 struct aclskOption {
     aclskOptionType optionType;
@@ -133,7 +151,7 @@ struct aclskOption {
         aclskExtendOption optExtend;
         aclskExtendOption debugExtend;
         aclskDcciOption dcciAfterKernelEnd;
-        aclskTaskBreakerBypassOption taskBreakerBypass;
+        aclskAggressiveOptStrategies aggressiveOpts;
     };
 };
 

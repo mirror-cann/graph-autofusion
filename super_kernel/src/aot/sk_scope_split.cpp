@@ -910,8 +910,9 @@ bool InitialScopeSplitPass::Run(std::vector<SuperKernelScopeInfo>& scopes) {
 
 // ============ DeadlockRefinePass Implementation ============
 
-DeadlockRefinePass::DeadlockRefinePass(SuperKernelGraph& inputGraph)
-    : ScopeSplitPass(inputGraph), lockDetector_(graph_) {}
+DeadlockRefinePass::DeadlockRefinePass(SuperKernelGraph& inputGraph, SuperKernelOptionsManager& opts)
+    : ScopeSplitPass(inputGraph), lockDetector_(graph_, opts)
+{}
 
 bool DeadlockRefinePass::FindDeadlockInScope(const SuperKernelScopeInfo& scope,
                                               SuperKernelBaseNode** deadlockNode,
@@ -1304,12 +1305,13 @@ bool ScheModeKernelSplitPass::Run(std::vector<SuperKernelScopeInfo>& scopes) {
 
 SuperKernelScopeSplitter::SuperKernelScopeSplitter(SuperKernelGraph& inputGraph, SuperKernelOptionsManager& opts)
     : graph_(inputGraph), opts_(&opts) {
-    auto taskBreakerBypassOpt = opts.GetOption(aclskOptionType::TASK_BREAKER_BYPASS);
-    enableTaskBreakerBypass_ = (taskBreakerBypassOpt != nullptr && taskBreakerBypassOpt->GetIntValue() == 1);
+    const auto* option = static_cast<const AggressiveOptStrategiesOption*>(
+        opts.GetOption(aclskOptionType::AGGRESSIVE_OPT_STRATEGIES));
+    enableTaskBreakerBypass_ = (option != nullptr && option->GetValue().taskBreakerBypass == 1);
     if (enableTaskBreakerBypass_) {
-        SK_LOGI("[ScopeSplitter] TASK_BREAKER_BYPASS enabled, using new split pipeline");
+        SK_LOGI("[ScopeSplitter] taskBreakerBypass enabled, using new split pipeline");
     } else {
-        SK_LOGI("[ScopeSplitter] TASK_BREAKER_BYPASS disabled, using legacy pipeline");
+        SK_LOGI("[ScopeSplitter] taskBreakerBypass disabled, using legacy pipeline");
     }
 
     auto autoOpParallel = opts.GetOption(aclskOptionType::AUTO_OP_PARALLEL);
@@ -1323,12 +1325,12 @@ SuperKernelScopeSplitter::SuperKernelScopeSplitter(SuperKernelGraph& inputGraph,
     // Pass 1: ScheMode kernel core trend based split refinement 
     passes_.push_back(std::make_unique<ScheModeKernelSplitPass>(inputGraph));
     // Pass 2: Deadlock detection and refinement	 
-    passes_.push_back(std::make_unique<DeadlockRefinePass>(inputGraph)); 
+    passes_.push_back(std::make_unique<DeadlockRefinePass>(inputGraph, *opts_));
     // Pass 3 (conditional): Default node process pass
     if (enableTaskBreakerBypass_) {
         passes_.push_back(std::make_unique<DefaultNodeProcessPass>(inputGraph));
         // Pass 4: Second deadlock detection pass (after default removal)
-        passes_.push_back(std::make_unique<DeadlockRefinePass>(inputGraph));
+        passes_.push_back(std::make_unique<DeadlockRefinePass>(inputGraph, *opts_));
     }
     // Pass 5 (or 3 if bypass disabled): Remove event-only streams from scopes
     passes_.push_back(std::make_unique<EventOnlyStreamRemovePass>(inputGraph));
@@ -1343,7 +1345,7 @@ void SuperKernelScopeSplitter::InitDefaultNodeFusibility() {
     if (!enableTaskBreakerBypass_) {
         return;
     }
-    SK_LOGI("[ScopeSplitter] Initializing default node fusibility for TASK_BREAKER_BYPASS");
+    SK_LOGI("[ScopeSplitter] Initializing default node fusibility for taskBreakerBypass");
     uint32_t count = 0;
     const auto& headNodes = graph_.GetHeadNodes();
     for (uint64_t headNodeId : headNodes) {

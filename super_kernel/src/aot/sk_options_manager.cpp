@@ -16,6 +16,7 @@
 #include <cctype>
 #include <vector>
 #include <cstdlib>
+#include <limits>
 #include <string>
 
 #include "sk_options_manager.h"
@@ -23,6 +24,19 @@
 
 namespace {
 constexpr size_t kMaxExtendOptionLength = 1024;
+
+uint32_t GetValidatedUintValue(const std::string& optionName, uint32_t value, uint32_t defaultValue,
+                               uint32_t minValue, uint32_t maxValue)
+{
+    if (value < minValue || value > maxValue) {
+        SK_LOGW("OptionName: %s, set value is invalid, value is %u, valid range is [%u, %u],"
+            " the process will use default value: %u",
+            optionName.c_str(), value, minValue, maxValue, defaultValue);
+        return defaultValue;
+    }
+    SK_LOGI("OptionName: %s, set value: %u", optionName.c_str(), value);
+    return value;
+}
 
 std::string TrimString(const std::string& input)
 {
@@ -180,7 +194,6 @@ void StringListOptOption::SetValue(const std::vector<std::string>& value) {
 std::vector<std::string> StringListOptOption::GetStringListValue() const {
     return optValue;
 }
-
 
 
 void MapOptOption::SetValue(const std::unordered_map<std::string, std::vector<std::string>>& value) {
@@ -394,6 +407,36 @@ void SuperKernelOptionsManager::SetOptOptionValue(const aclskOption* option) {
                 }
                 break;
             }
+        case aclskOptionType::AGGRESSIVE_OPT_STRATEGIES:
+            {
+                AddOption(std::make_unique<AggressiveOptStrategiesOption>(
+                    "aggressive_opt_strategies", option->optionType));
+                auto subOption = static_cast<AggressiveOptStrategiesOption*>(GetOption(option->optionType));
+                if (subOption == nullptr) {
+                    break;
+                }
+                auto aggressiveOpts = option->aggressiveOpts;
+                aggressiveOpts.eventBreakerBypass = GetValidatedUintValue(
+                    "event_breaker_bypass",
+                    option->aggressiveOpts.eventBreakerBypass,
+                    0,
+                    0,
+                    std::numeric_limits<decltype(option->aggressiveOpts.eventBreakerBypass)>::max());
+                aggressiveOpts.valueBreakerBypass = GetValidatedUintValue(
+                    "value_breaker_bypass",
+                    option->aggressiveOpts.valueBreakerBypass,
+                    ACLSK_VALUE_BREAKER_BYPASS_NONE,
+                    ACLSK_VALUE_BREAKER_BYPASS_NONE,
+                    std::numeric_limits<decltype(option->aggressiveOpts.valueBreakerBypass)>::max());
+                aggressiveOpts.taskBreakerBypass = GetValidatedUintValue(
+                    "task_breaker_bypass", option->aggressiveOpts.taskBreakerBypass, 0, 0, 1);
+                SK_LOGI("Aggressive opt strategies set: eventBreakerBypass=%u, valueBreakerBypass=%u, "
+                        "taskBreakerBypass=%u",
+                        aggressiveOpts.eventBreakerBypass, aggressiveOpts.valueBreakerBypass,
+                        aggressiveOpts.taskBreakerBypass);
+                subOption->SetValue(aggressiveOpts);
+                break;
+            }
         case aclskOptionType::DEBUG_SYNC_ALL:
             {
                 AddOption(std::make_unique<NumberOptOption>("debug_sync_all", option->optionType, 0, 0, 1));
@@ -479,16 +522,6 @@ void SuperKernelOptionsManager::SetOptOptionValue(const aclskOption* option) {
                 }
                 SK_LOGI("Debug op exec trace option set: enable=%u",
                     option->debugOpExecTrace.enableOpExecTrace);
-                break;
-            }
-        case aclskOptionType::TASK_BREAKER_BYPASS:
-            {
-                AddOption(std::make_unique<NumberOptOption>("task_breaker_bypass", option->optionType, 0, 0, 1));
-                auto subOption = GetOption(option->optionType);
-                if (subOption != nullptr) {
-                    subOption->SetValue(option->taskBreakerBypass.enableTaskBreakerBypass);
-                }
-                SK_LOGI("Task breaker bypass option set: enable=%u", option->taskBreakerBypass.enableTaskBreakerBypass);
                 break;
             }
         default:

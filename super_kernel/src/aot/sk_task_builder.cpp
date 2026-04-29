@@ -348,6 +348,7 @@ bool SkTaskBuilder::InitTaskSyncInfos(const std::vector<SuperKernelBaseNode*>& t
     size_t kernelCount = 0;
     size_t notifyCount = 0;
     size_t waitCount = 0;
+    size_t resetCount = 0;
     SkQueueType firstKernelEventQueueType = InferFirstKernelEventQueueType(tasks);
     SuperKernelBaseNode* prevKernelTask = nullptr;
     for (size_t i = 0; i < tasks.size(); i++) {
@@ -384,6 +385,27 @@ bool SkTaskBuilder::InitTaskSyncInfos(const std::vector<SuperKernelBaseNode*>& t
                 notifyCount++;
                 break;
             }
+            case SkNodeType::NODE_RESET: {
+                // RESET node is an event write-side task; inherit type from previous KERNEL node.
+                auto* kernel =
+                    FindKernelNodeInDirection(tasks[i]->GetPreNodeId(), graph_, SearchDirection::PREV, kernelNodeCache);
+                if (kernel == nullptr) {
+                    if (firstKernelEventQueueType == SkQueueType::UNKNOWN) {
+                        SK_LOGE(
+                            "%s node %zu failed to resolve previous KERNEL node and fallback queue type is UNKNOWN, nodeId=%lu",
+                            to_string(nodeType), i, tasks[i]->GetNodeId());
+                        return false;
+                    }
+                    taskSyncInfos_[i].queueType = firstKernelEventQueueType;
+                    SK_LOGI("%s node %zu failed to resolve previous KERNEL node, nodeId=%lu, fallback = %s",
+                            to_string(nodeType), i, tasks[i]->GetNodeId(), to_string(taskSyncInfos_[i].queueType));
+                } else {
+                    kernelNodeCache[tasks[i]->GetNodeId()] = kernel;
+                    taskSyncInfos_[i].queueType = ToEventQueueType(ToQueueType(GetKernelInfos(kernel).kernelType));
+                }
+                resetCount++;
+                break;
+            }
             case SkNodeType::NODE_WAIT: {
                 // WAIT node: inherit type from next KERNEL node
                 auto* kernel = FindKernelNodeInDirection(tasks[i]->GetNextNodeId(), graph_, SearchDirection::NEXT,
@@ -415,25 +437,21 @@ bool SkTaskBuilder::InitTaskSyncInfos(const std::vector<SuperKernelBaseNode*>& t
                 SK_LOGE("unsupported node type for sync info initialization");
                 return false;
         }
-        
-        if (nodeType !=  SkNodeType::NODE_NOTIFY && i < tasks.size() - 1) {
-                // Initialize default cross-sync hints for AIC/AIV.
-                switch (taskSyncInfos_[i].queueType) {
-                    case SkQueueType::AIC:
-                        taskSyncInfos_[i].crossSyncInfo[static_cast<size_t>(SkQueueType::AIC)] =
-                            SyncDirection::CUB_TO_CUB;
-                        break;
-                    case SkQueueType::AIV:
-                        taskSyncInfos_[i].crossSyncInfo[static_cast<size_t>(SkQueueType::AIV)] =
-                            SyncDirection::VEC_TO_VEC;
-                        break;
-                    case SkQueueType::MIX_1_1:
-                    case SkQueueType::MIX_1_2:
-                        taskSyncInfos_[i].crossSyncInfo[static_cast<size_t>(SkQueueType::AIC)] =
-                            SyncDirection::CUB_TO_CUB;
-                        taskSyncInfos_[i].crossSyncInfo[static_cast<size_t>(SkQueueType::AIV)] =
-                            SyncDirection::VEC_TO_VEC;
-                        break;
+
+        if (nodeType != SkNodeType::NODE_NOTIFY && nodeType != SkNodeType::NODE_RESET && i < tasks.size() - 1) {
+            // Initialize default cross-sync hints for AIC/AIV.
+            switch (taskSyncInfos_[i].queueType) {
+                case SkQueueType::AIC:
+                    taskSyncInfos_[i].crossSyncInfo[static_cast<size_t>(SkQueueType::AIC)] = SyncDirection::CUB_TO_CUB;
+                    break;
+                case SkQueueType::AIV:
+                    taskSyncInfos_[i].crossSyncInfo[static_cast<size_t>(SkQueueType::AIV)] = SyncDirection::VEC_TO_VEC;
+                    break;
+                case SkQueueType::MIX_1_1:
+                case SkQueueType::MIX_1_2:
+                    taskSyncInfos_[i].crossSyncInfo[static_cast<size_t>(SkQueueType::AIC)] = SyncDirection::CUB_TO_CUB;
+                    taskSyncInfos_[i].crossSyncInfo[static_cast<size_t>(SkQueueType::AIV)] = SyncDirection::VEC_TO_VEC;
+                    break;
                 default:
                     SK_LOGE("unsupported kernel type : %s for inter-sync.", to_string(taskSyncInfos_[i].queueType));
                     return false;
@@ -441,8 +459,8 @@ bool SkTaskBuilder::InitTaskSyncInfos(const std::vector<SuperKernelBaseNode*>& t
         }
     }
 
-    SK_LOGI("Initialized TaskSyncInfos for %zu tasks (%zu KERNEL, %zu NOTIFY, %zu WAIT)", tasks.size(), kernelCount,
-            notifyCount, waitCount);
+    SK_LOGI("Initialized TaskSyncInfos for %zu tasks (%zu KERNEL, %zu NOTIFY, %zu WAIT, %zu RESET)", tasks.size(),
+            kernelCount, notifyCount, waitCount, resetCount);
     return true;
 }
 
@@ -1132,7 +1150,35 @@ bool SkTaskBuilder::AddEventTask(SkTask& skTask, SuperKernelBaseNode* node, size
     TaskInfo& taskInfo = taskQue->taskInfos[taskQue->taskCnt];
     taskInfo.index = nodeIndex;
     taskInfo.type = taskType;
-    taskInfo.args = static_cast<uint64_t>(reinterpret_cast<uintptr_t>(node->GetNodeInfos().syncInfos.addrValue));
+    const auto& syncInfos = node->GetNodeInfos().syncInfos;
+    uint64_t eventValue = syncInfos.memoryValue;
+    if (eventValue == std::numeric_limits<uint64_t>::max()) {
+        switch (taskType) {
+            case SkTaskType::TYPE_EVENT_NOTIFY:
+                eventValue = SK_DEFAULT_NOTIFY_VALUE;
+                break;
+            case SkTaskType::TYPE_EVENT_WAIT:
+                eventValue = SK_DEFAULT_WAIT_VALUE;
+                break;
+            case SkTaskType::TYPE_EVENT_RESET:
+                eventValue = SK_DEFAULT_RESET_VALUE;
+                break;
+            default:
+                eventValue = 0;
+                break;
+        }
+    }
+
+    uint32_t waitFlag = syncInfos.memoryWaitFlag;
+    if (taskType != SkTaskType::TYPE_EVENT_WAIT || waitFlag == std::numeric_limits<uint32_t>::max()) {
+        waitFlag = (taskType == SkTaskType::TYPE_EVENT_WAIT) ?
+            static_cast<uint32_t>(SkMemoryWaitFlag::EQ) : SK_DEFAULT_WRITE_FLAG;
+    }
+
+    SetEventTaskArgs(taskInfo,
+                     static_cast<uint64_t>(reinterpret_cast<uintptr_t>(syncInfos.addrValue)),
+                     eventValue,
+                     waitFlag);
     taskQue->taskCnt++;
     return true;
 }
@@ -1852,8 +1898,15 @@ SkLaunchInfo SkTaskBuilder::Build(std::string skFuncName, const std::vector<Supe
                 return {};
             }
             break;
+        case SkNodeType::NODE_RESET:
+            SK_LOGI("add task reset, task index is %d", i);
+            if (!DispatchEventTask(aicTask, aivTask, tasks[i], i, SkTaskType::TYPE_EVENT_RESET, queueType)) {
+                SK_LOGE("Build failed: reset dispatch failed at task index %d", i);
+                return {};
+            }
+            break;
         default:
-            SK_LOGE("process task %d: unsupported node type %s, skipping (supported types: KERNEL, NOTIFY, WAIT)", i,
+            SK_LOGE("process task %d: unsupported node type %s, skipping (supported types: KERNEL, NOTIFY, WAIT, RESET)", i,
                     to_string(tasks[i]->GetNodeType()));
             return {};
         }

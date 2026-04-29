@@ -17,6 +17,7 @@
 
 #define private public
 #define protected public
+#include "super_kernel.h"
 #include "sk_graph.h"
 #include "sk_scope_split.h"
 #include "sk_node.h"
@@ -31,8 +32,8 @@ protected:
     void SetUp() override {
         // Clear any lingering mock state from previous tests
         GlobalMockObject::verify();
-        graph = std::make_unique<SuperKernelGraph>();
         opts = std::make_unique<SuperKernelOptionsManager>();
+        graph = std::make_unique<SuperKernelGraph>();
         LockDetector::GetDeviceCores();
     }
 
@@ -2741,6 +2742,69 @@ TEST_F(SuperKernelScopeSplitterTest, EventOnly_FullPipelineOnlyEventNodes)
     EXPECT_EQ(scopes.size(), 0);
 }
 
+TEST_F(SuperKernelScopeSplitterTest, DeadlockRefinePassWithoutValueBreakerDropsUnpairedMemoryWaitOnSplit)
+{
+    auto* wait1 = CreateWaitNode(1, 0, INVALID_TASK_ID, 2);
+    auto* k2 = CreateKernelNode(2, 0, INVALID_TASK_ID);
+    wait1->nodeInfos.syncInfos.addrValue = reinterpret_cast<void*>(0x1234);
+    SuperKernelScopeSplitter splitter(*graph, *opts);
+    auto* deadlockPass = dynamic_cast<DeadlockRefinePass*>(splitter.passes_[2].get());
+    ASSERT_NE(deadlockPass, nullptr);
+
+    SuperKernelScopeInfo scope;
+    scope.AddNode(wait1);
+    scope.AddNode(k2);
+    scope.SetScopeStreamInfos({
+        ScopeStreamInfo{0, 1, 2, 2},
+    });
+
+    std::vector<SuperKernelScopeInfo> scopes;
+    scopes.emplace_back(std::move(scope));
+
+    ASSERT_TRUE(deadlockPass->Run(scopes));
+    ASSERT_EQ(scopes.size(), 1);
+
+    std::set<uint64_t> actualNodes;
+    for (const auto* node : scopes[0].GetNodes()) {
+        actualNodes.insert(node->GetNodeId());
+    }
+    EXPECT_EQ(actualNodes, (std::set<uint64_t>{2}));
+}
+
+TEST_F(SuperKernelScopeSplitterTest, DeadlockRefinePassValueBreakerBypassKeepsUnpairedMemoryWait)
+{
+    auto* wait1 = CreateWaitNode(1, 0, INVALID_TASK_ID, 2);
+    auto* k2 = CreateKernelNode(2, 0, INVALID_TASK_ID);
+    wait1->nodeInfos.syncInfos.addrValue = reinterpret_cast<void*>(0x1234);
+
+    aclskOption option {};
+    option.optionType = aclskOptionType::AGGRESSIVE_OPT_STRATEGIES;
+    option.aggressiveOpts.valueBreakerBypass = ACLSK_VALUE_BREAKER_BYPASS_UNPAIRED_WAIT;
+    opts->SetOptOptionValue(&option);
+    SuperKernelScopeSplitter splitter(*graph, *opts);
+    auto* deadlockPass = dynamic_cast<DeadlockRefinePass*>(splitter.passes_[2].get());
+    ASSERT_NE(deadlockPass, nullptr);
+
+    SuperKernelScopeInfo scope;
+    scope.AddNode(wait1);
+    scope.AddNode(k2);
+    scope.SetScopeStreamInfos({
+        ScopeStreamInfo{0, 1, 2, 2},
+    });
+
+    std::vector<SuperKernelScopeInfo> scopes;
+    scopes.emplace_back(std::move(scope));
+
+    ASSERT_TRUE(deadlockPass->Run(scopes));
+    ASSERT_EQ(scopes.size(), 1);
+
+    std::set<uint64_t> actualNodes;
+    for (const auto* node : scopes[0].GetNodes()) {
+        actualNodes.insert(node->GetNodeId());
+    }
+    EXPECT_EQ(actualNodes, (std::set<uint64_t>{1, 2}));
+}
+
 /**
  * @brief 孤立Notify节点(无对应Wait)标记为non-fusible
  * 
@@ -3864,7 +3928,7 @@ TEST_F(SuperKernelScopeSplitterTest, ScheMode_RunAlwaysReturnsTrue)
 /**
  * @file DefaultNode Tests
  *
- * 测试TASK_BREAKER_BYPASS选项启用时，Default节点的处理逻辑：
+ * 测试AGGRESSIVE_OPT_STRATEGIES.taskBreakerBypass启用时，Default节点的处理逻辑：
  * - 有Kernel的流中Default触发scope重切分
  * - 无Kernel的流中Default被移除
  */
@@ -3875,7 +3939,7 @@ TEST_F(SuperKernelScopeSplitterTest, ScheMode_RunAlwaysReturnsTrue)
  *
  * 图结构:
  *   stream0: [K1(1) -> Default1(2) -> K2(3)]
- *   TASK_BREAKER_BYPASS选项禁用
+ *   AGGRESSIVE_OPT_STRATEGIES.taskBreakerBypass禁用
  *
  * 预期结果:
  *   - SplitGraph返回true
@@ -3903,7 +3967,7 @@ TEST_F(SuperKernelScopeSplitterTest, DefaultNode_OptionDisabled_Legacy)
  *
  * 图结构:
  *   stream0: [K1(1) -> Default1(2) -> K2(3)]
- *   TASK_BREAKER_BYPASS选项启用
+ *   AGGRESSIVE_OPT_STRATEGIES.taskBreakerBypass启用
  *
  * 预期结果:
  *   - SplitGraph返回true
@@ -3920,9 +3984,9 @@ TEST_F(SuperKernelScopeSplitterTest, DefaultNode_OptionEnabled_StreamWithKernel_
     SetPreNodeId(3, 2);
     SetupStreams({{1, 2, 3}});
 
-    aclskOption option;
-    option.optionType = aclskOptionType::TASK_BREAKER_BYPASS;
-    option.taskBreakerBypass.enableTaskBreakerBypass = 1;
+    aclskOption option {};
+    option.optionType = aclskOptionType::AGGRESSIVE_OPT_STRATEGIES;
+    option.aggressiveOpts.taskBreakerBypass = 1;
     opts->SetOptOptionValue(&option);
 
     SuperKernelScopeSplitter splitter(*graph, *opts);
@@ -3940,7 +4004,7 @@ TEST_F(SuperKernelScopeSplitterTest, DefaultNode_OptionEnabled_StreamWithKernel_
  * 图结构:
  *   stream0: [K1(1)]
  *   stream1: [Default1(2) -> Notify1(3) -> Wait1(4)] (无Kernel)
- *   TASK_BREAKER_BYPASS选项启用
+ *   AGGRESSIVE_OPT_STRATEGIES.taskBreakerBypass启用
  *
  * 预期结果:
  *   - stream1无Kernel，被移除
@@ -3958,9 +4022,9 @@ TEST_F(SuperKernelScopeSplitterTest, DefaultNode_OptionEnabled_StreamWithoutKern
     SetupStreams({{1}, {2, 3, 4}});
     SetupEvent(100, 3, {4});
 
-    aclskOption option;
-    option.optionType = aclskOptionType::TASK_BREAKER_BYPASS;
-    option.taskBreakerBypass.enableTaskBreakerBypass = 1;
+    aclskOption option {};
+    option.optionType = aclskOptionType::AGGRESSIVE_OPT_STRATEGIES;
+    option.aggressiveOpts.taskBreakerBypass = 1;
     opts->SetOptOptionValue(&option);
 
     SuperKernelScopeSplitter splitter(*graph, *opts);
@@ -4018,9 +4082,9 @@ TEST_F(SuperKernelScopeSplitterTest, DefaultNode_UserScenario)
     SetupEvent(103, 5, {14});
     SetupEvent(104, 16, {7});
 
-    aclskOption option;
-    option.optionType = aclskOptionType::TASK_BREAKER_BYPASS;
-    option.taskBreakerBypass.enableTaskBreakerBypass = 1;
+    aclskOption option {};
+    option.optionType = aclskOptionType::AGGRESSIVE_OPT_STRATEGIES;
+    option.aggressiveOpts.taskBreakerBypass = 1;
     opts->SetOptOptionValue(&option);
 
     SuperKernelScopeSplitter splitter(*graph, *opts);
@@ -4037,7 +4101,7 @@ TEST_F(SuperKernelScopeSplitterTest, DefaultNode_UserScenario)
  *
  * 图结构:
  *   stream0: [K1(1) -> Default1(2) -> K2(3) -> Default2(4) -> K3(5)]
- *   TASK_BREAKER_BYPASS选项启用
+ *   AGGRESSIVE_OPT_STRATEGIES.taskBreakerBypass启用
  *
  * 预期结果:
  *   - 所有Default作为边界
@@ -4057,9 +4121,9 @@ TEST_F(SuperKernelScopeSplitterTest, DefaultNode_MultipleDefaults_StreamWithKern
     SetPreNodeId(5, 4);
     SetupStreams({{1, 2, 3, 4, 5}});
 
-    aclskOption option;
-    option.optionType = aclskOptionType::TASK_BREAKER_BYPASS;
-    option.taskBreakerBypass.enableTaskBreakerBypass = 1;
+    aclskOption option {};
+    option.optionType = aclskOptionType::AGGRESSIVE_OPT_STRATEGIES;
+    option.aggressiveOpts.taskBreakerBypass = 1;
     opts->SetOptOptionValue(&option);
 
     SuperKernelScopeSplitter splitter(*graph, *opts);
@@ -4076,7 +4140,7 @@ TEST_F(SuperKernelScopeSplitterTest, DefaultNode_MultipleDefaults_StreamWithKern
  *
  * 图结构:
  *   stream0: [Default1(1) -> Notify1(2) -> Wait1(3)] (无Kernel)
- *   TASK_BREAKER_BYPASS选项启用
+ *   AGGRESSIVE_OPT_STRATEGIES.taskBreakerBypass启用
  *
  * 预期结果:
  *   - 移除Default后只剩Event，整体移除
@@ -4093,9 +4157,9 @@ TEST_F(SuperKernelScopeSplitterTest, DefaultNode_EmptyScopeAfterRemoval_Dropped)
     SetupStreams({{1, 2, 3}});
     SetupEvent(100, 2, {3});
 
-    aclskOption option;
-    option.optionType = aclskOptionType::TASK_BREAKER_BYPASS;
-    option.taskBreakerBypass.enableTaskBreakerBypass = 1;
+    aclskOption option {};
+    option.optionType = aclskOptionType::AGGRESSIVE_OPT_STRATEGIES;
+    option.aggressiveOpts.taskBreakerBypass = 1;
     opts->SetOptOptionValue(&option);
 
     SuperKernelScopeSplitter splitter(*graph, *opts);
@@ -4128,7 +4192,7 @@ TEST_F(SuperKernelScopeSplitterTest, DefaultNode_PassName_Verification)
  *   stream0: [K1(1) -> Default1(2) -> K2(3)]
  *   stream1: [Default2(4)]
  *   stream2: [K3(5) -> Default3(6) -> K4(7)]
- *   TASK_BREAKER_BYPASS选项启用
+ *   AGGRESSIVE_OPT_STRATEGIES.taskBreakerBypass启用
  *
  * 预期结果:
  *   - SplitGraph返回true
@@ -4152,9 +4216,9 @@ TEST_F(SuperKernelScopeSplitterTest, DefaultNode_MultipleScopes_Independent)
     SetPreNodeId(7, 6);
     SetupStreams({{1, 2, 3}, {4}, {5, 6, 7}});
 
-    aclskOption option;
-    option.optionType = aclskOptionType::TASK_BREAKER_BYPASS;
-    option.taskBreakerBypass.enableTaskBreakerBypass = 1;
+    aclskOption option {};
+    option.optionType = aclskOptionType::AGGRESSIVE_OPT_STRATEGIES;
+    option.aggressiveOpts.taskBreakerBypass = 1;
     opts->SetOptOptionValue(&option);
 
     SuperKernelScopeSplitter splitter(*graph, *opts);
@@ -4171,7 +4235,7 @@ TEST_F(SuperKernelScopeSplitterTest, DefaultNode_MultipleScopes_Independent)
  *   stream0: [Default1(1) -> Notify1(2) -> Wait1(3)] (有Default无Kernel)
  *   stream1: [Notify2(11) -> Wait2(12)] (纯Event无Default)
  *   stream2: [K1(21)]
- *   TASK_BREAKER_BYPASS选项启用
+ *   AGGRESSIVE_OPT_STRATEGIES.taskBreakerBypass启用
  *
  * 预期结果:
  *   - stream0由DefaultNodeProcessPass移除
@@ -4198,9 +4262,9 @@ TEST_F(SuperKernelScopeSplitterTest, DefaultNode_StreamWithDefaultAndStreamOnlyE
     SetupEvent(100, 2, {3});
     SetupEvent(101, 11, {12});
 
-    aclskOption option;
-    option.optionType = aclskOptionType::TASK_BREAKER_BYPASS;
-    option.taskBreakerBypass.enableTaskBreakerBypass = 1;
+    aclskOption option {};
+    option.optionType = aclskOptionType::AGGRESSIVE_OPT_STRATEGIES;
+    option.aggressiveOpts.taskBreakerBypass = 1;
     opts->SetOptOptionValue(&option);
 
     SuperKernelScopeSplitter splitter(*graph, *opts);
@@ -4228,7 +4292,7 @@ TEST_F(SuperKernelScopeSplitterTest, DefaultNode_StreamWithDefaultAndStreamOnlyE
  *   Event100: Notify1(5) -> Wait1(2)
  *
  * 执行流程:
- *   1. TASK_BREAKER_BYPASS启用，Default1初始化为fusible=true
+ *   1. taskBreakerBypass启用，Default1初始化为fusible=true
  *   2. InitialScopeSplitPass跳过K3(unfusible)，Notify1(fusible)进入scope
  *      - scope: {K1,Notify1,Wait1,K2,Default1} (按nodeId排序加入)
  *   3. DefaultNodeProcessPass检测scope内stream 1:
@@ -4282,9 +4346,9 @@ TEST_F(SuperKernelScopeSplitterTest, DefaultNode_StreamWithKernelNotify_TriggerD
 
     graph->BuildEventNodeAssociations();
 
-    aclskOption option;
-    option.optionType = aclskOptionType::TASK_BREAKER_BYPASS;
-    option.taskBreakerBypass.enableTaskBreakerBypass = 1;
+    aclskOption option {};
+    option.optionType = aclskOptionType::AGGRESSIVE_OPT_STRATEGIES;
+    option.aggressiveOpts.taskBreakerBypass = 1;
     opts->SetOptOptionValue(&option);
 
     SuperKernelScopeSplitter splitter(*graph, *opts);

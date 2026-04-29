@@ -15,6 +15,8 @@
  
 #include "sk_lock_detector.h"
 #include "sk_log.h"
+#include "sk_options_manager.h"
+#include "super_kernel.h"
 
 int64_t LockDetector::deviceRealCubeNum = 0;
 int64_t LockDetector::deviceRealVecNum = 0;
@@ -393,6 +395,23 @@ bool LockDetector::CheckNotifyInSKStream(SuperKernelBaseNode& curNode, SuperKern
     return true;
 }
 
+bool LockDetector::ShouldBypassValueWaitDeadlock(const SuperKernelBaseNode& curNode) const
+{
+    if (curNode.GetNodeType() != SkNodeType::NODE_WAIT) {
+        return false;
+    }
+
+    const auto& syncInfos = curNode.GetNodeInfos().syncInfos;
+    const auto* option = opts_ == nullptr ? nullptr : static_cast<const AggressiveOptStrategiesOption*>(
+        opts_->GetOption(aclskOptionType::AGGRESSIVE_OPT_STRATEGIES));
+    const uint32_t valueBreakerBypass =
+        option == nullptr ? ACLSK_VALUE_BREAKER_BYPASS_NONE : option->GetValue().valueBreakerBypass;
+    // Only 0b10 keeps unpaired value waits alive through deadlock refine.
+    return syncInfos.addrValue != nullptr &&
+        curNode.GetCorrespondingNotifyNodeId() == INVALID_TASK_ID &&
+        (valueBreakerBypass & ACLSK_VALUE_BREAKER_BYPASS_UNPAIRED_WAIT) != 0;
+}
+
 bool LockDetector::GetFusibleStatus(SuperKernelBaseNode& curNode) {
     if (curNode.GetNodeType() == SkNodeType::NODE_NOTIFY) {
         if (curNode.GetCubeNum() == 0 && curNode.GetVecNum() == 0) {
@@ -405,6 +424,11 @@ bool LockDetector::GetFusibleStatus(SuperKernelBaseNode& curNode) {
             return false;
         }
     } else if (curNode.GetNodeType() == SkNodeType::NODE_WAIT) {
+        if (ShouldBypassValueWaitDeadlock(curNode)) {
+            SK_LOGI("[lock detector] Wait node %s bypassed deadlock detection by value breaker policy",
+                    curNode.Format().c_str());
+            return true;
+        }
         tempVisitedNodes.clear();
         bool canFuse = GetWaitNodeFusibleStatus(curNode);
         if (canFuse) {
@@ -419,6 +443,9 @@ bool LockDetector::GetFusibleStatus(SuperKernelBaseNode& curNode) {
         SK_LOGD("[lock detector] Kernel node %s: coreNum={%u, %u}, superKernelCubeNum=%u, superKernelVecNum=%u",
                 curNode.Format().c_str(), cubeNum, vecNum, superKernelCubeNum, superKernelVecNum);
         return HasEnoughCores(&curNode, true);
+    } else if (curNode.GetNodeType() == SkNodeType::NODE_RESET) {
+        SK_LOGD("[lock detector] Reset node %s: no core resource, can fuse", curNode.Format().c_str());
+        return true;
     } else if (curNode.GetNodeType() == SkNodeType::NODE_DEFAULT) {
         SK_LOGD("[lock detector] Default node %s: no core resource, can fuse", curNode.Format().c_str());
         return true;

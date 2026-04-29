@@ -137,46 +137,6 @@ TEST_F(SkTaskBuilderTest, Build_EmptyTasks_ReturnEmptyLaunchInfo)
     EXPECT_EQ(launchInfo.devArgs.Get(), nullptr);
 }
 
-TEST_F(SkTaskBuilderTest, InitTaskSyncInfos_UnsupportedNodeType_ReturnFalse)
-{
-    auto resetNode = std::make_unique<SuperKernelMemoryNode>(
-        nullptr, ACL_MODEL_RI_TASK_EVENT_RESET, 0, 0, INVALID_STREAM_ID, INVALID_TASK_ID);
-    resetNode->SetNodeType(SkNodeType::NODE_RESET);
-    resetNode->SetNodeId(21);
-    resetNode->SetPreNodeId(INVALID_TASK_ID);
-    resetNode->SetNextNodeId(INVALID_TASK_ID);
-
-    std::vector<SuperKernelBaseNode*> tasks;
-    tasks.push_back(resetNode.get());
-
-    bool ok = builder->InitTaskSyncInfos(tasks);
-
-    EXPECT_FALSE(ok);
-    graph->graphMap[21] = std::move(resetNode);
-}
-
-TEST_F(SkTaskBuilderTest, Build_UnsupportedNodeType_ReturnEmptyLaunchInfo)
-{
-    auto resetNode = std::make_unique<SuperKernelMemoryNode>(
-        nullptr, ACL_MODEL_RI_TASK_EVENT_RESET, 0, 0, INVALID_STREAM_ID, INVALID_TASK_ID);
-    resetNode->SetNodeType(SkNodeType::NODE_RESET);
-    resetNode->SetNodeId(22);
-    resetNode->SetPreNodeId(INVALID_TASK_ID);
-    resetNode->SetNextNodeId(INVALID_TASK_ID);
-
-    std::vector<SuperKernelBaseNode*> tasks;
-    tasks.push_back(resetNode.get());
-    std::vector<SuperKernelBaseNode*> customTasks;
-
-    graph->graphMap[22] = std::move(resetNode);
-
-    SkLaunchInfo launchInfo = builder->Build("Unknown", tasks, customTasks);
-
-    EXPECT_EQ(launchInfo.entryInfo.skEntryFunc, nullptr);
-    EXPECT_EQ(launchInfo.entryInfo.nodeCnt, 0U);
-    EXPECT_EQ(launchInfo.devArgs.Get(), nullptr);
-}
-
 TEST_F(SkTaskBuilderTest, InitTaskSyncInfos_KernelNotifyWait_Success)
 {
     auto* k1 = CreateKernelNodeEx(1, 0, INVALID_TASK_ID, 2, SkKernelType::AIC_ONLY);
@@ -193,6 +153,44 @@ TEST_F(SkTaskBuilderTest, InitTaskSyncInfos_KernelNotifyWait_Success)
 
     ASSERT_TRUE(builder->InitTaskSyncInfos(tasks));
     ASSERT_EQ(builder->taskSyncInfos_.size(), tasks.size());
+}
+
+TEST_F(SkTaskBuilderTest, InitTaskSyncInfos_ResetUsesPreviousKernelQueue)
+{
+    auto* k1 = CreateKernelNodeEx(11, 0, INVALID_TASK_ID, 12, SkKernelType::AIC_ONLY);
+    auto* r2 = CreateResetNodeEx(12, 0, 11, 13);
+    auto* k3 = CreateKernelNodeEx(13, 0, 12, INVALID_TASK_ID, SkKernelType::AIV_ONLY);
+    (void)k1;
+    (void)r2;
+    (void)k3;
+
+    std::vector<SuperKernelBaseNode*> tasks = {
+        graph->GetNodeById(11), graph->GetNodeById(12), graph->GetNodeById(13)};
+
+    ASSERT_TRUE(builder->InitTaskSyncInfos(tasks));
+    EXPECT_EQ(builder->taskSyncInfos_[1].queueType, SkQueueType::AIC);
+    EXPECT_TRUE(builder->taskSyncInfos_[1].crossSyncInfo.empty());
+}
+
+TEST_F(SkTaskBuilderTest, InitTaskSyncInfos_ResetFallbackQueue)
+{
+    auto* k1 = CreateKernelNodeEx(21, 0, INVALID_TASK_ID, INVALID_TASK_ID, SkKernelType::AIV_ONLY);
+    auto* reset = CreateResetNodeEx(22, 0, INVALID_TASK_ID, INVALID_TASK_ID);
+    (void)k1;
+    (void)reset;
+
+    std::vector<SuperKernelBaseNode*> tasks = {graph->GetNodeById(21), graph->GetNodeById(22)};
+
+    ASSERT_TRUE(builder->InitTaskSyncInfos(tasks));
+    EXPECT_EQ(builder->taskSyncInfos_[1].queueType, SkQueueType::AIV);
+}
+
+TEST_F(SkTaskBuilderTest, InitTaskSyncInfos_ResetWithoutFallbackQueue_ReturnsFalse)
+{
+    auto* reset = CreateResetNodeEx(23, 0, INVALID_TASK_ID, INVALID_TASK_ID);
+    std::vector<SuperKernelBaseNode*> tasks = {reset};
+
+    EXPECT_FALSE(builder->InitTaskSyncInfos(tasks));
 }
 
 TEST_F(SkTaskBuilderTest, InitTaskSyncInfos_MixWaitDependentPreviousTask_UsesSameAicQueue)
@@ -343,6 +341,60 @@ TEST_F(SkTaskBuilderTest, AddAndDispatchTasks_Smoke)
     builder->taskSyncInfos_[1].queueType = SkQueueType::AIV;
     std::map<size_t, SyncDirection> syncInfo{{1, SyncDirection::CUB_TO_VEC}};
     ASSERT_TRUE(builder->DispatchSyncTasks(aic, aiv, 5, syncInfo, true, SkQueueType::AIC));
+}
+
+TEST_F(SkTaskBuilderTest, AddEventTask_EncodesCustomValueAndWaitFlag)
+{
+    SkTask aic;
+    ASSERT_TRUE(aic.taskQue.Init(8));
+
+    auto* notify = CreateNotifyNodeEx(1101, 0, INVALID_TASK_ID, INVALID_TASK_ID, 66);
+    notify->nodeInfos.syncInfos.memoryValue = 9;
+    ASSERT_TRUE(builder->AddEventTask(aic, notify, 0, SkTaskType::TYPE_EVENT_NOTIFY));
+
+    auto* wait = CreateWaitNodeEx(1102, 0, INVALID_TASK_ID, INVALID_TASK_ID, 67);
+    wait->nodeInfos.syncInfos.memoryValue = 12;
+    wait->nodeInfos.syncInfos.memoryWaitFlag = static_cast<uint32_t>(SkMemoryWaitFlag::AND);
+    ASSERT_TRUE(builder->AddEventTask(aic, wait, 1, SkTaskType::TYPE_EVENT_WAIT));
+
+    auto* reset = CreateResetNodeEx(1103, 0, INVALID_TASK_ID, INVALID_TASK_ID);
+    reset->nodeInfos.syncInfos.addrValue = reinterpret_cast<void*>(0x1234);
+    reset->nodeInfos.syncInfos.memoryValue = 0;
+    ASSERT_TRUE(builder->AddEventTask(aic, reset, 2, SkTaskType::TYPE_EVENT_RESET));
+
+    TaskQue* taskQue = aic.GetTaskQue();
+    ASSERT_NE(taskQue, nullptr);
+    ASSERT_EQ(taskQue->taskCnt, 3U);
+
+    EXPECT_EQ(taskQue->taskInfos[0].args, static_cast<uint64_t>(reinterpret_cast<uintptr_t>(notify->nodeInfos.syncInfos.addrValue)));
+    EXPECT_EQ(taskQue->taskInfos[0].entry[0], 9U);
+    EXPECT_EQ(taskQue->taskInfos[0].reserved, 0U);
+
+    EXPECT_EQ(taskQue->taskInfos[1].args, static_cast<uint64_t>(reinterpret_cast<uintptr_t>(wait->nodeInfos.syncInfos.addrValue)));
+    EXPECT_EQ(taskQue->taskInfos[1].entry[0], 12U);
+    EXPECT_EQ(taskQue->taskInfos[1].reserved, static_cast<uint64_t>(SkMemoryWaitFlag::AND));
+
+    EXPECT_EQ(taskQue->taskInfos[2].args, static_cast<uint64_t>(reinterpret_cast<uintptr_t>(reset->nodeInfos.syncInfos.addrValue)));
+    EXPECT_EQ(taskQue->taskInfos[2].entry[0], 0U);
+    EXPECT_EQ(taskQue->taskInfos[2].reserved, 0U);
+}
+
+TEST_F(SkTaskBuilderTest, AddEventTask_UnexpectedEventTaskTypeUsesZeroDefaultValue)
+{
+    SkTask aic;
+    ASSERT_TRUE(aic.taskQue.Init(2));
+
+    auto* notify = CreateNotifyNodeEx(1110, 0, INVALID_TASK_ID, INVALID_TASK_ID, 66);
+    notify->nodeInfos.syncInfos.memoryValue = std::numeric_limits<uint64_t>::max();
+    notify->nodeInfos.syncInfos.memoryWaitFlag = std::numeric_limits<uint32_t>::max();
+
+    ASSERT_TRUE(builder->AddEventTask(aic, notify, 0, SkTaskType::TYPE_MAX));
+
+    TaskQue* taskQue = aic.GetTaskQue();
+    ASSERT_NE(taskQue, nullptr);
+    ASSERT_EQ(taskQue->taskCnt, 1U);
+    EXPECT_EQ(taskQue->taskInfos[0].entry[0], 0U);
+    EXPECT_EQ(taskQue->taskInfos[0].reserved, SK_DEFAULT_WRITE_FLAG);
 }
 
 TEST_F(SkTaskBuilderTest, EntryInfoAndArgs_GenerateSuccessfully)
@@ -627,6 +679,24 @@ TEST_F(SkTaskBuilderTest, Build_WithCustomNotifyWaitReset_Success)
 
     std::vector<SuperKernelBaseNode*> tasks = {graph->GetNodeById(7001), graph->GetNodeById(7002)};
     std::vector<SuperKernelBaseNode*> customTasks = {cNotify, cWait, cReset};
+
+    SkLaunchInfo launchInfo = builder->Build("Unknown", tasks, customTasks);
+    EXPECT_NE(launchInfo.entryInfo.skEntryFunc, nullptr);
+    EXPECT_NE(launchInfo.devArgs.Get(), nullptr);
+}
+
+TEST_F(SkTaskBuilderTest, Build_WithResetTask_Success)
+{
+    opts->AddOption(std::make_unique<NumberOptOption>("split_mode", aclskOptionType::SPLIT_MODE, 1, 1, 4));
+
+    auto* k0 = CreateKernelNodeEx(7021, 0, INVALID_TASK_ID, 7022, SkKernelType::MIX_AIC_1_1);
+    auto* reset = CreateResetNodeEx(7022, 0, 7021, 7023);
+    auto* k1 = CreateKernelNodeEx(7023, 0, 7022, INVALID_TASK_ID, SkKernelType::MIX_AIC_1_2);
+    reset->nodeInfos.syncInfos.addrValue = reinterpret_cast<void*>(0x2345);
+    reset->nodeInfos.syncInfos.memoryValue = 0;
+
+    std::vector<SuperKernelBaseNode*> tasks = {k0, reset, k1};
+    std::vector<SuperKernelBaseNode*> customTasks;
 
     SkLaunchInfo launchInfo = builder->Build("Unknown", tasks, customTasks);
     EXPECT_NE(launchInfo.entryInfo.skEntryFunc, nullptr);

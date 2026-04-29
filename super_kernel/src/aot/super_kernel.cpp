@@ -112,8 +112,13 @@ aclError aclskOptimize(aclmdlRI model, aclskOptions *options) {
     }
 
     SK_LOGI("Begin aclskOptimize");
+    SK_LOGI("Start parse sk options...");
+    SuperKernelOptionsManager opts;
+    opts.ParseOptions(options);
+    SK_LOGI("End parse sk options");
+
     SK_LOGI("Start init sk graph...");
-    SuperKernelGraph graph(model);
+    SuperKernelGraph graph(model, opts);
     if (!graph.InitSKGraph()) {
         return ACL_ERROR_FAILURE;
     }
@@ -132,11 +137,6 @@ aclError aclskOptimize(aclmdlRI model, aclskOptions *options) {
     SK_LOGI("Start init sk time profiling event recorder...");
     SkEventRecorder::Instance().Init(); // Initialize event recorder (if ASCEND_PROF_SK_ON=1 environment variable is set)
     SK_LOGI("End init sk time profiling event recorder");
-
-    SK_LOGI("Start parse sk options...");
-    SuperKernelOptionsManager opts;
-    opts.ParseOptions(options);
-    SK_LOGI("End parse sk options");
 
     SK_LOGI("Start optimize sk graph...");
     SuperKernelOptimizer optimizer(opts);

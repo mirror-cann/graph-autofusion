@@ -581,6 +581,24 @@ TEST_F(SuperKernelOptionsManagerTest, SetOptOptionValue_OptExtendOption_EmptyAft
     EXPECT_TRUE(static_cast<MapOptOption*>(result)->GetMapValue().empty());
 }
 
+TEST_F(SuperKernelOptionsManagerTest, SetOptOptionValue_AggressiveOptStrategies)
+{
+    aclskOption option {};
+    option.optionType = aclskOptionType::AGGRESSIVE_OPT_STRATEGIES;
+    option.aggressiveOpts.eventBreakerBypass = 7;
+    option.aggressiveOpts.valueBreakerBypass = ACLSK_VALUE_BREAKER_BYPASS_UNPAIRED_WAIT;
+    option.aggressiveOpts.taskBreakerBypass = 1;
+
+    opts_test->SetOptOptionValue(&option);
+
+    auto result = opts_test->GetOption(aclskOptionType::AGGRESSIVE_OPT_STRATEGIES);
+    ASSERT_NE(result, nullptr);
+    const auto& aggressiveOpts = static_cast<AggressiveOptStrategiesOption*>(result)->GetValue();
+    EXPECT_EQ(aggressiveOpts.eventBreakerBypass, 7U);
+    EXPECT_EQ(aggressiveOpts.valueBreakerBypass, ACLSK_VALUE_BREAKER_BYPASS_UNPAIRED_WAIT);
+    EXPECT_EQ(aggressiveOpts.taskBreakerBypass, 1);
+}
+
 TEST_F(SuperKernelOptionsManagerTest, SetOptOptionValue_DebugExtendOption_Nullptr)
 {
     aclskOption option {};
