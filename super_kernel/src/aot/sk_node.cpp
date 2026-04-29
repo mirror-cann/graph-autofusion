@@ -769,18 +769,14 @@ bool SuperKernelKernelNode::Update(const UpdateContext &ctx) {
 }
 
 bool SuperKernelMemoryNode::InitNode() {
-    // Cache formatted string to avoid repeated formatting
-    const std::string nodeFormat = Format();
-    const char* formatStr = nodeFormat.c_str();
-
     if (!SuperKernelBaseNode::InitNode()) {
-        SK_LOGE("Failed to init memory node for %s", formatStr);
+        SK_LOGE("Failed to init memory node for %s", Format().c_str());
         return false;
     }
 
     aclError aclRet = aclmdlRITaskGetParams(*originTask, &taskParams);
     if (aclRet != ACL_SUCCESS) {
-        SK_LOGE("Failed to get task params (aclRet=%d) for %s", aclRet, formatStr);
+        SK_LOGE("Failed to get task params (aclRet=%d) for %s", aclRet, Format().c_str());
         return false;
     }
 
@@ -816,7 +812,7 @@ bool SuperKernelMemoryNode::InitNode() {
             }
             default:
                 SK_LOGE("Unsupported event type %u for %s, which cannot be fused in super kernel.",
-                        rtNodeType, formatStr);
+                        rtNodeType, Format().c_str());
                 SetFusionFailReason(FusionFailReason::UNSUPPORT_EVENT_TYPE);
                 return false;
         }
@@ -827,13 +823,13 @@ bool SuperKernelMemoryNode::InitNode() {
         isFusible = isNotReset && isInternalEvent;
 
         if (isFusible) {
-            SK_LOGI("Event %s: internal to ModelRI, fusible in super kernel", formatStr);
+            SK_LOGI("Event %s: internal to ModelRI, fusible in super kernel", Format().c_str());
         } else {
             if (fusionFailReason_ == FusionFailReason::CAN_FUSE) {
                 SetFusionFailReason(FusionFailReason::EXTERNAL_DEPEND);
             }
             SK_LOGI("Event %s: has external dependencies or is reset, cannot be fused in super kernel",
-                    formatStr);
+                    Format().c_str());
         }
 
         return true;
@@ -856,10 +852,10 @@ bool SuperKernelMemoryNode::InitNode() {
     }
 
     if (nodeInfos.syncInfos.addrValue == nullptr) {
-        SK_LOGE("Memory node %s has null device address, which is invalid for super kernel fusion.", formatStr);
+        SK_LOGE("Memory node %s has null device address, which is invalid for super kernel fusion.", Format().c_str());
         return false;
     }
-    SK_LOGI("Memory node %s default not fusible, but it may be bypassed", formatStr);
+    SK_LOGI("Memory node %s default not fusible, but it may be bypassed", Format().c_str());
 
     return true;
 }
