@@ -30,10 +30,10 @@ autofuse/
 
 ## 构建与安装
 
-参考[执行构建](../doc/build.md#执行构建)。
+参考[执行构建](../docs/build.md)。
 
 ## 上板验证指导
-用户如果想在昇腾设备上体验Autofuse 的功能与性能，可以先参考[快速安装](quick_install.md)准备环境。无论是没有昇腾设备的开发者，还是已有昇腾设备的开发者，都可以快速搭建好环境。在此基础上，按照上一步[构建与安装](../doc/build.md#执行构建)，增量安装了graph-autofusion仓编译生成的cann包。
+用户如果想在昇腾设备上体验Autofuse 的功能与性能，可以先参考[快速安装](../docs/quick_install.md)准备环境。无论是没有昇腾设备的开发者，还是已有昇腾设备的开发者，都可以快速搭建好环境。在此基础上，按照上一步[构建与安装](../docs/build.md)，增量安装了graph-autofusion仓编译生成的cann包。
 
 此处指导如何搭建 Pytorch 环境，创建脚本，跑通 Inductor + Autofuse场景，并可视化生成的自动融合算子，以及观察最后的kernel性能。
 
@@ -101,7 +101,7 @@ export TORCH_COMPILE_DEBUG=1
 ```
 注意： 多次执行相同脚本，会因为缓存存在而跳过编译，可以配合 TORCHINDUCTOR_FORCE_DISABLE_CACHES 使用，强制每次执行都重新编译。
 
-### TORCHINDUCTOR_FORCE_DISABLE_CACHES
+#### TORCHINDUCTOR_FORCE_DISABLE_CACHES
 作用： torch原生环境变量，禁用 Inductor 缓存，每次执行都会重新编译。
 
 使用方法：
@@ -132,12 +132,9 @@ export AUTOFUSE_DFX_FLAGS="--codegen_compile_debug=true;--debug_dir=/path-to-dum
 
 用户也可以通过profiling的相关配置，观察使能自动融合后，算子性能收益情况。对于上面的sample用例，可以注释 "model = torch.compile(model, dynamic=False, fullgraph=True)" 这一行，即可走单算子流程。然后对比profiling里，单算子场景所有算子的总耗时，与使能 Inductor+Autofuse，融合算子的总耗时。详细的Profling性能分析工具的使用方法，可参见[Profiling性能分析工具指南](https://hiascend.com/document/redirect/CannCommunityToolProfiling)。
 
-需要注意的是，不是模型里所有的算子都能被融合，对于在Inductor层未被lowering的算子，最后仍然以单算子形式存在。融合提升比，等于 (融合后所有算子耗时-融合前所有算子耗时)/融合前所有算子耗时。更进一步的，可以观察融合算子的 aiv_mte2_time（输入搬运耗时）和 aiv_mte3_time（输出搬运耗时）的提升情况。
+需要注意的是，不是模型里所有的算子都能被融合，对于在 Inductor 层未被 lowering 的算子，最后仍然以单算子形式存在。融合提升比，等于 (融合后所有算子耗时-融合前所有算子耗时)/融合前所有算子耗时。更进一步的，可以观察融合算子的 aiv_mte2_time（输入搬运耗时）和 aiv_mte3_time（输出搬运耗时）的提升情况。
 
 对于精度的分析，详细的精度调试工具的使用方法，可参见[精度调试工具指南](https://hiascend.com/document/redirect/CannCommunityToolAccucacy)。
 
 ### 复杂网络使能
 用户如果想在网络里，使能 Autofuse 功能，只需要在模型文件的开头，导入torch后面，加上 import inductor_npu_ext 即可。
-
-## 开发者
-开发者请查阅《[Developer Guide](docs/developer_guide.md)》，了解代码实现、测试方法等信息。
