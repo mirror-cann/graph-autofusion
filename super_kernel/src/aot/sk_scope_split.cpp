@@ -1188,8 +1188,17 @@ ScheModeScopeProcessResult ScheModeKernelSplitPass::ProcessSingleScope(
             continue;
         }
 
-        const uint32_t curCubeNum = node->GetCubeNum();
-        const uint32_t curVecNum = node->GetVecNum();
+        uint32_t curCubeNum = node->GetCubeNum();
+        uint32_t curVecNum = node->GetVecNum();
+        if (node->IsScheModeOn()) {
+            if (curVecNum == 0) {
+                // For ScheMode kernels, if vecNum is not explicitly set, treat it as same as cubeNum
+                curVecNum = curCubeNum * 2;
+            }
+            if (curCubeNum == 0) {
+                curCubeNum = (curVecNum + 1) / 2;
+            }
+        }
 
         if (!hasMergedKernel) {
             mergedCubeNum = curCubeNum;
