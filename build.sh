@@ -35,11 +35,11 @@ declare -A MODULE_ACTION_HANDLERS=(
   ["superkernel:py_st"]="superkernel_py_st"
   ["superkernel:py_run_example"]="superkernel_py_run_example"
   # Reserved module-level test entrypoints. Fill the value with a handler name when implemented.
-  ["autofuse_framework:ut"]="reserved_module_test_suite"
-  ["autofuse_framework:st"]="reserved_module_test_suite"
-  ["autofuse_ascendc_api:ut"]="reserved_module_test_suite"
-  ["autofuse_ascendc_api:st"]="reserved_module_test_suite"
-  ["autofuse_e2e:st"]="reserved_module_test_suite"
+  ["autofuse_framework:all_ut"]="reserved_module_test_suite"
+  ["autofuse_framework:all_st"]="reserved_module_test_suite"
+  ["autofuse_ascendc_api:all_ut"]="reserved_module_test_suite"
+  ["autofuse_ascendc_api:all_st"]="reserved_module_test_suite"
+  ["autofuse_e2e:all_st"]="reserved_module_test_suite"
 )
 
 # print usage message
@@ -155,15 +155,10 @@ normalize_test_selection() {
     case "${TEST_IMPL_MODE}" in
       py) impls=(py) ;;
       cpp) impls=(cpp) ;;
-      all) impls=(py cpp) ;;
+      all) impls=(py cpp all) ;;
     esac
 
     for module in "${selected_modules[@]}"; do
-      if has_module_action_entry "${suite}" "${module}"; then
-        EXEC_ACTIONS+=("${module}:${suite}")
-        continue
-      fi
-
       for impl in "${impls[@]}"; do
         local action="${impl}_${suite}"
         if ! has_module_action_entry "${action}" "${module}"; then
@@ -483,11 +478,10 @@ function superkernel_cpp_ut() {
 
 reserved_module_test_suite() {
   local module="$1"
-  local suite="$2"
-  echo "更多功能支持中，已识别预留测试入口，暂未接入执行: module=${module}, suite=${suite}."
-  if [[ "${TEST_IMPL_MODE}" != "all" ]]; then
-    echo "该模块暂不区分 py/cpp，忽略 --impl=${TEST_IMPL_MODE}."
-  fi
+  local action="$2"
+  local impl="${action%%_*}"
+  local suite="${action##*_}"
+  echo "更多功能支持中，已识别预留测试入口，暂未接入执行: module=${module}, impl=${impl}, suite=${suite}."
 }
 
 main() {
