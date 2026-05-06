@@ -48,6 +48,8 @@ target_compile_options(ascendsk PRIVATE
     -Werror
     -fno-common
     -ftrapv
+    $<$<CONFIG:Debug>:-g>
+    $<$<CONFIG:Debug>:-O0>
 )
 
 target_compile_definitions(ascendsk PRIVATE

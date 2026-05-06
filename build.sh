@@ -326,6 +326,7 @@ checkopts() {
 function cmake_config()
 {
   local extra_option="$1"
+  local cmake_option="${CUSTOM_OPTION} -DCMAKE_BUILD_TYPE=${BUILD_TYPE}"
   if [ "X$ENABLE_AUTOFUSE" == "Xon" ]; then
     extra_option="${extra_option} -DBUILD_AUTOFUSE=ON"
     if [ -n "${CANN_3RD_LIB_PATH}" ]; then
@@ -335,8 +336,8 @@ function cmake_config()
   if [ "X$ENABLE_AUTOFUSE" == "Xoff" ]; then
     extra_option="${extra_option} -DBUILD_AUTOFUSE=OFF"
   fi
-  echo "Info: cmake config ${CUSTOM_OPTION} ${extra_option} ."
-  cmake .. ${CUSTOM_OPTION} ${extra_option}
+  echo "Info: cmake config ${cmake_option} ${extra_option} ."
+  cmake .. ${cmake_option} ${extra_option}
 }
 
 function build()
