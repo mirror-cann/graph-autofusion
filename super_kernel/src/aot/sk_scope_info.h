@@ -88,8 +88,8 @@ enum class ScopeBreakReason : uint8_t {
     NONE,                    // No break reason (initial scope or last scope)
     UNFUSIBLE_NODE,          // Encountered unfusible node
     DEADLOCK_DETECTED,       // Deadlock detection triggered split
-    SCHOMODE_CORE_DROP,      // SchoMode core number dropped
-    SCHOMODE_CORE_RISE,      // SchoMode core number rose after merged ScheMode kernels
+    SCHEMODE_CORE_DROP,      // SchoMode core number dropped
+    SCHEMODE_CORE_RISE,      // SchoMode core number rose after merged ScheMode kernels
 };
 
 /*!
@@ -101,9 +101,9 @@ inline const char* ScopeBreakReasonToStr(ScopeBreakReason reason) {
             return "There exists unfusible node in scope";
         case ScopeBreakReason::DEADLOCK_DETECTED:
             return "There exists deadlock in scope";
-        case ScopeBreakReason::SCHOMODE_CORE_DROP:
+        case ScopeBreakReason::SCHEMODE_CORE_DROP:
             return "There exists an operator for full kernel synchronization, and the number of kernels of this operator is less than the maximum number of kernels of the fused superkernel";
-        case ScopeBreakReason::SCHOMODE_CORE_RISE:
+        case ScopeBreakReason::SCHEMODE_CORE_RISE:
             return "There exists an operator for full kernel synchronization, and the number of kernels of this operator is greater than the maximum number of kernels of the previously fused superkernel";
         default:
             return "UNKNOWN REASON";
@@ -180,7 +180,7 @@ public:
             reason == ScopeBreakReason::DEADLOCK_DETECTED) {
             result += ", fusionReason=" + FusionFailReasonToStr(fusionFailReason);
         }
-        if (parentScopeId != 0) {
+        if (parentScopeId != INVALID_SCOPE_ID) {
             result += ", parentScope=" + std::to_string(parentScopeId);
         }
         if (!detail.empty()) {
@@ -194,7 +194,7 @@ private:
     uint64_t triggerNodeId = INVALID_TASK_ID;      // Node that triggered the break
     uint32_t triggerStreamIdx = 0;                 // Stream of trigger node
     FusionFailReasonInfo fusionFailReason;         // Detailed fusion failure reason (if applicable)
-    uint16_t parentScopeId = 0;                    // Parent scope ID (split from, for tracing split chain)
+    uint16_t parentScopeId = INVALID_SCOPE_ID;     // Parent scope ID (split from, for tracing split chain)
     std::string detail;                            // Human-readable description
 };
 

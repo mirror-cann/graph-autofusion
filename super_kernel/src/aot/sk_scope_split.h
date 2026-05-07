@@ -389,6 +389,21 @@ private:
         std::vector<SuperKernelScopeInfo>& outputScopes,
         std::optional<SuperKernelScopeInfo>& pendingScope);
 
+    /**
+     * @brief Handle deadlock split logic
+     * @param workingScope scope to split
+     * @param deadlockNode node that caused deadlock
+     * @param deadlockWaitNode wait node to split at
+     * @param outputScopes output scopes
+     * @param pendingScope pending scope for next iteration
+     * @return split result
+     */
+    ScopeProcessResult HandleDeadlockSplit(
+        SuperKernelScopeInfo& workingScope,
+        SuperKernelBaseNode* deadlockNode,
+        SuperKernelBaseNode* deadlockWaitNode,
+        std::vector<SuperKernelScopeInfo>& outputScopes,
+        std::optional<SuperKernelScopeInfo>& pendingScope);
     LockDetector lockDetector_;
 };
 
