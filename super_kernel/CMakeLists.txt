@@ -60,14 +60,8 @@ target_include_directories(ascendsk PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/include/super_kernel
     ${CMAKE_CURRENT_SOURCE_DIR}/src/aot
-    PRIVATE
-    $ENV{ASCEND_HOME_PATH}/pkg_inc/
-    $ENV{ASCEND_HOME_PATH}/pkg_inc/runtime
-    $ENV{ASCEND_HOME_PATH}/pkg_inc/profiling
-    $ENV{ASCEND_HOME_PATH}/pkg_inc/base
-    $ENV{ASCEND_HOME_PATH}/include/external
-    $ENV{ASCEND_HOME_PATH}/include
     )
+target_link_libraries(ascendsk PRIVATE c_sec_headers runtime_headers)
 target_link_libraries(ascendsk PUBLIC sk_scope acl_rt acl_rtc ascendcl ascend_dump runtime error_manager c_sec unified_dlog ascendc_runtime profapi profimpl msprofiler json)
 target_link_directories(ascendsk PUBLIC
 $ENV{ASCEND_HOME_PATH}/lib64

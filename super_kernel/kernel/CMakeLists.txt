@@ -45,6 +45,4 @@ target_compile_options(sk_scope PRIVATE
 
 target_include_directories(sk_scope PRIVATE
    ${CMAKE_CURRENT_SOURCE_DIR}/../src/aot/
-   $ENV{ASCEND_HOME_PATH}/include/external
-   $ENV{ASCEND_HOME_PATH}/include
 )

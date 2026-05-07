@@ -164,7 +164,6 @@ target_include_directories(graph_base PRIVATE
     ${CMAKE_CURRENT_LIST_DIR}
     ${CMAKE_BINARY_DIR}
     ${CMAKE_BINARY_DIR}/proto/metadef_protos
-    ${ASCEND_INSTALL_PATH}/include
     ${TOP_DIR}/runtime/include/external
     ${TOP_DIR}/runtime/include/external/acl
 )
@@ -233,7 +232,6 @@ if (NOT ENABLE_OPEN_SRC)
         ${CMAKE_CURRENT_LIST_DIR}
         ${CMAKE_BINARY_DIR}
         ${CMAKE_BINARY_DIR}/proto/metadef_protos
-        ${ASCEND_INSTALL_PATH}/include
         ${TOP_DIR}/runtime/include/external
         ${TOP_DIR}/runtime/include/external/acl
     )
@@ -292,8 +290,6 @@ target_include_directories(graph PRIVATE
     ${CMAKE_BINARY_DIR}
     ${CMAKE_BINARY_DIR}/proto/metadef_protos
     ${AIR_CODE_DIR}/inc/graph_metadef
-    ${ASCEND_INSTALL_PATH}/include/graph
-    ${ASCEND_INSTALL_PATH}/include
     ${TOP_DIR}/runtime/include/external
     ${TOP_DIR}/runtime/include/external/acl
 )

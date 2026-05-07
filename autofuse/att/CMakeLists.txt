@@ -42,6 +42,5 @@ target_include_directories(aihac_codegen PRIVATE
     ${CODE_ROOT_DIR}/att/ascir
     ${CODE_ROOT_DIR}/att/ascir/generator
     ${CODE_ROOT_DIR}/att/gen_model_info
-    ${ASCEND_INSTALL_PATH}/include
     ${CMAKE_BINARY_DIR}/proto/metadef_protos
 )

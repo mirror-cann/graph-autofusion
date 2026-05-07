@@ -15,7 +15,7 @@ if (NOT DEFINED GE_METADEF_INC_DIR)
     set(GE_METADEF_INC_DIR ${TOP_DIR}/air/inc/graph_metadef)
     set(AIR_CODE_DIR ${TOP_DIR}/air)
     set(RUNTIME_CODE_DIR ${TOP_DIR}/runtime)
-else ()
+elseif(NOT TARGET metadef_headers)
     add_library(metadef_headers INTERFACE)
 endif ()
 
@@ -27,20 +27,6 @@ target_include_directories(metadef_headers INTERFACE
     $<BUILD_INTERFACE:${METADEF_DIR}/inc/external/exe_graph/runtime>
     $<BUILD_INTERFACE:${GE_METADEF_INC_DIR}>
     $<BUILD_INTERFACE:${GE_METADEF_INC_DIR}/graph>
-    $<BUILD_INTERFACE:${ASCEND_INSTALL_PATH}/pkg_inc>
-    $<BUILD_INTERFACE:${ASCEND_INSTALL_PATH}/pkg_inc/base>
-    $<BUILD_INTERFACE:${ASCEND_INSTALL_PATH}/pkg_inc/graph>
-    $<BUILD_INTERFACE:${ASCEND_INSTALL_PATH}/pkg_inc/common>
-    $<BUILD_INTERFACE:${ASCEND_INSTALL_PATH}/pkg_inc/graph/utils>
-    $<BUILD_INTERFACE:${ASCEND_INSTALL_PATH}/pkg_inc/common/ge_common>
-    $<BUILD_INTERFACE:${ASCEND_INSTALL_PATH}>
-    $<BUILD_INTERFACE:${ASCEND_INSTALL_PATH}/include>
-    $<BUILD_INTERFACE:${ASCEND_INSTALL_PATH}/include/external>
-    $<BUILD_INTERFACE:${ASCEND_INSTALL_PATH}/include/base>
-    $<BUILD_INTERFACE:${ASCEND_INSTALL_PATH}/include/graph>
-    $<BUILD_INTERFACE:${ASCEND_INSTALL_PATH}/include/exe_graph>
-    $<BUILD_INTERFACE:${ASCEND_INSTALL_PATH}/include/experiment/metadef>
-    $<BUILD_INTERFACE:${ASCEND_INSTALL_PATH}/include/register>
     $<BUILD_INTERFACE:${AIR_CODE_DIR}/inc>
     $<BUILD_INTERFACE:${GE_METADEF_INC_DIR}/common>
     $<BUILD_INTERFACE:${GE_METADEF_INC_DIR}/exe_graph>
