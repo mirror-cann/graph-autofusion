@@ -197,7 +197,7 @@ void LogKernelSearchFailure(uint64_t startNodeId, SearchDirection direction, con
                             const char* reason, uint64_t failedNodeId)
 {
     std::string pathStr = BuildSearchPathString(path);
-    SK_LOGI("FindKernelNodeInDirection failed: startNodeId=%lu, direction=%s, reason=%s, failedNodeId=%lu, path=%s",
+    SK_LOGI("FindKernelNodeInDirection unsuccessful: startNodeId=%lu, direction=%s, reason=%s, failedNodeId=%lu, path=%s",
             startNodeId, to_string(direction), reason, failedNodeId, pathStr.c_str());
 }
 
@@ -397,7 +397,7 @@ bool SkTaskBuilder::InitTaskSyncInfos(const std::vector<SuperKernelBaseNode*>& t
                         return false;
                     }
                     taskSyncInfos_[i].queueType = firstKernelEventQueueType;
-                    SK_LOGI("%s node %zu failed to resolve previous KERNEL node, nodeId=%lu, fallback = %s",
+                    SK_LOGI("%s node %zu unable to resolve previous KERNEL node, nodeId=%lu, fallback = %s",
                             to_string(nodeType), i, tasks[i]->GetNodeId(), to_string(taskSyncInfos_[i].queueType));
                 } else {
                     kernelNodeCache[tasks[i]->GetNodeId()] = kernel;
