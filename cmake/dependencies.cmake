@@ -11,7 +11,7 @@
 set(CMAKE_PREFIX_PATH $ENV{ASCEND_HOME_PATH}/)
 
 set(CMAKE_MODULE_PATH
-  ${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules
+  ${CANN_CMAKE_DIR}/modules
   ${CMAKE_MODULE_PATH}
 )
 message(STATUS "CMAKE_MODULE_PATH:${CMAKE_MODULE_PATH}")
@@ -21,9 +21,9 @@ if (NOT CMAKE_BUILD_TYPE)
     FORCE)
 endif ()
 
-find_package(runtime MODULE REQUIRED)
-find_package(unified_dlog MODULE REQUIRED)
-find_package(securec MODULE REQUIRED)
+find_cann_package(runtime MODULE REQUIRED)
+find_cann_package(unified_dlog MODULE REQUIRED)
+find_cann_package(securec MODULE REQUIRED)
 
 include(cmake/third_party/json.cmake)
 

@@ -80,8 +80,6 @@ endif ()
 
 list(APPEND CMAKE_MODULE_PATH
     ${ASCEND_CANN_3RD_LIB_PATH}/cmake/modules
-    ${GE_METADEF_DIR}/cmake/modules
-    ${CODE_ROOT_DIR}/cmake/modules
     ${CODE_ROOT_DIR}/cmake/third_party/scripts/modules
 )
 
@@ -154,10 +152,10 @@ set_target_properties(symengine_static PROPERTIES
 )
 find_package(protoc MODULE REQUIRED)
 find_package(ascend_protobuf_shared MODULE REQUIRED)
-find_package(unified_dlog)
-find_package(mmpa)
-find_package(atrace)
-find_package(securec)
+find_cann_package(unified_dlog)
+find_cann_package(mmpa)
+find_cann_package(atrace)
+find_cann_package(securec)
 
 if (DEFINED unified_dlog_INCLUDE_DIR)
     get_filename_component(UNIFIED_DLOG_PKG_INC_DIR "${unified_dlog_INCLUDE_DIR}" DIRECTORY)
