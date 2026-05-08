@@ -1510,31 +1510,19 @@ bool SuperKernelScopeSplitter::SplitGraph() {
 DefaultNodeProcessPass::DefaultNodeProcessPass(SuperKernelGraph& inputGraph)
     : ScopeSplitPass(inputGraph) {}
 
-DefaultNodeInfo DefaultNodeProcessPass::CollectDefaultNodesInScope(
+std::unordered_map<uint32_t, StreamDefaultInfo> DefaultNodeProcessPass::CollectStreamInfo(
     const SuperKernelScopeInfo& scope) {
-    DefaultNodeInfo info;
+    std::unordered_map<uint32_t, StreamDefaultInfo> streamInfoMap;
     for (const auto* node : scope.GetNodes()) {
-        if (node->GetNodeType() == SkNodeType::NODE_DEFAULT) {
-            info.defaultNodes.push_back(const_cast<SuperKernelBaseNode*>(node));
-            info.streamIndices.insert(node->GetStreamIdxInGraph());
-        }
-    }
-    return info;
-}
-
-bool DefaultNodeProcessPass::HasKernelInStreams(
-    const SuperKernelScopeInfo& scope, const std::unordered_set<uint32_t>& streamIndices) {
-    for (const auto* node : scope.GetNodes()) {
-        if (node->GetNodeType() != SkNodeType::NODE_KERNEL) {
-            continue;
-        }
         uint32_t streamIdx = node->GetStreamIdxInGraph();
-        if (streamIndices.find(streamIdx) != streamIndices.end()) {
-            SK_LOGI("[DefaultNodeProcess] Stream %u has kernel: %s", streamIdx, node->Format().c_str());
-            return true;
+        auto nodeType = node->GetNodeType();
+        if (nodeType == SkNodeType::NODE_KERNEL) {
+            streamInfoMap[streamIdx].hasKernel = true;
+        } else if (nodeType == SkNodeType::NODE_DEFAULT) {
+            streamInfoMap[streamIdx].defaults.push_back(const_cast<SuperKernelBaseNode*>(node));
         }
     }
-    return false;
+    return streamInfoMap;
 }
 
 void DefaultNodeProcessPass::MarkDefaultsUnfusible(const std::vector<SuperKernelBaseNode*>& defaultNodes) {
@@ -1546,8 +1534,10 @@ void DefaultNodeProcessPass::MarkDefaultsUnfusible(const std::vector<SuperKernel
     }
 }
 
-void DefaultNodeProcessPass::RemoveDefaultsAndStreams(SuperKernelScopeInfo& scope, const DefaultNodeInfo& info) {
-    // Step 1: 移除所有default节点
+void DefaultNodeProcessPass::RemoveDefaultsAndStreams(
+    SuperKernelScopeInfo& scope,
+    const std::vector<SuperKernelBaseNode*>& defaultsToRemove,
+    const std::unordered_set<uint32_t>& streamsToRemove) {
     auto nodes = scope.GetNodes();
     std::vector<SuperKernelBaseNode*> remaining;
     for (auto* node : nodes) {
@@ -1559,8 +1549,7 @@ void DefaultNodeProcessPass::RemoveDefaultsAndStreams(SuperKernelScopeInfo& scop
     }
     scope.SetNodes(std::move(remaining));
     
-    // Step 2: 移除default所在流（移除default后只剩event）
-    for (uint32_t streamIdx : info.streamIndices) {
+    for (uint32_t streamIdx : streamsToRemove) {
         RemoveStreamFromScope(scope, streamIdx);
     }
     RebuildStreamInfos(scope);
@@ -1580,28 +1569,43 @@ void DefaultNodeProcessPass::RemoveStreamFromScope(SuperKernelScopeInfo& scope, 
 }
 
 uint32_t DefaultNodeProcessPass::ProcessSingleScope(SuperKernelScopeInfo& scope) {
-    // 1. 收集scope内default节点及其所在流
-    auto defaultInfo = CollectDefaultNodesInScope(scope);
-    if (defaultInfo.defaultNodes.empty()) {
-        return 0;  // 无default，不处理
+    auto streamInfoMap = CollectStreamInfo(scope);
+    
+    std::vector<SuperKernelBaseNode*> defaultsToMark;
+    std::vector<SuperKernelBaseNode*> defaultsToRemove;
+    std::unordered_set<uint32_t> streamsToRemove;
+    
+    for (const auto& [streamIdx, info] : streamInfoMap) {
+        if (info.defaults.empty()) {
+            continue;
+        }
+        if (info.hasKernel) {
+            defaultsToMark.insert(defaultsToMark.end(),
+                                  info.defaults.begin(), info.defaults.end());
+        } else {
+            defaultsToRemove.insert(defaultsToRemove.end(),
+                                     info.defaults.begin(), info.defaults.end());
+            streamsToRemove.insert(streamIdx);
+        }
     }
     
-    SK_LOGI("[DefaultNodeProcess] Scope has %zu default nodes in %zu streams",
-            defaultInfo.defaultNodes.size(), defaultInfo.streamIndices.size());
-    
-    // 2. 检查这些流在scope内是否有kernel
-    bool hasKernel = HasKernelInStreams(scope, defaultInfo.streamIndices);
-    
-    // 3. 按场景处理
-    if (hasKernel) {
-        // 场景1: 有kernel → 标记default不可融合，触发重切分
-        MarkDefaultsUnfusible(defaultInfo.defaultNodes);
-        return static_cast<uint32_t>(defaultInfo.defaultNodes.size());
-    } else {
-        // 场景2: 无kernel → 移除default和这些流
-        RemoveDefaultsAndStreams(scope, defaultInfo);
+    if (defaultsToMark.empty() && defaultsToRemove.empty()) {
         return 0;
     }
+    
+    SK_LOGI("[DefaultNodeProcess] Scope has %zu defaults (%zu to mark, %zu to remove)",
+            defaultsToMark.size() + defaultsToRemove.size(),
+            defaultsToMark.size(), defaultsToRemove.size());
+    
+    if (!defaultsToMark.empty()) {
+        MarkDefaultsUnfusible(defaultsToMark);
+        SK_LOGI("[DefaultNodeProcess] %zu defaults marked unfusible", defaultsToMark.size());
+        return static_cast<uint32_t>(defaultsToMark.size());
+    }
+    
+    RemoveDefaultsAndStreams(scope, defaultsToRemove, streamsToRemove);
+    SK_LOGI("[DefaultNodeProcess] %zu defaults removed", defaultsToRemove.size());
+    return 0;
 }
 
 bool DefaultNodeProcessPass::Run(std::vector<SuperKernelScopeInfo>& scopes) {
