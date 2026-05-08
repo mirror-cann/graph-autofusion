@@ -466,12 +466,12 @@ private:
 // ============ Default Node Process Pass ============
 
 /*!
- * \struct DefaultNodeInfo
- * \brief Information about default nodes in a scope
+ * \struct StreamDefaultInfo
+ * \brief Information about kernel and default nodes in a stream
  */
-struct DefaultNodeInfo {
-    std::vector<SuperKernelBaseNode*> defaultNodes;  ///< Default nodes in scope
-    std::unordered_set<uint32_t> streamIndices;      ///< Stream indices containing defaults
+struct StreamDefaultInfo {
+    bool hasKernel = false;                          ///< Whether stream has kernel nodes
+    std::vector<SuperKernelBaseNode*> defaults;      ///< Default nodes in this stream
 };
 
 /*!
@@ -479,15 +479,12 @@ struct DefaultNodeInfo {
  * \brief Pass for processing default nodes in scopes
  *
  * Processing logic (each scope independently):
- * 1. Collect default nodes and their stream indices
- * 2. Check if those streams have kernel nodes in scope
- * 3. Branch:
- *    - Has kernel: mark defaults unfusible -> trigger resplit
- *    - No kernel: remove defaults and those streams
+ * 1. One-pass collect: gather kernel and default info per stream
+ * 2. Classify defaults:
+ *    - In stream with kernel: mark unfusible -> trigger resplit
+ *    - In stream without kernel: remove -> execute via original task
  *
- * Rules:
- * - Default in stream with kernel -> mark unfusible -> becomes boundary
- * - Default in stream without kernel -> remove -> execute via original task
+ * Optimization: single traversal to collect all stream info
  */
 class DefaultNodeProcessPass : public ScopeSplitPass {
 public:
@@ -500,11 +497,12 @@ public:
 private:
     uint32_t ProcessSingleScope(SuperKernelScopeInfo& scope);
     
-    DefaultNodeInfo CollectDefaultNodesInScope(const SuperKernelScopeInfo& scope);
-    bool HasKernelInStreams(const SuperKernelScopeInfo& scope, 
-                            const std::unordered_set<uint32_t>& streamIndices);
+    std::unordered_map<uint32_t, StreamDefaultInfo> CollectStreamInfo(
+        const SuperKernelScopeInfo& scope);
     void MarkDefaultsUnfusible(const std::vector<SuperKernelBaseNode*>& defaultNodes);
-    void RemoveDefaultsAndStreams(SuperKernelScopeInfo& scope, const DefaultNodeInfo& info);
+    void RemoveDefaultsAndStreams(SuperKernelScopeInfo& scope,
+                                   const std::vector<SuperKernelBaseNode*>& defaultsToRemove,
+                                   const std::unordered_set<uint32_t>& streamsToRemove);
     void RemoveStreamFromScope(SuperKernelScopeInfo& scope, uint32_t streamIdx);
 };
 
