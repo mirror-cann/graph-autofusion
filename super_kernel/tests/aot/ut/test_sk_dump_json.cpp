@@ -502,11 +502,13 @@ int FakeRtBinaryGetMetaInfoSuccess(void* binHdl, int typeEnum, size_t metaNum, v
     (void)binHdl;
     (void)typeEnum;
     UtDumpSknlValuePayload payloads[2]{};
+    payloads[0].info.cap = 4;
     payloads[0].info.globalFunc = reinterpret_cast<void*>(0x100);
     payloads[0].info.sknlFunc[0] = reinterpret_cast<void*>(0x1000);
     payloads[0].info.sknlFunc[1] = reinterpret_cast<void*>(0x1100);
     payloads[0].info.sknlFunc[2] = reinterpret_cast<void*>(0x1200);
     payloads[0].info.sknlFunc[3] = reinterpret_cast<void*>(0x1300);
+    payloads[1].info.cap = 4;
     payloads[1].info.globalFunc = reinterpret_cast<void*>(0x200);
     payloads[1].info.sknlFunc[0] = reinterpret_cast<void*>(0x2000);
     payloads[1].info.sknlFunc[1] = reinterpret_cast<void*>(0x2100);
@@ -688,8 +690,10 @@ TEST_F(SkDumpJsonDirectHelperTest, BinaryBindMapAndResolvedFuncsSerializeResolve
     aclrtBinHandle binHdl = reinterpret_cast<aclrtBinHandle>(0xbbbb);
     SkBindMap bindMap = InitSuperKernelBindMap(binHdl);
     EXPECT_EQ(bindMap.size(), 2);
-    EXPECT_EQ(bindMap[0x100][0], 0x1000);
-    EXPECT_EQ(bindMap[0x200][3], 0x2300);
+    EXPECT_EQ(bindMap[0x100].cap, 4);
+    EXPECT_EQ(bindMap[0x100].sknlFuncs[0], 0x1000);
+    EXPECT_EQ(bindMap[0x200].cap, 4);
+    EXPECT_EQ(bindMap[0x200].sknlFuncs[3], 0x2300);
 
     ResolvedFunctionInfo resolvedFuncs[K_MAX_SPLIT_BIN_COUNT];
     uint32_t resolvedNum = 0;
@@ -697,7 +701,6 @@ TEST_F(SkDumpJsonDirectHelperTest, BinaryBindMapAndResolvedFuncsSerializeResolve
     EXPECT_EQ(resolvedNum, K_MAX_SPLIT_BIN_COUNT);
     EXPECT_EQ(resolvedFuncs[0].funcAddr[0], 0x2000);
     EXPECT_EQ(resolvedFuncs[0].funcAddr[1], 0x3000);
-
     Json resolvedJson;
     AddResolvedFuncsToJson(resolvedJson, reinterpret_cast<aclrtFuncHandle>(0xcccc), binHdl);
     EXPECT_EQ(resolvedJson["resolvedNum"], K_MAX_SPLIT_BIN_COUNT);
@@ -747,6 +750,7 @@ TEST_F(SkDumpJsonDirectHelperTest, KernelNodeToJsonIncludesAttrsResolvedFuncsAnd
     kernelInfo.funcHdl = reinterpret_cast<aclrtFuncHandle>(0x4040);
     kernelInfo.isScheModeOn = true;
     kernelInfo.resolvedNum = 2;
+    kernelInfo.cap = 4;
     kernelInfo.resolvedFuncs[0].funcAddr[0] = 0x1000;
     kernelInfo.resolvedFuncs[0].funcAddr[1] = 0x2000;
     kernelInfo.resolvedFuncs[0].funcOffset[0] = 0x10;
@@ -787,6 +791,7 @@ TEST_F(SkDumpJsonDirectHelperTest, KernelNodeToJsonIncludesAttrsResolvedFuncsAnd
     EXPECT_EQ(nodeJson["kernelInfos"]["numBlocks"], 64);
     EXPECT_EQ(nodeJson["kernelInfos"]["funcHandle"], "0x5050");
     EXPECT_EQ(nodeJson["kernelInfos"]["devArgs"], "0x6060");
+    EXPECT_EQ(nodeJson["kernelInfos"]["cap"], 4);
     EXPECT_EQ(nodeJson["kernelInfos"]["launchKernelCfgAttrs"].size(), 2);
     EXPECT_EQ(nodeJson["kernelInfos"]["resolvedFuncs"].size(), 2);
 

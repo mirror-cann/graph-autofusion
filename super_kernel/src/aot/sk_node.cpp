@@ -151,34 +151,37 @@ SkBindMap InitSuperKernelBindMap(aclrtBinHandle binHdl)
         SknlMapInfo localInfo;
         memcpy_s(&localInfo, sizeof(SknlMapInfo), &(payload->info), sizeof(SknlMapInfo));
 
-        SK_LOGI("[%zu] globalFunc=0x%lx, skFunc[0]=0x%lx, skFunc[1]=0x%lx, skFunc[2]=0x%lx, skFunc[3]=0x%lx",
-            i, (uint64_t)localInfo.globalFunc,
+        SK_LOGI("[%zu] cap=%lu, globalFunc=0x%lx, skFunc[0]=0x%lx, skFunc[1]=0x%lx, "
+                "skFunc[2]=0x%lx, skFunc[3]=0x%lx",
+            i, localInfo.cap, (uint64_t)localInfo.globalFunc,
             (uint64_t)localInfo.sknlFunc[0],
             (uint64_t)localInfo.sknlFunc[1],
             (uint64_t)localInfo.sknlFunc[2],
             (uint64_t)localInfo.sknlFunc[3]);
 
         const auto globalFunc = (uint64_t)(localInfo.globalFunc);
-        const std::array<uint64_t, 4> sknlFuncs = {
+        SkBindInfo bindInfo;
+        bindInfo.cap = localInfo.cap;
+        bindInfo.sknlFuncs = {
             (uint64_t)(localInfo.sknlFunc[0]),
             (uint64_t)(localInfo.sknlFunc[1]),
             (uint64_t)(localInfo.sknlFunc[2]),
             (uint64_t)(localInfo.sknlFunc[3])
         };
         auto it = bindMap.find(globalFunc);
-        if (it != bindMap.end() && it->second != sknlFuncs) {
+        if (it != bindMap.end() &&
+            (it->second.cap != bindInfo.cap || it->second.sknlFuncs != bindInfo.sknlFuncs)) {
             SK_LOGE("InitSuperKernelBindMap: globalFunc=0x%lx is duplicated with different value",
                 globalFunc);
-            it->second[0] = INVALID_SK_BIND_VALUE;
+            it->second.sknlFuncs[0] = INVALID_SK_BIND_VALUE;
             continue;
         }
-        bindMap[globalFunc] = sknlFuncs;
+        bindMap[globalFunc] = bindInfo;
     }
     return bindMap;
 }
 
 namespace {
-using SkBindMap = std::unordered_map<uint64_t, std::array<uint64_t, 4>>;
 using SkAllBinMap = std::unordered_map<aclrtBinHandle, SkBindMap>;
 
 struct CoreFuncInitContext {
@@ -194,9 +197,19 @@ enum class SkNodeCoreType: uint32_t {
 
 constexpr int32_t ACL_FUNC_ATTR_KERNEL_SCHEMODE_PLACEHOLDER = 3;
 
-bool HasInvalidSkBindValue(const std::array<uint64_t, 4> &sknlFuncs)
+bool HasInvalidSkBindValue(const SkBindInfo &bindInfo)
 {
-    return sknlFuncs[0] == INVALID_SK_BIND_VALUE;
+    return bindInfo.sknlFuncs[0] == INVALID_SK_BIND_VALUE;
+}
+
+bool UpdateKernelCap(const SkBindInfo &bindInfo, bool &hasCap, uint64_t &cap)
+{
+    if (!hasCap) {
+        cap = bindInfo.cap;
+        hasCap = true;
+        return true;
+    }
+    return cap == bindInfo.cap;
 }
 
 ScheModeState ParseScheModeState(int64_t rawValue)
@@ -265,7 +278,7 @@ bool InitSingleCoreFunc(const CoreFuncInitContext& ctx, aclrtBinHandle binHdl, v
         coreName = "AIV";
     }
     constexpr uint32_t coreTypeId = static_cast<uint32_t>(coreType); // 0 : aic, 1 : aiv
-    uint64_t skFuncOffset = ctx.bindIt->second[ctx.splitIdx];
+    uint64_t skFuncOffset = ctx.bindIt->second.sknlFuncs[ctx.splitIdx];
     ctx.info->funcAddr[coreTypeId] = skFuncOffset + (uint64_t)binDevAddr;
     ctx.info->funcOffset[coreTypeId] = skFuncOffset;  // Save offset for dfx info
     void *binHostAddr = nullptr;
@@ -289,7 +302,7 @@ bool InitSingleCoreFunc(const CoreFuncInitContext& ctx, aclrtBinHandle binHdl, v
         SK_LOGW("split[%zu] Failed to get %s symbol info, default prefetchCnt[%zu]=%u",
                 ctx.splitIdx, coreName.c_str(), coreTypeId, ctx.info->prefetchCnt[coreTypeId]);
     }
-    if (ctx.splitIdx > 0 && ctx.bindIt->second[ctx.splitIdx] == ctx.bindIt->second[0]) {
+    if (ctx.splitIdx > 0 && ctx.bindIt->second.sknlFuncs[ctx.splitIdx] == ctx.bindIt->second.sknlFuncs[0]) {
         SK_LOGI("InitSingleCoreFunc: split[%zu] %s function is not sk sub op", ctx.splitIdx, coreName.c_str());
     } else {
         validFuncNum++;
@@ -357,13 +370,28 @@ bool InitKernelResolvedFuncs(KernelInfos &kernelInfos)
     if (aicItor != bindMap.end() && HasInvalidSkBindValue(aicItor->second)) {
         SK_LOGE("Invalid sk bind map for globalFunc=0x%lx, kernel %s has duplicated entries with different values",
             aicItor->first, kernelInfos.funcName.c_str());
+        kernelInfos.bindmapFailReason = BindmapFailReason::FUNC_NOT_FOUND;
         return false;
     }
     if (aivItor != bindMap.end() && HasInvalidSkBindValue(aivItor->second)) {
         SK_LOGE("Invalid sk bind map for globalFunc=0x%lx, kernel %s has duplicated entries with different values",
             aivItor->first, kernelInfos.funcName.c_str());
+        kernelInfos.bindmapFailReason = BindmapFailReason::FUNC_NOT_FOUND;
         return false;
     }
+    bool hasCap = false;
+    uint64_t cap = 0;
+    if (aicItor != bindMap.end() && !UpdateKernelCap(aicItor->second, hasCap, cap)) {
+        SK_LOGE("Invalid sk bind map for kernel %s, cap is inconsistent", kernelInfos.funcName.c_str());
+        kernelInfos.bindmapFailReason = BindmapFailReason::FUNC_NOT_FOUND;
+        return false;
+    }
+    if (aivItor != bindMap.end() && !UpdateKernelCap(aivItor->second, hasCap, cap)) {
+        SK_LOGE("Invalid sk bind map for kernel %s, cap is inconsistent", kernelInfos.funcName.c_str());
+        kernelInfos.bindmapFailReason = BindmapFailReason::FUNC_NOT_FOUND;
+        return false;
+    }
+    kernelInfos.cap = hasCap ? cap : 0;
     SK_LOGI("bindMap size=%lu, aicFound=%d, aivFound=%d",
         bindMap.size(), aicItor != bindMap.end(), aivItor != bindMap.end());
     kernelInfos.resolvedNum = 0;
@@ -377,8 +405,9 @@ bool InitKernelResolvedFuncs(KernelInfos &kernelInfos)
         }
         kernelInfos.resolvedFuncs[i] = info;
         SK_LOGI("split[%zu] funcAddr[0]=0x%lx, funcAddr[1]=0x%lx, "
-                "prefetchCnt[0]=0x%lx, prefetchCnt[1]=0x%lx",
-                i, info.funcAddr[0], info.funcAddr[1], info.prefetchCnt[0], info.prefetchCnt[1]);
+                "prefetchCnt[0]=0x%lx, prefetchCnt[1]=0x%lx, cap=%lu",
+                i, info.funcAddr[0], info.funcAddr[1], info.prefetchCnt[0], info.prefetchCnt[1],
+                kernelInfos.cap);
     }
     if (kernelInfos.resolvedNum == 2) { // sk balance
         kernelInfos.resolvedFuncs[2] = kernelInfos.resolvedFuncs[0];
@@ -711,6 +740,7 @@ std::string KernelInfos::Format() const {
     oss << "KernelInfos{funcName:" << funcName
         << ", kernelType:" << to_string(kernelType)
         << ", taskRatio:[" << taskRatio[0] << "," << taskRatio[1] << "]"
+        << ", cap:" << cap
         << ", numBlocks:" << numBlocks
         << ", cubeNum:" << cubeNum
         << ", vecNum:" << vecNum

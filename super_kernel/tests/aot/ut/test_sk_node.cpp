@@ -147,6 +147,19 @@ aclError FakeAclrtFunctionGetBinaryNonNull(aclrtFuncHandle funcHandle, aclrtBinH
     return ACL_SUCCESS;
 }
 
+aclError FakeAclrtFunctionGetBinaryForSkNodeCap(aclrtFuncHandle funcHandle, aclrtBinHandle* binHandle)
+{
+    if (binHandle == nullptr) {
+        return ACL_ERROR_INVALID_PARAM;
+    }
+    if (funcHandle == reinterpret_cast<aclrtFuncHandle>(0x6101)) {
+        *binHandle = reinterpret_cast<aclrtBinHandle>(0x5101);
+    } else {
+        *binHandle = reinterpret_cast<aclrtBinHandle>(0x5102);
+    }
+    return ACL_SUCCESS;
+}
+
 int FakeRtGetBinBufferForNodeDump(void* binHdl, int addrType, void** buffer, uint32_t* size)
 {
     (void)binHdl;
@@ -190,6 +203,109 @@ aclError FakeAclrtBinaryGetDevAddressFailureForNodeDump(aclrtBinHandle binHdl, v
     (void)devAddr;
     (void)devSize;
     return ACL_ERROR_FAILURE;
+}
+
+struct __attribute__((packed)) UtSkNodeSknlValuePayload {
+    uint32_t res;
+    SknlMapInfo info;
+};
+
+constexpr uint64_t UT_SK_NODE_BIN_DEV_ADDR = 0xABC000;
+constexpr uint64_t UT_SK_NODE_AIC_GLOBAL_OFFSET = 0x100;
+constexpr uint64_t UT_SK_NODE_AIV_GLOBAL_OFFSET = 0x200;
+
+int FakeRtBinaryGetMetaNumTwoEntriesForSkNode(void* binHdl, int typeEnum, size_t* metaNum)
+{
+    (void)binHdl;
+    (void)typeEnum;
+    if (metaNum == nullptr) {
+        return -1;
+    }
+    *metaNum = 2;
+    return 0;
+}
+
+void FillSkNodeBindPayloads(UtSkNodeSknlValuePayload (&payloads)[2], uint64_t aicCap, uint64_t aivCap)
+{
+    payloads[0].info.cap = aicCap;
+    payloads[0].info.globalFunc = reinterpret_cast<void*>(UT_SK_NODE_AIC_GLOBAL_OFFSET);
+    payloads[0].info.sknlFunc[0] = reinterpret_cast<void*>(0x1000);
+    payloads[0].info.sknlFunc[1] = reinterpret_cast<void*>(0x1100);
+    payloads[0].info.sknlFunc[2] = reinterpret_cast<void*>(0x1200);
+    payloads[0].info.sknlFunc[3] = reinterpret_cast<void*>(0x1300);
+
+    payloads[1].info.cap = aivCap;
+    payloads[1].info.globalFunc = reinterpret_cast<void*>(UT_SK_NODE_AIV_GLOBAL_OFFSET);
+    payloads[1].info.sknlFunc[0] = reinterpret_cast<void*>(0x2000);
+    payloads[1].info.sknlFunc[1] = reinterpret_cast<void*>(0x2100);
+    payloads[1].info.sknlFunc[2] = reinterpret_cast<void*>(0x2200);
+    payloads[1].info.sknlFunc[3] = reinterpret_cast<void*>(0x2300);
+}
+
+void CopySkNodeBindPayloads(void** dataList, size_t* sizeList, const UtSkNodeSknlValuePayload (&payloads)[2],
+    size_t metaNum)
+{
+    for (size_t i = 0; i < metaNum && i < 2; ++i) {
+        *static_cast<UtSkNodeSknlValuePayload*>(dataList[i]) = payloads[i];
+        sizeList[i] = sizeof(UtSkNodeSknlValuePayload);
+    }
+}
+
+int FakeRtBinaryGetMetaInfoSameCapForSkNode(void* binHdl, int typeEnum, size_t metaNum, void** dataList,
+    size_t* sizeList)
+{
+    (void)binHdl;
+    (void)typeEnum;
+    UtSkNodeSknlValuePayload payloads[2]{};
+    FillSkNodeBindPayloads(payloads, 4, 4);
+    CopySkNodeBindPayloads(dataList, sizeList, payloads, metaNum);
+    return 0;
+}
+
+int FakeRtBinaryGetMetaInfoDifferentCapForSkNode(void* binHdl, int typeEnum, size_t metaNum, void** dataList,
+    size_t* sizeList)
+{
+    (void)binHdl;
+    (void)typeEnum;
+    UtSkNodeSknlValuePayload payloads[2]{};
+    FillSkNodeBindPayloads(payloads, 4, 8);
+    CopySkNodeBindPayloads(dataList, sizeList, payloads, metaNum);
+    return 0;
+}
+
+int FakeRtGetBinBufferEmptyForSkNode(void* binHdl, int addrType, void** buffer, uint32_t* size)
+{
+    (void)binHdl;
+    (void)addrType;
+    if (buffer != nullptr) {
+        *buffer = nullptr;
+    }
+    if (size != nullptr) {
+        *size = 0;
+    }
+    return 0;
+}
+
+aclError FakeAclrtBinaryGetDevAddressForSkNode(aclrtBinHandle binHdl, void** devAddr, size_t* devSize)
+{
+    (void)binHdl;
+    if (devAddr == nullptr || devSize == nullptr) {
+        return ACL_ERROR_INVALID_PARAM;
+    }
+    *devAddr = reinterpret_cast<void*>(UT_SK_NODE_BIN_DEV_ADDR);
+    *devSize = 0x10000;
+    return ACL_SUCCESS;
+}
+
+aclError FakeAclrtGetFunctionAddrForSkNode(aclrtFuncHandle funcHdl, void** addrAicore, void** addrAiv)
+{
+    (void)funcHdl;
+    if (addrAicore == nullptr || addrAiv == nullptr) {
+        return ACL_ERROR_INVALID_PARAM;
+    }
+    *addrAicore = reinterpret_cast<void*>(UT_SK_NODE_BIN_DEV_ADDR + UT_SK_NODE_AIC_GLOBAL_OFFSET);
+    *addrAiv = reinterpret_cast<void*>(UT_SK_NODE_BIN_DEV_ADDR + UT_SK_NODE_AIV_GLOBAL_OFFSET);
+    return ACL_SUCCESS;
 }
 
 std::string MakeTmpDir(const std::string& suffix)
@@ -349,6 +465,59 @@ TEST_F(SkNodeTest, KernelInitNode_NullFuncHandleRecordsBindmapReason)
     EXPECT_FALSE(node.IsFusible());
     EXPECT_EQ(node.GetFusionFailReason(), FusionFailReason::BINDMAP_IS_EMPTY);
     EXPECT_EQ(node.GetFusionFailReasonInfo().GetBindmapDetail(), BindmapFailReason::FUNCHDL_NULL);
+}
+
+TEST_F(SkNodeTest, KernelInitNode_RecordsConsistentCapInKernelInfos)
+{
+    UtSkNodeRITaskInternal task{};
+    task.taskId = 13;
+    task.type = ACL_MODEL_RI_TASK_KERNEL;
+    task.params.type = ACL_MODEL_RI_TASK_KERNEL;
+    task.params.kernelTaskParams.funcHandle = reinterpret_cast<aclrtFuncHandle>(0x6101);
+    task.params.kernelTaskParams.numBlocks = 4;
+
+    MOCKER(aclrtGetFunctionName).stubs().will(invoke(FakeAclrtGetFunctionNameRegular));
+    MOCKER(aclrtFunctionGetBinary).stubs().will(invoke(FakeAclrtFunctionGetBinaryForSkNodeCap));
+    MOCKER(rtBinaryGetMetaNum).stubs().will(invoke(FakeRtBinaryGetMetaNumTwoEntriesForSkNode));
+    MOCKER(rtBinaryGetMetaInfo).stubs().will(invoke(FakeRtBinaryGetMetaInfoSameCapForSkNode));
+    MOCKER(aclrtBinaryGetDevAddress).stubs().will(invoke(FakeAclrtBinaryGetDevAddressForSkNode));
+    MOCKER(aclrtGetFunctionAddr).stubs().will(invoke(FakeAclrtGetFunctionAddrForSkNode));
+    MOCKER(rtGetBinBuffer).stubs().will(invoke(FakeRtGetBinBufferEmptyForSkNode));
+
+    SuperKernelKernelNode node(MakeOriginTask(task), ACL_MODEL_RI_TASK_KERNEL, 0, 0, 0, INVALID_TASK_ID);
+    EXPECT_TRUE(node.InitNode());
+    EXPECT_TRUE(node.IsFusible());
+    EXPECT_EQ(node.nodeInfos.kernelInfos.cap, 4U);
+    EXPECT_EQ(node.nodeInfos.kernelInfos.bindmapFailReason, BindmapFailReason::NONE);
+    EXPECT_EQ(node.nodeInfos.kernelInfos.resolvedNum, K_MAX_SPLIT_BIN_COUNT);
+    EXPECT_EQ(node.nodeInfos.kernelInfos.resolvedFuncs[0].funcOffset[0], 0x1000U);
+    EXPECT_EQ(node.nodeInfos.kernelInfos.resolvedFuncs[0].funcOffset[1], 0x2000U);
+}
+
+TEST_F(SkNodeTest, KernelInitNode_InconsistentCapRecordsBindmapReason)
+{
+    UtSkNodeRITaskInternal task{};
+    task.taskId = 14;
+    task.type = ACL_MODEL_RI_TASK_KERNEL;
+    task.params.type = ACL_MODEL_RI_TASK_KERNEL;
+    task.params.kernelTaskParams.funcHandle = reinterpret_cast<aclrtFuncHandle>(0x6102);
+    task.params.kernelTaskParams.numBlocks = 4;
+
+    MOCKER(aclrtGetFunctionName).stubs().will(invoke(FakeAclrtGetFunctionNameRegular));
+    MOCKER(aclrtFunctionGetBinary).stubs().will(invoke(FakeAclrtFunctionGetBinaryForSkNodeCap));
+    MOCKER(rtBinaryGetMetaNum).stubs().will(invoke(FakeRtBinaryGetMetaNumTwoEntriesForSkNode));
+    MOCKER(rtBinaryGetMetaInfo).stubs().will(invoke(FakeRtBinaryGetMetaInfoDifferentCapForSkNode));
+    MOCKER(aclrtBinaryGetDevAddress).stubs().will(invoke(FakeAclrtBinaryGetDevAddressForSkNode));
+    MOCKER(aclrtGetFunctionAddr).stubs().will(invoke(FakeAclrtGetFunctionAddrForSkNode));
+
+    SuperKernelKernelNode node(MakeOriginTask(task), ACL_MODEL_RI_TASK_KERNEL, 0, 0, 0, INVALID_TASK_ID);
+    EXPECT_TRUE(node.InitNode());
+    EXPECT_FALSE(node.IsFusible());
+    EXPECT_EQ(node.nodeInfos.kernelInfos.cap, 0U);
+    EXPECT_EQ(node.nodeInfos.kernelInfos.bindmapFailReason, BindmapFailReason::FUNC_NOT_FOUND);
+    EXPECT_EQ(node.nodeInfos.kernelInfos.resolvedNum, 0U);
+    EXPECT_EQ(node.GetFusionFailReason(), FusionFailReason::BINDMAP_IS_EMPTY);
+    EXPECT_EQ(node.GetFusionFailReasonInfo().GetBindmapDetail(), BindmapFailReason::FUNC_NOT_FOUND);
 }
 
 TEST_F(SkNodeTest, KernelInitNode_TaskGroupNotEmptyRecordsReason)

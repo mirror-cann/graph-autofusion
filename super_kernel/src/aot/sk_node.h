@@ -40,8 +40,13 @@ enum class ScopeFailReason : uint8_t;
 // Forward declaration for DeadlockFailReason (defined in sk_lock_detector.h)
 enum class DeadlockFailReason : uint8_t;
 
+struct SkBindInfo {
+    uint64_t cap = 0;
+    std::array<uint64_t, 4> sknlFuncs = {0, 0, 0, 0};
+};
+
 // SkBindMap type for kernel function binding
-using SkBindMap = std::unordered_map<uint64_t, std::array<uint64_t, 4>>;
+using SkBindMap = std::unordered_map<uint64_t, SkBindInfo>;
 
 // Unfused reason
 enum class FusionFailReason {
@@ -175,6 +180,7 @@ struct KernelInfos {
     SkKernelType kernelType = SkKernelType::DEFAULT;
     uint32_t taskRatio[2] = {0, 0};
     uint32_t resolvedNum = 0;
+    uint64_t cap = 0;
     uint32_t numBlocks = 0;
     uint32_t vecNum = 0;      ///< Number of vector cores required
     uint32_t cubeNum = 0;     ///< Number of cube cores required

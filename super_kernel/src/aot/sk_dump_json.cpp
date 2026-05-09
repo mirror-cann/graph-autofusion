@@ -102,19 +102,19 @@ void GetResolvedFuncsForDump(aclrtFuncHandle funcHandle, aclrtBinHandle binHdl,
         uint32_t validFuncNum = 0;
 
         if (aicItor != bindMap.end()) {
-            uint64_t skFuncOffset = aicItor->second[i];
+            uint64_t skFuncOffset = aicItor->second.sknlFuncs[i];
             info.funcAddr[0] = skFuncOffset + (uint64_t)binDevAddr;
             info.funcOffset[0] = skFuncOffset;
             FillSymbolInfoForCore(binHdl, skFuncOffset, 0, info);
-            validFuncNum += (i == 0 || skFuncOffset != aicItor->second[0]) ? 1 : 0;
+            validFuncNum += (i == 0 || skFuncOffset != aicItor->second.sknlFuncs[0]) ? 1 : 0;
         }
 
         if (aivItor != bindMap.end()) {
-            uint64_t skFuncOffset = aivItor->second[i];
+            uint64_t skFuncOffset = aivItor->second.sknlFuncs[i];
             info.funcAddr[1] = skFuncOffset + (uint64_t)binDevAddr;
             info.funcOffset[1] = skFuncOffset;
             FillSymbolInfoForCore(binHdl, skFuncOffset, 1, info);
-            validFuncNum += (i == 0 || skFuncOffset != aivItor->second[0]) ? 1 : 0;
+            validFuncNum += (i == 0 || skFuncOffset != aivItor->second.sknlFuncs[0]) ? 1 : 0;
         }
 
         if (validFuncNum > 0) {
@@ -217,6 +217,7 @@ void AddBasicKernelInfo(Json& kernelInfos, const KernelInfos& kernelInfo)
     kernelInfos["kernelType"] = to_string(kernelInfo.kernelType);
     kernelInfos["taskRatio"][0] = kernelInfo.taskRatio[0];
     kernelInfos["taskRatio"][1] = kernelInfo.taskRatio[1];
+    kernelInfos["cap"] = kernelInfo.cap;
     kernelInfos["numBlocks"] = kernelInfo.numBlocks;
     kernelInfos["vecNum"] = kernelInfo.vecNum;
     kernelInfos["cubeNum"] = kernelInfo.cubeNum;
