@@ -128,7 +128,7 @@ export AUTOFUSE_DFX_FLAGS="--codegen_compile_debug=true;--debug_dir=/path-to-dum
 注意：在设置的dump图路径下，生成 Autofuse 后端，对于每个融合算子的dump图。
 
 ### 结果分析 & 调测输出分析
-用户开启 TORCH_COMPILE_DEBUG 后，调试信息输出位于执行目录下的torch_compile_debug子目录，带有 autofused_ 前缀的目录为 inductor-npu-ext 相关产物，其余均为 inductor 原生产物。每一个autofused_ 前缀的目录，都表示一个融合算子的白盒结构。具体可参考[inductor-npu-ext使用手册](https://gitcode.com/Ascend/torchair/blob/master/experimental/_inductor_npu_ext/docs/manuals.md)。
+用户开启 TORCH_COMPILE_DEBUG 后，调试信息输出位于执行目录下的torch_compile_debug子目录，带有 autofused_ 前缀的目录为 inductor-npu-ext 相关产物，其余均为 inductor 原生产物。每一个autofused_ 前缀的目录，都表示一个融合算子的白盒结构。如果没有融合算子产生（即未发生融合，需要通过打屏的 "Fallback aten.xxxx $reason: xx原因" 信息去判断原因。具体可参考[inductor-npu-ext使用手册](https://gitcode.com/Ascend/torchair/blob/master/experimental/_inductor_npu_ext/docs/manuals.md)。
 
 用户也可以通过profiling的相关配置，观察使能自动融合后，算子性能收益情况。对于上面的sample用例，可以注释 "model = torch.compile(model, dynamic=False, fullgraph=True)" 这一行，即可走单算子流程。然后对比profiling里，单算子场景所有算子的总耗时，与使能 Inductor+Autofuse，融合算子的总耗时。详细的Profling性能分析工具的使用方法，可参见[Profiling性能分析工具指南](https://hiascend.com/document/redirect/CannCommunityToolProfiling)。
 

@@ -133,14 +133,14 @@ init_env.sh](../scripts/init_env.sh)
         # 确保安装包具有可执行权限
         chmod +x Ascend-cann-toolkit_${cann_version}_linux-${arch}.run
         # 安装命令
-        /Ascend-cann-toolkit_${cann_version}_linux-${arch}.run --install --install-path=${install_path}
+        ./Ascend-cann-toolkit_${cann_version}_linux-${arch}.run --install --install-path=${install_path}
         ```
 
         - `${cann_version}`：表示CANN包版本号。
         - `${arch}`：表示CPU架构，如`aarch64`、`x86_64`。
         - `${install_path}`：表示指定安装路径，需要与Toolkit包安装在相同路径，root用户默认安装在`/usr/local/Ascend`目录。
     
-     2. 安装CANN ops算子包（可选，仅运行[样例](../examples/README.md)依赖）。
+     2. 安装CANN ops算子包。
 
         ```bash
         # 确保安装包具有可执行权限

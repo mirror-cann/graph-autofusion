@@ -148,6 +148,61 @@ bash build.sh --pkg
 - ${cann_version} 表示 cann 版本号。
 - ${arch} 表示 CPU 架构，如 aarch64、x86_64。
 
+编译过程中，CMake 会通过 `ExternalProject_Add` 从外网（`https://gitcode.com/cann-src-third-party/`）自动下载 autofuse 所需的第三方源码包（abseil-cpp、boost、json、protobuf、symengine 等）。如果您的编译环境无法直接访问外网（如企业内网、Docker 容器默认 bridge 网络），请根据实际情况选择以下解决方案：
+ 
+**方案一：配置网络代理（推荐）**
+如果环境中有 HTTP 代理可访问外网，设置 `http_proxy` / `https_proxy` 环境变量后执行编译。`build.sh` 会自动将这些代理变量传递给 CMake 子进程：
+
+```shell
+# 设置代理（根据实际代理地址修改）
+export http_proxy=http://user:password@proxy-server:port
+export https_proxy=http://user:password@proxy-server:port
+
+# 执行编译
+bash build.sh --pkg
+```
+
+> [!NOTE] 说明
+> - `build.sh` 会自动检测并继承当前 shell 中的 `http_proxy` 和 `https_proxy` 环境变量，无需额外配置。
+> - 如果使用 git 代理（通过 `git config --global http.proxy` 配置），需确认 shell 环境中也设置了对应的环境变量。可通过 `echo $http_proxy` 验证。
+
+**方案二：手动预下载第三方包**
+在不具备任何外网访问能力的环境中，可在联网机器上预先下载第三方源码包，拷贝到编译环境指定目录后离线编译。
+
+1. 在联网机器上下载以下第三方包：
+
+   | 第三方包 | 版本 | 下载地址 |
+   |---------|------|---------|
+   | abseil-cpp | 20230802.1 | https://gitcode.com/cann-src-third-party/abseil-cpp/releases/download/20230802.1/abseil-cpp-20230802.1.tar.gz |
+   | json | 3.11.3 | https://gitcode.com/cann-src-third-party/json/releases/download/v3.11.3/json-3.11.3.tar.gz |
+   | boost | 1.87.0 | https://gitcode.com/cann-src-third-party/boost/releases/download/v1.87.0/boost_1_87_0.tar.gz |
+   | protobuf | 25.1 | https://gitcode.com/cann-src-third-party/protobuf/releases/download/v25.1/protobuf-25.1.tar.gz |
+   | symengine | 0.12.0 | https://gitcode.com/cann-src-third-party/symengine/releases/download/v0.12.0/symengine-0.12.0.tar.gz |
+
+2. 将下载的包拷贝到编译环境的 `output/third_party/` 对应子目录下（如不存在则创建）：
+
+   ```shell
+   # 在源码根目录下创建目录结构
+   mkdir -p output/third_party/{abseil-cpp,json,boost,protoc,symengine}
+
+   # 将下载的包放入对应目录（文件名须与下表一致）
+   # abseil-cpp-20230802.1.tar.gz  → output/third_party/abseil-cpp/
+   # json-3.11.3.tar.gz            → output/third_party/json/
+   # boost_1_87_0.tar.gz           → output/third_party/boost/
+   # protobuf-25.1.tar.gz          → output/third_party/protoc/
+   # symengine-0.12.0.tar.gz       → output/third_party/symengine/
+   ```
+
+3. 执行编译时，通过 `--cann_3rd_lib_path` 指定本地路径，跳过下载步骤：
+
+   ```shell
+   bash build.sh --pkg --cann_3rd_lib_path=$(pwd)/output/third_party
+   ```
+
+> [!NOTE] 说明
+> - 如果不指定 `--cann_3rd_lib_path`，默认查找路径为 `./output/third_party`，因此只要包放在该默认路径下，编译时也可省略此参数。
+> - CMake 构建脚本会优先检查本地路径是否已存在对应 tarball，存在则跳过下载。
+
 ### 4.4 测试验证
 
 编译完成后，用户可以进行开发者测试，在执行本章节操作之前，确保已完成[环境准备](#环境准备)。

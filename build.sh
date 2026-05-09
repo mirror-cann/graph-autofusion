@@ -487,6 +487,17 @@ reserved_module_test_suite() {
 main() {
   checkopts "$@"
 
+  # Detect proxy settings for third-party tarball downloads.
+  # CMake ExternalProject_Add downloads via curl, which reads http_proxy/https_proxy
+  # from the process environment. Remind users to export these if git works but
+  # cmake download fails (common when proxy is only configured in ~/.gitconfig).
+  if [ -n "&#36;{http_proxy}" ] || [ -n "&#36;{https_proxy}" ]; then
+    echo "Info: Proxy settings detected in environment:"
+    [ -n "&#36;{http_proxy}" ] && echo "  http_proxy=&#36;{http_proxy}"
+    [ -n "&#36;{https_proxy}" ] && echo "  https_proxy=&#36;{https_proxy}"
+    echo "  These will be inherited by CMake's curl downloads automatically."
+  fi
+
   clean_coverage_artifacts
 
   if [ "X$ENABLE_AUTOFUSE" == "Xon" ]; then

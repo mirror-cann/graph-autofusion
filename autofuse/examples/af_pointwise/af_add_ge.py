@@ -27,7 +27,7 @@ class MyModel(nn.Module):
         super().__init__()
     
     def forward(self, x, y, z):
-        result = torch.where(torch.eq(x, -1), y, z)
+        result = torch.ge(torch.add(x, y), z)
         return result
 
 # ===== 3. 使能 NPU + Inductor =====
