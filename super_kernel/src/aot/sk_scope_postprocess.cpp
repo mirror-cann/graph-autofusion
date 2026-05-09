@@ -38,7 +38,7 @@ SuperKernelBaseNode* AdvanceNodeWithinScope(SuperKernelGraph& graph, SuperKernel
         }
         node = graph.GetNodeById(node->GetNextNodeId());
         if (node == nullptr) {
-            SK_LOGI("advance node failed: next node not found in graph");
+            SK_LOGI("advance node unsuccessful: next node not found in graph");
             return nullptr;
         }
         --stepCount;
@@ -68,7 +68,7 @@ uint64_t FindKernelNodeWithFrontReserve(SuperKernelGraph& graph, SuperKernelBase
         }
         curNode = graph.GetNodeById(curNode->GetNextNodeId());
     }
-    SK_LOGI("find kernel with reserve failed: headNodeId=%lu, tailNodeId=%lu, frontReserveCount=%u",
+    SK_LOGI("find kernel with reserve unsuccessful: headNodeId=%lu, tailNodeId=%lu, frontReserveCount=%u",
             headNode == nullptr ? INVALID_TASK_ID : headNode->GetNodeId(), tailNodeId, frontReserveCount);
     return INVALID_TASK_ID;
 }
@@ -426,11 +426,11 @@ bool GetMainAndSubStreamOrder(SuperKernelGraph& graph, std::vector<StreamPostPla
     uint32_t entrySubStreamIdx = INVALID_STREAM_ID;
     if (!SelectMainAndEntryStream(plans, candidates, streamCount, mainStreamIdx, entrySubStreamIdx,
                                   extInfo.skMainNodeId)) {
-        SK_LOGI("failed to find main SK node in scope during post-process, skip update");
+        SK_LOGI("unable to find main SK node in scope during post-process, skip update");
         return false;
     }
     if (entrySubStreamIdx == INVALID_STREAM_ID) {
-        SK_LOGI("failed to find entry sub stream in scope during post-process, skip update");
+        SK_LOGI("unable to find entry sub stream in scope during post-process, skip update");
         return false;
     }
     SK_LOGI("main stream and entry sub stream selected: mainStreamIdx=%u, entrySubStreamIdx=%u",
@@ -709,7 +709,7 @@ bool SuperKernelScopePostProcessor::PostProcess(SuperKernelScopeInfo& scopeInfo)
     std::vector<uint32_t> subStreamOrder;
     if (!GetMainAndSubStreamOrder(graph, plans, scopeInfo.GetScopeStreamInfos(), tempExtInfo, needFrontWaitCount,
                                   mainStreamIdx, subStreamOrder)) {
-        SK_LOGI("scope post-process unprocessable: failed to select main stream and sub stream");
+        SK_LOGI("scope post-process unprocessable: unable to select main stream and sub stream");
         return false;
     }
     SK_LOGI("select main stream and sub stream done.");

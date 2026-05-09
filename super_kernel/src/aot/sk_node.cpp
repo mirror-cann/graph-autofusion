@@ -120,7 +120,7 @@ SkBindMap InitSuperKernelBindMap(aclrtBinHandle binHdl)
 
     size_t metaNum = 0;
     if (int ret = rtBinaryGetMetaNum(binHdl, RT_BINARY_TYPE_SK_INFO, &metaNum) != 0) {
-        SK_LOGI("rtBinaryGetMetaNum failed, ret=%d", ret);
+        SK_LOGI("rtBinaryGetMetaNum unsuccessful, ret=%d", ret);
         return SkBindMap();
     }
     if (metaNum == 0) {

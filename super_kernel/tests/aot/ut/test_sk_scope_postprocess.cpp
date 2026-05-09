@@ -878,3 +878,224 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_StreamSelectFailed_EventAddr
     EXPECT_EQ(resetAfter->nodeInfos.syncInfos.addrValue, nullptr);
     EXPECT_EQ(waitAfter->nodeInfos.syncInfos.addrValue, nullptr);
 }
+
+// Test case for "advance node unsuccessful: next node not found in graph"
+TEST_F(SuperKernelScopePostprocessTest, PostProcess_AdvanceNodeNextNotFound_Failed)
+{
+    ScopedModelContext modelCtx(reinterpret_cast<aclmdlRI>(0x1));
+
+    // stream0 has preNodeId, will trigger needFrontWait
+    auto stream0Kernel = std::make_unique<SuperKernelKernelNode>(
+        nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_STREAM_ID, 1);
+    stream0Kernel->SetNodeType(SkNodeType::NODE_KERNEL);
+    stream0Kernel->nodeInfos.kernelInfos.kernelType = SkKernelType::AIC_ONLY;
+    stream0Kernel->SetNodeId(100);
+    stream0Kernel->SetPreNodeId(1);  // has pre node, triggers needFrontWait
+    stream0Kernel->SetNextNodeId(INVALID_TASK_ID);
+    stream0Kernel->SetIsFusible(true);
+
+    // stream1 has nextNodeId pointing to non-existent node
+    auto stream1Kernel0 = std::make_unique<SuperKernelKernelNode>(
+        nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 1, INVALID_STREAM_ID, INVALID_TASK_ID);
+    stream1Kernel0->SetNodeType(SkNodeType::NODE_KERNEL);
+    stream1Kernel0->nodeInfos.kernelInfos.kernelType = SkKernelType::AIC_ONLY;
+    stream1Kernel0->SetNodeId(200);
+    stream1Kernel0->SetPreNodeId(INVALID_TASK_ID);
+    stream1Kernel0->SetNextNodeId(999);  // next node does not exist
+    stream1Kernel0->SetIsFusible(true);
+
+    SuperKernelScopeInfo scopeInfo;
+    scopeInfo.nodes_ = {stream0Kernel.get(), stream1Kernel0.get()};
+
+    ScopeStreamInfo stream0;
+    stream0.streamIdx = 0;
+    stream0.headNodeIdx = 100;
+    stream0.tailNodeIdx = 100;
+    stream0.nodeSize = 2;
+
+    ScopeStreamInfo stream1;
+    stream1.streamIdx = 1;
+    stream1.headNodeIdx = 200;
+    stream1.tailNodeIdx = 200;
+    stream1.nodeSize = 1;
+
+    scopeInfo.scopeStreamInfos_ = {stream0, stream1};
+
+    graph->graphMap[100] = std::move(stream0Kernel);
+    graph->graphMap[200] = std::move(stream1Kernel0);
+
+    SuperKernelScopePostProcessor postProcessor(*graph);
+    bool result = postProcessor.PostProcess(scopeInfo);
+
+    EXPECT_FALSE(result);
+    EXPECT_TRUE(scopeInfo.extInfo_.filteredNodes.empty());
+    EXPECT_EQ(scopeInfo.extInfo_.skMainNodeId, INVALID_TASK_ID);
+}
+
+// Test case for "find kernel with reserve unsuccessful"
+TEST_F(SuperKernelScopePostprocessTest, PostProcess_FindKernelWithReserveUnsuccessful_Failed)
+{
+    auto notifyNode = std::make_unique<SuperKernelMemoryNode>(
+        nullptr, ACL_MODEL_RI_TASK_EVENT_RECORD, 0, 0, INVALID_STREAM_ID, INVALID_TASK_ID);
+    notifyNode->SetNodeType(SkNodeType::NODE_NOTIFY);
+    notifyNode->SetNodeId(100);
+    notifyNode->SetPreNodeId(INVALID_TASK_ID);
+    notifyNode->SetNextNodeId(INVALID_TASK_ID);
+    notifyNode->nodeInfos.syncInfos.eventId = 100;
+    notifyNode->SetIsFusible(true);
+
+    auto waitNode = std::make_unique<SuperKernelMemoryNode>(
+        nullptr, ACL_MODEL_RI_TASK_EVENT_WAIT, 0, 1, INVALID_STREAM_ID, INVALID_TASK_ID);
+    waitNode->SetNodeType(SkNodeType::NODE_WAIT);
+    waitNode->SetNodeId(200);
+    waitNode->SetPreNodeId(INVALID_TASK_ID);
+    waitNode->SetNextNodeId(INVALID_TASK_ID);
+    waitNode->nodeInfos.syncInfos.eventId = 100;
+    waitNode->SetIsFusible(true);
+
+    SuperKernelScopeInfo scopeInfo;
+    scopeInfo.nodes_ = {notifyNode.get(), waitNode.get()};
+
+    ScopeStreamInfo stream0;
+    stream0.streamIdx = 0;
+    stream0.headNodeIdx = 100;
+    stream0.tailNodeIdx = 100;
+    stream0.nodeSize = 1;
+
+    ScopeStreamInfo stream1;
+    stream1.streamIdx = 1;
+    stream1.headNodeIdx = 200;
+    stream1.tailNodeIdx = 200;
+    stream1.nodeSize = 1;
+
+    scopeInfo.scopeStreamInfos_ = {stream0, stream1};
+
+    graph->graphMap[100] = std::move(notifyNode);
+    graph->graphMap[200] = std::move(waitNode);
+
+    SuperKernelScopePostProcessor postProcessor(*graph);
+    bool result = postProcessor.PostProcess(scopeInfo);
+
+    EXPECT_FALSE(result);
+    EXPECT_TRUE(scopeInfo.extInfo_.filteredNodes.empty());
+    EXPECT_EQ(scopeInfo.extInfo_.skMainNodeId, INVALID_TASK_ID);
+}
+
+// Test case for "unable to find main SK node in scope during post-process, skip update"
+// and "scope post-process unprocessable: unable to select main stream and sub stream"
+TEST_F(SuperKernelScopePostprocessTest, PostProcess_UnableToFindMainSkNode_Failed)
+{
+    ScopedModelContext modelCtx(reinterpret_cast<aclmdlRI>(0x1));
+
+    // stream0 has preNodeId and nextNodeId, requires frontWait and backBlock
+    auto stream0Kernel = std::make_unique<SuperKernelKernelNode>(
+        nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_STREAM_ID, 1);
+    stream0Kernel->SetNodeType(SkNodeType::NODE_KERNEL);
+    stream0Kernel->nodeInfos.kernelInfos.kernelType = SkKernelType::AIC_ONLY;
+    stream0Kernel->SetNodeId(100);
+    stream0Kernel->SetPreNodeId(1);   // has pre node, triggers needFrontWait
+    stream0Kernel->SetNextNodeId(2);  // has next node, triggers needBackBlock
+    stream0Kernel->SetIsFusible(true);
+
+    // stream1 also has preNodeId and nextNodeId
+    auto stream1Kernel = std::make_unique<SuperKernelKernelNode>(
+        nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 1, INVALID_STREAM_ID, 3);
+    stream1Kernel->SetNodeType(SkNodeType::NODE_KERNEL);
+    stream1Kernel->nodeInfos.kernelInfos.kernelType = SkKernelType::AIC_ONLY;
+    stream1Kernel->SetNodeId(200);
+    stream1Kernel->SetPreNodeId(3);   // has pre node, triggers needFrontWait
+    stream1Kernel->SetNextNodeId(4);  // has next node, triggers needBackBlock
+    stream1Kernel->SetIsFusible(true);
+
+    SuperKernelScopeInfo scopeInfo;
+    scopeInfo.nodes_ = {stream0Kernel.get(), stream1Kernel.get()};
+
+    // Set nodeSize too small to satisfy subStream/subStreamEntry requirements
+    // Each needs: frontWaitNodeCount (2) + backBlockNodeCount (2) = 4 nodes
+    ScopeStreamInfo stream0;
+    stream0.streamIdx = 0;
+    stream0.headNodeIdx = 100;
+    stream0.tailNodeIdx = 100;
+    stream0.nodeSize = 1;  // too small for subStreamEntry (needs 4-1=3)
+
+    ScopeStreamInfo stream1;
+    stream1.streamIdx = 1;
+    stream1.headNodeIdx = 200;
+    stream1.tailNodeIdx = 200;
+    stream1.nodeSize = 1;  // too small for subStreamEntry (needs 4-1=3)
+
+    scopeInfo.scopeStreamInfos_ = {stream0, stream1};
+
+    graph->graphMap[100] = std::move(stream0Kernel);
+    graph->graphMap[200] = std::move(stream1Kernel);
+
+    SuperKernelScopePostProcessor postProcessor(*graph);
+    bool result = postProcessor.PostProcess(scopeInfo);
+
+    EXPECT_FALSE(result);
+    EXPECT_TRUE(scopeInfo.extInfo_.filteredNodes.empty());
+    EXPECT_EQ(scopeInfo.extInfo_.skMainNodeId, INVALID_TASK_ID);
+}
+
+// Test case for "unable to find entry sub stream in scope during post-process, skip update"
+// This case: only one stream qualifies as both mainStream and subStreamEntry candidate
+// When selecting it as main, no other stream can be entry sub stream
+TEST_F(SuperKernelScopePostprocessTest, PostProcess_UnableToFindEntrySubStream_Failed)
+{
+    ScopedModelContext modelCtx(reinterpret_cast<aclmdlRI>(0x1));
+
+    // stream0: has preNodeId (triggers needFrontWait), has kernel, large nodeSize
+    // Can be both mainStream and subStreamEntry candidate
+    auto stream0Kernel0 = std::make_unique<SuperKernelKernelNode>(
+        nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_STREAM_ID, 1);
+    stream0Kernel0->SetNodeType(SkNodeType::NODE_KERNEL);
+    stream0Kernel0->nodeInfos.kernelInfos.kernelType = SkKernelType::AIC_ONLY;
+    stream0Kernel0->SetNodeId(100);
+    stream0Kernel0->SetPreNodeId(1);         // has pre, triggers needFrontWait
+    stream0Kernel0->SetNextNodeId(INVALID_TASK_ID);
+    stream0Kernel0->SetIsFusible(true);
+
+    // stream1: has preNodeId, has kernel, but nodeSize too small for subStream
+    // Can only be subStreamEntry candidate, NOT mainStream candidate
+    auto stream1Kernel = std::make_unique<SuperKernelKernelNode>(
+        nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 1, INVALID_STREAM_ID, INVALID_TASK_ID);
+    stream1Kernel->SetNodeType(SkNodeType::NODE_KERNEL);
+    stream1Kernel->nodeInfos.kernelInfos.kernelType = SkKernelType::AIC_ONLY;
+    stream1Kernel->SetNodeId(200);
+    stream1Kernel->SetPreNodeId(1);
+    stream1Kernel->SetNextNodeId(INVALID_TASK_ID);
+    stream1Kernel->SetIsFusible(true);
+
+    SuperKernelScopeInfo scopeInfo;
+    scopeInfo.nodes_ = {stream0Kernel0.get(), stream1Kernel.get()};
+
+    // stream0: nodeSize=1, needFrontWait=true, needBackBlock=false
+    // subStreamNeedCount = 2*1 + 2*0 = 2, subStreamEntryNeedCount = 2-1 = 1
+    // 1 < 2, so cannot be subStream candidate; 1 >= 1, so can be subStreamEntry candidate
+    ScopeStreamInfo stream0;
+    stream0.streamIdx = 0;
+    stream0.headNodeIdx = 100;
+    stream0.tailNodeIdx = 100;
+    stream0.nodeSize = 1;
+
+    // stream1: nodeSize=1, needFrontWait=true, needBackBlock=false
+    // subStreamNeedCount = 2, subStreamEntryNeedCount = 1
+    // Same as stream0, only subStreamEntry candidate
+    ScopeStreamInfo stream1;
+    stream1.streamIdx = 1;
+    stream1.headNodeIdx = 200;
+    stream1.tailNodeIdx = 200;
+    stream1.nodeSize = 1;
+
+    scopeInfo.scopeStreamInfos_ = {stream0, stream1};
+
+    graph->graphMap[100] = std::move(stream0Kernel0);
+    graph->graphMap[200] = std::move(stream1Kernel);
+
+    SuperKernelScopePostProcessor postProcessor(*graph);
+    bool result = postProcessor.PostProcess(scopeInfo);
+
+    EXPECT_FALSE(result);
+    EXPECT_TRUE(scopeInfo.extInfo_.filteredNodes.empty());
+    EXPECT_EQ(scopeInfo.extInfo_.skMainNodeId, INVALID_TASK_ID);
+}
