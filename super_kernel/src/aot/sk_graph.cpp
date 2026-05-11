@@ -77,7 +77,7 @@ bool IsNotifyByMemoryWaitRule(uint64_t writeMemoryValue, uint64_t memoryWaitValu
         case SkMemoryWaitFlag::NOR:
             return (~(writeMemoryValue | memoryWaitValue)) != 0;
         default:
-            SK_LOGW("Unknown waitFlag %u for event %lu, treated as reset node", waitFlag, eventId);
+            SK_LOGW("Unknown waitFlag %u for event 0x%lx, treated as reset node", waitFlag, eventId);
             return false;
     }
 }
@@ -626,12 +626,12 @@ bool SuperKernelGraph::PostProcessMemoryNode() {
                     writeNode->SetIsFusible(true);
                     if (isReset) {
                         if (!AddEventAssociateReset(eventId, writeNode)) {
-                            SK_LOGE("Failed to associate reset event %lu with node %lu", eventId, writeNodeId);
+                            SK_LOGE("Failed to associate reset event 0x%lx with node %lu", eventId, writeNodeId);
                             return false;
                         }
                     } else {
                         if (!AddEventAssociateNotify(eventId, writeNode)) {
-                            SK_LOGE("Failed to associate notify event %lu with node %lu", eventId, writeNodeId);
+                            SK_LOGE("Failed to associate notify event 0x%lx with node %lu", eventId, writeNodeId);
                             return false;
                         }
                     }
@@ -645,7 +645,7 @@ bool SuperKernelGraph::PostProcessMemoryNode() {
                 auto* waitNode = GetNodeById(waitNodeId);
                 if (waitNode == nullptr || 
                     waitNode->GetNodeType() != SkNodeType::NODE_MEMORY_WAIT) {
-                    SK_LOGE("Invalid wait node found for event %lu, %s", eventId, waitNode ? waitNode->Format().c_str() : "NOT_FOUND");
+                    SK_LOGE("Invalid wait node found for event 0x%lx, %s", eventId, waitNode ? waitNode->Format().c_str() : "NOT_FOUND");
                     return false;
                 }
 
@@ -656,7 +656,7 @@ bool SuperKernelGraph::PostProcessMemoryNode() {
                     firstWaitInfo = {memoryValue, flag};
                 } else if (memoryValue != firstWaitInfo->first || flag != firstWaitInfo->second) {
                     // Inconsistent wait parameters found, log all waitNode details
-                    SK_LOGE("waitNode list contains inconsistent memoryValue/flag combinations, eventId: %lu",
+                    SK_LOGE("waitNode list contains inconsistent memoryValue/flag combinations, eventId: 0x%lx",
                         eventId);
                     for (auto waitNodeId : memoryInfo.waitNodeIdList) {
                         auto* waitNode = GetNodeById(waitNodeId);

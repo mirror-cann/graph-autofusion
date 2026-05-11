@@ -73,30 +73,29 @@ uint64_t FindKernelNodeWithFrontReserve(SuperKernelGraph& graph, SuperKernelBase
     return INVALID_TASK_ID;
 }
 
-bool IsMemoryDerivedNotify(const SuperKernelBaseNode* node)
+bool HasAddrValue(const SuperKernelBaseNode& node)
 {
-    return node != nullptr && node->GetNodeType() == SkNodeType::NODE_NOTIFY &&
-        !node->GetCorrespondingMemoryWriteNodeIds().empty();
-}
-
-bool HasMatchedWaitsInScope(const SuperKernelBaseNode* node)
-{
-    return node != nullptr && !node->GetCorrespondingWaitNodeIds().empty();
-}
-
-bool ShouldCancelBalancedNotify(const SuperKernelBaseNode* node)
-{
-    if (node == nullptr || node->GetNodeType() != SkNodeType::NODE_NOTIFY) {
-        return false;
+    switch (node.GetNodeType()) {
+        case SkNodeType::NODE_NOTIFY:
+        case SkNodeType::NODE_WAIT:
+        case SkNodeType::NODE_RESET:
+            return node.GetNodeInfos().syncInfos.addrValue != nullptr;
+        default:
+            return false;
     }
+}
 
-    if (!IsMemoryDerivedNotify(node)) {
+bool ShouldCancelNotify(const SuperKernelBaseNode& node)
+{
+    // Regular notify nodes without pre-applied addrValue can follow the default cancellation rule.
+    if (!HasAddrValue(node)) {
         return true;
     }
-
-    // Memory-derived notify carries VALUE_WRITE semantics. Keep write-only
-    // memory notify, but cancel paired write+wait when both sides are in scope.
-    return HasMatchedWaitsInScope(node);
+    // For notify nodes with pre-applied addrValue, keep write-only VALUE_WRITE notify.
+    // A non-empty correspondingWaitNodeIds means this notify originally had paired waits.
+    // Reaching eventCounts[eventId] == 0 means those waits are cancelled in this scope,
+    // so the paired notify can be cancelled as well.
+    return !node.GetCorrespondingWaitNodeIds().empty();
 }
 
 std::vector<SuperKernelBaseNode*> FilterCancelledNodes(const std::vector<SuperKernelBaseNode*>& nodes)
@@ -131,7 +130,7 @@ std::vector<SuperKernelBaseNode*> FilterCancelledNodes(const std::vector<SuperKe
         auto nodeType = curNode->GetNodeType();
         // Notify and Reset is removable only when expected and observed waits are fully matched.
         if (nodeType == SkNodeType::NODE_NOTIFY && eventCounts[eventId] == 0) {
-            if (ShouldCancelBalancedNotify(curNode)) {
+            if (ShouldCancelNotify(*curNode)) {
                 SK_LOGI("Event[0x%lx] cancelled in post-process: NOTIFY node info : %s", eventId,
                         curNode->Format().c_str());
                 continue;
@@ -561,13 +560,18 @@ bool SuperKernelScopePostProcessor::ValidateScopeStreamNodes(const SuperKernelSc
     return true;
 }
 
-bool SuperKernelScopePostProcessor::ApplyEventMemoryForFilteredNodes(
-    std::vector<SuperKernelBaseNode*>& filteredNodes, std::vector<SuperKernelBaseNode*>& needUpdateNodes)
+bool SuperKernelScopePostProcessor::ApplyEventMemoryForFilteredNodes(std::vector<SuperKernelBaseNode*>& filteredNodes,
+                                                                     std::vector<SuperKernelBaseNode*>& needUpdateNodes)
 {
     for (auto node : filteredNodes) {
         auto nodeType = node->GetNodeType();
         if (nodeType == SkNodeType::NODE_NOTIFY || nodeType == SkNodeType::NODE_WAIT
             || nodeType == SkNodeType::NODE_RESET) {
+            if (HasAddrValue(*node)) {
+                SK_LOGI("event memory resource already exists, skip: nodeId=%lu, nodeType=%d",
+                        node->GetNodeId(), static_cast<int>(nodeType));
+                continue;
+            }
             if (!ApplyEventMemoryResource(graph, node, needUpdateNodes)) {
                 SK_LOGE("event memory resource apply failed during post-process: nodeId=%lu, nodeType=%d",
                         node->GetNodeId(), static_cast<int>(nodeType));
