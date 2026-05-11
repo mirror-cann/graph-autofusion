@@ -13,7 +13,6 @@
 #include "common/checker.h"
 
 namespace af {
-using ge::graphStatus;
 class AscIRException : public std::exception {
  public:
   struct Info {

@@ -10,7 +10,7 @@
 
 #include "axes_reorder_solver_code_common.h"
 
-namespace af { namespace att {
+namespace att {
 
 // ============================================================================
 // Section 1: Core Data Structures
@@ -163,4 +163,3 @@ std::string GenAxesReorderSolverInput() {
 }
 
 } // namespace att
-}  // namespace af

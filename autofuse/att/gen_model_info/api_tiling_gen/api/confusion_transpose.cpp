@@ -17,7 +17,7 @@
 #include "api_tiling_gen/api_tiling_gen_register.h"
 #include "transpose_base_type.h"
 
-namespace af { namespace att {
+namespace att {
 const std::string kConfusionTransposeType = "Transpose";
 std::string GetConfusionTransposeOnlyTilingFunc() {
   return R"(
@@ -496,4 +496,3 @@ enum class AutoFuseTransposeType: uint8_t {
 REGISTER_API_TILING_FUNC(kConfusionTransposeType, GetConfusionTransposeTilingCall, GetConfusionTransposeTilingDefine,
                          GetConfusionTransposeTilingHeadFiles);
 }  // namespace att
-}  // namespace af

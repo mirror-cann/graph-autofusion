@@ -15,7 +15,7 @@
 #include <utility>
 #include "perf_param.h"
 
-namespace af { namespace att {
+namespace att {
 struct NodeDetail {
   std::string name;
   std::string optype;
@@ -107,5 +107,4 @@ inline ge::Status DefaultGetPerf([[maybe_unused]] const std::vector<TensorShapeI
   return ge::SUCCESS;
 }
 }  // namespace att
-}  // namespace af
 #endif

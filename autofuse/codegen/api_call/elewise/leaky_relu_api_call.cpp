@@ -18,13 +18,13 @@
 #include "common/checker.h"
 #include "api_call/utils/api_call_factory.h"
 
-namespace af { namespace codegen {
+namespace codegen {
 using namespace std;
 using namespace af::ops;
 using namespace af::ascir_op;
 using namespace ascgen_utils;
 
-Status LeakyReluApiCall::Generate(const TPipe &tpipe, const std::vector<::ascir::AxisId> &current_axis,
+Status LeakyReluApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
                                   const std::vector<std::reference_wrapper<const Tensor>> &inputs,
                                   const std::vector<std::reference_wrapper<const Tensor>> &outputs,
                                   std::string &result) const {
@@ -43,7 +43,7 @@ Status LeakyReluApiCall::Generate(const TPipe &tpipe, const std::vector<::ascir:
   return ge::SUCCESS;
 }
 
-Status LeakyReluApiCall::ParseAttr(const ::ascir::NodeView &node) {
+Status LeakyReluApiCall::ParseAttr(const ascir::NodeView &node) {
   GE_CHK_GRAPH_STATUS_RET(node->attr.ir_attr->GetAttrValue("negative_slope", this->negative_slope),
                           "Failed to get LeakyRelu negative_slope attr, node = %s", node->GetNamePtr());
   GELOGI("name:%s, negative_slope:%f", node->GetNamePtr(), this->negative_slope);
@@ -52,4 +52,3 @@ Status LeakyReluApiCall::ParseAttr(const ::ascir::NodeView &node) {
 
 static ApiCallRegister<LeakyReluApiCall> register_leaky_relu_api_call("LeakyReluApiCall");
 }  // namespace codegen
-}  // namespace af

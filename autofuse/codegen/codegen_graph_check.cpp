@@ -14,7 +14,7 @@
 #include "common/platform_context.h"
 #include "common_utils.h"
 
-namespace af { namespace codegen {
+namespace codegen {
 
 static std::string VectorToStr(const std::vector<ge::DataType> &vec) {
   std::string result = "[";
@@ -51,7 +51,7 @@ bool ProcessDynamicInput(const af::AscNodePtr &node, size_t index, size_t count,
   return true;
 }
 
-bool CollectInputDtypesForOutput(const ::ascir::NodeView &node, std::vector<ge::DataType> &input_dtypes) {
+bool CollectInputDtypesForOutput(const ascir::NodeView &node, std::vector<ge::DataType> &input_dtypes) {
   std::set<ge::DataType> unique_dtypes;
   for (const auto input : node->inputs()) {
     unique_dtypes.insert(input->attr.dtype);
@@ -61,7 +61,7 @@ bool CollectInputDtypesForOutput(const ::ascir::NodeView &node, std::vector<ge::
   return true;
 }
 
-bool CollectInputDtypesForWorkspace(const ::ascir::NodeView &node, std::vector<ge::DataType> &input_dtypes) {
+bool CollectInputDtypesForWorkspace(const ascir::NodeView &node, std::vector<ge::DataType> &input_dtypes) {
   std::set<ge::DataType> unique_dtypes;
   if (node->inputs().size() != 0) {
     for (const auto input : node->inputs()) {
@@ -76,7 +76,7 @@ bool CollectInputDtypesForWorkspace(const ::ascir::NodeView &node, std::vector<g
   return true;
 }
 
-bool CollectInputDtypes(const ::ascir::NodeView &node, std::vector<ge::DataType> &input_dtypes) {
+bool CollectInputDtypes(const ascir::NodeView &node, std::vector<ge::DataType> &input_dtypes) {
   if (node->GetType() == af::ascir_op::Output::Type) {
     // Output因为前面做了一个可变ir的操作，即ir是必选输入，但是实际行为支持是动态输入或者必选两种，因此特殊处理一下
     return CollectInputDtypesForOutput(node, input_dtypes);
@@ -121,7 +121,7 @@ bool CollectInputDtypes(const ::ascir::NodeView &node, std::vector<ge::DataType>
   return true;
 }
 
-bool CollectOutputDtypes(const ::ascir::NodeView &node, std::vector<ge::DataType> &output_dtypes) {
+bool CollectOutputDtypes(const ascir::NodeView &node, std::vector<ge::DataType> &output_dtypes) {
   // 由于目前schedule在某些场景下会丢失Output节点输出tensor的数据类型，这里暂时按照输入tensor的数据类型收集，schedule解决后删除.
   if (node->GetType() == af::ascir_op::Output::Type) {
     output_dtypes.emplace_back(node->inputs()[0]->attr.dtype);
@@ -152,7 +152,7 @@ bool CollectOutputDtypes(const ::ascir::NodeView &node, std::vector<ge::DataType
   return true;
 }
 
-Status IsDataTypeSupported(const ::ascir::ImplGraph &graph) {
+Status IsDataTypeSupported(const ascir::ImplGraph &graph) {
   std::set<string> ignore_node_type = {"Ge", "Eq", "Ne", "Gt", "Le", "Broadcast", "Nop", "Sign", "LogicalNot",
                                        "LogicalOr", "LogicalAnd", "Concat", "Select", "Where", "Ub2ub", "BitwiseAnd",
                                        "Split"};
@@ -186,7 +186,7 @@ Status IsDataTypeSupported(const ::ascir::ImplGraph &graph) {
   return af::SUCCESS;
 }
 
-Status IsRepeatStrideValid(const ::ascir::ImplGraph &graph) {
+Status IsRepeatStrideValid(const ascir::ImplGraph &graph) {
   for (const auto &node : graph.GetAllNodes()) {
     if (node->GetType() == "Scalar" || node->GetType() == "Data" || node->GetType() == "Output" ||
         node->GetType() == "Workspace") {
@@ -207,7 +207,7 @@ Status IsRepeatStrideValid(const ::ascir::ImplGraph &graph) {
   return af::SUCCESS;
 }
 
-Status IsGraphNodeValid(const ::ascir::ImplGraph &graph) {
+Status IsGraphNodeValid(const ascir::ImplGraph &graph) {
   for (const auto &node : graph.GetAllNodes()) {
     auto impl = ascgen_utils::GetAscIrCodegenImpl(node->GetType());
     GE_ASSERT_NOTNULL(impl, "GetAscIrCodegenImpl of node %s[%s] is null", node->GetTypePtr(), node->GetNamePtr());
@@ -216,7 +216,7 @@ Status IsGraphNodeValid(const ::ascir::ImplGraph &graph) {
   return af::SUCCESS;
 }
 
-Status CheckSingleGraphValidity(const ::ascir::ImplGraph &graph) {
+Status CheckSingleGraphValidity(const ascir::ImplGraph &graph) {
   GE_ASSERT_SUCCESS(IsDataTypeSupported(graph), "Graph: %s check dtype failed", graph.GetName().c_str());
   // matmul模板不走正常schedule流程，暂不做后续校验。
   if (ascgen_utils::IsCubeType(graph)) {
@@ -227,7 +227,7 @@ Status CheckSingleGraphValidity(const ::ascir::ImplGraph &graph) {
   return af::SUCCESS;
 }
 
-Status CheckGraphValidity(const ::ascir::ImplGraph &graph) {
+Status CheckGraphValidity(const ascir::ImplGraph &graph) {
   GE_ASSERT_SUCCESS(CheckSingleGraphValidity(graph), "CheckSingleGraphValidity failed");
   std::vector<af::AscGraph> sub_graphs;
   GE_ASSERT_SUCCESS(graph.GetAllSubGraphs(sub_graphs), "Graph: %s get sub graph failed", graph.GetName().c_str());
@@ -237,4 +237,3 @@ Status CheckGraphValidity(const ::ascir::ImplGraph &graph) {
   return af::SUCCESS;
 }
 } // namespace codegen
-}  // namespace af

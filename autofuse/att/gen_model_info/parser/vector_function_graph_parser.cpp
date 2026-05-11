@@ -14,7 +14,7 @@
 #include "ascir_ops.h"
 #include "base_types_printer.h"
 #include "ascir/meta/ascir_ops_utils.h"
-namespace af { namespace att {
+namespace att {
 namespace {
 constexpr af::char_t kSubGraphName[] = "sub_graph_name";
 constexpr af::char_t kInputPrefix[] = "_input_";
@@ -118,4 +118,3 @@ af::Status VectorFunctionGraphParser::Parse() {
   return af::SUCCESS;
 }
 }
-}  // namespace af

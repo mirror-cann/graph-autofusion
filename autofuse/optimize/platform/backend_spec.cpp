@@ -11,11 +11,10 @@
 #include "backend/backend_spec.h"
 #include "platform_factory.h"
 
-namespace af { namespace optimize {
+namespace optimize {
 std::unique_ptr<BackendSpec> BackendSpec::GetInstance() {
   const auto platform = PlatformFactory::GetInstance().GetPlatform();
   GE_ASSERT_NOTNULL(platform);
   return platform->GetBackendSpec();
 }
 }  // namespace optimize
-}  // namespace af

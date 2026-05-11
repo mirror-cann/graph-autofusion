@@ -14,7 +14,7 @@
 #include <memory>
 #include "optimize/graph_pass/base_graph_pass.h"
 
-namespace af { namespace optimize {
+namespace optimize {
 class BasePassRunner {
  protected:
   std::vector<std::unique_ptr<BaseGraphPass>> passes_;
@@ -33,6 +33,5 @@ class BasePassRunner {
   }
 };
 }  // namespace optimize
-}  // namespace af
 
 #endif  // OPTIMIZE_PLATFORM_COMMON_PASS_RUNNER_H

@@ -12,7 +12,7 @@
 #include "graph/symbolizer/symbolic.h"
 #include "graph/symbolizer/symbolic_utils.h"
 
-namespace af { namespace att {
+namespace att {
 
 bool GeneralSolverGen::IsRelated(const Expr &expr) {
   bool related = false;
@@ -1143,4 +1143,3 @@ std::string GeneralSolverGen::GenSolverDTImpl() {
   return invoke_codes_;
 }
 }  // namespace att
-}  // namespace af

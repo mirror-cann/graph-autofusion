@@ -19,7 +19,7 @@
 #include "task_generator/recompute_case_generator.h"
 #include "task_generator/split_schedule_case_generator.h"
 
-namespace af { namespace optimize {
+namespace optimize {
 constexpr size_t kMaxVecQueNum = 4UL;
 
 PlatformV1::PlatformV1() {
@@ -73,7 +73,7 @@ const PlatformConfig &PlatformV1::GetPlatformConfig() const {
   return config_;
 }
 
-Status PlatformV1::GenerateTasks(::ascir::ImplGraph &optimize_graph, const OptimizerOptions &options,
+Status PlatformV1::GenerateTasks(ascir::ImplGraph &optimize_graph, const OptimizerOptions &options,
                                  std::vector<ScheduleTask> &tasks) const {
   GE_CHK_STATUS_RET(SplitFusionCaseGenerator().GeneratorTask(optimize_graph, tasks, options),
                     "Failed to generate tasks for split");
@@ -99,4 +99,3 @@ std::set<std::string> PlatformV1::BroadcastTypes() const {
 
 REGISTER_PLATFORM_V1("2201", v1);
 }  // namespace optimize
-}  // namespace af

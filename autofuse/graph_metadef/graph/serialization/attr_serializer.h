@@ -21,7 +21,6 @@
 
 namespace af {
 using ge::AnyValue;
-using ge::graphStatus;
 using ge::GetTypeId;
 #ifdef AUTOFUSE_USE_GE_METADEF
 using GeIrAttrDef = ::ge::proto::AttrDef;

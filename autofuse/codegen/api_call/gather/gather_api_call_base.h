@@ -14,24 +14,24 @@
 #include "codegen_kernel.h"
 
 namespace gather_base {
-using namespace af::codegen;
+using namespace codegen;
 
-std::string CalGatherOuterAxesSize(const std::vector<::ascir::AxisId> &param_outer_axes,
-                                   const std::vector<::ascir::AxisId> &indices_axes, size_t index, const TPipe &tpipe);
-std::string CalGatherOuterAxesIndex(std::string outer_axis_offset, const std::vector<::ascir::AxisId> &param_outer_axes,
-                                    const std::vector<::ascir::AxisId> &indices_axes, const TPipe &tpipe);
-bool IsAxisInParamAxes(::ascir::AxisId axis_id, const std::vector<::ascir::AxisId> &param_axes, const TPipe &tpipe);
-std::string CalGatherOuterAxisOffset(const std::vector<::ascir::AxisId> &current_axis,
-                                     const std::vector<::ascir::AxisId> &param_inner_axes,
-                                     ::ascir::AxisId tile_inner_axis_id, const TPipe &tpipe);
-void CollectParamOuterAndInnerAxes(const std::vector<::ascir::AxisId> &param_axis, ::ascir::AxisId gather_axis_id,
-                                   std::vector<::ascir::AxisId> &param_outer_axes,
-                                   std::vector<::ascir::AxisId> &param_inner_axes);
-std::string CalGatherParamOffset(const std::vector<::ascir::AxisId> &param_axis, std::string indices_value,
-                                 ::ascir::AxisId gather_axis_id, const Axis &inner_vectorized_axis, const TPipe &tpipe);
-std::string CalGatherIndicesAxesSize(const std::vector<::ascir::AxisId> &indices_axes, const TPipe &tpipe);
-std::string CalGatherOuterSize(const std::vector<::ascir::AxisId> &param_axis, ::ascir::AxisId gather_axis_id, const TPipe &tpipe);
-std::string CalGatherInnerSize(const std::vector<::ascir::AxisId> &param_axis, ::ascir::AxisId gather_axis_id, const TPipe &tpipe);
-std::string CalGatherSize(const std::vector<::ascir::AxisId> &param_axis, const TPipe &tpipe);
-}  // namespace gather_base
+std::string CalGatherOuterAxesSize(const std::vector<ascir::AxisId> &param_outer_axes,
+                                   const std::vector<ascir::AxisId> &indices_axes, size_t index, const TPipe &tpipe);
+std::string CalGatherOuterAxesIndex(std::string outer_axis_offset, const std::vector<ascir::AxisId> &param_outer_axes,
+                                    const std::vector<ascir::AxisId> &indices_axes, const TPipe &tpipe);
+bool IsAxisInParamAxes(ascir::AxisId axis_id, const std::vector<ascir::AxisId> &param_axes, const TPipe &tpipe);
+std::string CalGatherOuterAxisOffset(const std::vector<ascir::AxisId> &current_axis,
+                                     const std::vector<ascir::AxisId> &param_inner_axes,
+                                     ascir::AxisId tile_inner_axis_id, const TPipe &tpipe);
+void CollectParamOuterAndInnerAxes(const std::vector<ascir::AxisId> &param_axis, ascir::AxisId gather_axis_id,
+                                   std::vector<ascir::AxisId> &param_outer_axes,
+                                   std::vector<ascir::AxisId> &param_inner_axes);
+std::string CalGatherParamOffset(const std::vector<ascir::AxisId> &param_axis, std::string indices_value,
+                                 ascir::AxisId gather_axis_id, const Axis &inner_vectorized_axis, const TPipe &tpipe);
+std::string CalGatherIndicesAxesSize(const std::vector<ascir::AxisId> &indices_axes, const TPipe &tpipe);
+std::string CalGatherOuterSize(const std::vector<ascir::AxisId> &param_axis, ascir::AxisId gather_axis_id, const TPipe &tpipe);
+std::string CalGatherInnerSize(const std::vector<ascir::AxisId> &param_axis, ascir::AxisId gather_axis_id, const TPipe &tpipe);
+std::string CalGatherSize(const std::vector<ascir::AxisId> &param_axis, const TPipe &tpipe);
+}  // namespace codegen
 #endif  // ASCGEN_GATHER_API_CALL_BASE_H

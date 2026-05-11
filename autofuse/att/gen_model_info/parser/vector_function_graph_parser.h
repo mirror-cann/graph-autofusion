@@ -14,7 +14,7 @@
 #include "ascendc_ir_core/ascendc_ir.h"
 #include "gen_model_info/parser/tuning_space.h"
 
-namespace af { namespace att {
+namespace att {
 class VectorFunctionGraphParser {
  public:
   VectorFunctionGraphParser(const af::AscNodePtr &asc_node, const af::AscGraph &graph)
@@ -35,6 +35,5 @@ class VectorFunctionGraphParser {
   const af::AscGraph &graph_;
 };
 }  // namespace att
-}  // namespace af
 
 #endif  // AUTOFUSE_VECTOR_FUNCTION_GRAPH_PARSER_H

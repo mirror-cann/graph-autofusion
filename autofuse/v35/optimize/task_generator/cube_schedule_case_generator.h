@@ -16,16 +16,16 @@
 #include "common/ascgen_log.h"
 #include "optimize/task_generator/schedule_case_generator.h"
 
-namespace af { namespace optimize {
+namespace optimize {
 class CubeFusionCaseGenerator : public FusionCaseGenerator {
  public:
-  Status GeneratorTask(::ascir::HintGraph &optimize_graph, std::vector<ScheduleTask> &tasks,
+  Status GeneratorTask(ascir::HintGraph &optimize_graph, std::vector<ScheduleTask> &tasks,
                        const OptimizerOptions &options) override;
-  Status Generate(::ascir::HintGraph &graph, std::vector<::ascir::ImplGraph> &graphs,
+  Status Generate(ascir::HintGraph &graph, std::vector<ascir::ImplGraph> &graphs,
                   std::vector<std::string> &score_functions) override;
 
  private:
-  Status GenerateGeneralCase(::ascir::HintGraph &graph, std::vector<::ascir::ImplGraph> &graphs);
+  Status GenerateGeneralCase(ascir::HintGraph &graph, std::vector<ascir::ImplGraph> &graphs);
   static Status GeneratorUbTask(const std::vector<::ascir::ImplGraph> &grouped_graphs, ScheduleTask &ub_task,
                                 std::vector<ScheduleTask> &tasks);
   static Status GenNddmaNode(const af::AscNodePtr &node_load, const af::AscNodePtr &node_brc, af::AscGraph &new_case);
@@ -34,6 +34,5 @@ class CubeFusionCaseGenerator : public FusionCaseGenerator {
   bool partition_ = false;
 };
 }  // namespace optimize
-}  // namespace af
 
 #endif  // ASCGEN_DEV_OPTIMIZE_TASK_GENERATOR_CUBE_SCHEDULE_CASE_GENERATOR_H_

@@ -25,7 +25,6 @@
 namespace af {
 using ge::AscendString;
 using ge::DataType;
-using ge::graphStatus;
 class ShapeAndTypeImpl;
 class GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY ShapeAndType {
  public:

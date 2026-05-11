@@ -11,7 +11,7 @@
 #include "tiling_cache_code_gen.h"
 #include "common/code_printer.h"
 
-namespace af { namespace att {
+namespace att {
 namespace cache {
 void TilingCacheCodeGen::GenConstantDefs(ge::CodePrinter &code_printer, size_t input_vars_size) {
   // 直接定义常量值，避免optiling命名空间访问问题
@@ -199,4 +199,3 @@ std::string TilingCacheCodeGen::GenFindIndexFunction() {
 }
 } // namespace cache
 } // namespace att
-}  // namespace af

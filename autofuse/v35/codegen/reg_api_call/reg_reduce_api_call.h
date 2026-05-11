@@ -11,24 +11,23 @@
 #define __AUTOFUSE_REG_REDUCE_API_CALL_H__
 #include "codegen_kernel.h"
 
-namespace af { namespace codegen {
+namespace codegen {
 class RegReduceApiCall : public ApiCall {
 public:
   using ApiCall::Generate;
   explicit RegReduceApiCall(const std::string &api_name) : ApiCall(api_name) {}
   ~RegReduceApiCall() final = default;
-  Status Generate(const TPipe &tpipe, const std::vector<::ascir::AxisId> &current_axis,
+  Status Generate(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
                   const std::vector<std::reference_wrapper<const Tensor>> &inputs,
                   const std::vector<std::reference_wrapper<const Tensor>> &outputs, std::string &result) const override;
-  Status CallParseAttr(const ::ascir::NodeView &node) {
+  Status CallParseAttr(const ascir::NodeView &node) {
       return ParseAttr(node);
   }
 protected:
-    Status ParseAttr(const ::ascir::NodeView &node) override;
+    Status ParseAttr(const ascir::NodeView &node) override;
 
 private:
     std::string is_reuse_source_ = "false";
 };
 }
-}  // namespace af
 #endif // __AUTOFUSE_REG_REDUCE_API_CALL_H__

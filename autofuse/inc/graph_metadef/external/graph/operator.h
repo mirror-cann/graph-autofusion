@@ -42,7 +42,6 @@ using ge::AscendString;
 using ge::Promote;
 using ge::float32_t;
 using ge::char_t;
-using ge::graphStatus;
 
 class Operator;
 class OperatorImpl;

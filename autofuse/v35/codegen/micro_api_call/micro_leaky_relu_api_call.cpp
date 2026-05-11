@@ -12,8 +12,8 @@
 
 #include "micro_leaky_relu_api_call.h"
 
-namespace af { namespace codegen {
-Status MicroLeakyReluApiCall::Generate(const af::codegen::TensorManager &tensor_mng, [[maybe_unused]] const TPipe &tpipe, CallParam &param,
+namespace codegen {
+Status MicroLeakyReluApiCall::Generate(const codegen::TensorManager &tensor_mng, [[maybe_unused]] const TPipe &tpipe, CallParam &param,
                                        string &result) {
   std::stringstream ss;
 
@@ -34,7 +34,7 @@ Status MicroLeakyReluApiCall::Generate(const af::codegen::TensorManager &tensor_
   return ge::SUCCESS;
 }
 
-Status MicroLeakyReluApiCall::Init(const ::ascir::NodeView &node) {
+Status MicroLeakyReluApiCall::Init(const ascir::NodeView &node) {
   // 从节点属性中获取negative_slope参数
   GE_CHK_GRAPH_STATUS_RET(node->attr.ir_attr->GetAttrValue("negative_slope", this->negative_slope_),
                           "Failed to get LeakyRelu negative_slope attr, node = %s", node->GetNamePtr());
@@ -44,4 +44,3 @@ Status MicroLeakyReluApiCall::Init(const ::ascir::NodeView &node) {
 
 static MicroApiCallRegister<MicroLeakyReluApiCall> register_micro_leaky_relu_api_call("MicroLeakyReluApiCall");
 }  // namespace codegen
-}  // namespace af

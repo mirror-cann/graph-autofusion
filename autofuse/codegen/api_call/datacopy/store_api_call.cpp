@@ -27,15 +27,15 @@ namespace {
 constexpr uint64_t kDmaMaxLen = 2U;
 }
 
-namespace af { namespace codegen {
-Status StoreApiCall::ParseAttr(const ::ascir::NodeView &node) {
+namespace codegen {
+Status StoreApiCall::ParseAttr(const ascir::NodeView &node) {
   // 存在多个Store写同一个Tensor不同offset的场景, repeats用当前Store节点的
   repeats_ = node->outputs[0U].attr.repeats;
   (void)node->attr.ir_attr->GetAttrValue("offset", offset_);
   return ge::SUCCESS;
 }
 
-Status StoreApiCall::PreProcess(const TPipe &tpipe, const std::vector<::ascir::AxisId> &current_axis,
+Status StoreApiCall::PreProcess(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
                                 const std::vector<std::reference_wrapper<const Tensor>> &outputs,
                                 std::string &result) const {
   GE_ASSERT_TRUE(!outputs.empty());
@@ -44,7 +44,7 @@ Status StoreApiCall::PreProcess(const TPipe &tpipe, const std::vector<::ascir::A
   return ge::SUCCESS;
 }
 
-Status StoreApiCall::Generate(const TPipe &tpipe, const std::vector<::ascir::AxisId> &current_axis,
+Status StoreApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
                               const std::vector<std::reference_wrapper<const Tensor>> &inputs,
                               const std::vector<std::reference_wrapper<const Tensor>> &outputs,
                               std::string &result) const {
@@ -77,4 +77,3 @@ Status StoreApiCall::Generate(const TPipe &tpipe, const std::vector<::ascir::Axi
 }
 static ApiCallRegister<StoreApiCall> register_store_api_call("StoreApiCall");
 }  // namespace codegen
-}  // namespace af

@@ -14,7 +14,7 @@
 #include "ascir.h"
 #include "ascgen_log.h"
 
-namespace af { namespace optimize {
+namespace optimize {
 class ScheduleGroupGraphPartitioner {
  public:
   static Status PartitionByConnectivity(const ::ascir::ImplGraph &optimize_graph,
@@ -32,6 +32,5 @@ class ScheduleGroupGraphPartitioner {
                                 std::map<af::AxisId, af::Expression> &axis_id_to_size);
 };
 }  // namespace optimize
-}  // namespace af
 
 #endif  // ASCGEN_DEV_SRC_OPTIMIZE_TASK_GENERATOR_SCHEDULE_GROUP_PARTITIONER_H_

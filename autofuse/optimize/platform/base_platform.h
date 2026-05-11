@@ -18,7 +18,7 @@
 #include "common/base_template_generator.h"
 #include "backend/backend_spec.h"
 
-namespace af { namespace optimize {
+namespace optimize {
 struct PlatformConfig {
   size_t max_que_num = 4U;
   bool is_support_compat_mode = false;
@@ -47,5 +47,4 @@ class BasePlatform {
   virtual std::set<std::string> BroadcastTypes() const = 0;
 };
 }  // namespace optimize
-}  // namespace af
 #endif  // OPTIMIZE_PLATFORM_BASE_PLATFORM_H

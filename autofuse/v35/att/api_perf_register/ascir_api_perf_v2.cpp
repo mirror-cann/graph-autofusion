@@ -11,7 +11,7 @@
 #include "v35/att/api_perf_register/ascendc_regbase_perf.h"
 #include "api_perf_register/api_perf_factory.h"
 #include "api_perf_register/ascendc_api_perf.h"
-namespace af { namespace att {
+namespace att {
 namespace {
 constexpr int32_t kMaxDmaLen = 4;
 constexpr int32_t kMaxNddmaLen = 5;
@@ -731,4 +731,3 @@ ApiPerfRegister<ApiPerf> square_api_perf_v2(ApiPerfRegisterV2(kSquare, GetPerfFu
 ApiPerfRegister<ApiPerf> vector_func_api_perf(kVectorFunc, DefaultGetPerf, nullptr, &perf_param_table_v2, &tiling_schedule_config_table_v2);
 }  // namespace
 }  // namespace att
-}  // namespace af

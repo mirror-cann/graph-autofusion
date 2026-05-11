@@ -12,7 +12,7 @@
 #define AUTOFUSE_ASCENDC_REGBASE_PERF_H
 #include "api_perf_register/utils/vf_perf_utils.h"
 #include "api_perf_register/utils/api_perf_utils.h"
-namespace af { namespace att {
+namespace att {
 namespace ascendcperf_v2 {
 // 工具函数，提取重复代码
 struct RepeatParams {
@@ -61,6 +61,5 @@ ge::Status BitwiseAndPerf(const NodeDetail &node_info, PerfOutputInfo &perf);
 ge::Status FloorDivPerf(const NodeDetail &node_info, PerfOutputInfo &perf);
 }
 }  // namespace att
-}  // namespace af
 
 #endif  // AUTOFUSE_ASCENDC_REGBASE_PERF_H

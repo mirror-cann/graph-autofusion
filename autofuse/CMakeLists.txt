@@ -53,14 +53,6 @@ else()
     set(METADEF_PLATFORM_DIR ${ASCEND_PLATFORM_DIR})
 endif()
 
-if(NOT EXISTS "${METADEF_PLATFORM_DIR}/include/proto/symbolizer.proto")
-    set(METADEF_LOCAL_BUILD /home/xingzhixiong/TSPD_CODE/metadef/build/_CPack_Packages/makeself_staging/metadef)
-    if(EXISTS "${METADEF_LOCAL_BUILD}/include/proto/symbolizer.proto")
-        message(STATUS "Using local metadef build for symbolizer.proto: ${METADEF_LOCAL_BUILD}")
-        set(METADEF_PLATFORM_DIR ${METADEF_LOCAL_BUILD})
-    endif()
-endif()
-
 list(APPEND CMAKE_PREFIX_PATH ${ASCEND_PLATFORM_DIR})
 list(APPEND CMAKE_PREFIX_PATH ${ASCEND_PLATFORM_DIR}/include)
 
@@ -74,12 +66,14 @@ if (NOT DEFINED ASCEND_CANN_3RD_LIB_PATH)
 endif ()
 
 if (NOT EXISTS "${ASCEND_CANN_3RD_LIB_PATH}")
-    message(FATAL_ERROR "Error: Directory \"${ASCEND_CANN_3RD_LIB_PATH}\" does not exist!\n"
+    message(STATUS "Error: Directory \"${ASCEND_CANN_3RD_LIB_PATH}\" does not exist!\n"
             "Please using build_third_party.sh compile first.")
 endif ()
 
 list(APPEND CMAKE_MODULE_PATH
     ${ASCEND_CANN_3RD_LIB_PATH}/cmake/modules
+    ${GE_METADEF_DIR}/cmake/modules
+    ${CODE_ROOT_DIR}/cmake/modules
     ${CODE_ROOT_DIR}/cmake/third_party/scripts/modules
 )
 
@@ -102,6 +96,7 @@ list(APPEND CMAKE_PREFIX_PATH
 
 link_directories(${ASCEND_ROOT}/lib64)
 link_directories(${ASCEND_PLATFORM_DIR}/lib64)
+include_directories(${GE_METADEF_DIR}/third_party/transformer/inc)
 include_directories(${GE_METADEF_INC_DIR})
 include_directories(${GE_METADEF_INC_DIR}/common)
 include_directories(${GE_METADEF_INC_DIR}/external)
@@ -120,6 +115,17 @@ include_directories(${CODE_ROOT_DIR}/compiler/py_module)
 include_directories(${CODE_ROOT_DIR}/ascir/meta)
 include_directories(${CODE_ROOT_DIR}/att)
 include_directories(${CODE_ROOT_DIR}/inc)
+include_directories(${CODE_ROOT_DIR}/inc/stub)
+#include_directories(${ASCEND_ROOT}/include)
+#include_directories(${ASCEND_PLATFORM_DIR})
+#include_directories(${ASCEND_PLATFORM_DIR}/include)
+#include_directories(${ASCEND_PLATFORM_DIR}/include/external)
+#include_directories(${ASCEND_INSTALL_PATH}/pkg_inc)
+#include_directories(${ASCEND_INSTALL_PATH}/pkg_inc/base)
+#include_directories(${ASCEND_INSTALL_PATH}/pkg_inc/common)
+#include_directories(${ASCEND_INSTALL_PATH}/pkg_inc/profiling)
+#include_directories(${ASCEND_INSTALL_PATH}/pkg_inc/toolchain)
+#include_directories(${ASCEND_INSTALL_PATH}/pkg_inc/trace)
 if(DEFINED METADEF_INSTALL_PATH)
     include_directories(${METADEF_PLATFORM_DIR}/include)
     include_directories(${METADEF_PLATFORM_DIR}/include/graph_metadef)
@@ -127,16 +133,13 @@ if(DEFINED METADEF_INSTALL_PATH)
     include_directories(${METADEF_PLATFORM_DIR}/pkg_inc)
     include_directories(${METADEF_PLATFORM_DIR}/pkg_inc/profiling)
 endif()
-if(EXISTS /home/xingzhixiong/TSPD_CODE/metadef/inc/external)
-    include_directories(/home/xingzhixiong/TSPD_CODE/metadef/inc/external)
-endif()
 if(NOT EXISTS "${ASCEND_INSTALL_PATH}/pkg_inc")
     if(DEFINED RUN_TEST AND RUN_TEST EQUAL 1)
         include_directories(${CMAKE_SOURCE_DIR}/tests/depends/securec)
     endif()
 endif()
 
-include_directories(${CMAKE_BINARY_DIR}/proto/metadef_protos)
+include_directories(${CMAKE_BINARY_DIR}/proto/metadef_protos_af)
 
 find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
 find_package(json REQUIRED)
@@ -188,9 +191,9 @@ function(autofuse_apply_shared_visibility target_name)
     target_link_libraries(${target_name} PRIVATE autofuse_shared_visibility)
 endfunction()
 
-add_library(depends INTERFACE)
-target_link_directories(depends INTERFACE
-    ${ASCEND_ROOT}/x86_64-linux/devlib)
+#add_library(depends INTERFACE)
+#target_link_directories(depends INTERFACE
+#    ${ASCEND_ROOT}/x86_64-linux/devlib)
 
 if (DEFINED RUN_TEST)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fprofile-arcs -ftest-coverage")
@@ -198,7 +201,6 @@ if (DEFINED RUN_TEST)
 endif ()
 
 add_library(aihac_codegen SHARED)
-set_target_properties(aihac_codegen PROPERTIES OUTPUT_NAME aihac_codegen_af)
 
 add_subdirectory(graph_metadef/proto)
 add_subdirectory(inc/graph_metadef)
@@ -245,27 +247,28 @@ target_link_options(aihac_codegen PRIVATE
 
 target_link_libraries(aihac_codegen PRIVATE runtime_headers)
 target_link_libraries(aihac_codegen PUBLIC
-    $<BUILD_INTERFACE:ascir_ops_headers>
-    $<BUILD_INTERFACE:atrace_headers>
-    graph
-    graph_base
-    aihac_ir
-    aihac_ir_register
-    aihac_symbolizer
-    $<BUILD_INTERFACE:ge_log_utils>
-    $<BUILD_INTERFACE:ascendc_api_extend>
-    error_manager
-    c_sec
-    unified_dlog
-    runtime
-    atrace_share
-    mmpa
-    json
-    ascend_protobuf
-    symengine
-    Boost::boost
-    -lgcov
+        $<BUILD_INTERFACE:ascir_ops_headers>
+        $<BUILD_INTERFACE:atrace_headers>
+        graph_af
+        graph_base_af
+        aihac_ir
+        aihac_ir_register
+        aihac_symbolizer_af
+        $<BUILD_INTERFACE:ge_log_utils>
+        $<BUILD_INTERFACE:ascendc_api_extend>
+        error_manager
+        c_sec
+        unified_dlog
+        runtime
+        atrace_share
+        mmpa
+        json
+        ascend_protobuf
+        symengine
+        Boost::boost
+        -lgcov
 )
+
 
 if(NOT DEFINED RUN_TEST OR NOT RUN_TEST EQUAL 1)
 set(AUTOFUSE_INSTALL_COMPONENT graph-autofusion)
@@ -291,7 +294,7 @@ install(TARGETS aihac_ir aihac_ir_register
             OPTIONAL
 )
 
-install(TARGETS graph graph_base aihac_symbolizer
+install(TARGETS graph_af graph_base_af aihac_symbolizer_af
     LIBRARY DESTINATION ${AUTOFUSE_INSTALL_LIB_DIR} OPTIONAL
     COMPONENT ${AUTOFUSE_INSTALL_COMPONENT}
 )
@@ -332,7 +335,7 @@ install(DIRECTORY ${CODE_ROOT_DIR}/inc/fusion/
     FILES_MATCHING PATTERN "*.h"
 )
 
-install(DIRECTORY ${CODE_ROOT_DIR}/inc/autofuse_frame/
+install(DIRECTORY ${CODE_ROOT_DIR}/inc/autofuse/autofuse_frame/
     DESTINATION ${AUTOFUSE_INSTALL_INCLUDE_DIR}/autofuse_frame
     COMPONENT ${AUTOFUSE_INSTALL_COMPONENT}
     FILES_MATCHING PATTERN "*.h"
@@ -469,14 +472,11 @@ install(FILES
 )
 
 install(FILES
-        ${CMAKE_BINARY_DIR}/proto/metadef_protos/proto/af_ir.pb.h
-        ${CMAKE_BINARY_DIR}/proto/metadef_protos/proto/af_ascendc_ir.pb.h
+        ${CMAKE_BINARY_DIR}/proto/metadef_protos_af/proto/af_ir.pb.h
+        ${CMAKE_BINARY_DIR}/proto/metadef_protos_af/proto/ascendc_ir.pb.h
+        ${CMAKE_BINARY_DIR}/proto/metadef_protos_af/proto/af_attr_group_base.pb.h
     DESTINATION ${AUTOFUSE_INSTALL_INCLUDE_DIR}/proto
-)
-
-install(FILES
-        ${CMAKE_BINARY_DIR}/proto/metadef_protos/proto/af_attr_group_base.pb.h
-    DESTINATION ${AUTOFUSE_INSTALL_INCLUDE_DIR}/proto
+    COMPONENT ${AUTOFUSE_INSTALL_COMPONENT}
 )
 
 install(FILES

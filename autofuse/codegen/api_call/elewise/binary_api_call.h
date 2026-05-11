@@ -11,20 +11,20 @@
 #define __AUTOFUSE_CLIP_BY_VALUE_API_CALL_H__
 #include "codegen_kernel.h"
 
-namespace af { namespace codegen {
+namespace codegen {
 class BinaryApiCall final : public ApiCall {
 public:
   using ApiCall::Generate;
   explicit BinaryApiCall(const std::string &api_name) : ApiCall(api_name) {}
   Status Generate(const TPipe &tpipe,
-                  const std::vector<::ascir::AxisId> &current_axis,
+                  const std::vector<ascir::AxisId> &current_axis,
                   const std::vector<std::reference_wrapper<const Tensor>> &inputs,
                   const std::vector<std::reference_wrapper<const Tensor>> &outputs, std::string &result) const override;
-  Status Init(const ::ascir::NodeView &node) override;
+  Status Init(const ascir::NodeView &node) override;
   ~BinaryApiCall() final = default;
 private:
   Status BrcInlineGenerate(const TPipe &tpipe,
-    const std::vector<::ascir::AxisId> &current_axis,
+    const std::vector<ascir::AxisId> &current_axis,
     const std::vector<std::reference_wrapper<const Tensor>> &inputs,
     const std::vector<std::reference_wrapper<const Tensor>> &outputs, std::string &result) const;
 
@@ -34,5 +34,4 @@ private:
   std::vector<uint8_t> input_idx_2_brc_inline;
 };
 }
-}  // namespace af
 #endif // __AUTOFUSE_CLIP_BY_VALUE_API_CALL_H__

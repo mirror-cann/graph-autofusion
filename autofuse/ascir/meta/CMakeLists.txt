@@ -17,14 +17,14 @@ target_compile_options(ascir PRIVATE
 
 target_link_libraries(ascir
     PUBLIC
-        graph graph_base
+        graph_af graph_base_af
         ascir_ops_headers
         c_sec
         unified_dlog
         mmpa
         aihac_ir
         ascend_protobuf
-        metadef_headers
+        metadef_headers_af
     PRIVATE
         $<BUILD_INTERFACE:intf_pub>
 )

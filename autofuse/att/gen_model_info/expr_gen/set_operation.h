@@ -14,7 +14,7 @@
 #include <vector>
 #include "base/base_types.h"
 
-namespace af { namespace att {
+namespace att {
 // 表示取值范围的集合
 struct DimRange {
   Expr upper_bound;
@@ -50,6 +50,5 @@ public:
   static Expr SetComputation(TensorRange &range);
 };
 } // namespace att
-}  // namespace af
 
 #endif // EXPR_GEN_SET_OPERATION_H_

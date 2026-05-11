@@ -19,7 +19,7 @@
 #include "ascir.h"
 #include "graph/symbolizer/symbolic_utils.h"
 
-namespace af { namespace optimize {
+namespace optimize {
   class GraphPropertiesCache {
   public:
     enum class Property : size_t {
@@ -140,8 +140,8 @@ namespace af { namespace optimize {
     }
 
     static bool IsLastAxisReduceNode(const ::ascir::NodeView &node) {
-      const std::vector<::ascir::SizeExpr> &src_strides = node->inputs[0].attr.strides;
-      const std::vector<::ascir::SizeExpr> &dst_strides = node->outputs[0].attr.strides;
+      const std::vector<ascir::SizeExpr> &src_strides = node->inputs[0].attr.strides;
+      const std::vector<ascir::SizeExpr> &dst_strides = node->outputs[0].attr.strides;
       if (src_strides.empty() || dst_strides.size() <= src_strides.size() - 1) {
         return false;
       }
@@ -198,6 +198,5 @@ namespace af { namespace optimize {
     std::bitset<static_cast<size_t>(Property::kEnd)> properties_;
   };
 } // namespace optimize
-}  // namespace af
 
 #endif  // OPTIMIZE_AUTOSCHEDULE_GRAPH_PROPERTIES_CACHE_H_

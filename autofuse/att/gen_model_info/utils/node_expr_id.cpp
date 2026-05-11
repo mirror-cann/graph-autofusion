@@ -12,7 +12,7 @@
 #include "parser/tuning_space.h"
 #include "base/base_types.h"
 
-namespace af { namespace att {
+namespace att {
 
 namespace {
 // 获取张量形状摘要
@@ -38,7 +38,7 @@ std::string GetShapeSummary(const Tensor *tensor) {
 } // namespace
 
 // 从 NodeInfo 构建节点表达式标识符
-NodeExprId BuildNodeExprId(const af::att::NodeInfo &node_info) {
+NodeExprId BuildNodeExprId(const att::NodeInfo &node_info) {
   NodeExprId id;
   auto node = node_info.node_ptr;
 
@@ -60,4 +60,3 @@ NodeExprId BuildNodeExprId(const af::att::NodeInfo &node_info) {
 }
 
 } // namespace att
-}  // namespace af

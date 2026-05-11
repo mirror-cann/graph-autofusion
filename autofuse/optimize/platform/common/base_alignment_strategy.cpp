@@ -13,7 +13,7 @@
 #include "graph/symbolizer/symbolic_utils.h"
 #include "platform/platform_factory.h"
 
-namespace af { namespace optimize {
+namespace optimize {
 
 bool IsTailAxisTranspose(const af::AscTensorAttr &attr) {
   const size_t axis_size = attr.vectorized_axis.size();
@@ -63,10 +63,10 @@ bool IsHasReduceNode(const af::AscNodePtr &node) {
     node_queue.pop();
     for (auto &out_node : top_node->GetOutNodes()) {
       auto asc_node = std::dynamic_pointer_cast<af::AscNode>(out_node);
-      if ((asc_node == nullptr) || af::optimize::ScheduleUtils::IsBuffer(asc_node)) {
+      if ((asc_node == nullptr) || optimize::ScheduleUtils::IsBuffer(asc_node)) {
         continue;
       }
-      if (af::optimize::ScheduleUtils::IsReduce(asc_node)) {
+      if (optimize::ScheduleUtils::IsReduce(asc_node)) {
         return true;
       }
       if (visited_nodes.insert(asc_node.get()).second) {
@@ -247,7 +247,7 @@ ge::Status BaseAlignmentStrategy::ReduceAlignmentInferFunc(const af::AscNodePtr 
   return af::SUCCESS;
 }
 
-ge::Status BaseAlignmentStrategy::AddRemovePadForTailAxisDiscontinuousLoad(::ascir::ImplGraph &impl_graph) {
+ge::Status BaseAlignmentStrategy::AddRemovePadForTailAxisDiscontinuousLoad(ascir::ImplGraph &impl_graph) {
   const auto &config = PlatformFactory::GetInstance().GetPlatform()->GetPlatformConfig();
   if (config.is_support_compat_mode) {
     return af::SUCCESS;
@@ -299,7 +299,7 @@ ge::Status BaseAlignmentStrategy::CheckIsNoNeedPad(const af::AscNodePtr &node, a
   return af::SUCCESS;
 }
 
-ge::Status BaseAlignmentStrategy::AddPadForAlignmentConflictNode(::ascir::ImplGraph &impl_graph) {
+ge::Status BaseAlignmentStrategy::AddPadForAlignmentConflictNode(ascir::ImplGraph &impl_graph) {
   bool inserted = false;
   for (const auto &node : impl_graph.GetAllNodes()) {
     GE_ASSERT_NOTNULL(node);
@@ -358,7 +358,7 @@ ge::Status BaseAlignmentStrategy::AddPadForAlignmentConflictNode(::ascir::ImplGr
   return af::SUCCESS;
 }
 
-ge::Status BaseAlignmentStrategy::SetAlignWidth(const ::ascir::ImplGraph &impl_graph) {
+ge::Status BaseAlignmentStrategy::SetAlignWidth(const ascir::ImplGraph &impl_graph) {
   // 依据数据类型判断对齐到32B还是64B
   align_width_ = 32U;
   for (const auto &node : impl_graph.GetAllNodes()) {
@@ -373,7 +373,7 @@ ge::Status BaseAlignmentStrategy::SetAlignWidth(const ::ascir::ImplGraph &impl_g
   return af::SUCCESS;
 }
 
-ge::Status BaseAlignmentStrategy::AlignVectorizedStrides(::ascir::ImplGraph &impl_graph) {
+ge::Status BaseAlignmentStrategy::AlignVectorizedStrides(ascir::ImplGraph &impl_graph) {
   GE_ASSERT_SUCCESS(SetAlignWidth(impl_graph), "Failed to set align width for [%s].", impl_graph.GetName().c_str());
   if (compute_type_to_infer_func_.empty()) {
     InitAlignmentInferFunc();
@@ -552,8 +552,8 @@ ge::Status BaseAlignmentStrategy::SetVectorizedStridesForTensor(const af::NodePt
   GE_ASSERT_TRUE(dtype_size > 0, "Node [%s] output tensor dtype is invalid.", node->GetNamePtr());
   const uint32_t align_factor = align_width_ / static_cast<uint32_t>(dtype_size);
 
-  ::ascir::SizeExpr size_product = af::sym::kSymbolOne;
-  std::vector<::ascir::SizeExpr> vectorized_strides;
+  ascir::SizeExpr size_product = af::sym::kSymbolOne;
+  std::vector<ascir::SizeExpr> vectorized_strides;
   vectorized_strides.reserve(output_vec_axis.size());
   for (auto axis_it = output_vec_axis.rbegin(); axis_it != output_vec_axis.rend(); ++axis_it) {
     const auto axis = *axis_it;
@@ -565,7 +565,7 @@ ge::Status BaseAlignmentStrategy::SetVectorizedStridesForTensor(const af::NodePt
     const auto &stride = output_attr.strides[axis_index];
     const auto &repeat = output_attr.repeats[axis_index];
 
-    ::ascir::SizeExpr current_stride = af::sym::kSymbolZero;
+    ascir::SizeExpr current_stride = af::sym::kSymbolZero;
     const bool is_last_axis = (axis_it == output_vec_axis.rbegin());
     const bool is_zero_stride =
         ascgen_utils::ExpressEq(stride, af::sym::kSymbolZero) || ascgen_utils::ExpressEq(repeat, af::sym::kSymbolOne);
@@ -595,4 +595,3 @@ ge::Status BaseAlignmentStrategy::SetVectorizedStridesForTensor(const af::NodePt
 }
 
 }  // namespace optimize
-}  // namespace af

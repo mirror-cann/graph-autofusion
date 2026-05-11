@@ -14,10 +14,10 @@
 #include "ascir/meta/ascir.h"
 #include "common/ascgen_log.h"
 
-namespace af { namespace optimize {
+namespace optimize {
 class SplitScoreFunctionGenerator {
  public:
-  SplitScoreFunctionGenerator(const ::ascir::HintGraph &graph, af::AscNodePtr split_node, uint32_t split_dim);
+  SplitScoreFunctionGenerator(const ascir::HintGraph &graph, af::AscNodePtr split_node, uint32_t split_dim);
   Status Generate(std::string &score_func);
 
  private:
@@ -29,7 +29,7 @@ class SplitScoreFunctionGenerator {
   const double kMaxUnalignedRate = 0.1;  // TTODO
   const uint32_t kAlignment_ = 32U;
 
-  const ::ascir::HintGraph *graph_;
+  const ascir::HintGraph *graph_;
   af::AscNodePtr split_node_;
   uint32_t split_dim_;
   af::Expression stride_;
@@ -38,5 +38,4 @@ class SplitScoreFunctionGenerator {
   std::stringstream ss_;
 };
 }  // namespace optimize
-}  // namespace af
 #endif  // ASCGEN_DEV_OPTIMIZE_TASK_GENERATOR_SPLIT_SCORE_FUNCTION_GENERATOR_H_

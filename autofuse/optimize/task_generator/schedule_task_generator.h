@@ -15,13 +15,12 @@
 #include "ascgen_log.h"
 #include "optimize.h"
 
-namespace af { namespace optimize {
+namespace optimize {
 class ScheduleTaskGenerator {
  public:
   static Status GenerateTasks(::ascir::ImplGraph &optimize_graph, std::vector<ScheduleTask> &tasks,
                               const OptimizerOptions &options);
 };
 }  // namespace optimize
-}  // namespace af
 
 #endif  // ASCGEN_DEV_SRC_OPTIMIZE_TASK_GENERATOR_SCHEDULE_TASK_GENERATOR_H_

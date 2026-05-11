@@ -20,8 +20,8 @@ constexpr int DTYPE_SIZE_4BYTE = 4;
 constexpr int DTYPE_SIZE_8BYTE = 8;
 }  // namespace
 
-namespace af { namespace codegen {
-Status MicroStoreApiCall::Generate(const af::codegen::TensorManager &tensor_mng, const TPipe &tpipe, CallParam &param,
+namespace codegen {
+Status MicroStoreApiCall::Generate(const codegen::TensorManager &tensor_mng, const TPipe &tpipe, CallParam &param,
                                    string &result) {
   std::stringstream ss;
   auto tensor_id = GetInputTensorIdByIndex(0);
@@ -41,13 +41,13 @@ Status MicroStoreApiCall::Generate(const af::codegen::TensorManager &tensor_mng,
   return ge::SUCCESS;
 }
 
-Status MicroStoreApiCall::Init(const ::ascir::NodeView &node) {
+Status MicroStoreApiCall::Init(const ascir::NodeView &node) {
   this->dist_ = "";
   auto in_node = std::dynamic_pointer_cast<af::AscNode>(node->inputs[0].anchor.GetOwnerNode());
   auto in_dtype_size = ge::GetSizeByDataType(in_node->inputs[0].attr.dtype);
   auto out_dtype_size = ge::GetSizeByDataType(in_node->outputs[0].attr.dtype);
   bool is_all_zero = std::all_of(node->outputs[0].attr.vectorized_strides.begin(),
-                                 node->outputs[0].attr.vectorized_strides.end(), [](const ::ascir::SizeExpr &stride) {
+                                 node->outputs[0].attr.vectorized_strides.end(), [](const ascir::SizeExpr &stride) {
                                    return af::SymbolicUtils::StaticCheckEq(stride.Simplify(), af::sym::kSymbolZero) ==
                                           af::TriBool::kTrue;
                                  });
@@ -74,4 +74,3 @@ Status MicroStoreApiCall::Init(const ::ascir::NodeView &node) {
 }
 static MicroApiCallRegister<MicroStoreApiCall> register_micro_store_api_call("MicroStoreApiCall");
 }  // namespace codegen
-}  // namespace af

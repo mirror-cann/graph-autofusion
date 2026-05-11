@@ -1,5 +1,5 @@
 add_subdirectory(generator)
-######### libaihac_ir_af.so #############
+######### libaihac_ir.so #############
 file(GLOB_RECURSE UTILS_SRCS CONFIGURE_DEPENDS "utils/*.cc")
 add_library(aihac_ir SHARED
     core/ascendc_ir.cc
@@ -24,7 +24,7 @@ target_include_directories(aihac_ir PRIVATE
     ${CMAKE_CURRENT_LIST_DIR}
     ${CMAKE_BINARY_DIR}
     ${METADEF_DIR}
-    ${CMAKE_BINARY_DIR}/proto/metadef_protos
+    ${CMAKE_BINARY_DIR}/proto/metadef_protos_af
 )
 
 target_link_options(aihac_ir PRIVATE
@@ -44,12 +44,11 @@ target_link_libraries(aihac_ir
         ascend_protobuf_shared_headers
         $<$<NOT:$<STREQUAL:${TARGET_SYSTEM_NAME},Android>>:-lrt>
         -ldl
-        graph
-        graph_base
+        graph_af
+        graph_base_af
         error_manager
-        aihac_symbolizer
+        aihac_symbolizer_af
     PUBLIC
-        metadef_headers
+        metadef_headers_af
 )
-set_target_properties(aihac_ir PROPERTIES OUTPUT_NAME aihac_ir_af)
 autofuse_apply_shared_visibility(aihac_ir)

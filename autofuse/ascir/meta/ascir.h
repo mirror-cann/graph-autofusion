@@ -14,8 +14,8 @@
 #include <memory>
 #include <vector>
 
-#include "graph/ascendc_ir/ascendc_ir_core/ascendc_ir_def.h"
-#include "graph/ascendc_ir/ascendc_ir_core/ascendc_ir.h"
+#include "ascendc_ir/ascendc_ir_core/ascendc_ir_def.h"
+#include "ascendc_ir/ascendc_ir_core/ascendc_ir.h"
 #include "graph/symbolizer/symbolic.h"
 
 namespace ascir {

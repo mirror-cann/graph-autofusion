@@ -631,7 +631,7 @@ bool AscGraphImpl::DoCopyAscGraphAttrImpl(const ComputeGraphPtr &src_compute_gra
   GE_ASSERT_NOTNULL(dst_graph_attr);
   GE_ASSERT_NOTNULL(src_graph_attr);
 
-  af::proto::AscGraphAttrGroupsDef asc_graph_group;
+  ascendc_ir::proto::AscGraphAttrGroupsDef asc_graph_group;
   GE_ASSERT_GRAPH_SUCCESS(src_graph_attr->SerializeAttr(asc_graph_group));
   GE_ASSERT_GRAPH_SUCCESS(dst_graph_attr->DeserializeAttr(asc_graph_group));
 
@@ -1436,7 +1436,7 @@ graphStatus SetDynamicInputNumByIrIndex(Operator &op, uint32_t ir_index, uint32_
   return GRAPH_SUCCESS;
 }
 
-graphStatus AscGraphAttr::SerializeAttr(af::proto::AscGraphAttrGroupsDef &asc_graph_group) {
+graphStatus AscGraphAttr::SerializeAttr(ascendc_ir::proto::AscGraphAttrGroupsDef &asc_graph_group) {
   asc_graph_group.set_tiling_key(tiling_key);
   // axis serialize
   auto axis_defs = asc_graph_group.axis();
@@ -1468,7 +1468,7 @@ graphStatus AscGraphAttr::Serialize(proto::AttrGroupDef &attr_group_def) {
   return SerializeAttr(*asc_graph_attr_group);
 }
 
-graphStatus AscGraphAttr::DeserializeAttr(const af::proto::AscGraphAttrGroupsDef &asc_graph_group) {
+graphStatus AscGraphAttr::DeserializeAttr(const ascendc_ir::proto::AscGraphAttrGroupsDef &asc_graph_group) {
   tiling_key = asc_graph_group.tiling_key();
   type = static_cast<AscGraphType>(asc_graph_group.type());
   for (const auto &ax : asc_graph_group.axis()) {
@@ -1504,7 +1504,7 @@ graphStatus AscGraphAttr::Deserialize(const proto::AttrGroupDef &attr_group_def,
 }
 
 
-graphStatus AscNodeAttr::SerializeAttr(af::proto::AscNodeAttrGroupsDef &asc_node_group) const{
+graphStatus AscNodeAttr::SerializeAttr(ascendc_ir::proto::AscNodeAttrGroupsDef &asc_node_group) const{
   asc_node_group.set_name(name);
   asc_node_group.set_type(type);
   auto sched_def = asc_node_group.mutable_sched();
@@ -1543,7 +1543,7 @@ graphStatus AscNodeAttr::SerializeAttr(af::proto::AscNodeAttrGroupsDef &asc_node
   return GRAPH_SUCCESS;
 }
 
-graphStatus AscNodeAttr::DeserializeAttr(const af::proto::AscNodeAttrGroupsDef &asc_node_group) {
+graphStatus AscNodeAttr::DeserializeAttr(const ascendc_ir::proto::AscNodeAttrGroupsDef &asc_node_group) {
   name = asc_node_group.name();
   type = asc_node_group.type();
   const auto &sched_def = asc_node_group.sched();
@@ -1599,7 +1599,7 @@ graphStatus AscNodeAttr::Deserialize(const proto::AttrGroupDef &attr_group_def, 
   return DeserializeAttr(asc_node_attr_def);
 }
 
-graphStatus AscTensorAttr::SerializeAttr(af::proto::AscTensorAttrGroupsDef &asc_tensor_group) {
+graphStatus AscTensorAttr::SerializeAttr(ascendc_ir::proto::AscTensorAttrGroupsDef &asc_tensor_group) {
   if (dtype.tensor_desc_ != nullptr) {
     asc_tensor_group.set_dtype(static_cast<int64_t>(dtype));
   }
@@ -1642,7 +1642,7 @@ graphStatus AscTensorAttr::SerializeAttr(af::proto::AscTensorAttrGroupsDef &asc_
   return GRAPH_SUCCESS;
 }
 
-graphStatus AscTensorAttr::DeserializeAttr(const af::proto::AscTensorAttrGroupsDef &asc_tensor_group,
+graphStatus AscTensorAttr::DeserializeAttr(const ascendc_ir::proto::AscTensorAttrGroupsDef &asc_tensor_group,
                                            GeTensorDesc *tensor_desc) {
   if ((tensor_desc != nullptr) && (dtype.tensor_desc_ == nullptr)) {
     dtype.tensor_desc_ = tensor_desc;
@@ -1703,7 +1703,7 @@ graphStatus AscTensorAttr::Deserialize(const proto::AttrGroupDef &attr_group_def
   return DeserializeAttr(asc_tensor_attr_group_def, dynamic_cast<GeTensorDesc *>(attr_holder));
 }
 
-graphStatus AscIrAttrDefBase::Serialize(af::proto::AscIrAttrDef &asc_ir_attr_def) {
+graphStatus AscIrAttrDefBase::Serialize(ascendc_ir::proto::AscIrAttrDef &asc_ir_attr_def) {
   std::map<std::string, AnyValue> names_to_attr;
   attr_store_.GetAllAttrs(names_to_attr);
   auto &attr_map = *asc_ir_attr_def.mutable_attr();
@@ -1718,7 +1718,7 @@ graphStatus AscIrAttrDefBase::Serialize(af::proto::AscIrAttrDef &asc_ir_attr_def
   return GRAPH_SUCCESS;
 }
 
-graphStatus AscIrAttrDefBase::Deserialize(const af::proto::AscIrAttrDef &asc_ir_attr_def) {
+graphStatus AscIrAttrDefBase::Deserialize(const ascendc_ir::proto::AscIrAttrDef &asc_ir_attr_def) {
   const auto &attr_map = asc_ir_attr_def.attr();
   for (const auto &pair:attr_map) {
     const auto deserializer = AttrSerializerRegistry::GetInstance()

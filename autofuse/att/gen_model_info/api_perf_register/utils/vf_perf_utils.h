@@ -13,7 +13,7 @@
 
 #include "base/att_const_values.h"
 #include "gen_model_info/api_perf_register/perf_param.h"
-namespace af { namespace att {
+namespace att {
 class VfPerfUtils {
  public:
   // 根据MicroApiType和DataType获取MicroApi级别的性能
@@ -29,6 +29,5 @@ class VfPerfUtils {
   static ge::Status GetVectorFunctionPerf(const std::vector<NodePerfInfo> &node_perf_infos, Expr &res);
 };
 }  // namespace att
-}  // namespace af
 
 #endif  // AUTOFUSE_VF_PERF_UTILS_H

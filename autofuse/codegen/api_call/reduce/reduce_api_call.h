@@ -11,13 +11,13 @@
 #define __AUTOFUSE_REDUCE_API_CALL_H__
 #include "codegen_kernel.h"
 
-namespace af { namespace codegen {
+namespace codegen {
 class ReduceApiCall : public ApiCall {
 public:
   using ApiCall::Generate;
   explicit ReduceApiCall(const std::string &api_name) : ApiCall(api_name) {}
   ~ReduceApiCall() final = default;
-  Status Generate(const TPipe &tpipe, const std::vector<::ascir::AxisId> &current_axis,
+  Status Generate(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
                   const std::vector<std::reference_wrapper<const Tensor>> &inputs,
                   const std::vector<std::reference_wrapper<const Tensor>> &outputs, std::string &result) const override;
 
@@ -25,5 +25,4 @@ private:
   int64_t GetTmpBufIdByLifeTime(int64_t life_time, const std::string &api_name) const;
 };
 }
-}  // namespace af
 #endif // __AUTOFUSE_REDUCE_API_CALL_H__

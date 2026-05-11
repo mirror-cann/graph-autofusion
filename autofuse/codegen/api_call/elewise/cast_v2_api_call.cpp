@@ -19,13 +19,13 @@
 #include "api_call/utils/api_call_factory.h"
 #include "api_call/utils/api_call_utils.h"
 
-namespace af { namespace codegen {
+namespace codegen {
 using namespace std;
 using namespace af::ops;
 using namespace af::ascir_op;
 using namespace ascgen_utils;
 
-Status CastV2ApiCall::Generate(const TPipe &tpipe, const std::vector<::ascir::AxisId> &current_axis,
+Status CastV2ApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
   const std::vector<std::reference_wrapper<const Tensor>> &inputs,
   const std::vector<std::reference_wrapper<const Tensor>> &outputs,
   std::string &result) const {
@@ -76,12 +76,12 @@ Status CastV2ApiCall::Generate(const TPipe &tpipe, const std::vector<::ascir::Ax
       "get max data type size failed, x_dtype = %s, y_dtype = %s", x_dtype.c_str(),
       y_dtype.c_str());
     size_t input_strides_size = param.inputs_strides[0].size();
-    std::vector<::ascir::SizeExpr> inner_input_strides(param.inputs_strides[0].begin(),
+    std::vector<ascir::SizeExpr> inner_input_strides(param.inputs_strides[0].begin(),
                                 param.inputs_strides[0].begin() + input_strides_size - 1);
     std::string input_inner_offset = input_strides_size == 1U ? "0" : CalcInnerOffset(tpipe, inner_input_strides);
 
     size_t output_strides_size = param.outputs_strides[0].size();
-    std::vector<::ascir::SizeExpr> inner_output_strides(param.outputs_strides[0].begin(),
+    std::vector<ascir::SizeExpr> inner_output_strides(param.outputs_strides[0].begin(),
                                 param.outputs_strides[0].begin() + output_strides_size - 1);
     std::string output_inner_offset = output_strides_size == 1U ? "0" : CalcInnerOffset(tpipe, inner_output_strides);
 
@@ -106,4 +106,3 @@ Status CastV2ApiCall::Generate(const TPipe &tpipe, const std::vector<::ascir::Ax
 static ApiCallRegister<CastV2ApiCall> register_cast_v2_api_call("CastV2ApiCall");
 
 } // namespace codegen
-}  // namespace af

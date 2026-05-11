@@ -23,7 +23,6 @@
 #include <limits>
 #include <functional>
 
-namespace af { namespace att {
+namespace att {
 
-}  // namespace af
 #endif  // AXES_REORDER_SOLVER_COMMON_H_

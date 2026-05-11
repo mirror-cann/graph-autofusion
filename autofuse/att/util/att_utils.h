@@ -14,7 +14,7 @@
 #include "base/model_info.h"
 #include <set>
 #include "gen_model_info/parser/tuning_space.h"
-namespace af { namespace att {
+namespace att {
 class AttUtils {
  public:
   static bool IsLoadNode(af::AscNode *node);
@@ -32,5 +32,4 @@ class AttUtils {
                                         std::set<std::string> &broadcast_axis_orig_names);
 };
 }
-}  // namespace af
 #endif // UTIL_ATT_UTILS_H_

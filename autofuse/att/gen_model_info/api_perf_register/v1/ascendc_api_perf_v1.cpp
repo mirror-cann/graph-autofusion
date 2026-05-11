@@ -15,7 +15,7 @@
 #include "api_perf_register/ascendc_api_perf.h"
 #include "api_perf_register/api_perf_factory.h"
 #include "perf_param_v1.h"
-namespace af { namespace att {
+namespace att {
 namespace {
 using namespace af::sym;
 af::Status GetLoadCase(const NodeDetail &node_info, Expr &data_size, int32_t &use_case) {
@@ -217,4 +217,3 @@ af::Status StorePerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
 REGISTER_ASCENDC_EVAL_FUNC(kLoad, LoadPerf);
 REGISTER_ASCENDC_EVAL_FUNC(kStore, StorePerf);
 }
-}  // namespace af

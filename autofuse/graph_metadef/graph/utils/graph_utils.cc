@@ -798,7 +798,7 @@ void GetDumpGraphPrefix(std::stringstream& stream_file_name) {
 bool SetOptions2GraphInner(const std::map<std::string, std::string>& option,
                            const std::string& attr_name, const af::ComputeGraphPtr &graph) {
   // set graph options
-  ge::NamedAttrs attr;
+  af::NamedAttrs attr;
   attr.SetName(attr_name);
   for (auto itr_graph = option.begin(); itr_graph != option.end(); itr_graph++) {
     auto const ret = attr.SetAttr(itr_graph->first, GeAttrValue::CreateFrom<std::string>(itr_graph->second));

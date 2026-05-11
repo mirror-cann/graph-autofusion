@@ -19,7 +19,7 @@
 #include "api_call/utils/api_call_factory.h"
 #include "api_call/utils/api_call_utils.h"
 
-namespace af { namespace codegen {
+namespace codegen {
 using namespace std;
 using namespace af::ops;
 using namespace af::ascir_op;
@@ -76,7 +76,7 @@ Status WhereApiCall::GenerateLoopParams(const Tensor &x1, const Tensor &x2, cons
   return ge::SUCCESS;
 }
 
-Status WhereApiCall::GenerateNoLoopCase(const TPipe &tpipe, const std::vector<::ascir::AxisId> &current_axis,
+Status WhereApiCall::GenerateNoLoopCase(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
                                          const Tensor &x1, const Tensor &x2, const Tensor &x3, const Tensor &y,
                                          const std::string &x2_scalar, const std::string &x3_scalar,
                                          const int64_t id, std::stringstream &ss) const {
@@ -111,13 +111,13 @@ Status WhereApiCall::GenerateBothScalarCase(const TPipe &tpipe, const ApiLoopPar
   stringstream ss1;
 
   size_t output_strides_size = param.outputs_strides[0].size();
-  std::vector<::ascir::SizeExpr> inner_output_strides(param.outputs_strides[0].begin(),
+  std::vector<ascir::SizeExpr> inner_output_strides(param.outputs_strides[0].begin(),
                                                       param.outputs_strides[0].begin() + output_strides_size - 1);
   std::string output_inner_offset = output_strides_size == 1 ? "0" : CalcInnerOffset(tpipe, inner_output_strides);
 
   uint32_t index = 0U;
   size_t input0_strides_size = param.inputs_strides[index].size();
-  std::vector<::ascir::SizeExpr> inner0_input_strides(param.inputs_strides[index].begin(),
+  std::vector<ascir::SizeExpr> inner0_input_strides(param.inputs_strides[index].begin(),
                                                     param.inputs_strides[index].begin() + input0_strides_size - 1);
   std::string input0_inner_offset = input0_strides_size == 1 ? "0" : CalcInnerOffset(tpipe, inner0_input_strides);
 
@@ -147,19 +147,19 @@ Status WhereApiCall::GenerateX2ScalarCase(const TPipe &tpipe, const ApiLoopParam
   stringstream ss1;
 
   size_t output_strides_size = param.outputs_strides[0].size();
-  std::vector<::ascir::SizeExpr> inner_output_strides(param.outputs_strides[0].begin(),
+  std::vector<ascir::SizeExpr> inner_output_strides(param.outputs_strides[0].begin(),
                                                       param.outputs_strides[0].begin() + output_strides_size - 1);
   std::string output_inner_offset = output_strides_size == 1 ? "0" : CalcInnerOffset(tpipe, inner_output_strides);
 
   uint32_t index = 0U;
   size_t input0_strides_size = param.inputs_strides[index].size();
-  std::vector<::ascir::SizeExpr> inner0_input_strides(param.inputs_strides[index].begin(),
+  std::vector<ascir::SizeExpr> inner0_input_strides(param.inputs_strides[index].begin(),
                                                     param.inputs_strides[index].begin() + input0_strides_size - 1);
   std::string input0_inner_offset = input0_strides_size == 1 ? "0" : CalcInnerOffset(tpipe, inner0_input_strides);
 
   index++;
   size_t input2_strides_size = param.inputs_strides[index].size();
-  std::vector<::ascir::SizeExpr> inner2_input_strides(param.inputs_strides[index].begin(),
+  std::vector<ascir::SizeExpr> inner2_input_strides(param.inputs_strides[index].begin(),
                                                     param.inputs_strides[index].begin() + input2_strides_size - 1);
   std::string input2_inner_offset = input2_strides_size == 1 ? "0" : CalcInnerOffset(tpipe, inner2_input_strides);
 
@@ -189,19 +189,19 @@ Status WhereApiCall::GenerateX3ScalarCase(const TPipe &tpipe, const ApiLoopParam
   stringstream ss1;
 
   size_t output_strides_size = param.outputs_strides[0].size();
-  std::vector<::ascir::SizeExpr> inner_output_strides(param.outputs_strides[0].begin(),
+  std::vector<ascir::SizeExpr> inner_output_strides(param.outputs_strides[0].begin(),
                                                       param.outputs_strides[0].begin() + output_strides_size - 1);
   std::string output_inner_offset = output_strides_size == 1 ? "0" : CalcInnerOffset(tpipe, inner_output_strides);
 
   uint32_t index = 0U;
   size_t input0_strides_size = param.inputs_strides[index].size();
-  std::vector<::ascir::SizeExpr> inner0_input_strides(param.inputs_strides[index].begin(),
+  std::vector<ascir::SizeExpr> inner0_input_strides(param.inputs_strides[index].begin(),
                                                     param.inputs_strides[index].begin() + input0_strides_size - 1);
   std::string input0_inner_offset = input0_strides_size == 1 ? "0" : CalcInnerOffset(tpipe, inner0_input_strides);
 
   index++;
   size_t input1_strides_size = param.inputs_strides[index].size();
-  std::vector<::ascir::SizeExpr> inner1_input_strides(param.inputs_strides[index].begin(),
+  std::vector<ascir::SizeExpr> inner1_input_strides(param.inputs_strides[index].begin(),
                                                     param.inputs_strides[index].begin() + input1_strides_size - 1);
   std::string input1_inner_offset = input1_strides_size == 1 ? "0" : CalcInnerOffset(tpipe, inner1_input_strides);
 
@@ -230,25 +230,25 @@ Status WhereApiCall::GenerateNormalCase(const TPipe &tpipe, const ApiLoopParams 
   stringstream ss1;
 
   size_t output_strides_size = param.outputs_strides[0].size();
-  std::vector<::ascir::SizeExpr> inner_output_strides(param.outputs_strides[0].begin(),
+  std::vector<ascir::SizeExpr> inner_output_strides(param.outputs_strides[0].begin(),
                                                       param.outputs_strides[0].begin() + output_strides_size - 1);
   std::string output_inner_offset = output_strides_size == 1 ? "0" : CalcInnerOffset(tpipe, inner_output_strides);
 
   uint32_t index = 0U;
   size_t input0_strides_size = param.inputs_strides[index].size();
-  std::vector<::ascir::SizeExpr> inner0_input_strides(param.inputs_strides[index].begin(),
+  std::vector<ascir::SizeExpr> inner0_input_strides(param.inputs_strides[index].begin(),
                                                     param.inputs_strides[index].begin() + input0_strides_size - 1);
   std::string input0_inner_offset = input0_strides_size == 1 ? "0" : CalcInnerOffset(tpipe, inner0_input_strides);
 
   index++;
   size_t input1_strides_size = param.inputs_strides[index].size();
-  std::vector<::ascir::SizeExpr> inner1_input_strides(param.inputs_strides[index].begin(),
+  std::vector<ascir::SizeExpr> inner1_input_strides(param.inputs_strides[index].begin(),
                                                     param.inputs_strides[index].begin() + input1_strides_size - 1);
   std::string input1_inner_offset = input1_strides_size == 1 ? "0" : CalcInnerOffset(tpipe, inner1_input_strides);
 
   index++;
   size_t input2_strides_size = param.inputs_strides[index].size();
-  std::vector<::ascir::SizeExpr> inner2_input_strides(param.inputs_strides[index].begin(),
+  std::vector<ascir::SizeExpr> inner2_input_strides(param.inputs_strides[index].begin(),
                                                     param.inputs_strides[index].begin() + input2_strides_size - 1);
   std::string input2_inner_offset = input2_strides_size == 1 ? "0" : CalcInnerOffset(tpipe, inner2_input_strides);
 
@@ -271,7 +271,7 @@ Status WhereApiCall::GenerateNormalCase(const TPipe &tpipe, const ApiLoopParams 
   return ge::SUCCESS;
 }
 
-Status WhereApiCall::Generate(const TPipe &tpipe, const std::vector<::ascir::AxisId> &current_axis,
+Status WhereApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
   const std::vector<std::reference_wrapper<const Tensor>> &inputs,
   const std::vector<std::reference_wrapper<const Tensor>> &outputs, std::string &result) const {
   const Tensor *x1 = nullptr;
@@ -326,4 +326,3 @@ Status WhereApiCall::Generate(const TPipe &tpipe, const std::vector<::ascir::Axi
 
 static ApiCallRegister<WhereApiCall> register_where_api_call("WhereApiCall");
 }
-}  // namespace af

@@ -16,15 +16,7 @@
 #include "graph/ge_error_codes.h"
 #include "graph/utils/type_utils.h"
 
-namespace af {
-using ge::DataType;
-using ge::Format;
-using ge::Status;
-using ge::Promote;
-using ge::TypeUtils;
-using ge::FORMAT_END;
-using ge::kBitNumOfOneByte;
-using ge::kDataTypeSizeBitOffset;
+namespace ge {
 
 const char_t *GetFormatName(Format format) {
   static const char_t *names[FORMAT_END] = {
@@ -148,9 +140,6 @@ int64_t GetSizeInBytes(int64_t element_count, DataType data_type) {
   }
 }
 
-}  // namespace af
-
-namespace ge {
 std::vector<const char *> Promote::Syms() const {
   std::vector<const char *> result;
   if (data_ == nullptr) {

@@ -15,7 +15,7 @@
 #include "base/base_types.h"
 #include "api_perf_register/perf_param.h"
 
-namespace af { namespace att {
+namespace att {
 class PerfParamTableV2 : public PerfParamTable {
  public:
   PerfParamTableV2();
@@ -71,5 +71,4 @@ class TilingScheduleConfigTableV2 : public TilingScheduleConfigTable {
 extern const std::string kParamV2Info;
 inline const std::string kNddma = "Nddma";
 }       // namespace att
-}  // namespace af
 #endif  // ATT_UTIL_PARAMS_V2_H_

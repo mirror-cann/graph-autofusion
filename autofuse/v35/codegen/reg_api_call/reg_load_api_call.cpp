@@ -25,20 +25,20 @@ using namespace af::ascir_op;
 namespace {
 constexpr uint64_t kDmaMaxLen = 2U;
 }
-namespace af { namespace codegen {
-Status LoadRegApiCall::ParseAttr(const ::ascir::NodeView &node) {
+namespace codegen {
+Status LoadRegApiCall::ParseAttr(const ascir::NodeView &node) {
   (void)node->attr.ir_attr->GetAttrValue("offset", offset_);
   return ge::SUCCESS;
 }
 
-Status LoadRegApiCall::Generate(const TPipe &tpipe, const std::vector<::ascir::AxisId> &current_axis,
+Status LoadRegApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
                                 const std::vector<std::reference_wrapper<const Tensor>> &inputs,
                                 const std::vector<std::reference_wrapper<const Tensor>> &outputs,
                                 std::string &result) const {
   std::stringstream ss;
   const auto &gm = inputs[0].get();
   const auto &ub = outputs[0].get();
-  if (tpipe.cv_fusion_type == ::ascir::CubeTemplateType::kUBFuse && !ub.is_ub_scalar) {
+  if (tpipe.cv_fusion_type == ascir::CubeTemplateType::kUBFuse && !ub.is_ub_scalar) {
     std::string dtype_name;
     Tensor::DtypeName(gm.dtype, dtype_name);
     ss << "DataCopyPadExtend<" << dtype_name << ", AscendC::PaddingMode::Normal>(" << ub << ", " << gm << "[offset], "
@@ -56,4 +56,3 @@ Status LoadRegApiCall::Generate(const TPipe &tpipe, const std::vector<::ascir::A
 }
 static ApiCallRegister<LoadRegApiCall> register_load_reg_api_call("LoadRegApiCall");
 }  // namespace codegen
-}  // namespace af

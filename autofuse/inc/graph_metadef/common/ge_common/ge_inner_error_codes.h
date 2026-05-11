@@ -16,7 +16,7 @@
 #include "external/ge_common/ge_api_error_codes.h"
 #include "common/ge_common/error_codes_define.h"
 
-namespace ge {
+namespace af {
 // Common module error code definition
 GE_ERRORNO_COMMON(MEMALLOC_FAILED, 0, "Failed to allocate memory!");  // 1343225856
 GE_ERRORNO_COMMON(CCE_FAILED, 2, "Failed to call CCE API!");          // 1343225858
@@ -235,6 +235,6 @@ GE_ERRORNO_GENERATOR(GE_GENERATOR_GRAPH_MANAGER_ADD_GRAPH_FAILED, 2, "Graph mana
 GE_ERRORNO_GENERATOR(GE_GENERATOR_GRAPH_MANAGER_BUILD_GRAPH_FAILED, 3, "Graph manager build graph failed.");
 GE_ERRORNO_GENERATOR(GE_GENERATOR_GRAPH_MANAGER_FINALIZE_FAILED, 4, "Graph manager finalize failed.");
 GE_ERRORNO_GENERATOR(GE_GENERATOR_GRAPH_MANAGER_SAVE_MODEL_FAILED, 5, "Graph manager save model failed.");
-}  // namespace ge
+}  // namespace af
 
 #endif  // INC_COMMON_GE_INNER_ERROR_CODES_H_

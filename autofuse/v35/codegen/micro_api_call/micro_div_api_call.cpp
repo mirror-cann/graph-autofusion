@@ -10,8 +10,8 @@
 #include "micro_api_call_factory.h"
 #include "ascir_ops.h"
 
-namespace af { namespace codegen {
-Status MicroDivApiCall::Generate(const af::codegen::TensorManager &tensor_mng, [[maybe_unused]] const TPipe &tpipe,
+namespace codegen {
+Status MicroDivApiCall::Generate(const codegen::TensorManager &tensor_mng, [[maybe_unused]] const TPipe &tpipe,
                                  CallParam &param, string &result) {
   std::stringstream ss;
 
@@ -44,4 +44,3 @@ Status MicroDivApiCall::Generate(const af::codegen::TensorManager &tensor_mng, [
 
 static MicroApiCallRegister<MicroDivApiCall> register_micro_leaky_relu_api_call("MicroDivApiCall");
 }  // namespace codegen
-}  // namespace af

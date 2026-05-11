@@ -16,7 +16,7 @@
 #include "framework/common/debug/ge_log.h"
 #include "ternary_op.h"
 
-namespace af { namespace att {
+namespace att {
 enum class CondType : int32_t {
   K_EQ = 0,
   K_LT,
@@ -89,7 +89,6 @@ std::vector<std::pair<Expr, Expr>> ConcursiveReplaceVars(const std::map<Expr, Te
 std::map<Expr, std::vector<Expr>, ExprCmp> ConcursiveRelatedVars(const std::map<Expr, TernaryOp, ExprCmp> &ternary_ops);
 void GetPerfVar(const std::string &prefix, Expr &res, const std::map<Expr, TernaryOp, ExprCmp> &ternary_ops);
 }  // namespace att
-}  // namespace af
 #endif  // ATT_TERNARY_OP_H_
 
 

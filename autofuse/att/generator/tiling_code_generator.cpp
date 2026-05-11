@@ -15,7 +15,7 @@
 #include "base/att_const_values.h"
 #include "tiling_data_gen/tiling_data_generator.h"
 
-namespace af { namespace att {
+namespace att {
 namespace {
 std::string EnsureTrailingSlash(const std::string& path) {
   return path.back() == '/' ? path : path + "/";
@@ -299,4 +299,3 @@ af::Status TilingCodeGenerator::GenScheduleGroupTilingBodies(
 }
 
 }  // namespace att
-}  // namespace af

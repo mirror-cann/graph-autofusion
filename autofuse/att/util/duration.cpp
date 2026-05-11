@@ -10,7 +10,7 @@
 #include "duration.h"
 #include "graph_metadef/graph/debug/ge_util.h"
 
-namespace af { namespace att {
+namespace att {
 uint32_t kg_duration_level = 0U;
 namespace {
 DurationDef kg_duration_def[static_cast<uint32_t>(DurationType::DURATION_MAX)] = {
@@ -335,4 +335,3 @@ std::string DurationGuardGenCode(const TilingFuncDurationType type) {
     kg_tiling_func_duration_def[static_cast<int32_t>(type)].name + ")";
 }
 } //namespace att
-}  // namespace af

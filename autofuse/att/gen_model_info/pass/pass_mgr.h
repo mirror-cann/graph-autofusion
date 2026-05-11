@@ -17,7 +17,7 @@
 #include <functional>
 #include "parser/tuning_space.h"
 
-namespace af { namespace att {
+namespace att {
 using PassFunc = std::function<bool(const TuningSpacePtr&, std::map<std::string, std::string>&)>;
 
 class ATTPassMgr {
@@ -71,6 +71,5 @@ public:
 #define REGISTER_GTC_PASS(pass_name, func_name) \
   static PassRegister g_Reg##pass_name(pass_name, func_name)
 } // namespace att
-}  // namespace af
 
 #endif  // PASS_PASS_MGR_H_

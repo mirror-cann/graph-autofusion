@@ -15,7 +15,7 @@
 #include "ascir.h"
 #include "ascir_ops.h"
 
-namespace af { namespace optimize {
+namespace optimize {
 class ConcatGroupPartitioner {
  public:
   struct ConcatGroup {
@@ -101,6 +101,5 @@ class ConcatGroupPartitioner {
   bool has_recompute_ = false;
 };
 }  // namespace optimize
-}  // namespace af
 
 #endif  // ASCGEN_DEV_OPTIMIZE_TASK_GENERATOR_CONCAT_GROUP_PARTITIONER_H_

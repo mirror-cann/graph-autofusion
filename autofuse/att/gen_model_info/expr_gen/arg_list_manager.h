@@ -16,7 +16,7 @@
 #include "parser/tuning_space.h"
 #include "base/base_types.h"
 
-namespace af { namespace att {
+namespace att {
 constexpr char kArgsNameTmpBuffer[] = "tmp_tbuf_size";
 constexpr char kArgsNameBuiltInTmpBuffer[] = "BuiltinTmpBuffer";
 
@@ -127,5 +127,4 @@ private:
 };
 }
 
-}  // namespace af
 #endif

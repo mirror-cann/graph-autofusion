@@ -14,7 +14,7 @@
 #include "ascgen_log.h"
 #include "ascir_ops.h"
 
-namespace af { namespace optimize {
+namespace optimize {
 class SplitGroupPartitioner {
  public:
   struct SplitGroup {
@@ -57,6 +57,5 @@ class SplitGroupPartitioner {
   std::map<int32_t, int64_t> group_type_to_limit_;
 };
 }  // namespace optimize
-}  // namespace af
 
 #endif  // ASCGEN_DEV_OPTIMIZE_TASK_GENERATOR_SPLIT_GROUP_PARTITIONER_H_

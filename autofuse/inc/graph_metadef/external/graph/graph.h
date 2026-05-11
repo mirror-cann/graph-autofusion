@@ -21,7 +21,6 @@
 
 namespace af {
 using ge::AscendString;
-using ge::graphStatus;
 
 class Graph;
 class GraphImpl;

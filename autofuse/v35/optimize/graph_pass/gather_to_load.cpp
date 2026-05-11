@@ -16,7 +16,7 @@
 
 using namespace af::ops;
 using namespace af::ascir_op;
-namespace af { namespace optimize {
+namespace optimize {
 Status GatherToLoadPass::RunPass(af::AscGraph &graph) {
   for (auto node : graph.GetAllNodes()) {
     if (ScheduleUtils::IsGather(node)) {
@@ -27,4 +27,3 @@ Status GatherToLoadPass::RunPass(af::AscGraph &graph) {
   return ge::SUCCESS;
 }
 }  // namespace optimize
-}  // namespace af

@@ -9,7 +9,7 @@
  */
 
 #include "api_tiling_gen_register.h"
-namespace af { namespace att {
+namespace att {
 ApiTilingGenRegistry &ApiTilingGenRegistry::Instance() {
   static ApiTilingGenRegistry instance;
   return instance;
@@ -49,4 +49,3 @@ bool ApiTilingGenRegistry::IsApiTilingRegistered(const std::string &op_type) {
   return api_tiling_generators_.find(op_type) != api_tiling_generators_.end();
 }
 }  // namespace att
-}  // namespace af

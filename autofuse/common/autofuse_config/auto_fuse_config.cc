@@ -12,7 +12,7 @@
 #include <regex>
 #include "auto_fuse_config_parser.h"
 
-namespace af { namespace att {
+namespace att {
 namespace {
 const int32_t kBaseOfIntegerValue = 10;
 // 辅助函数：解析 int64_t 配置值
@@ -214,4 +214,3 @@ Status PgoStrategyConfig::Init() {
   return ge::SUCCESS;
 }
 }  // namespace att
-}  // namespace af

@@ -15,7 +15,7 @@
 #include "common/checker.h"
 #include "../utils/api_call_factory.h"
 
-namespace af { namespace codegen {
+namespace codegen {
 using namespace ascgen_utils;
 
 namespace {
@@ -23,7 +23,7 @@ constexpr uint32_t kDataBlockSize = 32;
 constexpr uint32_t kAddrListSize = 16;
 constexpr size_t kOffsetSecondLastStride = 2;
 
-Status FindNonZeroStride(const std::vector<::ascir::SizeExpr> &vectorized_strides,
+Status FindNonZeroStride(const std::vector<ascir::SizeExpr> &vectorized_strides,
                          int32_t index,
                          af::Expression &stride) {
   for (int32_t i = index; i >= 0; --i) {
@@ -39,7 +39,7 @@ Status FindNonZeroStride(const std::vector<::ascir::SizeExpr> &vectorized_stride
 }
 }  // namespace
 
-Status ConcatApiCall::ParseAttr(const ::ascir::NodeView &node) {
+Status ConcatApiCall::ParseAttr(const ascir::NodeView &node) {
   // TTODO 消除Brc后可能会导致repeat不连续，先用attr规避，后续整改
   GE_ASSERT_SUCCESS(ApiCall::ParseAttr(node));
   (void) af::AttrUtils::GetBool(node->GetOpDesc(), "_concat_small_tail", use_concat_small_tail_api_);
@@ -47,7 +47,7 @@ Status ConcatApiCall::ParseAttr(const ::ascir::NodeView &node) {
   return ge::SUCCESS;
 }
 
-Status ConcatApiCall::Generate(const TPipe &tpipe, const std::vector<::ascir::AxisId> &current_axis,
+Status ConcatApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
                                const vector<std::reference_wrapper<const Tensor>> &inputs,
                                const vector<std::reference_wrapper<const Tensor>> &outputs,
                                string &result) const {
@@ -485,4 +485,3 @@ void ConcatApiCall::GenSrcTensors(const std::vector<std::reference_wrapper<const
 
 [[maybe_unused]] static ApiCallRegister<ConcatApiCall> register_concat_api_call("ConcatApiCall");
 }  // namespace codegen
-}  // namespace af

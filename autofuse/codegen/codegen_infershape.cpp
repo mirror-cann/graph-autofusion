@@ -10,7 +10,7 @@
 
 #include "codegen_infershape.h"
 #include "code_printer.h"
-namespace af { namespace codegen {
+namespace codegen {
 namespace {
 std::string GetFileHeaderDefine() {
   std::string file_header_str = R"(
@@ -110,4 +110,3 @@ std::string InfershapeGen::GenInferShapeFunc(const std::vector<std::vector<std::
   return printer.GetOutputStr();
 }
 }  // namespace codegen
-}  // namespace af

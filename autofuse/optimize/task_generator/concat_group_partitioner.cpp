@@ -20,7 +20,7 @@
 #include "ascir/meta/ascir_ops_utils.h"
 #include "platform/platform_factory.h"
 
-namespace af { namespace optimize {
+namespace optimize {
 namespace {
 constexpr int32_t kAlignment = 32;
 constexpr int32_t kConcatAlgTranspose = 0;
@@ -406,7 +406,7 @@ size_t ConcatGroupPartitioner::GetGroupSize(size_t index) const {
 
 af::Status ConcatGroupPartitioner::RecomputeInNodes(const af::InDataAnchorPtr &in_anchor, size_t index,
                                                     std::map<std::string, af::AscNodePtr> &name_to_new_nodes) const {
-  ::ascir::ImplGraph owner_graph("");
+  ascir::ImplGraph owner_graph("");
   GE_ASSERT_SUCCESS(af::AscGraphUtils::FromComputeGraph(concat_node_->GetOwnerComputeGraph(), owner_graph));
   auto out_anchor = in_anchor->GetPeerOutAnchor();
   GE_ASSERT_NOTNULL(out_anchor);
@@ -533,4 +533,3 @@ Status ConcatGroupPartitioner::RecomputeDiffAxes() {
   return ge::SUCCESS;
 }
 }  // namespace optimize
-}  // namespace af

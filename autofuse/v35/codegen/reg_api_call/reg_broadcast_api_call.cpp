@@ -15,7 +15,7 @@
 #include "api_call/utils/api_call_factory.h"
 #include "api_call/broadcast/broadcast_api_call.h"
 
-namespace af { namespace codegen {
+namespace codegen {
 using namespace std;
 using namespace ascgen_utils;
 
@@ -53,9 +53,9 @@ static void GenParams(const TPipe &tpipe, const Tensor &input, const Tensor &out
         pre_pos = i;
       }
     }
-    ::ascir::AxisId axis_id = output.vectorized_axis[pos];
+    ascir::AxisId axis_id = output.vectorized_axis[pos];
     auto last_dim_size = output.vectorized_strides[pre_pos];
-    if (tpipe.tiler.GetAxis(axis_id).type != ::ascir::Axis::Type::kAxisTypeTileInner || output.vectorized_axis[0] == axis_id) {
+    if (tpipe.tiler.GetAxis(axis_id).type != ascir::Axis::Type::kAxisTypeTileInner || output.vectorized_axis[0] == axis_id) {
       ss << tpipe.tiler.ActualSize(last_dim_size);
     } else {
       ss << tpipe.tiler.Size(last_dim_size);
@@ -65,7 +65,7 @@ static void GenParams(const TPipe &tpipe, const Tensor &input, const Tensor &out
   ss << "};\n";
 }
 
-Status BroadcastRegApiCall::Generate(const TPipe &tpipe, const std::vector<::ascir::AxisId> &current_axis,
+Status BroadcastRegApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
                                      const std::vector<std::reference_wrapper<const Tensor>> &inputs,
                                      const std::vector<std::reference_wrapper<const Tensor>> &outputs,
                                      std::string &result) const {
@@ -121,4 +121,3 @@ Status BroadcastRegApiCall::Generate(const TPipe &tpipe, const std::vector<::asc
 
 static ApiCallRegister<BroadcastRegApiCall> register_broadcast_reg_api_call("BroadcastRegApiCall");
 }  // namespace codegen
-}  // namespace af

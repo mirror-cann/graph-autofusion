@@ -71,7 +71,7 @@ bool IsSupportInplace(const af::AscNodePtr &node) {
 }
 }  // namespace
 
-namespace af { namespace optimize {
+namespace optimize {
 struct NodeLifecycle {
   af::AscNodePtr node;
   int64_t start;
@@ -348,7 +348,7 @@ void BufQueAllocator::SetGlobalMemInfo(const af::AscTensor &tensor, int64_t tens
   tensor.attr.que.id = af::kIdNone;
 }
 
-void BufQueAllocator::InitTensorReuseInfoAndLifeTime(const ::ascir::NodeView &node, const af::AscTensor *output,
+void BufQueAllocator::InitTensorReuseInfoAndLifeTime(const ascir::NodeView &node, const af::AscTensor *output,
                                                      TensorInfo &tensor_info, bool is_reduce_mem_reuse,
                                                      bool is_cube_none_db) const {
   bool is_node_cached = ascgen_utils::IsNodeCacheable(node);
@@ -356,14 +356,14 @@ void BufQueAllocator::InitTensorReuseInfoAndLifeTime(const ::ascir::NodeView &no
   InitTensorLifeTime(node, output, tensor_info, is_node_cached, is_cube_none_db);
 }
 
-void BufQueAllocator::InitTensorReuseInfo(const ::ascir::NodeView &node, const af::AscTensor *output,
+void BufQueAllocator::InitTensorReuseInfo(const ascir::NodeView &node, const af::AscTensor *output,
                                           TensorInfo &tensor_info, bool is_reduce_mem_reuse,
                                           bool is_node_cached) const {
   if (output->attr.mem.position == af::Position::kPositionVecCalc &&
       ascgen_utils::IsScalarInput(output->attr.repeats)) {
     tensor_info.is_reusable = false;
   }
-  if (node->GetName().find("Cube_Load_") != string::npos && cube_type == ::ascir::CubeTemplateType::kUBFuse) {
+  if (node->GetName().find("Cube_Load_") != string::npos && cube_type == ascir::CubeTemplateType::kUBFuse) {
     tensor_info.is_reusable = false;
     tensor_info.is_can_reuse_others = false;
   }
@@ -392,7 +392,7 @@ void BufQueAllocator::InitTensorReuseInfo(const ::ascir::NodeView &node, const a
   }
 }
 
-void BufQueAllocator::InitTensorLifeTime(const ::ascir::NodeView &node, const af::AscTensor *output,
+void BufQueAllocator::InitTensorLifeTime(const ascir::NodeView &node, const af::AscTensor *output,
                                          TensorInfo &tensor_info, bool is_node_cached, bool is_cube_none_db) {
   tensor_info.life_start = node->GetOpDescBarePtr()->GetId();
   tensor_info.life_end = node->GetOpDescBarePtr()->GetId();
@@ -805,4 +805,3 @@ Status BufQueAllocator::TopoSortByLoadPriority(af::AscGraph &graph) {
   return af::SUCCESS;
 }
 }  // namespace optimize
-}  // namespace af

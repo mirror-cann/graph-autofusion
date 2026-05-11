@@ -11,7 +11,7 @@
 #include "pass/pass_mgr.h"
 #include "nlohmann/json.hpp"
 
-namespace af { namespace att {
+namespace att {
 const std::string kLoadToL1 = "loadTcsm";
 const uint32_t kNd2NzAlign = 128U;
 
@@ -62,4 +62,3 @@ bool GetMatmulAlignConfig(const TuningSpacePtr &tuning_space, std::map<std::stri
 static std::string kmatmul_align_pass = "matmul_align_pass";
 REGISTER_GTC_PASS(kmatmul_align_pass, GetMatmulAlignConfig);
 }  // namespace att
-}  // namespace af

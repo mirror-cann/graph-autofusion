@@ -12,10 +12,10 @@
 #define __INC_AUTOSCHEDULE_AXIS_GROUP_H__
 
 #include <vector>
-#include "graph/ascendc_ir/ascendc_ir_core/ascendc_ir.h"
-#include "graph/ascendc_ir/ascendc_ir_core/ascendc_ir_def.h"
+#include "ascendc_ir/ascendc_ir_core/ascendc_ir.h"
+#include "ascendc_ir/ascendc_ir_core/ascendc_ir_def.h"
 
-namespace af::optimize::autoschedule {
+namespace optimize::autoschedule {
 struct AxisGroup {
   std::vector<af::AxisId> x_group;  // 当为了和elemwise的ygroup分开切分时需要放入x_group,比如transpose前和transpose后
   std::vector<af::AxisId> y_group;  // elemwise轴的分组
@@ -33,12 +33,12 @@ struct AxisGroup {
 };
 
 extern "C" {
-using af::optimize::autoschedule::AxisGroup;
+using optimize::autoschedule::AxisGroup;
 
 int32_t GenAscGraphAxisGroup(const af::AscGraph &graph, AxisGroup &axes_group);
 
 bool CanMergeAxisGroup(const AxisGroup &lhs, const AxisGroup &rhs, AxisGroup &merged_group, const bool is_ge_call = false);
 }
-}  // namespace af::optimize::autoschedule
+}  // namespace optimize::autoschedule
 
 #endif

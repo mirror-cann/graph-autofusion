@@ -12,16 +12,15 @@
 #define OPTIMIZE_PLATFORM_COMMON_GRAPH_PASS_SCALAR_BROADCAST_OPTIMIZATION_H
 #include "base_graph_pass.h"
 
-namespace af { namespace optimize {
+namespace optimize {
 class ScalarBroadcastOptimizationPass final : public BaseGraphPass {
  public:
   ScalarBroadcastOptimizationPass() = default;
   ~ScalarBroadcastOptimizationPass() override = default;
   Status RunPass(af::AscGraph &graph) override;
-  static Status IsNextNodeSupportScalarInput(const ::ascir::NodeView &brc_node, bool &is_supported);
+  static Status IsNextNodeSupportScalarInput(const ascir::NodeView &brc_node, bool &is_supported);
   static Status GetNodeScalarInputList(const af::NodePtr &node, std::vector<bool> &is_scalar_list);
 };
 }  // namespace optimize
-}  // namespace af
 
 #endif  // OPTIMIZE_PLATFORM_COMMON_GRAPH_PASS_SCALAR_BROADCAST_OPTIMIZATION_H

@@ -37,7 +37,7 @@ namespace {
   };
 }
 
-namespace af { namespace codegen {
+namespace codegen {
 Status MicroCastApiCall::Generate(const TensorManager &tensor_mng, [[maybe_unused]] const TPipe &tpipe, CallParam &param,
                                   string &result) {
   std::stringstream ss;
@@ -64,7 +64,7 @@ Status MicroCastApiCall::Generate(const TensorManager &tensor_mng, [[maybe_unuse
   return ge::SUCCESS;
 }
 
-Status MicroCastApiCall::Init(const ::ascir::NodeView &node) {
+Status MicroCastApiCall::Init(const ascir::NodeView &node) {
   std::pair<ge::DataType, ge::DataType> dtype_pair = {node->inputs[0].attr.dtype, node->outputs[0].attr.dtype};
   auto iter = trait_map.find(dtype_pair);
   if (iter != trait_map.end()) {
@@ -77,4 +77,3 @@ Status MicroCastApiCall::Init(const ::ascir::NodeView &node) {
 
 static MicroApiCallRegister<MicroCastApiCall> register_micro_cast_api_call("MicroCastApiCall");
 }  // namespace codegen
-}  // namespace af

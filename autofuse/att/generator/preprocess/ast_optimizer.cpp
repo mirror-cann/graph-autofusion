@@ -10,7 +10,7 @@
 
 #include "ast_optimizer.h"
 
-namespace af { namespace att {
+namespace att {
 // 表达式涉及的函数
 const std::vector<std::string> functions_set = {"Ceiling", "Min", "Max", "Rational", "Floor", "Log", "Pow", "Mod"};
 
@@ -273,4 +273,3 @@ void Optimizer::Optimize(ASTPtr &root) {
   Traverse(root.get());
 }
 }  // namespace att
-}  // namespace af

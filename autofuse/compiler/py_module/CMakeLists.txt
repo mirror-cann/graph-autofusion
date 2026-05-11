@@ -25,30 +25,16 @@ target_link_options(pyautofuse PRIVATE
 
 target_link_libraries(pyautofuse PRIVATE $<BUILD_INTERFACE:intf_pub>)
 
-if (ENABLE_OPEN_SRC)
-    target_link_libraries(pyautofuse PUBLIC
-        -Wl,--no-as-needed
-        atrace_share
-        aihac_codegen
-        aihac_ir
-        ascend_protobuf
-        json
-        graph
-        graph_base
-        $<BUILD_INTERFACE:ascir_ops_headers>
-        )
-else ()
-    target_link_libraries(pyautofuse PRIVATE
-        $<BUILD_INTERFACE:atrace_headers>
-        atrace_share
-        aihac_codegen
-        aihac_ir
-        ascend_protobuf
-        json
-        graph
-        graph_base
-        unified_dlog
-        $<BUILD_INTERFACE:ascir_ops_headers>
-        $<BUILD_INTERFACE:c_sec_headers>
-        )
-endif ()
+target_link_libraries(pyautofuse PRIVATE
+    $<BUILD_INTERFACE:atrace_headers>
+    atrace_share
+    aihac_codegen
+    aihac_ir
+    ascend_protobuf
+    json
+    graph_af
+    graph_base_af
+    unified_dlog
+    $<BUILD_INTERFACE:ascir_ops_headers>
+    $<BUILD_INTERFACE:c_sec_headers>
+    )

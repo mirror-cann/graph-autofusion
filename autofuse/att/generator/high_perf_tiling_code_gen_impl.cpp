@@ -15,7 +15,7 @@
 #include "common/checker.h"
 #include "autofuse_config/auto_fuse_config.h"
 
-namespace af { namespace att {
+namespace att {
 namespace {
 constexpr ge::char_t kDefaultConfigMaxIterHeader[] = "cfg_iterations = ";
 constexpr ge::char_t kDefaultConfigMaxIterValue[] = "100";
@@ -82,4 +82,3 @@ ge::Status HighPerfTilingCodeGenImpl::GenDoTiling(const ModelInfo &model_info) {
   return GenDoTilingCommon(model_info, solver_pass_manager.GenFuncPass());
 }
 }  // namespace att
-}  // namespace af

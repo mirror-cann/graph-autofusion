@@ -10,7 +10,7 @@
 
 #include "axes_reorder_solver_code_common.h"
 
-namespace af { namespace att {
+namespace att {
 
 // ============================================================================
 // Section 7: PGO and Auto-tuning
@@ -696,4 +696,3 @@ bool AxesReorderSolver::AutoTuning(const bool is_trade_off) {
 }
 
 } // namespace att
-}  // namespace af

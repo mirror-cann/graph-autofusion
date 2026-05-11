@@ -9,7 +9,7 @@
  */
 #include "generator_utils/tilingdata_gen_utils.h"
 
-namespace af { namespace att {
+namespace att {
 void TilingDataGenUtils::AddElementDefinition(ge::CodePrinter &printer, const std::string &type_name,
   const std::string &var_name) {
   printer.AddLine(("    TILING_DATA_FIELD_DEF(" + type_name + ", ") + var_name + ")");
@@ -41,4 +41,3 @@ std::string TilingDataGenUtils::StructElementDefine(const std::string &type_name
   return struct_define;
 }
 }  // namespace att
-}  // namespace af

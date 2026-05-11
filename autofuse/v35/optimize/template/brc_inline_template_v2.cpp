@@ -16,7 +16,7 @@
 #include <queue>
 #include "platform/common/base_alignment_strategy.h"
 
-namespace af { namespace optimize {
+namespace optimize {
 
 bool BrcInlineTemplateV2::IsNodeAligned(const af::NodePtr &node) const {
   return aligned_nodes_.find(node) != aligned_nodes_.end();
@@ -171,4 +171,3 @@ bool BrcInlineTemplateV2::NeedDropBasedCase([[maybe_unused]] const af::AscGraph 
 }
 
 }  // namespace optimize
-}  // namespace af

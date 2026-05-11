@@ -32,7 +32,6 @@ using std::vector;
 namespace af {
 using ge::AscendString;
 using ge::float32_t;
-using ge::graphStatus;
 
 class AttrValueImpl;
 /*lint -e148*/
@@ -50,11 +49,11 @@ class GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY AttrValue {
   graphStatus GetValue(DT &val) const {
     T valGet;
     const auto status = GetValue(valGet);
-    if (status != ge::GRAPH_SUCCESS) {
+    if (status != af::GRAPH_SUCCESS) {
       return status;
     }
     val = DT(valGet);
-    return ge::GRAPH_SUCCESS;
+    return af::GRAPH_SUCCESS;
   }
 
   template <typename T, typename DT>

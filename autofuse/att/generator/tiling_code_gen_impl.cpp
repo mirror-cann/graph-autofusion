@@ -27,7 +27,7 @@
 #include "ascir_ops.h"
 #include "ascir_ops_utils.h"
 
-namespace af { namespace att {
+namespace att {
  namespace {
  constexpr size_t kLogLength = 200;
  constexpr uint32_t kMaxDepth = 20U;
@@ -4317,4 +4317,3 @@ ge::Status TilingCodeGenImpl::ValidateGroupModeForceTilingCase(
  }
  }  // namespace att
  
-}  // namespace af

@@ -12,7 +12,7 @@
 #define AUTOFUSE_REUSE_GROUP_UTILS_H
 
 #include "base/model_info.h"
-namespace af { namespace att {
+namespace att {
 class ReuseGroupUtils {
  public:
   ReuseGroupUtils() = default;
@@ -34,5 +34,4 @@ class ReuseGroupUtils {
     FusedParsedScheduleResult &out_fused_schedule_result);
 };
 }
-}  // namespace af
 #endif  // AUTOFUSE_REUSE_GROUP_UTILS_H

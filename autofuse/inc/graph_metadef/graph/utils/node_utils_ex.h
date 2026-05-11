@@ -18,7 +18,6 @@
 
 namespace af {
 #ifdef AUTOFUSE_USE_GE_METADEF
-using ge::graphStatus;
 using ge::NodePtr;
 using ge::ConstNodePtr;
 #endif

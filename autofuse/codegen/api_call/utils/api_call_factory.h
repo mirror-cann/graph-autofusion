@@ -19,7 +19,7 @@
 #include <tuple>
 #include "codegen_kernel.h"
 #include "common_utils.h"
-namespace af { namespace codegen {
+namespace codegen {
 using ApiCallCreatorFun = std::function<ApiCall*(const std::string&)>;
 
 class ApiCallFactory {
@@ -84,7 +84,7 @@ public:
     }
 };
 
-inline ApiCall *CreateApiCallObject(const ::ascir::NodeView &node) {
+inline ApiCall *CreateApiCallObject(const ascir::NodeView &node) {
   auto impl = ascgen_utils::GetAscIrCodegenImpl(node->GetType());
   if (impl == nullptr) {
     return nullptr;
@@ -96,5 +96,4 @@ inline ApiCall *CreateApiCallObject(const ::ascir::NodeView &node) {
 }
 
 }  // namespace codegen
-}  // namespace af
 #endif // __AUTOFUSE_API_CALL_FACTORY_H__

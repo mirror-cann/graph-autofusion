@@ -10,7 +10,7 @@
 
 #include "axes_reorder_solver_code_common.h"
 
-namespace af { namespace att {
+namespace att {
 
 // ============================================================================
 // Section 6: Equal Priority Axes Support
@@ -573,4 +573,3 @@ bool AxesReorderSolver::FinalizeEqualPriorityAxes(uint32_t *axis_idx, std::vecto
 }
 
 } // namespace att
-}  // namespace af

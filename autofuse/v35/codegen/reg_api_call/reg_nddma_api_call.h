@@ -13,21 +13,20 @@
 
 #include "codegen_kernel.h"
 
-namespace af { namespace codegen {
+namespace codegen {
 class NddmaApiCall final : public ApiCall {
  public:
   using ApiCall::Generate;
   explicit NddmaApiCall(const std::string &api_name) : ApiCall(api_name) {}
   ~NddmaApiCall() final = default;
-  Status Generate(const TPipe &tpipe, const std::vector<::ascir::AxisId> &current_axis,
+  Status Generate(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
                   const std::vector<std::reference_wrapper<const Tensor>> &inputs,
                   const std::vector<std::reference_wrapper<const Tensor>> &outputs, std::string &result) const override;
  protected:
-  Status ParseAttr(const ::ascir::NodeView &node) override;
+  Status ParseAttr(const ascir::NodeView &node) override;
 
  private:
   af::Expression offset_ = af::ops::Zero;
 };
 }  // namespace codegen
-}  // namespace af
 #endif  // __AUTOFUSE_NDDMA_API_CALL_H__

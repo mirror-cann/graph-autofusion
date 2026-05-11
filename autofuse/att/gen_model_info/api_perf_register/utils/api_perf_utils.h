@@ -21,7 +21,7 @@
 #include "gen_model_info/parser/tuning_space.h"
 
 using Json = nlohmann::json;
-namespace af { namespace att {
+namespace att {
 // CalculateStride 返回值结构体，包含 stride 表达式和 block_count_idx
 struct StrideResult {
   Expr stride;
@@ -75,6 +75,5 @@ inline std::string GetNodeOutTensorName(const af::AscNodePtr &node, const uint32
 // 获取融合算子头开销
 [[nodiscard]] ge::Status GetOpHeadCost(Expr &head_cost);
 }
-}  // namespace af
 #endif  // ATT_UTIL_TOOL_FUNC_H_
 

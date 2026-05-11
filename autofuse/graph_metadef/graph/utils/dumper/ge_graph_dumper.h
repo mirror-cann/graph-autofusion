@@ -20,7 +20,7 @@ struct GeGraphDumper {
   GeGraphDumper &operator=(const GeGraphDumper &) = delete;
   GeGraphDumper(GeGraphDumper &&) = delete;
   GeGraphDumper &operator=(GeGraphDumper &&) = delete;
-  virtual void Dump(const ge::ComputeGraphPtr &graph, const std::string &suffix) = 0;
+  virtual void Dump(const af::ComputeGraphPtr &graph, const std::string &suffix) = 0;
   virtual ~GeGraphDumper() = default;
 };
 

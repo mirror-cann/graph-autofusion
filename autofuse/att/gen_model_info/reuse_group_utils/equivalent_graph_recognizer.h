@@ -12,7 +12,7 @@
 #define AUTOFUSE_ATT_GEN_MODEL_INFO_REUSE_GROUP_UTILS_EQUIVALENT_GRAPH_RECOGNIZER_H_
 
 #include "base/model_info.h"
-namespace af { namespace att {
+namespace att {
 class EquivalentGraphRecognizer {
  public:
   EquivalentGraphRecognizer(const af::AscGraph &graph_to, const af::AscGraph &graph_from,
@@ -55,5 +55,4 @@ class EquivalentGraphRecognizer {
   std::vector<std::string> graph_to_ordered_input_names_;
 };
 }
-}  // namespace af
 #endif  // AUTOFUSE_ATT_GEN_MODEL_INFO_REUSE_GROUP_UTILS_EQUIVALENT_GRAPH_RECOGNIZER_H_

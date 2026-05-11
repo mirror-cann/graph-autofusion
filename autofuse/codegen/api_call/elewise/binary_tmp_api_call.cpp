@@ -18,13 +18,13 @@
 #include "common/checker.h"
 #include "api_call/utils/api_call_factory.h"
 
-namespace af { namespace codegen {
+namespace codegen {
 using namespace std;
 using namespace af::ops;
 using namespace af::ascir_op;
 using namespace ascgen_utils;
 
-Status BinaryTmpApiCall::Generate(const TPipe &tpipe, const std::vector<::ascir::AxisId> &current_axis,
+Status BinaryTmpApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
                                   const std::vector<std::reference_wrapper<const Tensor>> &inputs,
                                   const std::vector<std::reference_wrapper<const Tensor>> &outputs,
                                   std::string &result) const {
@@ -68,4 +68,3 @@ Status BinaryTmpApiCall::Generate(const TPipe &tpipe, const std::vector<::ascir:
 static ApiCallRegister<BinaryTmpApiCall> register_binary_tmp_api_call("BinaryTmpApiCall");
 
 }  // namespace codegen
-}  // namespace af

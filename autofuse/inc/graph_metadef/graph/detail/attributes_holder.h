@@ -49,7 +49,6 @@ class GraphDef;
 
 namespace af {
 using ge::AnyValue;
-using ge::graphStatus;
 
 using ProtoAttrMap = AttrStore;
 using ConstProtoAttrMap = const AttrStore;

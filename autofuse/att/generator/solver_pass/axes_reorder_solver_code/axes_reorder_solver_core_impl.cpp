@@ -10,7 +10,7 @@
 
 #include "axes_reorder_solver_code_common.h"
 
-namespace af { namespace att {
+namespace att {
 
 // ============================================================================
 // Section 3: Core Implementation
@@ -233,4 +233,3 @@ std::string GenApplyPromptAlign() {
 }
 
 } // namespace att
-}  // namespace af

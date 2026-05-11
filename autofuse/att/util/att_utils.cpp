@@ -10,7 +10,7 @@
 #include "att_utils.h"
 #include "att_const_values.h"
 #include <numeric>
-namespace af { namespace att {
+namespace att {
 namespace {
 bool IsOps(const af::AscNode *node, const std::string &node_type) {
   return node->GetType() == node_type;
@@ -202,4 +202,3 @@ void AttUtils::CollectBroadcastAxisNames(const NodeInfo &node_info,
              .c_str());
 }
 }  // namespace att
-}  // namespace af

@@ -18,21 +18,21 @@
 #include "schedule_task_generator.h"
 #include "schedule_utils.h"
 
-namespace af { namespace optimize {
+namespace optimize {
 class FusionCaseGenerator {
  public:
   FusionCaseGenerator() = default;
   virtual ~FusionCaseGenerator() = default;
   FusionCaseGenerator(const FusionCaseGenerator&) = delete;
   FusionCaseGenerator &operator=(const FusionCaseGenerator&) = delete;
-  virtual Status Generate(::ascir::HintGraph &graph, std::vector<::ascir::ImplGraph> &graphs,
+  virtual Status Generate(ascir::HintGraph &graph, std::vector<ascir::ImplGraph> &graphs,
                           std::vector<std::string> &score_functions) = 0;
-  virtual Status GeneratorTask(::ascir::HintGraph &optimize_graph, std::vector<ScheduleTask> &tasks,
+  virtual Status GeneratorTask(ascir::HintGraph &optimize_graph, std::vector<ScheduleTask> &tasks,
                                const OptimizerOptions &options) {
     (void)options;
     bool need_update_axis = false;
     GE_ASSERT_SUCCESS(ScheduleGroupGraphPartitioner::NeedRefreshAxisSize(optimize_graph, need_update_axis));
-    std::vector<::ascir::ImplGraph> optimize_graphs;
+    std::vector<ascir::ImplGraph> optimize_graphs;
     std::vector<std::string> score_funcs;
     GE_CHK_STATUS_RET(Generate(optimize_graph, optimize_graphs, score_funcs), "GenerateScheduleCases failed");
     score_funcs.resize(optimize_graphs.size());
@@ -50,7 +50,7 @@ class FusionCaseGenerator {
     return af::GRAPH_SUCCESS;
   }
 
-  static Status GroupPartitionAndGenTasks(const ::ascir::ImplGraph &impl_graph, std::vector<ScheduleTask> &tasks) {
+  static Status GroupPartitionAndGenTasks(const ascir::ImplGraph &impl_graph, std::vector<ScheduleTask> &tasks) {
     ::ascir::utils::DumpGraph(impl_graph, "BeforeGroupPartition");
     ScheduleTask new_schedule_task{impl_graph, {}, ""};
     GE_CHK_STATUS_RET(
@@ -75,5 +75,4 @@ class FusionCaseGenerator {
   }
 };
 }  // namespace optimize
-}  // namespace af
 #endif  // ASCGEN_DEV_SRC_OPTIMIZE_TASK_GENERATOR_SCHEDULE_CASE_GENERATOR_H_

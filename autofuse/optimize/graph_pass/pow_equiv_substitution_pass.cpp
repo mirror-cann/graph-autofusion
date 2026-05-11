@@ -30,7 +30,7 @@ const double kScalarNegTwo = -2.0;
 const double kScalarThree = 3.0;
 const double kScalarFour = 4.0;
 
-using af::optimize::PatternType;
+using optimize::PatternType;
 struct ScalarTargetMap {
   double target_val;
   double epsilon;
@@ -81,7 +81,7 @@ af::AscNodePtr CreateMulNodeWithAttr(af::AscGraph &graph, const af::AscNodePtr &
 }
 }  // namespace
 
-namespace af { namespace optimize {
+namespace optimize {
 using af::ops::IsOps;
 
 const std::unordered_map<PatternType, SubstitutionFunc> &PowEquivSubstitutionPass::GetGlobalSubstitutionMap() {
@@ -389,4 +389,3 @@ Status PowEquivSubstitutionPass::ReplaceWithFourthPower(af::AscGraph &graph, con
   return ge::SUCCESS;
 }
 }  // namespace optimize
-}  // namespace af

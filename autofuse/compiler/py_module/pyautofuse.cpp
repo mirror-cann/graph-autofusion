@@ -53,8 +53,8 @@ public:
   struct Object {
     PyObject_HEAD
 
-    af::optimize::OptimizerOptions* optimizer;
-    af::codegen::CodegenOptions* codegen;
+    optimize::OptimizerOptions* optimizer;
+    codegen::CodegenOptions* codegen;
   };
 
   static PyTypeObject type;
@@ -94,8 +94,8 @@ int AutofuserOptions::Init(PyObject *self, PyObject *args, PyObject *kwds)
   (void)args;
   auto self_ = reinterpret_cast<AutofuserOptions::Object *>(self);
 
-  self_->optimizer = new af::optimize::OptimizerOptions();
-  self_->codegen = new af::codegen::CodegenOptions();
+  self_->optimizer = new optimize::OptimizerOptions();
+  self_->codegen = new codegen::CodegenOptions();
 
   if (kwds != nullptr) {
     PyObject *tiling_lib_path_kwarg = PyDict_GetItemString(kwds, "tiling_lib_path");
@@ -116,7 +116,7 @@ int AutofuserOptions::Init(PyObject *self, PyObject *args, PyObject *kwds)
     PyObject *graph_kwarg = PyDict_GetItemString(kwds, "graph_type");
     if (graph_kwarg != nullptr && PyLong_Check(graph_kwarg)) {
       int64_t graph_type = PyLong_AsLong(graph_kwarg);
-      self_->optimizer->graph_type = static_cast<af::optimize::GraphType>(graph_type);
+      self_->optimizer->graph_type = static_cast<optimize::GraphType>(graph_type);
     }
   }
 
@@ -129,8 +129,8 @@ class Autofuser {
   struct Object {
     PyObject_HEAD
 
-    af::optimize::Optimizer* optimizer;
-    af::codegen::Codegen* codegen;
+    optimize::Optimizer* optimizer;
+    codegen::Codegen* codegen;
   };
 
   static PyTypeObject type;
@@ -186,8 +186,8 @@ int Autofuser::Init(PyObject *self, PyObject *args, PyObject *kwds) {
     return -1;
   }
 
-  self_->optimizer = new af::optimize::Optimizer(*options->optimizer);
-  self_->codegen = new af::codegen::Codegen(*options->codegen);
+  self_->optimizer = new optimize::Optimizer(*options->optimizer);
+  self_->codegen = new codegen::Codegen(*options->codegen);
   return 0;
 }
 
@@ -243,7 +243,7 @@ PyObject *Autofuser::Codegen(PyObject *self, PyObject *args, PyObject *kwds) {
   }
 
   auto fused_schedule_result = ge::PtrToPtr<PyObject, pyascir::FusedScheduledResult::Object>(list_result_result);
-  af::codegen::CodegenResult result;
+  codegen::CodegenResult result;
   ge::Status ret = ge::FAILED;
   try {
     ret = self_->codegen->GenerateForInductor(fused_schedule_result->fused_schedule_result, result);
@@ -286,7 +286,7 @@ PyObject *Autofuser::AutofuseBackend(PyObject *self, PyObject *args, PyObject *k
     return PyErr_Format(PyExc_RuntimeError, "schedule requires hint graph or fused graph");
   }
 
-  af::codegen::CodegenResult result;
+  codegen::CodegenResult result;
   try {
     if (self_->codegen->GenerateForInductor(fused_schedule_result, result) != ge::SUCCESS) {
       GELOGE(ge::FAILED, "Codegen generate kernel failed");
@@ -302,7 +302,7 @@ class Schedule {
  public:
   struct Object {
     PyObject_HEAD
-    af::optimize::Optimizer* optimizer;
+    optimize::Optimizer* optimizer;
   };
 
   static PyTypeObject type;
@@ -348,8 +348,8 @@ int Schedule::Init(PyObject *self_pyobject, PyObject *args, PyObject *kwds) {
   (void)args;
   (void)kwds;
   auto self = reinterpret_cast<Schedule::Object *>(self_pyobject);
-  auto options = new af::optimize::OptimizerOptions();
-  self->optimizer = new af::optimize::Optimizer(*options);
+  auto options = new optimize::OptimizerOptions();
+  self->optimizer = new optimize::Optimizer(*options);
   delete options;
   return 0;
 }
@@ -412,7 +412,7 @@ class CodeGen {
  public:
   struct Object {
     PyObject_HEAD
-    af::codegen::Codegen* codegen;
+    codegen::Codegen* codegen;
   };
 
   static PyTypeObject type;
@@ -478,7 +478,7 @@ PyObject *CodeGen::New(PyTypeObject *type, PyObject *args, PyObject *kwds) {
 int CodeGen::Init(PyObject *self_pyobject, PyObject *args, PyObject *kwds) {
   (void)args;
   auto self = reinterpret_cast<CodeGen::Object *>(self_pyobject);
-  auto options = new af::codegen::CodegenOptions();
+  auto options = new codegen::CodegenOptions();
   GE_CHK_BOOL_RET_SPECIAL_STATUS(options == nullptr, -1 ,"self is nullptr");
 
   if (kwds != nullptr) {
@@ -498,7 +498,7 @@ int CodeGen::Init(PyObject *self_pyobject, PyObject *args, PyObject *kwds) {
     }
   }
 
-  self->codegen = new af::codegen::Codegen(*options);
+  self->codegen = new codegen::Codegen(*options);
   delete options;
   return 0;
 }

@@ -10,7 +10,7 @@
 
 #include "cluster.h"
 #include <sstream>
-namespace af { namespace optimize {
+namespace optimize {
 void Cluster::AddInput(Cluster &input) {
   if (std::find(inputs_.cbegin(), inputs_.cend(), &input) != inputs_.cend()) {
     return;
@@ -134,4 +134,3 @@ std::string Cluster::DebugString() const {
   return ss.str();
 }
 }  // namespace optimize
-}  // namespace af

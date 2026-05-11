@@ -12,7 +12,7 @@
 #define OPTIMIZE_AUTOSCHEDULE_AUTOSCHEDULE_DEFS_H_
 #include "ascendc_ir/ascendc_ir_core/ascendc_ir.h"
 
-namespace af::optimize::autoschedule {
+namespace optimize::autoschedule {
 struct AutoScheduleOutput {
   af::AscGraph scheduled_graph;
   // <dst_var_name, src_var>>
@@ -21,6 +21,6 @@ struct AutoScheduleOutput {
 
   explicit AutoScheduleOutput(const char *name = "default") : scheduled_graph(name) {}
 };
-}  // namespace af::optimize::autoschedule
+}  // namespace optimize::autoschedule
 
 #endif  // OPTIMIZE_AUTOSCHEDULE_AUTOSCHEDULE_DEFS_H_

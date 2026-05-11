@@ -1,27 +1,139 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * Shadow header: replaces external/ge_common/ge_api_error_codes.h.
- *
- * The system ge_api_error_codes.h defines SUCCESS/FAILED as constexpr via
- * GE_ERRORNO macros, which conflicts with the static const definitions in
- * our ge_error_codes.h. This shadow provides the same interface using only
- * our lightweight ge_error_codes.h, avoiding the conflict.
- *
- * We do NOT #include_next the system header because it pulls in ge_api_types.h
- * which transitively includes graph/tensor.h and causes further conflicts.
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
+ * CANN Open Software License Agreement Version 2.0 (the "License").
+ * Please refer to the License for details. You may not use this file except in compliance with the License.
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+ * See LICENSE in the root of the software repository for the full text of the License.
  */
 
-#ifndef AUTOFUSE_EXTERNAL_GE_COMMON_GE_API_ERROR_CODES_SHADOW_H_
-#define AUTOFUSE_EXTERNAL_GE_COMMON_GE_API_ERROR_CODES_SHADOW_H_
+// Locally maintained copy of CANN ge_api_error_codes.h with namespace ge -> af.
+// ge_error_codes.h uses #ifndef GE_ERRORNO_DEFINE to guard ge::SUCCESS/FAILED;
+// GE_ERRORNO_DEFINE is defined inside #ifndef GE_ERRORNO below, so as long as
+// ge_error_codes.h is included after this file the static const block is skipped.
 
-// Our ge_error_codes.h provides ge::SUCCESS, ge::FAILED, ge::GRAPH_SUCCESS,
-// ge::GRAPH_FAILED, ge::PARAM_INVALID, ge::RT_FAILED and all graph status codes.
-#include "graph/ge_error_codes.h"
+#ifndef INC_EXTERNAL_GE_COMMON_GE_API_ERROR_CODES_H_
+#define INC_EXTERNAL_GE_COMMON_GE_API_ERROR_CODES_H_
 
-// Define GE_ERRORNO_DEFINE as a no-op so that any code that checks
-// #ifndef GE_ERRORNO_DEFINE does not try to redefine these constants.
-#ifndef GE_ERRORNO_DEFINE
-#define GE_ERRORNO_DEFINE(runtime, type, level, sysid, modid, name, value)  // no-op
+#include <map>
+#include <string>
+#include "ge_error_codes.h"
+#include "ge_api_types.h"
+#include "graph/ascend_string.h"
+
+#ifdef __GNUC__
+#ifdef NO_METADEF_ABI_COMPATIABLE
+#define ATTRIBUTED_DEPRECATED(replacement)
+#else
+#define ATTRIBUTED_DEPRECATED(replacement) __attribute__((deprecated("Please use " #replacement " instead.")))
+#endif
+#else
+#ifdef NO_METADEF_ABI_COMPATIABLE
+#define ATTRIBUTED_DEPRECATED(replacement)
+#else
+#define ATTRIBUTED_DEPRECATED(replacement) __declspec(deprecated("Please use " #replacement " instead."))
+#endif
 #endif
 
-#endif  // AUTOFUSE_EXTERNAL_GE_COMMON_GE_API_ERROR_CODES_SHADOW_H_
+#ifndef GE_ERRORNO_DEFINE
+#define GE_ERRORNO_DEFINE(runtime, type, level, sysid, modid, name, value)                                 \
+  constexpr af::Status name = ((static_cast<uint32_t>(0xFFU & (static_cast<uint32_t>(runtime))) << 30U) | \
+                               (static_cast<uint32_t>(0xFFU & (static_cast<uint32_t>(type))) << 28U) |    \
+                               (static_cast<uint32_t>(0xFFU & (static_cast<uint32_t>(level))) << 25U) |   \
+                               (static_cast<uint32_t>(0xFFU & (static_cast<uint32_t>(sysid))) << 17U) |   \
+                               (static_cast<uint32_t>(0xFFU & (static_cast<uint32_t>(modid))) << 12U) |   \
+                               (static_cast<uint32_t>(0x0FFFU) & (static_cast<uint32_t>(value))))
+#endif
+
+#ifndef GE_ERRORNO_EXTERNAL
+#define GE_ERRORNO_EXTERNAL(name, desc) const af::ErrorNoRegisterar g_errorno_##name((name), (desc))
+#endif
+
+#ifndef GE_ERRORNO
+// Code compose(4 byte), runtime: 2 bit, type: 2 bit, level: 3 bit, sysid: 8 bit, modid: 5 bit, value: 12 bit
+#define GE_ERRORNO(runtime, type, level, sysid, modid, name, value, desc) \
+  GE_ERRORNO_DEFINE(runtime, type, level, sysid, modid, name, value);     \
+  GE_ERRORNO_EXTERNAL(name, desc)
+
+namespace af {
+class GE_FUNC_VISIBILITY StatusFactory {
+ public:
+  static StatusFactory *Instance() {
+    static StatusFactory instance;
+    return &instance;
+  }
+
+  void RegisterErrorNo(const uint32_t err, const std::string &desc) {
+    // Avoid repeated addition
+    if (err_desc_.find(err) != err_desc_.end()) {
+      return;
+    }
+    err_desc_[err] = desc;
+  }
+
+  void RegisterErrorNo(const uint32_t err, const char *const desc) {
+    if (desc == nullptr) {
+      return;
+    }
+    const std::string error_desc = desc;
+    if (err_desc_.find(err) != err_desc_.end()) {
+      return;
+    }
+    err_desc_[err] = error_desc;
+  }
+
+  std::string GetErrDesc(const uint32_t err) {
+    const auto iter_find = static_cast<const std::map<uint32_t, std::string>::const_iterator>(err_desc_.find(err));
+    if (iter_find == err_desc_.cend()) {
+      return "";
+    }
+    return iter_find->second;
+  }
+
+  AscendString GetErrDescV2(const uint32_t err) {
+    const auto iter_find = static_cast<const std::map<uint32_t, std::string>::const_iterator>(err_desc_.find(err));
+    if (iter_find == err_desc_.cend()) {
+      return AscendString("");
+    }
+    return AscendString(iter_find->second.c_str());
+  }
+
+ protected:
+  StatusFactory() = default;
+  ~StatusFactory() = default;
+
+ private:
+  std::map<uint32_t, std::string> err_desc_;
+};
+
+class GE_FUNC_VISIBILITY ErrorNoRegisterar {
+ public:
+  ErrorNoRegisterar(const uint32_t err, const std::string &desc) noexcept {
+    StatusFactory::Instance()->RegisterErrorNo(err, desc);
+  }
+  ErrorNoRegisterar(const uint32_t err, const char *const desc) noexcept {
+    StatusFactory::Instance()->RegisterErrorNo(err, desc);
+  }
+  ~ErrorNoRegisterar() = default;
+};
+
+// General error code
+GE_ERRORNO(0, 0, 0, 0, 0, SUCCESS, 0, "success");
+GE_ERRORNO(0b11, 0b11, 0b111, 0xFFU, 0b11111, FAILED, 0xFFFU, "failed"); /*lint !e401*/
+}  // namespace af
+
+namespace ge {
+using StatusFactory = af::StatusFactory;
+using ErrorNoRegisterar = af::ErrorNoRegisterar;
+using Status = af::Status;
+using af::SUCCESS;
+using af::FAILED;
+}  // namespace ge
+
+#endif  // GE_ERRORNO
+
+namespace af {
+  GE_ERRORNO_DEFINE(0b01, 0b01, 0b000, 8, 0, END_OF_SEQUENCE, 7);
+}
+#endif  // INC_EXTERNAL_GE_COMMON_GE_API_ERROR_CODES_H_

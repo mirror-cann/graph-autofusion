@@ -20,7 +20,7 @@
 #include "ascir_ops.h"
 #include "common/platform_context.h"
 
-namespace af { namespace optimize {
+namespace optimize {
 class ScheduleUtils {
  public:
   static af::ComputeType GetComputeType(const af::AscNodePtr &node) {
@@ -78,7 +78,7 @@ class ScheduleUtils {
     return node->attr.api.compute_type == af::ComputeType::kComputeCube;
   }
 
-  static bool HasComputeType(const ::ascir::ImplGraph &impl_graph, const af::ComputeType compute_type);
+  static bool HasComputeType(const ascir::ImplGraph &impl_graph, const af::ComputeType compute_type);
 
   static bool IsIOBuffer(const af::NodePtr &node) {
     return af::ops::IsOps<af::ascir_op::Scalar>(node) || af::ops::IsOps<af::ascir_op::Data>(node) ||
@@ -176,7 +176,7 @@ class ScheduleUtils {
   /**
    * 从HintGraph的图属性中，获取repeats，直接获取每个轴的size即可。
    */
-  static Status GetLoopRepeats(const af::AscNode &node, std::vector<::ascir::SizeExpr> &repeats) {
+  static Status GetLoopRepeats(const af::AscNode &node, std::vector<ascir::SizeExpr> &repeats) {
     auto attr = GetOrCreateGraphAttrsGroup(node.GetOwnerComputeGraph());
     GE_CHECK_NOTNULL(attr, "Get ascgraph type failed, attr is null.");
     repeats.clear();
@@ -193,7 +193,7 @@ class ScheduleUtils {
   /**
    * 从HintGraph的图属性中，获取strides信息。需要根据repeat从后往前计算出来，尾轴的stride=1，然后依次累乘repeat
    */
-  static Status GetReduceInputStrides(af::AscNode &node, std::vector<::ascir::SizeExpr> &strides) {
+  static Status GetReduceInputStrides(af::AscNode &node, std::vector<ascir::SizeExpr> &strides) {
     auto attr = GetOrCreateGraphAttrsGroup(node.GetOwnerComputeGraph());
     GE_CHECK_NOTNULL(attr, "Get ascgraph type failed, attr is null.");
     if (attr->type == af::AscGraphType::kImplGraph) {
@@ -201,7 +201,7 @@ class ScheduleUtils {
       return af::SUCCESS;
     }
     strides.resize(attr->axis.size());
-    ::ascir::SizeExpr basic_stride = af::Symbol(1);
+    ascir::SizeExpr basic_stride = af::Symbol(1);
     for (int64_t i = static_cast<int64_t>(attr->axis.size()) - 1; i >= 0; --i) {
       if (af::SymbolicUtils::StaticCheckEq(attr->axis[i]->size, af::sym::kSymbolOne) == af::TriBool::kTrue) {
         strides[i] = af::Symbol(0);
@@ -236,9 +236,9 @@ class ScheduleUtils {
     return asc_node->attr.ir_attr->GetAttrValue("offset", offset);
   }
 
-  static bool IsAxisStrideAllZero(const std::vector<::ascir::AxisId> &origin_ids,
-                                  const std::vector<::ascir::SizeExpr> &axis_strides,
-                                  const std::vector<::ascir::AxisId> &axis_ids) {
+  static bool IsAxisStrideAllZero(const std::vector<ascir::AxisId> &origin_ids,
+                                  const std::vector<ascir::SizeExpr> &axis_strides,
+                                  const std::vector<ascir::AxisId> &axis_ids) {
     for (uint64_t i = 0; i < axis_ids.size(); i++) {
       for (uint64_t j = 0; j < origin_ids.size(); j++) {
         if (axis_ids[i] != origin_ids[j]) {
@@ -252,7 +252,7 @@ class ScheduleUtils {
     return false;
   }
 
-  static bool IsBroadcastNeedMemUnique(const ::ascir::NodeView &node, const std::vector<::ascir::AxisId> &axis_ids) {
+  static bool IsBroadcastNeedMemUnique(const ascir::NodeView &node, const std::vector<ascir::AxisId> &axis_ids) {
     if (IsBuffer(node) || node->GetInDataNodesSize() == 0) {
       return false;
     }
@@ -272,7 +272,7 @@ class ScheduleUtils {
     return false;
   }
 
-  static bool IsNextNodeRemovePad(const ::ascir::NodeView &node);
+  static bool IsNextNodeRemovePad(const ascir::NodeView &node);
 
   static bool IsContinuesBroadcast(const std::vector<af::Expression> &in_repeats,
                                    const std::vector<af::Expression> &out_repeats);
@@ -280,7 +280,7 @@ class ScheduleUtils {
   static bool IsContinuesStrides(const std::vector<af::Expression> &repeats,
                                  const std::vector<af::Expression> &strides);
 
-  static bool IsContinuesVecStrides(const ::ascir::NodeView &node);
+  static bool IsContinuesVecStrides(const ascir::NodeView &node);
 
   static bool IsVectorizedAxisContinuousInGM(const af::AscTensorAttr &output_tensor);
 
@@ -295,14 +295,14 @@ class ScheduleUtils {
   static bool IsTailAxisLessThan(const af::AscNodePtr &node, const uint32_t value);
   static bool IsTailAxisAlignedBy(const af::AscNodePtr &node, const uint32_t align_bytes=32);
 
-  static bool IsStaticShape(const ::ascir::NodeView &node);
+  static bool IsStaticShape(const ascir::NodeView &node);
 
   static bool IsStaticGraph(const af::AscGraph &graph);
 
-  static Status GetNonBrcInputTensor(const ::ascir::NodeView &node, const size_t index,
+  static Status GetNonBrcInputTensor(const ascir::NodeView &node, const size_t index,
                                      std::unique_ptr<af::AscTensor> &tensor);
 
-  static bool IsComputeNodes(const ::ascir::NodeView &node) {
+  static bool IsComputeNodes(const ascir::NodeView &node) {
     for (auto &out_node : node->GetOutDataNodes()) {
       auto cur_node = std::dynamic_pointer_cast<af::AscNode>(out_node);
       if (cur_node->attr.api.type == af::ApiType::kAPITypeCompute && !IsBroadcast(cur_node)) {
@@ -318,19 +318,19 @@ class ScheduleUtils {
 
   static Status GetVectorRepeats(const std::vector<af::Expression> &repeats, const std::vector<int64_t> &axis,
                                  const std::vector<int64_t> &vector_axis, std::vector<af::Expression> &vector_repeats);
-  static Status GetNodeInputVectorRepeats(const ::ascir::NodeView &node, std::vector<af::Expression> &vector_repeats);
-  static Status GetNodeOutVectorRepeats(const ::ascir::NodeView &node, std::vector<af::Expression> &vec_repeats);
+  static Status GetNodeInputVectorRepeats(const ascir::NodeView &node, std::vector<af::Expression> &vector_repeats);
+  static Status GetNodeOutVectorRepeats(const ascir::NodeView &node, std::vector<af::Expression> &vec_repeats);
   static Status GetConcatDim(const af::AscNodePtr &node, size_t &concat_dim);
 
   static std::string AxesToString(const std::vector<af::AxisPtr> &axes);
-  static bool IsNormStruct(const ::ascir::ImplGraph &implGraph);
-  static bool IsReduceArFullLoad(const ::ascir::ImplGraph &implGraph);
+  static bool IsNormStruct(const ascir::ImplGraph &implGraph);
+  static bool IsReduceArFullLoad(const ascir::ImplGraph &implGraph);
   static bool HasSameInput(const af::AscNodePtr &node);
-  static bool IsLastAxisReduce(const ::ascir::ImplGraph &impl_graph);
-  static bool IsScalarBroadcastNode(const ::ascir::NodeView &node);
+  static bool IsLastAxisReduce(const ascir::ImplGraph &impl_graph);
+  static bool IsScalarBroadcastNode(const ascir::NodeView &node);
   static bool IsScalarBrc(const af::AscNodePtr &node);
-  static Status SwapInputIndex(const ::ascir::NodeView &node, const int32_t idx1, const int32_t idx2);
-  static Status GetInputForTranspose(af::AscNode &node, std::vector<::ascir::AxisId> &input_axis);
+  static Status SwapInputIndex(const ascir::NodeView &node, const int32_t idx1, const int32_t idx2);
+  static Status GetInputForTranspose(af::AscNode &node, std::vector<ascir::AxisId> &input_axis);
   template<typename T>
   static af::AscNodePtr FindFirstNodeOfType(const af::AscGraph &graph) {
     for (const auto &node : graph.GetAllNodes()) {
@@ -340,11 +340,11 @@ class ScheduleUtils {
     }
     return nullptr;
   }
-  static Status RemoveNode(const ::ascir::ImplGraph &impl_graph, const af::AscNodePtr &node,
+  static Status RemoveNode(const ascir::ImplGraph &impl_graph, const af::AscNodePtr &node,
     const af::OutDataAnchorPtr &pre_out_anchor);
-  static Status RemoveNodeDst(const ::ascir::ImplGraph &impl_graph, const af::AscNodePtr &node,
+  static Status RemoveNodeDst(const ascir::ImplGraph &impl_graph, const af::AscNodePtr &node,
     const af::InDataAnchorPtr &next_in_anchor);
-  static bool FindContinuesBroadcastNode(const ::ascir::NodeView &node, vector<af::AscNodePtr> &continues_brc_nodes);
+  static bool FindContinuesBroadcastNode(const ascir::NodeView &node, vector<af::AscNodePtr> &continues_brc_nodes);
 
   static Status AddRemovePadAfter(af::AscGraph &graph, const af::AscNodePtr &node, af::AscNodePtr &remove_pad_node,
     const int32_t idx = 0);
@@ -356,6 +356,5 @@ class ScheduleUtils {
   static Status ClearAllSizeVar(const af::AscGraph &graph);
 };
 }  // namespace optimize
-}  // namespace af
 
 #endif  // OPTIMIZE_SCHEDULE_UTILS_H_

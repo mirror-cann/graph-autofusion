@@ -24,7 +24,7 @@ constexpr size_t kVFMaxLoop = 4U;
 constexpr size_t kCommaSpaceLength = 2U;  // 逗号和空格的长度 ", "
 }  // namespace
 
-namespace af { namespace codegen {
+namespace codegen {
 using namespace std;
 using namespace af::ops;
 using namespace af::ascir_op;
@@ -58,14 +58,14 @@ void CreateTensorAddr(const std::vector<Tensor> &tensors, const std::vector<std:
   }
 }
 
-void GetOuterForOffset(const TPipe &tpipe, const std::vector<std::vector<::ascir::SizeExpr>> &strides,
+void GetOuterForOffset(const TPipe &tpipe, const std::vector<std::vector<ascir::SizeExpr>> &strides,
                        std::vector<std::string> &outer_offsets) {
   for (size_t i = 0; i < strides.size(); i++) {
     outer_offsets.emplace_back(CalcInnerOffset(tpipe, strides[i]));
   }
 }
 
-void CreateSingleStridesParamsInfo(const Tensor &tensor, const std::vector<::ascir::SizeExpr> &strides,
+void CreateSingleStridesParamsInfo(const Tensor &tensor, const std::vector<ascir::SizeExpr> &strides,
                                    std::stringstream &ss) {
   size_t stride_size = strides.size();
   size_t start_idx = stride_size <= kVFMaxLoop ? 0 : stride_size - kVFMaxLoop;
@@ -78,7 +78,7 @@ void CreateSingleStridesParamsInfo(const Tensor &tensor, const std::vector<::asc
   }
 }
 
-void CreateSingleStridesInfo(const TPipe &tpipe, const std::vector<::ascir::SizeExpr> &strides, std::stringstream &ss) {
+void CreateSingleStridesInfo(const TPipe &tpipe, const std::vector<ascir::SizeExpr> &strides, std::stringstream &ss) {
   size_t stride_size = strides.size();
   size_t start_idx = stride_size <= kVFMaxLoop ? 0 : stride_size - kVFMaxLoop;
   for (; start_idx < stride_size; start_idx++) {
@@ -95,10 +95,10 @@ void CreateSingleStridesInfo(const TPipe &tpipe, const std::vector<::ascir::Size
   }
 }
 
-void GetOuterForStride(const std::vector<std::vector<::ascir::SizeExpr>> &origin_strides,
-                       std::vector<std::vector<::ascir::SizeExpr>> &target_strides) {
+void GetOuterForStride(const std::vector<std::vector<ascir::SizeExpr>> &origin_strides,
+                       std::vector<std::vector<ascir::SizeExpr>> &target_strides) {
   for (size_t i = 0; i < origin_strides.size(); i++) {
-    std::vector<::ascir::SizeExpr> strides(origin_strides[i].begin(), origin_strides[i].end() - kVFMaxLoop);
+    std::vector<ascir::SizeExpr> strides(origin_strides[i].begin(), origin_strides[i].end() - kVFMaxLoop);
     target_strides.emplace_back(strides);
   }
 }
@@ -175,8 +175,8 @@ void CreateOuterForVFCall(const TPipe &tpipe, const std::string &vf_call_name, c
                           const VectorizedAxisLoopMergeStatus &merge_info, std::stringstream &ss) {
   std::vector<std::string> repeats(merge_info.merge_repeats_str.begin(),
                                    merge_info.merge_repeats_str.end() - kVFMaxLoop);
-  std::vector<std::vector<::ascir::SizeExpr>> inputs_strides;
-  std::vector<std::vector<::ascir::SizeExpr>> outputs_strides;
+  std::vector<std::vector<ascir::SizeExpr>> inputs_strides;
+  std::vector<std::vector<ascir::SizeExpr>> outputs_strides;
   std::vector<std::string> inputs_ub_offsets;
   std::vector<std::string> outputs_ub_offsets;
   GetOuterForStride(merge_info.inputs_strides, inputs_strides);
@@ -199,8 +199,8 @@ void GetVFCallFuncBody(const std::string &params, const std::string &vf_body, st
   ss << "}\n" << std::endl;
 }
 
-size_t GeOriginLastAxisPos(const Tiler &tiler, const std::vector<::ascir::AxisId> &current_axis_ids,
-                           const std::vector<std::vector<::ascir::AxisId>> &origin_axis_ids) {
+size_t GeOriginLastAxisPos(const Tiler &tiler, const std::vector<ascir::AxisId> &current_axis_ids,
+                           const std::vector<std::vector<ascir::AxisId>> &origin_axis_ids) {
   size_t axis_num = current_axis_ids.size();
   if (origin_axis_ids.size() != axis_num) {
     return axis_num - static_cast<size_t>(1);
@@ -208,8 +208,8 @@ size_t GeOriginLastAxisPos(const Tiler &tiler, const std::vector<::ascir::AxisId
   const auto &origin_last_axis = origin_axis_ids.back();
   for (size_t i = 0; i < current_axis_ids.size(); i++) {
     const auto &axis = tiler.GetAxis(current_axis_ids[i]);
-    if (axis.type == ::ascir::Axis::Type::kAxisTypeMerged) {
-      std::set<::ascir::AxisId> current_ids;
+    if (axis.type == ascir::Axis::Type::kAxisTypeMerged) {
+      std::set<ascir::AxisId> current_ids;
       for (const auto &from : axis.from) {
         current_ids.insert(from);
       }
@@ -231,14 +231,14 @@ size_t GeOriginLastAxisPos(const Tiler &tiler, const std::vector<::ascir::AxisId
 
 }  // namespace
 
-void VfCall::SetNodeAxisIds(const std::vector<::ascir::AxisId> &origin_axis_ids) {
+void VfCall::SetNodeAxisIds(const std::vector<ascir::AxisId> &origin_axis_ids) {
   if (origin_axis_ids.size() < axis_ids_.size()) {
     return;
   }
   axis_ids_ = origin_axis_ids;
 }
 
-Status VfCall::ParseAttr(const ::ascir::NodeView &node) {
+Status VfCall::ParseAttr(const ascir::NodeView &node) {
   vf_call_name_ = "VFCall" + node->GetName();
   af::AscGraph sub_graph("sub_graph");
   GE_ASSERT_SUCCESS(af::AscGraphUtils::FromComputeGraph(node->GetOwnerComputeGraph(), sub_graph),
@@ -246,7 +246,7 @@ Status VfCall::ParseAttr(const ::ascir::NodeView &node) {
   return ParseSubGraph(node, sub_graph);
 }
 
-bool VfCall::ShouldInitAsMaskReg(const ::ascir::NodeView &node, const af::AscTensor *output) const {
+bool VfCall::ShouldInitAsMaskReg(const ascir::NodeView &node, const af::AscTensor *output) const {
   // compare的输出需要初始化为mask_reg, where的第一个输入对应的输出需要初始化为mask_reg
   if (IsOps<Ge>(node) || IsOps<Eq>(node) || IsOps<Le>(node) || IsOps<Ne>(node) || IsOps<Gt>(node) || IsOps<Lt>(node)) {
     return true;
@@ -260,7 +260,7 @@ bool VfCall::ShouldInitAsMaskReg(const ::ascir::NodeView &node, const af::AscTen
   return false;
 }
 
-Status VfCall::ParseSubGraph(const ::ascir::NodeView &vf_node, const ::ascir::ImplGraph &graph) {
+Status VfCall::ParseSubGraph(const ascir::NodeView &vf_node, const ascir::ImplGraph &graph) {
   // 从节点上读取sub_graph_name属性
   const std::string *graph_name = af::AttrUtils::GetStr(vf_node->GetOpDescBarePtr(), "sub_graph_name");
   GE_ASSERT_NOTNULL(graph_name, "Get sub graph name failed, vf node:%s", vf_node->GetNamePtr());
@@ -394,7 +394,7 @@ void OptimizeMergeParamsAndLoopSize(const std::vector<std::string> &loop_size_ve
 }
 
 void GenerateVectorFuncParams(const std::string &max_dtype_size, int32_t stride_depth,
-                              const std::vector<std::vector<::ascir::AxisId>> &merge_axis_ids, std::stringstream &ss) {
+                              const std::vector<std::vector<ascir::AxisId>> &merge_axis_ids, std::stringstream &ss) {
   ss << "  constexpr static uint32_t VECTOR_LENGTH = AscendC::GetVecLen();\n";
   ss << "  constexpr static uint32_t SIZE_OF_DTYPE = sizeof(" << max_dtype_size << ");\n";
   ss << "  constexpr static uint32_t ELEMENT_PER_VECTOR_LENGTH = VECTOR_LENGTH / SIZE_OF_DTYPE;\n";
@@ -476,7 +476,7 @@ Status VfCall::GenerateFuncDefinition(const TPipe &tpipe, const Tiler &tiler, st
   return ge::SUCCESS;
 }
 
-Status VfCall::Generate(const TPipe &tpipe, [[maybe_unused]] const std::vector<::ascir::AxisId> &current_axis,
+Status VfCall::Generate(const TPipe &tpipe, [[maybe_unused]] const std::vector<ascir::AxisId> &current_axis,
                         [[maybe_unused]] const std::vector<std::reference_wrapper<const Tensor>> &inputs,
                         [[maybe_unused]] const std::vector<std::reference_wrapper<const Tensor>> &outputs, std::string &result) const {
   // 合轴信息只会在子图内部体现，不会在原图上体现
@@ -510,4 +510,3 @@ VfCall::~VfCall() {
 
 static ApiCallRegister<VfCall> register_vf_api_call("VfCall");
 }  // namespace codegen
-}  // namespace af

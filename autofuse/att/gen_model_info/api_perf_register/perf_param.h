@@ -16,7 +16,7 @@
 #include "base/base_types.h"
 #include "gen_model_info/parser/tuning_space.h"
 #include "util/ternary_op.h"
-namespace af { namespace att {
+namespace att {
 struct NodePerfInfo {
   std::string optype;
   std::string input_dtype;
@@ -25,8 +25,8 @@ struct NodePerfInfo {
   Expr gm_stride;
   int32_t block_count_idx{0};  // 用于 LoadStoreStrideV2Func，表示发生非连续的轴索引
 };
-using PipeHeadPerfFunc = af::att::Expr (*)(const std::vector<af::att::NodeInfo> &,
-                                       std::map<af::att::Expr, af::att::TernaryOp, af::att::ExprCmp> &);
+using PipeHeadPerfFunc = att::Expr (*)(const std::vector<att::NodeInfo> &,
+                                       std::map<att::Expr, att::TernaryOp, att::ExprCmp> &);
 class PerfParamTable {
  public:
   PerfParamTable() = default;
@@ -61,6 +61,5 @@ class PerfParamTable {
   std::map<PipeType, PipeHeadPerfFunc> pipes_head_perf;
 };
 }  // namespace att
-}  // namespace af
 
 #endif  // AUTOFUSE_PERF_PARAM_H

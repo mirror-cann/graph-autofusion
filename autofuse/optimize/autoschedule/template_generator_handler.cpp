@@ -12,7 +12,7 @@
 #include "platform/platform_factory.h"
 #include "platform/common/base_template_generator.h"
 
-namespace af::optimize::autoschedule {
+namespace optimize::autoschedule {
 ge::Status TemplateGeneratorHandler::GenerateTemplates(const af::AscGraph &origin_graph,
                                                        std::vector<AutoScheduleOutput> &tiling_cases) {
   const auto &platform = PlatformFactory::GetInstance().GetPlatform();
@@ -21,4 +21,4 @@ ge::Status TemplateGeneratorHandler::GenerateTemplates(const af::AscGraph &origi
   GE_CHECK_NOTNULL(generator, "Get template generator by platform failed.");
   return generator->GenerateTemplates(origin_graph, tiling_cases);
 }
-}  // namespace af::optimize::autoschedule
+}  // namespace optimize::autoschedule

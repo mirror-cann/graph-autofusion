@@ -13,11 +13,11 @@
 #include "graph/utils/graph_utils.h"
 #include "graph/utils/node_utils_ex.h"
 #include "graph/ascendc_ir/core/ascendc_ir_impl.h"
-#include "proto/af_ascendc_ir.pb.h"
+#include "proto/ascendc_ir.pb.h"
 
 namespace af {
 namespace {
-graphStatus EstablishAscNodeAndEdges(const af_ascendc_ir::proto::AscGraphDef &asc_graph_def, AscGraph &out_asc_graph) {
+graphStatus EstablishAscNodeAndEdges(const ascendc_ir::proto::AscGraphDef &asc_graph_def, AscGraph &out_asc_graph) {
   auto &asc_nodes = asc_graph_def.asc_node();
   // 1. Add AscNodes to AscGraph
   for (const auto &asc_node : asc_nodes) {
@@ -122,7 +122,7 @@ Status AscGraphUtils::FromComputeGraph(const ComputeGraphPtr &compute_graph, Asc
 }
 
 graphStatus AscGraphUtils::SerializeToProto(const AscGraph &asc_graph,
-                                            af_ascendc_ir::proto::AscGraphDef &asc_graph_def) {
+                                            ascendc_ir::proto::AscGraphDef &asc_graph_def) {
   const auto &ge_graph = AscGraphUtils::GetComputeGraph(asc_graph);
   GE_ASSERT_NOTNULL(ge_graph);
   asc_graph_def.set_graph_name(asc_graph.GetName());
@@ -234,34 +234,34 @@ graphStatus AscGraphUtils::SerializeToProto(const AscGraph &asc_graph,
 }
 
 graphStatus AscGraphUtils::SerializeToBinary(const AscGraph &asc_graph, std::string &output) {
-  af_ascendc_ir::proto::AscGraphDef asc_graph_def;
+  ascendc_ir::proto::AscGraphDef asc_graph_def;
   GE_ASSERT_GRAPH_SUCCESS(SerializeToProto(asc_graph, asc_graph_def), "SerializeToProto failed.");
   GE_ASSERT_TRUE(asc_graph_def.SerializeToString(&output));
   return GRAPH_SUCCESS;
 }
 
 graphStatus AscGraphUtils::DeserializeFromBinary(const std::string &to_be_deserialized, AscGraph &out_asc_graph) {
-  af_ascendc_ir::proto::AscGraphDef asc_graph_def;
+  ascendc_ir::proto::AscGraphDef asc_graph_def;
   GE_ASSERT_TRUE(asc_graph_def.ParseFromString(to_be_deserialized));
   GE_ASSERT_GRAPH_SUCCESS(DeserializeFromProto(asc_graph_def, out_asc_graph));
   return GRAPH_SUCCESS;
 }
 
 graphStatus AscGraphUtils::SerializeToReadable(const AscGraph &asc_graph, std::string &output) {
-  af_ascendc_ir::proto::AscGraphDef asc_graph_def;
+  ascendc_ir::proto::AscGraphDef asc_graph_def;
   GE_ASSERT_GRAPH_SUCCESS(SerializeToProto(asc_graph, asc_graph_def), "SerializeToProto failed.");
   GE_ASSERT_TRUE(google::protobuf::TextFormat::PrintToString(asc_graph_def, &output), "SerializeToReadable failed.");
   return GRAPH_SUCCESS;
 }
 
 graphStatus AscGraphUtils::DeserializeFromReadable(const std::string &to_be_deserialized, AscGraph &out_asc_graph) {
-  af_ascendc_ir::proto::AscGraphDef asc_graph_def;
+  ascendc_ir::proto::AscGraphDef asc_graph_def;
   GE_ASSERT_TRUE(google::protobuf::TextFormat::ParseFromString(to_be_deserialized, &asc_graph_def));
   GE_ASSERT_GRAPH_SUCCESS(DeserializeFromProto(asc_graph_def, out_asc_graph));
   return GRAPH_SUCCESS;
 }
 
-graphStatus AscGraphUtils::DeserializeFromProto(const af_ascendc_ir::proto::AscGraphDef &asc_graph_def,
+graphStatus AscGraphUtils::DeserializeFromProto(const ascendc_ir::proto::AscGraphDef &asc_graph_def,
                                                 AscGraph &asc_graph) {
   auto &graph_name = asc_graph_def.graph_name();
   // 1. Add AscGraph
@@ -362,7 +362,7 @@ graphStatus AscGraphUtils::ConvertComputeGraphToAscGraph(const ComputeGraphPtr &
   return GRAPH_SUCCESS;
 }
 
-graphStatus AscNodeSerializeUtils::SerializeIrDef(const AscNode &node, af_ascendc_ir::proto::IrDef &ir_def) {
+graphStatus AscNodeSerializeUtils::SerializeIrDef(const AscNode &node, ascendc_ir::proto::IrDef &ir_def) {
   ir_def.set_type(node.GetType());
   const auto &op_desc = node.GetOpDesc();
   GE_ASSERT_NOTNULL(op_desc);
@@ -379,7 +379,7 @@ graphStatus AscNodeSerializeUtils::SerializeIrDef(const AscNode &node, af_ascend
 }
 
 graphStatus AscNodeSerializeUtils::SerializeAttrGroupsDef(const AscNode &node,
-                                                          af::proto::AscNodeAttrGroupsDef &asc_node_attr_groups_def) {
+                                                          ascendc_ir::proto::AscNodeAttrGroupsDef &asc_node_attr_groups_def) {
   const auto op_desc = node.GetOpDesc();
   GE_ASSERT_NOTNULL(op_desc);
   const auto asc_node_attr = op_desc->GetOrCreateAttrsGroup<AscNodeAttr>();
@@ -387,7 +387,7 @@ graphStatus AscNodeSerializeUtils::SerializeAttrGroupsDef(const AscNode &node,
   return asc_node_attr->SerializeAttr(asc_node_attr_groups_def);
 }
 
-graphStatus AscNodeDeserializeUtils::DeserializeIrDef(const af_ascendc_ir::proto::IrDef &ir_def, AscNode &node) {
+graphStatus AscNodeDeserializeUtils::DeserializeIrDef(const ascendc_ir::proto::IrDef &ir_def, AscNode &node) {
   const auto &type = ir_def.type();
   const auto &op_desc = node.GetOpDesc();
   GE_ASSERT_NOTNULL(op_desc);
@@ -403,7 +403,7 @@ graphStatus AscNodeDeserializeUtils::DeserializeIrDef(const af_ascendc_ir::proto
   GELOGD("Deserialize ir def node[%s:%s] success.", node.GetNamePtr(), ir_def.type().c_str());
   return GRAPH_SUCCESS;
 }
-graphStatus AscNodeDeserializeUtils::DeserializeAttrGroupsDef(const af::proto::AscNodeAttrGroupsDef &asc_node_attr_groups_def,
+graphStatus AscNodeDeserializeUtils::DeserializeAttrGroupsDef(const ascendc_ir::proto::AscNodeAttrGroupsDef &asc_node_attr_groups_def,
                                                               AscNode &node) {
   const auto op_desc = node.GetOpDesc();
   GE_ASSERT_NOTNULL(op_desc);
@@ -427,6 +427,6 @@ graphStatus ExpressionSerializer::Deserialize(const GeIrAttrDef &def, AnyValue &
 
 REG_GEIR_SERIALIZER(expression_serializer,
                     ExpressionSerializer,
-                    GetTypeId<Expression>(),
+                    ge::GetTypeId<Expression>(),
                     GeIrAttrDef::kExpression);
 }  // namespace af

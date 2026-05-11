@@ -11,7 +11,6 @@
 #ifndef ATT_API_PERF_REGISTER_ASCIR_API_PERF_V2_H_
 #define ATT_API_PERF_REGISTER_ASCIR_API_PERF_V2_H_
 
-namespace af { namespace att {
+namespace att {
 }  // namespace att
-}  // namespace af
 #endif  // ATT_API_PERF_REGISTER_ASCIR_API_PERF_V2_H_

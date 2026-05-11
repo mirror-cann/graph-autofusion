@@ -12,7 +12,7 @@
 #include "arg_list_manager.h"
 #include "api_perf_register/ascendc_api_perf.h"
 
-namespace af { namespace att {
+namespace att {
 const std::unordered_map<HardwareDef, std::string> kScope2Str = {
     {HardwareDef::L1, "L1"},   {HardwareDef::UB, "UB"},
     {HardwareDef::L0A, "L0A"}, {HardwareDef::L0B, "L0B"},
@@ -167,4 +167,3 @@ ge::Status BufOccupyExpr::GetTotalBufferOccup(std::unordered_map<HardwareDef, Ex
 }
 
 }  // namespace att
-}  // namespace af

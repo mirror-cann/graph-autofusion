@@ -11,7 +11,7 @@
 #include "task_generator/schedule_task_generator.h"
 #include "platform/platform_factory.h"
 
-namespace af { namespace optimize {
+namespace optimize {
 Status ScheduleTaskGenerator::GenerateTasks(::ascir::ImplGraph &optimize_graph, std::vector<ScheduleTask> &tasks,
                                             const OptimizerOptions &options) {
   const auto &platform = PlatformFactory::GetInstance().GetPlatform();
@@ -20,4 +20,3 @@ Status ScheduleTaskGenerator::GenerateTasks(::ascir::ImplGraph &optimize_graph, 
   return ge::SUCCESS;
 }
 }  // namespace optimize
-}  // namespace af

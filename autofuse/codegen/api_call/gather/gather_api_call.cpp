@@ -22,14 +22,14 @@
 #include "../utils/api_call_utils.h"
 #include "graph/symbolizer/symbolic_utils.h"
 
-namespace af { namespace codegen {
+namespace codegen {
 using namespace std;
 using namespace af::ops;
 using namespace af::ascir_op;
 using namespace ascgen_utils;
 using namespace gather_base;
 
-std::string GenerateNonLastAxisGather(const std::vector<::ascir::AxisId> &current_axis,
+std::string GenerateNonLastAxisGather(const std::vector<ascir::AxisId> &current_axis,
                                       const std::vector<std::reference_wrapper<const Tensor>> &inputs,
                                       const std::vector<std::reference_wrapper<const Tensor>> &outputs,
                                       int64_t gather_axis, const TPipe &tpipe) {
@@ -40,8 +40,8 @@ std::string GenerateNonLastAxisGather(const std::vector<::ascir::AxisId> &curren
   if (y.vectorized_axis.size() > 1) {
     auto axis0 = tpipe.tiler.GetAxis(y.vectorized_axis[0]);
     auto axis1 = tpipe.tiler.GetAxis(y.vectorized_axis[1]);
-    std::vector<::ascir::AxisId> param_outer_axes;
-    std::vector<::ascir::AxisId> param_inner_axes;
+    std::vector<ascir::AxisId> param_outer_axes;
+    std::vector<ascir::AxisId> param_inner_axes;
     CollectParamOuterAndInnerAxes(x1.axis, gather_axis, param_outer_axes, param_inner_axes);
     std::string outer_axis_offset = CalGatherOuterAxisOffset(current_axis, param_inner_axes, axis0.id, tpipe);
     ss << "for (" << axis0.AsArg() << " = 0; " << axis0 << " < " << axis0.actual_size << "; " << axis0 << "++) {"
@@ -56,8 +56,8 @@ std::string GenerateNonLastAxisGather(const std::vector<::ascir::AxisId> &curren
     ss << "}" << std::endl;
   } else {
     auto axis0 = tpipe.tiler.GetAxis(y.vectorized_axis[0]);
-    std::vector<::ascir::AxisId> param_outer_axes;
-    std::vector<::ascir::AxisId> param_inner_axes;
+    std::vector<ascir::AxisId> param_outer_axes;
+    std::vector<ascir::AxisId> param_inner_axes;
     CollectParamOuterAndInnerAxes(x1.axis, gather_axis, param_outer_axes, param_inner_axes);
     std::string outer_axis_offset = CalGatherOuterAxisOffset(current_axis, param_inner_axes, af::kIdNone, tpipe);
 
@@ -72,7 +72,7 @@ std::string GenerateNonLastAxisGather(const std::vector<::ascir::AxisId> &curren
   return ss.str();
 }
 
-Status GatherApiCall::Generate(const TPipe &tpipe, const std::vector<::ascir::AxisId> &current_axis,
+Status GatherApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
                                const std::vector<std::reference_wrapper<const Tensor>> &inputs,
                                const std::vector<std::reference_wrapper<const Tensor>> &outputs,
                                std::string &result) const {
@@ -131,7 +131,7 @@ Status GatherApiCall::Generate(const TPipe &tpipe, const std::vector<::ascir::Ax
   return ge::SUCCESS;
 }
 
-Status GatherApiCall::ParseAttr(const ::ascir::NodeView &node) {
+Status GatherApiCall::ParseAttr(const ascir::NodeView &node) {
   GE_CHK_GRAPH_STATUS_RET(node->attr.ir_attr->GetAttrValue("axis", this->axis),
                           "Failed to get Gahter axis attr, node = %s", node->GetNamePtr());
   GELOGI("name:%s, axis:%lld", node->GetNamePtr(), this->axis);
@@ -141,4 +141,3 @@ Status GatherApiCall::ParseAttr(const ::ascir::NodeView &node) {
 static ApiCallRegister<GatherApiCall> register_gather_api_call("GatherApiCall");
 
 }  // namespace codegen
-}  // namespace af

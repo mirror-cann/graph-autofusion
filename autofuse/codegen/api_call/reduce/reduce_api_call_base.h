@@ -14,7 +14,7 @@
 #include "codegen_kernel.h"
 
 namespace reduce_base {
-using namespace af::codegen;
+using namespace codegen;
 
 static std::map<std::string, std::pair<int, std::string>> reduce_type_map = {
   {"Min", {ReduceOpType::kMin, "Min"}},  {"Max", {ReduceOpType::kMax, "Max"}},
@@ -29,7 +29,7 @@ static std::map<std::string, std::pair<int, std::string>> reduce_type_map = {
 void GetIsArAndPattern(const Tensor &y, bool &isAr, std::string &reduce_pattern);
 void ReduceMergedSizeCodeGen(const TPipe &tpipe, std::stringstream &ss, const Tensor &src, const Tensor &dst,
                              bool is_tail = false);
-bool IsNeedMultiReduce(const Tiler &tiler, const Tensor &input, const Tensor &output, ::ascir::AxisId axis_id);
+bool IsNeedMultiReduce(const Tiler &tiler, const Tensor &input, const Tensor &output, ascir::AxisId axis_id);
 void ReduceMeanCodeGen(std::string &dtype_name, const TPipe &tpipe, const Tensor &dst,
                        std::stringstream &ss);
 void ReduceInitCodeGen(const Tensor &x, const Tensor &y, const int &type_value,

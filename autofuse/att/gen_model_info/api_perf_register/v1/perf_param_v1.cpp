@@ -13,7 +13,7 @@
 #include "base/att_const_values.h"
 #include "gen_model_info/parser/tuning_space.h"
 
-namespace af { namespace att {
+namespace att {
 namespace {
 const uint64_t kLoadThreshold = 25000U;
 const Expr kVecheadcost = CreateExpr(37.37f);
@@ -591,4 +591,3 @@ Expr PerfParamTableV1::GetOpHeadCost() const {
   return CreateExpr(kOpHeadCost);
 }
 }  // namespace att
-}  // namespace af

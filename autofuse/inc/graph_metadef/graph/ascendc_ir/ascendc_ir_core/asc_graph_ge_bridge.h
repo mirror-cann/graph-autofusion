@@ -10,7 +10,7 @@
 
 // Bridge API that lets GE add nodes into AscGraph without instantiating af::Operator or
 // af::ascir_op types in GE translation units.  All af-internal construction happens inside
-// libaihac_ir_af.so, which is compiled without AUTOFUSE_USE_GE_METADEF.
+// libaihac_ir.so, which is compiled without AUTOFUSE_USE_GE_METADEF.
 //
 // Two usage patterns in GE:
 //
@@ -26,7 +26,7 @@
 //   now: af::AscGraphAddSplitNode(asc_graph, name, out_num);
 //
 // For other ascir_op types used in MakeRawNode<T>, the template is rewritten to call
-// AscGraphAddAscirNodeByType() which dispatches by T::Type string inside libaihac_ir_af.so.
+// AscGraphAddAscirNodeByType() which dispatches by T::Type string inside libaihac_ir.so.
 
 #ifndef METADEF_CXX_ASC_GRAPH_GE_BRIDGE_H_
 #define METADEF_CXX_ASC_GRAPH_GE_BRIDGE_H_
@@ -49,7 +49,7 @@ AscNodePtr AscGraphAddNodeFromOpDesc(AscGraph &asc_graph, OpDescPtr op_desc);
 AscNodePtr AscGraphAddSplitNode(AscGraph &asc_graph, const char *name, uint32_t out_num);
 
 // Generic helper for ascir_op types used via MakeRawNode<T> in asc_overrides.h.
-// Constructs the named ascir_op inside libaihac_ir_af.so and adds it to asc_graph.
+// Constructs the named ascir_op inside libaihac_ir.so and adds it to asc_graph.
 // dynamic_input_num > 0  => calls op.DynamicInputRegister("x", dynamic_input_num)
 // dynamic_output_num > 0 => calls op.DynamicOutputRegister("y", dynamic_output_num)
 AscNodePtr AscGraphAddAscirNodeByType(AscGraph &asc_graph,

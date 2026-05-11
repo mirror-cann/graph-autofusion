@@ -15,10 +15,10 @@
 #include "ascir_ops.h"
 #include "common/checker.h"
 
-namespace af { namespace codegen {
+namespace codegen {
 using namespace ascgen_utils;
 constexpr uint32_t kDataBlockSize = 32;
-Status SplitRegApiCall::ParseAttr(const ::ascir::NodeView &node) {
+Status SplitRegApiCall::ParseAttr(const ascir::NodeView &node) {
   node_ = node;
   return ge::SUCCESS;
 }
@@ -50,7 +50,7 @@ Status SplitRegApiCall::ParseSplitDim(const Tensor &x, const Tensor &y0, size_t 
   return ge::SUCCESS;
 }
 
-Status SplitFindNonZeroStride(const std::vector<::ascir::SizeExpr> &vectorized_strides,
+Status SplitFindNonZeroStride(const std::vector<ascir::SizeExpr> &vectorized_strides,
                               int32_t index,
                               af::Expression &stride) {
   for (int32_t i = index; i >= 0; --i) {
@@ -170,7 +170,7 @@ ge::Status SplitRegApiCall::GenerateForAllAligned(const vector<std::reference_wr
   return ge::SUCCESS;
 }
 
-Status SplitRegApiCall::Generate(const TPipe &tpipe, const std::vector<::ascir::AxisId> &current_axis,
+Status SplitRegApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
                                   const vector<std::reference_wrapper<const Tensor>> &inputs,
                                   const vector<std::reference_wrapper<const Tensor>> &outputs,
                                   string &result) const{
@@ -283,4 +283,3 @@ void SplitRegApiCall::GenDstAddrs(const vector<std::reference_wrapper<const Tens
 
 static ApiCallRegister<SplitRegApiCall> register_split_api_call("SplitRegApiCall");
 }  // namespace codegen
-}  // namespace af

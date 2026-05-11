@@ -12,7 +12,7 @@
 #include <string>
 #include <cstdint>
 
-namespace af { namespace att {
+namespace att {
 constexpr char kSolverGenError[] = "Solver Gen Error";
 constexpr uint32_t kMaxL0VarNum = 3u;
 inline std::string GetSmoothString(std::string str) {
@@ -41,5 +41,4 @@ protected:
   std::string type_name_;
 };
 } // namespace att
-}  // namespace af
 #endif

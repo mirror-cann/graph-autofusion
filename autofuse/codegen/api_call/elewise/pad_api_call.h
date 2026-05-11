@@ -11,19 +11,18 @@
 #define __AUTOFUSE_PAD__API_CALL_H__
 #include "codegen_kernel.h"
 
-namespace af { namespace codegen {
+namespace codegen {
 class PadApiCall final : public ApiCall {
 public:
   using ApiCall::Generate;
   explicit PadApiCall(const std::string &api_name) : ApiCall(api_name) {}
-  Status Generate(const TPipe &tpipe, const std::vector<::ascir::AxisId> &current_axis,
+  Status Generate(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
                   const std::vector<std::reference_wrapper<const Tensor>> &inputs,
                   const std::vector<std::reference_wrapper<const Tensor>> &outputs, std::string &result) const override;
-  Status ParseAttr(const ::ascir::NodeView &node) override;
+  Status ParseAttr(const ascir::NodeView &node) override;
   ~PadApiCall() final = default;
 private:
   std::string api_tiling_data_field; // = GetApiTilingFieldName(); // "pad0_tiling_data";
 };
 }
-}  // namespace af
 #endif // __AUTOFUSE_PAD__API_CALL_H__

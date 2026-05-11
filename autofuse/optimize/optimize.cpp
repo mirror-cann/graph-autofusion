@@ -32,7 +32,7 @@
 #include "pre_process/pre_process.h"
 
 using namespace ascir;
-using namespace af::optimize;
+using namespace optimize;
 using namespace af::ascir_op;
 using namespace af::ops;
 
@@ -59,7 +59,7 @@ std::string GenerateIndexedGraphName(const std::string &original_name,
   return oss.str();
 }
 
-Status FinalizeIndexedGraphs(std::vector<::ascir::ScheduledResult> &scheduled_results) {
+Status FinalizeIndexedGraphs(std::vector<ascir::ScheduledResult> &scheduled_results) {
   for (size_t result_idx = 0UL; result_idx < scheduled_results.size(); ++result_idx) {
     auto &scheduled_result = scheduled_results[result_idx];
     for (size_t group_idx = 0UL; group_idx < scheduled_result.schedule_groups.size(); ++group_idx) {
@@ -138,7 +138,7 @@ std::vector<std::vector<int64_t>> MergeContinuousPairs(const std::vector<std::pa
   return continuous_ids;
 }
 
-std::unordered_set<size_t> IdentifyZeroStrideAxisIndices(const ::ascir::ImplGraph &owner_graph) {
+std::unordered_set<size_t> IdentifyZeroStrideAxisIndices(const ascir::ImplGraph &owner_graph) {
   std::vector<bool> is_zero_stride_axis;
   bool include_reduce = false;
   for (const auto &node : owner_graph.GetAllNodes()) {
@@ -342,13 +342,13 @@ std::string RegisterScoreFuncInScheduleGroup(const autoschedule::AutoScheduleOut
 }
 
 af::Status CopyImplGraphs(const std::vector<autoschedule::AutoScheduleOutput> &schedule_outputs,
-                          std::vector<::ascir::ScheduledResult> &scheduled_results_cur) {
+                          std::vector<ascir::ScheduledResult> &scheduled_results_cur) {
   for (size_t i = 0UL; i < scheduled_results_cur.size(); ++i) {
     auto &cur_result = scheduled_results_cur[i];
     ScheduleGroup cur_group;
     cur_group.impl_graphs.reserve(schedule_outputs.size());
     for (const auto &result: schedule_outputs) {
-      ::ascir::ImplGraph copied_graph(result.scheduled_graph.GetName().c_str());
+      ascir::ImplGraph copied_graph(result.scheduled_graph.GetName().c_str());
       GE_ASSERT_TRUE(copied_graph.CopyFrom(result.scheduled_graph));
       cur_group.impl_graphs.push_back(std::move(copied_graph));
       RegisterScoreFuncInScheduleGroup(result, cur_group);
@@ -417,11 +417,11 @@ Status CheckGraphValidity(const af::AscGraph &graph) {
 Optimizer::Optimizer(const OptimizerOptions &options) : options_(options) {}
 
 Status Optimizer::Optimize(const af::ComputeGraphPtr &fused_graph,
-                           ::ascir::FusedScheduledResult &fused_scheduled_result) {
+                           ascir::FusedScheduledResult &fused_scheduled_result) {
   GELOGI("Fused graph optimize in, graph_name:[%s].", fused_graph->GetName().c_str());
   // RAII Guard，函数结束时自动清空 fused_graph_name
-  ::ascir::utils::FusedGraphNameGuard guard(fused_graph->GetName());
-  ::ascir::utils::DumpComputeGraph(fused_graph, "BaseFusedGraph");
+  ascir::utils::FusedGraphNameGuard guard(fused_graph->GetName());
+  ascir::utils::DumpComputeGraph(fused_graph, "BaseFusedGraph");
   if (options_.graph_type == GraphType::kFusedAscBackend) {
     return OptimizeFusedAscBackend(fused_graph, fused_scheduled_result);
   }
@@ -441,7 +441,7 @@ Status Optimizer::Optimize(const af::ComputeGraphPtr &fused_graph,
       ascgraph.SetGraphType(af::AscGraphType::kImplGraph);
       GE_CHK_STATUS_RET(AscGraphInfoComplete::CompleteApiInfo(ascgraph), "CompleteApiInfo failed");
       AscGraphInfoComplete::AppendOriginalSizeVar(ascgraph, original_var_set);
-      ::ascir::utils::DumpGraph(ascgraph, "AfterDeserialize");
+      ascir::utils::DumpGraph(ascgraph, "AfterDeserialize");
       asc_backend_to_ascgraph.emplace(node, ascgraph);
     }
   }
@@ -471,7 +471,7 @@ Status Optimizer::Optimize(const af::ComputeGraphPtr &fused_graph,
 }
 
 Status Optimizer::OptimizeFusedAscBackend(const af::ComputeGraphPtr &fused_graph,
-                                          ::ascir::FusedScheduledResult &fused_scheduled_result) const {
+                                          ascir::FusedScheduledResult &fused_scheduled_result) const {
   std::map<af::Node *, af::AscGraph> asc_backend_to_ascgraph;
   SizeVarSet original_var_set;
   for (auto &node : fused_graph->GetDirectNodePtr()) {
@@ -512,11 +512,11 @@ Status Optimizer::OptimizeFusedAscBackend(const af::ComputeGraphPtr &fused_graph
                         "Change starting output to workspace failed.");
     }
   }
-  ::ascir::utils::DumpScheduleResult(fused_scheduled_result, "AutoFuseAfterOptimize");
+  ascir::utils::DumpScheduleResult(fused_scheduled_result, "AutoFuseAfterOptimize");
   return af::SUCCESS;
 }
 
-Status Optimizer::BufQueAlloc(const ::ascir::HintGraph &graph, ::ascir::ImplGraph &impl_graph) const {
+Status Optimizer::BufQueAlloc(const ascir::HintGraph &graph, ascir::ImplGraph &impl_graph) const {
   (void)graph;
   FusedScheduledResult fused_scheduled_result;
   fused_scheduled_result.node_idx_to_scheduled_results.resize(1UL);
@@ -528,18 +528,18 @@ Status Optimizer::BufQueAlloc(const ::ascir::HintGraph &graph, ::ascir::ImplGrap
   return af::SUCCESS;
 }
 
-Status Optimizer::BufQueAlloc(const ::ascir::HintGraph &graph, std::vector<::ascir::ImplGraph> &impl_graphs) const {
+Status Optimizer::BufQueAlloc(const ascir::HintGraph &graph, std::vector<ascir::ImplGraph> &impl_graphs) const {
   for (auto &impl_graph : impl_graphs) {
     GE_CHK_STATUS_RET(this->BufQueAlloc(graph, impl_graph), "AllocBufQue failed");
   }
   return af::SUCCESS;
 }
 
-Status Optimizer::GraphPass(::ascir::ImplGraph &impl_graph) const {
+Status Optimizer::GraphPass(ascir::ImplGraph &impl_graph) const {
   return autoschedule::PassRunnerHandler::RunPasses(impl_graph);
 }
 
-Status Optimizer::GetNonContinuousAxisPairBySpecialRule(::ascir::ImplGraph &impl_graph,
+Status Optimizer::GetNonContinuousAxisPairBySpecialRule(ascir::ImplGraph &impl_graph,
                                                         std::set<std::pair<int64_t, int64_t>> &non_continuous_pair) {
   for (const auto &node : impl_graph.GetAllNodes()) {
     if (ScheduleUtils::IsConcat(node) || (ScheduleUtils::IsSplit(node))) {
@@ -605,7 +605,7 @@ Status Optimizer::GetNonContinuousAxisPairBySpecialRule(::ascir::ImplGraph &impl
   return af::SUCCESS;
 }
 
-Status Optimizer::RemoveAllZeroStrideLoopAxis(::ascir::ImplGraph &owner_graph) {
+Status Optimizer::RemoveAllZeroStrideLoopAxis(ascir::ImplGraph &owner_graph) {
   if (ScheduleUtils::HasComputeType(owner_graph, af::ComputeType::kComputeGather)) {
     return af::SUCCESS;
   }
@@ -653,7 +653,7 @@ Status Optimizer::RemoveAllZeroStrideLoopAxis(::ascir::ImplGraph &owner_graph) {
   return af::SUCCESS;
 }
 
-Status Optimizer::MergeContinuousAxis(::ascir::ImplGraph &impl_graph, ::ascir::CubeTemplateType cube_type) {
+Status Optimizer::MergeContinuousAxis(ascir::ImplGraph &impl_graph, ascir::CubeTemplateType cube_type) {
   auto all_axis = impl_graph.GetAllAxis();
   if (all_axis.size() <= 1UL) {
     return af::SUCCESS;
@@ -725,13 +725,13 @@ Status Optimizer::MergeContinuousAxis(::ascir::ImplGraph &impl_graph, ::ascir::C
   int64_t attr_axis = -1;
   int64_t param_size = -1;
   bool has_gather = ScheduleUtils::GetGatherParams(impl_graph, attr_axis, param_size);
-  if ((!has_gather) && (cube_type != ::ascir::CubeTemplateType::kUBFuse)) {
+  if ((!has_gather) && (cube_type != ascir::CubeTemplateType::kUBFuse)) {
     // 此处合轴后的轴可以认为是original的
     for (const auto &axis : new_merged_axes) {
       axis->type = af::Axis::Type::kAxisTypeOriginal;
       axis->from.clear();
     }
-    if (cube_type == ::ascir::CubeTemplateType::kUBFuse) {
+    if (cube_type == ascir::CubeTemplateType::kUBFuse) {
       return af::GRAPH_SUCCESS;
     }
     GE_ASSERT_SUCCESS(ScheduleUtils::RemoveUnusedAxes(impl_graph), "Failed to remove unused axes");
@@ -741,26 +741,26 @@ Status Optimizer::MergeContinuousAxis(::ascir::ImplGraph &impl_graph, ::ascir::C
 }
 
 Status Optimizer::OptimizeForHintGraph(af::AscGraph &hint_graph,
-                                       std::vector<::ascir::ScheduledResult> &scheduled_results) const {
+                                       std::vector<ascir::ScheduledResult> &scheduled_results) const {
   ScheduleUtils::NormalizeAxisIds(hint_graph);
   hint_graph.SetGraphType(af::AscGraphType::kImplGraph);
-  ::ascir::utils::DumpPyCode(hint_graph);
+  ascir::utils::DumpPyCode(hint_graph);
   GE_CHK_STATUS_RET(AscGraphInfoComplete::CompleteApiInfo(hint_graph), "CompleteApiInfo failed");
   GE_ASSERT_SUCCESS(CheckGraphValidity(hint_graph),
                 "Check graph validity failed, graph:[%s].", hint_graph.GetName().c_str());
   // 预处理：当前仅针对kFusedAscBackend流程生效，后续会全部放开
   if (options_.graph_type == GraphType::kFusedAscBackend) {
     GE_CHK_STATUS_RET(af::pre_process::PreProcess::Run(hint_graph), "Pre process failed");
-    ::ascir::utils::DumpGraph(hint_graph, "AfterPreProcess");
+    ascir::utils::DumpGraph(hint_graph, "AfterPreProcess");
   }
   // 截断 graph name
   std::string base_graph_name = TruncateGraphName(hint_graph.GetName());
-  ::ascir::ImplGraph optimize_graph(base_graph_name.c_str());
+  ascir::ImplGraph optimize_graph(base_graph_name.c_str());
   GE_ASSERT_TRUE(optimize_graph.CopyFrom(hint_graph));
 
   // dtype 兜底处理：针对算子实际支持的 dtype 与注册不一致的情况，插入必要的 Cast
   GE_CHK_STATUS_RET(DtypeConsistency::EnsureDtypeConsistency(optimize_graph), "Failed to ensure dtype consistency");
-  ::ascir::utils::DumpGraph(optimize_graph, "AfterDtypeConsistency");
+  ascir::utils::DumpGraph(optimize_graph, "AfterDtypeConsistency");
 
   GE_CHK_STATUS_RET(GraphPass(optimize_graph), "Run graph passes failed");
 
@@ -773,7 +773,7 @@ Status Optimizer::OptimizeForHintGraph(af::AscGraph &hint_graph,
   if (!ScheduleUtils::HasComputeType(optimize_graph, af::ComputeType::kComputeCube)) {
     GE_ASSERT_SUCCESS(MergeContinuousAxis(optimize_graph), "Merge continuous axes failed.");
   }
-  ::ascir::utils::DumpGraph(optimize_graph, "AfterMergeAxis");
+  ascir::utils::DumpGraph(optimize_graph, "AfterMergeAxis");
 
   std::vector<ScheduleTask> schedule_tasks;
   GE_CHK_STATUS_RET(ScheduleTaskGenerator::GenerateTasks(optimize_graph, schedule_tasks, options_),
@@ -812,7 +812,7 @@ Status Optimizer::LoadOpSeqAdjust(const af::AscGraph &impl_graph) {
 }
 
 Status Optimizer::Optimize(af::AscGraph &hint_graph, FusedScheduledResult &fused_scheduled_result) {
-  ::ascir::utils::DumpGraph(hint_graph, "AutoFuseBeforeOptimize");
+  ascir::utils::DumpGraph(hint_graph, "AutoFuseBeforeOptimize");
   fused_scheduled_result.node_idx_to_scheduled_results.resize(1UL);
   SizeVarSet original_var_set;
   AscGraphInfoComplete::AppendOriginalSizeVar(hint_graph, original_var_set);
@@ -827,7 +827,7 @@ Status Optimizer::Optimize(af::AscGraph &hint_graph, FusedScheduledResult &fused
   GELOGI("AllocBufQue end");
   TryEnableGroupParallel(fused_scheduled_result);
   ExecSeqAdvancedOfLoad(fused_scheduled_result);
-  ::ascir::utils::DumpScheduleResult(fused_scheduled_result, "AutoFuseAfterOptimize");
+  ascir::utils::DumpScheduleResult(fused_scheduled_result, "AutoFuseAfterOptimize");
   return af::SUCCESS;
 }
 
@@ -854,17 +854,17 @@ void Optimizer::RefreshGroupRelation(size_t index, std::map<std::string, af::Exp
   }
 }
 
-static Status ProcessCubeSchedules(std::vector<::ascir::ScheduledResult> &scheduled_results_cur, ::ascir::ImplGraph &grouped_graph) {
-  ::ascir::Graph optimize_graph(ascgen_utils::GenValidName(grouped_graph.GetName()).c_str());
+static Status ProcessCubeSchedules(std::vector<ascir::ScheduledResult> &scheduled_results_cur, ascir::ImplGraph &grouped_graph) {
+  ascir::Graph optimize_graph(ascgen_utils::GenValidName(grouped_graph.GetName()).c_str());
   GE_ASSERT_TRUE(optimize_graph.CopyFrom(grouped_graph));
   ScheduleGroup schedule_group{{optimize_graph}, {}};
   std::for_each(scheduled_results_cur.begin(), scheduled_results_cur.end(),
-                [&schedule_group](::ascir::ScheduledResult &res) { res.schedule_groups.emplace_back(schedule_group); });
+                [&schedule_group](ascir::ScheduledResult &res) { res.schedule_groups.emplace_back(schedule_group); });
   return af::SUCCESS;
 }
 
 static Status ProcessNonReduceSchedules(const std::vector<autoschedule::AutoScheduleOutput> &schedule_outputs,
-                                        std::vector<::ascir::ScheduledResult> &scheduled_results_cur,
+                                        std::vector<ascir::ScheduledResult> &scheduled_results_cur,
                                         ScheduleTask &schedule_task,
                                         std::set<std::string> &scored_graph_names) {
   ScheduleGroup schedule_group;
@@ -883,7 +883,7 @@ static Status ProcessNonReduceSchedules(const std::vector<autoschedule::AutoSche
   return af::SUCCESS;
 }
 
-Status Optimizer::InitializeScheduledResults(std::vector<::ascir::ScheduledResult> &scheduled_results_cur,
+Status Optimizer::InitializeScheduledResults(std::vector<ascir::ScheduledResult> &scheduled_results_cur,
                                              ScheduleTask &schedule_task) {
   ::ascir::ScheduledResult schedule_result;
   schedule_result.score_func = schedule_task.score_func.c_str();
@@ -894,9 +894,9 @@ Status Optimizer::InitializeScheduledResults(std::vector<::ascir::ScheduledResul
 }
 
 Status Optimizer::AutoScheduler([[maybe_unused]]const HintGraph &hint_graph, ScheduleTask &schedule_task,
-                                std::vector<::ascir::ScheduledResult> &scheduled_results) const {
+                                std::vector<ascir::ScheduledResult> &scheduled_results) const {
   size_t index = 0UL;
-  std::vector<::ascir::ScheduledResult> scheduled_results_cur;
+  std::vector<ascir::ScheduledResult> scheduled_results_cur;
   GE_ASSERT_SUCCESS(InitializeScheduledResults(scheduled_results_cur, schedule_task));
 
   // 记录注册打分函数的nddma模板名
@@ -916,7 +916,7 @@ Status Optimizer::AutoScheduler([[maybe_unused]]const HintGraph &hint_graph, Sch
     for (const auto &exp: original_var_set) {
       GE_ASSERT_GRAPH_SUCCESS(grouped_graph.CreateSizeVar(exp));
     }
-    ::ascir::utils::DumpGraph(grouped_graph, "BeforeAutoSchedule");
+    ascir::utils::DumpGraph(grouped_graph, "BeforeAutoSchedule");
     GELOGI("AutoScheduler start: %s", grouped_graph.GetName().c_str());
     if (ScheduleUtils::HasComputeType(grouped_graph, af::ComputeType::kComputeCube)) {
       GE_ASSERT_SUCCESS(ProcessCubeSchedules(scheduled_results_cur, grouped_graph));
@@ -933,7 +933,7 @@ Status Optimizer::AutoScheduler([[maybe_unused]]const HintGraph &hint_graph, Sch
     GELOGI("AutoScheduler end: %s, number of tiling cases = %zu", grouped_graph.GetName().c_str(),
            schedule_outputs.size());
     if (is_reduce_first_stage) {
-      std::vector<::ascir::ScheduledResult> scheduled_results_tmp;
+      std::vector<ascir::ScheduledResult> scheduled_results_tmp;
       for (auto &schedule_output : schedule_outputs) {
         ScheduleGroup schedule_group = {{schedule_output.scheduled_graph}, {}};
         for (auto &d : scheduled_results_cur) {

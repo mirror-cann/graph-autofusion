@@ -68,8 +68,8 @@ Status FindNodeSequence(af::Node *start_node, std::unordered_set<af::Node *> &re
   return ge::SUCCESS;
 }
 }  // namespace
-namespace af { namespace optimize {
-bool ScheduleUtils::IsNextNodeRemovePad(const ::ascir::NodeView &node) {
+namespace optimize {
+bool ScheduleUtils::IsNextNodeRemovePad(const ascir::NodeView &node) {
   // 如果当前节点是单输出多引用，则后继节点中只会有1个RemovePad，不会每个引用都单独去Pad。
   const auto &out_nodes = node->GetOutDataNodes();
   return out_nodes.size() == 1UL && IsRemovePad(out_nodes.at(0));
@@ -120,7 +120,7 @@ bool ScheduleUtils::IsContinuesStrides(const std::vector<af::Expression> &repeat
   return true;
 }
 
-bool ScheduleUtils::IsContinuesVecStrides(const ::ascir::NodeView &node) {
+bool ScheduleUtils::IsContinuesVecStrides(const ascir::NodeView &node) {
   std::vector<af::Expression> vec_repeats;
   GE_WARN_ASSERT(GetNodeOutVectorRepeats(node, vec_repeats) == ge::SUCCESS);
   return IsContinuesStrides(vec_repeats, node->outputs[0].attr.vectorized_strides);
@@ -195,8 +195,8 @@ bool ScheduleUtils::NotNeedAlignVectorStride(const af::AscGraph &graph) {
     } else if (IsConcat(node)) {
       bool output_need_align = false;
       bool need_align =
-          (!::ascir::utils::IsConcatAllInputsAligned(*node))
-              && (!::ascir::utils::UseSmallTailConcatApi(*node, &output_need_align));
+          (!ascir::utils::IsConcatAllInputsAligned(*node))
+              && (!ascir::utils::UseSmallTailConcatApi(*node, &output_need_align));
       GE_CHK_BOOL_RET_SPECIAL_STATUS((need_align || output_need_align), false,
                                      "Node %s[%s] need align vector stride", node->GetTypePtr(), node->GetNamePtr());
       exist_concat_node = true;
@@ -242,7 +242,7 @@ bool ScheduleUtils::IsIntervalBroadcast(const std::vector<af::Expression> &in_re
 /**
  * 判断节点是否是静态Shape，要求其输出repeats不为空，因为不适合判断Scalar、Output等特殊节点
  */
-bool ScheduleUtils::IsStaticShape(const ::ascir::NodeView &node) {
+bool ScheduleUtils::IsStaticShape(const ascir::NodeView &node) {
   GE_WARN_ASSERT(node != nullptr);
   GE_WARN_ASSERT(!node->outputs().empty());
   for (const auto &node_out : node->outputs()) {
@@ -268,7 +268,7 @@ bool ScheduleUtils::IsStaticGraph(const af::AscGraph &graph) {
 }
 
 
-Status ScheduleUtils::GetNonBrcInputTensor(const ::ascir::NodeView &node, const size_t index,
+Status ScheduleUtils::GetNonBrcInputTensor(const ascir::NodeView &node, const size_t index,
                                            std::unique_ptr<af::AscTensor> &tensor) {
   GE_WARN_ASSERT(node != nullptr);
   GE_ASSERT_TRUE(index < node->inputs().size());
@@ -422,7 +422,7 @@ Status ScheduleUtils::GetVectorRepeats(const std::vector<af::Expression> &repeat
   return ge::SUCCESS;
 }
 
-Status ScheduleUtils::GetNodeInputVectorRepeats(const ::ascir::NodeView &node,
+Status ScheduleUtils::GetNodeInputVectorRepeats(const ascir::NodeView &node,
                                                 std::vector<af::Expression> &vector_repeats) {
   GE_ASSERT_NOTNULL(node);
   GE_ASSERT_TRUE(!node->inputs().empty());
@@ -430,7 +430,7 @@ Status ScheduleUtils::GetNodeInputVectorRepeats(const ::ascir::NodeView &node,
   return GetVectorRepeats(attr.repeats, attr.axis, attr.vectorized_axis, vector_repeats);
 }
 
-Status ScheduleUtils::GetNodeOutVectorRepeats(const ::ascir::NodeView &node, std::vector<af::Expression> &vec_repeats) {
+Status ScheduleUtils::GetNodeOutVectorRepeats(const ascir::NodeView &node, std::vector<af::Expression> &vec_repeats) {
   GE_ASSERT_NOTNULL(node);
   GE_ASSERT_TRUE(!node->outputs().empty());
   const auto &attr = node->outputs[0].attr;
@@ -438,8 +438,8 @@ Status ScheduleUtils::GetNodeOutVectorRepeats(const ::ascir::NodeView &node, std
 }
 
 Status ScheduleUtils::GetConcatDim(const af::AscNodePtr &node, size_t &concat_dim) {
-  const std::vector<::ascir::SizeExpr> &input_repeats = node->inputs[0].attr.repeats;
-  const std::vector<::ascir::SizeExpr> &output_repeats = node->outputs[0].attr.repeats;
+  const std::vector<ascir::SizeExpr> &input_repeats = node->inputs[0].attr.repeats;
+  const std::vector<ascir::SizeExpr> &output_repeats = node->outputs[0].attr.repeats;
   GE_ASSERT_TRUE((input_repeats.size() == output_repeats.size()),
                  "The output dim cnt [%zu] of concat mismatch with input dim cnt [%zu].", output_repeats.size(),
                  input_repeats.size());
@@ -533,12 +533,12 @@ bool HasReduceNodeOnPath(const af::AscNodePtr& b, const af::AscNodePtr& a) {
   return DfsReduceNodeBetweenBA(b, a, false);
 }
 
-bool ScheduleUtils::IsLastAxisReduce(const ::ascir::ImplGraph &impl_graph) {
+bool ScheduleUtils::IsLastAxisReduce(const ascir::ImplGraph &impl_graph) {
   for (const auto& node : impl_graph.GetAllNodes()) {
     if (ScheduleUtils::IsReduce(node)) {
-      std::vector<::ascir::SizeExpr> src_strides;
+      std::vector<ascir::SizeExpr> src_strides;
       ScheduleUtils::GetReduceInputStrides(*node, src_strides);
-      const std::vector<::ascir::SizeExpr> &dst_strides = node->outputs[0].attr.strides;
+      const std::vector<ascir::SizeExpr> &dst_strides = node->outputs[0].attr.strides;
       auto last_index = src_strides.size() - 1;
       return (af::SymbolicUtils::StaticCheckEq(src_strides[last_index], dst_strides[last_index]) != af::TriBool::kTrue) &&
              (af::SymbolicUtils::StaticCheckEq(dst_strides[last_index], af::sym::kSymbolZero) == af::TriBool::kTrue);
@@ -547,7 +547,7 @@ bool ScheduleUtils::IsLastAxisReduce(const ::ascir::ImplGraph &impl_graph) {
   return false;
 }
 
-bool ScheduleUtils::IsNormStruct(const ::ascir::ImplGraph& implGraph) {
+bool ScheduleUtils::IsNormStruct(const ascir::ImplGraph& implGraph) {
   for (const auto& node : implGraph.GetAllNodes()) {
     auto parents = GetParentNodes(node);
     if (parents.size() <= 1) {
@@ -637,7 +637,7 @@ bool HasBroadcastDescendantNode(const af::AscNodePtr& node) {
   return false;
 }
 
-bool ScheduleUtils::IsReduceArFullLoad(const ::ascir::ImplGraph& implGraph) {
+bool ScheduleUtils::IsReduceArFullLoad(const ascir::ImplGraph& implGraph) {
   for (const auto& node : implGraph.GetAllNodes()) {
     if (!ScheduleUtils::IsReduce(node)) {
       continue;
@@ -683,7 +683,7 @@ bool ScheduleUtils::IsReduceArFullLoad(const ::ascir::ImplGraph& implGraph) {
   return false;
 }
 
-bool ScheduleUtils::HasComputeType(const ::ascir::ImplGraph &impl_graph, const af::ComputeType compute_type) {
+bool ScheduleUtils::HasComputeType(const ascir::ImplGraph &impl_graph, const af::ComputeType compute_type) {
   for (const auto &node : impl_graph.GetAllNodes()) {
     if (node->attr.api.compute_type == compute_type) {
       return true;
@@ -693,7 +693,7 @@ bool ScheduleUtils::HasComputeType(const ::ascir::ImplGraph &impl_graph, const a
 }
 
 // 该接口校验了brc单输出，并非针对sclar直连brc的通用接口
-bool ScheduleUtils::IsScalarBroadcastNode(const ::ascir::NodeView &node) {
+bool ScheduleUtils::IsScalarBroadcastNode(const ascir::NodeView &node) {
   GELOGD("%s[%s] output_size=%u, input_size=%u", node->GetTypePtr(), node->GetNamePtr(), node->GetOutDataNodesSize(),
          node->GetInDataNodesSize());
   if (!IsBroadcast(node)) {
@@ -731,7 +731,7 @@ bool ScheduleUtils::HasSameInput(const af::AscNodePtr &node) {
   return false;
 }
 
-Status ScheduleUtils::SwapInputIndex(const ::ascir::NodeView &node, const int32_t idx1, const int32_t idx2) {
+Status ScheduleUtils::SwapInputIndex(const ascir::NodeView &node, const int32_t idx1, const int32_t idx2) {
   GELOGD("Swap input %d and %d for node %s[%s].", idx1, idx2, node->GetTypePtr(), node->GetNamePtr());
   GE_ASSERT_TRUE(static_cast<uint32_t>(std::max(idx1, idx2)) < node->GetAllInDataAnchorsSize());
   const auto &first_in_anchor = node->GetInDataAnchor(idx1);
@@ -750,7 +750,7 @@ Status ScheduleUtils::SwapInputIndex(const ::ascir::NodeView &node, const int32_
   return ge::SUCCESS;
 }
 
-Status ScheduleUtils::GetInputForTranspose(af::AscNode &node, std::vector<::ascir::AxisId> &input_axis) {
+Status ScheduleUtils::GetInputForTranspose(af::AscNode &node, std::vector<ascir::AxisId> &input_axis) {
   const auto begin_node = std::dynamic_pointer_cast<af::AscNode>(node.shared_from_this());
   GE_ASSERT_NOTNULL(begin_node);
   auto parent_nodes = GetParentNodes(begin_node);
@@ -779,7 +779,7 @@ bool ScheduleUtils::IsNeedDiscontinuousAligned(const af::AscTensorAttr &attr) {
   return false;
 }
 
-Status ScheduleUtils::RemoveNode(const ::ascir::ImplGraph &impl_graph, const af::AscNodePtr &node,
+Status ScheduleUtils::RemoveNode(const ascir::ImplGraph &impl_graph, const af::AscNodePtr &node,
                                  const af::OutDataAnchorPtr &pre_out_anchor) {
   for (auto &out_anchor : node->GetAllOutDataAnchors()) {
     GE_CHECK_NOTNULL(out_anchor);
@@ -794,7 +794,7 @@ Status ScheduleUtils::RemoveNode(const ::ascir::ImplGraph &impl_graph, const af:
   return ge::SUCCESS;
 }
 
-bool ScheduleUtils::FindContinuesBroadcastNode(const ::ascir::NodeView &node, std::vector<af::AscNodePtr> &continues_brc_nodes) {
+bool ScheduleUtils::FindContinuesBroadcastNode(const ascir::NodeView &node, std::vector<af::AscNodePtr> &continues_brc_nodes) {
   auto brc_node = node;
   continues_brc_nodes.push_back(node);
   while (brc_node != nullptr) {
@@ -840,7 +840,7 @@ Status ScheduleUtils::AddRemovePadAfter(af::AscGraph &graph, const af::AscNodePt
   return ge::SUCCESS;
 }
 
-Status ScheduleUtils::RemoveNodeDst(const ::ascir::ImplGraph &impl_graph, const af::AscNodePtr &node,
+Status ScheduleUtils::RemoveNodeDst(const ascir::ImplGraph &impl_graph, const af::AscNodePtr &node,
                                     const af::InDataAnchorPtr &next_in_anchor) {
   for (auto &in_anchor : node->GetAllInDataAnchors()) {
     GE_CHECK_NOTNULL(in_anchor);
@@ -916,4 +916,3 @@ Status ScheduleUtils::ClearAllSizeVar(const af::AscGraph &graph) {
   return ge::SUCCESS;
 }
 }  // namespace optimize
-}  // namespace af

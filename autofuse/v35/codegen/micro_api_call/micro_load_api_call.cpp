@@ -20,7 +20,7 @@ constexpr int DTYPE_SIZE_4BYTE = 4;
 constexpr int DTYPE_SIZE_8BYTE = 8;
 }  // namespace
 
-namespace af { namespace codegen {
+namespace codegen {
 Status MicroLoadApiCall::Generate(const TensorManager &tensor_mng, const TPipe &tpipe, CallParam &param,
                                   string &result) {
   std::stringstream ss;
@@ -39,7 +39,7 @@ Status MicroLoadApiCall::Generate(const TensorManager &tensor_mng, const TPipe &
   return ge::SUCCESS;
 }
 
-Status MicroLoadApiCall::Init(const ::ascir::NodeView &node) {
+Status MicroLoadApiCall::Init(const ascir::NodeView &node) {
   this->dist_ = "";
   for (auto outAnchor : node->GetAllOutAnchors()) {
     GE_ASSERT_NOTNULL(outAnchor);
@@ -70,14 +70,14 @@ Status MicroLoadApiCall::UpdateDistModeByStrideInfo(const TPipe &tpipe) {
   auto tensor_id = GetInputTensorIdByIndex(0);
   const Tensor *tensor_ptr = tpipe.GetTensor(tensor_id);
   GE_ASSERT_NOTNULL(tensor_ptr);
-  ::ascir::SizeExpr last_dim_stride = tensor_ptr->vectorized_strides.back();
+  ascir::SizeExpr last_dim_stride = tensor_ptr->vectorized_strides.back();
   if (af::SymbolicUtils::StaticCheckEq(last_dim_stride.Simplify(), af::sym::kSymbolZero) != af::TriBool::kTrue) {
     // 尾轴stride不为0，默认采用DIST_NORM加载
     return ge::SUCCESS;
   }
 
   bool is_all_zero = std::all_of(
-      tensor_ptr->vectorized_strides.begin(), tensor_ptr->vectorized_strides.end(), [](const ::ascir::SizeExpr &stride) {
+      tensor_ptr->vectorized_strides.begin(), tensor_ptr->vectorized_strides.end(), [](const ascir::SizeExpr &stride) {
         return af::SymbolicUtils::StaticCheckEq(stride.Simplify(), af::sym::kSymbolZero) == af::TriBool::kTrue;
       });
   if (is_all_zero) {
@@ -94,4 +94,3 @@ Status MicroLoadApiCall::UpdateDistModeByStrideInfo(const TPipe &tpipe) {
 
 static MicroApiCallRegister<MicroLoadApiCall> register_micro_load_api_call("MicroLoadApiCall");
 }  // namespace codegen
-}  // namespace af

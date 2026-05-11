@@ -9,7 +9,7 @@
  */
 
 #include "api_perf_factory.h"
-namespace af { namespace att {
+namespace att {
 ApiPerfFactory &ApiPerfFactory::Instance() {
   static ApiPerfFactory instance;
   return instance;
@@ -27,4 +27,3 @@ std::unique_ptr<ApiPerf> ApiPerfFactory::Create(const std::string &class_name) {
   return func(class_name);
 }
 }  // namespace att
-}  // namespace af

@@ -15,7 +15,7 @@
 #include "parser/tuning_space.h"
 #include "base/base_types.h"
 
-namespace af { namespace att {
+namespace att {
 class BufOccupyExpr {
 public:
   explicit BufOccupyExpr(const TuningSpacePtr &tuning_space) : tuning_space_(tuning_space) {}
@@ -45,6 +45,5 @@ private:
 };
 using BufOccupEvaluatorExprPtr = std::shared_ptr<BufOccupyExpr>;
 } // namespace att
-}  // namespace af
 
 #endif // EXPR_GEN_BUF_OCCUPY_EXPR_H_

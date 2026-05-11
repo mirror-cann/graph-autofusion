@@ -16,32 +16,32 @@
 #include "common/ascgen_log.h"
 #include "optimize/task_generator/schedule_case_generator.h"
 
-namespace af { namespace optimize {
+namespace optimize {
 class SplitFusionCaseGenerator : public FusionCaseGenerator {
  public:
-  Status Generate(::ascir::HintGraph &graph, std::vector<::ascir::ImplGraph> &graphs,
+  Status Generate(ascir::HintGraph &graph, std::vector<ascir::ImplGraph> &graphs,
                   std::vector<std::string> &score_functions) override;
 
  private:
-  static std::vector<af::AscNodePtr> FindSplitNodes(const ::ascir::HintGraph &owner_graph);
+  static std::vector<af::AscNodePtr> FindSplitNodes(const ascir::HintGraph &owner_graph);
   static Status ResolveSplitDim(const af::AscNodePtr &split_node, size_t &split_dim, bool &is_first_dim);
-  Status ConvertSplitToLoads(::ascir::HintGraph &owner_graph, const af::AscNodePtr &split_node, size_t split_dim);
-  Status SplitSplits(const ::ascir::HintGraph &owner_graph, const af::AscNodePtr &split_node, size_t split_dim, const bool &split);
+  Status ConvertSplitToLoads(ascir::HintGraph &owner_graph, const af::AscNodePtr &split_node, size_t split_dim);
+  Status SplitSplits(const ascir::HintGraph &owner_graph, const af::AscNodePtr &split_node, size_t split_dim, const bool &split);
   Status Prepare(const af::AscNodePtr &split_node, size_t split_dim);
   Status ReplaceWithLoad(::ascir::ImplGraph &owner_graph, const af::AscNodePtr &split_node,
                          const af::OutDataAnchorPtr &split_out_anchor);
   Status ReplaceWithSplit(::ascir::ImplGraph &owner_graph, const af::AscNodePtr &split_node, size_t split_dim,
                           size_t start, size_t end);
   Status RemoveUnusedNodes(const af::AscNodePtr &split_node) const;
-  static Status UpdateSplitAxis(::ascir::ImplGraph &owner_graph, af::AscNodePtr &node, uint32_t split_dim,
+  static Status UpdateSplitAxis(ascir::ImplGraph &owner_graph, af::AscNodePtr &node, uint32_t split_dim,
                                 size_t start_index);
-  static Status GenerateScoreFuncForUbSplit(const ::ascir::HintGraph &graph, const af::AscNodePtr &split_node,
+  static Status GenerateScoreFuncForUbSplit(const ascir::HintGraph &graph, const af::AscNodePtr &split_node,
                                             size_t split_dim, std::string &score_func);
   static af::Status SetSplitOpAttr(af::ascir_op::Split &split_op, const af::AscNodePtr &split_node, size_t split_dim,
                                    size_t start, size_t end);
   af::Status SetLoadOpAttr(af::ascir_op::Store &store_op, const af::ascir_op::Split &split_op,
                            size_t start_index) const;
-  af::Status SplitOutReplaceAxis(::ascir::ImplGraph &owner_graph,
+  af::Status SplitOutReplaceAxis(ascir::ImplGraph &owner_graph,
                                 std::vector<af::AscNodePtr> &nodes,
                                 const af::AscNodePtr &load_node_new,
                                 int32_t out_index,
@@ -49,14 +49,14 @@ class SplitFusionCaseGenerator : public FusionCaseGenerator {
   af::Status CollectBackwardNodes(const af::AscNodePtr &load_node,
                                   std::vector<af::AscNodePtr> &nodes,
                                   af::AscNodePtr &broadcast_node) const;
-  af::Status SplitDataForConvertLoad(::ascir::ImplGraph &owner_graph, const af::AscNodePtr &split_node,
+  af::Status SplitDataForConvertLoad(ascir::ImplGraph &owner_graph, const af::AscNodePtr &split_node,
                                      const af::OutDataAnchorPtr &split_out_anchor, af::AscNodePtr &new_load_node);
   void IsBroadcastNode(const af::NodePtr &origin_node, af::AscNodePtr &broadcast_node, bool &has_broadcast_node) const;                                     
   std::vector<af::Expression> offsets_;
   af::AscNodePtr ori_load_node_;
   af::AscNodePtr ori_in_data_node_;
   std::map<af::AscNodePtr, size_t> split_node_to_start_index_;
-  ::ascir::AxisId split_axis_id_ = -1;
+  ascir::AxisId split_axis_id_ = -1;
   size_t split_dim_ = std::numeric_limits<size_t>::max();
   af::AscNodePtr split_node_;
   [[nodiscard]] bool HasLoadStoreConversion() const override {
@@ -64,6 +64,5 @@ class SplitFusionCaseGenerator : public FusionCaseGenerator {
   }
 };
 }  // namespace optimize
-}  // namespace af
 
 #endif  // ASCGEN_DEV_OPTIMIZE_TASK_GENERATOR_SPLIT_SCHEDULE_CASE_GENERATOR_H_

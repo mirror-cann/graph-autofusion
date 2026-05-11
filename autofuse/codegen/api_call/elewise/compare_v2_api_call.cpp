@@ -19,7 +19,7 @@
 #include "api_call/utils/api_call_factory.h"
 #include "api_call/utils/api_call_utils.h"
 
-namespace af { namespace codegen {
+namespace codegen {
 using namespace std;
 using namespace af::ops;
 using namespace af::ascir_op;
@@ -37,7 +37,7 @@ static void CreateComputeNodeOuterForIfRequired(size_t outer_repeats_size, ApiLo
   return;
 }
 
-Status CompareV2ApiCall::Generate(const TPipe &tpipe, const std::vector<::ascir::AxisId> &current_axis,
+Status CompareV2ApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
                                 const std::vector<std::reference_wrapper<const Tensor>> &inputs,
                                 const std::vector<std::reference_wrapper<const Tensor>> &outputs,
                                 std::string &result) const {
@@ -75,12 +75,12 @@ Status CompareV2ApiCall::Generate(const TPipe &tpipe, const std::vector<::ascir:
     } else {
       std::stringstream ss1;
       size_t input0_strides_size = param.inputs_strides[0].size();
-      std::vector<::ascir::SizeExpr> inner0_input_strides(param.inputs_strides[0].begin(),
+      std::vector<ascir::SizeExpr> inner0_input_strides(param.inputs_strides[0].begin(),
                                                         param.inputs_strides[0].begin() + input0_strides_size - 1);
       std::string input0_inner_offset = input0_strides_size == 1 ? "0" : CalcInnerOffset(tpipe, inner0_input_strides);
 
       size_t output_strides_size = param.outputs_strides[0].size();
-      std::vector<::ascir::SizeExpr> inner_output_strides(param.outputs_strides[0].begin(),
+      std::vector<ascir::SizeExpr> inner_output_strides(param.outputs_strides[0].begin(),
                                                         param.outputs_strides[0].begin() + output_strides_size - 1);
       std::string output_inner_offset = output_strides_size == 1 ? "0" : CalcInnerOffset(tpipe, inner_output_strides);
 
@@ -106,17 +106,17 @@ Status CompareV2ApiCall::Generate(const TPipe &tpipe, const std::vector<::ascir:
          << "{static_cast<uint16_t>(" << x1.actual_size << ")}, {static_cast<uint16_t>(1)}, {static_cast<uint16_t>(1)});" << std::endl;
     } else {
       size_t input0_strides_size = param.inputs_strides[0].size();
-      std::vector<::ascir::SizeExpr> inner0_input_strides(param.inputs_strides[0].begin(),
+      std::vector<ascir::SizeExpr> inner0_input_strides(param.inputs_strides[0].begin(),
                                                         param.inputs_strides[0].begin() + input0_strides_size - 1);
       std::string input0_inner_offset = input0_strides_size == 1 ? "0" : CalcInnerOffset(tpipe, inner0_input_strides);
 
       size_t input1_strides_size = param.inputs_strides[1].size();
-      std::vector<::ascir::SizeExpr> inner1_input_strides(param.inputs_strides[1].begin(),
+      std::vector<ascir::SizeExpr> inner1_input_strides(param.inputs_strides[1].begin(),
                                                         param.inputs_strides[1].begin() + input1_strides_size - 1);
       std::string input1_inner_offset = input1_strides_size == 1 ? "0" : CalcInnerOffset(tpipe, inner1_input_strides);
 
       size_t output_strides_size = param.outputs_strides[0].size();
-      std::vector<::ascir::SizeExpr> inner_output_strides(param.outputs_strides[0].begin(),
+      std::vector<ascir::SizeExpr> inner_output_strides(param.outputs_strides[0].begin(),
                                                         param.outputs_strides[0].begin() + output_strides_size - 1);
       std::string output_inner_offset = output_strides_size == 1 ? "0" : CalcInnerOffset(tpipe, inner_output_strides);
 
@@ -139,4 +139,3 @@ Status CompareV2ApiCall::Generate(const TPipe &tpipe, const std::vector<::ascir:
 static ApiCallRegister<CompareV2ApiCall> register_compare_v2_api_call("CompareV2ApiCall");
 
 } // namespace codegen
-}  // namespace af

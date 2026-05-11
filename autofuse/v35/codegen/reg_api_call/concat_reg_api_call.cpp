@@ -13,13 +13,13 @@
 #include "ascir_ops.h"
 #include "ascir_utils.h"
 
-namespace af { namespace codegen {
-Status ConcatRegApiCall::ParseAttr(const ::ascir::NodeView &node) {
+namespace codegen {
+Status ConcatRegApiCall::ParseAttr(const ascir::NodeView &node) {
   node_ = node;
   return ge::SUCCESS;
 }
 
-Status ConcatRegApiCall::Generate(const TPipe &tpipe, const std::vector<::ascir::AxisId> &current_axis,
+Status ConcatRegApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
                                   const vector<std::reference_wrapper<const Tensor>> &inputs,
                                   const vector<std::reference_wrapper<const Tensor>> &outputs,
                                   string &result) const {
@@ -72,7 +72,7 @@ bool ConcatRegApiCall::IsShareInputs() const {
 
 bool ConcatRegApiCall::AreContiguousBufsPreferred() const {
   GE_CHK_BOOL_RET_SPECIAL_STATUS(IsTile(), false, "%s all inputs are from single source");
-  const auto is_all_inputs_shape_equal = ::ascir::utils::AreConcatInputShapesEqual(node_);
+  const auto is_all_inputs_shape_equal = ascir::utils::AreConcatInputShapesEqual(node_);
   GE_CHK_BOOL_RET_SPECIAL_STATUS((is_all_inputs_shape_equal == af::TriBool::kFalse), false,
                                  "%s can not use Gather, input shapes differ", node_->GetNamePtr());
   GELOGD("%s may use Gather, contiguous input bufs are preferred", node_->GetNamePtr());
@@ -229,7 +229,7 @@ ge::Status ConcatRegApiCall::CanUseGather(ConcatTiling &tiling) const {
   } else {
     GE_CHK_BOOL_RET_SPECIAL_STATUS((!is_input_tbuf_contiguous), ge::SUCCESS,
                                "can not use Gather: input bufs can not be contiguous");
-    tiling.all_inputs_shape_equal = ::ascir::utils::AreConcatInputShapesEqual(node_);
+    tiling.all_inputs_shape_equal = ascir::utils::AreConcatInputShapesEqual(node_);
   }
   if (tiling.src_col_size_exprs[0].IsConstExpr()) {
     uint32_t src_col_size = 0;
@@ -359,4 +359,3 @@ Status ConcatRegApiCall::GenerateForOneAxis(const vector<std::reference_wrapper<
 
 [[maybe_unused]] static ApiCallRegister<ConcatRegApiCall> register_concat_api_call("ConcatRegApiCall");
 }  // namespace codegen
-}  // namespace af

@@ -11,20 +11,19 @@
 #define __AUTOFUSE_LEAKY_RELU__API_CALL_H__
 #include "codegen_kernel.h"
 
-namespace af { namespace codegen {
+namespace codegen {
 class LeakyReluApiCall : public ApiCall {
 public:
   using ApiCall::Generate;
   explicit LeakyReluApiCall(const std::string &api_name) : ApiCall(api_name) {}
   Status Generate(const TPipe &tpipe,
-                  const std::vector<::ascir::AxisId> &current_axis,
+                  const std::vector<ascir::AxisId> &current_axis,
                   const std::vector<std::reference_wrapper<const Tensor>> &inputs,
                   const std::vector<std::reference_wrapper<const Tensor>> &outputs, std::string &result) const override;
-  Status ParseAttr(const ::ascir::NodeView &node) override;
+  Status ParseAttr(const ascir::NodeView &node) override;
   ~LeakyReluApiCall() final = default;
 private:
   float negative_slope = 0.0;
 };
 }
-}  // namespace af
 #endif // __AUTOFUSE_LEAKY_RELU__API_CALL_H__

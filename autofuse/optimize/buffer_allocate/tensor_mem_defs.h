@@ -14,7 +14,7 @@
 #include <string>
 #include "ascendc_ir_core/ascendc_ir.h"
 
-namespace af { namespace optimize {
+namespace optimize {
 constexpr auto kAttrNameNoReuseOutputIndices = "_no_reuse_output_indices";
 constexpr int64_t kDbBufNum = 2;
 // 将内存按照大小分为3个档位
@@ -81,5 +81,4 @@ struct MemoryBlock {
 using TensorInfoMap = std::map<af::AscTensorAttr *, TensorInfo>;
 using TmpBuffInfoMap = std::map<af::TmpBuffer *, TensorInfo>;
 }  // namespace optimize
-}  // namespace af
 #endif  // OPTIMIZE_BUFFER_ALLOCATE_TENSOR_MEM_DEFS_H_

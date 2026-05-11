@@ -14,7 +14,7 @@
 #include <cstdint>
 #include "base_types.h"
 
-namespace af { namespace att {
+namespace att {
 const int32_t kCaseDefault = 0;
 const int32_t kCaseOne = 1;
 const int32_t kCaseTwo = 2;
@@ -336,6 +336,5 @@ inline const std::string kTrunc = "Trunc";
 #define JOIN(a, b) a##b
 #define JOIN_A_B_C(a, b, c) a##b##c
 }  // namespace att
-}  // namespace af
 
 #endif  // ATT_BASE_ATT_CONST_VALUE_H_

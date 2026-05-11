@@ -98,7 +98,7 @@ Status RemoveDuplicateCast(const af::AscNodePtr &keep_cast, const af::AscNodePtr
 }
 }  // namespace
 
-namespace af { namespace optimize {
+namespace optimize {
 Status DtypeConsistency::EnsureDtypeConsistency(af::AscGraph &graph) {
   std::vector<NodeDtypeRequirement> requirements;
   GE_ASSERT_SUCCESS(CollectDtypeRequirements(graph, requirements), "Failed to collect dtype requirements");
@@ -376,4 +376,3 @@ Status DtypeConsistency::CancelIdentityCast(af::AscGraph &graph) {
   return ge::SUCCESS;
 }
 }  // namespace optimize
-}  // namespace af

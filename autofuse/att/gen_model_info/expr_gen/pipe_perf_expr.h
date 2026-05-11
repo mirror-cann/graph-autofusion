@@ -18,7 +18,7 @@
 #include "exe_time_pass.h"
 #include "api_perf_register/ascendc_api_perf.h"
 
-namespace af { namespace att {
+namespace att {
 using ParentChildsMap = std::map<const SubAxis *, std::vector<std::set<const SubAxis *>>>;
 using OrigAxisTree = std::map<std::vector<SubAxis *>, ParentChildsMap>;
 
@@ -82,6 +82,5 @@ std::vector<Expr> GetTensorTailRepeat(const TensorPtr &tensor, std::map<Expr, Te
 ge::Status GetTensorShapeInfo(const TensorPtr &tensor, TensorShapeInfo &tensor_shape_info,
                               std::map<Expr, TernaryOp, ExprCmp> &ternary_ops, bool tail_shape = false);
 }  // namespace att
-}  // namespace af
 
 #endif // EXPR_GEN_PIPE_PERF_EXPR_H_

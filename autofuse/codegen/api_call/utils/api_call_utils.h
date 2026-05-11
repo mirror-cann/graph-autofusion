@@ -13,14 +13,14 @@
 
 #include "codegen_kernel.h"
 
-namespace af { namespace codegen {
+namespace codegen {
 
 // Load/Store参数数据结构，最内层for循环作为burstlen
 struct DataCopyParams {
   std::vector<std::string> repeats_str;
-  std::vector<::ascir::SizeExpr> repeats;
-  std::vector<::ascir::SizeExpr> gm_strides;
-  std::vector<::ascir::SizeExpr> ub_strides;
+  std::vector<ascir::SizeExpr> repeats;
+  std::vector<ascir::SizeExpr> gm_strides;
+  std::vector<ascir::SizeExpr> ub_strides;
 };
 
 struct DmaParams {
@@ -33,39 +33,39 @@ struct DmaParams {
 };
 
 struct AxisInfo {
-  ::ascir::SizeExpr prev_repeat = af::ops::One;
-  ::ascir::SizeExpr prev_axis_stride = af::ops::One;
-  ::ascir::SizeExpr prev_vectorized_axis_stride = af::ops::One;
+  ascir::SizeExpr prev_repeat = af::ops::One;
+  ascir::SizeExpr prev_axis_stride = af::ops::One;
+  ascir::SizeExpr prev_vectorized_axis_stride = af::ops::One;
 };
 
 struct ApiLoopParams {
   std::vector<std::string> outer_repeats;
-  std::vector<std::vector<::ascir::SizeExpr>> inputs_strides;
-  std::vector<std::vector<::ascir::SizeExpr>> outputs_strides;
-  ::ascir::SizeExpr cal_count = af::ops::One;
-  ::ascir::SizeExpr input_second_to_last_stride = af::ops::One;
-  ::ascir::SizeExpr output_second_to_last_stride = af::ops::One;
+  std::vector<std::vector<ascir::SizeExpr>> inputs_strides;
+  std::vector<std::vector<ascir::SizeExpr>> outputs_strides;
+  ascir::SizeExpr cal_count = af::ops::One;
+  ascir::SizeExpr input_second_to_last_stride = af::ops::One;
+  ascir::SizeExpr output_second_to_last_stride = af::ops::One;
 };
 
 struct MergeInfo {
   std::vector<std::string> merge_repeats_str;
-  std::vector<::ascir::SizeExpr> merge_repeats;
-  std::vector<::ascir::SizeExpr> merge_gm_strides;
-  std::vector<::ascir::SizeExpr> merge_ub_strides;
+  std::vector<ascir::SizeExpr> merge_repeats;
+  std::vector<ascir::SizeExpr> merge_gm_strides;
+  std::vector<ascir::SizeExpr> merge_ub_strides;
 };
 
 struct VectorizedAixsLoopStatus {
-  ::ascir::SizeExpr prev_repeat = af::ops::One;
-  std::vector<::ascir::SizeExpr> prev_input_axis_stride;
-  std::vector<::ascir::SizeExpr> prev_output_axis_stride;
+  ascir::SizeExpr prev_repeat = af::ops::One;
+  std::vector<ascir::SizeExpr> prev_input_axis_stride;
+  std::vector<ascir::SizeExpr> prev_output_axis_stride;
 };
 
 struct VectorizedAxisLoopMergeStatus {
   std::vector<std::string> merge_repeats_str;
-  std::vector<::ascir::SizeExpr> merge_repeats;
-  std::vector<std::vector<::ascir::AxisId>> merge_axis_ids;
-  std::vector<std::vector<::ascir::SizeExpr>> inputs_strides;
-  std::vector<std::vector<::ascir::SizeExpr>> outputs_strides;
+  std::vector<ascir::SizeExpr> merge_repeats;
+  std::vector<std::vector<ascir::AxisId>> merge_axis_ids;
+  std::vector<std::vector<ascir::SizeExpr>> inputs_strides;
+  std::vector<std::vector<ascir::SizeExpr>> outputs_strides;
 };
 
 bool CalculateDmaParams(const TPipe &tpipe, const Tensor &gm_tensor, const Tensor &ub_tensor, DataCopyParams &param,
@@ -73,11 +73,11 @@ bool CalculateDmaParams(const TPipe &tpipe, const Tensor &gm_tensor, const Tenso
 void SetDmaParams(const TPipe &tpipe, const DataCopyParams &data_copy_param, DmaParams &dma_param, bool copy_in,
                   bool need_swap = false);
 void CreateDmaCall(const TPipe &tpipe, const Tensor &input, const Tensor &output, const string &gm_offset,
-                   const DataCopyParams &param, const ::ascir::SizeExpr &offset, std::stringstream &ss, bool copy_in);
-void CreateOuterFor(const TPipe &tpipe, const std::vector<::ascir::SizeExpr> &outer_repeats, const std::stringstream &ss1,
+                   const DataCopyParams &param, const ascir::SizeExpr &offset, std::stringstream &ss, bool copy_in);
+void CreateOuterFor(const TPipe &tpipe, const std::vector<ascir::SizeExpr> &outer_repeats, const std::stringstream &ss1,
                     std::stringstream &ss, size_t cur_idx);
 void GetOneAxisSize(const TPipe &tpipe, const Tensor &tensor, const uint32_t idx, std::stringstream &ss);
-std::string CalcInnerOffset(const TPipe &tpipe, const std::vector<::ascir::SizeExpr> &strides);
+std::string CalcInnerOffset(const TPipe &tpipe, const std::vector<ascir::SizeExpr> &strides);
 void CreateComputeNodeOuterFor(const std::vector<std::string> &outer_repeats, const std::stringstream &ss1,
                                std::stringstream &ss, size_t cur_idx);
 bool GenerateVectorizedAxisMergeStatus(const std::vector<Tensor> &inputs, const std::vector<Tensor> &outputs,
@@ -93,6 +93,5 @@ bool IsInputOutputStrideAllZero(const std::vector<Tensor> &inputs, const std::ve
 void GenerateLinkStoreEventCode(const Tensor &ub, const std::string &offset_str, std::stringstream &ss);
 bool IsAllVecAxisContinuous(const af::AscNode &node);
 }  // namespace codegen
-}  // namespace af
 
 #endif

@@ -21,7 +21,7 @@ using namespace ascir;
 using namespace af::ascir_op;
 using namespace af::ops;
 
-namespace af { namespace optimize {
+namespace optimize {
 Status BroadcastConstToStorePass::RunPass(af::AscGraph &graph) {
   for (const auto &node : graph.GetAllNodes()) {
     if (!IsOps<Store>(node) || !af::ascir::AscTensorUtils::IsConstTensor(node->inputs[0])) {
@@ -50,4 +50,3 @@ Status BroadcastConstToStorePass::RunPass(af::AscGraph &graph) {
   return ge::SUCCESS;
 }
 }  // namespace optimize
-}  // namespace af

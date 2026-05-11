@@ -15,7 +15,7 @@
 #include "vf_loop.h"
 #include "common_utils.h"
 
-namespace af { namespace codegen {
+namespace codegen {
   
 #define MAX_VF_AXIS_MERGE_SIZE 2
 
@@ -29,28 +29,27 @@ class VfCall final : public ApiCall {
   Status GenerateFuncDefinition(const TPipe &tpipe, const Tiler &tiler, std::stringstream &ss) const override;
 
   // 生成vf func的调用
-  Status Generate(const TPipe &tpipe, const std::vector<::ascir::AxisId> &current_axis,
+  Status Generate(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
                   const std::vector<std::reference_wrapper<const Tensor>> &inputs,
                   const std::vector<std::reference_wrapper<const Tensor>> &outputs, std::string &result) const override;
 
-  Status ParseAttr(const ::ascir::NodeView &node) override;
-  Status ParseSubGraph(const ::ascir::NodeView &vf_node, const ::ascir::ImplGraph &graph);
+  Status ParseAttr(const ascir::NodeView &node) override;
+  Status ParseSubGraph(const ascir::NodeView &vf_node, const ascir::ImplGraph &graph);
 
  private:
   Status ParseInputOutputInfo(const TPipe &tpipe) const;
-  void SetNodeAxisIds(const std::vector<::ascir::AxisId> &origin_axis_ids);
-  bool ShouldInitAsMaskReg(const ::ascir::NodeView &node, const af::AscTensor *output) const;
+  void SetNodeAxisIds(const std::vector<ascir::AxisId> &origin_axis_ids);
+  bool ShouldInitAsMaskReg(const ascir::NodeView &node, const af::AscTensor *output) const;
 
  private:
   std::string vf_call_name_;
   TensorManager tensor_mgr_;
   VFLoop root_loop_;
   std::string max_dtype_size_;
-  std::vector<::ascir::AxisId> axis_ids_;
+  std::vector<ascir::AxisId> axis_ids_;
   mutable std::vector<Tensor> ub_inputs_;
   mutable std::vector<Tensor> ub_outputs_;
   mutable std::vector<Tensor> scalar_inputs_;
 };
 }  // namespace codegen
-}  // namespace af
 #endif  // __AUTOFUSE_VEC_FUNC_CALL_H__

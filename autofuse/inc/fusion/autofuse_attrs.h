@@ -19,10 +19,10 @@
 #include "autoschedule/axis_group.h"
 #include "graph/debug/ge_attr_define.h"
 #include "graph/utils/attr_utils.h"
-#include "graph/attribute_group/af_attr_group_base.h"
+#include "attribute_group/af_attr_group_base.h"
 
 #include "ascir_ops.h"
-#include "graph/ascendc_ir/utils/asc_graph_utils.h"
+#include "ascendc_ir/utils/asc_graph_utils.h"
 
 #ifdef AUTOFUSE_USE_GE_METADEF
 namespace af {
@@ -50,7 +50,7 @@ struct AutofuseInnerAttrs {
   std::set<std::pair<af::NodePtr, af::NodePtr>> possible_fusion_nodes;   // 两个fused subgraph融合后可能出现的循环合并的nodes
   std::unique_ptr<FusionDecider> decider;
   std::vector<af::NodePtr> fused_subgraph_outputs;  // 字图融合记录的保序输出信息
-  af::optimize::autoschedule::AxisGroup axis_group;     // 记录一个子图融合产生的axis group信息
+  optimize::autoschedule::AxisGroup axis_group;     // 记录一个子图融合产生的axis group信息
   uint64_t fuse_type;                               // 融合后的type，同步bit位记录融合后的ascgraph类型
   size_t fusion_nodes_size_;                        // 被融合的节点数
   std::vector<std::pair<std::string, int32_t>> origin_output_names_;  // 融合节点与原始ge节点的输出映射关系

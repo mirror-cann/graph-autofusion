@@ -1,22 +1,19 @@
-/* Copyright (c) 2024 Huawei Technologies Co., Ltd.
- * This file is a part of the CANN Open Software.
- * Licensed under CANN Open Software License Agreement Version 1.0 (the "License").
+/**
+ * Copyright (c) 2025 Huawei Technologies Co., Ltd.
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
- * ===================================================================================================================*/
+ */
 
 #ifndef INC_EXTERNAL_GRAPH_GE_ERROR_CODES_H_
 #define INC_EXTERNAL_GRAPH_GE_ERROR_CODES_H_
 
 #include <cstdint>
 
-#ifndef CHAR_T_TYPEDEF
-#define CHAR_T_TYPEDEF
-using char_t = char;
-#endif
-
+namespace af {
 #if(defined(HOST_VISIBILITY)) && (defined(__GNUC__))
 #define GE_FUNC_HOST_VISIBILITY __attribute__((visibility("default")))
 #else
@@ -45,21 +42,10 @@ using char_t = char;
 #endif
 #endif
 
-namespace af {
 using graphStatus = uint32_t;
-using Status = uint32_t;
-const Status SUCCESS = 0U;
-const Status FAILED = 0xFFFFFFFFU;
-const graphStatus PARAM_INVALID = 1343225857U;
-const graphStatus RT_FAILED = 1343291392U;
 const graphStatus GRAPH_FAILED = 0xFFFFFFFF;
 const graphStatus GRAPH_SUCCESS = 0;
 const graphStatus GRAPH_NOT_CHANGED = 1343242304;
-const graphStatus INTERNAL_ERROR = 1343225860U;
-const graphStatus MEMALLOC_FAILED = 0x03000000U;
-const graphStatus UNSUPPORTED = 0x03000064U;
-const graphStatus OUT_OF_MEMORY = 0x03000065U;
-const graphStatus PATH_INVALID = 0x03000066U;
 
 const graphStatus GRAPH_PARAM_INVALID = 50331649;
 const graphStatus GRAPH_NODE_WITHOUT_CONST_INPUT = 50331648;
@@ -77,44 +63,28 @@ const graphStatus GRAPH_MATH_CAL_FAILED = 50331429;
 const graphStatus GRAPH_ADD_OVERFLOW = 50331428;
 const graphStatus GRAPH_MUL_OVERFLOW = 50331427;
 const graphStatus GRAPH_RoundUp_Overflow = 50331426;
-const graphStatus GE_PLGMGR_FUNC_NOT_EXIST = 1343225888U;
-const graphStatus GE_PLGMGR_INVOKE_FAILED = 1343225889U;
-const graphStatus NOT_CHANGED = 1343242304U;
 }  // namespace af
 
 namespace ge {
 using graphStatus = af::graphStatus;
-using Status = af::Status;
-#ifndef GE_ERRORNO_DEFINE
-static const Status SUCCESS = af::SUCCESS;
-static const Status FAILED = af::FAILED;
-static const graphStatus PARAM_INVALID = af::PARAM_INVALID;
-static const graphStatus RT_FAILED = af::RT_FAILED;
-#endif
-static const graphStatus GRAPH_FAILED = af::GRAPH_FAILED;
-static const graphStatus GRAPH_SUCCESS = af::GRAPH_SUCCESS;
-static const graphStatus GRAPH_NOT_CHANGED = af::GRAPH_NOT_CHANGED;
-static const graphStatus GRAPH_PARAM_INVALID = af::GRAPH_PARAM_INVALID;
-static const graphStatus GRAPH_NODE_WITHOUT_CONST_INPUT = af::GRAPH_NODE_WITHOUT_CONST_INPUT;
-static const graphStatus GRAPH_NODE_NEED_REPASS = af::GRAPH_NODE_NEED_REPASS;
-static const graphStatus GRAPH_INVALID_IR_DEF = af::GRAPH_INVALID_IR_DEF;
-static const graphStatus OP_WITHOUT_IR_DATATYPE_INFER_RULE = af::OP_WITHOUT_IR_DATATYPE_INFER_RULE;
-static const graphStatus GRAPH_PARAM_OUT_OF_RANGE = af::GRAPH_PARAM_OUT_OF_RANGE;
-static const graphStatus GRAPH_MEM_OPERATE_FAILED = af::GRAPH_MEM_OPERATE_FAILED;
-static const graphStatus GRAPH_NULL_PTR = af::GRAPH_NULL_PTR;
-static const graphStatus GRAPH_MEMCPY_FAILED = af::GRAPH_MEMCPY_FAILED;
-static const graphStatus GRAPH_MEMSET_FAILED = af::GRAPH_MEMSET_FAILED;
-static const graphStatus GRAPH_MATH_CAL_FAILED = af::GRAPH_MATH_CAL_FAILED;
-static const graphStatus GRAPH_ADD_OVERFLOW = af::GRAPH_ADD_OVERFLOW;
-static const graphStatus GRAPH_MUL_OVERFLOW = af::GRAPH_MUL_OVERFLOW;
-static const graphStatus GRAPH_RoundUp_Overflow = af::GRAPH_RoundUp_Overflow;
-static const graphStatus INTERNAL_ERROR = af::INTERNAL_ERROR;
-static const graphStatus MEMALLOC_FAILED = af::MEMALLOC_FAILED;
-static const graphStatus UNSUPPORTED = af::UNSUPPORTED;
-static const graphStatus OUT_OF_MEMORY = af::OUT_OF_MEMORY;
-static const graphStatus PATH_INVALID = af::PATH_INVALID;
-static const graphStatus GE_PLGMGR_FUNC_NOT_EXIST = af::GE_PLGMGR_FUNC_NOT_EXIST;
-static const graphStatus GE_PLGMGR_INVOKE_FAILED = af::GE_PLGMGR_INVOKE_FAILED;
+using af::GRAPH_FAILED;
+using af::GRAPH_SUCCESS;
+using af::GRAPH_NOT_CHANGED;
+using af::GRAPH_PARAM_INVALID;
+using af::GRAPH_NODE_WITHOUT_CONST_INPUT;
+using af::GRAPH_NODE_NEED_REPASS;
+using af::GRAPH_INVALID_IR_DEF;
+using af::OP_WITHOUT_IR_DATATYPE_INFER_RULE;
+using af::GRAPH_PARAM_OUT_OF_RANGE;
+using af::GRAPH_MEM_OPERATE_FAILED;
+using af::GRAPH_NULL_PTR;
+using af::GRAPH_MEMCPY_FAILED;
+using af::GRAPH_MEMSET_FAILED;
+using af::GRAPH_MATH_CAL_FAILED;
+using af::GRAPH_ADD_OVERFLOW;
+using af::GRAPH_MUL_OVERFLOW;
+using af::GRAPH_RoundUp_Overflow;
+const graphStatus PARAM_INVALID = GRAPH_PARAM_INVALID;
 }  // namespace ge
 
 #endif  // INC_EXTERNAL_GRAPH_GE_ERROR_CODES_H_

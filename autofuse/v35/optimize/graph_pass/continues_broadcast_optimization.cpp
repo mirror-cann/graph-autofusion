@@ -18,7 +18,7 @@
 
 using namespace af::ops;
 using namespace af::ascir_op;
-namespace af { namespace optimize {
+namespace optimize {
 Status ContinuesBroadcastOptimizationPass::RunPass(af::AscGraph &graph) {
   std::set<std::shared_ptr<af::AscNode>> visited_brc_nodes;
   for (const auto &node : graph.GetAllNodes()) {
@@ -62,4 +62,3 @@ Status ContinuesBroadcastOptimizationPass::RunPass(af::AscGraph &graph) {
   return ge::SUCCESS;
 }
 }  // namespace optimize
-}  // namespace af

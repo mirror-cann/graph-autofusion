@@ -12,7 +12,7 @@
 #include "codegen_kernel.h"
 #include "../micro_api_call/micro_api_call.h"
 
-namespace af { namespace codegen {
+namespace codegen {
 
 class VFLoop;
 struct VFLoopBody {
@@ -25,12 +25,12 @@ struct VFLoopBody {
 
 class VFLoop {
  public:
-  explicit VFLoop(const ::ascir::AxisId axis);
+  explicit VFLoop(const ascir::AxisId axis);
   void AddLoop(VFLoop *loop);
   void AddCall(MicroApiCall *call);
 
   /* 图解析阶段调用 */
-  Status ConstructFromNodes(::ascir::NodeViewVisitorConst nodes, const ::ascir::NodeView &vf_node);
+  Status ConstructFromNodes(ascir::NodeViewVisitorConst nodes, const ascir::NodeView &vf_node);
   void Destruct();
 
   /* kernel生成阶段调用 */
@@ -38,17 +38,16 @@ class VFLoop {
   void SetMaxDtypeSize(std::string dtype);
 
  private:
-  ::ascir::AxisId axis_id_;
+  ascir::AxisId axis_id_;
   struct VFLoop* parent_;
   std::vector<VFLoopBody> bodys_;
   std::string max_dtype_size_;
 
-  Status GenerateLoop(const TPipe &tpipe, const TensorManager& tensor_mgr, int32_t depth, std::vector<::ascir::AxisId>& current_axis,
+  Status GenerateLoop(const TPipe &tpipe, const TensorManager& tensor_mgr, int32_t depth, std::vector<ascir::AxisId>& current_axis,
                        std::stringstream& ss, std::stringstream& loop_size_ss, int32_t &only_loop_max_depth, std::vector<std::string>& loop_size_vec) const;
-  Status GenerateBody(const TPipe &tpipe, const TensorManager& tensor_mgr, int32_t depth, std::vector<::ascir::AxisId>& current_axis,
+  Status GenerateBody(const TPipe &tpipe, const TensorManager& tensor_mgr, int32_t depth, std::vector<ascir::AxisId>& current_axis,
                        std::stringstream& ss, std::stringstream& loop_size_ss, int32_t &only_loop_max_depth, std::vector<std::string>& loop_size_vec) const;
 };
 
 }  // namespace codegen
-}  // namespace af
 #endif  // __AUTOFUSE_VF_LOOP_H__

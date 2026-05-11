@@ -13,12 +13,12 @@
 
 #include "platform/platform_factory.h"
 
-namespace af::optimize::autoschedule {
+namespace optimize::autoschedule {
 class AlignmentHandler {
  public:
   // 只允许load出现尾轴非连续
-  static ge::Status AlignVectorizedStrides(::ascir::ImplGraph &impl_graph);
+  static ge::Status AlignVectorizedStrides(ascir::ImplGraph &impl_graph);
 };
-}  // namespace af::optimize::autoschedule
+}  // namespace optimize::autoschedule
 
 #endif  // OPTIMIZE_ALIGNMENT_HANDLE_H_

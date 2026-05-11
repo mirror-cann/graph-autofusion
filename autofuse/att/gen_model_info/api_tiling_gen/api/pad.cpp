@@ -18,7 +18,7 @@
 #include "base/base_types.h"
 #include "api_tiling_gen/api_tiling_gen_register.h"
 
-namespace af { namespace att {
+namespace att {
 const std::string kPadType = "Pad";
 
 af::Status GetPadHeightAndWidth(const af::AscTensor &node_input, af::Expression &height, af::Expression &width)
@@ -100,4 +100,3 @@ af::Status GetPadTilingHeadFiles([[maybe_unused]] const std::string &tiling_data
 
 REGISTER_API_TILING_FUNC(kPadType, GetPadTilingCall, GetPadTilingDefine, GetPadTilingHeadFiles);
 }  // namespace att
-}  // namespace af

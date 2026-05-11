@@ -14,7 +14,7 @@
 #include "graph/node.h"
 #include "cluster.h"
 
-namespace af { namespace optimize {
+namespace optimize {
 // who manage partitioner clusters map
 class ClusterDict {
  public:
@@ -36,5 +36,4 @@ class ClusterDict {
   std::unordered_map<af::NodePtr, ClusterPtr> nodes_2_cluster_;
 };
 }  // namespace optimize
-}  // namespace af
 #endif  // OPTIMIZE_PLATFORM_V2_PARTITION_CLUSTER_DICT_H

@@ -15,7 +15,7 @@
 #include <map>
 #include "gen_model_info/api_perf_register/perf_param.h"
 
-namespace af { namespace att {
+namespace att {
 class PerfParamTableV1 : public PerfParamTable {
  public:
   PerfParamTableV1();
@@ -72,5 +72,4 @@ class TilingScheduleConfigTableV1HeavyOp : public TilingScheduleConfigTableV1 {
   }
 };
 }  // namespace att
-}  // namespace af
 #endif  // ATT_UTIL_PARAMS_V1_H_

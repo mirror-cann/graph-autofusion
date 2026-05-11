@@ -21,7 +21,7 @@
 #include "common_utils.h"
 #include "ascir/ascir_codegen_v2.h"
 
-namespace af { namespace codegen {
+namespace codegen {
 using MicroApiCallCreatorFun = std::function<MicroApiCall*(const std::string&)>;
 
 class MicroApiCallFactory {
@@ -86,7 +86,7 @@ class MicroApiCallRegister {
   }
 };
 
-inline MicroApiCall *CreateMicroApiCallObject(const ::ascir::NodeView &node) {
+inline MicroApiCall *CreateMicroApiCallObject(const ascir::NodeView &node) {
   auto ascir_codegen_impl = ascgen_utils::GetAscIrCodegenImpl(node->GetType());
   auto impl = dynamic_cast<af::ascir::AscIrCodegenV2 *>(ascir_codegen_impl.get());
   if (impl == nullptr) {
@@ -100,5 +100,4 @@ inline MicroApiCall *CreateMicroApiCallObject(const ::ascir::NodeView &node) {
 }
 
 }  // namespace codegen
-}  // namespace af
 #endif // __AUTOFUSE_MICRO_API_CALL_FACTORY_H__

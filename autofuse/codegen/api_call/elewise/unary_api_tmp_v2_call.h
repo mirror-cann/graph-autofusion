@@ -11,16 +11,15 @@
 #define __AUTOFUSE_UNARY_API_TMP_V2_CALL_H__
 #include "codegen_kernel.h"
 
-namespace af { namespace codegen {
+namespace codegen {
 class UnaryApiTmpV2Call : public ApiCall {
 public:
   using ApiCall::Generate;
   explicit UnaryApiTmpV2Call(const std::string &api_name) : ApiCall(api_name) {}
   ~UnaryApiTmpV2Call() final = default;
-  Status Generate(const TPipe &tpipe, const std::vector<::ascir::AxisId> &current_axis,
+  Status Generate(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
                   const std::vector<std::reference_wrapper<const Tensor>> &inputs,
                   const std::vector<std::reference_wrapper<const Tensor>> &outputs, std::string &result) const override;
 };
 }
-}  // namespace af
 #endif // __AUTOFUSE_UNARY_API_TMP_V2_CALL_H__

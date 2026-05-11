@@ -15,7 +15,7 @@
 #include "ascgen_log.h"
 #include "graph/symbolizer/symbolic_utils.h"
 
-namespace af { namespace optimize {
+namespace optimize {
 struct ExpressionComparator {
   bool operator()(const af::Expression &lhs, const af::Expression &rhs) const {
     return af::SymbolicUtils::ToString(lhs) < af::SymbolicUtils::ToString(rhs);
@@ -34,6 +34,5 @@ class AscGraphInfoComplete {
   static void AppendOriginalSizeVar(const af::AscGraph &graph, SizeVarSet &size_vars);
 };
 }  // namespace optimize
-}  // namespace af
 
 #endif  // HINT_GRAPH_INFO_COMPLETE_H

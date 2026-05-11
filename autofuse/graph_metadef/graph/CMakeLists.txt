@@ -139,41 +139,41 @@ SET(FAST_GRAPH_SOURCE_LIST
 )
 
 ######### libgraph_base.so #############
-add_library(graph_base SHARED
+add_library(graph_base_af SHARED
     ${GRAPH_BASE_SOURCE_LIST}
     ${FAST_GRAPH_SOURCE_LIST}
-    $<TARGET_OBJECTS:metadef_graph_protos_obj>
+    $<TARGET_OBJECTS:metadef_graph_protos_obj_af>
 )
 
-target_compile_options(graph_base PRIVATE
+target_compile_options(graph_base_af PRIVATE
     $<$<BOOL:${ENABLE_ASAN}>:-Werror=maybe-uninitialized>
     $<$<OR:$<STREQUAL:${PRODUCT_SIDE},host>,$<STREQUAL:${ENABLE_OPEN_SRC},True>>:-fexceptions>
     $<$<OR:$<STREQUAL:${TARGET_SYSTEM_NAME},Linux>,$<STREQUAL:${TARGET_SYSTEM_NAME},Android>>: -fno-common -Wextra -Wfloat-equal>
     $<$<AND:$<STREQUAL:${TARGET_SYSTEM_NAME},Windows>,$<STREQUAL:${CMAKE_CONFIGURATION_TYPES},Debug>>:/MTd>
     $<$<AND:$<STREQUAL:${TARGET_SYSTEM_NAME},Windows>,$<STREQUAL:${CMAKE_CONFIGURATION_TYPES},Release>>:/MT>)
 
-target_compile_definitions(graph_base PRIVATE
+target_compile_definitions(graph_base_af PRIVATE
     $<$<OR:$<STREQUAL:${PRODUCT_SIDE},host>,$<STREQUAL:${ENABLE_OPEN_SRC},True>>:FMK_SUPPORT_DUMP>
     google=ascend_private
     $<IF:$<STREQUAL:${TARGET_SYSTEM_NAME},Windows>,OS_TYPE=WIN,OS_TYPE=0>
     $<$<STREQUAL:${TARGET_SYSTEM_NAME},Windows>:SECUREC_USING_STD_SECURE_LIB=0 NOMINMAX>
 )
 
-target_include_directories(graph_base PRIVATE
+target_include_directories(graph_base_af PRIVATE
     ${AIR_CODE_DIR}/inc/graph_metadef
     ${CMAKE_CURRENT_LIST_DIR}
     ${CMAKE_BINARY_DIR}
-    ${CMAKE_BINARY_DIR}/proto/metadef_protos
+    ${CMAKE_BINARY_DIR}/proto/metadef_protos_af
     ${TOP_DIR}/runtime/include/external
     ${TOP_DIR}/runtime/include/external/acl
 )
 
-target_link_options(graph_base PRIVATE
+target_link_options(graph_base_af PRIVATE
     -Wl,-Bsymbolic
     -Wl,--no-undefined
 )
 
-target_link_libraries(graph_base
+target_link_libraries(graph_base_af
     PRIVATE
         intf_pub
         mmpa
@@ -187,25 +187,25 @@ target_link_libraries(graph_base
         -ldl
         -pthread
     PUBLIC
-        metadef_headers
+        metadef_headers_af
 )
 
-target_link_libraries(graph_base PRIVATE ascend_protobuf error_manager)
-target_compile_options(graph_base PRIVATE ${OPTIMIZE_OPTION} -DNO_METADEF_ABI_COMPATIABLE)
-set_target_properties(graph_base PROPERTIES
+target_link_libraries(graph_base_af PRIVATE ascend_protobuf error_manager)
+target_compile_options(graph_base_af PRIVATE ${OPTIMIZE_OPTION} -DNO_METADEF_ABI_COMPATIABLE)
+set_target_properties(graph_base_af PROPERTIES
     OUTPUT_NAME graph_base_af
 )
-autofuse_apply_shared_visibility(graph_base)
+autofuse_apply_shared_visibility(graph_base_af)
 
 ######### libgraph_base.a #############
 if (NOT ENABLE_OPEN_SRC)
-    add_library(graph_base_static STATIC
+    add_library(graph_base_static_af STATIC
         ${GRAPH_BASE_SOURCE_LIST}
         ${FAST_GRAPH_SOURCE_LIST}
-        $<TARGET_OBJECTS:metadef_graph_protos_obj>
+        $<TARGET_OBJECTS:metadef_graph_protos_obj_af>
     )
 
-    target_compile_options(graph_base_static PRIVATE
+    target_compile_options(graph_base_static_af PRIVATE
         $<$<BOOL:${ENABLE_ASAN}>:-Werror=maybe-uninitialized>
         $<$<OR:$<STREQUAL:${PRODUCT_SIDE},host>,$<STREQUAL:${ENABLE_OPEN_SRC},True>>:-fexceptions>
         $<$<OR:$<STREQUAL:${TARGET_SYSTEM_NAME},Linux>,$<STREQUAL:${TARGET_SYSTEM_NAME},Android>>: -fno-common -Wextra -Wfloat-equal>
@@ -220,28 +220,28 @@ if (NOT ENABLE_OPEN_SRC)
         -DNO_METADEF_ABI_COMPATIABLE
     )
 
-    target_compile_definitions(graph_base_static PRIVATE
+    target_compile_definitions(graph_base_static_af PRIVATE
         $<$<OR:$<STREQUAL:${PRODUCT_SIDE},host>,$<STREQUAL:${ENABLE_OPEN_SRC},True>>:FMK_SUPPORT_DUMP>
         google=ascend_private
         $<IF:$<STREQUAL:${TARGET_SYSTEM_NAME},Windows>,OS_TYPE=WIN,OS_TYPE=0>
         $<$<STREQUAL:${TARGET_SYSTEM_NAME},Windows>:SECUREC_USING_STD_SECURE_LIB=0 NOMINMAX>
     )
 
-    target_include_directories(graph_base_static PRIVATE
+    target_include_directories(graph_base_static_af PRIVATE
         ${AIR_CODE_DIR}/inc/graph_metadef
         ${CMAKE_CURRENT_LIST_DIR}
         ${CMAKE_BINARY_DIR}
-        ${CMAKE_BINARY_DIR}/proto/metadef_protos
+        ${CMAKE_BINARY_DIR}/proto/metadef_protos_af
         ${TOP_DIR}/runtime/include/external
         ${TOP_DIR}/runtime/include/external/acl
     )
 
-    target_link_options(graph_base_static PRIVATE
+    target_link_options(graph_base_static_af PRIVATE
         -Wl,-Bsymbolic
         -Wl,--no-undefined
     )
 
-    target_link_libraries(graph_base_static
+    target_link_libraries(graph_base_static_af
         PRIVATE
             intf_pub
             mmpa
@@ -257,48 +257,48 @@ if (NOT ENABLE_OPEN_SRC)
             ascend_protobuf
             error_manager
         PUBLIC
-            metadef_headers
+            metadef_headers_af
     )
 
-    set_target_properties(graph_base_static PROPERTIES
+    set_target_properties(graph_base_static_af PROPERTIES
         OUTPUT_NAME graph_base
     )
 endif ()
 
 ######### libgraph.so #############
-add_library(graph SHARED
+add_library(graph_af SHARED
     ${GRAPH_SOURCE_LIST}
-    $<TARGET_OBJECTS:metadef_attr_group_protos_obj>
+    $<TARGET_OBJECTS:metadef_attr_group_protos_obj_af>
 )
-target_compile_options(graph PRIVATE -DNO_METADEF_ABI_COMPATIABLE)
+target_compile_options(graph_af PRIVATE -DNO_METADEF_ABI_COMPATIABLE)
 
-target_compile_options(graph PRIVATE
+target_compile_options(graph_af PRIVATE
     $<$<OR:$<STREQUAL:${PRODUCT_SIDE},host>,$<STREQUAL:${ENABLE_OPEN_SRC},True>>:-fexceptions>
     $<$<OR:$<STREQUAL:${TARGET_SYSTEM_NAME},Linux>,$<STREQUAL:${TARGET_SYSTEM_NAME},Android>>: -fno-common -Wextra -Wfloat-equal>
     $<$<AND:$<STREQUAL:${TARGET_SYSTEM_NAME},Windows>,$<STREQUAL:${CMAKE_CONFIGURATION_TYPES},Debug>>:/MTd>
     $<$<AND:$<STREQUAL:${TARGET_SYSTEM_NAME},Windows>,$<STREQUAL:${CMAKE_CONFIGURATION_TYPES},Release>>:/MT>)
 
-target_compile_definitions(graph PRIVATE
+target_compile_definitions(graph_af PRIVATE
     $<$<OR:$<STREQUAL:${PRODUCT_SIDE},host>,$<STREQUAL:${ENABLE_OPEN_SRC},True>>:FMK_SUPPORT_DUMP>
     google=ascend_private
     $<IF:$<STREQUAL:${TARGET_SYSTEM_NAME},Windows>,OS_TYPE=WIN,OS_TYPE=0>
     $<$<STREQUAL:${TARGET_SYSTEM_NAME},Windows>:SECUREC_USING_STD_SECURE_LIB=0 NOMINMAX>
 )
 
-target_include_directories(graph PRIVATE
+target_include_directories(graph_af PRIVATE
     ${CMAKE_CURRENT_LIST_DIR}
     ${CMAKE_BINARY_DIR}
-    ${CMAKE_BINARY_DIR}/proto/metadef_protos
+    ${CMAKE_BINARY_DIR}/proto/metadef_protos_af
     ${AIR_CODE_DIR}/inc/graph_metadef
     ${TOP_DIR}/runtime/include/external
     ${TOP_DIR}/runtime/include/external/acl
 )
 
-target_link_options(graph PRIVATE
+target_link_options(graph_af PRIVATE
     -Wl,-Bsymbolic
 )
 
-target_link_libraries(graph
+target_link_libraries(graph_af
     PRIVATE
         intf_pub
         mmpa
@@ -314,15 +314,15 @@ target_link_libraries(graph
         -ldl
         -pthread
     PUBLIC
-        metadef_headers
+        metadef_headers_af
 )
 
-target_link_libraries(graph PRIVATE graph_base error_manager)
-target_compile_options(graph PRIVATE ${OPTIMIZE_OPTION})
-set_target_properties(graph PROPERTIES
+target_link_libraries(graph_af PRIVATE graph_base_af error_manager)
+target_compile_options(graph_af PRIVATE ${OPTIMIZE_OPTION})
+set_target_properties(graph_af PROPERTIES
     OUTPUT_NAME graph_af
 )
-autofuse_apply_shared_visibility(graph)
+autofuse_apply_shared_visibility(graph_af)
 
 
 add_subdirectory(ascendc_ir)

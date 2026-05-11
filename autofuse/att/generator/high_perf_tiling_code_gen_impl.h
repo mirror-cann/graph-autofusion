@@ -14,7 +14,7 @@
 #include <string>
 #include "tiling_code_gen_impl.h"
 
-namespace af { namespace att {
+namespace att {
 class HighPerfTilingCodeGenImpl : public TilingCodeGenImpl {
  public:
   explicit HighPerfTilingCodeGenImpl(const std::string &op_name, const TilingCodeGenConfig &config,
@@ -33,5 +33,4 @@ class HighPerfTilingCodeGenImpl : public TilingCodeGenImpl {
   ge::Status GenDoTiling(const ModelInfo &model_info) override;
 };
 }  // namespace att
-}  // namespace af
 #endif

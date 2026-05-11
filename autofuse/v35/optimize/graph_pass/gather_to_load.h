@@ -11,7 +11,7 @@
 #ifndef OPTIMIZE_PLATFORM_V2_GATHER_REDUCE_FUSION_H
 #define OPTIMIZE_PLATFORM_V2_GATHER_REDUCE_FUSION_H
 #include "optimize/graph_pass/base_graph_pass.h"
-namespace af { namespace optimize {
+namespace optimize {
 class GatherToLoadPass final : public BaseGraphPass {
 public:
   GatherToLoadPass() = default;
@@ -19,6 +19,5 @@ public:
   ~GatherToLoadPass() override = default;
 };
 }  // namespace optimize
-}  // namespace af
 
 #endif  // OPTIMIZE_PLATFORM_V2_GATHER_REDUCE_FUSION_H

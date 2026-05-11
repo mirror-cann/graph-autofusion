@@ -15,7 +15,7 @@
 #include "common_utils.h"
 #include "axis_type_info.h"
 
-namespace af::optimize::autoschedule {
+namespace optimize::autoschedule {
 // 获取对端节点的输出attr，作为当前节点的输入attr
 af::Status NodeCacheMarker::GetAscNodeInputAttr(const af::NodePtr &node, int32_t idx, af::AscTensorAttr &attr) {
   const auto &asc_node = std::dynamic_pointer_cast<af::AscNode>(node);
@@ -271,4 +271,4 @@ af::Status NodeCacheMarker::MarkIfNodeNeedsCache() {
   return ge::SUCCESS;
 }
 
-}  // namespace af::optimize::autoschedule
+}  // namespace optimize::autoschedule

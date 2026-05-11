@@ -18,7 +18,7 @@
 #include "api_call/utils/api_call_utils.h"
 
 namespace reduce_base {
-using namespace af::codegen;
+using namespace codegen;
 using namespace af::ops;
 using namespace af::ascir_op;
 using namespace ascgen_utils;
@@ -63,7 +63,7 @@ void ReduceMergedSizeCodeGen(const TPipe &tpipe, std::stringstream &ss, const Te
   Tensor::DtypeName(dst.dtype, dtype_name);
   bool is_first = true;
   const size_t num_axes = src.vectorized_axis.size();
-  ::ascir::SizeExpr lastNonZeroStride = Zero;
+  ascir::SizeExpr lastNonZeroStride = Zero;
   size_t last_not_1_axis_size_index = 0xFFFFFFFF;
   bool isAllAxisReduce = true;
   for (size_t i = 0; i < num_axes; ++i) {
@@ -105,11 +105,11 @@ void ReduceMergedSizeCodeGen(const TPipe &tpipe, std::stringstream &ss, const Te
   ReplaceSSWithSwappingFirstAndLast(first.str() + ";\n" + first_actual.str(), last.str() + ";\n" + last_actual.str(), isAllAxisReduce, ss);
 }
 
-bool IsNeedMultiReduce(const Tiler &tiler, const Tensor &input, const Tensor &output, ::ascir::AxisId axis_id) {
+bool IsNeedMultiReduce(const Tiler &tiler, const Tensor &input, const Tensor &output, ascir::AxisId axis_id) {
   int64_t total_count = 0;
   int64_t valid_count = 0;
-  std::function<void(::ascir::AxisId)> recursive_functor = [&tiler, &input, &output, &total_count,
-                                                          &valid_count, &recursive_functor](::ascir::AxisId id) {
+  std::function<void(ascir::AxisId)> recursive_functor = [&tiler, &input, &output, &total_count,
+                                                          &valid_count, &recursive_functor](ascir::AxisId id) {
     Axis axis = tiler.GetAxis(id);
     auto pos = std::find(output.axis.begin(), output.axis.end(), id);
     if (pos != output.axis.end()) {
@@ -141,14 +141,14 @@ bool IsNeedMultiReduce(const Tiler &tiler, const Tensor &input, const Tensor &ou
 
 void ReduceMeanCodeGen(std::string &dtype_name, const TPipe &tpipe, const Tensor &dst,
                        std::stringstream &ss) {
-  std::set<::ascir::AxisId> r_from_axis;
+  std::set<ascir::AxisId> r_from_axis;
   for (size_t i = 0; i < dst.axis_strides.size(); i++) {
     if (dst.axis_strides[i] == 0) {  // 如果目标张量的轴步长为0
       auto axis_id = dst.axis[i];  // 获取当前轴ID
       // 定义递归函数用于收集原始轴
       std::function<void(int)> collect_original_axes = [&tpipe, &r_from_axis, &collect_original_axes](int current_axis_id) {
         auto axis = tpipe.tiler.GetAxis(current_axis_id);  // 获取当前轴对象
-        if (axis.type == ::ascir::Axis::Type::kAxisTypeOriginal) {
+        if (axis.type == ascir::Axis::Type::kAxisTypeOriginal) {
           r_from_axis.insert(current_axis_id);  // 如果是原始轴则加入集合
           return;
         }
@@ -221,7 +221,7 @@ void ReduceDimACodeGen(const Tensor &x, const std::string &apiName, std::strings
 void GenLastTwoRAxisSizeProductCode(const Tensor &x, const Tensor &y,
                                     const TPipe &tpipe, std::stringstream &ss) {
   // 收集所有R轴
-  std::vector<std::pair<::ascir::AxisId, size_t>> r_axes;
+  std::vector<std::pair<ascir::AxisId, size_t>> r_axes;
 
   for (size_t i = 0; i < x.axis.size(); ++i) {
     bool is_r_axis = (y.axis_strides[i] == Zero && x.axis_strides[i] != Zero);
@@ -233,8 +233,8 @@ void GenLastTwoRAxisSizeProductCode(const Tensor &x, const Tensor &y,
   // 根据R轴数量生成不同的代码
   if (r_axes.size() >= 2) {
     // 有至少两个R轴，使用最后两个R轴
-    ::ascir::AxisId last_r_axis = r_axes[r_axes.size() - 1].first;
-    ::ascir::AxisId second_last_r_axis = r_axes[r_axes.size() - 2].first;
+    ascir::AxisId last_r_axis = r_axes[r_axes.size() - 1].first;
+    ascir::AxisId second_last_r_axis = r_axes[r_axes.size() - 2].first;
 
     ss << "// 最后两个R轴大小的乘积，作为每个核处理的R轴块大小" << std::endl;
     ss << "int64_t r_axis_block_size = "

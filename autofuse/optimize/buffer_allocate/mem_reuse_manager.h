@@ -14,7 +14,7 @@
 #include <vector>
 #include "ascendc_ir_core/ascendc_ir.h"
 #include "tensor_mem_defs.h"
-namespace af { namespace optimize {
+namespace optimize {
 class MemReuseManager {
  public:
   explicit MemReuseManager(TensorInfoMap &tensor_attr_to_tensor_info, TmpBuffInfoMap &tmp_buf_attr_to_tensor_info)
@@ -47,6 +47,5 @@ class MemReuseManager {
   int64_t que_id_ = 0;
 };
 }  // namespace optimize
-}  // namespace af
 
 #endif  // OPTIMIZE_BUFFER_ALLOCATE_MEM_REUSE_MANAGER_H_

@@ -16,7 +16,7 @@
 #include "pipe_perf_expr.h"
 #include "common/util/mem_utils.h"
 
-namespace af { namespace att {
+namespace att {
 namespace {
 // Tiling 调度配置相关常量
 constexpr double kDefaultUbThreshold = 0.1;      // 默认 UB 阈值
@@ -629,4 +629,3 @@ ge::Status GenerateTilingExpr::Generate(ModelInfo &model_info) {
 }
 
 }  // namespace att
-}  // namespace af

@@ -15,7 +15,7 @@
 #include "util/ternary_op.h"
 #include "parser/tuning_space.h"
 
-namespace af { namespace att {
+namespace att {
 class ExeTimePassManager {
 public:
   // 解析B轴，a轴，r轴
@@ -58,5 +58,4 @@ private:
 };
 }
 
-}  // namespace af
 #endif

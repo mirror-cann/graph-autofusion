@@ -18,13 +18,13 @@
 #include "graph/ascendc_ir/utils/asc_tensor_utils.h"
 #include "api_call/utils/api_call_factory.h"
 
-namespace af { namespace codegen {
+namespace codegen {
 using namespace std;
 using namespace af::ops;
 using namespace af::ascir_op;
 using namespace ascgen_utils;
 
-Status SquareApiCall::Generate(const TPipe &tpipe, const std::vector<::ascir::AxisId> &current_axis,
+Status SquareApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
                               const std::vector<std::reference_wrapper<const Tensor>> &inputs,
                               const std::vector<std::reference_wrapper<const Tensor>> &outputs,
                               std::string &result) const {
@@ -50,4 +50,3 @@ Status SquareApiCall::Generate(const TPipe &tpipe, const std::vector<::ascir::Ax
 
 static ApiCallRegister<SquareApiCall> register_square_api_call("SquareApiCall");
 }  // namespace codegen
-}  // namespace af

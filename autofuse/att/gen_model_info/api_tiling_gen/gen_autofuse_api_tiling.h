@@ -19,7 +19,7 @@
 #include "common/checker.h"
 #include "ascendc_ir/ascendc_ir_core/ascendc_ir.h"
 
-namespace af { namespace att {
+namespace att {
 class AutofuseApiTilingGenerator {
  public:
   AutofuseApiTilingGenerator(const af::AscGraph &graph, const af::AscNodePtr &node, std::string tiling_data_type,
@@ -47,6 +47,5 @@ class AutofuseApiTilingGenerator {
   std::string head_files_;
 };
 }  // namespace att
-}  // namespace af
 
 #endif  // AUTOFUSE_GEN_AUTOFUSE_API_TILING_H

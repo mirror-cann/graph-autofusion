@@ -30,7 +30,6 @@ using std::map;
 
 namespace af {
 using ge::AnyValue;
-using ge::graphStatus;
 using ge::AscendString;
 using GeAttrValue = ge::AnyValue;
 

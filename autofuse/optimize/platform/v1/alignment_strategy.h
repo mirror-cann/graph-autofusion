@@ -12,7 +12,7 @@
 #define OPTIMIZE_PLATFORM_V1_ALIGNMENT_STRATEGY_H
 
 #include "platform/common/base_alignment_strategy.h"
-namespace af { namespace optimize {
+namespace optimize {
 class AlignmentStrategy : public BaseAlignmentStrategy {
  public:
   ~AlignmentStrategy() override = default;
@@ -30,5 +30,4 @@ class AlignmentStrategy : public BaseAlignmentStrategy {
 };
 
 }  // namespace optimize
-}  // namespace af
 #endif  // OPTIMIZE_PLATFORM_V1_ALIGNMENT_STRATEGY_H

@@ -21,7 +21,7 @@
 #include "ascendc_ir/ascendc_ir_core/ascendc_ir_def.h"
 #include "ascendc_ir.h"
 
-namespace af { namespace att {
+namespace att {
 class TilingScheduleConfigTable;
 const std::unordered_map<AxisPosition, std::string> AxisType2Str = {
   {AxisPosition::OUTER, "OUTER"},
@@ -280,6 +280,5 @@ struct TuningSpace {
 };
 using TuningSpacePtr = std::shared_ptr<TuningSpace>;
 } // namespace att
-}  // namespace af
 
 #endif // PARSER_TUNING_SPACE_H_

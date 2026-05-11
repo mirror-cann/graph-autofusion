@@ -11,7 +11,7 @@
 #include "perf_param_v2.h"
 #include "base/att_const_values.h"
 
-namespace af { namespace att {
+namespace att {
 namespace {
 const uint64_t kLoadThreshold = 256U;
 const Expr kMTE2Thres = CreateExpr(256U);
@@ -869,4 +869,3 @@ PipeHeadPerfFunc PerfParamTableV2::GetPipeHeadPerfFunc(PipeType pipe_type) const
 }
 
 }  // namespace att
-}  // namespace af

@@ -19,7 +19,7 @@
 #include <utility>
 #include "api_perf.h"
 #include "common_utils.h"
-namespace af { namespace att {
+namespace att {
 using ApiPerfCreatorFun = std::function<std::unique_ptr<ApiPerf>(const std::string &)>;
 class __attribute__((visibility("default"))) ApiPerfFactory {
  public:
@@ -75,5 +75,4 @@ class ApiPerfRegister {
 };
 
 }  // namespace att
-}  // namespace af
 #endif  // __API_PERF_REGISTER_API_PERF_FACTORY_H__

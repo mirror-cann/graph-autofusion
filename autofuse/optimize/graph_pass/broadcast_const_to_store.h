@@ -11,7 +11,7 @@
 #define OPTIMIZE_PLATFORM_COMMON_GRAPH_PASS_BROADCAST_CONST_TO_STORE_H
 #include "base_graph_pass.h"
 
-namespace af { namespace optimize {
+namespace optimize {
 class BroadcastConstToStorePass final : public BaseGraphPass {
  public:
   BroadcastConstToStorePass() = default;
@@ -19,6 +19,5 @@ class BroadcastConstToStorePass final : public BaseGraphPass {
   Status RunPass(af::AscGraph &graph) override;
 };
 }  // namespace optimize
-}  // namespace af
 
 #endif  // OPTIMIZE_PLATFORM_COMMON_GRAPH_PASS_BROADCAST_CONST_TO_STORE_H

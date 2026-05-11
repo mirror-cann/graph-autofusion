@@ -24,7 +24,6 @@
 namespace af {
 using ge::AscendString;
 using ge::char_t;
-using ge::graphStatus;
 
 using OpCreator = std::function<Operator(const std::string &)>;
 using OpCreatorV2 = std::function<Operator(const AscendString &)>;

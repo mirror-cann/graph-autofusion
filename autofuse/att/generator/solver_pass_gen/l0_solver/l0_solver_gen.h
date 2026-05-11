@@ -19,7 +19,7 @@
 #include "generator/solver_pass_gen/solver_gen.h"
 #include "util/base_types_printer.h"
 
-namespace af { namespace att {
+namespace att {
 class L0TileSolverGen : public SolverGen {
  public:
   explicit L0TileSolverGen(const std::string &tiling_case_id, const std::string &type_name)
@@ -71,5 +71,4 @@ class L0TileSolverGen : public SolverGen {
   std::vector<Expr> innermost_args_;
 };
 }  // namespace att
-}  // namespace af
 #endif

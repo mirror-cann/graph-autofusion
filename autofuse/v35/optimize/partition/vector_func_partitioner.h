@@ -18,7 +18,7 @@
 #include "ascendc_ir/ascendc_ir_core/ascendc_ir.h"
 #include "ascir_register.h"
 
-namespace af { namespace optimize {
+namespace optimize {
 class VectorFuncPartitioner {
  public:
   explicit VectorFuncPartitioner(af::AscGraph &impl_graph) : impl_graph_(impl_graph) {};
@@ -76,5 +76,4 @@ class VectorFuncPartitioner {
   bool graph_has_reduce_node_ = false;  // 缓存图是否有reduce节点
 };
 }  // namespace optimize
-}  // namespace af
 #endif  // OPTIMIZE_PLATFORM_V2_VECTOR_FUNC_PARTITIONER_H

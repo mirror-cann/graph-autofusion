@@ -21,7 +21,7 @@
 #include "gen_model_info.h"
 #include "parser/tuning_space.h"
 
-namespace af { namespace att {
+namespace att {
 class GenerateTilingExpr {
 public:
   explicit GenerateTilingExpr(TuningSpacePtr tuning_space) : tuning_space_(std::move(tuning_space)) {}
@@ -116,6 +116,5 @@ private:
   TuningSpacePtr tuning_space_;
 };
 } // namespace att
-}  // namespace af
 
 #endif // EXPR_GEN_GENERATE_TILING_EXPR_H_

@@ -11,7 +11,7 @@
 #define OPTIMIZE_PLATFORM_COMMON_GRAPH_PASS_EXPAND_DIMS_FOR_ALL_REDUCE_H
 #include "base_graph_pass.h"
 
-namespace af { namespace optimize {
+namespace optimize {
 class ExpandDimsForAllReducePass final : public BaseGraphPass {
  public:
   ExpandDimsForAllReducePass() = default;
@@ -19,6 +19,5 @@ class ExpandDimsForAllReducePass final : public BaseGraphPass {
   Status RunPass(af::AscGraph &graph) override;
 };
 }  // namespace optimize
-}  // namespace af
 
 #endif  // OPTIMIZE_PLATFORM_COMMON_GRAPH_PASS_EXPAND_DIMS_FOR_ALL_REDUCE_H

@@ -10,7 +10,7 @@
 
 #include "axes_reorder_solver_code_common.h"
 
-namespace af { namespace att {
+namespace att {
 
 // ============================================================================
 // Section 8: Utility Functions
@@ -951,4 +951,3 @@ std::string GenProcessSingleAxisNaive() {
 }
 
 } // namespace att
-}  // namespace af

@@ -22,7 +22,7 @@
 #include <functional>
 #include "framework/common/debug/ge_log.h"
 
-namespace af { namespace att {
+namespace att {
 // AST节点类型
 enum class NodeType : uint8_t{ 
   OPERATOR,
@@ -238,5 +238,4 @@ class ASTVisualizer {
   }
 };
 }  // namespace att
-}  // namespace af
 #endif

@@ -13,4 +13,5 @@
 #include "common/ge_common/debug/ge_log.h"
 #include "common/ge_common/string_util.h"
 #include "graph_metadef/common/ge_common/util.h"
+#include "common/ge_common/ge_inner_error_codes.h"
 #endif  // INC_FRAMEWORK_COMMON_DEBUG_GE_LOG_H_

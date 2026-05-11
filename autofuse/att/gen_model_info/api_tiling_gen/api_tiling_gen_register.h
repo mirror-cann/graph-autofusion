@@ -15,7 +15,7 @@
 #include "common/checker.h"
 #include "base/base_types.h"
 #include "ascendc_ir/ascendc_ir_core/ascendc_ir.h"
-namespace af { namespace att {
+namespace att {
 using AutofuseApiTilingDataGenerator = std::function<af::Status(
     const std::string &tiling_data_type, const af::AscGraph &graph, const af::AscNodePtr &node, std::string &code_string, uint32_t tiling_case_id)>;
 struct ApiTilingGenerator {
@@ -53,6 +53,5 @@ class ApiTilingGenRegister {
 #define REGISTER_API_TILING_FUNC(op_type, gen_func_define, gen_func_call, gen_head_files) \
   ApiTilingGenRegister reg_##op_type(op_type, gen_func_define, gen_func_call, gen_head_files)
 }  // namespace att
-}  // namespace af
 
 #endif  // AUTOFUSE_API_TILING_REGISTER_H

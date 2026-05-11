@@ -12,8 +12,8 @@
 
 #include "micro_add_api_call.h"
 
-namespace af { namespace codegen {
-Status MicroAddApiCall::Generate(const af::codegen::TensorManager &tensor_mng, [[maybe_unused]] const TPipe &tpipe,
+namespace codegen {
+Status MicroAddApiCall::Generate(const codegen::TensorManager &tensor_mng, [[maybe_unused]] const TPipe &tpipe,
                                      CallParam &param, string &result) {
   GE_ASSERT_TRUE(this->inputs_.size() == 2, "Add api call must have 2 inputs");
   GE_ASSERT_TRUE(this->outputs_.size() == 1, "Add api call must have 1 output");
@@ -36,7 +36,7 @@ Status MicroAddApiCall::Generate(const af::codegen::TensorManager &tensor_mng, [
   return ge::SUCCESS;
 }
 
-Status MicroAddApiCall::Init(const ::ascir::NodeView &node) {
+Status MicroAddApiCall::Init(const ascir::NodeView &node) {
   // 判断第二个输入是否是scalar
   if (node->GetInDataNodes().at(1)->GetType() == "Scalar") {
     this->second_input_scalar_ = true;
@@ -47,4 +47,3 @@ Status MicroAddApiCall::Init(const ::ascir::NodeView &node) {
 
 static MicroApiCallRegister<MicroAddApiCall> register_micro_add_api_call("MicroAddApiCall");
 }  // namespace codegen
-}  // namespace af

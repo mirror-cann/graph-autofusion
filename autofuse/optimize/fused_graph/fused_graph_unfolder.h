@@ -16,7 +16,7 @@
 #include "node.h"
 #include "graph/symbolizer/symbolic_utils.h"
 
-namespace af { namespace optimize {
+namespace optimize {
 const char *const kAscGraphNodeType = "AscGraph";
 const char *const kAscBackendType = "AscBackend";
 using AscGraphPtr = af::AscGraph;
@@ -67,6 +67,5 @@ class FusedGraphUnfolder {
                                                   const std::vector<af::AxisId> &loop_axis_ids);
 };
 }  // namespace optimize
-}  // namespace af
 
 #endif  // __OPTIMIZE_FUSED_GRAPH_FUSED_GRAPH_UNFOLDER_H__

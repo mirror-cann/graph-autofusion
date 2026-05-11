@@ -20,7 +20,7 @@
 #include "common/ge_common/debug/log.h"
 #include "codegen_infershape.h"
 
-using namespace af::codegen;
+using namespace codegen;
 
 namespace {
 constexpr uint32_t ELEMENTS_PER_LINE = 20;
@@ -39,7 +39,7 @@ const std::string kMicroApiInclude = "#include \"micro_api/";
 const std::string kSimtApiInclude = "#include \"simt_api/";
 const std::string kUtilsStdInclude = "#include \"utils/std/";
 
-std::string GetKernelTaskType(const ::ascir::FusedScheduledResult &schedule_results) {
+std::string GetKernelTaskType(const ascir::FusedScheduledResult &schedule_results) {
   if (ascgen_utils::IsJustCubeFixpip(schedule_results)) {
     return kKernelTaskTypeAICOnly;
   } else if (ascgen_utils::IsCubeFusedScheduled(schedule_results)) {
@@ -123,14 +123,14 @@ Codegen::Codegen(const CodegenOptions &options)
     : tiling_lib_(options.tiling_lib_path, options.tiling_lib_codegen_symbol),
       using_att_calc_qbt_size_(options.using_att_calc_qbt_size) {}
 
-Status Codegen::Generate(const ::ascir::FusedScheduledResult &fused_schedule_result, CodegenResult &result) const {
+Status Codegen::Generate(const ascir::FusedScheduledResult &fused_schedule_result, CodegenResult &result) const {
   // fot UT/ST shape info stub
   std::map<std::string, std::string> shape_info;
   return this->Generate(shape_info, fused_schedule_result, result);
 }
 
 // inductor路径不做tiling func文件拆分,把拆分的文件合一
-Status Codegen::GenerateForInductor(const ::ascir::FusedScheduledResult &fused_schedule_result,
+Status Codegen::GenerateForInductor(const ascir::FusedScheduledResult &fused_schedule_result,
                                     CodegenResult &result) const {
   GE_CHK_STATUS_RET(GenerateKernel(fused_schedule_result, result.kernel, true), "Codegen generate kernel failed");
   result.tiling_data = GenerateTilingData(fused_schedule_result);
@@ -141,7 +141,7 @@ Status Codegen::GenerateForInductor(const ::ascir::FusedScheduledResult &fused_s
 }
 
 Status Codegen::Generate(const std::map<std::string, std::string> &shape_info,
-                         const ::ascir::FusedScheduledResult &fused_schedule_result, CodegenResult &result) const {
+                         const ascir::FusedScheduledResult &fused_schedule_result, CodegenResult &result) const {
   GE_CHK_STATUS_RET(GenerateKernel(fused_schedule_result, result.kernel, false), "Codegen generate kernel failed");
   result.tiling_data = GenerateTilingData(fused_schedule_result);
   std::map<std::string, std::string> tiling_file_name_to_content;
@@ -151,14 +151,14 @@ Status Codegen::Generate(const std::map<std::string, std::string> &shape_info,
   return ge::SUCCESS;
 }
 
-std::string Codegen::GenerateTilingData(const ::ascir::FusedScheduledResult &fused_schedule_result) const {
+std::string Codegen::GenerateTilingData(const ascir::FusedScheduledResult &fused_schedule_result) const {
   std::stringstream ss;
   ss << TilingData("Autofuse").Generate(fused_schedule_result);
   return ss.str();
 }
 
 Status Codegen::GenerateTilingForInductor(
-    const ::ascir::FusedScheduledResult &fused_schedule_result,
+    const ascir::FusedScheduledResult &fused_schedule_result,
     std::map<std::string, std::string> &tiling_file_name_to_content) const {
   tiling_file_name_to_content = this->tiling_lib_.GenerateForInductor(fused_schedule_result);
   for (const auto &pair : tiling_file_name_to_content) {
@@ -169,14 +169,14 @@ Status Codegen::GenerateTilingForInductor(
 }
 
 std::map<std::string, std::string> Codegen::GenerateTilingForInductor(
-    const ::ascir::FusedScheduledResult &fused_schedule_result) const {
+    const ascir::FusedScheduledResult &fused_schedule_result) const {
   std::map<std::string, std::string> tiling_file_name_to_content;
   (void)GenerateTilingForInductor(fused_schedule_result, tiling_file_name_to_content);
   return tiling_file_name_to_content;
 }
 
 Status Codegen::GenerateTiling(
-    const ::ascir::FusedScheduledResult &fused_schedule_result,
+    const ascir::FusedScheduledResult &fused_schedule_result,
     const std::map<std::string, std::string> &shape_info, const std::string &pgo_dir,
     const std::string &core_num,
     std::map<std::string, std::string> &tiling_file_name_to_content) const {
@@ -189,7 +189,7 @@ Status Codegen::GenerateTiling(
 }
 
 std::map<std::string, std::string> Codegen::GenerateTiling(
-    const ::ascir::FusedScheduledResult &fused_schedule_result,
+    const ascir::FusedScheduledResult &fused_schedule_result,
     const std::map<std::string, std::string> &shape_info, const std::string &pgo_dir,
     const std::string &core_num) const {
   std::map<std::string, std::string> tiling_file_name_to_content;
@@ -203,11 +203,11 @@ std::string Codegen::GenerateInferShape(const std::vector<std::vector<std::strin
   return gen.GenInferShapeFunc(symbol_shape_str, shape_info);
 }
 
-std::string Codegen::GeneratorPgo(const ::ascir::FusedScheduledResult &fused_schedule_result, const std::string &pgo_dir) const {
+std::string Codegen::GeneratorPgo(const ascir::FusedScheduledResult &fused_schedule_result, const std::string &pgo_dir) const {
   return this->tiling_lib_.GenerateForPgo(fused_schedule_result, pgo_dir);
 }
 
-Status Codegen::GenerateKernel(const ::ascir::FusedScheduledResult &fused_schedule_result, std::string &result,
+Status Codegen::GenerateKernel(const ascir::FusedScheduledResult &fused_schedule_result, std::string &result,
                                bool is_inductor) const {
   const auto io_num = fused_schedule_result.input_nodes.size() + fused_schedule_result.output_nodes.size();
   bool use_list_tensor = io_num >= kMaxUnfoldedIoNum;

@@ -13,7 +13,7 @@
 #include <string>
 #include "tiling_code_gen_impl.h"
 #include "solver_pass_manager.h"
-namespace af { namespace att {
+namespace att {
 class AxesReorderTilingCodeGenImpl : public TilingCodeGenImpl {
  public:
   explicit AxesReorderTilingCodeGenImpl(const std::string &op_name, const TilingCodeGenConfig &config,
@@ -39,5 +39,4 @@ class AxesReorderTilingCodeGenImpl : public TilingCodeGenImpl {
   void ConfigureSolverPassManagerCommon(SolverPassManager &solver_pass_manager);
 };
 }
-}  // namespace af
 #endif

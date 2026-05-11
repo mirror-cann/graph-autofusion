@@ -24,7 +24,7 @@
 #include "cache/operator_level_cache_gen.h"
 #include "cache/group_level_cache_gen.h"
 
-namespace af { namespace att {
+namespace att {
 struct GenTilingTailImplExtParams {
   std::unordered_map<std::string, std::string> cache_reuse_info = {};
   VarRelations var_relations = {};
@@ -404,5 +404,4 @@ class TilingCodeGenImpl {
 
 using TilingCodeGenImplPtr = std::shared_ptr<TilingCodeGenImpl>;
 }  // namespace att
-}  // namespace af
 #endif

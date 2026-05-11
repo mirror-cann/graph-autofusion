@@ -20,7 +20,7 @@
 #include "ge_common/ge_api_types.h"
 #include "ascgen_log.h"
 
-namespace af { namespace att {
+namespace att {
 using char_t = char;
 // AUTOFUSE_FLAGS
 constexpr char_t kExperimentalAutofusionEnablePGO[] = "autofuse_enable_pgo";
@@ -204,6 +204,5 @@ class AutoFuseConfig {
 };
 
 }  // namespace att
-}  // namespace af
 
 #endif  // COMMON_AUTOFUSE_CONFIG_AUTO_FUSE_CONFIG_H_

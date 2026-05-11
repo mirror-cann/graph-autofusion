@@ -14,13 +14,13 @@
 #include "ascir.h"
 #include "graph/node.h"
 
-namespace af::optimize::autoschedule {
+namespace optimize::autoschedule {
 class NodeCacheMarker {
  public:
   NodeCacheMarker() = delete;
   ~NodeCacheMarker() = default;
 
-  explicit NodeCacheMarker(::ascir::ImplGraph &graph) : graph_(graph) {};
+  explicit NodeCacheMarker(ascir::ImplGraph &graph) : graph_(graph) {};
 
   bool IsNodeVisited(const af::NodePtr &node) const;
   void VisitNode(const af::NodePtr &node);
@@ -45,10 +45,10 @@ class NodeCacheMarker {
   static af::Status GetAscNodeInputAttr(const af::NodePtr &node, int32_t idx, af::AscTensorAttr &attr);
 
  private:
-  ::ascir::ImplGraph &graph_;
+  ascir::ImplGraph &graph_;
   std::set<af::NodePtr> cache_start_nodes_;
   std::set<af::NodePtr> visited_nodes_;
 };
-}  // namespace af::optimize::autoschedule
+}  // namespace optimize::autoschedule
 
 #endif  // OPTIMIZE_AUTOSCHEDULE_NODE_CACHE_MARKER_H

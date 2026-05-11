@@ -13,7 +13,7 @@
 #include <string>
 #include "util/base_types_printer.h"
 
-namespace af { namespace att {
+namespace att {
 inline std::string GenVarDef() {
   std::string strs = "";
   strs += AddAnotationLine(" L0Var的备选值的个数\n", "");
@@ -836,5 +836,4 @@ inline std::string GetL0SolverFunc() {
 inline const std::string L0_SOLVER_CODE_HEAD = GetL0SolverHead();
 inline const std::string L0_SOLVER_CODE_FUNC = GetL0SolverFunc();
 }  // namespace att
-}  // namespace af
 #endif

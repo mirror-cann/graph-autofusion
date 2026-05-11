@@ -15,7 +15,7 @@
 #include "platform/v1/template/unaligned_template.h"
 #include "platform/v1/template/brc_inline_template.h"
 
-namespace af { namespace optimize {
+namespace optimize {
 class TemplateGeneratorV1 : public BaseTemplateGenerator {
  public:
   ~TemplateGeneratorV1() override = default;
@@ -30,6 +30,5 @@ class TemplateGeneratorV1 : public BaseTemplateGenerator {
   TemplateGeneratorV1 &operator=(TemplateGeneratorV1 &&) = delete;
 };
 }  // namespace optimize
-}  // namespace af
 
 #endif  // OPTIMIZE_PLATFORM_V1_TEMPLATE_GENERATOR_V1_H

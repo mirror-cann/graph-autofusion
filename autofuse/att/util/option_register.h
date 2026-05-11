@@ -17,7 +17,7 @@
 #include <unordered_set>
 #include "common/checker.h"
 
-namespace af { namespace att {
+namespace att {
     struct OptionInfo {
         std::string name;
         std::string default_value;
@@ -54,6 +54,5 @@ namespace af { namespace att {
                                             const std::map <std::string, std::string> &options,
                                             const std::string &graphs_name);
 }  // namespace att
-}  // namespace af
 
 #endif  // ATT_OPTION_REGISTER_H_

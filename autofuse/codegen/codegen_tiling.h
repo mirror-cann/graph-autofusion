@@ -14,7 +14,7 @@
 #include "ascir.h"
 #include "schedule_result.h"
 
-namespace af { namespace codegen {
+namespace codegen {
 const std::string kTilingHeadIdentify = "TilingHead";
 const std::string kTilingDataIdentify = "TilingData";
 const std::string kTilingHeadGuard = "__AUTOFUSE_TILING_FUNC_COMMON_H__";
@@ -91,18 +91,18 @@ const std::string kCubeTilingHeadInclude = "#include \"autofuse_cube_tiling_data
                                          const std::string func, const std::string tiling) const;
     std::string GenPgoTilingFunc(const ::ascir::FusedScheduledResult& fused_schedule_result,
                                  const std::string& tiling,
-                                 af::codegen::PgoShapeStringStream &pgo_shape_dim,
+                                 codegen::PgoShapeStringStream &pgo_shape_dim,
                         bool is_inductor_scene, const std::string &core_num = "0") const;
     std::string GenPgoAutofuseTiling(const ::ascir::FusedScheduledResult& fused_schedule_result,
-                                     af::codegen::PgoShapeStringStream &pgo_shape_dim,
+                                     codegen::PgoShapeStringStream &pgo_shape_dim,
                                      const std::string &tiling, bool is_inductor_scene) const;
 
     std::string GenPgoTilingSearchPGO(const ::ascir::FusedScheduledResult& fused_schedule_result,
-                                      af::codegen::PgoShapeStringStream &pgo_shape_dim, 
+                                      codegen::PgoShapeStringStream &pgo_shape_dim, 
                                       const std::string &tiling, bool is_inductor_scene, const std::string &core_num) const;
 
     std::string GenPgoTilingSearch(const ::ascir::FusedScheduledResult& fused_schedule_result,
-                                   af::codegen::PgoShapeStringStream &pgo_shape_dim,
+                                   codegen::PgoShapeStringStream &pgo_shape_dim,
                                    const std::string &tiling) const;
     std::string GenProfilingAllTilingData(std::string tiling_data_list_name,
                                           std::string tiling_data_perf_list_name,
@@ -110,7 +110,7 @@ const std::string kCubeTilingHeadInclude = "#include \"autofuse_cube_tiling_data
                                           bool is_inductor_scene) const;
     std::string GenGetMaxBlockDimFromInput(const std::string &core_num) const;
     std::string GenPgoTilingSearchByCoreNum(const ::ascir::FusedScheduledResult& fused_schedule_result,
-                                            af::codegen::PgoShapeStringStream &pgo_shape_dim, const std::string &tiling,
+                                            codegen::PgoShapeStringStream &pgo_shape_dim, const std::string &tiling,
   					                        bool is_inductor_scene, const std::string &core_num) const;
     std::string GenPGOGetTilingKey(const std::string tiling) const;
     std::string GenSavePGOSearchTilingDataFunc(const std::string tiling) const;
@@ -187,6 +187,5 @@ const std::string kCubeTilingHeadInclude = "#include \"autofuse_cube_tiling_data
     bool enable_autofuse_pgo_{false};
   };
   }  // namespace codegen
-}  // namespace af
 
 #endif

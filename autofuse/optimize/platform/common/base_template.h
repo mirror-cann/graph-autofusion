@@ -15,7 +15,7 @@
 #include "optimize/schedule_utils.h"
 #include "common/common_utils.h"
 
-namespace af { namespace optimize {
+namespace optimize {
 
 enum class GenerationMode : std::uint32_t {
   kBaseCase = 0U,  // 基础模式，仅基于通用模板生成新的模板
@@ -49,6 +49,5 @@ class BaseTemplate {
   BaseTemplate &operator=(BaseTemplate &&) = delete;
 };
 }  // namespace optimize
-}  // namespace af
 
 #endif  // OPTIMIZE_PLATFORM_COMMON_BASE_TEMPLATE_H

@@ -14,7 +14,7 @@
 #include "schedule_result.h"
 
 #include <queue>
-namespace af { namespace optimize {
+namespace optimize {
 struct OutAnchorAttr {
   int64_t linked_output_ir_idx = -1;
   int64_t depends = -1;
@@ -32,7 +32,7 @@ class FusedGraphModifier {
   static Status SubgraphConnectionsToWorkspace(const af::ComputeGraphPtr &fused_graph,
                                                std::map<af::Node *, af::AscGraph> &asc_backend_to_ascgraph);
 
-  static Status ChangeStartingOutputToWorkspace(std::vector<::ascir::ScheduleGroup> &schedule_groups);
+  static Status ChangeStartingOutputToWorkspace(std::vector<ascir::ScheduleGroup> &schedule_groups);
 
  private:
   static Status InitAscbcOutAnchorAttr(
@@ -48,6 +48,5 @@ class FusedGraphModifier {
                                   int64_t &max_workspace_num);
 };
 }  // namespace optimize
-}  // namespace af
 
 #endif  // OPTIMIZE_FUSED_GRAPH_FUSED_GRAPH_MODIFIER_H_

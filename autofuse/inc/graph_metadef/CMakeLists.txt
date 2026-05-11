@@ -15,16 +15,44 @@ if (NOT DEFINED GE_METADEF_INC_DIR)
     set(GE_METADEF_INC_DIR ${TOP_DIR}/air/inc/graph_metadef)
     set(AIR_CODE_DIR ${TOP_DIR}/air)
     set(RUNTIME_CODE_DIR ${TOP_DIR}/runtime)
-elseif(NOT TARGET metadef_headers)
-    add_library(metadef_headers INTERFACE)
+elseif(NOT TARGET metadef_headers_af)
+    add_library(metadef_headers_af INTERFACE)
 endif ()
 
+if (NOT ENABLE_OPEN_SRC)
+    set(METADEF_DIR ${TOP_DIR}/metadef)
+endif()
+
+#set(AUTOFUSE_STUB_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../stub)
+
 # 影响sdk包导出cmake，增加时必须包含BUILD_INTERFACE
-target_include_directories(metadef_headers INTERFACE
+target_include_directories(metadef_headers_af INTERFACE
+#    $<BUILD_INTERFACE:${AUTOFUSE_STUB_DIR}>
+#    $<BUILD_INTERFACE:${AUTOFUSE_STUB_DIR}/base>
+#    $<BUILD_INTERFACE:${mmpa_INCLUDE_DIR}>
+#    $<BUILD_INTERFACE:${mmpa_INCLUDE_DIR}/mmpa>
+#    $<BUILD_INTERFACE:${C_SEC_INCLUDE}>
     $<BUILD_INTERFACE:${METADEF_DIR}/inc/external>
     $<BUILD_INTERFACE:${METADEF_DIR}/inc/external/base>
     $<BUILD_INTERFACE:${METADEF_DIR}/inc/external/exe_graph>
     $<BUILD_INTERFACE:${METADEF_DIR}/inc/external/exe_graph/runtime>
+    $<BUILD_INTERFACE:${METADEF_DIR}/inc/external/graph>
+    $<BUILD_INTERFACE:${METADEF_DIR}/pkg_inc/base>
+    $<BUILD_INTERFACE:${METADEF_DIR}/pkg_inc/base/asc>
+    $<BUILD_INTERFACE:${METADEF_DIR}/pkg_inc/base/type>
+    $<BUILD_INTERFACE:${METADEF_DIR}/pkg_inc/base/utils>
+    $<BUILD_INTERFACE:${METADEF_DIR}/pkg_inc>
+    $<BUILD_INTERFACE:${METADEF_DIR}/pkg_inc/graph/>
+    $<BUILD_INTERFACE:${METADEF_DIR}/pkg_inc/common/>
+    $<BUILD_INTERFACE:${METADEF_DIR}/pkg_inc/common/ge_common/>
+    $<BUILD_INTERFACE:${METADEF_DIR}/pkg_inc/common/ge_common/debug/>
+    $<BUILD_INTERFACE:${METADEF_DIR}/pkg_inc/exe_graph/runtime>
+    $<BUILD_INTERFACE:${METADEF_DIR}/inc/external/graph/utils/>
+    $<BUILD_INTERFACE:${METADEF_DIR}/inc/graph/utils/>
+    $<BUILD_INTERFACE:${METADEF_DIR}/inc/graph/debug/>
+    $<BUILD_INTERFACE:${METADEF_DIR}/inc/common/ge_common/>
+    $<BUILD_INTERFACE:${METADEF_DIR}/inc/graph_metadef/graph/>
+    $<BUILD_INTERFACE:${METADEF_DIR}/inc/graph_metadef/graph/symbolizer/>
     $<BUILD_INTERFACE:${GE_METADEF_INC_DIR}>
     $<BUILD_INTERFACE:${GE_METADEF_INC_DIR}/graph>
     $<BUILD_INTERFACE:${AIR_CODE_DIR}/inc>
@@ -51,7 +79,7 @@ target_include_directories(metadef_headers INTERFACE
 )
 
 message(STATUS "inc graph_metadef")
-get_target_property(INCLUDE_PATHS metadef_headers INTERFACE_INCLUDE_DIRECTORIES)
+get_target_property(INCLUDE_PATHS metadef_headers_af INTERFACE_INCLUDE_DIRECTORIES)
 foreach(line IN LISTS INCLUDE_PATHS)
-    message(STATUS "metadef_headers ${line}")
+    message(STATUS "metadef_headers_af ${line}")
 endforeach()

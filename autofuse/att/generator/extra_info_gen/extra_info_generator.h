@@ -18,7 +18,7 @@
 #include "preprocess/args_manager.h"
 #include "extra_info_config.h"
 #include "tiling_data_gen/tiling_data_generator.h"
-namespace af { namespace att {
+namespace att {
 class ExtraInfoGenerator {
  public:
   ExtraInfoGenerator(const ExtraInfoConfig &config, const std::vector<ModelInfo> &model_info_list,
@@ -48,5 +48,4 @@ class ExtraInfoGenerator {
   const TilingDataGenerator &tiling_data_generator_;
 };
 }  // namespace att
-}  // namespace af
 #endif  // ATT_EXRTA_INFO_GENERATOR_H_

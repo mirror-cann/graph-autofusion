@@ -17,7 +17,7 @@
 #include "base/model_info.h"
 #include "generator/preprocess/var_info.h"
 
-namespace af { namespace att {
+namespace att {
 class ArgsReplacer {
  public:
   explicit ArgsReplacer(const ExprInfoMap &var_infos) : vars_infos_(var_infos) {}
@@ -57,6 +57,5 @@ class ArgsReplacer {
   const ExprInfoMap &vars_infos_;
 };
 }  // namespace att
-}  // namespace af
 
 #endif  // ATT_CODE_GEN_PREPROCESS_ARGS_REPLACE_H_

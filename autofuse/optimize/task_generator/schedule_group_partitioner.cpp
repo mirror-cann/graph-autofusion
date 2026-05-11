@@ -19,7 +19,7 @@
 
 using namespace af;
 
-namespace af { namespace optimize {
+namespace optimize {
 Status ScheduleGroupGraphPartitioner::PartitionByConnectivity(const ::ascir::ImplGraph &optimize_graph,
                                                               std::vector<::ascir::ImplGraph> &sub_optimize_graphs,
                                                               std::vector<AscNodePtr> node_order) {
@@ -183,4 +183,3 @@ Status ScheduleGroupGraphPartitioner::RefreshAxisSize(const ::ascir::ImplGraph &
   return SUCCESS;
 }
 }  // namespace optimize
-}  // namespace af

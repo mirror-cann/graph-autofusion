@@ -24,7 +24,7 @@
 #include "generator/solver_pass_gen/input_output_setters.h"
 #include "generator/solver_pass_gen/input_output_setters_mixin.h"
 
-namespace af { namespace att
+namespace att
 {
   struct CaseIdInfo {
     uint32_t case_id;
@@ -145,6 +145,5 @@ namespace af { namespace att
     double corenum_threshold_{0.4};
     size_t group_num_{1UL};
   };
-}  // namespace att
-}  // namespace af
+} // namespace att
 #endif

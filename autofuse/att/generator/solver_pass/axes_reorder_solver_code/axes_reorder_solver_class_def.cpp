@@ -10,7 +10,7 @@
 
 #include "axes_reorder_solver_code_common.h"
 
-namespace af { namespace att {
+namespace att {
 
 // ============================================================================
 // Section 2: Class Definition
@@ -216,4 +216,3 @@ std::string GenAxesReorderSolver(bool enable_equal_order_tiling) {
 }
 
 } // namespace att
-}  // namespace af

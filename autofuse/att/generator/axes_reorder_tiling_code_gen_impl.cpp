@@ -17,7 +17,7 @@
 #include "base/model_info.h"
 #include "att_utils.h"
 
-namespace af { namespace att {
+namespace att {
 namespace  {
 constexpr int32_t kMaxEqualOrderAxesCount = 2;
 bool IsEnableEqualOrderTiling(const ModelInfo &model_info) {
@@ -216,4 +216,3 @@ ge::Status AxesReorderTilingCodeGenImpl::GenExtraSummaryInfo(const ModelInfo &mo
   return ge::SUCCESS;
 }
 }
-}  // namespace af

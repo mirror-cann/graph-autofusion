@@ -13,7 +13,7 @@
 #include <cstdint>
 #include <memory>
 
-namespace af { namespace optimize {
+namespace optimize {
 
 struct GatherSpec {
   bool enable_non_tail_gather;
@@ -53,6 +53,5 @@ struct BackendSpec {
   bool enable_matmul_lowering_to_matmul; // 限制A2A3 不能lowering出matmul，不限制matmul lowering成别的ascir类型
 };
 }  // namespace optimize
-}  // namespace af
 
 #endif  // AUTOFUSE_BACKEND_SPEC_H

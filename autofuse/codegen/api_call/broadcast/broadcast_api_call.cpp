@@ -30,7 +30,7 @@ constexpr size_t kAxisIndex1 = 1U;
 constexpr size_t kAxisIndex2 = 2U;
 constexpr size_t kAxisIndex3 = 3U;
 }  // namespace
-namespace af { namespace codegen {
+namespace codegen {
 using namespace std;
 using namespace af::ops;
 using namespace af::ascir_op;
@@ -45,13 +45,13 @@ Status DimensionCollapse(const Tensor &input, const Tensor &output,
   }
 
   std::vector<uint32_t> tmp;
-  ::ascir::SizeExpr prev_input_repeat = Zero;
-  ::ascir::SizeExpr prev_output_repeat = Zero;
+  ascir::SizeExpr prev_input_repeat = Zero;
+  ascir::SizeExpr prev_output_repeat = Zero;
   size_t pos = 0;
 
   for (; pos < input.vectorized_axis.size(); pos++) {
-    ::ascir::SizeExpr input_stride = input.vectorized_strides[pos];
-    ::ascir::SizeExpr output_stride = output.vectorized_strides[pos];
+    ascir::SizeExpr input_stride = input.vectorized_strides[pos];
+    ascir::SizeExpr output_stride = output.vectorized_strides[pos];
     if (af::SymbolicUtils::StaticCheckEq(input_stride, af::sym::kSymbolZero) == af::TriBool::kTrue &&
         af::SymbolicUtils::StaticCheckEq(output_stride, af::sym::kSymbolZero) == af::TriBool::kTrue) {
       continue;
@@ -69,8 +69,8 @@ Status DimensionCollapse(const Tensor &input, const Tensor &output,
   pos++;
   bool prev_status = af::SymbolicUtils::StaticCheckEq(prev_input_repeat, prev_output_repeat) != af::TriBool::kTrue;
   for (; pos < input.vectorized_axis.size(); pos++) {
-    ::ascir::SizeExpr cur_input_stride = input.vectorized_strides[pos];
-    ::ascir::SizeExpr cur_output_stride = output.vectorized_strides[pos];
+    ascir::SizeExpr cur_input_stride = input.vectorized_strides[pos];
+    ascir::SizeExpr cur_output_stride = output.vectorized_strides[pos];
     if (af::SymbolicUtils::StaticCheckEq(cur_input_stride, af::sym::kSymbolZero) == af::TriBool::kTrue &&
         af::SymbolicUtils::StaticCheckEq(cur_output_stride, af::sym::kSymbolZero) == af::TriBool::kTrue) {
       continue;
@@ -129,7 +129,7 @@ static std::string GetLatterMergedSize(const TPipe &tpipe, const Tensor &tensor,
   } else {
     idx = last_group[last_group_size - kAxisIndex2];
   }
-  ::ascir::SizeExpr last_dim_size = tensor.vectorized_strides[idx];
+  ascir::SizeExpr last_dim_size = tensor.vectorized_strides[idx];
 
   std::stringstream ss;
   uint32_t loop_extent = last_group_size - static_cast<uint32_t>(1);
@@ -153,7 +153,7 @@ static std::string BroadcastGetLastDimStride(const TPipe &tpipe, const Tensor &t
   }
   auto &last_former_merge_group = merge_groups[merge_groups.size() - kAxisIndex2];
   uint32_t idx = last_former_merge_group.second.back();
-  ::ascir::SizeExpr last_dim_stride = tensor.vectorized_strides[idx];
+  ascir::SizeExpr last_dim_stride = tensor.vectorized_strides[idx];
   return tpipe.tiler.Size(last_dim_stride);
 }
 
@@ -169,7 +169,7 @@ static void GetBroadcastSizeParameters(const TPipe &tpipe, const Tensor &tensor,
   }
 }
 
-static void BroadcastAllCommonAxis(const TPipe &tpipe, const std::vector<::ascir::AxisId> &current_axis,
+static void BroadcastAllCommonAxis(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
                                    const Tensor &input, const Tensor &output, std::string &result) {
   std::stringstream ss;
   std::string dtype_name;
@@ -181,7 +181,7 @@ static void BroadcastAllCommonAxis(const TPipe &tpipe, const std::vector<::ascir
   result = ss.str();
 }
 
-static void BroadcastOneAxis(const TPipe &tpipe, const std::vector<::ascir::AxisId> &current_axis, const Tensor &input,
+static void BroadcastOneAxis(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis, const Tensor &input,
                              const Tensor &output, const int64_t tmp_buf_id,
                              const std::vector<std::pair<bool, std::vector<uint32_t>>> &merge_groups,
                              std::string &result) {
@@ -199,7 +199,7 @@ static void BroadcastOneAxis(const TPipe &tpipe, const std::vector<::ascir::Axis
   result = ss.str();
 }
 
-static void BroadcastTwoAxis(const TPipe &tpipe, const std::vector<::ascir::AxisId> &current_axis, const Tensor &input,
+static void BroadcastTwoAxis(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis, const Tensor &input,
                              const Tensor &output, const int64_t tmp_buf_id,
                              const std::vector<std::pair<bool, std::vector<uint32_t>>> &merge_groups,
                              std::string &result) {
@@ -238,7 +238,7 @@ bool IsBroadcastConstantTensor(const Tensor &tensor) {
   return tensor_constant;
 }
 
-void BroadcastScalar(const TPipe &tpipe, const std::vector<::ascir::AxisId> &current_axis, const Tensor &in,
+void BroadcastScalar(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis, const Tensor &in,
                      const Tensor &out, const int64_t tmp_buf_id, std::string &result, bool need_tmp_buf) {
   std::stringstream ss;
   std::string int64_tmp_buf;
@@ -271,7 +271,7 @@ void BroadcastScalar(const TPipe &tpipe, const std::vector<::ascir::AxisId> &cur
   result = ss.str();
 }
 
-Status BroadcastApiCall::Generate(const TPipe &tpipe, const std::vector<::ascir::AxisId> &current_axis,
+Status BroadcastApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
                                   const std::vector<std::reference_wrapper<const Tensor>> &inputs,
                                   const std::vector<std::reference_wrapper<const Tensor>> &outputs,
                                   std::string &result) const {
@@ -333,4 +333,3 @@ Status BroadcastApiCall::Generate(const TPipe &tpipe, const std::vector<::ascir:
 }
 static ApiCallRegister<BroadcastApiCall> register_broadcast_api_call("BroadcastApiCall");
 }  // namespace codegen
-}  // namespace af

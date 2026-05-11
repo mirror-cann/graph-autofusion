@@ -19,12 +19,11 @@
 #include "graph/utils/op_desc_utils.h"
 #include "../../../external/graph/operator.h"
 #include "graph/utils/type_utils.h"
-#include "graph/ascendc_ir/ascendc_ir_check.h"
+#include "ascendc_ir/ascendc_ir_check.h"
 #include "graph/expression/const_values.h"
-#include "graph/ascendc_ir/ascendc_ir_core/ascendc_ir_def.h"
+#include "ascendc_ir/ascendc_ir_core/ascendc_ir_def.h"
 
 namespace af {
-using ge::graphStatus;
 #ifdef AUTOFUSE_USE_GE_METADEF
 using ge::Node;
 using ge::NodePtr;

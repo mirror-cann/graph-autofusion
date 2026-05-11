@@ -14,13 +14,13 @@
 #include "codegen_kernel.h"
 
 
-namespace af { namespace codegen {
+namespace codegen {
 class SplitRegApiCall : public ApiCall {
  public:
   using ApiCall::Generate;
   explicit SplitRegApiCall(const std::string &api_name) : ApiCall(api_name) {}
   ~SplitRegApiCall() override = default;
-  Status Generate(const TPipe &tpipe, const std::vector<::ascir::AxisId> &current_axis,
+  Status Generate(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
                   const std::vector<std::reference_wrapper<const Tensor>> &inputs,
                   const std::vector<std::reference_wrapper<const Tensor>> &outputs,
                   std::string &result) const override;
@@ -53,7 +53,7 @@ class SplitRegApiCall : public ApiCall {
     af::Expression total_rows_expr;
     uint32_t data_type_size = 0;
   }; 
-  Status ParseAttr(const ::ascir::NodeView &node) override;
+  Status ParseAttr(const ascir::NodeView &node) override;
  private:
   static Status ParseSplitDim(const Tensor &x, const Tensor &y0, size_t &split_dim);
   static Status InitializeTiling(size_t split_dim, const vector<std::reference_wrapper<const Tensor>> &ouputs,
@@ -79,9 +79,8 @@ class SplitRegApiCall : public ApiCall {
                           const std::string &dtype_name,
                           std::stringstream &ss);
   static bool NeedB8ToB16(SplitTiling &tiling); 
-  ::ascir::NodeView node_ = nullptr;
+  ascir::NodeView node_ = nullptr;
 };
 }  // namespace codegen
-}  // namespace af
 
 #endif  // ASCGEN_DEV_CODEGEN_REG_API_CALL_SPLIT_REG_API_CALL_H_

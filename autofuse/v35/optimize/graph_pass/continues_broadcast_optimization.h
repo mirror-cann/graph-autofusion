@@ -11,7 +11,7 @@
 #ifndef OPTIMIZE_PLATFORM_V2_GRAPH_PASS_CONTINUES_BROADCAST_OPTIMIZATION_H
 #define OPTIMIZE_PLATFORM_V2_GRAPH_PASS_CONTINUES_BROADCAST_OPTIMIZATION_H
 #include "optimize/graph_pass/base_graph_pass.h"
-namespace af { namespace optimize {
+namespace optimize {
 class ContinuesBroadcastOptimizationPass final : public BaseGraphPass {
  public:
   ContinuesBroadcastOptimizationPass() = default;
@@ -19,6 +19,5 @@ class ContinuesBroadcastOptimizationPass final : public BaseGraphPass {
   ~ContinuesBroadcastOptimizationPass() override = default;
 };
 }  // namespace optimize
-}  // namespace af
 
 #endif  // OPTIMIZE_PLATFORM_V2_GRAPH_PASS_CONTINUES_BROADCAST_OPTIMIZATION_H

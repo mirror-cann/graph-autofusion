@@ -14,7 +14,7 @@
 #include "generator/preprocess/var_info.h"
 #include "common/checker.h"
 
-namespace af { namespace att {
+namespace att {
 inline bool IsInExprInfo(const ExprInfoMap &expr_infos, const Expr &expr) {
   if (!IsValid(expr)) {
     GELOGW("Input expr is null.");
@@ -27,5 +27,4 @@ inline bool IsInExprInfo(const ExprInfoMap &expr_infos, const Expr &expr) {
   return true;
 }
 }  // namespace att
-}  // namespace af
 #endif  // ATT_GENERATOR_PREPROCESS_UTILS_H_

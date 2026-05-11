@@ -14,7 +14,7 @@
 #include "ascir_ops.h"
 #include "optimize/platform/platform_factory.h"
 
-namespace af { namespace att {
+namespace att {
 namespace {
 [[maybe_unused]] void AddUsedArgs(const Expr &expr, std::vector<Expr> &used_args) {
   for (const auto &arg : expr.FreeSymbols()) {
@@ -143,7 +143,7 @@ void ExeTimePassManager::UpdateBufNode(const std::vector<NodeInfo> &nodes) {
       broadcast_node = true;
     } else if (node.node_type == kLoad) {
       broadcast_node = false;
-      const auto platform = af::optimize::PlatformFactory::GetInstance().GetPlatform();
+      const auto platform = optimize::PlatformFactory::GetInstance().GetPlatform();
       if (platform != nullptr && ascgen_utils::IsLinkToBrdcst(node.node_ptr, platform->BroadcastTypes())) {
         GELOGD("insert brc inline node %s", node.name.c_str());
         brc_buf_node_.insert(node.name);
@@ -286,4 +286,3 @@ TernaryOp ExeTimePassManager::UpdateNodeExeTime(const NodeInfo &node, const Expr
   return TernaryOp(exe_time);
 }
 }  // namespace att
-}  // namespace af

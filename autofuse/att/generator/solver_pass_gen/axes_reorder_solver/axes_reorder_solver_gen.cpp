@@ -15,7 +15,7 @@
 
 using namespace ascgen_utils;
 
-namespace af { namespace att {
+namespace att {
 namespace {
 // AxesReorderSolverGen 默认阈值
 constexpr double kDefaultSolverUbThreshold = 0.2;
@@ -1422,4 +1422,3 @@ std::string AxesReorderSolverGen::GenSolverFuncInvoke() {
   return strs;
 }
 }
-}  // namespace af

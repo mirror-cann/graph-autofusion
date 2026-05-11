@@ -17,7 +17,7 @@
 #include "base/model_info.h"
 #include "utils/api_perf_utils.h"
 
-namespace af { namespace att {
+namespace att {
 // 负责注册所有的评估函数（包括ASCIR API, AscendC Api）
 class EvalCosts {
 public:
@@ -137,5 +137,4 @@ ge::Status WholeReduceMinPerf(const NodeDetail &node_info, PerfOutputInfo &perf)
 #define REGISTER_EVAL_FUNC_TAG(op_type, tag, func_name) \
   FuncRegister JOIN_A_B_C(eval_, op_type, tag)((op_type) + (#tag), (func_name))
 } // namespace att
-}  // namespace af
 #endif // API_PERF_REGISTER_ASCENDC_API_PERF_H_

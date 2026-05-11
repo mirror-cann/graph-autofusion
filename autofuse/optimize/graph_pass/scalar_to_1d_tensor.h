@@ -10,7 +10,7 @@
 #ifndef OPTIMIZE_PLATFORM_COMMON_GRAPH_PASS_SCALAR_TO_1D_TENSOR_H
 #define OPTIMIZE_PLATFORM_COMMON_GRAPH_PASS_SCALAR_TO_1D_TENSOR_H
 #include "base_graph_pass.h"
-namespace af { namespace optimize {
+namespace optimize {
 class ScalarTo1DTensorPass final : public BaseGraphPass {
  public:
   ScalarTo1DTensorPass() = default;
@@ -18,5 +18,4 @@ class ScalarTo1DTensorPass final : public BaseGraphPass {
   Status RunPass(af::AscGraph &graph) override;
 };
 }  // namespace optimize
-}  // namespace af
 #endif  // OPTIMIZE_PLATFORM_COMMON_GRAPH_PASS_SCALAR_TO_1D_TENSOR_H

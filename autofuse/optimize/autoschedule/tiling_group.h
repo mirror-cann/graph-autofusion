@@ -16,7 +16,7 @@
 #include "ascgen_log.h"
 #include "autoschedule/axis_group.h"
 
-namespace af::optimize::autoschedule {
+namespace optimize::autoschedule {
 enum GroupType : int32_t {
   GROUP_INVALID = 0x0,
   GROUP_X = 0x1,
@@ -42,7 +42,7 @@ class TilingGroup {
    * 由于Ngroup会前后传播，因此采用的策略是先提取公共的Ngroup作为axis_group的Ngroup，
    * Merge前先每个TilingGroup中XYR中归属Ngroup的轴移除再重新按照XYR三个Group进行merge。
    */
-  static Status GenTilingGroup(const ::ascir::ImplGraph &impl_graph, AxisGroup &tiling_group, bool is_reduce_fullload = false);
+  static Status GenTilingGroup(const ascir::ImplGraph &impl_graph, AxisGroup &tiling_group, bool is_reduce_fullload = false);
   /**
    * 由于MergeAxesGroup同时要对接canfuse和schedule，而canfuse时轴序还不确定，
    * 因此和前端约定，canfuse时先不考虑轴序，canfuse之后由前端保证轴序
@@ -62,6 +62,6 @@ class TilingGroup {
   static Status GenSplitTilingGroup(af::AscNode &node, AxisGroup &axes_group);
   static GroupType GetGroupType(const AxisGroup &axes_group);
 };
-}  // namespace af::optimize::autoschedule
+}  // namespace optimize::autoschedule
 
 #endif  // __OPTIMIZE_AUTOSCHEDULE_TILING_GROUP_H__

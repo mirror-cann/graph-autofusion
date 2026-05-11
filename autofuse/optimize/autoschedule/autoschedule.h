@@ -19,14 +19,14 @@
 #include "ascgen_log.h"
 #include "optimize.h"
 
-namespace af::optimize::autoschedule {
+namespace optimize::autoschedule {
 class AutoSchedule {
  public:
   AutoSchedule() = delete;
-  explicit AutoSchedule(::ascir::ImplGraph &graph, std::vector<AutoScheduleOutput> &schd_outputs,
+  explicit AutoSchedule(ascir::ImplGraph &graph, std::vector<AutoScheduleOutput> &schd_outputs,
                         bool is_reduce_first_stage = false,
-                        af::optimize::ReduceTemplateType reduce_template = af::optimize::ReduceTemplateType::kDefault,
-                        ::ascir::CubeTemplateType cube_template = ::ascir::CubeTemplateType::kDefault)
+                        optimize::ReduceTemplateType reduce_template = optimize::ReduceTemplateType::kDefault,
+                        ascir::CubeTemplateType cube_template = ascir::CubeTemplateType::kDefault)
       : graph_(graph),
         schd_outputs_(schd_outputs),
         is_reduce_first_stage_(is_reduce_first_stage),
@@ -47,15 +47,15 @@ class AutoSchedule {
   void GenUBFuseTemplates() const;
   void GenTilingCase(std::vector<TilingCase> &tiling_cases);
   Status PruneTilingCase(std::vector<TilingCase> &tiling_cases) const;
-  Status SelectLoopAxis(::ascir::ImplGraph &impl_graph, bool is_reduce_fullload) const;
+  Status SelectLoopAxis(ascir::ImplGraph &impl_graph, bool is_reduce_fullload) const;
 
-  ::ascir::ImplGraph &graph_;
+  ascir::ImplGraph &graph_;
   std::vector<AutoScheduleOutput> &schd_outputs_;
   AxisGroup axes_group_;
   bool is_reduce_first_stage_;
-  af::optimize::ReduceTemplateType reduce_template_;
-  ::ascir::CubeTemplateType cube_template_;
+  optimize::ReduceTemplateType reduce_template_;
+  ascir::CubeTemplateType cube_template_;
 };
-}  // namespace af::optimize::autoschedule
+}  // namespace optimize::autoschedule
 
 #endif

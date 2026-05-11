@@ -18,7 +18,7 @@
 #include "optimize/graph_pass/expand_dims_for_all_reduce.h"
 #include "optimize/graph_pass/pow_equiv_substitution_pass.h"
 
-namespace af { namespace optimize {
+namespace optimize {
 class PassRunnerV1 final : public BasePassRunner {
  public:
   explicit PassRunnerV1() : BasePassRunner() {
@@ -30,6 +30,5 @@ class PassRunnerV1 final : public BasePassRunner {
   }
 };
 }  // namespace optimize
-}  // namespace af
 
 #endif  // AUTOFUSE_PATTERN_FUSION_UNITTEST_CPP_O_D_PASS_RUNNER_V1_H

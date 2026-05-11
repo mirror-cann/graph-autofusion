@@ -15,16 +15,16 @@
 #include "ascir/meta/ascir.h"
 #include "common/ascgen_log.h"
 
-namespace af { namespace optimize {
+namespace optimize {
 
 class ConcatInputUnificationPass {
  public:
-  static Status Run(std::vector<::ascir::ImplGraph> &graphs);
+  static Status Run(std::vector<ascir::ImplGraph> &graphs);
 
  private:
-  static Status RunOneGraph(::ascir::ImplGraph &graph);
+  static Status RunOneGraph(ascir::ImplGraph &graph);
   static bool NeedOptimize(const af::AscNodePtr &concat_node);
-  static Status DoOptimize(::ascir::ImplGraph &graph, const af::AscNodePtr &concat_node);
+  static Status DoOptimize(ascir::ImplGraph &graph, const af::AscNodePtr &concat_node);
   static af::Expression GetColSize(const af::AscTensor &tensor, size_t concat_dim);
   static af::Status GetLoadNum(const af::AscNodePtr &concat_node, uint32_t &load_num);
   static bool IsSrcColSizeAlignedToB4(const af::AscNodePtr &concat_node, size_t concat_dim, int32_t dtype_size);
@@ -33,5 +33,4 @@ class ConcatInputUnificationPass {
 
 }  // optimize
 
-}  // namespace af
 #endif  // OPTIMIZE_TASK_GENERATOR_CONCAT_INPUTS_UNIFICATION_PASS_H

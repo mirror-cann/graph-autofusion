@@ -16,7 +16,7 @@
 #include "code_printer.h"
 #include "util/base_types_printer.h"
 #include "generator/solver_pass_gen/solver_gen.h"
-namespace af { namespace att
+namespace att
 {
   enum class FuncType
   {
@@ -134,6 +134,5 @@ namespace af { namespace att
 
     std::string impl_codes_ = "";
   };
-}  // namespace att
-}  // namespace af
+} // namespace att
 #endif

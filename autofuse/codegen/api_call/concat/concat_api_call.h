@@ -14,13 +14,13 @@
 #include "codegen_kernel.h"
 #include "symbolizer/symbolic_utils.h"
 
-namespace af { namespace codegen {
+namespace codegen {
 class ConcatApiCall : public ApiCall {
  public:
   using ApiCall::Generate;
   explicit ConcatApiCall(const std::string &api_name) : ApiCall(api_name) {}
   ~ConcatApiCall() override = default;
-  Status Generate(const TPipe &tpipe, const std::vector<::ascir::AxisId> &current_axis,
+  Status Generate(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
                   const std::vector<std::reference_wrapper<const Tensor>> &inputs,
                   const std::vector<std::reference_wrapper<const Tensor>> &outputs,
                   std::string &result) const override;
@@ -58,7 +58,7 @@ class ConcatApiCall : public ApiCall {
     uint32_t data_type_size = 0;
   };
 
-  Status ParseAttr(const ::ascir::NodeView &node) override;
+  Status ParseAttr(const ascir::NodeView &node) override;
   static Status ParseConcatDim(const Tensor &x0, const Tensor &y, size_t &concat_dim);
 
   static Status InitializeTiling(size_t concat_dim,
@@ -103,9 +103,8 @@ class ConcatApiCall : public ApiCall {
                             std::stringstream &ss);
 
   bool use_concat_small_tail_api_ = false;
-  ::ascir::NodeView node_ = nullptr;
+  ascir::NodeView node_ = nullptr;
 };
 }  // namespace codegen
-}  // namespace af
 
 #endif  // __AUTOFUSE_CONCAT_API_CALL_H__

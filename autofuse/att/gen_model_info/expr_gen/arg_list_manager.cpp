@@ -11,7 +11,7 @@
 #include "arg_list_manager.h"
 #include "common/checker.h"
 
-namespace af { namespace att {
+namespace att {
 const int32_t kContainerSizeSearch = -1;
 ge::Status ArgListManager::LoadArgList(const TuningSpacePtr &tuning_space) {
   // 每次加载清除历史信息
@@ -79,4 +79,3 @@ ge::Status ArgListManager::SetTensorSizeExpr(const std::vector<TensorPtr> &alloc
   return ge::SUCCESS;
 }
 }  // namespace att
-}  // namespace af

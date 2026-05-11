@@ -28,7 +28,7 @@ AscNodePtr AscGraphAddSplitNode(AscGraph &asc_graph, const char *name, uint32_t 
 
 // Constructs the appropriate ascir_op by type-string and adds it to the graph.
 // All ascir_op constructors initialise AscNodeAttr (and ir_attr) via inline code in ascir_ops.h.
-// This file is compiled into libaihac_ir_af.so (without AUTOFUSE_USE_GE_METADEF), so
+// This file is compiled into libaihac_ir.so (without AUTOFUSE_USE_GE_METADEF), so
 // AscNodeAttr::Create resolves to the symbol in the same .so — no cross-library mangle issues.
 AscNodePtr AscGraphAddAscirNodeByType(AscGraph &asc_graph,
                                       const char *op_type,

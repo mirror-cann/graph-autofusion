@@ -9,7 +9,7 @@
  */
 
 syntax = "proto3";
-package af_ascendc_ir.proto;
+package ascendc_ir.proto;
 
 import "af_ir.proto";
 message AscTensorDef {

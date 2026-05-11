@@ -12,7 +12,7 @@
 
 #include "micro_api_call.h"
 
-namespace af { namespace codegen {
+namespace codegen {
 class MicroDivApiCall final : public MicroApiCall {
  public:
   explicit MicroDivApiCall(const std::string &api_name) : MicroApiCall(api_name) {}
@@ -20,6 +20,5 @@ class MicroDivApiCall final : public MicroApiCall {
   Status Generate(const TensorManager &tensor_mng, const TPipe &tpipe, CallParam &param, std::string &result) override;
 };
 }  // namespace codegen
-}  // namespace af
 
 #endif  // __AUTOFUSE_MICRO_DIV_API_CALL_H__

@@ -13,8 +13,8 @@
 #include "ascgraph_info_complete.h"
 #include "ascir_utils.h"
 
-namespace af { namespace optimize {
-ConcatScoreFunctionGenerator::ConcatScoreFunctionGenerator(const ::ascir::HintGraph &graph,
+namespace optimize {
+ConcatScoreFunctionGenerator::ConcatScoreFunctionGenerator(const ascir::HintGraph &graph,
                                                            af::AscNodePtr concat_node,
                                                            uint32_t concat_dim)
     : graph_(&graph), concat_node_(std::move(concat_node)), concat_dim_(concat_dim) {}
@@ -204,4 +204,3 @@ void ConcatScoreFunctionGenerator::GenerateScoreOne(std::string &score_func) {
   score_func = ss.str();
 }
 }  // optimize
-}  // namespace af

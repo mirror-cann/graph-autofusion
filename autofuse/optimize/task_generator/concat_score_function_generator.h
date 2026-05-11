@@ -14,10 +14,10 @@
 #include "ascir/meta/ascir.h"
 #include "common/ascgen_log.h"
 
-namespace af { namespace optimize {
+namespace optimize {
 class ConcatScoreFunctionGenerator {
  public:
-  ConcatScoreFunctionGenerator(const ::ascir::HintGraph &graph, af::AscNodePtr concat_node, uint32_t concat_dim);
+  ConcatScoreFunctionGenerator(const ascir::HintGraph &graph, af::AscNodePtr concat_node, uint32_t concat_dim);
   Status Generate(std::string &score_func);
   Status GenerateForCheckSmallTail(std::string &score_func);
   static void GenerateScoreOne(std::string &score_func);
@@ -31,7 +31,7 @@ class ConcatScoreFunctionGenerator {
   const double kMaxUnalignedRate = 0.1;  // TTODO
   const uint32_t kAlignment_ = 32U;
 
-  const ::ascir::HintGraph *graph_;
+  const ascir::HintGraph *graph_;
   af::AscNodePtr concat_node_;
   uint32_t concat_dim_;
   af::Expression stride_;
@@ -41,5 +41,4 @@ class ConcatScoreFunctionGenerator {
   std::stringstream ss_;
 };
 }  // optimize
-}  // namespace af
 #endif  // ASCGEN_DEV_OPTIMIZE_TASK_GENERATOR_CONCAT_SCORE_FUNCTION_GENERATOR_H_

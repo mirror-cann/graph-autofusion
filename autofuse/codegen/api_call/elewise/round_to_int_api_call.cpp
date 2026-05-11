@@ -18,13 +18,13 @@
 #include "graph/ascendc_ir/utils/asc_tensor_utils.h"
 #include "api_call/utils/api_call_factory.h"
 
-namespace af { namespace codegen {
+namespace codegen {
 using namespace std;
 using namespace af::ops;
 using namespace af::ascir_op;
 using namespace ascgen_utils;
 
-Status RoundToIntApiCall::Generate(const TPipe &tpipe, const std::vector<::ascir::AxisId> &current_axis,
+Status RoundToIntApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
                                   const std::vector<std::reference_wrapper<const Tensor>> &inputs,
                                   const std::vector<std::reference_wrapper<const Tensor>> &outputs,
                                   std::string &result) const {
@@ -49,4 +49,3 @@ Status RoundToIntApiCall::Generate(const TPipe &tpipe, const std::vector<::ascir
 static ApiCallRegister<RoundToIntApiCall> register_round_to_int_api_call("RoundToIntApiCall");
 
 } // namespace codegen
-}  // namespace af

@@ -12,18 +12,17 @@
 
 #include "micro_api_call.h"
 
-namespace af { namespace codegen {
+namespace codegen {
 class MicroStoreApiCall final : public MicroApiCall {
  public:
   explicit MicroStoreApiCall(const std::string &api_name) : MicroApiCall(api_name) {}
   ~MicroStoreApiCall() override = default;
-  Status Init(const ::ascir::NodeView &node) override;
+  Status Init(const ascir::NodeView &node) override;
   Status Generate(const TensorManager &tensor_mng, const TPipe &tpipe, CallParam &param, std::string &result) override;
 
  private:
   std::string dist_ = "";
 };
 }  // namespace codegen
-}  // namespace af
 
 #endif  // __AUTOFUSE_MICRO_STORE_API_CALL_H__

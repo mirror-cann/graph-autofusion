@@ -16,10 +16,10 @@
 
 using namespace ascgen_utils;
 
-af::codegen::TilingData::TilingData(const std::string &kernel, const std::string &name_class)
+codegen::TilingData::TilingData(const std::string &kernel, const std::string &name_class)
     : class_name(name_class), kernel_name(kernel){}
 
-std::string af::codegen::TilingData::macros_and_includes = { // 不却分是否const
+std::string codegen::TilingData::macros_and_includes = { // 不却分是否const
     "#include <stdint.h>\n"
     "#include \"kernel_tiling/kernel_tiling.h\"\n"
     "#define BEGIN_TILING_DATA_DEF_T(name) struct name {\n"
@@ -32,13 +32,13 @@ std::string af::codegen::TilingData::macros_and_includes = { // 不却分是否c
     "#define TILING_DATA_FIELD_DEF_T_STRUCT(struct_type, filed_name) \\\n"
     "  struct_type filed_name;\n"};
 
-std::string af::codegen::TilingData::common_tiling_filed = { // 非const模式
+std::string codegen::TilingData::common_tiling_filed = { // 非const模式
     "  TILING_DATA_FIELD_DEF_T(uint32_t, block_dim);\n"
     "  TILING_DATA_FIELD_DEF_T(uint32_t, corenum);\n"
     "  TILING_DATA_FIELD_DEF_T(uint32_t, ub_size);\n"
     "  TILING_DATA_FIELD_DEF_T(uint32_t, hbm_size);"};
 
-std::string af::codegen::TilingData::GenGenTilingDataFieldConstDefFunc() const {
+std::string codegen::TilingData::GenGenTilingDataFieldConstDefFunc() const {
   std::stringstream ss;
   ss << "std::string GenTilingDataFieldConstDefFunc(const std::string &f_name, uint32_t value) {" << std::endl;
   ss << "  std::stringstream ss_mid;" << std::endl;
@@ -50,7 +50,7 @@ std::string af::codegen::TilingData::GenGenTilingDataFieldConstDefFunc() const {
   return ss.str();
 }
 
-std::string af::codegen::TilingData::GenGenTilingDataFieldConstValueFunc() const {
+std::string codegen::TilingData::GenGenTilingDataFieldConstValueFunc() const {
   std::stringstream ss;
   ss << "std::string GenTilingDataFieldConstValueFunc(uint32_t value) {" << std::endl;
   ss << "  std::stringstream ss_mid;" << std::endl;
@@ -61,10 +61,10 @@ std::string af::codegen::TilingData::GenGenTilingDataFieldConstValueFunc() const
   return ss.str();
 }
 
-std::string af::codegen::TilingData::GetCommonTilingField(bool is_group,
-                                                      const ::ascir::FusedScheduledResult& fused_schedule_result) {
+std::string codegen::TilingData::GetCommonTilingField(bool is_group,
+                                                      const ascir::FusedScheduledResult& fused_schedule_result) {
   std::stringstream ss;
-  std::vector<::ascir::TensorId> workspace_tensor_id = GetWorkspaceTensorIdListInOneScheduleResult(fused_schedule_result);
+  std::vector<ascir::TensorId> workspace_tensor_id = GetWorkspaceTensorIdListInOneScheduleResult(fused_schedule_result);
   std::vector<std::string> common_tiling_fileds = {"block_dim", "corenum", "ub_size", "hbm_size"};
   for (auto tId : workspace_tensor_id) {
     common_tiling_fileds.push_back("workspace" + std::to_string(tId));
@@ -118,13 +118,13 @@ std::string af::codegen::TilingData::GetCommonTilingField(bool is_group,
   return ss.str();
 }
 
-std::string af::codegen::TilingData::pgo_perf_struct = {
+std::string codegen::TilingData::pgo_perf_struct = {
     "struct AutofuseTilingDataPerf {\n"
     "  AutofuseTilingData tiling_data;\n"
     "  double best_perf;\n"
     "};\n"};
 
-ge::Status af::codegen::TilingData::ProcessCubeFusionResult(::ascir::FusedScheduledResult &schedule_result) {
+ge::Status codegen::TilingData::ProcessCubeFusionResult(ascir::FusedScheduledResult &schedule_result) {
   if (ascgen_utils::IsCubeUBFusedScheduled(schedule_result)) {
     GE_ASSERT_SUCCESS(ascgen_utils::CreateCVFusionResult(schedule_result));
   } else if (ascgen_utils::IsCubeCommonFusedScheduled(schedule_result)) {
@@ -133,7 +133,7 @@ ge::Status af::codegen::TilingData::ProcessCubeFusionResult(::ascir::FusedSchedu
   return ge::SUCCESS;
 }
 
-std::string af::codegen::TilingData::Generate(const ::ascir::FusedScheduledResult& fused_schedule_result) {
+std::string codegen::TilingData::Generate(const ascir::FusedScheduledResult& fused_schedule_result) {
   std::stringstream ss;
   std::stringstream ss1;    // ss1 是最外层的tilingData结构体定义
   std::stringstream ss2;    // ss1 是最内层的子tilingData结构体定义
@@ -165,7 +165,7 @@ std::string af::codegen::TilingData::Generate(const ::ascir::FusedScheduledResul
     generate_footer();
     return ss.str();
   }
-  ::ascir::FusedScheduledResult elemwise_schedule_result = fused_schedule_result;
+  ascir::FusedScheduledResult elemwise_schedule_result = fused_schedule_result;
   GE_ASSERT_SUCCESS(ProcessCubeFusionResult(elemwise_schedule_result));
 
   ss1 << this->ClassBegin(this->kernel_name, this->class_name) << std::endl;
@@ -189,20 +189,20 @@ std::string af::codegen::TilingData::Generate(const ::ascir::FusedScheduledResul
   return ss.str();
 }
 
-std::string af::codegen::TilingData::ClassBegin(
+std::string codegen::TilingData::ClassBegin(
   const std::string& begin_kernel_name, const std::string& begin_class_name) const {
   std::stringstream ss;
   ss << "BEGIN_TILING_DATA_DEF_T(" << begin_kernel_name << begin_class_name << ")";
   return ss.str();
 }
 
-std::string af::codegen::TilingData::DataFieldDefine(::ascir::SizeVar &size) const {
+std::string codegen::TilingData::DataFieldDefine(ascir::SizeVar &size) const {
   std::stringstream ss;
   ss << "TILING_DATA_FIELD_DEF_T(uint32_t, " << std::string(size.expr.Str().get()) << ");";
   return ss.str();
 }
 
-std::string af::codegen::TilingData::DataFieldConstDefine(::ascir::SizeVar &size) {
+std::string codegen::TilingData::DataFieldConstDefine(ascir::SizeVar &size) {
   std::stringstream ss;
 
   std::string field = std::string(size.expr.Str().get());
@@ -216,26 +216,26 @@ std::string af::codegen::TilingData::DataFieldConstDefine(::ascir::SizeVar &size
   return ss.str();
 }
 
-std::string af::codegen::TilingData::StructDataFiledDefine(const std::string& type_name,
+std::string codegen::TilingData::StructDataFiledDefine(const std::string& type_name,
                                                        const std::string& filed_name) const {
   std::stringstream ss;
   ss << "TILING_DATA_FIELD_DEF_T_STRUCT(" << type_name << ", " << filed_name << ");";
   return ss.str();
 }
 
-std::string af::codegen::TilingData::ClassEnd() const {
+std::string codegen::TilingData::ClassEnd() const {
   std::stringstream ss;
   ss << "END_TILING_DATA_DEF_T;";
   return ss.str();
 }
 
-std::string af::codegen::TilingData::ClassRegister() {
+std::string codegen::TilingData::ClassRegister() {
   std::stringstream ss;
   ss << "REGISTER_TILING_DATA_CLASS(" << this->kernel_name << ", " << this->class_name << ")";
   return ss.str();
 }
 
-ge::Status af::codegen::TilingData::GetApiTilingDataName(const ::ascir::NodeView& node, std::vector<std::string>& api_tiling_data_names) {
+ge::Status codegen::TilingData::GetApiTilingDataName(const ascir::NodeView& node, std::vector<std::string>& api_tiling_data_names) {
   // transpose api tiling data包含的字段：
   // param0, param1, param2, ... param17
   const std::vector<std::string> transpose_params = {"param0", "param1", "param2", "param3", "param4", "param5", "param6", "param7",
@@ -260,8 +260,8 @@ ge::Status af::codegen::TilingData::GetApiTilingDataName(const ::ascir::NodeView
   return ge::SUCCESS;
 }
 
-std::string af::codegen::TilingData::ConstApiTilingDataFiledDefine(std::string &type_name, std::string &field_name,
-                                                               const ::ascir::NodeView& node) {
+std::string codegen::TilingData::ConstApiTilingDataFiledDefine(std::string &type_name, std::string &field_name,
+                                                               const ascir::NodeView& node) {
   std::vector<std::string> node_with_api_tiling;
   if (GetApiTilingDataName(node, node_with_api_tiling) != ge::SUCCESS) {
     return "";
@@ -289,7 +289,7 @@ std::string af::codegen::TilingData::ConstApiTilingDataFiledDefine(std::string &
   return ss.str();
 }
 
-void af::codegen::TilingData::AddApiTilingData(const af::AscGraph &graph, std::stringstream &ss, uint32_t tiling_case_id)
+void codegen::TilingData::AddApiTilingData(const af::AscGraph &graph, std::stringstream &ss, uint32_t tiling_case_id)
 {
   for (const auto &node : graph.GetAllNodes()) {
     std::string device_type_name;
@@ -312,7 +312,7 @@ void af::codegen::TilingData::AddApiTilingData(const af::AscGraph &graph, std::s
   }
 }
 
-void af::codegen::TilingData::GetTqueAndTbufId(const af::AscGraph& graph, std::set<int64_t>& q_ids, std::set<int64_t>& b_ids) {
+void codegen::TilingData::GetTqueAndTbufId(const af::AscGraph& graph, std::set<int64_t>& q_ids, std::set<int64_t>& b_ids) {
   for (auto node : graph.GetAllNodes()) {
     for (auto out : node->outputs()) {
       int64_t q_id = out->attr.que.id;
@@ -327,7 +327,7 @@ void af::codegen::TilingData::GetTqueAndTbufId(const af::AscGraph& graph, std::s
   }
 }
 
-void af::codegen::TilingData::GetTmpBufName(const af::AscGraph& graph, std::set<int64_t>& b_ids) {
+void codegen::TilingData::GetTmpBufName(const af::AscGraph& graph, std::set<int64_t>& b_ids) {
   for (auto node : graph.GetAllNodes()) {
     for (auto &tmp_buffer : node->attr.tmp_buffers) {
       GELOGD("Get tmp buffer [%ld, %s] for node %s.", tmp_buffer.buf_desc.life_time_axis_id,
@@ -340,7 +340,7 @@ void af::codegen::TilingData::GetTmpBufName(const af::AscGraph& graph, std::set<
   }
 }
 
-void af::codegen::TilingData::GenTqueTbufTmpBufFunc(const std::set<int64_t>& q_ids, const std::set<int64_t>& b_ids, std::stringstream& ss) {
+void codegen::TilingData::GenTqueTbufTmpBufFunc(const std::set<int64_t>& q_ids, const std::set<int64_t>& b_ids, std::stringstream& ss) {
   for (const auto& q_id : q_ids) {
     if (q_id < 0) {
       continue;
@@ -357,7 +357,7 @@ void af::codegen::TilingData::GenTqueTbufTmpBufFunc(const std::set<int64_t>& q_i
   }
 }
 
-void af::codegen::TilingData::ProcessSingleGroup(const ::ascir::ScheduleGroup &schedule_group, std::stringstream &ss) {
+void codegen::TilingData::ProcessSingleGroup(const ascir::ScheduleGroup &schedule_group, std::stringstream &ss) {
   std::unordered_set<std::string> size_var_names;
   std::set<int64_t> q_ids;
   std::set<int64_t> b_ids;
@@ -382,8 +382,8 @@ void af::codegen::TilingData::ProcessSingleGroup(const ::ascir::ScheduleGroup &s
   return;
 }
 
-void af::codegen::TilingData::ProcessMultiGroup(uint64_t pos, const int graph_id,
-                                            const std::vector<::ascir::ScheduleGroup> &schedule_groups,
+void codegen::TilingData::ProcessMultiGroup(uint64_t pos, const int graph_id,
+                                            const std::vector<ascir::ScheduleGroup> &schedule_groups,
                                             std::stringstream &ss1, std::stringstream &ss2) {
   for (uint64_t i = 0; i < schedule_groups.size(); i++) {
     std::stringstream struct_name;
@@ -396,7 +396,7 @@ void af::codegen::TilingData::ProcessMultiGroup(uint64_t pos, const int graph_id
     const_tiling_data_field.push_back(filed_name);
     std::unordered_set<std::string> size_var_names;
     ss2 << this->ClassBegin(struct_name.str(), this->class_name) << std::endl;
-    ss2 << GetCommonTilingField(true, ::ascir::FusedScheduledResult()) << std::endl;
+    ss2 << GetCommonTilingField(true, ascir::FusedScheduledResult()) << std::endl;
 
     std::set<int64_t> q_ids;
     std::set<int64_t> b_ids;
@@ -425,7 +425,7 @@ void af::codegen::TilingData::ProcessMultiGroup(uint64_t pos, const int graph_id
   return;
 }
 
-std::string af::codegen::TilingData::GenStringReplaceFunc() const {
+std::string codegen::TilingData::GenStringReplaceFunc() const {
   std::stringstream ss;
   ss << "void replaceSubstring(std::string& ori_str, ";
   ss << "const std::string& old_sub_str, ";
@@ -439,7 +439,7 @@ std::string af::codegen::TilingData::GenStringReplaceFunc() const {
   return ss.str();
 }
 
-std::string af::codegen::TilingData::GenConstGenResultReplace() {
+std::string codegen::TilingData::GenConstGenResultReplace() {
   std::stringstream ss;
 
   for (auto &field_var : field_var_defs_) {
@@ -449,7 +449,7 @@ std::string af::codegen::TilingData::GenConstGenResultReplace() {
   return ss.str();
 }
 
-void af::codegen::TilingData::ConstTilingDataFieldPopBack() {
+void codegen::TilingData::ConstTilingDataFieldPopBack() {
   if (const_tiling_data_field.size() > 0) {
     const_tiling_data_field.pop_back();
   } else {
@@ -458,7 +458,7 @@ void af::codegen::TilingData::ConstTilingDataFieldPopBack() {
   }
 }
 
-std::string af::codegen::TilingData::GenCVConstTilingData(const std::string &tiling_data_struct_name,
+std::string codegen::TilingData::GenCVConstTilingData(const std::string &tiling_data_struct_name,
     bool is_inductor_scene) {
   std::stringstream ss;
   ss << "  set_g_basen_basem_align(basen_basem_align);" << std::endl;
@@ -482,7 +482,7 @@ std::string af::codegen::TilingData::GenCVConstTilingData(const std::string &til
 }
 
 // GenerateConst生成的信息放在tiling func .cpp中
-std::string af::codegen::TilingData::GenerateConst(const ::ascir::FusedScheduledResult& fused_schedule_result,
+std::string codegen::TilingData::GenerateConst(const ascir::FusedScheduledResult& fused_schedule_result,
                                                bool is_inductor_scene) {
   if (!IsStaticSchedResult(fused_schedule_result)) {
     return "";
@@ -538,7 +538,7 @@ std::string af::codegen::TilingData::GenerateConst(const ::ascir::FusedScheduled
   return ss.str();
 }
 
-std::string af::codegen::TilingData::GenTingDataField(std::string field_name) {
+std::string codegen::TilingData::GenTingDataField(std::string field_name) {
   if (!const_mode_) {
     return "";
   }
@@ -552,7 +552,7 @@ std::string af::codegen::TilingData::GenTingDataField(std::string field_name) {
   return ss.str();
 }
 
-std::string af::codegen::TilingData::GetNameOfGenTilingDataFieldConstDefFunc(const std::string field_name) {
+std::string codegen::TilingData::GetNameOfGenTilingDataFieldConstDefFunc(const std::string field_name) {
   if (!const_mode_) {
     return "";
   }
@@ -567,7 +567,7 @@ std::string af::codegen::TilingData::GetNameOfGenTilingDataFieldConstDefFunc(con
   return ss.str();
 }
 
-std::string af::codegen::TilingData::GetNameOfGenTilingDataFieldConstDefFuncSimple(const std::string field_name) {
+std::string codegen::TilingData::GetNameOfGenTilingDataFieldConstDefFuncSimple(const std::string field_name) {
   if (!const_mode_) {
     return "";
   }
@@ -578,7 +578,7 @@ std::string af::codegen::TilingData::GetNameOfGenTilingDataFieldConstDefFuncSimp
   return ss.str();
 }
 
-std::string af::codegen::TilingData::GetNameOfGenTilingDataFieldConstValueFuncSimple(const std::string field_name) {
+std::string codegen::TilingData::GetNameOfGenTilingDataFieldConstValueFuncSimple(const std::string field_name) {
   if (!const_mode_) {
     return "";
   }
@@ -589,7 +589,7 @@ std::string af::codegen::TilingData::GetNameOfGenTilingDataFieldConstValueFuncSi
   return ss.str();
 }
 
-std::string af::codegen::TilingData::DataFieldConstDefine(const std::string& buf_name) {
+std::string codegen::TilingData::DataFieldConstDefine(const std::string& buf_name) {
   std::stringstream ss;
   std::string field = buf_name + "_size";
   std::string field_func_str = GetNameOfGenTilingDataFieldConstDefFunc(field);
@@ -602,22 +602,22 @@ std::string af::codegen::TilingData::DataFieldConstDefine(const std::string& buf
   return ss.str();
 }
 
-std::string af::codegen::TilingData::TqueOrTbufDataFieldDefine(int64_t index, const std::string& que_or_buf) const {
+std::string codegen::TilingData::TqueOrTbufDataFieldDefine(int64_t index, const std::string& que_or_buf) const {
   std::stringstream ss;
   ss << "TILING_DATA_FIELD_DEF_T(uint32_t, " << que_or_buf << std::to_string(index) << "_size);";
   return ss.str();
 }
 
-std::string af::codegen::TilingData::TqueOrTbufDataFieldConstDefine(int64_t index, const std::string& que_or_buf) {
+std::string codegen::TilingData::TqueOrTbufDataFieldConstDefine(int64_t index, const std::string& que_or_buf) {
   return DataFieldConstDefine(que_or_buf + std::to_string(index));
 }
 
-std::string af::codegen::TilingData::TmpBufDataFieldDefine(const std::string& tmp_tbuf_name) const {
+std::string codegen::TilingData::TmpBufDataFieldDefine(const std::string& tmp_tbuf_name) const {
   std::stringstream ss;
   ss << "TILING_DATA_FIELD_DEF_T(uint32_t, " << tmp_tbuf_name << "_size);";
   return ss.str();
 }
 
-std::string af::codegen::TilingData::TmpBufDataFieldConstDefine(const std::string& tmp_tbuf_name) {
+std::string codegen::TilingData::TmpBufDataFieldConstDefine(const std::string& tmp_tbuf_name) {
   return DataFieldConstDefine(tmp_tbuf_name);
 }

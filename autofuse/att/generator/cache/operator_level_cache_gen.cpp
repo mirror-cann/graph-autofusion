@@ -15,7 +15,7 @@
 #include "generator/preprocess/args_manager.h"
 #include "util/base_types_printer.h"
 
-namespace af { namespace att {
+namespace att {
 namespace cache {
 namespace {
 std::vector<std::pair<std::string, std::string>> GetVarAccessors(const TilingModelInfo &tiling_model_info) {
@@ -353,4 +353,3 @@ private:
 }
 } // namespace cache
 } // namespace att
-}  // namespace af

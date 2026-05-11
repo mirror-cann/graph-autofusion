@@ -14,31 +14,31 @@
 #include "ascgen_log.h"
 #include "task_generator/schedule_case_generator.h"
 
-namespace af { namespace optimize {
+namespace optimize {
 class TransposeFusionCaseGenerator : public FusionCaseGenerator {
  public:
-  Status Generate(::ascir::HintGraph &graph, std::vector<::ascir::ImplGraph> &graphs,
+  Status Generate(ascir::HintGraph &graph, std::vector<ascir::ImplGraph> &graphs,
                   std::vector<std::string> &score_functions) override;
   bool HasLoadStoreConversion() const override {
     return true;
   }
 
  private:
-  static std::vector<af::AscNodePtr> FindTransposeNodes(const ::ascir::HintGraph &owner_graph);
+  static std::vector<af::AscNodePtr> FindTransposeNodes(const ascir::HintGraph &owner_graph);
   Status TransposeNodeInputsAndOutputsCheck(const af::AscNodePtr &transpose_node) const;
   void UpdateAxisByPath(::ascir::ImplGraph &owner_graph, const af::NodePtr &input_node,
                         std::set<af::Node *> &visited_nodes, const std::vector<int64_t> &reordered_axis,
                         const std::vector<int64_t> &reordered_sched_axis) const;
-  void UpdateAxis(::ascir::HintGraph &graph, const af::AscNodePtr &transpose_node) const;
-  Status TransposeConvertProcess(::ascir::HintGraph &graph, const af::AscNodePtr &transpose_node) const;
-  static Status GenerateScoreFuncForUbReorder(const ::ascir::HintGraph &graph,
+  void UpdateAxis(ascir::HintGraph &graph, const af::AscNodePtr &transpose_node) const;
+  Status TransposeConvertProcess(ascir::HintGraph &graph, const af::AscNodePtr &transpose_node) const;
+  static Status GenerateScoreFuncForUbReorder(const ascir::HintGraph &graph,
                                       const af::AscNodePtr &transpose_node,
                                       std::string &score_func);
 };
 
 class TransposeScoreFunctionGenerator {
 public:
-  TransposeScoreFunctionGenerator(const ::ascir::HintGraph &graph, af::AscNodePtr transpose_node);
+  TransposeScoreFunctionGenerator(const ascir::HintGraph &graph, af::AscNodePtr transpose_node);
   Status Generate(std::string &score_func);
 
 private:
@@ -46,11 +46,10 @@ private:
   Status GetScoreByExpr(int32_t &score) const;
   void GenerateReturnValue(const int32_t score);
 
-  const ::ascir::HintGraph *graph_;
+  const ascir::HintGraph *graph_;
   af::AscNodePtr transpose_node_;
   af::Expression repeat_;
   std::stringstream ss_;
 };
 }
-}  // namespace af
 #endif  // AUTOFUSE_TRANSPOSE_SCHEDULE_CASE_GENERATOR_H

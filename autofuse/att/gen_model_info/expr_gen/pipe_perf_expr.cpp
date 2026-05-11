@@ -20,7 +20,7 @@
 #include "utils/node_expr_id.h"
 #include "graph/compute_graph.h"
 
-namespace af { namespace att {
+namespace att {
 namespace {
 constexpr int32_t kMaxRecursiveNum = 10;
 void UpdateDim(const std::vector<Expr> &stride, std::vector<Expr> &dims) {
@@ -385,7 +385,7 @@ ge::Status PipePerfExpr::GetNodeExeTime(const NodeInfo &node, const ExeTimePassM
   }
   GE_ASSERT_TRUE(IsValid(exe_time), "Get node exe times expr failed.");
   cur_exe_time = exe_time_mgr.UpdateNodeExeTime(node, exe_time);
-  std::string exe_time_name = af::att::SanitizeNodeName(node.name) + "_exe_time";
+  std::string exe_time_name = att::SanitizeNodeName(node.name) + "_exe_time";
   cur_exe_time.SetVariable(CreateExpr(exe_time_name.c_str()));
   ArgListManager::GetInstance().SetArgExpr(exe_time_name, cur_exe_time.GetVariable());
   return ge::SUCCESS;
@@ -574,4 +574,3 @@ ge::Status PipePerfExpr::AddNodePerfToPipeCost(const NodeInfo &node, const Expr 
   return ge::SUCCESS;
 }
 }  // namespace att
-}  // namespace af

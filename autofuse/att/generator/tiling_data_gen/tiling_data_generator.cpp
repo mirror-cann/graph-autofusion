@@ -20,7 +20,7 @@
 #include "graph/symbolizer/symbolic.h"
 #include "graph/symbolizer/symbolic_utils.h"
 
-namespace af { namespace att {
+namespace att {
 namespace {
 constexpr int32_t kNotAlignedSize = 1;  // if align is 1, do not need align
 constexpr char kLoopNumSuffix[] = "_loop_num";
@@ -685,4 +685,3 @@ std::vector<std::pair<std::string, std::string>> TilingDataGenBase::GetTilingDat
   return tiling_data_names;
 }
 }  // namespace att
-}  // namespace af

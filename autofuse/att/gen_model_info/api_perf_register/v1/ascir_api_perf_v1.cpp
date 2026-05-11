@@ -20,7 +20,7 @@
 #include "perf_param_v1.h"
 
 using namespace af::sym;
-namespace af { namespace att {
+namespace att {
 namespace {
 constexpr int32_t kMaxDmaLen = 2;
 // bandwidth
@@ -1846,4 +1846,3 @@ ApiPerfRegister<ApiPerf> floor_div_api_perf(kFloorDiv, GetPerfFunc(kUnitVector),
 ApiPerfRegister<ApiPerf> gelu_api_perf(kGelu, GetPerfFunc(kUnitVector), nullptr, &perf_param_table_v1, &tiling_schedule_config_table_v1);
 }
 }  // namespace att
-}  // namespace af

@@ -11,7 +11,7 @@
 #define ATT_INPUT_OUTPUT_SETTERS_H_
 #include <string>
 
-namespace af { namespace att {
+namespace att {
 
 /**
  * @class InputOutputSetters
@@ -62,6 +62,5 @@ class InputOutputSetters {
 };
 
 }  // namespace att
-}  // namespace af
 
 #endif  // ATT_INPUT_OUTPUT_SETTERS_H_

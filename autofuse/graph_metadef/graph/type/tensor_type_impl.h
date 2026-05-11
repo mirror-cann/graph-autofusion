@@ -12,7 +12,7 @@
 #define METADEF_CXX_TENSOR_TYPE_IMPL_H
 #include <set>
 #include "graph/types.h"
-namespace af {
+namespace ge {
 class TensorTypeImpl {
  public:
   TensorTypeImpl() = default;
@@ -27,6 +27,6 @@ class TensorTypeImpl {
  private:
   std::set<ge::DataType> dt_set_;
 };
-}  // namespace af
+}  // namespace ge
 
 #endif  // METADEF_CXX_TENSOR_TYPE_IMPL_H

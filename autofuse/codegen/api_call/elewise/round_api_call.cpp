@@ -18,13 +18,13 @@
 #include "common/checker.h"
 #include "api_call/utils/api_call_factory.h"
 
-namespace af { namespace codegen {
+namespace codegen {
 using namespace std;
 using namespace af::ops;
 using namespace af::ascir_op;
 using namespace ascgen_utils;
 
-Status RoundApiCall::Generate(const TPipe &tpipe, const std::vector<::ascir::AxisId> &current_axis,
+Status RoundApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
                               const std::vector<std::reference_wrapper<const Tensor>> &inputs,
                               const std::vector<std::reference_wrapper<const Tensor>> &outputs,
                               std::string &result) const {
@@ -50,4 +50,3 @@ Status RoundApiCall::Generate(const TPipe &tpipe, const std::vector<::ascir::Axi
 
 static ApiCallRegister<RoundApiCall> register_round_api_call("RoundApiCall");
 }  // namespace codegen
-}  // namespace af

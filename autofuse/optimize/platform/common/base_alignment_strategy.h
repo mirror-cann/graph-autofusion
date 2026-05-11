@@ -19,7 +19,7 @@
 #include "graph/utils/graph_utils.h"
 #include "symbolizer/symbolic_utils.h"
 
-namespace af { namespace optimize {
+namespace optimize {
 constexpr uint32_t kAlignWidth = 32U;
 
 enum class AlignmentType : uint32_t {
@@ -47,7 +47,7 @@ class BaseAlignmentStrategy {
   BaseAlignmentStrategy &operator=(BaseAlignmentStrategy &&) = delete;
 
   // 只允许load出现尾轴非连续
-  af::Status AlignVectorizedStrides(::ascir::ImplGraph &impl_graph);
+  af::Status AlignVectorizedStrides(ascir::ImplGraph &impl_graph);
   static af::Status SetVectorizedStridesForTensor(const af::NodePtr &node, af::AscTensorAttr &output_attr, const AlignmentType align_type);
 
  protected:
@@ -63,7 +63,7 @@ class BaseAlignmentStrategy {
   virtual af::Status ReduceAlignmentInferFunc(const af::AscNodePtr &node);
   virtual af::Status SplitAlignmentInferFunc(const af::AscNodePtr &node);
 
-  static af::Status SetAlignWidth(const ::ascir::ImplGraph &impl_graph);
+  static af::Status SetAlignWidth(const ascir::ImplGraph &impl_graph);
   af::Status InferAlignmentForOneNode(const af::AscNodePtr &node);
   // 当前tensor的对齐行为只会出现在尾轴,如果没有新的对齐行为或者类型,该函数不应该修改
   af::Status SetVectorizedStridesForOneNode(const af::AscNodePtr &node);
@@ -75,9 +75,9 @@ class BaseAlignmentStrategy {
   bool SetAlignInfoForNodeOutputs(AlignmentType aligned_type, af::AscNode *node, std::set<af::Node *> &visited_nodes,
                                   std::queue<af::Node *> &node_queue);
 
-  static af::Status AddRemovePadForTailAxisDiscontinuousLoad(::ascir::ImplGraph &impl_graph);
+  static af::Status AddRemovePadForTailAxisDiscontinuousLoad(ascir::ImplGraph &impl_graph);
   af::Status CheckIsNoNeedPad(const af::AscNodePtr &node, af::AscTensorAttr &out_attr, bool &is_no_need_pad) const;
-  af::Status AddPadForAlignmentConflictNode(::ascir::ImplGraph &impl_graph);
+  af::Status AddPadForAlignmentConflictNode(ascir::ImplGraph &impl_graph);
   // 多输入elewise,有一个fix,需要向上传递fix状态,防止输入链路上被后续节点刷成align
   af::Status BackPropagateFixUnAlignType(const af::AscNodePtr &node);
 
@@ -89,5 +89,4 @@ class BaseAlignmentStrategy {
 bool IsLoadNeedAlignForReduce(const af::AscNodePtr &node);
 bool IsLoadNeedAlign(const af::AscNodePtr &node_load);
 }  // namespace optimize
-}  // namespace af
 #endif  // OPTIMIZE_PLATFORM_COMMON_BASE_ALIGNMENT_STRATEGY_H

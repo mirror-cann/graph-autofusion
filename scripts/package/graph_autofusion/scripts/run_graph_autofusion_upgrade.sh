@@ -94,7 +94,19 @@ from pathlib import Path
 src = Path(sys.argv[1])
 dst = Path(sys.argv[2])
 lines = src.read_text().splitlines()
-filtered = [line for line in lines if 'python/site-packages/autofuse' not in line]
+autofuse_shared_libs = (
+    'libaihac_codegen.so',
+    'libaihac_ir.so',
+    'libaihac_ir_register.so',
+    'libgraph_af.so',
+    'libgraph_base_af.so',
+    'libaihac_symbolizer_af.so',
+)
+filtered = [
+    line for line in lines
+    if 'python/site-packages/autofuse' not in line
+    and not any(lib in line for lib in autofuse_shared_libs)
+]
 dst.write_text("\n".join(filtered) + "\n")
 PY
     fi

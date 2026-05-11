@@ -16,7 +16,7 @@
 #include "v35/optimize/template/nddma_template.h"
 #include "v35/optimize/template/load_to_nddma_template.h"
 
-namespace af { namespace optimize {
+namespace optimize {
 class TemplateGeneratorV2 : public BaseTemplateGenerator {
  public:
   ~TemplateGeneratorV2() override = default;
@@ -32,6 +32,5 @@ class TemplateGeneratorV2 : public BaseTemplateGenerator {
   TemplateGeneratorV2 &operator=(TemplateGeneratorV2 &&) = delete;
 };
 }  // namespace optimize
-}  // namespace af
 
 #endif  // OPTIMIZE_PLATFORM_V2_TEMPLATE_GENERATOR_V2_H

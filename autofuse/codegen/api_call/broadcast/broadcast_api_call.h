@@ -11,20 +11,19 @@
 #define __AUTOFUSE_BROADCAST_API_CALL_H__
 #include "codegen_kernel.h"
 
-namespace af { namespace codegen {
+namespace codegen {
 class BroadcastApiCall final : public ApiCall {
  public:
   using ApiCall::Generate;
   explicit BroadcastApiCall(const std::string &api_name) : ApiCall(api_name) {}
   ~BroadcastApiCall() final = default;
-  Status Generate(const TPipe &tpipe, const std::vector<::ascir::AxisId> &current_axis,
+  Status Generate(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
                   const std::vector<std::reference_wrapper<const Tensor>> &inputs,
                   const std::vector<std::reference_wrapper<const Tensor>> &outputs, std::string &result) const override;
 };
 
 bool IsBroadcastConstantTensor(const Tensor &tensor);
-void BroadcastScalar(const TPipe &tpipe, const std::vector<::ascir::AxisId> &current_axis, const Tensor &in,
+void BroadcastScalar(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis, const Tensor &in,
                      const Tensor &out, const int64_t tmp_buf_id, std::string &result, bool need_tmp_buf = true);
 }  // namespace codegen
-}  // namespace af
 #endif  // __AUTOFUSE_BROADCAST_API_CALL_H__

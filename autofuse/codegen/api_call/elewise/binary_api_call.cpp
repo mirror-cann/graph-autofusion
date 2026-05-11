@@ -19,13 +19,13 @@
 #include "common/checker.h"
 #include "api_call/utils/api_call_factory.h"
 
-namespace af { namespace codegen {
+namespace codegen {
 using namespace std;
 using namespace af::ops;
 using namespace af::ascir_op;
 using namespace ascgen_utils;
 
-Status BinaryApiCall::Generate(const TPipe &tpipe, const std::vector<::ascir::AxisId> &current_axis,
+Status BinaryApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
   const std::vector<std::reference_wrapper<const Tensor>> &inputs,
   const std::vector<std::reference_wrapper<const Tensor>> &outputs, std::string &result) const {
   if (generalized_brc_inline_scene) {
@@ -107,7 +107,7 @@ std::string BinaryApiCall::GetAscendApiName(const std::string &api_name) {
   return api_name.find(prefix) != std::string::npos ? api_name : prefix + api_name;
 }
 
-Status BinaryApiCall::BrcInlineGenerate(const TPipe &tpipe, const std::vector<::ascir::AxisId> &current_axis,
+Status BinaryApiCall::BrcInlineGenerate(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
   const std::vector<std::reference_wrapper<const Tensor>> &inputs,
   const std::vector<std::reference_wrapper<const Tensor>> &outputs, std::string &result) const {
   const auto& x1 = inputs[0].get();
@@ -172,7 +172,7 @@ Status BinaryApiCall::BrcInlineGenerate(const TPipe &tpipe, const std::vector<::
   return ge::SUCCESS;
 }
 
-Status BinaryApiCall::Init(const ::ascir::NodeView &node) {
+Status BinaryApiCall::Init(const ascir::NodeView &node) {
   GE_CHK_STATUS_RET(ApiCall::Init(node));
   generalized_brc_inline_scene = IsGeneralizeBrcInlineScene(node, input_idx_2_brc_inline);
   return ge::SUCCESS;
@@ -180,4 +180,3 @@ Status BinaryApiCall::Init(const ::ascir::NodeView &node) {
 
 static ApiCallRegister<BinaryApiCall> register_binary_api_call("BinaryApiCall");
 }  // namespace codegen
-}  // namespace af

@@ -17,7 +17,7 @@
 #include <sstream>
 #include "code_printer.h"
 
-namespace af { namespace codegen {
+namespace codegen {
 class InfershapeGen {
  public:
   [[nodiscard]] std::string GenInferShapeFunc(const std::vector<std::vector<std::string>> &symbol_shape_str,
@@ -25,5 +25,4 @@ class InfershapeGen {
 };
 };  // namespace codegen
 
-}  // namespace af
 #endif

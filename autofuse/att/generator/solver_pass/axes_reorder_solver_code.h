@@ -13,7 +13,7 @@
 #include <string>
 #include <cstdint>
 
-namespace af { namespace att {
+namespace att {
 
 // ============================================================================
 // Section 1: Core Data Structures
@@ -204,6 +204,5 @@ extern const std::string AXES_SOLVER_CODE_FUNC;
 extern const std::string AXES_SOLVER_PGO_CODE_FUNC;
 
 } // namespace att
-}  // namespace af
 
 #endif // ATT_AXES_REORDER_SOLVER_CODE_H_

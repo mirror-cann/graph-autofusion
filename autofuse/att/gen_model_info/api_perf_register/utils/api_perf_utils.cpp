@@ -16,7 +16,7 @@
 #include "api_perf_register/ascendc_api_perf.h"
 #include "utils/node_expr_id.h"
 
-namespace af { namespace att {
+namespace att {
 namespace {
 float ParseOptionalFloatParam(const std::map<std::string, float> &param_map, const std::string &key,
                               float default_val) {
@@ -472,7 +472,7 @@ ge::Status UpdateSwapPerf(const NodeDetail &node_info, const int32_t supported_m
     PipeType pipe_type = node_info.optype == kMoveUbToGm ? PipeType::AIV_MTE3 : PipeType::AIV_MTE2;
     GE_ASSERT_SUCCESS(UpdateTenary(swap_perf, perf_res));
     GE_ASSERT_SUCCESS(UpdateTenary(non_swap_perf, perf_res));
-    GetPerfVar(af::att::SanitizeNodeName(node_info.name), res, perf_res.ternary_ops);
+    GetPerfVar(att::SanitizeNodeName(node_info.name), res, perf_res.ternary_ops);
     perf_res.ternary_ops[res] = TernaryOp(CondType::K_LT, node_info.input_dims[dim_size - supported_max_dma_len],
                                         node_info.input_dims[dim_size - supported_max_dma_len - 1],
                                         GetPipeCost(swap_perf, pipe_type), GetPipeCost(non_swap_perf, pipe_type));
@@ -981,4 +981,3 @@ ge::Status GetDmaPerf(const TensorShapeInfo &tensor_info, NodeDetail &node_info,
 }
 
 }  // namespace att
-}  // namespace af

@@ -20,7 +20,7 @@ constexpr size_t kAxisIndex3 = 3U;
 constexpr uint64_t kDmaMaxLen = 2U;
 }  // namespace
 
-namespace af { namespace codegen {
+namespace codegen {
 namespace {
 void SaveApiLoopAxisStatus(const std::vector<Tensor> &inputs, const std::vector<Tensor> &outputs,
                            const Tensor &base_tensor, int64_t vec_cur_idx, VectorizedAixsLoopStatus &axis_info,
@@ -31,7 +31,7 @@ void SaveApiLoopAxisStatus(const std::vector<Tensor> &inputs, const std::vector<
   merge_info.merge_repeats_str.emplace_back(ss.str());
   merge_info.merge_repeats.emplace_back(base_tensor.axis_size[axis_pos]);
 
-  std::vector<::ascir::AxisId> merge_axis = {base_tensor.axis[axis_pos]};
+  std::vector<ascir::AxisId> merge_axis = {base_tensor.axis[axis_pos]};
   merge_info.merge_axis_ids.emplace_back(merge_axis);
 
   for (size_t i = 0; i < inputs.size(); i++) {
@@ -59,7 +59,7 @@ const Tensor &GetBaseTensor(const std::vector<Tensor> &inputs, const std::vector
 
   for (size_t i = 0UL; i < outputs.size(); i++) {
     bool is_all_zero = std::all_of(
-        outputs[i].vectorized_strides.begin(), outputs[i].vectorized_strides.end(), [](const ::ascir::SizeExpr &stride) {
+        outputs[i].vectorized_strides.begin(), outputs[i].vectorized_strides.end(), [](const ascir::SizeExpr &stride) {
           return af::SymbolicUtils::StaticCheckEq(stride.Simplify(), af::sym::kSymbolZero) == af::TriBool::kTrue;
         });
     if (!is_all_zero) {
@@ -108,7 +108,7 @@ static void UpdateCalculatedDmaStatus(const TPipe &tpipe, const Tensor &gm_tenso
   axis_info.prev_repeat = gm_tensor.axis_size[idx];
 }
 
-void CreateOuterFor(const TPipe &tpipe, const std::vector<::ascir::SizeExpr> &outer_repeats, const std::stringstream &ss1,
+void CreateOuterFor(const TPipe &tpipe, const std::vector<ascir::SizeExpr> &outer_repeats, const std::stringstream &ss1,
                     std::stringstream &ss, size_t cur_idx) {
   if (cur_idx == outer_repeats.size()) {
     return;
@@ -154,8 +154,8 @@ bool CalculateDmaParams(const TPipe &tpipe, const Tensor &gm_tensor, const Tenso
         continue;
       }
       has_non_zero_axis = true;
-      ::ascir::SizeExpr cur_axis_stride = axis_info.prev_axis_stride * axis_info.prev_repeat;
-      ::ascir::SizeExpr cur_vectorized_axis_stride = axis_info.prev_vectorized_axis_stride * axis_info.prev_repeat;
+      ascir::SizeExpr cur_axis_stride = axis_info.prev_axis_stride * axis_info.prev_repeat;
+      ascir::SizeExpr cur_vectorized_axis_stride = axis_info.prev_vectorized_axis_stride * axis_info.prev_repeat;
       if (af::SymbolicUtils::StaticCheckEq(cur_axis_stride, gm_tensor.axis_strides[i]) != af::TriBool::kTrue ||
           af::SymbolicUtils::StaticCheckEq(cur_vectorized_axis_stride, ub_tensor.vectorized_strides[vec_cur_idx]) !=
               af::TriBool::kTrue) {
@@ -176,7 +176,7 @@ bool CalculateDmaParams(const TPipe &tpipe, const Tensor &gm_tensor, const Tenso
       merge_info.merge_repeats_str.pop_back();
       merge_info.merge_repeats_str.push_back(product_str);
 
-      ::ascir::SizeExpr product = gm_tensor.axis_size[i] * merge_info.merge_repeats.back();
+      ascir::SizeExpr product = gm_tensor.axis_size[i] * merge_info.merge_repeats.back();
       axis_info.prev_repeat = product;
       merge_info.merge_repeats.pop_back();
       merge_info.merge_repeats.push_back(product);
@@ -226,7 +226,7 @@ void SetDmaParams(const TPipe &tpipe, const DataCopyParams &data_copy_param, Dma
   }
 }
 
-std::string CalcInnerOffset(const TPipe &tpipe, const std::vector<::ascir::SizeExpr> &strides) {
+std::string CalcInnerOffset(const TPipe &tpipe, const std::vector<ascir::SizeExpr> &strides) {
   std::stringstream ss;
   for (size_t i = 0; i < strides.size(); i++) {
     ss << "outer_for_" << i << " * " << tpipe.tiler.Size(strides[i]);
@@ -238,12 +238,12 @@ std::string CalcInnerOffset(const TPipe &tpipe, const std::vector<::ascir::SizeE
 }
 
 static void CreateDmaCallInner(const TPipe &tpipe, const Tensor &input, const Tensor &output, const string &gm_offset,
-                               const DataCopyParams &param, const ::ascir::SizeExpr &offset, std::stringstream &ss,
+                               const DataCopyParams &param, const ascir::SizeExpr &offset, std::stringstream &ss,
                                bool copy_in, bool need_swap) {
   int64_t total_len = param.repeats.size();
-  std::vector<::ascir::SizeExpr> gm_stride(param.gm_strides.begin(), param.gm_strides.end() - kAxisIndex3);
-  std::vector<::ascir::SizeExpr> ub_stride(param.ub_strides.begin(), param.ub_strides.end() - kAxisIndex3);
-  std::vector<::ascir::SizeExpr> repeats(param.repeats.begin(), param.repeats.end() - kAxisIndex3);
+  std::vector<ascir::SizeExpr> gm_stride(param.gm_strides.begin(), param.gm_strides.end() - kAxisIndex3);
+  std::vector<ascir::SizeExpr> ub_stride(param.ub_strides.begin(), param.ub_strides.end() - kAxisIndex3);
+  std::vector<ascir::SizeExpr> repeats(param.repeats.begin(), param.repeats.end() - kAxisIndex3);
   if (need_swap) {
     gm_stride.emplace_back(param.gm_strides[total_len - kDmaMaxLen]);
     ub_stride.emplace_back(param.ub_strides[total_len - kDmaMaxLen]);
@@ -269,8 +269,8 @@ static void CreateDmaCallInner(const TPipe &tpipe, const Tensor &input, const Te
         << dma_param.block_len << ", " << dma_param.src_stride << ", " << dma_param.dst_stride << ");" << std::endl;
   }
   CreateOuterFor(tpipe, repeats, ss1, ss2, 0);
-  ::ascir::SizeExpr last_two_repeat = param.repeats[total_len - kDmaMaxLen];
-  ::ascir::SizeExpr last_three_repeat = param.repeats[total_len - kAxisIndex3];
+  ascir::SizeExpr last_two_repeat = param.repeats[total_len - kDmaMaxLen];
+  ascir::SizeExpr last_three_repeat = param.repeats[total_len - kAxisIndex3];
   if (need_swap) {
     ss << "if (" << tpipe.tiler.ActualSize(last_two_repeat) << " < " << tpipe.tiler.ActualSize(last_three_repeat)
        << " ) { " << std::endl
@@ -281,7 +281,7 @@ static void CreateDmaCallInner(const TPipe &tpipe, const Tensor &input, const Te
 }
 
 void CreateDmaCall(const TPipe &tpipe, const Tensor &input, const Tensor &output, const string &gm_offset,
-                   const DataCopyParams &param, const ::ascir::SizeExpr &offset, std::stringstream &ss, bool copy_in) {
+                   const DataCopyParams &param, const ascir::SizeExpr &offset, std::stringstream &ss, bool copy_in) {
   CreateDmaCallInner(tpipe, input, output, gm_offset, param, offset, ss, copy_in, true);
   CreateDmaCallInner(tpipe, input, output, gm_offset, param, offset, ss, copy_in, false);
 }
@@ -303,13 +303,13 @@ void CreateComputeNodeOuterFor(const std::vector<std::string> &outer_repeats, co
 bool CheckAxisContinuous(const std::vector<Tensor> &inputs, const std::vector<Tensor> &outputs,
                          VectorizedAixsLoopStatus &axis_info, int64_t index) {
   for (size_t i = 0; i < inputs.size(); i++) {
-    ::ascir::SizeExpr cur_axis_stride = axis_info.prev_input_axis_stride[i] * axis_info.prev_repeat;
+    ascir::SizeExpr cur_axis_stride = axis_info.prev_input_axis_stride[i] * axis_info.prev_repeat;
     if (af::SymbolicUtils::StaticCheckEq(cur_axis_stride, inputs[i].vectorized_strides[index]) != af::TriBool::kTrue) {
       return false;
     }
   }
   for (size_t i = 0; i < outputs.size(); i++) {
-    ::ascir::SizeExpr cur_axis_stride = axis_info.prev_output_axis_stride[i] * axis_info.prev_repeat;
+    ascir::SizeExpr cur_axis_stride = axis_info.prev_output_axis_stride[i] * axis_info.prev_repeat;
     if (af::SymbolicUtils::StaticCheckEq(cur_axis_stride, outputs[i].vectorized_strides[index]) != af::TriBool::kTrue) {
       return false;
     }
@@ -319,8 +319,8 @@ bool CheckAxisContinuous(const std::vector<Tensor> &inputs, const std::vector<Te
 
 void GetOneAxisSize(const TPipe &tpipe, const Tensor &tensor, const uint32_t idx, std::stringstream &ss) {
   auto axis_pos = tensor.vectorized_axis_pos[idx];
-  ::ascir::AxisId axis_id = tensor.axis[axis_pos];
-  if (tpipe.tiler.GetAxis(axis_id).type != ::ascir::Axis::Type::kAxisTypeTileInner ||
+  ascir::AxisId axis_id = tensor.axis[axis_pos];
+  if (tpipe.tiler.GetAxis(axis_id).type != ascir::Axis::Type::kAxisTypeTileInner ||
       tensor.vectorized_axis[0] == axis_id) {
     ss << tpipe.tiler.ActualSize(tensor.axis_size[axis_pos]);
     return;
@@ -481,7 +481,7 @@ bool GenerateVectorizedAxisMergeStatus(const std::vector<Tensor> &inputs, const 
     merge_info.merge_repeats_str.pop_back();
     merge_info.merge_repeats_str.push_back(product_str);
 
-    ::ascir::SizeExpr product = base_tensor.axis_size[axis_pos] * merge_info.merge_repeats.back();
+    ascir::SizeExpr product = base_tensor.axis_size[axis_pos] * merge_info.merge_repeats.back();
     axis_info.prev_repeat = product;
     merge_info.merge_repeats.pop_back();
     merge_info.merge_repeats.push_back(product);
@@ -547,4 +547,3 @@ void GenerateLinkStoreEventCode(const Tensor& ub, const std::string& offset_str,
 }
 
 }  // namespace codegen
-}  // namespace af

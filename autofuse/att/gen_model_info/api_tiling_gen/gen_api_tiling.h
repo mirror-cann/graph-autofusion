@@ -17,7 +17,7 @@
 #include "base/base_types.h"
 #include "gen_autofuse_api_tiling.h"
 
-namespace af { namespace att {
+namespace att {
 struct ApiTilingParams {
   af::AscGraph graph;
   std::string tiling_data_type;
@@ -26,5 +26,4 @@ struct ApiTilingParams {
 ge::Status GetApiTilingInfo(const uint32_t tiling_case_id, const ApiTilingParams &params,
                             std::map<std::string, NodeApiTilingCode> &node_name_to_api_code);
 }  // namespace att
-}  // namespace af
 #endif  // GEN_API_TILING_H_

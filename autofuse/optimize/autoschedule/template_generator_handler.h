@@ -14,11 +14,11 @@
 #include "platform/platform_factory.h"
 #include "autoschedule_defs.h"
 
-namespace af::optimize::autoschedule {
+namespace optimize::autoschedule {
 class TemplateGeneratorHandler {
  public:
   static ge::Status GenerateTemplates(const af::AscGraph &origin_graph, std::vector<AutoScheduleOutput> &tiling_cases);
 };
-}  // namespace af::optimize::autoschedule
+}  // namespace optimize::autoschedule
 
 #endif  // OPTIMIZE_AUTOSCHEDULE_TEMPLATE_GENERATOR_HANDLER_H

@@ -17,7 +17,7 @@
 #include "ascgen_log.h"
 #include "tensor_mem_defs.h"
 
-namespace af { namespace optimize {
+namespace optimize {
 class BufQueAllocator {
  public:
   Status AllocBufQue(::ascir::FusedScheduledResult &fused_scheduled_result);
@@ -29,11 +29,11 @@ class BufQueAllocator {
   Status AllocateForIoNodes(const af::AscGraph &impl_graph);
   Status SetOutputTensorAttr(const af::AscGraph &impl_graph) const;
   static void SetGlobalMemInfo(const af::AscTensor &tensor, int64_t tensor_id);
-  void InitTensorReuseInfoAndLifeTime(const ::ascir::NodeView &node, const af::AscTensor *output,
+  void InitTensorReuseInfoAndLifeTime(const ascir::NodeView &node, const af::AscTensor *output,
                                       TensorInfo &tensor_info, bool is_reduce_mem_reuse, bool is_cube_none_db) const;
-  void InitTensorReuseInfo(const ::ascir::NodeView &node, const af::AscTensor *output, TensorInfo &tensor_info,
+  void InitTensorReuseInfo(const ascir::NodeView &node, const af::AscTensor *output, TensorInfo &tensor_info,
                            bool is_reduce_mem_reuse, bool is_node_cached) const;
-  static void InitTensorLifeTime(const ::ascir::NodeView &node, const af::AscTensor *output, TensorInfo &tensor_info,
+  static void InitTensorLifeTime(const ascir::NodeView &node, const af::AscTensor *output, TensorInfo &tensor_info,
                                  bool is_node_cached, bool is_cube_none_db);
   static Status InitTensorMemInfo(af::AscGraph &graph, const af::AscTensor *output, TensorInfo &tensor_info);
   Status InitTensorInfo(af::AscGraph &graph, TensorInfoMap &tensor_attr_to_tensor_info,
@@ -52,13 +52,12 @@ class BufQueAllocator {
   static Status TopoSortByLoadPriority(af::AscGraph &graph);
 
   int64_t prev_tensor_id_ = 0;
-  ::ascir::CubeTemplateType cube_type{::ascir::CubeTemplateType::kDefault};
+  ascir::CubeTemplateType cube_type{ascir::CubeTemplateType::kDefault};
   std::map<std::string, std::map<int64_t, int64_t>> node_type_to_index_to_tensor_id_;
   std::map<std::string, std::map<int64_t, ::ascir::NodeView>> node_type_to_index_to_node_;
   // workspace 根据name来表达是否同一块
   std::map<std::string, int64_t> workspace_name_to_tensor_id_;
 };
 }  // namespace optimize
-}  // namespace af
 
 #endif  // OPTIMIZE_BUFFER_ALLOCATE_BUF_QUE_ALLOCATOR_H_

@@ -19,8 +19,8 @@
 #include "graph_metadef/graph/debug/ge_util.h"
 #include "graph/ge_error_codes.h"
 #include "graph/ge_tensor.h"
-#include "graph/ascendc_ir/ascendc_ir_check.h"
-#include "proto/af_ascendc_ir.pb.h"
+#include "ascendc_ir/ascendc_ir_check.h"
+#include "proto/ascendc_ir.pb.h"
 #include "serialization/attr_serializer_registry.h"
 #include "attribute_group/af_attr_group_base.h"
 #include "../../../external/graph/operator.h"
@@ -36,7 +36,6 @@ using AscTensorAttrGroupsDef = af::proto::AscTensorAttrGroupsDef;
 }
 }
 namespace af {
-using ge::graphStatus;
 #ifdef AUTOFUSE_USE_GE_METADEF
 using AfAttrGroupsBase = af::AttrGroupsBase;
 using AttrHolder = ge::AttrHolder;
@@ -258,8 +257,8 @@ class AscIrAttrDefBase {
  public:
   AscIrAttrDefBase() = default;
   virtual ~AscIrAttrDefBase() = default;
-  graphStatus Serialize(af::proto::AscIrAttrDef &asc_ir_attr_def);
-  graphStatus Deserialize(const af::proto::AscIrAttrDef &asc_ir_attr_def);
+  graphStatus Serialize(ascendc_ir::proto::AscIrAttrDef &asc_ir_attr_def);
+  graphStatus Deserialize(const ascendc_ir::proto::AscIrAttrDef &asc_ir_attr_def);
   std::unique_ptr<AscIrAttrDefBase> Clone();;
   template<typename T>
   graphStatus GetAttrValue(const std::string &attr_name, T &attr_value) {
@@ -374,8 +373,8 @@ class AscNodeAttr : public AfAttrGroupsBase {
   std::vector<TmpBuffer> tmp_buffers;
   AscNodeAttr() = default;
   ~AscNodeAttr() override = default;
-  graphStatus SerializeAttr(af::proto::AscNodeAttrGroupsDef &asc_node_group) const;
-  graphStatus DeserializeAttr(const af::proto::AscNodeAttrGroupsDef &asc_node_group);
+  graphStatus SerializeAttr(ascendc_ir::proto::AscNodeAttrGroupsDef &asc_node_group) const;
+  graphStatus DeserializeAttr(const ascendc_ir::proto::AscNodeAttrGroupsDef &asc_node_group);
   graphStatus Serialize(proto::AttrGroupDef &attr_group_def) override;
   graphStatus Deserialize(const proto::AttrGroupDef &attr_group_def, AttrHolder *attr_holder) override;
   AscNodeAttr &operator=(const AscNodeAttr &other);
@@ -441,8 +440,8 @@ class AscGraphAttr : public AfAttrGroupsBase {
   // [HI] 图上的符号，TODO：未来不需要这个数据结构了，改成Expression即可
   std::vector<SizeVarPtr> size_vars;
   AscGraphType type{AscGraphType::kHintGraph};
-  graphStatus SerializeAttr(af::proto::AscGraphAttrGroupsDef &asc_graph_group);
-  graphStatus DeserializeAttr(const af::proto::AscGraphAttrGroupsDef &asc_graph_group);
+  graphStatus SerializeAttr(ascendc_ir::proto::AscGraphAttrGroupsDef &asc_graph_group);
+  graphStatus DeserializeAttr(const ascendc_ir::proto::AscGraphAttrGroupsDef &asc_graph_group);
   std::unique_ptr<AfAttrGroupsBase> CloneAf() override;
   graphStatus Serialize(proto::AttrGroupDef &attr_group_def) override;
   graphStatus Deserialize(const proto::AttrGroupDef &attr_group_def, AttrHolder *attr_holder) override;
@@ -523,8 +522,8 @@ class AscTensorAttr : public AfAttrGroupsBase {
   static AscTensorAttr &GetTensorAttr(const af::OutDataAnchor &output);
   static AscTensorAttr *GetTensorAttrPtr(af::Operator *op, const uint32_t index);
   static AscTensorAttr *GetTensorAttrPtr(const af::OutDataAnchor &output);
-  graphStatus SerializeAttr(af::proto::AscTensorAttrGroupsDef &asc_tensor_group);
-  graphStatus DeserializeAttr(const af::proto::AscTensorAttrGroupsDef &asc_tensor_group,
+  graphStatus SerializeAttr(ascendc_ir::proto::AscTensorAttrGroupsDef &asc_tensor_group);
+  graphStatus DeserializeAttr(const ascendc_ir::proto::AscTensorAttrGroupsDef &asc_tensor_group,
                               af::GeTensorDesc *tensor_desc);
   std::unique_ptr<AfAttrGroupsBase> CloneAf() override;
   graphStatus Serialize(proto::AttrGroupDef &attr_group_def) override;

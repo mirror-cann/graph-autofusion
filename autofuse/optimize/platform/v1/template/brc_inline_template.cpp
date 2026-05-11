@@ -13,7 +13,7 @@
 #include <string>
 #include <queue>
 
-namespace af { namespace optimize {
+namespace optimize {
 
 std::string BrcInlineTemplate::GenName(const std::string &general_case_name) {
   return general_case_name + "_inline";
@@ -83,4 +83,3 @@ bool BrcInlineTemplate::NeedDropBasedCase(const af::AscGraph &origin_graph, cons
 }
 
 }  // namespace optimize
-}  // namespace af

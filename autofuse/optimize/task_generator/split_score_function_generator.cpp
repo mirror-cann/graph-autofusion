@@ -13,8 +13,8 @@
 #include "ascgraph_info_complete.h"
 #include "ascir_utils.h"
 
-namespace af { namespace optimize {
-SplitScoreFunctionGenerator::SplitScoreFunctionGenerator(const ::ascir::HintGraph &graph, af::AscNodePtr split_node,
+namespace optimize {
+SplitScoreFunctionGenerator::SplitScoreFunctionGenerator(const ascir::HintGraph &graph, af::AscNodePtr split_node,
                                                          uint32_t split_dim)
     : graph_(&graph), split_node_(std::move(split_node)), split_dim_(split_dim) {}
 
@@ -145,4 +145,3 @@ Status SplitScoreFunctionGenerator::GenerateForUnaligned() {
   return ASCCOMMON_SUC;
 }
 }  // namespace optimize
-}  // namespace af

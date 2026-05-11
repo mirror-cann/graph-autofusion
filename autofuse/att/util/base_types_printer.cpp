@@ -17,7 +17,7 @@ void to_json(nlohmann::json &j, const Expression &arg) {
   };
 }
 }
-namespace af { namespace att {
+namespace att {
 const std::string AddAnotationBlock(std::string strs, std::string indent) {
   std::string str = indent + "/*\n" + strs + indent + "*/\n";
   return str;
@@ -157,4 +157,3 @@ std::string BaseTypeUtils::DtypeToStr(ge::DataType dtype) {
 }
 
 }  // namespace att
-}  // namespace af

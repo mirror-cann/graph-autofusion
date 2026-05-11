@@ -12,7 +12,7 @@
 #define AUTOFUSE_SPLIT_CONCAT_OPTIMIZATION_PASS_H
 
 #include "optimize/graph_pass/base_graph_pass.h"
-namespace af { namespace optimize {
+namespace optimize {
 class SplitConcatOptimizationPass final : public BaseGraphPass {
 public:
   SplitConcatOptimizationPass() = default;
@@ -20,12 +20,11 @@ public:
   Status RunPass(af::AscGraph &graph) override;
 
  private:
-  static void FindSplitAndConcatNodes(const ::ascir::HintGraph &owner_graph, std::vector<af::AscNodePtr> &split_nodes,
+  static void FindSplitAndConcatNodes(const ascir::HintGraph &owner_graph, std::vector<af::AscNodePtr> &split_nodes,
                                       std::vector<af::AscNodePtr> &concat_nodes);
-  static Status OptimizeOutSplit(::ascir::HintGraph &owner_graph);
-  static Status OptimizeOutConcat(::ascir::HintGraph &owner_graph);
+  static Status OptimizeOutSplit(ascir::HintGraph &owner_graph);
+  static Status OptimizeOutConcat(ascir::HintGraph &owner_graph);
 };
 }  // namespace optimize
-}  // namespace af
 
 #endif  // AUTOFUSE_SPLIT_CONCAT_OPTIMIZATION_PASS_H

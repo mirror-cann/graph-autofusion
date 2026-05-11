@@ -9,7 +9,7 @@
  */
 #include "l2_solver_gen.h"
 
-namespace af { namespace att
+namespace att
 {
   bool L2TileSolverGen::IsRepeatArgs(const Expr &arg) const
   {
@@ -237,5 +237,4 @@ namespace af { namespace att
     ss << "  }\n";
     return ss.str();
   }
-}  // namespace att
-}  // namespace af
+} // namespace att

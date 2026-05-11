@@ -25,13 +25,13 @@ using namespace af::ascir_op;
 namespace {
 constexpr uint64_t kDmaMaxLen = 2U;
 }
-namespace af { namespace codegen {
-Status LoadApiCall::ParseAttr(const ::ascir::NodeView &node) {
+namespace codegen {
+Status LoadApiCall::ParseAttr(const ascir::NodeView &node) {
   (void)node->attr.ir_attr->GetAttrValue("offset", offset_);
   return ge::SUCCESS;
 }
 
-Status LoadApiCall::Generate(const TPipe &tpipe, const std::vector<::ascir::AxisId> &current_axis,
+Status LoadApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
                              const std::vector<std::reference_wrapper<const Tensor>> &inputs,
                              const std::vector<std::reference_wrapper<const Tensor>> &outputs,
                              std::string &result) const {
@@ -56,4 +56,3 @@ Status LoadApiCall::Generate(const TPipe &tpipe, const std::vector<::ascir::Axis
 }
 static ApiCallRegister<LoadApiCall> register_load_api_call("LoadApiCall");
 }  // namespace codegen
-}  // namespace af

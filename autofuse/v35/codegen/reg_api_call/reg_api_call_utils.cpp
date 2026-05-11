@@ -19,7 +19,7 @@ constexpr char kNormalPddingMode[] = "AscendC::PaddingMode::Normal";
 constexpr char kCompactPddingMode[] = "AscendC::PaddingMode::Compact";
 }  // namespace
 
-namespace af { namespace codegen {
+namespace codegen {
 // A5场景，拷贝指令增强，可以通过loop_mode_params消掉另外两层for循环
 void SetLoopModeParams(const TPipe &tpipe, const DataCopyParams &data_copy_param, LoopModeParams &loop_mode_param,
                        bool copy_in) {
@@ -45,9 +45,9 @@ void SetLoopModeParams(const TPipe &tpipe, const DataCopyParams &data_copy_param
 // 根据ub上最后一维的对齐信息以及切分轴信息判断，是否使用Compact模式，如果能明确判断出来，stride与repeat相同且ub切分轴是首轴，则使用compact模式，否则使用normal模式
 std::string GetPaddingMode(const TPipe &tpipe, const Tensor &ub_tensor, const DataCopyParams &data_copy_param) {
   for (auto axis_pos : ub_tensor.vectorized_axis_pos) {
-    ::ascir::AxisId axis_id = ub_tensor.axis[axis_pos];
+    ascir::AxisId axis_id = ub_tensor.axis[axis_pos];
     const Axis &axis = tpipe.tiler.GetAxis(axis_id);
-    if (axis.type == ::ascir::Axis::Type::kAxisTypeTileInner && ub_tensor.vectorized_axis[0] != axis_id) {
+    if (axis.type == ascir::Axis::Type::kAxisTypeTileInner && ub_tensor.vectorized_axis[0] != axis_id) {
       GELOGD("The TileInner axis is not the first axis， use normal mode.");
       return kNormalPddingMode;
     }
@@ -55,8 +55,8 @@ std::string GetPaddingMode(const TPipe &tpipe, const Tensor &ub_tensor, const Da
   if (data_copy_param.repeats.size() <= 1) {
     return kNormalPddingMode;
   }
-  ::ascir::SizeExpr repeat = data_copy_param.repeats.back();
-  ::ascir::SizeExpr stride = data_copy_param.ub_strides[data_copy_param.ub_strides.size() - kDmaMaxLen];
+  ascir::SizeExpr repeat = data_copy_param.repeats.back();
+  ascir::SizeExpr stride = data_copy_param.ub_strides[data_copy_param.ub_strides.size() - kDmaMaxLen];
   bool status = af::SymbolicUtils::StaticCheckEq(repeat, stride) == af::TriBool::kTrue;
   return status ? kCompactPddingMode : kNormalPddingMode;
 }
@@ -105,7 +105,7 @@ void CreateBaseEnhanceDmaCall(const Tensor &input, const Tensor &output, const D
 }
 
 void CreateEnhanceDmaCall(const TPipe &tpipe, const Tensor &input, const Tensor &output, const string &gm_offset,
-                          const DataCopyParams &data_copy_param, const ::ascir::SizeExpr &offset, std::stringstream &ss,
+                          const DataCopyParams &data_copy_param, const ascir::SizeExpr &offset, std::stringstream &ss,
                           bool copy_in) {
   size_t total_len = data_copy_param.repeats.size();
   DmaParams dma_param;
@@ -126,11 +126,11 @@ void CreateEnhanceDmaCall(const TPipe &tpipe, const Tensor &input, const Tensor 
   }
 
   // 超过四层for循环，需要外抛
-  std::vector<::ascir::SizeExpr> gm_stride(data_copy_param.gm_strides.begin(),
+  std::vector<ascir::SizeExpr> gm_stride(data_copy_param.gm_strides.begin(),
                                          data_copy_param.gm_strides.end() - kFourAxisNum);
-  std::vector<::ascir::SizeExpr> ub_stride(data_copy_param.ub_strides.begin(),
+  std::vector<ascir::SizeExpr> ub_stride(data_copy_param.ub_strides.begin(),
                                          data_copy_param.ub_strides.end() - kFourAxisNum);
-  std::vector<::ascir::SizeExpr> repeats(data_copy_param.repeats.begin(), data_copy_param.repeats.end() - kFourAxisNum);
+  std::vector<ascir::SizeExpr> repeats(data_copy_param.repeats.begin(), data_copy_param.repeats.end() - kFourAxisNum);
   std::string gm_inner_offset = CalcInnerOffset(tpipe, gm_stride);
   std::string ub_inner_offset = CalcInnerOffset(tpipe, ub_stride);
   std::stringstream ss1;
@@ -179,12 +179,12 @@ void SetNddmaParams(const TPipe &tpipe, const DataCopyParams &data_copy_param, N
 }
 
 void CreateNddmaCall(const TPipe &tpipe, const Tensor &input, const Tensor &output, const string &gm_offset,
-                     const DataCopyParams &data_copy_param, const ::ascir::SizeExpr &offset, std::stringstream &ss) {
-  const std::vector<::ascir::SizeExpr> gm_stride(data_copy_param.gm_strides.begin(),
+                     const DataCopyParams &data_copy_param, const ascir::SizeExpr &offset, std::stringstream &ss) {
+  const std::vector<ascir::SizeExpr> gm_stride(data_copy_param.gm_strides.begin(),
                                                data_copy_param.gm_strides.end() - kFiveAxisNum);
-  const std::vector<::ascir::SizeExpr> ub_stride(data_copy_param.ub_strides.begin(),
+  const std::vector<ascir::SizeExpr> ub_stride(data_copy_param.ub_strides.begin(),
                                                data_copy_param.ub_strides.end() - kFiveAxisNum);
-  const std::vector<::ascir::SizeExpr> repeats(data_copy_param.repeats.begin(),
+  const std::vector<ascir::SizeExpr> repeats(data_copy_param.repeats.begin(),
                                              data_copy_param.repeats.end() - kFiveAxisNum);
   const std::string gm_inner_offset = CalcInnerOffset(tpipe, gm_stride);
   const std::string ub_inner_offset = CalcInnerOffset(tpipe, ub_stride);
@@ -199,4 +199,3 @@ void CreateNddmaCall(const TPipe &tpipe, const Tensor &input, const Tensor &outp
 }
 
 }  // namespace codegen
-}  // namespace af

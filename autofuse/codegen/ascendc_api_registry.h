@@ -15,7 +15,7 @@
 #include <unordered_map>
 #include <functional>
 
-namespace af { namespace codegen {
+namespace codegen {
 class AscendCApiRegistry {
  public:
   static AscendCApiRegistry &GetInstance();
@@ -30,6 +30,5 @@ class AscendCApiRegistry {
   std::unordered_map<std::string, std::string> api_to_file_content_;
 };
 }  // namespace codegen
-}  // namespace af
 
 #endif  // CODEGEN_ASCENDC_API_REGISTRY_H

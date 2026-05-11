@@ -20,7 +20,7 @@
 #include "graph/utils/graph_utils.h"
 #include "symbolizer/symbolic_utils.h"
 
-namespace af { namespace optimize {
+namespace optimize {
 using af::ops::IsOps;
 using namespace af::ascir_op;
 af::Status PassUtils::PruneGraph(af::AscGraph &graph) {
@@ -112,4 +112,3 @@ af::AscNodePtr PassUtils::CreateOneScalarBrc(af::AscGraph &graph, const af::AscN
 }
 
 }  // namespace optimize
-}  // namespace af

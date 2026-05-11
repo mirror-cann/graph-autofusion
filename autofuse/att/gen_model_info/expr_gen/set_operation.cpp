@@ -12,7 +12,7 @@
 #include <unordered_map>
 #include "common/checker.h"
 
-namespace af { namespace att {
+namespace att {
 std::vector<DimRange> SetOperation::Diff(DimRange &range1, DimRange &range2) {
   std::vector<DimRange> new_dim_ranges;
   if ((range1.lower_bound == range2.lower_bound) &&
@@ -153,4 +153,3 @@ Expr SetOperation::SetComputation(TensorRange &range) {
   return total_num;
 }
 }
-}  // namespace af

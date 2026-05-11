@@ -11,16 +11,15 @@
 #define __AUTOFUSE_CLIP_BY_VALUE_API_CALL_V2_H__
 #include "codegen_kernel.h"
 
-namespace af { namespace codegen {
+namespace codegen {
 class ClipByValueApiCallV2 final : public ApiCall {
 public:
   using ApiCall::Generate;
   explicit ClipByValueApiCallV2(const std::string &api_name) : ApiCall(api_name) {}
   ~ClipByValueApiCallV2() final = default;
-  Status Generate(const TPipe &tpipe, const std::vector<::ascir::AxisId> &current_axis,
+  Status Generate(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
                   const std::vector<std::reference_wrapper<const Tensor>> &inputs,
                   const std::vector<std::reference_wrapper<const Tensor>> &outputs, std::string &result) const override;
 };
 }
-}  // namespace af
 #endif // __AUTOFUSE_CLIP_BY_VALUE_API_CALL_H__

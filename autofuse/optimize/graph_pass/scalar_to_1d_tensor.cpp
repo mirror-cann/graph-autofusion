@@ -14,7 +14,7 @@
 #include "node_utils.h"
 #include "schedule_utils.h"
 
-namespace af { namespace optimize {
+namespace optimize {
 Status ScalarTo1DTensorPass::RunPass(af::AscGraph &graph) {
   bool need_trans{false};
   for (const auto &node : graph.GetAllNodes()) {
@@ -43,4 +43,3 @@ Status ScalarTo1DTensorPass::RunPass(af::AscGraph &graph) {
   return ge::SUCCESS;
 }
 }  // namespace optimize
-}  // namespace af

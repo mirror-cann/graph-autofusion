@@ -10,7 +10,7 @@
 
 #include "solver.h"
 
-namespace af { namespace att {
+namespace att {
 std::string GetSolverHead(SolverType type) {
   if (type == SolverType::L0_TILE) {
     return L0_SOLVER_CODE_HEAD;
@@ -50,4 +50,3 @@ std::string GetAxesReorderPgoSolverFunc() {
   return AXES_SOLVER_PGO_CODE_FUNC;
 }
 }  // namespace att
-}  // namespace af

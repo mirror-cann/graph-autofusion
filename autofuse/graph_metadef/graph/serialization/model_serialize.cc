@@ -42,7 +42,7 @@ constexpr int64_t kInvalidIndex = -1;
 constexpr int32_t kDecimal = 10;
 constexpr int32_t kMaxThreadNum = 16;
 
-ge::Status CreateExternalWeightPath(const std::string &model_path, const std::string &model_name,
+af::Status CreateExternalWeightPath(const std::string &model_path, const std::string &model_name,
                                     const std::string &op_tag, std::string &weight_real_path,
                                     std::string &weight_relative_path) {
   static std::mutex dir_mutex; // mutex for create dir
@@ -68,7 +68,7 @@ ge::Status CreateExternalWeightPath(const std::string &model_path, const std::st
     const std::lock_guard<std::mutex> lock(dir_mutex);
     GE_ASSERT_TRUE((af::CreateDir(dir_path) == EOK), "Create direct failed, path: %s.", dir_path.c_str());
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 af::Buffer AllocBufferByModelDef(const af::proto::ModelDef &model_def) {
@@ -283,7 +283,7 @@ void ModelSerializeImp::OpDescToAttrDef(const ConstOpDescPtr &op_desc, proto::Op
   }
 
   if (!op_desc->GetAttrMap().GetAttrsGroupPtr().empty() &&
-      AttrGroupSerialize::SerializeAllAttr(*(op_def_proto->mutable_attr_groups()), op_desc->GetAttrMap()) != ge::SUCCESS) {
+      AttrGroupSerialize::SerializeAllAttr(*(op_def_proto->mutable_attr_groups()), op_desc->GetAttrMap()) != af::SUCCESS) {
     GELOGE(GRAPH_FAILED, "OpDesc attr group serialize failed.");
     return;
   }
@@ -349,7 +349,7 @@ GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY bool ModelSerializeImp::Serialize
   }
 
   if (!graph->GetAttrMap().GetAttrsGroupPtr().empty() &&
-      AttrGroupSerialize::SerializeAllAttr(*(graph_proto->mutable_attr_groups()), graph->GetAttrMap()) != ge::SUCCESS) {
+      AttrGroupSerialize::SerializeAllAttr(*(graph_proto->mutable_attr_groups()), graph->GetAttrMap()) != af::SUCCESS) {
     GELOGE(GRAPH_FAILED, "Graph attr group serialize failed.");
     return false;
   }
@@ -385,7 +385,7 @@ bool ModelSerializeImp::SerializeModel(const Model &model, const bool is_dump_gr
   }
   // Model属性组序列化
   if (!model.GetAttrMap().GetAttrsGroupPtr().empty() &&
-      AttrGroupSerialize::SerializeAllAttr(*(model_proto->mutable_attr_groups()), model.GetAttrMap()) != ge::SUCCESS) {
+      AttrGroupSerialize::SerializeAllAttr(*(model_proto->mutable_attr_groups()), model.GetAttrMap()) != af::SUCCESS) {
     GELOGE(GRAPH_FAILED, "Model attr group serialize failed.");
     return false;
   }
@@ -630,7 +630,7 @@ bool ModelSerializeImp::UnserializeNode(ComputeGraphPtr &graph, proto::OpDef &op
   GE_RT_FALSE_CHECK_NOTNULL(graph);
   OpDescPtr op_desc = nullptr;
   if (!UnserializeOpDesc(op_desc, op_def_proto)) {
-    GELOGE(ge::INTERNAL_ERROR, "[Unserialize][OpDesc] error.");
+    GELOGE(af::INTERNAL_ERROR, "[Unserialize][OpDesc] error.");
     return false;
   }
 
@@ -793,20 +793,20 @@ Status ModelSerializeImp::ParallelUnserializeGraph(
     graphs.emplace(std::make_pair(graphs_proto[idx].name(), nullptr));
   }
   std::vector<std::thread> threads;
-  std::atomic<Status> ret{ge::SUCCESS};
+  std::atomic<Status> ret{af::SUCCESS};
   std::atomic<int32_t> doing_num{0};
   auto path = air_path_;
   auto func = [&graphs_proto, &path, &ret, &graphs, &doing_num] () {
       int32_t cur_num = doing_num.fetch_add(1);
-      while ((cur_num < graphs_proto.size()) && (ret == ge::SUCCESS)) {
+      while ((cur_num < graphs_proto.size()) && (ret == af::SUCCESS)) {
         GELOGD("Unserialize graph, id: %ld, graph_name: %s",
             cur_num, graphs_proto[cur_num].name().c_str());
         af::ModelSerializeImp impl;
         impl.SetAirModelPath(path);
         if (!impl.UnserializeGraph(graphs[graphs_proto[cur_num].name()], graphs_proto[cur_num])) {
-          GELOGE(ge::FAILED, "Unserialize graph: %ld failed, graph_name: %s",
+          GELOGE(af::FAILED, "Unserialize graph: %ld failed, graph_name: %s",
               cur_num, graphs_proto[cur_num].name().c_str());
-          ret = ge::PARAM_INVALID;
+          ret = af::PARAM_INVALID;
           return;
         }
         cur_num = doing_num.fetch_add(1);

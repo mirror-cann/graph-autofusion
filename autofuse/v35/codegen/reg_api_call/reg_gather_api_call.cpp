@@ -23,7 +23,7 @@
 #include "graph/symbolizer/symbolic_utils.h"
 #include "api_call/gather/gather_api_call.h"
 
-namespace af { namespace codegen {
+namespace codegen {
 using namespace std;
 using namespace af::ops;
 using namespace af::ascir_op;
@@ -57,7 +57,7 @@ Status GatherRegApiCall::GetGatherCase(const Tensor &x1, std::string &result) co
   return ge::FAILED;
 }
 
-std::string GenerateNonLastAxisGatherSimt(const std::vector<::ascir::AxisId> &current_axis,
+std::string GenerateNonLastAxisGatherSimt(const std::vector<ascir::AxisId> &current_axis,
                                       const std::vector<std::reference_wrapper<const Tensor>> &inputs,
                                       const std::vector<std::reference_wrapper<const Tensor>> &outputs,
                                       int64_t gather_axis, const TPipe &tpipe) {
@@ -68,8 +68,8 @@ std::string GenerateNonLastAxisGatherSimt(const std::vector<::ascir::AxisId> &cu
   if (y.vectorized_axis.size() > 1) {
     auto axis0 = tpipe.tiler.GetAxis(y.vectorized_axis[0]);
     auto axis1 = tpipe.tiler.GetAxis(y.vectorized_axis[1]);
-    std::vector<::ascir::AxisId> param_outer_axes;
-    std::vector<::ascir::AxisId> param_inner_axes;
+    std::vector<ascir::AxisId> param_outer_axes;
+    std::vector<ascir::AxisId> param_inner_axes;
     CollectParamOuterAndInnerAxes(x1.axis, gather_axis, param_outer_axes, param_inner_axes);
     std::string outer_axis_offset = CalGatherOuterAxisOffset(current_axis, param_inner_axes, axis0.id, tpipe);
     ss << "for (" << axis0.AsArg() << " = 0; " << axis0 << " < " << axis0.actual_size << "; " << axis0 << "++) {"
@@ -86,8 +86,8 @@ std::string GenerateNonLastAxisGatherSimt(const std::vector<::ascir::AxisId> &cu
     ss << "}" << std::endl;
   } else {
     auto axis0 = tpipe.tiler.GetAxis(y.vectorized_axis[0]);
-    std::vector<::ascir::AxisId> param_outer_axes;
-    std::vector<::ascir::AxisId> param_inner_axes;
+    std::vector<ascir::AxisId> param_outer_axes;
+    std::vector<ascir::AxisId> param_inner_axes;
     CollectParamOuterAndInnerAxes(x1.axis, gather_axis, param_outer_axes, param_inner_axes);
     std::string outer_axis_offset = CalGatherOuterAxisOffset(current_axis, param_inner_axes, af::kIdNone, tpipe);
     auto outer_axis = tpipe.tiler.GetAxis(axis0.split_pair_other_id);
@@ -103,7 +103,7 @@ std::string GenerateNonLastAxisGatherSimt(const std::vector<::ascir::AxisId> &cu
   return ss.str();
 }
 
-Status GatherRegApiCall::GenerateComputeTypeGather(const TPipe &tpipe, const std::vector<::ascir::AxisId> &current_axis,
+Status GatherRegApiCall::GenerateComputeTypeGather(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
                                                    const std::vector<std::reference_wrapper<const Tensor>> &inputs,
                                                    const std::vector<std::reference_wrapper<const Tensor>> &outputs,
                                                    const int64_t tmp_buf_id, std::string &result) const {
@@ -154,7 +154,7 @@ Status GatherRegApiCall::GenerateComputeTypeGather(const TPipe &tpipe, const std
   return ge::SUCCESS;
 }
 
-Status GatherRegApiCall::GenerateComputeTypeLoad(const TPipe &tpipe, const std::vector<::ascir::AxisId> &current_axis,
+Status GatherRegApiCall::GenerateComputeTypeLoad(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
                                                  const std::vector<std::reference_wrapper<const Tensor>> &inputs,
                                                  const std::vector<std::reference_wrapper<const Tensor>> &outputs,
                                                  const int64_t tmp_buf_id, std::string &result) const {
@@ -214,7 +214,7 @@ Status GatherRegApiCall::GenerateComputeTypeLoad(const TPipe &tpipe, const std::
   return ge::SUCCESS;
 }
 
-Status GatherRegApiCall::Generate(const TPipe &tpipe, const std::vector<::ascir::AxisId> &current_axis,
+Status GatherRegApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
                                const std::vector<std::reference_wrapper<const Tensor>> &inputs,
                                const std::vector<std::reference_wrapper<const Tensor>> &outputs,
                                std::string &result) const {
@@ -235,7 +235,7 @@ Status GatherRegApiCall::Generate(const TPipe &tpipe, const std::vector<::ascir:
   return ge::FAILED;
 }
 
-Status GatherRegApiCall::ParseAttr(const ::ascir::NodeView &node) {
+Status GatherRegApiCall::ParseAttr(const ascir::NodeView &node) {
   GE_CHK_GRAPH_STATUS_RET(node->attr.ir_attr->GetAttrValue("axis", this->axis),
                           "Failed to get Gahter axis attr, node = %s", node->GetNamePtr());
   if (node->attr.api.compute_type == af::ComputeType::kComputeLoad) { 
@@ -252,4 +252,3 @@ Status GatherRegApiCall::ParseAttr(const ::ascir::NodeView &node) {
 static ApiCallRegister<GatherRegApiCall> register_gather_api_call("GatherRegApiCall");
 
 }  // namespace codegen
-}  // namespace af

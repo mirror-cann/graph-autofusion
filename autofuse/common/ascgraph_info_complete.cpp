@@ -19,7 +19,7 @@
 
 using namespace af::ascir_op;
 
-namespace af { namespace optimize {
+namespace optimize {
 namespace {
 static Status GetNodeIrAttrOffset(const af::NodePtr &node, af::Expression &offset) {
   auto asc_node = std::dynamic_pointer_cast<af::AscNode>(node);
@@ -209,4 +209,3 @@ void AscGraphInfoComplete::AppendOriginalSizeVar(const af::AscGraph &graph, Size
   }
 }
 }  // namespace optimize
-}  // namespace af

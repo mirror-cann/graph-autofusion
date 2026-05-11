@@ -12,7 +12,7 @@
 #include <sstream>
 #include <string>
 
-namespace af { namespace att {
+namespace att {
 inline std::string GenCeilDivision() {
   std::string strs;
   strs += "// L2的占用经验值大小\n";
@@ -374,5 +374,4 @@ inline std::string GetL2SolverFunc() {
 inline const std::string L2_SOLVER_CODE_HEAD = GetL2SolverHead();
 inline const std::string L2_SOLVER_CODE_FUNC = GetL2SolverFunc();
 } // namespace att
-}  // namespace af
 #endif

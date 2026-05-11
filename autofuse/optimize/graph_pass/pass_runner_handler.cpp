@@ -10,7 +10,7 @@
 
 #include "pass_runner_handler.h"
 
-namespace af { namespace optimize {
+namespace optimize {
 Status autoschedule::PassRunnerHandler::RunPasses(af::AscGraph &graph) {
   const auto &platform = PlatformFactory::GetInstance().GetPlatform();
   GE_CHECK_NOTNULL(platform, "Platform is not found.");
@@ -19,4 +19,3 @@ Status autoschedule::PassRunnerHandler::RunPasses(af::AscGraph &graph) {
   return pass_runner->RunPasses(graph);
 }
 }  // namespace optimize
-}  // namespace af

@@ -18,7 +18,7 @@
 #include "common/checker.h"
 #include "api_call/utils/api_call_factory.h"
 
-namespace af { namespace codegen {
+namespace codegen {
 using namespace std;
 using namespace af::ops;
 using namespace af::ascir_op;
@@ -26,8 +26,8 @@ using namespace ascgen_utils;
 
 static void GetOneAxisSize(const TPipe &tpipe, const Tensor &tensor, const uint32_t idx, std::stringstream &ss) {
   auto axis_pos = tensor.vectorized_axis_pos[idx];
-  ::ascir::AxisId axis_id = tensor.axis[axis_pos];
-  if (tpipe.tiler.GetAxis(axis_id).type != ::ascir::Axis::Type::kAxisTypeTileInner ||
+  ascir::AxisId axis_id = tensor.axis[axis_pos];
+  if (tpipe.tiler.GetAxis(axis_id).type != ascir::Axis::Type::kAxisTypeTileInner ||
       tensor.vectorized_axis[0] == axis_id) {
     ss << tpipe.tiler.ActualSize(tensor.axis_size[axis_pos]);
     return;
@@ -41,8 +41,8 @@ static std::string GetLastAxisSize(const TPipe &tpipe, const Tensor &tensor, boo
     return tpipe.tiler.Size(tensor.vectorized_strides[vectorized_axis_size - 1]);
   }
   auto axis_pos = tensor.vectorized_axis_pos[tensor.vectorized_axis_pos.size() - 1];
-  ::ascir::AxisId axis_id = tensor.vectorized_axis[tensor.vectorized_axis.size() - 1];
-  if (tpipe.tiler.GetAxis(axis_id).type != ::ascir::Axis::Type::kAxisTypeTileInner ||
+  ascir::AxisId axis_id = tensor.vectorized_axis[tensor.vectorized_axis.size() - 1];
+  if (tpipe.tiler.GetAxis(axis_id).type != ascir::Axis::Type::kAxisTypeTileInner ||
       tensor.vectorized_axis[0] == axis_id) {
     return tpipe.tiler.ActualSize(tensor.axis_size[axis_pos]);
   }
@@ -67,7 +67,7 @@ static std::string GetNonLastAxisMergeSize(const TPipe &tpipe, const Tensor &ten
   return ss.str();
 }
 
-Status RemovePadApiCall::Generate(const TPipe &tpipe, const std::vector<::ascir::AxisId> &current_axis,
+Status RemovePadApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
                                   const std::vector<std::reference_wrapper<const Tensor>> &inputs,
                                   const std::vector<std::reference_wrapper<const Tensor>> &outputs,
                                   std::string &result) const {
@@ -93,4 +93,3 @@ Status RemovePadApiCall::Generate(const TPipe &tpipe, const std::vector<::ascir:
 
 static ApiCallRegister<RemovePadApiCall> register_remove_pad_api_call("RemovePadApiCall");
 }  // namespace codegen
-}  // namespace af

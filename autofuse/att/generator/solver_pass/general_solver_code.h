@@ -13,7 +13,7 @@
 #include "util/base_types_printer.h"
 #include "util/duration.h"
 
-namespace af { namespace att {
+namespace att {
 inline std::string GenConstVars() {
   std::string strs = "";
   std::string general_solver = "";
@@ -1815,5 +1815,4 @@ inline std::string GetGeneralSolver(bool open_dt=false) {
 inline const std::string GENERAL_SOLVER_CODE = GetGeneralSolver(false);
 inline const std::string GENERAL_SOLVER_CODE_DT = GetGeneralSolver(true);
 }  // namespace att
-}  // namespace af
 #endif

@@ -37,7 +37,7 @@ using ge::Status;
 }  // namespace af
 #endif
 
-namespace af { namespace att {
+namespace att {
 using Expr = af::Expression;
 enum SolverType : uint32_t { L0_TILE = 0, L2_TILE, SEARCH_TILE, ERROR };
 
@@ -226,5 +226,4 @@ using AscendCApiPerfFunc = af::Status (*)(const std::map<std::string, float> &pa
                                           const std::vector<Expr> &dims, const Expr &gm_stride, Expr &res);
 }  // namespace
 
-}  // namespace af
 #endif  // ATT_BASIC_BASIC_TYPE_H_

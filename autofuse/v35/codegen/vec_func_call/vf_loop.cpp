@@ -17,7 +17,7 @@
 
 using namespace af::ops;
 using namespace af::ascir_op;
-namespace af { namespace codegen {
+namespace codegen {
 
 namespace {
 std::string GetUbAddrOffset(const TPipe &tpipe, const MicroApiTensor *&reg_tensor, const Tensor *&ub_tensor) {
@@ -41,7 +41,7 @@ std::string GetUbAddrOffset(const TPipe &tpipe, const MicroApiTensor *&reg_tenso
   return offset_expr.str();
 }
 
-std::string GetOriginPregName(const std::vector<::ascir::AxisId> &current_axis, int32_t depth) {
+std::string GetOriginPregName(const std::vector<ascir::AxisId> &current_axis, int32_t depth) {
   if (current_axis.empty() || static_cast<int32_t>(current_axis.size()) < depth) {
     return "preg_main";
   }
@@ -63,7 +63,7 @@ void GetUbStorePreg(const Tensor *&ub_tensor, std::string &preg_name) {
 }
 }  // namespace
 
-VFLoop::VFLoop(const ::ascir::AxisId axis) {
+VFLoop::VFLoop(const ascir::AxisId axis) {
   axis_id_ = axis;
   parent_ = nullptr;
 }
@@ -86,10 +86,10 @@ void VFLoop::AddCall(MicroApiCall *call) {
 }
 
 /* 图解析阶段调用 */
-Status VFLoop::ConstructFromNodes(::ascir::NodeViewVisitorConst nodes, const ::ascir::NodeView &vf_node) {
+Status VFLoop::ConstructFromNodes(ascir::NodeViewVisitorConst nodes, const ascir::NodeView &vf_node) {
   auto current_loop = this;
-  std::vector<::ascir::AxisId> current_axis;
-  std::map<::ascir::TensorId, MicroApiCall *> tensor_calls;
+  std::vector<ascir::AxisId> current_axis;
+  std::map<ascir::TensorId, MicroApiCall *> tensor_calls;
   for (auto node : nodes) {
     // Loop enter or create
     GELOGI("node:%s, ComputeUnit:%u\r\n", node->GetNamePtr(), static_cast<uint32_t>(node->attr.api.unit));
@@ -193,7 +193,7 @@ void VFLoop::Destruct() {
 /********************************** 生成阶段调用 ***********************************/
 Status VFLoop::Generate(const TPipe &tpipe, const TensorManager &tensor_mgr, int32_t depth, std::string &result,
                         std::string &loop_size_result, int32_t &only_loop_max_depth, std::vector<std::string>& loop_size_vec) const {
-  std::vector<::ascir::AxisId> current_axis;
+  std::vector<ascir::AxisId> current_axis;
   std::stringstream ss;
   std::stringstream loop_size_ss;
   GE_CHK_STATUS_RET(this->GenerateLoop(tpipe, tensor_mgr, depth, current_axis, ss, loop_size_ss, only_loop_max_depth, loop_size_vec),
@@ -204,7 +204,7 @@ Status VFLoop::Generate(const TPipe &tpipe, const TensorManager &tensor_mgr, int
 }
 
 Status VFLoop::GenerateLoop(const TPipe &tpipe, const TensorManager &tensor_mgr, int32_t depth,
-                            std::vector<::ascir::AxisId> &current_axis, std::stringstream &ss,
+                            std::vector<ascir::AxisId> &current_axis, std::stringstream &ss,
                             std::stringstream &loop_size_ss, int32_t &only_loop_max_depth, std::vector<std::string>& loop_size_vec) const {
   if (this->axis_id_ == af::kIdNone) {
     GE_CHK_STATUS_RET(this->GenerateBody(tpipe, tensor_mgr, depth, current_axis, ss, loop_size_ss, only_loop_max_depth, loop_size_vec),
@@ -237,7 +237,7 @@ Status VFLoop::GenerateLoop(const TPipe &tpipe, const TensorManager &tensor_mgr,
 }
 
 Status VFLoop::GenerateBody(const TPipe &tpipe, const TensorManager &tensor_mgr, int32_t depth,
-                            std::vector<::ascir::AxisId> &current_axis, std::stringstream &ss,
+                            std::vector<ascir::AxisId> &current_axis, std::stringstream &ss,
                             std::stringstream &loop_size_ss, int32_t &only_loop_max_depth, std::vector<std::string>& loop_size_vec) const {
   bool has_loop = false;
   bool has_call = false;
@@ -272,4 +272,3 @@ Status VFLoop::GenerateBody(const TPipe &tpipe, const TensorManager &tensor_mgr,
   return ge::SUCCESS;
 }
 }  // namespace codegen
-}  // namespace af

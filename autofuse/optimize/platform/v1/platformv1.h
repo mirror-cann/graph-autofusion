@@ -13,7 +13,7 @@
 
 #include "platform/base_platform.h"
 #include "platform/platform_factory.h"
-namespace af { namespace optimize {
+namespace optimize {
 class PlatformV1 : public BasePlatform {
  public:
   PlatformV1();
@@ -33,5 +33,4 @@ class PlatformV1 : public BasePlatform {
   PlatformConfig config_;
 };
 }  // namespace optimize
-}  // namespace af
 #endif  // OPTIMIZE_PLATFORM_V1_PLATFORM_V1_H

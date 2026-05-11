@@ -12,8 +12,8 @@
 
 #include "micro_where_api_call.h"
 
-namespace af { namespace codegen {
-Status MicroWhereApiCall::Generate(const af::codegen::TensorManager &tensor_mng, [[maybe_unused]] const TPipe &tpipe,
+namespace codegen {
+Status MicroWhereApiCall::Generate(const codegen::TensorManager &tensor_mng, [[maybe_unused]] const TPipe &tpipe,
                                    CallParam &param, string &result) {
   (void)param;
   std::stringstream ss;
@@ -45,4 +45,3 @@ Status MicroWhereApiCall::Generate(const af::codegen::TensorManager &tensor_mng,
 
 static MicroApiCallRegister<MicroWhereApiCall> register_micro_where_api_call("MicroWhereApiCall");
 }  // namespace codegen
-}  // namespace af

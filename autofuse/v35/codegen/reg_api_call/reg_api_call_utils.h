@@ -14,7 +14,7 @@
 #include "codegen_kernel.h"
 #include "api_call/utils/api_call_utils.h"
 
-namespace af { namespace codegen {
+namespace codegen {
 /*
 for循环组织形式如下:
 for (i, 0, loop2Size) {
@@ -40,14 +40,13 @@ struct NddmaParams {
 };
 
 void CreateEnhanceDmaCall(const TPipe &tpipe, const Tensor &input, const Tensor &output, const string &gm_offset,
-                          const DataCopyParams &data_copy_param, const ::ascir::SizeExpr &offset, std::stringstream &ss,
+                          const DataCopyParams &data_copy_param, const ascir::SizeExpr &offset, std::stringstream &ss,
                           bool copy_in);
 void CreateNddmaCall(const TPipe &tpipe, const Tensor &input, const Tensor &output, const string &gm_offset,
-                     const DataCopyParams &data_copy_param, const ::ascir::SizeExpr &offset, std::stringstream &ss);
+                     const DataCopyParams &data_copy_param, const ascir::SizeExpr &offset, std::stringstream &ss);
 void SetNddmaParams(const TPipe &tpipe, const DataCopyParams &data_copy_param, NddmaParams &nddma_param,
                     const int64_t &tensor_id, std::stringstream &ss);
 
 }  // namespace codegen
-}  // namespace af
 
 #endif

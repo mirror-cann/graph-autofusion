@@ -29,7 +29,7 @@ class CodePrinter {
   /**
    * 将拼接好的字符串写入文件
    */
-  ge::Status SaveToFile(const std::string& output_file_path);
+  af::Status SaveToFile(const std::string& output_file_path);
     /**
    * 添加一行，自动换行
    */

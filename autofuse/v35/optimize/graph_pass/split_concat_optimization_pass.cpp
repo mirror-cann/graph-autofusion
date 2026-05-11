@@ -17,7 +17,7 @@
 #include "task_generator/concat_schedule_case_generator.h"
 #include "task_generator/split_schedule_case_generator.h"
 
-namespace af { namespace optimize {
+namespace optimize {
 namespace {
 constexpr size_t kExpectedNodeNum = 1UL;
 }  // namespace
@@ -51,9 +51,9 @@ Status SplitConcatOptimizationPass::RunPass(af::AscGraph &graph) {
   return ge::SUCCESS;
 }
 
-Status SplitConcatOptimizationPass::OptimizeOutSplit(::ascir::HintGraph &owner_graph) {
+Status SplitConcatOptimizationPass::OptimizeOutSplit(ascir::HintGraph &owner_graph) {
   // first-dim concat
-  std::vector<::ascir::ImplGraph> graphs;
+  std::vector<ascir::ImplGraph> graphs;
   std::vector<std::string> unused_score_funcs;
   // graph被原地修改
   GE_ASSERT_SUCCESS(SplitFusionCaseGenerator().Generate(owner_graph, graphs, unused_score_funcs));
@@ -62,9 +62,9 @@ Status SplitConcatOptimizationPass::OptimizeOutSplit(::ascir::HintGraph &owner_g
   return ge::SUCCESS;
 }
 
-Status SplitConcatOptimizationPass::OptimizeOutConcat(::ascir::HintGraph &owner_graph) {
+Status SplitConcatOptimizationPass::OptimizeOutConcat(ascir::HintGraph &owner_graph) {
   // first-dim concat
-  std::vector<::ascir::ImplGraph> graphs;
+  std::vector<ascir::ImplGraph> graphs;
   std::vector<std::string> unused_score_funcs;
   // graph被原地修改
   GE_ASSERT_SUCCESS(
@@ -74,7 +74,7 @@ Status SplitConcatOptimizationPass::OptimizeOutConcat(::ascir::HintGraph &owner_
   return ge::SUCCESS;
 }
 
-void SplitConcatOptimizationPass::FindSplitAndConcatNodes(const ::ascir::HintGraph &owner_graph,
+void SplitConcatOptimizationPass::FindSplitAndConcatNodes(const ascir::HintGraph &owner_graph,
                                                           std::vector<af::AscNodePtr> &split_nodes,
                                                           std::vector<af::AscNodePtr> &concat_nodes) {
   for (const auto &node : owner_graph.GetAllNodes()) {
@@ -88,4 +88,3 @@ void SplitConcatOptimizationPass::FindSplitAndConcatNodes(const ::ascir::HintGra
   }
 }
 }  // namespace optimize
-}  // namespace af

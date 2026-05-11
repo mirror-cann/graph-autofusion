@@ -18,13 +18,13 @@
 #include "common/checker.h"
 #include "api_call/utils/api_call_factory.h"
 
-namespace af { namespace codegen {
+namespace codegen {
 using namespace std;
 using namespace af::ops;
 using namespace af::ascir_op;
 using namespace ascgen_utils;
 
-Status AxpyApiCall::Generate(const TPipe &tpipe, const std::vector<::ascir::AxisId> &current_axis,
+Status AxpyApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
                                   const std::vector<std::reference_wrapper<const Tensor>> &inputs,
                                   const std::vector<std::reference_wrapper<const Tensor>> &outputs,
                                   std::string &result) const {
@@ -49,7 +49,7 @@ Status AxpyApiCall::Generate(const TPipe &tpipe, const std::vector<::ascir::Axis
   return ge::SUCCESS;
 }
 
-Status AxpyApiCall::ParseAttr(const ::ascir::NodeView &node) {
+Status AxpyApiCall::ParseAttr(const ascir::NodeView &node) {
   GE_CHK_GRAPH_STATUS_RET(node->attr.ir_attr->GetAttrValue("alpha", this->alpha),
                           "Failed to get Axpy alpha attr, node = %s", node->GetNamePtr());
   GELOGI("name:%s, alpha:%f", node->GetNamePtr(), this->alpha);
@@ -58,4 +58,3 @@ Status AxpyApiCall::ParseAttr(const ::ascir::NodeView &node) {
 
 static ApiCallRegister<AxpyApiCall> register_axpy_api_call("AxpyApiCall");
 }  // namespace codegen
-}  // namespace af

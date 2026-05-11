@@ -14,7 +14,7 @@
 #include "tensor_layout_utils.h"
 #include "platform/common/base_alignment_strategy.h"
 
-namespace af { namespace optimize {
+namespace optimize {
 
 std::string LoadToNddmaTemplate::GenName(const std::string &general_case_name) {
   return general_case_name + "_load_to_nddma";
@@ -62,4 +62,3 @@ bool LoadToNddmaTemplate::NeedDropBasedCase([[maybe_unused]] const af::AscGraph 
 }
 
 }  // namespace optimize
-}  // namespace af

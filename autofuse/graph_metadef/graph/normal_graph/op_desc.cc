@@ -43,7 +43,8 @@ void AddDynamicNameIndex(const std::map<std::string, uint32_t> &dynamic_names_in
 }
 }
 
-namespace af {
+namespace ge {
+using af::ComGraphMakeShared;
 TensorType::TensorType(DataType dt) {
   tensor_type_impl_ = ComGraphMakeShared<TensorTypeImpl>();
   if (tensor_type_impl_ != nullptr) {
@@ -57,6 +58,9 @@ TensorType::TensorType(const std::initializer_list<DataType> &initial_types) {
     tensor_type_impl_->GetMutableDateTypeSet() = initial_types;
   }
 }
+}  // namespace ge
+
+namespace af {
 
 static const GeTensorDesc& InvalidGeTensorDesc() {
   const static GeTensorDesc kGlobalInvalidGeTensorDesc;

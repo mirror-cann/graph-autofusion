@@ -23,13 +23,13 @@
 #include "optimize/task_generator/split_score_function_generator.h"
 #include "platform/platform_factory.h"
 
-namespace af { namespace optimize {
+namespace optimize {
 namespace {
 constexpr uint32_t kMaxOutputNum = 48U;
 constexpr int32_t kAlignment = 32;
 }  // namespace
 
-Status SplitFusionCaseGenerator::Generate(::ascir::HintGraph &graph, std::vector<::ascir::ImplGraph> &graphs,
+Status SplitFusionCaseGenerator::Generate(ascir::HintGraph &graph, std::vector<ascir::ImplGraph> &graphs,
                                           std::vector<std::string> &score_functions) {
   auto split_nodes = FindSplitNodes(graph);
   if (split_nodes.empty()) {
@@ -53,7 +53,7 @@ Status SplitFusionCaseGenerator::Generate(::ascir::HintGraph &graph, std::vector
   GE_ASSERT_NOTNULL(platform);
 
   // 改轴之前，备份图用于ub不全载case
-  ::ascir::ImplGraph optimized_graph((graph.GetName() + "_splitv_group_split").c_str());
+  ascir::ImplGraph optimized_graph((graph.GetName() + "_splitv_group_split").c_str());
   optimized_graph.CopyFrom(graph);
 
   // case2. 生成ub内split的case
@@ -81,7 +81,7 @@ Status SplitFusionCaseGenerator::Generate(::ascir::HintGraph &graph, std::vector
   return ge::SUCCESS;
 }
 
-std::vector<af::AscNodePtr> SplitFusionCaseGenerator::FindSplitNodes(const ::ascir::HintGraph &owner_graph) {
+std::vector<af::AscNodePtr> SplitFusionCaseGenerator::FindSplitNodes(const ascir::HintGraph &owner_graph) {
   std::vector<af::AscNodePtr> split_nodes;
   for (const auto &node : owner_graph.GetAllNodes()) {
     if (af::ops::IsOps<af::ascir_op::Split>(node)) {
@@ -115,7 +115,7 @@ Status SplitFusionCaseGenerator::ResolveSplitDim(const af::AscNodePtr &split_nod
   return ge::SUCCESS;
 }
 
-Status SplitFusionCaseGenerator::ConvertSplitToLoads(::ascir::HintGraph &owner_graph, const af::AscNodePtr &split_node,
+Status SplitFusionCaseGenerator::ConvertSplitToLoads(ascir::HintGraph &owner_graph, const af::AscNodePtr &split_node,
                                                      size_t split_dim) {
   GE_CHK_STATUS_RET(Prepare(split_node, split_dim), "Prepare failed");
   const auto &all_out_data_anchors = split_node->GetAllOutDataAnchors();
@@ -127,11 +127,11 @@ Status SplitFusionCaseGenerator::ConvertSplitToLoads(::ascir::HintGraph &owner_g
   }
   GE_CHK_STATUS_RET(RemoveUnusedNodes(split_node), "RemoveUnusedNodes failed");
   GE_ASSERT_GRAPH_SUCCESS(ScheduleUtils::TopologicalSorting(owner_graph));
-  ::ascir::utils::DumpGraph(owner_graph, "AfterConvertSplitToLoad");
+  ascir::utils::DumpGraph(owner_graph, "AfterConvertSplitToLoad");
   return ge::SUCCESS;
 }
 
-Status SplitFusionCaseGenerator::SplitSplits(const ::ascir::HintGraph &owner_graph, const af::AscNodePtr &split_node,
+Status SplitFusionCaseGenerator::SplitSplits(const ascir::HintGraph &owner_graph, const af::AscNodePtr &split_node,
                                              size_t split_dim, const bool &split) {
   (void)owner_graph;
   (void)split;
@@ -224,7 +224,7 @@ Status SplitFusionCaseGenerator::ReplaceWithLoad(::ascir::ImplGraph &owner_graph
   return ge::SUCCESS;
 }
 
-ge::Status SplitFusionCaseGenerator::SplitDataForConvertLoad(::ascir::ImplGraph &owner_graph, const af::AscNodePtr &split_node,
+ge::Status SplitFusionCaseGenerator::SplitDataForConvertLoad(ascir::ImplGraph &owner_graph, const af::AscNodePtr &split_node,
                                                          const af::OutDataAnchorPtr &split_out_anchor, af::AscNodePtr &new_load_node) {
   (void)split_node;
   const auto out_index = split_out_anchor->GetIdx();
@@ -297,13 +297,13 @@ ge::Status SplitFusionCaseGenerator::CollectBackwardNodes(const af::AscNodePtr &
   return ge::SUCCESS;
 }
 
-ge::Status SplitFusionCaseGenerator::SplitOutReplaceAxis(::ascir::ImplGraph &owner_graph,
+ge::Status SplitFusionCaseGenerator::SplitOutReplaceAxis(ascir::ImplGraph &owner_graph,
                                                   std::vector<af::AscNodePtr> &nodes,
                                                   const af::AscNodePtr &load_node_new,
                                                   int32_t out_index,
                                                   af::AscNodePtr &broadcast_node) {
-  ::ascir::Axis split_axis;
-  ::ascir::Axis new_split_axis;
+  ascir::Axis split_axis;
+  ascir::Axis new_split_axis;
   split_axis = *(owner_graph.GetAllAxis().at(split_axis_id_));
   if (broadcast_node == nullptr) {
     const auto &output_repeats = split_node_->outputs[out_index].attr.repeats;
@@ -351,10 +351,9 @@ Status SplitFusionCaseGenerator::RemoveUnusedNodes(const af::AscNodePtr &split_n
   return ge::SUCCESS;
 }
 
-Status SplitFusionCaseGenerator::GenerateScoreFuncForUbSplit(const ::ascir::HintGraph &graph,
+Status SplitFusionCaseGenerator::GenerateScoreFuncForUbSplit(const ascir::HintGraph &graph,
                                                              const af::AscNodePtr &split_node, size_t split_dim,
                                                              std::string &score_func) {
   return SplitScoreFunctionGenerator(graph, split_node, split_dim).Generate(score_func);
 }
 }  // namespace optimize
-}  // namespace af

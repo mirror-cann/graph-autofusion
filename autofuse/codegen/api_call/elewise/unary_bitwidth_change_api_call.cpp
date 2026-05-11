@@ -19,14 +19,14 @@
 #include "api_call/utils/api_call_factory.h"
 #include "api_call/utils/api_call_utils.h"
 
-namespace af { namespace codegen {
+namespace codegen {
 using namespace std;
 using namespace af::ops;
 using namespace af::ascir_op;
 using namespace ascgen_utils;
 
 Status UnaryBitWidthChangeApiCall::Generate(const TPipe &tpipe,
-                                            const std::vector<::ascir::AxisId> &current_axis,
+                                            const std::vector<ascir::AxisId> &current_axis,
                                             const std::vector<std::reference_wrapper<const Tensor>> &inputs,
                                             const std::vector<std::reference_wrapper<const Tensor>> &outputs,
                                             std::string &result) const {
@@ -73,4 +73,3 @@ static ApiCallRegister<UnaryBitWidthChangeApiCall> register_unary_bitwidth_chang
     "UnaryBitWidthChangeApiCall");
 
 } // namespace codegen
-}  // namespace af

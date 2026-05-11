@@ -15,7 +15,7 @@
 #include "graph/utils/tensor_utils.h"
 #include "equivalent_graph_recognizer.h"
 #include "generator/preprocess/args_manager.h"
-namespace af { namespace att {
+namespace att {
 namespace {
 ge::Status GetGroupAscGraphsByIdent(const ScheduleGroupIdent &group_ident,
     const std::vector<std::vector<std::vector<std::vector<af::AscGraph>>>> &all_graphs_lists,
@@ -135,7 +135,7 @@ ge::Status ReuseGroupUtils::InitReuseScheduleGroup(const ScheduleGroupIdent &gro
   std::vector<std::string> ordered_var_names;
   // 记录输入轴的顺序，保证输入轴的顺序一致
   for (const auto &model_info : group_tiling_model_info) {
-    af::att::ArgsManager args_manager(model_info);
+    att::ArgsManager args_manager(model_info);
     GE_ASSERT_TRUE(args_manager.Process(false), "Args manager process failed.");
     const auto &inputs = args_manager.GetInputVars();
     for (const auto &input : inputs) {
@@ -228,4 +228,3 @@ ge::Status ReuseGroupUtils::MergeAllReusableGroups(
   return ge::SUCCESS;
 }
 }
-}  // namespace af

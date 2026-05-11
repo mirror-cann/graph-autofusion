@@ -12,8 +12,8 @@
 
 #include "micro_compare_api_call.h"
 
-namespace af { namespace codegen {
-Status MicroCompareApiCall::Generate(const af::codegen::TensorManager &tensor_mng, [[maybe_unused]] const TPipe &tpipe,
+namespace codegen {
+Status MicroCompareApiCall::Generate(const codegen::TensorManager &tensor_mng, [[maybe_unused]] const TPipe &tpipe,
                                      CallParam &param, string &result) {
   GE_ASSERT_TRUE(this->inputs_.size() == 2, "Compare api call must have 2 inputs");
   GE_ASSERT_TRUE(this->outputs_.size() == 1, "Compare api call must have 1 output");
@@ -42,7 +42,7 @@ Status MicroCompareApiCall::Generate(const af::codegen::TensorManager &tensor_mn
   return ge::SUCCESS;
 }
 
-Status MicroCompareApiCall::Init(const ::ascir::NodeView &node) {
+Status MicroCompareApiCall::Init(const ascir::NodeView &node) {
   // 判断第二个输入是否是scalar
   if (node->GetInDataNodes().at(1)->GetType() == "Scalar") {
     this->second_input_scalar_ = true;
@@ -53,4 +53,3 @@ Status MicroCompareApiCall::Init(const ::ascir::NodeView &node) {
 
 static MicroApiCallRegister<MicroCompareApiCall> register_micro_compare_api_call("MicroCompareApiCall");
 }  // namespace codegen
-}  // namespace af

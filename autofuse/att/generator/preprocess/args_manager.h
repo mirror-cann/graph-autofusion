@@ -16,7 +16,7 @@
 #include "base/model_info.h"
 #include "generator/preprocess/var_info.h"
 
-namespace af { namespace att {
+namespace att {
 class ArgsManager {
 public:
   explicit ArgsManager(const ModelInfo &model_info) : model_info_(model_info) {}
@@ -243,5 +243,4 @@ private:
 bool GetNewVarsInExpr(const Expr &expr, const ExprExprMap &new_expr_replacements, std::vector<Expr> &expr_args);
 bool SplitVars(const AttAxisPtr &arg_axis, ExprInfoMap &var_infos);
 }  // namespace att
-}  // namespace af
 #endif  // ATT_CODE_GEN_PREPROCESS_ARGS_MANAGER_H_

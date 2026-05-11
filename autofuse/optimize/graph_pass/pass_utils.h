@@ -13,7 +13,7 @@
 
 #include "ascendc_ir/ascendc_ir_core/ascendc_ir.h"
 
-namespace af { namespace optimize {
+namespace optimize {
 class PassUtils {
  public:
   // 图剪枝，data会连一个控制边到输出节点上
@@ -25,6 +25,5 @@ class PassUtils {
   static af::AscNodePtr CreateOneScalarBrc(af::AscGraph &graph, const af::AscNodePtr &ref_node);
 };
 }  // namespace optimize
-}  // namespace af
 
 #endif  // CANN_GRAPH_ENGINE_PASS_UTILS_H

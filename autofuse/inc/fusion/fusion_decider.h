@@ -13,7 +13,7 @@
 
 #include <cstdint>
 #include "graph/compute_graph.h"
-#include "autofuse_frame/autofuse_frames.h"
+#include "autofuse/autofuse_frame/autofuse_frames_af.h"
 
 #ifdef AUTOFUSE_USE_GE_METADEF
 namespace af {

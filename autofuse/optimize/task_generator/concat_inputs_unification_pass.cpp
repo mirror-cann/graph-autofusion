@@ -15,16 +15,16 @@
 #include "schedule_utils.h"
 #include "buffer_allocate/tensor_mem_defs.h"
 
-namespace af { namespace optimize {
+namespace optimize {
 
-Status ConcatInputUnificationPass::Run(std::vector<::ascir::ImplGraph> &graphs) {
+Status ConcatInputUnificationPass::Run(std::vector<ascir::ImplGraph> &graphs) {
   for (auto &graph : graphs) {
     GE_ASSERT_SUCCESS(RunOneGraph(graph));
   }
   return ge::SUCCESS;
 }
 
-Status ConcatInputUnificationPass::RunOneGraph(::ascir::ImplGraph &graph) {
+Status ConcatInputUnificationPass::RunOneGraph(ascir::ImplGraph &graph) {
   for (const auto &node : graph.GetAllNodes()) {
     if (af::ops::IsOps<af::ascir_op::Concat>(node)) {
       const auto need_optimize = NeedOptimize(node);
@@ -41,7 +41,7 @@ Status ConcatInputUnificationPass::RunOneGraph(::ascir::ImplGraph &graph) {
 bool ConcatInputUnificationPass::NeedOptimize(const af::AscNodePtr &concat_node) {
   GE_WARN_ASSERT(concat_node->inputs.Size() > 0);
   // 1. 输入shape相同
-  if (::ascir::utils::AreConcatInputShapesEqual(concat_node) == af::TriBool::kFalse) {
+  if (ascir::utils::AreConcatInputShapesEqual(concat_node) == af::TriBool::kFalse) {
     GELOGI("input shapes of Concat differ, no need for optimization");
     return false;
   }
@@ -66,7 +66,7 @@ bool ConcatInputUnificationPass::NeedOptimize(const af::AscNodePtr &concat_node)
                                  "dst col size over limit, no need for optimization");
 
   // 5. 输入不能共用
-  GE_CHK_BOOL_RET_SPECIAL_STATUS((!::ascir::utils::AreAllInputDistinct(concat_node)), false,
+  GE_CHK_BOOL_RET_SPECIAL_STATUS((!ascir::utils::AreAllInputDistinct(concat_node)), false,
                                  "contain multi-ref input, do not optimize");
 
   // 6. 输入全来自于Load不需要
@@ -81,7 +81,7 @@ bool ConcatInputUnificationPass::NeedOptimize(const af::AscNodePtr &concat_node)
   return true;
 }
 
-Status ConcatInputUnificationPass::DoOptimize(::ascir::ImplGraph &graph, const af::AscNodePtr &concat_node) {
+Status ConcatInputUnificationPass::DoOptimize(ascir::ImplGraph &graph, const af::AscNodePtr &concat_node) {
   for (const auto &in_anchor : concat_node->GetAllInDataAnchors()) {
     GE_ASSERT_NOTNULL(in_anchor);
     const auto out_anchor = in_anchor->GetPeerOutAnchor();
@@ -158,4 +158,3 @@ bool ConcatInputUnificationPass::IsSrcColSizeOverLimit(const af::AscNodePtr &con
   return (src_col_size * dtype_size) > kSrcColSizeLimit;
 }
 }  // optimize
-}  // namespace af

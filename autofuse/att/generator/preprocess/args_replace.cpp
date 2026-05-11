@@ -18,7 +18,7 @@
 #include "base/att_const_values.h"
 #include "generator/preprocess/preprocess_utils.h"
 
-namespace af { namespace att {
+namespace att {
 const std::string kAlignDelim = "_div_align";
 const std::string kPowBase = "_base";
 const int32_t kDefualtInitValue = 0;
@@ -231,4 +231,3 @@ void ArgsReplacer::Reset() {
   expr_factors_map_.clear();
 }
 }  // namespace
-}  // namespace af

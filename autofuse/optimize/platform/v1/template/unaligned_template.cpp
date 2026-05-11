@@ -14,7 +14,7 @@ namespace {
 constexpr uint32_t kAlignWidth = 32U;
 }
 
-namespace af { namespace optimize {
+namespace optimize {
 
 std::string UnalignedTemplate::GenName(const std::string &general_case_name) {
   return general_case_name + "_unaligned";
@@ -152,4 +152,3 @@ bool UnalignedTemplate::NeedDropBasedCase([[maybe_unused]] const af::AscGraph &o
 }
 
 }  // namespace optimize
-}  // namespace af

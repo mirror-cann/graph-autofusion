@@ -22,7 +22,7 @@
 #include "generator/solver_pass_gen/input_output_setters.h"
 #include "generator/solver_pass_gen/input_output_setters_mixin.h"
 
-namespace af { namespace att {
+namespace att {
   enum class ConsType {
     BUFFER = 0,
     CUT = 1,
@@ -246,5 +246,4 @@ namespace af { namespace att {
   std::string SetRelatedVars(const std::vector<Expr> &rel_tiling_vars, const std::vector<Expr> &rel_cons_vars);
   std::string GenRelatedVars(uint32_t cons_idx, const std::vector<Expr> &rel_tiling_vars, const std::vector<Expr> &rel_cons_vars);
 }
-}  // namespace af
 #endif

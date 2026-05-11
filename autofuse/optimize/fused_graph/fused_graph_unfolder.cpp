@@ -26,7 +26,7 @@
 #include "ascir_utils.h"
 #include "ascgraph_info_complete.h"
 
-namespace af { namespace optimize {
+namespace optimize {
 Status FusedGraphUnfolder::RemoveUnusedNode(const af::ComputeGraphPtr &graph, const af::NodePtr &node,
                                             const bool force) {
   GE_CHECK_NOTNULL(graph);
@@ -410,20 +410,20 @@ Status FusedGraphUnfolder::UnfoldFusedGraph(const af::ComputeGraphPtr &fused_gra
     if (node->GetType() == kAscGraphNodeType) {
       auto iter = asc_backend_to_asc_graph.find(node);
       GE_ASSERT_TRUE(iter != asc_backend_to_asc_graph.end());
-      ::ascir::utils::DumpGraph(iter->second, "BeforeUnfoldAscBackend_" + iter->second.GetName());
+      ascir::utils::DumpGraph(iter->second, "BeforeUnfoldAscBackend_" + iter->second.GetName());
       GE_CHK_STATUS_RET(UnfoldAscbcNode(node, iter->second, fused_graph),
                         "Unfold ascgraph node [%s] to fused graph [%s] failed.", node->GetNamePtr(),
                         fused_graph->GetName().c_str());
-      ::ascir::utils::DumpGraph(iter->second, "AfterUnfoldAscBackend_" + iter->second.GetName());
+      ascir::utils::DumpGraph(iter->second, "AfterUnfoldAscBackend_" + iter->second.GetName());
     }
   }
-  ::ascir::utils::DumpComputeGraph(fused_graph, "FusedGraphAfterUnfold");
+  ascir::utils::DumpComputeGraph(fused_graph, "FusedGraphAfterUnfold");
 
   // step3 Do load cse
   GE_CHK_STATUS_RET(DoSameLoadCse(fused_graph),
                     "[Invoke][RemoveSameIndexData] Remove same index node for graph %s failed",
                     fused_graph->GetName().c_str());
-  ::ascir::utils::DumpComputeGraph(fused_graph, "AfterDoSameLoadCse");
+  ascir::utils::DumpComputeGraph(fused_graph, "AfterDoSameLoadCse");
   // step4 reassemble io index by fused graph io nodes.
   GE_ASSERT_SUCCESS(ReAssembleOutputIndex(fused_graph), "ReAssembleOutputIndex failed, graph:[%s].",
                     fused_graph->GetName().c_str());
@@ -432,7 +432,7 @@ Status FusedGraphUnfolder::UnfoldFusedGraph(const af::ComputeGraphPtr &fused_gra
   GE_CHK_STATUS_RET(RemoveRedundantLoads(fused_graph),
                     "[Invoke][RemoveRedundantLoads] Remove redundant Loads for graph %s failed",
                     fused_graph->GetName().c_str());
-  ::ascir::utils::DumpComputeGraph(fused_graph, "AfterRemoveRedundantLoads");
+  ascir::utils::DumpComputeGraph(fused_graph, "AfterRemoveRedundantLoads");
 
   GE_CHK_STATUS_RET(fused_graph->TopologicalSorting(), "Failed to do topological sorting for graph:[%s].",
                     fused_graph->GetName().c_str());
@@ -665,4 +665,3 @@ Status FusedGraphUnfolder::DoAxisMappingForConstPostAscGraph(const af::AscGraph 
   return af::SUCCESS;
 }
 }  // namespace optimize
-}  // namespace af

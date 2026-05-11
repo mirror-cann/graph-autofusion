@@ -17,13 +17,13 @@
 #include "common/checker.h"
 #include "api_call/utils/api_call_factory.h"
 
-namespace af { namespace codegen {
+namespace codegen {
 using namespace std;
 using namespace af::ops;
 using namespace af::ascir_op;
 using namespace ascgen_utils;
 
-Status MatmulApiCall::ParseAttr(const ::ascir::NodeView &node) {
+Status MatmulApiCall::ParseAttr(const ascir::NodeView &node) {
   GE_ASSERT_SUCCESS(ascgen_utils::ParseMatmulAttr(node, mm_attr_data_));
   return ge::SUCCESS;
 }
@@ -32,7 +32,7 @@ bool MatmulApiCall::HasRelu() const {
   return mm_attr_data_.has_relu != 0;
 }
 
-Status MatmulApiCall::PreProcess(const TPipe &tpipe, const std::vector<::ascir::AxisId> &current_axis,
+Status MatmulApiCall::PreProcess(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
                                  const std::vector<std::reference_wrapper<const Tensor>> &outputs,
                                  std::string &result) const {
   (void)tpipe;
@@ -49,7 +49,7 @@ Status MatmulApiCall::GenerateFuncDefinition(const TPipe &tpipe, const Tiler &ti
   return ge::SUCCESS;
 }
 
-Status MatmulApiCall::PostProcess(const TPipe &tpipe, const std::vector<::ascir::AxisId> &current_axis,
+Status MatmulApiCall::PostProcess(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
                                   const std::vector<std::reference_wrapper<const Tensor>> &outputs,
                                   std::string &result) const {
   (void)tpipe;
@@ -59,7 +59,7 @@ Status MatmulApiCall::PostProcess(const TPipe &tpipe, const std::vector<::ascir:
   return ge::SUCCESS;
 }
 
-Status MatmulApiCall::Generate(const TPipe &tpipe, const std::vector<::ascir::AxisId> &current_axis,
+Status MatmulApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
                                std::string &result) const {
   (void)tpipe;
   (void)current_axis;
@@ -82,4 +82,3 @@ Status MatmulApiCall::GenerateMacro(std::string &result) const {
 
 static ApiCallRegister<MatmulApiCall> register_matmul_api_call("MatmulApiCall");
 }  // namespace codegen
-}  // namespace af

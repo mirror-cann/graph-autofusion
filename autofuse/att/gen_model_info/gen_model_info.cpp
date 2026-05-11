@@ -28,7 +28,7 @@
 #include "schedule_result.h"
 #include "ascgraph_info_complete.h"
 
-namespace af { namespace att {
+namespace att {
 namespace {
 constexpr uint32_t kPathMax = 4096U;
 const std::string kFileSeperator = "/";
@@ -46,10 +46,10 @@ ge::Status GenerateModelInfo(const af::AscGraph &graph, ModelInfo &model_info, T
   model_info.tiling_case_id = tiling_case_id;
   // step1: get tuningspace from compute graph
   GE_ASSERT_NOTNULL(tuning_space, "Create tuning space failed.");
-  af::att::AscendGraphParser ascend_graph_parser(tuning_space);
+  att::AscendGraphParser ascend_graph_parser(tuning_space);
   GE_ASSERT_SUCCESS(ascend_graph_parser.GraphParser(graph), "Get tuning space failed.");
   // step2: get basic expr constraint
-  af::att::GenerateTilingExpr tiling_expr(tuning_space);
+  att::GenerateTilingExpr tiling_expr(tuning_space);
   GE_ASSERT_SUCCESS(tiling_expr.Generate(model_info), "Get basic expr constraint failed.");
   // step3: call passes to get configs
   ATTConfig att_config;
@@ -245,9 +245,9 @@ void ProcessTilingR(std::vector<ModelInfo> &model_info_list, const ModelInfo &mo
 }
 
 void ProcessGraphOriginalSizeVar(const af::AscGraph &graph, ModelInfo &model_info) {
-  af::optimize::SizeVarSet var_set;
+  optimize::SizeVarSet var_set;
   model_info.sizes.clear();
-  af::optimize::AscGraphInfoComplete::AppendOriginalSizeVar(graph, var_set);
+  optimize::AscGraphInfoComplete::AppendOriginalSizeVar(graph, var_set);
   for (const auto &var : var_set) {
     model_info.sizes.emplace_back(var);
   }
@@ -319,7 +319,7 @@ ge::Status MakeJson(std::vector<ModelInfo> &model_info_list, std::string &json_i
   return ge::SUCCESS;
 }
 
-ge::Status GetAllSubImplGraphs(const ::ascir::FusedScheduledResult &schedule_results,
+ge::Status GetAllSubImplGraphs(const ascir::FusedScheduledResult &schedule_results,
                                std::vector<std::vector<std::vector<std::vector<af::AscGraph>>>> &all_graphs,
                                std::map<std::string, std::string> &all_graph_score_funcs) {
   bool has_none_graph = true;
@@ -347,9 +347,9 @@ namespace {
 ge::Status ProcessAndSetScheduleGroupInfo(
     const std::vector<std::vector<af::AscGraph>> &schedule_groups,
     const std::map<std::string, std::string> &all_graph_score_funcs,
-    const ::ascir::FusedScheduledResult &schedule_results,
+    const ascir::FusedScheduledResult &schedule_results,
     const std::map<std::string, std::string> &options,
-    af::att::ParsedScheduleResult &out_schedule_groups,
+    att::ParsedScheduleResult &out_schedule_groups,
     size_t asc_graph_id, size_t impl_graph_id) {
   // 第三层表示schedule_group_id
   for (size_t schedule_group_id = 0UL; schedule_group_id < schedule_groups.size(); schedule_group_id++) {
@@ -388,7 +388,7 @@ ge::Status ProcessAndSetScheduleGroupInfo(
 }
 }
 
-ge::Status GetModelInfoMap(const ::ascir::FusedScheduledResult &schedule_results,
+ge::Status GetModelInfoMap(const ascir::FusedScheduledResult &schedule_results,
                            const std::map<std::string, std::string> &options,
                            FusedParsedScheduleResult &out_all_model_infos) {
   std::vector<std::vector<std::vector<std::vector<af::AscGraph>>>> all_graphs_lists;
@@ -423,4 +423,3 @@ ge::Status GetModelInfoMap(const ::ascir::FusedScheduledResult &schedule_results
   return ge::SUCCESS;
 }
 }  // namespace att
-}  // namespace af

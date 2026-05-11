@@ -12,7 +12,7 @@
 
 #include "input_output_setters.h"
 
-namespace af { namespace att {
+namespace att {
 
 /**
  * @class InputOutputSettersMixin
@@ -64,6 +64,5 @@ class InputOutputSettersMixin {
 };
 
 }  // namespace att
-}  // namespace af
 
 #endif  // ATT_INPUT_OUTPUT_SETTERS_MIXIN_H_

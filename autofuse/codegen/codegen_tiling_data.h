@@ -15,17 +15,17 @@
 
 #include "ascir.h"
 #include "schedule_result.h"
-namespace af { namespace codegen {
+namespace codegen {
 
 class TilingData {
  public:
   explicit TilingData(const std::string &kernel, const std::string &name_class = "TilingData");
-  std::string Generate(const ::ascir::FusedScheduledResult& fused_schedule_result);
+  std::string Generate(const ascir::FusedScheduledResult& fused_schedule_result);
   std::string GenCVConstTilingData(const std::string &tiling_data_struct_name, bool is_inductor_scene);
-  std::string GenerateConst(const ::ascir::FusedScheduledResult& fused_schedule_result, bool is_inductor_scene = true);
+  std::string GenerateConst(const ascir::FusedScheduledResult& fused_schedule_result, bool is_inductor_scene = true);
   static void GetTqueAndTbufId(const af::AscGraph& graph, std::set<int64_t>& q_ids, std::set<int64_t>& b_ids);
   static void GetTmpBufName(const af::AscGraph& graph, std::set<int64_t>& b_ids);
-  static ge::Status GetApiTilingDataName(const ::ascir::NodeView& node, std::vector<std::string>& api_tiling_data_names);
+  static ge::Status GetApiTilingDataName(const ascir::NodeView& node, std::vector<std::string>& api_tiling_data_names);
  protected:
   std::string class_name;
   std::string kernel_name;
@@ -37,24 +37,24 @@ class TilingData {
   static std::string pgo_perf_struct;
 
   std::string ClassBegin(const std::string& begin_kernel_name, const std::string& begin_class_name) const;
-  std::string DataFieldDefine(::ascir::SizeVar &size) const;
-  std::string DataFieldConstDefine(::ascir::SizeVar &size);
+  std::string DataFieldDefine(ascir::SizeVar &size) const;
+  std::string DataFieldConstDefine(ascir::SizeVar &size);
   std::string StructDataFiledDefine(const std::string& type_name, const std::string& filed_name) const;
   std::string ClassEnd() const;
   std::string ClassRegister();
-  void ProcessSingleGroup(const ::ascir::ScheduleGroup &schedule_group, std::stringstream &ss);
-  void ProcessMultiGroup(uint64_t pos, const int graph_id, const std::vector<::ascir::ScheduleGroup> &schedule_groups,
+  void ProcessSingleGroup(const ascir::ScheduleGroup &schedule_group, std::stringstream &ss);
+  void ProcessMultiGroup(uint64_t pos, const int graph_id, const std::vector<ascir::ScheduleGroup> &schedule_groups,
                          std::stringstream &ss1, std::stringstream &ss2);
   void AddApiTilingData(const af::AscGraph &graph, std::stringstream &ss, uint32_t tiling_case_id);
 
   private:
   std::string ConstApiTilingDataFiledDefine(std::string &type_name, std::string &field_name,
-                                            const ::ascir::NodeView& node);
+                                            const ascir::NodeView& node);
   void ConstTilingDataFieldPopBack();
 
   std::string GenGenTilingDataFieldConstDefFunc() const;
   std::string GenGenTilingDataFieldConstValueFunc() const;
-  ge::Status ProcessCubeFusionResult(::ascir::FusedScheduledResult &schedule_result);
+  ge::Status ProcessCubeFusionResult(ascir::FusedScheduledResult &schedule_result);
 
    std::string GenTingDataField(std::string field_name);
    std::string GetNameOfGenTilingDataFieldConstDefFunc(const std::string field_name);
@@ -65,7 +65,7 @@ class TilingData {
    std::string GenConstGenResultReplace();
 
    std::string GenTilingDataFieldConstDefFunc(std::string &dtype, std::string &filed_name);
-   std::string GetCommonTilingField(bool is_group, const ::ascir::FusedScheduledResult& fused_schedule_result);
+   std::string GetCommonTilingField(bool is_group, const ascir::FusedScheduledResult& fused_schedule_result);
 
    std::string TqueOrTbufDataFieldDefine(int64_t index, const std::string& que_or_buf) const;
    std::string TqueOrTbufDataFieldConstDefine(int64_t index, const std::string& que_or_buf);
@@ -86,5 +86,4 @@ class TilingData {
 };
 };  // namespace codegen
 
-}  // namespace af
 #endif

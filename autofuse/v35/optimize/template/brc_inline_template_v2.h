@@ -13,7 +13,7 @@
 
 #include "platform/v1/template/brc_inline_template.h"
 
-namespace af { namespace optimize {
+namespace optimize {
 class BrcInlineTemplateV2 : public BrcInlineTemplate {
  public:
   ~BrcInlineTemplateV2() override = default;
@@ -45,6 +45,5 @@ private:
   std::set<af::NodePtr> add_remove_pad_nodes_;
 };
 }  // namespace optimize
-}  // namespace af
 
 #endif  // OPTIMIZE_PLATFORM_COMMON_TEMPLATE_BRC_INLINE_TEMPLATE_V2_H

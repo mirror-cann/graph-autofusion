@@ -12,7 +12,7 @@
 #include "graph_metadef/common/ge_common/util.h"
 #include "graph/symbolizer/symbolic_utils.h"
 
-namespace af { namespace att {
+namespace att {
 namespace {
 std::vector<af::AscNodePtr> GetAllNodes(const af::AscGraph &graph) {
   std::vector<af::AscNodePtr> nodes;
@@ -460,4 +460,3 @@ bool EquivalentGraphRecognizer::IsEquivalent() {
   return UpdateOrderedInputNames();
 }
 }
-}  // namespace af

@@ -27,7 +27,7 @@ constexpr int32_t kSecondInputIndex = 1;
 constexpr int32_t kSupportScalarInputNum = 2;
 }  // namespace
 
-namespace af { namespace optimize {
+namespace optimize {
 Status ScalarBroadcastOptimizationPass::GetNodeScalarInputList(const af::NodePtr &node,
                                                                std::vector<bool> &is_scalar_list) {
   GE_ASSERT_NOTNULL(node);
@@ -159,4 +159,3 @@ Status ScalarBroadcastOptimizationPass::RunPass(af::AscGraph &graph) {
   return ge::SUCCESS;
 }
 }  // namespace optimize
-}  // namespace af

@@ -15,7 +15,7 @@
 #include "base/model_info.h"
 #include "external/ge_common/ge_api_types.h"
 
-namespace af { namespace att {
+namespace att {
 namespace cache {
 
 /**
@@ -138,6 +138,5 @@ class OperatorLevelCacheGen : public TilingCacheCodeGen {
 } // namespace cache
 
 } // namespace att
-}  // namespace af
 
 #endif // ATT_OPERATOR_LEVEL_CACHE_GEN_H_

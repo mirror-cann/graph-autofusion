@@ -25,7 +25,7 @@
 #include "platform/platform_factory.h"
 #include "util/mem_utils.h"
 
-namespace af { namespace optimize {
+namespace optimize {
 namespace {
 constexpr uint32_t kMaxInputNum = 48U;
 constexpr size_t kTemplateSizeAll = 3UL;
@@ -47,8 +47,8 @@ void CollectInAndOutNodes(const af::NodePtr &node, std::set<af::Node *> &visited
 }
 }  // namespace
 
-Status ConcatFusionCaseGenerator::Generate(::ascir::HintGraph &graph,
-                                           std::vector<::ascir::ImplGraph> &graphs,
+Status ConcatFusionCaseGenerator::Generate(ascir::HintGraph &graph,
+                                           std::vector<ascir::ImplGraph> &graphs,
                                            std::vector<std::string> &score_functions) {
   auto concat_nodes = FindConcatNodes(graph);
   if (concat_nodes.empty()) {
@@ -91,7 +91,7 @@ Status ConcatFusionCaseGenerator::Generate(::ascir::HintGraph &graph,
   if (concat_node->inputs.Size() <= kMaxInputNum) {
     graphs.emplace_back(graph);
     // 如果匹配小尾轴, UB能全载，则不需要生成case3模板
-    if (support_small_tail_ && ::ascir::utils::UseSmallTailConcatApi(*concat_node)) {
+    if (support_small_tail_ && ascir::utils::UseSmallTailConcatApi(*concat_node)) {
       GELOGI("match small tail pattern, 1 template was generated");
       return af::SUCCESS;
     }
@@ -119,8 +119,8 @@ ConcatFusionCaseGenerator &ConcatFusionCaseGenerator::SetConvertToStoreMode() {
   return *this;
 }
 
-Status ConcatFusionCaseGenerator::AddTemplateForSplitConcat(const ::ascir::HintGraph &graph, std::vector<::ascir::ImplGraph> &graphs) {
-  ::ascir::ImplGraph optimized_graph((graph.GetName() + "_group_concat").c_str());
+Status ConcatFusionCaseGenerator::AddTemplateForSplitConcat(const ascir::HintGraph &graph, std::vector<ascir::ImplGraph> &graphs) {
+  ascir::ImplGraph optimized_graph((graph.GetName() + "_group_concat").c_str());
   GE_ASSERT_TRUE(optimized_graph.CopyFrom(graph));
   auto concat_node = FindConcatNodes(optimized_graph).front();
   GE_CHK_STATUS_RET(Prepare(concat_node, concat_dim_), "Prepare failed");
@@ -149,10 +149,10 @@ bool ConcatFusionCaseGenerator::NeedDynSmallTailTemplate(const af::AscNodePtr &c
       (!concat_node->outputs[0].attr.strides[concat_dim_ - 1].IsConstExpr());
 }
 
-Status ConcatFusionCaseGenerator::AddTemplateForSmallTail(const ::ascir::HintGraph &graph,
-                                                          std::vector<::ascir::ImplGraph> &graphs) {
+Status ConcatFusionCaseGenerator::AddTemplateForSmallTail(const ascir::HintGraph &graph,
+                                                          std::vector<ascir::ImplGraph> &graphs) {
   GELOGI("exits dynamic dim after concat_dim, generate force small tail template");
-  ::ascir::ImplGraph force_small_tail_graph((graph.GetName() + "_force_small_tail").c_str());
+  ascir::ImplGraph force_small_tail_graph((graph.GetName() + "_force_small_tail").c_str());
   GE_ASSERT_TRUE(force_small_tail_graph.CopyFrom(graph));
   auto force_small_tail_node = FindConcatNodes(force_small_tail_graph).front();
   GE_ASSERT_TRUE(af::AttrUtils::SetBool(force_small_tail_node->GetOpDesc(), "_concat_small_tail", true));
@@ -160,7 +160,7 @@ Status ConcatFusionCaseGenerator::AddTemplateForSmallTail(const ::ascir::HintGra
   return af::SUCCESS;
 }
 
-Status ConcatFusionCaseGenerator::GenerateScoreFunctions(const std::vector<::ascir::ImplGraph> &graphs,
+Status ConcatFusionCaseGenerator::GenerateScoreFunctions(const std::vector<ascir::ImplGraph> &graphs,
                                                          size_t concat_dim,
                                                          std::vector<std::string> &score_functions) const {
   GE_CHK_BOOL_RET_STATUS_NOLOG((graphs.size() > 1U), af::SUCCESS);
@@ -191,7 +191,7 @@ Status ConcatFusionCaseGenerator::GenerateScoreFunctions(const std::vector<::asc
   return af::SUCCESS;
 }
 
-std::vector<af::AscNodePtr> ConcatFusionCaseGenerator::FindConcatNodes(const ::ascir::HintGraph &owner_graph) {
+std::vector<af::AscNodePtr> ConcatFusionCaseGenerator::FindConcatNodes(const ascir::HintGraph &owner_graph) {
   std::vector<af::AscNodePtr> concat_nodes;
   for (const auto &node : owner_graph.GetAllNodes()) {
     if (af::ops::IsOps<af::ascir_op::Concat>(node)) {
@@ -201,7 +201,7 @@ std::vector<af::AscNodePtr> ConcatFusionCaseGenerator::FindConcatNodes(const ::a
   return concat_nodes;
 }
 
-Status ConcatFusionCaseGenerator::ConvertSingleInput(::ascir::HintGraph &owner_graph, const af::AscNodePtr &concat_node,
+Status ConcatFusionCaseGenerator::ConvertSingleInput(ascir::HintGraph &owner_graph, const af::AscNodePtr &concat_node,
                                                      size_t in_index, size_t group_idx,
                                                      ConcatDimAxisMap &repeat_to_axis_id) {
   const auto &all_in_data_anchors = concat_node->GetAllInDataAnchors();
@@ -223,7 +223,7 @@ Status ConcatFusionCaseGenerator::ConvertSingleInput(::ascir::HintGraph &owner_g
   return ReplaceWithStore(concat_node, concat_in_anchor, *replace_axis);
 }
 
-Status ConcatFusionCaseGenerator::ConvertConcatToStores(::ascir::HintGraph &owner_graph,
+Status ConcatFusionCaseGenerator::ConvertConcatToStores(ascir::HintGraph &owner_graph,
                                                         const af::AscNodePtr &concat_node) {
   ConcatGroupPartitioner partitioner(concat_node, concat_dim_);
   GE_ASSERT_SUCCESS(partitioner.RecomputeDiffAxes());
@@ -239,11 +239,11 @@ Status ConcatFusionCaseGenerator::ConvertConcatToStores(::ascir::HintGraph &owne
 
   GE_CHK_STATUS_RET(RemoveUnusedNodes(concat_node, post_concat_nodes_), "RemoveUnusedNodes failed");
   GE_ASSERT_GRAPH_SUCCESS(ScheduleUtils::TopologicalSorting(owner_graph));
-  ::ascir::utils::DumpGraph(owner_graph, "AfterConvertConcatToStore");
+  ascir::utils::DumpGraph(owner_graph, "AfterConvertConcatToStore");
   return af::SUCCESS;
 }
 
-Status ConcatFusionCaseGenerator::SplitConcats(::ascir::HintGraph &owner_graph, const af::AscNodePtr &concat_node,
+Status ConcatFusionCaseGenerator::SplitConcats(ascir::HintGraph &owner_graph, const af::AscNodePtr &concat_node,
                                                bool &split) {
   std::vector<ConcatGroupPartitioner::ConcatGroup> groups;
   ConcatGroupPartitioner partitioner(concat_node, concat_dim_);
@@ -271,7 +271,7 @@ Status ConcatFusionCaseGenerator::SplitConcats(::ascir::HintGraph &owner_graph, 
   }
   GE_CHK_STATUS_RET(RemoveUnusedNodes(concat_node, post_concat_nodes_), "RemoveUnusedNodes failed");
   GE_ASSERT_GRAPH_SUCCESS(ScheduleUtils::TopologicalSorting(owner_graph));
-  ::ascir::utils::DumpGraph(owner_graph, "AfterSplitConcat");
+  ascir::utils::DumpGraph(owner_graph, "AfterSplitConcat");
   split = true;
   return af::SUCCESS;
 }
@@ -288,7 +288,7 @@ Status ConcatFusionCaseGenerator::Prepare(const af::AscNodePtr &concat_node, siz
 }
 
 Status ConcatFusionCaseGenerator::PropagateAxisChanges(af::Node *start_node,
-                                                       const std::vector<::ascir::AxisId> &new_axis_ids) const {
+                                                       const std::vector<ascir::AxisId> &new_axis_ids) const {
   std::set<af::Node *> visited_nodes;
   std::queue<af::Node *> node_queue;
 
@@ -329,7 +329,7 @@ Status ConcatFusionCaseGenerator::ReplaceWithStore(const af::AscNodePtr &concat_
   const auto in_index = concat_in_anchor->GetIdx();
   const auto &src_out_anchor = concat_in_anchor->GetPeerOutAnchor();
   // 前向刷轴
-  std::vector<::ascir::AxisId> new_axis_ids = concat_node->attr.sched.axis;
+  std::vector<ascir::AxisId> new_axis_ids = concat_node->attr.sched.axis;
   new_axis_ids[concat_dim_] = replace_axis.id;
   GE_CHK_STATUS_RET(PropagateAxisChanges(concat_node.get(), new_axis_ids),
                     "PropagateAxisChanges failed in ReplaceWithStore");
@@ -348,7 +348,7 @@ Status ConcatFusionCaseGenerator::ReplaceWithStore(const af::AscNodePtr &concat_
   return af::SUCCESS;
 }
 
-Status ConcatFusionCaseGenerator::ReplaceWithConcat(::ascir::ImplGraph &owner_graph, const af::AscNodePtr &concat_node,
+Status ConcatFusionCaseGenerator::ReplaceWithConcat(ascir::ImplGraph &owner_graph, const af::AscNodePtr &concat_node,
                                                     size_t start, size_t end) {
   auto suffix = "_" + std::to_string(start) + "_" + std::to_string(end);
   af::ascir_op::Concat concat_op((concat_node->GetName() + suffix).c_str());
@@ -367,12 +367,12 @@ Status ConcatFusionCaseGenerator::ReplaceWithConcat(::ascir::ImplGraph &owner_gr
                       "Failed to AddEdge");
   }
   const auto &output_repeats = new_concat_node->outputs[0].attr.repeats;
-  ::ascir::Axis concat_axis = *(owner_graph.GetAllAxis().at(concat_axis_id_));
+  ascir::Axis concat_axis = *(owner_graph.GetAllAxis().at(concat_axis_id_));
   auto new_concat_axis =
       owner_graph.CreateAxis(concat_axis.name + "_ss_" + std::to_string(start), output_repeats[concat_dim_]);
 
   // 前向刷轴
-  std::vector<::ascir::AxisId> new_axis_ids = concat_node->attr.sched.axis;
+  std::vector<ascir::AxisId> new_axis_ids = concat_node->attr.sched.axis;
   new_axis_ids[concat_dim_] = new_concat_axis.id;
   GE_CHK_STATUS_RET(PropagateAxisChanges(concat_node.get(), new_axis_ids),
                     "PropagateAxisChanges failed in ReplaceWithStore");
@@ -432,7 +432,7 @@ Status ConcatFusionCaseGenerator::RemoveUnusedNodes(const af::AscNodePtr &concat
 }
 
 
-Status ConcatFusionCaseGenerator::SplitDataForDifferentConcatDim(::ascir::ImplGraph &owner_graph) {
+Status ConcatFusionCaseGenerator::SplitDataForDifferentConcatDim(ascir::ImplGraph &owner_graph) {
   for (const auto &node : owner_graph.GetAllNodes()) {
     GE_ASSERT_NOTNULL(node);
     if (!af::ops::IsOps<af::ascir_op::Data>(node)) {
@@ -505,10 +505,10 @@ Status ConcatFusionCaseGenerator::CollectReachableLoadNodes(const af::NodePtr &c
 Status ConcatFusionCaseGenerator::CloneNonConcatNodes(const af::Axis &new_axis,
                                                       size_t index,
                                                       std::vector<af::InDataAnchorPtr> &in_anchors,
-                                                      const std::vector<::ascir::AxisId> &new_axis_ids,
+                                                      const std::vector<ascir::AxisId> &new_axis_ids,
                                                       std::unordered_map<std::string, af::NodePtr> &name_to_new_node) {
   GE_ASSERT_TRUE(!post_concat_nodes_.empty());
-  ::ascir::ImplGraph owner_graph("owner_graph");
+  ascir::ImplGraph owner_graph("owner_graph");
   GE_ASSERT_SUCCESS(af::AscGraphUtils::FromComputeGraph(post_concat_nodes_.front()->GetOwnerComputeGraph(), owner_graph));
   std::string suffix;
   if (index != 0UL) {
@@ -560,7 +560,7 @@ Status ConcatFusionCaseGenerator::CloneNonConcatNodes(const af::Axis &new_axis,
 // concat concat场景不会出现transpose,所以直接进行轴替换
 af::Status ConcatFusionCaseGenerator::ReplaceAxis(const af::AscNodePtr &node, size_t axis_index,
                                                   const af::Axis &to_axis,
-                                                  const std::vector<::ascir::AxisId> &new_axis_ids) {
+                                                  const std::vector<ascir::AxisId> &new_axis_ids) {
   node->attr.sched.axis = new_axis_ids;
   for (uint32_t i = 0U; i < node->outputs().size(); ++i) {
     node->outputs[i].attr.axis = new_axis_ids;
@@ -608,7 +608,7 @@ af::Status ConcatFusionCaseGenerator::UpdateRepeatAndStrides(const af::AscNodePt
   return af::SUCCESS;
 }
 
-Status ConcatFusionCaseGenerator::InsertAxis(::ascir::ImplGraph &optimized_graph) {
+Status ConcatFusionCaseGenerator::InsertAxis(ascir::ImplGraph &optimized_graph) {
   const auto graph_attr =
       af::AscGraphUtils::GetComputeGraph(optimized_graph)->GetOrCreateAttrsGroup<af::AscGraphAttr>();
   GE_ASSERT_NOTNULL(graph_attr);
@@ -657,8 +657,8 @@ Status ConcatFusionCaseGenerator::InsertAxis(::ascir::ImplGraph &optimized_graph
 }
 
 Status ConcatFusionCaseGenerator::AddTemplateIfCanFitInOneKernel(const af::AscNodePtr &concat_node,
-                                                                 ::ascir::HintGraph &graph,
-                                                                 std::vector<::ascir::ImplGraph> &graphs) {
+                                                                 ascir::HintGraph &graph,
+                                                                 std::vector<ascir::ImplGraph> &graphs) {
   GE_CHK_BOOL_RET_SPECIAL_STATUS(concat_node->inputs.Size() > kMaxInputNum, af::SUCCESS,
                                  "input num(%u) > max_input_num(%u), can not fit in one kernel",
                                  concat_node->inputs.Size(), kMaxInputNum);
@@ -678,7 +678,7 @@ Status ConcatFusionCaseGenerator::AddTemplateIfCanFitInOneKernel(const af::AscNo
   return af::SUCCESS;
 }
 
-Status ConcatFusionCaseGenerator::MarkNoMergeFirstAxis(std::vector<::ascir::ImplGraph> &graphs) {
+Status ConcatFusionCaseGenerator::MarkNoMergeFirstAxis(std::vector<ascir::ImplGraph> &graphs) {
   for (const auto &graph : graphs) {
     for (const auto &node : graph.GetAllNodes()) {
       if (af::ops::IsOps<af::ascir_op::Concat>(node)) {
@@ -775,4 +775,3 @@ Status ConcatFusionCaseGenerator::PrepareForModifyingGraph(const af::AscNodePtr 
   return af::SUCCESS;
 }
 } // namespace optimize
-}  // namespace af

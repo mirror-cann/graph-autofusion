@@ -12,7 +12,7 @@
 #define OPTIMIZE_PLATFORM_COMMON_GRAPH_PASS_POW_EQUIV_SUBSTITUTION_PASS_H
 
 #include "optimize/graph_pass/base_graph_pass.h"
-namespace af { namespace optimize {
+namespace optimize {
 using SubstitutionFunc = std::function<af::Status(af::AscGraph &, const af::AscNodePtr &)>;
 
 enum class PatternType : uint8_t {
@@ -68,6 +68,5 @@ class PowEquivSubstitutionPass final : public BaseGraphPass {
   static af::Status ReplaceWithFourthPower(af::AscGraph &graph, const af::AscNodePtr &pow_node);
 };
 }  // namespace optimize
-}  // namespace af
 
 #endif  // OPTIMIZE_PLATFORM_COMMON_GRAPH_PASS_POW_EQUIV_SUBSTITUTION_PASS_H

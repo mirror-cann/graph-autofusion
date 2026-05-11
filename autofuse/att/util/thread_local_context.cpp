@@ -10,7 +10,7 @@
 
 #include "thread_local_context.h"
 
-namespace af { namespace att {
+namespace att {
 ThreadLocalContext &GetThreadLocalContext() {
   static thread_local ThreadLocalContext thread_context;
   return thread_context;
@@ -29,4 +29,3 @@ void ThreadLocalContext::SetOption(const std::map<std::string, std::string> &opt
   all_options_ = options_map;
 }
 }
-}  // namespace af

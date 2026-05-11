@@ -13,7 +13,7 @@
 namespace af {
 namespace {
 struct DefaultDumper : public GeGraphDumper {
-  void Dump(const ge::ComputeGraphPtr &graph, const std::string &suffix) override {
+  void Dump(const af::ComputeGraphPtr &graph, const std::string &suffix) override {
     (void)graph;
     (void)suffix;
   }

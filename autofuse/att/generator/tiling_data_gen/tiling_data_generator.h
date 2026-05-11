@@ -17,7 +17,7 @@
 #include "extra_info_gen/extra_info_config.h"
 #include "ge_common/ge_api_error_codes.h"
 
-namespace af { namespace att {
+namespace att {
 enum class TilingDataGenType {
   AXES_TILING_DATA_GEN,
   GENERAL_TILING_DATA_GEN,
@@ -155,6 +155,5 @@ class TilingDataGenerator {
   bool inited_{false};
 };
 }  // namespace att
-}  // namespace af
 
 #endif  // ATT_CXX_ATT_GEN_MODEL_INFO_AXES_TILING_GEN_TILING_DATA_MANAGER_H_

@@ -21,7 +21,7 @@
 #include "base/err_msg.h"
 #include "graph/symbolizer/symbolic.h"
 
-namespace af { namespace optimize {
+namespace optimize {
 namespace {
 size_t TWO = 2;
 size_t kMaxFullLoadAxisSize = 3UL;
@@ -131,9 +131,9 @@ bool IsNotPartitionReduce(const af::AscNodePtr &reduce_node, size_t threshold) {
 }
 }
 
-Status ReducePartitionCaseGenerator::GeneratorGeneralTask(::ascir::HintGraph &optimize_graph,
+Status ReducePartitionCaseGenerator::GeneratorGeneralTask(ascir::HintGraph &optimize_graph,
                                                           std::vector<ScheduleTask> &tasks) {
-  std::vector<::ascir::ImplGraph> optimize_graphs;
+  std::vector<ascir::ImplGraph> optimize_graphs;
   std::vector<std::string> score_funcs;
   GE_CHK_STATUS_RET(GenerateGeneralCase(optimize_graph, optimize_graphs, score_funcs), "GenerateScheduleCases failed");
   score_funcs.resize(optimize_graphs.size());
@@ -147,12 +147,12 @@ Status ReducePartitionCaseGenerator::GeneratorGeneralTask(::ascir::HintGraph &op
   return ge::GRAPH_SUCCESS;
 }
 
-Status ReducePartitionCaseGenerator::GeneratorAllLoadTask(::ascir::HintGraph &optimize_graph,
+Status ReducePartitionCaseGenerator::GeneratorAllLoadTask(ascir::HintGraph &optimize_graph,
                                                           std::vector<ScheduleTask> &tasks) {
   if (!CanReduceFuse(optimize_graph)) {
     return ge::GRAPH_SUCCESS;
   }
-  std::vector<::ascir::ImplGraph> optimize_graphs;
+  std::vector<ascir::ImplGraph> optimize_graphs;
   std::vector<std::string> score_funcs;
   GE_CHK_STATUS_RET(GenerateAllLoadCase(optimize_graph, optimize_graphs, score_funcs), "GenerateScheduleCases failed");
   score_funcs.resize(optimize_graphs.size());
@@ -166,7 +166,7 @@ Status ReducePartitionCaseGenerator::GeneratorAllLoadTask(::ascir::HintGraph &op
   return ge::GRAPH_SUCCESS;
 }
 
-Status ReducePartitionCaseGenerator::GeneratorRCoreTask(::ascir::HintGraph &optimize_graph,
+Status ReducePartitionCaseGenerator::GeneratorRCoreTask(ascir::HintGraph &optimize_graph,
                                                         std::vector<ScheduleTask> &tasks) const {
   std::vector<ScheduleTask> new_tasks;
   for (const auto &task : tasks) {
@@ -184,7 +184,7 @@ Status ReducePartitionCaseGenerator::GeneratorRCoreTask(::ascir::HintGraph &opti
         new_task_grouped_graphs.emplace_back(std::move(graph));
         continue;
       }
-      ::ascir::ImplGraph phase_graph((task.grouped_graphs[i].GetName() + "_r_multicore_phase_graph").c_str());
+      ascir::ImplGraph phase_graph((task.grouped_graphs[i].GetName() + "_r_multicore_phase_graph").c_str());
       phase_graph.CopyFrom(task.grouped_graphs[i]);
       af::AscNodePtr reduce_node;
       for (auto node : phase_graph.GetAllNodes()) {
@@ -195,10 +195,10 @@ Status ReducePartitionCaseGenerator::GeneratorRCoreTask(::ascir::HintGraph &opti
       }
       GE_CHECK_NOTNULL(reduce_node);
       GE_ASSERT_TRUE(IsNotPartitionReduce(reduce_node, NODE_COUNT_AFTER_REDUCE));
-      ::ascir::ImplGraph phase_1_graph((task.grouped_graphs[i].GetName() + "_r_multicore_phase_1_graph").c_str());
-      ::ascir::ImplGraph phase_2_graph((task.grouped_graphs[i].GetName() + "_r_multicore_phase_2_graph").c_str());
+      ascir::ImplGraph phase_1_graph((task.grouped_graphs[i].GetName() + "_r_multicore_phase_1_graph").c_str());
+      ascir::ImplGraph phase_2_graph((task.grouped_graphs[i].GetName() + "_r_multicore_phase_2_graph").c_str());
       GE_CHK_STATUS_RET(RMulticorePhase2Graph(phase_2_graph, phase_1_graph, phase_graph, reduce_node).Construct());
-      ::ascir::utils::DumpGraph(phase_2_graph, "phase2graph_construct");
+      ascir::utils::DumpGraph(phase_2_graph, "phase2graph_construct");
       new_task_grouped_graphs.emplace_back(std::move(phase_1_graph));
       new_task_grouped_graphs.emplace_back(std::move(phase_2_graph));
       map[i + phase_2_graph_size] = {i + phase_2_graph_size + 1};
@@ -214,7 +214,7 @@ Status ReducePartitionCaseGenerator::GeneratorRCoreTask(::ascir::HintGraph &opti
   return ge::GRAPH_SUCCESS;
 }
 
-Status ReducePartitionCaseGenerator::GeneratorTask(::ascir::HintGraph &optimize_graph, std::vector<ScheduleTask> &tasks,
+Status ReducePartitionCaseGenerator::GeneratorTask(ascir::HintGraph &optimize_graph, std::vector<ScheduleTask> &tasks,
                                                    const OptimizerOptions &options) {
   GE_CHK_STATUS_RET(GeneratorGeneralTask(optimize_graph, tasks));
   // inductor 流程后融合场景存在workspace计算问题，暂不增加多核模板
@@ -225,19 +225,19 @@ Status ReducePartitionCaseGenerator::GeneratorTask(::ascir::HintGraph &optimize_
   return ge::GRAPH_SUCCESS;
 }
 
-Status ReducePartitionCaseGenerator::Generate([[maybe_unused]] ::ascir::HintGraph &graph,
-                                              [[maybe_unused]] std::vector<::ascir::ImplGraph> &graphs,
+Status ReducePartitionCaseGenerator::Generate([[maybe_unused]] ascir::HintGraph &graph,
+                                              [[maybe_unused]] std::vector<ascir::ImplGraph> &graphs,
                                               [[maybe_unused]] std::vector<std::string> &score_functions) {
   return ge::GRAPH_SUCCESS;
 }
 
-Status ReducePartitionCaseGenerator::GenerateGeneralCase(::ascir::HintGraph &graph,
-                                                         std::vector<::ascir::ImplGraph> &graphs,
+Status ReducePartitionCaseGenerator::GenerateGeneralCase(ascir::HintGraph &graph,
+                                                         std::vector<ascir::ImplGraph> &graphs,
                                                          std::vector<std::string> &score_functions) {
   if (!HasReduce(graph)) {
     return ge::GRAPH_SUCCESS;
   }
-  ::ascir::ImplGraph optimize_graph(graph.GetName().c_str());
+  ascir::ImplGraph optimize_graph(graph.GetName().c_str());
   optimize_graph.CopyFrom(graph);
 
   // 以多输出节点为起点遍历，找环路的终点：如有环路则返回终点的列表
@@ -274,8 +274,8 @@ Status ReducePartitionCaseGenerator::GenerateGeneralCase(::ascir::HintGraph &gra
       return lhs->GetOpDescBarePtr()->GetId() < rhs->GetOpDescBarePtr()->GetId();
     });
 
-    ::ascir::utils::DumpGraph(graph, "before_partition");
-    ::ascir::utils::DumpGraph(optimize_graph, "after_partition");
+    ascir::utils::DumpGraph(graph, "before_partition");
+    ascir::utils::DumpGraph(optimize_graph, "after_partition");
     graphs.emplace_back(optimize_graph);
     score_functions.resize(graphs.size());
   } else {
@@ -285,8 +285,8 @@ Status ReducePartitionCaseGenerator::GenerateGeneralCase(::ascir::HintGraph &gra
   return ge::GRAPH_SUCCESS;
 }
 
-Status ReducePartitionCaseGenerator::GenerateAllLoadCase(::ascir::HintGraph &graph,
-                                                         std::vector<::ascir::ImplGraph> &graphs,
+Status ReducePartitionCaseGenerator::GenerateAllLoadCase(ascir::HintGraph &graph,
+                                                         std::vector<ascir::ImplGraph> &graphs,
                                                          const std::vector<std::string> &score_functions) {
   (void)score_functions;
   if (!HasReduce(graph)) {
@@ -297,7 +297,7 @@ Status ReducePartitionCaseGenerator::GenerateAllLoadCase(::ascir::HintGraph &gra
   return ge::GRAPH_SUCCESS;
 }
 
-Status ReducePartitionCaseGenerator::ReducePartitionMultipleCitations(::ascir::ImplGraph &impl_graph) {
+Status ReducePartitionCaseGenerator::ReducePartitionMultipleCitations(ascir::ImplGraph &impl_graph) {
   if (IsGroupGraphLegal(impl_graph)) {
     return ge::GRAPH_SUCCESS;
   }
@@ -341,7 +341,7 @@ bool ReducePartitionCaseGenerator::FindOutputReduce(const af::AscNodePtr &node, 
   return output_has_reduce;
 }
 
-Status ReducePartitionCaseGenerator::PartitionReduce(af::AscNodePtr &src_node, ::ascir::ImplGraph &impl_graph) {
+Status ReducePartitionCaseGenerator::PartitionReduce(af::AscNodePtr &src_node, ascir::ImplGraph &impl_graph) {
   partition_ = true;
   node_order_.emplace_back(src_node);
   af::ascir_op::Workspace workspace_pre((src_node->GetName() + "_Workspace").c_str());
@@ -380,7 +380,7 @@ Status ReducePartitionCaseGenerator::PartitionReduce(af::AscNodePtr &src_node, :
   return ge::GRAPH_SUCCESS;
 }
 
-Status ReducePartitionCaseGenerator::ReducePartitionPostFusion(::ascir::ImplGraph &impl_graph) {
+Status ReducePartitionCaseGenerator::ReducePartitionPostFusion(ascir::ImplGraph &impl_graph) {
   for (auto node : impl_graph.GetAllNodes()) {
     if (ScheduleUtils::IsReduce(node)) {
       if (IsNotPartitionReduce(node, NODE_COUNT_AFTER_REDUCE)) {
@@ -393,7 +393,7 @@ Status ReducePartitionCaseGenerator::ReducePartitionPostFusion(::ascir::ImplGrap
 }
 
 Status ReducePartitionCaseGenerator::PartitionByNode(af::AscNodePtr &src_node, af::AscNodePtr &dst_node,
-                                                     ::ascir::ImplGraph &impl_graph) {
+                                                     ascir::ImplGraph &impl_graph) {
   partition_ = true;
   node_order_.emplace_back(src_node);
   if (ScheduleUtils::IsLoad(src_node)) {
@@ -446,7 +446,7 @@ Status ReducePartitionCaseGenerator::PartitionByNode(af::AscNodePtr &src_node, a
 }
 
 Status ReducePartitionCaseGenerator::PartitionLoad(af::AscNodePtr &src_node, af::AscNodePtr &dst_node,
-                                                   ::ascir::ImplGraph &impl_graph) {
+                                                   ascir::ImplGraph &impl_graph) {
   auto load_input_node = src_node->GetInNodes().at(0UL);
   auto load_input_asc_node = std::dynamic_pointer_cast<af::AscNode>(load_input_node);
   GE_ASSERT_TRUE(af::ops::IsOps<af::ascir_op::Data>(load_input_asc_node) || af::ops::IsOps<af::ascir_op::Workspace>(load_input_asc_node));
@@ -489,7 +489,7 @@ Status ReducePartitionCaseGenerator::PartitionLoad(af::AscNodePtr &src_node, af:
 }
 
 Status ReducePartitionCaseGenerator::PartitionScalar(af::AscNodePtr &src_node, af::AscNodePtr &dst_node,
-                                                     ::ascir::ImplGraph &impl_graph) {
+                                                     ascir::ImplGraph &impl_graph) {
   af::ascir_op::Scalar scalar(("copy_from_" + src_node->GetName()).c_str());
   auto scalar_node = impl_graph.AddNode(scalar);
   DoCopyAscNodeTensorAttr(src_node, scalar_node);
@@ -588,7 +588,7 @@ bool ReducePartitionCaseGenerator::IsNorm(const af::AscNodePtr &start, const af:
   return is_norm && end_in_nodes.size() > 1;
 }
 
-Status ReducePartitionCaseGenerator::PartitionNorm(::ascir::ImplGraph &impl_graph, std::vector<std::pair<af::AscNodePtr,
+Status ReducePartitionCaseGenerator::PartitionNorm(ascir::ImplGraph &impl_graph, std::vector<std::pair<af::AscNodePtr,
                                                    af::AscNodePtr>> &loop_start_end) {
   for (auto loop : loop_start_end) {
     for (auto &in_node : loop.second->GetInNodes()) {
@@ -602,7 +602,7 @@ Status ReducePartitionCaseGenerator::PartitionNorm(::ascir::ImplGraph &impl_grap
   return ge::GRAPH_SUCCESS;
 }
 
-bool ReducePartitionCaseGenerator::HasReduce(const ::ascir::ImplGraph &impl_graph) {
+bool ReducePartitionCaseGenerator::HasReduce(const ascir::ImplGraph &impl_graph) {
   for (const auto &node : impl_graph.GetAllNodes()) {
     if (ScheduleUtils::IsReduce(node)) {
       return true;
@@ -612,14 +612,14 @@ bool ReducePartitionCaseGenerator::HasReduce(const ::ascir::ImplGraph &impl_grap
 }
 
 // 全载模板只支持reduce AR ARA
-bool ReducePartitionCaseGenerator::CanReduceFuse(const ::ascir::ImplGraph &impl_graph) {
-  std::vector<::ascir::SizeExpr> temp_strides;
+bool ReducePartitionCaseGenerator::CanReduceFuse(const ascir::ImplGraph &impl_graph) {
+  std::vector<ascir::SizeExpr> temp_strides;
   for (const auto &node : impl_graph.GetAllNodes()) {
     if (!ScheduleUtils::IsReduce(node)) {
       continue;
     }
-    std::vector<::ascir::SizeExpr> input_repeats = node->inputs[0].attr.repeats;
-    std::vector<::ascir::SizeExpr> output_repeats = node->outputs[0].attr.repeats;
+    std::vector<ascir::SizeExpr> input_repeats = node->inputs[0].attr.repeats;
+    std::vector<ascir::SizeExpr> output_repeats = node->outputs[0].attr.repeats;
     GE_ASSERT_TRUE(input_repeats.size() == output_repeats.size());
     if (output_repeats.empty() || (output_repeats.size() > kMaxFullLoadAxisSize)) {
       return false;
@@ -633,7 +633,7 @@ bool ReducePartitionCaseGenerator::CanReduceFuse(const ::ascir::ImplGraph &impl_
   return true;
 }
 
-bool ReducePartitionCaseGenerator::IsGroupGraphLegal(const ::ascir::ImplGraph &impl_graph) {
+bool ReducePartitionCaseGenerator::IsGroupGraphLegal(const ascir::ImplGraph &impl_graph) {
   int reduce_count = 0;
   for (const auto &node : impl_graph.GetAllNodes()) {
     if (ScheduleUtils::IsReduce(node)) {
@@ -733,7 +733,7 @@ Status RMulticorePhase2Graph::CompleteNodeAttr(af::AscNodePtr &node, bool before
 }
 
 Status RMulticorePhase2Graph::SetupArgMaxIndexNodes(const af::AscNodePtr &reduce_node,
-                                                     ::ascir::ImplGraph &phase2graph) {
+                                                     ascir::ImplGraph &phase2graph) {
   // ArgMax特殊处理：需要设置load_index_node和workspace_index_node的属性
   // 注意：虽然这些设置可能被后续的CopyFrom部分覆盖，但轴信息(strides, repeats等)需要保留
   if (reduce_node->GetType() == "ArgMax") {
@@ -814,7 +814,7 @@ static void CopyNodeLevelAttrs(const af::AscNodePtr &dst_node, const af::AscNode
 }
 
 // R轴分核时，在阶段1将ArgMax替换为ArgMaxMultiRPhase1
-Status ReplaceArgMaxInPhase1(::ascir::ImplGraph &phase_graph,
+Status ReplaceArgMaxInPhase1(ascir::ImplGraph &phase_graph,
                               const af::AscNodePtr &argmax_node,
                               af::AscNodePtr &store_node,
                               af::AscNodePtr &workspace_pre_node,
@@ -930,7 +930,7 @@ struct ReducePhase2Nodes {
 
 // 图上下文结构体
 struct ArgMaxPartitionGraphContext {
-  ::ascir::ImplGraph &impl_graph;              // 图
+  ascir::ImplGraph &impl_graph;              // 图
   std::vector<af::AscNodePtr> &node_order;   // 节点顺序
   std::string graph_name;                    // 图名称（使用值而非引用，避免悬空引用）
 };
@@ -1093,7 +1093,7 @@ static Status HandleArgMaxPartition(const af::AscNodePtr &reduce_node,
 }
 
 // R轴分核时，为ArgMax创建额外的workspace和load节点用于index
-Status RMulticorePhase2Graph::PartitionByReduce(::ascir::ImplGraph &impl_graph,
+Status RMulticorePhase2Graph::PartitionByReduce(ascir::ImplGraph &impl_graph,
                                                 ReduceType &phase2graph_reduce,
                                                 std::vector<af::AscNodePtr> &node_order) {
   af::ascir_op::Workspace workspace_pre((phase2graph.GetName() + "_workspace").c_str());
@@ -1175,4 +1175,3 @@ Status RMulticorePhase2Graph::SetNodeOrder (std::vector<af::AscNodePtr> &node_or
   return ge::SUCCESS;
 }
 }
-}  // namespace af

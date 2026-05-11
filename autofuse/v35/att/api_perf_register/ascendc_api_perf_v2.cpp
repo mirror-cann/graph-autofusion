@@ -14,7 +14,7 @@
 #include "perf_param_v2.h"
 #include "api_perf_register/ascendc_api_perf.h"
 #include "api_perf_register/api_perf_factory.h"
-namespace af { namespace att {
+namespace att {
 namespace {
 // 获取 CacheLine 大小，与 TilingScheduleConfigTable 保持一致
 uint32_t GetCacheLineSize() {
@@ -257,4 +257,3 @@ REGISTER_ASCENDC_EVAL_FUNC_TAG(kStore, V2, StorePerf);
 REGISTER_ASCENDC_EVAL_FUNC_TAG(kNddma, V2, NddmaPerf);
 }
 }
-}  // namespace af

@@ -19,7 +19,7 @@
 #include "ascir_ops.h"
 #include "platform/platform_factory.h"
 
-namespace af { namespace optimize {
+namespace optimize {
 namespace {
 constexpr uint32_t kMaxOutputNum = 48U;
 constexpr int32_t kAlignment = 32;
@@ -59,4 +59,3 @@ Status SplitGroupPartitioner::PartitionGroups([[maybe_unused]]const std::vector<
 }
 
 }  // namespace optimize
-}  // namespace af

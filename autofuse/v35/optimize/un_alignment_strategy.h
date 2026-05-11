@@ -12,7 +12,7 @@
 #define OPTIMIZE_PLATFORM_V2_UN_ALIGNMENT_STRATEGY_H
 
 #include "platform/common/base_alignment_strategy.h"
-namespace af { namespace optimize {
+namespace optimize {
 class UnAlignmentStrategy : public BaseAlignmentStrategy {
  public:
   ~UnAlignmentStrategy() override = default;
@@ -33,5 +33,4 @@ class UnAlignmentStrategy : public BaseAlignmentStrategy {
 
 Status GenLoadToGenNddmaNode(const af::AscNodePtr &node_load);
 }  // namespace optimize
-}  // namespace af
 #endif  // OPTIMIZE_PLATFORM_V2_UN_ALIGNMENT_STRATEGY_H

@@ -13,7 +13,7 @@
 
 #include "platform/base_platform.h"
 #include "platform/platform_factory.h"
-namespace af { namespace optimize {
+namespace optimize {
 class PlatformV2 : public BasePlatform {
  public:
   PlatformV2();
@@ -23,7 +23,7 @@ class PlatformV2 : public BasePlatform {
   unique_ptr<BasePassRunner> GetPassRunner() override;
   std::unique_ptr<BaseTemplateGenerator> GetTemplateGenerator() override;
   std::unique_ptr<BackendSpec> GetBackendSpec() const override;
-  Status GenerateTasks(::ascir::ImplGraph &optimize_graph, const OptimizerOptions &options,
+  Status GenerateTasks(ascir::ImplGraph &optimize_graph, const OptimizerOptions &options,
                        std::vector<ScheduleTask> &tasks) const override;
   const PlatformConfig &GetPlatformConfig() const override;
   std::set<std::string> BroadcastTypes() const override;
@@ -32,5 +32,4 @@ class PlatformV2 : public BasePlatform {
   PlatformConfig config_;
 };
 }  // namespace optimize
-}  // namespace af
 #endif  // OPTIMIZE_PLATFORM_V1_PLATFORM_V2_H

@@ -17,7 +17,7 @@
 #include "base_platform.h"
 
 
-namespace af { namespace optimize {
+namespace optimize {
 using PlatformCreator = std::unique_ptr<BasePlatform> (*)();
 
 class PlatformFactory {
@@ -49,6 +49,5 @@ PlatformRegistrar<T>::PlatformRegistrar(const std::string &platform_name) {
       platform_name, []() -> std::unique_ptr<BasePlatform> { return std::make_unique<T>(); });
 }
 }  // namespace optimize
-}  // namespace af
 
 #endif

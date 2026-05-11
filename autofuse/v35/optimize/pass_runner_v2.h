@@ -21,7 +21,7 @@
 #include "v35/optimize/graph_pass/gather_to_load.h"
 #include "v35/optimize/graph_pass/split_concat_optimization_pass.h"
 
-namespace af { namespace optimize {
+namespace optimize {
 class PassRunnerV2 final : public BasePassRunner {
  public:
   explicit PassRunnerV2() : BasePassRunner() {
@@ -36,6 +36,5 @@ class PassRunnerV2 final : public BasePassRunner {
   }
 };
 }  // namespace optimize
-}  // namespace af
 
 #endif  // OPTIMIZE_PLATFORM_V2_PASS_RUNNER_V2_H

@@ -19,7 +19,7 @@
 #include "../utils/api_call_factory.h"
 #include "transpose_base_type.h"
 
-namespace af { namespace codegen {
+namespace codegen {
 using namespace std;
 using namespace af::ops;
 using namespace af::ascir_op;
@@ -113,7 +113,7 @@ Status TransposeApiCall::CodeGenGetTransposeType(const Tensor &inputs, const Ten
   return ge::SUCCESS;
 }
 
-Status TransposeApiCall::Generate(const TPipe &tpipe, const std::vector<::ascir::AxisId> &current_axis,
+Status TransposeApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
                                   const std::vector<std::reference_wrapper<const Tensor>> &inputs,
                                   const std::vector<std::reference_wrapper<const Tensor>> &outputs,
                                   std::string &result) const {
@@ -156,7 +156,7 @@ Status TransposeApiCall::Generate(const TPipe &tpipe, const std::vector<::ascir:
   result = ss.str();
   return ge::SUCCESS;
 }
-Status TransposeApiCall::ParseAttr(const ::ascir::NodeView &node) {
+Status TransposeApiCall::ParseAttr(const ascir::NodeView &node) {
   GE_ASSERT_SUCCESS(GetApiTilingTypeName(node, this->device_api_tiling_data_type));
   this->host_api_tiling_data_type = "optiling::" + this->device_api_tiling_data_type;
 
@@ -169,4 +169,3 @@ Status TransposeApiCall::ParseAttr(const ::ascir::NodeView &node) {
 
 static ApiCallRegister<TransposeApiCall> register_transpose_api_call("TransposeApiCall");
 }  // namespace codegen
-}  // namespace af

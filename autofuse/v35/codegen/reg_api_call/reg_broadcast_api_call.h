@@ -12,17 +12,16 @@
 
 #include "codegen_kernel.h"
 
-namespace af { namespace codegen {
+namespace codegen {
 class BroadcastRegApiCall final : public ApiCall {
  public:
   using ApiCall::Generate;
   explicit BroadcastRegApiCall(const std::string &api_name) : ApiCall(api_name) {};
   ~BroadcastRegApiCall() final = default;
-  Status Generate(const TPipe &tpipe, const std::vector<::ascir::AxisId> &current_axis,
+  Status Generate(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
                   const std::vector<std::reference_wrapper<const Tensor>> &inputs,
                   const std::vector<std::reference_wrapper<const Tensor>> &outputs, std::string &result) const override;
 };
 }  // namespace codegen
-}  // namespace af
 
 #endif  // AUTOFUSE_REG_BROADCAST_API_CALL_H

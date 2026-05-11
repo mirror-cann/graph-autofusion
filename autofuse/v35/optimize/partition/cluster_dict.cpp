@@ -9,7 +9,7 @@
  */
 
 #include "cluster_dict.h"
-namespace af { namespace optimize {
+namespace optimize {
 void ClusterDict::AddCluster(const ClusterPtr &cluster) {
   clusters_.emplace_back(cluster);
 }
@@ -26,4 +26,3 @@ ClusterPtr ClusterDict::GetNodeCluster(const af::NodePtr &node) const {
   return pair->second;
 }
 }  // namespace optimize
-}  // namespace af

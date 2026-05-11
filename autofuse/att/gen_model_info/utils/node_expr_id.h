@@ -15,7 +15,7 @@
 #include <string>
 #include <vector>
 
-namespace af { namespace att {
+namespace att {
 
 struct NodeInfo;  // 前置声明
 
@@ -80,6 +80,5 @@ struct NodeExprId {
 NodeExprId BuildNodeExprId(const NodeInfo &node_info);
 
 } // namespace att
-}  // namespace af
 
 #endif // ATT_GEN_MODEL_INFO_UTILS_NODE_EXPR_ID_H_

@@ -15,7 +15,7 @@
 #include <map>
 #include "code_printer.h"
 
-namespace af { namespace att {
+namespace att {
 class TilingDataGenUtils {
  public:
   template <typename Container>
@@ -57,5 +57,4 @@ class TilingDataGenUtils {
   static std::string StructElementDefine(const std::string &type_name, const std::string &details);
 };
 }
-}  // namespace af
 #endif  // ATT_TILINGDATA_GEN_UTILS_H_

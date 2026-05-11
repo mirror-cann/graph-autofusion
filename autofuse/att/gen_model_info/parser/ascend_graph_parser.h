@@ -14,7 +14,7 @@
 #include "tuning_space.h"
 #include "graph/compute_graph.h"
 
-namespace af { namespace att {
+namespace att {
 struct ScheduleAttr {
   std::vector<af::AxisPtr> sched_axis_info; // sched axis info
   std::vector<int64_t> block_out_dim_info; // block outer axis ids
@@ -152,6 +152,5 @@ private:
   TuningSpacePtr tuning_space_;
 };
 } // namespace att
-}  // namespace af
 
 #endif // PARSER_ASCEND_GRAPH_PARSER_H_

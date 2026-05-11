@@ -12,7 +12,7 @@
 #define OPTIMIZE_AUTOSCHEDULE_PASS_RUNNER_HANDLER_H
 #include "platform/platform_factory.h"
 
-namespace af { namespace optimize {
+namespace optimize {
 namespace autoschedule {
 class PassRunnerHandler {
  public:
@@ -20,6 +20,5 @@ class PassRunnerHandler {
 };
 }  // namespace autoschedule
 }  // namespace optimize
-}  // namespace af
 
 #endif  // OPTIMIZE_AUTOSCHEDULE_PASS_RUNNER_HANDLER_H

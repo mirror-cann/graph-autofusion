@@ -17,7 +17,7 @@
 #include "base/base_types.h"
 #include "generator/preprocess/ast_optimizer.h"
 
-namespace af { namespace att {
+namespace att {
 const std::string AddAnotationBlock(std::string strs, std::string indent = "");
 const std::string AddAnotationLine(std::string strs, std::string indent = "");
 const std::string GenWorkspaceRelatedVars(const std::map<int64_t, Expr> &workspace_size_map, const ExprExprMap &container_expr);
@@ -68,7 +68,6 @@ class BaseTypeUtils {
   static std::string DtypeToStr(ge::DataType dtype);
 }; 
 }  // namespace att
-}  // namespace af
 
 namespace af {
 void to_json(nlohmann::json &j, const Expression &arg);

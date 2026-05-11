@@ -15,7 +15,7 @@
 #include "schedule_utils.h"
 #include "graph/symbolizer/symbolic_utils.h"
 
-namespace af::optimize::autoschedule {
+namespace optimize::autoschedule {
 namespace {
 constexpr int64_t kDefaultGroup = -1;
 void PrintGroup(std::stringstream &ss, const std::string &name, const std::vector<af::AxisId> &group) {
@@ -72,8 +72,8 @@ bool CanMergeAxisGroup(const AxisGroup &lhs, const AxisGroup &rhs, AxisGroup &me
 }
 }  // extern "C"
 
-static bool CheckYAndYR(const std::vector<::ascir::AxisId> &cur_y_group, const std::vector<::ascir::AxisId> &new_y_group,
-                        const std::vector<::ascir::AxisId> &new_r_group, const std::vector<size_t> &new_axes_order,
+static bool CheckYAndYR(const std::vector<ascir::AxisId> &cur_y_group, const std::vector<ascir::AxisId> &new_y_group,
+                        const std::vector<ascir::AxisId> &new_r_group, const std::vector<size_t> &new_axes_order,
                         const bool is_canfuse_call) {
   if (cur_y_group.size() != (new_y_group.size() + new_r_group.size())) {
     return false;
@@ -100,7 +100,7 @@ static bool CheckYAndYR(const std::vector<::ascir::AxisId> &cur_y_group, const s
   return true;
 }
 
-static bool CheckYAndR(const std::vector<::ascir::AxisId> &cur_y_group, const std::vector<::ascir::AxisId> &new_r_group,
+static bool CheckYAndR(const std::vector<ascir::AxisId> &cur_y_group, const std::vector<ascir::AxisId> &new_r_group,
                        const bool is_canfuse_call) {
   if (is_canfuse_call) {
     std::set<int64_t> l_g(cur_y_group.begin(), cur_y_group.end());
@@ -304,7 +304,7 @@ bool TilingGroup::MergeAxesGroup(AxisGroup &target, AxisGroup &src, const bool i
   return iter->second(target, src, is_canfuse_call, is_ge_call);
 }
 
-Status TilingGroup::GenTilingGroup(const ::ascir::ImplGraph &impl_graph, AxisGroup &tiling_group, bool is_reduce_fullload) {
+Status TilingGroup::GenTilingGroup(const ascir::ImplGraph &impl_graph, AxisGroup &tiling_group, bool is_reduce_fullload) {
   std::vector<std::pair<std::string, AxisGroup>> node_name_to_tiling_group;
   std::set<af::AxisId> n_groupset;
   for (const auto &node : impl_graph.GetAllNodes()) {
@@ -340,14 +340,14 @@ Status TilingGroup::GenElewiseTilingGroup(af::AscNode &node, AxisGroup &axes_gro
 
 std::vector<af::AxisId> CalcReduceAxes(const std::vector<af::Expression>& src_strides,
                                        const std::vector<af::Expression>& dst_strides,
-                                       const std::vector<::ascir::AxisId>& axes) {
+                                       const std::vector<ascir::AxisId>& axes) {
   GE_ASSERT_TRUE((src_strides.size() == dst_strides.size()),
                  "The output dim cnt [%zu] of reduce mismatch with input dim cnt [%zu].", dst_strides.size(),
                  src_strides.size());
   GE_ASSERT_TRUE((src_strides.size() == axes.size()),
                  "The input dim cnt [%zu] of reduce mismatch with input dim cnt [%zu].", src_strides.size(),
                  axes.size());
-  std::vector<::ascir::AxisId> reduce_axes;
+  std::vector<ascir::AxisId> reduce_axes;
   for (size_t i = 0; i < src_strides.size(); ++i) {
     if (af::SymbolicUtils::StaticCheckEq(src_strides[i], dst_strides[i]) != af::TriBool::kTrue &&
         af::SymbolicUtils::StaticCheckEq(dst_strides[i], af::sym::kSymbolZero) == af::TriBool::kTrue) {
@@ -358,10 +358,10 @@ std::vector<af::AxisId> CalcReduceAxes(const std::vector<af::Expression>& src_st
 }
 
 Status TilingGroup::GenReduceTilingGroup(af::AscNode &node, AxisGroup &axes_group) {
-  std::vector<::ascir::AxisId> axes;
+  std::vector<ascir::AxisId> axes;
   GE_CHK_STATUS_RET(ScheduleUtils::GetLoopAxis(node, axes), "Get loop axis failed.");
   axes_group.axes_order.resize(axes.size());
-  std::vector<::ascir::SizeExpr> src_strides;
+  std::vector<ascir::SizeExpr> src_strides;
   GE_CHK_STATUS_RET(ScheduleUtils::GetReduceInputStrides(node, src_strides), "Get loop strides failed.");
   axes_group.r_group = CalcReduceAxes(src_strides, node.outputs[0].attr.strides, axes);
   int64_t y_order_index = 0;
@@ -378,10 +378,10 @@ Status TilingGroup::GenReduceTilingGroup(af::AscNode &node, AxisGroup &axes_grou
 }
 
 Status TilingGroup::GenReduceTilingGroupFullLoad(af::AscNode &node, AxisGroup &axes_group) {
-  std::vector<::ascir::AxisId> axes;
+  std::vector<ascir::AxisId> axes;
   GE_CHK_STATUS_RET(ScheduleUtils::GetLoopAxis(node, axes), "Get loop axis failed.");
   axes_group.axes_order.resize(axes.size());
-  std::vector<::ascir::SizeExpr> src_strides;
+  std::vector<ascir::SizeExpr> src_strides;
   GE_CHK_STATUS_RET(ScheduleUtils::GetReduceInputStrides(node, src_strides), "Get loop strides failed.");
   axes_group.n_group = CalcReduceAxes(src_strides, node.outputs[0].attr.strides, axes);
   int64_t y_order_index = 0;
@@ -398,7 +398,7 @@ Status TilingGroup::GenReduceTilingGroupFullLoad(af::AscNode &node, AxisGroup &a
 }
 
 void PlaceRemainingAxis(const int64_t index, std::set<int64_t> &remaining_axis, AxisGroup &axes_group,
-                        vector<::ascir::AxisId> &output_axis) {
+                        vector<ascir::AxisId> &output_axis) {
   for (int64_t j = index; j >= 0; --j) {
     if (remaining_axis.find(output_axis[j]) == remaining_axis.end()) {
       continue;
@@ -408,9 +408,9 @@ void PlaceRemainingAxis(const int64_t index, std::set<int64_t> &remaining_axis, 
 }
 
 Status TilingGroup::GenTransposeTilingGroup(af::AscNode &node, AxisGroup &axes_group) {
-  std::vector<::ascir::AxisId> input_axis;
+  std::vector<ascir::AxisId> input_axis;
   GE_CHK_STATUS_RET(ScheduleUtils::GetInputForTranspose(node, input_axis), "Get Transpose loop axis failed.");
-  std::vector<::ascir::AxisId> &output_axis = node.outputs[0].attr.axis;
+  std::vector<ascir::AxisId> &output_axis = node.outputs[0].attr.axis;
   GE_ASSERT_TRUE((input_axis.size() == output_axis.size()),
                  "The output dim cnt [%zu] of Transpose mismatch with input dim cnt [%zu].", output_axis.size(),
                  input_axis.size());
@@ -464,10 +464,10 @@ Status TilingGroup::GenTransposeTilingGroup(af::AscNode &node, AxisGroup &axes_g
 }
 
 Status TilingGroup::GenConcatTilingGroup(af::AscNode &node, AxisGroup &axes_group) {
-  std::vector<::ascir::AxisId> axes;
+  std::vector<ascir::AxisId> axes;
   GE_CHK_STATUS_RET(ScheduleUtils::GetLoopAxis(node, axes), "Get loop axis failed.");
-  const std::vector<::ascir::SizeExpr> &input_repeats = node.inputs[0].attr.repeats;    // 前端保证
-  const std::vector<::ascir::SizeExpr> &output_repeats = node.outputs[0].attr.repeats;  // 前端保证
+  const std::vector<ascir::SizeExpr> &input_repeats = node.inputs[0].attr.repeats;    // 前端保证
+  const std::vector<ascir::SizeExpr> &output_repeats = node.outputs[0].attr.repeats;  // 前端保证
   GE_ASSERT_TRUE((input_repeats.size() == output_repeats.size()),
                  "The output dim cnt [%zu] of concat mismatch with input dim cnt [%zu].", output_repeats.size(),
                  input_repeats.size());
@@ -502,15 +502,15 @@ Status TilingGroup::GenConcatTilingGroup(af::AscNode &node, AxisGroup &axes_grou
 }
 
 Status TilingGroup::GenSplitTilingGroup(af::AscNode &node, AxisGroup &axes_group) {
-  std::vector<::ascir::AxisId> axes;
+  std::vector<ascir::AxisId> axes;
   GE_CHK_STATUS_RET(ScheduleUtils::GetLoopAxis(node, axes), "Get loop axis failed.");
-  const std::vector<::ascir::SizeExpr> &input_repeats = node.inputs[0].attr.repeats;    // 前端保证
-  const std::vector<::ascir::SizeExpr> &output_repeats = node.outputs[0].attr.repeats;  // 前端保证
+  const std::vector<ascir::SizeExpr> &input_repeats = node.inputs[0].attr.repeats;    // 前端保证
+  const std::vector<ascir::SizeExpr> &output_repeats = node.outputs[0].attr.repeats;  // 前端保证
   GE_ASSERT_TRUE((input_repeats.size() == output_repeats.size()),
                  "The output dim cnt [%zu] of split mismatch with input dim cnt [%zu].", output_repeats.size(),
                  input_repeats.size());
 
-  ::ascir::SizeExpr pre_size = af::ops::One;
+  ascir::SizeExpr pre_size = af::ops::One;
   size_t split_dim{0UL};
   for (size_t i = 0UL; i < input_repeats.size(); ++i) {
     if (af::SymbolicUtils::StaticCheckEq(input_repeats[i], output_repeats[i]) != af::TriBool::kTrue) {
@@ -562,7 +562,7 @@ void TilingGroup::NormGroup(AxisGroup &group) {
 
 // tiling group的生成应该考虑api的能力，特别是当api有明确的轴不可切时，应当放入Ngroup
 Status TilingGroup::GenAxisGroupForSingleNode(af::AscNode &node, AxisGroup &axes_group, bool is_reduce_ar_fullLoad) {
-  static std::map<::ascir::ComputeType, AxisGroupGenFunc> compute_type_to_group_gen_func = {
+  static std::map<ascir::ComputeType, AxisGroupGenFunc> compute_type_to_group_gen_func = {
       {af::ComputeType::kComputeElewise, TilingGroup::GenElewiseTilingGroup},
       {af::ComputeType::kComputeBroadcast, TilingGroup::GenElewiseTilingGroup},
       {af::ComputeType::kComputeGather, TilingGroup::GenElewiseTilingGroup},
@@ -589,4 +589,4 @@ Status TilingGroup::GenAxisGroupForSingleNode(af::AscNode &node, AxisGroup &axes
   return ge::SUCCESS;
 }
 
-}  // namespace af::optimize::autoschedule
+}  // namespace optimize::autoschedule

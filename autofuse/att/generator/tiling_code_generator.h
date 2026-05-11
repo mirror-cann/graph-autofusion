@@ -17,7 +17,7 @@
 #include "high_perf_tiling_code_gen_impl.h"
 #include "axes_reorder_tiling_code_gen_impl.h"
 
-namespace af { namespace att {
+namespace att {
 struct GenTilingParams {
   std::string op_type;
   TilingModelInfo all_model_infos;
@@ -71,5 +71,4 @@ class TilingCodeGenerator {
                                           std::map<std::string, std::string> &tiling_res);
 };
 }  // namespace att
-}  // namespace af
 #endif

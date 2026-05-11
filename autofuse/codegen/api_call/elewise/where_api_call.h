@@ -12,13 +12,13 @@
 #include "codegen_kernel.h"
 #include "api_call/utils/api_call_utils.h"
 
-namespace af { namespace codegen {
+namespace codegen {
 class WhereApiCall : public ApiCall {
  public:
   using ApiCall::Generate;
   explicit WhereApiCall(const std::string &api_name) : ApiCall(api_name) {}
   ~WhereApiCall() final = default;
-  Status Generate(const TPipe &tpipe, const std::vector<::ascir::AxisId> &current_axis,
+  Status Generate(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
                  const std::vector<std::reference_wrapper<const Tensor>> &inputs,
                  const std::vector<std::reference_wrapper<const Tensor>> &outputs, std::string &result) const override;
  private:
@@ -36,7 +36,7 @@ class WhereApiCall : public ApiCall {
                             const TPipe &tpipe, ApiLoopParams &param) const;
 
   // 生成无循环情况的处理代码
-  Status GenerateNoLoopCase(const TPipe &tpipe, const std::vector<::ascir::AxisId> &current_axis,
+  Status GenerateNoLoopCase(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
                            const Tensor &x1, const Tensor &x2, const Tensor &x3, const Tensor &y,
                            const std::string &x2_scalar, const std::string &x3_scalar,
                            const int64_t id, std::stringstream &ss) const;
@@ -66,5 +66,4 @@ class WhereApiCall : public ApiCall {
                            const int64_t id, std::stringstream &ss) const;
 };
 }
-}  // namespace af
 #endif // __AUTOFUSE_WHERE_API_CALL_H__

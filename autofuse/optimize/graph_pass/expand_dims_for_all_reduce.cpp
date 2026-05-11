@@ -13,13 +13,13 @@
 #include "schedule_utils.h"
 #include "util/mem_utils.h"
 
-namespace af { namespace optimize {
+namespace optimize {
 
 bool IsAllReduce(af::AscNode &node) {
-  std::vector<::ascir::AxisId> axes;
+  std::vector<ascir::AxisId> axes;
   GE_CHK_STATUS_RET(ScheduleUtils::GetLoopAxis(node, axes), "Get loop axis failed.");
-  std::vector<::ascir::SizeExpr> src_strides;
-  std::vector<::ascir::SizeExpr> dst_strides = node.outputs[0].attr.strides;
+  std::vector<ascir::SizeExpr> src_strides;
+  std::vector<ascir::SizeExpr> dst_strides = node.outputs[0].attr.strides;
   GE_CHK_STATUS_RET(ScheduleUtils::GetReduceInputStrides(node, src_strides), "Get loop strides failed.");
   GE_ASSERT_TRUE((src_strides.size() == node.outputs[0].attr.strides.size()),
                  "The output dim cnt [%zu] of reduce mismatch with input dim cnt [%zu].", dst_strides.size(),
@@ -27,7 +27,7 @@ bool IsAllReduce(af::AscNode &node) {
   GE_ASSERT_TRUE((src_strides.size() == axes.size()),
                  "The input dim cnt [%zu] of reduce mismatch with input dim cnt [%zu].", src_strides.size(),
                  axes.size());
-  std::vector<::ascir::AxisId> reduce_axes;
+  std::vector<ascir::AxisId> reduce_axes;
   for (size_t i = 0UL; i < src_strides.size(); ++i) {
     if (src_strides[i] != dst_strides[i] && dst_strides[i] == 0) {
       reduce_axes.push_back(axes[i]);
@@ -36,7 +36,7 @@ bool IsAllReduce(af::AscNode &node) {
   return reduce_axes.size() == axes.size();
 }
 
-Status ExpandDimsAtFirst(::ascir::ImplGraph &owner_graph, const std::string &name, const af::Expression &size) {
+Status ExpandDimsAtFirst(ascir::ImplGraph &owner_graph, const std::string &name, const af::Expression &size) {
   const auto graph_attr = af::AscGraphUtils::GetComputeGraph(owner_graph)->GetOrCreateAttrsGroup<af::AscGraphAttr>();
   if (graph_attr == nullptr) {
     GELOGE(ge::FAILED, "Get or create graph attr failed for graph: %s", owner_graph.GetName().c_str());
@@ -67,8 +67,8 @@ Status ExpandDimsAtFirst(::ascir::ImplGraph &owner_graph, const std::string &nam
 }
 
 Status ExpandDimsForAllReducePass::RunPass(af::AscGraph &graph) {
-  std::vector<::ascir::AxisId> old_axis_ids;
-  std::vector<::ascir::AxisId> new_axis_ids;
+  std::vector<ascir::AxisId> old_axis_ids;
+  std::vector<ascir::AxisId> new_axis_ids;
   for (const auto &node : graph.GetAllNodes()) {
     if (node->attr.api.compute_type == af::ComputeType::kComputeReduce) {
       if (!IsAllReduce(*node)) {
@@ -114,4 +114,3 @@ Status ExpandDimsForAllReducePass::RunPass(af::AscGraph &graph) {
   return ge::SUCCESS;
 }
 }  // namespace optimize
-}  // namespace af

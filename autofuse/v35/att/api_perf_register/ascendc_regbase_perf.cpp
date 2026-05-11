@@ -9,7 +9,7 @@
  */
 
 #include "ascendc_regbase_perf.h"
-namespace af { namespace att {
+namespace att {
 namespace ascendcperf_v2 {
 RepeatParams CalculateRepeatParams(const std::string &input_dtype, const Expr& cal_count) {
   Expr repeat_elm = kRptSizeFloat;
@@ -1352,4 +1352,3 @@ ge::Status FloorDivPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
 }
 }
 }  // namespace att
-}  // namespace af

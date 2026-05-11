@@ -16,14 +16,14 @@
 #include "schedule_task_generator.h"
 #include "task_generator/schedule_case_generator.h"
 
-namespace af { namespace optimize {
+namespace optimize {
 class RecomputeCaseGenerator : public FusionCaseGenerator {
  public:
-  Status Generate( [[maybe_unused]]::ascir::HintGraph &graph, [[maybe_unused]]std::vector<::ascir::ImplGraph> &graphs,
+  Status Generate( [[maybe_unused]]ascir::HintGraph &graph, [[maybe_unused]]std::vector<ascir::ImplGraph> &graphs,
                    [[maybe_unused]]std::vector<std::string> &score_functions) override {
    return af::GRAPH_SUCCESS;
   }
-  Status GeneratorTask(::ascir::HintGraph &hint_graph, std::vector<ScheduleTask> &tasks,
+  Status GeneratorTask(ascir::HintGraph &hint_graph, std::vector<ScheduleTask> &tasks,
                        const OptimizerOptions &options) override;
 
  private:
@@ -40,17 +40,16 @@ class RecomputeCaseGenerator : public FusionCaseGenerator {
     std::unordered_set<af::Node *> merged_path_nodes;       // 所有在拆分路径上的节点
   };
 
-  bool IsRecomputableNode(::ascir::HintGraph &hint_graph, af::AscNode *node) const;
+  bool IsRecomputableNode(ascir::HintGraph &hint_graph, af::AscNode *node) const;
   bool IsRecomputableAlwaysBetter() const;
-  Status AnalyzeSplittablePath(::ascir::HintGraph &hint_graph, const af::AscNodePtr &potential_store);
+  Status AnalyzeSplittablePath(ascir::HintGraph &hint_graph, const af::AscNodePtr &potential_store);
   void MergeAllPaths();
-  Status DoTaskGenerator(::ascir::ImplGraph &impl_graph, std::vector<ScheduleTask> &tasks) const;
+  Status DoTaskGenerator(ascir::ImplGraph &impl_graph, std::vector<ScheduleTask> &tasks) const;
   Status DoGraphSplit(af::AscGraph &graph) const;
 
   bool is_static_graph_{false};
   SplitResult result_;
 };
 }  // namespace optimize
-}  // namespace af
 
 #endif  // ASCGEN_DEV_SRC_OPTIMIZE_TASK_GENERATOR_RECOMPUTE_CASE_GENERATOR_H_

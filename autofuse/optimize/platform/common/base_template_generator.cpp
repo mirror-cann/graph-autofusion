@@ -10,7 +10,7 @@
 
 #include "base_template_generator.h"
 
-namespace af { namespace optimize {
+namespace optimize {
 
 std::vector<autoschedule::AutoScheduleOutput> BaseTemplateGenerator::GetBasedCasesByGenMode(
     const GenerationMode mode, const std::vector<autoschedule::AutoScheduleOutput> &tiling_cases,
@@ -98,4 +98,3 @@ af::Status BaseTemplateGenerator::GenerateTemplates(const af::AscGraph &origin_g
 }
 
 }  // namespace optimize
-}  // namespace af

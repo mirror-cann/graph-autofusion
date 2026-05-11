@@ -17,7 +17,7 @@
 #include "autoschedule/alignment_handler.h"
 #include "platform/common/base_alignment_strategy.h"
 
-namespace af { namespace optimize {
+namespace optimize {
 namespace {
 constexpr uint32_t kAlignBytes = 32U;
 
@@ -512,4 +512,3 @@ std::string NddmaTemplate::GetScoreFunc(const af::AscGraph &origin_graph, const 
 }
 
 }  // namespace optimize
-}  // namespace af

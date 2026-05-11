@@ -11,7 +11,7 @@
 #include <numeric>
 #include "common_utils.h"
 #include "api_perf_register/api_perf_factory.h"
-namespace af { namespace att {
+namespace att {
 namespace {
 Expr GetDataTypeSize(const std::string &data_type) {
   constexpr int32_t kDefaultDataTypeSize = 4;
@@ -136,4 +136,3 @@ af::Status VfPerfUtils::GetVectorFunctionPerf(const std::vector<NodePerfInfo> &n
   return af::SUCCESS;
 }
 }  // namespace att
-}  // namespace af

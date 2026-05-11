@@ -27,15 +27,15 @@ namespace {
 constexpr uint64_t kDmaMaxLen = 2U;
 }
 
-namespace af { namespace codegen {
-Status StoreRegApiCall::ParseAttr(const ::ascir::NodeView &node) {
+namespace codegen {
+Status StoreRegApiCall::ParseAttr(const ascir::NodeView &node) {
   // 存在多个Store写同一个Tensor不同offset的场景, repeats用当前Store节点的
   repeats_ = node->outputs[0U].attr.repeats;
   (void)node->attr.ir_attr->GetAttrValue("offset", offset_);
   return ge::SUCCESS;
 }
 
-Status StoreRegApiCall::PreProcess(const TPipe &tpipe, const std::vector<::ascir::AxisId> &current_axis,
+Status StoreRegApiCall::PreProcess(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
                                    const std::vector<std::reference_wrapper<const Tensor>> &outputs,
                                    std::string &result) const {
   GE_ASSERT_TRUE(!outputs.empty());
@@ -44,14 +44,14 @@ Status StoreRegApiCall::PreProcess(const TPipe &tpipe, const std::vector<::ascir
   return ge::SUCCESS;
 }
 
-Status StoreRegApiCall::Generate(const TPipe &tpipe, const std::vector<::ascir::AxisId> &current_axis,
+Status StoreRegApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
                                  const std::vector<std::reference_wrapper<const Tensor>> &inputs,
                                  const std::vector<std::reference_wrapper<const Tensor>> &outputs,
                                  std::string &result) const {
   std::stringstream ss;
   const auto &gm = outputs[0].get();
   const auto &ub = inputs[0].get();
-  if (tpipe.cv_fusion_type == ::ascir::CubeTemplateType::kUBFuse) {
+  if (tpipe.cv_fusion_type == ascir::CubeTemplateType::kUBFuse) {
     std::string dtype_name;
     Tensor::DtypeName(gm.dtype, dtype_name);
     ss << "DataCopyPadExtend<" << dtype_name << ", AscendC::PaddingMode::Normal>(" << gm << "[offset], " << ub << ", "
@@ -76,4 +76,3 @@ Status StoreRegApiCall::Generate(const TPipe &tpipe, const std::vector<::ascir::
 }
 static ApiCallRegister<StoreRegApiCall> register_store_reg_api_call("StoreRegApiCall");
 }  // namespace codegen
-}  // namespace af

@@ -10,7 +10,7 @@
 
 #include "axes_reorder_solver_code_common.h"
 
-namespace af { namespace att {
+namespace att {
 
 // ============================================================================
 // Section 9: Main Entry Points
@@ -307,4 +307,3 @@ const std::string AXES_SOLVER_CODE_FUNC = GetAxesSolverSolverFunc(true);
 const std::string AXES_SOLVER_PGO_CODE_FUNC = GetAxesSolverPgoSolverFunc();
 
 } // namespace att
-}  // namespace af

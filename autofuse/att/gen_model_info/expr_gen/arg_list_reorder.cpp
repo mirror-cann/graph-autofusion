@@ -10,7 +10,7 @@
 
 #include "arg_list_reorder.h"
 
-namespace af { namespace att {
+namespace att {
 namespace {
 constexpr size_t kOrderIdStart = 1;
 const std::vector<std::string> kDefaultNodeWhiteList = {
@@ -38,7 +38,7 @@ ge::Status ArgListReorder::InitArgListPriorityGraph(const vector<AttAxisPtr> &ar
   return ge::SUCCESS;
 }
 
-bool ArgListReorder::HandleProperty(const SubAxis *dim, af::att::ArgListReorder::AxisProperty property, bool is_reduce,
+bool ArgListReorder::HandleProperty(const SubAxis *dim, att::ArgListReorder::AxisProperty property, bool is_reduce,
                                     bool is_broadcast) {
   if ((property == AxisProperty::kReduce && is_reduce) || (property == AxisProperty::kBroadcast && is_broadcast)) {
     if (property == AxisProperty::kReduce) {
@@ -350,4 +350,3 @@ ge::Status ArgListReorder::SortArgList(vector<AttAxisPtr> &arg_list, vector<AttA
   return ge::SUCCESS;
 }
 }  // namespace att
-}  // namespace af

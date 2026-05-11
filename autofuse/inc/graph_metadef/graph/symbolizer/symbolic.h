@@ -22,7 +22,6 @@
 // 不允许添加symbolic_utils.h，后续symbolic.h需要开源
 
 namespace af {
-using ge::graphStatus;
 class Expression;
 class ExpressionImpl;
 class ShapeEnvAttr;
@@ -326,6 +325,10 @@ using StrType = af::StrType;
 using ExpressionHash = af::ExpressionHash;
 using ExpressionKeyEq = af::ExpressionKeyEq;
 using ExpressionKeyLess = af::ExpressionKeyLess;
+template <>
+GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY inline TypeId GetTypeId<Expression>() {
+  return reinterpret_cast<TypeId>(1024);
+}
 }  // namespace ge
 
 #endif

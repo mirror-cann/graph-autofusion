@@ -10,7 +10,7 @@
 
 #include "gen_autofuse_api_tiling.h"
 #include "api_tiling_gen_register.h"
-namespace af { namespace att {
+namespace att {
 ge::Status AutofuseApiTilingGenerator::Generate() {
   auto gen_func_impl = ApiTilingGenRegistry::Instance().GetApiTilingGenImplFunc(node_->GetType());
   auto gen_func_invoke = ApiTilingGenRegistry::Instance().GetApiTilingGenInvokeFunc(node_->GetType());
@@ -31,4 +31,3 @@ ge::Status AutofuseApiTilingGenerator::Generate() {
   return ge::SUCCESS;
 }
 }
-}  // namespace af

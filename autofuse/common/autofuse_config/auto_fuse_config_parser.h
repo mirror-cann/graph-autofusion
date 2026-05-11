@@ -31,7 +31,7 @@ class AutoFuseConfigParser {
 
  private:
   AutoFuseConfigType type_;
-  std::vector<std::unique_ptr<af::att::AutoFuseConfigBase>> configs_;
+  std::vector<std::unique_ptr<att::AutoFuseConfigBase>> configs_;
 };
 
 class AutoFuseEnvConfigParser : public AutoFuseConfigParser {

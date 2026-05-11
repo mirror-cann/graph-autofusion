@@ -10,7 +10,7 @@
 #include "ternary_op.h"
 #include <cmath>
 
-namespace af { namespace att {
+namespace att {
 namespace {
 void AddUsedArgs(const Expr &expr, std::vector<Expr> &used_args) {
   for (const auto &arg : expr.FreeSymbols()) {
@@ -384,4 +384,3 @@ void TernaryOp::DecomposeNamedVars(const std::string &var_prefix, std::string &p
   tenary_expr = DecomposeIfCase(*ternary_op_, var_prefix, counter, preamble, true);
 }
 }  // namespace att
-}  // namespace af

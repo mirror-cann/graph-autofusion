@@ -20,13 +20,13 @@
 #include "api_call/utils/api_call_factory.h"
 #include "reg_api_call_utils.h"
 
-namespace af { namespace codegen {
+namespace codegen {
 using namespace af::ops;
 using namespace af::ascir_op;
 using namespace ascgen_utils;
 using namespace reduce_base;
 
-Status RegReduceApiCall::ParseAttr(const ::ascir::NodeView &node) {
+Status RegReduceApiCall::ParseAttr(const ascir::NodeView &node) {
   GE_CHECK_NOTNULL(node);
   auto node_in_anchor = node->GetInDataAnchor(0);
   GE_CHECK_NOTNULL(node_in_anchor);
@@ -40,7 +40,7 @@ Status RegReduceApiCall::ParseAttr(const ::ascir::NodeView &node) {
   return ge::SUCCESS;
 }
 
-Status RegReduceApiCall::Generate(const TPipe &tpipe, const std::vector<::ascir::AxisId> &current_axis,
+Status RegReduceApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
                                   const std::vector<std::reference_wrapper<const Tensor>> &inputs,
                                   const std::vector<std::reference_wrapper<const Tensor>> &outputs,
                                   std::string &result) const {
@@ -116,4 +116,3 @@ Status RegReduceApiCall::Generate(const TPipe &tpipe, const std::vector<::ascir:
 static ApiCallRegister<RegReduceApiCall> register_reduce_api_call("RegReduceApiCall");
 
 }  // namespace codegen
-}  // namespace af

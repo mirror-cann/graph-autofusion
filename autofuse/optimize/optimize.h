@@ -15,7 +15,7 @@
 #include "schedule_result.h"
 #include "ascgen_log.h"
 
-namespace af { namespace optimize {
+namespace optimize {
 enum class GraphType {
   kAscGraph = 0,      // ge
   kFusedAscBackend,   // inductor
@@ -105,6 +105,5 @@ class Optimizer {
   OptimizerOptions options_;
 };
 }  // namespace optimize
-}  // namespace af
 
 #endif  // OPTIMIZE_OPTIMIZE_H_

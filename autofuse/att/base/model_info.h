@@ -16,7 +16,7 @@
 #include "schedule_result.h"
 #include "util/ternary_op.h"
 
-namespace af { namespace att {
+namespace att {
 // NO_TAIL用于modelifno等式约束表达父轴大小要整除子轴，no_tail对应的表达式应为div
 const std::string kFatherToChildNoTail = "NO_TAIL";
 // NORMAL 用于modelinfo不等式约束中表达父轴大于子轴， normal对应的表达式应为sub
@@ -278,6 +278,5 @@ struct ParsedScheduleResult {
 };
 using FusedParsedScheduleResult = std::map<size_t, std::map<size_t, ParsedScheduleResult>>;
 }
-}  // namespace af
 #endif
 

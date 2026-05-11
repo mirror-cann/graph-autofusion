@@ -18,7 +18,7 @@
 #include "nlohmann/json.hpp"
 #include "util/base_types_printer.h"
 
-namespace af { namespace att {
+namespace att {
 struct Replacement
 {
   Expr orig_expr;
@@ -58,5 +58,4 @@ void to_json(nlohmann::json &j, const Replacement &exprs);
 void to_json(nlohmann::json& j, const VarInfo& p);
 }  // namespace
 
-}  // namespace af
 #endif  // ATT_GENERATOR_PREPROCESS_VAR_INFO_H_

@@ -16,7 +16,7 @@
 #include <mutex>
 #include "ge_common/ge_api_error_codes.h"
 
-namespace af { namespace att {
+namespace att {
 class ThreadLocalContext {
  public:
   ge::Status GetOption(const std::string &key, std::string &option);
@@ -26,5 +26,4 @@ class ThreadLocalContext {
 };
 ThreadLocalContext &GetThreadLocalContext();
 }
-}  // namespace af
 #endif  // ATT_UTIL_GLOBAL_OPTIONS_H_

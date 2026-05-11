@@ -30,7 +30,6 @@ using ge::DataType;
 using ge::FORMAT_ND;
 using ge::Format;
 using ge::Placement;
-using ge::graphStatus;
 class GeShapeImpl;
 using GeShapeImplPtr = std::shared_ptr<GeShapeImpl>;
 

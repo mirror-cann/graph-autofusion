@@ -15,7 +15,7 @@
 #include "../common/schedule_result.h"
 #include "ascendc_ir/ascendc_ir_core/ascendc_ir.h"
 
-namespace af { namespace att {
+namespace att {
 extern "C" {
 /**
  * @brief 生成Tiling函数
@@ -42,10 +42,9 @@ bool GenTilingImpl(const std::string &op_name, const std::vector<af::AscGraph> &
  * 默认空;(debug信息包括tuningspace,modelinfo, tilingfunc等信息, 该功能暂时不支持设置)
  * @return 是否成功
  */
-bool GenTilingImplAutoFuseV3(const std::string &op_name, const ::ascir::FusedScheduledResult &fused_schedule_result,
+bool GenTilingImplAutoFuseV3(const std::string &op_name, const ascir::FusedScheduledResult &fused_schedule_result,
                              std::map<std::string, std::string> &options, std::map<std::string, std::string> &tiling_func,
                              bool is_inductor_scene);
 }  // extern C
 }  // namespace att
-}  // namespace af
 #endif

@@ -12,22 +12,22 @@
 #define __AUTOFUSE_REG_GATHER_API_CALL_H__
 #include "codegen_kernel.h"
 
-namespace af { namespace codegen {
+namespace codegen {
 class GatherRegApiCall : public ApiCall {
 public:
   using ApiCall::Generate;
   explicit GatherRegApiCall(const std::string &api_name) : ApiCall(api_name) {}
-  Status ParseAttr(const ::ascir::NodeView &node) override;
+  Status ParseAttr(const ascir::NodeView &node) override;
   ~GatherRegApiCall() final = default;
-  Status GenerateComputeTypeGather(const TPipe &tpipe, const std::vector<::ascir::AxisId> &current_axis,
+  Status GenerateComputeTypeGather(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
                   const std::vector<std::reference_wrapper<const Tensor>> &inputs,
                   const std::vector<std::reference_wrapper<const Tensor>> &outputs,
                   const int64_t tmp_buf_id, std::string &result) const;
-  Status GenerateComputeTypeLoad(const TPipe &tpipe, const std::vector<::ascir::AxisId> &current_axis,
+  Status GenerateComputeTypeLoad(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
                 const std::vector<std::reference_wrapper<const Tensor>> &inputs,
                 const std::vector<std::reference_wrapper<const Tensor>> &outputs,
                 const int64_t tmp_buf_id, std::string &result) const;
-  Status Generate(const TPipe &tpipe, const std::vector<::ascir::AxisId> &current_axis,
+  Status Generate(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
                   const std::vector<std::reference_wrapper<const Tensor>> &inputs,
                   const std::vector<std::reference_wrapper<const Tensor>> &outputs, std::string &result) const override;
 private:
@@ -37,5 +37,4 @@ private:
   bool negative_index_support = false;
 };
 }
-}  // namespace af
 #endif // __AUTOFUSE_REG_GATHER_API_CALL_H__

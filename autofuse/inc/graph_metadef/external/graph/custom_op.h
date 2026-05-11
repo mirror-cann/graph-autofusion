@@ -14,7 +14,6 @@
 
 namespace af {
 using ge::AscendString;
-using ge::graphStatus;
 
 class BaseCustomOp {
  public:

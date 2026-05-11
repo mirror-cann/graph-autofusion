@@ -10,7 +10,7 @@
 
 #include "axes_reorder_solver_code_common.h"
 
-namespace af { namespace att {
+namespace att {
 
 // ============================================================================
 // Section 5: Local Buffer Tiling
@@ -331,4 +331,3 @@ bool AxesReorderSolver::LocalBufTiling(const bool is_tuning, const bool block_lo
 }
 
 } // namespace att
-}  // namespace af

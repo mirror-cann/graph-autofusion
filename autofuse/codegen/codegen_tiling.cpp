@@ -32,12 +32,12 @@
 #include "backend/backend_spec.h"
 #include "common/ascgraph_info_complete.h"
 
-namespace af { namespace codegen {
-using af::optimize::AscGraphInfoComplete;
-using af::optimize::SizeVarSet;
+namespace codegen {
+using optimize::AscGraphInfoComplete;
+using optimize::SizeVarSet;
 using namespace af::ascir_op;
 using namespace ascir;
-using namespace af::codegen;
+using namespace codegen;
 using namespace af::ops;
 using namespace ascgen_utils;
 namespace {
@@ -82,7 +82,7 @@ void AppendTilingKeyBranch(std::stringstream &ss, const std::vector<std::vector<
   }
 }
 
-void GenMulGroupFindBestTilingKey(const ::ascir::FusedScheduledResult &fused_schedule_result, std::stringstream &ss) {
+void GenMulGroupFindBestTilingKey(const ascir::FusedScheduledResult &fused_schedule_result, std::stringstream &ss) {
   uint32_t tiling_key = 0U;
   for (size_t graph_id = 0; graph_id < fused_schedule_result.node_idx_to_scheduled_results.size(); graph_id++) {
     auto scheduled_results = fused_schedule_result.node_idx_to_scheduled_results[graph_id];
@@ -114,7 +114,7 @@ void GenMulGroupFindBestTilingKey(const ::ascir::FusedScheduledResult &fused_sch
   ss << std::endl;
 }
 
-size_t CalcTilingKeyCount(const ::ascir::FusedScheduledResult &result) {
+size_t CalcTilingKeyCount(const ascir::FusedScheduledResult &result) {
   if (!ascgen_utils::CanUseTilingKey(result)) {
     return 1ULL;
   }
@@ -163,7 +163,7 @@ void CodegenTilingKeyKerneType(std::stringstream &ss, const std::vector<std::vec
 }
 
 bool IsNeedFfts() {
-  const auto backend_spec = af::optimize::BackendSpec::GetInstance();
+  const auto backend_spec = optimize::BackendSpec::GetInstance();
   GE_ASSERT_NOTNULL(backend_spec);
   return backend_spec->pgo_spec.need_ffts;
 }
@@ -171,10 +171,10 @@ bool IsNeedFfts() {
 
 TilingLib::TilingLib(const std::string &lib_path, const std::string &codegen_symbol_name) {
   af::GetContext().Init();
-  auto ret = af::att::AutoFuseConfig::MutablePgoStrategyConfig().Init();
+  auto ret = att::AutoFuseConfig::MutablePgoStrategyConfig().Init();
   if (ret == af::SUCCESS || ret == af::NOT_CHANGED) {
-    if (af::att::AutoFuseConfig::GetPgoStrategyConfig().set_env_enable_autofuse_pgo) {
-      enable_autofuse_pgo_ = (af::att::AutoFuseConfig::GetPgoStrategyConfig().enable_autofuse_pgo == "true");
+    if (att::AutoFuseConfig::GetPgoStrategyConfig().set_env_enable_autofuse_pgo) {
+      enable_autofuse_pgo_ = (att::AutoFuseConfig::GetPgoStrategyConfig().enable_autofuse_pgo == "true");
     }
   } else {
      GELOGE(ge::FAILED, "TilingLib function ENV init failed");
@@ -183,7 +183,7 @@ TilingLib::TilingLib(const std::string &lib_path, const std::string &codegen_sym
   GELOGI("TilingLib lib_path:%s, symbol_name:%s", lib_path.c_str(), codegen_symbol_name.c_str());
   if (lib_path.empty() || codegen_symbol_name.empty()) {
     GELOGI("TilingLib using default att api: GenTilingImplAutoFuseV3");
-    this->codegen_func_ = af::att::GenTilingImplAutoFuseV3;
+    this->codegen_func_ = att::GenTilingImplAutoFuseV3;
     return;
   }
 
@@ -207,7 +207,7 @@ TilingLib::TilingLib(const std::string &lib_path, const std::string &codegen_sym
 }
 
 std::map<std::string, std::string> TilingLib::GenerateForInductor(
-    const ::ascir::FusedScheduledResult &fused_schedule_result) const {
+    const ascir::FusedScheduledResult &fused_schedule_result) const {
   std::map<std::string, std::string> tiling_file_name_to_content = GetTilingHeaders(fused_schedule_result, true);
   GE_CHK_BOOL_RET_STATUS_NOLOG(CheckTilingHeadersValid(tiling_file_name_to_content), tiling_file_name_to_content);
   std::stringstream ss;
@@ -221,7 +221,7 @@ std::map<std::string, std::string> TilingLib::GenerateForInductor(
   return tiling_file_name_to_content;
 }
 
-std::string GenAutofuseLaunchDeclare(const ::ascir::FusedScheduledResult &fused_schedule_result) {
+std::string GenAutofuseLaunchDeclare(const ascir::FusedScheduledResult &fused_schedule_result) {
   std::stringstream ss;
   std::string launch_func_name = "AutofuseLaunch";
   std::string tiling_data_name = "AutofuseTilingData";
@@ -237,7 +237,7 @@ std::string GenAutofuseLaunchDeclare(const ::ascir::FusedScheduledResult &fused_
   return ss.str();
 }
 
-std::string GenAscirCompileAndLaunchHead(const ::ascir::FusedScheduledResult &fused_schedule_result) {
+std::string GenAscirCompileAndLaunchHead(const ascir::FusedScheduledResult &fused_schedule_result) {
   std::stringstream ss;
   ss << "extern \"C\" int AscirCompileAndLaunch(";
   for (const auto& vars : fused_schedule_result.origin_vars) {
@@ -285,7 +285,7 @@ std::string GenAclInit() {
   return ss.str();
 }
 
-std::string GenAscirTilingFunc(const ::ascir::FusedScheduledResult &fused_schedule_result) {
+std::string GenAscirTilingFunc(const ascir::FusedScheduledResult &fused_schedule_result) {
   std::stringstream ss;
   std::string tiling_func_name = "AutofuseTiling";
   std::string graph_name = CamelToLowerSneak(GenValidName(fused_schedule_result.fused_graph_name.GetString()));
@@ -326,7 +326,7 @@ std::string GenAscirMallocWorkspaceFunc(const std::string graph_name) {
   return ss.str();
 }
 
-std::string GenAscirLaunchFunc(const ::ascir::FusedScheduledResult &fused_schedule_result) {
+std::string GenAscirLaunchFunc(const ascir::FusedScheduledResult &fused_schedule_result) {
   std::stringstream ss;
   std::string graph_name = CamelToLowerSneak(GenValidName(fused_schedule_result.fused_graph_name.GetString()));
   std::string launch_func_name = "AutofuseLaunch";
@@ -365,7 +365,7 @@ std::string GenAscirLaunchFunc(const ::ascir::FusedScheduledResult &fused_schedu
   return ss.str();
 }
 
-std::string TilingLib::GenAscirTilingAndLaunchFunc(const ::ascir::FusedScheduledResult &fused_schedule_result) const {
+std::string TilingLib::GenAscirTilingAndLaunchFunc(const ascir::FusedScheduledResult &fused_schedule_result) const {
   std::stringstream ss;
   std::string graph_name = CamelToLowerSneak(GenValidName(fused_schedule_result.fused_graph_name.GetString()));
 
@@ -379,7 +379,7 @@ std::string TilingLib::GenAscirTilingAndLaunchFunc(const ::ascir::FusedScheduled
   return ss.str();
 }
 
-std::string TilingLib::GenerateForPgo(const ::ascir::FusedScheduledResult &fused_schedule_result,
+std::string TilingLib::GenerateForPgo(const ascir::FusedScheduledResult &fused_schedule_result,
                                       const std::string &pgo_dir) const {
   // 生成PGO的头文件和函数定义
   std::stringstream ss;
@@ -534,7 +534,7 @@ void TilingLib::GenPgoAppendSearchTilingData(std::stringstream &ss) const {
   ss << "}" << std::endl;
 }
 
-void TilingLib::GenPgoKernelLaunchOpArgs(const ::ascir::FusedScheduledResult &fused_schedule_result, std::stringstream &ss) const {
+void TilingLib::GenPgoKernelLaunchOpArgs(const ascir::FusedScheduledResult &fused_schedule_result, std::stringstream &ss) const {
   ss << "struct AivKernelLaunchOpArgs {" << std::endl;
   ss << PGOSearchStructInputOutputDef(fused_schedule_result);
   ss << "  uint64_t workspace_addr;" << std::endl;
@@ -553,7 +553,7 @@ void TilingLib::GenPgoKernelLaunchOpArgs(const ::ascir::FusedScheduledResult &fu
   ss << "void *g_workspace = nullptr;" << std::endl;
 }
 
-void TilingLib::GenPgoMixTilingTable(const ::ascir::FusedScheduledResult &fused_schedule_result, std::stringstream &ss) const {
+void TilingLib::GenPgoMixTilingTable(const ascir::FusedScheduledResult &fused_schedule_result, std::stringstream &ss) const {
   for (size_t graph_id = 0U; graph_id < fused_schedule_result.node_idx_to_scheduled_results.size(); graph_id++) {
     const auto& scheduled_results = fused_schedule_result.node_idx_to_scheduled_results[graph_id];
     ss << "std::vector<uint32_t> g_mix_graph" << graph_id << "_tiling_keys = {" << std::endl;
@@ -572,7 +572,7 @@ void TilingLib::GenPgoMixTilingTable(const ::ascir::FusedScheduledResult &fused_
     ss << "};" << std::endl;
   }
 }
-void TilingLib::GenPgoCheckTilingIsMix(const ::ascir::FusedScheduledResult &fused_schedule_result, std::stringstream &ss) const {
+void TilingLib::GenPgoCheckTilingIsMix(const ascir::FusedScheduledResult &fused_schedule_result, std::stringstream &ss) const {
   ss << "bool IsMixTiling(const AutofuseTilingData &t) {" << std::endl;
   ss << "  if constexpr (!g_is_mix_operator) {" << std::endl;
   ss << "    return false;" << std::endl;
@@ -593,7 +593,7 @@ void TilingLib::GenPgoCheckTilingIsMix(const ::ascir::FusedScheduledResult &fuse
   ss << "}" << std::endl;
 }
 
-void TilingLib::GenPgoLaunchParamsInit(const ::ascir::FusedScheduledResult &fused_schedule_result, std::stringstream &ss) const {
+void TilingLib::GenPgoLaunchParamsInit(const ascir::FusedScheduledResult &fused_schedule_result, std::stringstream &ss) const {
   ss << "aclError LaunchParamsInit() {" << std::endl;
   ss << "  static void *ffts = nullptr;" << std::endl;
   ss << "  aclError ret = ACL_SUCCESS;" << std::endl;
@@ -677,7 +677,7 @@ void TilingLib::GenPgoUpdateLaunchParams(std::stringstream &ss) const {
   ss << "}" << std::endl;
 }
 
-void TilingLib::GenPgoLaunchParams(const ::ascir::FusedScheduledResult &fused_schedule_result, std::stringstream &ss) const {
+void TilingLib::GenPgoLaunchParams(const ascir::FusedScheduledResult &fused_schedule_result, std::stringstream &ss) const {
   ss << "struct LaunchParams {" << std::endl;
   ss << "  AivKernelLaunchOpArgs aiv_args;" << std::endl;
   ss << "  void *aiv_args_device;" << std::endl;
@@ -690,7 +690,7 @@ void TilingLib::GenPgoLaunchParams(const ::ascir::FusedScheduledResult &fused_sc
   GenPgoUpdateLaunchParams(ss);
 }
 
-void TilingLib::GenPgoToolFunction(const ::ascir::FusedScheduledResult &fused_schedule_result,
+void TilingLib::GenPgoToolFunction(const ascir::FusedScheduledResult &fused_schedule_result,
                                    const std::string &pgo_dir, std::stringstream &ss) const {
   std::string graph_name = CamelToLowerSneak(fused_schedule_result.fused_graph_name.GetString());
   ss << "namespace {" << std::endl;
@@ -748,7 +748,7 @@ void TilingLib::GenPgoToolFunction(const ::ascir::FusedScheduledResult &fused_sc
   ss << "} // namespace" << std::endl;
 }
 
-void TilingLib::GenPgoWrapperParmCall(const ::ascir::FusedScheduledResult &fused_schedule_result,
+void TilingLib::GenPgoWrapperParmCall(const ascir::FusedScheduledResult &fused_schedule_result,
                                       std::stringstream &ss) const {
   ss << "  if (tiling_data == nullptr) {" << std::endl;
   ss << "    DLOGE(\"tiling_data is null\");" << std::endl;
@@ -773,7 +773,7 @@ void TilingLib::GenPgoWrapperParmCall(const ::ascir::FusedScheduledResult &fused
 
 void TilingLib::GenPgoWrapperKernelLaunch(std::stringstream &ss) const {
   ss << "  if (IsMixTiling(*tiling_data)) {" << std::endl;
-  const auto backend_spce = af::optimize::BackendSpec::GetInstance();
+  const auto backend_spce = optimize::BackendSpec::GetInstance();
   const bool use_local_memory = (backend_spce != nullptr && backend_spce->set_local_memory_size > 0);
   ss << (use_local_memory ? "    ret = aclrtLaunchKernelV2(func_handles[tiling_key], block_dim, g_launch_params.mix_args_device, sizeof(g_launch_params.mix_args), &kernel_cfg, g_stream);"
                           : "    ret = aclrtLaunchKernelV2(func_handles[tiling_key], block_dim, g_launch_params.mix_args_device, sizeof(g_launch_params.mix_args), nullptr, g_stream);")
@@ -786,7 +786,7 @@ void TilingLib::GenPgoWrapperKernelLaunch(std::stringstream &ss) const {
   ss << "  auto ret_async = aclrtSynchronizeStream(g_stream);" << std::endl;
 }
 
-void TilingLib::GenPgoWrapper(const ::ascir::FusedScheduledResult &fused_schedule_result, std::stringstream &ss) const {
+void TilingLib::GenPgoWrapper(const ascir::FusedScheduledResult &fused_schedule_result, std::stringstream &ss) const {
   ss << "typedef uint64_t (*GetTilingKeyCountType)(void);" << std::endl;
   ss << "GetTilingKeyCountType get_tiling_key_count_fn = reinterpret_cast<GetTilingKeyCountType>(GetFunc(\"GetTilingKeyCount\"));"
      << std::endl;
@@ -799,7 +799,7 @@ void TilingLib::GenPgoWrapper(const ::ascir::FusedScheduledResult &fused_schedul
      << "uint32_t workspace_size, AutofuseTilingData *tiling_data) {" << std::endl;
   ss << "  static bool inited = false;" << std::endl;
   ss << "  static aclrtBinHandle bin_handle = nullptr;" << std::endl;
-  const auto backend_spce = af::optimize::BackendSpec::GetInstance();
+  const auto backend_spce = optimize::BackendSpec::GetInstance();
   if (backend_spce != nullptr && backend_spce->set_local_memory_size > 0) {
     ss << "  static aclrtLaunchKernelCfg kernel_cfg{};" << std::endl;
     ss << "  static aclrtLaunchKernelAttr local_memory_size_attr{};" << std::endl;
@@ -980,7 +980,7 @@ void TilingLib::GenPgoBatchCallback(std::stringstream &ss) const {
   ss << "  }" << std::endl;
 }
 
-void TilingLib::GenPgoBatchProcess(const ::ascir::FusedScheduledResult &fused_schedule_result,
+void TilingLib::GenPgoBatchProcess(const ascir::FusedScheduledResult &fused_schedule_result,
                         std::stringstream &ss) const {
   ss << "int ProfilingBatchProcess(" << PGOSearchFuncInputOutputCallBackDef(fused_schedule_result)
      << "uint32_t workspace_size, std::vector<AutofuseTilingDataPerf>::iterator begin, "
@@ -1012,7 +1012,7 @@ void TilingLib::GenPgoBatchProcess(const ::ascir::FusedScheduledResult &fused_sc
   ss << "}" << std::endl << std::endl;
 }
 
-void TilingLib::GenPgoGetProfilingBatch(const ::ascir::FusedScheduledResult &fused_schedule_result,
+void TilingLib::GenPgoGetProfilingBatch(const ascir::FusedScheduledResult &fused_schedule_result,
                         std::stringstream &ss) const {
   ss << "extern \"C\" long int PGOGetProfilingBatch(" << PGOSearchFuncInputOutputCallBackDef(fused_schedule_result)
      << "void* stream, uint32_t workspace_size, std::vector<AutofuseTilingDataPerf> *profiles) {" << std::endl;
@@ -1099,7 +1099,7 @@ void TilingLib::GenPgoProfilingCallback(std::stringstream &ss) const {
   ss << "  }" << std::endl;
 }
 
-void TilingLib::GenPgoGetProfiling(const ::ascir::FusedScheduledResult &fused_schedule_result,
+void TilingLib::GenPgoGetProfiling(const ascir::FusedScheduledResult &fused_schedule_result,
                                    std::stringstream &ss) const {
   ss << "extern \"C\" long int PGOGetProfiling(" << PGOSearchFuncInputOutputCallBackDef(fused_schedule_result)
      << "void *stream, uint32_t workspace_size, AutofuseTilingData *tiling_data, double *outCostTime) {" << std::endl;
@@ -1142,7 +1142,7 @@ void TilingLib::GenPgoGetProfiling(const ::ascir::FusedScheduledResult &fused_sc
   ss << "}" << std::endl << std::endl;
 }
 
-void TilingLib::GenPgoFunc(const ::ascir::FusedScheduledResult &fused_schedule_result,
+void TilingLib::GenPgoFunc(const ascir::FusedScheduledResult &fused_schedule_result,
                           std::stringstream &ss) const {
   ss << "int pgo() {" << std::endl;
   ss << "  AutofuseTilingData tiling_data = {0};" << std::endl;
@@ -1165,7 +1165,7 @@ void TilingLib::GenPgoFunc(const ::ascir::FusedScheduledResult &fused_schedule_r
   ss << "}" << std::endl << std::endl;
 }
 
-void TilingLib::GenPgoStaticFunc(const ::ascir::FusedScheduledResult &fused_schedule_result,
+void TilingLib::GenPgoStaticFunc(const ascir::FusedScheduledResult &fused_schedule_result,
                                 std::stringstream &ss) const {
   ss << "int static_pgo(const char* config_file) {" << std::endl;
   ss << "  if (autofuse_tiling_with_config_fn == nullptr) {" << std::endl;
@@ -1196,7 +1196,7 @@ void TilingLib::GenPgoStaticFunc(const ::ascir::FusedScheduledResult &fused_sche
   ss << "}" << std::endl << std::endl;
 }
 
-void TilingLib::GenPgoProfiling(const ::ascir::FusedScheduledResult &fused_schedule_result,
+void TilingLib::GenPgoProfiling(const ascir::FusedScheduledResult &fused_schedule_result,
                                    std::stringstream &ss) const {
   GenPgoMsptiProfiling(ss);
   GenPgoBatchProcess(fused_schedule_result, ss);
@@ -1218,7 +1218,7 @@ void TilingLib::GenPgoProfiling(const ::ascir::FusedScheduledResult &fused_sched
   GenPgoStaticFunc(fused_schedule_result, ss);
 }
 
-void TilingLib::GenPgoMain(const ::ascir::FusedScheduledResult &fused_schedule_result, std::stringstream &ss) const {
+void TilingLib::GenPgoMain(const ascir::FusedScheduledResult &fused_schedule_result, std::stringstream &ss) const {
   ss << "int main(int argc, char *argv[]) {" << std::endl;
   ss << "  if (argc != 6) {" << std::endl;
   ss << "    DLOGE(\"Usage: %s <type> <device_id> <aiv_num> <ub_size> <kernel_name>\", argv[0]);" << std::endl;
@@ -1249,7 +1249,7 @@ void TilingLib::GenPgoMain(const ::ascir::FusedScheduledResult &fused_schedule_r
   ss << "}" << std::endl;
 }
 
-void TilingLib::GenPgoEnvInit(const ::ascir::FusedScheduledResult &fused_schedule_result, std::stringstream &ss) const {
+void TilingLib::GenPgoEnvInit(const ascir::FusedScheduledResult &fused_schedule_result, std::stringstream &ss) const {
   ss << "  g_res_limit.aiv_num = aiv_num;" << std::endl;
   ss << "  g_res_limit.ub_size = ub_size;" << std::endl;
   ss << "  auto ret = aclInit(nullptr);" << std::endl;
@@ -1308,7 +1308,7 @@ void TilingLib::GenPgoLaunchKernelInit(std::stringstream &ss) const {
   ss << "        func_handles[i] = func_handle;" << std::endl;
   ss << "      }" << std::endl;
   ss << "    }" << std::endl;
-  const auto backend_spce = af::optimize::BackendSpec::GetInstance();
+  const auto backend_spce = optimize::BackendSpec::GetInstance();
   if (backend_spce != nullptr && backend_spce->set_local_memory_size > 0) {
     ss << "    local_memory_size_attr.id = ACL_RT_LAUNCH_KERNEL_ATTR_DYN_UBUF_SIZE;" << std::endl;
     ss << "    local_memory_size_attr.value.dynUBufSize = " << backend_spce->set_local_memory_size << ";" << std::endl;
@@ -1319,7 +1319,7 @@ void TilingLib::GenPgoLaunchKernelInit(std::stringstream &ss) const {
   ss << "  }" << std::endl;
 }
 
-void TilingLib::GenPgoDeinit(const ::ascir::FusedScheduledResult &fused_schedule_result, std::stringstream &ss) const {
+void TilingLib::GenPgoDeinit(const ascir::FusedScheduledResult &fused_schedule_result, std::stringstream &ss) const {
   ss << "  LaunchParamsDeInit();" << std::endl;
   ss << PGOSearchTensorFreeDef(fused_schedule_result) << std::endl;
   ss << "  if (g_tiling_device_addr != nullptr) {" << std::endl;
@@ -1408,12 +1408,12 @@ extern "C" int GenTilingDataValueBlockDimAndWss(char* config_file, uint32_t aiv_
   return get_block_dim_and_wss;
 }
 
-std::map<std::string, std::string> TilingLib::GenerateCVFusion(const ::ascir::FusedScheduledResult &fused_schedule_result,
+std::map<std::string, std::string> TilingLib::GenerateCVFusion(const ascir::FusedScheduledResult &fused_schedule_result,
                                                                const std::map<std::string, std::string> &shape_info,
                                                                const std::string &pgo_dir,
                                                                const std::string &core_num) const {
   std::map<std::string, std::string> tiling_file_name_to_content;
-  ::ascir::FusedScheduledResult elemwise_schedule_result = fused_schedule_result;
+  ascir::FusedScheduledResult elemwise_schedule_result = fused_schedule_result;
   if (ascgen_utils::IsCubeUBFusedScheduled(elemwise_schedule_result)) {
     GE_ASSERT_SUCCESS(ascgen_utils::CreateCVFusionResult(elemwise_schedule_result));
   } else if (ascgen_utils::IsCubeCommonFusedScheduled(elemwise_schedule_result)) {
@@ -1446,7 +1446,7 @@ std::map<std::string, std::string> TilingLib::GenerateCVFusion(const ::ascir::Fu
           (elemwise_schedule_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs.size() > 0U)) {
         auto graph = elemwise_schedule_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs[0];
         for (auto axis : graph.GetAllAxis()) {
-          if (axis->type == ::ascir::Axis::Type::kAxisTypeTileInner) {
+          if (axis->type == ascir::Axis::Type::kAxisTypeTileInner) {
             get_cv_ub_stage_size_name << "  return \"" << axis->name << "_size\";" << std::endl;
             GELOGD("gen GetCVUBFusionStageSizeName axis name:%s", axis->name.c_str());
           }
@@ -1463,7 +1463,7 @@ std::map<std::string, std::string> TilingLib::GenerateCVFusion(const ::ascir::Fu
   return tiling_file_name_to_content;
 }
 
-std::map<std::string, std::string> TilingLib::Generate(const ::ascir::FusedScheduledResult &fused_schedule_result,
+std::map<std::string, std::string> TilingLib::Generate(const ascir::FusedScheduledResult &fused_schedule_result,
                                                        const std::map<std::string, std::string> &shape_info,
                                                        const std::string &pgo_dir, const std::string &core_num) const {
   if (ascgen_utils::IsCubeFusedScheduled(fused_schedule_result) &&
@@ -1520,7 +1520,7 @@ std::string TilingLib::StubHeadersWithoutCodegenFunc() const {
   return ss.str();
 }
 
-std::string TilingLib::GetStubTilingHeaders(const ::ascir::FusedScheduledResult &fused_schedule_result) const {
+std::string TilingLib::GetStubTilingHeaders(const ascir::FusedScheduledResult &fused_schedule_result) const {
   std::stringstream ss;
   ss << StubHeadersWithoutCodegenFunc();
   ss << "namespace optiling {" << std::endl;
@@ -1570,7 +1570,7 @@ std::string TilingLib::GetTilingIncludeHead(bool is_cv) const {
   return ss.str();
 }
 
-std::map<std::string, std::string> TilingLib::GetTilingHeaders(const ::ascir::FusedScheduledResult &fused_schedule_result,
+std::map<std::string, std::string> TilingLib::GetTilingHeaders(const ascir::FusedScheduledResult &fused_schedule_result,
                                         bool is_inductor_scene, bool is_cv) const {
   std::stringstream ss;
   std::string graph_name = GenValidName(fused_schedule_result.fused_graph_name.GetString());
@@ -1614,7 +1614,7 @@ std::map<std::string, std::string> TilingLib::GetTilingHeaders(const ::ascir::Fu
   return tiling_file_name_to_content;
 }
 
-std::string TilingLib::TilingFuncDefForInductor(const ::ascir::FusedScheduledResult &fused_schedule_result) const {
+std::string TilingLib::TilingFuncDefForInductor(const ascir::FusedScheduledResult &fused_schedule_result) const {
   std::stringstream ss;
   std::string graph_name = ascgen_utils::GenValidName(fused_schedule_result.fused_graph_name.GetString());
   std::string tiling_func_name = "AutofuseTiling";
@@ -1630,7 +1630,7 @@ std::string TilingLib::TilingFuncDefForInductor(const ::ascir::FusedScheduledRes
   return ss.str();
 }
 
-std::string TilingLib::TilingFuncDef(const ::ascir::FusedScheduledResult &fused_schedule_result,
+std::string TilingLib::TilingFuncDef(const ascir::FusedScheduledResult &fused_schedule_result,
                                      const std::map<std::string, std::string> &shape_info, const std::string& pgo_dir,
                                      const std::string &core_num) const {
   std::stringstream ss;
@@ -1659,7 +1659,7 @@ std::string TilingLib::TilingFuncDef(const ::ascir::FusedScheduledResult &fused_
   return ss.str();
 }
 
-void TilingLib::TilingProcessSymbolToTiling(const ::ascir::ImplGraph &graph, size_t graph_num, size_t res_num,
+void TilingLib::TilingProcessSymbolToTiling(const ascir::ImplGraph &graph, size_t graph_num, size_t res_num,
                                             size_t group_num,
                                             std::unordered_map<std::string, std::string> &ori_sym_tiling_map) const {
   for (auto size : graph.GetAllSizeVar()) {
@@ -1674,7 +1674,7 @@ void TilingLib::TilingProcessSymbolToTiling(const ::ascir::ImplGraph &graph, siz
   }
 }
 
-void TilingLib::TilingMappingSymbolToTiling(const ::ascir::FusedScheduledResult &fused_schedule_result,
+void TilingLib::TilingMappingSymbolToTiling(const ascir::FusedScheduledResult &fused_schedule_result,
                                             std::unordered_map<std::string, std::string> &ori_sym_tiling_map) const {
   for (size_t i = 0; i < fused_schedule_result.node_idx_to_scheduled_results.size(); i++) {
     auto scheduled_results = fused_schedule_result.node_idx_to_scheduled_results[i];
@@ -1693,7 +1693,7 @@ void TilingLib::TilingMappingSymbolToTiling(const ::ascir::FusedScheduledResult 
   }
 }
 
-std::string TilingLib::GenImplGraphWorkspaceSize(const ::ascir::ImplGraph &graph, const std::string &tiling_data,
+std::string TilingLib::GenImplGraphWorkspaceSize(const ascir::ImplGraph &graph, const std::string &tiling_data,
                                                  uint32_t index) const {
   std::stringstream ss;
   std::vector<af::AscNodePtr> ws_nodes;
@@ -1727,7 +1727,7 @@ std::string TilingLib::GenImplGraphWorkspaceSize(const ::ascir::ImplGraph &graph
 }
 
 std::string TilingLib::GenGetWorkspaceSizeFunc(const std::string &tiling,
-                                               const ::ascir::FusedScheduledResult &fused_schedule_result) const {
+                                               const ascir::FusedScheduledResult &fused_schedule_result) const {
   std::stringstream ss;
 
   std::unordered_map<std::string, std::string> ori_sym_tiling_map;
@@ -1792,7 +1792,7 @@ bool TilingLib::IsVarUsedInScheduleGroup(const std::string &var_define,
 }
 
 void TilingLib::TilingSetShapeDim(std::stringstream &tiling_set_shape_dim, const std::string &var_define,
-                                  const ::ascir::FusedScheduledResult &fused_schedule_result) const {
+                                  const ascir::FusedScheduledResult &fused_schedule_result) const {
   for (size_t i = 0; i < fused_schedule_result.node_idx_to_scheduled_results.size(); i++) {
     auto scheduled_results = fused_schedule_result.node_idx_to_scheduled_results[i];
     if ((scheduled_results.empty()) ||
@@ -1822,9 +1822,9 @@ void TilingLib::TilingSetShapeDim(std::stringstream &tiling_set_shape_dim, const
   }
 }
 
-std::string TilingLib::GenPgoTilingFunc(const ::ascir::FusedScheduledResult& fused_schedule_result,
+std::string TilingLib::GenPgoTilingFunc(const ascir::FusedScheduledResult& fused_schedule_result,
                                         const std::string& tiling,
-                                        af::codegen::PgoShapeStringStream &pgo_shape_dim, 
+                                        codegen::PgoShapeStringStream &pgo_shape_dim, 
                     bool is_inductor_scene, const std::string &core_num) const {
   std::stringstream ss;
   // 生成 AutofuseTilingWithConfig 函数
@@ -1847,8 +1847,8 @@ std::string TilingLib::GenPgoTilingFunc(const ::ascir::FusedScheduledResult& fus
   return ss.str();
 }
 
-std::string TilingLib::GenPgoAutofuseTiling(const ::ascir::FusedScheduledResult &fused_schedule_result,
-                                            af::codegen::PgoShapeStringStream &pgo_shape_dim,
+std::string TilingLib::GenPgoAutofuseTiling(const ascir::FusedScheduledResult &fused_schedule_result,
+                                            codegen::PgoShapeStringStream &pgo_shape_dim,
                                             const std::string &tiling, bool is_inductor_scene) const {
   std::stringstream ss;
 
@@ -1891,7 +1891,7 @@ std::string TilingLib::GenPgoAutofuseTiling(const ::ascir::FusedScheduledResult 
 
 std::string TilingLib::GenProfilingAllTilingData(std::string tiling_data_list_name,
                                                  std::string tiling_data_perf_list_name,
-                                                 const ::ascir::FusedScheduledResult& fused_schedule_result,
+                                                 const ascir::FusedScheduledResult& fused_schedule_result,
                                                  bool is_inductor_scene) const {
   std::stringstream ss;
   ss << "  double out_cost = DBL_MAX;" << std::endl;
@@ -1917,8 +1917,8 @@ std::string TilingLib::GenProfilingAllTilingData(std::string tiling_data_list_na
   return ss.str();
 }
 
-std::string TilingLib::GenPgoTilingSearchByCoreNum(const ::ascir::FusedScheduledResult& fused_schedule_result,
-                                                   af::codegen::PgoShapeStringStream &pgo_shape_dim, const std::string &tiling,
+std::string TilingLib::GenPgoTilingSearchByCoreNum(const ascir::FusedScheduledResult& fused_schedule_result,
+                                                   codegen::PgoShapeStringStream &pgo_shape_dim, const std::string &tiling,
 													                         bool is_inductor_scene, const std::string &core_num) const {
   std::stringstream ss;
   ss << "extern \"C\" int64_t PgoTilingSearchByCoreNum(char *search_file, char *config_file, ";
@@ -1964,8 +1964,8 @@ std::string TilingLib::GenPgoTilingSearchByCoreNum(const ::ascir::FusedScheduled
   return ss.str();
 }
 
-std::string TilingLib::GenPgoTilingSearch(const ::ascir::FusedScheduledResult& fused_schedule_result,
-                                          af::codegen::PgoShapeStringStream &pgo_shape_dim, const std::string &tiling) const {
+std::string TilingLib::GenPgoTilingSearch(const ascir::FusedScheduledResult& fused_schedule_result,
+                                          codegen::PgoShapeStringStream &pgo_shape_dim, const std::string &tiling) const {
   std::stringstream ss;
 
   ss << "extern \"C\" int64_t PgoTilingSearch(char *search_file, char *config_file, ";
@@ -2018,8 +2018,8 @@ std::string TilingLib::GenGetAutoFuseTilingInput(bool is_inductor_scene) const {
   return ss.str();
 }
 
-std::string TilingLib::GenPgoTilingSearchPGO(const ::ascir::FusedScheduledResult& fused_schedule_result,
-                                             af::codegen::PgoShapeStringStream &pgo_shape_dim, const std::string &tiling, 
+std::string TilingLib::GenPgoTilingSearchPGO(const ascir::FusedScheduledResult& fused_schedule_result,
+                                             codegen::PgoShapeStringStream &pgo_shape_dim, const std::string &tiling, 
                                              bool is_inductor_scene, const std::string &core_num) const {
   std::stringstream ss;
 
@@ -2090,14 +2090,14 @@ std::string TilingLib::GenGetResLimitStru(void) const {
   return ss.str();
 }
 
-bool TilingLib::IsMixKernelTaskType(const ::ascir::FusedScheduledResult &fused_schedule_result) const {
+bool TilingLib::IsMixKernelTaskType(const ascir::FusedScheduledResult &fused_schedule_result) const {
   return fused_schedule_result.workspace_nodes.size() != 0;
 }
 
-std::string TilingLib::GenTilingFuncForInductor(const ::ascir::FusedScheduledResult &fused_schedule_result,
+std::string TilingLib::GenTilingFuncForInductor(const ascir::FusedScheduledResult &fused_schedule_result,
                                                 const std::string func, const std::string tiling) const {
   std::stringstream ss;
-  af::codegen::PgoShapeStringStream pgo_shape_dim;
+  codegen::PgoShapeStringStream pgo_shape_dim;
 
   for (auto vars : fused_schedule_result.origin_vars) {
     if (!(vars.IsConstExpr())) {
@@ -2252,10 +2252,10 @@ std::string TilingLib::GenSavePGOConfigTilingDataFunc() const {
 }
 
 std::string TilingLib::GenTilingFunc(const std::map<std::string, std::string> &shape_info,
-                                     const ::ascir::FusedScheduledResult &fused_schedule_result, const std::string func,
+                                     const ascir::FusedScheduledResult &fused_schedule_result, const std::string func,
                                      const std::string tiling, const std::string &core_num) const {
   std::stringstream ss;
-  af::codegen::PgoShapeStringStream pgo_shape_dim;
+  codegen::PgoShapeStringStream pgo_shape_dim;
 
   for (auto vars : fused_schedule_result.origin_vars) {
     if (!(vars.IsConstExpr())) {
@@ -2358,7 +2358,7 @@ static void GetTilingParse(std::string &tiling_parse, int &vector_core_num) {
 }
 
 static void FillShapeDimInfo(
-  const ::ascir::FusedScheduledResult &fused_schedule_result,
+  const ascir::FusedScheduledResult &fused_schedule_result,
   const std::map<std::string, std::string> &shape_info,
   std::stringstream &shape_dim_def,
   std::stringstream &shape_dim_param) {
@@ -2374,7 +2374,7 @@ static void FillShapeDimInfo(
   }
 }
 
-static bool HasWorkspaceInNonLastGroup(const ::ascir::ScheduledResult &schedule_result) {
+static bool HasWorkspaceInNonLastGroup(const ascir::ScheduledResult &schedule_result) {
   const auto &schedule_groups = schedule_result.schedule_groups;
   for (size_t j = 0; j < schedule_groups.size() - 1; j++) {
     for (const auto &impl_graph : schedule_groups[j].impl_graphs) {
@@ -2388,7 +2388,7 @@ static bool HasWorkspaceInNonLastGroup(const ::ascir::ScheduledResult &schedule_
   return false;
 }
 
-static std::set<size_t> GetWorkspaceNodeResultSet(const ::ascir::FusedScheduledResult &fused_schedule_result) {
+static std::set<size_t> GetWorkspaceNodeResultSet(const ascir::FusedScheduledResult &fused_schedule_result) {
   std::set<size_t> result;
   for (const auto &schedule_result_list : fused_schedule_result.node_idx_to_scheduled_results) {
     for (size_t i = 0; i < schedule_result_list.size(); i++) {
@@ -2400,7 +2400,7 @@ static std::set<size_t> GetWorkspaceNodeResultSet(const ::ascir::FusedScheduledR
   return result;
 }
 
-static std::string GenWorkspaceNodeCheckCode(const ::ascir::FusedScheduledResult &fused_schedule_result) {
+static std::string GenWorkspaceNodeCheckCode(const ascir::FusedScheduledResult &fused_schedule_result) {
   std::stringstream ss;
   std::set<size_t> schedule_result_has_workspace_node = GetWorkspaceNodeResultSet(fused_schedule_result);
 
@@ -2429,7 +2429,7 @@ static std::string GenWorkspaceNodeCheckCode(const ::ascir::FusedScheduledResult
 
 static std::string GenLocalMemorySizeCode() {
   std::stringstream ss;
-  const auto backend_spec = af::optimize::BackendSpec::GetInstance();
+  const auto backend_spec = optimize::BackendSpec::GetInstance();
   GE_ASSERT_NOTNULL(backend_spec);
   if (backend_spec->set_local_memory_size > 0) {
     ss << "  #ifdef CV_RELU_FIXPIP_MODE" << std::endl;
@@ -2441,7 +2441,7 @@ static std::string GenLocalMemorySizeCode() {
   return ss.str();
 }
 
-std::string TilingLib::GenExternTilingFuncBody(const ::ascir::FusedScheduledResult &fused_schedule_result,
+std::string TilingLib::GenExternTilingFuncBody(const ascir::FusedScheduledResult &fused_schedule_result,
                                                const std::map<std::string, std::string> &shape_info,
                                                const std::string &tiling, const std::string &pgo_dir) const {
   std::stringstream ss;
@@ -2492,7 +2492,7 @@ std::string TilingLib::GenExternTilingFuncBody(const ::ascir::FusedScheduledResu
   return ss.str();
 }
 
-std::string TilingLib::GenExternTilingFunc(const ::ascir::FusedScheduledResult &fused_schedule_result,
+std::string TilingLib::GenExternTilingFunc(const ascir::FusedScheduledResult &fused_schedule_result,
                                            const std::map<std::string, std::string> &shape_info,
                                            const std::string tiling, const std::string &pgo_dir,
                                            const std::string &core_num) const {
@@ -2553,7 +2553,7 @@ std::string TilingLib::GenGetTilingSizeFunc(const std::string graph_name, const 
   return ss.str();
 }
 
-std::string TilingLib::ExternFunctionDeclare(const ::ascir::FusedScheduledResult &fused_schedule_result,
+std::string TilingLib::ExternFunctionDeclare(const ascir::FusedScheduledResult &fused_schedule_result,
                                              const std::string tiling) const {
   (void)tiling;
   std::stringstream ss;
@@ -2564,7 +2564,7 @@ std::string TilingLib::ExternFunctionDeclare(const ::ascir::FusedScheduledResult
   return ss.str();
 }
 
-std::string TilingLib::PGOProfilingCallbackDef(const ::ascir::FusedScheduledResult &fused_schedule_result,
+std::string TilingLib::PGOProfilingCallbackDef(const ascir::FusedScheduledResult &fused_schedule_result,
                                                const std::string tiling) const {
   std::stringstream ss;
 
@@ -2605,7 +2605,7 @@ std::string TilingLib::PGOProfilingCallbackDef(const ::ascir::FusedScheduledResu
 }
 
 std::string TilingLib::PGOSearchFuncInputOutputCallBackDef(
-    const ::ascir::FusedScheduledResult &fused_schedule_result) const {
+    const ascir::FusedScheduledResult &fused_schedule_result) const {
   std::stringstream ss;
   int index = 0;
   for (auto input : fused_schedule_result.input_nodes) {
@@ -2620,7 +2620,7 @@ std::string TilingLib::PGOSearchFuncInputOutputCallBackDef(
   return ss.str();
 }
 
-std::string TilingLib::PGOSearchFuncInputOutputDef(const ::ascir::FusedScheduledResult &fused_schedule_result) const {
+std::string TilingLib::PGOSearchFuncInputOutputDef(const ascir::FusedScheduledResult &fused_schedule_result) const {
   std::stringstream ss;
   int index = 0;
   for (auto input : fused_schedule_result.input_nodes) {
@@ -2635,7 +2635,7 @@ std::string TilingLib::PGOSearchFuncInputOutputDef(const ::ascir::FusedScheduled
   return ss.str();
 }
 
-std::string TilingLib::PGOSearchFuncInputOutputCall(const ::ascir::FusedScheduledResult &fused_schedule_result) const {
+std::string TilingLib::PGOSearchFuncInputOutputCall(const ascir::FusedScheduledResult &fused_schedule_result) const {
   std::stringstream ss;
   int index = 0;
   for ([[maybe_unused]] auto &input : fused_schedule_result.input_nodes) {
@@ -2650,7 +2650,7 @@ std::string TilingLib::PGOSearchFuncInputOutputCall(const ::ascir::FusedSchedule
   return ss.str();
 }
 
-std::string TilingLib::PGOSearchStructInputOutputDef(const ::ascir::FusedScheduledResult &fused_schedule_result) const {
+std::string TilingLib::PGOSearchStructInputOutputDef(const ascir::FusedScheduledResult &fused_schedule_result) const {
   std::stringstream ss;
   int index = 0;
   for ([[maybe_unused]] auto &input : fused_schedule_result.input_nodes) {
@@ -2666,7 +2666,7 @@ std::string TilingLib::PGOSearchStructInputOutputDef(const ::ascir::FusedSchedul
   return ss.str();
 }
 
-std::string TilingLib::PGOSearchTensorInputOutputDef(const ::ascir::FusedScheduledResult &fused_schedule_result) const {
+std::string TilingLib::PGOSearchTensorInputOutputDef(const ascir::FusedScheduledResult &fused_schedule_result) const {
   std::stringstream ss;
   int index = 0;
   for ([[maybe_unused]] auto &input : fused_schedule_result.input_nodes) {
@@ -2683,7 +2683,7 @@ std::string TilingLib::PGOSearchTensorInputOutputDef(const ::ascir::FusedSchedul
   return ss.str();
 }
 
-std::string TilingLib::PGOSearchFuncInputOutputStructAssignDef(const ::ascir::FusedScheduledResult &fused_schedule_result,
+std::string TilingLib::PGOSearchFuncInputOutputStructAssignDef(const ascir::FusedScheduledResult &fused_schedule_result,
                                                                const std::string &struct_var_name) const {
   std::stringstream ss;
   int index = 0;
@@ -2703,7 +2703,7 @@ std::string TilingLib::PGOSearchFuncInputOutputStructAssignDef(const ::ascir::Fu
 }
 
 uint32_t TilingLib::PGOSearchFuncGetInputOutputCount(
-    const ::ascir::FusedScheduledResult &fused_schedule_result) const {
+    const ascir::FusedScheduledResult &fused_schedule_result) const {
   uint32_t count = 0;
   count += fused_schedule_result.input_nodes.size();
   for (auto &node : fused_schedule_result.output_nodes) {
@@ -2715,7 +2715,7 @@ uint32_t TilingLib::PGOSearchFuncGetInputOutputCount(
   return count;
 }
 
-std::string TilingLib::CalculateTensorMemorySizeStr(const ::ascir::TensorAttr &tensor) const {
+std::string TilingLib::CalculateTensorMemorySizeStr(const ascir::TensorAttr &tensor) const {
   static const std::unordered_map<ge::DataType, af::Expression> type_size_map = {
       {ge::DT_FLOAT, af::Expression::Parse("4")},    // sizeof(float)
       {ge::DT_FLOAT16, af::Expression::Parse("2")},  // fp16 is 2 bytes
@@ -2760,7 +2760,7 @@ std::string TilingLib::CalculateTensorMemorySizeStr(const ::ascir::TensorAttr &t
   return std::string(need_malloc_size.Str().get());
 }
 
-std::string TilingLib::PGOSearchTensorMallocDef(const ::ascir::FusedScheduledResult &fused_schedule_result) const {
+std::string TilingLib::PGOSearchTensorMallocDef(const ascir::FusedScheduledResult &fused_schedule_result) const {
   std::stringstream ss;
   int index = 0;
   for (auto &input : fused_schedule_result.input_nodes) {
@@ -2796,7 +2796,7 @@ std::string TilingLib::PGOSearchTensorMallocDef(const ::ascir::FusedScheduledRes
   return ss.str();
 }
 
-std::string TilingLib::PGOSearchTensorFreeDef(const ::ascir::FusedScheduledResult &fused_schedule_result) const {
+std::string TilingLib::PGOSearchTensorFreeDef(const ascir::FusedScheduledResult &fused_schedule_result) const {
   std::stringstream ss;
   int index = 0;
   for ([[maybe_unused]] auto &input : fused_schedule_result.input_nodes) {
@@ -2825,7 +2825,7 @@ std::string TilingLib::PGOSearchTensorFreeDef(const ::ascir::FusedScheduledResul
   return ss.str();
 }
 
-std::string TilingLib::InferShapeDef(const ::ascir::HintGraph &graph) const {
+std::string TilingLib::InferShapeDef(const ascir::HintGraph &graph) const {
   (void)graph;
   std::stringstream ss;
 
@@ -2848,7 +2848,7 @@ std::string TilingLib::GenCheckStaticShapeFunc(bool is_static) const {
 }
 
 // 生成tiling缓存需要的接口
-std::string TilingLib::GenTilingCacheFunc(const ::ascir::FusedScheduledResult &fused_schedule_result,
+std::string TilingLib::GenTilingCacheFunc(const ascir::FusedScheduledResult &fused_schedule_result,
                                           const std::map<std::string, std::string> &shape_info) const {
   std::stringstream ss;
   std::string extern_c = "extern \"C\"";
@@ -2895,7 +2895,7 @@ std::string TilingLib::GenTilingCacheFunc(const ::ascir::FusedScheduledResult &f
   return ss.str();
 }
 
-std::string TilingLib::GenDfxInputSymbolInfo(const ::ascir::FusedScheduledResult &fused_schedule_result,
+std::string TilingLib::GenDfxInputSymbolInfo(const ascir::FusedScheduledResult &fused_schedule_result,
                                              const std::map<std::string, std::string> &shape_info) const {
   std::stringstream ss;
   ss << R"(extern "C" ge::graphStatus DfxInputSymbolInfo(gert::TilingSymbolEvalContext *context, char *out_symbol_info, size_t size)
@@ -2938,7 +2938,7 @@ std::string TilingLib::GenDfxInputSymbolInfo(const ::ascir::FusedScheduledResult
   return ss.str();
 }
 
-std::string TilingLib::GenFindBestTilingKeyFunc(const ::ascir::FusedScheduledResult &fused_schedule_result,
+std::string TilingLib::GenFindBestTilingKeyFunc(const ascir::FusedScheduledResult &fused_schedule_result,
                                                 const std::string &tiling_data_name) const {
   std::stringstream ss;
   ss << "extern \"C\" int64_t FindBestTilingKey(" << tiling_data_name << " &t)" << std::endl;
@@ -2959,7 +2959,7 @@ std::string TilingLib::GenFindBestTilingKeyFunc(const ::ascir::FusedScheduledRes
   return ss.str();
 }
 
-std::string TilingLib::GenGetTilingKeyCount(const ::ascir::FusedScheduledResult &fused_schedule_result) const {
+std::string TilingLib::GenGetTilingKeyCount(const ascir::FusedScheduledResult &fused_schedule_result) const {
   std::stringstream ss;
   size_t count = CalcTilingKeyCount(fused_schedule_result);
   ss << "extern \"C\" uint64_t GetTilingKeyCount()" << std::endl;
@@ -2978,7 +2978,7 @@ std::string TilingLib::GenGetTilingKeyForStatic() const {
   return ss.str();
 }
 
-std::string TilingLib::GenGetTilingKeyKernelTypeForStatic(const ::ascir::FusedScheduledResult &fused_schedule_result) const {
+std::string TilingLib::GenGetTilingKeyKernelTypeForStatic(const ascir::FusedScheduledResult &fused_schedule_result) const {
   std::stringstream ss;
   ss << "std::string kernel_type;" << std::endl;
   ss << "extern \"C\" const char* GetTilingKeyKernelTypeForStatic()" << std::endl;
@@ -3015,4 +3015,3 @@ std::string TilingLib::GenGetTilingKeyKernelTypeForStatic(const ::ascir::FusedSc
 }
 
 }  // namespace codegen
-}  // namespace af

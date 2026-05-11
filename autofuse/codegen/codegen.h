@@ -16,7 +16,7 @@
 #include "ascgen_log.h"
 #include "schedule_result.h"
 std::string RemoveSubDirInclude(const std::string& kernel_str);
-namespace af { namespace codegen {
+namespace codegen {
 struct CodegenResult {
   std::string proto = "";
   std::string tiling_data = "";
@@ -66,7 +66,6 @@ class Codegen {
   bool using_att_calc_qbt_size_;
 };
 } // namespace codegen
-}  // namespace af
 
 #endif
 

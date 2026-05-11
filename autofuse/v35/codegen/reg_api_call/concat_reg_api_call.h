@@ -14,20 +14,20 @@
 #include "codegen_kernel.h"
 #include "api_call/concat/concat_api_call.h"
 
-namespace af { namespace codegen {
+namespace codegen {
 class ConcatRegApiCall : public ConcatApiCall {
  public:
   using ApiCall::Generate;
   explicit ConcatRegApiCall(const std::string &api_name) : ConcatApiCall(api_name) {}
   ~ConcatRegApiCall() override = default;
-  Status Generate(const TPipe &tpipe, const std::vector<::ascir::AxisId> &current_axis,
+  Status Generate(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
                   const std::vector<std::reference_wrapper<const Tensor>> &inputs,
                   const std::vector<std::reference_wrapper<const Tensor>> &outputs,
                   std::string &result) const override;
   bool AreContiguousBufsPreferred() const override;
 
  protected:
-  Status ParseAttr(const ::ascir::NodeView &node) override;
+  Status ParseAttr(const ascir::NodeView &node) override;
   static ge::Status GenerateDefault(const vector<std::reference_wrapper<const Tensor>> &inputs,
                                     const Tensor &y,
                                     const ConcatApiCall::ConcatTiling &tiling,
@@ -55,9 +55,8 @@ class ConcatRegApiCall : public ConcatApiCall {
   bool IsTile() const;
   static void NormalizeDtype(std::string &dtype);
 
-  ::ascir::NodeView node_ = nullptr;
+  ascir::NodeView node_ = nullptr;
 };
 }  // namespace codegen
-}  // namespace af
 
 #endif  // ASCGEN_DEV_CODEGEN_REG_API_CALL_CONCAT_REG_API_CALL_H_

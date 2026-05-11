@@ -11,12 +11,11 @@
 #ifndef ATT_EXTRA_INFO_CONFIG_H_
 #define ATT_EXTRA_INFO_CONFIG_H_
 #include <string>
-namespace af { namespace att {
+namespace att {
 struct ExtraInfoConfig {
   std::string tiling_data_type_name{"TilingData"};
   bool do_api_tiling{false};       // 控制高阶api tiling是否需要生成
   bool do_axes_calc{false};        // 控制外轴、尾轴等逻辑是否需要生成
 };
 }  // namespace att
-}  // namespace af
 #endif // ATT_EXTRA_INFO_CONFIG_H_

@@ -20,7 +20,7 @@ namespace {
 const char *const kAscBackendType = "AscBackend";
 const char *const kWorkspacePrefix = "fused_workspace";
 }  // namespace
-namespace af { namespace optimize {
+namespace optimize {
 Status FusedGraphModifier::InitAscbcOutAnchorAttr(
     const af::ComputeGraphPtr &fused_graph,
     std::map<const af::Node *, std::map<int64_t, OutAnchorAttr>> &nodes_to_out_anchor_idx_to_attr) {
@@ -188,7 +188,7 @@ Status FusedGraphModifier::SubgraphConnectionsToWorkspace(const af::ComputeGraph
   return ge::SUCCESS;
 }
 
-Status FusedGraphModifier::ChangeStartingOutputToWorkspace(std::vector<::ascir::ScheduleGroup> &schedule_groups) {
+Status FusedGraphModifier::ChangeStartingOutputToWorkspace(std::vector<ascir::ScheduleGroup> &schedule_groups) {
   for (auto &group : schedule_groups) {
     for (auto &graph : group.impl_graphs) {
       for (auto node : graph.GetAllNodes()) {
@@ -212,4 +212,3 @@ Status FusedGraphModifier::ChangeStartingOutputToWorkspace(std::vector<::ascir::
 }
 
 }  // namespace optimize
-}  // namespace af

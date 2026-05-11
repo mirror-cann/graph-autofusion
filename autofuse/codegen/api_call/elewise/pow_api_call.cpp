@@ -18,13 +18,13 @@
 #include "common/checker.h"
 #include "api_call/utils/api_call_factory.h"
 
-namespace af { namespace codegen {
+namespace codegen {
 using namespace std;
 using namespace af::ops;
 using namespace af::ascir_op;
 using namespace ascgen_utils;
 
-Status PowApiCall::Generate(const TPipe &tpipe, const std::vector<::ascir::AxisId> &current_axis,
+Status PowApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
                             const std::vector<std::reference_wrapper<const Tensor>> &inputs,
                             const std::vector<std::reference_wrapper<const Tensor>> &outputs,
                             std::string &result) const {
@@ -93,4 +93,3 @@ Status PowApiCall::Generate(const TPipe &tpipe, const std::vector<::ascir::AxisI
 
 static ApiCallRegister<PowApiCall> register_pow_api_call("PowApiCall");
 }  // namespace codegen
-}  // namespace af

@@ -15,7 +15,7 @@
 #include "autofuse_config/auto_fuse_config_utils.h"
 #include "base/base_types.h"
 #include "autofuse_config/auto_fuse_config.h"
-namespace af { namespace att {
+namespace att {
 enum class TilingImplType {
     HIGH_PERF,
     MAX,
@@ -69,5 +69,4 @@ struct TilingCodeGenConfig {
     }
 };
 }  // namespace att
-}  // namespace af
 #endif  // ATT_GENERATOR_CONFIG_H

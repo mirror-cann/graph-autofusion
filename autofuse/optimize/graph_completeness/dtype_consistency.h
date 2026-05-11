@@ -13,7 +13,7 @@
 #include <vector>
 #include "ascendc_ir/ascendc_ir_core/ascendc_ir.h"
 
-namespace af { namespace optimize {
+namespace optimize {
 // Actual dtype requirements of nodes
 struct NodeDtypeRequirement {
   af::AscNodePtr node;
@@ -71,5 +71,4 @@ class DtypeConsistency {
 };
 
 }  // namespace optimize
-}  // namespace af
 #endif  // OPTIMIZE_GRAPH_COMPLETENESS_DTYPE_CONSISTENCY_H

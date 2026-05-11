@@ -13,12 +13,12 @@
 
 #include "micro_api_call.h"
 
-namespace af { namespace codegen {
+namespace codegen {
 class MicroLoadApiCall final : public MicroApiCall {
  public:
   explicit MicroLoadApiCall(const std::string &api_name) : MicroApiCall(api_name) {}
   ~MicroLoadApiCall() override = default;
-  Status Init(const ::ascir::NodeView &node) override;
+  Status Init(const ascir::NodeView &node) override;
   Status Generate(const TensorManager &tensor_mng, const TPipe &tpipe, CallParam &param, std::string &result) override;
 
  private:
@@ -26,6 +26,5 @@ class MicroLoadApiCall final : public MicroApiCall {
   std::string dist_ = "";
 };
 }  // namespace codegen
-}  // namespace af
 
 #endif  // __AUTOFUSE_MICRO_LOAD_API_CALL_H__

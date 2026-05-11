@@ -14,7 +14,7 @@
 #include "common/checker.h"
 #include "ascir.h"
 
-namespace af { namespace codegen {
+namespace codegen {
 
 ge::Status IsDataTypeSupported(const ::ascir::ImplGraph &graph);
 ge::Status IsRepeatStrideValid(const ::ascir::ImplGraph &graph);
@@ -22,6 +22,5 @@ ge::Status IsGraphNodeValid(const ::ascir::ImplGraph &graph);
 bool CheckGraphValidity(const ::ascir::ImplGraph &graph);
 
 }  // namespace codegen
-}  // namespace af
 
 #endif  // __CODEGEN_GRAPH_CHECK_H__

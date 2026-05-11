@@ -10,7 +10,7 @@
 
 #include "mem_reuse_manager.h"
 
-namespace af { namespace optimize {
+namespace optimize {
 size_t kDbReuseThreshold = 2UL;
 
 bool MemReuseManager::IsLifetimeOverlap(int64_t start1, int64_t end1, int64_t start2, int64_t end2) {
@@ -353,4 +353,3 @@ void MemReuseManager::AllocTmpBuff(std::map<af::TmpBuffer *, std::vector<TensorG
   }
 }
 }  // namespace optimize
-}  // namespace af

@@ -242,7 +242,7 @@ class SymbolProcessor {
         ss << "      " << tensor_type_obj << " = " << TensorTypeToCode(soc_to_sym.second->GetTensorType()) << ";\n";
       }
       ss << "    } else {\n";
-      ss << R"(      GELOGE(::ge::FAILED, "Unknown npu arch: %s", npu_arch.c_str());)" << std::endl;
+      ss << R"(      GELOGE(ge::FAILED, "Unknown npu arch: %s", npu_arch.c_str());)" << std::endl;
       ss << "      return af::FAILED;\n";
       ss << "    }\n";
       return;
@@ -952,7 +952,7 @@ class SocOrderedSymbolProcessor : public SymbolProcessor {
       oss << GenContainerEntries(iter.second, meta) << std::endl;
     }
     oss << "    } else {\n";
-    oss << R"(      GELOGE(::ge::FAILED, "Unknown npu arch: %s", npu_arch.c_str());)" << std::endl;
+    oss << R"(      GELOGE(ge::FAILED, "Unknown npu arch: %s", npu_arch.c_str());)" << std::endl;
     oss << "      return af::FAILED;\n";
     oss << "    }\n";
     return oss.str();

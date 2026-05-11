@@ -15,7 +15,7 @@
 #include "base_template.h"
 #include "optimize/autoschedule/autoschedule_defs.h"
 
-namespace af { namespace optimize {
+namespace optimize {
 class BaseTemplateGenerator {
  public:
   virtual ~BaseTemplateGenerator() = default;
@@ -43,6 +43,5 @@ class BaseTemplateGenerator {
   std::vector<std::unique_ptr<BaseTemplate>> strategies_;
 };
 }  // namespace optimize
-}  // namespace af
 
 #endif  // OPTIMIZE_PLATFORM_COMMON_BASE_TEMPLATE_GENERATOR_H

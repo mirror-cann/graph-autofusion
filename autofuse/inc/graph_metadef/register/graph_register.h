@@ -11,7 +11,7 @@
 #ifndef INC_GRAPH_REGISTER_REGISTRY_H_
 #define INC_GRAPH_REGISTER_REGISTRY_H_
 
-#include "include/register/register.h"
+#include "register/register.h"
 #include "graph/types.h"
 
 namespace af {

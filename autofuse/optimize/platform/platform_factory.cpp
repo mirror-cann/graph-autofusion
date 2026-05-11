@@ -11,7 +11,7 @@
 #include "platform_factory.h"
 #include "common/platform_context.h"
 
-namespace af { namespace optimize {
+namespace optimize {
 PlatformFactory &PlatformFactory::GetInstance() {
   static PlatformFactory instance;
   return instance;
@@ -42,4 +42,3 @@ BasePlatform *PlatformFactory::GetPlatform() {
 }
 
 }  // namespace
-}  // namespace af

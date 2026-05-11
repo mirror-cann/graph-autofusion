@@ -21,13 +21,13 @@
 #include "schedule_utils.h"
 
 
-namespace af { namespace optimize {
+namespace optimize {
 namespace {
 constexpr size_t kExpectedTransposeNodeNum = 1UL;      // 当前支持Ascgraph中含单个Transpose，后续考虑多个的情况。
 constexpr int32_t transposeNoNeedUBConvertSize = 512;  // 以512Byte作为是否需要消除Transpose的阈值
 }
 
-std::vector<af::AscNodePtr> TransposeFusionCaseGenerator::FindTransposeNodes(const ::ascir::HintGraph &owner_graph) {
+std::vector<af::AscNodePtr> TransposeFusionCaseGenerator::FindTransposeNodes(const ascir::HintGraph &owner_graph) {
   std::vector<af::AscNodePtr> transpose_nodes;
   for (const auto &node : owner_graph.GetAllNodes()) {
     if (af::ops::IsOps<af::ascir_op::Transpose>(node)) {
@@ -68,7 +68,7 @@ void TransposeFusionCaseGenerator::UpdateAxisByPath(::ascir::ImplGraph &owner_gr
   }
 }
 
-void TransposeFusionCaseGenerator::UpdateAxis(::ascir::HintGraph &graph, const af::AscNodePtr &transpose_node) const {
+void TransposeFusionCaseGenerator::UpdateAxis(ascir::HintGraph &graph, const af::AscNodePtr &transpose_node) const {
   std::vector<std::pair<int64_t, int64_t>> transpose_info;
   const auto &reordered_axis = transpose_node->outputs[0].attr.axis;
   const auto &reordered_sched_axis = transpose_node->attr.sched.axis;
@@ -76,7 +76,7 @@ void TransposeFusionCaseGenerator::UpdateAxis(::ascir::HintGraph &graph, const a
   UpdateAxisByPath(graph, transpose_node, unused_visited_nodes, reordered_axis, reordered_sched_axis);
 }
 
-Status TransposeFusionCaseGenerator::TransposeConvertProcess(::ascir::HintGraph &graph,
+Status TransposeFusionCaseGenerator::TransposeConvertProcess(ascir::HintGraph &graph,
                                                              const af::AscNodePtr &transpose_node) const {
   GE_CHK_STATUS_RET(TransposeNodeInputsAndOutputsCheck(transpose_node), "TransposeNode Check failed");
   UpdateAxis(graph, transpose_node);
@@ -86,11 +86,11 @@ Status TransposeFusionCaseGenerator::TransposeConvertProcess(::ascir::HintGraph 
                     transpose_node->GetNamePtr());
 
   GE_ASSERT_GRAPH_SUCCESS(ScheduleUtils::TopologicalSorting(graph));
-  ::ascir::utils::DumpGraph(graph, "AfterConvertTranspose");
+  ascir::utils::DumpGraph(graph, "AfterConvertTranspose");
   return ge::SUCCESS;
 }
 
-Status TransposeFusionCaseGenerator::Generate(::ascir::HintGraph &graph, std::vector<::ascir::ImplGraph> &graphs, std::vector<std::string> &score_functions) {
+Status TransposeFusionCaseGenerator::Generate(ascir::HintGraph &graph, std::vector<ascir::ImplGraph> &graphs, std::vector<std::string> &score_functions) {
   /*
   场景1： 尾轴转置， 需要UB重排，Transpose节点保留；
   场景2：非尾轴转置，尾轴大于等于512Byte，不需要UB重排，Transpose删除，刷新load/store表示；
@@ -109,7 +109,7 @@ Status TransposeFusionCaseGenerator::Generate(::ascir::HintGraph &graph, std::ve
 
   //生成场景2的模板，Transpose消除模板（改图）
   // 复制图用于生成改图模板
-  ::ascir::ImplGraph optimized_graph((graph.GetName() + "_group_transpose").c_str());
+  ascir::ImplGraph optimized_graph((graph.GetName() + "_group_transpose").c_str());
   optimized_graph.CopyFrom(graph);
 
   auto transpose_node = FindTransposeNodes(optimized_graph).front();
@@ -125,13 +125,13 @@ Status TransposeFusionCaseGenerator::Generate(::ascir::HintGraph &graph, std::ve
   return ge::SUCCESS;
 }
 
-Status TransposeFusionCaseGenerator::GenerateScoreFuncForUbReorder(const ::ascir::HintGraph &graph,
+Status TransposeFusionCaseGenerator::GenerateScoreFuncForUbReorder(const ascir::HintGraph &graph,
                                                                   const af::AscNodePtr &transpose_node,
                                                                   std::string &score_func) {
   return TransposeScoreFunctionGenerator(graph, transpose_node).Generate(score_func);
 }
 
-TransposeScoreFunctionGenerator::TransposeScoreFunctionGenerator(const ::ascir::HintGraph &graph,
+TransposeScoreFunctionGenerator::TransposeScoreFunctionGenerator(const ascir::HintGraph &graph,
                                                                  af::AscNodePtr transpose_node)
   : graph_(&graph), transpose_node_(std::move(transpose_node)){}
 
@@ -175,4 +175,3 @@ Status TransposeScoreFunctionGenerator::GetScoreByExpr(int32_t &score) const {
   return ge::SUCCESS;
 }
 }  // namespace optimize
-}  // namespace af

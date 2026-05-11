@@ -20,7 +20,7 @@
 #include "common/scope_tracing_recorder.h"
 #include "common_utils.h"
 
-namespace af { namespace att {
+namespace att {
 namespace {
 constexpr uint32_t kPercentageDivisor = 100;
 TilingImplType GetTilingAlgorithm(const std::string &algorithm_name) {
@@ -152,7 +152,7 @@ bool GenTilingImpl(const std::string &op_name, const std::vector<af::AscGraph> &
   }
 }
 
-bool GenTilingImplAutoFuseV3(const std::string &op_name, const ::ascir::FusedScheduledResult &fused_schedule_result,
+bool GenTilingImplAutoFuseV3(const std::string &op_name, const ascir::FusedScheduledResult &fused_schedule_result,
                              std::map<std::string, std::string> &options, std::map<std::string, std::string> &tiling_func,
                              bool is_inductor_scene) {
   TRACING_PERF_SCOPE(ge::TracingModule::kModelCompile, "GenTilingImpl", op_name);
@@ -194,4 +194,3 @@ bool GenTilingImplAutoFuseV3(const std::string &op_name, const ::ascir::FusedSch
   return true;
 }
 }  // namespace att
-}  // namespace af

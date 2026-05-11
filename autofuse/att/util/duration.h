@@ -16,7 +16,7 @@
 #include "common/checker.h"
 #include "autofuse_config/auto_fuse_config.h"
 
-namespace af { namespace att {
+namespace att {
 extern uint32_t kg_duration_level;
 inline bool IsProfilingEnabled() {
   bool env_status = false;
@@ -185,5 +185,4 @@ std::string DurationEndGenCode(const TilingFuncDurationType type);
 std::string DurationGuardGenCode(const TilingFuncDurationType type);
 } //namespace att
 
-}  // namespace af
 #endif  // ATT_DURATION_H_

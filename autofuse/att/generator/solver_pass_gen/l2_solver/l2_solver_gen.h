@@ -19,7 +19,7 @@
 #include "util/base_types_printer.h"
 #include "common/checker.h"
 
-namespace af { namespace att
+namespace att
 {
   class L2TileSolverGen : public SolverGen
   {
@@ -59,6 +59,5 @@ namespace af { namespace att
     ExprExprMap arg_max_value_map_;
     ExprExprMap arg_align_map_;
   };
-}  // namespace att
-}  // namespace af
+} // namespace att
 #endif

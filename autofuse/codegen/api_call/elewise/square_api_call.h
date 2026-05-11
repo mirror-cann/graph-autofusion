@@ -11,18 +11,17 @@
 #define __AUTOFUSE_SQUARE_API_CALL_H__
 #include "codegen_kernel.h"
 
-namespace af { namespace codegen {
+namespace codegen {
 class SquareApiCall final : public ApiCall {
 public:
   using ApiCall::Generate;
   explicit SquareApiCall(const std::string &api_name) : ApiCall(api_name) {}
   Status Generate(const TPipe &tpipe,
-                const std::vector<::ascir::AxisId> &current_axis,
+                const std::vector<ascir::AxisId> &current_axis,
                 const std::vector<std::reference_wrapper<const Tensor>> &inputs,
                 const std::vector<std::reference_wrapper<const Tensor>> &outputs,
                 std::string &result) const override;
   ~SquareApiCall() override = default;
 };
 }
-}  // namespace af
 #endif // __AUTOFUSE_SQUARE_API_CALL_H__

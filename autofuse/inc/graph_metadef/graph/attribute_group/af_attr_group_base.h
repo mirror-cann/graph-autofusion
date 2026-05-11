@@ -29,7 +29,6 @@ class AfAttrGroupsDef;
 
 namespace af {
 using ge::TypeId;
-using ge::graphStatus;
 using AttrHolder = ::ge::AttrHolder;
 
 class AttrGroupsBase : public ::ge::AttrGroupsBase {
@@ -39,12 +38,12 @@ class AttrGroupsBase : public ::ge::AttrGroupsBase {
 
   graphStatus Serialize(::ge::proto::AttrGroupDef &attr_group_def) final {
     (void) attr_group_def;
-    return ge::GRAPH_FAILED;
+    return ge::GRAPH_SUCCESS;
   }
   graphStatus Deserialize(const ::ge::proto::AttrGroupDef &attr_group_def, AttrHolder *attr_holder) final {
     (void) attr_group_def;
     (void) attr_holder;
-    return ge::GRAPH_FAILED;
+    return ge::GRAPH_SUCCESS;
   }
   std::unique_ptr<::ge::AttrGroupsBase> Clone() final {
     auto cloned = CloneAf();
@@ -97,7 +96,6 @@ class AutoFuseGraphAttrs;
 
 namespace af {
 using ge::TypeId;
-using ge::graphStatus;
 class AttrHolder;
 class AttrGroupsBase {
  public:

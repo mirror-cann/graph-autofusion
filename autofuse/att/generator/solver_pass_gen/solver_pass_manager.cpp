@@ -11,7 +11,7 @@
 #include "graph/symbolizer/symbolic.h"
 #include "graph/symbolizer/symbolic_utils.h"
 
-namespace af { namespace att {
+namespace att {
 bool SolverPassManager::CheckArgExist(const Expr &new_arg, const std::vector<Expr> &args) {
   for (auto arg : args) {
     if (IsValid(arg) && (new_arg == arg)) {
@@ -543,4 +543,3 @@ std::pair<std::string, std::string> SolverPassManager::GenAxesReorderFunc(const 
   return std::make_pair(impl_codes, invoke_codes);
 }
 }  // namespace att
-}  // namespace af

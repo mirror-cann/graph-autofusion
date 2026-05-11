@@ -13,7 +13,7 @@
 #include "ascir_utils.h"
 #include "ascgen_log.h"
 
-namespace af { namespace optimize {
+namespace optimize {
 class BaseGraphPass {
  public:
   BaseGraphPass() = default;
@@ -21,5 +21,4 @@ class BaseGraphPass {
   virtual ~BaseGraphPass() = default;
 };
 }  // namespace optimize
-}  // namespace af
 #endif  // OPTIMIZE_PLATFORM_COMMON_BASE_GRAPH_PASS_H

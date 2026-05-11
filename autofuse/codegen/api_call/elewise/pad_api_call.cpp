@@ -18,13 +18,13 @@
 #include "common/checker.h"
 #include "api_call/utils/api_call_factory.h"
 
-namespace af { namespace codegen {
+namespace codegen {
 using namespace std;
 using namespace af::ops;
 using namespace af::ascir_op;
 using namespace ascgen_utils;
 
-Status PadApiCall::Generate(const TPipe &tpipe, const std::vector<::ascir::AxisId> &current_axis,
+Status PadApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
                             const std::vector<std::reference_wrapper<const Tensor>> &inputs,
                             const std::vector<std::reference_wrapper<const Tensor>> &outputs,
                             std::string &result) const {
@@ -84,7 +84,7 @@ Status PadApiCall::Generate(const TPipe &tpipe, const std::vector<::ascir::AxisI
   return ge::SUCCESS;
 }
 
-Status PadApiCall::ParseAttr(const ::ascir::NodeView &node) {
+Status PadApiCall::ParseAttr(const ascir::NodeView &node) {
   GE_ASSERT_SUCCESS(GetApiTilingFieldName(node, this->api_tiling_data_field));
   GELOGD("Get Pad api tiling field name success, field_name: %s\n", this->api_tiling_data_field.c_str());
   return ge::SUCCESS;
@@ -92,4 +92,3 @@ Status PadApiCall::ParseAttr(const ::ascir::NodeView &node) {
 
 static ApiCallRegister<PadApiCall> register_pad_api_call("PadApiCall");
 }  // namespace codegen
-}  // namespace af

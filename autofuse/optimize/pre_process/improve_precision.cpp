@@ -183,7 +183,7 @@ void TopologicalSorting(const ComputeGraphPtr &graph) {
 bool CheckCastDtype(DataType input_dtype, DataType output_dtype) {
   std::vector<DataType> input_dtypes = {input_dtype};
   std::vector<DataType> expect_output_dtypes = {output_dtype};
-  return af::optimize::ScheduleUtils::CallAscirInferDataType<af::ascir_op::Cast>(input_dtypes, expect_output_dtypes) == ge::SUCCESS;
+  return optimize::ScheduleUtils::CallAscirInferDataType<af::ascir_op::Cast>(input_dtypes, expect_output_dtypes) == ge::SUCCESS;
 }
 
 std::atomic<int64_t> g_unique_number{0};
@@ -487,7 +487,7 @@ Status IsNeedInsertCastBeforeStore(const NodePtr &store_node, bool &need_insert,
 }
 using TypeToNodesMap = std::unordered_map<std::string, std::vector<NodePtr>>;
 
-bool ShouldSkipGraph(af::optimize::GraphPropertiesCache &cache, const AscGraph &asc_graph) {
+bool ShouldSkipGraph(optimize::GraphPropertiesCache &cache, const AscGraph &asc_graph) {
   if (cache.HasCube() || cache.HasConcat() || cache.HasSplit()) {
     GELOGI("Graph %s is cube/concat/split type, skip precision improvement.", asc_graph.GetName().c_str());
     return true;
@@ -580,7 +580,7 @@ Status ProcessNodeGroups(AscGraph &asc_graph, TypeToNodesMap &type_to_nodes) {
 
 ge::Status ImprovePrecisionForAscGraph(AscGraph &asc_graph) {
   ResetUniqueNumber();
-  af::optimize::GraphPropertiesCache cache(asc_graph);
+  optimize::GraphPropertiesCache cache(asc_graph);
   if (ShouldSkipGraph(cache, asc_graph)) { return ge::SUCCESS; }
   bool all_in_blacklist = false;
   GE_ASSERT_SUCCESS(IsAllNodesInBlacklist(asc_graph, all_in_blacklist));

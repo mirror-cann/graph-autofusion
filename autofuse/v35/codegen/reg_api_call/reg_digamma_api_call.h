@@ -11,16 +11,15 @@
 #define __AUTOFUSE_REG_DIGAMMA_API_CALL_H__
 #include "codegen_kernel.h"
 
-namespace af { namespace codegen {
+namespace codegen {
 class DigammaRegApiCall : public ApiCall {
  public:
   using ApiCall::Generate;
   explicit DigammaRegApiCall(const std::string &api_name) : ApiCall(api_name) {}
   ~DigammaRegApiCall() final = default;
-  Status Generate(const TPipe &tpipe, const std::vector<::ascir::AxisId> &current_axis,
+  Status Generate(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
                   const std::vector<std::reference_wrapper<const Tensor>> &inputs,
                   const std::vector<std::reference_wrapper<const Tensor>> &outputs, std::string &result) const override;
 };
 }
-}  // namespace af
 #endif // __AUTOFUSE_DIGAMMA_API_CALL_H__

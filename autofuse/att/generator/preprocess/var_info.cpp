@@ -8,7 +8,7 @@
  * See LICENSE in the root of the software repository for the full text of the License.
  */
 #include "generator/preprocess/var_info.h"
-namespace af { namespace att {
+namespace att {
 void to_json(nlohmann::json &j, const std::vector<HardwareDef> &scopes) {
   std::vector<std::string> scope_vec;
   for (const auto &p : scopes) {
@@ -54,4 +54,3 @@ std::string MakeJson(const ExprInfoMap& expr_info_map) {
   return j.dump();
 }
 }  // namespace att
-}  // namespace af

@@ -15,7 +15,7 @@
 #include "micro_api_call/micro_api_call_factory.h"
 
 using namespace std;
-namespace af { namespace codegen {
+namespace codegen {
   Status TensorManager::AddTensor(const MicroApiTensor &tensor) {
     auto is_insert = this->tensors_.emplace(tensor.id_, tensor).second;
     GE_CHK_BOOL_RET_STATUS(is_insert, ge::FAILED, "Micro api tensor[%u,%s] is already added", tensor.id_,
@@ -23,7 +23,7 @@ namespace af { namespace codegen {
     return ge::SUCCESS;
   }
 
-  const MicroApiTensor *TensorManager::GetTensor(::ascir::TensorId id) const {
+  const MicroApiTensor *TensorManager::GetTensor(ascir::TensorId id) const {
     auto iter = tensors_.find(id);
     GE_CHK_BOOL_EXEC(iter != tensors_.end(), return nullptr, "Micro api tensor[%ld] not found", id);
     return &iter->second;
@@ -52,7 +52,7 @@ namespace af { namespace codegen {
     return Type("AscendC::MicroAPI::MaskReg");
   }
 
-  MicroApiTensor::MicroApiTensor(const ::ascir::TensorAttr &tensor, std::string &dtype_name, bool init_as_mask_reg)
+  MicroApiTensor::MicroApiTensor(const ascir::TensorAttr &tensor, std::string &dtype_name, bool init_as_mask_reg)
       : Variable((init_as_mask_reg ? MaskRegTypes() : RegTensorTypes(dtype_name)),
                  (init_as_mask_reg ? "mask_reg_" : "vreg_") + to_string(tensor.attr.mem.tensor_id)),
         id_(tensor.attr.mem.tensor_id),
@@ -92,4 +92,3 @@ namespace af { namespace codegen {
 
   static MicroApiCallRegister<MicroApiCall> register_micro_api_call("MicroApiCall");
 }  // namespace codegen
-}  // namespace af

@@ -15,7 +15,7 @@
 #include "base/model_info.h"
 #include "external/ge_common/ge_api_types.h"
 
-namespace af { namespace att {
+namespace att {
 namespace cache {
 /**
  * @brief Group级缓存代码生成器
@@ -54,6 +54,5 @@ public:
 };
 } // namespace cache
 } // namespace att
-}  // namespace af
 
 #endif // ATT_GROUP_LEVEL_CACHE_GEN_H_

@@ -15,7 +15,6 @@
 #include "graph/ge_tensor.h"
 #include "graph/opp_impl_version.h"
 namespace af {
-using ge::graphStatus;
 using std::map;
 using std::pair;
 using std::shared_ptr;

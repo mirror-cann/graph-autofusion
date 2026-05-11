@@ -24,9 +24,9 @@
 #include "common_utils.h"
 #include "vector_function_graph_parser.h"
 
-namespace af { namespace att {
+namespace att {
 namespace {
-bool HasComputeType(const ::ascir::ImplGraph &impl_graph, const af::ComputeType compute_type) {
+bool HasComputeType(const ascir::ImplGraph &impl_graph, const af::ComputeType compute_type) {
   for (const auto &node : impl_graph.GetAllNodes()) {
     if (node->attr.api.compute_type == compute_type) {
       return true;
@@ -1161,4 +1161,3 @@ std::string AscendGraphParser::TuningSpacePrint() const {
   return oss.str();
 }
 }  // namespace att
-}  // namespace af

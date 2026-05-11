@@ -1472,7 +1472,7 @@ static void DumpNodeSchedProps(std::stringstream &ss,
 static void DumpNodeIrAttr(std::stringstream &ss, const af::AscNodePtr &node) {
   auto &ir_attr = node->GetOpDesc()->GetAttrsGroup<af::AscNodeAttr>()->ir_attr;
   if (ir_attr != nullptr) {
-    af::proto::AscIrAttrDef asc_ir_attr_def;
+    ascendc_ir::proto::AscIrAttrDef asc_ir_attr_def;
     (void) ir_attr->Serialize(asc_ir_attr_def);
     if (!asc_ir_attr_def.attr().empty()) {
       for (const auto &pair: asc_ir_attr_def.attr()) {

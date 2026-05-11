@@ -17,7 +17,7 @@
 #include "common_utils.h"
 #include "schedule_utils.h"
 
-namespace af { namespace optimize {
+namespace optimize {
 af::Status TensorLayoutUtils::AnalyzeLoadDiscontinuity(const af::AscTensorAttr &attr, DiscontinuityInfo &info) {
   const auto &axis = attr.axis;
   const auto &repeats = attr.repeats;
@@ -65,4 +65,3 @@ af::Status TensorLayoutUtils::AnalyzeLoadDiscontinuity(const af::AscTensorAttr &
   return ge::SUCCESS;
 }
 }  // namespace optimize
-}  // namespace af

@@ -13,7 +13,7 @@
 #include "tensor_layout_utils.h"
 #include "platform/v1/alignment_strategy.h"
 
-namespace af { namespace optimize {
+namespace optimize {
 AlignmentType UnAlignmentStrategy::GetDefaultAlignmentType() {
   return AlignmentType::kNotAligned;
 }
@@ -185,4 +185,3 @@ Status GenLoadToGenNddmaNode(const af::AscNodePtr &node_load) {
   return ge::SUCCESS;
 }
 }  // namespace optimize
-}  // namespace af

@@ -151,7 +151,7 @@ uint64_t InferFuseType(const af::AscGraph &graph) {
       {af::ComputeType::kComputeCube, ge::loop::FuseType::kCube}};
 
   uint64_t fuse_type = (1UL << static_cast<uint64_t>(ge::loop::FuseType::kExtern));
-  if (af::optimize::AscGraphInfoComplete::CompleteApiInfo(graph) == ge::SUCCESS) {
+  if (optimize::AscGraphInfoComplete::CompleteApiInfo(graph) == ge::SUCCESS) {
     for (const auto &node : graph.GetAllNodes()) {
       auto it = kComputeTypeToFuseType.find(node->attr.api.compute_type);
       if (it != kComputeTypeToFuseType.end()) {

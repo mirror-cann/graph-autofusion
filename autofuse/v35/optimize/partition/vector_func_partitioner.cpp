@@ -43,7 +43,7 @@ bool HasHighToLowCastNode(const std::unordered_set<af::AscNodePtr> &nodes) {
 }
 
 // 检查 connected_nodes 在 to 中的输出节点是否是低→高 Cast
-bool HasLowToHighCastNode(const af::optimize::Cluster &to, const std::unordered_set<af::AscNodePtr> &connected_nodes) {
+bool HasLowToHighCastNode(const optimize::Cluster &to, const std::unordered_set<af::AscNodePtr> &connected_nodes) {
   for (const auto &node : connected_nodes) {
     // 找到边界节点的输出节点
     for (const auto &out_node : node->GetOutDataNodes()) {
@@ -68,7 +68,7 @@ bool HasLowToHighCastNode(const af::optimize::Cluster &to, const std::unordered_
 
 // 检查两个 Cluster 内所有 Cast 节点的位宽差距是否超过阈值
 // 检查所有 Cast 涉及的最大位宽和最小位宽，判断整体位宽变换倍数
-bool CheckCastBitWidthGap(const af::optimize::Cluster &from, const af::optimize::Cluster &to, int32_t max_gap) {
+bool CheckCastBitWidthGap(const optimize::Cluster &from, const optimize::Cluster &to, int32_t max_gap) {
   int32_t global_max_width = 0;
   int32_t global_min_width = std::numeric_limits<int32_t>::max();
   bool has_cast = false;
@@ -105,14 +105,14 @@ bool CheckCastBitWidthGap(const af::optimize::Cluster &from, const af::optimize:
 
 ge::Status UnalignNode(const af::AscNodePtr &node) {
   for (const auto &tensor : node->outputs()) {
-    GE_ASSERT_SUCCESS(af::optimize::BaseAlignmentStrategy::SetVectorizedStridesForTensor(
-        node, tensor->attr, af::optimize::AlignmentType::kNotAligned));
+    GE_ASSERT_SUCCESS(optimize::BaseAlignmentStrategy::SetVectorizedStridesForTensor(
+        node, tensor->attr, optimize::AlignmentType::kNotAligned));
   }
   return ge::SUCCESS;
 }
 
 bool IsScalarBrc(const af::AscNodePtr &node) {
-  if (!af::optimize::ScheduleUtils::IsBroadcast(node)) {
+  if (!optimize::ScheduleUtils::IsBroadcast(node)) {
     return false;
   }
   const auto &vectorized_strides = node->inputs[0].attr.vectorized_strides;
@@ -130,11 +130,11 @@ int64_t FindLastNonBrcAxis(const std::vector<int64_t> &vec_axis, const std::vect
   return af::kIdNone;
 }
 
-std::unordered_set<size_t> IdentifyZeroStrideVectorAxisIndices(const ::ascir::ImplGraph &owner_graph) {
+std::unordered_set<size_t> IdentifyZeroStrideVectorAxisIndices(const ascir::ImplGraph &owner_graph) {
   std::vector<bool> is_zero_stride_axis;
   for (const auto &node : owner_graph.GetAllNodes()) {
     GE_ASSERT_NOTNULL(node);
-    if (!af::optimize::ScheduleUtils::IsBuffer(node)) {
+    if (!optimize::ScheduleUtils::IsBuffer(node)) {
       is_zero_stride_axis.resize(node->outputs[0].attr.vectorized_strides.size(), true);
       break;
     }
@@ -142,7 +142,7 @@ std::unordered_set<size_t> IdentifyZeroStrideVectorAxisIndices(const ::ascir::Im
 
   for (const auto &node : owner_graph.GetAllNodes()) {
     GE_ASSERT_NOTNULL(node);
-    if (af::optimize::ScheduleUtils::IsBuffer(node)) {
+    if (optimize::ScheduleUtils::IsBuffer(node)) {
       continue;
     }
 
@@ -176,7 +176,7 @@ std::unordered_set<size_t> IdentifyZeroStrideVectorAxisIndices(const ::ascir::Im
   return zero_stride_axis_indices;
 }
 
-Status RemoveAllZeroStrideVectorizedAxis(::ascir::ImplGraph &owner_graph) {
+Status RemoveAllZeroStrideVectorizedAxis(ascir::ImplGraph &owner_graph) {
   std::unordered_set<size_t> zero_stride_axis_indices = IdentifyZeroStrideVectorAxisIndices(owner_graph);
   if (zero_stride_axis_indices.empty()) {
     return ge::SUCCESS;
@@ -184,7 +184,7 @@ Status RemoveAllZeroStrideVectorizedAxis(::ascir::ImplGraph &owner_graph) {
 
   for (const auto &node : owner_graph.GetAllNodes()) {
     GE_ASSERT_NOTNULL(node);
-    if (af::optimize::ScheduleUtils::IsBuffer(node)) {
+    if (optimize::ScheduleUtils::IsBuffer(node)) {
       continue;
     }
 
@@ -209,7 +209,7 @@ Status RemoveAllZeroStrideVectorizedAxis(::ascir::ImplGraph &owner_graph) {
 
 bool IsVectorizedAxisContinuous(const af::AscGraph &graph, const int64_t pre_id, const int64_t post_id) {
   for (auto node : graph.GetAllNodes()) {
-    if (af::optimize::ScheduleUtils::IsBuffer(node)) {
+    if (optimize::ScheduleUtils::IsBuffer(node)) {
       continue;
     }
 
@@ -273,7 +273,7 @@ ge::Status ApplyMerge(const af::AscNodePtr &node, const af::AxisPtr &merged_axis
   // vector axis
   for (const auto output : node->outputs()) {
     std::vector<af::Expression> vec_repeats;
-    GE_ASSERT_SUCCESS(af::optimize::ScheduleUtils::GetVectorRepeats(output->attr.repeats, output->attr.axis,
+    GE_ASSERT_SUCCESS(optimize::ScheduleUtils::GetVectorRepeats(output->attr.repeats, output->attr.axis,
                                                                 output->attr.vectorized_axis, vec_repeats));
     const auto &view = af::AxisUtils::MergeView(
         {output->attr.vectorized_axis, vec_repeats, output->attr.vectorized_strides}, merged_axis->id, from_ids);
@@ -302,17 +302,17 @@ void AddAnchorToOrderMap(
 
 bool NeedRemovePad(const af::AscNodePtr &node) {
   // 如果是非scalar的Broadcast节点，直接插RemovePad，结束循环
-  if (af::optimize::ScheduleUtils::IsBroadcast(node) && !af::optimize::ScheduleUtils::IsScalarBroadcastNode(node)) {
+  if (optimize::ScheduleUtils::IsBroadcast(node) && !optimize::ScheduleUtils::IsScalarBroadcastNode(node)) {
     return true;
   }
   if (ascgen_utils::IsNodeContainsBrcInline(node)) {
     return true;
   }
-  if (af::optimize::ScheduleUtils::IsLoad(node) && node->GetInDataNodesSize() == 1UL && node->GetOutDataNodesSize() > 0UL) {
+  if (optimize::ScheduleUtils::IsLoad(node) && node->GetInDataNodesSize() == 1UL && node->GetOutDataNodesSize() > 0UL) {
     // 判断Load是否是非连续的
     const auto &repeats = node->outputs[0].attr.repeats;
     const auto &strides = node->outputs[0].attr.strides;
-    return !af::optimize::ScheduleUtils::IsContinuesStrides(repeats, strides);
+    return !optimize::ScheduleUtils::IsContinuesStrides(repeats, strides);
   }
   return false;
 }
@@ -333,7 +333,7 @@ bool IsPeerNodesContainsVF(const af::OutDataAnchorPtr &anchor) {
 ge::Status ReverseDfsUnAlignNode(af::AscGraph &impl_graph, const af::NodePtr &ge_node,
                                  std::set<af::NodePtr> &visited_nodes) {
   // 这些节点不需要对齐
-  if (af::optimize::ScheduleUtils::IsIOBuffer(ge_node) || af::optimize::ScheduleUtils::IsRemovePad(ge_node)) {
+  if (optimize::ScheduleUtils::IsIOBuffer(ge_node) || optimize::ScheduleUtils::IsRemovePad(ge_node)) {
     return ge::SUCCESS;
   }
   const auto &node = std::dynamic_pointer_cast<af::AscNode>(ge_node);
@@ -348,7 +348,7 @@ ge::Status ReverseDfsUnAlignNode(af::AscGraph &impl_graph, const af::NodePtr &ge
       if (IsPeerNodesContainsVF(node->GetOutDataAnchor(static_cast<int32_t>(idx)))) {
         continue;
       }
-      GE_ASSERT_SUCCESS(af::optimize::ScheduleUtils::AddRemovePadAfter(impl_graph, node, remove_pad_node, idx));
+      GE_ASSERT_SUCCESS(optimize::ScheduleUtils::AddRemovePadAfter(impl_graph, node, remove_pad_node, idx));
       GE_ASSERT_SUCCESS(UnalignNode(remove_pad_node));
       visited_nodes.insert(remove_pad_node);
     }
@@ -362,7 +362,7 @@ ge::Status ReverseDfsUnAlignNode(af::AscGraph &impl_graph, const af::NodePtr &ge
   return ge::SUCCESS;
 }
 }  // namespace
-namespace af { namespace optimize {
+namespace optimize {
 const std::string kNamePrefixLoad = "Load_";
 const std::string kNamePrefixStore = "Store_";
 const std::string kNamePrefixData = "Data_";
@@ -370,7 +370,7 @@ const std::string kNamePrefixScalar = "Scalar_";
 const std::string kNamePrefixOutput = "Output_";
 
 ge::Status VectorFuncPartitioner::Partition() {
-  ::ascir::utils::DumpGraph(impl_graph_, "BeforePartition");
+  ascir::utils::DumpGraph(impl_graph_, "BeforePartition");
   GE_ASSERT_SUCCESS(ScheduleUtils::TopologicalSorting(impl_graph_), "Failed to do topological sorting for graph[%s].",
                     impl_graph_.GetName().c_str());
   root_graph_ = af::AscGraphUtils::GetComputeGraph(impl_graph_);
@@ -1290,4 +1290,3 @@ ge::Status VectorFuncPartitioner::AddRemovePadForBrcInline(af::AscGraph &graph) 
   return ge::SUCCESS;
 }
 }  // namespace optimize
-}  // namespace af

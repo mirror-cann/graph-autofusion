@@ -12,19 +12,18 @@
 #define __AUTOFUSE_GATHER_API_CALL_H__
 #include "codegen_kernel.h"
 
-namespace af { namespace codegen {
+namespace codegen {
 class GatherApiCall : public ApiCall {
 public:
   using ApiCall::Generate;
   explicit GatherApiCall(const std::string &api_name) : ApiCall(api_name) {}
-  Status ParseAttr(const ::ascir::NodeView &node) override;
+  Status ParseAttr(const ascir::NodeView &node) override;
   ~GatherApiCall() final = default;
-  Status Generate(const TPipe &tpipe, const std::vector<::ascir::AxisId> &current_axis,
+  Status Generate(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
                   const std::vector<std::reference_wrapper<const Tensor>> &inputs,
                   const std::vector<std::reference_wrapper<const Tensor>> &outputs, std::string &result) const override;
  private:
   int64_t axis = 0;
 };
 }
-}  // namespace af
 #endif // __AUTOFUSE_GATHER_API_CALL_H__

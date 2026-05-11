@@ -1784,9 +1784,9 @@ graphStatus ComputeGraphImpl::AddDataEdgesForNetOutput(
       !af::AttrUtils::SetInt(net_out_node->GetOpDesc(), ATTR_NAME_TRUE_BRANCH_STREAM, 0),
       REPORT_INNER_ERR_MSG("E19999", "Set Attr:%s to op:%s(%s) failed", ATTR_NAME_TRUE_BRANCH_STREAM.c_str(),
                            net_out_node->GetName().c_str(), net_out_node->GetType().c_str());
-      GELOGE(ge::INTERNAL_ERROR, "[Set][Attr] %s to op:%s(%s) failed", ATTR_NAME_TRUE_BRANCH_STREAM.c_str(),
+      GELOGE(af::INTERNAL_ERROR, "[Set][Attr] %s to op:%s(%s) failed", ATTR_NAME_TRUE_BRANCH_STREAM.c_str(),
              net_out_node->GetName().c_str(), net_out_node->GetType().c_str());
-      return ge::INTERNAL_ERROR);
+      return af::INTERNAL_ERROR);
   return GRAPH_SUCCESS;
 }
 
@@ -1851,9 +1851,9 @@ graphStatus ComputeGraphImpl::AddNetOutputNodeToGraph(const ComputeGraphPtr &com
         !af::AttrUtils::SetInt(output_node->GetOpDesc(), ATTR_NAME_TRUE_BRANCH_STREAM, 0),
         REPORT_INNER_ERR_MSG("E19999", "Set Attr:%s to op:%s(%s) failed", ATTR_NAME_TRUE_BRANCH_STREAM.c_str(),
                              output_node->GetName().c_str(), output_node->GetType().c_str());
-        GELOGE(ge::INTERNAL_ERROR, "[Set][Attr] %s to op:%s(%s) failed", ATTR_NAME_TRUE_BRANCH_STREAM.c_str(),
+        GELOGE(af::INTERNAL_ERROR, "[Set][Attr] %s to op:%s(%s) failed", ATTR_NAME_TRUE_BRANCH_STREAM.c_str(),
                output_node->GetName().c_str(), output_node->GetType().c_str());
-        return ge::INTERNAL_ERROR);
+        return af::INTERNAL_ERROR);
     return GRAPH_SUCCESS;
   }
 

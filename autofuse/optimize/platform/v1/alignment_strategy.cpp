@@ -15,7 +15,7 @@
 #include "ascir_ops_utils.h"
 #include "symbolizer/symbolic_utils.h"
 
-namespace af { namespace optimize {
+namespace optimize {
 
 AlignmentType AlignmentStrategy::GetDefaultAlignmentType() {
   return AlignmentType::kAligned;
@@ -68,7 +68,7 @@ af::Status AlignmentStrategy::BroadcastAlignmentInferFunc(const af::AscNodePtr &
 af::Status AlignmentStrategy::ConcatAlignmentInferFunc(const af::AscNodePtr &node) {
   // 小尾轴场景输入不需要对齐
   bool output_need_align = false;
-  if (::ascir::utils::UseSmallTailConcatApi(*node, &output_need_align)) {
+  if (ascir::utils::UseSmallTailConcatApi(*node, &output_need_align)) {
     // TTODO 消除Brc后可能会导致repeat不连续，先用attr规避，后续整改
     (void)af::AttrUtils::SetBool(node->GetOpDesc(), "_concat_small_tail", true);
     const auto &output_attr = node->outputs[0].attr;
@@ -189,4 +189,3 @@ af::Status AlignmentStrategy::DefaultAlignmentInferFunc(const af::AscNodePtr &no
   return ge::SUCCESS;
 }
 }  // namespace optimize
-}  // namespace af

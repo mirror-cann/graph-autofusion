@@ -17,7 +17,7 @@
 #include "tiling_data_gen/tiling_data_generator.h"
 #include "gen_model_info/api_tiling_gen/gen_api_tiling.h"
 
-namespace af { namespace att {
+namespace att {
 //  --------------------------------以下为tilingdata定义---------------------------
 //  返回值std::string tilingdata定义
 std::string ExtraInfoGenerator::WriteCoreParamData(const ModelInfo &model_info,
@@ -67,4 +67,3 @@ const ModelInfo *ExtraInfoGenerator::GetModelInfo(const uint32_t tiling_key) con
   return nullptr;
 }
 }  // namespace att
-}  // namespace af

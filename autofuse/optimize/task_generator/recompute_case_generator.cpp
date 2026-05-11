@@ -54,8 +54,8 @@ size_t CountComputeNodes(const std::unordered_set<af::Node *> &nodes) {
 }
 }  // namespace
 
-namespace af { namespace optimize {
-Status RecomputeCaseGenerator::GeneratorTask(::ascir::HintGraph &hint_graph, std::vector<ScheduleTask> &tasks,
+namespace optimize {
+Status RecomputeCaseGenerator::GeneratorTask(ascir::HintGraph &hint_graph, std::vector<ScheduleTask> &tasks,
                                              const OptimizerOptions &options) {
   (void)options;                                            
   auto graph_axis = hint_graph.GetAllAxis();
@@ -95,7 +95,7 @@ Status RecomputeCaseGenerator::GeneratorTask(::ascir::HintGraph &hint_graph, std
   return ge::SUCCESS;
 }
 
-Status RecomputeCaseGenerator::AnalyzeSplittablePath(::ascir::HintGraph &hint_graph,
+Status RecomputeCaseGenerator::AnalyzeSplittablePath(ascir::HintGraph &hint_graph,
                                                      const af::AscNodePtr &potential_store) {
   SplitResultInOnePath single_path_results;
   auto out_nodes = potential_store->GetOutDataNodes();
@@ -177,9 +177,9 @@ void RecomputeCaseGenerator::MergeAllPaths() {
          result_.merged_path_nodes.size(), result_.merged_recompute_nodes.size(), result_.merged_output_nodes.size());
 }
 
-Status RecomputeCaseGenerator::DoTaskGenerator(::ascir::ImplGraph &impl_graph, std::vector<ScheduleTask> &tasks) const {
+Status RecomputeCaseGenerator::DoTaskGenerator(ascir::ImplGraph &impl_graph, std::vector<ScheduleTask> &tasks) const {
   if (!IsRecomputableAlwaysBetter()) {
-    ::ascir::ImplGraph origin_graph(impl_graph.GetName().c_str());
+    ascir::ImplGraph origin_graph(impl_graph.GetName().c_str());
     GE_ASSERT_TRUE(origin_graph.CopyFrom(impl_graph), "Failed to copy graph from [%s].", impl_graph.GetName().c_str());
     GE_ASSERT_SUCCESS(GroupPartitionAndGenTasks(origin_graph, tasks));
   }
@@ -248,7 +248,7 @@ Status RecomputeCaseGenerator::DoGraphSplit(af::AscGraph &graph) const {
   return ge::SUCCESS;
 }
 
-bool RecomputeCaseGenerator::IsRecomputableNode(::ascir::HintGraph &hint_graph, af::AscNode *node) const {
+bool RecomputeCaseGenerator::IsRecomputableNode(ascir::HintGraph &hint_graph, af::AscNode *node) const {
   if (node->attr.api.type == af::ApiType::kAPITypeBuffer) {
     return true;
   }
@@ -311,4 +311,3 @@ bool RecomputeCaseGenerator::IsRecomputableAlwaysBetter() const {
   return is_second_condition_met;
 }
 }  // namespace optimize
-}  // namespace af

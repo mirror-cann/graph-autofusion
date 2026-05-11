@@ -15,7 +15,7 @@
 #include "ge_common/ge_api_error_codes.h"
 #include "ascendc_ir.h"
 
-namespace af { namespace optimize {
+namespace optimize {
 struct Cluster {
   struct MetaData {
     bool enable_vf{false};
@@ -71,5 +71,4 @@ struct Cluster {
 };
 using ClusterPtr = std::shared_ptr<Cluster>;
 }  // namespace optimize
-}  // namespace af
 #endif  // AUTOFUSE_CLUSTER_H

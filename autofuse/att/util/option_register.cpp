@@ -12,7 +12,7 @@
 #include "common/checker.h"
 #include "base/att_const_values.h"
 
-namespace af { namespace att {
+namespace att {
 void OptionRegister::RegisterOption(const std::string &name, const std::string &default_value,
                                     bool (*validate_func)(const std::string &value)) {
   OptionInfo option;
@@ -26,7 +26,7 @@ void OptionRegister::RegisterOption(const std::string &name, const std::string &
 bool RegisterOptionsAndInitInnerOptions(std::map<std::string, std::string> &inner_options,
                                         const std::map<std::string, std::string> &options,
                                         const std::string &graphs_name) {
-  using namespace af::att;
+  using namespace att;
   OptionRegister option_register = OptionRegister();
   // RegisterOption( option名称， option默认值（空字符串视为无默认值）， 校验函数 ）
   // bool类型
@@ -128,4 +128,3 @@ bool ValidateNotValidType(const std::string &value) {
   return true;
 }
 }
-}  // namespace af

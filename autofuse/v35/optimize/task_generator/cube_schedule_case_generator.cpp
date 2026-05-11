@@ -20,7 +20,7 @@
 #include "util/mem_utils.h"
 #include "base/err_msg.h"
 
-namespace af { namespace optimize {
+namespace optimize {
 namespace {
 const af::Expression kSymbolZero = af::Symbol(0);
 const af::Expression kSymbolOne = af::Symbol(1);
@@ -46,7 +46,7 @@ Status DoCopyAscNodeTensorAttr(const af::AscNodePtr &cube_node, af::AscNodePtr &
   tensor_attr_group->axis = output_attr.axis;
   tensor_attr_group->repeats = output_attr.repeats;
   tensor_attr_group->strides = output_attr.strides;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status DoCopyAscNodeTensorAttr(const af::AscNodePtr &cube_node, const af::AscNodePtr &cube_next_node,
@@ -83,7 +83,7 @@ Status DoCopyAscNodeTensorAttr(const af::AscNodePtr &cube_node, const af::AscNod
     }
   }
 
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status DoCopyWorkspaceTensorAttr(const af::AscNodePtr &src_node, af::AscNodePtr &workspace_node) {
@@ -92,7 +92,7 @@ Status DoCopyWorkspaceTensorAttr(const af::AscNodePtr &src_node, af::AscNodePtr 
   GE_ASSERT_TRUE(src_node->outputs().size() > 0UL);
   GE_ASSERT_TRUE(workspace_node->outputs().size() > 0UL);
   workspace_node->outputs[0].attr.dtype = src_node->outputs[0].attr.dtype;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status UpdateHintGraphAttr(const ::ascir::ImplGraph &graph) {
@@ -123,10 +123,10 @@ Status UpdateHintGraphAttr(const ::ascir::ImplGraph &graph) {
     }
     compute_graph_attr->axis = new_axis;
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-bool HasCastBrc(const ::ascir::ImplGraph &graph) {
+bool HasCastBrc(const ascir::ImplGraph &graph) {
   for (auto node : graph.GetAllNodes()) {
     GE_ASSERT_NOTNULL(node);
     if (!af::ops::IsOps<af::ascir_op::Cast>(node)) {
@@ -184,7 +184,7 @@ Status GetPrioritySequence(const af::AscGraph &graph, std::unordered_set<af::Nod
       }
     }
   }
-  return ge::GRAPH_SUCCESS;
+  return af::GRAPH_SUCCESS;
 }
 
 Status TopoSortByCubePriority(af::AscGraph &graph) {
@@ -194,7 +194,7 @@ Status TopoSortByCubePriority(af::AscGraph &graph) {
   GE_ASSERT_GRAPH_SUCCESS(GetPrioritySequence(graph, priority_sequences, store_sequences),
                           "Get priority sequence failed.");
   if (priority_sequences.empty()) {
-    return ge::GRAPH_SUCCESS;
+    return af::GRAPH_SUCCESS;
   }
 
   auto vec_node = *priority_sequences.begin();
@@ -233,9 +233,9 @@ Status TopoSortByCubePriority(af::AscGraph &graph) {
   GE_ASSERT_NOTNULL(compute_graph);
   compute_graph->TopologicalSorting(func);
   GE_ASSERT_GRAPH_SUCCESS(ScheduleUtils::TopologicalSorting(graph));
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
-bool HasBroadCastNode(const ::ascir::ImplGraph &impl_graph) {
+bool HasBroadCastNode(const ascir::ImplGraph &impl_graph) {
   for (const auto &node : impl_graph.GetAllNodes()) {
     if (node->attr.api.compute_type == af::ComputeType::kComputeBroadcast &&
         !ScheduleUtils::IsScalarBrc(node)) {
@@ -246,8 +246,8 @@ bool HasBroadCastNode(const ::ascir::ImplGraph &impl_graph) {
 }
 }  // namespace
 
-Status CubeFusionCaseGenerator::GenerateGeneralCase(::ascir::HintGraph &graph, std::vector<::ascir::ImplGraph> &graphs) {
-  ::ascir::ImplGraph optimize_graph(graph.GetName().c_str());
+Status CubeFusionCaseGenerator::GenerateGeneralCase(ascir::HintGraph &graph, std::vector<ascir::ImplGraph> &graphs) {
+  ascir::ImplGraph optimize_graph(graph.GetName().c_str());
   optimize_graph.CopyFrom(graph);
 
   for (const auto &node : optimize_graph.GetAllNodes()) {
@@ -294,13 +294,13 @@ Status CubeFusionCaseGenerator::GenerateGeneralCase(::ascir::HintGraph &graph, s
       for (const auto &out_anchor : node->GetAllOutDataAnchors()) {
         GE_CHK_BOOL_EXEC(out_anchor != nullptr,
                          REPORT_INNER_ERR_MSG("E18888", "out data anchor is null, node:%s.", node->GetName().c_str());
-                         return ge::GRAPH_FAILED, "[Check][Param] Out data anchor is null, node:%s",
+                         return af::GRAPH_FAILED, "[Check][Param] Out data anchor is null, node:%s",
                                 node->GetName().c_str());
         for (const auto &peer_in_anchor : out_anchor->GetPeerInDataAnchors()) {
           GE_CHECK_NOTNULL(peer_in_anchor);
           GE_CHK_BOOL_EXEC(peer_in_anchor->GetOwnerNodeBarePtr() != nullptr,
                            REPORT_INNER_ERR_MSG("E18888", "Peer in node:%s is null", node->GetName().c_str());
-                           return ge::GRAPH_FAILED, "Peer in node:%s is null", node->GetName().c_str());
+                           return af::GRAPH_FAILED, "Peer in node:%s is null", node->GetName().c_str());
           if (peer_in_anchor->GetOwnerNodeBarePtr()->GetName() == cube_node->GetName()) {
             // remove src->dst
             GE_CHK_STATUS_RET(af::GraphUtils::RemoveEdge(node->GetOutAnchor(out_anchor->GetIdx()),
@@ -325,10 +325,10 @@ Status CubeFusionCaseGenerator::GenerateGeneralCase(::ascir::HintGraph &graph, s
       first = false;
     }
   }
-  ::ascir::utils::DumpGraph(graph, "before_partition");
-  ::ascir::utils::DumpGraph(optimize_graph, "after_partition");
+  ascir::utils::DumpGraph(graph, "before_partition");
+  ascir::utils::DumpGraph(optimize_graph, "after_partition");
   graphs.emplace_back(optimize_graph);
-  return ge::GRAPH_SUCCESS;
+  return af::GRAPH_SUCCESS;
 }
 
 Status CubeFusionCaseGenerator::GenNddmaNode(const af::AscNodePtr &node_load, const af::AscNodePtr &node_brc,
@@ -343,15 +343,15 @@ Status CubeFusionCaseGenerator::GenNddmaNode(const af::AscNodePtr &node_load, co
   node_load->outputs[0].attr = node_brc->outputs[0].attr;
   GE_ASSERT_SUCCESS(ScheduleUtils::RemoveNode(new_case, std::dynamic_pointer_cast<af::AscNode>(node_brc),
                                               node_load->GetOutDataAnchor(0)));
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status CubeFusionCaseGenerator::SwapCastBrcAndGenNddma(const af::AscNodePtr &node_cast,
+af::Status CubeFusionCaseGenerator::SwapCastBrcAndGenNddma(const af::AscNodePtr &node_cast,
                                                            const af::AscNodePtr &node_load, af::AscGraph &new_case) {
   // 针对cast输出多引用的场景不做处理
   if (node_cast->GetOutNodesSize() != 1UL) {
     GELOGD("Node %s with single output and multiple refs, do not support gen nddma.", node_cast->GetNamePtr());
-    return ge::UNSUPPORTED;
+    return af::UNSUPPORTED;
   }
   // 判断是否为load-cast-brc场景
   auto cast_out_anchor = node_cast->GetOutDataAnchor(0);
@@ -362,7 +362,7 @@ ge::Status CubeFusionCaseGenerator::SwapCastBrcAndGenNddma(const af::AscNodePtr 
   GE_CHECK_NOTNULL(next_node);
   if (!af::ops::IsOps<af::ascir_op::Broadcast>(next_node)) {
     GELOGD("The subgraph is not load-cast-brc, do not gen nddma.");
-    return ge::UNSUPPORTED;
+    return af::UNSUPPORTED;
   }
   node_cast->attr.sched = next_node->attr.sched;
   node_cast->outputs[0].attr = next_node->outputs[0].attr;
@@ -388,14 +388,14 @@ ge::Status CubeFusionCaseGenerator::SwapCastBrcAndGenNddma(const af::AscNodePtr 
   }
 
   GE_ASSERT_SUCCESS(GenNddmaNode(node_load, std::dynamic_pointer_cast<af::AscNode>(next_node), new_case));
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status CubeFusionCaseGenerator::GeneratorUbTask(const std::vector<::ascir::ImplGraph> &grouped_graphs,
                                                 ScheduleTask &ub_task, std::vector<ScheduleTask> &tasks) {
   std::vector<::ascir::ImplGraph> tmp_grouped_graphs;
   for (auto &grouped_graph : grouped_graphs) {
-    ::ascir::ImplGraph optimize_graph((grouped_graph.GetName() + "_ub").c_str());
+    ascir::ImplGraph optimize_graph((grouped_graph.GetName() + "_ub").c_str());
     optimize_graph.CopyFrom(grouped_graph);
     if (ScheduleUtils::HasComputeType(optimize_graph, af::ComputeType::kComputeCube)) {
       tmp_grouped_graphs.emplace_back(optimize_graph);
@@ -423,14 +423,14 @@ Status CubeFusionCaseGenerator::GeneratorUbTask(const std::vector<::ascir::ImplG
       if (af::ops::IsOps<af::ascir_op::Cast>(out_node)){
         auto ret = SwapCastBrcAndGenNddma(std::dynamic_pointer_cast<af::AscNode>(out_node), node,
                                                  optimize_graph);
-        if (ret == ge::UNSUPPORTED) {
+        if (ret == af::UNSUPPORTED) {
           if (HasCastBrc(optimize_graph)) {
             GELOGW("The graph %s not support generating ub task.", grouped_graph.GetName().c_str());
-            return ge::GRAPH_SUCCESS;
+            return af::GRAPH_SUCCESS;
           }
           continue;
         }
-        if (ret != ge::GRAPH_SUCCESS) {
+        if (ret != af::GRAPH_SUCCESS) {
           GELOGE(ret, "Swap cast and brc, generator nddma node failed.");
           return ret;
         }
@@ -440,14 +440,14 @@ Status CubeFusionCaseGenerator::GeneratorUbTask(const std::vector<::ascir::ImplG
     if (HasBroadCastNode(optimize_graph)) {
       GELOGW("The graph %s still contains broadcast nodes and not support generating ub task.",
              grouped_graph.GetName().c_str());
-      return ge::GRAPH_SUCCESS;
+      return af::GRAPH_SUCCESS;
     }
   }
   for (const auto &tmp_graph : tmp_grouped_graphs) {
     ub_task.grouped_graphs.emplace_back(tmp_graph);
   }
   tasks.push_back(std::move(ub_task));
-  return ge::GRAPH_SUCCESS;
+  return af::GRAPH_SUCCESS;
 }
 
 void MoveCubeGraphsToEnd(std::vector<::ascir::ImplGraph> &grouped_graphs) {
@@ -462,13 +462,13 @@ void MoveCubeGraphsToEnd(std::vector<::ascir::ImplGraph> &grouped_graphs) {
   // it现在指向第一个Cube类型元素的位置
 }
 
-Status CubeFusionCaseGenerator::GeneratorTask(::ascir::HintGraph &optimize_graph, std::vector<ScheduleTask> &tasks,
+Status CubeFusionCaseGenerator::GeneratorTask(ascir::HintGraph &optimize_graph, std::vector<ScheduleTask> &tasks,
                                               const OptimizerOptions &options) {
   (void)options;
-  std::vector<::ascir::ImplGraph> optimize_graphs;
+  std::vector<ascir::ImplGraph> optimize_graphs;
   std::vector<std::string> score_funcs;
   if (!ScheduleUtils::HasComputeType(optimize_graph, af::ComputeType::kComputeCube)) {
-    return ge::GRAPH_SUCCESS;
+    return af::GRAPH_SUCCESS;
   }
   GE_CHK_STATUS_RET(GenerateGeneralCase(optimize_graph, optimize_graphs), "GenerateScheduleCases failed");
   score_funcs.resize(optimize_graphs.size());
@@ -482,11 +482,11 @@ Status CubeFusionCaseGenerator::GeneratorTask(::ascir::HintGraph &optimize_graph
   for (size_t i = 0U; i < optimize_graphs.size(); ++i) {
     const auto &graph = optimize_graphs[i];
     ScheduleTask task{graph, {}, score_funcs[i], {},
-                      ReduceTemplateType::kDefault, ::ascir::CubeTemplateType::kFixpip};
+                      ReduceTemplateType::kDefault, ascir::CubeTemplateType::kFixpip};
     GE_CHK_STATUS_RET(ScheduleGroupGraphPartitioner::PartitionByConnectivity(graph, task.grouped_graphs,
                       node_order_), "Failed to partition graph");
     if (task.grouped_graphs.size() > 1U) {
-      task.cube_type = ::ascir::CubeTemplateType::kCommon;
+      task.cube_type = ascir::CubeTemplateType::kCommon;
       MoveCubeGraphsToEnd(task.grouped_graphs);
       for (auto grouped_graph : task.grouped_graphs) {
         if (ScheduleUtils::HasComputeType(grouped_graph, af::ComputeType::kComputeCube)) {
@@ -496,20 +496,19 @@ Status CubeFusionCaseGenerator::GeneratorTask(::ascir::HintGraph &optimize_graph
         }
       }
       ScheduleTask ub_task{graph, {}, score_funcs[i], {},
-                           ReduceTemplateType::kDefault, ::ascir::CubeTemplateType::kUBFuse};
+                           ReduceTemplateType::kDefault, ascir::CubeTemplateType::kUBFuse};
       GE_ASSERT_SUCCESS(GeneratorUbTask(task.grouped_graphs, ub_task, tasks), "Generator ub task failed.");
     }
     tasks.emplace_back(std::move(task));
   }
-  return ge::GRAPH_SUCCESS;
+  return af::GRAPH_SUCCESS;
 }
 
-Status CubeFusionCaseGenerator::Generate(::ascir::HintGraph &graph, std::vector<::ascir::ImplGraph> &graphs,
+Status CubeFusionCaseGenerator::Generate(ascir::HintGraph &graph, std::vector<ascir::ImplGraph> &graphs,
                                          std::vector<std::string> &score_functions) {
   (void)graph;
   (void)graphs;
   (void)score_functions;
-  return ge::GRAPH_SUCCESS;
+  return af::GRAPH_SUCCESS;
 }
 }  // namespace optimize
-}  // namespace af

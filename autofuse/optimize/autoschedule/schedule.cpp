@@ -21,18 +21,18 @@ bool CompareByOrderInTensorAxis(const int64_t &lhs, const int64_t &rhs, const st
   return iter_lhs < iter_rhs;
 }
 
-bool IsRedundantBroadcast(const ::ascir::ImplGraph &impl_graph, const af::AscNodePtr &brc_node,
+bool IsRedundantBroadcast(const ascir::ImplGraph &impl_graph, const af::AscNodePtr &brc_node,
                           const af::AscNodePtr &pre_node, const uint32_t pre_node_out_index) {
-  if (af::optimize::ScheduleUtils::IsIOBuffer(pre_node)) {
+  if (optimize::ScheduleUtils::IsIOBuffer(pre_node)) {
     return false;
   }
   std::vector<af::Expression> in_vec_repeats;
   const auto &in_attr = pre_node->outputs[pre_node_out_index].attr;
-  GE_WARN_ASSERT(af::optimize::ScheduleUtils::GetVectorRepeats(in_attr.repeats, in_attr.axis, in_attr.vectorized_axis,
+  GE_WARN_ASSERT(optimize::ScheduleUtils::GetVectorRepeats(in_attr.repeats, in_attr.axis, in_attr.vectorized_axis,
                                                            in_vec_repeats) == ge::SUCCESS,
                  "%s[%s] GetVectorRepeats failed", pre_node->GetTypePtr(), pre_node->GetNamePtr());
   std::vector<af::Expression> out_vec_repeats;
-  GE_WARN_ASSERT(af::optimize::ScheduleUtils::GetNodeOutVectorRepeats(brc_node, out_vec_repeats) == ge::SUCCESS);
+  GE_WARN_ASSERT(optimize::ScheduleUtils::GetNodeOutVectorRepeats(brc_node, out_vec_repeats) == ge::SUCCESS);
 
   if (out_vec_repeats.size() != in_vec_repeats.size()) {
     GELOGD("Graph [%s] Broadcast [%s] output vector strides.size(%zu) != in vector strides.size(%zu), skip it",
@@ -55,9 +55,9 @@ bool IsRedundantBroadcast(const ::ascir::ImplGraph &impl_graph, const af::AscNod
  *       |
  *    brc_node(broadcast)
  */
-bool IsContinuesBroadcast(const ::ascir::ImplGraph &impl_graph, const af::AscNodePtr &brc_node,
+bool IsContinuesBroadcast(const ascir::ImplGraph &impl_graph, const af::AscNodePtr &brc_node,
                           const af::AscNodePtr &pre_node) {
-  if (!af::optimize::ScheduleUtils::IsBroadcast(pre_node) || pre_node->GetOutNodesSize() != 1UL ||
+  if (!optimize::ScheduleUtils::IsBroadcast(pre_node) || pre_node->GetOutNodesSize() != 1UL ||
       pre_node->GetInNodesSize() != 1UL) {
     return false;
   }
@@ -73,23 +73,23 @@ bool IsContinuesBroadcast(const ::ascir::ImplGraph &impl_graph, const af::AscNod
   }
 
   std::vector<af::Expression> in_vec_repeats;
-  if (af::optimize::ScheduleUtils::GetNodeInputVectorRepeats(pre_node, in_vec_repeats) != ge::SUCCESS) {
+  if (optimize::ScheduleUtils::GetNodeInputVectorRepeats(pre_node, in_vec_repeats) != ge::SUCCESS) {
     GELOGD("Graph [%s], get [%s] input vector repeats failed.", impl_graph.GetName().c_str(), pre_node->GetNamePtr());
     return false;
   }
   std::vector<af::Expression> out_vec_repeats;
-  if (af::optimize::ScheduleUtils::GetNodeOutVectorRepeats(brc_node, out_vec_repeats) != ge::SUCCESS) {
+  if (optimize::ScheduleUtils::GetNodeOutVectorRepeats(brc_node, out_vec_repeats) != ge::SUCCESS) {
     GELOGD("Graph [%s], get [%s] output vector repeats failed.", impl_graph.GetName().c_str(), brc_node->GetNamePtr());
     return false;
   }
 
-  if (af::optimize::ScheduleUtils::IsContinuesBroadcast(in_vec_repeats, out_vec_repeats)) {
+  if (optimize::ScheduleUtils::IsContinuesBroadcast(in_vec_repeats, out_vec_repeats)) {
     GELOGD("Graph [%s], [%s] and [%s], find continues broadcast", impl_graph.GetName().c_str(), brc_node->GetNamePtr(),
            pre_node->GetNamePtr());
     return true;
   }
 
-  if (af::optimize::ScheduleUtils::IsIntervalBroadcast(in_vec_repeats, out_vec_repeats)) {
+  if (optimize::ScheduleUtils::IsIntervalBroadcast(in_vec_repeats, out_vec_repeats)) {
     GELOGD("Graph [%s], [%s] and [%s], find interval broadcast(ABAB/BABA)", impl_graph.GetName().c_str(),
            brc_node->GetNamePtr(), pre_node->GetNamePtr());
     return true;
@@ -112,11 +112,11 @@ void AdjustAxisOrderOffsets(std::vector<size_t> &axes_order, size_t start_idx, s
   }
 }
 
-void GetOuterAxes(const std::vector<::ascir::AxisId> &axes_group, const ::ascir::AxisId &ub_tiling_id,
-                  const ::ascir::Axis &ub_tiling_outer_axis, const std::vector<size_t> &axes_order,
-                  std::vector<::ascir::AxisId> &outer_axes, std::vector<size_t> &outer_axes_index,
+void GetOuterAxes(const std::vector<ascir::AxisId> &axes_group, const ascir::AxisId &ub_tiling_id,
+                  const ascir::Axis &ub_tiling_outer_axis, const std::vector<size_t> &axes_order,
+                  std::vector<ascir::AxisId> &outer_axes, std::vector<size_t> &outer_axes_index,
                   size_t axes_order_idx) {
-  for (const ::ascir::AxisId axis_id : axes_group) {
+  for (const ascir::AxisId axis_id : axes_group) {
     if (axis_id != ub_tiling_id) {
       outer_axes.push_back(axis_id);
       outer_axes_index.push_back(axes_order[axes_order_idx++]);
@@ -128,8 +128,8 @@ void GetOuterAxes(const std::vector<::ascir::AxisId> &axes_group, const ::ascir:
   }
 }
 
-void FindInnerAxes(vector<::ascir::AxisId> &vectorize_axis, const std::vector<::ascir::AxisId> &axis_group,
-                   ::ascir::AxisId ub_tiling_id, const std::pair<af::AxisPtr, af::AxisPtr> &ub_tiling) {
+void FindInnerAxes(vector<ascir::AxisId> &vectorize_axis, const std::vector<ascir::AxisId> &axis_group,
+                   ascir::AxisId ub_tiling_id, const std::pair<af::AxisPtr, af::AxisPtr> &ub_tiling) {
   bool find_tile_in = false;
   for (const auto &axis : axis_group) {
     if (axis == ub_tiling_id) {
@@ -144,10 +144,10 @@ void FindInnerAxes(vector<::ascir::AxisId> &vectorize_axis, const std::vector<::
   }
 }
 }  // namespace
-namespace af::optimize::autoschedule {
-Status Scheduler::ReduceBlockTiling(std::vector<::ascir::AxisId> &tile_out_axes,
-                                    const std::vector<::ascir::AxisId> &reduce_outer_axes,
-                                    const std::vector<::ascir::AxisId> &non_reduce_outer_axes) {
+namespace optimize::autoschedule {
+Status Scheduler::ReduceBlockTiling(std::vector<ascir::AxisId> &tile_out_axes,
+                                    const std::vector<ascir::AxisId> &reduce_outer_axes,
+                                    const std::vector<ascir::AxisId> &non_reduce_outer_axes) {
   // 计算所有A轴大小
   tiling_case_.a_org_size = af::sym::kSymbolOne;
   for (auto y : axes_group_.y_group) {
@@ -164,7 +164,7 @@ Status Scheduler::ReduceBlockTiling(std::vector<::ascir::AxisId> &tile_out_axes,
     tiling_case_.reduce_block_tiling_id = reduce_outer_axes[0UL];
   }
 
-  ::ascir::AxisId non_reduce_axis;
+  ascir::AxisId non_reduce_axis;
   if (non_reduce_outer_axes.size() > 1UL) {
     non_reduce_axis = graph_.MergeAxis(non_reduce_outer_axes)->id;
     tiling_case_.merge_no_reduce_id = non_reduce_axis;
@@ -182,8 +182,8 @@ Status Scheduler::ReduceBlockTiling(std::vector<::ascir::AxisId> &tile_out_axes,
   return ge::SUCCESS;
 }
 
-void Scheduler::FuseTileOutAxes(const std::vector<::ascir::AxisId> &non_reduce_outer_axes,
-                                std::vector<::ascir::AxisId> &reduce_outer_axes) {
+void Scheduler::FuseTileOutAxes(const std::vector<ascir::AxisId> &non_reduce_outer_axes,
+                                std::vector<ascir::AxisId> &reduce_outer_axes) {
   // fuse r group外轴
   if (reduce_outer_axes.size() > 1UL) {
     tiling_case_.reduce_outer_id = graph_.MergeAxis(reduce_outer_axes)->id;
@@ -214,9 +214,9 @@ void Scheduler::FuseTileOutAxes(const std::vector<::ascir::AxisId> &non_reduce_o
   }
 }
 
-void Scheduler::HandleBlockSplitting(std::vector<::ascir::AxisId> &tile_out_axes,
-                                     const std::vector<::ascir::AxisId> &non_reduce_outer_axes,
-                                     const std::vector<::ascir::AxisId> &reduce_outer_axes) {
+void Scheduler::HandleBlockSplitting(std::vector<ascir::AxisId> &tile_out_axes,
+                                     const std::vector<ascir::AxisId> &non_reduce_outer_axes,
+                                     const std::vector<ascir::AxisId> &reduce_outer_axes) {
   if (tiling_case_.block_tiling_id == kDefaultAxisId) {
     return;
   }
@@ -235,10 +235,10 @@ void Scheduler::HandleBlockSplitting(std::vector<::ascir::AxisId> &tile_out_axes
   }
 }
 
-Status Scheduler::BlockSplit(std::vector<::ascir::AxisId> &tile_out_axes) {
+Status Scheduler::BlockSplit(std::vector<ascir::AxisId> &tile_out_axes) {
   // reorder axes to original order, x group和y group都有值的时候才需要reorder
-  std::vector<::ascir::AxisId> non_reduce_outer_axes;
-  std::vector<::ascir::AxisId> reduce_outer_axes;
+  std::vector<ascir::AxisId> non_reduce_outer_axes;
+  std::vector<ascir::AxisId> reduce_outer_axes;
   std::vector<size_t> non_reduce_outer_axes_index;
   std::vector<size_t> reduce_outer_axes_index;
   size_t axes_order_idx = 0UL;
@@ -269,13 +269,13 @@ Status Scheduler::BlockSplit(std::vector<::ascir::AxisId> &tile_out_axes) {
 }
 
 // R 切多核场景，reduce_block_id 是R用于切多核部分
-Status Scheduler::ModifyStoreAfterReduce(::ascir::NodeView &node, ::ascir::AxisId reduce_block_id) {
+Status Scheduler::ModifyStoreAfterReduce(ascir::NodeView &node, ascir::AxisId reduce_block_id) {
   auto reduce_block_axis = graph_.FindAxis(reduce_block_id);
   GE_ASSERT_NOTNULL(reduce_block_axis, "Cannot find reduce block axis with id:[%ld].", reduce_block_id);
   for (auto &output : node->outputs()) {
     GE_ASSERT_NOTNULL(output);
     auto &output_attr = output->attr;
-    ::ascir::SizeExpr size_product = af::sym::kSymbolOne;
+    ascir::SizeExpr size_product = af::sym::kSymbolOne;
     for (const auto &repeat : output_attr.repeats) {
       size_product = size_product * repeat;
     }
@@ -293,7 +293,7 @@ Status Scheduler::ModifyStoreAfterReduce(::ascir::NodeView &node, ::ascir::AxisI
   return ge::SUCCESS;
 }
 
-Status Scheduler::ApplyBlockSplitToNode(::ascir::NodeView &node, bool is_store_after_reduce) {
+Status Scheduler::ApplyBlockSplitToNode(ascir::NodeView &node, bool is_store_after_reduce) {
   if (tiling_case_.merge_reduce_id != kDefaultAxisId) {
     auto merged_axes = graph_.FindAxis(tiling_case_.merge_reduce_id);
     GE_ASSERT_NOTNULL(merged_axes, "Cannot find merged axis with id:[%ld].", tiling_case_.merge_reduce_id);
@@ -311,12 +311,12 @@ Status Scheduler::ApplyBlockSplitToNode(::ascir::NodeView &node, bool is_store_a
 
   auto tile_block_axis = graph_.FindAxis(tiling_case_.block_tiling_id);
   GE_ASSERT_NOTNULL(tile_block_axis, "Cannot find block out axis with id:[%ld].", tiling_case_.block_tiling_id);
-  if (tile_block_axis->type == ::ascir::Axis::Type::kAxisTypeMerged) {
+  if (tile_block_axis->type == ascir::Axis::Type::kAxisTypeMerged) {
     graph_.ApplySchedAxisMerge(node, tiling_case_.block_tiling_id);
   }
 
   auto reduce_out_axis = graph_.FindAxis(tiling_case_.reduce_outer_id);
-  if (reduce_out_axis != nullptr && reduce_out_axis->type == ::ascir::Axis::Type::kAxisTypeMerged) {
+  if (reduce_out_axis != nullptr && reduce_out_axis->type == ascir::Axis::Type::kAxisTypeMerged) {
     graph_.ApplySchedAxisMerge(node, tiling_case_.reduce_outer_id);
   }
 
@@ -332,7 +332,7 @@ Status Scheduler::ApplyBlockSplitToNode(::ascir::NodeView &node, bool is_store_a
   return ge::SUCCESS;
 }
 
-void Scheduler::FindVectorizedAxes(std::vector<::ascir::AxisId> &vectorized_axes,
+void Scheduler::FindVectorizedAxes(std::vector<ascir::AxisId> &vectorized_axes,
                                    std::vector<size_t> &vectorized_axes_order) {
   size_t last_ub_size = 0UL;
   size_t group_axis_size = 0UL;
@@ -388,7 +388,7 @@ void Scheduler::FindVectorizedAxes(std::vector<::ascir::AxisId> &vectorized_axes
   }
 }
 
-Status Scheduler::RemoveRedundantBroadcastNode(const ::ascir::ImplGraph &impl_graph) {
+Status Scheduler::RemoveRedundantBroadcastNode(const ascir::ImplGraph &impl_graph) {
   for (const auto &node : impl_graph.GetAllNodes()) {
     if (!ScheduleUtils::IsBroadcast(node) || node->inputs.Size() != 1) {
       continue;
@@ -429,7 +429,7 @@ Status Scheduler::TileSplit() {
   TileTiling(tiling_case_.ub_tiling_id_y, tiling_case_.ub_tiling_y);
   TileTiling(tiling_case_.ub_tiling_id_r, tiling_case_.ub_tiling_r);
 
-  std::vector<::ascir::AxisId> vectorized_axes;
+  std::vector<ascir::AxisId> vectorized_axes;
   std::vector<size_t> vectorized_axes_order;
   FindVectorizedAxes(vectorized_axes, vectorized_axes_order);
 
@@ -440,7 +440,7 @@ Status Scheduler::TileSplit() {
     return vectorized_axes_order[a] < vectorized_axes_order[b];
   });
 
-  std::vector<::ascir::AxisId> sorted_node_vectorized_axes;
+  std::vector<ascir::AxisId> sorted_node_vectorized_axes;
   sorted_node_vectorized_axes.reserve(base_order.size());
   for (const size_t index : base_order) {
     sorted_node_vectorized_axes.push_back(vectorized_axes[index]);
@@ -459,7 +459,7 @@ Status Scheduler::TileSplit() {
     const auto &n_group = this->axes_group_.n_group;
 
     auto node_vectorized_axes = sorted_node_vectorized_axes;
-    if (reduce_template_ != af::optimize::ReduceTemplateType::kAllLoad) {
+    if (reduce_template_ != optimize::ReduceTemplateType::kAllLoad) {
       for (int64_t axis_id : axes) {
         if (std::find(n_group.begin(), n_group.end(), axis_id) != n_group.end()) {
           node_vectorized_axes.push_back(axis_id);
@@ -484,16 +484,16 @@ Status Scheduler::TileSplit() {
 }
 
 Status Scheduler::DoScheduler() {
-  if (cube_template_ == ::ascir::CubeTemplateType::kFixpip) {
-    ::ascir::utils::DumpGraph(graph_, "AfterDoTiling");
+  if (cube_template_ == ascir::CubeTemplateType::kFixpip) {
+    ascir::utils::DumpGraph(graph_, "AfterDoTiling");
     return ge::SUCCESS;
   }
   RemoveDuplicatedAxisFromGroup();
   // Tile Split
   TileSplit();
   // Block Split
-  if (cube_template_ != ::ascir::CubeTemplateType::kUBFuse) {
-    std::vector<::ascir::AxisId> new_sched_axes;
+  if (cube_template_ != ascir::CubeTemplateType::kUBFuse) {
+    std::vector<ascir::AxisId> new_sched_axes;
     GE_CHK_STATUS_RET(BlockSplit(new_sched_axes), "Failed to gen tile outer axis, graph:[%s].",
                       graph_.GetName().c_str());
     // Appy block split for node
@@ -505,11 +505,11 @@ Status Scheduler::DoScheduler() {
     return align_ret;  // 返回 UNSUPPORTED 让上层跳过这个模板
   }
   GE_ASSERT_SUCCESS(NodeCacheMarker(graph_).MarkIfNodeNeedsCache());
-  ::ascir::utils::DumpGraph(graph_, "AfterDoTiling");
+  ascir::utils::DumpGraph(graph_, "AfterDoTiling");
   return ge::SUCCESS;
 }
 
-Status Scheduler::ApplyBlockSplit(const std::vector<::ascir::AxisId> &new_sched_axes) {
+Status Scheduler::ApplyBlockSplit(const std::vector<ascir::AxisId> &new_sched_axes) {
   bool is_reduce_after = false;
   for (auto node : graph_.GetAllNodes()) {
     if (ScheduleUtils::IsBuffer(node)) {
@@ -519,7 +519,7 @@ Status Scheduler::ApplyBlockSplit(const std::vector<::ascir::AxisId> &new_sched_
       is_reduce_after = true;
     }
 
-    std::vector<::ascir::AxisId> node_new_sched_axes = new_sched_axes;
+    std::vector<ascir::AxisId> node_new_sched_axes = new_sched_axes;
     GE_ASSERT_TRUE(!node->outputs.operator()().empty());
     auto &vectorized_axis = node->outputs[0].attr.vectorized_axis;
     node_new_sched_axes.insert(node_new_sched_axes.end(), vectorized_axis.begin(), vectorized_axis.end());
@@ -566,4 +566,4 @@ void Scheduler::RemoveDuplicatedAxisFromGroup() {
     axes_group_.axes_order.erase(axes_group_.axes_order.begin() + index);
   }
 }
-}  // namespace af::optimize::autoschedule
+}  // namespace optimize::autoschedule

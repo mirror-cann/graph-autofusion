@@ -30,6 +30,9 @@ See LICENSE in the root of the software repository for the full text of the Lice
         <path value="$(TARGET_ENV)/include/autofuse/graph_metadef/graph/symbolizer" install_mod="755"/>
         <path value="$(TARGET_ENV)/include/autofuse/graph_metadef/graph/serialization" install_mod="755"/>
         <path value="$(TARGET_ENV)/include/autofuse/graph_metadef/graph/debug" install_mod="755"/>
+        <path value="$(TARGET_ENV)/include/autofuse/graph_metadef/graph/utils" install_mod="755"/>
+        <path value="$(TARGET_ENV)/include/autofuse/graph_metadef/external" install_mod="755"/>
+        <path value="$(TARGET_ENV)/include/autofuse/graph_metadef/external/graph" install_mod="755"/>
         <path value="$(TARGET_ENV)/include/autofuse/ascir" install_mod="755"/>
         <path value="$(TARGET_ENV)/include/autofuse/ascir/meta" install_mod="755"/>
         <path value="$(TARGET_ENV)/include/autofuse/ascir/ascendc_ir" install_mod="755"/>
@@ -42,9 +45,9 @@ See LICENSE in the root of the software repository for the full text of the Lice
     </dir_info>
 
     <file_info value="autofuse_lib" copy_type="delivery" dst_path="$(TARGET_ENV)/lib64" install_path="$(TARGET_ENV)/lib64" install_type="all" install_mod="755" optional="true">
-        <file value="libaihac_codegen_af.so" file_type="shared"/>
-        <file value="libaihac_ir_af.so" file_type="shared"/>
-        <file value="libaihac_ir_register_af.so" file_type="shared"/>
+        <file value="libaihac_codegen.so" file_type="shared"/>
+        <file value="libaihac_ir.so" file_type="shared"/>
+        <file value="libaihac_ir_register.so" file_type="shared"/>
         <file value="libgraph_af.so" file_type="shared"/>
         <file value="libgraph_base_af.so" file_type="shared"/>
         <file value="libaihac_symbolizer_af.so" file_type="shared"/>
@@ -100,7 +103,7 @@ See LICENSE in the root of the software repository for the full text of the Lice
 
     <file_info value="autofuse_include_proto" copy_type="delivery" dst_path="$(TARGET_ENV)/include/autofuse/proto" install_path="$(TARGET_ENV)/include/autofuse/proto" install_type="all" install_mod="444">
         <file value="af_ir.pb.h"/>
-        <file value="af_ascendc_ir.pb.h"/>
+        <file value="ascendc_ir.pb.h"/>
         <file value="af_attr_group_base.pb.h"/>
     </file_info>
 

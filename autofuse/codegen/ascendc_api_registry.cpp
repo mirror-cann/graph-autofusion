@@ -9,7 +9,7 @@
  */
 #include "ascendc_api_registry.h"
 
-namespace af { namespace codegen {
+namespace codegen {
 namespace {
 class Register {
  public:
@@ -228,4 +228,3 @@ void AscendCApiRegistry::RegisterApi(const std::unordered_map<std::string, std::
   api_to_file_content_.insert(api_to_file_content.cbegin(), api_to_file_content.cend());
 }
 }  // namespace codegen
-}  // namespace af

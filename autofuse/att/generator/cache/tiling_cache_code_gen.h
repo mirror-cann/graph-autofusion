@@ -17,7 +17,7 @@
 #include "external/ge_common/ge_api_types.h"
 #include "common/code_printer.h"
 
-namespace af { namespace att {
+namespace att {
 namespace cache {
 
 /**
@@ -107,6 +107,5 @@ protected:
 
 } // namespace cache
 } // namespace att
-}  // namespace af
 
 #endif // ATT_TILING_CACHE_CODE_GEN_H_

@@ -21,7 +21,7 @@
 #include "common/util/mem_utils.h"
 #include "util/att_utils.h"
 
-namespace af { namespace att {
+namespace att {
 // 表征轴优先级的图结构， a->b表示a的优先级高于b
 class ArgPriorityGraph {
  public:
@@ -218,12 +218,11 @@ class ArgListReorder {
   std::vector<AttAxisPtr> GetNewArgList(const std::vector<size_t> &topo_order,
                                         const std::vector<AttAxisPtr> &arg_list) const;
   void MakeSureLoadStoreInnerestSameOrder(const std::vector<AttAxisPtr> &arg_list) const;
-  bool HandleProperty(const SubAxis *dim, af::att::ArgListReorder::AxisProperty property, bool is_reduce,
+  bool HandleProperty(const SubAxis *dim, att::ArgListReorder::AxisProperty property, bool is_reduce,
                       bool is_broadcast);
   void RecordSpecialArgs(const NodeInfo &node, const TensorPtr &tensor, size_t id,
                          const std::vector<TensorPtr> &output_tensors, std::set<std::string> &reduce_axis_ori_axes_set);
 };
 
 }  // namespace att
-}  // namespace af
 #endif

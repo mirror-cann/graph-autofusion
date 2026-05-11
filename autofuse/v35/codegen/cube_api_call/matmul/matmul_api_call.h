@@ -12,21 +12,21 @@
 #include "codegen_kernel.h"
 #include "common_utils.h"
 
-namespace af { namespace codegen {
+namespace codegen {
 class MatmulApiCall final : public ApiCall {
  public:
   using ApiCall::Generate;
   explicit MatmulApiCall(const std::string &api_name) : ApiCall(api_name) {}
-  Status ParseAttr(const ::ascir::NodeView &node) override;
+  Status ParseAttr(const ascir::NodeView &node) override;
   bool HasRelu() const;
-  Status PreProcess(const TPipe &tpipe, const std::vector<::ascir::AxisId> &current_axis,
+  Status PreProcess(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
                     const std::vector<std::reference_wrapper<const Tensor>> &outputs,
                     std::string &result) const override;
   Status GenerateFuncDefinition(const TPipe &tpipe, const Tiler &tiler, std::stringstream &ss) const override;
-  Status PostProcess(const TPipe &tpipe, const std::vector<::ascir::AxisId> &current_axis,
+  Status PostProcess(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
                      const std::vector<std::reference_wrapper<const Tensor>> &outputs,
                      std::string &result) const override;
-  Status Generate(const TPipe &tpipe, const std::vector<::ascir::AxisId> &current_axis,
+  Status Generate(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
                   std::string &result) const override;
   Status GenerateMacro(std::string &result) const override;
   ~MatmulApiCall() final = default;
@@ -35,5 +35,4 @@ class MatmulApiCall final : public ApiCall {
   ascgen_utils::MatMulAttr mm_attr_data_;
 };
 }  // namespace codegen
-}  // namespace af
 #endif  // __AUTOFUSE_MATMUL_API_CALL_H__

@@ -10,7 +10,7 @@
 
 #include "ascendc_api_registry.h"
 
-namespace af { namespace codegen {
+namespace codegen {
 namespace {
 class Register {
  public:
@@ -62,4 +62,3 @@ Register::Register() {
 Register __attribute__((unused)) cube_api_register;
 }  // namespace
 }  // namespace codegen
-}  // namespace af

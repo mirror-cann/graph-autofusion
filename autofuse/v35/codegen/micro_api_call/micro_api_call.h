@@ -15,7 +15,7 @@
 #include "ascir.h"
 #include "ascgen_log.h"
 #include "codegen_kernel.h"
-namespace af { namespace codegen {
+namespace codegen {
 
 struct CallParam {
   std::string p_reg;
@@ -30,7 +30,7 @@ enum class TensorType : int8_t {
 class MicroApiTensor : public Variable {
  public:
   virtual ~MicroApiTensor() = default;
-  explicit MicroApiTensor(const ::ascir::TensorAttr &tensor, std::string &dtype_name, bool init_as_mask_reg = false);
+  explicit MicroApiTensor(const ascir::TensorAttr &tensor, std::string &dtype_name, bool init_as_mask_reg = false);
 
   static const Type UBTensorTypes(std::string &dtype_name);
   static const Type RegTensorTypes(std::string &dtype_name);
@@ -39,12 +39,12 @@ class MicroApiTensor : public Variable {
  public:
   uint32_t id_;
   ge::DataType dtype_;
-  ::ascir::Position position_;
-  vector<::ascir::AxisId> axis_;
-  vector<::ascir::SizeExpr> axis_size_;
-  vector<::ascir::SizeExpr> axis_strides_;
-  vector<::ascir::AxisId> vectorized_axis_;
-  vector<::ascir::SizeExpr> vectorized_strides_;
+  ascir::Position position_;
+  vector<ascir::AxisId> axis_;
+  vector<ascir::SizeExpr> axis_size_;
+  vector<ascir::SizeExpr> axis_strides_;
+  vector<ascir::AxisId> vectorized_axis_;
+  vector<ascir::SizeExpr> vectorized_strides_;
   Uint32 size_;
   Uint32 actual_size_;
   bool init_as_mask_reg_ = false;
@@ -53,11 +53,11 @@ class MicroApiTensor : public Variable {
 class TensorManager {
  public:
   Status AddTensor(const MicroApiTensor &tensor);
-  const MicroApiTensor* GetTensor(::ascir::TensorId id) const;
+  const MicroApiTensor* GetTensor(ascir::TensorId id) const;
   Status GenerateVreg(std::string &result) const;
 
  private:
-  map<::ascir::TensorId, MicroApiTensor> tensors_;
+  map<ascir::TensorId, MicroApiTensor> tensors_;
 };
 
 class MicroApiCall {
@@ -70,16 +70,16 @@ class MicroApiCall {
   virtual Status Generate(const TensorManager& tensor_mng, const TPipe &tpipe, CallParam &param, std::string &result);
 
   // 生成outputs;
-  virtual Status Init([[maybe_unused]] const ::ascir::NodeView &node) {
+  virtual Status Init([[maybe_unused]] const ascir::NodeView &node) {
     // todo:待实现
     return ge::SUCCESS;
   }
 
-  void AddInput(::ascir::TensorId id, TensorType type = TensorType::REG_TENSOR) {
+  void AddInput(ascir::TensorId id, TensorType type = TensorType::REG_TENSOR) {
     inputs_.emplace_back(type, id);
   }
 
-  void AddOutput(::ascir::TensorId id, TensorType type = TensorType::REG_TENSOR) {
+  void AddOutput(ascir::TensorId id, TensorType type = TensorType::REG_TENSOR) {
     outputs_.emplace_back(type, id);
   }
 
@@ -92,12 +92,12 @@ class MicroApiCall {
   }
 
   // 调用者保证index合法性
-  ::ascir::TensorId GetInputTensorIdByIndex(uint32_t index) {
+  ascir::TensorId GetInputTensorIdByIndex(uint32_t index) {
     return inputs_[index].second;
   }
 
   // 调用者保证index合法性
-  ::ascir::TensorId GetOutputTensorIdByIndex(uint32_t index) {
+  ascir::TensorId GetOutputTensorIdByIndex(uint32_t index) {
     return outputs_[index].second;
   }
 
@@ -107,9 +107,8 @@ class MicroApiCall {
 
  protected:
   std::string api_name_;
-  std::vector<std::pair<TensorType, ::ascir::TensorId>> inputs_;
-  std::vector<std::pair<TensorType, ::ascir::TensorId>> outputs_;
+  std::vector<std::pair<TensorType, ascir::TensorId>> inputs_;
+  std::vector<std::pair<TensorType, ascir::TensorId>> outputs_;
 };
 }  // namespace codegen
-}  // namespace af
 #endif // __AUTOFUSE_MICRO_API_CALL_H__

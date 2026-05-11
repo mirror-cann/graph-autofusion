@@ -13,7 +13,7 @@
 
 #include "micro_api_call.h"
 
-namespace af { namespace codegen {
+namespace codegen {
 class MicroScalarBroadcastApiCall final : public MicroApiCall {
  public:
   explicit MicroScalarBroadcastApiCall(const std::string &api_name) : MicroApiCall(api_name) {}
@@ -21,6 +21,5 @@ class MicroScalarBroadcastApiCall final : public MicroApiCall {
   Status Generate(const TensorManager &tensor_mng, const TPipe &tpipe, CallParam &param, std::string &result) override;
 };
 }  // namespace codegen
-}  // namespace af
 
 #endif  // __AUTOFUSE_MICRO_SCALAR_BROADCAST_API_CALL_H__

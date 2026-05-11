@@ -12,7 +12,7 @@
 #include "micro_api_call_factory.h"
 #include "ascir_ops.h"
 
-namespace af { namespace codegen {
+namespace codegen {
 Status MicroScalarBroadcastApiCall::Generate(const TensorManager &tensor_mng, const TPipe &tpipe, CallParam &param,
                                              string &result) {
   std::stringstream ss;
@@ -38,4 +38,3 @@ Status MicroScalarBroadcastApiCall::Generate(const TensorManager &tensor_mng, co
 static MicroApiCallRegister<MicroScalarBroadcastApiCall> register_micro_scalar_broadcast_api_call(
     "MicroScalarBroadcastApiCall");
 }  // namespace codegen
-}  // namespace af

@@ -24,7 +24,7 @@
 
 namespace {
   constexpr int64_t kDefaultAxisId = -1;
-void FindNotLoopAxis(const ::ascir::NodeView &node, ::ascir::ImplGraph &impl_graph,
+void FindNotLoopAxis(const ascir::NodeView &node, ascir::ImplGraph &impl_graph,
                      std::unordered_set<int64_t> &not_loop_axis_set,
                      bool has_reduce, bool is_reduce_first_stage) {
   for (auto output : node->outputs()) {
@@ -35,7 +35,7 @@ void FindNotLoopAxis(const ::ascir::NodeView &node, ::ascir::ImplGraph &impl_gra
   }
   af::AxisPtr block_axis = nullptr;
   for (const auto &axis : impl_graph.GetAllAxis()) {
-    if (axis != nullptr && axis->type == ::ascir::Axis::Type::kAxisTypeBlockOuter) {
+    if (axis != nullptr && axis->type == ascir::Axis::Type::kAxisTypeBlockOuter) {
       block_axis = axis;
       break;
     }
@@ -57,7 +57,7 @@ void FindNotLoopAxis(const ::ascir::NodeView &node, ::ascir::ImplGraph &impl_gra
           continue;
         }
       } else {
-        if (r->type == ::ascir::Axis::Type::kAxisTypeBlockOuter || r->type == ::ascir::Axis::Type::kAxisTypeBlockInner) {
+        if (r->type == ascir::Axis::Type::kAxisTypeBlockOuter || r->type == ascir::Axis::Type::kAxisTypeBlockInner) {
           continue;
         }
       }
@@ -66,7 +66,7 @@ void FindNotLoopAxis(const ::ascir::NodeView &node, ::ascir::ImplGraph &impl_gra
   }
 }
 
-bool IsNotLoopAxis(::ascir::ImplGraph &impl_graph, int64_t axis,
+bool IsNotLoopAxis(ascir::ImplGraph &impl_graph, int64_t axis,
                     const std::unordered_set<int64_t> &not_loop_axis_set) {
   if (not_loop_axis_set.find(axis) != not_loop_axis_set.end()) {
     return true;
@@ -93,8 +93,8 @@ void AppendIdIfNotDefault(std::stringstream &ss, const std::string &prefix, int6
 }
 }  // namespace
 
-namespace af::optimize::autoschedule {
-Status AutoSchedule::SelectLoopAxis(::ascir::ImplGraph &impl_graph, bool is_reduce_fullload) const {
+namespace optimize::autoschedule {
+Status AutoSchedule::SelectLoopAxis(ascir::ImplGraph &impl_graph, bool is_reduce_fullload) const {
   bool has_reduce = false;
   for (auto node : impl_graph.GetAllNodes()) {
     GE_ASSERT_NOTNULL(node);
@@ -122,7 +122,7 @@ Status AutoSchedule::SelectLoopAxis(::ascir::ImplGraph &impl_graph, bool is_redu
     GE_ASSERT_TRUE((node->attr.sched.loop_axis != af::kIdNone), "Can not find loop axis for node: [%s].",
                    node->GetNamePtr());
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 void AutoSchedule::GenTilingCase(std::vector<TilingCase> &tiling_cases) {
@@ -132,7 +132,7 @@ void AutoSchedule::GenTilingCase(std::vector<TilingCase> &tiling_cases) {
     }
   };
 
-  if (cube_template_ != ::ascir::CubeTemplateType::kDefault) {
+  if (cube_template_ != ascir::CubeTemplateType::kDefault) {
     for (const auto &y_id : axes_group_.y_group) {
       TilingCase tiling_case;
       set_tiling_id(tiling_case.ub_tiling_id_y, y_id);
@@ -204,7 +204,7 @@ Status AutoSchedule::PruneTilingCase(std::vector<TilingCase> &tiling_cases) cons
       ++it;
     }
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 static std::string GetTilingCaseStr(const std::string &graph_name, const TilingCase &tiling_case) {
@@ -226,7 +226,7 @@ Status AutoSchedule::DoAutoSchedule() {
                     graph_.GetName().c_str());
 
   const bool is_last_axis_reduce = ScheduleUtils::IsLastAxisReduce(graph_);
-  const bool is_reduce_full_load = (reduce_template_ == af::optimize::ReduceTemplateType::kAllLoad);
+  const bool is_reduce_full_load = (reduce_template_ == optimize::ReduceTemplateType::kAllLoad);
   for (size_t index = 0UL; index < tiling_cases.size(); ++index) {
     GE_CHK_STATUS_RET(ProcessOneTilingCase(tiling_cases[index], index, is_last_axis_reduce, is_reduce_full_load),
                       "Failed to process tiling case %zu for graph: [%s]", index, graph_.GetName().c_str());
@@ -237,15 +237,15 @@ Status AutoSchedule::DoAutoSchedule() {
                     "Failed to generate templates for graph: [%s]", graph_.GetName().c_str());
 
   // 生成 UBFuse 模板 TTODO待归到多模版内
-  if (cube_template_ == ::ascir::CubeTemplateType::kUBFuse) {
+  if (cube_template_ == ascir::CubeTemplateType::kUBFuse) {
     GenUBFuseTemplates();
   }
 
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status AutoSchedule::PrepareTilingCases(std::vector<TilingCase> &tiling_cases) {
-  const bool is_reduce_full_load = (reduce_template_ == af::optimize::ReduceTemplateType::kAllLoad);
+  const bool is_reduce_full_load = (reduce_template_ == optimize::ReduceTemplateType::kAllLoad);
   GE_CHK_STATUS_RET(TilingGroup::GenTilingGroup(graph_, axes_group_, is_reduce_full_load),
                     "Gen tiling group failed for graph: [%s]", graph_.GetName().c_str());
   TilingGroup::NormGroup(axes_group_);
@@ -257,7 +257,7 @@ Status AutoSchedule::PrepareTilingCases(std::vector<TilingCase> &tiling_cases) {
   GE_ASSERT_TRUE(!tiling_cases.empty(), "No valid tiling cases for graph: [%s]. Please check graph legality.",
                  graph_.GetName().c_str());
 
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status AutoSchedule::ProcessOneTilingCase(TilingCase &tiling_case, size_t index,
@@ -271,9 +271,9 @@ Status AutoSchedule::ProcessOneTilingCase(TilingCase &tiling_case, size_t index,
                       cube_template_);
 
   auto ret = scheduler.DoScheduler();
-  if (ret == ge::UNSUPPORTED) {
+  if (ret == af::UNSUPPORTED) {
     GELOGW("Tiling case %zu (graph: [%s]) is unsupported, skip it.", index, graph_name.c_str());
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
   GE_CHK_STATUS_RET(ret, "Scheduler failed for tiling case %zu in graph: [%s]", index, graph_name.c_str());
 
@@ -288,7 +288,7 @@ Status AutoSchedule::ProcessOneTilingCase(TilingCase &tiling_case, size_t index,
                     "Failed to select loop axis for tiling case %zu in graph: [%s]", index, graph_name.c_str());
 
   schd_outputs_.emplace_back(output);
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 void AutoSchedule::GenUBFuseTemplates() const {
@@ -305,4 +305,4 @@ void AutoSchedule::GenUBFuseTemplates() const {
   schd_outputs_.insert(schd_outputs_.begin(), std::make_move_iterator(schd_outputs_non_db.begin()),
                        std::make_move_iterator(schd_outputs_non_db.end()));
 }
-}  // namespace af::optimize::autoschedule
+}  // namespace optimize::autoschedule

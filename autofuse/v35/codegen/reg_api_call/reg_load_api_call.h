@@ -13,23 +13,22 @@
 
 #include "codegen_kernel.h"
 
-namespace af { namespace codegen {
+namespace codegen {
 class LoadRegApiCall final : public ApiCall {
  public:
   using ApiCall::Generate;
   explicit LoadRegApiCall(const std::string &api_name) : ApiCall(api_name) {}
   ~LoadRegApiCall() final = default;
-  Status Generate(const TPipe &tpipe, const std::vector<::ascir::AxisId> &current_axis,
+  Status Generate(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
                   const std::vector<std::reference_wrapper<const Tensor>> &inputs,
                   const std::vector<std::reference_wrapper<const Tensor>> &outputs, std::string &result) const override;
 
  protected:
-  Status ParseAttr(const ::ascir::NodeView &node) override;
+  Status ParseAttr(const ascir::NodeView &node) override;
 
  private:
   af::Expression offset_ = af::ops::Zero;
 };
 }  // namespace codegen
-}  // namespace af
 
 #endif  // __AUTOFUSE_REG_LOAD_API_CALL_H__

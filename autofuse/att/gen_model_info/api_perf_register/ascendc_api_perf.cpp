@@ -16,7 +16,7 @@
 #include "base/att_const_values.h"
 
 using namespace af::sym;
-namespace af { namespace att {
+namespace att {
 const uint64_t kRptSize = 512U;
 
 namespace ascendcperf {
@@ -1149,4 +1149,3 @@ REGISTER_EVAL_FUNC(kUnitVector, ascendcperf::DefaultVECApi);
 REGISTER_EVAL_FUNC(kUnitCube, ascendcperf::DefaultCUBEApi);
 
 } // namespace att
-}  // namespace af

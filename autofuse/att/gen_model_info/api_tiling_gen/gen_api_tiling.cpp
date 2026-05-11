@@ -15,7 +15,7 @@
 #include "base/base_types.h"
 #include "api_tiling_gen/api_tiling_gen_register.h"
 
-namespace af { namespace att {
+namespace att {
 ge::Status GetApiTilingInfo(const uint32_t tiling_case_id, const ApiTilingParams &params,
                             std::map<std::string, NodeApiTilingCode> &node_name_to_api_code) {
   // 遍历图上的节点，判断节点是否需要tiling
@@ -38,4 +38,3 @@ ge::Status GetApiTilingInfo(const uint32_t tiling_case_id, const ApiTilingParams
   return ge::SUCCESS;
 }
 }  // namespace att
-}  // namespace af

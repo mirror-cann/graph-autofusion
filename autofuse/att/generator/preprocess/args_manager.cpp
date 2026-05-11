@@ -20,7 +20,7 @@
 #include "util/base_types_printer.h"
 #include "base/att_const_values.h"
 #include "generator/preprocess/args_replace.h"
-namespace af { namespace att {
+namespace att {
 const int32_t kDefaultAlign = 1;
 
 // 变量替换的约束条件：1.只支持变量整除约束以及对齐约束。例如支持x%y,不支持x%(y+1)。
@@ -719,4 +719,3 @@ void ArgsManager::Reset() {
 }
 
 }  // namespace att
-}  // namespace af

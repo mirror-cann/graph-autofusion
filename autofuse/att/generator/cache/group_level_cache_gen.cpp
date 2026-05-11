@@ -11,7 +11,7 @@
 #include "group_level_cache_gen.h"
 #include "common/code_printer.h"
 
-namespace af { namespace att {
+namespace att {
 namespace cache {
 ge::Status GroupLevelCacheGen::GenFixedSizeHashMapDef(ge::CodePrinter &code_printer) {
   // 生成FixedSizeHashMap模板类定义
@@ -88,4 +88,3 @@ static inline bool SaveGroupCache(const std::array<uint32_t, kInputShapeSize>& k
 }
 } // namespace cache
 } // namespace att
-}  // namespace af

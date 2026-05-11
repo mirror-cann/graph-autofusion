@@ -23,20 +23,20 @@ namespace {
 constexpr uint64_t kNddmaMaxLen = 5UL;
 }
 
-namespace af { namespace codegen {
-Status NddmaApiCall::ParseAttr(const ::ascir::NodeView &node) {
+namespace codegen {
+Status NddmaApiCall::ParseAttr(const ascir::NodeView &node) {
   (void)node->attr.ir_attr->GetAttrValue("offset", offset_);
   return ge::SUCCESS;
 }
 
-Status NddmaApiCall::Generate(const TPipe &tpipe, const std::vector<::ascir::AxisId> &current_axis,
+Status NddmaApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
                               const std::vector<std::reference_wrapper<const Tensor>> &inputs,
                               const std::vector<std::reference_wrapper<const Tensor>> &outputs,
                               std::string &result) const {
   std::stringstream ss;
   const auto &gm = inputs[0].get();
   const auto &ub = outputs[0].get();
-  if (tpipe.cv_fusion_type == ::ascir::CubeTemplateType::kUBFuse) {
+  if (tpipe.cv_fusion_type == ascir::CubeTemplateType::kUBFuse) {
     GE_ASSERT_TRUE(gm.axis_size.size() >= 2U, "Nddma src axis-size less than 2 is invalid in CV-Fusion case");
     auto last_index = gm.axis_size.size() - 1U;
     auto second_to_last_index = gm.axis_size.size() - 2U;
@@ -77,4 +77,3 @@ Status NddmaApiCall::Generate(const TPipe &tpipe, const std::vector<::ascir::Axi
 
 static ApiCallRegister<NddmaApiCall> register_nddma_api_call("NddmaApiCall");
 }  // namespace codegen
-}  // namespace af

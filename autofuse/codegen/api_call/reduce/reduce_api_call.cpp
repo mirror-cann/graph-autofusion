@@ -21,7 +21,7 @@
 #include "api_call/utils/api_call_factory.h"
 #include "api_call/utils/api_call_utils.h"
 
-namespace af { namespace codegen {
+namespace codegen {
 using namespace std;
 using namespace af::ops;
 using namespace af::ascir_op;
@@ -35,7 +35,7 @@ int64_t ReduceApiCall::GetTmpBufIdByLifeTime(int64_t life_time, const std::strin
   return it->second;
 }
 
-Status ReduceApiCall::Generate(const TPipe &tpipe, const std::vector<::ascir::AxisId> &current_axis,
+Status ReduceApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
                                const std::vector<std::reference_wrapper<const Tensor>> &inputs,
                                const std::vector<std::reference_wrapper<const Tensor>> &outputs,
                                std::string &result) const {
@@ -304,4 +304,3 @@ Status ReduceApiCall::Generate(const TPipe &tpipe, const std::vector<::ascir::Ax
 static ApiCallRegister<ReduceApiCall> register_reduce_api_call("ReduceApiCall");
 
 }  // namespace codegen
-}  // namespace af

@@ -11,7 +11,7 @@
 #include "ge_common/ge_api_error_codes.h"
 #include "ge_common/debug/log.h"
 
-namespace af { namespace att {
+namespace att {
 bool L0TileSolverGen::CheckIsInnerMost(const Expr &arg) {
   for (const auto &innermost_arg : innermost_args_) {
     if (innermost_arg == arg) {
@@ -243,4 +243,3 @@ std::string L0TileSolverGen::GenSolverFuncImpl() {
   return ss.str();
 }
 }  // namespace att
-}  // namespace af

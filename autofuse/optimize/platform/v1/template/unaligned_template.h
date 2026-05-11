@@ -13,7 +13,7 @@
 
 #include "platform/common/base_template.h"
 
-namespace af { namespace optimize {
+namespace optimize {
 class UnalignedTemplate : public BaseTemplate {
  public:
   ~UnalignedTemplate() override = default;
@@ -35,6 +35,5 @@ class UnalignedTemplate : public BaseTemplate {
   UnalignedTemplate &operator=(UnalignedTemplate &&) = delete;
 };
 }  // namespace optimize
-}  // namespace af
 
 #endif  // OPTIMIZE_PLATFORM_COMMON_TEMPLATE_UNALIGN_TEMPLATE_H

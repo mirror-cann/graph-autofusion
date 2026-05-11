@@ -13,7 +13,7 @@
 
 #include "platform/common/base_template.h"
 
-namespace af { namespace optimize {
+namespace optimize {
 
 class LoadToNddmaTemplate : public BaseTemplate {
  public:
@@ -32,6 +32,5 @@ class LoadToNddmaTemplate : public BaseTemplate {
   LoadToNddmaTemplate &operator=(LoadToNddmaTemplate &&) = delete;
 };
 }  // namespace optimize
-}  // namespace af
 
 #endif //OPTIMIZE_PLATFORM_V2_TEMPLATE_LOAD_TO_NDDMA_TEMPLATE_H

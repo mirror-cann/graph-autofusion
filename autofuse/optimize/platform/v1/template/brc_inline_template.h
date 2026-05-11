@@ -13,7 +13,7 @@
 
 #include "platform/common/base_template.h"
 
-namespace af { namespace optimize {
+namespace optimize {
 class BrcInlineTemplate : public BaseTemplate {
  public:
   ~BrcInlineTemplate() override = default;
@@ -32,6 +32,5 @@ class BrcInlineTemplate : public BaseTemplate {
   BrcInlineTemplate &operator=(BrcInlineTemplate &&) = delete;
 };
 }  // namespace optimize
-}  // namespace af
 
 #endif  // OPTIMIZE_PLATFORM_COMMON_TEMPLATE_BRC_INLINE_TEMPLATE_H
