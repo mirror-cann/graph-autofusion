@@ -169,14 +169,12 @@ std::string ScopeSplitPass::GetScopeNamesFromBitFlags(const std::bitset<MAX_SCOP
         if (scopeBitFlags.test(bit)) {
             std::string name;
             if (graph.GetScopeNameByIdx(static_cast<uint32_t>(bit), name)) {
-                if (!scopeNames.empty()) scopeNames += ", ";
-                scopeNames += "'";
+                if (!scopeNames.empty()) scopeNames += "_";
                 scopeNames += name;
-                scopeNames += "'";
             }
         }
     }
-    return scopeNames.empty() ? "(none)" : scopeNames;
+    return scopeNames.empty() ? "none" : scopeNames;
 }
 
 void ScopeSplitPass::PrintScopeNodes(size_t scopeIdx, const SuperKernelScopeInfo& scope) {

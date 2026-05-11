@@ -27,30 +27,6 @@
 #include "sk_event_recorder.h"
 
 namespace {
-std::string GetSkFuncName(const std::vector<SuperKernelBaseNode*>& nodes, uint16_t scopeId, const std::string& scopeName)
-{
-    const SuperKernelBaseNode* startKernelNode = nullptr;
-    const SuperKernelBaseNode* endKernelNode = nullptr;
-    for (const auto* node : nodes) {
-        if (node->GetNodeType() == SkNodeType::NODE_KERNEL) {
-            if (startKernelNode == nullptr) {
-                startKernelNode = node;
-            }
-            endKernelNode = node;
-        }
-    }
-
-    std::string scopePrefix = scopeName.empty() ? "" : "scopeName: " + scopeName + "__";
-    if (startKernelNode == nullptr || endKernelNode == nullptr) {
-        return scopePrefix + "skId: " + std::to_string(scopeId) + "__no_kernel_scope";
-    }
-
-    const NodeInfos& startNodeInfos = startKernelNode->GetNodeInfos();
-    const NodeInfos& endNodeInfos = endKernelNode->GetNodeInfos();
-    return scopePrefix + "skId: " + std::to_string(scopeId) + "__startNodeName: "
-        + startNodeInfos.kernelInfos.funcName + "__endNodeName: " + endNodeInfos.kernelInfos.funcName;
-}
-
 void PrintSKNodesDetail(std::string skFuncName, SuperKernelScopeInfo& scopeInfo)
 {
     uint16_t scopeId = scopeInfo.GetScopeId();
