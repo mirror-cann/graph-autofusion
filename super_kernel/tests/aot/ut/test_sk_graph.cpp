@@ -21,6 +21,7 @@
 #include "sk_node.h"
 #include "sk_lock_detector.h"
 #include "sk_options_manager.h"
+#include "stub/dlog_pub.h"
 
 namespace {
 
@@ -1268,7 +1269,9 @@ TEST_F(SuperKernelGraphTest, PostProcessMemoryNode_UnknownFlagTreatedAsNoNotify)
     graph->memoryToNodes[kEventId].waitNodeIdList.insert(waitNode->GetNodeId());
     ConfigureValueBreakerBypass(ACLSK_VALUE_BREAKER_BYPASS_PAIRED_WAIT);
 
+    ut_log::LogBuffer::Instance().Clear();
     ASSERT_TRUE(graph->PostProcessMemoryNode());
+    EXPECT_THAT(ut_log::LogBuffer::Instance().GetContent(), testing::HasSubstr("event 0xc10"));
     EXPECT_EQ(writeNode->GetNodeType(), SkNodeType::NODE_RESET);
     EXPECT_FALSE(writeNode->IsFusible());
     EXPECT_EQ(waitNode->GetNodeType(), SkNodeType::NODE_WAIT);

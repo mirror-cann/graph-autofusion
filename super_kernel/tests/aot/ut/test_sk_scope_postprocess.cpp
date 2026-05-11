@@ -879,6 +879,41 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_StreamSelectFailed_EventAddr
     EXPECT_EQ(waitAfter->nodeInfos.syncInfos.addrValue, nullptr);
 }
 
+TEST_F(SuperKernelScopePostprocessTest, ApplyEventMemoryForFilteredNodes_SkipPreAppliedAddrValue)
+{
+    auto notifyNode = std::make_unique<SuperKernelMemoryNode>(
+        nullptr, ACL_MODEL_RI_TASK_EVENT_RECORD, 0, 0, INVALID_STREAM_ID, INVALID_TASK_ID);
+    notifyNode->SetNodeType(SkNodeType::NODE_NOTIFY);
+    notifyNode->SetNodeId(30);
+    notifyNode->nodeInfos.syncInfos.eventId = 100;
+    notifyNode->nodeInfos.syncInfos.addrValue = reinterpret_cast<void*>(0x1000);
+
+    auto waitNode = std::make_unique<SuperKernelMemoryNode>(
+        nullptr, ACL_MODEL_RI_TASK_EVENT_WAIT, 0, 1, INVALID_STREAM_ID, INVALID_TASK_ID);
+    waitNode->SetNodeType(SkNodeType::NODE_WAIT);
+    waitNode->SetNodeId(40);
+    waitNode->nodeInfos.syncInfos.eventId = 100;
+    waitNode->nodeInfos.syncInfos.addrValue = reinterpret_cast<void*>(0x1000);
+
+    auto resetNode = std::make_unique<SuperKernelMemoryNode>(
+        nullptr, ACL_MODEL_RI_TASK_EVENT_RESET, 0, 2, INVALID_STREAM_ID, INVALID_TASK_ID);
+    resetNode->SetNodeType(SkNodeType::NODE_RESET);
+    resetNode->SetNodeId(50);
+    resetNode->nodeInfos.syncInfos.eventId = 100;
+    resetNode->nodeInfos.syncInfos.addrValue = reinterpret_cast<void*>(0x1000);
+
+    std::vector<SuperKernelBaseNode*> filteredNodes = {notifyNode.get(), waitNode.get(), resetNode.get()};
+    graph->graphMap[30] = std::move(notifyNode);
+    graph->graphMap[40] = std::move(waitNode);
+    graph->graphMap[50] = std::move(resetNode);
+
+    std::vector<SuperKernelBaseNode*> needUpdateNodes;
+    SuperKernelScopePostProcessor postProcessor(*graph);
+
+    EXPECT_TRUE(postProcessor.ApplyEventMemoryForFilteredNodes(filteredNodes, needUpdateNodes));
+    EXPECT_TRUE(needUpdateNodes.empty());
+}
+
 // Test case for "advance node unsuccessful: next node not found in graph"
 TEST_F(SuperKernelScopePostprocessTest, PostProcess_AdvanceNodeNextNotFound_Failed)
 {
