@@ -28,6 +28,8 @@
 #define private public
 #define protected public
 #include "sk_event_recorder.h"
+#include "sk_graph.h"
+#include "sk_node.h"
 
 // 辅助函数：复制源文件中的 CoreIsAiv 逻辑用于测试
 // 源文件中的 static 函数无法直接调用，这里复制相同逻辑
@@ -90,7 +92,7 @@ protected:
         pid_t pid = getpid();
         for (int i = 0; i < 4; i++) {
             // 新路径：./sk_meta/<pid>/
-            std::string finalFile = "./sk_meta/" + std::to_string(pid) + "/sk_event_dev_device_" + std::to_string(i) + ".json";
+            std::string finalFile = "./sk_meta/" + std::to_string(pid) + "/sk_prof_device_" + std::to_string(i) + ".json";
             remove(finalFile.c_str());
         }
         // 清理 sk_meta/<pid> 目录
@@ -463,7 +465,7 @@ TEST_F(SkEventRecorderTest, CreateDeviceCtxBasic) {
         ctx->active.store(0);
 
         // 删除文件
-        std::string jsonFile = ctx->outputDir + "/sk_event_dev_device_0.json";
+        std::string jsonFile = ctx->outputDir + "/sk_prof_device_0.json";
         remove(jsonFile.c_str());
     }
 }
@@ -501,7 +503,7 @@ TEST_F(SkEventRecorderTest, ShutdownCreatesFinalFile) {
     // 创建临时文件
     char tmpFile[512];
     (void)snprintf_s(tmpFile, sizeof(tmpFile), sizeof(tmpFile) - 1,
-                     "%s/sk_event_dev_device_%u.json", ctx->outputDir.c_str(), 0);
+                     "%s/sk_prof_device_%u.json", ctx->outputDir.c_str(), 0);
     ctx->outputFp.Open(tmpFile, "wb");
     if (ctx->outputFp.IsValid()) {
         const char* jsonStart = "[{}]";
@@ -692,7 +694,7 @@ TEST_F(SkEventRecorderTest, GetGmAddrForDeviceDoubleCheckLocking) {
         ctx->hostBuf.reset();
         ctx->active.store(0);
         // 删除文件
-        std::string jsonFile = outputDir + "/sk_event_dev_device_0.json";
+        std::string jsonFile = outputDir + "/sk_prof_device_0.json";
         remove(jsonFile.c_str());
     }
 }
@@ -1027,7 +1029,7 @@ TEST_F(SkEventRecorderTest, DumpThreadFuncDstMissingTriggersReCopy) {
     // 同时文件内容已落盘（ifstream 读取不会与写锁冲突卡住）
     char srcFile[512];
     (void)snprintf_s(srcFile, sizeof(srcFile), sizeof(srcFile) - 1,
-                     "%s/sk_event_dev_device_%u.json", ctx->outputDir.c_str(), ctx->deviceId);
+                     "%s/sk_prof_device_%u.json", ctx->outputDir.c_str(), ctx->deviceId);
     ctx->outputFp.Open(srcFile, "wb");
     ASSERT_TRUE(ctx->outputFp.IsValid());
     const char* jsonContent = "[{\"node\":\"test_node\",\"start\":100,\"end\":200}]";
@@ -1046,7 +1048,7 @@ TEST_F(SkEventRecorderTest, DumpThreadFuncDstMissingTriggersReCopy) {
     }
 
     // 确保目标文件不存在
-    std::string dstFile = profDir + "/sk_event_dev_device_" + std::to_string(ctx->deviceId) + ".json";
+    std::string dstFile = profDir + "/sk_prof_device_" + std::to_string(ctx->deviceId) + ".json";
     remove(dstFile.c_str());
 
     // 让 globalRunning=false，使 DumpThreadFunc 的 while 循环立即退出
@@ -1073,6 +1075,135 @@ TEST_F(SkEventRecorderTest, DumpThreadFuncDstMissingTriggersReCopy) {
     remove(dstFile.c_str());
     rmdir(profDir.c_str());
     CleanupMockDeviceCtx();
+}
+
+// ==================== GetSkFuncName Tests ====================
+
+class SkGetSkFuncNameTest : public testing::Test {
+protected:
+    void SetUp() override
+    {
+        graph = std::make_unique<SuperKernelGraph>();
+    }
+
+    void TearDown() override {}
+
+    SuperKernelBaseNode* CreateKernelNodeWithFuncName(uint64_t nodeId, const std::string& funcName)
+    {
+        auto node = std::make_unique<SuperKernelKernelNode>(
+            nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_STREAM_ID, INVALID_TASK_ID);
+        node->SetNodeType(SkNodeType::NODE_KERNEL);
+        node->SetNodeId(nodeId);
+        node->SetPreNodeId(INVALID_TASK_ID);
+        node->SetNextNodeId(INVALID_TASK_ID);
+        node->nodeInfos.kernelInfos.funcName = funcName;
+        auto* ptr = node.get();
+        graph->graphMap[nodeId] = std::move(node);
+        return ptr;
+    }
+
+    SuperKernelBaseNode* CreateWaitNodeForFuncName(uint64_t nodeId)
+    {
+        auto node = std::make_unique<SuperKernelMemoryNode>(
+            nullptr, ACL_MODEL_RI_TASK_EVENT_WAIT, 0, 0, INVALID_STREAM_ID, INVALID_TASK_ID);
+        node->SetNodeType(SkNodeType::NODE_WAIT);
+        node->SetNodeId(nodeId);
+        node->SetPreNodeId(INVALID_TASK_ID);
+        node->SetNextNodeId(INVALID_TASK_ID);
+        auto* ptr = node.get();
+        graph->graphMap[nodeId] = std::move(node);
+        return ptr;
+    }
+
+    std::unique_ptr<SuperKernelGraph> graph;
+};
+
+TEST_F(SkGetSkFuncNameTest, EmptyNodes_ReturnsNoKernelScope)
+{
+    std::vector<SuperKernelBaseNode*> nodes;
+    EXPECT_EQ(GetSkFuncName(nodes, 1, "myscope"), "sk_1_no_kernel_scope_myscope");
+}
+
+TEST_F(SkGetSkFuncNameTest, EmptyNodes_EmptyScopeName_ReturnsNoKernelScopeWithEmptyPrefix)
+{
+    std::vector<SuperKernelBaseNode*> nodes;
+    EXPECT_EQ(GetSkFuncName(nodes, 2, ""), "sk_2_no_kernel_scope_");
+}
+
+TEST_F(SkGetSkFuncNameTest, AllNonKernelNodes_ReturnsNoKernelScope)
+{
+    std::vector<SuperKernelBaseNode*> nodes = {
+        CreateWaitNodeForFuncName(1),
+        CreateWaitNodeForFuncName(2),
+    };
+    EXPECT_EQ(GetSkFuncName(nodes, 3, "scope"), "sk_3_no_kernel_scope_scope");
+}
+
+TEST_F(SkGetSkFuncNameTest, SingleKernelNode_StartAndEndAreSame)
+{
+    std::vector<SuperKernelBaseNode*> nodes = {
+        CreateKernelNodeWithFuncName(10, "add_kernel"),
+    };
+    EXPECT_EQ(GetSkFuncName(nodes, 5, "myname"), "sk_5_myname_start_add_kernel_end_add_kernel");
+}
+
+TEST_F(SkGetSkFuncNameTest, SingleKernelNode_EmptyScopeName)
+{
+    std::vector<SuperKernelBaseNode*> nodes = {
+        CreateKernelNodeWithFuncName(10, "add_kernel"),
+    };
+    EXPECT_EQ(GetSkFuncName(nodes, 5, ""), "sk_5__start_add_kernel_end_add_kernel");
+}
+
+TEST_F(SkGetSkFuncNameTest, MultipleKernelNodes_FirstIsStartLastIsEnd)
+{
+    std::vector<SuperKernelBaseNode*> nodes = {
+        CreateKernelNodeWithFuncName(10, "add_kernel"),
+        CreateKernelNodeWithFuncName(20, "mul_kernel"),
+        CreateKernelNodeWithFuncName(30, "sub_kernel"),
+    };
+    EXPECT_EQ(GetSkFuncName(nodes, 7, "fused"), "sk_7_fused_start_add_kernel_end_sub_kernel");
+}
+
+TEST_F(SkGetSkFuncNameTest, MixedKernelAndNonKernelNodes_OnlyKernelNodesDetermineStartEnd)
+{
+    std::vector<SuperKernelBaseNode*> nodes = {
+        CreateWaitNodeForFuncName(1),
+        CreateKernelNodeWithFuncName(10, "first_k"),
+        CreateWaitNodeForFuncName(2),
+        CreateWaitNodeForFuncName(3),
+        CreateKernelNodeWithFuncName(20, "last_k"),
+        CreateWaitNodeForFuncName(4),
+    };
+    EXPECT_EQ(GetSkFuncName(nodes, 9, "abc"), "sk_9_abc_start_first_k_end_last_k");
+}
+
+TEST_F(SkGetSkFuncNameTest, KernelNodesNotAtBoundary_StartEndByKernelOnly)
+{
+    std::vector<SuperKernelBaseNode*> nodes = {
+        CreateKernelNodeWithFuncName(10, "init_k"),
+        CreateWaitNodeForFuncName(5),
+        CreateKernelNodeWithFuncName(20, "mid_k"),
+        CreateWaitNodeForFuncName(6),
+        CreateKernelNodeWithFuncName(30, "final_k"),
+    };
+    EXPECT_EQ(GetSkFuncName(nodes, 0, "test"), "sk_0_test_start_init_k_end_final_k");
+}
+
+TEST_F(SkGetSkFuncNameTest, ScopeIdZero_ValidOutput)
+{
+    std::vector<SuperKernelBaseNode*> nodes = {
+        CreateKernelNodeWithFuncName(1, "k0"),
+    };
+    EXPECT_EQ(GetSkFuncName(nodes, 0, ""), "sk_0__start_k0_end_k0");
+}
+
+TEST_F(SkGetSkFuncNameTest, LargeScopeId_ValidOutput)
+{
+    std::vector<SuperKernelBaseNode*> nodes = {
+        CreateKernelNodeWithFuncName(1, "k1"),
+    };
+    EXPECT_EQ(GetSkFuncName(nodes, 65535, "s"), "sk_65535_s_start_k1_end_k1");
 }
 
 

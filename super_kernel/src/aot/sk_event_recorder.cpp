@@ -248,7 +248,7 @@ SkEventDeviceCtx* SkEventRecorder::CreateDeviceCtx(uint32_t deviceId) {
     // 4. 创建临时输出文件（用于存储 node 事件）
     char filename[SPRINT_LEN_BUFFER];
     errno_t snpRet = snprintf_s(filename, sizeof(filename), sizeof(filename) - 1,
-                            "%s/sk_event_dev_device_%u.json", ctx->outputDir.c_str(), deviceId);
+                            "%s/sk_prof_device_%u.json", ctx->outputDir.c_str(), deviceId);
     if (snpRet < 0) {
         SK_LOGE("[sk time profiling] snprintf_s filename failed for device %u, ret=%d\n", deviceId, snpRet);
         SkProfilingShutdown();
@@ -313,8 +313,8 @@ void SkEventRecorder::CopyOutputToProfPath(SkEventDeviceCtx* ctx) {
     fflush(ctx->outputFp.Get());
 
     // 构造源文件和目标文件路径
-    std::string srcFilename = ctx->outputDir + "/sk_event_dev_device_" + std::to_string(ctx->deviceId) + ".json";
-    std::string dstFilename = profBasePath + "/sk_event_dev_device_" + std::to_string(ctx->deviceId) + ".json";
+    std::string srcFilename = ctx->outputDir + "/sk_prof_device_" + std::to_string(ctx->deviceId) + ".json";
+    std::string dstFilename = profBasePath + "/sk_prof_device_" + std::to_string(ctx->deviceId) + ".json";
 
     // 使用 C++ fstream 复制文件
     std::ifstream src(srcFilename, std::ios::binary);
@@ -383,7 +383,7 @@ void* SkEventRecorder::DumpThreadFunc(void* arg) {
             cachedProfBasePath = recorder->profBasePath;
         }
         if (!cachedProfBasePath.empty()) {
-            std::string dstFile = cachedProfBasePath + "/sk_event_dev_device_" + std::to_string(ctx->deviceId) + ".json";
+            std::string dstFile = cachedProfBasePath + "/sk_prof_device_" + std::to_string(ctx->deviceId) + ".json";
             struct stat fileStat;
             // 检查目标 json 文件是否存在且大于 10 字节
             if (stat(dstFile.c_str(), &fileStat) != 0 || fileStat.st_size <= 10) {
@@ -861,4 +861,28 @@ bool DumpProfilingDetail(const std::vector<SuperKernelBaseNode*>& taskNodes, SkL
         launchInfo.skId = 0;
     }
     return true;
+}
+
+std::string GetSkFuncName(const std::vector<SuperKernelBaseNode*>& nodes, uint16_t scopeId, const std::string& scopeName)
+{
+    const SuperKernelBaseNode* startKernelNode = nullptr;
+    const SuperKernelBaseNode* endKernelNode = nullptr;
+    for (const auto* node : nodes) {
+        if (node->GetNodeType() == SkNodeType::NODE_KERNEL) {
+            if (startKernelNode == nullptr) {
+                startKernelNode = node;
+            }
+            endKernelNode = node;
+        }
+    }
+
+    std::string scopePrefix = scopeName.empty() ? "" : scopeName;
+    if (startKernelNode == nullptr || endKernelNode == nullptr) {
+        return "sk_" + std::to_string(scopeId) + "_no_kernel_scope_" + scopePrefix;
+    }
+
+    const NodeInfos& startNodeInfos = startKernelNode->GetNodeInfos();
+    const NodeInfos& endNodeInfos = endKernelNode->GetNodeInfos();
+    return "sk_" + std::to_string(scopeId) + "_" + scopePrefix + "_start_"
+        + startNodeInfos.kernelInfos.funcName + "_end_" + endNodeInfos.kernelInfos.funcName;
 }

@@ -180,4 +180,6 @@ bool SkProfiling(const SuperKernelScopeInfo& scopeInfo, SkLaunchInfo& launchInfo
 // 详细性能分析数据输出
 bool DumpProfilingDetail(const std::vector<SuperKernelBaseNode*>& taskNodes, SkLaunchInfo& launchInfo,
                          const SuperKernelScopeInfo& scopeInfo, aclmdlRI modelRI);
+
+std::string GetSkFuncName(const std::vector<SuperKernelBaseNode*>& nodes, uint16_t scopeId, const std::string& scopeName);
 #endif // SK_EVENT_RECORDER_H
