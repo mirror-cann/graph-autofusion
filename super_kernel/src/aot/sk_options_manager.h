@@ -25,6 +25,7 @@
 #include <regex>
 #include <string>
 #include <map>
+#include <nlohmann/json.hpp>
 #include "super_kernel.h"
 
 /*!
@@ -254,6 +255,12 @@ public:
      * \param options Pointer to the aclskOptions structure containing all options
      */
     void ParseOptions(const aclskOptions* options);
+
+    /*!
+     * \brief Convert options to JSON format
+     * \return JSON object containing all option values
+     */
+    nlohmann::ordered_json ToJson() const;
 
 private:
     std::unordered_map<aclskOptionType, std::unique_ptr<OptOptionBase>> optionMap;

@@ -105,14 +105,20 @@ struct TaskSyncInfo {
     TaskSyncInfo() : queueType(SkQueueType::UNKNOWN) {}
 };
 
+// SkBuildResult - contains both launch info and task queue JSON
+struct SkBuildResult {
+    SkLaunchInfo launchInfo;
+    Json taskQueueJson;
+};
+
 class SkTaskBuilder {
 public:
     SkTaskBuilder(SuperKernelOptionsManager& opts, const SuperKernelGraph& graph) :
         opts(opts), graph_(graph)
     {}
 
-    SkLaunchInfo Build(std::string skFuncName, const std::vector<SuperKernelBaseNode*>& tasks,
-                       const std::vector<SuperKernelBaseNode*>& customTasks);
+    SkBuildResult Build(std::string skFuncName, const std::vector<SuperKernelBaseNode*>& tasks,
+                        const std::vector<SuperKernelBaseNode*>& customTasks, uint16_t scopeId);
 
 private:
     SuperKernelOptionsManager& opts;

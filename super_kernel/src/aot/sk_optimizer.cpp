@@ -21,6 +21,7 @@
 #include "sk_scope_postprocess.h"
 #include "sk_task_builder.h"
 #include "sk_log.h"
+#include "sk_dump_json.h"
 #include "aprof_pub.h"
 #include "securec.h"
 #include "sk_event_recorder.h"
@@ -286,7 +287,11 @@ bool SuperKernelOptimizer::Schedule(SuperKernelScopeInfo& scopeInfo, SuperKernel
     SK_LOGI("schedule scope: taskCount=%zu, customTaskCount=%zu, updateStreamCount=%zu", reorderedTaskNodes.size(),
             customTasks.size(), scopeInfo.GetScopeStreamInfos().size());
 
-    SkLaunchInfo launchInfo = builder.Build(skFuncName, reorderedTaskNodes, customTasks);
+    SkBuildResult buildResult = builder.Build(skFuncName, reorderedTaskNodes, customTasks, scopeInfo.GetScopeId());
+    SkLaunchInfo& launchInfo = buildResult.launchInfo;
+
+    // Collect task queue JSON for this scope
+    taskQueueJsons_[std::to_string(scopeInfo.GetScopeId())] = buildResult.taskQueueJson;
 
     if (!SkProfiling(scopeInfo, launchInfo, graph)) {
         SK_LOGE("SkProfiling failed");
@@ -355,6 +360,14 @@ bool SuperKernelOptimizer::Process(SuperKernelGraph& graph)
     
     // Dump all nodes' fusion fail reasons after all scopes are processed
     graph.DumpFusionFailReasons(processedScopeInfos_);
+    
+    // Dump all task queues to a single JSON file
+    if (!taskQueueJsons_.empty()) {
+        SK_LOGI("Dumping all task queues to JSON, scopeCount=%zu", taskQueueJsons_.size());
+        if (!DumpAllTaskQueuesToJson(graph, taskQueueJsons_)) {
+            SK_LOGE("Failed to dump all task queues to JSON, continuing...");
+        }
+    }
     
     SK_LOGI("super kernel process finished: scopeCount=%zu", processedScopeInfos_.size());
     return true;

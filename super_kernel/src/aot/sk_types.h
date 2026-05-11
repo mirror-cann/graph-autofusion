@@ -307,6 +307,8 @@ inline const char* TaskTypeToString(aclmdlRITaskType type) {
             return "WAIT";
         case ACL_MODEL_RI_TASK_EVENT_RESET:
             return "RESET";
+        case ACL_MODEL_RI_TASK_DEFAULT:
+            return "DEFAULT";
         default:
             return "UNKNOWN";
     }

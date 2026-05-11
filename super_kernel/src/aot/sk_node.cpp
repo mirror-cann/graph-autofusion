@@ -26,6 +26,7 @@
 #include <sstream>
 #include <fstream>
 #include <utility>
+
 #include "sk_node.h"
 #include "sk_log.h"
 #include "sk_scope_launch.h"
@@ -441,6 +442,106 @@ SkKernelType NormalizeKernelType(uint32_t kernelType, const uint32_t taskRatio[2
 
 } // namespace
 
+// ============================================================================
+// ToJson Helper Functions
+// ============================================================================
+
+static std::string PtrToHexString(const void* ptr)
+{
+    std::stringstream hexStream;
+    hexStream << "0x" << std::hex << reinterpret_cast<uintptr_t>(ptr);
+    return hexStream.str();
+}
+
+static std::string Uint64ToHexString(uint64_t value)
+{
+    std::stringstream hexStream;
+    hexStream << "0x" << std::hex << value;
+    return hexStream.str();
+}
+
+Json KernelInfosToJson(const KernelInfos& kernelInfos)
+{
+    Json kernelJson;
+    kernelJson["funcName"] = kernelInfos.funcName;
+    kernelJson["funcHandle"] = PtrToHexString(kernelInfos.funcHdl);
+    kernelJson["numBlocks"] = kernelInfos.numBlocks;
+    kernelJson["cap"] = Uint64ToHexString(kernelInfos.cap);
+    kernelJson["devargs"] = PtrToHexString(kernelInfos.devArgs);
+    kernelJson["argsSize"] = 0;  // Will be filled by caller if available
+    kernelJson["isHostArgs"] = false;
+    kernelJson["launchKernelCfg"] = PtrToHexString(kernelInfos.launchKernelCfg);
+    kernelJson["binHandle"] = PtrToHexString(kernelInfos.binHdl);
+    kernelJson["kernelTypeInt"] = kernelInfos.kernelTypeInt;
+    kernelJson["kernelType"] = to_string(kernelInfos.kernelType);
+    kernelJson["taskRatio"] = Json::array({kernelInfos.taskRatio[0], kernelInfos.taskRatio[1]});
+    kernelJson["opInfoPtr"] = PtrToHexString(kernelInfos.opInfoPtr);
+    kernelJson["opInfoSize"] = static_cast<uint64_t>(kernelInfos.opInfoSize);
+    kernelJson["taskGrp"] = "0x0";
+    kernelJson["resolvedNum"] = kernelInfos.resolvedNum;
+
+    // Add resolved functions info
+    Json resolvedFuncs = Json::array();
+    for (size_t i = 0; i < kernelInfos.resolvedNum && i < K_MAX_SPLIT_BIN_COUNT; ++i) {
+        Json rfJson;
+        rfJson["funcAddr"][0] = Uint64ToHexString(kernelInfos.resolvedFuncs[i].funcAddr[0]);
+        rfJson["funcAddr"][1] = Uint64ToHexString(kernelInfos.resolvedFuncs[i].funcAddr[1]);
+        rfJson["prefetchCnt"][0] = kernelInfos.resolvedFuncs[i].prefetchCnt[0];
+        rfJson["prefetchCnt"][1] = kernelInfos.resolvedFuncs[i].prefetchCnt[1];
+        rfJson["funcOffset"][0] = Uint64ToHexString(kernelInfos.resolvedFuncs[i].funcOffset[0]);
+        rfJson["funcOffset"][1] = Uint64ToHexString(kernelInfos.resolvedFuncs[i].funcOffset[1]);
+        rfJson["symbolBind"][0] = kernelInfos.resolvedFuncs[i].symbolBind[0];
+        rfJson["symbolBind"][1] = kernelInfos.resolvedFuncs[i].symbolBind[1];
+        resolvedFuncs.push_back(rfJson);
+    }
+    kernelJson["resolvedFuncs"] = resolvedFuncs;
+
+    return kernelJson;
+}
+
+Json SyncInfosToJson(const SyncInfos& syncInfos, SkNodeType nodeType)
+{
+    Json syncJson;
+    syncJson["eventId"] = Uint64ToHexString(syncInfos.eventId);
+
+    if (nodeType == SkNodeType::NODE_WAIT || nodeType == SkNodeType::NODE_MEMORY_WAIT) {
+        syncJson["correspondingNotifyNodeId"] = syncInfos.correspondingNotifyNodeId;
+    }
+
+    syncJson["addrValue"] = PtrToHexString(syncInfos.addrValue);
+
+    if (!syncInfos.correspondingWaitNodeIds.empty()) {
+        syncJson["correspondingWaitNodeIds"] = syncInfos.correspondingWaitNodeIds;
+    }
+    if (!syncInfos.correspondingResetNodeIds.empty()) {
+        syncJson["correspondingResetNodeIds"] = syncInfos.correspondingResetNodeIds;
+    }
+    if (!syncInfos.correspondingMemoryWriteNodeIds.empty()) {
+        syncJson["correspondingMemoryWriteNodeIds"] = syncInfos.correspondingMemoryWriteNodeIds;
+    }
+    if (syncInfos.memoryValue != std::numeric_limits<uint64_t>::max()) {
+        syncJson["memoryValue"] = Uint64ToHexString(syncInfos.memoryValue);
+    }
+    if (syncInfos.memoryWaitFlag != std::numeric_limits<uint32_t>::max()) {
+        syncJson["memoryWaitFlag"] = syncInfos.memoryWaitFlag;
+    }
+    if (syncInfos.eventFlag != std::numeric_limits<uint64_t>::max()) {
+        syncJson["eventFlag"] = Uint64ToHexString(syncInfos.eventFlag);
+    }
+
+    return syncJson;
+}
+
+Json NodeInfosToJson(const NodeInfos& nodeInfos, SkNodeType nodeType)
+{
+    Json nodeInfosJson;
+    nodeInfosJson["kernelInfos"] = KernelInfosToJson(nodeInfos.kernelInfos);
+    if (nodeType != SkNodeType::NODE_KERNEL) {
+        nodeInfosJson["syncInfos"] = SyncInfosToJson(nodeInfos.syncInfos, nodeType);
+    }
+    return nodeInfosJson;
+}
+
 /**
  * @brief Get kernel type string from kernelType value
  */
@@ -655,6 +756,7 @@ bool SuperKernelKernelNode::InitNode() {
     nodeInfos.kernelInfos.taskRatio[0] = skTaskTatio[0];
     nodeInfos.kernelInfos.taskRatio[1] = skTaskTatio[1];
     nodeInfos.kernelInfos.kernelType = NormalizeKernelType((uint32_t)(kernelType), skTaskTatio);
+    nodeInfos.kernelInfos.kernelTypeInt = static_cast<uint32_t>(kernelType);
     nodeInfos.kernelInfos.numBlocks = kernelParams.numBlocks;
     nodeInfos.kernelInfos.devArgs = kernelParams.args;
     nodeInfos.kernelInfos.opInfoPtr = taskParams.opInfoPtr;
@@ -1027,6 +1129,99 @@ std::string SuperKernelDefaultNode::Format() const {
         << ", nodeIdxInStream:" << nodeIdxInStream
         << ", type: Default]";
     return oss.str();
+}
+
+static int TaskTypeToInt(aclmdlRITaskType type)
+{
+    return static_cast<int>(type);
+}
+
+Json SuperKernelBaseNodeToJson(const SuperKernelBaseNode* node)
+{
+    Json nodeJson;
+    if (node == nullptr) {
+        return nodeJson;
+    }
+
+    // Basic node info - matching sk_raw_tasks_after.json format
+    nodeJson["taskId"] = node->GetNodeId();
+    nodeJson["streamId"] = node->GetStreamId();
+
+    aclmdlRITaskType taskType = node->GetTaskParams().type;
+
+    nodeJson["taskType"] = TaskTypeToString(taskType);
+    nodeJson["taskTypeInt"] = TaskTypeToInt(taskType);
+
+    return nodeJson;
+}
+
+Json SuperKernelKernelNodeToJson(const SuperKernelKernelNode* node)
+{
+    Json nodeJson = SuperKernelBaseNodeToJson(node);
+    if (node == nullptr) {
+        return nodeJson;
+    }
+
+    // Add kernel-specific params matching sk_raw_tasks_after.json format
+    const auto& kernelInfos = node->GetNodeInfos().kernelInfos;
+    Json kernelParams = KernelInfosToJson(kernelInfos);
+
+    // Get argsSize and isHostArgs from taskParams
+    const auto& taskParams = node->GetTaskParams();
+    kernelParams["argsSize"] = taskParams.kernelTaskParams.argsSize;
+    kernelParams["isHostArgs"] = taskParams.kernelTaskParams.isHostArgs;
+
+    nodeJson["kernelParams"] = kernelParams;
+
+    return nodeJson;
+}
+
+Json SuperKernelMemoryNodeToJson(const SuperKernelMemoryNode* node)
+{
+    Json nodeJson = SuperKernelBaseNodeToJson(node);
+    if (node == nullptr) {
+        return nodeJson;
+    }
+
+    const auto& syncInfos = node->GetNodeInfos().syncInfos;
+    SkNodeType nodeType = node->GetNodeType();
+
+    // Add type-specific params matching sk_raw_tasks_after.json format
+    switch (nodeType) {
+        case SkNodeType::NODE_NOTIFY:
+        case SkNodeType::NODE_WAIT:
+        case SkNodeType::NODE_RESET: {
+            Json eventParams;
+            eventParams["eventId"] = PtrToHexString(reinterpret_cast<const void*>(syncInfos.eventId));
+            eventParams["eventFlag"] = syncInfos.eventFlag;
+            nodeJson["eventParams"] = eventParams;
+            break;
+        }
+        case SkNodeType::NODE_MEMORY_WRITE: {
+            Json valueParams;
+            valueParams["devAddr"] = PtrToHexString(syncInfos.addrValue);
+            valueParams["value"] = Uint64ToHexString(syncInfos.memoryValue);
+            nodeJson["valueWriteParams"] = valueParams;
+            break;
+        }
+        case SkNodeType::NODE_MEMORY_WAIT: {
+            Json valueParams;
+            valueParams["devAddr"] = PtrToHexString(syncInfos.addrValue);
+            valueParams["value"] = Uint64ToHexString(syncInfos.memoryValue);
+            valueParams["flag"] = syncInfos.memoryWaitFlag;
+            nodeJson["valueWaitParams"] = valueParams;
+            break;
+        }
+        default:
+            break;
+    }
+
+    return nodeJson;
+}
+
+Json SuperKernelDefaultNodeToJson(const SuperKernelDefaultNode* node)
+{
+    return SuperKernelBaseNodeToJson(node);
 }
 
 // ============================================================================

@@ -23,6 +23,8 @@
 #include <algorithm>
 #include <cstdint>
 
+#include <nlohmann/json.hpp>
+
 #include "sk_log.h"
 #include "sk_types.h"
 #include "sk_node.h"
@@ -30,6 +32,8 @@
 #include "acl/acl.h"
 
 class SuperKernelOptionsManager;
+
+using Json = nlohmann::ordered_json;
 
 class SuperKernelNodeFactory {
 public:
@@ -129,6 +133,12 @@ public:
     // Dump all nodes' fusion fail reasons to log file
     void DumpFusionFailReasons(const std::vector<SuperKernelScopeInfo>& processedScopeInfos);
 
+    // Convert graph to JSON format matching sk_raw_tasks_after.json structure
+    Json ToJson() const;
+
+    // 封装方法：从 modelRI 获取信息并初始化图（只获取流和任务信息，不执行后续处理）
+    bool InitFromModelRI();
+
     // Fusion fail reasons statistics
     struct FusionFailStats {
         std::unordered_map<std::string, size_t> reasonStats;
@@ -154,6 +164,11 @@ private:
     bool ProcessMemoryWriteNodes(const uint64_t eventId, const MemoryInfos& memoryInfo,
                                  const uint64_t memoryWaitValue, const uint32_t waitFlag);
     void UpdateNodeScopeBitFlags();
+    bool InitStreamsFromModelRI();
+    bool ProcessAllStreamsAndTasks();
+    bool ProcessSingleTask(aclmdlRITask& task, uint32_t streamIdx, uint32_t taskIdx, uint64_t& preNodeId);
+    void RegisterFusibleScope(const std::unique_ptr<SuperKernelBaseNode>& node);
+    void UpdateNodeRelations(uint64_t nodeId, uint32_t streamIdx, uint32_t taskIdx, uint64_t& preNodeId);
     std::unordered_map<uint64_t, std::unique_ptr<SuperKernelBaseNode>> graphMap;
     std::unordered_map<uint64_t, EventInfos> eventToNodes;
     std::unordered_map<uint64_t, MemoryInfos> memoryToNodes;

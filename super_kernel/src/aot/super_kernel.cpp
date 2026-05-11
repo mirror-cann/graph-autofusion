@@ -8,6 +8,9 @@
 * See LICENSE in the root of the software repository for the full text of the License.
 */
 
+#include <fstream>
+#include <nlohmann/json.hpp>
+
 #include "super_kernel.h"
 #include "sk_log.h"
 #include "sk_options_manager.h"
@@ -75,6 +78,7 @@ aclError PrepareGraphDumpEnv(aclmdlRI model, int32_t& deviceId, std::string& met
     metaDir = CreateSkMetaDirectory(model);
     return ACL_SUCCESS;
 }
+
 }
 
 #ifdef __cplusplus
@@ -91,13 +95,6 @@ aclError aclskOptimize(aclmdlRI model, aclskOptions *options) {
     aclError ret = PrepareGraphDumpEnv(model, deviceId, metaDir);
     if (ret != ACL_SUCCESS) {
         return ret;
-    }
-
-    // Dump raw task information from modelRI to JSON (before fusion)
-    SK_LOGI("Start dump raw tasks from modelRI to JSON...");
-    if (!DumpModelRITasksToJson(model, deviceId, nullptr, "sk_raw_tasks_before")) {
-        SK_LOGE("Failed to dump raw tasks to JSON, continuing...");
-        return ACL_ERROR_FAILURE;
     }
 
     SK_LOGI("Start dump tasks by use rts api to JSON...");
@@ -131,6 +128,12 @@ aclError aclskOptimize(aclmdlRI model, aclskOptions *options) {
         return ACL_ERROR_FAILURE;
     }
 
+    // Dump graph to test.json using ToJson method (create new graph to get fresh model info)
+    SK_LOGI("Start dump raw tasks from modelRI to JSON...");
+    if (!DumpRawTaskJson(model, opts, metaDir, "sk_raw_tasks_before")) {
+        return ACL_ERROR_FAILURE;
+    }
+
     ret = LockDetector::GetDeviceCores();
     if (ret != ACL_SUCCESS) {
         return ret;
@@ -154,8 +157,7 @@ aclError aclskOptimize(aclmdlRI model, aclskOptions *options) {
     SK_LOGI("End update graph");
 
     SK_LOGI("Start dump raw tasks after update from modelRI to JSON...");
-    if (!DumpModelRITasksToJson(model, deviceId, &opts, "sk_raw_tasks_after")) {
-        SK_LOGE("Failed to dump raw tasks to JSON, continuing...");
+    if (!DumpRawTaskJson(model, opts, metaDir, "sk_raw_tasks_after")) {
         return ACL_ERROR_FAILURE;
     }
     SK_LOGI("End dump raw tasks after update from modelRI to JSON...");

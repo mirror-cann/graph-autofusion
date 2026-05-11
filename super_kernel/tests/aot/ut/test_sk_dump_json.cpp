@@ -194,45 +194,30 @@ TEST_F(DumpFusedGraphToJsonTest, DisabledLoggerSkipDump)
     sk::logger::FileLogger::Instance().SetEnabled(true);
 }
 
-// ==================== DumpSkTaskQueueToJson Tests ====================
+// ==================== SkTaskToQueueJson Tests ====================
 
-class DumpSkTaskQueueToJsonTest : public SkDumpJsonTest {};
+class SkTaskToQueueJsonTest : public SkDumpJsonTest {};
 
-TEST_F(DumpSkTaskQueueToJsonTest, EmptyTasks)
+TEST_F(SkTaskToQueueJsonTest, EmptyTasks)
 {
-    SuperKernelGraph graph(nullptr);
     SkTask aicTask;
     SkTask aivTask;
 
-    bool result = DumpSkTaskQueueToJson(graph, aicTask, aivTask);
-    EXPECT_TRUE(result);
+    Json result = SkTaskToQueueJson(aicTask, aivTask, 0);
+    EXPECT_EQ(result["scopeId"], 0);
 }
 
-TEST_F(DumpSkTaskQueueToJsonTest, TasksWithInit)
+TEST_F(SkTaskToQueueJsonTest, TasksWithInit)
 {
-    SuperKernelGraph graph(nullptr);
     SkTask aicTask;
     SkTask aivTask;
 
     ASSERT_TRUE(aicTask.Init(4));
     ASSERT_TRUE(aivTask.Init(4));
 
-    bool result = DumpSkTaskQueueToJson(graph, aicTask, aivTask);
-    EXPECT_TRUE(result);
-}
-
-TEST_F(DumpSkTaskQueueToJsonTest, DisabledLogger)
-{
-    sk::logger::FileLogger::Instance().SetEnabled(false);
-
-    SuperKernelGraph graph(nullptr);
-    SkTask aicTask;
-    SkTask aivTask;
-
-    bool result = DumpSkTaskQueueToJson(graph, aicTask, aivTask);
-    EXPECT_TRUE(result);
-
-    sk::logger::FileLogger::Instance().SetEnabled(true);
+    Json result = SkTaskToQueueJson(aicTask, aivTask, 1);
+    EXPECT_EQ(result["scopeId"], 1);
+    EXPECT_TRUE(result.contains("taskQueues"));
 }
 
 // ==================== PrintOriginalScopes Tests ====================
@@ -440,22 +425,6 @@ TEST_F(DumpJsonSuperKernelGraphTest, GraphWithMultipleNodes)
 
 class DumpModelRITasksToJsonTest : public SkDumpJsonTest {};
 
-TEST_F(DumpModelRITasksToJsonTest, NullModelRI)
-{
-    SuperKernelOptionsManager optsMgr;
-    bool result = DumpModelRITasksToJson(nullptr, 0, &optsMgr, "test_dump_opts");
-    EXPECT_FALSE(result);
-}
-
-TEST_F(DumpModelRITasksToJsonTest, DisabledLogger)
-{
-    sk::logger::FileLogger::Instance().SetEnabled(false);
-    SuperKernelOptionsManager optsMgr;
-    bool result = DumpModelRITasksToJson(nullptr, 0, &optsMgr, "test_dump_opts_disabled");
-    EXPECT_FALSE(result);
-    sk::logger::FileLogger::Instance().SetEnabled(true);
-}
-
 // ==================== Direct JSON Helper Tests ====================
 
 class SkDumpJsonDirectHelperTest : public SkDumpJsonTest {};
@@ -610,7 +579,7 @@ TEST_F(SkDumpJsonDirectHelperTest, TaskAndKernelTypeStringHelpers)
     EXPECT_STREQ(TaskTypeToString(ACL_MODEL_RI_TASK_EVENT_RECORD), "NOTIFY");
     EXPECT_STREQ(TaskTypeToString(ACL_MODEL_RI_TASK_EVENT_WAIT), "WAIT");
     EXPECT_STREQ(TaskTypeToString(ACL_MODEL_RI_TASK_EVENT_RESET), "RESET");
-    EXPECT_STREQ(TaskTypeToString(ACL_MODEL_RI_TASK_DEFAULT), "UNKNOWN");
+    EXPECT_STREQ(TaskTypeToString(ACL_MODEL_RI_TASK_DEFAULT), "DEFAULT");
 
     uint32_t taskRatio[2] = {1, 0};
     EXPECT_STREQ(GetKernelTypeString(ACL_KERNEL_TYPE_CUBE, taskRatio), "AIC_ONLY");
@@ -1049,13 +1018,12 @@ TEST_F(SkDumpJsonDirectHelperTest, SkTaskQueueAndFileWritingHelpers)
     queue->taskInfos[1].entry[3] = 0x8000;
     queue->taskInfos[1].debugOptions = 16;
 
-    Json taskJson = SkTaskToJson(task, "AIC");
-    EXPECT_EQ(taskJson["queueName"], "AIC");
+    Json taskJson = SkTaskToJson(task);
     EXPECT_EQ(taskJson["taskQue"]["taskCnt"], 2);
     EXPECT_EQ(taskJson["taskQue"]["taskInfos"][0]["entries"].size(), 2);
     EXPECT_EQ(taskJson["taskQue"]["taskInfos"][1]["entries"].size(), 4);
 
-    Json noQueueJson = SkTaskToJson(SkTask(), "EMPTY");
+    Json noQueueJson = SkTaskToJson(SkTask());
     EXPECT_FALSE(noQueueJson.contains("taskQue"));
 
     std::string outputPath = CreateSkMetaDirectory(nullptr) + "/ut_write_json.json";
@@ -1066,7 +1034,9 @@ TEST_F(SkDumpJsonDirectHelperTest, SkTaskQueueAndFileWritingHelpers)
 
     SuperKernelGraph graph(nullptr);
     sk::logger::FileLogger::Instance().SetEnabled(true);
-    EXPECT_TRUE(DumpSkTaskQueueToJson(graph, task, task));
+    std::unordered_map<std::string, Json> taskQueues;
+    taskQueues["99"] = SkTaskToQueueJson(task, task, 99);
+    EXPECT_TRUE(DumpAllTaskQueuesToJson(graph, taskQueues));
     sk::logger::FileLogger::Instance().SetEnabled(false);
 }
 
@@ -1147,101 +1117,7 @@ TEST_F(SkDumpJsonDirectHelperTest, RawTaskParamJsonCoversAllTaskTypes)
     Json defaultJson;
     AddTaskParamsToJson(defaultJson, params, nullptr);
     EXPECT_TRUE(defaultJson.empty());
-    EXPECT_EQ(TaskToJson(2, 9, ACL_MODEL_RI_TASK_DEFAULT, nullptr, nullptr)["taskType"], "UNKNOWN");
-}
-
-TEST_F(SkDumpJsonDirectHelperTest, RawTaskProcessingCoversSeqIdParamsAndStreamBranches)
-{
-    UtRITaskInternal task{};
-    task.taskId = 123;
-    task.type = ACL_MODEL_RI_TASK_EVENT_RECORD;
-    task.params.type = ACL_MODEL_RI_TASK_EVENT_RECORD;
-    task.params.eventRecordTaskParams.event = reinterpret_cast<aclrtEvent>(0x1230);
-    task.params.eventRecordTaskParams.eventFlag = 77;
-
-    Json tasksJson = Json::array();
-    size_t totalTasks = 0;
-    ProcessTaskToJson(tasksJson, 0, 42, reinterpret_cast<aclmdlRITask>(&task), totalTasks);
-    EXPECT_EQ(totalTasks, 1);
-    EXPECT_EQ(tasksJson[0]["taskId"], 123);
-    EXPECT_EQ(tasksJson[0]["eventRecordParams"]["eventFlag"], 77);
-
-    MOCKER(aclmdlRITaskGetParams).stubs().will(invoke(FakeAclmdlRITaskGetParamsFailure));
-    ProcessTaskToJson(tasksJson, 1, 42, reinterpret_cast<aclmdlRITask>(&task), totalTasks);
-    EXPECT_EQ(totalTasks, 2);
-    EXPECT_FALSE(tasksJson[1].contains("eventRecordParams"));
-}
-
-TEST_F(SkDumpJsonDirectHelperTest, RawStreamProcessingCoversTaskFetchSuccessAndFailures)
-{
-    g_utStreamTask = {};
-    g_utStreamTask.taskId = 456;
-    g_utStreamTask.type = ACL_MODEL_RI_TASK_VALUE_WAIT;
-    g_utStreamTask.params.type = ACL_MODEL_RI_TASK_VALUE_WAIT;
-    g_utStreamTask.params.valueWaitTaskParams.devAddr = reinterpret_cast<void*>(0x4560);
-    g_utStreamTask.params.valueWaitTaskParams.value = 0x4561;
-    g_utStreamTask.params.valueWaitTaskParams.flag = 3;
-
-    SkUtResetTestControls();
-    SkUtSetStreamId(0, 900);
-    MOCKER(aclmdlRIGetTasksByStream).stubs().will(invoke(FakeAclmdlRIGetTasksByStreamOneTask));
-
-    size_t totalTasks = 0;
-    Json streamJson = ProcessStreamToJson(reinterpret_cast<aclrtStream>(0x1), 0, totalTasks);
-    EXPECT_EQ(totalTasks, 1);
-    EXPECT_EQ(streamJson["streamId"], 900);
-    EXPECT_EQ(streamJson["taskCount"], 1);
-    EXPECT_EQ(streamJson["tasks"][0]["taskId"], 456);
-    EXPECT_EQ(streamJson["tasks"][0]["valueWaitParams"]["flag"], 3);
-}
-
-TEST_F(SkDumpJsonDirectHelperTest, RawStreamProcessingCoversCountFailure)
-{
-    MOCKER(aclmdlRIGetTasksByStream).stubs().will(invoke(FakeAclmdlRIGetTasksByStreamCountFailure));
-    size_t totalTasks = 0;
-    Json streamJson = ProcessStreamToJson(reinterpret_cast<aclrtStream>(0x1), 0, totalTasks);
-    EXPECT_TRUE(streamJson.empty());
-    EXPECT_EQ(totalTasks, 0);
-}
-
-TEST_F(SkDumpJsonDirectHelperTest, RawStreamProcessingCoversFetchFailure)
-{
-    MOCKER(aclmdlRIGetTasksByStream).stubs().will(invoke(FakeAclmdlRIGetTasksByStreamFetchFailure));
-    size_t totalTasks = 0;
-    Json streamJson = ProcessStreamToJson(reinterpret_cast<aclrtStream>(0x1), 0, totalTasks);
-    EXPECT_TRUE(streamJson.empty());
-    EXPECT_EQ(totalTasks, 0);
-}
-
-TEST_F(SkDumpJsonDirectHelperTest, RawTaskDumpCoversStreamCollectionAndErrorPaths)
-{
-    aclmdlRI modelRI = reinterpret_cast<aclmdlRI>(0x12345678);
-    SkUtResetTestControls();
-    SkUtSetModelStreamNum(2);
-    SkUtSetStreamId(0, 100);
-    SkUtSetStreamId(1, 101);
-
-    sk::logger::FileLogger::Instance().SetEnabled(true);
-    EXPECT_TRUE(DumpModelRITasksToJson(modelRI, 0, nullptr, "ut_raw_tasks"));
-
-    SuperKernelOptionsManager optsMgr;
-    EXPECT_TRUE(DumpModelRITasksToJson(modelRI, 1, &optsMgr, "ut_raw_tasks_opts"));
-
-    SkUtSetAclrtStreamGetIdRet(ACL_ERROR_FAILURE);
-    EXPECT_TRUE(DumpModelRITasksToJson(modelRI, 2, nullptr, "ut_raw_tasks_stream_id_fail"));
-
-    SkUtResetTestControls();
-    SkUtSetAclmdlRIGetStreamsRet(0, ACL_ERROR_FAILURE);
-    EXPECT_FALSE(DumpModelRITasksToJson(modelRI, 0, nullptr, "ut_raw_tasks_stream_count_fail"));
-
-    SkUtResetTestControls();
-    SkUtSetModelStreamNum(1);
-    SkUtSetAclmdlRIGetStreamsRet(1, ACL_ERROR_FAILURE);
-    EXPECT_FALSE(DumpModelRITasksToJson(modelRI, 0, nullptr, "ut_raw_tasks_stream_fetch_fail"));
-
-    sk::logger::FileLogger::Instance().SetEnabled(false);
-    EXPECT_TRUE(DumpModelRITasksToJson(modelRI, 0, nullptr, "ut_raw_tasks_disabled"));
-    SkUtResetTestControls();
+    EXPECT_EQ(TaskToJson(2, 9, ACL_MODEL_RI_TASK_DEFAULT, nullptr, nullptr)["taskType"], "DEFAULT");
 }
 
 TEST_F(SkDumpJsonDirectHelperTest, ScopePrintingHelpersCoverKernelSetAndBatchBranches)
@@ -1366,325 +1242,401 @@ TEST_F(SkDumpJsonDirectHelperTest, EnabledDumpApisWriteGraphFiles)
     sk::logger::FileLogger::Instance().SetEnabled(false);
 }
 
-// ==================== OptionsManagerToJson Tests ====================
+// ==================== DumpRawTaskJson Tests ====================
 
-class OptionsManagerToJsonTest : public SkDumpJsonTest {};
+class DumpRawTaskJsonTest : public SkDumpJsonTest {};
 
-TEST_F(OptionsManagerToJsonTest, EmptyOptionsManager)
+TEST_F(DumpRawTaskJsonTest, DisabledLoggerSkipDump)
 {
-    SuperKernelOptionsManager optsMgr;
-    Json optionsJson = OptionsManagerToJson(optsMgr);
-    EXPECT_EQ(optionsJson["numOptions"], 0);
-    EXPECT_TRUE(optionsJson["options"].is_array());
-    EXPECT_EQ(optionsJson["options"].size(), 0);
+    sk::logger::FileLogger::Instance().SetEnabled(false);
+
+    SuperKernelOptionsManager opts;
+    bool result = DumpRawTaskJson(nullptr, opts, "/tmp", "test_raw_tasks");
+
+    EXPECT_TRUE(result);
+
+    sk::logger::FileLogger::Instance().SetEnabled(true);
 }
 
-TEST_F(OptionsManagerToJsonTest, OptionsManagerWithNumberOption)
-{
-    SuperKernelOptionsManager optsMgr;
-    optsMgr.AddOption(std::make_unique<NumberOptOption>("preload_code", aclskOptionType::PRELOAD_CODE, 1, 0, 2));
-    auto* opt = optsMgr.GetOption(aclskOptionType::PRELOAD_CODE);
-    if (opt != nullptr) {
-        opt->SetValue(1);
-    }
-
-    Json optionsJson = OptionsManagerToJson(optsMgr);
-    EXPECT_EQ(optionsJson["numOptions"], 1);
-    EXPECT_EQ(optionsJson["options"].size(), 1);
-    EXPECT_EQ(optionsJson["options"][0]["name"], "preload_code");
-    EXPECT_EQ(optionsJson["options"][0]["type"], static_cast<int>(aclskOptionType::PRELOAD_CODE));
-    EXPECT_EQ(optionsJson["options"][0]["value"], 1);
-}
-
-TEST_F(OptionsManagerToJsonTest, OptionsManagerWithMultipleNumberOptions)
-{
-    SuperKernelOptionsManager optsMgr;
-    optsMgr.AddOption(std::make_unique<NumberOptOption>("preload_code", aclskOptionType::PRELOAD_CODE, 1, 0, 2));
-    optsMgr.AddOption(std::make_unique<NumberOptOption>("split_mode", aclskOptionType::SPLIT_MODE, 4, 1, 4));
-    optsMgr.AddOption(std::make_unique<NumberOptOption>("stream_fusion", aclskOptionType::STREAM_FUSION, 1, 0, 1));
-
-    auto* preloadOpt = optsMgr.GetOption(aclskOptionType::PRELOAD_CODE);
-    if (preloadOpt != nullptr) preloadOpt->SetValue(1);
-    auto* splitOpt = optsMgr.GetOption(aclskOptionType::SPLIT_MODE);
-    if (splitOpt != nullptr) splitOpt->SetValue(2);
-    auto* fusionOpt = optsMgr.GetOption(aclskOptionType::STREAM_FUSION);
-    if (fusionOpt != nullptr) fusionOpt->SetValue(0);
-
-    Json optionsJson = OptionsManagerToJson(optsMgr);
-    EXPECT_EQ(optionsJson["numOptions"], 3);
-    EXPECT_EQ(optionsJson["options"].size(), 3);
-}
-
-TEST_F(OptionsManagerToJsonTest, OptionsManagerWithStringListOption)
-{
-    SuperKernelOptionsManager optsMgr;
-    optsMgr.AddOption(std::make_unique<StringListOptOption>("dcci_disable_on_kernel", aclskOptionType::DCCI_DISABLE_ON_KERNEL));
-    auto* opt = optsMgr.GetOption(aclskOptionType::DCCI_DISABLE_ON_KERNEL);
-    if (opt != nullptr) {
-        std::vector<std::string> kernelNames = {"kernel1", "kernel2", "kernel3"};
-        opt->SetValue(kernelNames);
-    }
-
-    Json optionsJson = OptionsManagerToJson(optsMgr);
-    EXPECT_EQ(optionsJson["numOptions"], 1);
-    EXPECT_EQ(optionsJson["options"][0]["name"], "dcci_disable_on_kernel");
-    EXPECT_TRUE(optionsJson["options"][0]["value"].is_array());
-    EXPECT_EQ(optionsJson["options"][0]["value"].size(), 3);
-    EXPECT_EQ(optionsJson["options"][0]["value"][0], "kernel1");
-    EXPECT_EQ(optionsJson["options"][0]["value"][1], "kernel2");
-    EXPECT_EQ(optionsJson["options"][0]["value"][2], "kernel3");
-}
-
-TEST_F(OptionsManagerToJsonTest, OptionsManagerWithMapOption)
-{
-    SuperKernelOptionsManager optsMgr;
-    optsMgr.AddOption(std::make_unique<MapOptOption>("opt_extend_option", aclskOptionType::OPT_EXTEND_OPTION));
-    auto* opt = optsMgr.GetOption(aclskOptionType::OPT_EXTEND_OPTION);
-    if (opt != nullptr) {
-        std::unordered_map<std::string, std::vector<std::string>> mapValue;
-        mapValue["key1"] = {"value1", "value2"};
-        mapValue["key2"] = {"value3"};
-        opt->SetValue(mapValue);
-    }
-
-    Json optionsJson = OptionsManagerToJson(optsMgr);
-    EXPECT_EQ(optionsJson["numOptions"], 1);
-    EXPECT_EQ(optionsJson["options"][0]["name"], "opt_extend_option");
-    EXPECT_TRUE(optionsJson["options"][0]["value"].is_object());
-    EXPECT_EQ(optionsJson["options"][0]["value"]["key1"].size(), 2);
-    EXPECT_EQ(optionsJson["options"][0]["value"]["key2"].size(), 1);
-}
-
-TEST_F(OptionsManagerToJsonTest, OptionsManagerWithMixedOptions)
-{
-    SuperKernelOptionsManager optsMgr;
-    optsMgr.AddOption(std::make_unique<NumberOptOption>("preload_code", aclskOptionType::PRELOAD_CODE, 1, 0, 2));
-    optsMgr.AddOption(std::make_unique<StringListOptOption>("dcci_disable_on_kernel", aclskOptionType::DCCI_DISABLE_ON_KERNEL));
-    optsMgr.AddOption(std::make_unique<MapOptOption>("opt_extend_option", aclskOptionType::OPT_EXTEND_OPTION));
-
-    auto* preloadOpt = optsMgr.GetOption(aclskOptionType::PRELOAD_CODE);
-    if (preloadOpt != nullptr) preloadOpt->SetValue(1);
-
-    auto* dcciOpt = optsMgr.GetOption(aclskOptionType::DCCI_DISABLE_ON_KERNEL);
-    if (dcciOpt != nullptr) {
-        std::vector<std::string> kernels = {"test_kernel"};
-        dcciOpt->SetValue(kernels);
-    }
-
-    auto* extendOpt = optsMgr.GetOption(aclskOptionType::OPT_EXTEND_OPTION);
-    if (extendOpt != nullptr) {
-        std::unordered_map<std::string, std::vector<std::string>> extendValue;
-        extendValue["param1"] = {"v1"};
-        extendOpt->SetValue(extendValue);
-    }
-
-    Json optionsJson = OptionsManagerToJson(optsMgr);
-    EXPECT_EQ(optionsJson["numOptions"], 3);
-    EXPECT_EQ(optionsJson["options"].size(), 3);
-}
-
-TEST_F(OptionsManagerToJsonTest, OptionsManagerWithConstantCodegenOption)
-{
-    SuperKernelOptionsManager optsMgr;
-    optsMgr.AddOption(std::make_unique<NumberOptOption>("constant_codegen", aclskOptionType::CONSTANT_CODEGEN, 0, 0, 1));
-    auto* opt = optsMgr.GetOption(aclskOptionType::CONSTANT_CODEGEN);
-    if (opt != nullptr) {
-        opt->SetValue(1);
-    }
-
-    Json optionsJson = OptionsManagerToJson(optsMgr);
-    EXPECT_EQ(optionsJson["numOptions"], 1);
-    EXPECT_EQ(optionsJson["options"][0]["name"], "constant_codegen");
-    EXPECT_EQ(optionsJson["options"][0]["value"], 1);
-}
-
-TEST_F(OptionsManagerToJsonTest, OptionsManagerWithAutoOpParallelOption)
-{
-    SuperKernelOptionsManager optsMgr;
-    optsMgr.AddOption(std::make_unique<NumberOptOption>("auto_op_parallel", aclskOptionType::AUTO_OP_PARALLEL, 0, 0, 1));
-    auto* opt = optsMgr.GetOption(aclskOptionType::AUTO_OP_PARALLEL);
-    if (opt != nullptr) {
-        opt->SetValue(0);
-    }
-
-    Json optionsJson = OptionsManagerToJson(optsMgr);
-    EXPECT_EQ(optionsJson["numOptions"], 1);
-    EXPECT_EQ(optionsJson["options"][0]["name"], "auto_op_parallel");
-    EXPECT_EQ(optionsJson["options"][0]["value"], 0);
-}
-
-TEST_F(OptionsManagerToJsonTest, OptionsManagerWithDebugCrossCoreSyncCheckOption)
-{
-    SuperKernelOptionsManager optsMgr;
-    optsMgr.AddOption(std::make_unique<NumberOptOption>("debug_cross_core_sync_check", aclskOptionType::DEBUG_CROSS_CORE_SYNC_CHECK, 0, 0, 1));
-    auto* opt = optsMgr.GetOption(aclskOptionType::DEBUG_CROSS_CORE_SYNC_CHECK);
-    if (opt != nullptr) {
-        opt->SetValue(1);
-    }
-
-    Json optionsJson = OptionsManagerToJson(optsMgr);
-    EXPECT_EQ(optionsJson["numOptions"], 1);
-    EXPECT_EQ(optionsJson["options"][0]["name"], "debug_cross_core_sync_check");
-    EXPECT_EQ(optionsJson["options"][0]["value"], 1);
-}
-
-TEST_F(OptionsManagerToJsonTest, OptionsManagerWithDebugDcciBeforeKernelStart)
-{
-    SuperKernelOptionsManager optsMgr;
-    optsMgr.AddOption(std::make_unique<StringListOptOption>("dcci_before_kernel_start", aclskOptionType::DCCI_BEFORE_KERNEL_START));
-    auto* opt = optsMgr.GetOption(aclskOptionType::DCCI_BEFORE_KERNEL_START);
-    if (opt != nullptr) {
-        std::vector<std::string> kernels = {"kernel_a", "kernel_b"};
-        opt->SetValue(kernels);
-    }
-
-    Json optionsJson = OptionsManagerToJson(optsMgr);
-    EXPECT_EQ(optionsJson["numOptions"], 1);
-    EXPECT_EQ(optionsJson["options"][0]["name"], "dcci_before_kernel_start");
-    EXPECT_EQ(optionsJson["options"][0]["value"].size(), 2);
-}
-
-TEST_F(OptionsManagerToJsonTest, OptionsManagerWithDebugDcciAfterKernelEnd)
-{
-    SuperKernelOptionsManager optsMgr;
-    optsMgr.AddOption(std::make_unique<StringListOptOption>("dcci_after_kernel_end", aclskOptionType::DCCI_AFTER_KERNEL_END));
-    auto* opt = optsMgr.GetOption(aclskOptionType::DCCI_AFTER_KERNEL_END);
-    if (opt != nullptr) {
-        std::vector<std::string> kernels = {"kernel_end"};
-        opt->SetValue(kernels);
-    }
-
-    Json optionsJson = OptionsManagerToJson(optsMgr);
-    EXPECT_EQ(optionsJson["numOptions"], 1);
-    EXPECT_EQ(optionsJson["options"][0]["name"], "dcci_after_kernel_end");
-    EXPECT_EQ(optionsJson["options"][0]["value"].size(), 1);
-}
-
-TEST_F(OptionsManagerToJsonTest, OptionsManagerWithDebugSyncAll)
-{
-    SuperKernelOptionsManager optsMgr;
-    optsMgr.AddOption(std::make_unique<NumberOptOption>("debug_sync_all", aclskOptionType::DEBUG_SYNC_ALL, 0, 0, 1));
-    auto* opt = optsMgr.GetOption(aclskOptionType::DEBUG_SYNC_ALL);
-    if (opt != nullptr) {
-        opt->SetValue(1);
-    }
-
-    Json optionsJson = OptionsManagerToJson(optsMgr);
-    EXPECT_EQ(optionsJson["numOptions"], 1);
-    EXPECT_EQ(optionsJson["options"][0]["name"], "debug_sync_all");
-    EXPECT_EQ(optionsJson["options"][0]["value"], 1);
-}
-
-TEST_F(OptionsManagerToJsonTest, OptionsManagerWithDebugExtendOption)
-{
-    SuperKernelOptionsManager optsMgr;
-    optsMgr.AddOption(std::make_unique<MapOptOption>("debug_extend_option", aclskOptionType::DEBUG_EXTEND_OPTION));
-    auto* opt = optsMgr.GetOption(aclskOptionType::DEBUG_EXTEND_OPTION);
-    if (opt != nullptr) {
-        std::unordered_map<std::string, std::vector<std::string>> debugExtend;
-        debugExtend["debug_flag"] = {"enabled"};
-        opt->SetValue(debugExtend);
-    }
-
-    Json optionsJson = OptionsManagerToJson(optsMgr);
-    EXPECT_EQ(optionsJson["numOptions"], 1);
-    EXPECT_EQ(optionsJson["options"][0]["name"], "debug_extend_option");
-    EXPECT_TRUE(optionsJson["options"][0]["value"].contains("debug_flag"));
-}
-
-TEST_F(OptionsManagerToJsonTest, OptionsManagerWithAllOptionTypes)
-{
-    SuperKernelOptionsManager optsMgr;
-    optsMgr.AddOption(std::make_unique<NumberOptOption>("preload_code", aclskOptionType::PRELOAD_CODE, 1, 0, 2));
-    optsMgr.AddOption(std::make_unique<NumberOptOption>("split_mode", aclskOptionType::SPLIT_MODE, 4, 1, 4));
-    optsMgr.AddOption(std::make_unique<StringListOptOption>("dcci_disable_on_kernel", aclskOptionType::DCCI_DISABLE_ON_KERNEL));
-    optsMgr.AddOption(std::make_unique<StringListOptOption>("dcci_before_kernel_start", aclskOptionType::DCCI_BEFORE_KERNEL_START));
-    optsMgr.AddOption(std::make_unique<StringListOptOption>("dcci_after_kernel_end", aclskOptionType::DCCI_AFTER_KERNEL_END));
-    optsMgr.AddOption(std::make_unique<NumberOptOption>("debug_sync_all", aclskOptionType::DEBUG_SYNC_ALL, 0, 0, 1));
-    optsMgr.AddOption(std::make_unique<MapOptOption>("opt_extend_option", aclskOptionType::OPT_EXTEND_OPTION));
-    optsMgr.AddOption(std::make_unique<MapOptOption>("debug_extend_option", aclskOptionType::DEBUG_EXTEND_OPTION));
-    optsMgr.AddOption(std::make_unique<NumberOptOption>("stream_fusion", aclskOptionType::STREAM_FUSION, 1, 0, 1));
-    optsMgr.AddOption(std::make_unique<NumberOptOption>("constant_codegen", aclskOptionType::CONSTANT_CODEGEN, 0, 0, 1));
-    optsMgr.AddOption(std::make_unique<NumberOptOption>("auto_op_parallel", aclskOptionType::AUTO_OP_PARALLEL, 0, 0, 1));
-    optsMgr.AddOption(std::make_unique<NumberOptOption>("debug_cross_core_sync_check", aclskOptionType::DEBUG_CROSS_CORE_SYNC_CHECK, 0, 0, 1));
-
-    Json optionsJson = OptionsManagerToJson(optsMgr);
-    EXPECT_EQ(optionsJson["numOptions"], 12);
-    EXPECT_EQ(optionsJson["options"].size(), 12);
-}
-
-// ==================== DumpModelRITasksToJson Comprehensive Tests ====================
-
-TEST_F(DumpModelRITasksToJsonTest, WithMultipleOptions)
+TEST_F(DumpRawTaskJsonTest, EmptyModelRISucceedsWithEmptyGraph)
 {
     sk::logger::FileLogger::Instance().SetEnabled(true);
-    
-    aclmdlRI modelRI = reinterpret_cast<aclmdlRI>(0x12345678);
-    SkUtResetTestControls();
-    SkUtSetModelStreamNum(1);
-    SkUtSetStreamId(0, 100);
-    SkUtSetStreamTaskNum(0, 0);
 
-    SuperKernelOptionsManager optsMgr;
-    optsMgr.AddOption(std::make_unique<NumberOptOption>("preload_code", aclskOptionType::PRELOAD_CODE, 1, 0, 2));
-    optsMgr.AddOption(std::make_unique<NumberOptOption>("split_mode", aclskOptionType::SPLIT_MODE, 4, 1, 4));
-    auto* preloadOpt = optsMgr.GetOption(aclskOptionType::PRELOAD_CODE);
-    if (preloadOpt != nullptr) preloadOpt->SetValue(2);
-    auto* splitOpt = optsMgr.GetOption(aclskOptionType::SPLIT_MODE);
-    if (splitOpt != nullptr) splitOpt->SetValue(3);
+    SuperKernelOptionsManager opts;
+    std::string metaDir = CreateSkMetaDirectory(nullptr);
+    bool result = DumpRawTaskJson(nullptr, opts, metaDir, "test_raw_tasks");
 
-    EXPECT_TRUE(DumpModelRITasksToJson(modelRI, 0, &optsMgr, "ut_raw_tasks_with_multi_opts"));
-    
+    EXPECT_TRUE(result);
+
     sk::logger::FileLogger::Instance().SetEnabled(false);
-    SkUtResetTestControls();
 }
 
-TEST_F(DumpModelRITasksToJsonTest, WithStringListOptions)
+TEST_F(DumpRawTaskJsonTest, InvalidMetaDirFails)
 {
     sk::logger::FileLogger::Instance().SetEnabled(true);
-    
-    aclmdlRI modelRI = reinterpret_cast<aclmdlRI>(0x12345678);
-    SkUtResetTestControls();
-    SkUtSetModelStreamNum(1);
-    SkUtSetStreamId(0, 100);
-    SkUtSetStreamTaskNum(0, 0);
 
-    SuperKernelOptionsManager optsMgr;
-    optsMgr.AddOption(std::make_unique<StringListOptOption>("dcci_disable_on_kernel", aclskOptionType::DCCI_DISABLE_ON_KERNEL));
-    auto* opt = optsMgr.GetOption(aclskOptionType::DCCI_DISABLE_ON_KERNEL);
-    if (opt != nullptr) {
-        std::vector<std::string> kernels = {"kernel_alpha", "kernel_beta"};
-        opt->SetValue(kernels);
-    }
+    SuperKernelOptionsManager opts;
+    bool result = DumpRawTaskJson(nullptr, opts, "/nonexistent_dir_12345", "test_raw_tasks");
 
-    EXPECT_TRUE(DumpModelRITasksToJson(modelRI, 0, &optsMgr, "ut_raw_tasks_with_string_list_opts"));
-    
+    EXPECT_FALSE(result);
+
     sk::logger::FileLogger::Instance().SetEnabled(false);
-    SkUtResetTestControls();
 }
 
-TEST_F(DumpModelRITasksToJsonTest, WithMapOptions)
+TEST_F(DumpRawTaskJsonTest, EmptyFilenameWithValidDir)
 {
     sk::logger::FileLogger::Instance().SetEnabled(true);
-    
-    aclmdlRI modelRI = reinterpret_cast<aclmdlRI>(0x12345678);
-    SkUtResetTestControls();
-    SkUtSetModelStreamNum(1);
-    SkUtSetStreamId(0, 100);
-    SkUtSetStreamTaskNum(0, 0);
 
-    SuperKernelOptionsManager optsMgr;
-    optsMgr.AddOption(std::make_unique<MapOptOption>("opt_extend_option", aclskOptionType::OPT_EXTEND_OPTION));
-    auto* opt = optsMgr.GetOption(aclskOptionType::OPT_EXTEND_OPTION);
-    if (opt != nullptr) {
-        std::unordered_map<std::string, std::vector<std::string>> extendValue;
-        extendValue["config1"] = {"param1", "param2"};
-        extendValue["config2"] = {"param3"};
-        opt->SetValue(extendValue);
-    }
+    SuperKernelOptionsManager opts;
+    std::string metaDir = CreateSkMetaDirectory(nullptr);
+    bool result = DumpRawTaskJson(nullptr, opts, metaDir, "");
 
-    EXPECT_TRUE(DumpModelRITasksToJson(modelRI, 0, &optsMgr, "ut_raw_tasks_with_map_opts"));
-    
+    EXPECT_FALSE(result);
+
     sk::logger::FileLogger::Instance().SetEnabled(false);
-    SkUtResetTestControls();
+}
+
+TEST_F(DumpRawTaskJsonTest, ValidMetaDirAndFilename)
+{
+    sk::logger::FileLogger::Instance().SetEnabled(true);
+
+    SuperKernelOptionsManager opts;
+    opts.AddOption(std::make_unique<NumberOptOption>("preload_code", aclskOptionType::PRELOAD_CODE, 1));
+    opts.AddOption(std::make_unique<NumberOptOption>("split_mode", aclskOptionType::SPLIT_MODE, 4));
+    
+    std::string metaDir = CreateSkMetaDirectory(nullptr);
+    std::string filename = "test_dump_valid";
+    bool result = DumpRawTaskJson(nullptr, opts, metaDir, filename);
+
+    EXPECT_TRUE(result);
+
+    std::string jsonPath = metaDir + "/" + filename + ".json";
+    std::ifstream file(jsonPath);
+    EXPECT_TRUE(file.good());
+
+    sk::logger::FileLogger::Instance().SetEnabled(false);
+}
+
+TEST_F(DumpRawTaskJsonTest, WithPopulatedOptionsManager)
+{
+    sk::logger::FileLogger::Instance().SetEnabled(true);
+
+    SuperKernelOptionsManager opts;
+    opts.AddOption(std::make_unique<NumberOptOption>("preload_code", aclskOptionType::PRELOAD_CODE, 2));
+    opts.AddOption(std::make_unique<NumberOptOption>("split_mode", aclskOptionType::SPLIT_MODE, 3));
+    opts.AddOption(std::make_unique<NumberOptOption>("debug_sync_all", aclskOptionType::DEBUG_SYNC_ALL, 1));
+    
+    std::vector<std::string> dcciKernels = {"Add", "Mul", "Conv"};
+    opts.AddOption(std::make_unique<StringListOptOption>(
+        "dcci_disable", aclskOptionType::DCCI_DISABLE_ON_KERNEL, dcciKernels));
+    
+    std::string metaDir = CreateSkMetaDirectory(nullptr);
+    std::string filename = "test_with_options";
+    bool result = DumpRawTaskJson(nullptr, opts, metaDir, filename);
+
+    EXPECT_TRUE(result);
+
+    sk::logger::FileLogger::Instance().SetEnabled(false);
+}
+
+TEST_F(DumpRawTaskJsonTest, FileAlreadyExists)
+{
+    sk::logger::FileLogger::Instance().SetEnabled(true);
+
+    SuperKernelOptionsManager opts;
+    std::string metaDir = CreateSkMetaDirectory(nullptr);
+    std::string filename = "test_existing";
+    std::string jsonPath = metaDir + "/" + filename + ".json";
+    
+    std::ofstream existingFile(jsonPath);
+    existingFile << "{\"existing\": true}";
+    existingFile.close();
+    
+    bool result = DumpRawTaskJson(nullptr, opts, metaDir, filename);
+
+    EXPECT_TRUE(result);
+
+    std::ifstream file(jsonPath);
+    std::string content;
+    std::getline(file, content, '\0');
+    EXPECT_TRUE(content.find("existing") == std::string::npos);
+
+    sk::logger::FileLogger::Instance().SetEnabled(false);
+}
+
+// ==================== SuperKernelGraph::ToJson Tests ====================
+
+class SuperKernelGraphToJsonTest : public SkDumpJsonTest {};
+
+TEST_F(SuperKernelGraphToJsonTest, EmptyGraphToJson)
+{
+    SuperKernelGraph graph(nullptr);
+    
+    Json json = graph.ToJson();
+    EXPECT_TRUE(json.contains("version"));
+    EXPECT_TRUE(json.contains("description"));
+    EXPECT_TRUE(json.contains("modelRI"));
+    EXPECT_TRUE(json.contains("deviceId"));
+    EXPECT_TRUE(json.contains("options"));
+    EXPECT_TRUE(json.contains("totalStreams"));
+    EXPECT_TRUE(json.contains("totalTasks"));
+    EXPECT_TRUE(json.contains("streams"));
+    
+    EXPECT_EQ(json["version"], "1.0");
+    EXPECT_EQ(json["totalStreams"], 0);
+    EXPECT_EQ(json["totalTasks"], 0);
+    EXPECT_TRUE(json["streams"].is_array());
+    EXPECT_EQ(json["streams"].size(), 0);
+}
+
+TEST_F(SuperKernelGraphToJsonTest, GraphWithKernelNodesToJson)
+{
+    SuperKernelGraph graph(nullptr);
+    graph.scopeIdxToName[0] = "(none)";
+    graph.scopeIdxToName[1] = "scope_a";
+    
+    auto node1 = CreateKernelNode(10);
+    AddKernelInfoToNode(node1.get());
+    node1->SetNodeType(SkNodeType::NODE_KERNEL);
+    node1->streamIdxInGraph = 0;
+    node1->streamId = 5;
+    graph.graphMap[10] = std::move(node1);
+    
+    auto node2 = CreateKernelNode(20);
+    AddKernelInfoToNode(node2.get());
+    node2->SetNodeType(SkNodeType::NODE_KERNEL);
+    node2->streamIdxInGraph = 0;
+    node2->streamId = 5;
+    graph.graphMap[20] = std::move(node2);
+    
+    graph.streams.push_back(reinterpret_cast<aclrtStream>(0x100));
+    graph.headNodes.push_back(10);
+    graph.nodeSizeInStream.push_back(2);
+    
+    Json json = graph.ToJson();
+    EXPECT_EQ(json["totalTasks"], 2);
+    EXPECT_EQ(json["totalStreams"], 1);
+    EXPECT_EQ(json["streams"].size(), 1);
+    
+    if (json["streams"].size() > 0) {
+        EXPECT_TRUE(json["streams"][0].contains("streamId"));
+        EXPECT_TRUE(json["streams"][0].contains("taskCount"));
+        EXPECT_TRUE(json["streams"][0].contains("tasks"));
+    }
+}
+
+TEST_F(SuperKernelGraphToJsonTest, GraphWithMixedNodeTypesToJson)
+{
+    SuperKernelGraph graph(nullptr);
+    
+    auto kernelNode = CreateKernelNode(10);
+    AddKernelInfoToNode(kernelNode.get());
+    kernelNode->SetNodeType(SkNodeType::NODE_KERNEL);
+    kernelNode->streamIdxInGraph = 0;
+    kernelNode->streamId = 1;
+    graph.graphMap[10] = std::move(kernelNode);
+    
+    auto memoryNode = CreateMemoryNode(11, ACL_MODEL_RI_TASK_EVENT_RECORD);
+    memoryNode->SetNodeType(SkNodeType::NODE_NOTIFY);
+    memoryNode->streamIdxInGraph = 0;
+    memoryNode->streamId = 1;
+    memoryNode->nodeInfos.syncInfos.eventId = 0x1234;
+    graph.graphMap[11] = std::move(memoryNode);
+    
+    auto waitNode = CreateMemoryNode(12, ACL_MODEL_RI_TASK_EVENT_WAIT);
+    waitNode->SetNodeType(SkNodeType::NODE_WAIT);
+    waitNode->streamIdxInGraph = 0;
+    waitNode->streamId = 1;
+    waitNode->nodeInfos.syncInfos.eventId = 0x5678;
+    graph.graphMap[12] = std::move(waitNode);
+    
+    auto defaultNode = std::make_unique<SuperKernelDefaultNode>(
+        nullptr, ACL_MODEL_RI_TASK_DEFAULT, 0, 0, INVALID_STREAM_ID, INVALID_TASK_ID);
+    defaultNode->SetNodeId(13);
+    defaultNode->SetNodeType(SkNodeType::NODE_DEFAULT);
+    defaultNode->streamIdxInGraph = 0;
+    defaultNode->streamId = 1;
+    graph.graphMap[13] = std::move(defaultNode);
+    
+    graph.streams.push_back(reinterpret_cast<aclrtStream>(0x200));
+    graph.headNodes.push_back(10);
+    graph.nodeSizeInStream.push_back(4);
+    
+    Json json = graph.ToJson();
+    EXPECT_EQ(json["totalTasks"], 4);
+    EXPECT_EQ(json["totalStreams"], 1);
+}
+
+TEST_F(SuperKernelGraphToJsonTest, GraphWithMultipleStreamsToJson)
+{
+    SuperKernelGraph graph(nullptr);
+    
+    for (int i = 0; i < 3; ++i) {
+        auto node = CreateKernelNode(100 + i);
+        AddKernelInfoToNode(node.get());
+        node->SetNodeType(SkNodeType::NODE_KERNEL);
+        node->streamIdxInGraph = i;
+        node->streamId = i * 10;
+        graph.graphMap[100 + i] = std::move(node);
+        
+        graph.streams.push_back(reinterpret_cast<aclrtStream>(0x1000 + i));
+        graph.headNodes.push_back(100 + i);
+        graph.nodeSizeInStream.push_back(1);
+    }
+    
+    Json json = graph.ToJson();
+    EXPECT_EQ(json["totalStreams"], 3);
+    EXPECT_EQ(json["totalTasks"], 3);
+    EXPECT_EQ(json["streams"].size(), 3);
+}
+
+TEST_F(SuperKernelGraphToJsonTest, GraphWithOptionsToJson)
+{
+    SuperKernelOptionsManager opts;
+    opts.AddOption(std::make_unique<NumberOptOption>("preload_code", aclskOptionType::PRELOAD_CODE, 1));
+    opts.AddOption(std::make_unique<NumberOptOption>("split_mode", aclskOptionType::SPLIT_MODE, 4));
+    
+    SuperKernelGraph graph(nullptr, opts);
+    
+    Json json = graph.ToJson();
+    EXPECT_TRUE(json.contains("options"));
+    EXPECT_TRUE(json["options"].contains("numOptions"));
+}
+
+TEST_F(SuperKernelGraphToJsonTest, GraphWithMemoryWriteAndWaitNodesToJson)
+{
+    SuperKernelGraph graph(nullptr);
+    
+    auto writeNode = CreateMemoryNode(10, ACL_MODEL_RI_TASK_VALUE_WRITE);
+    writeNode->SetNodeType(SkNodeType::NODE_MEMORY_WRITE);
+    writeNode->streamIdxInGraph = 0;
+    writeNode->streamId = 1;
+    writeNode->nodeInfos.syncInfos.eventId = 0x1111;
+    writeNode->nodeInfos.syncInfos.addrValue = reinterpret_cast<void*>(0x2222);
+    writeNode->nodeInfos.syncInfos.memoryValue = 0x3333;
+    writeNode->nodeInfos.syncInfos.memoryWaitFlag = 5;
+    graph.graphMap[10] = std::move(writeNode);
+    
+    auto waitNode = CreateMemoryNode(11, ACL_MODEL_RI_TASK_VALUE_WAIT);
+    waitNode->SetNodeType(SkNodeType::NODE_MEMORY_WAIT);
+    waitNode->streamIdxInGraph = 0;
+    waitNode->streamId = 1;
+    waitNode->nodeInfos.syncInfos.eventId = 0x4444;
+    waitNode->nodeInfos.syncInfos.addrValue = reinterpret_cast<void*>(0x5555);
+    waitNode->nodeInfos.syncInfos.memoryValue = 0x6666;
+    waitNode->nodeInfos.syncInfos.memoryWaitFlag = 3;
+    waitNode->nodeInfos.syncInfos.correspondingNotifyNodeId = 10;
+    graph.graphMap[11] = std::move(waitNode);
+    
+    graph.streams.push_back(reinterpret_cast<aclrtStream>(0x300));
+    graph.headNodes.push_back(10);
+    graph.nodeSizeInStream.push_back(2);
+    
+    Json json = graph.ToJson();
+    EXPECT_EQ(json["totalTasks"], 2);
+    EXPECT_EQ(json["totalStreams"], 1);
+}
+
+// ==================== Node ToJson Tests ====================
+
+class NodeToJsonTest : public SkDumpJsonTest {};
+
+TEST_F(NodeToJsonTest, KernelNodeToJson)
+{
+    SuperKernelGraph graph(nullptr);
+    graph.scopeIdxToName[0] = "(none)";
+    
+    auto node = CreateKernelNode(10);
+    AddKernelInfoToNode(node.get());
+    node->SetNodeType(SkNodeType::NODE_KERNEL);
+    node->streamIdxInGraph = 0;
+    node->streamId = 5;
+    node->nodeInfos.kernelInfos.kernelType = SkKernelType::AIC_ONLY;
+    node->nodeInfos.kernelInfos.kernelTypeInt = 1;
+    node->nodeInfos.kernelInfos.numBlocks = 32;
+    node->nodeInfos.kernelInfos.funcName = "test_kernel_func";
+    node->nodeInfos.kernelInfos.vecNum = 8;
+    node->nodeInfos.kernelInfos.cubeNum = 16;
+    graph.graphMap[10] = std::move(node);
+    
+    Json kernelJson = SuperKernelKernelNodeToJson(
+        static_cast<const SuperKernelKernelNode*>(graph.graphMap[10].get()));
+    
+    EXPECT_TRUE(kernelJson.contains("taskId"));
+    EXPECT_TRUE(kernelJson.contains("streamId"));
+    EXPECT_TRUE(kernelJson.contains("taskType"));
+    EXPECT_TRUE(kernelJson.contains("taskTypeInt"));
+    EXPECT_TRUE(kernelJson.contains("kernelParams"));
+}
+
+TEST_F(NodeToJsonTest, MemoryNodeToJson)
+{
+    auto writeNode = CreateMemoryNode(20, ACL_MODEL_RI_TASK_VALUE_WRITE);
+    writeNode->SetNodeType(SkNodeType::NODE_MEMORY_WRITE);
+    writeNode->nodeInfos.syncInfos.eventId = 0x1234;
+    writeNode->nodeInfos.syncInfos.addrValue = reinterpret_cast<void*>(0x5678);
+    writeNode->nodeInfos.syncInfos.memoryValue = 0x9abc;
+    writeNode->nodeInfos.syncInfos.memoryWaitFlag = 7;
+    
+    Json memoryJson = SuperKernelMemoryNodeToJson(writeNode.get());
+    
+    EXPECT_TRUE(memoryJson.contains("taskId"));
+    EXPECT_TRUE(memoryJson.contains("streamId"));
+    EXPECT_TRUE(memoryJson.contains("taskType"));
+    EXPECT_TRUE(memoryJson.contains("taskTypeInt"));
+    EXPECT_TRUE(memoryJson.contains("valueWriteParams"));
+    EXPECT_TRUE(memoryJson["valueWriteParams"].contains("devAddr"));
+}
+
+TEST_F(NodeToJsonTest, DefaultNodeToJson)
+{
+    auto defaultNode = std::make_unique<SuperKernelDefaultNode>(
+        nullptr, ACL_MODEL_RI_TASK_DEFAULT, 0, 0, INVALID_STREAM_ID, INVALID_TASK_ID);
+    defaultNode->SetNodeId(30);
+    defaultNode->SetNodeType(SkNodeType::NODE_DEFAULT);
+    
+    Json defaultJson = SuperKernelDefaultNodeToJson(defaultNode.get());
+    
+    EXPECT_TRUE(defaultJson.contains("taskId"));
+    EXPECT_TRUE(defaultJson.contains("streamId"));
+    EXPECT_TRUE(defaultJson.contains("taskType"));
+    EXPECT_TRUE(defaultJson.contains("taskTypeInt"));
+}
+
+TEST_F(NodeToJsonTest, NotifyAndWaitNodesToJson)
+{
+    auto notifyNode = CreateMemoryNode(40, ACL_MODEL_RI_TASK_EVENT_RECORD);
+    notifyNode->SetNodeType(SkNodeType::NODE_NOTIFY);
+    notifyNode->nodeInfos.syncInfos.eventId = 0x1111;
+    notifyNode->nodeInfos.syncInfos.correspondingWaitNodeIds = {41, 42};
+    
+    Json notifyJson = SuperKernelMemoryNodeToJson(notifyNode.get());
+    EXPECT_TRUE(notifyJson.contains("eventParams"));
+    EXPECT_TRUE(notifyJson["eventParams"].contains("eventId"));
+    
+    auto waitNode = CreateMemoryNode(41, ACL_MODEL_RI_TASK_EVENT_WAIT);
+    waitNode->SetNodeType(SkNodeType::NODE_WAIT);
+    waitNode->nodeInfos.syncInfos.eventId = 0x2222;
+    waitNode->nodeInfos.syncInfos.correspondingNotifyNodeId = 40;
+    
+    Json waitJson = SuperKernelMemoryNodeToJson(waitNode.get());
+    EXPECT_TRUE(waitJson.contains("eventParams"));
+    EXPECT_TRUE(waitJson["eventParams"].contains("eventId"));
+}
+
+TEST_F(NodeToJsonTest, UpdatedNodeToJson)
+{
+    auto kernelNode = CreateKernelNode(50);
+    AddKernelInfoToNode(kernelNode.get());
+    kernelNode->SetNodeType(SkNodeType::NODE_KERNEL);
+    kernelNode->SetUpdate(true);
+    kernelNode->taskParams.type = ACL_MODEL_RI_TASK_KERNEL;
+    kernelNode->taskParams.kernelTaskParams.numBlocks = 64;
+    kernelNode->taskParams.kernelTaskParams.argsSize = 128;
+    kernelNode->taskParams.kernelTaskParams.isHostArgs = 1;
+    
+    Json updatedJson = SuperKernelKernelNodeToJson(kernelNode.get());
+    EXPECT_TRUE(updatedJson.contains("kernelParams"));
+    EXPECT_EQ(updatedJson["kernelParams"]["argsSize"], 128);
+    EXPECT_EQ(updatedJson["kernelParams"]["isHostArgs"], 1);
 }

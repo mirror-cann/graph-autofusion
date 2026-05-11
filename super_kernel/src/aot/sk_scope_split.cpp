@@ -883,7 +883,7 @@ bool InitialScopeSplitPass::Run(std::vector<SuperKernelScopeInfo>& scopes) {
         if (BuildCurrentScope(scopeInfo)) {
             if (!scopeInfo.GetNodes().empty()) {
                 std::string scopeNames = ScopeSplitPass::GetScopeNamesFromBitFlags(scopeInfo.GetScopeBitFlags(), graph_);
-                SK_LOGI("%s: Built scope %zu with %zu nodes, %zu streams, scopeNames=[%s], breakReason=%s",
+                SK_LOGI("%s: Built scope %zu with %zu nodes, %zu streams, scopeNames=[%s], breakReason=[%s]",
                         GetName().c_str(), scopeCount, scopeInfo.GetNodes().size(),
                         scopeInfo.GetScopeStreamInfos().size(), scopeNames.c_str(),
                         scopeInfo.GetBreakInfo().Format().c_str());
@@ -1681,27 +1681,6 @@ void PrintFusionStatus(const ScopeExtInfo& extInfo)
             ScopeFusionStatusToStr(extInfo.fusionStatus), ScopeFailReasonToStr(extInfo.failReason));
 }
 
-void PrintBreakInfoFields(const ScopeBreakInfo& breakInfo) 
-{
-    SK_LOGI("  BreakInfo fields:");
-    SK_LOGI("    reason: %s", ScopeBreakReasonToStr(breakInfo.GetReason()));
-    SK_LOGI("    triggerNodeId: %lu", breakInfo.GetTriggerNodeId());
-    SK_LOGI("    triggerStreamIdx: %u", breakInfo.GetTriggerStreamIdx());
-    SK_LOGI("    parentScopeId: %u", breakInfo.GetParentScopeId());
-    SK_LOGI("    fusionFailReason: %s", FusionFailReasonToStr(breakInfo.GetFusionFailReason()).c_str());
-    SK_LOGI("    detail: %s", breakInfo.GetDetail().empty() ? "(none)" : breakInfo.GetDetail().c_str());
-}
-
-void PrintRootBreakInfo(const ScopeBreakInfo& rootInfo) 
-{
-    SK_LOGI("  Root BreakInfo (from root scope chain):");
-    SK_LOGI("    reason: %s", ScopeBreakReasonToStr(rootInfo.GetReason()));
-    SK_LOGI("    triggerNodeId: %lu", rootInfo.GetTriggerNodeId());
-    SK_LOGI("    triggerStreamIdx: %u", rootInfo.GetTriggerStreamIdx());
-    SK_LOGI("    fusionFailReason: %s", FusionFailReasonToStr(rootInfo.GetFusionFailReason()).c_str());
-    SK_LOGI("    detail: %s", rootInfo.GetDetail().empty() ? "(none)" : rootInfo.GetDetail().c_str());
-}
-
 void PrintTriggerNode(const ScopeBreakInfo& breakInfo, SuperKernelGraph& graph) 
 {
     if (breakInfo.GetTriggerNodeId() == INVALID_TASK_ID) return;
@@ -1758,7 +1737,7 @@ void SuperKernelScopeSplitter::PrintAllScopesDetail(const std::vector<SuperKerne
         const auto& scope = scopeInfos[i];
         std::string nodeIdsStr = FormatNodeIds(scope);
         std::string kernelIdsStr = FormatKernelIds(ScopeSplitPass::GetKernelNodeIds(scope));
-        SK_LOGI("  [%zu] scopeId=%u, allNodeIds=[%s], kernelIds=[%s], breakReason=%s",
+        SK_LOGI("  [%zu] scopeId=%u, allNodeIds=[%s], kernelIds=[%s], breakReason=[%s]",
                 i, scope.GetScopeId(), nodeIdsStr.c_str(), kernelIdsStr.c_str(),
                 scope.GetBreakInfo().Format().c_str());
     }
@@ -1782,11 +1761,11 @@ void SuperKernelScopeSplitter::PrintScopeBreakReasonReport()
         const auto& extInfo = scope.GetExtInfo();
         
         PrintScopeSummary(scope, i);
-        PrintBreakInfoFields(breakInfo);
+        SK_LOGI("  BreakInfo: %s", breakInfo.Format().c_str());
 
         if (breakInfo.GetParentScopeId() != INVALID_SCOPE_ID){
             ScopeBreakInfo rootInfo = FindRootBreakInfo(scope, scopeIdToIdx, scopeInfos_);
-            PrintRootBreakInfo(rootInfo);
+            SK_LOGI("  Root BreakInfo: %s", rootInfo.Format().c_str());
         }
         
         PrintTriggerNode(breakInfo, graph_);

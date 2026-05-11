@@ -1167,3 +1167,114 @@ TEST_F(SuperKernelOptionsManagerTest, CompleteWorkflow)
     EXPECT_TRUE(opts_test->JudgeDisableKernelDcci(dcciOps, "Add"));
     EXPECT_FALSE(opts_test->JudgeDisableKernelDcci(dcciOps, "Sub"));
 }
+
+// ==================== SuperKernelOptionsManager::ToJson Tests ====================
+
+TEST_F(SuperKernelOptionsManagerTest, ToJson_EmptyOptionsManager)
+{
+    nlohmann::ordered_json json = opts_test->ToJson();
+    EXPECT_TRUE(json.is_object());
+    EXPECT_EQ(json.size(), 0);
+}
+
+TEST_F(SuperKernelOptionsManagerTest, ToJson_SingleIntegerOption)
+{
+    opts_test->AddOption(std::make_unique<NumberOptOption>("preload_code", aclskOptionType::PRELOAD_CODE, 1));
+    
+    nlohmann::ordered_json json = opts_test->ToJson();
+    EXPECT_EQ(json.size(), 1);
+    EXPECT_TRUE(json.contains("preload_code"));
+    EXPECT_EQ(json["preload_code"]["name"], "preload_code");
+    EXPECT_EQ(json["preload_code"]["type"], static_cast<int>(aclskOptionType::PRELOAD_CODE));
+    EXPECT_EQ(json["preload_code"]["value"], 1);
+}
+
+TEST_F(SuperKernelOptionsManagerTest, ToJson_SingleStringListOption)
+{
+    std::vector<std::string> kernels = {"Add", "Mul", "Conv"};
+    opts_test->AddOption(std::make_unique<StringListOptOption>(
+        "dcci_disable", aclskOptionType::DCCI_DISABLE_ON_KERNEL, kernels));
+    
+    nlohmann::ordered_json json = opts_test->ToJson();
+    EXPECT_EQ(json.size(), 1);
+    EXPECT_TRUE(json.contains("dcci_disable"));
+    EXPECT_EQ(json["dcci_disable"]["name"], "dcci_disable");
+    EXPECT_EQ(json["dcci_disable"]["type"], static_cast<int>(aclskOptionType::DCCI_DISABLE_ON_KERNEL));
+    EXPECT_EQ(json["dcci_disable"]["value"].size(), 3);
+    EXPECT_EQ(json["dcci_disable"]["value"][0], "Add");
+    EXPECT_EQ(json["dcci_disable"]["value"][1], "Mul");
+    EXPECT_EQ(json["dcci_disable"]["value"][2], "Conv");
+}
+
+TEST_F(SuperKernelOptionsManagerTest, ToJson_SingleMapOption)
+{
+    std::unordered_map<std::string, std::vector<std::string>> mapValue = {
+        {"key1", {"val1", "val2"}},
+        {"key2", {"val3"}}
+    };
+    opts_test->AddOption(std::make_unique<MapOptOption>(
+        "opt_extend", aclskOptionType::OPT_EXTEND_OPTION, mapValue));
+    
+    nlohmann::ordered_json json = opts_test->ToJson();
+    EXPECT_EQ(json.size(), 1);
+    EXPECT_TRUE(json.contains("opt_extend"));
+    EXPECT_EQ(json["opt_extend"]["name"], "opt_extend");
+    EXPECT_EQ(json["opt_extend"]["type"], static_cast<int>(aclskOptionType::OPT_EXTEND_OPTION));
+    EXPECT_TRUE(json["opt_extend"]["value"].is_object());
+    EXPECT_EQ(json["opt_extend"]["value"]["key1"].size(), 2);
+    EXPECT_EQ(json["opt_extend"]["value"]["key1"][0], "val1");
+    EXPECT_EQ(json["opt_extend"]["value"]["key1"][1], "val2");
+    EXPECT_EQ(json["opt_extend"]["value"]["key2"].size(), 1);
+    EXPECT_EQ(json["opt_extend"]["value"]["key2"][0], "val3");
+}
+
+TEST_F(SuperKernelOptionsManagerTest, ToJson_MultipleMixedOptions)
+{
+    opts_test->AddOption(std::make_unique<NumberOptOption>("preload_code", aclskOptionType::PRELOAD_CODE, 2));
+    opts_test->AddOption(std::make_unique<NumberOptOption>("split_mode", aclskOptionType::SPLIT_MODE, 4));
+    opts_test->AddOption(std::make_unique<NumberOptOption>("debug_sync_all", aclskOptionType::DEBUG_SYNC_ALL, 1));
+    
+    std::vector<std::string> dcciKernels = {"Add", "Mul"};
+    opts_test->AddOption(std::make_unique<StringListOptOption>(
+        "dcci_disable", aclskOptionType::DCCI_DISABLE_ON_KERNEL, dcciKernels));
+    
+    nlohmann::ordered_json json = opts_test->ToJson();
+    EXPECT_EQ(json.size(), 4);
+    
+    EXPECT_TRUE(json.contains("preload_code"));
+    EXPECT_EQ(json["preload_code"]["value"], 2);
+    
+    EXPECT_TRUE(json.contains("split_mode"));
+    EXPECT_EQ(json["split_mode"]["value"], 4);
+    
+    EXPECT_TRUE(json.contains("debug_sync_all"));
+    EXPECT_EQ(json["debug_sync_all"]["value"], 1);
+    
+    EXPECT_TRUE(json.contains("dcci_disable"));
+    EXPECT_EQ(json["dcci_disable"]["value"].size(), 2);
+}
+
+TEST_F(SuperKernelOptionsManagerTest, ToJson_AfterParseOptions)
+{
+    aclskOption options[3];
+    options[0].optionType = aclskOptionType::PRELOAD_CODE;
+    options[0].preload.preloadMode = 1;
+    
+    options[1].optionType = aclskOptionType::SPLIT_MODE;
+    options[1].splitMode.splitCnt = 3;
+    
+    options[2].optionType = aclskOptionType::DEBUG_SYNC_ALL;
+    options[2].debugSync.debugSyncAll = 1;
+    
+    aclskOptions optList;
+    optList.options = options;
+    optList.numOptions = 3;
+    
+    opts_test->ParseOptions(&optList);
+    
+    nlohmann::ordered_json json = opts_test->ToJson();
+    EXPECT_EQ(json.size(), 3);
+    EXPECT_TRUE(json.contains("preload_code"));
+    EXPECT_TRUE(json.contains("split_mode"));
+    EXPECT_TRUE(json.contains("debug_sync_all"));
+}

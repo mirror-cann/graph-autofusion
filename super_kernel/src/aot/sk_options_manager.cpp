@@ -21,6 +21,7 @@
 
 #include "sk_options_manager.h"
 #include "sk_log.h"
+#include <nlohmann/json.hpp>
 
 namespace {
 constexpr size_t kMaxExtendOptionLength = 1024;
@@ -544,4 +545,58 @@ void SuperKernelOptionsManager::ParseOptions(const aclskOptions* options) {
         }
         SetOptOptionValue(&options->options[i]);
     }
+}
+
+nlohmann::ordered_json SuperKernelOptionsManager::ToJson() const
+{
+    nlohmann::ordered_json optionsJson = nlohmann::ordered_json::object();
+
+    for (int32_t i = 0; i < static_cast<int32_t>(aclskOptionType::SK_OPTION_MAX); ++i) {
+        auto type = static_cast<aclskOptionType>(i);
+        const auto iter = optionMap.find(type);
+        if (iter == optionMap.end()) {
+            continue;
+        }
+
+        const OptOptionBase* opt = iter->second.get();
+        if (opt == nullptr) {
+            continue;
+        }
+
+        nlohmann::ordered_json optJson;
+        optJson["name"] = opt->GetName();
+        optJson["type"] = static_cast<int>(type);
+
+        switch (type) {
+            case aclskOptionType::PRELOAD_CODE:
+            case aclskOptionType::SPLIT_MODE:
+            case aclskOptionType::DEBUG_SYNC_ALL:
+            case aclskOptionType::STREAM_FUSION:
+            case aclskOptionType::CONSTANT_CODEGEN:
+            case aclskOptionType::AUTO_OP_PARALLEL:
+            case aclskOptionType::DEBUG_CROSS_CORE_SYNC_CHECK:
+            case aclskOptionType::DEBUG_OP_EXEC_TRACE:
+                optJson["value"] = opt->GetIntValue();
+                break;
+
+            case aclskOptionType::DCCI_DISABLE_ON_KERNEL:
+            case aclskOptionType::DCCI_BEFORE_KERNEL_START:
+            case aclskOptionType::DCCI_AFTER_KERNEL_END:
+                optJson["value"] = opt->GetStringListValue();
+                break;
+
+            case aclskOptionType::OPT_EXTEND_OPTION:
+            case aclskOptionType::DEBUG_EXTEND_OPTION:
+                optJson["value"] = opt->GetMapValue();
+                break;
+
+            default:
+                optJson["value"] = nullptr;
+                break;
+        }
+
+        optionsJson[opt->GetName()] = optJson;
+    }
+
+    return optionsJson;
 }

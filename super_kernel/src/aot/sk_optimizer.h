@@ -43,12 +43,22 @@ public:
      */
     const std::vector<SuperKernelScopeInfo>& GetScopeInfos() const { return processedScopeInfos_; }
 
+    /*!
+     * @brief Add task queue JSON for a scope
+     * @param scopeId Scope ID
+     * @param taskQueueJson JSON object for the task queue
+     */
+    void AddScopeTaskQueueJson(uint16_t scopeId, Json taskQueueJson) {
+        taskQueueJsons_[std::to_string(scopeId)] = taskQueueJson;
+    }
+
 private:
     SuperKernelOptionsManager& opts;
     bool ShouldReorderWaitNodesForTaskBuild() const;
     std::vector<SuperKernelBaseNode*> ReorderWaitNodesForTaskBuild(
         const std::vector<SuperKernelBaseNode*>& taskNodes) const;
     std::vector<SuperKernelScopeInfo> processedScopeInfos_;
+    std::unordered_map<std::string, Json> taskQueueJsons_;  // scopeId -> task queue json
     bool Schedule(SuperKernelScopeInfo& scopeInfo, SuperKernelGraph& graph, SkTaskBuilder& builder);
     bool Update(SuperKernelScopeInfo& scopeInfo, SuperKernelGraph& graph, const SkLaunchInfo& launchInfo);
 };

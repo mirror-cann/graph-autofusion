@@ -1041,102 +1041,12 @@ std::unique_ptr<SuperKernelBaseNode> SuperKernelNodeFactory::CreateNode(std::uni
 
 bool SuperKernelGraph::InitSKGraph() {
     SK_LOGI("Starting to initialize SuperKernel graph");
-    
-    uint32_t streamNum = 0;
-    aclError ret = aclmdlRIGetStreams(modelRI, nullptr, &streamNum);
-    if (ret != ACL_SUCCESS) {
-        SK_LOGE("Failed to get number of streams in model RI, ret=%d", ret);
-        return false;
-    }
-    SK_LOGI("Get %u streams from model RI", streamNum);
-    
-    streams.clear();
-    streams.resize(streamNum);
-    ret = aclmdlRIGetStreams(modelRI, streams.data(), &streamNum);
-    if (ret != ACL_SUCCESS) {
-        SK_LOGE("Failed to get streams in model RI, ret=%d", ret);
+
+    if (!InitFromModelRI()) {
         return false;
     }
 
-    auto tasks = std::make_unique<aclmdlRITask[]>(MAX_TASK_NUM);
-    for (uint32_t streamIdx = 0; streamIdx < streamNum; ++streamIdx) {
-        uint32_t taskNum = 0;
-        ret = aclmdlRIGetTasksByStream(streams[streamIdx], nullptr, &taskNum);
-        if (ret != ACL_SUCCESS) {
-            SK_LOGE("Failed to get number of tasks in stream %u, ret=%d", streamIdx, ret);
-            return false;
-        }
-        if (taskNum > MAX_TASK_NUM) {
-            tasks = std::make_unique<aclmdlRITask[]>(taskNum);
-            SK_LOGI("Reallocated task array to %u tasks for stream %u", taskNum, streamIdx);
-        }
-        ret = aclmdlRIGetTasksByStream(streams[streamIdx], tasks.get(), &taskNum);
-        if (ret != ACL_SUCCESS) {
-            SK_LOGE("Failed to get tasks in stream %u, ret=%d", streamIdx, ret);
-            return false;
-        }
-        nodeSizeInStream.emplace_back(taskNum);
-        SK_LOGI("Stream %u has %u tasks", streamIdx, taskNum);
-        
-        uint64_t preNodeId = INVALID_TASK_ID;
-        for (uint32_t taskIdx = 0; taskIdx < taskNum; ++taskIdx) {
-            aclmdlRITaskType taskType;
-            ret = aclmdlRITaskGetType(tasks[taskIdx], &taskType);
-            if (ret != ACL_SUCCESS) {
-                SK_LOGE("Failed to get task type for task %u in stream %u, ret=%d", taskIdx, streamIdx, ret);
-                return false;
-            }
-
-            // Get real stream ID from stream handle
-            int32_t realStreamId = -1;
-            ret = aclrtStreamGetId(streams[streamIdx], &realStreamId);
-            if (ret != ACL_SUCCESS) {
-                SK_LOGE("Failed to get stream ID for stream %u, ret=%d", streamIdx, ret);
-                return false;
-            }
-
-            auto node = SuperKernelNodeFactory::CreateNode(std::make_unique<aclmdlRITask>(tasks[taskIdx]), taskType, taskIdx, streamIdx, realStreamId, preNodeId);
-            if (!node->InitNode()) {
-                SK_LOGE("Failed to initialize node for task %u in stream %u (taskType=%u, nodeId=%lu)",
-                         taskIdx, streamIdx, taskType, node->GetNodeId());
-                return false;
-            }
-            if (node->GetNodeType() == SkNodeType::NODE_KERNEL && node->IsScopeNode()){
-                // Register fusible scopes with scope names to scopeNameToIdx for index assignment
-                // This ensures consistent scope indices across the graph for scope bit flag computation
-                if (node->GetScopeName().length() > 0 && node->IsFusible()){
-                    if(scopeNameToIdx.size() >= MAX_SCOPE_NUM){
-                        SK_LOGW("The number of scope names is greater than the maximum allowed: %u", MAX_SCOPE_NUM);
-                    } else {
-                        if (scopeNameToIdx.find(node->GetScopeName()) == scopeNameToIdx.end()) {
-                            uint32_t scopeIdx = static_cast<uint32_t>(scopeNameToIdx.size());
-                            scopeNameToIdx[node->GetScopeName()] = scopeIdx;
-                            scopeIdxToName[scopeIdx] = node->GetScopeName();
-                            SK_LOGI("Registered fusible scope '%s' with index %u at stream %u task %u",
-                                    node->GetScopeName().c_str(), scopeIdx, streamIdx, taskIdx);
-                        }
-                    }
-                }
-            }
-            uint64_t nodeId = node->GetNodeId();
-            if (!AddNode(std::move(node))) {
-                SK_LOGE("Failed to add node for task %u in stream %u to graph (likely duplicate node ID %lu)",
-                         taskIdx, streamIdx, nodeId);
-                return false;
-            }
-
-            if (taskIdx == 0) {
-                headNodes.push_back(nodeId);
-                SK_LOGI("Stream %u: Added head node %lu", streamIdx, nodeId);
-            }
-            if (preNodeId != INVALID_TASK_ID) {
-                graphMap[preNodeId]->SetNextNodeId(nodeId);
-            }
-            preNodeId = nodeId;
-        }
-    }
-    
-    SK_LOGI("Total nodes added: %zu, total streams: %u", graphMap.size(), streamNum);
+    SK_LOGI("Total nodes added: %zu, total streams: %zu", graphMap.size(), streams.size());
     SK_LOGI("Starting UpdateNodeScopeBitFlags");
     UpdateNodeScopeBitFlags();
     SK_LOGI("UpdateNodeScopeBitFlags completed");
@@ -1159,11 +1069,215 @@ bool SuperKernelGraph::InitSKGraph() {
     SK_LOGI("Starting AddEventAssociate");
     AddEventAssociate();
     SK_LOGI("AddEventAssociate completed");
-    
+
     SK_LOGI("Successfully initialized SuperKernel graph with %zu nodes and %zu streams",
             graphMap.size(), streams.size());
-    
+
     return true;
+}
+
+/**
+ * @brief Initialize graph from modelRI (encapsulated method)
+ *
+ * This function initializes the SuperKernel graph by:
+ * 1. Initializing and getting all streams from modelRI
+ * 2. Processing all streams and tasks
+ *
+ * @return true Initialization successful
+ * @return false Initialization failed
+ */
+bool SuperKernelGraph::InitFromModelRI()
+{
+    SK_LOGI("Starting to initialize SuperKernel graph from modelRI");
+
+    // Step 1: Initialize and get all streams
+    if (!InitStreamsFromModelRI()) {
+        return false;
+    }
+
+    // Step 2: Process all streams and tasks (internally uses streams.size(), no parameter needed)
+    if (!ProcessAllStreamsAndTasks()) {
+        return false;
+    }
+
+    SK_LOGI("Successfully initialized SuperKernel graph from modelRI with %zu nodes and %zu streams",
+            graphMap.size(), streams.size());
+
+    return true;
+}
+
+/**
+ * @brief Initialize streams from modelRI
+ *
+ * Gets the number of streams from modelRI, allocates storage, and retrieves all stream handles.
+ *
+ * @return true Stream initialization successful
+ * @return false Stream initialization failed
+ */
+bool SuperKernelGraph::InitStreamsFromModelRI() {
+    uint32_t streamNum = 0;
+    aclError ret = aclmdlRIGetStreams(modelRI, nullptr, &streamNum);
+    if (ret != ACL_SUCCESS) {
+        SK_LOGE("Failed to get number of streams in model RI, ret=%d", ret);
+        return false;
+    }
+    SK_LOGI("Get %u streams from model RI", streamNum);
+
+    streams.clear();
+    streams.resize(streamNum);
+    ret = aclmdlRIGetStreams(modelRI, streams.data(), &streamNum);
+    if (ret != ACL_SUCCESS) {
+        SK_LOGE("Failed to get streams in model RI, ret=%d", ret);
+        return false;
+    }
+    return true;
+}
+
+/**
+ * @brief Process all streams and tasks
+ *
+ * Iterates through all streams, gets tasks from each stream, and processes them.
+ * Internally uses streams.size(), no parameter needed.
+ *
+ * @return true Processing successful
+ * @return false Processing failed
+ */
+bool SuperKernelGraph::ProcessAllStreamsAndTasks() {
+    uint32_t streamNum = static_cast<uint32_t>(streams.size());
+    auto tasks = std::make_unique<aclmdlRITask[]>(MAX_TASK_NUM);
+
+    for (uint32_t streamIdx = 0; streamIdx < streamNum; ++streamIdx) {
+        uint32_t taskNum = 0;
+        aclError ret = aclmdlRIGetTasksByStream(streams[streamIdx], nullptr, &taskNum);
+        if (ret != ACL_SUCCESS) {
+            SK_LOGE("Failed to get number of tasks in stream %u, ret=%d", streamIdx, ret);
+            return false;
+        }
+
+        if (taskNum > MAX_TASK_NUM) {
+            tasks = std::make_unique<aclmdlRITask[]>(taskNum);
+            SK_LOGI("Reallocated task array to %u tasks for stream %u", taskNum, streamIdx);
+        }
+
+        ret = aclmdlRIGetTasksByStream(streams[streamIdx], tasks.get(), &taskNum);
+        if (ret != ACL_SUCCESS) {
+            SK_LOGE("Failed to get tasks in stream %u, ret=%d", streamIdx, ret);
+            return false;
+        }
+        nodeSizeInStream.emplace_back(taskNum);
+        SK_LOGI("Stream %u has %u tasks", streamIdx, taskNum);
+
+        uint64_t preNodeId = INVALID_TASK_ID;
+        for (uint32_t taskIdx = 0; taskIdx < taskNum; ++taskIdx) {
+            if (!ProcessSingleTask(tasks[taskIdx], streamIdx, taskIdx, preNodeId)) {
+                SK_LOGE("Failed to process task %u in stream %u", taskIdx, streamIdx);
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+/**
+ * @brief Process single task
+ *
+ * Creates a node from the task, initializes it, registers fusible scope,
+ * adds it to the graph, and updates node relationships.
+ *
+ * @param task The task to process
+ * @param streamIdx Stream index
+ * @param taskIdx Task index within the stream
+ * @param preNodeId Previous node ID (updated to current node ID after processing)
+ * @return true Task processing successful
+ * @return false Task processing failed
+ */
+bool SuperKernelGraph::ProcessSingleTask(aclmdlRITask& task, uint32_t streamIdx,
+                                        uint32_t taskIdx, uint64_t& preNodeId) {
+    aclmdlRITaskType taskType;
+    aclError ret = aclmdlRITaskGetType(task, &taskType);
+    if (ret != ACL_SUCCESS) {
+        SK_LOGE("Failed to get task type for task %u in stream %u, ret=%d", taskIdx, streamIdx, ret);
+        return false;
+    }
+
+    int32_t realStreamId = -1;
+    ret = aclrtStreamGetId(streams[streamIdx], &realStreamId);
+    if (ret != ACL_SUCCESS) {
+        SK_LOGE("Failed to get stream ID for stream %u, ret=%d", streamIdx, ret);
+        return false;
+    }
+
+    auto node = SuperKernelNodeFactory::CreateNode(
+        std::make_unique<aclmdlRITask>(task),
+        taskType, taskIdx, streamIdx, realStreamId, preNodeId);
+    if (!node->InitNode()) {
+        SK_LOGE("Failed to initialize node for task %u in stream %u (taskType=%u, nodeId=%lu)",
+                 taskIdx, streamIdx, taskType, node->GetNodeId());
+        return false;
+    }
+
+    RegisterFusibleScope(node);
+
+    uint64_t nodeId = node->GetNodeId();
+    if (!AddNode(std::move(node))) {
+        SK_LOGE("Failed to add node for task %u in stream %u to graph (likely duplicate node ID %lu)",
+                 taskIdx, streamIdx, nodeId);
+        return false;
+    }
+
+    UpdateNodeRelations(nodeId, streamIdx, taskIdx, preNodeId);
+    return true;
+}
+
+/**
+ * @brief Register fusible scope
+ *
+ * Registers a fusible scope if the node is a kernel node with a valid scope name.
+ * Maps scope name to a unique index for later reference.
+ *
+ * @param node The node to register scope from
+ */
+void SuperKernelGraph::RegisterFusibleScope(const std::unique_ptr<SuperKernelBaseNode>& node) {
+    if (node->GetNodeType() == SkNodeType::NODE_KERNEL && node->IsScopeNode()) {
+        if (node->GetScopeName().length() > 0 && node->IsFusible()) {
+            if (scopeNameToIdx.size() >= MAX_SCOPE_NUM) {
+                SK_LOGW("The number of scope names is greater than the maximum allowed: %u", MAX_SCOPE_NUM);
+            } else {
+                if (scopeNameToIdx.find(node->GetScopeName()) == scopeNameToIdx.end()) {
+                    uint32_t scopeIdx = static_cast<uint32_t>(scopeNameToIdx.size());
+                    scopeNameToIdx[node->GetScopeName()] = scopeIdx;
+                    scopeIdxToName[scopeIdx] = node->GetScopeName();
+                    SK_LOGI("Registered fusible scope '%s' with index %u",
+                            node->GetScopeName().c_str(), scopeIdx);
+                }
+            }
+        }
+    }
+}
+
+/**
+ * @brief Update node relationships
+ *
+ * Updates the graph structure by:
+ * 1. Adding the node to headNodes if it's the first task in the stream
+ * 2. Setting the next node ID for the previous node
+ * 3. Updating preNodeId to current node ID
+ *
+ * @param nodeId Current node ID
+ * @param streamIdx Stream index
+ * @param taskIdx Task index within the stream
+ * @param preNodeId Previous node ID (updated to current node ID)
+ */
+void SuperKernelGraph::UpdateNodeRelations(uint64_t nodeId, uint32_t streamIdx,
+                                          uint32_t taskIdx, uint64_t& preNodeId) {
+    if (taskIdx == 0) {
+        headNodes.push_back(nodeId);
+        SK_LOGI("Stream %u: Added head node %lu", streamIdx, nodeId);
+    }
+    if (preNodeId != INVALID_TASK_ID) {
+        graphMap[preNodeId]->SetNextNodeId(nodeId);
+    }
+    preNodeId = nodeId;
 }
 
 aclrtStream SuperKernelGraph::GetStreamByIndex(uint32_t streamIdx) const {
@@ -1268,4 +1382,103 @@ void SuperKernelGraph::DumpFusionFailReasons(const std::vector<SuperKernelScopeI
     }
     
     SK_LOGI("Completed dumping fusion fail reasons");
+}
+
+// Forward declarations for node ToJson functions
+Json SuperKernelKernelNodeToJson(const SuperKernelKernelNode* node);
+Json SuperKernelMemoryNodeToJson(const SuperKernelMemoryNode* node);
+Json SuperKernelDefaultNodeToJson(const SuperKernelDefaultNode* node);
+
+/**
+ * @brief Convert a single node to JSON based on its type
+ */
+static Json NodeToJsonByType(const SuperKernelBaseNode* node)
+{
+    if (node == nullptr) {
+        return Json();
+    }
+
+    switch (node->GetNodeType()) {
+        case SkNodeType::NODE_KERNEL:
+            return SuperKernelKernelNodeToJson(static_cast<const SuperKernelKernelNode*>(node));
+        case SkNodeType::NODE_NOTIFY:
+        case SkNodeType::NODE_WAIT:
+        case SkNodeType::NODE_RESET:
+        case SkNodeType::NODE_MEMORY_WRITE:
+        case SkNodeType::NODE_MEMORY_WAIT:
+            return SuperKernelMemoryNodeToJson(static_cast<const SuperKernelMemoryNode*>(node));
+        case SkNodeType::NODE_DEFAULT:
+        default:
+            return SuperKernelDefaultNodeToJson(static_cast<const SuperKernelDefaultNode*>(node));
+    }
+}
+
+/**
+ * @brief Collect all nodes grouped by streams to JSON
+ */
+static Json CollectStreamsToJson(const SuperKernelGraph& graph)
+{
+    Json streamsJson = Json::array();
+    const auto& streams = graph.GetStreams();
+    const auto& nodeSizeInStream = graph.GetNodeSizeInStream();
+
+    for (size_t streamIdx = 0; streamIdx < streams.size(); ++streamIdx) {
+        Json streamJson;
+        int32_t streamId = -1;
+        aclError ret = aclrtStreamGetId(streams[streamIdx], &streamId);
+        if (ret != ACL_SUCCESS) {
+            SK_LOGE("Failed to get stream ID for stream %zu, ret=%d", streamIdx, ret);
+            return Json::object();
+        }
+
+        streamJson["streamId"] = streamId;
+        streamJson["taskCount"] = (streamIdx < nodeSizeInStream.size()) ? nodeSizeInStream[streamIdx] : 0;
+
+        // Collect tasks for this stream
+        Json tasksJson = Json::array();
+        std::vector<uint64_t> sortedNodeIds = graph.GetSortedNodeIds();
+        for (uint64_t nodeId : sortedNodeIds) {
+            const SuperKernelBaseNode* node = graph.GetNodeById(nodeId);
+            if (node != nullptr && static_cast<uint32_t>(streamIdx) == node->GetStreamIdxInGraph()) {
+                tasksJson.push_back(NodeToJsonByType(node));
+            }
+        }
+        streamJson["tasks"] = tasksJson;
+
+        streamsJson.push_back(streamJson);
+    }
+
+    return streamsJson;
+}
+
+Json SuperKernelGraph::ToJson() const
+{
+    Json rootJson;
+    rootJson["version"] = "1.0";
+    rootJson["description"] = "SuperKernel Raw Task Information from modelRI";
+    rootJson["modelRI"] = std::to_string(reinterpret_cast<uintptr_t>(modelRI));
+
+    // Get device ID
+    int32_t deviceId = 0;
+    aclrtGetDevice(&deviceId);
+    rootJson["deviceId"] = deviceId;
+
+    // Options (empty for now, can be extended)
+    rootJson["options"]["numOptions"] = 0;
+    rootJson["options"]["options"] = Json::array();
+
+    // Total counts
+    rootJson["totalStreams"] = streams.size();
+    size_t totalTasks = 0;
+    for (const auto& pair : graphMap) {
+        if (pair.second != nullptr) {
+            totalTasks++;
+        }
+    }
+    rootJson["totalTasks"] = totalTasks;
+
+    // Streams with tasks
+    rootJson["streams"] = CollectStreamsToJson(*this);
+
+    return rootJson;
 }

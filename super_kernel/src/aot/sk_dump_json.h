@@ -18,6 +18,7 @@
 
 #include <string>
 #include <vector>
+#include <unordered_map>
 #include "sk_scope_info.h"
 
 // Forward declarations
@@ -37,17 +38,29 @@ class SuperKernelOptionsManager;
 bool DumpGraphNodesToJson(const SuperKernelGraph& graph);
 
 /**
- * @brief Dump SkTask (AIC/AIV task queue) information to JSON file
+ * @brief Convert SkTask (AIC/AIV task queue) to JSON object
  *
- * Outputs the AIC and AIV task queue information to a JSON file
- * for debugging and analysis purposes.
+ * Converts the AIC and AIV task queue information to a JSON object
+ * for later aggregation and file writing.
  *
- * @param graph Reference to the SuperKernelGraph
  * @param aicTask Reference to the AIC SkTask
  * @param aivTask Reference to the AIV SkTask
+ * @param scopeId Scope ID for this task queue
+ * @return JSON object representing the task queue
+ */
+Json SkTaskToQueueJson(const SkTask& aicTask, const SkTask& aivTask, uint16_t scopeId);
+
+/**
+ * @brief Dump all task queues to a single JSON file
+ *
+ * Aggregates all scope task queue JSON objects into a single file.
+ *
+ * @param graph Reference to the SuperKernelGraph
+ * @param taskQueueJsons Map of scopeId -> task queue JSON
  * @return true if dump successful, false otherwise
  */
-bool DumpSkTaskQueueToJson(const SuperKernelGraph& graph, const SkTask& aicTask, const SkTask& aivTask);
+bool DumpAllTaskQueuesToJson(const SuperKernelGraph& graph,
+                             const std::unordered_map<std::string, Json>& taskQueueJsons);
 
 /**
  * @brief Dump fused (after fusion) SuperKernel graph to JSON file with nested structure
@@ -83,29 +96,6 @@ bool DumpSkTaskQueueToJson(const SuperKernelGraph& graph, const SkTask& aicTask,
 bool DumpFusedGraphToJson(const SuperKernelGraph& graph, const std::vector<SuperKernelScopeInfo>& scopeInfos);
 
 /**
- * @brief Dump raw task information from modelRI to JSON file with options
- *
- * Directly retrieves task information from modelRI using the following interfaces:
- * - aclmdlRIGetStreams: Get all streams
- * - aclmdlRIGetTasksByStream: Get tasks in each stream
- * - aclmdlRITaskGetType: Get task type
- * - aclrtStreamGetId: Get stream ID
- * - aclmdlRITaskGetParams: Get task parameters
- *
- * The output JSON contains:
- * - Total number of streams and tasks
- * - For each stream: stream index, stream ID, task count
- * - For each task: nodeId, task type, stream info, and type-specific parameters
- *
- * @param modelRI The model RI handle
- * @param fileName Custom filename for the output JSON file (without .json suffix)
- * @param deviceId The device ID
- * @param optsMgr Reference to SuperKernelOptionsManager containing parsed options
- * @return true if dump successful, false otherwise
- */
-bool DumpModelRITasksToJson(aclmdlRI, int32_t, const SuperKernelOptionsManager*, const std::string&);
-
-/**
  * @brief Print original scopes before fusion to current log context
  *
  * Iterates through original scope infos and prints scopeId, scopeNames, totalNodes,
@@ -127,5 +117,19 @@ void PrintOriginalScopes(const SuperKernelGraph& graph);
  */
 void PrintFusedScopes(const SuperKernelGraph& graph,
                       const std::vector<SuperKernelScopeInfo>& processedScopeInfos);
+
+/**
+ * @brief Dump graph to test JSON file (test.json or test_2.json)
+ *
+ * Creates a temporary graph from modelRI, initializes it, and dumps to JSON file.
+ * Only dumps when FileLogger is enabled (ASCEND_OP_COMPILE_SAVE_KERNEL_META is set).
+ *
+ * @param model Model RI handle
+ * @param opts SuperKernel options manager
+ * @param metaDir Meta directory path
+ * @param filename Filename without .json suffix (e.g., "test" or "test_2")
+ * @return true if dump successful or skipped, false otherwise
+ */
+bool DumpRawTaskJson(aclmdlRI model, const SuperKernelOptionsManager& opts, const std::string& metaDir, const std::string& filename);
 
 #endif // SK_DUMP_JSON_H

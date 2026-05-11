@@ -38,7 +38,6 @@
 // For resolved function info
 #include "runtime/kernel.h"
 
-using Json = nlohmann::ordered_json;
 SkBindMap InitSuperKernelBindMap(aclrtBinHandle binHdl);
 
 namespace {
@@ -504,8 +503,6 @@ std::string GetJsonOutputPath(const SuperKernelGraph& graph)
     return metaDir + "/sk_graph_before.json";
 }
 
-} // anonymous namespace
-
 /**
  * @brief Add graph summary information to JSON
  */
@@ -621,36 +618,6 @@ bool WriteJsonToFile(const Json& jsonObj, const std::string& jsonPath)
     return true;
 }
 
-bool DumpGraphNodesToJson(const SuperKernelGraph& graph) 
-{
-    if (!sk::logger::FileLogger::Instance().IsEnabled()) {
-        return true;  // Kernel meta save is disabled, skip
-    }
-    SK_LOGI("Starting to dump SuperKernel graph nodes to JSON");
-    
-    std::string jsonPath = GetJsonOutputPath(graph);
-    if (jsonPath.empty()) {
-        SK_LOGE("Failed to get JSON output path");
-        return false;
-    }
-    
-    try {
-        Json graphNodesJson = BuildGraphNodesJson(graph);
-        
-        if (!WriteJsonToFile(graphNodesJson, jsonPath)) {
-            return false;
-        }
-        
-        SK_LOGI("Successfully dumped %zu nodes to JSON file: %s",
-                graphNodesJson["nodes"].size(), jsonPath.c_str());
-        return true;
-        
-    } catch (const std::exception& e) {
-        SK_LOGE("Exception while dumping graph to JSON: %s", e.what());
-        return false;
-    }
-}
-
 /**
  * @brief Get the JSON output path for task queue
  * @param graph Reference to the SuperKernelGraph to get modelRI
@@ -675,10 +642,9 @@ bool GetTaskQueueJsonOutputPath(const SuperKernelGraph& graph, std::string& outp
  * @param queueName Queue name ("AIC" or "AIV")
  * @return JSON object representing the task queue
  */
-Json SkTaskToJson(const SkTask& task, const std::string& queueName) 
+Json SkTaskToJson(const SkTask& task) 
 {
     Json taskJson;
-    taskJson["queueName"] = queueName;
     taskJson["numBlocks"] = task.numBlocks;
     taskJson["funcCnt"] = task.funcCnt;
     
@@ -713,53 +679,6 @@ Json SkTaskToJson(const SkTask& task, const std::string& queueName)
     }
     
     return taskJson;
-}
-
-bool DumpSkTaskQueueToJson(const SuperKernelGraph& graph, const SkTask& aicTask, const SkTask& aivTask) 
-{
-    if (!sk::logger::FileLogger::Instance().IsEnabled()) {
-        return true;  // Kernel meta save is disabled, skip
-    }
-    SK_LOGI("Starting to dump SkTask queues to JSON");
-    
-    std::string jsonPath;
-    bool ret = GetTaskQueueJsonOutputPath(graph, jsonPath);
-    if (!ret) {
-        SK_LOGE("Dump task queue json failed: get path failed");
-        return false;
-    }
-    if (jsonPath.empty()) {
-        SK_LOGE("Failed to get task queue JSON output path");
-        return false;
-    }
-    
-    try {
-        Json taskQueueJson;
-        taskQueueJson["version"] = "1.0";
-        taskQueueJson["description"] = "SuperKernel Task Queue Information";
-        taskQueueJson["modelRI"] = std::to_string(reinterpret_cast<uintptr_t>(graph.GetModelRI()));
-        taskQueueJson["kernelType"] = to_string(aicTask.nodeType);
-        
-        taskQueueJson["taskQueues"]["aic"] = SkTaskToJson(aicTask, "AIC");
-        taskQueueJson["taskQueues"]["aiv"] = SkTaskToJson(aivTask, "AIV");
-        
-        // Write to file
-        std::ofstream outFile(jsonPath);
-        if (!outFile.is_open()) {
-            SK_LOGE("Failed to open task queue JSON file for writing: %s", jsonPath.c_str());
-            return false;
-        }
-        
-        outFile << taskQueueJson.dump(2);
-        outFile.close();
-        
-        SK_LOGI("Successfully dumped task queues to JSON file: %s", jsonPath.c_str());
-        return true;
-        
-    } catch (const std::exception& e) {
-        SK_LOGE("Exception while dumping task queues to JSON: %s", e.what());
-        return false;
-    }
 }
 
 /**
@@ -1019,45 +938,6 @@ Json BuildFusedGraphJson(const SuperKernelGraph& graph, const std::vector<SuperK
     return fusedGraphJson;
 }
 
-bool DumpFusedGraphToJson(const SuperKernelGraph& graph, const std::vector<SuperKernelScopeInfo>& scopeInfos) 
-{
-    if (!sk::logger::FileLogger::Instance().IsEnabled()) {
-        return true;  // Kernel meta save is disabled, skip
-    }
-    SK_LOGI("Starting to dump fused SuperKernel graph to JSON with nested structure");
-
-    std::string jsonPath;
-    bool pathOk = GetFusedGraphJsonOutputPath(graph, jsonPath);
-    if (!pathOk) {
-        SK_LOGE("Failed to get fused graph json output path");
-        return false;
-    }
-    if (jsonPath.empty()) {
-        SK_LOGE("Failed to get fused graph JSON output path");
-        return false;
-    }
-
-    try {
-        Json fusedGraphJson = BuildFusedGraphJson(graph, scopeInfos);
-
-        if (!WriteJsonToFile(fusedGraphJson, jsonPath)) {
-            return false;
-        }
-
-        SK_LOGI("Successfully dumped fused graph with %zu nodes (%zu scopes) to JSON file: %s",
-                fusedGraphJson["nodes"].size(), scopeInfos.size(), jsonPath.c_str());
-        return true;
-
-    } catch (const std::exception& e) {
-        SK_LOGE("Exception while dumping fused graph to JSON: %s", e.what());
-        return false;
-    }
-}
-
-namespace {
-
-
-
 /**
  * @brief Add basic kernel parameters to JSON
  */
@@ -1265,296 +1145,6 @@ Json TaskToJson(uint32_t taskIdx, int32_t streamId,
 }
 
 /**
- * @brief Get the JSON output path for raw task dump
- */
-std::string GetRawTaskJsonOutputPath(aclmdlRI modelRI, const std::string& fileName) 
-{
-    std::string metaDir = CreateSkMetaDirectory(modelRI);
-    if (metaDir.empty()) {
-        SK_LOGE("Failed to create sk_meta directory for raw task JSON dump");
-        return "";
-    }
-    return metaDir + "/" + fileName + ".json";
-}
-
-/**
- * @brief Process a single task and add to JSON array
- */
-void ProcessTaskToJson(Json& tasksJson, uint32_t taskIdx, int32_t streamId,
-                       aclmdlRITask task, size_t& totalTasks) 
-{
-    aclError ret;
-
-    aclmdlRITaskType taskType;
-    ret = aclmdlRITaskGetType(task, &taskType);
-    if (ret != ACL_SUCCESS) {
-        SK_LOGE("Failed to get task type for task %u, ret=%d", taskIdx, ret);
-        return;
-    }
-
-    aclmdlRITaskParams params{};
-    const aclmdlRITaskParams* paramsPtr = nullptr;
-
-    if (taskType != ACL_MODEL_RI_TASK_DEFAULT) {
-        ret = aclmdlRITaskGetParams(task, &params);
-        if (ret == ACL_SUCCESS) {
-            paramsPtr = &params;
-        } else {
-            SK_LOGE("Failed to get task params for task %u, ret=%d", taskIdx, ret);
-        }
-    }
-
-    tasksJson.push_back(TaskToJson(taskIdx, streamId, taskType, paramsPtr, task));
-    totalTasks++;
-}
-
-/**
- * @brief Process a single stream and collect tasks
- */
-Json ProcessStreamToJson(aclrtStream stream, uint32_t streamIdx, size_t& totalTasks) 
-{
-    aclError ret;
-    Json streamJson;
-
-    int32_t streamId = -1;
-    ret = aclrtStreamGetId(stream, &streamId);
-    if (ret != ACL_SUCCESS) {
-        SK_LOGE("Failed to get stream ID for stream %u, ret=%d", streamIdx, ret);
-        return streamJson;
-    }
-
-    uint32_t taskNum = 0;
-    ret = aclmdlRIGetTasksByStream(stream, nullptr, &taskNum);
-    if (ret != ACL_SUCCESS) {
-        SK_LOGE("Failed to get number of tasks in stream %u, ret=%d", streamIdx, ret);
-        return streamJson;
-    }
-
-    SK_LOGI("Stream %u (id=%d) has %u tasks", streamIdx, streamId, taskNum);
-
-    std::vector<aclmdlRITask> tasks(taskNum);
-    ret = aclmdlRIGetTasksByStream(stream, tasks.data(), &taskNum);
-    if (ret != ACL_SUCCESS) {
-        SK_LOGE("Failed to get tasks from stream %u, ret=%d", streamIdx, ret);
-        return streamJson;
-    }
-
-    streamJson["streamId"] = streamId;
-    streamJson["taskCount"] = taskNum;
-
-    Json tasksJson = Json::array();
-    for (uint32_t taskIdx = 0; taskIdx < taskNum; ++taskIdx) {
-        ProcessTaskToJson(tasksJson, taskIdx, streamId, tasks[taskIdx], totalTasks);
-    }
-    streamJson["tasks"] = tasksJson;
-
-    return streamJson;
-}
-
-/**
- * @brief Collect streams and tasks from modelRI to JSON
- */
-void CollectStreamsAndTasksToJson(aclmdlRI modelRI, uint32_t streamNum,
-                                  const std::vector<aclrtStream>& streams,
-                                  Json& streamsJson, size_t& totalTasks) 
-{
-    for (uint32_t streamIdx = 0; streamIdx < streamNum; ++streamIdx) {
-        streamsJson.push_back(ProcessStreamToJson(streams[streamIdx], streamIdx, totalTasks));
-    }
-}
-
-/**
- * @brief Initialize raw task JSON structure
- */
-Json InitRootJson(aclmdlRI modelRI, int32_t deviceId) 
-{
-    Json rawTaskJson;
-    rawTaskJson["version"] = "1.0";
-    rawTaskJson["description"] = "SuperKernel Raw Task Information from modelRI";
-    rawTaskJson["modelRI"] = std::to_string(reinterpret_cast<uintptr_t>(modelRI));
-    rawTaskJson["deviceId"] = deviceId;
-    rawTaskJson["options"]["numOptions"] = 0;
-    rawTaskJson["options"]["options"] = Json::array();
-    return rawTaskJson;
-}
-
-/**
- * @brief Write raw task JSON to file
- */
-bool WriteRootToJson(const Json& rawTaskJson, const std::string& jsonPath, size_t totalTasks, uint32_t streamNum) 
-{
-    std::ofstream outFile(jsonPath);
-    if (!outFile.is_open()) {
-        SK_LOGE("Failed to open raw task JSON file for writing: %s", jsonPath.c_str());
-        return false;
-    }
-
-    outFile << rawTaskJson.dump(2);
-    outFile.close();
-
-    SK_LOGI("Successfully dumped %zu raw tasks from %u streams to JSON file: %s",
-            totalTasks, streamNum, jsonPath.c_str());
-    return true;
-}
-
-/**
- * @brief Collect streams and tasks to JSON and write to file
- * 
- * Common logic shared by DumpRawTasksToJson and DumpModelRITasksToJsonWithOpts.
- * 
- * @param rawTaskJson JSON object to populate with task data (modified in place)
- * @param modelRI The model RI handle
- * @param streamNum Number of streams
- * @param streams Vector of streams
- * @param fileName Output filename
- * @return true if successful, false otherwise
- */
-bool CollectAndWriteTasksToJson(Json& rawTaskJson, aclmdlRI modelRI, uint32_t streamNum,
-                               const std::vector<aclrtStream>& streams, const std::string& fileName) 
-{
-    Json streamsJson = Json::array();
-    size_t totalTasks = 0;
-    CollectStreamsAndTasksToJson(modelRI, streamNum, streams, streamsJson, totalTasks);
-
-    rawTaskJson["totalTasks"] = totalTasks;
-    rawTaskJson["streams"] = streamsJson;
-
-    std::string jsonPath = GetRawTaskJsonOutputPath(modelRI, fileName);
-    if (jsonPath.empty()) {
-        SK_LOGE("Failed to get raw task JSON output path");
-        return false;
-    }
-
-    return WriteRootToJson(rawTaskJson, jsonPath, totalTasks, streamNum);
-}
-
-/**
- * @brief Common helper to retrieve streams from modelRI
- * 
- * @param modelRI The model RI handle
- * @param logPrefix Log prefix message for identifying the caller
- * @param[out] streamNum Number of streams retrieved
- * @param[out] streams Vector to store retrieved streams
- * @return true if successful, false otherwise
- */
-bool GetStreamsFromModelRI(aclmdlRI modelRI, const char* logPrefix, uint32_t& streamNum,
-                           std::vector<aclrtStream>& streams) 
-{
-    aclError ret = aclmdlRIGetStreams(modelRI, nullptr, &streamNum);
-    if (ret != ACL_SUCCESS) {
-        SK_LOGE("Failed to get number of streams in %s, ret=%d", logPrefix, ret);
-        return false;
-    }
-    SK_LOGI("%s has %u streams", logPrefix, streamNum);
-
-    streams.resize(streamNum);
-    ret = aclmdlRIGetStreams(modelRI, streams.data(), &streamNum);
-    if (ret != ACL_SUCCESS) {
-        SK_LOGE("Failed to get streams from %s, ret=%d", logPrefix, ret);
-        return false;
-    }
-    return true;
-}
-
-/**
- * @brief Dump raw task information from modelRI to JSON file
- *
- * This function directly retrieves task information from modelRI using:
- * - aclmdlRIGetStreams: Get all streams
- * - aclmdlRIGetTasksByStream: Get tasks in each stream
- * - aclmdlRITaskGetType: Get task type
- * - aclrtStreamGetId: Get stream ID
- * - aclmdlRITaskGetParams: Get task parameters
- *
- * @param modelRI The model RI handle
- * @param fileName Custom filename for the output JSON file (without .json suffix)
- * @return true if successful, false otherwise
- */
-
-} // anonymous namespace
-
-Json OptionsManagerToJson(const SuperKernelOptionsManager& optsMgr)
-{
-    Json rootJson;
-
-    std::vector<OptionDumpInfo> allOptionInfos = CollectAllOptions(optsMgr);
-
-    Json optionJsonArray = Json::array();
-    for (const auto& optionInfo : allOptionInfos) {
-        Json currentOptionJson;
-        currentOptionJson["name"] = optionInfo.name;
-        currentOptionJson["type"] = optionInfo.type;
-
-        switch (optionInfo.valueType) {
-            case OptionDumpInfo::ValueType::INT:
-                currentOptionJson["value"] = optionInfo.intValue;
-                break;
-            case OptionDumpInfo::ValueType::STRING_LIST:
-                currentOptionJson["value"] = optionInfo.stringListValue;
-                break;
-            case OptionDumpInfo::ValueType::MAP: {
-                Json mapJson;
-                for (const auto& pair : optionInfo.mapValue) {
-                    mapJson[pair.first] = pair.second;
-                }
-                currentOptionJson["value"] = mapJson;
-                break;
-            }
-            default:
-                break;
-        }
-
-        optionJsonArray.push_back(currentOptionJson);
-    }
-
-    rootJson["numOptions"] = allOptionInfos.size();
-    rootJson["options"] = optionJsonArray;
-
-    return rootJson;
-}
-
-/**
- * @brief Dump raw task information from modelRI to JSON file
- *
- * This is a wrapper function that calls the internal implementation.
- *
- * @param modelRI The model RI handle
- * @param fileName Custom filename for the output JSON file (without .json suffix)
- * @return true if successful, false otherwise
- */
-
-bool DumpModelRITasksToJson(aclmdlRI modelRI, int32_t deviceId, 
-    const SuperKernelOptionsManager* optsMgr, const std::string& fileName) 
-{
-    if (modelRI == nullptr) {
-        SK_LOGE("modelRI is null, cannot dump raw tasks");
-        return false;
-    }
-
-    if (!sk::logger::FileLogger::Instance().IsEnabled()) {
-        SK_LOGI("File logger is disabled, skip raw task JSON dump");
-        return true;
-    }
-
-    SK_LOGI("Starting to dump raw task information from modelRI to JSON: %s", fileName.c_str());
-
-    uint32_t streamNum = 0;
-    std::vector<aclrtStream> streams;
-    if (!GetStreamsFromModelRI(modelRI, "modelRI", streamNum, streams)) {
-        return false;
-    }
-
-    Json rootJson = InitRootJson(modelRI, deviceId);
-    rootJson["totalStreams"] = streamNum;
-
-    if (optsMgr != nullptr) {
-        rootJson["options"] = OptionsManagerToJson(*optsMgr);
-    }
-
-    return CollectAndWriteTasksToJson(rootJson, modelRI, streamNum, streams, fileName);
-}
-
-/**
  * @brief Print nodeIds in batches to avoid exceeding maxLineLength
  */
 void PrintNodeIdsInBatches(const std::vector<uint64_t>& nodeIds, const char* prefix = "    nodeIds: [") 
@@ -1580,19 +1170,6 @@ void PrintNodeIdsInBatches(const std::vector<uint64_t>& nodeIds, const char* pre
 
     if (!currentBatch.empty()) {
         SK_LOGI("%s%s%s", linePrefix.c_str(), currentBatch.c_str(), suffix.c_str());
-    }
-}
-
-void PrintOriginalScopes(const SuperKernelGraph& graph) 
-{
-    const auto& originalScopeInfos = graph.GetOriginalScopeInfos();
-    SK_LOGI("original scopes before fusion:");
-    for (const auto& origScope : originalScopeInfos) {
-        std::string scopeNames = ScopeSplitPass::GetScopeNamesFromBitFlags(origScope.GetScopeBitFlags(), graph);
-        SK_LOGI("  scopeId=%u, scopeFlags=%s, scopeNames=[%s], totalNodes=%zu",
-                origScope.scopeId, graph.BitsetToString(origScope.GetScopeBitFlags()).c_str(),
-                scopeNames.c_str(), origScope.nodeIds.size());
-        PrintNodeIdsInBatches(origScope.nodeIds);
     }
 }
 
@@ -1712,6 +1289,8 @@ void CollectFusedNodes(const ScopeExtInfo& extInfo,
     }
 }
 
+} // anonymous namespace
+
 void PrintFusedScopes(const SuperKernelGraph& graph,
                       const std::vector<SuperKernelScopeInfo>& processedScopeInfos) 
 {
@@ -1759,7 +1338,175 @@ void PrintFusedScopes(const SuperKernelGraph& graph,
 
         // Line 3: breakReason (if kernel set differs from original scope)
         if (rootScopeBreakInfo.GetReason() != ScopeBreakReason::NONE && !IsKernelSetMatch(scopeInfo, originalKernelSets, graph)) {
-            SK_LOGI("    breakReason=%s, scopeName=[%s]", rootScopeBreakInfo.Format().c_str(), scopeNames.c_str());
+            SK_LOGI("    breakReason=[%s], scopeName=[%s]", rootScopeBreakInfo.Format().c_str(), scopeNames.c_str());
         }
     }
+}
+
+void PrintOriginalScopes(const SuperKernelGraph& graph) 
+{
+    const auto& originalScopeInfos = graph.GetOriginalScopeInfos();
+    SK_LOGI("original scopes before fusion:");
+    for (const auto& origScope : originalScopeInfos) {
+        std::string scopeNames = ScopeSplitPass::GetScopeNamesFromBitFlags(origScope.GetScopeBitFlags(), graph);
+        SK_LOGI("  scopeId=%u, scopeFlags=%s, scopeNames=[%s], totalNodes=%zu",
+                origScope.scopeId, graph.BitsetToString(origScope.GetScopeBitFlags()).c_str(),
+                scopeNames.c_str(), origScope.nodeIds.size());
+        PrintNodeIdsInBatches(origScope.nodeIds);
+    }
+}
+
+bool DumpFusedGraphToJson(const SuperKernelGraph& graph, const std::vector<SuperKernelScopeInfo>& scopeInfos) 
+{
+    if (!sk::logger::FileLogger::Instance().IsEnabled()) {
+        return true;  // Kernel meta save is disabled, skip
+    }
+    SK_LOGI("Starting to dump fused SuperKernel graph to JSON with nested structure");
+
+    std::string jsonPath;
+    bool pathOk = GetFusedGraphJsonOutputPath(graph, jsonPath);
+    if (!pathOk) {
+        SK_LOGE("Failed to get fused graph json output path");
+        return false;
+    }
+    if (jsonPath.empty()) {
+        SK_LOGE("Failed to get fused graph JSON output path");
+        return false;
+    }
+
+    try {
+        Json fusedGraphJson = BuildFusedGraphJson(graph, scopeInfos);
+
+        if (!WriteJsonToFile(fusedGraphJson, jsonPath)) {
+            return false;
+        }
+
+        SK_LOGI("Successfully dumped fused graph with %zu nodes (%zu scopes) to JSON file: %s",
+                fusedGraphJson["nodes"].size(), scopeInfos.size(), jsonPath.c_str());
+        return true;
+
+    } catch (const std::exception& e) {
+        SK_LOGE("Exception while dumping fused graph to JSON: %s", e.what());
+        return false;
+    }
+}
+
+Json SkTaskToQueueJson(const SkTask& aicTask, const SkTask& aivTask, uint16_t scopeId) 
+{
+    Json taskQueueJson;
+    taskQueueJson["scopeId"] = scopeId;
+    taskQueueJson["taskQueues"]["aic"] = SkTaskToJson(aicTask);
+    taskQueueJson["taskQueues"]["aiv"] = SkTaskToJson(aivTask);
+    return taskQueueJson;
+}
+
+bool DumpAllTaskQueuesToJson(const SuperKernelGraph& graph, 
+                             const std::unordered_map<std::string, Json>& taskQueueJsons)
+{
+    if (!sk::logger::FileLogger::Instance().IsEnabled()) {
+        return true;  // Kernel meta save is disabled, skip
+    }
+    
+    std::string metaDir = CreateSkMetaDirectory(graph.GetModelRI());
+    if (metaDir.empty()) {
+        SK_LOGE("Failed to create sk_meta directory for task queue JSON dump");
+        return false;
+    }
+    std::string jsonPath = metaDir + "/sk_task_queue.json";
+    
+    try {
+        Json rootJson;
+        rootJson["version"] = "1.0";
+        rootJson["description"] = "SuperKernel Task Queue Information";
+        rootJson["modelRI"] = std::to_string(reinterpret_cast<uintptr_t>(graph.GetModelRI()));
+        rootJson["scopeCount"] = taskQueueJsons.size();
+        
+        Json scopesArray = Json::array();
+        for (const auto& [scopeId, taskQueueJson] : taskQueueJsons) {
+            scopesArray.push_back(taskQueueJson);
+        }
+        rootJson["scopes"] = scopesArray;
+        
+        std::ofstream outFile(jsonPath);
+        if (!outFile.is_open()) {
+            SK_LOGE("Failed to open task queue JSON file for writing: %s", jsonPath.c_str());
+            return false;
+        }
+        
+        outFile << rootJson.dump(2);
+        outFile.close();
+        
+        SK_LOGI("Successfully dumped %zu task queues to JSON file: %s", taskQueueJsons.size(), jsonPath.c_str());
+        return true;
+        
+    } catch (const std::exception& e) {
+        SK_LOGE("Exception while dumping task queues to JSON: %s", e.what());
+        return false;
+    }
+}
+
+bool DumpGraphNodesToJson(const SuperKernelGraph& graph) 
+{
+    if (!sk::logger::FileLogger::Instance().IsEnabled()) {
+        return true;  // Kernel meta save is disabled, skip
+    }
+    SK_LOGI("Starting to dump SuperKernel graph nodes to JSON");
+    
+    std::string jsonPath = GetJsonOutputPath(graph);
+    if (jsonPath.empty()) {
+        SK_LOGE("Failed to get JSON output path");
+        return false;
+    }
+    
+    try {
+        Json graphNodesJson = BuildGraphNodesJson(graph);
+        
+        if (!WriteJsonToFile(graphNodesJson, jsonPath)) {
+            SK_LOGE("Failed to write JSON to file: %s", jsonPath.c_str());
+            return false;
+        }
+        
+        SK_LOGI("Successfully dumped %zu nodes to JSON file: %s",
+                graphNodesJson["nodes"].size(), jsonPath.c_str());
+        return true;
+        
+    } catch (const std::exception& e) {
+        SK_LOGE("Exception while dumping graph to JSON: %s", e.what());
+        return false;
+    }
+}
+
+bool DumpRawTaskJson(aclmdlRI model, const SuperKernelOptionsManager& opts, const std::string& metaDir, const std::string& filename)
+{
+    if (!sk::logger::FileLogger::Instance().IsEnabled()) {
+        return true;  // Kernel meta save is disabled, skip
+    }
+
+    if (filename.empty()) {
+        SK_LOGE("DumpRawTaskJson failed: filename is empty");
+        return false;
+    }
+
+    SK_LOGI("Start creating temp graph for %s dump...", filename.c_str());
+    SuperKernelGraph tempGraph(model, opts);
+    if (!tempGraph.InitFromModelRI()) {
+        SK_LOGE("Failed to init temp graph for %s dump", filename.c_str());
+        return false;
+    }
+    SK_LOGI("End creating temp graph for %s dump", filename.c_str());
+
+    std::string fullFilename = filename + ".json";
+    std::string testJsonPath = metaDir + "/" + fullFilename;
+    std::ofstream testJsonFile(testJsonPath);
+    if (testJsonFile.is_open()) {
+        nlohmann::ordered_json graphJson = tempGraph.ToJson();
+        graphJson["options"] = opts.ToJson();
+        testJsonFile << graphJson.dump(2);  // Pretty print with 2-space indentation
+        testJsonFile.close();
+        SK_LOGI("Successfully dumped graph to %s: %s", fullFilename.c_str(), testJsonPath.c_str());
+    } else {
+        SK_LOGE("Failed to open %s for writing: %s", fullFilename.c_str(), testJsonPath.c_str());
+        return false;
+    }
+    return true;
 }

@@ -26,6 +26,8 @@
 #include <unordered_map>
 #include <array>
 
+#include <nlohmann/json.hpp>
+
 #include "sk_log.h"
 #include "sk_types.h"
 #include "acl/acl.h"
@@ -178,6 +180,7 @@ constexpr size_t K_MAX_SPLIT_BIN_COUNT = 4;
 
 struct KernelInfos {
     SkKernelType kernelType = SkKernelType::DEFAULT;
+    uint32_t kernelTypeInt = 0;  // Original ACL kernel type value
     uint32_t taskRatio[2] = {0, 0};
     uint32_t resolvedNum = 0;
     uint64_t cap = 0;
@@ -545,5 +548,18 @@ bool DumpKernelBinaries(const SuperKernelGraph& graph, const std::string& binPat
 
 // Get bind map for a binary handle
 const SkBindMap& GetSkBindMap(aclrtBinHandle binHdl);
+
+using Json = nlohmann::ordered_json;
+
+// ToJson methods for node types
+Json KernelInfosToJson(const KernelInfos& kernelInfos);
+Json SyncInfosToJson(const SyncInfos& syncInfos, SkNodeType nodeType);
+Json NodeInfosToJson(const NodeInfos& nodeInfos, SkNodeType nodeType);
+
+// Base class ToJson declaration
+Json SuperKernelBaseNodeToJson(const SuperKernelBaseNode* node);
+Json SuperKernelKernelNodeToJson(const SuperKernelKernelNode* node);
+Json SuperKernelMemoryNodeToJson(const SuperKernelMemoryNode* node);
+Json SuperKernelDefaultNodeToJson(const SuperKernelDefaultNode* node);
 
 #endif // __SK_NODE_H__

@@ -30,6 +30,10 @@
 #include "ut_common_stubs.h"
 #include "runtime/kernel.h"
 #include "securec.h"
+#include "sk_lock_detector.h"
+
+// Forward declaration for InitSuperKernelBindMap (defined in sk_dump_json.cpp)
+SkBindMap InitSuperKernelBindMap(aclrtBinHandle binHdl);
 
 namespace {
 
@@ -725,4 +729,574 @@ TEST_F(SkNodeTest, MemoryNodeInitNode_ValueWaitNullAddr_ReturnsFalse)
                                INVALID_STREAM_ID, INVALID_TASK_ID);
 
     EXPECT_FALSE(node.InitNode());
+}
+
+// ==================== GetKernelTypeString Tests ====================
+
+TEST_F(SkNodeTest, GetKernelTypeString_CoversAllKernelTypes)
+{
+    uint32_t taskRatio[2] = {1, 0};
+
+    EXPECT_STREQ(GetKernelTypeString(ACL_KERNEL_TYPE_CUBE, taskRatio), "AIC_ONLY");
+    EXPECT_STREQ(GetKernelTypeString(ACL_KERNEL_TYPE_VECTOR, taskRatio), "AIV_ONLY");
+
+    taskRatio[1] = 0;
+    EXPECT_STREQ(GetKernelTypeString(ACL_KERNEL_TYPE_MIX, taskRatio), "AIC_ONLY");
+
+    taskRatio[1] = 1;
+    EXPECT_STREQ(GetKernelTypeString(ACL_KERNEL_TYPE_MIX, taskRatio), "MIX_AIC_1_1");
+
+    taskRatio[1] = 2;
+    EXPECT_STREQ(GetKernelTypeString(ACL_KERNEL_TYPE_MIX, taskRatio), "MIX_AIC_1_2");
+
+    // taskRatio[1] > 2 falls back to DEFAULT
+    taskRatio[1] = 3;
+    EXPECT_STREQ(GetKernelTypeString(ACL_KERNEL_TYPE_MIX, taskRatio), "DEFAULT");
+
+    EXPECT_STREQ(GetKernelTypeString(ACL_KERNEL_TYPE_AICPU, taskRatio), "DEFAULT");
+    EXPECT_STREQ(GetKernelTypeString(static_cast<uint32_t>(99), taskRatio), "DEFAULT");
+}
+
+// ==================== SuperKernelMemoryNode Corresponsive Tests ====================
+
+TEST_F(SkNodeTest, MemoryNode_CorresponsiveNodeIdsManagement)
+{
+    TestRITask task{};
+    task.taskId = 200;
+    task.type = ACL_MODEL_RI_TASK_EVENT_RECORD;
+    task.params.eventRecordTaskParams.event = reinterpret_cast<aclrtEvent>(0x2000);
+    task.params.eventRecordTaskParams.eventFlag = 0;
+
+    SuperKernelMemoryNode node(MakeTaskHandle(task), ACL_MODEL_RI_TASK_EVENT_RECORD, 0, 0,
+                               INVALID_STREAM_ID, INVALID_TASK_ID);
+    ASSERT_TRUE(node.InitNode());
+
+    auto waitIds = node.GetCorrespondingWaitNodeIds();
+    EXPECT_TRUE(waitIds.empty());
+
+    std::vector<uint64_t> newWaitIds = {301, 302, 303};
+    node.SetCorrespondingWaitNodeIds(newWaitIds);
+    waitIds = node.GetCorrespondingWaitNodeIds();
+    EXPECT_EQ(waitIds.size(), 3);
+    EXPECT_EQ(waitIds[0], 301);
+    EXPECT_EQ(waitIds[1], 302);
+    EXPECT_EQ(waitIds[2], 303);
+
+    node.SetCorrespondingNotifyNodeId(100);
+    EXPECT_EQ(node.GetCorrespondingNotifyNodeId(), 100U);
+}
+
+TEST_F(SkNodeTest, MemoryNode_CorresponsiveMemoryWriteNodeIds)
+{
+    TestRITask task{};
+    task.taskId = 201;
+    task.type = ACL_MODEL_RI_TASK_EVENT_WAIT;
+    task.params.eventWaitTaskParams.event = reinterpret_cast<aclrtEvent>(0x3000);
+    task.params.eventWaitTaskParams.eventFlag = ACL_EVENT_EXTERNAL;
+
+    SuperKernelMemoryNode node(MakeTaskHandle(task), ACL_MODEL_RI_TASK_EVENT_WAIT, 0, 0,
+                               INVALID_STREAM_ID, INVALID_TASK_ID);
+    ASSERT_TRUE(node.InitNode());
+
+    auto writeIds = node.GetCorrespondingMemoryWriteNodeIds();
+    EXPECT_TRUE(writeIds.empty());
+
+    std::vector<uint64_t> newWriteIds = {401, 402};
+    node.SetCorrespondingMemoryWriteNodeId(newWriteIds);
+    writeIds = node.GetCorrespondingMemoryWriteNodeIds();
+    EXPECT_EQ(writeIds.size(), 2);
+    EXPECT_EQ(writeIds[0], 401);
+    EXPECT_EQ(writeIds[1], 402);
+}
+
+// ==================== ScopeBitFlags Tests ====================
+
+TEST_F(SkNodeTest, Node_ScopeBitFlagsManagement)
+{
+    TestRITask task{};
+    task.taskId = 300;
+    task.type = ACL_MODEL_RI_TASK_KERNEL;
+    task.params.type = ACL_MODEL_RI_TASK_KERNEL;
+    task.params.kernelTaskParams.numBlocks = 4;
+
+    MOCKER(aclrtGetFunctionName).stubs().will(invoke(FakeAclrtGetFunctionNameRegular));
+    MOCKER(aclrtFunctionGetBinary).stubs().will(invoke(FakeAclrtFunctionGetBinaryNonNull));
+
+    SuperKernelKernelNode node(MakeTaskHandle(task), ACL_MODEL_RI_TASK_KERNEL, 0, 0, 0, INVALID_TASK_ID);
+    ASSERT_TRUE(node.InitNode());
+
+    std::bitset<MAX_SCOPE_NUM> flags = node.GetScopeBitFlags();
+    EXPECT_TRUE(flags.none());
+
+    flags.set(0);
+    flags.set(3);
+    flags.set(5);
+    node.SetScopeBitFlags(flags);
+    flags = node.GetScopeBitFlags();
+    EXPECT_TRUE(flags.test(0));
+    EXPECT_TRUE(flags.test(3));
+    EXPECT_TRUE(flags.test(5));
+
+    node.ClearScopeBitFlags();
+    flags = node.GetScopeBitFlags();
+    EXPECT_TRUE(flags.none());
+
+    node.SetIsScopeNode(true);
+    EXPECT_TRUE(node.IsScopeNode());
+    // isScopeBegin and isScopeEnd are set based on scopeKernelInfo during InitNode
+    // Setting isScopeNode alone doesn't make it a scope begin/end
+    EXPECT_FALSE(node.IsScopeBegin());
+    EXPECT_FALSE(node.IsScopeEnd());
+    EXPECT_FALSE(node.IsScopePlaceholder());
+}
+
+// ==================== Node Update After Update Tests ====================
+
+TEST_F(SkNodeTest, KernelNode_UpdateAfterUpdate)
+{
+    UtSkNodeRITaskInternal task{};
+    task.taskId = 400;
+    task.type = ACL_MODEL_RI_TASK_KERNEL;
+    task.params.type = ACL_MODEL_RI_TASK_KERNEL;
+    task.params.kernelTaskParams.numBlocks = 4;
+
+    MOCKER(aclrtGetFunctionName).stubs().will(invoke(FakeAclrtGetFunctionNameRegular));
+    MOCKER(aclrtFunctionGetBinary).stubs().will(invoke(FakeAclrtFunctionGetBinaryNonNull));
+
+    SuperKernelKernelNode node(MakeOriginTask(task), ACL_MODEL_RI_TASK_KERNEL, 0, 0, 0, INVALID_TASK_ID);
+    ASSERT_TRUE(node.InitNode());
+
+    // First update should succeed
+    aclmdlRITaskParams custom1{};
+    custom1.type = ACL_MODEL_RI_TASK_VALUE_WRITE;
+    custom1.valueWriteTaskParams.devAddr = reinterpret_cast<void*>(0x1000);
+    custom1.valueWriteTaskParams.value = 0x1111;
+
+    UpdateContext ctx1{};
+    ctx1.customParams = &custom1;
+    EXPECT_TRUE(node.Update(ctx1));
+    EXPECT_TRUE(node.IsUpdated());
+
+    // Second update should fail (already updated)
+    aclmdlRITaskParams custom2{};
+    custom2.type = ACL_MODEL_RI_TASK_VALUE_WAIT;
+    custom2.valueWaitTaskParams.devAddr = reinterpret_cast<void*>(0x2000);
+    custom2.valueWaitTaskParams.value = 0x2222;
+
+    UpdateContext ctx2{};
+    ctx2.customParams = &custom2;
+    EXPECT_FALSE(node.Update(ctx2));
+}
+
+TEST_F(SkNodeTest, MemoryNode_UpdateAfterUpdate)
+{
+    TestRITask task{};
+    task.taskId = 401;
+    task.type = ACL_MODEL_RI_TASK_VALUE_WRITE;
+    task.params.valueWriteTaskParams.devAddr = reinterpret_cast<void*>(0x1000);
+    task.params.valueWriteTaskParams.value = 0x1111;
+
+    SuperKernelMemoryNode node(MakeTaskHandle(task), ACL_MODEL_RI_TASK_VALUE_WRITE, 0, 0,
+                               INVALID_STREAM_ID, INVALID_TASK_ID);
+    ASSERT_TRUE(node.InitNode());
+
+    aclmdlRITaskParams custom1{};
+    custom1.type = ACL_MODEL_RI_TASK_VALUE_WRITE;
+    custom1.valueWriteTaskParams.devAddr = reinterpret_cast<void*>(0x2000);
+    custom1.valueWriteTaskParams.value = 0x2222;
+
+    UpdateContext ctx1{};
+    ctx1.customParams = &custom1;
+    EXPECT_TRUE(node.Update(ctx1));
+    EXPECT_TRUE(node.IsUpdated());
+
+    aclmdlRITaskParams custom2{};
+    custom2.type = ACL_MODEL_RI_TASK_VALUE_WAIT;
+    custom2.valueWaitTaskParams.devAddr = reinterpret_cast<void*>(0x3000);
+    custom2.valueWaitTaskParams.value = 0x3333;
+
+    UpdateContext ctx2{};
+    ctx2.customParams = &custom2;
+    EXPECT_FALSE(node.Update(ctx2));
+}
+
+// ==================== Node FusionFailReason Tests ====================
+
+TEST_F(SkNodeTest, Node_FusionFailReasonManagement)
+{
+    TestRITask task{};
+    task.taskId = 500;
+    task.type = ACL_MODEL_RI_TASK_EVENT_RESET;
+    task.params.eventResetTaskParams.event = reinterpret_cast<aclrtEvent>(0x5000);
+    task.params.eventResetTaskParams.eventFlag = 0;
+
+    SuperKernelMemoryNode node(MakeTaskHandle(task), ACL_MODEL_RI_TASK_EVENT_RESET, 0, 0,
+                               INVALID_STREAM_ID, INVALID_TASK_ID);
+    ASSERT_TRUE(node.InitNode());
+
+    EXPECT_EQ(node.GetFusionFailReason(), FusionFailReason::RESET_TYPE_NODE);
+
+    node.SetFusionFailReason(FusionFailReason::SCOPE_FUSE_PART, ScopeFailReason::STREAM_SYNC_FAIL);
+    EXPECT_EQ(node.GetFusionFailReason(), FusionFailReason::SCOPE_FUSE_PART);
+    EXPECT_EQ(node.GetFusionFailReasonInfo().GetScopeDetail(), ScopeFailReason::STREAM_SYNC_FAIL);
+
+    node.SetFusionFailReason(FusionFailReason::EXIST_DEADLOCK, DeadlockFailReason::NOTIFY_NOT_IN_GRAPH);
+    EXPECT_EQ(node.GetFusionFailReason(), FusionFailReason::EXIST_DEADLOCK);
+    EXPECT_EQ(node.GetFusionFailReasonInfo().GetDeadlockDetail(), DeadlockFailReason::NOTIFY_NOT_IN_GRAPH);
+
+    node.SetFusionFailReason(FusionFailReason::BINDMAP_IS_EMPTY, BindmapFailReason::FUNC_NOT_FOUND);
+    EXPECT_EQ(node.GetFusionFailReason(), FusionFailReason::BINDMAP_IS_EMPTY);
+    EXPECT_EQ(node.GetFusionFailReasonInfo().GetBindmapDetail(), BindmapFailReason::FUNC_NOT_FOUND);
+}
+
+// ==================== Node Stream and Index Tests ====================
+
+TEST_F(SkNodeTest, Node_StreamAndIndexManagement)
+{
+    TestRITask task{};
+    task.taskId = 600;
+    task.type = ACL_MODEL_RI_TASK_KERNEL;
+    task.params.type = ACL_MODEL_RI_TASK_KERNEL;
+    task.params.kernelTaskParams.numBlocks = 8;
+
+    MOCKER(aclrtGetFunctionName).stubs().will(invoke(FakeAclrtGetFunctionNameRegular));
+    MOCKER(aclrtFunctionGetBinary).stubs().will(invoke(FakeAclrtFunctionGetBinaryNonNull));
+
+    // Constructor: (nodeIdxInStream, streamIdxInGraph, streamId, preNodeId)
+    SuperKernelKernelNode node(MakeTaskHandle(task), ACL_MODEL_RI_TASK_KERNEL, 3, 2, 5, INVALID_TASK_ID);
+
+    EXPECT_EQ(node.GetStreamId(), 5U);
+    EXPECT_EQ(node.GetNodeIdxInStream(), 3U);
+    EXPECT_EQ(node.GetStreamIdxInGraph(), 2U);
+
+    EXPECT_EQ(node.GetPreNodeId(), INVALID_TASK_ID);
+    node.SetPreNodeId(100);
+    EXPECT_EQ(node.GetPreNodeId(), 100U);
+
+    EXPECT_EQ(node.GetNextNodeId(), INVALID_TASK_ID);
+    node.SetNextNodeId(200);
+    EXPECT_EQ(node.GetNextNodeId(), 200U);
+}
+
+// ==================== KernelNode ScheMode Tests ====================
+
+TEST_F(SkNodeTest, KernelNode_GetScheMode)
+{
+    UtSkNodeRITaskInternal task{};
+    task.taskId = 700;
+    task.type = ACL_MODEL_RI_TASK_KERNEL;
+    task.params.type = ACL_MODEL_RI_TASK_KERNEL;
+    task.params.kernelTaskParams.numBlocks = 4;
+
+    MOCKER(aclrtGetFunctionName).stubs().will(invoke(FakeAclrtGetFunctionNameRegular));
+    MOCKER(aclrtFunctionGetBinary).stubs().will(invoke(FakeAclrtFunctionGetBinaryNonNull));
+
+    SuperKernelKernelNode node(MakeOriginTask(task), ACL_MODEL_RI_TASK_KERNEL, 0, 0, 0, INVALID_TASK_ID);
+    ASSERT_TRUE(node.InitNode());
+
+    bool scheMode = node.GetScheMode();
+    EXPECT_FALSE(scheMode);
+}
+
+// ==================== KernelNode NumBlocks VecNum CubeNum Tests ====================
+
+TEST_F(SkNodeTest, KernelNode_NumBlocksVecNumCubeNum)
+{
+    UtSkNodeRITaskInternal task{};
+    task.taskId = 800;
+    task.type = ACL_MODEL_RI_TASK_KERNEL;
+    task.params.type = ACL_MODEL_RI_TASK_KERNEL;
+    task.params.kernelTaskParams.numBlocks = 16;
+
+    MOCKER(aclrtGetFunctionName).stubs().will(invoke(FakeAclrtGetFunctionNameRegular));
+    MOCKER(aclrtFunctionGetBinary).stubs().will(invoke(FakeAclrtFunctionGetBinaryNonNull));
+
+    SuperKernelKernelNode node(MakeOriginTask(task), ACL_MODEL_RI_TASK_KERNEL, 0, 0, 0, INVALID_TASK_ID);
+    ASSERT_TRUE(node.InitNode());
+
+    node.nodeInfos.kernelInfos.numBlocks = 16;
+    node.nodeInfos.kernelInfos.vecNum = 8;
+    node.nodeInfos.kernelInfos.cubeNum = 4;
+
+    EXPECT_EQ(node.GetNumBlocks(), 16U);
+    EXPECT_EQ(node.GetVecNum(), 8U);
+    EXPECT_EQ(node.GetCubeNum(), 4U);
+}
+
+// ==================== SuperKernelDefaultNode Tests ====================
+
+TEST_F(SkNodeTest, DefaultNode_BasicOperations)
+{
+    TestRITask task{};
+    task.taskId = 900;
+    task.type = ACL_MODEL_RI_TASK_DEFAULT;
+
+    SuperKernelDefaultNode node(MakeTaskHandle(task), ACL_MODEL_RI_TASK_DEFAULT, 0, 0,
+                                INVALID_STREAM_ID, INVALID_TASK_ID);
+
+    // InitNode returns true but logs that node cannot be fused
+    EXPECT_TRUE(node.InitNode());
+    EXPECT_FALSE(node.IsFusible());
+    // InValidateNode fails for default node
+    EXPECT_EQ(node.InValidateNode(), ACL_ERROR_FAILURE);
+
+    aclmdlRITaskParams custom{};
+    UpdateContext ctx{};
+    ctx.customParams = &custom;
+    // Update returns true (base class Update succeeds)
+    EXPECT_TRUE(node.Update(ctx));
+}
+
+// ==================== Node Visit Status Tests ====================
+
+TEST_F(SkNodeTest, Node_VisitStatusManagement)
+{
+    TestRITask task{};
+    task.taskId = 1000;
+    task.type = ACL_MODEL_RI_TASK_KERNEL;
+    task.params.type = ACL_MODEL_RI_TASK_KERNEL;
+    task.params.kernelTaskParams.numBlocks = 4;
+
+    MOCKER(aclrtGetFunctionName).stubs().will(invoke(FakeAclrtGetFunctionNameRegular));
+    MOCKER(aclrtFunctionGetBinary).stubs().will(invoke(FakeAclrtFunctionGetBinaryNonNull));
+
+    SuperKernelKernelNode node(MakeTaskHandle(task), ACL_MODEL_RI_TASK_KERNEL, 0, 0, 0, INVALID_TASK_ID);
+    ASSERT_TRUE(node.InitNode());
+
+    EXPECT_FALSE(node.IsVisited());
+    node.SetVisited(true);
+    EXPECT_TRUE(node.IsVisited());
+    node.SetVisited(false);
+    EXPECT_FALSE(node.IsVisited());
+}
+
+// ==================== KernelInfosToJson Tests ====================
+
+TEST_F(SkNodeTest, KernelInfosToJson_CoversBasicFields)
+{
+    KernelInfos info;
+    info.kernelType = SkKernelType::AIC_ONLY;
+    info.numBlocks = 32;
+    info.funcName = "test_kernel";
+    info.vecNum = 8;
+    info.cubeNum = 16;
+    info.cap = 0x1234567890abcdef;
+
+    Json json = KernelInfosToJson(info);
+    EXPECT_EQ(json["kernelType"], "AIC_ONLY");
+    EXPECT_EQ(json["numBlocks"], 32);
+    EXPECT_EQ(json["funcName"], "test_kernel");
+    EXPECT_EQ(json["cap"], "0x1234567890abcdef");
+    // vecNum and cubeNum are not included in KernelInfosToJson output
+}
+
+// ==================== SyncInfosToJson Tests ====================
+
+TEST_F(SkNodeTest, SyncInfosToJson_CoversEventRecordAndWait)
+{
+    SyncInfos syncInfo;
+    syncInfo.eventId = 0x1234;
+    syncInfo.memoryValue = 0x5678;
+
+    Json recordJson = SyncInfosToJson(syncInfo, SkNodeType::NODE_MEMORY_WRITE);
+    EXPECT_EQ(recordJson["eventId"], "0x1234");
+
+    Json waitJson = SyncInfosToJson(syncInfo, SkNodeType::NODE_MEMORY_WAIT);
+    EXPECT_EQ(waitJson["eventId"], "0x1234");
+}
+
+// ==================== InitSuperKernelBindMap Tests ====================
+
+TEST_F(SkNodeTest, InitSuperKernelBindMap_NullBinHdlReturnsEmpty)
+{
+    SkBindMap bindMap = InitSuperKernelBindMap(nullptr);
+    EXPECT_TRUE(bindMap.empty());
+}
+
+TEST_F(SkNodeTest, InitSuperKernelBindMap_MetaNumZeroReturnsEmpty)
+{
+    MOCKER(rtBinaryGetMetaNum).stubs().will(returnValue(0));
+    aclrtBinHandle binHdl = reinterpret_cast<aclrtBinHandle>(0x9000);
+    SkBindMap bindMap = InitSuperKernelBindMap(binHdl);
+    EXPECT_TRUE(bindMap.empty());
+}
+
+// ==================== NodeInfosToJson Tests ====================
+
+TEST_F(SkNodeTest, NodeInfosToJson_KernelNodeInfos)
+{
+    NodeInfos nodeInfos;
+    nodeInfos.kernelInfos.kernelType = SkKernelType::AIC_ONLY;
+    nodeInfos.kernelInfos.kernelTypeInt = 1;
+    nodeInfos.kernelInfos.numBlocks = 32;
+    nodeInfos.kernelInfos.funcName = "test_kernel";
+    nodeInfos.kernelInfos.vecNum = 8;
+    nodeInfos.kernelInfos.cubeNum = 16;
+    nodeInfos.kernelInfos.resolvedNum = 2;
+    nodeInfos.kernelInfos.resolvedFuncs[0].funcAddr[0] = 0x1000;
+    nodeInfos.kernelInfos.resolvedFuncs[0].funcAddr[1] = 0x2000;
+    
+    Json nodeInfosJson = NodeInfosToJson(nodeInfos, SkNodeType::NODE_KERNEL);
+    
+    EXPECT_TRUE(nodeInfosJson.contains("kernelInfos"));
+    EXPECT_TRUE(nodeInfosJson["kernelInfos"].contains("kernelType"));
+    EXPECT_EQ(nodeInfosJson["kernelInfos"]["kernelType"], "AIC_ONLY");
+    EXPECT_EQ(nodeInfosJson["kernelInfos"]["numBlocks"], 32);
+    EXPECT_EQ(nodeInfosJson["kernelInfos"]["funcName"], "test_kernel");
+}
+
+TEST_F(SkNodeTest, NodeInfosToJson_MemoryNodeInfos)
+{
+    NodeInfos nodeInfos;
+    nodeInfos.kernelInfos.kernelType = SkKernelType::DEFAULT;
+    nodeInfos.syncInfos.eventId = 0x1234;
+    nodeInfos.syncInfos.addrValue = reinterpret_cast<void*>(0x5678);
+    nodeInfos.syncInfos.memoryValue = 0x9abc;
+    nodeInfos.syncInfos.memoryWaitFlag = 7;
+    
+    Json nodeInfosJson = NodeInfosToJson(nodeInfos, SkNodeType::NODE_MEMORY_WRITE);
+    
+    EXPECT_TRUE(nodeInfosJson.contains("kernelInfos"));
+    EXPECT_TRUE(nodeInfosJson.contains("syncInfos"));
+    EXPECT_TRUE(nodeInfosJson["syncInfos"].contains("eventId"));
+}
+
+// ==================== KernelInfosToJson Extended Tests ====================
+
+TEST_F(SkNodeTest, KernelInfosToJson_WithResolvedFuncs)
+{
+    KernelInfos info;
+    info.kernelType = SkKernelType::MIX_AIC_1_1;
+    info.kernelTypeInt = 3;
+    info.numBlocks = 64;
+    info.funcName = "mixed_kernel";
+    info.cap = 0xabcd;
+    info.resolvedNum = 3;
+    info.resolvedFuncs[0].funcAddr[0] = 0x1000;
+    info.resolvedFuncs[0].funcAddr[1] = 0x2000;
+    info.resolvedFuncs[0].prefetchCnt[0] = 10;
+    info.resolvedFuncs[0].prefetchCnt[1] = 20;
+    info.resolvedFuncs[0].funcOffset[0] = 0x50;
+    info.resolvedFuncs[0].funcOffset[1] = 0x60;
+    info.resolvedFuncs[0].symbolBind[0] = "GLOBAL";
+    info.resolvedFuncs[0].symbolBind[1] = "WEAK";
+    info.resolvedFuncs[1].funcAddr[0] = 0x3000;
+    info.resolvedFuncs[1].funcAddr[1] = 0x4000;
+    info.resolvedFuncs[2].funcAddr[0] = 0x5000;
+    info.resolvedFuncs[2].funcAddr[1] = 0x6000;
+    
+    Json json = KernelInfosToJson(info);
+    
+    EXPECT_EQ(json["kernelType"], "MIX_1_1");
+    EXPECT_EQ(json["kernelTypeInt"], 3);
+    EXPECT_EQ(json["numBlocks"], 64);
+    EXPECT_EQ(json["cap"], "0xabcd");
+    EXPECT_EQ(json["resolvedNum"], 3);
+    EXPECT_TRUE(json.contains("resolvedFuncs"));
+    EXPECT_EQ(json["resolvedFuncs"].size(), 3);
+    
+    EXPECT_EQ(json["resolvedFuncs"][0]["funcAddr"][0], "0x1000");
+    EXPECT_EQ(json["resolvedFuncs"][0]["funcAddr"][1], "0x2000");
+    EXPECT_EQ(json["resolvedFuncs"][0]["prefetchCnt"][0], 10);
+    EXPECT_EQ(json["resolvedFuncs"][0]["prefetchCnt"][1], 20);
+    EXPECT_EQ(json["resolvedFuncs"][0]["funcOffset"][0], "0x50");
+    EXPECT_EQ(json["resolvedFuncs"][0]["funcOffset"][1], "0x60");
+    EXPECT_EQ(json["resolvedFuncs"][0]["symbolBind"][0], "GLOBAL");
+    EXPECT_EQ(json["resolvedFuncs"][0]["symbolBind"][1], "WEAK");
+}
+
+TEST_F(SkNodeTest, KernelInfosToJson_WithTaskRatio)
+{
+    KernelInfos info;
+    info.kernelType = SkKernelType::MIX_AIC_1_2;
+    info.kernelTypeInt = 4;
+    info.taskRatio[0] = 5;
+    info.taskRatio[1] = 10;
+    
+    Json json = KernelInfosToJson(info);
+    
+    EXPECT_EQ(json["kernelType"], "MIX_1_2");
+    EXPECT_TRUE(json.contains("taskRatio"));
+    EXPECT_EQ(json["taskRatio"].size(), 2);
+    EXPECT_EQ(json["taskRatio"][0], 5);
+    EXPECT_EQ(json["taskRatio"][1], 10);
+}
+
+// ==================== SyncInfosToJson Extended Tests ====================
+
+TEST_F(SkNodeTest, SyncInfosToJson_WithCorrespondingNodes)
+{
+    SyncInfos syncInfo;
+    syncInfo.eventId = 0x1234;
+    syncInfo.addrValue = reinterpret_cast<void*>(0x5678);
+    syncInfo.memoryValue = 0x9abc;
+    syncInfo.memoryWaitFlag = 7;
+    syncInfo.correspondingWaitNodeIds = {101, 102, 103};
+    syncInfo.correspondingResetNodeIds = {201, 202};
+    syncInfo.correspondingMemoryWriteNodeIds = {301};
+    syncInfo.eventFlag = 0x55;
+    
+    Json notifyJson = SyncInfosToJson(syncInfo, SkNodeType::NODE_NOTIFY);
+    
+    EXPECT_EQ(notifyJson["eventId"], "0x1234");
+    EXPECT_TRUE(notifyJson.contains("correspondingWaitNodeIds"));
+    EXPECT_EQ(notifyJson["correspondingWaitNodeIds"].size(), 3);
+    EXPECT_TRUE(notifyJson.contains("correspondingResetNodeIds"));
+    EXPECT_EQ(notifyJson["correspondingResetNodeIds"].size(), 2);
+    EXPECT_TRUE(notifyJson.contains("correspondingMemoryWriteNodeIds"));
+    EXPECT_EQ(notifyJson["correspondingMemoryWriteNodeIds"].size(), 1);
+    EXPECT_EQ(notifyJson["eventFlag"], "0x55");
+}
+
+TEST_F(SkNodeTest, SyncInfosToJson_WaitNodeWithCorrespondingNotify)
+{
+    SyncInfos syncInfo;
+    syncInfo.eventId = 0x1234;
+    syncInfo.correspondingNotifyNodeId = 100;
+    syncInfo.addrValue = reinterpret_cast<void*>(0x5678);
+    syncInfo.memoryValue = 0x9abc;
+    syncInfo.memoryWaitFlag = 3;
+    
+    Json waitJson = SyncInfosToJson(syncInfo, SkNodeType::NODE_WAIT);
+    
+    EXPECT_EQ(waitJson["eventId"], "0x1234");
+    EXPECT_TRUE(waitJson.contains("correspondingNotifyNodeId"));
+    EXPECT_EQ(waitJson["correspondingNotifyNodeId"], 100);
+    EXPECT_EQ(waitJson["memoryWaitFlag"], 3);
+}
+
+TEST_F(SkNodeTest, SyncInfosToJson_MemoryWaitNodeWithCorrespondingNotify)
+{
+    SyncInfos syncInfo;
+    syncInfo.eventId = 0x2222;
+    syncInfo.correspondingNotifyNodeId = 200;
+    syncInfo.addrValue = reinterpret_cast<void*>(0x3333);
+    syncInfo.memoryValue = 0x4444;
+    syncInfo.memoryWaitFlag = 5;
+    
+    Json memWaitJson = SyncInfosToJson(syncInfo, SkNodeType::NODE_MEMORY_WAIT);
+    
+    EXPECT_EQ(memWaitJson["eventId"], "0x2222");
+    EXPECT_TRUE(memWaitJson.contains("correspondingNotifyNodeId"));
+    EXPECT_EQ(memWaitJson["correspondingNotifyNodeId"], 200);
+}
+
+TEST_F(SkNodeTest, SyncInfosToJson_DefaultValuesFiltered)
+{
+    SyncInfos syncInfo;
+    syncInfo.eventId = 0x1234;
+    syncInfo.addrValue = reinterpret_cast<void*>(0x5678);
+    syncInfo.memoryValue = std::numeric_limits<uint64_t>::max();
+    syncInfo.memoryWaitFlag = std::numeric_limits<uint32_t>::max();
+    syncInfo.eventFlag = std::numeric_limits<uint64_t>::max();
+    syncInfo.correspondingWaitNodeIds = {};
+    
+    Json json = SyncInfosToJson(syncInfo, SkNodeType::NODE_NOTIFY);
+    
+    EXPECT_TRUE(json.contains("eventId"));
+    EXPECT_TRUE(json.contains("addrValue"));
+    EXPECT_FALSE(json.contains("memoryValue"));
+    EXPECT_FALSE(json.contains("memoryWaitFlag"));
+    EXPECT_FALSE(json.contains("eventFlag"));
+    EXPECT_FALSE(json.contains("correspondingWaitNodeIds"));
 }
