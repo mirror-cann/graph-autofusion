@@ -151,6 +151,7 @@ private:
     std::mutex profBasePathMutex;           // 保护 profBasePath 的互斥锁
     std::string profBasePath;               // 缓存的 profiling 输出路径
     SkEventDeviceCtx deviceCtxs; // device上下文列表
+    int32_t dumpDeviceId = 0;                 // dump线程的的device ID
 
     static uint32_t coreSize_;   // 每个 core 的profiling 记录的gm缓冲区大小（字节），由环境变量决定
     static uint32_t totalSize_;  // 总缓冲区大小 = SK_EVENT_CORE_NUM * coreSize_
