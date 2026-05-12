@@ -111,6 +111,7 @@ bool SkEventRecorder::Init() {
         }
 
         globalRunning.store(true);
+        aclrtGetDevice(&dumpDeviceId);
         
         // 启动单个全局后台线程用于搬运解析记录事件
         int ret = pthread_create(&dumpThread, nullptr, DumpThreadFunc, this);
@@ -344,7 +345,13 @@ static bool CoreIsAiv(int coreId) {
 }
 void* SkEventRecorder::DumpThreadFunc(void* arg) {
     SkEventRecorder* recorder = static_cast<SkEventRecorder*>(arg);
-    SK_LOGI("[sk time profiling] Global dump thread started\n");
+    SK_LOGI("[sk time profiling] New global dump thread setdevice: %d\n, recorder->dumpDeviceId");
+    aclError result = aclrtSetDevice(recorder->dumpDeviceId);
+    if (result != 0) {
+        SK_LOGE("[sk time profiling] Acl set device failed, ERROR: %ld, deviceId: %d\n", result, recorder->dumpDeviceId);
+        return nullptr;
+    }
+    SK_LOGI("[sk time profiling] Global dump thread started on deviceId: %d\n", recorder->dumpDeviceId);
     while (recorder->globalRunning.load()) {
         // 处理激活的 device
         SkEventDeviceCtx* ctx = &recorder->deviceCtxs;
