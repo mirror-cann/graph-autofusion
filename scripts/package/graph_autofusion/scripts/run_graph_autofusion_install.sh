@@ -112,6 +112,28 @@ PY
     fi
 }
 
+update_installed_filelist() {
+    local src_filelist="$1"
+    local installed_filelist="${common_parse_dir}/share/info/graph_autofusion/script/filelist.csv"
+    if [ ! -f "$src_filelist" ]; then
+        log "ERROR" "ERR_NO:0x0085;ERR_DES:source filelist $src_filelist is not exist."
+        return 1
+    fi
+    if [ ! -d "$(dirname "$installed_filelist")" ]; then
+        log "ERROR" "ERR_NO:0x0085;ERR_DES:installed script directory is not exist."
+        return 1
+    fi
+
+    chmod u+w "$installed_filelist" 2> /dev/null
+    cp "$src_filelist" "$installed_filelist"
+    if [ $? -ne 0 ]; then
+        log "ERROR" "ERR_NO:0x0085;ERR_DES:failed to update installed filelist."
+        return 1
+    fi
+
+    return 0
+}
+
 create_latest_linux_softlink() {
     if [ "$pkg_is_multi_version" = "true" ] && [ "$hetero_arch" = "y" ]; then
         local linux_path="$(realpath $common_parse_dir/..)"
@@ -148,11 +170,17 @@ new_install() {
         $in_install_for_all --docker-root="$docker_root" \
         $custom_options "$common_parse_type" "$input_install_dir" "$filtered_filelist"
     local ret=$?
-    rm -f "$filtered_filelist"
     if [ $ret -ne 0 ]; then
+        rm -f "$filtered_filelist"
         log "ERROR" "ERR_NO:0x0085;ERR_DES:failed to install package."
         return 1
     fi
+    update_installed_filelist "$filtered_filelist"
+    if [ $? -ne 0 ]; then
+        rm -f "$filtered_filelist"
+        return 1
+    fi
+    rm -f "$filtered_filelist"
 
     create_latest_linux_softlink
     return 0

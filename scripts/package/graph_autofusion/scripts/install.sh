@@ -120,6 +120,64 @@ chmod_end() {
         chown -R "root:root" "$default_dir/script" 2> /dev/null
     fi
 }
+
+filter_autofuse_filelist() {
+    local src_filelist="$1"
+    local dst_filelist="$2"
+    python3 - "$src_filelist" "$dst_filelist" <<'PY'
+import sys
+from pathlib import Path
+src = Path(sys.argv[1])
+dst = Path(sys.argv[2])
+lines = src.read_text().splitlines()
+autofuse_shared_libs = (
+    'libaihac_codegen.so',
+    'libaihac_ir.so',
+    'libaihac_ir_register.so',
+    'libgraph_af.so',
+    'libgraph_base_af.so',
+    'libaihac_symbolizer_af.so',
+)
+filtered = [
+    line for line in lines
+    if 'python/site-packages/autofuse' not in line
+    and not any(lib in line for lib in autofuse_shared_libs)
+]
+dst.write_text("\n".join(filtered) + "\n")
+PY
+}
+
+preserve_external_autofuse_filelist() {
+    local source_filelist="$1"
+    if [ "$install_autofuse" = "y" ] || [ ! -f "$source_filelist" ]; then
+        return 0
+    fi
+
+    local filtered_filelist
+    filtered_filelist="$(mktemp /tmp/graph_autofusion_filelist.preserve.XXXXXX.csv)"
+    if [ $? -ne 0 ]; then
+        log "ERROR" "ERR_NO:0x0085;ERR_DES:failed to create temporary filelist."
+        return 1
+    fi
+
+    filter_autofuse_filelist "$source_filelist" "$filtered_filelist"
+    if [ $? -ne 0 ]; then
+        rm -f "$filtered_filelist"
+        log "ERROR" "ERR_NO:0x0085;ERR_DES:failed to prepare uninstall filelist."
+        return 1
+    fi
+
+    chmod u+w "$source_filelist" 2> /dev/null
+    cp "$filtered_filelist" "$source_filelist"
+    local ret=$?
+    rm -f "$filtered_filelist"
+    if [ $ret -ne 0 ]; then
+        log "ERROR" "ERR_NO:0x0085;ERR_DES:failed to update uninstall filelist."
+        return 1
+    fi
+
+    return 0
+}
  
 ver_check() {
     local version_info_file=""
@@ -755,10 +813,14 @@ uninstall_run() {
     fi
     if [ "$1" = "uninstall" ]; then
         chmod_start "$upgrade_default_dir"
+        preserve_external_autofuse_filelist "$upgrade_default_dir/script/filelist.csv"
+        if [ $? -ne 0 ]; then
+            exit_uninstall_log 1
+        fi
         new_echo "INFO" "uninstall ${graph_autofusion_install_path_param} ${graph_autofusion_install_type}"
         log "INFO" "uninstall ${graph_autofusion_install_path_param} ${graph_autofusion_install_type}"
         bash "$upgrade_default_dir/script/run_graph_autofusion_uninstall.sh" "uninstall" "${graph_autofusion_input_install_path}" "${graph_autofusion_install_type}" "${is_quiet}" \
-            "${is_docker_install}" "${docker_root}" "${is_recreate_softlink}" "$pkg_version_dir"
+            "${is_docker_install}" "${docker_root}" "${is_recreate_softlink}" "$pkg_version_dir" "${install_autofuse}"
         if [ $? -eq 0 ]; then
             if [ "$is_remove_info_files" = "y" ]; then
                 test -f "$upgrade_install_info" && rm -f "$upgrade_install_info"

@@ -19,6 +19,7 @@
   --uninstall                       Uninstall product
     --docker-root=<path>            Specify the path of docker root
     --install-path=<path>           Uninstall product to specific dir path
+    --autofuse                      Uninstall autofuse backend artifacts
   --upgrade                         Upgrade product immediately
     --docker-root=<docker root fs directory>    Specify the path of docker root
     --install-path=<path>           Install product to specific dir path
