@@ -154,6 +154,25 @@ private:
     // Precompute sync relations (based on graph topology)
     bool PrecomputeSyncRelationsFromGraph(const std::vector<SuperKernelBaseNode*>& tasks);
 
+    // Precompute sync relations by splitting MIX kernels into standalone groups.
+    bool PrecomputeSyncRelationsByMixGroups(const std::vector<SuperKernelBaseNode*>& tasks);
+    bool SplitTasksByMixGroups(const std::vector<SuperKernelBaseNode*>& tasks,
+                               std::vector<std::vector<SuperKernelBaseNode*>>& splitTasks,
+                               bool& hasMixKernel) const;
+    bool InitSyncInfoSnapshotForMixGroups(const std::vector<SuperKernelBaseNode*>& tasks,
+                                          std::vector<TaskSyncInfo>& taskSyncInfosOrigin);
+    bool ProcessSyncRelationSplitGroup(const std::vector<SuperKernelBaseNode*>& curSplitTasks,
+                                       size_t groupIndex,
+                                       size_t groupOffset,
+                                       bool hasNextGroup,
+                                       const std::vector<TaskSyncInfo>& taskSyncInfosOrigin,
+                                       std::vector<TaskSyncInfo>& mergedTaskSyncInfos);
+    bool RebaseTaskSyncInfo(TaskSyncInfo& syncInfo, size_t offset) const;
+    void AddBoundaryAllSync(const std::vector<SuperKernelBaseNode*>& curSplitTasks,
+                            size_t groupIndex,
+                            size_t groupOffset);
+    bool IsMixKernelTask(const SuperKernelBaseNode* task) const;
+
     // Extract intra-stream sync relations (based on GetNextNodeId)
     void ExtractIntraStreamSync(const std::vector<SuperKernelBaseNode*>& tasks);
 

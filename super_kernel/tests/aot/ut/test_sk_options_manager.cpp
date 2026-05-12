@@ -1145,6 +1145,12 @@ TEST_F(SuperKernelOptionsManagerTest, SetOptOptionValue_DebugCrossCoreSyncCheck_
     EXPECT_EQ(static_cast<NumberOptOption*>(result)->GetIntValue(), 0);
 }
 
+TEST_F(SuperKernelOptionsManagerTest, EnableMixKernelSplit_DefaultBySocName)
+{
+    EXPECT_EQ(opts_test->GetSocName(), "Ascend910B");
+    EXPECT_FALSE(opts_test->EnableMixKernelSplit());
+}
+
 // ==================== 综合测试 ====================
 
 TEST_F(SuperKernelOptionsManagerTest, CompleteWorkflow)

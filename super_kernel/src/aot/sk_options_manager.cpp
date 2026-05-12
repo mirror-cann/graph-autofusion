@@ -309,6 +309,28 @@ bool SuperKernelOptionsManager::EnableDebug() const {
     return false;
 }
 
+std::string SuperKernelOptionsManager::GetSocName() const
+{
+    SK_LOGI("Init socName");
+    const char* socNameTmp = aclrtGetSocName();
+    if (socNameTmp == nullptr) {
+        SK_LOGW("Failed to get soc name");
+        return "";
+    }
+    std::string socName(socNameTmp);
+    SK_LOGI("Soc name: %s", socName.c_str());
+    return socName;
+}
+
+bool SuperKernelOptionsManager::EnableMixKernelSplit() const
+{
+    const std::string socName = GetSocName();
+    const bool enableMixKernelSplit = socName.find("Ascend950") != std::string::npos;
+    SK_LOGI("Mix kernel split default by soc: socName=%s, enable=%d",
+            socName.c_str(), static_cast<int>(enableMixKernelSplit));
+    return enableMixKernelSplit;
+}
+
 void SuperKernelOptionsManager::SetOptOptionValue(const aclskOption* option) {
     if (option == nullptr) {
         SK_LOGW("sub aclskOption is nullptr");

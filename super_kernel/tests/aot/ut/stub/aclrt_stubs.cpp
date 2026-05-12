@@ -140,6 +140,10 @@ aclError aclrtGetDevice(int32_t *deviceId) {
     return ACL_ERROR_NONE;
 }
 
+const char* aclrtGetSocName(void) {
+    return "Ascend910B";
+}
+
 // 获取设备信息
 aclError aclrtGetDeviceInfo(uint32_t deviceId, aclrtDevAttr attr, int64_t *value) {
     (void)deviceId;

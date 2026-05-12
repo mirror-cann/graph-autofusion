@@ -120,6 +120,20 @@ protected:
         return ptr;
     }
 
+    SuperKernelBaseNode* CreateDefaultNodeEx(uint64_t nodeId, uint32_t streamIdx, uint64_t preNodeId,
+                                             uint64_t nextNodeId)
+    {
+        auto node = std::make_unique<SuperKernelDefaultNode>(
+            nullptr, ACL_MODEL_RI_TASK_DEFAULT, 0, streamIdx, INVALID_STREAM_ID, preNodeId);
+        node->SetNodeType(SkNodeType::NODE_DEFAULT);
+        node->SetNodeId(nodeId);
+        node->SetPreNodeId(preNodeId);
+        node->SetNextNodeId(nextNodeId);
+        auto* ptr = node.get();
+        graph->graphMap[nodeId] = std::move(node);
+        return ptr;
+    }
+
     std::unique_ptr<SuperKernelGraph> graph;
     std::unique_ptr<SuperKernelOptionsManager> opts;
     std::unique_ptr<SkTaskBuilder> builder;
@@ -294,6 +308,74 @@ TEST_F(SkTaskBuilderTest, PrecomputeAndOptimizeSyncRelations_Smoke)
     builder->PrintSyncInfo("ut-before-opt");
     builder->OptimizeSyncRelations(tasks);
     builder->PrintSyncInfo("ut-after-opt");
+}
+
+TEST_F(SkTaskBuilderTest, PrecomputeSyncRelationsByMixGroups_AddsBoundarySyncAndRebasesGroupRelations)
+{
+    auto* aic = CreateKernelNodeEx(91001, 0, INVALID_TASK_ID, INVALID_TASK_ID, SkKernelType::AIC_ONLY);
+    auto* mix0 = CreateKernelNodeEx(91002, 1, INVALID_TASK_ID, 91003, SkKernelType::MIX_AIC_1_1);
+    auto* mix1 = CreateKernelNodeEx(91003, 1, 91002, INVALID_TASK_ID, SkKernelType::MIX_AIC_1_2);
+    auto* aiv = CreateKernelNodeEx(91004, 2, INVALID_TASK_ID, INVALID_TASK_ID, SkKernelType::AIV_ONLY);
+
+    std::vector<SuperKernelBaseNode*> tasks = {aic, mix0, mix1, aiv};
+
+    ASSERT_TRUE(builder->PrecomputeSyncRelationsByMixGroups(tasks));
+    ASSERT_EQ(builder->taskSyncInfos_.size(), tasks.size());
+
+    EXPECT_EQ(builder->taskSyncInfos_[0].queueType, SkQueueType::AIC);
+    EXPECT_EQ(builder->taskSyncInfos_[1].queueType, SkQueueType::MIX_1_1);
+    EXPECT_EQ(builder->taskSyncInfos_[2].queueType, SkQueueType::MIX_1_2);
+    EXPECT_EQ(builder->taskSyncInfos_[3].queueType, SkQueueType::AIV);
+
+    ASSERT_EQ(builder->taskSyncInfos_[0].crossSyncInfo.count(static_cast<size_t>(SkQueueType::AIC)), 1U);
+    EXPECT_EQ(builder->taskSyncInfos_[0].crossSyncInfo[static_cast<size_t>(SkQueueType::AIC)],
+              SyncDirection::ALL_SYNC);
+    EXPECT_TRUE(builder->taskSyncInfos_[0].cubSendInfo.empty());
+    EXPECT_TRUE(builder->taskSyncInfos_[0].vecSendInfo.empty());
+
+    ASSERT_EQ(builder->taskSyncInfos_[1].cubSendInfo.count(2), 1U);
+    EXPECT_EQ(builder->taskSyncInfos_[1].cubSendInfo[2], SyncDirection::CUB_TO_VEC);
+    ASSERT_EQ(builder->taskSyncInfos_[1].vecSendInfo.count(2), 1U);
+    EXPECT_EQ(builder->taskSyncInfos_[1].vecSendInfo[2], SyncDirection::VEC_TO_CUB);
+
+    ASSERT_EQ(builder->taskSyncInfos_[2].crossSyncInfo.count(static_cast<size_t>(SkQueueType::AIC)), 1U);
+    EXPECT_EQ(builder->taskSyncInfos_[2].crossSyncInfo[static_cast<size_t>(SkQueueType::AIC)],
+              SyncDirection::ALL_SYNC);
+    ASSERT_EQ(builder->taskSyncInfos_[2].cubRecvInfo.count(1), 1U);
+    EXPECT_EQ(builder->taskSyncInfos_[2].cubRecvInfo[1], SyncDirection::VEC_TO_CUB);
+    ASSERT_EQ(builder->taskSyncInfos_[2].vecRecvInfo.count(1), 1U);
+    EXPECT_EQ(builder->taskSyncInfos_[2].vecRecvInfo[1], SyncDirection::CUB_TO_VEC);
+    EXPECT_TRUE(builder->taskSyncInfos_[2].cubSendInfo.empty());
+    EXPECT_TRUE(builder->taskSyncInfos_[2].vecSendInfo.empty());
+}
+
+TEST_F(SkTaskBuilderTest, PrecomputeSyncRelationsByMixGroups_InvalidTasks_ReturnFalse)
+{
+    EXPECT_FALSE(builder->PrecomputeSyncRelationsByMixGroups({}));
+
+    auto* kernel = CreateKernelNodeEx(91101, 0, INVALID_TASK_ID, INVALID_TASK_ID, SkKernelType::AIC_ONLY);
+    std::vector<SuperKernelBaseNode*> tasks = {kernel, nullptr};
+    EXPECT_FALSE(builder->PrecomputeSyncRelationsByMixGroups(tasks));
+}
+
+TEST_F(SkTaskBuilderTest, PrecomputeSyncRelationsByMixGroups_UnsupportedNodeType_ReturnFalse)
+{
+    auto* defaultNode = CreateDefaultNodeEx(91201, 0, INVALID_TASK_ID, INVALID_TASK_ID);
+    std::vector<SuperKernelBaseNode*> tasks = {defaultNode};
+
+    EXPECT_FALSE(builder->PrecomputeSyncRelationsByMixGroups(tasks));
+}
+
+TEST_F(SkTaskBuilderTest, PrecomputeSyncRelationsByMixGroups_OnlyEventWithoutFallbackKernel_ReturnFalse)
+{
+    auto* notify = CreateNotifyNodeEx(91301, 0, INVALID_TASK_ID, INVALID_TASK_ID, 1);
+    EXPECT_FALSE(builder->PrecomputeSyncRelationsByMixGroups({notify}));
+
+    auto* wait = CreateWaitNodeEx(91302, 0, INVALID_TASK_ID, INVALID_TASK_ID, 2);
+    EXPECT_FALSE(builder->PrecomputeSyncRelationsByMixGroups({wait}));
+
+    auto* reset = CreateResetNodeEx(91303, 0, INVALID_TASK_ID, INVALID_TASK_ID);
+    EXPECT_FALSE(builder->PrecomputeSyncRelationsByMixGroups({reset}));
 }
 
 TEST_F(SkTaskBuilderTest, InsertAndRemoveSyncInfo_Works)

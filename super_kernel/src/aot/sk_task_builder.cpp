@@ -596,6 +596,215 @@ bool SkTaskBuilder::PrecomputeSyncRelationsFromGraph(const std::vector<SuperKern
     return flag;
 }
 
+bool SkTaskBuilder::IsMixKernelTask(const SuperKernelBaseNode* task) const
+{
+    if (task == nullptr) {
+        return false;
+    }
+    if (task->GetNodeType() != SkNodeType::NODE_KERNEL) {
+        return false;
+    }
+    const KernelInfos& kernelInfo = GetKernelInfos(task);
+    return kernelInfo.kernelType == SkKernelType::MIX_AIC_1_1 ||
+        kernelInfo.kernelType == SkKernelType::MIX_AIC_1_2;
+}
+
+bool SkTaskBuilder::SplitTasksByMixGroups(const std::vector<SuperKernelBaseNode*>& tasks,
+                                          std::vector<std::vector<SuperKernelBaseNode*>>& splitTasks,
+                                          bool& hasMixKernel) const
+{
+    splitTasks.clear();
+    std::vector<SuperKernelBaseNode*> subTasks;
+    bool inMixGroup = false;
+    hasMixKernel = false;
+
+    for (auto* task : tasks) {
+        if (task == nullptr) {
+            SK_LOGE("SplitTasksByMixGroups failed: null task found");
+            return false;
+        }
+        const bool curIsMix = IsMixKernelTask(task);
+        hasMixKernel = hasMixKernel || curIsMix;
+
+        if (!subTasks.empty() && curIsMix != inMixGroup) {
+            splitTasks.push_back(std::move(subTasks));
+            subTasks.clear();
+        }
+
+        subTasks.push_back(task);
+        inMixGroup = curIsMix;
+    }
+
+    if (!subTasks.empty()) {
+        splitTasks.push_back(std::move(subTasks));
+    }
+    return true;
+}
+
+bool SkTaskBuilder::InitSyncInfoSnapshotForMixGroups(const std::vector<SuperKernelBaseNode*>& tasks,
+                                                     std::vector<TaskSyncInfo>& taskSyncInfosOrigin)
+{
+    // Initialize queue types from complete tasks. Sliced tasks may not resolve WAIT/NOTIFY queue type correctly.
+    if (!InitTaskSyncInfos(tasks)) {
+        SK_LOGE("InitSyncInfoSnapshotForMixGroups failed: InitTaskSyncInfos failed");
+        return false;
+    }
+    taskSyncInfosOrigin = taskSyncInfos_;
+    taskSyncInfos_.clear();
+    if (taskSyncInfosOrigin.size() != tasks.size()) {
+        SK_LOGE("InitSyncInfoSnapshotForMixGroups failed: init sync info size mismatch, origin=%zu, expected=%zu",
+                taskSyncInfosOrigin.size(), tasks.size());
+        return false;
+    }
+    return true;
+}
+
+bool SkTaskBuilder::RebaseTaskSyncInfo(TaskSyncInfo& syncInfo, size_t offset) const
+{
+    auto rebaseSyncInfo = [](std::map<size_t, SyncDirection>& syncInfoMap, size_t offsetValue) -> bool {
+        if (offsetValue == 0 || syncInfoMap.empty()) {
+            return true;
+        }
+        std::map<size_t, SyncDirection> rebasedSyncInfo;
+        for (const auto& syncPair : syncInfoMap) {
+            if (syncPair.first > std::numeric_limits<size_t>::max() - offsetValue) {
+                SK_LOGE("RebaseTaskSyncInfo failed: sync index overflow, index=%zu, offset=%zu",
+                        syncPair.first, offsetValue);
+                return false;
+            }
+            rebasedSyncInfo[syncPair.first + offsetValue] = syncPair.second;
+        }
+        syncInfoMap.swap(rebasedSyncInfo);
+        return true;
+    };
+
+    return rebaseSyncInfo(syncInfo.vecRecvInfo, offset) &&
+           rebaseSyncInfo(syncInfo.cubRecvInfo, offset) &&
+           rebaseSyncInfo(syncInfo.vecSendInfo, offset) &&
+           rebaseSyncInfo(syncInfo.cubSendInfo, offset);
+}
+
+void SkTaskBuilder::AddBoundaryAllSync(const std::vector<SuperKernelBaseNode*>& curSplitTasks,
+                                       size_t groupIndex,
+                                       size_t groupOffset)
+{
+    auto& boundarySyncInfo = taskSyncInfos_.back();
+    SK_LOGI("AddBoundaryAllSync: add boundary all-sync at group=%zu, localTask=%zu, "
+            "globalTask=%zu, nodeId=%lu",
+            groupIndex, curSplitTasks.size() - 1, groupOffset + curSplitTasks.size() - 1,
+            curSplitTasks.back()->GetNodeId());
+    boundarySyncInfo.vecSendInfo.clear();
+    boundarySyncInfo.cubSendInfo.clear();
+    boundarySyncInfo.crossSyncInfo.clear();
+    boundarySyncInfo.crossSyncInfo[static_cast<size_t>(SkQueueType::AIC)] = SyncDirection::ALL_SYNC;
+}
+
+bool SkTaskBuilder::ProcessSyncRelationSplitGroup(const std::vector<SuperKernelBaseNode*>& curSplitTasks,
+                                                  size_t groupIndex,
+                                                  size_t groupOffset,
+                                                  bool hasNextGroup,
+                                                  const std::vector<TaskSyncInfo>& taskSyncInfosOrigin,
+                                                  std::vector<TaskSyncInfo>& mergedTaskSyncInfos)
+{
+    if (curSplitTasks.empty()) {
+        SK_LOGE("ProcessSyncRelationSplitGroup failed: empty split group, index=%zu", groupIndex);
+        return false;
+    }
+    if (groupOffset > taskSyncInfosOrigin.size() ||
+        curSplitTasks.size() > taskSyncInfosOrigin.size() - groupOffset) {
+        SK_LOGE("ProcessSyncRelationSplitGroup failed: split range out of bounds, index=%zu, offset=%zu, "
+                "groupSize=%zu, originSize=%zu",
+                groupIndex, groupOffset, curSplitTasks.size(), taskSyncInfosOrigin.size());
+        return false;
+    }
+
+    const bool groupIsMix = IsMixKernelTask(curSplitTasks.front());
+    SK_LOGI("ProcessSyncRelationSplitGroup: process group index=%zu, offset=%zu, size=%zu, isMixGroup=%d, "
+            "firstNodeId=%lu, lastNodeId=%lu",
+            groupIndex, groupOffset, curSplitTasks.size(), static_cast<int>(groupIsMix),
+            curSplitTasks.front()->GetNodeId(), curSplitTasks.back()->GetNodeId());
+
+    taskSyncInfos_.clear();
+    nodeIdToIndex_.clear();
+    indexToNodeId_.clear();
+    taskSyncInfos_.resize(curSplitTasks.size());
+    for (size_t j = 0; j < curSplitTasks.size(); j++) {
+        taskSyncInfos_[j] = taskSyncInfosOrigin[groupOffset + j];
+    }
+
+    SK_LOGI("Build sub-phase-1 begin: precompute sync relations, taskCount=%zu, index=%zu",
+            curSplitTasks.size(), groupIndex);
+    SK_LOGI("[sub sync by stream idx]");
+    ExtractIntraStreamSync(curSplitTasks);
+
+    SK_LOGI("[sub sync by event]");
+    if (!ExtractInterStreamSync(curSplitTasks)) {
+        SK_LOGE("ProcessSyncRelationSplitGroup failed: ExtractInterStreamSync failed");
+        return false;
+    }
+
+    SK_LOGI("Build sub-phase-2 begin: optimize sync relations, index=%zu", groupIndex);
+    OptimizeSyncRelations(curSplitTasks);
+
+    if (hasNextGroup) {
+        AddBoundaryAllSync(curSplitTasks, groupIndex, groupOffset);
+    }
+    for (auto& syncInfo : taskSyncInfos_) {
+        if (!RebaseTaskSyncInfo(syncInfo, groupOffset)) {
+            return false;
+        }
+        mergedTaskSyncInfos.push_back(std::move(syncInfo));
+    }
+
+    SK_LOGI("ProcessSyncRelationSplitGroup: finish group index=%zu, mergedTaskCount=%zu",
+            groupIndex, mergedTaskSyncInfos.size());
+    return true;
+}
+
+bool SkTaskBuilder::PrecomputeSyncRelationsByMixGroups(const std::vector<SuperKernelBaseNode*>& tasks)
+{
+    if (tasks.empty()) {
+        SK_LOGE("PrecomputeSyncRelationsByMixGroups failed: empty tasks");
+        return false;
+    }
+
+    std::vector<std::vector<SuperKernelBaseNode*>> splitTasks;
+    bool hasMixKernel = false;
+    if (!SplitTasksByMixGroups(tasks, splitTasks, hasMixKernel)) {
+        return false;
+    }
+    SK_LOGI("PrecomputeSyncRelationsByMixGroups: taskCount=%zu, splitGroupCount=%zu, hasMixKernel=%d",
+            tasks.size(), splitTasks.size(), static_cast<int>(hasMixKernel));
+
+    std::vector<TaskSyncInfo> taskSyncInfosOrigin;
+    if (!InitSyncInfoSnapshotForMixGroups(tasks, taskSyncInfosOrigin)) {
+        return false;
+    }
+    std::vector<TaskSyncInfo> mergedTaskSyncInfos;
+    mergedTaskSyncInfos.reserve(tasks.size());
+    size_t curTaskCount = 0;
+    for (size_t i = 0; i < splitTasks.size(); i++) {
+        if (!ProcessSyncRelationSplitGroup(splitTasks[i], i, curTaskCount, i + 1 < splitTasks.size(),
+                                           taskSyncInfosOrigin, mergedTaskSyncInfos)) {
+            return false;
+        }
+        curTaskCount += splitTasks[i].size();
+    }
+
+    if (curTaskCount != tasks.size() || mergedTaskSyncInfos.size() != tasks.size()) {
+        SK_LOGE("PrecomputeSyncRelationsByMixGroups failed: merged task sync info size mismatch, consumed=%zu, "
+                "merged=%zu, expected=%zu",
+                curTaskCount, mergedTaskSyncInfos.size(), tasks.size());
+        return false;
+    }
+    taskSyncInfos_.swap(mergedTaskSyncInfos);
+    nodeIdToIndex_.clear();
+    indexToNodeId_.clear();
+    SK_LOGI("PrecomputeSyncRelationsByMixGroups complete: taskCount=%zu, splitGroupCount=%zu",
+            tasks.size(), splitTasks.size());
+    return true;
+}
+
 // label : success
 void SkTaskBuilder::ExtractIntraStreamSync(const std::vector<SuperKernelBaseNode*>& tasks)
 {
@@ -1843,16 +2052,23 @@ SkBuildResult SkTaskBuilder::Build(std::string skFuncName, const std::vector<Sup
         splitBinCount = splitOptions->GetIntValue();
     }
 
-    // ========== Phase 1: precompute sync relations from graph topology ==========
-    SK_LOGI("Build phase-1 begin: precompute sync relations, taskCount=%zu", taskCount);
-    if (!PrecomputeSyncRelationsFromGraph(tasks)) {
-        SK_LOGE("Build failed: precompute sync relations failed");
-        return {};
-    }
+    if (opts.EnableMixKernelSplit()) {
+        if (!PrecomputeSyncRelationsByMixGroups(tasks)) {
+            SK_LOGE("Build failed: precompute sync relations with mix kernel split failed");
+            return {};
+        }
+    } else {
+        // ========== Phase 1: precompute sync relations from graph topology ==========
+        SK_LOGI("Build phase-1 begin: precompute sync relations, taskCount=%zu", taskCount);
+        if (!PrecomputeSyncRelationsFromGraph(tasks)) {
+            SK_LOGE("Build failed: precompute sync relations failed");
+            return {};
+        }
 
-    // ========== Phase 2: optimize sync relations ==========
-    SK_LOGI("Build phase-2 begin: optimize sync relations");
-    OptimizeSyncRelations(tasks);
+        // ========== Phase 2: optimize sync relations ==========
+        SK_LOGI("Build phase-2 begin: optimize sync relations");
+        OptimizeSyncRelations(tasks);
+    }
 
     // ========== Phase 3: attach sync metadata for custom tasks ==========
     if (!customTasks.empty()) {

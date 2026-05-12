@@ -245,6 +245,18 @@ public:
     bool EnableDebug() const;
 
     /*!
+     * \brief Get current device SoC name from ACL runtime
+     * \return SoC name string, or empty string when runtime returns nullptr
+     */
+    std::string GetSocName() const;
+
+    /*!
+     * \brief Check whether MIX kernel split should be enabled
+     * \return True when explicitly enabled by supported SoC
+     */
+    bool EnableMixKernelSplit() const;
+
+    /*!
      * \brief Set option value from an aclskOption structure
      * \param option Pointer to the aclskOption structure containing value to set
      */
