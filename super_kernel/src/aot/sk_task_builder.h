@@ -130,6 +130,8 @@ private:
     std::vector<TaskSyncInfo> taskSyncInfos_;
     std::unordered_map<uint64_t, size_t> nodeIdToIndex_;
     std::unordered_map<size_t, uint64_t> indexToNodeId_;
+    bool aicAvailable_ = false;
+    bool aivAvailable_ = false;
 
     // Task insertion helpers, separated by task type
     std::pair<int, int> GetPreFetchCnt(const ResolvedFunctionInfo& resolved);
