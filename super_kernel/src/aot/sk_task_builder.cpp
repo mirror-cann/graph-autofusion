@@ -19,6 +19,7 @@
 #include <memory>
 #include <new>
 #include <string>
+#include <tuple>
 #include "securec.h"
 #include "sk_event_recorder.h"
 #include "runtime/kernel.h"
@@ -86,16 +87,24 @@ const KernelInfos& GetKernelInfos(const SuperKernelBaseNode* node)
     return node->GetNodeInfos().kernelInfos;
 }
 
-SkQueueType ToEventQueueType(SkQueueType queueType)
+SkQueueType ToEventQueueType(SkQueueType queueType, bool aicAvailable = true, bool aivAvailable = true)
 {
-    return (queueType == SkQueueType::AIC) ? SkQueueType::AIC : SkQueueType::AIV;
+    SkQueueType eventQueueType = (queueType == SkQueueType::AIC) ? SkQueueType::AIC : SkQueueType::AIV;
+    if (eventQueueType == SkQueueType::AIC && !aicAvailable) {
+        return SkQueueType::AIV;
+    }
+    if (eventQueueType == SkQueueType::AIV && !aivAvailable) {
+        return SkQueueType::AIC;
+    }
+    return eventQueueType;
 }
 
-SkQueueType InferFirstKernelEventQueueType(const std::vector<SuperKernelBaseNode*>& tasks)
+SkQueueType InferFirstKernelEventQueueType(const std::vector<SuperKernelBaseNode*>& tasks, bool aicAvailable = true,
+                                           bool aivAvailable = true)
 {
     for (const auto* node : tasks) {
         if (node != nullptr && node->GetNodeType() == SkNodeType::NODE_KERNEL) {
-            return ToEventQueueType(ToQueueType(GetKernelInfos(node).kernelType));
+            return ToEventQueueType(ToQueueType(GetKernelInfos(node).kernelType), aicAvailable, aivAvailable);
         }
     }
     return SkQueueType::UNKNOWN;
@@ -334,6 +343,24 @@ SyncDirection GenSyncDirection(SkQueueType preType, SkQueueType currType)
     }
 }
 
+std::pair<bool, bool> CheckResourceStatus(const std::vector<SuperKernelBaseNode*>& tasks)
+{
+    bool aicAvailable = false;
+    bool aivAvailable = false;
+    for (const auto* task : tasks) {
+        if (task->GetNodeType() != SkNodeType::NODE_KERNEL) {
+            continue;
+        }
+        const KernelInfos& kernelInfo = GetKernelInfos(task);
+        aicAvailable |= UsesAic(ToQueueType(kernelInfo.kernelType));
+        aivAvailable |= UsesAiv(ToQueueType(kernelInfo.kernelType));
+        if (aicAvailable && aivAvailable) {
+            break;
+        }
+    }
+    return {aicAvailable, aivAvailable};
+}
+
 } // namespace
 
 // ========== Initialize sync metadata ==========
@@ -342,6 +369,11 @@ bool SkTaskBuilder::InitTaskSyncInfos(const std::vector<SuperKernelBaseNode*>& t
     taskSyncInfos_.clear();
     taskSyncInfos_.resize(tasks.size());
 
+    std::tie(aicAvailable_, aivAvailable_) = CheckResourceStatus(tasks);
+    if (!aicAvailable_ && !aivAvailable_) {
+        SK_LOGE("no AIC or AIV resource detected in the tasks, unable to assign queue types.");
+        return false;
+    }
     // Lookup cache for nearest kernel nodes: nodeId -> kernelNode*
     std::unordered_map<uint64_t, const SuperKernelBaseNode*> kernelNodeCache;
 
@@ -349,11 +381,10 @@ bool SkTaskBuilder::InitTaskSyncInfos(const std::vector<SuperKernelBaseNode*>& t
     size_t notifyCount = 0;
     size_t waitCount = 0;
     size_t resetCount = 0;
-    SkQueueType firstKernelEventQueueType = InferFirstKernelEventQueueType(tasks);
+    SkQueueType firstKernelEventQueueType = InferFirstKernelEventQueueType(tasks, aicAvailable_, aivAvailable_);
     SuperKernelBaseNode* prevKernelTask = nullptr;
     for (size_t i = 0; i < tasks.size(); i++) {
         SkNodeType nodeType = tasks[i]->GetNodeType();
-
         switch (nodeType) {
             case SkNodeType::NODE_KERNEL: {
                 // KERNEL node: assign queueType from kernel type.
@@ -380,7 +411,8 @@ bool SkTaskBuilder::InitTaskSyncInfos(const std::vector<SuperKernelBaseNode*>& t
                 } else {
                     kernelNodeCache[tasks[i]->GetNodeId()] = kernel; // cache current NOTIFY node for future searches
                     // Event nodes are executed on a single queue selected by nearest kernel type.
-                    taskSyncInfos_[i].queueType = ToEventQueueType(ToQueueType(GetKernelInfos(kernel).kernelType));
+                    taskSyncInfos_[i].queueType =
+                        ToEventQueueType(ToQueueType(GetKernelInfos(kernel).kernelType), aicAvailable_, aivAvailable_);
                 }
                 notifyCount++;
                 break;
@@ -401,7 +433,8 @@ bool SkTaskBuilder::InitTaskSyncInfos(const std::vector<SuperKernelBaseNode*>& t
                             to_string(nodeType), i, tasks[i]->GetNodeId(), to_string(taskSyncInfos_[i].queueType));
                 } else {
                     kernelNodeCache[tasks[i]->GetNodeId()] = kernel;
-                    taskSyncInfos_[i].queueType = ToEventQueueType(ToQueueType(GetKernelInfos(kernel).kernelType));
+                    taskSyncInfos_[i].queueType =
+                        ToEventQueueType(ToQueueType(GetKernelInfos(kernel).kernelType), aicAvailable_, aivAvailable_);
                 }
                 resetCount++;
                 break;
@@ -425,9 +458,12 @@ bool SkTaskBuilder::InitTaskSyncInfos(const std::vector<SuperKernelBaseNode*>& t
                     // Event nodes are executed on a single queue selected by nearest kernel type.
                     SkQueueType nextKernelQueueType = ToQueueType(GetKernelInfos(kernel).kernelType);
                     if (nextKernelQueueType != SkQueueType::AIC && nextKernelQueueType != SkQueueType::AIV) {
-                        taskSyncInfos_[i].queueType = ResolveMixWaitEventQueueType(prevKernelTask, kernel);
+                        taskSyncInfos_[i].queueType =
+                            ToEventQueueType(ResolveMixWaitEventQueueType(prevKernelTask, kernel), aicAvailable_,
+                                             aivAvailable_);
                     } else {
-                        taskSyncInfos_[i].queueType = ToEventQueueType(nextKernelQueueType);
+                        taskSyncInfos_[i].queueType =
+                            ToEventQueueType(nextKernelQueueType, aicAvailable_, aivAvailable_);
                     }
                 }
                 waitCount++;
@@ -437,7 +473,6 @@ bool SkTaskBuilder::InitTaskSyncInfos(const std::vector<SuperKernelBaseNode*>& t
                 SK_LOGE("unsupported node type for sync info initialization");
                 return false;
         }
-
         if (nodeType != SkNodeType::NODE_NOTIFY && nodeType != SkNodeType::NODE_RESET && i < tasks.size() - 1) {
             // Initialize default cross-sync hints for AIC/AIV.
             switch (taskSyncInfos_[i].queueType) {
@@ -1950,7 +1985,7 @@ SkBuildResult SkTaskBuilder::Build(std::string skFuncName, const std::vector<Sup
         SK_LOGI("direct add custom tasks");
         constexpr size_t kInvalidCustomTaskIndex = static_cast<size_t>(std::numeric_limits<uint32_t>::max());
         std::unordered_map<uint64_t, const SuperKernelBaseNode*> kernelNodeCache;
-        SkQueueType firstKernelEventQueueType = InferFirstKernelEventQueueType(tasks);
+        SkQueueType firstKernelEventQueueType = InferFirstKernelEventQueueType(tasks, aicAvailable_, aivAvailable_);
         for (size_t i = 0; i < customTasks.size(); i++) {
             auto* node = customTasks[i];
             // Synthesized event nodes do not belong to a physical graph stream.
@@ -1969,7 +2004,8 @@ SkBuildResult SkTaskBuilder::Build(std::string skFuncName, const std::vector<Sup
                 SK_LOGI("custom task %zu: unable to resolve previous KERNEL node, nodeId=%lu, fallback = %s", i,
                         node->GetNodeId(), to_string(queueType));
             } else {
-                queueType = ToEventQueueType(ToQueueType(GetKernelInfos(kernel).kernelType));
+                queueType =
+                    ToEventQueueType(ToQueueType(GetKernelInfos(kernel).kernelType), aicAvailable_, aivAvailable_);
             }
 
             // Custom tasks are event nodes (notify/wait/reset), use EventTask dispatch.
