@@ -198,43 +198,6 @@ TEST_F(DumpFusedGraphToJsonTest, DisabledLoggerSkipDump)
 
 class DumpSkTaskQueueToJsonTest : public SkDumpJsonTest {};
 
-TEST_F(DumpSkTaskQueueToJsonTest, EmptyTasks)
-{
-    SuperKernelGraph graph(nullptr);
-    SkTask aicTask;
-    SkTask aivTask;
-
-    bool result = DumpSkTaskQueueToJson(graph, aicTask, aivTask);
-    EXPECT_TRUE(result);
-}
-
-TEST_F(DumpSkTaskQueueToJsonTest, TasksWithInit)
-{
-    SuperKernelGraph graph(nullptr);
-    SkTask aicTask;
-    SkTask aivTask;
-
-    ASSERT_TRUE(aicTask.Init(4));
-    ASSERT_TRUE(aivTask.Init(4));
-
-    bool result = DumpSkTaskQueueToJson(graph, aicTask, aivTask);
-    EXPECT_TRUE(result);
-}
-
-TEST_F(DumpSkTaskQueueToJsonTest, DisabledLogger)
-{
-    sk::logger::FileLogger::Instance().SetEnabled(false);
-
-    SuperKernelGraph graph(nullptr);
-    SkTask aicTask;
-    SkTask aivTask;
-
-    bool result = DumpSkTaskQueueToJson(graph, aicTask, aivTask);
-    EXPECT_TRUE(result);
-
-    sk::logger::FileLogger::Instance().SetEnabled(true);
-}
-
 // ==================== PrintOriginalScopes Tests ====================
 
 class PrintOriginalScopesTest : public SkDumpJsonTest {};
@@ -1044,13 +1007,12 @@ TEST_F(SkDumpJsonDirectHelperTest, SkTaskQueueAndFileWritingHelpers)
     queue->taskInfos[1].entry[3] = 0x8000;
     queue->taskInfos[1].debugOptions = 16;
 
-    Json taskJson = SkTaskToJson(task, "AIC");
-    EXPECT_EQ(taskJson["queueName"], "AIC");
+    Json taskJson = SkTaskToJson(task);
     EXPECT_EQ(taskJson["taskQue"]["taskCnt"], 2);
     EXPECT_EQ(taskJson["taskQue"]["taskInfos"][0]["entries"].size(), 2);
     EXPECT_EQ(taskJson["taskQue"]["taskInfos"][1]["entries"].size(), 4);
 
-    Json noQueueJson = SkTaskToJson(SkTask(), "EMPTY");
+    Json noQueueJson = SkTaskToJson(SkTask());
     EXPECT_FALSE(noQueueJson.contains("taskQue"));
 
     std::string outputPath = CreateSkMetaDirectory(nullptr) + "/ut_write_json.json";
@@ -1061,8 +1023,6 @@ TEST_F(SkDumpJsonDirectHelperTest, SkTaskQueueAndFileWritingHelpers)
 
     SuperKernelGraph graph(nullptr);
     sk::logger::FileLogger::Instance().SetEnabled(true);
-    EXPECT_TRUE(DumpSkTaskQueueToJson(graph, task, task));
-    sk::logger::FileLogger::Instance().SetEnabled(false);
 }
 
 TEST_F(SkDumpJsonDirectHelperTest, RawTaskParamJsonCoversAllTaskTypes)

@@ -671,13 +671,11 @@ bool GetTaskQueueJsonOutputPath(const SuperKernelGraph& graph, std::string& outp
 /**
  * @brief Dump SkTask (AIC/AIV task queue) to JSON
  * @param task SkTask reference
- * @param queueName Queue name ("AIC" or "AIV")
  * @return JSON object representing the task queue
  */
-Json SkTaskToJson(const SkTask& task, const std::string& queueName) 
+Json SkTaskToJson(const SkTask& task) 
 {
     Json taskJson;
-    taskJson["queueName"] = queueName;
     taskJson["numBlocks"] = task.numBlocks;
     taskJson["funcCnt"] = task.funcCnt;
     
@@ -712,53 +710,6 @@ Json SkTaskToJson(const SkTask& task, const std::string& queueName)
     }
     
     return taskJson;
-}
-
-bool DumpSkTaskQueueToJson(const SuperKernelGraph& graph, const SkTask& aicTask, const SkTask& aivTask) 
-{
-    if (!sk::logger::FileLogger::Instance().IsEnabled()) {
-        return true;  // Kernel meta save is disabled, skip
-    }
-    SK_LOGI("Starting to dump SkTask queues to JSON");
-    
-    std::string jsonPath;
-    bool ret = GetTaskQueueJsonOutputPath(graph, jsonPath);
-    if (!ret) {
-        SK_LOGE("Dump task queue json failed: get path failed");
-        return false;
-    }
-    if (jsonPath.empty()) {
-        SK_LOGE("Failed to get task queue JSON output path");
-        return false;
-    }
-    
-    try {
-        Json taskQueueJson;
-        taskQueueJson["version"] = "1.0";
-        taskQueueJson["description"] = "SuperKernel Task Queue Information";
-        taskQueueJson["modelRI"] = std::to_string(reinterpret_cast<uintptr_t>(graph.GetModelRI()));
-        taskQueueJson["kernelType"] = to_string(aicTask.nodeType);
-        
-        taskQueueJson["taskQueues"]["aic"] = SkTaskToJson(aicTask, "AIC");
-        taskQueueJson["taskQueues"]["aiv"] = SkTaskToJson(aivTask, "AIV");
-        
-        // Write to file
-        std::ofstream outFile(jsonPath);
-        if (!outFile.is_open()) {
-            SK_LOGE("Failed to open task queue JSON file for writing: %s", jsonPath.c_str());
-            return false;
-        }
-        
-        outFile << taskQueueJson.dump(2);
-        outFile.close();
-        
-        SK_LOGI("Successfully dumped task queues to JSON file: %s", jsonPath.c_str());
-        return true;
-        
-    } catch (const std::exception& e) {
-        SK_LOGE("Exception while dumping task queues to JSON: %s", e.what());
-        return false;
-    }
 }
 
 /**
@@ -1758,7 +1709,60 @@ void PrintFusedScopes(const SuperKernelGraph& graph,
 
         // Line 3: breakReason (if kernel set differs from original scope)
         if (rootScopeBreakInfo.GetReason() != ScopeBreakReason::NONE && !IsKernelSetMatch(scopeInfo, originalKernelSets, graph)) {
-            SK_LOGI("    breakReason=%s, scopeName=[%s]", rootScopeBreakInfo.Format().c_str(), scopeNames.c_str());
+            SK_LOGI("    breakReason=[%s], scopeName=[%s]", rootScopeBreakInfo.Format().c_str(), scopeNames.c_str());
         }
     }
 }
+
+bool DumpAllTaskQueuesToJson(const SuperKernelGraph& graph, 
+                            const std::unordered_map<std::string, Json>& taskQueueJsons)
+{
+    if (!sk::logger::FileLogger::Instance().IsEnabled()) {
+        return true;  // Kernel meta save is disabled, skip
+    }
+    
+    std::string metaDir = CreateSkMetaDirectory(graph.GetModelRI());
+    if (metaDir.empty()) {
+        SK_LOGE("Failed to create sk_meta directory for task queue JSON dump");
+        return false;
+    }
+    std::string jsonPath = metaDir + "/sk_task_queue.json";
+    
+    try {
+        Json rootJson;
+        rootJson["version"] = "1.0";
+        rootJson["description"] = "SuperKernel Task Queue Information";
+        rootJson["modelRI"] = std::to_string(reinterpret_cast<uintptr_t>(graph.GetModelRI()));
+        rootJson["scopeCount"] = taskQueueJsons.size();
+        
+        Json scopesArray = Json::array();
+        for (const auto& [scopeId, taskQueueJson] : taskQueueJsons) {
+            scopesArray.push_back(taskQueueJson);
+        }
+        rootJson["scopes"] = scopesArray;
+        
+        std::ofstream outFile(jsonPath);
+        if (!outFile.is_open()) {
+            SK_LOGE("Failed to open task queue JSON file for writing: %s", jsonPath.c_str());
+            return false;
+        }
+        
+        outFile << rootJson.dump(2);
+        outFile.close();
+        
+        SK_LOGI("Successfully dumped %zu task queues to JSON file: %s", taskQueueJsons.size(), jsonPath.c_str());
+        return true;
+    } catch (const std::exception& e) {
+        SK_LOGE("Exception while dumping task queues to JSON: %s", e.what());
+        return false;
+    }
+}
+
+Json SkTaskToQueueJson(const SkTask& aicTask, const SkTask& aivTask, uint16_t scopeId) 
+    {
+        Json taskQueueJson;
+        taskQueueJson["scopeId"] = scopeId;
+        taskQueueJson["taskQueues"]["aic"] = SkTaskToJson(aicTask);
+        taskQueueJson["taskQueues"]["aiv"] = SkTaskToJson(aivTask);
+        return taskQueueJson;
+    }

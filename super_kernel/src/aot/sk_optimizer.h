@@ -18,6 +18,8 @@
 #include "sk_scope_postprocess.h"
 #include "sk_graph.h"
 #include "sk_scope_info.h"
+#include <nlohmann/json.hpp>
+using Json = nlohmann::ordered_json;
 
 class SkTaskBuilder;
 
@@ -49,6 +51,7 @@ private:
     std::vector<SuperKernelBaseNode*> ReorderWaitNodesForTaskBuild(
         const std::vector<SuperKernelBaseNode*>& taskNodes) const;
     std::vector<SuperKernelScopeInfo> processedScopeInfos_;
+    std::unordered_map<std::string, Json> taskQueueJsons_;  // scopeId -> task queue json
     bool Schedule(SuperKernelScopeInfo& scopeInfo, SuperKernelGraph& graph, SkTaskBuilder& builder);
     bool Update(SuperKernelScopeInfo& scopeInfo, SuperKernelGraph& graph, const SkLaunchInfo& launchInfo);
 };

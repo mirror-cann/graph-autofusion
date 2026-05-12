@@ -1762,8 +1762,8 @@ SkHostEntryInfo SkTaskBuilder::GenEntryInfo(SkTask& skTaskCube, SkTask& skTaskVe
 }
 
 // generate the final launch info for super kernel execution
-SkLaunchInfo SkTaskBuilder::Build(std::string skFuncName, const std::vector<SuperKernelBaseNode*>& tasks,
-                                  const std::vector<SuperKernelBaseNode*>& customTasks)
+SkBuildResult SkTaskBuilder::Build(std::string skFuncName, const std::vector<SuperKernelBaseNode*>& tasks,
+                                   const std::vector<SuperKernelBaseNode*>& customTasks, uint16_t scopeId)
 {
     // Post-process should already guarantee non-empty tasks.
     if (tasks.empty()) {
@@ -2025,11 +2025,13 @@ SkLaunchInfo SkTaskBuilder::Build(std::string skFuncName, const std::vector<Supe
     launchInfo.devArgs = std::move(devArgs);
     launchInfo.skFuncName = skFuncName;
 
-    // Dump task queues to JSON for debugging
-    SK_LOGI("DumpSkTaskQueueToJson: starting to dump task queues");
-    if (!DumpSkTaskQueueToJson(graph_, aicTask, aivTask)) {
-        SK_LOGW("Failed to dump task queues to JSON, continuing...");
-    }
+    // Generate task queue JSON for aggregation
+    SK_LOGI("SkTaskToQueueJson: generating task queue JSON for scopeId=%u", scopeId);
+    Json taskQueueJson = SkTaskToQueueJson(aicTask, aivTask, scopeId);
 
-    return launchInfo;
+    SkBuildResult result;
+    result.launchInfo = std::move(launchInfo);
+    result.taskQueueJson = std::move(taskQueueJson);
+
+    return result;
 }

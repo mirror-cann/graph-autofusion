@@ -18,7 +18,11 @@
 
 #include <string>
 #include <vector>
+#include <unordered_map>
+#include <nlohmann/json.hpp>
 #include "sk_scope_info.h"
+
+using Json = nlohmann::ordered_json;
 
 // Forward declarations
 class SuperKernelGraph;
@@ -45,9 +49,22 @@ bool DumpGraphNodesToJson(const SuperKernelGraph& graph);
  * @param graph Reference to the SuperKernelGraph
  * @param aicTask Reference to the AIC SkTask
  * @param aivTask Reference to the AIV SkTask
- * @return true if dump successful, false otherwise
- */
-bool DumpSkTaskQueueToJson(const SuperKernelGraph& graph, const SkTask& aicTask, const SkTask& aivTask);
+ * @param scopeId Scope ID for this task queue
+ * @return JSON object representing the task queue
+*/
+Json SkTaskToQueueJson(const SkTask& aicTask, const SkTask& aivTask, uint16_t scopeId);
+
+/**
+* @brief Dump all task queues to a single JSON file
+*
+* Aggregates all scope task queue JSON objects into a single file.
+*
+* @param graph Reference to the SuperKernelGraph
+* @param taskQueueJsons Map of scopeId -> task queue JSON
+* @return true if dump successful, false otherwise
+*/
+bool DumpAllTaskQueuesToJson(const SuperKernelGraph& graph,
+                            const std::unordered_map<std::string, Json>& taskQueueJsons);
 
 /**
  * @brief Dump fused (after fusion) SuperKernel graph to JSON file with nested structure

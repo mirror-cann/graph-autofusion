@@ -176,8 +176,7 @@ public:
         if (triggerStreamIdx != 0 || triggerNodeId != INVALID_TASK_ID) {
             result += ", triggerStream=" + std::to_string(triggerStreamIdx);
         }
-        if (reason == ScopeBreakReason::UNFUSIBLE_NODE ||
-            reason == ScopeBreakReason::DEADLOCK_DETECTED) {
+        if (fusionFailReason != FusionFailReason::CAN_FUSE) {
             result += ", fusionReason=" + FusionFailReasonToStr(fusionFailReason);
         }
         if (parentScopeId != INVALID_SCOPE_ID) {
