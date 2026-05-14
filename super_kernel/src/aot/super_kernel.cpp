@@ -104,6 +104,10 @@ aclError aclskOptimize(aclmdlRI model, aclskOptions *options) {
     }
     SK_LOGI("End dump tasks by use rts api to JSON...");
     CurrentModelGuard modelGuard(model);
+    ret = SkResourceManager::CallbackRegister(model);
+    if (ret != ACL_SUCCESS) {
+        return ret;
+    }
     ret = aclrtSetExceptionInfoCallback(SuperKernelExceptionCallBackFunc);
     if (ret != ACL_SUCCESS) {
         SK_LOGE("Failed to set exception callback.");

@@ -11,6 +11,35 @@
 #include "sk_resource_manager.h"
 #include "sk_log.h"
 
+#include <string>
+
+namespace {
+class ScopedModelLogContext {
+public:
+    explicit ScopedModelLogContext(aclmdlRI model)
+        : previousModel_(sk::logger::FileLogger::GetCurrentModelRI()),
+          previousHandle_(sk::logger::FileHandleManager::Instance().GetCurrentHandle())
+    {
+        sk::logger::FileLogger::SetCurrentModelRI(model);
+        sk::logger::FileHandleManager::Instance().SwitchToDefault();
+    }
+
+    ~ScopedModelLogContext()
+    {
+        sk::logger::FileLogger::SetCurrentModelRI(previousModel_);
+        if (previousHandle_ == "default") {
+            sk::logger::FileHandleManager::Instance().SwitchToDefault();
+            return;
+        }
+        sk::logger::FileHandleManager::Instance().SwitchToFile(previousHandle_);
+    }
+
+private:
+    aclmdlRI previousModel_ = nullptr;
+    std::string previousHandle_;
+};
+}  // namespace
+
 std::mutex SkResourceManager::resourceMutex_;
 std::unordered_map<aclmdlRI, std::vector<SkResourceManager::ResourceRecord>> SkResourceManager::modelResources_;
 std::unordered_set<aclmdlRI> SkResourceManager::registeredModels_;
@@ -32,7 +61,7 @@ aclError SkResourceManager::ValueMemory(void** addr, size_t bytes)
     return GetInstance().AllocForModel(currentModel_, addr, bytes);
 }
 
-aclError SkResourceManager::EnsureDestroyCallbackRegistered(aclmdlRI model)
+aclError SkResourceManager::CallbackRegister(aclmdlRI model)
 {
     if (model == nullptr) {
         SK_LOGE("ensure destroy callback failed: current model is null");
@@ -41,6 +70,7 @@ aclError SkResourceManager::EnsureDestroyCallbackRegistered(aclmdlRI model)
 
     std::lock_guard<std::mutex> lock(resourceMutex_);
     if (registeredModels_.count(model) != 0U) {
+        SK_LOGI("model destroy callback already registered: model=%p", model);
         return ACL_SUCCESS;
     }
 
@@ -55,6 +85,15 @@ aclError SkResourceManager::EnsureDestroyCallbackRegistered(aclmdlRI model)
     return ACL_SUCCESS;
 }
 
+aclError SkResourceManager::CheckCallbackRegistered(aclmdlRI model)
+{
+    std::lock_guard<std::mutex> lock(resourceMutex_);
+    if (registeredModels_.count(model) != 0U) {
+        return ACL_SUCCESS;
+    }
+    return ACL_ERROR_FAILURE;
+}
+
 aclError SkResourceManager::AllocForModel(aclmdlRI model, void** addr, size_t bytes)
 {
     if (addr == nullptr || bytes == 0U || model == nullptr) {
@@ -62,8 +101,9 @@ aclError SkResourceManager::AllocForModel(aclmdlRI model, void** addr, size_t by
         return ACL_ERROR_INVALID_PARAM;
     }
 
-    aclError ret = EnsureDestroyCallbackRegistered(model);
+    aclError ret = CheckCallbackRegistered(model);
     if (ret != ACL_SUCCESS) {
+        SK_LOGE("resource alloc failed: model destroy callback is not registered, model=%p", model);
         return ret;
     }
 
@@ -112,8 +152,9 @@ aclError SkResourceManager::ReleaseRecord(const ResourceRecord& record)
 
 void SkResourceManager::OnModelDestroy(void* userData)
 {
-    SK_LOGI("sk resource manager OnModelDestroy called: model=%p", userData);
     aclmdlRI model = reinterpret_cast<aclmdlRI>(userData);
+    ScopedModelLogContext logContext(model);
+    SK_LOGI("sk resource manager OnModelDestroy called: model=%p", model);
     std::vector<ResourceRecord> resources;
 
     {

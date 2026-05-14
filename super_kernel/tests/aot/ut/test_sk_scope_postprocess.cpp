@@ -22,15 +22,20 @@
 namespace {
 class ScopedModelContext {
 public:
-    explicit ScopedModelContext(aclmdlRI model)
+    explicit ScopedModelContext(aclmdlRI model) : model_(model)
     {
-        SkResourceManager::SetCurrentModel(model);
+        SkResourceManager::SetCurrentModel(model_);
+        EXPECT_EQ(SkResourceManager::CallbackRegister(model_), ACL_SUCCESS);
     }
 
     ~ScopedModelContext()
     {
+        SkResourceManager::OnModelDestroy(model_);
         SkResourceManager::SetCurrentModel(nullptr);
     }
+
+private:
+    aclmdlRI model_ = nullptr;
 };
 }
 

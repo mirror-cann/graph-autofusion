@@ -46,17 +46,29 @@ TEST_F(SkResourceManagerTest, ValueMemory_InvalidInputsOrNullModel_ReturnInvalid
     EXPECT_EQ(SkResourceManager::ValueMemory(&addr), ACL_ERROR_INVALID_PARAM);
 }
 
-TEST_F(SkResourceManagerTest, ValueMemory_RegisterOrMallocFail_ReturnFailure)
+TEST_F(SkResourceManagerTest, ValueMemory_UnregisteredCallback_ReturnFailure)
 {
     const aclmdlRI model = reinterpret_cast<aclmdlRI>(0x101);
     SkResourceManager::SetCurrentModel(model);
 
     void* addr = nullptr;
+    EXPECT_EQ(SkResourceManager::ValueMemory(&addr), ACL_ERROR_FAILURE);
+    EXPECT_EQ(addr, nullptr);
+    EXPECT_EQ(SkUtGetDestroyRegisterCallbackCallCount(), 0U);
+}
+
+TEST_F(SkResourceManagerTest, CallbackRegisterOrMallocFail_ReturnFailure)
+{
+    const aclmdlRI model = reinterpret_cast<aclmdlRI>(0x102);
+    SkResourceManager::SetCurrentModel(model);
+
+    void* addr = nullptr;
 
     SkUtSetAclmdlRIDestroyRegisterCallbackRet(ACL_ERROR_FAILURE);
-    EXPECT_EQ(SkResourceManager::ValueMemory(&addr), ACL_ERROR_FAILURE);
+    EXPECT_EQ(SkResourceManager::CallbackRegister(model), ACL_ERROR_FAILURE);
 
     SkUtSetAclmdlRIDestroyRegisterCallbackRet(ACL_SUCCESS);
+    EXPECT_EQ(SkResourceManager::CallbackRegister(model), ACL_SUCCESS);
     SkUtSetAclrtMallocRet(ACL_ERROR_FAILURE);
     EXPECT_EQ(SkResourceManager::ValueMemory(&addr), ACL_ERROR_FAILURE);
 
@@ -70,6 +82,7 @@ TEST_F(SkResourceManagerTest, ValueMemory_DestroyCallback_ReleasesTrackedMemory)
 
     void* addrA = nullptr;
     void* addrB = nullptr;
+    EXPECT_EQ(SkResourceManager::CallbackRegister(model), ACL_SUCCESS);
     EXPECT_EQ(SkResourceManager::ValueMemory(&addrA), ACL_SUCCESS);
     EXPECT_EQ(SkResourceManager::ValueMemory(&addrB), ACL_SUCCESS);
     ASSERT_NE(addrA, nullptr);
@@ -82,6 +95,7 @@ TEST_F(SkResourceManagerTest, ValueMemory_DestroyCallback_ReleasesTrackedMemory)
     const aclmdlRI model2 = reinterpret_cast<aclmdlRI>(0x303);
     SkResourceManager::SetCurrentModel(model2);
     void* addrC = nullptr;
+    EXPECT_EQ(SkResourceManager::CallbackRegister(model2), ACL_SUCCESS);
     EXPECT_EQ(SkResourceManager::ValueMemory(&addrC), ACL_SUCCESS);
     ASSERT_NE(addrC, nullptr);
 
@@ -89,11 +103,10 @@ TEST_F(SkResourceManagerTest, ValueMemory_DestroyCallback_ReleasesTrackedMemory)
     EXPECT_EQ(SkUtInvokeModelDestroyCallback(model2), ACL_SUCCESS);
 }
 
-TEST_F(SkResourceManagerTest, ValueMemory_ConcurrentSameModel_RegisterOnce)
+TEST_F(SkResourceManagerTest, CallbackRegister_ConcurrentSameModel_RegisterOnce)
 {
     const aclmdlRI model = reinterpret_cast<aclmdlRI>(0x404);
     constexpr uint32_t kThreadNum = 8;
-    std::vector<void*> addrs(kThreadNum, nullptr);
     std::vector<aclError> results(kThreadNum, ACL_ERROR_FAILURE);
     std::vector<std::thread> workers;
     workers.reserve(kThreadNum);
@@ -105,8 +118,7 @@ TEST_F(SkResourceManagerTest, ValueMemory_ConcurrentSameModel_RegisterOnce)
         workers.emplace_back([&, i]() {
             while (!startFlag.load(std::memory_order_acquire)) {
             }
-            SkResourceManager::SetCurrentModel(model);
-            results[i] = SkResourceManager::ValueMemory(&addrs[i]);
+            results[i] = SkResourceManager::CallbackRegister(model);
         });
     }
 
@@ -117,7 +129,6 @@ TEST_F(SkResourceManagerTest, ValueMemory_ConcurrentSameModel_RegisterOnce)
 
     for (uint32_t i = 0; i < kThreadNum; ++i) {
         EXPECT_EQ(results[i], ACL_SUCCESS);
-        EXPECT_NE(addrs[i], nullptr);
     }
     EXPECT_EQ(SkUtGetDestroyRegisterCallbackCallCount(), 1U);
     EXPECT_EQ(SkUtGetModelDestroyCallbackCount(), 1U);
@@ -126,9 +137,9 @@ TEST_F(SkResourceManagerTest, ValueMemory_ConcurrentSameModel_RegisterOnce)
     EXPECT_EQ(SkUtInvokeModelDestroyCallback(model), ACL_ERROR_INVALID_PARAM);
 }
 
-TEST_F(SkResourceManagerTest, EnsureDestroyCallbackRegistered_NullModel_ReturnInvalidParam)
+TEST_F(SkResourceManagerTest, CallbackRegister_NullModel_ReturnInvalidParam)
 {
-    EXPECT_EQ(SkResourceManager::GetInstance().EnsureDestroyCallbackRegistered(nullptr), ACL_ERROR_INVALID_PARAM);
+    EXPECT_EQ(SkResourceManager::CallbackRegister(nullptr), ACL_ERROR_INVALID_PARAM);
 }
 
 TEST_F(SkResourceManagerTest, ReleaseRecord_NullAddrOrUnknownKind_CoverBranches)
@@ -155,7 +166,7 @@ TEST_F(SkResourceManagerTest, OnModelDestroy_WhileRegistering_NotifyPathCovered)
 
     aclError registerRet = ACL_ERROR_FAILURE;
     std::thread registerThread([&]() {
-        registerRet = SkResourceManager::GetInstance().EnsureDestroyCallbackRegistered(model);
+        registerRet = SkResourceManager::CallbackRegister(model);
     });
 
     for (uint32_t retry = 0; retry < 200U; ++retry) {
@@ -173,6 +184,6 @@ TEST_F(SkResourceManagerTest, OnModelDestroy_WhileRegistering_NotifyPathCovered)
     // Destroy happened while registration was in flight: next ensure should
     // register again instead of being short-circuited by a stale registered flag.
     const uint32_t registerCallCountBefore = SkUtGetDestroyRegisterCallbackCallCount();
-    EXPECT_EQ(SkResourceManager::GetInstance().EnsureDestroyCallbackRegistered(model), ACL_SUCCESS);
+    EXPECT_EQ(SkResourceManager::CallbackRegister(model), ACL_SUCCESS);
     EXPECT_EQ(SkUtGetDestroyRegisterCallbackCallCount(), registerCallCountBefore + 1U);
 }

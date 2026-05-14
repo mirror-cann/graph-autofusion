@@ -39,6 +39,7 @@ public:
     static SkResourceManager& GetInstance();
 
     static void SetCurrentModel(aclmdlRI model);
+    static aclError CallbackRegister(aclmdlRI model);
     static aclError ValueMemory(void** addr, size_t bytes = kDefaultValueMemoryBytes);
 
     SkResourceManager(const SkResourceManager&) = delete;
@@ -54,8 +55,8 @@ private:
     static thread_local aclmdlRI currentModel_;
 
     aclError AllocForModel(aclmdlRI model, void** addr, size_t bytes);
+    static aclError CheckCallbackRegistered(aclmdlRI model);
     static aclError ReleaseRecord(const ResourceRecord& record);
-    aclError EnsureDestroyCallbackRegistered(aclmdlRI model);
     static void OnModelDestroy(void* userData);
 };
 
