@@ -34,12 +34,11 @@ declare -A MODULE_ACTION_HANDLERS=(
   ["superkernel:cpp_ut"]="superkernel_cpp_ut"
   ["superkernel:py_st"]="superkernel_py_st"
   ["superkernel:py_run_example"]="superkernel_py_run_example"
-  # Reserved module-level test entrypoints. Fill the value with a handler name when implemented.
-  ["autofuse_framework:all_ut"]="reserved_module_test_suite"
-  ["autofuse_framework:all_st"]="reserved_module_test_suite"
-  ["autofuse_ascendc_api:all_ut"]="reserved_module_test_suite"
-  ["autofuse_ascendc_api:all_st"]="reserved_module_test_suite"
-  ["autofuse_e2e:all_st"]="reserved_module_test_suite"
+  ["autofuse_framework:all_ut"]="autofuse_module_test_suite"
+  ["autofuse_framework:all_st"]="autofuse_module_test_suite"
+  ["autofuse_ascendc_api:all_ut"]="autofuse_module_test_suite"
+  ["autofuse_ascendc_api:all_st"]="autofuse_module_test_suite"
+  ["autofuse_e2e:all_st"]="autofuse_module_test_suite"
 )
 
 # print usage message
@@ -476,12 +475,44 @@ function superkernel_cpp_ut() {
   echo "Build run cpp utest success!"
 }
 
-reserved_module_test_suite() {
+autofuse_module_test_suite() {
   local module="$1"
   local action="$2"
-  local impl="${action%%_*}"
-  local suite="${action##*_}"
-  echo "更多功能支持中，已识别预留测试入口，暂未接入执行: module=${module}, impl=${impl}, suite=${suite}."
+  local test_option
+  local test_module
+  local test_args=()
+
+  case "${action}" in
+    all_ut) test_option="-u" ;;
+    all_st) test_option="-s" ;;
+    *)
+      echo "ERROR: Unsupported autofuse test action: ${action}."
+      return 1
+      ;;
+  esac
+
+  case "${module}" in
+    autofuse_framework) test_module="framework" ;;
+    autofuse_ascendc_api) test_module="ascendc_api" ;;
+    autofuse_e2e) test_module="e2e" ;;
+    *)
+      echo "ERROR: Unsupported autofuse test module: ${module}."
+      return 1
+      ;;
+  esac
+
+  test_args+=("${test_option}" -m "${test_module}" -j "${THREAD_NUM}")
+  if [ -n "${ASCEND_INSTALL_PATH}" ]; then
+    test_args+=("--ascend_install_path=${ASCEND_INSTALL_PATH}")
+  fi
+  if [ -n "${CANN_3RD_LIB_PATH}" ]; then
+    test_args+=("--ascend_3rd_lib_path=${CANN_3RD_LIB_PATH}")
+  fi
+  if [ "X${ENABLE_COVERAGE}" == "Xon" ]; then
+    test_args+=("-c")
+  fi
+
+  bash "${BASEPATH}/scripts/test/run_autofuse_test.sh" "${test_args[@]}"
 }
 
 main() {

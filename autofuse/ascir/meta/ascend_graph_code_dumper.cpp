@@ -122,7 +122,7 @@ using handle_ptr = void (*)(
 std::unordered_map<std::string, handle_ptr> IrAttrHandleMap = {{"float", FloatHandle},
                                                                {"int64_t", Int64Handle},
                                                                {"std::string", StringHandle},
-                                                               {"af::Expression", ExpressionHandle}};
+                                                               {"Expression", ExpressionHandle}};
 
 bool IsNodeWithIrInputs(const af::NodePtr &node) {
   const auto &op_desc = node->GetOpDesc();
