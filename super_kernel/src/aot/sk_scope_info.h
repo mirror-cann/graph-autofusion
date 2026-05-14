@@ -169,7 +169,10 @@ public:
     const std::string& GetDetail() const { return detail; }
 
     std::string Format() const {
-        std::string result = "reason=" + std::string(ScopeBreakReasonToStr(reason));
+        std::string result; 
+        if (reason != ScopeBreakReason::NONE) {
+            result = "breakReason=" + std::string(ScopeBreakReasonToStr(reason));
+        }
         if (triggerNodeId != INVALID_TASK_ID) {
             result += ", triggerNode=" + std::to_string(triggerNodeId);
         }
@@ -177,7 +180,7 @@ public:
             result += ", triggerStream=" + std::to_string(triggerStreamIdx);
         }
         if (fusionFailReason != FusionFailReason::CAN_FUSE) {
-            result += ", fusionReason=" + FusionFailReasonToStr(fusionFailReason);
+            result += ", fusionFailReason=" + FusionFailReasonToStr(fusionFailReason);
         }
         if (parentScopeId != INVALID_SCOPE_ID) {
             result += ", parentScope=" + std::to_string(parentScopeId);
