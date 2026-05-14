@@ -39,6 +39,20 @@ extern "C" aclrtBinHandle AscendGetEntryBinHandle();
 
 constexpr uint64_t INVALID_SK_BIND_VALUE = 0xffffffffffffffffULL;
 
+KernelCapBits ParseKernelCapBits(uint64_t cap)
+{
+    const auto getBit = [cap](KernelCapBitOffset offset) -> bool {
+        return ((cap >> static_cast<uint8_t>(offset)) & 1ULL) != 0;
+    };
+
+    KernelCapBits bits;
+    bits.earlyStartWaitFlag = getBit(KernelCapBitOffset::EARLY_START_WAIT_FLAG);
+    bits.earlyStartSetFlag = getBit(KernelCapBitOffset::EARLY_START_SET_FLAG);
+    bits.dcci = getBit(KernelCapBitOffset::DCCI);
+    bits.disableScheMode = getBit(KernelCapBitOffset::DISABLE_SCHEMODE);
+    return bits;
+}
+
 // Implementation of FusionFailReasonInfo methods (requires complete ScopeFailReason/DeadlockFailReason definition)
 FusionFailReasonInfo::FusionFailReasonInfo(FusionFailReason reason, ScopeFailReason scopeReason)
     : primary(reason), scopeDetailValue(static_cast<uint8_t>(scopeReason)) {}
@@ -393,8 +407,18 @@ bool InitKernelResolvedFuncs(KernelInfos &kernelInfos)
         return false;
     }
     kernelInfos.cap = hasCap ? cap : 0;
-    SK_LOGI("bindMap size=%lu, aicFound=%d, aivFound=%d",
-        bindMap.size(), aicItor != bindMap.end(), aivItor != bindMap.end());
+    const KernelCapBits capBits = ParseKernelCapBits(kernelInfos.cap);
+    SK_LOGI("bindMap size=%lu, aicFound=%d, aivFound=%d, earlyStartWaitFlag=%d, "
+            "earlyStartSetFlag=%d, dcci=%d, disableScheMode=%d",
+        bindMap.size(), aicItor != bindMap.end(), aivItor != bindMap.end(),
+        capBits.earlyStartWaitFlag, capBits.earlyStartSetFlag, capBits.dcci, capBits.disableScheMode);
+    if (capBits.disableScheMode == true) {
+        const bool originScheModeOn = kernelInfos.isScheModeOn;
+        kernelInfos.isScheModeOn = false;
+        SK_LOGI("Disable ScheMode by kernel cap, funcName=%s, cap=0x%lx, originIsScheModeOn=%d, "
+                "currentIsScheModeOn=%d",
+            kernelInfos.funcName.c_str(), kernelInfos.cap, originScheModeOn, kernelInfos.isScheModeOn);
+    }
     kernelInfos.resolvedNum = 0;
     for (size_t i = 0; i < K_MAX_SPLIT_BIN_COUNT; ++i) {
         ResolvedFunctionInfo info{};

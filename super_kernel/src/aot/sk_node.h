@@ -178,6 +178,22 @@ struct ResolvedFunctionInfo {
 
 constexpr size_t K_MAX_SPLIT_BIN_COUNT = 4;
 
+enum class KernelCapBitOffset : uint8_t {
+    EARLY_START_WAIT_FLAG = 0,  // Bit 0: early start wait flag
+    EARLY_START_SET_FLAG = 1,   // Bit 1: early start set flag
+    DCCI = 2,                   // Bit 2: DCCI flag
+    DISABLE_SCHEMODE = 3,       // Bit 3: disable ScheMode flag
+};
+
+struct KernelCapBits {
+    bool earlyStartWaitFlag = false;
+    bool earlyStartSetFlag = false;
+    bool dcci = false;
+    bool disableScheMode = false;
+};
+
+KernelCapBits ParseKernelCapBits(uint64_t cap);
+
 struct KernelInfos {
     SkKernelType kernelType = SkKernelType::DEFAULT;
     uint32_t kernelTypeInt = 0;  // Original ACL kernel type value
