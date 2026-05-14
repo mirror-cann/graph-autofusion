@@ -1673,12 +1673,6 @@ void PrintScopeSummary(const SuperKernelScopeInfo& scope, size_t idx)
     SK_LOGI("Scope %zu (scopeId=%u): %zu nodes", idx, scope.GetScopeId(), scope.GetNodes().size());
 }
 
-void PrintFusionStatus(const ScopeExtInfo& extInfo) 
-{
-    SK_LOGI("  FusionStatus: %s, FailReason: %s",
-            ScopeFusionStatusToStr(extInfo.fusionStatus), ScopeFailReasonToStr(extInfo.failReason));
-}
-
 void PrintTriggerNode(const ScopeBreakInfo& breakInfo, SuperKernelGraph& graph) 
 {
     if (breakInfo.GetTriggerNodeId() == INVALID_TASK_ID) return;

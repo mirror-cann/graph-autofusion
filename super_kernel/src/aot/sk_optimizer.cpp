@@ -311,6 +311,7 @@ bool SuperKernelOptimizer::Process(SuperKernelGraph& graph)
         auto& scopeInfo = processedScopeInfos_[i];
         SK_LOGI("process scope begin: scopeId=%u", scopeInfo.GetScopeId());
         if (!postProcessor.PostProcess(scopeInfo)) {
+            scopeInfo.MutableExtInfo().failReason = ScopeFailReason::STREAM_SYNC_FAIL;
             SK_LOGI("scope unprocessable after post-process, skip schedule/update: scopeId=%u, reason=%s",
                     scopeInfo.GetScopeId(), ScopeFailReasonToStr(scopeInfo.GetExtInfo().failReason));
             ScopeFailReason failReason = scopeInfo.GetExtInfo().failReason;            // Set fusion fail reason for all nodes in this scope with scope detail
