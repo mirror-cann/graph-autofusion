@@ -27,6 +27,7 @@
 #include "sk_node.h"
 #include "sk_scope_launch.h"
 #include "sk_common.h"
+#include "sk_options_manager.h"
 #include "ut_common_stubs.h"
 #include "runtime/kernel.h"
 #include "securec.h"
@@ -139,6 +140,31 @@ aclError FakeAclrtGetFunctionNameRegular(aclrtFuncHandle funcHandle, uint32_t ma
     (void)funcHandle;
     const char* src = "regular_kernel";
     return snprintf_s(name, maxLen, maxLen, "%s", src) < 0 ? ACL_ERROR_FAILURE : ACL_SUCCESS;
+}
+
+aclError FakeAclrtGetFunctionNameIgnoredMix(aclrtFuncHandle funcHandle, uint32_t maxLen, char* name)
+{
+    (void)funcHandle;
+    const char* src = "IgnoredMix";
+    return snprintf_s(name, maxLen, maxLen, "%s", src) < 0 ? ACL_ERROR_FAILURE : ACL_SUCCESS;
+}
+
+aclError FakeAclrtGetFunctionAttributeMix11(aclrtFuncHandle funcHandle, aclrtFuncAttribute attrType, int64_t* attrValue)
+{
+    (void)funcHandle;
+    if (attrValue == nullptr) {
+        return ACL_ERROR_INVALID_PARAM;
+    }
+    if (attrType == ACL_FUNC_ATTR_KERNEL_TYPE) {
+        *attrValue = ACL_KERNEL_TYPE_MIX;
+        return ACL_SUCCESS;
+    }
+    if (attrType == ACL_FUNC_ATTR_KERNEL_RATIO) {
+        *attrValue = 1;
+        return ACL_SUCCESS;
+    }
+    *attrValue = 0;
+    return ACL_SUCCESS;
 }
 
 aclError FakeAclrtFunctionGetBinaryNonNull(aclrtFuncHandle funcHandle, aclrtBinHandle* binHandle)
@@ -450,6 +476,34 @@ TEST_F(SkNodeTest, KernelInitNode_BindmapEmptyReasonIsRecorded)
     EXPECT_FALSE(node.IsFusible());
     EXPECT_EQ(node.GetFusionFailReason(), FusionFailReason::BINDMAP_IS_EMPTY);
     EXPECT_EQ(node.GetFusionFailReasonInfo().GetBindmapDetail(), BindmapFailReason::BINDMAP_INIT_EMPTY);
+}
+
+TEST_F(SkNodeTest, KernelInitNode_MixSplitFlagHonorsUbufLockIgnoreKernel)
+{
+    UtSkNodeRITaskInternal task{};
+    task.taskId = 15;
+    task.type = ACL_MODEL_RI_TASK_KERNEL;
+    task.params.type = ACL_MODEL_RI_TASK_KERNEL;
+    task.params.kernelTaskParams.funcHandle = reinterpret_cast<aclrtFuncHandle>(0x2015);
+    task.params.kernelTaskParams.numBlocks = 4;
+
+    char ignoredMix[] = "IgnoredMix";
+    char* ignoredMixKernels[] = {ignoredMix};
+    aclskOption option {};
+    option.optionType = aclskOptionType::AGGRESSIVE_OPT_STRATEGIES;
+    option.aggressiveOpts.ubufLockIgnoreKernelCnt = 1;
+    option.aggressiveOpts.ubufLockIgnoreKernel = ignoredMixKernels;
+    SuperKernelOptionsManager opts;
+    opts.SetOptOptionValue(&option);
+
+    MOCKER(aclrtGetFunctionName).stubs().will(invoke(FakeAclrtGetFunctionNameIgnoredMix));
+    MOCKER(aclrtGetFunctionAttribute).stubs().will(invoke(FakeAclrtGetFunctionAttributeMix11));
+    MOCKER(aclrtFunctionGetBinary).stubs().will(invoke(FakeAclrtFunctionGetBinaryNonNull));
+
+    SuperKernelKernelNode node(MakeOriginTask(task), ACL_MODEL_RI_TASK_KERNEL, 0, 0, 0, INVALID_TASK_ID);
+    EXPECT_TRUE(node.InitNode(&opts));
+    EXPECT_EQ(node.nodeInfos.kernelInfos.kernelType, SkKernelType::MIX_AIC_1_1);
+    EXPECT_FALSE(node.nodeInfos.kernelInfos.needMixKernelSplit);
 }
 
 TEST_F(SkNodeTest, KernelInitNode_NullFuncHandleRecordsBindmapReason)

@@ -1210,7 +1210,7 @@ bool SuperKernelGraph::ProcessSingleTask(aclmdlRITask& task, uint32_t streamIdx,
     auto node = SuperKernelNodeFactory::CreateNode(
         std::make_unique<aclmdlRITask>(task),
         taskType, taskIdx, streamIdx, realStreamId, preNodeId);
-    if (!node->InitNode()) {
+    if (!node->InitNode(opts_)) {
         SK_LOGE("Failed to initialize node for task %u in stream %u (taskType=%u, nodeId=%lu)",
                  taskIdx, streamIdx, taskType, node->GetNodeId());
         return false;

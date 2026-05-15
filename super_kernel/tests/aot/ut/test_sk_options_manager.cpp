@@ -599,6 +599,49 @@ TEST_F(SuperKernelOptionsManagerTest, SetOptOptionValue_AggressiveOptStrategies)
     EXPECT_EQ(aggressiveOpts.taskBreakerBypass, 1);
 }
 
+TEST_F(SuperKernelOptionsManagerTest, SetOptOptionValue_AggressiveOptStrategies_UbufLockIgnoreKernel)
+{
+    aclskOption option {};
+    option.optionType = aclskOptionType::AGGRESSIVE_OPT_STRATEGIES;
+    option.aggressiveOpts.eventBreakerBypass = 7;
+    option.aggressiveOpts.valueBreakerBypass = ACLSK_VALUE_BREAKER_BYPASS_UNPAIRED_WAIT;
+    option.aggressiveOpts.taskBreakerBypass = 1;
+    char ignoredMix0[] = "IgnoredMix";
+    char ignoredMix1[] = "IgnoredMix.*";
+    char* ignoredMixKernels[] = {ignoredMix0, ignoredMix1};
+    option.aggressiveOpts.ubufLockIgnoreKernelCnt = 2;
+    option.aggressiveOpts.ubufLockIgnoreKernel = ignoredMixKernels;
+
+    opts_test->SetOptOptionValue(&option);
+
+    auto result = opts_test->GetOption(aclskOptionType::AGGRESSIVE_OPT_STRATEGIES);
+    ASSERT_NE(result, nullptr);
+    const auto* aggressiveOpt = static_cast<AggressiveOptStrategiesOption*>(result);
+    const auto& aggressiveOpts = aggressiveOpt->GetValue();
+    ASSERT_EQ(aggressiveOpts.ubufLockIgnoreKernelCnt, 2U);
+    ASSERT_NE(aggressiveOpts.ubufLockIgnoreKernel, nullptr);
+    EXPECT_STREQ(aggressiveOpts.ubufLockIgnoreKernel[0], "IgnoredMix");
+    EXPECT_STREQ(aggressiveOpts.ubufLockIgnoreKernel[1], "IgnoredMix.*");
+    EXPECT_TRUE(opts_test->JudgeUbufLockIgnoreKernel(aggressiveOpt->GetValue(), "IgnoredMixV2"));
+}
+
+TEST_F(SuperKernelOptionsManagerTest, SetOptOptionValue_AggressiveOptStrategies_UbufLockIgnoreKernelNull)
+{
+    aclskOption option {};
+    option.optionType = aclskOptionType::AGGRESSIVE_OPT_STRATEGIES;
+    option.aggressiveOpts.ubufLockIgnoreKernelCnt = 2;
+    option.aggressiveOpts.ubufLockIgnoreKernel = nullptr;
+
+    opts_test->SetOptOptionValue(&option);
+
+    auto result = opts_test->GetOption(aclskOptionType::AGGRESSIVE_OPT_STRATEGIES);
+    ASSERT_NE(result, nullptr);
+    const auto* aggressiveOpt = static_cast<AggressiveOptStrategiesOption*>(result);
+    EXPECT_EQ(aggressiveOpt->GetValue().ubufLockIgnoreKernelCnt, 2U);
+    EXPECT_EQ(aggressiveOpt->GetValue().ubufLockIgnoreKernel, nullptr);
+    EXPECT_FALSE(opts_test->JudgeUbufLockIgnoreKernel(aggressiveOpt->GetValue(), "IgnoredMix"));
+}
+
 TEST_F(SuperKernelOptionsManagerTest, SetOptOptionValue_DebugExtendOption_Nullptr)
 {
     aclskOption option {};
@@ -1283,4 +1326,126 @@ TEST_F(SuperKernelOptionsManagerTest, ToJson_AfterParseOptions)
     EXPECT_TRUE(json.contains("preload_code"));
     EXPECT_TRUE(json.contains("split_mode"));
     EXPECT_TRUE(json.contains("debug_sync_all"));
+}
+
+TEST_F(SuperKernelOptionsManagerTest, ToJson_NewIntegerOptions)
+{
+    aclskOption options[5] {};
+    options[0].optionType = aclskOptionType::STREAM_FUSION;
+    options[0].streamFusion.streamFusion = 0;
+
+    options[1].optionType = aclskOptionType::CONSTANT_CODEGEN;
+    options[1].constantCodegen.enableConstant = 1;
+
+    options[2].optionType = aclskOptionType::AUTO_OP_PARALLEL;
+    options[2].autoOpParallel.enableAutoOpParallel = 1;
+
+    options[3].optionType = aclskOptionType::DEBUG_CROSS_CORE_SYNC_CHECK;
+    options[3].debugCrossCoreSyncCheck.enableCrossCoreSyncCheck = 1;
+
+    options[4].optionType = aclskOptionType::DEBUG_OP_EXEC_TRACE;
+    options[4].debugOpExecTrace.enableOpExecTrace = 1;
+
+    aclskOptions optList;
+    optList.options = options;
+    optList.numOptions = 5;
+
+    opts_test->ParseOptions(&optList);
+
+    nlohmann::ordered_json json = opts_test->ToJson();
+    ASSERT_EQ(json.size(), 5);
+    ASSERT_TRUE(json.contains("stream_fusion"));
+    ASSERT_TRUE(json.contains("constant_codegen"));
+    ASSERT_TRUE(json.contains("auto_op_parallel"));
+    ASSERT_TRUE(json.contains("debug_cross_core_sync_check"));
+    ASSERT_TRUE(json.contains("debug_op_exec_trace"));
+    EXPECT_EQ(json["stream_fusion"]["type"], static_cast<int>(aclskOptionType::STREAM_FUSION));
+    EXPECT_EQ(json["stream_fusion"]["value"], 0);
+    EXPECT_EQ(json["constant_codegen"]["type"], static_cast<int>(aclskOptionType::CONSTANT_CODEGEN));
+    EXPECT_EQ(json["constant_codegen"]["value"], 1);
+    EXPECT_EQ(json["auto_op_parallel"]["type"], static_cast<int>(aclskOptionType::AUTO_OP_PARALLEL));
+    EXPECT_EQ(json["auto_op_parallel"]["value"], 1);
+    EXPECT_EQ(json["debug_cross_core_sync_check"]["type"],
+        static_cast<int>(aclskOptionType::DEBUG_CROSS_CORE_SYNC_CHECK));
+    EXPECT_EQ(json["debug_cross_core_sync_check"]["value"], 1);
+    EXPECT_EQ(json["debug_op_exec_trace"]["type"], static_cast<int>(aclskOptionType::DEBUG_OP_EXEC_TRACE));
+    EXPECT_EQ(json["debug_op_exec_trace"]["value"], 1);
+}
+
+TEST_F(SuperKernelOptionsManagerTest, ToJson_DcciAfterKernelEnd)
+{
+    char kernel0[] = "Add";
+    char kernel1[] = "Mul.*";
+    char* kernels[] = {kernel0, kernel1};
+
+    aclskOption option {};
+    option.optionType = aclskOptionType::DCCI_AFTER_KERNEL_END;
+    option.dcciAfterKernelEnd.kernelNames = kernels;
+    option.dcciAfterKernelEnd.kernelCnt = 2;
+
+    opts_test->SetOptOptionValue(&option);
+
+    nlohmann::ordered_json json = opts_test->ToJson();
+    ASSERT_EQ(json.size(), 1);
+    ASSERT_TRUE(json.contains("dcci_after_kernel_end"));
+    EXPECT_EQ(json["dcci_after_kernel_end"]["name"], "dcci_after_kernel_end");
+    EXPECT_EQ(json["dcci_after_kernel_end"]["type"], static_cast<int>(aclskOptionType::DCCI_AFTER_KERNEL_END));
+    ASSERT_EQ(json["dcci_after_kernel_end"]["value"].size(), 2);
+    EXPECT_EQ(json["dcci_after_kernel_end"]["value"][0], "Add");
+    EXPECT_EQ(json["dcci_after_kernel_end"]["value"][1], "Mul.*");
+}
+
+TEST_F(SuperKernelOptionsManagerTest, ToJson_AggressiveOptStrategies)
+{
+    char kernel0[] = "IgnoredMix";
+    char kernel1[] = "IgnoredMix.*";
+    char* kernels[] = {kernel0, nullptr, kernel1};
+
+    aclskOption option {};
+    option.optionType = aclskOptionType::AGGRESSIVE_OPT_STRATEGIES;
+    option.aggressiveOpts.eventBreakerBypass = 7;
+    option.aggressiveOpts.valueBreakerBypass = ACLSK_VALUE_BREAKER_BYPASS_UNPAIRED_WAIT;
+    option.aggressiveOpts.taskBreakerBypass = 1;
+    option.aggressiveOpts.ubufLockIgnoreKernelCnt = 3;
+    option.aggressiveOpts.ubufLockIgnoreKernel = kernels;
+
+    opts_test->SetOptOptionValue(&option);
+
+    nlohmann::ordered_json json = opts_test->ToJson();
+    ASSERT_EQ(json.size(), 1);
+    ASSERT_TRUE(json.contains("aggressive_opt_strategies"));
+    EXPECT_EQ(json["aggressive_opt_strategies"]["name"], "aggressive_opt_strategies");
+    EXPECT_EQ(json["aggressive_opt_strategies"]["type"],
+        static_cast<int>(aclskOptionType::AGGRESSIVE_OPT_STRATEGIES));
+
+    const auto& value = json["aggressive_opt_strategies"]["value"];
+    EXPECT_EQ(value["eventBreakerBypass"], 7);
+    EXPECT_EQ(value["valueBreakerBypass"], static_cast<uint32_t>(ACLSK_VALUE_BREAKER_BYPASS_UNPAIRED_WAIT));
+    EXPECT_EQ(value["taskBreakerBypass"], 1);
+    ASSERT_TRUE(value["ubufLockIgnoreKernel"].is_array());
+    ASSERT_EQ(value["ubufLockIgnoreKernel"].size(), 2);
+    EXPECT_EQ(value["ubufLockIgnoreKernel"][0], "IgnoredMix");
+    EXPECT_EQ(value["ubufLockIgnoreKernel"][1], "IgnoredMix.*");
+}
+
+TEST_F(SuperKernelOptionsManagerTest, ToJson_AggressiveOptStrategiesNullKernelList)
+{
+    aclskOption option {};
+    option.optionType = aclskOptionType::AGGRESSIVE_OPT_STRATEGIES;
+    option.aggressiveOpts.eventBreakerBypass = 1;
+    option.aggressiveOpts.valueBreakerBypass = ACLSK_VALUE_BREAKER_BYPASS_PAIRED_WAIT;
+    option.aggressiveOpts.taskBreakerBypass = 0;
+    option.aggressiveOpts.ubufLockIgnoreKernelCnt = 2;
+    option.aggressiveOpts.ubufLockIgnoreKernel = nullptr;
+
+    opts_test->SetOptOptionValue(&option);
+
+    nlohmann::ordered_json json = opts_test->ToJson();
+    ASSERT_TRUE(json.contains("aggressive_opt_strategies"));
+    const auto& value = json["aggressive_opt_strategies"]["value"];
+    EXPECT_EQ(value["eventBreakerBypass"], 1);
+    EXPECT_EQ(value["valueBreakerBypass"], static_cast<uint32_t>(ACLSK_VALUE_BREAKER_BYPASS_PAIRED_WAIT));
+    EXPECT_EQ(value["taskBreakerBypass"], 0);
+    ASSERT_TRUE(value["ubufLockIgnoreKernel"].is_array());
+    EXPECT_TRUE(value["ubufLockIgnoreKernel"].empty());
 }

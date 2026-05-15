@@ -231,6 +231,15 @@ public:
     bool JudgeDisableKernelDcci(const std::vector<std::string>& dcciOps, const std::string& opName) const;
 
     /*!
+     * \brief Judge whether a kernel should ignore MIX kernel split based on configured patterns
+     * \param aggressiveOpts Aggressive option structure that carries operation patterns
+     * \param opName The operation name to check against patterns
+     * \return True if the kernel should be treated as a normal kernel for MIX split, false otherwise
+     */
+    bool JudgeUbufLockIgnoreKernel(const aclskAggressiveOptStrategies& aggressiveOpts,
+                                   const std::string& opName) const;
+
+    /*!
      * \brief Simple regex-like pattern matching without std::regex
      * \param pattern The regex pattern (supports: . *)
      * \param text The text to match against

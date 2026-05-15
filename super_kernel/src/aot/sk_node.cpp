@@ -33,6 +33,7 @@
 #include "sk_scope_info.h"
 #include "sk_lock_detector.h"
 #include "sk_common.h"
+#include "sk_options_manager.h"
 #include "runtime/kernel.h"
 
 extern "C" aclrtBinHandle AscendGetEntryBinHandle();
@@ -464,6 +465,11 @@ SkKernelType NormalizeKernelType(uint32_t kernelType, const uint32_t taskRatio[2
     return SkKernelType::DEFAULT;
 }
 
+bool IsMixKernelType(SkKernelType kernelType)
+{
+    return kernelType == SkKernelType::MIX_AIC_1_1 || kernelType == SkKernelType::MIX_AIC_1_2;
+}
+
 } // namespace
 
 // ============================================================================
@@ -498,6 +504,7 @@ Json KernelInfosToJson(const KernelInfos& kernelInfos)
     kernelJson["binHandle"] = PtrToHexString(kernelInfos.binHdl);
     kernelJson["kernelTypeInt"] = kernelInfos.kernelTypeInt;
     kernelJson["kernelType"] = to_string(kernelInfos.kernelType);
+    kernelJson["needMixKernelSplit"] = kernelInfos.needMixKernelSplit;
     kernelJson["taskRatio"] = Json::array({kernelInfos.taskRatio[0], kernelInfos.taskRatio[1]});
     kernelJson["opInfoPtr"] = PtrToHexString(kernelInfos.opInfoPtr);
     kernelJson["opInfoSize"] = static_cast<uint64_t>(kernelInfos.opInfoSize);
@@ -617,7 +624,8 @@ const char* SuperKernelBaseNode::GetUpdateTargetTypeName(aclmdlRITaskType type) 
     }
 }
 
-bool SuperKernelBaseNode::InitNode() {
+bool SuperKernelBaseNode::InitNode(const SuperKernelOptionsManager* opts) {
+    (void)opts;
     if (originTask == nullptr) {
         SK_LOGE("Origin task is null for %s", Format().c_str());
         return false;
@@ -741,8 +749,8 @@ bool IsScopeKernel(aclmdlRIKernelTaskParams params, JudgeTaskKernelInfo* info) {
     return true;
 }
 
-bool SuperKernelKernelNode::InitNode() {
-    if (!SuperKernelBaseNode::InitNode()) {
+bool SuperKernelKernelNode::InitNode(const SuperKernelOptionsManager* opts) {
+    if (!SuperKernelBaseNode::InitNode(opts)) {
         SK_LOGE("Failed to init kernel node for %s", Format().c_str());
         return false;
     }
@@ -815,6 +823,17 @@ bool SuperKernelKernelNode::InitNode() {
     char tmpFuncName[256] = {0};
     CHECK_ACL(aclrtGetFunctionName(kernelParams.funcHandle, sizeof(tmpFuncName), tmpFuncName));
     nodeInfos.kernelInfos.funcName = std::string(tmpFuncName);
+    nodeInfos.kernelInfos.needMixKernelSplit = IsMixKernelType(nodeInfos.kernelInfos.kernelType);
+    const auto* aggressiveOpt = opts == nullptr ? nullptr : static_cast<const AggressiveOptStrategiesOption*>(
+        opts->GetOption(aclskOptionType::AGGRESSIVE_OPT_STRATEGIES));
+    if (nodeInfos.kernelInfos.needMixKernelSplit && aggressiveOpt != nullptr &&
+        !nodeInfos.kernelInfos.funcName.empty() &&
+        opts->JudgeUbufLockIgnoreKernel(aggressiveOpt->GetValue(), nodeInfos.kernelInfos.funcName)) {
+        nodeInfos.kernelInfos.needMixKernelSplit = false;
+    }
+    SK_LOGI("Kernel node %lu mix split flag initialized, funcName=%s, kernelType=%s, needMixKernelSplit=%d",
+        nodeId, nodeInfos.kernelInfos.funcName.c_str(), to_string(nodeInfos.kernelInfos.kernelType),
+        static_cast<int>(nodeInfos.kernelInfos.needMixKernelSplit));
     if (!isScopeNode && !nodeInfos.kernelInfos.funcName.empty() && nodeInfos.kernelInfos.binHdl != nullptr) {
         isFusible = InitKernelResolvedFuncs(nodeInfos.kernelInfos);
         if (!isFusible) {
@@ -871,6 +890,7 @@ std::string KernelInfos::Format() const {
         << ", cubeNum:" << cubeNum
         << ", vecNum:" << vecNum
         << ", isScheModeOn:" << isScheModeOn
+        << ", needMixKernelSplit:" << needMixKernelSplit
         << ", resolvedNum:" << resolvedNum;
     if (binHdl != nullptr) {
         oss << ", binHdl:0x" << std::hex << reinterpret_cast<uintptr_t>(binHdl) << std::dec;
@@ -947,8 +967,8 @@ bool SuperKernelKernelNode::Update(const UpdateContext &ctx) {
     return true;
 }
 
-bool SuperKernelMemoryNode::InitNode() {
-    if (!SuperKernelBaseNode::InitNode()) {
+bool SuperKernelMemoryNode::InitNode(const SuperKernelOptionsManager* opts) {
+    if (!SuperKernelBaseNode::InitNode(opts)) {
         SK_LOGE("Failed to init memory node for %s", Format().c_str());
         return false;
     }
@@ -1130,8 +1150,8 @@ std::string SuperKernelMemoryNode::Format() const {
     return oss.str();
 }
 
-bool SuperKernelDefaultNode::InitNode() {
-    if (!SuperKernelBaseNode::InitNode()) {
+bool SuperKernelDefaultNode::InitNode(const SuperKernelOptionsManager* opts) {
+    if (!SuperKernelBaseNode::InitNode(opts)) {
         SK_LOGE("Failed to init default node for %s", Format().c_str());
         return false;
     }

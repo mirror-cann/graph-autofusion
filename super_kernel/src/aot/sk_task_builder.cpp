@@ -604,9 +604,7 @@ bool SkTaskBuilder::IsMixKernelTask(const SuperKernelBaseNode* task) const
     if (task->GetNodeType() != SkNodeType::NODE_KERNEL) {
         return false;
     }
-    const KernelInfos& kernelInfo = GetKernelInfos(task);
-    return kernelInfo.kernelType == SkKernelType::MIX_AIC_1_1 ||
-        kernelInfo.kernelType == SkKernelType::MIX_AIC_1_2;
+    return GetKernelInfos(task).needMixKernelSplit;
 }
 
 bool SkTaskBuilder::SplitTasksByMixGroups(const std::vector<SuperKernelBaseNode*>& tasks,

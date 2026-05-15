@@ -258,6 +258,27 @@ bool SuperKernelOptionsManager::JudgeDisableKernelDcci(
     return false;
 }
 
+bool SuperKernelOptionsManager::JudgeUbufLockIgnoreKernel(const aclskAggressiveOptStrategies& aggressiveOpts,
+                                                          const std::string& opName) const {
+    const size_t kernelCnt = static_cast<size_t>(aggressiveOpts.ubufLockIgnoreKernelCnt);
+    if (kernelCnt > 0 && aggressiveOpts.ubufLockIgnoreKernel == nullptr) {
+        SK_LOGW("ubufLockIgnoreKernel is nullptr while ubufLockIgnoreKernelCnt is %zu", kernelCnt);
+        return false;
+    }
+    for (size_t i = 0; i < kernelCnt; i++) {
+        if (aggressiveOpts.ubufLockIgnoreKernel[i] == nullptr) {
+            SK_LOGW("ubufLockIgnoreKernel[%zu] is nullptr, skip", i);
+            continue;
+        }
+        if (MatchRegex(aggressiveOpts.ubufLockIgnoreKernel[i], opName)) {
+            SK_LOGI("op: %s match ubuf lock ignore kernel option: %s, op will ignore mix kernel split",
+                opName.c_str(), aggressiveOpts.ubufLockIgnoreKernel[i]);
+            return true;
+        }
+    }
+    return false;
+}
+
 bool SuperKernelOptionsManager::MatchRegex(const std::string& pattern, const std::string& opName) {
     size_t m = opName.size();
     size_t n = pattern.size();
@@ -611,6 +632,28 @@ nlohmann::ordered_json SuperKernelOptionsManager::ToJson() const
             case aclskOptionType::DEBUG_EXTEND_OPTION:
                 optJson["value"] = opt->GetMapValue();
                 break;
+
+            case aclskOptionType::AGGRESSIVE_OPT_STRATEGIES:
+                {
+                    const auto* aggressiveOpt = static_cast<const AggressiveOptStrategiesOption*>(opt);
+                    const auto& value = aggressiveOpt->GetValue();
+                    nlohmann::ordered_json ubufLockIgnoreKernel = nlohmann::ordered_json::array();
+                    const size_t kernelCnt = static_cast<size_t>(value.ubufLockIgnoreKernelCnt);
+                    if (kernelCnt > 0 && value.ubufLockIgnoreKernel != nullptr) {
+                        for (size_t kernelIdx = 0; kernelIdx < kernelCnt; kernelIdx++) {
+                            if (value.ubufLockIgnoreKernel[kernelIdx] != nullptr) {
+                                ubufLockIgnoreKernel.push_back(value.ubufLockIgnoreKernel[kernelIdx]);
+                            }
+                        }
+                    }
+                    optJson["value"] = {
+                        {"eventBreakerBypass", value.eventBreakerBypass},
+                        {"valueBreakerBypass", value.valueBreakerBypass},
+                        {"taskBreakerBypass", value.taskBreakerBypass},
+                        {"ubufLockIgnoreKernel", ubufLockIgnoreKernel}
+                    };
+                    break;
+                }
 
             default:
                 optJson["value"] = nullptr;

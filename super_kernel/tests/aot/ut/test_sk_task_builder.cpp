@@ -60,6 +60,8 @@ protected:
         node->SetPreNodeId(preNodeId);
         node->SetNextNodeId(nextNodeId);
         node->nodeInfos.kernelInfos.kernelType = kernelType;
+        node->nodeInfos.kernelInfos.needMixKernelSplit =
+            kernelType == SkKernelType::MIX_AIC_1_1 || kernelType == SkKernelType::MIX_AIC_1_2;
         node->nodeInfos.kernelInfos.numBlocks = 1;
         node->nodeInfos.kernelInfos.funcName = "k";
         node->nodeInfos.kernelInfos.devArgs = reinterpret_cast<void*>(0x1);
@@ -347,6 +349,38 @@ TEST_F(SkTaskBuilderTest, PrecomputeSyncRelationsByMixGroups_AddsBoundarySyncAnd
     EXPECT_EQ(builder->taskSyncInfos_[2].vecRecvInfo[1], SyncDirection::CUB_TO_VEC);
     EXPECT_TRUE(builder->taskSyncInfos_[2].cubSendInfo.empty());
     EXPECT_TRUE(builder->taskSyncInfos_[2].vecSendInfo.empty());
+}
+
+TEST_F(SkTaskBuilderTest, SplitTasksByMixGroups_UsesKernelInfoMixSplitFlag)
+{
+    aclskOption option {};
+    option.optionType = aclskOptionType::AGGRESSIVE_OPT_STRATEGIES;
+    char ignoredMix[] = "IgnoredMix";
+    char* ignoredMixKernels[] = {ignoredMix};
+    option.aggressiveOpts.ubufLockIgnoreKernelCnt = 1;
+    option.aggressiveOpts.ubufLockIgnoreKernel = ignoredMixKernels;
+    opts->SetOptOptionValue(&option);
+
+    auto* aic = CreateKernelNodeEx(91401, 0, INVALID_TASK_ID, INVALID_TASK_ID, SkKernelType::AIC_ONLY);
+    auto* ignored = CreateKernelNodeEx(91402, 1, INVALID_TASK_ID, INVALID_TASK_ID, SkKernelType::MIX_AIC_1_1);
+    auto* splitMix = CreateKernelNodeEx(91403, 2, INVALID_TASK_ID, INVALID_TASK_ID, SkKernelType::MIX_AIC_1_2);
+    ignored->nodeInfos.kernelInfos.funcName = "IgnoredMix";
+    ignored->nodeInfos.kernelInfos.needMixKernelSplit = false;
+    splitMix->nodeInfos.kernelInfos.funcName = "NeedSplitMix";
+
+    std::vector<SuperKernelBaseNode*> tasks = {aic, ignored, splitMix};
+
+    EXPECT_FALSE(aic->nodeInfos.kernelInfos.needMixKernelSplit);
+    EXPECT_FALSE(ignored->nodeInfos.kernelInfos.needMixKernelSplit);
+    EXPECT_TRUE(splitMix->nodeInfos.kernelInfos.needMixKernelSplit);
+
+    std::vector<std::vector<SuperKernelBaseNode*>> splitTasks;
+    bool hasMixKernel = false;
+    ASSERT_TRUE(builder->SplitTasksByMixGroups(tasks, splitTasks, hasMixKernel));
+    ASSERT_EQ(splitTasks.size(), 2U);
+    EXPECT_EQ(splitTasks[0].size(), 2U);
+    EXPECT_EQ(splitTasks[1].size(), 1U);
+    EXPECT_TRUE(hasMixKernel);
 }
 
 TEST_F(SkTaskBuilderTest, PrecomputeSyncRelationsByMixGroups_InvalidTasks_ReturnFalse)

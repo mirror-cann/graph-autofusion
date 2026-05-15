@@ -124,6 +124,8 @@ typedef struct aclskAggressiveOptStrategies {
     uint32_t eventBreakerBypass;
     uint32_t valueBreakerBypass;
     uint32_t taskBreakerBypass;
+    uint32_t ubufLockIgnoreKernelCnt;
+    char** ubufLockIgnoreKernel;
 } aclskAggressiveOptStrategies;
 
 /**

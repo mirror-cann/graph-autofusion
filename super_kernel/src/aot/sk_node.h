@@ -34,6 +34,7 @@
 
 // Forward declaration
 class SuperKernelGraph;
+class SuperKernelOptionsManager;
 struct SkLaunchInfo;
 
 // Forward declaration for ScopeFailReason (defined in sk_scope_info.h)
@@ -211,6 +212,7 @@ struct KernelInfos {
     aclrtFuncHandle funcHdl = nullptr;
     aclrtLaunchKernelCfg* launchKernelCfg = nullptr;
     bool isScheModeOn = false;
+    bool needMixKernelSplit = false;
     ResolvedFunctionInfo resolvedFuncs[4];
     BindmapFailReason bindmapFailReason = BindmapFailReason::NONE;
 
@@ -261,7 +263,7 @@ public:
           isScopeNode(false),
           isUpdate(false) { }
     virtual ~SuperKernelBaseNode() = default;
-    virtual bool InitNode();
+    virtual bool InitNode(const SuperKernelOptionsManager* opts = nullptr);
 
     /**
      * @brief Format complete node information for logging
@@ -486,7 +488,7 @@ protected:
 class SuperKernelKernelNode : public SuperKernelBaseNode {
 public:
     using SuperKernelBaseNode::SuperKernelBaseNode;
-    bool InitNode() override;
+    bool InitNode(const SuperKernelOptionsManager* opts = nullptr) override;
     uint32_t GetNumBlocks() const override { return nodeInfos.kernelInfos.numBlocks; }
     SkKernelType GetKernelType() const override { return nodeInfos.kernelInfos.kernelType; }
     uint32_t GetVecNum() const override { return nodeInfos.kernelInfos.vecNum; }
@@ -543,7 +545,7 @@ public:
     }
 
     std::string Format() const override;
-    bool InitNode() override;
+    bool InitNode(const SuperKernelOptionsManager* opts = nullptr) override;
     bool Update(const UpdateContext& ctx) override;
     uint32_t GetVecNum() const override { return notifyExpandVecNum; }
     uint32_t GetCubeNum() const override { return notifyExpandCubeNum; }
@@ -552,7 +554,7 @@ public:
 class SuperKernelDefaultNode : public SuperKernelBaseNode {
 public:
     using SuperKernelBaseNode::SuperKernelBaseNode;
-    bool InitNode() override;
+    bool InitNode(const SuperKernelOptionsManager* opts = nullptr) override;
     aclError InValidateNode() override;
 
     std::string Format() const override;
