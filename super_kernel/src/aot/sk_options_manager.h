@@ -232,11 +232,11 @@ public:
 
     /*!
      * \brief Judge whether a kernel should ignore MIX kernel split based on configured patterns
-     * \param aggressiveOpts Aggressive option structure that carries operation patterns
+     * \param ignoredKernels List of operation patterns to ignore MIX kernel split
      * \param opName The operation name to check against patterns
      * \return True if the kernel should be treated as a normal kernel for MIX split, false otherwise
      */
-    bool JudgeUbufLockIgnoreKernel(const aclskAggressiveOptStrategies& aggressiveOpts,
+    bool JudgeUbufLockIgnoreKernel(const std::vector<std::string>& ignoredKernels,
                                    const std::string& opName) const;
 
     /*!
@@ -334,6 +334,7 @@ inline std::vector<OptionDumpInfo> CollectAllOptions(const SuperKernelOptionsMan
             case aclskOptionType::DCCI_DISABLE_ON_KERNEL:
             case aclskOptionType::DCCI_BEFORE_KERNEL_START:
             case aclskOptionType::DCCI_AFTER_KERNEL_END:
+            case aclskOptionType::UBUF_LOCK_IGNORE_KERNEL:
                 info.valueType = OptionDumpInfo::ValueType::STRING_LIST;
                 info.stringListValue = opt->GetStringListValue();
                 break;

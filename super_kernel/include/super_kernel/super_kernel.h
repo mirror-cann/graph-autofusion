@@ -54,6 +54,7 @@ enum class aclskOptionType : uint32_t {
     DEBUG_EXTEND_OPTION = 12, // 扩展选项，预留后续使用
     DCCI_AFTER_KERNEL_END = 13,
     AGGRESSIVE_OPT_STRATEGIES = 14, // aggressive fusion strategy options
+    UBUF_LOCK_IGNORE_KERNEL = 15,
     SK_OPTION_MAX
 };
 
@@ -124,9 +125,15 @@ typedef struct aclskAggressiveOptStrategies {
     uint32_t eventBreakerBypass;
     uint32_t valueBreakerBypass;
     uint32_t taskBreakerBypass;
+} aclskAggressiveOptStrategies;
+
+/**
+ * Configure kernels that should ignore MIX kernel split by name pattern.
+ */
+typedef struct aclskUbufLockIgnoreKernelOption {
     uint32_t ubufLockIgnoreKernelCnt;
     char** ubufLockIgnoreKernel;
-} aclskAggressiveOptStrategies;
+} aclskUbufLockIgnoreKernelOption;
 
 /**
  * 常量化代码生成选项
@@ -154,6 +161,7 @@ struct aclskOption {
         aclskExtendOption debugExtend;
         aclskDcciOption dcciAfterKernelEnd;
         aclskAggressiveOptStrategies aggressiveOpts;
+        aclskUbufLockIgnoreKernelOption ubufLockIgnoreKernel;
     };
 };
 

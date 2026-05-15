@@ -354,11 +354,11 @@ TEST_F(SkTaskBuilderTest, PrecomputeSyncRelationsByMixGroups_AddsBoundarySyncAnd
 TEST_F(SkTaskBuilderTest, SplitTasksByMixGroups_UsesKernelInfoMixSplitFlag)
 {
     aclskOption option {};
-    option.optionType = aclskOptionType::AGGRESSIVE_OPT_STRATEGIES;
+    option.optionType = aclskOptionType::UBUF_LOCK_IGNORE_KERNEL;
     char ignoredMix[] = "IgnoredMix";
     char* ignoredMixKernels[] = {ignoredMix};
-    option.aggressiveOpts.ubufLockIgnoreKernelCnt = 1;
-    option.aggressiveOpts.ubufLockIgnoreKernel = ignoredMixKernels;
+    option.ubufLockIgnoreKernel.ubufLockIgnoreKernelCnt = 1;
+    option.ubufLockIgnoreKernel.ubufLockIgnoreKernel = ignoredMixKernels;
     opts->SetOptOptionValue(&option);
 
     auto* aic = CreateKernelNodeEx(91401, 0, INVALID_TASK_ID, INVALID_TASK_ID, SkKernelType::AIC_ONLY);

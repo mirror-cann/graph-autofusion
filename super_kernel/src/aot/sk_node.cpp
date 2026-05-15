@@ -824,11 +824,12 @@ bool SuperKernelKernelNode::InitNode(const SuperKernelOptionsManager* opts) {
     CHECK_ACL(aclrtGetFunctionName(kernelParams.funcHandle, sizeof(tmpFuncName), tmpFuncName));
     nodeInfos.kernelInfos.funcName = std::string(tmpFuncName);
     nodeInfos.kernelInfos.needMixKernelSplit = IsMixKernelType(nodeInfos.kernelInfos.kernelType);
-    const auto* aggressiveOpt = opts == nullptr ? nullptr : static_cast<const AggressiveOptStrategiesOption*>(
-        opts->GetOption(aclskOptionType::AGGRESSIVE_OPT_STRATEGIES));
-    if (nodeInfos.kernelInfos.needMixKernelSplit && aggressiveOpt != nullptr &&
+    const auto* ubufLockIgnoreKernelOpt = opts == nullptr ? nullptr :
+        opts->GetOption(aclskOptionType::UBUF_LOCK_IGNORE_KERNEL);
+    if (nodeInfos.kernelInfos.needMixKernelSplit && ubufLockIgnoreKernelOpt != nullptr &&
         !nodeInfos.kernelInfos.funcName.empty() &&
-        opts->JudgeUbufLockIgnoreKernel(aggressiveOpt->GetValue(), nodeInfos.kernelInfos.funcName)) {
+        opts->JudgeUbufLockIgnoreKernel(
+            ubufLockIgnoreKernelOpt->GetStringListValue(), nodeInfos.kernelInfos.funcName)) {
         nodeInfos.kernelInfos.needMixKernelSplit = false;
     }
     SK_LOGI("Kernel node %lu mix split flag initialized, funcName=%s, kernelType=%s, needMixKernelSplit=%d",

@@ -490,9 +490,9 @@ TEST_F(SkNodeTest, KernelInitNode_MixSplitFlagHonorsUbufLockIgnoreKernel)
     char ignoredMix[] = "IgnoredMix";
     char* ignoredMixKernels[] = {ignoredMix};
     aclskOption option {};
-    option.optionType = aclskOptionType::AGGRESSIVE_OPT_STRATEGIES;
-    option.aggressiveOpts.ubufLockIgnoreKernelCnt = 1;
-    option.aggressiveOpts.ubufLockIgnoreKernel = ignoredMixKernels;
+    option.optionType = aclskOptionType::UBUF_LOCK_IGNORE_KERNEL;
+    option.ubufLockIgnoreKernel.ubufLockIgnoreKernelCnt = 1;
+    option.ubufLockIgnoreKernel.ubufLockIgnoreKernel = ignoredMixKernels;
     SuperKernelOptionsManager opts;
     opts.SetOptOptionValue(&option);
 
