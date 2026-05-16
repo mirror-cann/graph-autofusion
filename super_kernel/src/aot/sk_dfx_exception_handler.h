@@ -20,6 +20,7 @@
 #include <stdlib.h>
 #include <iostream>
 #include <vector>
+#include <set>
 #include <string.h>
 #include "acl/acl.h"
 #include "sk_common.h"
@@ -56,6 +57,13 @@ private:
     bool ParseAndPrintSubKernelSymbols(aclrtExceptionInfo *exceptionInfo);
     KernelFuncName GetOrLoadKernelSymbols(uint32_t opId);
     void IdentifyErrorNodeByPC(uint32_t coreId, rtCoreType_t coreType, uint64_t startPC, uint64_t currentPC);
+    void PrintMatchedNodeBasicInfo(uint32_t coreId, rtCoreType_t coreType, uint64_t startPC, uint64_t currentPC,
+                                   uint32_t nodeIdx, int entryIdx, uint64_t entryAddr, uint64_t endAddr,
+                                   uint32_t funcSize, const SkDfxInfo &dfxNode) const;
+    void PrintFuncSymbolInfo(uint32_t coreId, rtCoreType_t coreType, uint32_t nodeIdx, int entryIdx,
+                             const uint64_t* entries, const SkDfxInfo &dfxNode);
+    void PrintNodeDevArgs(uint32_t coreId, rtCoreType_t coreType, uint32_t nodeIdx) const;
+    void PrintNoMatchInfo(uint32_t coreId, rtCoreType_t coreType, uint64_t startPC, uint64_t currentPC) const;
     void PrintCoreSymbols(uint32_t coreId, rtCoreType_t coreType, uint64_t startPC, uint64_t currentPC);
     void PrintSymbolByCoreId(uint32_t coreId, rtCoreType_t coreType, uint64_t startPC, uint64_t currentPC,
                             const KernelFuncName &kernelFuncName);
@@ -79,6 +87,7 @@ private:
     void *aivTaskQueDevPtr;          // Reserved for recording device address (for debugging)
     uint32_t aicTaskCnt;
     uint32_t aivTaskCnt;
+    std::set<uint32_t> funcNodeIndices_;  // Indices of nodes whose task type is TYPE_FUNC
     bool hasOpTrace_;                // Whether sk_entry name contains "op_trace"
 
     aclError CheckError(aclError ret, const char *errorMsg);

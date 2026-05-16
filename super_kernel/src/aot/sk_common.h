@@ -256,10 +256,9 @@ struct SkHeaderInfo {
 
 struct SkCounterInfo {
     uint32_t index;
-    uint8_t launch; // todo：似乎用1个变量就够了， 1表示launch，0表示complete or not launch
-    uint8_t exit;
+    uint8_t opState; // operator trace state, see SkOpTraceType
     // dcci single cacheline size is 64bytes
-    uint8_t reserve[58];
+    uint8_t reserve[59];
 };
 
 struct SkDfxInfo {
@@ -273,6 +272,8 @@ struct SkDfxInfo {
     uint32_t cubeNum;     // 算子所需的 cube core 数量
     uint32_t vecNum;      // 算子所需的 vec core 数量
     uint32_t reserved;    // 保留对齐
+    uint64_t aicFuncOffset[4];   // AIC function offset within bin for each split
+    uint64_t aivFuncOffset[4];   // AIV function offset within bin for each split
 };
 
 struct SkDeviceEntryArgs {

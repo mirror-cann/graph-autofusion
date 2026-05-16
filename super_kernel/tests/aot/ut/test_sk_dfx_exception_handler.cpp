@@ -23,6 +23,7 @@
 #include "sk_dfx_exception_handler.h"
 #include "sk_common.h"
 #include "sk_event_recorder.h"
+#include "runtime/kernel.h"
 
 class SkDfxExceptionHandlerTest : public testing::Test {
 protected:
@@ -657,11 +658,10 @@ TEST_F(SkDfxExceptionHandlerTest, PrintCoreSymbols_LaunchOrigin_NoSKExecutedYet)
         return;
     }
 
-    // Set counterInfo for core 0: launch = ORIGIN(0), meaning no SK executed yet
+    // Set counterInfo for core 0: opState = ORIGIN(0), meaning no SK executed yet
     SkCounterInfo* counterInfo = reinterpret_cast<SkCounterInfo*>(buffer + headerInfo.counterOffset);
     counterInfo[0].index = 0;
-    counterInfo[0].launch = static_cast<uint8_t>(SkOpTraceType::ORIGIN);  // 0
-    counterInfo[0].exit = 0;
+    counterInfo[0].opState = static_cast<uint8_t>(SkOpTraceType::ORIGIN);  // 0
 
     handler->PrintCoreSymbols(0, RT_CORE_TYPE_AIC, 0, 0);
 
@@ -680,11 +680,10 @@ TEST_F(SkDfxExceptionHandlerTest, PrintCoreSymbols_LaunchSKEntryLaunched_PrintNe
         return;
     }
 
-    // Set counterInfo for core 0: launch = SK_ENTRY_LAUNCHED(1), opId = 0
+    // Set counterInfo for core 0: opState = SK_ENTRY_LAUNCHED(1), opId = 0
     SkCounterInfo* counterInfo = reinterpret_cast<SkCounterInfo*>(buffer + headerInfo.counterOffset);
     counterInfo[0].index = 0;
-    counterInfo[0].launch = static_cast<uint8_t>(SkOpTraceType::SK_ENTRY_LAUNCHED);  // 1
-    counterInfo[0].exit = 0;
+    counterInfo[0].opState = static_cast<uint8_t>(SkOpTraceType::SK_ENTRY_LAUNCHED);  // 1
 
     // Setup DFX info so GetOrLoadKernelSymbols can find func name
     SkDfxInfo* dfxInfo = reinterpret_cast<SkDfxInfo*>(buffer + headerInfo.dfxOffset);
@@ -711,11 +710,10 @@ TEST_F(SkDfxExceptionHandlerTest, PrintCoreSymbols_LaunchOPLaunched_PrintCurrent
         return;
     }
 
-    // Set counterInfo for core 0: launch = OP_LAUNCHED(2), opId = 1
+    // Set counterInfo for core 0: opState = OP_LAUNCHED(2), opId = 1
     SkCounterInfo* counterInfo = reinterpret_cast<SkCounterInfo*>(buffer + headerInfo.counterOffset);
     counterInfo[0].index = 1;
-    counterInfo[0].launch = static_cast<uint8_t>(SkOpTraceType::OP_LAUNCHED);  // 2
-    counterInfo[0].exit = 0;
+    counterInfo[0].opState = static_cast<uint8_t>(SkOpTraceType::OP_LAUNCHED);  // 2
 
     SkDfxInfo* dfxInfo = reinterpret_cast<SkDfxInfo*>(buffer + headerInfo.dfxOffset);
     dfxInfo[0].funcHdlOri = 0xDEAD0001;
@@ -741,11 +739,10 @@ TEST_F(SkDfxExceptionHandlerTest, PrintCoreSymbols_LaunchOPFinished_PrintCurrent
         return;
     }
 
-    // Set counterInfo for core 0: launch = OP_FINISHED(3), opId = 1
+    // Set counterInfo for core 0: opState = OP_FINISHED(3), opId = 1
     SkCounterInfo* counterInfo = reinterpret_cast<SkCounterInfo*>(buffer + headerInfo.counterOffset);
     counterInfo[0].index = 1;
-    counterInfo[0].launch = static_cast<uint8_t>(SkOpTraceType::OP_FINISHED);  // 3
-    counterInfo[0].exit = 1;
+    counterInfo[0].opState = static_cast<uint8_t>(SkOpTraceType::OP_FINISHED);  // 3
 
     SkDfxInfo* dfxInfo = reinterpret_cast<SkDfxInfo*>(buffer + headerInfo.dfxOffset);
     dfxInfo[0].funcHdlOri = 0xDEAD0001;
@@ -771,11 +768,10 @@ TEST_F(SkDfxExceptionHandlerTest, PrintCoreSymbols_LaunchSKEntryFinished)
         return;
     }
 
-    // Set counterInfo: launch = SK_ENTRY_FINISHED(4)
+    // Set counterInfo: opState = SK_ENTRY_FINISHED(4)
     SkCounterInfo* counterInfo = reinterpret_cast<SkCounterInfo*>(buffer + headerInfo.counterOffset);
     counterInfo[0].index = 99;
-    counterInfo[0].launch = static_cast<uint8_t>(SkOpTraceType::SK_ENTRY_FINISHED);  // 4
-    counterInfo[0].exit = 1;
+    counterInfo[0].opState = static_cast<uint8_t>(SkOpTraceType::SK_ENTRY_FINISHED);  // 4
 
     handler->PrintCoreSymbols(0, RT_CORE_TYPE_AIC, 0x1000, 0x2000);
 
@@ -794,11 +790,10 @@ TEST_F(SkDfxExceptionHandlerTest, PrintCoreSymbols_LaunchUnknownValue)
         return;
     }
 
-    // Set counterInfo: launch = unknown value 255
+    // Set counterInfo: opState = unknown value 255
     SkCounterInfo* counterInfo = reinterpret_cast<SkCounterInfo*>(buffer + headerInfo.counterOffset);
     counterInfo[0].index = 0;
-    counterInfo[0].launch = 255;  // Unknown status
-    counterInfo[0].exit = 0;
+    counterInfo[0].opState = 255;  // Unknown status
 
     handler->PrintCoreSymbols(0, RT_CORE_TYPE_AIC, 0x1000, 0x2000);
 
@@ -832,8 +827,7 @@ TEST_F(SkDfxExceptionHandlerTest, PrintAllCoreSymbols_HasOpTraceTrue_IterateCore
     SkCounterInfo* counterInfo = reinterpret_cast<SkCounterInfo*>(buffer + headerInfo.counterOffset);
     for (uint32_t i = 0; i < 75; ++i) {
         counterInfo[i].index = i % 5;
-        counterInfo[i].launch = static_cast<uint8_t>(SkOpTraceType::ORIGIN);
-        counterInfo[i].exit = 0;
+        counterInfo[i].opState = static_cast<uint8_t>(SkOpTraceType::ORIGIN);
     }
 
     // Should iterate through all 75 cores
@@ -996,6 +990,446 @@ TEST_F(SkDfxExceptionHandlerTest, CondRegister_48bitLayout_EncodeDecode)
     // 清理
     SkEventRecorder::Instance().modelRIIndexMap.clear();
     SkEventRecorder::Instance().modelRIToIndexMap.clear();
+}
+
+// ==================== PrintMatchedNodeBasicInfo Tests ====================
+
+TEST_F(SkDfxExceptionHandlerTest, PrintMatchedNodeBasicInfo_AICCoreType)
+{
+    SkHeaderInfo headerInfo = {};
+    headerInfo.modelRIIdAndSkScopeId = 0;
+    handler->skHeaderInfoHost = &headerInfo;
+
+    SkDfxInfo dfxNode = {};
+    dfxNode.numBlocks = 10;
+    dfxNode.cubeNum = 5;
+    dfxNode.vecNum = 5;
+
+    // Should not crash, just print logs
+    handler->PrintMatchedNodeBasicInfo(0, RT_CORE_TYPE_AIC, 0x1000, 0x1100,
+        0, 0, 0x1000, 0x1200, 0x200, dfxNode);
+    SUCCEED();
+}
+
+TEST_F(SkDfxExceptionHandlerTest, PrintMatchedNodeBasicInfo_AIVCoreType)
+{
+    SkHeaderInfo headerInfo = {};
+    headerInfo.modelRIIdAndSkScopeId = 0;
+    handler->skHeaderInfoHost = &headerInfo;
+
+    SkDfxInfo dfxNode = {};
+    dfxNode.numBlocks = 8;
+    dfxNode.cubeNum = 0;
+    dfxNode.vecNum = 8;
+
+    handler->PrintMatchedNodeBasicInfo(30, RT_CORE_TYPE_AIV, 0x3000, 0x3050,
+        2, 1, 0x3000, 0x3100, 0x100, dfxNode);
+    SUCCEED();
+}
+
+TEST_F(SkDfxExceptionHandlerTest, PrintMatchedNodeBasicInfo_WithModelRI)
+{
+    uint64_t originalModelRI = 0xABCD1234;
+    uint16_t modelRIIdx = SkEventRecorder::Instance().RegisterModelRI(originalModelRI);
+    uint16_t skScopeId = 7;
+
+    SkHeaderInfo headerInfo = {};
+    headerInfo.modelRIIdAndSkScopeId =
+        (static_cast<uint64_t>(modelRIIdx) << 32) | (static_cast<uint64_t>(skScopeId) << 16);
+    handler->skHeaderInfoHost = &headerInfo;
+
+    SkDfxInfo dfxNode = {};
+    dfxNode.numBlocks = 20;
+    dfxNode.cubeNum = 20;
+    dfxNode.vecNum = 20;
+
+    handler->PrintMatchedNodeBasicInfo(0, RT_CORE_TYPE_AIC, 0x1000, 0x1100,
+        0, 0, 0x1000, 0x1200, 0x200, dfxNode);
+    SUCCEED();
+
+    SkEventRecorder::Instance().modelRIIndexMap.clear();
+    SkEventRecorder::Instance().modelRIToIndexMap.clear();
+}
+
+// ==================== PrintFuncSymbolInfo Tests ====================
+
+// Mock for rtGetBinBuffer - failure
+int FakeRtGetBinBufferFailure(void* binHdl, int addrType, void** buffer, uint32_t* size)
+{
+    (void)binHdl;
+    (void)addrType;
+    if (buffer != nullptr) {
+        *buffer = nullptr;
+    }
+    if (size != nullptr) {
+        *size = 0;
+    }
+    return -1;
+}
+
+// Mock for rtGetBinBuffer - success with valid ELF-like data (will fail GetFuncSymbolInfo)
+static uint8_t gFakeBinBuffer[256];
+int FakeRtGetBinBufferSuccess(void* binHdl, int addrType, void** buffer, uint32_t* size)
+{
+    (void)binHdl;
+    (void)addrType;
+    (void)memset_s(gFakeBinBuffer, sizeof(gFakeBinBuffer), 0, sizeof(gFakeBinBuffer));
+    *buffer = gFakeBinBuffer;
+    *size = sizeof(gFakeBinBuffer);
+    return 0;
+}
+
+// Mock for aclrtGetFunctionName - failure
+aclError Fake_aclrtGetFunctionName_Fail(void* funcHandle, uint32_t maxLen, char* name)
+{
+    (void)funcHandle;
+    (void)maxLen;
+    (void)name;
+    return ACL_ERROR_FAILURE;
+}
+
+TEST_F(SkDfxExceptionHandlerTest, PrintFuncSymbolInfo_NotFuncType)
+{
+    // nodeIdx not in funcNodeIndices_ -> should log "not a FUNC type"
+    handler->funcNodeIndices_.clear();
+
+    SkDfxInfo dfxNode = {};
+    uint64_t entries[4] = {0x1000, 0, 0, 0};
+
+    handler->PrintFuncSymbolInfo(0, RT_CORE_TYPE_AIC, 0, 0, entries, dfxNode);
+    SUCCEED();
+}
+
+TEST_F(SkDfxExceptionHandlerTest, PrintFuncSymbolInfo_GetFunctionNameFail)
+{
+    handler->funcNodeIndices_.insert(0);
+
+    SkDfxInfo dfxNode = {};
+    dfxNode.funcHdlOri = 0xBBB;
+    uint64_t entries[4] = {0x1000, 0, 0, 0};
+
+    MOCKER(aclrtGetFunctionName).stubs().will(invoke(Fake_aclrtGetFunctionName_Fail));
+
+    handler->PrintFuncSymbolInfo(0, RT_CORE_TYPE_AIC, 0, 0, entries, dfxNode);
+    SUCCEED();
+}
+
+TEST_F(SkDfxExceptionHandlerTest, PrintFuncSymbolInfo_GetBinBufferFail)
+{
+    handler->funcNodeIndices_.insert(0);
+
+    SkDfxInfo dfxNode = {};
+    dfxNode.funcHdlOri = 0xBBB;
+    dfxNode.binHdl = 0xAAA;
+    uint64_t entries[4] = {0x1000, 0, 0, 0};
+
+    MOCKER(aclrtGetFunctionName).stubs().will(invoke(Fake_aclrtGetFunctionName_sk_entry));
+    MOCKER(rtGetBinBuffer).stubs().will(invoke(FakeRtGetBinBufferFailure));
+
+    handler->PrintFuncSymbolInfo(0, RT_CORE_TYPE_AIC, 0, 0, entries, dfxNode);
+    SUCCEED();
+}
+
+TEST_F(SkDfxExceptionHandlerTest, PrintFuncSymbolInfo_FuncOffsetZero_NoFallback)
+{
+    handler->funcNodeIndices_.insert(0);
+
+    SkDfxInfo dfxNode = {};
+    dfxNode.funcHdlOri = 0xBBB;
+    dfxNode.binHdl = 0xAAA;
+    // All funcOffsets are 0, no fallback possible (aicFuncOffset[0] == 0)
+    for (int i = 0; i < 4; i++) {
+        dfxNode.aicFuncOffset[i] = 0;
+        dfxNode.aivFuncOffset[i] = 0;
+        dfxNode.entryAic[i] = 0;
+    }
+    uint64_t entries[4] = {0x1000, 0, 0, 0};
+
+    MOCKER(aclrtGetFunctionName).stubs().will(invoke(Fake_aclrtGetFunctionName_sk_entry));
+    MOCKER(rtGetBinBuffer).stubs().will(invoke(FakeRtGetBinBufferSuccess));
+
+    handler->PrintFuncSymbolInfo(0, RT_CORE_TYPE_AIC, 0, 0, entries, dfxNode);
+    SUCCEED();
+}
+
+TEST_F(SkDfxExceptionHandlerTest, PrintFuncSymbolInfo_FuncOffsetNonZero_GetFuncSymbolInfoFail)
+{
+    handler->funcNodeIndices_.insert(0);
+
+    SkDfxInfo dfxNode = {};
+    dfxNode.funcHdlOri = 0xBBB;
+    dfxNode.binHdl = 0xAAA;
+    dfxNode.aicFuncOffset[0] = 0x100;  // non-zero offset, but bin data is fake -> GetFuncSymbolInfo will fail
+    uint64_t entries[4] = {0x1000, 0, 0, 0};
+
+    MOCKER(aclrtGetFunctionName).stubs().will(invoke(Fake_aclrtGetFunctionName_sk_entry));
+    MOCKER(rtGetBinBuffer).stubs().will(invoke(FakeRtGetBinBufferSuccess));
+
+    handler->PrintFuncSymbolInfo(0, RT_CORE_TYPE_AIC, 0, 0, entries, dfxNode);
+    SUCCEED();
+}
+
+TEST_F(SkDfxExceptionHandlerTest, PrintFuncSymbolInfo_FuncOffsetZero_WithFallback)
+{
+    handler->funcNodeIndices_.insert(0);
+
+    SkDfxInfo dfxNode = {};
+    dfxNode.funcHdlOri = 0xBBB;
+    dfxNode.binHdl = 0xAAA;
+    // aicFuncOffset[0] is non-zero and entryAic[0] is non-zero, so fallback can compute
+    dfxNode.aicFuncOffset[0] = 0x100;
+    dfxNode.entryAic[0] = 0x1000;
+    // entry[1] offset is 0 but fallback will compute from entry[0]
+    dfxNode.aicFuncOffset[1] = 0;
+    uint64_t entries[4] = {0x1000, 0x1400, 0, 0};  // entry[1] = 0x1400
+
+    MOCKER(aclrtGetFunctionName).stubs().will(invoke(Fake_aclrtGetFunctionName_sk_entry));
+    MOCKER(rtGetBinBuffer).stubs().will(invoke(FakeRtGetBinBufferSuccess));
+
+    // For entry[1], funcOffset=0 but fallback computes: entry[1] - (entryAic[0] - aicFuncOffset[0]) = 0x1400 - 0xF00 = 0x500
+    handler->PrintFuncSymbolInfo(0, RT_CORE_TYPE_AIC, 0, 1, entries, dfxNode);
+    SUCCEED();
+}
+
+TEST_F(SkDfxExceptionHandlerTest, PrintFuncSymbolInfo_AIVCoreType_UsesAivFuncOffset)
+{
+    handler->funcNodeIndices_.insert(0);
+
+    SkDfxInfo dfxNode = {};
+    dfxNode.funcHdlOri = 0xBBB;
+    dfxNode.binHdl = 0xAAA;
+    dfxNode.aivFuncOffset[0] = 0x200;  // AIV offset
+    uint64_t entries[4] = {0x3000, 0, 0, 0};
+
+    MOCKER(aclrtGetFunctionName).stubs().will(invoke(Fake_aclrtGetFunctionName_sk_entry));
+    MOCKER(rtGetBinBuffer).stubs().will(invoke(FakeRtGetBinBufferSuccess));
+
+    handler->PrintFuncSymbolInfo(30, RT_CORE_TYPE_AIV, 0, 0, entries, dfxNode);
+    SUCCEED();
+}
+
+// ==================== PrintNodeDevArgs Tests ====================
+
+TEST_F(SkDfxExceptionHandlerTest, PrintNodeDevArgs_AICWithMatchingTask)
+{
+    // Setup buffer with AIC task queue
+    uint8_t buffer[1024] = {0};
+    SkHeaderInfo headerInfo = {};
+    headerInfo.aicQueOffset = sizeof(SkHeaderInfo);
+    headerInfo.aivQueOffset = 0;
+    handler->skHeaderInfoHost = &headerInfo;
+    handler->skDeviceEntryArgsHost = reinterpret_cast<SkDeviceEntryArgs*>(buffer);
+    handler->aicTaskCnt = 1;
+
+    SkDeviceEntryArgs* deviceArgs = reinterpret_cast<SkDeviceEntryArgs*>(buffer);
+    deviceArgs->skHeader = headerInfo;
+
+    TaskQue* aicTaskQue = reinterpret_cast<TaskQue*>(buffer + headerInfo.aicQueOffset);
+    aicTaskQue->taskCnt = 1;
+    aicTaskQue->cap = 10;
+    aicTaskQue->taskInfos[0].index = 0;
+    aicTaskQue->taskInfos[0].type = SkTaskType::TYPE_FUNC;
+    aicTaskQue->taskInfos[0].args = 0xDEADBEEF;
+
+    handler->PrintNodeDevArgs(0, RT_CORE_TYPE_AIC, 0);
+    SUCCEED();
+}
+
+TEST_F(SkDfxExceptionHandlerTest, PrintNodeDevArgs_AIVWithMatchingTask)
+{
+    uint8_t buffer[1024] = {0};
+    SkHeaderInfo headerInfo = {};
+    headerInfo.aicQueOffset = 0;
+    headerInfo.aivQueOffset = sizeof(SkHeaderInfo);
+    handler->skHeaderInfoHost = &headerInfo;
+    handler->skDeviceEntryArgsHost = reinterpret_cast<SkDeviceEntryArgs*>(buffer);
+    handler->aivTaskCnt = 1;
+
+    SkDeviceEntryArgs* deviceArgs = reinterpret_cast<SkDeviceEntryArgs*>(buffer);
+    deviceArgs->skHeader = headerInfo;
+
+    TaskQue* aivTaskQue = reinterpret_cast<TaskQue*>(buffer + headerInfo.aivQueOffset);
+    aivTaskQue->taskCnt = 1;
+    aivTaskQue->cap = 10;
+    aivTaskQue->taskInfos[0].index = 3;
+    aivTaskQue->taskInfos[0].type = SkTaskType::TYPE_FUNC;
+    aivTaskQue->taskInfos[0].args = 0xCAFEBABE;
+
+    handler->PrintNodeDevArgs(30, RT_CORE_TYPE_AIV, 3);
+    SUCCEED();
+}
+
+TEST_F(SkDfxExceptionHandlerTest, PrintNodeDevArgs_NoMatchingTaskIndex)
+{
+    uint8_t buffer[1024] = {0};
+    SkHeaderInfo headerInfo = {};
+    headerInfo.aicQueOffset = sizeof(SkHeaderInfo);
+    headerInfo.aivQueOffset = 0;
+    handler->skHeaderInfoHost = &headerInfo;
+    handler->skDeviceEntryArgsHost = reinterpret_cast<SkDeviceEntryArgs*>(buffer);
+    handler->aicTaskCnt = 1;
+
+    SkDeviceEntryArgs* deviceArgs = reinterpret_cast<SkDeviceEntryArgs*>(buffer);
+    deviceArgs->skHeader = headerInfo;
+
+    TaskQue* aicTaskQue = reinterpret_cast<TaskQue*>(buffer + headerInfo.aicQueOffset);
+    aicTaskQue->taskCnt = 1;
+    aicTaskQue->cap = 10;
+    aicTaskQue->taskInfos[0].index = 5;  // index=5, but looking for nodeIdx=0
+    aicTaskQue->taskInfos[0].type = SkTaskType::TYPE_FUNC;
+    aicTaskQue->taskInfos[0].args = 0x1234;
+
+    // Should not crash, just not find matching task
+    handler->PrintNodeDevArgs(0, RT_CORE_TYPE_AIC, 0);
+    SUCCEED();
+}
+
+TEST_F(SkDfxExceptionHandlerTest, PrintNodeDevArgs_NoMatchingTaskType)
+{
+    uint8_t buffer[1024] = {0};
+    SkHeaderInfo headerInfo = {};
+    headerInfo.aicQueOffset = sizeof(SkHeaderInfo);
+    headerInfo.aivQueOffset = 0;
+    handler->skHeaderInfoHost = &headerInfo;
+    handler->skDeviceEntryArgsHost = reinterpret_cast<SkDeviceEntryArgs*>(buffer);
+    handler->aicTaskCnt = 1;
+
+    SkDeviceEntryArgs* deviceArgs = reinterpret_cast<SkDeviceEntryArgs*>(buffer);
+    deviceArgs->skHeader = headerInfo;
+
+    TaskQue* aicTaskQue = reinterpret_cast<TaskQue*>(buffer + headerInfo.aicQueOffset);
+    aicTaskQue->taskCnt = 1;
+    aicTaskQue->cap = 10;
+    aicTaskQue->taskInfos[0].index = 0;  // index matches but type is not TYPE_FUNC
+    aicTaskQue->taskInfos[0].type = SkTaskType::TYPE_SYNC;
+    aicTaskQue->taskInfos[0].args = 0x5678;
+
+    // Should not crash, task type doesn't match
+    handler->PrintNodeDevArgs(0, RT_CORE_TYPE_AIC, 0);
+    SUCCEED();
+}
+
+TEST_F(SkDfxExceptionHandlerTest, PrintNodeDevArgs_ZeroTaskCnt)
+{
+    uint8_t buffer[1024] = {0};
+    SkHeaderInfo headerInfo = {};
+    headerInfo.aicQueOffset = sizeof(SkHeaderInfo);
+    headerInfo.aivQueOffset = 0;
+    handler->skHeaderInfoHost = &headerInfo;
+    handler->skDeviceEntryArgsHost = reinterpret_cast<SkDeviceEntryArgs*>(buffer);
+    handler->aicTaskCnt = 0;
+
+    SkDeviceEntryArgs* deviceArgs = reinterpret_cast<SkDeviceEntryArgs*>(buffer);
+    deviceArgs->skHeader = headerInfo;
+
+    // Should not crash with zero tasks
+    handler->PrintNodeDevArgs(0, RT_CORE_TYPE_AIC, 0);
+    SUCCEED();
+}
+
+// ==================== PrintNoMatchInfo Tests ====================
+
+TEST_F(SkDfxExceptionHandlerTest, PrintNoMatchInfo_AICCoreType)
+{
+    SkHeaderInfo headerInfo = {};
+    headerInfo.modelRIIdAndSkScopeId = 0;
+    handler->skHeaderInfoHost = &headerInfo;
+
+    handler->PrintNoMatchInfo(0, RT_CORE_TYPE_AIC, 0x1000, 0xFFFF);
+    SUCCEED();
+}
+
+TEST_F(SkDfxExceptionHandlerTest, PrintNoMatchInfo_AIVCoreType)
+{
+    SkHeaderInfo headerInfo = {};
+    headerInfo.modelRIIdAndSkScopeId = 0;
+    handler->skHeaderInfoHost = &headerInfo;
+
+    handler->PrintNoMatchInfo(30, RT_CORE_TYPE_AIV, 0x3000, 0xFFFF);
+    SUCCEED();
+}
+
+TEST_F(SkDfxExceptionHandlerTest, PrintNoMatchInfo_WithModelRI)
+{
+    uint64_t originalModelRI = 0x1234567890ABCDEF;
+    uint16_t modelRIIdx = SkEventRecorder::Instance().RegisterModelRI(originalModelRI);
+    uint16_t skScopeId = 99;
+
+    SkHeaderInfo headerInfo = {};
+    headerInfo.modelRIIdAndSkScopeId =
+        (static_cast<uint64_t>(modelRIIdx) << 32) | (static_cast<uint64_t>(skScopeId) << 16);
+    handler->skHeaderInfoHost = &headerInfo;
+
+    handler->PrintNoMatchInfo(5, RT_CORE_TYPE_AIC, 0x1000, 0xFFFF);
+    SUCCEED();
+
+    SkEventRecorder::Instance().modelRIIndexMap.clear();
+    SkEventRecorder::Instance().modelRIToIndexMap.clear();
+}
+
+// ==================== IdentifyErrorNodeByPC Refactored Integration Tests ====================
+
+TEST_F(SkDfxExceptionHandlerTest, IdentifyErrorNodeByPC_MatchEntry1_CallsSubFunctions)
+{
+    // Setup: one node with 2 AIC entries at entry[0]=0x1000, entry[1]=0x2000
+    uint8_t buffer[2048] = {0};
+    SkHeaderInfo headerInfo;
+    headerInfo.dfxOffset = sizeof(SkHeaderInfo);
+    headerInfo.nodeCnt = 1;
+    headerInfo.aicQueOffset = 0;
+    headerInfo.aivQueOffset = 0;
+    headerInfo.modelRIIdAndSkScopeId = 0;
+
+    SkDeviceEntryArgs* deviceArgs = reinterpret_cast<SkDeviceEntryArgs*>(buffer);
+    deviceArgs->skHeader = headerInfo;
+
+    SkDfxInfo* dfxInfo = reinterpret_cast<SkDfxInfo*>(buffer + headerInfo.dfxOffset);
+    dfxInfo->binHdl = 0xAAA;
+    dfxInfo->funcHdlOri = 0xBBB;
+    dfxInfo->aicSize = 0x200;
+    dfxInfo->aivSize = 0;
+    dfxInfo->entryAic[0] = 0x1000;
+    dfxInfo->entryAic[1] = 0x2000;
+    dfxInfo->entryAic[2] = 0;
+    dfxInfo->entryAic[3] = 0;
+    dfxInfo->aicFuncOffset[0] = 0x100;
+    dfxInfo->aicFuncOffset[1] = 0;
+
+    handler->skDeviceEntryArgsHost = deviceArgs;
+    handler->skHeaderInfoHost = &headerInfo;
+    handler->funcNodeIndices_.insert(0);
+
+    MOCKER(aclrtGetFunctionName).stubs().will(invoke(Fake_aclrtGetFunctionName_sk_entry));
+    MOCKER(rtGetBinBuffer).stubs().will(invoke(FakeRtGetBinBufferSuccess));
+
+    // currentPC = 0x2100 falls in entry[1] range [0x2000, 0x2200) -> should match entry[1]
+    handler->IdentifyErrorNodeByPC(0, RT_CORE_TYPE_AIC, 0x1000, 0x2100);
+    SUCCEED();
+}
+
+TEST_F(SkDfxExceptionHandlerTest, IdentifyErrorNodeByPC_NoMatch_CallsPrintNoMatchInfo)
+{
+    uint8_t buffer[1024] = {0};
+    SkHeaderInfo headerInfo;
+    headerInfo.dfxOffset = sizeof(SkHeaderInfo);
+    headerInfo.nodeCnt = 1;
+    headerInfo.aicQueOffset = 0;
+    headerInfo.aivQueOffset = 0;
+    headerInfo.modelRIIdAndSkScopeId = 0;
+
+    SkDeviceEntryArgs* deviceArgs = reinterpret_cast<SkDeviceEntryArgs*>(buffer);
+    deviceArgs->skHeader = headerInfo;
+
+    SkDfxInfo* dfxInfo = reinterpret_cast<SkDfxInfo*>(buffer + headerInfo.dfxOffset);
+    dfxInfo->entryAic[0] = 0x1000;
+    dfxInfo->aicSize = 0x100;
+
+    handler->skDeviceEntryArgsHost = deviceArgs;
+    handler->skHeaderInfoHost = &headerInfo;
+
+    // currentPC outside all ranges -> no match path
+    handler->IdentifyErrorNodeByPC(0, RT_CORE_TYPE_AIC, 0x1000, 0xFFFF);
+    SUCCEED();
 }
 
 // Test: SkHeaderInfo 结构体大小不应被意外修改

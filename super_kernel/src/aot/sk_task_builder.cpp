@@ -1444,13 +1444,17 @@ bool SkTaskBuilder::ProcessCoreFuncSize(SkDfxInfo* dfxInfo, const void* binHostA
         if (coreIndex == 0) {
             dfxInfo->aicSize = static_cast<uint32_t>(funcSize);
             dfxInfo->entryAic[binIndex] = resolved.funcAddr[0];
-            SK_LOGD("ProcessCoreFuncSize: Set aicSize=0x%x, entryAic[%d]=0x%lx",
-                    dfxInfo->aicSize, binIndex, dfxInfo->entryAic[binIndex]);
+            dfxInfo->aicFuncOffset[binIndex] = resolved.funcOffset[0];
+            SK_LOGD("ProcessCoreFuncSize: Set aicSize=0x%x, entryAic[%d]=0x%lx, aicFuncOffset[%d]=0x%lx",
+                    dfxInfo->aicSize, binIndex, dfxInfo->entryAic[binIndex],
+                    binIndex, dfxInfo->aicFuncOffset[binIndex]);
         } else if (coreIndex == 1) {
             dfxInfo->aivSize = static_cast<uint32_t>(funcSize);
             dfxInfo->entryAiv[binIndex] = resolved.funcAddr[1];
-            SK_LOGD("ProcessCoreFuncSize: Set aivSize=0x%x, entryAiv[%d]=0x%lx",
-                    dfxInfo->aivSize, binIndex, dfxInfo->entryAiv[binIndex]);
+            dfxInfo->aivFuncOffset[binIndex] = resolved.funcOffset[1];
+            SK_LOGD("ProcessCoreFuncSize: Set aivSize=0x%x, entryAiv[%d]=0x%lx, aivFuncOffset[%d]=0x%lx",
+                    dfxInfo->aivSize, binIndex, dfxInfo->entryAiv[binIndex],
+                    binIndex, dfxInfo->aivFuncOffset[binIndex]);
         }
         return true;
     }

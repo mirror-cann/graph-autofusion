@@ -21,6 +21,7 @@
 #include "sk_log.h"
 #include "sk_types.h"
 #include "sk_event_recorder.h"
+#include "runtime/kernel.h"
 
 SuperKernelExceptionHandler::SuperKernelExceptionHandler()
     : aicoreNums(DEFAULT_COUNTER_COUNT)
@@ -168,11 +169,21 @@ bool SuperKernelExceptionHandler::ExtractTaskQueue() {
     if (skHeaderInfoHost->aicQueOffset > 0) {
         TaskQue *aicTaskQue = reinterpret_cast<TaskQue*>(dataBase + skHeaderInfoHost->aicQueOffset);
         aicTaskCnt = aicTaskQue->taskCnt;
+        for (uint32_t i = 0; i < aicTaskCnt; ++i) {
+            if (aicTaskQue->taskInfos[i].type == SkTaskType::TYPE_FUNC) {
+                funcNodeIndices_.insert(aicTaskQue->taskInfos[i].index);
+            }
+        }
     }
 
     if (skHeaderInfoHost->aivQueOffset > 0) {
         TaskQue *aivTaskQue = reinterpret_cast<TaskQue*>(dataBase + skHeaderInfoHost->aivQueOffset);
         aivTaskCnt = aivTaskQue->taskCnt;
+        for (uint32_t i = 0; i < aivTaskCnt; ++i) {
+            if (aivTaskQue->taskInfos[i].type == SkTaskType::TYPE_FUNC) {
+                funcNodeIndices_.insert(aivTaskQue->taskInfos[i].index);
+            }
+        }
     }
 
     return true;
@@ -233,8 +244,8 @@ void SuperKernelExceptionHandler::PrintCounterInfo() const {
         SkCounterInfo *counterInfo = reinterpret_cast<SkCounterInfo*>(dataBase + skHeaderInfoHost->counterOffset);
         SK_LOGI("=== SkCounterInfo (offset=%u) ===", skHeaderInfoHost->counterOffset);
         for (uint32_t i = 0; i < aicoreNums; ++i) {
-            SK_LOGI("  [core %u] index=%u, launch=%u, exit=%u",
-                    i, counterInfo[i].index, counterInfo[i].launch, counterInfo[i].exit);
+            SK_LOGI("  [core %u] index=%u, opState=%u",
+                    i, counterInfo[i].index, counterInfo[i].opState);
         }
     }
 }
@@ -251,13 +262,17 @@ void SuperKernelExceptionHandler::PrintDfxInfo() const {
                     i, dfxInfo[i].binHdl, dfxInfo[i].funcHdlOri,
                     dfxInfo[i].aicSize, dfxInfo[i].aivSize,
                     dfxInfo[i].numBlocks, dfxInfo[i].cubeNum, dfxInfo[i].vecNum);
-            aclrtFuncHandle funcHdl = reinterpret_cast<aclrtFuncHandle>(dfxInfo[i].funcHdlOri);
-            char funcName[256] = {0};
-            aclError ret = aclrtGetFunctionName(funcHdl, sizeof(funcName), funcName);
-            if (ret == ACL_SUCCESS) {
-                SK_LOGE("    Function name: %s", funcName);
+            if (funcNodeIndices_.count(i) > 0) {
+                aclrtFuncHandle funcHdl = reinterpret_cast<aclrtFuncHandle>(dfxInfo[i].funcHdlOri);
+                char funcName[256] = {0};
+                aclError ret = aclrtGetFunctionName(funcHdl, sizeof(funcName), funcName);
+                if (ret == ACL_SUCCESS) {
+                    SK_LOGE("    Origin function name: %s", funcName);
+                } else {
+                    SK_LOGE("    Failed to get origin function name for node[%u], ret=%d", i, ret);
+                }
             } else {
-                SK_LOGE("    Failed to get function name for node[%u], ret=%d", i, ret);
+                SK_LOGE("    Node[%u] is not a FUNC type", i);
             }
             for (int j = 0; j < 4; ++j) {
                 if (dfxInfo[i].entryAic[j] != 0) {
@@ -313,6 +328,12 @@ KernelFuncName SuperKernelExceptionHandler::GetOrLoadKernelSymbols(uint32_t opId
         return KernelFuncName{""};
     }
 
+    // Only TYPE_FUNC nodes have valid function handles
+    if (funcNodeIndices_.count(opId) == 0) {
+        SK_LOGI("opId=%u is not a FUNC type node", opId);
+        return KernelFuncName{""};
+    }
+
     // Access dfxInfo via offset from skDeviceEntryArgsHost
     uint8_t *dataBase = reinterpret_cast<uint8_t*>(skDeviceEntryArgsHost);
     SkDfxInfo *dfxInfo = reinterpret_cast<SkDfxInfo*>(dataBase + skHeaderInfoHost->dfxOffset);
@@ -338,6 +359,115 @@ KernelFuncName SuperKernelExceptionHandler::GetOrLoadKernelSymbols(uint32_t opId
     return kernelFuncName;
 }
 
+void SuperKernelExceptionHandler::PrintMatchedNodeBasicInfo(
+        uint32_t coreId, rtCoreType_t coreType, uint64_t startPC, uint64_t currentPC,
+        uint32_t nodeIdx, int entryIdx, uint64_t entryAddr, uint64_t endAddr,
+        uint32_t funcSize, const SkDfxInfo &dfxNode) const {
+    const char *coreTypeName = (coreType == RT_CORE_TYPE_AIC) ? "AIC" : "AIV";
+    uint16_t modelRIIdx = static_cast<uint16_t>((skHeaderInfoHost->modelRIIdAndSkScopeId >> 32) & 0xFFFF);
+    uint16_t skScopeId = static_cast<uint16_t>((skHeaderInfoHost->modelRIIdAndSkScopeId >> 16) & 0xFFFF);
+    uint64_t originalModelRI = SkEventRecorder::Instance().GetModelRIByIndex(modelRIIdx);
+
+    SK_LOGE("============================================================");
+    SK_LOGE("[Core %u] ModelRIIdx=%u, OriginalModelRI=0x%lx, SkScopeId=%u", coreId, modelRIIdx, originalModelRI, skScopeId);
+    SK_LOGE("[Core %u] CoreType: %s", coreId, coreTypeName);
+    SK_LOGE("[Core %u] StartPC: 0x%lx", coreId, startPC);
+    SK_LOGE("[Core %u] CurrentPC: 0x%lx", coreId, currentPC);
+    SK_LOGE("[Core %u] Found in node[%u], entry[%d]", coreId, nodeIdx, entryIdx);
+    SK_LOGE("[Core %u] Entry address: 0x%lx", coreId, entryAddr);
+    SK_LOGE("[Core %u] End address: 0x%lx", coreId, endAddr);
+    SK_LOGE("[Core %u] Function size: 0x%x (%u bytes)", coreId, funcSize, funcSize);
+    SK_LOGE("[Core %u] numBlocks=%u, cubeNum=%u, vecNum=%u", coreId,
+            dfxNode.numBlocks, dfxNode.cubeNum, dfxNode.vecNum);
+}
+
+void SuperKernelExceptionHandler::PrintFuncSymbolInfo(
+        uint32_t coreId, rtCoreType_t coreType, uint32_t nodeIdx, int entryIdx,
+        const uint64_t* entries, const SkDfxInfo &dfxNode) {
+    if (funcNodeIndices_.count(nodeIdx) == 0) {
+        SK_LOGE("[Core %u] Node[%u] is not a FUNC type", coreId, nodeIdx);
+        return;
+    }
+
+    // Print origin function name from funcHdlOri
+    aclrtFuncHandle funcHdl = reinterpret_cast<aclrtFuncHandle>(dfxNode.funcHdlOri);
+    char funcName[256] = {0};
+    aclError ret = aclrtGetFunctionName(funcHdl, sizeof(funcName), funcName);
+    if (ret == ACL_SUCCESS) {
+        SK_LOGE("[Core %u] Origin function name: %s", coreId, funcName);
+    } else {
+        SK_LOGE("Failed to get origin function name for node[%u], ret=%d", nodeIdx, ret);
+    }
+
+    // Resolve actual SK symbol name from bin using funcOffset
+    aclrtBinHandle binHdl = reinterpret_cast<aclrtBinHandle>(dfxNode.binHdl);
+    void *binHostAddr = nullptr;
+    uint32_t binHostSize = 0;
+    int rtRet = rtGetBinBuffer(binHdl, RT_BIN_HOST_ADDR, &binHostAddr, &binHostSize);
+    if (rtRet != 0 || binHostAddr == nullptr) {
+        SK_LOGE("[Core %u] Failed to get bin buffer for node[%u], rtRet=%d", coreId, nodeIdx, rtRet);
+        return;
+    }
+
+    uint64_t funcOffset = (coreType == RT_CORE_TYPE_AIC)
+        ? dfxNode.aicFuncOffset[entryIdx] : dfxNode.aivFuncOffset[entryIdx];
+    // Fallback: compute offset from entry address using AIC entry[0] as reference
+    if (funcOffset == 0 && dfxNode.aicFuncOffset[0] != 0 && dfxNode.entryAic[0] != 0) {
+        uint64_t binDevAddr = dfxNode.entryAic[0] - dfxNode.aicFuncOffset[0];
+        funcOffset = entries[entryIdx] - binDevAddr;
+        SK_LOGI("[Core %u] Computed funcOffset=0x%lx for node[%u] entry[%d] (binDevAddr=0x%lx)",
+                coreId, funcOffset, nodeIdx, entryIdx, binDevAddr);
+    }
+    if (funcOffset == 0) {
+        SK_LOGE("[Core %u] funcOffset is 0 for node[%u] entry[%d], cannot resolve SK symbol name",
+                coreId, nodeIdx, entryIdx);
+        return;
+    }
+
+    std::string symbolName;
+    uint64_t symbolSize = 0;
+    std::string symbolBind;
+    if (GetFuncSymbolInfo(static_cast<const char*>(binHostAddr), binHostSize,
+                          funcOffset, symbolName, symbolSize, symbolBind)) {
+        SK_LOGE("[Core %u] Bound SK symbol name: %s (bind=%s, size=0x%lx)",
+                coreId, symbolName.c_str(), symbolBind.c_str(), symbolSize);
+    } else {
+        SK_LOGE("[Core %u] Failed to get SK symbol name for node[%u] entry[%d], offset=0x%lx",
+                coreId, nodeIdx, entryIdx, funcOffset);
+    }
+}
+
+void SuperKernelExceptionHandler::PrintNodeDevArgs(
+        uint32_t coreId, rtCoreType_t coreType, uint32_t nodeIdx) const {
+    uint8_t *dataBase = reinterpret_cast<uint8_t*>(skDeviceEntryArgsHost);
+    TaskQue *taskQue = (coreType == RT_CORE_TYPE_AIC)
+        ? reinterpret_cast<TaskQue*>(dataBase + skHeaderInfoHost->aicQueOffset)
+        : reinterpret_cast<TaskQue*>(dataBase + skHeaderInfoHost->aivQueOffset);
+    uint32_t taskCnt = (coreType == RT_CORE_TYPE_AIC) ? aicTaskCnt : aivTaskCnt;
+    for (uint32_t t = 0; t < taskCnt; ++t) {
+        if (taskQue->taskInfos[t].index == nodeIdx && taskQue->taskInfos[t].type == SkTaskType::TYPE_FUNC) {
+            SK_LOGE("[Core %u] node[%u] devArgs: 0x%lx", coreId, nodeIdx, taskQue->taskInfos[t].args);
+            break;
+        }
+    }
+}
+
+void SuperKernelExceptionHandler::PrintNoMatchInfo(
+        uint32_t coreId, rtCoreType_t coreType, uint64_t startPC, uint64_t currentPC) const {
+    const char *coreTypeName = (coreType == RT_CORE_TYPE_AIC) ? "AIC" : "AIV";
+    uint16_t modelRIIdx = static_cast<uint16_t>((skHeaderInfoHost->modelRIIdAndSkScopeId >> 32) & 0xFFFF);
+    uint16_t skScopeId = static_cast<uint16_t>((skHeaderInfoHost->modelRIIdAndSkScopeId >> 16) & 0xFFFF);
+    uint64_t originalModelRI = SkEventRecorder::Instance().GetModelRIByIndex(modelRIIdx);
+
+    SK_LOGE("============================================================");
+    SK_LOGE("[Core %u] No sub kernel matched, aicore error occurred in sk entry.", coreId);
+    SK_LOGE("[Core %u] ModelRIIdx=%u, OriginalModelRI=0x%lx, SkScopeId=%u", coreId, modelRIIdx, originalModelRI, skScopeId);
+    SK_LOGE("[Core %u] CoreType: %s", coreId, coreTypeName);
+    SK_LOGE("[Core %u] startPC: 0x%lx", coreId, startPC);
+    SK_LOGE("[Core %u] CurrentPC: 0x%lx", coreId, currentPC);
+    SK_LOGE("============================================================");
+}
+
 void SuperKernelExceptionHandler::IdentifyErrorNodeByPC(uint32_t coreId, rtCoreType_t coreType,
                                                      uint64_t startPC, uint64_t currentPC) {
     if (skHeaderInfoHost->dfxOffset == 0 || skHeaderInfoHost->nodeCnt == 0 || currentPC == 0) {
@@ -346,11 +476,6 @@ void SuperKernelExceptionHandler::IdentifyErrorNodeByPC(uint32_t coreId, rtCoreT
 
     uint8_t *dataBase = reinterpret_cast<uint8_t*>(skDeviceEntryArgsHost);
     SkDfxInfo *dfxInfo = reinterpret_cast<SkDfxInfo*>(dataBase + skHeaderInfoHost->dfxOffset);
-
-    const char *coreTypeName = (coreType == RT_CORE_TYPE_AIC) ? "AIC" : "AIV";
-    uint16_t modelRIIdx = static_cast<uint16_t>((skHeaderInfoHost->modelRIIdAndSkScopeId >> 32) & 0xFFFF);
-    uint16_t skScopeId = static_cast<uint16_t>((skHeaderInfoHost->modelRIIdAndSkScopeId >> 16) & 0xFFFF);
-    uint64_t originalModelRI = SkEventRecorder::Instance().GetModelRIByIndex(modelRIIdx);
 
     // Iterate through all nodes to find which one's entry range contains currentPC
     for (uint32_t i = 0; i < skHeaderInfoHost->nodeCnt; ++i) {
@@ -367,56 +492,16 @@ void SuperKernelExceptionHandler::IdentifyErrorNodeByPC(uint32_t coreId, rtCoreT
 
             // Check if currentPC falls within this entry's range [entryAddr, entryAddr + funcSize)
             if (currentPC >= entryAddr && currentPC < endAddr) {
+                PrintMatchedNodeBasicInfo(coreId, coreType, startPC, currentPC, i, j, entryAddr, endAddr, funcSize, dfxInfo[i]);
+                PrintFuncSymbolInfo(coreId, coreType, i, j, entries, dfxInfo[i]);
+                PrintNodeDevArgs(coreId, coreType, i);
                 SK_LOGE("============================================================");
-                SK_LOGE("[Core %u] ModelRIIdx=%u, OriginalModelRI=0x%lx, SkScopeId=%u", coreId, modelRIIdx, originalModelRI, skScopeId);
-                SK_LOGE("[Core %u] CoreType: %s", coreId, coreTypeName);
-                SK_LOGE("[Core %u] StartPC: 0x%lx", coreId, startPC);
-                SK_LOGE("[Core %u] CurrentPC: 0x%lx", coreId, currentPC);
-                SK_LOGE("[Core %u] Found in node[%u], entry[%d]", coreId, i, j);
-                SK_LOGE("[Core %u] Entry address: 0x%lx", coreId, entryAddr);
-                SK_LOGE("[Core %u] End address: 0x%lx", coreId, endAddr);
-                SK_LOGE("[Core %u] Function size: 0x%x (%u bytes)", coreId, funcSize, funcSize);
-                SK_LOGE("[Core %u] numBlocks=%u, cubeNum=%u, vecNum=%u", coreId,
-                        dfxInfo[i].numBlocks, dfxInfo[i].cubeNum, dfxInfo[i].vecNum);
-                
-                // Get function name for this node
-                aclrtFuncHandle funcHdl = reinterpret_cast<aclrtFuncHandle>(dfxInfo[i].funcHdlOri);
-                char funcName[256] = {0};
-                aclError ret = aclrtGetFunctionName(funcHdl, sizeof(funcName), funcName);
-                if (ret == ACL_SUCCESS) {
-                    SK_LOGE("[Core %u] Function name: %s", coreId, funcName);
-                } else {
-                    SK_LOGE("Failed to get function name for node[%u], ret=%d", i, ret);
-                }
-
-                // Find and print devArgs from task queue for this node
-                TaskQue *taskQue = (coreType == RT_CORE_TYPE_AIC)
-                    ? reinterpret_cast<TaskQue*>(dataBase + skHeaderInfoHost->aicQueOffset)
-                    : reinterpret_cast<TaskQue*>(dataBase + skHeaderInfoHost->aivQueOffset);
-                uint32_t taskCnt = (coreType == RT_CORE_TYPE_AIC) ? aicTaskCnt : aivTaskCnt;
-                for (uint32_t t = 0; t < taskCnt; ++t) {
-                    if (taskQue->taskInfos[t].index == i && taskQue->taskInfos[t].type == SkTaskType::TYPE_FUNC) {
-                        SK_LOGE("[Core %u] node[%u] devArgs: 0x%lx", coreId, i, taskQue->taskInfos[t].args);
-                        break;
-                    }
-                }
-
-                SK_LOGE("============================================================");
-                
                 return;  // Found the error node
             }
         }
     }
 
-    SK_LOGE("============================================================");
-    SK_LOGE("[Core %u] No sub kernel matched, aicore error occurred in sk entry.", coreId);
-    SK_LOGE("[Core %u] ModelRIIdx=%u, OriginalModelRI=0x%lx, SkScopeId=%u", coreId, modelRIIdx, originalModelRI, skScopeId);
-    SK_LOGE("[Core %u] CoreType: %s", coreId, coreTypeName);
-    SK_LOGE("[Core %u] startPC: 0x%lx", coreId, startPC);
-    SK_LOGE("[Core %u] CurrentPC: 0x%lx", coreId, currentPC);
-    SK_LOGE("============================================================");
-
-    return;  // No matching entry found
+    PrintNoMatchInfo(coreId, coreType, startPC, currentPC);
 }
 
 void SuperKernelExceptionHandler::PrintCoreSymbols(uint32_t coreId, rtCoreType_t coreType,
@@ -434,18 +519,17 @@ void SuperKernelExceptionHandler::PrintCoreSymbols(uint32_t coreId, rtCoreType_t
     uint8_t *dataBase = reinterpret_cast<uint8_t*>(skDeviceEntryArgsHost);
     SkCounterInfo *counterInfo = reinterpret_cast<SkCounterInfo*>(dataBase + skHeaderInfoHost->counterOffset);
 
-    uint32_t launch = counterInfo[coreId].launch;
-    uint32_t exit = counterInfo[coreId].exit;
+    uint32_t opState = counterInfo[coreId].opState;
     uint32_t opId = counterInfo[coreId].index;
     const char *coreTypeName = (coreType == RT_CORE_TYPE_AIC) ? "AIC" : "AIV";
 
-    SK_LOGE("[Core %u] Type=%s, launch=%u, exit=%u, opId=%u",
-            coreId, coreTypeName, launch, exit, opId);
+    SK_LOGE("[Core %u] Type=%s, opState=%u, opId=%u",
+            coreId, coreTypeName, opState, opId);
 
-    if (launch == static_cast<uint8_t>(SkOpTraceType::ORIGIN)) {
+    if (opState == static_cast<uint8_t>(SkOpTraceType::ORIGIN)) {
         // args initialized to 0, if ORIGIN means no SK has been executed yet
         SK_LOGE("[Core %u] No SK entry executed yet.", coreId);
-    } else if (launch == static_cast<uint8_t>(SkOpTraceType::SK_ENTRY_LAUNCHED)) {
+    } else if (opState == static_cast<uint8_t>(SkOpTraceType::SK_ENTRY_LAUNCHED)) {
         // SK operator just started, no sub-kernel executed yet, print next operator symbols
         SK_LOGE("[Core %u] SK started but no sub-kernel executed yet, checking next operators", coreId);
 
@@ -457,12 +541,12 @@ void SuperKernelExceptionHandler::PrintCoreSymbols(uint32_t coreId, rtCoreType_t
         } else {
             SK_LOGE("[Core %u] > No next operator (opId=%u/%u)", coreId, opId, skHeaderInfoHost->nodeCnt);
         }
-    } else if (launch == static_cast<uint8_t>(SkOpTraceType::OP_LAUNCHED)) {
+    } else if (opState == static_cast<uint8_t>(SkOpTraceType::OP_LAUNCHED)) {
         // Sub-kernel is running, print current operator symbols
         SK_LOGE("[Core %u] Currently running opId=%u", coreId, opId);
         KernelFuncName kernelFuncName = GetOrLoadKernelSymbols(opId);
         PrintSymbolByCoreId(coreId, coreType, startPC, currentPC, kernelFuncName);
-    } else if (launch == static_cast<uint8_t>(SkOpTraceType::OP_FINISHED)) {
+    } else if (opState == static_cast<uint8_t>(SkOpTraceType::OP_FINISHED)) {
         // Sub-kernel has finished execution, current opId is the last executed operator, print current and next operator symbols
         SK_LOGE("[Core %u] opId=%u finished, checking current and next operators", coreId, opId);
 
@@ -479,11 +563,11 @@ void SuperKernelExceptionHandler::PrintCoreSymbols(uint32_t coreId, rtCoreType_t
         } else {
             SK_LOGE("[Core %u] > No next operator (opId=%u/%u)", coreId, opId, skHeaderInfoHost->nodeCnt);
         }
-    } else if (launch == static_cast<uint8_t>(SkOpTraceType::SK_ENTRY_FINISHED)) {
+    } else if (opState == static_cast<uint8_t>(SkOpTraceType::SK_ENTRY_FINISHED)) {
         // SK operator execution completed
         SK_LOGE("[Core %u] SK entry operator execution completed.", coreId);
     } else {
-        SK_LOGE("[Core %u] Unknown launch status: %u", coreId, launch);
+        SK_LOGE("[Core %u] Unknown opState: %u", coreId, opState);
     }
 }
 
