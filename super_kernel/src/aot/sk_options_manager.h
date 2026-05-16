@@ -284,6 +284,9 @@ public:
     nlohmann::ordered_json ToJson() const;
 
 private:
+    void RegisterDefaultOptions();
+    void RegisterDefaultOption(aclskOptionType optType);
+
     std::unordered_map<aclskOptionType, std::unique_ptr<OptOptionBase>> optionMap;
 };
 
@@ -327,6 +330,7 @@ inline std::vector<OptionDumpInfo> CollectAllOptions(const SuperKernelOptionsMan
             case aclskOptionType::CONSTANT_CODEGEN:
             case aclskOptionType::AUTO_OP_PARALLEL:
             case aclskOptionType::DEBUG_CROSS_CORE_SYNC_CHECK:
+            case aclskOptionType::DEBUG_OP_EXEC_TRACE:
                 info.valueType = OptionDumpInfo::ValueType::INT;
                 info.intValue = opt->GetIntValue();
                 break;

@@ -719,6 +719,11 @@ TEST_F(SuperKernelOptionsManagerTest, ParseOptions_Nullptr)
 {
     // 不应崩溃
     opts_test->ParseOptions(nullptr);
+    auto preloadOpt = opts_test->GetOption(aclskOptionType::PRELOAD_CODE);
+    auto kernelMapOpt = opts_test->GetOption(aclskOptionType::KERNEL_MAP);
+    ASSERT_NE(preloadOpt, nullptr);
+    ASSERT_NE(kernelMapOpt, nullptr);
+    EXPECT_EQ(static_cast<NumberOptOption*>(preloadOpt)->GetIntValue(), 1);
 }
 
 TEST_F(SuperKernelOptionsManagerTest, ParseOptions_SingleOption)
@@ -893,16 +898,16 @@ TEST_F(SuperKernelOptionsManagerTest, ParseOptions_WithPreExistingOptions)
     
     opts_test->ParseOptions(&optList);
     
-    // 验证新选项没有被覆盖（因为已存在）
+    // 验证传入的 aclskOptions 会覆盖已注册的默认/已有选项值
     auto preloadOpt = opts_test->GetOption(aclskOptionType::PRELOAD_CODE);
     auto splitOpt = opts_test->GetOption(aclskOptionType::SPLIT_MODE);
     
     ASSERT_NE(preloadOpt, nullptr);
     ASSERT_NE(splitOpt, nullptr);
     
-    // PRELOAD_CODE 应该保持原值（因为已存在）
-    EXPECT_EQ(static_cast<NumberOptOption*>(preloadOpt)->GetIntValue(), 0);
-    // SPLIT_MODE 应该是新值（因为不存在）
+    // PRELOAD_CODE 应该被 aclskOptions 中的值覆盖
+    EXPECT_EQ(static_cast<NumberOptOption*>(preloadOpt)->GetIntValue(), 1);
+    // SPLIT_MODE 应该是 aclskOptions 中的值
     EXPECT_EQ(static_cast<NumberOptOption*>(splitOpt)->GetIntValue(), 4);
 }
 
@@ -946,8 +951,14 @@ TEST_F(SuperKernelOptionsManagerTest, ParseOptions_EmptyOptionsList)
     // 不应崩溃
     opts_test->ParseOptions(&optList);
     
-    // 验证没有选项被添加
-    EXPECT_EQ(opts_test->GetOption(aclskOptionType::PRELOAD_CODE), nullptr);
+    auto preloadOpt = opts_test->GetOption(aclskOptionType::PRELOAD_CODE);
+    auto splitOpt = opts_test->GetOption(aclskOptionType::SPLIT_MODE);
+    auto kernelMapOpt = opts_test->GetOption(aclskOptionType::KERNEL_MAP);
+    ASSERT_NE(preloadOpt, nullptr);
+    ASSERT_NE(splitOpt, nullptr);
+    ASSERT_NE(kernelMapOpt, nullptr);
+    EXPECT_EQ(static_cast<NumberOptOption*>(preloadOpt)->GetIntValue(), 1);
+    EXPECT_EQ(static_cast<NumberOptOption*>(splitOpt)->GetIntValue(), 4);
 }
 
 TEST_F(SuperKernelOptionsManagerTest, ParseOptions_DebugSyncAllZero_NotEnableDebug)
@@ -1315,10 +1326,11 @@ TEST_F(SuperKernelOptionsManagerTest, ToJson_AfterParseOptions)
     opts_test->ParseOptions(&optList);
     
     nlohmann::ordered_json json = opts_test->ToJson();
-    EXPECT_EQ(json.size(), 3);
+    EXPECT_EQ(json.size(), static_cast<size_t>(aclskOptionType::SK_OPTION_MAX));
     EXPECT_TRUE(json.contains("preload_code"));
     EXPECT_TRUE(json.contains("split_mode"));
     EXPECT_TRUE(json.contains("debug_sync_all"));
+    EXPECT_TRUE(json.contains("kernel_map"));
 }
 
 TEST_F(SuperKernelOptionsManagerTest, ToJson_NewIntegerOptions)
@@ -1346,7 +1358,7 @@ TEST_F(SuperKernelOptionsManagerTest, ToJson_NewIntegerOptions)
     opts_test->ParseOptions(&optList);
 
     nlohmann::ordered_json json = opts_test->ToJson();
-    ASSERT_EQ(json.size(), 5);
+    ASSERT_EQ(json.size(), static_cast<size_t>(aclskOptionType::SK_OPTION_MAX));
     ASSERT_TRUE(json.contains("stream_fusion"));
     ASSERT_TRUE(json.contains("constant_codegen"));
     ASSERT_TRUE(json.contains("auto_op_parallel"));

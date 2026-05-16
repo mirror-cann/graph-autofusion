@@ -14,10 +14,12 @@
  */
 
 #include <cctype>
+#include <array>
 #include <vector>
 #include <cstdlib>
 #include <limits>
 #include <string>
+#include <unordered_set>
 
 #include "sk_options_manager.h"
 #include "sk_log.h"
@@ -25,6 +27,84 @@
 
 namespace {
 constexpr size_t kMaxExtendOptionLength = 1024;
+
+using DefaultOptionFactory = std::unique_ptr<OptOptionBase> (*)();
+
+struct DefaultOptionFactoryEntry {
+    aclskOptionType optType;
+    DefaultOptionFactory factory;
+};
+
+const std::array<DefaultOptionFactoryEntry, static_cast<size_t>(aclskOptionType::SK_OPTION_MAX)>
+    kDefaultOptionFactories = {{
+        {aclskOptionType::PRELOAD_CODE, []() -> std::unique_ptr<OptOptionBase> {
+            return std::make_unique<NumberOptOption>("preload_code", aclskOptionType::PRELOAD_CODE, 1, 0, 2);
+        }},
+        {aclskOptionType::SPLIT_MODE, []() -> std::unique_ptr<OptOptionBase> {
+            return std::make_unique<NumberOptOption>("split_mode", aclskOptionType::SPLIT_MODE, 4, 1, 4);
+        }},
+        {aclskOptionType::STREAM_FUSION, []() -> std::unique_ptr<OptOptionBase> {
+            return std::make_unique<NumberOptOption>("stream_fusion", aclskOptionType::STREAM_FUSION, 1, 0, 1);
+        }},
+        {aclskOptionType::DCCI_DISABLE_ON_KERNEL, []() -> std::unique_ptr<OptOptionBase> {
+            return std::make_unique<StringListOptOption>(
+                "dcci_disable_on_kernel", aclskOptionType::DCCI_DISABLE_ON_KERNEL);
+        }},
+        {aclskOptionType::DEBUG_SYNC_ALL, []() -> std::unique_ptr<OptOptionBase> {
+            return std::make_unique<NumberOptOption>("debug_sync_all", aclskOptionType::DEBUG_SYNC_ALL, 0, 0, 1);
+        }},
+        {aclskOptionType::KERNEL_MAP, []() -> std::unique_ptr<OptOptionBase> {
+            return std::make_unique<OptOptionBase>("kernel_map", aclskOptionType::KERNEL_MAP);
+        }},
+        {aclskOptionType::CONSTANT_CODEGEN, []() -> std::unique_ptr<OptOptionBase> {
+            return std::make_unique<NumberOptOption>(
+                "constant_codegen", aclskOptionType::CONSTANT_CODEGEN, 0, 0, 1);
+        }},
+        {aclskOptionType::AUTO_OP_PARALLEL, []() -> std::unique_ptr<OptOptionBase> {
+            return std::make_unique<NumberOptOption>(
+                "auto_op_parallel", aclskOptionType::AUTO_OP_PARALLEL, 0, 0, 1);
+        }},
+        {aclskOptionType::DCCI_BEFORE_KERNEL_START, []() -> std::unique_ptr<OptOptionBase> {
+            return std::make_unique<StringListOptOption>(
+                "dcci_before_kernel_start", aclskOptionType::DCCI_BEFORE_KERNEL_START);
+        }},
+        {aclskOptionType::DEBUG_OP_EXEC_TRACE, []() -> std::unique_ptr<OptOptionBase> {
+            return std::make_unique<NumberOptOption>(
+                "debug_op_exec_trace", aclskOptionType::DEBUG_OP_EXEC_TRACE, 0, 0, 1);
+        }},
+        {aclskOptionType::DEBUG_CROSS_CORE_SYNC_CHECK, []() -> std::unique_ptr<OptOptionBase> {
+            return std::make_unique<NumberOptOption>(
+                "debug_cross_core_sync_check", aclskOptionType::DEBUG_CROSS_CORE_SYNC_CHECK, 0, 0, 1);
+        }},
+        {aclskOptionType::OPT_EXTEND_OPTION, []() -> std::unique_ptr<OptOptionBase> {
+            return std::make_unique<MapOptOption>("opt_extend_option", aclskOptionType::OPT_EXTEND_OPTION);
+        }},
+        {aclskOptionType::DEBUG_EXTEND_OPTION, []() -> std::unique_ptr<OptOptionBase> {
+            return std::make_unique<MapOptOption>("debug_extend_option", aclskOptionType::DEBUG_EXTEND_OPTION);
+        }},
+        {aclskOptionType::DCCI_AFTER_KERNEL_END, []() -> std::unique_ptr<OptOptionBase> {
+            return std::make_unique<StringListOptOption>(
+                "dcci_after_kernel_end", aclskOptionType::DCCI_AFTER_KERNEL_END);
+        }},
+        {aclskOptionType::AGGRESSIVE_OPT_STRATEGIES, []() -> std::unique_ptr<OptOptionBase> {
+            return std::make_unique<AggressiveOptStrategiesOption>(
+                "aggressive_opt_strategies", aclskOptionType::AGGRESSIVE_OPT_STRATEGIES);
+        }},
+        {aclskOptionType::UBUF_LOCK_IGNORE_KERNEL, []() -> std::unique_ptr<OptOptionBase> {
+            return std::make_unique<StringListOptOption>(
+                "ubuf_lock_ignore_kernel", aclskOptionType::UBUF_LOCK_IGNORE_KERNEL);
+        }},
+    }};
+
+const DefaultOptionFactoryEntry* FindDefaultOptionFactory(aclskOptionType optType)
+{
+    for (const auto& entry : kDefaultOptionFactories) {
+        if (entry.optType == optType) {
+            return &entry;
+        }
+    }
+    return nullptr;
+}
 
 uint32_t GetValidatedUintValue(const std::string& optionName, uint32_t value, uint32_t defaultValue,
                                uint32_t minValue, uint32_t maxValue)
@@ -343,15 +423,34 @@ bool SuperKernelOptionsManager::EnableMixKernelSplit() const
     return enableMixKernelSplit;
 }
 
+void SuperKernelOptionsManager::RegisterDefaultOption(aclskOptionType optType)
+{
+    if (optionMap.find(optType) != optionMap.end()) {
+        return;
+    }
+    const auto* entry = FindDefaultOptionFactory(optType);
+    if (entry == nullptr) {
+        return;
+    }
+    AddOption(entry->factory());
+}
+
+void SuperKernelOptionsManager::RegisterDefaultOptions()
+{
+    for (int32_t i = 0; i < static_cast<int32_t>(aclskOptionType::SK_OPTION_MAX); ++i) {
+        RegisterDefaultOption(static_cast<aclskOptionType>(i));
+    }
+}
+
 void SuperKernelOptionsManager::SetOptOptionValue(const aclskOption* option) {
     if (option == nullptr) {
         SK_LOGW("sub aclskOption is nullptr");
         return;
     }
+    RegisterDefaultOption(option->optionType);
     switch (option->optionType) {
         case aclskOptionType::PRELOAD_CODE:
             {
-                AddOption(std::make_unique<NumberOptOption>("preload_code", option->optionType, 1, 0, 2));
                 auto subOption = GetOption(option->optionType);
                 if (subOption != nullptr) {
                     subOption->SetValue(option->preload.preloadMode);
@@ -360,7 +459,6 @@ void SuperKernelOptionsManager::SetOptOptionValue(const aclskOption* option) {
             }
         case aclskOptionType::SPLIT_MODE:
             {
-                AddOption(std::make_unique<NumberOptOption>("split_mode", option->optionType, 4, 1, 4));
                 auto subOption = GetOption(option->optionType);
                 if (subOption != nullptr) {
                     subOption->SetValue(option->splitMode.splitCnt);
@@ -369,7 +467,6 @@ void SuperKernelOptionsManager::SetOptOptionValue(const aclskOption* option) {
             }
         case aclskOptionType::DCCI_DISABLE_ON_KERNEL:
             {
-                AddOption(std::make_unique<StringListOptOption>("dcci_disable_on_kernel", option->optionType));
                 auto subOption = GetOption(option->optionType);
                 if (subOption != nullptr) {
                     std::vector<std::string> vecValue;
@@ -394,7 +491,6 @@ void SuperKernelOptionsManager::SetOptOptionValue(const aclskOption* option) {
             }
         case aclskOptionType::DCCI_BEFORE_KERNEL_START:
             {
-                AddOption(std::make_unique<StringListOptOption>("dcci_before_kernel_start", option->optionType));
                 auto subOption = GetOption(option->optionType);
                 if (subOption != nullptr) {
                     std::vector<std::string> vecValue;
@@ -419,7 +515,6 @@ void SuperKernelOptionsManager::SetOptOptionValue(const aclskOption* option) {
             }
         case aclskOptionType::DCCI_AFTER_KERNEL_END:
             {
-                AddOption(std::make_unique<StringListOptOption>("dcci_after_kernel_end", option->optionType));
                 auto subOption = GetOption(option->optionType);
                 if (subOption != nullptr) {
                     std::vector<std::string> vecValue;
@@ -444,8 +539,6 @@ void SuperKernelOptionsManager::SetOptOptionValue(const aclskOption* option) {
             }
         case aclskOptionType::AGGRESSIVE_OPT_STRATEGIES:
             {
-                AddOption(std::make_unique<AggressiveOptStrategiesOption>(
-                    "aggressive_opt_strategies", option->optionType));
                 auto subOption = static_cast<AggressiveOptStrategiesOption*>(GetOption(option->optionType));
                 if (subOption == nullptr) {
                     break;
@@ -474,7 +567,6 @@ void SuperKernelOptionsManager::SetOptOptionValue(const aclskOption* option) {
             }
         case aclskOptionType::UBUF_LOCK_IGNORE_KERNEL:
             {
-                AddOption(std::make_unique<StringListOptOption>("ubuf_lock_ignore_kernel", option->optionType));
                 auto subOption = GetOption(option->optionType);
                 if (subOption != nullptr) {
                     std::vector<std::string> vecValue;
@@ -500,7 +592,6 @@ void SuperKernelOptionsManager::SetOptOptionValue(const aclskOption* option) {
             }
         case aclskOptionType::DEBUG_SYNC_ALL:
             {
-                AddOption(std::make_unique<NumberOptOption>("debug_sync_all", option->optionType, 0, 0, 1));
                 auto subOption = GetOption(option->optionType);
                 if (subOption != nullptr) {
                     subOption->SetValue(option->debugSync.debugSyncAll);
@@ -509,7 +600,6 @@ void SuperKernelOptionsManager::SetOptOptionValue(const aclskOption* option) {
             }
         case aclskOptionType::OPT_EXTEND_OPTION:
             {
-                AddOption(std::make_unique<MapOptOption>("opt_extend_option", option->optionType));
                 auto subOption = GetOption(option->optionType);
                 if (subOption != nullptr) {
                     std::unordered_map<std::string, std::vector<std::string>> parsedValue;
@@ -522,7 +612,6 @@ void SuperKernelOptionsManager::SetOptOptionValue(const aclskOption* option) {
             }
         case aclskOptionType::DEBUG_EXTEND_OPTION:
             {
-                AddOption(std::make_unique<MapOptOption>("debug_extend_option", option->optionType));
                 auto subOption = GetOption(option->optionType);
                 if (subOption != nullptr) {
                     std::unordered_map<std::string, std::vector<std::string>> parsedValue;
@@ -535,7 +624,6 @@ void SuperKernelOptionsManager::SetOptOptionValue(const aclskOption* option) {
             }
         case aclskOptionType::STREAM_FUSION:
             {
-                AddOption(std::make_unique<NumberOptOption>("stream_fusion", option->optionType, 1, 0, 1));
                 auto subOption = GetOption(option->optionType);
                 if (subOption != nullptr) {
                     subOption->SetValue(option->streamFusion.streamFusion);
@@ -544,8 +632,6 @@ void SuperKernelOptionsManager::SetOptOptionValue(const aclskOption* option) {
             }
         case aclskOptionType::CONSTANT_CODEGEN:
             {
-                // 默认关闭常量化代码生成（值为1启用，0禁用）
-                AddOption(std::make_unique<NumberOptOption>("constant_codegen", option->optionType, 0, 0, 1));
                 auto subOption = GetOption(option->optionType);
                 if (subOption != nullptr) {
                     subOption->SetValue(option->constantCodegen.enableConstant);
@@ -555,7 +641,6 @@ void SuperKernelOptionsManager::SetOptOptionValue(const aclskOption* option) {
             }
         case aclskOptionType::AUTO_OP_PARALLEL:
             {
-                AddOption(std::make_unique<NumberOptOption>("auto_op_parallel", option->optionType, 0, 0, 1));
                 auto subOption = GetOption(option->optionType);
                 if (subOption != nullptr) {
                     subOption->SetValue(option->autoOpParallel.enableAutoOpParallel);
@@ -565,7 +650,6 @@ void SuperKernelOptionsManager::SetOptOptionValue(const aclskOption* option) {
             }
         case aclskOptionType::DEBUG_CROSS_CORE_SYNC_CHECK:
             {
-                AddOption(std::make_unique<NumberOptOption>("debug_cross_core_sync_check", option->optionType, 0, 0, 1));
                 auto subOption = GetOption(option->optionType);
                 if (subOption != nullptr) {
                     subOption->SetValue(option->debugCrossCoreSyncCheck.enableCrossCoreSyncCheck);
@@ -576,7 +660,6 @@ void SuperKernelOptionsManager::SetOptOptionValue(const aclskOption* option) {
             }
         case aclskOptionType::DEBUG_OP_EXEC_TRACE:
             {
-                AddOption(std::make_unique<NumberOptOption>("debug_op_exec_trace", option->optionType, 0, 0, 1));
                 auto subOption = GetOption(option->optionType);
                 if (subOption != nullptr) {
                     subOption->SetValue(option->debugOpExecTrace.enableOpExecTrace);
@@ -592,17 +675,27 @@ void SuperKernelOptionsManager::SetOptOptionValue(const aclskOption* option) {
 }
 
 void SuperKernelOptionsManager::ParseOptions(const aclskOptions* options) {
+    RegisterDefaultOptions();
     if (options == nullptr) {
         SK_LOGI("aclskOption is nullptr");
         return;
     }
     SK_LOGI("Options nums: %d\n", static_cast<int>(options->numOptions));
+    if (options->numOptions > 0 && options->options == nullptr) {
+        SK_LOGW("aclskOptions options is nullptr while numOptions is %zu", options->numOptions);
+        return;
+    }
+    std::unordered_set<aclskOptionType> parsedTypes;
     for (size_t i = 0; i < static_cast<size_t>(options->numOptions); i++) {
-        auto iter = optionMap.find(options->options[i].optionType);
-        if (iter != optionMap.end()) {
-            SK_LOGW("OptionName %s already exists", iter->second->GetName().c_str());
+        const aclskOptionType optionType = options->options[i].optionType;
+        if (parsedTypes.find(optionType) != parsedTypes.end()) {
+            const auto iter = optionMap.find(optionType);
+            const char* optionName = (iter != optionMap.end() && iter->second != nullptr) ?
+                iter->second->GetName().c_str() : "unsupported";
+            SK_LOGW("OptionName %s already parsed", optionName);
             continue;
         }
+        parsedTypes.insert(optionType);
         SetOptOptionValue(&options->options[i]);
     }
 }
