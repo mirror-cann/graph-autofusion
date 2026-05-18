@@ -121,8 +121,8 @@ target_link_libraries(att_ut PRIVATE
         ascir_builtin_ops
         aihac_ir_register
         ascir_ops_headers
-        symengine
-        Boost::boost
+        symengine_static
+        boost
         graph_base_af
         error_manager
         metadef

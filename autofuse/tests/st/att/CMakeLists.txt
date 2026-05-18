@@ -95,8 +95,8 @@ target_link_options(att_st PRIVATE
 
 target_link_libraries(att_st
         GTest::gtest GTest::gtest_main -lgcov
-        symengine
-        Boost::boost
+        symengine_static
+        boost
         atrace
         att
         asc_slog_stub

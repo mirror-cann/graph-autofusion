@@ -82,6 +82,7 @@ target_link_libraries(ascir_generate PRIVATE
     aihac_ir_register
     aihac_ir
     ascend_protobuf
+    metadef_headers
 )
 autofuse_apply_shared_visibility(ascir_generate)
 

@@ -31,34 +31,6 @@ else ()
     set(GE_METADEF_INC_DIR ${TOP_DIR}/air/inc/graph_metadef)
 endif ()
 
-if (NOT DEFINED CMAKE_MODULE_PATH)
-    set(CMAKE_MODULE_PATH
-            ${ASCEND_3RD_LIB_PATH}/cmake/modules
-            ${GE_METADEF_DIR}/cmake/modules
-            ${CODE_ROOT_DIR}/cmake/third_party/scripts/modules
-    )
-endif()
-
-if (NOT DEFINED CMAKE_PREFIX_PATH)
-    set(CMAKE_PREFIX_PATH
-            ${ASCEND_3RD_LIB_PATH}/json
-            ${ASCEND_3RD_LIB_PATH}/openssl
-            ${ASCEND_3RD_LIB_PATH}/protoc
-            ${ASCEND_3RD_LIB_PATH}/protoc_grpc
-            ${ASCEND_3RD_LIB_PATH}/grpc
-            ${ASCEND_3RD_LIB_PATH}/protobuf_static
-            ${ASCEND_3RD_LIB_PATH}/ascend_protobuf
-            ${ASCEND_3RD_LIB_PATH}/ascend_protobuf_static
-            ${ASCEND_3RD_LIB_PATH}/gtest_shared/lib64/cmake/GTest
-            ${ASCEND_3RD_LIB_PATH}/gtest
-            ${ASCEND_3RD_LIB_PATH}/benchmark
-            ${ASCEND_3RD_LIB_PATH}/pybind11
-            ${ASCEND_3RD_LIB_PATH}/symengine/lib/cmake/symengine
-            ${ASCEND_3RD_LIB_PATH}/boost/lib/cmake/Boost-1.87.0
-    )
-endif()
-
-
 link_directories(${ASCEND_ROOT}/lib64)
 include_directories(${GE_METADEF_INC_DIR}/external)
 include_directories(${GE_METADEF_INC_DIR}/external/graph)
@@ -93,18 +65,15 @@ include_directories(${ASCEND_INSTALL_PATH}/pkg_inc/profiling)
 
 find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
 if (ENABLE_OPEN_SRC)
-    #    find_package(nlohmann_json REQUIRED)
-    find_package(json REQUIRED)
-    find_package(GTest CONFIG REQUIRED)
-    find_package(Boost CONFIG REQUIRED) #
-    find_package(SymEngine CONFIG REQUIRED) #
-    find_package(ascend_protobuf_shared MODULE REQUIRED)
-    #find_package(ascend_protobuf_static MODULE REQUIRED)
-    #find_package(protoc MODULE REQUIRED)
-    find_package(unified_dlog)
-    find_package(mmpa)
-    find_package(runtime)
-    find_package(atrace)
+    add_cann_third_party(json)
+    add_cann_third_party(gtest)
+    add_cann_third_party(boost)
+    add_cann_third_party(symengine)
+    add_cann_third_party(protobuf)
+    find_cann_package(unified_dlog)
+    find_cann_package(mmpa)
+    find_cann_package(atrace)
+    find_cann_package(metadef)
 endif ()
 
 if (DEFINED unified_dlog_INCLUDE_DIR)
@@ -214,10 +183,6 @@ cmake_print_variables(CMAKE_PREFIX_PATH)
 cmake_print_variables(INSTALL_BASE_DIR)
 cmake_print_variables(ENABLE_OPEN_SRC)
 
-if (ENABLE_OPEN_SRC)
-    find_package(protoc MODULE REQUIRED)
-    find_package(ascend_protobuf_static MODULE REQUIRED)
-endif ()
 ####################################common############################################
 set(COMMON_DIR ${CODE_ROOT_DIR}/common)
 file(GLOB_RECURSE CODEGEN_COMMON_SRCS CONFIGURE_DEPENDS "${COMMON_DIR}/*.cpp" "${COMMON_DIR}/*.cc")
@@ -352,8 +317,8 @@ target_link_options(att PRIVATE
 
 target_link_libraries(att PRIVATE
         -lgcov
-        symengine
-        Boost::boost
+        symengine_static
+        boost
         optimize
         json
         aihac_ir
