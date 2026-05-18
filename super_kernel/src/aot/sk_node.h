@@ -201,6 +201,7 @@ struct KernelInfos {
     uint32_t taskRatio[2] = {0, 0};
     uint32_t resolvedNum = 0;
     uint64_t cap = 0;
+    KernelCapBits capBits = {};
     uint32_t numBlocks = 0;
     uint32_t vecNum = 0;      ///< Number of vector cores required
     uint32_t cubeNum = 0;     ///< Number of cube cores required

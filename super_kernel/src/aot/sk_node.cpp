@@ -409,6 +409,7 @@ bool InitKernelResolvedFuncs(KernelInfos &kernelInfos)
     }
     kernelInfos.cap = hasCap ? cap : 0;
     const KernelCapBits capBits = ParseKernelCapBits(kernelInfos.cap);
+    kernelInfos.capBits = capBits;
     SK_LOGI("bindMap size=%lu, aicFound=%d, aivFound=%d, earlyStartWaitFlag=%d, "
             "earlyStartSetFlag=%d, dcci=%d, disableScheMode=%d",
         bindMap.size(), aicItor != bindMap.end(), aivItor != bindMap.end(),

@@ -1335,7 +1335,7 @@ TEST_F(SuperKernelOptionsManagerTest, ToJson_AfterParseOptions)
 
 TEST_F(SuperKernelOptionsManagerTest, ToJson_NewIntegerOptions)
 {
-    aclskOption options[5] {};
+    aclskOption options[6] {};
     options[0].optionType = aclskOptionType::STREAM_FUSION;
     options[0].streamFusion.streamFusion = 0;
 
@@ -1351,9 +1351,12 @@ TEST_F(SuperKernelOptionsManagerTest, ToJson_NewIntegerOptions)
     options[4].optionType = aclskOptionType::DEBUG_OP_EXEC_TRACE;
     options[4].debugOpExecTrace.enableOpExecTrace = 1;
 
+    options[5].optionType = aclskOptionType::EARLY_START;
+    options[5].earlyStart.enableEarlyStart = 1;
+
     aclskOptions optList;
     optList.options = options;
-    optList.numOptions = 5;
+    optList.numOptions = 6;
 
     opts_test->ParseOptions(&optList);
 
@@ -1364,6 +1367,7 @@ TEST_F(SuperKernelOptionsManagerTest, ToJson_NewIntegerOptions)
     ASSERT_TRUE(json.contains("auto_op_parallel"));
     ASSERT_TRUE(json.contains("debug_cross_core_sync_check"));
     ASSERT_TRUE(json.contains("debug_op_exec_trace"));
+    ASSERT_TRUE(json.contains("early_start"));
     EXPECT_EQ(json["stream_fusion"]["type"], static_cast<int>(aclskOptionType::STREAM_FUSION));
     EXPECT_EQ(json["stream_fusion"]["value"], 0);
     EXPECT_EQ(json["constant_codegen"]["type"], static_cast<int>(aclskOptionType::CONSTANT_CODEGEN));
@@ -1375,6 +1379,8 @@ TEST_F(SuperKernelOptionsManagerTest, ToJson_NewIntegerOptions)
     EXPECT_EQ(json["debug_cross_core_sync_check"]["value"], 1);
     EXPECT_EQ(json["debug_op_exec_trace"]["type"], static_cast<int>(aclskOptionType::DEBUG_OP_EXEC_TRACE));
     EXPECT_EQ(json["debug_op_exec_trace"]["value"], 1);
+    EXPECT_EQ(json["early_start"]["type"], static_cast<int>(aclskOptionType::EARLY_START));
+    EXPECT_EQ(json["early_start"]["value"], 1);
 }
 
 TEST_F(SuperKernelOptionsManagerTest, ToJson_DcciAfterKernelEnd)

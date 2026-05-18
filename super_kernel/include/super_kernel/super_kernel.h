@@ -55,6 +55,7 @@ enum class aclskOptionType : uint32_t {
     DCCI_AFTER_KERNEL_END = 13,
     AGGRESSIVE_OPT_STRATEGIES = 14, // aggressive fusion strategy options
     UBUF_LOCK_IGNORE_KERNEL = 15,
+    EARLY_START = 16, // early start global option
     SK_OPTION_MAX
 };
 
@@ -143,6 +144,14 @@ typedef struct aclskConstantCodegenOption {
     uint32_t enableConstant;
 } aclskConstantCodegenOption;
 
+enum aclskEarlyStartValue : uint32_t {
+    ACLSK_EARLY_START_DISABLED = 0U, // 默认值，表示不启用early start
+    ACLSK_EARLY_START_ENABLED = 1U,  // 启用early start
+};
+typedef struct aclskEarlyStartOption {
+    uint32_t enableEarlyStart; // 0[default]: disable early start, 1: enable early start
+} aclskEarlyStartOption;
+
 struct aclskOption {
     aclskOptionType optionType;
     union {
@@ -162,6 +171,7 @@ struct aclskOption {
         aclskDcciOption dcciAfterKernelEnd;
         aclskAggressiveOptStrategies aggressiveOpts;
         aclskUbufLockIgnoreKernelOption ubufLockIgnoreKernel;
+        aclskEarlyStartOption earlyStart;
     };
 };
 

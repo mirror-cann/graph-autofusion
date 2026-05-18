@@ -94,6 +94,13 @@ const std::array<DefaultOptionFactoryEntry, static_cast<size_t>(aclskOptionType:
             return std::make_unique<StringListOptOption>(
                 "ubuf_lock_ignore_kernel", aclskOptionType::UBUF_LOCK_IGNORE_KERNEL);
         }},
+        {aclskOptionType::EARLY_START, []() -> std::unique_ptr<OptOptionBase> {
+            return std::make_unique<NumberOptOption>(
+                "early_start", aclskOptionType::EARLY_START,
+                aclskEarlyStartValue::ACLSK_EARLY_START_DISABLED,
+                aclskEarlyStartValue::ACLSK_EARLY_START_DISABLED,
+                aclskEarlyStartValue::ACLSK_EARLY_START_ENABLED);
+        }},
     }};
 
 const DefaultOptionFactoryEntry* FindDefaultOptionFactory(aclskOptionType optType)
@@ -668,6 +675,15 @@ void SuperKernelOptionsManager::SetOptOptionValue(const aclskOption* option) {
                     option->debugOpExecTrace.enableOpExecTrace);
                 break;
             }
+        case aclskOptionType::EARLY_START:
+            {
+                auto subOption = GetOption(option->optionType);
+                if (subOption != nullptr) {
+                    subOption->SetValue(option->earlyStart.enableEarlyStart);
+                }
+                SK_LOGI("Early start option set: enable=%u", option->earlyStart.enableEarlyStart);
+                break;
+            }
         default:
             SK_LOGI("Optiontype: %d is not support now", static_cast<int>(option->optionType));
             break;
@@ -729,6 +745,7 @@ nlohmann::ordered_json SuperKernelOptionsManager::ToJson() const
             case aclskOptionType::AUTO_OP_PARALLEL:
             case aclskOptionType::DEBUG_CROSS_CORE_SYNC_CHECK:
             case aclskOptionType::DEBUG_OP_EXEC_TRACE:
+            case aclskOptionType::EARLY_START:
                 optJson["value"] = opt->GetIntValue();
                 break;
 
