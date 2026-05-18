@@ -8,9 +8,9 @@
  * See LICENSE in the root of the software repository for the full text of the License.
  */
 
+#include "ascir_common.h"
 #include "symbolizer/symbolic_utils.h"
 #include "graph/ascendc_ir/utils/asc_tensor_utils.h"
-#include "ascir_common.h"
 
 namespace af {
 namespace ascir {
@@ -146,7 +146,7 @@ Status ValidateInputTensorVectorizedAxis(const AscNode &node, size_t input_id, s
   auto output_attr = node_outputs[0].attr;
 
   auto it = std::find(output_attr.axis.begin(), output_attr.axis.end(), input_attr.axis[input_axis_id]);
-  GE_ASSERT_TRUE(it != output_attr.axis.end(), "Node %s[%s]: input tensor %zu vectorized axis %zu is not in output "
+  GE_ASSERT_TRUE(it != output_attr.axis.end(), "Node %s[%s]: input tensor %zu vectorized_axis %zu is not in output "
                  "tensor axis", node.GetTypePtr(), node.GetNamePtr(), input_id, input_axis_id);
   auto output_axis_id = static_cast<uint64_t>(std::distance(output_attr.axis.begin(), it));
   if ((SymbolicUtils::StaticCheckEq(output_attr.repeats[output_axis_id], input_attr.repeats[input_axis_id]) ==
@@ -154,14 +154,14 @@ Status ValidateInputTensorVectorizedAxis(const AscNode &node, size_t input_id, s
     return ge::SUCCESS;
   } else if (SymbolicUtils::StaticCheckEq(output_attr.repeats[output_axis_id], input_attr.repeats[input_axis_id]) ==
              TriBool::kUnknown) {
-    GELOGW("Node %s[%s]: input tensor %zu vectorized axis %zu repeat: %s and output tensor 0 vectorized axis %zu "
+    GELOGW("Node %s[%s]: input tensor %zu vectorized_axis %zu repeat: %s and output tensor 0 vectorized_axis %zu "
            "repeat: %s may not be equal or broadcastable(relation cannot be determined)", node.GetTypePtr(),
            node.GetNamePtr(), input_id, input_axis_id, input_attr.repeats[input_axis_id].Str().get(), output_axis_id,
            output_attr.repeats[output_axis_id].Str().get());
     return ge::SUCCESS;
   }
 
-  GELOGE(ge::FAILED, "Node %s[%s]: input tensor %zu vectorized axis %zu repeat: %s and output tensor 0 vectorized axis "
+  GELOGE(ge::FAILED, "Node %s[%s]: input tensor %zu vectorized_axis %zu repeat: %s and output tensor 0 vectorized_axis "
          "%zu repeat: %s are not equal or broadcastable", node.GetTypePtr(), node.GetNamePtr(), input_id, input_axis_id,
          input_attr.repeats[input_axis_id].Str().get(), output_axis_id,
          output_attr.repeats[output_axis_id].Str().get());
@@ -174,7 +174,7 @@ Status ValidateShapeConsistencyWithSingleOutput(const AscNode &node,
   AscNodeOutputs node_outputs = node.outputs;
   GE_ASSERT_TRUE(!(node_outputs().size() != 1), "Node %s[%s]: output tensor size is not equal with 1",
                  node.GetTypePtr(), node.GetNamePtr());
-  GE_ASSERT_TRUE(!node_outputs[0].attr.vectorized_axis.empty(), "Node %s[%s]: output tensor has empty vectorized axis",
+  GE_ASSERT_TRUE(!node_outputs[0].attr.vectorized_axis.empty(), "Node %s[%s]: output tensor has empty vectorized_axis",
                  node.GetTypePtr(), node.GetNamePtr());
   std::vector<Expression> output_repeats = node_outputs[0].attr.repeats;
 
@@ -189,7 +189,7 @@ Status ValidateShapeConsistencyWithSingleOutput(const AscNode &node,
       if (std::find(input.attr.vectorized_axis.begin(), input.attr.vectorized_axis.end(), input.attr.axis[j]) !=
           input.attr.vectorized_axis.end()) {
         GE_ASSERT_SUCCESS(ValidateInputTensorVectorizedAxis(node, i, j, broadcast_capability), "Node %s[%s]: input "
-                          "tensor %zu axis %zu validate vectorized axis consistency failed", node.GetTypePtr(),
+                          "tensor %zu axis %zu validate vectorized_axis consistency failed", node.GetTypePtr(),
                           node.GetNamePtr(), i, j);
       } else {
         GE_ASSERT_SUCCESS(ValidateInputTensorLoopAxis(node, i, j), "Node %s[%s]: input tensor %zu "

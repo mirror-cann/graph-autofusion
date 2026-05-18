@@ -19,7 +19,7 @@
 #include <map>
 #include <securec.h>
 #include <vector>
-#include "toolchain/slog.h"
+#include "dlog_pub.h"
 #include "err_msg.h"
 
 #define GE_MODULE_NAME static_cast<int32_t>(45)

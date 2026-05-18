@@ -1028,7 +1028,7 @@ TEST_F(TestGenModelInfo, gen_schedule_group_reduce_tile_r) {
   EXPECT_EQ(GenTilingImplAutoFuseV3("FlashSoftmax", fused_schedule_result, options, tiling_funcs, true), true);
   CombineTilings(tiling_funcs, tiling_func);
   EXPECT_NE(tiling_func.find("tilingCaseImplPtr = &caseR1101"), std::string::npos);
-  EXPECT_TRUE(tiling_func.find("solver.Run(false, ") != std::string::npos);
+  EXPECT_TRUE(tiling_func.find("solver.Run(runtime_enable_multicore_ub_tradeoff, ") != std::string::npos);
 }
 
 TEST_F(TestGenModelInfo, gen_tiling_with_heavy_op) {
@@ -1075,7 +1075,7 @@ TEST_F(TestGenModelInfo, gen_tiling_with_heavy_op) {
   std::map<std::string, std::string> tiling_funcs;
   EXPECT_EQ(GenTilingImplAutoFuseV3("FlashSoftmax", fused_schedule_result, options, tiling_funcs, true), true);
   CombineTilings(tiling_funcs, tiling_func);
-  EXPECT_TRUE(tiling_func.find("solver.Run(true, ") != std::string::npos);
+  EXPECT_TRUE(tiling_func.find("solver.Run(runtime_enable_multicore_ub_tradeoff, ") != std::string::npos);
 }
 
 TEST_F(TestGenModelInfo, gen_schedule_group_reduce_tile_r_force_tiling_r) {

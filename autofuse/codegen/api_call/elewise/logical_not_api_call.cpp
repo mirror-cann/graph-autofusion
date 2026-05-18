@@ -28,10 +28,9 @@ Status LogicalNotApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::
                                    const std::vector<std::reference_wrapper<const Tensor>> &inputs,
                                    const std::vector<std::reference_wrapper<const Tensor>> &outputs,
                                    std::string &result) const {
-  (void)api_attr;
   const auto &x = inputs[0].get();
   const auto &y = outputs[0].get();
-  
+
   // 获取tmp_buf复用TBuf的id
   int64_t life_time_axis_id = -1L;
   int64_t id = -1L;

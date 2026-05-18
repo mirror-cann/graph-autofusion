@@ -74,14 +74,14 @@ private:
 template <typename T>
 class ApiCallRegister {
 public:
-    // 构造函数：自动注册类
-    explicit ApiCallRegister(const std::string& className) {
-        // 正确用法：使用模板参数T创建对象，而非字符串className
-        ApiCallCreatorFun creator = [](const std::string& name) { 
-            return new T(name);  // 直接使用模板类型T
-        };
-        ApiCallFactory::Registerar(className, creator);
-    }
+  // 构造函数：自动注册类
+  explicit ApiCallRegister(const std::string& className) {
+    // 正确用法：使用模板参数T创建对象，而非字符串className
+    ApiCallCreatorFun creator = [](const std::string& name) {
+      return new (std::nothrow) T(name);  // 直接使用模板类型T
+    };
+    ApiCallFactory::Registerar(className, creator);
+  }
 };
 
 inline ApiCall *CreateApiCallObject(const ascir::NodeView &node) {

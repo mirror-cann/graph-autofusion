@@ -270,8 +270,11 @@ std::string GetCodegenCompileDebugDir() {
 // 当前 fused_graph 名称，用于按图分目录 dump
 thread_local std::string g_current_fused_graph_name;
 
-// 当前 fused_graph 的文件编号计数器
+// 当前 fused_graph 的文件编号计数器（txt）
 thread_local uint64_t g_current_fused_graph_dump_index = 0UL;
+
+// 当前 fused_graph 的文件编号计数器（onnx）
+thread_local uint64_t g_current_onnx_dump_index = 0UL;
 
 // 已缓存的 pid 目录路径（不含 graph 子目录）
 thread_local std::string g_cached_pid_dir;
@@ -740,14 +743,13 @@ static void DumpGraphText(const Graph &graph, const string &suffix, const uint32
   }
 }
 
-// Dump ComputeGraph 为 onnx 格式，使用统一的 index
 // 文件名格式: {prefix}/ge_onnx_{index:05d}_{graph_name}_{suffix}.pbtxt
 static void DumpComputeGraphImpl(const af::ComputeGraphPtr &compute_graph, const std::string &suffix,
                                  const std::string &prefix) {
   if (compute_graph == nullptr) {
     return;
   }
-  std::string base_name = "ge_onnx_" + FormatDumpIndex(g_current_fused_graph_dump_index)
+  std::string base_name = "ge_onnx_" + FormatDumpIndex(g_current_onnx_dump_index)
                           + "_" + compute_graph->GetName() + "_" + suffix + ".pbtxt";
   std::string file_name = prefix + SanitizeFileName(base_name);
   af::Model model("GE", "");
@@ -759,6 +761,7 @@ static void DumpComputeGraphImpl(const af::ComputeGraphPtr &compute_graph, const
   }
 
   af::GraphUtils::WriteProtoToTextFile(model_proto, file_name.c_str());
+  ++g_current_onnx_dump_index;
 }
 
 void DumpComputeGraph(const af::ComputeGraphPtr &compute_graph, const std::string &suffix, bool always_dump) {
@@ -1032,6 +1035,7 @@ std::string SetCurrentFusedGraphName(const std::string &name) {
   if (name.empty()) {
     g_current_fused_graph_name.clear();
     g_current_fused_graph_dump_index = 0UL;
+    g_current_onnx_dump_index = 0UL;
     GELOGI("[DumpGraph] Clear fused_graph_name");
     return prev_name;
   }
@@ -1042,6 +1046,7 @@ std::string SetCurrentFusedGraphName(const std::string &name) {
   if (prev_name != safe_name) {
     g_current_fused_graph_name = safe_name;
     g_current_fused_graph_dump_index = 0UL;
+    g_current_onnx_dump_index = 0UL;
     GELOGI("[DumpGraph] Set fused_graph_name to: %s (original: %s), reset dump index to 0",
            safe_name.c_str(), name.c_str());
   }
@@ -1055,5 +1060,6 @@ void ResetDumpConfig() {
   g_created_graph_dirs.clear();
   g_current_fused_graph_name.clear();
   g_current_fused_graph_dump_index = 0UL;
+  g_current_onnx_dump_index = 0UL;
 }
 }  // namespace ascir::utils

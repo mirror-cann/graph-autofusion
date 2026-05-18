@@ -28,24 +28,41 @@ inline __aicore__ void Pow(const AscendC::LocalTensor<T> &dst, const AscendC::Lo
                            const uint32_t calCount, AscendC::LocalTensor<uint8_t> &tmp_buf) {
   if(static_cast<float>(src2) == 0.0f) {
     Duplicate(dst, static_cast<T>(1.0), calCount);
+    return;
   } else if (static_cast<float>(src2) == 1.0f) {
-    DataCopy(dst, src1, calCount);
+    DataCopy(dst, src1, KernelUtils::BlkAlign<T>(calCount));
+    return;
   } else if (static_cast<float>(src2) == -1.0f) {
-    Reciprocal(dst, src1, calCount);
+    if constexpr (std::is_same_v<T, float> || std::is_same_v<T, half>) {
+      Reciprocal(dst, src1, calCount);
+      return;
+    }
   } else if (static_cast<float>(src2) == 2.0f) {
-    Mul(dst, src1, src1, calCount);
+    if constexpr (!std::is_same_v<T, int8_t> && !std::is_same_v<T, uint8_t>) {
+      Mul(dst, src1, src1, calCount);
+      return;
+    }
   } else if (static_cast<float>(src2) == 0.5f) {
-    Sqrt(dst, src1, calCount);
+    if constexpr (std::is_same_v<T, float> || std::is_same_v<T, half>) {
+      Sqrt(dst, src1, calCount);
+      return;
+    }
   } else if (static_cast<float>(src2) == -0.5f) {
-    Rsqrt(dst, src1, calCount);
+    if constexpr (std::is_same_v<T, float> || std::is_same_v<T, half>) {
+      Rsqrt(dst, src1, calCount);
+      return;
+    }
   } else if (static_cast<float>(src2) == 3.0f) {
-    Mul(dst, src1, src1, calCount);
-    Mul(dst, dst, src1, calCount);
+    if constexpr (!std::is_same_v<T, int8_t> && !std::is_same_v<T, uint8_t>) {
+      Mul(dst, src1, src1, calCount);
+      Mul(dst, dst, src1, calCount);
+      return;
+    }
   } else if constexpr (std::is_same_v<T, float> || std::is_same_v<T, bfloat16_t>) {
     Power<T, false, pow_config>(dst, src1, src2, tmp_buf, calCount);
-  } else {
-    Power(dst, src1, src2, tmp_buf, calCount);
+    return;
   }
+  Power(dst, src1, src2, tmp_buf, calCount);
 }
 
 template <typename T>
@@ -73,24 +90,41 @@ inline __aicore__ void Pow(const AscendC::LocalTensor<T> &dst, const T &src1, co
   // 调用Power基础API：tensor(block size) + scalar
   if(static_cast<float>(src2) == 0.0f) {
     Duplicate(dst_buf, static_cast<T>(1.0), calCount);
+    return;
   } else if (static_cast<float>(src2) == 1.0f) {
-    DataCopy(dst_buf, src1_buf, calCount);
+    DataCopy(dst_buf, src1_buf, KernelUtils::BlkAlign<T>(calCount));
+    return;
   } else if (static_cast<float>(src2) == -1.0f) {
-    Reciprocal(dst_buf, src1_buf, calCount);
+    if constexpr (std::is_same_v<T, float> || std::is_same_v<T, half>) {
+      Reciprocal(dst_buf, src1_buf, calCount);
+      return;
+    }
   } else if (static_cast<float>(src2) == 2.0f) {
-    Mul(dst_buf, src1_buf, src1_buf, calCount);
+    if constexpr (!std::is_same_v<T, int8_t> && !std::is_same_v<T, uint8_t>) {
+      Mul(dst_buf, src1_buf, src1_buf, calCount);
+      return;
+    }
   } else if (static_cast<float>(src2) == 0.5f) {
-    Sqrt(dst_buf, src1_buf, calCount);
+    if constexpr (std::is_same_v<T, float> || std::is_same_v<T, half>) {
+      Sqrt(dst_buf, src1_buf, calCount);
+      return;
+    }
   } else if (static_cast<float>(src2) == -0.5f) {
-    Rsqrt(dst_buf, src1_buf, calCount);
+    if constexpr (std::is_same_v<T, float> || std::is_same_v<T, half>) {
+      Rsqrt(dst_buf, src1_buf, calCount);
+      return;
+    }
   } else if (static_cast<float>(src2) == 3.0f) {
-    Mul(dst_buf, src1_buf, src1_buf, calCount);
-    Mul(dst_buf, dst_buf, src1_buf, calCount);
+    if constexpr (!std::is_same_v<T, int8_t> && !std::is_same_v<T, uint8_t>) {
+      Mul(dst_buf, src1_buf, src1_buf, calCount);
+      Mul(dst_buf, dst_buf, src1_buf, calCount);
+      return;
+    }
   } else if constexpr (std::is_same_v<T, float> || std::is_same_v<T, bfloat16_t>) {
-    Power<T, false, pow_config>(dst_buf, src1_buf, src2, left_tmp_buf, block_cnt);
-  } else {
-    Power(dst_buf, src1_buf, src2, left_tmp_buf, block_cnt);
+    Power<T, false, pow_config>(dst_buf, src1_buf, src2, tmp_buf, calCount);
+    return;
   }
+  Power(dst_buf, src1_buf, src2, tmp_buf, calCount);
   // 取block tensor中的一个scalar元素，扩充为dst size长度的tensor
   Duplicate(dst, dst_buf.GetValue(0), dst.GetSize());
 }

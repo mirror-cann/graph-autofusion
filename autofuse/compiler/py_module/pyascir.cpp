@@ -83,6 +83,7 @@ static const DTypeEntry dtype_entries[] = {
     {"string_ref", ge::DT_STRING_REF},
     {"dual", ge::DT_DUAL},
     {"variant", ge::DT_VARIANT},
+    {"bfloat16", ge::DT_BF16},
     {"bf16", ge::DT_BF16},
     {"undefined", ge::DT_UNDEFINED},
     {"int4", ge::DT_INT4},
@@ -1132,6 +1133,8 @@ DEFINE_IR_ATTR_ACCESSORS(Data, AscDataIrAttrDef, kIndexAttr, int64_t, PyLong_Che
                          SetIndex, GetIndex)
 DEFINE_IR_ATTR_ACCESSORS(Output, AscOutputIrAttrDef, kIndexAttr, int64_t, PyLong_Check, PyLong_FromLong, PyLong_AsLong,
                          SetIndex, GetIndex)
+DEFINE_IR_ATTR_ACCESSORS(ScalarData, AscScalarDataIrAttrDef, kIndexAttr, int64_t, PyLong_Check, PyLong_FromLong,
+                         PyLong_AsLong, SetIndex, GetIndex)
 DEFINE_IR_ATTR_ACCESSORS(IndexExpr, AscIndexExprIrAttrDef, kExprAttr, int64_t, PyLong_Check, PyLong_FromLong,
                          PyLong_AsLong, SetExpr, GetExpr)
 DEFINE_IR_ATTR_ACCESSORS(Gather, AscGatherIrAttrDef, kAxisAttr, int64_t, PyLong_Check, PyLong_FromLong, PyLong_AsLong,
@@ -1235,6 +1238,7 @@ template <typename OpType>
 const std::map<std::string, typename IrAttr<OpType>::handler> IrAttr<OpType>::attr_handlers = {
     {"Data", AutoRegAttrHandle<af::ascir_op::Data, kIndexAttr>::RegHandle},
     {"Scalar", AutoRegAttrHandle<af::ascir_op::Scalar, kValueAttr>::RegHandle},
+    {"ScalarData", AutoRegAttrHandle<af::ascir_op::ScalarData, kIndexAttr>::RegHandle},
     {"IndexExpr", AutoRegAttrHandle<af::ascir_op::IndexExpr, kExprAttr>::RegHandle},
     {"Output", AutoRegAttrHandle<af::ascir_op::Output, kIndexAttr>::RegHandle},
     {"Load", AutoRegAttrHandle<af::ascir_op::Load, kOffsetAttr>::RegHandle},

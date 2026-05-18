@@ -158,7 +158,7 @@ Status SplitFusionCaseGenerator::Prepare(const af::AscNodePtr &split_node, size_
                  load_in_data_nodes.size());
   ori_in_data_node_ = std::dynamic_pointer_cast<af::AscNode>(load_in_data_nodes.at(0U));
   GE_CHECK_NOTNULL(ori_in_data_node_, "ori_output_node is nullptr or not an AscNode");
-  GE_ASSERT_TRUE(ori_in_data_node_->GetType() == af::ascir_op::Data::Type,
+  GE_ASSERT_TRUE(ScheduleUtils::IsDataInput(ori_in_data_node_),
                  "Store node:%s links to %s:%s, not a Output node", ori_load_node_->GetNamePtr(),
                  ori_in_data_node_->GetNamePtr(), ori_in_data_node_->GetTypePtr());
   af::Expression dim_offset = af::ops::Zero;

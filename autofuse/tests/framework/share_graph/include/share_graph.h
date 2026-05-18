@@ -148,8 +148,10 @@ struct ShareGraph {
   static af::ComputeGraphPtr XorUint8FusedGraph(size_t dims_size);
   static af::ComputeGraphPtr TruncBf16FusedGraph(size_t dims_size);
   static af::ComputeGraphPtr TruncDivBf16FusedGraph(size_t dims_size);
+  static af::ComputeGraphPtr MaskRegChainFusedGraph(size_t dims_size);
   static af::ComputeGraphPtr RoundToIntFloatToInt32FusedGraph(size_t dims_size);
   static af::ComputeGraphPtr TruncToIntBf16ToInt32FusedGraph(size_t dims_size);
+  static af::ComputeGraphPtr VfScalarFusionComprehensiveFusedGraph();
   static af::ComputeGraphPtr RemainderBf16FusedGraph(size_t dims_size);
   static af::ComputeGraphPtr ArgMaxFusedGraph(size_t dims_size);
 };

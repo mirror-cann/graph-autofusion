@@ -87,7 +87,7 @@ ge::Status AxesReorderTilingCodeGenImpl::GenSolverBaseClass() {
   tiling_head_.AddLine(basic_solvers_head);
   std::string basic_solvers_func = SolverPassManager::GenAxesReorderBaseClassesFunc(is_enable_equal_order_tiling);
   tiling_func_.AddLine(basic_solvers_func);
-  if (config_.enable_autofuse_pgo) {
+  if (config_.enable_autofuse_pgo || config_.is_inductor_scene) {
     std::string pgo_solver_head = SolverPassManager::GenAxesReorderPgoClassesHead(config_.pgo_step_max);
     tiling_head_.AddLine(pgo_solver_head);
     std::string pgo_solver_func = SolverPassManager::GenAxesReorderPgoClassesFunc();
@@ -123,6 +123,7 @@ ge::Status AxesReorderTilingCodeGenImpl::GenDoTiling(const ModelInfo &model_info
   GetGroupNumAndSetToSolver(model_info, schedule_result_group_nums_, solver_pass_manager);
 
   solver_pass_manager.SetEnableEqualOrder(IsEnableEqualOrderTiling(model_info));
+  solver_pass_manager.SetIsInductorScene(config_.is_inductor_scene);
 
   GenGetSetTilingImpl(model_info);
   solver_pass_manager.SetInputOutputDef(GenLaunchLikeInputOutputDef());
@@ -145,12 +146,8 @@ ge::Status AxesReorderTilingCodeGenImpl::GenToolFuncs() {
 }
 
 ge::Status AxesReorderTilingCodeGenImpl::GenTilingImplPublicFunc() {
-  std::string data_type = config_.tiling_data_type_name;
   GE_ASSERT_SUCCESS(TilingCodeGenImpl::GenTilingImplPublicFunc(), "Generate tiling public func failed.");
-  tiling_func_.AddLine("  virtual void GetTilingData(TilingDataCopy &from_tiling, " + data_type + " &to_tiling) {};");
-  tiling_func_.AddLine("  virtual void SetTilingData(" + data_type + " &from_tiling, TilingDataCopy &to_tiling) {};");
-  tiling_func_.AddLine("  virtual void SetWorkspaceSize(" + data_type +
-  " &tiling_data, std::unordered_map<int64_t, uint64_t> &workspace_map) {};");
+  GE_ASSERT_SUCCESS(GenVirtualDataTransferFuncs(), "Generate virtual data transfer funcs failed.");
   return ge::SUCCESS;
 }
 
@@ -191,7 +188,7 @@ ge::Status AxesReorderTilingCodeGenImpl::GenGetObj(const ModelInfo &model_info) 
   ArgsManager args_manager(model_info);
   GE_ASSERT_TRUE(args_manager.Process(false), "Args manager process failed.");
   Expr head_cost = args_manager.GetHeadCost();
-  tiling_func_.AddLine("  double GetPerf(" + config_.tiling_data_type_name + "& tiling_data) {");
+  tiling_func_.AddLine("  double GetPerf(" + config_.tiling_data_type_name + "& tiling_data) override {");
   tiling_func_.AddLine("    return AxesReorderSolvercase" + model_info.sub_case_tag + std::to_string(model_info.tiling_case_id) +
       "::GetTilingDataPerfStatic(PipeType::ALL, tiling_data);");
   tiling_func_.AddLine("  }");

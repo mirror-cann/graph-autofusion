@@ -20,6 +20,7 @@ superkernel:
       - super_kernel/tests
       - super_kernel/docs
       - super_kernel/examples
+      - autofuse/tests
   llt:
     ut_check: true
     st_check: true

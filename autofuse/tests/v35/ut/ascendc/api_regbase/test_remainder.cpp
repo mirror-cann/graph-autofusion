@@ -110,6 +110,11 @@ class TestRegbaseApiRemainder :public testing::Test {
     // 验证结果
     uint32_t diff_count = Valid(param.y, param.exp, param.size);
     EXPECT_EQ(diff_count, 0);
+    // 释放内存
+    AscendC::GmFree(param.y);
+    AscendC::GmFree(param.exp);
+    AscendC::GmFree(param.src0);
+    AscendC::GmFree(param.src1);
   }
 };
 
@@ -126,4 +131,99 @@ TEST_F(TestRegbaseApiRemainder, Remainder_Test) {
   RemainderTest<float>((ONE_BLK_SIZE - sizeof(float)) / sizeof(float));
   RemainderTest<float>((ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) / sizeof(float));
   RemainderTest<float>(((MAX_REPEAT_NUM - 1) * ONE_REPEAT_BYTE_SIZE + (ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) + (ONE_BLK_SIZE - sizeof(float))) / 2 /sizeof(float));
+}
+
+class TestRegbaseApiRemainderFloor :public testing::Test {
+ protected:
+  template <typename T>
+  static void InvokeKernelWithTwoTensorInput(TensorRemainderInputParam<T> &param) {
+    TPipe tpipe;
+    TBuf<TPosition::VECCALC> x1buf, x2buf, ybuf;
+
+    tpipe.InitBuffer(x1buf, sizeof(T) * param.size);
+    tpipe.InitBuffer(x2buf, sizeof(T) * param.size);
+    tpipe.InitBuffer(ybuf, sizeof(T) * AlignUp(param.size, ONE_BLK_SIZE / sizeof(T)));
+
+    LocalTensor<T> l_x1 = x1buf.Get<T>();
+    LocalTensor<T> l_x2 = x2buf.Get<T>();
+
+    LocalTensor<T> l_y = ybuf.Get<T>();
+    LocalTensor<uint8_t> tmp;
+
+    GmToUb(l_x1, param.src0, param.size);
+    GmToUb(l_x2, param.src1, param.size);
+    RemainderExtend(l_y, l_x1, l_x2, tmp, param.size);
+    UbToGm(param.y, l_y, param.size);
+}
+
+  template <typename T>
+  static void CreateTensorInput(TensorRemainderInputParam<T> &param) {
+    // 构造测试输入和预期结果
+    param.y = static_cast<T *>(AscendC::GmAlloc(sizeof(T) * param.size));
+    param.exp = static_cast<T *>(AscendC::GmAlloc(sizeof(T) * param.size));
+    param.src0 = static_cast<T *>(AscendC::GmAlloc(sizeof(T) * param.size));
+    param.src1 = static_cast<T *>(AscendC::GmAlloc(sizeof(T) * param.size));
+
+    std::mt19937 eng(1);
+    std::uniform_int_distribution distr(0, 20);  // Define range [0, 20]
+
+    // 构造src1的随机生成器，避免除以零
+    std::mt19937 eng1(2);
+    std::uniform_int_distribution distr1(1, 20);  // Define range [1, 20], avoid division by zero
+
+    for (int i = 0; i < param.size; i++) {
+      T input = static_cast<T>(distr(eng));
+      T input1 = static_cast<T>(distr1(eng1));
+      param.src0[i] = input;
+      param.src1[i] = input1;
+      // Remainder: x1 - x2 * floor(x1/x2)
+      param.exp[i] = static_cast<T>(static_cast<double>(input) -
+                                    static_cast<double>(input1) *
+                                        std::floor(static_cast<double>(input) / static_cast<double>(input1)));
+    }
+  }
+
+  template <typename T>
+  static uint32_t Valid(T *y, T *exp, size_t comp_size) {
+    uint32_t diff_count = 0;
+    for (uint32_t i = 0; i < comp_size; i++) {
+      if constexpr (std::is_same_v<T, float> || std::is_same_v<T, half>) {
+        if (std::fabs(static_cast<double>(y[i]) - static_cast<double>(exp[i])) > 1e-3) {
+          diff_count++;
+        }
+      } else {
+        if (y[i] != exp[i]) {
+          diff_count++;
+        }
+      }
+    }
+    return diff_count;
+  }
+
+  template <typename T>
+  static void RemainderTest(uint32_t size) {
+    TensorRemainderInputParam<T> param{};
+    param.size = size;
+    CreateTensorInput(param);
+
+    // 构造Api调用函数
+    auto kernel = [&param] { InvokeKernelWithTwoTensorInput(param); };
+
+    // 调用kernel
+    AscendC::SetKernelMode(KernelMode::AIV_MODE);
+    ICPU_RUN_KF(kernel, 1);
+
+    // 验证结果
+    uint32_t diff_count = Valid(param.y, param.exp, param.size);
+    EXPECT_EQ(diff_count, 0);
+  }
+};
+
+TEST_F(TestRegbaseApiRemainderFloor, RemainderFloor_Test) {
+  RemainderTest<int32_t>(ONE_BLK_SIZE / sizeof(int32_t));
+  RemainderTest<int32_t>(ONE_REPEAT_BYTE_SIZE / sizeof(int32_t));
+  RemainderTest<int32_t>(MAX_REPEAT_NUM * ONE_REPEAT_BYTE_SIZE / 2 / sizeof(int32_t));
+  RemainderTest<int32_t>((ONE_BLK_SIZE - sizeof(int32_t)) / sizeof(int32_t));
+  RemainderTest<int32_t>((ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) / sizeof(int32_t));
+  RemainderTest<int32_t>((MAX_REPEAT_NUM - 1) * ONE_REPEAT_BYTE_SIZE / 2 / sizeof(int32_t));
 }

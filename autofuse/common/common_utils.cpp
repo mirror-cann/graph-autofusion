@@ -114,6 +114,38 @@ ge::Status GetApiTilingFieldName(const ascir::NodeView& node, std::string& field
   return ge::SUCCESS;
 }
 
+std::string GenUpdateCurPerfAndBlockByGroupHelper(bool with_log, bool use_std_max) {
+  std::stringstream ss;
+  const std::string max_func = use_std_max ? "std::max" : "Max";
+  ss << R"(
+inline bool UpdateCurPerfAndBlockByGroup(std::pair<uint32_t, double> group_block_and_perf,
+                                         const uint32_t limited_block,
+                                         uint32_t &cur_block,
+                                         double &cur_perf,
+                                         double &cur_tmp_perf) {
+  const auto &group_block = group_block_and_perf.first;
+  const auto &group_perf = group_block_and_perf.second;
+  if ((cur_block + group_block) > limited_block) {
+)";
+  if (with_log) {
+    ss << R"(    OP_LOGD(OP_NAME, "Cur block %u + group block %u > limited block %u, need to update cur perf %lf.",
+             cur_block, group_block, limited_block, cur_tmp_perf);
+)";
+  }
+  ss << R"(    cur_block = group_block;
+    cur_perf += cur_tmp_perf;
+    cur_tmp_perf = group_perf;
+    return true;
+  } else {
+    cur_block += group_block;
+    cur_tmp_perf = )" << max_func << R"((cur_tmp_perf, group_perf);
+    return false;
+  }
+}
+)";
+  return ss.str();
+}
+
 af::Expression GetTensorSize(const af::AscTensor &tensor) {
   if (tensor.attr.repeats.size() == 0U) {
     return af::Symbol(0);
@@ -194,11 +226,11 @@ bool IsStaticSchedResult(const ascir::FusedScheduledResult& fused_schedule_resul
 ge::Status ScalarValuePreProcess(const std::string& ori_value,
                                  const std::string& dtype,
                                  std::string& after_pre_pro_value) {
-  if (ori_value == "inf") {
+  if (ori_value == "inf" || ori_value == "-inf") {
     if ((dtype != "float") && (dtype != "half")) {
       return ge::FAILED;
     }
-    after_pre_pro_value = "AfInfinity<" + dtype + ">()";
+    after_pre_pro_value = ori_value == "inf" ? "AfInfinity<" + dtype + ">()" : "-AfInfinity<" + dtype + ">()";
   } else {
     after_pre_pro_value = ori_value;
   }
@@ -732,7 +764,7 @@ bool IsCubeType(const ascir::ImplGraph &impl_graph) {
   return false;
 }
 
-bool IsCubeTypeWithBatch(const ascir::ImplGraph &impl_graph) {
+bool IsMatMulTypeWithBatch(const ascir::ImplGraph &impl_graph) {
   for (const auto &node : impl_graph.GetAllNodes()) {
     if ((node->GetType() == kBatchMatMul) || (node->GetType() == kBatchMatMulBias) ||
         (node->GetType() == kBatchMatMulOffset) || (node->GetType() == kBatchMatMulOffsetBias)) {
@@ -742,7 +774,7 @@ bool IsCubeTypeWithBatch(const ascir::ImplGraph &impl_graph) {
   return false;
 }
 
-bool IsCubeTypeWithBias(const ascir::ImplGraph &impl_graph) {
+bool IsMatMulTypeWithBias(const ascir::ImplGraph &impl_graph) {
   for (const auto &node : impl_graph.GetAllNodes()) {
     if ((node->GetType() == kMatMulBias) || (node->GetType() == kBatchMatMulBias) ||
         (node->GetType() == kMatMulOffsetBias) || (node->GetType() == kBatchMatMulOffsetBias)) {
@@ -752,11 +784,61 @@ bool IsCubeTypeWithBias(const ascir::ImplGraph &impl_graph) {
   return false;
 }
 
-bool IsCubeTypeWithOffsetW(const ascir::ImplGraph &impl_graph) {
+bool IsMatMulTypeWithOffsetW(const ascir::ImplGraph &impl_graph) {
   for (const auto &node : impl_graph.GetAllNodes()) {
     if ((node->GetType() == kMatMulOffset) || (node->GetType() == kBatchMatMulOffset) ||
         (node->GetType() == kMatMulOffsetBias) || (node->GetType() == kBatchMatMulOffsetBias)) {
       return true;
+    }
+  }
+  return false;
+}
+
+bool IsConv2DTypeWithBias(const ascir::ImplGraph &impl_graph) {
+  for (const auto &node : impl_graph.GetAllNodes()) {
+    if ((node->GetType() == kConv2DBias) || (node->GetType() == kConv2DOffsetBias)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool IsConv2DTypeWithOffsetW(const ascir::ImplGraph &impl_graph) {
+  for (const auto &node : impl_graph.GetAllNodes()) {
+    if ((node->GetType() == kConv2DOffset) || (node->GetType() == kConv2DOffsetBias)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool IsConv2DGraphType(const ascir::ImplGraph &impl_graph) {
+  for (const auto &node : impl_graph.GetAllNodes()) {
+    if ((node->GetType() == kConv2DOffset) || (node->GetType() == kConv2DOffsetBias) ||
+        (node->GetType() == kConv2DBias) || (node->GetType() == kConv2D)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool IsConv2DFusedScheduled(const ascir::FusedScheduledResult &fused_schedule_result) {
+  auto check_conv2d_in_impl_graphs = [](const auto &schedule_groups) {
+    for (const auto &schedule_group : schedule_groups) {
+      for (const auto &impl_graph : schedule_group.impl_graphs) {
+        if (IsConv2DGraphType(impl_graph)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  };
+
+  for (const auto &scheduled_results : fused_schedule_result.node_idx_to_scheduled_results) {
+    for (const auto &scheduled_result : scheduled_results) {
+      if (check_conv2d_in_impl_graphs(scheduled_result.schedule_groups)) {
+        return true;
+      }
     }
   }
   return false;
@@ -775,7 +857,7 @@ bool IsSatetyResultType(const ascir::ScheduledResult &sched_result) {
   return sched_result.cube_type == ascir::CubeTemplateType::kCommon;
 }
 
-ge::Status GetMutmulOutputTypeSize(const ascir::NodeView &node, uint32_t &length) {
+ge::Status GetCubeOutputTypeSize(const ascir::NodeView &node, uint32_t &length) {
   if (node->attr.api.compute_type == af::ComputeType::kComputeCube) {
     GE_ASSERT_TRUE(node->outputs().size() > 0U);
     for (const auto output : node->outputs()) {
@@ -786,7 +868,7 @@ ge::Status GetMutmulOutputTypeSize(const ascir::NodeView &node, uint32_t &length
   return ge::FAILED;
 }
 
-ge::Status GetMutmulInputNum(const ascir::NodeView &node, uint32_t &num) {
+ge::Status GetCubeInputNum(const ascir::NodeView &node, uint32_t &num) {
   if (node->attr.api.compute_type == af::ComputeType::kComputeCube) {
     num = node->inputs().size();
     GE_ASSERT_TRUE(num > 1U);
@@ -829,12 +911,31 @@ ge::Status ParseMatmulAttr(const ascir::NodeView &node, MatMulAttr &mm_attr_data
   return ge::SUCCESS;
 }
 
+ge::Status ParseConv2DAttr(const ascir::NodeView &node, Conv2DAttr &conv_attr_data) {
+  if (node->GetType() == kConv2D) {
+    GET_CONV2D_ATTRS(node, Conv2D, conv_attr_data);
+  } else if (node->GetType() == kConv2DBias) {
+    GET_CONV2D_ATTRS(node, Conv2DBias, conv_attr_data);
+    conv_attr_data.is_bias = true;
+  } else if (node->GetType() == kConv2DOffset) {
+    GET_CONV2D_ATTRS(node, Conv2DOffset, conv_attr_data);
+    conv_attr_data.is_offset_w = true;
+  } else if (node->GetType() == kConv2DOffsetBias) {
+    GET_CONV2D_ATTRS(node, Conv2DOffsetBias, conv_attr_data);
+    conv_attr_data.is_bias = true;
+    conv_attr_data.is_offset_w = true;
+  } else {
+    GELOGE(ge::FAILED, "can't parse conv2d node attr, type=%s", node->GetType().c_str());
+  }
+  return ge::SUCCESS;
+}
+
 ge::Status UpdateAttGroup(ascir::ScheduledResult &scheduled_result,
                           std::function<void(af::AscGraph &)> update_graph_axis) {
   for (auto &group : scheduled_result.schedule_groups) {
     std::vector<af::AscGraph> impl_graphs_tmp;
     for (auto &impl_graph : group.impl_graphs) {
-      auto new_graph_name = impl_graph.GetName() + "_for_matmul";
+      auto new_graph_name = impl_graph.GetName() + "_for_cube";
       af::AscGraph att_graph(new_graph_name.c_str());
       att_graph.CopyFrom(impl_graph);
       update_graph_axis(att_graph);
@@ -945,6 +1046,27 @@ ge::Status FilterCVFusionCommonResult(ascir::FusedScheduledResult &common_schedu
                        [](const ascir::ScheduledResult &result) { return !ascgen_utils::IsSatetyResultType(result); }),
         scheduled_results.end());
   }
+  return ge::SUCCESS;
+}
+
+ge::Status DtypeName(ge::DataType dtype, std::string &dtype_name) {
+  static const std::string kTypeNames[] = {
+      [ge::DT_FLOAT] = "float",     [ge::DT_FLOAT16] = "half",    [ge::DT_INT8] = "int8_t",
+      [ge::DT_INT32] = "int32_t",   [ge::DT_UINT8] = "uint8_t",   "",
+      [ge::DT_INT16] = "int16_t",   [ge::DT_UINT16] = "uint16_t", [ge::DT_UINT32] = "uint32_t",
+      [ge::DT_INT64] = "int64_t",   [ge::DT_UINT64] = "uint64_t", [ge::DT_DOUBLE] = "",
+      [ge::DT_BOOL] = "uint8_t",    [ge::DT_STRING] = "",         [ge::DT_DUAL_SUB_INT8] = "",
+      [ge::DT_DUAL_SUB_UINT8] = "", [ge::DT_COMPLEX64] = "",      [ge::DT_COMPLEX128] = "",
+      [ge::DT_QINT8] = "",          [ge::DT_QINT16] = "",         [ge::DT_QINT32] = "",
+      [ge::DT_QUINT8] = "",         [ge::DT_QUINT16] = "",        [ge::DT_RESOURCE] = "",
+      [ge::DT_STRING_REF] = "",     [ge::DT_DUAL] = "",           [ge::DT_VARIANT] = "",
+      [ge::DT_BF16] = "bfloat16_t",   [ge::DT_UNDEFINED] = "",      [ge::DT_INT4] = "int4_t",
+      [ge::DT_UINT1] = "",          [ge::DT_INT2] = "",           [ge::DT_UINT2] = "",
+      [ge::DT_COMPLEX32] = "",
+  };
+  GE_CHK_BOOL_RET_STATUS((dtype < (sizeof(kTypeNames) / sizeof(kTypeNames[0])) && kTypeNames[dtype] != ""), ge::FAILED,
+                         "Unsupported data type:%d", static_cast<int32_t>(dtype));
+  dtype_name = kTypeNames[dtype];
   return ge::SUCCESS;
 }
 }  // namespace ascgen_utils

@@ -193,4 +193,22 @@ bool IsScalarInputBySerializedExprs(const std::vector<std::string> &serialized_e
   return ascgen_utils::IsScalarInput(repeats);
 }
 
+AscTensorAttr *AscTensorAttrGetOrCreateForOpOutput(void *op_desc_raw, uint32_t index) {
+  return AscTensorAttr::GetOrCreateFromOpDescRaw(op_desc_raw, index);
+}
+
+AscNodeAttr *AscNodeAttrGetOrCreateForOp(void *op_desc_raw) {
+  GE_ASSERT_NOTNULL(op_desc_raw);
+  auto *op_desc = static_cast<OpDesc *>(op_desc_raw);
+  auto attr_group = op_desc->GetOrCreateAttrsGroup<AscNodeAttr>();
+  GE_ASSERT_NOTNULL(attr_group);
+  return attr_group;
+}
+
+AscNodePtr AscGraphAddNodeFromOpDescRaw(AscGraph &asc_graph, void *op_desc_raw) {
+  GE_ASSERT_NOTNULL(op_desc_raw);
+  auto *op_desc = static_cast<OpDesc *>(op_desc_raw);
+  return AscGraphAddNodeFromOpDesc(asc_graph, op_desc->shared_from_this());
+}
+
 }  // namespace af

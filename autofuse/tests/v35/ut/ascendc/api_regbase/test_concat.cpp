@@ -85,6 +85,14 @@ class RegbaseApiConcatTest :public testing::Test {
     }
   }
 
+  template <typename T, size_t N>
+  static void FreeTensorInput(TestConcatParam<T, N> &param) {
+    AscendC::GmFree(param.y);
+    AscendC::GmFree(param.y_expected);
+    for (size_t i = 0; i < N; ++i) {
+      AscendC::GmFree(param.x[i]);
+    }
+  }
   template <typename T>
   static uint32_t Valid(T *y, T *exp, size_t comp_size) {
     uint32_t diff_count = 0;
@@ -116,6 +124,7 @@ class RegbaseApiConcatTest :public testing::Test {
     // 验证结果
     const uint32_t diff_count = Valid(param.y, param.y_expected, param.tiling.num_rows * param.tiling.num_dst_cols);
     EXPECT_EQ(diff_count, 0);
+    FreeTensorInput(param);
   }
 };
 

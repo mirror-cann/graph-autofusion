@@ -81,6 +81,13 @@ class TestRegbaseApiRoundToIntUT : public testing::Test {
     return diff_count;
   }
 
+  template <typename InT, typename OutT>
+  static void FreeTensorInput(RoundToIntInputParam<InT, OutT> &param) {
+    AscendC::GmFree(param.x);
+    AscendC::GmFree(param.y);
+    AscendC::GmFree(param.exp);
+  }
+
   // Tensor - Tensor 测试
   template <typename InT, typename OutT>
   static void RoundToIntTensorTensorTest(uint32_t size) {
@@ -97,6 +104,9 @@ class TestRegbaseApiRoundToIntUT : public testing::Test {
 
     uint32_t diff_count = Valid(param);
     EXPECT_EQ(diff_count, 0);
+
+    // 释放内存
+    FreeTensorInput(param);
   }
 };
 

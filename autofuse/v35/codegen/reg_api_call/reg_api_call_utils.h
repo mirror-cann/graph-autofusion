@@ -46,6 +46,16 @@ void CreateNddmaCall(const TPipe &tpipe, const Tensor &input, const Tensor &outp
                      const DataCopyParams &data_copy_param, const ascir::SizeExpr &offset, std::stringstream &ss);
 void SetNddmaParams(const TPipe &tpipe, const DataCopyParams &data_copy_param, NddmaParams &nddma_param,
                     const int64_t &tensor_id, std::stringstream &ss);
+void SetLoopModeParams(const TPipe &tpipe, const DataCopyParams &data_copy_param, LoopModeParams &loop_mode_param,
+                       bool copy_in);
+std::string GetPaddingMode(const TPipe &tpipe, const Tensor &ub_tensor, const DataCopyParams &data_copy_param);
+void BuildDataCopyApiParamInCVFusion(CodegenApiParam &api_param, DmaSpecificParams &dma_specific_params,
+                                     const Tensor &gm, const Tensor &ub, std::string &dtype_name, bool copy_in);
+Status BuildDataCopyApiParamInNormal(const TPipe &tpipe, CodegenApiParam &api_param,
+                                     DmaSpecificParams &dma_specific_params, const Tensor &src, const Tensor &dst,
+                                     std::string &gm_offset, bool copy_in);
+Status GenDataCopyDimParam(const CodegenApiParam &api_param, std::string graph_name, std::string node_name,
+                           std::stringstream &ss);
 
 }  // namespace codegen
 

@@ -53,7 +53,7 @@ class ConcatRegApiCall : public ConcatApiCall {
   static ConcatTiling B8ToB16(const ConcatTiling &tiling);
   ge::Status CanUseGather(ConcatTiling &tiling) const;
   bool IsTile() const;
-  static void NormalizeDtype(std::string &dtype);
+  static void NormalizeDtype(std::string &dtype_name);
 
   ascir::NodeView node_ = nullptr;
 };

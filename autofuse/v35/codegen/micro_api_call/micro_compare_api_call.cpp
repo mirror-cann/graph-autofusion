@@ -19,14 +19,19 @@ Status MicroCompareApiCall::Generate(const codegen::TensorManager &tensor_mng, [
   GE_ASSERT_TRUE(this->outputs_.size() == 1, "Compare api call must have 1 output");
 
   std::stringstream ss;
+  auto output_tensor = tensor_mng.GetTensor(this->outputs_[0].second);
+  GE_ASSERT_NOTNULL(output_tensor);
+  bool is_mask_reg = output_tensor->init_as_mask_reg_;
+
+  // Compare 输出到 MaskReg（实际输出或临时）
+  std::string output_name = is_mask_reg ? output_tensor->name : (output_tensor->name + "_temp_mask");
+
   auto dtype = tensor_mng.GetTensor(this->inputs_[0].second)->dtype_;
   string dtype_name;
   Tensor::DtypeName(dtype, dtype_name);
   ss << "AscendC::MicroAPI::" << "Compare" << (this->second_input_scalar_ ? "s" : "");
   ss << "<" << dtype_name << ", CMPMODE::" << this->api_name_ << ">(";
-
-  GE_ASSERT_NOTNULL(tensor_mng.GetTensor(this->outputs_[0].second));
-  ss << *(tensor_mng.GetTensor(this->outputs_[0].second)) << ", ";
+  ss << output_name << ", ";
 
   GE_ASSERT_NOTNULL(tensor_mng.GetTensor(this->inputs_[0].second));
   ss << *(tensor_mng.GetTensor(this->inputs_[0].second)) << ", ";
@@ -38,6 +43,14 @@ Status MicroCompareApiCall::Generate(const codegen::TensorManager &tensor_mng, [
     ss << *(tensor_mng.GetTensor(inputs_[1].second)) << ", ";
   }
   ss << param.p_reg << ");" << std::endl;
+  // 如果不是 MaskReg，Duplicate 转换到实际 RegTensor
+  if (!is_mask_reg) {
+    // Duplicate 应使用输出 tensor 的类型
+    string output_dtype_name;
+    Tensor::DtypeName(output_tensor->dtype_, output_dtype_name);
+    ss << "AscendC::Reg::Duplicate(" << *output_tensor << ", static_cast<" << output_dtype_name << ">(1), " << output_name
+       << ");" << std::endl;
+  }
   result = ss.str();
   return ge::SUCCESS;
 }

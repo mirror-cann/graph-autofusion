@@ -47,6 +47,43 @@ Register::Register() {
 #include "batch_matmul_include_headers_str.h"
 
   };
+  const std::string kAscendcconv2d_include_headers = {
+#include "conv2d_include_headers_str.h"
+
+  };
+  const std::string kAscendcconv2d_v2_tilingkey = {
+#include "conv2d_v2_tilingkey_cv_str.h"
+
+  };
+  const std::string kAscendcconv2d = {
+#include "conv2d_str.h"
+
+  };
+  const std::string kAscendcConv_pingpong_basic_atcos = {
+#include "conv_pingpong_basic_atcos_str.h"
+
+  };
+  const std::string kAscendcMatmul_dynamic = {
+#include "matmul_dynamic_str.h"
+
+  };
+  const std::string kAscendcmat_mul_tiling_key_dynamic = {
+#include "mat_mul_tiling_key_dynamic_str.h"
+
+  };
+  const std::string kAscendcbatch_mat_mul_v3_tiling_key_dynamic = {
+#include "batch_mat_mul_v3_tiling_key_dynamic_str.h"
+
+  };
+  const std::string kAscendcmat_mul_pingpong_basic_cmct_dynamic = {
+#include "mat_mul_pingpong_basic_cmct_dynamic_str.h"
+
+  };
+  const std::string kAscendcbatch_matmul_dynamic = {
+#include "batch_matmul_dynamic_str.h"
+
+  };
+
   std::unordered_map<std::string, std::string> api_to_file{
       {"matmul.h", kAscendcMatmulStr},
       {"matmul_include_headers.h", kAscendcmat_mul_include_headers},
@@ -54,7 +91,17 @@ Register::Register() {
       {"batch_mat_mul_v3_tiling_key.h", kAscendcbatch_mat_mul_v3_tiling_key},
       {"mat_mul_pingpong_basic_cmct.h", kAscendcmat_mul_pingpong_basic_cmct},
       {"batch_matmul.h", kAscendcbatch_matmul},
-      {"batch_matmul_include_headers.h", kAscendcbatch_matmul_include_headers}};
+      {"batch_matmul_include_headers.h", kAscendcbatch_matmul_include_headers},
+      {"conv2d_include_headers.h", kAscendcconv2d_include_headers},
+      {"conv2d_v2_tilingkey_cv.h", kAscendcconv2d_v2_tilingkey},
+      {"conv_pingpong_basic_atcos.h", kAscendcConv_pingpong_basic_atcos},
+      {"conv2d.h", kAscendcconv2d},
+      {"matmul_dynamic.h", kAscendcMatmul_dynamic},
+      {"mat_mul_tiling_key_dynamic.h", kAscendcmat_mul_tiling_key_dynamic},
+      {"batch_mat_mul_v3_tiling_key_dynamic.h", kAscendcbatch_mat_mul_v3_tiling_key_dynamic},
+      {"mat_mul_pingpong_basic_cmct_dynamic.h", kAscendcmat_mul_pingpong_basic_cmct_dynamic},
+      {"batch_matmul_dynamic.h", kAscendcbatch_matmul_dynamic}
+  };
 
   AscendCApiRegistry::GetInstance().RegisterApi(api_to_file);
 }

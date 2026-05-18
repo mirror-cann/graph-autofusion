@@ -76,6 +76,14 @@ class TestApiMin :public testing::Test {
     }
 
     template <typename InT>
+    static void FreeTensorInput(TensorMinInputParam<InT> &param) {
+        AscendC::GmFree(param.y);
+        AscendC::GmFree(param.exp);
+        AscendC::GmFree(param.src0);
+        AscendC::GmFree(param.src1);
+    }
+
+    template <typename InT>
     static void MinTest(const int32_t size) {
         TensorMinInputParam<InT> param{};
         param.size = size;
@@ -91,6 +99,9 @@ class TestApiMin :public testing::Test {
         // 验证结果
         uint32_t diff_count = Valid<InT>(param.y, param.exp, param.size);
         EXPECT_EQ(diff_count, 0);
+
+        // 释放内存
+        FreeTensorInput(param);
     }
 };
 

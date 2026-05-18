@@ -18,6 +18,7 @@
 #include "common/ge_common/fmk_error_codes.h"
 #include "external/ge_common/ge_api_error_codes.h"
 #include "external/ge_common/ge_api_types.h"
+#include "graph/types.h"
 
 namespace af {
 enum RuntimeType { HOST = 0, DEVICE = 1 };

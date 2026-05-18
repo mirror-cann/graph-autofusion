@@ -81,8 +81,24 @@ class ScheduleUtils {
   static bool HasComputeType(const ascir::ImplGraph &impl_graph, const af::ComputeType compute_type);
 
   static bool IsIOBuffer(const af::NodePtr &node) {
-    return af::ops::IsOps<af::ascir_op::Scalar>(node) || af::ops::IsOps<af::ascir_op::Data>(node) ||
+    return af::ops::IsOps<af::ascir_op::Scalar>(node) || IsDataInput(node) ||
            af::ops::IsOps<af::ascir_op::Output>(node);
+  }
+
+  static bool IsDataInput(const af::NodePtr &node) {
+    return af::ops::IsOps<af::ascir_op::Data>(node) || af::ops::IsOps<af::ascir_op::ScalarData>(node);
+  }
+
+  static bool IsDataInput(const af::Node *const node) {
+    return af::ops::IsOps<af::ascir_op::Data>(node) || af::ops::IsOps<af::ascir_op::ScalarData>(node);
+  }
+
+  static bool IsScalarLikeNode(const af::NodePtr &node) {
+    return af::ops::IsOps<af::ascir_op::Scalar>(node) || af::ops::IsOps<af::ascir_op::ScalarData>(node);
+  }
+
+  static bool IsScalarLikeNode(const af::Node *const node) {
+    return af::ops::IsOps<af::ascir_op::Scalar>(node) || af::ops::IsOps<af::ascir_op::ScalarData>(node);
   }
 
   static bool IsConstantScalar(const af::Node *const node) {
@@ -354,6 +370,8 @@ class ScheduleUtils {
                                        std::vector<af::Expression> &strides);
   static bool IsNeedDiscontinuousAligned(const af::AscTensorAttr &attr);
   static Status ClearAllSizeVar(const af::AscGraph &graph);
+  // 判断节点的Micro API是否支持Scalar输入，用于scalar_broadcast优化
+  static bool IsMicroApiSupportsScalarInput(const af::AscNodePtr &node);
 };
 }  // namespace optimize
 

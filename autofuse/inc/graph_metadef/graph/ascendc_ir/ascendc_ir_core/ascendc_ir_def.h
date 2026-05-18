@@ -69,6 +69,7 @@ using ge::DT_QUINT8;
 using ge::DT_QUINT16;
 using ge::DT_RESOURCE;
 using ge::DT_BF16;
+using ge::DT_HIFLOAT8;
 using ge::SUCCESS;
 using ge::OutDataAnchor;
 using ge::Symbol;
@@ -522,6 +523,9 @@ class AscTensorAttr : public AfAttrGroupsBase {
   static AscTensorAttr &GetTensorAttr(const af::OutDataAnchor &output);
   static AscTensorAttr *GetTensorAttrPtr(af::Operator *op, const uint32_t index);
   static AscTensorAttr *GetTensorAttrPtr(const af::OutDataAnchor &output);
+  // Bridge for GE stub: accepts raw OpDesc pointer (void*) to avoid cross-library
+  // symbol-mangling issues caused by AUTOFUSE_USE_GE_METADEF.
+  static AscTensorAttr *GetOrCreateFromOpDescRaw(void *op_desc_raw, uint32_t index);
   graphStatus SerializeAttr(ascendc_ir::proto::AscTensorAttrGroupsDef &asc_tensor_group);
   graphStatus DeserializeAttr(const ascendc_ir::proto::AscTensorAttrGroupsDef &asc_tensor_group,
                               af::GeTensorDesc *tensor_desc);

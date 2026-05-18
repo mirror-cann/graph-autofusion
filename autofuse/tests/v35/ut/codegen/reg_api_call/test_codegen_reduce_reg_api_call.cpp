@@ -42,7 +42,6 @@ TEST_F(RegReduceApicallTest, RegReduceApi_Test_001) {
   std::vector<ascir::AxisId> current_axis;
   std::vector<std::reference_wrapper<const Tensor>> inputs;
   std::vector<std::reference_wrapper<const Tensor>> outputs;
-  ApiAttr api_attr;
 
   af::SizeVar s0(af::Symbol("s0"));
   af::SizeVar s1(af::Symbol("s1"));

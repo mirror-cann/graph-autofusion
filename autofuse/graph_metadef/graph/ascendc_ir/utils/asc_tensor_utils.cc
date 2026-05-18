@@ -15,7 +15,8 @@ namespace ascir {
 bool AscTensorUtils::IsConstTensor(const AscTensor &t) {
   const auto node = t.anchor.GetOwnerNodeBarePtr();
   GE_ASSERT_NOTNULL(node);
-  return node->GetType() == "Constant" || node->GetType() == "IndexExpr" || node->GetType() == "Scalar";
+  return node->GetType() == "Constant" || node->GetType() == "IndexExpr" || node->GetType() == "Scalar"
+         || node->GetType() == "ScalarData";
 }
 Node *AscTensorUtils::GetOwner(const AscTensor &t) {
   return t.anchor.GetOwnerNodeBarePtr();

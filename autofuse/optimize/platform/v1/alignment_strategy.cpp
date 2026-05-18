@@ -137,7 +137,7 @@ af::Status AlignmentStrategy::LoadAlignmentInferFunc(const af::AscNodePtr &node)
     GELOGD("Node[%s] is discontinuous loading, input tensor needs to be aligned.", node->GetNamePtr());
     tensor_to_align_type_[&output_attr] = {AlignmentType::kAligned};
   } else {
-    GELOGD("Node[%s] is continuous loading, input tensor does not needs to be aligned.", node->GetNamePtr());
+    GELOGD("Node[%s] is continuous loading, input tensor does not need to be aligned.", node->GetNamePtr());
     // vectorized_axis连续则可以连续搬运
     tensor_to_align_type_[&output_attr] = {AlignmentType::kNotAligned};
   }

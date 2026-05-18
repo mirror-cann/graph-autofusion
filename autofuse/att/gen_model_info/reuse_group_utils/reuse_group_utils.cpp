@@ -87,7 +87,7 @@ bool IsReuseAxesSame(const ReuseScheduleGroupPtr &group1, const ReuseScheduleGro
   bool is_equivalent = true;
   for (size_t input_id = 0UL; input_id < group1->info.reuse_input_axes.size(); input_id++) {
     if (group1->info.reuse_input_axes[input_id] != group2->info.reuse_input_axes[input_id]) {
-      GELOGD("Can not merge group: %s and %s as they have different reuse input axes[%s vs %s]",
+      GELOGD("Cannot merge group: %s and %s as they have different reuse input axes[%s vs %s]",
              group1->reuse_group_ident.GetGroupPrefix().c_str(), group2->reuse_group_ident.GetGroupPrefix().c_str(),
              group1->info.reuse_input_axes[input_id].c_str(), group2->info.reuse_input_axes[input_id].c_str());
       is_equivalent = false;
@@ -210,7 +210,7 @@ ge::Status ReuseGroupUtils::MergeAllReusableGroups(
       const auto &group2 = reuse_schedule_groups[j];
       if (!IsGroupEqualSize(group1->info, reuse_schedule_groups[j]->info)) {
         GELOGD(
-            "Can not merge group: %s and %s as they have different reuse input axes size[%zu vs %zu]  or reuse search "
+            "Cannot merge group: %s and %s as they have different reuse input axes size[%zu vs %zu]  or reuse search "
             "axes size[%zu vs %zu] or tiling keys size[%zu "
             "vs %zu]",
             group1->reuse_group_ident.GetGroupPrefix().c_str(), group2->reuse_group_ident.GetGroupPrefix().c_str(),

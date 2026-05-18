@@ -153,9 +153,7 @@ bool CollectOutputDtypes(const ascir::NodeView &node, std::vector<ge::DataType> 
 }
 
 Status IsDataTypeSupported(const ascir::ImplGraph &graph) {
-  std::set<string> ignore_node_type = {"Ge", "Eq", "Ne", "Gt", "Le", "Broadcast", "Nop", "Sign", "LogicalNot",
-                                       "LogicalOr", "LogicalAnd", "Concat", "Select", "Where", "Ub2ub", "BitwiseAnd",
-                                       "Split"};
+  std::set<string> ignore_node_type = {"Broadcast"};
   for (const auto &node : graph.GetAllNodes()) {
     // 对于动态输入和动态输出的节点，不进行类型检测
     const auto &ir_inputs = node->GetOpDescBarePtr()->GetIrInputs();
@@ -200,7 +198,7 @@ Status IsRepeatStrideValid(const ascir::ImplGraph &graph) {
                      "does not match stride size %d, which is invalid.", node->GetNamePtr(), out->attr.axis.size(),
                      out->attr.strides.size());
       GE_ASSERT_TRUE(out->attr.vectorized_axis.size() == out->attr.vectorized_strides.size(), "Node(%s) output tensor "
-                     "vectorized axis size %d does not match vectorized stride size %d, which is invalid.",
+                     "vectorized_axis size %d does not match vectorized_strides size %d, which is invalid.",
                      node->GetNamePtr(), out->attr.vectorized_axis.size(), out->attr.vectorized_strides.size());
     }
   }

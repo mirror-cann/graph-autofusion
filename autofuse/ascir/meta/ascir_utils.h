@@ -33,7 +33,6 @@ void DumpGraph(const ascir::Graph &graph, const std::string &suffix, const uint3
 void AlwaysDumpGraph(const Graph &graph, const string &suffix, const uint32_t graph_id = 0U,
                      const bool verbose = false);
 
-void DumpComputeGraph(const ge::ComputeGraphPtr &compute_graph, const std::string &suffix, bool always_dump = false);
 void DumpComputeGraph(const af::ComputeGraphPtr &compute_graph, const std::string &suffix, bool always_dump = false);
 
 void DumpImplGraphs(const std::vector<ascir::ImplGraph> &graphs, const std::string &suffix);

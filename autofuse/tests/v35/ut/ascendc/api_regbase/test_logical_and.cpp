@@ -77,6 +77,14 @@ class TestApiLogicalAnd :public testing::Test {
     }
 
     template <typename InT>
+    static void FreeTensorInput(TensorLogicalAndInputParam<InT> &param) {
+        AscendC::GmFree(param.y);
+        AscendC::GmFree(param.exp);
+        AscendC::GmFree(param.src0);
+        AscendC::GmFree(param.src1);
+    }
+
+    template <typename InT>
     static void LogicalAndTest(const int32_t size) {
         TensorLogicalAndInputParam<InT> param{};
         param.size = size;
@@ -92,6 +100,9 @@ class TestApiLogicalAnd :public testing::Test {
         // 验证结果
         uint32_t diff_count = Valid(param.y, param.exp, param.size);
         EXPECT_EQ(diff_count, 0);
+
+        // 释放内存
+        FreeTensorInput(param);
     }
 };
 

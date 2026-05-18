@@ -48,7 +48,7 @@ TEST_F(TestAxesReorderSolverGen, TEST_ARRANGE)
   std::map<Expr, uint32_t, ExprCmp> const_args;
   std::map<Expr, uint32_t, ExprCmp> axis_priority;
   std::map<Expr, std::vector<Expr>, ExprCmp> from_axes_map;
-  arg_align_map[x0] = ge::Symbol(16);
+  arg_align_map[x0] = af::Symbol(16);
   cut_cons.emplace_back(x0 - x1);
   hardware_cons[HardwareDef::L2] = x0 + x1;
   from_axes_map[x0] = {x1};
@@ -84,7 +84,7 @@ TEST_F(TestAxesReorderSolverGen, TEST_ARRANGE_SIZE_VAR_AS_INPUT)
   std::map<Expr, uint32_t, ExprCmp> const_args;
   std::map<Expr, uint32_t, ExprCmp> axis_priority;
   std::map<Expr, std::vector<Expr>, ExprCmp> from_axes_map;
-  arg_align_map[x0] = ge::Symbol(16);
+  arg_align_map[x0] = af::Symbol(16);
   cut_cons.emplace_back(x0 - x1);
   hardware_cons[HardwareDef::UB] = x0 + x1 + x2;
   from_axes_map[x0] = {x1};
@@ -121,7 +121,7 @@ TEST_F(TestAxesReorderSolverGen, TEST_GEN_SOLVER)
   std::map<Expr, uint32_t, ExprCmp> const_args;
   std::map<Expr, uint32_t, ExprCmp> axis_priority;
   std::map<Expr, std::vector<Expr>, ExprCmp> from_axes_map;
-  arg_align_map[x0] = ge::Symbol(16);
+  arg_align_map[x0] = af::Symbol(16);
   cut_cons.emplace_back(x0 - x1);
   hardware_cons[HardwareDef::L2] = x0 + x1;
   from_axes_map[x0] = {x1};
@@ -161,7 +161,7 @@ TEST_F(TestAxesReorderSolverGen, TEST_GEN_SOLVER_case2)
   std::map<Expr, uint32_t, ExprCmp> const_args;
   std::map<Expr, uint32_t, ExprCmp> axis_priority;
   std::map<Expr, std::vector<Expr>, ExprCmp> from_axes_map;
-  arg_align_map[x0] = ge::Symbol(16);
+  arg_align_map[x0] = af::Symbol(16);
   cut_cons.emplace_back(x0 - x1);
   hardware_cons[HardwareDef::L2] = x0 + x1;
   from_axes_map[x0] = {x1};
@@ -202,7 +202,7 @@ TEST_F(TestAxesReorderSolverGen, TEST_GEN_SOLVER_ub_cache_code)
   std::map<Expr, uint32_t, ExprCmp> const_args;
   std::map<Expr, uint32_t, ExprCmp> axis_priority;
   std::map<Expr, std::vector<Expr>, ExprCmp> from_axes_map;
-  arg_align_map[x0] = ge::Symbol(16);
+  arg_align_map[x0] = af::Symbol(16);
   cut_cons.emplace_back(x0 - x1);
   hardware_cons[HardwareDef::L2] = x2;
   hardware_cons[HardwareDef::CORENUM] = x0 + x1;
@@ -248,6 +248,7 @@ TEST_F(TestAxesReorderSolverGen, GenUpperBoundFunc_ConstExpr) {
     std::string result = solver_gen.GenUpperBoundFunc(var);
     
     std::string expected = R"(    GetUpperBoundFuncPtr var_upper_bound = [](Variable **parent_vars) {
+      (void)parent_vars;
       int64_t upper_bound = 1;
       upper_bound *= 2;
       upper_bound *= 3;
@@ -271,7 +272,7 @@ TEST_F(TestAxesReorderSolverGen, InitiateArgs_MixedValidInvalidArgs) {
     Expr valid = CreateExpr("valid");
     Expr invalid = CreateExpr("invalid");
     solver_.input_args_ = {valid, invalid};
-    solver_.input_align_ = {{valid, ge::Symbol(4)}, {invalid, ge::Symbol(1)}}; // One needs alignment
+    solver_.input_align_ = {{valid, af::Symbol(4)}, {invalid, af::Symbol(1)}}; // One needs alignment
     solver_.mc_args_ = {};
     solver_.local_buffer_tiling_vars_ = {};
 
@@ -304,6 +305,7 @@ TEST_F(TestAxesReorderSolverGen, GenUpperBoundFunc_ConstantAxes) {
     solver.from_axes_map_[var] = {CreateExpr(2), CreateExpr(3), CreateExpr(5)};
     
     std::string expected = R"(    GetUpperBoundFuncPtr test_var_upper_bound = [](Variable **parent_vars) {
+      (void)parent_vars;
       int64_t upper_bound = 1;
       upper_bound *= 2;
       upper_bound *= 3;
@@ -353,14 +355,14 @@ TEST_F(TestAxesReorderSolverGen, GenInputInfoTest) {
 
     Expr var1 = CreateExpr("local_var1");
     Expr var2 = CreateExpr("local_var2");
-    Expr var3 = ge::Symbol(255, "local_var3");
+    Expr var3 = af::Symbol(255, "local_var3");
 
     
     local_buffer_tiling_vars_.push_back(var1);
     local_buffer_tiling_vars_.push_back(var2);
     
-    arg_align_map_[var1] = ge::Symbol(64);
-    arg_align_map_[var2] = ge::Symbol(32);
+    arg_align_map_[var1] = af::Symbol(64);
+    arg_align_map_[var2] = af::Symbol(32);
     
     arg_prompt_align_map_[var1] = 128;
     arg_prompt_align_map_[var3] = 64;
@@ -425,14 +427,14 @@ TEST_F(TestAxesReorderSolverGen, GenInputInfoCase2Test) {
 
     Expr var1 = CreateExpr("local_var1");
     Expr var2 = CreateExpr("local_var2");
-    Expr var3 = ge::Symbol("local_var3");
+    Expr var3 = af::Symbol("local_var3");
 
     
     local_buffer_tiling_vars_.push_back(var1);
     local_buffer_tiling_vars_.push_back(var2);
     
-    arg_align_map_[var1] = ge::Symbol(64);
-    arg_align_map_[var2] = ge::Symbol(32);
+    arg_align_map_[var1] = af::Symbol(64);
+    arg_align_map_[var2] = af::Symbol(32);
     
     arg_prompt_align_map_[var1] = 128;
     arg_prompt_align_map_[var3] = 64;
@@ -490,7 +492,7 @@ TEST_F(TestAxesReorderSolverGen, GenUBThresholdFunc_WithUBAndVariables) {
   solver.mc_args_ = mc_args_;
   solver.local_buffer_tiling_vars_ = local_buffer_tiling_vars_;
   solver.hardware_use_map_ = hardware_use_map_;
-  solver.enable_multicore_ub_tradeoff_ = true;
+  solver.SetEnableMulticoreUBTradeoff(true);
   std::string actual = solver.GenUBThresholdFunc();
   EXPECT_TRUE(actual.find("return (ub_size - 0) > static_cast<uint32_t>(input_.ub_threshold * input_.ub_size);") != std::string::npos);
 }
@@ -518,7 +520,7 @@ TEST_F(TestAxesReorderSolverGen, GenUBThresholdFunc_WithUBAndVariablesNotFound) 
   solver.mc_args_ = mc_args_;
   solver.local_buffer_tiling_vars_ = local_buffer_tiling_vars_;
   solver.hardware_use_map_ = hardware_use_map_;
-  solver.enable_multicore_ub_tradeoff_ = true;
+  solver.SetEnableMulticoreUBTradeoff(true);
   std::string actual = solver.GenUBThresholdFunc();
   EXPECT_TRUE(actual.find("return ub_size > static_cast<uint32_t>(input_.ub_threshold * input_.ub_size);") == std::string::npos);
 }
@@ -546,7 +548,7 @@ TEST_F(TestAxesReorderSolverGen, GenSolverFuncImpl_WithUBAndVariables) {
   solver.mc_args_ = mc_args_;
   solver.local_buffer_tiling_vars_ = local_buffer_tiling_vars_;
   solver.hardware_use_map_ = hardware_use_map_;
-  solver.enable_multicore_ub_tradeoff_ = true;
+  solver.SetEnableMulticoreUBTradeoff(true);
   std::string actual = solver.GenSolverFuncImpl();
   EXPECT_TRUE(actual.find("solver.Run(true, ") != std::string::npos);
 }
@@ -583,7 +585,7 @@ TEST_F(TestAxesReorderSolverGen, test_not_contain_heavy_op) {
 TEST_F(TestAxesReorderSolverGen, GenPgo_SolverwithClassImpl) {
   std::string className = "AxesReorderSolverGen";
   AxesReorderSolverGen solver("GenPgo_test", "TilingData");
-  solver.enable_autofuse_pgo_ = true;
+  solver.SetEnableAutofusePGO(true);
   solver.GenSolverClassImpl();
   solver.GenSolverFuncImpl();
 }
@@ -729,8 +731,8 @@ TEST_F(TestAxesReorderSolverGen, GenSolverFuncImpl_DisableGroupParallel_EnableTr
 
   TilingScheduleConfig tiling_schedule_config;
   tiling_schedule_config.trade_off_config.is_enable = true;
-  tiling_schedule_config.trade_off_config.ub_ratio = ge::Symbol(0.1);
-  tiling_schedule_config.trade_off_config.core_num_ratio = ge::Symbol(0.8);
+  tiling_schedule_config.trade_off_config.ub_ratio = af::Symbol(0.1);
+  tiling_schedule_config.trade_off_config.core_num_ratio = af::Symbol(0.8);
 
   solver.mc_args_ = mc_args_;
   solver.local_buffer_tiling_vars_ = local_buffer_tiling_vars_;

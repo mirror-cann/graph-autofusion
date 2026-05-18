@@ -120,6 +120,16 @@ AscGraphBuilder &AscGraphBuilder::Scalar(const std::string &name, const std::str
   return *this;
 }
 
+AscGraphBuilder &AscGraphBuilder::ScalarData(const std::string &name, int64_t index, DataType dtype) {
+  ascir_op::ScalarData scalar_data_op(name.c_str(), impl_->graph_);
+  auto node = impl_->graph_.FindNode(name.c_str());
+  scalar_data_op.ir_attr.SetIndex(index);
+  scalar_data_op.y.dtype = dtype;
+  std::vector<Expression> scalar_repeats(impl_->loop_repeats_.size(), sym::kSymbolOne);
+  *scalar_data_op.y.repeats = scalar_repeats;
+  impl_->nodes_[name] = node;
+  return *this;
+}
 AscGraphBuilder &AscGraphBuilder::Output(const std::string &name, const std::string &input, int64_t index,
                                          DataType dtype) {
   ascir_op::Output output_op(name.c_str());

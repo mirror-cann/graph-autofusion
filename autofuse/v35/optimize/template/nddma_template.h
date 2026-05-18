@@ -37,6 +37,7 @@ class NddmaTemplate : public BaseTemplate {
   static bool IsSecondaryTailAxisAligned(const af::AscNodePtr &node);
   std::string GetScoreFunc(const af::AscGraph &origin_graph, const af::AscGraph &nddma_graph) override;
   static ge::Status ReorderRepeats(const af::AscNodePtr &node_src, const af::AscNodePtr &node_dst);
+  ge::Status ProcessSliceToNddma(const af::AscNodePtr &node, bool &is_nddma_generated_cur);
   NddmaTemplate(const NddmaTemplate &) = delete;
   NddmaTemplate &operator=(const NddmaTemplate &) = delete;
   NddmaTemplate(NddmaTemplate &&) = delete;

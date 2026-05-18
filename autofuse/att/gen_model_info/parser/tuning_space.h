@@ -80,7 +80,7 @@ struct SubAxis {
     for (const auto &n : orig_axis_name) {
       ss << n << ",";
     }
-    ss << ", parent_axis_name: ";
+    ss << " parent_axis_name: ";
     for (auto &axis : parent_axis) {
       ss << axis->name << ",";
     }
@@ -122,11 +122,11 @@ struct Tensor {
     ss << "name: " << name
        << ", datasize: " << data_type_size
        << ", resource_id: " << resource_id;
-    ss << "axis {";
+    ss << ", axis {";
     for (auto &axis : dim_info) {
       ss << axis->name << ", ";
     }
-    ss << "}, ";
+    ss << "} ";
     return ss.str() + GetRepeat() + GetStride();
   }
 

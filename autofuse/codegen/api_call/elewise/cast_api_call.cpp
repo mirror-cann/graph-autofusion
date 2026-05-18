@@ -30,11 +30,11 @@ static bool EnableCastMaskModeOptimize(const std::string &input_dtype, const std
       // first is input dtype, second is output dtype
       {"uint8_t", "half"},    {"int64_t", "float"},    {"int64_t", "int32_t"}, {"half", "float"},
       {"half", "int32_t"},    {"half", "int16_t"},     {"half", "int8_t"},     {"half", "uint8_t"},
-      {"half", "int4_t"},     {"float", "half"},       {"float", "int64_t"},   {"float", "int32_t"},
-      {"float", "int16_t"},   {"float", "bfloat16_t"},   {"int4_t", "half"},     {"int16_t", "half"},
+      {"half", "int4b_t"},     {"float", "half"},       {"float", "int64_t"},   {"float", "int32_t"},
+      {"float", "int16_t"},   {"float", "bfloat16_t"},   {"int4b_t", "half"},     {"int16_t", "half"},
       {"int16_t", "float"},   {"int32_t", "float"},    {"int32_t", "int64_t"}, {"int32_t", "int16_t"},
       {"int32_t", "half"},    {"bfloat16_t", "float"}, {"bfloat16_t", "int32_t"}, {"uint8_t", "float"}, 
-      {"uint8_t", "int32_t"}, {"uint8_t", "int16_t"}, {"uint8_t", "int8_t"},   {"uint8_t", "int4_t"}, 
+      {"uint8_t", "int32_t"}, {"uint8_t", "int16_t"}, {"uint8_t", "int8_t"},   {"uint8_t", "int4b_t"}, 
       {"int64_t", "half"},    {"half", "int64_t"}};
   std::pair<std::string, std::string> src_cast_dst = {input_dtype, output_dtype};
   GELOGD("current cast from %s to %s", input_dtype.c_str(), output_dtype.c_str());

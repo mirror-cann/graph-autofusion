@@ -414,6 +414,17 @@ ge::Status VectorFuncPartitioner::InitClusterAttr(const std::unique_ptr<af::asci
       cluster->meta_data_.enable_vf = false;
       return ge::SUCCESS;
     }
+    if (node->GetType() == af::ascir_op::Broadcast::Type) {
+      const auto &axis = output->attr.axis;
+      const auto &vectorized_axis = output->attr.vectorized_axis;
+      size_t axis_id = UINT64_MAX;
+      for (size_t i = 0; i < vectorized_axis.size(); i++) {
+        auto it2 = std::find(axis.begin(), axis.end(), vectorized_axis[i]);
+        GE_ASSERT_TRUE(it2 != axis.end(), "vectorized_axis not in axis");
+        axis_id = std::distance(axis.begin(), it2);
+        cluster->meta_data_.vectorized_repeats.push_back(output->attr.repeats[axis_id]);
+      }
+    }
   }
 
   cluster->meta_data_.ins_num = codegen_impl->GetInstNum();
@@ -435,7 +446,7 @@ void VectorFuncPartitioner::RefineEnableVFFlag(const af::AscNodePtr &node, bool 
     return;
   }
 
-  // 如果当前图中有reduce节点，cast不参与vf融合
+  // 1. 如果当前图中有reduce节点，cast不参与vf融合
   if (af::ops::IsOps<af::ascir_op::Cast>(node)) {
     if (graph_has_reduce_node_) {
       // 当前直接把cast移到外面使用castExtend api有性能问题，待解决后放开。enable_vf = false;
@@ -444,7 +455,7 @@ void VectorFuncPartitioner::RefineEnableVFFlag(const af::AscNodePtr &node, bool 
     }
   }
 
-  // ScalarBrc 场景：检查输出节点是否支持 VF
+  // 2. ScalarBrc 场景：检查输出节点是否支持 VF
   if (IsScalarBrc(node)) {
     bool is_out_support_vf = false;
     for (const auto &out_node : node->GetOutDataNodes()) {
@@ -458,35 +469,32 @@ void VectorFuncPartitioner::RefineEnableVFFlag(const af::AscNodePtr &node, bool 
     enable_vf = is_out_support_vf;
     return;
   }
-  // Compare/Add微指令支持scalar输入
-  if (af::ops::IsOps<af::ascir_op::Ge>(node) || af::ops::IsOps<af::ascir_op::Eq>(node) ||
-      af::ops::IsOps<af::ascir_op::Ne>(node) || af::ops::IsOps<af::ascir_op::Le>(node) ||
-      af::ops::IsOps<af::ascir_op::Lt>(node) || af::ops::IsOps<af::ascir_op::Gt>(node) ||
-      af::ops::IsOps<af::ascir_op::Add>(node)) {
-    return;
-  }
-  // 非ScalarBrc场景：如果算子的任意输入直连scalar，就把enable_vf标记为false
-  for (const auto &in_node : node->GetInDataNodes()) {
-    if (af::ops::IsOps<af::ascir_op::Scalar>(in_node)) {
+
+  // 3. 尾轴stride!=1场景，暂不支持生成vf代码
+  for (const auto &output : node->outputs()) {
+    const auto &vectorized_strides = output->attr.vectorized_strides;
+    auto it = std::find_if(vectorized_strides.rbegin(), vectorized_strides.rend(), [](const af::Expression &val) {
+      return af::SymbolicUtils::StaticCheckNe(val, af::sym::kSymbolZero) == af::TriBool::kTrue;
+    });
+    if ((it != vectorized_strides.rend()) &&
+        (af::SymbolicUtils::StaticCheckNe(*it, af::sym::kSymbolOne) == af::TriBool::kTrue)) {
+      GELOGD("The stride of the node[%s]'s tail axis is not 1, which is not supported in vf.", node->GetNamePtr());
       enable_vf = false;
-      GELOGD("Node [%s] has direct Scalar input, disable VF support.", node->GetNamePtr());
-      break;
+      return;
     }
   }
 
-  // 尾轴stride!=1场景，暂不支持生成vf代码
-  if (enable_vf) {
-    for (const auto &output : node->outputs()) {
-      const auto &vectorized_strides = output->attr.vectorized_strides;
-      auto it = std::find_if(vectorized_strides.rbegin(), vectorized_strides.rend(), [](const af::Expression &val) {
-        return af::SymbolicUtils::StaticCheckNe(val, af::sym::kSymbolZero) == af::TriBool::kTrue;
-      });
-      if ((it != vectorized_strides.rend()) &&
-          (af::SymbolicUtils::StaticCheckNe(*it, af::sym::kSymbolOne) == af::TriBool::kTrue)) {
-        GELOGD("The stride of the node[%s]'s tail axis is not 1, which is not supported in vf.", node->GetNamePtr());
-        enable_vf = false;
-        break;
-      }
+  // 4. Compare/Add/Min/Max/LogicalAnd等微指令支持scalar输入，不需要检查直连scalar
+  if (ScheduleUtils::IsMicroApiSupportsScalarInput(node)) {
+    return;
+  }
+
+  // 5. 非ScalarBrc场景：如果算子的任意输入直连scalar且不支持scalar输入，就把enable_vf标记为false
+  for (const auto &in_node : node->GetInDataNodes()) {
+    if (ScheduleUtils::IsScalarLikeNode(in_node)) {
+      enable_vf = false;
+      GELOGD("Node [%s] has direct Scalar input, disable VF support.", node->GetNamePtr());
+      break;
     }
   }
 }
@@ -551,11 +559,6 @@ ClusterPtr VectorFuncPartitioner::CreateAndInitCluster(const af::AscNodePtr &nod
     GE_ASSERT_SUCCESS(InitClusterAttr(codegen_impl, node, cluster));
   }
 
-  // 特殊处理：Compare 节点尝试合并所有输出
-  if (IsCompareOp(node) && cluster->meta_data_.enable_vf) {
-    TryMergeCompareOutputs(node, cluster);
-  }
-
   return cluster;
 }
 
@@ -585,60 +588,6 @@ void VectorFuncPartitioner::FixAllCompareClusterConnections() {
       FixCompareClusterConnections(cluster, compare_node);
     }
   }
-}
-
-bool VectorFuncPartitioner::TryMergeCompareOutputs(const af::AscNodePtr &compare_node, ClusterPtr &cluster) {
-  bool all_outputs_enabled = true;
-  struct OutputInfo {
-    af::AscNodePtr node;
-    uint32_t ins_num;
-  };
-  std::vector<OutputInfo> output_info;
-
-  for (const auto &out_node: compare_node->GetOutDataNodes()) {
-    auto asc_out_node = std::dynamic_pointer_cast<af::AscNode>(out_node);
-    GE_ASSERT_NOTNULL(asc_out_node);
-    auto out_codegen_impl = ascgen_utils::GetAscIrCodegenImpl(asc_out_node->GetType());
-    GE_ASSERT_NOTNULL(out_codegen_impl, "Cannot find impl for ir type:[%s].", asc_out_node->GetTypePtr());
-    bool out_enable_vf = out_codegen_impl->IsVectorFunctionSupported(*asc_out_node);
-    RefineEnableVFFlag(asc_out_node, out_enable_vf);
-
-    if (!out_enable_vf || (compare_node->attr.sched.loop_axis != asc_out_node->attr.sched.loop_axis)) {
-      all_outputs_enabled = false;
-      break;
-    }
-    output_info.push_back(OutputInfo{asc_out_node, out_codegen_impl->GetInstNum()});
-  }
-
-  // 只有所有输出都是 enable_vf 才合并
-  if (all_outputs_enabled && !output_info.empty()) {
-    cluster->out_nodes_.clear();
-    for (const auto &info: output_info) {
-      const auto &out_node = info.node;
-      cluster->nodes_.push_back(out_node);
-      cluster->node_set_.insert(out_node);
-      cluster_dict_.SetNodeClusterPair(out_node, cluster);
-      // 更新cluster信息
-      cluster->meta_data_.ins_num += info.ins_num;
-      cluster->out_nodes_.emplace(out_node);
-
-      // 将输出节点的输入（非Compare本身）添加到in_nodes_
-      for (const auto &input: out_node->inputs()) {
-        auto in_node = std::dynamic_pointer_cast<af::AscNode>(input->anchor.GetOwnerNode());
-        GE_ASSERT_NOTNULL(in_node);
-        if (in_node != compare_node) {
-          cluster->in_nodes_.insert(in_node);
-        }
-      }
-    }
-    return true;
-  }
-
-  // 有输出不是 enable_vf，整个 Compare cluster 设为 disable
-  if (!all_outputs_enabled) {
-    cluster->meta_data_.enable_vf = false;
-  }
-  return false;
 }
 
 void VectorFuncPartitioner::FixCompareClusterConnections(const ClusterPtr &cluster, const af::AscNodePtr &compare_node) {
@@ -704,6 +653,11 @@ bool VectorFuncPartitioner::CanMergeClusters(const Cluster &from, const Cluster 
   // 最大指令数30条
   if (from_meta.ins_num + to_meta.ins_num > kMaxInsNum) {
     GELOGD("the total ins num after fusion exceeds the threshold, skip to fuse [%zu] to [%zu].", from.Id(), to.Id());
+    return false;
+  }
+  // 两个向量化轴对应的repeats都不空时，尾轴大小必须相同
+  if (!from_meta.vectorized_repeats.empty() && !to_meta.vectorized_repeats.empty() && 
+      (from_meta.vectorized_repeats != to_meta.vectorized_repeats)) {
     return false;
   }
 
@@ -963,7 +917,8 @@ ge::Status VectorFuncPartitioner::BuildSubgraph(const ClusterPtr &cluster, af::A
     auto out_anchor = iter.first;
     auto pre_node = out_anchor->GetOwnerNodeBarePtr();
     GE_ASSERT_NOTNULL(pre_node);
-    if (ScheduleUtils::IsConstantScalar(pre_node)) {
+    if (ScheduleUtils::IsConstantScalar(pre_node) || af::ops::IsOps<af::ascir_op::ScalarData>(pre_node)) {
+      // 常量 Scalar 或 ScalarData(运行时标量输入) 在子图内都保持为 Scalar
       GE_ASSERT_SUCCESS(InsertScalarNode(vf_graph, out_anchor, iter.second, parent_in_idx));
     } else {
       GE_ASSERT_SUCCESS(InsertDataAndLoadNode(vf_graph, out_anchor, iter.second, parent_in_idx));

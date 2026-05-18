@@ -36,6 +36,8 @@ class VFLoop {
   /* kernel生成阶段调用 */
   Status Generate(const TPipe &tpipe, const TensorManager& tensor_mgr, int32_t depth, std::string &result, std::string &loop_size_result, int32_t &only_loop_max_depth, std::vector<std::string>& loop_size_vec) const;
   void SetMaxDtypeSize(std::string dtype);
+  void CollectMaskRegTempTensors(const TPipe &tpipe, const TensorManager &tensor_mgr,
+                                 std::vector<std::string> &temp_tensors) const;
 
  private:
   ascir::AxisId axis_id_;

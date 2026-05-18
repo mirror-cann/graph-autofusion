@@ -20,7 +20,7 @@
 #include "graph/ascendc_ir/utils/asc_tensor_utils.h"
 #include "common_utils.h"
 #include "utils/api_call_factory.h"
-#include "elewise/cast_v2_api_call.h"
+#include "cast_v2_api_call.h"
 
 using namespace ge;
 using namespace af::ops;

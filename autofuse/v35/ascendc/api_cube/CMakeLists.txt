@@ -6,6 +6,15 @@ set(ascendc_api_cube_src
         matmul/mat_mul_pingpong_basic_cmct.h
         matmul/batch_matmul_include_headers.h
         batch_matmul.h
+        matmul_dynamic.h
+        matmul/mat_mul_tiling_key_dynamic.h
+        matmul/batch_mat_mul_v3_tiling_key_dynamic.h
+        matmul/mat_mul_pingpong_basic_cmct_dynamic.h
+        batch_matmul_dynamic.h
+        conv2d.h
+        conv2d/conv2d_include_headers.h
+        conv2d/conv2d_v2_tilingkey_cv.h
+        conv2d/conv_pingpong_basic_atcos.h
 )
 
 set(generated_cube_files)

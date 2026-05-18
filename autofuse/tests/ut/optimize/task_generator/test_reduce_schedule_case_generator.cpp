@@ -16,6 +16,7 @@
 #include "ascir_ops.h"
 #include "task_generator/schedule_case_generator.h"
 #include "task_generator/reduce_schedule_case_generator.h"
+#include "asc_graph_builder.h"
 
 namespace schedule {
 using namespace optimize;
@@ -377,5 +378,77 @@ TEST_F(ReduceScheduleCaseGeneratorTest, TestReduce_Multi_Cita_Store) {
   ASSERT_EQ(tasks.size(), 2UL);
   ASSERT_EQ(tasks[0].grouped_graphs.size(), 3UL);
   ASSERT_EQ(tasks[1].grouped_graphs.size(), 4UL);
+}
+
+void ConstructReduceWithScalarData(AscGraph &graph) {
+  auto s0 = graph.CreateSizeVar(128);
+  auto s1 = graph.CreateSizeVar(64);
+  auto z0 = graph.CreateAxis("z0", s0);
+  auto z1 = graph.CreateAxis("z1", s0);
+
+  Data data("data", graph);
+  data.ir_attr.SetIndex(0);
+
+  Load load("load");
+  load.attr.sched.axis = {z0.id, z1.id};
+  load.x = data.y;
+  *load.y.axis = {z0.id, z1.id};
+  *load.y.strides = {s1, af::ops::One};
+  *load.y.repeats = {s0, s1};
+
+  Sum sum("sum");
+  sum.attr.sched.axis = {z0.id, z1.id};
+  sum.x = load.y;
+  *sum.y.axis = {z0.id, z1.id};
+  *sum.y.repeats = {af::ops::One, af::ops::One};
+  *sum.y.strides = {af::ops::Zero, af::ops::Zero};
+
+  af::ascir_op::ScalarData scalar_data("scalar_data", graph);
+  scalar_data.ir_attr.SetIndex(1);
+
+  Abs abs("abs");
+  abs.x = sum.y;
+  abs.attr.sched.axis = {z0.id, z1.id};
+  *abs.y.axis = {z0.id, z1.id};
+  *abs.y.strides = {af::ops::Zero, af::ops::Zero};
+  *abs.y.repeats = {af::ops::One, af::ops::One};
+
+  Add add("add");
+  add.x1 = abs.y;
+  add.x2 = scalar_data.y;
+  add.attr.sched.axis = {z0.id, z1.id};
+  *add.y.axis = {z0.id, z1.id};
+  *add.y.strides = {af::ops::Zero, af::ops::Zero};
+  *add.y.repeats = {af::ops::One, af::ops::One};
+
+  Store store_op("store");
+  store_op.attr.sched.axis = {z0.id, z1.id};
+  store_op.x = add.y;
+  *store_op.y.axis = {z0.id, z1.id};
+  *store_op.y.strides = {af::ops::Zero, af::ops::Zero};
+  *store_op.y.repeats = {af::ops::One, af::ops::One};
+
+  Output output_op("output");
+  output_op.x = store_op.y;
+  output_op.ir_attr.SetIndex(0);
+}
+
+TEST_F(ReduceScheduleCaseGeneratorTest, TestReduce_ScalarData_Input) {
+  af::AscGraph graph("reduce_scalar_data_input");
+  ConstructReduceWithScalarData(graph);
+  std::vector<ScheduleTask> tasks;
+  optimize::ReducePartitionCaseGenerator generator;
+  OptimizerOptions options;
+  EXPECT_EQ(generator.GeneratorTask(graph, tasks, options), SUCCESS);
+  ASSERT_EQ(tasks.size(), 2UL);
+  // ScalarData直连算子，reduce拆分时ScalarData走PartitionScalar分支，保持ScalarData类型
+  for (const auto &task : tasks) {
+    for (const auto &grouped_graph : task.grouped_graphs) {
+      auto scalar_data_node = grouped_graph.FindNode("copy_from_scalar_data");
+      if (scalar_data_node != nullptr) {
+        EXPECT_EQ(std::string(scalar_data_node->GetTypePtr()), "ScalarData");
+      }
+    }
+  }
 }
 }

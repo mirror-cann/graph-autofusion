@@ -700,7 +700,7 @@ ge::Status SetStride(const TensorShapeInfo &shape_info, NodeDetail &node_info, c
   for (const auto &ternary_op : ub_stride_result.ternary_ops) {
     node_info.ternary_ops[ternary_op.first] = ternary_op.second;
   }
-  GELOGD("%s: repeats=%s, origin_repeats=%s, need_swap=%d, block_count_idx=%d", node_info.ToString().c_str(),
+  GELOGD("%s: repeats=%s origin_repeats=%s need_swap=%d block_count_idx=%d", node_info.ToString().c_str(),
          GetVecString(shape_info.repeats).c_str(), GetVecString(shape_info.origin_repeats).c_str(), need_swap,
          node_info.block_count_idx);
   return ge::SUCCESS;
@@ -890,7 +890,7 @@ ge::Status MergeTensorContinuousDims(const af::AscNodePtr &node, const std::stri
     tensor.dims.emplace_back(org_dims[0]);
     UpdateTensorDim(node.get(), is_continuous, org_dims, tensor);
   }
-  GELOGD("Tensor[%s] shape info: merge dims:%s, org dims:%s, continuous:%s", tensor_name.c_str(),
+  GELOGD("Tensor[%s] shape info: merge dims:%s org dims:%s continuous:%s", tensor_name.c_str(),
          tensor.GetDimExpr().c_str(), GetVecString(org_dims).c_str(), af::ToString(is_continuous).c_str());
   return ge::SUCCESS;
 }

@@ -303,6 +303,26 @@ class TestRegbaseApiWhereUT : public testing::Test {
   }
 
   template <typename T, uint8_t dim>
+  static void FreeNormalInput(WhereInputParam<T, dim> &param) {
+    AscendC::GmFree(param.y);
+    AscendC::GmFree(param.x1);
+    AscendC::GmFree(param.x2);
+    AscendC::GmFree(param.x3);
+    AscendC::GmFree(param.exp);
+    AscendC::GmFree(param.x2_);
+    AscendC::GmFree(param.x3_);
+  }
+
+  template <typename T, uint8_t dim>
+  static void FreeNormalInputInt64(WhereInputParam<T, dim> &param) {
+    AscendC::GmFree(param.y);
+    AscendC::GmFree(param.x1);
+    AscendC::GmFree(param.x2);
+    AscendC::GmFree(param.x3);
+    AscendC::GmFree(param.exp);
+  }
+
+  template <typename T, uint8_t dim>
   static void WhereNormalTest(uint32_t m, uint32_t n, uint32_t x2_n = 0, uint32_t x3_n = 0) {
     WhereInputParam<T, dim> param{};
     param.m = m;
@@ -324,6 +344,9 @@ class TestRegbaseApiWhereUT : public testing::Test {
     // 验证结果
     uint32_t diff_count = NormalValid(param);
     EXPECT_EQ(diff_count, 0);
+
+    // 释放内存
+    FreeNormalInput(param);
   }
 
   template <typename T, uint8_t dim>
@@ -348,6 +371,9 @@ class TestRegbaseApiWhereUT : public testing::Test {
     // 验证结果
     uint32_t diff_count = NormalValid(param);
     EXPECT_EQ(diff_count, 0);
+
+    // 释放内存
+    FreeNormalInputInt64(param);
   }
 };
 // 场景1

@@ -78,7 +78,7 @@ TEST(CodegenKernel, LoadRegApiCall_OneDimLoad) {
   codegen::ApiTensor x1;
   x1.id = load->outputs[0].attr.mem.tensor_id;
 
-  codegen::LoadRegApiCall call_0("Load");
+  codegen::LoadRegApiCall call_0("DataCopyPadExtend");
   EXPECT_EQ(call_0.Init(load), 0);
   call_0.inputs.push_back(&x1);
 
@@ -86,7 +86,7 @@ TEST(CodegenKernel, LoadRegApiCall_OneDimLoad) {
   call_0.Generate(tpipe, vector<af::AxisId>{}, result);
   EXPECT_EQ(
       result,
-      std::string{"DataCopyPadExtend<float, AscendC::PaddingMode::Normal>(local_0, local_0[0 + 0], 1, 8, 0, 0);\n"});
+      std::string{"DataCopyPadExtend<float, AscendC::PaddingMode::Normal>(local_0[0], local_0[0 + 0], 1, 8, 0, 0);\n"});
 }
 
 TEST(CodegenKernel, NormalModeDataCopyIfDualSplitting) {
@@ -152,7 +152,7 @@ TEST(CodegenKernel, NormalModeDataCopyIfDualSplitting) {
   codegen::ApiTensor x1;
   x1.id = load->outputs[0].attr.mem.tensor_id;
 
-  codegen::LoadRegApiCall call_0("Load");
+  codegen::LoadRegApiCall call_0("DataCopyPadExtend");
   EXPECT_EQ(call_0.Init(load), 0);
   call_0.inputs.push_back(&x1);
 
@@ -230,7 +230,7 @@ TEST(CodegenKernel, LoadRegApiCall_ThreeDimLoad) {
   codegen::ApiTensor x1;
   x1.id = load->outputs[0].attr.mem.tensor_id;
 
-  codegen::LoadRegApiCall call_0("Load");
+  codegen::LoadRegApiCall call_0("DataCopyPadExtend");
   EXPECT_EQ(call_0.Init(load), 0);
   call_0.inputs.push_back(&x1);
 
@@ -319,16 +319,16 @@ TEST(CodegenKernel, LoadRegApiCall_FiveDimLoad) {
   codegen::ApiTensor x1;
   x1.id = load->outputs[0].attr.mem.tensor_id;
 
-  codegen::LoadRegApiCall call_0("Load");
+  codegen::LoadRegApiCall call_0("DataCopyPadExtend");
   EXPECT_EQ(call_0.Init(load), 0);
   call_0.inputs.push_back(&x1);
 
   std::string result;
   call_0.Generate(tpipe, vector<af::AxisId>{}, result);
   EXPECT_EQ(result,
-            std::string{"for(int outer_for_0 = 0; outer_for_0 < 8; outer_for_0++) {\nDataCopyPadExtend<float, "
+            std::string{"for (int outer_for_0 = 0; outer_for_0 < 8; outer_for_0++) {\nDataCopyPadExtend<float, "
                         "AscendC::PaddingMode::Compact>(local_0[outer_for_0 * "
                         "32], local_0[0 + 0 + outer_for_0 * 160], 2, 2, 2, 2 - 2, {static_cast<uint32_t>(2), "
                         "static_cast<uint32_t>(4), static_cast<uint64_t>(12 * 4), static_cast<uint64_t>(4 * 4), "
-                        "static_cast<uint64_t>(32 * 4), static_cast<uint64_t>(8 * 4)});\n\n}\n"});
+                        "static_cast<uint64_t>(32 * 4), static_cast<uint64_t>(8 * 4)});\n}\n"});
 }

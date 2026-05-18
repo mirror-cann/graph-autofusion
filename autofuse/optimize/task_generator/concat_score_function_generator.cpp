@@ -166,8 +166,8 @@ Status ConcatScoreFunctionGenerator::GenerateForCheckSmallTail(std::string &scor
     return ASCCOMMON_SUC;
   }
 
-  // 该模板必然为第1个result的第0个group
-  const auto &tiling_data = "tiling_data.graph0_result1_g0_tiling_data";
+  // 该模板必然为第2个result的第0个group
+  const auto &tiling_data = "tiling_data.graph0_result2_g0_tiling_data";
   std::vector<std::pair<af::Expression, af::Expression>> replacements;
   SizeVarSet original_var_set;
   AscGraphInfoComplete::AppendOriginalSizeVar(*graph_, original_var_set);

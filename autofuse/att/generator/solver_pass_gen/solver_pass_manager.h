@@ -23,6 +23,7 @@
 #include "autofuse_config/auto_fuse_config.h"
 #include "generator/solver_pass_gen/input_output_setters.h"
 #include "generator/solver_pass_gen/input_output_setters_mixin.h"
+#include "generator/solver_pass_gen/pgo_config_setters_mixin.h"
 
 namespace att
 {
@@ -31,7 +32,8 @@ namespace att
     std::string sub_case_tag = "";
   };
 
-  class SolverPassManager : public InputOutputSettersMixin<SolverPassManager>
+  class SolverPassManager : public InputOutputSettersMixin<SolverPassManager>,
+                            public PgoConfigSettersMixin<SolverPassManager>
   {
   public:
    SolverPassManager(ArgsManager args_manager, CaseIdInfo case_id_info, const std::string &type_name)
@@ -56,15 +58,6 @@ namespace att
     };
     void SetCoreNumThreshold(double &corenum_threshold) {
       corenum_threshold_ = corenum_threshold;
-    }
-    void SetEnableMulticoreUBTradeoff(bool enable_multicore_ub_tradeoff) {
-      enable_multicore_ub_tradeoff_ = enable_multicore_ub_tradeoff;
-    }
-    void SetEnableAutofusePGO(bool enable_autofuse_pgo) {
-      enable_autofuse_pgo_ = enable_autofuse_pgo;
-    }
-    void SetAutofusePGOStepMax(int64_t pgo_step_max) {
-      pgo_step_max_ = pgo_step_max;
     }
     void SetVariableReplace(bool &do_variable_replace) {
       do_variable_replace_ = do_variable_replace;
@@ -115,17 +108,17 @@ namespace att
     void AddConcatInnerDims(const Expr &arg, std::vector<Expr> &concat_inner_dims);
     std::string DebugString() const {
       std::stringstream ss;
-      ss << "EnableTradeOff: " << enable_multicore_ub_tradeoff_
-         << " EnableAutofusePGO: " << enable_autofuse_pgo_
-         << " PGO Step Max: " << pgo_step_max_
-         << " HighPerfTiling: " << enable_high_perf_
-         << " EnableEqualOrder: " << enable_equal_order_
-         << " ReservedUbSize: " << reserved_ub_size_.Serialize().get()
-         << " CoreNumThreshold: " << corenum_threshold_
-         << " UBThreshold: " << ub_threshold_
-         << " TilingDataSubName: " << GetTilingDataSubGroupItemName()
-         << " CaseId: " << case_id_
-         << " SubCaseTag: " << sub_case_tag_
+      ss << "EnableTradeOff:" << enable_multicore_ub_tradeoff_
+         << ",EnableAutofusePGO:" << enable_autofuse_pgo_
+         << ",PGO Step Max:" << pgo_step_max_
+         << ",HighPerfTiling:" << enable_high_perf_
+         << ",EnableEqualOrder:" << enable_equal_order_
+         << ",ReservedUbSize:" << reserved_ub_size_.Serialize().get()
+         << ",CoreNumThreshold:" << corenum_threshold_
+         << ",UBThreshold:" << ub_threshold_
+         << ",TilingDataSubName:" << GetTilingDataSubGroupItemName()
+         << ",CaseId:" << case_id_
+         << ",SubCaseTag:" << sub_case_tag_
          << std::endl;
       return ss.str();
     }
@@ -134,9 +127,6 @@ namespace att
     uint32_t case_id_;
     std::string sub_case_tag_;
     std::string tiling_data_type_;
-    bool enable_multicore_ub_tradeoff_{false}; // 表示用户配置是否需要开启多核权衡
-    bool enable_autofuse_pgo_{false};
-    int64_t pgo_step_max_{16};
     bool do_variable_replace_{false};
     bool enable_high_perf_{false};
     bool enable_equal_order_{false};

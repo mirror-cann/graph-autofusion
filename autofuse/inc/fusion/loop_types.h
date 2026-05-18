@@ -92,6 +92,16 @@ inline std::string StrJoin(const std::vector<ge::DataType> &vec, const std::stri
   return StrJoin(vec, [](const ge::DataType &s) { return TypeUtils::DataTypeToSerialString(s); }, sep);
 }
 
+inline std::string StrJoin(const std::vector<int64_t> &vec, const std::string &sep) {
+  return StrJoin(vec, [](const int64_t &s) { return std::to_string(s); }, sep);
+}
+
+template <typename T>
+inline typename std::enable_if<std::is_integral<T>::value && !std::is_same<T, bool>::value,
+                               std::string>::type
+StrJoin(const std::vector<T> &vec, const std::string &sep = ", ") {
+  return StrJoin(vec, [](const T &s) { return std::to_string(s); }, sep);
+}
 }  // namespace loop
 }  // namespace af
 

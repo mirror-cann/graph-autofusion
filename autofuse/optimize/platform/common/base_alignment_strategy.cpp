@@ -22,7 +22,7 @@ bool IsTailAxisTranspose(const af::AscTensorAttr &attr) {
   }
   // check tail_axis
   auto tail_axis_iter = std::find(attr.axis.begin(), attr.axis.end(), attr.vectorized_axis[axis_size - 1UL]);
-  GE_ASSERT_TRUE(tail_axis_iter != attr.axis.end(), "Can not find vectorized axis [%ld], axis attr may be invalid.",
+  GE_ASSERT_TRUE(tail_axis_iter != attr.axis.end(), "Cannot find vectorized axis [%ld], axis attr may be invalid.",
                  attr.vectorized_axis[axis_size - 1UL]);
   const size_t tail_index = std::distance(attr.axis.begin(), tail_axis_iter);
   if (af::SymbolicUtils::StaticCheckEq(attr.strides[tail_index], af::sym::kSymbolZero) != af::TriBool::kTrue) {
@@ -31,7 +31,7 @@ bool IsTailAxisTranspose(const af::AscTensorAttr &attr) {
 
   for (size_t i = static_cast<size_t>(axis_size - 1UL); i > 0UL; --i) {
     auto iter = std::find(attr.axis.begin(), attr.axis.end(), attr.vectorized_axis[i]);
-    GE_ASSERT_TRUE(tail_axis_iter != attr.axis.end(), "Can not find vectorized axis [%ld], axis attr may be invalid.",
+    GE_ASSERT_TRUE(tail_axis_iter != attr.axis.end(), "Cannot find vectorized axis [%ld], axis attr may be invalid.",
                    attr.vectorized_axis[i]);
     const size_t index = std::distance(attr.axis.begin(), iter);
     if (af::SymbolicUtils::StaticCheckEq(attr.strides[index], af::sym::kSymbolZero) != af::TriBool::kTrue) {
@@ -42,7 +42,7 @@ bool IsTailAxisTranspose(const af::AscTensorAttr &attr) {
   // 非连续搬运
   for (auto id = attr.vectorized_axis.rbegin(); id != attr.vectorized_axis.rend(); ++id) {
     auto iter = std::find(attr.axis.begin(), attr.axis.end(), *id);
-    GE_ASSERT_TRUE(iter != attr.axis.end(), "Can not find vectorized axis [%ld], axis attr may be invalid.", *id);
+    GE_ASSERT_TRUE(iter != attr.axis.end(), "Cannot find vectorized axis [%ld], axis attr may be invalid.", *id);
     const size_t index = std::distance(attr.axis.begin(), iter);
     // 考虑到通用模板要兼顾reduce的限制, 因此,尾轴为1的非连续load,不会当成DisContinuous处理
     if (af::SymbolicUtils::StaticCheckEq(attr.strides[index], af::sym::kSymbolZero) == af::TriBool::kTrue) {
@@ -102,13 +102,13 @@ bool IsTailAxisTransposeV2(const af::AscNodePtr &node_load) {
       continue;
     }
     auto iter = std::find(attr.axis.begin(), attr.axis.end(), *id);
-    GE_ASSERT_TRUE(iter != attr.axis.end(), "Can not find vectorized axis [%ld], axis attr may be invalid.", *id);
+    GE_ASSERT_TRUE(iter != attr.axis.end(), "Cannot find vectorized axis [%ld], axis attr may be invalid.", *id);
     last_valid_axis_index = std::distance(attr.axis.begin(), iter);
     break;
   }
 
   if (last_valid_axis_index >= attr.axis.size()) {
-    GELOGD("Node %s with unexpeced vectorized strides.", node_load->GetNamePtr());
+    GELOGD("Node %s with unexpected vectorized strides.", node_load->GetNamePtr());
     return false;
   }
 
@@ -234,7 +234,7 @@ ge::Status BaseAlignmentStrategy::ReduceAlignmentInferFunc(const af::AscNodePtr 
     const auto axis = output_attr.vectorized_axis.back();
     auto axis_tensor_iter = std::find(output_attr.axis.begin(), output_attr.axis.end(), axis);
     GE_ASSERT_TRUE(axis_tensor_iter != output_attr.axis.end(),
-                   "Can not find vectorized axis [%ld] in [%s]'s output tensor.", axis, node->GetNamePtr());
+                   "Cannot find vectorized axis [%ld] in [%s]'s output tensor.", axis, node->GetNamePtr());
     const int64_t axis_index = std::distance(output_attr.axis.begin(), axis_tensor_iter);
     const auto &stride = output_attr.strides[axis_index];
     if (af::SymbolicUtils::StaticCheckEq(stride, af::sym::kSymbolZero) == af::TriBool::kTrue) {
@@ -559,7 +559,7 @@ ge::Status BaseAlignmentStrategy::SetVectorizedStridesForTensor(const af::NodePt
     const auto axis = *axis_it;
     auto axis_tensor_iter = std::find(output_attr.axis.begin(), output_attr.axis.end(), axis);
     GE_ASSERT_TRUE(axis_tensor_iter != output_attr.axis.end(),
-                   "Can not find vectorized axis [%ld] in [%s]'s output tensor.", axis, node->GetNamePtr());
+                   "Cannot find vectorized axis [%ld] in [%s]'s output tensor.", axis, node->GetNamePtr());
 
     const int64_t axis_index = std::distance(output_attr.axis.begin(), axis_tensor_iter);
     const auto &stride = output_attr.strides[axis_index];

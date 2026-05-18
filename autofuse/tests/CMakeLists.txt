@@ -395,7 +395,6 @@ target_include_directories(codegen PUBLIC
     ${CODEGEN_DIR}/api_call
     ${CODE_ROOT_DIR}/common
     ${CODE_ROOT_DIR}/att
-    ${CODE_ROOT_DIR}/common
     ${CMAKE_CURRENT_SOURCE_DIR}/depends/runtime/src
 )
 

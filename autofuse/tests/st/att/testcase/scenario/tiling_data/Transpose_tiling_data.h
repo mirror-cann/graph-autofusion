@@ -11,6 +11,7 @@
 #define ATT_TILING_DATA_TRANSPOSE_H_
 #include <stdint.h>
 #include <vector>
+#include <array>
 #include "register/tilingdata_base.h"
 #include "kernel_tiling/kernel_tiling.h"
 namespace optiling {
@@ -96,6 +97,30 @@ using AutofuseTilingData =  graph_normalTilingData;
 struct AutofuseTilingDataPerf {
   AutofuseTilingData tiling_data;
   double best_perf;
+};
+typedef long int (*ProfilingCallback)(
+void* stream, uint32_t workspaceSize, AutofuseTilingData* tiling_data, double* cost_time);
+typedef long int (*ProfilingBatchCallback)(
+void* stream, uint32_t workspaceSize, std::vector<AutofuseTilingDataPerf> *profiles);
+class PgoConfig {
+public:
+  static PgoConfig& Instance() {
+    static PgoConfig instance;
+    return instance;
+  }
+  ProfilingCallback single_callback;
+  ProfilingBatchCallback batch_callback;
+  int32_t pgo_algorithm = 1;
+  bool need_change_solver_run = false;
+  size_t pgo_threshold_index = 0;
+  constexpr static size_t pgo_threshold_list_size = 5;
+  std::array<double, pgo_threshold_list_size> pgo_ub_threshold_list{0.2, 0.1, 0, 0.05, 0.1};
+  std::array<double, pgo_threshold_list_size> pgo_corenum_threshold_list{0.4, 0.4, 1, 1, 0.8};
+private:
+  PgoConfig() = default;
+  ~PgoConfig() = default;
+  PgoConfig(const PgoConfig &) = delete;
+  PgoConfig &operator=(const PgoConfig &) = delete;
 };
 bool GetTiling(graph_normalTilingData &tiling_data, int32_t tilingCaseId = -1);
 }  // namespace optiling

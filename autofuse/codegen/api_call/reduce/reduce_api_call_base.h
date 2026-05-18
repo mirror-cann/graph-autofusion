@@ -16,6 +16,19 @@
 namespace reduce_base {
 using namespace codegen;
 
+struct ReduceOpType {
+  static constexpr int32_t kMin = 0;
+  static constexpr int32_t kMax = 1;
+  static constexpr int32_t kSum = 2;
+  static constexpr int32_t kProd = 3;
+  static constexpr int32_t kAny = 4;
+  static constexpr int32_t kAll = 5;
+  static constexpr int32_t kMean = 6;
+  static constexpr int32_t kArgMax = 7;
+  static constexpr int32_t kArgMaxMultiRPhase1 = 8;
+  static constexpr int32_t kArgMaxMultiRPhase2 = 9;
+};
+
 static std::map<std::string, std::pair<int, std::string>> reduce_type_map = {
   {"Min", {ReduceOpType::kMin, "Min"}},  {"Max", {ReduceOpType::kMax, "Max"}},
   {"ArgMax", {ReduceOpType::kMax, "Max"}},
@@ -30,7 +43,7 @@ void GetIsArAndPattern(const Tensor &y, bool &isAr, std::string &reduce_pattern)
 void ReduceMergedSizeCodeGen(const TPipe &tpipe, std::stringstream &ss, const Tensor &src, const Tensor &dst,
                              bool is_tail = false);
 bool IsNeedMultiReduce(const Tiler &tiler, const Tensor &input, const Tensor &output, ascir::AxisId axis_id);
-void ReduceMeanCodeGen(std::string &dtype_name, const TPipe &tpipe, const Tensor &dst,
+void ReduceMeanCodeGen(std::string &dtype_name, const TPipe &tpipe, const Tensor &src, const Tensor &dst,
                        std::stringstream &ss);
 void ReduceInitCodeGen(const Tensor &x, const Tensor &y, const int &type_value,
                        std::stringstream &ss, const TPipe &tpipe, const std::string &dtype_name);

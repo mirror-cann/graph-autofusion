@@ -21,7 +21,7 @@
 #include "common/st_scenario_utils.h"
 #include "test_common_utils.h"
 
-using namespace ge::ascir_op;
+using namespace af::ascir_op;
 namespace ascir {
 constexpr int64_t ID_NONE = -1; //取多少？
 using namespace ge;
@@ -36,8 +36,8 @@ void SetNodeScheduleAndTensor(NodeT &node,
                               int &exec_order,
                               std::initializer_list<int64_t> axis,
                               ge::DataType dtype,
-                              std::initializer_list<ge::Expression> repeats,
-                              std::initializer_list<ge::Expression> strides) {
+                              std::initializer_list<af::Expression> repeats,
+                              std::initializer_list<af::Expression> strides) {
   node.attr.sched.exec_order = exec_order++;
   node.attr.sched.axis = axis;
   node.y.dtype = dtype;
@@ -52,26 +52,26 @@ void InitInputNode(NodeT &node,
                    int &exec_order,
                    std::initializer_list<int64_t> axis,
                    ge::DataType dtype,
-                   std::initializer_list<ge::Expression> repeats,
-                   std::initializer_list<ge::Expression> strides) {
+                   std::initializer_list<af::Expression> repeats,
+                   std::initializer_list<af::Expression> strides) {
   node.x = input;
   SetNodeScheduleAndTensor(node, exec_order, axis, dtype, repeats, strides);
 }
 
 template <typename NodeT>
 void SetGmOutputNode(const NodeT &node) {
-  node->outputs[0].attr.mem.hardware = ge::MemHardware::kMemHardwareGM;
-  node->outputs[0].attr.mem.position = ge::Position::kPositionGM;
+  node->outputs[0].attr.mem.hardware = af::MemHardware::kMemHardwareGM;
+  node->outputs[0].attr.mem.position = af::Position::kPositionGM;
 }
 
 template <typename NodeT>
 void SetQueueNode(const NodeT &node,
                   int &tensor_id,
                   int queue_id,
-                  ge::Position position) {
+                  af::Position position) {
   node->outputs[0].attr.mem.tensor_id = tensor_id++;
-  node->outputs[0].attr.mem.alloc_type = ge::AllocType::kAllocTypeQueue;
-  node->outputs[0].attr.mem.hardware = ge::MemHardware::kMemHardwareUB;
+  node->outputs[0].attr.mem.alloc_type = af::AllocType::kAllocTypeQueue;
+  node->outputs[0].attr.mem.hardware = af::MemHardware::kMemHardwareUB;
   node->outputs[0].attr.mem.position = position;
   node->outputs[0].attr.mem.reuse_id = ascir::ID_NONE;
   node->outputs[0].attr.buf.id = ascir::ID_NONE;
@@ -81,23 +81,21 @@ void SetQueueNode(const NodeT &node,
   node->outputs[0].attr.opt.ref_tensor = ascir::ID_NONE;
 }
 
-Load CreateDataAndLoad(ascir::HintGraph &graph, const char *data_name, const char *load_name,
-                       int &exec_order, std::initializer_list<int64_t> axis,
-                       ge::DataType dtype, std::initializer_list<ge::Expression> repeats,
-                       std::initializer_list<ge::Expression> strides) {
+void CreateDataAndLoad(Load &load, ascir::HintGraph &graph, const char *data_name, int &exec_order,
+                       std::initializer_list<int64_t> axis, ge::DataType dtype,
+                       std::initializer_list<af::Expression> repeats,
+                       std::initializer_list<af::Expression> strides) {
   Data data(data_name, graph);
   SetNodeScheduleAndTensor(data, exec_order, axis, dtype, repeats, strides);
-  Load load(load_name);
   InitInputNode(load, data.y, exec_order, axis, dtype, repeats, strides);
-  return load;
 }
 
 template <typename NodeT>
 void SetBufferNode(const NodeT &node, int &tensor_id, int buf_id) {
   node->outputs[0].attr.mem.tensor_id = tensor_id++;
-  node->outputs[0].attr.mem.alloc_type = ge::AllocType::kAllocTypeBuffer;
-  node->outputs[0].attr.mem.hardware = ge::MemHardware::kMemHardwareUB;
-  node->outputs[0].attr.mem.position = ge::Position::kPositionVecIn;
+  node->outputs[0].attr.mem.alloc_type = af::AllocType::kAllocTypeBuffer;
+  node->outputs[0].attr.mem.hardware = af::MemHardware::kMemHardwareUB;
+  node->outputs[0].attr.mem.position = af::Position::kPositionVecIn;
   node->outputs[0].attr.mem.reuse_id = ascir::ID_NONE;
   node->outputs[0].attr.buf.id = buf_id;
   node->outputs[0].attr.que.id = ascir::ID_NONE;
@@ -113,9 +111,9 @@ void ApplySplitAndVectorize(ascir::HintGraph &graph,
                             int64_t inner_axis_inner,
                             int64_t loop_axis,
                             std::initializer_list<int64_t> vectorized_axis,
-                            ge::ComputeUnit compute_unit = ge::ComputeUnit::kUnitInvalid) {
+                            af::ComputeUnit compute_unit = af::ComputeUnit::kUnitInvalid) {
   auto node = graph.FindNode(node_name);
-  if (compute_unit != ge::ComputeUnit::kUnitInvalid) {
+  if (compute_unit != af::ComputeUnit::kUnitInvalid) {
     node->attr.api.unit = compute_unit;
   }
   graph.ApplySplit(node, outer_axis, inner_axis_outer);
@@ -152,9 +150,9 @@ class TestGenAddLayerNormalModelInfo : public ::testing::Test {
 void Add_Layer_Norm_Normal_BeforeAutofuseConstInput(ascir::HintGraph &graph) {
   auto ONE = af::sym::kSymbolOne;
   auto ZERO = af::sym::kSymbolZero;
-  auto A = ge::Symbol(128, "A");
-  auto R = ge::Symbol("R");
-  auto BL = ge::Symbol(8, "BL");
+  auto A = af::Symbol(128, "A");
+  auto R = af::Symbol("R");
+  auto BL = af::Symbol(8, "BL");
 
   auto a = graph.CreateAxis("A", A);
   auto r = graph.CreateAxis("R", R);
@@ -162,9 +160,12 @@ void Add_Layer_Norm_Normal_BeforeAutofuseConstInput(ascir::HintGraph &graph) {
   const std::initializer_list<int64_t> axes = {a.id, r.id, bl.id};
 
   int exec_order = 0;
-  auto x1Local = CreateDataAndLoad(graph, "x1", "x1Local", exec_order, axes, ge::DT_FLOAT16, {A, R, ONE}, {R, ONE, ZERO});
-  auto x2Local = CreateDataAndLoad(graph, "x2", "x2Local", exec_order, axes, ge::DT_FLOAT16, {A, R, ONE}, {R, ONE, ZERO});
-  auto biasLocal = CreateDataAndLoad(graph, "bias", "biasLocal", exec_order, axes, ge::DT_FLOAT16, {A, R, ONE}, {R, ONE, ZERO});
+  Load x1Local("x1Local");
+  CreateDataAndLoad(x1Local, graph, "x1", exec_order, axes, ge::DT_FLOAT16, {A, R, ONE}, {R, ONE, ZERO});
+  Load x2Local("x2Local");
+  CreateDataAndLoad(x2Local, graph, "x2", exec_order, axes, ge::DT_FLOAT16, {A, R, ONE}, {R, ONE, ZERO});
+  Load biasLocal("biasLocal");
+  CreateDataAndLoad(biasLocal, graph, "bias", exec_order, axes, ge::DT_FLOAT16, {A, R, ONE}, {R, ONE, ZERO});
 
   Concat mean("mean");
   mean.x = {x1Local.y, x2Local.y, biasLocal.y};
@@ -185,11 +186,13 @@ void Add_Layer_Norm_Normal_BeforeAutofuseConstInput(ascir::HintGraph &graph) {
   Store rstd_out("rstd_out");
   InitInputNode(rstd_out, rstd.y, exec_order, axes, ge::DT_FLOAT, {A, ONE, ONE}, {ONE, ZERO, ZERO});
 
-  auto betaLocal = CreateDataAndLoad(graph, "beta", "betaLocal", exec_order, axes, ge::DT_FLOAT16, {ONE, R, ONE}, {ZERO, ONE, ZERO});
-  auto gammaLocal = CreateDataAndLoad(graph, "gamma", "gammaLocal", exec_order, axes, ge::DT_FLOAT16, {ONE, R, ONE}, {ZERO, ONE, ZERO});
+  Load betaLocal("betaLocal");
+  CreateDataAndLoad(betaLocal, graph, "beta", exec_order, axes, ge::DT_FLOAT16, {ONE, R, ONE}, {ZERO, ONE, ZERO});
+  Load gammaLocal("gammaLocal");
+  CreateDataAndLoad(gammaLocal, graph, "gamma", exec_order, axes, ge::DT_FLOAT16, {ONE, R, ONE}, {ZERO, ONE, ZERO});
 
   Concat y("y");
-  y.attr.api.unit = ge::ComputeUnit::kUnitVector;
+  y.attr.api.unit = af::ComputeUnit::kUnitVector;
   y.x = {rstd.y, betaLocal.y, gammaLocal.y, rstd.y};
   SetNodeScheduleAndTensor(y, exec_order, axes, ge::DT_FLOAT16, {A, R, ONE}, {R, ONE, ZERO});
 
@@ -216,9 +219,9 @@ void Add_Layer_Norm_Normal_BeforeAutofuse(ascir::HintGraph &graph, const std::st
   axis_name2.append(ident);
   std::string axis_name3("BL");
   axis_name3.append(ident);
-  auto A = ge::Symbol(axis_name1.c_str());
-  auto R = ge::Symbol(axis_name2.c_str());
-  auto BL = ge::Symbol(8, axis_name3.c_str());
+  auto A = af::Symbol(axis_name1.c_str());
+  auto R = af::Symbol(axis_name2.c_str());
+  auto BL = af::Symbol(8, axis_name3.c_str());
 
   auto a = graph.CreateAxis(axis_name1, A);
   auto r = graph.CreateAxis(axis_name2, R);
@@ -226,9 +229,12 @@ void Add_Layer_Norm_Normal_BeforeAutofuse(ascir::HintGraph &graph, const std::st
   const std::initializer_list<int64_t> axes = {a.id, r.id, bl.id};
 
   int exec_order = 0;
-  auto x1Local = CreateDataAndLoad(graph, "x1", "x1Local", exec_order, axes, ge::DT_FLOAT16, {A, R, ONE}, {R, ONE, ZERO});
-  auto x2Local = CreateDataAndLoad(graph, "x2", "x2Local", exec_order, axes, ge::DT_FLOAT16, {A, R, ONE}, {R, ONE, ZERO});
-  auto biasLocal = CreateDataAndLoad(graph, "bias", "biasLocal", exec_order, axes, ge::DT_FLOAT16, {A, R, ONE}, {R, ONE, ZERO});
+  Load x1Local("x1Local");
+  CreateDataAndLoad(x1Local, graph, "x1", exec_order, axes, ge::DT_FLOAT16, {A, R, ONE}, {R, ONE, ZERO});
+  Load x2Local("x2Local");
+  CreateDataAndLoad(x2Local, graph, "x2", exec_order, axes, ge::DT_FLOAT16, {A, R, ONE}, {R, ONE, ZERO});
+  Load biasLocal("biasLocal");
+  CreateDataAndLoad(biasLocal, graph, "bias", exec_order, axes, ge::DT_FLOAT16, {A, R, ONE}, {R, ONE, ZERO});
 
   Concat mean("mean");
   mean.x = {x1Local.y, x2Local.y, biasLocal.y};
@@ -249,11 +255,13 @@ void Add_Layer_Norm_Normal_BeforeAutofuse(ascir::HintGraph &graph, const std::st
   Store rstd_out("rstd_out");
   InitInputNode(rstd_out, rstd.y, exec_order, axes, ge::DT_FLOAT, {A, ONE, ONE}, {ONE, ZERO, ZERO});
 
-  auto betaLocal = CreateDataAndLoad(graph, "beta", "betaLocal", exec_order, axes, ge::DT_FLOAT16, {ONE, R, ONE}, {ZERO, ONE, ZERO});
-  auto gammaLocal = CreateDataAndLoad(graph, "gamma", "gammaLocal", exec_order, axes, ge::DT_FLOAT16, {ONE, R, ONE}, {ZERO, ONE, ZERO});
+  Load betaLocal("betaLocal");
+  CreateDataAndLoad(betaLocal, graph, "beta", exec_order, axes, ge::DT_FLOAT16, {ONE, R, ONE}, {ZERO, ONE, ZERO});
+  Load gammaLocal("gammaLocal");
+  CreateDataAndLoad(gammaLocal, graph, "gamma", exec_order, axes, ge::DT_FLOAT16, {ONE, R, ONE}, {ZERO, ONE, ZERO});
 
   Concat y("y");
-  y.attr.api.unit = ge::ComputeUnit::kUnitVector;
+  y.attr.api.unit = af::ComputeUnit::kUnitVector;
   y.x = {rstd.y, betaLocal.y, gammaLocal.y, rstd.y};
   SetNodeScheduleAndTensor(y, exec_order, axes, ge::DT_FLOAT16, {A, R, ONE}, {R, ONE, ZERO});
 
@@ -304,13 +312,13 @@ void Add_Layer_Norm_Normal_AfterScheduler(ascir::HintGraph &graph, const std::st
   ApplySplitAndVectorize(graph, "x2Local", aBO->id, aBI->id, aBII->id, aBIO->id, {aBII->id, r});
   ApplySplitAndVectorize(graph, "biasLocal", aBO->id, aBI->id, aBII->id, aBIO->id, {aBII->id, r});
   ApplySplitAndVectorize(
-      graph, "mean", aBO->id, aBI->id, aBII->id, aBIO->id, {aBII->id, r}, ge::ComputeUnit::kUnitVector);
+      graph, "mean", aBO->id, aBI->id, aBII->id, aBIO->id, {aBII->id, r}, af::ComputeUnit::kUnitVector);
   ApplySplitAndVectorize(graph, "x_out", aBO->id, aBI->id, aBII->id, aBIO->id, {aBII->id, r});
   ApplySplitAndVectorize(graph, "mean_out", aBO->id, aBI->id, aBII->id, aBIO->id, {aBII->id, r});
   ApplySplitAndVectorize(
-      graph, "rstd", aBO->id, aBI->id, aBII->id, aBIO->id, {aBII->id, r}, ge::ComputeUnit::kUnitVector);
+      graph, "rstd", aBO->id, aBI->id, aBII->id, aBIO->id, {aBII->id, r}, af::ComputeUnit::kUnitVector);
   ApplySplitAndVectorize(
-      graph, "rstd_out", aBO->id, aBI->id, aBII->id, aBIO->id, {aBII->id, r}, ge::ComputeUnit::kUnitVector);
+      graph, "rstd_out", aBO->id, aBI->id, aBII->id, aBIO->id, {aBII->id, r}, af::ComputeUnit::kUnitVector);
   ApplySplitAndVectorize(graph, "betaLocal", aBO->id, aBI->id, aBII->id, aBIO->id, {r});
   ApplySplitAndVectorize(graph, "gammaLocal", aBO->id, aBI->id, aBII->id, aBIO->id, {r});
   ApplySplitAndVectorize(graph, "y", aBO->id, aBI->id, aBII->id, aBIO->id, {aBII->id, r});
@@ -323,7 +331,7 @@ void SetGmOutputNodeByName(ascir::HintGraph &graph, const char *name) {
 }
 
 void SetQueueNodeByName(ascir::HintGraph &graph, const char *name,
-                        int &tensor_id, int queue_id, ge::Position position) {
+                        int &tensor_id, int queue_id, af::Position position) {
   auto node = graph.FindNode(name);
   SetQueueNode(node, tensor_id, queue_id, position);
 }
@@ -347,42 +355,45 @@ void Add_Layer_Norm_Normal_AfterQueBufAlloc(ascir::HintGraph &graph) {
   SetGmOutputNodeByName(graph, "x1");
   SetGmOutputNodeByName(graph, "x2");
   SetGmOutputNodeByName(graph, "bias");
-  SetQueueNodeByName(graph, "x1Local", tensorID, x1Que, ge::Position::kPositionVecIn);
-  SetQueueNodeByName(graph, "x2Local", tensorID, x2Que, ge::Position::kPositionVecIn);
-  SetQueueNodeByName(graph, "biasLocal", tensorID, biasQue, ge::Position::kPositionVecIn);
-  SetQueueNodeByName(graph, "mean", tensorID, meanQue, ge::Position::kPositionVecOut);
+  SetQueueNodeByName(graph, "x1Local", tensorID, x1Que, af::Position::kPositionVecIn);
+  SetQueueNodeByName(graph, "x2Local", tensorID, x2Que, af::Position::kPositionVecIn);
+  SetQueueNodeByName(graph, "biasLocal", tensorID, biasQue, af::Position::kPositionVecIn);
+  SetQueueNodeByName(graph, "mean", tensorID, meanQue, af::Position::kPositionVecOut);
   SetGmOutputNodeByName(graph, "x_out");
   SetGmOutputNodeByName(graph, "mean_out");
 
   auto one = graph.FindNode("one");
   SetBufferNode(one, tensorID, oneTBuf);
 
-  SetQueueNodeByName(graph, "rstd", tensorID, yQue, ge::Position::kPositionVecOut);
+  SetQueueNodeByName(graph, "rstd", tensorID, yQue, af::Position::kPositionVecOut);
   SetGmOutputNodeByName(graph, "rstd_out");
   SetGmOutputNodeByName(graph, "beta");
-  SetQueueNodeByName(graph, "betaLocal", tensorID, betaQue, ge::Position::kPositionVecIn);
+  SetQueueNodeByName(graph, "betaLocal", tensorID, betaQue, af::Position::kPositionVecIn);
   SetGmOutputNodeByName(graph, "gamma");
-  SetQueueNodeByName(graph, "gammaLocal", tensorID, gammaQue, ge::Position::kPositionVecIn);
-  SetQueueNodeByName(graph, "y", tensorID, yQue, ge::Position::kPositionVecOut);
+  SetQueueNodeByName(graph, "gammaLocal", tensorID, gammaQue, af::Position::kPositionVecIn);
+  SetQueueNodeByName(graph, "y", tensorID, yQue, af::Position::kPositionVecOut);
   SetGmOutputNodeByName(graph, "y_out");
 }
 
 void Add_Layer_Norm_Slice_BeforeAutofuse(ascir::HintGraph &graph) {
   auto ONE = af::sym::kSymbolOne;
   auto ZERO = af::sym::kSymbolZero;
-  auto A = ge::Symbol("A");
-  auto R = ge::Symbol("R");
+  auto A = af::Symbol("A");
+  auto R = af::Symbol("R");
   auto a = graph.CreateAxis("A", A);
   auto r = graph.CreateAxis("R", R);
   const std::initializer_list<int64_t> axes = {a.id, r.id};
 
   int exec_order = 0;
-  auto x1Local = CreateDataAndLoad(graph, "x1", "x1Local", exec_order, axes, ge::DT_FLOAT16, {A, R}, {R, ONE});
-  auto x2Local = CreateDataAndLoad(graph, "x2", "x2Local", exec_order, axes, ge::DT_FLOAT16, {A, R}, {R, ONE});
-  auto biasLocal = CreateDataAndLoad(graph, "bias", "biasLocal", exec_order, axes, ge::DT_FLOAT16, {A, R}, {R, ONE});
+  Load x1Local("x1Local");
+  CreateDataAndLoad(x1Local, graph, "x1", exec_order, axes, ge::DT_FLOAT16, {A, R}, {R, ONE});
+  Load x2Local("x2Local");
+  CreateDataAndLoad(x2Local, graph, "x2", exec_order, axes, ge::DT_FLOAT16, {A, R}, {R, ONE});
+  Load biasLocal("biasLocal");
+  CreateDataAndLoad(biasLocal, graph, "bias", exec_order, axes, ge::DT_FLOAT16, {A, R}, {R, ONE});
 
   Concat mean("mean");
-  mean.attr.api.unit = ge::ComputeUnit::kUnitVector;
+  mean.attr.api.unit = af::ComputeUnit::kUnitVector;
   mean.x = {x1Local.y, x2Local.y, biasLocal.y};
   SetNodeScheduleAndTensor(mean, exec_order, axes, ge::DT_FLOAT, {A, ONE}, {ONE, ONE});
 
@@ -390,7 +401,7 @@ void Add_Layer_Norm_Slice_BeforeAutofuse(ascir::HintGraph &graph) {
   InitInputNode(x_out, mean.y, exec_order, axes, ge::DT_FLOAT16, {A, R}, {R, ONE});
 
   Concat rstd("rstd");
-  rstd.attr.api.unit = ge::ComputeUnit::kUnitVector;
+  rstd.attr.api.unit = af::ComputeUnit::kUnitVector;
   rstd.x = {mean.y, mean.y};
   SetNodeScheduleAndTensor(rstd, exec_order, axes, ge::DT_FLOAT, {A, R}, {R, ONE});
 
@@ -399,11 +410,13 @@ void Add_Layer_Norm_Slice_BeforeAutofuse(ascir::HintGraph &graph) {
   Store rstd_out("rstd_out");
   InitInputNode(rstd_out, rstd.y, exec_order, axes, ge::DT_FLOAT, {A, ONE}, {ONE, ONE});
 
-  auto betaLocal = CreateDataAndLoad(graph, "beta", "betaLocal", exec_order, axes, ge::DT_FLOAT16, {ONE, R}, {ZERO, ONE});
-  auto gammaLocal = CreateDataAndLoad(graph, "gamma", "gammaLocal", exec_order, axes, ge::DT_FLOAT16, {ONE, R}, {ZERO, ONE});
+  Load betaLocal("betaLocal");
+  CreateDataAndLoad(betaLocal, graph, "beta", exec_order, axes, ge::DT_FLOAT16, {ONE, R}, {ZERO, ONE});
+  Load gammaLocal("gammaLocal");
+  CreateDataAndLoad(gammaLocal, graph, "gamma", exec_order, axes, ge::DT_FLOAT16, {ONE, R}, {ZERO, ONE});
 
   Concat y("y");
-  y.attr.api.unit = ge::ComputeUnit::kUnitVector;
+  y.attr.api.unit = af::ComputeUnit::kUnitVector;
   y.x = {rstd.y, betaLocal.y, gammaLocal.y, rstd.y};
   SetNodeScheduleAndTensor(y, exec_order, axes, ge::DT_FLOAT16, {A, R}, {R, ONE});
   Store y_out("y_out");
@@ -444,7 +457,7 @@ void Add_Layer_Norm_Slice_AfterScheduler(ascir::HintGraph &graph) {
 
   auto [aBO, aBI] = graph.BlockSplit(a, "sbi", "sbo");
   auto [rO, rI] = graph.TileSplit(r, "sii", "sio");
-  rI->align = ge::Symbol(16);
+  rI->align = af::Symbol(16);
   ApplySplitAndVectorize(graph, "x1", aBO->id, aBI->id, rI->id, rO->id, {rI->id});
   ApplySplitAndVectorize(graph, "x2", aBO->id, aBI->id, rI->id, rO->id, {rI->id});
   ApplySplitAndVectorize(graph, "bias", aBO->id, aBI->id, rI->id, rO->id, {rI->id});
@@ -486,16 +499,16 @@ void Add_Layer_Norm_Slice_AfterQueBufAlloc(ascir::HintGraph &graph) {
   SetGmOutputNode(bias);
 
   auto x1Local = graph.FindNode("x1Local");
-  SetQueueNode(x1Local, tensorID, x1Que, ge::Position::kPositionVecIn);
+  SetQueueNode(x1Local, tensorID, x1Que, af::Position::kPositionVecIn);
 
   auto x2Local = graph.FindNode("x2Local");
-  SetQueueNode(x2Local, tensorID, x2Que, ge::Position::kPositionVecIn);
+  SetQueueNode(x2Local, tensorID, x2Que, af::Position::kPositionVecIn);
 
   auto biasLocal = graph.FindNode("biasLocal");
-  SetQueueNode(biasLocal, tensorID, biasQue, ge::Position::kPositionVecIn);
+  SetQueueNode(biasLocal, tensorID, biasQue, af::Position::kPositionVecIn);
 
   auto mean = graph.FindNode("mean");
-  SetQueueNode(mean, tensorID, meanQue, ge::Position::kPositionVecOut);
+  SetQueueNode(mean, tensorID, meanQue, af::Position::kPositionVecOut);
 
   auto x_out = graph.FindNode("x_out");
   SetGmOutputNode(x_out);
@@ -504,7 +517,7 @@ void Add_Layer_Norm_Slice_AfterQueBufAlloc(ascir::HintGraph &graph) {
   SetGmOutputNode(mean_out);
 
   auto rstd = graph.FindNode("rstd");
-  SetQueueNode(rstd, tensorID, yQue, ge::Position::kPositionVecOut);
+  SetQueueNode(rstd, tensorID, yQue, af::Position::kPositionVecOut);
 
   auto rstd_out = graph.FindNode("rstd_out");
   SetGmOutputNode(rstd_out);
@@ -513,16 +526,16 @@ void Add_Layer_Norm_Slice_AfterQueBufAlloc(ascir::HintGraph &graph) {
   SetGmOutputNode(beta);
 
   auto betaLocal = graph.FindNode("betaLocal");
-  SetQueueNode(betaLocal, tensorID, betaQue, ge::Position::kPositionVecIn);
+  SetQueueNode(betaLocal, tensorID, betaQue, af::Position::kPositionVecIn);
 
   auto gamma = graph.FindNode("gamma");
   SetGmOutputNode(gamma);
 
   auto gammaLocal = graph.FindNode("gammaLocal");
-  SetQueueNode(gammaLocal, tensorID, gammaQue, ge::Position::kPositionVecIn);
+  SetQueueNode(gammaLocal, tensorID, gammaQue, af::Position::kPositionVecIn);
 
   auto y = graph.FindNode("y");
-  SetQueueNode(y, tensorID, yQue, ge::Position::kPositionVecOut);
+  SetQueueNode(y, tensorID, yQue, af::Position::kPositionVecOut);
 
   auto y_out = graph.FindNode("y_out");
   SetGmOutputNode(y_out);
@@ -531,19 +544,22 @@ void Add_Layer_Norm_Slice_AfterQueBufAlloc(ascir::HintGraph &graph) {
 void Add_Layer_Norm_Welford_BeforeAutofuse(ascir::HintGraph &graph) {
   auto ONE = af::sym::kSymbolOne;
   auto ZERO = af::sym::kSymbolZero;
-  auto A = ge::Symbol("A");
-  auto R = ge::Symbol("R");
+  auto A = af::Symbol("A");
+  auto R = af::Symbol("R");
   auto a = graph.CreateAxis("A", A);
   auto r = graph.CreateAxis("R", R);
   const std::initializer_list<int64_t> axes = {a.id, r.id};
 
   int exec_order = 0;
-  auto x1Local = CreateDataAndLoad(graph, "x1", "x1Local", exec_order, axes, ge::DT_FLOAT16, {A, R}, {R, ONE});
-  auto x2Local = CreateDataAndLoad(graph, "x2", "x2Local", exec_order, axes, ge::DT_FLOAT16, {A, R}, {R, ONE});
-  auto biasLocal = CreateDataAndLoad(graph, "bias", "biasLocal", exec_order, axes, ge::DT_FLOAT16, {A, R}, {R, ONE});
+  Load x1Local("x1Local");
+  CreateDataAndLoad(x1Local, graph, "x1", exec_order, axes, ge::DT_FLOAT16, {A, R}, {R, ONE});
+  Load x2Local("x2Local");
+  CreateDataAndLoad(x2Local, graph, "x2", exec_order, axes, ge::DT_FLOAT16, {A, R}, {R, ONE});
+  Load biasLocal("biasLocal");
+  CreateDataAndLoad(biasLocal, graph, "bias", exec_order, axes, ge::DT_FLOAT16, {A, R}, {R, ONE});
 
   Concat part1("part1");
-  part1.attr.api.unit = ge::ComputeUnit::kUnitVector;
+  part1.attr.api.unit = af::ComputeUnit::kUnitVector;
   part1.x = {x1Local.y, x2Local.y, biasLocal.y};
   SetNodeScheduleAndTensor(part1, exec_order, axes, ge::DT_FLOAT16, {A, R}, {R, ONE});
 
@@ -553,7 +569,7 @@ void Add_Layer_Norm_Welford_BeforeAutofuse(ascir::HintGraph &graph) {
   InitInputNode(x_fp32_out, part1.y, exec_order, axes, ge::DT_FLOAT, {A, R}, {R, ONE});
 
   Concat part1Final("part1Final");
-  part1Final.attr.api.unit = ge::ComputeUnit::kUnitVector;
+  part1Final.attr.api.unit = af::ComputeUnit::kUnitVector;
   part1Final.x = {part1.y, part1.y};
   SetNodeScheduleAndTensor(part1Final, exec_order, axes, ge::DT_FLOAT, {A, ONE}, {ONE, ONE});
 
@@ -564,11 +580,13 @@ void Add_Layer_Norm_Welford_BeforeAutofuse(ascir::HintGraph &graph) {
 
   Load x32("x32");
   InitInputNode(x32, x_fp32_out.y, exec_order, axes, ge::DT_FLOAT, {A, R}, {R, ONE});
-  auto betaLocal = CreateDataAndLoad(graph, "beta", "betaLocal", exec_order, axes, ge::DT_FLOAT16, {ONE, R}, {ZERO, ONE});
-  auto gammaLocal = CreateDataAndLoad(graph, "gamma", "gammaLocal", exec_order, axes, ge::DT_FLOAT16, {ONE, R}, {ZERO, ONE});
+  Load betaLocal("betaLocal");
+  CreateDataAndLoad(betaLocal, graph, "beta", exec_order, axes, ge::DT_FLOAT16, {ONE, R}, {ZERO, ONE});
+  Load gammaLocal("gammaLocal");
+  CreateDataAndLoad(gammaLocal, graph, "gamma", exec_order, axes, ge::DT_FLOAT16, {ONE, R}, {ZERO, ONE});
 
   Concat y("y");
-  y.attr.api.unit = ge::ComputeUnit::kUnitVector;
+  y.attr.api.unit = af::ComputeUnit::kUnitVector;
   y.x = {x32.y, betaLocal.y, gammaLocal.y, x32.y};
   SetNodeScheduleAndTensor(y, exec_order, axes, ge::DT_FLOAT16, {A, R}, {R, ONE});
   Store y_out("y_out");
@@ -667,21 +685,21 @@ void Add_Layer_Norm_Welford_AfterQueBufAlloc(ascir::HintGraph &graph) {
   SetGmOutputNodeByName(graph, "x1");
   SetGmOutputNodeByName(graph, "x2");
   SetGmOutputNodeByName(graph, "bias");
-  SetQueueNodeByName(graph, "x1Local", tensorID, x1Que, ge::Position::kPositionVecIn);
-  SetQueueNodeByName(graph, "x2Local", tensorID, x2Que, ge::Position::kPositionVecIn);
-  SetQueueNodeByName(graph, "biasLocal", tensorID, biasQue, ge::Position::kPositionVecIn);
-  SetQueueNodeByName(graph, "part1", tensorID, xQue, ge::Position::kPositionVecOut);
+  SetQueueNodeByName(graph, "x1Local", tensorID, x1Que, af::Position::kPositionVecIn);
+  SetQueueNodeByName(graph, "x2Local", tensorID, x2Que, af::Position::kPositionVecIn);
+  SetQueueNodeByName(graph, "biasLocal", tensorID, biasQue, af::Position::kPositionVecIn);
+  SetQueueNodeByName(graph, "part1", tensorID, xQue, af::Position::kPositionVecOut);
   SetGmOutputNodeByName(graph, "x_out");
   SetGmOutputNodeByName(graph, "x_fp32_out");
-  SetQueueNodeByName(graph, "part1Final", tensorID, meanQue, ge::Position::kPositionVecOut);
+  SetQueueNodeByName(graph, "part1Final", tensorID, meanQue, af::Position::kPositionVecOut);
   SetGmOutputNodeByName(graph, "mean_out");
   SetGmOutputNodeByName(graph, "rstd_out");
-  SetQueueNodeByName(graph, "x32", tensorID, vQue, ge::Position::kPositionVecIn);
+  SetQueueNodeByName(graph, "x32", tensorID, vQue, af::Position::kPositionVecIn);
   SetGmOutputNodeByName(graph, "beta");
-  SetQueueNodeByName(graph, "betaLocal", tensorID, x2Que, ge::Position::kPositionVecIn);
+  SetQueueNodeByName(graph, "betaLocal", tensorID, x2Que, af::Position::kPositionVecIn);
   SetGmOutputNodeByName(graph, "gamma");
-  SetQueueNodeByName(graph, "gammaLocal", tensorID, biasQue, ge::Position::kPositionVecIn);
-  SetQueueNodeByName(graph, "y", tensorID, yQue, ge::Position::kPositionVecOut);
+  SetQueueNodeByName(graph, "gammaLocal", tensorID, biasQue, af::Position::kPositionVecIn);
+  SetQueueNodeByName(graph, "y", tensorID, yQue, af::Position::kPositionVecOut);
   SetGmOutputNodeByName(graph, "y_out");
 }
 

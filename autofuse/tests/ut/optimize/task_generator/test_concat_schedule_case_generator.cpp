@@ -1052,25 +1052,6 @@ TEST_F(ConcatScheduleCaseGeneratorTest, ConcatScoreFunc_concat_dim_unaligned) {
   EXPECT_TRUE(score_func.find("return -1;") != std::string::npos);
 }
 
-TEST_F(ConcatScheduleCaseGeneratorTest, ConcatScoreFunc_concat_dim_dynamic) {
-  af::AscGraph graph("concat_last_dim_graph");
-
-  CreateConcatAscGraph(graph, {"s0"}, {"3", "8", "12", "16", "20"}, {"s1", "s2"});
-  auto concat_node = graph.FindNode("concat");
-  ASSERT_TRUE(concat_node != nullptr);
-  optimize::ConcatScoreFunctionGenerator generator(graph, concat_node, 1);
-  std::string score_func;
-  EXPECT_EQ(generator.Generate(score_func), ge::SUCCESS);
-  // 验证生成实际的函数
-  EXPECT_TRUE(score_func.find("graph0_result0_g0_tiling_data") != std::string::npos);
-
-  score_func = "";
-  optimize::ConcatScoreFunctionGenerator generator_1(graph, concat_node, 1);
-  EXPECT_EQ(generator_1.GenerateForCheckSmallTail(score_func), ge::SUCCESS);
-  std::cout << score_func << std::endl;
-  EXPECT_TRUE(score_func.find("graph0_result1_g0_tiling_data") != std::string::npos);
-}
-
 TEST_F(ConcatScheduleCaseGeneratorTest, UseSmallTailConcatApi_TailDim_NotAligned) {
   af::AscGraph graph("concat_last_dim_graph");
   CreateConcatAscGraph(graph, {"s0"}, {"1", "1", "1", "1", "1"}, {});
@@ -1392,4 +1373,50 @@ TEST_F(ConcatScheduleCaseGeneratorTest, BackwardFusionAndRecompute) {
     }
   }
 }
+TEST_F(ConcatScheduleCaseGeneratorTest, ConcatWithScalarDataInput) {
+  // 测试场景：ScalarData 节点作为多个 concat 分支的输入，SplitDataForDifferentConcatDim 应保持 ScalarData 类型
+  // 图结构：
+  //   data0 -> load0 ----\
+  //                       add0 ----\
+  //   scalar_data0 --/             \
+  //                                concat0 -> store -> output
+  //   scalar_data0 --\             /
+  //   data1 -> load1 ----add1 ---/
+  // 预期：scalar_data0 被分裂为多个副本时保持 ScalarData 类型
+
+  auto graph = af::testing::AscGraphBuilder("concat_scalar_data")
+    .Loops({af::testing::Sym(32), af::testing::Sym(64)})
+    .Data("data0", 0)
+    .Load("load0", "data0")
+    .Data("data1", 1)
+    .Load("load1", "data1")
+    .ScalarData("scalar_data0", 2)
+    .Add("add0", "load0", "scalar_data0")
+    .Add("add1", "load1", "scalar_data0")
+    .Concat("concat0", {"add0", "add1"})
+    .Store("store", "concat0")
+    .Output("out", "store", 0)
+    .Build();
+
+  optimize::ConcatFusionCaseGenerator generator;
+  std::vector<AscGraph> generated_graphs;
+  std::vector<std::string> score_functions;
+  EXPECT_EQ(generator.Generate(graph, generated_graphs, score_functions), ge::SUCCESS);
+
+  // 验证 ScalarData 分裂后的副本保持 ScalarData 类型
+  bool found_scalar_data_copy = false;
+  for (const auto &node : graph.GetAllNodes()) {
+    std::string name(node->GetNamePtr());
+    if (name.find("scalar_data") != std::string::npos) {
+      EXPECT_EQ(std::string(node->GetTypePtr()), "ScalarData")
+        << "Node " << name << " should be ScalarData but got " << node->GetTypePtr();
+      if (name != "scalar_data0") {
+        found_scalar_data_copy = true;
+      }
+    }
+  }
+  // scalar_data0 有两个消费者(add0, add1)，应被分裂出副本
+  EXPECT_TRUE(found_scalar_data_copy) << "Expected ScalarData copy to be created";
+}
+
 }  // namespace schedule

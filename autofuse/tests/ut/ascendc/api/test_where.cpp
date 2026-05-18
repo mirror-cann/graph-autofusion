@@ -142,6 +142,11 @@ class TestApiWhereUT : public testing::Test {
     // 验证结果
     uint32_t diff_count = Valid(param);
     EXPECT_EQ(diff_count, 0);
+    AscendC::GmFree(param.y);
+    AscendC::GmFree(param.x1);
+    AscendC::GmFree(param.x2);
+    AscendC::GmFree(param.x3);
+    AscendC::GmFree(param.exp);
   }
 // normal
   template <typename T>
@@ -394,6 +399,13 @@ class TestApiWhereUT : public testing::Test {
     // 验证结果
     uint32_t diff_count = NormalValid(param);
     EXPECT_EQ(diff_count, 0);
+    AscendC::GmFree(param.y);
+    AscendC::GmFree(param.x1);
+    AscendC::GmFree(param.x2);
+    AscendC::GmFree(param.x3);
+    AscendC::GmFree(param.exp);
+    AscendC::GmFree(param.x2_);
+    AscendC::GmFree(param.x3_);
   }
 
   static void WhereNormalTest(uint32_t m, uint32_t n, uint32_t x2_n = 0, uint32_t x3_n = 0) {
@@ -417,6 +429,11 @@ class TestApiWhereUT : public testing::Test {
     // 验证结果
     uint32_t diff_count = NormalValid(param);
     EXPECT_EQ(diff_count, 0);
+    AscendC::GmFree(param.y);
+    AscendC::GmFree(param.x1);
+    AscendC::GmFree(param.x2);
+    AscendC::GmFree(param.x3);
+    AscendC::GmFree(param.exp);
   }
 };
 

@@ -12,7 +12,6 @@
 username="$(id -un)"
 usergroup="$(id -gn)"
 is_quiet=n
-install_autofuse="n"
 curpath=$(dirname $(readlink -f "$0"))
 common_func_path="${curpath}/common_func.inc"
 pkg_version_path="${curpath}/../version.info"
@@ -27,7 +26,6 @@ if [ "$1" ]; then
     docker_root="${6}"
     is_recreate_softlink="${7}"
     pkg_version_dir="${8}"
-    install_autofuse="${9:-n}"
 fi
 
 if [ "${is_recreate_softlink}" = "y" ]; then
@@ -78,36 +76,6 @@ log() {
     echo "$log_format" >> "$logfile"
 }
 
-create_filtered_filelist() {
-    local src_filelist="$1"
-    local dst_filelist="$2"
-    if [ "$install_autofuse" = "y" ]; then
-        cp "$src_filelist" "$dst_filelist"
-    else
-        python3 - "$src_filelist" "$dst_filelist" <<'PY'
-import sys
-from pathlib import Path
-src = Path(sys.argv[1])
-dst = Path(sys.argv[2])
-lines = src.read_text().splitlines()
-autofuse_shared_libs = (
-    'libaihac_codegen.so',
-    'libaihac_ir.so',
-    'libaihac_ir_register.so',
-    'libgraph_af.so',
-    'libgraph_base_af.so',
-    'libaihac_symbolizer_af.so',
-)
-filtered = [
-    line for line in lines
-    if 'python/site-packages/autofuse' not in line
-    and not any(lib in line for lib in autofuse_shared_libs)
-]
-dst.write_text("\n".join(filtered) + "\n")
-PY
-    fi
-}
-
 ##########################################################################
 log "INFO" "step into run_graph_autofusion_uninstall.sh ......"
 log "INFO" "uninstall target dir $common_parse_dir, type $common_parse_type."
@@ -151,32 +119,11 @@ new_uninstall() {
     fi
 
     # 执行卸载
-    local uninstall_filelist="$SOURCE_FILELIST_FILE"
-    local filtered_filelist=""
-    if [ "$install_autofuse" != "y" ]; then
-        filtered_filelist="$(mktemp /tmp/graph_autofusion_filelist.uninstall.XXXXXX.csv)"
-        if [ $? -ne 0 ]; then
-            log "ERROR" "ERR_NO:0x0090;ERR_DES:failed to create temporary filelist."
-            return 1
-        fi
-        create_filtered_filelist "$SOURCE_FILELIST_FILE" "$filtered_filelist"
-        if [ $? -ne 0 ]; then
-            rm -f "$filtered_filelist"
-            log "ERROR" "ERR_NO:0x0090;ERR_DES:failed to prepare uninstall filelist."
-            return 1
-        fi
-        uninstall_filelist="$filtered_filelist"
-    fi
-
     custom_options="--custom-options=--common-parse-dir=$common_parse_dir,--logfile=$logfile,--stage=uninstall,--quiet=$is_quiet"
     sh "$SOURCE_INSTALL_COMMON_PARSER_FILE" --package="graph_autofusion" --uninstall --username="$username" --usergroup="$usergroup" ${recreate_softlink_option} \
         --version=$pkg_version --version-dir=$pkg_version_dir --use-share-info \
-        --docker-root="$docker_root" $custom_options "$common_parse_type" "$input_install_dir" "$uninstall_filelist"
-    local ret=$?
-    if [ -n "$filtered_filelist" ]; then
-        rm -f "$filtered_filelist"
-    fi
-    if [ $ret -ne 0 ]; then
+        --docker-root="$docker_root" $custom_options "$common_parse_type" "$input_install_dir" "$SOURCE_FILELIST_FILE"
+    if [ $? -ne 0 ]; then
         log "ERROR" "ERR_NO:0x0090;ERR_DES:failed to uninstall package."
         return 1
     fi

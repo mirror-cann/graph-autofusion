@@ -39,14 +39,14 @@ public:
 protected:
   void SetUp() override {
     es_graph_ = std::unique_ptr<es::Graph>(new es::Graph("Hi Lowering graph"));
-    af::PlatformContext::GetInstance().Reset();
+    ge::PlatformContext::GetInstance().Reset();
     auto stub_v2 = std::make_shared<RuntimeStubV2Common>();
     RuntimeStub::SetInstance(stub_v2);
     RegisterAllOpCreator();
   }
   void TearDown() override {
     RuntimeStub::Reset();
-    af::PlatformContext::GetInstance().Reset();
+    ge::PlatformContext::GetInstance().Reset();
     auto stub_v1 = std::make_shared<RuntimeStub>();
     RuntimeStub::SetInstance(stub_v1);
   }

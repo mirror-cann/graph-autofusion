@@ -26,7 +26,7 @@ void TracingRecorderManager::RecordDuration(TracingModule module, const std::vec
                                             uint64_t start, uint64_t duration) const {
   auto tracing_recorder = GetTracingRecorder(module);
   if (tracing_recorder == nullptr) {
-    GELOGW("Can not find tracing recorder of module[%u]", module);
+    GELOGW("Cannot find tracing recorder of module[%u]", module);
     return;
   }
   tracing_recorder->RecordDuration(msgs, start, duration);

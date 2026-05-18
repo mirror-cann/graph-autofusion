@@ -83,125 +83,25 @@ void CombineTilings(const std::map<std::string, std::string> &tilings, std::stri
   }
 }
 
-TEST_F(E2E_LoadAbsStore, ConstructGraphWithAscir) {
-  af::AscGraph test_graph("test_load_abs_store");
-  LoadAbsStore_BeforeAutofuse(test_graph);
-  GTEST_SKIP() << "Compare expect graph ir info here";
-}
-
-TEST_F(E2E_LoadAbsStore, GetApiInfo) {
-  af::AscGraph expect_graph("test_graph");
-  LoadAbsStore_BeforeAutofuse(expect_graph);
-
-  af::AscGraph expect_optimize_graph("expect_optimize_graph");
-  expect_optimize_graph.CopyFrom(expect_graph);
-  LoadAbsStore_AfterGetApiInfo(expect_optimize_graph);
-
-  af::AscGraph test_graph("test_graph");
-  LoadAbsStore_BeforeAutofuse(test_graph);
-
-  af::AscGraph test_optimize_graph("test_optimize_graph");
-  test_optimize_graph.CopyFrom(test_graph);
-  optimize::AscGraphInfoComplete::CompleteApiInfo(test_optimize_graph);
-
-  EXPECT_EQ(utils::DebugHintGraphStr(test_graph), utils::DebugHintGraphStr(expect_graph));
-}
-
-TEST_F(E2E_LoadAbsStore, Codegen_TilingData)
-{
-  af::AscGraph test_graph("test_graph");
-  LoadAbsStore_BeforeAutofuse(test_graph);
-  LoadAbsStore_AfterInferOutput(test_graph);
-
-  std::vector<af::AscGraph> test_impl_graphs = {af::AscGraph("test_impl_graph")};
-  test_impl_graphs[0].CopyFrom(test_graph);
-  LoadAbsStore_AfterGetApiInfo(test_impl_graphs[0]);
-  LoadAbsStore_AfterScheduler(test_impl_graphs[0]);
-  LoadAbsStore_AfterQueBufAlloc(test_impl_graphs[0]);
-
-  FusedScheduledResult fused_schedule_result;
-  auto tiling_data_code = codegen.GenerateTilingData(fused_schedule_result);
-  std::cout << tiling_data_code << std::endl;
-  const std::string test_res = R"rawliteral(#ifndef __Autofuse_Tiling_Data_H__
-#define __Autofuse_Tiling_Data_H__
-#include <stdint.h>
-#include "kernel_tiling/kernel_tiling.h"
-#define BEGIN_TILING_DATA_DEF_T(name) struct name {
-#define TILING_DATA_FIELD_DEF_T(type, name) \
-  type name; \
-  inline void set_##name(type value) { name = value; } \
-  inline type get_##name() { return name; } \
-  inline type* get_addr_##name() {return &name;}
-#define END_TILING_DATA_DEF_T };
-#define TILING_DATA_FIELD_DEF_T_STRUCT(struct_type, filed_name) \
-  struct_type filed_name;
-
-BEGIN_TILING_DATA_DEF_T(AutofuseTilingData)
-  TILING_DATA_FIELD_DEF_T(uint32_t, block_dim);
-  TILING_DATA_FIELD_DEF_T(uint32_t, corenum);
-  TILING_DATA_FIELD_DEF_T(uint32_t, ub_size);
-  TILING_DATA_FIELD_DEF_T(uint32_t, hbm_size);
-
-END_TILING_DATA_DEF_T;
-
-struct AutofuseTilingDataPerf {
-  AutofuseTilingData tiling_data;
-  double best_perf;
-};
-#endif
-)rawliteral";
-  EXPECT_EQ(tiling_data_code, test_res);
-}
-
-TEST_F(E2E_LoadAbsStore, Codegen_Tiling_With_Lambda)
-{
-  af::AscGraph test_graph("test_graph");
-  LoadAbsStore_BeforeAutofuse(test_graph);
-  LoadAbsStore_AfterInferOutput(test_graph);
-
-  std::vector<af::AscGraph> test_impl_graphs = {af::AscGraph("test_impl_graph")};
-  test_impl_graphs[0].CopyFrom(test_graph);
-  LoadAbsStore_AfterGetApiInfo(test_impl_graphs[0]);
-  LoadAbsStore_AfterScheduler(test_impl_graphs[0]);
-  LoadAbsStore_AfterQueBufAlloc(test_impl_graphs[0]);
-
-  std::string s0_source = R"([&]() -> int64_t {
-    auto *tensor = context->GetGraphInputTensor(0);
+std::map<std::string, std::string> MakeDefaultShapeInfo() {
+  std::string source_tmpl = R"([&]() -> int64_t {
+    auto *tensor = context->GetGraphInputTensor(IDX);
     if (tensor == nullptr) {
       return gert::Shape::kInvalidDimValue;
     }
-    return tensor->GetOriginShape().GetDim(1);
+    return tensor->GetOriginShape().GetDim(DIM);
   }())";
-  std::string s1_source = R"([&]() -> int64_t {
-    auto *tensor = context->GetGraphInputTensor(1);
-    if (tensor == nullptr) {
-      return gert::Shape::kInvalidDimValue;
-    }
-    return tensor->GetOriginShape().GetDim(1);
-  }())";
-  std::string s2_source = R"([&]() -> int64_t {
-    auto *tensor = context->GetGraphInputTensor(2);
-    if (tensor == nullptr) {
-      return gert::Shape::kInvalidDimValue;
-    }
-    return tensor->GetOriginShape().GetDim(1);
-  }())";
+  auto replace_src = [&source_tmpl](const std::string &idx, const std::string &dim) {
+    std::string s = source_tmpl;
+    s.replace(s.find("IDX"), 3, idx);
+    s.replace(s.find("DIM"), 3, dim);
+    return s;
+  };
+  return {{"s0", replace_src("0", "1")}, {"s1", replace_src("1", "1")}, {"s2", replace_src("2", "1")}};
+}
 
-  std::map<std::string, std::string> shape_info = {{"s0", s0_source},
-                                                   {"s1", s1_source},
-                                                   {"s2", s2_source}};
-  FusedScheduledResult fused_schedule_result;
-  fused_schedule_result.fused_graph_name = ge::AscendString(test_graph.GetName().c_str());
-  std::vector<ScheduledResult> schedule_results;
-  fused_schedule_result.node_idx_to_scheduled_results.push_back(schedule_results);
-  auto tiling_codes = codegen.GenerateTiling(fused_schedule_result, shape_info, "", "0");
-  for (const auto&[key,value] : tiling_codes) {
-    std::cout << key <<std::endl;
-    std::cout << value <<std::endl;
-  }
-  std::string tiling_code;
-  CombineTilings(tiling_codes, tiling_code);
-  std::string expect_code = R"rawliteral(#include <stdexcept>
+static std::string GetCodegenTilingWithLambdaExpectCode() {
+  return R"rawliteral(#include <stdexcept>
 #include <sstream>
 #include <cmath>
 #include "autofuse_tiling_data.h"
@@ -219,7 +119,8 @@ TEST_F(E2E_LoadAbsStore, Codegen_Tiling_With_Lambda)
 #include <cinttypes>
 #include <sys/syscall.h>
 #include <unistd.h>
-#include "toolchain/slog.h"
+#include <securec.h>
+#include "dlog_pub.h"
 #define OP_LOGD(name, fmt, ...)
 #define OP_LOGI(name, fmt, ...)
 #define GE_MODULE_NAME static_cast<int32_t>(45)
@@ -286,6 +187,7 @@ extern "C" int64_t AutofuseTilingWithConfig(const char *config_file, AutofuseTil
  const ResLimit *limit = (res_limit == nullptr) ? &g_no_limit_res : res_limit;
   tiling->set_block_dim(limit->aiv_num);
   tiling->set_ub_size(limit->ub_size);
+  (void)config_file;
   if (!optiling::GetTiling(*tiling, tiling_case_id)) {
     return -1;
   }
@@ -371,10 +273,10 @@ extern "C" ge::graphStatus TilingFunc(gert::TilingSymbolEvalContext *context)
   auto extend_context = reinterpret_cast<const gert::KernelContext *>(context);
   auto input_data_num =  extend_context->GetInputValue<size_t>(0U);
   auto parse = extend_context->GetInputValue<AfTilingParseData*>(input_data_num + 1);
-  auto tiling_data =  context->GetTilingData<AutofuseTilingData>();
   uint32_t workspace_size;
   uint32_t block_dim;
   static const char* config_file = nullptr;
+  auto tiling_data =  context->GetTilingData<AutofuseTilingData>();
   ResLimit limit;
   limit.aiv_num = parse->aiv_num;
   limit.ub_size = (uint32_t)parse->ub_size;
@@ -465,7 +367,7 @@ extern "C" const char* GenConstTilingData(char* config_file, int aiv_num, int ub
 #define TILING_DATA_FIELD_DEF_T(type, name) \
   type name; \
   inline void set_##name(type value) { name = value; } \
-  inline type get_##name() { return name; } \
+  inline type get_##name() const { return name; } \
   inline type* get_addr_##name() {return &name;}
 #define END_TILING_DATA_DEF_T };
 #define TILING_DATA_FIELD_DEF_T_STRUCT(struct_type, filed_name) \
@@ -515,76 +417,10 @@ extern "C" const char* GetTilingKeyKernelTypeForStatic()
 }
 #endif
 )rawliteral";
-  EXPECT_EQ(tiling_code, expect_code);
 }
 
-TEST_F(E2E_LoadAbsStore, Codegen_Tiling_With_Set_Vector_Core_Num)
-{
-  af::AscGraph test_graph("test_graph");
-  LoadAbsStore_BeforeAutofuse(test_graph);
-  LoadAbsStore_AfterInferOutput(test_graph);
-
-  std::vector<af::AscGraph> test_impl_graphs = {af::AscGraph("test_impl_graph")};
-  test_impl_graphs[0].CopyFrom(test_graph);
-  LoadAbsStore_AfterGetApiInfo(test_impl_graphs[0]);
-  LoadAbsStore_AfterScheduler(test_impl_graphs[0]);
-  LoadAbsStore_AfterQueBufAlloc(test_impl_graphs[0]);
-
-  std::string s0_source = R"([&]() -> int64_t {
-    auto *tensor = context->GetGraphInputTensor(0);
-    if (tensor == nullptr) {
-      return gert::Shape::kInvalidDimValue;
-    }
-    return tensor->GetOriginShape().GetDim(1);
-  }())";
-  std::string s1_source = R"([&]() -> int64_t {
-    auto *tensor = context->GetGraphInputTensor(1);
-    if (tensor == nullptr) {
-      return gert::Shape::kInvalidDimValue;
-    }
-    return tensor->GetOriginShape().GetDim(1);
-  }())";
-  std::string s2_source = R"([&]() -> int64_t {
-    auto *tensor = context->GetGraphInputTensor(2);
-    if (tensor == nullptr) {
-      return gert::Shape::kInvalidDimValue;
-    }
-    return tensor->GetOriginShape().GetDim(1);
-  }())";
-
-  std::map<std::string, std::string> shape_info = {{"s0", s0_source},
-                                                   {"s1", s1_source},
-                                                   {"s2", s2_source}};
-  FusedScheduledResult fused_schedule_result;
-  fused_schedule_result.fused_graph_name = ge::AscendString(test_graph.GetName().c_str());
-  std::vector<ScheduledResult> schedule_results;
-  fused_schedule_result.node_idx_to_scheduled_results.push_back(schedule_results);
-  auto tiling_codes = codegen.GenerateTiling(fused_schedule_result, shape_info, "", "20");
-}
-
-TEST_F(E2E_LoadAbsStore, Codegen_PGO_Code)
-{
-  af::AscGraph test_graph("test_graph");
-  LoadAbsStore_BeforeAutofuse(test_graph);
-  LoadAbsStore_AfterInferOutput(test_graph);
-
-  std::vector<af::AscGraph> test_impl_graphs = {af::AscGraph("test_impl_graph")};
-  test_impl_graphs[0].CopyFrom(test_graph);
-  LoadAbsStore_AfterGetApiInfo(test_impl_graphs[0]);
-  LoadAbsStore_AfterScheduler(test_impl_graphs[0]);
-  LoadAbsStore_AfterQueBufAlloc(test_impl_graphs[0]);
-
-  FusedScheduledResult fused_schedule_result;
-  fused_schedule_result.fused_graph_name = ge::AscendString(test_graph.GetName().c_str());
-  std::vector<ScheduledResult> schedule_results;
-  fused_schedule_result.node_idx_to_scheduled_results.push_back(schedule_results);
-  setenv("AUTOFUSE_FLAGS", "--autofuse_enable_pgo=true", 1);
-  att::AutoFuseConfig::MutablePgoStrategyConfig().is_first_init = true;
-  codegen::Codegen codegen(codegen::CodegenOptions{.tiling_lib_path="asdf",.tiling_lib_codegen_symbol="as"});
-  std::string pgo_codes = codegen.GeneratorPgo(fused_schedule_result, "");
-  setenv("AUTOFUSE_FLAGS", "--autofuse_enable_pgo=false", 1);
-  att::AutoFuseConfig::MutablePgoStrategyConfig().is_first_init = true;
-  std::string expect_code = R"rawliteral(#include <cinttypes>
+static std::string GetCodegenPGOCodeExpectCode() {
+  return R"rawliteral(#include <cinttypes>
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/file.h>
@@ -598,6 +434,7 @@ TEST_F(E2E_LoadAbsStore, Codegen_PGO_Code)
 #include <cstdint>
 #include <cerrno>
 #include <cstring>
+#include <securec.h>
 #include <fstream>
 #include <map>
 #include <string>
@@ -606,7 +443,7 @@ TEST_F(E2E_LoadAbsStore, Codegen_PGO_Code)
 #include <vector>
 
 #include "acl/acl.h"
-#include "toolchain/slog.h"
+#include "dlog_pub.h"
 #include "mspti.h"
 #include "tiling/platform/platform_ascendc.h"
 
@@ -683,7 +520,7 @@ void PgoSaveTilingKey(const AutofuseTilingData &tiling_data, double best_perf, s
   const size_t tiling_bytes = sizeof(tiling_data);
   const size_t tiling_bytes_align = (tiling_bytes + sizeof(int32_t) - 1) / sizeof(int32_t);
   std::vector<int32_t> tiling_i32(tiling_bytes_align, 0);
-  std::memcpy(tiling_i32.data(), &tiling_data, tiling_bytes);
+  memcpy_s(tiling_i32.data(), tiling_i32.size() * sizeof(int32_t), &tiling_data, tiling_bytes);
   for (size_t idx = 0; idx < tiling_i32.size(); ++idx) {
     out_file << tiling_i32[idx] << " ";
   }
@@ -961,6 +798,13 @@ static const char* GetResultCodeString(msptiResult result) {
 void UserBufferRequest(uint8_t **buffer, size_t *size, size_t *records_num) {
   DLOGD("[mspti] UserBufferRequest...");
   uint8_t *mspti_buffer = reinterpret_cast<uint8_t *>(malloc(mspti_buffer_size + ALIGN_SIZE));
+  if (mspti_buffer == nullptr) {
+    DLOGE("[mspti] malloc mspti_buffer failed");
+    *buffer = nullptr;
+    *size = 0;
+    *records_num = 0;
+    return;
+  }
   *buffer = ALIGN_BUFFER(mspti_buffer, ALIGN_SIZE);
   *size = mspti_buffer_size;
   *records_num = 0;
@@ -1321,66 +1165,10 @@ int main(int argc, char *argv[]) {
   return ret;
 }
 )rawliteral";
-  EXPECT_EQ(expect_code, pgo_codes);
 }
 
-TEST_F(E2E_LoadAbsStore, Codegen_Tiling_With_LambdaWithPGO)
-{
-  af::AscGraph test_graph("test_graph");
-  LoadAbsStore_BeforeAutofuse(test_graph);
-  LoadAbsStore_AfterInferOutput(test_graph);
-
-  std::vector<af::AscGraph> test_impl_graphs = {af::AscGraph("test_impl_graph")};
-  test_impl_graphs[0].CopyFrom(test_graph);
-  LoadAbsStore_AfterGetApiInfo(test_impl_graphs[0]);
-  LoadAbsStore_AfterScheduler(test_impl_graphs[0]);
-  LoadAbsStore_AfterQueBufAlloc(test_impl_graphs[0]);
-
-  std::string s0_source = R"([&]() -> int64_t {
-    auto *tensor = context->GetGraphInputTensor(0);
-    if (tensor == nullptr) {
-      return gert::Shape::kInvalidDimValue;
-    }
-    return tensor->GetOriginShape().GetDim(1);
-  }())";
-  std::string s1_source = R"([&]() -> int64_t {
-    auto *tensor = context->GetGraphInputTensor(1);
-    if (tensor == nullptr) {
-      return gert::Shape::kInvalidDimValue;
-    }
-    return tensor->GetOriginShape().GetDim(1);
-  }())";
-  std::string s2_source = R"([&]() -> int64_t {
-    auto *tensor = context->GetGraphInputTensor(2);
-    if (tensor == nullptr) {
-      return gert::Shape::kInvalidDimValue;
-    }
-    return tensor->GetOriginShape().GetDim(1);
-  }())";
-
-  std::map<std::string, std::string> shape_info = {{"s0", s0_source},
-                                                   {"s1", s1_source},
-                                                   {"s2", s2_source}};
-  FusedScheduledResult fused_schedule_result;
-  fused_schedule_result.fused_graph_name = ge::AscendString(test_graph.GetName().c_str());
-  std::vector<ScheduledResult> schedule_results;
-  fused_schedule_result.node_idx_to_scheduled_results.push_back(schedule_results);
-  setenv("AUTOFUSE_FLAGS", "--autofuse_enable_pgo=true", 1);
-  setenv("AUTOFUSE_DFX_FLAGS", "--autofuse_pgo_algo=pgo_algo_invalid;--autofuse_pgo_step_max=32", 1);
-  att::AutoFuseConfig::MutablePgoStrategyConfig().is_first_init = true;
-  codegen::Codegen codegen(codegen::CodegenOptions{.tiling_lib_path="asdf",.tiling_lib_codegen_symbol="as"});
-  auto tiling_codes = codegen.GenerateTiling(fused_schedule_result, shape_info, "", "1");
-  EXPECT_EQ(att::AutoFuseConfig::GetPgoStrategyConfig().enable_autofuse_pgo, "true");
-  EXPECT_EQ(att::AutoFuseConfig::GetPgoStrategyConfig().autofuse_pgo_algo_select, "core_select");
-  EXPECT_EQ(att::AutoFuseConfig::GetPgoStrategyConfig().autofuse_pgo_algo_step_max, 32);
-
-  for (const auto&[key,value] : tiling_codes) {
-    std::cout << key <<std::endl;
-    std::cout << value <<std::endl;
-  }
-  std::string tiling_code;
-  CombineTilings(tiling_codes, tiling_code);
-  std::string expect_code = R"rawliteral(#include <stdexcept>
+static std::string GetCodegenTilingWithLambdaWithPGOExpectCode() {
+  return R"rawliteral(#include <stdexcept>
 #include <sstream>
 #include <cmath>
 #include "autofuse_tiling_data.h"
@@ -1406,6 +1194,12 @@ public:
     static PgoConfig instance;
     return instance;
   }
+  void ResetRuntimeOverrides() {
+    need_change_solver_run = false;
+    pgo_threshold_index = 0;
+    pgo_ub_threshold_list = {0.2, 0.1, 0, 0.05, 0.1};
+    pgo_corenum_threshold_list = {0.4, 0.4, 1, 1, 0.8};
+  }
   ProfilingCallback single_callback;
   ProfilingBatchCallback batch_callback;
   int32_t pgo_algorithm = 1; // 0 for pruning, 1 for core num
@@ -1420,13 +1214,19 @@ private:
   PgoConfig(const PgoConfig &) = delete;
   PgoConfig &operator=(const PgoConfig &) = delete;
 };
+class PgoConfigRuntimeGuard {
+public:
+  PgoConfigRuntimeGuard() { PgoConfig::Instance().ResetRuntimeOverrides(); }
+  ~PgoConfigRuntimeGuard() { PgoConfig::Instance().ResetRuntimeOverrides(); }
+};
 
 #include <iostream>
 #include <fstream>
 #include <cinttypes>
 #include <sys/syscall.h>
 #include <unistd.h>
-#include "toolchain/slog.h"
+#include <securec.h>
+#include "dlog_pub.h"
 #define OP_LOGD(name, fmt, ...)
 #define OP_LOGI(name, fmt, ...)
 #define GE_MODULE_NAME static_cast<int32_t>(45)
@@ -1449,7 +1249,8 @@ extern "C" bool GetTiling(AutofuseTilingData& tiling_data, int32_t tilingCaseId=
 inline bool IsEqual(double a, double b) {
   return true;
 }
-bool PGOSearchTilingKey(std::vector<AutofuseTilingDataPerf>& tiling_data_list, AutofuseTilingData &tiling_data, int32_t tilingCaseId, AutofuseTilingData* autofuseTilingData, void* stream, uint32_t workspaceSize, double& out_best_perf) {
+struct SearchConfig;
+bool PGOSearchTilingKey(std::vector<AutofuseTilingDataPerf>& tiling_data_list, AutofuseTilingData &tiling_data, int32_t tilingCaseId, AutofuseTilingData* output_tiling_data, void* stream, uint32_t workspaceSize, double& out_best_perf, std::unordered_map<int64_t, uint64_t> &workspace_map, std::vector<uint32_t*> block_dim_vec={}, const SearchConfig *search_cfg=nullptr) {
   return true;
 }
 bool PGOByCoreNumSearchTilingKey(std::vector<AutofuseTilingData>& tiling_data_list, AutofuseTilingData* tiling_data, uint32_t max_block_dim=48) {
@@ -1526,7 +1327,7 @@ bool PGOGetTilingKey(const char *config_file_path, AutofuseTilingData &tiling_da
     }
     const size_t expect_num = (sizeof(tiling_data) + sizeof(int32_t) - 1) / sizeof(int32_t);
     tiling_i32.resize(expect_num, 0);
-    std::memcpy(&tiling_data, tiling_i32.data(), sizeof(tiling_data));
+    memcpy_s(&tiling_data, sizeof(tiling_data), tiling_i32.data(), sizeof(tiling_data));
     config_file.close();
     if (flag == 1) {
       best_tiling = tiling_data;
@@ -1559,7 +1360,7 @@ void PgoSaveTilingKey(const AutofuseTilingData &tiling_data, double best_perf, s
   const size_t tiling_bytes = sizeof(tiling_data);
   const size_t tiling_bytes_align = (tiling_bytes + sizeof(int32_t) - 1) / sizeof(int32_t);
   std::vector<int32_t> tiling_i32(tiling_bytes_align, 0);
-  std::memcpy(tiling_i32.data(), &tiling_data, tiling_bytes);
+  memcpy_s(tiling_i32.data(), tiling_i32.size() * sizeof(int32_t), &tiling_data, tiling_bytes);
   for (size_t idx = 0; idx < tiling_i32.size(); ++idx) {
     out_file << tiling_i32[idx] << " ";
   }
@@ -1779,10 +1580,10 @@ extern "C" ge::graphStatus TilingFunc(gert::TilingSymbolEvalContext *context)
   auto extend_context = reinterpret_cast<const gert::KernelContext *>(context);
   auto input_data_num =  extend_context->GetInputValue<size_t>(0U);
   auto parse = extend_context->GetInputValue<AfTilingParseData*>(input_data_num + 1);
-  auto tiling_data =  context->GetTilingData<AutofuseTilingData>();
   uint32_t workspace_size;
   uint32_t block_dim;
   static const char* config_file = "/test_graph_config.txt";
+  auto tiling_data =  context->GetTilingData<AutofuseTilingData>();
   ResLimit limit;
   limit.aiv_num = parse->aiv_num;
   limit.ub_size = (uint32_t)parse->ub_size;
@@ -1873,7 +1674,7 @@ extern "C" const char* GenConstTilingData(char* config_file, int aiv_num, int ub
 #define TILING_DATA_FIELD_DEF_T(type, name) \
   type name; \
   inline void set_##name(type value) { name = value; } \
-  inline type get_##name() { return name; } \
+  inline type get_##name() const { return name; } \
   inline type* get_addr_##name() {return &name;}
 #define END_TILING_DATA_DEF_T };
 #define TILING_DATA_FIELD_DEF_T_STRUCT(struct_type, filed_name) \
@@ -1923,6 +1724,206 @@ extern "C" const char* GetTilingKeyKernelTypeForStatic()
 }
 #endif
 )rawliteral";
+}
+
+
+TEST_F(E2E_LoadAbsStore, ConstructGraphWithAscir) {
+  af::AscGraph test_graph("test_load_abs_store");
+  LoadAbsStore_BeforeAutofuse(test_graph);
+  GTEST_SKIP() << "Compare expect graph ir info here";
+}
+
+TEST_F(E2E_LoadAbsStore, GetApiInfo) {
+  af::AscGraph expect_graph("test_graph");
+  LoadAbsStore_BeforeAutofuse(expect_graph);
+
+  af::AscGraph expect_optimize_graph("expect_optimize_graph");
+  expect_optimize_graph.CopyFrom(expect_graph);
+  LoadAbsStore_AfterGetApiInfo(expect_optimize_graph);
+
+  af::AscGraph test_graph("test_graph");
+  LoadAbsStore_BeforeAutofuse(test_graph);
+
+  af::AscGraph test_optimize_graph("test_optimize_graph");
+  test_optimize_graph.CopyFrom(test_graph);
+  optimize::AscGraphInfoComplete::CompleteApiInfo(test_optimize_graph);
+
+  EXPECT_EQ(utils::DebugHintGraphStr(test_graph), utils::DebugHintGraphStr(expect_graph));
+}
+
+TEST_F(E2E_LoadAbsStore, Codegen_TilingData)
+{
+  af::AscGraph test_graph("test_graph");
+  LoadAbsStore_BeforeAutofuse(test_graph);
+  LoadAbsStore_AfterInferOutput(test_graph);
+
+  std::vector<af::AscGraph> test_impl_graphs = {af::AscGraph("test_impl_graph")};
+  test_impl_graphs[0].CopyFrom(test_graph);
+  LoadAbsStore_AfterGetApiInfo(test_impl_graphs[0]);
+  LoadAbsStore_AfterScheduler(test_impl_graphs[0]);
+  LoadAbsStore_AfterQueBufAlloc(test_impl_graphs[0]);
+
+  FusedScheduledResult fused_schedule_result;
+  auto tiling_data_code = codegen.GenerateTilingData(fused_schedule_result);
+  std::cout << tiling_data_code << std::endl;
+  const std::string test_res = R"rawliteral(#ifndef __Autofuse_Tiling_Data_H__
+#define __Autofuse_Tiling_Data_H__
+#include <stdint.h>
+#include "kernel_tiling/kernel_tiling.h"
+#define BEGIN_TILING_DATA_DEF_T(name) struct name {
+#define TILING_DATA_FIELD_DEF_T(type, name) \
+  type name; \
+  inline void set_##name(type value) { name = value; } \
+  inline type get_##name() const { return name; } \
+  inline type* get_addr_##name() {return &name;}
+#define END_TILING_DATA_DEF_T };
+#define TILING_DATA_FIELD_DEF_T_STRUCT(struct_type, filed_name) \
+  struct_type filed_name;
+
+BEGIN_TILING_DATA_DEF_T(AutofuseTilingData)
+  TILING_DATA_FIELD_DEF_T(uint32_t, block_dim);
+  TILING_DATA_FIELD_DEF_T(uint32_t, corenum);
+  TILING_DATA_FIELD_DEF_T(uint32_t, ub_size);
+  TILING_DATA_FIELD_DEF_T(uint32_t, hbm_size);
+
+END_TILING_DATA_DEF_T;
+
+struct AutofuseTilingDataPerf {
+  AutofuseTilingData tiling_data;
+  double best_perf;
+};
+#endif
+)rawliteral";
+  EXPECT_EQ(tiling_data_code, test_res);
+}
+
+TEST_F(E2E_LoadAbsStore, Codegen_Tiling_With_Lambda)
+{
+  af::AscGraph test_graph("test_graph");
+  LoadAbsStore_BeforeAutofuse(test_graph);
+  LoadAbsStore_AfterInferOutput(test_graph);
+  std::vector<af::AscGraph> test_impl_graphs = {af::AscGraph("test_impl_graph")};
+  test_impl_graphs[0].CopyFrom(test_graph);
+  LoadAbsStore_AfterGetApiInfo(test_impl_graphs[0]);
+  LoadAbsStore_AfterScheduler(test_impl_graphs[0]);
+  LoadAbsStore_AfterQueBufAlloc(test_impl_graphs[0]);
+
+  auto shape_info = MakeDefaultShapeInfo();
+  FusedScheduledResult fused_schedule_result;
+  fused_schedule_result.fused_graph_name = af::AscendString(test_graph.GetName().c_str());
+  std::vector<ScheduledResult> schedule_results;
+  fused_schedule_result.node_idx_to_scheduled_results.push_back(schedule_results);
+  auto tiling_codes = codegen.GenerateTiling(fused_schedule_result, shape_info, "", "0");
+  for (const auto&[key,value] : tiling_codes) {
+    std::cout << key <<std::endl;
+    std::cout << value <<std::endl;
+  }
+  std::string tiling_code;
+  CombineTilings(tiling_codes, tiling_code);
+  std::string expect_code = GetCodegenTilingWithLambdaExpectCode();
+  EXPECT_EQ(tiling_code, expect_code);
+}
+
+TEST_F(E2E_LoadAbsStore, Codegen_Tiling_With_Set_Vector_Core_Num)
+{
+  af::AscGraph test_graph("test_graph");
+  LoadAbsStore_BeforeAutofuse(test_graph);
+  LoadAbsStore_AfterInferOutput(test_graph);
+
+  std::vector<af::AscGraph> test_impl_graphs = {af::AscGraph("test_impl_graph")};
+  test_impl_graphs[0].CopyFrom(test_graph);
+  LoadAbsStore_AfterGetApiInfo(test_impl_graphs[0]);
+  LoadAbsStore_AfterScheduler(test_impl_graphs[0]);
+  LoadAbsStore_AfterQueBufAlloc(test_impl_graphs[0]);
+
+  std::string s0_source = R"([&]() -> int64_t {
+    auto *tensor = context->GetGraphInputTensor(0);
+    if (tensor == nullptr) {
+      return gert::Shape::kInvalidDimValue;
+    }
+    return tensor->GetOriginShape().GetDim(1);
+  }())";
+  std::string s1_source = R"([&]() -> int64_t {
+    auto *tensor = context->GetGraphInputTensor(1);
+    if (tensor == nullptr) {
+      return gert::Shape::kInvalidDimValue;
+    }
+    return tensor->GetOriginShape().GetDim(1);
+  }())";
+  std::string s2_source = R"([&]() -> int64_t {
+    auto *tensor = context->GetGraphInputTensor(2);
+    if (tensor == nullptr) {
+      return gert::Shape::kInvalidDimValue;
+    }
+    return tensor->GetOriginShape().GetDim(1);
+  }())";
+
+  std::map<std::string, std::string> shape_info = {{"s0", s0_source},
+                                                   {"s1", s1_source},
+                                                   {"s2", s2_source}};
+  FusedScheduledResult fused_schedule_result;
+  fused_schedule_result.fused_graph_name = af::AscendString(test_graph.GetName().c_str());
+  std::vector<ScheduledResult> schedule_results;
+  fused_schedule_result.node_idx_to_scheduled_results.push_back(schedule_results);
+  auto tiling_codes = codegen.GenerateTiling(fused_schedule_result, shape_info, "", "20");
+}
+
+TEST_F(E2E_LoadAbsStore, Codegen_PGO_Code)
+{
+  af::AscGraph test_graph("test_graph");
+  LoadAbsStore_BeforeAutofuse(test_graph);
+  LoadAbsStore_AfterInferOutput(test_graph);
+  std::vector<af::AscGraph> test_impl_graphs = {af::AscGraph("test_impl_graph")};
+  test_impl_graphs[0].CopyFrom(test_graph);
+  LoadAbsStore_AfterGetApiInfo(test_impl_graphs[0]);
+  LoadAbsStore_AfterScheduler(test_impl_graphs[0]);
+  LoadAbsStore_AfterQueBufAlloc(test_impl_graphs[0]);
+  FusedScheduledResult fused_schedule_result;
+  fused_schedule_result.fused_graph_name = af::AscendString(test_graph.GetName().c_str());
+  std::vector<ScheduledResult> schedule_results;
+  fused_schedule_result.node_idx_to_scheduled_results.push_back(schedule_results);
+  setenv("AUTOFUSE_FLAGS", "--autofuse_enable_pgo=true", 1);
+  att::AutoFuseConfig::MutablePgoStrategyConfig().is_first_init = true;
+  codegen::Codegen codegen(codegen::CodegenOptions{.tiling_lib_path="asdf",.tiling_lib_codegen_symbol="as"});
+  std::string pgo_codes = codegen.GeneratorPgo(fused_schedule_result, "");
+  setenv("AUTOFUSE_FLAGS", "--autofuse_enable_pgo=false", 1);
+  att::AutoFuseConfig::MutablePgoStrategyConfig().is_first_init = true;
+  std::string expect_code = GetCodegenPGOCodeExpectCode();
+  EXPECT_EQ(expect_code, pgo_codes);
+}
+
+TEST_F(E2E_LoadAbsStore, Codegen_Tiling_With_LambdaWithPGO)
+{
+  af::AscGraph test_graph("test_graph");
+  LoadAbsStore_BeforeAutofuse(test_graph);
+  LoadAbsStore_AfterInferOutput(test_graph);
+  std::vector<af::AscGraph> test_impl_graphs = {af::AscGraph("test_impl_graph")};
+  test_impl_graphs[0].CopyFrom(test_graph);
+  LoadAbsStore_AfterGetApiInfo(test_impl_graphs[0]);
+  LoadAbsStore_AfterScheduler(test_impl_graphs[0]);
+  LoadAbsStore_AfterQueBufAlloc(test_impl_graphs[0]);
+
+  auto shape_info = MakeDefaultShapeInfo();
+  FusedScheduledResult fused_schedule_result;
+  fused_schedule_result.fused_graph_name = af::AscendString(test_graph.GetName().c_str());
+  std::vector<ScheduledResult> schedule_results;
+  fused_schedule_result.node_idx_to_scheduled_results.push_back(schedule_results);
+  setenv("AUTOFUSE_FLAGS", "--autofuse_enable_pgo=true", 1);
+  setenv("AUTOFUSE_DFX_FLAGS", "--autofuse_pgo_algo=pgo_algo_invalid;--autofuse_pgo_step_max=32", 1);
+  att::AutoFuseConfig::MutablePgoStrategyConfig().is_first_init = true;
+  codegen::Codegen codegen(codegen::CodegenOptions{.tiling_lib_path="asdf",.tiling_lib_codegen_symbol="as"});
+  auto tiling_codes = codegen.GenerateTiling(fused_schedule_result, shape_info, "", "1");
+  EXPECT_EQ(att::AutoFuseConfig::GetPgoStrategyConfig().enable_autofuse_pgo, "true");
+  EXPECT_EQ(att::AutoFuseConfig::GetPgoStrategyConfig().autofuse_pgo_algo_select, "core_select");
+  EXPECT_EQ(att::AutoFuseConfig::GetPgoStrategyConfig().autofuse_pgo_algo_step_max, 32);
+
+  for (const auto&[key,value] : tiling_codes) {
+    std::cout << key <<std::endl;
+    std::cout << value <<std::endl;
+  }
+  std::string tiling_code;
+  CombineTilings(tiling_codes, tiling_code);
+  std::string expect_code = GetCodegenTilingWithLambdaWithPGOExpectCode();
   EXPECT_EQ(tiling_code, expect_code);
 
   ScheduledResult scheduled_result;

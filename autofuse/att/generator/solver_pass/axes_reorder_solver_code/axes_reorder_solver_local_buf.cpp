@@ -309,6 +309,7 @@ std::string GenLocalBufTiling(bool enable_equal_order_tiling) {
     return R"(
 bool AxesReorderSolver::LocalBufTiling(const bool is_tuning, const bool block_loop_auto_tune,
                                        const bool enable_equal_order) {
+  (void)block_loop_auto_tune;
   if (is_tuning) {
     return NaiveLocalBufTiling(enable_equal_order);
   } else {
@@ -320,6 +321,7 @@ bool AxesReorderSolver::LocalBufTiling(const bool is_tuning, const bool block_lo
     // 使能为 false 时：无参数调用
     return R"(
 bool AxesReorderSolver::LocalBufTiling(const bool is_tuning, const bool block_loop_auto_tune) {
+  (void)block_loop_auto_tune;
   if (is_tuning) {
     return NaiveLocalBufTiling();
   } else {

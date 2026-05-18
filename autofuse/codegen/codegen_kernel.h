@@ -17,6 +17,7 @@
 #include "ascgen_log.h"
 #include "ascir_ops_utils.h"
 #include "schedule_result.h"
+#include "codegen_kernel_loop.h"
 
 namespace codegen {
 class Code {
@@ -88,6 +89,9 @@ class Axis : public ascir::Axis, public Variable {
   af::Expression size_expr;
 
   bool is_split_b { false };
+
+  bool IsOuter() const;
+  bool IsInner() const;
 };
 
 class Tensor : public Variable {
@@ -144,7 +148,7 @@ class Tensor : public Variable {
   Status Init();
 
   // For GlobalTensor
-  Status SetGlobalBuffer(GM_ADDR global, const std::string& offset, std::string &result) const;
+  Status SetGlobalBuffer(Variable global, const std::string& offset, std::string &result) const;
 
   bool IsUbScalar() const {
     return is_ub_scalar && need_gen_get_value_of_ub_scalar;
@@ -273,8 +277,7 @@ class Tiler : public Code {
   void BlockOutterAxisDefine(const ascir::AxisId id, std::stringstream &ss);
   /* 尾块生成处理 */
   std::string GenAxisSizeNew(const ascir::AxisId id) const;
-  std::string GenInnerLoopSizeAndActualSize(const ascir::AxisId id, const ascir::AxisId loop_axis,
-                                            bool is_need_divide_sum, bool is_define = true) const;
+  std::string GenInnerLoopSizeAndActualSize(const ascir::AxisId id, const ascir::AxisId loop_axis) const;
   std::string CalcFromAxis(const ascir::AxisId id, bool is_define = true) const;
 
  private:
@@ -334,6 +337,7 @@ class TPipe : public Variable {
   }
   Status BlkTensorAllocAndInit(std::string &result) const;
   void SetUsingAttCalcQBTSizeConfig(bool using_att_calc_qbt_size);
+  void SetUsingGlobalTpipe(bool using_global_tpipe);
   Status GetCVFusionCubeOutputUBTensorIdAndQueId(const ascir::ImplGraph &graph);
   Status LocalTensorDefine(std::string &result) const;
   std::string TensorSizeDefine() const;
@@ -346,181 +350,7 @@ class TPipe : public Variable {
   Status ParseTBufReuse(TBuf buf, std::string& reuse_dtype_name, bool& is_buf_reuse,
                         std::vector<const Tensor *>& reuse_buf_tensors, std::stringstream &tensor_size_max) const;
   bool using_att_calc_qbt_size_ = true;
-};
-
-struct ApiCall;
-struct Loop;
-enum class LoopType : int8_t {
-  CALL = 0,
-  LOOP
-};
-enum class BoolType : int8_t {
-  FALSE = 0,
-  TRUE = 1,
-  FAILED = 2
-};
-
-struct LoopBody {
-  LoopType type;
-  union {
-    ApiCall *call;
-    Loop *loop;
-  };
-};
-
-struct ApiTensor {
-  ascir::TensorId id;
-  ascir::ReuseId reuse_id;
-  struct ApiTensor* reuse_from;
-  struct ApiTensor* reuse_next;
-  struct ApiTensor* share_prev;
-  struct ApiTensor* share_next;
-  mutable int32_t share_order;
-  const ApiCall* write;
-  std::vector<const ApiCall*> reads;
-
-  ApiTensor();
-};
-
-// todo: 后面api_attr中属性都要收编到子类中, 收编完成之后, 删除api_attr; 不允许在ApiAttr中新增字段
-struct ApiAttr {
-  af::Expression offset;
-  float negative_slope = 0.0;
-  int64_t gather_axis = 0;
-  bool negative_index_support = false;
-};
-
-enum class ApiScene : int8_t {
-  kDefault = 0,          // 非CV融合场景
-  kCVFuseUBLoad,         // CV融合场景, load节点的输入tensor在UB上(Cube的输出)
-};
- 
-enum class ComputeStage : int8_t {
-  kDefault = 0,          // 非CV融合场景
-  kCVFuseStage1,         // CV融合场景阶段1, Cube输出Tensor的生命周期之内
-  kCVFuseStage2,         // CV融合场景阶段2, Cube输出Tensor的生命周期之外
-};
- 
-struct ApiCallContext {
-  ApiScene scene = ApiScene::kDefault;
-  ComputeStage stage = ComputeStage::kDefault;
- 
-  bool isCVFusion() const {
-    return scene != ApiScene::kDefault;
-  }
-};
-
-class ApiCall {
- public:
-  // Constructor and Destructor
-  virtual ~ApiCall() = default;
-  explicit ApiCall(const std::string &api_name) noexcept : api_name_(api_name) {}
-
-  // Public Member Function
-  virtual Status Init(const ascir::NodeView &node);
-  virtual Status ParseAttr(const ascir::NodeView &node);
-  virtual Status PreProcess(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
-                            const std::vector<std::reference_wrapper<const Tensor>> &outputs,
-                            std::string &result) const;
-  virtual Status GenerateFuncDefinition(const TPipe &tpipe, const Tiler &tiler, std::stringstream &ss) const;
-  virtual Status Generate(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
-                          const std::vector<std::reference_wrapper<const Tensor>> &input,
-                          const std::vector<std::reference_wrapper<const Tensor>> &output, std::string &result) const;
-  virtual Status PostProcess(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
-                             const std::vector<std::reference_wrapper<const Tensor>> &outputs,
-                             std::string &result) const;
-  virtual Status Generate(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
-                          std::string &result) const;
-  virtual Status GenerateMacro(std::string &result) const;
-  virtual bool AreContiguousBufsPreferred() const {
-    return false;
-  };
-
-  bool FreeInputs(const TPipe &tpipe, std::stringstream &ss) const;
-  bool FreeUnusedOutputs(const TPipe &tpipe, std::stringstream &ss) const;
-  bool SyncOutputs(const TPipe &tpipe, std::stringstream &ss) const;
-  bool WaitInputs(const TPipe &tpipe, std::stringstream &ss) const;
-  bool IsReadOutersideWrite(ascir::AxisId &target_id) const;
-  Status AllocOutputs(const TPipe &tpipe, std::stringstream &ss, bool create_sync = true) const;
-  bool IsUnitLastRead(const ApiTensor &tensor) const;
-
-  // Public Member Variables
-  std::string api_name_;
-  ascir::AxisId axis;
-  std::string type; // ascir tpye
-  int64_t depth;
-  ascir::ComputeUnit unit;
-  ascir::ComputeType compute_type;
-  std::vector<ApiTensor> outputs;
-  std::vector<const ApiTensor *> inputs;
-  bool enable_cache{false};
-  bool is_input_tbuf_contiguous = false;
-  std::string enable_cache_with_condition;
-  // 用于标记Call节点执行状态
-  // broadcast cache场景：在Call节点外生成控制条件
-  af::ExecuteCondition exec_condition;
-  // todo: 后面api_attr中属性都要收编到子类中, 收编完成之后, 删除api_attr; 不允许在ApiAttr中新增字段
-  ApiAttr api_attr;
-  ApiCallContext api_call_context = {ApiScene::kDefault, ComputeStage::kDefault};
-  std::unordered_map<int64_t, int64_t> tmp_buf_id;
-
- private:
-  bool WaitInputVector(const TPipe &tpipe, const ApiTensor *in, const Tensor &t, std::stringstream &ss) const;
-  bool WaitInputMte(const TPipe &tpipe, const ApiTensor *in, const Tensor &t, std::stringstream &ss) const;
-  BoolType WaitShareInputs(const TPipe &tpipe, const ApiTensor *in, const Tensor t, std::stringstream &ss) const;
-  BoolType AllocShareOutputs(const TPipe &tpipe, const ApiTensor &out, const Tensor t, std::stringstream &ss) const;
-  Status HandleVecOutAlloc(const TPipe &tpipe, const ApiTensor &out, const Tensor &t, std::stringstream &ss,
-                           bool with_define) const;
-
- private:
- // 新增字段
-
-};
-
-struct Loop {
-  ascir::AxisId axis_id;
-  struct Loop* parent;
-  std::vector<LoopBody> bodys;
-  std::set<const ApiCall *> used_calls = {};
-  bool is_graph_has_reduce_node = false;  // 当前图上是否有reduce节点
-  bool is_ar = false;                     // 如果图上有reduce节点  是否为AR
-  explicit Loop(const ascir::AxisId axis);
-  ComputeStage compute_stage = ComputeStage::kDefault;
-
-  void AddLoop(Loop *loop);
-  void AddCall(ApiCall *call);
-
-  /* 将会通过new 申请内存，需要通过Destruct释放 */
-  Status ConstructFromNodes(ascir::NodeViewVisitorConst nodes, const Tiler &tiler, TPipe& tpipe);
-  void Destruct();
-
-  Status Generate(const Tiler& tiler, const TPipe& tpipe, std::string &result,
-                  ComputeStage stage = ComputeStage::kDefault);
-  const Tensor& GetReduceApiTensor(const TPipe &tpipe, bool is_input = false) const;
-  void CollectTensorCrossLoop(std::map<ascir::AxisId, std::vector<ApiCall *>> &api_calls);
-  Status ActualSizeDefine(const Tiler &tiler, const TPipe &tpipe, std::string dtype_name, std::string &result);
-
- private:
-  Status GenerateLoop(const Tiler& tiler, const TPipe& tpipe, std::vector<ascir::AxisId>& current_axis, std::stringstream& ss);
-  Status GenerateBody(const Tiler& tiler, const TPipe& tpipe, std::vector<ascir::AxisId>& current_axis,
-                      std::stringstream& ss);
-  void GenerateEnCacheCondition(const Tiler &tiler, const TPipe &tpipe, const Axis &axis, std::stringstream &ss) const;
-  bool IsFindInUsedCalls(const ApiCall *call) const;
-  std::string GetReduceType() const;
-  bool IsBodyContainLoop() const;
-};
-
-struct ReduceOpType {
-  static constexpr int32_t kMin = 0;
-  static constexpr int32_t kMax = 1;
-  static constexpr int32_t kSum = 2;
-  static constexpr int32_t kProd = 3;
-  static constexpr int32_t kAny = 4;
-  static constexpr int32_t kAll = 5;
-  static constexpr int32_t kMean = 6;
-  static constexpr int32_t kArgMax = 7;
-  static constexpr int32_t kArgMaxMultiRPhase1 = 8;
-  static constexpr int32_t kArgMaxMultiRPhase2 = 9;
+  bool using_global_tpipe_ = false;
 };
 
 struct CodegenConfig {
@@ -549,7 +379,7 @@ struct TilingFuncCall {
 class Kernel {
  public:
   GM_ADDR workspace_arg;
-  std::vector<GM_ADDR> inputs;
+  std::vector<Variable> inputs;
   std::vector<ascir::TensorId> input_tensors;
   std::vector<GM_ADDR> outputs;
   std::vector<ascir::TensorId> output_tensors;
@@ -582,12 +412,12 @@ class Kernel {
   std::string GenTilingFuncCall(const std::string &impl_graph_name, const std::string &tiling_data) const;
   std::string GenCubeTilingFuncCall(const ascir::ImplGraph &impl_graph) const;
   std::string GenCubeTilingSingleFuncCall(const bool is_batch, const bool is_cv_fuse, bool is_bias,
-                                          bool is_offset_w) const;
-  ge::Status GenCubeCommonTiling(std::stringstream &ss, const bool is_batch) const;
+                                          bool is_offset_w, bool is_conv2d) const;
+  ge::Status GenCubeCommonTiling(std::stringstream &ss, const bool is_batch, bool is_conv2d = false) const;
   std::string GenCubeCommonTilingSingleFuncCall(const ascir::ImplGraph &impl_graph) const;
   static std::string KernelFuncDeclare(const std::string &graph_name,
                                        const ascir::FusedScheduledResult &fused_schedule_result,
-                                       bool use_list_tensor = false, bool is_inductor = false);
+                                       bool use_list_tensor = false, bool is_inductor = false, bool is_conv2d = false);
   Status GlobalTensorInit(std::string &result) const;
   Status GlobalTensorAssign(std::string &result) const;
   Status GlobalTensorDefine(std::string &result) const;
@@ -601,17 +431,17 @@ class Kernel {
   Status ParseScalarNeedGenBlkTensors(const ascir::NodeView &node, ascir::TensorId id);
   Status OutputTensorIsUbScalar(const ascir::NodeView &node, bool &is_ub_scalar) const;
   Status GenerateKernelByNode(const ascir::ImplGraph &graph, std::stringstream &ss,
-                              std::unordered_set<const std::string *> &kernel_file_ptr);
+                              std::unordered_set<const std::string *> &kernel_file_ptr, bool is_dynamic);
   Status GenerateMacro(std::stringstream &ss);
   Status GenerateSubGraphFuncDef(const Loop *loop, std::stringstream &ss) const;
   void SetUsingAttCalcQBTSizeConfig(bool using_att_calc_qbt_size);
   void SetEnableParallelCompile(bool enable_parallel_compile);
   bool GetEnableParallelCompile() const;
-  Status GenerateVecFuncOfCVFusion(std::stringstream &result, bool vector_no_db_flag);
+  Status GenerateVecFuncOfCVFusion(std::stringstream &result, bool vector_no_db_flag, bool is_conv2d);
   Status InitCVFusionAddr(std::stringstream &result, bool vector_no_db_flag);
   static std::string GenKernelFuncCallForInductor(const ascir::FusedScheduledResult &fused_schedule_result);
   Status ParseUbScalarOptimizationInfo(const ascir::NodeView& node, Tensor& t, ascir::TensorId id, bool is_all_link_vf);
-  Status JudgeIsLoadLinkStoreAndVec(const ascir::NodeView& node, Tensor& t, ascir::TensorId id);
+  Status JudgeIsLoadLinkStoreAndVec(const ascir::NodeView& node, Tensor& t, ascir::TensorId id) const;
  private:
   static std::vector<std::string> GenPackingFunctions(std::stringstream &ss_define,
                                                       const std::vector<Variable> &kernel_args,

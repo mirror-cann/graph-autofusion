@@ -108,7 +108,7 @@ af::ExecuteCondition NodeCacheMarker::DoesNodeNeedCache(const af::AscNodePtr &no
 
   std::vector<int64_t> in_axis;
   std::vector<af::Expression> in_repeats;
-  if (ScheduleUtils::IsBroadcast(node) && af::ops::IsOps<af::ascir_op::Scalar>(node->GetInDataNodes().at(0))) {
+  if (ScheduleUtils::IsBroadcast(node) && ScheduleUtils::IsScalarLikeNode(node->GetInDataNodes().at(0))) {
     // Scalar+Broadcast
     GELOGD("Graph [%s], find scalar broadcast [%s]", graph_.GetName().c_str(), node->GetNamePtr());
     in_axis = node->outputs[0].attr.axis;
@@ -255,7 +255,7 @@ af::Status NodeCacheMarker::MarkIfNodeNeedsCache() {
     }
   }
   if (store_nodes.empty()) {
-    GELOGD("Graph(%s) has no store node, return.", graph_.GetName().c_str());
+    GELOGD("Graph(%s) has no store node, returning.", graph_.GetName().c_str());
     return ge::SUCCESS;
   }
   visited_nodes_.clear();

@@ -89,6 +89,7 @@ private:
   af::AscNodePtr reduce_node;
   Status CreateVarAxis();
   Status CompleteNodeAttr(af::AscNodePtr &node, bool before_reduce, const af::AscTensorDataType& data_type);
+  Status CompleteNodeAttrBeforeReduce(af::AscNodePtr &node);
   Status CompletePhaseGraph(ReduceType &phase2graph_reduce);
   Status PartitionByReduce(ascir::ImplGraph &impl_graph, ReduceType &phase2graph_reduce,
                            std::vector<af::AscNodePtr> &node_order);

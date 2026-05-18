@@ -23,8 +23,12 @@
 namespace ascgen_utils {
   const string INVALID_TILING = "invalid_tiling";
   constexpr int32_t NOT_SUPPORT_BRC_INLINE = -1;
+
   const std::string kKernelTaskTypeAIVOnly = "KERNEL_TYPE_AIV_ONLY";
   const std::string kKernelTaskTypeMixAIVOneZero = "KERNEL_TYPE_MIX_AIV_1_0";
+  const std::string kKernelTaskTypeAICOnly = "KERNEL_TYPE_AIC_ONLY";
+  const std::string kKernelTaskTypeMixAICOneTwo = "KERNEL_TYPE_MIX_AIC_1_2";
+  const std::string kKernelTaskTypeMixAICOneOne = "KERNEL_TYPE_MIX_AIC_1_1";
 
   const std::string kMatMul = "MatMul";
   const std::string kMatMulBias = "MatMulBias";
@@ -34,6 +38,10 @@ namespace ascgen_utils {
   const std::string kBatchMatMulBias = "BatchMatMulBias";
   const std::string kBatchMatMulOffset = "BatchMatMulOffset";
   const std::string kBatchMatMulOffsetBias = "BatchMatMulOffsetBias";
+  const std::string kConv2D = "Conv2D";
+  const std::string kConv2DBias = "Conv2DBias";
+  const std::string kConv2DOffset = "Conv2DOffset";
+  const std::string kConv2DOffsetBias = "Conv2DOffsetBias";
 
   struct MatMulAttr {
     int64_t transpose_x1{0};
@@ -53,6 +61,21 @@ namespace ascgen_utils {
     std::string k;
   };
 
+  struct Conv2DAttr {
+    std::vector<int64_t> strides;
+    std::vector<int64_t> pads;
+    std::vector<int64_t> dilations;
+    int64_t groups{1};
+    std::string pad_mode{"SPECIFIC"};
+    std::string data_format{"NCHW"};
+    int64_t offset_x{0};
+    bool enable_hf32{false};
+    bool is_bias{false};
+    bool is_offset_w{false};
+    std::string output_dtype;
+    std::string input_dtype;
+  };
+
 #define GET_MATMUL_ATTRS(Node, AttrType, AttrData) \
     auto mm_attr = node->attr.ir_attr->DownCastTo<af::ascir_op::AttrType::Asc##AttrType##IrAttrDef>(); \
     GE_ASSERT_NOTNULL(mm_attr); \
@@ -70,6 +93,18 @@ namespace ascgen_utils {
     GE_ASSERT_SUCCESS(mm_attr->GetOffset_x(AttrData.offset_x)); \
     GE_ASSERT_SUCCESS(mm_attr->GetAdj_x1(AttrData.adj_x1)); \
     GE_ASSERT_SUCCESS(mm_attr->GetAdj_x2(AttrData.adj_x2));
+
+#define GET_CONV2D_ATTRS(Node, AttrType, AttrData) \
+    auto conv_attr = node->attr.ir_attr->DownCastTo<af::ascir_op::AttrType::Asc##AttrType##IrAttrDef>(); \
+    GE_ASSERT_NOTNULL(conv_attr); \
+    GE_ASSERT_SUCCESS(conv_attr->GetStrides(AttrData.strides)); \
+    GE_ASSERT_SUCCESS(conv_attr->GetPads(AttrData.pads)); \
+    GE_ASSERT_SUCCESS(conv_attr->GetDilations(AttrData.dilations)); \
+    GE_ASSERT_SUCCESS(conv_attr->GetGroups(AttrData.groups)); \
+    GE_ASSERT_SUCCESS(conv_attr->GetPad_mode(AttrData.pad_mode)); \
+    GE_ASSERT_SUCCESS(conv_attr->GetData_format(AttrData.data_format)); \
+    GE_ASSERT_SUCCESS(conv_attr->GetOffset_x(AttrData.offset_x)); \
+    GE_ASSERT_SUCCESS(conv_attr->GetEnable_hf32(AttrData.enable_hf32))
 
   struct MergeBrcAxisParams {
     const std::vector<af::Expression> &repeats;
@@ -95,8 +130,9 @@ namespace ascgen_utils {
   bool IsEmptyTensorSence(const ascir::FusedScheduledResult& fused_schedule_result);
 
   template <typename T>
-  static std::string VectorToStr(const std::vector<T> &vec) {
-    std::string result = "[";
+  static std::string VectorToStr(const std::vector<T> &vec, char start = '[', char end = ']') {
+    std::string result;
+    result += start;
     for (size_t i = 0; i < vec.size(); ++i) {
       if constexpr (std::is_same<T, af::Expression>::value) {
         result += (vec[i].Str().get());
@@ -107,7 +143,7 @@ namespace ascgen_utils {
         result += ", ";
       }
     }
-    result += "]";
+    result += end;
     return result;
   }
   af::Expression GetTensorSize(const af::AscTensor &tensor);
@@ -145,6 +181,7 @@ namespace ascgen_utils {
   bool IsLinkToBrdcst(const ascir::NodeView &node, const std::set<std::string> &brc_types);
 
   std::string FormatExpression(const std::string &expression);
+  std::string GenUpdateCurPerfAndBlockByGroupHelper(bool with_log, bool use_std_max);
   template<typename T>
   T Gcd(T a, T b) {
     while (b != 0) {
@@ -187,19 +224,25 @@ namespace ascgen_utils {
   bool HasCubeUBFusedScheduled(const ascir::FusedScheduledResult &fused_schedule_result);
   bool HasCubeCommonFusedScheduled(const ascir::FusedScheduledResult &fused_schedule_result);
   bool IsCubeType(const ascir::ImplGraph &impl_graph);
-  bool IsCubeTypeWithBatch(const ascir::ImplGraph &impl_graph);
-  bool IsCubeTypeWithBias(const ascir::ImplGraph &impl_graph);
-  bool IsCubeTypeWithOffsetW(const ascir::ImplGraph &impl_graph);
+  bool IsMatMulTypeWithBatch(const ascir::ImplGraph &impl_graph);
+  bool IsMatMulTypeWithBias(const ascir::ImplGraph &impl_graph);
+  bool IsMatMulTypeWithOffsetW(const ascir::ImplGraph &impl_graph);
   af::Status ParseMatmulAttr(const ascir::NodeView &node, MatMulAttr &mm_attr_data);
   bool IsCubeGroupType(const ascir::ScheduleGroup &sched_group);
   bool IsSatetyResultType(const ascir::ScheduledResult &sched_result);
-  af::Status GetMutmulOutputTypeSize(const ascir::NodeView &node, uint32_t &length);
-  af::Status GetMutmulInputNum(const ascir::NodeView &node, uint32_t &num);
+  af::Status GetCubeOutputTypeSize(const ascir::NodeView &node, uint32_t &length);
+  af::Status GetCubeInputNum(const ascir::NodeView &node, uint32_t &num);
   af::Status CreateCVFusionResult(ascir::FusedScheduledResult &elemwise_schedule_result);
   af::Status CreateCVFusionCommonResult(ascir::FusedScheduledResult &elemwise_schedule_result);
   bool IsCVFusionUBGraph(const ascir::ImplGraph &impl_graph, ascir::CubeTemplateType cv_fusion_type);
   af::Status FilterCVFusionUBResult(ascir::FusedScheduledResult &ub_schedule_result);
   af::Status FilterCVFusionCommonResult(ascir::FusedScheduledResult &common_schedule_result);
+  ge::Status DtypeName(ge::DataType dtype, std::string &dtype_name);
+  bool IsConv2DFusedScheduled(const ascir::FusedScheduledResult &fused_schedule_result);
+  af::Status ParseConv2DAttr(const ascir::NodeView &node, Conv2DAttr &conv_attr_data);
+  bool IsConv2DGraphType(const ascir::ImplGraph &impl_graph);
+  bool IsConv2DTypeWithBias(const ascir::ImplGraph &impl_graph);
+  bool IsConv2DTypeWithOffsetW(const ascir::ImplGraph &impl_graph);
 }  // namespace ascgen_utils
 
 #endif

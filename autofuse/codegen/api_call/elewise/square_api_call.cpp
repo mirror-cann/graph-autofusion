@@ -31,8 +31,6 @@ Status SquareApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::Axis
   auto x = inputs[0].get();
   auto y = outputs[0].get();
   stringstream ss;
-  string blk_align;
-  GE_CHK_STATUS_RET(KernelUtils::BlkAlign(x.dtype, blk_align), "Codegen blk align failed");
 
   std::string dtype_name;
   GE_CHK_STATUS_RET(Tensor::DtypeName(x.dtype, dtype_name), "Codegen get data type:%d failed",

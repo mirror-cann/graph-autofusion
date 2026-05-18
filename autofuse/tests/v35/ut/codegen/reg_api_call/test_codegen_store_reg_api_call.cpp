@@ -121,7 +121,7 @@ TEST(CodegenKernel, StoreRegApiCall_TwoStoreOneOutput) {
   codegen::ApiTensor x1;
   x1.id = load->outputs[0].attr.mem.tensor_id;
 
-  codegen::StoreRegApiCall call_0("Store");
+  codegen::StoreRegApiCall call_0("DataCopyPadExtend");
   EXPECT_EQ(call_0.Init(store), 0);
   call_0.inputs.push_back(&x1);
 
@@ -129,13 +129,13 @@ TEST(CodegenKernel, StoreRegApiCall_TwoStoreOneOutput) {
   call_0.Generate(tpipe, vector<af::AxisId>{}, result);
   EXPECT_EQ(result,
             std::string{
-                "DataCopyPadExtend<float, AscendC::PaddingMode::Normal>(local_1[0 + 0], local_0, 1, 1, 16 - 1, 0);\n"});
+                "DataCopyPadExtend<float, AscendC::PaddingMode::Normal>(local_1[0 + 0], local_0[0], 1, 1, 16 - 1, 0);\n"});
 
-  codegen::StoreRegApiCall call_1("Store");
+  codegen::StoreRegApiCall call_1("DataCopyPadExtend");
   EXPECT_EQ(call_1.Init(store_1), 0);
   call_1.inputs.push_back(&x1);
   call_1.Generate(tpipe, vector<af::AxisId>{}, result);
-  EXPECT_EQ(result, std::string{"DataCopyPadExtend<float, AscendC::PaddingMode::Normal>(local_1[0 + 1], local_0, "
+  EXPECT_EQ(result, std::string{"DataCopyPadExtend<float, AscendC::PaddingMode::Normal>(local_1[0 + 1], local_0[0], "
                                 "z0_t_size, 1, 16 - 1, 0);\n"});
 }
 
@@ -239,14 +239,14 @@ TEST(CodegenKernel, StoreRegApiCall_NeetMte3SyncMte2) {
 
   // 输入是is_load_link_store_vec
   std::string result;
-  codegen::StoreRegApiCall call_1("Store");
+  codegen::StoreRegApiCall call_1("DataCopyPadExtend");
   EXPECT_EQ(call_1.Init(store), 0);
   call_1.inputs.push_back(&x1);
   x1.reads.push_back(&call_1);
   call_1.Generate(kernel.tpipe, vector<af::AxisId>{}, result);
   EXPECT_EQ(
       result,
-      std::string{"DataCopyPadExtend<float, AscendC::PaddingMode::Normal>(local_1[0 + 0], local_0, 1, 1, 16 - 1, 0);\n"
+      std::string{"DataCopyPadExtend<float, AscendC::PaddingMode::Normal>(local_1[0 + 0], local_0[0], 1, 1, 16 - 1, 0);\n"
                   "auto local_0_e_mte3_2_mte2_t_0 = tpipe.AllocEventID<HardEvent::MTE3_MTE2>();\n"
                   "TQueSync<PIPE_MTE3, PIPE_MTE2> local_0_s_mte3_2_mte2_t_0;\n"
                   "local_0_s_mte3_2_mte2_t_0.SetFlag(local_0_e_mte3_2_mte2_t_0);\n"
@@ -309,7 +309,7 @@ TEST(CodegenKernel, StoreRegApiCall_ThreeDimStore) {
   store->attr.sched.loop_axis = z0.id;
   store->outputs[0].attr.vectorized_axis = {z1.id, z2.id, z3.id};
   store->outputs[0].attr.vectorized_strides = {af::Symbol(8), af::Symbol(2), One};
-  store->outputs[0].attr.dtype = af::DT_INT16;
+  store->outputs[0].attr.dtype = ge::DT_FLOAT;
   store->outputs[0].attr.mem.position = af::Position::kPositionVecOut;
   store->outputs[0].attr.mem.tensor_id = 1;
   store->outputs[0].attr.mem.alloc_type = af::AllocType::kAllocTypeQueue;
@@ -334,7 +334,7 @@ TEST(CodegenKernel, StoreRegApiCall_ThreeDimStore) {
   codegen::ApiTensor x1;
   x1.id = load->outputs[0].attr.mem.tensor_id;
 
-  codegen::StoreRegApiCall call_0("Store");
+  codegen::StoreRegApiCall call_0("DataCopyPadExtend");
   EXPECT_EQ(call_0.Init(store), 0);
   call_0.inputs.push_back(&x1);
 
@@ -345,7 +345,7 @@ TEST(CodegenKernel, StoreRegApiCall_ThreeDimStore) {
       std::string{
           "DataCopyPadExtend<float, AscendC::PaddingMode::Compact>(local_1[0 + 0], local_0[0], 4, 2, 2 - 2, 2, "
           "{static_cast<uint32_t>(8), static_cast<uint32_t>(1), static_cast<uint64_t>(8 * 4), static_cast<uint64_t>(24 "
-          "* 2), static_cast<uint64_t>(0 * 4), static_cast<uint64_t>(0 * 2)});\n"});
+          "* 4), static_cast<uint64_t>(0 * 4), static_cast<uint64_t>(0 * 4)});\n"});
 }
 
 TEST(CodegenKernel, StoreRegApiCall_FiveDimStore) {
@@ -411,7 +411,7 @@ TEST(CodegenKernel, StoreRegApiCall_FiveDimStore) {
   store->attr.sched.loop_axis = z0.id;
   store->outputs[0].attr.vectorized_axis = {z1.id, z2.id, z3.id, z4.id, z5.id};
   store->outputs[0].attr.vectorized_strides = {af::Symbol(32), af::Symbol(8), af::Symbol(4), af::Symbol(2), One};
-  store->outputs[0].attr.dtype = af::DT_INT16;
+  store->outputs[0].attr.dtype = ge::DT_FLOAT;
   store->outputs[0].attr.mem.position = af::Position::kPositionVecOut;
   store->outputs[0].attr.mem.tensor_id = 1;
   store->outputs[0].attr.mem.alloc_type = af::AllocType::kAllocTypeQueue;
@@ -439,17 +439,17 @@ TEST(CodegenKernel, StoreRegApiCall_FiveDimStore) {
   codegen::ApiTensor x1;
   x1.id = load->outputs[0].attr.mem.tensor_id;
 
-  codegen::StoreRegApiCall call_0("Store");
+  codegen::StoreRegApiCall call_0("DataCopyPadExtend");
   EXPECT_EQ(call_0.Init(store), 0);
   call_0.inputs.push_back(&x1);
 
   std::string result;
   call_0.Generate(tpipe, vector<af::AxisId>{}, result);
   EXPECT_EQ(result,
-            std::string{"for(int outer_for_0 = 0; outer_for_0 < 8; outer_for_0++) {\nDataCopyPadExtend<float, "
+            std::string{"for (int outer_for_0 = 0; outer_for_0 < 8; outer_for_0++) {\nDataCopyPadExtend<float, "
                         "AscendC::PaddingMode::Compact>(local_1[0 + 0 + "
                         "outer_for_0 * 160], local_0[outer_for_0 * 32], 2, 2, 2 - 2, 2, {static_cast<uint32_t>(2), "
-                        "static_cast<uint32_t>(4), static_cast<uint64_t>(4 * 4), static_cast<uint64_t>(12 * 2), "
+                        "static_cast<uint32_t>(4), static_cast<uint64_t>(4 * 4), static_cast<uint64_t>(12 * 4), "
                         "static_cast<uint64_t>(8 * 4), "
-                        "static_cast<uint64_t>(32 * 2)});\n\n}\n"});
+                        "static_cast<uint64_t>(32 * 4)});\n}\n"});
 }

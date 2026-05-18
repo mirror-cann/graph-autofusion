@@ -26,12 +26,8 @@ ge::Status HighPerfTilingCodeGenImpl::GenExternFuncDef() {
 }
 
 ge::Status HighPerfTilingCodeGenImpl::GenTilingImplPublicFunc() {
-  std::string data_type = config_.tiling_data_type_name;
   GE_ASSERT_SUCCESS(TilingCodeGenImpl::GenTilingImplPublicFunc(), "Generate tiling public func failed.");
-  tiling_func_.AddLine("  virtual void GetTilingData(TilingDataCopy &from_tiling, " + data_type + " &to_tiling) {};");
-  tiling_func_.AddLine("  virtual void SetTilingData(" + data_type + " &from_tiling, TilingDataCopy &to_tiling) {};");
-  tiling_func_.AddLine("  virtual void SetWorkspaceSize(" + data_type +
-      " &tiling_data, std::unordered_map<int64_t, uint64_t> &workspace_map) {};");
+  GE_ASSERT_SUCCESS(GenVirtualDataTransferFuncs(), "Generate virtual data transfer funcs failed.");
   return ge::SUCCESS;
 }
 

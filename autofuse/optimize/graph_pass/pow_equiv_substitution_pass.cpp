@@ -31,6 +31,11 @@ const double kScalarThree = 3.0;
 const double kScalarFour = 4.0;
 
 using optimize::PatternType;
+
+bool IsFloatingDtype(ge::DataType dtype) {
+  return dtype == ge::DT_FLOAT || dtype == ge::DT_FLOAT16 || dtype == ge::DT_BF16 || dtype == ge::DT_DOUBLE;
+}
+
 struct ScalarTargetMap {
   double target_val;
   double epsilon;
@@ -115,6 +120,14 @@ Status PowEquivSubstitutionPass::RunPass(af::AscGraph &graph) {
 
     const PatternType type = CheckStringValue(scalar_val);
     if (type == PatternType::kNone) {
+      continue;
+    }
+
+    // 负指数模式（-0.5, -1, -2）会转换为除法，仅对浮点类型执行替换，避免非浮点类型的语义异常
+    if ((type == PatternType::kNegHalf || type == PatternType::kNegOne || type == PatternType::kNegTwo) &&
+        !IsFloatingDtype(static_cast<ge::DataType>(pow_node->outputs[0].attr.dtype))) {
+      GELOGD("Pow [%s] matched negative scalar pattern %d but dtype is not floating, skip substitution.",
+             pow_node->GetNamePtr(), static_cast<int32_t>(type));
       continue;
     }
 

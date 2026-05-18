@@ -223,7 +223,7 @@ def test_host_replacement_happens_once_before_static_shape_compile_and_uses_fina
 
     monkeypatch.setattr(asc_codegen_compile_module,
                         "get_graph_basic_info",
-                        lambda params, args: ("demo_graph", 1, 1, True, {}))
+                        lambda params, args: ("demo_graph", 1, 1, True, False, {}))
     monkeypatch.setattr(asc_codegen_compile_module,
                         "create_compile_dirs",
                         lambda temp_dir: (str(tmpdir.ensure("device", dir=True)), str(tmpdir.ensure("host", dir=True))))
@@ -234,7 +234,7 @@ def test_host_replacement_happens_once_before_static_shape_compile_and_uses_fina
                         "is_static_compile",
                         lambda params, tiling_func_srcs: True)
     monkeypatch.setattr(asc_codegen_compile_module,
-                        "ascbc_cube_kernel_tiling_pro",
+                        "ascbc_matmul_kernel_tiling_pro",
                         lambda *args, **kwargs: kwargs["use_cv_common"].__setitem__(0, True))
 
     def fake_static_shape_compile(**kwargs):

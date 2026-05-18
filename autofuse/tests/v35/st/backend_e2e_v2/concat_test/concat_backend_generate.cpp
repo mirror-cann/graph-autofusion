@@ -237,11 +237,11 @@ TEST_F(TestBackendConcatE2e, ConcatNotAllAligned_B8ToB16) {
     EXPECT_EQ(codegen.Generate(shape_info, fused_schedule_result, result), 0);
     const auto &kernel = RemoveSubDirInclude(result.kernel);
 
-    std::string expected = "const concat::ConcatTiling<2> concat_tiling {\n"
-                           "  .num_rows = static_cast<uint32_t>(z0t_actual_size),\n"
-                           "  .num_dst_cols = 130,\n"
-                           "  .num_srcs_cols = {65, 65, },\n"
-                           "};\n";
+    std::string expected = "    const concat::ConcatTiling<2> concat_tiling {\n"
+                           "      .num_rows = static_cast<uint32_t>(z0t_actual_size),\n"
+                           "      .num_dst_cols = 130,\n"
+                           "      .num_srcs_cols = {65, 65, },\n"
+                           "    };\n";
     EXPECT_TRUE(kernel.find(expected) != std::string::npos);
     expected = "concat::ConcatExtend<uint16_t, 2>((uint16_t *)";
     EXPECT_TRUE(kernel.find(expected) != std::string::npos);
@@ -270,11 +270,11 @@ TEST_F(TestBackendConcatE2e, ConcatAllAligned) {
     codegen::CodegenResult result;
     EXPECT_EQ(codegen.Generate(shape_info, fused_schedule_result, result), 0);
     const auto &kernel = RemoveSubDirInclude(result.kernel);
-    std::string expected = "constexpr ConcatTilingAllAligned<2> concat_tiling {\n"
-                           "  .dst_col_size = 64,\n"
-                           "  .src_col_sizes = { 32, 32, },\n"
-                           "  .dst_offsets = { 0, 32, },\n"
-                           "};\n";
+    std::string expected = "    constexpr ConcatTilingAllAligned<2> concat_tiling {\n"
+                           "      .dst_col_size = 64,\n"
+                           "      .src_col_sizes = { 32, 32, },\n"
+                           "      .dst_offsets = { 0, 32, },\n"
+                           "    };\n";
     EXPECT_TRUE(kernel.find(expected) != std::string::npos);
     expected = "ConcatAllAligned<int8_t, 2>(";
     EXPECT_TRUE(kernel.find(expected) != std::string::npos);

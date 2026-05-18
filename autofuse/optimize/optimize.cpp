@@ -262,7 +262,7 @@ Status SearchNodesNeedForward(const af::AscGraph &impl_graph, std::map<int64_t, 
     GE_CHECK_NOTNULL(node);
     GE_CHECK_NOTNULL(node->GetOpDesc());
     if (num_of_load_need_adjust >= load_thresh) {
-      GELOGD("The num of loads need to be brought forward is %zu, which reaches threshold %zu.",
+      GELOGD("The number of loads that need to be brought forward is %zu, which reaches threshold %zu.",
              num_of_load_need_adjust, load_thresh);
       break;
     }
@@ -979,6 +979,9 @@ void Optimizer::TryEnableGroupParallel(FusedScheduledResult &fused_scheduled_res
 void Optimizer::ExecSeqAdvancedOfLoad(const FusedScheduledResult &fused_scheduled_result) {
   for (auto &scheduled_results : fused_scheduled_result.node_idx_to_scheduled_results) {
     for (auto &schedule_result : scheduled_results) {
+      if (schedule_result.cube_type == ascir::CubeTemplateType::kUBFuse) {
+        continue;
+      }
       for (auto &schedule_group : schedule_result.schedule_groups) {
         for (auto &impl_graph : schedule_group.impl_graphs) {
           LoadOpSeqAdjust(impl_graph);

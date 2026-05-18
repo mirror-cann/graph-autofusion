@@ -56,7 +56,7 @@ class SplitRegApiCall : public ApiCall {
   Status ParseAttr(const ascir::NodeView &node) override;
  private:
   static Status ParseSplitDim(const Tensor &x, const Tensor &y0, size_t &split_dim);
-  static Status InitializeTiling(size_t split_dim, const vector<std::reference_wrapper<const Tensor>> &ouputs,
+  static Status InitializeTiling(size_t split_dim, const vector<std::reference_wrapper<const Tensor>> &outputs,
                                        const Tensor &x, SplitTiling &tiling);
   static bool IsAllAligned(SplitTiling &tiling);
   static void GenSplitTilingForAllAligned(SplitTiling &tiling, const Tiler &tiler,

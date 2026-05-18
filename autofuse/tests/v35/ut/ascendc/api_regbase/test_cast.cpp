@@ -100,6 +100,9 @@ class TestApiCast :public testing::Test {
     // 验证结果
     uint32_t diff_count = Valid<InT, OutT, dim>(param.y, param.exp, param.size, output_dims);
     EXPECT_EQ(diff_count, 0);
+    AscendC::GmFree(param.y);
+    AscendC::GmFree(param.exp);
+    AscendC::GmFree(param.src0);
   }
 };
 

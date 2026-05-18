@@ -125,7 +125,7 @@ void eg_log(int level, const char *levelstr, const char *file, unsigned int line
   va_end(valist);
 
   char buff[1280] = {0};
-  sprintf(buff, "[%s]: %s:%u: %s", levelstr, getBaseName(file), line, fmt_buff);
+  snprintf(buff, sizeof(buff), "[%s]: %s:%u: %s", levelstr, getBaseName(file), line, fmt_buff);
   StdoutListener::getInstance().println(level, buff);
 }
 

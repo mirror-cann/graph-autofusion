@@ -93,6 +93,14 @@ class TestRegbaseApiTruncDiv :public testing::Test {
   }
 
   template <typename T>
+  static void FreeTensorInput(TensorTruncDivInputParam<T> &param) {
+    AscendC::GmFree(param.y);
+    AscendC::GmFree(param.exp);
+    AscendC::GmFree(param.src0);
+    AscendC::GmFree(param.src1);
+  }
+
+  template <typename T>
   static void TruncDivTest(uint32_t size) {
     TensorTruncDivInputParam<T> param{};
     param.size = size;
@@ -108,6 +116,9 @@ class TestRegbaseApiTruncDiv :public testing::Test {
     // 验证结果
     uint32_t diff_count = Valid(param);
     EXPECT_EQ(diff_count, 0);
+
+    // 释放内存
+    FreeTensorInput(param);
   }
 };
 

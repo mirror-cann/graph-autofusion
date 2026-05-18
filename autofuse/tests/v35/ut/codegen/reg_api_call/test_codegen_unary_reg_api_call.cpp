@@ -98,7 +98,7 @@ TEST(CodegenKernel, UnaryApicallIsNan) {
   EXPECT_EQ(result,
             std::string{
                 "LocalTensor<bool> local_1_cast = local_1.template ReinterpretCast<bool>();\n"
-                "IsNan(local_1_cast[0], local_0[0], KernelUtils::BlkAlign<float>(local_0_actual_size));\n"});
+                "IsNan(local_1_cast[0], local_0[0], local_0_actual_size);\n"});
   delete call;
 }
 
@@ -188,7 +188,9 @@ TEST(CodegenKernel, UnaryApicallIsNanThrowingFor) {
   call.Generate(tpipe, current_axis, result);
   std::cout << result << std::endl;
   EXPECT_EQ(result, std::string{
-    "LocalTensor<bool> local_3_cast = local_3.template ReinterpretCast<bool>();\nfor(int outer_for_0 = 0; outer_for_0 < t->s1; outer_for_0++) {\nIsNan(local_3_cast[outer_for_0 * ((16 * Ceiling((Rational(1 , 16) * t->s2))))/(1)], local_0[outer_for_0 * ((16 * Ceiling((Rational(1 , 16) * t->s2))))/(1)], KernelUtils::BlkAlign<float>(t->s2));\n\n}\n"
+    "LocalTensor<bool> local_3_cast = local_3.template ReinterpretCast<bool>();\n"
+    "for(int outer_for_0 = 0; outer_for_0 < t->s1; outer_for_0++) {\n"
+    "IsNan(local_3_cast[outer_for_0 * ((16 * Ceiling((Rational(1 , 16) * t->s2))))/(1)], local_0[outer_for_0 * ((16 * Ceiling((Rational(1 , 16) * t->s2))))/(1)], t->s2);\n\n}\n"
   });
 }
 
@@ -267,7 +269,7 @@ TEST(CodegenKernel, UnaryApicallIsFinite) {
   EXPECT_EQ(result,
             std::string{
                 "LocalTensor<bool> local_1_cast = local_1.template ReinterpretCast<bool>();\n"
-                "IsFinite(local_1_cast[0], local_0[0], KernelUtils::BlkAlign<float>(local_0_actual_size));\n"});
+                "IsFinite(local_1_cast[0], local_0[0], local_0_actual_size);\n"});
   delete call;
 }
 }  // namespace codegen

@@ -18,12 +18,14 @@
 #include "common/checker.h"
 #include "reg_api_call_utils.h"
 #include "api_call/utils/api_call_factory.h"
+#include "codegen_api_param/codegen_api_param.h"
 
 using namespace af::ops;
 using namespace af::ascir_op;
 
 namespace {
-constexpr uint64_t kDmaMaxLen = 2U;
+constexpr size_t kDmaMaxLen = 2U;
+constexpr size_t kFourAxisNum = 4U;
 }
 namespace codegen {
 Status LoadRegApiCall::ParseAttr(const ascir::NodeView &node) {
@@ -31,28 +33,33 @@ Status LoadRegApiCall::ParseAttr(const ascir::NodeView &node) {
   return ge::SUCCESS;
 }
 
-Status LoadRegApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
-                                const std::vector<std::reference_wrapper<const Tensor>> &inputs,
-                                const std::vector<std::reference_wrapper<const Tensor>> &outputs,
-                                std::string &result) const {
-  std::stringstream ss;
+Status LoadRegApiCall::BuildApiParam(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
+                                     const std::vector<std::reference_wrapper<const Tensor>> &inputs,
+                                     const std::vector<std::reference_wrapper<const Tensor>> &outputs) const {
   const auto &gm = inputs[0].get();
   const auto &ub = outputs[0].get();
+  auto api_param = af::ComGraphMakeShared<CodegenApiParam>();
+  GE_ASSERT_NOTNULL(api_param);
+  api_param->api_name = api_name_;
+  std::string dtype_name;
+  GE_CHK_STATUS_RET(Tensor::DtypeName(gm.dtype, dtype_name), "data type:%d failed", static_cast<int32_t>(gm.dtype));
+  api_param->template_params.emplace_back(dtype_name);
+  DmaSpecificParams dma_specific_params;
   if (tpipe.cv_fusion_type == ascir::CubeTemplateType::kUBFuse && !ub.is_ub_scalar) {
-    std::string dtype_name;
-    Tensor::DtypeName(gm.dtype, dtype_name);
-    ss << "DataCopyPadExtend<" << dtype_name << ", AscendC::PaddingMode::Normal>(" << ub << ", " << gm << "[offset], "
-       << "curAivM, load_block_len, load_src_stride, load_dst_stride);" << std::endl;
+    BuildDataCopyApiParamInCVFusion(*api_param, dma_specific_params, gm, ub, dtype_name, true);
   } else {
-    DataCopyParams param;
-    bool status = CalculateDmaParams(tpipe, ub, ub, param);
-    GE_ASSERT_TRUE(status, "CalculateDmaParams failed");
     std::string gm_offset = ub.is_ub_scalar ? "0" : tpipe.tiler.Offset(current_axis, ub.axis, ub.axis_strides);
-    CreateEnhanceDmaCall(tpipe, gm, ub, gm_offset, param, offset_, ss, true);
+    gm_offset = gm_offset + " + " + tpipe.tiler.Size(offset_);
+    BuildDataCopyApiParamInNormal(tpipe, *api_param, dma_specific_params, gm, ub, gm_offset, true);
   }
+  api_param->specific_params = dma_specific_params;
 
-  result = ss.str();
-  return ge::SUCCESS;
+  GE_CHK_STATUS_RET(CodegenApiParam::Register(this->node, api_param));
+  return af::SUCCESS;
+}
+
+Status LoadRegApiCall::GenDimensionParam(const CodegenApiParam &api_param, std::stringstream &ss) const {
+  return GenDataCopyDimParam(api_param, graph_name, node_name, ss);
 }
 static ApiCallRegister<LoadRegApiCall> register_load_reg_api_call("LoadRegApiCall");
 }  // namespace codegen

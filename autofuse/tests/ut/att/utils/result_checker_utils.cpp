@@ -69,7 +69,7 @@ bool ResultCheckerUtils::ReadFileLines(const std::string &filename, std::vector<
 
   std::ifstream in_file(filename);
   if (!in_file.is_open()) {
-    std::cerr << "Error: can not open file " << filename << " can not read!" << std::endl;
+    std::cerr << "Error: cannot open file " << filename << " cannot read!" << std::endl;
     return false;
   }
 
@@ -93,7 +93,7 @@ bool ResultCheckerUtils::CreateBackupAndWrite(const std::string &filename, const
   // 写回修改后的内容
   std::ofstream outFile(filename);
   if (!outFile.is_open()) {
-    std::cerr << "Error: can not open " << filename << " , can not write!" << std::endl;
+    std::cerr << "Error: cannot open " << filename << " , cannot write!" << std::endl;
     return false;
   }
 
@@ -166,7 +166,7 @@ bool ResultCheckerUtils::ReplaceLogMacros(const std::string& filename) {
 
   // 如果没有修改，直接返回
   if (!modified) {
-    std::cout << "Can not find log macros in " << filename << std::endl;
+    std::cout << "Cannot find log macros in " << filename << std::endl;
     return true;
   }
 
@@ -232,7 +232,7 @@ bool ResultCheckerUtils::ReplaceLogMacrosGeneric(const std::string &filename) {
 
   // 如果没有修改，直接返回
   if (!modified) {
-    std::cout << "Can not find log macros in " << filename << std::endl;
+    std::cout << "Cannot find log macros in " << filename << std::endl;
     return true;
   }
 

@@ -65,7 +65,6 @@ Status TrueDivApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::Axi
                     static_cast<int32_t>(y.dtype));
   GE_ASSERT_TRUE(x1_dtype_name == x2_dtype_name, "x1_dtype_name:%s, x2_dtype_name:%s", x1_dtype_name.c_str(),
                  x2_dtype_name.c_str());
-  GE_ASSERT_TRUE(y_dtype_name == "float", "y_dtype_name:%s", y_dtype_name.c_str());
   const std::string is_scalar_latter = switch_scalar ? "false" : "true";
 
   if (x1.IsAnyScalar() && x2.IsAnyScalar()) { // 两个输入都是Scalar

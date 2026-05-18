@@ -74,7 +74,7 @@ bool ConcatRegApiCall::AreContiguousBufsPreferred() const {
   GE_CHK_BOOL_RET_SPECIAL_STATUS(IsTile(), false, "%s all inputs are from single source");
   const auto is_all_inputs_shape_equal = ascir::utils::AreConcatInputShapesEqual(node_);
   GE_CHK_BOOL_RET_SPECIAL_STATUS((is_all_inputs_shape_equal == af::TriBool::kFalse), false,
-                                 "%s can not use Gather, input shapes differ", node_->GetNamePtr());
+                                 "%s cannot use Gather, input shapes differ", node_->GetNamePtr());
   GELOGD("%s may use Gather, contiguous input bufs are preferred", node_->GetNamePtr());
   return true;
 }
@@ -223,12 +223,12 @@ ConcatApiCall::ConcatTiling ConcatRegApiCall::B8ToB16(const ConcatTiling &tiling
 }
 
 ge::Status ConcatRegApiCall::CanUseGather(ConcatTiling &tiling) const {
-  GE_CHK_BOOL_RET_SPECIAL_STATUS(tiling.any_padded, ge::SUCCESS, "can not use Gather: input is padded");
+  GE_CHK_BOOL_RET_SPECIAL_STATUS(tiling.any_padded, ge::SUCCESS, "cannot use Gather: input is padded");
   if (IsTile()) {
     tiling.all_inputs_shape_equal = af::TriBool::kTrue;
   } else {
     GE_CHK_BOOL_RET_SPECIAL_STATUS((!is_input_tbuf_contiguous), ge::SUCCESS,
-                               "can not use Gather: input bufs can not be contiguous");
+                               "cannot use Gather: input bufs cannot be contiguous");
     tiling.all_inputs_shape_equal = ascir::utils::AreConcatInputShapesEqual(node_);
   }
   if (tiling.src_col_size_exprs[0].IsConstExpr()) {
@@ -236,7 +236,7 @@ ge::Status ConcatRegApiCall::CanUseGather(ConcatTiling &tiling) const {
     GE_ASSERT_TRUE(tiling.src_col_size_exprs[0].GetConstValue(src_col_size));
     constexpr uint32_t kMaxSrcSize = 256U / 2U;
     if (src_col_size * tiling.data_type_size > kMaxSrcSize) {
-      GELOGD("src col size = %u, over %u, can not use Gather", src_col_size * tiling.data_type_size,
+      GELOGD("src col size = %u, over %u, cannot use Gather", src_col_size * tiling.data_type_size,
              kMaxSrcSize);
       return ge::SUCCESS;
     }

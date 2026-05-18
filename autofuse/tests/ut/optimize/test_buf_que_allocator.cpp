@@ -1653,6 +1653,43 @@ TEST_F(BufQueAllocatorUT, test_inplace_resue_multi_input_output) {
   EXPECT_EQ(abs9_result->outputs[0].attr.mem.reuse_id, 13);
 }
 
+TEST_F(BufQueAllocatorUT, test_scalar_data_input_allocation) {
+  // 测试场景：图中包含 ScalarData 输入节点，验证 IO 分配正确处理
+  // 图结构：
+  //   data0 -> load0 ----\
+  //                       add0 -> store -> output
+  //   scalar_data0 ------/
+  // 预期：ScalarData 被正确识别为 IO 节点，buffer 分配成功
+
+  auto graph = af::testing::AscGraphBuilder("scalar_data_alloc")
+    .Loops({af::testing::Sym(32), af::testing::Sym(16)})
+    .Data("data0", 0)
+    .Load("load0", "data0")
+    .ScalarData("scalar_data0", 1)
+    .Add("add0", "load0", "scalar_data0")
+    .Store("store", "add0")
+    .Output("out", "store", 0)
+    .Build();
+
+  optimize::AscGraphInfoComplete::CompleteApiInfo(graph);
+  ScheduleUtils::TopologicalSorting(graph);
+
+  // 验证 ScalarData 节点存在
+  auto scalar_data_node = graph.FindNode("scalar_data0");
+  ASSERT_NE(scalar_data_node, nullptr);
+  EXPECT_EQ(std::string(scalar_data_node->GetTypePtr()), "ScalarData");
+
+  // 验证 buffer 分配成功
+  size_t total_vecin_nums = 0UL;
+  size_t total_vecout_nums = 0UL;
+  EXPECT_EQ(BufQueAllocator().AllocateWithinGroup(graph, total_vecin_nums, total_vecout_nums), ge::SUCCESS);
+
+  // 验证 load 节点的 buffer 分配正常（不受 ScalarData 影响）
+  auto load_result = graph.FindNode("load0");
+  ASSERT_NE(load_result, nullptr);
+  EXPECT_EQ(load_result->outputs[0].attr.que.id, 0);
+}
+
 TEST_F(BufQueAllocatorUT, TestTensorInfoToStr) {
   TensorInfo info;
   info.group_id = 2;

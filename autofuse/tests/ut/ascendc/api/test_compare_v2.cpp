@@ -170,6 +170,10 @@ class TestApiCompareV2UT : public testing::Test {
     // 验证结果
     uint32_t diff_count = Valid(param.y, param.exp, param.size);
     EXPECT_EQ(diff_count, 0) << "of  " << param.size;
+    AscendC::GmFree(param.y);
+    AscendC::GmFree(param.exp);
+    AscendC::GmFree(param.src0);
+    AscendC::GmFree(param.src1);
   }
 
 };

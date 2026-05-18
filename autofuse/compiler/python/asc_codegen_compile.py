@@ -65,6 +65,8 @@ def generate_cmake_lists(asc_graph_name, kernel_name, host_build_dir, is_last_co
     source += f"file(GLOB ALL_CPP_SRCS\n"
     source += f"    *tiling_func*.cpp\n"
     source += f"    *infershape*.cpp\n"
+    if not is_static_shape and is_cube:
+        source += f"    cube_kernel_tiling_wrapper.cpp\n"
     if is_last_compile:
         source += f"    *get_kernel*.cpp\n"
     source += ")\n\n"
@@ -87,11 +89,15 @@ def generate_cmake_lists(asc_graph_name, kernel_name, host_build_dir, is_last_co
     source += f"    {ASCEND_PATH}/include/base\n"
     source += f"    {ASCEND_PATH}/include/experiment\n"
     source += f"    {ASCEND_PATH}/{machine}-linux/include\n"
+    source += f"    {ASCEND_PATH}/{machine}-linux/pkg_inc/base\n"
     source += f"    {ASCEND_PATH}/{machine}-linux/ascendc/include/highlevel_api/tiling/platform\n"
     source += f"    {ASCEND_PATH}/{machine}-linux/ascendc/include/highlevel_api\n"
     if is_cube:
         source += f"    {ASCEND_PATH}/opp/built-in/op_impl/ai_core/tbe/impl/ascendc/mat_mul_v3\n"
         source += f"    {ASCEND_PATH}/opp/built-in/op_impl/ai_core/tbe/impl/ops_nn/ascendc/mat_mul_v3\n"
+        source += f"    {ASCEND_PATH}/opp/built-in/op_impl/ai_core/tbe/impl/ascendc/conv2d_v2\n"
+        source += f"    {ASCEND_PATH}/opp/built-in/op_impl/ai_core/tbe/impl/ops_nn/ascendc/conv2d_v2\n"
+        source += f"    {ASCEND_PATH}/opp/built-in/op_impl/ai_core/tbe/impl/ops_nn/ascendc/common\n"
     source += "    )\n\n"
 
     with open(host_build_dir + "/CMakeLists.txt", "w") as cmake_file:
@@ -285,7 +291,6 @@ def static_shape_kernel_proc(kernel_src, temp_dir, kernel_type, use_cv_common=No
 
 def static_shape_compile(kernel_name, temp_dir, graph_name, tiling_key_list=None, kernel_type_list=None,
                          use_cv_common=None, is_cube=False):
-    ori_directory = os.getcwd()
     if use_cv_common and use_cv_common[0]:
         host_build_dir = os.path.join(temp_dir, "host", "cv_common")
     else:
@@ -303,16 +308,19 @@ def static_shape_compile(kernel_name, temp_dir, graph_name, tiling_key_list=None
 
     CommonUtility.print_compile_log("", f"static shape compile", AscendCLogLevel.LOG_INFO)
     ascendc_clean(temp_dir)
-    lib.GenConstTilingData.argtypes = []
-    lib.GenConstTilingData.restype = ctypes.c_char_p
-    result = lib.GenConstTilingData(ctypes.c_char_p(pgo_config_path.encode('utf-8')),
-                                    ctypes.c_int(int(get_soc_spec('vector_core_cnt'))),
-                                    ctypes.c_int(int(get_soc_spec('ub_size'))))
+    result = ""
+    if hasattr(lib, 'GenConstTilingData'):
+        lib.GenConstTilingData.argtypes = []
+        lib.GenConstTilingData.restype = ctypes.c_char_p
+        result = lib.GenConstTilingData(ctypes.c_char_p(pgo_config_path.encode('utf-8')),
+                                        ctypes.c_int(
+                                            int(get_soc_spec('vector_core_cnt'))),
+                                        ctypes.c_int(int(get_soc_spec('ub_size'))))
 
     const_tiling_data = result.decode('utf-8')
     if hasattr(lib, 'GetCVUBFusionStageSizeName'):
         stage_size_name = get_cv_ub_fusion_stage_size_name(kernel_name=kernel_name, temp_dir=temp_dir,
-                                                            graph_name=graph_name)
+                                                           graph_name=graph_name)
         const_tiling_data = const_tiling_data + f"\n#define STAGE_SIZE_NAME " + stage_size_name + "\n"
 
     if use_cv_common and use_cv_common[0]:
@@ -346,6 +354,41 @@ def static_shape_compile(kernel_name, temp_dir, graph_name, tiling_key_list=None
         kernel_type_list[0] = kernel_type
     # 修改kernel文件
     static_shape_kernel_proc(kernel_src, temp_dir, kernel_type, use_cv_common=use_cv_common)
+
+
+def dynamic_shape_compile(kernel_name, temp_dir, graph_name, use_cv_common=None, is_cube=False):
+    if use_cv_common and use_cv_common[0]:
+        host_build_dir = os.path.join(temp_dir, "host", "cv_common")
+    else:
+        host_build_dir = os.path.join(temp_dir, "host")
+    ascbc_host_compile(graph_name, kernel_name, host_build_dir, False, True, is_cube)
+
+    host_so = os.path.join(host_build_dir, f"lib{kernel_name}.so")
+
+
+    import ctypes
+    lib = ctypes.CDLL(host_so)
+
+    CommonUtility.print_compile_log("", f"dynamic shape compile", AscendCLogLevel.LOG_INFO)
+    ascendc_clean(temp_dir)
+
+    const_tiling_data = ""
+    if hasattr(lib, 'GetCVUBFusionStageSizeName'):
+        stage_size_name = get_cv_ub_fusion_stage_size_name(kernel_name=kernel_name, temp_dir=temp_dir,
+                                                            graph_name=graph_name)
+        const_tiling_data = const_tiling_data + f"\n#define STAGE_SIZE_NAME " + stage_size_name + "\n"
+
+    if use_cv_common and use_cv_common[0]:
+        tiling_data = os.path.join(temp_dir, "device", "cv_common", "autofuse_tiling_data.h")
+        tiling_data_bak = os.path.join(temp_dir, "device", "cv_common", "autofuse_tiling_data_bak.h")
+    else:
+        tiling_data = os.path.join(temp_dir, "device", "autofuse_tiling_data.h")
+        tiling_data_bak = os.path.join(temp_dir, "device", "autofuse_tiling_data_bak.h")
+
+    # 备份原tilingdata文件
+    shutil.copy(tiling_data, tiling_data_bak)
+    with open(tiling_data, "w") as file:
+        file.write(const_tiling_data)
 
 
 def static_shape_cv_compile(kernel_name, temp_dir, graph_name):
@@ -483,6 +526,10 @@ def _process_tiling_funcs_and_infershape(tiling_func_srcs, graph_name, host_buil
         for key, value in template_dict.items():
             if key == "TilingHead":
                 generate_file(template_dir, "autofuse_tiling_func_common.h", value)
+            elif key == "CubeKernelTilingWrapperHpp":
+                generate_file(template_dir, "cube_kernel_tiling_wrapper.h", value)
+            elif key == "CubeKernelTilingWrapperCpp":
+                generate_file(template_dir, "cube_kernel_tiling_wrapper.cpp", value)
             elif "TilingData" not in key:
                 generate_file(template_dir, graph_name + "_tiling_func_" + key + ".cpp", value)
 
@@ -603,20 +650,32 @@ def check_dir_permissions(path):
     import stat
     # 检查是否为软链接
     if path.is_symlink():
-        raise Exception(f"Warning: {path} is a symbolic link")
+        raise Exception(f"Warning: {path} is a symbolic link. Please configure --replace_kernel to a real directory.")
 
     # 检查目录是否存在
     if not path.exists():
-        raise FileNotFoundError(f"Directory {path} does not exist")
+        raise FileNotFoundError(
+            f"Directory {path} does not exist. "
+            f"Please configure --replace_kernel to an existing directory via AUTOFUSE_DFX_FLAGS."
+        )
 
     # 检查读写执行权限
     mode = path.stat().st_mode
     if not (mode & stat.S_IRUSR):
-        raise PermissionError(f"No read permission for {path}")
+        raise PermissionError(
+            f"No read permission for {path}. "
+            f"Please check the directory permissions configured by --replace_kernel in AUTOFUSE_DFX_FLAGS."
+        )
     if not (mode & stat.S_IWUSR):
-        raise PermissionError(f"No write permission for {path}")
+        raise PermissionError(
+            f"No write permission for {path}. "
+            f"Please check the directory permissions configured by --replace_kernel in AUTOFUSE_DFX_FLAGS."
+        )
     if not (mode & stat.S_IXUSR):
-        raise PermissionError(f"No execute permission for {path}")
+        raise PermissionError(
+            f"No execute permission for {path}. "
+            f"Please check the directory permissions configured by --replace_kernel in AUTOFUSE_DFX_FLAGS."
+        )
 
 
 def get_replace_kernel_root():
@@ -761,10 +820,12 @@ def build_pgo_compile_command(source_file, output_file, mspti_dir, mspti_link_fl
         f"-I{ASCEND_PATH}/include/experiment/runtime",
         f"-I{ASCEND_PATH}/include/experiment/msprof",
         f"-I{ASCEND_PATH}/{machine}-linux/include/toolchain",
+        f"-I{ASCEND_PATH}/{machine}-linux/pkg_inc/base",
         f"-I{mspti_dir}/include"
     ]
     libs = [
         f"-L{ASCEND_PATH}/lib64", "-lascendcl", "-lruntime", "-lunified_dlog",
+        "-lc_sec",
         *mspti_link_flags,
         "-ldl"
     ]
@@ -971,7 +1032,7 @@ def asc_pgo_exec(*args, temp_dir, params, op_kernel_src, code_gen):
     pgo_cleanup_kernel_and_json(pgo_temp_files)
 
 
-def _build_args(args_list, input_num, mm_attr1, mm_attr2):
+def _build_mm_args(args_list, input_num, mm_attr1, mm_attr2):
     _inputs_ = []
     _origin_inputs_ = []
     _origin_outputs_ = []
@@ -1023,6 +1084,75 @@ def _build_args(args_list, input_num, mm_attr1, mm_attr2):
     return _origin_inputs_, _origin_outputs_, _inputs_
 
 
+def build_conv_args(args_list, input_num, data_format):
+    _inputs_ = []
+    _origin_inputs_ = []
+    _origin_outputs_ = []
+    logger.info("CV fusion op, conv input(%s)", input_num)
+
+    format_shape_transfer_map = {
+        ("HWCN", "NCHW"): [3, 2, 0, 1],
+        ("NCHW", "HWCN"): [2, 3, 1, 0],
+        ("NHWC", "NCHW"): [0, 3, 1, 2],
+        ("NCHW", "NHWC"): [0, 2, 3, 1],
+    }
+
+    def transfer_shape_between_formats(shape, old_format, new_format):
+        """格式转换时对应的 shape 维度重排，参考 TransferShapeBetweenHwcnNchw"""
+        if len(shape) != 4:
+            return shape
+        if old_format == new_format:
+            return shape
+        transfer_key = (old_format.upper(), new_format.upper())
+        if transfer_key in format_shape_transfer_map:
+            indices = format_shape_transfer_map[transfer_key]
+            return tuple(shape[i] for i in indices)
+        return shape
+
+    # 遍历args中的每个元素
+    for i, input_arg in enumerate(args_list[:input_num]):
+        if i >= input_num:
+            continue
+        op_msg = "Processing input " + str(i) + ":" + str(input_arg)
+        logger.info("CV fusion op, conv input info: %s", op_msg)
+        CommonUtility.print_compile_log("", op_msg, AscendCLogLevel.LOG_INFO)
+        _origin_inputs_.append(input_arg)
+        if input_arg is not None:
+            if isinstance(input_arg, (list, tuple)) and len(input_arg) != 0:
+                _inputs_.append(input_arg[0])
+            else:
+                _inputs_.append(input_arg)
+        else:
+            _inputs_.append(input_arg)
+        _inputs_[-1]["param_name"] = "input" + str(i)
+        shape = _inputs_[-1]["shape"]
+        src_format = _inputs_[-1]["format"]
+        # 如果输入格式与目标格式不匹配，需要进行转换
+        if src_format.upper() != data_format.upper():
+            # 根据 format 转换规则重排 shape 维度
+            new_shape = transfer_shape_between_formats(shape, src_format, data_format)
+            _inputs_[-1]["shape"] = new_shape
+            _inputs_[-1]["ori_shape"] = new_shape
+        else:
+            _inputs_[-1]["shape"] = shape
+            _inputs_[-1]["ori_shape"] = shape
+        _inputs_[-1]["ori_format"] = data_format
+        _inputs_[-1]["format"] = data_format
+
+    op_msg = "Processing output " + ":" + str(args_list[-2])
+    logger.info("CV fusion op, conv output info: %s", op_msg)
+    CommonUtility.print_compile_log("", op_msg, AscendCLogLevel.LOG_INFO)
+    _origin_outputs_.append(args_list[-2])
+    _origin_outputs_[-1]["param_name"] = "output0"
+    _origin_outputs_[-1]["shape"] = args_list[-2]["shape"]
+    _origin_outputs_[-1]["dtype"] = _inputs_[-1]["dtype"]
+    _origin_outputs_[-1]["ori_shape"] = args_list[-2]["shape"]
+    _origin_outputs_[-1]["ori_format"] = data_format
+    _origin_outputs_[-1]["format"] = data_format
+    logger.info("CV fusion op, new conv output info: %s", str(_origin_outputs_[-1]))
+    return _origin_inputs_, _origin_outputs_, _inputs_
+
+
 def _process_tiling_info(is_batch, compile_info, origin_inputs, origin_outputs, attrs, tiling_key_list):
     tiling_info = TilingInfo()
     op_type = "BatchMatMulV3" if is_batch else "MatMulV3"
@@ -1045,18 +1175,18 @@ def is_matmul_relu_fixpip(tiling_info, cube_info):
     return has_relu and (cube_tiling_key_fixpip == 1)
 
 
-def template_decider(kernel_name, temp_dir, graph_name, tiling_info, cube_info):
+def template_decider(kernel_name, temp_dir, graph_name, tiling_info, cube_info, is_conv=False):
     _, is_batch, cube_block_dim, use_cv_common, has_relu = cube_info[:5]
     tiling_key = static_shape_cv_compile(kernel_name=kernel_name, temp_dir=temp_dir,
-                                                        graph_name=graph_name)
+                                         graph_name=graph_name)
     logger.info("CV fusion op, get vector tilingkey(%s)", tiling_key)
     use_cv_common = use_cv_common or [False]
     tiling_key_transpose_mask = 0xF0
     cube_tiling_key_ub = tiling_info.tiling_key & ~tiling_key_transpose_mask
-    if (is_matmul_relu_fixpip(tiling_info, cube_info)):
+    if (is_matmul_relu_fixpip(tiling_info, cube_info) and not is_conv):
         logger.info("CV fusion op, entering fixpip fusion mode.")
         tiling_info.file_content += "\n#define CV_UB_NO_DB 1\n" # 防止编译问题
-    elif (tiling_key == -1 or cube_tiling_key_ub != 1):
+    elif ((tiling_key == -1 or cube_tiling_key_ub != 1) and not is_conv):
         is_in_mix_white_list = (is_batch and tiling_info.tiling_key in CV_COMMON_BMM_MIX_WHITE_LIST) or (
                 not is_batch and tiling_info.tiling_key in CV_COMMON_MIX_WHITE_LIST)
         if is_in_mix_white_list:
@@ -1094,7 +1224,7 @@ def map_dtype_to_string(dtype):
     return dtype_map.get(dtype.lower(), dtype)
 
 
-def create_cube_tiling_data(kernel_name, temp_dir, graph_name, tiling_info, cube_info):
+def create_matmul_tiling_data(kernel_name, temp_dir, graph_name, tiling_info, cube_info):
     cube_output_type_size, is_batch, _, _, has_relu, origin_inputs, origin_outputs = cube_info[:7]
 
     # 根据is_batch设置结构体名称和数据访问路径
@@ -1134,9 +1264,118 @@ GET_TILING_DATA_PTR_WITH_STRUCT({struct_name}, tmpTilingData, tmpTilingGM);
 #define DTYPE_BIAS {map_dtype_to_string(origin_outputs[-1]["dtype"])}
 """
 
-    tiling_data_undef = f"""
+    tiling_info_undef = f"""
 #ifndef __UNDEF_MATMULV3_HEADER__
 #define __UNDEF_MATMULV3_HEADER__
+#undef GET_TILING_DATA_PTR_WITH_STRUCT
+#undef COPY_TILING_WITH_STRUCT
+#undef COPY_TILING_WITH_ARRAY
+#undef GET_TILING_DATA
+#undef GET_TILING_DATA_MEMBER
+#undef GET_TILING_DATA_WITH_STRUCT
+#undef __tiling_data_ptr__
+#endif
+"""
+
+    tiling_info.file_content += device_tiling_data
+    device_tiling_content = tiling_info_undef
+    device_tiling_content += tiling_info.file_content
+    generate_file(os.path.join(temp_dir, "device"), "autofuse_cube_tiling_data.h", device_tiling_content)
+    generate_file(os.path.join(temp_dir, "device", "cv_common"), "autofuse_cube_tiling_data.h",
+                  device_tiling_content)
+
+
+def create_matmul_dynamic_tiling_data(temp_dir, cube_info):
+    _, is_batch, _, has_relu, origin_inputs, origin_outputs = cube_info[:7]
+    # 生成host端tiling数据
+    struct_name = "BatchMatMulV3BasicTilingData" if is_batch else "MatMulV3BasicTilingData"
+    head_tiling_data = f"""
+#ifndef DYNAMIC_MM_TILING_DATA
+#define DYNAMIC_MM_TILING_DATA
+#include "arch35/mat_mul_tiling_data.h"
+#include "autofuse_tiling_data.h"
+struct CVTilingData {{
+    uint32_t fusion_mode; // 0:ub; 1:safety
+    uint32_t ub_mode; // 0:no db; 1:db
+    uint32_t cv_aic_num;
+    uint32_t cv_aiv_num;
+    uint32_t cv_vec_wss;
+    uint32_t mix_mode;
+}};
+struct CVAutofuseTilingData {{
+    AutofuseTilingData tiling_data;
+    CVTilingData  cv_tiling_data;
+    {struct_name} matmul_tiling_data;
+}};
+"""
+
+    # 写入host端文件
+    host_tiling_content = head_tiling_data
+    host_tiling_content += "#endif"
+    generate_file(os.path.join(temp_dir, "host"), "autofuse_cube_tiling_data.h", host_tiling_content)
+    generate_file(os.path.join(temp_dir, "host", "cv_common"), "autofuse_cube_tiling_data.h", host_tiling_content)
+
+    # 写入device端文件
+    device_tiling_data = head_tiling_data
+    device_tiling_data += f"""
+#define CV_UB_FUSION 1
+#define CV_UB_NO_DB 1
+#define IS_ENABLE_RELU {str(has_relu).lower()}
+#define OP_TYPE_RELU_VALUE {5 if has_relu else 0}UL // 自动融合新增
+#define DTYPE_X1 {map_dtype_to_string(origin_inputs[-1]["dtype"])}
+#define DTYPE_X2 {map_dtype_to_string(origin_inputs[-1]["dtype"])}
+#define DTYPE_Y {map_dtype_to_string(origin_outputs[-1]["dtype"])}
+#define DTYPE_BIAS {map_dtype_to_string(origin_outputs[-1]["dtype"])}
+#endif
+"""
+
+    device_tiling_content = device_tiling_data
+    generate_file(os.path.join(temp_dir, "device"), "autofuse_cube_tiling_data.h", device_tiling_content)
+    generate_file(os.path.join(temp_dir, "device", "cv_common"), "autofuse_cube_tiling_data.h",
+                  device_tiling_content)
+
+
+def create_conv_tiling_data(kernel_name, temp_dir, graph_name, tiling_info, cube_info, cube_attributes):
+    cube_output_type_size, _, _, is_bias, is_offset_w, origin_inputs, origin_outputs = cube_info[:7]
+    struct_name = "Conv2DTilingData"
+    data_prefix = "(*tmpTilingData).conv2dApiTiling"
+
+    host_tiling_data = f"""
+// conv2d
+#include "arch35/conv2d_v2_tiling_def.h"
+#include <<algorithm>
+const int32_t cube_output_type_size = {cube_output_type_size};
+GET_TILING_DATA_PTR_WITH_STRUCT({struct_name}, tmpTilingData, tmpTilingGM);
+"""
+
+    class_body = f"const int32_t ub_align_value = 32 / cube_output_type_size;\n"
+    class_body += f"const int32_t basen_align = ({data_prefix}.hoL0 + ub_align_value - 1) " \
+                  f"/ ub_align_value * ub_align_value;\n"
+    npu_arch = cube_attributes.get("npu_arch", "5102")
+    vec_num = 1
+    if npu_arch != "5102":
+        vec_num = 2
+    class_body += f"const int32_t basen_basem_align = std::max({data_prefix}.nL0 / {vec_num}, 16u) * basen_align;\n"
+
+    host_tiling_content = tiling_info.file_content + host_tiling_data + class_body
+    generate_file(os.path.join(temp_dir, "host"), "autofuse_cube_tiling_data.h", host_tiling_content)
+    generate_file(os.path.join(temp_dir, "host", "cv_common"), "autofuse_cube_tiling_data.h", host_tiling_content)
+
+    # 生成决定走哪一个vector模板的宏
+    template_decider(kernel_name, temp_dir, graph_name, tiling_info, cube_info, True)
+
+    device_tiling_data = f"""\n#include "arch35/conv2d_v2_tiling_def.h"
+#define IS_ENABLE_BIAS {str(is_bias).lower()}
+#define IS_ENABLE_OFFSET_W {str(is_offset_w).lower()}
+#define DTYPE_X1 {map_dtype_to_string(origin_inputs[0]["dtype"])}
+#define DTYPE_X2 {map_dtype_to_string(origin_inputs[1]["dtype"])}
+#define DTYPE_Y {map_dtype_to_string(origin_outputs[0]["dtype"])}
+#define DTYPE_BIAS {map_dtype_to_string(origin_outputs[0]["dtype"])}
+"""
+
+    tiling_data_undef = f"""
+#ifndef __UNDEF_CONV2D_HEADER__
+#define __UNDEF_CONV2D_HEADER__
 #undef GET_TILING_DATA_PTR_WITH_STRUCT
 #undef COPY_TILING_WITH_STRUCT
 #undef COPY_TILING_WITH_ARRAY
@@ -1154,7 +1393,8 @@ GET_TILING_DATA_PTR_WITH_STRUCT({struct_name}, tmpTilingData, tmpTilingGM);
     generate_file(os.path.join(temp_dir, "device", "cv_common"), "autofuse_cube_tiling_data.h",
                   device_tiling_content)
 
-def ascbc_cube_kernel_tiling_pro(
+
+def ascbc_conv_kernel_tiling_pro(
     *args,
     temp_dir,
     graph_name,
@@ -1181,22 +1421,105 @@ def ascbc_cube_kernel_tiling_pro(
     cube_attributes = cube_attrs.get("cube_attributes", {})
     if not cube_attributes:
         logger.error("kernel_name=[%s] can't find cube attributes", kernel_name)
-        return None
+        return
+
+    is_bias = cube_attributes.get("is_bias", False)
+    is_offset_w = cube_attributes.get("is_offset_w", False)
+    enable_hf32 = cube_attributes.get("enable_hf32", False)
+    offset_x = cube_attributes.get("offset_x", 0)
+    groups = cube_attributes.get("groups", 1)
+    pad_mode = cube_attributes.get("pad_mode", "SPECIFIC")
+    data_format = cube_attributes.get("data_format", "NCHW")
+    strides = cube_attributes.get("strides", [1, 1])
+    pads = cube_attributes.get("pads", [0, 0, 0, 0])
+    dilations = cube_attributes.get("dilations", [1, 1])
+
+    conv_attr1 = {"name": "strides", "dtype": "list_int", "value": strides}
+    conv_attr2 = {"name": "pads", "dtype": "list_int", "value": pads}
+    conv_attr3 = {"name": "dilations", "dtype": "list_int", "value": dilations}
+    conv_attr4 = {"name": "groups", "dtype": "int", "value": groups}
+    conv_attr5 = {"name": "data_format", "dtype": "str", "value": data_format}
+    conv_attr6 = {"name": "offset_x", "dtype": "int", "value": offset_x}
+    conv_attr7 = {"name": "pad_mode", "dtype": "str", "value": pad_mode}
+    conv_attr8 = {"name": "enable_hf32", "dtype": "bool", "value": enable_hf32}
+    conv_attr9 = {"name": "is_bias", "dtype": "bool", "value": is_bias}
+    conv_attr10 = {"name": "is_offset_w", "dtype": "bool", "value": is_offset_w}
+
+    conv_input_num = cube_attributes.get("input_num", 0)
+    _origin_inputs_, _origin_outputs_, _inputs_ = \
+        build_conv_args(args_list, input_num=conv_input_num, data_format=data_format)
+
+    attrs = [conv_attr1, conv_attr2, conv_attr3, conv_attr4, conv_attr5, conv_attr6,
+             conv_attr7, conv_attr8, conv_attr9, conv_attr10]
+    tiling_info = TilingInfo()
+    context = get_context()
+    _change_param_name_to_name(_inputs_)
+    _change_param_name_to_name(_origin_inputs_)
+    compile_info = context.get_compile_info()
+    tiling_config = {"name": "ascendc_op_para_size", "dtype": "int", "value": 2 * 1024 * 1024}
+    attrs.append(tiling_config)
+
+    op_type = "Conv2DV2"
+    tiling_data_type = "Conv2DTilingData"
+
+    run_info = do_op_tiling(op_type, compile_info, _origin_inputs_, _origin_outputs_, None, None, attrs)
+    tiling_info.tiling_data = run_info["tiling_data"]
+    tiling_info.tiling_key = run_info['tiling_key']
+    tiling_key_list[0] = tiling_info.tiling_key
+    cube_block_dim = run_info['block_dim']
+    tiling_info.file_content = gen_static_shape_v2(op_type, tiling_data_type, run_info["tiling_data"])
+
+    logger.info("kernel_name=[%s], cube tiling_key[%s], tiling_data=[%s], tiling_file_context=[%s]", kernel_name, str(
+        tiling_info.tiling_key), str(tiling_info.tiling_data), str(tiling_info.file_content))
+    cube_output_type_size = cube_attributes.get("type_size", 4)
+    cube_info = [cube_output_type_size, cube_block_dim, use_cv_common, is_bias, is_offset_w,
+                 _origin_inputs_, _origin_outputs_]
+    create_conv_tiling_data(kernel_name, temp_dir, graph_name, tiling_info, cube_info, cube_attributes)
+
+
+def ascbc_matmul_kernel_tiling_pro(
+    *args,
+    temp_dir,
+    graph_name,
+    kernel_name,
+    input_num,
+    output_num,
+    use_list_tensor_desc,
+    cube_attrs,
+    tiling_key_list,
+    use_cv_common=None
+):
+    graph_name = camel_to_snake(graph_name)
+    args_list = args[0]
+    if use_list_tensor_desc:
+        inputs = args_list[:input_num]
+        outputs = args_list[input_num: input_num + output_num]
+        args_list = [inputs, outputs]
+        input_num = 1
+        output_num = 1
+
+    if cube_attrs is None:
+        logger.error("kernel_name=[%s] can't find cube attrs", kernel_name)
+        return
+    cube_attributes = cube_attrs.get("cube_attributes", {})
+    if not cube_attributes:
+        logger.error("kernel_name=[%s] can't find cube attributes", kernel_name)
+        return
 
     is_batch = cube_attributes.get("is_batch", False)
     has_relu = cube_attributes.get("has_relu", False)
 
-    mm_attr1 = {"name" : "transpose_x1", "dtype" : "bool", "value" : cube_attributes.get("transpose_x1", False)}
-    mm_attr2 = {"name" : "transpose_x2", "dtype" : "bool", "value" : cube_attributes.get("transpose_x2", False)}
-    mm_attr3 = {"name" : "offset_x", "dtype" : "int", "value" : cube_attributes.get("offset_x", 0)}
+    mm_attr1 = {"name":"transpose_x1", "dtype":"bool", "value":cube_attributes.get("transpose_x1", False)}
+    mm_attr2 = {"name":"transpose_x2", "dtype":"bool", "value":cube_attributes.get("transpose_x2", False)}
+    mm_attr3 = {"name":"offset_x", "dtype":"int", "value":cube_attributes.get("offset_x", 0)}
     if is_batch:
-        mm_attr4 = {"name": "enable_hf32", "dtype": "bool", "value": cube_attributes.get("enable_hf32", False)}
+        mm_attr4 = {"name":"enable_hf32", "dtype":"bool", "value":cube_attributes.get("enable_hf32", False)}
     else:
-        mm_attr4 = {"name": "opImplMode", "dtype": "int", "value": cube_attributes.get("enable_hf32", 0x1)}
+        mm_attr4 = {"name":"opImplMode", "dtype":"int", "value":cube_attributes.get("enable_hf32", 0x1)}
 
     mm_input_num = cube_attributes.get("input_num", 0)
     _origin_inputs_, _origin_outputs_, _inputs_ = \
-        _build_args(args_list, input_num=mm_input_num, mm_attr1=mm_attr1, mm_attr2=mm_attr2)
+        _build_mm_args(args_list, input_num=mm_input_num, mm_attr1=mm_attr1, mm_attr2=mm_attr2)
 
     attrs = [mm_attr1, mm_attr2, mm_attr3, mm_attr4]
     tiling_info = TilingInfo()
@@ -1204,7 +1527,7 @@ def ascbc_cube_kernel_tiling_pro(
     _change_param_name_to_name(_inputs_)
     _change_param_name_to_name(_origin_inputs_)
     compile_info = context.get_compile_info()
-    tiling_config = {"name" : "ascendc_op_para_size", "dtype" : "int", "value" : 2 * 1024 * 1024}
+    tiling_config = {"name":"ascendc_op_para_size", "dtype":"int", "value":2 * 1024 * 1024}
     attrs.append(tiling_config)
     is_batch = cube_attributes.get("is_batch", False)
     tiling_info, cube_block_dim = _process_tiling_info(is_batch, compile_info, _origin_inputs_, _origin_outputs_, attrs,
@@ -1215,7 +1538,51 @@ def ascbc_cube_kernel_tiling_pro(
     cube_output_type_size = cube_attributes.get("type_size", 4)
     cube_info = [cube_output_type_size, is_batch, cube_block_dim, use_cv_common, has_relu, _origin_inputs_,
                  _origin_outputs_]
-    create_cube_tiling_data(kernel_name, temp_dir, graph_name, tiling_info, cube_info)
+    create_matmul_tiling_data(kernel_name, temp_dir, graph_name, tiling_info, cube_info)
+
+
+def ascbc_matmul_kernel_dynamic_tiling_pro(
+    *args,
+    temp_dir,
+    graph_name,
+    kernel_name,
+    input_num,
+    output_num,
+    use_list_tensor_desc,
+    cube_attrs,
+    use_cv_common=None
+):
+    graph_name = camel_to_snake(graph_name)
+    args_list = args[0]
+    if use_list_tensor_desc:
+        inputs = args_list[:input_num]
+        outputs = args_list[input_num: input_num + output_num]
+        args_list = [inputs, outputs]
+        input_num = 1
+        output_num = 1
+
+    if cube_attrs is None:
+        logger.error("kernel_name=[%s] can't find cube attrs", kernel_name)
+        return
+    cube_attributes = cube_attrs.get("cube_attributes", {})
+    if not cube_attributes:
+        logger.error("kernel_name=[%s] can't find cube attributes", kernel_name)
+        return
+
+    is_batch = cube_attributes.get("is_batch", False)
+    has_relu = cube_attributes.get("has_relu", False)
+
+    mm_attr1 = {"name":"transpose_x1", "dtype":"bool", "value":cube_attributes.get("transpose_x1", False)}
+    mm_attr2 = {"name":"transpose_x2", "dtype":"bool", "value":cube_attributes.get("transpose_x2", False)}
+
+    mm_input_num = cube_attributes.get("input_num", 0)
+    _origin_inputs_, _origin_outputs_, _ = \
+        _build_mm_args(args_list, input_num=mm_input_num, mm_attr1=mm_attr1, mm_attr2=mm_attr2)
+
+    cube_output_type_size = cube_attributes.get("type_size", 4)
+    cube_info = [cube_output_type_size, is_batch, use_cv_common, has_relu, _origin_inputs_,
+                 _origin_outputs_]
+    create_matmul_dynamic_tiling_data(temp_dir, cube_info)
 
 
 def asc_graph_compile_post(
@@ -1255,6 +1622,7 @@ def get_graph_basic_info(params, args) -> tuple:
     output_num = schedule_results.get_output_num()
     is_cube = schedule_results.is_cube_type()
     cube_attrs = schedule_results.get_cube_attributes()
+    is_conv = schedule_results.is_conv_type()
     kernel_name = args[-1]
     vector_core_num = params['vector_core_num']
     msg = (
@@ -1262,7 +1630,7 @@ def get_graph_basic_info(params, args) -> tuple:
         f"kernel_name:{kernel_name}, vector_core_num:{vector_core_num}, is_cube:{is_cube}"
     )
     CommonUtility.print_compile_log("", msg, AscendCLogLevel.LOG_DEBUG)
-    return graph_name, input_num, output_num, is_cube, cube_attrs
+    return graph_name, input_num, output_num, is_cube, is_conv, cube_attrs
 
 
 def create_compile_dirs(temp_dir) -> tuple:
@@ -1283,7 +1651,7 @@ def copy_so_and_modify_json(host_build_dir, kernel_name, json_file):
 
 def asc_graph_compile(*args, temp_dir, params):
     """入口为asc graph场景"""
-    graph_name, input_num, output_num, is_cube, cube_attrs = get_graph_basic_info(params, args)
+    graph_name, input_num, output_num, is_cube, is_conv, cube_attrs = get_graph_basic_info(params, args)
     tiling_key_list, kernel_type_list = [-1], ["KERNEL_TYPE_AIV_ONLY"]
     _, host_build_dir = create_compile_dirs(temp_dir)
     kernel_name = args[-1]
@@ -1297,15 +1665,35 @@ def asc_graph_compile(*args, temp_dir, params):
     use_cv_common = [False]
     replace_root = get_replace_kernel_root()
 
-    if is_cube and static_compile_flag:
-        ascbc_cube_kernel_tiling_pro(args, temp_dir=temp_dir, graph_name=graph_name, kernel_name=kernel_name,
-                                     input_num=input_num, output_num=output_num,
-                                     use_list_tensor_desc=use_list_tensor_desc, cube_attrs=cube_attrs,
-                                     tiling_key_list=tiling_key_list, use_cv_common=use_cv_common)
-        replace_host_files_if_needed(replace_root, temp_dir, use_cv_common, graph_name)
-        static_shape_compile(kernel_name=kernel_name, temp_dir=temp_dir, graph_name=graph_name,
-                             tiling_key_list=tiling_key_list, kernel_type_list=kernel_type_list,
-                             use_cv_common=use_cv_common, is_cube=is_cube)
+    if is_cube:
+        if (static_compile_flag):
+            if (is_conv):
+                ascbc_conv_kernel_tiling_pro(args, temp_dir=temp_dir, graph_name=graph_name, kernel_name=kernel_name,
+                                             input_num=input_num, output_num=output_num,
+                                             use_list_tensor_desc=use_list_tensor_desc, cube_attrs=cube_attrs,
+                                             tiling_key_list=tiling_key_list, use_cv_common=use_cv_common)
+            else:
+                ascbc_matmul_kernel_tiling_pro(args, temp_dir=temp_dir, graph_name=graph_name, kernel_name=kernel_name,
+                                               input_num=input_num, output_num=output_num,
+                                               use_list_tensor_desc=use_list_tensor_desc, cube_attrs=cube_attrs,
+                                               tiling_key_list=tiling_key_list, use_cv_common=use_cv_common)
+            replace_host_files_if_needed(
+                replace_root, temp_dir, use_cv_common, graph_name)
+            static_shape_compile(kernel_name=kernel_name, temp_dir=temp_dir, graph_name=graph_name,
+                                 tiling_key_list=tiling_key_list, kernel_type_list=kernel_type_list,
+                                 use_cv_common=use_cv_common, is_cube=is_cube)
+        else:
+            if (not is_conv):
+                replace_host_files_if_needed(
+                    replace_root, temp_dir, use_cv_common, graph_name)
+                ascbc_matmul_kernel_dynamic_tiling_pro(args, temp_dir=temp_dir, graph_name=graph_name,
+                                                       kernel_name=kernel_name, input_num=input_num,
+                                                       output_num=output_num,
+                                                       use_list_tensor_desc=use_list_tensor_desc,
+                                                       cube_attrs=cube_attrs, use_cv_common=use_cv_common)
+                dynamic_shape_compile(kernel_name=kernel_name, temp_dir=temp_dir, graph_name=graph_name,
+                                      use_cv_common=use_cv_common, is_cube=is_cube)
+
     elif static_compile_flag:
         pgo_env = get_pgo_env_flag()
         if pgo_env and not enable_parallel_compile and not use_list_tensor_desc:
@@ -1325,7 +1713,7 @@ def asc_graph_compile(*args, temp_dir, params):
                                                   use_list_tensor_desc=use_list_tensor_desc,
                                                   enable_parallel_compile=enable_parallel_compile,
                                                   tiling_key=tiling_key_list[0], kernel_type=kernel_type_list[0],
-                                                  is_cube=is_cube)
+                                                  is_cube=is_cube, is_conv=is_conv)
     timestamp_set(False, graph_name, "CompileDevice")
     host_build_dir = get_host_build_dir(temp_dir, use_cv_common)
     asc_graph_compile_post(host_build_dir, code_gen, graph_name, kernel_file,

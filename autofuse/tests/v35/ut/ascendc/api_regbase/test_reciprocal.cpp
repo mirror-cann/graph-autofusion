@@ -71,6 +71,13 @@ class TestApiReciprocalUT : public testing::Test {
     return diff_count;
   }
 
+  template <typename T>
+  static void FreeTensorInput(ReciprocalInputParam<T> &param) {
+    AscendC::GmFree(param.y);
+    AscendC::GmFree(param.x);
+    AscendC::GmFree(param.exp);
+  }
+
   // Tensor - Tensor 测试
   template <typename T>
   static void ReciprocalTensorTensorTest(uint32_t size) {
@@ -87,6 +94,9 @@ class TestApiReciprocalUT : public testing::Test {
 
     uint32_t diff_count = Valid(param);
     EXPECT_EQ(diff_count, 0);
+
+    // 释放内存
+    FreeTensorInput(param);
   }
 
 };

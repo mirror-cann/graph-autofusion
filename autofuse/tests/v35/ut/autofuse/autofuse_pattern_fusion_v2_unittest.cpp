@@ -19,7 +19,7 @@
 #include "lowering/asc_lowerer/loop_api.h"
 #include "lowering/asc_lowerer/asc_overrides.h"
 #include "lowering/lowerings.h"
-#include "utils/autofuse_attrs.h"
+#include "fusion/autofuse_attrs.h"
 #include "utils/auto_fuse_config.h"
 #include "../../eager_style_graph_builder/compliant_op_desc_builder.h"
 #include "pattern_fusion/flatten_concat_pass.h"
@@ -232,8 +232,8 @@ TEST_F(PatternFusionBeforeAutoFuseV2UT, GatherForward_NonTail_A3) {
 
 
 TEST_F(PatternFusionBeforeAutoFuseV2UT, GatherForward_Tail_A5_1) {
-  af::PlatformContext::GetInstance().Reset();
-  auto stub_v2 = std::make_shared<af::RuntimeStubV2Common>();
+  ge::PlatformContext::GetInstance().Reset();
+  auto stub_v2 = std::make_shared<ge::RuntimeStubV2Common>();
   RuntimeStub::SetInstance(stub_v2);
   [this]() {
     auto data0 = es_graph_->CreateInput(0, "data0", nullptr);
@@ -296,13 +296,13 @@ TEST_F(PatternFusionBeforeAutoFuseV2UT, GatherForward_Tail_A5_1) {
   ASSERT_EQ(asc_node_count_after_autofuse_gather, 1);
   ASSERT_EQ(asc_node_count_after_autofuse, 1);
   SetCurShapeEnvContext(nullptr);
-  af::PlatformContext::GetInstance().Reset();
+  ge::PlatformContext::GetInstance().Reset();
   RuntimeStub::Reset();
 }
 
 TEST_F(PatternFusionBeforeAutoFuseV2UT, GatherForward_Tail_A5_2) {
-  af::PlatformContext::GetInstance().Reset();
-  auto stub_v2 = std::make_shared<af::RuntimeStubV2Common>();
+  ge::PlatformContext::GetInstance().Reset();
+  auto stub_v2 = std::make_shared<ge::RuntimeStubV2Common>();
   RuntimeStub::SetInstance(stub_v2);
   [this]() {
     auto data0 = es_graph_->CreateInput(0, "data0", nullptr);
@@ -392,14 +392,14 @@ TEST_F(PatternFusionBeforeAutoFuseV2UT, GatherForward_Tail_A5_2) {
   ASSERT_EQ(asc_node_count_after_autofuse_gather, 1);
   ASSERT_EQ(asc_node_count_after_autofuse, 2);
   SetCurShapeEnvContext(nullptr);
-  af::PlatformContext::GetInstance().Reset();
+  ge::PlatformContext::GetInstance().Reset();
   RuntimeStub::Reset();
 }
 
 
 TEST_F(PatternFusionBeforeAutoFuseV2UT, GatherForward_NonTail_A5_1) {
-  af::PlatformContext::GetInstance().Reset();
-  auto stub_v2 = std::make_shared<af::RuntimeStubV2Common>();
+  ge::PlatformContext::GetInstance().Reset();
+  auto stub_v2 = std::make_shared<ge::RuntimeStubV2Common>();
   RuntimeStub::SetInstance(stub_v2);
   [this]() {
     auto data0 = es_graph_->CreateInput(0, "data0", nullptr);
@@ -462,13 +462,13 @@ TEST_F(PatternFusionBeforeAutoFuseV2UT, GatherForward_NonTail_A5_1) {
   ASSERT_EQ(asc_node_count_after_autofuse_gather, 1);
   ASSERT_EQ(asc_node_count_after_autofuse, 1);
   SetCurShapeEnvContext(nullptr);
-  af::PlatformContext::GetInstance().Reset();
+  ge::PlatformContext::GetInstance().Reset();
   RuntimeStub::Reset();
 }
 
 TEST_F(PatternFusionBeforeAutoFuseV2UT, GatherForward_NonTail_A5_2) {
-  af::PlatformContext::GetInstance().Reset();
-  auto stub_v2 = std::make_shared<af::RuntimeStubV2Common>();
+  ge::PlatformContext::GetInstance().Reset();
+  auto stub_v2 = std::make_shared<ge::RuntimeStubV2Common>();
   RuntimeStub::SetInstance(stub_v2);
   [this]() {
     auto data0 = es_graph_->CreateInput(0, "data0", nullptr);
@@ -533,13 +533,13 @@ TEST_F(PatternFusionBeforeAutoFuseV2UT, GatherForward_NonTail_A5_2) {
   ASSERT_EQ(asc_node_count_after_autofuse_gather, 1);
   ASSERT_EQ(asc_node_count_after_autofuse, 1);
   SetCurShapeEnvContext(nullptr);
-  af::PlatformContext::GetInstance().Reset();
+  ge::PlatformContext::GetInstance().Reset();
   RuntimeStub::Reset();
 }
 
 TEST_F(PatternFusionBeforeAutoFuseV2UT, GatherForward_NonTail_A5_3) {
-  af::PlatformContext::GetInstance().Reset();
-  auto stub_v2 = std::make_shared<af::RuntimeStubV2Common>();
+  ge::PlatformContext::GetInstance().Reset();
+  auto stub_v2 = std::make_shared<ge::RuntimeStubV2Common>();
   RuntimeStub::SetInstance(stub_v2);
   [this]() {
     auto data0 = es_graph_->CreateInput(0, "data0", nullptr);
@@ -596,13 +596,13 @@ TEST_F(PatternFusionBeforeAutoFuseV2UT, GatherForward_NonTail_A5_3) {
   ASSERT_EQ(asc_node_count_after_autofuse_gather, 1);
   ASSERT_EQ(asc_node_count_after_autofuse, 1);
   SetCurShapeEnvContext(nullptr);
-  af::PlatformContext::GetInstance().Reset();
+  ge::PlatformContext::GetInstance().Reset();
   RuntimeStub::Reset();
 }
 
 TEST_F(PatternFusionBeforeAutoFuseV2UT, GatherForward_NonTail_A5_4) {
-  af::PlatformContext::GetInstance().Reset();
-  auto stub_v2 = std::make_shared<af::RuntimeStubV2Common>();
+  ge::PlatformContext::GetInstance().Reset();
+  auto stub_v2 = std::make_shared<ge::RuntimeStubV2Common>();
   RuntimeStub::SetInstance(stub_v2);
   [this]() {
     auto data0 = es_graph_->CreateInput(0, "data0", nullptr);
@@ -662,13 +662,13 @@ TEST_F(PatternFusionBeforeAutoFuseV2UT, GatherForward_NonTail_A5_4) {
   ASSERT_EQ(asc_node_count_after_autofuse_gather, 1);
   ASSERT_EQ(asc_node_count_after_autofuse, 1);
   SetCurShapeEnvContext(nullptr);
-  af::PlatformContext::GetInstance().Reset();
+  ge::PlatformContext::GetInstance().Reset();
   RuntimeStub::Reset();
 }
 
 TEST_F(PatternFusionBeforeAutoFuseV2UT, GatherForward_NonTail_A5_5) {
-  af::PlatformContext::GetInstance().Reset();
-  auto stub_v2 = std::make_shared<af::RuntimeStubV2Common>();
+  ge::PlatformContext::GetInstance().Reset();
+  auto stub_v2 = std::make_shared<ge::RuntimeStubV2Common>();
   RuntimeStub::SetInstance(stub_v2);
   [this]() {
     auto data0 = es_graph_->CreateInput(0, "data0", nullptr);
@@ -730,13 +730,13 @@ TEST_F(PatternFusionBeforeAutoFuseV2UT, GatherForward_NonTail_A5_5) {
   ASSERT_EQ(asc_node_count_after_autofuse_gather, 1);
   ASSERT_EQ(asc_node_count_after_autofuse, 1);
   SetCurShapeEnvContext(nullptr);
-  af::PlatformContext::GetInstance().Reset();
+  ge::PlatformContext::GetInstance().Reset();
   RuntimeStub::Reset();
 }
 
 TEST_F(PatternFusionBeforeAutoFuseV2UT, GatherForward_NonTail_A5_6) {
-  af::PlatformContext::GetInstance().Reset();
-  auto stub_v2 = std::make_shared<af::RuntimeStubV2Common>();
+  ge::PlatformContext::GetInstance().Reset();
+  auto stub_v2 = std::make_shared<ge::RuntimeStubV2Common>();
   RuntimeStub::SetInstance(stub_v2);
   [this]() {
     auto data0 = es_graph_->CreateInput(0, "data0", nullptr);
@@ -796,13 +796,13 @@ TEST_F(PatternFusionBeforeAutoFuseV2UT, GatherForward_NonTail_A5_6) {
   ASSERT_EQ(asc_node_count_after_autofuse_gather, 1);
   ASSERT_EQ(asc_node_count_after_autofuse, 1);
   SetCurShapeEnvContext(nullptr);
-  af::PlatformContext::GetInstance().Reset();
+  ge::PlatformContext::GetInstance().Reset();
   RuntimeStub::Reset();
 }
 
 TEST_F(PatternFusionBeforeAutoFuseV2UT, GatherForward_NonTail_A5_7) {
-  af::PlatformContext::GetInstance().Reset();
-  auto stub_v2 = std::make_shared<af::RuntimeStubV2Common>();
+  ge::PlatformContext::GetInstance().Reset();
+  auto stub_v2 = std::make_shared<ge::RuntimeStubV2Common>();
   RuntimeStub::SetInstance(stub_v2);
   [this]() {
     auto data0 = es_graph_->CreateInput(0, "data0", nullptr);
@@ -875,13 +875,13 @@ TEST_F(PatternFusionBeforeAutoFuseV2UT, GatherForward_NonTail_A5_7) {
   ASSERT_EQ(asc_node_count_after_autofuse_gather, 1);
   ASSERT_EQ(asc_node_count_after_autofuse, 2);
   SetCurShapeEnvContext(nullptr);
-  af::PlatformContext::GetInstance().Reset();
+  ge::PlatformContext::GetInstance().Reset();
   RuntimeStub::Reset();
 }
 
 TEST_F(PatternFusionBeforeAutoFuseV2UT, GatherForward_NonTail_A5_8) {
-  af::PlatformContext::GetInstance().Reset();
-  auto stub_v2 = std::make_shared<af::RuntimeStubV2Common>();
+  ge::PlatformContext::GetInstance().Reset();
+  auto stub_v2 = std::make_shared<ge::RuntimeStubV2Common>();
   RuntimeStub::SetInstance(stub_v2);
   [this]() {
     auto data0 = es_graph_->CreateInput(0, "data0", nullptr);
@@ -957,13 +957,13 @@ TEST_F(PatternFusionBeforeAutoFuseV2UT, GatherForward_NonTail_A5_8) {
   ASSERT_EQ(asc_node_count_after_autofuse_gather, 1);
   ASSERT_EQ(asc_node_count_after_autofuse, 2);
   SetCurShapeEnvContext(nullptr);
-  af::PlatformContext::GetInstance().Reset();
+  ge::PlatformContext::GetInstance().Reset();
   RuntimeStub::Reset();
 }
 
 TEST_F(PatternFusionBeforeAutoFuseV2UT, GatherForward_NonTail_A5_9) {
-  af::PlatformContext::GetInstance().Reset();
-  auto stub_v2 = std::make_shared<af::RuntimeStubV2Common>();
+  ge::PlatformContext::GetInstance().Reset();
+  auto stub_v2 = std::make_shared<ge::RuntimeStubV2Common>();
   RuntimeStub::SetInstance(stub_v2);
   [this]() {
     auto data0 = es_graph_->CreateInput(0, "data0", nullptr);
@@ -1052,13 +1052,13 @@ TEST_F(PatternFusionBeforeAutoFuseV2UT, GatherForward_NonTail_A5_9) {
   ASSERT_EQ(asc_node_count_after_autofuse_gather, 2);
   ASSERT_EQ(asc_node_count_after_autofuse, 3);
   SetCurShapeEnvContext(nullptr);
-  af::PlatformContext::GetInstance().Reset();
+  ge::PlatformContext::GetInstance().Reset();
   RuntimeStub::Reset();
 }
 
 TEST_F(PatternFusionBeforeAutoFuseV2UT, GatherForward_NonTail_A5_10) {
-  af::PlatformContext::GetInstance().Reset();
-  auto stub_v2 = std::make_shared<af::RuntimeStubV2Common>();
+  ge::PlatformContext::GetInstance().Reset();
+  auto stub_v2 = std::make_shared<ge::RuntimeStubV2Common>();
   RuntimeStub::SetInstance(stub_v2);
   [this]() {
     auto data0 = es_graph_->CreateInput(0, "data0", nullptr);
@@ -1150,13 +1150,13 @@ TEST_F(PatternFusionBeforeAutoFuseV2UT, GatherForward_NonTail_A5_10) {
   ASSERT_EQ(asc_node_count_after_autofuse_gather, 2);
   ASSERT_EQ(asc_node_count_after_autofuse, 3);
   SetCurShapeEnvContext(nullptr);
-  af::PlatformContext::GetInstance().Reset();
+  ge::PlatformContext::GetInstance().Reset();
   RuntimeStub::Reset();
 }
 
 TEST_F(PatternFusionBeforeAutoFuseV2UT, GatherForward_NonTail_A5_11) {
-  af::PlatformContext::GetInstance().Reset();
-  auto stub_v2 = std::make_shared<af::RuntimeStubV2Common>();
+  ge::PlatformContext::GetInstance().Reset();
+  auto stub_v2 = std::make_shared<ge::RuntimeStubV2Common>();
   RuntimeStub::SetInstance(stub_v2);
   [this]() {
     auto data0 = es_graph_->CreateInput(0, "data0", nullptr);
@@ -1239,13 +1239,13 @@ TEST_F(PatternFusionBeforeAutoFuseV2UT, GatherForward_NonTail_A5_11) {
   ASSERT_EQ(asc_node_count_after_autofuse_gather, 2);
   ASSERT_EQ(asc_node_count_after_autofuse, 3);
   SetCurShapeEnvContext(nullptr);
-  af::PlatformContext::GetInstance().Reset();
+  ge::PlatformContext::GetInstance().Reset();
   RuntimeStub::Reset();
 }
 
 TEST_F(PatternFusionBeforeAutoFuseV2UT, GatherForward_NonTail_A5_12) {
-  af::PlatformContext::GetInstance().Reset();
-  auto stub_v2 = std::make_shared<af::RuntimeStubV2Common>();
+  ge::PlatformContext::GetInstance().Reset();
+  auto stub_v2 = std::make_shared<ge::RuntimeStubV2Common>();
   RuntimeStub::SetInstance(stub_v2);
   [this]() {
     auto data0 = es_graph_->CreateInput(0, "data0", nullptr);
@@ -1310,12 +1310,12 @@ TEST_F(PatternFusionBeforeAutoFuseV2UT, GatherForward_NonTail_A5_12) {
   ASSERT_EQ(asc_node_count_after_autofuse_gather, 1);
   ASSERT_EQ(asc_node_count_after_autofuse, 1);
   SetCurShapeEnvContext(nullptr);
-  af::PlatformContext::GetInstance().Reset();
+  ge::PlatformContext::GetInstance().Reset();
   RuntimeStub::Reset();
 }
 
 TEST_F(PatternFusionBeforeAutoFuseV2UT, GatherForward_NonTail_A5_13) {
-  af::PlatformContext::GetInstance().Reset();
+  ge::PlatformContext::GetInstance().Reset();
   auto stub_v2 = std::make_shared<RuntimeStubV2Common>();
   RuntimeStub::SetInstance(stub_v2);
   [this]() {
@@ -1383,12 +1383,12 @@ TEST_F(PatternFusionBeforeAutoFuseV2UT, GatherForward_NonTail_A5_13) {
   ASSERT_EQ(asc_node_count_after_autofuse_gather, 0);
   ASSERT_EQ(asc_node_count_after_autofuse, 0);
   SetCurShapeEnvContext(nullptr);
-  af::PlatformContext::GetInstance().Reset();
+  ge::PlatformContext::GetInstance().Reset();
   RuntimeStub::Reset();
 }
 
 TEST_F(PatternFusionBeforeAutoFuseV2UT, GatherForward_NonTail_A5_14) {
-  af::PlatformContext::GetInstance().Reset();
+  ge::PlatformContext::GetInstance().Reset();
   auto stub_v2 = std::make_shared<RuntimeStubV2Common>();
   RuntimeStub::SetInstance(stub_v2);
   [this]() {
@@ -1446,12 +1446,12 @@ TEST_F(PatternFusionBeforeAutoFuseV2UT, GatherForward_NonTail_A5_14) {
   ASSERT_EQ(asc_node_count_after_autofuse_gather, 0);
   ASSERT_EQ(asc_node_count_after_autofuse, 0);
   SetCurShapeEnvContext(nullptr);
-  af::PlatformContext::GetInstance().Reset();
+  ge::PlatformContext::GetInstance().Reset();
   RuntimeStub::Reset();
 }
 
 TEST_F(PatternFusionBeforeAutoFuseV2UT, GatherForward_NonTail_A5_15) {
-  af::PlatformContext::GetInstance().Reset();
+  ge::PlatformContext::GetInstance().Reset();
   auto stub_v2 = std::make_shared<RuntimeStubV2Common>();
   RuntimeStub::SetInstance(stub_v2);
   [this]() {
@@ -1510,7 +1510,7 @@ TEST_F(PatternFusionBeforeAutoFuseV2UT, GatherForward_NonTail_A5_15) {
   ASSERT_EQ(asc_node_count_after_autofuse_gather, 0);
   ASSERT_EQ(asc_node_count_after_autofuse, 0);
   SetCurShapeEnvContext(nullptr);
-  af::PlatformContext::GetInstance().Reset();
+  ge::PlatformContext::GetInstance().Reset();
   RuntimeStub::Reset();
 }
 }

@@ -11,6 +11,7 @@
 #include "gtest/gtest.h"
 #include "base/base_types.h"
 #define private public
+#define protected public
 #include "generator/solver_pass_gen/axes_reorder_solver/axes_reorder_solver_gen.h"
 #include "v35/att/api_perf_register/perf_param_v2.h"
 using namespace att;
@@ -60,7 +61,7 @@ TEST_F(TestAxesReorderSolverGenV2, test_contain_heavy_op_A5) {
   solver.mc_args_ = mc_args_;
   solver.local_buffer_tiling_vars_ = local_buffer_tiling_vars_;
   solver.hardware_use_map_ = hardware_use_map_;
-  solver.enable_multicore_ub_tradeoff_ = false;
+  solver.SetEnableMulticoreUBTradeoff(false);
   std::string actual1 = solver.GenSolverFuncImpl();
   EXPECT_TRUE(actual1.find("solver.Run(false, true, ") != std::string::npos);
 

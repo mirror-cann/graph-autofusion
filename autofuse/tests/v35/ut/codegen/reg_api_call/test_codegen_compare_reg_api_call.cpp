@@ -12,7 +12,7 @@
 #include "ascir_ops.h"
 #include "codegen_kernel.h"
 #include "utils/api_call_factory.h"
-#include "elewise/compare_v2_api_call.h"
+#include "compare_v2_api_call.h"
 
 #include "runtime_stub.h"
 #include "platform_context.h"

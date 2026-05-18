@@ -50,7 +50,7 @@ std::vector<std::unique_ptr<TmpBufDesc>> GetCompareNormalTmpSize(const AscNode &
             GELOGD("[GetInputSize] axis id is: %u, %u", axis_ids[0], axis_ids[1]);
             GELOGD("[GetInputSize] inputs[0].repeat is: %s, %s", node_inputs[0].attr.repeats[axis_ids[0]].Str().get(),
                                                                 node_inputs[0].attr.repeats[axis_ids[1]].Str().get());
-            GELOGD("[GetInputSize] inputs[0].vectorized stride is: %s, %s",
+            GELOGD("[GetInputSize] inputs[0].vectorized_strides is: %s, %s",
                                                                 node_inputs[0].attr.vectorized_strides[0].Str().get(),
                                                                 node_inputs[0].attr.vectorized_strides[1].Str().get());
             Expression input_size = Symbol(256) * node_inputs[0].attr.repeats[axis_ids[1]] *
@@ -61,7 +61,7 @@ std::vector<std::unique_ptr<TmpBufDesc>> GetCompareNormalTmpSize(const AscNode &
         } else if (node_inputs[0].attr.dtype == ge::DataType::DT_INT32) {
             GELOGD("[GetInputSize] axis id is: %u", axis_ids[1]);
             GELOGD("[GetInputSize] inputs[1].repeat is: %s", node_inputs[0].attr.repeats[axis_ids[0]].Str().get());
-            GELOGD("[GetInputSize] inputs[1].vectorized stride is: %s",
+            GELOGD("[GetInputSize] inputs[1].vectorized_strides is: %s",
                                                                 node_inputs[0].attr.vectorized_strides[1].Str().get());
             Expression input_size = node_inputs[0].attr.repeats[axis_ids[0]] *
                                     node_inputs[0].attr.vectorized_strides[1];
@@ -71,7 +71,7 @@ std::vector<std::unique_ptr<TmpBufDesc>> GetCompareNormalTmpSize(const AscNode &
             if (mode == "EQ" || mode == "NE") {
                 GELOGD("[GetInputSize] axis id is: %u", axis_ids[1]);
                 GELOGD("[GetInputSize] inputs[1].repeat is: %s", node_inputs[0].attr.repeats[axis_ids[0]].Str().get());
-                GELOGD("[GetInputSize] inputs[1].vectorized stride is: %s",
+                GELOGD("[GetInputSize] inputs[1].vectorized_strides is: %s",
                                                                 node_inputs[0].attr.vectorized_strides[1].Str().get());
                 Expression input_size = node_inputs[0].attr.repeats[axis_ids[0]] *
                                         node_inputs[0].attr.vectorized_strides[1];
@@ -100,7 +100,7 @@ std::vector<std::unique_ptr<TmpBufDesc>> GetCompareNormalTmpSize(const AscNode &
     } else {
         GELOGD("[GetInputSize] axis id is: %u", axis_ids[0]);
         GELOGD("[GetInputSize] inputs[0].repeat is: %s", node_inputs[0].attr.repeats[axis_ids[0]].Str().get());
-        GELOGD("[GetInputSize] inputs[0].vectorized stride is: %s",
+        GELOGD("[GetInputSize] inputs[0].vectorized_strides is: %s",
                                                             node_inputs[0].attr.vectorized_strides[0].Str().get());
         Expression input_size = node_inputs[0].attr.repeats[axis_ids[0]] * node_inputs[0].attr.vectorized_strides[0];
         Expression total_size = Symbol(ge::GetSizeByDataType(node_inputs[0].attr.dtype)) * input_size;

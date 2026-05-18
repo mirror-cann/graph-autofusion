@@ -17,7 +17,7 @@
 #include "can_fuse/fusion_strategy_solver.h"
 #include "can_fuse/backend/fusion_decider_registry.h"
 #include "can_fuse/backend/asc_backend_fusion_decider.h"
-#include "utils/autofuse_attrs.h"
+#include "fusion/autofuse_attrs.h"
 #include "utils/autofuse_utils.h"
 #include "graph/ascendc_ir/ascendc_ir_core/ascendc_ir.h"
 #include "ascir_ops.h"

@@ -11,6 +11,10 @@
 #ifndef ASCIR_COMMON_H_
 #define ASCIR_COMMON_H_
 
+#include <vector>
+#include <map>
+#include "ascendc_ir.h"
+
 namespace af {
 namespace ascir {
   struct BroadcastCapability {

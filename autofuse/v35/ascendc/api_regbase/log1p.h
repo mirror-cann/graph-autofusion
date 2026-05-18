@@ -12,8 +12,7 @@
 
 template <typename T>
 inline __aicore__ void Log1p(const AscendC::LocalTensor<T> &dst, const AscendC::LocalTensor<T> &src, const uint32_t calCount) {
-  AscendC::Adds(src, src, (T)1.0, calCount);
-  AscendC::PipeBarrier<PIPE_V>();
-  AscendC::Ln(dst, src, calCount);
+  AscendC::Adds(dst, src, (T)1.0, calCount);
+  AscendC::Ln(dst, dst, calCount);
 }
 #endif  // __ASCENDC_API_LOG1P_H__

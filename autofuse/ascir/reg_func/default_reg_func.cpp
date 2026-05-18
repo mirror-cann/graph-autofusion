@@ -76,11 +76,11 @@ Expression GetInputSize(AscNodeInputs &node_inputs)
     }
   }
   GELOGD("[GetInputSize] axis id is: %lu", axis_id);
-  GELOGD("[GetInputSize] vectorized axis id is: %lu", vectorized_axis_id);
+  GELOGD("[GetInputSize] vectorized_axis id is: %lu", vectorized_axis_id);
   GELOGD("[GetInputSize] inputs[0].repeat is: %s", attr.repeats[axis_id].Str().get());
-  GELOGD("[GetInputSize] inputs[0].vectorized stride is: %s", attr.vectorized_strides[0].Str().get());
+  GELOGD("[GetInputSize] inputs[0].vectorized_strides is: %s", attr.vectorized_strides[0].Str().get());
   GE_ASSERT_TRUE(vectorized_axis_id < static_cast<uint64_t>(attr.vectorized_strides.size()),
-                 "Vectorized axis id [%lu] is invalid", vectorized_axis_id);
+                 "Vectorized_axis id [%lu] is invalid", vectorized_axis_id);
   GE_ASSERT_TRUE(axis_id < static_cast<uint64_t>(attr.repeats.size()), "Axis id [%lu] is invalid", axis_id);
   Expression input_size = attr.repeats[axis_id] * attr.vectorized_strides[vectorized_axis_id];
   return input_size;

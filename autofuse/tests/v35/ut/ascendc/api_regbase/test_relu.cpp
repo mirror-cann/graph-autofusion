@@ -74,6 +74,13 @@ class TestApiReluUT : public testing::Test {
   }
 
   template <typename T>
+  static void FreeTensorInput(ReluInputParam<T> &param) {
+    AscendC::GmFree(param.y);
+    AscendC::GmFree(param.x);
+    AscendC::GmFree(param.exp);
+  }
+
+  template <typename T>
   static void ReluTensorTensorTest(uint32_t size) {
     ReluInputParam<T> param{};
     param.size = size;
@@ -88,6 +95,9 @@ class TestApiReluUT : public testing::Test {
 
     uint32_t diff_count = Valid(param);
     EXPECT_EQ(diff_count, 0);
+
+    // 释放内存
+    FreeTensorInput(param);
   }
 
 };

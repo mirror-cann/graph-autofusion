@@ -493,7 +493,7 @@ Status ConcatGroupPartitioner::ParseConcatNode() {
 }
 
 Status ConcatGroupPartitioner::TryOptimizeGroupSize() {
-  GELOGD("all input concat dim is known shape, try optimize group size");
+  GELOGD("all input concat dim is known shape, try to optimize group size");
   // prod(dims[concat_dim:])较小, 分组输出会使用跳写导致性能劣化，该场景尽量做不切分
   const auto kMinColsPerGroup = kMinGroupSizeByte / dtype_size_;
   use_default_group_ = true;

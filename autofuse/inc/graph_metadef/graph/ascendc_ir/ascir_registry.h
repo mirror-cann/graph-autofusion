@@ -138,7 +138,7 @@ class AscIrCodegen {
   }
 
   // 返回需要加载的头文件
-  virtual std::vector<std::string> LoadApiHeaderFiles() const {
+  virtual std::vector<std::string> LoadApiHeaderFiles([[maybe_unused]] bool is_dynamic) const {
     return std::vector<std::string>();
   }
 

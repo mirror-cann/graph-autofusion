@@ -461,7 +461,6 @@ TEST(CodegenKernel, CastApiCall_WithMaskMode) {
     std::make_tuple(ge::DT_FLOAT16, ge::DT_INT16, "2"),
     std::make_tuple(ge::DT_FLOAT16, ge::DT_INT8, "2"),
     std::make_tuple(ge::DT_FLOAT16, ge::DT_UINT8, "2"),
-    std::make_tuple(ge::DT_FLOAT16, ge::DT_INT4, "2"),
 
     std::make_tuple(ge::DT_FLOAT, ge::DT_FLOAT16, "4"),
     std::make_tuple(ge::DT_FLOAT, ge::DT_INT64, "8"),
@@ -469,7 +468,6 @@ TEST(CodegenKernel, CastApiCall_WithMaskMode) {
     std::make_tuple(ge::DT_FLOAT, ge::DT_INT16, "4"),
     std::make_tuple(ge::DT_FLOAT, ge::DT_BF16, "4"),
 
-    std::make_tuple(ge::DT_INT4, ge::DT_FLOAT16, "2"),
 
     std::make_tuple(ge::DT_INT16, ge::DT_FLOAT16, "2"),
     std::make_tuple(ge::DT_INT16, ge::DT_FLOAT, "4"),

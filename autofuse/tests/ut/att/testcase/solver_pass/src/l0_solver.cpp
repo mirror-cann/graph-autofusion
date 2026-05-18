@@ -11,6 +11,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <memory.h>
+#include <algorithm>
 #ifdef DEBUG
 #define ATT_LOG(log)
 do {
@@ -23,8 +24,7 @@ namespace att {
 // L0Var的备选值的个数
 static const uint32_t candidate_size = 7u;
 // L0Var的备选值
-static const uint32_t candidate_value[] = {16u,  32u,  64u,  128u,
-                                           256u, 512u, 1024u};
+  static const uint32_t candidate_value[] = {16u, 32u, 64u, 128u, 256u, 512u, 1024u};
 // 表达L0的求解值至少要满足核数的比例，可手动修改
 static const double CORE_NUM_RATIO = 0.6f;
 // 表达L0的求解值pad之后的值不允许超过原始值大小的倍数，可手动修改
@@ -136,7 +136,9 @@ public:
    * 如果有求解结果，这个方法将返回一个指向结果数据的指针
    * 结果数据的内存使用完后，应该使用 delete[] 释放内存
    */
-  uint32_t *GetOutput() { return output_; }
+    uint32_t *GetOutput() {
+      return output_;
+    }
 
 protected:
   /**
@@ -302,20 +304,16 @@ uint32_t L0TileSolver::GetBestAlign(uint32_t i) const {
  * 设置为最大核心数。如果总块数小于等于
  * core_num，那么总块数就是可以分配的最大核心数。
  */
-int32_t L0TileSolver::MaxCoreNum(const L0Var *l0_vars,
-                                 const uint32_t &core_num) {
+  int32_t L0TileSolver::MaxCoreNum(const L0Var *l0_vars, const uint32_t &core_num) {
   uint32_t total_block_size = 1u;
   for (uint32_t i = 0u; i < input_.size; i++) {
     auto var = l0_vars[i];
-    uint32_t block_num =
-        var.bind_multicore
-            ? ((var.max_value + std::max(var.value, var.prompt_align) - 1)) /
+      uint32_t block_num = var.bind_multicore ? ((var.max_value + std::max(var.value, var.prompt_align) - 1)) /
                   std::max(var.value, var.prompt_align)
             : 1;
     total_block_size *= block_num;
   }
-  int64_t max_core_num =
-      total_block_size > core_num ? core_num : total_block_size;
+    int64_t max_core_num = total_block_size > core_num ? core_num : total_block_size;
   return max_core_num;
 }
 
@@ -361,8 +359,7 @@ void L0TileSolver::IterativeRun(uint32_t loop_id, uint32_t *best_var_value) {
       continue;
     }
     // 必须满足prompt_align对齐或者是prompt_align的因子
-    if ((candi_value % l0_tile.prompt_align != 0) &&
-        (l0_tile.prompt_align % candi_value != 0)) {
+      if ((candi_value % l0_tile.prompt_align != 0) && (l0_tile.prompt_align % candi_value != 0)) {
       continue;
     }
     auto idx = l0_tile.idx;
@@ -375,9 +372,7 @@ void L0TileSolver::IterativeRun(uint32_t loop_id, uint32_t *best_var_value) {
       int32_t usage = GetMacUse();
       int32_t core_num = MaxCoreNum(input_.l0_vars, input_.core_num);
       // 最大核数如果满足核数*系数（默认0.6），则比较mac利用率即可，否则需要比较核数的使用和mac利用率
-      if (((core_num >= max_corenum_) ||
-           (core_num >=
-            static_cast<int32_t>(input_.core_num * CORE_NUM_RATIO))) &&
+        if (((core_num >= max_corenum_) || (core_num >= static_cast<int32_t>(input_.core_num * CORE_NUM_RATIO))) &&
           (usage >= max_macuse_)) {
         max_corenum_ = core_num;
         max_macuse_ = usage;
@@ -449,8 +444,7 @@ bool L0TileSolver::CheckInput() {
       return false;
     }
     if (var.align > var.prompt_align) {
-      ATT_LOG("Input [" + std::to_string(i) +
-              "] align is larger than prompt align");
+        ATT_LOG("Input [" + std::to_string(i) + "] align is larger than prompt align");
       return false;
     }
   }

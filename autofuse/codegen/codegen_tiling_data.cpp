@@ -26,7 +26,7 @@ std::string codegen::TilingData::macros_and_includes = { // 不却分是否const
     "#define TILING_DATA_FIELD_DEF_T(type, name) \\\n"
     "  type name; \\\n"
     "  inline void set_##name(type value) { name = value; } \\\n"
-    "  inline type get_##name() { return name; } \\\n"
+    "  inline type get_##name() const { return name; } \\\n"
     "  inline type* get_addr_##name() {return &name;}\n"
     "#define END_TILING_DATA_DEF_T };\n"
     "#define TILING_DATA_FIELD_DEF_T_STRUCT(struct_type, filed_name) \\\n"

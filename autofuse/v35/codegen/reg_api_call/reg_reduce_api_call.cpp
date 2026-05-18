@@ -86,7 +86,7 @@ Status RegReduceApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::A
     ss << "tmp_reduce_shape, true);" << std::endl;
 
     if (this->api_name_== "Mean") {
-      ReduceMeanCodeGen(dtype_name, tpipe, y, ss);
+      ReduceMeanCodeGen(dtype_name, tpipe, x, y, ss);
     }
   } else {
     life_time_axis_id = 0L;

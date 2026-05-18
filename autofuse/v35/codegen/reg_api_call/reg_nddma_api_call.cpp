@@ -59,7 +59,7 @@ Status NddmaApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::AxisI
        << "output_stride_" << ub.id << ", " << "input_stride_" << ub.id << ");" << std::endl;
   } else {
     DataCopyParams param;
-    GE_ASSERT_TRUE(CalculateDmaParams(tpipe, ub, ub, param), "CalculateDmaParams failed");
+    GE_ASSERT_TRUE(CalculateDmaParams(tpipe, ub, ub, param, true), "CalculateDmaParams failed");
     const std::string gm_offset = ub.is_ub_scalar ? "0" : tpipe.tiler.Offset(current_axis, ub.axis, ub.axis_strides); // 每次从gm搬到ub的偏移量
     if (param.repeats.size() <= kNddmaMaxLen) {
       NddmaParams nddma_param;

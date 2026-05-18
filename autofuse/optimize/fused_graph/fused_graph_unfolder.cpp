@@ -42,7 +42,7 @@ Status FusedGraphUnfolder::RemoveUnusedNode(const af::ComputeGraphPtr &graph, co
     af::GraphUtils::RemoveNodeWithoutRelink(graph, node);
     return af::SUCCESS;
   }
-  GELOGD("%s node [%s] has %zu output, keep it.", node->GetTypePtr(), node->GetNamePtr(), node->GetOutNodes().size());
+  GELOGD("%s node [%s] has %zu outputs, keep it.", node->GetTypePtr(), node->GetNamePtr(), node->GetOutNodes().size());
   return af::SUCCESS;
 }
 
@@ -224,7 +224,7 @@ Status FusedGraphUnfolder::RemoveRedundantLoads(const af::ComputeGraphPtr &graph
     GE_ASSERT_TRUE(store_node->GetInDataNodesSize() == 1UL);  // Store node has only one input.
 
     // step4: Pattern like Store+Output+Load can be optimized.
-    GELOGD("Find Store+Output+Load patten: [%s]+[%s]+[%s]", store_node->GetNamePtr(), output_node->GetNamePtr(),
+    GELOGD("Find Store+Output+Load pattern: [%s]+[%s]+[%s]", store_node->GetNamePtr(), output_node->GetNamePtr(),
            load_node->GetNamePtr());
     // find the input node of Store
     auto store_in_anchor = store_node->GetInDataAnchor(0);
@@ -252,7 +252,7 @@ Status FusedGraphUnfolder::RemoveRedundantLoads(const af::ComputeGraphPtr &graph
     RemoveUnusedNode(graph, output_node);
     RemoveUnusedNode(graph, store_node);
   }
-  // step6: Remove NetOutput. Can not merge two for loop because this depends on the results of previous loop.
+  // step6: Remove NetOutput. Cannot merge two for loop because this depends on the results of previous loop.
   for (auto &node : graph->GetAllNodes()) {
     if (node->GetType() == af::NETOUTPUT) {
       RemoveUnusedNode(graph, node);
@@ -367,7 +367,7 @@ Status FusedGraphUnfolder::ReAssembleDataIrAttr(const af::ComputeGraphPtr &fused
     GE_ASSERT_TRUE(ir_index >= 0, "Cannot find ir attr index from data node [%s].", node->GetNamePtr());
 
     for (const auto &sub_data : iter->second.GetAllNodes()) {
-      if (!af::ops::IsOps<af::ascir_op::Data>(sub_data)) {
+      if (!ScheduleUtils::IsDataInput(sub_data)) {
         continue;
       }
       int64_t sub_index = -1;

@@ -247,17 +247,28 @@ Status VfCall::ParseAttr(const ascir::NodeView &node) {
 }
 
 bool VfCall::ShouldInitAsMaskReg(const ascir::NodeView &node, const af::AscTensor *output) const {
-  // compare的输出需要初始化为mask_reg, where的第一个输入对应的输出需要初始化为mask_reg
-  if (IsOps<Ge>(node) || IsOps<Eq>(node) || IsOps<Le>(node) || IsOps<Ne>(node) || IsOps<Gt>(node) || IsOps<Lt>(node)) {
-    return true;
+  // 条件1：生产者是 Compare 算子
+  bool is_compare_output =
+      (IsOps<Ge>(node) || IsOps<Eq>(node) || IsOps<Le>(node) || IsOps<Ne>(node) || IsOps<Gt>(node) || IsOps<Lt>(node));
+  if (!is_compare_output) {
+    return false;
   }
-  // 目前Compare输出多引用、Where第一个输入对应的输出多引用场景暂不支持VF融合，因此下面直接取第一个anchor
-  auto peer_input = output->anchor.GetPeerInDataAnchors().at(0);
-  auto output_node = std::dynamic_pointer_cast<af::AscNode>(peer_input->GetOwnerNode());
-  if (IsOps<Where>(output_node) && (peer_input->GetIdx() == 0)) {
-    return true;
+
+  // 条件2：所有消费者都必须是 Where/Select 的 mask 输入（idx=0）
+  const auto &peer_inputs = output->anchor.GetPeerInDataAnchors();
+  if (peer_inputs.empty()) {
+    return false;
   }
-  return false;
+  for (const auto &peer_input : peer_inputs) {
+    auto output_node = std::dynamic_pointer_cast<af::AscNode>(peer_input->GetOwnerNode());
+    // 只要有一个消费者不是 Where/Select 的 mask 输入，就返回 false
+    if (!(IsOps<Where>(output_node) || IsOps<Select>(output_node)) || (peer_input->GetIdx() != 0)) {
+      return false;
+    }
+  }
+
+  // 同时满足才返回 true
+  return true;
 }
 
 Status VfCall::ParseSubGraph(const ascir::NodeView &vf_node, const ascir::ImplGraph &graph) {
@@ -408,6 +419,19 @@ void GenerateVectorFuncParams(const std::string &max_dtype_size, int32_t stride_
   return;
 }
 
+void GenerateTensorDefs(const TPipe &tpipe, const TensorManager &tensor_mgr, const VFLoop &root_loop,
+                        std::stringstream &vf_body) {
+  std::string reg_tensor_def;
+  tensor_mgr.GenerateVreg(reg_tensor_def);
+  vf_body << reg_tensor_def;
+
+  std::vector<std::string> mask_reg_temp_tensors;
+  root_loop.CollectMaskRegTempTensors(tpipe, tensor_mgr, mask_reg_temp_tensors);
+  for (const auto &tensor_name : mask_reg_temp_tensors) {
+    vf_body << "AscendC::MicroAPI::MaskReg " << tensor_name << "_temp_mask;" << std::endl;
+  }
+}
+
 Status VfCall::GenerateFuncDefinition(const TPipe &tpipe, const Tiler &tiler, std::stringstream &ss) const {
   // 收集输入输出信息，由于GenInnerLoopSizeAndActualSize函数中会刷新tiler对象中的actual_sizes字段,
   // 导致生成函数签名和函数调用时，获取到的size信息不一致，因此生成函数签名和函数调用时均需要调用合轴函数
@@ -449,9 +473,7 @@ Status VfCall::GenerateFuncDefinition(const TPipe &tpipe, const Tiler &tiler, st
             << "(__local_mem__ " << dtype_name << " *)" << input << "_addr" << ";\n";
   }
 
-  std::string reg_tensor_def;
-  tensor_mgr_.GenerateVreg(reg_tensor_def);
-  vf_body << reg_tensor_def;
+  GenerateTensorDefs(tpipe, tensor_mgr_, root_loop_, vf_body);
 
   // define preg_main and preg_vl1
   vf_body << "\nAscendC::MicroAPI::MaskReg preg_main = AscendC::MicroAPI::CreateMask<" << max_dtype_size_

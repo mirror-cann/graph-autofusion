@@ -23,7 +23,7 @@
 #include "autofuse_config/auto_fuse_config.h"
 #include "common/st_scenario_utils.h"
 #include "test_common_utils.h"
-using namespace ge::ascir_op;
+using namespace af::ascir_op;
 namespace ascir {
 constexpr int64_t ID_NONE = -1;
 using namespace ge;
@@ -436,29 +436,26 @@ class STestGenConcat : public ::testing::Test {
 
 // Concat Normal 辅助结构：轴信息
 struct ConcatNormalAxisInfo {
-  ge::Symbol A, R, BL, ONE, ZERO;
+  af::Symbol A, R, BL, ONE, ZERO;
   int64_t a_id, r_id, bl_id;
 };
 
 // 创建Data节点（输入数据）并设置属性
-Data CreateDataNode(ascir::HintGraph &graph, const char *name, int &exec_order,
+void CreateDataNode(Data &node, ascir::HintGraph &graph, const char *name, int &exec_order,
                     const ConcatNormalAxisInfo &ax, ge::DataType dtype,
-                    const std::vector<ge::Expression> &repeats, const std::vector<ge::Expression> &strides) {
-  Data node(name, graph);
+                    const std::vector<af::Expression> &repeats, const std::vector<af::Expression> &strides) {
   node.attr.sched.exec_order = exec_order++;
   node.attr.sched.axis = {ax.a_id, ax.r_id, ax.bl_id};
   node.y.dtype = dtype;
   *node.y.axis = {ax.a_id, ax.r_id, ax.bl_id};
   *node.y.repeats = repeats;
   *node.y.strides = strides;
-  return node;
 }
 
 // 创建Load节点并设置属性
-Load CreateLoadNode(const char *name, const Data &src, int &exec_order,
+void CreateLoadNode(Load &node, const Data &src, int &exec_order,
                     const ConcatNormalAxisInfo &ax, ge::DataType dtype,
-                    const std::vector<ge::Expression> &repeats, const std::vector<ge::Expression> &strides) {
-  Load node(name);
+                    const std::vector<af::Expression> &repeats, const std::vector<af::Expression> &strides) {
   node.x = src.y;
   node.attr.sched.exec_order = exec_order++;
   node.attr.sched.axis = {ax.a_id, ax.r_id, ax.bl_id};
@@ -466,42 +463,36 @@ Load CreateLoadNode(const char *name, const Data &src, int &exec_order,
   *node.y.axis = {ax.a_id, ax.r_id, ax.bl_id};
   *node.y.repeats = repeats;
   *node.y.strides = strides;
-  return node;
 }
 
 // 创建Store节点并设置属性
-Store CreateStoreNode(const char *name, int &exec_order, const ConcatNormalAxisInfo &ax,
-                      ge::DataType dtype, const std::vector<ge::Expression> &repeats,
-                      const std::vector<ge::Expression> &strides) {
-  Store node(name);
+void CreateStoreNode(Store &node, int &exec_order, const ConcatNormalAxisInfo &ax,
+                      ge::DataType dtype, const std::vector<af::Expression> &repeats,
+                      const std::vector<af::Expression> &strides) {
   node.attr.sched.exec_order = exec_order++;
   node.attr.sched.axis = {ax.a_id, ax.r_id, ax.bl_id};
   node.y.dtype = dtype;
   *node.y.axis = {ax.a_id, ax.r_id, ax.bl_id};
   *node.y.repeats = repeats;
   *node.y.strides = strides;
-  return node;
 }
 
 // 创建Output节点并设置属性
-Output CreateOutputNode(const char *name, int &exec_order, const ConcatNormalAxisInfo &ax,
-                        ge::DataType dtype, const std::vector<ge::Expression> &repeats,
-                        const std::vector<ge::Expression> &strides) {
-  Output node(name);
+void CreateOutputNode(Output &node, int &exec_order, const ConcatNormalAxisInfo &ax,
+                        ge::DataType dtype, const std::vector<af::Expression> &repeats,
+                        const std::vector<af::Expression> &strides) {
   node.attr.sched.exec_order = exec_order++;
   node.y.dtype = dtype;
   *node.y.axis = {ax.a_id, ax.r_id, ax.bl_id};
   *node.y.repeats = repeats;
   *node.y.strides = strides;
-  return node;
 }
 
-Concat BuildMeanConcatNode(int &exec_order, const ConcatNormalAxisInfo &ax,
-                            const std::vector<ge::AscOpOutput> &inputs) {
-  auto aoo = std::vector<ge::Expression>{ax.A, ax.ONE, ax.ONE};
-  auto oss_v = std::vector<ge::Expression>{ax.ONE, ax.ZERO, ax.ZERO};
-  Concat mean("mean");
-  mean.attr.api.unit = ge::ComputeUnit::kUnitVector;
+void BuildMeanConcatNode(Concat &mean, int &exec_order, const ConcatNormalAxisInfo &ax,
+                            const std::vector<af::AscOpOutput> &inputs) {
+  auto aoo = std::vector<af::Expression>{ax.A, ax.ONE, ax.ONE};
+  auto oss_v = std::vector<af::Expression>{ax.ONE, ax.ZERO, ax.ZERO};
+  mean.attr.api.unit = af::ComputeUnit::kUnitVector;
   mean.x = inputs;
   mean.attr.sched.exec_order = exec_order++;
   mean.attr.sched.axis = {ax.a_id, ax.r_id, ax.bl_id};
@@ -509,15 +500,14 @@ Concat BuildMeanConcatNode(int &exec_order, const ConcatNormalAxisInfo &ax,
   *mean.y.axis = {ax.a_id, ax.r_id, ax.bl_id};
   *mean.y.repeats = aoo;
   *mean.y.strides = oss_v;
-  return mean;
 }
 
 void BuildConcatOutputNodes(int &exec_order, const ConcatNormalAxisInfo &ax,
                              const Store &x_out, const std::vector<Store> &output_stores) {
-  auto arb = std::vector<ge::Expression>{ax.A, ax.R, ax.ONE};
-  auto rs = std::vector<ge::Expression>{ax.R, ax.ONE, ax.ZERO};
-  auto aoo = std::vector<ge::Expression>{ax.A, ax.ONE, ax.ONE};
-  auto oss_v = std::vector<ge::Expression>{ax.ONE, ax.ZERO, ax.ZERO};
+  auto arb = std::vector<af::Expression>{ax.A, ax.R, ax.ONE};
+  auto rs = std::vector<af::Expression>{ax.R, ax.ONE, ax.ZERO};
+  auto aoo = std::vector<af::Expression>{ax.A, ax.ONE, ax.ONE};
+  auto oss_v = std::vector<af::Expression>{ax.ONE, ax.ZERO, ax.ZERO};
   Output buf1("buf1");
   buf1.x = x_out.y;
   buf1.attr.sched.exec_order = exec_order++;
@@ -526,27 +516,30 @@ void BuildConcatOutputNodes(int &exec_order, const ConcatNormalAxisInfo &ax,
   *buf1.y.repeats = arb;
   *buf1.y.strides = rs;
 
-  Output buf2 = CreateOutputNode("buf2", exec_order, ax, ge::DT_FLOAT, aoo, oss_v);
+  Output buf2("buf2");
+  CreateOutputNode(buf2, exec_order, ax, ge::DT_FLOAT, aoo, oss_v);
   buf2.x = output_stores[0].y;
-  Output buf3 = CreateOutputNode("buf3", exec_order, ax, ge::DT_FLOAT, aoo, oss_v);
+  Output buf3("buf3");
+  CreateOutputNode(buf3, exec_order, ax, ge::DT_FLOAT, aoo, oss_v);
   buf3.x = output_stores[1].y;
-  Output buf = CreateOutputNode("buf", exec_order, ax, ge::DT_FLOAT16, arb, rs);
+  Output buf("buf");
+  CreateOutputNode(buf, exec_order, ax, ge::DT_FLOAT16, arb, rs);
   buf.x = output_stores[2].y;
-  Output buf4 = CreateOutputNode("buf4", exec_order, ax, ge::DT_FLOAT16, arb, rs);
+  Output buf4("buf4");
+  CreateOutputNode(buf4, exec_order, ax, ge::DT_FLOAT16, arb, rs);
   buf4.x = output_stores[3].y;
 }
 
 struct ConcatVecExprs {
-  std::vector<ge::Expression> arb;
-  std::vector<ge::Expression> rs;
-  std::vector<ge::Expression> aoo;
-  std::vector<ge::Expression> oss_v;
+  std::vector<af::Expression> arb;
+  std::vector<af::Expression> rs;
+  std::vector<af::Expression> aoo;
+  std::vector<af::Expression> oss_v;
 };
 
 
-Store CreateStoreFp16Node(const char *name, int &exec_order, const ConcatNormalAxisInfo &ax,
-                           const ge::AscOpOutput &input, const ConcatVecExprs &vecs) {
-  Store store(name);
+void CreateStoreFp16Node(Store &store, int &exec_order, const ConcatNormalAxisInfo &ax,
+                           const af::AscOpOutput &input, const ConcatVecExprs &vecs) {
   store.attr.sched.exec_order = exec_order++;
   store.attr.sched.axis = {ax.a_id, ax.r_id, ax.bl_id};
   store.x = input;
@@ -554,17 +547,17 @@ Store CreateStoreFp16Node(const char *name, int &exec_order, const ConcatNormalA
   *store.y.axis = {ax.a_id, ax.r_id, ax.bl_id};
   *store.y.repeats = vecs.arb;
   *store.y.strides = vecs.rs;
-  return store;
 }
 
 void BuildConcatRstdYAndOutputs(int &exec_order, const ConcatNormalAxisInfo &ax, const ConcatVecExprs &vecs,
-                                const ge::AscOpOutput &mean_y, const Store &x_out, const Store &mean_out,
-                                ascir::HintGraph &graph, const ge::AscOpOutput &x1_out, const ge::AscOpOutput &x2_out) {
-  auto oob = std::vector<ge::Expression>{ax.ONE, ax.ONE, ax.BL};
-  auto oso = std::vector<ge::Expression>{ax.ZERO, ax.ZERO, ax.ONE};
-  Data one = CreateDataNode(graph, "one", exec_order, ax, ge::DT_FLOAT, oob, oso);
+                                const af::AscOpOutput &mean_y, const Store &x_out, const Store &mean_out,
+                                ascir::HintGraph &graph, const af::AscOpOutput &x1_out, const af::AscOpOutput &x2_out) {
+  auto oob = std::vector<af::Expression>{ax.ONE, ax.ONE, ax.BL};
+  auto oso = std::vector<af::Expression>{ax.ZERO, ax.ZERO, ax.ONE};
+  Data one("one", graph);
+  CreateDataNode(one, graph, "one", exec_order, ax, ge::DT_FLOAT, oob, oso);
   Concat rstd("rstd");
-  rstd.attr.api.unit = ge::ComputeUnit::kUnitVector;
+  rstd.attr.api.unit = af::ComputeUnit::kUnitVector;
   rstd.attr.sched.exec_order = exec_order++;
   rstd.attr.sched.axis = {ax.a_id, ax.r_id, ax.bl_id};
   rstd.x = {mean_y, mean_y, one.y};
@@ -573,18 +566,23 @@ void BuildConcatRstdYAndOutputs(int &exec_order, const ConcatNormalAxisInfo &ax,
   *rstd.y.repeats = vecs.arb;
   *rstd.y.strides = vecs.rs;
 
-  Store rstd_out = CreateStoreNode("rstd_out", exec_order, ax, ge::DT_FLOAT, vecs.aoo, vecs.oss_v);
+  Store rstd_out("rstd_out");
+  CreateStoreNode(rstd_out, exec_order, ax, ge::DT_FLOAT, vecs.aoo, vecs.oss_v);
   rstd_out.x = rstd.y;
 
-  auto orb = std::vector<ge::Expression>{ax.ONE, ax.R, ax.ONE};
-  auto bg_strides = std::vector<ge::Expression>{ax.ZERO, ax.ONE, ax.ZERO};
-  Data beta = CreateDataNode(graph, "beta", exec_order, ax, ge::DT_FLOAT16, orb, bg_strides);
-  Load betaLocal = CreateLoadNode("betaLocal", beta, exec_order, ax, ge::DT_FLOAT16, orb, bg_strides);
-  Data gamma = CreateDataNode(graph, "gamma", exec_order, ax, ge::DT_FLOAT16, orb, bg_strides);
-  Load gammaLocal = CreateLoadNode("gammaLocal", gamma, exec_order, ax, ge::DT_FLOAT16, orb, bg_strides);
+  auto orb = std::vector<af::Expression>{ax.ONE, ax.R, ax.ONE};
+  auto bg_strides = std::vector<af::Expression>{ax.ZERO, ax.ONE, ax.ZERO};
+  Data beta("beta", graph);
+  CreateDataNode(beta, graph, "beta", exec_order, ax, ge::DT_FLOAT16, orb, bg_strides);
+  Load betaLocal("betaLocal");
+  CreateLoadNode(betaLocal, beta, exec_order, ax, ge::DT_FLOAT16, orb, bg_strides);
+  Data gamma("gamma", graph);
+  CreateDataNode(gamma, graph, "gamma", exec_order, ax, ge::DT_FLOAT16, orb, bg_strides);
+  Load gammaLocal("gammaLocal");
+  CreateLoadNode(gammaLocal, gamma, exec_order, ax, ge::DT_FLOAT16, orb, bg_strides);
 
   Concat y("y");
-  y.attr.api.unit = ge::ComputeUnit::kUnitVector;
+  y.attr.api.unit = af::ComputeUnit::kUnitVector;
   y.attr.sched.exec_order = exec_order++;
   y.attr.sched.axis = {ax.a_id, ax.r_id, ax.bl_id};
   y.x = {rstd.y, betaLocal.y, gammaLocal.y, rstd.y};
@@ -594,7 +592,7 @@ void BuildConcatRstdYAndOutputs(int &exec_order, const ConcatNormalAxisInfo &ax,
   *y.y.strides = vecs.rs;
 
   Concat concat("concat");
-  concat.attr.api.unit = ge::ComputeUnit::kUnitVector;
+  concat.attr.api.unit = af::ComputeUnit::kUnitVector;
   concat.x = {x1_out, x2_out};
   concat.attr.sched.axis = {ax.a_id, ax.r_id, ax.bl_id};
   concat.y.dtype = ge::DT_FLOAT16;
@@ -602,8 +600,10 @@ void BuildConcatRstdYAndOutputs(int &exec_order, const ConcatNormalAxisInfo &ax,
   *concat.y.repeats = vecs.arb;
   *concat.y.strides = vecs.rs;
 
-  Store y_out = CreateStoreFp16Node("y_out", exec_order, ax, y.y, vecs);
-  Store cat_out = CreateStoreFp16Node("cat_out", exec_order, ax, y.y, vecs);
+  Store y_out("y_out");
+  CreateStoreFp16Node(y_out, exec_order, ax, y.y, vecs);
+  Store cat_out("cat_out");
+  CreateStoreFp16Node(cat_out, exec_order, ax, y.y, vecs);
   (void)y_out;
   (void)cat_out;
 
@@ -613,9 +613,9 @@ void BuildConcatRstdYAndOutputs(int &exec_order, const ConcatNormalAxisInfo &ax,
 void Concat_Normal_BeforeAutofuse(ascir::HintGraph &graph) {
   auto ONE = af::sym::kSymbolOne;
   auto ZERO = af::sym::kSymbolZero;
-  auto A = ge::Symbol("A");
-  auto R = ge::Symbol("R");
-  auto BL = ge::Symbol(8, "BL");
+  auto A = af::Symbol("A");
+  auto R = af::Symbol("R");
+  auto BL = af::Symbol(8, "BL");
   auto a = graph.CreateAxis("A", A);
   auto r = graph.CreateAxis("R", R);
   auto bl = graph.CreateAxis("BL", BL);
@@ -623,18 +623,27 @@ void Concat_Normal_BeforeAutofuse(ascir::HintGraph &graph) {
   ConcatVecExprs vecs{{A, R, ONE}, {R, ONE, ZERO}, {A, ONE, ONE}, {ONE, ZERO, ZERO}};
   int exec_order = 0;
 
-  auto arb = std::vector<ge::Expression>{ax.A, ax.R, ax.ONE};
-  auto rs = std::vector<ge::Expression>{ax.R, ax.ONE, ax.ZERO};
-  Data x1 = CreateDataNode(graph, "x1", exec_order, ax, ge::DT_FLOAT16, arb, rs);
-  Load x1Local = CreateLoadNode("x1Local", x1, exec_order, ax, ge::DT_FLOAT16, arb, rs);
-  Data x2 = CreateDataNode(graph, "x2", exec_order, ax, ge::DT_FLOAT16, arb, rs);
-  Load x2Local = CreateLoadNode("x2Local", x2, exec_order, ax, ge::DT_FLOAT16, arb, rs);
-  Data bias = CreateDataNode(graph, "bias", exec_order, ax, ge::DT_FLOAT16, arb, rs);
-  Load biasLocal = CreateLoadNode("biasLocal", bias, exec_order, ax, ge::DT_FLOAT16, arb, rs);
-  Concat mean = BuildMeanConcatNode(exec_order, ax, {x1Local.y, x2Local.y, biasLocal.y});
+  auto arb = std::vector<af::Expression>{ax.A, ax.R, ax.ONE};
+  auto rs = std::vector<af::Expression>{ax.R, ax.ONE, ax.ZERO};
+  Data x1("x1", graph);
+  CreateDataNode(x1, graph, "x1", exec_order, ax, ge::DT_FLOAT16, arb, rs);
+  Load x1Local("x1Local");
+  CreateLoadNode(x1Local, x1, exec_order, ax, ge::DT_FLOAT16, arb, rs);
+  Data x2("x2", graph);
+  CreateDataNode(x2, graph, "x2", exec_order, ax, ge::DT_FLOAT16, arb, rs);
+  Load x2Local("x2Local");
+  CreateLoadNode(x2Local, x2, exec_order, ax, ge::DT_FLOAT16, arb, rs);
+  Data bias("bias", graph);
+  CreateDataNode(bias, graph, "bias", exec_order, ax, ge::DT_FLOAT16, arb, rs);
+  Load biasLocal("biasLocal");
+  CreateLoadNode(biasLocal, bias, exec_order, ax, ge::DT_FLOAT16, arb, rs);
+  Concat mean("mean");
+  BuildMeanConcatNode(mean, exec_order, ax, {x1Local.y, x2Local.y, biasLocal.y});
 
-  Store x_out = CreateStoreFp16Node("x_out", exec_order, ax, mean.y, vecs);
-  Store mean_out = CreateStoreNode("mean_out", exec_order, ax, ge::DT_FLOAT, vecs.aoo, vecs.oss_v);
+  Store x_out("x_out");
+  CreateStoreFp16Node(x_out, exec_order, ax, mean.y, vecs);
+  Store mean_out("mean_out");
+  CreateStoreNode(mean_out, exec_order, ax, ge::DT_FLOAT, vecs.aoo, vecs.oss_v);
   mean_out.x = mean.y;
 
   BuildConcatRstdYAndOutputs(exec_order, ax, vecs, mean.y, x_out, mean_out, graph, x1Local.y, x2Local.y);
@@ -667,7 +676,7 @@ void ApplySplitToNode(ascir::HintGraph &graph, const char *name, int64_t aBO, in
   graph.ApplySplit(node, aBO, aBI);
   graph.ApplySplit(node, aBIO, aBII);
   if (set_unit_vector) {
-    node->attr.api.unit = ge::ComputeUnit::kUnitVector;
+    node->attr.api.unit = af::ComputeUnit::kUnitVector;
   }
   node->attr.sched.loop_axis = aBIO;
   node->outputs[0].attr.vectorized_axis = vec_axis;
@@ -675,16 +684,16 @@ void ApplySplitToNode(ascir::HintGraph &graph, const char *name, int64_t aBO, in
 
 void SetGmNode(ascir::HintGraph &graph, const char *name) {
   auto node = graph.FindNode(name);
-  node->outputs[0].attr.mem.hardware = ge::MemHardware::kMemHardwareGM;
-  node->outputs[0].attr.mem.position = ge::Position::kPositionGM;
+  node->outputs[0].attr.mem.hardware = af::MemHardware::kMemHardwareGM;
+  node->outputs[0].attr.mem.position = af::Position::kPositionGM;
 }
 
 void SetQueueNode(ascir::HintGraph &graph, const char *name, int &tensor_id, int que_id,
-                   ge::Position position) {
+                   af::Position position) {
   auto node = graph.FindNode(name);
   node->outputs[0].attr.mem.tensor_id = tensor_id++;
-  node->outputs[0].attr.mem.alloc_type = ge::AllocType::kAllocTypeQueue;
-  node->outputs[0].attr.mem.hardware = ge::MemHardware::kMemHardwareUB;
+  node->outputs[0].attr.mem.alloc_type = af::AllocType::kAllocTypeQueue;
+  node->outputs[0].attr.mem.hardware = af::MemHardware::kMemHardwareUB;
   node->outputs[0].attr.mem.position = position;
   node->outputs[0].attr.mem.reuse_id = ascir::ID_NONE;
   node->outputs[0].attr.buf.id = ascir::ID_NONE;
@@ -697,9 +706,9 @@ void SetQueueNode(ascir::HintGraph &graph, const char *name, int &tensor_id, int
 void SetBufferNode(ascir::HintGraph &graph, const char *name, int &tensor_id, int buf_id) {
   auto node = graph.FindNode(name);
   node->outputs[0].attr.mem.tensor_id = tensor_id++;
-  node->outputs[0].attr.mem.alloc_type = ge::AllocType::kAllocTypeBuffer;
-  node->outputs[0].attr.mem.hardware = ge::MemHardware::kMemHardwareUB;
-  node->outputs[0].attr.mem.position = ge::Position::kPositionVecIn;
+  node->outputs[0].attr.mem.alloc_type = af::AllocType::kAllocTypeBuffer;
+  node->outputs[0].attr.mem.hardware = af::MemHardware::kMemHardwareUB;
+  node->outputs[0].attr.mem.position = af::Position::kPositionVecIn;
   node->outputs[0].attr.mem.reuse_id = ascir::ID_NONE;
   node->outputs[0].attr.buf.id = buf_id;
   node->outputs[0].attr.que.id = ascir::ID_NONE;
@@ -751,31 +760,31 @@ void Concat_Normal_AfterQueBufAlloc(ascir::HintGraph &graph) {
   SetGmNode(graph, "x1");
   SetGmNode(graph, "x2");
   SetGmNode(graph, "bias");
-  SetQueueNode(graph, "x1Local", tensor_id, x1_que, ge::Position::kPositionVecIn);
-  SetQueueNode(graph, "x2Local", tensor_id, x2_que, ge::Position::kPositionVecIn);
-  SetQueueNode(graph, "biasLocal", tensor_id, bias_que, ge::Position::kPositionVecIn);
-  SetQueueNode(graph, "mean", tensor_id, mean_que, ge::Position::kPositionVecOut);
+  SetQueueNode(graph, "x1Local", tensor_id, x1_que, af::Position::kPositionVecIn);
+  SetQueueNode(graph, "x2Local", tensor_id, x2_que, af::Position::kPositionVecIn);
+  SetQueueNode(graph, "biasLocal", tensor_id, bias_que, af::Position::kPositionVecIn);
+  SetQueueNode(graph, "mean", tensor_id, mean_que, af::Position::kPositionVecOut);
   SetGmNode(graph, "x_out");
   SetGmNode(graph, "mean_out");
   SetBufferNode(graph, "one", tensor_id, one_t_buf);
-  SetQueueNode(graph, "rstd", tensor_id, y_que, ge::Position::kPositionVecOut);
+  SetQueueNode(graph, "rstd", tensor_id, y_que, af::Position::kPositionVecOut);
   SetGmNode(graph, "rstd_out");
   SetGmNode(graph, "beta");
-  SetQueueNode(graph, "betaLocal", tensor_id, beta_que, ge::Position::kPositionVecIn);
+  SetQueueNode(graph, "betaLocal", tensor_id, beta_que, af::Position::kPositionVecIn);
   SetGmNode(graph, "gamma");
-  SetQueueNode(graph, "gammaLocal", tensor_id, gamma_que, ge::Position::kPositionVecIn);
-  SetQueueNode(graph, "y", tensor_id, y_que, ge::Position::kPositionVecOut);
+  SetQueueNode(graph, "gammaLocal", tensor_id, gamma_que, af::Position::kPositionVecIn);
+  SetQueueNode(graph, "y", tensor_id, y_que, af::Position::kPositionVecOut);
   SetGmNode(graph, "y_out");
-  SetQueueNode(graph, "concat", tensor_id, y_que, ge::Position::kPositionVecOut);
+  SetQueueNode(graph, "concat", tensor_id, y_que, af::Position::kPositionVecOut);
   SetGmNode(graph, "cat_out");
 }
 
 namespace ge {
 namespace ascir {
 namespace cg {
-Status BuildConcatGroupAscendGraphND(ge::AscGraph &graph) {
+Status BuildConcatGroupAscendGraphND(af::AscGraph &graph) {
   // create default axis
-  auto ND = ge::Symbol("ND");
+  auto ND = af::Symbol("ND");
   auto nd = graph.CreateAxis("nd", ND);
   auto [ndB, ndb] = graph.BlockSplit(nd.id);
   auto [ndbT, ndbt] = graph.TileSplit(ndb->id);
@@ -796,10 +805,10 @@ Status BuildConcatGroupAscendGraphND(ge::AscGraph &graph) {
   return ge::SUCCESS;
 }
 
-Status BuildConcatGroupAscendGraphS0S1MultiTiling(ge::AscGraph &graph) {
-  auto S0 = ge::Symbol("S0");
+Status BuildConcatGroupAscendGraphS0S1MultiTiling(af::AscGraph &graph) {
+  auto S0 = af::Symbol("S0");
   auto s0 = graph.CreateAxis("s0", S0);
-  auto S1 = ge::Symbol("S1");
+  auto S1 = af::Symbol("S1");
   auto s1 = graph.CreateAxis("s1", S1);
   auto [s2T, s2t] = graph.TileSplit(s0.id);
   auto [s1T, s1t] = graph.TileSplit(s1.id);
@@ -840,18 +849,18 @@ Status BuildConcatGroupAscendGraphS0S1MultiTiling(ge::AscGraph &graph) {
   return ge::SUCCESS;
 }
 
-Status BuildConcatGroupAscendGraphS0S1_Reorder(ge::AscGraph &graph) {
+Status BuildConcatGroupAscendGraphS0S1_Reorder(af::AscGraph &graph) {
   // create default axis
-  auto A = ge::Symbol("A");
-  auto R = ge::Symbol("R");
-  auto BL = ge::Symbol(8, "BL");
+  auto A = af::Symbol("A");
+  auto R = af::Symbol("R");
+  auto BL = af::Symbol(8, "BL");
   auto a = graph.CreateAxis("A", A);
   auto r = graph.CreateAxis("R", R);
   auto bl = graph.CreateAxis("BL", BL);
 
-  auto S0 = ge::Symbol("S0");
+  auto S0 = af::Symbol("S0");
   auto s0 = graph.CreateAxis("s0", S0);
-  auto S1 = ge::Symbol("S1");
+  auto S1 = af::Symbol("S1");
   auto s1 = graph.CreateAxis("s1", S1);
   auto [ndB, ndb] = graph.BlockSplit(s0.id);
   auto [ndbT, ndbt] = graph.TileSplit(ndb->id);
@@ -872,18 +881,18 @@ Status BuildConcatGroupAscendGraphS0S1_Reorder(ge::AscGraph &graph) {
   return ge::SUCCESS;
 }
 
-Status BuildConcatGroupAscendGraphS1S0_Reorder(ge::AscGraph &graph) {
+Status BuildConcatGroupAscendGraphS1S0_Reorder(af::AscGraph &graph) {
   // create default axis
-  auto A = ge::Symbol("A");
-  auto R = ge::Symbol("R");
-  auto BL = ge::Symbol(8, "BL");
+  auto A = af::Symbol("A");
+  auto R = af::Symbol("R");
+  auto BL = af::Symbol(8, "BL");
   auto a = graph.CreateAxis("A", A);
   auto r = graph.CreateAxis("R", R);
   auto bl = graph.CreateAxis("BL", BL);
 
-  auto S1 = ge::Symbol("S1");
+  auto S1 = af::Symbol("S1");
   auto s1 = graph.CreateAxis("s1", S1);
-  auto S0 = ge::Symbol("S0");
+  auto S0 = af::Symbol("S0");
   auto s0 = graph.CreateAxis("s0", S0);
   auto [ndB, ndb] = graph.BlockSplit(s1.id);
   auto [ndbT, ndbt] = graph.TileSplit(ndb->id);
@@ -904,16 +913,16 @@ Status BuildConcatGroupAscendGraphS1S0_Reorder(ge::AscGraph &graph) {
   return ge::SUCCESS;
 }
 
-Status BuildConcatGroupAscendGraphS0(ge::AscGraph &graph) {
+Status BuildConcatGroupAscendGraphS0(af::AscGraph &graph) {
   // create default axis
-  auto A = ge::Symbol("A");
-  auto R = ge::Symbol("R");
-  auto BL = ge::Symbol(8, "BL");
+  auto A = af::Symbol("A");
+  auto R = af::Symbol("R");
+  auto BL = af::Symbol(8, "BL");
   auto a = graph.CreateAxis("A", A);
   auto r = graph.CreateAxis("R", R);
   auto bl = graph.CreateAxis("BL", BL);
 
-  auto S0 = ge::Symbol("S0");
+  auto S0 = af::Symbol("S0");
   auto z0 = graph.CreateAxis("z0", S0);
   auto [z0B, z0b] = graph.BlockSplit(z0.id);
   auto [z0bT, z0bt] = graph.TileSplit(z0b->id);
@@ -934,15 +943,15 @@ Status BuildConcatGroupAscendGraphS0(ge::AscGraph &graph) {
   return ge::SUCCESS;
 }
 
-Status BuildConcatGroupAscendGraphND2(ge::AscGraph &graph) {
+Status BuildConcatGroupAscendGraphND2(af::AscGraph &graph) {
   // create default axis
-  auto A = ge::Symbol("A");
-  auto R = ge::Symbol("R");
-  auto BL = ge::Symbol(8, "BL");
+  auto A = af::Symbol("A");
+  auto R = af::Symbol("R");
+  auto BL = af::Symbol(8, "BL");
   auto a = graph.CreateAxis("A", A);
   auto r = graph.CreateAxis("R", R);
   auto bl = graph.CreateAxis("BL", BL);
-  auto ND = ge::Symbol("ND2");
+  auto ND = af::Symbol("ND2");
   auto nd = graph.CreateAxis("nd2", ND);
   auto [ndB, ndb] = graph.BlockSplit(nd.id);
   auto [ndbT, ndbt] = graph.TileSplit(ndb->id);
@@ -963,9 +972,9 @@ Status BuildConcatGroupAscendGraphND2(ge::AscGraph &graph) {
   return ge::SUCCESS;
 }
 
-Status BuildConcatGroupAscendGraphND2WithAbs(ge::AscGraph &graph) {
+Status BuildConcatGroupAscendGraphND2WithAbs(af::AscGraph &graph) {
   // create default axis
-  auto ND = ge::Symbol("ND2");
+  auto ND = af::Symbol("ND2");
   auto nd = graph.CreateAxis("nd2", ND);
   auto [ndB, ndb] = graph.BlockSplit(nd.id);
   auto [ndbT, ndbt] = graph.TileSplit(ndb->id);
@@ -988,9 +997,9 @@ Status BuildConcatGroupAscendGraphND2WithAbs(ge::AscGraph &graph) {
   return ge::SUCCESS;
 }
 
-Status BuildConcatGroupAscendGraphND2TB(ge::AscGraph &graph) {
+Status BuildConcatGroupAscendGraphND2TB(af::AscGraph &graph) {
   // create default axis
-  auto ND = ge::Symbol("ND2");
+  auto ND = af::Symbol("ND2");
   auto nd = graph.CreateAxis("nd2", ND);
   auto [ndT, ndt] = graph.TileSplit(nd.id);
   auto [ndTB, ndTb] = graph.BlockSplit(ndT->id);
@@ -1011,16 +1020,16 @@ Status BuildConcatGroupAscendGraphND2TB(ge::AscGraph &graph) {
   return ge::SUCCESS;
 }
 
-Status BuildConcatGroupAscendGraphStatic(ge::AscGraph &graph) {
+Status BuildConcatGroupAscendGraphStatic(af::AscGraph &graph) {
   // create default axis
-  auto A = ge::Symbol(10, "A");
-  auto R = ge::Symbol(20, "R");
-  auto BL = ge::Symbol(8, "BL");
+  auto A = af::Symbol(10, "A");
+  auto R = af::Symbol(20, "R");
+  auto BL = af::Symbol(8, "BL");
   auto a = graph.CreateAxis("A", A);
   auto r = graph.CreateAxis("R", R);
   auto bl = graph.CreateAxis("BL", BL);
 
-  auto ND = ge::Symbol(10, "ND");
+  auto ND = af::Symbol(10, "ND");
   auto nd = graph.CreateAxis("nd", ND);
   auto [ndB, ndb] = graph.BlockSplit(nd.id);
   auto [ndbT, ndbt] = graph.TileSplit(ndb->id);
@@ -1041,15 +1050,15 @@ Status BuildConcatGroupAscendGraphStatic(ge::AscGraph &graph) {
   return ge::SUCCESS;
 }
 
-Status BuildTqueTbufAscendGraph_single_case(ge::AscGraph &graph) {
-  auto A = ge::Symbol(10, "A");
-  auto R = ge::Symbol(20, "R");
-  auto BL = ge::Symbol(8, "BL");
+Status BuildTqueTbufAscendGraph_single_case(af::AscGraph &graph) {
+  auto A = af::Symbol(10, "A");
+  auto R = af::Symbol(20, "R");
+  auto BL = af::Symbol(8, "BL");
   auto a = graph.CreateAxis("A", A);
   auto r = graph.CreateAxis("R", R);
   auto bl = graph.CreateAxis("BL", BL);
 
-  auto ND = ge::Symbol(10, "ND");
+  auto ND = af::Symbol(10, "ND");
   auto nd = graph.CreateAxis("nd", ND);
   auto [ndB, ndb] = graph.BlockSplit(nd.id);
   auto [ndbT, ndbt] = graph.TileSplit(ndb->id);
@@ -1068,19 +1077,19 @@ Status BuildTqueTbufAscendGraph_single_case(ge::AscGraph &graph) {
     }
   }
   auto data = graph.FindNode("load1"); 
-  data->attr.tmp_buffers.emplace_back(TmpBuffer{TmpBufDesc{ge::Symbol(16 * 1024), -1}, {}, 0});
+  data->attr.tmp_buffers.emplace_back(TmpBuffer{TmpBufDesc{af::Symbol(16 * 1024), -1}, {}, 0});
   return ge::SUCCESS;
 }
 
-Status BuildTqueTbufAscendGraphMultiCaseG0(ge::AscGraph &graph) {
-  auto A = ge::Symbol("A");
-  auto R = ge::Symbol("R");
-  auto BL = ge::Symbol(8, "BL");
+Status BuildTqueTbufAscendGraphMultiCaseG0(af::AscGraph &graph) {
+  auto A = af::Symbol("A");
+  auto R = af::Symbol("R");
+  auto BL = af::Symbol(8, "BL");
   auto a = graph.CreateAxis("A", A);
   auto r = graph.CreateAxis("R", R);
   auto bl = graph.CreateAxis("BL", BL);
 
-  auto ND = ge::Symbol("ND");
+  auto ND = af::Symbol("ND");
   auto nd = graph.CreateAxis("nd", ND);
   auto [ndB, ndb] = graph.BlockSplit(nd.id);
   auto [ndbT, ndbt] = graph.TileSplit(ndb->id);
@@ -1108,22 +1117,22 @@ Status BuildTqueTbufAscendGraphMultiCaseG0(ge::AscGraph &graph) {
     }
   }
   auto data_node = graph.FindNode("load1"); 
-  data_node->attr.tmp_buffers.emplace_back(TmpBuffer{TmpBufDesc{ge::Symbol(16 * 1024), -1}, {}, 0});
+  data_node->attr.tmp_buffers.emplace_back(TmpBuffer{TmpBufDesc{af::Symbol(16 * 1024), -1}, {}, 0});
   auto data1_node = graph.FindNode("load2");
-  data1_node->attr.tmp_buffers.emplace_back(TmpBuffer{TmpBufDesc{ge::Symbol(1024), 0}, {}, 0});
-  data1_node->attr.tmp_buffers.emplace_back(TmpBuffer{TmpBufDesc{ge::Symbol(2*1024), 0}, {}, 0});
+  data1_node->attr.tmp_buffers.emplace_back(TmpBuffer{TmpBufDesc{af::Symbol(1024), 0}, {}, 0});
+  data1_node->attr.tmp_buffers.emplace_back(TmpBuffer{TmpBufDesc{af::Symbol(2*1024), 0}, {}, 0});
   return ge::SUCCESS;
 }
 
-Status BuildTqueTbufAscendGraphMultiCaseG1(ge::AscGraph &graph) {
-  auto A = ge::Symbol("A");
-  auto R = ge::Symbol("R");
-  auto BL = ge::Symbol(8, "BL");
+Status BuildTqueTbufAscendGraphMultiCaseG1(af::AscGraph &graph) {
+  auto A = af::Symbol("A");
+  auto R = af::Symbol("R");
+  auto BL = af::Symbol(8, "BL");
   auto a = graph.CreateAxis("A", A);
   auto r = graph.CreateAxis("R", R);
   auto bl = graph.CreateAxis("BL", BL);
 
-  auto S0 = ge::Symbol("S0");
+  auto S0 = af::Symbol("S0");
   auto z0 = graph.CreateAxis("z0", S0);
   auto [z0B, z0b] = graph.BlockSplit(z0.id);
   auto [z0bT, z0bt] = graph.TileSplit(z0b->id);
@@ -1151,12 +1160,12 @@ Status BuildTqueTbufAscendGraphMultiCaseG1(ge::AscGraph &graph) {
     }
   }
   auto data_node = graph.FindNode("load1"); 
-  data_node->attr.tmp_buffers.emplace_back(TmpBuffer{TmpBufDesc{ge::Symbol(16 * 1024), 0}, {}, 0});
+  data_node->attr.tmp_buffers.emplace_back(TmpBuffer{TmpBufDesc{af::Symbol(16 * 1024), 0}, {}, 0});
   return ge::SUCCESS;
 }
 
-Status BuildMultiCaseG0(ge::AscGraph &graph) {
-  auto ND = ge::Symbol("ND");
+Status BuildMultiCaseG0(af::AscGraph &graph) {
+  auto ND = af::Symbol("ND");
   auto nd = graph.CreateAxis("nd", ND);
   auto [ndT, ndt] = graph.TileSplit(nd.id);
   auto [ndTB, ndTb] = graph.BlockSplit(ndT->id);
@@ -1184,15 +1193,15 @@ Status BuildMultiCaseG0(ge::AscGraph &graph) {
     }
   }
   auto data_node = graph.FindNode("load1");
-  data_node->attr.tmp_buffers.emplace_back(TmpBuffer{TmpBufDesc{ge::Symbol(16 * 1024), -1}, {}, 0});
+  data_node->attr.tmp_buffers.emplace_back(TmpBuffer{TmpBufDesc{af::Symbol(16 * 1024), -1}, {}, 0});
   auto data1_node = graph.FindNode("load2");
-  data1_node->attr.tmp_buffers.emplace_back(TmpBuffer{TmpBufDesc{ge::Symbol(1024), 0}, {}, 0});
-  data1_node->attr.tmp_buffers.emplace_back(TmpBuffer{TmpBufDesc{ge::Symbol(2*1024), 0}, {}, 0});
+  data1_node->attr.tmp_buffers.emplace_back(TmpBuffer{TmpBufDesc{af::Symbol(1024), 0}, {}, 0});
+  data1_node->attr.tmp_buffers.emplace_back(TmpBuffer{TmpBufDesc{af::Symbol(2*1024), 0}, {}, 0});
   return ge::SUCCESS;
 }
 
-Status BuildMultiCaseG1(ge::AscGraph &graph) {
-  auto S0 = ge::Symbol("S0");
+Status BuildMultiCaseG1(af::AscGraph &graph) {
+  auto S0 = af::Symbol("S0");
   auto z0 = graph.CreateAxis("z0", S0);
   auto [z0T, z0t] = graph.TileSplit(z0.id);
   auto [z0TB, z0Tb] = graph.BlockSplit(z0T->id);
@@ -1220,7 +1229,7 @@ Status BuildMultiCaseG1(ge::AscGraph &graph) {
     }
   }
   auto data_node = graph.FindNode("load1");
-  data_node->attr.tmp_buffers.emplace_back(TmpBuffer{TmpBufDesc{ge::Symbol(16 * 1024), 0}, {}, 0});
+  data_node->attr.tmp_buffers.emplace_back(TmpBuffer{TmpBufDesc{af::Symbol(16 * 1024), 0}, {}, 0});
   return ge::SUCCESS;
 }
 }
@@ -1256,7 +1265,7 @@ TEST_F(STestGenConcat, tque_tbuf_case0)
 {
   const std::string kCaseName = "tque_tbuf_case0";
   ascir::AscGraph graph(kCaseName.c_str());
-  ASSERT_EQ(ge::ascir::cg::BuildTqueTbufAscendGraph_single_case(graph), ge::SUCCESS);
+  ASSERT_EQ(af::ascir::cg::BuildTqueTbufAscendGraph_single_case(graph), ge::SUCCESS);
   graph.SetTilingKey(0U);
 
   ascir::ScheduleGroup schedule_group;
@@ -1746,7 +1755,7 @@ namespace {
 void BuildEmptyTensorGraph(const std::string &graph_name, ascir::ScheduledResult &schedule_result) {
   ascir::ScheduleGroup schedule_group1;
   ascir::AscGraph graph(graph_name.c_str());
-  ASSERT_EQ(ge::ascir::cg::BuildConcatGroupAscendGraphND(graph), ge::SUCCESS);
+  ASSERT_EQ(af::ascir::cg::BuildConcatGroupAscendGraphND(graph), ge::SUCCESS);
   graph.SetTilingKey(0U);
   schedule_group1.impl_graphs.emplace_back(graph);
   GraphConstructUtils::UpdateGraphsVectorizedStride(schedule_group1.impl_graphs);
@@ -1821,9 +1830,9 @@ ge::Status ConstructTQueTBufScheduleResults(std::vector<ascir::ScheduledResult> 
   std::vector<att::ModelInfo> model_info_list;
   ascir::AscGraph graph_0(kFirstGraphName.c_str());
   ascir::AscGraph graph_1(kSecondGraphName.c_str());
-  GE_ASSERT_EQ(ge::ascir::cg::BuildTqueTbufAscendGraphMultiCaseG0(graph_0), ge::SUCCESS);
+  GE_ASSERT_EQ(af::ascir::cg::BuildTqueTbufAscendGraphMultiCaseG0(graph_0), ge::SUCCESS);
   graph_0.SetTilingKey(0U);
-  GE_ASSERT_EQ(ge::ascir::cg::BuildTqueTbufAscendGraphMultiCaseG1(graph_1), ge::SUCCESS);
+  GE_ASSERT_EQ(af::ascir::cg::BuildTqueTbufAscendGraphMultiCaseG1(graph_1), ge::SUCCESS);
   graph_1.SetTilingKey(1U);
   schedule_group1.impl_graphs.emplace_back(graph_0);
   schedule_group2.impl_graphs.emplace_back(graph_1);
@@ -1850,9 +1859,9 @@ ge::Status ConstructAutoTuneResults(std::vector<ascir::ScheduledResult> &schedul
   std::vector<att::ModelInfo> model_info_list;
   ascir::AscGraph graph_0(kFirstGraphName.c_str());
   ascir::AscGraph graph_1(kSecondGraphName.c_str());
-  GE_ASSERT_EQ(ge::ascir::cg::BuildMultiCaseG0(graph_0), ge::SUCCESS);
+  GE_ASSERT_EQ(af::ascir::cg::BuildMultiCaseG0(graph_0), ge::SUCCESS);
   graph_0.SetTilingKey(0U);
-  GE_ASSERT_EQ(ge::ascir::cg::BuildMultiCaseG1(graph_1), ge::SUCCESS);
+  GE_ASSERT_EQ(af::ascir::cg::BuildMultiCaseG1(graph_1), ge::SUCCESS);
   graph_1.SetTilingKey(1U);
   schedule_group1.impl_graphs.emplace_back(graph_0);
   schedule_group2.impl_graphs.emplace_back(graph_1);
@@ -1875,7 +1884,7 @@ ge::Status ConstructSingleCaseForMultiTileScheduleResult(std::vector<ascir::Sche
   ascir::ScheduledResult schedule_result1;
   std::vector<att::ModelInfo> model_info_list;
   ascir::AscGraph graph_0(kFirstGraphName.c_str());
-  GE_ASSERT_EQ(ge::ascir::cg::BuildConcatGroupAscendGraphS0S1MultiTiling(graph_0), ge::SUCCESS);
+  GE_ASSERT_EQ(af::ascir::cg::BuildConcatGroupAscendGraphS0S1MultiTiling(graph_0), ge::SUCCESS);
   graph_0.SetTilingKey(0U);
   schedule_group1.impl_graphs.emplace_back(graph_0);
   GraphConstructUtils::UpdateGraphsVectorizedStride(schedule_group1.impl_graphs);
@@ -2150,9 +2159,9 @@ ge::Status ConstructConcatTwoTilingCaseS0S1() {
   const std::string kFirstName = "Concat";
   ascir::AscGraph graph_nd(kFirstName.c_str());
   ascir::AscGraph graph_s0("graph_s0");
-  GE_ASSERT_SUCCESS(ge::ascir::cg::BuildConcatGroupAscendGraphS0S1_Reorder(graph_nd));
+  GE_ASSERT_SUCCESS(af::ascir::cg::BuildConcatGroupAscendGraphS0S1_Reorder(graph_nd));
   graph_nd.SetTilingKey(0U);
-  GE_ASSERT_SUCCESS(ge::ascir::cg::BuildConcatGroupAscendGraphS1S0_Reorder(graph_s0));
+  GE_ASSERT_SUCCESS(af::ascir::cg::BuildConcatGroupAscendGraphS1S0_Reorder(graph_s0));
   graph_s0.SetTilingKey(1U);
 
   ascir::ScheduleGroup schedule_group;
@@ -2211,9 +2220,9 @@ ge::Status ConstructTwoScheduleResultS0S1() {
   const std::string graph_name = "graph_nd";
   ascir::AscGraph graph_nd(graph_name.c_str());
   ascir::AscGraph graph_s0("graph_s0");
-  GE_ASSERT_SUCCESS(ge::ascir::cg::BuildConcatGroupAscendGraphS0S1_Reorder(graph_nd));
+  GE_ASSERT_SUCCESS(af::ascir::cg::BuildConcatGroupAscendGraphS0S1_Reorder(graph_nd));
   graph_nd.SetTilingKey(0U);
-  GE_ASSERT_SUCCESS(ge::ascir::cg::BuildConcatGroupAscendGraphS1S0_Reorder(graph_s0));
+  GE_ASSERT_SUCCESS(af::ascir::cg::BuildConcatGroupAscendGraphS1S0_Reorder(graph_s0));
   graph_s0.SetTilingKey(1U);
 
   ascir::ScheduleGroup schedule_group1;
@@ -2291,7 +2300,7 @@ TEST_F(STestGenConcat, case_axes_reorder_got_static_shape)
 {
   const std::string kGraphName = "graph_static";
   ascir::AscGraph graph_static(kGraphName.c_str());
-  ASSERT_EQ(ge::ascir::cg::BuildConcatGroupAscendGraphStatic(graph_static), ge::SUCCESS);
+  ASSERT_EQ(af::ascir::cg::BuildConcatGroupAscendGraphStatic(graph_static), ge::SUCCESS);
   ascir::ScheduledResult schedule_result;
   ascir::ScheduleGroup schedule_group;
   BuildSingleGraphToScheduleGroup(graph_static, schedule_group, 0U);
@@ -2310,7 +2319,7 @@ TEST_F(STestGenConcat, case_axes_reorder_got_dynamic_shape)
 {
   const std::string kGraphName = "graph_dynamic";
   ascir::AscGraph graph_dynamic(kGraphName.c_str());
-  ASSERT_EQ(ge::ascir::cg::BuildConcatGroupAscendGraphND(graph_dynamic), ge::SUCCESS);
+  ASSERT_EQ(af::ascir::cg::BuildConcatGroupAscendGraphND(graph_dynamic), ge::SUCCESS);
   ascir::ScheduledResult schedule_result;
   ascir::ScheduleGroup schedule_group;
   BuildSingleGraphToScheduleGroup(graph_dynamic, schedule_group, 0U);
@@ -2516,8 +2525,8 @@ TEST_F(STestGenConcat, reuse_schedule_group_with_same_input_axis_name)
   const std::string kGraphName = "graph_nd";
   ascir::AscGraph graph_nd(kGraphName.c_str());
   ascir::AscGraph graph_s0("graph_s0");
-  ASSERT_EQ(ge::ascir::cg::BuildConcatGroupAscendGraphND(graph_nd), ge::SUCCESS);
-  ASSERT_EQ(ge::ascir::cg::BuildConcatGroupAscendGraphND(graph_s0), ge::SUCCESS);
+  ASSERT_EQ(af::ascir::cg::BuildConcatGroupAscendGraphND(graph_nd), ge::SUCCESS);
+  ASSERT_EQ(af::ascir::cg::BuildConcatGroupAscendGraphND(graph_s0), ge::SUCCESS);
 
   std::map<std::string, std::string> options;
   options.emplace(kGenConfigType, "AxesReorder");
@@ -2552,9 +2561,9 @@ TEST_F(STestGenConcat, reuse_schedule_group_with_different_input_axis_name)
   const std::string kGraphName = "graph_nd";
   ascir::AscGraph graph_nd(kGraphName.c_str());
   ascir::AscGraph graph_s0("graph_s0");
-  ASSERT_EQ(ge::ascir::cg::BuildConcatGroupAscendGraphND(graph_nd), ge::SUCCESS);
+  ASSERT_EQ(af::ascir::cg::BuildConcatGroupAscendGraphND(graph_nd), ge::SUCCESS);
   graph_nd.SetTilingKey(0U);
-  ASSERT_EQ(ge::ascir::cg::BuildConcatGroupAscendGraphS0(graph_s0), ge::SUCCESS);
+  ASSERT_EQ(af::ascir::cg::BuildConcatGroupAscendGraphS0(graph_s0), ge::SUCCESS);
   graph_s0.SetTilingKey(1U);
 
   std::map<std::string, std::string> options;
@@ -2570,9 +2579,9 @@ TEST_F(STestGenConcat, reuse_schedule_group_with_different_search_axis_name)
   const std::string kGraphName = "graph_nd";
   ascir::AscGraph graph_nd(kGraphName.c_str());
   ascir::AscGraph graph_s0("graph_s0");
-  ASSERT_EQ(ge::ascir::cg::BuildConcatGroupAscendGraphND(graph_nd), ge::SUCCESS);
+  ASSERT_EQ(af::ascir::cg::BuildConcatGroupAscendGraphND(graph_nd), ge::SUCCESS);
   graph_nd.SetTilingKey(0U);
-  ASSERT_EQ(ge::ascir::cg::BuildConcatGroupAscendGraphND2(graph_s0), ge::SUCCESS);
+  ASSERT_EQ(af::ascir::cg::BuildConcatGroupAscendGraphND2(graph_s0), ge::SUCCESS);
   graph_s0.SetTilingKey(1U);
 
   std::map<std::string, std::string> options;
@@ -2714,18 +2723,18 @@ TEST_F(STestGenConcat, fused_schedule_result_reuse_schedule_group)
   {
     ascir::AscGraph graph_nd(kGraphName.c_str());
     ascir::AscGraph graph_s0("graph_s0");
-    ASSERT_EQ(ge::ascir::cg::BuildConcatGroupAscendGraphND(graph_nd), ge::SUCCESS);
+    ASSERT_EQ(af::ascir::cg::BuildConcatGroupAscendGraphND(graph_nd), ge::SUCCESS);
     graph_nd.SetTilingKey(0U);
-    ASSERT_EQ(ge::ascir::cg::BuildConcatGroupAscendGraphND2(graph_s0), ge::SUCCESS);
+    ASSERT_EQ(af::ascir::cg::BuildConcatGroupAscendGraphND2(graph_s0), ge::SUCCESS);
     graph_s0.SetTilingKey(1U);
     ConstructTwoGraphTwoResult(kGraphName, graph_nd, graph_s0, fused_scheduled_result);
   }
   {
     ascir::AscGraph graph_nd("graph_s0s1");
     ascir::AscGraph graph_s0("graph_s1s0");
-    ASSERT_EQ(ge::ascir::cg::BuildConcatGroupAscendGraphS0S1_Reorder(graph_nd), ge::SUCCESS);
+    ASSERT_EQ(af::ascir::cg::BuildConcatGroupAscendGraphS0S1_Reorder(graph_nd), ge::SUCCESS);
     graph_nd.SetTilingKey(2U);
-    ASSERT_EQ(ge::ascir::cg::BuildConcatGroupAscendGraphS1S0_Reorder(graph_s0), ge::SUCCESS);
+    ASSERT_EQ(af::ascir::cg::BuildConcatGroupAscendGraphS1S0_Reorder(graph_s0), ge::SUCCESS);
     graph_s0.SetTilingKey(3U);
     ascir::ScheduleGroup sg1;
     ascir::ScheduleGroup sg2;
@@ -2770,10 +2779,10 @@ void BuildScoreCaseFirstBlock(const std::string &graph_name,
   std::vector<ascir::AscGraph> sr0_graphs = {ascir::AscGraph(kSr0Names[0]), ascir::AscGraph(kSr0Names[1]),
                                               ascir::AscGraph(kSr0Names[2]), ascir::AscGraph(kSr0Names[3]),
                                               ascir::AscGraph(kSr0Names[4])};
-  ASSERT_EQ(ge::ascir::cg::BuildConcatGroupAscendGraphND(graph_nd), ge::SUCCESS);
+  ASSERT_EQ(af::ascir::cg::BuildConcatGroupAscendGraphND(graph_nd), ge::SUCCESS);
   graph_nd.SetTilingKey(0U);
   for (size_t i = 0; i < sr0_graphs.size(); i++) {
-    ASSERT_EQ(ge::ascir::cg::BuildConcatGroupAscendGraphND2(sr0_graphs[i]), ge::SUCCESS);
+    ASSERT_EQ(af::ascir::cg::BuildConcatGroupAscendGraphND2(sr0_graphs[i]), ge::SUCCESS);
     sr0_graphs[i].SetTilingKey(static_cast<uint32_t>(i + 1));
   }
   schedule_group1.impl_graphs.emplace_back(graph_nd);
@@ -2812,9 +2821,9 @@ TEST_F(STestGenConcat, fused_schedule_result_tiling_case_score) {
   {
     ascir::AscGraph graph_nd("graph_s0s1");
     ascir::AscGraph graph_s0("graph_s1s0");
-    ASSERT_EQ(ge::ascir::cg::BuildConcatGroupAscendGraphS0S1_Reorder(graph_nd), ge::SUCCESS);
+    ASSERT_EQ(af::ascir::cg::BuildConcatGroupAscendGraphS0S1_Reorder(graph_nd), ge::SUCCESS);
     graph_nd.SetTilingKey(6U);
-    ASSERT_EQ(ge::ascir::cg::BuildConcatGroupAscendGraphS1S0_Reorder(graph_s0), ge::SUCCESS);
+    ASSERT_EQ(af::ascir::cg::BuildConcatGroupAscendGraphS1S0_Reorder(graph_s0), ge::SUCCESS);
     graph_s0.SetTilingKey(7U);
     ConstructTwoGraphTwoResult(kGraphName, graph_nd, graph_s0, fused_scheduled_result);
   }
@@ -2838,11 +2847,11 @@ TEST_F(STestGenConcat, fused_schedule_result_tiling_case_score_same_schedule) {
     ascir::AscGraph sr0_g0_0(kGraphName.c_str());
     ascir::AscGraph sr0_g0_1("graph_nd_1");
     ascir::AscGraph sr0_g0_2("graph_nd_2");
-    ASSERT_EQ(ge::ascir::cg::BuildConcatGroupAscendGraphND2TB(sr0_g0_0), ge::SUCCESS);
+    ASSERT_EQ(af::ascir::cg::BuildConcatGroupAscendGraphND2TB(sr0_g0_0), ge::SUCCESS);
     sr0_g0_0.SetTilingKey(0U);
-    ASSERT_EQ(ge::ascir::cg::BuildConcatGroupAscendGraphND2WithAbs(sr0_g0_1), ge::SUCCESS);
+    ASSERT_EQ(af::ascir::cg::BuildConcatGroupAscendGraphND2WithAbs(sr0_g0_1), ge::SUCCESS);
     sr0_g0_1.SetTilingKey(1U);
-    ASSERT_EQ(ge::ascir::cg::BuildConcatGroupAscendGraphND2(sr0_g0_2), ge::SUCCESS);
+    ASSERT_EQ(af::ascir::cg::BuildConcatGroupAscendGraphND2(sr0_g0_2), ge::SUCCESS);
     sr0_g0_2.SetTilingKey(2U);
 
     ascir::ScheduleGroup schedule_group2;
@@ -2881,7 +2890,7 @@ TEST_F(STestGenConcat, fused_schedule_result_prompt_aligned)
     ascir::ScheduledResult schedule_result2;
     std::vector<ascir::ScheduledResult> schedule_results;
     ascir::AscGraph graph_s0(kGraphName.c_str());
-    ASSERT_EQ(ge::ascir::cg::BuildConcatGroupAscendGraphND2TB(graph_s0), ge::SUCCESS);
+    ASSERT_EQ(af::ascir::cg::BuildConcatGroupAscendGraphND2TB(graph_s0), ge::SUCCESS);
     graph_s0.SetTilingKey(1U);
     schedule_group2.impl_graphs.emplace_back(graph_s0);
     GraphConstructUtils::UpdateGraphsVectorizedStride(schedule_group2.impl_graphs);
@@ -2930,7 +2939,7 @@ TEST_F(STestGenConcat, static_shape_cache_support)
 
   const std::string kFirstGraphName = "graph_static_cache";
   ascir::AscGraph graph_static(kFirstGraphName.c_str());
-  ASSERT_EQ(ge::ascir::cg::BuildConcatGroupAscendGraphStatic(graph_static), ge::SUCCESS);
+  ASSERT_EQ(af::ascir::cg::BuildConcatGroupAscendGraphStatic(graph_static), ge::SUCCESS);
 
   // 使用辅助函数构建schedule_group
   BuildSingleGraphToScheduleGroup(graph_static, schedule_group1, 0U);
@@ -2981,8 +2990,8 @@ TEST_F(STestGenConcat, multi_group_with_enable_group_parallel_optimize)
   const std::string kGraphName = "graph_nd";
   ascir::AscGraph graph_nd(kGraphName.c_str());
   ascir::AscGraph graph_s0("graph_s0");
-  ASSERT_EQ(ge::ascir::cg::BuildConcatGroupAscendGraphND(graph_nd), ge::SUCCESS);
-  ASSERT_EQ(ge::ascir::cg::BuildConcatGroupAscendGraphND(graph_s0), ge::SUCCESS);
+  ASSERT_EQ(af::ascir::cg::BuildConcatGroupAscendGraphND(graph_nd), ge::SUCCESS);
+  ASSERT_EQ(af::ascir::cg::BuildConcatGroupAscendGraphND(graph_s0), ge::SUCCESS);
   BuildSingleGraphToScheduleGroup(graph_nd, schedule_group1, 0U);
   BuildSingleGraphToScheduleGroup(graph_s0, schedule_group2, 1U);
   schedule_result1.schedule_groups.emplace_back(schedule_group1);

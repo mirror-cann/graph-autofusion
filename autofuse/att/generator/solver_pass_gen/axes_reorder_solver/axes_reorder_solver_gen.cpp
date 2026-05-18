@@ -212,7 +212,7 @@ void AxesReorderSolverGen::GetLocalBufferTilingVars() {
       local_buffer_tiling_vars_.push_back(arg);
     }
   }
-  GELOGD("Got local buffer tiling vars: %s, input args: %s", GetVecString(local_buffer_tiling_vars_).c_str(),
+  GELOGD("Got local buffer tiling vars: %s input args: %s", GetVecString(local_buffer_tiling_vars_).c_str(),
          GetVecString(input_args_).c_str());
 }
 
@@ -836,6 +836,8 @@ std::string AxesReorderSolverGen::GenConsUbFunc(uint32_t cons_idx, const std::ve
   strs += "    auto cons" + std::to_string(cons_idx) + "Eval = [](TilingVariable **rel_tiling_vars, "
                                                        "Variable **rel_in_shapes, int64_t rel_hw_spec) {\n";
   strs += SetRelatedVars(rel_tiling_vars, rel_cons_vars);
+  strs += "      (void)rel_tiling_vars;\n";
+  strs += "      (void)rel_in_shapes;\n";
   strs += "      int64_t value = AxesReorderSolver" + tiling_case_id_ + "::GetUbSizeStatic(" +
       GenGetStaticInputParam(HardwareDef::UB, true) + ") - rel_hw_spec;\n";
   strs += "      return value;\n";
@@ -850,7 +852,9 @@ std::string AxesReorderSolverGen::GenConsFunc(uint32_t cons_idx, ConsType cons_t
   strs += "    auto cons" + std::to_string(cons_idx) + "Eval = [](TilingVariable **rel_tiling_vars, "
         "Variable **rel_in_shapes, int64_t rel_hw_spec) {\n";
   strs += SetRelatedVars(rel_tiling_vars, rel_cons_vars);
-  
+  strs += "      (void)rel_tiling_vars;\n";
+  strs += "      (void)rel_in_shapes;\n";
+
   if (cons_type == ConsType::BUFFER) {
     auto tmp_func_pair = GenOriginBufExpr(cons, "      ");
     auto tmp_def = tmp_func_pair.first;
@@ -858,6 +862,7 @@ std::string AxesReorderSolverGen::GenConsFunc(uint32_t cons_idx, ConsType cons_t
     strs += tmp_def;
     strs += "      int64_t value = " + func_return_expr + "- rel_hw_spec;\n";
   } else if (cons_type == ConsType::CUT) {
+    strs += "      (void)rel_hw_spec;\n";
     strs += GenOriginExpr({cons}, "      ");
     strs += "      int64_t value = " + Str(cons) + ";\n";
   }
@@ -907,6 +912,7 @@ std::string AxesReorderSolverGen::GenUpperBoundFunc(const Expr &var) {
   std::string valid_cond;
   auto from_axes = from_axes_map_[var];
   strs += "    GetUpperBoundFuncPtr " + Str(var) + "_upper_bound = [](Variable **parent_vars) {\n";
+  strs += "      (void)parent_vars;\n";
   strs += "      int64_t upper_bound = 1;\n";
   for (uint32_t i = 0u; i < from_axes.size(); ++i) {
     auto primary_args = from_axes[i].FreeSymbols();
@@ -1135,7 +1141,7 @@ std::string AxesReorderSolverGen::GenInputInfo(std::vector<Expr> &all_cons, std:
       mc_mixed_cons.emplace_back(cut_cons);
     }
   }
-  GELOGD("Got all cut cons: %s, mc_mixed_cons: %s, all_cons: %s", GetVecString(total_cut_cons_).c_str(),
+  GELOGD("Got all cut cons: %s mc_mixed_cons: %s all_cons: %s", GetVecString(total_cut_cons_).c_str(),
          GetVecString(mc_mixed_cons).c_str(), GetVecString(all_cons).c_str());
   for (const auto &mc_var : mc_args_) {
     strs += GenUpperBoundFunc(mc_var);
@@ -1212,7 +1218,13 @@ std::string AxesReorderSolverGen::GenSolverRunInvoke(const std::string &class_na
     codes += GenPGOSolverRunCode(class_name, high_perf_val, enable_equal_order_arg);
   }
 
-  std::string run_args = enable_multicore_ub_tradeoff + ", " + enable_block_loop_trade_off_by_perf + ", " +
+  std::string run_multicore_ub_tradeoff = enable_multicore_ub_tradeoff;
+  std::string run_block_loop_trade_off_by_perf = enable_block_loop_trade_off_by_perf;
+  if (enable_autofuse_pgo_ || is_inductor_scene_) {
+    run_multicore_ub_tradeoff = "runtime_enable_multicore_ub_tradeoff";
+    run_block_loop_trade_off_by_perf = "runtime_enable_block_loop_trade_off_by_perf";
+  }
+  std::string run_args = run_multicore_ub_tradeoff + ", " + run_block_loop_trade_off_by_perf + ", " +
                          high_perf_val + enable_equal_order_arg;
   codes += "    if (!solver.Run(" + run_args + ")) {\n";
   GELOGI(
@@ -1332,13 +1344,35 @@ std::string AxesReorderSolverGen::GenSolverFuncImpl() {
     codes += "      input.corenum_threshold = g_secondary_tiling_ratio;\n";
     codes += "    }\n";
   }
+  // Override solver input thresholds from pending_search_cfg_ (set by ExecutePGOSolver)
+  if (enable_autofuse_pgo_ || is_inductor_scene_) {
+    const ge::char_t *runtime_enable_multicore_ub_tradeoff =
+        (NeedUBMultiCoreBalance() && (enable_multicore_ub_tradeoff_ || tiling_schedule_config_.trade_off_config.is_enable))
+            ? "true"
+            : "false";
+    codes += "    bool runtime_enable_multicore_ub_tradeoff = ";
+    codes += runtime_enable_multicore_ub_tradeoff;
+    codes += ";\n";
+    codes += "    if (pending_search_cfg_ != nullptr) {\n";
+    codes += "      if (pending_search_cfg_->ub_threshold_enabled) {\n";
+    codes += "        input.ub_threshold = pending_search_cfg_->ub_threshold;\n";
+    codes += "      }\n";
+    codes += "      if (pending_search_cfg_->corenum_threshold_enabled) {\n";
+    codes += "        input.corenum_threshold = pending_search_cfg_->corenum_threshold;\n";
+    codes += "      }\n";
+    codes += "      runtime_enable_multicore_ub_tradeoff = pending_search_cfg_->enable_multicore_ub_tradeoff;\n";
+    codes += "    }\n";
+    codes += "    const bool runtime_enable_block_loop_trade_off_by_perf = ";
+    codes += IsEnableBlockLoopTradeOffByPerf();
+    codes += " && !runtime_enable_multicore_ub_tradeoff;\n";
+  }
   codes += "    " + class_name + " solver(input);\n";
   codes += GenSolverRunInvoke(class_name);
   codes += GenEmptyTensorCheckInSolver();
   codes += GenSetTiling();
   codes += "    return true;\n";
   codes += "  }\n";
-  if (enable_autofuse_pgo_) {
+  if (enable_autofuse_pgo_ && !is_inductor_scene_) {
     codes += GenPGOSolverFuncImpl();
     codes += GenPGOSolverFilter();
   }
@@ -1398,11 +1432,29 @@ std::string AxesReorderSolverGen::GenPGOSolverFuncImpl() {
            "& tiling_data, std::vector<AutofuseTilingDataPerf>& tiling_data_list, AutofuseTilingData* "
            "autofuse_tiling_data, " + GetInputOutputDef() +
            "void* stream, std::unordered_map<int64_t, uint64_t> &workspace_map, " +
-           "std::vector<uint32_t*> block_dim_vec={}) {\n";
+           "std::vector<uint32_t*> block_dim_vec={}, const SearchConfig *search_cfg=nullptr) {\n";
+  codes += "    " + GetInputOutputVoidCasts() + "(void)stream; (void)workspace_map; (void)block_dim_vec;\n";
   codes += InitiateArgs();
   codes += GenInputInfo(all_cons, local_buffer_cons, mc_mixed_cons);
   codes += GenInput(TradeOffConfig(), all_cons);
+  // topn search_cfg override: directly apply ub_threshold/corenum_threshold to solver input
+  codes += "    if (search_cfg != nullptr) {\n";
+  codes += "      if (search_cfg->ub_threshold_enabled) {\n";
+  codes += "        input.ub_threshold = search_cfg->ub_threshold;\n";
+  codes += "      }\n";
+  codes += "      if (search_cfg->corenum_threshold_enabled) {\n";
+  codes += "        input.corenum_threshold = search_cfg->corenum_threshold;\n";
+  codes += "      }\n";
+  codes += "    }\n";
   codes += "    " + class_name + " solver(input);\n";
+  // PGO path enumerates all tiling via PgoSolverGenerateAllTilingData (no Run call).
+  // enable_multicore_ub_tradeoff is a Run-arg only meaningful for single-solve path;
+  // log it here for diagnostics but do not pass to enumeration.
+  codes += "    if (search_cfg != nullptr) {\n";
+  codes += "      OP_LOGI(OP_NAME, \"[PGO] search_cfg: ub_threshold=%f, corenum_threshold=%f, "
+           "enable_multicore_ub_tradeoff=%d\", search_cfg->ub_threshold, "
+           "search_cfg->corenum_threshold, search_cfg->enable_multicore_ub_tradeoff);\n";
+  codes += "    }\n";
   codes += "    if (!solver.PgoSolverGenerateAllTilingData()) {\n";
   codes += "      return false;\n";
   codes += "    }\n";

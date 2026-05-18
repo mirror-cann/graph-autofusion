@@ -129,6 +129,19 @@ AscTensorAttr *AscTensorAttr::GetTensorAttrPtr(const OutDataAnchor &output) {
   return attr_group;
 }
 
+AscTensorAttr *AscTensorAttr::GetOrCreateFromOpDescRaw(void *op_desc_raw, uint32_t index) {
+  GE_ASSERT_NOTNULL(op_desc_raw);
+  auto *op_desc = static_cast<OpDesc *>(op_desc_raw);
+  auto tensor = op_desc->MutableOutputDesc(index);
+  if (tensor == nullptr) {
+    return nullptr;
+  }
+  const auto attr_group = tensor->GetOrCreateAttrsGroup<AscTensorAttr>();
+  GE_ASSERT_NOTNULL(attr_group);
+  attr_group->dtype.tensor_desc_ = tensor.get();
+  return attr_group;
+}
+
 std::unique_ptr<AfAttrGroupsBase> AscTensorAttr::CloneAf() {
   auto ptr = ComGraphMakeUnique<AscTensorAttr>(*this);
   GE_ASSERT_NOTNULL(ptr);

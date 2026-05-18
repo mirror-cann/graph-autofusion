@@ -2573,6 +2573,118 @@ TEST_F(UTestAscirPerfV2, TestGetDmaParamsSwapFourDim) {
   EXPECT_EQ(Str(outer_repeat), "B");
 }
 
+// LoadV2: GM非连续 + block_len < cache_line(128B) 时，ExpandLoadBlockLen将block_len pad到cache_line
+TEST_F(UTestAscirPerfV2, TestLoadApiExpandBlockLenSmallBlock) {
+  std::vector<att::TensorShapeInfo> input_shapes(1);
+  std::vector<att::TensorShapeInfo> output_shapes(1);
+  Expr z0t_size = CreateExpr("z0t_size");
+  Expr z1t_size = CreateExpr("z1t_size");
+
+  input_shapes[0].data_type = "float16";
+  // block_len = 8 elements * 2B = 16B < 128B cache line, 且 gm_stride > 0
+  input_shapes[0].repeats = {z0t_size, z1t_size, CreateExpr(8)};
+  input_shapes[0].gm_strides = {z0t_size * CreateExpr(64), CreateExpr(64), CreateExpr(1)};
+  input_shapes[0].strides = input_shapes[0].gm_strides;
+  output_shapes[0].data_type = "float16";
+  output_shapes[0].repeats = input_shapes[0].repeats;
+  output_shapes[0].gm_strides = input_shapes[0].gm_strides;
+  output_shapes[0].strides = output_shapes[0].gm_strides;
+  input_shapes[0].data_type_size = 2;
+  output_shapes[0].data_type_size = 2;
+
+  PerfOutputInfo perf_res;
+  NodeInfo node;
+  auto load_v2 = ApiPerfFactory::Instance().Create("LoadV2");
+  ASSERT_NE(load_v2, nullptr);
+  auto perf = load_v2->GetPerfFunc();
+  node.node_ptr = GraphConstructUtils::ConstructSingleOp("Load", 1, 1);
+  auto result = perf(input_shapes, output_shapes, node, perf_res);
+  EXPECT_EQ(result, ge::SUCCESS);
+  Expr res = perf_res.pipe_res[PipeType::AIV_MTE2];
+  auto ternary_ops = perf_res.ternary_ops;
+  auto ret = ConcursiveReplaceVars(ternary_ops);
+  // ExpandLoadBlockLen: block_len(8)*2=16B < 128B, stride>0 → pad to 64(=128/2)
+  // data_size = z0t * z1t * 64 * 2 = 128 * z0t * z1t, SmallBlk case
+  // stride_cost = 0.005 * z0t * z1t * min((64-8)*2, 4096) = 0.56 * z0t * z1t
+  const std::string expect_stride = "(0.559999987483025 * z0t_size * z1t_size)";
+  const std::string load_perf =
+      "(128 * z0t_size * z1t_size / (((6.40880012512207 / (block_dim)) + 13.1354999542236)))";
+  EXPECT_EQ(Str(res.Replace(ret)), "(" + expect_stride + " + " + load_perf + " + 160.0)");
+}
+
+// LoadV2: GM非连续 + block_len >= cache_line(128B) 时，不触发ExpandLoadBlockLen
+TEST_F(UTestAscirPerfV2, TestLoadApiExpandBlockLenLargeBlock) {
+  std::vector<att::TensorShapeInfo> input_shapes(1);
+  std::vector<att::TensorShapeInfo> output_shapes(1);
+  Expr z0t_size = CreateExpr("z0t_size");
+  Expr z1t_size = CreateExpr("z1t_size");
+
+  input_shapes[0].data_type = "float16";
+  // block_len = 128 elements * 2B = 256B > 128B cache line, gm_stride > 0 但不触发
+  input_shapes[0].repeats = {z0t_size, z1t_size, CreateExpr(128)};
+  input_shapes[0].gm_strides = {z0t_size * CreateExpr(256), CreateExpr(256), CreateExpr(1)};
+  input_shapes[0].strides = input_shapes[0].gm_strides;
+  output_shapes[0].data_type = "float16";
+  output_shapes[0].repeats = input_shapes[0].repeats;
+  output_shapes[0].gm_strides = input_shapes[0].gm_strides;
+  output_shapes[0].strides = output_shapes[0].gm_strides;
+  input_shapes[0].data_type_size = 2;
+  output_shapes[0].data_type_size = 2;
+
+  PerfOutputInfo perf_res;
+  NodeInfo node;
+  auto load_v2 = ApiPerfFactory::Instance().Create("LoadV2");
+  ASSERT_NE(load_v2, nullptr);
+  auto perf = load_v2->GetPerfFunc();
+  node.node_ptr = GraphConstructUtils::ConstructSingleOp("Load", 1, 1);
+  auto result = perf(input_shapes, output_shapes, node, perf_res);
+  EXPECT_EQ(result, ge::SUCCESS);
+  Expr res = perf_res.pipe_res[PipeType::AIV_MTE2];
+  auto ternary_ops = perf_res.ternary_ops;
+  auto ret = ConcursiveReplaceVars(ternary_ops);
+  // block_len=128*2=256B > 128B, 不触发pad; SmallBlk case
+  // data_size = 256 * z0t * z1t
+  // stride = 0.005 * z0t * z1t * min((256-128)*2, 4096) = 1.28 * z0t * z1t
+  const std::string expect_stride = "(1.27999997138977 * z0t_size * z1t_size)";
+  const std::string load_perf =
+      "(256 * z0t_size * z1t_size / (((6.40880012512207 / (block_dim)) + 13.1354999542236)))";
+  EXPECT_EQ(Str(res.Replace(ret)), "(" + expect_stride + " + " + load_perf + " + 160.0)");
+}
+
+// LoadV2: 连续场景(gm_stride=0)，不触发ExpandLoadBlockLen
+TEST_F(UTestAscirPerfV2, TestLoadApiExpandBlockLenContinuous) {
+  std::vector<att::TensorShapeInfo> input_shapes(1);
+  std::vector<att::TensorShapeInfo> output_shapes(1);
+
+  input_shapes[0].data_type = "float16";
+  input_shapes[0].repeats = {CreateExpr(10), CreateExpr(8)};
+  input_shapes[0].gm_strides = {CreateExpr(8), CreateExpr(1)};
+  input_shapes[0].strides = input_shapes[0].gm_strides;
+  output_shapes[0].data_type = "float16";
+  output_shapes[0].repeats = input_shapes[0].repeats;
+  output_shapes[0].gm_strides = input_shapes[0].gm_strides;
+  output_shapes[0].strides = output_shapes[0].gm_strides;
+  input_shapes[0].data_type_size = 2;
+  output_shapes[0].data_type_size = 2;
+
+  PerfOutputInfo perf_res;
+  NodeInfo node;
+  auto load_v2 = ApiPerfFactory::Instance().Create("LoadV2");
+  ASSERT_NE(load_v2, nullptr);
+  auto perf = load_v2->GetPerfFunc();
+  node.node_ptr = GraphConstructUtils::ConstructSingleOp("Load", 1, 1);
+  auto result = perf(input_shapes, output_shapes, node, perf_res);
+  EXPECT_EQ(result, ge::SUCCESS);
+  Expr res = perf_res.pipe_res[PipeType::AIV_MTE2];
+  auto ternary_ops = perf_res.ternary_ops;
+  auto ret = ConcursiveReplaceVars(ternary_ops);
+  // 连续: gm_stride=0, 不触发pad, SmallBlk case
+  // data_size = 10 * 8 * 2 = 160
+  const std::string load_perf =
+      "(160 / (((6.40880012512207 / (block_dim)) + 13.1354999542236)))";
+  EXPECT_EQ(Str(res.Replace(ret)), "(" + load_perf + " + 160.0)");
+}
+
 // GetDmaParams：dims 长度 <= kMaxDmaLen 时，swap=true 不生效，直接返回全部维度
 TEST_F(UTestAscirPerfV2, TestGetDmaParamsSwapDimLessEqual) {
   Expr z0t = CreateExpr("z0t");

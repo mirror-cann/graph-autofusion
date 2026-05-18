@@ -16,7 +16,6 @@
 #include "buffer_allocate/tensor_mem_defs.h"
 
 namespace optimize {
-
 Status ConcatInputUnificationPass::Run(std::vector<ascir::ImplGraph> &graphs) {
   for (auto &graph : graphs) {
     GE_ASSERT_SUCCESS(RunOneGraph(graph));
@@ -25,20 +24,31 @@ Status ConcatInputUnificationPass::Run(std::vector<ascir::ImplGraph> &graphs) {
 }
 
 Status ConcatInputUnificationPass::RunOneGraph(ascir::ImplGraph &graph) {
+  bool changed = false;
   for (const auto &node : graph.GetAllNodes()) {
     if (af::ops::IsOps<af::ascir_op::Concat>(node)) {
-      const auto need_optimize = NeedOptimize(node);
+      std::set<int32_t> input_indices_need_copy;
+      const auto need_optimize = NeedOptimize(node, input_indices_need_copy);
       GELOGD("graph: %s, node %s need optimize = %d", graph.GetName().c_str(), node->GetNamePtr(),
              static_cast<int32_t>(need_optimize));
-      if (need_optimize) {
-        GE_ASSERT_SUCCESS(DoOptimize(graph, node));
+      if (!need_optimize) {
+        continue;
+      }
+      (void)af::AttrUtils::SetBool(node->GetOpDesc(), kAttrNameNoReuseInputs, true);
+      if (!input_indices_need_copy.empty()) {
+        GE_ASSERT_SUCCESS(DoOptimize(graph, node, input_indices_need_copy));
+        changed = true;
       }
     }
+  }
+  if (changed) {
+    ascir::utils::DumpGraph(graph, "AfterConcatInputUnificationPass");
   }
   return ge::SUCCESS;
 }
 
-bool ConcatInputUnificationPass::NeedOptimize(const af::AscNodePtr &concat_node) {
+bool ConcatInputUnificationPass::NeedOptimize(const af::AscNodePtr &concat_node,
+                                              std::set<int32_t> &input_indices_need_copy) {
   GE_WARN_ASSERT(concat_node->inputs.Size() > 0);
   // 1. 输入shape相同
   if (ascir::utils::AreConcatInputShapesEqual(concat_node) == af::TriBool::kFalse) {
@@ -65,23 +75,26 @@ bool ConcatInputUnificationPass::NeedOptimize(const af::AscNodePtr &concat_node)
   GE_CHK_BOOL_RET_SPECIAL_STATUS(IsSrcColSizeOverLimit(concat_node, concat_dim, dtype_size), false,
                                  "dst col size over limit, no need for optimization");
 
-  // 5. 输入不能共用
-  GE_CHK_BOOL_RET_SPECIAL_STATUS((!ascir::utils::AreAllInputDistinct(concat_node)), false,
-                                 "contain multi-ref input, do not optimize");
-
-  // 6. 输入全来自于Load不需要
-  uint32_t load_num = 0;
-  GE_WARN_ASSERT(GetLoadNum(concat_node, load_num) == ge::SUCCESS);
+  // 5. 输入全来自于Load不需要
+  GE_WARN_ASSERT(GetQueInputIndices(concat_node, input_indices_need_copy) == ge::SUCCESS);
+  const auto load_num = static_cast<uint32_t>(input_indices_need_copy.size());
   GE_CHK_BOOL_RET_SPECIAL_STATUS(load_num == concat_node->inputs.Size(), false,
                                  "All inputs are of compute type Load, no need for optimization");
+
+  // 6. 计算输入tbuf多引用需要插入的ub2ub的个数
+  GE_ASSERT_SUCCESS(CollectSharedInputs(concat_node, input_indices_need_copy));
+  const auto copy_num = static_cast<uint32_t>(input_indices_need_copy.size());
+  GELOGI("ub2ub from shared TBuf inputs = %u, from TQue = %u", (copy_num - load_num), load_num);
+
   // 7. 需要增加的Ub2Ub节点数不能超过阈值
   constexpr uint32_t kCopyNumLimit = 3U;
-  GE_CHK_BOOL_RET_SPECIAL_STATUS(load_num > kCopyNumLimit, false, "Load num = %zu, over limit = %zu, do not optimize",
-                                 load_num, kCopyNumLimit);
+  GE_CHK_BOOL_RET_SPECIAL_STATUS(copy_num > kCopyNumLimit, false,
+                                 "ub2ub num needed = %u, over limit = %zu, do not optimize", copy_num, kCopyNumLimit);
   return true;
 }
 
-Status ConcatInputUnificationPass::DoOptimize(ascir::ImplGraph &graph, const af::AscNodePtr &concat_node) {
+Status ConcatInputUnificationPass::DoOptimize(ascir::ImplGraph &graph, const af::AscNodePtr &concat_node,
+                                              const std::set<int32_t> &input_indices_need_copy) {
   for (const auto &in_anchor : concat_node->GetAllInDataAnchors()) {
     GE_ASSERT_NOTNULL(in_anchor);
     const auto out_anchor = in_anchor->GetPeerOutAnchor();
@@ -90,13 +103,11 @@ Status ConcatInputUnificationPass::DoOptimize(ascir::ImplGraph &graph, const af:
     GE_ASSERT_NOTNULL(in_node);
     const auto asc_node = std::dynamic_pointer_cast<af::AscNode>(in_node);
     GE_ASSERT_NOTNULL(asc_node);
-    std::vector<int64_t> no_reuse_output_indices{out_anchor->GetIdx()};
-    if (asc_node->attr.api.compute_type != af::ComputeType::kComputeLoad) {
-      (void)af::AttrUtils::SetListInt(in_node->GetOpDesc(), kAttrNameNoReuseOutputIndices, no_reuse_output_indices);
+    if (input_indices_need_copy.find(in_anchor->GetIdx()) == input_indices_need_copy.cend()) {
       continue;
     }
 
-    const std::string ub_name = "ub_cpy_" + asc_node->GetName();
+    const std::string ub_name = asc_node->GetName()  + "_ub_cpy_input_" + std::to_string(in_anchor->GetIdx());
     af::ascir_op::Ub2ub ub2ub(ub_name.c_str());
     af::AscNodePtr ub2ub_node = graph.AddNode(ub2ub);
     GE_ASSERT_NOTNULL(ub2ub_node);
@@ -111,7 +122,6 @@ Status ConcatInputUnificationPass::DoOptimize(ascir::ImplGraph &graph, const af:
     GE_ASSERT_SUCCESS(af::GraphUtils::RemoveEdge(out_anchor, in_anchor));
     GE_ASSERT_SUCCESS(af::GraphUtils::AddEdge(ub2ub_node->GetOutDataAnchor(0), in_anchor));
     GE_ASSERT_SUCCESS(af::GraphUtils::AddEdge(out_anchor, ub2ub_node->GetInDataAnchor(0)));
-    (void)af::AttrUtils::SetListInt(ub2ub_node->GetOpDesc(), kAttrNameNoReuseOutputIndices, std::vector<int64_t>{0});
     GELOGD("Ub2ub node: %s added", ub2ub_node->GetNamePtr());
   }
   return ge::SUCCESS;
@@ -126,12 +136,18 @@ af::Expression ConcatInputUnificationPass::GetColSize(const af::AscTensor &tenso
   return col_size;
 }
 
-ge::Status ConcatInputUnificationPass::GetLoadNum(const af::AscNodePtr &concat_node, uint32_t &load_num) {
-  for (const auto &in_node : concat_node->GetInDataNodes()) {
-    const auto asc_node = std::dynamic_pointer_cast<af::AscNode>(in_node);
-    GE_WARN_ASSERT(asc_node);
+af::Status ConcatInputUnificationPass::GetQueInputIndices(const af::AscNodePtr &concat_node,
+                                                          std::set<int32_t> &input_indices_need_copy) {
+  for (const auto &in_anchor : concat_node->GetAllInDataAnchorsPtr()) {
+    GE_ASSERT_NOTNULL(in_anchor);
+    const auto out_anchor = in_anchor->GetPeerOutAnchor();
+    GE_ASSERT_NOTNULL(out_anchor);
+    const auto in_node = out_anchor->GetOwnerNodeBarePtr();
+    GE_ASSERT_NOTNULL(in_node);
+    const auto asc_node = dynamic_cast<af::AscNode *>(in_node);
+    GE_ASSERT_NOTNULL(asc_node);
     if (asc_node->attr.api.compute_type == af::ComputeType::kComputeLoad) {
-      ++load_num;
+      input_indices_need_copy.emplace(in_anchor->GetIdx());
     }
   }
   return ge::SUCCESS;
@@ -156,5 +172,30 @@ bool ConcatInputUnificationPass::IsSrcColSizeOverLimit(const af::AscNodePtr &con
   constexpr int64_t kSrcColSizeLimit = (256 / 2);
   GELOGI("dst_col_size = %ld", src_col_size);
   return (src_col_size * dtype_size) > kSrcColSizeLimit;
+}
+
+af::Status ConcatInputUnificationPass::CollectSharedInputs(const af::AscNodePtr &concat_node,
+                                                           std::set<int32_t> &input_indices_need_copy) {
+  std::map<const af::OutDataAnchor *, std::vector<int32_t>> src_anchor_to_input_indices;
+  for (const auto &in_anchor : concat_node->GetAllInDataAnchorsPtr()) {
+    GE_ASSERT_NOTNULL(in_anchor);
+    const auto out_anchor = in_anchor->GetPeerOutAnchor();
+    GE_ASSERT_NOTNULL(out_anchor);
+    src_anchor_to_input_indices[out_anchor.get()].emplace_back(in_anchor->GetIdx());
+  }
+  for (auto &[src_anchor, input_indices] : src_anchor_to_input_indices) {
+    if (input_indices.size() > 1UL) {
+      // 存在多引用
+      auto *src_node = dynamic_cast<const af::AscNode *>(src_anchor->GetOwnerNodeBarePtr());
+      GE_ASSERT_NOTNULL(src_node);
+      // Load类型的会单独计算
+      if (src_node->attr.api.compute_type != af::ComputeType::kComputeLoad) {
+        GELOGD("src node = %s, output has multiple ref to concat, input indices = %s", src_node->GetName().c_str(),
+               af::ToString(input_indices).c_str());
+        input_indices_need_copy.insert(input_indices.cbegin() + 1, input_indices.cend());
+      }
+    }
+  }
+  return af::SUCCESS;
 }
 }  // optimize

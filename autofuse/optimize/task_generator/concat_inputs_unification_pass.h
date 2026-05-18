@@ -23,12 +23,16 @@ class ConcatInputUnificationPass {
 
  private:
   static Status RunOneGraph(ascir::ImplGraph &graph);
-  static bool NeedOptimize(const af::AscNodePtr &concat_node);
-  static Status DoOptimize(ascir::ImplGraph &graph, const af::AscNodePtr &concat_node);
+  static bool NeedOptimize(const af::AscNodePtr &concat_node, std::set<int32_t> &input_indices_need_copy);
+  static Status DoOptimize(ascir::ImplGraph &graph, const af::AscNodePtr &concat_node,
+                           const std::set<int32_t> &input_indices_need_copy);
   static af::Expression GetColSize(const af::AscTensor &tensor, size_t concat_dim);
-  static af::Status GetLoadNum(const af::AscNodePtr &concat_node, uint32_t &load_num);
+  static af::Status GetQueInputIndices(const af::AscNodePtr &concat_node,
+                                       std::set<int32_t> &input_indices_need_copy);
   static bool IsSrcColSizeAlignedToB4(const af::AscNodePtr &concat_node, size_t concat_dim, int32_t dtype_size);
   static bool IsSrcColSizeOverLimit(const af::AscNodePtr &concat_node, size_t concat_dim, int32_t dtype_size);
+  static af::Status CollectSharedInputs(const af::AscNodePtr &concat_node,
+                                        std::set<int32_t> &input_indices_need_copy);
 };
 
 }  // optimize

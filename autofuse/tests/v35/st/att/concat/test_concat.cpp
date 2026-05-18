@@ -166,7 +166,7 @@ class STestGenConcatV2 : public ::testing::Test {
   void SetUp() override {
     // Code here will be called immediately after the constructor (right
     // before each test).
-    af::RuntimeStub::Install(&stub_v_2);
+    ge::RuntimeStub::Install(&stub_v_2);
     AutoFuseConfig::MutableAttStrategyConfig().Reset();
     setenv("ASCEND_GLOBAL_LOG_LEVEL", "4", 1);
     AutoFuseConfig::MutableAttStrategyConfig().force_template_op_name = "";
@@ -177,7 +177,7 @@ class STestGenConcatV2 : public ::testing::Test {
   void TearDown() override {
     // 清理测试生成的临时文件
     autofuse::test::CleanupTestArtifacts();
-    af::RuntimeStub::UnInstall(&stub_v_2);
+    ge::RuntimeStub::UnInstall(&stub_v_2);
     unsetenv("ASCEND_GLOBAL_LOG_LEVEL");
     unsetenv("AUTOFUSE_DFX_FLAGS");
   }

@@ -108,7 +108,7 @@ Status GetPeerOutNodes(const NodePtr &node, std::vector<NodePtr> &peer_out_nodes
 Status GetPeerInNodes(const NodePtr &node, std::vector<NodePtr> &peer_in_nodes, int32_t out_data_idx) {
   const auto out_anchor = node->GetOutDataAnchor(out_data_idx);
   GE_ASSERT_NOTNULL(out_anchor);
-  for (const auto &peer_in_anchor: out_anchor->GetPeerInDataAnchors()) {
+  for (const auto &peer_in_anchor: out_anchor->GetPeerInDataAnchorsPtr()) {
     GE_ASSERT_NOTNULL(peer_in_anchor);
     const auto peer_in_node = peer_in_anchor->GetOwnerNode();
     GE_ASSERT_NOTNULL(peer_in_node);
@@ -514,7 +514,7 @@ Status IsAllNodesInBlacklist(const AscGraph &asc_graph, bool &result) {
       result = false; return ge::SUCCESS;
     }
   }
-  GELOGI("Graph %s all nodes are in blacklist, skip precision improvement.", asc_graph.GetName().c_str());
+  GELOGI("All nodes in graph %s are in the blacklist, skip precision improvement.", asc_graph.GetName().c_str());
   return ge::SUCCESS;
 }
 

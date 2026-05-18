@@ -50,7 +50,7 @@ ge::Status NddmaTemplate::ReAlignVectorizedStrides(const af::AscNodePtr &node) {
     const auto axis = output_vec_axis.at(vec_axis_id);
     auto axis_tensor_iter = std::find(output_attr.axis.begin(), output_attr.axis.end(), axis);
     GE_ASSERT_TRUE(axis_tensor_iter != output_attr.axis.end(),
-           "Can not find vectorized axis [%ld] in [%s]'s output tensor.", axis, node->GetNamePtr());
+           "Cannot find vectorized axis [%ld] in [%s]'s output tensor.", axis, node->GetNamePtr());
     const int64_t axis_index = std::distance(output_attr.axis.begin(), axis_tensor_iter);
     const auto &repeat = output_attr.repeats.at(axis_index);
     // 对次尾轴做对齐
@@ -160,7 +160,7 @@ Status NddmaTemplate::TransposeToNddmaNode(const af::AscNodePtr &transpose_node,
       continue;
     }
     // 更新非Scalar节点的相关属性、当前节点的axis、Vector axis应为转置后的axis、repeats对应需要重排、strides需要重新计算
-    if (!af::ops::IsOps<af::ascir_op::Scalar>(current_node)) {
+    if (!ScheduleUtils::IsScalarLikeNode(current_node)) {
       GE_ASSERT_SUCCESS(ReorderRepeats(transpose_node, current_node));
       GE_ASSERT_SUCCESS(ScheduleUtils::RecalculateStridesFromRepeats(current_node->outputs[0].attr.repeats,
                                                                   current_node->outputs[0].attr.strides));
@@ -195,13 +195,38 @@ Status NddmaTemplate::TransposeToNddmaNode(const af::AscNodePtr &transpose_node,
   return ge::SUCCESS;
 }
 
+ge::Status NddmaTemplate::ProcessSliceToNddma(const af::AscNodePtr &node_load,
+                                              bool &is_nddma_generated_cur) {
+  if (is_nddma_generated_cur) {
+    GELOGD("Node [%s] has already converted to Nddma.", node_load->GetNamePtr());
+    return ge::SUCCESS;
+  }
+  GE_CHECK_NOTNULL(node_load);
+  GE_CHECK_NOTNULL(node_load->GetOpDesc());
+
+  const std::vector<int64_t> &node_axis = node_load->attr.sched.axis;
+  const std::vector<int64_t> &tensor_axis = node_load->outputs[0].attr.axis;
+  bool is_axis_consistent = (node_axis == tensor_axis);
+
+  if (is_axis_consistent && !(IsTailAxisTransposeV2(node_load) || IsTailAxisTranspose(node_load->outputs[0].attr))) {
+    if (!ScheduleUtils::IsVectorizedAxisContinuousInGM(node_load->outputs[0].attr)) {
+      node_load->GetOpDesc()->SetType("Nddma");
+      node_load->attr.type = "Nddma";
+      is_nddma_generated_cur = true;
+      GELOGD("Node [%s] is a slice load, converted to Nddma.", node_load->GetNamePtr());
+    }
+  }
+
+  return ge::SUCCESS;
+}
+
 /**
  * 生成NDDMA模版，具体逻辑如下：
  * 1. 遍历图找到Transpose节点，将transpose前移并随路更新路过节点的属性，最终与load或nddma节点融合成新的nddma节点
  * 2. 遍历图找到load/nddma节点，判断是否为输出多引用，若不是则继续执行步骤3
  * 3. 判断load/nddma节点的输出是否为brc节点，若是则将load/nddma和brc继续合并为nddma节点
  */
-ge::Status NddmaTemplate::Generate([[maybe_unused]] const af::AscGraph &origin_graph, 
+ge::Status NddmaTemplate::Generate([[maybe_unused]] const af::AscGraph &origin_graph,
                                    [[maybe_unused]] const af::AscGraph &based_case,
                                    af::AscGraph &new_case) {
   bool is_nddma_generated = false;
@@ -236,6 +261,7 @@ ge::Status NddmaTemplate::Generate([[maybe_unused]] const af::AscGraph &origin_g
         SwapCastBrcAndGenNddma(std::dynamic_pointer_cast<af::AscNode>(out_node), node, new_case) == ge::SUCCESS) {
       is_nddma_generated_cur = true;
     }
+    GE_ASSERT_SUCCESS(ProcessSliceToNddma(node, is_nddma_generated_cur));
     is_nddma_generated = is_nddma_generated || is_nddma_generated_cur;
     DiscontinuityInfo info;
     GE_ASSERT_SUCCESS(TensorLayoutUtils::AnalyzeLoadDiscontinuity(node->outputs[0].attr, info),

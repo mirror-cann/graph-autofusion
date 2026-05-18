@@ -284,6 +284,6 @@ TEST_F(ConcatScheduleCaseGeneratorV2Test, OptimizeSameShapeConcat) {
   optimize::ConcatFusionCaseGenerator generator;
   EXPECT_EQ(generator.Generate(graph, graphs, score_functions), SUCCESS);
   EXPECT_EQ(graphs.size(), 2);
-  EXPECT_TRUE(graphs[0].FindNode("ub_cpy_load0") != nullptr);
+  EXPECT_TRUE(graphs[0].FindNode("load0_ub_cpy_input_0") != nullptr);
 }
 }  // namespace schedule

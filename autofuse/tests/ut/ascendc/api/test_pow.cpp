@@ -120,6 +120,9 @@ class TestApiPowUT : public testing::Test {
     // 验证结果
     uint32_t diff_count = ValidCase3(param);
     EXPECT_EQ(diff_count, 0);
+    AscendC::GmFree(param.y);
+    AscendC::GmFree(param.exp);
+    AscendC::GmFree(param.src1);
   }
   // =======================================Case2========================================
   template <typename T>
@@ -187,6 +190,9 @@ class TestApiPowUT : public testing::Test {
     // 验证结果
     uint32_t diff_count = ValidCase2(param);
     EXPECT_EQ(diff_count, 0);
+    AscendC::GmFree(param.y);
+    AscendC::GmFree(param.exp);
+    AscendC::GmFree(param.src0);
   }
   // =======================================Case1========================================
   template <typename T>
@@ -258,6 +264,10 @@ class TestApiPowUT : public testing::Test {
     // 验证结果
     uint32_t diff_count = ValidCase1(param);
     EXPECT_EQ(diff_count, 0);
+    AscendC::GmFree(param.y);
+    AscendC::GmFree(param.exp);
+    AscendC::GmFree(param.src0);
+    AscendC::GmFree(param.src1);
   }
 
 };

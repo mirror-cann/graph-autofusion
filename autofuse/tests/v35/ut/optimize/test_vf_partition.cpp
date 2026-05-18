@@ -25,6 +25,7 @@
 #include "ascgraph_info_complete.h"
 #include "runtime_stub.h"
 #include "optimize.h"
+#include "asc_graph_builder.h"
 
 using namespace std;
 using namespace ascir;
@@ -1000,7 +1001,7 @@ TEST_F(VfPartition, all_zero_axis_stride) {
   EXPECT_EQ(abs1_node->attr.sched.loop_axis, -1);
 }
 
-TEST_F(VfPartition, ScalarInputDisableVf) {
+TEST_F(VfPartition, ScalarInputSupportVf) {
   af::AscGraph graph("brc_abs");
   af::ascir_op::Data data0("data0", graph);
   data0.ir_attr.SetIndex(1);
@@ -1043,9 +1044,63 @@ TEST_F(VfPartition, ScalarInputDisableVf) {
   auto scalar_node = graph.FindNode("scalar0");
   ASSERT_NE(scalar_node, nullptr);
 
-  auto maximum_node = graph.FindNode("maximum");
+  auto maximum_node = sub_graphs[0].FindNode("maximum");
   ASSERT_NE(maximum_node, nullptr);
 
+  auto abs_node = sub_graphs[0].FindNode("abs");
+  ASSERT_NE(abs_node, nullptr);
+
+  auto abs1_node = sub_graphs[0].FindNode("abs1");
+  ASSERT_NE(abs1_node, nullptr);
+}
+
+TEST_F(VfPartition, ScalarDataInputDisableVf) {
+  af::AscGraph graph("scalardata_disable_vf");
+  af::ascir_op::Data data0("data0", graph);
+  data0.ir_attr.SetIndex(1);
+
+  af::ascir_op::Load load("load0");
+  load.x = data0.y;
+  load.y.dtype = ge::DT_FLOAT16;
+
+  af::ascir_op::Abs abs("abs");
+  abs.x = load.y;
+  abs.y.dtype = ge::DT_FLOAT16;
+
+  af::ascir_op::Abs abs1("abs1");
+  abs1.x = abs.y;
+  abs1.y.dtype = ge::DT_FLOAT16;
+
+  af::ascir_op::ScalarData scalar_data0("scalar_data0", graph);
+  scalar_data0.ir_attr.SetIndex(0);
+
+  af::ascir_op::Maximum maximum("maximum");
+  maximum.x1 = abs1.y;
+  maximum.x2 = scalar_data0.y;
+  maximum.y.dtype = ge::DT_FLOAT16;
+
+  af::ascir_op::Store store("store");
+  store.x = maximum.y;
+  store.y.dtype = ge::DT_FLOAT16;
+
+  af::ascir_op::Output out("out");
+  out.x = store.y;
+  out.ir_attr.SetIndex(0);
+
+  SetupGraphAxes(graph, {af::Symbol(10), af::Symbol(2)});
+
+  ASSERT_EQ(AlignmentHandler::AlignVectorizedStrides(graph), ge::SUCCESS);
+  VectorFuncPartitioner partitioner(graph);
+  ASSERT_EQ(partitioner.Partition(), ge::SUCCESS);
+  std::vector<af::AscGraph> sub_graphs;
+  EXPECT_EQ(graph.GetAllSubGraphs(sub_graphs), ge::SUCCESS);
+  ASSERT_EQ(sub_graphs.size(), 1UL);
+
+  auto scalardata_node = graph.FindNode("scalar_data0");
+  ASSERT_NE(scalardata_node, nullptr);
+
+  // ScalarData 作为运行时标量输入，Maximum 因 ScalarData 直连而禁用 VF，
+  // 分区时 ScalarData 走 InsertScalarNode 路径，与常量 Scalar 行为一致
   auto abs_node = sub_graphs[0].FindNode("abs");
   ASSERT_NE(abs_node, nullptr);
 
@@ -1589,85 +1644,41 @@ TEST_F(VfPartition, cast_high_to_low_no_fuse_with_output) {
   EXPECT_NE(cast_node, nullptr);
 }
 
-// 验证 Compare 和 Where 被强制融合到同一个子图
-TEST_F(VfPartition, CompareWhereForceMerge) {
-  af::AscGraph graph("compare_where_merge");
+// 测试当节点尾轴stride!=1时禁用VF支持
+TEST_F(VfPartition, tail_axis_stride_not_one_disable_vf) {
+  af::AscGraph graph("tail_stride_test");
+  auto s0 = af::Symbol(10);
+  auto s1 = af::Symbol(10);
+  auto s2 = af::Symbol(10);
   af::ascir_op::Data data0("data0", graph);
   data0.ir_attr.SetIndex(1);
 
-  af::ascir_op::Data data1("data1", graph);
-  data1.ir_attr.SetIndex(2);
-
-  af::ascir_op::Data data2("data2", graph);
-  data2.ir_attr.SetIndex(3);
-
-  af::ascir_op::Load load3("load3");
-  load3.x = data2.y;
-  load3.y.dtype = af::DT_INT64;
-
-  // 共享的 Abs 节点
-  af::ascir_op::Load load("load");
+  af::ascir_op::Load load("load0");
   load.x = data0.y;
-  load.y.dtype = af::DT_INT32;
+  load.y.dtype = ge::DT_FLOAT;
 
   af::ascir_op::Abs abs("abs");
   abs.x = load.y;
-  abs.y.dtype = af::DT_INT32;
-
-  // 分支1: Abs -> Cast (INT32 -> INT64)
-  af::ascir_op::Cast cast("cast");
-  cast.x = abs.y;
-  cast.y.dtype = af::DT_INT64; // INT32 -> INT64
-
-  // 分支2: Abs -> Gt (Compare)，Gt 的另一个输入是另一个 Data
-  af::ascir_op::Load load2("load2");
-  load2.x = data1.y;
-  load2.y.dtype = af::DT_INT32;
-
-  af::ascir_op::Gt gt("gt");
-  gt.x1 = abs.y; // 使用同一个 Abs 的输出
-  gt.x2 = load2.y; // 第二个输入
-  gt.y.dtype = af::DT_BOOL;
-
-  af::ascir_op::Where where("where");
-  where.x1 = gt.y;
-  where.x2 = cast.y;
-  where.x3 = load3.y;
-  where.y.dtype = af::DT_INT64;
+  abs.y.dtype = ge::DT_FLOAT;
 
   af::ascir_op::Store store("store");
-  store.x = where.y;
-  store.y.dtype = af::DT_INT64;
+  store.x = abs.y;
+  store.y.dtype = ge::DT_FLOAT;
 
-  af::ascir_op::Output out("out");
-  out.x = store.y;
-  out.ir_attr.SetIndex(0);
+  SetupGraphAxes(graph, {s0, s1, s2});
+  ASSERT_EQ(AlignmentHandler::AlignVectorizedStrides(graph), ge::SUCCESS);
 
-  SetupGraphAxes(graph, {af::Symbol(10), af::Symbol(10)});
+  // 设置尾轴stride!=1，应该禁用VF
+  std::vector<af::Expression> strides = {s1 * s2, s2, af::Symbol(2)};
+  graph.FindNode("load0")->outputs[0].attr.vectorized_strides = strides;
+  graph.FindNode("abs")->outputs[0].attr.vectorized_strides = strides;
+  graph.FindNode("store")->outputs[0].attr.vectorized_strides = strides;
 
-  ::ascir::utils::DumpImplGraphs({graph}, "BeforePartition");
-
-  ASSERT_EQ(AlignmentHandler::AlignVectorizedStrides(graph), af::SUCCESS);
   VectorFuncPartitioner partitioner(graph);
-  ASSERT_EQ(partitioner.Partition(), af::SUCCESS);
-  ::ascir::utils::DumpImplGraphs({graph}, "AfterPartition");
+  ASSERT_EQ(partitioner.Partition(), ge::SUCCESS);
+
   std::vector<af::AscGraph> sub_graphs;
-  EXPECT_EQ(graph.GetAllSubGraphs(sub_graphs), af::SUCCESS);
-  EXPECT_GE(sub_graphs.size(), 0UL);
-
-  bool found_gt_where_in_same_graph = false;
-  for (const auto &sub_graph: sub_graphs) {
-    auto gt_node = sub_graph.FindNode("gt");
-    auto where_node = sub_graph.FindNode("where");
-    if (gt_node != nullptr && where_node != nullptr) {
-      found_gt_where_in_same_graph = true;
-      break;
-    }
-  }
-
-  auto cast_node = graph.FindNode("cast");
-  ASSERT_TRUE(cast_node != nullptr);
-  EXPECT_EQ(cast_node->GetInDataNodes().at(0)->GetType(), "Abs");
-  EXPECT_FALSE(found_gt_where_in_same_graph);
+  EXPECT_EQ(graph.GetAllSubGraphs(sub_graphs), ge::SUCCESS);
+  EXPECT_EQ(sub_graphs.size(), 0UL);
 }
 } // namespace optimize

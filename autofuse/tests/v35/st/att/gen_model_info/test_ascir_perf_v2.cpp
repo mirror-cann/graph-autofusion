@@ -29,13 +29,13 @@ public:
  static af::RuntimeStubV2 stub_v_2;
  static void TearDownTestCase()
  {
-   af::RuntimeStub::UnInstall(&stub_v_2);
+   ge::RuntimeStub::UnInstall(&stub_v_2);
    ge::PlatformContext::GetInstance().Reset();
    std::cout << "Test end." << std::endl;
  }
  static void SetUpTestCase()
  {
-   af::RuntimeStub::Install(&stub_v_2);
+   ge::RuntimeStub::Install(&stub_v_2);
    ge::PlatformContext::GetInstance().Reset();
    std::cout << "Test begin." << std::endl;
  }

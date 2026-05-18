@@ -28,6 +28,40 @@ constexpr int32_t kSupportScalarInputNum = 2;
 }  // namespace
 
 namespace optimize {
+// 检查VF节点是否不支持Scalar输入，用于决定是否跳过scalar_broadcast优化
+static bool IsVfNodeScalarUnsupported(const af::AscNodePtr &next_node, const af::AscNodePtr &first_brc_node) {
+  // 判断节点是否支持VF
+  if (!ascgen_utils::IsNodeSupportsVectorFunction(next_node)) {
+    GELOGD("Node %s(%s) does not support VF, continue with other checks.", next_node->GetTypePtr(),
+           next_node->GetNamePtr());
+    return false;
+  }
+  // 从Broadcast链首个节点追溯源节点
+  if (first_brc_node->GetInDataNodesSize() == 0UL) {
+    GELOGD("First broadcast node %s(%s) has no input, skip optimization.", first_brc_node->GetTypePtr(),
+           first_brc_node->GetNamePtr());
+    return true;  // 无法追溯源节点，跳过优化（保守处理）
+  }
+  const auto &source_node = std::dynamic_pointer_cast<af::AscNode>(first_brc_node->GetInDataNodes().at(0UL));
+  if (source_node == nullptr) {
+    GELOGD("Source node of first broadcast %s(%s) is nullptr, skip optimization.", first_brc_node->GetTypePtr(),
+           first_brc_node->GetNamePtr());
+    return true;  // 源节点为空，跳过优化
+  }
+  // 源节点不是Scalar节点，跳过优化
+  if (!IsOps<af::ascir_op::Scalar>(source_node)) {
+    GELOGD("Source node %s(%s) is not Scalar, skip optimization for VF node %s(%s).", source_node->GetTypePtr(),
+           source_node->GetNamePtr(), next_node->GetTypePtr(), next_node->GetNamePtr());
+    return true;
+  }
+  // Scalar场景：检查Micro API是否支持scalar输入
+  if (!ScheduleUtils::IsMicroApiSupportsScalarInput(next_node)) {
+    GELOGD("VF node %s(%s) micro API does not support scalar input, skip optimization.", next_node->GetTypePtr(),
+           next_node->GetNamePtr());
+    return true;
+  }
+  return false;
+}
 Status ScalarBroadcastOptimizationPass::GetNodeScalarInputList(const af::NodePtr &node,
                                                                std::vector<bool> &is_scalar_list) {
   GE_ASSERT_NOTNULL(node);
@@ -40,7 +74,8 @@ Status ScalarBroadcastOptimizationPass::GetNodeScalarInputList(const af::NodePtr
   return ge::SUCCESS;
 }
 
-Status ScalarBroadcastOptimizationPass::IsNextNodeSupportScalarInput(const NodeView &brc_node, bool &is_supported) {
+Status ScalarBroadcastOptimizationPass::IsNextNodeSupportScalarInput(const NodeView &brc_node, bool &is_supported,
+                                                                     const af::AscNodePtr &first_brc_node) {
   is_supported = false;
   if (!IsOps<Broadcast>(brc_node)) {
     return ge::SUCCESS;
@@ -52,10 +87,9 @@ Status ScalarBroadcastOptimizationPass::IsNextNodeSupportScalarInput(const NodeV
       GE_CHECK_NOTNULL(next_in_anchor);
       const auto &next_node = std::dynamic_pointer_cast<af::AscNode>(next_in_anchor->GetOwnerNode());
       GE_CHECK_NOTNULL(next_node);
-      // step1: 判断节点是否是高阶API，此处优化只针对高阶API
-      if (ascgen_utils::IsNodeSupportsVectorFunction(next_node)) {
-        GELOGD("Not support vector function node %s(%s).", next_node->GetTypePtr(), next_node->GetNamePtr());
-        return ge::SUCCESS;  // 直接返回， is_supported 为 false
+      // step1: 判断节点是否支持VF，如果支持VF，则需要判断节点的VF接口是否支持scalar
+      if (IsVfNodeScalarUnsupported(next_node, first_brc_node)) {
+        return ge::SUCCESS;
       }
       // step2: 若当前节点支持全部是Scalar，则继续校验其他节点
       if (ascgen_utils::IsNodeSupportsAllScalar(next_node)) {
@@ -127,7 +161,8 @@ Status ScalarBroadcastOptimizationPass::RunPass(af::AscGraph &graph) {
 
     // Determine whether the next node supports scalar input ?
     bool is_next_node_supported_scalar = false;
-    GE_ASSERT_SUCCESS(IsNextNodeSupportScalarInput(last_brc_node, is_next_node_supported_scalar));
+    const auto &first_brc_node = std::dynamic_pointer_cast<af::AscNode>(node);
+    GE_ASSERT_SUCCESS(IsNextNodeSupportScalarInput(last_brc_node, is_next_node_supported_scalar, first_brc_node));
     if (!is_next_node_supported_scalar) {
       continues_brc_nodes.clear();
       continue;

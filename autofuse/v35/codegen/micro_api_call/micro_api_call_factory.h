@@ -80,7 +80,7 @@ class MicroApiCallRegister {
   explicit MicroApiCallRegister(const std::string& className) {
     // 正确用法：使用模板参数T创建对象，而非字符串className
     MicroApiCallCreatorFun creator = [](const std::string& name) {
-      return new T(name);  // 直接使用模板类型T
+      return new (std::nothrow) T(name);  // 直接使用模板类型T
     };
     MicroApiCallFactory::Register(className, creator);
   }

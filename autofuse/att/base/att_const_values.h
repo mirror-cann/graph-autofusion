@@ -158,6 +158,7 @@ inline const std::string kUnitVector = "UnitVector";
 // 不需要建模的ASCIR
 inline const std::string kData = "Data";
 inline const std::string kScalar = "Scalar";
+inline const std::string kScalarData = "ScalarData";
 inline const std::string kIndexExpr = "IndexExpr";
 inline const std::string kWorkspace = "Workspace";
 inline const std::string kOutput = "Output";

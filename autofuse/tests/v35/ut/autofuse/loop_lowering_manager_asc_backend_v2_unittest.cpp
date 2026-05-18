@@ -135,7 +135,7 @@ public:
 protected:
   void SetUp() override {
     dlog_setlevel(GE_MODULE_NAME, DLOG_INFO, 0);
-    af::PlatformContext::GetInstance().Reset();
+    ge::PlatformContext::GetInstance().Reset();
     auto stub_v2 = std::make_shared<RuntimeStubV2Common>();
     RuntimeStub::SetInstance(stub_v2);
     es_graph_ = std::unique_ptr<es::Graph>(new es::Graph("graph"));
@@ -144,7 +144,7 @@ protected:
   void TearDown() override {
     dlog_setlevel(GE_MODULE_NAME, DLOG_ERROR, 0);
     RuntimeStub::Reset();
-    af::PlatformContext::GetInstance().Reset();
+    ge::PlatformContext::GetInstance().Reset();
   }
   std::unique_ptr<es::Graph> es_graph_;
 };

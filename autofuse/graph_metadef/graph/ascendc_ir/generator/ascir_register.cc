@@ -168,6 +168,10 @@ AscirRegister &AscirRegister::Attr<int64_t>(ge::AscendString &&name) {
   return Attr(name.GetString(), "int64_t", "Int");
 }
 template<>
+AscirRegister &AscirRegister::Attr<std::vector<int64_t>>(ge::AscendString &&name) {
+  return Attr(name.GetString(), "std::vector<int64_t>", "ListInt");
+}
+template<>
 AscirRegister &AscirRegister::Attr<std::vector<std::vector<int64_t>>>(ge::AscendString &&name) {
   return Attr(name.GetString(), "std::vector<std::vector<int64_t>>", "ListListInt");
 }

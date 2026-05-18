@@ -35,7 +35,7 @@ struct AscIrDefImpl {
     if (impl_v2 != soc_2_impl_v2_.end()) {
       return (impl_v2->second.codegen == nullptr) ? nullptr : impl_v2->second.codegen();
     }
-    
+
     return nullptr;
   }
 

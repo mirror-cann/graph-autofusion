@@ -17,7 +17,6 @@ namespace codegen {
 
 // Load/Store参数数据结构，最内层for循环作为burstlen
 struct DataCopyParams {
-  std::vector<std::string> repeats_str;
   std::vector<ascir::SizeExpr> repeats;
   std::vector<ascir::SizeExpr> gm_strides;
   std::vector<ascir::SizeExpr> ub_strides;
@@ -48,7 +47,6 @@ struct ApiLoopParams {
 };
 
 struct MergeInfo {
-  std::vector<std::string> merge_repeats_str;
   std::vector<ascir::SizeExpr> merge_repeats;
   std::vector<ascir::SizeExpr> merge_gm_strides;
   std::vector<ascir::SizeExpr> merge_ub_strides;

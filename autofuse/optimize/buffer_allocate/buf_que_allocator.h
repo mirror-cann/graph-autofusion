@@ -15,6 +15,7 @@
 #include "ascir.h"
 #include "schedule_result.h"
 #include "ascgen_log.h"
+#include "platform/base_platform.h"
 #include "tensor_mem_defs.h"
 
 namespace optimize {
@@ -25,6 +26,8 @@ class BufQueAllocator {
  private:
   Status AllocBufQueForSingleImplGraph(af::AscGraph &impl_graph, size_t max_que_num,
                                        bool is_reduce_mem_reuse = false) const;
+  Status ProcessSingleImplGraph(af::AscGraph &impl_graph, BasePlatform &platform, size_t max_que_num,
+                                bool is_reduce_mem_reuse);
   Status AllocateForIoNodes(::ascir::FusedScheduledResult &fused_scheduled_result);
   Status AllocateForIoNodes(const af::AscGraph &impl_graph);
   Status SetOutputTensorAttr(const af::AscGraph &impl_graph) const;
@@ -50,6 +53,8 @@ class BufQueAllocator {
   static Status ShortenVecoutLifetime(af::AscGraph &graph, size_t max_que_num);
   static Status GetAndSetNodeTempBuffer(const af::AscNodePtr &node);
   static Status TopoSortByLoadPriority(af::AscGraph &graph);
+  static Status TopoSortByCubeLoadPriority(af::AscGraph &graph);
+  static Status MarkUnreusableTensors(const af::AscGraph &graph);
 
   int64_t prev_tensor_id_ = 0;
   ascir::CubeTemplateType cube_type{ascir::CubeTemplateType::kDefault};

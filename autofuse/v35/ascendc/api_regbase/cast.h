@@ -488,6 +488,24 @@ __simd_vf__ inline void CastExtendS64U8(__ubuf__ OutT *dstUb, __ubuf__ InT *srcU
     }
 }
 
+template <typename InT, typename OutT, AscendC::RoundMode roundMode>
+    inline __simd_vf__ void CastExtendU8S64(__ubuf__ OutT *dstUb, __ubuf__ InT *srcUb, const int64_t count,
+        uint32_t repeatTimes, uint32_t innerLoopStride)
+    {
+        uint32_t sreg = static_cast<uint32_t>(count);
+        MicroAPI::RegTensor<InT> srcVreg;
+        MicroAPI::RegTensor<uint64_t> tmpU64Vreg;
+        MicroAPI::RegTensor<OutT> dstVreg;
+        MicroAPI::MaskReg stMaskReg;
+    
+        for (uint32_t i = 0; i < repeatTimes; i++) {
+            stMaskReg = MicroAPI::UpdateMask<int64_t>(sreg);
+            MicroAPI::DataCopy<uint8_t, AscendC::Reg::LoadDist::DIST_UNPACK4_B8>(srcVreg, srcUb + innerLoopStride * i);
+            MicroAPI::UnPack<uint64_t, uint32_t>(tmpU64Vreg, (MicroAPI::RegTensor<uint32_t> &)srcVreg);
+            MicroAPI::DataCopy(dstUb + innerLoopStride * i, (MicroAPI::RegTensor<int64_t> &)tmpU64Vreg, stMaskReg);
+        }
+    }
+
 template <auto func, typename InT, typename OutT, AscendC::RoundMode roundMode, uint8_t dim>
 __aicore__ inline void CastExtendImpl(__ubuf__ OutT *dstUb, __ubuf__ InT *srcUb, const int64_t count,
     uint32_t repeatTimes, uint32_t innerLoopStride, const uint32_t (&output_dims)[dim],
@@ -562,8 +580,8 @@ __aicore__ inline void CastExtendImplOptimizeS64U8(__ubuf__ OutT *dstUb, __ubuf_
     static_assert(dim == 1 || dim == 2, "CastExtend dim exceeds maximum 2");
     const uint32_t mainBlockCount = innerLoopStride;
     uint32_t tailCount = count % innerLoopStride;
-    uint32_t repeatTimesUnRoll = count / (2 * GetVecLen());
-    uint32_t repeatTimes = (count % (2 * GetVecLen())) / innerLoopStride;
+    uint32_t repeatTimesUnRoll = count / (GetVecLen() / sizeof(InT));
+    uint32_t repeatTimes = count / (GetVecLen() / sizeof(InT));
     uint32_t tailBlockCtrl = (tailCount + count -1) / count;
     if constexpr (dim == 1) {
         func(dstUb, srcUb, count, repeatTimesUnRoll, innerLoopStride, tailCount, repeatTimes, tailBlockCtrl);
@@ -652,6 +670,10 @@ __aicore__ inline void CastExtend(const AscendC::LocalTensor<OutT> &dst, const A
             output_dims, output_stride, input_stride);
     } else if constexpr (SupportType<Tuple<OutT, InT>, Tuple<uint8_t, int16_t>>()) {
         constexpr auto func = CastExtendInt16ToUint8<InT, OutT, roundMode>;
+        CastExtendImpl<func, InT, OutT, roundMode, dim>(dstUb, srcUb, count, repeatTimes, innerLoopStride,
+            output_dims, output_stride, input_stride);
+    } else if constexpr (SupportType<Tuple<OutT, InT>, Tuple<int64_t, uint8_t>>()) {
+        constexpr auto func = CastExtendU8S64<InT, OutT, roundMode>;
         CastExtendImpl<func, InT, OutT, roundMode, dim>(dstUb, srcUb, count, repeatTimes, innerLoopStride,
             output_dims, output_stride, input_stride);
     } else {

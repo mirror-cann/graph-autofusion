@@ -51,13 +51,75 @@ __aicore__ inline void FloorDivImplVF(__ubuf__ T* dst, __ubuf__ T* src1, __ubuf_
 }
 
 template <typename T>
+__aicore__ inline void FloorDivIntImplVF(__ubuf__ T* dst, __ubuf__ T* src1, __ubuf__ T* src2, uint32_t count, uint16_t repeat_time)
+{
+    constexpr uint32_t oneRepElm = static_cast<uint32_t>(AscendC::GetVecLen() / sizeof(T));
+    AscendC::MicroAPI::RegTensor<T> srcVreg1;
+    AscendC::MicroAPI::RegTensor<T> srcVreg2;
+    AscendC::MicroAPI::RegTensor<T> quotientVreg;
+    AscendC::MicroAPI::RegTensor<T> modVreg;
+    AscendC::MicroAPI::RegTensor<T> tmpVreg;
+    AscendC::MicroAPI::RegTensor<T> dstVreg;
+    AscendC::MicroAPI::RegTensor<T> subVreg;
+    AscendC::MicroAPI::MaskReg mask, zeroMask, mask1, mask2, negMask;
+    AscendC::MicroAPI::MaskReg fullMask = AscendC::MicroAPI::CreateMask<uint8_t, AscendC::MicroAPI::MaskPattern::ALL>();
+    AscendC::MicroAPI::Duplicate(subVreg, -1);
+
+    for (uint16_t i = 0; i < repeat_time; i++) {
+        mask = AscendC::MicroAPI::UpdateMask<T>(count);
+        AscendC::MicroAPI::DataCopy(srcVreg1, src1 + i * oneRepElm);
+        AscendC::MicroAPI::DataCopy(srcVreg2, src2 + i * oneRepElm);
+        AscendC::MicroAPI::Div(dstVreg, srcVreg1, srcVreg2, mask);
+        AscendC::MicroAPI::Mul(tmpVreg, dstVreg, srcVreg2, mask);
+        AscendC::MicroAPI::Sub(modVreg, srcVreg1, tmpVreg, mask);
+        AscendC::MicroAPI::Compares<T, AscendC::CMPMODE::NE>(zeroMask, modVreg, 0u, mask);
+        AscendC::MicroAPI::Xor(tmpVreg, srcVreg1, srcVreg2, mask);
+        AscendC::MicroAPI::Compares<T, AscendC::CMPMODE::LT>(mask1, tmpVreg, 0u, mask);
+        AscendC::MicroAPI::And(mask2, mask1, zeroMask, fullMask);
+        AscendC::MicroAPI::Add<T, AscendC::MicroAPI::MaskMergeMode::MERGING>(dstVreg, dstVreg, subVreg, mask2);
+        AscendC::MicroAPI::Compares<T, AscendC::CMPMODE::EQ>(zeroMask, srcVreg2, 0u, mask);
+        AscendC::MicroAPI::Duplicate<T, AscendC::MicroAPI::MaskMergeMode::MERGING>(dstVreg, 0u, zeroMask);
+        AscendC::MicroAPI::DataCopy(dst + i * oneRepElm, dstVreg, mask);
+    }
+}
+
+template <typename T>
+__aicore__ inline void FloorDivUintImplVF(__ubuf__ T* dst, __ubuf__ T* src1, __ubuf__ T* src2, uint32_t count, uint16_t repeat_time)
+{
+    constexpr uint32_t oneRepElm = static_cast<uint32_t>(AscendC::GetVecLen() / sizeof(T));
+    AscendC::MicroAPI::RegTensor<T> srcVreg1;
+    AscendC::MicroAPI::RegTensor<T> srcVreg2;
+    AscendC::MicroAPI::RegTensor<T> dstVreg;
+    AscendC::MicroAPI::RegTensor<T> subVreg;
+    AscendC::MicroAPI::MaskReg mask;
+    AscendC::MicroAPI::MaskReg fullMask = AscendC::MicroAPI::CreateMask<uint8_t, AscendC::MicroAPI::MaskPattern::ALL>();
+    AscendC::MicroAPI::Duplicate(subVreg, -1);
+
+    for (uint16_t i = 0; i < repeat_time; i++) {
+        mask = AscendC::MicroAPI::UpdateMask<T>(count);
+        AscendC::MicroAPI::DataCopy(srcVreg1, src1 + i * oneRepElm);
+        AscendC::MicroAPI::DataCopy(srcVreg2, src2 + i * oneRepElm);
+        AscendC::MicroAPI::Div(dstVreg, srcVreg1, srcVreg2, mask);
+        AscendC::MicroAPI::DataCopy(dst + i * oneRepElm, dstVreg, mask);
+    }
+}
+
+template <typename T>
 __aicore__ inline void FloorDivExtend(const AscendC::LocalTensor<T>& dst, const AscendC::LocalTensor<T>& src1,
     const AscendC::LocalTensor<T>& src2, const uint32_t size)
 {
     constexpr uint32_t oneRepElm = static_cast<uint32_t>(AscendC::GetVecLen() / sizeof(T));
     uint16_t repeat_time = static_cast<uint16_t>(AscendC::CeilDivision(size, oneRepElm));
-    VF_CALL<FloorDivImplVF<T>>((__ubuf__ T*)dst.GetPhyAddr(), (__ubuf__ T*)src1.GetPhyAddr(),
+    if constexpr (AscendC::SupportType<T, int16_t, int32_t, int64_t>()) {
+        VF_CALL<FloorDivIntImplVF<T>>((__ubuf__ T*)dst.GetPhyAddr(), (__ubuf__ T*)src1.GetPhyAddr(),
         (__ubuf__ T*)src2.GetPhyAddr(), size, repeat_time);
+    } else if constexpr (AscendC::SupportType<T, uint16_t, uint32_t, uint64_t>()) {
+        VF_CALL<FloorDivUintImplVF<T>>((__ubuf__ T*)dst.GetPhyAddr(), (__ubuf__ T*)src1.GetPhyAddr(),
+        (__ubuf__ T*)src2.GetPhyAddr(), size, repeat_time);
+    } else if constexpr (AscendC::SupportType<T, half, float>()) {
+        VF_CALL<FloorDivImplVF<T>>((__ubuf__ T*)dst.GetPhyAddr(), (__ubuf__ T*)src1.GetPhyAddr(),
+        (__ubuf__ T*)src2.GetPhyAddr(), size, repeat_time);
+    }
 }
 
 #endif  // __ASCENDC_API_REGBASE_FLOOR_DIV_H

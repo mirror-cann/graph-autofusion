@@ -114,6 +114,9 @@ void TestLogicalCommon (const std::string &logical, uint32_t size) {
   }
 
   EXPECT_EQ(diff_count, 0);
+  GmFree(x1);
+  GmFree(x2);
+  GmFree(y);
 }
 
 template<typename T>
@@ -186,6 +189,8 @@ void TestLogicalCommonScalarExtend (const std::string &logical, uint32_t size) {
   }
 
   EXPECT_EQ(diff_count, 0);
+  GmFree(x1);
+  GmFree(y);
 }
 
 template<typename T>
@@ -262,6 +267,9 @@ void TestLogicalCommonUnalign (const std::string &logical, uint32_t size) {
   }
 
   EXPECT_EQ(diff_count, 0);
+  GmFree(x1);
+  GmFree(x2);
+  GmFree(y);
 }
 
 // todo int4b_t类型有问题后续补充

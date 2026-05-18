@@ -29,7 +29,7 @@
 #include "can_fuse/backend/fusion_decider_registry.h"
 #include "can_fuse/backend/asc_backend_fusion_decider.h"
 #include "post_process/scheduler_adapter/adaption_fallback_load.h"
-#include "utils/autofuse_attrs.h"
+#include "fusion/autofuse_attrs.h"
 #include "util/mem_utils.h"
 #include "utils/auto_fuse_config.h"
 #include "backend/backend_spec.h"
@@ -134,14 +134,14 @@ protected:
     es_graph_ = std::unique_ptr<es::Graph>(new es::Graph("graph"));
     RegisterAllOpCreator();
     dlog_setlevel(GE_MODULE_NAME, DLOG_DEBUG, 0);
-    af::PlatformContext::GetInstance().Reset();
+    ge::PlatformContext::GetInstance().Reset();
     auto stub_v2 = std::make_shared<RuntimeStubV2Common>();
     RuntimeStub::SetInstance(stub_v2);
   }
   void TearDown() override {
     dlog_setlevel(GE_MODULE_NAME, DLOG_ERROR, 0);
     RuntimeStub::Reset();
-    af::PlatformContext::GetInstance().Reset();
+    ge::PlatformContext::GetInstance().Reset();
     auto stub_v1 = std::make_shared<RuntimeStub>();
     RuntimeStub::SetInstance(stub_v1);
   }
@@ -253,14 +253,14 @@ TEST_F(LoopAscIrLowerPrunerUTV2, TestNoExtraDataOutputAfterCanFuseLiftingBothWit
     es_graph_->SetOutput(square_diff, 0);
     es_graph_->SetOutput(concat, 1);
   }();
-  af::PlatformContext::GetInstance().Reset();
-  auto stub_v2 = std::make_shared<af::RuntimeStubV2Common>();
-  af::RuntimeStub::SetInstance(stub_v2);
+  ge::PlatformContext::GetInstance().Reset();
+  auto stub_v2 = std::make_shared<ge::RuntimeStubV2Common>();
+  ge::RuntimeStub::SetInstance(stub_v2);
   auto graph = es_graph_->Build();
   auto cg = GraphUtilsEx::GetComputeGraph(*graph);
   af::AscIrLowerer lowerer;
   ASSERT_EQ(lowerer.Lowering(cg), GRAPH_SUCCESS);
-  af::RuntimeStub::Reset();
+  ge::RuntimeStub::Reset();
   EXPECT_EQ(ReadableComputeGraph(cg, false), R"(ComputeGraph(graph)
 tmp0 = ge.Data(data0, [])
 tmp1 = ge.Data(data1, [])

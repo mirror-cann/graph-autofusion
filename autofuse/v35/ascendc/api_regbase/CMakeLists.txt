@@ -7,6 +7,7 @@ set(ascendc_api_regbase_extend_src
         clipbyvalue.h
         utils.h
         logical_not.h
+        logical_xor.h
         cast.h
         logical.h
         compare.h
@@ -16,6 +17,7 @@ set(ascendc_api_regbase_extend_src
         where.h
         where_v2.h
         erf.h
+        erfinv.h
         exp2.h
         log1p.h
         tanh.h
@@ -24,11 +26,24 @@ set(ascendc_api_regbase_extend_src
         sign.h
         reduce_init.h
         atan2.h
+        airy_ai.h
         copy_sign.h
         erfcx.h
         expm.h
         trunc_div.h
         remainder.h
+        modified_bessel_i0.h
+        modified_bessel_i1.h
+        modified_bessel_k0.h
+        modified_bessel_k1.h
+        modified_bessel_utils.h
+        scaled_modified_bessel_k0.h
+        scaled_modified_bessel_k1.h
+        laguerre_polynomial_l.h
+        legendre_polynomial_p.h
+        igamma.h
+        igammac.h
+        trigonometric_function_utils.h
 )
 
 set(generated_regbase_files)

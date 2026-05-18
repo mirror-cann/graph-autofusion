@@ -16,7 +16,7 @@
 #include "ascir_ops_utils.h"
 #include "codegen_kernel.h"
 #include "utils/api_call_factory.h"
-#include "elewise/ternary_api_tmp_v2_call.h"
+#include "ternary_api_tmp_v2_call.h"
 
 using namespace std;
 using namespace ascir;

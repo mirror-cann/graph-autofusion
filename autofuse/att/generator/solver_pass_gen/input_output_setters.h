@@ -54,6 +54,21 @@ class InputOutputSetters {
     return is_uniq_group_;
   }
 
+  std::string GetInputOutputVoidCasts() const {
+    std::string result;
+    std::string call = input_output_call_;
+    while (!call.empty()) {
+      auto comma = call.find(',');
+      std::string name = (comma == std::string::npos) ? call : call.substr(0, comma);
+      while (!name.empty() && (name.front() == ' ' || name.front() == '\t')) name.erase(0, 1);
+      while (!name.empty() && (name.back() == ' ' || name.back() == '\t')) name.pop_back();
+      if (!name.empty()) result += "(void)" + name + "; ";
+      if (comma == std::string::npos) break;
+      call = call.substr(comma + 1);
+    }
+    return result;
+  }
+
  private:
   std::string input_output_def_;
   std::string input_output_call_;

@@ -31,11 +31,8 @@ Status UnaryApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::AxisI
   auto x = inputs[0].get();
   auto y = outputs[0].get();
   stringstream ss;
-  string blk_align;
-  GE_CHK_STATUS_RET(KernelUtils::BlkAlign(x.dtype, blk_align), "Codegen blk align failed");
   ss << this->api_name_ << "(" << y << "[" << tpipe.tiler.TensorVectorizedOffset(current_axis, y) << "], " << x
-     << "[" << tpipe.tiler.TensorVectorizedOffset(current_axis, x) << "], " << blk_align << "(" << x.actual_size
-     << "));" << std::endl;
+     << "[" << tpipe.tiler.TensorVectorizedOffset(current_axis, x) << "], " << x.actual_size << ");" << std::endl;
   result = ss.str();
   return ge::SUCCESS;
 }

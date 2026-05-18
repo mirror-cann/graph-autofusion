@@ -34,7 +34,7 @@ Status SplitRegApiCall::ParseSplitDim(const Tensor &x, const Tensor &y0, size_t 
          VectorToStr(y0.vectorized_strides).c_str());
 
   GE_CHK_BOOL_RET_STATUS(x.vectorized_axis.size() == y0.vectorized_axis.size(), ge::FAILED,
-                         "Codegen split input output vectorized axis not equal");
+                         "Codegen split input output vectorized_axis not equal");
   // 遍历向量化轴, 确定split轴
   bool find_split_dim = false;
   for (size_t i = 0; i < y0.vectorized_axis.size(); i++) {
@@ -65,7 +65,7 @@ Status SplitFindNonZeroStride(const std::vector<ascir::SizeExpr> &vectorized_str
   return ge::SUCCESS;
 }
 
-Status SplitRegApiCall::InitializeTiling(size_t split_dim, const vector<std::reference_wrapper<const Tensor>> &ouputs,
+Status SplitRegApiCall::InitializeTiling(size_t split_dim, const vector<std::reference_wrapper<const Tensor>> &outputs,
                                        const Tensor &x, SplitRegApiCall::SplitTiling &tiling) {
   auto data_type_size = ge::GetSizeByDataType(x.dtype);
   GE_ASSERT_TRUE(data_type_size > 0);
@@ -83,10 +83,10 @@ Status SplitRegApiCall::InitializeTiling(size_t split_dim, const vector<std::ref
   }
   auto split_dim_stride = x.vectorized_strides[split_dim];
   tiling.src_col_actual_size_expr = x.axis_size[x.vectorized_axis_pos[split_dim]] * split_dim_stride;
-  tiling.dst_col_size_exprs.resize(ouputs.size());
-  tiling.dst_col_actual_size_exprs.resize(ouputs.size());
-  for (size_t output_index = 0; output_index < ouputs.size(); ++output_index) {
-    auto &y = ouputs[output_index].get();
+  tiling.dst_col_size_exprs.resize(outputs.size());
+  tiling.dst_col_actual_size_exprs.resize(outputs.size());
+  for (size_t output_index = 0; output_index < outputs.size(); ++output_index) {
+    auto &y = outputs[output_index].get();
     tiling.dst_col_size_exprs[output_index] = af::ops::One;
     for (size_t i = split_dim; i < y.vectorized_axis.size(); ++i) {
       auto pos = y.vectorized_axis_pos[i];

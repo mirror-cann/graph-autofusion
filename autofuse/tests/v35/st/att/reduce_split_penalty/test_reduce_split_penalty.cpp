@@ -20,12 +20,12 @@ class STestReduceSplitPenaltyV2 : public ::testing::Test {
   void SetUp() override {
     setenv("ASCEND_GLOBAL_LOG_LEVEL", "4", 1);
     AutoFuseConfig::MutableAttStrategyConfig().Reset();
-    af::RuntimeStub::Install(&stub_v_2);
+    ge::RuntimeStub::Install(&stub_v_2);
     ge::PlatformContext::GetInstance().Reset();
     // V2形态：通过TilingScheduleConfigTableV2自动返回true，无需手动设置
   }
   void TearDown() override {
-    af::RuntimeStub::UnInstall(&stub_v_2);
+    ge::RuntimeStub::UnInstall(&stub_v_2);
     ge::PlatformContext::GetInstance().Reset();
   }
 };

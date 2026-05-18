@@ -69,8 +69,8 @@ af::Status PassUtils::PruneGraph(af::AscGraph &graph) {
       continue;
     }
 
-    // Data节点需要保留,否则会影响codegen签名
-    if (IsOps<Data>(node_ptr)) {
+    // Data/ScalarData节点需要保留,否则会影响codegen签名
+    if (IsOps<Data>(node_ptr) || IsOps<ScalarData>(node_ptr)) {
       auto out_control_anchor = node_ptr->GetOutControlAnchor();
       auto in_control_anchor = first_out_node->GetInControlAnchor();
       GE_ASSERT_GRAPH_SUCCESS(af::GraphUtils::AddEdge(out_control_anchor, in_control_anchor));
@@ -99,6 +99,7 @@ af::AscNodePtr PassUtils::CreateOneScalarBrc(af::AscGraph &graph, const af::AscN
   std::string scalar_name = ref_node->GetName() + "_One";
   af::ascir_op::Scalar scalar_one(scalar_name.c_str(), graph);
   scalar_one.ir_attr.SetValue(af::SymbolicUtils::ToString(af::sym::kSymbolOne));
+  scalar_one.y.dtype = static_cast<ge::DataType>(ref_node->outputs[0].attr.dtype);
 
   std::string brc_name = ref_node->GetName() + "_Brc";
   af::ascir_op::Broadcast brc(brc_name.c_str());

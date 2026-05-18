@@ -46,8 +46,8 @@ class Codegen {
                         const std::string &core_num,
                         std::map<std::string, std::string> &tiling_file_name_to_content) const;
   std::map<std::string, std::string> GenerateTiling(const ::ascir::FusedScheduledResult &fused_schedule_result,
-                                                    const std::map<std::string, std::string> &shape_info, const std::string& pgo_dir,
-                                                    const std::string &core_num) const;
+                                                    const std::map<std::string, std::string> &shape_info,
+                                                    const std::string& pgo_dir, const std::string &core_num) const;
   Status GenerateTilingForInductor(const ::ascir::FusedScheduledResult &fused_schedule_result,
                                    std::map<std::string, std::string> &tiling_file_name_to_content) const;
   std::map<std::string, std::string> GenerateTilingForInductor(
@@ -59,7 +59,8 @@ class Codegen {
   std::string GenerateInferShape(const std::vector<std::vector<std::string>> &symbol_shape_str,
                                  const std::map<std::string, std::string> &shape_info) const;
 
-  std::string GeneratorPgo(const ::ascir::FusedScheduledResult &fused_schedule_result, const std::string &pgo_dir) const;
+  std::string GeneratorPgo(const ::ascir::FusedScheduledResult &fused_schedule_result,
+                           const std::string &pgo_dir) const;
 
  private:
   TilingLib tiling_lib_;

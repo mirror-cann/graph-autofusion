@@ -1,15 +1,15 @@
 /**
- * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * Copyright (c) 2026 Huawei Technologies Co., Ltd.
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
 
-#ifndef AIR_CXX_COMPILER_GRAPH_OPTIMIZE_AUTOFUSE_UTILS_AUTOFUSE_ATTRS_H_
-#define AIR_CXX_COMPILER_GRAPH_OPTIMIZE_AUTOFUSE_UTILS_AUTOFUSE_ATTRS_H_
+#ifndef AIR_CXX_COMPILER_GRAPH_OPTIMIZE_AUTOFUSE_INC_FUSION_AUTOFUSE_ATTRS_H_
+#define AIR_CXX_COMPILER_GRAPH_OPTIMIZE_AUTOFUSE_INC_FUSION_AUTOFUSE_ATTRS_H_
 
 #include <memory>
 #include <vector>
@@ -33,14 +33,16 @@ using ge::ATTR_NAME_DATA_DUMP_ORIGIN_OUTPUT_INDEX;
 #endif
 
 namespace af {
+
 const std::string kSplitTypeStub = "Split";
 constexpr int64_t kNonSplitGlobalId = -1L;
 constexpr float kSplitLowFusionRatioThreshold = 0.2000F;
-enum class SplitFusionRatioRequirementState: uint32_t {
-  NOT_DETERMINED = 0, // 尚未计算融合比例
-  NOT_SATISFIED = 1,  // 融合比例不满足阈值要求
-  SATISFIED = 2       // 融合比例满足阈值要求
+enum class SplitFusionRatioRequirementState : uint32_t {
+  NOT_DETERMINED = 0U,  // 尚未计算融合比例
+  NOT_SATISFIED = 1U,   // 融合比例不满足阈值要求
+  SATISFIED = 2U        // 融合比例满足阈值要求
 };
+
 struct AutofuseInnerAttrs {
   std::vector<const af::Node *> origin_nodes;       // Asc节点对应的原始节点，用于Dfx打印、获取融合前ComputeGraph片段等
   std::vector<af::OutDataAnchor *> output_buffers;  // Asc节点负责写入的原始输出anchor，用于lifting
@@ -57,16 +59,15 @@ struct AutofuseInnerAttrs {
   std::vector<std::pair<std::string, int32_t>> origin_input_names_;   // 融合节点与原始ge节点的输入映射关系
   int32_t vector_core_num;  // user set vector vore num scope
   size_t reduce_fused_elementwise_node_num = 0U;  // reduce节点向后融合的elementwise节点数量
-  int64_t split_global_id = kNonSplitGlobalId; // split op 在 lowering 之前的全局编号，不是split节点的话，这个编号为-1
-  SplitFusionRatioRequirementState split_fusion_ratio_requirement_state = SplitFusionRatioRequirementState::NOT_DETERMINED;   // 缓存对split融合比例是否超过阈值的预测结果
-  bool is_split_complete = false; // 缓存原split节点是否完全恢复的判断结果
-  bool is_fuse_from_lowering = false;       // 标识融合节点来自lowering还是can_fuse
-  std::vector<int64_t> reduce_original_axis;  // reduce操作前的原始轴信息
-  std::vector<af::Expression> reduce_original_repeats;  // reduce操作前的原始repeats信息
+  int64_t split_global_id = kNonSplitGlobalId;  // split op 在 lowering 之前的全局编号，不是split节点的话，这个编号为-1
+  SplitFusionRatioRequirementState split_fusion_ratio_requirement_state =
+      SplitFusionRatioRequirementState::NOT_DETERMINED;  // 缓存对split融合比例是否超过阈值的预测结果
+  bool is_split_complete = false;                 // 缓存原split节点是否完全恢复的判断结果
+  bool is_fuse_from_lowering = false;             // 标识融合节点来自lowering还是can_fuse
+  std::vector<int64_t> reduce_original_axis;         // reduce操作前的原始轴信息
+  std::vector<Expression> reduce_original_repeats;   // reduce操作前的原始repeats信息
 
-  bool IsReduction() const {
-    return HasFuseType(loop::FuseType::kReduction);
-  }
+  bool IsReduction() const { return HasFuseType(loop::FuseType::kReduction); }
 
   bool HasFuseType(const loop::FuseType type) const {
     return (fuse_type & (1UL << static_cast<uint64_t>(type))) != 0UL;
@@ -75,49 +76,56 @@ struct AutofuseInnerAttrs {
 
 using AfAttrGroupsBase = af::AttrGroupsBase;
 
-class AutoFuseAttrs : public AfAttrGroupsBase {
+class AutoFuseAttrs : public AfAttrGroupsBase  {
  public:
   AutoFuseAttrs() = default;
-  AutoFuseAttrs(const AutoFuseAttrs &other) : fuse_type_(other.fuse_type_), asc_graph_(other.asc_graph_) {}
-  AutoFuseAttrs& operator=(const AutoFuseAttrs &other) = delete;
-  [[nodiscard]] const std::shared_ptr<af::AscGraph> &GetAscGraph() const {
-    return asc_graph_;
-  }
+  AutoFuseAttrs(const AutoFuseAttrs &other)
+      : fuse_type_(other.fuse_type_), asc_graph_(other.asc_graph_) {}
+  AutoFuseAttrs &operator=(const AutoFuseAttrs &other) = delete;
+
+  [[nodiscard]] const std::shared_ptr<AscGraph> &GetAscGraph() const { return asc_graph_; }
 
   void SetFuseType(const loop::FuseType fuse_type) {
     fuse_type_ = fuse_type;
     inner_attrs_.fuse_type = (1UL << static_cast<uint64_t>(fuse_type));
   }
 
-  void SetAscGraph(const std::shared_ptr<af::AscGraph> &asc_graph,
+  void SetAscGraph(const std::shared_ptr<AscGraph> &asc_graph,
                    const loop::FuseType fuse_type = loop::FuseType::kExtern) {
     asc_graph_ = asc_graph;
     SetFuseType(fuse_type);
+    if (fuse_type == loop::FuseType::kSplit) {
+      InitSplitGlobalIdFromGraph();
+    }
   }
 
-  [[nodiscard]] const af::ComputeGraphPtr &GetFuseComputeGraph() const {
-    return fused_compute_graph_;
+  [[nodiscard]] const ComputeGraphPtr &GetFuseComputeGraph() const { return fused_compute_graph_; }
+
+  void SetFuseComputeGraph(const ComputeGraphPtr &fused_compute_graph) { fused_compute_graph_ = fused_compute_graph; }
+
+  [[nodiscard]] loop::FuseType GetFuseType() const { return fuse_type_; }
+
+  bool HasFuseType(const loop::FuseType fuse_type) const {
+    return (fuse_type_ == fuse_type) || (inner_attrs_.HasFuseType(fuse_type));
   }
 
-  void SetFuseComputeGraph(const af::ComputeGraphPtr &fused_compute_graph) {
-    fused_compute_graph_ = fused_compute_graph;
+  uint64_t GetAllFuseType() const {
+    return (1UL << static_cast<uint64_t>(fuse_type_)) | static_cast<uint64_t>(inner_attrs_.fuse_type);
   }
 
-  [[nodiscard]] loop::FuseType GetFuseType() const {
-    return fuse_type_;
+  std::unique_ptr<AfAttrGroupsBase> CloneAf() override {
+    return std::unique_ptr<AutoFuseAttrs>(new (std::nothrow) AutoFuseAttrs(*this));
   }
 
-  void SetOriginNodes(const std::vector<const af::Node *> &nodes) {
-    inner_attrs_.origin_nodes = nodes;
-  }
+  AutofuseInnerAttrs &GetMutableInterAttrs() { return inner_attrs_; }
 
-  void SetVectorCoreNum(const int32_t vector_core_num) {
-    inner_attrs_.vector_core_num = vector_core_num;
-  }
+  // ---- 以下为前端使用的便捷方法，后端一般不直接调用 ----
 
-  int32_t GetVectorCoreNum() {
-    return inner_attrs_.vector_core_num;
-  }
+  void SetOriginNodes(const std::vector<const af::Node *> &nodes) { inner_attrs_.origin_nodes = nodes; }
+
+  void SetVectorCoreNum(const int32_t vector_core_num) { inner_attrs_.vector_core_num = vector_core_num; }
+
+  int32_t GetVectorCoreNum() { return inner_attrs_.vector_core_num; }
 
   void AddConcreteEdges(const size_t index, const af::InDataAnchor *dst) {
     inner_attrs_.concrete_edges[index].insert(dst);
@@ -143,38 +151,53 @@ class AutoFuseAttrs : public AfAttrGroupsBase {
     return inner_attrs_.output_buffers;
   }
 
-  [[nodiscard]] const std::vector<const af::Node *> &GetOriginNodes() const {
-    return inner_attrs_.origin_nodes;
+  [[nodiscard]] const std::vector<const af::Node *> &GetOriginNodes() const { return inner_attrs_.origin_nodes; }
+
+  uint64_t GetFusionNodesSize() const { return inner_attrs_.fusion_nodes_size_; }
+
+  void SetFusionNodesSize(const uint64_t fusion_nodes_size) { inner_attrs_.fusion_nodes_size_ = fusion_nodes_size; }
+
+  size_t GetReduceFusedElementwiseNodeNum() const { return inner_attrs_.reduce_fused_elementwise_node_num; }
+
+  void SetReduceFusedElementwiseNodeNum(const size_t elementwise_node_num) {
+    inner_attrs_.reduce_fused_elementwise_node_num = elementwise_node_num;
   }
 
-  std::unique_ptr<AfAttrGroupsBase> CloneAf() override {
-    return std::unique_ptr<AfAttrGroupsBase>(new (std::nothrow) AutoFuseAttrs(*this));
+  void SetSplitGlobalId(const size_t global_id) { inner_attrs_.split_global_id = static_cast<int64_t>(global_id); }
+
+  int32_t GetSplitGlobalId() const {
+    GE_ASSERT_TRUE(inner_attrs_.split_global_id != -1 || !this->HasFuseType(loop::FuseType::kSplit),
+                   "Split global id not initialized for split node.");
+    return inner_attrs_.split_global_id;
   }
 
-  AutofuseInnerAttrs &GetMutableInterAttrs() {
-    return inner_attrs_;
+  SplitFusionRatioRequirementState GetSplitFusionRatioRequirementState() const {
+    return inner_attrs_.split_fusion_ratio_requirement_state;
   }
 
-  bool HasFuseType(const loop::FuseType fuse_type) const {
-    return ((fuse_type_ == fuse_type) || (inner_attrs_.HasFuseType(fuse_type)));
+  void SetSplitLowFusionRatioRequirementState(SplitFusionRatioRequirementState state) {
+    inner_attrs_.split_fusion_ratio_requirement_state = state;
   }
 
-  uint64_t GetAllFuseType() const {
-    return (1UL << static_cast<uint64_t>(fuse_type_)) | static_cast<uint64_t>(inner_attrs_.fuse_type);
+  void SetSplitComplete() { inner_attrs_.is_split_complete = true; }
+
+  bool GetSplitComplete() { return inner_attrs_.is_split_complete; }
+
+  void SetReduceOriginalAxis(const std::vector<int64_t> &axis) { inner_attrs_.reduce_original_axis = axis; }
+
+  [[nodiscard]] const std::vector<int64_t> &GetReduceOriginalAxis() const { return inner_attrs_.reduce_original_axis; }
+
+  void SetReduceOriginalRepeats(const std::vector<Expression> &repeats) { inner_attrs_.reduce_original_repeats = repeats; }
+
+  [[nodiscard]] const std::vector<Expression> &GetReduceOriginalRepeats() const {
+    return inner_attrs_.reduce_original_repeats;
   }
 
-  uint64_t GetFusionNodesSize() const {
-    return inner_attrs_.fusion_nodes_size_;
-  }
-
-  void SetFusionNodesSize(const uint64_t fusion_nodes_size) {
-    inner_attrs_.fusion_nodes_size_ = fusion_nodes_size;
-  }
-
-  Status SetAndPrintOriginNames(const af::OpDescPtr &op_desc, const std::string &graph_name,
-                                const vector<const af::OutDataAnchor *> &origin_inputs, const af::OutDataAnchor *anchor) {
-    vector<std::pair<std::string, int32_t>> origin_output_names;
-    vector<std::pair<std::string, int32_t>> origin_input_names;
+  Status SetAndPrintOriginNames(const OpDescPtr &op_desc, const std::string &graph_name,
+                                const std::vector<const OutDataAnchor *> &origin_inputs,
+                                const af::OutDataAnchor *anchor) {
+    std::vector<std::pair<std::string, int32_t>> origin_output_names;
+    std::vector<std::pair<std::string, int32_t>> origin_input_names;
     origin_input_names.reserve(origin_inputs.size());
     for (auto &origin_input : origin_inputs) {
       origin_input_names.emplace_back(origin_input->GetOwnerNode()->GetName(), origin_input->GetIdx());
@@ -185,8 +208,8 @@ class AutoFuseAttrs : public AfAttrGroupsBase {
     // input
     uint32_t index = 0U;
     for (const auto &origin_input : origin_input_names) {
-      GELOGD("ascbc_dfx_log(lowering), %s, input_idx: %u, origin_ge_node: %s, input_idx: %d.", graph_name.c_str(), index,
-             origin_input.first.c_str(), origin_input.second);
+      GELOGD("ascbc_dfx_log(lowering), %s, input_idx: %u, origin_ge_node: %s, input_idx: %d.", graph_name.c_str(),
+             index, origin_input.first.c_str(), origin_input.second);
       ++index;
     }
     // output
@@ -205,100 +228,45 @@ class AutoFuseAttrs : public AfAttrGroupsBase {
     return SUCCESS;
   }
 
-  size_t GetReduceFusedElementwiseNodeNum() const {
-    return inner_attrs_.reduce_fused_elementwise_node_num;
-  }
-
-  void SetReduceFusedElementwiseNodeNum(const size_t elementwise_node_num) {
-    inner_attrs_.reduce_fused_elementwise_node_num = elementwise_node_num;
-  }
-
-  int32_t GetSplitGlobalId() {
-    // split的融合树的叶子节点调用get接口时，AutoFuseAttrs 未初始化 split_global_id，需要根据node的属性进行初始化；
-    if (inner_attrs_.split_global_id == -1) {
-      GE_ASSERT_TRUE(this->HasFuseType(loop::FuseType::kSplit), "Non-split Node trying to get split global id.");
-      auto graph_ptr = this->GetAscGraph();
-      GE_ASSERT_NOTNULL(graph_ptr);
-      auto &graph = *graph_ptr;
-      GELOGD("graph: %s, number of ir nodes: %d.", graph_ptr->GetName().c_str(), af::AscGraphUtils::GetComputeGraph(graph)->GetAllNodes().size());
-      for (const auto &ir_node : af::AscGraphUtils::GetComputeGraph(graph)->GetAllNodes()) {
-        GELOGD("ir node: %s(%s)", ir_node->GetType().c_str(), ir_node->GetName().c_str());
-        if (ir_node->GetType() == kSplitTypeStub) {
-          const auto &ir_desc = ir_node->GetOpDesc();
-          const auto &ir_attr = ir_desc->GetAttrsGroup<af::AscNodeAttr>();
-          GE_ASSERT_NOTNULL(ir_attr);
-          const auto split_attr = dynamic_cast<af::ascir_op::Split::AscSplitIrAttrDef *>(ir_attr->ir_attr.get());
-          GE_ASSERT_NOTNULL(split_attr);
-          GE_ASSERT_SUCCESS(split_attr->GetGid(inner_attrs_.split_global_id), "node: %s(%s) failed to get global split id.", ir_node->GetType().c_str(), ir_node->GetName().c_str());
-          GELOGD("origin node info: [node: %s(%s), global id: %d]", ir_node->GetType().c_str(), ir_node->GetName().c_str(), inner_attrs_.split_global_id);
-        }
-      }
-    }
-    return inner_attrs_.split_global_id;
-  }
-
-  void SetSplitGlobalId(const size_t global_id) {
-    inner_attrs_.split_global_id = global_id;
-  }
-
-  SplitFusionRatioRequirementState GetSplitFusionRatioRequirementState() {
-    return inner_attrs_.split_fusion_ratio_requirement_state;
-  }
-  void SetSplitLowFusionRatioRequirementState(SplitFusionRatioRequirementState state) {
-    inner_attrs_.split_fusion_ratio_requirement_state = state;
-  }
-  void SetSplitComplete() {
-    inner_attrs_.is_split_complete = true;
-  }
-
-  void SetReduceOriginalAxis(const std::vector<int64_t> &axis) {
-    inner_attrs_.reduce_original_axis = axis;
-  }
-
-  const std::vector<int64_t>& GetReduceOriginalAxis() const {
-    return inner_attrs_.reduce_original_axis;
-  }
-
-  void SetReduceOriginalRepeats(const std::vector<af::Expression> &repeats) {
-    inner_attrs_.reduce_original_repeats = repeats;
-  }
-
-  const std::vector<af::Expression>& GetReduceOriginalRepeats() const {
-    return inner_attrs_.reduce_original_repeats;
-  }
-  bool GetSplitComplete() {
-    return inner_attrs_.is_split_complete;
-  }
-
  private:
   loop::FuseType fuse_type_ = loop::FuseType::kExtern;
-  std::shared_ptr<af::AscGraph> asc_graph_;  // 融合节点对应的AscIR图
-  af::ComputeGraphPtr fused_compute_graph_;  // 融合后的计算图，concat场景
+  std::shared_ptr<AscGraph> asc_graph_;
+  ComputeGraphPtr fused_compute_graph_;
   AutofuseInnerAttrs inner_attrs_;
+
+  void InitSplitGlobalIdFromGraph() {
+    if (asc_graph_ == nullptr) return;
+    for (const auto &ir_node : AscGraphUtils::GetComputeGraph(*asc_graph_)->GetAllNodes()) {
+      if (ir_node->GetType() == kSplitTypeStub) {
+        const auto &ir_desc = ir_node->GetOpDesc();
+        const auto &ir_attr = ir_desc->GetAttrsGroup<AscNodeAttr>();
+        if (ir_attr == nullptr) continue;
+        const auto split_attr = dynamic_cast<ascir_op::Split::AscSplitIrAttrDef *>(ir_attr->ir_attr.get());
+        if (split_attr == nullptr) continue;
+        (void) split_attr->GetGid(inner_attrs_.split_global_id);
+        GELOGD("Init split global id from IR node: [node: %s(%s), global id: %d]",
+               ir_node->GetType().c_str(), ir_node->GetName().c_str(), inner_attrs_.split_global_id);
+      }
+    }
+  }
 };
 
-inline AutoFuseAttrs *GetOrCreateAutoFuseAttrs(const af::OpDescPtr &op_desc) {
-  auto attr = op_desc->GetOrCreateAttrsGroup<AutoFuseAttrs>();
-  return attr;
+inline AutoFuseAttrs *GetOrCreateAutoFuseAttrs(const OpDescPtr &op_desc) {
+  return op_desc->GetOrCreateAttrsGroup<AutoFuseAttrs>();
 }
 
-inline AutoFuseAttrs *GetOrCreateAutoFuseAttrs(af::OpDesc* op_desc) {
-  auto attr = op_desc->GetOrCreateAttrsGroup<AutoFuseAttrs>();
-  return attr;
+inline AutoFuseAttrs *GetOrCreateAutoFuseAttrs(OpDesc *op_desc) {
+  return op_desc->GetOrCreateAttrsGroup<AutoFuseAttrs>();
 }
 
-inline AutoFuseAttrs *GetOrCreateAutoFuseAttrs(const af::ComputeGraphPtr& graph) {
-  auto attr = graph->GetOrCreateAttrsGroup<AutoFuseAttrs>();
-  return attr;
+inline AutoFuseAttrs *GetOrCreateAutoFuseAttrs(const ComputeGraphPtr &graph) {
+  return graph->GetOrCreateAttrsGroup<AutoFuseAttrs>();
 }
 
-inline AutofuseInnerAttrs &GetInterAttrs(AutoFuseAttrs *attr) {
-  return attr->GetMutableInterAttrs();
-}
+inline AutofuseInnerAttrs &GetInterAttrs(AutoFuseAttrs *attr) { return attr->GetMutableInterAttrs(); }
 
-inline uint64_t MergeFuseType(uint64_t fuse_type1, uint64_t fuse_type2) {
-  return fuse_type1 | fuse_type2;
-}
+inline uint64_t MergeFuseType(uint64_t fuse_type1, uint64_t fuse_type2) { return fuse_type1 | fuse_type2; }
+
 }  // namespace af
 
 namespace ge {
@@ -313,4 +281,4 @@ using af::GetInterAttrs;
 using af::MergeFuseType;
 }  // namespace ge
 
-#endif  // AIR_CXX_COMPILER_GRAPH_OPTIMIZE_AUTOFUSE_UTILS_AUTOFUSE_ATTRS_H_
+#endif  // AIR_CXX_COMPILER_GRAPH_OPTIMIZE_AUTOFUSE_INC_FUSION_AUTOFUSE_ATTRS_H_

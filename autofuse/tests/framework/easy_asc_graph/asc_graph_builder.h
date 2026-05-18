@@ -67,6 +67,7 @@ public:
 
   AscGraphBuilder &Scalar(const std::string &name, const std::string &value, DataType dtype = af::DT_FLOAT);
 
+  AscGraphBuilder &ScalarData(const std::string &name, int64_t index = 0, DataType dtype = af::DT_FLOAT);
   AscGraphBuilder &Output(const std::string &name, const std::string &input, int64_t index = 0,
                           DataType dtype = af::DT_FLOAT);
 

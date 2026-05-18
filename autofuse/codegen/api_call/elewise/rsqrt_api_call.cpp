@@ -28,7 +28,6 @@ Status RsqrtApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::AxisI
                               const std::vector<std::reference_wrapper<const Tensor>> &inputs,
                               const std::vector<std::reference_wrapper<const Tensor>> &outputs,
                               std::string &result) const {
-  (void)api_attr;
   const auto &x = inputs[0].get();
   const auto &y = outputs[0].get();
 

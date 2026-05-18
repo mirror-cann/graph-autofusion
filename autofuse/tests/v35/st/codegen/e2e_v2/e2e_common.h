@@ -18,14 +18,14 @@ void InitScheduleResultsByImplGraphs(const std::vector<af::AscGraph> &impl_graph
   for (auto node : impl_graphs[0].GetAllNodes()) {
     if (node->GetType() == "Data") {
       int64_t index = -1;
-      if (node->attr.ir_attr->GetAttrValue("index", index) == af::GRAPH_FAILED) {
+      if (node->attr.ir_attr->GetAttrValue("index", index) == ge::GRAPH_FAILED) {
         auto &attr = reinterpret_cast<af::AscDataIrAttrDef &>(*node->attr.ir_attr);
         attr.SetIndex(static_cast<int64_t>(fused_schedule_result.input_nodes.size()));
       }
       fused_schedule_result.input_nodes.emplace_back(node);
     } else if (node->GetType() == "Output") {
       int64_t index = -1;
-      if (node->attr.ir_attr->GetAttrValue("index", index) == af::GRAPH_FAILED) {
+      if (node->attr.ir_attr->GetAttrValue("index", index) == ge::GRAPH_FAILED) {
         auto &attr = reinterpret_cast<af::AscDataIrAttrDef &>(*node->attr.ir_attr);
         attr.SetIndex(static_cast<int64_t>(fused_schedule_result.output_nodes.size()));
       }
@@ -96,7 +96,7 @@ namespace {
 	ss << "#include <cinttypes>" << std::endl;
 	ss << "#include <sys/syscall.h>" << std::endl;
 	ss << "#include <unistd.h>" << std::endl;
-	ss << "#include \"toolchain/slog.h\"" << std::endl;
+	ss << "#include \"dlog_pub.h\"" << std::endl;
 	ss << "#define OP_LOGD(name, fmt, ...)" << std::endl;
 	ss << "#define OP_LOGI(name, fmt, ...)" << std::endl;
 	ss << "#define GE_MODULE_NAME static_cast<int32_t>(45)" << std::endl;

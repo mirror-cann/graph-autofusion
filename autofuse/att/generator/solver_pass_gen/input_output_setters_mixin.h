@@ -57,6 +57,9 @@ class InputOutputSettersMixin {
   bool GetIsUniGroup() const {
     return input_output_setters_.GetIsUniGroup();
   }
+  std::string GetInputOutputVoidCasts() const {
+    return input_output_setters_.GetInputOutputVoidCasts();
+  }
 
  protected:
   // Composition member - accessible to derived classes

@@ -107,6 +107,68 @@ void CreateMatmulGraph(af::AscGraph &graph) {
   optimize::AscGraphInfoComplete::CompleteApiInfo(graph);
 }
 
+void CreateBatchMatmulDynamicGraph(af::AscGraph &graph) {
+  auto s0 = graph.CreateSizeVar(-1);
+  auto s1 = graph.CreateSizeVar(-1);
+  auto z0 = graph.CreateAxis("z0", s0);
+  auto z1 = graph.CreateAxis("z1", s1);
+  af::ascir_op::Data data0("data0", graph);
+  data0.attr.sched.axis = {z0.id, z1.id};
+  data0.y.dtype = ge::DT_FLOAT16;
+  *data0.y.axis = {z0.id, z1.id};
+  data0.attr.api.compute_type = af::ComputeType::kComputeInvalid;
+  *data0.y.strides = {s1, af::ops::One};
+  *data0.y.repeats = {s0, s1};
+  data0.ir_attr.SetIndex(0);
+  af::ascir_op::Load load0("load0");
+  load0.attr.sched.axis = {z0.id, z1.id};
+  load0.x = data0.y;
+  *load0.y.axis = {z0.id, z1.id};
+  load0.y.dtype = ge::DT_FLOAT16;
+  *load0.y.strides = {s1, af::ops::One};
+  *load0.y.repeats = {s0, s1};
+  af::ascir_op::Data data1("data1", graph);
+  data1.y.dtype = ge::DT_FLOAT16;
+  data1.attr.sched.axis = {z0.id, z1.id};
+  *data1.y.axis = {z0.id, z1.id};
+  data1.attr.api.compute_type = af::ComputeType::kComputeInvalid;
+  *data1.y.repeats = {af::ops::One, af::ops::One};
+  *data1.y.strides = {af::ops::Zero, af::ops::Zero};
+  data1.ir_attr.SetIndex(1);
+  af::ascir_op::Load load1("load1");
+  load1.x = data1.y;
+  load1.attr.sched.axis = {z0.id, z1.id};
+  load1.y.dtype = ge::DT_FLOAT16;
+  *load1.y.axis = {z0.id, z1.id};
+  *load1.y.strides = {af::ops::Zero, af::ops::Zero};
+  *load1.y.repeats = {af::ops::One, af::ops::One};
+  af::ascir_op::BatchMatMul matmul("matmul");
+  matmul.attr.sched.axis = {z0.id, z1.id};
+  matmul.x1 = load0.y;
+  matmul.x2 = load1.y;
+  matmul.y.dtype = ge::DT_FLOAT;
+  *matmul.y.axis = {z0.id, z1.id};
+  *matmul.y.repeats = {s0, s1};
+  *matmul.y.strides = {s1, af::ops::One};
+  matmul.ir_attr.SetAdj_x1(1);
+  matmul.ir_attr.SetAdj_x2(0);
+  matmul.ir_attr.SetHas_relu(0);
+  matmul.ir_attr.SetEnable_hf32(0);
+  matmul.ir_attr.SetOffset_x(0);
+  af::ascir_op::Store store_op("store");
+  store_op.attr.sched.axis = {z0.id, z1.id};
+  store_op.x = matmul.y;
+  *store_op.y.axis = {z0.id, z1.id};
+  store_op.y.dtype = ge::DT_FLOAT;
+  *store_op.y.strides = {s1, af::ops::One};
+  *store_op.y.repeats = {s0, s1};
+  store_op.ir_attr.SetOffset(af::ops::One);
+  af::ascir_op::Output output_op("output");
+  output_op.x = store_op.y;
+  output_op.y.dtype = ge::DT_FLOAT;
+  output_op.ir_attr.SetIndex(0);
+  optimize::AscGraphInfoComplete::CompleteApiInfo(graph);
+}
 TEST_F(TestBackendMatmulE2e, MatmulE2eCodegen) {
   bool gen_success= true;
   af::AscGraph graph("matmul_elemwise_pro");
@@ -267,5 +329,78 @@ TEST_F(TestBackendMatmulE2e, MatmulE2eCodegen) {
     gen_success = false;
   }
 
+  EXPECT_EQ(gen_success, true);
+}
+TEST_F(TestBackendMatmulE2e, BatchMatmulDynamicShapeE2eCodegen) {
+  bool gen_success = true;
+  af::AscGraph graph("batch_matmul_dynamic_elemwise_pro");
+  auto s0 = graph.CreateSizeVar(-1);
+  auto s1 = graph.CreateSizeVar(-1);
+  auto z0 = graph.CreateAxis("z0", s0);
+  auto z1 = graph.CreateAxis("z1", s1);
+  af::ascir_op::Data data0("data0", graph);
+  data0.attr.sched.axis = {z0.id, z1.id};
+  data0.y.dtype = ge::DT_FLOAT;
+  *data0.y.axis = {z0.id, z1.id};
+  data0.attr.api.compute_type = af::ComputeType::kComputeInvalid;
+  *data0.y.strides = {s1, af::ops::One};
+  *data0.y.repeats = {s0, s1};
+  data0.ir_attr.SetIndex(0);
+  af::ascir_op::Load load0("load0");
+  load0.attr.sched.axis = {z0.id, z1.id};
+  load0.x = data0.y;
+  *load0.y.axis = {z0.id, z1.id};
+  load0.y.dtype = ge::DT_FLOAT;
+  *load0.y.strides = {s1, af::ops::One};
+  *load0.y.repeats = {s0, s1};
+  af::ascir_op::Relu relu("relu");
+  graph.AddNode(relu);
+  relu.x = load0.y;
+  relu.attr.sched.axis = {z0.id, z1.id};
+  relu.y.dtype = ge::DT_FLOAT;
+  *relu.y.axis = {z0.id, z1.id};
+  *relu.y.repeats = {s0, s1};
+  *relu.y.strides = {s1, af::ops::One};
+  relu.attr.api.compute_type = af::ComputeType::kComputeElewise;
+  af::ascir_op::Store store_op("store");
+  store_op.attr.sched.axis = {z0.id, z1.id};
+  store_op.x = relu.y;
+  *store_op.y.axis = {z0.id, z1.id};
+  store_op.y.dtype = ge::DT_FLOAT;
+  *store_op.y.strides = {s1, af::ops::One};
+  *store_op.y.repeats = {s0, s1};
+  af::ascir_op::Output output_op("output");
+  output_op.x = store_op.y;
+  output_op.y.dtype = ge::DT_FLOAT;
+  output_op.ir_attr.SetIndex(0);
+  optimize::AscGraphInfoComplete::CompleteApiInfo(graph);
+  auto x1Local = graph.FindNode("data0");
+  x1Local->outputs[0].attr.mem.alloc_type = af::AllocType::kAllocTypeQueue;
+  x1Local->outputs[0].attr.mem.hardware = af::MemHardware::kMemHardwareUB;
+  x1Local->outputs[0].attr.mem.position = af::Position::kPositionVecIn;
+  af::AscGraph dynamic_matmul_graph("dynamic_matmul");
+  CreateBatchMatmulDynamicGraph(dynamic_matmul_graph);
+  try {
+    optimize::Optimizer optimizer(optimize::OptimizerOptions{});
+    ascir::FusedScheduledResult fused_schedule_result;
+    EXPECT_EQ(optimizer.Optimize(graph, fused_schedule_result), 0);
+    ascir::ScheduleGroup schedule_group2;
+    schedule_group2.impl_graphs.push_back(dynamic_matmul_graph);
+    fused_schedule_result.node_idx_to_scheduled_results[0][0].schedule_groups.push_back(schedule_group2);
+    fused_schedule_result.node_idx_to_scheduled_results[0][0].cube_type = ascir::CubeTemplateType::kUBFuse;
+    const std::map<std::string, std::string> shape_info;
+    auto res = this->Generate(fused_schedule_result, shape_info, "", "0");
+    std::fstream tiling_func("Dynamic_Matmul_fuse_tiling_func.cpp", std::ios::out);
+    tiling_func << res["tiling_def_and_tiling_const"];
+    std::cout << "KERNEL_SRC_LIST=" << KERNEL_SRC_LIST << std::endl;
+    std::vector<std::string> parts = splitString(KERNEL_SRC_LIST, ':');
+    std::string tiling_data_src_file_name = parts[0];
+    std::fstream tiling_data_file(tiling_data_src_file_name, std::ios::out);
+    tiling_data_file << "";
+    auto pos = res["tiling_def_and_tiling_const"].find("extern \"C\" int64_t GenCVFusionTilingKey(char* config_file, int aiv_num, int ub_size)");
+    ASSERT_NE(pos, std::string::npos);
+  } catch (...) {
+    gen_success = false;
+  }
   EXPECT_EQ(gen_success, true);
 }

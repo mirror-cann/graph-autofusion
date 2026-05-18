@@ -27,7 +27,7 @@ namespace {
 bool IsSupportInplace(const af::AscNodePtr &node) {
   // 1. ascir注册信息表示该节点不支持inplace
   if (!ascgen_utils::IsNodeSupportsInplace(node)) {
-    GELOGD("Node %s[%s] not support inplace.", node->GetTypePtr(), node->GetNamePtr());
+    GELOGD("Node %s[%s] does not support inplace.", node->GetTypePtr(), node->GetNamePtr());
     return false;
   }
   // 2. 当前节点如果是多输出，不支持复用（白名单可保证没有多输出节点，但是还是加一个校验）
@@ -41,7 +41,8 @@ bool IsSupportInplace(const af::AscNodePtr &node) {
   // 3. 若节点的任一输入是个单输出多引用，则不支持复用（存在优化空间，当前先不细化
   for (const auto &input_node : node->GetInDataNodes()) {
     if (input_node->GetOutDataNodesSize() > 1U) {
-      GELOGD("Node %s[%s] has %u output， not support inplace.", input_node->GetTypePtr(), input_node->GetNamePtr());
+      GELOGD("Node %s[%s] has %u outputs, does not support inplace.", input_node->GetTypePtr(),
+             input_node->GetNamePtr());
       return false;
     }
   }
@@ -169,13 +170,8 @@ Status BufQueAllocator::AllocBufQue(::ascir::FusedScheduledResult &fused_schedul
       cube_type = scheduled_result.cube_type;
       for (auto &schedule_group : scheduled_result.schedule_groups) {
         for (auto &impl_graph : schedule_group.impl_graphs) {
-          // partition sub funcs before allocate
-          GE_ASSERT_SUCCESS(platform->PartitionSubFunctions(impl_graph), "Failed to partition vf func for graph %s.",
-                            impl_graph.GetName().c_str());
-
-          GE_ASSERT_SUCCESS(
-              AllocBufQueForSingleImplGraph(impl_graph, config.max_que_num, scheduled_result.is_reduce_mem_reuse),
-              "Failed to allocate buf que for graph [%s].", impl_graph.GetName().c_str());
+          GE_CHK_STATUS_RET(
+              ProcessSingleImplGraph(impl_graph, *platform, config.max_que_num, scheduled_result.is_reduce_mem_reuse));
         }
       }
     }
@@ -186,7 +182,7 @@ Status BufQueAllocator::AllocBufQue(::ascir::FusedScheduledResult &fused_schedul
 Status BufQueAllocator::AllocateForIoNodes(const af::AscGraph &impl_graph) {
   for (const auto &node : impl_graph.GetAllNodes()) {
     GE_ASSERT_NOTNULL(node);
-    if (IsOps<Data>(node) || IsOps<Output>(node)) {
+    if (ScheduleUtils::IsDataInput(node) || IsOps<Output>(node)) {
       int64_t index = -1;
       GE_CHK_STATUS_RET(node->attr.ir_attr->GetAttrValue("index", index), "Get attr index failed, node = %s[%s]",
                         node->GetNamePtr(), node->GetTypePtr());
@@ -205,7 +201,7 @@ Status BufQueAllocator::AllocateForIoNodes(const af::AscGraph &impl_graph) {
         index_to_tensor_id[index] = tensor_id;
         node_type_to_index_to_node_[node->GetType()][index] = node;
       }
-      if (IsOps<Data>(node)) {
+      if (ScheduleUtils::IsDataInput(node)) {
         SetGlobalMemInfo(node->outputs[0], tensor_id);
       } else {
         if (node->GetInDataNodesSize() != 0UL) {
@@ -248,8 +244,10 @@ Status BufQueAllocator::AllocateForIoNodes(::ascir::FusedScheduledResult &fused_
       }
     }
   }
-  for (const auto &index_and_node : node_type_to_index_to_node_[Data::Type]) {
-    fused_scheduled_result.input_nodes.emplace_back(index_and_node.second);
+  for (const auto &type : {Data::Type, af::ascir_op::ScalarData::Type}) {
+    for (const auto &index_and_node : node_type_to_index_to_node_[type]) {
+      fused_scheduled_result.input_nodes.emplace_back(index_and_node.second);
+    }
   }
   for (const auto &index_and_node : node_type_to_index_to_node_[Output::Type]) {
     fused_scheduled_result.output_nodes.emplace_back(index_and_node.second);
@@ -265,7 +263,7 @@ Status BufQueAllocator::SetOutputTensorAttr(const af::AscGraph &impl_graph) cons
   for (const auto &node : impl_graph.GetAllNodes()) {
     GE_ASSERT_NOTNULL(node);
     // 前面在IO分配时已经分配过了
-    static std::set<std::string> allocated_types = {Data::Type, Workspace::Type, Store::Type, Output::Type};
+    static std::set<std::string> allocated_types = {Data::Type, ScalarData::Type, Workspace::Type, Store::Type, Output::Type};
     if (allocated_types.count(node->GetType()) > 0UL) {
       continue;
     }
@@ -434,7 +432,7 @@ Status BufQueAllocator::InitTensorMemInfo(af::AscGraph &graph, const af::AscTens
     GE_ASSERT_NOTNULL(graph_axis);
 
     auto axis_tensor_iter = std::find(axis.begin(), axis.end(), axis_id);
-    GE_ASSERT_TRUE(axis_tensor_iter != axis.end(), "Can not find vectorized axis [%ld]", axis_id);
+    GE_ASSERT_TRUE(axis_tensor_iter != axis.end(), "Cannot find vectorized axis [%ld]", axis_id);
 
     const int64_t axis_index = std::distance(axis.begin(), axis_tensor_iter);
     const auto &repeat = repeats[axis_index];
@@ -609,6 +607,7 @@ Status BufQueAllocator::AllocateWithinGroup(af::AscGraph &graph, size_t &total_v
   TmpBuffInfoMap tmp_buff_attr_to_tensor_info;
   TensorInfoMap tensor_attr_to_tensor_info;
   GE_ASSERT_SUCCESS(InitNodeTmpBuffInfo(graph, tmp_buff_attr_to_tensor_info));
+  GE_ASSERT_SUCCESS(MarkUnreusableTensors(graph));
   GE_ASSERT_SUCCESS(InitTensorInfo(graph, tensor_attr_to_tensor_info, is_reduce_mem_reuse));
   AllocateReuseId(graph, tensor_attr_to_tensor_info);
   InitGroupId(graph, tensor_attr_to_tensor_info);
@@ -802,6 +801,92 @@ Status BufQueAllocator::TopoSortByLoadPriority(af::AscGraph &graph) {
   GE_ASSERT_NOTNULL(compute_graph);
   compute_graph->TopologicalSorting(func);
 
+  return af::SUCCESS;
+}
+
+Status BufQueAllocator::ProcessSingleImplGraph(af::AscGraph &impl_graph, BasePlatform &platform, size_t max_que_num,
+                                               bool is_reduce_mem_reuse) {
+  GE_ASSERT_SUCCESS(platform.PartitionSubFunctions(impl_graph), "Failed to partition vf func for graph %s.",
+                    impl_graph.GetName().c_str());
+  if (cube_type == ascir::CubeTemplateType::kUBFuse) {
+    GE_ASSERT_SUCCESS(TopoSortByCubeLoadPriority(impl_graph),
+                      "Failed to topo sort by cube load priority for graph %s.", impl_graph.GetName().c_str());
+  }
+  return AllocBufQueForSingleImplGraph(impl_graph, max_que_num, is_reduce_mem_reuse);
+}
+
+Status BufQueAllocator::TopoSortByCubeLoadPriority(af::AscGraph &graph) {
+  GE_ASSERT_GRAPH_SUCCESS(ScheduleUtils::TopologicalSorting(graph));
+  std::unordered_set<af::Node *> priority_sequences;
+  // 收集 Cube_Load 节点及其直连输出消费者
+  for (const auto &node : graph.GetAllNodes()) {
+    if (node->GetName().find("Cube_Load_") == std::string::npos) {
+      continue;
+    }
+    for (const auto &out_node : node->GetOutNodes()) {
+      GE_ASSERT_NOTNULL(out_node);
+      if (IsOps<Store>(out_node)) {
+        continue;
+      }
+      priority_sequences.insert(out_node.get());
+    }
+  }
+  if (priority_sequences.empty()) {
+    return af::SUCCESS;
+  }
+  // 向上 BFS 回溯所有输入依赖
+  std::unordered_set<af::Node *> visited;
+  std::queue<af::Node *> bfs_queue;
+  for (auto *n : priority_sequences) {
+    bfs_queue.push(n);
+  }
+  while (!bfs_queue.empty()) {
+    auto *current = bfs_queue.front();
+    bfs_queue.pop();
+    for (const auto &in_node : current->GetInDataNodes()) {
+      GE_ASSERT_NOTNULL(in_node);
+      if (visited.insert(in_node.get()).second) {
+        priority_sequences.insert(in_node.get());
+        bfs_queue.push(in_node.get());
+      }
+    }
+  }
+
+  const auto func = [&priority_sequences](const af::NodePtr &node1, const af::NodePtr &node2) -> bool {
+    bool is_node1_in = priority_sequences.count(node1.get()) > 0;
+    bool is_node2_in = priority_sequences.count(node2.get()) > 0;
+    if (is_node1_in && !is_node2_in) {
+      return true;
+    }
+    return node1->GetOpDescBarePtr()->GetId() < node2->GetOpDescBarePtr()->GetId();
+  };
+
+  auto compute_graph = af::AscGraphUtils::GetComputeGraph(graph);
+  GE_ASSERT_NOTNULL(compute_graph);
+  compute_graph->TopologicalSorting(func);
+
+  return af::SUCCESS;
+}
+
+Status BufQueAllocator::MarkUnreusableTensors(const ge::AscGraph &graph) {
+  for (const auto &node : graph.GetAllNodes()) {
+    GE_ASSERT_NOTNULL(node);
+    bool input_is_unreusable = false;
+    (void)af::AttrUtils::GetBool(node->GetOpDesc(), kAttrNameNoReuseInputs, input_is_unreusable);
+    if (!input_is_unreusable) {
+      continue;
+    }
+    GELOGD("node: %s, input is unreusable", node->GetName().c_str());
+    std::map<af::NodePtr, std::vector<int64_t>> node_to_indices;
+    for (const auto &[in_node, out_anchor] : node->GetInDataNodesAndAnchors()) {
+      node_to_indices[in_node].push_back(out_anchor->GetIdx());
+    }
+    for (const auto &[in_node, indices] : node_to_indices) {
+      (void)af::AttrUtils::SetListInt(in_node->GetOpDesc(), kAttrNameNoReuseOutputIndices, indices);
+      GELOGD("mark unreusable output indices, node = %s, indices = %s", in_node->GetName().c_str(),
+             af::ToString(indices).c_str());
+    }
+  }
   return af::SUCCESS;
 }
 }  // namespace optimize

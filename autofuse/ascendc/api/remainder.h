@@ -50,13 +50,17 @@ __aicore__ inline void RemainderExtend(const AscendC::LocalTensor<T> &dst, const
   constexpr bool isInt32Input = AscendC::IsSameType<T, int32_t>::value;
   
   // Split tmp_buf into 3 parts for intermediate results
-  // Note: AscendC::ONE_BLK_SIZE = 32 bytes, buffer should be 32-byte aligned for optimal performance
+  // Note: AscendC::ONE_BLK_SIZE = 32 bytes, buffer should be 32-byte aligned for hardware requirements
+  // Div/Cast/Mul/Sub APIs require LocalTensor start address to be 32-byte aligned
   uint32_t totalBufSize = tmp_buf.GetSize();
   
   // Calculate aligned buffer size for each of 3 buffers
-  // Must be at least AscendC::ONE_BLK_SIZE (32 bytes) for hardware requirements
+  // Each buffer must be 32-byte aligned to satisfy API constraints
+  // Step 1: Align total buffer size down to 32B boundary
   uint32_t alignedTotalSize = totalBufSize / AscendC::ONE_BLK_SIZE * AscendC::ONE_BLK_SIZE;
-  uint32_t bufSize = alignedTotalSize / REMAINDER_TMP_BUF_FACTOR;
+  // Step 2: Divide by 3, then align each buffer size down to 32B boundary
+  // This ensures bufSize is a multiple of 32B, so buf1 and buf2 offsets are 32B aligned
+  uint32_t bufSize = alignedTotalSize / REMAINDER_TMP_BUF_FACTOR / AscendC::ONE_BLK_SIZE * AscendC::ONE_BLK_SIZE;
   
   // Ensure bufSize is at least AscendC::ONE_BLK_SIZE to meet hardware alignment requirements
   if (bufSize < AscendC::ONE_BLK_SIZE) {

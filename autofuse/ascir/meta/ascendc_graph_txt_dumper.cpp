@@ -241,7 +241,7 @@ std::vector<std::string> CollectInputNames(const ascir::Graph &graph, const af::
       auto peer_name = peer_out_anchor->GetOwnerNode()->GetName();
       int32_t out_idx = peer_out_anchor->GetIdx();
       // 检查源节点是否有多个输出，如果有则显示索引
-      auto peer_node = peer_out_anchor->GetOwnerNode();
+      auto peer_node = peer_out_anchor->GetOwnerNodeBarePtr();
       if (peer_node && peer_node->GetAllOutDataAnchorsSize() > 1) {
         input_names.push_back(peer_name + ".y[" + std::to_string(out_idx) + "]");
       } else {
@@ -977,7 +977,7 @@ std::string GetStoreDestinationComment(const af::AscNodePtr &node) {
   if (out_anchor == nullptr) {
     return "";
   }
-  for (const auto &peer_in_anchor: out_anchor->GetPeerInDataAnchors()) {
+  for (const auto &peer_in_anchor: out_anchor->GetPeerInDataAnchorsPtr()) {
     auto peer_node = peer_in_anchor->GetOwnerNodeBarePtr();
     if (peer_node == nullptr) continue;
     auto dest_type = peer_node->GetType();
@@ -1522,12 +1522,6 @@ static void DumpNodeOutputs(std::stringstream &ss, const ascir::Graph &graph,
                             const af::AscNodePtr &node,
                             const std::map<af::AxisId, std::string> &axis_id_to_name,
                             bool verbose, bool is_subgraph) {
-  auto node_type = node->GetType();
-  // 子图模式下，只输出 Data 和 Output 节点的输出信息
-  if (is_subgraph && node_type != "Data" && node_type != "Output") {
-    return;
-  }
-
   size_t output_count = node->outputs().size();
   for (size_t i = 0; i < output_count; ++i) {
     auto &output_attr = node->outputs()[i]->attr;

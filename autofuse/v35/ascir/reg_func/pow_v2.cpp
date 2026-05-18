@@ -35,13 +35,14 @@ std::vector<std::unique_ptr<TmpBufDesc>> CalcPowTmpSizeV2(const AscNode &node) {
   } else {
     uint32_t max_live_node_cnt = 0U;
     constexpr uint32_t POW_DOUBLE = 2U;
-    // f32双倍tmp_buf，f16四倍tmp_buf
+    constexpr uint32_t POW_TRIPLE = 3U;
+    // f32三倍tmp_buf，f16六倍tmp_buf
     if (data_type == ge::DT_INT32) {
       max_live_node_cnt = 0U;
     } else if (data_type_size == sizeof(float)) {
-      max_live_node_cnt = POW_DOUBLE;
+      max_live_node_cnt = POW_TRIPLE;
     } else {
-      max_live_node_cnt = POW_DOUBLE * POW_DOUBLE;
+      max_live_node_cnt = POW_DOUBLE * POW_TRIPLE;
     }
 
     // 乘以存活节点系数之前，做一次32B对齐

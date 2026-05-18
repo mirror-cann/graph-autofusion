@@ -31,6 +31,7 @@ PyMODINIT_FUNC PyInit_pyautofuse(void);
 #define REGISTERED_OPS \
   OP(Data)             \
   OP(Scalar)           \
+  OP(ScalarData)       \
   OP(Workspace)        \
   OP(Output)           \
   OP(IndexExpr)        \

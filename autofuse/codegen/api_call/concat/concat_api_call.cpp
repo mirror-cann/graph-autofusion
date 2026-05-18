@@ -182,7 +182,7 @@ Status ConcatApiCall::ParseConcatDim(const Tensor &x0, const Tensor &y, size_t &
          VectorToStr(y.vectorized_strides).c_str());
 
   GE_CHK_BOOL_RET_STATUS(x0.vectorized_axis.size() == y.vectorized_axis.size(), ge::FAILED,
-                         "Codegen concat input output vectorized axis not equal");
+                         "Codegen concat input output vectorized_axis not equal");
   // 遍历向量化轴, 确定concat轴
   bool find_concat_dim = false;
   for (size_t i = 0; i < y.vectorized_axis.size(); i++) {

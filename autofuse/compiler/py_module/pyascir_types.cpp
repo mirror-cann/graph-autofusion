@@ -22,6 +22,8 @@
 #include "pyascir_types.h"
 #include "common/common_utils.h"
 
+using ascir::ImplGraph;
+
 /** SizeExpr */
 namespace pyascir {
 // 生成推导dtype的映射
@@ -930,44 +932,105 @@ PyTypeObject ShapeInfo::type = {PyVarObject_HEAD_INIT(nullptr, 0)};
 
 /** FusedScheduledResult */
 namespace pyascir {
+static bool ProcessMatMulNode(const af::AscNodePtr &node, PyObject *attr_dict) {
+  ascgen_utils::MatMulAttr mm_attr_data;
+  PY_ASSERT_GRAPH_SUCCESS(ascgen_utils::ParseMatmulAttr(node, mm_attr_data));
+  uint32_t length = 0U;
+  PY_ASSERT_GRAPH_SUCCESS(ascgen_utils::GetCubeOutputTypeSize(node, length));
+
+  PyDict_SetItemString(attr_dict, "has_relu", (mm_attr_data.has_relu != 0) ? Py_True : Py_False);
+  PyDict_SetItemString(attr_dict, "is_batch", mm_attr_data.is_batch ? Py_True : Py_False);
+  PyDict_SetItemString(attr_dict, "transpose_x1",
+                       ((mm_attr_data.transpose_x1 != 0) || (mm_attr_data.adj_x1 != 0)) ? Py_True : Py_False);
+  PyDict_SetItemString(attr_dict, "transpose_x2",
+                       ((mm_attr_data.transpose_x2 != 0) || (mm_attr_data.adj_x2 != 0)) ? Py_True : Py_False);
+  SET_DICT_LONG(attr_dict, "offset_x", mm_attr_data.offset_x);
+  if (mm_attr_data.is_batch) {
+    PyDict_SetItemString(attr_dict, "enable_hf32", mm_attr_data.enable_hf32 != 0 ? Py_True : Py_False);
+  } else {
+    SET_DICT_LONG(attr_dict, "enable_hf32", mm_attr_data.enable_hf32);
+  }
+  SET_DICT_LONG(attr_dict, "type_size", length);
+  uint32_t mm_input_num = 0U;
+  PY_ASSERT_GRAPH_SUCCESS(ascgen_utils::GetCubeInputNum(node, mm_input_num));
+  SET_DICT_LONG(attr_dict, "input_num", mm_input_num);
+  return true;
+}
+
+static bool ProcessConv2DNode(const af::AscNodePtr &node, PyObject *attr_dict) {
+  ascgen_utils::Conv2DAttr conv_attr_data;
+  PY_ASSERT_GRAPH_SUCCESS(ascgen_utils::ParseConv2DAttr(node, conv_attr_data));
+  uint32_t length = 0U;
+  PY_ASSERT_GRAPH_SUCCESS(ascgen_utils::GetCubeOutputTypeSize(node, length));
+
+  PyObject *strides_list = PyList_New(conv_attr_data.strides.size());
+  PY_ASSERT_NOTNULL(strides_list, "strides_list is not ready");
+  for (size_t i = 0; i < conv_attr_data.strides.size(); ++i) {
+    PyList_SetItem(strides_list, i, PyLong_FromLong(conv_attr_data.strides[i]));
+  }
+  PyDict_SetItemString(attr_dict, "strides", strides_list);
+  Py_DECREF(strides_list);
+
+  PyObject *pads_list = PyList_New(conv_attr_data.pads.size());
+  PY_ASSERT_NOTNULL(pads_list, "pads_list is not ready");
+  for (size_t i = 0; i < conv_attr_data.pads.size(); ++i) {
+    PyList_SetItem(pads_list, i, PyLong_FromLong(conv_attr_data.pads[i]));
+  }
+  PyDict_SetItemString(attr_dict, "pads", pads_list);
+  Py_DECREF(pads_list);
+
+  PyObject *dilations_list = PyList_New(conv_attr_data.dilations.size());
+  PY_ASSERT_NOTNULL(dilations_list, "dilations_list is not ready");
+  for (size_t i = 0; i < conv_attr_data.dilations.size(); ++i) {
+    PyList_SetItem(dilations_list, i, PyLong_FromLong(conv_attr_data.dilations[i]));
+  }
+  PyDict_SetItemString(attr_dict, "dilations", dilations_list);
+  Py_DECREF(dilations_list);
+
+  SET_DICT_LONG(attr_dict, "groups", conv_attr_data.groups);
+  PyDict_SetItemString(attr_dict, "pad_mode", PyUnicode_FromString(conv_attr_data.pad_mode.c_str()));
+  PyDict_SetItemString(attr_dict, "data_format", PyUnicode_FromString(conv_attr_data.data_format.c_str()));
+  SET_DICT_LONG(attr_dict, "offset_x", conv_attr_data.offset_x);
+  PyDict_SetItemString(attr_dict, "enable_hf32", conv_attr_data.enable_hf32 ? Py_True : Py_False);
+  PyDict_SetItemString(attr_dict, "is_bias", conv_attr_data.is_bias ? Py_True : Py_False);
+  PyDict_SetItemString(attr_dict, "is_offset_w", conv_attr_data.is_offset_w ? Py_True : Py_False);
+  PyDict_SetItemString(attr_dict, "output_dtype", PyUnicode_FromString(conv_attr_data.output_dtype.c_str()));
+  PyDict_SetItemString(attr_dict, "input_dtype", PyUnicode_FromString(conv_attr_data.input_dtype.c_str()));
+  SET_DICT_LONG(attr_dict, "type_size", length);
+  uint32_t conv_input_num = 0U;
+  PY_ASSERT_GRAPH_SUCCESS(ascgen_utils::GetCubeInputNum(node, conv_input_num));
+  SET_DICT_LONG(attr_dict, "input_num", conv_input_num);
+  std::string npu_arch;
+  PY_ASSERT_SUCCESS(ge::PlatformContext::GetInstance().GetCurrentPlatformString(npu_arch),
+                    "Failed to get npu_arch");
+  PyDict_SetItemString(attr_dict, "npu_arch", PyUnicode_FromString(npu_arch.c_str()));
+  return true;
+}
+
 static bool ProcessImplGraphs(PyObject *result_dict, const std::vector<af::AscGraph> &impl_graphs) {
   for (auto &impl_graph : impl_graphs) {
     for (auto node : impl_graph.GetAllNodes()) {
-      if (node->attr.api.compute_type != af::ComputeType::kComputeCube) {
+      if (node->attr.api.compute_type != ge::ComputeType::kComputeCube) {
         continue;
       }
-      ascgen_utils::MatMulAttr mm_attr_data;
-      PY_ASSERT_GRAPH_SUCCESS(ascgen_utils::ParseMatmulAttr(node, mm_attr_data));
-      uint32_t length = 0U;
-      PY_ASSERT_GRAPH_SUCCESS(ascgen_utils::GetMutmulOutputTypeSize(node, length));
       PyObject *attr_dict = PyDict_New();
       PY_ASSERT_NOTNULL(attr_dict, "attr_dict is not ready");
 
-      // 创建守卫，确保在发生异常时释放attr_dict
       GE_DISMISSABLE_GUARD(attr_dict_guard, [attr_dict]() { Py_DECREF(attr_dict); });
 
-      PyDict_SetItemString(attr_dict, "has_relu", (mm_attr_data.has_relu != 0) ? Py_True : Py_False);
-      PyDict_SetItemString(attr_dict, "is_batch", mm_attr_data.is_batch ? Py_True : Py_False);
-      PyDict_SetItemString(attr_dict, "transpose_x1",
-                           ((mm_attr_data.transpose_x1 != 0) || (mm_attr_data.adj_x1 != 0)) ? Py_True : Py_False);
-      PyDict_SetItemString(attr_dict, "transpose_x2",
-                           ((mm_attr_data.transpose_x2 != 0) || (mm_attr_data.adj_x2 != 0)) ? Py_True : Py_False);
-      SET_DICT_LONG(attr_dict, "offset_x", mm_attr_data.offset_x);
-      if (mm_attr_data.is_batch) {
-        PyDict_SetItemString(attr_dict, "enable_hf32", mm_attr_data.enable_hf32 != 0 ? Py_True : Py_False);
+      if (ascgen_utils::IsConv2DGraphType(impl_graph)) {
+        if (!ProcessConv2DNode(node, attr_dict)) {
+          return false;
+        }
       } else {
-        SET_DICT_LONG(attr_dict, "enable_hf32", mm_attr_data.enable_hf32);
+        if (!ProcessMatMulNode(node, attr_dict)) {
+          return false;
+        }
       }
-      SET_DICT_LONG(attr_dict, "type_size", length);
-      uint32_t mm_input_num = 0U;
-      PY_ASSERT_GRAPH_SUCCESS(ascgen_utils::GetMutmulInputNum(node, mm_input_num));
-      SET_DICT_LONG(attr_dict, "input_num", mm_input_num);
-      // 将属性字典添加到结果中
       PyDict_SetItemString(result_dict, "cube_attributes", attr_dict);
 
       GE_DISMISS_GUARD(attr_dict_guard);
       Py_DECREF(attr_dict);
-      // 如果只需要第一个cube节点，可以break，后续要处理多个cube节点时，删除这里
       return true;
     }
   }
@@ -1009,6 +1072,18 @@ PyObject *FusedScheduledResult::GetOutputNum(PyObject *self_pyobject) {
   auto self = reinterpret_cast<FusedScheduledResult::Object *>(self_pyobject);
   int64_t output_num = self->fused_schedule_result.output_nodes.size();
   return PyLong_FromLong(output_num);
+}
+
+PyObject *FusedScheduledResult::IsConvType(PyObject *self_pyobject) {
+  auto self = reinterpret_cast<FusedScheduledResult::Object *>(self_pyobject);
+  if (self == nullptr) {
+    return Py_False;
+  }
+  if (ascgen_utils::IsConv2DFusedScheduled(self->fused_schedule_result)) {
+    return Py_True;
+  }
+
+  return Py_False;
 }
 
 PyObject *FusedScheduledResult::IsCubeType(PyObject *self_pyobject) {
@@ -1064,6 +1139,8 @@ PyMethodDef FusedScheduledResult::methods[] = {
      "Check cube type"},
     {"get_cube_attributes", reinterpret_cast<PyCFunction>(FusedScheduledResult::GetCubeAttributes), METH_NOARGS,
      "Get cube attributes"},
+    {"is_conv_type", reinterpret_cast<PyCFunction>(FusedScheduledResult::IsConvType), METH_NOARGS,
+     "Check conv type"},
     {nullptr}};
 
 PyTypeObject FusedScheduledResult::type = {PyVarObject_HEAD_INIT(nullptr, 0)};

@@ -22,7 +22,7 @@
 #include "lowering/asc_ir_lowerer.h"
 #include "lowering/lowerings.h"
 #include "lowering/op_lowering_impl/lowering_impl.h"
-#include "utils/autofuse_attrs.h"
+#include "fusion/autofuse_attrs.h"
 #include "utils/auto_fuse_config.h"
 #include "platform_context.h"
 
@@ -61,7 +61,7 @@ public:
 protected:
   void SetUp() override {
     dlog_setlevel(GE_MODULE_NAME, DLOG_INFO, 0);
-    af::PlatformContext::GetInstance().Reset();
+    ge::PlatformContext::GetInstance().Reset();
     auto stub_v2 = std::make_shared<RuntimeStubV2Common>();
     RuntimeStub::SetInstance(stub_v2);
     es_graph_ = std::unique_ptr<es::Graph>(new es::Graph("graph"));
@@ -72,7 +72,7 @@ protected:
   void TearDown() override {
     dlog_setlevel(GE_MODULE_NAME, DLOG_ERROR, 0);
     RuntimeStub::Reset();
-    af::PlatformContext::GetInstance().Reset();
+    ge::PlatformContext::GetInstance().Reset();
     auto stub_v1 = std::make_shared<RuntimeStub>();
     RuntimeStub::SetInstance(stub_v1);
   }

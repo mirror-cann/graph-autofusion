@@ -93,7 +93,7 @@ TEST_F(CalcPowTmpSizeV2Test, CalcPowTmpSize_ShouldReturnCorrectSize_WhenNodelsVa
   std::vector<std::unique_ptr<af::TmpBufDesc>> result = CalcPowTmpSizeV2(*node);
   ASSERT_EQ(result.size(), 1);
   // data_type_size * input_size * max_live_node_cnt
-  ASSERT_EQ(result[0]->size, sym::Min(af::Symbol(4) * Symbol(56) * af::Symbol(2), MAX_TMP_BUFFER_SIZE));
+  ASSERT_EQ(result[0]->size, sym::Min(sym::Align(af::Symbol(4) * Symbol(56), 32) * af::Symbol(3), MAX_TMP_BUFFER_SIZE));
   ASSERT_EQ(result[0]->life_time_axis_id, -1);
 }
 

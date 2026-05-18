@@ -62,8 +62,8 @@ bool IsContinuesBroadcast(const ascir::ImplGraph &impl_graph, const af::AscNodeP
     return false;
   }
   const auto &in_nodes = pre_node->GetInDataNodes();
-  if (af::ops::IsOps<af::ascir_op::Scalar>(in_nodes.at(0UL))) {
-    GELOGD("Input of Broadcast[%s] is Scalar[%s], support.", brc_node->GetNamePtr(), in_nodes.at(0UL)->GetNamePtr());
+  if (optimize::ScheduleUtils::IsScalarLikeNode(in_nodes.at(0UL))) {
+    GELOGD("Input of Broadcast[%s] is Scalar[%s], is supported.", brc_node->GetNamePtr(), in_nodes.at(0UL)->GetNamePtr());
     return true;
   }
   auto &in_vec_axis = pre_node->inputs[0].attr.vectorized_axis;
@@ -84,7 +84,7 @@ bool IsContinuesBroadcast(const ascir::ImplGraph &impl_graph, const af::AscNodeP
   }
 
   if (optimize::ScheduleUtils::IsContinuesBroadcast(in_vec_repeats, out_vec_repeats)) {
-    GELOGD("Graph [%s], [%s] and [%s], find continues broadcast", impl_graph.GetName().c_str(), brc_node->GetNamePtr(),
+    GELOGD("Graph [%s], [%s] and [%s], find continuous broadcast", impl_graph.GetName().c_str(), brc_node->GetNamePtr(),
            pre_node->GetNamePtr());
     return true;
   }
@@ -280,7 +280,7 @@ Status Scheduler::ModifyStoreAfterReduce(ascir::NodeView &node, ascir::AxisId re
       size_product = size_product * repeat;
     }
     auto iter = std::find(output_attr.axis.begin(), output_attr.axis.end(), reduce_block_id);
-    GE_ASSERT_TRUE(iter != output_attr.axis.end(), "Can not find axis [%ld] from [%s]'s output tensor.",
+    GE_ASSERT_TRUE(iter != output_attr.axis.end(), "Cannot find axis [%ld] from [%s]'s output tensor.",
                    reduce_block_id, node->GetNamePtr());
     size_t index = std::distance(output_attr.axis.begin(), iter);
     GE_ASSERT_TRUE(index < output_attr.repeats.size(), "Repeats of [%s]'s output tensor not greater than [%lu].",
@@ -409,7 +409,7 @@ Status Scheduler::RemoveRedundantBroadcastNode(const ascir::ImplGraph &impl_grap
       GELOGD("Graph [%s] Broadcast [%s] is redundant, remove it.", impl_graph.GetName().c_str(), node->GetNamePtr());
       GE_ASSERT_SUCCESS(ScheduleUtils::RemoveNode(impl_graph, node, pre_node_out_anchor));
     } else if (IsContinuesBroadcast(impl_graph, node, pre_node)) {
-      GELOGD("Graph [%s] Broadcast [%s] is continues, remove it.", impl_graph.GetName().c_str(),
+      GELOGD("Graph [%s] Broadcast [%s] is continuous, remove it.", impl_graph.GetName().c_str(),
              pre_node->GetNamePtr());
       node->inputs[0].attr = pre_node->inputs[0].attr;
       GE_CHECK_NOTNULL(pre_node->GetInDataAnchor(0));

@@ -10,10 +10,11 @@
 
 #include <cmath>
 #include <random>
+#include <type_traits>
 #include "gtest/gtest.h"
 #include "tikicpulib.h"
 #include "test_api_utils.h"
-#include "floor_div.h"
+#include "api_regbase/floor_div.h"
 
 using namespace AscendC;
 
@@ -48,7 +49,7 @@ class TestRegbaseApiFloorDiv :public testing::Test {
 
     GmToUb(l_x1, param.src0, param.size);
     GmToUb(l_x2, param.src1, param.size);
-    FloorDivExtend(l_y, l_x1, l_x2, param.size, l_tmp);
+    FloorDivExtend(l_y, l_x1, l_x2, param.size);
     UbToGm(param.y, l_y, param.size);
   }
 
@@ -62,19 +63,53 @@ class TestRegbaseApiFloorDiv :public testing::Test {
     param.src1 = static_cast<T *>(AscendC::GmAlloc(sizeof(T) * param.size));
     int input_range = 10;
 
-    std::mt19937 eng(1);
-    std::uniform_int_distribution distr(0, input_range);  // Define the range
+    if constexpr (std::is_integral_v<T> && std::is_signed_v<T>) {
+      // 有符号整型：src0 范围 [-input_range, input_range]，src1 范围 [-input_range, input_range]（排除 0）
+      std::mt19937 eng(1);
+      std::uniform_int_distribution<int32_t> distr(-input_range, input_range);
+      std::mt19937 eng1(3);
+      std::uniform_int_distribution<int32_t> distr1(-input_range, input_range);
 
-    // 构造src1的随机生成器
-    std::mt19937 eng1(3);                                  // Seed the generator
-    std::uniform_int_distribution distr1(1, input_range);  // Define the range
+      for (int i = 0; i < param.size; i++) {
+        int32_t input = distr(eng);
+        int32_t input1 = distr1(eng1);
+        while (input1 == 0) {
+          input1 = distr1(eng1);
+        }
+        param.src0[i] = static_cast<T>(input);
+        param.src1[i] = static_cast<T>(input1);
+        param.exp[i] = static_cast<T>(std::floor(static_cast<double>(input) / static_cast<double>(input1)));
+      }
+    } else if constexpr (std::is_integral_v<T> && std::is_unsigned_v<T>) {
+      // 无符号整型：src0 范围 [0, input_range]，src1 范围 [1, input_range]
+      std::mt19937 eng(1);
+      std::uniform_int_distribution<uint32_t> distr(0, input_range);
+      std::mt19937 eng1(3);
+      std::uniform_int_distribution<uint32_t> distr1(1, input_range);
 
-    for (int i = 0; i < param.size; i++) {
-      T input = distr(eng);  // Use the secure random number generator
-      T input1 = distr1(eng1);
-      param.src0[i] = input;
-      param.src1[i] = input1;
-      param.exp[i] = std::floor((double)input / (double)input1);
+      for (int i = 0; i < param.size; i++) {
+        uint32_t input = distr(eng);
+        uint32_t input1 = distr1(eng1);
+        param.src0[i] = static_cast<T>(input);
+        param.src1[i] = static_cast<T>(input1);
+        param.exp[i] = static_cast<T>(std::floor(static_cast<double>(input) / static_cast<double>(input1)));
+      }
+    } else {
+      // 浮点类型（half/float）：原始逻辑
+      std::mt19937 eng(1);
+      std::uniform_int_distribution distr(0, input_range);  // Define the range
+
+      // 构造src1的随机生成器
+      std::mt19937 eng1(3);                                  // Seed the generator
+      std::uniform_int_distribution distr1(1, input_range);  // Define the range
+
+      for (int i = 0; i < param.size; i++) {
+        T input = distr(eng);  // Use the secure random number generator
+        T input1 = distr1(eng1);
+        param.src0[i] = input;
+        param.src1[i] = input1;
+        param.exp[i] = std::floor((double)input / (double)input1);
+      }
     }
   }
 
@@ -87,6 +122,14 @@ class TestRegbaseApiFloorDiv :public testing::Test {
       }
     }
     return diff_count;
+  }
+
+  template <typename T>
+  static void FreeTensorInput(TensorFloorDivInputParam<T> &param) {
+    AscendC::GmFree(param.y);
+    AscendC::GmFree(param.exp);
+    AscendC::GmFree(param.src0);
+    AscendC::GmFree(param.src1);
   }
 
   template <typename T>
@@ -105,6 +148,9 @@ class TestRegbaseApiFloorDiv :public testing::Test {
     // 验证结果
     uint32_t diff_count = Valid(param.y, param.exp, param.size);
     EXPECT_EQ(diff_count, 0);
+
+    // 释放内存
+    FreeTensorInput(param);
   }
 };
 
@@ -121,4 +167,40 @@ TEST_F(TestRegbaseApiFloorDiv, FloorDiv_Test) {
   FloorDivTest<float>((ONE_BLK_SIZE - sizeof(float)) / sizeof(float));
   FloorDivTest<float>((ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) / sizeof(float));
   FloorDivTest<float>(((MAX_REPEAT_NUM - 1) * ONE_REPEAT_BYTE_SIZE + (ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) + (ONE_BLK_SIZE - sizeof(float))) / 2 /sizeof(float));
+}
+
+TEST_F(TestRegbaseApiFloorDiv, FloorDiv_Int16_Test) {
+  FloorDivTest<int16_t>(ONE_BLK_SIZE / sizeof(int16_t));
+  FloorDivTest<int16_t>(ONE_REPEAT_BYTE_SIZE / sizeof(int16_t));
+  FloorDivTest<int16_t>(MAX_REPEAT_NUM * ONE_REPEAT_BYTE_SIZE / 2 / sizeof(int16_t));
+  FloorDivTest<int16_t>((ONE_BLK_SIZE - sizeof(int16_t)) / sizeof(int16_t));
+  FloorDivTest<int16_t>((ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) / sizeof(int16_t));
+  FloorDivTest<int16_t>((MAX_REPEAT_NUM - 1) * ONE_REPEAT_BYTE_SIZE / 2 / sizeof(int16_t));
+}
+
+TEST_F(TestRegbaseApiFloorDiv, FloorDiv_UInt16_Test) {
+  FloorDivTest<uint16_t>(ONE_BLK_SIZE / sizeof(uint16_t));
+  FloorDivTest<uint16_t>(ONE_REPEAT_BYTE_SIZE / sizeof(uint16_t));
+  FloorDivTest<uint16_t>(MAX_REPEAT_NUM * ONE_REPEAT_BYTE_SIZE / 2 / sizeof(uint16_t));
+  FloorDivTest<uint16_t>((ONE_BLK_SIZE - sizeof(uint16_t)) / sizeof(uint16_t));
+  FloorDivTest<uint16_t>((ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) / sizeof(uint16_t));
+  FloorDivTest<uint16_t>((MAX_REPEAT_NUM - 1) * ONE_REPEAT_BYTE_SIZE / 2 / sizeof(uint16_t));
+}
+
+TEST_F(TestRegbaseApiFloorDiv, FloorDiv_Int32_Test) {
+  FloorDivTest<int32_t>(ONE_BLK_SIZE / sizeof(int32_t));
+  FloorDivTest<int32_t>(ONE_REPEAT_BYTE_SIZE / sizeof(int32_t));
+  FloorDivTest<int32_t>(MAX_REPEAT_NUM * ONE_REPEAT_BYTE_SIZE / 2 / sizeof(int32_t));
+  FloorDivTest<int32_t>((ONE_BLK_SIZE - sizeof(int32_t)) / sizeof(int32_t));
+  FloorDivTest<int32_t>((ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) / sizeof(int32_t));
+  FloorDivTest<int32_t>((MAX_REPEAT_NUM - 1) * ONE_REPEAT_BYTE_SIZE / 2 / sizeof(int32_t));
+}
+
+TEST_F(TestRegbaseApiFloorDiv, FloorDiv_UInt32_Test) {
+  FloorDivTest<uint32_t>(ONE_BLK_SIZE / sizeof(uint32_t));
+  FloorDivTest<uint32_t>(ONE_REPEAT_BYTE_SIZE / sizeof(uint32_t));
+  FloorDivTest<uint32_t>(MAX_REPEAT_NUM * ONE_REPEAT_BYTE_SIZE / 2 / sizeof(uint32_t));
+  FloorDivTest<uint32_t>((ONE_BLK_SIZE - sizeof(uint32_t)) / sizeof(uint32_t));
+  FloorDivTest<uint32_t>((ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) / sizeof(uint32_t));
+  FloorDivTest<uint32_t>((MAX_REPEAT_NUM - 1) * ONE_REPEAT_BYTE_SIZE / 2 / sizeof(uint32_t));
 }

@@ -106,7 +106,7 @@ Status FusedGraphModifier::ProcessDataNodes(const af::AscNodePtr &sub_data_node,
                     ascbc_node->GetNamePtr(), index);
   auto peer_out_node = in_anchor->GetPeerOutAnchor()->GetOwnerNodeBarePtr();
   GE_ASSERT_NOTNULL(peer_out_node);
-  if (peer_out_node->GetType() == af::ascir_op::Data::Type) {
+  if (ScheduleUtils::IsDataInput(peer_out_node)) {
     auto op_desc = peer_out_node->GetOpDescBarePtr();
     GE_ASSERT_NOTNULL(op_desc);
     auto node_attr = op_desc->GetAttrsGroup<af::AscNodeAttr>();
@@ -170,7 +170,7 @@ Status FusedGraphModifier::SubgraphConnectionsToWorkspace(const af::ComputeGraph
 
     for (const auto &sub_node : iter->second.GetAllNodes()) {
       // 处理输入
-      if (af::ops::IsOps<af::ascir_op::Data>(sub_node)) {
+      if (ScheduleUtils::IsDataInput(sub_node)) {
         GE_ASSERT_SUCCESS(ProcessDataNodes(sub_node, node, iter->second, context));
       }
     }

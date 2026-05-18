@@ -28,9 +28,8 @@ Status ConstructSimpleLoadStoreOp(af::AscGraph &graph) {
       auto load1 = Load("load", data1).TQue(Position::kPositionVecIn, 1, 1);
       auto abs1 = Abs("Abs", load1).TQue(Position::kPositionVecIn, 1, 2);
       auto store1 = Store("store", abs1);
-      std::vector<af::AscOpOutput> simple_outputs_tmp = {load1, abs1, store1};
       GE_ASSERT_SUCCESS(
-          att::GraphConstructUtils::UpdateOutputTensorAxes({*ndB, *ndbT, *ndb, *ndbt}, std::move(simple_outputs_tmp), 2));
+          att::GraphConstructUtils::UpdateOutputTensorAxes({*ndB, *ndbT, *ndb, *ndbt}, {load1, abs1, store1}, 2));
       auto output1 = Output("output1", store1);
     }
   }
@@ -60,9 +59,8 @@ Status BuildConcatGroupAscendGraphS0S1ReduceMultiTiling(af::AscGraph &graph) {
       auto load1 = Load("load1", data1).TQue(Position::kPositionVecIn, 1, 1);
       auto mean = Mean("mean1", load1).TQue(Position::kPositionVecOut, 1, 1);
       auto store1 = Store("store1", mean);
-      std::vector<af::AscOpOutput> concat_outputs_tmp = {load1, store1};
       GE_ASSERT_SUCCESS(
-          att::GraphConstructUtils::UpdateOutputTensorAxes({*s1Ts0TB, *s1Ts0Tb, *s1t, *s0t}, std::move(concat_outputs_tmp), 1));
+          att::GraphConstructUtils::UpdateOutputTensorAxes({*s1Ts0TB, *s1Ts0Tb, *s1t, *s0t}, {load1, store1}, 1));
       *load1.axis = {s1Ts0Tb->id, s1t->id, s0t->id};
       *load1.repeats = {s1Ts0Tb->size, s1t->size, s0t->size};
       *load1.strides = {s0t->size * s1t->size, s1t->size, att::CreateExpr(1)};

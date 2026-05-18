@@ -468,6 +468,7 @@ void SolverPassManager::InitSolverGen(AxesReorderSolverGen &solver_gen) {
   solver_gen.SetCoreNumThreshold(corenum_threshold_);
   solver_gen.SetEnableMulticoreUBTradeoff(enable_multicore_ub_tradeoff_);
   solver_gen.SetEnableAutofusePGO(enable_autofuse_pgo_);
+  solver_gen.SetIsInductorScene(is_inductor_scene_);
   solver_gen.SetAutofusePGOStepMax(pgo_step_max_);
   solver_gen.SetHighPerfTiling(enable_high_perf_);
   solver_gen.SetEnableEqualOrder(enable_equal_order_);

@@ -10696,6 +10696,154 @@ static void CreateRoundToIntFloatToInt32AscGraph(af::AscGraph &graph, size_t dim
   ConstructVVAscGraphAxisInfo(graph, dims_size);
 }
 
+// ============================================================================
+// MaskRegChain 测试图：链式 MaskReg 位宽转换
+// 验证场景：
+// 1. UINT8 Load -> Where (UINT8→INT64) [MaskUnPack] - load直接作为mask输入
+// 2. INT64 Compare -> Where (INT64→INT16) [MaskPack]
+// 3. INT16 Compare -> Store
+// ============================================================================
+static void CreateMaskRegChainAscGraph(af::AscGraph &graph, size_t dims_size) {
+  // ========== Data0: Input A (UINT8) - mask来源 ==========
+  af::ascir_op::Data data0("data0", graph);
+  data0.y.dtype = ge::DT_UINT8;
+  data0.ir_attr.SetIndex(0);
+
+  af::ascir_op::Load load0("load0");
+  load0.y.dtype = ge::DT_UINT8;
+  load0.x = data0.y;
+
+  // ========== Data1: Input B (INT64) - Where0 x2 ==========
+  af::ascir_op::Data data1("data1", graph);
+  data1.y.dtype = ge::DT_INT64;
+  data1.ir_attr.SetIndex(1);
+
+  af::ascir_op::Load load1("load1");
+  load1.y.dtype = ge::DT_INT64;
+  load1.x = data1.y;
+
+  // ========== Data2: Input C (INT64) - Where0 x3 ==========
+  af::ascir_op::Data data2("data2", graph);
+  data2.y.dtype = ge::DT_INT64;
+  data2.ir_attr.SetIndex(2);
+
+  af::ascir_op::Load load2("load2");
+  load2.y.dtype = ge::DT_INT64;
+  load2.x = data2.y;
+
+  // ========== Where0: UINT8→INT64 [MaskUnPack] ==========
+  // load0 (UINT8) 直接作为 mask 输入，无需 Compare 节点
+  af::ascir_op::Where where0("where0");
+  where0.x1 = load0.y;
+  where0.x2 = load1.y;
+  where0.x3 = load2.y;
+  where0.y.dtype = ge::DT_INT64;
+
+  // ========== Data3: Input D (INT64) - Ge0 x2 ==========
+  af::ascir_op::Data data3("data3", graph);
+  data3.y.dtype = ge::DT_INT64;
+  data3.ir_attr.SetIndex(3);
+
+  af::ascir_op::Load load3("load3");
+  load3.y.dtype = ge::DT_INT64;
+  load3.x = data3.y;
+
+  // ========== Ge0: INT64 Compare → UINT8 ==========
+  af::ascir_op::Ge ge0("ge0");
+  ge0.x1 = where0.y;
+  ge0.x2 = load3.y;
+  ge0.y.dtype = ge::DT_UINT8;
+
+  // ========== Data4: Input E (INT16) - Where1 x2 ==========
+  af::ascir_op::Data data4("data4", graph);
+  data4.y.dtype = ge::DT_INT16;
+  data4.ir_attr.SetIndex(4);
+
+  af::ascir_op::Load load4("load4");
+  load4.y.dtype = ge::DT_INT16;
+  load4.x = data4.y;
+
+  // ========== Data5: Input F (INT16) - Where1 x3 ==========
+  af::ascir_op::Data data5("data5", graph);
+  data5.y.dtype = ge::DT_INT16;
+  data5.ir_attr.SetIndex(5);
+
+  af::ascir_op::Load load5("load5");
+  load5.y.dtype = ge::DT_INT16;
+  load5.x = data5.y;
+
+  // ========== Where1: UINT8→INT16 [MaskPack] ==========
+  af::ascir_op::Where where1("where1");
+  where1.x1 = ge0.y;
+  where1.x2 = load4.y;
+  where1.x3 = load5.y;
+  where1.y.dtype = ge::DT_INT16;
+
+  // ========== Data6: Input G (INT16) - Ge1 x2 ==========
+  af::ascir_op::Data data6("data6", graph);
+  data6.y.dtype = ge::DT_INT16;
+  data6.ir_attr.SetIndex(6);
+
+  af::ascir_op::Load load6("load6");
+  load6.y.dtype = ge::DT_INT16;
+  load6.x = data6.y;
+
+  // ========== Ge1: INT16 Compare → UINT8 ==========
+  af::ascir_op::Ge ge1("ge1");
+  ge1.x1 = where1.y;
+  ge1.x2 = load6.y;
+  ge1.y.dtype = ge::DT_UINT8;
+
+  // ========== Store + Output ==========
+  af::ascir_op::Store store0("store0");
+  store0.x = ge1.y;
+  store0.y.dtype = ge::DT_UINT8;
+
+  af::ascir_op::Output output0("output0");
+  output0.x = store0.y;
+  output0.y.dtype = ge::DT_UINT8;
+  output0.ir_attr.SetIndex(0);
+
+  ConstructVVAscGraphAxisInfo(graph, dims_size);
+}
+
+af::ComputeGraphPtr ShareGraph::MaskRegChainFusedGraph(size_t dims_size) {
+  auto builder = GraphBuilder("mask_reg_chain_test");
+
+  // 创建7个Data节点作为输入
+  for (int i = 0; i < 7; i++) {
+    auto data = builder.AddNode("data" + std::to_string(i), "Data", 0, 1);
+    af::AttrUtils::SetInt(data->GetOpDescBarePtr(), "_parent_node_index", i);
+  }
+
+  // 创建AscGraph节点，7个输入，1个输出
+  auto ascbc = builder.AddNode("ascbc", "AscGraph", 7, 1);
+
+  // 创建1个NetOutput节点
+  auto netoutput = builder.AddNode("netoutput0", af::NETOUTPUT, 1, 0);
+
+  // 连接边：Data -> AscGraph
+  for (int i = 0; i < 7; i++) {
+    builder.AddDataEdge(builder.GetGraph()->FindNode("data" + std::to_string(i)), 0, ascbc, i);
+  }
+
+  // 连接边：AscGraph -> NetOutput
+  builder.AddDataEdge(ascbc, 0, netoutput, 0);
+
+  ComputeGraphPtr compute_graph = builder.GetGraph();
+  if (compute_graph == nullptr) {
+    return nullptr;
+  }
+
+  auto ascbc_node = compute_graph->FindNode("ascbc");
+  af::AscGraph sub_graph("mask_reg_chain");
+  CreateMaskRegChainAscGraph(sub_graph, dims_size);
+
+  std::string sub_graph_str;
+  af::AscGraphUtils::SerializeToReadable(sub_graph, sub_graph_str);
+  af::AttrUtils::SetStr(ascbc_node->GetOpDescBarePtr(), "ascgraph", sub_graph_str);
+  return compute_graph;
+}
 af::ComputeGraphPtr ShareGraph::RoundToIntFloatToInt32FusedGraph(size_t dims_size) {
   auto builder = GraphBuilder("round_to_int_float_to_int32_test");
   auto data = builder.AddNode("data", "Data", 0, 1);
@@ -10767,8 +10915,141 @@ af::ComputeGraphPtr ShareGraph::TruncToIntBf16ToInt32FusedGraph(size_t dims_size
   af::AttrUtils::SetStr(ascbc_node->GetOpDescBarePtr(), "ascgraph", sub_graph_str);
   return compute_graph;
 }
+/**
+ * 串行链接所有支持scalar输入的vf融合算子，包含ScalarBroadcast场景
+ *
+ *           output
+ *              |
+ *            store
+ *              |
+ *          maximum5
+ *              |
+ *          minimum4
+ *              |
+ *            add3
+ *              |
+ *     /--------|--------\
+ *     |        |        |
+ *  maximum0  minimum1   add2
+ *     |        |        |
+ *   scalar0       load1
+ *                   |
+ *                 data0 (tensor source)
+ */
+static void CreateVfScalarFusionComprehensiveGraph(af::AscGraph &graph) {
+  // ========== 数据源（tensor输入） ==========
+  af::ascir_op::Data data0("data0", graph);
+  data0.y.dtype = ge::DT_FLOAT16;
+  data0.ir_attr.SetIndex(0);
 
-static void CreateRemainderBf16AscGraph(af::AscGraph &graph, size_t dims_size, af::DataType dtype) {
+  af::ascir_op::Load load1("load1");
+  load1.x = data0.y;
+  load1.y.dtype = ge::DT_FLOAT16;
+
+  // ========== UBscalar节点（UbScalar输入） ==========
+  af::ascir_op::Data data_scalar("data_scalar", graph);
+  data_scalar.y.dtype = ge::DT_FLOAT16;
+  data_scalar.ir_attr.SetIndex(1);
+
+  af::ascir_op::Load load_ubscalar("load_ubscalar");
+  load_ubscalar.x = data_scalar.y;
+  load_ubscalar.y.dtype = ge::DT_FLOAT16;
+  *load_ubscalar.y.repeats = {af::sym::kSymbolOne, af::sym::kSymbolOne};
+  *load_ubscalar.y.strides = {af::sym::kSymbolZero, af::sym::kSymbolZero};
+
+  // ========== Scalar节点（真正的Scalar） ==========
+  af::ascir_op::Scalar scalar_const("scalar_const", graph);
+  scalar_const.ir_attr.SetValue("2.0");
+  scalar_const.y.dtype = ge::DT_FLOAT16;
+
+  // ========== 计算节点 - UbScalar分支 ==========
+  // 注意：根据OnlySecondInputSupportScalar约束，只有第二个输入可以是scalar，第一个必须是tensor
+  // 1. Maximum (UbScalar分支: load1 + load_ubscalar)
+  af::ascir_op::Maximum maximum0("maximum0");
+  maximum0.x1 = load1.y;          // tensor输入（第一个）
+  maximum0.x2 = load_ubscalar.y;  // UbScalar输入（第二个）
+  maximum0.y.dtype = ge::DT_FLOAT16;
+
+  // 2. Minimum (UbScalar分支: load1 + load_ubscalar)
+  af::ascir_op::Minimum minimum1("minimum1");
+  minimum1.x1 = load1.y;          // tensor输入（第一个）
+  minimum1.x2 = load_ubscalar.y;  // UbScalar输入（第二个）
+  minimum1.y.dtype = ge::DT_FLOAT16;
+
+  // 3. Add (UbScalar分支: load1 + load_ubscalar)
+  af::ascir_op::Add add2("add2");
+  add2.x1 = load1.y;          // tensor输入（第一个）
+  add2.x2 = load_ubscalar.y;  // UbScalar输入（第二个）
+  add2.y.dtype = ge::DT_FLOAT16;
+
+  // ========== 计算节点 - Scalar分支 ==========
+  // 4. Add (Scalar分支: load1 + scalar_const)
+  af::ascir_op::Add add_scalar("add_scalar");
+  add_scalar.x1 = load1.y;         // tensor输入（第一个）
+  add_scalar.x2 = scalar_const.y;  // Scalar输入（第二个）
+  add_scalar.y.dtype = ge::DT_FLOAT16;
+
+  // ========== 计算节点 - 串联融合 ==========
+  af::ascir_op::Add add3("add3");
+  add3.x1 = maximum0.y;
+  add3.x2 = minimum1.y;
+  add3.y.dtype = ge::DT_FLOAT16;
+
+  af::ascir_op::Minimum minimum4("minimum4");
+  minimum4.x1 = add3.y;
+  minimum4.x2 = add2.y;
+  minimum4.y.dtype = ge::DT_FLOAT16;
+
+  af::ascir_op::Maximum maximum5("maximum5");
+  maximum5.x1 = minimum4.y;
+  maximum5.x2 = add_scalar.y;  // 使用Scalar分支的结果
+  maximum5.y.dtype = ge::DT_FLOAT16;
+
+  // Store
+  af::ascir_op::Store store_op("store");
+  store_op.x = maximum5.y;
+  store_op.y.dtype = ge::DT_FLOAT16;
+
+  // Output
+  af::ascir_op::Output output_op("output");
+  output_op.ir_attr.SetIndex(0);
+  output_op.x = store_op.y;
+  output_op.y.dtype = ge::DT_FLOAT16;
+
+  // 使用标准的轴构造函数，创建2D轴（与测试用例一致）
+  ConstructVVAscGraphAxisInfo(graph, 2);
+}
+
+af::ComputeGraphPtr ShareGraph::VfScalarFusionComprehensiveFusedGraph() {
+  auto builder = GraphBuilder("vf_scalar_fusion_comprehensive_test");
+
+  auto data0 = builder.AddNode("data0", "Data", 0, 1);
+  af::AttrUtils::SetInt(data0->GetOpDescBarePtr(), "_parent_node_index", 0);
+
+  auto data1 = builder.AddNode("data1", "Data", 0, 1);
+  af::AttrUtils::SetInt(data1->GetOpDescBarePtr(), "_parent_node_index", 1);
+
+  auto ascbc = builder.AddNode("ascbc", "AscGraph", 2, 1);
+  auto netoutput = builder.AddNode("netoutput1", af::NETOUTPUT, 1, 0);
+
+  builder.AddDataEdge(data0, 0, ascbc, 0);
+  builder.AddDataEdge(data1, 0, ascbc, 1);
+  builder.AddDataEdge(ascbc, 0, netoutput, 0);
+  ComputeGraphPtr compute_graph = builder.GetGraph();
+  if (compute_graph == nullptr) {
+    return nullptr;
+  }
+  auto ascbc_node = compute_graph->FindNode("ascbc");
+  af::AscGraph sub_graph("vf_scalar_fusion_comprehensive");
+  CreateVfScalarFusionComprehensiveGraph(sub_graph);
+
+  std::string sub_graph_str;
+  af::AscGraphUtils::SerializeToReadable(sub_graph, sub_graph_str);
+  af::AttrUtils::SetStr(ascbc_node->GetOpDescBarePtr(), "ascgraph", sub_graph_str);
+  return compute_graph;
+}
+
+static void CreateRemainderBf16AscGraph(af::AscGraph &graph, size_t dims_size, ge::DataType dtype) {
   // Data 节点
   af::ascir_op::Data x1("data0", graph);
   x1.ir_attr.SetIndex(0);

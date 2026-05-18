@@ -151,7 +151,7 @@ bool ConcatFusionCaseGenerator::NeedDynSmallTailTemplate(const af::AscNodePtr &c
 
 Status ConcatFusionCaseGenerator::AddTemplateForSmallTail(const ascir::HintGraph &graph,
                                                           std::vector<ascir::ImplGraph> &graphs) {
-  GELOGI("exits dynamic dim after concat_dim, generate force small tail template");
+  GELOGI("exists dynamic dim after concat_dim, generate force small tail template");
   ascir::ImplGraph force_small_tail_graph((graph.GetName() + "_force_small_tail").c_str());
   GE_ASSERT_TRUE(force_small_tail_graph.CopyFrom(graph));
   auto force_small_tail_node = FindConcatNodes(force_small_tail_graph).front();
@@ -169,7 +169,7 @@ Status ConcatFusionCaseGenerator::GenerateScoreFunctions(const std::vector<ascir
       score_functions.resize(graphs.size());
       const auto concat_node = FindConcatNodes(graphs.front()).front();
       GE_CHK_STATUS_RET(
-          ConcatScoreFunctionGenerator(graphs.back(), concat_node, concat_dim).Generate(score_functions.front()),
+          ConcatScoreFunctionGenerator(graphs.front(), concat_node, concat_dim).Generate(score_functions.front()),
           "Failed to generate score func for ub_concat");
       if (graphs.size() == kTemplateSizeAll) {
         GE_CHK_STATUS_RET(ConcatScoreFunctionGenerator(graphs.back(), concat_node, concat_dim)
@@ -435,7 +435,7 @@ Status ConcatFusionCaseGenerator::RemoveUnusedNodes(const af::AscNodePtr &concat
 Status ConcatFusionCaseGenerator::SplitDataForDifferentConcatDim(ascir::ImplGraph &owner_graph) {
   for (const auto &node : owner_graph.GetAllNodes()) {
     GE_ASSERT_NOTNULL(node);
-    if (!af::ops::IsOps<af::ascir_op::Data>(node)) {
+    if (!ScheduleUtils::IsDataInput(node)) {
       continue;
     }
     auto output_anchor = node->GetOutDataAnchor(0);
@@ -443,8 +443,14 @@ Status ConcatFusionCaseGenerator::SplitDataForDifferentConcatDim(ascir::ImplGrap
     auto peer_in_anchors = output_anchor->GetPeerInDataAnchors();
     for (size_t idx = 1UL; idx < peer_in_anchors.size(); ++idx) {
       std::string node_name = node->GetName() + std::string("_") + std::to_string(idx);
-      af::ascir_op::Data data(node_name.c_str());
-      auto data_node = owner_graph.AddNode(data);
+      af::AscNodePtr data_node;
+      if (af::ops::IsOps<af::ascir_op::ScalarData>(node)) {
+        af::ascir_op::ScalarData scalar_data(node_name.c_str());
+        data_node = owner_graph.AddNode(scalar_data);
+      } else {
+        af::ascir_op::Data data(node_name.c_str());
+        data_node = owner_graph.AddNode(data);
+      }
       GE_ASSERT_NOTNULL(data_node);
       data_node->attr = node->attr;
       data_node->outputs[0].attr = node->outputs[0].attr;
@@ -660,7 +666,7 @@ Status ConcatFusionCaseGenerator::AddTemplateIfCanFitInOneKernel(const af::AscNo
                                                                  ascir::HintGraph &graph,
                                                                  std::vector<ascir::ImplGraph> &graphs) {
   GE_CHK_BOOL_RET_SPECIAL_STATUS(concat_node->inputs.Size() > kMaxInputNum, af::SUCCESS,
-                                 "input num(%u) > max_input_num(%u), can not fit in one kernel",
+                                 "input num(%u) > max_input_num(%u), cannot fit in one kernel",
                                  concat_node->inputs.Size(), kMaxInputNum);
   const auto data_type_size = af::GetSizeByDataType(concat_node->outputs[0].attr.dtype);
   GE_ASSERT_TRUE(data_type_size > 0);

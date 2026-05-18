@@ -77,6 +77,13 @@ class TestRegbaseApiSinUT : public testing::Test {
     return diff_count;
   }
 
+  template <typename T>
+  static void FreeTensorInput(SinInputParam<T> &param) {
+    AscendC::GmFree(param.x);
+    AscendC::GmFree(param.y);
+    AscendC::GmFree(param.exp);
+  }
+
   // Tensor - Tensor 测试
   template <typename T>
   static void SinTest(uint32_t size) {
@@ -93,6 +100,9 @@ class TestRegbaseApiSinUT : public testing::Test {
 
     uint32_t diff_count = Valid(param);
     EXPECT_EQ(diff_count, 0);
+
+    // 释放内存
+    FreeTensorInput(param);
   }
 };
 

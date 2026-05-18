@@ -24,7 +24,7 @@ bool BrcInlineTemplate::IsNodeSupportBrcInline(const af::NodePtr &node) {
     const auto &out_node = std::dynamic_pointer_cast<af::AscNode>(brc_out_node);
     GE_ASSERT_NOTNULL(out_node);
     if (!ascgen_utils::IsNodeSupportsBrcInline(out_node)) {
-      GELOGD("[%s][%s] is not in supported list.", brc_out_node->GetTypePtr(), brc_out_node->GetNamePtr());
+      GELOGD("[%s][%s] is not in the supported list.", brc_out_node->GetTypePtr(), brc_out_node->GetNamePtr());
       return false;
     }
     std::unique_ptr<af::AscTensor> input0;
@@ -33,12 +33,12 @@ bool BrcInlineTemplate::IsNodeSupportBrcInline(const af::NodePtr &node) {
     GE_WARN_ASSERT(ScheduleUtils::GetNonBrcInputTensor(out_node, 1UL, input1) == af::SUCCESS);
     std::vector<uint8_t> input_idx_2_brc_inline;
     if (!ascgen_utils::IsGeneralizeBrcInlineScene(out_node, *input0, *input1, input_idx_2_brc_inline)) {
-      GELOGD("[%s][%s] is not support brc inline.", out_node->GetTypePtr(), out_node->GetNamePtr());
+      GELOGD("[%s][%s] does not support brc inline.", out_node->GetTypePtr(), out_node->GetNamePtr());
       return false;
     }
     for (size_t i = 0UL; i < input_idx_2_brc_inline.size(); ++i) {
       if (input_idx_2_brc_inline.at(i) == 1 && brc_out_node->GetInDataNodes().at(i) != node) {
-        GELOGD("[%s][%s] support brc inline, but input[%zu] is another brc node.", out_node->GetTypePtr(),
+        GELOGD("[%s][%s] supports brc inline, but input[%zu] is another brc node.", out_node->GetTypePtr(),
                out_node->GetNamePtr(), i);
         return false;
       }

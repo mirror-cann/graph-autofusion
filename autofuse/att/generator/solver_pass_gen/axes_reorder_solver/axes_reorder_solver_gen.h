@@ -21,6 +21,7 @@
 #include "autofuse_config/auto_fuse_config.h"
 #include "generator/solver_pass_gen/input_output_setters.h"
 #include "generator/solver_pass_gen/input_output_setters_mixin.h"
+#include "generator/solver_pass_gen/pgo_config_setters_mixin.h"
 
 namespace att {
   enum class ConsType {
@@ -40,7 +41,8 @@ namespace att {
     LOCALBUFFER = 1,
   };
 
-  class AxesReorderSolverGen : public SolverGen, public InputOutputSettersMixin<AxesReorderSolverGen> {
+  class AxesReorderSolverGen : public SolverGen, public InputOutputSettersMixin<AxesReorderSolverGen>,
+                              public PgoConfigSettersMixin<AxesReorderSolverGen> {
   public:
     explicit AxesReorderSolverGen(const std::string &tiling_case_id, const std::string &type_name)
         : SolverGen(tiling_case_id, type_name) {}
@@ -109,15 +111,6 @@ namespace att {
     void SetReservedUbSize(const Expr &reserved_ub_size) {
       reserved_ub_size_ = reserved_ub_size;
     };
-    void SetEnableMulticoreUBTradeoff(const bool enable_multicore_ub_tradeoff) {
-      enable_multicore_ub_tradeoff_ = enable_multicore_ub_tradeoff;
-    }
-    void SetEnableAutofusePGO(bool enable_autofuse_pgo) {
-      enable_autofuse_pgo_ = enable_autofuse_pgo;
-    }
-    void SetAutofusePGOStepMax(int64_t pgo_step_max) {
-      pgo_step_max_ = pgo_step_max;
-    }
     void SetHighPerfTiling(const bool enable_high_perf) {
       enable_high_perf_ = enable_high_perf;
     }
@@ -229,9 +222,6 @@ namespace att {
     double ub_threshold_{0.2};
     Expr reserved_ub_size_{CreateExpr(0)};
     double corenum_threshold_{0.4};
-    bool enable_multicore_ub_tradeoff_{false};
-    bool enable_autofuse_pgo_{false};
-    int64_t pgo_step_max_{16};
     bool enable_high_perf_{false};
     bool enable_equal_order_{false};
     std::string arrange_code_;

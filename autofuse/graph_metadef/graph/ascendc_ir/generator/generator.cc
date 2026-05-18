@@ -296,7 +296,7 @@ class OutputHandler {
       if (support_types.size() > 1U) {
         could_infer = false;
         warning_code << std::string(space_count, ' ') << "GELOGW(\"Output ir_index [" << out_index
-                     << "] has multi result " << TensorTypeToCode(out_sym->GetTensorType()) << ", can not infer.\");\n";
+                     << "] has multi result " << TensorTypeToCode(out_sym->GetTensorType()) << ", cannot infer.\");\n";
       }
       ++out_index;
     }

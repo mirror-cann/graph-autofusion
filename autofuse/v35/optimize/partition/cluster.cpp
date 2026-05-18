@@ -41,6 +41,9 @@ void Cluster::MergeFrom(Cluster &from) {
   inputs_.erase(&from);
   outputs_.erase(&from);
   meta_data_.ins_num += from.meta_data_.ins_num;
+  if (!from.meta_data_.vectorized_repeats.empty()) {
+    meta_data_.vectorized_repeats = from.meta_data_.vectorized_repeats;
+  }
 
   auto in_clusters = from.inputs_;
   for (const auto &cluster : in_clusters) {

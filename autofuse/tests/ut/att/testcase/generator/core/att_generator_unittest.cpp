@@ -305,16 +305,17 @@ TEST(GeneratorUT, TilingCodeGenImplPGO) {
     TilingSummary(tiling_data);
     return true;
   }
-  virtual double GetPerf(TilingData &tiling_data) { return 0.0; }
+  virtual double GetPerf(TilingData &tiling_data) { (void)tiling_data; return 0.0; }
   virtual const char* GetScheduleName() { return ""; }
   virtual void TilingSummary(TilingData &tiling_data) = 0;
-  virtual bool ExecutePGOSolver(TilingData &tiling_data, std::vector<AutofuseTilingDataPerf>& tiling_data_list, AutofuseTilingData* autofuse_tiling_data, void* stream, std::unordered_map<int64_t, uint64_t> &workspace_map, std::vector<uint32_t*> block_dim_vec={}) {
+  virtual bool ExecutePGOSolver(TilingData &tiling_data, std::vector<AutofuseTilingDataPerf>& tiling_data_list, AutofuseTilingData* autofuse_tiling_data, void* stream, std::unordered_map<int64_t, uint64_t> &workspace_map, std::vector<uint32_t*> block_dim_vec={}, const SearchConfig *search_cfg=nullptr) {
+    (void)tiling_data; (void)tiling_data_list; (void)autofuse_tiling_data; (void)stream; (void)workspace_map; (void)block_dim_vec; (void)search_cfg;
     return false;
   }
-  virtual int32_t CalcScore(const TilingData &tiling_data) { return 0;}
-  virtual void GetTilingData(TilingDataCopy &from_tiling, TilingData &to_tiling) {};
-  virtual void SetTilingData(TilingData &from_tiling, TilingDataCopy &to_tiling) {};
-  virtual void SetWorkspaceSize(TilingData &tiling_data, std::unordered_map<int64_t, uint64_t> &workspace_map) {};
+  virtual int32_t CalcScore(const TilingData &tiling_data) { (void)tiling_data; return 0;}
+  virtual void GetTilingData(TilingDataCopy &from_tiling, TilingData &to_tiling) { (void)from_tiling; (void)to_tiling; }
+  virtual void SetTilingData(TilingData &from_tiling, TilingDataCopy &to_tiling) { (void)from_tiling; (void)to_tiling; }
+  virtual void SetWorkspaceSize(TilingData &tiling_data, std::unordered_map<int64_t, uint64_t> &workspace_map) { (void)tiling_data; (void)workspace_map; }
 )rawliteral";
   EXPECT_EQ(genImpl.tiling_func_.output_.str(), expectCode);
 }
@@ -391,14 +392,15 @@ TEST(GeneratorUT, GenTilingPGOSuccess) {
 }
 
 static const std::string kExpectPGOCode =
-    R"rawliteral(inline bool GetScheduleResult0PGO(std::vector<AutofuseTilingDataPerf>& tiling_data_list, const uint32_t ori_block_dim, const int32_t tiling_case_id,AutofuseTilingData &tiling_data, double &cur_perf, double &best_perf, uint32_t &cur_block_dim,void* stream, uint32_t workspaceSize, std::vector<uint32_t*> multi_group_block_dim_list = {}) {
+    R"rawliteral(inline bool GetScheduleResult0PGO(std::vector<AutofuseTilingDataPerf>& tiling_data_list, const uint32_t ori_block_dim, const int32_t tiling_case_id,AutofuseTilingData &tiling_data, double &cur_perf, double &best_perf, uint32_t &cur_block_dim,void* stream, uint32_t workspaceSize, std::vector<uint32_t*> multi_group_block_dim_list = {}, const SearchConfig *search_cfg=nullptr) {
+  (void)cur_perf; (void)cur_block_dim;
   std::vector<AutofuseTilingDataPerf> tiling_data_list_tmp{};
   workspaceSize = 0;
   std::unordered_map<int64_t, uint64_t> workspace_map_filter_use{};
   tiling_data.set_graph0_tiling_key(0);
   auto &group0_tiling_data = tiling_data.group0_tiling_data;
   group0_tiling_data.set_block_dim(ori_block_dim);
-  auto result0 = ScheduleResult0::PGOSearchTilingKey(tiling_data_list_tmp, group0_tiling_data, tiling_case_id, &tiling_data, stream, workspaceSize, best_perf, workspace_map_filter_use, multi_group_block_dim_list);
+  auto result0 = ScheduleResult0::PGOSearchTilingKey(tiling_data_list_tmp, group0_tiling_data, tiling_case_id, &tiling_data, stream, workspaceSize, best_perf, workspace_map_filter_use, multi_group_block_dim_list, search_cfg);
   if (result0) {
     bool has_solution = true;
     for (auto &tiling_data_perf : tiling_data_list_tmp) {
@@ -418,7 +420,9 @@ static const std::string kExpectPGOCode =
       }
     }
     workspaceSize += 16 * 1024 * 1024;
-    PgoConfig::Instance().batch_callback(stream, workspaceSize, &tiling_data_list_tmp);
+    if (PgoConfig::Instance().batch_callback) {
+      PgoConfig::Instance().batch_callback(stream, workspaceSize, &tiling_data_list_tmp);
+    }
     for (auto &tiling_data_perf : tiling_data_list_tmp) {
       tiling_data_list.push_back(tiling_data_perf);
       if (tiling_data_perf.best_perf < best_perf) {
@@ -429,7 +433,7 @@ static const std::string kExpectPGOCode =
   }
   auto &group1_tiling_data = tiling_data.group1_tiling_data;
   group1_tiling_data.set_block_dim(ori_block_dim);
-  auto result1 = ScheduleResult0::PGOSearchTilingKey(tiling_data_list_tmp, group1_tiling_data, tiling_case_id, &tiling_data, stream, workspaceSize, best_perf, workspace_map_filter_use, multi_group_block_dim_list);
+  auto result1 = ScheduleResult0::PGOSearchTilingKey(tiling_data_list_tmp, group1_tiling_data, tiling_case_id, &tiling_data, stream, workspaceSize, best_perf, workspace_map_filter_use, multi_group_block_dim_list, search_cfg);
   if (result1) {
     bool has_solution = true;
     for (auto &tiling_data_perf : tiling_data_list_tmp) {
@@ -443,7 +447,9 @@ static const std::string kExpectPGOCode =
       }
     }
     workspaceSize += 16 * 1024 * 1024;
-    PgoConfig::Instance().batch_callback(stream, workspaceSize, &tiling_data_list_tmp);
+    if (PgoConfig::Instance().batch_callback) {
+      PgoConfig::Instance().batch_callback(stream, workspaceSize, &tiling_data_list_tmp);
+    }
     for (auto &tiling_data_perf : tiling_data_list_tmp) {
       tiling_data_list.push_back(tiling_data_perf);
       if (tiling_data_perf.best_perf < best_perf) {
@@ -555,6 +561,39 @@ TEST(GeneratorUT, GenHardwareCheckCode_UseDoubleType) {
     }
   }
   EXPECT_TRUE(found_double_type) << "Generated hardware check code should contain 'double ' type to prevent overflow";
+}
+
+// Task 3: Inductor scene triggers ATT PGO main search skeleton, PGOSearchTilingKey and perf extraction
+
+TEST(GeneratorUT, InductorSceneTriggersPGOSkeletonAndSearchTilingKey) {
+  TilingCodeGenConfig config;
+  TilingModelInfo tiling_model_info;
+  ScoreFuncs score_funcs;
+  EnableGroupParallels enable_group_parallels;
+  std::map<std::string, std::string> tiling_res;
+  config.force_template_op_name = "test";
+  config.force_schedule_result = 0L;
+
+  ModelInfo info;
+  info.reuse_schedule_group = std::make_shared<ReuseScheduleGroup>();
+  tiling_model_info.push_back(info);
+  enable_group_parallels[0][0] = true;
+
+  MockHighPerfTilingCodeGenImpl genImpl("test", config, tiling_model_info, score_funcs, true);
+  genImpl.config_.is_inductor_scene = true;
+  genImpl.config_.gen_tiling_data = false;
+  EXPECT_EQ(genImpl.GenTiling(tiling_res, {}, 0, enable_group_parallels), ge::SUCCESS);
+
+  std::string tiling_func_output = genImpl.tiling_func_.GetOutputStr();
+  EXPECT_FALSE(tiling_func_output.empty());
+  // Inductor scene must generate ExecutePGOSolver override for single-group
+  EXPECT_NE(tiling_func_output.find("bool ExecutePGOSolver("), std::string::npos);
+  // Inductor scene must generate SearchAllTilingbyCaseId
+  EXPECT_NE(tiling_func_output.find("SearchAllTilingbyCaseId("), std::string::npos);
+  // PGOSearchTilingKey must be generated
+  EXPECT_NE(tiling_func_output.find("PGOSearchTilingKey("), std::string::npos);
+  // GetPerf must be called inside ExecutePGOSolver override
+  EXPECT_NE(tiling_func_output.find("GetPerf(tiling_data)"), std::string::npos);
 }
 
 }  // namespace att

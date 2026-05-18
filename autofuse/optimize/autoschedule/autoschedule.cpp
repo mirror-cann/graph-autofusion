@@ -14,16 +14,21 @@
 #include <string>
 #include <queue>
 #include "ascir.h"
+
 #include "ascir_utils.h"
 #include "schedule_utils.h"
 #include "common_utils.h"
 #include "node_utils.h"
 #include "ascendc_ir/core/ascendc_ir_impl.h"
 #include "graph/symbolizer/symbolic_utils.h"
+
 #include "autoschedule/template_generator_handler.h"
 
 namespace {
-  constexpr int64_t kDefaultAxisId = -1;
+constexpr int64_t kDefaultAxisId = -1;
+constexpr int64_t kMaxBroadcastAxisSize = 16LL;
+constexpr int64_t kMinNonBroadcastAxisSize = 256LL * 1024LL;
+
 void FindNotLoopAxis(const ascir::NodeView &node, ascir::ImplGraph &impl_graph,
                      std::unordered_set<int64_t> &not_loop_axis_set,
                      bool has_reduce, bool is_reduce_first_stage) {
@@ -86,6 +91,91 @@ bool IsNotLoopAxis(ascir::ImplGraph &impl_graph, int64_t axis,
   return true;
 }
 
+int64_t GetStaticAxisProduct(ascir::ImplGraph &impl_graph, const std::vector<int64_t> &axis_ids) {
+  int64_t product = 1;
+  for (const auto axis_id: axis_ids) {
+    auto axis = impl_graph.FindAxis(axis_id);
+    if (axis == nullptr || !axis->size.IsConstExpr()) {
+      return -1;
+    }
+    int64_t static_size = 0;
+    if (!axis->size.GetConstValue(static_size) || static_size <= 0) {
+      return -1;
+    }
+    product *= static_size;
+  }
+  return product;
+}
+
+std::unordered_set<int64_t> CollectBroadcastAxes(const ascir::ImplGraph &impl_graph) {
+  std::unordered_set<int64_t> broadcast_axes;
+  for (const auto &node : impl_graph.GetAllNodes()) {
+    if (!optimize::ScheduleUtils::IsLoad(node)) {
+      continue;
+    }
+    const auto &output = node->outputs[0];
+    for (size_t i = 0; i < output.attr.axis.size(); ++i) {
+      if (af::SymbolicUtils::StaticCheckEq(output.attr.strides[i], af::sym::kSymbolZero) == af::TriBool::kTrue) {
+        broadcast_axes.insert(output.attr.axis[i]);
+      }
+    }
+  }
+  return broadcast_axes;
+}
+
+void PartitionLoopAxes(const ascir::ImplGraph &impl_graph, const std::unordered_set<int64_t> &broadcast_axes,
+                       std::vector<int64_t> &new_order, std::vector<int64_t> &brc_axes) {
+  for (const auto &node : impl_graph.GetAllNodes()) {
+    if (!optimize::ScheduleUtils::IsBuffer(node)) {
+      new_order.reserve(node->attr.sched.axis.size());
+      for (const auto axis_id : node->attr.sched.axis) {
+        if (broadcast_axes.count(axis_id) > 0) {
+          brc_axes.push_back(axis_id);
+        } else {
+          new_order.push_back(axis_id);
+        }
+      }
+      break;
+    }
+  }
+}
+
+void ReorderBroadcastAxesInner(ascir::ImplGraph &impl_graph) {
+  optimize::GraphPropertiesCache cache(impl_graph);
+  if (cache.HasReduce() || cache.HasGather() || cache.HasCube() ||
+      cache.HasTranspose() || cache.HasConcat() || cache.HasSplit()) {
+    return;
+  }
+  auto broadcast_axes = CollectBroadcastAxes(impl_graph);
+  if (broadcast_axes.empty()) {
+    return;
+  }
+  std::vector<int64_t> new_order;
+  std::vector<int64_t> brc_axes;
+  PartitionLoopAxes(impl_graph, broadcast_axes, new_order, brc_axes);
+  if (brc_axes.empty() || new_order.empty() || new_order.size() + brc_axes.size() > 2UL) {
+    return;
+  }
+
+  int64_t brc_size = GetStaticAxisProduct(impl_graph, brc_axes);
+  if (brc_size <= 0 || brc_size > kMaxBroadcastAxisSize) {
+    GELOGD("Skip broadcast reorder: brc_size=%ld.", brc_size);
+    return;
+  }
+  int64_t non_brc_size = GetStaticAxisProduct(impl_graph, new_order);
+  if (non_brc_size <= 0 || non_brc_size <= kMinNonBroadcastAxisSize) {
+    return;
+  }
+  new_order.insert(new_order.end(), brc_axes.begin(), brc_axes.end());
+  for (const auto &node: impl_graph.GetAllNodes()) {
+    if (!optimize::ScheduleUtils::IsBuffer(node)) {
+      node->attr.sched.axis = new_order;
+    }
+  }
+  GELOGI("Broadcast reorder: brc_size=%ld, non_brc_size=%ld, graph=[%s]",
+         brc_size, non_brc_size, impl_graph.GetName().c_str());
+}
+
 void AppendIdIfNotDefault(std::stringstream &ss, const std::string &prefix, int64_t id) {
   if (id != kDefaultAxisId) {
     ss << prefix << id;
@@ -119,7 +209,7 @@ Status AutoSchedule::SelectLoopAxis(ascir::ImplGraph &impl_graph, bool is_reduce
     if (it != axis.rend()) {
       node->attr.sched.loop_axis = *it;
     }
-    GE_ASSERT_TRUE((node->attr.sched.loop_axis != af::kIdNone), "Can not find loop axis for node: [%s].",
+    GE_ASSERT_TRUE((node->attr.sched.loop_axis != af::kIdNone), "Cannot find loop axis for node: [%s].",
                    node->GetNamePtr());
   }
   return af::SUCCESS;
@@ -199,7 +289,7 @@ Status AutoSchedule::PruneTilingCase(std::vector<TilingCase> &tiling_cases) cons
     if (af::SymbolicUtils::StaticCheckEq(axis->size, af::sym::kSymbolOne) == af::TriBool::kTrue &&
         tiling_cases.size() > 1UL) {
       it = tiling_cases.erase(it);
-      GELOGD("Axis [%s]'s size is 1, will skip to cut.", axis->name.c_str());
+      GELOGD("Axis [%s]'s size is 1, will skip cutting it.", axis->name.c_str());
     } else {
       ++it;
     }
@@ -219,6 +309,7 @@ static std::string GetTilingCaseStr(const std::string &graph_name, const TilingC
 
 Status AutoSchedule::DoAutoSchedule() {
   graph_.SetGraphType(af::AscGraphType::kImplGraph);
+  ReorderBroadcastAxesInner(graph_);
 
   // 生成通用模版
   std::vector<TilingCase> tiling_cases;

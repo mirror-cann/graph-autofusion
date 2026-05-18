@@ -70,6 +70,27 @@ AxisId AscGraphCreateAxisBySerializedExpr(AscGraph &asc_graph,
 
 bool IsScalarInputBySerializedExprs(const std::vector<std::string> &serialized_exprs);
 
+// GE-side stub helpers: avoid af::Operator symbol-mangling mismatch caused by
+// AUTOFUSE_USE_GE_METADEF (which makes af::Operator an alias for ge::Operator in GE TUs,
+// producing different mangled names than libaihac_ir.so expects).
+//
+// Both af::OpDesc and ge::OpDesc have identical memory layouts (same source, different
+// namespace).  GE passes the raw pointer so no shared_ptr type conversion is needed.
+//
+// Usage in ge autofuse_backend_stub.cpp:
+//   auto op_desc = ge::OpDescUtils::GetOpDescFromOperator(op);
+//   return af::AscTensorAttrGetOrCreateForOpOutput(op_desc.get(), index);
+AscTensorAttr *AscTensorAttrGetOrCreateForOpOutput(void *op_desc_raw, uint32_t index);
+AscNodeAttr *AscNodeAttrGetOrCreateForOp(void *op_desc_raw);
+
+// Same as AscGraphAddNodeFromOpDesc but accepts a raw pointer to avoid shared_ptr
+// type-conversion mismatch when called from GE TUs compiled with AUTOFUSE_USE_GE_METADEF
+// (where af::OpDescPtr == ge::OpDescPtr but their C++ mangled names differ).
+// Usage in ge autofuse_backend_stub.cpp:
+//   auto op_desc = ge::OpDescUtils::GetOpDescFromOperator(op);
+//   AscGraphAddNodeFromOpDescRaw(asc_graph, op_desc.get());
+AscNodePtr AscGraphAddNodeFromOpDescRaw(AscGraph &asc_graph, void *op_desc_raw);
+
 }  // namespace af
 
 #endif  // METADEF_CXX_ASC_GRAPH_GE_BRIDGE_H_

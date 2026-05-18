@@ -130,6 +130,7 @@ TEST(CubeApiCallTest, CubeApiCall) {
   call.inputs.push_back(&x1);
   call.inputs.push_back(&x2);
 
+  call.node = matmul;
   std::string result;
   std::stringstream ss;
   EXPECT_EQ(call.GenerateFuncDefinition(tpipe, tiler, ss), 0);

@@ -28,9 +28,25 @@ template <typename T, int reduce_type>
 inline __aicore__ T GetPaddingValue() {
     T paddingValue;
     if constexpr (reduce_type == kReduceOpMin) {
-        paddingValue = INFINITY;
+        if constexpr (AscendC::Std::is_same<T, half>::value ||
+                      AscendC::Std::is_same<T, float>::value ||
+                      AscendC::Std::is_same<T, bfloat16_t>::value) {
+            paddingValue = INFINITY;
+        } else if constexpr (static_cast<T>(-1) < static_cast<T>(0)) {
+            paddingValue = static_cast<T>(~static_cast<T>(static_cast<T>(1) << (sizeof(T) * 8 - 1)));
+        } else {
+            paddingValue = static_cast<T>(~static_cast<T>(0));
+        }
     } else if constexpr (reduce_type == kReduceOpMax) {
-        paddingValue = -INFINITY;
+        if constexpr (AscendC::Std::is_same<T, half>::value ||
+                      AscendC::Std::is_same<T, float>::value ||
+                      AscendC::Std::is_same<T, bfloat16_t>::value) {
+            paddingValue = -INFINITY;
+        } else if constexpr (static_cast<T>(-1) < static_cast<T>(0)) {
+            paddingValue = static_cast<T>(static_cast<T>(1) << (sizeof(T) * 8 - 1));
+        } else {
+            paddingValue = T(0);
+        }
     } else if constexpr (reduce_type == kReduceOpSum) {
         paddingValue = T(0);
     } else if constexpr (reduce_type == kReduceOpProd) {

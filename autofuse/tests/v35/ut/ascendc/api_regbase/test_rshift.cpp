@@ -110,6 +110,11 @@ class TestRegbaseApiRShiftUT : public testing::Test {
 
     uint32_t diff_count = Valid(param);
     EXPECT_EQ(diff_count, 0);
+    // 释放内存
+    AscendC::GmFree(param.y);
+    AscendC::GmFree(param.exp);
+    AscendC::GmFree(param.x1);
+    AscendC::GmFree(param.x2);
   }
 
 };

@@ -215,6 +215,7 @@ class AutoFuseConfig {
     bool experimental_lowering_transpose{false};
     bool experimental_lowering_gather{false};
     bool experimental_lowering_matmul{false};
+    bool experimental_lowering_conv{false};
     bool experimental_disable_lifting{false};
     std::unordered_set<std::string> skip_node_types;     // 需要跳过lowering的节点类型
     std::unordered_set<std::string> skip_node_names;     // 需要跳过lowering的节点名称
@@ -276,7 +277,7 @@ class AutoFuseConfig {
         bool disableSwitch = std::find(autofuse_lowering_node_types.begin(), autofuse_lowering_node_types.end(),
                                        nodeName) != autofuse_lowering_node_types.end();
         if (disableSwitch && enableSwitch) {
-          GELOGW("%s for --autofuse_disable_pass and --autofuse_enable_pass can not be set", nodeName.c_str());
+          GELOGW("%s for --autofuse_disable_pass and --autofuse_enable_pass cannot be set", nodeName.c_str());
           enableSwitch = false;
         }
       }
@@ -357,6 +358,7 @@ class AutoFuseConfig {
     bool enable_lowering_transpose = false;
     bool enable_lowering_gather = false;
     bool enable_lowering_matmul = false;
+    bool enable_lowering_conv = false;
     size_t recomputation_threshold = 1U;
 
     LoweringEnableConfigUpdate(enable_lowering_concat, "concat", all_flags);
@@ -366,6 +368,7 @@ class AutoFuseConfig {
     LoweringEnableConfigUpdate(enable_lowering_transpose, "transpose", all_flags);
     LoweringEnableConfigUpdate(enable_lowering_gather, "gather", all_flags);
     LoweringEnableConfigUpdate(enable_lowering_matmul, "matmul", all_flags);
+    LoweringEnableConfigUpdate(enable_lowering_conv, "conv", all_flags);
     LoweringRecomputationThresholdConfigUpdate(recomputation_threshold, all_flags);
     // remove old env soon
     this->lowering_strategy_config_.experimental_lowering_concat = enable_lowering_concat;
@@ -375,6 +378,7 @@ class AutoFuseConfig {
     this->lowering_strategy_config_.experimental_lowering_transpose = enable_lowering_transpose;
     this->lowering_strategy_config_.experimental_lowering_gather = enable_lowering_gather;
     this->lowering_strategy_config_.experimental_lowering_matmul = enable_lowering_matmul;
+    this->lowering_strategy_config_.experimental_lowering_conv = enable_lowering_conv;
     this->lowering_strategy_config_.recomputation_threshold = recomputation_threshold;
     UpdateImprovePrecisionBlacklist(all_flags);
     UpdateMaxFusionSizeConfig(all_flags);

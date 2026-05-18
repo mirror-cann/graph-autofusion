@@ -144,6 +144,10 @@ static const std::map<std::string, af::ComputeType> kOpTypeToComputeType = {
     {BatchMatMul::Type, af::ComputeType::kComputeCube},    {BatchMatMulBias::Type, af::ComputeType::kComputeCube},
     {BatchMatMulOffset::Type, af::ComputeType::kComputeCube},
     {BatchMatMulOffsetBias::Type, af::ComputeType::kComputeCube},
+    {Conv2D::Type, af::ComputeType::kComputeCube},
+    {Conv2DBias::Type, af::ComputeType::kComputeCube},
+    {Conv2DOffset::Type, af::ComputeType::kComputeCube},
+    {Conv2DOffsetBias::Type, af::ComputeType::kComputeCube},
 };
 
 static const std::map<af::ComputeType, Completer> kComputeTypeToCompleter = {
@@ -165,9 +169,9 @@ Status AscGraphInfoComplete::CompleteApiInfo(const af::AscGraph &optimize_graph)
     auto node_compute_type = &node->attr.api.compute_type;
     if (*node_compute_type >= af::ComputeType::kComputeInvalid) {
       auto item = kOpTypeToComputeType.find(node->GetType());
-      GE_ASSERT_TRUE((item != kOpTypeToComputeType.end()), "Failed get node compute type, node name:[%s], type: [%s].",
-                     node->GetNamePtr(), node->GetTypePtr());
-      *node_compute_type = item->second;
+      if (item != kOpTypeToComputeType.end()) {
+        *node_compute_type = item->second;
+      }
     }
     auto it = kComputeTypeToCompleter.find(*node_compute_type);
     GE_ASSERT_TRUE((it != kComputeTypeToCompleter.end()), "CompleteApiInfo unsupported node name:[%s], type: [%s].",

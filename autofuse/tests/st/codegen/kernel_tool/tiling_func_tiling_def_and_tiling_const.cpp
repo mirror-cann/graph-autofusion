@@ -155,10 +155,10 @@ extern "C" ge::graphStatus TilingFunc(gert::TilingSymbolEvalContext *context)
       }
       return tensor->GetOriginShape().GetDim(1);
     }();
-  auto tiling_data =  context->GetTilingData<AutofuseTilingData>();
   uint32_t workspace_size;
   uint32_t block_dim;
   static const char* config_file = "./autofuse_pointwise_0__abs__add_config.txt";
+  auto tiling_data =  context->GetTilingData<AutofuseTilingData>();
   ResLimit limit;
   limit.aiv_num = parse->aiv_num;
   limit.ub_size = (uint32_t)parse->ub_size;

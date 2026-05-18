@@ -82,6 +82,18 @@ class AutofuseKernelInfo {
         aclrtFree(workspace_);
         workspace_ = nullptr;
       }
+      for (int i = 0; i < kernel_config_.input_num; ++i) {
+        if (input_addr_[i] != nullptr) {
+          aclrtFree(input_addr_[i]);
+          input_addr_[i] = nullptr;
+        }
+      }
+      for (int i = 0; i < kernel_config_.output_num; ++i) {
+        if (output_addr_[i] != nullptr) {
+          aclrtFree(output_addr_[i]);
+          output_addr_[i] = nullptr;
+        }
+      }
     }
     int32_t Init(void *stream, const std::string &config_path);
     int32_t LoadSoHandles();

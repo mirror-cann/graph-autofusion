@@ -12,6 +12,7 @@ add_library(test_regbase_ascendc OBJECT
     ./test_where.cpp
     ./test_reduce_init.cpp
     ./test_add.cpp
+    ./test_airy_ai.cpp
     ./test_bitwise_and.cpp
     ./test_rshift.cpp
     ./test_sin.cpp
@@ -27,10 +28,23 @@ add_library(test_regbase_ascendc OBJECT
     ./test_trunc_to_int.cpp
     ./test_xor.cpp
     ./test_remainder.cpp
+    ./test_modified_bessel_i0.cpp
+    ./test_modified_bessel_i1.cpp
+    ./test_modified_bessel_k0.cpp
+    ./test_modified_bessel_k1.cpp
+    ./test_scaled_modified_bessel_k0.cpp
+    ./test_scaled_modified_bessel_k1.cpp
+    ./test_erfinv.cpp
+    ./test_laguerre_polynomial_l.cpp
+    ./test_legendre_polynomial_p.cpp
+    ./test_igamma.cpp
+    ./test_igammac.cpp
+    ./test_transpose.cpp
     )
 target_link_libraries(test_regbase_ascendc
     ascendc_api_regbase_extend
     tikicpulib_ascend950pr_9599
+    Boost::boost
     GTest::gtest)
 
 target_include_directories(test_regbase_ascendc PUBLIC

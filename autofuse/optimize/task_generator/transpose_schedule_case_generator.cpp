@@ -12,18 +12,17 @@
 #include <queue>
 #include <unordered_map>
 #include "graph/utils/graph_utils.h"
-#include "graph/ascendc_ir/utils/asc_graph_utils.h"
 #include "graph/symbolizer/symbolic.h"
 #include "graph/symbolizer/symbolic_utils.h"
 #include "ascir_utils.h"
 #include "ascir_ops_utils.h"
 #include "ascir_ops.h"
 #include "schedule_utils.h"
+#include "graph_properties_cache.h"
 
 
 namespace optimize {
 namespace {
-constexpr size_t kExpectedTransposeNodeNum = 1UL;      // 当前支持Ascgraph中含单个Transpose，后续考虑多个的情况。
 constexpr int32_t transposeNoNeedUBConvertSize = 512;  // 以512Byte作为是否需要消除Transpose的阈值
 }
 
@@ -92,36 +91,60 @@ Status TransposeFusionCaseGenerator::TransposeConvertProcess(ascir::HintGraph &g
 
 Status TransposeFusionCaseGenerator::Generate(ascir::HintGraph &graph, std::vector<ascir::ImplGraph> &graphs, std::vector<std::string> &score_functions) {
   /*
-  场景1： 尾轴转置， 需要UB重排，Transpose节点保留；
-  场景2：非尾轴转置，尾轴大于等于512Byte，不需要UB重排，Transpose删除，刷新load/store表示；
-  场景3：非尾轴转置，尾轴小于等于512Byte，需要UB重排，Transpose节点保留；
-  同时提供两套模板，后续根据打分机制来选取
+  单个Transpose场景：
+    场景1： 尾轴转置， 需要UB重排，Transpose节点保留；
+    场景2：非尾轴转置，尾轴大于等于512Byte，不需要UB重排，Transpose删除，刷新load/store表示；
+    场景3：非尾轴转置，尾轴小于等于512Byte，需要UB重排，Transpose节点保留；
+    同时提供两套模板，后续根据打分机制来选取
+  多个Transpose场景：
+    不生成保留模板，直接将所有Transpose行为推到load上
   */
 
   const auto transpose_nodes = FindTransposeNodes(graph);
-  if (transpose_nodes.size() != kExpectedTransposeNodeNum) {
-    GELOGI("Transpose node num = %zu, not equal to 1, skip", transpose_nodes.size());
+  if (transpose_nodes.empty()) {
+    GELOGI("No transpose node found, skip");
     return ge::SUCCESS;
   }
 
-  //生成场景1、3的模板，Transpose保留模板（不改图）
-  graphs.emplace_back(graph);
+  GraphPropertiesCache cache(graph);
+  if (cache.HasReduce()) {
+    // 存在不支持与Transpose融合的计算节点，直接在原图上消除所有Transpose
+    auto remaining = FindTransposeNodes(graph);
+    while (!remaining.empty()) {
+      GE_CHK_STATUS_RET(TransposeConvertProcess(graph, remaining.front()), "TransposeConvertProcess failed");
+      remaining = FindTransposeNodes(graph);
+    }
+    return ge::SUCCESS;
+  }
 
-  //生成场景2的模板，Transpose消除模板（改图）
-  // 复制图用于生成改图模板
-  ascir::ImplGraph optimized_graph((graph.GetName() + "_group_transpose").c_str());
-  optimized_graph.CopyFrom(graph);
+  if (transpose_nodes.size() == 1UL) {
+    // 单个Transpose：生成保留和消除两套模板，通过打分选择
+    graphs.emplace_back(graph);
 
-  auto transpose_node = FindTransposeNodes(optimized_graph).front();
-  GE_CHK_STATUS_RET(TransposeConvertProcess(optimized_graph, transpose_node), "TransposeConvertProcess failed");
-  graphs.emplace_back(optimized_graph);
+    ascir::ImplGraph optimized_graph((graph.GetName() + "_group_transpose").c_str());
+    optimized_graph.CopyFrom(graph);
 
-  if (graphs.size() > 1U) {
+    auto transpose_node = FindTransposeNodes(optimized_graph).front();
+    GE_CHK_STATUS_RET(TransposeConvertProcess(optimized_graph, transpose_node), "TransposeConvertProcess failed");
+    graphs.emplace_back(optimized_graph);
+
     transpose_node = FindTransposeNodes(graphs[0]).front();
     score_functions.resize(2U);
     GE_CHK_STATUS_RET(GenerateScoreFuncForUbReorder(graph, transpose_node, score_functions[0]),
                       "Failed to generate score func");
+  } else {
+    // 多个Transpose：仅生成消除模板，将所有Transpose行为推到load上
+    ascir::ImplGraph optimized_graph((graph.GetName() + "_group_transpose").c_str());
+    optimized_graph.CopyFrom(graph);
+
+    auto remaining = FindTransposeNodes(optimized_graph);
+    while (!remaining.empty()) {
+      GE_CHK_STATUS_RET(TransposeConvertProcess(optimized_graph, remaining.front()), "TransposeConvertProcess failed");
+      remaining = FindTransposeNodes(optimized_graph);
+    }
+    graphs.emplace_back(optimized_graph);
   }
+
   return ge::SUCCESS;
 }
 

@@ -648,6 +648,7 @@ ApiPerfRegister<ApiPerf> reduce_sum_api_perf_v2(ApiPerfRegisterV2(kSum, GetPerfF
 // 不需要建模的ASCIR
 ApiPerfRegister<ApiPerf> data_api_perf_v2(ApiPerfRegisterV2(kData, DefaultGetPerf, nullptr, &perf_param_table_v2, &tiling_schedule_config_table_v2));
 ApiPerfRegister<ApiPerf> scalar_api_perf_v2(ApiPerfRegisterV2(kScalar, DefaultGetPerf, nullptr, &perf_param_table_v2, &tiling_schedule_config_table_v2));
+ApiPerfRegister<ApiPerf> scalar_data_api_perf_v2(ApiPerfRegisterV2(kScalarData, DefaultGetPerf, nullptr, &perf_param_table_v2, &tiling_schedule_config_table_v2));
 ApiPerfRegister<ApiPerf> index_expr_api_perf_v2(ApiPerfRegisterV2(kIndexExpr, DefaultGetPerf, nullptr,
                                                                   &perf_param_table_v2, &tiling_schedule_config_table_v2));
 ApiPerfRegister<ApiPerf> output_api_perf_v2(ApiPerfRegisterV2(kOutput, DefaultGetPerf, nullptr, &perf_param_table_v2, &tiling_schedule_config_table_v2));

@@ -150,7 +150,7 @@ TEST_F(CalcPowTmpSizeV2Test, CalcPowTmpSizeV2_ShouldReturnCorrectSize_FLoat32) {
   std::vector<std::unique_ptr<af::TmpBufDesc>> result = CalcPowTmpSizeV2(*node);
   ASSERT_EQ(result.size(), 1);
   ASSERT_EQ(result[0]->size,
-            sym::Min(sym::Ceiling(af::Symbol(4) * s1 * s0 / Symbol(32)) * af::Symbol(64), MAX_TMP_BUFFER_SIZE));
+            sym::Min(sym::Align(af::Symbol(4) * s1 * s0, 32) * af::Symbol(3), MAX_TMP_BUFFER_SIZE));
   ASSERT_EQ(result[0]->life_time_axis_id, -1);
 }
 
@@ -212,7 +212,7 @@ TEST_F(CalcPowTmpSizeV2Test, CalcPowTmpSizeV2_ShouldReturnCorrectSize_Float16) {
   std::vector<std::unique_ptr<af::TmpBufDesc>> result = CalcPowTmpSizeV2(*node);
   ASSERT_EQ(result.size(), 1);
   ASSERT_EQ(result[0]->size,
-            sym::Min(sym::Ceiling(af::Symbol(2) * s1 * s0 / Symbol(32)) * af::Symbol(128), MAX_TMP_BUFFER_SIZE));
+            sym::Min(sym::Align(af::Symbol(2) * s1 * s0, 32) * af::Symbol(6), MAX_TMP_BUFFER_SIZE));
   ASSERT_EQ(result[0]->life_time_axis_id, -1);
 }
 

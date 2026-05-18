@@ -280,6 +280,10 @@ TEST_F(UTTEST_GENERAL_SOLVER_GEN_02, test_create_input) {
                       " + sizeof(VarInfo) + sizeof(ConsInfo) + sizeof(Momentum)"
                       " + total_VarVal_size + sizeof(Result) + ret_size"
                       " + visited_size + sizeof(VisitedNode));\n";
+  expect_codes += "    if (memory_pool == nullptr) {\n";
+  expect_codes += "        OP_LOGE(OP_NAME, \"Failed to allocate memory pool for solver.\");\n";
+  expect_codes += "        return false;\n";
+  expect_codes += "    }\n";
   expect_codes += "    size_t offset_uint = 0;\n";
   expect_codes += "    size_t offset_double = offset_uint + uint_size;\n";
   expect_codes += "    size_t offset_bool = offset_double + double_size;\n";

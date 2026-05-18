@@ -11,14 +11,22 @@
 # ----------------------------------------------------------------------------
 
 import os
-import sys
 import tempfile
 import argparse
-import subprocess
 from typing import List
 from autofuse import ascendc_compile
-from autofuse.ascendc_compile import str2bool
 import re
+
+
+def str2bool(v):
+    v_lower = v.lower()
+    if v_lower in ['true', '1', 'yes', 'y']:
+        return True
+    elif v_lower in ['false', '0', 'no', 'n']:
+        return False
+    else:
+        raise ValueError(f"Invalid boolean value: '{v}'")
+
 
 def camel_to_snake(camel_str):
     # 使用正则表达式匹配大写字母
@@ -53,7 +61,7 @@ def gen_valid_name(t_name):
     return ret_name
 
 
-def parse_compile_args(argv: List[str]):
+def parse_compile_args(argv):
     parser = argparse.ArgumentParser()
     parser.add_argument('--graph_name', default='autofuse', type=str, help='Graph name.')
     parser.add_argument('--output_file', required=True, type=str, help='Destination directory.')
@@ -72,33 +80,27 @@ def generate_file(dst_dir, file_name, text):
         file.write(text)
 
 
-def get_dfx_env_result():
+def parse_env_flags(env_name):
     result = {}
-    # 获取环境变量AUTOFUSE_DFX_FLAGS的值
-    dfx_flags = os.getenv('AUTOFUSE_DFX_FLAGS')
-    if not dfx_flags:
+    flags = os.getenv(env_name)
+    if not flags:
         return result
-
-    params = dfx_flags.split(';')
+    params = flags.split(';')
     for param in params:
-        # 检查包含等号
         if '=' in param:
-            # 分割键值对 只分割一次 避免值存在等号场景
             key_part, value_part = param.split('=', 1)
-            # 去除key前面的--
             key = key_part.lstrip('-')
             result[key] = value_part
-
     return result
+
+
+def get_dfx_env_result():
+    return parse_env_flags('AUTOFUSE_DFX_FLAGS')
+
 
 def get_debug_flag():
     dfx_dict = get_dfx_env_result()
-    debug_flag = dfx_dict.get('codegen_compile_debug', "false")
-    flg = debug_flag.lower()
-    if flg == 'true':
-        return True
-    else:
-        return False
+    return dfx_dict.get('codegen_compile_debug', "false").lower() == 'true'
 
 
 def get_pgo_topn():
@@ -115,61 +117,77 @@ def get_pgo_topn():
 
 
 def get_pgo_env_flag():
-    result = {}
-    # 获取环境变量AUTOFUSE_DFX_FLAGS的值
-    dfx_flags = os.getenv('AUTOFUSE_FLAGS')
-    if not dfx_flags:
-        return result
-
-    params = dfx_flags.split(';')
-    for param in params:
-        # 检查包含等号
-        if '=' in param:
-            # 分割键值对 只分割一次 避免值存在等号场景
-            key_part, value_part = param.split('=', 1)
-            # 去除key前面的--
-            key = key_part.lstrip('-')
-            result[key] = value_part
-
-    debug_flag = result.get('autofuse_enable_pgo', "false")
-    flg = debug_flag.lower()
-    if flg == 'true':
-        return True
-    else:
-        return False
+    result = parse_env_flags('AUTOFUSE_FLAGS')
+    return result.get('autofuse_enable_pgo', "false").lower() == 'true'
 
 
-def compile_inner(tiling_def, host_tiling, op_kernel, temp_dir, argv: List[str]):
-    print("创建临时目录路径：", temp_dir)
+def prepare_compile_context(argv, stage, tiling_repr):
     args = parse_compile_args(argv)
+    args.stage = stage
+    args.tiling_repr = tiling_repr
+    if stage == 'host':
+        args.compile_options = (args.compile_options + " -D_GLIBCXX_USE_CXX11_ABI=0").strip()
 
     args.graph_name = camel_to_snake(gen_valid_name(args.graph_name))
+    auto_cleanup = not args.output_path and not get_debug_flag()
 
-    generate_file(os.path.join(temp_dir, "host"), "autofuse_tiling_data.h", tiling_def)
-    generate_file(os.path.join(temp_dir, "host"), args.graph_name + "_tiling_func.cpp", host_tiling)
-    generate_file(os.path.join(temp_dir, "device"), "autofuse_tiling_data.h", tiling_def)
-    generate_file(os.path.join(temp_dir, "device"), args.graph_name + "_op_kernel.cpp", op_kernel)
+    if auto_cleanup:
+        temp_dir_ctx = tempfile.TemporaryDirectory()
+        args.temp_dir = temp_dir_ctx.name
+        return args, temp_dir_ctx, True
+    args.temp_dir = args.output_path if args.output_path else tempfile.mkdtemp()
+    return args, None, False
 
-    argv.extend(["--host_files", os.path.join(temp_dir, "host") + "/" + args.graph_name + "_tiling_func.cpp"])
-    argv.extend(["--device_files", os.path.join(temp_dir, "device") + "/" + args.graph_name + "_op_kernel.cpp"])
 
-    ascendc_compile.main(argv, temp_dir)
+def execute_compile(sources, args):
+    tiling_def_file = "autofuse_tiling_data.h"
+    base_host_file = args.graph_name + "_tiling_func.cpp"
+    base_device_file = args.graph_name + "_op_kernel.cpp"
+    if args.stage in ['all', 'host']:
+        host_file_path = os.path.join(args.temp_dir, "host")
+        generate_file(host_file_path, tiling_def_file, sources['tiling_struct_code'])
+        generate_file(host_file_path, base_host_file, sources['host_impl_code'])
+        args.host_files = os.path.join(host_file_path, base_host_file)
+    if args.stage in ['all', 'device']:
+        device_file_path = os.path.join(args.temp_dir, "device")
+        generate_file(device_file_path, tiling_def_file, sources['tiling_struct_code'])
+        generate_file(device_file_path, base_device_file, sources['kernel_impl_code'])
+        args.device_files = os.path.join(device_file_path, base_device_file)
+
+    ascendc_compile.main(args)
+    return args.temp_dir
+
+
+def compile_core(sources, argv: List[str], stage='all', tiling_repr=None):
+    args, temp_dir_ctx, auto_cleanup = prepare_compile_context(argv, stage, tiling_repr)
+    if not auto_cleanup:
+        return execute_compile(sources, args)
+    with temp_dir_ctx:
+        return execute_compile(sources, args)
 
 
 def jit_compile(tiling_def, host_tiling, op_kernel, argv: List[str]):
-    args = parse_compile_args(argv)
-    if args.output_path != '':
-        compile_inner(tiling_def, host_tiling, op_kernel, args.output_path, argv)
-        return
+    return compile_core({
+        'tiling_struct_code': tiling_def,
+        'host_impl_code': host_tiling,
+        'kernel_impl_code': op_kernel
+    }, argv)
 
-    # 使用上下文管理器确保临时目录在结束时被删除
-    compile_debug = get_debug_flag()
-    if not compile_debug:
-        with tempfile.TemporaryDirectory() as temp_dir:
-            compile_inner(tiling_def, host_tiling, op_kernel, temp_dir, argv)
-    else:
-        temp_dir = tempfile.mkdtemp()
-        compile_inner(tiling_def, host_tiling, op_kernel, temp_dir, argv)
+
+def host_compile(tiling_def_code, tiling_impl_code, argv: List[str]):
+    return compile_core({
+        'tiling_struct_code': tiling_def_code,
+        'host_impl_code': tiling_impl_code,
+        'kernel_impl_code': None
+    }, argv, 'host')
+
+
+def kernel_compile(tiling_def_code, kernel_impl_code, argv: List[str], *, tiling_repr=None):
+    return compile_core({
+        'tiling_struct_code': tiling_def_code,
+        'host_impl_code': None,
+        'kernel_impl_code': kernel_impl_code
+    }, argv, 'device', tiling_repr)
 
 
 def extract_time(line):

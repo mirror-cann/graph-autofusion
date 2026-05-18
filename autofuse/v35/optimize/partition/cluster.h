@@ -21,6 +21,7 @@ struct Cluster {
     bool enable_vf{false};
     uint32_t ins_num{0U};
     int64_t loop_axis{-1};
+    std::vector<af::Expression> vectorized_repeats;
   };
   struct ClusterCmp {
     bool operator()(const Cluster *a, const Cluster *b) const {

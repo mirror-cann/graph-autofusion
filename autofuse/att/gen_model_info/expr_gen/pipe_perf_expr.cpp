@@ -351,11 +351,11 @@ ge::Status PipePerfExpr::GetNodePerf(const NodeInfo &node, std::map<PipeType, Ex
   std::vector<TensorShapeInfo> outputs;
   GE_ASSERT_SUCCESS(GetTensorShapes(node, inputs, outputs, ternary_ops, tail_shape), "Get tensor shape failed!");
   for (size_t i = 0; i < inputs.size(); i++) {
-    GELOGD("node[%s, %s] input[%zu] %s shape: {%s}", node.name.c_str(), node.node_type.c_str(), i,
+    GELOGD("node[%s, %s] input[%zu] %sshape: {%s}", node.name.c_str(), node.node_type.c_str(), i,
            tail_annotation.c_str(), inputs[i].GetDimExpr().c_str());
   }
   for (size_t i = 0; i < outputs.size(); i++) {
-    GELOGD("node[%s, %s] output[%zu] %s shape: {%s}", node.name.c_str(), node.node_type.c_str(), i,
+    GELOGD("node[%s, %s] output[%zu] %sshape: {%s}", node.name.c_str(), node.node_type.c_str(), i,
            tail_annotation.c_str(), outputs[i].GetDimExpr().c_str());
   }
   PerfOutputInfo perf_res;

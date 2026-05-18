@@ -315,7 +315,7 @@ std::vector<AxisTilingData> AxesTilingDataGen::GetAxisTilingData(const std::stri
   if (found) {
     return axes_tiling_data_iter->second;
   }
-  // can not find tiling of axis
+  // cannot find tiling of axis
   return axis_tiling_data_res;
 }
 
@@ -335,8 +335,8 @@ std::pair<std::string, std::string> AxesTilingDataGen::GetAxisTilingData(const s
       return std::make_pair(axis_tiling_data.arg_name, axis_tiling_data.arg_expr);
     }
   }
-  // can not found
-  GELOGD("Can not find axis tiling data by axis_name[%s], arg_type[%d]", axis_name.c_str(),
+  // cannot found
+  GELOGD("Cannot find axis tiling data by axis_name[%s], arg_type[%d]", axis_name.c_str(),
           static_cast<int32_t>(arg_type));
   return std::pair<std::string, std::string>();
 }

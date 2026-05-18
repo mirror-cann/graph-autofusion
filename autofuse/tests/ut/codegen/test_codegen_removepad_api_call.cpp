@@ -30,7 +30,6 @@ TEST_F(RemovePadApiCallTest, RemovePadApiCall_01) {
     std::vector<ascir::AxisId> current_axis;
     std::vector<std::reference_wrapper<const Tensor>> inputs;
     std::vector<std::reference_wrapper<const Tensor>> outputs;
-    ApiAttr api_attr;
     std::string result;
 
     af::SizeVar s0(af::Symbol("s0"));
@@ -100,7 +99,6 @@ TEST_F(RemovePadApiCallTest, RemovePadApiCall_02) {
     std::vector<ascir::AxisId> current_axis;
     std::vector<std::reference_wrapper<const Tensor>> inputs;
     std::vector<std::reference_wrapper<const Tensor>> outputs;
-    ApiAttr api_attr;
     std::string result;
 
     af::SizeVar s0(af::Symbol("s0"));

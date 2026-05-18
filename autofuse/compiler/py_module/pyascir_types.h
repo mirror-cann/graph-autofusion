@@ -186,6 +186,7 @@ class FusedScheduledResult {
   static PyObject* GetName(PyObject *self_pyobject);
   static PyObject* IsCubeType(PyObject *self_pyobject);
   static PyObject* GetCubeAttributes(PyObject *self_pyobject);
+  static PyObject* IsConvType(PyObject *self_pyobject);
 };
 
 #define SET_DICT_LONG(dict, key, value) do { \

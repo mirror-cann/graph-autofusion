@@ -22,7 +22,6 @@ stage=""
 is_quiet="n"
 pylocal="n"
 hetero_arch="n"
-install_autofuse="n"
 
 while true; do
     case "$1" in
@@ -52,10 +51,6 @@ while true; do
         ;;
     --pylocal=*)
         pylocal=$(echo "$1" | cut -d"=" -f2)
-        shift
-        ;;
-    --autofuse=*)
-        install_autofuse=$(echo "$1" | cut -d"=" -f2)
         shift
         ;;
     --hetero-arch=*)
@@ -370,9 +365,6 @@ custom_install() {
     fi
 
     local autofuse_python_dir="${common_parse_dir}/python/site-packages/autofuse"
-    if [ "$install_autofuse" != "y" ] || [ ! -d "${autofuse_python_dir}" ]; then
-        return 0
-    fi
 
     if [ -d "${autofuse_python_dir}" ]; then
         log "INFO" "pre-compiling autofuse python scripts..."

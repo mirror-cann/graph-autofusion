@@ -48,7 +48,7 @@ std::string GetPaddingMode(const TPipe &tpipe, const Tensor &ub_tensor, const Da
     ascir::AxisId axis_id = ub_tensor.axis[axis_pos];
     const Axis &axis = tpipe.tiler.GetAxis(axis_id);
     if (axis.type == ascir::Axis::Type::kAxisTypeTileInner && ub_tensor.vectorized_axis[0] != axis_id) {
-      GELOGD("The TileInner axis is not the first axis， use normal mode.");
+      GELOGD("The TileInner axis is not the first axis, use normal mode.");
       return kNormalPddingMode;
     }
   }
@@ -161,12 +161,12 @@ void SetNddmaParams(const TPipe &tpipe, const DataCopyParams &data_copy_param, N
   size_t j = std::min(data_copy_param.repeats.size(), kFiveAxisNum);
   while (j > 0UL) {
     if (j == 1UL) {
-      nddma_param.ss_output_dims << data_copy_param.repeats_str[i];
+      nddma_param.ss_output_dims << tpipe.tiler.ActualSize(data_copy_param.repeats[i]);
       nddma_param.ss_output_stride << tpipe.tiler.Size(data_copy_param.ub_strides[i]);
       nddma_param.ss_input_stride << tpipe.tiler.Size(data_copy_param.gm_strides[i]);
       break;
     }
-    nddma_param.ss_output_dims << data_copy_param.repeats_str[i] << ", ";
+    nddma_param.ss_output_dims << tpipe.tiler.ActualSize(data_copy_param.repeats[i]) << ", ";
     nddma_param.ss_output_stride << tpipe.tiler.Size(data_copy_param.ub_strides[i]) << ", ";
     nddma_param.ss_input_stride << tpipe.tiler.Size(data_copy_param.gm_strides[i]) << ", ";
     i++;
@@ -196,6 +196,133 @@ void CreateNddmaCall(const TPipe &tpipe, const Tensor &input, const Tensor &outp
       << "output_dims_" << output.id << ", " << "output_stride_" << output.id << ", " << "input_stride_" << output.id
       << ");" << std::endl;
   CreateOuterFor(tpipe, repeats, ss1, ss, 0UL);
+}
+
+void BuildDataCopyApiParamInCVFusion(CodegenApiParam &api_param, DmaSpecificParams &dma_specific_params,
+                                     const Tensor &gm, const Tensor &ub, std::string &dtype_name, bool copy_in) {
+  api_param.template_params.emplace_back("AscendC::PaddingMode::Normal");
+  dma_specific_params.data_copy_params.block_count = "curAivM";
+  if (copy_in) {
+    api_param.input_params.emplace_back(gm.Str(), true, "offset");
+    api_param.output_params.emplace_back(ub.Str(), true, "0");
+    dma_specific_params.data_copy_params.block_len = "load_block_len";
+    dma_specific_params.data_copy_params.src_stride = "load_src_stride";
+    dma_specific_params.data_copy_params.dst_stride = "load_dst_stride";
+    int dtype_size = GetSizeByDataType(gm.dtype);
+    if (dtype_size == 1 || dtype_size == 2 || dtype_size == 4) {
+      // LoadAlign仅支持字节大小为1、2、4的数据类型，否则GatherMask编译错误。
+      // 超过4字节的数据类型，CV融合场景下目前一定是对齐拷入的，不需要RemovePad。
+      std::stringstream ss;
+      ss << "if (KernelUtils::BlkAlign<" << dtype_name << ">(curAlignN) != curAlignN) {" << std::endl;
+      ss << "event_t eventID = static_cast<event_t>(GetTPipePtr()->FetchEventID(HardEvent::MTE2_V));" << std::endl;
+      ss << "SetFlag<HardEvent::MTE2_V>(eventID);" << std::endl;
+      ss << "WaitFlag<HardEvent::MTE2_V>(eventID);" << std::endl;
+      ss << "uint8_t mask = 7;" << std::endl;
+      ss << "uint64_t rsvdCnt = 0;" << std::endl;
+      ss << "AscendC::GatherMask(" << ub << ", " << ub << ", mask, true, static_cast<uint32_t>(curAlignN)"
+         << ", {1, static_cast<uint16_t>(curAivM), static_cast<uint16_t>(KernelUtils::BlkAlign<" << dtype_name << ">(curAlignN) * sizeof(" << dtype_name << ") / ONE_BLK_SIZE), 0}"
+         << ", rsvdCnt);" << std::endl;
+      ss << "}" << std::endl;
+      api_param.api_post_process.emplace_back(ss.str());
+    }
+  } else {
+    api_param.output_params.emplace_back(gm.Str(), true, "offset");
+    api_param.input_params.emplace_back(ub.Str(), true, "0");
+    dma_specific_params.data_copy_params.block_len = "curAivN";
+    dma_specific_params.data_copy_params.src_stride = "0";
+    dma_specific_params.data_copy_params.dst_stride = "(shapeN - curAivN)";
+  }
+}
+
+void BuildDataCopyBaseParams(const TPipe &tpipe, DataCopyParams &data_copy_param,
+                             DmaSpecificParams &dma_specific_params, bool copy_in) {
+  DmaParams dma_param;
+  SetDmaParams(tpipe, data_copy_param, dma_param, copy_in);
+  dma_specific_params.data_copy_params.block_count = dma_param.block_count;
+  dma_specific_params.data_copy_params.block_len = dma_param.block_len;
+  dma_specific_params.data_copy_params.src_stride = dma_param.src_stride;
+  dma_specific_params.data_copy_params.dst_stride = dma_param.dst_stride;
+}
+
+void BuildDataCopyLoopModeParams(const TPipe &tpipe, DataCopyParams &data_copy_param,
+                                 DmaSpecificParams &dma_specific_params, int64_t dtype_size, bool copy_in) {
+  LoopModeParams loop_mode_param;
+  SetLoopModeParams(tpipe, data_copy_param, loop_mode_param, copy_in);
+  dma_specific_params.loop_mode_params.loop_sizes.emplace_back("static_cast<uint32_t>(" +
+    loop_mode_param.loop_size[0] + ")");
+  dma_specific_params.loop_mode_params.loop_sizes.emplace_back("static_cast<uint32_t>(" +
+    loop_mode_param.loop_size[1] + ")");
+  dma_specific_params.loop_mode_params.loop_src_strides.emplace_back("static_cast<uint64_t>(" +
+    loop_mode_param.loop_src_stride[0] + " * " + std::to_string(dtype_size) + ")");
+  dma_specific_params.loop_mode_params.loop_src_strides.emplace_back("static_cast<uint64_t>(" +
+    loop_mode_param.loop_src_stride[1] + " * " + std::to_string(dtype_size) + ")");
+  dma_specific_params.loop_mode_params.loop_dst_strides.emplace_back("static_cast<uint64_t>(" +
+    loop_mode_param.loop_dst_stride[0] + " * " + std::to_string(dtype_size) + ")");
+  dma_specific_params.loop_mode_params.loop_dst_strides.emplace_back("static_cast<uint64_t>(" +
+    loop_mode_param.loop_dst_stride[1] + " * " + std::to_string(dtype_size) + ")");
+}
+
+Status BuildDataCopyApiParamInNormal(const TPipe &tpipe, CodegenApiParam &api_param,
+                                     DmaSpecificParams &dma_specific_params, const Tensor &src, const Tensor &dst,
+                                     std::string &gm_offset, bool copy_in) {
+  DataCopyParams data_copy_param;
+  GE_ASSERT_TRUE(CalculateDmaParams(tpipe, dst, dst, data_copy_param), "CalculateDmaParams failed");
+  size_t total_len = data_copy_param.repeats.size();
+  const Tensor &ub_tensor = copy_in ? dst : src;
+  std::string padding_mode = GetPaddingMode(tpipe, ub_tensor, data_copy_param);
+  api_param.template_params.emplace_back(padding_mode);
+  std::string ub_offset = "0";
+
+  BuildDataCopyBaseParams(tpipe, data_copy_param, dma_specific_params, copy_in);
+  if (total_len > kDmaMaxLen) {
+    BuildDataCopyLoopModeParams(tpipe, data_copy_param, dma_specific_params, ge::GetSizeByDataType(src.dtype), copy_in);
+  }
+
+  if (total_len > kFourAxisNum) {
+    // 超过四层for循环，需要外抛
+    std::vector<ascir::SizeExpr> gm_stride(data_copy_param.gm_strides.begin(),
+                                           data_copy_param.gm_strides.end() - kFourAxisNum);
+    std::vector<ascir::SizeExpr> ub_stride(data_copy_param.ub_strides.begin(),
+                                           data_copy_param.ub_strides.end() - kFourAxisNum);
+    std::vector<ascir::SizeExpr> repeats(data_copy_param.repeats.begin(),
+                                         data_copy_param.repeats.end() - kFourAxisNum);
+    std::string gm_inner_offset = CalcInnerOffset(tpipe, gm_stride);
+    std::string ub_inner_offset = CalcInnerOffset(tpipe, ub_stride);
+    gm_offset = gm_offset + " + " + gm_inner_offset;
+    ub_offset = ub_inner_offset;
+    for (const auto& repeat : repeats) {
+      api_param.outer_loop_axes.emplace_back(tpipe.tiler.ActualSize(repeat));
+    }
+  }
+  if (copy_in) {
+    api_param.input_params.emplace_back(src.Str(), true, gm_offset);
+    api_param.output_params.emplace_back(dst.Str(), true, ub_offset);
+  } else {
+    api_param.input_params.emplace_back(src.Str(), true, ub_offset);
+    api_param.output_params.emplace_back(dst.Str(), true, gm_offset);
+  }
+  return af::SUCCESS;
+}
+
+Status GenDataCopyDimParam(const CodegenApiParam &api_param, std::string graph_name, std::string node_name,
+                           std::stringstream &ss) {
+  auto* dma_params = std::get_if<DmaSpecificParams>(&api_param.specific_params);
+  GE_ASSERT_NOTNULL(dma_params, "dma_params is null, graph name: %s, node name: %s", graph_name.c_str(),
+                    node_name.c_str());
+  ss << dma_params->data_copy_params.block_count << ", ";
+  ss << dma_params->data_copy_params.block_len << ", ";
+  ss << dma_params->data_copy_params.src_stride << ", ";
+  ss << dma_params->data_copy_params.dst_stride;
+  if (dma_params->loop_mode_params.loop_sizes.size() > 0) {
+    ss << ", " << "{" << dma_params->loop_mode_params.loop_sizes[0] << ", "
+       << dma_params->loop_mode_params.loop_sizes[1] << ", "
+       << dma_params->loop_mode_params.loop_src_strides[0] << ", "
+       << dma_params->loop_mode_params.loop_dst_strides[0] << ", "
+       << dma_params->loop_mode_params.loop_src_strides[1] << ", "
+       << dma_params->loop_mode_params.loop_dst_strides[1] << "}";
+  }
+  ss << ");" << std::endl;
+  return af::SUCCESS;
 }
 
 }  // namespace codegen

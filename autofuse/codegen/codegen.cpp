@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -19,18 +19,15 @@
 #include "common_utils.h"
 #include "common/ge_common/debug/log.h"
 #include "codegen_infershape.h"
+#include "common/platform_context.h"
 
 using namespace codegen;
+using namespace ascgen_utils;
 
 namespace {
 constexpr uint32_t ELEMENTS_PER_LINE = 20;
 constexpr size_t kMaxUnfoldedIoNum = 64U;
 constexpr size_t kKernelMaxIoNum = 190U;
-
-const std::string kKernelTaskTypeAIVOnly = "KERNEL_TYPE_AIV_ONLY";
-const std::string kKernelTaskTypeMixAIVOneZero = "KERNEL_TYPE_MIX_AIV_1_0";
-const std::string kKernelTaskTypeAICOnly = "KERNEL_TYPE_AIC_ONLY";
-const std::string kKernelTaskTypeMixAICOneTwo = "KERNEL_TYPE_MIX_AIC_1_2";
 
 // Include path prefixes to be removed
 const std::string kBasicApiInclude = "#include \"basic_api/";
@@ -43,7 +40,17 @@ std::string GetKernelTaskType(const ascir::FusedScheduledResult &schedule_result
   if (ascgen_utils::IsJustCubeFixpip(schedule_results)) {
     return kKernelTaskTypeAICOnly;
   } else if (ascgen_utils::IsCubeFusedScheduled(schedule_results)) {
-    return kKernelTaskTypeMixAICOneTwo;
+    if (ascgen_utils::IsConv2DFusedScheduled(schedule_results)) {
+      std::string npu_arch;
+      GE_ASSERT_SUCCESS(ge::PlatformContext::GetInstance().GetCurrentPlatformString(npu_arch));
+      if (npu_arch == "5102") {
+        return kKernelTaskTypeMixAICOneOne;
+      } else {
+        return kKernelTaskTypeMixAICOneTwo;
+      }
+    } else {
+      return kKernelTaskTypeMixAICOneTwo;
+    }
   }
   return schedule_results.workspace_nodes.size() != 0 ? kKernelTaskTypeMixAIVOneZero : kKernelTaskTypeAIVOnly;
 }
@@ -94,6 +101,133 @@ Status CombineTilings(const std::map<std::string, std::string> &tiling_file_name
   }
 
   return ge::SUCCESS;
+}
+
+struct ScanResult {
+  int open_braces = 0; // 当前行的开大括号{总数
+  int close_braces = 0; // 当前行的闭大括号}总数
+  int line_starts_close_braces = 0; // 当前行首连续闭大括号数量
+  bool has_preprocessor = false; // 当前行是否预处理宏
+};
+
+// 处理字符串状态
+void StringState(char c, size_t i, const std::string& line, bool& in_string, char& string_char) {
+  if (!in_string && (c == '"' || c == '\'')) {
+    in_string = true;
+    string_char = c;
+  } else if (in_string && c == string_char && (i == 0 || line[i-1] != '\\')) {
+    in_string = false;
+  }
+}
+
+// 处理单行/多行注释状态
+bool CommentState(char c, char next_c, size_t& i,
+                  bool in_string, bool& in_block_comment, bool& in_line_comment) {
+  if (!in_string && !in_block_comment && !in_line_comment) {
+    if (c == '/' && next_c == '/') {
+      in_line_comment = true;
+      return true;
+    } else if (c == '/' && next_c == '*') {
+      in_block_comment = true;
+      i++;
+      return true;
+    }
+  } else if (in_block_comment && c == '*' && next_c == '/') {
+    in_block_comment = false;
+    i++;
+    return true;
+  }
+  return false;
+}
+
+// 大括号统计
+void BraceCount(char c, bool& in_line_start_close_brace, ScanResult& result) {
+  if (in_line_start_close_brace && !std::isspace(static_cast<unsigned char>(c)) && (c != '}')) { // 判断是否仍在闭大括号行首状态
+    in_line_start_close_brace = false;
+  }
+  if (c == '{') {
+    result.open_braces++;
+  } else if (c == '}') {
+    result.close_braces++;
+    if (in_line_start_close_brace) {
+      result.line_starts_close_braces++;
+    }
+  }
+}
+
+ScanResult ScanLine(const std::string& line, bool& in_block_comment,
+                    bool& in_string, char& string_char) {
+  ScanResult result;
+  bool in_line_comment = false; // 是否在//单行注释内
+  bool in_line_start_close_brace = true; // 闭大括号是否在行首
+  for (size_t i = 0; i < line.length(); ++i) {
+    char c = line[i];
+    char next_c = (i + 1 < line.length()) ? line[i + 1] : '\0';
+    // 1.1 字符串状态判断
+    if (!in_block_comment && !in_line_comment) {
+      StringState(c, i, line, in_string, string_char);
+    }
+    // 1.2 单行/多行注释状态判断
+    bool should_continue = CommentState(c, next_c, i, in_string, in_block_comment, in_line_comment);
+    if (should_continue) {
+        if (in_line_comment) break;
+        continue;
+    }
+    // 1.3 不在字符串或注释状态，统计大括号数量
+    if (!in_string && !in_block_comment && !in_line_comment) {
+      BraceCount(c, in_line_start_close_brace, result);
+    }
+    // 1.4 是否是宏判断
+    if (!in_string && !in_block_comment && !in_line_comment &&
+      i == line.find_first_not_of(" \t") && c == '#') {
+      result.has_preprocessor = true;
+    }
+  }
+  return result;
+}
+
+std::string FormatIndentation(const std::string &code) {
+  std::istringstream iss(code);
+  std::ostringstream oss;
+  std::string line;
+  int indent_level = 0; // 当前缩进层级
+  bool in_block_comment = false; // 是否在/* */多行注释内
+  bool in_string = false; // 是否在字符串常量内
+  char string_char = '\0'; // 字符串的引号类型
+
+  // 逐行遍历处理
+  while (std::getline(iss, line)) {
+    if (line.empty() || line.find_first_not_of(" \t\r\n") == std::string::npos) {
+      oss << "\n";
+      continue;
+    }
+
+    // 阶段1 单行扫描
+    ScanResult result = ScanLine(line, in_block_comment, in_string, string_char);
+
+    // 阶段2 格式化缩进
+    std::string trimmed = line;
+    // 2.1 去掉全部前导空格
+    trimmed.erase(0, trimmed.find_first_not_of(" \t"));
+    // 2.2 宏不做缩进处理
+    if (result.has_preprocessor) {
+      oss << trimmed << "\n";
+      continue;
+    }
+    // 2.3 按照缩进等级增加缩进
+    int current_indent = indent_level; // 当前缩进等级
+    if (result.line_starts_close_braces > 0) { // 如果行首有闭大括号，先减少缩进（用于当前行）
+      current_indent = std::max(0, indent_level - result.line_starts_close_braces);
+    }
+
+    // 阶段3 输出当前行
+    oss << std::string(current_indent * 2, ' ') << trimmed << "\n";
+
+    // 更新下一行的缩进等级
+    indent_level = indent_level - result.close_braces + result.open_braces;
+    indent_level = std::max(0, indent_level);
+  }
+  return oss.str();
 }
 
 }  // namespace
@@ -228,7 +362,7 @@ Status Codegen::GenerateKernel(const ascir::FusedScheduledResult &fused_schedule
   if (is_inductor) {
     ss << Kernel::GenKernelFuncCallForInductor(fused_schedule_result);
   }
-  result = ss.str();
+  result = FormatIndentation(ss.str());
   return ge::SUCCESS;
 }
 
@@ -261,7 +395,7 @@ std::string Codegen::GenGetKernelAndJson(const std::string &kernel_path, const s
     ss << "  std::vector<uint8_t> temp_kernel = {};" << std::endl;
     ss << "  return;" << std::endl;
   } else {
-    ss << "  std::vector<uint8_t> temp_kernel = {";
+    ss << "  static const uint8_t temp_kernel[] = {";
     for (uint32_t i = 0; i < kernel_file_size; i++) {
       if (i % ELEMENTS_PER_LINE == 0) {
         ss << std::endl << "    ";
@@ -270,8 +404,8 @@ std::string Codegen::GenGetKernelAndJson(const std::string &kernel_path, const s
     }
     ss << "};" << std::endl;
 
-    ss << "  kernel_bin.resize(temp_kernel.size());" << std::endl;
-    ss << "  std::memcpy(kernel_bin.data(), temp_kernel.data(), temp_kernel.size() * sizeof(uint8_t));" << std::endl;
+    ss << "  kernel_bin.resize(sizeof(temp_kernel));" << std::endl;
+    ss << "  std::memcpy(kernel_bin.data(), temp_kernel, sizeof(temp_kernel));" << std::endl;
   }
   ss << "}";
   return ss.str();

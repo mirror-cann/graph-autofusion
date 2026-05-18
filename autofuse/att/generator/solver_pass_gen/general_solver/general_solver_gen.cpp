@@ -945,6 +945,10 @@ std::string GeneralSolverGen::InitiateMemoryPool() const {
                     " + sizeof(VarInfo) + sizeof(ConsInfo)"
                     " + sizeof(Momentum) + total_VarVal_size + sizeof(Result)"
                     " + ret_size + visited_size + sizeof(VisitedNode));\n";
+  codes += "    if (memory_pool == nullptr) {\n";
+  codes += "        OP_LOGE(OP_NAME, \"Failed to allocate memory pool for solver.\");\n";
+  codes += "        return false;\n";
+  codes += "    }\n";
   codes += "    size_t offset_uint = 0;\n";
   codes += "    size_t offset_double = offset_uint + uint_size;\n";
   codes += "    size_t offset_bool = offset_double + double_size;\n";

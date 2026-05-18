@@ -39,7 +39,7 @@ int main(int argc, char *argv[]) {
   ascir::ScheduledResult schedule_result;
   std::vector<ascir::ScheduledResult> schedule_results{schedule_result};
   ascir::FusedScheduledResult fused_schedule_result;
-  fused_schedule_result.fused_graph_name = ge::AscendString("load_broadcast_store");
+  fused_schedule_result.fused_graph_name = af::AscendString("load_broadcast_store");
   fused_schedule_result.node_idx_to_scheduled_results.push_back(schedule_results);
   InitScheduleResultsByImplGraphs({impl_graph}, fused_schedule_result);
   codegen::CodegenResult result;
@@ -83,11 +83,11 @@ int main(int argc, char *argv[]) {
   ascir::ScheduledResult schedule_result_int64;
   std::vector<ascir::ScheduledResult> schedule_results_int64{schedule_result_int64};
   ascir::FusedScheduledResult fused_schedule_result_int64;
-  fused_schedule_result_int64.fused_graph_name = ge::AscendString("load_broadcast_store_int64");
+  fused_schedule_result_int64.fused_graph_name = af::AscendString("load_broadcast_store_int64");
   fused_schedule_result_int64.node_idx_to_scheduled_results.push_back(schedule_results_int64);
   InitScheduleResultsByImplGraphs({impl_graph_int64}, fused_schedule_result_int64);
   if (c_int64.Generate(fused_schedule_result_int64, result) != ge::SUCCESS) {
-    std::cout<<"graph_uint8 generate faild"<<std::endl;
+    std::cout<<"graph_uint8 generate failed"<<std::endl;
   }
 
   std::fstream kernel_file_int64("load_broadcast_store_int64_kernel.cpp", std::ios::out);
@@ -118,11 +118,11 @@ int main(int argc, char *argv[]) {
   ascir::ScheduledResult schedule_result_uint8;
   std::vector<ascir::ScheduledResult> schedule_results_uint8{schedule_result_uint8};
   ascir::FusedScheduledResult fused_schedule_result_uint8;
-  fused_schedule_result_uint8.fused_graph_name = ge::AscendString("load_broadcast_store_uint8");
+  fused_schedule_result_uint8.fused_graph_name = af::AscendString("load_broadcast_store_uint8");
   fused_schedule_result_uint8.node_idx_to_scheduled_results.push_back(schedule_results_uint8);
   InitScheduleResultsByImplGraphs({impl_graph_uint8}, fused_schedule_result_uint8);
   if (c_uint8.Generate(fused_schedule_result_uint8, result) != ge::SUCCESS) {
-    std::cout<<"graph_uint8 generate faild"<<std::endl;
+    std::cout<<"graph_uint8 generate failed"<<std::endl;
   }
   
   std::fstream kernel_file_uint8("load_broadcast_store_uint8_kernel.cpp", std::ios::out);

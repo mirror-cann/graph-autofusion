@@ -62,7 +62,6 @@ class VectorFuncPartitioner {
 
   static bool HasDetectedCycle(const Cluster *const src, const Cluster *const dst);
   static bool IsCompareOp(const af::AscNodePtr &node);
-  bool TryMergeCompareOutputs(const af::AscNodePtr &compare_node, ClusterPtr &cluster);
   void FixCompareClusterConnections(const ClusterPtr &cluster, const af::AscNodePtr &compare_node);
 
   af::AscGraph &impl_graph_;

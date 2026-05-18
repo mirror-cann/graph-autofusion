@@ -360,15 +360,15 @@ ComputeGraphPtr BuildFusedAscbc1(const std::string node_type = "") {
   auto output_node = fused_graph->AddNode(out_desc);
   af::GraphUtils::AddEdge(ascbc3->GetOutDataAnchor(0), output_node->GetInDataAnchor(0));
 
-  auto fuse1_attrs = ascbc1->GetOpDesc()->GetOrCreateAttrsGroup<ge::AutoFuseAttrs>();
+  auto fuse1_attrs = ascbc1->GetOpDesc()->GetOrCreateAttrsGroup<af::AutoFuseAttrs>();
   GE_ASSERT_NOTNULL(fuse1_attrs);
   fuse1_attrs->SetAscGraph(g0);
 
-  auto fuse2_attrs = ascbc2->GetOpDesc()->GetOrCreateAttrsGroup<ge::AutoFuseAttrs>();
+  auto fuse2_attrs = ascbc2->GetOpDesc()->GetOrCreateAttrsGroup<af::AutoFuseAttrs>();
   GE_ASSERT_NOTNULL(fuse2_attrs);
   fuse2_attrs->SetAscGraph(g1);
 
-  auto fuse3_attrs = ascbc3->GetOpDesc()->GetOrCreateAttrsGroup<ge::AutoFuseAttrs>();
+  auto fuse3_attrs = ascbc3->GetOpDesc()->GetOrCreateAttrsGroup<af::AutoFuseAttrs>();
   GE_ASSERT_NOTNULL(fuse3_attrs);
   fuse3_attrs->SetAscGraph(g2);
   fused_graph->TopologicalSorting();
@@ -435,15 +435,15 @@ ComputeGraphPtr BuildFusedAscbc2(const std::string node_type = "") {
   af::GraphUtils::AddEdge(ascbc3->GetOutDataAnchor(0), output0_node->GetInDataAnchor(0));
   af::GraphUtils::AddEdge(ascbc1->GetOutDataAnchor(1), output1_node->GetInDataAnchor(0));
 
-  auto fuse1_attrs = ascbc1->GetOpDesc()->GetOrCreateAttrsGroup<ge::AutoFuseAttrs>();
+  auto fuse1_attrs = ascbc1->GetOpDesc()->GetOrCreateAttrsGroup<af::AutoFuseAttrs>();
   GE_ASSERT_NOTNULL(fuse1_attrs);
   fuse1_attrs->SetAscGraph(g0);
 
-  auto fuse2_attrs = ascbc2->GetOpDesc()->GetOrCreateAttrsGroup<ge::AutoFuseAttrs>();
+  auto fuse2_attrs = ascbc2->GetOpDesc()->GetOrCreateAttrsGroup<af::AutoFuseAttrs>();
   GE_ASSERT_NOTNULL(fuse2_attrs);
   fuse2_attrs->SetAscGraph(g1);
 
-  auto fuse3_attrs = ascbc3->GetOpDesc()->GetOrCreateAttrsGroup<ge::AutoFuseAttrs>();
+  auto fuse3_attrs = ascbc3->GetOpDesc()->GetOrCreateAttrsGroup<af::AutoFuseAttrs>();
   GE_ASSERT_NOTNULL(fuse3_attrs);
   fuse3_attrs->SetAscGraph(g2);
   fused_graph->TopologicalSorting();
@@ -4536,4 +4536,93 @@ TEST_F(OptimizerSt, SliceSliceConcatD) {
   }
   unsetenv("AUTOFUSE_DFX_FLAGS");
   ::ascir::utils::ResetDumpConfig();
+}
+
+// ============================================================================
+// Multi-Transpose ST Tests (covering the multi-transpose-to-load feature)
+// ============================================================================
+
+TEST_F(OptimizerSt, multi_transpose_two_branch_dynamic) {
+  auto s0 = Sym("s0"), s1 = Sym("s1"), s2 = Sym("s2");
+  auto graph = AscGraphBuilder("multi_transpose_two_branch")
+                   .Loops({s0, s1, s2})
+                   .Data("data0", 0, ge::DT_FLOAT16)
+                   .Load("load0", "data0")
+                   .Transpose("transpose0", "load0", {1, 0, 2})
+                   .Data("data1", 1, ge::DT_FLOAT16)
+                   .Load("load1", "data1")
+                   .Transpose("transpose1", "load1", {2, 1, 0})
+                   .Mul("mul0", "transpose0", "transpose1")
+                   .Store("store0", "mul0")
+                   .Output("out0", "store0", 0)
+                   .Build();
+
+  ::ascir::FusedScheduledResult fused_scheduled_result;
+  EXPECT_EQ(optimizer.Optimize(graph, fused_scheduled_result), 0);
+  EXPECT_EQ(fused_scheduled_result.node_idx_to_scheduled_results[0].size(), 1);
+  EXPECT_EQ(fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups.size(), 1);
+}
+
+TEST_F(OptimizerSt, multi_transpose_two_branch_static) {
+  auto s0 = Sym(16), s1 = Sym(86), s2 = Sym(36);
+  auto graph = AscGraphBuilder("multi_transpose_two_branch_static")
+                   .Loops({s0, s1, s2})
+                   .Data("data0", 0, ge::DT_FLOAT16)
+                   .Load("load0", "data0")
+                   .Transpose("transpose0", "load0", {1, 0, 2})
+                   .Data("data1", 1, ge::DT_FLOAT16)
+                   .Load("load1", "data1")
+                   .Transpose("transpose1", "load1", {2, 1, 0})
+                   .Mul("mul0", "transpose0", "transpose1")
+                   .Store("store0", "mul0")
+                   .Output("out0", "store0", 0)
+                   .Build();
+
+  ::ascir::FusedScheduledResult fused_scheduled_result;
+  EXPECT_EQ(optimizer.Optimize(graph, fused_scheduled_result), 0);
+  EXPECT_EQ(fused_scheduled_result.node_idx_to_scheduled_results[0].size(), 1);
+  EXPECT_EQ(fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups.size(), 1);
+}
+
+// ==================== Broadcast Reorder Tests ====================
+
+TEST_F(OptimizerSt, broadcast_reorder_elementwise) {
+  auto s0 = Sym(4);
+  auto s1 = Sym(512 * 1024);  // > 256*1024
+  auto graph = AscGraphBuilder("broadcast_reorder_elementwise")
+                   .Loops({s0, s1})
+                   .Data("data0", 0, {af::ops::One, s1}, {af::ops::Zero, af::ops::One}, ge::DT_FLOAT16)
+                   .Load("load0", "data0", {af::ops::One, s1}, {af::ops::Zero, af::ops::One})
+                   .Abs("abs0", "load0")
+                   .Store("store0", "abs0")
+                   .Output("y", "store0", 0, ge::DT_FLOAT16)
+                   .Build();
+
+  ::ascir::FusedScheduledResult fused_scheduled_result;
+  EXPECT_EQ(optimizer.Optimize(graph, fused_scheduled_result), 0);
+  EXPECT_EQ(fused_scheduled_result.node_idx_to_scheduled_results[0].size(), 1);
+  EXPECT_EQ(fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups.size(), 1);
+}
+
+// Load → Transpose → Sum(Reduce) → Store，图上有 Reduce 节点，
+// Transpose 应被消除推到 Load 上，不生成保留模板，Reduce 正常调度
+TEST_F(OptimizerSt, transpose_reduce_eliminate) {
+  const Expression s0 = af::Symbol(4);
+  const Expression s1 = af::Symbol(8);
+  const Expression s2 = af::Symbol(16);
+
+  auto graph = AscGraphBuilder("transpose_reduce")
+                   .Loops({s0, s1, s2})
+                   .Data("data0", 0)
+                   .Load("load0", "data0")
+                   .Transpose("transpose0", "load0", {1, 0, 2})
+                   .Sum("sum0", "transpose0", {2UL})
+                   .Store("store0", "sum0")
+                   .Output("out0", "store0", 0)
+                   .Build();
+
+  ::ascir::FusedScheduledResult fused_scheduled_result;
+  EXPECT_EQ(optimizer.Optimize(graph, fused_scheduled_result), ge::SUCCESS);
+  // Transpose 被 eliminate，不生成额外的保留模板，只有 Reduce 的调度结果
+  EXPECT_GE(fused_scheduled_result.node_idx_to_scheduled_results[0].size(), 1UL);
 }

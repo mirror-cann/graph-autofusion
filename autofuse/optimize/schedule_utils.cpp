@@ -178,7 +178,7 @@ bool ScheduleUtils::NotNeedAlignVectorStride(const af::AscGraph &graph) {
       continue;
     }
     if (!std::any_of(support_list.begin(), support_list.end(), [&node](const auto &func) { return func(node); })) {
-      GELOGD("Graph[%s], %s[%s] not support unaligned vector stride.", graph.GetName().c_str(), node->GetTypePtr(),
+      GELOGD("Graph[%s], %s[%s] does not support unaligned vector stride.", graph.GetName().c_str(), node->GetTypePtr(),
              node->GetNamePtr());
       return false;
     }
@@ -188,7 +188,7 @@ bool ScheduleUtils::NotNeedAlignVectorStride(const af::AscGraph &graph) {
     // 存在Concat节点时以Concat的判断为准
     if (IsStore(node) && (!exist_concat_node)) {
       if (!IsContinuesStrides(node->outputs[0].attr.repeats, node->outputs[0].attr.strides)) {
-        GELOGD("Graph[%s], %s[%s] is not continues Store, skip it.", graph.GetName().c_str(), node->GetTypePtr(),
+        GELOGD("Graph[%s], %s[%s] is not continuous Store, skip it.", graph.GetName().c_str(), node->GetTypePtr(),
                node->GetNamePtr());
         return false;
       }
@@ -326,7 +326,7 @@ Status ScheduleUtils::TopologicalSorting(af::AscGraph &graph) {
     return ge::SUCCESS;
   }
 
-  GELOGI("Graph [%s] will be sorting with specifical rule.", graph.GetName().c_str());
+  GELOGI("Graph [%s] will be sorted with a specific rule.", graph.GetName().c_str());
   std::unordered_set<af::Node *> reduce_sequences;
   for (const auto &node : graph.GetAllNodes()) {
     if (IsReduce(node)) {
@@ -764,7 +764,7 @@ Status ScheduleUtils::GetInputForTranspose(af::AscNode &node, std::vector<ascir:
 bool ScheduleUtils::IsNeedDiscontinuousAligned(const af::AscTensorAttr &attr) {
   for (auto id = attr.vectorized_axis.rbegin(); id != attr.vectorized_axis.rend(); ++id) {
     auto iter = std::find(attr.axis.begin(), attr.axis.end(), *id);
-    GE_ASSERT_TRUE(iter != attr.axis.end(), "Can not find vectorized axis [%ld], axis attr may be invalid.", *id);
+    GE_ASSERT_TRUE(iter != attr.axis.end(), "Cannot find vectorized axis [%ld], axis attr may be invalid.", *id);
     const size_t index = std::distance(attr.axis.begin(), iter);
     // 考虑到通用模板要兼顾reduce的限制, 因此,尾轴为1的非连续load,不会当成DisContinuous处理
     if ((index == attr.repeats.size() - 1UL) &&
@@ -914,5 +914,15 @@ Status ScheduleUtils::ClearAllSizeVar(const af::AscGraph &graph) {
   GE_ASSERT_NOTNULL(graph_attr);
   graph_attr->size_vars.clear();
   return ge::SUCCESS;
+}
+
+// 判断节点的Micro API是否支持Scalar输入，用于scalar_broadcast优化
+// 支持的算子：比较类(Ge/Eq/Ne/Le/Lt/Gt)和二元计算类(Add/Minimum/Maximum)
+bool ScheduleUtils::IsMicroApiSupportsScalarInput(const af::AscNodePtr &node) {
+  return af::ops::IsOps<af::ascir_op::Ge>(node) || af::ops::IsOps<af::ascir_op::Eq>(node) ||
+         af::ops::IsOps<af::ascir_op::Ne>(node) || af::ops::IsOps<af::ascir_op::Le>(node) ||
+         af::ops::IsOps<af::ascir_op::Lt>(node) || af::ops::IsOps<af::ascir_op::Gt>(node) ||
+         af::ops::IsOps<af::ascir_op::Add>(node) || af::ops::IsOps<af::ascir_op::Minimum>(node) ||
+         af::ops::IsOps<af::ascir_op::Maximum>(node);
 }
 }  // namespace optimize

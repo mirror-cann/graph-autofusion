@@ -22,7 +22,7 @@
 #include "utils/api_call_factory.h"
 #include "elewise/leaky_relu_api_call.h"
 #include "elewise/unary_api_call.h"
-#include "elewise/binary_api_call_v2.h"
+#include "binary_api_call_v2.h"
 
 using namespace ge;
 using namespace af::ops;
@@ -99,7 +99,7 @@ TEST(CodegenKernel, BitwiseAndTest) {
   std::string result;
   call.Generate(tpipe, vector<af::AxisId>{}, result);
   EXPECT_EQ(result, std::string{
-      "AscendC::BitwiseAnd(local_2[0], local_0[0], local_0[0], KernelUtils::BlkAlign<half>(local_0_actual_size));\n"
+      "AscendC::BitwiseAnd(local_2[0], local_0[0], local_0[0], local_0_actual_size);\n"
   });
 }
 

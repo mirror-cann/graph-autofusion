@@ -67,6 +67,13 @@ class TestRegbaseApiTruncToIntUT : public testing::Test {
   }
 
   template <typename InT, typename OutT>
+  static void FreeTensorInput(TruncToIntInputParam<InT, OutT> &param) {
+    AscendC::GmFree(param.exp);
+    AscendC::GmFree(param.x);
+    AscendC::GmFree(param.y);
+  }
+
+  template <typename InT, typename OutT>
   static uint32_t Valid(TruncToIntInputParam<InT, OutT> &param) {
     uint32_t diff_count = 0;
     for (uint32_t i = 0; i < param.size; i++) {
@@ -97,6 +104,9 @@ class TestRegbaseApiTruncToIntUT : public testing::Test {
 
     uint32_t diff_count = Valid(param);
     EXPECT_EQ(diff_count, 0);
+
+    // 释放内存
+    FreeTensorInput(param);
   }
 };
 

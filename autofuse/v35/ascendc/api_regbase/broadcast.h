@@ -15,8 +15,8 @@ template <typename T, int constRank = -1>
 inline __aicore__ void BroadcastExtend(const LocalTensor<T> &dst, const LocalTensor<T> &src, const uint32_t *dst_shape,
                                        const uint32_t *src_shape) {
   AscendC::BroadcastTiling runningTiling;
-  AscendC::GetBroadcastTilingInfo<T>(constRank, dst_shape, src_shape, false, runningTiling);
-  Broadcast<T>(dst, src, dst_shape, src_shape, &runningTiling);
+  AscendC::GetBroadcastTilingInfo<T, constRank>(constRank, dst_shape, src_shape, false, runningTiling);
+  Broadcast<T, constRank>(dst, src, dst_shape, src_shape, &runningTiling);
 }
 #endif
 

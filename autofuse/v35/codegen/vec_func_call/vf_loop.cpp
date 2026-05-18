@@ -8,6 +8,8 @@
  * See LICENSE in the root of the software repository for the full text of the License.
  */
 
+#include <algorithm>
+
 #include "asc_tensor_utils.h"
 #include "codegen_kernel.h"
 #include "ascir_ops.h"
@@ -118,10 +120,8 @@ Status VFLoop::ConstructFromNodes(ascir::NodeViewVisitorConst nodes, const ascir
     // Add call
     auto call = CreateMicroApiCallObject(node);
     GE_ASSERT_NOTNULL(call, "Create api call object failed, ascir type:%s", node->GetTypePtr());
+    current_loop->AddCall(call);
     GE_CHK_STATUS_RET(call->Init(node), "ApiCall Init failed, ascir type:%s", node->GetTypePtr());
-    if (!IsOps<Data>(node) && !IsOps<Output>(node) && !IsOps<Scalar>(node)) {
-      current_loop->AddCall(call);
-    }
 
     for (auto in : node->inputs()) {
       if (in == nullptr) {
@@ -140,7 +140,7 @@ Status VFLoop::ConstructFromNodes(ascir::NodeViewVisitorConst nodes, const ascir
       GE_CHK_BOOL_RET_STATUS(data_node != nullptr, ge::FAILED, "Codegen node[%s] data_node is nullptr",
                              node->GetNamePtr());
       if (IsOps<Data>(data_node) || IsOps<Scalar>(data_node)) {
-        int64_t index;
+        int64_t index = 0;
         GE_CHK_BOOL_RET_STATUS(data_node->attr.ir_attr != nullptr, ge::FAILED,
                                "Codegen node[%s] data_node->attr.ir_attr is nullptr", node->GetNamePtr());
         GE_CHK_GRAPH_STATUS_RET(data_node->attr.ir_attr->GetAttrValue("index", index),
@@ -247,6 +247,9 @@ Status VFLoop::GenerateBody(const TPipe &tpipe, const TensorManager &tensor_mgr,
                         "Generate loop for body failed");
       has_loop = true;
     } else if (body.type_ == LoopType::CALL) {
+      if (body.call_->unit == ge::ComputeUnit::kUnitNone) {
+        continue;
+      }
       std::string preg_name = GetOriginPregName(current_axis, depth);
       std::string ub_offset = "";
       if (body.call_->GetMicroApiName() == "Load") {
@@ -260,7 +263,7 @@ Status VFLoop::GenerateBody(const TPipe &tpipe, const TensorManager &tensor_mgr,
         GetUbStorePreg(ub_tensor_ptr, preg_name);
       }
       std::string micro_api_call_str;
-      CallParam param = {preg_name, ub_offset};
+      CallParam param = {preg_name, ub_offset, this->max_dtype_size_};
       body.call_->Generate(tensor_mgr, tpipe, param, micro_api_call_str);
       ss << micro_api_call_str;
       has_call = true;
@@ -270,5 +273,39 @@ Status VFLoop::GenerateBody(const TPipe &tpipe, const TensorManager &tensor_mgr,
     only_loop_max_depth = std::max(only_loop_max_depth, static_cast<int32_t>(current_axis.size()));
   }
   return ge::SUCCESS;
+}
+
+void VFLoop::CollectMaskRegTempTensors(const TPipe &tpipe, const TensorManager &tensor_mgr,
+                                       std::vector<std::string> &temp_tensors) const {
+  for (const auto &body : this->bodys_) {
+    if (body.type_ == LoopType::LOOP) {
+      body.loop_->CollectMaskRegTempTensors(tpipe, tensor_mgr, temp_tensors);
+    } else if (body.type_ == LoopType::CALL) {
+      std::string api_name = body.call_->GetMicroApiName();
+      std::string tensor_name;
+
+      // Compare 输出不是 MaskReg：需要临时 MaskReg 用于转换
+      if (api_name == "GE" || api_name == "EQ" || api_name == "NE" || api_name == "LE" || api_name == "LT" ||
+          api_name == "GT") {
+        const MicroApiTensor *output_tensor = tensor_mgr.GetTensor(body.call_->GetOutputTensorIdByIndex(0));
+        if (output_tensor && !output_tensor->init_as_mask_reg_) {
+          tensor_name = output_tensor->name;
+        }
+      }
+      // Where/Select mask 输入不是 MaskReg：需要临时 MaskReg 用于转换
+      if (api_name == "Select") {
+        const MicroApiTensor *input_tensor = tensor_mgr.GetTensor(body.call_->GetInputTensorIdByIndex(0));
+        if (input_tensor && !input_tensor->init_as_mask_reg_) {
+          tensor_name = input_tensor->name;
+        }
+      }
+
+      // 添加前检查是否已存在，避免重复添加同一个 tensor
+      if (!tensor_name.empty() &&
+          std::find(temp_tensors.begin(), temp_tensors.end(), tensor_name) == temp_tensors.end()) {
+        temp_tensors.push_back(tensor_name);
+      }
+    }
+  }
 }
 }  // namespace codegen

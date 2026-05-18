@@ -34,8 +34,8 @@ inline __aicore__ void AxpyExtend(const AscendC::LocalTensor<T> &dst, const Asce
 
       AscendC::Cast(dst, cast_float_src_0, RoundMode::CAST_RINT, count);
     } else {
-      AscendC::Muls(src_1, src_1, alpha, count);
-      AscendC::Add(dst, src_0, src_1, count);
+      AscendC::Muls(dst, src_1, alpha, count);
+      AscendC::Add(dst, src_0, dst, count);
     }
 }
 #endif  // __ASCENDC_API_AXPY_H__

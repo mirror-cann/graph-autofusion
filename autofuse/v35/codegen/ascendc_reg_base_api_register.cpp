@@ -66,6 +66,9 @@ Register::Register() {
   const std::string kAscendcLogicalRegBaseStr = {
 #include "logical_reg_base.h"
   };
+  const std::string kAscendcLogicalXorRegBaseStr = {
+#include "logical_xor_reg_base.h"
+  };
   const std::string kAscendcPowRegBaseStr = {
 #include "pow_reg_base.h"
   };
@@ -130,6 +133,7 @@ Register::Register() {
       {"logical_not_reg_base.h", kAscendcLogicalNotStr},
       {"clipbyvalue_reg_base.h", kAscendcClipByValueRegStr},
       {"logical_reg_base.h", kAscendcLogicalRegBaseStr},
+      {"logical_xor_reg_base.h", kAscendcLogicalXorRegBaseStr},
       {"split_reg_base.h", kAscendcSplitRegBaseStr},
       {"sub_reg_base.h", kAscendcSubRegBaseStr},
       {"div_reg_base.h", kAscendcDivRegBaseStr},

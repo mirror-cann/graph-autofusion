@@ -167,7 +167,7 @@ TEST(CodegenKernel, UnaryApicallRsqrt) {
   std::string result;
   call_0.Generate(tpipe, vector<af::AxisId>{}, result);
   EXPECT_EQ(result,
-            std::string{"Rsqrt(local_1[0], local_0[0], KernelUtils::BlkAlign<float>(local_0_actual_size));\n"});
+            std::string{"Rsqrt(local_1[0], local_0[0], local_0_actual_size);\n"});
   delete call;
 }
 
@@ -244,6 +244,6 @@ TEST(CodegenKernel, UnaryApicallReciprocal) {
   std::string result;
   call_0.Generate(tpipe, vector<af::AxisId>{}, result);
   EXPECT_EQ(result,
-            std::string{"Reciprocal(local_1[0], local_0[0], KernelUtils::BlkAlign<float>(local_0_actual_size));\n"});
+            std::string{"Reciprocal(local_1[0], local_0[0], local_0_actual_size);\n"});
   delete call;
 }

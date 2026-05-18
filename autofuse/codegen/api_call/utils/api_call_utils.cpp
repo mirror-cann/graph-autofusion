@@ -71,14 +71,12 @@ const Tensor &GetBaseTensor(const std::vector<Tensor> &inputs, const std::vector
 }  // namespace
 static void SetDataCopyParams(const MergeInfo &merge_info, DataCopyParams &param, bool multi_axis_copy = false) {
   auto merge_repeats = merge_info.merge_repeats;
-  auto merge_repeats_str = merge_info.merge_repeats_str;
   auto merge_gm_strides = merge_info.merge_gm_strides;
   auto merge_ub_strides = merge_info.merge_ub_strides;
   param.repeats.assign(merge_repeats.begin(), merge_repeats.end());
-  param.repeats_str.assign(merge_repeats_str.begin(), merge_repeats_str.end());
   param.gm_strides.assign(merge_gm_strides.begin(), merge_gm_strides.end());
   param.ub_strides.assign(merge_ub_strides.begin(), merge_ub_strides.end());
-  if (multi_axis_copy) {
+  if (multi_axis_copy) { // nddma场景尾轴stride可以不等于1或者0，这种情况不需要补轴
     return;
   }
   if (param.repeats.size() != 0 &&
@@ -89,22 +87,18 @@ static void SetDataCopyParams(const MergeInfo &merge_info, DataCopyParams &param
     // 对应的场景为: ub和gm的尾轴stride都等于1或者0，这种情况不需要补轴。
     return;
   }
-  param.repeats_str.emplace_back("1");
   param.repeats.emplace_back(af::sym::kSymbolOne);
   param.gm_strides.emplace_back(af::sym::kSymbolOne);
   param.ub_strides.emplace_back(af::sym::kSymbolOne);
 }
 
-static void UpdateCalculatedDmaStatus(const TPipe &tpipe, const Tensor &gm_tensor, const Tensor &ub_tensor, int64_t idx,
-                                      int64_t vec_cur_idx, AxisInfo &axis_info, MergeInfo &merge_info) {
-  std::stringstream ss;
-  GetOneAxisSize(tpipe, ub_tensor, vec_cur_idx, ss);
-  merge_info.merge_repeats_str.emplace_back(ss.str());
+static void UpdateCalculatedDmaStatus(const Tensor &gm_tensor, const Tensor &ub_tensor, int64_t idx,
+                                      int64_t vec_axis_pos, AxisInfo &axis_info, MergeInfo &merge_info) {
   merge_info.merge_repeats.emplace_back(gm_tensor.axis_size[idx]);
   merge_info.merge_gm_strides.emplace_back(gm_tensor.axis_strides[idx]);
-  merge_info.merge_ub_strides.emplace_back(ub_tensor.vectorized_strides[vec_cur_idx]);
+  merge_info.merge_ub_strides.emplace_back(ub_tensor.vectorized_strides[vec_axis_pos]);
   axis_info.prev_axis_stride = gm_tensor.axis_strides[idx];
-  axis_info.prev_vectorized_axis_stride = ub_tensor.vectorized_strides[vec_cur_idx];
+  axis_info.prev_vectorized_axis_stride = ub_tensor.vectorized_strides[vec_axis_pos];
   axis_info.prev_repeat = gm_tensor.axis_size[idx];
 }
 
@@ -130,60 +124,41 @@ bool CalculateDmaParams(const TPipe &tpipe, const Tensor &gm_tensor, const Tenso
   AxisInfo axis_info;
   MergeInfo merge_info;
 
-  int64_t vec_cur_idx = ub_tensor.vectorized_axis.size() - 1;
+  size_t vec_axis_pos = ub_tensor.vectorized_axis.size() - 1;
   bool has_non_zero_axis = false;
-  while (vec_cur_idx >= 0) {
-    for (int64_t i = static_cast<int64_t>(gm_tensor.axis.size() - 1); i > -1; i--) {
-      if (vec_cur_idx < 0) {
-        break;
-      }
-      if (gm_tensor.axis[i] != ub_tensor.vectorized_axis[vec_cur_idx]) {
-        continue;
-      }
-      // 如果当前轴gm和ub上对应的stride均为0，如果前序轴的stride不为1，则保留当前轴
-      bool ignore_zero_axis = has_non_zero_axis || vec_cur_idx == 0 ||
-                              af::SymbolicUtils::StaticCheckEq(ub_tensor.vectorized_strides[vec_cur_idx - 1],
-                                                               af::ops::One) == af::TriBool::kTrue ||
-                              af::SymbolicUtils::StaticCheckEq(ub_tensor.vectorized_strides[vec_cur_idx - 1],
-                                                               af::ops::Zero) == af::TriBool::kTrue;
-      if (af::SymbolicUtils::StaticCheckEq(gm_tensor.axis_strides[i], af::ops::Zero) == af::TriBool::kTrue &&
-          af::SymbolicUtils::StaticCheckEq(ub_tensor.vectorized_strides[vec_cur_idx], af::ops::Zero) ==
-              af::TriBool::kTrue &&
-          ignore_zero_axis) {
-        vec_cur_idx--;
-        continue;
-      }
-      has_non_zero_axis = true;
-      ascir::SizeExpr cur_axis_stride = axis_info.prev_axis_stride * axis_info.prev_repeat;
-      ascir::SizeExpr cur_vectorized_axis_stride = axis_info.prev_vectorized_axis_stride * axis_info.prev_repeat;
-      if (af::SymbolicUtils::StaticCheckEq(cur_axis_stride, gm_tensor.axis_strides[i]) != af::TriBool::kTrue ||
-          af::SymbolicUtils::StaticCheckEq(cur_vectorized_axis_stride, ub_tensor.vectorized_strides[vec_cur_idx]) !=
-              af::TriBool::kTrue) {
-        UpdateCalculatedDmaStatus(tpipe, gm_tensor, ub_tensor, i, vec_cur_idx, axis_info, merge_info);
-        vec_cur_idx--;
-        continue;
-      }
-
-      if (merge_info.merge_repeats.empty()) {
-        UpdateCalculatedDmaStatus(tpipe, gm_tensor, ub_tensor, i, vec_cur_idx, axis_info, merge_info);
-        vec_cur_idx--;
-        continue;
-      }
-      std::string product_str;
-      std::stringstream ss;
-      GetOneAxisSize(tpipe, ub_tensor, vec_cur_idx, ss);
-      product_str = ss.str() + " * " + merge_info.merge_repeats_str.back();
-      merge_info.merge_repeats_str.pop_back();
-      merge_info.merge_repeats_str.push_back(product_str);
-
-      ascir::SizeExpr product = gm_tensor.axis_size[i] * merge_info.merge_repeats.back();
-      axis_info.prev_repeat = product;
-      merge_info.merge_repeats.pop_back();
-      merge_info.merge_repeats.push_back(product);
-      vec_cur_idx--;
+  for (vec_axis_pos = ub_tensor.vectorized_axis.size(); vec_axis_pos-- > 0UL;) {
+    auto pos = std::find(gm_tensor.axis.begin(), gm_tensor.axis.end(), ub_tensor.vectorized_axis[vec_axis_pos]);
+    GE_ASSERT_TRUE((pos != gm_tensor.axis.end()), "Codegen vectorized axis[%zu] not found", vec_axis_pos);
+    auto axis_pos = std::distance(gm_tensor.axis.begin(), pos);
+    // 如果当前轴gm和ub上对应的stride均为0，如果前序轴的stride不为1，则保留当前轴
+    bool ignore_zero_axis = has_non_zero_axis || vec_axis_pos == 0UL ||
+                            af::SymbolicUtils::StaticCheckEq(ub_tensor.vectorized_strides[vec_axis_pos - 1],
+                                                             af::ops::One) == af::TriBool::kTrue ||
+                            af::SymbolicUtils::StaticCheckEq(ub_tensor.vectorized_strides[vec_axis_pos - 1],
+                                                             af::ops::Zero) == af::TriBool::kTrue;
+    if (af::SymbolicUtils::StaticCheckEq(gm_tensor.axis_strides[axis_pos], af::ops::Zero) == af::TriBool::kTrue &&
+        af::SymbolicUtils::StaticCheckEq(ub_tensor.vectorized_strides[vec_axis_pos], af::ops::Zero) ==
+            af::TriBool::kTrue &&
+        ignore_zero_axis) {
+      continue;
     }
+    has_non_zero_axis = true;
+    ascir::SizeExpr cur_axis_stride = axis_info.prev_axis_stride * axis_info.prev_repeat;
+    ascir::SizeExpr cur_vectorized_axis_stride = axis_info.prev_vectorized_axis_stride * axis_info.prev_repeat;
+    if (af::SymbolicUtils::StaticCheckEq(cur_axis_stride, gm_tensor.axis_strides[axis_pos]) != af::TriBool::kTrue ||
+        af::SymbolicUtils::StaticCheckEq(cur_vectorized_axis_stride, ub_tensor.vectorized_strides[vec_axis_pos]) !=
+            af::TriBool::kTrue || merge_info.merge_repeats.empty() ||
+        (vec_axis_pos < (ub_tensor.vectorized_axis.size() - 1) &&
+         tpipe.tiler.GetAxis(ub_tensor.vectorized_axis[vec_axis_pos + 1]).type == ascir::Axis::Type::kAxisTypeTileInner)) {
+      UpdateCalculatedDmaStatus(gm_tensor, ub_tensor, axis_pos, vec_axis_pos, axis_info, merge_info);
+      continue;
+    }
+
+    ascir::SizeExpr product = gm_tensor.axis_size[axis_pos] * merge_info.merge_repeats.back();
+    axis_info.prev_repeat = product;
+    merge_info.merge_repeats.pop_back();
+    merge_info.merge_repeats.push_back(product);
   }
-  std::reverse(merge_info.merge_repeats_str.begin(), merge_info.merge_repeats_str.end());
   std::reverse(merge_info.merge_repeats.begin(), merge_info.merge_repeats.end());
   std::reverse(merge_info.merge_gm_strides.begin(), merge_info.merge_gm_strides.end());
   std::reverse(merge_info.merge_ub_strides.begin(), merge_info.merge_ub_strides.end());
@@ -364,8 +339,12 @@ void SaveApiLoopAxisParams(VectorizedAxisLoopMergeStatus &merge_info, ApiLoopPar
   } else if (merge_info.merge_repeats.size() > 1) {
     int64_t total_len = merge_info.merge_repeats.size();
     param.cal_count = merge_info.merge_repeats[total_len - 1];
-    param.input_second_to_last_stride = merge_info.inputs_strides[0][total_len - 2];
-    param.output_second_to_last_stride = merge_info.outputs_strides[0][total_len - 2];
+    if (merge_info.inputs_strides.size() > 0) {
+      param.input_second_to_last_stride = merge_info.inputs_strides[0][total_len - 2];
+    }
+    if (merge_info.outputs_strides.size() > 0) {
+      param.output_second_to_last_stride = merge_info.outputs_strides[0][total_len - 2];
+    }
 
     param.outer_repeats.assign(merge_info.merge_repeats_str.begin(), merge_info.merge_repeats_str.end() - 1);
     for (size_t i = 0; i < param.inputs_strides.size(); i++) {
