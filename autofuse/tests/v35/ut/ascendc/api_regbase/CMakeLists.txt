@@ -44,7 +44,7 @@ add_library(test_regbase_ascendc OBJECT
 target_link_libraries(test_regbase_ascendc
     ascendc_api_regbase_extend
     tikicpulib_ascend950pr_9599
-    boost
+    Boost::boost
     GTest::gtest)
 
 target_include_directories(test_regbase_ascendc PUBLIC

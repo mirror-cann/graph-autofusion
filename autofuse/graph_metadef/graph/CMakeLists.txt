@@ -190,7 +190,7 @@ target_link_libraries(graph_base_af
         metadef_headers_af
 )
 
-target_link_libraries(graph_base_af PRIVATE ascend_protobuf error_manager metadef_headers)
+target_link_libraries(graph_base_af PRIVATE ascend_protobuf error_manager)
 target_compile_options(graph_base_af PRIVATE ${OPTIMIZE_OPTION} -DNO_METADEF_ABI_COMPATIABLE)
 set_target_properties(graph_base_af PROPERTIES
     OUTPUT_NAME graph_base_af
@@ -253,10 +253,9 @@ if (NOT ENABLE_OPEN_SRC)
             -Wl,--as-needed
             $<$<NOT:$<STREQUAL:${TARGET_SYSTEM_NAME},Android>>:-lrt>
             -ldl
-            -pthread
+        -pthread
             ascend_protobuf
             error_manager
-            metadef_headers
         PUBLIC
             metadef_headers_af
     )
@@ -310,7 +309,7 @@ target_link_libraries(graph_af
         platform
         metadef
         -Wl,--as-needed
-        ascend_protobuf
+        ascend_protobuf_shared_headers
         $<$<NOT:$<STREQUAL:${TARGET_SYSTEM_NAME},Android>>:-lrt>
         -ldl
         -pthread
@@ -318,7 +317,7 @@ target_link_libraries(graph_af
         metadef_headers_af
 )
 
-target_link_libraries(graph_af PRIVATE graph_base_af error_manager metadef_headers)
+target_link_libraries(graph_af PRIVATE graph_base_af error_manager)
 target_compile_options(graph_af PRIVATE ${OPTIMIZE_OPTION})
 set_target_properties(graph_af PROPERTIES
     OUTPUT_NAME graph_af

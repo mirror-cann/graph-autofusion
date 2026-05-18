@@ -61,12 +61,41 @@ set(GE_METADEF_DIR ${CODE_ROOT_DIR}/graph_metadef)
 set(GE_METADEF_INC_DIR ${CODE_ROOT_DIR}/inc/graph_metadef)
 set(METADEF_PROTO_DIR ${GE_METADEF_DIR}/proto)
 
-if(NOT DEFINED CANN_3RD_LIB_PATH AND DEFINED ENV{ASCEND_3RD_LIB_PATH})
-    set(CANN_3RD_LIB_PATH "$ENV{ASCEND_3RD_LIB_PATH}" CACHE PATH "Ascend CANN third-party path" FORCE)
+if(NOT DEFINED ASCEND_CANN_3RD_LIB_PATH AND DEFINED ENV{ASCEND_3RD_LIB_PATH})
+    set(ASCEND_CANN_3RD_LIB_PATH "$ENV{ASCEND_3RD_LIB_PATH}" CACHE PATH "Ascend CANN third-party path" FORCE)
 endif()
-if (NOT DEFINED CANN_3RD_LIB_PATH)
-    set(CANN_3RD_LIB_PATH ${CMAKE_CURRENT_SOURCE_DIR}/output/third_party)
+if (NOT DEFINED ASCEND_CANN_3RD_LIB_PATH)
+    set(ASCEND_CANN_3RD_LIB_PATH ${CMAKE_CURRENT_SOURCE_DIR}/output/third_party)
 endif ()
+
+if (NOT EXISTS "${ASCEND_CANN_3RD_LIB_PATH}")
+    message(STATUS "Error: Directory \"${ASCEND_CANN_3RD_LIB_PATH}\" does not exist!\n"
+            "Please using build_third_party.sh compile first.")
+endif ()
+
+list(APPEND CMAKE_MODULE_PATH
+    ${ASCEND_CANN_3RD_LIB_PATH}/cmake/modules
+    ${GE_METADEF_DIR}/cmake/modules
+    ${CODE_ROOT_DIR}/cmake/modules
+    ${CODE_ROOT_DIR}/cmake/third_party/scripts/modules
+)
+
+list(APPEND CMAKE_PREFIX_PATH
+    ${ASCEND_CANN_3RD_LIB_PATH}/json
+    ${ASCEND_CANN_3RD_LIB_PATH}/openssl
+    ${ASCEND_CANN_3RD_LIB_PATH}/protoc
+    ${ASCEND_CANN_3RD_LIB_PATH}/protoc_grpc
+    ${ASCEND_CANN_3RD_LIB_PATH}/grpc
+    ${ASCEND_CANN_3RD_LIB_PATH}/protobuf_static
+    ${ASCEND_CANN_3RD_LIB_PATH}/ascend_protobuf
+    ${ASCEND_CANN_3RD_LIB_PATH}/ascend_protobuf_static
+    ${ASCEND_CANN_3RD_LIB_PATH}/gtest_shared/lib64/cmake/GTest
+    ${ASCEND_CANN_3RD_LIB_PATH}/gtest
+    ${ASCEND_CANN_3RD_LIB_PATH}/benchmark
+    ${ASCEND_CANN_3RD_LIB_PATH}/pybind11
+    ${ASCEND_CANN_3RD_LIB_PATH}/symengine/lib/cmake/symengine
+    ${ASCEND_CANN_3RD_LIB_PATH}/boost/lib/cmake/Boost-1.87.0
+)
 
 link_directories(${ASCEND_ROOT}/lib64)
 link_directories(${ASCEND_PLATFORM_DIR}/lib64)
@@ -116,18 +145,32 @@ endif()
 include_directories(${CMAKE_BINARY_DIR}/proto/metadef_protos_af)
 
 find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
-add_cann_third_party(json)
+find_package(json REQUIRED)
 if(DEFINED RUN_TEST AND RUN_TEST EQUAL 1)
-    add_cann_third_party(gtest)
+    find_package(GTest CONFIG REQUIRED)
 endif()
-add_cann_third_party(boost)
-add_cann_third_party(symengine)
-add_cann_third_party(protobuf)
+find_package(Boost CONFIG REQUIRED)
+find_package(SymEngine CONFIG REQUIRED)
+add_library(symengine_static STATIC IMPORTED)
+set_target_properties(symengine_static PROPERTIES
+    IMPORTED_LOCATION "${SymEngine_DIR}/../../libsymengine.a"
+    INTERFACE_INCLUDE_DIRECTORIES "${SymEngine_DIR}/../../../include"
+)
+find_package(protoc MODULE REQUIRED)
+find_package(ascend_protobuf_shared MODULE REQUIRED)
 find_cann_package(unified_dlog)
 find_cann_package(mmpa)
 find_cann_package(atrace)
 find_cann_package(securec)
-find_cann_package(metadef)
+
+if (DEFINED unified_dlog_INCLUDE_DIR)
+    get_filename_component(UNIFIED_DLOG_PKG_INC_DIR "${unified_dlog_INCLUDE_DIR}" DIRECTORY)
+    include_directories(${UNIFIED_DLOG_PKG_INC_DIR})
+endif()
+if (DEFINED runtime_SHARED_LIBRARY)
+    get_filename_component(ASCEND_FOUND_LIB_DIR "${runtime_SHARED_LIBRARY}" DIRECTORY)
+    link_directories(${ASCEND_FOUND_LIB_DIR})
+endif()
 
 include(GoogleTest)
 set(CMAKE_GTEST_DISCOVER_TESTS_DISCOVERY_MODE PRE_TEST)
@@ -224,8 +267,8 @@ target_link_libraries(aihac_codegen PUBLIC
         mmpa
         json
         ascend_protobuf
-        symengine_static
-        boost
+        symengine
+        Boost::boost
         -lgcov
 )
 

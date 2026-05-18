@@ -323,6 +323,9 @@ function cmake_config()
   local cmake_option="${CUSTOM_OPTION} -DCMAKE_BUILD_TYPE=${BUILD_TYPE}"
   if [ "X$ENABLE_AUTOFUSE" == "Xon" ]; then
     extra_option="${extra_option} -DBUILD_AUTOFUSE=ON"
+    if [ -n "${CANN_3RD_LIB_PATH}" ]; then
+      extra_option="${extra_option} -DASCEND_CANN_3RD_LIB_PATH=${CANN_3RD_LIB_PATH}"
+    fi
   fi
   if [ "X$ENABLE_AUTOFUSE" == "Xoff" ]; then
     extra_option="${extra_option} -DBUILD_AUTOFUSE=OFF"
@@ -335,6 +338,24 @@ function build()
 {
   local target="$1"
   cmake --build . --target ${target} -j ${THREAD_NUM}
+}
+
+function prepare_autofuse_third_party() {
+  local third_party_dir="${CANN_3RD_LIB_PATH}"
+  local script_path="${BASEPATH}/autofuse/build_third_party.sh"
+  if [ "X$ENABLE_AUTOFUSE" != "Xon" ]; then
+    return
+  fi
+  if [ -z "${third_party_dir}" ]; then
+    third_party_dir="${BASEPATH}/autofuse/output/third_party"
+  fi
+  if [ ! -f "${script_path}" ]; then
+    echo "Build autofuse failed: missing ${script_path}"
+    exit 1
+  fi
+
+  echo "---------------- Prepare autofuse third_party in ${third_party_dir} ----------------"
+  bash "${script_path}" "${third_party_dir}" "${THREAD_NUM}" "" "" "0" || { echo "Prepare autofuse third_party failed."; exit 1; }
 }
 
 clean_coverage_artifacts() {
@@ -512,6 +533,7 @@ main() {
 
   if [ "X$ENABLE_AUTOFUSE" == "Xon" ]; then
     echo "---------------- Start build autofuse ----------------"
+    prepare_autofuse_third_party
     mkdir -pv ${BUILD_PATH} &&
     cd ${BUILD_PATH} &&
     cmake_config "-DCANN_3RD_LIB_PATH=${CANN_3RD_LIB_PATH}" &&

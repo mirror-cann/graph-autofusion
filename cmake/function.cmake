@@ -84,7 +84,7 @@ function(protobuf_generate comp c_var h_var)
                 WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
                 COMMAND ${CMAKE_COMMAND} -E make_directory "${proto_output_path}"
                 COMMAND ${CMAKE_COMMAND} -E echo "generate proto cpp_out ${comp} by ${abs_file}"
-                COMMAND $<TARGET_FILE:host_protoc> -I${file_dir} ${extra_option} --cpp_out=${proto_output_path} ${abs_file}
+                COMMAND ${PROTOC_PROGRAM} -I${file_dir} ${extra_option} --cpp_out=${proto_output_path} ${abs_file}
                 DEPENDS ${abs_file}
                 COMMENT "Running C++ protocol buffer compiler on ${file}" VERBATIM )
     endforeach ()
@@ -137,8 +137,8 @@ function(protobuf_generate_grpc comp c_var h_var)
                 OUTPUT "${proto_output_path}/${file_name}.pb.cc" "${proto_output_path}/${file_name}.pb.h"
                 WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
                 COMMAND ${CMAKE_COMMAND} -E make_directory "${proto_output_path}"
-                COMMAND $<TARGET_FILE:host_protoc> -I${file_dir} ${extra_option} --cpp_out=${proto_output_path} ${abs_file}
-                COMMAND $<TARGET_FILE:host_protoc> -I${file_dir} ${extra_option} --grpc_out=${proto_output_path} --plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN_PROGRAM} ${abs_file}
+                COMMAND ${PROTOC_PROGRAM} -I${file_dir} ${extra_option} --cpp_out=${proto_output_path} ${abs_file}
+                COMMAND ${PROTOC_PROGRAM} -I${file_dir} ${extra_option} --grpc_out=${proto_output_path} --plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN_PROGRAM} ${abs_file}
                 DEPENDS ${abs_file}
                 COMMENT "Running C++ protocol buffer complier on ${file}" VERBATIM)
     endforeach ()
@@ -179,7 +179,7 @@ function(protobuf_generate_py comp py_var)
                 WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
                 COMMAND ${CMAKE_COMMAND} -E make_directory "${proto_output_path}"
                 COMMAND ${CMAKE_COMMAND} -E echo "generate proto cpp_out ${comp} by ${abs_file}"
-                COMMAND $<TARGET_FILE:host_protoc> -I${file_dir} --python_out=${proto_output_path} ${abs_file}
+                COMMAND ${PROTOC_PROGRAM} -I${file_dir} --python_out=${proto_output_path} ${abs_file}
                 DEPENDS ${abs_file}
                 COMMENT "Running PYTHON protocol buffer compiler on ${file}" VERBATIM )
     endforeach ()
@@ -193,3 +193,11 @@ function(protobuf_generate_py comp py_var)
     set_source_files_properties(${${py_var}} PROPERTIES GENERATED TRUE)
     set(${py_var} ${${py_var}} PARENT_SCOPE)
 endfunction()
+
+macro(find_package_if_target_not_exists pkg)
+    if (TARGET ${pkg})
+        message(STATUS "SN_DEBUG package ${pkg} target exists")
+    else ()
+        find_package(${pkg} ${ARGN})
+    endif ()
+endmacro()
