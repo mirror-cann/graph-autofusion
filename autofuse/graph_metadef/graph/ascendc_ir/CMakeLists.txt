@@ -41,13 +41,14 @@ target_link_libraries(aihac_ir
         json
         platform
         -Wl,--as-needed
-        ascend_protobuf_shared_headers
+        ascend_protobuf
         $<$<NOT:$<STREQUAL:${TARGET_SYSTEM_NAME},Android>>:-lrt>
         -ldl
         graph_af
         graph_base_af
         error_manager
         aihac_symbolizer_af
+        metadef_headers
     PUBLIC
         metadef_headers_af
 )

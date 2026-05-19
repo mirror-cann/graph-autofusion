@@ -18,7 +18,6 @@ set(METADEF_ATTR_GROUP_PROTO_LIST
         "${METADEF_PROTO_DIR}/af_attr_group_base.proto"
         )
 
-include(${CODE_ROOT_DIR}/../cmake/function.cmake)
 protobuf_generate(metadef_protos_af METADEF_PROTO_SRCS METADEF_PROTO_HDRS ${METADEF_PROTO_LIST} ${METADEF_ATTR_GROUP_PROTO_LIST} TARGET)
 
 set(METADEF_GRAPH_PROTO_SRCS

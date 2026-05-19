@@ -21,7 +21,6 @@ if(ENABLE_CPP_UTEST)
     set(GRAPH_AUTOFUSION_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../../)
     set(CMAKE_MODULE_PATH
         ${CMAKE_CURRENT_SOURCE_DIR}/cmake/module
-        ${GRAPH_AUTOFUSION_ROOT_DIR}/cmake/modules
         ${CMAKE_MODULE_PATH}
     )
 
