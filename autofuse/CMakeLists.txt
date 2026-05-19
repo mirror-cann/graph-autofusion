@@ -212,7 +212,7 @@ target_link_options(aihac_codegen PRIVATE
     $<$<CONFIG:Release>:-s>
 )
 
-target_link_libraries(aihac_codegen PRIVATE runtime_headers)
+target_link_libraries(aihac_codegen PRIVATE runtime_headers metadef_headers)
 target_link_libraries(aihac_codegen PUBLIC
         $<BUILD_INTERFACE:ascir_ops_headers>
         $<BUILD_INTERFACE:atrace_headers>

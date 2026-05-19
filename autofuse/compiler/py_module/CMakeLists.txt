@@ -37,4 +37,5 @@ target_link_libraries(pyautofuse PRIVATE
     unified_dlog
     $<BUILD_INTERFACE:ascir_ops_headers>
     $<BUILD_INTERFACE:c_sec_headers>
-    )
+    metadef_headers
+)

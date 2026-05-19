@@ -28,7 +28,7 @@ target_include_directories(aihac_ir_register PRIVATE
     ${GENERATOR_DIR}
 )
 
-target_link_libraries(aihac_ir_register PRIVATE runtime_headers)
+target_link_libraries(aihac_ir_register PRIVATE runtime_headers metadef_headers)
 target_link_libraries(aihac_ir_register PRIVATE
     intf_pub
     -Wl,--no-as-needed
