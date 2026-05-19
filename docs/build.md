@@ -38,7 +38,7 @@ git clone https://gitcode.com/cann/graph-autofusion.git
 
 若您的编译环境无法访问网络，您需要通过下列步骤在联网环境中下载源码及开源软件压缩包，并手动上传至您的编译环境中：
 
-1. 在联网环境中，进入[本项目主页](https://gitcode.com/cann/graph-autofusion), 通过`下载ZIP`或`Clone`按钮，根据指导，完成源码下载。
+1. 在联网环境中，进入[本项目主页](https://gitcode.com/cann/graph-autofusion)，通过`下载ZIP`或`Clone`按钮，根据指导，完成源码下载。
 
 2. 下载`makeself`，`cann-cmake`第三方开源软件。
 
