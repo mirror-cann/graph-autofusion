@@ -1,5 +1,7 @@
 add_library(test_regbase_ascendc OBJECT
     ./test_sub.cpp
+    ./test_log1p.cpp
+    ./test_erfcx.cpp
     ./test_floor_div.cpp
     ./test_cast.cpp
     ./test_compare.cpp
