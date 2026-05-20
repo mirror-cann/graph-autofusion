@@ -153,7 +153,7 @@ void ReduceMeanCodeGen(std::string &dtype_name, const TPipe &tpipe, const Tensor
                        std::stringstream &ss) {
   std::set<ascir::AxisId> r_from_axis;
   for (size_t i = 0; i < dst.axis_strides.size(); i++) {
-    if (src.axis_strides[i] != 0 && dst.axis_strides[i] == 0) {  // 如果目标张量的轴步长为0
+    if ((src.axis_strides[i] != 0 || src.axis_size[i] != 1) && dst.axis_strides[i] == 0) {  // 如果目标张量的轴步长为0
       auto axis_id = dst.axis[i];  // 获取当前轴ID
       // 定义递归函数用于收集原始轴
       std::function<void(int)> collect_original_axes = [&tpipe, &r_from_axis, &collect_original_axes](int current_axis_id) {
