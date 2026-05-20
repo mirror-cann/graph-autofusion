@@ -398,17 +398,18 @@ TEST_F(UTestAscirPerfV2, TestNddmaApiSmallBlockLen) {
   // 存在外抛
   auto ternary_ops = perf_res.ternary_ops;
   auto ret = ConcursiveReplaceVars(ternary_ops);
-  const std::string kIsSmallBlockLen = "IsEqual(LogicAnd(ExpectLt(0, (32 - z6t_size)), ExpectLt(z6t_size, 16)), 0)";
+  const std::string kIsSmallBlockLen = "IsEqual(LogicAnd(ExpectLt(0, Abs((32 - z6t_size))), ExpectLt(z6t_size, 16)), 0)";
   const std::string kLastAxisLen = "TernaryOp(" + kIsSmallBlockLen + ", z6t_size, 16)";
   // NddmaStride with penalty: penalty + stride calculation
-  // penalty = block_count_idx * stride_used * penalty_coeff = 2 * ((32-z6t_size)*8) * 4 = (32-z6t_size) * 64.0
-  // stride = k * block_count * stride_used = 0.005 * (238*z0z1t_size) * ((32-z6t_size)*8) = (32-z6t_size) * 9.51999978721142 * z0z1t_size
-  const std::string kPenalty = "((32 - z6t_size) * 64.0)";
-  const std::string kStride = "((32 - z6t_size) * 9.51999978721142 * z0z1t_size)";
-  // Note: The order of terms in the output is (penalty + stride + nddma_perf + 418.9789...)
+  // penalty = block_count_idx * stride_used * penalty_coeff = 2 * Abs((32-z6t_size))*8) * 4 = 64.0 * Abs((32-z6t_size))
+  // stride = k * block_count * stride_used = 0.005 * (238*z0z1t_size) * Abs((32-z6t_size))*8) = 9.52... * Abs((32-z6t_size)) * z0z1t_size
+  const std::string kPenalty = "(64.0 * Abs((32 - z6t_size)))";
+  const std::string kStride = "(9.51999978721142 * Abs((32 - z6t_size)) * z0z1t_size)";
+  // Note: SymEngine may reorder additive terms; nddma_perf comes before penalty and stride
   EXPECT_EQ(Str(res.Replace(ret)),
-            "(" + kPenalty + " + " + kStride + " + (1904 * " + kLastAxisLen +
-                " * z0z1t_size / (((6.3899998664856 / (block_dim)) + 7.6100001335144))) + 418.978912353516)");
+            "((1904 * " + kLastAxisLen +
+                " * z0z1t_size / (((6.3899998664856 / (block_dim)) + 7.6100001335144))) + " +
+                kPenalty + " + " + kStride + " + 418.978912353516)");
 }
 
 TEST_F(UTestAscirPerfV2, TestNddmaApiGmStrideTranspose) {

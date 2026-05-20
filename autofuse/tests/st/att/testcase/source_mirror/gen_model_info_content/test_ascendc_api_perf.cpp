@@ -6679,10 +6679,10 @@ TEST_F(TestAscendcApiPerf, TestLoadApiForTypev2) {
   auto ret = ConcursiveReplaceVars(ternary_ops);
   EXPECT_EQ(Str(res.Replace(ret)),
             "TernaryOp(34 < (7 * z0z1t_size), (34 * TernaryOp((392 * z0z1t_size * z4t_size) < 25000, "
-            "TernaryOp(IsEqual(False, 0), ((0.490000002086163 * Mod(((7 * z4t_size) + -7), 256) * z0z1t_size) + (392 * "
+            "TernaryOp(IsEqual(False, 0), ((0.490000002086163 * Mod(Abs((7 - (7 * z4t_size))), 256) * z0z1t_size) + (392 * "
             "z0z1t_size * z4t_size / (((7.30999994277954 / (block_dim)) + 7.90520000457764))) + 27.0100002288818), "
             "((3584 * z0z1t_size / (((7.30999994277954 / (block_dim)) + 7.90520000457764))) + 27.0100002288818)), "
-            "((0.490000002086163 * Mod(((7 * z4t_size) + -7), 256) * z0z1t_size) + (392 * z0z1t_size * z4t_size / "
+            "((0.490000002086163 * Mod(Abs((7 - (7 * z4t_size))), 256) * z0z1t_size) + (392 * z0z1t_size * z4t_size / "
             "(((15.8959999084473 / (block_dim)) + 9.90740013122559))) + 27.0100002288818))), (7 * TernaryOp((1904 * "
             "z4t_size) < 25000, TernaryOp(IsEqual(False, 0), ((1904 * z4t_size / (((7.30999994277954 / (block_dim)) + "
             "7.90520000457764))) + 27.0100002288818), ((17408 / (((7.30999994277954 / (block_dim)) + "

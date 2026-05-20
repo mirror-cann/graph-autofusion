@@ -1360,6 +1360,7 @@ enum class PipeType : uint8_t {
  ge::Status TilingCodeGenImpl::GenExpressionMacro() {
    tiling_head_.AddLine("#define Max(a, b) ((double)(a) > (double)(b) ? (a) : (b))");
    tiling_head_.AddLine("#define Min(a, b) ((double)(a) < (double)(b) ? (a) : (b))");
+   tiling_head_.AddLine("#define Abs(a) ((double)(a) >= 0 ? (a) : -(a))");
    tiling_head_.AddLine("#define Log(a) (log((double)(a)))");
    tiling_head_.AddLine("#define Pow(a, b) pow(a, b)");
    tiling_head_.AddLine("#define Rational(a, b) ((double)(a) / (double)(b))");
