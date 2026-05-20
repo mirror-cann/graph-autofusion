@@ -2543,7 +2543,9 @@ std::string TilingLib::GenGetResLimitStru(void) const {
   ss << "  uint32_t resv[10];" << std::endl;
   ss << "};" << std::endl;
 
-  ss << "constexpr ResLimit g_no_limit_res = {1, 48, 0, 192 * 1024, {}};" << std::endl;
+  ge::PlatformInfo platform_info;
+  GE_ASSERT_SUCCESS(ge::PlatformContext::GetInstance().GetPlatformInfo(platform_info));
+  ss << "constexpr ResLimit g_no_limit_res = {1, " << platform_info.aiv_num << ", 0, " << platform_info.ub_size << ", {}};" << std::endl;
 
   return ss.str();
 }
