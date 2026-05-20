@@ -16,7 +16,7 @@
 #include "ascir_ops_utils.h"
 #include "codegen_kernel.h"
 #include "utils/api_call_factory.h"
-#include "elewise/unary_api_tmp_v2_call.h"
+#include "elewise/unary_api_tmp_call.h"
 
 using namespace std;
 using namespace ascir;
@@ -92,7 +92,7 @@ TEST(CodegenKernel, UnaryApiTmpV2Exp2Call) {
   codegen::ApiTensor x1;
   x1.id = load->outputs[0].attr.mem.tensor_id;
 
-  codegen::UnaryApiTmpV2Call call("Exp2");
+  codegen::UnaryApiTmpCall call("Exp2");
   EXPECT_EQ(call.Init(exp2), 0);
 
   call.inputs.push_back(&x1);

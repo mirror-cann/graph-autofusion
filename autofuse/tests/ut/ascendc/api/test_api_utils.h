@@ -62,7 +62,7 @@ void UbToGmGeneral(T* dst, LocalTensor<T>& src, int a, int b, int c, int d, int 
 
 template<typename T>
 void UnaryCalc(T* x, T* y, int size,
-              std::function<void(LocalTensor<T>& x, LocalTensor<T>& y, int size, LocalTensor<uint8_t>& tmp)> calc) {
+              std::function<void(const LocalTensor<T>& x, const LocalTensor<T>& y, LocalTensor<uint8_t>& tmp, uint32_t size)> calc) {
   TPipe tpipe;
   TBuf<TPosition::VECCALC> xbuf, ybuf, tmp;
   tpipe.InitBuffer(xbuf, sizeof(T) * size);
@@ -76,7 +76,7 @@ void UnaryCalc(T* x, T* y, int size,
   GmToUb(l_x, x, size);
   GmToUb(l_y, y, size);
 
-  calc(l_y, l_x, size, l_tmp);
+  calc(l_y, l_x, l_tmp, size);
 
   UbToGm(y, l_y, size);
 }
@@ -92,7 +92,7 @@ constexpr inline double DefaultCompare(double a, double b) {
 
 template<typename T>
 void UnaryTest(int size,
-        std::function<void(LocalTensor<T>& x, LocalTensor<T>& y, int size, LocalTensor<uint8_t>& tmp)> calc,
+        std::function<void(const LocalTensor<T>& x, const LocalTensor<T>& y, LocalTensor<uint8_t>& tmp, uint32_t size)> calc,
         std::function<double(double src)> expectGen,
         std::function<double(int index)> srcGen = DefaultSrcGen,
         std::function<double(double a, double b)> compare = DefaultCompare
@@ -130,8 +130,8 @@ void UnaryTest(int size,
 
 template<typename InT, typename OutT>
 void UnaryCalc(InT *x, OutT *y, int size,
-               std::function<void(LocalTensor<OutT> &y, LocalTensor<InT> &x, int size,
-                                  LocalTensor<uint8_t> &tmp)> calc) {
+               std::function<void(const LocalTensor<OutT> &y, const LocalTensor<InT> &x,
+                                  uint32_t size, LocalTensor<uint8_t> &tmp)> calc) {
   TPipe tpipe;
   TBuf<TPosition::VECCALC> xbuf, ybuf, tmp;
   tpipe.InitBuffer(xbuf, sizeof(InT) * size);
@@ -152,7 +152,8 @@ void UnaryCalc(InT *x, OutT *y, int size,
 
 template<typename InT, typename OutT>
 void UnaryTest(int size,
-               std::function<void(LocalTensor<OutT> &y, LocalTensor<InT> &x, int size, LocalTensor<uint8_t> &tmp)> calc,
+               std::function<void(const LocalTensor<OutT> &y, const LocalTensor<InT> &x,
+                                  uint32_t size, LocalTensor<uint8_t> &tmp)> calc,
                std::function<OutT(int index, InT src)> expectGen,
                std::function<InT(int index)> srcGen = DefaultSrcGen,
                std::function<bool(OutT a, OutT b)> compare = DefaultCompare
@@ -249,6 +250,59 @@ void UnaryTest(int size,
   int diff_count = 0;
   for (int i = 0; i < size; i++) {
     if (!compare(y[i], expect[i])){
+      diff_count++;
+    }
+  }
+
+  EXPECT_EQ(diff_count, 0);
+}
+
+// 版本4: 单模板参数，类型一致的 expectGen/srcGen/compare，calc 参数顺序为 (y, x, tmp, size)
+template<typename T>
+void UnaryTest(int size,
+               std::function<void(const LocalTensor<T> &y, const LocalTensor<T> &x,
+                                  LocalTensor<uint8_t> &tmp, uint32_t size)> calc,
+               std::function<T(int index, T src)> expectGen,
+               std::function<T(int index)> srcGen,
+               std::function<bool(T a, T b)> compare
+) {
+  auto *x = (T*)AscendC::GmAlloc(sizeof(T) * size);
+  auto *y = (T*)AscendC::GmAlloc(sizeof(T) * size);
+
+  T expect[size];
+
+  for (int i = 0; i < size; i++) {
+    auto srcGenValue = srcGen(i);
+    auto expectGenValue = expectGen(i, srcGenValue);
+    x[i] = srcGenValue;
+    expect[i] = expectGenValue;
+  }
+
+  auto kernel = [&calc](int size, T *x, T *y) {
+    TPipe tpipe;
+    TBuf<TPosition::VECCALC> xbuf, ybuf, tmp;
+    tpipe.InitBuffer(xbuf, sizeof(T) * size);
+    tpipe.InitBuffer(ybuf, sizeof(T) * size);
+    tpipe.InitBuffer(tmp, TMP_UB_SIZE);
+
+    auto l_x = xbuf.Get<T>();
+    auto l_y = ybuf.Get<T>();
+    auto l_tmp = tmp.Get<uint8_t>();
+
+    GmToUb(l_x, x, size);
+    GmToUb(l_y, y, size);
+
+    calc(l_y, l_x, l_tmp, size);
+
+    UbToGm(y, l_y, size);
+  };
+
+  AscendC::SetKernelMode(KernelMode::AIV_MODE);
+  ICPU_RUN_KF(kernel, 1, size, x, y);
+
+  int diff_count = 0;
+  for (int i = 0; i < size; i++) {
+    if (!compare(y[i], expect[i])) {
       diff_count++;
     }
   }

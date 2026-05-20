@@ -55,7 +55,7 @@ class TestApiSignFloat : public ::testing::Test, public testing::WithParamInterf
 
 TEST_P(TestApiSignFloat, Calc) {
   const int size = this->GetParam();
-  UnaryTest<float, float>(size, SignExtend<float>, SignExpectGen, SignSrcGen, SignCompareGen);
+  UnaryTest<float>(size, SignExtend<float>, SignExpectGen, SignSrcGen, SignCompareGen);
 }
 
 INSTANTIATE_TEST_SUITE_P(DiffLength, TestApiSignFloat,
@@ -99,7 +99,7 @@ class TestApiSignInt64 : public testing::Test, public testing::WithParamInterfac
 
 TEST_P(TestApiSignInt64, Calc) {
   int size = this->GetParam();
-  UnaryTest<int64_t, int64_t>(size, SignExtend<int64_t>, SignExpectGenInt64, SignSrcGenInt64, SignCompareGenInt64);
+  UnaryTest<int64_t>(size, SignExtend<int64_t>, SignExpectGenInt64, SignSrcGenInt64, SignCompareGenInt64);
 }
 
 INSTANTIATE_TEST_SUITE_P(DiffLength, TestApiSignInt64,

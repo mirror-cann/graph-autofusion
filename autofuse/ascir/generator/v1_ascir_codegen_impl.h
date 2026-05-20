@@ -189,7 +189,7 @@ class AbsAscIrCodegenImpl : public AscIrCodegen {
     return CalcAbsTmpSize(node);
   }
   std::string GetApiCallName() const override {
-    return "UnaryTmpApiCall";
+    return "UnaryApiTmpCall";
   }
   std::string GetApiName() const override {
     return "AbsExtend";
@@ -383,10 +383,13 @@ class RsqrtAscIrCodegenImpl : public AscIrCodegen {
 class NegAscIrCodegenImpl : public AscIrCodegen {
  public:
   std::string GetApiCallName() const override {
-    return "NegApiCall";
+    return "UnaryApiCall";
   }
   std::string GetApiName() const override {
-    return "Neg";
+    return "NegExtend";
+  }
+  std::vector<std::string> LoadApiHeaderFiles([[maybe_unused]] bool is_dynamic) const override {
+    return {"neg.h"};
   }
   bool IsInplaceSupported(const AscNode &neg_node) const override {
     (void) neg_node;
@@ -438,7 +441,7 @@ class ReciprocalAscIrCodegenImpl : public AscIrCodegen {
     return CalcDefaultTmpSize(node);
   }
   std::string GetApiCallName() const override {
-    return "UnaryTmpApiCall";
+    return "UnaryApiTmpCall";
   }
   std::string GetApiName() const override {
     return "ReciprocalExtend";
@@ -471,7 +474,7 @@ class SignAscIrCodegenImpl : public AscIrCodegen {
     return CalcSignTmpSize(node);
   }
   std::string GetApiCallName() const override {
-    return "UnaryTmpApiCall";
+    return "UnaryApiTmpCall";
   }
   std::string GetApiName() const override {
     return "SignExtend";
@@ -1143,7 +1146,7 @@ class SigmoidAscIrCodegenImpl : public AscIrCodegen {
     return CalcSigmoidTmpSize(node);
   }
   std::string GetApiCallName() const override {
-    return "UnaryTmpApiCall";
+    return "UnaryApiTmpCall";
   }
   std::string GetApiName() const override {
     return "SigmoidExtend";
@@ -1388,7 +1391,7 @@ class RemainderAscIrCodegenImpl : public AscIrCodegen {
     return CalcRemainderTmpSize(node);
   }
   std::string GetApiCallName() const override {
-    return "BinaryTmpApiCallV2";
+    return "BinaryApiTmpCall";
   }
   std::string GetApiName() const override {
     return "RemainderExtend";
@@ -1738,7 +1741,7 @@ class ErfAscIrCodegenImpl : public AscIrCodegen {
     return CalcErfTmpSize(node);
   }
   std::string GetApiCallName() const override {
-    return "UnaryApiTmpV2Call";
+    return "UnaryApiTmpCall";
   }
   std::string GetApiName() const override {
     return "Erf";
@@ -1763,7 +1766,7 @@ class TanhAscIrCodegenImpl : public AscIrCodegen {
     return CalcTanhTmpSize(node);
   }
   std::string GetApiCallName() const override {
-    return "UnaryApiTmpV2Call";
+    return "UnaryApiTmpCall";
   }
   std::string GetApiName() const override {
     return "Tanh";
@@ -1789,7 +1792,7 @@ class GeluAscIrCodegenImpl : public AscIrCodegen {
   }
 
   std::string GetApiCallName() const override {
-    return "UnaryApiTmpV2Call";
+    return "UnaryApiTmpCall";
   }
   std::string GetApiName() const override {
     return "Gelu";
@@ -1815,7 +1818,7 @@ class LogicalOrAscIrCodegenImpl : public AscIrCodegen {
   }
 
   std::string GetApiCallName() const override {
-    return "BinaryTmpApiCall";
+    return "BinaryApiTmpCall";
   }
   std::string GetApiName() const override {
     return "LogicalOr";
@@ -1851,7 +1854,7 @@ class LogicalAndAscIrCodegenImpl : public AscIrCodegen {
     return CalcLogicalAndTmpSize(node);
   }
   std::string GetApiCallName() const override {
-    return "BinaryTmpApiCall";
+    return "BinaryApiTmpCall";
   }
   std::string GetApiName() const override {
     return "LogicalAnd";
@@ -1888,7 +1891,7 @@ class BitwiseAndAscIrCodegenImpl : public AscIrCodegen {
   }
 
   std::string GetApiCallName() const override {
-    return "BinaryTmpApiCall";
+    return "BinaryApiTmpCall";
   }
   std::string GetApiName() const override {
     return "BitwiseAndExtend";
@@ -1917,7 +1920,7 @@ class FloorDivAscIrCodegenImpl : public AscIrCodegen {
   }
 
   std::string GetApiCallName() const override {
-    return "BinaryTmpApiCall";
+    return "BinaryApiTmpCall";
   }
   std::string GetApiName() const override {
     return "FloorDivExtend";

@@ -16,8 +16,8 @@
 * @tparam T 数据类型，支持int32_t、half、float
 * @param dst 目的操作数tensor
 * @param src 源操作数tensor
-* @param size 参与计算的元素个数
 * @param tmp_buf 临时buffer，用于类型转换和中间存储，原地计算时用于暂存原始数据
+* @param size 参与计算的元素个数
 *
 * @note tmp_buf大小必须 >= size * sizeof(T)，用于原地计算时的数据暂存
 * @note int32类型实现方式：使用Not(x) + 1（负数变正）然后用Max选择正负数的正确结果
@@ -25,7 +25,7 @@
 */
 template <typename T>
 inline __aicore__ void AbsExtend(const AscendC::LocalTensor<T> &dst, const AscendC::LocalTensor<T> &src,
-                                  const uint32_t size, AscendC::LocalTensor<uint8_t> &tmp_buf) {
+                                  AscendC::LocalTensor<uint8_t> &tmp_buf, const uint32_t size) {
     static_assert(std::is_same<T, int32_t>::value || std::is_same<T, float>::value || std::is_same<T, half>::value,
                 "Unsupported data type for AbsExtend");
     if constexpr (AscendC::IsSameType<T, int32_t>::value) {

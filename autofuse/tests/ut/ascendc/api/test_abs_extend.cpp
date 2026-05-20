@@ -64,7 +64,7 @@ void InplaceAbsExtendCalc(int32_t* x, int32_t* y, int size) {
     auto l_tmp = tmp.Get<uint8_t>();
 
     GmToUb(l_x, x, size);
-    AbsExtend<int32_t>(l_x, l_x, size, l_tmp);
+    AbsExtend<int32_t>(l_x, l_x, l_tmp, size);
     UbToGm(y, l_x, size);
 }
 

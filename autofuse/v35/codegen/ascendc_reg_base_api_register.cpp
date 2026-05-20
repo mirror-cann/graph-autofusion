@@ -105,11 +105,20 @@ Register::Register() {
   const std::string kAscendcExpmRegBaseStr = {
 #include "expm_reg_base.h"
   };
+  const std::string kAscendcFmodRegBaseStr = {
+#include "fmod_reg_base.h"
+  };
   const std::string kAscendcTruncDivRegBaseStr = {
 #include "trunc_div_reg_base.h"
   };
   const std::string kAscendcRemainderRegBaseStr = {
 #include "remainder_reg_base.h"
+  };
+  const std::string kAscendcNegRegBaseStr = {
+#include "neg_reg_base.h"
+  };
+  const std::string kAscendcSquareRegBaseStr = {
+#include "square_reg_base.h"
   };
   std::unordered_map<std::string, std::string> api_to_file{
       {"cast_reg_base.h", kAscendcCastRegStr},
@@ -141,8 +150,11 @@ Register::Register() {
       {"copy_sign_reg_base.h", kAscendcCopySignRegBaseStr},
       {"erfcx_reg_base.h", kAscendcErfcxRegBaseStr},
       {"expm_reg_base.h", kAscendcExpmRegBaseStr},
+      {"fmod_reg_base.h", kAscendcFmodRegBaseStr},
       {"trunc_div_reg_base.h", kAscendcTruncDivRegBaseStr},
       {"remainder_reg_base.h", kAscendcRemainderRegBaseStr},
+      {"neg_reg_base.h", kAscendcNegRegBaseStr},
+      {"square_reg_base.h", kAscendcSquareRegBaseStr},
   };
 
   AscendCApiRegistry::GetInstance().RegisterApi(api_to_file);
