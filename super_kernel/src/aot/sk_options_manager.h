@@ -223,12 +223,12 @@ public:
     const OptOptionBase* GetOption(aclskOptionType optType) const;
 
     /*!
-     * \brief Judge whether a kernel should be disabled based on DCCI patterns
-     * \param dcciOps List of DCCI operation patterns (may be modified by function)
-     * \param opName The operation name to check against patterns
-     * \return True if the kernel should be disabled, false otherwise
+     * \brief Check if kernel name matches any pattern in the given list
+     * \param kernelList List of kernel name patterns (supports regex wildcards . and *)
+     * \param kernelName The kernel name to check against patterns
+     * \return True if kernel name matches any pattern in the list, false otherwise
      */
-    bool JudgeDisableKernelDcci(const std::vector<std::string>& dcciOps, const std::string& opName) const;
+    bool MatchKernelNameInList(const std::vector<std::string>& kernelList, const std::string& kernelName) const;
 
     /*!
      * \brief Judge whether a kernel should ignore MIX kernel split based on configured patterns

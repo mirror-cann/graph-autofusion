@@ -333,12 +333,11 @@ const OptOptionBase* SuperKernelOptionsManager::GetOption(aclskOptionType optTyp
     return iter->second.get();
 }
 
-bool SuperKernelOptionsManager::JudgeDisableKernelDcci(
-    const std::vector<std::string>& dcciOps, const std::string& opName) const {
-    for (size_t i = 0; i < dcciOps.size(); i++) {
-        if (MatchRegex(dcciOps[i], opName)) {
-            SK_LOGI("op: %s match disable dcci option: %s, op's dcci will be disabled",
-                opName.c_str(), dcciOps[i].c_str());
+bool SuperKernelOptionsManager::MatchKernelNameInList(
+    const std::vector<std::string>& kernelList, const std::string& kernelName) const {
+    for (size_t i = 0; i < kernelList.size(); i++) {
+        if (MatchRegex(kernelList[i], kernelName)) {
+            SK_LOGI("kernel: %s matches pattern: %s", kernelName.c_str(), kernelList[i].c_str());
             return true;
         }
     }
@@ -357,29 +356,54 @@ bool SuperKernelOptionsManager::JudgeUbufLockIgnoreKernel(const std::vector<std:
     return false;
 }
 
-bool SuperKernelOptionsManager::MatchRegex(const std::string& pattern, const std::string& opName) {
-    size_t m = opName.size();
-    size_t n = pattern.size();
-    if (n > 0 && pattern[0] == '*') {
-        SK_LOGW("invalid pattern starts with '*': %s", pattern.c_str());
+static bool IsValidRegexPattern(const std::string& pattern) {
+    if (pattern.empty()) {
         return false;
     }
+    for (char ch : pattern) {
+        const unsigned char uchar = static_cast<unsigned char>(ch);
+        if (std::isalnum(uchar) != 0 || ch == '_' || ch == '-' || ch == '.' || ch == '*') {
+            continue;
+        }
+        return false;
+    }
+    return true;
+}
+
+bool SuperKernelOptionsManager::MatchRegex(const std::string& pattern, const std::string& opName) {
+    const std::string trimmedPattern = TrimString(pattern);
+    if (trimmedPattern.empty()) {
+        SK_LOGE("pattern is empty after trim");
+        return false;
+    }
+    if (!IsValidRegexPattern(trimmedPattern)) {
+        SK_LOGE("pattern contains invalid characters, only alphanumeric, '_', '-', '.', '*' are allowed: %s",
+                trimmedPattern.c_str());
+        return false;
+    }
+    if (trimmedPattern[0] == '*') {
+        SK_LOGE("invalid pattern starts with '*': %s", trimmedPattern.c_str());
+        return false;
+    }
+
+    size_t m = opName.size();
+    size_t n = trimmedPattern.size();
 
     auto matches = [&](size_t i, size_t j) {
         if (i == 0 || j == 0) {
             return false;
         }
-        if (pattern[j - 1] == '.') {
+        if (trimmedPattern[j - 1] == '.') {
             return true;
         }
-        return opName[i - 1] == pattern[j - 1];
+        return opName[i - 1] == trimmedPattern[j - 1];
     };
 
     std::vector<std::vector<size_t>> matchFlag(m + 1, std::vector<size_t>(n + 1));
     matchFlag[0][0] = true;
     for (size_t i = 0; i <= m; ++i) {
         for (size_t j = 1; j <= n; ++j) {
-            if (pattern[j - 1] == '*') {
+            if (trimmedPattern[j - 1] == '*') {
                 if (j >= 2) {
                     matchFlag[i][j] |= matchFlag[i][j - 2];
                     if (matches(i, j - 1)) {

@@ -49,7 +49,7 @@ KernelCapBits ParseKernelCapBits(uint64_t cap)
     KernelCapBits bits;
     bits.earlyStartWaitFlag = getBit(KernelCapBitOffset::EARLY_START_WAIT_FLAG);
     bits.earlyStartSetFlag = getBit(KernelCapBitOffset::EARLY_START_SET_FLAG);
-    bits.dcci = getBit(KernelCapBitOffset::DCCI);
+    bits.disableDcci = getBit(KernelCapBitOffset::DCCI);
     bits.disableScheMode = getBit(KernelCapBitOffset::DISABLE_SCHEMODE);
     return bits;
 }
@@ -411,9 +411,9 @@ bool InitKernelResolvedFuncs(KernelInfos &kernelInfos)
     const KernelCapBits capBits = ParseKernelCapBits(kernelInfos.cap);
     kernelInfos.capBits = capBits;
     SK_LOGI("bindMap size=%lu, aicFound=%d, aivFound=%d, earlyStartWaitFlag=%d, "
-            "earlyStartSetFlag=%d, dcci=%d, disableScheMode=%d",
+            "earlyStartSetFlag=%d, disableDcci=%d, disableScheMode=%d",
         bindMap.size(), aicItor != bindMap.end(), aivItor != bindMap.end(),
-        capBits.earlyStartWaitFlag, capBits.earlyStartSetFlag, capBits.dcci, capBits.disableScheMode);
+        capBits.earlyStartWaitFlag, capBits.earlyStartSetFlag, capBits.disableDcci, capBits.disableScheMode);
     if (capBits.disableScheMode == true) {
         const bool originScheModeOn = kernelInfos.isScheModeOn;
         kernelInfos.isScheModeOn = false;

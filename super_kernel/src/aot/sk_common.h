@@ -209,6 +209,9 @@ struct TaskInfo {
     // 4： dcci_before_kernel_start
     // 8： dcci_after_kernel_end
     // 16： debug_cross_core_sync_check
+    // 32： enable_dcci_after_func - 直接指示kernel是否需要在func执行后插入dcci
+    //      该bit由host端根据disableDcci和afterKernelEnd综合计算得出
+    //      kernel侧只需检查此bit即可，无需组合判断
     uint64_t debugOptions;
     uint64_t reserved;
 };

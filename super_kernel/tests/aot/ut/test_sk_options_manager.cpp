@@ -276,47 +276,47 @@ TEST_F(SuperKernelOptionsManagerTest, GetOption_NotFound)
     EXPECT_EQ(result, nullptr);
 }
 
-// ==================== SuperKernelOptionsManager::JudgeDisableKernelDcci 测试 ====================
+// ==================== SuperKernelOptionsManager::MatchKernelNameInList 测试 ====================
 
-TEST_F(SuperKernelOptionsManagerTest, JudgeDisableKernelDcci_Match)
+TEST_F(SuperKernelOptionsManagerTest, MatchKernelNameInList_Match)
 {
     std::vector<std::string> dcciOps = {"Add", "Mul.*", ".*Op"};
-    EXPECT_TRUE(opts_test->JudgeDisableKernelDcci(dcciOps, "Add"));
-    EXPECT_TRUE(opts_test->JudgeDisableKernelDcci(dcciOps, "Mul"));
-    EXPECT_TRUE(opts_test->JudgeDisableKernelDcci(dcciOps, "SomeOp"));
+    EXPECT_TRUE(opts_test->MatchKernelNameInList(dcciOps, "Add"));
+    EXPECT_TRUE(opts_test->MatchKernelNameInList(dcciOps, "Mul"));
+    EXPECT_TRUE(opts_test->MatchKernelNameInList(dcciOps, "SomeOp"));
 }
 
-TEST_F(SuperKernelOptionsManagerTest, JudgeDisableKernelDcci_NoMatch)
+TEST_F(SuperKernelOptionsManagerTest, MatchKernelNameInList_NoMatch)
 {
     std::vector<std::string> dcciOps = {"Add", "Mul"};
-    EXPECT_FALSE(opts_test->JudgeDisableKernelDcci(dcciOps, "Sub"));
-    EXPECT_FALSE(opts_test->JudgeDisableKernelDcci(dcciOps, "Div"));
-    EXPECT_FALSE(opts_test->JudgeDisableKernelDcci(dcciOps, "Conv"));
+    EXPECT_FALSE(opts_test->MatchKernelNameInList(dcciOps, "Sub"));
+    EXPECT_FALSE(opts_test->MatchKernelNameInList(dcciOps, "Div"));
+    EXPECT_FALSE(opts_test->MatchKernelNameInList(dcciOps, "Conv"));
 }
 
-TEST_F(SuperKernelOptionsManagerTest, JudgeDisableKernelDcci_EmptyList)
+TEST_F(SuperKernelOptionsManagerTest, MatchKernelNameInList_EmptyList)
 {
     std::vector<std::string> dcciOps;
-    EXPECT_FALSE(opts_test->JudgeDisableKernelDcci(dcciOps, "Add"));
+    EXPECT_FALSE(opts_test->MatchKernelNameInList(dcciOps, "Add"));
 }
 
-TEST_F(SuperKernelOptionsManagerTest, JudgeDisableKernelDcci_InvalidRegex)
+TEST_F(SuperKernelOptionsManagerTest, MatchKernelNameInList_InvalidRegex)
 {
     std::vector<std::string> dcciOps = {"[invalid(regex"}; // 无效的正则表达式
-    EXPECT_FALSE(opts_test->JudgeDisableKernelDcci(dcciOps, "Add")); // 应返回 false 而不是崩溃
+    EXPECT_FALSE(opts_test->MatchKernelNameInList(dcciOps, "Add")); // 应返回 false 而不是崩溃
 }
 
-TEST_F(SuperKernelOptionsManagerTest, JudgeDisableKernelDcci_ComplexPattern)
+TEST_F(SuperKernelOptionsManagerTest, MatchKernelNameInList_ComplexPattern)
 {
     // 注意：正则只支持 . 和 *，不支持 ^ 和 $
     // 使用完全匹配语义，模式需要匹配整个算子名称
     std::vector<std::string> dcciOps = {"Conv2D", "MatMul.*", ".*BatchNorm.*"};
-    EXPECT_TRUE(opts_test->JudgeDisableKernelDcci(dcciOps, "Conv2D"));
-    EXPECT_FALSE(opts_test->JudgeDisableKernelDcci(dcciOps, "Conv2DBackward")); // 不匹配 Conv2D
-    EXPECT_TRUE(opts_test->JudgeDisableKernelDcci(dcciOps, "MatMul"));
-    EXPECT_TRUE(opts_test->JudgeDisableKernelDcci(dcciOps, "MatMulV2"));
-    EXPECT_TRUE(opts_test->JudgeDisableKernelDcci(dcciOps, "BatchNorm"));
-    EXPECT_TRUE(opts_test->JudgeDisableKernelDcci(dcciOps, "SomeBatchNormOp"));
+    EXPECT_TRUE(opts_test->MatchKernelNameInList(dcciOps, "Conv2D"));
+    EXPECT_FALSE(opts_test->MatchKernelNameInList(dcciOps, "Conv2DBackward")); // 不匹配 Conv2D
+    EXPECT_TRUE(opts_test->MatchKernelNameInList(dcciOps, "MatMul"));
+    EXPECT_TRUE(opts_test->MatchKernelNameInList(dcciOps, "MatMulV2"));
+    EXPECT_TRUE(opts_test->MatchKernelNameInList(dcciOps, "BatchNorm"));
+    EXPECT_TRUE(opts_test->MatchKernelNameInList(dcciOps, "SomeBatchNormOp"));
 }
 
 // ==================== SuperKernelOptionsManager::EnableDebug 测试 ====================
@@ -1097,9 +1097,9 @@ TEST_F(SuperKernelOptionsManagerTest, MatchRegex_ComplexPatterns)
 
 TEST_F(SuperKernelOptionsManagerTest, MatchRegex_EmptyPattern)
 {
-    // 空模式测试
-    EXPECT_TRUE(opts_test->MatchRegex("", ""));
+    EXPECT_FALSE(opts_test->MatchRegex("", ""));
     EXPECT_FALSE(opts_test->MatchRegex("", "abc"));
+    EXPECT_FALSE(opts_test->MatchRegex("   ", "abc"));
 }
 
 TEST_F(SuperKernelOptionsManagerTest, MatchRegex_InvalidLeadingStar)
@@ -1126,14 +1126,47 @@ TEST_F(SuperKernelOptionsManagerTest, MatchRegex_MixedPatterns)
 
 TEST_F(SuperKernelOptionsManagerTest, MatchRegex_DcciScenario)
 {
-    // DCCI 场景测试
     std::vector<std::string> dcciOps = {"Add", "Mul.*", ".*Op"};
-    EXPECT_TRUE(opts_test->JudgeDisableKernelDcci(dcciOps, "Add"));
-    EXPECT_TRUE(opts_test->JudgeDisableKernelDcci(dcciOps, "Mul"));
-    EXPECT_TRUE(opts_test->JudgeDisableKernelDcci(dcciOps, "MulV2"));
-    EXPECT_TRUE(opts_test->JudgeDisableKernelDcci(dcciOps, "SomeOp"));
-    EXPECT_FALSE(opts_test->JudgeDisableKernelDcci(dcciOps, "Sub"));
-    EXPECT_FALSE(opts_test->JudgeDisableKernelDcci(dcciOps, "Conv"));
+    EXPECT_TRUE(opts_test->MatchKernelNameInList(dcciOps, "Add"));
+    EXPECT_TRUE(opts_test->MatchKernelNameInList(dcciOps, "Mul"));
+    EXPECT_TRUE(opts_test->MatchKernelNameInList(dcciOps, "MulV2"));
+    EXPECT_TRUE(opts_test->MatchKernelNameInList(dcciOps, "SomeOp"));
+    EXPECT_FALSE(opts_test->MatchKernelNameInList(dcciOps, "Sub"));
+    EXPECT_FALSE(opts_test->MatchKernelNameInList(dcciOps, "Conv"));
+}
+
+TEST_F(SuperKernelOptionsManagerTest, MatchRegex_InvalidCharacters)
+{
+    EXPECT_FALSE(opts_test->MatchRegex("[a-z]", "Add"));
+    EXPECT_FALSE(opts_test->MatchRegex("^Add$", "Add"));
+    EXPECT_FALSE(opts_test->MatchRegex("Add+", "Add"));
+    EXPECT_FALSE(opts_test->MatchRegex("Add?", "Add"));
+    EXPECT_FALSE(opts_test->MatchRegex("Add|Mul", "Add"));
+    EXPECT_FALSE(opts_test->MatchRegex("Add\\d", "Add"));
+    EXPECT_FALSE(opts_test->MatchRegex("(Add)", "Add"));
+    EXPECT_FALSE(opts_test->MatchRegex("{Add}", "Add"));
+    EXPECT_FALSE(opts_test->MatchRegex("Add$", "Add"));
+    EXPECT_FALSE(opts_test->MatchRegex("!Add", "Add"));
+    EXPECT_FALSE(opts_test->MatchRegex("Add@Home", "Add"));
+    EXPECT_FALSE(opts_test->MatchRegex("Add#1", "Add"));
+}
+
+TEST_F(SuperKernelOptionsManagerTest, MatchRegex_TrimSpaces)
+{
+    EXPECT_TRUE(opts_test->MatchRegex("  Add  ", "Add"));
+    EXPECT_TRUE(opts_test->MatchRegex(" Add.* ", "AddV2"));
+    EXPECT_TRUE(opts_test->MatchRegex("\tAdd\t", "Add"));
+    EXPECT_FALSE(opts_test->MatchRegex("   ", "Add"));
+    EXPECT_FALSE(opts_test->MatchRegex("  [a-z]  ", "Add"));
+}
+
+TEST_F(SuperKernelOptionsManagerTest, MatchRegex_AllValidCharacters)
+{
+    EXPECT_TRUE(opts_test->MatchRegex("Kernel_v2-Test", "Kernel_v2-Test"));
+    EXPECT_TRUE(opts_test->MatchRegex("ABC123", "ABC123"));
+    EXPECT_TRUE(opts_test->MatchRegex("test_underscore", "test_underscore"));
+    EXPECT_TRUE(opts_test->MatchRegex("test-hyphen", "test-hyphen"));
+    EXPECT_TRUE(opts_test->MatchRegex("Test.*Pattern", "TestABCPattern"));
 }
 
 // ==================== SetOptOptionValue: DEBUG_OP_EXEC_TRACE 测试 ====================
@@ -1217,8 +1250,8 @@ TEST_F(SuperKernelOptionsManagerTest, CompleteWorkflow)
     
     // 验证 DCCI 判断
     std::vector<std::string> dcciOps = {"Add", "Mul.*"};
-    EXPECT_TRUE(opts_test->JudgeDisableKernelDcci(dcciOps, "Add"));
-    EXPECT_FALSE(opts_test->JudgeDisableKernelDcci(dcciOps, "Sub"));
+    EXPECT_TRUE(opts_test->MatchKernelNameInList(dcciOps, "Add"));
+    EXPECT_FALSE(opts_test->MatchKernelNameInList(dcciOps, "Sub"));
 }
 
 // ==================== SuperKernelOptionsManager::ToJson Tests ====================

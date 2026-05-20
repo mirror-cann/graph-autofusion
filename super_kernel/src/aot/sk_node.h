@@ -189,7 +189,7 @@ enum class KernelCapBitOffset : uint8_t {
 struct KernelCapBits {
     bool earlyStartWaitFlag = false;
     bool earlyStartSetFlag = false;
-    bool dcci = false;
+    bool disableDcci = false;
     bool disableScheMode = false;
 };
 

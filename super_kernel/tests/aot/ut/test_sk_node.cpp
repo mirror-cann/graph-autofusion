@@ -1354,3 +1354,98 @@ TEST_F(SkNodeTest, SyncInfosToJson_DefaultValuesFiltered)
     EXPECT_FALSE(json.contains("eventFlag"));
     EXPECT_FALSE(json.contains("correspondingWaitNodeIds"));
 }
+
+// ==================== KernelCapBits 结构体测试 ====================
+
+TEST_F(SkNodeTest, KernelCapBits_DefaultValues)
+{
+    KernelCapBits bits;
+    EXPECT_FALSE(bits.earlyStartWaitFlag);
+    EXPECT_FALSE(bits.earlyStartSetFlag);
+    EXPECT_FALSE(bits.disableDcci);
+    EXPECT_FALSE(bits.disableScheMode);
+}
+
+TEST_F(SkNodeTest, KernelCapBits_SetDisableDcci)
+{
+    KernelCapBits bits;
+    bits.disableDcci = true;
+    EXPECT_TRUE(bits.disableDcci);
+    EXPECT_FALSE(bits.earlyStartWaitFlag);
+    EXPECT_FALSE(bits.earlyStartSetFlag);
+    EXPECT_FALSE(bits.disableScheMode);
+}
+
+// ==================== ParseKernelCapBits 函数测试 ====================
+
+TEST_F(SkNodeTest, ParseKernelCapBits_AllBitsZero)
+{
+    KernelCapBits bits = ParseKernelCapBits(0x0);
+    EXPECT_FALSE(bits.earlyStartWaitFlag);
+    EXPECT_FALSE(bits.earlyStartSetFlag);
+    EXPECT_FALSE(bits.disableDcci);
+    EXPECT_FALSE(bits.disableScheMode);
+}
+
+TEST_F(SkNodeTest, ParseKernelCapBits_Bit0Set)
+{
+    KernelCapBits bits = ParseKernelCapBits(0x1);
+    EXPECT_TRUE(bits.earlyStartWaitFlag);
+    EXPECT_FALSE(bits.earlyStartSetFlag);
+    EXPECT_FALSE(bits.disableDcci);
+    EXPECT_FALSE(bits.disableScheMode);
+}
+
+TEST_F(SkNodeTest, ParseKernelCapBits_Bit1Set)
+{
+    KernelCapBits bits = ParseKernelCapBits(0x2);
+    EXPECT_FALSE(bits.earlyStartWaitFlag);
+    EXPECT_TRUE(bits.earlyStartSetFlag);
+    EXPECT_FALSE(bits.disableDcci);
+    EXPECT_FALSE(bits.disableScheMode);
+}
+
+TEST_F(SkNodeTest, ParseKernelCapBits_Bit2Set_DisableDcci)
+{
+    KernelCapBits bits = ParseKernelCapBits(0x4);
+    EXPECT_FALSE(bits.earlyStartWaitFlag);
+    EXPECT_FALSE(bits.earlyStartSetFlag);
+    EXPECT_TRUE(bits.disableDcci);
+    EXPECT_FALSE(bits.disableScheMode);
+}
+
+TEST_F(SkNodeTest, ParseKernelCapBits_Bit3Set_DisableScheMode)
+{
+    KernelCapBits bits = ParseKernelCapBits(0x8);
+    EXPECT_FALSE(bits.earlyStartWaitFlag);
+    EXPECT_FALSE(bits.earlyStartSetFlag);
+    EXPECT_FALSE(bits.disableDcci);
+    EXPECT_TRUE(bits.disableScheMode);
+}
+
+TEST_F(SkNodeTest, ParseKernelCapBits_MultipleBitsSet)
+{
+    KernelCapBits bits = ParseKernelCapBits(0xF);
+    EXPECT_TRUE(bits.earlyStartWaitFlag);
+    EXPECT_TRUE(bits.earlyStartSetFlag);
+    EXPECT_TRUE(bits.disableDcci);
+    EXPECT_TRUE(bits.disableScheMode);
+}
+
+TEST_F(SkNodeTest, ParseKernelCapBits_OnlyDisableDcciAndDisableScheMode)
+{
+    KernelCapBits bits = ParseKernelCapBits(0xC);
+    EXPECT_FALSE(bits.earlyStartWaitFlag);
+    EXPECT_FALSE(bits.earlyStartSetFlag);
+    EXPECT_TRUE(bits.disableDcci);
+    EXPECT_TRUE(bits.disableScheMode);
+}
+
+TEST_F(SkNodeTest, ParseKernelCapBits_LargeValue)
+{
+    KernelCapBits bits = ParseKernelCapBits(0xFFFFFFFFFFFFFFFFULL);
+    EXPECT_TRUE(bits.earlyStartWaitFlag);
+    EXPECT_TRUE(bits.earlyStartSetFlag);
+    EXPECT_TRUE(bits.disableDcci);
+    EXPECT_TRUE(bits.disableScheMode);
+}

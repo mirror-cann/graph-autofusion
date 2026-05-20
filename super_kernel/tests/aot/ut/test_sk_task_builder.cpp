@@ -1559,3 +1559,218 @@ TEST_F(SkTaskBuilderTest, Build_WithDebugCrossCoreSyncCheck_Success)
     EXPECT_NE(launchInfo.entryInfo.skEntryFunc, nullptr);
     EXPECT_NE(launchInfo.devArgs.Get(), nullptr);
 }
+
+// ==================== capBits.disableDcci: AddFuncTask debugOptions bit 0 测试 ====================
+
+TEST_F(SkTaskBuilderTest, AddFuncTask_CapBitsDisableDcci_SetsBit0)
+{
+    // 不设置任何 disableDcciList，仅通过 capBits.disableDcci 禁用 dcci
+    SkTask aic;
+    ASSERT_TRUE(aic.taskQue.Init(8));
+
+    auto* kernel = CreateKernelNodeEx(43001, 0, INVALID_TASK_ID, INVALID_TASK_ID, SkKernelType::AIC_ONLY);
+    kernel->nodeInfos.kernelInfos.capBits.disableDcci = true;
+
+    SkDfxInfo dfx{};
+    ASSERT_TRUE(builder->AddFuncTask(aic, kernel, &dfx, 0, 0, 1, SkTaskType::TYPE_FUNC, 1));
+
+    TaskInfo& funcTask = aic.taskQue.get()->taskInfos[aic.taskQue.get()->taskCnt - 1];
+    EXPECT_NE((funcTask.debugOptions & 0x1U), 0U);
+}
+
+TEST_F(SkTaskBuilderTest, AddFuncTask_CapBitsDisableDcciFalse_NoBit0)
+{
+    // capBits.disableDcci = false, 且不设置 disableDcciList
+    SkTask aic;
+    ASSERT_TRUE(aic.taskQue.Init(8));
+
+    auto* kernel = CreateKernelNodeEx(43002, 0, INVALID_TASK_ID, INVALID_TASK_ID, SkKernelType::AIC_ONLY);
+    kernel->nodeInfos.kernelInfos.capBits.disableDcci = false;
+
+    SkDfxInfo dfx{};
+    ASSERT_TRUE(builder->AddFuncTask(aic, kernel, &dfx, 0, 0, 1, SkTaskType::TYPE_FUNC, 1));
+
+    TaskInfo& funcTask = aic.taskQue.get()->taskInfos[aic.taskQue.get()->taskCnt - 1];
+    EXPECT_EQ((funcTask.debugOptions & 0x1U), 0U);
+}
+
+TEST_F(SkTaskBuilderTest, AddFuncTask_CapBitsDisableDcci_CombinedWithDisableDcciList)
+{
+    // 同时设置 capBits.disableDcci 和 disableDcciList
+    opts->AddOption(std::make_unique<StringListOptOption>(
+        "dcci_disable", aclskOptionType::DCCI_DISABLE_ON_KERNEL, std::vector<std::string>{"k"}));
+
+    SkTask aic;
+    ASSERT_TRUE(aic.taskQue.Init(8));
+
+    auto* kernel = CreateKernelNodeEx(43003, 0, INVALID_TASK_ID, INVALID_TASK_ID, SkKernelType::AIC_ONLY);
+    kernel->nodeInfos.kernelInfos.capBits.disableDcci = true;
+
+    SkDfxInfo dfx{};
+    ASSERT_TRUE(builder->AddFuncTask(aic, kernel, &dfx, 0, 0, 1, SkTaskType::TYPE_FUNC, 1));
+
+    TaskInfo& funcTask = aic.taskQue.get()->taskInfos[aic.taskQue.get()->taskCnt - 1];
+    EXPECT_NE((funcTask.debugOptions & 0x1U), 0U);
+}
+
+// ==================== enable_dcci_after_func: AddFuncTask debugOptions bit 5 (0x20) 测试 ====================
+
+TEST_F(SkTaskBuilderTest, AddFuncTask_NoDisableDcci_SetsBit5)
+{
+    // 默认情况：未禁用 dcci，bit 5 应置位
+    SkTask aic;
+    ASSERT_TRUE(aic.taskQue.Init(8));
+
+    auto* kernel = CreateKernelNodeEx(44001, 0, INVALID_TASK_ID, INVALID_TASK_ID, SkKernelType::AIC_ONLY);
+    kernel->nodeInfos.kernelInfos.capBits.disableDcci = false;
+
+    SkDfxInfo dfx{};
+    ASSERT_TRUE(builder->AddFuncTask(aic, kernel, &dfx, 0, 0, 1, SkTaskType::TYPE_FUNC, 1));
+
+    TaskInfo& funcTask = aic.taskQue.get()->taskInfos[aic.taskQue.get()->taskCnt - 1];
+    EXPECT_NE((funcTask.debugOptions & 0x20U), 0U);
+}
+
+TEST_F(SkTaskBuilderTest, AddFuncTask_DisableDcciByCapBits_ClearsBit5)
+{
+    // 通过 capBits.disableDcci 禁用 dcci，bit 5 应清除
+    SkTask aic;
+    ASSERT_TRUE(aic.taskQue.Init(8));
+
+    auto* kernel = CreateKernelNodeEx(44002, 0, INVALID_TASK_ID, INVALID_TASK_ID, SkKernelType::AIC_ONLY);
+    kernel->nodeInfos.kernelInfos.capBits.disableDcci = true;
+
+    SkDfxInfo dfx{};
+    ASSERT_TRUE(builder->AddFuncTask(aic, kernel, &dfx, 0, 0, 1, SkTaskType::TYPE_FUNC, 1));
+
+    TaskInfo& funcTask = aic.taskQue.get()->taskInfos[aic.taskQue.get()->taskCnt - 1];
+    EXPECT_EQ((funcTask.debugOptions & 0x20U), 0U);
+}
+
+TEST_F(SkTaskBuilderTest, AddFuncTask_DisableDcciByList_ClearsBit5)
+{
+    // 通过 disableDcciList 禁用 dcci，bit 5 应清除
+    opts->AddOption(std::make_unique<StringListOptOption>(
+        "dcci_disable", aclskOptionType::DCCI_DISABLE_ON_KERNEL, std::vector<std::string>{"k"}));
+
+    SkTask aic;
+    ASSERT_TRUE(aic.taskQue.Init(8));
+
+    auto* kernel = CreateKernelNodeEx(44003, 0, INVALID_TASK_ID, INVALID_TASK_ID, SkKernelType::AIC_ONLY);
+    kernel->nodeInfos.kernelInfos.capBits.disableDcci = false;
+
+    SkDfxInfo dfx{};
+    ASSERT_TRUE(builder->AddFuncTask(aic, kernel, &dfx, 0, 0, 1, SkTaskType::TYPE_FUNC, 1));
+
+    TaskInfo& funcTask = aic.taskQue.get()->taskInfos[aic.taskQue.get()->taskCnt - 1];
+    EXPECT_EQ((funcTask.debugOptions & 0x20U), 0U);
+}
+
+TEST_F(SkTaskBuilderTest, AddFuncTask_AfterKernelEndOverridesDisable_SetsBit5)
+{
+    // 同时禁用 dcci 和设置 after_kernel_end，bit 5 应置位 (强制执行)
+    opts->AddOption(std::make_unique<StringListOptOption>(
+        "dcci_disable", aclskOptionType::DCCI_DISABLE_ON_KERNEL, std::vector<std::string>{"k"}));
+    opts->AddOption(std::make_unique<StringListOptOption>(
+        "dcci_after_kernel_end", aclskOptionType::DCCI_AFTER_KERNEL_END, std::vector<std::string>{"k"}));
+
+    SkTask aic;
+    ASSERT_TRUE(aic.taskQue.Init(8));
+
+    auto* kernel = CreateKernelNodeEx(44004, 0, INVALID_TASK_ID, INVALID_TASK_ID, SkKernelType::AIC_ONLY);
+
+    SkDfxInfo dfx{};
+    ASSERT_TRUE(builder->AddFuncTask(aic, kernel, &dfx, 0, 0, 1, SkTaskType::TYPE_FUNC, 1));
+
+    TaskInfo& funcTask = aic.taskQue.get()->taskInfos[aic.taskQue.get()->taskCnt - 1];
+    EXPECT_NE((funcTask.debugOptions & 0x20U), 0U);
+}
+
+TEST_F(SkTaskBuilderTest, AddFuncTask_AfterKernelEndOnly_SetsBit3AndBit5)
+{
+    // 仅设置 after_kernel_end，bit 3 和 bit 5 都应置位
+    opts->AddOption(std::make_unique<StringListOptOption>(
+        "dcci_after_kernel_end", aclskOptionType::DCCI_AFTER_KERNEL_END, std::vector<std::string>{"k"}));
+
+    SkTask aic;
+    ASSERT_TRUE(aic.taskQue.Init(8));
+
+    auto* kernel = CreateKernelNodeEx(44005, 0, INVALID_TASK_ID, INVALID_TASK_ID, SkKernelType::AIC_ONLY);
+
+    SkDfxInfo dfx{};
+    ASSERT_TRUE(builder->AddFuncTask(aic, kernel, &dfx, 0, 0, 1, SkTaskType::TYPE_FUNC, 1));
+
+    TaskInfo& funcTask = aic.taskQue.get()->taskInfos[aic.taskQue.get()->taskCnt - 1];
+    EXPECT_NE((funcTask.debugOptions & 0x8U), 0U);
+    EXPECT_NE((funcTask.debugOptions & 0x20U), 0U);
+}
+
+TEST_F(SkTaskBuilderTest, AddFuncTask_CapBitsDisableDcciAndAfterKernelEnd_SetsBit5)
+{
+    // capBits.disableDcci=true + after_kernel_end，bit 5 应置位 (强制执行)
+    opts->AddOption(std::make_unique<StringListOptOption>(
+        "dcci_after_kernel_end", aclskOptionType::DCCI_AFTER_KERNEL_END, std::vector<std::string>{"k"}));
+
+    SkTask aic;
+    ASSERT_TRUE(aic.taskQue.Init(8));
+
+    auto* kernel = CreateKernelNodeEx(44006, 0, INVALID_TASK_ID, INVALID_TASK_ID, SkKernelType::AIC_ONLY);
+    kernel->nodeInfos.kernelInfos.capBits.disableDcci = true;
+
+    SkDfxInfo dfx{};
+    ASSERT_TRUE(builder->AddFuncTask(aic, kernel, &dfx, 0, 0, 1, SkTaskType::TYPE_FUNC, 1));
+
+    TaskInfo& funcTask = aic.taskQue.get()->taskInfos[aic.taskQue.get()->taskCnt - 1];
+    // bit 0 (disable) 和 bit 3 (after_end) 都置位，但 bit 5 应置位
+    EXPECT_NE((funcTask.debugOptions & 0x1U), 0U);
+    EXPECT_NE((funcTask.debugOptions & 0x8U), 0U);
+    EXPECT_NE((funcTask.debugOptions & 0x20U), 0U);
+}
+
+TEST_F(SkTaskBuilderTest, AddFuncTask_DisableDcciListNotMatch_NoBit0AndBit5Set)
+{
+    // disableDcciList 不匹配当前 kernelName，bit 0 不置位，bit 5 应置位
+    opts->AddOption(std::make_unique<StringListOptOption>(
+        "dcci_disable", aclskOptionType::DCCI_DISABLE_ON_KERNEL, std::vector<std::string>{"other_kernel"}));
+
+    SkTask aic;
+    ASSERT_TRUE(aic.taskQue.Init(8));
+
+    auto* kernel = CreateKernelNodeEx(44007, 0, INVALID_TASK_ID, INVALID_TASK_ID, SkKernelType::AIC_ONLY);
+    kernel->nodeInfos.kernelInfos.capBits.disableDcci = false;
+
+    SkDfxInfo dfx{};
+    ASSERT_TRUE(builder->AddFuncTask(aic, kernel, &dfx, 0, 0, 1, SkTaskType::TYPE_FUNC, 1));
+
+    TaskInfo& funcTask = aic.taskQue.get()->taskInfos[aic.taskQue.get()->taskCnt - 1];
+    EXPECT_EQ((funcTask.debugOptions & 0x1U), 0U);
+    EXPECT_NE((funcTask.debugOptions & 0x20U), 0U);
+}
+
+TEST_F(SkTaskBuilderTest, AddFuncTask_AllDebugBitsCombined)
+{
+    // 组合所有 debugOptions bits：0, 3, 4, 5, 16, 验证 bit 5 正确计算
+    opts->AddOption(std::make_unique<StringListOptOption>(
+        "dcci_disable", aclskOptionType::DCCI_DISABLE_ON_KERNEL, std::vector<std::string>{"k"}));
+    opts->AddOption(std::make_unique<StringListOptOption>(
+        "dcci_before_kernel_start", aclskOptionType::DCCI_BEFORE_KERNEL_START, std::vector<std::string>{"k"}));
+    opts->AddOption(std::make_unique<StringListOptOption>(
+        "dcci_after_kernel_end", aclskOptionType::DCCI_AFTER_KERNEL_END, std::vector<std::string>{"k"}));
+    opts->AddOption(std::make_unique<NumberOptOption>(
+        "debug_cross_core_sync_check", aclskOptionType::DEBUG_CROSS_CORE_SYNC_CHECK, 1, 0, 1));
+
+    SkTask aic;
+    ASSERT_TRUE(aic.taskQue.Init(8));
+
+    auto* kernel = CreateKernelNodeEx(44008, 0, INVALID_TASK_ID, INVALID_TASK_ID, SkKernelType::AIC_ONLY);
+
+    SkDfxInfo dfx{};
+    ASSERT_TRUE(builder->AddFuncTask(aic, kernel, &dfx, 0, 0, 1, SkTaskType::TYPE_FUNC, 1));
+
+    TaskInfo& funcTask = aic.taskQue.get()->taskInfos[aic.taskQue.get()->taskCnt - 1];
+    EXPECT_NE((funcTask.debugOptions & 0x1U), 0U);   // dcci_disable
+    EXPECT_NE((funcTask.debugOptions & 0x4U), 0U);   // before_kernel_start
+    EXPECT_NE((funcTask.debugOptions & 0x8U), 0U);   // after_kernel_end
+    EXPECT_NE((funcTask.debugOptions & 0x10U), 0U);  // cross_core_sync_check
+    EXPECT_NE((funcTask.debugOptions & 0x20U), 0U);  // enable_dcci_after_func (after_end overrides disable)
+}
