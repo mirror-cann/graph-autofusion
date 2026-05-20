@@ -40,6 +40,8 @@ add_library(test_regbase_ascendc OBJECT
     ./test_igamma.cpp
     ./test_igammac.cpp
     ./test_transpose.cpp
+    ./test_bessel_j0.cpp
+    ./test_bessel_j1.cpp
     )
 target_link_libraries(test_regbase_ascendc
     ascendc_api_regbase_extend
