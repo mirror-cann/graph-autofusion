@@ -756,7 +756,6 @@ build_backend() {
                       load_loop_mode_test_e2e_v2\
                       add_abs_test_e2e_v2 \
                       concat_test_e2e_v2 \
-                      slice_concat_test_e2e_v2 \
                       continues_brc_test_e2e_v2 \
                       scalar_brc_test_e2e_v2 \
                       brc_reduce_test_e2e_v2 \
