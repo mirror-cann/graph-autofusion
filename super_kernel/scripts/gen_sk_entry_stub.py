@@ -98,12 +98,25 @@ static const SkEntryBinary g_sk_entry_bins[] = {{
 {bin_entry_lines}
 }};
 
-static size_t GetSkEntryBinIndex()
+static const char *GetSkEntryArch()
 {{
     const char *socName = aclrtGetSocName();
     if (socName != nullptr && strstr(socName, "Ascend950") != nullptr) {{
-        return 1;
+        return "dav-3510";
     }}
+    return "dav-2201";
+}}
+
+static size_t GetSkEntryBinIndex()
+{{
+    const char *targetArch = GetSkEntryArch();
+    constexpr size_t binCount = sizeof(g_sk_entry_bins) / sizeof(g_sk_entry_bins[0]);
+    for (size_t i = 0; i < binCount; ++i) {{
+        if (strcmp(g_sk_entry_bins[i].arch, targetArch) == 0) {{
+            return i;
+        }}
+    }}
+    SK_LOGW("No sk_entry binary for arch %s, fallback to %s", targetArch, g_sk_entry_bins[0].arch);
     return 0;
 }}
 
