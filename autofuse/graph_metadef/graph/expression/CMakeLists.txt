@@ -39,7 +39,7 @@ target_link_options(aihac_symbolizer_af PRIVATE
 
 target_link_libraries(aihac_symbolizer_af
     PRIVATE
-        intf_pub
+        af_intf_pub
         static_mmpa
         c_sec
         unified_dlog

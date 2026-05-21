@@ -23,7 +23,7 @@ target_link_options(pyautofuse PRIVATE
         $<$<CONFIG:Release>:-s>
 )
 
-target_link_libraries(pyautofuse PRIVATE $<BUILD_INTERFACE:intf_pub>)
+target_link_libraries(pyautofuse PRIVATE $<BUILD_INTERFACE:af_intf_pub>)
 
 target_link_libraries(pyautofuse PRIVATE
     $<BUILD_INTERFACE:atrace_headers>

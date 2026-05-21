@@ -12,6 +12,7 @@ include(cmake/fetch_cann_cmake.cmake)
 project(graph-autofusion)
 
 init_cann_project()
+add_cann_target_options()
 if(NOT ASCEND_INSTALL_PATH AND DEFINED ENV{ASCEND_INSTALL_PATH})
     set(ASCEND_INSTALL_PATH "$ENV{ASCEND_INSTALL_PATH}" CACHE PATH "Ascend install path" FORCE)
 endif()

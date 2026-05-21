@@ -25,7 +25,7 @@ target_link_libraries(ascir
         json
         metadef_headers
     PRIVATE
-        $<BUILD_INTERFACE:intf_pub>
+        $<BUILD_INTERFACE:af_intf_pub>
 )
 
 ################################################################################

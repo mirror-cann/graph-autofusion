@@ -33,7 +33,7 @@ target_link_options(aihac_ir PRIVATE
 
 target_link_libraries(aihac_ir
     PRIVATE
-        intf_pub
+        af_intf_pub
         static_mmpa
         c_sec
         unified_dlog

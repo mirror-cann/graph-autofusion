@@ -175,7 +175,7 @@ target_link_options(graph_base_af PRIVATE
 
 target_link_libraries(graph_base_af
     PRIVATE
-        intf_pub
+        af_intf_pub
         mmpa
         -Wl,--no-as-needed
         c_sec
@@ -243,7 +243,7 @@ if (NOT ENABLE_OPEN_SRC)
 
     target_link_libraries(graph_base_static_af
         PRIVATE
-            intf_pub
+            af_intf_pub
             mmpa
             -Wl,--no-as-needed
             c_sec
@@ -301,7 +301,7 @@ target_link_options(graph_af PRIVATE
 
 target_link_libraries(graph_af
     PRIVATE
-        intf_pub
+        af_intf_pub
         mmpa
         -Wl,--no-as-needed
         c_sec

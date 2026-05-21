@@ -113,7 +113,7 @@ if (NOT TARGET intf_pub)
     add_library(intf_pub INTERFACE)
     target_compile_options(intf_pub INTERFACE -Wall -fPIC -fstack-protector-strong)
 endif()
-
+include(cmake/af_intf_pub.cmake)
 if (NOT TARGET autofuse_shared_visibility)
     add_library(autofuse_shared_visibility INTERFACE)
     if (NOT TARGET_SYSTEM_NAME STREQUAL "Windows")
