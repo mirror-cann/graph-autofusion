@@ -37,6 +37,11 @@ namespace af {
 const std::string kSplitTypeStub = "Split";
 constexpr int64_t kNonSplitGlobalId = -1L;
 constexpr float kSplitLowFusionRatioThreshold = 0.2000F;
+
+#define REDUCE_ALL_LOAD_INIT    (-1)
+#define REDUCE_ALL_LOAD_NOT_ALL (0)
+#define REDUCE_ALL_LOAD_ALL     (1)
+
 enum class SplitFusionRatioRequirementState : uint32_t {
   NOT_DETERMINED = 0U,  // 尚未计算融合比例
   NOT_SATISFIED = 1U,   // 融合比例不满足阈值要求
@@ -66,6 +71,7 @@ struct AutofuseInnerAttrs {
   bool is_fuse_from_lowering = false;             // 标识融合节点来自lowering还是can_fuse
   std::vector<int64_t> reduce_original_axis;         // reduce操作前的原始轴信息
   std::vector<Expression> reduce_original_repeats;   // reduce操作前的原始repeats信息
+  int32_t is_reduce_all_load = REDUCE_ALL_LOAD_INIT;  // 标识reduce是否所有load都是norm-like
 
   bool IsReduction() const { return HasFuseType(loop::FuseType::kReduction); }
 
@@ -192,6 +198,10 @@ class AutoFuseAttrs : public AfAttrGroupsBase  {
   [[nodiscard]] const std::vector<Expression> &GetReduceOriginalRepeats() const {
     return inner_attrs_.reduce_original_repeats;
   }
+
+  void SetReduceAllLoadState(const int32_t state) { inner_attrs_.is_reduce_all_load = state; }
+
+  [[nodiscard]] int32_t GetReduceAllLoadState() const { return inner_attrs_.is_reduce_all_load; }
 
   Status SetAndPrintOriginNames(const OpDescPtr &op_desc, const std::string &graph_name,
                                 const std::vector<const OutDataAnchor *> &origin_inputs,

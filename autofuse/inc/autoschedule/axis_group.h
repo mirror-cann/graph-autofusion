@@ -38,6 +38,8 @@ using optimize::autoschedule::AxisGroup;
 int32_t GenAscGraphAxisGroup(const af::AscGraph &graph, AxisGroup &axes_group);
 
 bool CanMergeAxisGroup(const AxisGroup &lhs, const AxisGroup &rhs, AxisGroup &merged_group, const bool is_ge_call = false);
+
+bool IsNormLikeReduceGraph(const af::AscGraph &graph);
 }
 }  // namespace optimize::autoschedule
 
