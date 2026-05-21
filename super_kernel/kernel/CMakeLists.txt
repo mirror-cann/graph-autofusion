@@ -14,11 +14,7 @@ set(SK_ENTRY_TARGETS)
 
 foreach(SK_KERNEL_ARCH IN LISTS SK_KERNEL_ARCHS)
    string(REPLACE "-" "_" SK_KERNEL_ARCH_SUFFIX ${SK_KERNEL_ARCH})
-   if(SK_KERNEL_ARCH STREQUAL "dav-2201")
-      set(SK_ENTRY_TARGET sk_entry)
-   else()
-      set(SK_ENTRY_TARGET sk_entry_${SK_KERNEL_ARCH_SUFFIX})
-   endif()
+   set(SK_ENTRY_TARGET sk_entry_${SK_KERNEL_ARCH_SUFFIX})
 
    ascendc_fatbin_library(${SK_ENTRY_TARGET} sk_entry.asc)
    target_compile_options(${SK_ENTRY_TARGET} PRIVATE
@@ -53,30 +49,25 @@ add_custom_target(generate_entry_stub
    DEPENDS ${GENERATED_SK_ENTRY_STUB_CPP}
 )
 
-add_library(sk_scope STATIC
-   sk_scope_kernel.asc
-)
+foreach(SK_KERNEL_ARCH IN LISTS SK_KERNEL_ARCHS)
+   string(REPLACE "-" "_" SK_KERNEL_ARCH_SUFFIX ${SK_KERNEL_ARCH})
+   set(SK_SCOPE_TARGET sk_scope_${SK_KERNEL_ARCH_SUFFIX})
 
-target_compile_options(sk_scope PRIVATE
-   $<$<COMPILE_LANGUAGE:ASC>:--npu-arch=dav-2201>
-)
+   add_library(${SK_SCOPE_TARGET} STATIC
+      sk_scope_kernel.asc
+   )
 
-target_include_directories(sk_scope PRIVATE
-   ${CMAKE_CURRENT_SOURCE_DIR}/../src/aot/
-)
+   target_compile_options(${SK_SCOPE_TARGET} PRIVATE
+      $<$<COMPILE_LANGUAGE:ASC>:--npu-arch=${SK_KERNEL_ARCH}>
+   )
 
-add_library(sk_scope_dav_3510 STATIC
-   sk_scope_kernel.asc
-)
+   if(NOT SK_KERNEL_ARCH STREQUAL "dav-2201")
+      target_compile_definitions(${SK_SCOPE_TARGET} PRIVATE
+         $<$<COMPILE_LANGUAGE:ASC>:SK_SCOPE_SYMBOL_SUFFIX=_${SK_KERNEL_ARCH_SUFFIX}>
+      )
+   endif()
 
-target_compile_options(sk_scope_dav_3510 PRIVATE
-   $<$<COMPILE_LANGUAGE:ASC>:--npu-arch=dav-3510>
-)
-
-target_compile_definitions(sk_scope_dav_3510 PRIVATE
-   $<$<COMPILE_LANGUAGE:ASC>:SK_SCOPE_SYMBOL_SUFFIX=_dav_3510>
-)
-
-target_include_directories(sk_scope_dav_3510 PRIVATE
-   ${CMAKE_CURRENT_SOURCE_DIR}/../src/aot/
-)
+   target_include_directories(${SK_SCOPE_TARGET} PRIVATE
+      ${CMAKE_CURRENT_SOURCE_DIR}/../src/aot/
+   )
+endforeach()
