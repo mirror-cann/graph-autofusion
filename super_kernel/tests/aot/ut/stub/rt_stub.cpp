@@ -91,12 +91,21 @@ rtError_t rtGetExceptionRegInfo(const void* exception, rtExceptionErrRegInfo_t**
 {
     (void)exception;
     (void)errRegInfo;
-    *coreNum = 0; // No cores with errors by default
+    *coreNum = 0;
     return RT_SUCCESS;
 }
 
-// aclmdlRIDebugJsonPrint - stub implementation for unit tests
-// Always returns success for UT stub mode
+rtError_t rtFunctionGetMetaInfo(void* funcHandle, int type_enum, void* data, uint32_t length)
+{
+    (void)funcHandle;
+    (void)type_enum;
+    (void)length;
+    if (data != nullptr) {
+        *reinterpret_cast<uint32_t*>(data) = 0;
+    }
+    return RT_SUCCESS;
+}
+
 aclError aclmdlRIDebugJsonPrint(aclmdlRI model, const char* path, uint32_t flag) {
     (void)model;
     (void)path;

@@ -36,6 +36,27 @@ typedef enum {
     RT_BINARY_TYPE_MAX
 } rtBinaryMetaType;
 
+typedef enum {
+    RT_FUNCTION_TYPE_INVALID = 0U,
+    RT_FUNCTION_TYPE_KERNEL_TYPE = 1U,
+    RT_FUNCTION_TYPE_CROSS_CORE = 2U,
+    RT_FUNCTION_TYPE_MIX_TASK_RATION = 3U,
+    RT_FUNCTION_TYPE_DFX_TYPE = 4U,
+    RT_FUNCTION_TYPE_DFX_ARG_INFO = 5U,
+    RT_FUNCTION_TYPE_L0_EXCEPTION_DFX_IS_TIK = 6U,
+    RT_FUNCTION_TYPE_COMPILER_ALLOC_UB_SIZE = 7U,
+    RT_FUNCTION_TYPE_SU_STACK_SIZE = 8U,
+    RT_FUNCTION_TYPE_SIMT_WARP_STACK_SIZE = 9U,
+    RT_FUNCTION_TYPE_SIMT_DVG_WARP_STACK_SIZE = 10U,
+    RT_FUNCTION_TYPE_EARLY_START_ENABLE = 11U,
+    RT_FUNCTION_TYPE_AIV_TYPE_FLAG = 12U,
+    RT_FUNCTION_TYPE_DETERMINISTIC_INFO = 13U,
+    RT_FUNCTION_TYPE_FUNCTION_ENTRY_INFO = 14U,
+    RT_FUNCTION_TYPE_BLOCK_DIM_INFO = 15U,
+    RT_FUNCTION_TYPE_PARAM_SUMMARY = 16U,
+    RT_FUNCTION_TYPE_PARAM_INFO = 17U,
+} rtFunctionMetaType;
+
 #define RT_BIN_HOST_ADDR 0
 #define RT_BIN_DEVICE_ADDR 1
 
@@ -44,6 +65,7 @@ int rtBinaryGetMetaNum(void* binHdl, int type_enum, size_t* metaNum);
 int rtBinaryGetMetaData(void* binHdl, int type_enum, size_t metaNum, void** data_list, size_t* size_list);
 int rtBinaryGetMetaInfo(void* binHdl, int type_enum, size_t metaNum, void** data_list, size_t* size_list);
 int rtGetBinBuffer(void* binHdl, int addrType, void** buffer, uint32_t* size);
+int rtFunctionGetMetaInfo(void* funcHandle, int type_enum, void* data, uint32_t length);
 
 #ifdef __cplusplus
 }

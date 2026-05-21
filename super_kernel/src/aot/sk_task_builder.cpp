@@ -2065,7 +2065,8 @@ SkBuildResult SkTaskBuilder::Build(std::string skFuncName, const std::vector<Sup
         splitBinCount = splitOptions->GetIntValue();
     }
 
-    if (opts.EnableMixKernelSplit()) {
+    auto* mixSplitOpt = opts.GetOption(SkInnerOptionType::ENABLE_MIX_KERNEL_SPLIT);
+    if (mixSplitOpt != nullptr && mixSplitOpt->GetIntValue() == 1) {
         if (!PrecomputeSyncRelationsByMixGroups(tasks)) {
             SK_LOGE("Build failed: precompute sync relations with mix kernel split failed");
             return {};

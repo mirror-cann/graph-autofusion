@@ -260,10 +260,12 @@ public:
     std::string GetSocName() const;
 
     /*!
-     * \brief Check whether MIX kernel split should be enabled
-     * \return True when explicitly enabled by supported SoC
+     * \brief Get an inner option by its type
+     * \param optType The inner option type to retrieve
+     * \return Pointer to the option, or nullptr if not found
      */
-    bool EnableMixKernelSplit() const;
+    OptOptionBase* GetOption(SkInnerOptionType optType);
+    const OptOptionBase* GetOption(SkInnerOptionType optType) const;
 
     /*!
      * \brief Set option value from an aclskOption structure
@@ -285,9 +287,12 @@ public:
 
 private:
     void RegisterDefaultOptions();
-    void RegisterDefaultOption(aclskOptionType optType);
+    void RegisterDefaultSkOptions();
+    void RegisterDefaultInnerOptions();
+    void ApplySoCSpecificOptions();
 
     std::unordered_map<aclskOptionType, std::unique_ptr<OptOptionBase>> optionMap;
+    std::unordered_map<SkInnerOptionType, std::unique_ptr<OptOptionBase>> innerOptionMap;
 };
 
 struct OptionDumpInfo {

@@ -36,7 +36,7 @@ struct DefaultOptionFactoryEntry {
 };
 
 const std::array<DefaultOptionFactoryEntry, static_cast<size_t>(aclskOptionType::SK_OPTION_MAX)>
-    kDefaultOptionFactories = {{
+    DEFAULT_OPTION_FACTORIES = {{
         {aclskOptionType::PRELOAD_CODE, []() -> std::unique_ptr<OptOptionBase> {
             return std::make_unique<NumberOptOption>("preload_code", aclskOptionType::PRELOAD_CODE, 1, 0, 2);
         }},
@@ -105,7 +105,40 @@ const std::array<DefaultOptionFactoryEntry, static_cast<size_t>(aclskOptionType:
 
 const DefaultOptionFactoryEntry* FindDefaultOptionFactory(aclskOptionType optType)
 {
-    for (const auto& entry : kDefaultOptionFactories) {
+    for (const auto& entry : DEFAULT_OPTION_FACTORIES) {
+        if (entry.optType == optType) {
+            return &entry;
+        }
+    }
+    return nullptr;
+}
+
+using DefaultInnerOptionFactory = std::unique_ptr<OptOptionBase> (*)();
+
+struct DefaultInnerOptionFactoryEntry {
+    SkInnerOptionType optType;
+    DefaultInnerOptionFactory factory;
+};
+
+const std::array<DefaultInnerOptionFactoryEntry, static_cast<size_t>(SkInnerOptionType::SK_INNER_OPTION_MAX)>
+    DEFAULT_INNER_OPTION_FACTORIES = {{
+        {SkInnerOptionType::ENABLE_MIX_KERNEL_SPLIT, []() -> std::unique_ptr<OptOptionBase> {
+            return std::make_unique<NumberOptOption>("enable_mix_kernel_split",
+                aclskOptionType::SK_OPTION_MAX, 0, 0, 1);
+        }},
+        {SkInnerOptionType::ENABLE_SIMT_OP_CHECK, []() -> std::unique_ptr<OptOptionBase> {
+            return std::make_unique<NumberOptOption>("enable_simt_op_check",
+                aclskOptionType::SK_OPTION_MAX, 0, 0, 1);
+        }},
+        {SkInnerOptionType::SOC_NAME, []() -> std::unique_ptr<OptOptionBase> {
+            return std::make_unique<StringOptOption>("soc_name",
+                aclskOptionType::SK_OPTION_MAX, "");
+        }},
+    }};
+
+const DefaultInnerOptionFactoryEntry* FindDefaultInnerOptionFactory(SkInnerOptionType optType)
+{
+    for (const auto& entry : DEFAULT_INNER_OPTION_FACTORIES) {
         if (entry.optType == optType) {
             return &entry;
         }
@@ -333,6 +366,22 @@ const OptOptionBase* SuperKernelOptionsManager::GetOption(aclskOptionType optTyp
     return iter->second.get();
 }
 
+OptOptionBase* SuperKernelOptionsManager::GetOption(SkInnerOptionType optType) {
+    auto iter = innerOptionMap.find(optType);
+    if (iter == innerOptionMap.end()) {
+        return nullptr;
+    }
+    return iter->second.get();
+}
+
+const OptOptionBase* SuperKernelOptionsManager::GetOption(SkInnerOptionType optType) const {
+    auto iter = innerOptionMap.find(optType);
+    if (iter == innerOptionMap.end()) {
+        return nullptr;
+    }
+    return iter->second.get();
+}
+
 bool SuperKernelOptionsManager::MatchKernelNameInList(
     const std::vector<std::string>& kernelList, const std::string& kernelName) const {
     for (size_t i = 0; i < kernelList.size(); i++) {
@@ -445,32 +494,72 @@ std::string SuperKernelOptionsManager::GetSocName() const
     return socName;
 }
 
-bool SuperKernelOptionsManager::EnableMixKernelSplit() const
+void SuperKernelOptionsManager::RegisterDefaultSkOptions()
 {
-    const std::string socName = GetSocName();
-    const bool enableMixKernelSplit = socName.find("Ascend950") != std::string::npos;
-    SK_LOGI("Mix kernel split default by soc: socName=%s, enable=%d",
-            socName.c_str(), static_cast<int>(enableMixKernelSplit));
-    return enableMixKernelSplit;
+    for (int32_t i = 0; i < static_cast<int32_t>(aclskOptionType::SK_OPTION_MAX); ++i) {
+        auto type = static_cast<aclskOptionType>(i);
+        if (optionMap.find(type) != optionMap.end()) {
+            continue;
+        }
+        const auto* entry = FindDefaultOptionFactory(type);
+        if (entry == nullptr) {
+            continue;
+        }
+        optionMap[type] = entry->factory();
+    }
 }
 
-void SuperKernelOptionsManager::RegisterDefaultOption(aclskOptionType optType)
+void SuperKernelOptionsManager::RegisterDefaultInnerOptions()
 {
-    if (optionMap.find(optType) != optionMap.end()) {
-        return;
+    for (int32_t i = 0; i < static_cast<int32_t>(SkInnerOptionType::SK_INNER_OPTION_MAX); ++i) {
+        auto type = static_cast<SkInnerOptionType>(i);
+        if (innerOptionMap.find(type) != innerOptionMap.end()) {
+            continue;
+        }
+        const auto* entry = FindDefaultInnerOptionFactory(type);
+        if (entry == nullptr) {
+            continue;
+        }
+        innerOptionMap[type] = entry->factory();
     }
-    const auto* entry = FindDefaultOptionFactory(optType);
-    if (entry == nullptr) {
-        return;
+}
+
+void SuperKernelOptionsManager::ApplySoCSpecificOptions()
+{
+    std::string socName = GetSocName();
+    bool isAscend950 = socName.find("Ascend950") != std::string::npos;
+    
+    auto* socNameOpt = GetOption(SkInnerOptionType::SOC_NAME);
+    if (socNameOpt != nullptr) {
+        socNameOpt->SetValue(socName);
     }
-    AddOption(entry->factory());
+    
+    if (isAscend950) {
+        auto* mixSplitOpt = GetOption(SkInnerOptionType::ENABLE_MIX_KERNEL_SPLIT);
+        if (mixSplitOpt != nullptr) {
+            mixSplitOpt->SetValue(1);
+        }
+        
+        auto* simtCheckOpt = GetOption(SkInnerOptionType::ENABLE_SIMT_OP_CHECK);
+        if (simtCheckOpt != nullptr) {
+            simtCheckOpt->SetValue(1);
+        }
+    }
+    
+    SK_LOGI("ApplySoCSpecificOptions: socName=%s, isAscend950=%d, "
+            "enableMixKernelSplit=%u, enableSimtOpCheck=%u",
+            socName.c_str(), isAscend950,
+            GetOption(SkInnerOptionType::ENABLE_MIX_KERNEL_SPLIT) != nullptr ?
+                GetOption(SkInnerOptionType::ENABLE_MIX_KERNEL_SPLIT)->GetIntValue() : 0,
+            GetOption(SkInnerOptionType::ENABLE_SIMT_OP_CHECK) != nullptr ?
+                GetOption(SkInnerOptionType::ENABLE_SIMT_OP_CHECK)->GetIntValue() : 0);
 }
 
 void SuperKernelOptionsManager::RegisterDefaultOptions()
 {
-    for (int32_t i = 0; i < static_cast<int32_t>(aclskOptionType::SK_OPTION_MAX); ++i) {
-        RegisterDefaultOption(static_cast<aclskOptionType>(i));
-    }
+    RegisterDefaultSkOptions();
+    RegisterDefaultInnerOptions();
+    ApplySoCSpecificOptions();
 }
 
 void SuperKernelOptionsManager::SetOptOptionValue(const aclskOption* option) {
@@ -478,7 +567,13 @@ void SuperKernelOptionsManager::SetOptOptionValue(const aclskOption* option) {
         SK_LOGW("sub aclskOption is nullptr");
         return;
     }
-    RegisterDefaultOption(option->optionType);
+    auto type = option->optionType;
+    if (optionMap.find(type) == optionMap.end()) {
+        const auto* entry = FindDefaultOptionFactory(type);
+        if (entry != nullptr) {
+            optionMap[type] = entry->factory();
+        }
+    }
     switch (option->optionType) {
         case aclskOptionType::PRELOAD_CODE:
             {
@@ -804,6 +899,36 @@ nlohmann::ordered_json SuperKernelOptionsManager::ToJson() const
 
         optionsJson[opt->GetName()] = optJson;
     }
+
+    nlohmann::ordered_json innerOptionsJson = nlohmann::ordered_json::object();
+    for (int32_t i = 0; i < static_cast<int32_t>(SkInnerOptionType::SK_INNER_OPTION_MAX); ++i) {
+        auto type = static_cast<SkInnerOptionType>(i);
+        const auto iter = innerOptionMap.find(type);
+        if (iter == innerOptionMap.end() || iter->second == nullptr) {
+            continue;
+        }
+        
+        const OptOptionBase* opt = iter->second.get();
+        nlohmann::ordered_json optJson;
+        optJson["name"] = opt->GetName();
+        optJson["type"] = static_cast<int>(type);
+        
+        switch (type) {
+            case SkInnerOptionType::ENABLE_MIX_KERNEL_SPLIT:
+            case SkInnerOptionType::ENABLE_SIMT_OP_CHECK:
+                optJson["value"] = opt->GetIntValue();
+                break;
+            case SkInnerOptionType::SOC_NAME:
+                optJson["value"] = opt->GetStringValue();
+                break;
+            default:
+                optJson["value"] = nullptr;
+                break;
+        }
+        
+        innerOptionsJson[opt->GetName()] = optJson;
+    }
+    optionsJson["inner_options"] = innerOptionsJson;
 
     return optionsJson;
 }

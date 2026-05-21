@@ -45,18 +45,25 @@ enum class aclskOptionType : uint32_t {
     DCCI_DISABLE_ON_KERNEL = 3,
     DEBUG_SYNC_ALL = 4,
     KERNEL_MAP = 5,
-    CONSTANT_CODEGEN = 6,  // 常量化代码生成选项
-    AUTO_OP_PARALLEL = 7,  // 优化多流算子排布
+    CONSTANT_CODEGEN = 6,
+    AUTO_OP_PARALLEL = 7,
     DCCI_BEFORE_KERNEL_START = 8,
     DEBUG_OP_EXEC_TRACE = 9,
     DEBUG_CROSS_CORE_SYNC_CHECK = 10,
-    OPT_EXTEND_OPTION = 11,   // 扩展选项，预留后续使用
-    DEBUG_EXTEND_OPTION = 12, // 扩展选项，预留后续使用
+    OPT_EXTEND_OPTION = 11,
+    DEBUG_EXTEND_OPTION = 12,
     DCCI_AFTER_KERNEL_END = 13,
-    AGGRESSIVE_OPT_STRATEGIES = 14, // aggressive fusion strategy options
+    AGGRESSIVE_OPT_STRATEGIES = 14,
     UBUF_LOCK_IGNORE_KERNEL = 15,
-    EARLY_START = 16, // early start global option
+    EARLY_START = 16,
     SK_OPTION_MAX
+};
+
+enum class SkInnerOptionType : uint32_t {
+    ENABLE_MIX_KERNEL_SPLIT = 0,
+    ENABLE_SIMT_OP_CHECK = 1,
+    SOC_NAME = 2,
+    SK_INNER_OPTION_MAX
 };
 
 typedef struct aclskPreloadOption {
