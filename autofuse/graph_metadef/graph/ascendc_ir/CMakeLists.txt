@@ -35,14 +35,10 @@ target_link_libraries(aihac_ir
     PRIVATE
         intf_pub
         static_mmpa
-        -Wl,--no-as-needed
         c_sec
         unified_dlog
         json
         platform
-        -Wl,--as-needed
-        $<$<NOT:$<STREQUAL:${TARGET_SYSTEM_NAME},Android>>:-lrt>
-        -ldl
         graph_af
         graph_base_af
         aihac_symbolizer_af
