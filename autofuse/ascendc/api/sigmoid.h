@@ -27,8 +27,8 @@ __aicore__ inline void CalcDenominator(const LocalTensor<T> &dst, const LocalTen
 }
 
 template <typename T>
-inline __aicore__ void SigmoidExtend(const LocalTensor<T> &dst, const LocalTensor<T> &src, const uint32_t cal_cnt,
-                                     LocalTensor<uint8_t> &tmp_buf) {
+inline __aicore__ void SigmoidExtend(const LocalTensor<T> &dst, const LocalTensor<T> &src,
+                                     LocalTensor<uint8_t> &tmp_buf, const uint32_t cal_cnt) {
   uint32_t one_blk_num = KernelUtils::BlkSize<T>();
   LocalTensor<T> ones = tmp_buf.template ReinterpretCast<T>();
   Duplicate(ones, (T)1.0, one_blk_num);

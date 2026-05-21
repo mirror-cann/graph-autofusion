@@ -7,7 +7,7 @@
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
-#include "binary_tmp_api_call.h"
+#include "binary_api_tmp_call.h"
 
 #include <sstream>
 #include "attr_utils.h"
@@ -24,7 +24,7 @@ using namespace af::ops;
 using namespace af::ascir_op;
 using namespace ascgen_utils;
 
-Status BinaryTmpApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
+Status BinaryApiTmpCall::Generate(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
                                   const std::vector<std::reference_wrapper<const Tensor>> &inputs,
                                   const std::vector<std::reference_wrapper<const Tensor>> &outputs,
                                   std::string &result) const {
@@ -40,12 +40,12 @@ Status BinaryTmpApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::A
   int64_t life_time_axis_id = -1L;
   int64_t id = -1L;
   auto it = this->tmp_buf_id.find(life_time_axis_id);
-  GE_ASSERT_TRUE(it != this->tmp_buf_id.end(), "BinaryTmpApiCall cannot find tmp buffer id to use.");
+  GE_ASSERT_TRUE(it != this->tmp_buf_id.end(), "BinaryApiTmpCall cannot find tmp buffer id to use.");
   id = it->second;
 
   // 如果第2个输入是ub_scalar场景, 初始化x2为ub_scalar对应的变量
   bool is_scalar_scene = (x2.is_constant) || (x2.is_ub_scalar && x2.need_gen_get_value_of_ub_scalar);
-  if (is_scalar_scene && (this->api_name_ != "BitwiseAndExtend" && this->api_name_ != "FloorDivExtend")) {
+  if (is_scalar_scene && (this->api_name_ == "LogicalOr" || this->api_name_ == "LogicalAnd")) {
     std::string dtype_name;
     GE_CHK_STATUS_RET(Tensor::DtypeName(x2.dtype, dtype_name), "Codegen get data type:%d failed",
                       static_cast<int32_t>(x2.dtype));
@@ -53,18 +53,18 @@ Status BinaryTmpApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::A
         x2.need_gen_get_value_of_ub_scalar ? ("(" + dtype_name + ")" + x2.ub_scalar_name) : x2.Str();
     ss << this->api_name_ << "ScalarExtend(" << y << "[" << tpipe.tiler.TensorVectorizedOffset(current_axis, y) << "], "
        << x1 << "[" << tpipe.tiler.TensorVectorizedOffset(current_axis, x1) << "], " << x2_scalar << ", "
-       << x1.actual_size << ", " << tpipe.tmp_buf << "_" << std::to_string(id) << ");" << std::endl;
+       << tpipe.tmp_buf << "_" << std::to_string(id) << ", " << x1.actual_size << ");" << std::endl;
   } else {
     ss << this->api_name_ << "(" << y << "[" << tpipe.tiler.TensorVectorizedOffset(current_axis, y) << "], " << x1
        << "[" << tpipe.tiler.TensorVectorizedOffset(current_axis, x1) << "], " << x2 << "["
-       << tpipe.tiler.TensorVectorizedOffset(current_axis, x2) << "], " << x1.actual_size << ", " << tpipe.tmp_buf
-        << "_" << std::to_string(id) << ");" << std::endl;
+       << tpipe.tiler.TensorVectorizedOffset(current_axis, x2) << "], " << tpipe.tmp_buf
+        << "_" << std::to_string(id) << ", " << x1.actual_size << ");" << std::endl;
   }
 
   result = ss.str();
   return ge::SUCCESS;
 }
 
-static ApiCallRegister<BinaryTmpApiCall> register_binary_tmp_api_call("BinaryTmpApiCall");
+static ApiCallRegister<BinaryApiTmpCall> register_binary_api_tmp_call("BinaryApiTmpCall");
 
 }  // namespace codegen

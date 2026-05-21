@@ -25,5 +25,4 @@ find_cann_package(runtime MODULE REQUIRED)
 find_cann_package(unified_dlog MODULE REQUIRED)
 find_cann_package(securec MODULE REQUIRED)
 
-include(cmake/third_party/json.cmake)
-
+add_cann_third_party(json)

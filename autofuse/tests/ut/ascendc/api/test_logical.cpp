@@ -93,9 +93,9 @@ void TestLogicalCommon (const std::string &logical, uint32_t size) {
     GmToUb(l_y, y, size);
 
     if (logical == "or") {
-      LogicalOr(l_y, l_x1, l_x2, size, l_tmp);
+      LogicalOr(l_y, l_x1, l_x2, l_tmp, size);
     } else {
-      LogicalAnd(l_y, l_x1, l_x2, size, l_tmp);
+      LogicalAnd(l_y, l_x1, l_x2, l_tmp, size);
     }
 
     UbToGm(y, l_y, size);
@@ -168,9 +168,9 @@ void TestLogicalCommonScalarExtend (const std::string &logical, uint32_t size) {
     
     T l_x2 = x2;
     if (logical == "orScalarExtend") {
-      LogicalOrScalarExtend(l_y, l_x1, l_x2, size, l_tmp);
+      LogicalOrScalarExtend(l_y, l_x1, l_x2, l_tmp, size);
     } else {
-      LogicalAndScalarExtend(l_y, l_x1, l_x2, size, l_tmp);
+      LogicalAndScalarExtend(l_y, l_x1, l_x2, l_tmp, size);
     }
 
     UbToGm(y, l_y, size);
@@ -246,9 +246,9 @@ void TestLogicalCommonUnalign (const std::string &logical, uint32_t size) {
     GmToUb(l_y, y, size);
 
     if (logical == "or") {
-      LogicalOr(l_y, l_x1, l_x2, size, l_tmp);
+      LogicalOr(l_y, l_x1, l_x2, l_tmp, size);
     } else {
-      LogicalAnd(l_y, l_x1, l_x2, size, l_tmp);
+      LogicalAnd(l_y, l_x1, l_x2, l_tmp, size);
     }
 
     UbToGm(y, l_y, size);

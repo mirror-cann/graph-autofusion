@@ -15,6 +15,22 @@
 
 namespace {
 const uint32_t kSocStrMaxLen = 32U;
+const uint32_t kMaxValueLen = 16U;
+const char *kSocInfo = "SoCInfo";
+const char *kAICoreSpec = "AICoreSpec";
+const char *kVectorCoreCnt = "vector_core_cnt";
+const char *kUbSize = "ub_size";
+
+bool ParseInt64(const char *value, const char *key_name, int64_t &result) {
+  try {
+    std::string str_value(value);
+    result = static_cast<int64_t>(std::stoll(str_value));
+  } catch (...) {
+    GE_LOGE("ParseInt64 failed: invalid value '%s' for %s", value, key_name);
+    return false;
+  }
+  return true;
+}
 }
 namespace ge {
 PlatformContext &PlatformContext::GetInstance() {
@@ -26,9 +42,8 @@ std::mutex PlatformContext::mutex_;
 void PlatformContext::SetPlatform(const std::string &platform_name) {
   std::lock_guard<std::mutex> lg(mutex_);
   if (!platform_name.empty()) {
-    current_platform_ = platform_name;
-    initialized_ = true;
-    GELOGD("Platform externally set to [%s].", platform_name.c_str());
+    platform_info_.soc_ver = platform_name;
+    InitPlatformInfo();
   }
 }
 
@@ -37,7 +52,7 @@ ge::Status PlatformContext::GetCurrentPlatformString(std::string &platform_name)
     GE_ASSERT_SUCCESS(Initialize(), "Failed to init platform info with name %s.", platform_name.c_str());
   }
   std::lock_guard<std::mutex> lg(mutex_);
-  platform_name = current_platform_;
+  platform_name = platform_info_.soc_ver;
   return ge::SUCCESS;
 }
 
@@ -49,10 +64,39 @@ ge::Status PlatformContext::Initialize() {
   char soc_version[kSocStrMaxLen] = {};
   auto res = rtGetSocSpec("version", "NpuArch", soc_version, kSocStrMaxLen);
   GE_ASSERT_TRUE(res == RT_ERROR_NONE, "Failed to get npu arch str.");
-  GELOGD("Init platform context from rtGetSocSpec under [%s].", soc_version);
-  current_platform_ = std::string(soc_version);
-  initialized_ = true;
+  platform_info_.soc_ver = std::string(soc_version);
 
+  GE_ASSERT_SUCCESS(InitPlatformInfo(), "Failed to init platform info.");
+  return ge::SUCCESS;
+}
+
+ge::Status PlatformContext::InitPlatformInfo() {
+  char aiv_num_str[kMaxValueLen] = {};
+  auto res = rtGetSocSpec(kSocInfo, kVectorCoreCnt, aiv_num_str, kMaxValueLen);
+  GE_ASSERT_TRUE(res == RT_ERROR_NONE, "Failed to get vector_core_cnt.");
+  GE_ASSERT_TRUE(ParseInt64(aiv_num_str, "vector_core_cnt", platform_info_.aiv_num),
+                 "Failed to parse vector_core_cnt.");
+
+  char ub_size_str[kMaxValueLen] = {};
+  res = rtGetSocSpec(kAICoreSpec, kUbSize, ub_size_str, kMaxValueLen);
+  GE_ASSERT_TRUE(res == RT_ERROR_NONE, "Failed to get ub_size.");
+  GE_ASSERT_TRUE(ParseInt64(ub_size_str, "ub_size", platform_info_.ub_size),
+                 "Failed to parse ub_size.");
+  initialized_ = true;
+  GELOGI("Platform info: soc_ver=%s, aiv_num=%lld, ub_size=%lld",
+         platform_info_.soc_ver.c_str(), platform_info_.aiv_num, platform_info_.ub_size);
+
+  return ge::SUCCESS;
+}
+
+ge::Status PlatformContext::GetPlatformInfo(PlatformInfo &platform_info) {
+  if (!initialized_) {
+    GE_ASSERT_SUCCESS(Initialize(), "Failed to init platform info.");
+  }
+  std::lock_guard<std::mutex> lg(mutex_);
+  platform_info = platform_info_;
+  GELOGD("GetPlatformInfo: soc_ver=%s, aiv_num=%lld, ub_size=%lld", platform_info_.soc_ver.c_str(),
+         platform_info_.aiv_num, platform_info_.ub_size);
   return ge::SUCCESS;
 }
 }  // namespace ge

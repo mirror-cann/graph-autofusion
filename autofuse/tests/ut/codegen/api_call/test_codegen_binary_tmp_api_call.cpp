@@ -21,7 +21,7 @@
 #include "common_utils.h"
 #include "utils/api_call_factory.h"
 #include "elewise/leaky_relu_api_call.h"
-#include "elewise/binary_tmp_api_call.h"
+#include "elewise/binary_api_tmp_call.h"
 
 using namespace ge;
 using namespace af::ops;
@@ -125,7 +125,7 @@ TEST(CodegenKernel, BinaryTmpApicall) {
   x1.id = load->outputs[0].attr.mem.tensor_id;
   x2.id = load2->outputs[0].attr.mem.tensor_id;
 
-  codegen::BinaryTmpApiCall call("LogicalAnd");
+  codegen::BinaryApiTmpCall call("LogicalAnd");
   EXPECT_EQ(call.Init(logical_and), 0);
   call.inputs.push_back(&x1);
   call.inputs.push_back(&x2);
@@ -133,7 +133,7 @@ TEST(CodegenKernel, BinaryTmpApicall) {
   std::string result;
   call.Generate(tpipe, current_axis, result);
   EXPECT_EQ(result, std::string{
-    "LogicalAnd(local_3[0], local_0[0], local_1[0], local_0_actual_size, tmp_buf_0);\n"
+    "LogicalAnd(local_3[0], local_0[0], local_1[0], tmp_buf_0, local_0_actual_size);\n"
   });
 }
 
@@ -242,7 +242,7 @@ TEST(CodegenKernel, BinaryTmpApicallLogicalOrWithFloatUbScalar) {
   x1.id = load->outputs[0].attr.mem.tensor_id;
   x2.id = load2->outputs[0].attr.mem.tensor_id;
 
-  codegen::BinaryTmpApiCall call("LogicalOr");
+  codegen::BinaryApiTmpCall call("LogicalOr");
   EXPECT_EQ(call.Init(logical_or), 0);
   call.inputs.push_back(&x1);
   call.inputs.push_back(&x2);
@@ -250,7 +250,7 @@ TEST(CodegenKernel, BinaryTmpApicallLogicalOrWithFloatUbScalar) {
   std::string result;
   call.Generate(tpipe, current_axis, result);
   EXPECT_EQ(result, std::string{
-    "LogicalOrScalarExtend(local_3[0], local_0[0], (float)local_1_ub_scalar, local_0_actual_size, tmp_buf_0);\n"
+    "LogicalOrScalarExtend(local_3[0], local_0[0], (float)local_1_ub_scalar, tmp_buf_0, local_0_actual_size);\n"
   });
 }
 
@@ -359,7 +359,7 @@ TEST(CodegenKernel, BinaryTmpApicallLogicalOrWithUint8UbScalar) {
   x1.id = load->outputs[0].attr.mem.tensor_id;
   x2.id = load2->outputs[0].attr.mem.tensor_id;
 
-  codegen::BinaryTmpApiCall call("LogicalOr");
+  codegen::BinaryApiTmpCall call("LogicalOr");
   EXPECT_EQ(call.Init(logical_or), 0);
   call.inputs.push_back(&x1);
   call.inputs.push_back(&x2);
@@ -367,7 +367,7 @@ TEST(CodegenKernel, BinaryTmpApicallLogicalOrWithUint8UbScalar) {
   std::string result;
   call.Generate(tpipe, current_axis, result);
   EXPECT_EQ(result, std::string{
-    "LogicalOrScalarExtend(local_3[0], local_0[0], (uint8_t)local_1_ub_scalar, local_0_actual_size, tmp_buf_0);\n"
+    "LogicalOrScalarExtend(local_3[0], local_0[0], (uint8_t)local_1_ub_scalar, tmp_buf_0, local_0_actual_size);\n"
   });
 }
 
@@ -468,7 +468,7 @@ TEST(CodegenKernel, BinaryTmpApicallLogicalOrWhenBothAreTensor) {
   x1.id = load->outputs[0].attr.mem.tensor_id;
   x2.id = load2->outputs[0].attr.mem.tensor_id;
 
-  codegen::BinaryTmpApiCall call("LogicalOr");
+  codegen::BinaryApiTmpCall call("LogicalOr");
   EXPECT_EQ(call.Init(logical_or), 0);
   call.inputs.push_back(&x1);
   call.inputs.push_back(&x2);
@@ -476,7 +476,7 @@ TEST(CodegenKernel, BinaryTmpApicallLogicalOrWhenBothAreTensor) {
   std::string result;
   call.Generate(tpipe, current_axis, result);
   EXPECT_EQ(result, std::string{
-    "LogicalOr(local_3[0], local_0[0], local_1[0], local_0_actual_size, tmp_buf_0);\n"
+    "LogicalOr(local_3[0], local_0[0], local_1[0], tmp_buf_0, local_0_actual_size);\n"
   });
 }
 
@@ -577,7 +577,7 @@ TEST(CodegenKernel, BinaryTmpApicallBitwiseAnd) {
   x1.id = load->outputs[0].attr.mem.tensor_id;
   x2.id = load2->outputs[0].attr.mem.tensor_id;
 
-  codegen::BinaryTmpApiCall call("BitwiseAnd");
+  codegen::BinaryApiTmpCall call("BitwiseAnd");
   EXPECT_EQ(call.Init(logical_and), 0);
   call.inputs.push_back(&x1);
   call.inputs.push_back(&x2);
@@ -585,6 +585,6 @@ TEST(CodegenKernel, BinaryTmpApicallBitwiseAnd) {
   std::string result;
   call.Generate(tpipe, current_axis, result);
   EXPECT_EQ(result, std::string{
-    "BitwiseAnd(local_3[0], local_0[0], local_1[0], local_0_actual_size, tmp_buf_0);\n"
+    "BitwiseAnd(local_3[0], local_0[0], local_1[0], tmp_buf_0, local_0_actual_size);\n"
   });
 }

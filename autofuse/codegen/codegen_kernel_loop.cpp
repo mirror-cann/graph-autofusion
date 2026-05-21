@@ -655,7 +655,7 @@ Status Loop::GenerateLoop(const Tiler &tiler, const TPipe &tpipe, std::vector<as
       Tensor::DtypeName(reduce_dst_tensor->dtype, dtype_name);
       std::set<ascir::AxisId> r_from_axis;
       for (size_t i = 0; i < reduce_dst_tensor->axis_strides.size(); i++) {
-        if (reduce_src_tensor->axis_strides[i] != 0 && reduce_dst_tensor->axis_strides[i] == 0) {  // 如果目标张量的轴步长为0
+        if ((reduce_src_tensor->axis_strides[i] != 0 || reduce_src_tensor->axis_size[i] != 1) && reduce_dst_tensor->axis_strides[i] == 0) {  // 如果目标张量的轴步长为0
           auto axis_id = reduce_dst_tensor->axis[i];    // 获取当前轴ID
           // 定义递归函数用于收集原始轴
           std::function<void(int32_t)> collect_original_axes = [&tiler, &r_from_axis, &collect_original_axes](int32_t current_axis_id) {
