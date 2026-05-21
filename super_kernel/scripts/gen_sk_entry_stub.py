@@ -31,7 +31,7 @@ def get_file_content(file):
     return data
 
 
-def gen_code(bin_file, src):
+def gen_buffer_code(bin_file, symbol):
     file_size = os.path.getsize(bin_file)
     if file_size % 8 != 0:
         raise ValueError(f"Binary file {bin_file} (size: {file_size}) must be 8-byte aligned.")
@@ -41,7 +41,22 @@ def gen_code(bin_file, src):
         for i in range(0, len(data), 8)
     ]
     data_lines = ",\n".join(formatted_data)
+    return f'''static const uint64_t {symbol}[{len(data)}] __attribute__ ((section (".sk.kernel"))) = {{
+{data_lines}
+}};
+''', len(data)
 
+
+def gen_code(bin_files, src):
+    buffer_defs = []
+    bin_entries = []
+    for arch, bin_file in bin_files:
+        symbol = "__aicore_file_buf_" + arch.replace("-", "_")
+        buffer_code, data_len = gen_buffer_code(bin_file, symbol)
+        buffer_defs.append(buffer_code)
+        bin_entries.append(f'    {{"{arch}", {symbol}, sizeof({symbol})}}')
+    bin_entry_lines = ",\n".join(bin_entries)
+    handle_init = ", ".join(["nullptr"] * len(bin_files))
     code = f'''#include <acl/acl.h>
 #include <cstdint>
 #include <cstdlib>
@@ -71,17 +86,39 @@ static aclrtBinHandle AscendLoadBinaryFromBuffer(const uint64_t *aicoreFileBuf, 
     return bhdl;
 }}
 
-static const uint64_t __aicore_file_buf__[{len(data)}] __attribute__ ((section (".sk.kernel"))) = {{
-{data_lines}
+struct SkEntryBinary {{
+    const char *arch;
+    const uint64_t *data;
+    size_t size;
 }};
+
+{os.linesep.join(buffer_defs)}
+
+static const SkEntryBinary g_sk_entry_bins[] = {{
+{bin_entry_lines}
+}};
+
+static size_t GetSkEntryBinIndex()
+{{
+    const char *socName = aclrtGetSocName();
+    if (socName != nullptr && strstr(socName, "Ascend950") != nullptr) {{
+        return 1;
+    }}
+    return 0;
+}}
 
 aclrtBinHandle AscendGetEntryBinHandle()
 {{
-    static thread_local aclrtBinHandle __sk_bin_handle__ = nullptr;
-    if (__sk_bin_handle__ == nullptr) {{
-        __sk_bin_handle__ = AscendLoadBinaryFromBuffer(__aicore_file_buf__, sizeof(__aicore_file_buf__));
+    static thread_local aclrtBinHandle __sk_bin_handles__[{len(bin_files)}] = {{{handle_init}}};
+    size_t binIndex = GetSkEntryBinIndex();
+    if (binIndex >= sizeof(g_sk_entry_bins) / sizeof(g_sk_entry_bins[0])) {{
+        binIndex = 0;
     }}
-    return __sk_bin_handle__;
+    if (__sk_bin_handles__[binIndex] == nullptr) {{
+        const SkEntryBinary &bin = g_sk_entry_bins[binIndex];
+        __sk_bin_handles__[binIndex] = AscendLoadBinaryFromBuffer(bin.data, bin.size);
+    }}
+    return __sk_bin_handles__[binIndex];
 }}
 
 #ifdef __cplusplus
@@ -97,6 +134,14 @@ aclrtBinHandle AscendGetEntryBinHandle()
 
 
 if __name__ == '__main__':
-    bin_file = sys.argv[1]
-    src_file = sys.argv[2]
-    gen_code(bin_file, src_file)
+    if len(sys.argv) == 3:
+        bin_file = sys.argv[1]
+        src_file = sys.argv[2]
+        gen_code([("dav-2201", bin_file)], src_file)
+    else:
+        src_file = sys.argv[1]
+        bin_files = []
+        for arg in sys.argv[2:]:
+            arch, bin_file = arg.split('=', 1)
+            bin_files.append((arch, bin_file))
+        gen_code(bin_files, src_file)
