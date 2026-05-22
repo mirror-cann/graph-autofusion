@@ -1370,7 +1370,7 @@ TEST_F(SuperKernelOptionsManagerTest, ToJson_AfterParseOptions)
 
 TEST_F(SuperKernelOptionsManagerTest, ToJson_NewIntegerOptions)
 {
-    aclskOption options[6] {};
+    aclskOption options[7] {};
     options[0].optionType = aclskOptionType::STREAM_FUSION;
     options[0].streamFusion.streamFusion = 0;
 
@@ -1389,9 +1389,12 @@ TEST_F(SuperKernelOptionsManagerTest, ToJson_NewIntegerOptions)
     options[5].optionType = aclskOptionType::EARLY_START;
     options[5].earlyStart.enableEarlyStart = 1;
 
+    options[6].optionType = aclskOptionType::DEBUG_PER_OP_MAX_CORE_NUM;
+    options[6].debugPerOpMaxCoreNum.enableDebugPerOpMaxCoreNum = 1;
+
     aclskOptions optList;
     optList.options = options;
-    optList.numOptions = 6;
+    optList.numOptions = 7;
 
     opts_test->ParseOptions(&optList);
 
@@ -1405,6 +1408,7 @@ TEST_F(SuperKernelOptionsManagerTest, ToJson_NewIntegerOptions)
     ASSERT_TRUE(json.contains("debug_cross_core_sync_check"));
     ASSERT_TRUE(json.contains("debug_op_exec_trace"));
     ASSERT_TRUE(json.contains("early_start"));
+    ASSERT_TRUE(json.contains("debug_per_op_max_core_num"));
     EXPECT_EQ(json["stream_fusion"]["type"], static_cast<int>(aclskOptionType::STREAM_FUSION));
     EXPECT_EQ(json["stream_fusion"]["value"], 0);
     EXPECT_EQ(json["constant_codegen"]["type"], static_cast<int>(aclskOptionType::CONSTANT_CODEGEN));
@@ -1418,6 +1422,9 @@ TEST_F(SuperKernelOptionsManagerTest, ToJson_NewIntegerOptions)
     EXPECT_EQ(json["debug_op_exec_trace"]["value"], 1);
     EXPECT_EQ(json["early_start"]["type"], static_cast<int>(aclskOptionType::EARLY_START));
     EXPECT_EQ(json["early_start"]["value"], 1);
+    EXPECT_EQ(json["debug_per_op_max_core_num"]["type"],
+        static_cast<int>(aclskOptionType::DEBUG_PER_OP_MAX_CORE_NUM));
+    EXPECT_EQ(json["debug_per_op_max_core_num"]["value"], 1);
 }
 
 TEST_F(SuperKernelOptionsManagerTest, ToJson_DcciAfterKernelEnd)
@@ -1565,4 +1572,99 @@ TEST_F(SuperKernelOptionsManagerTest, SetInnerOptionValue)
     
     nlohmann::ordered_json json = opts_test->ToJson();
     EXPECT_EQ(json["inner_options"]["enable_mix_kernel_split"]["value"], 1);
+}
+
+// ==================== SetOptOptionValue: DEBUG_PER_OP_MAX_CORE_NUM 测试 ====================
+
+TEST_F(SuperKernelOptionsManagerTest, SetOptOptionValue_DebugPerOpMaxCoreNum_DefaultZero)
+{
+    aclskOption option {};
+    option.optionType = aclskOptionType::DEBUG_PER_OP_MAX_CORE_NUM;
+    option.debugPerOpMaxCoreNum.enableDebugPerOpMaxCoreNum = 0;
+
+    opts_test->SetOptOptionValue(&option);
+
+    auto result = opts_test->GetOption(aclskOptionType::DEBUG_PER_OP_MAX_CORE_NUM);
+    ASSERT_NE(result, nullptr);
+    EXPECT_EQ(static_cast<NumberOptOption*>(result)->GetIntValue(), 0);
+}
+
+TEST_F(SuperKernelOptionsManagerTest, SetOptOptionValue_DebugPerOpMaxCoreNum_Enable)
+{
+    aclskOption option {};
+    option.optionType = aclskOptionType::DEBUG_PER_OP_MAX_CORE_NUM;
+    option.debugPerOpMaxCoreNum.enableDebugPerOpMaxCoreNum = 1;
+
+    opts_test->SetOptOptionValue(&option);
+
+    auto result = opts_test->GetOption(aclskOptionType::DEBUG_PER_OP_MAX_CORE_NUM);
+    ASSERT_NE(result, nullptr);
+    EXPECT_EQ(static_cast<NumberOptOption*>(result)->GetIntValue(), 1);
+}
+
+TEST_F(SuperKernelOptionsManagerTest, ParseOptions_DebugPerOpMaxCoreNum)
+{
+    aclskOption options[1] {};
+    options[0].optionType = aclskOptionType::DEBUG_PER_OP_MAX_CORE_NUM;
+    options[0].debugPerOpMaxCoreNum.enableDebugPerOpMaxCoreNum = 1;
+
+    aclskOptions optList;
+    optList.options = options;
+    optList.numOptions = 1;
+
+    opts_test->ParseOptions(&optList);
+
+    auto result = opts_test->GetOption(aclskOptionType::DEBUG_PER_OP_MAX_CORE_NUM);
+    ASSERT_NE(result, nullptr);
+    EXPECT_EQ(static_cast<NumberOptOption*>(result)->GetIntValue(), 1);
+}
+
+TEST_F(SuperKernelOptionsManagerTest, ParseOptions_DebugPerOpMaxCoreNum_WithOtherOptions)
+{
+    aclskOption options[3];
+
+    options[0].optionType = aclskOptionType::PRELOAD_CODE;
+    options[0].preload.preloadMode = 1;
+
+    options[1].optionType = aclskOptionType::SPLIT_MODE;
+    options[1].splitMode.splitCnt = 4;
+
+    options[2].optionType = aclskOptionType::DEBUG_PER_OP_MAX_CORE_NUM;
+    options[2].debugPerOpMaxCoreNum.enableDebugPerOpMaxCoreNum = 1;
+
+    aclskOptions optList;
+    optList.options = options;
+    optList.numOptions = 3;
+
+    opts_test->ParseOptions(&optList);
+
+    auto opt1 = opts_test->GetOption(aclskOptionType::PRELOAD_CODE);
+    auto opt2 = opts_test->GetOption(aclskOptionType::SPLIT_MODE);
+    auto opt3 = opts_test->GetOption(aclskOptionType::DEBUG_PER_OP_MAX_CORE_NUM);
+
+    ASSERT_NE(opt1, nullptr);
+    ASSERT_NE(opt2, nullptr);
+    ASSERT_NE(opt3, nullptr);
+
+    EXPECT_EQ(static_cast<NumberOptOption*>(opt1)->GetIntValue(), 1);
+    EXPECT_EQ(static_cast<NumberOptOption*>(opt2)->GetIntValue(), 4);
+    EXPECT_EQ(static_cast<NumberOptOption*>(opt3)->GetIntValue(), 1);
+}
+
+TEST_F(SuperKernelOptionsManagerTest, ToJson_DebugPerOpMaxCoreNum)
+{
+    aclskOption option {};
+    option.optionType = aclskOptionType::DEBUG_PER_OP_MAX_CORE_NUM;
+    option.debugPerOpMaxCoreNum.enableDebugPerOpMaxCoreNum = 1;
+
+    opts_test->SetOptOptionValue(&option);
+
+    nlohmann::ordered_json json = opts_test->ToJson();
+    ASSERT_TRUE(json.contains("debug_per_op_max_core_num"));
+    ASSERT_TRUE(json.contains("inner_options"));
+    EXPECT_EQ(json["debug_per_op_max_core_num"]["name"], "debug_per_op_max_core_num");
+    EXPECT_EQ(json["debug_per_op_max_core_num"]["type"],
+        static_cast<int>(aclskOptionType::DEBUG_PER_OP_MAX_CORE_NUM));
+    EXPECT_EQ(json["debug_per_op_max_core_num"]["value"], 1);
+}
 }

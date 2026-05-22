@@ -12,8 +12,8 @@
 
 template <typename T>
 inline __aicore__ void BitwiseAndExtend(const AscendC::LocalTensor<T> &dst, const AscendC::LocalTensor<T> &src_0,
-                                        const AscendC::LocalTensor<T> &src_1, const uint32_t size,
-                                        LocalTensor<uint8_t> &tmp_buf) {
+                                        const AscendC::LocalTensor<T> &src_1, LocalTensor<uint8_t> &tmp_buf,
+                                        const uint32_t size) {
   if constexpr (AscendC::SupportType<T, uint16_t, int16_t>()) {
     AscendC::And(dst, src_0, src_1, size);
   } else {

@@ -7,19 +7,19 @@
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
-#ifndef __AUTOFUSE_NEG_API_CALL_H__
-#define __AUTOFUSE_NEG_API_CALL_H__
+#ifndef __AUTOFUSE_BINARY_API_TMP_CALL_H__
+#define __AUTOFUSE_BINARY_API_TMP_CALL_H__
 #include "codegen_kernel.h"
 
 namespace codegen {
-class NegApiCall final : public ApiCall {
- public:
-  using ApiCall::Generate;
-  explicit NegApiCall(const std::string &api_name) : ApiCall(api_name) {}
-  ~NegApiCall() override = default;
-  Status Generate(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
-                  const std::vector<std::reference_wrapper<const Tensor>> &inputs,
-                  const std::vector<std::reference_wrapper<const Tensor>> &outputs, std::string &result) const override;
+class BinaryApiTmpCall final : public ApiCall {
+public:
+ using ApiCall::Generate;
+ explicit BinaryApiTmpCall(const std::string &api_name) : ApiCall(api_name) {}
+ ~BinaryApiTmpCall() final = default;
+ Status Generate(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
+                 const std::vector<std::reference_wrapper<const Tensor>> &inputs,
+                 const std::vector<std::reference_wrapper<const Tensor>> &outputs, std::string &result) const override;
 };
 }
-#endif // __AUTOFUSE_NEG_API_CALL_H__
+#endif // __AUTOFUSE_BINARY_API_TMP_CALL_H__

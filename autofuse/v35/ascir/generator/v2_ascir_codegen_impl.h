@@ -395,7 +395,7 @@ class Exp2AscIrCodegenImplV2 : public AscIrCodegenV2 {
     return CalcExp2TmpSizeV2(node);
   }
   [[nodiscard]] std::string GetApiCallName() const override {
-    return "UnaryApiTmpV2Call";
+    return "UnaryApiTmpCall";
   }
   [[nodiscard]] std::string GetApiName() const override {
     return "Exp2";
@@ -423,7 +423,7 @@ class FloorAscIrCodegenImplV2 : public AscIrCodegenV2 {
     return CalcVoidTmpSizeV2(node);
   }
   [[nodiscard]] std::string GetApiCallName() const override {
-    return "UnaryApiTmpV2Call";
+    return "UnaryApiTmpCall";
   }
   [[nodiscard]] std::string GetApiName() const override {
     return "Floor";
@@ -537,7 +537,7 @@ class RoundAscIrCodegenImplV2 : public AscIrCodegenV2 {
     return CalcVoidTmpSizeV2(node);
   }
   [[nodiscard]] std::string GetApiCallName() const override {
-    return "RoundApiCall";
+    return "UnaryApiTmpCall";
   }
   [[nodiscard]] std::string GetApiName() const override {
     return "Round";
@@ -651,7 +651,7 @@ class Log2AscIrCodegenImplV2 : public AscIrCodegenV2 {
     return CalcLog2TmpSizeV2(node);
   }
   [[nodiscard]] std::string GetApiCallName() const override {
-    return "UnaryApiTmpV2Call";
+    return "UnaryApiTmpCall";
   }
   [[nodiscard]] std::string GetApiName() const override {
     return "Log2";
@@ -706,10 +706,10 @@ class ModAscIrCodegenImplV2 : public AscIrCodegenV2 {
     return CalcModTmpSizeV2(node);
   }
   [[nodiscard]] std::string GetApiCallName() const override {
-    return "BinaryTmpApiCallV2";
+    return "BinaryApiTmpCall";
   }
   [[nodiscard]] std::string GetApiName() const override {
-    return "Fmod";
+    return "FmodExtend";
   }
   [[nodiscard]] std::pair<std::vector<ge::DataType>, std::vector<ge::DataType>>
   GetConversionDtype(const AscNode &node) {
@@ -726,6 +726,9 @@ class ModAscIrCodegenImplV2 : public AscIrCodegenV2 {
      return {
        "adv_api/math/fmod.h"
      };
+  }
+  [[nodiscard]] std::vector<std::string> LoadApiHeaderFiles([[maybe_unused]] bool is_dynamic) const override {
+    return {"fmod_reg_base.h"};
   }
   [[nodiscard]] bool IsNodeValid(const AscNode &node) const override {
     GE_ASSERT_TRUE(!IsNodeHasScalarInput(node), "Node %s[%s] not support scalar input", node.GetTypePtr(),
@@ -823,10 +826,14 @@ class RsqrtAscIrCodegenImplV2 : public AscIrCodegenV2 {
 class NegAscIrCodegenImplV2 : public AscIrCodegenV2 {
  public:
   [[nodiscard]] std::string GetApiCallName() const override {
-    return "NegApiCall";
+    return "UnaryApiCall";
   }
   [[nodiscard]] std::string GetApiName() const override {
-    return "Neg";
+    return "NegExtend";
+  }
+
+  [[nodiscard]] std::vector<std::string> LoadApiHeaderFiles([[maybe_unused]] bool is_dynamic) const override {
+    return {"neg_reg_base.h"};
   }
 
   [[nodiscard]] std::string GetMicroApiCallName() const override {
@@ -956,7 +963,7 @@ class SignAscIrCodegenImplV2 : public AscIrCodegenV2 {
   }
 
   [[nodiscard]] std::string GetApiCallName() const override {
-    return "UnaryTmpApiCall";
+    return "UnaryApiTmpCall";
   }
   [[nodiscard]] std::string GetApiName() const override {
     return "SignExtend";
@@ -1432,7 +1439,7 @@ class SigmoidAscIrCodegenImplV2 : public AscIrCodegenV2 {
   }
 
   [[nodiscard]] std::string GetApiCallName() const override {
-    return "UnaryApiTmpV2Call";
+    return "UnaryApiTmpCall";
   }
   [[nodiscard]] std::string GetApiName() const override {
     return "Sigmoid";
@@ -2161,7 +2168,7 @@ class ErfAscIrCodegenImplV2 : public AscIrCodegenV2 {
   }
 
   [[nodiscard]] std::string GetApiCallName() const override {
-    return "UnaryApiTmpV2Call";
+    return "UnaryApiTmpCall";
   }
   [[nodiscard]] std::string GetApiName() const override {
     return "ErfExtend";
@@ -2197,7 +2204,7 @@ class CeilAscIrCodegenImplV2 : public AscIrCodegenV2 {
     return CalcCeilTmpSizeV2(node);
   }
   [[nodiscard]] std::string GetApiCallName() const override {
-    return "UnaryApiTmpV2Call";
+    return "UnaryApiTmpCall";
   }
   [[nodiscard]] std::string GetApiName() const override {
     return "Ceil";
@@ -2230,7 +2237,7 @@ class CosAscIrCodegenImplV2 : public AscIrCodegenV2 {
     return CalcCosTmpSizeV2(node);
   }
   [[nodiscard]] std::string GetApiCallName() const override {
-    return "UnaryApiTmpV2Call";
+    return "UnaryApiTmpCall";
   }
   [[nodiscard]] std::string GetApiName() const override {
     return "Cos";
@@ -2263,7 +2270,7 @@ class AcosAscIrCodegenImplV2 : public AscIrCodegenV2 {
     return CalcAcosTmpSizeV2(node);
   }
   [[nodiscard]] std::string GetApiCallName() const override {
-    return "UnaryApiTmpV2Call";
+    return "UnaryApiTmpCall";
   }
   [[nodiscard]] std::string GetApiName() const override {
     return "Acos";
@@ -2296,7 +2303,7 @@ class AcoshAscIrCodegenImplV2 : public AscIrCodegenV2 {
     return CalcAcoshTmpSizeV2(node);
   }
   [[nodiscard]] std::string GetApiCallName() const override {
-    return "UnaryApiTmpV2Call";
+    return "UnaryApiTmpCall";
   }
   [[nodiscard]] std::string GetApiName() const override {
     return "Acosh";
@@ -2329,7 +2336,7 @@ class CoshAscIrCodegenImplV2 : public AscIrCodegenV2 {
     return CalcCoshTmpSizeV2(node);
   }
   [[nodiscard]] std::string GetApiCallName() const override {
-    return "UnaryApiTmpV2Call";
+    return "UnaryApiTmpCall";
   }
   [[nodiscard]] std::string GetApiName() const override {
     return "Cosh";
@@ -2361,7 +2368,7 @@ class AsinAscIrCodegenImplV2 : public AscIrCodegenV2 {
     return CalcAsinTmpSizeV2(node);
   }
   [[nodiscard]] std::string GetApiCallName() const override {
-    return "UnaryApiTmpV2Call";
+    return "UnaryApiTmpCall";
   }
   [[nodiscard]] std::string GetApiName() const override {
     return "Asin";
@@ -2393,7 +2400,7 @@ class AsinhAscIrCodegenImplV2 : public AscIrCodegenV2 {
     return CalcAsinhTmpSizeV2(node);
   }
   [[nodiscard]] std::string GetApiCallName() const override {
-    return "UnaryApiTmpV2Call";
+    return "UnaryApiTmpCall";
   }
   [[nodiscard]] std::string GetApiName() const override {
     return "Asinh";
@@ -2425,7 +2432,7 @@ class AtanAscIrCodegenImplV2 : public AscIrCodegenV2 {
     return CalcAtanTmpSizeV2(node);
   }
   [[nodiscard]] std::string GetApiCallName() const override {
-    return "UnaryApiTmpV2Call";
+    return "UnaryApiTmpCall";
   }
   [[nodiscard]] std::string GetApiName() const override {
     return "Atan";
@@ -2457,7 +2464,7 @@ class AtanhAscIrCodegenImplV2 : public AscIrCodegenV2 {
     return CalcAtanhTmpSizeV2(node);
   }
   [[nodiscard]] std::string GetApiCallName() const override {
-    return "UnaryApiTmpV2Call";
+    return "UnaryApiTmpCall";
   }
   [[nodiscard]] std::string GetApiName() const override {
     return "Atanh";
@@ -2489,7 +2496,7 @@ class DigammaAscIrCodegenImplV2 : public AscIrCodegenV2 {
     return CalcDigammaTmpSizeV2(node);
   }
   [[nodiscard]] std::string GetApiCallName() const override {
-    return "UnaryApiTmpV2Call";
+    return "UnaryApiTmpCall";
   }
   [[nodiscard]] std::string GetApiName() const override {
     return "Digamma";
@@ -2521,7 +2528,7 @@ class ErfcAscIrCodegenImplV2 : public AscIrCodegenV2 {
     return CalcErfcTmpSizeV2(node);
   }
   [[nodiscard]] std::string GetApiCallName() const override {
-    return "UnaryApiTmpV2Call";
+    return "UnaryApiTmpCall";
   }
   [[nodiscard]] std::string GetApiName() const override {
     return "Erfc";
@@ -2553,7 +2560,7 @@ class ErfcxAscIrCodegenImplV2 : public AscIrCodegenV2 {
     return CalcErfcTmpSizeV2(node);
   }
   [[nodiscard]] std::string GetApiCallName() const override {
-    return "UnaryApiTmpV2Call";
+    return "UnaryApiTmpCall";
   }
   [[nodiscard]] std::string GetApiName() const override {
     return "ErfcxExtend";
@@ -2589,7 +2596,7 @@ class Atan2AscIrCodegenImplV2 : public AscIrCodegenV2 {
     return CalcAtanTmpSizeV2(node);
   }
   [[nodiscard]] std::string GetApiCallName() const override {
-    return "BinaryTmpApiCallV2";
+    return "BinaryApiTmpCall";
   }
   [[nodiscard]] std::string GetApiName() const override {
     return "Atan2Extend";
@@ -2675,7 +2682,7 @@ class TanhAscIrCodegenImplV2 : public AscIrCodegenV2 {
   }
 
   [[nodiscard]] std::string GetApiCallName() const override {
-    return "UnaryApiTmpV2Call";
+    return "UnaryApiTmpCall";
   }
   [[nodiscard]] std::string GetApiName() const override {
     return "TanhExtend";
@@ -2712,7 +2719,7 @@ class GeluAscIrCodegenImplV2 : public AscIrCodegenV2 {
   }
 
   [[nodiscard]] std::string GetApiCallName() const override {
-    return "UnaryApiTmpV2Call";
+    return "UnaryApiTmpCall";
   }
   [[nodiscard]] std::string GetApiName() const override {
     return "Gelu";
@@ -2986,10 +2993,10 @@ class FmodAscIrCodegenImplV2 : public AscIrCodegenV2 {
     return CalcVoidTmpSizeV2(node);
   }
   [[nodiscard]] std::string GetApiCallName() const override {
-    return "BinaryTmpApiCallV2";
+    return "BinaryApiTmpCall";
   }
   [[nodiscard]] std::string GetApiName() const override {
-    return "Fmod";
+    return "FmodExtend";
   }
   // 如果需要插入cast节点，返回cast的目的类型
   [[nodiscard]] std::pair<std::vector<ge::DataType>, std::vector<ge::DataType>>
@@ -3004,6 +3011,9 @@ class FmodAscIrCodegenImplV2 : public AscIrCodegenV2 {
       "adv_api/math/fmod.h",
     };
   }
+  [[nodiscard]] std::vector<std::string> LoadApiHeaderFiles([[maybe_unused]] bool is_dynamic) const override {
+    return {"fmod_reg_base.h"};
+  }
   [[nodiscard]] bool IsNodeValid(const AscNode &node) const override {
     GE_ASSERT_SUCCESS(ValidateShapeConsistencyWithSingleOutput(node), "Node %s[%s] check shape consistency failed", node.GetTypePtr(),
                       node.GetNamePtr());
@@ -3017,7 +3027,7 @@ class HypotAscIrCodegenImplV2 : public AscIrCodegenV2 {
     return CalcVoidTmpSizeV2(node);
   }
   [[nodiscard]] std::string GetApiCallName() const override {
-    return "BinaryTmpApiCallV2";
+    return "BinaryApiTmpCall";
   }
   [[nodiscard]] std::string GetApiName() const override {
     return "Hypot";
@@ -3040,7 +3050,7 @@ class LgammaAscIrCodegenImplV2 : public AscIrCodegenV2 {
     return CalcLgammaTmpSizeV2(node);
   }
   [[nodiscard]] std::string GetApiCallName() const override {
-    return "UnaryApiTmpV2Call";
+    return "UnaryApiTmpCall";
   }
   [[nodiscard]] std::string GetApiName() const override {
     return "Lgamma";
@@ -3325,7 +3335,7 @@ class Conv2DAscIrCodegenImplV2 : public AscIrCodegenV2 {
 class SinAscIrCodegenImplV2 : public AscIrCodegenV2 {
  public:
   [[nodiscard]] std::string GetApiCallName() const override {
-    return "UnaryApiTmpV2Call";
+    return "UnaryApiTmpCall";
   }
   [[nodiscard]] std::string GetApiName() const override {
     return "Sin";
@@ -3434,7 +3444,7 @@ class TruncAscIrCodegenImplV2 : public AscIrCodegenV2 {
     return CalcTruncTmpSizeV2(node);
   }
   [[nodiscard]] std::string GetApiCallName() const override {
-    return "UnaryApiTmpV2Call";
+    return "UnaryApiTmpCall";
   }
   [[nodiscard]] std::string GetApiName() const override {
     return "Trunc";
@@ -3460,7 +3470,7 @@ class SinhAscIrCodegenImplV2 : public AscIrCodegenV2 {
     return CalcSinhTmpSizeV2(node);
   }
   [[nodiscard]] std::string GetApiCallName() const override {
-    return "UnaryApiTmpV2Call";
+    return "UnaryApiTmpCall";
   }
   [[nodiscard]] std::string GetApiName() const override {
     return "Sinh";
@@ -3485,7 +3495,7 @@ class TanAscIrCodegenImplV2 : public AscIrCodegenV2 {
     return CalcTanTmpSizeV2(node);
   }
   [[nodiscard]] std::string GetApiCallName() const override {
-    return "UnaryApiTmpV2Call";
+    return "UnaryApiTmpCall";
   }
   [[nodiscard]] std::string GetApiName() const override {
     return "Tan";

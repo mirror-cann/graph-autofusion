@@ -13,7 +13,7 @@
 // 目前只支持half/float int32/int64
 template <typename T>
 inline __aicore__ void SignExtend(const AscendC::LocalTensor<T> &dst, const AscendC::LocalTensor<T> &src,
-                                  const uint32_t size, AscendC::LocalTensor<uint8_t> &tmp_buf) {
+                                  AscendC::LocalTensor<uint8_t> &tmp_buf, const uint32_t size) {
   if constexpr (std::is_same_v<T, half> || std::is_same_v<T, float>) {
     // AscendApi 支持 half/float类型直接调用
     AscendC::Sign(dst, src, tmp_buf, size);

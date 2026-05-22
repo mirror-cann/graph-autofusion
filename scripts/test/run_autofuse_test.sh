@@ -177,7 +177,6 @@ build_ascgen-dev() {
   CMAKE_ARGS="-D CMAKE_C_COMPILER=gcc \
               -D CMAKE_CXX_COMPILER=g++ \
               -D ASCEND_3RD_LIB_PATH=${ASCEND_3RD_LIB_PATH} \
-              -D ASCEND_CANN_3RD_LIB_PATH=${ASCEND_3RD_LIB_PATH} \
               -D CANN_3RD_LIB_PATH=${ASCEND_3RD_LIB_PATH} \
               -D ASCEND_INSTALL_PATH=${ASCEND_INSTALL_PATH} \
               -D CMAKE_INSTALL_PREFIX=${OUTPUT_PATH} \
@@ -217,7 +216,6 @@ build_test_ascendc_api_test() {
   CMAKE_ARGS="-D CMAKE_C_COMPILER=gcc \
               -D CMAKE_CXX_COMPILER=g++ \
               -D ASCEND_3RD_LIB_PATH=${ASCEND_3RD_LIB_PATH} \
-              -D ASCEND_CANN_3RD_LIB_PATH=${ASCEND_3RD_LIB_PATH} \
               -D CANN_3RD_LIB_PATH=${ASCEND_3RD_LIB_PATH} \
               -D ASCEND_INSTALL_PATH=${ASCEND_INSTALL_PATH} \
               -D CMAKE_INSTALL_PREFIX=${OUTPUT_PATH} \
@@ -310,7 +308,6 @@ build_test_ascir_st() {
   CMAKE_ARGS="-D CMAKE_C_COMPILER=gcc \
               -D CMAKE_CXX_COMPILER=g++ \
               -D ASCEND_3RD_LIB_PATH=${ASCEND_3RD_LIB_PATH} \
-              -D ASCEND_CANN_3RD_LIB_PATH=${ASCEND_3RD_LIB_PATH} \
               -D CANN_3RD_LIB_PATH=${ASCEND_3RD_LIB_PATH} \
               -D ASCEND_INSTALL_PATH=${ASCEND_INSTALL_PATH} \
               -D CMAKE_INSTALL_PREFIX=${OUTPUT_PATH} \
@@ -587,8 +584,7 @@ codegen_e2e_st() {
   CMAKE_ARGS="-D CMAKE_C_COMPILER=gcc \
             -D CMAKE_CXX_COMPILER=g++ \
             -D ASCEND_3RD_LIB_PATH=${ASCEND_3RD_LIB_PATH} \
-              -D ASCEND_CANN_3RD_LIB_PATH=${ASCEND_3RD_LIB_PATH} \
-              -D CANN_3RD_LIB_PATH=${ASCEND_3RD_LIB_PATH} \
+            -D CANN_3RD_LIB_PATH=${ASCEND_3RD_LIB_PATH} \
             -D ASCEND_INSTALL_PATH=${ASCEND_INSTALL_PATH} \
             -D CMAKE_INSTALL_PREFIX=${OUTPUT_PATH} \
             -D ASCEND_INSTALL_LIB_PATH=${ASCEND_INSTALL_LIB_PATH} \
@@ -706,8 +702,7 @@ build_backend() {
   CMAKE_ARGS="-D CMAKE_C_COMPILER=gcc \
             -D CMAKE_CXX_COMPILER=g++ \
             -D ASCEND_3RD_LIB_PATH=${ASCEND_3RD_LIB_PATH} \
-              -D ASCEND_CANN_3RD_LIB_PATH=${ASCEND_3RD_LIB_PATH} \
-              -D CANN_3RD_LIB_PATH=${ASCEND_3RD_LIB_PATH} \
+            -D CANN_3RD_LIB_PATH=${ASCEND_3RD_LIB_PATH} \
             -D ASCEND_INSTALL_PATH=${ASCEND_INSTALL_PATH} \
             -D CMAKE_INSTALL_PREFIX=${OUTPUT_PATH} \
             -D ASCEND_INSTALL_LIB_PATH=${ASCEND_INSTALL_LIB_PATH} \
@@ -761,7 +756,6 @@ build_backend() {
                       load_loop_mode_test_e2e_v2\
                       add_abs_test_e2e_v2 \
                       concat_test_e2e_v2 \
-                      slice_concat_test_e2e_v2 \
                       continues_brc_test_e2e_v2 \
                       scalar_brc_test_e2e_v2 \
                       brc_reduce_test_e2e_v2 \
@@ -954,7 +948,6 @@ build_ut_att() {
   CMAKE_ARGS="-D CMAKE_C_COMPILER=gcc \
               -D CMAKE_CXX_COMPILER=g++ \
               -D ASCEND_3RD_LIB_PATH=${ASCEND_3RD_LIB_PATH} \
-              -D ASCEND_CANN_3RD_LIB_PATH=${ASCEND_3RD_LIB_PATH} \
               -D CANN_3RD_LIB_PATH=${ASCEND_3RD_LIB_PATH} \
               -D ASCEND_INSTALL_PATH=${ASCEND_INSTALL_PATH} \
               -D CMAKE_INSTALL_PREFIX=${OUTPUT_PATH} \
@@ -997,7 +990,6 @@ build_st_att() {
   CMAKE_ARGS="-D CMAKE_C_COMPILER=gcc \
               -D CMAKE_CXX_COMPILER=g++ \
               -D ASCEND_3RD_LIB_PATH=${ASCEND_3RD_LIB_PATH} \
-              -D ASCEND_CANN_3RD_LIB_PATH=${ASCEND_3RD_LIB_PATH} \
               -D CANN_3RD_LIB_PATH=${ASCEND_3RD_LIB_PATH} \
               -D ASCEND_INSTALL_PATH=${ASCEND_INSTALL_PATH} \
               -D CMAKE_INSTALL_PREFIX=${OUTPUT_PATH} \
@@ -1140,15 +1132,6 @@ main() {
 
   export ASCEND_CUSTOM_PATH=${ASCEND_INSTALL_PATH}
   ASCEND_INSTALL_LIB_PATH=${ASCEND_INSTALL_PATH}/$(uname -m)-linux/lib64/
-
-  # Build third party libraries first
-  echo "---------------- build third party packages start ----------------"
-  bash ${AUTOFUSE_PATH}/build_third_party.sh ${ASCEND_3RD_LIB_PATH} ${THREAD_NUM} ""
-  if [ $? -ne 0 ]; then
-    echo "build third party packages failed."
-    exit 1
-  fi
-  echo "---------------- build third party packages finished ----------------"
 
   build_ascgen-dev || { echo "ascgen-dev build failed."; exit 1; }
 

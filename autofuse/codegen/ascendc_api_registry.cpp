@@ -166,6 +166,9 @@ Register::Register() {
   const std::string kAscendcRemainderStr = {
 #include "remainder_str.h"
   };
+  const std::string kAscendcNegStr = {
+#include "neg_str.h"
+  };
   std::unordered_map<std::string, std::string> api_to_file{
       {"bitwise_and.h", kAscendcBitwise_andStr},
       {"duplicate.h", kAscendcDuplicateStr},
@@ -205,7 +208,8 @@ Register::Register() {
       {"transpose.h", kAscendcTranposeStr},
       {"abs.h", kAscendcAbsStr},
       {"true_div.h", kAscendcTrueDivStr},
-      {"remainder.h", kAscendcRemainderStr}};
+      {"remainder.h", kAscendcRemainderStr},
+      {"neg.h", kAscendcNegStr}};
 
   AscendCApiRegistry::GetInstance().RegisterApi(api_to_file);
 }

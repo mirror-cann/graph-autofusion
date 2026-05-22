@@ -336,6 +336,7 @@ inline std::vector<OptionDumpInfo> CollectAllOptions(const SuperKernelOptionsMan
             case aclskOptionType::AUTO_OP_PARALLEL:
             case aclskOptionType::DEBUG_CROSS_CORE_SYNC_CHECK:
             case aclskOptionType::DEBUG_OP_EXEC_TRACE:
+            case aclskOptionType::DEBUG_PER_OP_MAX_CORE_NUM:
                 info.valueType = OptionDumpInfo::ValueType::INT;
                 info.intValue = opt->GetIntValue();
                 break;

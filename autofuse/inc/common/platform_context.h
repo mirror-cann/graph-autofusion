@@ -16,6 +16,12 @@
 #include "ge_common/ge_api_error_codes.h"
 
 namespace ge {
+struct PlatformInfo {
+  std::string soc_ver;
+  int64_t aiv_num = 0;
+  int64_t ub_size = 0;
+};
+
 class PlatformContext {
  public:
   static PlatformContext& GetInstance();
@@ -33,13 +39,18 @@ class PlatformContext {
 
   void Reset() {
     initialized_ = false;
-    current_platform_ = "";
+    platform_info_.soc_ver = "";
+    platform_info_.aiv_num = 0;
+    platform_info_.ub_size = 0;
   }
+
+  ge::Status GetPlatformInfo(PlatformInfo &platform_info);
 
  private:
   ge::Status Initialize();
+  ge::Status InitPlatformInfo();
   PlatformContext() = default;
-  std::string current_platform_;
+  PlatformInfo platform_info_;
   bool initialized_ = false;
   static std::mutex mutex_;
 };

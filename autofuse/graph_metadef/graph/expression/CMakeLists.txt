@@ -46,17 +46,17 @@ target_link_libraries(aihac_symbolizer_af
         unified_dlog
         json
         platform
-        symengine_static
+        symengine
         error_manager
         graph_base_af
         graph_af
         unified_dlog
         Boost::boost
         -Wl,--as-needed
-        ascend_protobuf_shared_headers
         ascend_protobuf
         $<$<NOT:$<STREQUAL:${TARGET_SYSTEM_NAME},Android>>:-lrt>
         -ldl
+        metadef_headers
     PUBLIC
         metadef_headers_af
 )

@@ -12,7 +12,7 @@
 
 template <typename T>
 inline __aicore__ void ReciprocalExtend(const AscendC::LocalTensor<T> &dst, const AscendC::LocalTensor<T> &src,
-                                        const uint32_t size, LocalTensor<uint8_t> &tmp_buf) {
+                                        LocalTensor<uint8_t> &tmp_buf, const uint32_t size) {
   // Initialize ones tensor with 1.0
   LocalTensor<T> ones = tmp_buf.template ReinterpretCast<T>();
   uint32_t one_blk_num = KernelUtils::BlkSize<T>();

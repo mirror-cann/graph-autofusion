@@ -671,14 +671,14 @@ StrideResult CalculateStride(const TensorShapeInfo &shape_info, const bool is_ub
     }
   } else {
     // 动态shape：使用TernaryOp
-    auto normal_stride = af::sym::Sub(filtered_strides[block_count_idx],
-                                      filtered_repeats[filtered_dim_size - 1]);
+    auto normal_stride = af::sym::Abs(af::sym::Sub(filtered_strides[block_count_idx],
+                                      filtered_repeats[filtered_dim_size - 1]));
     auto result = CreateDynamicStrideResult(last_stride, normal_stride, block_count_idx, is_ub_stride);
     GELOGD("%s, dynamic stride select, last_stride=%s", node_info.ToString().c_str(),
            last_stride.Str().get());
     return result;
   }
-  auto expr = af::sym::Sub(filtered_strides[block_count_idx], filtered_repeats[filtered_dim_size - 1]);
+  auto expr = af::sym::Abs(af::sym::Sub(filtered_strides[block_count_idx], filtered_repeats[filtered_dim_size - 1]));
   GELOGD("[STRIDE_CALC] %s: %s, block_count_idx=%d, stride=%s, need_swap=%d, actually_swap=%d, filtered_dim_size=%d",
          node_info.ToString().c_str(), stride_type, block_count_idx, Str(expr).c_str(), need_swap, actually_swap,
          filtered_dim_size);

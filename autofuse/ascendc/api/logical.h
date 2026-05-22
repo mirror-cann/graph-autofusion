@@ -380,7 +380,8 @@ inline __aicore__ void OtherTypeLogicalCommonScalarExtend(const LocalTensor<uint
 
 template <typename T>
 inline __aicore__ void LogicalOr(const LocalTensor<uint8_t> &dst, const LocalTensor<T> &src1,
-                                 const LocalTensor<T> &src2, const uint32_t size, LocalTensor<uint8_t> &tmp_buf) {
+                                 const LocalTensor<T> &src2, LocalTensor<uint8_t> &tmp_buf,
+                                 const uint32_t size) {
   if constexpr (std::is_same<T, int64_t>::value || std::is_same<T, int32_t>::value) {
     Int64LogicalCommon<T, Max>(dst, src1, src2, size, tmp_buf);
   } else if constexpr (std::is_same<T, half>::value) {
@@ -392,7 +393,8 @@ inline __aicore__ void LogicalOr(const LocalTensor<uint8_t> &dst, const LocalTen
 
 template <typename T>
 inline __aicore__ void LogicalAnd(const LocalTensor<uint8_t> &dst, const LocalTensor<T> &src1,
-                                  const LocalTensor<T> &src2, const uint32_t size, LocalTensor<uint8_t> &tmp_buf) {
+                                  const LocalTensor<T> &src2, LocalTensor<uint8_t> &tmp_buf,
+                                  const uint32_t size) {
   if constexpr (std::is_same<T, int64_t>::value || std::is_same<T, int32_t>::value) {
     Int64LogicalCommon<T, Mul>(dst, src1, src2, size, tmp_buf);
   } else if constexpr (std::is_same<T, half>::value) {
@@ -404,7 +406,7 @@ inline __aicore__ void LogicalAnd(const LocalTensor<uint8_t> &dst, const LocalTe
 
 template <typename T>
 inline __aicore__ void LogicalOrScalarExtend(const LocalTensor<uint8_t> &dst, const LocalTensor<T> &src1, const T src2,
-                                             const uint32_t size, LocalTensor<uint8_t> &tmp_buf) {
+                                             LocalTensor<uint8_t> &tmp_buf, const uint32_t size) {
   if constexpr (std::is_same<T, int64_t>::value || std::is_same<T, int32_t>::value) {
     Int64LogicalCommonScalarExtend<T, Maxs<half, true>>(dst, src1, src2, size, tmp_buf);
   } else if constexpr (std::is_same<T, half>::value) {
@@ -416,7 +418,7 @@ inline __aicore__ void LogicalOrScalarExtend(const LocalTensor<uint8_t> &dst, co
 
 template <typename T>
 inline __aicore__ void LogicalAndScalarExtend(const LocalTensor<uint8_t> &dst, const LocalTensor<T> &src1, const T src2,
-                                              const uint32_t size, LocalTensor<uint8_t> &tmp_buf) {
+                                              LocalTensor<uint8_t> &tmp_buf, const uint32_t size) {
   if constexpr (std::is_same<T, int64_t>::value || std::is_same<T, int32_t>::value) {
     Int64LogicalCommonScalarExtend<T, Muls<half, true>>(dst, src1, src2, size, tmp_buf);
   } else if constexpr (std::is_same<T, half>::value) {

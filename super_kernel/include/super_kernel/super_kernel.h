@@ -55,7 +55,8 @@ enum class aclskOptionType : uint32_t {
     DCCI_AFTER_KERNEL_END = 13,
     AGGRESSIVE_OPT_STRATEGIES = 14,
     UBUF_LOCK_IGNORE_KERNEL = 15,
-    EARLY_START = 16,
+    EARLY_START = 16, // early start global option
+    DEBUG_PER_OP_MAX_CORE_NUM = 17, // debug: per op max core num limit
     SK_OPTION_MAX
 };
 
@@ -158,6 +159,10 @@ typedef struct aclskEarlyStartOption {
     uint32_t enableEarlyStart; // 0[default]: disable early start, 1: enable early start
 } aclskEarlyStartOption;
 
+typedef struct aclskDebugPerOpMaxCoreNumOption {
+    uint32_t enableDebugPerOpMaxCoreNum; // 0[default]: disable, 1: enable
+} aclskDebugPerOpMaxCoreNumOption;
+
 struct aclskOption {
     aclskOptionType optionType;
     union {
@@ -178,6 +183,7 @@ struct aclskOption {
         aclskAggressiveOptStrategies aggressiveOpts;
         aclskUbufLockIgnoreKernelOption ubufLockIgnoreKernel;
         aclskEarlyStartOption earlyStart;
+        aclskDebugPerOpMaxCoreNumOption debugPerOpMaxCoreNum;
     };
 };
 

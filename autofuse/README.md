@@ -12,7 +12,6 @@ autofuse/
 ├── ascir                  # 算子注册 ascir
 ├── att                    # 自动 tiling 生成 模块
 ├── autofuse               # config 配置
-├── cmake                  # 三方库相关配置
 ├── codegen                # kernel 代码生成 模块
 ├── common                 # 通用工具方法
 ├── compiler               # 对外API 接口
@@ -24,7 +23,6 @@ autofuse/
 ├── v35                    # 昇腾950 芯片相关优化
 ├── CMakeLists.txt         # CMake 配置文件
 ├── blacklist.txt          # 工程配置文件
-├── build_third_party.sh   # 安装三方库脚本
 ├── README.md
 ```
 

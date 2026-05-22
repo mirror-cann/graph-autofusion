@@ -23,8 +23,7 @@
 #include "utils/api_call_utils.h"
 #include "elewise/compare_api_call.h"
 #include "elewise/unary_bitwidth_change_api_call.h"
-#include "elewise/unary_tmp_api_call.h"
-#include "elewise/neg_api_call.h"
+#include "elewise/unary_api_tmp_call.h"
 #include "elewise/unary_api_call.h"
 #include "elewise/ub2ub_api_call.h"
 #include "autofuse_config/auto_fuse_config.h"
@@ -3478,7 +3477,7 @@ TEST(CodegenKernel, UnaryApiTmpCall) {
 
   codegen::ApiTensor x1;
   x1.id = load->outputs[0].attr.mem.tensor_id;
-  codegen::UnaryTmpApiCall call("SignExtend");
+  codegen::UnaryApiTmpCall call("SignExtend");
   EXPECT_EQ(call.Init(sign_node), 0);
   call.inputs.push_back(&x1);
 
@@ -3486,96 +3485,7 @@ TEST(CodegenKernel, UnaryApiTmpCall) {
   call.Generate(tpipe, current_axis, result);
   std::cout << result << std::endl;
   EXPECT_EQ(result, std::string{
-    "SignExtend(local_3[0], local_0[0], local_0_actual_size, tmp_buf_0);\n"
-  });
-}
-
-TEST(CodegenKernel, NegApicall) {
-  af::AscGraph graph("test_graph");
-
-  auto s0 = graph.CreateSizeVar("s0");
-  auto s1 = graph.CreateSizeVar("s1");
-  auto s2 = graph.CreateSizeVar("s2");
-  auto z0 = graph.CreateAxis("z0", s0);
-  auto z1 = graph.CreateAxis("z1", s1);
-  auto z2 = graph.CreateAxis("z2", s2);
-
-
-  Data x_op("x", graph);
-  Load load_op("load");
-  af::ascir_op::Neg neg("neg");
-  graph.AddNode(load_op);
-  graph.AddNode(neg);
-
-  load_op.x = x_op.y;
-  load_op.attr.sched.axis = {z0.id, z1.id, z2.id};
-  *load_op.y.axis = {z0.id, z1.id, z2.id};
-  *load_op.y.repeats = {s0, s1, s2};
-  *load_op.y.strides = {s1*s2, s2, One};
-
-  neg.x = load_op.y;
-  *neg.y.axis = {z0.id, z1.id, z2.id};
-  *neg.y.repeats = {s0, s1, s2};
-  *neg.y.strides = {s1*s2, s2, One};
-
-  auto load = graph.FindNode("load");
-  load->attr.api.compute_type = af::ComputeType::kComputeLoad;
-  load->attr.api.type = af::ApiType::kAPITypeCompute;
-  load->attr.api.unit = af::ComputeUnit::kUnitMTE2;
-  load->attr.sched.loop_axis = z0.id;
-
-  auto size = ge::GetSizeByDataType(ge::DT_FLOAT16);
-  load->outputs[0].attr.vectorized_axis = {z1.id, z2.id};
-  load->outputs[0].attr.vectorized_strides = {af::sym::Align(z2.size, 16), One};
-  load->outputs[0].attr.dtype = ge::DT_FLOAT;
-  load->outputs[0].attr.mem.position = af::Position::kPositionVecIn;
-  load->outputs[0].attr.mem.tensor_id = 0;
-  load->outputs[0].attr.mem.position = af::Position::kPositionVecIn;
-  load->outputs[0].attr.mem.alloc_type = af::AllocType::kAllocTypeQueue;
-  load->outputs[0].attr.que.id = 1;
-  load->outputs[0].attr.opt.merge_scope = af::kIdNone;
-
-
-  auto neg_node = graph.FindNode("neg");
-  neg_node->attr.api.compute_type = af::ComputeType::kComputeElewise;
-  neg_node->attr.api.type = af::ApiType::kAPITypeCompute;
-  neg_node->attr.api.unit = af::ComputeUnit::kUnitVector;
-  neg_node->attr.sched.loop_axis = z0.id;
-  neg_node->outputs[0].attr.vectorized_axis = {z1.id, z2.id};
-  neg_node->outputs[0].attr.vectorized_strides = {af::sym::Align(z2.size, 16), One};
-  neg_node->outputs[0].attr.dtype = ge::DT_INT16;
-  neg_node->outputs[0].attr.mem.position = af::Position::kPositionVecOut;
-  neg_node->outputs[0].attr.mem.tensor_id = 3;
-  neg_node->outputs[0].attr.mem.alloc_type = af::AllocType::kAllocTypeQueue;
-  neg_node->outputs[0].attr.que.id = 2;
-  neg_node->outputs[0].attr.opt.merge_scope = af::kIdNone;
-
-  codegen::Tiler tiler;
-  codegen::TPipe tpipe("tpipe", tiler);
-  tpipe.CollectQues(graph);
-  tpipe.AddTensor(load->outputs[0]);
-  tpipe.AddTensor(neg_node->outputs[0]);
-
-  tiler.AddAxis(z0);
-  tiler.AddAxis(z1);
-  tiler.AddAxis(z2);
-  tiler.AddSizeVar(af::SizeVar(s0));
-  tiler.AddSizeVar(af::SizeVar(s1));
-  tiler.AddSizeVar(af::SizeVar(s2));
-  std::vector<af::AxisId> current_axis;
-  current_axis.push_back(z0.id);
-
-  codegen::ApiTensor x1;
-  x1.id = load->outputs[0].attr.mem.tensor_id;
-  codegen::NegApiCall call("Neg");
-  EXPECT_EQ(call.Init(neg_node), 0);
-  call.inputs.push_back(&x1);
-
-  std::string result;
-  call.Generate(tpipe, current_axis, result);
-  std::cout << result << std::endl;
-  EXPECT_EQ(result, std::string{
-    "Muls(local_3[0], local_0[0], (float)(-1), local_0_actual_size);\n"
+    "SignExtend(local_3[0], local_0[0], tmp_buf_0, local_0_actual_size);\n"
   });
 }
 

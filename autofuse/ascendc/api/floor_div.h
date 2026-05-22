@@ -13,8 +13,8 @@
 
 template <typename T>
 inline __aicore__ void FloorDivExtend(const AscendC::LocalTensor<T> &dst, const AscendC::LocalTensor<T> &src1,
-                                      const AscendC::LocalTensor<T> &src2, const uint32_t size,
-                                      AscendC::LocalTensor<uint8_t> &tmp_buf) {
+                                      const AscendC::LocalTensor<T> &src2, AscendC::LocalTensor<uint8_t> &tmp_buf,
+                                      const uint32_t size) {
   uint32_t buf_size = tmp_buf.GetSize() / 2 / ONE_BLK_SIZE * ONE_BLK_SIZE;
   LocalTensor<T> div_res = tmp_buf.ReinterpretCast<T>();
   LocalTensor<uint8_t> remain_tmp_buf = tmp_buf[buf_size];

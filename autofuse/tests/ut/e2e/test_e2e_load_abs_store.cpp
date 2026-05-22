@@ -168,7 +168,7 @@ struct ResLimit {
   uint32_t ub_size = 0;
   uint32_t resv[10];
 };
-constexpr ResLimit g_no_limit_res = {1, 48, 0, 192 * 1024, {}};
+constexpr ResLimit g_no_limit_res = {1, 2201, 0, 2201, {}};
 extern "C" int64_t AutofuseTiling(AutofuseTilingData* tiling, uint32_t* workspaceSize, uint32_t *blockDim, uint32_t aiv_num, uint32_t ub_size)
 {
   tiling->set_block_dim(aiv_num);
@@ -1281,7 +1281,7 @@ struct ResLimit {
   uint32_t ub_size = 0;
   uint32_t resv[10];
 };
-constexpr ResLimit g_no_limit_res = {1, 48, 0, 192 * 1024, {}};
+constexpr ResLimit g_no_limit_res = {1, 2201, 0, 2201, {}};
 extern "C" int64_t AutofuseTiling(AutofuseTilingData* tiling, uint32_t* workspaceSize, uint32_t *blockDim, uint32_t aiv_num, uint32_t ub_size)
 {
   tiling->set_block_dim(aiv_num);

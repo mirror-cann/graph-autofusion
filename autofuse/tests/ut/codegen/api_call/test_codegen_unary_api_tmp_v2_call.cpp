@@ -20,7 +20,7 @@
 #include "graph/ascendc_ir/utils/asc_tensor_utils.h"
 #include "common_utils.h"
 #include "utils/api_call_factory.h"
-#include "elewise/unary_api_tmp_v2_call.h"
+#include "elewise/unary_api_tmp_call.h"
 
 using namespace ge;
 using namespace af::ops;
@@ -94,7 +94,7 @@ TEST(CodegenKernel, UnaryApiTmpV2Call) {
   codegen::ApiTensor x1;
   x1.id = load->outputs[0].attr.mem.tensor_id;
 
-  codegen::UnaryApiTmpV2Call call("Tanh");
+  codegen::UnaryApiTmpCall call("Tanh");
   EXPECT_EQ(call.Init(tanh), 0);
 
   call.inputs.push_back(&x1);

@@ -101,6 +101,10 @@ const std::array<DefaultOptionFactoryEntry, static_cast<size_t>(aclskOptionType:
                 aclskEarlyStartValue::ACLSK_EARLY_START_DISABLED,
                 aclskEarlyStartValue::ACLSK_EARLY_START_ENABLED);
         }},
+        {aclskOptionType::DEBUG_PER_OP_MAX_CORE_NUM, []() -> std::unique_ptr<OptOptionBase> {
+            return std::make_unique<NumberOptOption>(
+                "debug_per_op_max_core_num", aclskOptionType::DEBUG_PER_OP_MAX_CORE_NUM, 0, 0, 1);
+        }},
     }};
 
 const DefaultOptionFactoryEntry* FindDefaultOptionFactory(aclskOptionType optType)
@@ -735,6 +739,11 @@ void SuperKernelOptionsManager::SetOptOptionValue(const aclskOption* option) {
             subOption->SetValue(option->earlyStart.enableEarlyStart);
             SK_LOGI("Early start option set: enable=%u", option->earlyStart.enableEarlyStart);
             break;
+        case aclskOptionType::DEBUG_PER_OP_MAX_CORE_NUM:
+            subOption->SetValue(option->debugPerOpMaxCoreNum.enableDebugPerOpMaxCoreNum);
+            SK_LOGI("Debug per op max core num option set: enable=%u",
+                option->debugPerOpMaxCoreNum.enableDebugPerOpMaxCoreNum);
+            break;
         default:
             SK_LOGI("Optiontype: %d is not support now", static_cast<int>(type));
             break;
@@ -797,6 +806,7 @@ nlohmann::ordered_json SuperKernelOptionsManager::ToJson() const
             case aclskOptionType::DEBUG_CROSS_CORE_SYNC_CHECK:
             case aclskOptionType::DEBUG_OP_EXEC_TRACE:
             case aclskOptionType::EARLY_START:
+            case aclskOptionType::DEBUG_PER_OP_MAX_CORE_NUM:
                 optJson["value"] = opt->GetIntValue();
                 break;
 
