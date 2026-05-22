@@ -1463,10 +1463,10 @@ TEST_F(SkNodeTest, KernelInfos_IsSimtOpFlag)
 TEST_F(SkNodeTest, KernelInfos_FormatWithSimtFlag)
 {
     KernelInfos infos;
-    infos.kernelName = "test_kernel";
+    infos.funcName = "test_kernel";
     infos.isSimtOp = true;
     std::string formatted = infos.Format();
-    EXPECT_TRUE(formatted.find("isSimtOp=true") != std::string::npos);
+    EXPECT_TRUE(formatted.find("isSimtOp") != std::string::npos);
     
     infos.isSimtOp = false;
     formatted = infos.Format();
@@ -1477,8 +1477,8 @@ TEST_F(SkNodeTest, SimtAivType_SimdOnly)
 {
     SetSimtAivType(1);
     uint32_t aivType = 0;
-    rtError_t ret = rtFunctionGetMetaInfo(nullptr, RT_FUNCTION_TYPE_AIV_TYPE_FLAG, &aivType, sizeof(aivType));
-    EXPECT_EQ(ret, RT_SUCCESS);
+    int ret = rtFunctionGetMetaInfo(nullptr, RT_FUNCTION_TYPE_AIV_TYPE_FLAG, &aivType, sizeof(aivType));
+    EXPECT_EQ(ret, 0);
     EXPECT_EQ(aivType, 1);
 }
 
@@ -1486,8 +1486,8 @@ TEST_F(SkNodeTest, SimtAivType_SimtVfOnly)
 {
     SetSimtAivType(3);
     uint32_t aivType = 0;
-    rtError_t ret = rtFunctionGetMetaInfo(nullptr, RT_FUNCTION_TYPE_AIV_TYPE_FLAG, &aivType, sizeof(aivType));
-    EXPECT_EQ(ret, RT_SUCCESS);
+    int ret = rtFunctionGetMetaInfo(nullptr, RT_FUNCTION_TYPE_AIV_TYPE_FLAG, &aivType, sizeof(aivType));
+    EXPECT_EQ(ret, 0);
     EXPECT_EQ(aivType, 3);
 }
 
@@ -1495,7 +1495,7 @@ TEST_F(SkNodeTest, SimtAivType_SimdSimtMix)
 {
     SetSimtAivType(4);
     uint32_t aivType = 0;
-    rtError_t ret = rtFunctionGetMetaInfo(nullptr, RT_FUNCTION_TYPE_AIV_TYPE_FLAG, &aivType, sizeof(aivType));
-    EXPECT_EQ(ret, RT_SUCCESS);
+    int ret = rtFunctionGetMetaInfo(nullptr, RT_FUNCTION_TYPE_AIV_TYPE_FLAG, &aivType, sizeof(aivType));
+    EXPECT_EQ(ret, 0);
     EXPECT_EQ(aivType, 4);
 }

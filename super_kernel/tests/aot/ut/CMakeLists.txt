@@ -65,6 +65,7 @@ target_include_directories(super_kernel_aot_utest PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/stub/base
     ${GRAPH_AUTOFUSION_ROOT_DIR}/super_kernel/src/aot/
     ${GRAPH_AUTOFUSION_ROOT_DIR}/super_kernel/include/super_kernel/
+    ${GRAPH_AUTOFUSION_ROOT_DIR}/output/third_party/json/include/
 )
 
 target_compile_definitions(super_kernel_aot_utest PRIVATE

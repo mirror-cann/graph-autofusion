@@ -1510,6 +1510,7 @@ TEST_F(SuperKernelOptionsManagerTest, ToJson_UbufLockIgnoreKernelNullKernelList)
 
 TEST_F(SuperKernelOptionsManagerTest, GetInnerOption_EnableMixKernelSplit)
 {
+    opts_test->RegisterDefaultOptions();
     auto* opt = opts_test->GetOption(SkInnerOptionType::ENABLE_MIX_KERNEL_SPLIT);
     ASSERT_NE(opt, nullptr);
     EXPECT_EQ(opt->GetName(), "enable_mix_kernel_split");
@@ -1518,6 +1519,7 @@ TEST_F(SuperKernelOptionsManagerTest, GetInnerOption_EnableMixKernelSplit)
 
 TEST_F(SuperKernelOptionsManagerTest, GetInnerOption_EnableSimtOpCheck)
 {
+    opts_test->RegisterDefaultOptions();
     auto* opt = opts_test->GetOption(SkInnerOptionType::ENABLE_SIMT_OP_CHECK);
     ASSERT_NE(opt, nullptr);
     EXPECT_EQ(opt->GetName(), "enable_simt_op_check");
@@ -1526,12 +1528,14 @@ TEST_F(SuperKernelOptionsManagerTest, GetInnerOption_EnableSimtOpCheck)
 
 TEST_F(SuperKernelOptionsManagerTest, GetInnerOption_InvalidType)
 {
+    opts_test->RegisterDefaultOptions();
     auto* opt = opts_test->GetOption(static_cast<SkInnerOptionType>(100));
     EXPECT_EQ(opt, nullptr);
 }
 
 TEST_F(SuperKernelOptionsManagerTest, ToJson_InnerOptionsContent)
 {
+    opts_test->RegisterDefaultOptions();
     nlohmann::ordered_json json = opts_test->ToJson();
     ASSERT_TRUE(json.contains("inner_options"));
     EXPECT_TRUE(json["inner_options"].contains("enable_mix_kernel_split"));
@@ -1553,6 +1557,7 @@ TEST_F(SuperKernelOptionsManagerTest, ApplySoCSpecificOptions_NonAscend950)
 
 TEST_F(SuperKernelOptionsManagerTest, SetInnerOptionValue)
 {
+    opts_test->RegisterDefaultOptions();
     auto* opt = opts_test->GetOption(SkInnerOptionType::ENABLE_MIX_KERNEL_SPLIT);
     ASSERT_NE(opt, nullptr);
     opt->SetValue(1);
