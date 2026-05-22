@@ -192,7 +192,7 @@ GE_ASSERT_GRAPH_SUCCESS(af::GraphUtils::AddEdge(dy->GetAnchor(), node->GetInData
 return graph.GetEsbTensorFromNode(std::move(node), 0);
 }
 EsbTensor *EsAccumulateNV2(EsbTensor **x, int64_t x_num, int64_t N) {
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(x_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(x_num));
 EsbTensor *non_null_in = nullptr;
 if (non_null_in == nullptr) {
 for (int64_t i = 0; i < x_num; ++i) {
@@ -1454,7 +1454,7 @@ GE_ASSERT_GRAPH_SUCCESS(af::GraphUtils::AddEdge(alpha->GetAnchor(), node->GetInD
 return graph.GetEsbTensorFromNode(std::move(node), 0);
 }
 EsbTensor *EsAddN(EsbTensor **x, int64_t x_num, int64_t N) {
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(x_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(x_num));
 EsbTensor *non_null_in = nullptr;
 if (non_null_in == nullptr) {
 for (int64_t i = 0; i < x_num; ++i) {
@@ -5606,7 +5606,7 @@ return graph.GetEsbTensorFromNode(std::move(node), 0);
 }
 EsbTensor *EsAssert(EsbTensor *input_condition, EsbTensor **input_data, int64_t input_data_num, int64_t summarize) {
 GE_ASSERT_NOTNULL(input_condition);
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(input_data_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(input_data_num));
 auto &graph = input_condition->GetOwner();
 
 auto desc = af::CompliantOpDescBuilder().OpType("Assert")
@@ -11684,7 +11684,7 @@ graph.GetEsbTensorFromNode(node, 2),
 }
 EsbTensor *EsConcat(EsbTensor *concat_dim, EsbTensor **x, int64_t x_num, int64_t N) {
 GE_ASSERT_NOTNULL(concat_dim);
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(x_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(x_num));
 auto &graph = concat_dim->GetOwner();
 
 auto desc = af::CompliantOpDescBuilder().OpType("Concat")
@@ -11721,7 +11721,7 @@ GE_ASSERT_GRAPH_SUCCESS(af::GraphUtils::AddEdge(one_x->GetAnchor(), node->GetInD
 return graph.GetEsbTensorFromNode(std::move(node), 0);
 }
 EsbTensor *EsConcatD(EsbTensor **x, int64_t x_num, int64_t concat_dim, int64_t N) {
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(x_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(x_num));
 EsbTensor *non_null_in = nullptr;
 if (non_null_in == nullptr) {
 for (int64_t i = 0; i < x_num; ++i) {
@@ -11806,7 +11806,7 @@ GE_ASSERT_GRAPH_SUCCESS(af::GraphUtils::AddEdge(handle->GetAnchor(), node->GetIn
 return graph.GetEsbTensorFromNode(std::move(node), 0);
 }
 EsbTensor *EsConcatV2(EsbTensor **x, int64_t x_num, EsbTensor *concat_dim, int64_t N) {
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(x_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(x_num));
 GE_ASSERT_NOTNULL(concat_dim);
 auto &graph = concat_dim->GetOwner();
 
@@ -11844,7 +11844,7 @@ GE_ASSERT_GRAPH_SUCCESS(af::GraphUtils::AddEdge(concat_dim->GetAnchor(), node->G
 return graph.GetEsbTensorFromNode(std::move(node), 0);
 }
 EsbTensor *EsConcatV2D(EsbTensor **x, int64_t x_num, int64_t concat_dim, int64_t N) {
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(x_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(x_num));
 EsbTensor *non_null_in = nullptr;
 if (non_null_in == nullptr) {
 for (int64_t i = 0; i < x_num; ++i) {
@@ -11897,7 +11897,7 @@ return graph.GetEsbTensorFromNode(std::move(node), 0);
 
 std::vector<EsbTensor*> EsSplit(EsbTensor *split_dim, EsbTensor *x, int64_t num_split) {
 GE_ASSERT_NOTNULL(split_dim);
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(num_split));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(num_split));
 auto &graph = split_dim->GetOwner();
 
 auto desc = af::CompliantOpDescBuilder().OpType("Split")
@@ -11925,8 +11925,8 @@ return ret;
 }
 
 std::vector<EsbTensor*> EsSplitD(EsbTensor *x, int64_t split_dim, int64_t num_split) {
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(split_dim));
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(num_split));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(split_dim));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(num_split));
 auto &graph = x->GetOwner();
 
 auto desc = af::CompliantOpDescBuilder().OpType("SplitD")
@@ -11953,7 +11953,7 @@ return ret;
 }
 
 std::vector<EsbTensor*> EsSplitV(EsbTensor *x, EsbTensor *size_splits, EsbTensor *split_dim, int64_t num_split) {
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(num_split));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(num_split));
 auto &graph = x->GetOwner();
 
 auto desc = af::CompliantOpDescBuilder().OpType("SplitV")
@@ -12031,7 +12031,7 @@ graph.GetEsbTensorFromNode(node, 2),
 };
 }
 EsbTensor *EsConditionCalc(EsbTensor **x, int64_t x_num, const char *cond_func, const int64_t *x_dependency, int64_t x_dependency_num) {
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(x_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(x_num));
 EsbTensor *non_null_in = nullptr;
 if (non_null_in == nullptr) {
 for (int64_t i = 0; i < x_num; ++i) {
@@ -20034,8 +20034,8 @@ graph.GetEsbTensorFromNode(node, 7),
 };
 }
 EsbTensor *EsDynamicStitch(EsbTensor **indices, int64_t indices_num, EsbTensor **x, int64_t x_num, int64_t N) {
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(indices_num));
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(x_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(indices_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(x_num));
 EsbTensor *non_null_in = nullptr;
 if (non_null_in == nullptr) {
 for (int64_t i = 0; i < indices_num; ++i) {
@@ -20141,7 +20141,7 @@ GE_ASSERT_GRAPH_SUCCESS(af::GraphUtils::AddEdge(truth_shape->GetAnchor(), node->
 return graph.GetEsbTensorFromNode(std::move(node), 0);
 }
 EsbTensor *EsEinsum(EsbTensor **x, int64_t x_num, const char *equation, int64_t N) {
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(x_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(x_num));
 EsbTensor *non_null_in = nullptr;
 if (non_null_in == nullptr) {
 for (int64_t i = 0; i < x_num; ++i) {
@@ -20192,7 +20192,7 @@ GE_ASSERT_GRAPH_SUCCESS(af::GraphUtils::AddEdge(one_x->GetAnchor(), node->GetInD
 return graph.GetEsbTensorFromNode(std::move(node), 0);
 }
 EsbTensor *EsEltwise(EsbTensor **x, int64_t x_num, int64_t N, int64_t mode, const float *coeff, int64_t coeff_num) {
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(x_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(x_num));
 EsbTensor *non_null_in = nullptr;
 if (non_null_in == nullptr) {
 for (int64_t i = 0; i < x_num; ++i) {
@@ -21038,8 +21038,8 @@ return graph.GetEsbTensorFromNode(std::move(node), 0);
 EsbTensor *EsEmbeddingFeatureMappingExport(EsbTensor *file_path, EsbTensor *table_name, EsbTensor *global_step, EsbTensor *values, EsbTensor **feature_id, int64_t feature_id_num, EsbTensor **offset_id, int64_t offset_id_num, const int64_t *embedding_dim, int64_t embedding_dim_num) {
 GE_ASSERT_NOTNULL(file_path);
 GE_ASSERT_NOTNULL(table_name);
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(feature_id_num));
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(offset_id_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(feature_id_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(offset_id_num));
 auto &graph = file_path->GetOwner();
 
 auto desc = af::CompliantOpDescBuilder().OpType("EmbeddingFeatureMappingExport")
@@ -21136,8 +21136,8 @@ return graph.GetEsbTensorFromNode(std::move(node), 0);
 }
 EsbTensor *EsEmbeddingFeatureMappingInsert(EsbTensor *table_name, EsbTensor **feature_id, int64_t feature_id_num, EsbTensor **offset_id, int64_t offset_id_num) {
 GE_ASSERT_NOTNULL(table_name);
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(feature_id_num));
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(offset_id_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(feature_id_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(offset_id_num));
 auto &graph = table_name->GetOwner();
 
 auto desc = af::CompliantOpDescBuilder().OpType("EmbeddingFeatureMappingInsert")
@@ -21239,10 +21239,10 @@ GE_ASSERT_NOTNULL(file_path);
 GE_ASSERT_NOTNULL(table_ids);
 GE_ASSERT_NOTNULL(table_names);
 GE_ASSERT_NOTNULL(global_step);
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(keys_num));
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(counters_num));
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(filter_flags_num));
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(values_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(keys_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(counters_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(filter_flags_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(values_num));
 auto &graph = file_path->GetOwner();
 
 auto desc = af::CompliantOpDescBuilder().OpType("EmbeddingHashmapExport")
@@ -24069,7 +24069,7 @@ GE_ASSERT_GRAPH_SUCCESS(af::GraphUtils::AddEdge(x2->GetAnchor(), node->GetInData
 return graph.GetEsbTensorFromNode(std::move(node), 0);
 }
 EsbTensor *EsForeachACosInplace(EsbTensor **x, int64_t x_num) {
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(x_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(x_num));
 EsbTensor *non_null_in = nullptr;
 if (non_null_in == nullptr) {
 for (int64_t i = 0; i < x_num; ++i) {
@@ -24107,7 +24107,7 @@ GE_ASSERT_GRAPH_SUCCESS(af::GraphUtils::AddEdge(one_x->GetAnchor(), node->GetInD
 return graph.GetEsbTensorFromNode(std::move(node), -1);
 }
 EsbTensor *EsForeachASinInplace(EsbTensor **x, int64_t x_num) {
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(x_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(x_num));
 EsbTensor *non_null_in = nullptr;
 if (non_null_in == nullptr) {
 for (int64_t i = 0; i < x_num; ++i) {
@@ -24145,7 +24145,7 @@ GE_ASSERT_GRAPH_SUCCESS(af::GraphUtils::AddEdge(one_x->GetAnchor(), node->GetInD
 return graph.GetEsbTensorFromNode(std::move(node), -1);
 }
 EsbTensor *EsForeachATanInplace(EsbTensor **x, int64_t x_num) {
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(x_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(x_num));
 EsbTensor *non_null_in = nullptr;
 if (non_null_in == nullptr) {
 for (int64_t i = 0; i < x_num; ++i) {
@@ -24183,7 +24183,7 @@ GE_ASSERT_GRAPH_SUCCESS(af::GraphUtils::AddEdge(one_x->GetAnchor(), node->GetInD
 return graph.GetEsbTensorFromNode(std::move(node), -1);
 }
 EsbTensor *EsForeachAbsInplace(EsbTensor **x, int64_t x_num) {
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(x_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(x_num));
 EsbTensor *non_null_in = nullptr;
 if (non_null_in == nullptr) {
 for (int64_t i = 0; i < x_num; ++i) {
@@ -24221,8 +24221,8 @@ GE_ASSERT_GRAPH_SUCCESS(af::GraphUtils::AddEdge(one_x->GetAnchor(), node->GetInD
 return graph.GetEsbTensorFromNode(std::move(node), -1);
 }
 EsbTensor *EsForeachAddListInplace(EsbTensor **x1, int64_t x1_num, EsbTensor **x2, int64_t x2_num, EsbTensor *alpha) {
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(x1_num));
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(x2_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(x1_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(x2_num));
 EsbTensor *non_null_in = nullptr;
 if (non_null_in == nullptr) {
 for (int64_t i = 0; i < x1_num; ++i) {
@@ -24286,7 +24286,7 @@ GE_ASSERT_GRAPH_SUCCESS(af::GraphUtils::AddEdge(alpha->GetAnchor(), node->GetInD
 return graph.GetEsbTensorFromNode(std::move(node), -1);
 }
 EsbTensor *EsForeachAddScalarInplace(EsbTensor **x, int64_t x_num, EsbTensor *scalar) {
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(x_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(x_num));
 GE_ASSERT_NOTNULL(scalar);
 auto &graph = scalar->GetOwner();
 
@@ -24317,7 +24317,7 @@ GE_ASSERT_GRAPH_SUCCESS(af::GraphUtils::AddEdge(scalar->GetAnchor(), node->GetIn
 return graph.GetEsbTensorFromNode(std::move(node), -1);
 }
 EsbTensor *EsForeachAddScalarListInplace(EsbTensor **x, int64_t x_num, EsbTensor *scalars) {
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(x_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(x_num));
 GE_ASSERT_NOTNULL(scalars);
 auto &graph = scalars->GetOwner();
 
@@ -24348,9 +24348,9 @@ GE_ASSERT_GRAPH_SUCCESS(af::GraphUtils::AddEdge(scalars->GetAnchor(), node->GetI
 return graph.GetEsbTensorFromNode(std::move(node), -1);
 }
 EsbTensor *EsForeachAddcdivListInplace(EsbTensor **x1, int64_t x1_num, EsbTensor **x2, int64_t x2_num, EsbTensor **x3, int64_t x3_num, EsbTensor *scalars) {
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(x1_num));
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(x2_num));
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(x3_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(x1_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(x2_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(x3_num));
 GE_ASSERT_NOTNULL(scalars);
 auto &graph = scalars->GetOwner();
 
@@ -24399,9 +24399,9 @@ GE_ASSERT_GRAPH_SUCCESS(af::GraphUtils::AddEdge(scalars->GetAnchor(), node->GetI
 return graph.GetEsbTensorFromNode(std::move(node), -1);
 }
 EsbTensor *EsForeachAddcdivScalarInplace(EsbTensor **x1, int64_t x1_num, EsbTensor **x2, int64_t x2_num, EsbTensor **x3, int64_t x3_num, EsbTensor *scalars) {
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(x1_num));
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(x2_num));
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(x3_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(x1_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(x2_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(x3_num));
 GE_ASSERT_NOTNULL(scalars);
 auto &graph = scalars->GetOwner();
 
@@ -24450,9 +24450,9 @@ GE_ASSERT_GRAPH_SUCCESS(af::GraphUtils::AddEdge(scalars->GetAnchor(), node->GetI
 return graph.GetEsbTensorFromNode(std::move(node), -1);
 }
 EsbTensor *EsForeachAddcmulListInplace(EsbTensor **x1, int64_t x1_num, EsbTensor **x2, int64_t x2_num, EsbTensor **x3, int64_t x3_num, EsbTensor *scalars) {
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(x1_num));
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(x2_num));
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(x3_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(x1_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(x2_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(x3_num));
 GE_ASSERT_NOTNULL(scalars);
 auto &graph = scalars->GetOwner();
 
@@ -24501,9 +24501,9 @@ GE_ASSERT_GRAPH_SUCCESS(af::GraphUtils::AddEdge(scalars->GetAnchor(), node->GetI
 return graph.GetEsbTensorFromNode(std::move(node), -1);
 }
 EsbTensor *EsForeachAddcmulScalarInplace(EsbTensor **x1, int64_t x1_num, EsbTensor **x2, int64_t x2_num, EsbTensor **x3, int64_t x3_num, EsbTensor *scalar) {
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(x1_num));
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(x2_num));
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(x3_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(x1_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(x2_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(x3_num));
 GE_ASSERT_NOTNULL(scalar);
 auto &graph = scalar->GetOwner();
 
@@ -24552,7 +24552,7 @@ GE_ASSERT_GRAPH_SUCCESS(af::GraphUtils::AddEdge(scalar->GetAnchor(), node->GetIn
 return graph.GetEsbTensorFromNode(std::move(node), -1);
 }
 EsbTensor *EsForeachCosInplace(EsbTensor **x, int64_t x_num) {
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(x_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(x_num));
 EsbTensor *non_null_in = nullptr;
 if (non_null_in == nullptr) {
 for (int64_t i = 0; i < x_num; ++i) {
@@ -24590,7 +24590,7 @@ GE_ASSERT_GRAPH_SUCCESS(af::GraphUtils::AddEdge(one_x->GetAnchor(), node->GetInD
 return graph.GetEsbTensorFromNode(std::move(node), -1);
 }
 EsbTensor *EsForeachCoshInplace(EsbTensor **x, int64_t x_num) {
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(x_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(x_num));
 EsbTensor *non_null_in = nullptr;
 if (non_null_in == nullptr) {
 for (int64_t i = 0; i < x_num; ++i) {
@@ -24628,8 +24628,8 @@ GE_ASSERT_GRAPH_SUCCESS(af::GraphUtils::AddEdge(one_x->GetAnchor(), node->GetInD
 return graph.GetEsbTensorFromNode(std::move(node), -1);
 }
 EsbTensor *EsForeachDivListInplace(EsbTensor **x1, int64_t x1_num, EsbTensor **x2, int64_t x2_num) {
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(x1_num));
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(x2_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(x1_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(x2_num));
 EsbTensor *non_null_in = nullptr;
 if (non_null_in == nullptr) {
 for (int64_t i = 0; i < x1_num; ++i) {
@@ -24685,7 +24685,7 @@ GE_ASSERT_GRAPH_SUCCESS(af::GraphUtils::AddEdge(one_x2->GetAnchor(), node->GetIn
 return graph.GetEsbTensorFromNode(std::move(node), -1);
 }
 EsbTensor *EsForeachDivScalarInplace(EsbTensor **x, int64_t x_num, EsbTensor *scalar) {
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(x_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(x_num));
 GE_ASSERT_NOTNULL(scalar);
 auto &graph = scalar->GetOwner();
 
@@ -24716,7 +24716,7 @@ GE_ASSERT_GRAPH_SUCCESS(af::GraphUtils::AddEdge(scalar->GetAnchor(), node->GetIn
 return graph.GetEsbTensorFromNode(std::move(node), -1);
 }
 EsbTensor *EsForeachDivScalarListInplace(EsbTensor **x, int64_t x_num, EsbTensor *scalars) {
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(x_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(x_num));
 GE_ASSERT_NOTNULL(scalars);
 auto &graph = scalars->GetOwner();
 
@@ -24747,7 +24747,7 @@ GE_ASSERT_GRAPH_SUCCESS(af::GraphUtils::AddEdge(scalars->GetAnchor(), node->GetI
 return graph.GetEsbTensorFromNode(std::move(node), -1);
 }
 EsbTensor *EsForeachExpInplace(EsbTensor **x, int64_t x_num) {
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(x_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(x_num));
 EsbTensor *non_null_in = nullptr;
 if (non_null_in == nullptr) {
 for (int64_t i = 0; i < x_num; ++i) {
@@ -24785,7 +24785,7 @@ GE_ASSERT_GRAPH_SUCCESS(af::GraphUtils::AddEdge(one_x->GetAnchor(), node->GetInD
 return graph.GetEsbTensorFromNode(std::move(node), -1);
 }
 EsbTensor *EsForeachExpm1Inplace(EsbTensor **x, int64_t x_num) {
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(x_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(x_num));
 EsbTensor *non_null_in = nullptr;
 if (non_null_in == nullptr) {
 for (int64_t i = 0; i < x_num; ++i) {
@@ -24823,8 +24823,8 @@ GE_ASSERT_GRAPH_SUCCESS(af::GraphUtils::AddEdge(one_x->GetAnchor(), node->GetInD
 return graph.GetEsbTensorFromNode(std::move(node), -1);
 }
 EsbTensor *EsForeachLerpListInplace(EsbTensor **x1, int64_t x1_num, EsbTensor **x2, int64_t x2_num, EsbTensor *weights) {
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(x1_num));
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(x2_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(x1_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(x2_num));
 GE_ASSERT_NOTNULL(weights);
 auto &graph = weights->GetOwner();
 
@@ -24864,8 +24864,8 @@ GE_ASSERT_GRAPH_SUCCESS(af::GraphUtils::AddEdge(weights->GetAnchor(), node->GetI
 return graph.GetEsbTensorFromNode(std::move(node), -1);
 }
 EsbTensor *EsForeachLerpScalarInplace(EsbTensor **x1, int64_t x1_num, EsbTensor **x2, int64_t x2_num, EsbTensor *weight) {
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(x1_num));
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(x2_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(x1_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(x2_num));
 GE_ASSERT_NOTNULL(weight);
 auto &graph = weight->GetOwner();
 
@@ -24905,7 +24905,7 @@ GE_ASSERT_GRAPH_SUCCESS(af::GraphUtils::AddEdge(weight->GetAnchor(), node->GetIn
 return graph.GetEsbTensorFromNode(std::move(node), -1);
 }
 EsbTensor *EsForeachLog10Inplace(EsbTensor **x, int64_t x_num) {
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(x_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(x_num));
 EsbTensor *non_null_in = nullptr;
 if (non_null_in == nullptr) {
 for (int64_t i = 0; i < x_num; ++i) {
@@ -24943,7 +24943,7 @@ GE_ASSERT_GRAPH_SUCCESS(af::GraphUtils::AddEdge(one_x->GetAnchor(), node->GetInD
 return graph.GetEsbTensorFromNode(std::move(node), -1);
 }
 EsbTensor *EsForeachLog1pInplace(EsbTensor **x, int64_t x_num) {
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(x_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(x_num));
 EsbTensor *non_null_in = nullptr;
 if (non_null_in == nullptr) {
 for (int64_t i = 0; i < x_num; ++i) {
@@ -24981,7 +24981,7 @@ GE_ASSERT_GRAPH_SUCCESS(af::GraphUtils::AddEdge(one_x->GetAnchor(), node->GetInD
 return graph.GetEsbTensorFromNode(std::move(node), -1);
 }
 EsbTensor *EsForeachLog2Inplace(EsbTensor **x, int64_t x_num) {
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(x_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(x_num));
 EsbTensor *non_null_in = nullptr;
 if (non_null_in == nullptr) {
 for (int64_t i = 0; i < x_num; ++i) {
@@ -25019,7 +25019,7 @@ GE_ASSERT_GRAPH_SUCCESS(af::GraphUtils::AddEdge(one_x->GetAnchor(), node->GetInD
 return graph.GetEsbTensorFromNode(std::move(node), -1);
 }
 EsbTensor *EsForeachLogInplace(EsbTensor **x, int64_t x_num) {
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(x_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(x_num));
 EsbTensor *non_null_in = nullptr;
 if (non_null_in == nullptr) {
 for (int64_t i = 0; i < x_num; ++i) {
@@ -25057,8 +25057,8 @@ GE_ASSERT_GRAPH_SUCCESS(af::GraphUtils::AddEdge(one_x->GetAnchor(), node->GetInD
 return graph.GetEsbTensorFromNode(std::move(node), -1);
 }
 EsbTensor *EsForeachMaximumListInplace(EsbTensor **x1, int64_t x1_num, EsbTensor **x2, int64_t x2_num) {
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(x1_num));
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(x2_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(x1_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(x2_num));
 EsbTensor *non_null_in = nullptr;
 if (non_null_in == nullptr) {
 for (int64_t i = 0; i < x1_num; ++i) {
@@ -25114,7 +25114,7 @@ GE_ASSERT_GRAPH_SUCCESS(af::GraphUtils::AddEdge(one_x2->GetAnchor(), node->GetIn
 return graph.GetEsbTensorFromNode(std::move(node), -1);
 }
 EsbTensor *EsForeachMaximumScalarInplace(EsbTensor **x, int64_t x_num, EsbTensor *scalar) {
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(x_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(x_num));
 GE_ASSERT_NOTNULL(scalar);
 auto &graph = scalar->GetOwner();
 
@@ -25145,7 +25145,7 @@ GE_ASSERT_GRAPH_SUCCESS(af::GraphUtils::AddEdge(scalar->GetAnchor(), node->GetIn
 return graph.GetEsbTensorFromNode(std::move(node), -1);
 }
 EsbTensor *EsForeachMaximumScalarListInplace(EsbTensor **x, int64_t x_num, EsbTensor *scalars) {
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(x_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(x_num));
 GE_ASSERT_NOTNULL(scalars);
 auto &graph = scalars->GetOwner();
 
@@ -25176,8 +25176,8 @@ GE_ASSERT_GRAPH_SUCCESS(af::GraphUtils::AddEdge(scalars->GetAnchor(), node->GetI
 return graph.GetEsbTensorFromNode(std::move(node), -1);
 }
 EsbTensor *EsForeachMinimumListInplace(EsbTensor **x1, int64_t x1_num, EsbTensor **x2, int64_t x2_num) {
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(x1_num));
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(x2_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(x1_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(x2_num));
 EsbTensor *non_null_in = nullptr;
 if (non_null_in == nullptr) {
 for (int64_t i = 0; i < x1_num; ++i) {
@@ -25233,7 +25233,7 @@ GE_ASSERT_GRAPH_SUCCESS(af::GraphUtils::AddEdge(one_x2->GetAnchor(), node->GetIn
 return graph.GetEsbTensorFromNode(std::move(node), -1);
 }
 EsbTensor *EsForeachMinimumScalarInplace(EsbTensor **x, int64_t x_num, EsbTensor *scalar) {
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(x_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(x_num));
 GE_ASSERT_NOTNULL(scalar);
 auto &graph = scalar->GetOwner();
 
@@ -25264,7 +25264,7 @@ GE_ASSERT_GRAPH_SUCCESS(af::GraphUtils::AddEdge(scalar->GetAnchor(), node->GetIn
 return graph.GetEsbTensorFromNode(std::move(node), -1);
 }
 EsbTensor *EsForeachMinimumScalarListInplace(EsbTensor **x, int64_t x_num, EsbTensor *scalars) {
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(x_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(x_num));
 GE_ASSERT_NOTNULL(scalars);
 auto &graph = scalars->GetOwner();
 
@@ -25295,8 +25295,8 @@ GE_ASSERT_GRAPH_SUCCESS(af::GraphUtils::AddEdge(scalars->GetAnchor(), node->GetI
 return graph.GetEsbTensorFromNode(std::move(node), -1);
 }
 EsbTensor *EsForeachMulListInplace(EsbTensor **x1, int64_t x1_num, EsbTensor **x2, int64_t x2_num) {
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(x1_num));
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(x2_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(x1_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(x2_num));
 EsbTensor *non_null_in = nullptr;
 if (non_null_in == nullptr) {
 for (int64_t i = 0; i < x1_num; ++i) {
@@ -25352,7 +25352,7 @@ GE_ASSERT_GRAPH_SUCCESS(af::GraphUtils::AddEdge(one_x2->GetAnchor(), node->GetIn
 return graph.GetEsbTensorFromNode(std::move(node), -1);
 }
 EsbTensor *EsForeachMulScalarInplace(EsbTensor **x, int64_t x_num, EsbTensor *scalar) {
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(x_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(x_num));
 GE_ASSERT_NOTNULL(scalar);
 auto &graph = scalar->GetOwner();
 
@@ -25383,7 +25383,7 @@ GE_ASSERT_GRAPH_SUCCESS(af::GraphUtils::AddEdge(scalar->GetAnchor(), node->GetIn
 return graph.GetEsbTensorFromNode(std::move(node), -1);
 }
 EsbTensor *EsForeachMulScalarListInplace(EsbTensor **x, int64_t x_num, EsbTensor *scalars) {
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(x_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(x_num));
 GE_ASSERT_NOTNULL(scalars);
 auto &graph = scalars->GetOwner();
 
@@ -25414,7 +25414,7 @@ GE_ASSERT_GRAPH_SUCCESS(af::GraphUtils::AddEdge(scalars->GetAnchor(), node->GetI
 return graph.GetEsbTensorFromNode(std::move(node), -1);
 }
 EsbTensor *EsForeachNegInplace(EsbTensor **x, int64_t x_num) {
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(x_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(x_num));
 EsbTensor *non_null_in = nullptr;
 if (non_null_in == nullptr) {
 for (int64_t i = 0; i < x_num; ++i) {
@@ -25452,7 +25452,7 @@ GE_ASSERT_GRAPH_SUCCESS(af::GraphUtils::AddEdge(one_x->GetAnchor(), node->GetInD
 return graph.GetEsbTensorFromNode(std::move(node), -1);
 }
 EsbTensor *EsForeachNonFiniteCheckAndUnscale(EsbTensor **scaled_grads, int64_t scaled_grads_num, EsbTensor *found_inf, EsbTensor *inv_scale) {
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(scaled_grads_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(scaled_grads_num));
 GE_ASSERT_NOTNULL(found_inf);
 GE_ASSERT_NOTNULL(inv_scale);
 auto &graph = found_inf->GetOwner();
@@ -25486,8 +25486,8 @@ GE_ASSERT_GRAPH_SUCCESS(af::GraphUtils::AddEdge(inv_scale->GetAnchor(), node->Ge
 return graph.GetEsbTensorFromNode(std::move(node), -1);
 }
 EsbTensor *EsForeachPowListInplace(EsbTensor **x1, int64_t x1_num, EsbTensor **x2, int64_t x2_num) {
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(x1_num));
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(x2_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(x1_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(x2_num));
 EsbTensor *non_null_in = nullptr;
 if (non_null_in == nullptr) {
 for (int64_t i = 0; i < x1_num; ++i) {
@@ -25543,7 +25543,7 @@ GE_ASSERT_GRAPH_SUCCESS(af::GraphUtils::AddEdge(one_x2->GetAnchor(), node->GetIn
 return graph.GetEsbTensorFromNode(std::move(node), -1);
 }
 EsbTensor *EsForeachPowScalarInplace(EsbTensor **x, int64_t x_num, EsbTensor *scalar) {
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(x_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(x_num));
 GE_ASSERT_NOTNULL(scalar);
 auto &graph = scalar->GetOwner();
 
@@ -25574,7 +25574,7 @@ GE_ASSERT_GRAPH_SUCCESS(af::GraphUtils::AddEdge(scalar->GetAnchor(), node->GetIn
 return graph.GetEsbTensorFromNode(std::move(node), -1);
 }
 EsbTensor *EsForeachPowScalarListInplace(EsbTensor **x, int64_t x_num, EsbTensor *scalars) {
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(x_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(x_num));
 GE_ASSERT_NOTNULL(scalars);
 auto &graph = scalars->GetOwner();
 
@@ -25605,7 +25605,7 @@ GE_ASSERT_GRAPH_SUCCESS(af::GraphUtils::AddEdge(scalars->GetAnchor(), node->GetI
 return graph.GetEsbTensorFromNode(std::move(node), -1);
 }
 EsbTensor *EsForeachReciprocalInplace(EsbTensor **x, int64_t x_num) {
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(x_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(x_num));
 EsbTensor *non_null_in = nullptr;
 if (non_null_in == nullptr) {
 for (int64_t i = 0; i < x_num; ++i) {
@@ -25643,7 +25643,7 @@ GE_ASSERT_GRAPH_SUCCESS(af::GraphUtils::AddEdge(one_x->GetAnchor(), node->GetInD
 return graph.GetEsbTensorFromNode(std::move(node), -1);
 }
 EsbTensor *EsForeachRoundOffNumberInplace(EsbTensor **x, int64_t x_num, EsbTensor *roundMode) {
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(x_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(x_num));
 GE_ASSERT_NOTNULL(roundMode);
 auto &graph = roundMode->GetOwner();
 
@@ -25674,7 +25674,7 @@ GE_ASSERT_GRAPH_SUCCESS(af::GraphUtils::AddEdge(roundMode->GetAnchor(), node->Ge
 return graph.GetEsbTensorFromNode(std::move(node), -1);
 }
 EsbTensor *EsForeachSigmoidInplace(EsbTensor **x, int64_t x_num) {
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(x_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(x_num));
 EsbTensor *non_null_in = nullptr;
 if (non_null_in == nullptr) {
 for (int64_t i = 0; i < x_num; ++i) {
@@ -25712,7 +25712,7 @@ GE_ASSERT_GRAPH_SUCCESS(af::GraphUtils::AddEdge(one_x->GetAnchor(), node->GetInD
 return graph.GetEsbTensorFromNode(std::move(node), -1);
 }
 EsbTensor *EsForeachSignInplace(EsbTensor **x, int64_t x_num) {
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(x_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(x_num));
 EsbTensor *non_null_in = nullptr;
 if (non_null_in == nullptr) {
 for (int64_t i = 0; i < x_num; ++i) {
@@ -25750,7 +25750,7 @@ GE_ASSERT_GRAPH_SUCCESS(af::GraphUtils::AddEdge(one_x->GetAnchor(), node->GetInD
 return graph.GetEsbTensorFromNode(std::move(node), -1);
 }
 EsbTensor *EsForeachSinInplace(EsbTensor **x, int64_t x_num) {
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(x_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(x_num));
 EsbTensor *non_null_in = nullptr;
 if (non_null_in == nullptr) {
 for (int64_t i = 0; i < x_num; ++i) {
@@ -25788,7 +25788,7 @@ GE_ASSERT_GRAPH_SUCCESS(af::GraphUtils::AddEdge(one_x->GetAnchor(), node->GetInD
 return graph.GetEsbTensorFromNode(std::move(node), -1);
 }
 EsbTensor *EsForeachSinhInplace(EsbTensor **x, int64_t x_num) {
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(x_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(x_num));
 EsbTensor *non_null_in = nullptr;
 if (non_null_in == nullptr) {
 for (int64_t i = 0; i < x_num; ++i) {
@@ -25826,7 +25826,7 @@ GE_ASSERT_GRAPH_SUCCESS(af::GraphUtils::AddEdge(one_x->GetAnchor(), node->GetInD
 return graph.GetEsbTensorFromNode(std::move(node), -1);
 }
 EsbTensor *EsForeachSqrtInplace(EsbTensor **x, int64_t x_num) {
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(x_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(x_num));
 EsbTensor *non_null_in = nullptr;
 if (non_null_in == nullptr) {
 for (int64_t i = 0; i < x_num; ++i) {
@@ -25864,8 +25864,8 @@ GE_ASSERT_GRAPH_SUCCESS(af::GraphUtils::AddEdge(one_x->GetAnchor(), node->GetInD
 return graph.GetEsbTensorFromNode(std::move(node), -1);
 }
 EsbTensor *EsForeachSubListInplace(EsbTensor **x1, int64_t x1_num, EsbTensor **x2, int64_t x2_num, EsbTensor *alpha) {
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(x1_num));
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(x2_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(x1_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(x2_num));
 EsbTensor *non_null_in = nullptr;
 if (non_null_in == nullptr) {
 for (int64_t i = 0; i < x1_num; ++i) {
@@ -25929,7 +25929,7 @@ GE_ASSERT_GRAPH_SUCCESS(af::GraphUtils::AddEdge(alpha->GetAnchor(), node->GetInD
 return graph.GetEsbTensorFromNode(std::move(node), -1);
 }
 EsbTensor *EsForeachSubScalarInplace(EsbTensor **x, int64_t x_num, EsbTensor *scalar) {
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(x_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(x_num));
 GE_ASSERT_NOTNULL(scalar);
 auto &graph = scalar->GetOwner();
 
@@ -25960,7 +25960,7 @@ GE_ASSERT_GRAPH_SUCCESS(af::GraphUtils::AddEdge(scalar->GetAnchor(), node->GetIn
 return graph.GetEsbTensorFromNode(std::move(node), -1);
 }
 EsbTensor *EsForeachSubScalarListInplace(EsbTensor **x, int64_t x_num, EsbTensor *scalars) {
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(x_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(x_num));
 GE_ASSERT_NOTNULL(scalars);
 auto &graph = scalars->GetOwner();
 
@@ -25991,7 +25991,7 @@ GE_ASSERT_GRAPH_SUCCESS(af::GraphUtils::AddEdge(scalars->GetAnchor(), node->GetI
 return graph.GetEsbTensorFromNode(std::move(node), -1);
 }
 EsbTensor *EsForeachTanInplace(EsbTensor **x, int64_t x_num) {
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(x_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(x_num));
 EsbTensor *non_null_in = nullptr;
 if (non_null_in == nullptr) {
 for (int64_t i = 0; i < x_num; ++i) {
@@ -26029,7 +26029,7 @@ GE_ASSERT_GRAPH_SUCCESS(af::GraphUtils::AddEdge(one_x->GetAnchor(), node->GetInD
 return graph.GetEsbTensorFromNode(std::move(node), -1);
 }
 EsbTensor *EsForeachTanhInplace(EsbTensor **x, int64_t x_num) {
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(x_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(x_num));
 EsbTensor *non_null_in = nullptr;
 if (non_null_in == nullptr) {
 for (int64_t i = 0; i < x_num; ++i) {
@@ -26067,7 +26067,7 @@ GE_ASSERT_GRAPH_SUCCESS(af::GraphUtils::AddEdge(one_x->GetAnchor(), node->GetInD
 return graph.GetEsbTensorFromNode(std::move(node), -1);
 }
 EsbTensor *EsForeachZeroInplace(EsbTensor **x, int64_t x_num) {
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(x_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(x_num));
 EsbTensor *non_null_in = nullptr;
 if (non_null_in == nullptr) {
 for (int64_t i = 0; i < x_num; ++i) {
@@ -26616,8 +26616,8 @@ return graph.GetEsbTensorFromNode(std::move(node), 0);
 }
 EsFusedInferAttentionScoreOutput EsFusedInferAttentionScore(EsbTensor *query, EsbTensor **key, int64_t key_num, EsbTensor **value, int64_t value_num, EsbTensor *pse_shift, EsbTensor *atten_mask, EsbTensor *actual_seq_lengths, EsbTensor *actual_seq_lengths_kv, EsbTensor *dequant_scale1, EsbTensor *quant_scale1, EsbTensor *dequant_scale2, EsbTensor *quant_scale2, EsbTensor *quant_offset2, EsbTensor *antiquant_scale, EsbTensor *antiquant_offset, EsbTensor *block_table, EsbTensor *query_padding_size, EsbTensor *kv_padding_size, EsbTensor *key_antiquant_scale, EsbTensor *key_antiquant_offset, EsbTensor *value_antiquant_scale, EsbTensor *value_antiquant_offset, EsbTensor *key_shared_prefix, EsbTensor *value_shared_prefix, EsbTensor *actual_shared_prefix_len, int64_t num_heads, float scale, int64_t pre_tokens, int64_t next_tokens, const char *input_layout, int64_t num_key_value_heads, int64_t sparse_mode, int64_t inner_precise, int64_t block_size, int64_t antiquant_mode, bool softmax_lse_flag, int64_t key_antiquant_mode, int64_t value_antiquant_mode) {
 GE_ASSERT_NOTNULL(query);
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(key_num));
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(value_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(key_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(value_num));
 auto &graph = query->GetOwner();
 
 auto desc = af::CompliantOpDescBuilder().OpType("FusedInferAttentionScore")
@@ -28153,7 +28153,7 @@ GE_ASSERT_GRAPH_SUCCESS(af::GraphUtils::AddEdge(x2->GetAnchor(), node->GetInData
 return graph.GetEsbTensorFromNode(std::move(node), 0);
 }
 EsbTensor *EsGetDynamicDims(EsbTensor **input, int64_t input_num, const int64_t *shape_info, int64_t shape_info_num, int64_t N) {
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(input_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(input_num));
 EsbTensor *non_null_in = nullptr;
 if (non_null_in == nullptr) {
 for (int64_t i = 0; i < input_num; ++i) {
@@ -28204,7 +28204,7 @@ GE_ASSERT_GRAPH_SUCCESS(af::GraphUtils::AddEdge(one_input->GetAnchor(), node->Ge
 return graph.GetEsbTensorFromNode(std::move(node), 0);
 }
 EsbTensor *EsGetShape(EsbTensor **x, int64_t x_num) {
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(x_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(x_num));
 EsbTensor *non_null_in = nullptr;
 if (non_null_in == nullptr) {
 for (int64_t i = 0; i < x_num; ++i) {
@@ -31766,8 +31766,8 @@ return graph.GetEsbTensorFromNode(std::move(node), 0);
 }
 EsbTensor *EsIncreFlashAttention(EsbTensor *query, EsbTensor **key, int64_t key_num, EsbTensor **value, int64_t value_num, EsbTensor *pse_shift, EsbTensor *atten_mask, EsbTensor *actual_seq_lengths, EsbTensor *dequant_scale1, EsbTensor *quant_scale1, EsbTensor *dequant_scale2, EsbTensor *quant_scale2, EsbTensor *quant_offset2, EsbTensor *antiquant_scale, EsbTensor *antiquant_offset, EsbTensor *block_table, EsbTensor *kv_padding_size, int64_t num_heads, float scale_value, const char *input_layout, int64_t num_key_value_heads, int64_t block_size, int64_t inner_precise) {
 GE_ASSERT_NOTNULL(query);
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(key_num));
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(value_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(key_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(value_num));
 auto &graph = query->GetOwner();
 
 auto desc = af::CompliantOpDescBuilder().OpType("IncreFlashAttention")
@@ -31894,7 +31894,7 @@ EsbTensor *EsIndex(EsbTensor *x, EsbTensor *indexed_sizes, EsbTensor *indexed_st
 GE_ASSERT_NOTNULL(x);
 GE_ASSERT_NOTNULL(indexed_sizes);
 GE_ASSERT_NOTNULL(indexed_strides);
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(indices_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(indices_num));
 auto &graph = x->GetOwner();
 
 auto desc = af::CompliantOpDescBuilder().OpType("Index")
@@ -32038,7 +32038,7 @@ GE_ASSERT_NOTNULL(x);
 GE_ASSERT_NOTNULL(value);
 GE_ASSERT_NOTNULL(indexed_sizes);
 GE_ASSERT_NOTNULL(indexed_strides);
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(indices_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(indices_num));
 auto &graph = x->GetOwner();
 
 auto desc = af::CompliantOpDescBuilder().OpType("IndexPutV2")
@@ -37906,7 +37906,7 @@ GE_ASSERT_GRAPH_SUCCESS(af::GraphUtils::AddEdge(rhs->GetAnchor(), node->GetInDat
 return graph.GetEsbTensorFromNode(std::move(node), 0);
 }
 EsbTensor *EsMaxN(EsbTensor **x, int64_t x_num) {
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(x_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(x_num));
 EsbTensor *non_null_in = nullptr;
 if (non_null_in == nullptr) {
 for (int64_t i = 0; i < x_num; ++i) {
@@ -39020,7 +39020,7 @@ graph.GetEsbTensorFromNode(node, 1),
 };
 }
 EsMergeOutput EsMerge(EsbTensor **x, int64_t x_num) {
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(x_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(x_num));
 EsbTensor *non_null_in = nullptr;
 if (non_null_in == nullptr) {
 for (int64_t i = 0; i < x_num; ++i) {
@@ -41466,7 +41466,7 @@ GE_ASSERT_GRAPH_SUCCESS(af::GraphUtils::AddEdge(shape->GetAnchor(), node->GetInD
 return graph.GetEsbTensorFromNode(std::move(node), 0);
 }
 EsbTensor *EsNonFiniteCheck(EsbTensor **tensor_list, int64_t tensor_list_num) {
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(tensor_list_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(tensor_list_num));
 EsbTensor *non_null_in = nullptr;
 if (non_null_in == nullptr) {
 for (int64_t i = 0; i < tensor_list_num; ++i) {
@@ -42558,8 +42558,8 @@ GE_ASSERT_GRAPH_SUCCESS(af::GraphUtils::AddEdge(x->GetAnchor(), node->GetInDataA
 return graph.GetEsbTensorFromNode(std::move(node), 0);
 }
 EsOpTilingOutput EsOpTiling(EsbTensor **x, int64_t x_num, EsbTensor **output_shape, int64_t output_shape_num, const char *tiling_node, const char *op_type) {
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(x_num));
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(output_shape_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(x_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(output_shape_num));
 EsbTensor *non_null_in = nullptr;
 if (non_null_in == nullptr) {
 for (int64_t i = 0; i < x_num; ++i) {
@@ -42636,7 +42636,7 @@ graph.GetEsbTensorFromNode(node, 3),
 };
 }
 EsbTensor *EsOutfeedEnqueueOp(EsbTensor **x, int64_t x_num, const char *channel_name) {
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(x_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(x_num));
 EsbTensor *non_null_in = nullptr;
 if (non_null_in == nullptr) {
 for (int64_t i = 0; i < x_num; ++i) {
@@ -42680,7 +42680,7 @@ GE_ASSERT_GRAPH_SUCCESS(af::GraphUtils::AddEdge(one_x->GetAnchor(), node->GetInD
 return graph.GetEsbTensorFromNode(std::move(node), -1);
 }
 EsbTensor *EsOutfeedEnqueueOpV2(EsbTensor **x, int64_t x_num, EsbTensor *tensor_name, const char *channel_name, int64_t slice_size, int64_t wait_time, bool slice_sync) {
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(x_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(x_num));
 GE_ASSERT_NOTNULL(tensor_name);
 auto &graph = tensor_name->GetOwner();
 
@@ -43067,7 +43067,7 @@ GE_ASSERT_GRAPH_SUCCESS(af::GraphUtils::AddEdge(rois->GetAnchor(), node->GetInDa
 return graph.GetEsbTensorFromNode(std::move(node), 0);
 }
 EsbTensor *EsPack(EsbTensor **x, int64_t x_num, int64_t axis, int64_t N) {
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(x_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(x_num));
 EsbTensor *non_null_in = nullptr;
 if (non_null_in == nullptr) {
 for (int64_t i = 0; i < x_num; ++i) {
@@ -43249,7 +43249,7 @@ GE_ASSERT_GRAPH_SUCCESS(af::GraphUtils::AddEdge(paddings->GetAnchor(), node->Get
 return graph.GetEsbTensorFromNode(std::move(node), 0);
 }
 EsbTensor *EsParallelConcat(EsbTensor **values, int64_t values_num, const int64_t *shape, int64_t shape_num, int64_t N) {
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(values_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(values_num));
 EsbTensor *non_null_in = nullptr;
 if (non_null_in == nullptr) {
 for (int64_t i = 0; i < values_num; ++i) {
@@ -43300,8 +43300,8 @@ GE_ASSERT_GRAPH_SUCCESS(af::GraphUtils::AddEdge(one_values->GetAnchor(), node->G
 return graph.GetEsbTensorFromNode(std::move(node), 0);
 }
 EsbTensor *EsParallelDynamicStitch(EsbTensor **indices, int64_t indices_num, EsbTensor **x, int64_t x_num, int64_t N) {
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(indices_num));
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(x_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(indices_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(x_num));
 EsbTensor *non_null_in = nullptr;
 if (non_null_in == nullptr) {
 for (int64_t i = 0; i < indices_num; ++i) {
@@ -43565,7 +43565,7 @@ GE_ASSERT_GRAPH_SUCCESS(af::GraphUtils::AddEdge(x->GetAnchor(), node->GetInDataA
 return graph.GetEsbTensorFromNode(std::move(node), 0);
 }
 EsbTensor *EsPhonyConcat(EsbTensor **x, int64_t x_num, const int64_t *concat_dim, int64_t concat_dim_num, const int64_t *N, int64_t N_num, bool keep_input_offset) {
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(x_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(x_num));
 EsbTensor *non_null_in = nullptr;
 if (non_null_in == nullptr) {
 for (int64_t i = 0; i < x_num; ++i) {
@@ -44036,7 +44036,7 @@ GE_ASSERT_GRAPH_SUCCESS(af::GraphUtils::AddEdge(x->GetAnchor(), node->GetInDataA
 return graph.GetEsbTensorFromNode(std::move(node), 0);
 }
 EsbTensor *EsPrint(EsbTensor **x, int64_t x_num) {
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(x_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(x_num));
 EsbTensor *non_null_in = nullptr;
 if (non_null_in == nullptr) {
 for (int64_t i = 0; i < x_num; ++i) {
@@ -44102,7 +44102,7 @@ return graph.GetEsbTensorFromNode(std::move(node), -1);
 }
 EsbTensor *EsPrintV3(EsbTensor *x, EsbTensor **data, int64_t data_num, const char *message, int64_t first_n, int64_t summarize) {
 GE_ASSERT_NOTNULL(x);
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(data_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(data_num));
 auto &graph = x->GetOwner();
 
 auto desc = af::CompliantOpDescBuilder().OpType("PrintV3")
@@ -45536,7 +45536,7 @@ return graph.GetEsbTensorFromNode(std::move(node), -1);
 }
 EsbTensor *EsQueueEnqueue(EsbTensor *handle, EsbTensor **components, int64_t components_num, int64_t timeout_ms) {
 GE_ASSERT_NOTNULL(handle);
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(components_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(components_num));
 auto &graph = handle->GetOwner();
 
 auto desc = af::CompliantOpDescBuilder().OpType("QueueEnqueue")
@@ -45573,7 +45573,7 @@ return graph.GetEsbTensorFromNode(std::move(node), -1);
 }
 EsbTensor *EsQueueEnqueueMany(EsbTensor *handle, EsbTensor **components, int64_t components_num, int64_t timeout_ms) {
 GE_ASSERT_NOTNULL(handle);
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(components_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(components_num));
 auto &graph = handle->GetOwner();
 
 auto desc = af::CompliantOpDescBuilder().OpType("QueueEnqueueMany")
@@ -46178,7 +46178,7 @@ graph.GetEsbTensorFromNode(node, 1),
 };
 }
 EsRaggedTensorToSparseOutput EsRaggedTensorToSparse(EsbTensor **rt_nested_splits, int64_t rt_nested_splits_num, EsbTensor *rt_dense_values, int64_t RAGGED_RANK, af::DataType Tsplits) {
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(rt_nested_splits_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(rt_nested_splits_num));
 GE_ASSERT_NOTNULL(rt_dense_values);
 auto &graph = rt_dense_values->GetOwner();
 
@@ -47814,7 +47814,7 @@ GE_ASSERT_GRAPH_SUCCESS(af::GraphUtils::AddEdge(x->GetAnchor(), node->GetInDataA
 return graph.GetEsbTensorFromNode(std::move(node), 0);
 }
 EsRefMergeOutput EsRefMerge(EsbTensor **x, int64_t x_num) {
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(x_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(x_num));
 EsbTensor *non_null_in = nullptr;
 if (non_null_in == nullptr) {
 for (int64_t i = 0; i < x_num; ++i) {
@@ -49749,7 +49749,7 @@ GE_ASSERT_GRAPH_SUCCESS(af::GraphUtils::AddEdge(rois->GetAnchor(), node->GetInDa
 return graph.GetEsbTensorFromNode(std::move(node), 0);
 }
 EsbTensor *EsRoiExtractor(EsbTensor **features, int64_t features_num, EsbTensor *rois, EsbTensor *index, int64_t finest_scale, float roi_scale_factor, const float *spatial_scale, int64_t spatial_scale_num, int64_t pooled_height, int64_t pooled_width, int64_t sample_num, const char *pool_mode, bool aligned) {
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(features_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(features_num));
 GE_ASSERT_NOTNULL(rois);
 auto &graph = rois->GetOwner();
 
@@ -52644,7 +52644,7 @@ GE_ASSERT_GRAPH_SUCCESS(af::GraphUtils::AddEdge(index->GetAnchor(), node->GetInD
 return graph.GetEsbTensorFromNode(std::move(node), 0);
 }
 EsbTensor *EsSequenceConstruct(EsbTensor **inputs, int64_t inputs_num) {
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(inputs_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(inputs_num));
 EsbTensor *non_null_in = nullptr;
 if (non_null_in == nullptr) {
 for (int64_t i = 0; i < inputs_num; ++i) {
@@ -56036,9 +56036,9 @@ GE_ASSERT_GRAPH_SUCCESS(af::GraphUtils::AddEdge(weights->GetAnchor(), node->GetI
 return graph.GetEsbTensorFromNode(std::move(node), 0);
 }
 EsSparseConcatOutput EsSparseConcat(EsbTensor **indices, int64_t indices_num, EsbTensor **values, int64_t values_num, EsbTensor **shapes, int64_t shapes_num, int64_t concat_dim, int64_t N) {
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(indices_num));
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(values_num));
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(shapes_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(indices_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(values_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(shapes_num));
 EsbTensor *non_null_in = nullptr;
 if (non_null_in == nullptr) {
 for (int64_t i = 0; i < indices_num; ++i) {
@@ -56236,10 +56236,10 @@ graph.GetEsbTensorFromNode(node, 2),
 };
 }
 EsSparseCrossOutput EsSparseCross(EsbTensor **indices, int64_t indices_num, EsbTensor **values, int64_t values_num, EsbTensor **shapes, int64_t shapes_num, EsbTensor **dense_inputs, int64_t dense_inputs_num, bool hashed_output, int64_t hash_key, af::DataType out_type, af::DataType internal_type, int64_t N, int64_t num_buckets) {
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(indices_num));
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(values_num));
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(shapes_num));
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(dense_inputs_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(indices_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(values_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(shapes_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(dense_inputs_num));
 EsbTensor *non_null_in = nullptr;
 if (non_null_in == nullptr) {
 for (int64_t i = 0; i < indices_num; ++i) {
@@ -57878,7 +57878,7 @@ GE_ASSERT_GRAPH_SUCCESS(af::GraphUtils::AddEdge(element->GetAnchor(), node->GetI
 return graph.GetEsbTensorFromNode(std::move(node), 0);
 }
 EsbTensor *EsStage(EsbTensor **values, int64_t values_num, int64_t capacity, int64_t memory_limit, const char *container, const char *shared_name) {
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(values_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(values_num));
 EsbTensor *non_null_in = nullptr;
 if (non_null_in == nullptr) {
 for (int64_t i = 0; i < values_num; ++i) {
@@ -59573,7 +59573,7 @@ GE_ASSERT_GRAPH_SUCCESS(af::GraphUtils::AddEdge(x->GetAnchor(), node->GetInDataA
 return graph.GetEsbTensorFromNode(std::move(node), 0);
 }
 EsbTensor *EsStringFormat(EsbTensor **x, int64_t x_num, const char *attr_template, const char *placeholder, int64_t summarize) {
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(x_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(x_num));
 EsbTensor *non_null_in = nullptr;
 if (non_null_in == nullptr) {
 for (int64_t i = 0; i < x_num; ++i) {
@@ -59630,7 +59630,7 @@ GE_ASSERT_GRAPH_SUCCESS(af::GraphUtils::AddEdge(one_x->GetAnchor(), node->GetInD
 return graph.GetEsbTensorFromNode(std::move(node), 0);
 }
 EsbTensor *EsStringJoin(EsbTensor **x, int64_t x_num, int64_t N, const char *separator) {
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(x_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(x_num));
 EsbTensor *non_null_in = nullptr;
 if (non_null_in == nullptr) {
 for (int64_t i = 0; i < x_num; ++i) {
@@ -63362,11 +63362,11 @@ graph.GetEsbTensorFromNode(node, 1),
 };
 }
 EsTopKPQDistanceOutput EsTopKPQDistance(EsbTensor **actual_count, int64_t actual_count_num, EsbTensor **pq_distance, int64_t pq_distance_num, EsbTensor **grouped_extreme_distance, int64_t grouped_extreme_distance_num, EsbTensor **pq_ivf, int64_t pq_ivf_num, EsbTensor **pq_index, int64_t pq_index_num, int64_t k, int64_t group_size, const char *order) {
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(actual_count_num));
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(pq_distance_num));
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(grouped_extreme_distance_num));
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(pq_ivf_num));
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(pq_index_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(actual_count_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(pq_distance_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(grouped_extreme_distance_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(pq_ivf_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(pq_index_num));
 EsbTensor *non_null_in = nullptr;
 if (non_null_in == nullptr) {
 for (int64_t i = 0; i < actual_count_num; ++i) {
@@ -67116,7 +67116,7 @@ graph.GetEsbTensorFromNode(node, 1),
 };
 }
 EsYoloV3DetectionOutputV2Output EsYoloV3DetectionOutputV2(EsbTensor **x, int64_t x_num, const float *biases, int64_t biases_num, int64_t boxes, int64_t coords, int64_t classes, bool relative, float obj_threshold, int64_t post_nms_topn, float score_threshold, float iou_threshold, int64_t pre_nms_topn, int64_t N, bool resize_origin_img_to_net, int64_t out_box_dim) {
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(x_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(x_num));
 EsbTensor *non_null_in = nullptr;
 if (non_null_in == nullptr) {
 for (int64_t i = 0; i < x_num; ++i) {
@@ -67237,9 +67237,9 @@ graph.GetEsbTensorFromNode(node, 1),
 };
 }
 EsYoloV3DetectionOutputV2DOutput EsYoloV3DetectionOutputV2D(EsbTensor **x, int64_t x_num, EsbTensor **windex, int64_t windex_num, EsbTensor **hindex, int64_t hindex_num, const float *biases, int64_t biases_num, int64_t boxes, int64_t coords, int64_t classes, bool relative, float obj_threshold, int64_t post_nms_topn, float score_threshold, float iou_threshold, int64_t pre_nms_topn, int64_t N, bool resize_origin_img_to_net, int64_t out_box_dim) {
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(x_num));
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(windex_num));
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(hindex_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(x_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(windex_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(hindex_num));
 EsbTensor *non_null_in = nullptr;
 if (non_null_in == nullptr) {
 for (int64_t i = 0; i < x_num; ++i) {
@@ -67396,7 +67396,7 @@ graph.GetEsbTensorFromNode(node, 1),
 };
 }
 EsYoloV5DetectionOutputOutput EsYoloV5DetectionOutput(EsbTensor **x, int64_t x_num, const float *biases, int64_t biases_num, int64_t boxes, int64_t coords, int64_t classes, bool relative, float obj_threshold, int64_t post_nms_topn, float score_threshold, float iou_threshold, int64_t pre_nms_topn, int64_t N, bool resize_origin_img_to_net, int64_t out_box_dim, float alpha) {
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(x_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(x_num));
 EsbTensor *non_null_in = nullptr;
 if (non_null_in == nullptr) {
 for (int64_t i = 0; i < x_num; ++i) {
@@ -67523,9 +67523,9 @@ graph.GetEsbTensorFromNode(node, 1),
 };
 }
 EsYoloV5DetectionOutputDOutput EsYoloV5DetectionOutputD(EsbTensor **x, int64_t x_num, EsbTensor **windex, int64_t windex_num, EsbTensor **hindex, int64_t hindex_num, const float *biases, int64_t biases_num, int64_t boxes, int64_t coords, int64_t classes, bool relative, float obj_threshold, int64_t post_nms_topn, float score_threshold, float iou_threshold, int64_t pre_nms_topn, int64_t N, bool resize_origin_img_to_net, int64_t out_box_dim, float alpha) {
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(x_num));
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(windex_num));
-GE_ASSERT_TRUE(af::IntegerChecker<int32_t>::Compat(hindex_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(x_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(windex_num));
+GE_ASSERT_TRUE(ge::IntegerChecker<int32_t>::Compat(hindex_num));
 EsbTensor *non_null_in = nullptr;
 if (non_null_in == nullptr) {
 for (int64_t i = 0; i < x_num; ++i) {

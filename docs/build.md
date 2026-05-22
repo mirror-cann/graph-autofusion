@@ -178,6 +178,7 @@ bash build.sh --pkg
    | boost | 1.87.0 | https://gitcode.com/cann-src-third-party/boost/releases/download/v1.87.0/boost_1_87_0.tar.gz |
    | protobuf | 25.1 | https://gitcode.com/cann-src-third-party/protobuf/releases/download/v25.1/protobuf-25.1.tar.gz |
    | symengine | 0.12.0 | https://gitcode.com/cann-src-third-party/symengine/releases/download/v0.12.0/symengine-0.12.0.tar.gz |
+   | googletest | 1.14.0 | https://gitcode.com/cann-src-third-party/googletest/releases/download/v1.14.0/googletest-1.14.0.tar.gz |
 
 2. 将下载的包拷贝到编译环境的 `output/third_party/` 对应子目录下（如不存在则创建）：
 
@@ -191,6 +192,7 @@ bash build.sh --pkg
    # boost_1_87_0.tar.gz           → output/third_party/boost/
    # protobuf-25.1.tar.gz          → output/third_party/protoc/
    # symengine-0.12.0.tar.gz       → output/third_party/symengine/
+   # googletest-1.14.0.tar.gz      → output/third_party/gtest/
    ```
 
 3. 执行编译时，通过 `--cann_3rd_lib_path` 指定本地路径，跳过下载步骤：
@@ -210,7 +212,7 @@ bash build.sh --pkg
 - UT 验证
 
    ```bash
-   bash build.sh -u
+   bash build.sh -u --cann_3rd_lib_path=$(pwd)/output/third_party
    ```
 
    执行完成后根据输出日志查看UT测试执行情况，用例执行成功会打印`passed`并且无`failed`打印，确认所有测试用例通过。
@@ -218,7 +220,7 @@ bash build.sh --pkg
 - ST 验证
 
    ```bash
-   bash build.sh -s
+   bash build.sh -s --cann_3rd_lib_path=$(pwd)/output/third_party
    ```
 
    执行完成后根据输出日志查看ST测试执行情况，用例执行成功会打印`passed`并且无`failed`打印，确认所有测试用例通过。
@@ -226,9 +228,9 @@ bash build.sh --pkg
 - 覆盖率验证
 
    ```bash
-   bash build.sh -u -c  # UT 覆盖率
-   bash build.sh -s -c  # ST 覆盖率
-   bash build.sh -c     # UT 覆盖率 + ST 覆盖率
+   bash build.sh -u -c --cann_3rd_lib_path=$(pwd)/output/third_party  # UT 覆盖率
+   bash build.sh -s -c --cann_3rd_lib_path=$(pwd)/output/third_party  # ST 覆盖率
+   bash build.sh -c --cann_3rd_lib_path=$(pwd)/output/third_party     # UT 覆盖率 + ST 覆盖率
    ```
 
    执行完成后根据输出日志查看覆盖率情况，确认所有测试用例通过。

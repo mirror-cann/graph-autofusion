@@ -21,11 +21,8 @@ function(do_backend_e2e_st_test)
     foreach(file ${ARG_KERNEL_SRC})
         list(APPEND KERNEL_SRC "${ARG_WORKDIR}/${file}")
     endforeach()
-    foreach(file ${KERNEL_SRC})
-        if(NOT EXISTS "${file}")
-            file(TOUCH "${file}")
-        endif()
-    endforeach()
+    set_source_files_properties(${KERNEL_SRC} PROPERTIES GENERATED TRUE)
+
     set(E2E_ST1_GENERATOR_EXE_NAME ${TEST_NAME}_codegen)
     set(E2E_ST2_EXE_KERNEL_EXE_NAME ${TEST_NAME}_e2e)
 
@@ -61,7 +58,14 @@ function(do_backend_e2e_st_test)
     add_test(NAME ${E2E_ST1_GENERATOR_EXE_NAME} COMMAND ${E2E_ST1_GENERATOR_EXE_NAME} --gtest_output=xml:${CMAKE_INSTALL_PREFIX}/report/st/${E2E_ST1_GENERATOR_EXE_NAME}.xml)
     set_tests_properties(${E2E_ST1_GENERATOR_EXE_NAME} PROPERTIES LABELS "st;build_backend_test1;${E2E_ST1_GENERATOR_EXE_NAME}")
 
+    add_custom_target(${TEST_NAME}_generated_sources
+                      COMMAND $<TARGET_FILE:${E2E_ST1_GENERATOR_EXE_NAME}>
+                      WORKING_DIRECTORY ${ARG_WORKDIR}
+                      BYPRODUCTS ${KERNEL_SRC}
+                      DEPENDS ${E2E_ST1_GENERATOR_EXE_NAME})
+
     add_executable(${E2E_ST2_EXE_KERNEL_EXE_NAME} ${KERNEL_SRC} ${ARG_TEST_SRC})
+    add_dependencies(${E2E_ST2_EXE_KERNEL_EXE_NAME} ${TEST_NAME}_generated_sources)
     target_include_directories(${E2E_ST2_EXE_KERNEL_EXE_NAME} PRIVATE ${ARG_WORKDIR})
     target_link_libraries(${E2E_ST2_EXE_KERNEL_EXE_NAME} -Wl,--start-group dl platform graph_af metadef graph_base_af tikicpulib_ascend910B1 GTest::gtest GTest::gtest_main -Wl,--end-group)
     target_link_libraries(${E2E_ST2_EXE_KERNEL_EXE_NAME} unified_dlog)

@@ -67,6 +67,11 @@ find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
 if (ENABLE_OPEN_SRC)
     add_cann_third_party(json)
     add_cann_third_party(gtest)
+    foreach(gtest_target GTest::gtest GTest::gtest_main GTest::gmock GTest::gmock_main)
+        if (TARGET ${gtest_target})
+            set_property(TARGET ${gtest_target} APPEND PROPERTY INTERFACE_LINK_LIBRARIES pthread)
+        endif ()
+    endforeach()
     add_cann_third_party(boost)
     add_cann_third_party(symengine)
     add_cann_third_party(protobuf)
@@ -109,7 +114,7 @@ if (ENABLE_OPEN_SRC)
             ${RUNTIME_PKG_INC}/runtime/runtime
             ${RUNTIME_PKG_INC}/profiling
             ${SLOG_INC_DIR}
-            ${ASCEND_INSTALL_PATH}/x86_64-linux/include/acl/error_codes
+            ${ASCEND_INSTALL_PATH}/${CMAKE_SYSTEM_PROCESSOR}-linux/include/acl/error_codes
             ${CMAKE_CURRENT_SOURCE_DIR}/depends/securec
         )
     endif()
@@ -130,6 +135,8 @@ if (ENABLE_OPEN_SRC)
         )
     endif()
 
+    set(RUNTIME_ACL_ERROR_CODES_DIR "${ASCEND_INSTALL_PATH}/${CMAKE_SYSTEM_PROCESSOR}-linux/include/acl/error_codes")
+
     if (NOT TARGET runtime_headers)
         add_library(runtime_headers INTERFACE)
         target_include_directories(runtime_headers INTERFACE
@@ -138,8 +145,10 @@ if (ENABLE_OPEN_SRC)
             ${RUNTIME_PKG_INC}/runtime/runtime
             ${RUNTIME_PKG_INC}/profiling
             ${SLOG_INC_DIR}
-            ${ASCEND_INSTALL_PATH}/x86_64-linux/include/acl/error_codes
+            ${RUNTIME_ACL_ERROR_CODES_DIR}
         )
+    else()
+        set_property(TARGET runtime_headers APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${RUNTIME_ACL_ERROR_CODES_DIR})
     endif()
 
     if (NOT TARGET c_sec)

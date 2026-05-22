@@ -195,8 +195,8 @@ build_ascgen-dev() {
   ORIGINAL_LD_LIBRARY_PATH=$LD_LIBRARY_PATH
   unset LD_LIBRARY_PATH
   export BUILD_METADEF=${BUILD_METADEF}
-  env
 
+  rm -f CMakeCache.txt
   cmake $CMAKE_ARGS ${BASEPATH}
 
   make -j${THREAD_NUM} pyautofuse

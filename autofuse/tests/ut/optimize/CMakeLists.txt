@@ -56,4 +56,5 @@ target_link_libraries(optimize_ut ${ASCGEN_COMMON_LINK_OPTION}
         e2e
         easy_asc_graph
         GTest::gtest
+        pthread
 )

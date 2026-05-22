@@ -98,6 +98,7 @@ TEST_F(LoadRsumBlkStoreSt, reduceSumTest) {
          // lib + 用例文件夹名 + _gen_tiling.so
         .tiling_lib_path = ATT_SO_NAME, .tiling_lib_codegen_symbol = "CodegenTiling", .using_att_calc_qbt_size = false});
     std::fstream kernel_file_int32_blk(kernel_src_file_name_int32_block, std::ios::out);
+    std::fstream tiling_file_int32_blk(tiling_src_file_name_int32_block, std::ios::out);
 
     ascir::ScheduledResult schedule_result_int32_blk;
     std::vector<ascir::ScheduledResult> schedule_results_int32_blk{schedule_result_int32_blk};
