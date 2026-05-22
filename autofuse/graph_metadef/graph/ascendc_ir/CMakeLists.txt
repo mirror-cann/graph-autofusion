@@ -33,21 +33,17 @@ target_link_options(aihac_ir PRIVATE
 
 target_link_libraries(aihac_ir
     PRIVATE
-        intf_pub
+        af_intf_pub
         static_mmpa
-        -Wl,--no-as-needed
         c_sec
         unified_dlog
         json
         platform
-        -Wl,--as-needed
-        ascend_protobuf
-        $<$<NOT:$<STREQUAL:${TARGET_SYSTEM_NAME},Android>>:-lrt>
-        -ldl
         graph_af
         graph_base_af
-        error_manager
         aihac_symbolizer_af
+        error_manager
+        ascend_protobuf
         metadef_headers
     PUBLIC
         metadef_headers_af

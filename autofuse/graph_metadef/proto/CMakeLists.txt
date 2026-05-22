@@ -39,7 +39,7 @@ add_dependencies(metadef_graph_protos_obj_af metadef_protos_af)
 target_compile_definitions(metadef_graph_protos_obj_af PRIVATE
         google=ascend_private
         )
-target_link_libraries(metadef_graph_protos_obj_af PRIVATE ascend_protobuf intf_pub autofuse_shared_visibility)
+target_link_libraries(metadef_graph_protos_obj_af PRIVATE ascend_protobuf af_intf_pub autofuse_shared_visibility)
 target_compile_options(metadef_graph_protos_obj_af PRIVATE
         $<$<STREQUAL:${TARGET_SYSTEM_NAME},Linux>:-O2 -fPIC -Wextra -Wfloat-equal>
         $<$<OR:$<STREQUAL:${PRODUCT_SIDE},host>,$<STREQUAL:${ENABLE_OPEN_SRC},True>>:-fexceptions>
@@ -54,7 +54,7 @@ add_dependencies(metadef_attr_group_protos_obj_af metadef_protos_af)
 target_compile_definitions(metadef_attr_group_protos_obj_af PRIVATE
         google=ascend_private
         )
-target_link_libraries(metadef_attr_group_protos_obj_af PRIVATE ascend_protobuf intf_pub autofuse_shared_visibility)
+target_link_libraries(metadef_attr_group_protos_obj_af PRIVATE ascend_protobuf af_intf_pub autofuse_shared_visibility)
 target_compile_options(metadef_attr_group_protos_obj_af PRIVATE
         $<$<STREQUAL:${TARGET_SYSTEM_NAME},Linux>:-O2 -fPIC -Wextra -Wfloat-equal>
         $<$<OR:$<STREQUAL:${PRODUCT_SIDE},host>,$<STREQUAL:${ENABLE_OPEN_SRC},True>>:-fexceptions>
