@@ -199,14 +199,13 @@ SkBindMap InitSuperKernelBindMap(aclrtBinHandle binHdl)
 }
 
 namespace {
-constexpr uint32_t F_TYPE_AIV_TYPE_FLAG = 12U;
 constexpr uint32_t AIV_TYPE_SIMT_VF_ONLY = 3U;
 constexpr uint32_t AIV_TYPE_SIMD_SIMT_MIX_VF = 4U;
 
 bool IsSimtKernel(aclrtFuncHandle funcHandle) {
     uint32_t aivType = 0;
     rtError_t ret = rtFunctionGetMetaInfo(funcHandle,
-        static_cast<rtFunctionMetaType>(F_TYPE_AIV_TYPE_FLAG),
+        RT_FUNCTION_TYPE_AIV_TYPE_FLAG,
         &aivType, sizeof(uint32_t));
     
     if (ret != RT_ERROR_NONE) {
