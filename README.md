@@ -19,7 +19,7 @@ Graph-autofusion 是一个面向昇腾（Ascend）芯片的轻量级、解耦式
 
 ## ⚡️快速入门
 
-- 若您想体验 Graph-autofusion 的完整构建、测试与样例运行流程，请参考：[构建验证](docs/build.md)
+- 若您想体验 Graph-autofusion 的完整构建、测试与样例运行流程，请参考：[构建验证](docs/zh/build.md)
 - 若您希望了解 SuperKernel 组件的原理与使用，请参考： [SuperKernel 简介](super_kernel/README.md)。
 - 若您希望了解 Autofuse 组件的原理与使用，请参考： [Autofuse 简介与快速上手](autofuse/README.md)。
 

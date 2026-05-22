@@ -10,7 +10,7 @@ sk1 融合 GroupedMatmul+GroupedMatmul+MoeGatingTopK 三个算子
 ```
 with torchair.scope.super_kernel("sk1"): 
 ```
-详细功能介绍见[图内标定SuperKernel范围](https://www.hiascend.com/document/detail/zh/Pytorch/710/modthirdparty/torchairuseguide/torchair_00035.html)
+详细功能介绍见[图内标定SuperKernel范围](https://www.hiascend.com/document/redirect/PytorchTorchairSuperKernel)。
 
 ## 执行命令
 

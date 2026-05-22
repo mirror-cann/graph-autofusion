@@ -88,7 +88,7 @@ git clone https://gitcode.com/cann/graph-autofusion.git
 
 以下所列为源码编译用到的依赖，请注意版本要求：
 > [!NOTE] 注意
-> 如使用镜像方式进行项目体验，所有依赖已包含在[init_env.sh](../scripts/init_env.sh)中，可跳过此安装依赖步骤。
+> 如使用镜像方式进行项目体验，所有依赖已包含在[init_env.sh](../../scripts/init_env.sh)中，可跳过此安装依赖步骤。
 
 - Python3 >= 3.8.0 (建议使用Python虚拟环境)
   > [!NOTE] 说明
@@ -132,7 +132,7 @@ bash scripts/check_env.sh
 | **[ERROR]** | 关键依赖缺失或版本不兼容 | 必须修复，否则无法编译 |
 
 > [!NOTE] 注意
-> 环境检查脚本中所有的检查项和版本约束严格来源于 docs/build.md 和 super_kernel/requirements-dev.txt，如文档和依赖更新，请同步修改[脚本](../scripts/check_env.sh)。
+> 环境检查脚本中所有的检查项和版本约束严格来源于 docs/build.md 和 super_kernel/requirements-dev.txt，如文档和依赖更新，请同步修改[脚本](../../scripts/check_env.sh)。
 
 ### 4.3 编译
 
@@ -207,7 +207,7 @@ bash build.sh --pkg
 
 ### 4.4 测试验证
 
-编译完成后，用户可以进行开发者测试，在执行本章节操作之前，确保已完成[环境准备](#环境准备)。
+编译完成后，用户可以进行开发者测试，在执行本章节操作之前，确保已完成[环境准备](./quick_install.md#1-环境准备)。
 
 - UT 验证
 
@@ -265,4 +265,4 @@ bash build.sh --pkg
   ./cann-graph-autofusion_${cann_version}_linux-${arch}.run --uninstall
   ```  
 
-**安装完成后可参考[样例运行](../super_kernel/examples/README.md)尝试运行样例**。  
+**安装完成后可参考[样例运行](../../super_kernel/examples/README.md)尝试运行样例**。  

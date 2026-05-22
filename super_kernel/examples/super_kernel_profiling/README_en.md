@@ -1,45 +1,49 @@
-# super_kernel 用例演示
+# super_kernel Use Case Demonstration
 
-## 用例功能
+## Use Case Function
 
-模型包含6个sk片段，部分sk相同复用缓存，部分多了可输入bias或option配置不同走在线编译
+Model contains 6 sk fragments. Some sk are identical and reuse cache, some add optional input bias or different option configurations requiring online compilation.
 
-编译使用super_kernel和不使用super_kernel的模型，将性能数据输出
+Compile models using super_kernel and not using super_kernel, output performance data.
 
-## 融合算子
+## Operator Fusion
 
-使用如下with语句块（super_kernel），语句块内算子均被融合为一个超级Kernel进行计算
+Use the following with statement block (super_kernel). Operators within the statement block are all fused into one super kernel for computation:
 ```
 with torchair.scope.super_kernel("sk1"): 
 ```
-详细功能介绍见[图内标定SuperKernel范围](https://www.hiascend.com/document/redirect/PytorchTorchairSuperKernel)。
-## 执行命令
+For detailed function introduction, see [Mark SuperKernel Scope in Graph](https://www.hiascend.com/document/redirect/PytorchTorchairSuperKernel).
+
+## Execution Command
 
 ```
 python3 superkernel_compare.py
 ```
 
-## 预期执行结果
+## Expected Execution Result
 
-执行后打印显示success
+After execution, print shows success:
 ```
 execute sample success
 ```
-在执行目录生成prof_result文件夹，目录如下，获取数据后对比耗时
+
+A prof_result folder is generated in execution directory with the following structure. After obtaining data, compare time consumption:
 ```
 prof_result
-├── sk_model                             # 带superkernel结果
+├── sk_model                             # with superkernel result
 │  ├── localhost.localdomain_ascend_pt   
 │     ├── PROF_*                         
 │        ├── mindstudio_profiler_output   
-│           ├── op_statistic.csv         # profiling数据
-├── no_sk_model                          # 不带superkernel结果
+│           ├── op_statistic.csv         # profiling data
+├── no_sk_model                          # without superkernel result
 │  ├── localhost.localdomain_ascend_pt   
 │     ├── PROF_*                         
 │        ├── mindstudio_profiler_output   
-│           ├── op_statistic.csv         # profiling数据
+│           ├── op_statistic.csv         # profiling data
 ```
-分别从两份op_statistic.csv表中得到如下数据
+
+Extract the following data from both op_statistic.csv files respectively:
+
 | OP_Type | Core Type | Total Time(us) |
 |--|--|--|
 | GroupedMatmul | MIX_AIC | 126.26 |
@@ -56,7 +60,7 @@ prof_result
 | Data |  AI_VECTOR_CORE| 3.3 |
 | StridedSliceD | AI_VECTOR_CORE |3.18  |
 | AutomaticBufferFusionOp |AI_VECTOR_CORE  |1.66  |
-|no_sk_model|总耗时|407.54|
+|no_sk_model|Total Time|407.54|
 
 | OP_Type | Core Type | Total Time(us) |
 |--|--|--|
@@ -73,6 +77,6 @@ prof_result
 |Data |AI_VECTOR_CORE | 3.72|
 |StridedSliceD |AI_VECTOR_CORE |3.1 |
 |AutomaticBufferFusionOp |AI_VECTOR_CORE | 1.76|
-|sk_model|总耗时|384.66|
+|sk_model|Total Time|384.66|
 
-对比获得使用super_kernel融合算子的收益是5.61%
+Compare to obtain that using super_kernel operator fusion benefit is 5.61%

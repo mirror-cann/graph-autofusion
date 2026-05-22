@@ -14,7 +14,7 @@
    └── superkernel_runtime_ascendc_basic.py  # 通过ascendc编译super_kernel完成算子融合，并使用runtime运行时环境执行
 ```
 ## 前置说明
-请务必参考[《源码构建指南》](../../docs/build.md)完成前置环境准备。
+请务必参考[《源码构建指南》](../../docs/zh/build.md)完成前置环境准备。
 
 ## 依赖安装
 
