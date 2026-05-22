@@ -28,9 +28,9 @@ target_include_directories(aihac_ir_register PRIVATE
     ${GENERATOR_DIR}
 )
 
-target_link_libraries(aihac_ir_register PRIVATE runtime_headers metadef_headers)
+target_link_libraries(aihac_ir_register PRIVATE runtime_headers)
 target_link_libraries(aihac_ir_register PRIVATE
-    af_intf_pub
+    intf_pub
     -Wl,--no-as-needed
     $<$<NOT:$<STREQUAL:${TARGET_SYSTEM_NAME},Android>>:-lrt>
     -ldl
@@ -73,7 +73,7 @@ target_include_directories(ascir_generate PRIVATE
 )
 
 target_link_libraries(ascir_generate PRIVATE
-    af_intf_pub
+    intf_pub
     -Wl,--no-as-needed
     $<$<NOT:$<STREQUAL:${TARGET_SYSTEM_NAME},Android>>:-lrt>
     -ldl

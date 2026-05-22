@@ -25,7 +25,7 @@ target_link_options(ascir_builtin_ops PRIVATE
 target_link_libraries(ascir_builtin_ops PRIVATE
         aihac_ir_register
         ascend_protobuf
-        $<BUILD_INTERFACE:af_intf_pub>
+        $<BUILD_INTERFACE:intf_pub>
         metadef_headers
         )
 

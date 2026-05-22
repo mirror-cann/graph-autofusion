@@ -63,6 +63,9 @@ target_include_directories(ascendsk PUBLIC
     )
 target_link_libraries(ascendsk PRIVATE c_sec_headers runtime_headers)
 target_link_libraries(ascendsk PUBLIC sk_scope acl_rt acl_rtc ascendcl ascend_dump runtime error_manager c_sec unified_dlog ascendc_runtime profapi profimpl msprofiler json)
+target_link_directories(ascendsk PUBLIC
+$ENV{ASCEND_HOME_PATH}/lib64
+)
 
 if(ENABLE_CPP_UTEST OR ENABLE_RDV_UTEST)
     add_subdirectory(tests/aot)
