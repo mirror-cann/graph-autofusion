@@ -1276,6 +1276,23 @@ TEST_F(SkNodeTest, KernelInfosToJson_WithTaskRatio)
     EXPECT_EQ(json["taskRatio"][1], 10);
 }
 
+TEST_F(SkNodeTest, KernelInfosToJson_WithSimtOpFlag)
+{
+    KernelInfos info;
+    info.funcName = "simt_kernel";
+    info.isSimtOp = true;
+    
+    Json json = KernelInfosToJson(info);
+    
+    EXPECT_TRUE(json.contains("isSimtOp"));
+    EXPECT_EQ(json["isSimtOp"], true);
+    
+    info.isSimtOp = false;
+    json = KernelInfosToJson(info);
+    EXPECT_TRUE(json.contains("isSimtOp"));
+    EXPECT_EQ(json["isSimtOp"], false);
+}
+
 // ==================== SyncInfosToJson Extended Tests ====================
 
 TEST_F(SkNodeTest, SyncInfosToJson_WithCorrespondingNodes)
@@ -1466,7 +1483,7 @@ TEST_F(SkNodeTest, KernelInfos_FormatWithSimtFlag)
     infos.funcName = "test_kernel";
     infos.isSimtOp = true;
     std::string formatted = infos.Format();
-    EXPECT_TRUE(formatted.find("isSimtOp") != std::string::npos);
+    EXPECT_TRUE(formatted.find("isSimtOp:1") != std::string::npos);
     
     infos.isSimtOp = false;
     formatted = infos.Format();
