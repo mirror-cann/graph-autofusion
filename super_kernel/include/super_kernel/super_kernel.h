@@ -62,7 +62,6 @@ enum class aclskOptionType : uint32_t {
 enum class SkInnerOptionType : uint32_t {
     ENABLE_MIX_KERNEL_SPLIT = 0,
     ENABLE_SIMT_OP_CHECK = 1,
-    SOC_NAME = 2,
     SK_INNER_OPTION_MAX
 };
 

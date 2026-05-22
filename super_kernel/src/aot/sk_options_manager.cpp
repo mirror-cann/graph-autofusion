@@ -130,10 +130,6 @@ const std::array<DefaultInnerOptionFactoryEntry, static_cast<size_t>(SkInnerOpti
             return std::make_unique<NumberOptOption>("enable_simt_op_check",
                 aclskOptionType::SK_OPTION_MAX, 0, 0, 1);
         }},
-        {SkInnerOptionType::SOC_NAME, []() -> std::unique_ptr<OptOptionBase> {
-            return std::make_unique<StringOptOption>("soc_name",
-                aclskOptionType::SK_OPTION_MAX, "");
-        }},
     }};
 
 const DefaultInnerOptionFactoryEntry* FindDefaultInnerOptionFactory(SkInnerOptionType optType)
@@ -529,11 +525,6 @@ void SuperKernelOptionsManager::ApplySoCSpecificOptions()
     std::string socName = GetSocName();
     bool isAscend950 = socName.find("Ascend950") != std::string::npos;
     
-    auto* socNameOpt = GetOption(SkInnerOptionType::SOC_NAME);
-    if (socNameOpt != nullptr) {
-        socNameOpt->SetValue(socName);
-    }
-    
     if (isAscend950) {
         auto* mixSplitOpt = GetOption(SkInnerOptionType::ENABLE_MIX_KERNEL_SPLIT);
         if (mixSplitOpt != nullptr) {
@@ -917,9 +908,6 @@ nlohmann::ordered_json SuperKernelOptionsManager::ToJson() const
             case SkInnerOptionType::ENABLE_MIX_KERNEL_SPLIT:
             case SkInnerOptionType::ENABLE_SIMT_OP_CHECK:
                 optJson["value"] = opt->GetIntValue();
-                break;
-            case SkInnerOptionType::SOC_NAME:
-                optJson["value"] = opt->GetStringValue();
                 break;
             default:
                 optJson["value"] = nullptr;
