@@ -111,7 +111,7 @@ target_link_options(att_ut PRIVATE
         )
 
 target_link_libraries(att_ut PRIVATE
-        GTest::gtest GTest::gmock GTest::gtest_main -lgcov
+        GTest::gtest GTest::gmock GTest::gtest_main -lgcov pthread
         -Wl,--no-as-needed
         att
         asc_slog_stub
