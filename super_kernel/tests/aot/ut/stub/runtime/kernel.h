@@ -67,6 +67,8 @@ int rtBinaryGetMetaInfo(void* binHdl, int type_enum, size_t metaNum, void** data
 int rtGetBinBuffer(void* binHdl, int addrType, void** buffer, uint32_t* size);
 int rtFunctionGetMetaInfo(void* funcHandle, int type_enum, void* data, uint32_t length);
 
+void SetSimtAivType(uint32_t aivType);
+
 #ifdef __cplusplus
 }
 #endif

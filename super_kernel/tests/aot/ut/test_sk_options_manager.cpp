@@ -1507,3 +1507,57 @@ TEST_F(SuperKernelOptionsManagerTest, ToJson_UbufLockIgnoreKernelNullKernelList)
     ASSERT_TRUE(json["ubuf_lock_ignore_kernel"]["value"].is_array());
     EXPECT_TRUE(json["ubuf_lock_ignore_kernel"]["value"].empty());
 }
+
+TEST_F(SuperKernelOptionsManagerTest, GetInnerOption_EnableMixKernelSplit)
+{
+    auto* opt = opts_test->GetOption(SkInnerOptionType::ENABLE_MIX_KERNEL_SPLIT);
+    ASSERT_NE(opt, nullptr);
+    EXPECT_EQ(opt->GetName(), "enable_mix_kernel_split");
+    EXPECT_EQ(opt->GetIntValue(), 0);
+}
+
+TEST_F(SuperKernelOptionsManagerTest, GetInnerOption_EnableSimtOpCheck)
+{
+    auto* opt = opts_test->GetOption(SkInnerOptionType::ENABLE_SIMT_OP_CHECK);
+    ASSERT_NE(opt, nullptr);
+    EXPECT_EQ(opt->GetName(), "enable_simt_op_check");
+    EXPECT_EQ(opt->GetIntValue(), 0);
+}
+
+TEST_F(SuperKernelOptionsManagerTest, GetInnerOption_InvalidType)
+{
+    auto* opt = opts_test->GetOption(static_cast<SkInnerOptionType>(100));
+    EXPECT_EQ(opt, nullptr);
+}
+
+TEST_F(SuperKernelOptionsManagerTest, ToJson_InnerOptionsContent)
+{
+    nlohmann::ordered_json json = opts_test->ToJson();
+    ASSERT_TRUE(json.contains("inner_options"));
+    EXPECT_TRUE(json["inner_options"].contains("enable_mix_kernel_split"));
+    EXPECT_TRUE(json["inner_options"].contains("enable_simt_op_check"));
+    EXPECT_EQ(json["inner_options"]["enable_mix_kernel_split"]["value"], 0);
+    EXPECT_EQ(json["inner_options"]["enable_simt_op_check"]["value"], 0);
+}
+
+TEST_F(SuperKernelOptionsManagerTest, ApplySoCSpecificOptions_NonAscend950)
+{
+    opts_test->RegisterDefaultOptions();
+    auto* mixSplitOpt = opts_test->GetOption(SkInnerOptionType::ENABLE_MIX_KERNEL_SPLIT);
+    auto* simtCheckOpt = opts_test->GetOption(SkInnerOptionType::ENABLE_SIMT_OP_CHECK);
+    ASSERT_NE(mixSplitOpt, nullptr);
+    ASSERT_NE(simtCheckOpt, nullptr);
+    EXPECT_EQ(mixSplitOpt->GetIntValue(), 0);
+    EXPECT_EQ(simtCheckOpt->GetIntValue(), 0);
+}
+
+TEST_F(SuperKernelOptionsManagerTest, SetInnerOptionValue)
+{
+    auto* opt = opts_test->GetOption(SkInnerOptionType::ENABLE_MIX_KERNEL_SPLIT);
+    ASSERT_NE(opt, nullptr);
+    opt->SetValue(1);
+    EXPECT_EQ(opt->GetIntValue(), 1);
+    
+    nlohmann::ordered_json json = opts_test->ToJson();
+    EXPECT_EQ(json["inner_options"]["enable_mix_kernel_split"]["value"], 1);
+}
