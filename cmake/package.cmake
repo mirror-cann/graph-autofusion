@@ -47,14 +47,14 @@ set(SCRIPTS_FILES
     ${CANN_CMAKE_DIR}/scripts/install/common_interface.csh
     ${CANN_CMAKE_DIR}/scripts/install/common_interface.fish
     ${CANN_CMAKE_DIR}/scripts/install/version_compatiable.inc
-    ${CMAKE_SOURCE_DIR}/scripts/package/graph_autofusion/scripts/cleanup.sh
-    ${CMAKE_SOURCE_DIR}/scripts/package/graph_autofusion/scripts/help.info
-    ${CMAKE_SOURCE_DIR}/scripts/package/graph_autofusion/scripts/install.sh
-    ${CMAKE_SOURCE_DIR}/scripts/package/graph_autofusion/scripts/run_graph_autofusion_install.sh
-    ${CMAKE_SOURCE_DIR}/scripts/package/graph_autofusion/scripts/run_graph_autofusion_uninstall.sh
-    ${CMAKE_SOURCE_DIR}/scripts/package/graph_autofusion/scripts/run_graph_autofusion_upgrade.sh
-    ${CMAKE_SOURCE_DIR}/scripts/package/graph_autofusion/scripts/uninstall.sh
-    ${CMAKE_SOURCE_DIR}/scripts/package/graph_autofusion/scripts/ver_check.sh
+    ${CMAKE_CURRENT_SOURCE_DIR}/scripts/package/graph_autofusion/scripts/cleanup.sh
+    ${CMAKE_CURRENT_SOURCE_DIR}/scripts/package/graph_autofusion/scripts/help.info
+    ${CMAKE_CURRENT_SOURCE_DIR}/scripts/package/graph_autofusion/scripts/install.sh
+    ${CMAKE_CURRENT_SOURCE_DIR}/scripts/package/graph_autofusion/scripts/run_graph_autofusion_install.sh
+    ${CMAKE_CURRENT_SOURCE_DIR}/scripts/package/graph_autofusion/scripts/run_graph_autofusion_uninstall.sh
+    ${CMAKE_CURRENT_SOURCE_DIR}/scripts/package/graph_autofusion/scripts/run_graph_autofusion_upgrade.sh
+    ${CMAKE_CURRENT_SOURCE_DIR}/scripts/package/graph_autofusion/scripts/uninstall.sh
+    ${CMAKE_CURRENT_SOURCE_DIR}/scripts/package/graph_autofusion/scripts/ver_check.sh
 )
 
 install(FILES ${SCRIPTS_FILES}
