@@ -559,107 +559,92 @@ void SuperKernelOptionsManager::SetOptOptionValue(const aclskOption* option) {
         return;
     }
     auto type = option->optionType;
-    if (optionMap.find(type) == optionMap.end()) {
+    auto iter = optionMap.find(type);
+    if (iter == optionMap.end()) {
         const auto* entry = FindDefaultOptionFactory(type);
         if (entry != nullptr) {
             optionMap[type] = entry->factory();
+            iter = optionMap.find(type);
         }
     }
-    switch (option->optionType) {
+    if (iter == optionMap.end()) {
+        SK_LOGI("Optiontype: %d is not support now", static_cast<int>(type));
+        return;
+    }
+    auto* subOption = iter->second.get();
+    switch (type) {
         case aclskOptionType::PRELOAD_CODE:
-            {
-                auto subOption = GetOption(option->optionType);
-                if (subOption != nullptr) {
-                    subOption->SetValue(option->preload.preloadMode);
-                }
-                break;
-            }
+            subOption->SetValue(option->preload.preloadMode);
+            break;
         case aclskOptionType::SPLIT_MODE:
-            {
-                auto subOption = GetOption(option->optionType);
-                if (subOption != nullptr) {
-                    subOption->SetValue(option->splitMode.splitCnt);
-                }
-                break;
-            }
+            subOption->SetValue(option->splitMode.splitCnt);
+            break;
         case aclskOptionType::DCCI_DISABLE_ON_KERNEL:
             {
-                auto subOption = GetOption(option->optionType);
-                if (subOption != nullptr) {
-                    std::vector<std::string> vecValue;
-                    const size_t kernelCnt = static_cast<size_t>(option->disableKernelDcci.kernelCnt);
-                    if (kernelCnt > 0 && option->disableKernelDcci.kernelNames == nullptr) {
-                        SK_LOGW("OptionName:%s, kernelNames is nullptr while kernelCnt is %zu",
-                            subOption->GetName().c_str(), kernelCnt);
-                        break;
-                    }
-                    vecValue.reserve(kernelCnt);
-                    for (size_t i = 0; i < kernelCnt; i++) {
-                        if (option->disableKernelDcci.kernelNames[i] == nullptr) {
-                            SK_LOGW("OptionName:%s, kernelNames[%zu] is nullptr, skip",
-                                subOption->GetName().c_str(), i);
-                            continue;
-                        }
-                        vecValue.push_back(std::string(option->disableKernelDcci.kernelNames[i]));
-                    }
-                    subOption->SetValue(vecValue);
+                std::vector<std::string> vecValue;
+                const size_t kernelCnt = static_cast<size_t>(option->disableKernelDcci.kernelCnt);
+                if (kernelCnt > 0 && option->disableKernelDcci.kernelNames == nullptr) {
+                    SK_LOGW("OptionName:%s, kernelNames is nullptr while kernelCnt is %zu",
+                        subOption->GetName().c_str(), kernelCnt);
+                    break;
                 }
+                vecValue.reserve(kernelCnt);
+                for (size_t i = 0; i < kernelCnt; i++) {
+                    if (option->disableKernelDcci.kernelNames[i] == nullptr) {
+                        SK_LOGW("OptionName:%s, kernelNames[%zu] is nullptr, skip",
+                            subOption->GetName().c_str(), i);
+                        continue;
+                    }
+                    vecValue.push_back(std::string(option->disableKernelDcci.kernelNames[i]));
+                }
+                subOption->SetValue(vecValue);
                 break;
             }
         case aclskOptionType::DCCI_BEFORE_KERNEL_START:
             {
-                auto subOption = GetOption(option->optionType);
-                if (subOption != nullptr) {
-                    std::vector<std::string> vecValue;
-                    const size_t kernelCnt = static_cast<size_t>(option->dcciBeforeKernelStart.kernelCnt);
-                    if (kernelCnt > 0 && option->dcciBeforeKernelStart.kernelNames == nullptr) {
-                        SK_LOGW("OptionName:%s, kernelNames is nullptr while kernelCnt is %zu",
-                            subOption->GetName().c_str(), kernelCnt);
-                        break;
-                    }
-                    vecValue.reserve(kernelCnt);
-                    for (size_t i = 0; i < kernelCnt; i++) {
-                        if (option->dcciBeforeKernelStart.kernelNames[i] == nullptr) {
-                            SK_LOGW("OptionName:%s, kernelNames[%zu] is nullptr, skip",
-                                subOption->GetName().c_str(), i);
-                            continue;
-                        }
-                        vecValue.push_back(std::string(option->dcciBeforeKernelStart.kernelNames[i]));
-                    }
-                    subOption->SetValue(vecValue);
+                std::vector<std::string> vecValue;
+                const size_t kernelCnt = static_cast<size_t>(option->dcciBeforeKernelStart.kernelCnt);
+                if (kernelCnt > 0 && option->dcciBeforeKernelStart.kernelNames == nullptr) {
+                    SK_LOGW("OptionName:%s, kernelNames is nullptr while kernelCnt is %zu",
+                        subOption->GetName().c_str(), kernelCnt);
+                    break;
                 }
+                vecValue.reserve(kernelCnt);
+                for (size_t i = 0; i < kernelCnt; i++) {
+                    if (option->dcciBeforeKernelStart.kernelNames[i] == nullptr) {
+                        SK_LOGW("OptionName:%s, kernelNames[%zu] is nullptr, skip",
+                            subOption->GetName().c_str(), i);
+                        continue;
+                    }
+                    vecValue.push_back(std::string(option->dcciBeforeKernelStart.kernelNames[i]));
+                }
+                subOption->SetValue(vecValue);
                 break;
             }
         case aclskOptionType::DCCI_AFTER_KERNEL_END:
             {
-                auto subOption = GetOption(option->optionType);
-                if (subOption != nullptr) {
-                    std::vector<std::string> vecValue;
-                    const size_t kernelCnt = static_cast<size_t>(option->dcciAfterKernelEnd.kernelCnt);
-                    if (kernelCnt > 0 && option->dcciAfterKernelEnd.kernelNames == nullptr) {
-                        SK_LOGW("OptionName:%s, kernelNames is nullptr while kernelCnt is %zu",
-                            subOption->GetName().c_str(), kernelCnt);
-                        break;
-                    }
-                    vecValue.reserve(kernelCnt);
-                    for (size_t i = 0; i < kernelCnt; i++) {
-                        if (option->dcciAfterKernelEnd.kernelNames[i] == nullptr) {
-                            SK_LOGW("OptionName:%s, kernelNames[%zu] is nullptr, skip",
-                                subOption->GetName().c_str(), i);
-                            continue;
-                        }
-                        vecValue.push_back(std::string(option->dcciAfterKernelEnd.kernelNames[i]));
-                    }
-                    subOption->SetValue(vecValue);
+                std::vector<std::string> vecValue;
+                const size_t kernelCnt = static_cast<size_t>(option->dcciAfterKernelEnd.kernelCnt);
+                if (kernelCnt > 0 && option->dcciAfterKernelEnd.kernelNames == nullptr) {
+                    SK_LOGW("OptionName:%s, kernelNames is nullptr while kernelCnt is %zu",
+                        subOption->GetName().c_str(), kernelCnt);
+                    break;
                 }
+                vecValue.reserve(kernelCnt);
+                for (size_t i = 0; i < kernelCnt; i++) {
+                    if (option->dcciAfterKernelEnd.kernelNames[i] == nullptr) {
+                        SK_LOGW("OptionName:%s, kernelNames[%zu] is nullptr, skip",
+                            subOption->GetName().c_str(), i);
+                        continue;
+                    }
+                    vecValue.push_back(std::string(option->dcciAfterKernelEnd.kernelNames[i]));
+                }
+                subOption->SetValue(vecValue);
                 break;
             }
         case aclskOptionType::AGGRESSIVE_OPT_STRATEGIES:
             {
-                auto subOption = static_cast<AggressiveOptStrategiesOption*>(GetOption(option->optionType));
-                if (subOption == nullptr) {
-                    break;
-                }
+                auto* aggressiveOpt = static_cast<AggressiveOptStrategiesOption*>(subOption);
                 auto aggressiveOpts = option->aggressiveOpts;
                 aggressiveOpts.eventBreakerBypass = GetValidatedUintValue(
                     "event_breaker_bypass",
@@ -679,123 +664,79 @@ void SuperKernelOptionsManager::SetOptOptionValue(const aclskOption* option) {
                         "taskBreakerBypass=%u",
                         aggressiveOpts.eventBreakerBypass, aggressiveOpts.valueBreakerBypass,
                         aggressiveOpts.taskBreakerBypass);
-                subOption->SetValue(aggressiveOpts);
+                aggressiveOpt->SetValue(aggressiveOpts);
                 break;
             }
         case aclskOptionType::UBUF_LOCK_IGNORE_KERNEL:
             {
-                auto subOption = GetOption(option->optionType);
-                if (subOption != nullptr) {
-                    std::vector<std::string> vecValue;
-                    const size_t kernelCnt = static_cast<size_t>(
-                        option->ubufLockIgnoreKernel.ubufLockIgnoreKernelCnt);
-                    if (kernelCnt > 0 && option->ubufLockIgnoreKernel.ubufLockIgnoreKernel == nullptr) {
-                        SK_LOGW("OptionName:%s, ubufLockIgnoreKernel is nullptr while kernelCnt is %zu",
-                            subOption->GetName().c_str(), kernelCnt);
-                        break;
-                    }
-                    vecValue.reserve(kernelCnt);
-                    for (size_t i = 0; i < kernelCnt; i++) {
-                        if (option->ubufLockIgnoreKernel.ubufLockIgnoreKernel[i] == nullptr) {
-                            SK_LOGW("OptionName:%s, ubufLockIgnoreKernel[%zu] is nullptr, skip",
-                                subOption->GetName().c_str(), i);
-                            continue;
-                        }
-                        vecValue.push_back(std::string(option->ubufLockIgnoreKernel.ubufLockIgnoreKernel[i]));
-                    }
-                    subOption->SetValue(vecValue);
+                std::vector<std::string> vecValue;
+                const size_t kernelCnt = static_cast<size_t>(
+                    option->ubufLockIgnoreKernel.ubufLockIgnoreKernelCnt);
+                if (kernelCnt > 0 && option->ubufLockIgnoreKernel.ubufLockIgnoreKernel == nullptr) {
+                    SK_LOGW("OptionName:%s, ubufLockIgnoreKernel is nullptr while kernelCnt is %zu",
+                        subOption->GetName().c_str(), kernelCnt);
+                    break;
                 }
+                vecValue.reserve(kernelCnt);
+                for (size_t i = 0; i < kernelCnt; i++) {
+                    if (option->ubufLockIgnoreKernel.ubufLockIgnoreKernel[i] == nullptr) {
+                        SK_LOGW("OptionName:%s, ubufLockIgnoreKernel[%zu] is nullptr, skip",
+                            subOption->GetName().c_str(), i);
+                        continue;
+                    }
+                    vecValue.push_back(std::string(option->ubufLockIgnoreKernel.ubufLockIgnoreKernel[i]));
+                }
+                subOption->SetValue(vecValue);
                 break;
             }
         case aclskOptionType::DEBUG_SYNC_ALL:
-            {
-                auto subOption = GetOption(option->optionType);
-                if (subOption != nullptr) {
-                    subOption->SetValue(option->debugSync.debugSyncAll);
-                }
-                break;
-            }
+            subOption->SetValue(option->debugSync.debugSyncAll);
+            break;
         case aclskOptionType::OPT_EXTEND_OPTION:
             {
-                auto subOption = GetOption(option->optionType);
-                if (subOption != nullptr) {
-                    std::unordered_map<std::string, std::vector<std::string>> parsedValue;
-                    if (ParseAndValidateExtendOptionValue(
-                        option->optExtend.value, subOption->GetName(), parsedValue)) {
-                        subOption->SetValue(parsedValue);
-                    }
+                std::unordered_map<std::string, std::vector<std::string>> parsedValue;
+                if (ParseAndValidateExtendOptionValue(
+                    option->optExtend.value, subOption->GetName(), parsedValue)) {
+                    subOption->SetValue(parsedValue);
                 }
                 break;
             }
         case aclskOptionType::DEBUG_EXTEND_OPTION:
             {
-                auto subOption = GetOption(option->optionType);
-                if (subOption != nullptr) {
-                    std::unordered_map<std::string, std::vector<std::string>> parsedValue;
-                    if (ParseAndValidateExtendOptionValue(
-                        option->debugExtend.value, subOption->GetName(), parsedValue)) {
-                        subOption->SetValue(parsedValue);
-                    }
+                std::unordered_map<std::string, std::vector<std::string>> parsedValue;
+                if (ParseAndValidateExtendOptionValue(
+                    option->debugExtend.value, subOption->GetName(), parsedValue)) {
+                    subOption->SetValue(parsedValue);
                 }
                 break;
             }
         case aclskOptionType::STREAM_FUSION:
-            {
-                auto subOption = GetOption(option->optionType);
-                if (subOption != nullptr) {
-                    subOption->SetValue(option->streamFusion.streamFusion);
-                }
-                break;
-            }
+            subOption->SetValue(option->streamFusion.streamFusion);
+            break;
         case aclskOptionType::CONSTANT_CODEGEN:
-            {
-                auto subOption = GetOption(option->optionType);
-                if (subOption != nullptr) {
-                    subOption->SetValue(option->constantCodegen.enableConstant);
-                }
-                SK_LOGI("Constant codegen option set: enable=%u", option->constantCodegen.enableConstant);
-                break;
-            }
+            subOption->SetValue(option->constantCodegen.enableConstant);
+            SK_LOGI("Constant codegen option set: enable=%u", option->constantCodegen.enableConstant);
+            break;
         case aclskOptionType::AUTO_OP_PARALLEL:
-            {
-                auto subOption = GetOption(option->optionType);
-                if (subOption != nullptr) {
-                    subOption->SetValue(option->autoOpParallel.enableAutoOpParallel);
-                }
-                SK_LOGI("Auto op parallel option set: enable=%u", option->autoOpParallel.enableAutoOpParallel);
-                break;
-            }
+            subOption->SetValue(option->autoOpParallel.enableAutoOpParallel);
+            SK_LOGI("Auto op parallel option set: enable=%u", option->autoOpParallel.enableAutoOpParallel);
+            break;
         case aclskOptionType::DEBUG_CROSS_CORE_SYNC_CHECK:
-            {
-                auto subOption = GetOption(option->optionType);
-                if (subOption != nullptr) {
-                    subOption->SetValue(option->debugCrossCoreSyncCheck.enableCrossCoreSyncCheck);
-                }
-                SK_LOGI("Debug cross-core sync check option set: enable=%u",
-                    option->debugCrossCoreSyncCheck.enableCrossCoreSyncCheck);
-                break;
-            }
+            subOption->SetValue(option->debugCrossCoreSyncCheck.enableCrossCoreSyncCheck);
+            SK_LOGI("Debug cross-core sync check option set: enable=%u",
+                option->debugCrossCoreSyncCheck.enableCrossCoreSyncCheck);
+            break;
         case aclskOptionType::DEBUG_OP_EXEC_TRACE:
-            {
-                auto subOption = GetOption(option->optionType);
-                if (subOption != nullptr) {
-                    subOption->SetValue(option->debugOpExecTrace.enableOpExecTrace);
-                }
-                SK_LOGI("Debug op exec trace option set: enable=%u",
-                    option->debugOpExecTrace.enableOpExecTrace);
-                break;
-            }
+            subOption->SetValue(option->debugOpExecTrace.enableOpExecTrace);
+            SK_LOGI("Debug op exec trace option set: enable=%u",
+                option->debugOpExecTrace.enableOpExecTrace);
+            break;
         case aclskOptionType::EARLY_START:
-            {
-                auto subOption = GetOption(option->optionType);
-                if (subOption != nullptr) {
-                    subOption->SetValue(option->earlyStart.enableEarlyStart);
-                }
-                SK_LOGI("Early start option set: enable=%u", option->earlyStart.enableEarlyStart);
-                break;
-            }
+            subOption->SetValue(option->earlyStart.enableEarlyStart);
+            SK_LOGI("Early start option set: enable=%u", option->earlyStart.enableEarlyStart);
+            break;
         default:
-            SK_LOGI("Optiontype: %d is not support now", static_cast<int>(option->optionType));
+            SK_LOGI("Optiontype: %d is not support now", static_cast<int>(type));
             break;
     }
 }
