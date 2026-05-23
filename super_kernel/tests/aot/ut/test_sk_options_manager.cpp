@@ -1667,4 +1667,3 @@ TEST_F(SuperKernelOptionsManagerTest, ToJson_DebugPerOpMaxCoreNum)
         static_cast<int>(aclskOptionType::DEBUG_PER_OP_MAX_CORE_NUM));
     EXPECT_EQ(json["debug_per_op_max_core_num"]["value"], 1);
 }
-}
