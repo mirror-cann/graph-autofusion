@@ -26,6 +26,8 @@
 // Forward declaration for aclmdlRI
 typedef void* aclmdlRI;
 
+bool IsDav3510Soc();
+
 enum class SkNodeType : uint32_t {
     NODE_KERNEL = 0,
     NODE_NOTIFY = 1,
@@ -198,7 +200,7 @@ constexpr uint32_t SK_DEFAULT_WRITE_FLAG = 0;
 struct TaskInfo {
     uint32_t index;
     SkTaskType type;
-    SkKernelType originType = SkKernelType::DEFAULT;
+    SkKernelType relatedType = SkKernelType::DEFAULT;
     uint8_t numBlocks;
     uint8_t entryCnt;
     uint64_t args;
@@ -238,6 +240,7 @@ enum class SkEarlyStartMask : uint32_t {
     AIV_TO_AIV_WAIT = 1U << 5,
     AIV_TO_AIC_SET = 1U << 6,
     AIC_TO_AIV_WAIT = 1U << 7,
+    SPLIT_CORE_CTRL = 1U << 15,
 };
 
 inline const char* to_string(SkEarlyStartMask mask)
@@ -261,6 +264,8 @@ inline const char* to_string(SkEarlyStartMask mask)
         return "AIV_TO_AIC_SET";
     case SkEarlyStartMask::AIC_TO_AIV_WAIT:
         return "AIC_TO_AIV_WAIT";
+    case SkEarlyStartMask::SPLIT_CORE_CTRL:
+        return "SPLIT_CORE_CTRL";
     default:
         return "UNKNOWN";
     }
