@@ -322,21 +322,6 @@ std::string ConstantCodeGenerator::GenerateConstantTaskQue(
     return code.str();
 }
 
-/**
- * @brief 在编译期预计算同步配置值（复用 sk::SYNC_COMBINATION_TABLE）
- * @param preType 前一个任务的内核类型 (1-6)
- * @param curType 当前任务的内核类型 (1-6)
- * @return 同步配置值
- */
-static uint16_t GetSyncCombinationValueStatic(int preType, int curType)
-{
-    // 复用 sk_common.h 中定义的 SYNC_COMBINATION_TABLE
-    if (preType < 1 || preType > 6 || curType < 1 || curType > 6) {
-        return sk::INVALID_SYNC_COMBINATION;
-    }
-    return sk::SYNC_COMBINATION_TABLE[preType - 1][curType - 1];
-}
-
 std::pair<int, int> ConstantCodeGenerator::GetKernelTypeParams(SkKernelType kernelType)
 {
     switch (kernelType) {
@@ -403,20 +388,12 @@ std::string ConstantCodeGenerator::GenerateTaskExecutionForSplit(
             code << "            auto blockId = AscendC::GetBlockIdx();\n";
             code << "            if (blockId < " << static_cast<uint32_t>(task.numBlocks) << ") {\n";
             
-            // 预计算同步配置值
             uint16_t syncCfg = 0;
-            if (preKernelType != SkKernelType::DEFAULT) {
-                syncCfg = GetSyncCombinationValueStatic(
-                    static_cast<int>(preKernelType), 
-                    static_cast<int>(task.originType));
-            }
-            
             code << "                // [SPLIT] sysArgs: numBlocks=" << static_cast<uint32_t>(task.numBlocks)
                  << ", syncCfg=" << syncCfg << "\n";
             code << "                sk::SkSystemArgs sysArgs = {};\n";
             code << "                sysArgs.skBlockIdx = static_cast<uint16_t>(AscendC::GetBlockIdx());\n";
             code << "                sysArgs.skNumBlocks = " << static_cast<uint32_t>(task.numBlocks) << ";\n";
-            code << "                sysArgs.skTaskSyncCfg = " << syncCfg << ";\n";
             
             // [SPLIT优化] 直接使用编译期确定的 entry 索引
             int entryIdx = (task.entryCnt > 0) ? (splitIdx % task.entryCnt) : 0;
@@ -498,7 +475,6 @@ std::string ConstantCodeGenerator::GenerateSpecializedEntry(
         
         // 生成针对该 split 的任务执行代码
         SkKernelType splitPreKernelType = SkKernelType::DEFAULT;
-        
         // AIC 任务
         if (aicQue != nullptr && aicQue->taskCnt > 0) {
             code << "#ifdef __DAV_CUBE__\n";
