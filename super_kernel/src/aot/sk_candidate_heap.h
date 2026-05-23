@@ -29,12 +29,14 @@ enum class SkHeapType : uint8_t {
  * \brief A candidate node selector with priority-based selection for scope splitting.
  *
  * This class provides push/pop operations for managing candidate nodes during scope splitting.
- * It supports multiple node types: KERNEL, NOTIFY, WAIT, RESET.
+ * It supports multiple node types: KERNEL, NOTIFY, WAIT, RESET, DEFAULT.
  *
  * Selection rules:
- * 1. When there are non-KERNEL nodes (NOTIFY/WAIT/RESET) in the heap:
- *    - Non-KERNEL nodes have priority and are selected by nodeId (smallest first)
- * 2. When there are no non-KERNEL nodes:
+ * 1. When there are DEFAULT nodes in the heap:
+ *    - DEFAULT nodes have the highest priority and are selected by nodeId (smallest first)
+ * 2. When there are non-KERNEL nodes (NOTIFY/WAIT/RESET) in the heap:
+ *    - Non-KERNEL nodes have priority over KERNEL nodes and are selected by nodeId (smallest first)
+ * 3. When there are no DEFAULT or non-KERNEL nodes:
  *    - KERNEL nodes are selected according to SkTaskSorter::SelectNextNode rules:
  *      - First selection: choose node with smallest nodeId
  *      - After MIX: prefer MIX (prioritize different stream)
@@ -64,7 +66,7 @@ public:
 
     /*!
      * \brief push a node into the candidate heap
-     * \param node The node to add (can be KERNEL, NOTIFY, WAIT, or RESET type)
+     * \param node The node to add (can be KERNEL, NOTIFY, WAIT, RESET, or DEFAULT type)
      *
      * The node is automatically categorized into kernel or non-kernel collection
      * based on its node type.
@@ -76,8 +78,9 @@ public:
      * \return The selected node, or nullptr if heap is empty
      *
      * Selection priority:
-     * 1. If there are KERNEL nodes, select according to kernel selection rules
-     * 2. Otherwise, select the non-kernel node with smallest nodeId
+     * 1. If there are DEFAULT nodes, select the one with smallest nodeId
+     * 2. If there are non-KERNEL nodes, select the one with smallest nodeId
+     * 3. Otherwise, select KERNEL nodes according to kernel selection rules
      */
     uint64_t pop();
 
@@ -168,6 +171,7 @@ private:
     SuperKernelGraph& graph_;
     SkHeapType heapMode = SkHeapType::PRIORITY_QUEUE;
     // Node collections
+    std::set<SuperKernelBaseNode*, bool(*)(SuperKernelBaseNode*, SuperKernelBaseNode*)> defaultNodes_;
     std::set<SuperKernelBaseNode*, bool(*)(SuperKernelBaseNode*, SuperKernelBaseNode*)> kernelNodes_;
     std::set<SuperKernelBaseNode*, bool(*)(SuperKernelBaseNode*, SuperKernelBaseNode*)> nonKernelNodes_;
 
