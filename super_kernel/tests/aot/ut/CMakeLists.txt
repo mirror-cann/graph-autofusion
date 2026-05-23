@@ -80,6 +80,7 @@ target_compile_options(super_kernel_aot_utest PRIVATE
 
 target_link_libraries(super_kernel_aot_utest PRIVATE
     $<BUILD_INTERFACE:intf_llt_pub>
+    json
 )
 
 run_llt_test(
