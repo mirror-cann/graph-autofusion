@@ -1276,6 +1276,23 @@ TEST_F(SkNodeTest, KernelInfosToJson_WithTaskRatio)
     EXPECT_EQ(json["taskRatio"][1], 10);
 }
 
+TEST_F(SkNodeTest, KernelInfosToJson_WithSimtOpFlag)
+{
+    KernelInfos info;
+    info.funcName = "simt_kernel";
+    info.isSimtOp = true;
+    
+    Json json = KernelInfosToJson(info);
+    
+    EXPECT_TRUE(json.contains("isSimtOp"));
+    EXPECT_EQ(json["isSimtOp"], true);
+    
+    info.isSimtOp = false;
+    json = KernelInfosToJson(info);
+    EXPECT_TRUE(json.contains("isSimtOp"));
+    EXPECT_EQ(json["isSimtOp"], false);
+}
+
 // ==================== SyncInfosToJson Extended Tests ====================
 
 TEST_F(SkNodeTest, SyncInfosToJson_WithCorrespondingNodes)
@@ -1448,4 +1465,54 @@ TEST_F(SkNodeTest, ParseKernelCapBits_LargeValue)
     EXPECT_TRUE(bits.earlyStartSetFlag);
     EXPECT_TRUE(bits.disableDcci);
     EXPECT_TRUE(bits.disableScheMode);
+}
+
+TEST_F(SkNodeTest, KernelInfos_IsSimtOpFlag)
+{
+    KernelInfos infos;
+    infos.isSimtOp = true;
+    EXPECT_TRUE(infos.isSimtOp);
+    
+    infos.isSimtOp = false;
+    EXPECT_FALSE(infos.isSimtOp);
+}
+
+TEST_F(SkNodeTest, KernelInfos_FormatWithSimtFlag)
+{
+    KernelInfos infos;
+    infos.funcName = "test_kernel";
+    infos.isSimtOp = true;
+    std::string formatted = infos.Format();
+    EXPECT_TRUE(formatted.find("isSimtOp:1") != std::string::npos);
+    
+    infos.isSimtOp = false;
+    formatted = infos.Format();
+    EXPECT_TRUE(formatted.find("isSimtOp") == std::string::npos);
+}
+
+TEST_F(SkNodeTest, SimtAivType_SimdOnly)
+{
+    SetSimtAivType(1);
+    uint32_t aivType = 0;
+    int ret = rtFunctionGetMetaInfo(nullptr, RT_FUNCTION_TYPE_AIV_TYPE_FLAG, &aivType, sizeof(aivType));
+    EXPECT_EQ(ret, 0);
+    EXPECT_EQ(aivType, 1);
+}
+
+TEST_F(SkNodeTest, SimtAivType_SimtVfOnly)
+{
+    SetSimtAivType(3);
+    uint32_t aivType = 0;
+    int ret = rtFunctionGetMetaInfo(nullptr, RT_FUNCTION_TYPE_AIV_TYPE_FLAG, &aivType, sizeof(aivType));
+    EXPECT_EQ(ret, 0);
+    EXPECT_EQ(aivType, 3);
+}
+
+TEST_F(SkNodeTest, SimtAivType_SimdSimtMix)
+{
+    SetSimtAivType(4);
+    uint32_t aivType = 0;
+    int ret = rtFunctionGetMetaInfo(nullptr, RT_FUNCTION_TYPE_AIV_TYPE_FLAG, &aivType, sizeof(aivType));
+    EXPECT_EQ(ret, 0);
+    EXPECT_EQ(aivType, 4);
 }

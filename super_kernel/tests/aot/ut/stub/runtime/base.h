@@ -20,6 +20,8 @@ extern "C" {
 
 typedef int32_t rtError_t;
 
+static const int32_t RT_ERROR_NONE = 0;
+
 typedef enum tagRtCoreType {
     RT_CORE_TYPE_AIC = 0,
     RT_CORE_TYPE_AIV,
