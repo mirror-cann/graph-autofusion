@@ -82,6 +82,17 @@ protected:
         return nodeId;
     }
 
+    // 创建 Default 节点并添加到 graph 中
+    uint64_t CreateDefaultNode(uint64_t nodeId, uint32_t streamIdx = 0)
+    {
+        auto node = std::make_unique<SuperKernelDefaultNode>(
+            nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, streamIdx, INVALID_STREAM_ID, INVALID_TASK_ID);
+        node->SetNodeType(SkNodeType::NODE_DEFAULT);
+        node->SetNodeId(nodeId);
+        graph->graphMap[nodeId] = std::move(node);
+        return nodeId;
+    }
+
     std::unique_ptr<SuperKernelGraph> graph;
 };
 
@@ -222,6 +233,18 @@ TEST_F(SkCandidateHeapTest, Push_ResetNode)
     EXPECT_FALSE(heap.HasKernelNodes());
 }
 
+// 测试 Push Default 节点
+TEST_F(SkCandidateHeapTest, Push_DefaultNode)
+{
+    SkCandidateHeap heap(*graph, SkHeapType::CUSTOMIZE_QUEUE);
+    uint64_t nodeId = CreateDefaultNode(1);
+    heap.push(nodeId);
+
+    EXPECT_FALSE(heap.empty());
+    EXPECT_EQ(heap.size(), 1U);
+    EXPECT_FALSE(heap.HasKernelNodes());
+}
+
 // 测试非 Kernel 节点按 nodeId 排序
 TEST_F(SkCandidateHeapTest, Pop_NonKernelNodes_SortedByNodeId)
 {
@@ -259,6 +282,40 @@ TEST_F(SkCandidateHeapTest, Pop_NonKernelPrioritizedOverKernel)
     // 先弹出 notify1 (nodeId 最小的非 kernel 节点)
     uint64_t poppedId = heap.pop();
     EXPECT_EQ(poppedId, notify1);
+}
+
+// 测试 Default 节点优先于其他候选节点
+TEST_F(SkCandidateHeapTest, Pop_DefaultPrioritizedOverOtherNodes)
+{
+    SkCandidateHeap heap(*graph, SkHeapType::CUSTOMIZE_QUEUE);
+    uint64_t notify1 = CreateNotifyNode(1);
+    uint64_t kernel2 = CreateKernelNode(2);
+    uint64_t default3 = CreateDefaultNode(3);
+    uint64_t wait4 = CreateWaitNode(4);
+
+    heap.push(notify1);
+    heap.push(kernel2);
+    heap.push(default3);
+    heap.push(wait4);
+
+    EXPECT_EQ(heap.pop(), default3);
+    EXPECT_EQ(heap.pop(), notify1);
+    EXPECT_EQ(heap.pop(), wait4);
+    EXPECT_EQ(heap.pop(), kernel2);
+    EXPECT_TRUE(heap.empty());
+}
+
+// 测试 Default 节点出队不更新 previous stream 状态
+TEST_F(SkCandidateHeapTest, Pop_DefaultDoesNotUpdatePrevStreamIdx)
+{
+    SkCandidateHeap heap(*graph, SkHeapType::CUSTOMIZE_QUEUE);
+    uint64_t default1 = CreateDefaultNode(1, 3);
+
+    heap.SetPrevStreamIdx(9);
+    heap.push(default1);
+
+    EXPECT_EQ(heap.pop(), default1);
+    EXPECT_EQ(heap.GetPrevStreamIdx(), 9U);
 }
 
 // 测试混合节点：先弹出所有非 Kernel，再弹出 Kernel

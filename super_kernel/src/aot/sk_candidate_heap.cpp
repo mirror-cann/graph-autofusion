@@ -14,6 +14,7 @@
 SkCandidateHeap::SkCandidateHeap(SuperKernelGraph& inputGraph, SkHeapType heapModeIn)
     : graph_(inputGraph)
     , heapMode(heapModeIn)
+    , defaultNodes_(CompareByNodeId)
     , kernelNodes_(CompareByNodeId)
     , nonKernelNodes_(CompareByNodeId)
     , prevKernelTypeClass_(KernelTypeClass::OTHER)
@@ -35,7 +36,11 @@ void SkCandidateHeap::push(uint64_t nodeId)
     }
 
     SkNodeType nodeType = node->GetNodeType();
-    if (nodeType == SkNodeType::NODE_KERNEL) {
+    if (nodeType == SkNodeType::NODE_DEFAULT) {
+        defaultNodes_.insert(node);
+        SK_LOGD("SkCandidateHeap::push: added default node %s, defaultCount=%zu",
+            node->Format().c_str(), defaultNodes_.size());
+    } else if (nodeType == SkNodeType::NODE_KERNEL) {
         if (node->IsScopeNode()) {
             nonKernelNodes_.insert(node);
             SK_LOGD("SkCandidateHeap::push: added non-kernel node %s (type=%d), nonKernelCount=%zu",
@@ -70,6 +75,15 @@ uint64_t SkCandidateHeap::pop()
     }
 
     SuperKernelBaseNode* selectedNode = nullptr;
+
+    if (!defaultNodes_.empty()) {
+        selectedNode = *defaultNodes_.begin();
+        defaultNodes_.erase(selectedNode);
+
+        SK_LOGD("SkCandidateHeap::pop: selected default node %s, remaining defaultCount=%zu",
+            selectedNode->Format().c_str(), defaultNodes_.size());
+        return selectedNode->GetNodeId();
+    }
 
     if (!nonKernelNodes_.empty()) {
         selectedNode = SelectNextNonKernelNode();
@@ -112,7 +126,7 @@ bool SkCandidateHeap::empty() const
     if (heapMode == SkHeapType::PRIORITY_QUEUE) {
         return nodeHeap_.empty();
     }
-    return kernelNodes_.empty() && nonKernelNodes_.empty();
+    return defaultNodes_.empty() && kernelNodes_.empty() && nonKernelNodes_.empty();
 }
 
 size_t SkCandidateHeap::size() const
@@ -120,7 +134,7 @@ size_t SkCandidateHeap::size() const
     if (heapMode == SkHeapType::PRIORITY_QUEUE) {
         return nodeHeap_.size();
     }
-    return kernelNodes_.size() + nonKernelNodes_.size();
+    return defaultNodes_.size() + kernelNodes_.size() + nonKernelNodes_.size();
 }
 
 bool SkCandidateHeap::HasKernelNodes() const
@@ -133,6 +147,7 @@ void SkCandidateHeap::clear()
     while (!nodeHeap_.empty()) {
         nodeHeap_.pop();
     }
+    defaultNodes_.clear();
     kernelNodes_.clear();
     nonKernelNodes_.clear();
     ResetSelectionState();
