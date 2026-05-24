@@ -38,7 +38,7 @@ git clone https://gitcode.com/cann/graph-autofusion.git
 
 If your compilation environment cannot access the network, download the source code and open-source software packages in a networked environment. Upload them manually to your compilation environment:
 
-1. In a networked environment, visit the [project homepage](https://gitcode.com/cann/graph-autofusion). Use the `Download zip` or `Clone` button to download the source code.
+1. In a networked environment, visit the [project homepage](https://gitcode.com/cann/graph-autofusion). Use the `Download ZIP` or `clone` button to download the source code.
 
 2. Download the `makeself` and `cann-cmake` third-party open-source software.
 
