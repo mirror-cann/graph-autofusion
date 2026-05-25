@@ -39,9 +39,8 @@ target_link_options(aihac_symbolizer_af PRIVATE
 
 target_link_libraries(aihac_symbolizer_af
     PRIVATE
-        intf_pub
+        af_intf_pub
         static_mmpa
-        -Wl,--no-as-needed
         c_sec
         unified_dlog
         json
@@ -52,10 +51,7 @@ target_link_libraries(aihac_symbolizer_af
         graph_af
         unified_dlog
         Boost::boost
-        -Wl,--as-needed
         ascend_protobuf
-        $<$<NOT:$<STREQUAL:${TARGET_SYSTEM_NAME},Android>>:-lrt>
-        -ldl
         metadef_headers
     PUBLIC
         metadef_headers_af

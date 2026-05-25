@@ -5,7 +5,7 @@
    SuperKernel 是一种面向网络图模型的调度优化技术。其核心思想是：基于网络图模型中算子的先验信息（如算子类型、前后序依赖关系等），结合即时编译（JIT）能力，将整个网络模型重新编译为单一算子，从而显著降低算子调度开销，并借助 ICache 预取、Early-Start、同步优化、子 Kernel 拆分等优化手段进一步提升性能。
 
    <div align="center">
-      <img src="./docs/images/super_kernel示意图.svg" alt="Editor" width="600">
+      <img src="../docs/zh/super_kernel/figures/super_kernel_diagram.svg" alt="Editor" width="600">
    </div>
 
 ***
@@ -17,7 +17,7 @@
    SuperKernel 融合全部算子后，其二进制体积较大。系统在加载算子时通常仅预取入口处指令，导致 SuperKernel 内部大量指令未被预加载至指令缓存（ICache），从而引发较高的 ICache Miss。为此，我们引入 ICache Preload 机制：在当前子算子开始执行前，预加载其后续子算子的代码段，从而有效减少后续算子执行时的 ICache Miss。
 
    <div align="center">
-      <img src="./docs/images/ICachePreload优化.svg" alt="Editor" width="600">
+      <img src="../docs/zh/super_kernel/figures/ICachePreload_ optimization.svg" alt="Editor" width="600">
    </div>
 
 
@@ -36,13 +36,13 @@
 
 在多核系统中，当多个计算核心执行同一段代码时，会并发访问内存中的同一指令地址。这种对同一地址的并发访问会在共享的 L2 Cache 层面形成串行化访问队列，引发资源争用，削弱多核并行带来的性能增益。为解决该问题，SuperKernel 将子 Kernel 代码复制为多份副本，使不同核心能根据核 ID 映射到不同的物理地址执行。这一方法有效缓解了多核对同一指令地址的争用，显著提升算子执行效率。
 ​   <div align="center">
-      <img src="./docs/images/子kernel拆分.svg" alt="Editor" width="600">
+      <img src="../docs/zh/super_kernel/figures/subkernel_split.svg" alt="Editor" width="600">
    </div>
 
 此外，SuperKernel 还支持基于内存语义的 Notify 与 Wait 事件，以适配 Tiling 下沉与 Weight 预取等场景。Tiling 下沉算子指的是 Tiling 计算依赖前序算子的输出结果，为避免主机与设备间的频繁交互，将 Tiling 计算部署于 AICpu 执行的算子。若 SuperKernel 融合了该 Tiling 算子的前序算子，则需在前序算子执行完成后通过 Notify 事件通知 AICpu 启动 Tiling 计算；若融合了 Tiling 下沉算子本身，则需通过 Wait 事件等待 AICpu 完成 Tiling 计算后再执行 Device 侧计算。Weight 预取则借助 CMO 任务调用专用硬件单元 SDMA，将数据提前加载至 L2 Cache，以提升计算效率。SDMA 与 Aicore 之间的协作正是通过内存语义的 Notify/Wait 事件实现的。
 
 ​   <div align="center">
-      <img src="./docs/images/同步事件.svg" alt="Editor" width="600">
+      <img src="../docs/zh/super_kernel/figures/synchronization_event.svg" alt="Editor" width="600">
    </div>
 
 
@@ -71,8 +71,8 @@ super_kernel/
 
 ## 构建与安装
 
-参考[执行构建](../doc/build.md#执行构建)。
+参考[执行构建](../docs/zh/build.md#源码构建)。
 
 ## 开发者
 
-开发者请查阅《[Developer Guide](docs/developer_guide.md)》，了解代码实现、测试方法等信息。
+开发者请查阅《[Developer Guide](../docs/zh/super_kernel/developer_guide.md)》，了解代码实现、测试方法等信息。

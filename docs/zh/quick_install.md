@@ -21,11 +21,11 @@
 
 1. 进入开源项目，单击“`云开发`”按钮，使用已认证过的华为云账号登录。若未注册或认证，请根据页面提示进行注册和认证。
 
-   <img src="./figures/cloudIDE.png" alt="云平台"  width="750px" height="90px">
+   <img src="../figures/cloudIDE.png" alt="云平台"  width="750px" height="90px">
 
 2. 根据页面提示创建并启动云开发环境，单击“`连接 > WebIDE`”进入算子一站式开发平台，开源项目的资源默认在`/mnt/workspace`目录下。
 
-   <img src="./figures/webIDE.png" alt="云平台"  width="1000px" height="150px">
+   <img src="../figures/webIDE.png" alt="云平台"  width="1000px" height="150px">
 
 ### 方式二：Docker部署
 
@@ -101,7 +101,7 @@
   > **说明**：
   > - 场景1适用于仅编译构建graph-autofusion的场合，无需NPU设备支持。
   > - 场景2适用于需要运行样例或进行NPU相关测试的场合，需要宿主机已安装NPU驱动和固件。
-  > - 如果使用其他型号芯片（如Asend950PR、Atlas A3系列产品），请相应调整 `--device` 参数中的设备名称。
+  > - 如果使用其他型号芯片（如Ascend950PR、Atlas A3系列产品），请相应调整 `--device` 参数中的设备名称。
 
 4.**初始化环境**
 进入容器后，执行以下命令初始化环境：
@@ -113,11 +113,11 @@
 > **说明**：
 > - 默认进行CANN包和算子包的安装。
 > - 对于其他芯片型号，请使用 `--chip-type` 参数指定对应的型号（如 `950`、`A3` ）。可选参数具体参考[
-init_env.sh](../scripts/init_env.sh)
+init_env.sh](../../scripts/init_env.sh)
 
 ### 方式三：手动安装软件包
 
-1. **安装驱动与固件（可选，仅运行[样例](../examples/README.md)依赖）**
+1. **安装驱动与固件（可选，仅运行[样例](../../autofuse/examples/README.md)依赖）**
 
     驱动与固件的下载和安装操作请参考《[CANN软件安装指南](https://www.hiascend.com/document/redirect/CannCommunityInstWizard)》中“准备软件包”和“安装NPU驱动和固件”章节。驱动与固件是运行样例依赖，若仅编译环境，可以不安装。
 

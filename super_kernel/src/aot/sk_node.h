@@ -69,6 +69,7 @@ enum class FusionFailReason {
     MEMORY_WAIT_NODE_ONLY, // 12: No memory write exists, meaning the memory write is outside modelRI,
     MEMORY_WRITE_NODE_ONLY,  // 13: only exists memory write nodes, mask it as unfusible
     DEFAULT_NODE, // default node uses aicpu resources, mask it as unfusible
+    SIMT_OP_NOT_SUPPORTED, // SIMT operator is not supported for SuperKernel fusion
 };
 
 // Bindmap related fail reason detail
@@ -148,6 +149,8 @@ inline const char* FusionFailReasonToStr(FusionFailReason reason) {
             return "only exists memory write nodes, mask it as unfusible";
         case FusionFailReason::DEFAULT_NODE: 
             return "default node uses aicpu resources, mask it as unfusible";
+        case FusionFailReason::SIMT_OP_NOT_SUPPORTED:
+            return "SIMT operator is not supported for SuperKernel fusion";
         default:                                  
             return "UNKNOWN_REASON";
     }
@@ -189,7 +192,7 @@ enum class KernelCapBitOffset : uint8_t {
 struct KernelCapBits {
     bool earlyStartWaitFlag = false;
     bool earlyStartSetFlag = false;
-    bool dcci = false;
+    bool disableDcci = false;
     bool disableScheMode = false;
 };
 
@@ -214,6 +217,7 @@ struct KernelInfos {
     aclrtLaunchKernelCfg* launchKernelCfg = nullptr;
     bool isScheModeOn = false;
     bool needMixKernelSplit = false;
+    bool isSimtOp = false;
     ResolvedFunctionInfo resolvedFuncs[4];
     BindmapFailReason bindmapFailReason = BindmapFailReason::NONE;
 

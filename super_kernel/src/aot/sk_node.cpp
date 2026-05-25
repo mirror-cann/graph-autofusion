@@ -34,7 +34,8 @@
 #include "sk_lock_detector.h"
 #include "sk_common.h"
 #include "sk_options_manager.h"
-#include "runtime/kernel.h"
+#include "kernel.h"
+#include "base.h"
 
 extern "C" aclrtBinHandle AscendGetEntryBinHandle();
 
@@ -49,7 +50,7 @@ KernelCapBits ParseKernelCapBits(uint64_t cap)
     KernelCapBits bits;
     bits.earlyStartWaitFlag = getBit(KernelCapBitOffset::EARLY_START_WAIT_FLAG);
     bits.earlyStartSetFlag = getBit(KernelCapBitOffset::EARLY_START_SET_FLAG);
-    bits.dcci = getBit(KernelCapBitOffset::DCCI);
+    bits.disableDcci = getBit(KernelCapBitOffset::DCCI);
     bits.disableScheMode = getBit(KernelCapBitOffset::DISABLE_SCHEMODE);
     return bits;
 }
@@ -198,6 +199,30 @@ SkBindMap InitSuperKernelBindMap(aclrtBinHandle binHdl)
 }
 
 namespace {
+constexpr uint32_t AIV_TYPE_SIMT_VF_ONLY = 3U;
+constexpr uint32_t AIV_TYPE_SIMD_SIMT_MIX_VF = 4U;
+
+bool IsSimtKernel(aclrtFuncHandle funcHandle) {
+    uint32_t aivType = 0;
+    rtError_t ret = rtFunctionGetMetaInfo(funcHandle,
+        RT_FUNCTION_TYPE_AIV_TYPE_FLAG,
+        &aivType, sizeof(uint32_t));
+    
+    if (ret != RT_ERROR_NONE) {
+        SK_LOGD("rtFunctionGetMetaInfo AIV_TYPE_FLAG failed, ret=%d, treat as non-SIMT", ret);
+        return false;
+    }
+    
+    bool isSimt = (aivType == AIV_TYPE_SIMT_VF_ONLY ||
+                   aivType == AIV_TYPE_SIMD_SIMT_MIX_VF);
+    
+    if (isSimt) {
+        SK_LOGI("Kernel is SIMT type, aivType=%u", aivType);
+    }
+    
+    return isSimt;
+}
+
 using SkAllBinMap = std::unordered_map<aclrtBinHandle, SkBindMap>;
 
 struct CoreFuncInitContext {
@@ -411,9 +436,9 @@ bool InitKernelResolvedFuncs(KernelInfos &kernelInfos)
     const KernelCapBits capBits = ParseKernelCapBits(kernelInfos.cap);
     kernelInfos.capBits = capBits;
     SK_LOGI("bindMap size=%lu, aicFound=%d, aivFound=%d, earlyStartWaitFlag=%d, "
-            "earlyStartSetFlag=%d, dcci=%d, disableScheMode=%d",
+            "earlyStartSetFlag=%d, disableDcci=%d, disableScheMode=%d",
         bindMap.size(), aicItor != bindMap.end(), aivItor != bindMap.end(),
-        capBits.earlyStartWaitFlag, capBits.earlyStartSetFlag, capBits.dcci, capBits.disableScheMode);
+        capBits.earlyStartWaitFlag, capBits.earlyStartSetFlag, capBits.disableDcci, capBits.disableScheMode);
     if (capBits.disableScheMode == true) {
         const bool originScheModeOn = kernelInfos.isScheModeOn;
         kernelInfos.isScheModeOn = false;
@@ -506,6 +531,7 @@ Json KernelInfosToJson(const KernelInfos& kernelInfos)
     kernelJson["kernelTypeInt"] = kernelInfos.kernelTypeInt;
     kernelJson["kernelType"] = to_string(kernelInfos.kernelType);
     kernelJson["needMixKernelSplit"] = kernelInfos.needMixKernelSplit;
+    kernelJson["isSimtOp"] = kernelInfos.isSimtOp;
     kernelJson["taskRatio"] = Json::array({kernelInfos.taskRatio[0], kernelInfos.taskRatio[1]});
     kernelJson["opInfoPtr"] = PtrToHexString(kernelInfos.opInfoPtr);
     kernelJson["opInfoSize"] = static_cast<uint64_t>(kernelInfos.opInfoSize);
@@ -843,6 +869,20 @@ bool SuperKernelKernelNode::InitNode(const SuperKernelOptionsManager* opts) {
         }
     }
 
+    nodeInfos.kernelInfos.isSimtOp = false;
+    if (opts != nullptr) {
+        const auto* simtCheckOpt = opts->GetOption(SkInnerOptionType::ENABLE_SIMT_OP_CHECK);
+        if (simtCheckOpt != nullptr && simtCheckOpt->GetIntValue() == 1) {
+            if (IsSimtKernel(kernelParams.funcHandle)) {
+                nodeInfos.kernelInfos.isSimtOp = true;
+                isFusible = false;
+                SetFusionFailReason(FusionFailReason::SIMT_OP_NOT_SUPPORTED);
+                SK_LOGI("Kernel node %lu is SIMT operator, not fusible, funcName=%s",
+                    nodeId, nodeInfos.kernelInfos.funcName.c_str());
+            }
+        }
+    }
+
     if (taskParams.taskGrp != nullptr) {
         SK_LOGI("Kernel node %lu has a non-null task group and cannot be fused in super kernel.", nodeId);
         isFusible = false;
@@ -892,8 +932,11 @@ std::string KernelInfos::Format() const {
         << ", cubeNum:" << cubeNum
         << ", vecNum:" << vecNum
         << ", isScheModeOn:" << isScheModeOn
-        << ", needMixKernelSplit:" << needMixKernelSplit
-        << ", resolvedNum:" << resolvedNum;
+        << ", needMixKernelSplit:" << needMixKernelSplit;
+    if (isSimtOp) {
+        oss << ", isSimtOp:" << isSimtOp;
+    }
+    oss << ", resolvedNum:" << resolvedNum;
     if (binHdl != nullptr) {
         oss << ", binHdl:0x" << std::hex << reinterpret_cast<uintptr_t>(binHdl) << std::dec;
     }

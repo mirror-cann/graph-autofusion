@@ -1276,6 +1276,23 @@ TEST_F(SkNodeTest, KernelInfosToJson_WithTaskRatio)
     EXPECT_EQ(json["taskRatio"][1], 10);
 }
 
+TEST_F(SkNodeTest, KernelInfosToJson_WithSimtOpFlag)
+{
+    KernelInfos info;
+    info.funcName = "simt_kernel";
+    info.isSimtOp = true;
+    
+    Json json = KernelInfosToJson(info);
+    
+    EXPECT_TRUE(json.contains("isSimtOp"));
+    EXPECT_EQ(json["isSimtOp"], true);
+    
+    info.isSimtOp = false;
+    json = KernelInfosToJson(info);
+    EXPECT_TRUE(json.contains("isSimtOp"));
+    EXPECT_EQ(json["isSimtOp"], false);
+}
+
 // ==================== SyncInfosToJson Extended Tests ====================
 
 TEST_F(SkNodeTest, SyncInfosToJson_WithCorrespondingNodes)
@@ -1353,4 +1370,149 @@ TEST_F(SkNodeTest, SyncInfosToJson_DefaultValuesFiltered)
     EXPECT_FALSE(json.contains("memoryWaitFlag"));
     EXPECT_FALSE(json.contains("eventFlag"));
     EXPECT_FALSE(json.contains("correspondingWaitNodeIds"));
+}
+
+// ==================== KernelCapBits 结构体测试 ====================
+
+TEST_F(SkNodeTest, KernelCapBits_DefaultValues)
+{
+    KernelCapBits bits;
+    EXPECT_FALSE(bits.earlyStartWaitFlag);
+    EXPECT_FALSE(bits.earlyStartSetFlag);
+    EXPECT_FALSE(bits.disableDcci);
+    EXPECT_FALSE(bits.disableScheMode);
+}
+
+TEST_F(SkNodeTest, KernelCapBits_SetDisableDcci)
+{
+    KernelCapBits bits;
+    bits.disableDcci = true;
+    EXPECT_TRUE(bits.disableDcci);
+    EXPECT_FALSE(bits.earlyStartWaitFlag);
+    EXPECT_FALSE(bits.earlyStartSetFlag);
+    EXPECT_FALSE(bits.disableScheMode);
+}
+
+// ==================== ParseKernelCapBits 函数测试 ====================
+
+TEST_F(SkNodeTest, ParseKernelCapBits_AllBitsZero)
+{
+    KernelCapBits bits = ParseKernelCapBits(0x0);
+    EXPECT_FALSE(bits.earlyStartWaitFlag);
+    EXPECT_FALSE(bits.earlyStartSetFlag);
+    EXPECT_FALSE(bits.disableDcci);
+    EXPECT_FALSE(bits.disableScheMode);
+}
+
+TEST_F(SkNodeTest, ParseKernelCapBits_Bit0Set)
+{
+    KernelCapBits bits = ParseKernelCapBits(0x1);
+    EXPECT_TRUE(bits.earlyStartWaitFlag);
+    EXPECT_FALSE(bits.earlyStartSetFlag);
+    EXPECT_FALSE(bits.disableDcci);
+    EXPECT_FALSE(bits.disableScheMode);
+}
+
+TEST_F(SkNodeTest, ParseKernelCapBits_Bit1Set)
+{
+    KernelCapBits bits = ParseKernelCapBits(0x2);
+    EXPECT_FALSE(bits.earlyStartWaitFlag);
+    EXPECT_TRUE(bits.earlyStartSetFlag);
+    EXPECT_FALSE(bits.disableDcci);
+    EXPECT_FALSE(bits.disableScheMode);
+}
+
+TEST_F(SkNodeTest, ParseKernelCapBits_Bit2Set_DisableDcci)
+{
+    KernelCapBits bits = ParseKernelCapBits(0x4);
+    EXPECT_FALSE(bits.earlyStartWaitFlag);
+    EXPECT_FALSE(bits.earlyStartSetFlag);
+    EXPECT_TRUE(bits.disableDcci);
+    EXPECT_FALSE(bits.disableScheMode);
+}
+
+TEST_F(SkNodeTest, ParseKernelCapBits_Bit3Set_DisableScheMode)
+{
+    KernelCapBits bits = ParseKernelCapBits(0x8);
+    EXPECT_FALSE(bits.earlyStartWaitFlag);
+    EXPECT_FALSE(bits.earlyStartSetFlag);
+    EXPECT_FALSE(bits.disableDcci);
+    EXPECT_TRUE(bits.disableScheMode);
+}
+
+TEST_F(SkNodeTest, ParseKernelCapBits_MultipleBitsSet)
+{
+    KernelCapBits bits = ParseKernelCapBits(0xF);
+    EXPECT_TRUE(bits.earlyStartWaitFlag);
+    EXPECT_TRUE(bits.earlyStartSetFlag);
+    EXPECT_TRUE(bits.disableDcci);
+    EXPECT_TRUE(bits.disableScheMode);
+}
+
+TEST_F(SkNodeTest, ParseKernelCapBits_OnlyDisableDcciAndDisableScheMode)
+{
+    KernelCapBits bits = ParseKernelCapBits(0xC);
+    EXPECT_FALSE(bits.earlyStartWaitFlag);
+    EXPECT_FALSE(bits.earlyStartSetFlag);
+    EXPECT_TRUE(bits.disableDcci);
+    EXPECT_TRUE(bits.disableScheMode);
+}
+
+TEST_F(SkNodeTest, ParseKernelCapBits_LargeValue)
+{
+    KernelCapBits bits = ParseKernelCapBits(0xFFFFFFFFFFFFFFFFULL);
+    EXPECT_TRUE(bits.earlyStartWaitFlag);
+    EXPECT_TRUE(bits.earlyStartSetFlag);
+    EXPECT_TRUE(bits.disableDcci);
+    EXPECT_TRUE(bits.disableScheMode);
+}
+
+TEST_F(SkNodeTest, KernelInfos_IsSimtOpFlag)
+{
+    KernelInfos infos;
+    infos.isSimtOp = true;
+    EXPECT_TRUE(infos.isSimtOp);
+    
+    infos.isSimtOp = false;
+    EXPECT_FALSE(infos.isSimtOp);
+}
+
+TEST_F(SkNodeTest, KernelInfos_FormatWithSimtFlag)
+{
+    KernelInfos infos;
+    infos.funcName = "test_kernel";
+    infos.isSimtOp = true;
+    std::string formatted = infos.Format();
+    EXPECT_TRUE(formatted.find("isSimtOp:1") != std::string::npos);
+    
+    infos.isSimtOp = false;
+    formatted = infos.Format();
+    EXPECT_TRUE(formatted.find("isSimtOp") == std::string::npos);
+}
+
+TEST_F(SkNodeTest, SimtAivType_SimdOnly)
+{
+    SetSimtAivType(1);
+    uint32_t aivType = 0;
+    int ret = rtFunctionGetMetaInfo(nullptr, RT_FUNCTION_TYPE_AIV_TYPE_FLAG, &aivType, sizeof(aivType));
+    EXPECT_EQ(ret, 0);
+    EXPECT_EQ(aivType, 1);
+}
+
+TEST_F(SkNodeTest, SimtAivType_SimtVfOnly)
+{
+    SetSimtAivType(3);
+    uint32_t aivType = 0;
+    int ret = rtFunctionGetMetaInfo(nullptr, RT_FUNCTION_TYPE_AIV_TYPE_FLAG, &aivType, sizeof(aivType));
+    EXPECT_EQ(ret, 0);
+    EXPECT_EQ(aivType, 3);
+}
+
+TEST_F(SkNodeTest, SimtAivType_SimdSimtMix)
+{
+    SetSimtAivType(4);
+    uint32_t aivType = 0;
+    int ret = rtFunctionGetMetaInfo(nullptr, RT_FUNCTION_TYPE_AIV_TYPE_FLAG, &aivType, sizeof(aivType));
+    EXPECT_EQ(ret, 0);
+    EXPECT_EQ(aivType, 4);
 }

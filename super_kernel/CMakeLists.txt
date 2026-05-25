@@ -62,10 +62,7 @@ target_include_directories(ascendsk PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/src/aot
     )
 target_link_libraries(ascendsk PRIVATE c_sec_headers runtime_headers)
-target_link_libraries(ascendsk PUBLIC sk_scope acl_rt acl_rtc ascendcl ascend_dump runtime error_manager c_sec unified_dlog ascendc_runtime profapi profimpl msprofiler json)
-target_link_directories(ascendsk PUBLIC
-$ENV{ASCEND_HOME_PATH}/lib64
-)
+target_link_libraries(ascendsk PUBLIC sk_scope_dav_2201 sk_scope_dav_3510 acl_rt acl_rtc ascendcl ascend_dump runtime error_manager c_sec unified_dlog ascendc_runtime profapi profimpl msprofiler json)
 
 if(ENABLE_CPP_UTEST OR ENABLE_RDV_UTEST)
     add_subdirectory(tests/aot)

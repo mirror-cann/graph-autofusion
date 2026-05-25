@@ -209,6 +209,9 @@ struct TaskInfo {
     // 4： dcci_before_kernel_start
     // 8： dcci_after_kernel_end
     // 16： debug_cross_core_sync_check
+    // 32： enable_dcci_after_func - 直接指示kernel是否需要在func执行后插入dcci
+    //      该bit由host端根据disableDcci和afterKernelEnd综合计算得出
+    //      kernel侧只需检查此bit即可，无需组合判断
     uint64_t debugOptions;
     uint64_t reserved;
 };
@@ -223,6 +226,44 @@ inline void SetEventTaskArgs(TaskInfo& taskInfo, uint64_t addr, uint64_t value, 
 inline uint64_t GetEventTaskAddr(const TaskInfo& taskInfo)
 {
     return taskInfo.args;
+}
+
+enum class SkEarlyStartMask : uint32_t {
+    NONE = 0U,
+    AIC_TO_AIC_SET = 1U << 0,
+    AIC_TO_AIC_WAIT = 1U << 1,
+    AIC_TO_AIV_SET = 1U << 2,
+    AIV_TO_AIC_WAIT = 1U << 3,
+    AIV_TO_AIV_SET = 1U << 4,
+    AIV_TO_AIV_WAIT = 1U << 5,
+    AIV_TO_AIC_SET = 1U << 6,
+    AIC_TO_AIV_WAIT = 1U << 7,
+};
+
+inline const char* to_string(SkEarlyStartMask mask)
+{
+    switch (mask) {
+    case SkEarlyStartMask::NONE:
+        return "NONE";
+    case SkEarlyStartMask::AIC_TO_AIC_SET:
+        return "AIC_TO_AIC_SET";
+    case SkEarlyStartMask::AIC_TO_AIC_WAIT:
+        return "AIC_TO_AIC_WAIT";
+    case SkEarlyStartMask::AIC_TO_AIV_SET:
+        return "AIC_TO_AIV_SET";
+    case SkEarlyStartMask::AIV_TO_AIC_WAIT:
+        return "AIV_TO_AIC_WAIT";
+    case SkEarlyStartMask::AIV_TO_AIV_SET:
+        return "AIV_TO_AIV_SET";
+    case SkEarlyStartMask::AIV_TO_AIV_WAIT:
+        return "AIV_TO_AIV_WAIT";
+    case SkEarlyStartMask::AIV_TO_AIC_SET:
+        return "AIV_TO_AIC_SET";
+    case SkEarlyStartMask::AIC_TO_AIV_WAIT:
+        return "AIC_TO_AIV_WAIT";
+    default:
+        return "UNKNOWN";
+    }
 }
 
 inline uint64_t GetEventTaskValue(const TaskInfo& taskInfo)
@@ -444,32 +485,5 @@ inline std::string CreateSkMetaDirectory(aclmdlRI model) {
     
     return dirPath;
 }
-
-
-namespace sk {
-/*
-ASCENDC_SUPER_KERNEL_EARLY_START_AIC_TO_AIC : 0b00;
-ASCENDC_SUPER_KERNEL_EARLY_START_AIC_TO_AIV : 0b01;
-ASCENDC_SUPER_KERNEL_EARLY_START_AIC_TO_MIX : 0b10;
-ASCENDC_SUPER_KERNEL_EARLY_START_AIV_TO_AIC : 0b0100;
-ASCENDC_SUPER_KERNEL_EARLY_START_AIV_TO_AIV : 0b0101;
-ASCENDC_SUPER_KERNEL_EARLY_START_AIV_TO_MIX : 0b0110;
-ASCENDC_SUPER_KERNEL_EARLY_START_MIX_TO_AIC : 0b1000;
-ASCENDC_SUPER_KERNEL_EARLY_START_MIX_TO_AIV : 0b1001;
-ASCENDC_SUPER_KERNEL_EARLY_START_MIX_TO_MIX : 0b1010;
-*/
-
-constexpr uint16_t SYNC_COMBINATION_TABLE[SK_KERNEL_TYPE_COUNT][SK_KERNEL_TYPE_COUNT] = {
-//                  AIC_ONLY | AIV_ONLY | MIX_AIV_1_0 | MIX_AIC_1_0 | MIX_AIC_1_1 | MIX_AIC_1_2
-/* AIC_ONLY */    { 0b00,      0b01,      0b10,         0b10,         0b10,         0b10   },
-/* AIV_ONLY */    { 0b0100,    0b0101,    0b0110,       0b0110,       0b0110,       0b0110 },
-/* MIX_AIV_1_0 */ { 0b1000,    0b1001,    0b1010,       0b1010,       0b1010,       0b1010 },
-/* MIX_AIC_1_0 */ { 0b1000,    0b1001,    0b1010,       0b1010,       0b1010,       0b1010 },
-/* MIX_AIC_1_1 */ { 0b1000,    0b1001,    0b1010,       0b1010,       0b1010,       0b1010 },
-/* MIX_AIC_1_2 */ { 0b1000,    0b1001,    0b1010,       0b1010,       0b1010,       0b1010 },
-};
-
-constexpr uint16_t INVALID_SYNC_COMBINATION = 0xFFFF;
-} // namespace sk
 
 #endif

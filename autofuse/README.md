@@ -28,10 +28,10 @@ autofuse/
 
 ## 构建与安装
 
-参考[执行构建](../docs/build.md)。
+参考[执行构建](../docs/zh/build.md)。
 
 ## 上板验证指导
-用户如果想在昇腾设备上体验Autofuse 的功能与性能，可以先参考[快速安装](../docs/quick_install.md)准备环境。无论是没有昇腾设备的开发者，还是已有昇腾设备的开发者，都可以快速搭建好环境。在此基础上，按照上一步[构建与安装](../docs/build.md)，增量安装了graph-autofusion仓编译生成的cann包。
+用户如果想在昇腾设备上体验Autofuse 的功能与性能，可以先参考[快速安装](../docs/zh/quick_install.md)准备环境。无论是没有昇腾设备的开发者，还是已有昇腾设备的开发者，都可以快速搭建好环境。在此基础上，按照上一步[构建与安装](../docs/zh/build.md)，增量安装了graph-autofusion仓编译生成的cann包。
 
 此处指导如何搭建 Pytorch 环境，创建脚本，跑通 Inductor + Autofuse场景，并可视化生成的自动融合算子，以及观察最后的kernel性能。
 

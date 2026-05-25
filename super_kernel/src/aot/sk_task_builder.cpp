@@ -1588,26 +1588,37 @@ bool SkTaskBuilder::AddFuncTask(SkTask& skTask, SuperKernelBaseNode* node, SkDfx
         skTask.numBlocks = std::max(skTask.numBlocks, static_cast<uint32_t>(taskInfo.numBlocks));
         skTask.funcCnt++;
 
+        if (kernelInfo.capBits.disableDcci) {
+            taskInfo.debugOptions |= 0x1;
+        }
+
         if (!disableDcciList.empty() && !kernelInfo.funcName.empty()) {
-            if (opts.JudgeDisableKernelDcci(disableDcciList, kernelInfo.funcName)) {
+            if (opts.MatchKernelNameInList(disableDcciList, kernelInfo.funcName)) {
                 taskInfo.debugOptions |= 0x1;
             }
         }
 
         if (!dcciBeforeKernelStartList.empty() && !kernelInfo.funcName.empty()) {
-            if (opts.JudgeDisableKernelDcci(dcciBeforeKernelStartList, kernelInfo.funcName)) {
+            if (opts.MatchKernelNameInList(dcciBeforeKernelStartList, kernelInfo.funcName)) {
                 taskInfo.debugOptions |= 0x4;
             }
         }
 
         if (!dcciAfterKernelEndList.empty() && !kernelInfo.funcName.empty()) {
-            if (opts.JudgeDisableKernelDcci(dcciAfterKernelEndList, kernelInfo.funcName)) {
+            if (opts.MatchKernelNameInList(dcciAfterKernelEndList, kernelInfo.funcName)) {
                 taskInfo.debugOptions |= 0x8;
             }
         }
 
         if (debugCrossCoreSyncCheck == 1) {
             taskInfo.debugOptions |= 0x10;
+        }
+
+        // 设置 bit 5 (enable_dcci_after_func)
+        // 逻辑：设置了 after_kernel_end (bit 3) 或 未禁用 dcci (bit 0 未设置) 时需要执行 dcci
+        // 直接基于已设置的 bit 位判断，避免重复计算
+        if ((taskInfo.debugOptions & 0x8) || !(taskInfo.debugOptions & 0x1)) {
+            taskInfo.debugOptions |= 0x20;
         }
     }
     taskQue->taskCnt++;
@@ -2054,7 +2065,8 @@ SkBuildResult SkTaskBuilder::Build(std::string skFuncName, const std::vector<Sup
         splitBinCount = splitOptions->GetIntValue();
     }
 
-    if (opts.EnableMixKernelSplit()) {
+    auto* mixSplitOpt = opts.GetOption(SkInnerOptionType::ENABLE_MIX_KERNEL_SPLIT);
+    if (mixSplitOpt != nullptr && mixSplitOpt->GetIntValue() == 1) {
         if (!PrecomputeSyncRelationsByMixGroups(tasks)) {
             SK_LOGE("Build failed: precompute sync relations with mix kernel split failed");
             return {};
