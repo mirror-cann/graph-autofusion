@@ -205,4 +205,45 @@ ModelInfo CreateModelInfo(const uint32_t m_align, const ge::ExprType expr_type)
   FillModelInfo(model_info, ctx);
   return model_info;
 }
+}  // namespace
+
+namespace att {
+namespace {
+// Static storage so schedule tables survive the test lifetime
+std::vector<std::unique_ptr<TestTilingScheduleConfigTable>> &GetTestScheduleTables() {
+  static std::vector<std::unique_ptr<TestTilingScheduleConfigTable>> tables;
+  return tables;
+}
+}  // namespace
+
+const TilingScheduleConfigTable *RegisterTestScheduleTable(
+    uint32_t cache_line_size, bool enable_cache_line_check) {
+  auto &tables = GetTestScheduleTables();
+  auto table = std::make_unique<TestTilingScheduleConfigTable>();
+  table->cache_line_size_ = cache_line_size;
+  table->enable_cache_line_check_ = enable_cache_line_check;
+  auto *ptr = table.get();
+  tables.push_back(std::move(table));
+  return ptr;
+}
+
+ModelInfo CreateGroupParallelCacheLineModelInfo(
+    size_t group_id, uint32_t tiling_case_id, const Expr &cache_line_expr,
+    uint32_t cache_line_size, CacheLineDirection direction, const ge::ExprType expr_type) {
+  ModelInfo model_info = CreateModelInfo(1U, expr_type);
+  model_info.schedule_group_ident.asc_graph_id = 0;
+  model_info.schedule_group_ident.impl_graph_id = 0;
+  model_info.schedule_group_ident.group_id = group_id;
+  model_info.tiling_case_id = tiling_case_id;
+  model_info.enable_group_parallel = true;
+  model_info.tiling_schedule_config_table = RegisterTestScheduleTable(cache_line_size);
+  CacheLineConfig cfg;
+  cfg.node_name = "test_cache_line_node";
+  cfg.cache_line_expr = cache_line_expr;
+  cfg.solver_cache_line_expr = cache_line_expr;
+  cfg.cache_line_size = cache_line_size;
+  cfg.direction = direction;
+  model_info.cache_line_config = {cfg};
+  return model_info;
+}
 }  // namespace att

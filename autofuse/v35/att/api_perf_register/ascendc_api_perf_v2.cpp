@@ -34,16 +34,24 @@ ge::Status InitBlockLenExpandParams(const NodeDetail &node_info, const std::vect
   return ge::SUCCESS;
 }
 
-ge::Status GetBlockCount(const NodeDetail &node_info, vector<CacheLineConfig> *cache_line_config) {
+ge::Status AppendCacheLineConfig(const NodeDetail &node_info, CacheLineDirection direction,
+                                 vector<CacheLineConfig> *cache_line_config) {
   if (cache_line_config != nullptr) {
-    auto dims = node_info.input_dims;
-    Expr dim_product = accumulate(dims.begin(), dims.end(), CreateExpr(1), [](Expr a, Expr b) { return a * b; });
-    auto iter1 = kDataTypeSizeMap.find(node_info.input_dtype[0]);
-    GE_ASSERT_TRUE(iter1 != kDataTypeSizeMap.end());
-    Expr dim_product_byte = af::sym::Mul(dim_product, iter1->second);
-    if (!dim_product_byte.IsConstExpr()) {
-      cache_line_config->push_back({node_info.name, dim_product_byte, GetCacheLineSize()});
+    GE_ASSERT_TRUE(!node_info.input_dims.empty(), "Check cache line dims failed, node[%s]",
+                   node_info.ToString().c_str());
+    auto data_type_size = kDataTypeSizeMap.find(node_info.input_dtype[0]);
+    GE_ASSERT_TRUE(data_type_size != kDataTypeSizeMap.end(), "Check data type size failed, node[%s]",
+                   node_info.ToString().c_str());
+    const Expr &transfer_len = node_info.repeats.empty() ? node_info.input_dims.back() : node_info.repeats.back();
+    Expr cache_line_expr = af::sym::Mul(transfer_len, data_type_size->second);
+    CacheLineConfig cfg{node_info.name, cache_line_expr, GetCacheLineSize(), direction};
+    Expr dim_product = accumulate(node_info.input_dims.begin(), node_info.input_dims.end(), CreateExpr(1),
+                                  [](const Expr &a, const Expr &b) { return a * b; });
+    Expr total_bytes = af::sym::Mul(dim_product, data_type_size->second);
+    if (!total_bytes.IsConstExpr()) {
+      cfg.solver_cache_line_expr = std::move(total_bytes);
     }
+    cache_line_config->push_back(std::move(cfg));
   }
   return ge::SUCCESS;
 }
@@ -165,7 +173,7 @@ ge::Status LoadPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   GE_ASSERT_SUCCESS(GetPerf({kMoveGmToUb + "Stride", node_info.input_dtype[0], node_info.output_dtype[0],
                              expanded_dims, node_info.gm_stride, node_info.block_count_idx}, res_stride));
   GE_ASSERT_SUCCESS(GetLoadCase(node_info, blk, use_case));
-  GE_ASSERT_SUCCESS(GetBlockCount(node_info, perf.cache_line_config));
+  GE_ASSERT_SUCCESS(AppendCacheLineConfig(node_info, CacheLineDirection::kGmToUb, perf.cache_line_config));
   if (use_case == kCaseOne) {
     perf.pipe_res[PipeType::AIV_MTE2] = res_normal + res_stride;
   } else if (use_case == kCaseTwo) {
@@ -199,7 +207,7 @@ ge::Status StorePerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
                              padded_dims, CreateExpr(0)}, res_normal));
   GE_ASSERT_SUCCESS(GetPerf({kMoveUbToGm + "Stride", node_info.input_dtype[0], node_info.output_dtype[0],
                              node_info.repeats, node_info.gm_stride, node_info.block_count_idx}, res_stride));
-  GE_ASSERT_SUCCESS(GetBlockCount(node_info, perf.cache_line_config));
+  GE_ASSERT_SUCCESS(AppendCacheLineConfig(node_info, CacheLineDirection::kUbToGm, perf.cache_line_config));
   perf.pipe_res[PipeType::AIV_MTE3] = res_normal + res_stride;
   return ge::SUCCESS;
 }
@@ -294,7 +302,7 @@ ge::Status NddmaPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
       GetPerf({kNddma, node_info.input_dtype[0], node_info.output_dtype[0], dims, node_info.gm_stride}, res_normal));
   GE_ASSERT_SUCCESS(GetPerf({kNddma + "Stride", node_info.input_dtype[0], node_info.output_dtype[0],
                              node_info.repeats, node_info.gm_stride, node_info.block_count_idx}, res_stride));
-  GE_ASSERT_SUCCESS(GetBlockCount(node_info, perf.cache_line_config));
+  GE_ASSERT_SUCCESS(AppendCacheLineConfig(node_info, CacheLineDirection::kGmToUb, perf.cache_line_config));
   perf.pipe_res[PipeType::AIV_MTE2] = res_normal + res_stride;
   return ge::SUCCESS;
 }

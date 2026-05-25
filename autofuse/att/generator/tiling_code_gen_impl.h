@@ -14,6 +14,7 @@
 #include <string>
 #include <set>
 #include <memory>
+#include <utility>
 #include "code_printer.h"
 #include "base/model_info.h"
 #include "generator_config.h"
@@ -303,6 +304,28 @@ class TilingCodeGenImpl {
                              const std::vector<std::string> &assign_max_block_num,
                              const std::string &indent);
 
+  // 为所有group生成cache line冲突检测helper函数
+  ge::Status GenConflictGroupHelpers(const size_t asc_graph_id,
+                                     const size_t impl_graph_id,
+                                     const std::map<size_t, std::pair<std::string, std::string>> &graph_info);
+  // 为单个group生成cache line冲突检测helper函数
+  ge::Status GenConflictGroupHelper(const ModelInfo &model_info,
+                                    const std::string &group_item_prefix);
+  // 生成冲突helper的调用代码
+  std::string GenConflictGroupInvoke(const size_t asc_graph_id,
+                                     const size_t impl_graph_id,
+                                     size_t group_id,
+                                     const std::string &group_item_prefix) const;
+  // 生成冲突表达式上下文代码（返回{code, ok}）
+  std::pair<std::string, bool> GenConflictExprContextCode(const ModelInfo &model_info,
+                                                          const ge::Expression &expr,
+                                                          std::set<std::string> &declared_symbols) const;
+  // 生成混合perf聚合更新代码（含冲突标志）
+  static std::string GenMixedPerfUpdateCode(const std::vector<std::string> &groups_perf,
+                                            const std::vector<std::string> &groups_block_num,
+                                            const std::vector<std::string> &groups_conflict_flags,
+                                            const std::string &indent);
+
   ge::CodePrinter tiling_data_;
   ge::CodePrinter tiling_func_;
   ge::CodePrinter tiling_head_;
@@ -331,6 +354,9 @@ class TilingCodeGenImpl {
   std::unique_ptr<cache::GroupLevelCacheGen> group_level_cache_gen_;
 
  private:
+  // 判断CacheLineConfig是否为需要参与冲突检测的DMA方向
+  static bool IsConflictCacheLineConfig(const CacheLineConfig &cfg);
+
   ge::Status GenExpressionMacro();
   // 用于获取不同硬件信息的获取代码
   ge::Status GetRelatedHardware(std::map<std::string, std::string> &hardware_info);

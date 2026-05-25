@@ -241,6 +241,41 @@ TEST_F(UTestAscirPerfV2, TestStoreApiForType) {
   EXPECT_EQ(Str(res.Replace(ret)), "((1904 * z0z1t_size * z6t_size / (((10.2650003433228 / (block_dim)) + 11.7740001678467))) + 160.0)");
 }
 
+TEST_F(UTestAscirPerfV2, TestStoreApiCacheLineExprUsesSingleTransferLen) {
+  std::vector<att::TensorShapeInfo> input_shapes(1);
+  std::vector<att::TensorShapeInfo> output_shapes(1);
+  Expr s18 = CreateExpr("s18");
+  Expr s1 = CreateExpr("s1");
+  Expr s20 = CreateExpr("s20");
+  Expr z0Tb_size = CreateExpr("z0Tb_size");
+  Expr z0t_size = CreateExpr("z0t_size");
+  Expr inner_bytes = s1 * s20 * CreateExpr(4);
+
+  input_shapes[0].data_type = "float32";
+  input_shapes[0].dims = {s18 / (z0Tb_size * z0t_size), z0Tb_size, z0t_size, s1 * s20};
+  input_shapes[0].repeats = input_shapes[0].dims;
+  input_shapes[0].strides = {s1 * s20 * z0Tb_size * z0t_size, s1 * s20 * z0t_size, s1 * s20, af::sym::kSymbolOne};
+  input_shapes[0].gm_strides = input_shapes[0].strides;
+  output_shapes[0] = input_shapes[0];
+  input_shapes[0].data_type_size = 4;
+  output_shapes[0].data_type_size = 4;
+
+  PerfOutputInfo perf_res;
+  std::vector<CacheLineConfig> config;
+  perf_res.cache_line_config = &config;
+  auto store_v2 = ApiPerfFactory::Instance().Create("StoreV2");
+  ASSERT_NE(store_v2, nullptr);
+  auto perf = store_v2->GetPerfFunc();
+  NodeInfo node;
+  node.node_ptr = GraphConstructUtils::ConstructSingleOp("Store", 1, 1);
+  auto result = perf(input_shapes, output_shapes, node, perf_res);
+
+  EXPECT_EQ(result, ge::SUCCESS);
+  ASSERT_EQ(config.size(), 1U);
+  EXPECT_TRUE(config[0].cache_line_expr == inner_bytes);
+  EXPECT_EQ(config[0].direction, CacheLineDirection::kUbToGm);
+}
+
 TEST_F(UTestAscirPerfV2, TestStoreApiForSmallStride) {
   std::vector<att::TensorShapeInfo> input_shapes(1);
   std::vector<att::TensorShapeInfo> output_shapes(1);

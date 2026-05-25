@@ -35,6 +35,18 @@
 const std::string op_name = "OpTest";
 
 namespace att {
+namespace {
+size_t CountSubstr(const std::string &text, const std::string &pattern) {
+  size_t count = 0U;
+  size_t pos = text.find(pattern);
+  while (pos != std::string::npos) {
+    ++count;
+    pos = text.find(pattern, pos + pattern.size());
+  }
+  return count;
+}
+}  // namespace
+
 class MockHighPerfTilingCodeGenImpl : public HighPerfTilingCodeGenImpl {
  public:
   MockHighPerfTilingCodeGenImpl(const std::string &mock_op_name, const TilingCodeGenConfig &config,
@@ -594,6 +606,466 @@ TEST(GeneratorUT, InductorSceneTriggersPGOSkeletonAndSearchTilingKey) {
   EXPECT_NE(tiling_func_output.find("PGOSearchTilingKey("), std::string::npos);
   // GetPerf must be called inside ExecutePGOSolver override
   EXPECT_NE(tiling_func_output.find("GetPerf(tiling_data)"), std::string::npos);
+}
+
+// ============================================================================
+// Cache line conflict detection tests (Task 1 - expected to fail until feature is implemented)
+// ============================================================================
+
+// Test 1: Both groups have cache line conflict → should use sum aggregation
+TEST(GeneratorUT, GroupParallelCacheLine_AllConflict_UseSumAggregation) {
+  FusedParsedScheduleResult fused_schedule_result;
+  auto &schedule_result = fused_schedule_result[0][0];
+  schedule_result.impl_graph_id = 0;
+  schedule_result.enable_group_parallel = true;
+
+  // Group 0: conflict (expr=4/8, small value → not aligned to cache line)
+  auto info0 = CreateGroupParallelCacheLineModelInfo(
+      0, 0, CreateExpr(4) / CreateExpr(8), 128, CacheLineDirection::kUbToGm);
+  // Group 1: conflict (expr=4/8, same conflict)
+  auto info1 = CreateGroupParallelCacheLineModelInfo(
+      1, 1, CreateExpr(4) / CreateExpr(8), 128, CacheLineDirection::kUbToGm);
+
+  schedule_result.groups_tiling_model_info[0] = {info0};
+  schedule_result.groups_tiling_model_info[1] = {info1};
+
+  for (auto &[group_id, infos] : schedule_result.groups_tiling_model_info) {
+    ASSERT_EQ(ReuseGroupUtils::InitReuseScheduleGroup({0UL, 0UL, group_id}, infos), ge::SUCCESS);
+  }
+
+  TilingCodeGenConfig config;
+  config.path = "./";
+  config.type = TilingImplType::HIGH_PERF;
+  config.tiling_data_type_name = "OpTestTilingData";
+  config.gen_tiling_data = false;
+  config.gen_extra_infos = false;
+  std::map<std::string, std::string> tiling_res;
+  TilingCodeGenerator generator;
+  ASSERT_EQ(generator.GenTilingCode(op_name, fused_schedule_result, config, tiling_res), ge::SUCCESS);
+
+  std::string all_code;
+  for (const auto &[key, value] : tiling_res) { all_code += value; }
+
+  using testing::HasSubstr;
+  EXPECT_THAT(all_code, HasSubstr("IsConflictGroup_0_0_0_0"));
+  EXPECT_THAT(all_code, HasSubstr("IsConflictGroup_0_0_1_1"));
+  EXPECT_THAT(all_code, HasSubstr("conflict_perf_sum"));
+  EXPECT_THAT(all_code, HasSubstr("conflict_perf_sum + normal_perf_merged"));
+}
+
+// Test 2: Boundary expression exactly equals cache_line_size → stays normal
+TEST(GeneratorUT, GroupParallelCacheLine_BoundaryEqualCacheLine_StaysNormal) {
+  FusedParsedScheduleResult fused_schedule_result;
+  auto &schedule_result = fused_schedule_result[0][0];
+  schedule_result.impl_graph_id = 0;
+  schedule_result.enable_group_parallel = true;
+
+  auto info0 = CreateGroupParallelCacheLineModelInfo(
+      0, 0, CreateExpr(128) / CreateExpr(256), 128, CacheLineDirection::kUbToGm);
+  auto info1 = CreateGroupParallelCacheLineModelInfo(
+      1, 1, CreateExpr(128) / CreateExpr(256), 128, CacheLineDirection::kUbToGm);
+
+  schedule_result.groups_tiling_model_info[0] = {info0};
+  schedule_result.groups_tiling_model_info[1] = {info1};
+
+  for (auto &[group_id, infos] : schedule_result.groups_tiling_model_info) {
+    ASSERT_EQ(ReuseGroupUtils::InitReuseScheduleGroup({0UL, 0UL, group_id}, infos), ge::SUCCESS);
+  }
+
+  TilingCodeGenConfig config;
+  config.path = "./";
+  config.type = TilingImplType::HIGH_PERF;
+  config.tiling_data_type_name = "OpTestTilingData";
+  config.gen_tiling_data = false;
+  config.gen_extra_infos = false;
+  std::map<std::string, std::string> tiling_res;
+  TilingCodeGenerator generator;
+  ASSERT_EQ(generator.GenTilingCode(op_name, fused_schedule_result, config, tiling_res), ge::SUCCESS);
+
+  std::string all_code;
+  for (const auto &[key, value] : tiling_res) { all_code += value; }
+
+  using testing::HasSubstr;
+  EXPECT_THAT(all_code, HasSubstr("< 128"));
+  EXPECT_THAT(all_code, HasSubstr("return false"));
+}
+
+// Test 3: Group0 conflict, Group1 normal → init from first normal group
+TEST(GeneratorUT, GroupParallelCacheLine_FirstConflictSecondNormal_InitFromFirstNormal) {
+  FusedParsedScheduleResult fused_schedule_result;
+  auto &schedule_result = fused_schedule_result[0][0];
+  schedule_result.impl_graph_id = 0;
+  schedule_result.enable_group_parallel = true;
+
+  // Group 0: conflict (expr=4, small value)
+  auto info0 = CreateGroupParallelCacheLineModelInfo(
+      0, 0, CreateExpr(4), 128, CacheLineDirection::kUbToGm);
+  // Group 1: normal (expr=256, large aligned value)
+  auto info1 = CreateGroupParallelCacheLineModelInfo(
+      1, 1, CreateExpr(256), 128, CacheLineDirection::kUbToGm);
+
+  schedule_result.groups_tiling_model_info[0] = {info0};
+  schedule_result.groups_tiling_model_info[1] = {info1};
+
+  for (auto &[group_id, infos] : schedule_result.groups_tiling_model_info) {
+    ASSERT_EQ(ReuseGroupUtils::InitReuseScheduleGroup({0UL, 0UL, group_id}, infos), ge::SUCCESS);
+  }
+
+  TilingCodeGenConfig config;
+  config.path = "./";
+  config.type = TilingImplType::HIGH_PERF;
+  config.tiling_data_type_name = "OpTestTilingData";
+  config.gen_tiling_data = false;
+  config.gen_extra_infos = false;
+  std::map<std::string, std::string> tiling_res;
+  TilingCodeGenerator generator;
+  ASSERT_EQ(generator.GenTilingCode(op_name, fused_schedule_result, config, tiling_res), ge::SUCCESS);
+
+  std::string all_code;
+  for (const auto &[key, value] : tiling_res) { all_code += value; }
+
+  using testing::HasSubstr;
+  EXPECT_THAT(all_code, HasSubstr("has_normal_group"));
+  EXPECT_THAT(all_code, HasSubstr("normal_perf_merged += cur_tmp_perf;"));
+  EXPECT_THAT(all_code, HasSubstr("Final normal perf"));
+  EXPECT_THAT(all_code, HasSubstr("conflict_perf_sum +="));
+}
+
+// Test 4: Multi-case final tiling key dispatch uses case helper
+TEST(GeneratorUT, GroupParallelCacheLine_FinalTilingKeyDispatch_UsesFinalCaseHelper) {
+  FusedParsedScheduleResult fused_schedule_result;
+  auto &schedule_result = fused_schedule_result[0][0];
+  schedule_result.impl_graph_id = 0;
+  schedule_result.enable_group_parallel = true;
+
+  // Group 0: 2 cases (case_id 0 and 1), both conflict
+  auto info0_case0 = CreateGroupParallelCacheLineModelInfo(
+      0, 0, CreateExpr(4) / CreateExpr(8), 128, CacheLineDirection::kUbToGm);
+  auto info0_case1 = CreateGroupParallelCacheLineModelInfo(
+      0, 1, CreateExpr(4) / CreateExpr(8), 128, CacheLineDirection::kUbToGm);
+  // Group 1: 1 case (case_id 2), normal
+  auto info1_case2 = CreateGroupParallelCacheLineModelInfo(
+      1, 2, CreateExpr(256), 128, CacheLineDirection::kUbToGm);
+
+  schedule_result.groups_tiling_model_info[0] = {info0_case0, info0_case1};
+  schedule_result.groups_tiling_model_info[1] = {info1_case2};
+
+  for (auto &[group_id, infos] : schedule_result.groups_tiling_model_info) {
+    ASSERT_EQ(ReuseGroupUtils::InitReuseScheduleGroup({0UL, 0UL, group_id}, infos), ge::SUCCESS);
+  }
+
+  TilingCodeGenConfig config;
+  config.path = "./";
+  config.type = TilingImplType::HIGH_PERF;
+  config.tiling_data_type_name = "OpTestTilingData";
+  config.gen_tiling_data = false;
+  config.gen_extra_infos = false;
+  std::map<std::string, std::string> tiling_res;
+  TilingCodeGenerator generator;
+  ASSERT_EQ(generator.GenTilingCode(op_name, fused_schedule_result, config, tiling_res), ge::SUCCESS);
+
+  std::string all_code;
+  for (const auto &[key, value] : tiling_res) { all_code += value; }
+
+  using testing::HasSubstr;
+  EXPECT_THAT(all_code, HasSubstr("get_tiling_key())"));
+  EXPECT_THAT(all_code, HasSubstr("case 0: return IsConflictGroup_0_0_0_0()"));
+  EXPECT_THAT(all_code, HasSubstr("case 1: return IsConflictGroup_0_0_0_1()"));
+}
+
+// Test 5: Byte expression does not multiply dtype_size again
+TEST(GeneratorUT, GroupParallelCacheLine_ByteExprDoesNotMultiplyDtypeAgain) {
+  FusedParsedScheduleResult fused_schedule_result;
+  auto &schedule_result = fused_schedule_result[0][0];
+  schedule_result.impl_graph_id = 0;
+  schedule_result.enable_group_parallel = true;
+
+  // Composite expression: CreateExpr(64) * CreateExpr(2) = 128 bytes (already in bytes)
+  Expr byte_expr = CreateExpr(64) * CreateExpr(2);
+  auto info0 = CreateGroupParallelCacheLineModelInfo(
+      0, 0, byte_expr, 128, CacheLineDirection::kUbToGm);
+  auto info1 = CreateGroupParallelCacheLineModelInfo(
+      1, 1, byte_expr, 128, CacheLineDirection::kUbToGm);
+
+  schedule_result.groups_tiling_model_info[0] = {info0};
+  schedule_result.groups_tiling_model_info[1] = {info1};
+
+  for (auto &[group_id, infos] : schedule_result.groups_tiling_model_info) {
+    ASSERT_EQ(ReuseGroupUtils::InitReuseScheduleGroup({0UL, 0UL, group_id}, infos), ge::SUCCESS);
+  }
+
+  TilingCodeGenConfig config;
+  config.path = "./";
+  config.type = TilingImplType::HIGH_PERF;
+  config.tiling_data_type_name = "OpTestTilingData";
+  config.gen_tiling_data = false;
+  config.gen_extra_infos = false;
+  std::map<std::string, std::string> tiling_res;
+  TilingCodeGenerator generator;
+  ASSERT_EQ(generator.GenTilingCode(op_name, fused_schedule_result, config, tiling_res), ge::SUCCESS);
+
+  std::string all_code;
+  for (const auto &[key, value] : tiling_res) { all_code += value; }
+
+  using testing::HasSubstr;
+  using testing::Not;
+  EXPECT_THAT(all_code, Not(HasSubstr("dtype_size")));
+  EXPECT_THAT(all_code, HasSubstr("< 128"));
+}
+
+// Test 6: Missing schedule table → fallback to normal with log
+TEST(GeneratorUT, GroupParallelCacheLine_MissingScheduleTable_FallbackToNormalWithLog) {
+  FusedParsedScheduleResult fused_schedule_result;
+  auto &schedule_result = fused_schedule_result[0][0];
+  schedule_result.impl_graph_id = 0;
+  schedule_result.enable_group_parallel = true;
+
+  // Group 0: no schedule table (nullptr), manually created
+  ModelInfo info0 = CreateModelInfo();
+  info0.schedule_group_ident.asc_graph_id = 0;
+  info0.schedule_group_ident.impl_graph_id = 0;
+  info0.schedule_group_ident.group_id = 0;
+  info0.tiling_case_id = 0;
+  info0.enable_group_parallel = true;
+  info0.tiling_schedule_config_table = nullptr;
+  CacheLineConfig cfg0;
+  cfg0.node_name = "test_cache_line_node";
+  cfg0.cache_line_expr = CreateExpr(4);
+  cfg0.cache_line_size = 128;
+  cfg0.direction = CacheLineDirection::kUbToGm;
+  info0.cache_line_config = {cfg0};
+
+  // Group 1: normal
+  auto info1 = CreateGroupParallelCacheLineModelInfo(
+      1, 1, CreateExpr(256), 128, CacheLineDirection::kUbToGm);
+
+  schedule_result.groups_tiling_model_info[0] = {info0};
+  schedule_result.groups_tiling_model_info[1] = {info1};
+
+  for (auto &[group_id, infos] : schedule_result.groups_tiling_model_info) {
+    ASSERT_EQ(ReuseGroupUtils::InitReuseScheduleGroup({0UL, 0UL, group_id}, infos), ge::SUCCESS);
+  }
+
+  TilingCodeGenConfig config;
+  config.path = "./";
+  config.type = TilingImplType::HIGH_PERF;
+  config.tiling_data_type_name = "OpTestTilingData";
+  config.gen_tiling_data = false;
+  config.gen_extra_infos = false;
+  std::map<std::string, std::string> tiling_res;
+  TilingCodeGenerator generator;
+  ASSERT_EQ(generator.GenTilingCode(op_name, fused_schedule_result, config, tiling_res), ge::SUCCESS);
+
+  std::string all_code;
+  for (const auto &[key, value] : tiling_res) { all_code += value; }
+
+  using testing::HasSubstr;
+  EXPECT_THAT(all_code, HasSubstr("cache line size is unavailable, fallback to normal group"));
+}
+
+// Test 7: Direction is kGmToUb (read) → should also use conflict aggregation
+TEST(GeneratorUT, GroupParallelCacheLine_GmToUbConflict_UseSumAggregation) {
+  FusedParsedScheduleResult fused_schedule_result;
+  auto &schedule_result = fused_schedule_result[0][0];
+  schedule_result.impl_graph_id = 0;
+  schedule_result.enable_group_parallel = true;
+
+  // Group 0: kGmToUb direction (read)
+  auto info0 = CreateGroupParallelCacheLineModelInfo(
+      0, 0, CreateExpr(4), 128, CacheLineDirection::kGmToUb);
+  // Group 1: kUbToGm direction (write, valid)
+  auto info1 = CreateGroupParallelCacheLineModelInfo(
+      1, 1, CreateExpr(4), 128, CacheLineDirection::kUbToGm);
+
+  schedule_result.groups_tiling_model_info[0] = {info0};
+  schedule_result.groups_tiling_model_info[1] = {info1};
+
+  for (auto &[group_id, infos] : schedule_result.groups_tiling_model_info) {
+    ASSERT_EQ(ReuseGroupUtils::InitReuseScheduleGroup({0UL, 0UL, group_id}, infos), ge::SUCCESS);
+  }
+
+  TilingCodeGenConfig config;
+  config.path = "./";
+  config.type = TilingImplType::HIGH_PERF;
+  config.tiling_data_type_name = "OpTestTilingData";
+  config.gen_tiling_data = false;
+  config.gen_extra_infos = false;
+  std::map<std::string, std::string> tiling_res;
+  TilingCodeGenerator generator;
+  ASSERT_EQ(generator.GenTilingCode(op_name, fused_schedule_result, config, tiling_res), ge::SUCCESS);
+
+  std::string all_code;
+  for (const auto &[key, value] : tiling_res) { all_code += value; }
+
+  using testing::HasSubstr;
+  EXPECT_THAT(all_code, HasSubstr("IsConflictGroup_0_0_0_0"));
+  EXPECT_THAT(all_code, HasSubstr("IsConflictGroup_0_0_1_1"));
+  EXPECT_THAT(all_code, HasSubstr("conflict_perf_sum +="));
+  EXPECT_THAT(all_code, HasSubstr("conflict_perf_sum + normal_perf_merged"));
+  EXPECT_THAT(all_code, Not(HasSubstr("no valid gm<->ub cache line expr, fallback to normal group")));
+}
+
+// Test 8: Duplicate final tiling key → fallback to normal with log
+TEST(GeneratorUT, GroupParallelCacheLine_DuplicateFinalKey_FallbackToNormalWithLog) {
+  FusedParsedScheduleResult fused_schedule_result;
+  auto &schedule_result = fused_schedule_result[0][0];
+  schedule_result.impl_graph_id = 0;
+  schedule_result.enable_group_parallel = true;
+
+  // Group 0: 2 cases with SAME tiling_case_id=0 (duplicate key)
+  auto info0_case0 = CreateGroupParallelCacheLineModelInfo(
+      0, 0, CreateExpr(4) / CreateExpr(8), 128, CacheLineDirection::kUbToGm);
+  auto info0_case1 = CreateGroupParallelCacheLineModelInfo(
+      0, 0, CreateExpr(4) / CreateExpr(8), 128, CacheLineDirection::kUbToGm);
+
+  // Group 1: normal
+  auto info1 = CreateGroupParallelCacheLineModelInfo(
+      1, 1, CreateExpr(256), 128, CacheLineDirection::kUbToGm);
+
+  schedule_result.groups_tiling_model_info[0] = {info0_case0, info0_case1};
+  schedule_result.groups_tiling_model_info[1] = {info1};
+
+  for (auto &[group_id, infos] : schedule_result.groups_tiling_model_info) {
+    ASSERT_EQ(ReuseGroupUtils::InitReuseScheduleGroup({0UL, 0UL, group_id}, infos), ge::SUCCESS);
+  }
+
+  TilingCodeGenConfig config;
+  config.path = "./";
+  config.type = TilingImplType::HIGH_PERF;
+  config.tiling_data_type_name = "OpTestTilingData";
+  config.gen_tiling_data = false;
+  config.gen_extra_infos = false;
+  std::map<std::string, std::string> tiling_res;
+  TilingCodeGenerator generator;
+  ASSERT_EQ(generator.GenTilingCode(op_name, fused_schedule_result, config, tiling_res), ge::SUCCESS);
+
+  std::string all_code;
+  for (const auto &[key, value] : tiling_res) { all_code += value; }
+
+  using testing::HasSubstr;
+  EXPECT_THAT(all_code, HasSubstr("duplicate final tiling key mapping, fallback to normal group"));
+  EXPECT_EQ(CountSubstr(all_code, "auto IsConflictGroup_0_0_0_0 ="), 1U);
+}
+
+TEST(GeneratorUT, GroupParallelCacheLine_DynamicInputSizeSymbols_GenerateContext) {
+  FusedParsedScheduleResult fused_schedule_result;
+  auto &schedule_result = fused_schedule_result[0][0];
+  schedule_result.impl_graph_id = 0;
+  schedule_result.enable_group_parallel = true;
+
+  Expr s1 = CreateExpr("s1");
+  Expr s20 = CreateExpr("s20");
+  auto info0 = CreateGroupParallelCacheLineModelInfo(
+      0, 0, s1 * s20 * CreateExpr(4), 128, CacheLineDirection::kUbToGm);
+  info0.sizes = {s1, s20};
+  auto info1 = CreateGroupParallelCacheLineModelInfo(
+      1, 1, CreateExpr(256), 128, CacheLineDirection::kUbToGm);
+
+  schedule_result.groups_tiling_model_info[0] = {info0};
+  schedule_result.groups_tiling_model_info[1] = {info1};
+
+  for (auto &[group_id, infos] : schedule_result.groups_tiling_model_info) {
+    ASSERT_EQ(ReuseGroupUtils::InitReuseScheduleGroup({0UL, 0UL, group_id}, infos), ge::SUCCESS);
+  }
+
+  TilingCodeGenConfig config;
+  config.path = "./";
+  config.type = TilingImplType::HIGH_PERF;
+  config.tiling_data_type_name = "OpTestTilingData";
+  config.gen_tiling_data = false;
+  config.gen_extra_infos = false;
+  std::map<std::string, std::string> tiling_res;
+  TilingCodeGenerator generator;
+  ASSERT_EQ(generator.GenTilingCode(op_name, fused_schedule_result, config, tiling_res), ge::SUCCESS);
+
+  std::string all_code;
+  for (const auto &[key, value] : tiling_res) {
+    all_code += value;
+  }
+
+  using testing::HasSubstr;
+  using testing::Not;
+  EXPECT_THAT(all_code, HasSubstr("auto s1 = group_tiling_data.get_s1();"));
+  EXPECT_THAT(all_code, HasSubstr("auto s20 = group_tiling_data.get_s20();"));
+  EXPECT_THAT(all_code, Not(HasSubstr("cache line expr is not codegenable, fallback to normal group")));
+}
+
+TEST(GeneratorUT, GroupParallelCacheLine_UnknownDirection_FallbackToNormal) {
+  FusedParsedScheduleResult fused_schedule_result;
+  auto &schedule_result = fused_schedule_result[0][0];
+  schedule_result.impl_graph_id = 0;
+  schedule_result.enable_group_parallel = true;
+
+  auto info0 = CreateGroupParallelCacheLineModelInfo(
+      0, 0, CreateExpr(4), 128, CacheLineDirection::kUnknown);
+  auto info1 = CreateGroupParallelCacheLineModelInfo(
+      1, 1, CreateExpr(256), 128, CacheLineDirection::kUbToGm);
+
+  schedule_result.groups_tiling_model_info[0] = {info0};
+  schedule_result.groups_tiling_model_info[1] = {info1};
+  for (auto &[group_id, infos] : schedule_result.groups_tiling_model_info) {
+    ASSERT_EQ(ReuseGroupUtils::InitReuseScheduleGroup({0UL, 0UL, group_id}, infos), ge::SUCCESS);
+  }
+
+  TilingCodeGenConfig config;
+  config.path = "./";
+  config.type = TilingImplType::HIGH_PERF;
+  config.tiling_data_type_name = "OpTestTilingData";
+  config.gen_tiling_data = false;
+  config.gen_extra_infos = false;
+  std::map<std::string, std::string> tiling_res;
+  TilingCodeGenerator generator;
+  ASSERT_EQ(generator.GenTilingCode(op_name, fused_schedule_result, config, tiling_res), ge::SUCCESS);
+
+  std::string all_code;
+  for (const auto &[key, value] : tiling_res) {
+    all_code += value;
+  }
+
+  using testing::HasSubstr;
+  EXPECT_THAT(all_code, HasSubstr("no valid gm<->ub cache line expr, fallback to normal group"));
+}
+
+TEST(GeneratorUT, GroupParallelCacheLine_MultiWriteExprs_DeduplicateContext) {
+  FusedParsedScheduleResult fused_schedule_result;
+  auto &schedule_result = fused_schedule_result[0][0];
+  schedule_result.impl_graph_id = 0;
+  schedule_result.enable_group_parallel = true;
+
+  Expr s1 = CreateExpr("s1");
+  Expr s20 = CreateExpr("s20");
+  auto info0 = CreateGroupParallelCacheLineModelInfo(
+      0, 0, s1 * s20 * CreateExpr(4), 128, CacheLineDirection::kUbToGm);
+  info0.sizes = {s1, s20};
+  CacheLineConfig second_cfg = info0.cache_line_config[0];
+  second_cfg.node_name = "test_cache_line_node2";
+  info0.cache_line_config.push_back(second_cfg);
+  auto info1 = CreateGroupParallelCacheLineModelInfo(
+      1, 1, CreateExpr(256), 128, CacheLineDirection::kUbToGm);
+
+  schedule_result.groups_tiling_model_info[0] = {info0};
+  schedule_result.groups_tiling_model_info[1] = {info1};
+  for (auto &[group_id, infos] : schedule_result.groups_tiling_model_info) {
+    ASSERT_EQ(ReuseGroupUtils::InitReuseScheduleGroup({0UL, 0UL, group_id}, infos), ge::SUCCESS);
+  }
+
+  TilingCodeGenConfig config;
+  config.path = "./";
+  config.type = TilingImplType::HIGH_PERF;
+  config.tiling_data_type_name = "OpTestTilingData";
+  config.gen_tiling_data = false;
+  config.gen_extra_infos = false;
+  std::map<std::string, std::string> tiling_res;
+  TilingCodeGenerator generator;
+  ASSERT_EQ(generator.GenTilingCode(op_name, fused_schedule_result, config, tiling_res), ge::SUCCESS);
+
+  std::string all_code;
+  for (const auto &[key, value] : tiling_res) {
+    all_code += value;
+  }
+
+  EXPECT_EQ(CountSubstr(all_code, "auto s1 = group_tiling_data.get_s1();"), 1U);
+  EXPECT_EQ(CountSubstr(all_code, "auto s20 = group_tiling_data.get_s20();"), 1U);
 }
 
 }  // namespace att
