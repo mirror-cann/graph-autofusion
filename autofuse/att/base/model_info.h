@@ -184,12 +184,43 @@ struct TilingScheduleConfig {
   }
 };
 
+enum class CacheLineDirection : uint8_t {
+  kUnknown = 0,
+  kGmToUb = 1,
+  kUbToGm = 2,
+};
+
+// Contract: In non-PGO group-parallel path, GenGetTilingbyCaseId generates
+// tiling_data.set_tiling_key(tiling_case_id), so runtime get_tiling_key()
+// returns the case_id used at codegen time. This allows mapping final_key -> helper.
+// Trace: GenGetScheduleResult -> group-parallel branch -> GenGroupParallelFirstTiling
+//   (uses tiling_case_id) -> DoGroupTiling stores group tiling_key via
+//   group_var.get_tiling_key(). GenGetTilingbyCaseId calls GenerateInputParamsAndTiling
+//   which emits tiling_data.set_tiling_key(tiling_case_id).
 struct CacheLineConfig {
+  CacheLineConfig() = default;
+  CacheLineConfig(const std::string &name, const Expr &expr, uint32_t size,
+                  CacheLineDirection cache_line_direction = CacheLineDirection::kUnknown,
+                  const Expr &solver_expr = Expr())
+      : node_name(name),
+        cache_line_expr(expr),
+        cache_line_size(size),
+        direction(cache_line_direction),
+        solver_cache_line_expr(solver_expr) {}
+
   std::string node_name;
+  // Single transfer bytes (repeats.back() * data_type_size), used by conflict detection
   Expr cache_line_expr;
   uint32_t cache_line_size;
+  CacheLineDirection direction{CacheLineDirection::kUnknown};
+  // Total block bytes (accumulate(input_dims) * data_type_size), used by solver UB constraint.
+  // Empty when total bytes is a compile-time constant (solver should skip).
+  Expr solver_cache_line_expr;
   std::string ToString() const {
     return "node: " + node_name + ", expr: " + Str(cache_line_expr) + ", size: " + std::to_string(cache_line_size);
+  }
+  [[nodiscard]] bool IsCacheLineConflictCandidate() const {
+    return direction == CacheLineDirection::kGmToUb || direction == CacheLineDirection::kUbToGm;
   }
 };
 
@@ -279,4 +310,3 @@ struct ParsedScheduleResult {
 using FusedParsedScheduleResult = std::map<size_t, std::map<size_t, ParsedScheduleResult>>;
 }
 #endif
-

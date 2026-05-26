@@ -160,6 +160,18 @@ void NodeCacheMarker::MarkNodesCacheableBottomUp(const af::AscNodePtr &node, [[m
     const auto &tmp_node = queue.front();
     VisitNode(tmp_node);
     queue.pop();
+
+    // 遇到 Load 节点，说明已到达图的Data节点，为防止一个Data接多个load，将另一侧的load也标记缓存的情况此时直接截断。
+    const auto &asc_tmp_node = std::dynamic_pointer_cast<af::AscNode>(tmp_node);
+
+    if (asc_tmp_node != nullptr && ScheduleUtils::IsLoad(asc_tmp_node)) {
+      GELOGD("Graph [%s], find Load node [%s] as cache start boundary, truncate to avoid multi-output pollution from Data node.",
+             graph_.GetName().c_str(), tmp_node->GetNamePtr());
+
+      MarkNodeCacheable(tmp_node);  // 确保当前 Load 节点自身被正常标记缓存
+      AddToCacheStartSet(tmp_node); // 将 Load 作为正向刷新的 Start 节点
+      continue;                     // 截断！
+    }
     if (tmp_node->GetInDataNodesSize() == 0UL) {
       AddToCacheStartSet(tmp_node);
       continue;

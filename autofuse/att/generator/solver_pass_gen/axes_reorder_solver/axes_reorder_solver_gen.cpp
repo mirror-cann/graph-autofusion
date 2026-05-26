@@ -684,10 +684,10 @@ std::string AxesReorderSolverGen::GenUBSizeCacheLineFunc() {
   codes += "  *sizes[idx] = static_cast<double>(input_.local_buffer_vars[idx]->value);\n\n";
   if (cache_line_config_ != nullptr) {
     for (const auto &c : *cache_line_config_) {
-      if (c.cache_line_size > 0) {
+      if (c.cache_line_size > 0 && IsValid(c.solver_cache_line_expr)) {
         GELOGD("GetCacheLineCont for %s", c.ToString().c_str());
         codes += "  // check node " + c.node_name + "\n";
-        codes += "  if (" + Str(c.cache_line_expr) + " < " + std::to_string(c.cache_line_size) + ") {\n";
+        codes += "  if (" + Str(c.solver_cache_line_expr) + " < " + std::to_string(c.cache_line_size) + ") {\n";
         codes += "      OP_LOGD(OP_NAME, \"" + c.node_name + " condition not satisfy UB size cache line\");\n";
         codes += "      return false;\n";
         codes += "  }\n";

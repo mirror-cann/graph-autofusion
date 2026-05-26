@@ -211,7 +211,9 @@ TEST_F(TestAxesReorderSolverGen, TEST_GEN_SOLVER_ub_cache_code)
   axis_priority[x0] = 2;
   axis_priority[x1] = 1;
   std::vector<CacheLineConfig> config;
-  config.push_back({"test_node", CreateExpr(120), 128});
+  CacheLineConfig cache_line_cfg{"test_node", CreateExpr(120), 128};
+  cache_line_cfg.solver_cache_line_expr = CreateExpr(120);
+  config.push_back(cache_line_cfg);
 
   AxesReorderSolverGen solver_gen("case_test", "TilingData");
   solver_gen.SetArgAlignMap(arg_align_map);

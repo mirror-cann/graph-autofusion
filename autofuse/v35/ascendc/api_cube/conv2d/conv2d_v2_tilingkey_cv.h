@@ -16,11 +16,6 @@
 #endif
 #include "arch35/conv2d_v2_inner_batch_tilingkey.h"
 
-
-#if (defined(__NPU_ARCH__) && (__NPU_ARCH__ == 5102))
-#define ASCENDC_TPL_MIX_AIC_1_2 ASCENDC_TPL_MIX_AIC_1_1
-#endif
-
 #ifndef CONV2D_V2_INPUT_HWNC_TILINGKEY_H
 #define CONV2D_V2_INPUT_HWNC_TILINGKEY_H
 
@@ -1032,7 +1027,4 @@ ASCENDC_TPL_ARGS_SEL(CONV_INNER_BATCH_ABL1_FULLLOAD_N_FIRST_ENABLE_C04_SEL()),
 
 }
 
-#if (defined(__NPU_ARCH__) && (__NPU_ARCH__ == 5102))
-#undef ASCENDC_TPL_MIX_AIC_1_2
-#endif
 #endif  // CONV2D_V2_TILINGKEY_H

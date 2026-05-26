@@ -3536,25 +3536,25 @@ class AutoFusionVector {
            << std::endl
            << "if (stage == 1) {" << std::endl
            << "  auto_fusion_vector_stage1(offset, offsetH, offsetW, offsetCout, curAivN, curAlignN, shapeN, curAivM, "
-              "shapeM, stageSize, int64_t stageOffset);"
+              "shapeM, stageSize, stageOffset);"
            << std::endl
            << "} else if (stage == 2) {" << std::endl
            << "  auto_fusion_vector_stage2(offset, offsetH, offsetW, offsetCout, curAivN, curAlignN, shapeN, curAivM, "
-              "shapeM, stageSize, int64_t stageOffset);"
+              "shapeM, stageSize, stageOffset);"
            << std::endl
            << "} else if (stage == 3) {" << std::endl
            << "  auto_fusion_vector_stage3(offset, offsetH, offsetW, offsetCout, curAivN, curAlignN, shapeN, curAivM, "
-              "shapeM, stageSize, int64_t stageOffset);"
+              "shapeM, stageSize, stageOffset);"
            << std::endl
            << "} else {" << std::endl
            << "  auto_fusion_vector_stage1(offset, offsetH, offsetW, offsetCout, curAivN, curAlignN, shapeN, curAivM, "
-              "shapeM, stageSize, int64_t stageOffset);"
+              "shapeM, stageSize, stageOffset);"
            << std::endl
            << "  auto_fusion_vector_stage2(offset, offsetH, offsetW, offsetCout, curAivN, curAlignN, shapeN, curAivM, "
-              "shapeM, stageSize, int64_t stageOffset);"
+              "shapeM, stageSize, stageOffset);"
            << std::endl
            << "  auto_fusion_vector_stage3(offset, offsetH, offsetW, offsetCout, curAivN, curAlignN, shapeN, curAivM, "
-              "shapeM, stageSize, int64_t stageOffset);"
+              "shapeM, stageSize, stageOffset);"
            << std::endl
            << "}" << std::endl
            << "}" << std::endl;

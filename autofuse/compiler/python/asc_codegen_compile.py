@@ -1343,7 +1343,7 @@ def create_conv_tiling_data(kernel_name, temp_dir, graph_name, tiling_info, cube
     host_tiling_data = f"""
 // conv2d
 #include "arch35/conv2d_v2_tiling_def.h"
-#include <<algorithm>
+#include <algorithm>
 const int32_t cube_output_type_size = {cube_output_type_size};
 GET_TILING_DATA_PTR_WITH_STRUCT({struct_name}, tmpTilingData, tmpTilingGM);
 """

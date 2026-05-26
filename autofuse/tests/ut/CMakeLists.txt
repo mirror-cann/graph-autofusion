@@ -26,14 +26,14 @@ if(EXISTS "${PEM_DAVINCI_PATH}")
 endif()
 
 target_link_libraries(test_main PRIVATE
-    atrace
+    atrace_stub
     error_manager
     aihac_symbolizer_af
     test_ascir_ut
     test_codegen
     test_py_module
     test_e2e
-    runtime
+    autofuse_runtime_stub
     metadef
     GTest::gtest
 )

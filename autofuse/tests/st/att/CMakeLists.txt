@@ -94,7 +94,7 @@ target_link_options(att_st PRIVATE
         )
 
 target_link_libraries(att_st
-        GTest::gtest GTest::gtest_main -lgcov
+        GTest::gtest GTest::gtest_main pthread -lgcov
         symengine
         Boost::boost
         atrace

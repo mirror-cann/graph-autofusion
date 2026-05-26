@@ -1232,6 +1232,52 @@ Status BuildMultiCaseG1(af::AscGraph &graph) {
   data_node->attr.tmp_buffers.emplace_back(TmpBuffer{TmpBufDesc{af::Symbol(16 * 1024), 0}, {}, 0});
   return ge::SUCCESS;
 }
+
+Status BuildSevenInputsMiddleAxisCacheLineConflict(ge::AscGraph &graph) {
+  auto S0 = af::Symbol("S0");
+  auto S1 = af::Symbol("S1");
+  auto s0 = graph.CreateAxis("s0", S0);
+  auto s1 = graph.CreateAxis("s1", S1);
+  auto [s0B, s0b] = graph.BlockSplit(s0.id);
+  auto [s0bT, s0bt] = graph.TileSplit(s0b->id);
+  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {s0, s1});
+  auto data2 = graph.CreateContiguousData("input2", DT_FLOAT, {s0, s1});
+  auto data3 = graph.CreateContiguousData("input3", DT_FLOAT, {s0, s1});
+  auto data4 = graph.CreateContiguousData("input4", DT_FLOAT, {s0, s1});
+  auto data5 = graph.CreateContiguousData("input5", DT_FLOAT, {s0, s1});
+  auto data6 = graph.CreateContiguousData("input6", DT_FLOAT, {s0, s1});
+  auto data7 = graph.CreateContiguousData("input7", DT_FLOAT, {s0, s1});
+  LOOP(*s0B) {
+    LOOP(*s0bT) {
+      auto load1 = Load("load1", data1).TQue(Position::kPositionVecIn, 1, 1);
+      auto load2 = Load("load2", data2).TQue(Position::kPositionVecIn, 1, 2);
+      auto load3 = Load("load3", data3).TQue(Position::kPositionVecIn, 1, 3);
+      auto load4 = Load("load4", data4).TQue(Position::kPositionVecIn, 1, 4);
+      auto load5 = Load("load5", data5).TQue(Position::kPositionVecIn, 1, 5);
+      auto load6 = Load("load6", data6).TQue(Position::kPositionVecIn, 1, 6);
+      auto load7 = Load("load7", data7).TQue(Position::kPositionVecIn, 1, 7);
+      auto store1 = Store("store1", load1);
+      auto store2 = Store("store2", load2);
+      auto store3 = Store("store3", load3);
+      auto store4 = Store("store4", load4);
+      auto store5 = Store("store5", load5);
+      auto store6 = Store("store6", load6);
+      auto store7 = Store("store7", load7);
+      GE_ASSERT_SUCCESS(GraphConstructUtils::UpdateOutputTensorAxes(
+          {*s0B, *s0bT, *s0b, *s0bt},
+          {load1, load2, load3, load4, load5, load6, load7,
+           store1, store2, store3, store4, store5, store6, store7}, 2));
+      auto output1 = Output("output1", store1);
+      auto output2 = Output("output2", store2);
+      auto output3 = Output("output3", store3);
+      auto output4 = Output("output4", store4);
+      auto output5 = Output("output5", store5);
+      auto output6 = Output("output6", store6);
+      auto output7 = Output("output7", store7);
+    }
+  }
+  return ge::SUCCESS;
+}
 }
 }
 }

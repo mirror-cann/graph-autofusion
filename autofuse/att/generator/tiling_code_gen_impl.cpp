@@ -3265,6 +3265,9 @@ ge::Status TilingCodeGenImpl::GenGetScheduleResult(
     // ========== 二次Tiling ==========
     GenGroupParallelSecondTiling(impl_graph_id, graph_info);
 
+    // ========== cache line conflict helpers ==========
+    GE_ASSERT_SUCCESS(GenConflictGroupHelpers(asc_graph_id, impl_graph_id, graph_info));
+
     // ========== perf计算和更新 ==========
     tiling_func_.AddLine("  // ========== perf计算和更新 ==========");
     GenGetScheduleResultPerfAndTail(asc_graph_id, impl_graph_id, graph_info);
@@ -3292,8 +3295,14 @@ ge::Status TilingCodeGenImpl::GenGetScheduleResult(
       groups_block_num.emplace_back(GenGetCurBlockDim(group_info.second.second));
     }
 
-    // 使用公共函数生成perf更新代码
-    tiling_func_.AddLine(GenPerfUpdateCode(groups_perf, groups_block_num, "  "));
+    // 收集每个group的冲突标志
+    std::vector<std::string> groups_conflict_flags;
+    for (const auto &group_info : graph_info) {
+      groups_conflict_flags.emplace_back(
+          GenConflictGroupInvoke(asc_graph_id, impl_graph_id, group_info.first, group_info.second.second));
+    }
+    // 使用混合聚合生成perf更新代码（冲突组求和 + 普通组并行合并）
+    tiling_func_.AddLine(GenMixedPerfUpdateCode(groups_perf, groups_block_num, groups_conflict_flags, "  "));
     // 使用公共函数生成best perf更新代码
     GenBestPerfUpdateCode(asc_graph_id, impl_graph_id, assign_max_block_num, "  ");
     tiling_func_.AddLine("}");  // 闭合 GetScheduleResult 函数
@@ -4498,5 +4507,201 @@ ge::Status TilingCodeGenImpl::ValidateGroupModeForceTilingCase(
    }
    return false;
  }
+// ======================== Cache line conflict helper functions ========================
+
+bool TilingCodeGenImpl::IsConflictCacheLineConfig(const CacheLineConfig &cfg) {
+  return cfg.IsCacheLineConflictCandidate();
+}
+
+std::pair<std::string, bool> TilingCodeGenImpl::GenConflictExprContextCode(
+    const ModelInfo &model_info, const ge::Expression &expr,
+    std::set<std::string> &declared_symbols) const {
+  std::string code;
+  std::set<std::string> input_var_names;
+  ArgsManager args_manager(model_info);
+  if (args_manager.Process(false)) {
+    auto input_vars = GetVarsNames(args_manager.GetInputVars());
+    input_var_names.insert(input_vars.begin(), input_vars.end());
+  }
+  auto emit_decl = [&](const std::string &name, const std::string &src) {
+    code += "    auto " + name + " = " + src + ".get_" + name + "();\n";
+    declared_symbols.insert(name);
+  };
+  for (const auto &symbol : expr.FreeSymbols()) {
+    const std::string name = Str(symbol);
+    if (declared_symbols.count(name) != 0U) { continue; }
+    if (name == "block_dim") {
+      emit_decl(name, "tiling_data");
+      continue;
+    }
+    bool is_hw = std::any_of(model_info.hardware_cons.begin(), model_info.hardware_cons.end(),
+                             [&](const auto &p) { return BaseTypeUtils::DumpHardware(p.first) == name; });
+    if (is_hw) { emit_decl(name, "tiling_data"); continue; }
+    if (model_info.container_exprs.count(name) != 0U || model_info.tensor_exprs.count(name) != 0U) {
+      emit_decl(name, "group_tiling_data"); continue;
+    }
+    if (input_var_names.count(name) != 0U) { emit_decl(name, "group_tiling_data"); continue; }
+    bool is_arg = std::any_of(model_info.arg_list.begin(), model_info.arg_list.end(),
+                              [&](const auto &a) { return a->name == name; });
+    if (is_arg) { emit_decl(name, "group_tiling_data"); continue; }
+    return {"", false};
+  }
+  return {code, true};
+}
+
+ge::Status TilingCodeGenImpl::GenConflictGroupHelper(const ModelInfo &model_info,
+                                                      const std::string &group_item_prefix) {
+  const auto &ident = model_info.schedule_group_ident;
+  const std::string helper_name = "IsConflictGroup_" + std::to_string(ident.asc_graph_id) + "_" +
+                                  std::to_string(ident.impl_graph_id) + "_" +
+                                  std::to_string(ident.group_id) + "_" +
+                                  std::to_string(model_info.tiling_case_id);
+  tiling_func_.AddLine("  auto " + helper_name + " = [&]() -> bool {");
+  if (model_info.tiling_schedule_config_table == nullptr ||
+      !model_info.tiling_schedule_config_table->IsEnableCacheLineCheck()) {
+    tiling_func_.AddLine("    OP_LOGD(OP_NAME, \"cache line size is unavailable, fallback to normal group\");");
+    tiling_func_.AddLine("    return false;");
+    tiling_func_.AddLine("  };");
+    tiling_func_.AddLine("");
+    return ge::SUCCESS;
+  }
+  const uint32_t cache_line_size = model_info.tiling_schedule_config_table->GetCacheLineSize();
+  tiling_func_.AddLine("    auto &group_tiling_data = tiling_data." + group_item_prefix + "_tiling_data;");
+  std::set<std::string> declared_symbols;
+  bool has_valid_expr = false;
+  for (const auto &cfg : model_info.cache_line_config) {
+    if (!IsConflictCacheLineConfig(cfg)) {
+      continue;
+    }
+    const auto [context_code, ok] = GenConflictExprContextCode(model_info, cfg.cache_line_expr, declared_symbols);
+    if (!ok) {
+      tiling_func_.AddLine("    OP_LOGD(OP_NAME, \"cache line expr is not codegenable, fallback to normal group\");");
+      tiling_func_.AddLine("    return false;");
+      tiling_func_.AddLine("  };");
+      tiling_func_.AddLine("");
+      return ge::SUCCESS;
+    }
+    has_valid_expr = true;
+    tiling_func_.AddLine(context_code);
+    const uint32_t cfg_cache_line_size = cfg.cache_line_size > 0 ? cfg.cache_line_size : cache_line_size;
+    tiling_func_.AddLine("    if (" + Str(cfg.cache_line_expr) + " < " +
+                         std::to_string(cfg_cache_line_size) + ") {");
+    tiling_func_.AddLine("      return true;");
+    tiling_func_.AddLine("    }");
+  }
+  if (!has_valid_expr) {
+    tiling_func_.AddLine("    OP_LOGD(OP_NAME, \"no valid gm<->ub cache line expr, fallback to normal group\");");
+    tiling_func_.AddLine("    return false;");
+    tiling_func_.AddLine("  };");
+    tiling_func_.AddLine("");
+    return ge::SUCCESS;
+  }
+  tiling_func_.AddLine("    return false;");
+  tiling_func_.AddLine("  };");
+  tiling_func_.AddLine("");
+  return ge::SUCCESS;
+}
+
+ge::Status TilingCodeGenImpl::GenConflictGroupHelpers(
+    const size_t asc_graph_id, const size_t impl_graph_id,
+    const std::map<size_t, std::pair<std::string, std::string>> &graph_info) {
+  for (const auto &[group_id, group_info] : graph_info) {
+    std::set<uint32_t> generated_tiling_keys;
+    for (const auto &model_info : tiling_model_info_) {
+      const auto &ident = model_info.schedule_group_ident;
+      if (ident.asc_graph_id == asc_graph_id &&
+          ident.impl_graph_id == impl_graph_id &&
+          ident.group_id == group_id) {
+        const uint32_t final_tiling_key = static_cast<uint32_t>(model_info.tiling_case_id);
+        if (generated_tiling_keys.find(final_tiling_key) != generated_tiling_keys.end()) {
+          GELOGD("Duplicate final tiling key %u for group %zu, skip conflict helper generation.",
+                 final_tiling_key, group_id);
+          continue;
+        }
+        generated_tiling_keys.insert(final_tiling_key);
+        GE_ASSERT_SUCCESS(GenConflictGroupHelper(model_info, group_info.second));
+      }
+    }
+  }
+  return ge::SUCCESS;
+}
+
+std::string TilingCodeGenImpl::GenConflictGroupInvoke(const size_t asc_graph_id,
+                                                      const size_t impl_graph_id,
+                                                      size_t group_id,
+                                                      const std::string &group_item_prefix) const {
+  std::map<uint32_t, std::string> key_to_helper;
+  for (const auto &model_info : tiling_model_info_) {
+    const auto &ident = model_info.schedule_group_ident;
+    if (ident.asc_graph_id == asc_graph_id && ident.impl_graph_id == impl_graph_id &&
+        ident.group_id == group_id) {
+      const uint32_t final_tiling_key = static_cast<uint32_t>(model_info.tiling_case_id);
+      const std::string helper_name = "IsConflictGroup_" + std::to_string(asc_graph_id) + "_" +
+                                      std::to_string(impl_graph_id) + "_" +
+                                      std::to_string(group_id) + "_" +
+                                      std::to_string(model_info.tiling_case_id);
+      if (key_to_helper.count(final_tiling_key) != 0U) {
+        return "([&]() -> bool { OP_LOGD(OP_NAME, \"duplicate final tiling key mapping, fallback to normal group\"); "
+               "return false; })()";
+      }
+      key_to_helper.emplace(final_tiling_key, helper_name);
+    }
+  }
+
+  std::string code;
+  code += "([&]() -> bool {\n";
+  code += "  const uint32_t final_tiling_key = tiling_data." + group_item_prefix + "_tiling_data.get_tiling_key();\n";
+  code += "  switch (final_tiling_key) {\n";
+  for (const auto &[final_tiling_key, helper_name] : key_to_helper) {
+    code += "    case " + std::to_string(final_tiling_key) + ": return " + helper_name + "();\n";
+  }
+  code += "    default: OP_LOGD(OP_NAME, \"no conflict helper matched final tiling key, fallback to normal group\"); "
+          "return false;\n";
+  code += "  }\n";
+  code += "})()";
+  return code;
+}
+
+std::string TilingCodeGenImpl::GenMixedPerfUpdateCode(const std::vector<std::string> &groups_perf,
+                                                       const std::vector<std::string> &groups_block_num,
+                                                       const std::vector<std::string> &groups_conflict_flags,
+                                                       const std::string &indent) {
+  if (groups_perf.size() == 1UL) {
+    return indent + "cur_perf = " + groups_perf[0] + ";\n";
+  }
+  std::string code;
+  code += indent + "double conflict_perf_sum = 0.0;\n";
+  code += indent + "double normal_perf_merged = 0.0;\n";
+  code += indent + "bool has_normal_group = false;\n";
+  code += indent + "double cur_tmp_perf = 0.0;\n";
+  code += indent + "uint32_t cur_block = 0U;\n";
+
+  for (size_t id = 0UL; id < groups_perf.size(); ++id) {
+    code += indent + "if (" + groups_conflict_flags[id] + ") {\n";
+    // conflict group: sum the perf directly
+    code += indent + "  OP_LOGD(OP_NAME, \"Conflict group perf %lf\", " + groups_perf[id] + ");\n";
+    code += indent + "  conflict_perf_sum += " + groups_perf[id] + ";\n";
+    code += indent + "} else if (!has_normal_group) {\n";
+    // first normal group: initialize cur_tmp_perf and cur_block
+    code += indent + "  cur_tmp_perf = " + groups_perf[id] + ";\n";
+    code += indent + "  cur_block = " + groups_block_num[id] + ";\n";
+    code += indent + "  has_normal_group = true;\n";
+    code += indent + "} else {\n";
+    // subsequent normal group: reuse existing parallel merge logic
+    code += indent + "  (void)UpdateCurPerfAndBlockByGroup({" + groups_block_num[id] + ", " +
+            groups_perf[id] + "}, ori_block_dim, cur_block, normal_perf_merged, cur_tmp_perf);\n";
+    code += indent + "}\n";
+  }
+
+  // flush remaining normal perf
+  code += indent + "if (has_normal_group) {\n";
+  code += indent + "  OP_LOGD(OP_NAME, \"Final normal perf %lf\", cur_tmp_perf);\n";
+  code += indent + "  normal_perf_merged += cur_tmp_perf;\n";
+  code += indent + "}\n";
+
+  code += indent + "OP_LOGD(OP_NAME, \"Mixed perf: conflict=%lf, normal=%lf\", conflict_perf_sum, normal_perf_merged);\n";
+  code += indent + "cur_perf = conflict_perf_sum + normal_perf_merged;\n";
+  return code;
+}
  }  // namespace att
  

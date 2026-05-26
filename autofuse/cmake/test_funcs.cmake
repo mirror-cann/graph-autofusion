@@ -10,6 +10,10 @@
 
 function(stub_module module stub_name)
     if (TARGET ${module})
+        get_target_property(existing_type ${module} TYPE)
+        message(STATUS "stub_module: '${module}' already exists as ${existing_type}, "
+                "cannot create stub redirect. Test code should link '${stub_name}' directly "
+                "instead of '${module}'.")
         return()
     endif()
     add_library(${module} INTERFACE)
