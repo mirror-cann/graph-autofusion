@@ -332,7 +332,7 @@ bool InitSingleCoreFunc(const CoreFuncInitContext& ctx, aclrtBinHandle binHdl, v
     }
     std::string symbolName = "";
     uint64_t funcSize = 0;
-std::string symbolBind = "";
+    std::string symbolBind = "";
     if (GetFuncSymbolInfo(binHdl, static_cast<const char*>(binHostAddr), binHostSize, skFuncOffset,
                       symbolName, funcSize, symbolBind)) {
         ctx.info->prefetchCnt[coreTypeId] = AlignUpAndClamp(funcSize, coreTypeId);
