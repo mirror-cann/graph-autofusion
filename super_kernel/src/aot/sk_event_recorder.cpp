@@ -111,7 +111,12 @@ bool SkEventRecorder::Init() {
         }
 
         globalRunning.store(true);
-        aclrtGetDevice(&dumpDeviceId);
+        aclError aclRet = aclrtGetDevice(&dumpDeviceId);
+        if (aclRet != ACL_SUCCESS) {
+            SK_LOGE("[sk time profiling] Failed to get device id, ret=%d\n", aclRet);
+            globalRunning.store(false);
+            return;
+        }
         
         // 启动单个全局后台线程用于搬运解析记录事件
         int ret = pthread_create(&dumpThread, nullptr, DumpThreadFunc, this);
@@ -826,7 +831,11 @@ bool DumpProfilingDetail(const std::vector<SuperKernelBaseNode*>& taskNodes, SkL
 
     if (SkEventRecorder::Instance().IsEnabled()) {
         int32_t deviceId = 0;
-        aclrtGetDevice(&deviceId);
+        aclError aclRet = aclrtGetDevice(&deviceId);
+        if (aclRet != ACL_SUCCESS) {
+            SK_LOGE("[sk time profiling] Failed to get device id, ret=%d\n", aclRet);
+            return false;
+        }
         launchInfo.eventGmAddr = SkEventRecorder::Instance().GetGmAddrForDevice(deviceId);
         if (launchInfo.eventGmAddr == nullptr) {
                 SK_LOGE("[sk time profiling] Failed to get event GM address\n");

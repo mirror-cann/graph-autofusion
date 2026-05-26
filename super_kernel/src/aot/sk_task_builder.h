@@ -208,7 +208,7 @@ private:
     bool UpdateDfxInfo(SkDfxInfo* dfxInfo, const KernelInfos& kernelInfo, const ResolvedFunctionInfo& resolved,
                       int binIndex, int addrIndex);
     // Helper to process core function size (AIC/AIV)
-    bool ProcessCoreFuncSize(SkDfxInfo* dfxInfo, const void* binHostAddr, uint32_t binHostSize,
+    bool ProcessCoreFuncSize(SkDfxInfo* dfxInfo, aclrtBinHandle binHdl, const void* binHostAddr, uint32_t binHostSize,
                             const ResolvedFunctionInfo& resolved, int coreIndex, int binIndex,
                             const char* coreName);
 };                           

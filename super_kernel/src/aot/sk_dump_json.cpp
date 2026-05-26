@@ -54,7 +54,7 @@ static void FillSymbolInfoForCore(aclrtBinHandle binHdl, uint64_t skFuncOffset,
         std::string symbolName;
         uint64_t funcSize = 0;
         std::string symbolBind;
-        if (GetFuncSymbolInfo(static_cast<const char*>(binHostAddr), binHostSize,
+        if (GetFuncSymbolInfo(binHdl, static_cast<const char*>(binHostAddr), binHostSize,
                               skFuncOffset, symbolName, funcSize, symbolBind)) {
             info.prefetchCnt[coreIdx] = AlignUpAndClamp(funcSize, coreIdx);
             info.symbolBind[coreIdx] = symbolBind;

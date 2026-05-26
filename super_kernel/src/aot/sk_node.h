@@ -59,17 +59,19 @@ enum class FusionFailReason {
     NOT_IN_SCOPE,       // 3: Operator is not within user-marked fusion range
     IN_UNFUSIBLE_SCOPE, // 4: User actively marked this operator as unfusible
     EXCEED_DEVICE_MAX,  // 5: Operator requires more cores than device maximum
-    RESET_TYPE_NODE,    // 3: reset type node placed at end
-    ISOLATED_EVENT,     // 6: Isolated event exists
-    EXIST_DEADLOCK,     // 7: Deadlock exists
-    SCOPE_FUSE_PART,    // 8: Scope fusion failed (see ScopeFailReason for details)
-    EXTERNAL_DEPEND,    // 9: Event has external dependency
-    UNSUPPORT_EVENT_TYPE, // 10: Unsupported event type
-    NOTIFY_NO_WAIT_NODE,  // 11: notify node has no wait node in modelRI, mark as unfusible
-    MEMORY_WAIT_NODE_ONLY, // 12: No memory write exists, meaning the memory write is outside modelRI,
-    MEMORY_WRITE_NODE_ONLY,  // 13: only exists memory write nodes, mask it as unfusible
-    DEFAULT_NODE, // default node uses aicpu resources, mask it as unfusible
-    SIMT_OP_NOT_SUPPORTED, // SIMT operator is not supported for SuperKernel fusion
+    RESET_TYPE_NODE,    // 6: reset type node placed at end
+    ISOLATED_EVENT,     // 7: Isolated event exists
+    EXIST_DEADLOCK,     // 8: Deadlock exists
+    SCOPE_FUSE_PART,    // 9: Scope fusion failed (see ScopeFailReason for details)
+    EXTERNAL_DEPEND,    // 10: Event has external dependency
+    UNSUPPORT_EVENT_TYPE, // 11: Unsupported event type
+    NOTIFY_NO_WAIT_NODE,  // 12: notify node has no wait node in modelRI, mark as unfusible
+    MEMORY_WAIT_NODE_ONLY, // 13: No memory write exists, meaning the memory write is outside modelRI,
+    MEMORY_WRITE_NODE_ONLY,  // 14: only exists memory write nodes, mask it as unfusible
+    DEFAULT_NODE, // 15: default node uses aicpu resources, mask it as unfusible
+    SIMT_OP_NOT_SUPPORTED, // 16: SIMT operator is not supported for SuperKernel fusion
+    KERNEL_ATTR_GET_FAILED, // 17: Failed to get kernel attribute for SuperKernel fusion
+    EXCEED_SCOPE_MAX, // 18: Exceeded maximum scope number limit for SuperKernel fusion
 };
 
 // Bindmap related fail reason detail
@@ -79,6 +81,8 @@ enum class BindmapFailReason : uint8_t {
     BINHDL_NULL,             // 2: binHdl is null
     FUNCHDL_NULL,            // 3: funcHdl is null
     FUNC_NOT_FOUND,          // 4: Failed to initialize kernel function in sk
+    BIN_DEV_ADDR_GET_FAILED, // 5: Failed to get binary device address
+    FUNC_ADDR_GET_FAILED,    // 6: Failed to get function address
 };
 
 // Fusion fail reason with optional scope/deadlock detail
@@ -151,6 +155,10 @@ inline const char* FusionFailReasonToStr(FusionFailReason reason) {
             return "default node uses aicpu resources, mask it as unfusible";
         case FusionFailReason::SIMT_OP_NOT_SUPPORTED:
             return "SIMT operator is not supported for SuperKernel fusion";
+        case FusionFailReason::KERNEL_ATTR_GET_FAILED:
+            return "Failed to get kernel attribute for SuperKernel fusion";
+        case FusionFailReason::EXCEED_SCOPE_MAX:
+            return "Exceeded maximum scope number limit for SuperKernel fusion";
         default:                                  
             return "UNKNOWN_REASON";
     }

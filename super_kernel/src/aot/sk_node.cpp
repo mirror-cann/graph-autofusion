@@ -96,6 +96,8 @@ const char* BindmapFailReasonToStr(BindmapFailReason reason) {
         case BindmapFailReason::BINHDL_NULL:            return "binHdl is null";
         case BindmapFailReason::FUNCHDL_NULL:           return "funcHdl is null";
         case BindmapFailReason::FUNC_NOT_FOUND:         return "initialize kernel function failed";
+        case BindmapFailReason::BIN_DEV_ADDR_GET_FAILED: return "failed to get binary device address";
+        case BindmapFailReason::FUNC_ADDR_GET_FAILED:   return "failed to get function address";
         default:                                        return "UNKNOWN_BINDMAP_REASON";
     }
 }
@@ -270,9 +272,8 @@ ScheModeState ParseScheModeState(int64_t rawValue)
 ScheModeState GetScheModeFromFuncAttr(aclrtFuncHandle funcHandle)
 {
     int64_t funcAttrScheModeValue = 0;
-    aclError aclRet = ACL_SUCCESS;
-    CHECK_ACL(aclRet = aclrtGetFunctionAttribute(funcHandle,
-        static_cast<aclrtFuncAttribute>(ACL_FUNC_ATTR_KERNEL_SCHEMODE_PLACEHOLDER), &funcAttrScheModeValue));
+    aclError aclRet = aclrtGetFunctionAttribute(funcHandle,
+        static_cast<aclrtFuncAttribute>(ACL_FUNC_ATTR_KERNEL_SCHEMODE_PLACEHOLDER), &funcAttrScheModeValue);
     if (aclRet != ACL_SUCCESS) {
         SK_LOGE("Failed to query function attribute schemode, ret=%d", aclRet);
         return ScheModeState::NONE;
@@ -331,9 +332,9 @@ bool InitSingleCoreFunc(const CoreFuncInitContext& ctx, aclrtBinHandle binHdl, v
     }
     std::string symbolName = "";
     uint64_t funcSize = 0;
-    std::string symbolBind = "";
-    if (GetFuncSymbolInfo(static_cast<const char*>(binHostAddr), binHostSize, skFuncOffset,
-                          symbolName, funcSize, symbolBind)) {
+std::string symbolBind = "";
+    if (GetFuncSymbolInfo(binHdl, static_cast<const char*>(binHostAddr), binHostSize, skFuncOffset,
+                      symbolName, funcSize, symbolBind)) {
         ctx.info->prefetchCnt[coreTypeId] = AlignUpAndClamp(funcSize, coreTypeId);
         ctx.info->symbolBind[coreTypeId] = symbolBind;
         SK_LOGI("split[%zu] %s symbol=%s, size=0x%lx, bind=%s",
@@ -397,9 +398,22 @@ bool InitKernelResolvedFuncs(KernelInfos &kernelInfos)
     }
     size_t binDevSize = 0;
     void *binDevAddr = nullptr;
-    CHECK_ACL(aclrtBinaryGetDevAddress(binHdl, &binDevAddr, &binDevSize));
+    aclError aclRet = aclrtBinaryGetDevAddress(binHdl, &binDevAddr, &binDevSize);
+    if (aclRet != ACL_SUCCESS) {
+        SK_LOGE("Failed to get binary device address for kernel %s, ret=%d", 
+                kernelInfos.funcName.c_str(), aclRet);
+        kernelInfos.bindmapFailReason = BindmapFailReason::BIN_DEV_ADDR_GET_FAILED;
+        return false;
+    }
+    
     void *addr[2] = {nullptr, nullptr}; // {aic addr, aiv addr}
-    CHECK_ACL(aclrtGetFunctionAddr(oriFuncHdl, addr, addr + 1));
+    aclRet = aclrtGetFunctionAddr(oriFuncHdl, addr, addr + 1);
+    if (aclRet != ACL_SUCCESS) {
+        SK_LOGE("Failed to get function address for kernel %s, ret=%d", 
+                kernelInfos.funcName.c_str(), aclRet);
+        kernelInfos.bindmapFailReason = BindmapFailReason::FUNC_ADDR_GET_FAILED;
+        return false;
+    }
 
     uint64_t aicOffset = (uint64_t)addr[0] - (uint64_t)binDevAddr;
     uint64_t aivOffset = (uint64_t)addr[1] - (uint64_t)binDevAddr;
@@ -805,9 +819,20 @@ bool SuperKernelKernelNode::InitNode(const SuperKernelOptionsManager* opts) {
     }
 
     int64_t kernelType = 0;
+    aclRet = aclrtGetFunctionAttribute(kernelParams.funcHandle, ACL_FUNC_ATTR_KERNEL_TYPE, &kernelType);
+    if (aclRet != ACL_SUCCESS) {
+        SK_LOGE("Failed to get kernel type for node %s, ret=%d", Format().c_str(), aclRet);
+        SetFusionFailReason(FusionFailReason::KERNEL_ATTR_GET_FAILED);
+        return false;
+    }
+    
     int64_t taskRatio = 0;
-    CHECK_ACL(aclrtGetFunctionAttribute(kernelParams.funcHandle, ACL_FUNC_ATTR_KERNEL_TYPE, &kernelType));
-    CHECK_ACL(aclrtGetFunctionAttribute(kernelParams.funcHandle, ACL_FUNC_ATTR_KERNEL_RATIO, &taskRatio));
+    aclRet = aclrtGetFunctionAttribute(kernelParams.funcHandle, ACL_FUNC_ATTR_KERNEL_RATIO, &taskRatio);
+    if (aclRet != ACL_SUCCESS) {
+        SK_LOGE("Failed to get task ratio for node %s, ret=%d", Format().c_str(), aclRet);
+        SetFusionFailReason(FusionFailReason::KERNEL_ATTR_GET_FAILED);
+        return false;
+    }
 
     const int16_t* taskRatioInt16 = reinterpret_cast<const int16_t*>(&taskRatio);
     uint32_t skTaskTatio[2] = {static_cast<uint32_t>(taskRatioInt16[1]), static_cast<uint32_t>(taskRatioInt16[0])};
@@ -848,7 +873,12 @@ bool SuperKernelKernelNode::InitNode(const SuperKernelOptionsManager* opts) {
     }
 
     char tmpFuncName[256] = {0};
-    CHECK_ACL(aclrtGetFunctionName(kernelParams.funcHandle, sizeof(tmpFuncName), tmpFuncName));
+    aclRet = aclrtGetFunctionName(kernelParams.funcHandle, sizeof(tmpFuncName), tmpFuncName);
+    if (aclRet != ACL_SUCCESS) {
+        SK_LOGE("Failed to get function name for node %s, ret=%d", Format().c_str(), aclRet);
+        SetFusionFailReason(FusionFailReason::KERNEL_ATTR_GET_FAILED);
+        return false;
+    }
     nodeInfos.kernelInfos.funcName = std::string(tmpFuncName);
     nodeInfos.kernelInfos.needMixKernelSplit = IsMixKernelType(nodeInfos.kernelInfos.kernelType);
     const auto* ubufLockIgnoreKernelOpt = opts == nullptr ? nullptr :
