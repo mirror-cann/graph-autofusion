@@ -2135,22 +2135,21 @@ class GatherAscIrCodegenImplV2 : public AscIrCodegenV2 {
 /*********************************************************************************/
 class TransposeAscIrCodegenImplV2 : public AscIrCodegenV2 {
  public:
-  [[nodiscard]] std::string GetApiTilingTypeName() const override {
-    return "ConfusionTransposeTiling";
+  [[nodiscard]] std::vector<std::unique_ptr<TmpBufDesc>> CalcTmpBufSize(const AscNode &node) override {
+    return CalcTransposeTmpSizeV2(node);
   }
-
   [[nodiscard]] std::string GetApiCallName() const override {
-    return "TransposeApiCall";
+    return "TransposeRegApiCall";
   }
   [[nodiscard]] std::string GetApiName() const override {
-    return "Transpose";
+    return "TransposeExtend";
   }
   [[nodiscard]] std::vector<std::string> LoadApiHeaderFiles([[maybe_unused]] bool is_dynamic) const override {
-    return {"transpose_base_type.h", "transpose.h"};
+    return {"transpose_reg_base.h"};
   }
   [[nodiscard]] std::vector<std::string> IncludeApiHeaderFiles() const override {
     return {
-      "basic_api/kernel_operator_vec_transpose_intf.h",
+      "basic_api/reg_compute/kernel_reg_compute_datacopy_intf.h",
     };
   }
   [[nodiscard]] bool IsNodeValid(const AscNode &node) const override {

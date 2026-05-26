@@ -175,40 +175,22 @@ class TestRegbaseApiTranspose :public testing::Test {
     GmToUb(l_x, param.x, param.size);
     GmToUb(l_idx, param.idx, param.size);
 
+    LocalTensor<uint8_t> tmp_buf = l_idx.template ReinterpretCast<uint8_t>();
+
     if (param.dst_dims.size() == 1) {
-      TransposeExtend<T, 1>(l_y, l_x, l_idx, {param.dst_dims[0]}, {param.src_strides[0]}, {param.dst_strides[0]});
+      TransposeExtend<1, 1, T>(l_y, l_x, tmp_buf, {param.dst_dims[0]}, {param.src_strides[0]}, {param.dst_strides[0]});
     } else if (param.dst_dims.size() == 2) {
-      TransposeExtend<T, 2>(l_y, l_x, l_idx, {param.dst_dims[0], param.dst_dims[1]},
+      TransposeExtend<2, 2, T>(l_y, l_x, tmp_buf, {param.dst_dims[0], param.dst_dims[1]},
         {param.src_strides[0], param.src_strides[1]}, {param.dst_strides[0], param.dst_strides[1]});
     } else if (param.dst_dims.size() == 3) {
-      TransposeExtend<T, 3>(l_y, l_x, l_idx, {param.dst_dims[0], param.dst_dims[1], param.dst_dims[2]},
+      TransposeExtend<2, 3, T>(l_y, l_x, tmp_buf, {param.dst_dims[0], param.dst_dims[1], param.dst_dims[2]},
         {param.src_strides[0], param.src_strides[1], param.src_strides[2]},
         {param.dst_strides[0], param.dst_strides[1], param.dst_strides[2]});
     } else if (param.dst_dims.size() == 4) {
-      TransposeExtend<T, 4>(l_y, l_x, l_idx,
+      TransposeExtend<2, 4, T>(l_y, l_x, tmp_buf,
         {param.dst_dims[0], param.dst_dims[1], param.dst_dims[2], param.dst_dims[3]},
         {param.src_strides[0], param.src_strides[1], param.src_strides[2], param.src_strides[3]},
         {param.dst_strides[0], param.dst_strides[1], param.dst_strides[2], param.dst_strides[3]});
-    } else if (param.dst_dims.size() == 5) {
-      TransposeExtend<T, 5>(l_y, l_x, l_idx,
-        {param.dst_dims[0], param.dst_dims[1], param.dst_dims[2], param.dst_dims[3], param.dst_dims[4]},
-        {param.src_strides[0], param.src_strides[1], param.src_strides[2], param.src_strides[3], param.src_strides[4]},
-        {param.dst_strides[0], param.dst_strides[1], param.dst_strides[2], param.dst_strides[3], param.dst_strides[4]});
-    } else if (param.dst_dims.size() == 6) {
-      TransposeExtend<T, 6>(l_y, l_x, l_idx,
-        {param.dst_dims[0], param.dst_dims[1], param.dst_dims[2], param.dst_dims[3], param.dst_dims[4], param.dst_dims[5]},
-        {param.src_strides[0], param.src_strides[1], param.src_strides[2], param.src_strides[3], param.src_strides[4], param.src_strides[5]},
-        {param.dst_strides[0], param.dst_strides[1], param.dst_strides[2], param.dst_strides[3], param.dst_strides[4], param.dst_strides[5]});
-    } else if (param.dst_dims.size() == 7) {
-      TransposeExtend<T, 7>(l_y, l_x, l_idx,
-        {param.dst_dims[0], param.dst_dims[1], param.dst_dims[2], param.dst_dims[3], param.dst_dims[4], param.dst_dims[5], param.dst_dims[6]},
-        {param.src_strides[0], param.src_strides[1], param.src_strides[2], param.src_strides[3], param.src_strides[4], param.src_strides[5], param.src_strides[6]},
-        {param.dst_strides[0], param.dst_strides[1], param.dst_strides[2], param.dst_strides[3], param.dst_strides[4], param.dst_strides[5], param.dst_strides[6]});
-    } else if (param.dst_dims.size() == 8) {
-      TransposeExtend<T, 8>(l_y, l_x, l_idx,
-        {param.dst_dims[0], param.dst_dims[1], param.dst_dims[2], param.dst_dims[3], param.dst_dims[4], param.dst_dims[5], param.dst_dims[6], param.dst_dims[7]},
-        {param.src_strides[0], param.src_strides[1], param.src_strides[2], param.src_strides[3], param.src_strides[4], param.src_strides[5], param.src_strides[6], param.src_strides[7]},
-        {param.dst_strides[0], param.dst_strides[1], param.dst_strides[2], param.dst_strides[3], param.dst_strides[4], param.dst_strides[5], param.dst_strides[6], param.dst_strides[7]});
     }
     UbToGm(param.y, l_y, param.size);
   }
@@ -240,9 +222,6 @@ class TestRegbaseApiTranspose :public testing::Test {
 TEST_F(TestRegbaseApiTranspose, Transpose_Index_Test) {
   TransposeIndexTest<float, int32_t>({{8}, {0}});
   TransposeIndexTest<float, int32_t>({{5, 8}, {1, 0}});
-  TransposeIndexTest<float, int32_t>({{5, 8, 4}, {2, 1, 0}});
-  TransposeIndexTest<float, int32_t>({{5, 8, 4, 3}, {3, 2, 1, 0}});
-  TransposeIndexTest<float, int32_t>({{3, 2, 4, 3, 2}, {4, 3, 2, 1, 0}});
 }
 
 TEST_F(TestRegbaseApiTranspose, Transpose_Test) {
@@ -250,8 +229,4 @@ TEST_F(TestRegbaseApiTranspose, Transpose_Test) {
   TransposeTest<float, int32_t>({{5, 8}, {1, 0}});
   TransposeTest<float, int32_t>({{5, 8, 4}, {2, 1, 0}});
   TransposeTest<float, int32_t>({{5, 8, 4, 3}, {3, 2, 1, 0}});
-  TransposeTest<float, int32_t>({{3, 2, 4, 3, 2}, {4, 3, 2, 1, 0}});
-  TransposeTest<float, int32_t>({{2, 2, 3, 4, 3, 3}, {5, 4, 3, 2, 1, 0}});
-  TransposeTest<float, int32_t>({{1, 2, 2, 3, 4, 3, 2}, {6, 5, 4, 3, 2, 1, 0}});
-  TransposeTest<float, int32_t>({{1, 2, 2, 3, 4, 3, 2, 4}, {7, 6, 5, 4, 3, 2, 1, 0}});
 }

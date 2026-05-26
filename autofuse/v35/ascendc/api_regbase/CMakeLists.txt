@@ -49,6 +49,7 @@ set(ascendc_api_regbase_extend_src
         igamma.h
         igammac.h
         trigonometric_function_utils.h
+        transpose.h
 )
 
 set(generated_regbase_files)

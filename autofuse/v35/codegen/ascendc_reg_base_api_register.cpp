@@ -120,6 +120,9 @@ Register::Register() {
   const std::string kAscendcSquareRegBaseStr = {
 #include "square_reg_base.h"
   };
+  const std::string kAscendcTransposeRegBaseStr = {
+#include "transpose_reg_base.h"
+  };
   std::unordered_map<std::string, std::string> api_to_file{
       {"cast_reg_base.h", kAscendcCastRegStr},
       {"compare_reg_base.h", kAscendcCompareRegStr},
@@ -155,6 +158,7 @@ Register::Register() {
       {"remainder_reg_base.h", kAscendcRemainderRegBaseStr},
       {"neg_reg_base.h", kAscendcNegRegBaseStr},
       {"square_reg_base.h", kAscendcSquareRegBaseStr},
+      {"transpose_reg_base.h", kAscendcTransposeRegBaseStr},
   };
 
   AscendCApiRegistry::GetInstance().RegisterApi(api_to_file);

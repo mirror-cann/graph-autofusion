@@ -20,6 +20,8 @@
 #include "utils/api_call_factory.h"
 #include "transpose_base_type.h"
 #include "transpose/transpose_api_call.h"
+#include "runtime_stub.h"
+#include "platform_context.h"
 
 using namespace af::ops;
 using namespace codegen;
@@ -378,6 +380,8 @@ TEST(TransposeApiCallTest, TransposeApiCall) {
     codegen::ApiTensor x;
     x.id = load->outputs[0].attr.mem.tensor_id;
     codegen::TransposeApiCall call("Transpose");
+    ge::PlatformContext::GetInstance().Reset();
+    ge::RuntimeStub::Reset();
     EXPECT_EQ(call.Init(transpose), 0);
 
     call.inputs.push_back(&x);
@@ -386,7 +390,7 @@ TEST(TransposeApiCallTest, TransposeApiCall) {
     call.Generate(tpipe, vector<af::AxisId>{}, result);
 
     std::cout << "TransposeApiCall" << result;
-    printf("tets TransposeApiCall:%s\n", result.c_str());
+    printf("test TransposeApiCall:%s\n", result.c_str());
     EXPECT_EQ(result, std::string{
             "AutoFuseTransposeType transposeType = AutoFuseTransposeType::TRANSPOSE_ND2ND_102;\nauto apiTilingData = t->Transpose_tilingData_0;\ncodegen::ConfusionTranspose<float>(local_1[0], local_0[0], tmp_buf_0, transposeType, apiTilingData);\nAscendC::PipeBarrier<PIPE_ALL>();\n"
     });
