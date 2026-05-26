@@ -124,7 +124,6 @@ private:
         const TaskQue* taskQue,
         size_t taskIdx,
         bool isAic,
-        SkKernelType preKernelType,
         int splitIdx);
     
     // 获取内核类型的模板参数

@@ -19,6 +19,7 @@
 #include <cstdlib>
 
 #include "securec.h"
+#include "sk_common.h"
 #include "sk_log.h"
 
 extern "C" void sk_scope_kernel_begin_do(void* stream, ScopeKernelArgs args);
@@ -37,12 +38,6 @@ struct ScopeKernelImpls {
     ScopeFuncImpl end;
     ScopeFuncImpl placeholder;
 };
-
-bool IsDav3510Soc()
-{
-    const char* socName = aclrtGetSocName();
-    return socName != nullptr && strstr(socName, "Ascend950") != nullptr;
-}
 
 ScopeKernelImpls GetScopeKernelImpls()
 {

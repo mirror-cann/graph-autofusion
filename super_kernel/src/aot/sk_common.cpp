@@ -17,11 +17,18 @@
 
 #include "sk_common.h"
 
+#include <acl/acl.h>
 #include <unordered_map>
 #include <string>
 #include <cstring>
 #include <elf.h>
 #include "sk_log.h"
+
+bool IsDav3510Soc()
+{
+    const char* socName = aclrtGetSocName();
+    return socName != nullptr && strstr(socName, "Ascend950") != nullptr;
+}
 
 namespace {
 
