@@ -957,6 +957,8 @@ void SuperKernelKernelNode::IdentifyAndHandleSimtKernel(const SuperKernelOptions
         SetFusionFailReason(FusionFailReason::SIMT_OP_NOT_SUPPORTED);
         SK_LOGI("%s is SIMT type, aivType=%u, not fusible", Format().c_str(), aivType);
     }
+    
+    return;
 }
 
 std::string SuperKernelKernelNode::Format() const {
