@@ -518,6 +518,8 @@ public:
     bool IsScopePlaceholder() const override { return isPlaceholder; }
     bool IsScheModeOn() const override { return nodeInfos.kernelInfos.isScheModeOn; }
 private:
+    void IdentifyAndHandleSimtKernel(const SuperKernelOptionsManager* opts);
+    
     bool isScopeBegin = false;
     bool isScopeEnd = false;
     bool isPlaceholder = false;

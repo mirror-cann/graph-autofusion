@@ -204,27 +204,6 @@ namespace {
 constexpr uint32_t AIV_TYPE_SIMT_VF_ONLY = 3U;
 constexpr uint32_t AIV_TYPE_SIMD_SIMT_MIX_VF = 4U;
 
-bool IsSimtKernel(aclrtFuncHandle funcHandle) {
-    uint32_t aivType = 0;
-    rtError_t ret = rtFunctionGetMetaInfo(funcHandle,
-        RT_FUNCTION_TYPE_AIV_TYPE_FLAG,
-        &aivType, sizeof(uint32_t));
-    
-    if (ret != RT_ERROR_NONE) {
-        SK_LOGD("rtFunctionGetMetaInfo AIV_TYPE_FLAG failed, ret=%d, treat as non-SIMT", ret);
-        return false;
-    }
-    
-    bool isSimt = (aivType == AIV_TYPE_SIMT_VF_ONLY ||
-                   aivType == AIV_TYPE_SIMD_SIMT_MIX_VF);
-    
-    if (isSimt) {
-        SK_LOGI("Kernel is SIMT type, aivType=%u", aivType);
-    }
-    
-    return isSimt;
-}
-
 using SkAllBinMap = std::unordered_map<aclrtBinHandle, SkBindMap>;
 
 struct CoreFuncInitContext {
@@ -899,19 +878,8 @@ bool SuperKernelKernelNode::InitNode(const SuperKernelOptionsManager* opts) {
         }
     }
 
-    nodeInfos.kernelInfos.isSimtOp = false;
-    if (opts != nullptr) {
-        const auto* simtCheckOpt = opts->GetOption(SkInnerOptionType::ENABLE_SIMT_OP_CHECK);
-        if (simtCheckOpt != nullptr && simtCheckOpt->GetIntValue() == 1) {
-            if (IsSimtKernel(kernelParams.funcHandle)) {
-                nodeInfos.kernelInfos.isSimtOp = true;
-                isFusible = false;
-                SetFusionFailReason(FusionFailReason::SIMT_OP_NOT_SUPPORTED);
-                SK_LOGI("Kernel node %lu is SIMT operator, not fusible, funcName=%s",
-                    nodeId, nodeInfos.kernelInfos.funcName.c_str());
-            }
-        }
-    }
+    // SIMT算子不支持SuperKernel融合，仅检查含AIV section的kernel类型
+    IdentifyAndHandleSimtKernel(opts);
 
     if (taskParams.taskGrp != nullptr) {
         SK_LOGI("Kernel node %lu has a non-null task group and cannot be fused in super kernel.", nodeId);
@@ -940,6 +908,55 @@ bool SuperKernelKernelNode::GetScheMode() const
         static_cast<int64_t>(launchAttrScheModeState),
         static_cast<int64_t>(finalScheModeState));
     return finalScheModeState == ScheModeState::SCHE_MODE_ON;
+}
+
+void SuperKernelKernelNode::IdentifyAndHandleSimtKernel(const SuperKernelOptionsManager* opts) {
+    nodeInfos.kernelInfos.isSimtOp = false;
+    
+    if (opts == nullptr) {
+        return;
+    }
+    
+    const auto* simtCheckOpt = opts->GetOption(SkInnerOptionType::ENABLE_SIMT_OP_CHECK);
+    if (simtCheckOpt == nullptr || simtCheckOpt->GetIntValue() != 1) {
+        return;
+    }
+    
+    SkKernelType kernelType = nodeInfos.kernelInfos.kernelType;
+    bool hasAivSection = (kernelType == SkKernelType::AIV_ONLY ||
+                          kernelType == SkKernelType::MIX_AIV_1_0 ||
+                          kernelType == SkKernelType::MIX_AIC_1_1 ||
+                          kernelType == SkKernelType::MIX_AIC_1_2);
+    
+    if (!hasAivSection) {
+        SK_LOGI("IdentifyAndHandleSimtKernel: %s has no AIV section (kernelType=%s), skip SIMT check",
+            Format().c_str(), to_string(kernelType));
+        return;
+    }
+    
+    SK_LOGI("IdentifyAndHandleSimtKernel: checking for %s, kernelType=%s, nodeId=%lu",
+        Format().c_str(), to_string(kernelType), nodeId);
+    
+    uint32_t aivType = 0;
+    rtError_t ret = rtFunctionGetMetaInfo(taskParams.kernelTaskParams.funcHandle,
+        RT_FUNCTION_TYPE_AIV_TYPE_FLAG,
+        &aivType, sizeof(uint32_t));
+    
+    if (ret != RT_ERROR_NONE) {
+        SK_LOGD("rtFunctionGetMetaInfo AIV_TYPE_FLAG failed for %s, ret=%d",
+            Format().c_str(), ret);
+        return;
+    }
+    
+    bool isSimt = (aivType == AIV_TYPE_SIMT_VF_ONLY ||
+                   aivType == AIV_TYPE_SIMD_SIMT_MIX_VF);
+    
+    if (isSimt) {
+        nodeInfos.kernelInfos.isSimtOp = true;
+        isFusible = false;
+        SetFusionFailReason(FusionFailReason::SIMT_OP_NOT_SUPPORTED);
+        SK_LOGI("%s is SIMT type, aivType=%u, not fusible", Format().c_str(), aivType);
+    }
 }
 
 std::string SuperKernelKernelNode::Format() const {
