@@ -44,6 +44,10 @@ add_library(test_regbase_ascendc OBJECT
     ./test_transpose.cpp
     ./test_bessel_j0.cpp
     ./test_bessel_j1.cpp
+    ./test_shifted_chebyshev_polynomial_t.cpp
+    ./test_shifted_chebyshev_polynomial_u.cpp
+    ./test_shifted_chebyshev_polynomial_v.cpp
+    ./test_shifted_chebyshev_polynomial_w.cpp
     )
 target_link_libraries(test_regbase_ascendc
     ascendc_api_regbase_extend
