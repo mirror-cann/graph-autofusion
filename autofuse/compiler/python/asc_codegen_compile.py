@@ -1774,7 +1774,7 @@ def asc_codegen_compile(*args, **kwargs):
         # 设置 platform 到 context
         npu_arch = get_soc_spec('NpuArch')
         if npu_arch:
-            ascir.utils.set_platform(npu_arch)
+            ascir.utils.set_platform(npu_arch, int(get_soc_spec('vector_core_cnt')), int(get_soc_spec('ub_size')))
             CommonUtility.print_compile_log("", f"Set platform from get_soc_spec: {npu_arch}",
                                             AscendCLogLevel.LOG_DEBUG)
 

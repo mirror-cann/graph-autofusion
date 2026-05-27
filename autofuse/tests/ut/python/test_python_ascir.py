@@ -24,7 +24,7 @@ from ascir import Max, Min, Mod
 
 PYF_PATH = os.path.dirname(os.path.realpath(__file__))
 
-ascir.utils.set_platform("2201")
+ascir.utils.set_platform("2201", 1, 1024)
 
 
 # pyascir 构图能力暂不支持
@@ -1142,13 +1142,13 @@ class TestAutofuseLoadSplitStore():
     def test_construct_graph(self):
         # Split currently resolves to the v35 registration in this build, which
         # only supports v2 platforms such as 5102/3510.
-        ascir.utils.set_platform("5102")
+        ascir.utils.set_platform("5102", 1, 1024)
         try:
             graph = self.construct_graph()
             debug_graph = ascir.utils.debug_str(graph)
             assert debug_graph != ""
         finally:
-            ascir.utils.set_platform("2201")
+            ascir.utils.set_platform("2201", 1, 1024)
 
 
 class TestWorkspaceOptimize():
@@ -2614,30 +2614,30 @@ class TestSizeExprErrorScenarios():
     def test_set_platform():
         """Test UtilsSetPlatform with various platform strings"""
         # Test with valid platform strings
-        result = ascir.utils.set_platform("v2")
+        result = ascir.utils.set_platform("v2", 1, 1024)
         assert result is None, "set_platform should return None for valid input"
 
-        result = ascir.utils.set_platform("Ascend910B")
+        result = ascir.utils.set_platform("Ascend910B", 1, 1024)
         assert result is None, "set_platform should return None for valid input"
 
         # Test with empty string (should return None without error)
-        result = ascir.utils.set_platform("")
+        result = ascir.utils.set_platform("", 0, 0)
         assert result is None, "set_platform should return None for empty string"
 
         # Test with None-like input (passing empty string)
-        result = ascir.utils.set_platform("")
+        result = ascir.utils.set_platform("", 0, 0)
         assert result is None, "set_platform should return None for empty string"
 
         # Test with invalid parameter type - should raise TypeError
         try:
-            ascir.utils.set_platform(123)
+            ascir.utils.set_platform(123, 1, 1024)
         except TypeError as e:
             assert "param parse failed" in str(e) or "string" in str(e).lower()
 
         try:
-            ascir.utils.set_platform(None)
+            ascir.utils.set_platform(None, 1, 1024)
         except TypeError as e:
             assert "param parse failed" in str(e) or "string" in str(e).lower()
 
-        result = ascir.utils.set_platform("2201")
+        result = ascir.utils.set_platform("2201", 1, 1024)
         assert result is None, "set_platform should return None for valid input"
