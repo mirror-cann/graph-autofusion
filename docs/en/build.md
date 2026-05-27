@@ -108,6 +108,13 @@ The following lists dependencies used for source code compilation. Pay attention
      pip3 install -r super_kernel/requirements-dev.txt
      ```
 
+- patch
+
+   ```shell
+   # Ubuntu/Debian installation example. For other operating systems, install manually.
+   sudo apt-get install patch
+   ```
+
 - CMake >= 3.16.0  (version 3.20.0 recommended)
 
    ```shell
@@ -178,12 +185,13 @@ In environments without any external network access, pre-download third-party so
    | boost | 1.87.0 | https://gitcode.com/cann-src-third-party/boost/releases/download/v1.87.0/boost_1_87_0.tar.gz |
    | protobuf | 25.1 | https://gitcode.com/cann-src-third-party/protobuf/releases/download/v25.1/protobuf-25.1.tar.gz |
    | symengine | 0.12.0 | https://gitcode.com/cann-src-third-party/symengine/releases/download/v0.12.0/symengine-0.12.0.tar.gz |
+   | googletest | 1.14.0 | https://gitcode.com/cann-src-third-party/googletest/releases/download/v1.14.0/googletest-1.14.0.tar.gz |
 
 2. Copy the downloaded packages to the corresponding subdirectories under `output/third_party/` in the compilation environment (create if not exist):
 
    ```shell
    # Create directory structure under source root
-   mkdir -p output/third_party/{abseil-cpp,json,boost,protoc,symengine}
+   mkdir -p output/third_party/{abseil-cpp,json,boost,protoc,symengine,gtest}
 
    # Place downloaded packages in corresponding directories (filenames must match the table below)
    # abseil-cpp-20230802.1.tar.gz  → output/third_party/abseil-cpp/
@@ -191,6 +199,7 @@ In environments without any external network access, pre-download third-party so
    # boost_1_87_0.tar.gz           → output/third_party/boost/
    # protobuf-25.1.tar.gz          → output/third_party/protoc/
    # symengine-0.12.0.tar.gz       → output/third_party/symengine/
+   # googletest-1.14.0.tar.gz      → output/third_party/gtest/
    ```
 
 3. During compilation, specify the local path through `--cann_3rd_lib_path` to skip the download step:
@@ -203,14 +212,48 @@ In environments without any external network access, pre-download third-party so
 > - If you do not specify `--cann_3rd_lib_path`, the default search path is `./output/third_party`. Therefore, you can omit this parameter when packages exist in the default path.
 > - CMake build scripts prioritize checking whether corresponding tarballs already exist in the local path. If they exist, the download skips.
 
-### 4.4 Test Verification
+### 4.4 Installation and Uninstallation
 
-After compilation, you can perform developer testing. Ensure you have completed [Environment Preparation](./quick_install.md#1-environment-preparation) before executing operations in this section.
+> [!WARNING] Important
+> You must install the compiled `.run` package before running UT/ST tests. Otherwise, `LD_LIBRARY_PATH` will load older versions of dynamic libraries from the CANN installation path, causing runtime errors such as `undefined symbol`.
+
+#### Installation
+
+After local verification completes, execute the following command to install the compiled package. Ensure the installation user has execute permission for the package.
+
+```shell
+# Specify installation path if needed: --install-path=${install_path}
+./build_out/cann-graph-autofusion_${cann_version}_linux-${arch}.run --full --quiet --pylocal
+```
+
+> [!NOTE] Note
+> - The installation path (default or specified) must match the path where you installed the cann-toolkit package.
+> - --full indicates full installation mode.
+> - --install-path specifies the installation path. If not specified, the default installation path is `/usr/local/Ascend` (root user) or `${HOME}/Ascend` (non-root user).
+> - --quiet indicates silent installation. It skips human-computer interaction.  
+> - --pylocal determines whether to install .whl files inside the package along the run package installation path.  
+>   - If you select this parameter, .whl installs in the `${ascend_install_path}/cann/python/site-packages` path.
+>   - If you do not select this parameter, .whl installs in the local python path, for example, `/usr/local/python3.7.5/lib/python3.7/site-packages`.
+> - --autofuse indicates whether to install autofuse component-related compilation artifacts. Current package installation does not install autofuse by default. Add this option to install autofuse.
+> - For more installation options, use the --help option to view.  
+
+#### Uninstallation
+
+If you want to uninstall the installed package, execute the following command:
+
+```shell
+# Add --install-path=${install_path} if installed to a specified path
+./build_out/cann-graph-autofusion_${cann_version}_linux-${arch}.run --uninstall
+```  
+
+### 4.5 Test Verification
+
+After installation, you can perform developer testing. Ensure you have completed [Environment Preparation](./quick_install.md#1-environment-preparation) and installed the compiled `.run` package before executing operations in this section.
 
 - UT Verification
 
    ```bash
-   bash build.sh -u
+   bash build.sh -u --cann_3rd_lib_path=$(pwd)/output/third_party
    ```
 
    After execution, check the UT test execution status through the output log. Successful test case execution prints `passed` without any `failed` print. Confirm all test cases pass.
@@ -218,7 +261,7 @@ After compilation, you can perform developer testing. Ensure you have completed 
 - ST Verification
 
    ```bash
-   bash build.sh -s
+   bash build.sh -s --cann_3rd_lib_path=$(pwd)/output/third_party
    ```
 
    After execution, check the ST test execution status through the output log. Successful test case execution prints `passed` without any `failed` print. Confirm all test cases pass.
@@ -226,42 +269,11 @@ After compilation, you can perform developer testing. Ensure you have completed 
 - Coverage Verification
 
    ```bash
-   bash build.sh -u -c  # UT coverage
-   bash build.sh -s -c  # ST coverage
-   bash build.sh -c     # UT coverage + ST coverage
+   bash build.sh -u -c --cann_3rd_lib_path=$(pwd)/output/third_party  # UT coverage
+   bash build.sh -s -c --cann_3rd_lib_path=$(pwd)/output/third_party  # ST coverage
+   bash build.sh -c --cann_3rd_lib_path=$(pwd)/output/third_party     # UT coverage + ST coverage
    ```
 
    After execution, check the coverage status through the output log. Confirm all test cases pass.
-
-### 4.5 Installation and Uninstallation
-
-- Installation
-
-  After local verification completes, execute the following command to install the compiled package. Ensure the installation user has execute permission for the package.
-
-  ```shell
-  # Specify installation path if needed: --install-path=${install_path}
-  ./cann-graph-autofusion_${cann_version}_linux-${arch}.run --full --quiet --pylocal
-  ```
-
-  > [!NOTE] Note
-  > - The installation path (default or specified) must match the path where you installed the cann-toolkit package.
-  > - --full indicates full installation mode.
-  > - --install-path specifies the installation path. If not specified, the default installation path is `/usr/local/Ascend` (root user) or `${HOME}/Ascend` (non-root user).
-  > - --quiet indicates silent installation. It skips human-computer interaction.  
-  > - --pylocal determines whether to install .whl files inside the package along the run package installation path.  
-  >   - If you select this parameter, .whl installs in the `${ascend_install_path}/cann/python/site-packages` path.
-  >   - If you do not select this parameter, .whl installs in the local python path, for example, `/usr/local/python3.7.5/lib/python3.7/site-packages`.
-  > - --autofuse indicates whether to install autofuse component-related compilation artifacts. Current package installation does not install autofuse by default. Add this option to install autofuse.
-  > - For more installation options, use the --help option to view.  
-
-- Uninstallation
-
-  If you want to uninstall the installed package, execute the following command:
-
-  ```shell
-  # Add --install-path=${install_path} if installed to a specified path
-  ./cann-graph-autofusion_${cann_version}_linux-${arch}.run --uninstall
-  ```  
 
 **After installation, refer to [Sample Execution](../../super_kernel/examples/README_en.md) to try running samples**.
