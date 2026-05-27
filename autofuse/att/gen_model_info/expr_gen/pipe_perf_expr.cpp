@@ -23,6 +23,16 @@
 namespace att {
 namespace {
 constexpr int32_t kMaxRecursiveNum = 10;
+std::string GetContribDescription(const std::string &pipe_type, const std::string &contrib_suffix) {
+  if (contrib_suffix == "core_contrib") {
+    return pipe_type + " core contribution = node API perf * core exe time";
+  }
+  if (contrib_suffix == "tail_contrib") {
+    return pipe_type + " tail contribution = tail API perf * tail exe time";
+  }
+  return pipe_type + " contribution = node API perf * node exe time";
+}
+
 void UpdateDim(const std::vector<Expr> &stride, std::vector<Expr> &dims) {
   for (size_t i = stride.size() - 1UL; i >= 1UL; --i) {
     if (stride[i] == 0) {
@@ -102,9 +112,31 @@ static void ProcessPipeRes(const NodeExprId &node_expr_id, const std::string &an
   }
 }
 
+static void ProcessPerfBreakdowns(const NodeExprId &node_expr_id, const std::string &annotation,
+                                  const PerfOutputInfo &perf_res,
+                                  const std::vector<std::pair<Expr, Expr>> &replace_vars,
+                                  std::vector<PerfBreakdownGroup> &perf_breakdowns) {
+  if (perf_res.perf_breakdowns.empty()) {
+    return;
+  }
+  const std::string full_desc = node_expr_id.GetVarPrefix();
+  for (const auto &group : perf_res.perf_breakdowns) {
+    PerfBreakdownGroup new_group;
+    new_group.title = full_desc + annotation + " " + group.title;
+    for (const auto &item : group.items) {
+      PerfBreakdownItem new_item = item;
+      new_item.name = full_desc + annotation + "_" + item.name;
+      new_item.expr = item.expr.Replace(replace_vars);
+      new_group.items.emplace_back(std::move(new_item));
+    }
+    perf_breakdowns.emplace_back(std::move(new_group));
+  }
+}
+
 // 替换性能公式中使用的符号
 ge::Status UpdatePerfRes(const NodeInfo &node, const PerfOutputInfo &perf_res, std::map<PipeType, Expr> &node_perf,
-                         std::map<Expr, TernaryOp, ExprCmp> &ternary_ops, bool tail_shape = false) {
+                         std::map<Expr, TernaryOp, ExprCmp> &ternary_ops,
+                         std::vector<PerfBreakdownGroup> &perf_breakdowns, bool tail_shape = false) {
   NodeExprId node_expr_id = BuildNodeExprId(node);
   std::string annotation = tail_shape ? "_tail" : "";
   std::vector<Expr> update_vars;
@@ -117,6 +149,7 @@ ge::Status UpdatePerfRes(const NodeInfo &node, const PerfOutputInfo &perf_res, s
   ProcessTernaryOps(node_expr_id, annotation, perf_res, ternary_ops, update_vars, replace_vars);
   ApplyVariableReplacement(update_vars, replace_vars, ternary_ops);
   ProcessPipeRes(node_expr_id, annotation, perf_res, node_perf, ternary_ops, replace_vars);
+  ProcessPerfBreakdowns(node_expr_id, annotation, perf_res, replace_vars, perf_breakdowns);
 
   return ge::SUCCESS;
 }
@@ -340,7 +373,8 @@ Perf PipePerfExpr::UpdateTilingScheduleConfigTable(const NodeInfo &node, bool ta
 }
 
 ge::Status PipePerfExpr::GetNodePerf(const NodeInfo &node, std::map<PipeType, Expr> &node_perf,
-                                     std::map<Expr, TernaryOp, ExprCmp> &ternary_ops, bool tail_shape) const {
+                                     std::map<Expr, TernaryOp, ExprCmp> &ternary_ops,
+                                     std::vector<PerfBreakdownGroup> &perf_breakdowns, bool tail_shape) const {
   std::string tail_annotation;
   if (tail_shape) {
     tail_annotation = "tail ";
@@ -370,10 +404,11 @@ ge::Status PipePerfExpr::GetNodePerf(const NodeInfo &node, std::map<PipeType, Ex
                     node_unit.c_str());
 
   if (perf_func(inputs, outputs, node, perf_res) != ge::SUCCESS) {
-    node_perf.clear();
+    GELOGW("Perf func failed for node[%s, %s], perf_res may be incomplete.", node.name.c_str(),
+           node.node_type.c_str());
   }
   GELOGD("node[%s, %s] perf res: {%s}", node.name.c_str(), node.node_type.c_str(), perf_res.ToString().c_str());
-  GE_ASSERT_SUCCESS(UpdatePerfRes(node, perf_res, node_perf, ternary_ops, tail_shape));
+  GE_ASSERT_SUCCESS(UpdatePerfRes(node, perf_res, node_perf, ternary_ops, perf_breakdowns, tail_shape));
   return ge::SUCCESS;
 }
 
@@ -422,6 +457,7 @@ ge::Status PipePerfExpr::AddPerf(const Expr &node_exe_times, const std::string &
     GetPerfVar(var_name, contrib_var, ctx.ternary_ops);
     TernaryOp contrib_op(pipe_cost);
     contrib_op.SetVariable(contrib_var);
+    contrib_op.SetDescription(GetContribDescription(pipe_type_iter->second, contrib_suffix));
     ctx.ternary_ops[contrib_var] = std::move(contrib_op);
     auto iter = ctx.pipe_costs.find(pair.first);
     if (iter == ctx.pipe_costs.end()) {
@@ -481,8 +517,14 @@ ge::Status PipePerfExpr::UpdatePipeHead(std::map<PipeType, Expr> &pipe_costs,
 }
 
 ge::Status PipePerfExpr::GetPerfExpr(std::map<PipeType, Expr> &pipe_costs,
+                                     std::map<Expr, TernaryOp, ExprCmp> &ternary_ops, Expr &head_cost) {
+  std::vector<PerfBreakdownGroup> perf_breakdowns;
+  return GetPerfExpr(pipe_costs, ternary_ops, perf_breakdowns, head_cost);
+}
+
+ge::Status PipePerfExpr::GetPerfExpr(std::map<PipeType, Expr> &pipe_costs,
                                      std::map<Expr, TernaryOp, ExprCmp> &ternary_ops,
-                                     Expr &head_cost) {
+                                     std::vector<PerfBreakdownGroup> &perf_breakdowns, Expr &head_cost) {
   ExeTimePassManager exe_time_mgr(tuning_space_);
 
   std::unordered_set<std::string> skip_node_types = {kData, kWorkspace, kOutput, kTbufData, kScalar};
@@ -502,11 +544,11 @@ ge::Status PipePerfExpr::GetPerfExpr(std::map<PipeType, Expr> &pipe_costs,
 
     // 获取节点性能
     std::map<PipeType, Expr> node_perf;
-    GE_ASSERT_SUCCESS(GetNodePerfInternal(node, node_perf, ternary_ops),
+    GE_ASSERT_SUCCESS(GetNodePerfInternal(node, node_perf, ternary_ops, perf_breakdowns),
                       "Get node [%s][%s] perf failed.", node.name.c_str(), node.node_type.c_str());
 
     // 添加性能到总成本
-    GE_ASSERT_SUCCESS(AddNodePerfToPipeCost(node, exe_var, node_perf, pipe_costs, ternary_ops));
+    GE_ASSERT_SUCCESS(AddNodePerfToPipeCost(node, exe_var, node_perf, pipe_costs, ternary_ops, perf_breakdowns));
   }
 
   GE_ASSERT_SUCCESS(UpdatePipeHead(pipe_costs, ternary_ops));
@@ -516,7 +558,8 @@ ge::Status PipePerfExpr::GetPerfExpr(std::map<PipeType, Expr> &pipe_costs,
 
 // 获取节点性能（内部方法，包含VectorFunc特殊处理）
 ge::Status PipePerfExpr::GetNodePerfInternal(const NodeInfo &node, std::map<PipeType, Expr> &node_perf,
-                                              std::map<Expr, TernaryOp, ExprCmp> &ternary_ops) const {
+                                             std::map<Expr, TernaryOp, ExprCmp> &ternary_ops,
+                                             std::vector<PerfBreakdownGroup> &perf_breakdowns) const {
   if (node.node_type == kVectorFunc) {
     // VectorFunc节点特殊处理
     std::vector<NodePerfInfo> node_perf_infos;
@@ -546,7 +589,7 @@ ge::Status PipePerfExpr::GetNodePerfInternal(const NodeInfo &node, std::map<Pipe
     }
   } else {
     // 普通节点
-    GE_ASSERT_SUCCESS(GetNodePerf(node, node_perf, ternary_ops),
+    GE_ASSERT_SUCCESS(GetNodePerf(node, node_perf, ternary_ops, perf_breakdowns),
                       "Get node [%s][%s] perf failed.", node.name.c_str(), node.node_type.c_str());
   }
   return ge::SUCCESS;
@@ -556,7 +599,8 @@ ge::Status PipePerfExpr::GetNodePerfInternal(const NodeInfo &node, std::map<Pipe
 ge::Status PipePerfExpr::AddNodePerfToPipeCost(const NodeInfo &node, const Expr &exe_var,
                                                const std::map<PipeType, Expr> &node_perf,
                                                std::map<PipeType, Expr> &pipe_costs,
-                                               std::map<Expr, TernaryOp, ExprCmp> &ternary_ops) {
+                                               std::map<Expr, TernaryOp, ExprCmp> &ternary_ops,
+                                               std::vector<PerfBreakdownGroup> &perf_breakdowns) {
   NodeExprId node_expr_id = BuildNodeExprId(node);
   std::string expr_prefix = node_expr_id.GetExprVarPrefix();
   PerfAddContext ctx(node_perf, pipe_costs, ternary_ops, expr_prefix);
@@ -564,7 +608,7 @@ ge::Status PipePerfExpr::AddNodePerfToPipeCost(const NodeInfo &node, const Expr 
     GELOGD("Node with single cut, add tail perf.");
     Expr tail_exe_time;
     std::map<PipeType, Expr> node_tail_perf;
-    GE_ASSERT_SUCCESS(GetNodePerf(node, node_tail_perf, ternary_ops, true),
+    GE_ASSERT_SUCCESS(GetNodePerf(node, node_tail_perf, ternary_ops, perf_breakdowns, true),
                       "Get node [%s] tail perf failed.", node.name.c_str());
     GE_ASSERT_SUCCESS(GetTailExeTime(node, exe_var, tail_exe_time));
     GE_ASSERT_SUCCESS(AddTailPerf(tail_exe_time, exe_var, node_tail_perf, ctx));

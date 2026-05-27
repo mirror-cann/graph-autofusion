@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -11,16 +11,37 @@
 #include "ascendc_regbase_perf.h"
 namespace att {
 namespace ascendcperf_v2 {
-RepeatParams CalculateRepeatParams(const std::string &input_dtype, const Expr& cal_count) {
+RepeatParams CalculateRepeatParams(const std::string &input_dtype, const Expr &cal_count) {
   Expr repeat_elm = kRptSizeFloat;
   auto it = kRptEleMap.find(input_dtype);
   if (it != kRptEleMap.end()) {
     repeat_elm = it->second;
   }
-  GE_ASSERT_TRUE(repeat_elm != af::sym::kSymbolZero, "repeat_elm is [%s].", af::SymbolicUtils::ToString(repeat_elm).c_str());
+  GE_ASSERT_TRUE(repeat_elm != af::sym::kSymbolZero, "repeat_elm is [%s].",
+                 af::SymbolicUtils::ToString(repeat_elm).c_str());
   Expr repeat_time = af::sym::Ceiling(cal_count / repeat_elm);
   return {repeat_elm, repeat_time};
 }
+
+namespace {
+ge::Status RegVfPerf(const std::string &vf_instruct_type, const NodeDetail &node_info, PerfOutputInfo &perf) {
+  GELOGD("[ATT Reduce] %s node info is %s.", vf_instruct_type.c_str(), node_info.ToString().c_str());
+  Expr cal_count = node_info.input_dims[kNumZero];
+  RepeatParams params = CalculateRepeatParams(node_info.input_dtype[0], cal_count);
+  Expr repeat_time = params.repeat_time;
+  Expr repeat_elm = params.repeat_elm;
+  Expr max_latency = CreateExpr(0);
+  Expr all_vf_instruct_cost = CreateExpr(0);
+  GELOGD("cal_count is [%s], repeat_elm is [%s], repeat_time is [%s].", af::SymbolicUtils::ToString(cal_count).c_str(),
+         af::SymbolicUtils::ToString(repeat_elm).c_str(), af::SymbolicUtils::ToString(repeat_time).c_str());
+  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(vf_instruct_type, node_info.input_dtype[0], max_latency,
+                                                   all_vf_instruct_cost, repeat_time));
+  Expr res = VfPerfUtils::GetVFHeadCost() + max_latency + all_vf_instruct_cost;
+  res.Simplify();
+  perf.pipe_res[PipeType::AIV_VEC] = res;
+  return ge::SUCCESS;
+}
+}  // namespace
 
 /*
 ===========================================================================
@@ -62,6 +83,30 @@ RepeatParams CalculateRepeatParams(const std::string &input_dtype, const Expr& c
     调用 vf_ins_vcmp (mode)
 ===========================================================================
 */
+namespace {
+ge::Status CompareB64SpecificPerf(const std::string &compare_mode, const Expr &cal_count, const Expr &repeat_elm,
+                                   Expr &max_latency, Expr &all_vf_instruct_cost) {
+  Expr repeat_time = af::sym::Ceiling(cal_count / (repeat_elm * kSymTwo));
+  GELOGD("cal_count is [%s], repeat_elm is [%s], repeat_time is [%s].",
+         af::SymbolicUtils::ToString(cal_count).c_str(), af::SymbolicUtils::ToString(repeat_elm).c_str(),
+         af::SymbolicUtils::ToString(repeat_time).c_str());
+  if (compare_mode == kEq) {
+    GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kEq, kFloat32, max_latency, all_vf_instruct_cost, repeat_time * kSymTwo));
+    GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kMaskAnd, kUInt8, max_latency, all_vf_instruct_cost, repeat_time));
+    return ge::SUCCESS;
+  }
+  if (compare_mode == kNe) {
+    GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kNe, kFloat32, max_latency, all_vf_instruct_cost, repeat_time * kSymTwo));
+    GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kMaskOr, kUInt8, max_latency, all_vf_instruct_cost, repeat_time));
+    return ge::SUCCESS;
+  }
+  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kEq, kFloat32, max_latency, all_vf_instruct_cost, repeat_time));
+  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(compare_mode, kFloat32, max_latency, all_vf_instruct_cost, repeat_time * kSymTwo));
+  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kMaskSel, kUInt8, max_latency, all_vf_instruct_cost, repeat_time));
+  return ge::SUCCESS;
+}
+}  // namespace
+
 ge::Status CompareSpecificPerf(const std::string compare_mode, const NodeDetail &node_info, PerfOutputInfo &perf) {
   GELOGD("Compare mode[%s]: node info is %s.", compare_mode.c_str(), node_info.ToString().c_str());
   Expr cal_count = node_info.input_dims[kNumZero];
@@ -70,42 +115,19 @@ ge::Status CompareSpecificPerf(const std::string compare_mode, const NodeDetail 
   if (it != kRptEleMap.end()) {
     repeat_elm = it->second;
   }
-  GE_ASSERT_TRUE(repeat_elm != af::sym::kSymbolZero, "repeat_elm is [%s].", af::SymbolicUtils::ToString(repeat_elm).c_str());
+  GE_ASSERT_TRUE(repeat_elm != af::sym::kSymbolZero, "repeat_elm is [%s].",
+                 af::SymbolicUtils::ToString(repeat_elm).c_str());
   Expr max_latency = CreateExpr(0);
   Expr all_vf_instruct_cost = CreateExpr(0);
   if (node_info.input_dtype[0] == kUInt64 || node_info.input_dtype[0] == kInt64) {
-    repeat_elm = repeat_elm * kSymTwo;
-    Expr repeat_time = af::sym::Ceiling(cal_count / repeat_elm);
-    GELOGD("cal_count is [%s], repeat_elm is [%s], repeat_time is [%s].", af::SymbolicUtils::ToString(cal_count).c_str(),
-           af::SymbolicUtils::ToString(repeat_elm).c_str(), af::SymbolicUtils::ToString(repeat_time).c_str());
-    if (compare_mode == kEq) {
-      GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kEq, kFloat32, max_latency, all_vf_instruct_cost, repeat_time * kSymTwo));
-      GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kMaskAnd, kUInt8, max_latency, all_vf_instruct_cost, repeat_time));
-    } else if (compare_mode == kNe) {
-      GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kNe, kFloat32, max_latency, all_vf_instruct_cost, repeat_time * kSymTwo));
-      GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kMaskOr, kUInt8, max_latency, all_vf_instruct_cost, repeat_time));
-    } else if (compare_mode == kGt) {
-      GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kEq, kFloat32, max_latency, all_vf_instruct_cost, repeat_time));
-      GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kGt, kFloat32, max_latency, all_vf_instruct_cost, repeat_time * kSymTwo));
-      GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kMaskSel, kUInt8, max_latency, all_vf_instruct_cost, repeat_time));
-    } else if (compare_mode == kGe) {
-      GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kEq, kFloat32, max_latency, all_vf_instruct_cost, repeat_time));
-      GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kGe, kFloat32, max_latency, all_vf_instruct_cost, repeat_time * kSymTwo));
-      GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kMaskSel, kUInt8, max_latency, all_vf_instruct_cost, repeat_time));
-    } else if (compare_mode == kLt) {
-      GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kEq, kFloat32, max_latency, all_vf_instruct_cost, repeat_time));
-      GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kLt, kFloat32, max_latency, all_vf_instruct_cost, repeat_time * kSymTwo));
-      GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kMaskSel, kUInt8, max_latency, all_vf_instruct_cost, repeat_time));
-    } else {
-      GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kEq, kFloat32, max_latency, all_vf_instruct_cost, repeat_time));
-      GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kLe, kFloat32, max_latency, all_vf_instruct_cost, repeat_time * kSymTwo));
-      GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kMaskSel, kUInt8, max_latency, all_vf_instruct_cost, repeat_time));
-    }
+    GE_ASSERT_SUCCESS(CompareB64SpecificPerf(compare_mode, cal_count, repeat_elm, max_latency, all_vf_instruct_cost));
   } else {
     Expr repeat_time = af::sym::Ceiling(cal_count / repeat_elm);
-    GELOGD("cal_count is [%s], repeat_elm is [%s], repeat_time is [%s].", af::SymbolicUtils::ToString(cal_count).c_str(),
-           af::SymbolicUtils::ToString(repeat_elm).c_str(), af::SymbolicUtils::ToString(repeat_time).c_str());
-    GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(compare_mode, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
+    GELOGD("cal_count is [%s], repeat_elm is [%s], repeat_time is [%s].",
+           af::SymbolicUtils::ToString(cal_count).c_str(), af::SymbolicUtils::ToString(repeat_elm).c_str(),
+           af::SymbolicUtils::ToString(repeat_time).c_str());
+    GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(compare_mode, node_info.input_dtype[0], max_latency,
+                                                      all_vf_instruct_cost, repeat_time));
   }
   Expr res = VfPerfUtils::GetVFHeadCost() + max_latency + all_vf_instruct_cost;
   res.Simplify();
@@ -411,6 +433,14 @@ ge::Status MinPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   res.Simplify();
   perf.pipe_res[PipeType::AIV_VEC] = res;
   return ge::SUCCESS;
+}
+
+ge::Status ReduceMaxPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
+  return RegVfPerf(kReduceMax, node_info, perf);
+}
+
+ge::Status ReduceMinPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
+  return RegVfPerf(kReduceMin, node_info, perf);
 }
 
 /*
@@ -1350,5 +1380,5 @@ ge::Status FloorDivPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   perf.pipe_res[PipeType::AIV_VEC] = res;
   return ge::SUCCESS;
 }
-}
+}  // namespace ascendcperf_v2
 }  // namespace att

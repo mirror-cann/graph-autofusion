@@ -40,6 +40,8 @@ public:
   ~PipePerfExpr() = default;
   ge::Status GetPerfExpr(std::map<PipeType, Expr> &pipe_costs, std::map<Expr, TernaryOp, ExprCmp> &ternary_ops,
                          Expr &head_cost);
+  ge::Status GetPerfExpr(std::map<PipeType, Expr> &pipe_costs, std::map<Expr, TernaryOp, ExprCmp> &ternary_ops,
+                         std::vector<PerfBreakdownGroup> &perf_breakdowns, Expr &head_cost);
 
 private:
   // 把tensor信息转换为tensor shape
@@ -51,7 +53,8 @@ private:
 
   // 获取node 性能计算表达式
   ge::Status GetNodePerf(const NodeInfo &node, std::map<PipeType, Expr> &node_perf,
-                         std::map<Expr, TernaryOp, ExprCmp> &ternary_ops, bool tail_shape = false) const;
+                         std::map<Expr, TernaryOp, ExprCmp> &ternary_ops,
+                         std::vector<PerfBreakdownGroup> &perf_breakdowns, bool tail_shape = false) const;
 
   // 获取node loop times
   ge::Status GetNodeExeTime(const NodeInfo &node, const ExeTimePassManager &exe_time_mgr, TernaryOp &cur_exe_time) const;
@@ -67,12 +70,14 @@ private:
 
   // 获取节点性能（内部方法，包含VectorFunc特殊处理）
   ge::Status GetNodePerfInternal(const NodeInfo &node, std::map<PipeType, Expr> &node_perf,
-                                  std::map<Expr, TernaryOp, ExprCmp> &ternary_ops) const;
+                                  std::map<Expr, TernaryOp, ExprCmp> &ternary_ops,
+                                  std::vector<PerfBreakdownGroup> &perf_breakdowns) const;
   // 添加节点性能到pipe_costs
   ge::Status AddNodePerfToPipeCost(const NodeInfo &node, const Expr &exe_var,
                                    const std::map<PipeType, Expr> &node_perf,
                                    std::map<PipeType, Expr> &pipe_costs,
-                                   std::map<Expr, TernaryOp, ExprCmp> &ternary_ops);
+                                   std::map<Expr, TernaryOp, ExprCmp> &ternary_ops,
+                                   std::vector<PerfBreakdownGroup> &perf_breakdowns);
 
   Perf UpdateTilingScheduleConfigTable(const NodeInfo &node, bool tail_shape, PerfOutputInfo &perf_res) const;
   ge::Status UpdatePipeHead(std::map<PipeType, Expr> &pipe_costs, std::map<Expr, TernaryOp, ExprCmp> &ternary_ops) const;

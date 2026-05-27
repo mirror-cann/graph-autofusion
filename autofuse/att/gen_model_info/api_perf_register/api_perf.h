@@ -13,6 +13,7 @@
 
 #include <functional>
 #include <utility>
+#include "base/perf_breakdown.h"
 #include "perf_param.h"
 
 namespace att {
@@ -50,6 +51,7 @@ using TernaryOpMap = std::map<Expr, TernaryOp, ExprCmp>;
 struct PerfOutputInfo {
   std::map<PipeType, Expr> pipe_res;
   TernaryOpMap ternary_ops;
+  std::vector<PerfBreakdownGroup> perf_breakdowns;
   vector<CacheLineConfig> *cache_line_config{nullptr};
   std::string ToString() {
     std::string res;

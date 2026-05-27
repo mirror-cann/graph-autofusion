@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -18,8 +18,9 @@ const Expr kMTE2Thres = CreateExpr(256U);
 const Expr kMte2PipeHeadNormalCost = CreateExpr(1174.3f);
 const Expr kMte2PipeHeadSmallCost = CreateExpr(775.0f);
 const Expr kMte3PipeHeadCost = CreateExpr(571.0f);
-}
-Expr PerfParamTableV2::GetMTE2PipeHead(const std::vector<NodeInfo> &node_infos, std::map<Expr, TernaryOp, ExprCmp> &ternary_ops) {
+}  // namespace
+Expr PerfParamTableV2::GetMTE2PipeHead(const std::vector<NodeInfo> &node_infos,
+                                       std::map<Expr, TernaryOp, ExprCmp> &ternary_ops) {
   Expr mte2_pipe_head;
   Expr max_blk = af::sym::kSymbolZero;
   for (const auto &node : node_infos) {
@@ -46,7 +47,8 @@ Expr PerfParamTableV2::GetMTE2PipeHead(const std::vector<NodeInfo> &node_infos, 
     }
   } else {
     GetPerfVar("mte2_pipe_head", mte2_pipe_head, ternary_ops);
-    TernaryOp ternary_op = TernaryOp(CondType::K_LT, max_blk, kMTE2Thres, kMte2PipeHeadSmallCost, kMte2PipeHeadNormalCost);
+    TernaryOp ternary_op =
+        TernaryOp(CondType::K_LT, max_blk, kMTE2Thres, kMte2PipeHeadSmallCost, kMte2PipeHeadNormalCost);
     ternary_op.SetVariable(mte2_pipe_head);
     ternary_ops[mte2_pipe_head] = ternary_op;
   }
@@ -55,28 +57,38 @@ Expr PerfParamTableV2::GetMTE2PipeHead(const std::vector<NodeInfo> &node_infos, 
 // 当前仅根据输出类型来判断
 const std::map<std::string, std::vector<VfInstructPerf>> &PerfParamTableV2::GetVfInstructPerfTable() const {
   static const std::map<std::string, std::vector<VfInstructPerf>> kVfInstructPerfTable = {
-      {
-          kAdd,
-          {
-              {VfInstructPerf{{kUInt8, kInt8, kUInt16, kInt16, kUInt32, kInt32}, 4, 2}},
-              {VfInstructPerf{{kFloat32, kFloat16, kBfloat16}, 4, 1}}
-          }
-      },
-      {
-          kSub,
-          {
-              {VfInstructPerf{{kUInt8, kInt8, kUInt16, kInt16, kUInt32, kInt32}, 4, 2}},
-              {VfInstructPerf{{kFloat32, kFloat16, kBfloat16}, 4, 1}}}},
-      {
-          kMax,
-          {
-              {VfInstructPerf{{kUInt8, kInt8, kUInt16, kInt16, kUInt32, kInt32, kFloat16, kFloat32, kBfloat16}, 3, 1}},
-          }
-      },
+      {kAdd,
+       {{VfInstructPerf{{kUInt8, kInt8, kUInt16, kInt16, kUInt32, kInt32}, 4, 2}},
+        {VfInstructPerf{{kFloat32, kFloat16, kBfloat16}, 4, 1}}}},
+      {kSub,
+       {{VfInstructPerf{{kUInt8, kInt8, kUInt16, kInt16, kUInt32, kInt32}, 4, 2}},
+        {VfInstructPerf{{kFloat32, kFloat16, kBfloat16}, 4, 1}}}},
+      {kMax,
+       {
+           {VfInstructPerf{{kUInt8, kInt8, kUInt16, kInt16, kUInt32, kInt32, kFloat16, kFloat32, kBfloat16}, 3, 1}},
+       }},
       {
           kMin,
           {
               {VfInstructPerf{{kUInt8, kInt8, kUInt16, kInt16, kUInt32, kInt32, kFloat16, kFloat32, kBfloat16}, 3, 1}},
+          },
+      },
+      {
+          kReduceMax,
+          {
+              {VfInstructPerf{
+                  {kUInt8, kInt8, kUInt16, kInt16, kUInt32, kInt32, kFloat16, kFloat32, kBfloat16, kUInt64, kInt64},
+                  3,
+                  1}},
+          },
+      },
+      {
+          kReduceMin,
+          {
+              {VfInstructPerf{
+                  {kUInt8, kInt8, kUInt16, kInt16, kUInt32, kInt32, kFloat16, kFloat32, kBfloat16, kUInt64, kInt64},
+                  3,
+                  1}},
           },
       },
       {
@@ -89,37 +101,55 @@ const std::map<std::string, std::vector<VfInstructPerf>> &PerfParamTableV2::GetV
       {
           kEq,
           {
-              {VfInstructPerf{{kUInt8, kInt8, kUInt16, kInt16, kUInt32, kInt32, kFloat16, kFloat32, kBfloat16, kUInt64, kInt64}, 3, 1}},
+              {VfInstructPerf{
+                  {kUInt8, kInt8, kUInt16, kInt16, kUInt32, kInt32, kFloat16, kFloat32, kBfloat16, kUInt64, kInt64},
+                  3,
+                  1}},
           },
       },
       {
           kNe,
           {
-              {VfInstructPerf{{kUInt8, kInt8, kUInt16, kInt16, kUInt32, kInt32, kFloat16, kFloat32, kBfloat16, kUInt64, kInt64}, 3, 1}},
+              {VfInstructPerf{
+                  {kUInt8, kInt8, kUInt16, kInt16, kUInt32, kInt32, kFloat16, kFloat32, kBfloat16, kUInt64, kInt64},
+                  3,
+                  1}},
           },
       },
       {
           kLt,
           {
-              {VfInstructPerf{{kUInt8, kInt8, kUInt16, kInt16, kUInt32, kInt32, kFloat16, kFloat32, kBfloat16, kUInt64, kInt64}, 3, 1}},
+              {VfInstructPerf{
+                  {kUInt8, kInt8, kUInt16, kInt16, kUInt32, kInt32, kFloat16, kFloat32, kBfloat16, kUInt64, kInt64},
+                  3,
+                  1}},
           },
       },
       {
           kGt,
           {
-              {VfInstructPerf{{kUInt8, kInt8, kUInt16, kInt16, kUInt32, kInt32, kFloat16, kFloat32, kBfloat16, kUInt64, kInt64}, 3, 1}},
+              {VfInstructPerf{
+                  {kUInt8, kInt8, kUInt16, kInt16, kUInt32, kInt32, kFloat16, kFloat32, kBfloat16, kUInt64, kInt64},
+                  3,
+                  1}},
           },
       },
       {
           kGe,
           {
-              {VfInstructPerf{{kUInt8, kInt8, kUInt16, kInt16, kUInt32, kInt32, kFloat16, kFloat32, kBfloat16, kUInt64, kInt64}, 3, 1}},
+              {VfInstructPerf{
+                  {kUInt8, kInt8, kUInt16, kInt16, kUInt32, kInt32, kFloat16, kFloat32, kBfloat16, kUInt64, kInt64},
+                  3,
+                  1}},
           },
       },
       {
           kLe,
           {
-              {VfInstructPerf{{kUInt8, kInt8, kUInt16, kInt16, kUInt32, kInt32, kFloat16, kFloat32, kBfloat16, kUInt64, kInt64}, 3, 1}},
+              {VfInstructPerf{
+                  {kUInt8, kInt8, kUInt16, kInt16, kUInt32, kInt32, kFloat16, kFloat32, kBfloat16, kUInt64, kInt64},
+                  3,
+                  1}},
           },
       },
       {
@@ -327,7 +357,8 @@ const std::map<std::string, std::vector<VfInstructPerf>> &PerfParamTableV2::GetV
           },
       },
       {
-          // 当前已覆盖 DIST_NORM,DIST_BRC_B8,DIST_BRC_B16,DIST_UNPACK_B8,DIST_UNPACK_B16,DIST_UNPACK_B32, DataCopyGather
+          // 当前已覆盖 DIST_NORM,DIST_BRC_B8,DIST_BRC_B16,DIST_UNPACK_B8,DIST_UNPACK_B16,DIST_UNPACK_B32,
+          // DataCopyGather
           kLoad,
           {
               {VfInstructPerf{
@@ -351,13 +382,13 @@ const std::map<std::string, std::vector<VfInstructPerf>> &PerfParamTableV2::GetV
 }
 PerfParamTableV2::PerfParamTableV2() {
   pipes_head_perf_.emplace(PipeType::AIV_MTE2, &PerfParamTableV2::GetMTE2PipeHead);
-  pipes_head_perf_.emplace(PipeType::AIV_MTE3,
-                          [](const std::vector<NodeInfo> &node_infos,
-                             std::map<Expr, TernaryOp, ExprCmp> &ternary_ops) -> Expr {
-                            (void)node_infos;
-                            (void)ternary_ops;
-                            return kMte3PipeHeadCost;
-                          });
+  pipes_head_perf_.emplace(
+      PipeType::AIV_MTE3,
+      [](const std::vector<NodeInfo> &node_infos, std::map<Expr, TernaryOp, ExprCmp> &ternary_ops) -> Expr {
+        (void)node_infos;
+        (void)ternary_ops;
+        return kMte3PipeHeadCost;
+      });
   vf_instruct_type_2_api_perf_ = GetVfInstructPerfTable();
 }
 

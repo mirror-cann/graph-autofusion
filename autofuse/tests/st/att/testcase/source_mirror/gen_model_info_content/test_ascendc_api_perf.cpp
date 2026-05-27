@@ -7931,6 +7931,7 @@ TEST_F(TestAscendcApiPerf, TestReduceAnyPerf) {
   att::TensorShapeInfo output;
   output.data_type = "float16";
   output.dims = {CreateExpr(100), CreateExpr(1)};
+  output.strides = {CreateExpr(1), ge::sym::kSymbolZero};
   output_shapes.push_back(output);
 
   PerfOutputInfo perf_res;
@@ -7960,6 +7961,7 @@ TEST_F(TestAscendcApiPerf, TestReduceMaxPerf) {
   att::TensorShapeInfo output;
   output.data_type = "float16";
   output.dims = {CreateExpr(100), CreateExpr(1)};
+  output.strides = {CreateExpr(1), ge::sym::kSymbolZero};
   output_shapes.push_back(output);
 
   PerfOutputInfo perf_res;
@@ -7989,6 +7991,7 @@ TEST_F(TestAscendcApiPerf, TestReduceAllPerf) {
   att::TensorShapeInfo output;
   output.data_type = "float16";
   output.dims = {CreateExpr(100), CreateExpr(1)};
+  output.strides = {CreateExpr(1), ge::sym::kSymbolZero};
   output_shapes.push_back(output);
 
   PerfOutputInfo perf_res;
@@ -8018,6 +8021,7 @@ TEST_F(TestAscendcApiPerf, TestReduceMinPerf) {
   att::TensorShapeInfo output;
   output.data_type = "float16";
   output.dims = {CreateExpr(100), CreateExpr(1)};
+  output.strides = {CreateExpr(1), ge::sym::kSymbolZero};
   output_shapes.push_back(output);
 
   PerfOutputInfo perf_res;

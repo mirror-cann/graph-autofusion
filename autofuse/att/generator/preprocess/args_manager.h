@@ -182,6 +182,10 @@ public:
    */
   const std::map<Expr, TernaryOp, ExprCmp>& GetTernaryOps() const;
   /**
+   * @brief 获取性能公式语义化拆解信息
+   */
+  const std::vector<PerfBreakdownGroup>& GetPerfBreakdowns() const;
+  /**
   * @brief 获取多核头开销
    */
   Expr GetHeadCost() const;
@@ -239,6 +243,7 @@ private:
   ExprExprMap ori_var_align_values_;
   ExprExprMap replaced_var_init_values_;
   std::map<Expr, TernaryOp, ExprCmp> ternary_op_;
+  std::vector<PerfBreakdownGroup> perf_breakdowns_;
 };
 bool GetNewVarsInExpr(const Expr &expr, const ExprExprMap &new_expr_replacements, std::vector<Expr> &expr_args);
 bool SplitVars(const AttAxisPtr &arg_axis, ExprInfoMap &var_infos);
