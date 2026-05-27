@@ -45,6 +45,7 @@ std::vector<std::unique_ptr<TmpBufDesc>> CalcSinhTmpSizeV2(const AscNode &node);
 std::vector<std::unique_ptr<TmpBufDesc>> CalcTanTmpSizeV2(const AscNode &node);
 std::vector<std::unique_ptr<TmpBufDesc>> CalcTruncTmpSizeV2(const AscNode &node);
 std::vector<std::unique_ptr<TmpBufDesc>> CalcXorTmpSizeV2(const AscNode &node);
+std::vector<std::unique_ptr<TmpBufDesc>> CalcTransposeTmpSizeV2(const AscNode &node);
 }  // namespace ascir
 }  // namespace af
 #endif  // __ASCIR_REG_FUNC_DEFAULT_REG_FUNC_V2_H__

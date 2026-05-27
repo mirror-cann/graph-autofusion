@@ -53,6 +53,14 @@ struct ReduceSpecificParams {
 struct BroadcastSpecificParams {
   std::string broadcast_type;
 };
+struct TransposeSpecificParams {
+  // Transpose api内部处理的vectorized output dims
+  std::vector<std::string> output_dims;
+  // Transpose api内部处理的vectorized input strides，根据输出tensor的vectorized axis的顺序进行重排
+  std::vector<std::string> input_strides;
+  // Transpose api内部处理的vectorized output strides
+  std::vector<std::string> output_strides;
+};
 
 struct CodegenApiParam;
 using CodegenApiParamPtr = std::shared_ptr<CodegenApiParam>;
@@ -85,7 +93,8 @@ struct CodegenApiParam {
     std::monostate,
     DmaSpecificParams,
     ReduceSpecificParams,
-    BroadcastSpecificParams
+    BroadcastSpecificParams,
+    TransposeSpecificParams
   >;
   AnySpecificParams specific_params;
 };
