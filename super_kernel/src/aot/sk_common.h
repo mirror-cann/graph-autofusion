@@ -22,6 +22,7 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <errno.h>
+#include <acl/acl.h>
 
 // Forward declaration for aclmdlRI
 typedef void* aclmdlRI;
@@ -354,7 +355,7 @@ struct SkEventConfig {
     uint32_t coreSize;      // 每个core的缓冲区大小（字节）
 };
 
-bool GetFuncSymbolInfo(const char* binAddr, size_t binSize, uint64_t funcAddr, std::string& symbolName,
+bool GetFuncSymbolInfo(aclrtBinHandle binHdl, const char* binAddr, size_t binSize, uint64_t funcAddr, std::string& symbolName,
                        uint64_t& funcSize, std::string& symbolBind);
 
 enum class ScheModeState : uint8_t {

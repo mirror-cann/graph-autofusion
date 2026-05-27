@@ -427,7 +427,7 @@ void SuperKernelExceptionHandler::PrintFuncSymbolInfo(
     std::string symbolName;
     uint64_t symbolSize = 0;
     std::string symbolBind;
-    if (GetFuncSymbolInfo(static_cast<const char*>(binHostAddr), binHostSize,
+    if (GetFuncSymbolInfo(binHdl, static_cast<const char*>(binHostAddr), binHostSize,
                           funcOffset, symbolName, symbolSize, symbolBind)) {
         SK_LOGE("[Core %u] Bound SK symbol name: %s (bind=%s, size=0x%lx)",
                 coreId, symbolName.c_str(), symbolBind.c_str(), symbolSize);

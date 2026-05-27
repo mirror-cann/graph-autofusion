@@ -1614,7 +1614,7 @@ bool SkTaskBuilder::AddEventTask(SkTask& skTask, SuperKernelBaseNode* node, size
     return true;
 }
 
-bool SkTaskBuilder::ProcessCoreFuncSize(SkDfxInfo* dfxInfo, const void* binHostAddr, uint32_t binHostSize,
+bool SkTaskBuilder::ProcessCoreFuncSize(SkDfxInfo* dfxInfo, aclrtBinHandle binHdl, const void* binHostAddr, uint32_t binHostSize,
                                         const ResolvedFunctionInfo& resolved, int coreIndex, int binIndex,
                                         const char* coreName)
 {
@@ -1624,7 +1624,7 @@ bool SkTaskBuilder::ProcessCoreFuncSize(SkDfxInfo* dfxInfo, const void* binHostA
     std::string symbolName;
     uint64_t funcSize = 0;
     std::string symbolBind;
-    bool getInfoRet = GetFuncSymbolInfo(static_cast<const char*>(binHostAddr), binHostSize,
+    bool getInfoRet = GetFuncSymbolInfo(binHdl, static_cast<const char*>(binHostAddr), binHostSize,
                                         resolved.funcOffset[coreIndex], symbolName, funcSize, symbolBind);
     SK_LOGD("ProcessCoreFuncSize: GetFuncSymbolInfo(%s) returned=%d, offset=0x%lx, symbolName=%s, size=0x%lx, bind=%s",
             coreName, getInfoRet, resolved.funcOffset[coreIndex], symbolName.c_str(), funcSize, symbolBind.c_str());
@@ -1682,14 +1682,14 @@ bool SkTaskBuilder::UpdateDfxInfo(SkDfxInfo* dfxInfo, const KernelInfos& kernelI
             (uint64_t)binHostAddr, binHostSize);
 
     if (addrIndex == 0 && resolved.funcAddr[0] != 0) {
-        ProcessCoreFuncSize(dfxInfo, binHostAddr, binHostSize, resolved, 0, binIndex, "AIC");
+        ProcessCoreFuncSize(dfxInfo, kernelInfo.binHdl, binHostAddr, binHostSize, resolved, 0, binIndex, "AIC");
     } else {
         SK_LOGD("UpdateDfxInfo: Skipping AIC processing, addrIndex=%d, funcAddr[0]=0x%lx",
                 addrIndex, resolved.funcAddr[0]);
     }
 
     if (addrIndex == 1 && resolved.funcAddr[1] != 0) {
-        ProcessCoreFuncSize(dfxInfo, binHostAddr, binHostSize, resolved, 1, binIndex, "AIV");
+        ProcessCoreFuncSize(dfxInfo, kernelInfo.binHdl, binHostAddr, binHostSize, resolved, 1, binIndex, "AIV");
     } else {
         SK_LOGD("UpdateDfxInfo: Skipping AIV processing, addrIndex=%d, funcAddr[1]=0x%lx",
                 addrIndex, resolved.funcAddr[1]);
