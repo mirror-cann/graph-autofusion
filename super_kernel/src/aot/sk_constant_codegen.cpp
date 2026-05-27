@@ -213,7 +213,7 @@ __aicore__ inline void AutoCoreSyncImpl(SkCoreSyncType sync_type) {
             return;
         case SkCoreSyncType::INTER_SYNC_SET_AIC_TO_AIV:
             if ASCEND_IS_AIC {
-                AscendC::CrossCoreSetFlag<0x02, PIPE_MTE3>(AscendC::SYNC_AIC_AIV_FLAG);
+                AscendC::CrossCoreSetFlag<0x02, PIPE_FIX>(AscendC::SYNC_AIC_AIV_FLAG);
             }
             return;
         case SkCoreSyncType::INTER_SYNC_SET_AIV_TO_AIC:
@@ -265,7 +265,7 @@ __aicore__ inline void AutoCoreSyncImpl(SkCoreSyncType syncType, uint8_t numBloc
             AscendC::CrossCoreWaitFlag(AscendC::SYNC_AIC_FLAG);
         }
         if ((syncConfig & static_cast<uint64_t>(SkEarlyStartMask::AIC_TO_AIV_SET)) != 0) {
-            AscendC::CrossCoreSetFlag<0x02, PIPE_MTE3>(AscendC::SYNC_AIC_AIV_FLAG);
+            AscendC::CrossCoreSetFlag<0x02, PIPE_FIX>(AscendC::SYNC_AIC_AIV_FLAG);
         }
         if ((syncConfig & static_cast<uint64_t>(SkEarlyStartMask::AIV_TO_AIC_WAIT)) != 0) {
             AscendC::CrossCoreWaitFlag(AscendC::SYNC_AIV_FLAG);

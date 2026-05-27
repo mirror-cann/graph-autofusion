@@ -124,4 +124,5 @@ TEST(ConstantCodeGeneratorTest, GenerateCombinedSource_IncludesEarlyStartRuntime
     EXPECT_TRUE(Contains(source,
         "__aicore__ inline void AutoCoreSyncImpl(SkCoreSyncType syncType, uint8_t numBlocks, uint64_t syncConfig)"));
     EXPECT_TRUE(Contains(source, "AscendC::CrossCoreSetFlag<0x0, PIPE_FIX>(AscendC::SYNC_AIC_FLAG);"));
+    EXPECT_TRUE(Contains(source, "AscendC::CrossCoreSetFlag<0x02, PIPE_FIX>(AscendC::SYNC_AIC_AIV_FLAG);"));
 }
