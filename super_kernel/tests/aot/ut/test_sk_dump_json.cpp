@@ -782,7 +782,6 @@ TEST_F(SkDumpJsonDirectHelperTest, SyncNodeToJsonCoversNotifyWaitAndUpdatedMemor
     notifyNode->nodeInfos.syncInfos.addrValue = reinterpret_cast<void*>(0x2222);
     notifyNode->nodeInfos.syncInfos.correspondingWaitNodeIds = {21, 22};
     notifyNode->nodeInfos.syncInfos.correspondingResetNodeIds = {23};
-    notifyNode->nodeInfos.syncInfos.correspondingMemoryWriteNodeIds = {24};
     notifyNode->nodeInfos.syncInfos.memoryValue = 0x3333;
     notifyNode->nodeInfos.syncInfos.memoryWaitFlag = 9;
     notifyNode->nodeInfos.syncInfos.eventFlag = 0x44;
@@ -799,7 +798,6 @@ TEST_F(SkDumpJsonDirectHelperTest, SyncNodeToJsonCoversNotifyWaitAndUpdatedMemor
     EXPECT_EQ(notifyJson["syncInfos"]["cubeNum"], 7);
     EXPECT_EQ(notifyJson["syncInfos"]["correspondingWaitNodeIds"].size(), 2);
     EXPECT_EQ(notifyJson["syncInfos"]["correspondingResetNodeIds"].size(), 1);
-    EXPECT_EQ(notifyJson["syncInfos"]["correspondingMemoryWriteNodeIds"].size(), 1);
     EXPECT_EQ(notifyJson["syncInfos"]["memoryWaitFlag"], 9);
     EXPECT_EQ(notifyJson["syncInfos"]["eventFlag"], "0x68");
 

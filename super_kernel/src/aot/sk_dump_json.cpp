@@ -343,9 +343,6 @@ void AddCommonSyncInfos(Json& syncInfos, const SuperKernelBaseNode* node)
     if (!syncInfo.correspondingResetNodeIds.empty()) {
         syncInfos["correspondingResetNodeIds"] = syncInfo.correspondingResetNodeIds;
     }
-    if (!syncInfo.correspondingMemoryWriteNodeIds.empty()) {
-        syncInfos["correspondingMemoryWriteNodeIds"] = syncInfo.correspondingMemoryWriteNodeIds;
-    }
     if (syncInfo.memoryValue != std::numeric_limits<uint64_t>::max()) {
         syncInfos["memoryValue"] = syncInfo.memoryValue;
     }

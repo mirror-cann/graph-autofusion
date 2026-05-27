@@ -503,7 +503,7 @@ TEST_F(TestLockDetector, ResetNodeNoCoreResourceCanFuse)
     EXPECT_EQ(lockDetector->skStreamIds, std::unordered_set<uint32_t>{0});
 }
 
-TEST_F(TestLockDetector, MemoryDerivedPairedWaitKeepsDeadlockDetectionWithValueBreakerPairedFlag)
+TEST_F(TestLockDetector, ValueBackedPairedWaitKeepsDeadlockDetectionWithValueBreakerPairedFlag)
 {
     auto* notify = CreateNotifyNode(10, 1, INVALID_TASK_ID, INVALID_TASK_ID, 1, {1});
     auto* wait = CreateWaitNode(1, 0, INVALID_TASK_ID, INVALID_TASK_ID, 10);
@@ -517,7 +517,7 @@ TEST_F(TestLockDetector, MemoryDerivedPairedWaitKeepsDeadlockDetectionWithValueB
     (void)notify;
 }
 
-TEST_F(TestLockDetector, MemoryDerivedUnpairedWaitBypassesDeadlockDetectionWithValueBreakerBypass)
+TEST_F(TestLockDetector, ValueBackedUnpairedWaitBypassesDeadlockDetectionWithValueBreakerBypass)
 {
     auto* wait = CreateWaitNode(1, 0, INVALID_TASK_ID, INVALID_TASK_ID, INVALID_TASK_ID);
     wait->nodeInfos.syncInfos.addrValue = reinterpret_cast<void*>(0x1234);
