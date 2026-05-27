@@ -912,52 +912,39 @@ bool SuperKernelKernelNode::GetScheMode() const
 
 void SuperKernelKernelNode::IdentifyAndHandleSimtKernel(const SuperKernelOptionsManager* opts) {
     nodeInfos.kernelInfos.isSimtOp = false;
-    
     if (opts == nullptr) {
         return;
     }
-    
     const auto* simtCheckOpt = opts->GetOption(SkInnerOptionType::ENABLE_SIMT_OP_CHECK);
     if (simtCheckOpt == nullptr || simtCheckOpt->GetIntValue() != 1) {
         return;
     }
-    
     SkKernelType kernelType = nodeInfos.kernelInfos.kernelType;
     bool hasAivSection = (kernelType == SkKernelType::AIV_ONLY ||
                           kernelType == SkKernelType::MIX_AIV_1_0 ||
                           kernelType == SkKernelType::MIX_AIC_1_1 ||
                           kernelType == SkKernelType::MIX_AIC_1_2);
-    
     if (!hasAivSection) {
         SK_LOGI("IdentifyAndHandleSimtKernel: %s has no AIV section (kernelType=%s), skip SIMT check",
             Format().c_str(), to_string(kernelType));
         return;
     }
-    
     SK_LOGI("IdentifyAndHandleSimtKernel: checking for %s, kernelType=%s, nodeId=%lu",
         Format().c_str(), to_string(kernelType), nodeId);
-    
     uint32_t aivType = 0;
     rtError_t ret = rtFunctionGetMetaInfo(taskParams.kernelTaskParams.funcHandle,
-        RT_FUNCTION_TYPE_AIV_TYPE_FLAG,
-        &aivType, sizeof(uint32_t));
-    
+        RT_FUNCTION_TYPE_AIV_TYPE_FLAG, &aivType, sizeof(uint32_t));
     if (ret != RT_ERROR_NONE) {
-        SK_LOGD("rtFunctionGetMetaInfo AIV_TYPE_FLAG failed for %s, ret=%d",
-            Format().c_str(), ret);
+        SK_LOGD("rtFunctionGetMetaInfo AIV_TYPE_FLAG failed for %s, ret=%d", Format().c_str(), ret);
         return;
     }
-    
-    bool isSimt = (aivType == AIV_TYPE_SIMT_VF_ONLY ||
-                   aivType == AIV_TYPE_SIMD_SIMT_MIX_VF);
-    
+    bool isSimt = (aivType == AIV_TYPE_SIMT_VF_ONLY || aivType == AIV_TYPE_SIMD_SIMT_MIX_VF);
     if (isSimt) {
         nodeInfos.kernelInfos.isSimtOp = true;
         isFusible = false;
         SetFusionFailReason(FusionFailReason::SIMT_OP_NOT_SUPPORTED);
         SK_LOGI("%s is SIMT type, aivType=%u, not fusible", Format().c_str(), aivType);
     }
-    
     return;
 }
 
