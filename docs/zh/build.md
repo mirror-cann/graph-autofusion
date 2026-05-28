@@ -155,7 +155,7 @@ bash build.sh --pkg
 - ${cann_version} 表示 cann 版本号。
 - ${arch} 表示 CPU 架构，如 aarch64、x86_64。
 
-编译过程中，CMake 会通过 `ExternalProject_Add` 从外网（`https://gitcode.com/cann-src-third-party/`）自动下载 autofuse 所需的第三方源码包（abseil-cpp、boost、json、protobuf、symengine 等）。如果您的编译环境无法直接访问外网（如企业内网、Docker 容器默认 bridge 网络），请根据实际情况选择以下解决方案：
+编译过程中，CMake 会通过 `ExternalProject_Add` 从外网（如 `https://gitcode.com/cann-src-third-party/`、华为云 OBS 等）自动下载 autofuse 和 superkernel AOT UT 所需的第三方源码包（abseil-cpp、boost、json、protobuf、symengine、googletest、mockcpp 等）。如果您的编译环境无法直接访问外网（如企业内网、Docker 容器默认 bridge 网络），请根据实际情况选择以下解决方案：
  
 **方案一：配置网络代理（推荐）**
 如果环境中有 HTTP 代理可访问外网，设置 `http_proxy` / `https_proxy` 环境变量后执行编译。`build.sh` 会自动将这些代理变量传递给 CMake 子进程：
@@ -186,12 +186,14 @@ bash build.sh --pkg
    | protobuf | 25.1 | https://gitcode.com/cann-src-third-party/protobuf/releases/download/v25.1/protobuf-25.1.tar.gz |
    | symengine | 0.12.0 | https://gitcode.com/cann-src-third-party/symengine/releases/download/v0.12.0/symengine-0.12.0.tar.gz |
    | googletest | 1.14.0 | https://gitcode.com/cann-src-third-party/googletest/releases/download/v1.14.0/googletest-1.14.0.tar.gz |
+   | mockcpp | 2.7 | https://cann-3rd.obs.cn-north-4.myhuaweicloud.com/mockcpp/mockcpp-2.7.tar.gz |
+   | mockcpp patch | 2.7-h5 | https://gitcode.com/cann-src-third-party/mockcpp/releases/download/v2.7-h5/mockcpp-2.7-h5.patch |
 
 2. 将下载的包拷贝到编译环境的 `output/third_party/` 对应子目录下（如不存在则创建）：
 
    ```shell
    # 在源码根目录下创建目录结构
-   mkdir -p output/third_party/{abseil-cpp,json,boost,protoc,symengine,gtest}
+   mkdir -p output/third_party/{abseil-cpp,json,boost,protoc,symengine,gtest,mockcpp}
 
    # 将下载的包放入对应目录（文件名须与下表一致）
    # abseil-cpp-20230802.1.tar.gz  → output/third_party/abseil-cpp/
@@ -200,7 +202,48 @@ bash build.sh --pkg
    # protobuf-25.1.tar.gz          → output/third_party/protoc/
    # symengine-0.12.0.tar.gz       → output/third_party/symengine/
    # googletest-1.14.0.tar.gz      → output/third_party/gtest/
+   # mockcpp-2.7.tar.gz            → output/third_party/mockcpp/
+   # mockcpp-2.7-h5.patch          → output/third_party/              # 推荐路径
+   # mockcpp-2.7-h5.patch          → output/third_party/pkg/          # 备用路径
    ```
+
+   mockcpp 离线包和补丁文件放置示例：
+
+   ```shell
+   # 推荐放置方式
+   mkdir -p output/third_party/mockcpp
+   cp mockcpp-2.7.tar.gz output/third_party/mockcpp/
+   cp mockcpp-2.7-h5.patch output/third_party/
+
+   # 如需放到备用路径，则使用如下方式
+   mkdir -p output/third_party/mockcpp output/third_party/pkg
+   cp mockcpp-2.7.tar.gz output/third_party/mockcpp/
+   cp mockcpp-2.7-h5.patch output/third_party/pkg/
+   ```
+
+   如需在编译前手动验证 mockcpp 补丁是否可以应用，可在临时目录中执行以下 git 命令。正常编译时无需执行，CMake 会自动完成该步骤。
+
+   ```shell
+   # 在源码根目录下执行，使用推荐 patch 放置路径进行验证
+   GRAPH_AUTOFUSION_HOME=$(pwd)
+   rm -rf /tmp/mockcpp_patch_check
+   mkdir -p /tmp/mockcpp_patch_check
+   tar -zxf output/third_party/mockcpp/mockcpp-2.7.tar.gz -C /tmp/mockcpp_patch_check --strip-components=1
+   cd /tmp/mockcpp_patch_check
+   git init
+   git apply --check ${GRAPH_AUTOFUSION_HOME}/output/third_party/mockcpp-2.7-h5.patch
+
+   # 如需手动应用补丁，可继续执行
+   git apply ${GRAPH_AUTOFUSION_HOME}/output/third_party/mockcpp-2.7-h5.patch
+   ```
+
+   如果 patch 放在备用路径，请将上述命令中的 patch 路径替换为 `${GRAPH_AUTOFUSION_HOME}/output/third_party/pkg/mockcpp-2.7-h5.patch`。
+
+   > [!NOTE] 说明
+   > - `mockcpp-2.7-h5.patch` 是 mockcpp 编译必需的补丁文件。使用 `add_cann_third_party(mockcpp)` 时，CMake 会在解压 `mockcpp-2.7.tar.gz` 后自动执行 `git init && git apply ${PATCH_FILE}` 应用该补丁，无需手动打补丁。
+   > - 离线编译时需同时准备 `mockcpp-2.7.tar.gz` 和 `mockcpp-2.7-h5.patch`。如果缺少 patch 文件，CMake 会尝试从网络下载，离线环境下会导致构建失败。
+   > - mockcpp patch 优先查找路径为 `output/third_party/mockcpp-2.7-h5.patch`；如该路径不存在，会使用 `output/third_party/pkg/mockcpp-2.7-h5.patch`。
+   > - patch 会在 CMake 的 ExternalProject patch 阶段自动应用，不建议提前手动解压并修改 `output/third_party/mockcpp` 源码目录，避免被后续构建清理或覆盖。
 
 3. 执行编译时，通过 `--cann_3rd_lib_path` 指定本地路径，跳过下载步骤：
 
