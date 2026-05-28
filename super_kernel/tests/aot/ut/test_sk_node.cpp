@@ -67,6 +67,8 @@ protected:
 
 struct JudgeTaskKernelInfo {
     bool isBegin = true;
+    bool isEnd = false;
+    bool isPlaceholder = false;
     bool isFuseEnable = true;
     std::unique_ptr<char[]> scopeName;
 };
@@ -83,7 +85,28 @@ TEST_F(SkNodeTest, IsScopeKernel_GetFunctionName_Failed)
     EXPECT_EQ(ret, false);
 }
 
-int Fake_aclrtGetFunctionNameBegin(void* funcHandle, size_t size, char* name) 
+int Fake_aclrtGetFunctionNameBeginDav2201(void* funcHandle, size_t size, char* name)
+{
+    const char* src = "sk_scope_kernel_begin_dav_2201";
+    snprintf_s(name, size, size, "%s", src);
+    return 0;
+}
+
+int Fake_aclrtGetFunctionNameEndDav3510(void* funcHandle, size_t size, char* name)
+{
+    const char* src = "sk_scope_kernel_end_dav_3510";
+    snprintf_s(name, size, size, "%s", src);
+    return 0;
+}
+
+int Fake_aclrtGetFunctionNamePlaceholderDav2201(void* funcHandle, size_t size, char* name)
+{
+    const char* src = "sk_placeholder_kernel_dav_2201";
+    snprintf_s(name, size, size, "%s", src);
+    return 0;
+}
+
+int Fake_aclrtGetFunctionNameBeginWithoutSuffix(void* funcHandle, size_t size, char* name)
 {
     const char* src = "sk_scope_kernel_begin";
     snprintf_s(name, size, size, "%s", src);
@@ -105,21 +128,51 @@ TEST_F(SkNodeTest, IsScopeKernel_Normal_ScopeName)
     aclmdlRIKernelTaskParams params{};
     params.funcHandle = nullptr;
     JudgeTaskKernelInfo info;
-    MOCKER(aclrtGetFunctionName).stubs().will(invoke(Fake_aclrtGetFunctionNameBegin));
+    MOCKER(aclrtGetFunctionName).stubs().will(invoke(Fake_aclrtGetFunctionNameBeginDav2201));
     MOCKER(aclrtMemcpy).stubs().will(invoke(Fake_aclrtMemcpy));
     bool ret = IsScopeKernel(params, &info);
     EXPECT_EQ(ret, true);
+    EXPECT_TRUE(info.isBegin);
+    EXPECT_FALSE(info.isEnd);
+    EXPECT_FALSE(info.isPlaceholder);
 }
 
-TEST_F(SkNodeTest, IsScopeKernel_ScopeName_Isnullptr)
+TEST_F(SkNodeTest, IsScopeKernel_Dav3510EndScopeName)
 {
     aclmdlRIKernelTaskParams params{};
     params.funcHandle = nullptr;
     JudgeTaskKernelInfo info;
-    MOCKER(aclrtGetFunctionName).stubs().will(invoke(Fake_aclrtGetFunctionNameBegin));
+    MOCKER(aclrtGetFunctionName).stubs().will(invoke(Fake_aclrtGetFunctionNameEndDav3510));
     MOCKER(aclrtMemcpy).stubs().will(invoke(Fake_aclrtMemcpy));
     bool ret = IsScopeKernel(params, &info);
     EXPECT_EQ(ret, true);
+    EXPECT_FALSE(info.isBegin);
+    EXPECT_TRUE(info.isEnd);
+    EXPECT_FALSE(info.isPlaceholder);
+}
+
+TEST_F(SkNodeTest, IsScopeKernel_PlaceholderScopeName)
+{
+    aclmdlRIKernelTaskParams params{};
+    params.funcHandle = nullptr;
+    JudgeTaskKernelInfo info;
+    MOCKER(aclrtGetFunctionName).stubs().will(invoke(Fake_aclrtGetFunctionNamePlaceholderDav2201));
+    MOCKER(aclrtMemcpy).stubs().will(invoke(Fake_aclrtMemcpy));
+    bool ret = IsScopeKernel(params, &info);
+    EXPECT_EQ(ret, true);
+    EXPECT_FALSE(info.isBegin);
+    EXPECT_FALSE(info.isEnd);
+    EXPECT_TRUE(info.isPlaceholder);
+}
+
+TEST_F(SkNodeTest, IsScopeKernel_WithoutArchSuffix_ReturnsFalse)
+{
+    aclmdlRIKernelTaskParams params{};
+    params.funcHandle = nullptr;
+    JudgeTaskKernelInfo info;
+    MOCKER(aclrtGetFunctionName).stubs().will(invoke(Fake_aclrtGetFunctionNameBeginWithoutSuffix));
+    bool ret = IsScopeKernel(params, &info);
+    EXPECT_EQ(ret, false);
 }
 
 namespace {

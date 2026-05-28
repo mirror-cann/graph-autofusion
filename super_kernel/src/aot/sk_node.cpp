@@ -26,6 +26,7 @@
 #include <sstream>
 #include <fstream>
 #include <utility>
+#include <cstring>
 
 #include "sk_node.h"
 #include "sk_log.h"
@@ -489,6 +490,25 @@ bool IsMixKernelType(SkKernelType kernelType)
     return kernelType == SkKernelType::MIX_AIC_1_1 || kernelType == SkKernelType::MIX_AIC_1_2;
 }
 
+constexpr char SK_SCOPE_KERNEL_SUFFIX_SEPARATOR = '_';
+
+bool IsScopeKernelNameWithSupportedArch(const char* kernelName, const char* baseName)
+{
+    const size_t baseLen = strlen(baseName);
+    if (strncmp(kernelName, baseName, baseLen) != 0) {
+        return false;
+    }
+    if (kernelName[baseLen] != SK_SCOPE_KERNEL_SUFFIX_SEPARATOR) {
+        return false;
+    }
+    for (const auto arch : SK_SUPPORTED_KERNEL_ARCHS) {
+        if (strcmp(kernelName + baseLen + 1, GetSkKernelArchSymbolSuffix(arch)) == 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
 } // namespace
 
 // ============================================================================
@@ -724,20 +744,17 @@ struct JudgeTaskKernelInfo {
 
 bool IsScopeKernel(aclmdlRIKernelTaskParams params, JudgeTaskKernelInfo* info) {
     const char* defaultScopeName = "default_sk_scope_name";
-    const char* placeholderName = "sk_placeholder_kernel";
-    const char* targetBeginName = "sk_scope_kernel_begin";
-    const char* targetEndName = "sk_scope_kernel_end";
     char kernelName[MAX_SCOPE_NAME_LEN] = {0};
     int32_t ret = aclrtGetFunctionName(params.funcHandle, sizeof(kernelName), kernelName);
     if (ret != ACL_SUCCESS) {
         SK_LOGE("Failed to get kernel name for funcHandle, ret: %d", ret);
         return false;
     }
-    bool isBegin = (strcmp(kernelName, targetBeginName) == 0);
-    bool isEnd = (strcmp(kernelName, targetEndName) == 0);
-    bool isPlaceholder = (strcmp(kernelName, placeholderName) == 0);
+    bool isBegin = IsScopeKernelNameWithSupportedArch(kernelName, "sk_scope_kernel_begin");
+    bool isEnd = IsScopeKernelNameWithSupportedArch(kernelName, "sk_scope_kernel_end");
+    bool isPlaceholder = IsScopeKernelNameWithSupportedArch(kernelName, "sk_placeholder_kernel");
     if (!isBegin && !isEnd && !isPlaceholder) {
-        SK_LOGD("current kernel is not scope kernel, current kernel name is: %s", kernelName);
+        SK_LOGD("Current kernel is not a scope kernel or uses unsupported arch suffix, kernelName=%s", kernelName);
         return false;
     }
     auto parseArgsAddr = std::make_unique<ScopeKernelArgs>();
@@ -761,8 +778,9 @@ bool IsScopeKernel(aclmdlRIKernelTaskParams params, JudgeTaskKernelInfo* info) {
     if (strcmp(info->scopeName.get(), defaultScopeName) == 0) {
         info->isFuseEnable = false;
     }
-    SK_LOGI("Success parse scope kernel task, kernelName: %s, scopeName: %s, isBegin: %d, isFuseEnable: %d", kernelName,
-        info->scopeName.get(), info->isBegin, info->isFuseEnable);
+    SK_LOGI("Success parse scope kernel task, kernelName: %s, scopeName: %s, isBegin: %d, isEnd: %d, "
+            "isPlaceholder: %d, isFuseEnable: %d",
+        kernelName, info->scopeName.get(), info->isBegin, info->isEnd, info->isPlaceholder, info->isFuseEnable);
     return true;
 }
 

@@ -1230,8 +1230,8 @@ void SkTaskBuilder::RemoveRedundantCrossSync(const std::vector<SuperKernelBaseNo
 namespace {
 void ApplySplitCoreControlMask(SuperKernelBaseNode* task, TaskSyncInfo& taskSyncInfo)
 {
-    static const bool isDav3510Soc = IsDav3510Soc();
-    if (!isDav3510Soc) {
+    static const SkKernelArch currentArch = GetCurrentSkKernelArch();
+    if (currentArch != SkKernelArch::DAV_3510) {
         return;
     }
     if (task->GetNodeType() != SkNodeType::NODE_KERNEL) {

@@ -400,19 +400,19 @@ extern "C" aclrtBinHandle AscendGetEntryBinHandle()
     return reinterpret_cast<aclrtBinHandle>(0x1234);
 }
 
-void sk_scope_kernel_begin_do(void* stream, ScopeKernelArgs args)
+void sk_scope_kernel_begin_do_dav_2201(void* stream, ScopeKernelArgs args)
 {
     (void)stream;
     (void)args;
 }
 
-void sk_scope_kernel_end_do(void* stream, ScopeKernelArgs args)
+void sk_scope_kernel_end_do_dav_2201(void* stream, ScopeKernelArgs args)
 {
     (void)stream;
     (void)args;
 }
 
-void sk_placeholder_kernel_do(void* stream, ScopeKernelArgs args)
+void sk_placeholder_kernel_do_dav_2201(void* stream, ScopeKernelArgs args)
 {
     (void)stream;
     (void)args;
