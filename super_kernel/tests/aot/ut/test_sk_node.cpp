@@ -840,29 +840,6 @@ TEST_F(SkNodeTest, MemoryNode_CorresponsiveNodeIdsManagement)
     EXPECT_EQ(node.GetCorrespondingNotifyNodeId(), 100U);
 }
 
-TEST_F(SkNodeTest, MemoryNode_CorresponsiveMemoryWriteNodeIds)
-{
-    TestRITask task{};
-    task.taskId = 201;
-    task.type = ACL_MODEL_RI_TASK_EVENT_WAIT;
-    task.params.eventWaitTaskParams.event = reinterpret_cast<aclrtEvent>(0x3000);
-    task.params.eventWaitTaskParams.eventFlag = ACL_EVENT_EXTERNAL;
-
-    SuperKernelMemoryNode node(MakeTaskHandle(task), ACL_MODEL_RI_TASK_EVENT_WAIT, 0, 0,
-                               INVALID_STREAM_ID, INVALID_TASK_ID);
-    ASSERT_TRUE(node.InitNode());
-
-    auto writeIds = node.GetCorrespondingMemoryWriteNodeIds();
-    EXPECT_TRUE(writeIds.empty());
-
-    std::vector<uint64_t> newWriteIds = {401, 402};
-    node.SetCorrespondingMemoryWriteNodeId(newWriteIds);
-    writeIds = node.GetCorrespondingMemoryWriteNodeIds();
-    EXPECT_EQ(writeIds.size(), 2);
-    EXPECT_EQ(writeIds[0], 401);
-    EXPECT_EQ(writeIds[1], 402);
-}
-
 // ==================== ScopeBitFlags Tests ====================
 
 TEST_F(SkNodeTest, Node_ScopeBitFlagsManagement)
@@ -1304,7 +1281,6 @@ TEST_F(SkNodeTest, SyncInfosToJson_WithCorrespondingNodes)
     syncInfo.memoryWaitFlag = 7;
     syncInfo.correspondingWaitNodeIds = {101, 102, 103};
     syncInfo.correspondingResetNodeIds = {201, 202};
-    syncInfo.correspondingMemoryWriteNodeIds = {301};
     syncInfo.eventFlag = 0x55;
     
     Json notifyJson = SyncInfosToJson(syncInfo, SkNodeType::NODE_NOTIFY);
@@ -1314,8 +1290,6 @@ TEST_F(SkNodeTest, SyncInfosToJson_WithCorrespondingNodes)
     EXPECT_EQ(notifyJson["correspondingWaitNodeIds"].size(), 3);
     EXPECT_TRUE(notifyJson.contains("correspondingResetNodeIds"));
     EXPECT_EQ(notifyJson["correspondingResetNodeIds"].size(), 2);
-    EXPECT_TRUE(notifyJson.contains("correspondingMemoryWriteNodeIds"));
-    EXPECT_EQ(notifyJson["correspondingMemoryWriteNodeIds"].size(), 1);
     EXPECT_EQ(notifyJson["eventFlag"], "0x55");
 }
 

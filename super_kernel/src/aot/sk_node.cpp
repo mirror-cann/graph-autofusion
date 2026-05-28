@@ -588,9 +588,6 @@ Json SyncInfosToJson(const SyncInfos& syncInfos, SkNodeType nodeType)
     if (!syncInfos.correspondingResetNodeIds.empty()) {
         syncJson["correspondingResetNodeIds"] = syncInfos.correspondingResetNodeIds;
     }
-    if (!syncInfos.correspondingMemoryWriteNodeIds.empty()) {
-        syncJson["correspondingMemoryWriteNodeIds"] = syncInfos.correspondingMemoryWriteNodeIds;
-    }
     if (syncInfos.memoryValue != std::numeric_limits<uint64_t>::max()) {
         syncJson["memoryValue"] = Uint64ToHexString(syncInfos.memoryValue);
     }

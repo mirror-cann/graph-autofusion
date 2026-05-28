@@ -243,7 +243,6 @@ struct SyncInfos {
     std::vector<uint64_t> correspondingWaitNodeIds;
     // For event nodes, the corresponding reset node ID
     std::vector<uint64_t> correspondingResetNodeIds;
-    std::vector<uint64_t> correspondingMemoryWriteNodeIds;
     uint64_t memoryValue = std::numeric_limits<uint64_t>::max();
     uint32_t memoryWaitFlag = std::numeric_limits<uint32_t>::max();
     uint64_t eventFlag = std::numeric_limits<uint64_t>::max();
@@ -360,11 +359,6 @@ public:
         return std::vector<uint64_t>();
     }
 
-    virtual std::vector<uint64_t> GetCorrespondingMemoryWriteNodeIds() const
-    {
-        return std::vector<uint64_t>();
-    }
-
     // SuperKernelEventWaitNode/SuperKernelMemoryWaitNode specific accessors
     // Get the notify node ID that this wait node waits on (many-to-one relationship)
     virtual uint64_t GetCorrespondingNotifyNodeId() const
@@ -377,8 +371,6 @@ public:
 
     // Setter for notify node ID (used by SuperKernelGraph to build associations for wait nodes)
     virtual void SetCorrespondingNotifyNodeId(uint64_t notifyId) {}
-
-    virtual void SetCorrespondingMemoryWriteNodeId(const std::vector<uint64_t>& memortWriteIds) {}
 
     virtual const NodeInfos& GetNodeInfos() const
     {
@@ -546,15 +538,6 @@ public:
     void SetCorrespondingNotifyNodeId(uint64_t notifyId) override
     {
         nodeInfos.syncInfos.correspondingNotifyNodeId = notifyId;
-    }
-
-    void SetCorrespondingMemoryWriteNodeId(const std::vector<uint64_t>& memortWriteIds) {
-        nodeInfos.syncInfos.correspondingMemoryWriteNodeIds.assign(memortWriteIds.begin(), memortWriteIds.end());
-    }
-
-    std::vector<uint64_t> GetCorrespondingMemoryWriteNodeIds() const override
-    {
-        return nodeInfos.syncInfos.correspondingMemoryWriteNodeIds;
     }
 
     std::string Format() const override;

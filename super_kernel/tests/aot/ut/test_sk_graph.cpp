@@ -254,7 +254,7 @@ TEST_F(SuperKernelGraphTest, PostProcessMemoryNode_OnlyWriteTurnsIntoNotifyAndKe
     EXPECT_EQ(writeNode->GetNodeType(), SkNodeType::NODE_NOTIFY);
     EXPECT_TRUE(writeNode->IsFusible());
     EXPECT_EQ(graph->eventToNodes[kEventId].notifyNodeId, writeNode->GetNodeId());
-    EXPECT_EQ(writeNode->GetCorrespondingMemoryWriteNodeIds(), std::vector<uint64_t>({writeNode->GetNodeId()}));
+    EXPECT_NE(writeNode->GetNodeInfos().syncInfos.addrValue, nullptr);
 }
 
 TEST_F(SuperKernelGraphTest, PostProcessMemoryNode_OnlyWaitTurnsIntoWaitAndUnfusible)
@@ -1294,7 +1294,7 @@ TEST_F(SuperKernelGraphTest, PostProcessMemoryNode_OnlyWriteDuplicateAssociation
     EXPECT_FALSE(graph->PostProcessMemoryNode());
 }
 
-TEST_F(SuperKernelGraphTest, Update_MemoryDerivedEventUsesDefaultValueAndFlag)
+TEST_F(SuperKernelGraphTest, Update_ValueBackedEventUsesDefaultValueAndFlag)
 {
     TestRITask notifyTask{};
     TestRITask waitTask{};
