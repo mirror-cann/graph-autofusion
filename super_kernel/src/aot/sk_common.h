@@ -519,4 +519,13 @@ inline std::string CreateSkMetaDirectory(aclmdlRI model) {
     return dirPath;
 }
 
+// ==================== Device Core Number Utilities ====================
+
+aclError GetDeviceCubeCoreNum(int64_t& cubeNum);
+aclError GetDeviceVecCoreNum(int64_t& vecNum);
+aclError GetDeviceCoreNums(int64_t& cubeNum, int64_t& vecNum);
+
+uint32_t GetDeviceMaxCubeNum();
+uint32_t GetDeviceMaxVecNum();
+
 #endif

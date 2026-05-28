@@ -16,6 +16,7 @@
 #include "sk_lock_detector.h"
 #include "sk_log.h"
 #include "sk_options_manager.h"
+#include "sk_common.h"
 #include "super_kernel.h"
 
 int64_t LockDetector::deviceRealCubeNum = 0;
@@ -24,16 +25,15 @@ int64_t LockDetector::deviceRealVecNum = 0;
 void LockDetector::Init(SuperKernelGraph& graph) {
     SK_LOGD("[lock detector] LockDetector::Init: Initializing lock detector");
     nodes.clear();
-    depOpCubeNum = 0; // visited op cube num outside superkernel
-    depOpVecNum = 0; // visited op vec num outside superkernel
-    superKernelCubeNum = 0; // fused op cube num in superkernel
-    superKernelVecNum = 0; // fused op vec num in superkernel
-    nodeNum = 0; // current node num
-    kernelNodeNum = 0; // kernel node num in scope
+    depOpCubeNum = 0;
+    depOpVecNum = 0;
+    superKernelCubeNum = 0;
+    superKernelVecNum = 0;
+    nodeNum = 0;
+    kernelNodeNum = 0;
     skStreamIds.clear();
-    graph_ = &graph;  // 初始化时保存graph指针
+    graph_ = &graph;
 
-    // Initialize device core numbers if not already set
     if (deviceRealCubeNum == 0 && deviceRealVecNum == 0) {
         GetDeviceCores();
     } else {
@@ -43,26 +43,19 @@ void LockDetector::Init(SuperKernelGraph& graph) {
 }
 
 aclError LockDetector::GetDeviceCores() {
-    // 获取deviceId
-    int32_t deviceId;
-    aclError ret = aclrtGetDevice(&deviceId);
+    if (deviceRealCubeNum != 0 && deviceRealVecNum != 0) {
+        return ACL_SUCCESS;
+    }
+    
+    aclError ret = GetDeviceCoreNums(deviceRealCubeNum, deviceRealVecNum);
     if (ret != ACL_SUCCESS) {
-        SK_LOGE("[lock detector] GetDeviceCores for deviceId failed, ret=%d", ret);
+        SK_LOGE("[lock detector] GetDeviceCores failed, ret=%d", ret);
         return ret;
     }
-    // 获取CubeNum、VecNum
-    ret = aclrtGetDeviceInfo(deviceId, ACL_DEV_ATTR_CUBE_CORE_NUM, &LockDetector::deviceRealCubeNum);
-    if (ret != ACL_SUCCESS) {
-        SK_LOGE("[lock detector] GetDeviceCores for cube num failed, ret=%d", ret);
-        return ret;
-    }
-    ret = aclrtGetDeviceInfo(deviceId, ACL_DEV_ATTR_VECTOR_CORE_NUM, &LockDetector::deviceRealVecNum);
-    if (ret != ACL_SUCCESS) {
-        SK_LOGE("[lock detector] GetDeviceCores for vec num failed, ret=%d", ret);
-        return ret;
-    }
-    SK_LOGI("[lock detector] GetDeviceCores success, cube num=%u, vec num=%u ", deviceRealCubeNum, deviceRealVecNum);
-    return ret;
+    
+    SK_LOGI("[lock detector] GetDeviceCores success, cube=%u, vec=%u", 
+            deviceRealCubeNum, deviceRealVecNum);
+    return ACL_SUCCESS;
 }
 
 std::pair<uint64_t, uint64_t> LockDetector::GetAvailableCores(bool isSuperKernel) const {

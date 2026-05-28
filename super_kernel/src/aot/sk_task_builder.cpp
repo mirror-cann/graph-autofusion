@@ -12,7 +12,8 @@
 #include "sk_graph.h"
 #include "sk_dump_json.h"
 #include "sk_log.h"
-#include "sk_constant_codegen.h"  // 常量化代码生成模块
+#include "sk_constant_codegen.h"
+#include "sk_common.h"
 #include <algorithm>
 #include <cstring>
 #include <limits>
@@ -2241,6 +2242,14 @@ SkHostEntryInfo SkTaskBuilder::GenEntryInfo(SkTask& skTaskCube, SkTask& skTaskVe
         SK_LOGE("both skTaskCube and skTaskVec have no task, aborting");
         return {};
     }
+
+    auto perOpMaxCoreOpt = opts.GetOption(aclskOptionType::DEBUG_PER_OP_MAX_CORE_NUM);
+    bool enablePerOpMaxCore = (perOpMaxCoreOpt != nullptr && perOpMaxCoreOpt->GetIntValue() == 1);
+    if (enablePerOpMaxCore) {
+        kernelType = SkKernelType::MIX_AIC_1_2;
+        isMix12 = true;
+        SK_LOGI("[DEBUG_PER_OP_MAX_CORE] Forced kernelType=MIX_AIC_1_2");
+    }
     
     entryInfo.entryType = kernelType;
     
@@ -2559,6 +2568,32 @@ SkBuildResult SkTaskBuilder::Build(std::string skFuncName, const std::vector<Sup
             }
         }
         SK_LOGI("finish process custom tasks");
+    }
+
+    auto perOpMaxCoreOpt = opts.GetOption(aclskOptionType::DEBUG_PER_OP_MAX_CORE_NUM);
+    bool enablePerOpMaxCore = (perOpMaxCoreOpt != nullptr && perOpMaxCoreOpt->GetIntValue() == 1);
+    if (enablePerOpMaxCore && taskCount == 1) {
+        SuperKernelBaseNode* singleTask = tasks[0];
+        if (singleTask->GetNodeType() == SkNodeType::NODE_KERNEL) {
+            SuperKernelKernelNode* kernelNode = static_cast<SuperKernelKernelNode*>(singleTask);
+            uint32_t maxCubeNum = GetDeviceMaxCubeNum();
+            uint32_t maxVecNum = GetDeviceMaxVecNum();
+            if (kernelNode->IsScheModeOn()) {
+                uint32_t cubeNum = kernelNode->GetCubeNum();
+                uint32_t vecNum = kernelNode->GetVecNum();
+                if (cubeNum == 0 && vecNum > 0) {
+                    cubeNum = (vecNum + 1) / 2;
+                    SK_LOGI("[DEBUG_PER_OP_MAX_CORE] Pure V kernel: vecNum=%u -> cubeNum=%u", vecNum, cubeNum);
+                }
+                aicTask.numBlocks = cubeNum;
+                aivTask.numBlocks = cubeNum * 2;
+                SK_LOGI("[DEBUG_PER_OP_MAX_CORE] ScheMode=1: cube=%u, vec=%u", cubeNum, aivTask.numBlocks);
+            } else {
+                aicTask.numBlocks = maxCubeNum;
+                aivTask.numBlocks = maxVecNum;
+                SK_LOGI("[DEBUG_PER_OP_MAX_CORE] ScheMode=0: cube=%u, vec=%u", maxCubeNum, maxVecNum);
+            }
+        }
     }
 
     SK_LOGI("Get entry info...");

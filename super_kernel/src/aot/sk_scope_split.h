@@ -256,6 +256,17 @@ private:
     uint32_t markedCount_;    ///< Total number of nodes marked as non-fusible
 };
 
+// ============ Pass: Per-Op Max Core Debug Split ============
+
+class PerOpMaxCoreSplitPass : public ScopeSplitPass {
+public:
+    explicit PerOpMaxCoreSplitPass(SuperKernelGraph& inputGraph);
+    ~PerOpMaxCoreSplitPass() = default;
+
+    bool Run(std::vector<SuperKernelScopeInfo>& scopes) override;
+    std::string GetName() const override { return "PerOpMaxCoreSplitPass"; }
+};
+
 // ============ Pass 1: Initial Scope Split ============
 
 /*!

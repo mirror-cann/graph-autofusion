@@ -85,11 +85,12 @@ enum class ScopeFailReason : uint8_t {
  * \brief Reasons why a scope boundary was created (scope was split)
  */
 enum class ScopeBreakReason : uint8_t {
-    NONE,                    // No break reason (initial scope or last scope)
-    UNFUSIBLE_NODE,          // Encountered unfusible node
-    DEADLOCK_DETECTED,       // Deadlock detection triggered split
-    SCHEMODE_CORE_DROP,      // SchoMode core number dropped
-    SCHEMODE_CORE_RISE,      // SchoMode core number rose after merged ScheMode kernels
+    NONE,
+    UNFUSIBLE_NODE,
+    DEADLOCK_DETECTED,
+    SCHEMODE_CORE_DROP,
+    SCHEMODE_CORE_RISE,
+    DEBUG_PER_OP_MAX_CORE,
 };
 
 /*!
@@ -105,6 +106,8 @@ inline const char* ScopeBreakReasonToStr(ScopeBreakReason reason) {
             return "There exists an operator for full kernel synchronization, and the number of kernels of this operator is less than the maximum number of kernels of the fused superkernel";
         case ScopeBreakReason::SCHEMODE_CORE_RISE:
             return "There exists an operator for full kernel synchronization, and the number of kernels of this operator is greater than the maximum number of kernels of the previously fused superkernel";
+        case ScopeBreakReason::DEBUG_PER_OP_MAX_CORE:
+            return "Per-Op debug mode: each operator is an independent scope";
         default:
             return "UNKNOWN REASON";
     }
