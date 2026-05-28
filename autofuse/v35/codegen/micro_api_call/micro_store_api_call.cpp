@@ -115,20 +115,28 @@ Status MicroStoreApiCall::Generate(const codegen::TensorManager &tensor_mng, con
   DetermineStoreDistAndPackSequence(reg_dtype_size, output_dtype_size, this->dist_, pack_times, pack_sequence,
                                     current_dtype);
 
-  // Pack 需要申请临时 MaskReg，并同步进行 MaskPack
+  // Pack 需要申请临时 MaskReg 和临时 RegTensor，并同步进行 MaskPack
+  // 注意：不能直接 Pack 输入 RegTensor，因为输入可能被后续算子使用
   std::string p_reg_for_store = param.p_reg;
+  std::string reg_for_store = tensor_ptr->name;
   if (pack_times > 0) {
-    // 声明并初始化临时 MaskReg
-    ss << "AscendC::MicroAPI::MaskReg " << tensor_ptr->name << "_temp = " << param.p_reg << ";" << std::endl;
-    p_reg_for_store = tensor_ptr->name + "_temp";
+    // 声明临时 MaskReg（默认构造），避免修改原始 MaskReg
+    p_reg_for_store = param.p_reg + "_" + tensor_ptr->name + "_mask_temp";
+    ss << "AscendC::MicroAPI::MaskReg " << p_reg_for_store << ";" << std::endl;
 
-    // Pack: 同时处理 RegTensor 和 MaskReg
+    // 声明临时 RegTensor（默认构造，无赋值），类型与输入 RegTensor 一致，用于存放 Pack 结果
+    reg_for_store = tensor_ptr->name + "_pack_tmp";
+    ss << "AscendC::Reg::RegTensor<" << dtype_name << "> " << reg_for_store << ";" << std::endl;
+
+    // Pack: 第一次 Pack 从原始输入读取、写入临时变量；后续 Pack 在临时变量上原地操作
+    // MaskPack 同理：第一次从原始 MaskReg 压缩到临时 MaskReg；后续在临时 MaskReg 上原地压缩
     for (int i = 0; i < pack_times && i < static_cast<int>(pack_sequence.size()); ++i) {
+      const std::string &src_reg = (i == 0) ? tensor_ptr->name : reg_for_store;
+      const std::string &src_p_reg = (i == 0) ? param.p_reg : p_reg_for_store;
       ss << "AscendC::Reg::Pack<" << pack_sequence[i] << ", " << current_dtype << ">((AscendC::Reg::RegTensor<"
-         << pack_sequence[i] << ">&)" << tensor_ptr->name << ", (AscendC::Reg::RegTensor<" << current_dtype << ">&)"
-         << tensor_ptr->name << ");" << std::endl;
-      // MaskReg 同步压缩
-      ss << "AscendC::Reg::MaskPack(" << p_reg_for_store << ", " << p_reg_for_store << ");" << std::endl;
+         << pack_sequence[i] << ">&)" << reg_for_store << ", (AscendC::Reg::RegTensor<" << current_dtype << ">&)"
+         << src_reg << ");" << std::endl;
+      ss << "AscendC::Reg::MaskPack(" << p_reg_for_store << ", " << src_p_reg << ");" << std::endl;
       current_dtype = pack_sequence[i];
     }
   }
@@ -140,7 +148,7 @@ Status MicroStoreApiCall::Generate(const codegen::TensorManager &tensor_mng, con
     store_template_params = "<" + dtype_name + ", AscendC::MicroAPI::StoreDist::" + this->dist_ + ">";
   }
   ss << "AscendC::MicroAPI::StoreAlign" << store_template_params << "(" << ub_tensor_name << " + " << param.offset
-     << ", " << tensor_ptr->name << ", " << p_reg_for_store << ");" << std::endl;
+     << ", " << reg_for_store << ", " << p_reg_for_store << ");" << std::endl;
 
   result = ss.str();
   return ge::SUCCESS;

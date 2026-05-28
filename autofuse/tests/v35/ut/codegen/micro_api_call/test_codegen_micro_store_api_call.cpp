@@ -809,12 +809,13 @@ TEST(CodegenKernel, LoadMicroApiCall_Store_Cast_in64_out16) {
   cp.max_dtype_size = "int64_t";
   call_0.Generate(tensor_mng, tpipe, cp, result);
   EXPECT_EQ(result, std::string{
-    "AscendC::MicroAPI::MaskReg vreg_0_temp = p_reg;\n"
-    "AscendC::Reg::Pack<uint32_t, uint64_t>((AscendC::Reg::RegTensor<uint32_t>&)vreg_0, "
+    "AscendC::MicroAPI::MaskReg p_reg_vreg_0_mask_temp;\n"
+    "AscendC::Reg::RegTensor<int16_t> vreg_0_pack_tmp;\n"
+    "AscendC::Reg::Pack<uint32_t, uint64_t>((AscendC::Reg::RegTensor<uint32_t>&)vreg_0_pack_tmp, "
     "(AscendC::Reg::RegTensor<uint64_t>&)vreg_0);\n"
-    "AscendC::Reg::MaskPack(vreg_0_temp, vreg_0_temp);\n"
+    "AscendC::Reg::MaskPack(p_reg_vreg_0_mask_temp, p_reg);\n"
     "AscendC::MicroAPI::StoreAlign<int16_t, AscendC::MicroAPI::StoreDist::DIST_PACK_B32>(local_3 + offset, "
-    "vreg_0, vreg_0_temp);\n"
+    "vreg_0_pack_tmp, p_reg_vreg_0_mask_temp);\n"
   });
 }
 
@@ -951,12 +952,13 @@ TEST(CodegenKernel, LoadMicroApiCall_Store_Cast_in64_out8) {
   cp.max_dtype_size = "int64_t";
   call_0.Generate(tensor_mng, tpipe, cp, result);
   EXPECT_EQ(result, std::string{
-    "AscendC::MicroAPI::MaskReg vreg_0_temp = p_reg;\n"
-    "AscendC::Reg::Pack<uint32_t, uint64_t>((AscendC::Reg::RegTensor<uint32_t>&)vreg_0, "
+    "AscendC::MicroAPI::MaskReg p_reg_vreg_0_mask_temp;\n"
+    "AscendC::Reg::RegTensor<int8_t> vreg_0_pack_tmp;\n"
+    "AscendC::Reg::Pack<uint32_t, uint64_t>((AscendC::Reg::RegTensor<uint32_t>&)vreg_0_pack_tmp, "
     "(AscendC::Reg::RegTensor<uint64_t>&)vreg_0);\n"
-    "AscendC::Reg::MaskPack(vreg_0_temp, vreg_0_temp);\n"
+    "AscendC::Reg::MaskPack(p_reg_vreg_0_mask_temp, p_reg);\n"
     "AscendC::MicroAPI::StoreAlign<int8_t, AscendC::MicroAPI::StoreDist::DIST_PACK4_B32>(local_3 + offset, "
-    "vreg_0, vreg_0_temp);\n"
+    "vreg_0_pack_tmp, p_reg_vreg_0_mask_temp);\n"
   });
 }
 
