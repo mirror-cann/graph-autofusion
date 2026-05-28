@@ -155,7 +155,7 @@ View more compilation parameters through `bash build.sh -h`. After successful ex
 - ${cann_version} indicates the cann version number.
 - ${arch} indicates CPU architecture, for example, aarch64 or x86_64.
 
-During compilation, CMake automatically downloads third-party source packages (abseil-cpp, boost, json, protobuf, symengine, and so on) required by autofuse from external networks (`https://gitcode.com/cann-src-third-party/`) through `ExternalProject_Add`. If your compilation environment cannot directly access external networks (for example, enterprise intranet or Docker container default bridge network), select the appropriate solution:
+During compilation, CMake automatically downloads third-party source packages (abseil-cpp, boost, json, protobuf, symengine, googletest, mockcpp, and so on) required by autofuse and superkernel AOT UT from external networks (for example, `https://gitcode.com/cann-src-third-party/` and Huawei Cloud OBS) through `ExternalProject_Add`. If your compilation environment cannot directly access external networks (for example, enterprise intranet or Docker container default bridge network), select the appropriate solution:
  
 **Solution 1: Configure Network Proxy (Recommended)**
 If the environment has an HTTP proxy that can access external networks, set the `http_proxy` / `https_proxy` environment variables before compilation. `build.sh` automatically passes these proxy variables to CMake subprocesses:
@@ -186,12 +186,14 @@ In environments without any external network access, pre-download third-party so
    | protobuf | 25.1 | https://gitcode.com/cann-src-third-party/protobuf/releases/download/v25.1/protobuf-25.1.tar.gz |
    | symengine | 0.12.0 | https://gitcode.com/cann-src-third-party/symengine/releases/download/v0.12.0/symengine-0.12.0.tar.gz |
    | googletest | 1.14.0 | https://gitcode.com/cann-src-third-party/googletest/releases/download/v1.14.0/googletest-1.14.0.tar.gz |
+   | mockcpp | 2.7 | https://cann-3rd.obs.cn-north-4.myhuaweicloud.com/mockcpp/mockcpp-2.7.tar.gz |
+   | mockcpp patch | 2.7-h5 | https://gitcode.com/cann-src-third-party/mockcpp/releases/download/v2.7-h5/mockcpp-2.7-h5.patch |
 
 2. Copy the downloaded packages to the corresponding subdirectories under `output/third_party/` in the compilation environment (create if not exist):
 
    ```shell
    # Create directory structure under source root
-   mkdir -p output/third_party/{abseil-cpp,json,boost,protoc,symengine,gtest}
+   mkdir -p output/third_party/{abseil-cpp,json,boost,protoc,symengine,gtest,mockcpp}
 
    # Place downloaded packages in corresponding directories (filenames must match the table below)
    # abseil-cpp-20230802.1.tar.gz  → output/third_party/abseil-cpp/
@@ -200,7 +202,48 @@ In environments without any external network access, pre-download third-party so
    # protobuf-25.1.tar.gz          → output/third_party/protoc/
    # symengine-0.12.0.tar.gz       → output/third_party/symengine/
    # googletest-1.14.0.tar.gz      → output/third_party/gtest/
+   # mockcpp-2.7.tar.gz            → output/third_party/mockcpp/
+   # mockcpp-2.7-h5.patch          → output/third_party/              # preferred path
+   # mockcpp-2.7-h5.patch          → output/third_party/pkg/          # fallback path
    ```
+
+   Example placement for the mockcpp package and patch file:
+
+   ```shell
+   # Preferred placement
+   mkdir -p output/third_party/mockcpp
+   cp mockcpp-2.7.tar.gz output/third_party/mockcpp/
+   cp mockcpp-2.7-h5.patch output/third_party/
+
+   # Alternative fallback placement
+   mkdir -p output/third_party/mockcpp output/third_party/pkg
+   cp mockcpp-2.7.tar.gz output/third_party/mockcpp/
+   cp mockcpp-2.7-h5.patch output/third_party/pkg/
+   ```
+
+   To manually verify that the mockcpp patch can be applied before compilation, run the following git commands in a temporary directory. This is not required for normal builds because CMake performs this step automatically.
+
+   ```shell
+   # Run from the source root. This example uses the preferred patch path.
+   GRAPH_AUTOFUSION_HOME=$(pwd)
+   rm -rf /tmp/mockcpp_patch_check
+   mkdir -p /tmp/mockcpp_patch_check
+   tar -zxf output/third_party/mockcpp/mockcpp-2.7.tar.gz -C /tmp/mockcpp_patch_check --strip-components=1
+   cd /tmp/mockcpp_patch_check
+   git init
+   git apply --check ${GRAPH_AUTOFUSION_HOME}/output/third_party/mockcpp-2.7-h5.patch
+
+   # To apply the patch manually, continue with:
+   git apply ${GRAPH_AUTOFUSION_HOME}/output/third_party/mockcpp-2.7-h5.patch
+   ```
+
+   If the patch is placed in the fallback path, replace the patch path above with `${GRAPH_AUTOFUSION_HOME}/output/third_party/pkg/mockcpp-2.7-h5.patch`.
+
+   > [!NOTE] Note
+   > - `mockcpp-2.7-h5.patch` is required to build mockcpp. When `add_cann_third_party(mockcpp)` is used, CMake automatically applies this patch with `git init && git apply ${PATCH_FILE}` after extracting `mockcpp-2.7.tar.gz`. No manual patch step is required.
+   > - For offline compilation, prepare both `mockcpp-2.7.tar.gz` and `mockcpp-2.7-h5.patch`. If the patch file is missing, CMake attempts to download it from the network, which causes offline builds to fail.
+   > - The preferred mockcpp patch lookup path is `output/third_party/mockcpp-2.7-h5.patch`. If that path does not exist, CMake uses `output/third_party/pkg/mockcpp-2.7-h5.patch`.
+   > - The patch is applied automatically during the CMake ExternalProject patch stage. Do not pre-extract and modify the `output/third_party/mockcpp` source directory manually, because later builds may clean or overwrite it.
 
 3. During compilation, specify the local path through `--cann_3rd_lib_path` to skip the download step:
 

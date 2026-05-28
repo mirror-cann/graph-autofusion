@@ -12,6 +12,6 @@ set(RUN_LLT_BINARY ${GRAPH_AUTOFUSION_ROOT_DIR}/super_kernel/tests/aot/cmake/too
 
 set(third_party_TEM_DIR ${GRAPH_AUTOFUSION_ROOT_DIR}/build/tmp)
 
-include(${GRAPH_AUTOFUSION_ROOT_DIR}/super_kernel/tests/aot/third_party/gtest.cmake)
-include(${GRAPH_AUTOFUSION_ROOT_DIR}/super_kernel/tests/aot/third_party/boost.cmake)
-include(${GRAPH_AUTOFUSION_ROOT_DIR}/super_kernel/tests/aot/third_party/mockcpp.cmake)
+add_cann_third_party(gtest)
+add_cann_third_party(boost)
+add_cann_third_party(mockcpp)
