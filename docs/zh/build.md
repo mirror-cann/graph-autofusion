@@ -186,20 +186,22 @@ bash build.sh --pkg
    | protobuf | 25.1 | https://gitcode.com/cann-src-third-party/protobuf/releases/download/v25.1/protobuf-25.1.tar.gz |
    | symengine | 0.12.0 | https://gitcode.com/cann-src-third-party/symengine/releases/download/v0.12.0/symengine-0.12.0.tar.gz |
    | googletest | 1.14.0 | https://gitcode.com/cann-src-third-party/googletest/releases/download/v1.14.0/googletest-1.14.0.tar.gz |
+   | makeself | 2.5.0 | https://gitcode.com/cann-src-third-party/makeself/releases/download/release-2.5.0-patch1.0/makeself-release-2.5.0-patch1.tar.gz |
 
 2. 将下载的包拷贝到编译环境的 `output/third_party/` 对应子目录下（如不存在则创建）：
 
    ```shell
    # 在源码根目录下创建目录结构
-   mkdir -p output/third_party/{abseil-cpp,json,boost,protoc,symengine,gtest}
+   mkdir -p output/third_party/{abseil-cpp,json,boost,protobuf,symengine,gtest,makeself}
 
    # 将下载的包放入对应目录（文件名须与下表一致）
-   # abseil-cpp-20230802.1.tar.gz  → output/third_party/abseil-cpp/
-   # json-3.11.3.tar.gz            → output/third_party/json/
-   # boost_1_87_0.tar.gz           → output/third_party/boost/
-   # protobuf-25.1.tar.gz          → output/third_party/protoc/
-   # symengine-0.12.0.tar.gz       → output/third_party/symengine/
-   # googletest-1.14.0.tar.gz      → output/third_party/gtest/
+   # abseil-cpp-20230802.1.tar.gz           → output/third_party/abseil-cpp/
+   # json-3.11.3.tar.gz                     → output/third_party/json/
+   # boost_1_87_0.tar.gz                    → output/third_party/boost/
+   # protobuf-25.1.tar.gz                   → output/third_party/protobuf/
+   # symengine-0.12.0.tar.gz                → output/third_party/symengine/
+   # googletest-1.14.0.tar.gz               → output/third_party/gtest/
+   # makeself-release-2.5.0-patch1.tar.gz   → output/third_party/makeself/
    ```
 
 3. 执行编译时，通过 `--cann_3rd_lib_path` 指定本地路径，跳过下载步骤：

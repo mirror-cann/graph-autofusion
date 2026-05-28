@@ -186,20 +186,22 @@ In environments without any external network access, pre-download third-party so
    | protobuf | 25.1 | https://gitcode.com/cann-src-third-party/protobuf/releases/download/v25.1/protobuf-25.1.tar.gz |
    | symengine | 0.12.0 | https://gitcode.com/cann-src-third-party/symengine/releases/download/v0.12.0/symengine-0.12.0.tar.gz |
    | googletest | 1.14.0 | https://gitcode.com/cann-src-third-party/googletest/releases/download/v1.14.0/googletest-1.14.0.tar.gz |
+   | makeself | 2.5.0 | https://gitcode.com/cann-src-third-party/makeself/releases/download/release-2.5.0-patch1.0/makeself-release-2.5.0-patch1.tar.gz |
 
 2. Copy the downloaded packages to the corresponding subdirectories under `output/third_party/` in the compilation environment (create if not exist):
 
    ```shell
    # Create directory structure under source root
-   mkdir -p output/third_party/{abseil-cpp,json,boost,protoc,symengine,gtest}
+   mkdir -p output/third_party/{abseil-cpp,json,boost,protobuf,symengine,gtest,makeself}
 
    # Place downloaded packages in corresponding directories (filenames must match the table below)
-   # abseil-cpp-20230802.1.tar.gz  → output/third_party/abseil-cpp/
-   # json-3.11.3.tar.gz            → output/third_party/json/
-   # boost_1_87_0.tar.gz           → output/third_party/boost/
-   # protobuf-25.1.tar.gz          → output/third_party/protoc/
-   # symengine-0.12.0.tar.gz       → output/third_party/symengine/
-   # googletest-1.14.0.tar.gz      → output/third_party/gtest/
+   # abseil-cpp-20230802.1.tar.gz           → output/third_party/abseil-cpp/
+   # json-3.11.3.tar.gz                     → output/third_party/json/
+   # boost_1_87_0.tar.gz                    → output/third_party/boost/
+   # protobuf-25.1.tar.gz                   → output/third_party/protobuf/
+   # symengine-0.12.0.tar.gz                → output/third_party/symengine/
+   # googletest-1.14.0.tar.gz               → output/third_party/gtest/
+   # makeself-release-2.5.0-patch1.tar.gz   → output/third_party/makeself/
    ```
 
 3. During compilation, specify the local path through `--cann_3rd_lib_path` to skip the download step:
