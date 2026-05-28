@@ -1,13 +1,14 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
 #include "perf_param_v2.h"
+#include "v35/att/api_perf_register/ascir_reduce_api_perf_v2.h"
 #include "v35/att/api_perf_register/ascendc_regbase_perf.h"
 #include "api_perf_register/api_perf_factory.h"
 #include "api_perf_register/ascendc_api_perf.h"
@@ -17,17 +18,17 @@ constexpr int32_t kMaxDmaLen = 4;
 constexpr int32_t kMaxNddmaLen = 5;
 PerfParamTableV2 perf_param_table_v2;
 TilingScheduleConfigTableV2 tiling_schedule_config_table_v2;
-ApiPerfRegister<ApiPerf> ApiPerfRegisterV2(const std::string &api_name,
-                                           Perf perf_func,
-                                           MicroPerfFunc micro_perf_func,
+ApiPerfRegister<ApiPerf> ApiPerfRegisterV2(const std::string &api_name, Perf perf_func, MicroPerfFunc micro_perf_func,
                                            const PerfParamTable *perf_param,
                                            const TilingScheduleConfigTable *tiling_schedule_config_table) {
-  return ApiPerfRegister<ApiPerf>(api_name + "V2", perf_func, micro_perf_func, perf_param, tiling_schedule_config_table);
+  return ApiPerfRegister<ApiPerf>(api_name + "V2", perf_func, micro_perf_func, perf_param,
+                                  tiling_schedule_config_table);
 }
 namespace ascir_v2 {
 /*
 LoadApi(DataCopy from GM to UB)的性能公式：（其中a-b-c-d-e为待拟合参数）
-  1. 单次MTE2 = S(数据量Byte)/T + h(指令头开销)，针对非连续搬运场景会增加stride建模值(0.043 * (stride % (256) * block_count))
+  1. 单次MTE2 = S(数据量Byte)/T + h(指令头开销)，针对非连续搬运场景会增加stride建模值(0.043 * (stride % (256) *
+block_count))
   2. 总MTE2 = 单次MTE2 * 调用次数 + H(pipe启动头开销)
   当Shape > 256B时：
   3. H = 1174.3
@@ -143,8 +144,7 @@ inline ge::Status CompareSpecificPerf(const std::string &mode, const NodeDetail 
 
 ge::Status CompareApiV2([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
                         [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
-                        [[maybe_unused]] const NodeInfo &node, const std::string &mode,
-                        PerfOutputInfo &perf_res) {
+                        [[maybe_unused]] const NodeInfo &node, const std::string &mode, PerfOutputInfo &perf_res) {
   GE_ASSERT_TRUE(input_shapes.size() >= 2U && !output_shapes.empty());
   NodeDetail node_info;
   Expr outer_repeat;
@@ -157,39 +157,39 @@ ge::Status CompareApiV2([[maybe_unused]] const std::vector<TensorShapeInfo> &inp
   return ge::SUCCESS;
 }
 
-ge::Status CompareGeApi([[maybe_unused]]const std::vector<TensorShapeInfo> &input_shapes,
-                        [[maybe_unused]]const std::vector<TensorShapeInfo> &output_shapes,
-                        [[maybe_unused]]const NodeInfo &node, PerfOutputInfo &perf_res) {
+ge::Status CompareGeApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
+                        [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
+                        [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
   return CompareApiV2(input_shapes, output_shapes, node, kGe, perf_res);
 }
 
-ge::Status CompareEqApi([[maybe_unused]]const std::vector<TensorShapeInfo> &input_shapes,
-                        [[maybe_unused]]const std::vector<TensorShapeInfo> &output_shapes,
-                        [[maybe_unused]]const NodeInfo &node, PerfOutputInfo &perf_res) {
+ge::Status CompareEqApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
+                        [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
+                        [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
   return CompareApiV2(input_shapes, output_shapes, node, kEq, perf_res);
 }
 
-ge::Status CompareNeApi([[maybe_unused]]const std::vector<TensorShapeInfo> &input_shapes,
-                        [[maybe_unused]]const std::vector<TensorShapeInfo> &output_shapes,
-                        [[maybe_unused]]const NodeInfo &node, PerfOutputInfo &perf_res) {
+ge::Status CompareNeApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
+                        [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
+                        [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
   return CompareApiV2(input_shapes, output_shapes, node, kNe, perf_res);
 }
 
-ge::Status CompareGtApi([[maybe_unused]]const std::vector<TensorShapeInfo> &input_shapes,
-                        [[maybe_unused]]const std::vector<TensorShapeInfo> &output_shapes,
-                        [[maybe_unused]]const NodeInfo &node, PerfOutputInfo &perf_res) {
+ge::Status CompareGtApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
+                        [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
+                        [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
   return CompareApiV2(input_shapes, output_shapes, node, kGt, perf_res);
 }
 
-ge::Status CompareLeApi([[maybe_unused]]const std::vector<TensorShapeInfo> &input_shapes,
-                        [[maybe_unused]]const std::vector<TensorShapeInfo> &output_shapes,
-                        [[maybe_unused]]const NodeInfo &node, PerfOutputInfo &perf_res) {
+ge::Status CompareLeApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
+                        [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
+                        [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
   return CompareApiV2(input_shapes, output_shapes, node, kLe, perf_res);
 }
 
-ge::Status CompareLtApi([[maybe_unused]]const std::vector<TensorShapeInfo> &input_shapes,
-                        [[maybe_unused]]const std::vector<TensorShapeInfo> &output_shapes,
-                        [[maybe_unused]]const NodeInfo &node, PerfOutputInfo &perf_res) {
+ge::Status CompareLtApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
+                        [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
+                        [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
   return CompareApiV2(input_shapes, output_shapes, node, kLt, perf_res);
 }
 
@@ -212,8 +212,8 @@ ge::Status ExpApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_sha
 }
 
 ge::Status LnApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
-                  [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
-                  [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
+                 [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
+                 [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
   NodeDetail node_info;
   GE_ASSERT_SUCCESS(SetNodeDetail(input_shapes, output_shapes, node_info));
   GE_ASSERT_SUCCESS(ascendcperf_v2::LnPerf(node_info, perf_res));
@@ -221,8 +221,8 @@ ge::Status LnApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shap
 }
 
 ge::Status SqrtApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
-                 [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
-                 [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
+                   [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
+                   [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
   NodeDetail node_info;
   GE_ASSERT_SUCCESS(SetNodeDetail(input_shapes, output_shapes, node_info));
   GE_ASSERT_SUCCESS(ascendcperf_v2::SqrtPerf(node_info, perf_res));
@@ -230,8 +230,8 @@ ge::Status SqrtApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_sh
 }
 
 ge::Status RsqrtApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
-                   [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
-                   [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
+                    [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
+                    [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
   NodeDetail node_info;
   GE_ASSERT_SUCCESS(SetNodeDetail(input_shapes, output_shapes, node_info));
   GE_ASSERT_SUCCESS(ascendcperf_v2::RsqrtPerf(node_info, perf_res));
@@ -239,8 +239,8 @@ ge::Status RsqrtApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_s
 }
 
 ge::Status DivApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
-                    [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
-                    [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
+                  [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
+                  [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
   NodeDetail node_info;
   GE_ASSERT_SUCCESS(SetNodeDetail(input_shapes, output_shapes, node_info));
   GE_ASSERT_SUCCESS(ascendcperf_v2::DivPerf(node_info, perf_res));
@@ -248,8 +248,8 @@ ge::Status DivApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_sha
 }
 
 ge::Status ReciprocalApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
-                  [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
-                  [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
+                         [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
+                         [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
   NodeDetail node_info;
   GE_ASSERT_SUCCESS(SetNodeDetail(input_shapes, output_shapes, node_info));
   GE_ASSERT_SUCCESS(ascendcperf_v2::ReciprocalPerf(node_info, perf_res));
@@ -257,29 +257,11 @@ ge::Status ReciprocalApi([[maybe_unused]] const std::vector<TensorShapeInfo> &in
 }
 
 ge::Status ReluApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
-                         [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
-                         [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
-  NodeDetail node_info;
-  GE_ASSERT_SUCCESS(SetNodeDetail(input_shapes, output_shapes, node_info));
-  GE_ASSERT_SUCCESS(ascendcperf_v2::ReluPerf(node_info, perf_res));
-  return ge::SUCCESS;
-}
-
-ge::Status MaxApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
                    [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
                    [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
   NodeDetail node_info;
   GE_ASSERT_SUCCESS(SetNodeDetail(input_shapes, output_shapes, node_info));
-  GE_ASSERT_SUCCESS(ascendcperf_v2::MaxPerf(node_info, perf_res));
-  return ge::SUCCESS;
-}
-
-ge::Status MinApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
-                  [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
-                  [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
-  NodeDetail node_info;
-  GE_ASSERT_SUCCESS(SetNodeDetail(input_shapes, output_shapes, node_info));
-  GE_ASSERT_SUCCESS(ascendcperf_v2::MinPerf(node_info, perf_res));
+  GE_ASSERT_SUCCESS(ascendcperf_v2::ReluPerf(node_info, perf_res));
   return ge::SUCCESS;
 }
 
@@ -293,8 +275,8 @@ ge::Status NegApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_sha
 }
 
 ge::Status MeanApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
-                  [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
-                  [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
+                   [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
+                   [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
   NodeDetail node_info;
   GE_ASSERT_SUCCESS(SetNodeDetail(input_shapes, output_shapes, node_info));
   GE_ASSERT_SUCCESS(ascendcperf_v2::MeanPerf(node_info, perf_res));
@@ -302,8 +284,8 @@ ge::Status MeanApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_sh
 }
 
 ge::Status AddApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
-                   [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
-                   [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
+                  [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
+                  [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
   NodeDetail node_info;
   GE_ASSERT_SUCCESS(SetNodeDetail(input_shapes, output_shapes, node_info));
   GE_ASSERT_SUCCESS(ascendcperf_v2::AddPerf(node_info, perf_res));
@@ -329,8 +311,8 @@ ge::Status MulApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_sha
 }
 
 ge::Status LeakyReluApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
-                  [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
-                  [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
+                        [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
+                        [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
   NodeDetail node_info;
   GE_ASSERT_SUCCESS(SetNodeDetail(input_shapes, output_shapes, node_info));
   GE_ASSERT_SUCCESS(ascendcperf_v2::LeakyReluPerf(node_info, perf_res));
@@ -338,8 +320,8 @@ ge::Status LeakyReluApi([[maybe_unused]] const std::vector<TensorShapeInfo> &inp
 }
 
 ge::Status CastApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
-                        [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
-                        [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
+                   [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
+                   [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
   NodeDetail node_info;
   GE_ASSERT_SUCCESS(SetNodeDetail(input_shapes, output_shapes, node_info));
   GE_ASSERT_SUCCESS(ascendcperf_v2::CastPerf(node_info, perf_res));
@@ -347,8 +329,8 @@ ge::Status CastApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_sh
 }
 
 ge::Status SumApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
-                   [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
-                   [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
+                  [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
+                  [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
   NodeDetail node_info;
   GE_ASSERT_SUCCESS(SetNodeDetail(input_shapes, output_shapes, node_info));
   GE_ASSERT_SUCCESS(ascendcperf_v2::SumPerf(node_info, perf_res));
@@ -356,8 +338,8 @@ ge::Status SumApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_sha
 }
 
 ge::Status RemovePadApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
-                  [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
-                  [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
+                        [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
+                        [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
   NodeDetail node_info;
   GE_ASSERT_SUCCESS(SetNodeDetail(input_shapes, output_shapes, node_info));
   GE_ASSERT_SUCCESS(ascendcperf_v2::RemovePadPerf(node_info, perf_res));
@@ -365,8 +347,8 @@ ge::Status RemovePadApi([[maybe_unused]] const std::vector<TensorShapeInfo> &inp
 }
 
 ge::Status WhereApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
-                        [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
-                        [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
+                    [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
+                    [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
   NodeDetail node_info;
   GE_ASSERT_SUCCESS(SetNodeDetail(input_shapes, output_shapes, node_info));
   GE_ASSERT_SUCCESS(ascendcperf_v2::WherePerf(node_info, perf_res));
@@ -374,8 +356,8 @@ ge::Status WhereApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_s
 }
 
 ge::Status PowApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
-                    [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
-                    [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
+                  [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
+                  [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
   NodeDetail node_info;
   GE_ASSERT_SUCCESS(SetNodeDetail(input_shapes, output_shapes, node_info));
   GE_ASSERT_SUCCESS(ascendcperf_v2::PowPerf(node_info, perf_res));
@@ -392,8 +374,8 @@ ge::Status ErfApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_sha
 }
 
 ge::Status TanhApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
-                  [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
-                  [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
+                   [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
+                   [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
   NodeDetail node_info;
   GE_ASSERT_SUCCESS(SetNodeDetail(input_shapes, output_shapes, node_info));
   GE_ASSERT_SUCCESS(ascendcperf_v2::TanhPerf(node_info, perf_res));
@@ -401,8 +383,8 @@ ge::Status TanhApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_sh
 }
 
 ge::Status SigmoidApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
-                   [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
-                   [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
+                      [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
+                      [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
   NodeDetail node_info;
   GE_ASSERT_SUCCESS(SetNodeDetail(input_shapes, output_shapes, node_info));
   GE_ASSERT_SUCCESS(ascendcperf_v2::SigmoidPerf(node_info, perf_res));
@@ -410,8 +392,8 @@ ge::Status SigmoidApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input
 }
 
 ge::Status GeluApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
-                      [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
-                      [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
+                   [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
+                   [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
   NodeDetail node_info;
   GE_ASSERT_SUCCESS(SetNodeDetail(input_shapes, output_shapes, node_info));
   GE_ASSERT_SUCCESS(ascendcperf_v2::GeluPerf(node_info, perf_res));
@@ -428,8 +410,8 @@ ge::Status SignApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_sh
 }
 
 ge::Status LogicalNotApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
-                   [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
-                   [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
+                         [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
+                         [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
   NodeDetail node_info;
   GE_ASSERT_SUCCESS(SetNodeDetail(input_shapes, output_shapes, node_info));
   GE_ASSERT_SUCCESS(ascendcperf_v2::LogicalNotPerf(node_info, perf_res));
@@ -437,8 +419,8 @@ ge::Status LogicalNotApi([[maybe_unused]] const std::vector<TensorShapeInfo> &in
 }
 
 ge::Status LogicalOrApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
-                         [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
-                         [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
+                        [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
+                        [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
   NodeDetail node_info;
   GE_ASSERT_SUCCESS(SetNodeDetail(input_shapes, output_shapes, node_info));
   GE_ASSERT_SUCCESS(ascendcperf_v2::LogicalOrPerf(node_info, perf_res));
@@ -446,8 +428,8 @@ ge::Status LogicalOrApi([[maybe_unused]] const std::vector<TensorShapeInfo> &inp
 }
 
 ge::Status LogicalAndApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
-                        [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
-                        [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
+                         [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
+                         [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
   NodeDetail node_info;
   GE_ASSERT_SUCCESS(SetNodeDetail(input_shapes, output_shapes, node_info));
   GE_ASSERT_SUCCESS(ascendcperf_v2::LogicalAndPerf(node_info, perf_res));
@@ -455,8 +437,8 @@ ge::Status LogicalAndApi([[maybe_unused]] const std::vector<TensorShapeInfo> &in
 }
 
 ge::Status ClipByValueApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
-                         [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
-                         [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
+                          [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
+                          [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
   NodeDetail node_info;
   GE_ASSERT_SUCCESS(SetNodeDetail(input_shapes, output_shapes, node_info));
   GE_ASSERT_SUCCESS(ascendcperf_v2::ClipByValuePerf(node_info, perf_res));
@@ -464,8 +446,8 @@ ge::Status ClipByValueApi([[maybe_unused]] const std::vector<TensorShapeInfo> &i
 }
 
 ge::Status BitwiseAndApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
-                          [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
-                          [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
+                         [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
+                         [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
   NodeDetail node_info;
   GE_ASSERT_SUCCESS(SetNodeDetail(input_shapes, output_shapes, node_info));
   GE_ASSERT_SUCCESS(ascendcperf_v2::BitwiseAndPerf(node_info, perf_res));
@@ -473,8 +455,8 @@ ge::Status BitwiseAndApi([[maybe_unused]] const std::vector<TensorShapeInfo> &in
 }
 
 ge::Status FloorDivApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
-                         [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
-                         [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
+                       [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
+                       [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
   NodeDetail node_info;
   GE_ASSERT_SUCCESS(SetNodeDetail(input_shapes, output_shapes, node_info));
   GE_ASSERT_SUCCESS(ascendcperf_v2::FloorDivPerf(node_info, perf_res));
@@ -499,8 +481,16 @@ REGISTER_EVAL_FUNC_TAG(kRsqrt, V2, ascir_v2::RsqrtApi);
 REGISTER_EVAL_FUNC_TAG(kDiv, V2, ascir_v2::DivApi);
 REGISTER_EVAL_FUNC_TAG(kReciprocal, V2, ascir_v2::ReciprocalApi);
 REGISTER_EVAL_FUNC_TAG(kRelu, V2, ascir_v2::ReluApi);
-REGISTER_EVAL_FUNC_TAG(kMax, V2, ascir_v2::MaxApi);
-REGISTER_EVAL_FUNC_TAG(kMin, V2, ascir_v2::MinApi);
+REGISTER_EVAL_FUNC_TAG(kMax, V2, ascir_reduce_v2::MaxApi);
+REGISTER_EVAL_FUNC_TAG(kMin, V2, ascir_reduce_v2::MinApi);
+REGISTER_EVAL_FUNC_TAG(kMaximum, V2, ascir_reduce_v2::ElementwiseMaxApi);
+REGISTER_EVAL_FUNC_TAG(kMinimum, V2, ascir_reduce_v2::ElementwiseMinApi);
+REGISTER_EVAL_FUNC_TAG(kAny, V2, ascir_reduce_v2::AnyApi);
+REGISTER_EVAL_FUNC_TAG(kAll, V2, ascir_reduce_v2::AllApi);
+REGISTER_EVAL_FUNC_TAG(kReduceMax, V2, ascir_reduce_v2::ReduceMaxApi);
+REGISTER_EVAL_FUNC_TAG(kReduceMin, V2, ascir_reduce_v2::ReduceMinApi);
+REGISTER_EVAL_FUNC_TAG(kReduceAny, V2, ascir_reduce_v2::ReduceAnyApi);
+REGISTER_EVAL_FUNC_TAG(kReduceAll, V2, ascir_reduce_v2::ReduceAllApi);
 REGISTER_EVAL_FUNC_TAG(kNeg, V2, ascir_v2::NegApi);
 REGISTER_EVAL_FUNC_TAG(kMean, V2, ascir_v2::MeanApi);
 REGISTER_EVAL_FUNC_TAG(kAdd, V2, ascir_v2::AddApi);
@@ -530,146 +520,198 @@ ApiPerfRegister<ApiPerf> gather_api_perf_v2(ApiPerfRegisterV2(kGather, GetPerfFu
 ApiPerfRegister<ApiPerf> abs_api_perf_v2(ApiPerfRegisterV2(kAbs, GetPerfFunc(kAbs + "V2"), nullptr,
                                                            &perf_param_table_v2, &tiling_schedule_config_table_v2));
 ApiPerfRegister<ApiPerf> broadcast_api_perf_v2(ApiPerfRegisterV2(kBroadcast, GetPerfFunc(kBroadcast), nullptr,
-                                                                 &perf_param_table_v2, &tiling_schedule_config_table_v2));
+                                                                 &perf_param_table_v2,
+                                                                 &tiling_schedule_config_table_v2));
 ApiPerfRegister<ApiPerf> cast_api_perf_v2(ApiPerfRegisterV2(kCast, GetPerfFunc(kCast + "V2"), nullptr,
                                                             &perf_param_table_v2, &tiling_schedule_config_table_v2));
 ApiPerfRegister<ApiPerf> div_api_perf_v2(ApiPerfRegisterV2(kDiv, GetPerfFunc(kDiv + "V2"), nullptr,
                                                            &perf_param_table_v2, &tiling_schedule_config_table_v2));
-ApiPerfRegister<ApiPerf> erf_api_perf_v2(ApiPerfRegisterV2(kErf, GetPerfFunc(kErf + "V2"), nullptr, &perf_param_table_v2, &tiling_schedule_config_table_v2));
+ApiPerfRegister<ApiPerf> erf_api_perf_v2(ApiPerfRegisterV2(kErf, GetPerfFunc(kErf + "V2"), nullptr,
+                                                           &perf_param_table_v2, &tiling_schedule_config_table_v2));
 ApiPerfRegister<ApiPerf> exp_api_perf_v2(ApiPerfRegisterV2(kExp, GetPerfFunc(kExp + "V2"), nullptr,
                                                            &perf_param_table_v2, &tiling_schedule_config_table_v2));
 ApiPerfRegister<ApiPerf> exp2_api_perf_v2(ApiPerfRegisterV2(kExp2, GetPerfFunc(kExp2 + "V2"), nullptr,
-                                                           &perf_param_table_v2, &tiling_schedule_config_table_v2));
+                                                            &perf_param_table_v2, &tiling_schedule_config_table_v2));
 ApiPerfRegister<ApiPerf> floor_api_perf_v2(ApiPerfRegisterV2(kFloor, GetPerfFunc(kFloor + "V2"), nullptr,
-                                                           &perf_param_table_v2, &tiling_schedule_config_table_v2));
+                                                             &perf_param_table_v2, &tiling_schedule_config_table_v2));
 ApiPerfRegister<ApiPerf> fma_api_perf_v2(ApiPerfRegisterV2(kFma, GetPerfFunc(kFma + "V2"), nullptr,
                                                            &perf_param_table_v2, &tiling_schedule_config_table_v2));
 ApiPerfRegister<ApiPerf> bitwise_not_api_perf_v2(ApiPerfRegisterV2(kBitwiseNot, GetPerfFunc(kUnitVector), nullptr,
-                                                                   &perf_param_table_v2, &tiling_schedule_config_table_v2));
+                                                                   &perf_param_table_v2,
+                                                                   &tiling_schedule_config_table_v2));
 ApiPerfRegister<ApiPerf> bitwise_or_api_perf_v2(ApiPerfRegisterV2(kBitwiseOr, GetPerfFunc(kUnitVector), nullptr,
-                                                                   &perf_param_table_v2, &tiling_schedule_config_table_v2));
+                                                                  &perf_param_table_v2,
+                                                                  &tiling_schedule_config_table_v2));
 ApiPerfRegister<ApiPerf> bitwise_xor_api_perf_v2(ApiPerfRegisterV2(kBitwiseXor, GetPerfFunc(kUnitVector), nullptr,
-                                                                   &perf_param_table_v2, &tiling_schedule_config_table_v2));
+                                                                   &perf_param_table_v2,
+                                                                   &tiling_schedule_config_table_v2));
 ApiPerfRegister<ApiPerf> ceil_api_perf_v2(ApiPerfRegisterV2(kCeil, GetPerfFunc(kUnitVector), nullptr,
-                                                                   &perf_param_table_v2, &tiling_schedule_config_table_v2));
+                                                            &perf_param_table_v2, &tiling_schedule_config_table_v2));
 ApiPerfRegister<ApiPerf> cos_api_perf_v2(ApiPerfRegisterV2(kCos, GetPerfFunc(kUnitVector), nullptr,
-                                                                   &perf_param_table_v2, &tiling_schedule_config_table_v2));
+                                                           &perf_param_table_v2, &tiling_schedule_config_table_v2));
 ApiPerfRegister<ApiPerf> acos_api_perf_v2(ApiPerfRegisterV2(kAcos, GetPerfFunc(kUnitVector), nullptr,
-                                                                   &perf_param_table_v2, &tiling_schedule_config_table_v2));
+                                                            &perf_param_table_v2, &tiling_schedule_config_table_v2));
 ApiPerfRegister<ApiPerf> cosh_api_perf_v2(ApiPerfRegisterV2(kCosh, GetPerfFunc(kUnitVector), nullptr,
-                                                                   &perf_param_table_v2, &tiling_schedule_config_table_v2));
+                                                            &perf_param_table_v2, &tiling_schedule_config_table_v2));
 ApiPerfRegister<ApiPerf> atan2_api_perf_v2(ApiPerfRegisterV2(kAtan2, GetPerfFunc(kUnitVector), nullptr,
-                                                                   &perf_param_table_v2, &tiling_schedule_config_table_v2));
+                                                             &perf_param_table_v2, &tiling_schedule_config_table_v2));
 ApiPerfRegister<ApiPerf> copysign_api_perf_v2(ApiPerfRegisterV2(kCopySign, GetPerfFunc(kUnitVector), nullptr,
-                                                                   &perf_param_table_v2, &tiling_schedule_config_table_v2));
+                                                                &perf_param_table_v2,
+                                                                &tiling_schedule_config_table_v2));
 ApiPerfRegister<ApiPerf> ceil2int_api_perf_v2(ApiPerfRegisterV2(kCeil2Int, GetPerfFunc(kUnitVector), nullptr,
-                                                                   &perf_param_table_v2, &tiling_schedule_config_table_v2));
-ApiPerfRegister<ApiPerf> logical_and_api_perf_v2(ApiPerfRegisterV2(kLogicalAnd, GetPerfFunc(kLogicalAnd + "V2"), nullptr,
-                                                                   &perf_param_table_v2, &tiling_schedule_config_table_v2));
+                                                                &perf_param_table_v2,
+                                                                &tiling_schedule_config_table_v2));
+ApiPerfRegister<ApiPerf> logical_and_api_perf_v2(ApiPerfRegisterV2(kLogicalAnd, GetPerfFunc(kLogicalAnd + "V2"),
+                                                                   nullptr, &perf_param_table_v2,
+                                                                   &tiling_schedule_config_table_v2));
 ApiPerfRegister<ApiPerf> logical_or_api_perf_v2(ApiPerfRegisterV2(kLogicalOr, GetPerfFunc(kLogicalOr + "V2"), nullptr,
-                                                                  &perf_param_table_v2, &tiling_schedule_config_table_v2));
-ApiPerfRegister<ApiPerf> logical_not_api_perf_v2(ApiPerfRegisterV2(kLogicalNot, GetPerfFunc(kLogicalNot + "V2"), nullptr,
-                                                                   &perf_param_table_v2, &tiling_schedule_config_table_v2));
-ApiPerfRegister<ApiPerf> maximum_api_perf_v2(ApiPerfRegisterV2(kMaximum, GetPerfFunc(kMax + "V2"), nullptr,
+                                                                  &perf_param_table_v2,
+                                                                  &tiling_schedule_config_table_v2));
+ApiPerfRegister<ApiPerf> logical_not_api_perf_v2(ApiPerfRegisterV2(kLogicalNot, GetPerfFunc(kLogicalNot + "V2"),
+                                                                   nullptr, &perf_param_table_v2,
+                                                                   &tiling_schedule_config_table_v2));
+ApiPerfRegister<ApiPerf> maximum_api_perf_v2(ApiPerfRegisterV2(kMaximum, GetPerfFunc(kMaximum + "V2"), nullptr,
                                                                &perf_param_table_v2, &tiling_schedule_config_table_v2));
-ApiPerfRegister<ApiPerf> minimum_api_perf_v2(ApiPerfRegisterV2(kMinimum, GetPerfFunc(kMin + "V2"), nullptr,
+ApiPerfRegister<ApiPerf> minimum_api_perf_v2(ApiPerfRegisterV2(kMinimum, GetPerfFunc(kMinimum + "V2"), nullptr,
                                                                &perf_param_table_v2, &tiling_schedule_config_table_v2));
-ApiPerfRegister<ApiPerf> reduce_max_api_perf_v2(ApiPerfRegisterV2(kMax, GetPerfFunc(kMax + "V2"), nullptr,
-                                                                  &perf_param_table_v2, &tiling_schedule_config_table_v2));
-ApiPerfRegister<ApiPerf> reduce_min_api_perf_v2(ApiPerfRegisterV2(kMin, GetPerfFunc(kMin + "V2"), nullptr,
-                                                                  &perf_param_table_v2, &tiling_schedule_config_table_v2));
-ApiPerfRegister<ApiPerf> min_api_perf_v2(ApiPerfRegisterV2(kMin, GetPerfFunc(kMin), nullptr, &perf_param_table_v2, &tiling_schedule_config_table_v2));
+ApiPerfRegister<ApiPerf> max_api_perf_v2(ApiPerfRegisterV2(kMax, GetPerfFunc(kMax + "V2"), nullptr,
+                                                           &perf_param_table_v2, &tiling_schedule_config_table_v2));
+ApiPerfRegister<ApiPerf> reduce_max_api_perf_v2(ApiPerfRegisterV2(kReduceMax, GetPerfFunc(kReduceMax + "V2"), nullptr,
+                                                                  &perf_param_table_v2,
+                                                                  &tiling_schedule_config_table_v2));
+ApiPerfRegister<ApiPerf> min_api_perf_v2(ApiPerfRegisterV2(kMin, GetPerfFunc(kMin + "V2"), nullptr,
+                                                           &perf_param_table_v2, &tiling_schedule_config_table_v2));
+ApiPerfRegister<ApiPerf> reduce_min_api_perf_v2(ApiPerfRegisterV2(kReduceMin, GetPerfFunc(kReduceMin + "V2"), nullptr,
+                                                                  &perf_param_table_v2,
+                                                                  &tiling_schedule_config_table_v2));
 ApiPerfRegister<ApiPerf> mul_api_perf_v2(ApiPerfRegisterV2(kMul, GetPerfFunc(kMul + "V2"), nullptr,
                                                            &perf_param_table_v2, &tiling_schedule_config_table_v2));
 ApiPerfRegister<ApiPerf> neg_api_perf_v2(ApiPerfRegisterV2(kNeg, GetPerfFunc(kNeg + "V2"), nullptr,
                                                            &perf_param_table_v2, &tiling_schedule_config_table_v2));
 ApiPerfRegister<ApiPerf> reciprocal_api_perf_v2(ApiPerfRegisterV2(kReciprocal, GetPerfFunc(kReciprocal + "V2"), nullptr,
-                                                                  &perf_param_table_v2, &tiling_schedule_config_table_v2));
+                                                                  &perf_param_table_v2,
+                                                                  &tiling_schedule_config_table_v2));
 ApiPerfRegister<ApiPerf> relu_api_perf_v2(ApiPerfRegisterV2(kRelu, GetPerfFunc(kRelu + "V2"), nullptr,
                                                             &perf_param_table_v2, &tiling_schedule_config_table_v2));
 ApiPerfRegister<ApiPerf> remove_pad_api_perf_v2(ApiPerfRegisterV2(kRemovePad, GetPerfFunc(kRemovePad + "V2"), nullptr,
-                                                                  &perf_param_table_v2, &tiling_schedule_config_table_v2));
+                                                                  &perf_param_table_v2,
+                                                                  &tiling_schedule_config_table_v2));
 ApiPerfRegister<ApiPerf> rsqrt_api_perf_v2(ApiPerfRegisterV2(kRsqrt, GetPerfFunc(kRsqrt + "V2"), nullptr,
                                                              &perf_param_table_v2, &tiling_schedule_config_table_v2));
-ApiPerfRegister<ApiPerf> sign_api_perf_v2(ApiPerfRegisterV2(kSign, GetPerfFunc(kSign + "V2"), nullptr, &perf_param_table_v2, &tiling_schedule_config_table_v2));
+ApiPerfRegister<ApiPerf> sign_api_perf_v2(ApiPerfRegisterV2(kSign, GetPerfFunc(kSign + "V2"), nullptr,
+                                                            &perf_param_table_v2, &tiling_schedule_config_table_v2));
 ApiPerfRegister<ApiPerf> sqrt_api_perf_v2(ApiPerfRegisterV2(kSqrt, GetPerfFunc(kSqrt + "V2"), nullptr,
                                                             &perf_param_table_v2, &tiling_schedule_config_table_v2));
 ApiPerfRegister<ApiPerf> sub_api_perf_v2(ApiPerfRegisterV2(kSub, GetPerfFunc(kSub + "V2"), nullptr,
                                                            &perf_param_table_v2, &tiling_schedule_config_table_v2));
-ApiPerfRegister<ApiPerf> tanh_api_perf_v2(ApiPerfRegisterV2(kTanh, GetPerfFunc(kTanh + "V2"), nullptr, &perf_param_table_v2, &tiling_schedule_config_table_v2));
+ApiPerfRegister<ApiPerf> tanh_api_perf_v2(ApiPerfRegisterV2(kTanh, GetPerfFunc(kTanh + "V2"), nullptr,
+                                                            &perf_param_table_v2, &tiling_schedule_config_table_v2));
 ApiPerfRegister<ApiPerf> sin_api_perf_v2(ApiPerfRegisterV2(kSin, GetPerfFunc(kSin + "V2"), nullptr,
                                                            &perf_param_table_v2, &tiling_schedule_config_table_v2));
 ApiPerfRegister<ApiPerf> asin_api_perf_v2(ApiPerfRegisterV2(kAsin, GetPerfFunc(kUnitVector), nullptr,
-                                                           &perf_param_table_v2, &tiling_schedule_config_table_v2));
+                                                            &perf_param_table_v2, &tiling_schedule_config_table_v2));
 ApiPerfRegister<ApiPerf> asinh_api_perf_v2(ApiPerfRegisterV2(kAsinh, GetPerfFunc(kUnitVector), nullptr,
-                                                           &perf_param_table_v2, &tiling_schedule_config_table_v2));
+                                                             &perf_param_table_v2, &tiling_schedule_config_table_v2));
 ApiPerfRegister<ApiPerf> atan_api_perf_v2(ApiPerfRegisterV2(kAtan, GetPerfFunc(kUnitVector), nullptr,
-                                                           &perf_param_table_v2, &tiling_schedule_config_table_v2));
+                                                            &perf_param_table_v2, &tiling_schedule_config_table_v2));
 ApiPerfRegister<ApiPerf> atanh_api_perf_v2(ApiPerfRegisterV2(kAtanh, GetPerfFunc(kUnitVector), nullptr,
-                                                           &perf_param_table_v2, &tiling_schedule_config_table_v2));
+                                                             &perf_param_table_v2, &tiling_schedule_config_table_v2));
 ApiPerfRegister<ApiPerf> digamma_api_perf_v2(ApiPerfRegisterV2(kDigamma, GetPerfFunc(kUnitVector), nullptr,
-                                                           &perf_param_table_v2, &tiling_schedule_config_table_v2));
+                                                               &perf_param_table_v2, &tiling_schedule_config_table_v2));
 ApiPerfRegister<ApiPerf> erfc_api_perf_v2(ApiPerfRegisterV2(kErfc, GetPerfFunc(kUnitVector), nullptr,
-                                                           &perf_param_table_v2, &tiling_schedule_config_table_v2));
+                                                            &perf_param_table_v2, &tiling_schedule_config_table_v2));
 ApiPerfRegister<ApiPerf> erfcx_api_perf_v2(ApiPerfRegisterV2(kErfcx, GetPerfFunc(kUnitVector), nullptr,
-                                                           &perf_param_table_v2, &tiling_schedule_config_table_v2));
+                                                             &perf_param_table_v2, &tiling_schedule_config_table_v2));
 ApiPerfRegister<ApiPerf> acosh_api_perf_v2(ApiPerfRegisterV2(kAcosh, GetPerfFunc(kUnitVector), nullptr,
-                                                           &perf_param_table_v2, &tiling_schedule_config_table_v2));
-ApiPerfRegister<ApiPerf> rshift_api_perf_v2(ApiPerfRegisterV2(kRShift, GetPerfFunc(kRShift + "V2"), nullptr, &perf_param_table_v2, &tiling_schedule_config_table_v2));
+                                                             &perf_param_table_v2, &tiling_schedule_config_table_v2));
+ApiPerfRegister<ApiPerf> rshift_api_perf_v2(ApiPerfRegisterV2(kRShift, GetPerfFunc(kRShift + "V2"), nullptr,
+                                                              &perf_param_table_v2, &tiling_schedule_config_table_v2));
 ApiPerfRegister<ApiPerf> where_api_perf_v2(ApiPerfRegisterV2(kWhere, GetPerfFunc(kWhere + "V2"), nullptr,
                                                              &perf_param_table_v2, &tiling_schedule_config_table_v2));
 ApiPerfRegister<ApiPerf> select_api_perf_v2(ApiPerfRegisterV2(kSelect, GetPerfFunc(kWhere + "V2"), nullptr,
                                                               &perf_param_table_v2, &tiling_schedule_config_table_v2));
-ApiPerfRegister<ApiPerf> ge_api_perf_v2(ApiPerfRegisterV2(kGe, GetPerfFunc(kGe + "V2"), nullptr, &perf_param_table_v2, &tiling_schedule_config_table_v2));
-ApiPerfRegister<ApiPerf> eq_api_perf_v2(ApiPerfRegisterV2(kEq, GetPerfFunc(kEq + "V2"), nullptr, &perf_param_table_v2, &tiling_schedule_config_table_v2));
-ApiPerfRegister<ApiPerf> ne_api_perf_v2(ApiPerfRegisterV2(kNe, GetPerfFunc(kNe + "V2"), nullptr, &perf_param_table_v2, &tiling_schedule_config_table_v2));
-ApiPerfRegister<ApiPerf> gt_api_perf_v2(ApiPerfRegisterV2(kGt, GetPerfFunc(kGt + "V2"), nullptr, &perf_param_table_v2, &tiling_schedule_config_table_v2));
-ApiPerfRegister<ApiPerf> le_api_perf_v2(ApiPerfRegisterV2(kLe, GetPerfFunc(kLe + "V2"), nullptr, &perf_param_table_v2, &tiling_schedule_config_table_v2));
-ApiPerfRegister<ApiPerf> lt_api_perf_v2(ApiPerfRegisterV2(kLt, GetPerfFunc(kLt + "V2"), nullptr, &perf_param_table_v2, &tiling_schedule_config_table_v2));
-ApiPerfRegister<ApiPerf> ub2ub_api_perf_v2(ApiPerfRegisterV2(kUb2ub, GetPerfFunc(kUb2ub), nullptr,
-                                                             &perf_param_table_v2, &tiling_schedule_config_table_v2));
+ApiPerfRegister<ApiPerf> ge_api_perf_v2(ApiPerfRegisterV2(kGe, GetPerfFunc(kGe + "V2"), nullptr, &perf_param_table_v2,
+                                                          &tiling_schedule_config_table_v2));
+ApiPerfRegister<ApiPerf> eq_api_perf_v2(ApiPerfRegisterV2(kEq, GetPerfFunc(kEq + "V2"), nullptr, &perf_param_table_v2,
+                                                          &tiling_schedule_config_table_v2));
+ApiPerfRegister<ApiPerf> ne_api_perf_v2(ApiPerfRegisterV2(kNe, GetPerfFunc(kNe + "V2"), nullptr, &perf_param_table_v2,
+                                                          &tiling_schedule_config_table_v2));
+ApiPerfRegister<ApiPerf> gt_api_perf_v2(ApiPerfRegisterV2(kGt, GetPerfFunc(kGt + "V2"), nullptr, &perf_param_table_v2,
+                                                          &tiling_schedule_config_table_v2));
+ApiPerfRegister<ApiPerf> le_api_perf_v2(ApiPerfRegisterV2(kLe, GetPerfFunc(kLe + "V2"), nullptr, &perf_param_table_v2,
+                                                          &tiling_schedule_config_table_v2));
+ApiPerfRegister<ApiPerf> lt_api_perf_v2(ApiPerfRegisterV2(kLt, GetPerfFunc(kLt + "V2"), nullptr, &perf_param_table_v2,
+                                                          &tiling_schedule_config_table_v2));
+ApiPerfRegister<ApiPerf> ub2ub_api_perf_v2(ApiPerfRegisterV2(kUb2ub, GetPerfFunc(kUb2ub), nullptr, &perf_param_table_v2,
+                                                             &tiling_schedule_config_table_v2));
 ApiPerfRegister<ApiPerf> load_api_perf_v2(ApiPerfRegisterV2(kLoad, GetPerfFunc(kLoad + "V2"), nullptr,
                                                             &perf_param_table_v2, &tiling_schedule_config_table_v2));
 ApiPerfRegister<ApiPerf> store_api_perf_v2(ApiPerfRegisterV2(kStore, GetPerfFunc(kStore + "V2"), nullptr,
                                                              &perf_param_table_v2, &tiling_schedule_config_table_v2));
 ApiPerfRegister<ApiPerf> nddma_api_perf_v2(ApiPerfRegisterV2(kNddma, GetPerfFunc(kNddma + "V2"), nullptr,
-                                                            &perf_param_table_v2, &tiling_schedule_config_table_v2));                                                             
-// 暂时使用UnitVector，后续修改为对应Reduce的性能公式
-ApiPerfRegister<ApiPerf> reduce_all_api_perf_v2(ApiPerfRegisterV2(kAll, GetPerfFunc(kMin + "V2"), nullptr,
-                                                                  &perf_param_table_v2, &tiling_schedule_config_table_v2));
-ApiPerfRegister<ApiPerf> reduce_any_api_perf_v2(ApiPerfRegisterV2(kAny, GetPerfFunc(kMax + "V2"), nullptr,
-                                                                  &perf_param_table_v2, &tiling_schedule_config_table_v2));
+                                                             &perf_param_table_v2, &tiling_schedule_config_table_v2));
+ApiPerfRegister<ApiPerf> all_api_perf_v2(ApiPerfRegisterV2(kAll, GetPerfFunc(kAll + "V2"), nullptr,
+                                                           &perf_param_table_v2, &tiling_schedule_config_table_v2));
+ApiPerfRegister<ApiPerf> reduce_all_api_perf_v2(ApiPerfRegisterV2(kReduceAll, GetPerfFunc(kReduceAll + "V2"), nullptr,
+                                                                  &perf_param_table_v2,
+                                                                  &tiling_schedule_config_table_v2));
+ApiPerfRegister<ApiPerf> any_api_perf_v2(ApiPerfRegisterV2(kAny, GetPerfFunc(kAny + "V2"), nullptr,
+                                                           &perf_param_table_v2, &tiling_schedule_config_table_v2));
+ApiPerfRegister<ApiPerf> reduce_any_api_perf_v2(ApiPerfRegisterV2(kReduceAny, GetPerfFunc(kReduceAny + "V2"), nullptr,
+                                                                  &perf_param_table_v2,
+                                                                  &tiling_schedule_config_table_v2));
 ApiPerfRegister<ApiPerf> reduce_mean_api_perf_v2(ApiPerfRegisterV2(kMean, GetPerfFunc(kMean + +"V2"), nullptr,
-                                                                   &perf_param_table_v2, &tiling_schedule_config_table_v2));
+                                                                   &perf_param_table_v2,
+                                                                   &tiling_schedule_config_table_v2));
 ApiPerfRegister<ApiPerf> reduce_prod_api_perf_v2(ApiPerfRegisterV2(kProd, GetPerfFunc(kMul + "V2"), nullptr,
-                                                                   &perf_param_table_v2, &tiling_schedule_config_table_v2));
+                                                                   &perf_param_table_v2,
+                                                                   &tiling_schedule_config_table_v2));
 ApiPerfRegister<ApiPerf> reduce_sum_api_perf_v2(ApiPerfRegisterV2(kSum, GetPerfFunc(kSum + "V2"), nullptr,
-                                                                  &perf_param_table_v2, &tiling_schedule_config_table_v2));
+                                                                  &perf_param_table_v2,
+                                                                  &tiling_schedule_config_table_v2));
 // 不需要建模的ASCIR
-ApiPerfRegister<ApiPerf> data_api_perf_v2(ApiPerfRegisterV2(kData, DefaultGetPerf, nullptr, &perf_param_table_v2, &tiling_schedule_config_table_v2));
-ApiPerfRegister<ApiPerf> scalar_api_perf_v2(ApiPerfRegisterV2(kScalar, DefaultGetPerf, nullptr, &perf_param_table_v2, &tiling_schedule_config_table_v2));
-ApiPerfRegister<ApiPerf> scalar_data_api_perf_v2(ApiPerfRegisterV2(kScalarData, DefaultGetPerf, nullptr, &perf_param_table_v2, &tiling_schedule_config_table_v2));
+ApiPerfRegister<ApiPerf> data_api_perf_v2(ApiPerfRegisterV2(kData, DefaultGetPerf, nullptr, &perf_param_table_v2,
+                                                            &tiling_schedule_config_table_v2));
+ApiPerfRegister<ApiPerf> scalar_api_perf_v2(ApiPerfRegisterV2(kScalar, DefaultGetPerf, nullptr, &perf_param_table_v2,
+                                                              &tiling_schedule_config_table_v2));
+ApiPerfRegister<ApiPerf> scalar_data_api_perf_v2(ApiPerfRegisterV2(kScalarData, DefaultGetPerf, nullptr,
+                                                                   &perf_param_table_v2,
+                                                                   &tiling_schedule_config_table_v2));
 ApiPerfRegister<ApiPerf> index_expr_api_perf_v2(ApiPerfRegisterV2(kIndexExpr, DefaultGetPerf, nullptr,
-                                                                  &perf_param_table_v2, &tiling_schedule_config_table_v2));
-ApiPerfRegister<ApiPerf> output_api_perf_v2(ApiPerfRegisterV2(kOutput, DefaultGetPerf, nullptr, &perf_param_table_v2, &tiling_schedule_config_table_v2));
+                                                                  &perf_param_table_v2,
+                                                                  &tiling_schedule_config_table_v2));
+ApiPerfRegister<ApiPerf> output_api_perf_v2(ApiPerfRegisterV2(kOutput, DefaultGetPerf, nullptr, &perf_param_table_v2,
+                                                              &tiling_schedule_config_table_v2));
 ApiPerfRegister<ApiPerf> workspace_api_perf_v2(ApiPerfRegisterV2(kWorkspace, DefaultGetPerf, nullptr,
-                                                                 &perf_param_table_v2, &tiling_schedule_config_table_v2));
+                                                                 &perf_param_table_v2,
+                                                                 &tiling_schedule_config_table_v2));
 // 目前无建模的ASCIR
 ApiPerfRegister<ApiPerf> pad_api_perf_v2(ApiPerfRegisterV2(kPad, GetPerfFunc(kUnitVector), nullptr,
                                                            &perf_param_table_v2, &tiling_schedule_config_table_v2));
 ApiPerfRegister<ApiPerf> round_api_perf_v2(ApiPerfRegisterV2(kRound, GetPerfFunc(kUnitVector), nullptr,
-                                                           &perf_param_table_v2, &tiling_schedule_config_table_v2));
+                                                             &perf_param_table_v2, &tiling_schedule_config_table_v2));
 ApiPerfRegister<ApiPerf> nop_api_perf_v2(ApiPerfRegisterV2(kNop, GetPerfFunc(kUnitVector), nullptr,
                                                            &perf_param_table_v2, &tiling_schedule_config_table_v2));
-ApiPerfRegister<ApiPerf> ln_api_perf_v2(ApiPerfRegisterV2(kLn, GetPerfFunc(kLn + "V2"), nullptr, &perf_param_table_v2, &tiling_schedule_config_table_v2));
-ApiPerfRegister<ApiPerf> floor_to_int_api_perf_v2(ApiPerfRegisterV2(kFloorToInt, GetPerfFunc(kFloorToInt + "V2"), nullptr, &perf_param_table_v2, &tiling_schedule_config_table_v2));
-ApiPerfRegister<ApiPerf> fmod_api_perf_v2(ApiPerfRegisterV2(kFmod, GetPerfFunc(kFmod + "V2"), nullptr, &perf_param_table_v2, &tiling_schedule_config_table_v2));
-ApiPerfRegister<ApiPerf> hypot_api_perf_v2(ApiPerfRegisterV2(kHypot, GetPerfFunc(kHypot + "V2"), nullptr, &perf_param_table_v2, &tiling_schedule_config_table_v2));
-ApiPerfRegister<ApiPerf> lgamma_api_perf_v2(ApiPerfRegisterV2(kLgamma, GetPerfFunc(kLgamma + "V2"), nullptr, &perf_param_table_v2, &tiling_schedule_config_table_v2));
-ApiPerfRegister<ApiPerf> log10_api_perf_v2(ApiPerfRegisterV2(kLog10, GetPerfFunc(kLog10 + "V2"), nullptr, &perf_param_table_v2, &tiling_schedule_config_table_v2));
-ApiPerfRegister<ApiPerf> logical_xor_api_perf_v2(ApiPerfRegisterV2(kLogicalXor, GetPerfFunc(kLogicalXor + "V2"), nullptr, &perf_param_table_v2, &tiling_schedule_config_table_v2));
-ApiPerfRegister<ApiPerf> log1p_api_perf_v2(ApiPerfRegisterV2(kLog1p, GetPerfFunc(kLog1p + "V2"), nullptr, &perf_param_table_v2, &tiling_schedule_config_table_v2));
-ApiPerfRegister<ApiPerf> expm_api_perf_v2(ApiPerfRegisterV2(kExpm, GetPerfFunc(kExpm + "V2"), nullptr, &perf_param_table_v2, &tiling_schedule_config_table_v2));
+ApiPerfRegister<ApiPerf> ln_api_perf_v2(ApiPerfRegisterV2(kLn, GetPerfFunc(kLn + "V2"), nullptr, &perf_param_table_v2,
+                                                          &tiling_schedule_config_table_v2));
+ApiPerfRegister<ApiPerf> floor_to_int_api_perf_v2(ApiPerfRegisterV2(kFloorToInt, GetPerfFunc(kFloorToInt + "V2"),
+                                                                    nullptr, &perf_param_table_v2,
+                                                                    &tiling_schedule_config_table_v2));
+ApiPerfRegister<ApiPerf> fmod_api_perf_v2(ApiPerfRegisterV2(kFmod, GetPerfFunc(kFmod + "V2"), nullptr,
+                                                            &perf_param_table_v2, &tiling_schedule_config_table_v2));
+ApiPerfRegister<ApiPerf> hypot_api_perf_v2(ApiPerfRegisterV2(kHypot, GetPerfFunc(kHypot + "V2"), nullptr,
+                                                             &perf_param_table_v2, &tiling_schedule_config_table_v2));
+ApiPerfRegister<ApiPerf> lgamma_api_perf_v2(ApiPerfRegisterV2(kLgamma, GetPerfFunc(kLgamma + "V2"), nullptr,
+                                                              &perf_param_table_v2, &tiling_schedule_config_table_v2));
+ApiPerfRegister<ApiPerf> log10_api_perf_v2(ApiPerfRegisterV2(kLog10, GetPerfFunc(kLog10 + "V2"), nullptr,
+                                                             &perf_param_table_v2, &tiling_schedule_config_table_v2));
+ApiPerfRegister<ApiPerf> logical_xor_api_perf_v2(ApiPerfRegisterV2(kLogicalXor, GetPerfFunc(kLogicalXor + "V2"),
+                                                                   nullptr, &perf_param_table_v2,
+                                                                   &tiling_schedule_config_table_v2));
+ApiPerfRegister<ApiPerf> log1p_api_perf_v2(ApiPerfRegisterV2(kLog1p, GetPerfFunc(kLog1p + "V2"), nullptr,
+                                                             &perf_param_table_v2, &tiling_schedule_config_table_v2));
+ApiPerfRegister<ApiPerf> expm_api_perf_v2(ApiPerfRegisterV2(kExpm, GetPerfFunc(kExpm + "V2"), nullptr,
+                                                            &perf_param_table_v2, &tiling_schedule_config_table_v2));
 ApiPerfRegister<ApiPerf> log2_api_perf_v2(ApiPerfRegisterV2(kLog2, GetPerfFunc(kLog2 + "V2"), nullptr,
                                                             &perf_param_table_v2, &tiling_schedule_config_table_v2));
 ApiPerfRegister<ApiPerf> lShift_api_perf_v2(ApiPerfRegisterV2(kLShift, GetPerfFunc(kLShift + "V2"), nullptr,
@@ -679,35 +721,32 @@ ApiPerfRegister<ApiPerf> mod_api_perf_v2(ApiPerfRegisterV2(kMod, GetPerfFunc(kMo
 ApiPerfRegister<ApiPerf> isnan_api_perf_v2(ApiPerfRegisterV2(kIsnan, GetPerfFunc(kUnitVector), nullptr,
                                                              &perf_param_table_v2, &tiling_schedule_config_table_v2));
 ApiPerfRegister<ApiPerf> isfinite_api_perf_v2(ApiPerfRegisterV2(kIsFinite, GetPerfFunc(kUnitVector), nullptr,
-                                                                &perf_param_table_v2, &tiling_schedule_config_table_v2));
-ApiPerfRegister<ApiPerf> max_api_perf_v2(ApiPerfRegisterV2(kMax, GetPerfFunc(kUnitVector), nullptr,
-                                                           &perf_param_table_v2, &tiling_schedule_config_table_v2));
-ApiPerfRegister<ApiPerf> mean_api_perf_v2(ApiPerfRegisterV2(kMean, GetPerfFunc(kUnitVector), nullptr,
-                                                            &perf_param_table_v2, &tiling_schedule_config_table_v2));
-ApiPerfRegister<ApiPerf> prod_api_perf_v2(ApiPerfRegisterV2(kProd, GetPerfFunc(kUnitVector), nullptr,
-                                                            &perf_param_table_v2, &tiling_schedule_config_table_v2));
-ApiPerfRegister<ApiPerf> any_api_perf_v2(ApiPerfRegisterV2(kAny, GetPerfFunc(kMax + "V2"), nullptr,
-                                                           &perf_param_table_v2, &tiling_schedule_config_table_v2));
-ApiPerfRegister<ApiPerf> all_api_perf_v2(ApiPerfRegisterV2(kAll, GetPerfFunc(kMin + "V2"), nullptr,
-                                                           &perf_param_table_v2, &tiling_schedule_config_table_v2));
+                                                                &perf_param_table_v2,
+                                                                &tiling_schedule_config_table_v2));
 ApiPerfRegister<ApiPerf> sigmoid_api_perf_v2(ApiPerfRegisterV2(kSigmoid, GetPerfFunc(kSigmoid + "V2"), nullptr,
                                                                &perf_param_table_v2, &tiling_schedule_config_table_v2));
 ApiPerfRegister<ApiPerf> true_div_api_perf_v2(ApiPerfRegisterV2(kTrueDiv, GetPerfFunc(kDiv + "V2"), nullptr,
-                                                                &perf_param_table_v2, &tiling_schedule_config_table_v2));
+                                                                &perf_param_table_v2,
+                                                                &tiling_schedule_config_table_v2));
 ApiPerfRegister<ApiPerf> pow_api_perf_v2(ApiPerfRegisterV2(kPow, GetPerfFunc(kPow + "V2"), nullptr,
                                                            &perf_param_table_v2, &tiling_schedule_config_table_v2));
-ApiPerfRegister<ApiPerf> clip_by_value_api_perf_v2(ApiPerfRegisterV2(kClipByValue, GetPerfFunc(kClipByValue + "V2"), nullptr,
-                                                                     &perf_param_table_v2, &tiling_schedule_config_table_v2));
+ApiPerfRegister<ApiPerf> clip_by_value_api_perf_v2(ApiPerfRegisterV2(kClipByValue, GetPerfFunc(kClipByValue + "V2"),
+                                                                     nullptr, &perf_param_table_v2,
+                                                                     &tiling_schedule_config_table_v2));
 ApiPerfRegister<ApiPerf> concat_api_perf_v2(ApiPerfRegisterV2(kConcat, GetPerfFunc(kUnitVector), nullptr,
                                                               &perf_param_table_v2, &tiling_schedule_config_table_v2));
 ApiPerfRegister<ApiPerf> leaky_relu_api_perf_v2(ApiPerfRegisterV2(kLeakyRelu, GetPerfFunc(kLeakyRelu + "V2"), nullptr,
-                                                                  &perf_param_table_v2, &tiling_schedule_config_table_v2));
-ApiPerfRegister<ApiPerf> bitwise_and_api_perf_v2(ApiPerfRegisterV2(kBitwiseAnd, GetPerfFunc(kBitwiseAnd + "V2"), nullptr,
-                                                                   &perf_param_table_v2, &tiling_schedule_config_table_v2));
+                                                                  &perf_param_table_v2,
+                                                                  &tiling_schedule_config_table_v2));
+ApiPerfRegister<ApiPerf> bitwise_and_api_perf_v2(ApiPerfRegisterV2(kBitwiseAnd, GetPerfFunc(kBitwiseAnd + "V2"),
+                                                                   nullptr, &perf_param_table_v2,
+                                                                   &tiling_schedule_config_table_v2));
 ApiPerfRegister<ApiPerf> transpose_api_perf_v2(ApiPerfRegisterV2(kTranspose, GetPerfFunc(kUnitVector), nullptr,
-                                                                 &perf_param_table_v2, &tiling_schedule_config_table_v2));
+                                                                 &perf_param_table_v2,
+                                                                 &tiling_schedule_config_table_v2));
 ApiPerfRegister<ApiPerf> floor_div_api_perf_v2(ApiPerfRegisterV2(kFloorDiv, GetPerfFunc(kFloorDiv + "V2"), nullptr,
-                                                                 &perf_param_table_v2, &tiling_schedule_config_table_v2));
+                                                                 &perf_param_table_v2,
+                                                                 &tiling_schedule_config_table_v2));
 ApiPerfRegister<ApiPerf> gelu_api_perf_v2(ApiPerfRegisterV2(kGelu, GetPerfFunc(kGelu + "V2"), nullptr,
                                                             &perf_param_table_v2, &tiling_schedule_config_table_v2));
 ApiPerfRegister<ApiPerf> trunc_api_perf_v2(ApiPerfRegisterV2(kTrunc, GetPerfFunc(kTrunc + "V2"), nullptr,
@@ -717,18 +756,23 @@ ApiPerfRegister<ApiPerf> tan_api_perf_v2(ApiPerfRegisterV2(kTan, GetPerfFunc(kTa
 ApiPerfRegister<ApiPerf> sinh_api_perf_v2(ApiPerfRegisterV2(kSinh, GetPerfFunc(kSinh + "V2"), nullptr,
                                                             &perf_param_table_v2, &tiling_schedule_config_table_v2));
 ApiPerfRegister<ApiPerf> trunc_div_api_perf_v2(ApiPerfRegisterV2(kTruncDiv, GetPerfFunc(kTruncDiv + "V2"), nullptr,
-                                                                 &perf_param_table_v2, &tiling_schedule_config_table_v2));
-ApiPerfRegister<ApiPerf> trunc_to_int_api_perf_v2(ApiPerfRegisterV2(kTruncToInt, GetPerfFunc(kTruncToInt + "V2"), nullptr,
-                                                                    &perf_param_table_v2, &tiling_schedule_config_table_v2));
-ApiPerfRegister<ApiPerf> round_to_int_api_perf_v2(ApiPerfRegisterV2(kRoundToInt, GetPerfFunc(kRoundToInt + "V2"), nullptr,
-                                                                    &perf_param_table_v2, &tiling_schedule_config_table_v2));
+                                                                 &perf_param_table_v2,
+                                                                 &tiling_schedule_config_table_v2));
+ApiPerfRegister<ApiPerf> trunc_to_int_api_perf_v2(ApiPerfRegisterV2(kTruncToInt, GetPerfFunc(kTruncToInt + "V2"),
+                                                                    nullptr, &perf_param_table_v2,
+                                                                    &tiling_schedule_config_table_v2));
+ApiPerfRegister<ApiPerf> round_to_int_api_perf_v2(ApiPerfRegisterV2(kRoundToInt, GetPerfFunc(kRoundToInt + "V2"),
+                                                                    nullptr, &perf_param_table_v2,
+                                                                    &tiling_schedule_config_table_v2));
 ApiPerfRegister<ApiPerf> xor_api_perf_v2(ApiPerfRegisterV2(kXor, GetPerfFunc(kXor + "V2"), nullptr,
                                                            &perf_param_table_v2, &tiling_schedule_config_table_v2));
 ApiPerfRegister<ApiPerf> remainder_api_perf_v2(ApiPerfRegisterV2(kRemainder, GetPerfFunc(kRemainder + "V2"), nullptr,
-                                                                 &perf_param_table_v2, &tiling_schedule_config_table_v2));
+                                                                 &perf_param_table_v2,
+                                                                 &tiling_schedule_config_table_v2));
 ApiPerfRegister<ApiPerf> square_api_perf_v2(ApiPerfRegisterV2(kSquare, GetPerfFunc(kSquare + "V2"), nullptr,
                                                               &perf_param_table_v2, &tiling_schedule_config_table_v2));
 
-ApiPerfRegister<ApiPerf> vector_func_api_perf(kVectorFunc, DefaultGetPerf, nullptr, &perf_param_table_v2, &tiling_schedule_config_table_v2);
+ApiPerfRegister<ApiPerf> vector_func_api_perf(kVectorFunc, DefaultGetPerf, nullptr, &perf_param_table_v2,
+                                              &tiling_schedule_config_table_v2);
 }  // namespace
 }  // namespace att

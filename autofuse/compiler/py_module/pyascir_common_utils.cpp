@@ -199,12 +199,17 @@ PyObject *UtilsSetPlatform(const PyObject *self_pyobject, PyObject *args, const 
   (void)self_pyobject;
   (void)kwds;
   const char *platform = nullptr;
-  if (PyArg_ParseTuple(args, "s", &platform) == kPythonFail) {
-    return PyErr_Format(PyExc_TypeError, "UtilsSetPlatform param parse failed, expected string");
+  long long vector_core_num = 0;
+  long long ub_size = 0;
+  if (PyArg_ParseTuple(args, "sLL", &platform, &vector_core_num, &ub_size) == kPythonFail) {
+    return PyErr_Format(PyExc_TypeError, "UtilsSetPlatform param parse failed, expected string, long, long");
   }
   PY_ASSERT_NOTNULL(platform);
-  std::string platform_str(platform);
-  ge::PlatformContext::GetInstance().SetPlatform(platform_str);
+  ge::PlatformInfo platform_info;
+  platform_info.soc_ver = std::string(platform);
+  platform_info.aiv_num = static_cast<int64_t>(vector_core_num);
+  platform_info.ub_size = static_cast<int64_t>(ub_size);
+  ge::PlatformContext::GetInstance().SetPlatformInfo(platform_info);
   Py_RETURN_NONE;
 }
 }  // namespace pyascir

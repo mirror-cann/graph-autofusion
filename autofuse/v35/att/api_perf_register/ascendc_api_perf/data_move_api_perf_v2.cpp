@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -11,19 +11,21 @@
 #include <string>
 #include <numeric>
 #include "common/checker.h"
-#include "perf_param_v2.h"
+#include "v35/att/api_perf_register/perf_param_v2.h"
 #include "api_perf_register/ascendc_api_perf.h"
 #include "api_perf_register/api_perf_factory.h"
+#include "v35/att/api_perf_register/ascendc_api_perf/data_move_api_perf_v2.h"
+#include "v35/att/api_perf_register/ascendc_regbase_perf.h"
 namespace att {
-namespace {
+namespace ascendcapi_v2 {
 // 获取 CacheLine 大小，与 TilingScheduleConfigTable 保持一致
 uint32_t GetCacheLineSize() {
   return TilingScheduleConfigTableV2().GetCacheLineSize();
 }
 
 // 初始化block_len扩展所需的参数
-ge::Status InitBlockLenExpandParams(const NodeDetail &node_info, const std::vector<Expr> &dims,
-                                     Expr &block_len, Expr &cache_line_ele_num) {
+ge::Status InitBlockLenExpandParams(const NodeDetail &node_info, const std::vector<Expr> &dims, Expr &block_len,
+                                    Expr &cache_line_ele_num) {
   const size_t dim_size = dims.size();
   block_len = dims[dim_size - 1UL];
   const int32_t kCacheLineSize = static_cast<int32_t>(GetCacheLineSize());
@@ -79,9 +81,8 @@ ge::Status GetLoadCase(const NodeDetail &node_info, Expr &blk, int32_t &use_case
   return ge::SUCCESS;
 }
 
-ge::Status InitBlockLenExpand(const NodeDetail &node_info, std::vector<Expr> &dims,
-                              Expr &block_len, Expr &cache_line_ele_num,
-                              Expr &block_len_ref, int32_t &kCacheLineSize,
+ge::Status InitBlockLenExpand(const NodeDetail &node_info, std::vector<Expr> &dims, Expr &block_len,
+                              Expr &cache_line_ele_num, Expr &block_len_ref, int32_t &kCacheLineSize,
                               int32_t &blk_len_val, int32_t &stride_val) {
   GE_ASSERT_SUCCESS(InitBlockLenExpandParams(node_info, dims, block_len, cache_line_ele_num));
   block_len_ref = dims[dims.size() - 1UL];
@@ -108,8 +109,8 @@ ge::Status TryInitStaticExpand(const NodeDetail &node_info, std::vector<Expr> &d
   Expr block_len;
   Expr block_len_ref;
   result.cache_line_size = static_cast<int32_t>(GetCacheLineSize());
-  if (InitBlockLenExpand(node_info, dims, block_len, result.cache_line_ele_num,
-                         block_len_ref, result.cache_line_size, result.blk_len_val, result.stride_val) != ge::SUCCESS) {
+  if (InitBlockLenExpand(node_info, dims, block_len, result.cache_line_ele_num, block_len_ref, result.cache_line_size,
+                         result.blk_len_val, result.stride_val) != ge::SUCCESS) {
     return ge::FAILED;
   }
   const auto &data_type_size = kDataTypeSizeMap.find(node_info.input_dtype[0]);
@@ -131,8 +132,8 @@ ge::Status ExpandLoadBlockLen(const NodeDetail &node_info, PerfOutputInfo &perf,
     auto &block_len_ref_actual = dims[dims.size() - 1UL];
     const auto &data_type_size = kDataTypeSizeMap.find(node_info.input_dtype[0]);
     Expr cache_line_ele_num_threshold = CreateExpr(kCacheLineSize) / data_type_size->second;
-    auto need_expand_checker = af::sym::LogicalAnd(
-        {af::sym::Gt(node_info.gm_stride, CreateExpr(0)), af::sym::Lt(block_len_ref_actual, cache_line_ele_num_threshold)});
+    auto need_expand_checker = af::sym::LogicalAnd({af::sym::Gt(node_info.gm_stride, CreateExpr(0)),
+                                                    af::sym::Lt(block_len_ref_actual, cache_line_ele_num_threshold)});
     bool need_expand{false};
     if (need_expand_checker.IsConstExpr()) {
       need_expand_checker.GetConstValue(need_expand);
@@ -143,8 +144,8 @@ ge::Status ExpandLoadBlockLen(const NodeDetail &node_info, PerfOutputInfo &perf,
       GE_ASSERT_NOTNULL(normal_case);
       auto expand_case = std::make_shared<IfCase>(static_res.cache_line_ele_num);
       GE_ASSERT_NOTNULL(expand_case);
-      TernaryOp ternary_op =
-          TernaryOp(CondType::K_EQ, need_expand_checker, CreateExpr(false), std::move(normal_case), std::move(expand_case));
+      TernaryOp ternary_op = TernaryOp(CondType::K_EQ, need_expand_checker, CreateExpr(false), std::move(normal_case),
+                                       std::move(expand_case));
       ternary_op.SetVariable(res);
       perf.ternary_ops[res] = ternary_op;
       block_len_ref_actual = res;
@@ -166,12 +167,14 @@ ge::Status LoadPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   std::vector<Expr> expanded_dims{node_info.input_dims};
   GE_ASSERT_SUCCESS(ExpandLoadBlockLen(node_info, perf, expanded_dims), "Expand load block len failed, node[%s]",
                     node_info.ToString().c_str());
-  GE_ASSERT_SUCCESS(GetPerf({kMoveGmToUb, node_info.input_dtype[0],node_info.output_dtype[0],
-                             expanded_dims, CreateExpr(0)}, res_normal));
-  GE_ASSERT_SUCCESS(GetPerf({kMoveGmToUb + "SmallBlk", node_info.input_dtype[0], node_info.output_dtype[0],
-                             expanded_dims, CreateExpr(0)}, res_small_blk));
-  GE_ASSERT_SUCCESS(GetPerf({kMoveGmToUb + "Stride", node_info.input_dtype[0], node_info.output_dtype[0],
-                             expanded_dims, node_info.gm_stride, node_info.block_count_idx}, res_stride));
+  GE_ASSERT_SUCCESS(GetPerf(
+      {kMoveGmToUb, node_info.input_dtype[0], node_info.output_dtype[0], expanded_dims, CreateExpr(0)}, res_normal));
+  GE_ASSERT_SUCCESS(GetPerf(
+      {kMoveGmToUb + "SmallBlk", node_info.input_dtype[0], node_info.output_dtype[0], expanded_dims, CreateExpr(0)},
+      res_small_blk));
+  GE_ASSERT_SUCCESS(GetPerf({kMoveGmToUb + "Stride", node_info.input_dtype[0], node_info.output_dtype[0], expanded_dims,
+                             node_info.gm_stride, node_info.block_count_idx},
+                            res_stride));
   GE_ASSERT_SUCCESS(GetLoadCase(node_info, blk, use_case));
   GE_ASSERT_SUCCESS(AppendCacheLineConfig(node_info, CacheLineDirection::kGmToUb, perf.cache_line_config));
   if (use_case == kCaseOne) {
@@ -201,10 +204,10 @@ ge::Status StorePerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   GELOGD("Dma with Store: %s", node_info.ToString().c_str());
   std::vector<Expr> padded_dims{node_info.input_dims};
   // 应用MTE3场景的block_len padding（cache line大小128字节）
-  GE_ASSERT_SUCCESS(ExpandMTE3BlockLen(node_info, perf, padded_dims),
-                    "Expand MTE3 block len failed, node[%s]", node_info.ToString().c_str());
-  GE_ASSERT_SUCCESS(GetPerf({kMoveUbToGm, node_info.input_dtype[0],node_info.output_dtype[0],
-                             padded_dims, CreateExpr(0)}, res_normal));
+  GE_ASSERT_SUCCESS(ExpandMTE3BlockLen(node_info, perf, padded_dims), "Expand MTE3 block len failed, node[%s]",
+                    node_info.ToString().c_str());
+  GE_ASSERT_SUCCESS(GetPerf(
+      {kMoveUbToGm, node_info.input_dtype[0], node_info.output_dtype[0], padded_dims, CreateExpr(0)}, res_normal));
   GE_ASSERT_SUCCESS(GetPerf({kMoveUbToGm + "Stride", node_info.input_dtype[0], node_info.output_dtype[0],
                              node_info.repeats, node_info.gm_stride, node_info.block_count_idx}, res_stride));
   GE_ASSERT_SUCCESS(AppendCacheLineConfig(node_info, CacheLineDirection::kUbToGm, perf.cache_line_config));
@@ -225,8 +228,8 @@ ge::Status ExpandBlockLen(const NodeDetail &node_info, PerfOutputInfo &perf, std
   } else {
     auto &block_len_ref_actual = dims[dims.size() - 1UL];
     auto &cache_line_ele_num = static_res.cache_line_ele_num;
-    auto is_small_block_len_checker =
-        af::sym::LogicalAnd({af::sym::Gt(node_info.gm_stride, CreateExpr(0)), af::sym::Lt(block_len_ref_actual, cache_line_ele_num)});
+    auto is_small_block_len_checker = af::sym::LogicalAnd(
+        {af::sym::Gt(node_info.gm_stride, CreateExpr(0)), af::sym::Lt(block_len_ref_actual, cache_line_ele_num)});
     bool is_small_block_len{false};
     if (is_small_block_len_checker.IsConstExpr()) {
       is_small_block_len_checker.GetConstValue(is_small_block_len);
@@ -238,7 +241,7 @@ ge::Status ExpandBlockLen(const NodeDetail &node_info, PerfOutputInfo &perf, std
       auto small_block_len_case = std::make_shared<IfCase>(cache_line_ele_num);
       GE_ASSERT_NOTNULL(small_block_len_case);
       TernaryOp ternary_op = TernaryOp(CondType::K_EQ, is_small_block_len_checker, CreateExpr(false),
-                                    std::move(normal_case), std::move(small_block_len_case));
+                                       std::move(normal_case), std::move(small_block_len_case));
       ternary_op.SetVariable(res);
       perf.ternary_ops[res] = ternary_op;
       block_len_ref_actual = res;
@@ -265,8 +268,9 @@ ge::Status ExpandMTE3BlockLen(const NodeDetail &node_info, PerfOutputInfo &perf,
     auto &cache_line_ele_num = static_res.cache_line_ele_num;
     const auto &data_type_size = kDataTypeSizeMap.find(node_info.input_dtype[0]);
     Expr block_len_bytes = af::sym::Mul(block_len_ref_actual, data_type_size->second);
-    auto need_padding_checker = af::sym::LogicalAnd(
-        {af::sym::Gt(node_info.gm_stride, CreateExpr(0)), af::sym::Lt(block_len_bytes, CreateExpr(static_res.cache_line_size))});
+    auto need_padding_checker =
+        af::sym::LogicalAnd({af::sym::Gt(node_info.gm_stride, CreateExpr(0)),
+                             af::sym::Lt(block_len_bytes, CreateExpr(static_res.cache_line_size))});
     bool need_padding{false};
     if (need_padding_checker.IsConstExpr()) {
       need_padding_checker.GetConstValue(need_padding);
@@ -277,8 +281,8 @@ ge::Status ExpandMTE3BlockLen(const NodeDetail &node_info, PerfOutputInfo &perf,
       GE_ASSERT_NOTNULL(normal_case);
       auto padding_case = std::make_shared<IfCase>(cache_line_ele_num);
       GE_ASSERT_NOTNULL(padding_case);
-      TernaryOp ternary_op = TernaryOp(CondType::K_EQ, need_padding_checker, CreateExpr(false),
-                                     std::move(normal_case), std::move(padding_case));
+      TernaryOp ternary_op = TernaryOp(CondType::K_EQ, need_padding_checker, CreateExpr(false), std::move(normal_case),
+                                       std::move(padding_case));
       ternary_op.SetVariable(res);
       perf.ternary_ops[res] = ternary_op;
       block_len_ref_actual = res;
@@ -307,8 +311,12 @@ ge::Status NddmaPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   return ge::SUCCESS;
 }
 
-REGISTER_ASCENDC_EVAL_FUNC_TAG(kLoad, V2, LoadPerf);
-REGISTER_ASCENDC_EVAL_FUNC_TAG(kStore, V2, StorePerf);
-REGISTER_ASCENDC_EVAL_FUNC_TAG(kNddma, V2, NddmaPerf);
-}
-}
+}  // namespace ascendcapi_v2
+
+namespace {
+// Data movement APIs only need NodeDetail, so keep them registered for generic ApiPerfFactory lookup.
+REGISTER_ASCENDC_EVAL_FUNC_TAG(kLoad, V2, ascendcapi_v2::LoadPerf);
+REGISTER_ASCENDC_EVAL_FUNC_TAG(kStore, V2, ascendcapi_v2::StorePerf);
+REGISTER_ASCENDC_EVAL_FUNC_TAG(kNddma, V2, ascendcapi_v2::NddmaPerf);
+}  // namespace
+}  // namespace att

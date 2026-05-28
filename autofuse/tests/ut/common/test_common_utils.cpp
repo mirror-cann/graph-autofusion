@@ -17,6 +17,7 @@
 #include "ascir_ops_utils.h"
 #include "common_utils.h"
 #include "ascir_register.h"
+#include "codegen_api_param/codegen_api_param.h"
 #include "graph/types.h"
 #include "graph/tensor.h"
 
@@ -24,6 +25,18 @@ using namespace af::ops;
 using namespace af::ascir_op;
 namespace ascgen_utils
 {
+namespace {
+af::Expression CreateExpr(int64_t value)
+{
+  return af::Symbol(value);
+}
+
+af::Expression CreateExpr(const std::string &name)
+{
+  return af::Symbol(name.c_str());
+}
+}  // namespace
+
 class CommonUtilsTest: public testing::Test{
  public:
   void SetUp() override {
@@ -635,5 +648,88 @@ TEST_F(CommonUtilsTest, GetAscIrAttImplNotNullTest) {
   auto att_impl = ascgen_utils::GetAscIrAttImpl("StubWorkspace");
   EXPECT_NE(att_impl, nullptr);
   EXPECT_EQ((uint64_t)(uintptr_t)(att_impl->GetApiPerf()), 0x123456);
+}
+
+TEST(CodegenApiParamReduceTest, BuildReduceSpecificParamsBuildsArSingleReduce) {
+  codegen::ReduceSpecificParamBuildInput input;
+  input.node_name = "reduce_max";
+  input.reduce_type = "ReduceMax";
+  input.input_repeats = {CreateExpr(2), CreateExpr(3), CreateExpr(4)};
+  input.input_strides = {CreateExpr(12), CreateExpr(4), CreateExpr(1)};
+  input.output_dims = {CreateExpr(2), CreateExpr(3)};
+  input.output_strides = {CreateExpr(3), CreateExpr(1), af::sym::kSymbolZero};
+  input.dtype_size = 2U;
+  input.pattern = codegen::ReducePattern::kAR;
+  input.need_multi_reduce = false;
+  input.merge_times = CreateExpr(4);
+  input.reuse = {true, false};
+
+  codegen::ReduceSpecificParams param;
+  EXPECT_EQ(codegen::BuildReduceSpecificParams(input, param), ge::SUCCESS);
+  EXPECT_TRUE(param.valid);
+  EXPECT_EQ(param.reduce_type, "ReduceMax");
+  EXPECT_EQ(param.pattern, codegen::ReducePattern::kAR);
+  EXPECT_EQ(param.merge_mode, codegen::ReduceMergeMode::kNone);
+  EXPECT_TRUE(param.merged_dims.valid);
+  EXPECT_EQ(param.merge_size, CreateExpr(6));
+  EXPECT_EQ(param.merge_times, CreateExpr(1));
+  EXPECT_TRUE(param.reuse.valid);
+  EXPECT_FALSE(param.reuse.is_reuse_source);
+}
+
+TEST(CodegenApiParamReduceTest, BuildReduceSpecificParamsBuildsCopyMode) {
+  codegen::ReduceSpecificParamBuildInput input;
+  input.node_name = "reduce_min";
+  input.reduce_type = "ReduceMin";
+  input.input_repeats = {CreateExpr(8), CreateExpr(16)};
+  input.input_strides = {CreateExpr(16), CreateExpr(1)};
+  input.output_dims = {CreateExpr(8)};
+  input.output_strides = {CreateExpr(1), af::sym::kSymbolZero};
+  input.dtype_size = 4U;
+  input.pattern = codegen::ReducePattern::kRA;
+  input.need_multi_reduce = true;
+  input.merge_times = CreateExpr("r_axis_size");
+
+  codegen::ReduceSpecificParams param;
+  EXPECT_EQ(codegen::BuildReduceSpecificParams(input, param), ge::SUCCESS);
+  EXPECT_TRUE(param.valid);
+  EXPECT_EQ(param.merge_mode, codegen::ReduceMergeMode::kCopy);
+  EXPECT_EQ(param.merge_size, CreateExpr(8));
+  EXPECT_EQ(param.merge_times, CreateExpr("r_axis_size"));
+}
+
+TEST(CodegenApiParamReduceTest, BuildReduceSpecificParamsKeepsValidWhenOutputStrideRankDiffers) {
+  codegen::ReduceSpecificParamBuildInput input;
+  input.node_name = "rank_diff_reduce";
+  input.reduce_type = "ReduceMax";
+  input.input_repeats = {CreateExpr(2), CreateExpr(3)};
+  input.input_strides = {CreateExpr(3), CreateExpr(1)};
+  input.output_dims = {CreateExpr(2)};
+  input.output_strides = {af::sym::kSymbolZero};
+  input.dtype_size = 2U;
+  input.pattern = codegen::ReducePattern::kAR;
+  input.need_multi_reduce = false;
+  input.merge_times = CreateExpr(1);
+
+  codegen::ReduceSpecificParams param;
+  EXPECT_EQ(codegen::BuildReduceSpecificParams(input, param), ge::SUCCESS);
+  EXPECT_TRUE(param.valid);
+  EXPECT_FALSE(param.merged_dims.valid);
+}
+
+TEST(CodegenApiParamReduceTest, BuildReduceSpecificParamsRejectsInvalidInput) {
+  codegen::ReduceSpecificParamBuildInput input;
+  input.node_name = "bad_reduce";
+  input.reduce_type = "ReduceMax";
+  input.input_repeats = {CreateExpr(2)};
+  input.input_strides = {CreateExpr(1)};
+  input.output_dims = {CreateExpr(1)};
+  input.output_strides = {af::sym::kSymbolZero};
+  input.dtype_size = 0U;
+  input.pattern = codegen::ReducePattern::kAR;
+
+  codegen::ReduceSpecificParams param;
+  EXPECT_NE(codegen::BuildReduceSpecificParams(input, param), ge::SUCCESS);
+  EXPECT_FALSE(param.valid);
 }
 } //namespace

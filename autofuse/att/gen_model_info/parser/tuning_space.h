@@ -20,6 +20,7 @@
 #include "base/model_info.h"
 #include "ascendc_ir/ascendc_ir_core/ascendc_ir_def.h"
 #include "ascendc_ir.h"
+#include "codegen_api_param/codegen_api_param.h"
 
 namespace att {
 class TilingScheduleConfigTable;
@@ -89,6 +90,7 @@ struct SubAxis {
 
   // 轴基本信息
   std::string name;
+  int64_t id{-1L}; // ASCIR原始axis id，用于根据ScheduleAttr::loop_axis_id回查轴
   AxisPosition axis_type{}; // 轴类型
   bool is_bind_multi_core = false; // 该轴是否block切分，是否要技术block inner
   bool enable_tail = false; // 是否能做不对齐tail
@@ -202,6 +204,7 @@ struct NodeInfo {
   af::AscNodePtr node_ptr;
   std::set<std::string> from_data; // 隶属的Data节点名称
   std::vector<NodeInfo> sub_nodes_infos;
+  codegen::ReduceSpecificParams reduce_specific_params;
   af::ExecuteCondition exec_condition{af::ExecuteCondition::kNoCache};
   std::string DebugString() const {
     std::stringstream ss;

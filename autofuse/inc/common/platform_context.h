@@ -34,6 +34,8 @@ class PlatformContext {
   // 外部设置 platform
   void SetPlatform(const std::string &platform_name);
 
+  void SetPlatformInfo(const PlatformInfo &platform_info);
+
   // 获取当前 platform 字符串
   ge::Status GetCurrentPlatformString(std::string &platform_name);
 

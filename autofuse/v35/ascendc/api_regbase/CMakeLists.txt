@@ -50,6 +50,11 @@ set(ascendc_api_regbase_extend_src
         igammac.h
         trigonometric_function_utils.h
         transpose.h
+        shifted_chebyshev_polynomial_utils.h
+        shifted_chebyshev_polynomial_t.h
+        shifted_chebyshev_polynomial_u.h
+        shifted_chebyshev_polynomial_v.h
+        shifted_chebyshev_polynomial_w.h
 )
 
 set(generated_regbase_files)

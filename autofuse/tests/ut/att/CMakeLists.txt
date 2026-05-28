@@ -48,6 +48,7 @@ file(GLOB SOURCES
         ${TOP_DIR}/tests/ut/att/testcase/gen_model_info/reuse_group_utils/*.cpp
         # gen_model_info/api_perf_register
         ${TOP_DIR}/tests/ut/att/testcase/gen_model_info/api_perf_register/*.cpp
+        ${TOP_DIR}/autofuse/tests/v35/ut/att/gen_model_info/api_perf_register/test_reduce_min_max_api_perf_v2.cpp
         # gen_model_info/core
         ${TOP_DIR}/tests/ut/att/testcase/gen_model_info/core/*.cpp
         # util

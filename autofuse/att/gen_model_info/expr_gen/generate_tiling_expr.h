@@ -44,7 +44,8 @@ private:
 
   // 获取算子流水约束
   ge::Status GetPipePerformance(std::map<PipeType, Expr> &pipe_perf_object,
-                                std::map<Expr, TernaryOp, ExprCmp> &ternary_ops, Expr &head_cost);
+                                std::map<Expr, TernaryOp, ExprCmp> &ternary_ops,
+                                std::vector<PerfBreakdownGroup> &perf_breakdowns, Expr &head_cost);
 
   // 获取block dim约束
   ge::Status GetCoreConstraint(std::map<HardwareDef, Expr> &hardware_cons);

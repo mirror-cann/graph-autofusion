@@ -298,6 +298,36 @@ inline std::string GenPGOReuseGroupProfile(const std::string &schedule_result_pr
    return var_name.substr(var_name.length() - suffix.length()) == suffix;
  }
 
+ std::string GetPerfBreakdownIndent(uint32_t indent) {
+   return std::string(4U + indent * 2U, ' ');
+ }
+
+ void AppendPerfBreakdownAnnotations(const ArgsManager &args_manager, const std::string &tiling_id,
+                                     std::string &annotations) {
+   const auto &perf_breakdowns = args_manager.GetPerfBreakdowns();
+   if (perf_breakdowns.empty()) {
+     return;
+   }
+   const auto replace_vars = args_manager.GetTernaryOpReplaceVars();
+   annotations += " Reduce perf breakdown used for tiling case " + tiling_id + " is:\n";
+   for (const auto &group : perf_breakdowns) {
+     annotations += "  " + group.title + ":\n";
+     for (const auto &item : group.items) {
+       Expr item_expr = item.expr.Replace(replace_vars);
+       item_expr.Simplify();
+       const std::string indent = GetPerfBreakdownIndent(item.indent);
+       const std::string item_desc = item.desc.empty() ? item.name : item.name + ": " + item.desc;
+       const std::string expr_str = Str(item_expr);
+       if (item_desc.length() + expr_str.length() <= kPerfAnnotationMaxExprLen) {
+         annotations += indent + item_desc + " = " + expr_str + "\n";
+       } else {
+         annotations += indent + item_desc + "\n";
+         annotations += indent + "  = " + expr_str + "\n";
+       }
+     }
+   }
+ }
+
  inline std::string GenCallUpdateBetterTiling(bool is_uniq_group) {
    std::string workspace_param;
    if (is_uniq_group) {
@@ -1527,7 +1557,7 @@ ge::Status TilingCodeGenImpl::GenVirtualDataTransferFuncs() {
          continue;
        }
        std::string display_name = variable_name;
-       if (is_perf) {
+       if (is_perf || is_contrib) {
          if (std::string desc = snd.GetDescription(); !desc.empty()) {
            display_name = desc;
          }
@@ -1550,6 +1580,7 @@ ge::Status TilingCodeGenImpl::GenVirtualDataTransferFuncs() {
        }
      }
    }
+   AppendPerfBreakdownAnnotations(args_manager, tiling_id, annotations);
    if (!annotations.empty()) {
      tiling_func_.AddLine("/*");
      tiling_func_.AddLine(annotations);

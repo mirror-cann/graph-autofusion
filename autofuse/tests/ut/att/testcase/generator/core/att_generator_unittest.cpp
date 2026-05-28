@@ -289,6 +289,34 @@ TEST(GeneratorUT, TilingCodeGenImplConstruct) {
   EXPECT_EQ(impl.tiling_func_.GetOutputStr().empty(), true);
 }
 
+TEST(GeneratorUT, GenVariableAnnotationShowsReduceBreakdownAndContribSemantics) {
+  TilingCodeGenConfig config;
+  TilingModelInfo tiling_model_info;
+  ScoreFuncs score_funcs;
+  ModelInfo model_info = CreateModelInfo();
+  Expr contrib_var = CreateExpr("Min_AIV_VEC_core_contrib");
+  TernaryOp contrib_op(CreateExpr("reduce_total_perf") * CreateExpr("core_exe_time"));
+  contrib_op.SetVariable(contrib_var);
+  contrib_op.SetDescription("AIV_VEC core contribution = node API perf * core exe time");
+  model_info.ternary_op_map[contrib_var] = contrib_op;
+  model_info.perf_breakdowns = {{"Min Reduce API",
+                                 {{"reduce_body_perf", CreateExpr("reduce_body_perf"), "Reduce API body perf", 0U},
+                                  {"reduce_total_perf", CreateExpr("reduce_total_perf"),
+                                   "Reduce API total perf = body + merge", 0U}}}};
+  tiling_model_info.push_back(model_info);
+  MockHighPerfTilingCodeGenImpl impl("test", config, tiling_model_info, score_funcs, true);
+  ArgsManager args_manager(model_info);
+  ASSERT_TRUE(args_manager.Process(false));
+  EXPECT_EQ(impl.GenVariableAnnotation(args_manager), ge::SUCCESS);
+
+  const std::string tiling_func_output = impl.tiling_func_.GetOutputStr();
+  EXPECT_NE(tiling_func_output.find("Reduce perf breakdown used for tiling case 0"), std::string::npos);
+  EXPECT_NE(tiling_func_output.find("reduce_total_perf: Reduce API total perf = body + merge"), std::string::npos);
+  EXPECT_NE(tiling_func_output.find("AIV_VEC core contribution = node API perf * core exe time"),
+            std::string::npos);
+  EXPECT_NE(tiling_func_output.find("core_exe_time * reduce_total_perf"), std::string::npos);
+}
+
 TEST(GeneratorUT, TilingCodeGenImplPGO) {
   TilingCodeGenConfig config;
   TilingModelInfo tiling_model_info;

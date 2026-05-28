@@ -57,6 +57,11 @@ bool ArgsManager::ReplaceVars(ExprExprMap &replaced_vars, ExprExprMap &replaceme
     pair.second.Replace(old_to_new_expr_replacement);
     GELOGD("tenary op after: %s", pair.second.GetTernaryOpStr().c_str());
   }
+  for (auto &group : perf_breakdowns_) {
+    for (auto &item : group.items) {
+      item.expr = item.expr.Replace(old_to_new_expr_replacement);
+    }
+  }
   for (auto &leq_expr : cut_leq_cons_) {
     leq_expr = leq_expr.Replace(old_to_new_expr_replacement);
   }
@@ -393,6 +398,7 @@ void ArgsManager::SetOrigExprs() {
   for (const auto &pair : model_info_.ternary_op_map) {
     ternary_op_[pair.first] = pair.second.DeepCopy();
   }
+  perf_breakdowns_ = model_info_.perf_breakdowns;
   for (const auto &var_info : vars_infos_) {
     if (!var_info.second.is_input_var) {
       ori_var_init_values_[var_info.first] = GetDefaultInitValue(var_info.first);
@@ -681,6 +687,10 @@ const std::map<Expr, TernaryOp, ExprCmp>& ArgsManager::GetTernaryOps() const {
   return ternary_op_;
 }
 
+const std::vector<PerfBreakdownGroup>& ArgsManager::GetPerfBreakdowns() const {
+  return perf_breakdowns_;
+}
+
 const ModelInfo &ArgsManager::GetModelInfo() const {
   return model_info_;
 }
@@ -716,6 +726,7 @@ void ArgsManager::Reset() {
   ori_var_max_values_.clear();
   ori_var_align_values_.clear();
   solved_vars_.clear();
+  perf_breakdowns_.clear();
 }
 
 }  // namespace att

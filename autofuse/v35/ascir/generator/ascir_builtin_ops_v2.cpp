@@ -412,7 +412,7 @@ REG_ASC_IR(Sum)
                             {{"T", TensorType{DT_INT8, DT_INT16, DT_INT32, DT_BF16, DT_FLOAT16, DT_FLOAT, DT_INT64}}}});
 
 REG_ASC_IR(Min)
-    .Impl(v2_soc_versions, {af::ascir::AscIrImplCreator<af::ascir::ReciprocalAscIrAttImplV2>(),
+    .Impl(v2_soc_versions, {af::ascir::AscIrImplCreator<af::ascir::MinAscIrAttImplV2>(),
                             af::ascir::AscIrImplCreator<af::ascir::MinAscIrCodegenImplV2>(),
                             {{"T", TensorType{DT_INT8, DT_UINT8, DT_INT16, DT_INT32, DT_BF16, DT_FLOAT16, DT_FLOAT, DT_INT64}}}});
 

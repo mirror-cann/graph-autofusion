@@ -13,6 +13,7 @@
 #include <algorithm>
 #include <stack>
 #include <queue>
+#include <set>
 #include <climits>
 #include "common/checker.h"
 #include "common/util/mem_utils.h"
@@ -22,6 +23,7 @@
 #include "ascendc_ir/ascendc_ir_core/ascendc_ir.h"
 #include "base_types_printer.h"
 #include "common_utils.h"
+#include "reduce_specific_params_builder.h"
 #include "vector_function_graph_parser.h"
 
 namespace att {
@@ -241,6 +243,7 @@ void AscendGraphParser::ParserSubAxis(const af::AxisPtr &axis, SubAxisPtr &sub_a
     name += std::to_string(axis->id);
   }
   sub_axis_ptr->name = name;
+  sub_axis_ptr->id = axis->id;
 
   if ((axis->type == af::Axis::kAxisTypeBlockInner) || (axis->type == af::Axis::kAxisTypeBlockOuter)) {
     sub_axis_ptr->is_bind_multi_core = true;
@@ -766,6 +769,7 @@ af::Status AscendGraphParser::ConvertNodeInfos(const af::AscNodePtr &ge_node, co
     }
   }
   node_info.node_ptr = ge_node;
+  GE_ASSERT_SUCCESS(FillReduceSpecificParams(ge_node, attrs, node_info));
   auto vectorized_axis_ids = GetNodeVectorizedAxis(ge_node, loop_axis);
   for (const auto &axis_info : vectorized_axis_ids) {
     auto sub_axis_iter = sub_axes_info_.find(axis_info);

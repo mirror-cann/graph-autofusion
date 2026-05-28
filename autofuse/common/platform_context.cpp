@@ -43,7 +43,18 @@ void PlatformContext::SetPlatform(const std::string &platform_name) {
   std::lock_guard<std::mutex> lg(mutex_);
   if (!platform_name.empty()) {
     platform_info_.soc_ver = platform_name;
-    InitPlatformInfo();
+    initialized_ = true;
+    GELOGI("Set platform: soc_ver=%s", platform_info_.soc_ver.c_str());
+  }
+}
+
+void PlatformContext::SetPlatformInfo(const PlatformInfo &platform_info) {
+  std::lock_guard<std::mutex> lg(mutex_);
+  if (!platform_info.soc_ver.empty()) {
+    platform_info_ = platform_info;
+    initialized_ = true;
+    GELOGI("Set platform info: soc_ver=%s, aiv_num=%lld, ub_size=%lld",
+           platform_info_.soc_ver.c_str(), platform_info_.aiv_num, platform_info_.ub_size);
   }
 }
 

@@ -13,6 +13,7 @@
 #include <memory>
 #include <map>
 #include "base/base_types.h"
+#include "base/perf_breakdown.h"
 #include "schedule_result.h"
 #include "util/ternary_op.h"
 
@@ -280,6 +281,7 @@ struct ModelInfo {
   ExprExprMap variable_expr_map; //用于记录tensor的表达式
   std::map<Expr, std::string, ExprCmp> variable_name_map; //用于记录tensor的名称
   std::map<Expr, TernaryOp, ExprCmp> ternary_op_map; //用于记录三目运算符的名称
+  std::vector<PerfBreakdownGroup> perf_breakdowns; // 用于记录性能公式的语义化拆解
   uint32_t output_size;
   std::vector<af::AscNodePtr> input_nodes; // 获取输入schedule_results[0].input_nodes
   std::vector<af::AscNodePtr> output_nodes; // 获取输入出schedule_results[0].output_nodes

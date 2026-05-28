@@ -98,6 +98,7 @@ inline const std::map<std::string, Expr> kRptEleMap = {
     {kInt8, CreateExpr(256)},
     {kUInt8, CreateExpr(256)},
     {kFloat16, CreateExpr(128)},
+    {kBfloat16, CreateExpr(128)},
     {kUInt16, CreateExpr(128)},
     {kInt16, CreateExpr(128)},
     {kFloat32, CreateExpr(64)},

@@ -964,11 +964,14 @@ ge::Status GetDmaPerf(const TensorShapeInfo &tensor_info, NodeDetail &node_info,
       GELOGD("[DMA_PERF] %s: Perf with swap is [%s], swap_used_dims=[%s], swap_outer_repeat=%s",
              node_info.name.c_str(), swap_perf.ToString().c_str(),
              GetVecString(swap_used_dims).c_str(), swap_outer_repeat.Str().get());
+    } else {
+      GE_ASSERT_SUCCESS(UpdateTenary(non_swap_perf, perf_res), "Update non_swap perf failed, node=%s",
+                        node_info.ToString().c_str());
     }
     GELOGD("The input dim is [%s]", GetVecString(node_info.input_dims).c_str());
-    GE_ASSERT_SUCCESS(UpdateTenary(swap_perf, perf_res), "Update swap perf failed, node=%s",
-                      node_info.ToString().c_str());
     if (need_swap) {
+      GE_ASSERT_SUCCESS(UpdateTenary(swap_perf, perf_res), "Update swap perf failed, node=%s",
+                        node_info.ToString().c_str());
       GE_ASSERT_SUCCESS(UpdateSwapPerf(node_info, supported_max_dma_len, swap_perf, non_swap_perf, perf_res),
                         "Update swap perf failed, node=%s", node_info.ToString().c_str());
     }

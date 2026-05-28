@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -19,7 +19,7 @@ struct RepeatParams {
   Expr repeat_elm;
   Expr repeat_time;
 };
-RepeatParams CalculateRepeatParams(const ge::DataType& input_dtype, const Expr& cal_count);
+RepeatParams CalculateRepeatParams(const std::string &input_dtype, const Expr &cal_count);
 // 注册V2性能
 ge::Status CompareGEPerf(const NodeDetail &node_info, PerfOutputInfo &perf);
 ge::Status CompareEQPerf(const NodeDetail &node_info, PerfOutputInfo &perf);
@@ -37,6 +37,8 @@ ge::Status ReciprocalPerf(const NodeDetail &node_info, PerfOutputInfo &perf);
 ge::Status ReluPerf(const NodeDetail &node_info, PerfOutputInfo &perf);
 ge::Status MaxPerf(const NodeDetail &node_info, PerfOutputInfo &perf);
 ge::Status MinPerf(const NodeDetail &node_info, PerfOutputInfo &perf);
+ge::Status ReduceMaxPerf(const NodeDetail &node_info, PerfOutputInfo &perf);
+ge::Status ReduceMinPerf(const NodeDetail &node_info, PerfOutputInfo &perf);
 ge::Status NegPerf(const NodeDetail &node_info, PerfOutputInfo &perf);
 ge::Status MeanPerf(const NodeDetail &node_info, PerfOutputInfo &perf);
 ge::Status AddPerf(const NodeDetail &node_info, PerfOutputInfo &perf);
@@ -59,7 +61,7 @@ ge::Status LogicalAndPerf(const NodeDetail &node_info, PerfOutputInfo &perf);
 ge::Status ClipByValuePerf(const NodeDetail &node_info, PerfOutputInfo &perf);
 ge::Status BitwiseAndPerf(const NodeDetail &node_info, PerfOutputInfo &perf);
 ge::Status FloorDivPerf(const NodeDetail &node_info, PerfOutputInfo &perf);
-}
+}  // namespace ascendcperf_v2
 }  // namespace att
 
 #endif  // AUTOFUSE_ASCENDC_REGBASE_PERF_H
