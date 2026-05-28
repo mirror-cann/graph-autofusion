@@ -64,7 +64,16 @@ protected:
             kernelType == SkKernelType::MIX_AIC_1_1 || kernelType == SkKernelType::MIX_AIC_1_2;
         node->nodeInfos.kernelInfos.numBlocks = 1;
         node->nodeInfos.kernelInfos.funcName = "k";
-        node->nodeInfos.kernelInfos.devArgs = reinterpret_cast<void*>(0x1);
+        // Allocate valid devArgs with proper skHeader.totalSize for AddFuncTask access
+        constexpr size_t devArgsSize = 256;
+        auto* devArgsBuffer = static_cast<uint8_t*>(calloc(1, devArgsSize));
+        if (devArgsBuffer != nullptr) {
+            auto* devArgs = reinterpret_cast<SkDeviceEntryArgs*>(devArgsBuffer);
+            devArgs->skHeader.totalSize = devArgsSize;
+            node->nodeInfos.kernelInfos.devArgs = devArgsBuffer;
+        } else {
+            node->nodeInfos.kernelInfos.devArgs = nullptr;
+        }
         node->nodeInfos.kernelInfos.binHdl = reinterpret_cast<aclrtBinHandle>(0x2);
         node->nodeInfos.kernelInfos.funcHdl = reinterpret_cast<aclrtFuncHandle>(0x3);
         node->nodeInfos.kernelInfos.resolvedFuncs[0].funcAddr[0] = 0x1000;

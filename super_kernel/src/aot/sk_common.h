@@ -204,7 +204,6 @@ struct TaskInfo {
     SkKernelType relatedType = SkKernelType::DEFAULT;
     uint8_t numBlocks;
     uint8_t entryCnt;
-    uint64_t args;
     uint64_t entry[4];
     // 根据bit位确定option选项
     // 1： dcci_disable_on_kernel
@@ -217,6 +216,9 @@ struct TaskInfo {
     //      kernel侧只需检查此bit即可，无需组合判断
     uint64_t debugOptions;
     uint64_t reserved;
+    uint64_t args;
+    uint32_t argsSize;
+    uint8_t reservedList[4];
 };
 
 inline void SetEventTaskArgs(TaskInfo& taskInfo, uint64_t addr, uint64_t value, uint32_t flag)

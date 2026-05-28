@@ -61,6 +61,7 @@ add_executable(super_kernel_aot_utest
 target_include_directories(super_kernel_aot_utest PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/stub
+    ${CMAKE_CURRENT_SOURCE_DIR}/stub/dump
     ${CMAKE_CURRENT_SOURCE_DIR}/stub/runtime
     ${CMAKE_CURRENT_SOURCE_DIR}/stub/acl
     ${CMAKE_CURRENT_SOURCE_DIR}/stub/base

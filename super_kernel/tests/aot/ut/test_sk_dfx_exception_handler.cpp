@@ -169,6 +169,30 @@ aclError Fake_aclrtGetFunctionName_other(void* funcHandle, uint32_t maxLen, char
     return ACL_SUCCESS;
 }
 
+// Global buffer for aclrtMemcpy mock in FillExceptionDumpInfo tests
+static uint8_t* g_mockDeviceBuffer = nullptr;
+static size_t g_mockDeviceBufferSize = 0;
+
+// Mock for aclrtMemcpy - simulates reading from device memory
+aclError Fake_aclrtMemcpy_DeviceToHost(void* dst, size_t destMax, const void* src, size_t count, aclrtMemcpyKind kind)
+{
+    (void)src;
+    if (kind != ACL_MEMCPY_DEVICE_TO_HOST) {
+        return ACL_ERROR_INVALID_PARAM;
+    }
+    if (dst == nullptr || count == 0 || count > destMax) {
+        return ACL_ERROR_INVALID_PARAM;
+    }
+    // Copy from global mock buffer (simulating device memory)
+    if (g_mockDeviceBuffer != nullptr && count <= g_mockDeviceBufferSize) {
+        errno_t err = memcpy_s(dst, destMax, g_mockDeviceBuffer, count);
+        if (err != 0) {
+            return ACL_ERROR_FAILURE;
+        }
+    }
+    return ACL_SUCCESS;
+}
+
 // Mock for aclrtGetArgsFromExceptionInfo
 aclError Fake_aclrtGetArgsFromExceptionInfo_Success(const aclrtExceptionInfo* exceptionInfo, void** args, uint32_t* argsLen)
 {
@@ -211,7 +235,7 @@ aclError Fake_aclrtFreeHost_Success(void* hostPtr)
 }
 
 // Mock for rtGetExceptionRegInfo
-int Fake_rtGetExceptionRegInfo_Success(const void* exception, void** errRegInfo, uint32_t* coreNum)
+int Fake_rtGetExceptionRegInfo_Success(const void* exception, rtExceptionErrRegInfo_t** errRegInfo, uint32_t* coreNum)
 {
     (void)exception;
     (void)errRegInfo;
@@ -1450,4 +1474,712 @@ TEST_F(SkDfxExceptionHandlerTest, SkHeaderInfo_SizeAndFieldOffsetsStable)
 
     SkEventRecorder::Instance().modelRIIndexMap.clear();
     SkEventRecorder::Instance().modelRIToIndexMap.clear();
+}
+
+// ==================== GetSubKernelTaskArgs Tests (Line 799) ====================
+
+TEST_F(SkDfxExceptionHandlerTest, GetSubKernelTaskArgs_NodeIdxExceedsNodeCnt_ReturnsFalse)
+{
+    SkHeaderInfo headerInfo = {};
+    headerInfo.nodeCnt = 2;
+    handler->skHeaderInfoHost = &headerInfo;
+
+    uint64_t argsAddr = 0;
+    uint32_t argsSize = 0;
+
+    bool result = handler->GetSubKernelTaskArgs(5, argsAddr, argsSize);  // nodeIdx=5 > nodeCnt=2
+    EXPECT_FALSE(result);
+    EXPECT_EQ(argsAddr, 0);
+    EXPECT_EQ(argsSize, 0);
+}
+
+TEST_F(SkDfxExceptionHandlerTest, GetSubKernelTaskArgs_AICQueueQueOffsetZero_ReturnsFalse)
+{
+    uint8_t buffer[1024] = {0};
+    SkHeaderInfo headerInfo = {};
+    headerInfo.nodeCnt = 1;
+    headerInfo.aicQueOffset = 0;  // queOffset is 0
+    headerInfo.aivQueOffset = sizeof(SkHeaderInfo);
+
+    handler->skDeviceEntryArgsHost = reinterpret_cast<SkDeviceEntryArgs*>(buffer);
+    handler->skHeaderInfoHost = &headerInfo;
+    handler->aicTaskCnt = 1;
+    handler->aivTaskCnt = 0;
+
+    uint64_t argsAddr = 0;
+    uint32_t argsSize = 0;
+
+    bool result = handler->GetSubKernelTaskArgs(0, argsAddr, argsSize);
+    EXPECT_FALSE(result);
+}
+
+TEST_F(SkDfxExceptionHandlerTest, GetSubKernelTaskArgs_AIVQueueQueOffsetZero_ReturnsFalse)
+{
+    uint8_t buffer[1024] = {0};
+    SkHeaderInfo headerInfo = {};
+    headerInfo.nodeCnt = 1;
+    headerInfo.aicQueOffset = sizeof(SkHeaderInfo);
+    headerInfo.aivQueOffset = 0;  // queOffset is 0
+
+    handler->skDeviceEntryArgsHost = reinterpret_cast<SkDeviceEntryArgs*>(buffer);
+    handler->skHeaderInfoHost = &headerInfo;
+    handler->aicTaskCnt = 0;
+    handler->aivTaskCnt = 1;
+
+    uint64_t argsAddr = 0;
+    uint32_t argsSize = 0;
+
+    bool result = handler->GetSubKernelTaskArgs(0, argsAddr, argsSize);
+    EXPECT_FALSE(result);
+}
+
+TEST_F(SkDfxExceptionHandlerTest, GetSubKernelTaskArgs_AICQueueTaskCntZero_ReturnsFalse)
+{
+    uint8_t buffer[1024] = {0};
+    SkHeaderInfo headerInfo = {};
+    headerInfo.nodeCnt = 1;
+    headerInfo.aicQueOffset = sizeof(SkHeaderInfo);
+    headerInfo.aivQueOffset = 0;
+
+    handler->skDeviceEntryArgsHost = reinterpret_cast<SkDeviceEntryArgs*>(buffer);
+    handler->skHeaderInfoHost = &headerInfo;
+    handler->aicTaskCnt = 0;  // taskCnt is 0
+    handler->aivTaskCnt = 0;
+
+    uint64_t argsAddr = 0;
+    uint32_t argsSize = 0;
+
+    bool result = handler->GetSubKernelTaskArgs(0, argsAddr, argsSize);
+    EXPECT_FALSE(result);
+}
+
+TEST_F(SkDfxExceptionHandlerTest, GetSubKernelTaskArgs_AICQueueMatchingTask_ReturnsTrue)
+{
+    uint8_t buffer[1024] = {0};
+    SkHeaderInfo headerInfo = {};
+    headerInfo.nodeCnt = 2;
+    headerInfo.aicQueOffset = sizeof(SkHeaderInfo);
+    headerInfo.aivQueOffset = 0;
+
+    SkDeviceEntryArgs* deviceArgs = reinterpret_cast<SkDeviceEntryArgs*>(buffer);
+    deviceArgs->skHeader = headerInfo;
+
+    TaskQue* aicTaskQue = reinterpret_cast<TaskQue*>(buffer + headerInfo.aicQueOffset);
+    aicTaskQue->taskCnt = 2;
+    aicTaskQue->cap = 10;
+    aicTaskQue->taskInfos[0].index = 0;
+    aicTaskQue->taskInfos[0].type = SkTaskType::TYPE_FUNC;
+    aicTaskQue->taskInfos[0].args = 0xDEADBEEF;
+    aicTaskQue->taskInfos[0].argsSize = 256;
+    aicTaskQue->taskInfos[1].index = 1;
+    aicTaskQue->taskInfos[1].type = SkTaskType::TYPE_SYNC;
+    aicTaskQue->taskInfos[1].args = 0x12345678;
+
+    handler->skDeviceEntryArgsHost = deviceArgs;
+    handler->skHeaderInfoHost = &headerInfo;
+    handler->aicTaskCnt = 2;
+    handler->aivTaskCnt = 0;
+
+    uint64_t argsAddr = 0;
+    uint32_t argsSize = 0;
+
+    bool result = handler->GetSubKernelTaskArgs(0, argsAddr, argsSize);
+    EXPECT_TRUE(result);
+    EXPECT_EQ(argsAddr, 0xDEADBEEF);
+    EXPECT_EQ(argsSize, 256);
+}
+
+TEST_F(SkDfxExceptionHandlerTest, GetSubKernelTaskArgs_AIVQueueMatchingTask_ReturnsTrue)
+{
+    uint8_t buffer[1024] = {0};
+    SkHeaderInfo headerInfo = {};
+    headerInfo.nodeCnt = 3;
+    headerInfo.aicQueOffset = 0;
+    headerInfo.aivQueOffset = sizeof(SkHeaderInfo);
+
+    SkDeviceEntryArgs* deviceArgs = reinterpret_cast<SkDeviceEntryArgs*>(buffer);
+    deviceArgs->skHeader = headerInfo;
+
+    TaskQue* aivTaskQue = reinterpret_cast<TaskQue*>(buffer + headerInfo.aivQueOffset);
+    aivTaskQue->taskCnt = 2;
+    aivTaskQue->cap = 10;
+    aivTaskQue->taskInfos[0].index = 2;
+    aivTaskQue->taskInfos[0].type = SkTaskType::TYPE_FUNC;
+    aivTaskQue->taskInfos[0].args = 0xCAFEBABE;
+    aivTaskQue->taskInfos[0].argsSize = 128;
+    aivTaskQue->taskInfos[1].index = 0;
+    aivTaskQue->taskInfos[1].type = SkTaskType::TYPE_FUNC;
+    aivTaskQue->taskInfos[1].args = 0x11111111;
+
+    handler->skDeviceEntryArgsHost = deviceArgs;
+    handler->skHeaderInfoHost = &headerInfo;
+    handler->aicTaskCnt = 0;
+    handler->aivTaskCnt = 2;
+
+    uint64_t argsAddr = 0;
+    uint32_t argsSize = 0;
+
+    bool result = handler->GetSubKernelTaskArgs(2, argsAddr, argsSize);
+    EXPECT_TRUE(result);
+    EXPECT_EQ(argsAddr, 0xCAFEBABE);
+    EXPECT_EQ(argsSize, 128);
+}
+
+TEST_F(SkDfxExceptionHandlerTest, GetSubKernelTaskArgs_TaskIndexNotMatch_ReturnsFalse)
+{
+    uint8_t buffer[1024] = {0};
+    SkHeaderInfo headerInfo = {};
+    headerInfo.nodeCnt = 2;
+    headerInfo.aicQueOffset = sizeof(SkHeaderInfo);
+    headerInfo.aivQueOffset = 0;
+
+    SkDeviceEntryArgs* deviceArgs = reinterpret_cast<SkDeviceEntryArgs*>(buffer);
+    deviceArgs->skHeader = headerInfo;
+
+    TaskQue* aicTaskQue = reinterpret_cast<TaskQue*>(buffer + headerInfo.aicQueOffset);
+    aicTaskQue->taskCnt = 1;
+    aicTaskQue->cap = 10;
+    aicTaskQue->taskInfos[0].index = 1;  // index=1, but looking for nodeIdx=0
+    aicTaskQue->taskInfos[0].type = SkTaskType::TYPE_FUNC;
+    aicTaskQue->taskInfos[0].args = 0x1234;
+
+    handler->skDeviceEntryArgsHost = deviceArgs;
+    handler->skHeaderInfoHost = &headerInfo;
+    handler->aicTaskCnt = 1;
+    handler->aivTaskCnt = 0;
+
+    uint64_t argsAddr = 0;
+    uint32_t argsSize = 0;
+
+    bool result = handler->GetSubKernelTaskArgs(0, argsAddr, argsSize);  // not found
+    EXPECT_FALSE(result);
+    EXPECT_EQ(argsAddr, 0);
+    EXPECT_EQ(argsSize, 0);
+}
+
+TEST_F(SkDfxExceptionHandlerTest, GetSubKernelTaskArgs_TaskTypeNotFunc_ReturnsFalse)
+{
+    uint8_t buffer[1024] = {0};
+    SkHeaderInfo headerInfo = {};
+    headerInfo.nodeCnt = 2;
+    headerInfo.aicQueOffset = sizeof(SkHeaderInfo);
+    headerInfo.aivQueOffset = 0;
+
+    SkDeviceEntryArgs* deviceArgs = reinterpret_cast<SkDeviceEntryArgs*>(buffer);
+    deviceArgs->skHeader = headerInfo;
+
+    TaskQue* aicTaskQue = reinterpret_cast<TaskQue*>(buffer + headerInfo.aicQueOffset);
+    aicTaskQue->taskCnt = 1;
+    aicTaskQue->cap = 10;
+    aicTaskQue->taskInfos[0].index = 0;  // index matches
+    aicTaskQue->taskInfos[0].type = SkTaskType::TYPE_SYNC;  // but type is not TYPE_FUNC
+    aicTaskQue->taskInfos[0].args = 0x5678;
+
+    handler->skDeviceEntryArgsHost = deviceArgs;
+    handler->skHeaderInfoHost = &headerInfo;
+    handler->aicTaskCnt = 1;
+    handler->aivTaskCnt = 0;
+
+    uint64_t argsAddr = 0;
+    uint32_t argsSize = 0;
+
+    bool result = handler->GetSubKernelTaskArgs(0, argsAddr, argsSize);
+    EXPECT_FALSE(result);
+}
+
+TEST_F(SkDfxExceptionHandlerTest, GetSubKernelTaskArgs_AICNotFoundFallsBackToAIV_ReturnsTrue)
+{
+    uint8_t buffer[2048] = {0};
+    SkHeaderInfo headerInfo = {};
+    headerInfo.nodeCnt = 2;
+    headerInfo.aicQueOffset = sizeof(SkHeaderInfo);
+    headerInfo.aivQueOffset = sizeof(SkHeaderInfo) + sizeof(TaskQue) + sizeof(TaskInfo);
+
+    SkDeviceEntryArgs* deviceArgs = reinterpret_cast<SkDeviceEntryArgs*>(buffer);
+    deviceArgs->skHeader = headerInfo;
+
+    // AIC queue: nodeIdx=0 found but type is SYNC
+    TaskQue* aicTaskQue = reinterpret_cast<TaskQue*>(buffer + headerInfo.aicQueOffset);
+    aicTaskQue->taskCnt = 1;
+    aicTaskQue->cap = 10;
+    aicTaskQue->taskInfos[0].index = 0;
+    aicTaskQue->taskInfos[0].type = SkTaskType::TYPE_SYNC;
+    aicTaskQue->taskInfos[0].args = 0xAAAA;
+
+    // AIV queue: nodeIdx=0 found with TYPE_FUNC
+    TaskQue* aivTaskQue = reinterpret_cast<TaskQue*>(buffer + headerInfo.aivQueOffset);
+    aivTaskQue->taskCnt = 1;
+    aivTaskQue->cap = 10;
+    aivTaskQue->taskInfos[0].index = 0;
+    aivTaskQue->taskInfos[0].type = SkTaskType::TYPE_FUNC;
+    aivTaskQue->taskInfos[0].args = 0xBBBB;
+    aivTaskQue->taskInfos[0].argsSize = 64;
+
+    handler->skDeviceEntryArgsHost = deviceArgs;
+    handler->skHeaderInfoHost = &headerInfo;
+    handler->aicTaskCnt = 1;
+    handler->aivTaskCnt = 1;
+
+    uint64_t argsAddr = 0;
+    uint32_t argsSize = 0;
+
+    bool result = handler->GetSubKernelTaskArgs(0, argsAddr, argsSize);
+    EXPECT_TRUE(result);
+    EXPECT_EQ(argsAddr, 0xBBBB);
+    EXPECT_EQ(argsSize, 64);
+}
+
+// ==================== PopulateDumpInfoFields Tests (Line 698) ====================
+
+// Mock for rtGetExceptionRegInfo - success with one core
+int Fake_rtGetExceptionRegInfo_SingleCore(const void* exception, rtExceptionErrRegInfo_t** errRegInfo, uint32_t* coreNum)
+{
+    (void)exception;
+    static rtExceptionErrRegInfo_t g_singleCoreErrRegInfo;
+    g_singleCoreErrRegInfo.coreId = 0;
+    g_singleCoreErrRegInfo.coreType = RT_CORE_TYPE_AIC;
+    g_singleCoreErrRegInfo.startPC = 0x1000;
+    g_singleCoreErrRegInfo.currentPC = 0x1100;
+    *errRegInfo = &g_singleCoreErrRegInfo;
+    *coreNum = 1;
+    return 0;
+}
+
+TEST_F(SkDfxExceptionHandlerTest, PopulateDumpInfoFields_GetFuncHandleFail_ReturnsFailure)
+{
+    aclrtExceptionInfo* exceptionInfo = reinterpret_cast<aclrtExceptionInfo*>(0x500);
+
+    // Mock to return failure
+    MOCKER(aclrtGetFuncHandleFromExceptionInfo).stubs().will(returnValue(ACL_ERROR_FAILURE));
+
+    Adx::ExceptionDumpInfo dumpInfo = {};
+
+    aclError ret = handler->PopulateDumpInfoFields(dumpInfo, 0, exceptionInfo, 0, RT_CORE_TYPE_AIC);
+    EXPECT_EQ(ret, ACL_ERROR_FAILURE);
+}
+
+TEST_F(SkDfxExceptionHandlerTest, PopulateDumpInfoFields_GetFunctionNameFail_ReturnsFailure)
+{
+    aclrtExceptionInfo* exceptionInfo = reinterpret_cast<aclrtExceptionInfo*>(0x500);
+
+    MOCKER(aclrtGetFuncHandleFromExceptionInfo).stubs().will(invoke(Fake_aclrtGetFuncHandleFromExceptionInfo_Success));
+    MOCKER(aclrtGetFunctionName).stubs().will(returnValue(ACL_ERROR_FAILURE));
+
+    Adx::ExceptionDumpInfo dumpInfo = {};
+
+    aclError ret = handler->PopulateDumpInfoFields(dumpInfo, 0, exceptionInfo, 0, RT_CORE_TYPE_AIC);
+    EXPECT_EQ(ret, ACL_ERROR_FAILURE);
+}
+
+TEST_F(SkDfxExceptionHandlerTest, PopulateDumpInfoFields_SetsKernelDisplayName)
+{
+    aclrtExceptionInfo* exceptionInfo = reinterpret_cast<aclrtExceptionInfo*>(0x500);
+
+    MOCKER(aclrtGetFuncHandleFromExceptionInfo).stubs().will(invoke(Fake_aclrtGetFuncHandleFromExceptionInfo_Success));
+    MOCKER(aclrtGetFunctionName).stubs().will(invoke(Fake_aclrtGetFunctionName_sk_entry));
+
+    Adx::ExceptionDumpInfo dumpInfo = {};
+    handler->skHeaderInfoHost = nullptr;  // Will cause crash if not early returned
+
+    aclError ret = handler->PopulateDumpInfoFields(dumpInfo, 0, exceptionInfo, 0, RT_CORE_TYPE_AIC);
+    // Should fail because skHeaderInfoHost is nullptr (used below)
+    EXPECT_EQ(ret, ACL_ERROR_FAILURE);
+}
+
+TEST_F(SkDfxExceptionHandlerTest, PopulateDumpInfoFields_SetsExtraTensorInfo)
+{
+    uint8_t buffer[1024] = {0};
+    SkHeaderInfo headerInfo = {};
+    headerInfo.nodeCnt = 1;
+    headerInfo.totalSize = 512;
+    headerInfo.dfxOffset = sizeof(SkHeaderInfo);
+
+    SkDeviceEntryArgs* deviceArgs = reinterpret_cast<SkDeviceEntryArgs*>(buffer);
+    deviceArgs->skHeader = headerInfo;
+
+    SkDfxInfo* dfxInfo = reinterpret_cast<SkDfxInfo*>(buffer + headerInfo.dfxOffset);
+    dfxInfo->binHdl = 0xAAA;
+
+    handler->skDeviceEntryArgsHost = deviceArgs;
+    handler->skHeaderInfoHost = &headerInfo;
+    handler->skDeviceEntryArgsDev = reinterpret_cast<void*>(0x12345678);
+
+    aclrtExceptionInfo* exceptionInfo = reinterpret_cast<aclrtExceptionInfo*>(0x500);
+
+    MOCKER(aclrtGetFuncHandleFromExceptionInfo).stubs().will(invoke(Fake_aclrtGetFuncHandleFromExceptionInfo_Success));
+    MOCKER(aclrtGetFunctionName).stubs().will(invoke(Fake_aclrtGetFunctionName_sk_entry));
+
+    Adx::ExceptionDumpInfo dumpInfo = {};
+
+    aclError ret = handler->PopulateDumpInfoFields(dumpInfo, -1, exceptionInfo, 0, RT_CORE_TYPE_AIC);  // errorNodeIdx=-1
+    EXPECT_EQ(ret, ACL_SUCCESS);
+
+    // Verify extra tensor info is set
+    EXPECT_EQ(dumpInfo.extraTensorNum, 1);
+    EXPECT_EQ(dumpInfo.extraTensor[0].tensorSize, 512);
+    EXPECT_EQ(dumpInfo.extraTensor[0].tensorAddr, reinterpret_cast<int64_t*>(0x12345678));
+    EXPECT_EQ(dumpInfo.extraTensor[0].dataType, ACL_UINT8);
+    EXPECT_EQ(dumpInfo.extraTensor[0].format, ACL_FORMAT_ND);
+
+    // Verify SK entry fields filled as fallback when errorNodeIdx=-1
+    // Exception in SK (not in sub-kernel): argAddr/argSize should be null/0
+    EXPECT_EQ(dumpInfo.bin, nullptr);
+    EXPECT_EQ(dumpInfo.argAddr, nullptr);
+    EXPECT_EQ(dumpInfo.argSize, 0);
+}
+
+TEST_F(SkDfxExceptionHandlerTest, PopulateDumpInfoFields_WithValidErrorNodeIdx_SetsSubKernelInfo)
+{
+    uint8_t buffer[2048] = {0};
+    SkHeaderInfo headerInfo = {};
+    headerInfo.nodeCnt = 2;
+    headerInfo.totalSize = 512;
+    headerInfo.dfxOffset = sizeof(SkHeaderInfo);
+    headerInfo.aicQueOffset = sizeof(SkHeaderInfo) + sizeof(SkDfxInfo) * 2;
+
+    SkDeviceEntryArgs* deviceArgs = reinterpret_cast<SkDeviceEntryArgs*>(buffer);
+    deviceArgs->skHeader = headerInfo;
+
+    SkDfxInfo* dfxInfo = reinterpret_cast<SkDfxInfo*>(buffer + headerInfo.dfxOffset);
+    dfxInfo[0].binHdl = 0xAAA;
+    dfxInfo[0].funcHdlOri = 0xBBB;
+    dfxInfo[1].binHdl = 0xCCC;
+
+    // Setup task queue with matching task for nodeIdx=0
+    TaskQue* aicTaskQue = reinterpret_cast<TaskQue*>(buffer + headerInfo.aicQueOffset);
+    aicTaskQue->taskCnt = 1;
+    aicTaskQue->cap = 10;
+    aicTaskQue->taskInfos[0].index = 0;
+    aicTaskQue->taskInfos[0].type = SkTaskType::TYPE_FUNC;
+    aicTaskQue->taskInfos[0].args = 0xDEADBEEF;
+    aicTaskQue->taskInfos[0].argsSize = 128;
+
+    handler->skDeviceEntryArgsHost = deviceArgs;
+    handler->skHeaderInfoHost = &headerInfo;
+    handler->skDeviceEntryArgsDev = reinterpret_cast<void*>(0x12345678);
+    handler->aicTaskCnt = 1;
+    handler->aivTaskCnt = 0;
+
+    aclrtExceptionInfo* exceptionInfo = reinterpret_cast<aclrtExceptionInfo*>(0x500);
+
+    MOCKER(aclrtGetFuncHandleFromExceptionInfo).stubs().will(invoke(Fake_aclrtGetFuncHandleFromExceptionInfo_Success));
+    MOCKER(aclrtGetFunctionName).stubs().will(invoke(Fake_aclrtGetFunctionName_other));
+
+    Adx::ExceptionDumpInfo dumpInfo = {};
+
+    aclError ret = handler->PopulateDumpInfoFields(dumpInfo, 0, exceptionInfo, 0, RT_CORE_TYPE_AIC);
+    EXPECT_EQ(ret, ACL_SUCCESS);
+
+    // Verify sub kernel info is set
+    EXPECT_EQ(dumpInfo.bin, reinterpret_cast<rtBinHandle>(0xAAA));
+    EXPECT_EQ(dumpInfo.argAddr, reinterpret_cast<void*>(0xDEADBEEF));
+    EXPECT_EQ(dumpInfo.argSize, 128);
+}
+
+TEST_F(SkDfxExceptionHandlerTest, PopulateDumpInfoFields_ErrorNodeIdxExceedsNodeCnt_FillsSkEntryFields)
+{
+    uint8_t buffer[1024] = {0};
+    SkHeaderInfo headerInfo = {};
+    headerInfo.nodeCnt = 1;  // Only 1 node
+    headerInfo.totalSize = 512;
+    headerInfo.dfxOffset = sizeof(SkHeaderInfo);
+
+    SkDeviceEntryArgs* deviceArgs = reinterpret_cast<SkDeviceEntryArgs*>(buffer);
+    deviceArgs->skHeader = headerInfo;
+
+    handler->skDeviceEntryArgsHost = deviceArgs;
+    handler->skHeaderInfoHost = &headerInfo;
+    handler->skDeviceEntryArgsDev = reinterpret_cast<void*>(0x12345678);
+
+    aclrtExceptionInfo* exceptionInfo = reinterpret_cast<aclrtExceptionInfo*>(0x500);
+
+    MOCKER(aclrtGetFuncHandleFromExceptionInfo).stubs().will(invoke(Fake_aclrtGetFuncHandleFromExceptionInfo_Success));
+    MOCKER(aclrtGetFunctionName).stubs().will(invoke(Fake_aclrtGetFunctionName_sk_entry));
+
+    Adx::ExceptionDumpInfo dumpInfo = {};
+
+    aclError ret = handler->PopulateDumpInfoFields(dumpInfo, 5, exceptionInfo, 0, RT_CORE_TYPE_AIC);  // errorNodeIdx=5 > nodeCnt=1
+    EXPECT_EQ(ret, ACL_SUCCESS);
+
+    // Verify SK entry fields filled as fallback when errorNodeIdx exceeds nodeCnt
+    // Exception in SK (not in sub-kernel): argAddr/argSize should be null/0
+    EXPECT_EQ(dumpInfo.bin, nullptr);
+    EXPECT_EQ(dumpInfo.argAddr, nullptr);
+    EXPECT_EQ(dumpInfo.argSize, 0);
+}
+
+TEST_F(SkDfxExceptionHandlerTest, PopulateDumpInfoFields_FillsKernelNameField)
+{
+    uint8_t buffer[1024] = {0};
+    SkHeaderInfo headerInfo = {};
+    headerInfo.nodeCnt = 1;
+    headerInfo.totalSize = 512;
+    headerInfo.dfxOffset = sizeof(SkHeaderInfo);
+
+    SkDeviceEntryArgs* deviceArgs = reinterpret_cast<SkDeviceEntryArgs*>(buffer);
+    deviceArgs->skHeader = headerInfo;
+
+    handler->skDeviceEntryArgsHost = deviceArgs;
+    handler->skHeaderInfoHost = &headerInfo;
+    handler->skDeviceEntryArgsDev = reinterpret_cast<void*>(0x12345678);
+
+    aclrtExceptionInfo* exceptionInfo = reinterpret_cast<aclrtExceptionInfo*>(0x500);
+
+    MOCKER(aclrtGetFuncHandleFromExceptionInfo).stubs().will(invoke(Fake_aclrtGetFuncHandleFromExceptionInfo_Success));
+    MOCKER(aclrtGetFunctionName).stubs().will(invoke(Fake_aclrtGetFunctionName_sk_entry));
+
+    Adx::ExceptionDumpInfo dumpInfo = {};
+    memcpy_s(dumpInfo.kernelName, Adx::MAX_KERNELNAME_LEN, "old_value", sizeof("old_value"));
+
+    aclError ret = handler->PopulateDumpInfoFields(dumpInfo, -1, exceptionInfo, 0, RT_CORE_TYPE_AIC);
+    EXPECT_EQ(ret, ACL_SUCCESS);
+
+    // Verify kernelName is filled with SK entry func name when errorNodeIdx < 0
+    EXPECT_STREQ(dumpInfo.kernelName, "sk_entry");
+}
+
+// ==================== FillExceptionDumpInfo Tests (Line 758) ====================
+
+TEST_F(SkDfxExceptionHandlerTest, FillExceptionDumpInfo_NullExceptionInfo_ReturnsInvalidParam)
+{
+    Adx::ExceptionDumpInfo dumpInfo = {};
+
+    aclError ret = handler->FillExceptionDumpInfo(dumpInfo, nullptr);
+    EXPECT_EQ(ret, ACL_ERROR_INVALID_PARAM);
+}
+
+TEST_F(SkDfxExceptionHandlerTest, FillExceptionDumpInfo_ExtractSkEntryArgsFails_ReturnsFailure)
+{
+    aclrtExceptionInfo* exceptionInfo = reinterpret_cast<aclrtExceptionInfo*>(0x500);
+
+    MOCKER(aclrtGetArgsFromExceptionInfo).stubs().will(returnValue(ACL_ERROR_FAILURE));
+
+    Adx::ExceptionDumpInfo dumpInfo = {};
+
+    aclError ret = handler->FillExceptionDumpInfo(dumpInfo, exceptionInfo);
+    EXPECT_EQ(ret, ACL_ERROR_FAILURE);
+}
+
+TEST_F(SkDfxExceptionHandlerTest, FillExceptionDumpInfo_ExtractTaskQueueFails_ReturnsFailure)
+{
+    aclrtExceptionInfo* exceptionInfo = reinterpret_cast<aclrtExceptionInfo*>(0x500);
+
+    MOCKER(aclrtGetArgsFromExceptionInfo).stubs().will(invoke(Fake_aclrtGetArgsFromExceptionInfo_Success));
+
+    // Setup buffer so ExtractTaskQueue will fail (use heap memory for proper cleanup)
+    constexpr size_t bufferSize = 1024;
+    uint8_t* buffer = static_cast<uint8_t*>(malloc(bufferSize));
+    ASSERT_NE(buffer, nullptr);
+    memset_s(buffer, bufferSize, 0, bufferSize);
+    SkHeaderInfo headerInfo = {};
+    headerInfo.aicQueOffset = sizeof(SkHeaderInfo);  // Valid offset
+    headerInfo.aivQueOffset = sizeof(SkHeaderInfo);
+    headerInfo.totalSize = bufferSize;
+    headerInfo.nodeCnt = 0;
+
+    SkDeviceEntryArgs* deviceArgs = reinterpret_cast<SkDeviceEntryArgs*>(buffer);
+    deviceArgs->skHeader = headerInfo;
+    handler->skDeviceEntryArgsHost = deviceArgs;
+
+    Adx::ExceptionDumpInfo dumpInfo = {};
+
+    aclError ret = handler->FillExceptionDumpInfo(dumpInfo, exceptionInfo);
+    EXPECT_EQ(ret, ACL_ERROR_FAILURE);
+    // FreeResources() already freed buffer via aclrtFreeHost
+}
+
+TEST_F(SkDfxExceptionHandlerTest, FillExceptionDumpInfo_GetExceptionRegInfoFails_ReturnsFailure)
+{
+    aclrtExceptionInfo* exceptionInfo = reinterpret_cast<aclrtExceptionInfo*>(0x500);
+
+    MOCKER(aclrtGetArgsFromExceptionInfo).stubs().will(invoke(Fake_aclrtGetArgsFromExceptionInfo_Success));
+    MOCKER(rtGetExceptionRegInfo).stubs().will(returnValue(-1));
+
+    // Setup minimal buffer (use heap memory for proper cleanup)
+    constexpr size_t bufferSize = 1024;
+    uint8_t* buffer = static_cast<uint8_t*>(malloc(bufferSize));
+    ASSERT_NE(buffer, nullptr);
+    memset_s(buffer, bufferSize, 0, bufferSize);
+    SkHeaderInfo headerInfo = {};
+    headerInfo.totalSize = sizeof(SkHeaderInfo);
+    headerInfo.nodeCnt = 0;
+
+    SkDeviceEntryArgs* deviceArgs = reinterpret_cast<SkDeviceEntryArgs*>(buffer);
+    deviceArgs->skHeader = headerInfo;
+    handler->skDeviceEntryArgsHost = deviceArgs;
+
+    Adx::ExceptionDumpInfo dumpInfo = {};
+
+    aclError ret = handler->FillExceptionDumpInfo(dumpInfo, exceptionInfo);
+    EXPECT_EQ(ret, ACL_ERROR_FAILURE);
+    // FreeResources() already freed buffer via aclrtFreeHost
+}
+
+TEST_F(SkDfxExceptionHandlerTest, FillExceptionDumpInfo_PopulateDumpInfoFieldsFails_ReturnsFailure)
+{
+    aclrtExceptionInfo* exceptionInfo = reinterpret_cast<aclrtExceptionInfo*>(0x500);
+
+    MOCKER(aclrtGetArgsFromExceptionInfo).stubs().will(invoke(Fake_aclrtGetArgsFromExceptionInfo_Success));
+    MOCKER(rtGetExceptionRegInfo).stubs().will(invoke(Fake_rtGetExceptionRegInfo_Success));
+    MOCKER(aclrtGetFuncHandleFromExceptionInfo).stubs().will(returnValue(ACL_ERROR_FAILURE));
+
+    // Setup minimal buffer (use heap memory for proper cleanup)
+    constexpr size_t bufferSize = 1024;
+    uint8_t* buffer = static_cast<uint8_t*>(malloc(bufferSize));
+    ASSERT_NE(buffer, nullptr);
+    memset_s(buffer, bufferSize, 0, bufferSize);
+    SkHeaderInfo headerInfo = {};
+    headerInfo.totalSize = sizeof(SkHeaderInfo);
+    headerInfo.nodeCnt = 0;
+
+    SkDeviceEntryArgs* deviceArgs = reinterpret_cast<SkDeviceEntryArgs*>(buffer);
+    deviceArgs->skHeader = headerInfo;
+    handler->skDeviceEntryArgsHost = deviceArgs;
+
+    Adx::ExceptionDumpInfo dumpInfo = {};
+
+    aclError ret = handler->FillExceptionDumpInfo(dumpInfo, exceptionInfo);
+    EXPECT_EQ(ret, ACL_ERROR_FAILURE);
+    // FreeResources() already freed buffer via aclrtFreeHost
+}
+
+TEST_F(SkDfxExceptionHandlerTest, FillExceptionDumpInfo_Success_ReturnsACL_SUCCESS)
+{
+    aclrtExceptionInfo* exceptionInfo = reinterpret_cast<aclrtExceptionInfo*>(0x500);
+
+    MOCKER(aclrtGetArgsFromExceptionInfo).stubs().will(invoke(Fake_aclrtGetArgsFromExceptionInfo_Success));
+    MOCKER(aclrtMemcpy).stubs().will(invoke(Fake_aclrtMemcpy_DeviceToHost));
+    MOCKER(rtGetExceptionRegInfo).stubs().will(invoke(Fake_rtGetExceptionRegInfo_SingleCore));
+    MOCKER(aclrtGetFuncHandleFromExceptionInfo).stubs().will(invoke(Fake_aclrtGetFuncHandleFromExceptionInfo_Success));
+    MOCKER(aclrtGetFunctionName).stubs().will(invoke(Fake_aclrtGetFunctionName_sk_entry));
+
+    // Setup buffer with valid header (use heap memory for proper cleanup)
+    constexpr size_t bufferSize = 1024;
+    uint8_t* buffer = static_cast<uint8_t*>(malloc(bufferSize));
+    ASSERT_NE(buffer, nullptr);
+    memset_s(buffer, bufferSize, 0, bufferSize);
+    SkHeaderInfo headerInfo = {};
+    headerInfo.totalSize = bufferSize;
+    headerInfo.nodeCnt = 0;
+    headerInfo.dfxOffset = 0;
+    headerInfo.counterOffset = 0;
+    headerInfo.eventConfigOffset = 0;
+
+    SkDeviceEntryArgs* deviceArgs = reinterpret_cast<SkDeviceEntryArgs*>(buffer);
+    deviceArgs->skHeader = headerInfo;
+    handler->skDeviceEntryArgsHost = deviceArgs;
+
+    // Set global mock buffer for aclrtMemcpy mock
+    g_mockDeviceBuffer = buffer;
+    g_mockDeviceBufferSize = bufferSize;
+
+    Adx::ExceptionDumpInfo dumpInfo = {};
+
+    aclError ret = handler->FillExceptionDumpInfo(dumpInfo, exceptionInfo);
+    EXPECT_EQ(ret, ACL_SUCCESS);
+
+    // Verify kernelDisplayName is set (skScopeId=0 when header not initialized, fallback to skFuncName_scope%u)
+    EXPECT_STREQ(dumpInfo.kernelDisplayName, "sk_entry_scope0");
+    
+    // Clear global mock buffer
+    g_mockDeviceBuffer = nullptr;
+    g_mockDeviceBufferSize = 0;
+    // FreeResources() already freed buffer via aclrtFreeHost
+}
+
+TEST_F(SkDfxExceptionHandlerTest, FillExceptionDumpInfo_CallsIdentifyErrorNodeByPC)
+{
+    aclrtExceptionInfo* exceptionInfo = reinterpret_cast<aclrtExceptionInfo*>(0x500);
+
+    MOCKER(aclrtGetArgsFromExceptionInfo).stubs().will(invoke(Fake_aclrtGetArgsFromExceptionInfo_Success));
+    MOCKER(aclrtMemcpy).stubs().will(invoke(Fake_aclrtMemcpy_DeviceToHost));
+    MOCKER(rtGetExceptionRegInfo).stubs().will(invoke(Fake_rtGetExceptionRegInfo_SingleCore));
+    MOCKER(aclrtGetFuncHandleFromExceptionInfo).stubs().will(invoke(Fake_aclrtGetFuncHandleFromExceptionInfo_Success));
+    MOCKER(aclrtGetFunctionName).stubs().will(invoke(Fake_aclrtGetFunctionName_sk_entry));
+
+    // Setup buffer with DFX info for IdentifyErrorNodeByPC (use heap memory for proper cleanup)
+    constexpr size_t bufferSize = 2048;
+    uint8_t* buffer = static_cast<uint8_t*>(malloc(bufferSize));
+    ASSERT_NE(buffer, nullptr);
+    memset_s(buffer, bufferSize, 0, bufferSize);
+    
+    SkHeaderInfo* headerInfo = reinterpret_cast<SkHeaderInfo*>(buffer);
+    headerInfo->totalSize = bufferSize;
+    headerInfo->dfxOffset = sizeof(SkHeaderInfo);
+    headerInfo->nodeCnt = 1;
+    headerInfo->counterOffset = 0;
+    headerInfo->eventConfigOffset = 0;
+    headerInfo->aicQueOffset = 0;
+    headerInfo->aivQueOffset = 0;
+
+    SkDeviceEntryArgs* deviceArgs = reinterpret_cast<SkDeviceEntryArgs*>(buffer);
+    deviceArgs->skHeader = *headerInfo;
+
+    SkDfxInfo* dfxInfo = reinterpret_cast<SkDfxInfo*>(buffer + headerInfo->dfxOffset);
+    dfxInfo->entryAic[0] = 0x1000;
+    dfxInfo->aicSize = 0x200;
+
+    handler->skDeviceEntryArgsHost = deviceArgs;
+    handler->skHeaderInfoHost = headerInfo;
+
+    // Set global mock buffer for aclrtMemcpy mock
+    g_mockDeviceBuffer = buffer;
+    g_mockDeviceBufferSize = bufferSize;
+
+    Adx::ExceptionDumpInfo dumpInfo = {};
+
+    // Call with currentPC that matches the entry
+    aclError ret = handler->FillExceptionDumpInfo(dumpInfo, exceptionInfo);
+    EXPECT_EQ(ret, ACL_SUCCESS);
+    
+    // Clear global mock buffer
+    g_mockDeviceBuffer = nullptr;
+    g_mockDeviceBufferSize = 0;
+    // FreeResources() already freed buffer via aclrtFreeHost
+}
+
+TEST_F(SkDfxExceptionHandlerTest, GetErrorNodeIdx_InitiallyNegativeOne)
+{
+    EXPECT_EQ(handler->GetErrorNodeIdx(), -1);
+}
+
+TEST_F(SkDfxExceptionHandlerTest, GetErrorNodeIdx_AfterIdentifyErrorNode_MatchesErrorNode)
+{
+    uint8_t buffer[2048] = {0};
+    SkHeaderInfo headerInfo = {};
+    headerInfo.dfxOffset = sizeof(SkHeaderInfo);
+    headerInfo.nodeCnt = 1;
+    headerInfo.aicQueOffset = 0;
+    headerInfo.aivQueOffset = 0;
+
+    SkDeviceEntryArgs* deviceArgs = reinterpret_cast<SkDeviceEntryArgs*>(buffer);
+    deviceArgs->skHeader = headerInfo;
+
+    SkDfxInfo* dfxInfo = reinterpret_cast<SkDfxInfo*>(buffer + headerInfo.dfxOffset);
+    dfxInfo->entryAic[0] = 0x1000;
+    dfxInfo->aicSize = 0x200;
+
+    handler->skDeviceEntryArgsHost = deviceArgs;
+    handler->skHeaderInfoHost = &headerInfo;
+
+    MOCKER(aclrtGetFunctionName).stubs().will(invoke(Fake_aclrtGetFunctionName_sk_entry));
+
+    // PC matches node[0]
+    handler->IdentifyErrorNodeByPC(0, RT_CORE_TYPE_AIC, 0x1000, 0x1100);
+
+    EXPECT_EQ(handler->GetErrorNodeIdx(), 0);
+}
+
+// ==================== CheckError Tests ====================
+
+TEST_F(SkDfxExceptionHandlerTest, CheckError_ACL_SUCCESS_ReturnsSuccess)
+{
+    aclError ret = handler->CheckError(ACL_SUCCESS, "Test operation");
+    EXPECT_EQ(ret, ACL_SUCCESS);
+}
+
+TEST_F(SkDfxExceptionHandlerTest, CheckError_OtherError_ReturnsError)
+{
+    aclError ret = handler->CheckError(ACL_ERROR_INVALID_PARAM, "Test operation");
+    EXPECT_EQ(ret, ACL_ERROR_INVALID_PARAM);
 }
