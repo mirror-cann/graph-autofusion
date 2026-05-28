@@ -320,7 +320,7 @@ checkopts() {
 function cmake_config()
 {
   local extra_option="$1"
-  local cmake_option="${CUSTOM_OPTION} -DCMAKE_BUILD_TYPE=${BUILD_TYPE}"
+  local cmake_option="${CUSTOM_OPTION} -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DCANN_3RD_LIB_PATH=${CANN_3RD_LIB_PATH}"
   if [ "X$ENABLE_AUTOFUSE" == "Xon" ]; then
     extra_option="${extra_option} -DBUILD_AUTOFUSE=ON"
   fi
@@ -369,7 +369,7 @@ clean_coverage_artifacts() {
 }
 
 function build_package_inner(){
-  cmake_config "-DCANN_3RD_LIB_PATH=${CANN_3RD_LIB_PATH}"
+  cmake_config
   build "all package"
 }
 
