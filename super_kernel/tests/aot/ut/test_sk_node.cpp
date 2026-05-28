@@ -1665,3 +1665,312 @@ TEST_F(SkNodeTest, KernelInitNode_FunctionNameGetFailed_RecordsKernelAttrFailed)
     EXPECT_FALSE(node.IsFusible());
     EXPECT_EQ(node.GetFusionFailReason(), FusionFailReason::KERNEL_ATTR_GET_FAILED);
 }
+
+// ==================== IdentifyAndHandleSimtKernel Tests ====================
+
+aclError FakeAclrtGetFunctionAttributeAicOnly(aclrtFuncHandle funcHandle, aclrtFuncAttribute attrType, int64_t* attrValue)
+{
+    (void)funcHandle;
+    if (attrValue == nullptr) {
+        return ACL_ERROR_INVALID_PARAM;
+    }
+    if (attrType == ACL_FUNC_ATTR_KERNEL_TYPE) {
+        *attrValue = ACL_KERNEL_TYPE_CUBE;
+        return ACL_SUCCESS;
+    }
+    if (attrType == ACL_FUNC_ATTR_KERNEL_RATIO) {
+        *attrValue = 0;
+        return ACL_SUCCESS;
+    }
+    *attrValue = 0;
+    return ACL_SUCCESS;
+}
+
+aclError FakeAclrtGetFunctionAttributeAivOnly(aclrtFuncHandle funcHandle, aclrtFuncAttribute attrType, int64_t* attrValue)
+{
+    (void)funcHandle;
+    if (attrValue == nullptr) {
+        return ACL_ERROR_INVALID_PARAM;
+    }
+    if (attrType == ACL_FUNC_ATTR_KERNEL_TYPE) {
+        *attrValue = ACL_KERNEL_TYPE_VECTOR;
+        return ACL_SUCCESS;
+    }
+    if (attrType == ACL_FUNC_ATTR_KERNEL_RATIO) {
+        *attrValue = 0;
+        return ACL_SUCCESS;
+    }
+    *attrValue = 0;
+    return ACL_SUCCESS;
+}
+
+aclError FakeAclrtGetFunctionAttributeMixAic10(aclrtFuncHandle funcHandle, aclrtFuncAttribute attrType, int64_t* attrValue)
+{
+    (void)funcHandle;
+    if (attrValue == nullptr) {
+        return ACL_ERROR_INVALID_PARAM;
+    }
+    if (attrType == ACL_FUNC_ATTR_KERNEL_TYPE) {
+        *attrValue = ACL_KERNEL_TYPE_MIX;
+        return ACL_SUCCESS;
+    }
+    if (attrType == ACL_FUNC_ATTR_KERNEL_RATIO) {
+        *attrValue = 0;
+        return ACL_SUCCESS;
+    }
+    *attrValue = 0;
+    return ACL_SUCCESS;
+}
+
+aclError FakeAclrtGetFunctionAttributeMix12(aclrtFuncHandle funcHandle, aclrtFuncAttribute attrType, int64_t* attrValue)
+{
+    (void)funcHandle;
+    if (attrValue == nullptr) {
+        return ACL_ERROR_INVALID_PARAM;
+    }
+    if (attrType == ACL_FUNC_ATTR_KERNEL_TYPE) {
+        *attrValue = ACL_KERNEL_TYPE_MIX;
+        return ACL_SUCCESS;
+    }
+    if (attrType == ACL_FUNC_ATTR_KERNEL_RATIO) {
+        *attrValue = 2;
+        return ACL_SUCCESS;
+    }
+    *attrValue = 0;
+    return ACL_SUCCESS;
+}
+
+TEST_F(SkNodeTest, IdentifyAndHandleSimtKernel_NullOpts_SkipCheck)
+{
+    UtSkNodeRITaskInternal task{};
+    task.taskId = 2001;
+    task.type = ACL_MODEL_RI_TASK_KERNEL;
+    task.params.type = ACL_MODEL_RI_TASK_KERNEL;
+    task.params.kernelTaskParams.funcHandle = reinterpret_cast<aclrtFuncHandle>(0x2001);
+    task.params.kernelTaskParams.numBlocks = 4;
+
+    MOCKER(aclrtGetFunctionName).stubs().will(invoke(FakeAclrtGetFunctionNameRegular));
+    MOCKER(aclrtGetFunctionAttribute).stubs().will(invoke(FakeAclrtGetFunctionAttributeAivOnly));
+    MOCKER(aclrtFunctionGetBinary).stubs().will(invoke(FakeAclrtFunctionGetBinaryNonNull));
+
+    SuperKernelKernelNode node(MakeOriginTask(task), ACL_MODEL_RI_TASK_KERNEL, 0, 0, 0, INVALID_TASK_ID);
+    EXPECT_TRUE(node.InitNode(nullptr));
+    EXPECT_FALSE(node.nodeInfos.kernelInfos.isSimtOp);
+}
+
+TEST_F(SkNodeTest, IdentifyAndHandleSimtKernel_SimtCheckDisabled_SkipCheck)
+{
+    UtSkNodeRITaskInternal task{};
+    task.taskId = 2002;
+    task.type = ACL_MODEL_RI_TASK_KERNEL;
+    task.params.type = ACL_MODEL_RI_TASK_KERNEL;
+    task.params.kernelTaskParams.funcHandle = reinterpret_cast<aclrtFuncHandle>(0x2002);
+    task.params.kernelTaskParams.numBlocks = 4;
+
+    SuperKernelOptionsManager opts;
+    opts.RegisterDefaultOptions();
+    auto* simtOpt = opts.GetOption(SkInnerOptionType::ENABLE_SIMT_OP_CHECK);
+    ASSERT_NE(simtOpt, nullptr);
+    simtOpt->SetValue(0);
+
+    MOCKER(aclrtGetFunctionName).stubs().will(invoke(FakeAclrtGetFunctionNameRegular));
+    MOCKER(aclrtGetFunctionAttribute).stubs().will(invoke(FakeAclrtGetFunctionAttributeAivOnly));
+    MOCKER(aclrtFunctionGetBinary).stubs().will(invoke(FakeAclrtFunctionGetBinaryNonNull));
+
+    SuperKernelKernelNode node(MakeOriginTask(task), ACL_MODEL_RI_TASK_KERNEL, 0, 0, 0, INVALID_TASK_ID);
+    EXPECT_TRUE(node.InitNode(&opts));
+    EXPECT_FALSE(node.nodeInfos.kernelInfos.isSimtOp);
+}
+
+TEST_F(SkNodeTest, IdentifyAndHandleSimtKernel_AicOnly_SkipCheck)
+{
+    UtSkNodeRITaskInternal task{};
+    task.taskId = 2003;
+    task.type = ACL_MODEL_RI_TASK_KERNEL;
+    task.params.type = ACL_MODEL_RI_TASK_KERNEL;
+    task.params.kernelTaskParams.funcHandle = reinterpret_cast<aclrtFuncHandle>(0x2003);
+    task.params.kernelTaskParams.numBlocks = 4;
+
+    SuperKernelOptionsManager opts;
+    opts.RegisterDefaultOptions();
+    auto* simtOpt = opts.GetOption(SkInnerOptionType::ENABLE_SIMT_OP_CHECK);
+    ASSERT_NE(simtOpt, nullptr);
+    simtOpt->SetValue(1);
+
+    MOCKER(aclrtGetFunctionName).stubs().will(invoke(FakeAclrtGetFunctionNameRegular));
+    MOCKER(aclrtGetFunctionAttribute).stubs().will(invoke(FakeAclrtGetFunctionAttributeAicOnly));
+    MOCKER(aclrtFunctionGetBinary).stubs().will(invoke(FakeAclrtFunctionGetBinaryNonNull));
+
+    SuperKernelKernelNode node(MakeOriginTask(task), ACL_MODEL_RI_TASK_KERNEL, 0, 0, 0, INVALID_TASK_ID);
+    EXPECT_TRUE(node.InitNode(&opts));
+    EXPECT_EQ(node.nodeInfos.kernelInfos.kernelType, SkKernelType::AIC_ONLY);
+    EXPECT_FALSE(node.nodeInfos.kernelInfos.isSimtOp);
+}
+
+TEST_F(SkNodeTest, IdentifyAndHandleSimtKernel_MixAic10_SkipCheck)
+{
+    UtSkNodeRITaskInternal task{};
+    task.taskId = 2004;
+    task.type = ACL_MODEL_RI_TASK_KERNEL;
+    task.params.type = ACL_MODEL_RI_TASK_KERNEL;
+    task.params.kernelTaskParams.funcHandle = reinterpret_cast<aclrtFuncHandle>(0x2004);
+    task.params.kernelTaskParams.numBlocks = 4;
+
+    SuperKernelOptionsManager opts;
+    opts.RegisterDefaultOptions();
+    auto* simtOpt = opts.GetOption(SkInnerOptionType::ENABLE_SIMT_OP_CHECK);
+    ASSERT_NE(simtOpt, nullptr);
+    simtOpt->SetValue(1);
+
+    MOCKER(aclrtGetFunctionName).stubs().will(invoke(FakeAclrtGetFunctionNameRegular));
+    MOCKER(aclrtGetFunctionAttribute).stubs().will(invoke(FakeAclrtGetFunctionAttributeMixAic10));
+    MOCKER(aclrtFunctionGetBinary).stubs().will(invoke(FakeAclrtFunctionGetBinaryNonNull));
+
+    SuperKernelKernelNode node(MakeOriginTask(task), ACL_MODEL_RI_TASK_KERNEL, 0, 0, 0, INVALID_TASK_ID);
+    EXPECT_TRUE(node.InitNode(&opts));
+    EXPECT_EQ(node.nodeInfos.kernelInfos.kernelType, SkKernelType::AIC_ONLY);
+    EXPECT_FALSE(node.nodeInfos.kernelInfos.isSimtOp);
+}
+
+TEST_F(SkNodeTest, IdentifyAndHandleSimtKernel_AivOnly_NotSimtType)
+{
+    UtSkNodeRITaskInternal task{};
+    task.taskId = 2005;
+    task.type = ACL_MODEL_RI_TASK_KERNEL;
+    task.params.type = ACL_MODEL_RI_TASK_KERNEL;
+    task.params.kernelTaskParams.funcHandle = reinterpret_cast<aclrtFuncHandle>(0x2005);
+    task.params.kernelTaskParams.numBlocks = 4;
+
+    SuperKernelOptionsManager opts;
+    opts.RegisterDefaultOptions();
+    auto* simtOpt = opts.GetOption(SkInnerOptionType::ENABLE_SIMT_OP_CHECK);
+    ASSERT_NE(simtOpt, nullptr);
+    simtOpt->SetValue(1);
+
+    SetSimtAivType(0);
+
+    MOCKER(aclrtGetFunctionName).stubs().will(invoke(FakeAclrtGetFunctionNameRegular));
+    MOCKER(aclrtGetFunctionAttribute).stubs().will(invoke(FakeAclrtGetFunctionAttributeAivOnly));
+    MOCKER(aclrtFunctionGetBinary).stubs().will(invoke(FakeAclrtFunctionGetBinaryNonNull));
+
+    SuperKernelKernelNode node(MakeOriginTask(task), ACL_MODEL_RI_TASK_KERNEL, 0, 0, 0, INVALID_TASK_ID);
+    EXPECT_TRUE(node.InitNode(&opts));
+    EXPECT_EQ(node.nodeInfos.kernelInfos.kernelType, SkKernelType::AIV_ONLY);
+    EXPECT_FALSE(node.nodeInfos.kernelInfos.isSimtOp);
+}
+
+TEST_F(SkNodeTest, IdentifyAndHandleSimtKernel_AivOnly_SimtType3)
+{
+    UtSkNodeRITaskInternal task{};
+    task.taskId = 2006;
+    task.type = ACL_MODEL_RI_TASK_KERNEL;
+    task.params.type = ACL_MODEL_RI_TASK_KERNEL;
+    task.params.kernelTaskParams.funcHandle = reinterpret_cast<aclrtFuncHandle>(0x2006);
+    task.params.kernelTaskParams.numBlocks = 4;
+
+    SuperKernelOptionsManager opts;
+    opts.RegisterDefaultOptions();
+    auto* simtOpt = opts.GetOption(SkInnerOptionType::ENABLE_SIMT_OP_CHECK);
+    ASSERT_NE(simtOpt, nullptr);
+    simtOpt->SetValue(1);
+
+    SetSimtAivType(3);
+
+    MOCKER(aclrtGetFunctionName).stubs().will(invoke(FakeAclrtGetFunctionNameRegular));
+    MOCKER(aclrtGetFunctionAttribute).stubs().will(invoke(FakeAclrtGetFunctionAttributeAivOnly));
+    MOCKER(aclrtFunctionGetBinary).stubs().will(invoke(FakeAclrtFunctionGetBinaryNonNull));
+
+    SuperKernelKernelNode node(MakeOriginTask(task), ACL_MODEL_RI_TASK_KERNEL, 0, 0, 0, INVALID_TASK_ID);
+    EXPECT_TRUE(node.InitNode(&opts));
+    EXPECT_EQ(node.nodeInfos.kernelInfos.kernelType, SkKernelType::AIV_ONLY);
+    EXPECT_TRUE(node.nodeInfos.kernelInfos.isSimtOp);
+    EXPECT_FALSE(node.IsFusible());
+    EXPECT_EQ(node.GetFusionFailReason(), FusionFailReason::SIMT_OP_NOT_SUPPORTED);
+}
+
+TEST_F(SkNodeTest, IdentifyAndHandleSimtKernel_AivOnly_SimtType4)
+{
+    UtSkNodeRITaskInternal task{};
+    task.taskId = 2007;
+    task.type = ACL_MODEL_RI_TASK_KERNEL;
+    task.params.type = ACL_MODEL_RI_TASK_KERNEL;
+    task.params.kernelTaskParams.funcHandle = reinterpret_cast<aclrtFuncHandle>(0x2007);
+    task.params.kernelTaskParams.numBlocks = 4;
+
+    SuperKernelOptionsManager opts;
+    opts.RegisterDefaultOptions();
+    auto* simtOpt = opts.GetOption(SkInnerOptionType::ENABLE_SIMT_OP_CHECK);
+    ASSERT_NE(simtOpt, nullptr);
+    simtOpt->SetValue(1);
+
+    SetSimtAivType(4);
+
+    MOCKER(aclrtGetFunctionName).stubs().will(invoke(FakeAclrtGetFunctionNameRegular));
+    MOCKER(aclrtGetFunctionAttribute).stubs().will(invoke(FakeAclrtGetFunctionAttributeAivOnly));
+    MOCKER(aclrtFunctionGetBinary).stubs().will(invoke(FakeAclrtFunctionGetBinaryNonNull));
+
+    SuperKernelKernelNode node(MakeOriginTask(task), ACL_MODEL_RI_TASK_KERNEL, 0, 0, 0, INVALID_TASK_ID);
+    EXPECT_TRUE(node.InitNode(&opts));
+    EXPECT_EQ(node.nodeInfos.kernelInfos.kernelType, SkKernelType::AIV_ONLY);
+    EXPECT_TRUE(node.nodeInfos.kernelInfos.isSimtOp);
+    EXPECT_FALSE(node.IsFusible());
+    EXPECT_EQ(node.GetFusionFailReason(), FusionFailReason::SIMT_OP_NOT_SUPPORTED);
+}
+
+TEST_F(SkNodeTest, IdentifyAndHandleSimtKernel_Mix11_SimtType)
+{
+    UtSkNodeRITaskInternal task{};
+    task.taskId = 2008;
+    task.type = ACL_MODEL_RI_TASK_KERNEL;
+    task.params.type = ACL_MODEL_RI_TASK_KERNEL;
+    task.params.kernelTaskParams.funcHandle = reinterpret_cast<aclrtFuncHandle>(0x2008);
+    task.params.kernelTaskParams.numBlocks = 4;
+
+    SuperKernelOptionsManager opts;
+    opts.RegisterDefaultOptions();
+    auto* simtOpt = opts.GetOption(SkInnerOptionType::ENABLE_SIMT_OP_CHECK);
+    ASSERT_NE(simtOpt, nullptr);
+    simtOpt->SetValue(1);
+
+    SetSimtAivType(3);
+
+    MOCKER(aclrtGetFunctionName).stubs().will(invoke(FakeAclrtGetFunctionNameRegular));
+    MOCKER(aclrtGetFunctionAttribute).stubs().will(invoke(FakeAclrtGetFunctionAttributeMix11));
+    MOCKER(aclrtFunctionGetBinary).stubs().will(invoke(FakeAclrtFunctionGetBinaryNonNull));
+
+    SuperKernelKernelNode node(MakeOriginTask(task), ACL_MODEL_RI_TASK_KERNEL, 0, 0, 0, INVALID_TASK_ID);
+    EXPECT_TRUE(node.InitNode(&opts));
+    EXPECT_EQ(node.nodeInfos.kernelInfos.kernelType, SkKernelType::MIX_AIC_1_1);
+    EXPECT_TRUE(node.nodeInfos.kernelInfos.isSimtOp);
+    EXPECT_FALSE(node.IsFusible());
+    EXPECT_EQ(node.GetFusionFailReason(), FusionFailReason::SIMT_OP_NOT_SUPPORTED);
+}
+
+TEST_F(SkNodeTest, IdentifyAndHandleSimtKernel_Mix12_SimtType)
+{
+    UtSkNodeRITaskInternal task{};
+    task.taskId = 2009;
+    task.type = ACL_MODEL_RI_TASK_KERNEL;
+    task.params.type = ACL_MODEL_RI_TASK_KERNEL;
+    task.params.kernelTaskParams.funcHandle = reinterpret_cast<aclrtFuncHandle>(0x2009);
+    task.params.kernelTaskParams.numBlocks = 4;
+
+    SuperKernelOptionsManager opts;
+    opts.RegisterDefaultOptions();
+    auto* simtOpt = opts.GetOption(SkInnerOptionType::ENABLE_SIMT_OP_CHECK);
+    ASSERT_NE(simtOpt, nullptr);
+    simtOpt->SetValue(1);
+
+    SetSimtAivType(4);
+
+    MOCKER(aclrtGetFunctionName).stubs().will(invoke(FakeAclrtGetFunctionNameRegular));
+    MOCKER(aclrtGetFunctionAttribute).stubs().will(invoke(FakeAclrtGetFunctionAttributeMix12));
+    MOCKER(aclrtFunctionGetBinary).stubs().will(invoke(FakeAclrtFunctionGetBinaryNonNull));
+
+    SuperKernelKernelNode node(MakeOriginTask(task), ACL_MODEL_RI_TASK_KERNEL, 0, 0, 0, INVALID_TASK_ID);
+    EXPECT_TRUE(node.InitNode(&opts));
+    EXPECT_EQ(node.nodeInfos.kernelInfos.kernelType, SkKernelType::MIX_AIC_1_2);
+    EXPECT_TRUE(node.nodeInfos.kernelInfos.isSimtOp);
+    EXPECT_FALSE(node.IsFusible());
+    EXPECT_EQ(node.GetFusionFailReason(), FusionFailReason::SIMT_OP_NOT_SUPPORTED);
+}
