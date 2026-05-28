@@ -167,6 +167,33 @@ ge::Status ElementwiseMinApi([[maybe_unused]] const std::vector<TensorShapeInfo>
   return ge::SUCCESS;
 }
 
+ge::Status ElementwiseSumApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
+                             [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
+                             [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
+  NodeDetail node_info;
+  GE_ASSERT_SUCCESS(SetNodeDetail(input_shapes, output_shapes, node_info));
+  GE_ASSERT_SUCCESS(ascendcperf_v2::SumPerf(node_info, perf_res));
+  return ge::SUCCESS;
+}
+
+ge::Status ElementwiseMeanApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
+                              [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
+                              [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
+  NodeDetail node_info;
+  GE_ASSERT_SUCCESS(SetNodeDetail(input_shapes, output_shapes, node_info));
+  GE_ASSERT_SUCCESS(ascendcperf_v2::MeanPerf(node_info, perf_res));
+  return ge::SUCCESS;
+}
+
+ge::Status ElementwiseProdApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
+                              [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
+                              [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
+  NodeDetail node_info;
+  GE_ASSERT_SUCCESS(SetNodeDetail(input_shapes, output_shapes, node_info));
+  GE_ASSERT_SUCCESS(ascendcperf_v2::MulPerf(node_info, perf_res));
+  return ge::SUCCESS;
+}
+
 ge::Status ReduceMaxApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
                         [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
                         [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
@@ -203,6 +230,33 @@ ge::Status ReduceAllApi(const std::vector<TensorShapeInfo> &input_shapes,
   return ge::SUCCESS;
 }
 
+ge::Status ReduceSumApi(const std::vector<TensorShapeInfo> &input_shapes,
+                        const std::vector<TensorShapeInfo> &output_shapes, const NodeInfo &node,
+                        PerfOutputInfo &perf_res) {
+  ascendcapi_v2::ReduceApiPerfContext context;
+  GE_ASSERT_SUCCESS(BuildReduceContext(input_shapes, output_shapes, node, context));
+  GE_ASSERT_SUCCESS(ascendcapi_v2::ReduceSumPerf(context, perf_res));
+  return ge::SUCCESS;
+}
+
+ge::Status ReduceMeanApi(const std::vector<TensorShapeInfo> &input_shapes,
+                         const std::vector<TensorShapeInfo> &output_shapes, const NodeInfo &node,
+                         PerfOutputInfo &perf_res) {
+  ascendcapi_v2::ReduceApiPerfContext context;
+  GE_ASSERT_SUCCESS(BuildReduceContext(input_shapes, output_shapes, node, context));
+  GE_ASSERT_SUCCESS(ascendcapi_v2::ReduceMeanPerf(context, perf_res));
+  return ge::SUCCESS;
+}
+
+ge::Status ReduceProdApi(const std::vector<TensorShapeInfo> &input_shapes,
+                         const std::vector<TensorShapeInfo> &output_shapes, const NodeInfo &node,
+                         PerfOutputInfo &perf_res) {
+  ascendcapi_v2::ReduceApiPerfContext context;
+  GE_ASSERT_SUCCESS(BuildReduceContext(input_shapes, output_shapes, node, context));
+  GE_ASSERT_SUCCESS(ascendcapi_v2::ReduceProdPerf(context, perf_res));
+  return ge::SUCCESS;
+}
+
 ge::Status MaxApi(const std::vector<TensorShapeInfo> &input_shapes, const std::vector<TensorShapeInfo> &output_shapes,
                   const NodeInfo &node, PerfOutputInfo &perf_res) {
   return HasReduceSpecificParams(node) ? ReduceMaxApi(input_shapes, output_shapes, node, perf_res)
@@ -225,6 +279,24 @@ ge::Status AllApi(const std::vector<TensorShapeInfo> &input_shapes, const std::v
                   const NodeInfo &node, PerfOutputInfo &perf_res) {
   return HasReduceSpecificParams(node) ? ReduceAllApi(input_shapes, output_shapes, node, perf_res)
                                        : ElementwiseMinApi(input_shapes, output_shapes, node, perf_res);
+}
+
+ge::Status SumApi(const std::vector<TensorShapeInfo> &input_shapes, const std::vector<TensorShapeInfo> &output_shapes,
+                  const NodeInfo &node, PerfOutputInfo &perf_res) {
+  return HasReduceSpecificParams(node) ? ReduceSumApi(input_shapes, output_shapes, node, perf_res)
+                                       : ElementwiseSumApi(input_shapes, output_shapes, node, perf_res);
+}
+
+ge::Status MeanApi(const std::vector<TensorShapeInfo> &input_shapes, const std::vector<TensorShapeInfo> &output_shapes,
+                   const NodeInfo &node, PerfOutputInfo &perf_res) {
+  return HasReduceSpecificParams(node) ? ReduceMeanApi(input_shapes, output_shapes, node, perf_res)
+                                       : ElementwiseMeanApi(input_shapes, output_shapes, node, perf_res);
+}
+
+ge::Status ProdApi(const std::vector<TensorShapeInfo> &input_shapes, const std::vector<TensorShapeInfo> &output_shapes,
+                   const NodeInfo &node, PerfOutputInfo &perf_res) {
+  return HasReduceSpecificParams(node) ? ReduceProdApi(input_shapes, output_shapes, node, perf_res)
+                                       : ElementwiseProdApi(input_shapes, output_shapes, node, perf_res);
 }
 }  // namespace ascir_reduce_v2
 }  // namespace att

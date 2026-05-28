@@ -245,6 +245,53 @@ TEST_F(UTestReduceMinMaxApiPerfV2, AscendCApiReduceMinMaxArRaBranches)
   EXPECT_NE(PipeString(ar_max_perf, PipeType::AIV_VEC), PipeString(ra_max_perf, PipeType::AIV_VEC));
 }
 
+TEST_F(UTestReduceMinMaxApiPerfV2, AscendCApiReduceSumProdMeanUseReduceBranches)
+{
+  auto ar_context = MakeArContext(kFloat16, {CreateExpr(8), CreateExpr(64)}, false);
+  auto ra_context = MakeRaContext(kFloat16, {CreateExpr(8), CreateExpr(64)}, true);
+
+  PerfOutputInfo ar_sum_perf;
+  PerfOutputInfo ra_sum_perf;
+  PerfOutputInfo prod_perf;
+  PerfOutputInfo mean_perf;
+  EXPECT_EQ(ascendcapi_v2::ReduceSumPerf(ar_context, ar_sum_perf), ge::SUCCESS);
+  EXPECT_EQ(ascendcapi_v2::ReduceSumPerf(ra_context, ra_sum_perf), ge::SUCCESS);
+  EXPECT_EQ(ascendcapi_v2::ReduceProdPerf(ra_context, prod_perf), ge::SUCCESS);
+  EXPECT_EQ(ascendcapi_v2::ReduceMeanPerf(ra_context, mean_perf), ge::SUCCESS);
+
+  EXPECT_FALSE(PipeString(ar_sum_perf, PipeType::AIV_VEC).empty());
+  EXPECT_FALSE(PipeString(ra_sum_perf, PipeType::AIV_VEC).empty());
+  EXPECT_FALSE(PipeString(prod_perf, PipeType::AIV_VEC).empty());
+  EXPECT_FALSE(PipeString(mean_perf, PipeType::AIV_VEC).empty());
+  EXPECT_NE(PipeString(ar_sum_perf, PipeType::AIV_VEC), PipeString(ra_sum_perf, PipeType::AIV_VEC));
+  EXPECT_NE(PipeString(ra_sum_perf, PipeType::AIV_VEC), PipeString(prod_perf, PipeType::AIV_VEC));
+
+  Expr mean_delta = ResolvedPipeExpr(mean_perf, PipeType::AIV_VEC) - ResolvedPipeExpr(ra_sum_perf, PipeType::AIV_VEC);
+  mean_delta.Simplify();
+  PerfOutputInfo muls_perf;
+  EXPECT_EQ(ascendcperf_v2::MeanPerf(MakeNodeDetail(kFloat16, {CreateExpr(64)}), muls_perf), ge::SUCCESS);
+  EXPECT_EQ(Str(mean_delta), Str(ResolvedPipeExpr(muls_perf, PipeType::AIV_VEC)));
+}
+
+TEST_F(UTestReduceMinMaxApiPerfV2, AscendCApiReduceSumMeanProdRejectUnsupportedDtypes)
+{
+  auto int64_context = MakeRaContext(kInt64, {CreateExpr(8), CreateExpr(64)}, true);
+  auto int8_context = MakeRaContext(kInt8, {CreateExpr(8), CreateExpr(64)}, true);
+  auto bfloat16_context = MakeRaContext(kBfloat16, {CreateExpr(8), CreateExpr(64)}, true);
+  auto uint64_context = MakeRaContext(kUInt64, {CreateExpr(8), CreateExpr(64)}, true);
+
+  PerfOutputInfo sum_perf;
+  PerfOutputInfo mean_perf;
+  PerfOutputInfo prod_perf;
+  PerfOutputInfo bfloat16_mean_perf;
+  PerfOutputInfo uint64_prod_perf;
+  EXPECT_NE(ascendcapi_v2::ReduceSumPerf(int64_context, sum_perf), ge::SUCCESS);
+  EXPECT_NE(ascendcapi_v2::ReduceMeanPerf(int8_context, mean_perf), ge::SUCCESS);
+  EXPECT_NE(ascendcapi_v2::ReduceProdPerf(int8_context, prod_perf), ge::SUCCESS);
+  EXPECT_NE(ascendcapi_v2::ReduceMeanPerf(bfloat16_context, bfloat16_mean_perf), ge::SUCCESS);
+  EXPECT_NE(ascendcapi_v2::ReduceProdPerf(uint64_context, uint64_prod_perf), ge::SUCCESS);
+}
+
 TEST_F(UTestReduceMinMaxApiPerfV2, ReducePerfProvidesReadableBreakdownItems)
 {
   auto context = MakeRaContext(kInt64, {CreateExpr(16), CreateExpr(4)}, true);
@@ -1015,6 +1062,52 @@ TEST_F(UTestReduceMinMaxApiPerfV2, AscirRegistersReduceAnyAllOps)
   EXPECT_FALSE(PipeString(reduce_any_perf, PipeType::AIV_VEC).empty());
   EXPECT_EQ(PipeString(reduce_all_perf, PipeType::AIV_VEC).find("reduce_ar_normal_align_case"), std::string::npos);
   EXPECT_EQ(PipeString(reduce_any_perf, PipeType::AIV_VEC).find("reduce_ar_normal_align_case"), std::string::npos);
+}
+
+TEST_F(UTestReduceMinMaxApiPerfV2, AscirRegistersReduceSumMeanProdOpsAndAliases)
+{
+  const std::vector<TensorShapeInfo> reduce_inputs = {
+      MakeTensorShape(kFloat16, 2U, {CreateExpr(8), CreateExpr(64)}, {CreateExpr(64), CreateExpr(1)})};
+  const std::vector<TensorShapeInfo> reduce_outputs = {
+      MakeTensorShape(kFloat16, 2U, {CreateExpr(8), CreateExpr(1)}, {CreateExpr(1), CreateExpr(0)})};
+
+  NodeInfo reduce_node;
+  SetReduceSpecificParams(reduce_node, codegen::ReducePattern::kAR, codegen::ReduceMergeMode::kNone, CreateExpr(8),
+                          CreateExpr(1), false);
+
+  auto reduce_sum_v2 = ApiPerfFactory::Instance().Create(kReduceSum + "V2");
+  auto reduce_mean_v2 = ApiPerfFactory::Instance().Create(kReduceMean + "V2");
+  auto reduce_prod_v2 = ApiPerfFactory::Instance().Create(kReduceProd + "V2");
+  auto sum_v2 = ApiPerfFactory::Instance().Create(kSum + "V2");
+  auto mean_v2 = ApiPerfFactory::Instance().Create(kMean + "V2");
+  auto prod_v2 = ApiPerfFactory::Instance().Create(kProd + "V2");
+  ASSERT_NE(reduce_sum_v2, nullptr);
+  ASSERT_NE(reduce_mean_v2, nullptr);
+  ASSERT_NE(reduce_prod_v2, nullptr);
+  ASSERT_NE(sum_v2, nullptr);
+  ASSERT_NE(mean_v2, nullptr);
+  ASSERT_NE(prod_v2, nullptr);
+
+  PerfOutputInfo reduce_sum_perf;
+  PerfOutputInfo reduce_mean_perf;
+  PerfOutputInfo reduce_prod_perf;
+  PerfOutputInfo sum_alias_perf;
+  PerfOutputInfo mean_alias_perf;
+  PerfOutputInfo prod_alias_perf;
+  EXPECT_EQ(reduce_sum_v2->GetPerfFunc()(reduce_inputs, reduce_outputs, reduce_node, reduce_sum_perf), ge::SUCCESS);
+  EXPECT_EQ(reduce_mean_v2->GetPerfFunc()(reduce_inputs, reduce_outputs, reduce_node, reduce_mean_perf), ge::SUCCESS);
+  EXPECT_EQ(reduce_prod_v2->GetPerfFunc()(reduce_inputs, reduce_outputs, reduce_node, reduce_prod_perf), ge::SUCCESS);
+  EXPECT_EQ(sum_v2->GetPerfFunc()(reduce_inputs, reduce_outputs, reduce_node, sum_alias_perf), ge::SUCCESS);
+  EXPECT_EQ(mean_v2->GetPerfFunc()(reduce_inputs, reduce_outputs, reduce_node, mean_alias_perf), ge::SUCCESS);
+  EXPECT_EQ(prod_v2->GetPerfFunc()(reduce_inputs, reduce_outputs, reduce_node, prod_alias_perf), ge::SUCCESS);
+
+  EXPECT_FALSE(PipeString(reduce_sum_perf, PipeType::AIV_VEC).empty());
+  EXPECT_FALSE(PipeString(reduce_mean_perf, PipeType::AIV_VEC).empty());
+  EXPECT_FALSE(PipeString(reduce_prod_perf, PipeType::AIV_VEC).empty());
+  EXPECT_EQ(PipeString(reduce_sum_perf, PipeType::AIV_VEC), PipeString(sum_alias_perf, PipeType::AIV_VEC));
+  EXPECT_EQ(PipeString(reduce_mean_perf, PipeType::AIV_VEC), PipeString(mean_alias_perf, PipeType::AIV_VEC));
+  EXPECT_EQ(PipeString(reduce_prod_perf, PipeType::AIV_VEC), PipeString(prod_alias_perf, PipeType::AIV_VEC));
+  EXPECT_NE(PipeString(reduce_sum_perf, PipeType::AIV_VEC), PipeString(reduce_prod_perf, PipeType::AIV_VEC));
 }
 
 TEST_F(UTestReduceMinMaxApiPerfV2, AscirRegistersElementwiseMinMaxOps)

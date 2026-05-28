@@ -33,6 +33,15 @@ ge::Status ReduceAnyApi(const std::vector<TensorShapeInfo> &input_shapes,
 ge::Status ReduceAllApi(const std::vector<TensorShapeInfo> &input_shapes,
                         const std::vector<TensorShapeInfo> &output_shapes, const NodeInfo &node,
                         PerfOutputInfo &perf_res);
+ge::Status ReduceSumApi(const std::vector<TensorShapeInfo> &input_shapes,
+                        const std::vector<TensorShapeInfo> &output_shapes, const NodeInfo &node,
+                        PerfOutputInfo &perf_res);
+ge::Status ReduceMeanApi(const std::vector<TensorShapeInfo> &input_shapes,
+                         const std::vector<TensorShapeInfo> &output_shapes, const NodeInfo &node,
+                         PerfOutputInfo &perf_res);
+ge::Status ReduceProdApi(const std::vector<TensorShapeInfo> &input_shapes,
+                         const std::vector<TensorShapeInfo> &output_shapes, const NodeInfo &node,
+                         PerfOutputInfo &perf_res);
 ge::Status MaxApi(const std::vector<TensorShapeInfo> &input_shapes, const std::vector<TensorShapeInfo> &output_shapes,
                   const NodeInfo &node, PerfOutputInfo &perf_res);
 ge::Status MinApi(const std::vector<TensorShapeInfo> &input_shapes, const std::vector<TensorShapeInfo> &output_shapes,
@@ -41,6 +50,12 @@ ge::Status AnyApi(const std::vector<TensorShapeInfo> &input_shapes, const std::v
                   const NodeInfo &node, PerfOutputInfo &perf_res);
 ge::Status AllApi(const std::vector<TensorShapeInfo> &input_shapes, const std::vector<TensorShapeInfo> &output_shapes,
                   const NodeInfo &node, PerfOutputInfo &perf_res);
+ge::Status SumApi(const std::vector<TensorShapeInfo> &input_shapes, const std::vector<TensorShapeInfo> &output_shapes,
+                  const NodeInfo &node, PerfOutputInfo &perf_res);
+ge::Status MeanApi(const std::vector<TensorShapeInfo> &input_shapes, const std::vector<TensorShapeInfo> &output_shapes,
+                   const NodeInfo &node, PerfOutputInfo &perf_res);
+ge::Status ProdApi(const std::vector<TensorShapeInfo> &input_shapes, const std::vector<TensorShapeInfo> &output_shapes,
+                   const NodeInfo &node, PerfOutputInfo &perf_res);
 }  // namespace ascir_reduce_v2
 }  // namespace att
 
