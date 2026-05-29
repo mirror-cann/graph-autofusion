@@ -158,6 +158,10 @@ aclError aclskOptimize(aclmdlRI model, aclskOptions *options) {
 
     SK_LOGI("Start update graph...");
     ret = graph.Update();
+    if (ret != ACL_SUCCESS) {
+        SK_LOGE("Failed to update graph, ret=%d", ret);
+        return ret;
+    }
     SK_LOGI("End update graph");
 
     SK_LOGI("Start dump raw tasks after update from modelRI to JSON...");

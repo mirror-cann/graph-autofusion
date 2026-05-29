@@ -665,6 +665,10 @@ bool SuperKernelGraph::PostProcessMemoryNode() {
                 }
             }
 
+            if (!firstWaitInfo.has_value()) {
+                SK_LOGE("No valid memory wait node found for memory event 0x%lx", eventId);
+                return false;
+            }
             uint64_t memoryWaitValue = firstWaitInfo->first;
             uint32_t waitFlag = firstWaitInfo->second;
 
