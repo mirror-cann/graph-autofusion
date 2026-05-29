@@ -90,10 +90,12 @@ struct TaskInfo {
     SkKernelType relatedType;
     uint8_t numBlocks;
     uint8_t entryCnt;
-    uint64_t args;
     uint64_t entry[4];
     uint64_t debugOptions;
     uint64_t reserved;
+    uint64_t args;
+    uint32_t argsSize;
+    uint8_t reservedList[4];
 };
 )";
 

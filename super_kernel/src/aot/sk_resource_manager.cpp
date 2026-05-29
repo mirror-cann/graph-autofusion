@@ -10,6 +10,7 @@
 
 #include "sk_resource_manager.h"
 #include "sk_log.h"
+#include "sk_event_recorder.h"
 
 #include <string>
 
@@ -166,6 +167,10 @@ void SkResourceManager::OnModelDestroy(void* userData)
         }
         registeredModels_.erase(model);
     }
+
+    // 清理 SkEventRecorder 中按 modelRI 索引的 host 侧映射表
+    SkEventRecorder::Instance().RemoveModelMappings(
+        static_cast<uint64_t>(reinterpret_cast<uintptr_t>(model)));
 
     for (const auto& record : resources) {
         SK_LOGI("release resource record: model=%p, addr=%p, bytes=%zu", model, record.addr, record.bytes);

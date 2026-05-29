@@ -1754,6 +1754,7 @@ bool SkTaskBuilder::AddFuncTask(SkTask& skTask, SuperKernelBaseNode* node, SkDfx
                         prefetchCntValue.second);
             }
             taskInfo.args = addrIndex == 0 ? prefetchCntValue.first : prefetchCntValue.second;
+            taskInfo.argsSize = static_cast<uint32_t>(node->GetTaskParams().kernelTaskParams.argsSize);
             taskInfo.reserved = static_cast<uint64_t>(reinterpret_cast<uintptr_t>(kernelInfo.devArgs));
         }
 
@@ -1777,6 +1778,7 @@ bool SkTaskBuilder::AddFuncTask(SkTask& skTask, SuperKernelBaseNode* node, SkDfx
         taskInfo.reserved = nodeIndex < taskSyncInfos_.size() ?
             static_cast<uint64_t>(taskSyncInfos_[nodeIndex].earlyStartInfo.funcEarlyStartConfig) :
             static_cast<uint64_t>(SkEarlyStartMask::NONE);
+        taskInfo.argsSize = static_cast<uint32_t>(node->GetTaskParams().kernelTaskParams.argsSize);
         skTask.numBlocks = std::max(skTask.numBlocks, static_cast<uint32_t>(taskInfo.numBlocks));
         skTask.funcCnt++;
 

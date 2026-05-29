@@ -113,7 +113,15 @@ aclError aclskOptimize(aclmdlRI model, aclskOptions *options) {
         SK_LOGE("Failed to set exception callback.");
         return ACL_ERROR_FAILURE;
     }
-
+    if (Adx::AdumpRegExceptionDumpCallback) {
+        SK_LOGI("Register exception dump callback.");
+        ret = Adx::AdumpRegExceptionDumpCallback(ExceptionDumpInfoCallBack);
+        if (ret != ACL_SUCCESS) {
+            SK_LOGE("Failed to register exception dump callback.");
+            return ACL_ERROR_FAILURE;
+        }
+        SK_LOGI("Register exception dump callback success.");
+    }
     SK_LOGI("Begin aclskOptimize");
     SK_LOGI("Start parse sk options...");
     SuperKernelOptionsManager opts;
