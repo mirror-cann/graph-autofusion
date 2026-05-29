@@ -1077,6 +1077,100 @@ TEST_F(SkEventRecorderTest, DumpThreadFuncDstMissingTriggersReCopy) {
     CleanupMockDeviceCtx();
 }
 
+// ==================== RemoveModelMappings / DumpProfilingDetail Tests ====================
+
+TEST_F(SkEventRecorderTest, RemoveModelMappings_RemovesOnlyTargetModel)
+{
+    constexpr uint64_t targetModelRI = 0x11110000;
+    constexpr uint64_t otherModelRI = 0x22220000;
+
+    SkEventRecorder::Instance().AddNodeInfoMapping(targetModelRI, 1, 0, "target_node", 4);
+    SkEventRecorder::Instance().AddSkNameMapping(targetModelRI, 1, "target_sk");
+    SkEventRecorder::Instance().AddNodeInfoMapping(otherModelRI, 1, 0, "other_node", 8);
+    SkEventRecorder::Instance().AddSkNameMapping(otherModelRI, 1, "other_sk");
+
+    SkEventRecorder::Instance().RemoveModelMappings(targetModelRI);
+
+    EXPECT_TRUE(SkEventRecorder::Instance().GetNodeInfo(targetModelRI, 1, 0).nodeName.empty());
+    EXPECT_TRUE(SkEventRecorder::Instance().GetSkName(targetModelRI, 1).empty());
+    EXPECT_EQ(SkEventRecorder::Instance().GetNodeInfo(otherModelRI, 1, 0).nodeName, "other_node");
+    EXPECT_EQ(SkEventRecorder::Instance().GetSkName(otherModelRI, 1), "other_sk");
+
+    SkEventRecorder::Instance().RemoveModelMappings(otherModelRI);
+}
+
+TEST_F(SkEventRecorderTest, DumpProfilingDetail_DisabledRegistersModelAndSkName)
+{
+    SuperKernelScopeInfo scopeInfo;
+    SkLaunchInfo launchInfo;
+    ASSERT_TRUE(launchInfo.devArgs.Init(sizeof(SkDeviceEntryArgs)));
+    launchInfo.skFuncName = "sk_disabled_start_add_end_mul";
+    aclmdlRI modelRI = reinterpret_cast<aclmdlRI>(0x123456789ABCULL);
+    const uint64_t fullModelRI = static_cast<uint64_t>(reinterpret_cast<uintptr_t>(modelRI));
+
+    EXPECT_FALSE(SkEventRecorder::Instance().IsEnabled());
+    EXPECT_TRUE(DumpProfilingDetail({}, launchInfo, scopeInfo, modelRI));
+
+    EXPECT_EQ(launchInfo.eventGmAddr, nullptr);
+    EXPECT_EQ(launchInfo.modelRI, 0);
+    EXPECT_EQ(launchInfo.skId, 0);
+    const uint64_t encoded = launchInfo.devArgs.Get()->skHeader.modelRIIdAndSkScopeId;
+    const uint16_t modelRIIdx = static_cast<uint16_t>((encoded >> 32) & 0xFFFF);
+    const uint16_t skScopeId = static_cast<uint16_t>((encoded >> 16) & 0xFFFF);
+    EXPECT_EQ(skScopeId, scopeInfo.GetScopeId());
+    EXPECT_EQ(SkEventRecorder::Instance().GetModelRIByIndex(modelRIIdx), fullModelRI);
+    EXPECT_EQ(SkEventRecorder::Instance().GetSkName(fullModelRI, scopeInfo.GetScopeId()), launchInfo.skFuncName);
+
+    SkEventRecorder::Instance().RemoveModelMappings(fullModelRI);
+}
+
+TEST_F(SkEventRecorderTest, DumpProfilingDetail_EnabledUpdatesEventConfigAndNodeInfo)
+{
+    InitMockDeviceCtx();
+    SkEventRecorder::Instance().enabled = true;
+
+    SuperKernelScopeInfo scopeInfo;
+    SkLaunchInfo launchInfo;
+    const size_t devArgsSize = sizeof(SkDeviceEntryArgs) + sizeof(SkEventConfig);
+    ASSERT_TRUE(launchInfo.devArgs.Init(devArgsSize));
+    launchInfo.devArgs.Get()->skHeader.eventConfigOffset = sizeof(SkHeaderInfo);
+    launchInfo.skFuncName = "sk_enabled_start_add_end_mul";
+
+    auto node = std::make_unique<SuperKernelKernelNode>(
+        nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_STREAM_ID, INVALID_TASK_ID);
+    node->SetNodeType(SkNodeType::NODE_KERNEL);
+    node->nodeInfos.kernelInfos.funcName = "add_kernel";
+    node->nodeInfos.kernelInfos.numBlocks = 7;
+    std::vector<SuperKernelBaseNode*> taskNodes = {node.get()};
+
+    aclmdlRI modelRI = reinterpret_cast<aclmdlRI>(0x223344556677ULL);
+    const uint64_t fullModelRI = static_cast<uint64_t>(reinterpret_cast<uintptr_t>(modelRI));
+
+    EXPECT_TRUE(DumpProfilingDetail(taskNodes, launchInfo, scopeInfo, modelRI));
+
+    SkEventDeviceCtx* ctx = &SkEventRecorder::Instance().deviceCtxs;
+    EXPECT_EQ(launchInfo.eventGmAddr, ctx->gmAddr.get());
+    EXPECT_EQ(launchInfo.modelRI, fullModelRI);
+    EXPECT_EQ(launchInfo.skId, scopeInfo.GetScopeId());
+
+    auto* eventConfig = reinterpret_cast<SkEventConfig*>(
+        reinterpret_cast<uint8_t*>(launchInfo.devArgs.Get()) + launchInfo.devArgs.Get()->skHeader.eventConfigOffset);
+    EXPECT_EQ(eventConfig->eventGmAddr, reinterpret_cast<uint64_t>(ctx->gmAddr.get()));
+    EXPECT_EQ(eventConfig->modelRI, fullModelRI);
+    EXPECT_EQ(eventConfig->skId, scopeInfo.GetScopeId());
+    EXPECT_EQ(eventConfig->enabled, 1);
+    EXPECT_EQ(eventConfig->coreSize, SkEventRecorder::Instance().GetCoreSize());
+
+    SkNodeInfo nodeInfo = SkEventRecorder::Instance().GetNodeInfo(fullModelRI, scopeInfo.GetScopeId(), 0);
+    EXPECT_EQ(nodeInfo.nodeName, "add_kernel");
+    EXPECT_EQ(nodeInfo.numBlocks, 7);
+    EXPECT_EQ(SkEventRecorder::Instance().GetSkName(fullModelRI, scopeInfo.GetScopeId()), launchInfo.skFuncName);
+
+    SkEventRecorder::Instance().RemoveModelMappings(fullModelRI);
+    SkEventRecorder::Instance().enabled = false;
+    CleanupMockDeviceCtx();
+}
+
 // ==================== GetSkFuncName Tests ====================
 
 class SkGetSkFuncNameTest : public testing::Test {
@@ -1205,5 +1299,4 @@ TEST_F(SkGetSkFuncNameTest, LargeScopeId_ValidOutput)
     };
     EXPECT_EQ(GetSkFuncName(nodes, 65535, "s"), "sk_65535_s_start_k1_end_k1");
 }
-
 

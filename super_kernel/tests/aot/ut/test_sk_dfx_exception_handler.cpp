@@ -2170,6 +2170,126 @@ TEST_F(SkDfxExceptionHandlerTest, GetErrorNodeIdx_AfterIdentifyErrorNode_Matches
     EXPECT_EQ(handler->GetErrorNodeIdx(), 0);
 }
 
+// ==================== ProcessExceptionDump / ExceptionDumpInfoCallBack Tests ====================
+
+TEST_F(SkDfxExceptionHandlerTest, ProcessExceptionDump_SizeZero_ReturnsInvalidParam)
+{
+    aclrtExceptionInfo exceptionInfo = {};
+    Adx::ExceptionDumpInfo dumpInfo = {};
+    uint32_t realSize = 99;
+    Adx::ExceptionDumpMode mode = Adx::ExceptionDumpMode::DUMP_MODE_ADDITIONAL;
+
+    uint32_t ret = handler->ProcessExceptionDump(&exceptionInfo, &dumpInfo, 0, &realSize, &mode);
+    EXPECT_EQ(ret, ACL_ERROR_INVALID_PARAM);
+    EXPECT_EQ(realSize, 99);
+    EXPECT_EQ(mode, Adx::ExceptionDumpMode::DUMP_MODE_ADDITIONAL);
+}
+
+TEST_F(SkDfxExceptionHandlerTest, ProcessExceptionDump_NotSkEntry_SkipsDump)
+{
+    aclrtExceptionInfo exceptionInfo = {};
+    Adx::ExceptionDumpInfo dumpInfo = {};
+    uint32_t realSize = 99;
+    Adx::ExceptionDumpMode mode = Adx::ExceptionDumpMode::DUMP_MODE_ADDITIONAL;
+
+    MOCKER(aclrtGetFuncHandleFromExceptionInfo).stubs().will(invoke(Fake_aclrtGetFuncHandleFromExceptionInfo_Success));
+    MOCKER(aclrtGetFunctionName).stubs().will(invoke(Fake_aclrtGetFunctionName_other));
+
+    uint32_t ret = handler->ProcessExceptionDump(&exceptionInfo, &dumpInfo, 1, &realSize, &mode);
+    EXPECT_EQ(ret, ACL_SUCCESS);
+    EXPECT_EQ(realSize, 0);
+    EXPECT_EQ(mode, Adx::ExceptionDumpMode::DUMP_MODE_NONE);
+}
+
+TEST_F(SkDfxExceptionHandlerTest, ExceptionDumpInfoCallBack_NullParams_ReturnsInvalidParam)
+{
+    aclrtExceptionInfo exceptionInfo = {};
+    Adx::ExceptionDumpInfo dumpInfo = {};
+    uint32_t realSize = 0;
+    Adx::ExceptionDumpMode mode = Adx::ExceptionDumpMode::DUMP_MODE_NONE;
+
+    EXPECT_EQ(ExceptionDumpInfoCallBack(nullptr, &dumpInfo, 1, &realSize, &mode), ACL_ERROR_INVALID_PARAM);
+    EXPECT_EQ(ExceptionDumpInfoCallBack(&exceptionInfo, nullptr, 1, &realSize, &mode), ACL_ERROR_INVALID_PARAM);
+    EXPECT_EQ(ExceptionDumpInfoCallBack(&exceptionInfo, &dumpInfo, 1, nullptr, &mode), ACL_ERROR_INVALID_PARAM);
+}
+
+TEST_F(SkDfxExceptionHandlerTest, ExceptionDumpInfoCallBack_CommonException_SkipsDump)
+{
+    aclrtExceptionInfo exceptionInfo = {};
+    exceptionInfo.expandInfo.type = static_cast<rtExceptionExpandType_t>(99);
+    Adx::ExceptionDumpInfo dumpInfo = {};
+    uint32_t realSize = 99;
+    Adx::ExceptionDumpMode mode = Adx::ExceptionDumpMode::DUMP_MODE_ADDITIONAL;
+
+    uint32_t ret = ExceptionDumpInfoCallBack(&exceptionInfo, &dumpInfo, 1, &realSize, &mode);
+    EXPECT_EQ(ret, ACL_SUCCESS);
+    EXPECT_EQ(realSize, 0);
+    EXPECT_EQ(mode, Adx::ExceptionDumpMode::DUMP_MODE_NONE);
+}
+
+TEST_F(SkDfxExceptionHandlerTest, ExceptionDumpInfoCallBack_SuperKernelException_FillsSubKernelDump)
+{
+    constexpr size_t bufferSize = 2048;
+    uint8_t* buffer = static_cast<uint8_t*>(malloc(bufferSize));
+    ASSERT_NE(buffer, nullptr);
+    memset_s(buffer, bufferSize, 0, bufferSize);
+
+    auto* deviceArgs = reinterpret_cast<SkDeviceEntryArgs*>(buffer);
+    SkHeaderInfo& headerInfo = deviceArgs->skHeader;
+    headerInfo.totalSize = bufferSize;
+    headerInfo.nodeCnt = 1;
+    headerInfo.dfxOffset = sizeof(SkHeaderInfo);
+    headerInfo.aicQueOffset = headerInfo.dfxOffset + sizeof(SkDfxInfo);
+    headerInfo.modelRIIdAndSkScopeId = 0;
+
+    SkDfxInfo* dfxInfo = reinterpret_cast<SkDfxInfo*>(buffer + headerInfo.dfxOffset);
+    dfxInfo[0].binHdl = 0xAAAA;
+    dfxInfo[0].funcHdlOri = 0xBBBB;
+    dfxInfo[0].entryAic[0] = 0x1000;
+    dfxInfo[0].aicSize = 0x200;
+
+    TaskQue* aicTaskQue = reinterpret_cast<TaskQue*>(buffer + headerInfo.aicQueOffset);
+    aicTaskQue->taskCnt = 1;
+    aicTaskQue->cap = 1;
+    aicTaskQue->taskInfos[0].index = 0;
+    aicTaskQue->taskInfos[0].type = SkTaskType::TYPE_FUNC;
+    aicTaskQue->taskInfos[0].args = 0xDEADBEEF;
+    aicTaskQue->taskInfos[0].argsSize = 256;
+
+    g_mockDeviceBuffer = buffer;
+    g_mockDeviceBufferSize = bufferSize;
+
+    aclrtExceptionInfo exceptionInfo = {};
+    exceptionInfo.expandInfo.type = RT_EXCEPTION_AICORE;
+    Adx::ExceptionDumpInfo dumpInfo[1] = {};
+    uint32_t realSize = 0;
+    Adx::ExceptionDumpMode mode = Adx::ExceptionDumpMode::DUMP_MODE_NONE;
+
+    MOCKER(aclrtGetFuncHandleFromExceptionInfo).stubs().will(invoke(Fake_aclrtGetFuncHandleFromExceptionInfo_Success));
+    MOCKER(aclrtGetFunctionName).stubs().will(invoke(Fake_aclrtGetFunctionName_sk_entry));
+    MOCKER(aclrtGetArgsFromExceptionInfo).stubs().will(invoke(Fake_aclrtGetArgsFromExceptionInfo_Success));
+    MOCKER(aclrtMemcpy).stubs().will(invoke(Fake_aclrtMemcpy_DeviceToHost));
+    MOCKER(rtGetExceptionRegInfo).stubs().will(invoke(Fake_rtGetExceptionRegInfo_SingleCore));
+
+    uint32_t ret = ExceptionDumpInfoCallBack(&exceptionInfo, dumpInfo, 1, &realSize, &mode);
+    EXPECT_EQ(ret, ACL_SUCCESS);
+    EXPECT_EQ(realSize, 1);
+    EXPECT_EQ(mode, Adx::ExceptionDumpMode::DUMP_MODE_OVERWRITE);
+    EXPECT_EQ(dumpInfo[0].coreId, 0);
+    EXPECT_EQ(dumpInfo[0].coreType, RT_CORE_TYPE_AIC);
+    EXPECT_EQ(dumpInfo[0].bin, reinterpret_cast<void*>(0xAAAA));
+    EXPECT_STREQ(dumpInfo[0].kernelName, "sk_entry");
+    EXPECT_EQ(dumpInfo[0].argAddr, reinterpret_cast<void*>(0xDEADBEEF));
+    EXPECT_EQ(dumpInfo[0].argSize, 256);
+    EXPECT_EQ(dumpInfo[0].extraTensorNum, 1);
+    EXPECT_EQ(dumpInfo[0].extraTensor[0].tensorSize, bufferSize);
+    EXPECT_EQ(dumpInfo[0].extraTensor[0].tensorAddr, reinterpret_cast<int64_t*>(0x3000));
+
+    g_mockDeviceBuffer = nullptr;
+    g_mockDeviceBufferSize = 0;
+    free(buffer);
+}
+
 // ==================== CheckError Tests ====================
 
 TEST_F(SkDfxExceptionHandlerTest, CheckError_ACL_SUCCESS_ReturnsSuccess)
