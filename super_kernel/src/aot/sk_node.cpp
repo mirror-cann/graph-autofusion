@@ -96,9 +96,12 @@ const char* BindmapFailReasonToStr(BindmapFailReason reason) {
         case BindmapFailReason::BINDMAP_INIT_EMPTY:     return "bindmap init empty";
         case BindmapFailReason::BINHDL_NULL:            return "binHdl is null";
         case BindmapFailReason::FUNCHDL_NULL:           return "funcHdl is null";
-        case BindmapFailReason::FUNC_NOT_FOUND:         return "initialize kernel function failed";
+        case BindmapFailReason::FUNC_NOT_FOUND:         return "function not found in bind map";
         case BindmapFailReason::BIN_DEV_ADDR_GET_FAILED: return "failed to get binary device address";
         case BindmapFailReason::FUNC_ADDR_GET_FAILED:   return "failed to get function address";
+        case BindmapFailReason::BINDMAP_ENTRY_CONFLICT: return "bind map entry conflict";
+        case BindmapFailReason::BINDMAP_CAP_INCONSISTENT: return "bind map cap inconsistent";
+        case BindmapFailReason::BIN_HOST_ADDR_GET_FAILED: return "failed to get binary host address";
         default:                                        return "UNKNOWN_BINDMAP_REASON";
     }
 }
@@ -161,7 +164,7 @@ SkBindMap InitSuperKernelBindMap(aclrtBinHandle binHdl)
 
     if (int ret = rtBinaryGetMetaInfo(binHdl, RT_BINARY_TYPE_SK_INFO, metaNum, metaDataList.data(),
         infoSize.data()) != 0) {
-        SK_LOGE("rtBinaryGetMetaInfo failed, ret=%d", ret);
+        SK_LOGI("rtBinaryGetMetaInfo failed, ret=%d", ret);
         return SkBindMap();
     }
 
@@ -191,7 +194,7 @@ SkBindMap InitSuperKernelBindMap(aclrtBinHandle binHdl)
         auto it = bindMap.find(globalFunc);
         if (it != bindMap.end() &&
             (it->second.cap != bindInfo.cap || it->second.sknlFuncs != bindInfo.sknlFuncs)) {
-            SK_LOGE("InitSuperKernelBindMap: globalFunc=0x%lx is duplicated with different value",
+            SK_LOGI("InitSuperKernelBindMap: globalFunc=0x%lx is duplicated with different value",
                 globalFunc);
             it->second.sknlFuncs[0] = INVALID_SK_BIND_VALUE;
             continue;
@@ -211,6 +214,7 @@ struct CoreFuncInitContext {
     ResolvedFunctionInfo* info;
     SkBindMap::iterator bindIt;
     size_t splitIdx;
+    BindmapFailReason* failReason;
 };
 
 enum class SkNodeCoreType: uint32_t {
@@ -308,6 +312,9 @@ bool InitSingleCoreFunc(const CoreFuncInitContext& ctx, aclrtBinHandle binHdl, v
     if (int ret = rtGetBinBuffer(binHdl, RT_BIN_HOST_ADDR, &binHostAddr, &binHostSize) != 0) {
         SK_LOGE("split[%zu] rtGetBinBuffer failed for %s, ret=%d", ctx.splitIdx,
             coreName.c_str(), ret);
+        if (ctx.failReason != nullptr) {
+            *ctx.failReason = BindmapFailReason::BIN_HOST_ADDR_GET_FAILED;
+        }
         return false;
     }
     std::string symbolName = "";
@@ -334,20 +341,20 @@ bool InitSingleCoreFunc(const CoreFuncInitContext& ctx, aclrtBinHandle binHdl, v
 
 bool InitSingleSplitFunc(ResolvedFunctionInfo &info, size_t splitIdx,
     const SkBindMap &bindMap, SkBindMap::iterator aicIt, SkBindMap::iterator aivIt,
-    aclrtBinHandle binHdl, void *binDevAddr, uint32_t &resolvedNum)
+    aclrtBinHandle binHdl, void *binDevAddr, uint32_t &resolvedNum, BindmapFailReason &failReason)
 {
     bool res = false;
     uint32_t validFuncNum = 0;
     if (aicIt != bindMap.end()) {
-        CoreFuncInitContext aicCtx = {&info, aicIt, splitIdx};
+        CoreFuncInitContext aicCtx = {&info, aicIt, splitIdx, &failReason};
         res |= InitSingleCoreFunc<SkNodeCoreType::AIC>(aicCtx, binHdl, binDevAddr, validFuncNum);
     }
     if (aivIt != bindMap.end()) {
-        CoreFuncInitContext aivCtx = {&info, aivIt, splitIdx};
+        CoreFuncInitContext aivCtx = {&info, aivIt, splitIdx, &failReason};
         res |= InitSingleCoreFunc<SkNodeCoreType::AIV>(aivCtx, binHdl, binDevAddr, validFuncNum);
     }
     if (!res) {
-        SK_LOGE("Failed to initialize kernel function in sk Node split[%zu]", splitIdx);
+        SK_LOGI("Failed to initialize kernel function in sk Node split[%zu]", splitIdx);
         return false;
     }
     if (validFuncNum > 0) {
@@ -361,12 +368,12 @@ bool InitKernelResolvedFuncs(KernelInfos &kernelInfos)
     aclrtBinHandle binHdl = kernelInfos.binHdl;
     aclrtFuncHandle oriFuncHdl = kernelInfos.funcHdl;
     if (binHdl == nullptr) {
-        SK_LOGE("binHdl is null for kernel %s", kernelInfos.funcName.c_str());
+        SK_LOGI("binHdl is null for kernel %s", kernelInfos.funcName.c_str());
         kernelInfos.bindmapFailReason = BindmapFailReason::BINHDL_NULL;
         return false;
     }
     if (oriFuncHdl == nullptr) {
-        SK_LOGE("funcHdl is null for kernel %s", kernelInfos.funcName.c_str());
+        SK_LOGI("funcHdl is null for kernel %s", kernelInfos.funcName.c_str());
         kernelInfos.bindmapFailReason = BindmapFailReason::FUNCHDL_NULL;
         return false;
     }
@@ -380,7 +387,7 @@ bool InitKernelResolvedFuncs(KernelInfos &kernelInfos)
     void *binDevAddr = nullptr;
     aclError aclRet = aclrtBinaryGetDevAddress(binHdl, &binDevAddr, &binDevSize);
     if (aclRet != ACL_SUCCESS) {
-        SK_LOGE("Failed to get binary device address for kernel %s, ret=%d", 
+        SK_LOGE("Failed to get binary device address for kernel %s, ret=%d",
                 kernelInfos.funcName.c_str(), aclRet);
         kernelInfos.bindmapFailReason = BindmapFailReason::BIN_DEV_ADDR_GET_FAILED;
         return false;
@@ -389,7 +396,7 @@ bool InitKernelResolvedFuncs(KernelInfos &kernelInfos)
     void *addr[2] = {nullptr, nullptr}; // {aic addr, aiv addr}
     aclRet = aclrtGetFunctionAddr(oriFuncHdl, addr, addr + 1);
     if (aclRet != ACL_SUCCESS) {
-        SK_LOGE("Failed to get function address for kernel %s, ret=%d", 
+        SK_LOGE("Failed to get function address for kernel %s, ret=%d",
                 kernelInfos.funcName.c_str(), aclRet);
         kernelInfos.bindmapFailReason = BindmapFailReason::FUNC_ADDR_GET_FAILED;
         return false;
@@ -403,27 +410,32 @@ bool InitKernelResolvedFuncs(KernelInfos &kernelInfos)
     auto aicItor = bindMap.find(aicOffset);
     auto aivItor = bindMap.find(aivOffset);
     if (aicItor != bindMap.end() && HasInvalidSkBindValue(aicItor->second)) {
-        SK_LOGE("Invalid sk bind map for globalFunc=0x%lx, kernel %s has duplicated entries with different values",
+        SK_LOGI("Invalid sk bind map for globalFunc=0x%lx, kernel %s has duplicated entries with different values",
             aicItor->first, kernelInfos.funcName.c_str());
-        kernelInfos.bindmapFailReason = BindmapFailReason::FUNC_NOT_FOUND;
+        kernelInfos.bindmapFailReason = BindmapFailReason::BINDMAP_ENTRY_CONFLICT;
         return false;
     }
     if (aivItor != bindMap.end() && HasInvalidSkBindValue(aivItor->second)) {
-        SK_LOGE("Invalid sk bind map for globalFunc=0x%lx, kernel %s has duplicated entries with different values",
+        SK_LOGI("Invalid sk bind map for globalFunc=0x%lx, kernel %s has duplicated entries with different values",
             aivItor->first, kernelInfos.funcName.c_str());
+        kernelInfos.bindmapFailReason = BindmapFailReason::BINDMAP_ENTRY_CONFLICT;
+        return false;
+    }
+    if (aicItor == bindMap.end() && aivItor == bindMap.end()) {
+        SK_LOGI("Function is not found in sk bind map for kernel %s", kernelInfos.funcName.c_str());
         kernelInfos.bindmapFailReason = BindmapFailReason::FUNC_NOT_FOUND;
         return false;
     }
     bool hasCap = false;
     uint64_t cap = 0;
     if (aicItor != bindMap.end() && !UpdateKernelCap(aicItor->second, hasCap, cap)) {
-        SK_LOGE("Invalid sk bind map for kernel %s, cap is inconsistent", kernelInfos.funcName.c_str());
-        kernelInfos.bindmapFailReason = BindmapFailReason::FUNC_NOT_FOUND;
+        SK_LOGI("Invalid sk bind map for kernel %s, cap is inconsistent", kernelInfos.funcName.c_str());
+        kernelInfos.bindmapFailReason = BindmapFailReason::BINDMAP_CAP_INCONSISTENT;
         return false;
     }
     if (aivItor != bindMap.end() && !UpdateKernelCap(aivItor->second, hasCap, cap)) {
-        SK_LOGE("Invalid sk bind map for kernel %s, cap is inconsistent", kernelInfos.funcName.c_str());
-        kernelInfos.bindmapFailReason = BindmapFailReason::FUNC_NOT_FOUND;
+        SK_LOGI("Invalid sk bind map for kernel %s, cap is inconsistent", kernelInfos.funcName.c_str());
+        kernelInfos.bindmapFailReason = BindmapFailReason::BINDMAP_CAP_INCONSISTENT;
         return false;
     }
     kernelInfos.cap = hasCap ? cap : 0;
@@ -443,10 +455,11 @@ bool InitKernelResolvedFuncs(KernelInfos &kernelInfos)
     kernelInfos.resolvedNum = 0;
     for (size_t i = 0; i < K_MAX_SPLIT_BIN_COUNT; ++i) {
         ResolvedFunctionInfo info{};
+        BindmapFailReason failReason = BindmapFailReason::NONE;
         if (!InitSingleSplitFunc(info, i, bindMap, aicItor, aivItor,
-                            binHdl, binDevAddr, kernelInfos.resolvedNum)) {
-            SK_LOGE("Failed to initialize kernel function in sk Node split[%zu]", i);
-            kernelInfos.bindmapFailReason = BindmapFailReason::FUNC_NOT_FOUND;
+                            binHdl, binDevAddr, kernelInfos.resolvedNum, failReason)) {
+            SK_LOGI("Failed to initialize kernel function in sk Node split[%zu]", i);
+            kernelInfos.bindmapFailReason = failReason;
             return false;
         }
         kernelInfos.resolvedFuncs[i] = info;

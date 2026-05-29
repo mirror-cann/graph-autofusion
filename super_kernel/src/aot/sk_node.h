@@ -80,9 +80,12 @@ enum class BindmapFailReason : uint8_t {
     BINDMAP_INIT_EMPTY,      // 1: Bindmap empty after initialization
     BINHDL_NULL,             // 2: binHdl is null
     FUNCHDL_NULL,            // 3: funcHdl is null
-    FUNC_NOT_FOUND,          // 4: Failed to initialize kernel function in sk
+    FUNC_NOT_FOUND,          // 4: Original function is not found in bind map
     BIN_DEV_ADDR_GET_FAILED, // 5: Failed to get binary device address
     FUNC_ADDR_GET_FAILED,    // 6: Failed to get function address
+    BINDMAP_ENTRY_CONFLICT,  // 7: Duplicated bind map entry has inconsistent value
+    BINDMAP_CAP_INCONSISTENT, // 8: Bind map cap is inconsistent
+    BIN_HOST_ADDR_GET_FAILED, // 9: Failed to get binary host address
 };
 
 // Fusion fail reason with optional scope/deadlock detail
