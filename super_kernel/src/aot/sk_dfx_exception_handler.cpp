@@ -298,6 +298,80 @@ bool SuperKernelExceptionHandler::GetExceptionRegInfo(const aclrtExceptionInfo &
     return true;
 }
 
+uint64_t SuperKernelExceptionHandler::GetCondRegValue(const rtExceptionErrRegInfo_t &coreErrRegInfo) {
+    // COND register is 64-bit: errReg[20] is low 32 bits, errReg[21] is high 32 bits
+    constexpr uint32_t COND_REG_LOW_IDX = 20;
+    constexpr uint32_t COND_REG_HIGH_IDX = 21;
+    uint64_t condValue = (static_cast<uint64_t>(coreErrRegInfo.errReg[COND_REG_HIGH_IDX]) << 32)
+                       | static_cast<uint64_t>(coreErrRegInfo.errReg[COND_REG_LOW_IDX]);
+    return condValue;
+}
+
+void SuperKernelExceptionHandler::ParseAndPrintCondInfo(uint32_t coreId, rtCoreType_t coreType, uint64_t condValue) {
+    // Cond value is set by sk_entry kernel via set_cond instruction.
+    // Format: cond = modelRIIdAndSkScopeId | (opState + (task->index << 8))
+    //   bits [7:0]   : opState (SkOpTraceType)
+    //   bits [15:8]  : task->index (sub-operator index)
+    //   bits [63:16] : modelRIIdAndSkScopeId
+    // If cond is 0, the runtime/driver does not support this feature yet, skip printing.
+    if (condValue == 0) {
+        SK_LOGE("[Core %u] Failed to get COND register value, possible reason: driver package not upgraded", coreId);
+        return;
+    }
+
+    uint8_t opState = static_cast<uint8_t>(condValue & 0xFF);
+    uint32_t opIndex = static_cast<uint32_t>((condValue >> 8) & 0xFF);
+    const char *coreTypeName = (coreType == RT_CORE_TYPE_AIC) ? "AIC" : "AIV";
+
+    SK_LOGE("[Core %u] %s COND register value: 0x%lx (opState=%u, opIndex=%u)",
+            coreId, coreTypeName, condValue, opState, opIndex);
+
+    PrintCondSubKernelInfo(coreId, condValue);
+}
+
+void SuperKernelExceptionHandler::PrintCondSubKernelInfo(uint32_t coreId, uint64_t condValue) {
+    uint8_t opState = static_cast<uint8_t>(condValue & 0xFF);
+    uint32_t opIndex = static_cast<uint32_t>((condValue >> 8) & 0xFF);
+
+    if (opState == static_cast<uint8_t>(SkOpTraceType::ORIGIN)) {
+        SK_LOGE("[Core %u] COND: No SK entry executed yet (opState=ORIGIN).", coreId);
+    } else if (opState == static_cast<uint8_t>(SkOpTraceType::SK_ENTRY_LAUNCHED)) {
+        SK_LOGE("[Core %u] COND: SK entry launched, no sub-kernel executed yet. Next opIndex=%u", coreId, opIndex);
+        if (opIndex < skHeaderInfoHost->nodeCnt) {
+            KernelFuncName kernelFuncName = GetOrLoadKernelSymbols(opIndex);
+            if (!kernelFuncName.name.empty()) {
+                SK_LOGE("[Core %u] COND: Next sub-kernel function name: %s", coreId, kernelFuncName.name.c_str());
+            }
+        }
+    } else if (opState == static_cast<uint8_t>(SkOpTraceType::OP_LAUNCHED)) {
+        SK_LOGE("[Core %u] COND: Currently running sub-kernel opIndex=%u", coreId, opIndex);
+        if (opIndex < skHeaderInfoHost->nodeCnt) {
+            KernelFuncName kernelFuncName = GetOrLoadKernelSymbols(opIndex);
+            if (!kernelFuncName.name.empty()) {
+                SK_LOGE("[Core %u] COND: Current sub-kernel function name: %s", coreId, kernelFuncName.name.c_str());
+            }
+        }
+    } else if (opState == static_cast<uint8_t>(SkOpTraceType::OP_FINISHED)) {
+        SK_LOGE("[Core %u] COND: Sub-kernel opIndex=%u finished, about to run next.", coreId, opIndex);
+        if (opIndex < skHeaderInfoHost->nodeCnt) {
+            KernelFuncName currentKernelFuncName = GetOrLoadKernelSymbols(opIndex);
+            if (!currentKernelFuncName.name.empty()) {
+                SK_LOGE("[Core %u] COND: Last finished sub-kernel function name: %s", coreId, currentKernelFuncName.name.c_str());
+            }
+        }
+        if (opIndex + 1 < skHeaderInfoHost->nodeCnt) {
+            KernelFuncName nextKernelFuncName = GetOrLoadKernelSymbols(opIndex + 1);
+            if (!nextKernelFuncName.name.empty()) {
+                SK_LOGE("[Core %u] COND: Next sub-kernel function name: %s", coreId, nextKernelFuncName.name.c_str());
+            }
+        }
+    } else if (opState == static_cast<uint8_t>(SkOpTraceType::SK_ENTRY_FINISHED)) {
+        SK_LOGE("[Core %u] COND: SK entry execution completed.", coreId);
+    } else {
+        SK_LOGE("[Core %u] COND: Unknown opState=%u, opIndex=%u", coreId, opState, opIndex);
+    }
+}
+
 void SuperKernelExceptionHandler::PrintSymbolByCoreId(uint32_t coreId, rtCoreType_t coreType,
                                                      uint64_t startPC, uint64_t currentPC,
                                                      const KernelFuncName &kernelFuncName) {
@@ -613,6 +687,10 @@ bool SuperKernelExceptionHandler::ParseAndPrintSubKernelSymbols(aclrtExceptionIn
         PrintCoreSymbols(coreErrRegInfo.coreId, coreType,
                         coreErrRegInfo.startPC,
                         coreErrRegInfo.currentPC);
+
+        // Parse COND register value from errReg[20](low32) and errReg[21](high32)
+        uint64_t condValue = GetCondRegValue(coreErrRegInfo);
+        ParseAndPrintCondInfo(coreErrRegInfo.coreId, coreType, condValue);
     }
 
     return true;

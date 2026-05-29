@@ -1432,6 +1432,322 @@ TEST_F(SkDfxExceptionHandlerTest, IdentifyErrorNodeByPC_NoMatch_CallsPrintNoMatc
     SUCCEED();
 }
 
+// ==================== GetCondRegValue Tests (PR 485) ====================
+
+TEST_F(SkDfxExceptionHandlerTest, GetCondRegValue_ZeroRegisters)
+{
+    rtExceptionErrRegInfo_t regInfo = {};
+    uint64_t result = SuperKernelExceptionHandler::GetCondRegValue(regInfo);
+    EXPECT_EQ(result, 0ULL);
+}
+
+TEST_F(SkDfxExceptionHandlerTest, GetCondRegValue_Low32Only)
+{
+    rtExceptionErrRegInfo_t regInfo = {};
+    regInfo.errReg[20] = 0xDEADBEEF;  // low 32 bits
+    regInfo.errReg[21] = 0;           // high 32 bits
+    uint64_t result = SuperKernelExceptionHandler::GetCondRegValue(regInfo);
+    EXPECT_EQ(result, 0x00000000DEADBEEFULL);
+}
+
+TEST_F(SkDfxExceptionHandlerTest, GetCondRegValue_High32Only)
+{
+    rtExceptionErrRegInfo_t regInfo = {};
+    regInfo.errReg[20] = 0;           // low 32 bits
+    regInfo.errReg[21] = 0x12345678;  // high 32 bits
+    uint64_t result = SuperKernelExceptionHandler::GetCondRegValue(regInfo);
+    EXPECT_EQ(result, 0x1234567800000000ULL);
+}
+
+TEST_F(SkDfxExceptionHandlerTest, GetCondRegValue_Full64Bit)
+{
+    rtExceptionErrRegInfo_t regInfo = {};
+    regInfo.errReg[20] = 0xAAAAAAAA;  // low 32 bits
+    regInfo.errReg[21] = 0xBBBBBBBB;  // high 32 bits
+    uint64_t result = SuperKernelExceptionHandler::GetCondRegValue(regInfo);
+    EXPECT_EQ(result, 0xBBBBBBBBAAAAAAAAULL);
+}
+
+TEST_F(SkDfxExceptionHandlerTest, GetCondRegValue_EncodedOpStateAndIndex)
+{
+    // Simulate a cond value: opState=OP_LAUNCHED(2), opIndex=5
+    rtExceptionErrRegInfo_t regInfo = {};
+    uint64_t expected = static_cast<uint64_t>(SkOpTraceType::OP_LAUNCHED) | (5ULL << 8);
+    regInfo.errReg[20] = static_cast<uint32_t>(expected & 0xFFFFFFFF);
+    regInfo.errReg[21] = static_cast<uint32_t>(expected >> 32);
+    uint64_t result = SuperKernelExceptionHandler::GetCondRegValue(regInfo);
+    EXPECT_EQ(result, expected);
+    EXPECT_EQ(static_cast<uint8_t>(result & 0xFF), static_cast<uint8_t>(SkOpTraceType::OP_LAUNCHED));
+    EXPECT_EQ(static_cast<uint32_t>((result >> 8) & 0xFF), 5U);
+}
+
+TEST_F(SkDfxExceptionHandlerTest, GetCondRegValue_OtherRegistersUnaffected)
+{
+    // errReg at other indices should not affect the result
+    rtExceptionErrRegInfo_t regInfo = {};
+    regInfo.errReg[0] = 0xFFFFFFFF;
+    regInfo.errReg[19] = 0xFFFFFFFF;
+    regInfo.errReg[20] = 0x00000001;
+    regInfo.errReg[21] = 0x00000002;
+    regInfo.errReg[22] = 0xFFFFFFFF;
+    regInfo.errReg[63] = 0xFFFFFFFF;
+    uint64_t result = SuperKernelExceptionHandler::GetCondRegValue(regInfo);
+    EXPECT_EQ(result, 0x0000000200000001ULL);
+}
+
+// ==================== ParseAndPrintCondInfo Tests (PR 485) ====================
+
+TEST_F(SkDfxExceptionHandlerTest, ParseAndPrintCondInfo_CondValueZero_ShouldLogDriverNotUpgraded)
+{
+    // condValue == 0 should print driver not upgraded message and return
+    handler->ParseAndPrintCondInfo(0, RT_CORE_TYPE_AIC, 0);
+    SUCCEED();
+}
+
+TEST_F(SkDfxExceptionHandlerTest, ParseAndPrintCondInfo_AICCoreType)
+{
+    // opState=ORIGIN(0), opIndex=0, with non-zero condValue
+    uint64_t condValue = static_cast<uint64_t>(SkOpTraceType::ORIGIN) | (0ULL << 8) | (0x1000ULL << 16);
+    handler->ParseAndPrintCondInfo(5, RT_CORE_TYPE_AIC, condValue);
+    SUCCEED();
+}
+
+TEST_F(SkDfxExceptionHandlerTest, ParseAndPrintCondInfo_AIVCoreType)
+{
+    // opState=OP_LAUNCHED(2), opIndex=1, with non-zero condValue
+    // Need to setup skHeaderInfoHost because PrintCondSubKernelInfo accesses skHeaderInfoHost->nodeCnt
+    SkHeaderInfo headerInfo;
+    SkDeviceEntryArgs* deviceArgs;
+    uint8_t* buffer = SetupOpTraceTestBuffer(3, true, headerInfo, deviceArgs, handler.get());
+    if (buffer == nullptr) {
+        return;
+    }
+
+    SkDfxInfo* dfxInfo = reinterpret_cast<SkDfxInfo*>(buffer + headerInfo.dfxOffset);
+    dfxInfo[0].funcHdlOri = 0xDEAD0001;
+    dfxInfo[1].funcHdlOri = 0xDEAD0002;
+    dfxInfo[2].funcHdlOri = 0xDEAD0003;
+
+    MOCKER(aclrtGetFunctionName).stubs().will(invoke(Fake_aclrtGetFunctionName_other));
+
+    uint64_t condValue = static_cast<uint64_t>(SkOpTraceType::OP_LAUNCHED) | (1ULL << 8) | (0x2000ULL << 16);
+    handler->ParseAndPrintCondInfo(10, RT_CORE_TYPE_AIV, condValue);
+
+    free(buffer);
+    SUCCEED();
+}
+
+// ==================== PrintCondSubKernelInfo Tests (PR 485) ====================
+
+TEST_F(SkDfxExceptionHandlerTest, PrintCondSubKernelInfo_Origin)
+{
+    uint64_t condValue = static_cast<uint64_t>(SkOpTraceType::ORIGIN) | (0ULL << 8) | (0xABCDULL << 16);
+    handler->PrintCondSubKernelInfo(0, condValue);
+    SUCCEED();
+}
+
+TEST_F(SkDfxExceptionHandlerTest, PrintCondSubKernelInfo_SkEntryLaunched_OpIndexWithinNodeCnt)
+{
+    // Setup: 2 nodes, opState=SK_ENTRY_LAUNCHED, opIndex=0 (next sub-kernel)
+    SkHeaderInfo headerInfo;
+    SkDeviceEntryArgs* deviceArgs;
+    uint8_t* buffer = SetupOpTraceTestBuffer(2, true, headerInfo, deviceArgs, handler.get());
+    if (buffer == nullptr) {
+        return;
+    }
+
+    SkDfxInfo* dfxInfo = reinterpret_cast<SkDfxInfo*>(buffer + headerInfo.dfxOffset);
+    dfxInfo[0].funcHdlOri = 0xDEAD0001;
+    dfxInfo[1].funcHdlOri = 0xDEAD0002;
+
+    MOCKER(aclrtGetFunctionName).stubs().will(invoke(Fake_aclrtGetFunctionName_other));
+
+    uint64_t condValue = static_cast<uint64_t>(SkOpTraceType::SK_ENTRY_LAUNCHED) | (0ULL << 8) | (0x1000ULL << 16);
+    handler->PrintCondSubKernelInfo(0, condValue);
+
+    free(buffer);
+    SUCCEED();
+}
+
+TEST_F(SkDfxExceptionHandlerTest, PrintCondSubKernelInfo_SkEntryLaunched_OpIndexExceedsNodeCnt)
+{
+    // opIndex >= nodeCnt, should not attempt to load kernel symbols
+    SkHeaderInfo headerInfo;
+    SkDeviceEntryArgs* deviceArgs;
+    uint8_t* buffer = SetupOpTraceTestBuffer(1, false, headerInfo, deviceArgs, handler.get());
+    if (buffer == nullptr) {
+        return;
+    }
+
+    // opIndex=5 but nodeCnt=1, should skip GetOrLoadKernelSymbols
+    uint64_t condValue = static_cast<uint64_t>(SkOpTraceType::SK_ENTRY_LAUNCHED) | (5ULL << 8) | (0x1000ULL << 16);
+    handler->PrintCondSubKernelInfo(0, condValue);
+
+    free(buffer);
+    SUCCEED();
+}
+
+TEST_F(SkDfxExceptionHandlerTest, PrintCondSubKernelInfo_OpLaunched_OpIndexWithinNodeCnt)
+{
+    // Setup: 3 nodes, opState=OP_LAUNCHED, opIndex=1
+    SkHeaderInfo headerInfo;
+    SkDeviceEntryArgs* deviceArgs;
+    uint8_t* buffer = SetupOpTraceTestBuffer(3, true, headerInfo, deviceArgs, handler.get());
+    if (buffer == nullptr) {
+        return;
+    }
+
+    SkDfxInfo* dfxInfo = reinterpret_cast<SkDfxInfo*>(buffer + headerInfo.dfxOffset);
+    dfxInfo[0].funcHdlOri = 0xDEAD0001;
+    dfxInfo[1].funcHdlOri = 0xDEAD0002;
+    dfxInfo[2].funcHdlOri = 0xDEAD0003;
+
+    MOCKER(aclrtGetFunctionName).stubs().will(invoke(Fake_aclrtGetFunctionName_sk_entry));
+
+    uint64_t condValue = static_cast<uint64_t>(SkOpTraceType::OP_LAUNCHED) | (1ULL << 8) | (0x1000ULL << 16);
+    handler->PrintCondSubKernelInfo(0, condValue);
+
+    free(buffer);
+    SUCCEED();
+}
+
+TEST_F(SkDfxExceptionHandlerTest, PrintCondSubKernelInfo_OpLaunched_OpIndexExceedsNodeCnt)
+{
+    // opIndex >= nodeCnt, should not attempt to load kernel symbols
+    SkHeaderInfo headerInfo;
+    SkDeviceEntryArgs* deviceArgs;
+    uint8_t* buffer = SetupOpTraceTestBuffer(1, false, headerInfo, deviceArgs, handler.get());
+    if (buffer == nullptr) {
+        return;
+    }
+
+    uint64_t condValue = static_cast<uint64_t>(SkOpTraceType::OP_LAUNCHED) | (10ULL << 8) | (0x1000ULL << 16);
+    handler->PrintCondSubKernelInfo(0, condValue);
+
+    free(buffer);
+    SUCCEED();
+}
+
+TEST_F(SkDfxExceptionHandlerTest, PrintCondSubKernelInfo_OpFinished_CurrentAndNext)
+{
+    // Setup: 3 nodes, opState=OP_FINISHED, opIndex=1 -> print current(1) and next(2)
+    SkHeaderInfo headerInfo;
+    SkDeviceEntryArgs* deviceArgs;
+    uint8_t* buffer = SetupOpTraceTestBuffer(3, true, headerInfo, deviceArgs, handler.get());
+    if (buffer == nullptr) {
+        return;
+    }
+
+    SkDfxInfo* dfxInfo = reinterpret_cast<SkDfxInfo*>(buffer + headerInfo.dfxOffset);
+    dfxInfo[0].funcHdlOri = 0xDEAD0001;
+    dfxInfo[1].funcHdlOri = 0xDEAD0002;
+    dfxInfo[2].funcHdlOri = 0xDEAD0003;
+
+    MOCKER(aclrtGetFunctionName).stubs().will(invoke(Fake_aclrtGetFunctionName_other));
+
+    uint64_t condValue = static_cast<uint64_t>(SkOpTraceType::OP_FINISHED) | (1ULL << 8) | (0x1000ULL << 16);
+    handler->PrintCondSubKernelInfo(0, condValue);
+
+    free(buffer);
+    SUCCEED();
+}
+
+TEST_F(SkDfxExceptionHandlerTest, PrintCondSubKernelInfo_OpFinished_LastNode_NoNext)
+{
+    // Setup: 3 nodes, opState=OP_FINISHED, opIndex=2 (last) -> print current(2), no next
+    SkHeaderInfo headerInfo;
+    SkDeviceEntryArgs* deviceArgs;
+    uint8_t* buffer = SetupOpTraceTestBuffer(3, true, headerInfo, deviceArgs, handler.get());
+    if (buffer == nullptr) {
+        return;
+    }
+
+    SkDfxInfo* dfxInfo = reinterpret_cast<SkDfxInfo*>(buffer + headerInfo.dfxOffset);
+    dfxInfo[0].funcHdlOri = 0xDEAD0001;
+    dfxInfo[1].funcHdlOri = 0xDEAD0002;
+    dfxInfo[2].funcHdlOri = 0xDEAD0003;
+
+    MOCKER(aclrtGetFunctionName).stubs().will(invoke(Fake_aclrtGetFunctionName_other));
+
+    uint64_t condValue = static_cast<uint64_t>(SkOpTraceType::OP_FINISHED) | (2ULL << 8) | (0x1000ULL << 16);
+    handler->PrintCondSubKernelInfo(0, condValue);
+
+    free(buffer);
+    SUCCEED();
+}
+
+TEST_F(SkDfxExceptionHandlerTest, PrintCondSubKernelInfo_SkEntryFinished)
+{
+    SkHeaderInfo headerInfo;
+    SkDeviceEntryArgs* deviceArgs;
+    uint8_t* buffer = SetupOpTraceTestBuffer(0, false, headerInfo, deviceArgs, handler.get());
+    if (buffer == nullptr) {
+        return;
+    }
+
+    uint64_t condValue = static_cast<uint64_t>(SkOpTraceType::SK_ENTRY_FINISHED) | (99ULL << 8) | (0x1000ULL << 16);
+    handler->PrintCondSubKernelInfo(0, condValue);
+
+    free(buffer);
+    SUCCEED();
+}
+
+TEST_F(SkDfxExceptionHandlerTest, PrintCondSubKernelInfo_UnknownOpState)
+{
+    SkHeaderInfo headerInfo;
+    SkDeviceEntryArgs* deviceArgs;
+    uint8_t* buffer = SetupOpTraceTestBuffer(0, false, headerInfo, deviceArgs, handler.get());
+    if (buffer == nullptr) {
+        return;
+    }
+
+    // opState=255 (unknown value)
+    uint64_t condValue = 0xFF | (7ULL << 8) | (0x1000ULL << 16);
+    handler->PrintCondSubKernelInfo(0, condValue);
+
+    free(buffer);
+    SUCCEED();
+}
+
+// ==================== COND Register Integration Tests (PR 485) ====================
+
+TEST_F(SkDfxExceptionHandlerTest, GetCondRegValue_ParseAndPrintCondInfo_Integration)
+{
+    // Build an rtExceptionErrRegInfo_t with known COND register values
+    // opState=OP_FINISHED(3), opIndex=1, modelRIIdAndSkScopeId in upper bits
+    uint64_t expectedCond = static_cast<uint64_t>(SkOpTraceType::OP_FINISHED) | (1ULL << 8) | (0xABCDULL << 16);
+
+    rtExceptionErrRegInfo_t regInfo = {};
+    regInfo.coreId = 3;
+    regInfo.coreType = RT_CORE_TYPE_AIC;
+    regInfo.errReg[20] = static_cast<uint32_t>(expectedCond & 0xFFFFFFFF);
+    regInfo.errReg[21] = static_cast<uint32_t>(expectedCond >> 32);
+
+    // Verify GetCondRegValue extracts correctly
+    uint64_t condValue = SuperKernelExceptionHandler::GetCondRegValue(regInfo);
+    EXPECT_EQ(condValue, expectedCond);
+
+    // Verify ParseAndPrintCondInfo doesn't crash with the extracted value
+    SkHeaderInfo headerInfo;
+    SkDeviceEntryArgs* deviceArgs;
+    uint8_t* buffer = SetupOpTraceTestBuffer(3, true, headerInfo, deviceArgs, handler.get());
+    if (buffer == nullptr) {
+        return;
+    }
+
+    SkDfxInfo* dfxInfo = reinterpret_cast<SkDfxInfo*>(buffer + headerInfo.dfxOffset);
+    dfxInfo[0].funcHdlOri = 0xDEAD0001;
+    dfxInfo[1].funcHdlOri = 0xDEAD0002;
+    dfxInfo[2].funcHdlOri = 0xDEAD0003;
+
+    MOCKER(aclrtGetFunctionName).stubs().will(invoke(Fake_aclrtGetFunctionName_other));
+
+    handler->ParseAndPrintCondInfo(3, RT_CORE_TYPE_AIC, condValue);
+
+    free(buffer);
+    SUCCEED();
+}
+
 // Test: SkHeaderInfo 结构体大小不应被意外修改
 TEST_F(SkDfxExceptionHandlerTest, SkHeaderInfo_SizeAndFieldOffsetsStable)
 {

@@ -72,6 +72,9 @@ private:
 
     bool StartsWith(const char* source, const char* prefix);
     bool GetExceptionRegInfo(const aclrtExceptionInfo &exception, ExceptionRegInfo &exceptionRegInfo);
+    void ParseAndPrintCondInfo(uint32_t coreId, rtCoreType_t coreType, uint64_t condValue);
+    void PrintCondSubKernelInfo(uint32_t coreId, uint64_t condValue);
+    static uint64_t GetCondRegValue(const rtExceptionErrRegInfo_t &coreErrRegInfo);
 
     uint32_t aicoreNums;
     std::map<uint32_t, KernelFuncName> opSymbolCache;  // Operator function name cache: opId -> KernelFuncName
