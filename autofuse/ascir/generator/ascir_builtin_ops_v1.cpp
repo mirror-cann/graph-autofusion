@@ -349,7 +349,7 @@ REG_ASC_IR(Max)
     .ComputeType(ComputeType::kComputeReduce)
     .Impl(v1_soc_versions, {af::ascir::AscIrImplCreator<af::ascir::MaxAscIrAttImpl>(),
                             af::ascir::AscIrImplCreator<af::ascir::MaxAscIrCodegenImpl>(),
-                            {{"T", TensorType{DT_FLOAT16, DT_FLOAT, DT_INT32}}}});
+                            {{"T", TensorType{DT_FLOAT16, DT_FLOAT}}}});
 
 REG_ASC_IR(Sum)
     .Input("x", "T")
@@ -397,7 +397,7 @@ REG_ASC_IR(Any)
     .ComputeType(ComputeType::kComputeReduce)
     .Impl(v1_soc_versions, {af::ascir::AscIrImplCreator<af::ascir::AnyAscIrAttImpl>(),
                             af::ascir::AscIrImplCreator<af::ascir::AnyAscIrCodegenImpl>(),
-                            {{"T", TensorType{DT_FLOAT, DT_INT32}}}});
+                            {{"T", TensorType{DT_FLOAT}}}});
 
 REG_ASC_IR(All)
     .Input("x", "T")
