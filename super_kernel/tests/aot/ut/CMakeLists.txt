@@ -15,6 +15,7 @@ set(LOCAL_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 add_executable(super_kernel_aot_utest
     ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test_sk_options_manager.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_super_kernel.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test_sk_graph.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test_sk_node.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test_sk_common.cpp

@@ -997,6 +997,14 @@ TEST_F(SuperKernelGraphTest, PostProcessMemoryNode_EmptyMemoryMap_ReturnsTrue)
     EXPECT_TRUE(graph->PostProcessMemoryNode());
 }
 
+TEST_F(SuperKernelGraphTest, PostProcessMemoryNode_EmptyMemoryEvent_ReturnsFalse)
+{
+    constexpr uint64_t kEventId = 0x300;
+    graph->memoryToNodes[kEventId] = MemoryInfos {};
+
+    EXPECT_FALSE(graph->PostProcessMemoryNode());
+}
+
 TEST_F(SuperKernelGraphTest, PostProcessMemoryNode_OnlyWriteWithResetValue_TurnsIntoReset)
 {
     constexpr uint64_t kEventId = 0x301;
