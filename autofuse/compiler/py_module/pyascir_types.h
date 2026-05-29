@@ -195,6 +195,16 @@ class FusedScheduledResult {
     PyDict_SetItemString(dict, key, tmp); \
     Py_DECREF(tmp); \
 } while(0)
+
+class PyObjectGuard {
+    PyObject* obj;
+public:
+    explicit PyObjectGuard(PyObject* o) : obj(o) {}
+    ~PyObjectGuard() { Py_XDECREF(obj); }
+    PyObject* get() const { return obj; }
+    PyObjectGuard(const PyObjectGuard&) = delete;
+    PyObjectGuard& operator=(const PyObjectGuard&) = delete;
+};
 }
 
 #endif

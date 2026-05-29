@@ -438,11 +438,16 @@ class CodeGen {
                                                  const std::map<std::string, std::string> &symbol_source_info,
                                                  const char *pgo_dir, const char *vector_core_num,
                                                  PyObject *py_tilings);
-  static ge::Status HandleHostCodeGenForNonCVFusion(CodeGen::Object *self,
-                                                    const ascir::FusedScheduledResult &fused_schedule_result,
-                                                    const std::map<std::string, std::string> &symbol_source_info,
-                                                    const char *pgo_dir, const char *vector_core_num,
-                                                    PyObject *py_tilings);
+static ge::Status HandleHostCodeGenForNonCVFusion(CodeGen::Object *self,
+                                                     const ascir::FusedScheduledResult &fused_schedule_result,
+                                                     const std::map<std::string, std::string> &symbol_source_info,
+                                                     const char *pgo_dir, const char *vector_core_num,
+                                                     PyObject *py_tilings);
+  static PyObject* GenerateHostCodeResult(CodeGen::Object *self,
+                                           pyascir::FusedScheduledResult::Object *fused_schedule_result,
+                                           PyObject *shape_info_obj,
+                                           const std::vector<std::vector<std::string>> &output_shape,
+                                           const char *pgo_dir, const char *vector_core_num);
 };
 
 PyMethodDef CodeGen::methods[] = {
@@ -531,10 +536,16 @@ ge::Status CodeGen::HandleDeviceCodeGenForCVFusion(CodeGen::Object *self,
   GE_CHK_STATUS_RET(ret, "codegen generate common kernel fail");
 
   // 将结果添加到字典中
-  if (PyDict_SetItemString(tiling_dict, "ub", PyUnicode_FromString(ub_tiling_data.c_str())) != 0 ||
-      PyDict_SetItemString(tiling_dict, "common", PyUnicode_FromString(common_tiling_data.c_str())) != 0 ||
-      PyDict_SetItemString(kernel_dict, "ub", PyUnicode_FromString(ub_kernel.c_str())) != 0 ||
-      PyDict_SetItemString(kernel_dict, "common", PyUnicode_FromString(common_kernel.c_str())) != 0) {
+  PyObjectGuard g_ub_tiling(PyUnicode_FromString(ub_tiling_data.c_str()));
+  PyObjectGuard g_common_tiling(PyUnicode_FromString(common_tiling_data.c_str()));
+  PyObjectGuard g_ub_kernel(PyUnicode_FromString(ub_kernel.c_str()));
+  PyObjectGuard g_common_kernel(PyUnicode_FromString(common_kernel.c_str()));
+  if (g_ub_tiling.get() == nullptr || g_common_tiling.get() == nullptr ||
+      g_ub_kernel.get() == nullptr || g_common_kernel.get() == nullptr ||
+      PyDict_SetItemString(tiling_dict, "ub", g_ub_tiling.get()) != 0 ||
+      PyDict_SetItemString(tiling_dict, "common", g_common_tiling.get()) != 0 ||
+      PyDict_SetItemString(kernel_dict, "ub", g_ub_kernel.get()) != 0 ||
+      PyDict_SetItemString(kernel_dict, "common", g_common_kernel.get()) != 0) {
     return ge::FAILED;
   }
 
@@ -551,8 +562,11 @@ ge::Status CodeGen::HandleDeviceCodeGenForNonCVFusion(CodeGen::Object *self,
   GE_CHK_STATUS_RET(ret, "codegen generate kernel fail");
 
   // 将结果添加到字典中，使用"default"键值
-  if (PyDict_SetItemString(tiling_dict, "default", PyUnicode_FromString(tiling_data.c_str())) != 0 ||
-      PyDict_SetItemString(kernel_dict, "default", PyUnicode_FromString(kernel.c_str())) != 0) {
+  PyObjectGuard g_tiling(PyUnicode_FromString(tiling_data.c_str()));
+  PyObjectGuard g_kernel(PyUnicode_FromString(kernel.c_str()));
+  if (g_tiling.get() == nullptr || g_kernel.get() == nullptr ||
+      PyDict_SetItemString(tiling_dict, "default", g_tiling.get()) != 0 ||
+      PyDict_SetItemString(kernel_dict, "default", g_kernel.get()) != 0) {
     return ge::FAILED;
   }
 
@@ -604,12 +618,14 @@ ge::Status CodeGen::HandleHostCodeGenForCVFusion(CodeGen::Object *self,
 
   // 将UB模板的结果添加到内层字典中
   for (const auto &[key, value] : ub_tiling_file_name_to_content) {
-    PyDict_SetItemString(ub_dict, key.c_str(), PyUnicode_FromString(value.c_str()));
+    PyObjectGuard tmp_guard(PyUnicode_FromString(value.c_str()));
+    PyDict_SetItemString(ub_dict, key.c_str(), tmp_guard.get());
   }
 
   // 将兜底模板的结果添加到内层字典中
   for (const auto &[key, value] : common_tiling_file_name_to_content) {
-    PyDict_SetItemString(common_dict, key.c_str(), PyUnicode_FromString(value.c_str()));
+    PyObjectGuard tmp_guard(PyUnicode_FromString(value.c_str()));
+    PyDict_SetItemString(common_dict, key.c_str(), tmp_guard.get());
   }
 
   // 将内层字典添加到外层字典中
@@ -642,7 +658,8 @@ ge::Status CodeGen::HandleHostCodeGenForNonCVFusion(CodeGen::Object *self,
   GE_DISMISSABLE_GUARD(default_dict_guard, [default_dict]() { Py_DECREF(default_dict); });
 
   for (const auto &[key, value] : tiling_file_name_to_content) {
-    PyDict_SetItemString(default_dict, key.c_str(), PyUnicode_FromString(value.c_str()));
+    PyObjectGuard tmp_guard(PyUnicode_FromString(value.c_str()));
+    PyDict_SetItemString(default_dict, key.c_str(), tmp_guard.get());
   }
 
   PyDict_SetItemString(py_tilings, "default", default_dict);
@@ -663,6 +680,9 @@ PyObject *CodeGen::device_code_generator(PyObject *self_pyobject, PyObject *args
     return PyErr_Format(PyExc_ValueError, "codegen param parse failed");
   }
 
+  if (PyObject_IsInstance(list_result_result, reinterpret_cast<PyObject *>(&pyascir::FusedScheduledResult::type)) != kPythonSuccess) {
+    return PyErr_Format(PyExc_TypeError, "device_code_generator requires FusedScheduledResult");
+  }
   auto fused_schedule_result = reinterpret_cast<pyascir::FusedScheduledResult::Object *>(list_result_result);
 
   // 创建字典用于存储不同模板的结果
@@ -704,32 +724,11 @@ PyObject *CodeGen::device_code_generator(PyObject *self_pyobject, PyObject *args
   return Py_BuildValue("OO", tiling_dict, kernel_dict);
 }
 
-PyObject *CodeGen::host_code_generator(PyObject *self_pyobject, PyObject *args, PyObject *kwds) {
-  (void)kwds;
-  auto self = reinterpret_cast<CodeGen::Object *>(self_pyobject);
-
-  PyObject *list_result_result = nullptr;
-  PyObject *shape_info_obj = nullptr;
-  PyObject *output_shape_obj = nullptr;
-  const char *pgo_dir = nullptr;
-  const char *vector_core_num = "";
-  if (PyArg_ParseTuple(args, "OOOss", &list_result_result, &shape_info_obj, &output_shape_obj, &pgo_dir,
-                       &vector_core_num) == kPythonFail) {
-    return PyErr_Format(PyExc_ValueError, "codegen param parse failed");
-  }
-
-  if (shape_info_obj == Py_None) {
-    GELOGW("host_code_generator shape info is none");
-  } else if (PyObject_IsInstance(shape_info_obj, reinterpret_cast<PyObject *>(&pyascir::ShapeInfo::type)) == kPythonFail) {
-    return PyErr_Format(PyExc_ValueError, "host_code_generator shape info type invalid");
-  }
-
-  auto fused_schedule_result = reinterpret_cast<pyascir::FusedScheduledResult::Object *>(list_result_result);
-
-  std::vector<std::vector<std::string>> output_shape;
-  if (!pyascir::OutputSymbolShapeDeserialize(output_shape_obj, output_shape)) {
-    return PyErr_Format(PyExc_ValueError, "output_symbol_shape parse fail");
-  }
+PyObject* CodeGen::GenerateHostCodeResult(CodeGen::Object *self,
+                                           pyascir::FusedScheduledResult::Object *fused_schedule_result,
+                                           PyObject *shape_info_obj,
+                                           const std::vector<std::vector<std::string>> &output_shape,
+                                           const char *pgo_dir, const char *vector_core_num) {
   ge::Status ret = ge::FAILED;
   std::string infer_shape;
 
@@ -745,6 +744,9 @@ PyObject *CodeGen::host_code_generator(PyObject *self_pyobject, PyObject *args, 
   try {
     std::map<std::string, std::string> symbol_source_info;
     if (shape_info_obj != Py_None) {
+      if (PyObject_IsInstance(shape_info_obj, reinterpret_cast<PyObject *>(&pyascir::ShapeInfo::type)) != kPythonSuccess) {
+        return PyErr_Format(PyExc_TypeError, "host_code_generator shape_info must be ShapeInfo type");
+      }
       symbol_source_info = (reinterpret_cast<pyascir::ShapeInfo::Object *>(shape_info_obj))->shape_info;
     }
 
@@ -767,6 +769,39 @@ PyObject *CodeGen::host_code_generator(PyObject *self_pyobject, PyObject *args, 
     GELOGE(ge::FAILED, "Caught a runtime_error: %s", e.what());
     return PyErr_Format(PyExc_ValueError, "codegen generate host fail: %s", e.what());
   }
+}
+
+PyObject *CodeGen::host_code_generator(PyObject *self_pyobject, PyObject *args, PyObject *kwds) {
+  (void)kwds;
+  auto self = reinterpret_cast<CodeGen::Object *>(self_pyobject);
+
+  PyObject *list_result_result = nullptr;
+  PyObject *shape_info_obj = nullptr;
+  PyObject *output_shape_obj = nullptr;
+  const char *pgo_dir = nullptr;
+  const char *vector_core_num = "";
+  if (PyArg_ParseTuple(args, "OOOss", &list_result_result, &shape_info_obj, &output_shape_obj, &pgo_dir,
+                       &vector_core_num) == kPythonFail) {
+    return PyErr_Format(PyExc_ValueError, "codegen param parse failed");
+  }
+
+  if (shape_info_obj == Py_None) {
+    GELOGW("host_code_generator shape info is none");
+  } else if (PyObject_IsInstance(shape_info_obj, reinterpret_cast<PyObject *>(&pyascir::ShapeInfo::type)) == kPythonFail) {
+    return PyErr_Format(PyExc_ValueError, "host_code_generator shape info type invalid");
+  }
+
+  if (PyObject_IsInstance(list_result_result, reinterpret_cast<PyObject *>(&pyascir::FusedScheduledResult::type)) != kPythonSuccess) {
+    return PyErr_Format(PyExc_TypeError, "host_code_generator requires FusedScheduledResult");
+  }
+  auto fused_schedule_result = reinterpret_cast<pyascir::FusedScheduledResult::Object *>(list_result_result);
+
+  std::vector<std::vector<std::string>> output_shape;
+  if (!pyascir::OutputSymbolShapeDeserialize(output_shape_obj, output_shape)) {
+    return PyErr_Format(PyExc_ValueError, "output_symbol_shape parse fail");
+  }
+
+  return GenerateHostCodeResult(self, fused_schedule_result, shape_info_obj, output_shape, pgo_dir, vector_core_num);
 }
 
 PyObject *CodeGen::get_kernel_and_json_generator(PyObject *self_pyobject, PyObject *args, const PyObject *kwds) {
@@ -801,6 +836,9 @@ PyObject *CodeGen::pgo_code_generator(PyObject *self_pyobject, PyObject *args, c
     return PyErr_Format(PyExc_ValueError, "codegen param parse failed");
   }
 
+  if (PyObject_IsInstance(list_result_result, reinterpret_cast<PyObject *>(&pyascir::FusedScheduledResult::type)) != kPythonSuccess) {
+    return PyErr_Format(PyExc_TypeError, "pgo_code_generator requires FusedScheduledResult");
+  }
   auto fused_schedule_result = reinterpret_cast<pyascir::FusedScheduledResult::Object *>(list_result_result);
 
   ge::Status ret = ge::SUCCESS;

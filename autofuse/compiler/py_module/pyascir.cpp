@@ -869,6 +869,9 @@ class OpsOperator {
     if (has_dynamic_output) {
       if (!SetupOutputs<OpType>(self_pyobject, op)) {
 		delete op;
+		self->op = nullptr;
+		self->op_base.op = nullptr;
+		self->attr = Py_None;
 		return -1;
 	  }
       return 0;
