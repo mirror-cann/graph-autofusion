@@ -243,6 +243,21 @@ aclError FakeAclrtFunctionGetBinaryForSkNodeCap(aclrtFuncHandle funcHandle, aclr
     return ACL_SUCCESS;
 }
 
+aclError FakeAclrtFunctionGetBinaryForBindmapReason(aclrtFuncHandle funcHandle, aclrtBinHandle* binHandle)
+{
+    if (binHandle == nullptr) {
+        return ACL_ERROR_INVALID_PARAM;
+    }
+    if (funcHandle == reinterpret_cast<aclrtFuncHandle>(0x6103)) {
+        *binHandle = reinterpret_cast<aclrtBinHandle>(0x5103);
+    } else if (funcHandle == reinterpret_cast<aclrtFuncHandle>(0x6104)) {
+        *binHandle = reinterpret_cast<aclrtBinHandle>(0x5104);
+    } else {
+        *binHandle = reinterpret_cast<aclrtBinHandle>(0x5105);
+    }
+    return ACL_SUCCESS;
+}
+
 int FakeRtGetBinBufferForNodeDump(void* binHdl, int addrType, void** buffer, uint32_t* size)
 {
     (void)binHdl;
@@ -356,6 +371,19 @@ int FakeRtBinaryGetMetaInfoDifferentCapForSkNode(void* binHdl, int typeEnum, siz
     return 0;
 }
 
+int FakeRtBinaryGetMetaInfoConflictForSkNode(void* binHdl, int typeEnum, size_t metaNum, void** dataList,
+    size_t* sizeList)
+{
+    (void)binHdl;
+    (void)typeEnum;
+    UtSkNodeSknlValuePayload payloads[2]{};
+    FillSkNodeBindPayloads(payloads, 4, 4);
+    payloads[1].info.globalFunc = reinterpret_cast<void*>(UT_SK_NODE_AIC_GLOBAL_OFFSET);
+    payloads[1].info.sknlFunc[0] = reinterpret_cast<void*>(0x3000);
+    CopySkNodeBindPayloads(dataList, sizeList, payloads, metaNum);
+    return 0;
+}
+
 int FakeRtGetBinBufferEmptyForSkNode(void* binHdl, int addrType, void** buffer, uint32_t* size)
 {
     (void)binHdl;
@@ -391,6 +419,17 @@ aclError FakeAclrtGetFunctionAddrForSkNode(aclrtFuncHandle funcHdl, void** addrA
     return ACL_SUCCESS;
 }
 
+aclError FakeAclrtGetFunctionAddrNotInBindMapForSkNode(aclrtFuncHandle funcHdl, void** addrAicore, void** addrAiv)
+{
+    (void)funcHdl;
+    if (addrAicore == nullptr || addrAiv == nullptr) {
+        return ACL_ERROR_INVALID_PARAM;
+    }
+    *addrAicore = reinterpret_cast<void*>(UT_SK_NODE_BIN_DEV_ADDR + 0x300);
+    *addrAiv = reinterpret_cast<void*>(UT_SK_NODE_BIN_DEV_ADDR + 0x400);
+    return ACL_SUCCESS;
+}
+
 std::string MakeTmpDir(const std::string& suffix)
 {
     std::string dir = "/tmp/sk_node_ut_" + std::to_string(getpid()) + "_" + suffix;
@@ -413,7 +452,7 @@ TEST_F(SkNodeTest, FusionFailReasonInfo_BindmapDetailsAndStrings)
 
     info.SetBindmapDetail(BindmapFailReason::FUNC_NOT_FOUND);
     EXPECT_EQ(info.GetBindmapDetail(), BindmapFailReason::FUNC_NOT_FOUND);
-    EXPECT_NE(FusionFailReasonToStr(info).find("initialize kernel function failed"), std::string::npos);
+    EXPECT_NE(FusionFailReasonToStr(info).find("function not found in bind map"), std::string::npos);
 
     EXPECT_STREQ(BindmapFailReasonToStr(BindmapFailReason::BINDMAP_INIT_EMPTY), "bindmap init empty");
     EXPECT_STREQ(BindmapFailReasonToStr(BindmapFailReason::BINHDL_NULL), "binHdl is null");
@@ -625,10 +664,80 @@ TEST_F(SkNodeTest, KernelInitNode_InconsistentCapRecordsBindmapReason)
     EXPECT_TRUE(node.InitNode());
     EXPECT_FALSE(node.IsFusible());
     EXPECT_EQ(node.nodeInfos.kernelInfos.cap, 0U);
-    EXPECT_EQ(node.nodeInfos.kernelInfos.bindmapFailReason, BindmapFailReason::FUNC_NOT_FOUND);
+    EXPECT_EQ(node.nodeInfos.kernelInfos.bindmapFailReason, BindmapFailReason::BINDMAP_CAP_INCONSISTENT);
     EXPECT_EQ(node.nodeInfos.kernelInfos.resolvedNum, 0U);
     EXPECT_EQ(node.GetFusionFailReason(), FusionFailReason::BINDMAP_IS_EMPTY);
+    EXPECT_EQ(node.GetFusionFailReasonInfo().GetBindmapDetail(), BindmapFailReason::BINDMAP_CAP_INCONSISTENT);
+}
+
+TEST_F(SkNodeTest, KernelInitNode_BindmapEntryConflictRecordsBindmapReason)
+{
+    UtSkNodeRITaskInternal task{};
+    task.taskId = 16;
+    task.type = ACL_MODEL_RI_TASK_KERNEL;
+    task.params.type = ACL_MODEL_RI_TASK_KERNEL;
+    task.params.kernelTaskParams.funcHandle = reinterpret_cast<aclrtFuncHandle>(0x6103);
+    task.params.kernelTaskParams.numBlocks = 4;
+
+    MOCKER(aclrtGetFunctionName).stubs().will(invoke(FakeAclrtGetFunctionNameRegular));
+    MOCKER(aclrtFunctionGetBinary).stubs().will(invoke(FakeAclrtFunctionGetBinaryForBindmapReason));
+    MOCKER(rtBinaryGetMetaNum).stubs().will(invoke(FakeRtBinaryGetMetaNumTwoEntriesForSkNode));
+    MOCKER(rtBinaryGetMetaInfo).stubs().will(invoke(FakeRtBinaryGetMetaInfoConflictForSkNode));
+    MOCKER(aclrtBinaryGetDevAddress).stubs().will(invoke(FakeAclrtBinaryGetDevAddressForSkNode));
+    MOCKER(aclrtGetFunctionAddr).stubs().will(invoke(FakeAclrtGetFunctionAddrForSkNode));
+
+    SuperKernelKernelNode node(MakeOriginTask(task), ACL_MODEL_RI_TASK_KERNEL, 0, 0, 0, INVALID_TASK_ID);
+    EXPECT_TRUE(node.InitNode());
+    EXPECT_FALSE(node.IsFusible());
+    EXPECT_EQ(node.nodeInfos.kernelInfos.bindmapFailReason, BindmapFailReason::BINDMAP_ENTRY_CONFLICT);
+    EXPECT_EQ(node.GetFusionFailReasonInfo().GetBindmapDetail(), BindmapFailReason::BINDMAP_ENTRY_CONFLICT);
+}
+
+TEST_F(SkNodeTest, KernelInitNode_FunctionNotInBindmapRecordsBindmapReason)
+{
+    UtSkNodeRITaskInternal task{};
+    task.taskId = 17;
+    task.type = ACL_MODEL_RI_TASK_KERNEL;
+    task.params.type = ACL_MODEL_RI_TASK_KERNEL;
+    task.params.kernelTaskParams.funcHandle = reinterpret_cast<aclrtFuncHandle>(0x6104);
+    task.params.kernelTaskParams.numBlocks = 4;
+
+    MOCKER(aclrtGetFunctionName).stubs().will(invoke(FakeAclrtGetFunctionNameRegular));
+    MOCKER(aclrtFunctionGetBinary).stubs().will(invoke(FakeAclrtFunctionGetBinaryForBindmapReason));
+    MOCKER(rtBinaryGetMetaNum).stubs().will(invoke(FakeRtBinaryGetMetaNumTwoEntriesForSkNode));
+    MOCKER(rtBinaryGetMetaInfo).stubs().will(invoke(FakeRtBinaryGetMetaInfoSameCapForSkNode));
+    MOCKER(aclrtBinaryGetDevAddress).stubs().will(invoke(FakeAclrtBinaryGetDevAddressForSkNode));
+    MOCKER(aclrtGetFunctionAddr).stubs().will(invoke(FakeAclrtGetFunctionAddrNotInBindMapForSkNode));
+
+    SuperKernelKernelNode node(MakeOriginTask(task), ACL_MODEL_RI_TASK_KERNEL, 0, 0, 0, INVALID_TASK_ID);
+    EXPECT_TRUE(node.InitNode());
+    EXPECT_FALSE(node.IsFusible());
+    EXPECT_EQ(node.nodeInfos.kernelInfos.bindmapFailReason, BindmapFailReason::FUNC_NOT_FOUND);
     EXPECT_EQ(node.GetFusionFailReasonInfo().GetBindmapDetail(), BindmapFailReason::FUNC_NOT_FOUND);
+}
+
+TEST_F(SkNodeTest, KernelInitNode_BinHostAddrGetFailedRecordsBindmapReason)
+{
+    UtSkNodeRITaskInternal task{};
+    task.taskId = 18;
+    task.type = ACL_MODEL_RI_TASK_KERNEL;
+    task.params.type = ACL_MODEL_RI_TASK_KERNEL;
+    task.params.kernelTaskParams.funcHandle = reinterpret_cast<aclrtFuncHandle>(0x6105);
+    task.params.kernelTaskParams.numBlocks = 4;
+
+    MOCKER(aclrtGetFunctionName).stubs().will(invoke(FakeAclrtGetFunctionNameRegular));
+    MOCKER(aclrtFunctionGetBinary).stubs().will(invoke(FakeAclrtFunctionGetBinaryForBindmapReason));
+    MOCKER(rtBinaryGetMetaNum).stubs().will(invoke(FakeRtBinaryGetMetaNumTwoEntriesForSkNode));
+    MOCKER(rtBinaryGetMetaInfo).stubs().will(invoke(FakeRtBinaryGetMetaInfoSameCapForSkNode));
+    MOCKER(aclrtBinaryGetDevAddress).stubs().will(invoke(FakeAclrtBinaryGetDevAddressForSkNode));
+    MOCKER(aclrtGetFunctionAddr).stubs().will(invoke(FakeAclrtGetFunctionAddrForSkNode));
+    MOCKER(rtGetBinBuffer).stubs().will(invoke(FakeRtGetBinBufferFailureForNodeDump));
+
+    SuperKernelKernelNode node(MakeOriginTask(task), ACL_MODEL_RI_TASK_KERNEL, 0, 0, 0, INVALID_TASK_ID);
+    EXPECT_TRUE(node.InitNode());
+    EXPECT_FALSE(node.IsFusible());
+    EXPECT_EQ(node.nodeInfos.kernelInfos.bindmapFailReason, BindmapFailReason::BIN_HOST_ADDR_GET_FAILED);
+    EXPECT_EQ(node.GetFusionFailReasonInfo().GetBindmapDetail(), BindmapFailReason::BIN_HOST_ADDR_GET_FAILED);
 }
 
 TEST_F(SkNodeTest, KernelInitNode_TaskGroupNotEmptyRecordsReason)
@@ -1550,6 +1659,12 @@ TEST_F(SkNodeTest, BindmapFailReasonToStr_NewReasons)
                  "failed to get binary device address");
     EXPECT_STREQ(BindmapFailReasonToStr(BindmapFailReason::FUNC_ADDR_GET_FAILED),
                  "failed to get function address");
+    EXPECT_STREQ(BindmapFailReasonToStr(BindmapFailReason::BINDMAP_ENTRY_CONFLICT),
+                 "bind map entry conflict");
+    EXPECT_STREQ(BindmapFailReasonToStr(BindmapFailReason::BINDMAP_CAP_INCONSISTENT),
+                 "bind map cap inconsistent");
+    EXPECT_STREQ(BindmapFailReasonToStr(BindmapFailReason::BIN_HOST_ADDR_GET_FAILED),
+                 "failed to get binary host address");
 }
 
 TEST_F(SkNodeTest, FusionFailReasonInfo_BindmapNewReasons)
