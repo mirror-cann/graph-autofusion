@@ -2249,7 +2249,8 @@ bool TilingLib::IsVarUsedInScheduleGroup(const std::string &var_define,
 }
 
 void TilingLib::TilingSetShapeDim(std::stringstream &tiling_set_shape_dim, const std::string &var_define,
-                                  const ascir::FusedScheduledResult &fused_schedule_result) const {
+                                  const ascir::FusedScheduledResult &fused_schedule_result,
+                                  const std::string &tiling_expr) const {
   for (size_t i = 0; i < fused_schedule_result.node_idx_to_scheduled_results.size(); i++) {
     auto scheduled_results = fused_schedule_result.node_idx_to_scheduled_results[i];
     if ((scheduled_results.empty()) ||
@@ -2259,7 +2260,7 @@ void TilingLib::TilingSetShapeDim(std::stringstream &tiling_set_shape_dim, const
         continue;
       }
       // 简单情况：直接设置（保持原逻辑）
-      tiling_set_shape_dim << "  tiling->set_" << var_define << "(" << var_define << ");" << std::endl;
+      tiling_set_shape_dim << "  " << tiling_expr << "set_" << var_define << "(" << var_define << ");" << std::endl;
     } else {
       for (size_t j = 0; j < scheduled_results.size(); j++) {
         for (size_t k = 0; k < scheduled_results[j].schedule_groups.size(); k++) {
@@ -2271,8 +2272,8 @@ void TilingLib::TilingSetShapeDim(std::stringstream &tiling_set_shape_dim, const
           if (scheduled_results[j].var_relations.find(k) != scheduled_results[j].var_relations.end()) {
             continue;
           }
-          tiling_set_shape_dim << "  tiling->graph" << i << "_result" << j << "_g" << k << "_tiling_data" << ".set_"
-                               << var_define << "(" << var_define << ");" << std::endl;
+          tiling_set_shape_dim << "  " << tiling_expr << "graph" << i << "_result" << j << "_g" << k
+                               << "_tiling_data.set_" << var_define << "(" << var_define << ");" << std::endl;
         }
       }
     }
@@ -3830,8 +3831,9 @@ void TilingLib::GenTopnInitSearchTiling(std::stringstream &ss,
     for (auto vars : fused_schedule_result.origin_vars) {
       if (!(vars.IsConstExpr())) {
         std::string var_define = std::string(vars.Str().get());
-        ss << "  search_tiling.set_" << var_define << "(static_cast<uint32_t>(request.symbol_values[" << idx << "]));"
+        ss << "  const uint32_t " << var_define << " = static_cast<uint32_t>(request.symbol_values[" << idx << "]);"
            << std::endl;
+        TilingSetShapeDim(ss, var_define, fused_schedule_result, "search_tiling.");
         idx++;
       }
     }
