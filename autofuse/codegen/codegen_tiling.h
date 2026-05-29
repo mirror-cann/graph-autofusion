@@ -282,7 +282,6 @@ struct CompileInfo {
     std::string GenExternTilingFuncBody(const ::ascir::FusedScheduledResult &fused_schedule_result,
                                         const std::map<std::string, std::string> &shape_info, const std::string &tiling,
                                         const std::string &pgo_dir) const;
-    std::string GenAscirTilingAndLaunchFunc(const ::ascir::FusedScheduledResult &fused_schedule_result) const;
     Status ExtractMatMulCubeInfoFromImplGraph(const ge::AscGraph &impl_graph, MatMulCubeInfo &cube_info) const;
     Status ExtractMatMulCubeInfoFromFusedResult(const ::ascir::FusedScheduledResult &fused_schedule_result,
                                                 MatMulCubeInfo &cube_info) const;
