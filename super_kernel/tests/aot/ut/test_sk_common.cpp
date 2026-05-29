@@ -83,6 +83,20 @@ std::vector<uint8_t> BuildMinimalValidElf64()
 
 } // namespace
 
+TEST_F(SkCommonTest, SkKernelArchToString_ReturnsExpectedName)
+{
+    EXPECT_STREQ(to_string(SkKernelArch::DAV_2201), "DAV_2201");
+    EXPECT_STREQ(to_string(SkKernelArch::DAV_3510), "DAV_3510");
+    EXPECT_STREQ(to_string(SkKernelArch::UNKNOWN), "UNKNOWN");
+}
+
+TEST_F(SkCommonTest, GetSkKernelArchSymbolSuffix_ReturnsExpectedSuffix)
+{
+    EXPECT_STREQ(GetSkKernelArchSymbolSuffix(SkKernelArch::DAV_2201), "dav_2201");
+    EXPECT_STREQ(GetSkKernelArchSymbolSuffix(SkKernelArch::DAV_3510), "dav_3510");
+    EXPECT_STREQ(GetSkKernelArchSymbolSuffix(SkKernelArch::UNKNOWN), "unknown");
+}
+
 TEST_F(SkCommonTest, GetFuncSymbolInfo_NullBinAddr_ReturnsFalse)
 {
     std::string symbolName;

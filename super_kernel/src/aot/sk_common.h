@@ -15,6 +15,7 @@
 
 #ifndef SK_COMMON_H
 #define SK_COMMON_H
+#include <array>
 #include <string>
 #include <cstddef>
 #include <bitset>
@@ -27,7 +28,31 @@
 // Forward declaration for aclmdlRI
 typedef void* aclmdlRI;
 
-bool IsDav3510Soc();
+enum class SkKernelArch : uint32_t {
+    UNKNOWN = 0,
+    DAV_2201,
+    DAV_3510,
+};
+
+inline const char* to_string(SkKernelArch arch)
+{
+    switch (arch) {
+    case SkKernelArch::DAV_2201:
+        return "DAV_2201";
+    case SkKernelArch::DAV_3510:
+        return "DAV_3510";
+    default:
+        return "UNKNOWN";
+    }
+}
+
+constexpr std::array<SkKernelArch, 2> SK_SUPPORTED_KERNEL_ARCHS = {
+    SkKernelArch::DAV_2201,
+    SkKernelArch::DAV_3510,
+};
+
+SkKernelArch GetCurrentSkKernelArch();
+const char* GetSkKernelArchSymbolSuffix(SkKernelArch arch);
 
 enum class SkNodeType : uint32_t {
     NODE_KERNEL = 0,

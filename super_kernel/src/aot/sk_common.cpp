@@ -24,10 +24,36 @@
 #include <elf.h>
 #include "sk_log.h"
 
-bool IsDav3510Soc()
+namespace {
+
+constexpr const char* ASCEND950_SOC_NAME = "Ascend950";
+
+} // namespace
+
+SkKernelArch GetCurrentSkKernelArch()
 {
     const char* socName = aclrtGetSocName();
-    return socName != nullptr && strstr(socName, "Ascend950") != nullptr;
+    if (socName == nullptr) {
+        SK_LOGI("Kernel arch detection: soc name is null, fallback to arch=%s",
+                to_string(SkKernelArch::DAV_2201));
+        return SkKernelArch::DAV_2201;
+    }
+    if (strstr(socName, ASCEND950_SOC_NAME) != nullptr) {
+        return SkKernelArch::DAV_3510;
+    }
+    return SkKernelArch::DAV_2201;
+}
+
+const char* GetSkKernelArchSymbolSuffix(SkKernelArch arch)
+{
+    switch (arch) {
+    case SkKernelArch::DAV_2201:
+        return "dav_2201";
+    case SkKernelArch::DAV_3510:
+        return "dav_3510";
+    default:
+        return "unknown";
+    }
 }
 
 namespace {
