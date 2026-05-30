@@ -2138,8 +2138,11 @@ bool SkTaskBuilder::ApplyPerOpMaxCoreNum(const std::vector<SuperKernelBaseNode*>
 {
     auto perOpMaxCoreOpt = opts.GetOption(aclskOptionType::DEBUG_PER_OP_MAX_CORE_NUM);
     if (perOpMaxCoreOpt == nullptr || perOpMaxCoreOpt->GetIntValue() != 1) {
+        SK_LOGI("[DEBUG_PER_OP_MAX_CORE] DEBUG_PER_OP_MAX_CORE_NUM not enabled, skip");
         return false;
     }
+
+    SK_LOGI("[DEBUG_PER_OP_MAX_CORE] DEBUG_PER_OP_MAX_CORE_NUM enabled, processing...");
 
     const size_t taskCount = tasks.size();
     if (taskCount != 1) {
@@ -2174,6 +2177,7 @@ bool SkTaskBuilder::ApplyPerOpMaxCoreNum(const std::vector<SuperKernelBaseNode*>
         SK_LOGI("[DEBUG_PER_OP_MAX_CORE] ScheMode=0: cube=%u, vec=%u", maxCubeNum, maxVecNum);
     }
 
+    SK_LOGI("[DEBUG_PER_OP_MAX_CORE] Successfully applied per-op max core numBlocks");
     return true;
 }
 
@@ -2613,7 +2617,10 @@ SkBuildResult SkTaskBuilder::Build(std::string skFuncName, const std::vector<Sup
         SK_LOGI("finish process custom tasks");
     }
 
-    ApplyPerOpMaxCoreNum(tasks, aicTask, aivTask);
+    bool perOpMaxCoreApplied = ApplyPerOpMaxCoreNum(tasks, aicTask, aivTask);
+    if (!perOpMaxCoreApplied) {
+        SK_LOGI("[DEBUG_PER_OP_MAX_CORE] ApplyPerOpMaxCoreNum returned false, using default numBlocks");
+    }
 
     SK_LOGI("Get entry info...");
     SkHostEntryInfo entryInfo = GenEntryInfo(aicTask, aivTask);
