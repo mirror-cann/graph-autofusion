@@ -305,3 +305,44 @@ uint32_t GetDeviceMaxVecNum() {
     GetDeviceCoreNums(cubeNum, vecNum);
     return static_cast<uint32_t>(vecNum);
 }
+
+bool CreateDirectoryRecursive(const std::string& path) {
+    if (path.empty()) {
+        SK_LOGE("[SkMeta] CreateDirectoryRecursive failed: path is empty");
+        return false;
+    }
+    
+    size_t pos = 0;
+    do {
+        pos = path.find('/', pos + 1);
+        std::string subPath = path.substr(0, pos);
+        
+        if (subPath.empty()) {
+            continue;
+        }
+        
+        struct stat st;
+        if (stat(subPath.c_str(), &st) != 0) {
+            if (mkdir(subPath.c_str(), 0755) != 0 && errno != EEXIST) {
+                SK_LOGE("[SkMeta] mkdir failed for '%s': %s (errno=%d)",
+                        subPath.c_str(), strerror(errno), errno);
+                return false;
+            }
+        }
+    } while (pos != std::string::npos && pos < path.size());
+    
+    return true;
+}
+
+std::string CreateSkMetaDirectory(aclmdlRI model) {
+    std::string dirPath = GetSkMetaPath(model);
+    
+    if (!CreateDirectoryRecursive(dirPath)) {
+        SK_LOGE("[SkMeta] Failed to create directory '%s' for model '%s'",
+                dirPath.c_str(), ModelRIToString(model).c_str());
+        return "";
+    }
+    
+    SK_LOGI("[SkMeta] Directory created successfully: %s", dirPath.c_str());
+    return dirPath;
+}
