@@ -23,7 +23,7 @@ public:
   static void FindSplitAndConcatNodes(const ascir::HintGraph &owner_graph, std::vector<af::AscNodePtr> &split_nodes,
                                       std::vector<af::AscNodePtr> &concat_nodes);
   static Status OptimizeOutSplit(ascir::HintGraph &owner_graph);
-  static Status OptimizeOutConcat(ascir::HintGraph &owner_graph);
+  static Status OptimizeOutConcat(ascir::HintGraph &owner_graph, const af::AscNodePtr &concat_node);
 };
 }  // namespace optimize
 

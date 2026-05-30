@@ -24,6 +24,7 @@
 #include "optimize/task_generator/concat_inputs_unification_pass.h"
 #include "platform/platform_factory.h"
 #include "util/mem_utils.h"
+#include "task_generator/cast_optimization_pass.h"
 
 namespace optimize {
 namespace {
@@ -47,10 +48,35 @@ void CollectInAndOutNodes(const af::NodePtr &node, std::set<af::Node *> &visited
 }
 }  // namespace
 
+Status ConcatFusionCaseGenerator::AddTemplatesForFirstDimConcat(const af::AscNodePtr &concat_node,
+                                                                ascir::HintGraph &graph,
+                                                                std::vector<ascir::ImplGraph> &graphs) {
+  const bool is_one_axis = (concat_node->outputs[0].attr.repeats.size() == 1UL);
+  if ((concat_node->inputs.Size() != 1U) && (!support_small_tail_) && (is_one_axis || (concat_dim_ > 0))) {
+    // 单维concat, 在前面补轴，复用非首轴处理逻辑
+    // 先限制单维，后续处理多维但小包场景
+    if (is_one_axis) {
+      GE_ASSERT_SUCCESS(InsertAxis(graph), "Failed to insert axis for graph:[%s].", graph.GetName().c_str());
+      concat_dim_ = 1;
+      GE_ASSERT_SUCCESS(AddTemplateIfCanFitInOneKernel(concat_node, graph, graphs));
+    }
+    GE_ASSERT_SUCCESS(AddTemplateForSplitConcat(graph, graphs));
+    GE_ASSERT_SUCCESS(MarkNoMergeFirstAxis(graphs));
+    return af::SUCCESS;
+  }
+  // gm concat
+  GE_CHK_STATUS_RET(Prepare(concat_node, concat_dim_), "Prepare failed");
+  GE_CHK_STATUS_RET(ConvertConcatToStores(graph, concat_node), "ConvertConcatToStores failed");
+  graphs.emplace_back(graph);
+  GELOGI("concat on first dim, num_inputs = %u, 1 template was generated", concat_node->inputs.Size());
+  return af::SUCCESS;
+}
+
 Status ConcatFusionCaseGenerator::Generate(ascir::HintGraph &graph,
                                            std::vector<ascir::ImplGraph> &graphs,
                                            std::vector<std::string> &score_functions) {
-  auto concat_nodes = FindConcatNodes(graph);
+  bool has_unsupported_op = false;
+  const auto concat_nodes = FindConcatNodes(graph, &has_unsupported_op);
   if (concat_nodes.empty()) {
     return af::SUCCESS;
   }
@@ -65,30 +91,11 @@ Status ConcatFusionCaseGenerator::Generate(ascir::HintGraph &graph,
   support_small_tail_ = backend_spec->concat_alg == kConcatAlgTranspose;
   // case1. 首轴concat，转store
   if (is_first_dim) {
-    const bool is_one_axis = (concat_node->outputs[0].attr.repeats.size() == 1UL);
-    const bool is_single_input = concat_node->inputs.Size() == 1U;
-    if ((!is_single_input) &&(!convert_to_store_) && (!support_small_tail_) && (is_one_axis || (concat_dim_ > 0))) {
-      // 单维concat, 在前面补轴，复用非首轴处理逻辑
-      // 先限制单维，后续处理多维但小包场景
-      if (is_one_axis) {
-        GE_ASSERT_SUCCESS(InsertAxis(graph), "Failed to insert axis for graph:[%s].", graph.GetName().c_str());
-        concat_dim_ = 1;
-        GE_ASSERT_SUCCESS(AddTemplateIfCanFitInOneKernel(concat_node, graph, graphs));
-      }
-      GE_ASSERT_SUCCESS(AddTemplateForSplitConcat(graph, graphs));
-      GE_ASSERT_SUCCESS(MarkNoMergeFirstAxis(graphs));
-      return af::SUCCESS;
-    }
-    // gm concat
-    GE_CHK_STATUS_RET(Prepare(concat_node, concat_dim_), "Prepare failed");
-    GE_CHK_STATUS_RET(ConvertConcatToStores(graph, concat_node), "ConvertConcatToStores failed");
-    graphs.emplace_back(graph);
-    GELOGI("concat on first dim, num_inputs = %u, 1 template was generated", concat_node->inputs.Size());
-    return af::SUCCESS;
+    return AddTemplatesForFirstDimConcat(concat_node, graph, graphs);
   }
 
   // case2. 生成ub内concat的case
-  if (concat_node->inputs.Size() <= kMaxInputNum) {
+  if ((!has_unsupported_op) && (concat_node->inputs.Size() <= kMaxInputNum)) {
     graphs.emplace_back(graph);
     // 如果匹配小尾轴, UB能全载，则不需要生成case3模板
     if (support_small_tail_ && ascir::utils::UseSmallTailConcatApi(*concat_node)) {
@@ -101,10 +108,11 @@ Status ConcatFusionCaseGenerator::Generate(ascir::HintGraph &graph,
   GE_ASSERT_SUCCESS(AddTemplateForSplitConcat(graph, graphs));
 
   // 如果是动态shape, 添加small tail模板，运行时通过score func选择
-  if (NeedDynSmallTailTemplate(concat_node)) {
+  if ((!has_unsupported_op) && NeedDynSmallTailTemplate(concat_node)) {
     GE_ASSERT_SUCCESS(AddTemplateForSmallTail(graph, graphs));
   }
 
+  GE_ASSERT_SUCCESS(RunCastOptimizationPass(graphs));
   if (!support_small_tail_) {
     GE_ASSERT_SUCCESS(ConcatInputUnificationPass::Run(graphs));
   }
@@ -114,9 +122,12 @@ Status ConcatFusionCaseGenerator::Generate(ascir::HintGraph &graph,
   return af::SUCCESS;
 }
 
-ConcatFusionCaseGenerator &ConcatFusionCaseGenerator::SetConvertToStoreMode() {
-  convert_to_store_ = true;
-  return *this;
+Status ConcatFusionCaseGenerator::EliminateConcat(ascir::HintGraph &graph, const af::AscNodePtr &concat_node) {
+  bool is_first_dim = false;
+  GE_CHK_STATUS_RET(ScheduleUtils::ResolveDiffDim(concat_node, concat_dim_, is_first_dim), "ResolveConcatDim failed");
+  GE_CHK_STATUS_RET(Prepare(concat_node, concat_dim_), "Prepare failed");
+  GE_CHK_STATUS_RET(ConvertConcatToStores(graph, concat_node), "ConvertConcatToStores failed");
+  return af::SUCCESS;
 }
 
 Status ConcatFusionCaseGenerator::AddTemplateForSplitConcat(const ascir::HintGraph &graph, std::vector<ascir::ImplGraph> &graphs) {
@@ -191,11 +202,23 @@ Status ConcatFusionCaseGenerator::GenerateScoreFunctions(const std::vector<ascir
   return af::SUCCESS;
 }
 
-std::vector<af::AscNodePtr> ConcatFusionCaseGenerator::FindConcatNodes(const ascir::HintGraph &owner_graph) {
+std::vector<af::AscNodePtr> ConcatFusionCaseGenerator::FindConcatNodes(const ascir::HintGraph &owner_graph,
+                                                                       bool *has_unsupported_op) {
+  if (has_unsupported_op != nullptr) {
+    *has_unsupported_op = false;
+  }
   std::vector<af::AscNodePtr> concat_nodes;
   for (const auto &node : owner_graph.GetAllNodes()) {
     if (af::ops::IsOps<af::ascir_op::Concat>(node)) {
       concat_nodes.emplace_back(node);
+    } else if (has_unsupported_op != nullptr && (!*has_unsupported_op)) {
+      const auto asc_node = std::dynamic_pointer_cast<af::AscNode>(node);
+      if ((asc_node != nullptr) && (ScheduleUtils::IsTranspose(asc_node) || ScheduleUtils::IsReduce(asc_node))) {
+        *has_unsupported_op = true;
+        GELOGI("graph contains Transpose/Reduce node %s", node->GetNamePtr());
+      }
+    } else {
+      // do nothing
     }
   }
   return concat_nodes;
@@ -288,7 +311,7 @@ Status ConcatFusionCaseGenerator::Prepare(const af::AscNodePtr &concat_node, siz
 }
 
 Status ConcatFusionCaseGenerator::PropagateAxisChanges(af::Node *start_node,
-                                                       const std::vector<ascir::AxisId> &new_axis_ids) const {
+                                                       const std::vector<ascir::AxisId> &new_axis_ids) {
   std::set<af::Node *> visited_nodes;
   std::queue<af::Node *> node_queue;
 
@@ -430,7 +453,6 @@ Status ConcatFusionCaseGenerator::RemoveUnusedNodes(const af::AscNodePtr &concat
   }
   return af::SUCCESS;
 }
-
 
 Status ConcatFusionCaseGenerator::SplitDataForDifferentConcatDim(ascir::ImplGraph &owner_graph) {
   for (const auto &node : owner_graph.GetAllNodes()) {
@@ -614,7 +636,7 @@ af::Status ConcatFusionCaseGenerator::UpdateRepeatAndStrides(const af::AscNodePt
   return af::SUCCESS;
 }
 
-Status ConcatFusionCaseGenerator::InsertAxis(ascir::ImplGraph &optimized_graph) {
+Status ConcatFusionCaseGenerator::InsertAxis(const ascir::ImplGraph &optimized_graph) {
   const auto graph_attr =
       af::AscGraphUtils::GetComputeGraph(optimized_graph)->GetOrCreateAttrsGroup<af::AscGraphAttr>();
   GE_ASSERT_NOTNULL(graph_attr);
@@ -684,7 +706,7 @@ Status ConcatFusionCaseGenerator::AddTemplateIfCanFitInOneKernel(const af::AscNo
   return af::SUCCESS;
 }
 
-Status ConcatFusionCaseGenerator::MarkNoMergeFirstAxis(std::vector<ascir::ImplGraph> &graphs) {
+Status ConcatFusionCaseGenerator::MarkNoMergeFirstAxis(const std::vector<ascir::ImplGraph> &graphs) {
   for (const auto &graph : graphs) {
     for (const auto &node : graph.GetAllNodes()) {
       if (af::ops::IsOps<af::ascir_op::Concat>(node)) {
@@ -777,6 +799,15 @@ Status ConcatFusionCaseGenerator::PrepareForModifyingGraph(const af::AscNodePtr 
   GE_ASSERT_SUCCESS(CollectReachableLoadNodes(concat_node, reachable_load_nodes_));
   for (const auto &in_anchor_and_node : af::NodeUtils::GetOutDataNodesWithAnchorByIndex(*concat_node, 0)) {
     out_node_name_to_indices_[in_anchor_and_node.second->GetName()].emplace_back(in_anchor_and_node.first->GetIdx());
+  }
+  return af::SUCCESS;
+}
+
+Status ConcatFusionCaseGenerator::RunCastOptimizationPass(std::vector<ascir::ImplGraph> &graphs) {
+  const auto backend_spec = BackendSpec::GetInstance();
+  GE_ASSERT_NOTNULL(backend_spec);
+  for (auto &graph : graphs) {
+    GE_ASSERT_SUCCESS(af::optimize::CastOptimizationPass::Run(graph, backend_spec->concat_alg));
   }
   return af::SUCCESS;
 }

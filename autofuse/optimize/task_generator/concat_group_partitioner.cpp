@@ -18,6 +18,7 @@
 
 #include "ascir_ops.h"
 #include "ascir/meta/ascir_ops_utils.h"
+#include "optimize/schedule_utils.h"
 #include "platform/platform_factory.h"
 
 namespace optimize {
@@ -75,8 +76,7 @@ Status ConcatGroupPartitioner::PartitionGroups(std::vector<ConcatGroup> &groups)
   for (size_t i = 0UL; i < all_in_data_anchors.size(); ++i) {
     const int64_t size = concat_dim_sizes_[i];
     const auto new_group_type = GetGroupType(size);
-    // 需要单独一组的case: 动态, 或存在输出多引用, 或大小超过阈值
-    if ((size < 0) || ((size * dtype_size_) > kGroupEltSizeThreshold) || (new_group_type == kGroupTypeNone)) {
+    if (InputHasTransposeOrReduce(i) || (size < 0) || ((size * dtype_size_) > kGroupEltSizeThreshold) || (new_group_type == kGroupTypeNone)) {
       if (index_start_ != -1) {
         GroupEnd(i);
       }
@@ -531,5 +531,34 @@ Status ConcatGroupPartitioner::RecomputeDiffAxes() {
   GE_ASSERT_SUCCESS(RecomputeNodesCrossGroups(false, has_recompute_));
   GE_ASSERT_SUCCESS(RecomputeNodesCrossGroups(true, has_recompute_));
   return ge::SUCCESS;
+}
+
+bool ConcatGroupPartitioner::InputHasTransposeOrReduce(size_t input_index) const {
+  const auto in_anchor = concat_node_->GetInDataAnchor(static_cast<int32_t>(input_index));
+  GE_ASSERT_NOTNULL(in_anchor);
+  auto out_anchor = in_anchor->GetPeerOutAnchor();
+  GE_ASSERT_NOTNULL(out_anchor);
+  std::set<const af::Node *> visited;
+  std::queue<const af::Node *> nodes;
+  auto owner_node = out_anchor->GetOwnerNode();
+  GE_CHECK_NOTNULL(owner_node);
+  nodes.push(owner_node.get());
+  visited.insert(owner_node.get());
+  while (!nodes.empty()) {
+    const auto cur_node = nodes.front();
+    nodes.pop();
+    auto asc_node = std::dynamic_pointer_cast<af::AscNode>(const_cast<af::Node *>(cur_node)->shared_from_this());
+    GE_ASSERT_NOTNULL(asc_node);
+    if (ScheduleUtils::IsTranspose(asc_node) || ScheduleUtils::IsReduce(asc_node)) {
+      GELOGI("concat input[%zu] path reaches Transpose/Reduce node %s", input_index, cur_node->GetNamePtr());
+      return true;
+    }
+    for (const auto &in_node : cur_node->GetInDataNodes()) {
+      if (visited.insert(in_node.get()).second) {
+        nodes.push(in_node.get());
+      }
+    }
+  }
+  return false;
 }
 }  // namespace optimize

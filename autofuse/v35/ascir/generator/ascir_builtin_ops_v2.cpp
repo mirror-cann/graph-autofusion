@@ -560,7 +560,7 @@ REG_ASC_IR(Concat)
     .Impl(v2_soc_versions, {af::ascir::AscIrImplCreator<af::ascir::ConcatAscIrAttImplV2>(),
                             af::ascir::AscIrImplCreator<af::ascir::ConcatAscIrCodegenImplV2>(),
                             {{"T", TensorType{DT_INT8, DT_UINT8, DT_INT16, DT_UINT16, DT_INT32, DT_UINT32,
-                              DT_INT64, DT_UINT64, DT_FLOAT16, DT_FLOAT}}}});
+                              DT_INT64, DT_UINT64, DT_BF16, DT_FLOAT16, DT_FLOAT}}}});
 
 REG_ASC_IR(Split)
     .Input("x", "T")

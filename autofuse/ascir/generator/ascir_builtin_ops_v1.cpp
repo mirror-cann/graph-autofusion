@@ -590,7 +590,7 @@ REG_ASC_IR(Concat)
     .Impl(v1_soc_versions, {af::ascir::AscIrImplCreator<af::ascir::ConcatAscIrAttImpl>(),
                             af::ascir::AscIrImplCreator<af::ascir::ConcatAscIrCodegenImpl>(),
                             {{"T", TensorType{DT_INT8, DT_UINT8, DT_INT16, DT_UINT16, DT_INT32, DT_UINT32, DT_UINT64,
-                                              DT_FLOAT16, DT_FLOAT}}}});
+                                              DT_BF16, DT_FLOAT16, DT_FLOAT}}}});
 
 REG_ASC_IR(Select)
     .Input("x1", "T1")
