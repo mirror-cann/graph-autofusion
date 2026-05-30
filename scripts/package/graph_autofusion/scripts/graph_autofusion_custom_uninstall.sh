@@ -215,7 +215,7 @@ custom_uninstall() {
         remove_empty_dir "${WHL_INSTALL_DIR_PATH}"
         remove_empty_dir "${common_parse_dir}/python"
         local autofuse_python_dir="${WHL_INSTALL_DIR_PATH}/autofuse"
-        local autofuse_include_dir="${common_parse_dir}/include/autofuse"
+        local autofuse_include_dir="${common_parse_dir}/pkg_inc/autofuse"
         remove_dir "${autofuse_python_dir}/__pycache__"
         remove_dir "${autofuse_include_dir}"
     fi
