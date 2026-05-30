@@ -1092,7 +1092,7 @@ int main(int argc, char *argv[]) {
   int32_t aiv_num = static_cast<int32_t>(atoi(argv[3]));
   int32_t ub_size = static_cast<int32_t>(atoi(argv[4]));
   g_kernel_name = argv[5];
-  DLOGI("execute info : type: %d, device_id: %d, kernel_name: %s", type, device_id, g_kernel_name);
+  DLOGI("execute info : type: %d, device_id: %d, kernel_name: %s", type, device_id, g_kernel_name.c_str());
   DLOGI("execute limit: aiv_num is %d, ub_size is %d", aiv_num, ub_size);
   g_npu_lock_file = std::string(pgo_dir) + "/npu_lock_" + std::to_string(device_id) + ".lock";
   g_kernel_o_file = std::string(pgo_dir) + "/" + g_kernel_name + ".o";
