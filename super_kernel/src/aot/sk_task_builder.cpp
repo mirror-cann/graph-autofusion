@@ -2158,8 +2158,12 @@ bool SkTaskBuilder::ApplyPerOpMaxCoreNum(const std::vector<SuperKernelBaseNode*>
     }
 
     SuperKernelKernelNode* kernelNode = static_cast<SuperKernelKernelNode*>(singleTask);
-    uint32_t maxCubeNum = GetDeviceMaxCubeNum();
-    uint32_t maxVecNum = GetDeviceMaxVecNum();
+    int64_t maxCubeNum = GetDeviceCubeCoreNum();
+    int64_t maxVecNum = GetDeviceVecCoreNum();
+    if (maxCubeNum <= 0 || maxVecNum <= 0) {
+        SK_LOGE("[DEBUG_PER_OP_MAX_CORE] Failed to get device core nums: cube=%ld, vec=%ld", maxCubeNum, maxVecNum);
+        return false;
+    }
 
     if (kernelNode->IsScheModeOn()) {
         uint32_t cubeNum = kernelNode->GetCubeNum();
@@ -2172,9 +2176,10 @@ bool SkTaskBuilder::ApplyPerOpMaxCoreNum(const std::vector<SuperKernelBaseNode*>
         aivTask.numBlocks = cubeNum * 2;
         SK_LOGI("[DEBUG_PER_OP_MAX_CORE] ScheMode=1: cube=%u, vec=%u", cubeNum, aivTask.numBlocks);
     } else {
-        aicTask.numBlocks = maxCubeNum;
-        aivTask.numBlocks = maxVecNum;
-        SK_LOGI("[DEBUG_PER_OP_MAX_CORE] ScheMode=0: cube=%u, vec=%u", maxCubeNum, maxVecNum);
+        aicTask.numBlocks = static_cast<uint32_t>(maxCubeNum);
+        aivTask.numBlocks = static_cast<uint32_t>(maxVecNum);
+        SK_LOGI("[DEBUG_PER_OP_MAX_CORE] ScheMode=0: cube=%u, vec=%u", 
+                static_cast<uint32_t>(maxCubeNum), static_cast<uint32_t>(maxVecNum));
     }
 
     SK_LOGI("[DEBUG_PER_OP_MAX_CORE] Successfully applied per-op max core numBlocks");

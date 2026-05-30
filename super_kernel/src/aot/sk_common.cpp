@@ -243,67 +243,51 @@ bool GetFuncSymbolInfo(aclrtBinHandle binHdl, const char* binAddr, size_t binSiz
 
 // ==================== Device Core Number Utilities ====================
 
-aclError GetDeviceCubeCoreNum(int64_t& cubeNum) {
+int64_t GetDeviceCubeCoreNum() {
     int32_t deviceId = 0;
     aclError ret = aclrtGetDevice(&deviceId);
     if (ret != ACL_SUCCESS) {
         SK_LOGE("[DeviceCores] Failed to get deviceId, ret=%d", ret);
-        return ret;
+        return 0;
     }
+    int64_t cubeNum = 0;
     ret = aclrtGetDeviceInfo(deviceId, ACL_DEV_ATTR_CUBE_CORE_NUM, &cubeNum);
     if (ret != ACL_SUCCESS) {
         SK_LOGE("[DeviceCores] Failed to get cube core num, ret=%d", ret);
-        return ret;
+        return 0;
     }
-    return ACL_SUCCESS;
+    return cubeNum;
 }
 
-aclError GetDeviceVecCoreNum(int64_t& vecNum) {
+int64_t GetDeviceVecCoreNum() {
     int32_t deviceId = 0;
     aclError ret = aclrtGetDevice(&deviceId);
     if (ret != ACL_SUCCESS) {
         SK_LOGE("[DeviceCores] Failed to get deviceId, ret=%d", ret);
-        return ret;
+        return 0;
     }
+    int64_t vecNum = 0;
     ret = aclrtGetDeviceInfo(deviceId, ACL_DEV_ATTR_VECTOR_CORE_NUM, &vecNum);
     if (ret != ACL_SUCCESS) {
         SK_LOGE("[DeviceCores] Failed to get vec core num, ret=%d", ret);
-        return ret;
+        return 0;
     }
-    return ACL_SUCCESS;
+    return vecNum;
 }
 
 aclError GetDeviceCoreNums(int64_t& cubeNum, int64_t& vecNum) {
-    int32_t deviceId = 0;
-    aclError ret = aclrtGetDevice(&deviceId);
-    if (ret != ACL_SUCCESS) {
-        SK_LOGE("[DeviceCores] Failed to get deviceId, ret=%d", ret);
-        return ret;
+    cubeNum = GetDeviceCubeCoreNum();
+    if (cubeNum <= 0) {
+        SK_LOGE("[DeviceCores] GetDeviceCubeCoreNum returned invalid value: %ld", cubeNum);
+        return ACL_ERROR_INVALID_PARAM;
     }
-    ret = aclrtGetDeviceInfo(deviceId, ACL_DEV_ATTR_CUBE_CORE_NUM, &cubeNum);
-    if (ret != ACL_SUCCESS) {
-        SK_LOGE("[DeviceCores] Failed to get cube core num, ret=%d", ret);
-        return ret;
-    }
-    ret = aclrtGetDeviceInfo(deviceId, ACL_DEV_ATTR_VECTOR_CORE_NUM, &vecNum);
-    if (ret != ACL_SUCCESS) {
-        SK_LOGE("[DeviceCores] Failed to get vec core num, ret=%d", ret);
-        return ret;
+    vecNum = GetDeviceVecCoreNum();
+    if (vecNum <= 0) {
+        SK_LOGE("[DeviceCores] GetDeviceVecCoreNum returned invalid value: %ld", vecNum);
+        return ACL_ERROR_INVALID_PARAM;
     }
     SK_LOGI("[DeviceCores] Get core nums: cube=%ld, vec=%ld", cubeNum, vecNum);
     return ACL_SUCCESS;
-}
-
-uint32_t GetDeviceMaxCubeNum() {
-    int64_t cubeNum = 0, vecNum = 0;
-    GetDeviceCoreNums(cubeNum, vecNum);
-    return static_cast<uint32_t>(cubeNum);
-}
-
-uint32_t GetDeviceMaxVecNum() {
-    int64_t cubeNum = 0, vecNum = 0;
-    GetDeviceCoreNums(cubeNum, vecNum);
-    return static_cast<uint32_t>(vecNum);
 }
 
 bool CreateDirectoryRecursive(const std::string& path) {
