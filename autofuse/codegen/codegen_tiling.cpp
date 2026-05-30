@@ -1112,7 +1112,7 @@ void TilingLib::GenPgoMain(const ascir::FusedScheduledResult &fused_schedule_res
   ss << "  int32_t aiv_num = static_cast<int32_t>(atoi(argv[3]));" << std::endl;
   ss << "  int32_t ub_size = static_cast<int32_t>(atoi(argv[4]));" << std::endl;
   ss << "  g_kernel_name = argv[5];" << std::endl;
-  ss << "  DLOGI(\"execute info : type: %d, device_id: %d, kernel_name: %s\", type, device_id, g_kernel_name.c_str());" << std::endl;
+  ss << "  DLOGI(\"execute info : type: %d, device_id: %d, kernel_name: %s\", type, device_id, g_kernel_name);" << std::endl;
   ss << "  DLOGI(\"execute limit: aiv_num is %d, ub_size is %d\", aiv_num, ub_size);" << std::endl;
   ss << "  g_npu_lock_file = std::string(pgo_dir) + \"/npu_lock_\" + std::to_string(device_id) + \".lock\";" << std::endl;
   ss << "  g_kernel_o_file = std::string(pgo_dir) + \"/\" + g_kernel_name + \".o\";" << std::endl;

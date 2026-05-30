@@ -32,21 +32,18 @@ constexpr uint32_t kReduceMaxMainRPower = 15U;
 // -> BuildMergeCost(多Reduce场景) -> perf_breakdowns 输出 body/merge/total。
 using ElementwisePerf = ge::Status (*)(const NodeDetail &, PerfOutputInfo &);
 
-enum class ReduceOpKind {
+enum class ReduceLogicalOp {
   kMin,
   kMax,
   kAny,
   kAll,
-  kSum,
-  kProd,
-  kMean,
 };
 
 struct ReduceOpCostModel {
   ElementwisePerf elementwise_perf;
   std::string reduce_op;
   std::string binary_op;
-  ReduceOpKind op_kind;
+  ReduceLogicalOp logical_op;
 };
 
 struct VfGroupCounts {
@@ -95,23 +92,10 @@ bool IsB64Dtype(const std::string &dtype) {
   return dtype == kInt64 || dtype == kUInt64;
 }
 
-bool IsReduceMinMaxDtype(const std::string &dtype) {
+bool IsMinMaxReduceDtype(const std::string &dtype) {
   return dtype == kInt8 || dtype == kUInt8 || dtype == kInt16 || dtype == kUInt16 || dtype == kFloat16 ||
          dtype == kBfloat16 || dtype == kInt32 || dtype == kUInt32 || dtype == kFloat32 || dtype == kInt64 ||
          dtype == kUInt64;
-}
-
-bool IsReduceSumDtype(const std::string &dtype) {
-  return dtype == kUInt16 || dtype == kInt16 || dtype == kUInt32 || dtype == kInt32 || dtype == kFloat16 ||
-         dtype == kFloat32;
-}
-
-bool IsReduceProdDtype(const std::string &dtype) {
-  return IsReduceSumDtype(dtype) || dtype == kBfloat16;
-}
-
-bool IsReduceMeanDtype(const std::string &dtype) {
-  return IsReduceSumDtype(dtype);
 }
 
 bool IsLogicalReduceDtype(const std::string &dtype) {
@@ -119,43 +103,18 @@ bool IsLogicalReduceDtype(const std::string &dtype) {
 }
 
 bool IsLogicalReduce(const ReduceOpCostModel &model) {
-  return model.op_kind == ReduceOpKind::kAny || model.op_kind == ReduceOpKind::kAll;
-}
-
-bool IsMinMaxReduce(const ReduceOpCostModel &model) {
-  return model.op_kind == ReduceOpKind::kMin || model.op_kind == ReduceOpKind::kMax;
-}
-
-bool IsSupportedReduceDtype(const std::string &dtype, const ReduceOpCostModel &model) {
-  switch (model.op_kind) {
-    case ReduceOpKind::kMin:
-    case ReduceOpKind::kMax:
-      return IsReduceMinMaxDtype(dtype);
-    case ReduceOpKind::kAny:
-    case ReduceOpKind::kAll:
-      return IsLogicalReduceDtype(dtype);
-    case ReduceOpKind::kSum:
-      return IsReduceSumDtype(dtype);
-    case ReduceOpKind::kProd:
-      return IsReduceProdDtype(dtype);
-    case ReduceOpKind::kMean:
-      return IsReduceMeanDtype(dtype);
-    default:
-      return false;
-  }
-}
-
-ge::Status WarnUnsupportedReduceDtype(const ReduceApiPerfContext &context, const ReduceOpCostModel &model) {
-  GELOGW("[ATT Reduce] Reduce op[%s] dtype[%s] is unsupported, node[%s].", model.reduce_op.c_str(),
-         context.node_detail.input_dtype[0].c_str(), context.node_detail.name.c_str());
-  return ge::FAILED;
+  return model.logical_op == ReduceLogicalOp::kAny || model.logical_op == ReduceLogicalOp::kAll;
 }
 
 ge::Status ValidateReduceDtype(const ReduceApiPerfContext &context, const ReduceOpCostModel &model) {
   const std::string &dtype = context.node_detail.input_dtype[0];
-  if (!IsSupportedReduceDtype(dtype, model)) {
-    return WarnUnsupportedReduceDtype(context, model);
+  if (IsLogicalReduce(model)) {
+    GE_ASSERT_TRUE(IsLogicalReduceDtype(dtype), "Reduce logical dtype[%s] is unsupported, node[%s].", dtype.c_str(),
+                   context.node_detail.name.c_str());
+    return ge::SUCCESS;
   }
+  GE_ASSERT_TRUE(IsMinMaxReduceDtype(dtype), "Reduce Min/Max dtype[%s] is unsupported, node[%s].", dtype.c_str(),
+                 context.node_detail.name.c_str());
   return ge::SUCCESS;
 }
 
@@ -313,10 +272,6 @@ ge::Status BuildB64BinaryCost(const ReduceOpCostModel &model, const Expr &count,
 
 ge::Status BuildB64VfGroupCost(const ReduceOpCostModel &model, const std::string &dtype, const Expr &count,
                                uint32_t load_count, uint32_t binary_count, uint32_t store_count, Expr &cost) {
-  if (!IsMinMaxReduce(model)) {
-    const Expr repeat_ele = GetB64RepeatEle(dtype);
-    return BuildVfGroupCost(model, dtype, count, repeat_ele, load_count, binary_count, store_count, cost);
-  }
   const Expr repeat_ele = GetB64RepeatEle(dtype);
   Expr load_cost = CreateExpr(0);
   Expr binary_cost = CreateExpr(0);
@@ -1423,10 +1378,7 @@ ge::Status BuildLogicalReduceCost(const ReduceApiPerfContext &context, const Red
 
 ge::Status ReduceApiPerf(const ReduceApiPerfContext &context, const ReduceOpCostModel &model, PerfOutputInfo &perf) {
   GE_ASSERT_SUCCESS(ValidateReduceContext(context));
-  const ge::Status dtype_status = ValidateReduceDtype(context, model);
-  if (dtype_status != ge::SUCCESS) {
-    return dtype_status;
-  }
+  GE_ASSERT_SUCCESS(ValidateReduceDtype(context, model));
   const auto &nd = context.node_detail;
   const bool is_b64 = IsB64Dtype(nd.input_dtype[0]);
   GELOGD("[ATT Reduce] ReduceApiPerf: dtype[%s], dims[%s], pattern[%s], b64[%d], reuse[%d], merge[%d], "
@@ -1473,58 +1425,23 @@ ge::Status ReduceApiPerf(const ReduceApiPerfContext &context, const ReduceOpCost
 }
 
 ge::Status ReduceMinPerf(const ReduceApiPerfContext &context, PerfOutputInfo &perf) {
-  const ReduceOpCostModel model = {ascendcperf_v2::MinPerf, kReduceMin, kMin, ReduceOpKind::kMin};
+  const ReduceOpCostModel model = {ascendcperf_v2::MinPerf, kReduceMin, kMin, ReduceLogicalOp::kMin};
   return ReduceApiPerf(context, model, perf);
 }
 
 ge::Status ReduceMaxPerf(const ReduceApiPerfContext &context, PerfOutputInfo &perf) {
-  const ReduceOpCostModel model = {ascendcperf_v2::MaxPerf, kReduceMax, kMax, ReduceOpKind::kMax};
+  const ReduceOpCostModel model = {ascendcperf_v2::MaxPerf, kReduceMax, kMax, ReduceLogicalOp::kMax};
   return ReduceApiPerf(context, model, perf);
 }
 
 ge::Status ReduceAnyPerf(const ReduceApiPerfContext &context, PerfOutputInfo &perf) {
-  const ReduceOpCostModel model = {ascendcperf_v2::MaxPerf, kReduceAny, kMax, ReduceOpKind::kAny};
+  const ReduceOpCostModel model = {ascendcperf_v2::MaxPerf, kReduceAny, kMax, ReduceLogicalOp::kAny};
   return ReduceApiPerf(context, model, perf);
 }
 
 ge::Status ReduceAllPerf(const ReduceApiPerfContext &context, PerfOutputInfo &perf) {
-  const ReduceOpCostModel model = {ascendcperf_v2::MinPerf, kReduceAll, kMin, ReduceOpKind::kAll};
+  const ReduceOpCostModel model = {ascendcperf_v2::MinPerf, kReduceAll, kMin, ReduceLogicalOp::kAll};
   return ReduceApiPerf(context, model, perf);
-}
-
-ge::Status ReduceSumPerf(const ReduceApiPerfContext &context, PerfOutputInfo &perf) {
-  const ReduceOpCostModel model = {ascendcperf_v2::AddPerf, kVcadd, kAdd, ReduceOpKind::kSum};
-  return ReduceApiPerf(context, model, perf);
-}
-
-ge::Status ReduceProdPerf(const ReduceApiPerfContext &context, PerfOutputInfo &perf) {
-  const ReduceOpCostModel model = {ascendcperf_v2::MulPerf, kMul, kMul, ReduceOpKind::kProd};
-  return ReduceApiPerf(context, model, perf);
-}
-
-ge::Status ReduceMeanPerf(const ReduceApiPerfContext &context, PerfOutputInfo &perf) {
-  const ReduceOpCostModel model = {ascendcperf_v2::AddPerf, kVcadd, kAdd, ReduceOpKind::kMean};
-  GE_ASSERT_SUCCESS(ValidateReduceContext(context));
-  const ge::Status dtype_status = ValidateReduceDtype(context, model);
-  if (dtype_status != ge::SUCCESS) {
-    return dtype_status;
-  }
-  const ge::Status sum_status = ReduceSumPerf(context, perf);
-  if (sum_status != ge::SUCCESS) {
-    return sum_status;
-  }
-  PerfOutputInfo muls_perf;
-  NodeDetail muls_nd = context.node_detail;
-  muls_nd.input_dims = {context.pattern == ReducePattern::kAR ? context.node_detail.input_dims[0] :
-                                                           context.node_detail.input_dims[1]};
-  muls_nd.output_dims = muls_nd.input_dims;
-  GE_ASSERT_SUCCESS(ascendcperf_v2::MeanPerf(muls_nd, muls_perf));
-  Expr muls_cost = CreateExpr(0);
-  GE_ASSERT_SUCCESS(AddPipeCost(muls_perf, PipeType::AIV_VEC, muls_cost));
-  perf.pipe_res[PipeType::AIV_VEC] = perf.pipe_res[PipeType::AIV_VEC] + muls_cost;
-  perf.pipe_res[PipeType::AIV_VEC].Simplify();
-  AddReduceBreakdown(perf, "reduce_mean_muls_perf", muls_cost, "ReduceMean post ReduceSum Muls perf", 0U);
-  return ge::SUCCESS;
 }
 }  // namespace ascendcapi_v2
 }  // namespace att

@@ -274,6 +274,15 @@ ge::Status NegApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_sha
   return ge::SUCCESS;
 }
 
+ge::Status MeanApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
+                   [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
+                   [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
+  NodeDetail node_info;
+  GE_ASSERT_SUCCESS(SetNodeDetail(input_shapes, output_shapes, node_info));
+  GE_ASSERT_SUCCESS(ascendcperf_v2::MeanPerf(node_info, perf_res));
+  return ge::SUCCESS;
+}
+
 ge::Status AddApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
                   [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
                   [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
@@ -316,6 +325,15 @@ ge::Status CastApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_sh
   NodeDetail node_info;
   GE_ASSERT_SUCCESS(SetNodeDetail(input_shapes, output_shapes, node_info));
   GE_ASSERT_SUCCESS(ascendcperf_v2::CastPerf(node_info, perf_res));
+  return ge::SUCCESS;
+}
+
+ge::Status SumApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
+                  [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
+                  [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
+  NodeDetail node_info;
+  GE_ASSERT_SUCCESS(SetNodeDetail(input_shapes, output_shapes, node_info));
+  GE_ASSERT_SUCCESS(ascendcperf_v2::SumPerf(node_info, perf_res));
   return ge::SUCCESS;
 }
 
@@ -473,18 +491,14 @@ REGISTER_EVAL_FUNC_TAG(kReduceMax, V2, ascir_reduce_v2::ReduceMaxApi);
 REGISTER_EVAL_FUNC_TAG(kReduceMin, V2, ascir_reduce_v2::ReduceMinApi);
 REGISTER_EVAL_FUNC_TAG(kReduceAny, V2, ascir_reduce_v2::ReduceAnyApi);
 REGISTER_EVAL_FUNC_TAG(kReduceAll, V2, ascir_reduce_v2::ReduceAllApi);
-REGISTER_EVAL_FUNC_TAG(kReduceSum, V2, ascir_reduce_v2::ReduceSumApi);
-REGISTER_EVAL_FUNC_TAG(kReduceMean, V2, ascir_reduce_v2::ReduceMeanApi);
-REGISTER_EVAL_FUNC_TAG(kReduceProd, V2, ascir_reduce_v2::ReduceProdApi);
 REGISTER_EVAL_FUNC_TAG(kNeg, V2, ascir_v2::NegApi);
-REGISTER_EVAL_FUNC_TAG(kMean, V2, ascir_reduce_v2::MeanApi);
+REGISTER_EVAL_FUNC_TAG(kMean, V2, ascir_v2::MeanApi);
 REGISTER_EVAL_FUNC_TAG(kAdd, V2, ascir_v2::AddApi);
 REGISTER_EVAL_FUNC_TAG(kSub, V2, ascir_v2::SubApi);
 REGISTER_EVAL_FUNC_TAG(kMul, V2, ascir_v2::MulApi);
-REGISTER_EVAL_FUNC_TAG(kProd, V2, ascir_reduce_v2::ProdApi);
 REGISTER_EVAL_FUNC_TAG(kLeakyRelu, V2, ascir_v2::LeakyReluApi);
 REGISTER_EVAL_FUNC_TAG(kCast, V2, ascir_v2::CastApi);
-REGISTER_EVAL_FUNC_TAG(kSum, V2, ascir_reduce_v2::SumApi);
+REGISTER_EVAL_FUNC_TAG(kSum, V2, ascir_v2::SumApi);
 REGISTER_EVAL_FUNC_TAG(kRemovePad, V2, ascir_v2::RemovePadApi);
 REGISTER_EVAL_FUNC_TAG(kWhere, V2, ascir_v2::WhereApi);
 REGISTER_EVAL_FUNC_TAG(kPow, V2, ascir_v2::PowApi);
@@ -646,21 +660,15 @@ ApiPerfRegister<ApiPerf> any_api_perf_v2(ApiPerfRegisterV2(kAny, GetPerfFunc(kAn
 ApiPerfRegister<ApiPerf> reduce_any_api_perf_v2(ApiPerfRegisterV2(kReduceAny, GetPerfFunc(kReduceAny + "V2"), nullptr,
                                                                   &perf_param_table_v2,
                                                                   &tiling_schedule_config_table_v2));
-ApiPerfRegister<ApiPerf> reduce_mean_api_perf_v2(ApiPerfRegisterV2(kReduceMean, GetPerfFunc(kReduceMean + "V2"),
-                                                                   nullptr, &perf_param_table_v2,
+ApiPerfRegister<ApiPerf> reduce_mean_api_perf_v2(ApiPerfRegisterV2(kMean, GetPerfFunc(kMean + +"V2"), nullptr,
+                                                                   &perf_param_table_v2,
                                                                    &tiling_schedule_config_table_v2));
-ApiPerfRegister<ApiPerf> reduce_prod_api_perf_v2(ApiPerfRegisterV2(kReduceProd, GetPerfFunc(kReduceProd + "V2"),
-                                                                   nullptr, &perf_param_table_v2,
+ApiPerfRegister<ApiPerf> reduce_prod_api_perf_v2(ApiPerfRegisterV2(kProd, GetPerfFunc(kMul + "V2"), nullptr,
+                                                                   &perf_param_table_v2,
                                                                    &tiling_schedule_config_table_v2));
-ApiPerfRegister<ApiPerf> reduce_sum_api_perf_v2(ApiPerfRegisterV2(kReduceSum, GetPerfFunc(kReduceSum + "V2"), nullptr,
+ApiPerfRegister<ApiPerf> reduce_sum_api_perf_v2(ApiPerfRegisterV2(kSum, GetPerfFunc(kSum + "V2"), nullptr,
                                                                   &perf_param_table_v2,
                                                                   &tiling_schedule_config_table_v2));
-ApiPerfRegister<ApiPerf> mean_api_perf_v2(ApiPerfRegisterV2(kMean, GetPerfFunc(kMean + "V2"), nullptr,
-                                                            &perf_param_table_v2, &tiling_schedule_config_table_v2));
-ApiPerfRegister<ApiPerf> prod_api_perf_v2(ApiPerfRegisterV2(kProd, GetPerfFunc(kProd + "V2"), nullptr,
-                                                            &perf_param_table_v2, &tiling_schedule_config_table_v2));
-ApiPerfRegister<ApiPerf> sum_api_perf_v2(ApiPerfRegisterV2(kSum, GetPerfFunc(kSum + "V2"), nullptr,
-                                                           &perf_param_table_v2, &tiling_schedule_config_table_v2));
 // 不需要建模的ASCIR
 ApiPerfRegister<ApiPerf> data_api_perf_v2(ApiPerfRegisterV2(kData, DefaultGetPerf, nullptr, &perf_param_table_v2,
                                                             &tiling_schedule_config_table_v2));
