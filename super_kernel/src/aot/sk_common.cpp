@@ -307,10 +307,13 @@ bool CreateDirectoryRecursive(const std::string& path) {
         
         struct stat st;
         if (stat(subPath.c_str(), &st) != 0) {
-            if (mkdir(subPath.c_str(), 0755) != 0 && errno != EEXIST) {
-                SK_LOGE("[SkMeta] mkdir failed for '%s': %s (errno=%d)",
-                        subPath.c_str(), strerror(errno), errno);
-                return false;
+            if (mkdir(subPath.c_str(), 0755) != 0) {
+                int savedErrno = errno;
+                if (savedErrno != EEXIST) {
+                    SK_LOGE("[SkMeta] mkdir failed for '%s': %s (errno=%d)",
+                            subPath.c_str(), strerror(savedErrno), savedErrno);
+                    return false;
+                }
             }
         }
     } while (pos != std::string::npos && pos < path.size());
