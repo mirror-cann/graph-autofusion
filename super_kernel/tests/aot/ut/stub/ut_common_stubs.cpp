@@ -43,6 +43,7 @@ int g_throwOnAclmdlRIGetStreams = 0;
 int g_binaryGetFunctionNullHandle = 0;
 uint32_t g_destroyRegisterCallbackDelayUs = 0;
 uint32_t g_destroyRegisterCallbackCallCount = 0;
+const char* g_aclrtGetSocName = "Ascend910B";
 
 std::unordered_map<aclmdlRI, std::pair<aclmdlRIDestroyCallbackFunc, void*>> g_modelDestroyCallbacks;
 uint32_t g_streamNum = 0;
@@ -97,6 +98,7 @@ void SkUtResetCommonStubControls()
     g_binaryGetFunctionNullHandle = 0;
     g_destroyRegisterCallbackDelayUs = 0;
     g_destroyRegisterCallbackCallCount = 0;
+    g_aclrtGetSocName = "Ascend910B";
     g_modelDestroyCallbacks.clear();
 
     g_streamNum = 0;
@@ -434,6 +436,16 @@ void sk_placeholder_kernel_do_dav_3510(void* stream, ScopeKernelArgs args)
 {
     (void)stream;
     (void)args;
+}
+
+void SkUtSetAclrtGetSocName(const char* socName)
+{
+    g_aclrtGetSocName = socName;
+}
+
+const char* SkUtGetAclrtGetSocName()
+{
+    return g_aclrtGetSocName;
 }
 
 } // extern "C"

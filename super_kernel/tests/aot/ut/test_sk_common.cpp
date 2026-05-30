@@ -19,13 +19,14 @@
 #define private public
 #define protected public
 #include "sk_common.h"
+#include "stub/ut_common_stubs.h"
 
 namespace {
 
 class SkCommonTest : public testing::Test {
 protected:
-    void SetUp() override {}
-    void TearDown() override {}
+    void SetUp() override { SkUtResetTestControls(); }
+    void TearDown() override { SkUtResetTestControls(); }
 };
 
 std::vector<uint8_t> BuildMinimalValidElf64()
@@ -426,4 +427,76 @@ TEST_F(SkCommonTest, GetSkMetaPath_ValidModel_ReturnsExpectedFormat)
     std::string path = GetSkMetaPath(reinterpret_cast<aclmdlRI>(0x12345));
     EXPECT_TRUE(path.find("sk_meta") != std::string::npos);
     EXPECT_TRUE(path.find(std::to_string(getpid())) != std::string::npos);
+}
+
+TEST_F(SkCommonTest, GetCurrentSkKernelArch_NullSocName_ReturnsDefault)
+{
+    SkUtSetAclrtGetSocName(nullptr);
+    SkKernelArch arch = GetCurrentSkKernelArch();
+    EXPECT_EQ(arch, SkKernelArch::DAV_2201);
+}
+
+TEST_F(SkCommonTest, GetCurrentSkKernelArch_Ascend950Soc_Returns3510)
+{
+    SkUtSetAclrtGetSocName("Ascend950");
+    SkKernelArch arch = GetCurrentSkKernelArch();
+    EXPECT_EQ(arch, SkKernelArch::DAV_3510);
+}
+
+TEST_F(SkCommonTest, GetCurrentSkKernelArch_Ascend950B1Soc_Returns3510)
+{
+    SkUtSetAclrtGetSocName("Ascend950B1");
+    SkKernelArch arch = GetCurrentSkKernelArch();
+    EXPECT_EQ(arch, SkKernelArch::DAV_3510);
+}
+
+TEST_F(SkCommonTest, GetCurrentSkKernelArch_Ascend910BSoc_Returns2201)
+{
+    SkUtSetAclrtGetSocName("Ascend910B");
+    SkKernelArch arch = GetCurrentSkKernelArch();
+    EXPECT_EQ(arch, SkKernelArch::DAV_2201);
+}
+
+TEST_F(SkCommonTest, GetCurrentSkKernelArch_EmptySocName_ReturnsDefault)
+{
+    SkUtSetAclrtGetSocName("");
+    SkKernelArch arch = GetCurrentSkKernelArch();
+    EXPECT_EQ(arch, SkKernelArch::DAV_2201);
+}
+
+TEST_F(SkCommonTest, GetDeviceCubeCoreNum_GetDeviceFails_Returns0)
+{
+    SkUtSetAclrtGetDeviceRet(ACL_ERROR_INVALID_PARAM);
+    int64_t result = GetDeviceCubeCoreNum();
+    EXPECT_EQ(result, 0);
+}
+
+TEST_F(SkCommonTest, GetDeviceVecCoreNum_GetDeviceFails_Returns0)
+{
+    SkUtSetAclrtGetDeviceRet(ACL_ERROR_INVALID_PARAM);
+    int64_t result = GetDeviceVecCoreNum();
+    EXPECT_EQ(result, 0);
+}
+
+TEST_F(SkCommonTest, GetDeviceCubeCoreNum_GetDeviceInfoFails_Returns0)
+{
+    SkUtSetAclrtGetDeviceInfoRet(ACL_ERROR_INVALID_PARAM);
+    int64_t result = GetDeviceCubeCoreNum();
+    EXPECT_EQ(result, 0);
+}
+
+TEST_F(SkCommonTest, GetDeviceVecCoreNum_GetDeviceInfoFails_Returns0)
+{
+    SkUtSetAclrtGetDeviceInfoRet(ACL_ERROR_INVALID_PARAM);
+    int64_t result = GetDeviceVecCoreNum();
+    EXPECT_EQ(result, 0);
+}
+
+TEST_F(SkCommonTest, GetDeviceCoreNums_Success_ReturnsValidValues)
+{
+    int64_t cubeNum = 0, vecNum = 0;
+    aclError ret = GetDeviceCoreNums(cubeNum, vecNum);
+    EXPECT_EQ(ret, ACL_SUCCESS);
+    EXPECT_GT(cubeNum, 0);
+    EXPECT_GT(vecNum, 0);
 }

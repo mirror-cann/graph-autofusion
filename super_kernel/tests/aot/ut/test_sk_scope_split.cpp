@@ -4554,3 +4554,128 @@ TEST_F(SuperKernelScopeSplitterTest, DefaultNode_StreamWithKernelNotify_TriggerD
     LockDetector::deviceRealCubeNum = 32;
     LockDetector::deviceRealVecNum = 32;
 }
+
+TEST_F(SuperKernelScopeSplitterTest, PerOpMaxCoreSplitPass_EmptyGraph_ReturnsTrue)
+{
+    opts->AddOption(std::make_unique<NumberOptOption>(
+        "debug_per_op_max_core_num", aclskOptionType::DEBUG_PER_OP_MAX_CORE_NUM, 1, 0, 1));
+    
+    SetupStreams({});
+    
+    SuperKernelScopeSplitter splitter(*graph, *opts);
+    bool result = splitter.SplitGraph();
+    
+    EXPECT_TRUE(result);
+    EXPECT_EQ(splitter.GetScopeInfos().size(), 0);
+}
+
+TEST_F(SuperKernelScopeSplitterTest, PerOpMaxCoreSplitPass_SingleKernel_CreatesSingleScope)
+{
+    opts->AddOption(std::make_unique<NumberOptOption>(
+        "debug_per_op_max_core_num", aclskOptionType::DEBUG_PER_OP_MAX_CORE_NUM, 1, 0, 1));
+    
+    auto* k1 = CreateKernelNode(1, 0);
+    
+    SetupStreams({{1}});
+    
+    SuperKernelScopeSplitter splitter(*graph, *opts);
+    bool result = splitter.SplitGraph();
+    
+    EXPECT_TRUE(result);
+    EXPECT_EQ(splitter.GetScopeInfos().size(), 1);
+    EXPECT_EQ(splitter.GetScopeInfos()[0].GetNodes().size(), 1);
+}
+
+TEST_F(SuperKernelScopeSplitterTest, PerOpMaxCoreSplitPass_MultipleKernels_CreatesMultipleScopes)
+{
+    opts->AddOption(std::make_unique<NumberOptOption>(
+        "debug_per_op_max_core_num", aclskOptionType::DEBUG_PER_OP_MAX_CORE_NUM, 1, 0, 1));
+    
+    auto* k1 = CreateKernelNode(1, 0, 2);
+    auto* k2 = CreateKernelNode(2, 0, 3);
+    auto* k3 = CreateKernelNode(3, 0);
+    
+    SetupStreams({{1, 2, 3}});
+    
+    SuperKernelScopeSplitter splitter(*graph, *opts);
+    bool result = splitter.SplitGraph();
+    
+    EXPECT_TRUE(result);
+    EXPECT_EQ(splitter.GetScopeInfos().size(), 3);
+    for (size_t i = 0; i < splitter.GetScopeInfos().size(); ++i) {
+        EXPECT_EQ(splitter.GetScopeInfos()[i].GetNodes().size(), 1);
+    }
+}
+
+TEST_F(SuperKernelScopeSplitterTest, PerOpMaxCoreSplitPass_UnfusibleKernel_Skipped)
+{
+    opts->AddOption(std::make_unique<NumberOptOption>(
+        "debug_per_op_max_core_num", aclskOptionType::DEBUG_PER_OP_MAX_CORE_NUM, 1, 0, 1));
+    
+    auto* k1 = CreateKernelNode(1, 0, 2);
+    auto* k2 = CreateUnfusibleKernelNode(2, 0, 3);
+    auto* k3 = CreateKernelNode(3, 0);
+    
+    SetupStreams({{1, 2, 3}});
+    
+    SuperKernelScopeSplitter splitter(*graph, *opts);
+    bool result = splitter.SplitGraph();
+    
+    EXPECT_TRUE(result);
+    EXPECT_EQ(splitter.GetScopeInfos().size(), 2);
+}
+
+TEST_F(SuperKernelScopeSplitterTest, PerOpMaxCoreSplitPass_NotifyWaitNodes_Skipped)
+{
+    opts->AddOption(std::make_unique<NumberOptOption>(
+        "debug_per_op_max_core_num", aclskOptionType::DEBUG_PER_OP_MAX_CORE_NUM, 1, 0, 1));
+    
+    auto* k1 = CreateKernelNode(1, 0, 2);
+    auto* n1 = CreateNotifyNode(2, 0, 100, 3);
+    auto* k2 = CreateKernelNode(3, 0, 4);
+    auto* w1 = CreateWaitNode(4, 0, 100);
+    
+    SetupStreams({{1, 2, 3, 4}});
+    SetupEvent(100, 2, {4});
+    
+    SuperKernelScopeSplitter splitter(*graph, *opts);
+    bool result = splitter.SplitGraph();
+    
+    EXPECT_TRUE(result);
+    EXPECT_EQ(splitter.GetScopeInfos().size(), 2);
+}
+
+TEST_F(SuperKernelScopeSplitterTest, PerOpMaxCoreSplitPass_MultipleHeadNodes_CreatesAllScopes)
+{
+    opts->AddOption(std::make_unique<NumberOptOption>(
+        "debug_per_op_max_core_num", aclskOptionType::DEBUG_PER_OP_MAX_CORE_NUM, 1, 0, 1));
+    
+    auto* k1 = CreateKernelNode(1, 0);
+    auto* k2 = CreateKernelNode(11, 1);
+    auto* k3 = CreateKernelNode(21, 2);
+    
+    SetupStreams({{1}, {11}, {21}});
+    
+    SuperKernelScopeSplitter splitter(*graph, *opts);
+    bool result = splitter.SplitGraph();
+    
+    EXPECT_TRUE(result);
+    EXPECT_EQ(splitter.GetScopeInfos().size(), 3);
+}
+
+TEST_F(SuperKernelScopeSplitterTest, PerOpMaxCoreSplitPass_BreakReason_SetCorrectly)
+{
+    opts->AddOption(std::make_unique<NumberOptOption>(
+        "debug_per_op_max_core_num", aclskOptionType::DEBUG_PER_OP_MAX_CORE_NUM, 1, 0, 1));
+    
+    auto* k1 = CreateKernelNode(1, 0);
+    
+    SetupStreams({{1}});
+    
+    SuperKernelScopeSplitter splitter(*graph, *opts);
+    bool result = splitter.SplitGraph();
+    
+    EXPECT_TRUE(result);
+    EXPECT_EQ(splitter.GetScopeInfos().size(), 1);
+    EXPECT_EQ(splitter.GetScopeInfos()[0].GetBreakInfo().GetReason(), ScopeBreakReason::DEBUG_PER_OP_MAX_CORE);
+}
