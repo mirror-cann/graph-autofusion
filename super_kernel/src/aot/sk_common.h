@@ -465,30 +465,7 @@ inline std::string GetSkMetaPath(aclmdlRI model) {
  * @param path Full directory path to create
  * @return true if directory exists or created successfully, false otherwise
  */
-inline bool CreateDirectoryRecursive(const std::string& path) {
-    if (path.empty()) {
-        return false;
-    }
-    
-    size_t pos = 0;
-    do {
-        pos = path.find('/', pos + 1);
-        std::string subPath = path.substr(0, pos);
-        
-        if (subPath.empty()) {
-            continue;
-        }
-        
-        struct stat st;
-        if (stat(subPath.c_str(), &st) != 0) {
-            if (mkdir(subPath.c_str(), 0755) != 0 && errno != EEXIST) {
-                return false;
-            }
-        }
-    } while (pos != std::string::npos && pos < path.size());
-    
-    return true;
-}
+bool CreateDirectoryRecursive(const std::string& path);
 
 /**
  * @brief Create sk_meta directory structure: sk_meta/{pid}/{modelRI}
@@ -509,14 +486,12 @@ inline bool CreateDirectoryRecursive(const std::string& path) {
  *   // Creates: sk_meta/{pid}/model_nullptr
  *   // Returns: "sk_meta/{pid}/model_nullptr"
  */
-inline std::string CreateSkMetaDirectory(aclmdlRI model) {
-    std::string dirPath = GetSkMetaPath(model);
-    
-    if (!CreateDirectoryRecursive(dirPath)) {
-        return "";
-    }
-    
-    return dirPath;
-}
+std::string CreateSkMetaDirectory(aclmdlRI model);
+
+// ==================== Device Core Number Utilities ====================
+
+int64_t GetDeviceCubeCoreNum();
+int64_t GetDeviceVecCoreNum();
+aclError GetDeviceCoreNums(int64_t& cubeNum, int64_t& vecNum);
 
 #endif

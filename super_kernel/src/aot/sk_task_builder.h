@@ -221,6 +221,9 @@ private:
     // ========== Early-start-specific sync methods ==========
     bool ApplyEarlyStartSyncPass(const std::vector<SuperKernelBaseNode*>& tasks);
 
+    // ========== DEBUG mode helpers ==========
+    bool ApplyPerOpMaxCoreNum(const std::vector<SuperKernelBaseNode*>& tasks, SkTask& aicTask, SkTask& aivTask);
+
     // Helper: determine whether crossed sync can be removed
     bool JudgeRemoveCrossSync(size_t sendIdx, size_t recvIdx, bool isCubToVec);
 

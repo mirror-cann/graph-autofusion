@@ -743,6 +743,16 @@ void SuperKernelOptionsManager::SetOptOptionValue(const aclskOption* option) {
             subOption->SetValue(option->debugPerOpMaxCoreNum.enableDebugPerOpMaxCoreNum);
             SK_LOGI("Debug per op max core num option set: enable=%u",
                 option->debugPerOpMaxCoreNum.enableDebugPerOpMaxCoreNum);
+            if (option->debugPerOpMaxCoreNum.enableDebugPerOpMaxCoreNum == 1) {
+                auto crossCoreSyncOpt = GetOption(aclskOptionType::DEBUG_CROSS_CORE_SYNC_CHECK);
+                if (crossCoreSyncOpt == nullptr || crossCoreSyncOpt->GetIntValue() != 1) {
+                    aclskOption crossCoreSyncOption;
+                    crossCoreSyncOption.optionType = aclskOptionType::DEBUG_CROSS_CORE_SYNC_CHECK;
+                    crossCoreSyncOption.debugCrossCoreSyncCheck.enableCrossCoreSyncCheck = 1;
+                    SetOptOptionValue(&crossCoreSyncOption);
+                    SK_LOGI("[DEBUG_PER_OP_MAX_CORE_NUM] auto-enabled DEBUG_CROSS_CORE_SYNC_CHECK");
+                }
+            }
             break;
         default:
             SK_LOGI("Optiontype: %d is not support now", static_cast<int>(type));
