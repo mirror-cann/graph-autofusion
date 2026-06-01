@@ -36,12 +36,25 @@ typedef struct AclmdlRITaskInternal {
 } AclmdlRITaskInternal;
 
 
-static inline AclmdlRITaskInternal* RITaskToInternal(aclmdlRITask task) {
+static inline AclmdlRITaskInternal* RITaskToInternal(aclmdlRITask task)
+{
     return reinterpret_cast<AclmdlRITaskInternal*>(task);
 }
 
+// 获取 model id from RI handle. Returns the pointer value cast to uint32, so
+// tests can verify a deterministic id without explicit setup.
+aclError aclmdlRIGetId(aclmdlRI modelRI, uint32_t *modelId)
+{
+    if (modelId == nullptr) {
+        return ACL_ERROR_INVALID_PARAM;
+    }
+    *modelId = static_cast<uint32_t>(reinterpret_cast<uintptr_t>(modelRI) & 0xFFFFFFFFU);
+    return ACL_SUCCESS;
+}
+
 // 获取流
-aclError aclmdlRIGetStreams(aclmdlRI modelRI, aclrtStream *streams, uint32_t *numStreams) {
+aclError aclmdlRIGetStreams(aclmdlRI modelRI, aclrtStream *streams, uint32_t *numStreams)
+{
     (void)modelRI;
     if (SkUtGetThrowOnAclmdlRIGetStreams() != 0) {
         throw std::runtime_error("ut-injected aclmdlRIGetStreams exception");
@@ -68,7 +81,8 @@ aclError aclmdlRIGetStreams(aclmdlRI modelRI, aclrtStream *streams, uint32_t *nu
 }
 
 // 获取任务
-aclError aclrtStreamGetTasks(aclrtStream stream, aclrtTask *tasks, uint32_t *numTasks) {
+aclError aclrtStreamGetTasks(aclrtStream stream, aclrtTask *tasks, uint32_t *numTasks)
+{
     const int phase = (tasks == nullptr ? 0 : 1);
     aclError forcedRet = SkUtGetAclrtStreamGetTasksRet(phase);
     if (forcedRet != ACL_SUCCESS) {
@@ -96,7 +110,8 @@ aclError aclrtStreamGetTasks(aclrtStream stream, aclrtTask *tasks, uint32_t *num
 }
 
 // 获取任务类型
-aclError aclrtTaskGetType(aclrtTask task, aclrtTaskType *type) {
+aclError aclrtTaskGetType(aclrtTask task, aclrtTaskType *type)
+{
     aclError forcedRet = SkUtGetAclrtTaskGetTypeRet();
     if (forcedRet != ACL_SUCCESS) {
         return forcedRet;
@@ -118,7 +133,8 @@ aclError aclrtTaskGetType(aclrtTask task, aclrtTaskType *type) {
 }
 
 // 更新模型资源信息
-aclError aclmdlRIUpdate(aclmdlRI modelRI) {
+aclError aclmdlRIUpdate(aclmdlRI modelRI)
+{
     (void)modelRI;
     aclError forcedRet = SkUtGetAclmdlRIUpdateRet();
     if (forcedRet != ACL_SUCCESS) {
@@ -128,7 +144,8 @@ aclError aclmdlRIUpdate(aclmdlRI modelRI) {
 }
 
 // 获取设备
-aclError aclrtGetDevice(int32_t *deviceId) {
+aclError aclrtGetDevice(int32_t *deviceId)
+{
     aclError forcedRet = SkUtGetAclrtGetDeviceRet();
     if (forcedRet != ACL_SUCCESS) {
         return forcedRet;
@@ -140,12 +157,14 @@ aclError aclrtGetDevice(int32_t *deviceId) {
     return ACL_ERROR_NONE;
 }
 
-const char* aclrtGetSocName(void) {
+const char* aclrtGetSocName(void)
+{
     return SkUtGetAclrtGetSocName();
 }
 
 // 获取设备信息
-aclError aclrtGetDeviceInfo(uint32_t deviceId, aclrtDevAttr attr, int64_t *value) {
+aclError aclrtGetDeviceInfo(uint32_t deviceId, aclrtDevAttr attr, int64_t *value)
+{
     (void)deviceId;
     aclError forcedRet = SkUtGetAclrtGetDeviceInfoRet();
     if (forcedRet != ACL_SUCCESS) {
@@ -156,14 +175,16 @@ aclError aclrtGetDeviceInfo(uint32_t deviceId, aclrtDevAttr attr, int64_t *value
     }
     if (attr == ACL_DEV_ATTR_CUBE_CORE_NUM) {
         *value = 32;
-    } else if (attr == ACL_DEV_ATTR_VECTOR_CORE_NUM) {
+    } else if (attr == ACL_DEV_ATTR_VECTOR_CORE_NUM)
+    {
         *value = 32;
     }
     return ACL_ERROR_NONE;
 }
 
 // 从二进制获取函数
-aclError aclrtBinaryGetFunction(aclrtBinHandle binHdl, const char *funcName, aclrtFuncHandle *funcHdl) {
+aclError aclrtBinaryGetFunction(aclrtBinHandle binHdl, const char *funcName, aclrtFuncHandle *funcHdl)
+{
     if (funcName == nullptr || funcHdl == nullptr) {
         return ACL_ERROR_INVALID_PARAM;
     }
@@ -176,7 +197,8 @@ aclError aclrtBinaryGetFunction(aclrtBinHandle binHdl, const char *funcName, acl
 }
 
 // 获取函数地址
-aclError aclrtGetFunctionAddr(aclrtFuncHandle funcHdl, void **addrAicore, void **addrAiv) {
+aclError aclrtGetFunctionAddr(aclrtFuncHandle funcHdl, void **addrAicore, void **addrAiv)
+{
     if (addrAicore == nullptr || addrAiv == nullptr) {
         return ACL_ERROR_INVALID_PARAM;
     }
@@ -184,7 +206,8 @@ aclError aclrtGetFunctionAddr(aclrtFuncHandle funcHdl, void **addrAicore, void *
 }
 
 // 获取 kernel 参数句柄的内存大小
-aclError aclrtKernelArgsGetHandleMemSize(aclrtFuncHandle funcHdl, size_t *memSize) {
+aclError aclrtKernelArgsGetHandleMemSize(aclrtFuncHandle funcHdl, size_t *memSize)
+{
     if (memSize == nullptr) {
         return ACL_ERROR_INVALID_PARAM;
     }
@@ -193,7 +216,8 @@ aclError aclrtKernelArgsGetHandleMemSize(aclrtFuncHandle funcHdl, size_t *memSiz
 }
 
 // 获取 kernel 参数的内存大小
-aclError aclrtKernelArgsGetMemSize(aclrtFuncHandle funcHdl, size_t argsSize, size_t *devArgsSize) {
+aclError aclrtKernelArgsGetMemSize(aclrtFuncHandle funcHdl, size_t argsSize, size_t *devArgsSize)
+{
     if (devArgsSize == nullptr) {
         return ACL_ERROR_INVALID_PARAM;
     }
@@ -202,7 +226,8 @@ aclError aclrtKernelArgsGetMemSize(aclrtFuncHandle funcHdl, size_t argsSize, siz
 }
 
 // 通过用户内存初始化 kernel 参数
-aclError aclrtKernelArgsInitByUserMem(aclrtFuncHandle funcHdl, aclrtArgsHandle argsHdl, void *devArgs, size_t devArgsSize) {
+aclError aclrtKernelArgsInitByUserMem(aclrtFuncHandle funcHdl, aclrtArgsHandle argsHdl, void *devArgs, size_t devArgsSize)
+{
     if (argsHdl == nullptr || devArgs == nullptr) {
         return ACL_ERROR_INVALID_PARAM;
     }
@@ -210,7 +235,8 @@ aclError aclrtKernelArgsInitByUserMem(aclrtFuncHandle funcHdl, aclrtArgsHandle a
 }
 
 // 添加占位符
-aclError aclrtKernelArgsAppendPlaceHolder(aclrtArgsHandle argsHdl, aclrtParamHandle *phdl) {
+aclError aclrtKernelArgsAppendPlaceHolder(aclrtArgsHandle argsHdl, aclrtParamHandle *phdl)
+{
     if (argsHdl == nullptr || phdl == nullptr) {
         return ACL_ERROR_INVALID_PARAM;
     }
@@ -220,7 +246,8 @@ aclError aclrtKernelArgsAppendPlaceHolder(aclrtArgsHandle argsHdl, aclrtParamHan
 
 // 获取占位符缓冲区
 aclError aclrtKernelArgsGetPlaceHolderBuffer(aclrtArgsHandle argsHdl, aclrtParamHandle phdl,
-                                              size_t bufferSize, void **buffer) {
+                                              size_t bufferSize, void **buffer)
+                                              {
     if (argsHdl == nullptr || buffer == nullptr) {
         return ACL_ERROR_INVALID_PARAM;
     }
@@ -230,7 +257,8 @@ aclError aclrtKernelArgsGetPlaceHolderBuffer(aclrtArgsHandle argsHdl, aclrtParam
 }
 
 // 完成 kernel 参数设置
-aclError aclrtKernelArgsFinalize(aclrtArgsHandle argsHdl) {
+aclError aclrtKernelArgsFinalize(aclrtArgsHandle argsHdl)
+{
     if (argsHdl == nullptr) {
         return ACL_ERROR_INVALID_PARAM;
     }
@@ -238,7 +266,8 @@ aclError aclrtKernelArgsFinalize(aclrtArgsHandle argsHdl) {
 }
 
 // 获取函数名称
-aclError aclrtGetFunctionName(aclrtFuncHandle funcHandle, uint32_t maxLen, char *name) {
+aclError aclrtGetFunctionName(aclrtFuncHandle funcHandle, uint32_t maxLen, char *name)
+{
     if (name == nullptr || maxLen == 0) {
         return ACL_ERROR_INVALID_PARAM;
     }
@@ -247,7 +276,8 @@ aclError aclrtGetFunctionName(aclrtFuncHandle funcHandle, uint32_t maxLen, char 
 }
 
 // 内存复制
-aclError aclrtMemcpy(void *dst, size_t destMax, const void *src, size_t count, aclrtMemcpyKind kind) {
+aclError aclrtMemcpy(void *dst, size_t destMax, const void *src, size_t count, aclrtMemcpyKind kind)
+{
     if (dst == nullptr || src == nullptr) {
         return ACL_ERROR_INVALID_PARAM;
     }
@@ -258,7 +288,8 @@ aclError aclrtMemcpy(void *dst, size_t destMax, const void *src, size_t count, a
 }
 
 // 内存设置
-aclError aclrtMemset(void *devPtr, size_t maxCount, int value, size_t count) {
+aclError aclrtMemset(void *devPtr, size_t maxCount, int value, size_t count)
+{
     aclError ctrlRet = SkUtGetAclrtMemsetRet();
     if (ctrlRet != ACL_SUCCESS) {
         return ctrlRet;
@@ -273,7 +304,8 @@ aclError aclrtMemset(void *devPtr, size_t maxCount, int value, size_t count) {
 }
 
 // 获取二进制设备地址
-aclError aclrtBinaryGetDevAddress(aclrtBinHandle binHdl, void **devAddr, size_t *devSize) {
+aclError aclrtBinaryGetDevAddress(aclrtBinHandle binHdl, void **devAddr, size_t *devSize)
+{
     if (devAddr == nullptr || devSize == nullptr) {
         return ACL_ERROR_INVALID_PARAM;
     }
@@ -326,7 +358,8 @@ aclError aclrtFree(void* devPtr)
     return ACL_ERROR_NONE;
 }
 
-aclError aclrtMallocHost(void** hostPtr, size_t size) {
+aclError aclrtMallocHost(void** hostPtr, size_t size)
+{
     if (hostPtr == nullptr) {
         return ACL_ERROR_INVALID_PARAM;
     }
@@ -341,7 +374,8 @@ aclError aclrtMallocHost(void** hostPtr, size_t size) {
     return ACL_ERROR_NONE;
 }
 
-aclError aclrtFreeHost(void* hostPtr) {
+aclError aclrtFreeHost(void* hostPtr)
+{
     if (hostPtr != nullptr) {
         free(hostPtr);
     }
@@ -361,7 +395,8 @@ aclError aclmdlRIDestroyRegisterCallback(aclmdlRI modelRI, aclmdlRIDestroyCallba
 }
 
 // Exception handling
-aclError aclrtSetExceptionInfoCallback(aclrtExceptionInfoCallbackFunc callback) {
+aclError aclrtSetExceptionInfoCallback(aclrtExceptionInfoCallbackFunc callback)
+{
     if (callback == nullptr) {
         return ACL_ERROR_INVALID_PARAM;
     }
@@ -369,7 +404,8 @@ aclError aclrtSetExceptionInfoCallback(aclrtExceptionInfoCallbackFunc callback) 
     return ACL_ERROR_NONE;
 }
 
-aclError aclrtGetFuncHandleFromExceptionInfo(const aclrtExceptionInfo* exceptionInfo, aclrtFuncHandle* funcHandle) {
+aclError aclrtGetFuncHandleFromExceptionInfo(const aclrtExceptionInfo* exceptionInfo, aclrtFuncHandle* funcHandle)
+{
     if (exceptionInfo == nullptr || funcHandle == nullptr) {
         return ACL_ERROR_INVALID_PARAM;
     }
@@ -378,7 +414,8 @@ aclError aclrtGetFuncHandleFromExceptionInfo(const aclrtExceptionInfo* exception
     return ACL_ERROR_NONE;
 }
 
-aclError aclrtGetArgsFromExceptionInfo(const aclrtExceptionInfo* exceptionInfo, void** args, uint32_t* argsLen) {
+aclError aclrtGetArgsFromExceptionInfo(const aclrtExceptionInfo* exceptionInfo, void** args, uint32_t* argsLen)
+{
     if (exceptionInfo == nullptr || args == nullptr || argsLen == nullptr) {
         return ACL_ERROR_INVALID_PARAM;
     }
@@ -390,7 +427,8 @@ aclError aclrtGetArgsFromExceptionInfo(const aclrtExceptionInfo* exceptionInfo, 
 
 // ==================== RI Task API Stubs ====================
 
-aclError aclmdlRITaskGetType(aclmdlRITask task, aclmdlRITaskType *type) {
+aclError aclmdlRITaskGetType(aclmdlRITask task, aclmdlRITaskType *type)
+{
     if (type == nullptr || task == nullptr) {
         return ACL_ERROR_INVALID_PARAM;
     }
@@ -399,7 +437,8 @@ aclError aclmdlRITaskGetType(aclmdlRITask task, aclmdlRITaskType *type) {
     return ACL_ERROR_NONE;
 }
 
-aclError aclmdlRITaskGetParams(aclmdlRITask task, aclmdlRITaskParams* params) {
+aclError aclmdlRITaskGetParams(aclmdlRITask task, aclmdlRITaskParams* params)
+{
     if (params == nullptr || task == nullptr) {
         return ACL_ERROR_INVALID_PARAM;
     }
@@ -408,7 +447,8 @@ aclError aclmdlRITaskGetParams(aclmdlRITask task, aclmdlRITaskParams* params) {
     return ACL_ERROR_NONE;
 }
 
-aclError aclmdlRITaskSetParams(aclmdlRITask task, aclmdlRITaskParams* params) {
+aclError aclmdlRITaskSetParams(aclmdlRITask task, aclmdlRITaskParams* params)
+{
     if (params == nullptr || task == nullptr) {
         return ACL_ERROR_INVALID_PARAM;
     }
@@ -417,14 +457,16 @@ aclError aclmdlRITaskSetParams(aclmdlRITask task, aclmdlRITaskParams* params) {
     return ACL_ERROR_NONE;
 }
 
-aclError aclmdlRITaskDisable(aclmdlRITask task) {
+aclError aclmdlRITaskDisable(aclmdlRITask task)
+{
     if (task == nullptr) {
         return ACL_ERROR_INVALID_PARAM;
     }
     return ACL_ERROR_NONE;
 }
 
-aclError aclmdlRITaskGetSeqId(aclmdlRITask task, uint32_t *id) {
+aclError aclmdlRITaskGetSeqId(aclmdlRITask task, uint32_t *id)
+{
     if (id == nullptr || task == nullptr) {
         return ACL_ERROR_INVALID_PARAM;
     }
@@ -468,7 +510,8 @@ aclError aclmdlRIKernelTaskGetAttribute(aclmdlRITask task, aclrtLaunchKernelAttr
     return ACL_ERROR_NONE;
 }
 
-aclError aclmdlRIGetTasksByStream(aclrtStream stream, aclmdlRITask *tasks, uint32_t *numTasks) {
+aclError aclmdlRIGetTasksByStream(aclrtStream stream, aclmdlRITask *tasks, uint32_t *numTasks)
+{
     if (numTasks == nullptr) {
         return ACL_ERROR_INVALID_PARAM;
     }
@@ -478,7 +521,8 @@ aclError aclmdlRIGetTasksByStream(aclrtStream stream, aclmdlRITask *tasks, uint3
     return ACL_ERROR_NONE;
 }
 
-aclError aclmdlRICaptureThreadExchangeMode(aclmdlRICaptureMode *mode) {
+aclError aclmdlRICaptureThreadExchangeMode(aclmdlRICaptureMode *mode)
+{
     if (mode == nullptr) {
         return ACL_ERROR_INVALID_PARAM;
     }
@@ -490,7 +534,8 @@ aclError aclmdlRICaptureThreadExchangeMode(aclmdlRICaptureMode *mode) {
     return ACL_ERROR_NONE;
 }
 
-aclError aclrtFunctionGetBinary(aclrtFuncHandle funcHandle, aclrtBinHandle *binHandle) {
+aclError aclrtFunctionGetBinary(aclrtFuncHandle funcHandle, aclrtBinHandle *binHandle)
+{
     if (binHandle == nullptr) {
         return ACL_ERROR_INVALID_PARAM;
     }
@@ -501,13 +546,15 @@ aclError aclrtFunctionGetBinary(aclrtFuncHandle funcHandle, aclrtBinHandle *binH
 // Stub implementations for SkEventRecorder tests
 static char g_stubDeviceMemory[1024 * 1024];  // 1MB stub memory
 
-aclError aclrtSetDevice(int32_t deviceId) {
+aclError aclrtSetDevice(int32_t deviceId)
+{
     (void)deviceId;
     return ACL_SUCCESS;
 }
 
 // 获取流ID
-aclError aclrtStreamGetId(aclrtStream stream, int32_t *streamId) {
+aclError aclrtStreamGetId(aclrtStream stream, int32_t *streamId)
+{
     aclError forcedRet = SkUtGetAclrtStreamGetIdRet();
     if (forcedRet != ACL_SUCCESS) {
         return forcedRet;

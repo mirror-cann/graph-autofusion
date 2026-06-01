@@ -10,6 +10,9 @@
 
 #include <gtest/gtest.h>
 #include <memory>
+#include <string>
+#include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 #define private public
@@ -18,11 +21,13 @@
 #include "sk_scope_postprocess.h"
 #include "sk_node.h"
 #include "sk_resource_manager.h"
+#include "sk_model_context.h"
+#include "stub/ut_common_stubs.h"
 
 namespace {
 class ScopedModelContext {
 public:
-    explicit ScopedModelContext(aclmdlRI model) : model_(model)
+    explicit ScopedModelContext(aclmdlRI model) : model_(model), modelContext_(model)
     {
         SkResourceManager::SetCurrentModel(model_);
         EXPECT_EQ(SkResourceManager::CallbackRegister(model_), ACL_SUCCESS);
@@ -30,12 +35,13 @@ public:
 
     ~ScopedModelContext()
     {
-        SkResourceManager::OnModelDestroy(model_);
+        (void)SkUtInvokeModelDestroyCallback(model_);
         SkResourceManager::SetCurrentModel(nullptr);
     }
 
 private:
     aclmdlRI model_ = nullptr;
+    SkModelContext modelContext_;
 };
 }
 

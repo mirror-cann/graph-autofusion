@@ -235,6 +235,7 @@ typedef enum {
 
 // Function declarations
 aclError aclmdlRIGetStreams(aclmdlRI modelRI, aclrtStream *streams, uint32_t *numStreams);
+aclError aclmdlRIGetId(aclmdlRI modelRI, uint32_t *modelId);
 aclError aclrtStreamGetTasks(aclrtStream stream, aclrtTask *tasks, uint32_t *numTasks);
 aclError aclrtTaskGetType(aclrtTask task, aclrtTaskType *type);
 aclError aclmdlRIUpdate(aclmdlRI modelRI);

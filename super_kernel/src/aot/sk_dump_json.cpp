@@ -15,6 +15,7 @@
 
 #include "sk_dump_json.h"
 #include "sk_common.h"
+#include "sk_model_context.h"
 #include "sk_graph.h"
 #include "sk_lock_detector.h"
 #include "sk_log.h"
@@ -492,7 +493,7 @@ Json NodeToJson(const SuperKernelBaseNode* node, const SuperKernelGraph& graph)
  */
 std::string GetJsonOutputPath(const SuperKernelGraph& graph) 
 {
-    std::string metaDir = CreateSkMetaDirectory(graph.GetModelRI());
+    std::string metaDir = CreateSkMetaDirectory(graph.GetModelLabel());
     if (metaDir.empty()) {
         SK_LOGE("Failed to create sk_meta directory for JSON dump");
         return "";
@@ -586,7 +587,7 @@ Json BuildGraphNodesJson(const SuperKernelGraph& graph)
     Json graphNodesJson;
     graphNodesJson["version"] = "1.0";
     graphNodesJson["description"] = "SuperKernel Graph Node Information After Initialization";
-    graphNodesJson["modelRI"] = std::to_string(reinterpret_cast<uintptr_t>(graph.GetModelRI()));
+    graphNodesJson["modelId"] = graph.GetModelIdCallCount();
     
     AddGraphSummaryToJson(graphNodesJson, graph);
     AddStreamsInfoToJson(graphNodesJson, graph);
@@ -622,7 +623,7 @@ bool WriteJsonToFile(const Json& jsonObj, const std::string& jsonPath)
  */
 bool GetTaskQueueJsonOutputPath(const SuperKernelGraph& graph, std::string& outputPath) 
 {
-    std::string metaDir = CreateSkMetaDirectory(graph.GetModelRI());
+    std::string metaDir = CreateSkMetaDirectory(graph.GetModelLabel());
     if (metaDir.empty()) {
         SK_LOGE("Failed to create sk_meta directory for task queue JSON dump");
         outputPath.clear(); 
@@ -685,7 +686,7 @@ Json SkTaskToJson(const SkTask& task)
  */
 bool GetFusedGraphJsonOutputPath(const SuperKernelGraph& graph, std::string& outputPath) 
 {
-    std::string metaDir = CreateSkMetaDirectory(graph.GetModelRI());
+    std::string metaDir = CreateSkMetaDirectory(graph.GetModelLabel());
     if (metaDir.empty()) {
         SK_LOGE("Failed to create sk_meta directory for fused graph JSON dump");
         outputPath.clear();
@@ -918,7 +919,7 @@ Json BuildFusedGraphJson(const SuperKernelGraph& graph, const std::vector<SuperK
     Json fusedGraphJson;
     fusedGraphJson["version"] = "1.0";
     fusedGraphJson["description"] = "SuperKernel Graph After Fusion - Nested Structure";
-    fusedGraphJson["modelRI"] = std::to_string(reinterpret_cast<uintptr_t>(graph.GetModelRI()));
+    fusedGraphJson["modelId"] = graph.GetModelIdCallCount();
     
     std::vector<uint64_t> allSortedNodeIds = graph.GetSortedNodeIds();
     
@@ -1404,7 +1405,7 @@ bool DumpAllTaskQueuesToJson(const SuperKernelGraph& graph,
         return true;  // Kernel meta save is disabled, skip
     }
     
-    std::string metaDir = CreateSkMetaDirectory(graph.GetModelRI());
+    std::string metaDir = CreateSkMetaDirectory(graph.GetModelLabel());
     if (metaDir.empty()) {
         SK_LOGE("Failed to create sk_meta directory for task queue JSON dump");
         return false;
@@ -1415,7 +1416,7 @@ bool DumpAllTaskQueuesToJson(const SuperKernelGraph& graph,
         Json rootJson;
         rootJson["version"] = "1.0";
         rootJson["description"] = "SuperKernel Task Queue Information";
-        rootJson["modelRI"] = std::to_string(reinterpret_cast<uintptr_t>(graph.GetModelRI()));
+        rootJson["modelId"] = graph.GetModelIdCallCount();
         rootJson["scopeCount"] = taskQueueJsons.size();
         
         Json scopesArray = Json::array();
@@ -1486,6 +1487,7 @@ bool DumpRawTaskJson(aclmdlRI model, const SuperKernelOptionsManager& opts, cons
 
     SK_LOGI("Start creating temp graph for %s dump...", filename.c_str());
     SuperKernelGraph tempGraph(model, opts);
+    tempGraph.CaptureCurrentModelContext();
     if (!tempGraph.InitFromModelRI()) {
         SK_LOGE("Failed to init temp graph for %s dump", filename.c_str());
         return false;

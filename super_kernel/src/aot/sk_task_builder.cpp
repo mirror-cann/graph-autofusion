@@ -2213,7 +2213,7 @@ SkHostEntryInfo SkTaskBuilder::GenEntryInfo(SkTask& skTaskCube, SkTask& skTaskVe
     
     // ========== 1. 首先尝试常量化代码生成 ==========
     auto [constantFunc, constantType] = TryGenerateConstantFuncHandle(
-        skTaskCube, skTaskVec, opts, graph_.GetModelRI());
+        skTaskCube, skTaskVec, opts, graph_.GetModelLabel());
     
     if (constantFunc != nullptr) {
         // 常量化成功，直接使用特化的 funcHandle

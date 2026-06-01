@@ -254,12 +254,6 @@ public:
     bool EnableDebug() const;
 
     /*!
-     * \brief Get current device SoC name from ACL runtime
-     * \return SoC name string, or empty string when runtime returns nullptr
-     */
-    std::string GetSocName() const;
-
-    /*!
      * \brief Get an inner option by its type
      * \param optType The inner option type to retrieve
      * \return Pointer to the option, or nullptr if not found

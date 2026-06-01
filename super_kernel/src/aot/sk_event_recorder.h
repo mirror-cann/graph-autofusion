@@ -47,7 +47,8 @@ constexpr uint32_t  SPRINT_LEN_BUFFER = 1024;
 // ==================== Device 上下文 ====================
 class SkEventRecorder;
 // GM 内存释放函数，用于 unique_ptr 自定义 deleter
-inline void GmAddrDeleter(void* ptr) {
+inline void GmAddrDeleter(void* ptr)
+{
     if (ptr != nullptr) {
         aclrtFree(ptr);
     }
@@ -86,31 +87,31 @@ public:
     static uint32_t GetCoreSize() { return coreSize_; }
     static uint32_t GetTotalSize() { return totalSize_; }
 
-    // 添加 modelRI -> skId -> nodeId -> (nodeName, numBlocks) 映射（线程安全）
-    void AddNodeInfoMapping(uint64_t modelRI, uint32_t skId, uint32_t nodeId,
+    // 添加 modelId -> skId -> nodeId -> (nodeName, numBlocks) 映射（线程安全）
+    void AddNodeInfoMapping(const std::string& modelId, uint32_t skId, uint32_t nodeId,
                             const std::string& nodeName, uint32_t numBlocks);
 
     // 获取 NodeInfo（线程安全）
-    SkNodeInfo GetNodeInfo(uint64_t modelRI, uint32_t skId, uint32_t nodeId) const;
+    SkNodeInfo GetNodeInfo(const std::string& modelId, uint32_t skId, uint32_t nodeId) const;
 
     // 添加 skName 映射（线程安全）
-    void AddSkNameMapping(uint64_t modelRI, uint32_t skId, const std::string& skName);
+    void AddSkNameMapping(const std::string& modelId, uint32_t skId, const std::string& skName);
 
     // 获取 skName（线程安全）
-    std::string GetSkName(uint64_t modelRI, uint32_t skId) const;
+    std::string GetSkName(const std::string& modelId, uint32_t skId) const;
 
-    // 清理指定 modelRI 在 skNameMap / nodeInfoMap 中的全部条目（线程安全）
+    // 注册 modelId 并返回 index（线程安全，不依赖 profiling 开关）
+    uint16_t RegisterModelId(const std::string& modelId);
+
+    // 通过 index 获取原始 modelId（线程安全，不依赖 profiling 开关）
+    std::string GetModelIdByIndex(uint16_t index) const;
+
+    // 清理指定 modelId 在 skNameMap / nodeInfoMap 中的全部条目（线程安全）
     // 由 model 销毁回调调用，避免长 session 下 host 侧映射表无限增长
-    void RemoveModelMappings(uint64_t modelRI);
+    void RemoveModelMappings(const std::string& modelId);
 
-    // 注册 modelRI 并返回 index（线程安全，不依赖 profiling 开关）
-    uint16_t RegisterModelRI(uint64_t modelRI);
-
-    // 通过 index 获取原始 modelRI（线程安全，不依赖 profiling 开关）
-    uint64_t GetModelRIByIndex(uint16_t index) const;
-
-    // 打印所有 modelRI 映射表（线程安全）
-    void PrintModelRIIndexMap() const;
+    // 打印所有 modelId index 映射表（线程安全）
+    void PrintModelIdIndexMap() const;
 
 private:
     SkEventRecorder() = default;
@@ -124,6 +125,7 @@ private:
 
     // 创建 device 上下文（带加锁）
     SkEventDeviceCtx* CreateDeviceCtx(uint32_t deviceId);
+    bool InitDeviceOutputFile(SkEventDeviceCtx* ctx, uint32_t deviceId);
 
     // 后台线程入口
     static void* DumpThreadFunc(void* arg);
@@ -132,6 +134,7 @@ private:
     
     // 拷贝并解析 GM 数据
     void DumpDeviceData(SkEventDeviceCtx* ctx);
+    bool DumpEventRecord(SkEventDeviceCtx* ctx, const SkKernelEventRecord* record, uint32_t core);
 
     // 写入单个节点事件到 JSON 文件
     bool WriteNodeEventToJson(SkEventDeviceCtx* ctx, const SkKernelEventRecord* record,
@@ -160,19 +163,19 @@ private:
     static uint32_t coreSize_;   // 每个 core 的profiling 记录的gm缓冲区大小（字节），由环境变量决定
     static uint32_t totalSize_;  // 总缓冲区大小 = SK_EVENT_CORE_NUM * coreSize_
 
-    // NodeInfo 映射表：modelRI -> skId -> nodeId -> NodeInfo
+    // NodeInfo 映射表：modelId -> skId -> nodeId -> NodeInfo
     mutable std::mutex nodeInfoMapMutex;
-    std::unordered_map<uint64_t,
+    std::unordered_map<std::string,
                        std::unordered_map<uint32_t,
                                           std::unordered_map<uint32_t, SkNodeInfo>>> nodeInfoMap;
 
-    // SkName 映射表：modelRI -> skId -> skName
-    std::unordered_map<uint64_t, std::unordered_map<uint32_t, std::string>> skNameMap;
+    // SkName 映射表：modelId -> skId -> skName
+    std::unordered_map<std::string, std::unordered_map<uint32_t, std::string>> skNameMap;
 
-    // modelRI index 映射表：index -> modelRI（不依赖 profiling 开关，始终可用）
-    mutable std::mutex modelRIIndexMapMutex;
-    std::vector<uint64_t> modelRIIndexMap;  // index -> modelRI
-    std::unordered_map<uint64_t, uint16_t> modelRIToIndexMap;  // modelRI -> index（用于去重）
+    // modelId index 映射表：index -> modelId（不依赖 profiling 开关，始终可用）
+    mutable std::mutex modelIdIndexMapMutex;
+    std::vector<std::string> modelIdIndexMap;  // index -> modelId
+    std::unordered_map<std::string, uint16_t> modelIdToIndexMap;  // modelId -> index（用于去重）
 };
 
 // ==================== sk profiling 性能分析相关函数 ====================
@@ -184,7 +187,16 @@ bool SkProfiling(const SuperKernelScopeInfo& scopeInfo, SkLaunchInfo& launchInfo
 
 // 详细性能分析数据输出
 bool DumpProfilingDetail(const std::vector<SuperKernelBaseNode*>& taskNodes, SkLaunchInfo& launchInfo,
-                         const SuperKernelScopeInfo& scopeInfo, aclmdlRI modelRI);
+                         const SuperKernelScopeInfo& scopeInfo, const SuperKernelGraph& graph);
 
 std::string GetSkFuncName(const std::vector<SuperKernelBaseNode*>& nodes, uint16_t scopeId, const std::string& scopeName);
+
+inline bool CoreIsAiv(int coreId)
+{
+    if (GetCurrentSkKernelArch() == SkKernelArch::DAV_3510) {
+        return (coreId >= 18 && coreId <= 53) || (coreId >= 72 && coreId <= 107);
+    }
+    return coreId >= 25;
+}
+
 #endif // SK_EVENT_RECORDER_H

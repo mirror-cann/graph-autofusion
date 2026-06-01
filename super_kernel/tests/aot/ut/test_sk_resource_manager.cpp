@@ -12,12 +12,17 @@
 
 #include <atomic>
 #include <chrono>
+#include <memory>
+#include <string>
 #include <thread>
+#include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 #define private public
 #include "sk_resource_manager.h"
 #undef private
+#include "sk_model_context.h"
 #include "stub/ut_common_stubs.h"
 
 class SkResourceManagerTest : public testing::Test {
@@ -49,6 +54,7 @@ TEST_F(SkResourceManagerTest, ValueMemory_InvalidInputsOrNullModel_ReturnInvalid
 TEST_F(SkResourceManagerTest, ValueMemory_UnregisteredCallback_ReturnFailure)
 {
     const aclmdlRI model = reinterpret_cast<aclmdlRI>(0x101);
+    SkModelContext guard(model);
     SkResourceManager::SetCurrentModel(model);
 
     void* addr = nullptr;
@@ -60,15 +66,22 @@ TEST_F(SkResourceManagerTest, ValueMemory_UnregisteredCallback_ReturnFailure)
 TEST_F(SkResourceManagerTest, CallbackRegisterOrMallocFail_ReturnFailure)
 {
     const aclmdlRI model = reinterpret_cast<aclmdlRI>(0x102);
+    SkModelContext guard(model);
     SkResourceManager::SetCurrentModel(model);
 
     void* addr = nullptr;
 
     SkUtSetAclmdlRIDestroyRegisterCallbackRet(ACL_ERROR_FAILURE);
     EXPECT_EQ(SkResourceManager::CallbackRegister(model), ACL_ERROR_FAILURE);
+    EXPECT_TRUE(SkResourceManager::callbackDataLabels_.empty());
+    EXPECT_TRUE(SkResourceManager::destroyContexts_.empty());
+    EXPECT_TRUE(SkResourceManager::registeredModelLabels_.empty());
 
     SkUtSetAclmdlRIDestroyRegisterCallbackRet(ACL_SUCCESS);
     EXPECT_EQ(SkResourceManager::CallbackRegister(model), ACL_SUCCESS);
+    EXPECT_EQ(SkResourceManager::callbackDataLabels_.size(), 1U);
+    EXPECT_EQ(SkResourceManager::destroyContexts_.size(), 1U);
+    EXPECT_EQ(SkResourceManager::registeredModelLabels_.size(), 1U);
     SkUtSetAclrtMallocRet(ACL_ERROR_FAILURE);
     EXPECT_EQ(SkResourceManager::ValueMemory(&addr), ACL_ERROR_FAILURE);
 
@@ -78,32 +91,67 @@ TEST_F(SkResourceManagerTest, CallbackRegisterOrMallocFail_ReturnFailure)
 TEST_F(SkResourceManagerTest, ValueMemory_DestroyCallback_ReleasesTrackedMemory)
 {
     const aclmdlRI model = reinterpret_cast<aclmdlRI>(0x202);
-    SkResourceManager::SetCurrentModel(model);
+    {
+        SkModelContext guard(model);
+        SkResourceManager::SetCurrentModel(model);
 
-    void* addrA = nullptr;
-    void* addrB = nullptr;
-    EXPECT_EQ(SkResourceManager::CallbackRegister(model), ACL_SUCCESS);
-    EXPECT_EQ(SkResourceManager::ValueMemory(&addrA), ACL_SUCCESS);
-    EXPECT_EQ(SkResourceManager::ValueMemory(&addrB), ACL_SUCCESS);
-    ASSERT_NE(addrA, nullptr);
-    ASSERT_NE(addrB, nullptr);
-    EXPECT_EQ(SkUtGetModelDestroyCallbackCount(), 1U);
+        void* addrA = nullptr;
+        void* addrB = nullptr;
+        EXPECT_EQ(SkResourceManager::CallbackRegister(model), ACL_SUCCESS);
+        EXPECT_EQ(SkResourceManager::ValueMemory(&addrA), ACL_SUCCESS);
+        EXPECT_EQ(SkResourceManager::ValueMemory(&addrB), ACL_SUCCESS);
+        ASSERT_NE(addrA, nullptr);
+        ASSERT_NE(addrB, nullptr);
+        EXPECT_EQ(SkUtGetModelDestroyCallbackCount(), 1U);
 
-    EXPECT_EQ(SkUtInvokeModelDestroyCallback(model), ACL_SUCCESS);
-    EXPECT_EQ(SkUtInvokeModelDestroyCallback(model), ACL_ERROR_INVALID_PARAM);
+        EXPECT_EQ(SkUtInvokeModelDestroyCallback(model), ACL_SUCCESS);
+        EXPECT_EQ(SkUtInvokeModelDestroyCallback(model), ACL_ERROR_INVALID_PARAM);
+    }
 
     const aclmdlRI model2 = reinterpret_cast<aclmdlRI>(0x303);
-    SkResourceManager::SetCurrentModel(model2);
-    void* addrC = nullptr;
-    EXPECT_EQ(SkResourceManager::CallbackRegister(model2), ACL_SUCCESS);
-    EXPECT_EQ(SkResourceManager::ValueMemory(&addrC), ACL_SUCCESS);
-    ASSERT_NE(addrC, nullptr);
+    {
+        SkModelContext guard(model2);
+        SkResourceManager::SetCurrentModel(model2);
+        void* addrC = nullptr;
+        EXPECT_EQ(SkResourceManager::CallbackRegister(model2), ACL_SUCCESS);
+        EXPECT_EQ(SkResourceManager::ValueMemory(&addrC), ACL_SUCCESS);
+        ASSERT_NE(addrC, nullptr);
 
-    SkUtSetAclrtFreeRet(ACL_ERROR_FAILURE);
-    EXPECT_EQ(SkUtInvokeModelDestroyCallback(model2), ACL_SUCCESS);
+        SkUtSetAclrtFreeRet(ACL_ERROR_FAILURE);
+        EXPECT_EQ(SkUtInvokeModelDestroyCallback(model2), ACL_SUCCESS);
+    }
 }
 
-TEST_F(SkResourceManagerTest, CallbackRegister_ConcurrentSameModel_RegisterOnce)
+TEST_F(SkResourceManagerTest, OnModelDestroy_RepeatedSameUserData_IgnoredAfterFirstRelease)
+{
+    const aclmdlRI model = reinterpret_cast<aclmdlRI>(0x304);
+    void* userData = nullptr;
+    {
+        SkModelContext guard(model);
+        SkResourceManager::SetCurrentModel(model);
+        void* addr = nullptr;
+        EXPECT_EQ(SkResourceManager::CallbackRegister(model), ACL_SUCCESS);
+        EXPECT_EQ(SkResourceManager::ValueMemory(&addr), ACL_SUCCESS);
+        ASSERT_NE(addr, nullptr);
+        ASSERT_EQ(SkResourceManager::callbackDataLabels_.size(), 1U);
+        userData = SkResourceManager::callbackDataLabels_.begin()->first;
+    }
+
+    ASSERT_NE(userData, nullptr);
+    SkResourceManager::OnModelDestroy(userData);
+    EXPECT_TRUE(SkResourceManager::callbackDataLabels_.empty());
+    EXPECT_TRUE(SkResourceManager::destroyContexts_.empty());
+    EXPECT_TRUE(SkResourceManager::registeredModelLabels_.empty());
+    EXPECT_TRUE(SkResourceManager::modelResources_.empty());
+
+    SkResourceManager::OnModelDestroy(userData);
+    EXPECT_TRUE(SkResourceManager::callbackDataLabels_.empty());
+    EXPECT_TRUE(SkResourceManager::destroyContexts_.empty());
+    EXPECT_TRUE(SkResourceManager::registeredModelLabels_.empty());
+    EXPECT_TRUE(SkResourceManager::modelResources_.empty());
+}
+
+TEST_F(SkResourceManagerTest, CallbackRegister_ConcurrentSameHandleDifferentContexts_RegisterSeparately)
 {
     const aclmdlRI model = reinterpret_cast<aclmdlRI>(0x404);
     constexpr uint32_t kThreadNum = 8;
@@ -118,6 +166,7 @@ TEST_F(SkResourceManagerTest, CallbackRegister_ConcurrentSameModel_RegisterOnce)
         workers.emplace_back([&, i]() {
             while (!startFlag.load(std::memory_order_acquire)) {
             }
+            SkModelContext guard(model);
             results[i] = SkResourceManager::CallbackRegister(model);
         });
     }
@@ -130,10 +179,12 @@ TEST_F(SkResourceManagerTest, CallbackRegister_ConcurrentSameModel_RegisterOnce)
     for (uint32_t i = 0; i < kThreadNum; ++i) {
         EXPECT_EQ(results[i], ACL_SUCCESS);
     }
-    EXPECT_EQ(SkUtGetDestroyRegisterCallbackCallCount(), 1U);
-    EXPECT_EQ(SkUtGetModelDestroyCallbackCount(), 1U);
+    EXPECT_EQ(SkUtGetDestroyRegisterCallbackCallCount(), kThreadNum);
+    EXPECT_EQ(SkUtGetModelDestroyCallbackCount(), kThreadNum);
 
-    EXPECT_EQ(SkUtInvokeModelDestroyCallback(model), ACL_SUCCESS);
+    for (uint32_t i = 0; i < kThreadNum; ++i) {
+        EXPECT_EQ(SkUtInvokeModelDestroyCallback(model), ACL_SUCCESS);
+    }
     EXPECT_EQ(SkUtInvokeModelDestroyCallback(model), ACL_ERROR_INVALID_PARAM);
 }
 
@@ -159,31 +210,41 @@ TEST_F(SkResourceManagerTest, ReleaseRecord_NullAddrOrUnknownKind_CoverBranches)
     EXPECT_EQ(SkResourceManager::ReleaseRecord(unknownRecord), ACL_ERROR_FAILURE);
 }
 
-TEST_F(SkResourceManagerTest, OnModelDestroy_WhileRegistering_NotifyPathCovered)
+TEST_F(SkResourceManagerTest, CallbackRegister_AfterDestroyRegistersAgain)
 {
     const aclmdlRI model = reinterpret_cast<aclmdlRI>(0x707);
-    SkUtSetDestroyRegisterCallbackDelayUs(100000U);
+    SkModelContext guard(model);
+    EXPECT_EQ(SkResourceManager::CallbackRegister(model), ACL_SUCCESS);
+    EXPECT_EQ(SkUtInvokeModelDestroyCallback(model), ACL_SUCCESS);
 
-    aclError registerRet = ACL_ERROR_FAILURE;
-    std::thread registerThread([&]() {
-        registerRet = SkResourceManager::CallbackRegister(model);
-    });
-
-    for (uint32_t retry = 0; retry < 200U; ++retry) {
-        if (SkUtGetDestroyRegisterCallbackCallCount() > 0U) {
-            break;
-        }
-        std::this_thread::sleep_for(std::chrono::milliseconds(1));
-    }
-
-    SkResourceManager::OnModelDestroy(const_cast<void*>(reinterpret_cast<const void*>(model)));
-    registerThread.join();
-
-    EXPECT_EQ(registerRet, ACL_SUCCESS);
-
-    // Destroy happened while registration was in flight: next ensure should
-    // register again instead of being short-circuited by a stale registered flag.
+    // Destroy removed the registered modelLabel, so the next optimize for the same
+    // fallback identity should register a fresh callback.
     const uint32_t registerCallCountBefore = SkUtGetDestroyRegisterCallbackCallCount();
     EXPECT_EQ(SkResourceManager::CallbackRegister(model), ACL_SUCCESS);
     EXPECT_EQ(SkUtGetDestroyRegisterCallbackCallCount(), registerCallCountBefore + 1U);
+    EXPECT_EQ(SkUtInvokeModelDestroyCallback(model), ACL_SUCCESS);
+}
+
+TEST_F(SkResourceManagerTest, CallbackRegister_SameHandleDifferentOptimizeIdsRegisterSeparately)
+{
+    const aclmdlRI model = reinterpret_cast<aclmdlRI>(0x808);
+
+    {
+        SkModelContext firstGuard(model);
+        SkResourceManager::SetCurrentModel(model);
+        void* addr = nullptr;
+        EXPECT_EQ(SkResourceManager::CallbackRegister(model), ACL_SUCCESS);
+        EXPECT_EQ(SkResourceManager::ValueMemory(&addr), ACL_SUCCESS);
+        ASSERT_NE(addr, nullptr);
+    }
+
+    {
+        SkModelContext secondGuard(model);
+        SkResourceManager::SetCurrentModel(model);
+        EXPECT_EQ(SkResourceManager::CallbackRegister(model), ACL_SUCCESS);
+    }
+
+    EXPECT_EQ(SkUtGetModelDestroyCallbackCount(), 2U);
+    EXPECT_EQ(SkUtInvokeModelDestroyCallback(model), ACL_SUCCESS);
+    EXPECT_EQ(SkUtInvokeModelDestroyCallback(model), ACL_SUCCESS);
 }
