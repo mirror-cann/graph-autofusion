@@ -69,7 +69,7 @@ std::string SkEventRecorder::CreateOutputDir() {
     struct stat st;
     if (stat(skMetaDir, &st) != 0) {
         // sk_meta 不存在，创建它
-        if (mkdir(skMetaDir, 0755) != 0) {
+        if (mkdir(skMetaDir, 0755) != 0 && errno != EEXIST) {
             SK_LOGE("[sk time profiling] Failed to create sk_meta directory, errno=%d\n", errno);
             return "";
         }
@@ -87,7 +87,7 @@ std::string SkEventRecorder::CreateOutputDir() {
 
     if (stat(pidDir, &st) != 0) {
         // sk_meta/<pid> 不存在，创建它
-        if (mkdir(pidDir, 0755) != 0) {
+        if (mkdir(pidDir, 0755) != 0 && errno != EEXIST) {
             SK_LOGE("[sk time profiling] Failed to create pid directory %s, errno=%d\n", pidDir, errno);
             return "";
         }
@@ -200,6 +200,11 @@ void* SkEventRecorder::GetGmAddrForDevice(uint32_t deviceId) {
         SK_LOGI("[sk time profiling] Device buffer not allocated yet, allocating now for device %u\n", deviceId);
         // 创建上下文
         ctx = CreateDeviceCtx(deviceId);
+        if (ctx == nullptr) {
+                SK_LOGE("[sk time profiling] Failed to create device ctx for device %u\n", deviceId);
+                SK_LOGI("[sk time profiling] End get device gm addr on device: %u\n", deviceId);
+                return nullptr;
+            }
         SK_LOGI("[sk time profiling] Device gm addr created for device: %u, addr: %p\n", deviceId, ctx->gmAddr.get());
         SK_LOGI("[sk time profiling] End get device gm addr on device: %u\n", deviceId);
     }
@@ -350,13 +355,13 @@ static bool CoreIsAiv(int coreId) {
 }
 void* SkEventRecorder::DumpThreadFunc(void* arg) {
     SkEventRecorder* recorder = static_cast<SkEventRecorder*>(arg);
-    SK_LOGI("[sk time profiling] New global dump thread setdevice: %d\n, recorder->dumpDeviceId");
+    SK_LOGI("[sk time profiling] New global dump thread setdevice: %d\n", recorder->dumpDeviceId);
     aclError result = aclrtSetDevice(recorder->dumpDeviceId);
     if (result != 0) {
         SK_LOGE("[sk time profiling] Acl set device failed, ERROR: %ld, deviceId: %d\n", result, recorder->dumpDeviceId);
         return nullptr;
     }
-    SK_LOGI("[sk time profiling] Global dump thread started on deviceId: %d\n", recorder->dumpDeviceId);
+    SK_LOGI("[sk time profiling] Global dump thread started write on deviceId: %d\n", recorder->dumpDeviceId);
     while (recorder->globalRunning.load()) {
         // 处理激活的 device
         SkEventDeviceCtx* ctx = &recorder->deviceCtxs;
@@ -828,26 +833,29 @@ static bool SetupProfilingRuntime(const std::vector<SuperKernelBaseNode*>& taskN
     int32_t deviceId = 0;
     aclrtGetDevice(&deviceId);
     launchInfo.eventGmAddr = SkEventRecorder::Instance().GetGmAddrForDevice(deviceId);
-    if (launchInfo.eventGmAddr == nullptr) {
-            SK_LOGE("[sk time profiling] Failed to get event GM address\n");
-            return false;
-        }
+    // 获取gm地址失败后，只通知 kernel 侧禁用 profiling（enabled=0），不中断后续host调度流程 
+    const bool profilingEnabled = (launchInfo.eventGmAddr != nullptr);
+    if (!profilingEnabled) {
+        SK_LOGE("[sk time profiling] Failed to get event GM address\n");
+    }
     launchInfo.modelRI = fullModelRI;
     launchInfo.skId = static_cast<uint32_t>(scopeInfo.GetScopeId());
-    SK_LOGI("[sk time profiling] Event recording enabled, gm_addr=%p, modelRI=%lu, skId=%u\n", launchInfo.eventGmAddr, launchInfo.modelRI, launchInfo.skId);
 
-    // 更新 devArgs 中的事件配置
-    if (launchInfo.devArgs.Get() != nullptr &&
-        launchInfo.devArgs.Get()->skHeader.eventConfigOffset != 0) {
+    // 更新 devArgs 中的事件配置（通过 profilingEnabled 控制 enabled 值，防止kernel侧往错误的地址写入）
+    if (launchInfo.devArgs.Get() != nullptr && launchInfo.devArgs.Get()->skHeader.eventConfigOffset != 0) {
         uint8_t* base = reinterpret_cast<uint8_t*>(launchInfo.devArgs.Get());
         SkEventConfig* eventConfig = reinterpret_cast<SkEventConfig*>(
             base + launchInfo.devArgs.Get()->skHeader.eventConfigOffset);
         eventConfig->eventGmAddr = reinterpret_cast<uint64_t>(launchInfo.eventGmAddr);
         eventConfig->modelRI = launchInfo.modelRI;
         eventConfig->skId = launchInfo.skId;
-        eventConfig->enabled = 1;
+        eventConfig->enabled = profilingEnabled ? 1 : 0;
         eventConfig->coreSize = SkEventRecorder::Instance().GetCoreSize();
     }
+
+    SK_LOGI("[sk time profiling] Event recording %s, gm_addr=%p, modelRI=%lu, skId=%u\n",
+            profilingEnabled ? "enabled" : "disabled",
+            launchInfo.eventGmAddr, launchInfo.modelRI, launchInfo.skId);
 
     // 建立 modelRI -> skId -> nodeId -> (nodeName, numBlocks) 映射
     for (size_t nodeId = 0; nodeId < taskNodes.size(); ++nodeId) {
