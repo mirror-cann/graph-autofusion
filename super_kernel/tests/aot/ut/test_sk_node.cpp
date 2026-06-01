@@ -67,6 +67,8 @@ protected:
 
 struct JudgeTaskKernelInfo {
     bool isBegin = true;
+    bool isEnd = false;
+    bool isPlaceholder = false;
     bool isFuseEnable = true;
     std::unique_ptr<char[]> scopeName;
 };
@@ -83,7 +85,28 @@ TEST_F(SkNodeTest, IsScopeKernel_GetFunctionName_Failed)
     EXPECT_EQ(ret, false);
 }
 
-int Fake_aclrtGetFunctionNameBegin(void* funcHandle, size_t size, char* name) 
+int Fake_aclrtGetFunctionNameBeginDav2201(void* funcHandle, size_t size, char* name)
+{
+    const char* src = "sk_scope_kernel_begin_dav_2201";
+    snprintf_s(name, size, size, "%s", src);
+    return 0;
+}
+
+int Fake_aclrtGetFunctionNameEndDav3510(void* funcHandle, size_t size, char* name)
+{
+    const char* src = "sk_scope_kernel_end_dav_3510";
+    snprintf_s(name, size, size, "%s", src);
+    return 0;
+}
+
+int Fake_aclrtGetFunctionNamePlaceholderDav2201(void* funcHandle, size_t size, char* name)
+{
+    const char* src = "sk_placeholder_kernel_dav_2201";
+    snprintf_s(name, size, size, "%s", src);
+    return 0;
+}
+
+int Fake_aclrtGetFunctionNameBeginWithoutSuffix(void* funcHandle, size_t size, char* name)
 {
     const char* src = "sk_scope_kernel_begin";
     snprintf_s(name, size, size, "%s", src);
@@ -105,21 +128,51 @@ TEST_F(SkNodeTest, IsScopeKernel_Normal_ScopeName)
     aclmdlRIKernelTaskParams params{};
     params.funcHandle = nullptr;
     JudgeTaskKernelInfo info;
-    MOCKER(aclrtGetFunctionName).stubs().will(invoke(Fake_aclrtGetFunctionNameBegin));
+    MOCKER(aclrtGetFunctionName).stubs().will(invoke(Fake_aclrtGetFunctionNameBeginDav2201));
     MOCKER(aclrtMemcpy).stubs().will(invoke(Fake_aclrtMemcpy));
     bool ret = IsScopeKernel(params, &info);
     EXPECT_EQ(ret, true);
+    EXPECT_TRUE(info.isBegin);
+    EXPECT_FALSE(info.isEnd);
+    EXPECT_FALSE(info.isPlaceholder);
 }
 
-TEST_F(SkNodeTest, IsScopeKernel_ScopeName_Isnullptr)
+TEST_F(SkNodeTest, IsScopeKernel_Dav3510EndScopeName)
 {
     aclmdlRIKernelTaskParams params{};
     params.funcHandle = nullptr;
     JudgeTaskKernelInfo info;
-    MOCKER(aclrtGetFunctionName).stubs().will(invoke(Fake_aclrtGetFunctionNameBegin));
+    MOCKER(aclrtGetFunctionName).stubs().will(invoke(Fake_aclrtGetFunctionNameEndDav3510));
     MOCKER(aclrtMemcpy).stubs().will(invoke(Fake_aclrtMemcpy));
     bool ret = IsScopeKernel(params, &info);
     EXPECT_EQ(ret, true);
+    EXPECT_FALSE(info.isBegin);
+    EXPECT_TRUE(info.isEnd);
+    EXPECT_FALSE(info.isPlaceholder);
+}
+
+TEST_F(SkNodeTest, IsScopeKernel_PlaceholderScopeName)
+{
+    aclmdlRIKernelTaskParams params{};
+    params.funcHandle = nullptr;
+    JudgeTaskKernelInfo info;
+    MOCKER(aclrtGetFunctionName).stubs().will(invoke(Fake_aclrtGetFunctionNamePlaceholderDav2201));
+    MOCKER(aclrtMemcpy).stubs().will(invoke(Fake_aclrtMemcpy));
+    bool ret = IsScopeKernel(params, &info);
+    EXPECT_EQ(ret, true);
+    EXPECT_FALSE(info.isBegin);
+    EXPECT_FALSE(info.isEnd);
+    EXPECT_TRUE(info.isPlaceholder);
+}
+
+TEST_F(SkNodeTest, IsScopeKernel_WithoutArchSuffix_ReturnsFalse)
+{
+    aclmdlRIKernelTaskParams params{};
+    params.funcHandle = nullptr;
+    JudgeTaskKernelInfo info;
+    MOCKER(aclrtGetFunctionName).stubs().will(invoke(Fake_aclrtGetFunctionNameBeginWithoutSuffix));
+    bool ret = IsScopeKernel(params, &info);
+    EXPECT_EQ(ret, false);
 }
 
 namespace {
@@ -186,6 +239,21 @@ aclError FakeAclrtFunctionGetBinaryForSkNodeCap(aclrtFuncHandle funcHandle, aclr
         *binHandle = reinterpret_cast<aclrtBinHandle>(0x5101);
     } else {
         *binHandle = reinterpret_cast<aclrtBinHandle>(0x5102);
+    }
+    return ACL_SUCCESS;
+}
+
+aclError FakeAclrtFunctionGetBinaryForBindmapReason(aclrtFuncHandle funcHandle, aclrtBinHandle* binHandle)
+{
+    if (binHandle == nullptr) {
+        return ACL_ERROR_INVALID_PARAM;
+    }
+    if (funcHandle == reinterpret_cast<aclrtFuncHandle>(0x6103)) {
+        *binHandle = reinterpret_cast<aclrtBinHandle>(0x5103);
+    } else if (funcHandle == reinterpret_cast<aclrtFuncHandle>(0x6104)) {
+        *binHandle = reinterpret_cast<aclrtBinHandle>(0x5104);
+    } else {
+        *binHandle = reinterpret_cast<aclrtBinHandle>(0x5105);
     }
     return ACL_SUCCESS;
 }
@@ -303,6 +371,19 @@ int FakeRtBinaryGetMetaInfoDifferentCapForSkNode(void* binHdl, int typeEnum, siz
     return 0;
 }
 
+int FakeRtBinaryGetMetaInfoConflictForSkNode(void* binHdl, int typeEnum, size_t metaNum, void** dataList,
+    size_t* sizeList)
+{
+    (void)binHdl;
+    (void)typeEnum;
+    UtSkNodeSknlValuePayload payloads[2]{};
+    FillSkNodeBindPayloads(payloads, 4, 4);
+    payloads[1].info.globalFunc = reinterpret_cast<void*>(UT_SK_NODE_AIC_GLOBAL_OFFSET);
+    payloads[1].info.sknlFunc[0] = reinterpret_cast<void*>(0x3000);
+    CopySkNodeBindPayloads(dataList, sizeList, payloads, metaNum);
+    return 0;
+}
+
 int FakeRtGetBinBufferEmptyForSkNode(void* binHdl, int addrType, void** buffer, uint32_t* size)
 {
     (void)binHdl;
@@ -338,6 +419,17 @@ aclError FakeAclrtGetFunctionAddrForSkNode(aclrtFuncHandle funcHdl, void** addrA
     return ACL_SUCCESS;
 }
 
+aclError FakeAclrtGetFunctionAddrNotInBindMapForSkNode(aclrtFuncHandle funcHdl, void** addrAicore, void** addrAiv)
+{
+    (void)funcHdl;
+    if (addrAicore == nullptr || addrAiv == nullptr) {
+        return ACL_ERROR_INVALID_PARAM;
+    }
+    *addrAicore = reinterpret_cast<void*>(UT_SK_NODE_BIN_DEV_ADDR + 0x300);
+    *addrAiv = reinterpret_cast<void*>(UT_SK_NODE_BIN_DEV_ADDR + 0x400);
+    return ACL_SUCCESS;
+}
+
 std::string MakeTmpDir(const std::string& suffix)
 {
     std::string dir = "/tmp/sk_node_ut_" + std::to_string(getpid()) + "_" + suffix;
@@ -360,7 +452,7 @@ TEST_F(SkNodeTest, FusionFailReasonInfo_BindmapDetailsAndStrings)
 
     info.SetBindmapDetail(BindmapFailReason::FUNC_NOT_FOUND);
     EXPECT_EQ(info.GetBindmapDetail(), BindmapFailReason::FUNC_NOT_FOUND);
-    EXPECT_NE(FusionFailReasonToStr(info).find("initialize kernel function failed"), std::string::npos);
+    EXPECT_NE(FusionFailReasonToStr(info).find("function not found in bind map"), std::string::npos);
 
     EXPECT_STREQ(BindmapFailReasonToStr(BindmapFailReason::BINDMAP_INIT_EMPTY), "bindmap init empty");
     EXPECT_STREQ(BindmapFailReasonToStr(BindmapFailReason::BINHDL_NULL), "binHdl is null");
@@ -572,10 +664,80 @@ TEST_F(SkNodeTest, KernelInitNode_InconsistentCapRecordsBindmapReason)
     EXPECT_TRUE(node.InitNode());
     EXPECT_FALSE(node.IsFusible());
     EXPECT_EQ(node.nodeInfos.kernelInfos.cap, 0U);
-    EXPECT_EQ(node.nodeInfos.kernelInfos.bindmapFailReason, BindmapFailReason::FUNC_NOT_FOUND);
+    EXPECT_EQ(node.nodeInfos.kernelInfos.bindmapFailReason, BindmapFailReason::BINDMAP_CAP_INCONSISTENT);
     EXPECT_EQ(node.nodeInfos.kernelInfos.resolvedNum, 0U);
     EXPECT_EQ(node.GetFusionFailReason(), FusionFailReason::BINDMAP_IS_EMPTY);
+    EXPECT_EQ(node.GetFusionFailReasonInfo().GetBindmapDetail(), BindmapFailReason::BINDMAP_CAP_INCONSISTENT);
+}
+
+TEST_F(SkNodeTest, KernelInitNode_BindmapEntryConflictRecordsBindmapReason)
+{
+    UtSkNodeRITaskInternal task{};
+    task.taskId = 16;
+    task.type = ACL_MODEL_RI_TASK_KERNEL;
+    task.params.type = ACL_MODEL_RI_TASK_KERNEL;
+    task.params.kernelTaskParams.funcHandle = reinterpret_cast<aclrtFuncHandle>(0x6103);
+    task.params.kernelTaskParams.numBlocks = 4;
+
+    MOCKER(aclrtGetFunctionName).stubs().will(invoke(FakeAclrtGetFunctionNameRegular));
+    MOCKER(aclrtFunctionGetBinary).stubs().will(invoke(FakeAclrtFunctionGetBinaryForBindmapReason));
+    MOCKER(rtBinaryGetMetaNum).stubs().will(invoke(FakeRtBinaryGetMetaNumTwoEntriesForSkNode));
+    MOCKER(rtBinaryGetMetaInfo).stubs().will(invoke(FakeRtBinaryGetMetaInfoConflictForSkNode));
+    MOCKER(aclrtBinaryGetDevAddress).stubs().will(invoke(FakeAclrtBinaryGetDevAddressForSkNode));
+    MOCKER(aclrtGetFunctionAddr).stubs().will(invoke(FakeAclrtGetFunctionAddrForSkNode));
+
+    SuperKernelKernelNode node(MakeOriginTask(task), ACL_MODEL_RI_TASK_KERNEL, 0, 0, 0, INVALID_TASK_ID);
+    EXPECT_TRUE(node.InitNode());
+    EXPECT_FALSE(node.IsFusible());
+    EXPECT_EQ(node.nodeInfos.kernelInfos.bindmapFailReason, BindmapFailReason::BINDMAP_ENTRY_CONFLICT);
+    EXPECT_EQ(node.GetFusionFailReasonInfo().GetBindmapDetail(), BindmapFailReason::BINDMAP_ENTRY_CONFLICT);
+}
+
+TEST_F(SkNodeTest, KernelInitNode_FunctionNotInBindmapRecordsBindmapReason)
+{
+    UtSkNodeRITaskInternal task{};
+    task.taskId = 17;
+    task.type = ACL_MODEL_RI_TASK_KERNEL;
+    task.params.type = ACL_MODEL_RI_TASK_KERNEL;
+    task.params.kernelTaskParams.funcHandle = reinterpret_cast<aclrtFuncHandle>(0x6104);
+    task.params.kernelTaskParams.numBlocks = 4;
+
+    MOCKER(aclrtGetFunctionName).stubs().will(invoke(FakeAclrtGetFunctionNameRegular));
+    MOCKER(aclrtFunctionGetBinary).stubs().will(invoke(FakeAclrtFunctionGetBinaryForBindmapReason));
+    MOCKER(rtBinaryGetMetaNum).stubs().will(invoke(FakeRtBinaryGetMetaNumTwoEntriesForSkNode));
+    MOCKER(rtBinaryGetMetaInfo).stubs().will(invoke(FakeRtBinaryGetMetaInfoSameCapForSkNode));
+    MOCKER(aclrtBinaryGetDevAddress).stubs().will(invoke(FakeAclrtBinaryGetDevAddressForSkNode));
+    MOCKER(aclrtGetFunctionAddr).stubs().will(invoke(FakeAclrtGetFunctionAddrNotInBindMapForSkNode));
+
+    SuperKernelKernelNode node(MakeOriginTask(task), ACL_MODEL_RI_TASK_KERNEL, 0, 0, 0, INVALID_TASK_ID);
+    EXPECT_TRUE(node.InitNode());
+    EXPECT_FALSE(node.IsFusible());
+    EXPECT_EQ(node.nodeInfos.kernelInfos.bindmapFailReason, BindmapFailReason::FUNC_NOT_FOUND);
     EXPECT_EQ(node.GetFusionFailReasonInfo().GetBindmapDetail(), BindmapFailReason::FUNC_NOT_FOUND);
+}
+
+TEST_F(SkNodeTest, KernelInitNode_BinHostAddrGetFailedRecordsBindmapReason)
+{
+    UtSkNodeRITaskInternal task{};
+    task.taskId = 18;
+    task.type = ACL_MODEL_RI_TASK_KERNEL;
+    task.params.type = ACL_MODEL_RI_TASK_KERNEL;
+    task.params.kernelTaskParams.funcHandle = reinterpret_cast<aclrtFuncHandle>(0x6105);
+    task.params.kernelTaskParams.numBlocks = 4;
+
+    MOCKER(aclrtGetFunctionName).stubs().will(invoke(FakeAclrtGetFunctionNameRegular));
+    MOCKER(aclrtFunctionGetBinary).stubs().will(invoke(FakeAclrtFunctionGetBinaryForBindmapReason));
+    MOCKER(rtBinaryGetMetaNum).stubs().will(invoke(FakeRtBinaryGetMetaNumTwoEntriesForSkNode));
+    MOCKER(rtBinaryGetMetaInfo).stubs().will(invoke(FakeRtBinaryGetMetaInfoSameCapForSkNode));
+    MOCKER(aclrtBinaryGetDevAddress).stubs().will(invoke(FakeAclrtBinaryGetDevAddressForSkNode));
+    MOCKER(aclrtGetFunctionAddr).stubs().will(invoke(FakeAclrtGetFunctionAddrForSkNode));
+    MOCKER(rtGetBinBuffer).stubs().will(invoke(FakeRtGetBinBufferFailureForNodeDump));
+
+    SuperKernelKernelNode node(MakeOriginTask(task), ACL_MODEL_RI_TASK_KERNEL, 0, 0, 0, INVALID_TASK_ID);
+    EXPECT_TRUE(node.InitNode());
+    EXPECT_FALSE(node.IsFusible());
+    EXPECT_EQ(node.nodeInfos.kernelInfos.bindmapFailReason, BindmapFailReason::BIN_HOST_ADDR_GET_FAILED);
+    EXPECT_EQ(node.GetFusionFailReasonInfo().GetBindmapDetail(), BindmapFailReason::BIN_HOST_ADDR_GET_FAILED);
 }
 
 TEST_F(SkNodeTest, KernelInitNode_TaskGroupNotEmptyRecordsReason)
@@ -838,29 +1000,6 @@ TEST_F(SkNodeTest, MemoryNode_CorresponsiveNodeIdsManagement)
 
     node.SetCorrespondingNotifyNodeId(100);
     EXPECT_EQ(node.GetCorrespondingNotifyNodeId(), 100U);
-}
-
-TEST_F(SkNodeTest, MemoryNode_CorresponsiveMemoryWriteNodeIds)
-{
-    TestRITask task{};
-    task.taskId = 201;
-    task.type = ACL_MODEL_RI_TASK_EVENT_WAIT;
-    task.params.eventWaitTaskParams.event = reinterpret_cast<aclrtEvent>(0x3000);
-    task.params.eventWaitTaskParams.eventFlag = ACL_EVENT_EXTERNAL;
-
-    SuperKernelMemoryNode node(MakeTaskHandle(task), ACL_MODEL_RI_TASK_EVENT_WAIT, 0, 0,
-                               INVALID_STREAM_ID, INVALID_TASK_ID);
-    ASSERT_TRUE(node.InitNode());
-
-    auto writeIds = node.GetCorrespondingMemoryWriteNodeIds();
-    EXPECT_TRUE(writeIds.empty());
-
-    std::vector<uint64_t> newWriteIds = {401, 402};
-    node.SetCorrespondingMemoryWriteNodeId(newWriteIds);
-    writeIds = node.GetCorrespondingMemoryWriteNodeIds();
-    EXPECT_EQ(writeIds.size(), 2);
-    EXPECT_EQ(writeIds[0], 401);
-    EXPECT_EQ(writeIds[1], 402);
 }
 
 // ==================== ScopeBitFlags Tests ====================
@@ -1304,7 +1443,6 @@ TEST_F(SkNodeTest, SyncInfosToJson_WithCorrespondingNodes)
     syncInfo.memoryWaitFlag = 7;
     syncInfo.correspondingWaitNodeIds = {101, 102, 103};
     syncInfo.correspondingResetNodeIds = {201, 202};
-    syncInfo.correspondingMemoryWriteNodeIds = {301};
     syncInfo.eventFlag = 0x55;
     
     Json notifyJson = SyncInfosToJson(syncInfo, SkNodeType::NODE_NOTIFY);
@@ -1314,8 +1452,6 @@ TEST_F(SkNodeTest, SyncInfosToJson_WithCorrespondingNodes)
     EXPECT_EQ(notifyJson["correspondingWaitNodeIds"].size(), 3);
     EXPECT_TRUE(notifyJson.contains("correspondingResetNodeIds"));
     EXPECT_EQ(notifyJson["correspondingResetNodeIds"].size(), 2);
-    EXPECT_TRUE(notifyJson.contains("correspondingMemoryWriteNodeIds"));
-    EXPECT_EQ(notifyJson["correspondingMemoryWriteNodeIds"].size(), 1);
     EXPECT_EQ(notifyJson["eventFlag"], "0x55");
 }
 
@@ -1515,4 +1651,494 @@ TEST_F(SkNodeTest, SimtAivType_SimdSimtMix)
     int ret = rtFunctionGetMetaInfo(nullptr, RT_FUNCTION_TYPE_AIV_TYPE_FLAG, &aivType, sizeof(aivType));
     EXPECT_EQ(ret, 0);
     EXPECT_EQ(aivType, 4);
+}
+
+TEST_F(SkNodeTest, BindmapFailReasonToStr_NewReasons)
+{
+    EXPECT_STREQ(BindmapFailReasonToStr(BindmapFailReason::BIN_DEV_ADDR_GET_FAILED),
+                 "failed to get binary device address");
+    EXPECT_STREQ(BindmapFailReasonToStr(BindmapFailReason::FUNC_ADDR_GET_FAILED),
+                 "failed to get function address");
+    EXPECT_STREQ(BindmapFailReasonToStr(BindmapFailReason::BINDMAP_ENTRY_CONFLICT),
+                 "bind map entry conflict");
+    EXPECT_STREQ(BindmapFailReasonToStr(BindmapFailReason::BINDMAP_CAP_INCONSISTENT),
+                 "bind map cap inconsistent");
+    EXPECT_STREQ(BindmapFailReasonToStr(BindmapFailReason::BIN_HOST_ADDR_GET_FAILED),
+                 "failed to get binary host address");
+}
+
+TEST_F(SkNodeTest, FusionFailReasonInfo_BindmapNewReasons)
+{
+    FusionFailReasonInfo info1(FusionFailReason::BINDMAP_IS_EMPTY,
+        BindmapFailReason::BIN_DEV_ADDR_GET_FAILED);
+    EXPECT_EQ(info1.GetBindmapDetail(), BindmapFailReason::BIN_DEV_ADDR_GET_FAILED);
+    std::string str1 = FusionFailReasonToStr(info1);
+    EXPECT_NE(str1.find("failed to get binary device address"), std::string::npos);
+
+    FusionFailReasonInfo info2(FusionFailReason::BINDMAP_IS_EMPTY,
+        BindmapFailReason::FUNC_ADDR_GET_FAILED);
+    EXPECT_EQ(info2.GetBindmapDetail(), BindmapFailReason::FUNC_ADDR_GET_FAILED);
+    std::string str2 = FusionFailReasonToStr(info2);
+    EXPECT_NE(str2.find("failed to get function address"), std::string::npos);
+
+    info1.SetBindmapDetail(BindmapFailReason::FUNC_ADDR_GET_FAILED);
+    EXPECT_EQ(info1.GetBindmapDetail(), BindmapFailReason::FUNC_ADDR_GET_FAILED);
+}
+
+TEST_F(SkNodeTest, FusionFailReasonToStr_NewKernelAttrFailed)
+{
+    const char* str = FusionFailReasonToStr(FusionFailReason::KERNEL_ATTR_GET_FAILED);
+    EXPECT_NE(std::string(str).find("Failed to get kernel attribute"), std::string::npos);
+}
+
+TEST_F(SkNodeTest, FusionFailReasonToStr_ExceedScopeMax)
+{
+    const char* str = FusionFailReasonToStr(FusionFailReason::EXCEED_SCOPE_MAX);
+    EXPECT_NE(std::string(str).find("Exceeded maximum scope number limit"), std::string::npos);
+}
+
+aclError FakeAclrtBinaryGetDevAddressFailure(aclrtBinHandle binHdl, void** devAddr, size_t* devSize)
+{
+    (void)binHdl;
+    (void)devAddr;
+    (void)devSize;
+    return ACL_ERROR_FAILURE;
+}
+
+aclError FakeAclrtFunctionGetBinaryForBindmapBinDevAddrFail(aclrtFuncHandle funcHandle, aclrtBinHandle* binHandle)
+{
+    (void)funcHandle;
+    if (binHandle == nullptr) {
+        return ACL_ERROR_INVALID_PARAM;
+    }
+    *binHandle = reinterpret_cast<aclrtBinHandle>(0x5100);
+    return ACL_SUCCESS;
+}
+
+aclError FakeAclrtFunctionGetBinaryForBindmapFuncAddrFail(aclrtFuncHandle funcHandle, aclrtBinHandle* binHandle)
+{
+    (void)funcHandle;
+    if (binHandle == nullptr) {
+        return ACL_ERROR_INVALID_PARAM;
+    }
+    *binHandle = reinterpret_cast<aclrtBinHandle>(0x5101);
+    return ACL_SUCCESS;
+}
+
+TEST_F(SkNodeTest, KernelInitNode_BinaryDevAddrGetFailed_RecordsBindmapReason)
+{
+    UtSkNodeRITaskInternal task{};
+    task.taskId = 1100;
+    task.type = ACL_MODEL_RI_TASK_KERNEL;
+    task.params.type = ACL_MODEL_RI_TASK_KERNEL;
+    task.params.kernelTaskParams.funcHandle = reinterpret_cast<aclrtFuncHandle>(0x3100);
+    task.params.kernelTaskParams.numBlocks = 4;
+
+    MOCKER(aclrtGetFunctionName).stubs().will(invoke(FakeAclrtGetFunctionNameRegular));
+    MOCKER(aclrtFunctionGetBinary).stubs().will(invoke(FakeAclrtFunctionGetBinaryForBindmapBinDevAddrFail));
+    MOCKER(rtBinaryGetMetaNum).stubs().will(invoke(FakeRtBinaryGetMetaNumTwoEntriesForSkNode));
+    MOCKER(rtBinaryGetMetaInfo).stubs().will(invoke(FakeRtBinaryGetMetaInfoSameCapForSkNode));
+    MOCKER(aclrtBinaryGetDevAddress).stubs().will(invoke(FakeAclrtBinaryGetDevAddressFailure));
+
+    SuperKernelKernelNode node(MakeOriginTask(task), ACL_MODEL_RI_TASK_KERNEL, 0, 0, 0, INVALID_TASK_ID);
+    EXPECT_TRUE(node.InitNode());
+    EXPECT_FALSE(node.IsFusible());
+    EXPECT_EQ(node.GetFusionFailReason(), FusionFailReason::BINDMAP_IS_EMPTY);
+    EXPECT_EQ(node.GetFusionFailReasonInfo().GetBindmapDetail(),
+              BindmapFailReason::BIN_DEV_ADDR_GET_FAILED);
+}
+
+aclError FakeAclrtGetFunctionAddrFailure(aclrtFuncHandle funcHdl, void** addrAicore, void** addrAiv)
+{
+    (void)funcHdl;
+    (void)addrAicore;
+    (void)addrAiv;
+    return ACL_ERROR_FAILURE;
+}
+
+TEST_F(SkNodeTest, KernelInitNode_FunctionAddrGetFailed_RecordsBindmapReason)
+{
+    UtSkNodeRITaskInternal task{};
+    task.taskId = 1101;
+    task.type = ACL_MODEL_RI_TASK_KERNEL;
+    task.params.type = ACL_MODEL_RI_TASK_KERNEL;
+    task.params.kernelTaskParams.funcHandle = reinterpret_cast<aclrtFuncHandle>(0x3101);
+    task.params.kernelTaskParams.numBlocks = 4;
+
+    MOCKER(aclrtGetFunctionName).stubs().will(invoke(FakeAclrtGetFunctionNameRegular));
+    MOCKER(aclrtFunctionGetBinary).stubs().will(invoke(FakeAclrtFunctionGetBinaryForBindmapFuncAddrFail));
+    MOCKER(rtBinaryGetMetaNum).stubs().will(invoke(FakeRtBinaryGetMetaNumTwoEntriesForSkNode));
+    MOCKER(rtBinaryGetMetaInfo).stubs().will(invoke(FakeRtBinaryGetMetaInfoSameCapForSkNode));
+    MOCKER(aclrtBinaryGetDevAddress).stubs().will(invoke(FakeAclrtBinaryGetDevAddressForSkNode));
+    MOCKER(aclrtGetFunctionAddr).stubs().will(invoke(FakeAclrtGetFunctionAddrFailure));
+
+    SuperKernelKernelNode node(MakeOriginTask(task), ACL_MODEL_RI_TASK_KERNEL, 0, 0, 0, INVALID_TASK_ID);
+    EXPECT_TRUE(node.InitNode());
+    EXPECT_FALSE(node.IsFusible());
+    EXPECT_EQ(node.GetFusionFailReason(), FusionFailReason::BINDMAP_IS_EMPTY);
+    EXPECT_EQ(node.GetFusionFailReasonInfo().GetBindmapDetail(),
+              BindmapFailReason::FUNC_ADDR_GET_FAILED);
+}
+
+aclError FakeAclrtGetFunctionAttributeKernelTypeFailure(aclrtFuncHandle funcHandle,
+                                                         aclrtFuncAttribute attrType,
+                                                         int64_t* attrValue)
+{
+    (void)funcHandle;
+    (void)attrType;
+    (void)attrValue;
+    return ACL_ERROR_FAILURE;
+}
+
+TEST_F(SkNodeTest, KernelInitNode_KernelTypeGetFailed_RecordsKernelAttrFailed)
+{
+    UtSkNodeRITaskInternal task{};
+    task.taskId = 1102;
+    task.type = ACL_MODEL_RI_TASK_KERNEL;
+    task.params.type = ACL_MODEL_RI_TASK_KERNEL;
+    task.params.kernelTaskParams.funcHandle = reinterpret_cast<aclrtFuncHandle>(0x3002);
+    task.params.kernelTaskParams.numBlocks = 4;
+
+    MOCKER(aclrtGetFunctionName).stubs().will(invoke(FakeAclrtGetFunctionNameRegular));
+    MOCKER(aclrtGetFunctionAttribute).stubs().will(invoke(FakeAclrtGetFunctionAttributeKernelTypeFailure));
+
+    SuperKernelKernelNode node(MakeOriginTask(task), ACL_MODEL_RI_TASK_KERNEL, 0, 0, 0, INVALID_TASK_ID);
+    EXPECT_FALSE(node.InitNode());
+    EXPECT_FALSE(node.IsFusible());
+    EXPECT_EQ(node.GetFusionFailReason(), FusionFailReason::KERNEL_ATTR_GET_FAILED);
+}
+
+aclError FakeAclrtGetFunctionNameFailure(aclrtFuncHandle funcHandle, uint32_t maxLen, char* name)
+{
+    (void)funcHandle;
+    (void)maxLen;
+    (void)name;
+    return ACL_ERROR_FAILURE;
+}
+
+TEST_F(SkNodeTest, KernelInitNode_FunctionNameGetFailed_RecordsKernelAttrFailed)
+{
+    UtSkNodeRITaskInternal task{};
+    task.taskId = 1103;
+    task.type = ACL_MODEL_RI_TASK_KERNEL;
+    task.params.type = ACL_MODEL_RI_TASK_KERNEL;
+    task.params.kernelTaskParams.funcHandle = reinterpret_cast<aclrtFuncHandle>(0x3003);
+    task.params.kernelTaskParams.numBlocks = 4;
+
+    MOCKER(aclrtGetFunctionName).stubs().will(invoke(FakeAclrtGetFunctionNameFailure));
+    MOCKER(aclrtGetFunctionAttribute).stubs().will(invoke(FakeAclrtGetFunctionAttributeMix11));
+
+    SuperKernelKernelNode node(MakeOriginTask(task), ACL_MODEL_RI_TASK_KERNEL, 0, 0, 0, INVALID_TASK_ID);
+    EXPECT_FALSE(node.InitNode());
+    EXPECT_FALSE(node.IsFusible());
+    EXPECT_EQ(node.GetFusionFailReason(), FusionFailReason::KERNEL_ATTR_GET_FAILED);
+}
+
+// ==================== IdentifyAndHandleSimtKernel Tests ====================
+
+aclError FakeAclrtGetFunctionAttributeAicOnly(aclrtFuncHandle funcHandle, aclrtFuncAttribute attrType, int64_t* attrValue)
+{
+    (void)funcHandle;
+    if (attrValue == nullptr) {
+        return ACL_ERROR_INVALID_PARAM;
+    }
+    if (attrType == ACL_FUNC_ATTR_KERNEL_TYPE) {
+        *attrValue = ACL_KERNEL_TYPE_CUBE;
+        return ACL_SUCCESS;
+    }
+    if (attrType == ACL_FUNC_ATTR_KERNEL_RATIO) {
+        *attrValue = 0;
+        return ACL_SUCCESS;
+    }
+    *attrValue = 0;
+    return ACL_SUCCESS;
+}
+
+aclError FakeAclrtGetFunctionAttributeAivOnly(aclrtFuncHandle funcHandle, aclrtFuncAttribute attrType, int64_t* attrValue)
+{
+    (void)funcHandle;
+    if (attrValue == nullptr) {
+        return ACL_ERROR_INVALID_PARAM;
+    }
+    if (attrType == ACL_FUNC_ATTR_KERNEL_TYPE) {
+        *attrValue = ACL_KERNEL_TYPE_VECTOR;
+        return ACL_SUCCESS;
+    }
+    if (attrType == ACL_FUNC_ATTR_KERNEL_RATIO) {
+        *attrValue = 0;
+        return ACL_SUCCESS;
+    }
+    *attrValue = 0;
+    return ACL_SUCCESS;
+}
+
+aclError FakeAclrtGetFunctionAttributeMixAic10(aclrtFuncHandle funcHandle, aclrtFuncAttribute attrType, int64_t* attrValue)
+{
+    (void)funcHandle;
+    if (attrValue == nullptr) {
+        return ACL_ERROR_INVALID_PARAM;
+    }
+    if (attrType == ACL_FUNC_ATTR_KERNEL_TYPE) {
+        *attrValue = ACL_KERNEL_TYPE_MIX;
+        return ACL_SUCCESS;
+    }
+    if (attrType == ACL_FUNC_ATTR_KERNEL_RATIO) {
+        *attrValue = 0;
+        return ACL_SUCCESS;
+    }
+    *attrValue = 0;
+    return ACL_SUCCESS;
+}
+
+aclError FakeAclrtGetFunctionAttributeMix12(aclrtFuncHandle funcHandle, aclrtFuncAttribute attrType, int64_t* attrValue)
+{
+    (void)funcHandle;
+    if (attrValue == nullptr) {
+        return ACL_ERROR_INVALID_PARAM;
+    }
+    if (attrType == ACL_FUNC_ATTR_KERNEL_TYPE) {
+        *attrValue = ACL_KERNEL_TYPE_MIX;
+        return ACL_SUCCESS;
+    }
+    if (attrType == ACL_FUNC_ATTR_KERNEL_RATIO) {
+        *attrValue = 2;
+        return ACL_SUCCESS;
+    }
+    *attrValue = 0;
+    return ACL_SUCCESS;
+}
+
+TEST_F(SkNodeTest, IdentifyAndHandleSimtKernel_NullOpts_SkipCheck)
+{
+    UtSkNodeRITaskInternal task{};
+    task.taskId = 2001;
+    task.type = ACL_MODEL_RI_TASK_KERNEL;
+    task.params.type = ACL_MODEL_RI_TASK_KERNEL;
+    task.params.kernelTaskParams.funcHandle = reinterpret_cast<aclrtFuncHandle>(0x2001);
+    task.params.kernelTaskParams.numBlocks = 4;
+
+    MOCKER(aclrtGetFunctionName).stubs().will(invoke(FakeAclrtGetFunctionNameRegular));
+    MOCKER(aclrtGetFunctionAttribute).stubs().will(invoke(FakeAclrtGetFunctionAttributeAivOnly));
+    MOCKER(aclrtFunctionGetBinary).stubs().will(invoke(FakeAclrtFunctionGetBinaryNonNull));
+
+    SuperKernelKernelNode node(MakeOriginTask(task), ACL_MODEL_RI_TASK_KERNEL, 0, 0, 0, INVALID_TASK_ID);
+    EXPECT_TRUE(node.InitNode(nullptr));
+    EXPECT_FALSE(node.nodeInfos.kernelInfos.isSimtOp);
+}
+
+TEST_F(SkNodeTest, IdentifyAndHandleSimtKernel_SimtCheckDisabled_SkipCheck)
+{
+    UtSkNodeRITaskInternal task{};
+    task.taskId = 2002;
+    task.type = ACL_MODEL_RI_TASK_KERNEL;
+    task.params.type = ACL_MODEL_RI_TASK_KERNEL;
+    task.params.kernelTaskParams.funcHandle = reinterpret_cast<aclrtFuncHandle>(0x2002);
+    task.params.kernelTaskParams.numBlocks = 4;
+
+    SuperKernelOptionsManager opts;
+    opts.RegisterDefaultOptions();
+    auto* simtOpt = opts.GetOption(SkInnerOptionType::ENABLE_SIMT_OP_CHECK);
+    ASSERT_NE(simtOpt, nullptr);
+    simtOpt->SetValue(0);
+
+    MOCKER(aclrtGetFunctionName).stubs().will(invoke(FakeAclrtGetFunctionNameRegular));
+    MOCKER(aclrtGetFunctionAttribute).stubs().will(invoke(FakeAclrtGetFunctionAttributeAivOnly));
+    MOCKER(aclrtFunctionGetBinary).stubs().will(invoke(FakeAclrtFunctionGetBinaryNonNull));
+
+    SuperKernelKernelNode node(MakeOriginTask(task), ACL_MODEL_RI_TASK_KERNEL, 0, 0, 0, INVALID_TASK_ID);
+    EXPECT_TRUE(node.InitNode(&opts));
+    EXPECT_FALSE(node.nodeInfos.kernelInfos.isSimtOp);
+}
+
+TEST_F(SkNodeTest, IdentifyAndHandleSimtKernel_AicOnly_SkipCheck)
+{
+    UtSkNodeRITaskInternal task{};
+    task.taskId = 2003;
+    task.type = ACL_MODEL_RI_TASK_KERNEL;
+    task.params.type = ACL_MODEL_RI_TASK_KERNEL;
+    task.params.kernelTaskParams.funcHandle = reinterpret_cast<aclrtFuncHandle>(0x2003);
+    task.params.kernelTaskParams.numBlocks = 4;
+
+    SuperKernelOptionsManager opts;
+    opts.RegisterDefaultOptions();
+    auto* simtOpt = opts.GetOption(SkInnerOptionType::ENABLE_SIMT_OP_CHECK);
+    ASSERT_NE(simtOpt, nullptr);
+    simtOpt->SetValue(1);
+
+    MOCKER(aclrtGetFunctionName).stubs().will(invoke(FakeAclrtGetFunctionNameRegular));
+    MOCKER(aclrtGetFunctionAttribute).stubs().will(invoke(FakeAclrtGetFunctionAttributeAicOnly));
+    MOCKER(aclrtFunctionGetBinary).stubs().will(invoke(FakeAclrtFunctionGetBinaryNonNull));
+
+    SuperKernelKernelNode node(MakeOriginTask(task), ACL_MODEL_RI_TASK_KERNEL, 0, 0, 0, INVALID_TASK_ID);
+    EXPECT_TRUE(node.InitNode(&opts));
+    EXPECT_EQ(node.nodeInfos.kernelInfos.kernelType, SkKernelType::AIC_ONLY);
+    EXPECT_FALSE(node.nodeInfos.kernelInfos.isSimtOp);
+}
+
+TEST_F(SkNodeTest, IdentifyAndHandleSimtKernel_MixAic10_SkipCheck)
+{
+    UtSkNodeRITaskInternal task{};
+    task.taskId = 2004;
+    task.type = ACL_MODEL_RI_TASK_KERNEL;
+    task.params.type = ACL_MODEL_RI_TASK_KERNEL;
+    task.params.kernelTaskParams.funcHandle = reinterpret_cast<aclrtFuncHandle>(0x2004);
+    task.params.kernelTaskParams.numBlocks = 4;
+
+    SuperKernelOptionsManager opts;
+    opts.RegisterDefaultOptions();
+    auto* simtOpt = opts.GetOption(SkInnerOptionType::ENABLE_SIMT_OP_CHECK);
+    ASSERT_NE(simtOpt, nullptr);
+    simtOpt->SetValue(1);
+
+    MOCKER(aclrtGetFunctionName).stubs().will(invoke(FakeAclrtGetFunctionNameRegular));
+    MOCKER(aclrtGetFunctionAttribute).stubs().will(invoke(FakeAclrtGetFunctionAttributeMixAic10));
+    MOCKER(aclrtFunctionGetBinary).stubs().will(invoke(FakeAclrtFunctionGetBinaryNonNull));
+
+    SuperKernelKernelNode node(MakeOriginTask(task), ACL_MODEL_RI_TASK_KERNEL, 0, 0, 0, INVALID_TASK_ID);
+    EXPECT_TRUE(node.InitNode(&opts));
+    EXPECT_EQ(node.nodeInfos.kernelInfos.kernelType, SkKernelType::AIC_ONLY);
+    EXPECT_FALSE(node.nodeInfos.kernelInfos.isSimtOp);
+}
+
+TEST_F(SkNodeTest, IdentifyAndHandleSimtKernel_AivOnly_NotSimtType)
+{
+    UtSkNodeRITaskInternal task{};
+    task.taskId = 2005;
+    task.type = ACL_MODEL_RI_TASK_KERNEL;
+    task.params.type = ACL_MODEL_RI_TASK_KERNEL;
+    task.params.kernelTaskParams.funcHandle = reinterpret_cast<aclrtFuncHandle>(0x2005);
+    task.params.kernelTaskParams.numBlocks = 4;
+
+    SuperKernelOptionsManager opts;
+    opts.RegisterDefaultOptions();
+    auto* simtOpt = opts.GetOption(SkInnerOptionType::ENABLE_SIMT_OP_CHECK);
+    ASSERT_NE(simtOpt, nullptr);
+    simtOpt->SetValue(1);
+
+    SetSimtAivType(0);
+
+    MOCKER(aclrtGetFunctionName).stubs().will(invoke(FakeAclrtGetFunctionNameRegular));
+    MOCKER(aclrtGetFunctionAttribute).stubs().will(invoke(FakeAclrtGetFunctionAttributeAivOnly));
+    MOCKER(aclrtFunctionGetBinary).stubs().will(invoke(FakeAclrtFunctionGetBinaryNonNull));
+
+    SuperKernelKernelNode node(MakeOriginTask(task), ACL_MODEL_RI_TASK_KERNEL, 0, 0, 0, INVALID_TASK_ID);
+    EXPECT_TRUE(node.InitNode(&opts));
+    EXPECT_EQ(node.nodeInfos.kernelInfos.kernelType, SkKernelType::AIV_ONLY);
+    EXPECT_FALSE(node.nodeInfos.kernelInfos.isSimtOp);
+}
+
+TEST_F(SkNodeTest, IdentifyAndHandleSimtKernel_AivOnly_SimtType3)
+{
+    UtSkNodeRITaskInternal task{};
+    task.taskId = 2006;
+    task.type = ACL_MODEL_RI_TASK_KERNEL;
+    task.params.type = ACL_MODEL_RI_TASK_KERNEL;
+    task.params.kernelTaskParams.funcHandle = reinterpret_cast<aclrtFuncHandle>(0x2006);
+    task.params.kernelTaskParams.numBlocks = 4;
+
+    SuperKernelOptionsManager opts;
+    opts.RegisterDefaultOptions();
+    auto* simtOpt = opts.GetOption(SkInnerOptionType::ENABLE_SIMT_OP_CHECK);
+    ASSERT_NE(simtOpt, nullptr);
+    simtOpt->SetValue(1);
+
+    SetSimtAivType(3);
+
+    MOCKER(aclrtGetFunctionName).stubs().will(invoke(FakeAclrtGetFunctionNameRegular));
+    MOCKER(aclrtGetFunctionAttribute).stubs().will(invoke(FakeAclrtGetFunctionAttributeAivOnly));
+    MOCKER(aclrtFunctionGetBinary).stubs().will(invoke(FakeAclrtFunctionGetBinaryNonNull));
+
+    SuperKernelKernelNode node(MakeOriginTask(task), ACL_MODEL_RI_TASK_KERNEL, 0, 0, 0, INVALID_TASK_ID);
+    EXPECT_TRUE(node.InitNode(&opts));
+    EXPECT_EQ(node.nodeInfos.kernelInfos.kernelType, SkKernelType::AIV_ONLY);
+    EXPECT_TRUE(node.nodeInfos.kernelInfos.isSimtOp);
+    EXPECT_FALSE(node.IsFusible());
+    EXPECT_EQ(node.GetFusionFailReason(), FusionFailReason::SIMT_OP_NOT_SUPPORTED);
+}
+
+TEST_F(SkNodeTest, IdentifyAndHandleSimtKernel_AivOnly_SimtType4)
+{
+    UtSkNodeRITaskInternal task{};
+    task.taskId = 2007;
+    task.type = ACL_MODEL_RI_TASK_KERNEL;
+    task.params.type = ACL_MODEL_RI_TASK_KERNEL;
+    task.params.kernelTaskParams.funcHandle = reinterpret_cast<aclrtFuncHandle>(0x2007);
+    task.params.kernelTaskParams.numBlocks = 4;
+
+    SuperKernelOptionsManager opts;
+    opts.RegisterDefaultOptions();
+    auto* simtOpt = opts.GetOption(SkInnerOptionType::ENABLE_SIMT_OP_CHECK);
+    ASSERT_NE(simtOpt, nullptr);
+    simtOpt->SetValue(1);
+
+    SetSimtAivType(4);
+
+    MOCKER(aclrtGetFunctionName).stubs().will(invoke(FakeAclrtGetFunctionNameRegular));
+    MOCKER(aclrtGetFunctionAttribute).stubs().will(invoke(FakeAclrtGetFunctionAttributeAivOnly));
+    MOCKER(aclrtFunctionGetBinary).stubs().will(invoke(FakeAclrtFunctionGetBinaryNonNull));
+
+    SuperKernelKernelNode node(MakeOriginTask(task), ACL_MODEL_RI_TASK_KERNEL, 0, 0, 0, INVALID_TASK_ID);
+    EXPECT_TRUE(node.InitNode(&opts));
+    EXPECT_EQ(node.nodeInfos.kernelInfos.kernelType, SkKernelType::AIV_ONLY);
+    EXPECT_TRUE(node.nodeInfos.kernelInfos.isSimtOp);
+    EXPECT_FALSE(node.IsFusible());
+    EXPECT_EQ(node.GetFusionFailReason(), FusionFailReason::SIMT_OP_NOT_SUPPORTED);
+}
+
+TEST_F(SkNodeTest, IdentifyAndHandleSimtKernel_Mix11_SimtType)
+{
+    UtSkNodeRITaskInternal task{};
+    task.taskId = 2008;
+    task.type = ACL_MODEL_RI_TASK_KERNEL;
+    task.params.type = ACL_MODEL_RI_TASK_KERNEL;
+    task.params.kernelTaskParams.funcHandle = reinterpret_cast<aclrtFuncHandle>(0x2008);
+    task.params.kernelTaskParams.numBlocks = 4;
+
+    SuperKernelOptionsManager opts;
+    opts.RegisterDefaultOptions();
+    auto* simtOpt = opts.GetOption(SkInnerOptionType::ENABLE_SIMT_OP_CHECK);
+    ASSERT_NE(simtOpt, nullptr);
+    simtOpt->SetValue(1);
+
+    SetSimtAivType(3);
+
+    MOCKER(aclrtGetFunctionName).stubs().will(invoke(FakeAclrtGetFunctionNameRegular));
+    MOCKER(aclrtGetFunctionAttribute).stubs().will(invoke(FakeAclrtGetFunctionAttributeMix11));
+    MOCKER(aclrtFunctionGetBinary).stubs().will(invoke(FakeAclrtFunctionGetBinaryNonNull));
+
+    SuperKernelKernelNode node(MakeOriginTask(task), ACL_MODEL_RI_TASK_KERNEL, 0, 0, 0, INVALID_TASK_ID);
+    EXPECT_TRUE(node.InitNode(&opts));
+    EXPECT_EQ(node.nodeInfos.kernelInfos.kernelType, SkKernelType::MIX_AIC_1_1);
+    EXPECT_TRUE(node.nodeInfos.kernelInfos.isSimtOp);
+    EXPECT_FALSE(node.IsFusible());
+    EXPECT_EQ(node.GetFusionFailReason(), FusionFailReason::SIMT_OP_NOT_SUPPORTED);
+}
+
+TEST_F(SkNodeTest, IdentifyAndHandleSimtKernel_Mix12_SimtType)
+{
+    UtSkNodeRITaskInternal task{};
+    task.taskId = 2009;
+    task.type = ACL_MODEL_RI_TASK_KERNEL;
+    task.params.type = ACL_MODEL_RI_TASK_KERNEL;
+    task.params.kernelTaskParams.funcHandle = reinterpret_cast<aclrtFuncHandle>(0x2009);
+    task.params.kernelTaskParams.numBlocks = 4;
+
+    SuperKernelOptionsManager opts;
+    opts.RegisterDefaultOptions();
+    auto* simtOpt = opts.GetOption(SkInnerOptionType::ENABLE_SIMT_OP_CHECK);
+    ASSERT_NE(simtOpt, nullptr);
+    simtOpt->SetValue(1);
+
+    SetSimtAivType(4);
+
+    MOCKER(aclrtGetFunctionName).stubs().will(invoke(FakeAclrtGetFunctionNameRegular));
+    MOCKER(aclrtGetFunctionAttribute).stubs().will(invoke(FakeAclrtGetFunctionAttributeMix12));
+    MOCKER(aclrtFunctionGetBinary).stubs().will(invoke(FakeAclrtFunctionGetBinaryNonNull));
+
+    SuperKernelKernelNode node(MakeOriginTask(task), ACL_MODEL_RI_TASK_KERNEL, 0, 0, 0, INVALID_TASK_ID);
+    EXPECT_TRUE(node.InitNode(&opts));
+    EXPECT_EQ(node.nodeInfos.kernelInfos.kernelType, SkKernelType::MIX_AIC_1_2);
+    EXPECT_TRUE(node.nodeInfos.kernelInfos.isSimtOp);
+    EXPECT_FALSE(node.IsFusible());
+    EXPECT_EQ(node.GetFusionFailReason(), FusionFailReason::SIMT_OP_NOT_SUPPORTED);
 }

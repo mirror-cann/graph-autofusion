@@ -13,6 +13,7 @@
 
 #include <stdint.h>
 #include <stddef.h>
+#include "runtime/base.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -30,6 +31,20 @@ static const int ACL_ERROR_INVALID_PARAM = 100000;
 #endif
 
 #define ACL_EVENT_EXTERNAL                0x00000020U
+
+// ACL data types
+#define ACL_UINT8  2
+#define ACL_INT8   3
+#define ACL_INT32  4
+#define ACL_FP16   5
+#define ACL_FP32   6
+#define ACL_FP64   7
+
+// ACL format types
+#define ACL_FORMAT_ND       0
+#define ACL_FORMAT_NCHW      1
+#define ACL_FORMAT_NHWC      2
+#define ACL_FORMAT_CHWN      3
 
 // Basic types
 typedef void *aclrtStream;
@@ -79,8 +94,13 @@ typedef struct aclrtLaunchKernelCfg {
     size_t numAttrs;
 } aclrtLaunchKernelCfg;
 
-// Forward declaration for exception info structure
-typedef struct aclrtExceptionInfo aclrtExceptionInfo;
+// Exception info structure - defines expandInfo with type field used in exception handling
+typedef struct aclrtExceptionInfo {
+    void* reserved[16];  // Reserved fields
+    struct {
+        rtExceptionExpandType_t type;  // exception type (AICORE, FFTS_PLUS, FUSION, etc.)
+    } expandInfo;
+} aclrtExceptionInfo;
 
 // Exception callback function type
 typedef void (*aclrtExceptionInfoCallbackFunc)(aclrtExceptionInfo* exceptionInfo);

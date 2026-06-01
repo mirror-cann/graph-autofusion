@@ -19,11 +19,12 @@
 #include <cstdlib>
 
 #include "securec.h"
+#include "sk_common.h"
 #include "sk_log.h"
 
-extern "C" void sk_scope_kernel_begin_do(void* stream, ScopeKernelArgs args);
-extern "C" void sk_scope_kernel_end_do(void* stream, ScopeKernelArgs args);
-extern "C" void sk_placeholder_kernel_do(void* stream, ScopeKernelArgs args);
+extern "C" void sk_scope_kernel_begin_do_dav_2201(void* stream, ScopeKernelArgs args);
+extern "C" void sk_scope_kernel_end_do_dav_2201(void* stream, ScopeKernelArgs args);
+extern "C" void sk_placeholder_kernel_do_dav_2201(void* stream, ScopeKernelArgs args);
 extern "C" void sk_scope_kernel_begin_do_dav_3510(void* stream, ScopeKernelArgs args);
 extern "C" void sk_scope_kernel_end_do_dav_3510(void* stream, ScopeKernelArgs args);
 extern "C" void sk_placeholder_kernel_do_dav_3510(void* stream, ScopeKernelArgs args);
@@ -38,19 +39,20 @@ struct ScopeKernelImpls {
     ScopeFuncImpl placeholder;
 };
 
-bool IsDav3510Soc()
-{
-    const char* socName = aclrtGetSocName();
-    return socName != nullptr && strstr(socName, "Ascend950") != nullptr;
-}
-
 ScopeKernelImpls GetScopeKernelImpls()
 {
-    if (IsDav3510Soc()) {
+    const SkKernelArch arch = GetCurrentSkKernelArch();
+    SK_LOGI("Scope kernel implementation selected: arch=%s, symbolSuffix=%s",
+            to_string(arch), GetSkKernelArchSymbolSuffix(arch));
+    switch (arch) {
+    case SkKernelArch::DAV_3510:
         return {sk_scope_kernel_begin_do_dav_3510, sk_scope_kernel_end_do_dav_3510,
                 sk_placeholder_kernel_do_dav_3510};
+    case SkKernelArch::DAV_2201:
+    default:
+        return {sk_scope_kernel_begin_do_dav_2201, sk_scope_kernel_end_do_dav_2201,
+                sk_placeholder_kernel_do_dav_2201};
     }
-    return {sk_scope_kernel_begin_do, sk_scope_kernel_end_do, sk_placeholder_kernel_do};
 }
 
 aclError LaunchScopeKernelImpl(const char* scopeName, aclrtStream stream, ScopeFuncImpl scopeKernelImpl) {

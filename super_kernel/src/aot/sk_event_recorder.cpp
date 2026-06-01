@@ -111,7 +111,12 @@ bool SkEventRecorder::Init() {
         }
 
         globalRunning.store(true);
-        aclrtGetDevice(&dumpDeviceId);
+        aclError aclRet = aclrtGetDevice(&dumpDeviceId);
+        if (aclRet != ACL_SUCCESS) {
+            SK_LOGE("[sk time profiling] Failed to get device id, ret=%d\n", aclRet);
+            globalRunning.store(false);
+            return;
+        }
         
         // 启动单个全局后台线程用于搬运解析记录事件
         int ret = pthread_create(&dumpThread, nullptr, DumpThreadFunc, this);
@@ -632,6 +637,12 @@ std::string SkEventRecorder::GetSkName(uint64_t modelRI, uint32_t skId) const {
     return skIt->second;
 }
 
+void SkEventRecorder::RemoveModelMappings(uint64_t modelRI) {
+    std::lock_guard<std::mutex> lock(nodeInfoMapMutex);
+    skNameMap.erase(modelRI);
+    nodeInfoMap.erase(modelRI);
+}
+
 uint16_t SkEventRecorder::RegisterModelRI(uint64_t modelRI) {
     std::lock_guard<std::mutex> lock(modelRIIndexMapMutex);
     // 如果已注册，返回已有 index
@@ -812,6 +823,46 @@ bool SkProfiling(const SuperKernelScopeInfo &scopeInfo, SkLaunchInfo &launchInfo
     return true;
 }
 
+static bool SetupProfilingRuntime(const std::vector<SuperKernelBaseNode*>& taskNodes, SkLaunchInfo& launchInfo,
+                                  const SuperKernelScopeInfo& scopeInfo, uint64_t fullModelRI) {
+    int32_t deviceId = 0;
+    aclrtGetDevice(&deviceId);
+    launchInfo.eventGmAddr = SkEventRecorder::Instance().GetGmAddrForDevice(deviceId);
+    if (launchInfo.eventGmAddr == nullptr) {
+            SK_LOGE("[sk time profiling] Failed to get event GM address\n");
+            return false;
+        }
+    launchInfo.modelRI = fullModelRI;
+    launchInfo.skId = static_cast<uint32_t>(scopeInfo.GetScopeId());
+    SK_LOGI("[sk time profiling] Event recording enabled, gm_addr=%p, modelRI=%lu, skId=%u\n", launchInfo.eventGmAddr, launchInfo.modelRI, launchInfo.skId);
+
+    // 更新 devArgs 中的事件配置
+    if (launchInfo.devArgs.Get() != nullptr &&
+        launchInfo.devArgs.Get()->skHeader.eventConfigOffset != 0) {
+        uint8_t* base = reinterpret_cast<uint8_t*>(launchInfo.devArgs.Get());
+        SkEventConfig* eventConfig = reinterpret_cast<SkEventConfig*>(
+            base + launchInfo.devArgs.Get()->skHeader.eventConfigOffset);
+        eventConfig->eventGmAddr = reinterpret_cast<uint64_t>(launchInfo.eventGmAddr);
+        eventConfig->modelRI = launchInfo.modelRI;
+        eventConfig->skId = launchInfo.skId;
+        eventConfig->enabled = 1;
+        eventConfig->coreSize = SkEventRecorder::Instance().GetCoreSize();
+    }
+
+    // 建立 modelRI -> skId -> nodeId -> (nodeName, numBlocks) 映射
+    for (size_t nodeId = 0; nodeId < taskNodes.size(); ++nodeId) {
+        SuperKernelBaseNode* node = taskNodes[nodeId];
+        if (node != nullptr && node->GetNodeType() == SkNodeType::NODE_KERNEL) {
+            const NodeInfos& nodeInfos = node->GetNodeInfos();
+            const std::string& funcName = nodeInfos.kernelInfos.funcName;
+            // launchInfo.entryInfo.numBlocks是sk大算子的numBlocks
+            SkEventRecorder::Instance().AddNodeInfoMapping(
+                launchInfo.modelRI, launchInfo.skId, static_cast<uint32_t>(nodeId), funcName, nodeInfos.kernelInfos.numBlocks);
+        }
+    }
+    return true;
+}
+
 bool DumpProfilingDetail(const std::vector<SuperKernelBaseNode*>& taskNodes, SkLaunchInfo& launchInfo,
                                 const SuperKernelScopeInfo& scopeInfo, aclmdlRI modelRI) {
     // 获取事件记录 GM 地址并更新 devArgs 中的事件配置
@@ -824,44 +875,15 @@ bool DumpProfilingDetail(const std::vector<SuperKernelBaseNode*>& taskNodes, SkL
             (static_cast<uint64_t>(modelRIIdx) << 32) | (static_cast<uint64_t>(skScopeId) << 16);
     }
 
+    // skName 映射不依赖 profiling 开关：异常 handler 在 profiling 关闭时也要靠这张表
+    // 拿到含 start_op/end_op 的完整名字（与 launchInfo.skFuncName 一致）
+    SkEventRecorder::Instance().AddSkNameMapping(
+        fullModelRI, static_cast<uint32_t>(scopeInfo.GetScopeId()), launchInfo.skFuncName);
+
     if (SkEventRecorder::Instance().IsEnabled()) {
-        int32_t deviceId = 0;
-        aclrtGetDevice(&deviceId);
-        launchInfo.eventGmAddr = SkEventRecorder::Instance().GetGmAddrForDevice(deviceId);
-        if (launchInfo.eventGmAddr == nullptr) {
-                SK_LOGE("[sk time profiling] Failed to get event GM address\n");
-                return false;
-            }
-        launchInfo.modelRI = static_cast<uint64_t>(reinterpret_cast<uintptr_t>(modelRI));  // modelRI只有一个void*，先用hash值作为modelRI的id，后续可以改成更合理的来源
-        launchInfo.skId = static_cast<uint32_t>(scopeInfo.GetScopeId());
-        SK_LOGI("[sk time profiling] Event recording enabled, gm_addr=%p, modelRI=%lu, skId=%u\n", launchInfo.eventGmAddr, launchInfo.modelRI, launchInfo.skId);
-        
-        // 更新 devArgs 中的事件配置
-        if (launchInfo.devArgs.Get() != nullptr && 
-            launchInfo.devArgs.Get()->skHeader.eventConfigOffset != 0) {
-            uint8_t* base = reinterpret_cast<uint8_t*>(launchInfo.devArgs.Get());
-            SkEventConfig* eventConfig = reinterpret_cast<SkEventConfig*>(
-                base + launchInfo.devArgs.Get()->skHeader.eventConfigOffset);
-            eventConfig->eventGmAddr = reinterpret_cast<uint64_t>(launchInfo.eventGmAddr);
-            eventConfig->modelRI = launchInfo.modelRI;
-            eventConfig->skId = launchInfo.skId;
-            eventConfig->enabled = 1;
-            eventConfig->coreSize = SkEventRecorder::Instance().GetCoreSize();
+        if (!SetupProfilingRuntime(taskNodes, launchInfo, scopeInfo, fullModelRI)) {
+            return false;
         }
-        
-        // 建立 modelRI -> skId -> nodeId -> (nodeName, numBlocks) 映射
-        for (size_t nodeId = 0; nodeId < taskNodes.size(); ++nodeId) {
-            SuperKernelBaseNode* node = taskNodes[nodeId];
-            if (node != nullptr && node->GetNodeType() == SkNodeType::NODE_KERNEL) {
-                const NodeInfos& nodeInfos = node->GetNodeInfos();
-                const std::string& funcName = nodeInfos.kernelInfos.funcName;
-                // launchInfo.entryInfo.numBlocks是sk大算子的numBlocks
-                SkEventRecorder::Instance().AddNodeInfoMapping(
-                    launchInfo.modelRI, launchInfo.skId, static_cast<uint32_t>(nodeId), funcName, nodeInfos.kernelInfos.numBlocks);
-            }
-        }
-        // 添加sk和sk名字映射
-        SkEventRecorder::Instance().AddSkNameMapping(launchInfo.modelRI, launchInfo.skId, launchInfo.skFuncName);
     } else {
         launchInfo.eventGmAddr = nullptr;
         launchInfo.modelRI = 0;

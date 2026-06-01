@@ -15,6 +15,7 @@
 
 #ifndef SK_COMMON_H
 #define SK_COMMON_H
+#include <array>
 #include <string>
 #include <cstddef>
 #include <bitset>
@@ -22,9 +23,36 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <errno.h>
+#include <acl/acl.h>
 
 // Forward declaration for aclmdlRI
 typedef void* aclmdlRI;
+
+enum class SkKernelArch : uint32_t {
+    UNKNOWN = 0,
+    DAV_2201,
+    DAV_3510,
+};
+
+inline const char* to_string(SkKernelArch arch)
+{
+    switch (arch) {
+    case SkKernelArch::DAV_2201:
+        return "DAV_2201";
+    case SkKernelArch::DAV_3510:
+        return "DAV_3510";
+    default:
+        return "UNKNOWN";
+    }
+}
+
+constexpr std::array<SkKernelArch, 2> SK_SUPPORTED_KERNEL_ARCHS = {
+    SkKernelArch::DAV_2201,
+    SkKernelArch::DAV_3510,
+};
+
+SkKernelArch GetCurrentSkKernelArch();
+const char* GetSkKernelArchSymbolSuffix(SkKernelArch arch);
 
 enum class SkNodeType : uint32_t {
     NODE_KERNEL = 0,
@@ -198,10 +226,9 @@ constexpr uint32_t SK_DEFAULT_WRITE_FLAG = 0;
 struct TaskInfo {
     uint32_t index;
     SkTaskType type;
-    SkKernelType originType = SkKernelType::DEFAULT;
+    SkKernelType relatedType = SkKernelType::DEFAULT;
     uint8_t numBlocks;
     uint8_t entryCnt;
-    uint64_t args;
     uint64_t entry[4];
     // 根据bit位确定option选项
     // 1： dcci_disable_on_kernel
@@ -214,6 +241,9 @@ struct TaskInfo {
     //      kernel侧只需检查此bit即可，无需组合判断
     uint64_t debugOptions;
     uint64_t reserved;
+    uint64_t args;
+    uint32_t argsSize;
+    uint8_t reservedList[4];
 };
 
 inline void SetEventTaskArgs(TaskInfo& taskInfo, uint64_t addr, uint64_t value, uint32_t flag)
@@ -238,6 +268,7 @@ enum class SkEarlyStartMask : uint32_t {
     AIV_TO_AIV_WAIT = 1U << 5,
     AIV_TO_AIC_SET = 1U << 6,
     AIC_TO_AIV_WAIT = 1U << 7,
+    SPLIT_CORE_CTRL = 1U << 15,
 };
 
 inline const char* to_string(SkEarlyStartMask mask)
@@ -261,6 +292,8 @@ inline const char* to_string(SkEarlyStartMask mask)
         return "AIV_TO_AIC_SET";
     case SkEarlyStartMask::AIC_TO_AIV_WAIT:
         return "AIC_TO_AIV_WAIT";
+    case SkEarlyStartMask::SPLIT_CORE_CTRL:
+        return "SPLIT_CORE_CTRL";
     default:
         return "UNKNOWN";
     }
@@ -349,7 +382,7 @@ struct SkEventConfig {
     uint32_t coreSize;      // 每个core的缓冲区大小（字节）
 };
 
-bool GetFuncSymbolInfo(const char* binAddr, size_t binSize, uint64_t funcAddr, std::string& symbolName,
+bool GetFuncSymbolInfo(aclrtBinHandle binHdl, const char* binAddr, size_t binSize, uint64_t funcAddr, std::string& symbolName,
                        uint64_t& funcSize, std::string& symbolBind);
 
 enum class ScheModeState : uint8_t {

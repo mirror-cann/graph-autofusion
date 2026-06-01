@@ -34,6 +34,7 @@ SuperKernelExceptionHandler::SuperKernelExceptionHandler()
     , aicTaskCnt(0)
     , aivTaskCnt(0)
     , hasOpTrace_(false)
+    , errorNodeIdx_(-1)
 {
 }
 
@@ -298,6 +299,80 @@ bool SuperKernelExceptionHandler::GetExceptionRegInfo(const aclrtExceptionInfo &
     return true;
 }
 
+uint64_t SuperKernelExceptionHandler::GetCondRegValue(const rtExceptionErrRegInfo_t &coreErrRegInfo) {
+    // COND register is 64-bit: errReg[20] is low 32 bits, errReg[21] is high 32 bits
+    constexpr uint32_t COND_REG_LOW_IDX = 20;
+    constexpr uint32_t COND_REG_HIGH_IDX = 21;
+    uint64_t condValue = (static_cast<uint64_t>(coreErrRegInfo.errReg[COND_REG_HIGH_IDX]) << 32)
+                       | static_cast<uint64_t>(coreErrRegInfo.errReg[COND_REG_LOW_IDX]);
+    return condValue;
+}
+
+void SuperKernelExceptionHandler::ParseAndPrintCondInfo(uint32_t coreId, rtCoreType_t coreType, uint64_t condValue) {
+    // Cond value is set by sk_entry kernel via set_cond instruction.
+    // Format: cond = modelRIIdAndSkScopeId | (opState + (task->index << 8))
+    //   bits [7:0]   : opState (SkOpTraceType)
+    //   bits [15:8]  : task->index (sub-operator index)
+    //   bits [63:16] : modelRIIdAndSkScopeId
+    // If cond is 0, the runtime/driver does not support this feature yet, skip printing.
+    if (condValue == 0) {
+        SK_LOGE("[Core %u] Failed to get COND register value, possible reason: driver package not upgraded", coreId);
+        return;
+    }
+
+    uint8_t opState = static_cast<uint8_t>(condValue & 0xFF);
+    uint32_t opIndex = static_cast<uint32_t>((condValue >> 8) & 0xFF);
+    const char *coreTypeName = (coreType == RT_CORE_TYPE_AIC) ? "AIC" : "AIV";
+
+    SK_LOGE("[Core %u] %s COND register value: 0x%lx (opState=%u, opIndex=%u)",
+            coreId, coreTypeName, condValue, opState, opIndex);
+
+    PrintCondSubKernelInfo(coreId, condValue);
+}
+
+void SuperKernelExceptionHandler::PrintCondSubKernelInfo(uint32_t coreId, uint64_t condValue) {
+    uint8_t opState = static_cast<uint8_t>(condValue & 0xFF);
+    uint32_t opIndex = static_cast<uint32_t>((condValue >> 8) & 0xFF);
+
+    if (opState == static_cast<uint8_t>(SkOpTraceType::ORIGIN)) {
+        SK_LOGE("[Core %u] COND: No SK entry executed yet (opState=ORIGIN).", coreId);
+    } else if (opState == static_cast<uint8_t>(SkOpTraceType::SK_ENTRY_LAUNCHED)) {
+        SK_LOGE("[Core %u] COND: SK entry launched, no sub-kernel executed yet. Next opIndex=%u", coreId, opIndex);
+        if (opIndex < skHeaderInfoHost->nodeCnt) {
+            KernelFuncName kernelFuncName = GetOrLoadKernelSymbols(opIndex);
+            if (!kernelFuncName.name.empty()) {
+                SK_LOGE("[Core %u] COND: Next sub-kernel function name: %s", coreId, kernelFuncName.name.c_str());
+            }
+        }
+    } else if (opState == static_cast<uint8_t>(SkOpTraceType::OP_LAUNCHED)) {
+        SK_LOGE("[Core %u] COND: Currently running sub-kernel opIndex=%u", coreId, opIndex);
+        if (opIndex < skHeaderInfoHost->nodeCnt) {
+            KernelFuncName kernelFuncName = GetOrLoadKernelSymbols(opIndex);
+            if (!kernelFuncName.name.empty()) {
+                SK_LOGE("[Core %u] COND: Current sub-kernel function name: %s", coreId, kernelFuncName.name.c_str());
+            }
+        }
+    } else if (opState == static_cast<uint8_t>(SkOpTraceType::OP_FINISHED)) {
+        SK_LOGE("[Core %u] COND: Sub-kernel opIndex=%u finished, about to run next.", coreId, opIndex);
+        if (opIndex < skHeaderInfoHost->nodeCnt) {
+            KernelFuncName currentKernelFuncName = GetOrLoadKernelSymbols(opIndex);
+            if (!currentKernelFuncName.name.empty()) {
+                SK_LOGE("[Core %u] COND: Last finished sub-kernel function name: %s", coreId, currentKernelFuncName.name.c_str());
+            }
+        }
+        if (opIndex + 1 < skHeaderInfoHost->nodeCnt) {
+            KernelFuncName nextKernelFuncName = GetOrLoadKernelSymbols(opIndex + 1);
+            if (!nextKernelFuncName.name.empty()) {
+                SK_LOGE("[Core %u] COND: Next sub-kernel function name: %s", coreId, nextKernelFuncName.name.c_str());
+            }
+        }
+    } else if (opState == static_cast<uint8_t>(SkOpTraceType::SK_ENTRY_FINISHED)) {
+        SK_LOGE("[Core %u] COND: SK entry execution completed.", coreId);
+    } else {
+        SK_LOGE("[Core %u] COND: Unknown opState=%u, opIndex=%u", coreId, opState, opIndex);
+    }
+}
+
 void SuperKernelExceptionHandler::PrintSymbolByCoreId(uint32_t coreId, rtCoreType_t coreType,
                                                      uint64_t startPC, uint64_t currentPC,
                                                      const KernelFuncName &kernelFuncName) {
@@ -427,7 +502,7 @@ void SuperKernelExceptionHandler::PrintFuncSymbolInfo(
     std::string symbolName;
     uint64_t symbolSize = 0;
     std::string symbolBind;
-    if (GetFuncSymbolInfo(static_cast<const char*>(binHostAddr), binHostSize,
+    if (GetFuncSymbolInfo(binHdl, static_cast<const char*>(binHostAddr), binHostSize,
                           funcOffset, symbolName, symbolSize, symbolBind)) {
         SK_LOGE("[Core %u] Bound SK symbol name: %s (bind=%s, size=0x%lx)",
                 coreId, symbolName.c_str(), symbolBind.c_str(), symbolSize);
@@ -470,6 +545,7 @@ void SuperKernelExceptionHandler::PrintNoMatchInfo(
 
 void SuperKernelExceptionHandler::IdentifyErrorNodeByPC(uint32_t coreId, rtCoreType_t coreType,
                                                      uint64_t startPC, uint64_t currentPC) {
+    errorNodeIdx_ = -1;
     if (skHeaderInfoHost->dfxOffset == 0 || skHeaderInfoHost->nodeCnt == 0 || currentPC == 0) {
         return;
     }
@@ -496,12 +572,15 @@ void SuperKernelExceptionHandler::IdentifyErrorNodeByPC(uint32_t coreId, rtCoreT
                 PrintFuncSymbolInfo(coreId, coreType, i, j, entries, dfxInfo[i]);
                 PrintNodeDevArgs(coreId, coreType, i);
                 SK_LOGE("============================================================");
+                errorNodeIdx_ = i; 
+                SK_LOGE("errorNodeIdx_ = %d", errorNodeIdx_);
                 return;  // Found the error node
             }
         }
     }
 
     PrintNoMatchInfo(coreId, coreType, startPC, currentPC);
+    SK_LOGE("errorNodeIdx_ = -1");
 }
 
 void SuperKernelExceptionHandler::PrintCoreSymbols(uint32_t coreId, rtCoreType_t coreType,
@@ -613,6 +692,10 @@ bool SuperKernelExceptionHandler::ParseAndPrintSubKernelSymbols(aclrtExceptionIn
         PrintCoreSymbols(coreErrRegInfo.coreId, coreType,
                         coreErrRegInfo.startPC,
                         coreErrRegInfo.currentPC);
+
+        // Parse COND register value from errReg[20](low32) and errReg[21](high32)
+        uint64_t condValue = GetCondRegValue(coreErrRegInfo);
+        ParseAndPrintCondInfo(coreErrRegInfo.coreId, coreType, condValue);
     }
 
     return true;
@@ -627,6 +710,9 @@ void SuperKernelExceptionHandler::FreeResources() {
     // skHeaderInfoHost points inside skDeviceEntryArgsHost (normal path, no separate free needed),
     // or has already been freed in error paths of CopySkDeviceEntryArgsToHost().
     skHeaderInfoHost = nullptr;
+    errorNodeIdx_ = -1;
+    opSymbolCache.clear();
+    funcNodeIndices_.clear();
 }
 
 bool SuperKernelExceptionHandler::StartsWith(const char* source, const char* prefix) {
@@ -682,7 +768,417 @@ bool SuperKernelExceptionHandler::IsSuperKernelException(aclrtExceptionInfo *exc
     return true;
 }
 
-void SuperKernelExceptionCallBackFunc(aclrtExceptionInfo *exceptionInfo) {
+/**
+ * \brief Prepare common operations before exception dump
+ * \param exceptionInfo Input: exception info
+ * \param exceptionRegInfo Output: exception register info
+ * \return aclError ACL_SUCCESS on success, error code on failure
+ */
+aclError SuperKernelExceptionHandler::PrepareExceptionDump(aclrtExceptionInfo* exceptionInfo, ExceptionRegInfo& exceptionRegInfo)
+{
+    // Extract SK entry arguments from device to host and parse task queue
+    if (!ExtractSkEntryArgs(exceptionInfo) || !ExtractTaskQueue()) {
+        FreeResources();
+        SK_LOGE("Failed to extract SK entry args or task queue");
+        return ACL_ERROR_FAILURE;
+    }
+
+    // Get exception register information (core ID, PC pointer, core type)
+    exceptionRegInfo = {0, nullptr};
+    if (!GetExceptionRegInfo(*exceptionInfo, exceptionRegInfo)) {
+        FreeResources();
+        SK_LOGE("Failed to get exception register info");
+        return ACL_ERROR_FAILURE;
+    }
+
+    return ACL_SUCCESS;
+}
+
+/**
+ * \brief Fill sk_entry function name into kernelDisplayName
+ * \param dumpInfo Output: dump info structure
+ * \param exceptionInfo Input: exception info
+ * \return aclError ACL_SUCCESS on success, error code on failure
+ */
+aclError SuperKernelExceptionHandler::PopulateSkEntryFields(Adx::ExceptionDumpInfo& dumpInfo, aclrtExceptionInfo* exceptionInfo)
+{
+    char skFuncName[Adx::MAX_KERNELNAME_LEN] = {0};
+    aclrtFuncHandle funcHandle = nullptr;
+
+    aclError ret = aclrtGetFuncHandleFromExceptionInfo(exceptionInfo, &funcHandle);
+    if (ret != ACL_SUCCESS) {
+        SK_LOGE("Failed to get func handle from exception info, ret=%d", ret);
+        return ACL_ERROR_FAILURE;
+    }
+
+    ret = aclrtGetFunctionName(funcHandle, Adx::MAX_KERNELNAME_LEN, skFuncName);
+    if (ret != ACL_SUCCESS) {
+        SK_LOGE("Failed to get function name, ret=%d", ret);
+        return ACL_ERROR_FAILURE;
+    }
+
+    uint16_t modelRIIdx = static_cast<uint16_t>((skHeaderInfoHost->modelRIIdAndSkScopeId >> 32) & 0xFFFF);
+    uint16_t skScopeId = static_cast<uint16_t>((skHeaderInfoHost->modelRIIdAndSkScopeId >> 16) & 0xFFFF);
+    uint64_t originalModelRI = SkEventRecorder::Instance().GetModelRIByIndex(modelRIIdx);
+    std::string skNameFromRecorder = SkEventRecorder::Instance().GetSkName(originalModelRI, skScopeId);
+    if (!skNameFromRecorder.empty()) {
+        snprintf_s(dumpInfo.kernelDisplayName, Adx::MAX_KERNELNAME_LEN, Adx::MAX_KERNELNAME_LEN - 1,
+                   "%s", skNameFromRecorder.c_str());
+    } else {
+        snprintf_s(dumpInfo.kernelDisplayName, Adx::MAX_KERNELNAME_LEN, Adx::MAX_KERNELNAME_LEN - 1,
+                   "%s_scope%u", skFuncName, skScopeId);
+    }
+    return ACL_SUCCESS;
+}
+
+/**
+ * \brief Fill tensor related fields (coreId, coreType, extraTensor)
+ * \param dumpInfo Output: dump info structure
+ * \param coreId Input: exception core ID
+ * \param coreType Input: exception core type
+ */
+void SuperKernelExceptionHandler::PopulateTensorFields(Adx::ExceptionDumpInfo& dumpInfo, uint32_t coreId, rtCoreType_t coreType)
+{
+    dumpInfo.coreId = coreId;
+    dumpInfo.coreType = coreType;
+    dumpInfo.extraTensorNum = 1;
+
+    Adx::TensorInfo& tensor = dumpInfo.extraTensor[0];
+    tensor.type = Adx::TensorType::WORKSPACE;
+    tensor.tensorSize = skHeaderInfoHost->totalSize;
+    tensor.format = ACL_FORMAT_ND;
+    tensor.dataType = ACL_UINT8;
+    tensor.tensorAddr = reinterpret_cast<int64_t*>(skDeviceEntryArgsDev);
+    tensor.addrType = Adx::AddressType::RAW;
+    tensor.placement = Adx::TensorPlacement::kOnDeviceHbm;
+    tensor.argsOffSet = 0;
+    tensor.shape = {static_cast<int64_t>(tensor.tensorSize)};
+    tensor.originShape = {static_cast<int64_t>(tensor.tensorSize)};
+}
+
+/**
+ * \brief Fill sub-kernel fields (bin, kernelName, argAddr, argSize)
+ * \param dumpInfo Output: dump info structure
+ * \param errorNodeIdx Input: index of the error sub-kernel node
+ * \param exceptionInfo exception info for getting SK entry func handle
+ * \param coreId exception core id
+ * \return true: filled sub-kernel info; false: no match, fields filled with SK entry info
+ */
+bool SuperKernelExceptionHandler::PopulateSubKernelFields(Adx::ExceptionDumpInfo& dumpInfo, int32_t errorNodeIdx,
+                                                          aclrtExceptionInfo* exceptionInfo)
+{
+    if (errorNodeIdx < 0 || static_cast<uint32_t>(errorNodeIdx) >= skHeaderInfoHost->nodeCnt) {
+        SK_LOGI("No sub kernel matched, fill with SK entry fields");
+        constexpr uint32_t MAX_FUNC_NAME_LEN = 256;
+        char funcName[MAX_FUNC_NAME_LEN] = {0};
+
+        // Get SK entry func handle from exception info
+        aclrtFuncHandle funcHandle = nullptr;
+        aclError ret = aclrtGetFuncHandleFromExceptionInfo(exceptionInfo, &funcHandle);
+        if (ret != ACL_SUCCESS || funcHandle == nullptr) {
+            SK_LOGE("Failed to get SK entry func handle, ret=%d", ret);
+            memset_s(dumpInfo.kernelName, sizeof(dumpInfo.kernelName), 0, sizeof(dumpInfo.kernelName));
+            dumpInfo.bin = nullptr;
+            dumpInfo.argAddr = nullptr;
+            dumpInfo.argSize = 0;
+            return false;
+        }
+
+        // Fill kernel name
+        ret = aclrtGetFunctionName(funcHandle, MAX_FUNC_NAME_LEN, funcName);
+        if (ret == ACL_SUCCESS) {
+            SK_LOGI("Successfully got function name: %s", funcName);
+            snprintf_s(dumpInfo.kernelName, Adx::MAX_KERNELNAME_LEN, Adx::MAX_KERNELNAME_LEN - 1, "%s", funcName);
+        } else {
+            SK_LOGI("Failed to get function name, ret=%d", ret);
+            memset_s(dumpInfo.kernelName, sizeof(dumpInfo.kernelName), 0, sizeof(dumpInfo.kernelName));
+        }
+
+        // Fill bin handle
+        ret = aclrtFunctionGetBinary(funcHandle, &dumpInfo.bin);
+        if (ret != ACL_SUCCESS) {
+            SK_LOGE("Failed to get SK entry bin handle, ret=%d", ret);
+            dumpInfo.bin = nullptr;
+        }
+
+        // Exception occurred within Superkernel (not in sub-kernel), no sub-kernel args available
+        dumpInfo.argAddr = nullptr;
+        dumpInfo.argSize = 0;
+        SK_LOGI("Not match sub Kernel, exception occurred within Superkernel");
+        return true;
+    }
+
+    SK_LOGI("Fill sub kernel info, errorNodeIdx=%d", errorNodeIdx);
+    uint8_t* dataBase = reinterpret_cast<uint8_t*>(skDeviceEntryArgsHost);
+    SkDfxInfo* dfxInfo = reinterpret_cast<SkDfxInfo*>(dataBase + skHeaderInfoHost->dfxOffset);
+    SkDfxInfo& errorNode = dfxInfo[errorNodeIdx];
+
+    dumpInfo.bin = reinterpret_cast<void*>(errorNode.binHdl);
+    KernelFuncName kernelFunc = GetOrLoadKernelSymbols(errorNodeIdx);
+    snprintf_s(dumpInfo.kernelName, Adx::MAX_KERNELNAME_LEN, Adx::MAX_KERNELNAME_LEN - 1, "%s", kernelFunc.name.c_str());
+
+    uint64_t argsAddr = 0;
+    uint32_t argsSize = 0;
+    GetSubKernelTaskArgs(errorNodeIdx, argsAddr, argsSize);
+    dumpInfo.argAddr = reinterpret_cast<void*>(argsAddr);
+    dumpInfo.argSize = argsSize;
+    SK_LOGI("Match sub kernel success, exception occurred within sub kernel");
+    return true;
+}
+
+/**
+ * \brief Populate all fields of exception dump info structure
+ * \param dumpInfo Output: dump info structure
+ * \param errorNodeIdx Index of the error sub-kernel node
+ * \param exceptionInfo exception info
+ * \param coreId exception core id
+ * \param coreType exception core type (AIC/AIV)
+ * \return aclError ACL_SUCCESS on success, error code on failure
+ */
+aclError SuperKernelExceptionHandler::PopulateDumpInfoFields(Adx::ExceptionDumpInfo& dumpInfo, int32_t errorNodeIdx,
+    aclrtExceptionInfo* exceptionInfo, uint32_t coreId, rtCoreType_t coreType)
+{
+    if (skHeaderInfoHost == nullptr || skDeviceEntryArgsDev == nullptr) {
+        SK_LOGE("PopulateDumpInfoFields: null pointer");
+        return ACL_ERROR_FAILURE;
+    }
+
+    aclError ret = PopulateSkEntryFields(dumpInfo, exceptionInfo);
+    if (ret != ACL_SUCCESS) {
+        SK_LOGI("PopulateSkEntryFields failed, ret=%d", ret);
+        return ret;
+    }
+
+    PopulateTensorFields(dumpInfo, coreId, coreType);
+    if(PopulateSubKernelFields(dumpInfo, errorNodeIdx, exceptionInfo)) {
+        SK_LOGI("PopulateSubKernelFields success");
+    }
+
+    return ACL_SUCCESS;
+}
+
+/**
+ * \brief Fill exception dump information structure
+ * \param dumpInfo Output: exception dump info structure to be filled
+ * \return aclError ACL_SUCCESS on success, error code on failure
+ */
+aclError SuperKernelExceptionHandler::FillExceptionDumpInfo(Adx::ExceptionDumpInfo& dumpInfo, aclrtExceptionInfo* exceptionInfo) 
+{
+    if (exceptionInfo == nullptr) {
+        SK_LOGE("FillExceptionDumpInfo: no exception info");
+        return ACL_ERROR_INVALID_PARAM;
+    }
+
+    ExceptionRegInfo exceptionRegInfo{0, nullptr};
+    aclError ret = PrepareExceptionDump(exceptionInfo, exceptionRegInfo);
+    if (ret != ACL_SUCCESS) {
+        return ret;
+    }
+
+    int32_t errorNodeIdx = -1;
+    for (uint32_t i = 0; i < exceptionRegInfo.coreNum; i++) {
+        rtExceptionErrRegInfo_t coreErr = exceptionRegInfo.errRegInfo[i];
+        IdentifyErrorNodeByPC(coreErr.coreId, (rtCoreType_t)coreErr.coreType, 
+                             coreErr.startPC, coreErr.currentPC);
+        errorNodeIdx = errorNodeIdx_;
+        (void)PopulateDumpInfoFields(dumpInfo, errorNodeIdx, exceptionInfo, coreErr.coreId, (rtCoreType_t)coreErr.coreType);
+    }
+
+    SK_LOGI("FillExceptionDumpInfo final errorNodeIdx=%d", errorNodeIdx);
+    FreeResources();
+    return ACL_SUCCESS;
+}
+
+bool SuperKernelExceptionHandler::GetSubKernelTaskArgs(uint32_t nodeIdx, uint64_t& argsAddr, uint32_t& argsSize) 
+{
+    if (nodeIdx >= skHeaderInfoHost->nodeCnt) {
+        return false;
+    }
+    uint8_t* dataBase = reinterpret_cast<uint8_t*>(skDeviceEntryArgsHost);
+
+    auto GetTaskArgs = [&](uint32_t queOffset, uint32_t taskCnt) -> bool {
+        if (queOffset == 0 || taskCnt == 0) {
+            SK_LOGI("queOffset or taskCnt is null, skip");
+            return false;
+        }
+        TaskQue* taskQue = reinterpret_cast<TaskQue*>(dataBase + queOffset);
+        for (uint32_t i = 0; i < taskCnt; ++i) {
+            const TaskInfo& task = taskQue->taskInfos[i];
+            if (task.index == nodeIdx && task.type == SkTaskType::TYPE_FUNC) {
+                argsAddr = task.args;
+                argsSize = task.argsSize;
+                return true;
+            }
+        }
+        SK_LOGI("task not found, skip");
+        return false;
+    };
+
+    if (GetTaskArgs(skHeaderInfoHost->aivQueOffset, aivTaskCnt)) {
+        return true;
+    }
+    if (GetTaskArgs(skHeaderInfoHost->aicQueOffset, aicTaskCnt)) {
+        return true;
+    }
+    return false;
+}
+
+namespace {
+    static const char* TensorTypeToString(Adx::TensorType type) 
+    {
+        switch (type) {
+            case Adx::TensorType::INPUT: return "INPUT";
+            case Adx::TensorType::OUTPUT: return "OUTPUT";
+            case Adx::TensorType::WORKSPACE: return "WORKSPACE";
+            default: return "UNKNOWN";
+        }
+    }
+
+    static const char* AddressTypeToString(Adx::AddressType type) 
+    {
+        switch (type) {
+            case Adx::AddressType::TRADITIONAL: return "TRADITIONAL";
+            case Adx::AddressType::NOTILING: return "NOTILING";
+            case Adx::AddressType::RAW: return "RAW";
+            default: return "UNKNOWN";
+        }
+    }
+
+    static void PrintVector(const std::vector<int64_t>& vec, const char* name) {
+        if (vec.empty()) {
+            SK_LOGI("    %-18s: empty", name);
+            return;
+        }
+        std::string vecStr;
+        for (size_t i = 0; i < vec.size(); ++i) {
+            vecStr += std::to_string(vec[i]);
+            if (i != vec.size() - 1) vecStr += ", ";
+        }
+        SK_LOGI("    %-18s: [%s]", name, vecStr.c_str());
+    }
+}
+
+static void PrintExceptionDumpInfoArray(Adx::ExceptionDumpInfo* dumpInfos, uint32_t dumpCount) 
+{
+    if (dumpInfos == nullptr || dumpCount == 0) {
+        SK_LOGI("Adx::ExceptionDumpInfo array is empty, skip print");
+        return;
+    }
+
+    SK_LOGI("==============================================================");
+    SK_LOGI("======= SuperKernel Exception Dump Info Array (count=%u) ======", dumpCount);
+    SK_LOGI("==============================================================");
+
+    for (uint32_t i = 0; i < dumpCount; i++) {
+        Adx::ExceptionDumpInfo& info = dumpInfos[i];
+        SK_LOGI("------------------ Adx::ExceptionDumpInfo [%u] ------------------", i);
+        SK_LOGI("coreId             : %u", info.coreId);
+        SK_LOGI("coreType           : %s", (info.coreType == RT_CORE_TYPE_AIC) ? "AIC" : "AIV");
+        SK_LOGI("argSize            : %u", info.argSize);
+        SK_LOGI("argAddr            : 0x%lx", reinterpret_cast<uint64_t>(info.argAddr));
+        SK_LOGI("bin handle         : 0x%lx", reinterpret_cast<uint64_t>(reinterpret_cast<void*>(info.bin)));
+        SK_LOGI("kernelName         : %s", info.kernelName);
+        SK_LOGI("kernelDisplayName  : %s", info.kernelDisplayName);
+        SK_LOGI("extraTensorNum     : %u", info.extraTensorNum);
+
+        for (uint32_t j = 0; j < info.extraTensorNum && j < Adx::EXCEPTION_DUMP_MAX_TENSOR_NUM; j++) {
+            Adx::TensorInfo& tensor = info.extraTensor[j];
+            SK_LOGI("  >>> extraTensor[%u] <<<", j);
+            SK_LOGI("    type           : %s", TensorTypeToString(tensor.type));
+            SK_LOGI("    tensorSize     : %zu bytes", tensor.tensorSize);
+            SK_LOGI("    format         : %d", tensor.format);
+            SK_LOGI("    dataType       : %d", tensor.dataType);
+            SK_LOGI("    tensorAddr     : 0x%lx", reinterpret_cast<uint64_t>(tensor.tensorAddr));
+            SK_LOGI("    addrType       : %s", AddressTypeToString(tensor.addrType));
+            SK_LOGI("    placement      : %d", tensor.placement);
+            SK_LOGI("    argsOffSet     : %u", tensor.argsOffSet);
+            PrintVector(tensor.shape, "shape");
+            PrintVector(tensor.originShape, "originShape");
+        }
+    }
+    SK_LOGI("==============================================================\n");
+}
+
+void SuperKernelExceptionCallBackFunc(aclrtExceptionInfo *exceptionInfo) 
+{
     SuperKernelExceptionHandler handler;
     handler.HandleException(exceptionInfo);
+}
+
+uint32_t SuperKernelExceptionHandler::ProcessExceptionDump(
+    aclrtExceptionInfo* exceptionInfo,
+    Adx::ExceptionDumpInfo* exceptionDumpInfo,
+    uint32_t exceptionDumpSize,
+    uint32_t* exceptionDumpRealSize,
+    Adx::ExceptionDumpMode* mode 
+)
+{
+    if (exceptionDumpSize < 1) {
+        SK_LOGE("ExceptionDumpCallBack: exceptionDumpSize too small");
+        return ACL_ERROR_INVALID_PARAM;
+    }
+
+    *exceptionDumpRealSize = 0;
+    memset_s(exceptionDumpInfo, exceptionDumpSize * sizeof(Adx::ExceptionDumpInfo), 0, exceptionDumpSize * sizeof(Adx::ExceptionDumpInfo));
+
+    if (!IsSuperKernelException(exceptionInfo)) {
+        SK_LOGD("Not superkernel exception, skip dump");
+        *exceptionDumpRealSize = 0;
+        *mode = Adx::ExceptionDumpMode::DUMP_MODE_NONE;
+        return ACL_SUCCESS;
+    }
+    SK_LOGI("Exception is in SuperKernel");
+    ExceptionRegInfo exceptionRegInfo{0, nullptr};
+    aclError ret = PrepareExceptionDump(exceptionInfo, exceptionRegInfo);
+    if (ret != ACL_SUCCESS) {
+        return ret;
+    }
+
+    uint32_t validDumpNum = 0;
+    for (uint32_t i = 0; i < exceptionRegInfo.coreNum && validDumpNum < exceptionDumpSize; ++i) {
+        rtExceptionErrRegInfo_t& coreErr = exceptionRegInfo.errRegInfo[i];
+        IdentifyErrorNodeByPC(coreErr.coreId, (rtCoreType_t)coreErr.coreType, coreErr.startPC, coreErr.currentPC);
+        
+        aclError ret = PopulateDumpInfoFields(exceptionDumpInfo[validDumpNum], errorNodeIdx_, exceptionInfo, coreErr.coreId, (rtCoreType_t)coreErr.coreType);
+        if (ret == ACL_SUCCESS) {
+            validDumpNum++;
+        }
+    }
+
+    PrintExceptionDumpInfoArray(exceptionDumpInfo, validDumpNum);
+    *exceptionDumpRealSize = validDumpNum;
+    *mode = Adx::ExceptionDumpMode::DUMP_MODE_OVERWRITE;
+    
+    FreeResources();
+    SK_LOGI("Adx::ExceptionDumpInfo fill success, coreNum=%u, validDump=%u", exceptionRegInfo.coreNum, validDumpNum);
+    return ACL_SUCCESS;
+}
+
+bool IsValidCommonException(const rtExceptionExpandType_t exceptionTaskType)
+{
+    return exceptionTaskType != RT_EXCEPTION_AICORE && exceptionTaskType != RT_EXCEPTION_FFTS_PLUS && exceptionTaskType != RT_EXCEPTION_FUSION;
+}
+
+uint32_t ExceptionDumpInfoCallBack(void* exceptionInfo, Adx::ExceptionDumpInfo* exceptionDumpInfo,
+    uint32_t exceptionDumpSize, uint32_t* exceptionDumpRealSize, Adx::ExceptionDumpMode* mode)
+{
+    if (exceptionInfo == nullptr || exceptionDumpInfo == nullptr || exceptionDumpRealSize == nullptr) {
+        SK_LOGE("ExceptionDumpCallBack: invalid null params");
+        return ACL_ERROR_INVALID_PARAM;
+    }
+    if (IsValidCommonException(static_cast<aclrtExceptionInfo*>(exceptionInfo)->expandInfo.type)) {
+        SK_LOGI("Not superkernel exception, skip dump");
+        *exceptionDumpRealSize = 0;
+        *mode = Adx::ExceptionDumpMode::DUMP_MODE_NONE;
+        return ACL_SUCCESS;
+    }
+    SK_LOGI("Start SuperKernelExceptionHandler::ProcessExceptionDump");
+    SuperKernelExceptionHandler handler;
+    return handler.ProcessExceptionDump(
+        static_cast<aclrtExceptionInfo*>(exceptionInfo),
+        exceptionDumpInfo,
+        exceptionDumpSize,
+        exceptionDumpRealSize,
+        mode
+    );
 }

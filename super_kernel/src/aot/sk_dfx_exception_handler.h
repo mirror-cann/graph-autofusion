@@ -25,6 +25,7 @@
 #include "acl/acl.h"
 #include "sk_common.h"
 #include "runtime/base.h"
+#include "dump/adump_pub.h"
 
 struct ExceptionRegInfo {
     uint32_t coreNum;
@@ -41,6 +42,20 @@ public:
     ~SuperKernelExceptionHandler() = default;
 
     void HandleException(aclrtExceptionInfo *exceptionInfo);
+
+    aclError FillExceptionDumpInfo(Adx::ExceptionDumpInfo& dumpInfo, aclrtExceptionInfo* exceptionInfo);
+
+    int32_t GetErrorNodeIdx() const { return errorNodeIdx_; }
+
+    bool GetSubKernelTaskArgs(uint32_t nodeIdx, uint64_t& argsAddr, uint32_t& argsSize);
+
+    uint32_t ProcessExceptionDump(
+        aclrtExceptionInfo* exceptionInfo,
+        Adx::ExceptionDumpInfo* exceptionDumpInfo,
+        uint32_t exceptionDumpSize,
+        uint32_t* exceptionDumpRealSize,
+        Adx::ExceptionDumpMode* mode 
+    );
 
 private:
     bool IsSuperKernelException(aclrtExceptionInfo *exceptionInfo);
@@ -72,6 +87,20 @@ private:
 
     bool StartsWith(const char* source, const char* prefix);
     bool GetExceptionRegInfo(const aclrtExceptionInfo &exception, ExceptionRegInfo &exceptionRegInfo);
+    void ParseAndPrintCondInfo(uint32_t coreId, rtCoreType_t coreType, uint64_t condValue);
+    void PrintCondSubKernelInfo(uint32_t coreId, uint64_t condValue);
+    static uint64_t GetCondRegValue(const rtExceptionErrRegInfo_t &coreErrRegInfo);
+
+    aclError PopulateDumpInfoFields(Adx::ExceptionDumpInfo& dumpInfo, int32_t errorNodeIdx, 
+                                aclrtExceptionInfo* exceptionInfo,
+                                uint32_t coreId, rtCoreType_t coreType);
+
+    aclError PrepareExceptionDump(aclrtExceptionInfo* exceptionInfo, ExceptionRegInfo& exceptionRegInfo);
+
+    aclError PopulateSkEntryFields(Adx::ExceptionDumpInfo& dumpInfo, aclrtExceptionInfo* exceptionInfo);
+    void PopulateTensorFields(Adx::ExceptionDumpInfo& dumpInfo, uint32_t coreId, rtCoreType_t coreType);
+    bool PopulateSubKernelFields(Adx::ExceptionDumpInfo& dumpInfo, int32_t errorNodeIdx,
+                                aclrtExceptionInfo* exceptionInfo);
 
     uint32_t aicoreNums;
     std::map<uint32_t, KernelFuncName> opSymbolCache;  // Operator function name cache: opId -> KernelFuncName
@@ -89,10 +118,17 @@ private:
     uint32_t aivTaskCnt;
     std::set<uint32_t> funcNodeIndices_;  // Indices of nodes whose task type is TYPE_FUNC
     bool hasOpTrace_;                // Whether sk_entry name contains "op_trace"
-
+    int32_t errorNodeIdx_ = -1;
     aclError CheckError(aclError ret, const char *errorMsg);
 };
 
 void SuperKernelExceptionCallBackFunc(aclrtExceptionInfo *exceptionInfo);
+uint32_t ExceptionDumpInfoCallBack(
+    void* exceptionInfo,
+    Adx::ExceptionDumpInfo* exceptionDumpInfo,
+    uint32_t exceptionDumpSize,
+    uint32_t* exceptionDumpRealSize,
+    Adx::ExceptionDumpMode* mode
+);
 
 #endif // __SK_DFX_EXCEPTION_HANDLER_H__

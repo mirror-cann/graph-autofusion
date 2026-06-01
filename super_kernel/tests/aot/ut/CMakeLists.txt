@@ -15,8 +15,10 @@ set(LOCAL_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 add_executable(super_kernel_aot_utest
     ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test_sk_options_manager.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_super_kernel.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test_sk_graph.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test_sk_node.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_sk_common.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test_sk_constant_codegen.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test_sk_scope_split.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test_node_scope_tagging.cpp
@@ -60,6 +62,7 @@ add_executable(super_kernel_aot_utest
 target_include_directories(super_kernel_aot_utest PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/stub
+    ${CMAKE_CURRENT_SOURCE_DIR}/stub/dump
     ${CMAKE_CURRENT_SOURCE_DIR}/stub/runtime
     ${CMAKE_CURRENT_SOURCE_DIR}/stub/acl
     ${CMAKE_CURRENT_SOURCE_DIR}/stub/base

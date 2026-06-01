@@ -26,6 +26,7 @@
 #include <sstream>
 #include <fstream>
 #include <utility>
+#include <cstring>
 
 #include "sk_node.h"
 #include "sk_log.h"
@@ -95,7 +96,12 @@ const char* BindmapFailReasonToStr(BindmapFailReason reason) {
         case BindmapFailReason::BINDMAP_INIT_EMPTY:     return "bindmap init empty";
         case BindmapFailReason::BINHDL_NULL:            return "binHdl is null";
         case BindmapFailReason::FUNCHDL_NULL:           return "funcHdl is null";
-        case BindmapFailReason::FUNC_NOT_FOUND:         return "initialize kernel function failed";
+        case BindmapFailReason::FUNC_NOT_FOUND:         return "function not found in bind map";
+        case BindmapFailReason::BIN_DEV_ADDR_GET_FAILED: return "failed to get binary device address";
+        case BindmapFailReason::FUNC_ADDR_GET_FAILED:   return "failed to get function address";
+        case BindmapFailReason::BINDMAP_ENTRY_CONFLICT: return "bind map entry conflict";
+        case BindmapFailReason::BINDMAP_CAP_INCONSISTENT: return "bind map cap inconsistent";
+        case BindmapFailReason::BIN_HOST_ADDR_GET_FAILED: return "failed to get binary host address";
         default:                                        return "UNKNOWN_BINDMAP_REASON";
     }
 }
@@ -158,7 +164,7 @@ SkBindMap InitSuperKernelBindMap(aclrtBinHandle binHdl)
 
     if (int ret = rtBinaryGetMetaInfo(binHdl, RT_BINARY_TYPE_SK_INFO, metaNum, metaDataList.data(),
         infoSize.data()) != 0) {
-        SK_LOGE("rtBinaryGetMetaInfo failed, ret=%d", ret);
+        SK_LOGI("rtBinaryGetMetaInfo failed, ret=%d", ret);
         return SkBindMap();
     }
 
@@ -188,7 +194,7 @@ SkBindMap InitSuperKernelBindMap(aclrtBinHandle binHdl)
         auto it = bindMap.find(globalFunc);
         if (it != bindMap.end() &&
             (it->second.cap != bindInfo.cap || it->second.sknlFuncs != bindInfo.sknlFuncs)) {
-            SK_LOGE("InitSuperKernelBindMap: globalFunc=0x%lx is duplicated with different value",
+            SK_LOGI("InitSuperKernelBindMap: globalFunc=0x%lx is duplicated with different value",
                 globalFunc);
             it->second.sknlFuncs[0] = INVALID_SK_BIND_VALUE;
             continue;
@@ -202,33 +208,13 @@ namespace {
 constexpr uint32_t AIV_TYPE_SIMT_VF_ONLY = 3U;
 constexpr uint32_t AIV_TYPE_SIMD_SIMT_MIX_VF = 4U;
 
-bool IsSimtKernel(aclrtFuncHandle funcHandle) {
-    uint32_t aivType = 0;
-    rtError_t ret = rtFunctionGetMetaInfo(funcHandle,
-        RT_FUNCTION_TYPE_AIV_TYPE_FLAG,
-        &aivType, sizeof(uint32_t));
-    
-    if (ret != RT_ERROR_NONE) {
-        SK_LOGD("rtFunctionGetMetaInfo AIV_TYPE_FLAG failed, ret=%d, treat as non-SIMT", ret);
-        return false;
-    }
-    
-    bool isSimt = (aivType == AIV_TYPE_SIMT_VF_ONLY ||
-                   aivType == AIV_TYPE_SIMD_SIMT_MIX_VF);
-    
-    if (isSimt) {
-        SK_LOGI("Kernel is SIMT type, aivType=%u", aivType);
-    }
-    
-    return isSimt;
-}
-
 using SkAllBinMap = std::unordered_map<aclrtBinHandle, SkBindMap>;
 
 struct CoreFuncInitContext {
     ResolvedFunctionInfo* info;
     SkBindMap::iterator bindIt;
     size_t splitIdx;
+    BindmapFailReason* failReason;
 };
 
 enum class SkNodeCoreType: uint32_t {
@@ -270,9 +256,8 @@ ScheModeState ParseScheModeState(int64_t rawValue)
 ScheModeState GetScheModeFromFuncAttr(aclrtFuncHandle funcHandle)
 {
     int64_t funcAttrScheModeValue = 0;
-    aclError aclRet = ACL_SUCCESS;
-    CHECK_ACL(aclRet = aclrtGetFunctionAttribute(funcHandle,
-        static_cast<aclrtFuncAttribute>(ACL_FUNC_ATTR_KERNEL_SCHEMODE_PLACEHOLDER), &funcAttrScheModeValue));
+    aclError aclRet = aclrtGetFunctionAttribute(funcHandle,
+        static_cast<aclrtFuncAttribute>(ACL_FUNC_ATTR_KERNEL_SCHEMODE_PLACEHOLDER), &funcAttrScheModeValue);
     if (aclRet != ACL_SUCCESS) {
         SK_LOGE("Failed to query function attribute schemode, ret=%d", aclRet);
         return ScheModeState::NONE;
@@ -327,13 +312,16 @@ bool InitSingleCoreFunc(const CoreFuncInitContext& ctx, aclrtBinHandle binHdl, v
     if (int ret = rtGetBinBuffer(binHdl, RT_BIN_HOST_ADDR, &binHostAddr, &binHostSize) != 0) {
         SK_LOGE("split[%zu] rtGetBinBuffer failed for %s, ret=%d", ctx.splitIdx,
             coreName.c_str(), ret);
+        if (ctx.failReason != nullptr) {
+            *ctx.failReason = BindmapFailReason::BIN_HOST_ADDR_GET_FAILED;
+        }
         return false;
     }
     std::string symbolName = "";
     uint64_t funcSize = 0;
     std::string symbolBind = "";
-    if (GetFuncSymbolInfo(static_cast<const char*>(binHostAddr), binHostSize, skFuncOffset,
-                          symbolName, funcSize, symbolBind)) {
+    if (GetFuncSymbolInfo(binHdl, static_cast<const char*>(binHostAddr), binHostSize, skFuncOffset,
+                      symbolName, funcSize, symbolBind)) {
         ctx.info->prefetchCnt[coreTypeId] = AlignUpAndClamp(funcSize, coreTypeId);
         ctx.info->symbolBind[coreTypeId] = symbolBind;
         SK_LOGI("split[%zu] %s symbol=%s, size=0x%lx, bind=%s",
@@ -353,20 +341,20 @@ bool InitSingleCoreFunc(const CoreFuncInitContext& ctx, aclrtBinHandle binHdl, v
 
 bool InitSingleSplitFunc(ResolvedFunctionInfo &info, size_t splitIdx,
     const SkBindMap &bindMap, SkBindMap::iterator aicIt, SkBindMap::iterator aivIt,
-    aclrtBinHandle binHdl, void *binDevAddr, uint32_t &resolvedNum)
+    aclrtBinHandle binHdl, void *binDevAddr, uint32_t &resolvedNum, BindmapFailReason &failReason)
 {
     bool res = false;
     uint32_t validFuncNum = 0;
     if (aicIt != bindMap.end()) {
-        CoreFuncInitContext aicCtx = {&info, aicIt, splitIdx};
+        CoreFuncInitContext aicCtx = {&info, aicIt, splitIdx, &failReason};
         res |= InitSingleCoreFunc<SkNodeCoreType::AIC>(aicCtx, binHdl, binDevAddr, validFuncNum);
     }
     if (aivIt != bindMap.end()) {
-        CoreFuncInitContext aivCtx = {&info, aivIt, splitIdx};
+        CoreFuncInitContext aivCtx = {&info, aivIt, splitIdx, &failReason};
         res |= InitSingleCoreFunc<SkNodeCoreType::AIV>(aivCtx, binHdl, binDevAddr, validFuncNum);
     }
     if (!res) {
-        SK_LOGE("Failed to initialize kernel function in sk Node split[%zu]", splitIdx);
+        SK_LOGI("Failed to initialize kernel function in sk Node split[%zu]", splitIdx);
         return false;
     }
     if (validFuncNum > 0) {
@@ -380,12 +368,12 @@ bool InitKernelResolvedFuncs(KernelInfos &kernelInfos)
     aclrtBinHandle binHdl = kernelInfos.binHdl;
     aclrtFuncHandle oriFuncHdl = kernelInfos.funcHdl;
     if (binHdl == nullptr) {
-        SK_LOGE("binHdl is null for kernel %s", kernelInfos.funcName.c_str());
+        SK_LOGI("binHdl is null for kernel %s", kernelInfos.funcName.c_str());
         kernelInfos.bindmapFailReason = BindmapFailReason::BINHDL_NULL;
         return false;
     }
     if (oriFuncHdl == nullptr) {
-        SK_LOGE("funcHdl is null for kernel %s", kernelInfos.funcName.c_str());
+        SK_LOGI("funcHdl is null for kernel %s", kernelInfos.funcName.c_str());
         kernelInfos.bindmapFailReason = BindmapFailReason::FUNCHDL_NULL;
         return false;
     }
@@ -397,9 +385,22 @@ bool InitKernelResolvedFuncs(KernelInfos &kernelInfos)
     }
     size_t binDevSize = 0;
     void *binDevAddr = nullptr;
-    CHECK_ACL(aclrtBinaryGetDevAddress(binHdl, &binDevAddr, &binDevSize));
+    aclError aclRet = aclrtBinaryGetDevAddress(binHdl, &binDevAddr, &binDevSize);
+    if (aclRet != ACL_SUCCESS) {
+        SK_LOGE("Failed to get binary device address for kernel %s, ret=%d",
+                kernelInfos.funcName.c_str(), aclRet);
+        kernelInfos.bindmapFailReason = BindmapFailReason::BIN_DEV_ADDR_GET_FAILED;
+        return false;
+    }
+    
     void *addr[2] = {nullptr, nullptr}; // {aic addr, aiv addr}
-    CHECK_ACL(aclrtGetFunctionAddr(oriFuncHdl, addr, addr + 1));
+    aclRet = aclrtGetFunctionAddr(oriFuncHdl, addr, addr + 1);
+    if (aclRet != ACL_SUCCESS) {
+        SK_LOGE("Failed to get function address for kernel %s, ret=%d",
+                kernelInfos.funcName.c_str(), aclRet);
+        kernelInfos.bindmapFailReason = BindmapFailReason::FUNC_ADDR_GET_FAILED;
+        return false;
+    }
 
     uint64_t aicOffset = (uint64_t)addr[0] - (uint64_t)binDevAddr;
     uint64_t aivOffset = (uint64_t)addr[1] - (uint64_t)binDevAddr;
@@ -409,27 +410,32 @@ bool InitKernelResolvedFuncs(KernelInfos &kernelInfos)
     auto aicItor = bindMap.find(aicOffset);
     auto aivItor = bindMap.find(aivOffset);
     if (aicItor != bindMap.end() && HasInvalidSkBindValue(aicItor->second)) {
-        SK_LOGE("Invalid sk bind map for globalFunc=0x%lx, kernel %s has duplicated entries with different values",
+        SK_LOGI("Invalid sk bind map for globalFunc=0x%lx, kernel %s has duplicated entries with different values",
             aicItor->first, kernelInfos.funcName.c_str());
-        kernelInfos.bindmapFailReason = BindmapFailReason::FUNC_NOT_FOUND;
+        kernelInfos.bindmapFailReason = BindmapFailReason::BINDMAP_ENTRY_CONFLICT;
         return false;
     }
     if (aivItor != bindMap.end() && HasInvalidSkBindValue(aivItor->second)) {
-        SK_LOGE("Invalid sk bind map for globalFunc=0x%lx, kernel %s has duplicated entries with different values",
+        SK_LOGI("Invalid sk bind map for globalFunc=0x%lx, kernel %s has duplicated entries with different values",
             aivItor->first, kernelInfos.funcName.c_str());
+        kernelInfos.bindmapFailReason = BindmapFailReason::BINDMAP_ENTRY_CONFLICT;
+        return false;
+    }
+    if (aicItor == bindMap.end() && aivItor == bindMap.end()) {
+        SK_LOGI("Function is not found in sk bind map for kernel %s", kernelInfos.funcName.c_str());
         kernelInfos.bindmapFailReason = BindmapFailReason::FUNC_NOT_FOUND;
         return false;
     }
     bool hasCap = false;
     uint64_t cap = 0;
     if (aicItor != bindMap.end() && !UpdateKernelCap(aicItor->second, hasCap, cap)) {
-        SK_LOGE("Invalid sk bind map for kernel %s, cap is inconsistent", kernelInfos.funcName.c_str());
-        kernelInfos.bindmapFailReason = BindmapFailReason::FUNC_NOT_FOUND;
+        SK_LOGI("Invalid sk bind map for kernel %s, cap is inconsistent", kernelInfos.funcName.c_str());
+        kernelInfos.bindmapFailReason = BindmapFailReason::BINDMAP_CAP_INCONSISTENT;
         return false;
     }
     if (aivItor != bindMap.end() && !UpdateKernelCap(aivItor->second, hasCap, cap)) {
-        SK_LOGE("Invalid sk bind map for kernel %s, cap is inconsistent", kernelInfos.funcName.c_str());
-        kernelInfos.bindmapFailReason = BindmapFailReason::FUNC_NOT_FOUND;
+        SK_LOGI("Invalid sk bind map for kernel %s, cap is inconsistent", kernelInfos.funcName.c_str());
+        kernelInfos.bindmapFailReason = BindmapFailReason::BINDMAP_CAP_INCONSISTENT;
         return false;
     }
     kernelInfos.cap = hasCap ? cap : 0;
@@ -449,10 +455,11 @@ bool InitKernelResolvedFuncs(KernelInfos &kernelInfos)
     kernelInfos.resolvedNum = 0;
     for (size_t i = 0; i < K_MAX_SPLIT_BIN_COUNT; ++i) {
         ResolvedFunctionInfo info{};
+        BindmapFailReason failReason = BindmapFailReason::NONE;
         if (!InitSingleSplitFunc(info, i, bindMap, aicItor, aivItor,
-                            binHdl, binDevAddr, kernelInfos.resolvedNum)) {
-            SK_LOGE("Failed to initialize kernel function in sk Node split[%zu]", i);
-            kernelInfos.bindmapFailReason = BindmapFailReason::FUNC_NOT_FOUND;
+                            binHdl, binDevAddr, kernelInfos.resolvedNum, failReason)) {
+            SK_LOGI("Failed to initialize kernel function in sk Node split[%zu]", i);
+            kernelInfos.bindmapFailReason = failReason;
             return false;
         }
         kernelInfos.resolvedFuncs[i] = info;
@@ -494,6 +501,25 @@ SkKernelType NormalizeKernelType(uint32_t kernelType, const uint32_t taskRatio[2
 bool IsMixKernelType(SkKernelType kernelType)
 {
     return kernelType == SkKernelType::MIX_AIC_1_1 || kernelType == SkKernelType::MIX_AIC_1_2;
+}
+
+constexpr char SK_SCOPE_KERNEL_SUFFIX_SEPARATOR = '_';
+
+bool IsScopeKernelNameWithSupportedArch(const char* kernelName, const char* baseName)
+{
+    const size_t baseLen = strlen(baseName);
+    if (strncmp(kernelName, baseName, baseLen) != 0) {
+        return false;
+    }
+    if (kernelName[baseLen] != SK_SCOPE_KERNEL_SUFFIX_SEPARATOR) {
+        return false;
+    }
+    for (const auto arch : SK_SUPPORTED_KERNEL_ARCHS) {
+        if (strcmp(kernelName + baseLen + 1, GetSkKernelArchSymbolSuffix(arch)) == 0) {
+            return true;
+        }
+    }
+    return false;
 }
 
 } // namespace
@@ -573,9 +599,6 @@ Json SyncInfosToJson(const SyncInfos& syncInfos, SkNodeType nodeType)
     }
     if (!syncInfos.correspondingResetNodeIds.empty()) {
         syncJson["correspondingResetNodeIds"] = syncInfos.correspondingResetNodeIds;
-    }
-    if (!syncInfos.correspondingMemoryWriteNodeIds.empty()) {
-        syncJson["correspondingMemoryWriteNodeIds"] = syncInfos.correspondingMemoryWriteNodeIds;
     }
     if (syncInfos.memoryValue != std::numeric_limits<uint64_t>::max()) {
         syncJson["memoryValue"] = Uint64ToHexString(syncInfos.memoryValue);
@@ -734,20 +757,17 @@ struct JudgeTaskKernelInfo {
 
 bool IsScopeKernel(aclmdlRIKernelTaskParams params, JudgeTaskKernelInfo* info) {
     const char* defaultScopeName = "default_sk_scope_name";
-    const char* placeholderName = "sk_placeholder_kernel";
-    const char* targetBeginName = "sk_scope_kernel_begin";
-    const char* targetEndName = "sk_scope_kernel_end";
     char kernelName[MAX_SCOPE_NAME_LEN] = {0};
     int32_t ret = aclrtGetFunctionName(params.funcHandle, sizeof(kernelName), kernelName);
     if (ret != ACL_SUCCESS) {
         SK_LOGE("Failed to get kernel name for funcHandle, ret: %d", ret);
         return false;
     }
-    bool isBegin = (strcmp(kernelName, targetBeginName) == 0);
-    bool isEnd = (strcmp(kernelName, targetEndName) == 0);
-    bool isPlaceholder = (strcmp(kernelName, placeholderName) == 0);
+    bool isBegin = IsScopeKernelNameWithSupportedArch(kernelName, "sk_scope_kernel_begin");
+    bool isEnd = IsScopeKernelNameWithSupportedArch(kernelName, "sk_scope_kernel_end");
+    bool isPlaceholder = IsScopeKernelNameWithSupportedArch(kernelName, "sk_placeholder_kernel");
     if (!isBegin && !isEnd && !isPlaceholder) {
-        SK_LOGD("current kernel is not scope kernel, current kernel name is: %s", kernelName);
+        SK_LOGD("Current kernel is not a scope kernel or uses unsupported arch suffix, kernelName=%s", kernelName);
         return false;
     }
     auto parseArgsAddr = std::make_unique<ScopeKernelArgs>();
@@ -771,8 +791,9 @@ bool IsScopeKernel(aclmdlRIKernelTaskParams params, JudgeTaskKernelInfo* info) {
     if (strcmp(info->scopeName.get(), defaultScopeName) == 0) {
         info->isFuseEnable = false;
     }
-    SK_LOGI("Success parse scope kernel task, kernelName: %s, scopeName: %s, isBegin: %d, isFuseEnable: %d", kernelName,
-        info->scopeName.get(), info->isBegin, info->isFuseEnable);
+    SK_LOGI("Success parse scope kernel task, kernelName: %s, scopeName: %s, isBegin: %d, isEnd: %d, "
+            "isPlaceholder: %d, isFuseEnable: %d",
+        kernelName, info->scopeName.get(), info->isBegin, info->isEnd, info->isPlaceholder, info->isFuseEnable);
     return true;
 }
 
@@ -805,9 +826,20 @@ bool SuperKernelKernelNode::InitNode(const SuperKernelOptionsManager* opts) {
     }
 
     int64_t kernelType = 0;
+    aclRet = aclrtGetFunctionAttribute(kernelParams.funcHandle, ACL_FUNC_ATTR_KERNEL_TYPE, &kernelType);
+    if (aclRet != ACL_SUCCESS) {
+        SK_LOGE("Failed to get kernel type for node %s, ret=%d", Format().c_str(), aclRet);
+        SetFusionFailReason(FusionFailReason::KERNEL_ATTR_GET_FAILED);
+        return false;
+    }
+    
     int64_t taskRatio = 0;
-    CHECK_ACL(aclrtGetFunctionAttribute(kernelParams.funcHandle, ACL_FUNC_ATTR_KERNEL_TYPE, &kernelType));
-    CHECK_ACL(aclrtGetFunctionAttribute(kernelParams.funcHandle, ACL_FUNC_ATTR_KERNEL_RATIO, &taskRatio));
+    aclRet = aclrtGetFunctionAttribute(kernelParams.funcHandle, ACL_FUNC_ATTR_KERNEL_RATIO, &taskRatio);
+    if (aclRet != ACL_SUCCESS) {
+        SK_LOGE("Failed to get task ratio for node %s, ret=%d", Format().c_str(), aclRet);
+        SetFusionFailReason(FusionFailReason::KERNEL_ATTR_GET_FAILED);
+        return false;
+    }
 
     const int16_t* taskRatioInt16 = reinterpret_cast<const int16_t*>(&taskRatio);
     uint32_t skTaskTatio[2] = {static_cast<uint32_t>(taskRatioInt16[1]), static_cast<uint32_t>(taskRatioInt16[0])};
@@ -848,7 +880,12 @@ bool SuperKernelKernelNode::InitNode(const SuperKernelOptionsManager* opts) {
     }
 
     char tmpFuncName[256] = {0};
-    CHECK_ACL(aclrtGetFunctionName(kernelParams.funcHandle, sizeof(tmpFuncName), tmpFuncName));
+    aclRet = aclrtGetFunctionName(kernelParams.funcHandle, sizeof(tmpFuncName), tmpFuncName);
+    if (aclRet != ACL_SUCCESS) {
+        SK_LOGE("Failed to get function name for node %s, ret=%d", Format().c_str(), aclRet);
+        SetFusionFailReason(FusionFailReason::KERNEL_ATTR_GET_FAILED);
+        return false;
+    }
     nodeInfos.kernelInfos.funcName = std::string(tmpFuncName);
     nodeInfos.kernelInfos.needMixKernelSplit = IsMixKernelType(nodeInfos.kernelInfos.kernelType);
     const auto* ubufLockIgnoreKernelOpt = opts == nullptr ? nullptr :
@@ -869,19 +906,8 @@ bool SuperKernelKernelNode::InitNode(const SuperKernelOptionsManager* opts) {
         }
     }
 
-    nodeInfos.kernelInfos.isSimtOp = false;
-    if (opts != nullptr) {
-        const auto* simtCheckOpt = opts->GetOption(SkInnerOptionType::ENABLE_SIMT_OP_CHECK);
-        if (simtCheckOpt != nullptr && simtCheckOpt->GetIntValue() == 1) {
-            if (IsSimtKernel(kernelParams.funcHandle)) {
-                nodeInfos.kernelInfos.isSimtOp = true;
-                isFusible = false;
-                SetFusionFailReason(FusionFailReason::SIMT_OP_NOT_SUPPORTED);
-                SK_LOGI("Kernel node %lu is SIMT operator, not fusible, funcName=%s",
-                    nodeId, nodeInfos.kernelInfos.funcName.c_str());
-            }
-        }
-    }
+    // SIMT算子不支持SuperKernel融合，仅检查含AIV section的kernel类型
+    IdentifyAndHandleSimtKernel(opts);
 
     if (taskParams.taskGrp != nullptr) {
         SK_LOGI("Kernel node %lu has a non-null task group and cannot be fused in super kernel.", nodeId);
@@ -910,6 +936,44 @@ bool SuperKernelKernelNode::GetScheMode() const
         static_cast<int64_t>(launchAttrScheModeState),
         static_cast<int64_t>(finalScheModeState));
     return finalScheModeState == ScheModeState::SCHE_MODE_ON;
+}
+
+void SuperKernelKernelNode::IdentifyAndHandleSimtKernel(const SuperKernelOptionsManager* opts) {
+    nodeInfos.kernelInfos.isSimtOp = false;
+    if (opts == nullptr) {
+        return;
+    }
+    const auto* simtCheckOpt = opts->GetOption(SkInnerOptionType::ENABLE_SIMT_OP_CHECK);
+    if (simtCheckOpt == nullptr || simtCheckOpt->GetIntValue() != 1) {
+        return;
+    }
+    SkKernelType kernelType = nodeInfos.kernelInfos.kernelType;
+    bool hasAivSection = (kernelType == SkKernelType::AIV_ONLY ||
+                          kernelType == SkKernelType::MIX_AIV_1_0 ||
+                          kernelType == SkKernelType::MIX_AIC_1_1 ||
+                          kernelType == SkKernelType::MIX_AIC_1_2);
+    if (!hasAivSection) {
+        SK_LOGI("IdentifyAndHandleSimtKernel: %s has no AIV section (kernelType=%s), skip SIMT check",
+            Format().c_str(), to_string(kernelType));
+        return;
+    }
+    SK_LOGI("IdentifyAndHandleSimtKernel: checking for %s, kernelType=%s, nodeId=%lu",
+        Format().c_str(), to_string(kernelType), nodeId);
+    uint32_t aivType = 0;
+    rtError_t ret = rtFunctionGetMetaInfo(taskParams.kernelTaskParams.funcHandle,
+        RT_FUNCTION_TYPE_AIV_TYPE_FLAG, &aivType, sizeof(uint32_t));
+    if (ret != RT_ERROR_NONE) {
+        SK_LOGD("rtFunctionGetMetaInfo AIV_TYPE_FLAG failed for %s, ret=%d", Format().c_str(), ret);
+        return;
+    }
+    bool isSimt = (aivType == AIV_TYPE_SIMT_VF_ONLY || aivType == AIV_TYPE_SIMD_SIMT_MIX_VF);
+    if (isSimt) {
+        nodeInfos.kernelInfos.isSimtOp = true;
+        isFusible = false;
+        SetFusionFailReason(FusionFailReason::SIMT_OP_NOT_SUPPORTED);
+        SK_LOGI("%s is SIMT type, aivType=%u, not fusible", Format().c_str(), aivType);
+    }
+    return;
 }
 
 std::string SuperKernelKernelNode::Format() const {

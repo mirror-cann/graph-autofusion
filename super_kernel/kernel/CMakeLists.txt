@@ -26,6 +26,10 @@ foreach(SK_KERNEL_ARCH IN LISTS SK_KERNEL_ARCHS)
       $<$<COMPILE_LANGUAGE:ASC>:${CMAKE_CURRENT_SOURCE_DIR}/../src/aot/>
    )
 
+   target_link_libraries(${SK_ENTRY_TARGET} PRIVATE
+      $<BUILD_INTERFACE:runtime_headers>
+   )
+
    set(SK_ENTRY_OBJECT ${CMAKE_CURRENT_BINARY_DIR}/${SK_ENTRY_TARGET}.o)
    list(APPEND SK_ENTRY_STUB_INPUTS ${SK_KERNEL_ARCH}=${SK_ENTRY_OBJECT})
    list(APPEND SK_ENTRY_OBJECTS ${SK_ENTRY_OBJECT})
@@ -61,11 +65,9 @@ foreach(SK_KERNEL_ARCH IN LISTS SK_KERNEL_ARCHS)
       $<$<COMPILE_LANGUAGE:ASC>:--npu-arch=${SK_KERNEL_ARCH}>
    )
 
-   if(NOT SK_KERNEL_ARCH STREQUAL "dav-2201")
-      target_compile_definitions(${SK_SCOPE_TARGET} PRIVATE
-         $<$<COMPILE_LANGUAGE:ASC>:SK_SCOPE_SYMBOL_SUFFIX=_${SK_KERNEL_ARCH_SUFFIX}>
-      )
-   endif()
+   target_compile_definitions(${SK_SCOPE_TARGET} PRIVATE
+      $<$<COMPILE_LANGUAGE:ASC>:SK_SCOPE_SYMBOL_SUFFIX=_${SK_KERNEL_ARCH_SUFFIX}>
+   )
 
    target_include_directories(${SK_SCOPE_TARGET} PRIVATE
       ${CMAKE_CURRENT_SOURCE_DIR}/../src/aot/

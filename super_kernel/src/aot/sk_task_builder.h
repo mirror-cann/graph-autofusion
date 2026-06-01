@@ -87,6 +87,30 @@ inline const char* to_string(SyncDirection dir)
     }
 }
 
+struct EarlyStartInfo {
+    SuperKernelBaseNode* relatedNode = nullptr;
+    uint32_t funcEarlyStartConfig = 0U;
+    SuperKernelBaseNode* nextAicRelatedNode = nullptr;
+    SuperKernelBaseNode* nextAivRelatedNode = nullptr;
+    uint32_t syncEarlyStartConfig = 0U;
+    void ApplyFuncMask(SkEarlyStartMask mask)
+    {
+        funcEarlyStartConfig |= static_cast<uint32_t>(mask);
+    }
+    bool CheckFuncMask(SkEarlyStartMask mask) const
+    {
+        return (funcEarlyStartConfig & static_cast<uint32_t>(mask)) != 0;
+    }
+    void ApplySyncMask(SkEarlyStartMask mask)
+    {
+        syncEarlyStartConfig |= static_cast<uint32_t>(mask);
+    }
+    bool CheckSyncMask(SkEarlyStartMask mask) const
+    {
+        return (syncEarlyStartConfig & static_cast<uint32_t>(mask)) != 0;
+    }
+};
+
 // Per-task sync metadata
 struct TaskSyncInfo {
     SkQueueType queueType; // Task execution queue: AIC/AIV/MIX
@@ -101,7 +125,7 @@ struct TaskSyncInfo {
 
     // Cross-core sync direction: 0=CUBE(CUB_TO_CUB), 1=VEC(VEC_TO_VEC)
     std::map<size_t, SyncDirection> crossSyncInfo;
-
+    EarlyStartInfo earlyStartInfo{};
     TaskSyncInfo() : queueType(SkQueueType::UNKNOWN) {}
 };
 
@@ -133,7 +157,9 @@ private:
 
     // Task insertion helpers, separated by task type
     std::pair<int, int> GetPreFetchCnt(const ResolvedFunctionInfo& resolved);
-    bool AddSyncTask(SkTask& skTask, size_t nodeIndex, SkCoreSyncType syncType);
+    bool AddSyncTask(SkTask& skTask, size_t nodeIndex, SkCoreSyncType syncType,
+                     uint8_t earlyStartConfig = 0U, uint32_t skipCoreCount = 0U,
+                     SkKernelType relatedType = SkKernelType::DEFAULT);
     bool AddEventTask(SkTask& skTask, SuperKernelBaseNode* node, size_t nodeIndex, SkTaskType taskType);
     bool AddFuncTask(SkTask& skTask, SuperKernelBaseNode* node, SkDfxInfo* dfxInfo, size_t nodeIndex, int addrIndex,
                      int binCount, SkTaskType taskType, uint32_t numBlocks);
@@ -145,6 +171,8 @@ private:
 
     bool DispatchSyncTasks(SkTask& skTaskCube, SkTask& skTaskVec, size_t nodeIndex,
                            const std::map<size_t, SyncDirection>& syncInfo, bool isSend, SkQueueType queueType);
+    bool DispatchSyncTasks(SkTask& skTaskCube, SkTask& skTaskVec, size_t nodeIndex, const EarlyStartInfo& earlyStartInfo,
+                           bool isSend, SkQueueType queueType);
 
     // ========== Graph-topology-based sync extraction ==========
 
@@ -190,6 +218,8 @@ private:
     void RemoveMultiSendSync();
     void RemoveMultiRecvSync();
     void RemoveRedundantCrossSync(const std::vector<SuperKernelBaseNode*>& tasks);
+    // ========== Early-start-specific sync methods ==========
+    bool ApplyEarlyStartSyncPass(const std::vector<SuperKernelBaseNode*>& tasks);
 
     // Helper: determine whether crossed sync can be removed
     bool JudgeRemoveCrossSync(size_t sendIdx, size_t recvIdx, bool isCubToVec);
@@ -208,7 +238,7 @@ private:
     bool UpdateDfxInfo(SkDfxInfo* dfxInfo, const KernelInfos& kernelInfo, const ResolvedFunctionInfo& resolved,
                       int binIndex, int addrIndex);
     // Helper to process core function size (AIC/AIV)
-    bool ProcessCoreFuncSize(SkDfxInfo* dfxInfo, const void* binHostAddr, uint32_t binHostSize,
+    bool ProcessCoreFuncSize(SkDfxInfo* dfxInfo, aclrtBinHandle binHdl, const void* binHostAddr, uint32_t binHostSize,
                             const ResolvedFunctionInfo& resolved, int coreIndex, int binIndex,
                             const char* coreName);
 };                           

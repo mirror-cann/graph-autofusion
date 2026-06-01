@@ -87,6 +87,30 @@ const KernelInfos& GetKernelInfos(const SuperKernelBaseNode* node)
     return node->GetNodeInfos().kernelInfos;
 }
 
+const uint32_t GetKernelNumBlocks(const SuperKernelBaseNode* node)
+{
+    if (node == nullptr) {
+        return 0;
+    }
+    auto nodeType = node->GetNodeType();
+    if (nodeType == SkNodeType::NODE_KERNEL) {
+        return GetKernelInfos(node).numBlocks;
+    }
+    return 0;
+}
+
+const SkKernelType GetKernelType(const SuperKernelBaseNode* node)
+{
+    if (node == nullptr) {
+        return SkKernelType::DEFAULT;
+    }
+    auto nodeType = node->GetNodeType();
+    if (nodeType == SkNodeType::NODE_KERNEL) {
+        return GetKernelInfos(node).kernelType;
+    }
+    return SkKernelType::DEFAULT;
+}
+
 SkQueueType ToEventQueueType(SkQueueType queueType, bool aicAvailable = true, bool aivAvailable = true)
 {
     SkQueueType eventQueueType = (queueType == SkQueueType::AIC) ? SkQueueType::AIC : SkQueueType::AIV;
@@ -132,20 +156,29 @@ SkQueueType ResolveMixWaitEventQueueType(const SuperKernelBaseNode* prevKernel, 
 }
 
 // dump device entry args
-void DumpTaskQueDetail(const TaskQue* que, const char* name)
+uint64_t GetDumpTaskNodeId(uint32_t taskIndex, const std::vector<SuperKernelBaseNode*>& tasks)
+{
+    return taskIndex < tasks.size() ? tasks[taskIndex]->GetNodeId() : INVALID_TASK_ID;
+}
+
+void DumpTaskQueDetail(const TaskQue* que, const char* name, const std::vector<SuperKernelBaseNode*>& tasks)
 {
     SK_LOGD("%s TaskQue: cap=%u, tasks=%u", name, que->cap, que->taskCnt);
     for (uint32_t i = 0; i < que->taskCnt; ++i) {
         const TaskInfo& ti = que->taskInfos[i];
-        SK_LOGD("[%u] type=%s, idx=%u, blk=%u, entries=%u, args=0x%llx, debugOptions=0x%llx", i, to_string(ti.type), ti.index,
-                ti.numBlocks, ti.entryCnt, (unsigned long long)ti.args, (unsigned long long)ti.debugOptions);
+        const uint64_t nodeId = GetDumpTaskNodeId(ti.index, tasks);
+        SK_LOGD("[%u] type=%s, idx=%u, nodeId=%lu, relatedType=%s, blk=%u, entries=%u, args=0x%llx, "
+                "debugOptions=0x%llx, reserved=0x%llx",
+                i, to_string(ti.type), ti.index, nodeId, to_string(ti.relatedType), ti.numBlocks, ti.entryCnt,
+                (unsigned long long)ti.args, (unsigned long long)ti.debugOptions, (unsigned long long)ti.reserved);
         for (uint32_t j = 0; j < ti.entryCnt; ++j) {
             SK_LOGD("   entry[%u]=0x%llx", j, (unsigned long long)ti.entry[j]);
         }
     }
 }
 
-void DumpDeviceArgsDetail(std::string skFuncName, const SkDeviceEntryArgs* args)
+void DumpDeviceArgsDetail(std::string skFuncName, const SkDeviceEntryArgs* args,
+                          const std::vector<SuperKernelBaseNode*>& tasks)
 {
     SK_LOGD("Dumping device args for function: %s", skFuncName.c_str());
     const uint8_t* base = (const uint8_t*)args;
@@ -154,8 +187,8 @@ void DumpDeviceArgsDetail(std::string skFuncName, const SkDeviceEntryArgs* args)
             hdr.aicQueOffset, hdr.aivQueOffset, hdr.counterOffset, hdr.dfxOffset, hdr.eventConfigOffset, hdr.nodeCnt,
             hdr.totalSize);
 
-    DumpTaskQueDetail((const TaskQue*)(base + args->skHeader.aicQueOffset), "AIC");
-    DumpTaskQueDetail((const TaskQue*)(base + args->skHeader.aivQueOffset), "AIV");
+    DumpTaskQueDetail((const TaskQue*)(base + args->skHeader.aicQueOffset), "AIC", tasks);
+    DumpTaskQueDetail((const TaskQue*)(base + args->skHeader.aivQueOffset), "AIV", tasks);
 
     const SkDfxInfo* dfx = (const SkDfxInfo*)(base + args->skHeader.dfxOffset);
     for (uint32_t i = 0; i < args->skHeader.nodeCnt; ++i) {
@@ -173,12 +206,14 @@ void DumpDeviceArgsDetail(std::string skFuncName, const SkDeviceEntryArgs* args)
     }
 }
 
-void DumpDeviceArgs(std::string skFuncName, const SkDeviceEntryArgs* args){
+void DumpDeviceArgs(std::string skFuncName, const SkDeviceEntryArgs* args,
+                    const std::vector<SuperKernelBaseNode*>& tasks)
+{
     {
         SK_LOG_CONTEXT_SIMPLE("sk_device_args.log");
-        DumpDeviceArgsDetail(skFuncName, args);
+        DumpDeviceArgsDetail(skFuncName, args, tasks);
     }
-    DumpDeviceArgsDetail(skFuncName, args);
+    DumpDeviceArgsDetail(skFuncName, args, tasks);
 }
 
 // ========== SkTaskBuilder static helper implementations ==========
@@ -1191,10 +1226,160 @@ void SkTaskBuilder::RemoveRedundantCrossSync(const std::vector<SuperKernelBaseNo
         }
     }
 }
-// ========== Sync task insertion ==========
 
 namespace {
+void ApplySplitCoreControlMask(SuperKernelBaseNode* task, TaskSyncInfo& taskSyncInfo)
+{
+    static const SkKernelArch currentArch = GetCurrentSkKernelArch();
+    if (currentArch != SkKernelArch::DAV_3510) {
+        return;
+    }
+    if (task->GetNodeType() != SkNodeType::NODE_KERNEL) {
+        return;
+    }
+    const auto& kernelInfo = GetKernelInfos(task);
+    if (kernelInfo.kernelType != SkKernelType::MIX_AIC_1_1) {
+        return;
+    }
+    taskSyncInfo.earlyStartInfo.ApplyFuncMask(SkEarlyStartMask::SPLIT_CORE_CTRL);
+    SK_LOGI("early-start control: nodeId=%lu, set split-core ctrl mask", task->GetNodeId());
+}
 
+bool ApplyEarlyStartSyncForQueue(const std::vector<SuperKernelBaseNode*>& tasks,
+                                 std::vector<TaskSyncInfo>& taskSyncInfos,
+                                 size_t curIdx,
+                                 size_t& lastIdx,
+                                 SkQueueType targetQueue)
+{
+    if (tasks[curIdx]->GetNodeType() != SkNodeType::NODE_KERNEL) {
+        lastIdx = curIdx;
+        return true;
+    }
+
+    const bool isAic = targetQueue == SkQueueType::AIC;
+    const char* sendInfoName = isAic ? "cubSend" : "vecSend";
+    const char* recvInfoName = isAic ? "cubRecv" : "vecRecv";
+    const auto queueTypeId = static_cast<size_t>(targetQueue);
+    const auto selfSyncDir = isAic ? SyncDirection::CUB_TO_CUB : SyncDirection::VEC_TO_VEC;
+    const auto selfSetMask = isAic ? SkEarlyStartMask::AIC_TO_AIC_SET : SkEarlyStartMask::AIV_TO_AIV_SET;
+    const auto selfWaitMask = isAic ? SkEarlyStartMask::AIC_TO_AIC_WAIT : SkEarlyStartMask::AIV_TO_AIV_WAIT;
+    const auto crossSendMask = isAic ? SkEarlyStartMask::AIC_TO_AIV_SET : SkEarlyStartMask::AIV_TO_AIC_SET;
+    const auto crossRecvMask = isAic ? SkEarlyStartMask::AIV_TO_AIC_WAIT : SkEarlyStartMask::AIC_TO_AIV_WAIT;
+
+    const KernelInfos& kernelInfo = tasks[curIdx]->GetNodeInfos().kernelInfos;
+    auto& curSyncInfo = taskSyncInfos[curIdx];
+    if (kernelInfo.capBits.earlyStartSetFlag) {
+        auto curCrossIt = curSyncInfo.crossSyncInfo.find(queueTypeId);
+        if (curCrossIt != curSyncInfo.crossSyncInfo.end() && curCrossIt->second == selfSyncDir) {
+            curSyncInfo.earlyStartInfo.relatedNode = tasks[curIdx];
+            curSyncInfo.earlyStartInfo.ApplyFuncMask(selfSetMask);
+            curSyncInfo.earlyStartInfo.ApplySyncMask(selfSetMask);
+            curSyncInfo.earlyStartInfo.ApplySyncMask(selfWaitMask);
+            curSyncInfo.crossSyncInfo.erase(curCrossIt);
+            SK_LOGI("early-start rewrite: slot=cur.crossSyncInfo[%s], task[%zu](nodeId=%lu), self sync",
+                    to_string(targetQueue), curIdx, tasks[curIdx]->GetNodeId());
+        }
+    }
+    if (kernelInfo.capBits.earlyStartWaitFlag && lastIdx != static_cast<size_t>(INVALID_TASK_ID)) {
+        auto& prevSyncInfo = taskSyncInfos[lastIdx];
+        auto& prevSendInfo = isAic ? prevSyncInfo.cubSendInfo : prevSyncInfo.vecSendInfo;
+        auto& curRecvInfo = isAic ? curSyncInfo.cubRecvInfo : curSyncInfo.vecRecvInfo;
+        if (prevSendInfo.size() > 1) {
+            SK_LOGE("ApplyEarlyStartSyncPass failed: slot=prev.%s has multiple syncs, "
+                    "prevTask[%zu](nodeId=%lu), curTask[%zu](nodeId=%lu), %sSize=%zu",
+                    sendInfoName, lastIdx, tasks[lastIdx]->GetNodeId(), curIdx,
+                    tasks[curIdx]->GetNodeId(), sendInfoName, prevSendInfo.size());
+            return false;
+        }
+        if (curRecvInfo.size() > 1) {
+            SK_LOGE("ApplyEarlyStartSyncPass failed: slot=cur.%s has multiple syncs, "
+                    "prevTask[%zu](nodeId=%lu), curTask[%zu](nodeId=%lu), %sSize=%zu",
+                    recvInfoName, lastIdx, tasks[lastIdx]->GetNodeId(), curIdx,
+                    tasks[curIdx]->GetNodeId(), recvInfoName, curRecvInfo.size());
+            return false;
+        }
+        if (isAic) {
+            prevSyncInfo.earlyStartInfo.nextAicRelatedNode = tasks[curIdx];
+        } else {
+            prevSyncInfo.earlyStartInfo.nextAivRelatedNode = tasks[curIdx];
+        }
+        curSyncInfo.earlyStartInfo.relatedNode = tasks[curIdx];
+        auto prevCrossIt = prevSyncInfo.crossSyncInfo.find(queueTypeId);
+        if (prevCrossIt != prevSyncInfo.crossSyncInfo.end() && prevCrossIt->second == selfSyncDir) {
+            // case prev task not enable early-start
+            prevSyncInfo.earlyStartInfo.ApplySyncMask(selfSetMask);
+            prevSyncInfo.earlyStartInfo.ApplySyncMask(selfWaitMask);
+            curSyncInfo.earlyStartInfo.ApplyFuncMask(selfWaitMask);
+            prevSyncInfo.crossSyncInfo.erase(prevCrossIt);
+            SK_LOGI("early-start rewrite: slot=prev.crossSyncInfo[%s], prevTask[%zu](nodeId=%lu) -> "
+                    "curTask[%zu](nodeId=%lu), self sync",
+                    to_string(targetQueue), lastIdx, tasks[lastIdx]->GetNodeId(), curIdx,
+                    tasks[curIdx]->GetNodeId());
+        } else if (prevSyncInfo.earlyStartInfo.CheckSyncMask(selfSetMask)) {
+            // case prev task already enable early-start, but not set wait config
+            curSyncInfo.earlyStartInfo.ApplyFuncMask(selfWaitMask);
+            SK_LOGI("early-start attach: slot=prev.earlyStartInfo.syncConfig, curTask[%zu](nodeId=%lu), %s wait",
+                    curIdx, tasks[curIdx]->GetNodeId(), to_string(targetQueue));
+        }
+        if (!prevSendInfo.empty()) {
+            SK_LOGI("early-start absorb: slot=prev.%s, prevTask[%zu](nodeId=%lu), curTask[%zu](nodeId=%lu)",
+                    sendInfoName, lastIdx, tasks[lastIdx]->GetNodeId(), curIdx, tasks[curIdx]->GetNodeId());
+            prevSyncInfo.earlyStartInfo.ApplySyncMask(crossSendMask);
+            curSyncInfo.earlyStartInfo.ApplyFuncMask(crossSendMask);
+            prevSendInfo.clear();
+        }
+        if (!curRecvInfo.empty()) {
+            SK_LOGI("early-start absorb: slot=cur.%s, curTask[%zu](nodeId=%lu)",
+                    recvInfoName, curIdx, tasks[curIdx]->GetNodeId());
+            curSyncInfo.earlyStartInfo.ApplySyncMask(crossRecvMask);
+            curSyncInfo.earlyStartInfo.ApplyFuncMask(crossRecvMask);
+            curRecvInfo.clear();
+        }
+    }
+    lastIdx = curIdx;
+    return true;
+}
+
+void LogEarlyStartFinalState(const std::vector<SuperKernelBaseNode*>& tasks,
+                             const std::vector<TaskSyncInfo>& taskSyncInfos)
+{
+    const auto getNodeId = [](const SuperKernelBaseNode* node) -> uint64_t {
+        return node == nullptr ? INVALID_TASK_ID : node->GetNodeId();
+    };
+    for (size_t i = 0; i < taskSyncInfos.size(); ++i) {
+        const auto& earlyStartInfo = taskSyncInfos[i].earlyStartInfo;
+        const uint64_t relatedNodeId = getNodeId(earlyStartInfo.relatedNode);
+        const uint64_t nextAicNodeId = getNodeId(earlyStartInfo.nextAicRelatedNode);
+        const uint64_t nextAivNodeId = getNodeId(earlyStartInfo.nextAivRelatedNode);
+        SK_LOGI("early-start final: task[%zu](nodeId=%lu), funcConfig=0x%x, syncConfig=0x%x, "
+                "relatedNodeId=%lu, nextAicNodeId=%lu, nextAivNodeId=%lu",
+                i, tasks[i]->GetNodeId(), earlyStartInfo.funcEarlyStartConfig, earlyStartInfo.syncEarlyStartConfig,
+                relatedNodeId, nextAicNodeId, nextAivNodeId);
+    }
+}
+} // namespace
+
+bool SkTaskBuilder::ApplyEarlyStartSyncPass(const std::vector<SuperKernelBaseNode*>& tasks)
+{
+    SK_LOGI("ApplyEarlyStartSyncPass begin: taskCount=%zu", tasks.size());
+    size_t lastAicTaskIdx = static_cast<size_t>(INVALID_TASK_ID);
+    size_t lastAivTaskIdx = static_cast<size_t>(INVALID_TASK_ID);
+    for (size_t i = 0; i < tasks.size(); ++i) {
+        if (UsesAic(taskSyncInfos_[i].queueType)
+            && !ApplyEarlyStartSyncForQueue(tasks, taskSyncInfos_, i, lastAicTaskIdx, SkQueueType::AIC)) {
+            return false;
+        }
+        if (UsesAiv(taskSyncInfos_[i].queueType)
+            && !ApplyEarlyStartSyncForQueue(tasks, taskSyncInfos_, i, lastAivTaskIdx, SkQueueType::AIV)) {
+            return false;
+        }
+        ApplySplitCoreControlMask(tasks[i], taskSyncInfos_[i]);
+    }
+    LogEarlyStartFinalState(tasks, taskSyncInfos_);
+    return true;
+}
+
+namespace {
 SkCoreSyncType GetSyncTypesForDirection(SyncDirection dir, bool isSend)
 {
     SkCoreSyncType syncType = SkCoreSyncType::SYNC_NONE;
@@ -1356,7 +1541,8 @@ std::pair<int, int> SkTaskBuilder::GetPreFetchCnt(const ResolvedFunctionInfo& re
     return preFetchCntValue;
 }
 
-bool SkTaskBuilder::AddSyncTask(SkTask& skTask, size_t nodeIndex, SkCoreSyncType syncType)
+bool SkTaskBuilder::AddSyncTask(SkTask& skTask, size_t nodeIndex, SkCoreSyncType syncType,
+    uint8_t earlyStartConfig, uint32_t skipCoreCount, SkKernelType relatedType)
 {
     TaskQue* taskQue = skTask.GetTaskQue();
     if (taskQue == nullptr) {
@@ -1374,6 +1560,9 @@ bool SkTaskBuilder::AddSyncTask(SkTask& skTask, size_t nodeIndex, SkCoreSyncType
     taskInfo.index = nodeIndex;
     taskInfo.type = SkTaskType::TYPE_SYNC;
     taskInfo.args = static_cast<uint32_t>(syncType);
+    taskInfo.numBlocks = static_cast<uint8_t>(skipCoreCount);
+    taskInfo.reserved = static_cast<uint64_t>(earlyStartConfig);
+    taskInfo.relatedType = relatedType;
     if (opts.EnableDebug() && debugSyncAll == 1) {
         taskInfo.debugOptions |= 0x2;
     }
@@ -1425,7 +1614,7 @@ bool SkTaskBuilder::AddEventTask(SkTask& skTask, SuperKernelBaseNode* node, size
     return true;
 }
 
-bool SkTaskBuilder::ProcessCoreFuncSize(SkDfxInfo* dfxInfo, const void* binHostAddr, uint32_t binHostSize,
+bool SkTaskBuilder::ProcessCoreFuncSize(SkDfxInfo* dfxInfo, aclrtBinHandle binHdl, const void* binHostAddr, uint32_t binHostSize,
                                         const ResolvedFunctionInfo& resolved, int coreIndex, int binIndex,
                                         const char* coreName)
 {
@@ -1435,7 +1624,7 @@ bool SkTaskBuilder::ProcessCoreFuncSize(SkDfxInfo* dfxInfo, const void* binHostA
     std::string symbolName;
     uint64_t funcSize = 0;
     std::string symbolBind;
-    bool getInfoRet = GetFuncSymbolInfo(static_cast<const char*>(binHostAddr), binHostSize,
+    bool getInfoRet = GetFuncSymbolInfo(binHdl, static_cast<const char*>(binHostAddr), binHostSize,
                                         resolved.funcOffset[coreIndex], symbolName, funcSize, symbolBind);
     SK_LOGD("ProcessCoreFuncSize: GetFuncSymbolInfo(%s) returned=%d, offset=0x%lx, symbolName=%s, size=0x%lx, bind=%s",
             coreName, getInfoRet, resolved.funcOffset[coreIndex], symbolName.c_str(), funcSize, symbolBind.c_str());
@@ -1493,14 +1682,14 @@ bool SkTaskBuilder::UpdateDfxInfo(SkDfxInfo* dfxInfo, const KernelInfos& kernelI
             (uint64_t)binHostAddr, binHostSize);
 
     if (addrIndex == 0 && resolved.funcAddr[0] != 0) {
-        ProcessCoreFuncSize(dfxInfo, binHostAddr, binHostSize, resolved, 0, binIndex, "AIC");
+        ProcessCoreFuncSize(dfxInfo, kernelInfo.binHdl, binHostAddr, binHostSize, resolved, 0, binIndex, "AIC");
     } else {
         SK_LOGD("UpdateDfxInfo: Skipping AIC processing, addrIndex=%d, funcAddr[0]=0x%lx",
                 addrIndex, resolved.funcAddr[0]);
     }
 
     if (addrIndex == 1 && resolved.funcAddr[1] != 0) {
-        ProcessCoreFuncSize(dfxInfo, binHostAddr, binHostSize, resolved, 1, binIndex, "AIV");
+        ProcessCoreFuncSize(dfxInfo, kernelInfo.binHdl, binHostAddr, binHostSize, resolved, 1, binIndex, "AIV");
     } else {
         SK_LOGD("UpdateDfxInfo: Skipping AIV processing, addrIndex=%d, funcAddr[1]=0x%lx",
                 addrIndex, resolved.funcAddr[1]);
@@ -1550,7 +1739,7 @@ bool SkTaskBuilder::AddFuncTask(SkTask& skTask, SuperKernelBaseNode* node, SkDfx
     TaskInfo& taskInfo = taskQue->taskInfos[taskQue->taskCnt];
     taskInfo.index = nodeIndex;
     taskInfo.type = taskType;
-    taskInfo.originType = kernelInfo.kernelType;
+    taskInfo.relatedType = kernelInfo.kernelType;
     taskInfo.numBlocks = numBlocks;
     if (kernelInfo.resolvedNum != binCount) {
         SK_LOGW("mismatch num between sub sk registered and sk option, funcName: %s, registered: %d,"
@@ -1565,6 +1754,7 @@ bool SkTaskBuilder::AddFuncTask(SkTask& skTask, SuperKernelBaseNode* node, SkDfx
                         prefetchCntValue.second);
             }
             taskInfo.args = addrIndex == 0 ? prefetchCntValue.first : prefetchCntValue.second;
+            taskInfo.argsSize = static_cast<uint32_t>(node->GetTaskParams().kernelTaskParams.argsSize);
             taskInfo.reserved = static_cast<uint64_t>(reinterpret_cast<uintptr_t>(kernelInfo.devArgs));
         }
 
@@ -1585,6 +1775,10 @@ bool SkTaskBuilder::AddFuncTask(SkTask& skTask, SuperKernelBaseNode* node, SkDfx
 
     if (taskType == SkTaskType::TYPE_FUNC) {
         taskInfo.args = static_cast<uint64_t>(reinterpret_cast<uintptr_t>(kernelInfo.devArgs));
+        taskInfo.reserved = nodeIndex < taskSyncInfos_.size() ?
+            static_cast<uint64_t>(taskSyncInfos_[nodeIndex].earlyStartInfo.funcEarlyStartConfig) :
+            static_cast<uint64_t>(SkEarlyStartMask::NONE);
+        taskInfo.argsSize = static_cast<uint32_t>(node->GetTaskParams().kernelTaskParams.argsSize);
         skTask.numBlocks = std::max(skTask.numBlocks, static_cast<uint32_t>(taskInfo.numBlocks));
         skTask.funcCnt++;
 
@@ -1816,15 +2010,84 @@ bool SkTaskBuilder::DispatchSyncTasks(SkTask& skTaskCube, SkTask& skTaskVec, siz
     return true;
 }
 
+bool SkTaskBuilder::DispatchSyncTasks(SkTask& skTaskCube, SkTask& skTaskVec, size_t nodeIndex,
+                                      const EarlyStartInfo& earlyStartInfo, bool isSend, SkQueueType queueType)
+{
+    std::map<SkEarlyStartMask, SkCoreSyncType> maskToSyncType = {
+        {SkEarlyStartMask::AIC_TO_AIC_SET, SkCoreSyncType::CROSS_SYNC_AIC_TO_AIC},
+        {SkEarlyStartMask::AIC_TO_AIC_WAIT, SkCoreSyncType::CROSS_SYNC_AIC_TO_AIC},
+        {SkEarlyStartMask::AIV_TO_AIV_SET, SkCoreSyncType::CROSS_SYNC_AIV_TO_AIV},
+        {SkEarlyStartMask::AIV_TO_AIV_WAIT, SkCoreSyncType::CROSS_SYNC_AIV_TO_AIV},
+        {SkEarlyStartMask::AIC_TO_AIV_SET, SkCoreSyncType::INTER_SYNC_SET_AIC_TO_AIV},
+        {SkEarlyStartMask::AIC_TO_AIV_WAIT, SkCoreSyncType::INTER_SYNC_WAIT_AIC_TO_AIV},
+        {SkEarlyStartMask::AIV_TO_AIC_SET, SkCoreSyncType::INTER_SYNC_SET_AIV_TO_AIC},
+        {SkEarlyStartMask::AIV_TO_AIC_WAIT, SkCoreSyncType::INTER_SYNC_WAIT_AIV_TO_AIC},
+    };
+    auto addEarlyStartSync = [&](SkTask& skTask, SkEarlyStartMask mask, uint32_t activeCoreCount, SkQueueType queueType, SkKernelType relatedType) -> bool {
+        if (!earlyStartInfo.CheckSyncMask(mask)) {
+            return true;
+        }
+        auto it = maskToSyncType.find(mask);
+        if (it == maskToSyncType.end()) {
+            SK_LOGE("DispatchSyncTasks failed: unknown early start sync mask %s", to_string(mask));
+            return false;
+        }
+        if (queueType == SkQueueType::AIV && relatedType == SkKernelType::MIX_AIC_1_2) {
+            activeCoreCount *= 2;
+        }
+        if (!AddSyncTask(skTask, nodeIndex, it->second, static_cast<uint8_t>(mask), activeCoreCount, relatedType)) {
+            SK_LOGE("DispatchSyncTasks failed: add early start sync task failed, mask=%s", to_string(mask));
+            return false;
+        }
+        SK_LOGI("    task insert: task %zu, [queue=%s], [type=%s], [flag=%s], [activeCoreCount=%u]", nodeIndex,
+                to_string(queueType), to_string(SkTaskType::TYPE_SYNC), to_string(it->second), activeCoreCount);
+        return true;
+    };
+
+    if (!isSend) {
+        // add aic task to aic task que
+        if (!addEarlyStartSync(skTaskCube, SkEarlyStartMask::AIV_TO_AIC_WAIT, GetKernelNumBlocks(earlyStartInfo.relatedNode), SkQueueType::AIC, GetKernelType(earlyStartInfo.relatedNode))) {
+            return false;
+        }
+        // add aiv task to aiv task que
+        if (!addEarlyStartSync(skTaskVec, SkEarlyStartMask::AIC_TO_AIV_WAIT, GetKernelNumBlocks(earlyStartInfo.relatedNode), SkQueueType::AIV, GetKernelType(earlyStartInfo.relatedNode))) {
+            return false;
+        }
+    } else {
+        // add aic task to aic task que
+        if (!addEarlyStartSync(skTaskCube, SkEarlyStartMask::AIC_TO_AIC_SET, GetKernelNumBlocks(earlyStartInfo.relatedNode), SkQueueType::AIC, GetKernelType(earlyStartInfo.relatedNode))) {
+            return false;
+        }
+        if (!addEarlyStartSync(skTaskCube, SkEarlyStartMask::AIC_TO_AIC_WAIT, GetKernelNumBlocks(earlyStartInfo.nextAicRelatedNode), SkQueueType::AIC, GetKernelType(earlyStartInfo.nextAicRelatedNode))) {
+            return false;
+        }
+        if (!addEarlyStartSync(skTaskCube, SkEarlyStartMask::AIC_TO_AIV_SET, GetKernelNumBlocks(earlyStartInfo.nextAicRelatedNode), SkQueueType::AIC, GetKernelType(earlyStartInfo.nextAicRelatedNode))) {
+            return false;
+        }
+        // add aiv task to aiv task que
+        if (!addEarlyStartSync(skTaskVec, SkEarlyStartMask::AIV_TO_AIV_SET, GetKernelNumBlocks(earlyStartInfo.relatedNode), SkQueueType::AIV, GetKernelType(earlyStartInfo.relatedNode))) {
+            return false;
+        }
+        if (!addEarlyStartSync(skTaskVec, SkEarlyStartMask::AIV_TO_AIV_WAIT, GetKernelNumBlocks(earlyStartInfo.nextAivRelatedNode), SkQueueType::AIV, GetKernelType(earlyStartInfo.nextAivRelatedNode))) {
+            return false;
+        }
+        if (!addEarlyStartSync(skTaskVec, SkEarlyStartMask::AIV_TO_AIC_SET, GetKernelNumBlocks(earlyStartInfo.nextAivRelatedNode), SkQueueType::AIV, GetKernelType(earlyStartInfo.nextAivRelatedNode))) {
+            return false;
+        }
+    }
+    return true;
+}
+
 // ========== 辅助函数：根据配置生成 entry 函数名 ==========
 namespace {
 
 // entryFuncName 配置标记
 enum class EntryFuncFlag : uint8_t {
-    NONE = 0,
-    DEBUG = 1 << 0,
-    DUMP_PROFILING = 1 << 1,
-    OP_TRACE = 1 << 2,
+    NONE = 0U,
+    DEBUG = 1U << 0,
+    DUMP_PROFILING = 1U << 1,
+    OP_TRACE = 1U << 2,
+    EARLY_START = 1U << 3,
 };
 
 /**
@@ -1862,6 +2125,9 @@ std::string BuildEntryFuncName(const char* baseName, EntryFuncFlag flags)
     if ((flagValue & static_cast<uint8_t>(EntryFuncFlag::OP_TRACE)) != 0) {
         funcName += "_op_trace";
     }
+    if ((flagValue & static_cast<uint8_t>(EntryFuncFlag::EARLY_START)) != 0) {
+        funcName += "_early_start";
+    }
     return funcName;
 }
 
@@ -1871,7 +2137,6 @@ SkHostEntryInfo SkTaskBuilder::GenEntryInfo(SkTask& skTaskCube, SkTask& skTaskVe
 {
     SkHostEntryInfo entryInfo;
     bool enableDebug = opts.EnableDebug();
-    
     // ========== 读取环境变量配置 ==========
     // ASCEND_PROF_SK_ON: 启用 profiling 功能
     const char* profilingEnv = std::getenv("ASCEND_PROF_SK_ON");
@@ -1886,9 +2151,12 @@ SkHostEntryInfo SkTaskBuilder::GenEntryInfo(SkTask& skTaskCube, SkTask& skTaskVe
     if (crossCoreSyncCheckOpt != nullptr && crossCoreSyncCheckOpt->GetIntValue() == 1) {
         enableOpTrace = true;
     }
-    
-    SK_LOGI("GenEntryInfo: enableDebug=%d, enableProfiling=%d, enableOpTrace=%d",
-            enableDebug, enableProfiling, enableOpTrace);
+    // EARLY_START: 启用 early_start 功能，提前启动 sk 以缩短首轮调度时延
+    auto earlyStartOpt = opts.GetOption(aclskOptionType::EARLY_START);
+    bool enableEarlyStart = (earlyStartOpt != nullptr && earlyStartOpt->GetIntValue() == 1);
+
+    SK_LOGI("GenEntryInfo: enableDebug=%d, enableProfiling=%d, enableOpTrace=%d, enableEarlyStart=%d",
+            enableDebug, enableProfiling, enableOpTrace, enableEarlyStart);
     
     // ========== 1. 首先尝试常量化代码生成 ==========
     auto [constantFunc, constantType] = TryGenerateConstantFuncHandle(
@@ -1926,8 +2194,7 @@ SkHostEntryInfo SkTaskBuilder::GenEntryInfo(SkTask& skTaskCube, SkTask& skTaskVe
             auto* taskQue = skTaskVec.GetTaskQue();
             for (auto i = 0; i < taskQue->taskCnt; i++) {
                 TaskInfo& taskInfo = taskQue->taskInfos[i];
-                if (taskInfo.type == SkTaskType::TYPE_FUNC && 
-                    taskInfo.originType == SkKernelType::MIX_AIC_1_1) {
+                if (taskInfo.relatedType == SkKernelType::MIX_AIC_1_1) {
                     taskInfo.numBlocks = taskInfo.numBlocks * 2;
                 }
             }
@@ -1988,6 +2255,9 @@ SkHostEntryInfo SkTaskBuilder::GenEntryInfo(SkTask& skTaskCube, SkTask& skTaskVe
     if (enableOpTrace) {
         flags = flags | static_cast<uint8_t>(EntryFuncFlag::OP_TRACE);
     }
+    if (enableEarlyStart) {
+        flags = flags | static_cast<uint8_t>(EntryFuncFlag::EARLY_START);
+    }
     EntryFuncFlag funcFlags = static_cast<EntryFuncFlag>(flags);
     
     const char* baseName = GetBaseEntryFuncName(kernelType);
@@ -2004,10 +2274,7 @@ SkHostEntryInfo SkTaskBuilder::GenEntryInfo(SkTask& skTaskCube, SkTask& skTaskVe
         auto* taskQue = skTaskVec.GetTaskQue();
         for (auto i = 0; i < taskQue->taskCnt; i++) {
             TaskInfo& taskInfo = taskQue->taskInfos[i];
-            if (taskInfo.type != SkTaskType::TYPE_FUNC) {
-                continue;
-            }
-            if (taskInfo.originType == SkKernelType::MIX_AIC_1_1) {
+            if (taskInfo.relatedType == SkKernelType::MIX_AIC_1_1) {
                 taskInfo.numBlocks = taskInfo.numBlocks * 2;
             }
         }
@@ -2072,16 +2339,26 @@ SkBuildResult SkTaskBuilder::Build(std::string skFuncName, const std::vector<Sup
             return {};
         }
     } else {
-        // ========== Phase 1: precompute sync relations from graph topology ==========
+        // ========== precompute sync relations from graph topology ==========
         SK_LOGI("Build phase-1 begin: precompute sync relations, taskCount=%zu", taskCount);
         if (!PrecomputeSyncRelationsFromGraph(tasks)) {
             SK_LOGE("Build failed: precompute sync relations failed");
             return {};
         }
 
-        // ========== Phase 2: optimize sync relations ==========
+        // ========== optimize sync relations ==========
         SK_LOGI("Build phase-2 begin: optimize sync relations");
         OptimizeSyncRelations(tasks);
+    }
+
+    // ========== Phase 2: apply early-start related optimization passes if enabled ==========
+    const auto* earlyStartOpt = opts.GetOption(aclskOptionType::EARLY_START);
+    const bool enableEarlyStart = (earlyStartOpt != nullptr && earlyStartOpt->GetIntValue() == aclskEarlyStartValue::ACLSK_EARLY_START_ENABLED);
+    if (enableEarlyStart) {
+        if (!ApplyEarlyStartSyncPass(tasks)) {
+            SK_LOGE("Build failed: apply early-start sync pass failed");
+            return {};
+        }
     }
 
     // ========== Phase 3: attach sync metadata for custom tasks ==========
@@ -2101,6 +2378,7 @@ SkBuildResult SkTaskBuilder::Build(std::string skFuncName, const std::vector<Sup
             taskSyncInfos_[i].vecSendInfo.clear();
             taskSyncInfos_[i].cubSendInfo.clear();
             taskSyncInfos_[i].crossSyncInfo.clear();
+            taskSyncInfos_[i].earlyStartInfo = {};
             taskSyncInfos_[i].crossSyncInfo[static_cast<size_t>(SkQueueType::AIC)] = SyncDirection::ALL_SYNC;
         }
     }
@@ -2126,6 +2404,13 @@ SkBuildResult SkTaskBuilder::Build(std::string skFuncName, const std::vector<Sup
 
         auto& info = taskSyncInfos_[i];
         SkQueueType queueType = info.queueType;
+
+        // 0. Insert early-start WAIT sync if applicable.
+        if (enableEarlyStart) {
+            if (!DispatchSyncTasks(aicTask, aivTask, i, info.earlyStartInfo, false, queueType)) {
+                return {};
+            }
+        }
 
         // 1. Insert intra-kernel WAIT sync before task execution.
         SK_LOGI("add task sync for vec recv, vec recv size %zu", info.vecRecvInfo.size());
@@ -2188,14 +2473,21 @@ SkBuildResult SkTaskBuilder::Build(std::string skFuncName, const std::vector<Sup
             }
         }
 
-        // 4. Insert cross-core sync (or forced debug sync).
+        // 4. Insert early-start SET sync if applicable.
+        if (enableEarlyStart) {
+            if (!DispatchSyncTasks(aicTask, aivTask, i, info.earlyStartInfo, true, queueType)) {
+                return {};
+            }
+        }
+
+        // 5. Insert cross-core sync (or forced debug sync).
         SK_LOGI("add sync task for cross sync info, cross sync info size %zu", info.crossSyncInfo.size());
         if (!DispatchSyncTasks(aicTask, aivTask, i, info.crossSyncInfo, true, queueType)) {
             SK_LOGE("Build failed: dispatch cross sync failed at task index %d", i);
             return {};
         }
 
-        // 5. Insert intra-kernel SET sync after task execution.
+        // 6. Insert intra-kernel SET sync after task execution.
         SK_LOGI("add sync task for vec send, vec send size %zu", info.vecSendInfo.size());
         if (!DispatchSyncTasks(aicTask, aivTask, i, info.vecSendInfo, true, queueType)) {
             SK_LOGE("Build failed: dispatch vec send sync failed at task index %d", i);
@@ -2284,7 +2576,7 @@ SkBuildResult SkTaskBuilder::Build(std::string skFuncName, const std::vector<Sup
         return {};
     }
 
-    DumpDeviceArgs(skFuncName, devArgs.Get());
+    DumpDeviceArgs(skFuncName, devArgs.Get(), tasks);
 
     SkLaunchInfo launchInfo;
     launchInfo.entryInfo = std::move(entryInfo);

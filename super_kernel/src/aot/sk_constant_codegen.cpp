@@ -71,16 +71,31 @@ enum class SkMemoryWaitFlag : uint32_t {
     NOR = 0x3,
 };
 
+enum class SkEarlyStartMask : uint32_t {
+    NONE = 0U,
+    AIC_TO_AIC_SET = 1U << 0,
+    AIC_TO_AIC_WAIT = 1U << 1,
+    AIC_TO_AIV_SET = 1U << 2,
+    AIV_TO_AIC_WAIT = 1U << 3,
+    AIV_TO_AIV_SET = 1U << 4,
+    AIV_TO_AIV_WAIT = 1U << 5,
+    AIV_TO_AIC_SET = 1U << 6,
+    AIC_TO_AIV_WAIT = 1U << 7,
+    SPLIT_CORE_CTRL = 1U << 15,
+};
+
 struct TaskInfo {
     uint32_t index;
     SkTaskType type;
-    SkKernelType originType;
+    SkKernelType relatedType;
     uint8_t numBlocks;
     uint8_t entryCnt;
-    uint64_t args;
     uint64_t entry[4];
     uint64_t debugOptions;
     uint64_t reserved;
+    uint64_t args;
+    uint32_t argsSize;
+    uint8_t reservedList[4];
 };
 )";
 
@@ -188,47 +203,90 @@ __aicore__ inline void AutoCoreSyncImpl(SkCoreSyncType sync_type) {
     switch (sync_type) {
         case SkCoreSyncType::CROSS_SYNC_AIC_TO_AIC:
             if ASCEND_IS_AIC {
-                ffts_cross_core_sync(PIPE_FIX, AscendC::GetffstMsg(0x0, AscendC::SYNC_AIC_FLAG));
-                wait_flag_dev(AscendC::SYNC_AIC_FLAG);
+                AscendC::CrossCoreSetFlag<0x0, PIPE_FIX>(AscendC::SYNC_AIC_FLAG);
+                AscendC::CrossCoreWaitFlag(AscendC::SYNC_AIC_FLAG);
             }
             return;
         case SkCoreSyncType::CROSS_SYNC_AIV_TO_AIV:
             if ASCEND_IS_AIV {
-                ffts_cross_core_sync(PIPE_MTE3, AscendC::GetffstMsg(0x0, AscendC::SYNC_AIV_ONLY_ALL));
-                wait_flag_dev(AscendC::SYNC_AIV_ONLY_ALL);
+                AscendC::CrossCoreSetFlag<0x0, PIPE_MTE3>(AscendC::SYNC_AIV_ONLY_ALL);
+                AscendC::CrossCoreWaitFlag(AscendC::SYNC_AIV_ONLY_ALL);
             }
             return;
         case SkCoreSyncType::INTER_SYNC_SET_AIC_TO_AIV:
             if ASCEND_IS_AIC {
-                ffts_cross_core_sync(PIPE_MTE3, AscendC::GetffstMsg(0x02, AscendC::SYNC_AIC_AIV_FLAG));
+                AscendC::CrossCoreSetFlag<0x02, PIPE_FIX>(AscendC::SYNC_AIC_AIV_FLAG);
             }
             return;
         case SkCoreSyncType::INTER_SYNC_SET_AIV_TO_AIC:
             if ASCEND_IS_AIV {
-                ffts_cross_core_sync(PIPE_MTE3, AscendC::GetffstMsg(0x02, AscendC::SYNC_AIV_FLAG));
+                AscendC::CrossCoreSetFlag<0x02, PIPE_MTE3>(AscendC::SYNC_AIV_FLAG);
             }
             return;
         case SkCoreSyncType::INTER_SYNC_WAIT_AIC_TO_AIV:
             if ASCEND_IS_AIV {
-                wait_flag_dev(AscendC::SYNC_AIC_AIV_FLAG);
+                AscendC::CrossCoreWaitFlag(AscendC::SYNC_AIC_AIV_FLAG);
             }
             return;
         case SkCoreSyncType::INTER_SYNC_WAIT_AIV_TO_AIC:
             if ASCEND_IS_AIC {
-                wait_flag_dev(AscendC::SYNC_AIV_FLAG);
+                AscendC::CrossCoreWaitFlag(AscendC::SYNC_AIV_FLAG);
             }
             return;
         default:
             if constexpr (aic == 1 && aiv == 0) {
-                ffts_cross_core_sync(PIPE_FIX, AscendC::GetffstMsg(0x0, AscendC::SYNC_AIC_FLAG));
-                wait_flag_dev(AscendC::SYNC_AIC_FLAG);
+                AscendC::CrossCoreSetFlag<0x0, PIPE_FIX>(AscendC::SYNC_AIC_FLAG);
+                AscendC::CrossCoreWaitFlag(AscendC::SYNC_AIC_FLAG);
             } else if constexpr (aic == 0 && aiv == 1) {
-                ffts_cross_core_sync(PIPE_MTE3, AscendC::GetffstMsg(0x0, AscendC::SYNC_AIV_ONLY_ALL));
-                wait_flag_dev(AscendC::SYNC_AIV_ONLY_ALL);
+                AscendC::CrossCoreSetFlag<0x0, PIPE_MTE3>(AscendC::SYNC_AIV_ONLY_ALL);
+                AscendC::CrossCoreWaitFlag(AscendC::SYNC_AIV_ONLY_ALL);
             } else {
                 AscendC::SyncAll<false>();
             }
             return;
+    }
+}
+
+template <uint8_t aic, uint8_t aiv>
+__aicore__ inline void AutoCoreSyncImpl(SkCoreSyncType syncType, uint8_t numBlocks, uint64_t syncConfig)
+{
+    if (syncConfig == 0) {
+        AutoCoreSyncImpl<aic, aiv>(syncType);
+        return;
+    }
+
+    if (AscendC::GetBlockIdx() < numBlocks) {
+        return;
+    }
+
+    if ASCEND_IS_AIC {
+        if ((syncConfig & static_cast<uint64_t>(SkEarlyStartMask::AIC_TO_AIC_SET)) != 0) {
+            AscendC::CrossCoreSetFlag<0x0, PIPE_FIX>(AscendC::SYNC_AIC_FLAG);
+        }
+        if ((syncConfig & static_cast<uint64_t>(SkEarlyStartMask::AIC_TO_AIC_WAIT)) != 0) {
+            AscendC::CrossCoreWaitFlag(AscendC::SYNC_AIC_FLAG);
+        }
+        if ((syncConfig & static_cast<uint64_t>(SkEarlyStartMask::AIC_TO_AIV_SET)) != 0) {
+            AscendC::CrossCoreSetFlag<0x02, PIPE_FIX>(AscendC::SYNC_AIC_AIV_FLAG);
+        }
+        if ((syncConfig & static_cast<uint64_t>(SkEarlyStartMask::AIV_TO_AIC_WAIT)) != 0) {
+            AscendC::CrossCoreWaitFlag(AscendC::SYNC_AIV_FLAG);
+        }
+    }
+
+    if ASCEND_IS_AIV {
+        if ((syncConfig & static_cast<uint64_t>(SkEarlyStartMask::AIV_TO_AIV_SET)) != 0) {
+            AscendC::CrossCoreSetFlag<0x0, PIPE_MTE3>(AscendC::SYNC_AIV_ONLY_ALL);
+        }
+        if ((syncConfig & static_cast<uint64_t>(SkEarlyStartMask::AIV_TO_AIV_WAIT)) != 0) {
+            AscendC::CrossCoreWaitFlag(AscendC::SYNC_AIV_ONLY_ALL);
+        }
+        if ((syncConfig & static_cast<uint64_t>(SkEarlyStartMask::AIV_TO_AIC_SET)) != 0) {
+            AscendC::CrossCoreSetFlag<0x02, PIPE_MTE3>(AscendC::SYNC_AIV_FLAG);
+        }
+        if ((syncConfig & static_cast<uint64_t>(SkEarlyStartMask::AIC_TO_AIV_WAIT)) != 0) {
+            AscendC::CrossCoreWaitFlag(AscendC::SYNC_AIC_AIV_FLAG);
+        }
     }
 }
 
@@ -294,7 +352,7 @@ std::string ConstantCodeGenerator::GenerateConstantTaskQue(
             code << "        {";
             code << info.index << ", ";
             code << TaskTypeToEnumStr(info.type) << ", ";
-            code << KernelTypeToEnumStr(info.originType) << ", ";
+            code << KernelTypeToEnumStr(info.relatedType) << ", ";
             code << static_cast<uint32_t>(info.numBlocks) << ", ";
             code << static_cast<uint32_t>(info.entryCnt) << ", ";
             code << Hex64ToStr(info.args) << ", ";
@@ -338,7 +396,6 @@ std::pair<int, int> ConstantCodeGenerator::GetKernelTypeParams(SkKernelType kern
  * @param taskQue 任务队列
  * @param taskIdx 任务索引
  * @param isAic 是否为 AIC 队列
- * @param preKernelType 前一个任务的内核类型
  * @param splitIdx split 索引 (0-3)，用于确定 entry 索引
  * @return 生成的代码字符串
  * 
@@ -349,7 +406,6 @@ std::string ConstantCodeGenerator::GenerateTaskExecutionForSplit(
     const TaskQue* taskQue,
     size_t taskIdx,
     bool isAic,
-    SkKernelType preKernelType,
     int splitIdx)
 {
     std::ostringstream code;
@@ -387,13 +443,11 @@ std::string ConstantCodeGenerator::GenerateTaskExecutionForSplit(
             code << "        {\n";
             code << "            auto blockId = AscendC::GetBlockIdx();\n";
             code << "            if (blockId < " << static_cast<uint32_t>(task.numBlocks) << ") {\n";
-            
-            uint16_t syncCfg = 0;
-            code << "                // [SPLIT] sysArgs: numBlocks=" << static_cast<uint32_t>(task.numBlocks)
-                 << ", syncCfg=" << syncCfg << "\n";
+            code << "                // [SPLIT] sysArgs: numBlocks=" << static_cast<uint32_t>(task.numBlocks) << "\n";
             code << "                sk::SkSystemArgs sysArgs = {};\n";
             code << "                sysArgs.skBlockIdx = static_cast<uint16_t>(AscendC::GetBlockIdx());\n";
             code << "                sysArgs.skNumBlocks = " << static_cast<uint32_t>(task.numBlocks) << ";\n";
+            code << "                sysArgs.skTaskSyncCfg = static_cast<uint16_t>(" << task.reserved << "ULL);\n";
             
             // [SPLIT优化] 直接使用编译期确定的 entry 索引
             int entryIdx = (task.entryCnt > 0) ? (splitIdx % task.entryCnt) : 0;
@@ -407,7 +461,9 @@ std::string ConstantCodeGenerator::GenerateTaskExecutionForSplit(
             break;
         }
         case SkTaskType::TYPE_SYNC: {
-            code << "        AscendC::AutoCoreSyncImpl<aic, aiv>(static_cast<SkCoreSyncType>(" << task.args << "));\n";
+            code << "        AscendC::AutoCoreSyncImpl<aic, aiv>(static_cast<SkCoreSyncType>(" << task.args
+                 << "), static_cast<uint8_t>(" << static_cast<uint32_t>(task.numBlocks) << "), "
+                 << Hex64ToStr(task.reserved) << ");\n";
             break;
         }
         case SkTaskType::TYPE_EVENT_NOTIFY: {
@@ -474,31 +530,23 @@ std::string ConstantCodeGenerator::GenerateSpecializedEntry(
         code << "__aicore__ __attribute__((aligned(512))) void sk_constant_entry_impl_split" << (splitIdx + 1) << "(void) {\n";
         
         // 生成针对该 split 的任务执行代码
-        SkKernelType splitPreKernelType = SkKernelType::DEFAULT;
         // AIC 任务
         if (aicQue != nullptr && aicQue->taskCnt > 0) {
             code << "#ifdef __DAV_CUBE__\n";
             code << "    // AIC Queue Tasks (split " << (splitIdx + 1) << ")\n";
             for (uint32_t i = 0; i < aicQue->taskCnt; i++) {
                 // 生成针对该 split 的任务执行代码
-                code << GenerateTaskExecutionForSplit(aicQue, i, true, splitPreKernelType, splitIdx);
-                if (aicQue->taskInfos[i].type == SkTaskType::TYPE_FUNC) {
-                    splitPreKernelType = aicQue->taskInfos[i].originType;
-                }
+                code << GenerateTaskExecutionForSplit(aicQue, i, true, splitIdx);
             }
             code << "#endif // __DAV_CUBE__\n";
         }
         
         // AIV 任务
-        splitPreKernelType = SkKernelType::DEFAULT;
         if (aivQue != nullptr && aivQue->taskCnt > 0) {
             code << "#ifdef __DAV_VEC__\n";
             code << "    // AIV Queue Tasks (split " << (splitIdx + 1) << ")\n";
             for (uint32_t i = 0; i < aivQue->taskCnt; i++) {
-                code << GenerateTaskExecutionForSplit(aivQue, i, false, splitPreKernelType, splitIdx);
-                if (aivQue->taskInfos[i].type == SkTaskType::TYPE_FUNC) {
-                    splitPreKernelType = aivQue->taskInfos[i].originType;
-                }
+                code << GenerateTaskExecutionForSplit(aivQue, i, false, splitIdx);
             }
             code << "#endif // __DAV_VEC__\n";
         }

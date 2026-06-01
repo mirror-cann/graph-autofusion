@@ -59,9 +59,9 @@ uint32_t ResolveEventWaitFlag(const SuperKernelBaseNode* node)
     return static_cast<uint32_t>(SkMemoryWaitFlag::EQ);
 }
 
-bool IsMemoryDerivedEventNode(const SuperKernelBaseNode& node)
+bool IsValueBackedEventNode(const SuperKernelBaseNode& node)
 {
-    return !node.GetCorrespondingMemoryWriteNodeIds().empty();
+    return node.GetNodeInfos().syncInfos.addrValue != nullptr;
 }
 
 bool IsNotifyByMemoryWaitRule(uint64_t writeMemoryValue, uint64_t memoryWaitValue,
@@ -452,8 +452,8 @@ void SuperKernelGraph::BuildEventNodeAssociations() {
         } else if (eventInfo.notifyNodeId != INVALID_TASK_ID && eventInfo.waitNodeIdList.empty()) {
             auto* notifyNode = GetNodeById(eventInfo.notifyNodeId);
             if (notifyNode != nullptr && notifyNode->GetNodeType() == SkNodeType::NODE_NOTIFY) {
-                if (IsMemoryDerivedEventNode(*notifyNode)) {
-                    SK_LOGI("Event 0x%lx: memory-derived notify node %lu keeps fusible without in-scope waits",
+                if (IsValueBackedEventNode(*notifyNode)) {
+                    SK_LOGI("Event 0x%lx: value-backed notify node %lu keeps fusible without in-scope waits",
                             eventId, eventInfo.notifyNodeId);
                 } else {
                     notifyNode->SetIsFusible(false);
@@ -535,7 +535,6 @@ bool SuperKernelGraph::ProcessMemoryWriteNodes(const uint64_t eventId, const Mem
         auto* writeNode = GetNodeById(notifyIdVec[0]);
         SK_LOGD("there exits only one memory write node which is notify, it may cause dead lock, details=%s",
             writeNode->Format().c_str());
-        static_cast<SuperKernelMemoryNode*>(writeNode)->SetCorrespondingMemoryWriteNodeId({notifyIdVec[0]});
         writeNode->SetNodeType(SkNodeType::NODE_NOTIFY);
         writeNode->SetIsFusible(enablePairedWaitBypass);
         if (!AddEventAssociateNotify(eventId, writeNode)) {
@@ -573,7 +572,6 @@ bool SuperKernelGraph::ProcessMemoryWriteNodes(const uint64_t eventId, const Mem
     if (!resetIdVec.empty()) {
         for (auto resetId: resetIdVec) {
             auto* resetNode = GetNodeById(resetId);
-            static_cast<SuperKernelMemoryNode*>(resetNode)->SetCorrespondingMemoryWriteNodeId({resetId});
             resetNode->SetNodeType(SkNodeType::NODE_RESET);
             if (!AddEventAssociateReset(eventId, resetNode)) {
                 SK_LOGE("Failed to associate reset event 0x%lx with node %lu", eventId, resetId);
@@ -620,7 +618,6 @@ bool SuperKernelGraph::PostProcessMemoryNode() {
                     (writeNode->GetNodeType() == SkNodeType::NODE_MEMORY_WRITE)) {
                     const uint64_t writeMemoryValue = ResolveEventValue(writeNode);
                     const bool isReset = (writeMemoryValue == SK_DEFAULT_RESET_VALUE);
-                    static_cast<SuperKernelMemoryNode*>(writeNode)->SetCorrespondingMemoryWriteNodeId({writeNodeId});
                     const auto targetType = isReset ? SkNodeType::NODE_RESET : SkNodeType::NODE_NOTIFY;
                     writeNode->SetNodeType(targetType);
                     writeNode->SetIsFusible(true);
@@ -668,6 +665,10 @@ bool SuperKernelGraph::PostProcessMemoryNode() {
                 }
             }
 
+            if (!firstWaitInfo.has_value()) {
+                SK_LOGE("No valid memory wait node found for memory event 0x%lx", eventId);
+                return false;
+            }
             uint64_t memoryWaitValue = firstWaitInfo->first;
             uint32_t waitFlag = firstWaitInfo->second;
 
@@ -1241,7 +1242,10 @@ void SuperKernelGraph::RegisterFusibleScope(const std::unique_ptr<SuperKernelBas
     if (node->GetNodeType() == SkNodeType::NODE_KERNEL && node->IsScopeNode()) {
         if (node->GetScopeName().length() > 0 && node->IsFusible()) {
             if (scopeNameToIdx.size() >= MAX_SCOPE_NUM) {
-                SK_LOGW("The number of scope names is greater than the maximum allowed: %u", MAX_SCOPE_NUM);
+                SK_LOGE("Exceeded maximum scope limit %u, marking scope '%s' as unfusible",
+                        MAX_SCOPE_NUM, node->GetScopeName().c_str());
+                node->SetIsFusible(false);
+                node->SetFusionFailReason(FusionFailReason::EXCEED_SCOPE_MAX);
             } else {
                 if (scopeNameToIdx.find(node->GetScopeName()) == scopeNameToIdx.end()) {
                     uint32_t scopeIdx = static_cast<uint32_t>(scopeNameToIdx.size());

@@ -99,6 +99,10 @@ public:
     // 获取 skName（线程安全）
     std::string GetSkName(uint64_t modelRI, uint32_t skId) const;
 
+    // 清理指定 modelRI 在 skNameMap / nodeInfoMap 中的全部条目（线程安全）
+    // 由 model 销毁回调调用，避免长 session 下 host 侧映射表无限增长
+    void RemoveModelMappings(uint64_t modelRI);
+
     // 注册 modelRI 并返回 index（线程安全，不依赖 profiling 开关）
     uint16_t RegisterModelRI(uint64_t modelRI);
 
