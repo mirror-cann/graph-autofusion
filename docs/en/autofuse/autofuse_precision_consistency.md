@@ -30,7 +30,7 @@ Two different source codes for the same operator introduce observable least sign
 3. **Different Tiling Strategies and Reduction Accumulation Order**
    Floating-point addition **does not satisfy associativity**: `(a+b)+c` and `a+(b+c)` results usually differ in the least significant bit. Reduction order for `reduce`, `matmul`, `layernorm`, and other calculations is determined by tiling strategy and parallelism. The tiling strategy itself **cannot be consistent from hardware resource constraints** between automatic fusion and handwritten operators.
 
-   To elaborate, under the same tiling size, a fusion kernel internally undertakes intermediate calculations for multiple operators. Single-step UB occupation will be higher than a single-operator kernel. Handwritten single operators, to reduce transfer overhead, often make tiling as large as possible (use full UB)—this tiling size may not fit in fusion scenarios.
+   To elaborate, under the same tiling size, a fusion kernel internally undertakes intermediate calculations for multiple operators. Single-step UB occupation will be higher than a single-operator kernel. Handwritten single operators, to reduce transfer overhead, often make tiling as large as possible (use full ub)—this tiling size may not fit in fusion scenarios.
 4. **Different Algorithm Implementations**
    The same mathematical function can be approximated with different algorithms. For example, `rsqrt` and `div` often use multi-round iteration approximation implementations. Different iteration rounds and initial value selections lead to different least significant bit errors.
 
