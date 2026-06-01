@@ -19,6 +19,7 @@
 #include "fused_graph/fused_graph_unfolder.h"
 #include "fused_graph/fused_graph_modifier.h"
 #include "graph/ascendc_ir/utils/asc_graph_utils.h"
+#include "graph/utils/graph_utils.h"
 #include "task_generator/schedule_task_generator.h"
 #include "fusion/autofuse_attrs.h"
 #include "buffer_allocate/buf_que_allocator.h"
@@ -412,6 +413,99 @@ Status CheckGraphValidity(const af::AscGraph &graph) {
   }
   return af::SUCCESS;
 }
+
+bool IsRemovableDanglingNode(const af::NodePtr &node) {
+  if (node == nullptr) {
+    return false;
+  }
+  // 参照PassUtils::PruneGraph中的实现，保留输入输出节点
+  if (IsOps<Data>(node) || IsOps<ScalarData>(node) || IsOps<Output>(node) || IsOps<Workspace>(node)) {
+    return false;
+  }
+  return node->GetOutDataNodesSize() == 0U && node->GetOutControlNodesSize() == 0U;
+}
+
+bool IsDanglingInputNode(const af::NodePtr &node) {
+  if (node == nullptr || (!IsOps<Data>(node) && !IsOps<ScalarData>(node))) {
+    return false;
+  }
+  return node->GetOutDataNodesSize() == 0U && node->GetOutControlNodesSize() == 0U;
+}
+
+Status GetOutputNodes(const af::ComputeGraphPtr &graph, std::vector<af::NodePtr> &output_nodes) {
+  GE_ASSERT_NOTNULL(graph);
+  output_nodes.clear();
+  for (const auto &node : graph->GetDirectNode()) {
+    GE_ASSERT_NOTNULL(node);
+    if (IsOps<Output>(node) || (IsOps<Workspace>(node) && node->GetOutDataNodesSize() == 0U)) {
+      output_nodes.push_back(node);
+    }
+  }
+  return af::SUCCESS;
+}
+
+Status LinkDanglingInputNodesToOutput(const af::ComputeGraphPtr &graph) {
+  GE_ASSERT_NOTNULL(graph);
+  std::vector<af::NodePtr> output_nodes;
+  GE_CHK_STATUS_RET(GetOutputNodes(graph, output_nodes), "Get output nodes failed, graph:[%s].",
+                    graph->GetName().c_str());
+  if (output_nodes.empty()) {
+    GELOGW("Graph [%s] does not contain valid output nodes, skip linking dangling input nodes.",
+           graph->GetName().c_str());
+    return af::SUCCESS;
+  }
+  const auto &first_output_node = output_nodes.front();
+  for (const auto &node : graph->GetDirectNode()) {
+    GE_ASSERT_NOTNULL(node);
+    if (!IsDanglingInputNode(node)) {
+      continue;
+    }
+    // Data/ScalarData保留输入签名，通过控制边挂到输出节点避免完全悬空
+    GE_ASSERT_GRAPH_SUCCESS(af::GraphUtils::AddEdge(node->GetOutControlAnchor(),
+                                                    first_output_node->GetInControlAnchor()));
+    GELOGD("Add extra control edge between input node[%s] and output node[%s] in graph[%s].", node->GetNamePtr(),
+           first_output_node->GetNamePtr(), graph->GetName().c_str());
+  }
+  return af::SUCCESS;
+}
+
+Status RemoveDanglingNodes(const af::ComputeGraphPtr &graph) {
+  GE_ASSERT_NOTNULL(graph);
+  size_t total_removed = 0UL;
+  bool has_removed = false;
+  do {
+    has_removed = false;
+    std::vector<af::NodePtr> nodes_to_remove;
+    // 先收集再删除，避免遍历过程中修改图节点容器
+    for (const auto &node : graph->GetDirectNode()) {
+      GE_ASSERT_NOTNULL(node);
+      if (IsRemovableDanglingNode(node)) {
+        nodes_to_remove.push_back(node);
+      }
+    }
+    for (const auto &node : nodes_to_remove) {
+      GELOGW("Remove dangling node [%s], type [%s], graph [%s].", node->GetNamePtr(), node->GetTypePtr(),
+             graph->GetName().c_str());
+      GE_ASSERT_GRAPH_SUCCESS(graph->RemoveNode(node));
+      ++total_removed;
+      has_removed = true;
+    }
+    // 删除末端节点后，上游节点可能变成新的无消费者节点
+  } while (has_removed);
+  GELOGI("Remove dangling nodes end, graph [%s], removed node num [%zu].", graph->GetName().c_str(), total_removed);
+  return af::SUCCESS;
+}
+
+Status RemoveDanglingNodes(af::AscGraph &graph) {
+  auto compute_graph = af::AscGraphUtils::GetComputeGraph(graph);
+  GE_ASSERT_NOTNULL(compute_graph);
+  GE_CHK_STATUS_RET(RemoveDanglingNodes(compute_graph), "Remove dangling nodes failed, graph:[%s].",
+                    graph.GetName().c_str());
+  GE_CHK_STATUS_RET(LinkDanglingInputNodesToOutput(compute_graph), "Link dangling input nodes failed, graph:[%s].",
+                    graph.GetName().c_str());
+  GE_ASSERT_GRAPH_SUCCESS(ScheduleUtils::TopologicalSorting(graph));
+  return af::SUCCESS;
+}
 }  // namespace
 
 Optimizer::Optimizer(const OptimizerOptions &options) : options_(options) {}
@@ -481,6 +575,9 @@ Status Optimizer::OptimizeFusedAscBackend(const af::ComputeGraphPtr &fused_graph
       GE_ASSERT_NOTNULL(fuse_attr, "Node %s has no AutoFuseAttrs", node->GetName().c_str());
       auto fuse_asc_graph = fuse_attr->GetAscGraph();
       GE_ASSERT_NOTNULL(fuse_asc_graph, "Cannot get ascgraph from ascbc node:[%s].", node->GetNamePtr());
+      ascir::utils::DumpGraph(*fuse_asc_graph, "AutoFuseBeforeRemoveDanglingNodes");
+      GE_CHK_STATUS_RET(RemoveDanglingNodes(*fuse_asc_graph), "Remove dangling nodes failed, graph:[%s].",
+                        fuse_asc_graph->GetName().c_str());
       ::ascir::utils::DumpGraph(*fuse_asc_graph, "AutoFuseBeforeOptimize");
       AscGraphInfoComplete::AppendOriginalSizeVar(*fuse_asc_graph, original_var_set);
       asc_backend_to_ascgraph.emplace(node, *fuse_asc_graph);
@@ -812,6 +909,9 @@ Status Optimizer::LoadOpSeqAdjust(const af::AscGraph &impl_graph) {
 }
 
 Status Optimizer::Optimize(af::AscGraph &hint_graph, FusedScheduledResult &fused_scheduled_result) {
+  ascir::utils::DumpGraph(hint_graph, "AutoFuseBeforeRemoveDanglingNodes");
+  GE_CHK_STATUS_RET(RemoveDanglingNodes(hint_graph), "Remove dangling nodes failed, graph:[%s].",
+                    hint_graph.GetName().c_str());
   ascir::utils::DumpGraph(hint_graph, "AutoFuseBeforeOptimize");
   fused_scheduled_result.node_idx_to_scheduled_results.resize(1UL);
   SizeVarSet original_var_set;

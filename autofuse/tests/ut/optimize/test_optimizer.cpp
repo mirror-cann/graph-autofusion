@@ -5632,6 +5632,74 @@ TEST_F(TestOptimizer, SkipPruneGraph) {
   EXPECT_EQ(cg->GetAllNodesSize(), 3UL);
 }
 
+TEST_F(TestOptimizer, OptimizeRemoveDanglingNodes) {
+  auto graph = af::testing::AscGraphBuilder("RemoveDanglingNodes")
+    .Loops({af::testing::Sym(32)})
+    .Data("data0", 0)
+    .Load("load0", "data0")
+    .Abs("abs0", "load0")
+    .Store("store", "abs0")
+    .Output("output", "store", 0)
+    .Data("data1", 1)
+    .Load("load1", "data1")
+    .Abs("dangling_abs", "load1")
+    .Build();
+  optimize::AscGraphInfoComplete::CompleteApiInfo(graph);
+
+  auto cg = af::AscGraphUtils::GetComputeGraph(graph);
+  ASSERT_NE(cg, nullptr);
+  ASSERT_NE(graph.FindNode("data1"), nullptr);
+  ASSERT_NE(graph.FindNode("load1"), nullptr);
+  ASSERT_NE(graph.FindNode("dangling_abs"), nullptr);
+
+  ::ascir::FusedScheduledResult fused_scheduled_result;
+  Status res = optimizer.Optimize(graph, fused_scheduled_result);
+  EXPECT_EQ(res, ge::SUCCESS);
+
+  auto data1_node = graph.FindNode("data1");
+  auto load1_node = graph.FindNode("load1");
+  auto dangling_abs_node = graph.FindNode("dangling_abs");
+  auto output_node = graph.FindNode("output");
+  ASSERT_NE(data1_node, nullptr);
+  ASSERT_NE(output_node, nullptr);
+  EXPECT_EQ(load1_node, nullptr);
+  EXPECT_EQ(dangling_abs_node, nullptr);
+  EXPECT_EQ(data1_node->GetOutDataNodesSize(), 0U);
+  EXPECT_EQ(data1_node->GetOutControlNodesSize(), 1U);
+  EXPECT_EQ(output_node->GetInControlNodesSize(), 1U);
+}
+
+TEST_F(TestOptimizer, OptimizeRemoveDanglingNodesWithWorkspaceOutput) {
+  auto graph = af::testing::AscGraphBuilder("RemoveDanglingNodesWithWorkspaceOutput")
+    .Loops({af::testing::Sym(32)})
+    .Data("data0", 0)
+    .Load("load0", "data0")
+    .Abs("abs0", "load0")
+    .Workspace("workspace", "abs0")
+    .ScalarData("scalar_data", 1)
+    .Build();
+  optimize::AscGraphInfoComplete::CompleteApiInfo(graph);
+
+  auto workspace_node = graph.FindNode("workspace");
+  auto scalar_data_node = graph.FindNode("scalar_data");
+  ASSERT_NE(workspace_node, nullptr);
+  ASSERT_NE(scalar_data_node, nullptr);
+  EXPECT_EQ(workspace_node->GetOutDataNodesSize(), 0U);
+  EXPECT_EQ(scalar_data_node->GetOutControlNodesSize(), 0U);
+
+  ::ascir::FusedScheduledResult fused_scheduled_result;
+  Status res = optimizer.Optimize(graph, fused_scheduled_result);
+  EXPECT_EQ(res, ge::SUCCESS);
+
+  workspace_node = graph.FindNode("workspace");
+  scalar_data_node = graph.FindNode("scalar_data");
+  ASSERT_NE(workspace_node, nullptr);
+  ASSERT_NE(scalar_data_node, nullptr);
+  EXPECT_EQ(scalar_data_node->GetOutDataNodesSize(), 0U);
+  EXPECT_EQ(scalar_data_node->GetOutControlNodesSize(), 1U);
+  EXPECT_EQ(workspace_node->GetInControlNodesSize(), 1U);
+}
+
 TEST_F(TestOptimizer, TransposeWithUB) {
   // Transpose 尾轴为动态shape
   af::AscGraph graph("transpose_with_ub");

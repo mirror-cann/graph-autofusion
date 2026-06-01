@@ -3895,9 +3895,9 @@ TEST_F(OptimizerSt, NodeCacheMarkerBroadcast) {
     .Output("y0", "store0", 0, af::DT_FLOAT16)
     // 验证防止重复判断
     .Add("add1", "brc0", "brc1")
-    .Store("store1", "add0", {af::sym::kSymbolOne, s1},
+    .Store("store1", "add1", {af::sym::kSymbolOne, s1},
          {af::sym::kSymbolZero, af::sym::kSymbolOne})
-    .Output("y1", "store0", 0, af::DT_FLOAT16)
+    .Output("y1", "store1", 1, af::DT_FLOAT16)
     .Build();
 
   ::ascir::FusedScheduledResult fused_scheduled_result;
