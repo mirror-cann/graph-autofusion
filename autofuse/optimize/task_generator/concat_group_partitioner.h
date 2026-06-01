@@ -63,6 +63,7 @@ class ConcatGroupPartitioner {
   Status TryOptimizeGroupSize();
   uint32_t MaxInputNumPerGroup() const;
   bool NeedSplit(const af::InDataAnchorPtr &in_anchor, int32_t start_index, const af::Expression &cur_dim_size) const;
+  bool InputHasTransposeOrReduce(size_t input_index) const;
   size_t GetGroupSize(size_t index) const;
 
   static constexpr uint32_t kGroupTypeDefault = 0x1;

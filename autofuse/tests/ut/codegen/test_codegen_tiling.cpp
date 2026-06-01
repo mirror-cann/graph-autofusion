@@ -2257,6 +2257,30 @@ static ascir::FusedScheduledResult GenMultiGroupFusedScheduleResult() {
   fused_schedule_result.node_idx_to_scheduled_results.emplace_back(std::move(graph0_results));
   return fused_schedule_result;
 }
+
+static ascir::ImplGraph GenGraphWithSizeVar(const std::string &graph_name, const std::string &var_name) {
+  ascir::ImplGraph graph(graph_name.c_str());
+  auto size = graph.CreateSizeVar(var_name.c_str());
+  (void)graph.CreateAxis("z0", size);
+  return graph;
+}
+
+static ascir::FusedScheduledResult GenMultiGroupFusedScheduleResultWithSizeVar(const std::string &var_name) {
+  ascir::ScheduleGroup schedule_group1;
+  schedule_group1.impl_graphs.push_back(GenGraphWithSizeVar("graph1", var_name));
+
+  ascir::ScheduleGroup schedule_group2;
+  schedule_group2.impl_graphs.push_back(GenGraphWithSizeVar("graph2", var_name));
+
+  ascir::ScheduledResult schedule_result;
+  schedule_result.schedule_groups.push_back(schedule_group1);
+  schedule_result.schedule_groups.push_back(schedule_group2);
+
+  ascir::FusedScheduledResult fused_schedule_result;
+  fused_schedule_result.origin_vars.push_back(af::Symbol(var_name.c_str()));
+  fused_schedule_result.node_idx_to_scheduled_results.push_back({schedule_result});
+  return fused_schedule_result;
+}
 }  // namespace
 
 TEST_F(TestCodegenTiling, GenerateForInductorGetTilingDataReprShouldContainStableFields) {
@@ -2357,6 +2381,16 @@ TEST_F(TestCodegenTiling, MultiGroupInductorShouldContainTopnMainOutputAbi) {
   EXPECT_NE(tiling_impl.find("std::vector<AutofuseTilingData> &tiling_datas"), std::string::npos);
   EXPECT_NE(tiling_impl.find("std::vector<int64_t> &workspaces"), std::string::npos);
   EXPECT_NE(tiling_impl.find("std::vector<int64_t> &block_dims"), std::string::npos);
+}
+
+TEST_F(TestCodegenTiling, MultiGroupTopnShouldSetShapeDimOnGroupTilingData) {
+  auto fused_schedule_result = GenMultiGroupFusedScheduleResultWithSizeVar("ks0");
+  auto res = this->GenerateForInductor(fused_schedule_result);
+  ASSERT_TRUE(res.find(codegen::kTilingDefAndConstIdentify) != res.end());
+  const auto &tiling_impl = res.at(codegen::kTilingDefAndConstIdentify);
+  EXPECT_EQ(tiling_impl.find("search_tiling.set_ks0("), std::string::npos);
+  EXPECT_NE(tiling_impl.find("search_tiling.graph0_result0_g0_tiling_data.set_ks0(ks0);"), std::string::npos);
+  EXPECT_NE(tiling_impl.find("search_tiling.graph0_result0_g1_tiling_data.set_ks0(ks0);"), std::string::npos);
 }
 
 TEST_F(TestCodegenTiling, MultiGroupInductorShouldContainReprAbi) {

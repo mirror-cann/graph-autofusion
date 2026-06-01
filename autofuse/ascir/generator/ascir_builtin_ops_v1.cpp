@@ -349,7 +349,7 @@ REG_ASC_IR(Max)
     .ComputeType(ComputeType::kComputeReduce)
     .Impl(v1_soc_versions, {af::ascir::AscIrImplCreator<af::ascir::MaxAscIrAttImpl>(),
                             af::ascir::AscIrImplCreator<af::ascir::MaxAscIrCodegenImpl>(),
-                            {{"T", TensorType{DT_FLOAT16, DT_FLOAT, DT_INT32}}}});
+                            {{"T", TensorType{DT_FLOAT16, DT_FLOAT}}}});
 
 REG_ASC_IR(Sum)
     .Input("x", "T")
@@ -397,7 +397,7 @@ REG_ASC_IR(Any)
     .ComputeType(ComputeType::kComputeReduce)
     .Impl(v1_soc_versions, {af::ascir::AscIrImplCreator<af::ascir::AnyAscIrAttImpl>(),
                             af::ascir::AscIrImplCreator<af::ascir::AnyAscIrCodegenImpl>(),
-                            {{"T", TensorType{DT_FLOAT, DT_INT32}}}});
+                            {{"T", TensorType{DT_FLOAT}}}});
 
 REG_ASC_IR(All)
     .Input("x", "T")
@@ -590,7 +590,7 @@ REG_ASC_IR(Concat)
     .Impl(v1_soc_versions, {af::ascir::AscIrImplCreator<af::ascir::ConcatAscIrAttImpl>(),
                             af::ascir::AscIrImplCreator<af::ascir::ConcatAscIrCodegenImpl>(),
                             {{"T", TensorType{DT_INT8, DT_UINT8, DT_INT16, DT_UINT16, DT_INT32, DT_UINT32, DT_UINT64,
-                                              DT_FLOAT16, DT_FLOAT}}}});
+                                              DT_BF16, DT_FLOAT16, DT_FLOAT}}}});
 
 REG_ASC_IR(Select)
     .Input("x1", "T1")

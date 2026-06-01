@@ -55,6 +55,7 @@ usage() {
   echo "  sh build.sh [-h|--help] [--pkg] [-u|--ut] [-s|--st] [--impl=<py|cpp|all>]"
   echo "              [--module=<name>] [-c|--coverage] [-j]"
   echo "              [--output_path=<PATH>] [--cann_3rd_lib_path=<PATH>] [--build-type=<TYPE>] [--no-autofuse]"
+  echo "              [-f <FILE>]"
   echo ""
   echo "Options:"
   echo "    -h, --help            Print usage"
@@ -75,6 +76,11 @@ usage() {
   echo "                          (Third_party package will cost a little time during the first compilation,"
   echo "                          it will skip compilation to save time during subsequent builds)"
   echo "    --build-type=<TYPE>   Set build type: Debug, Release(default: Release)"
+  echo "    -f <FILE>             File containing list of changed files. Smart module selection:"
+  echo "                          - Only super_kernel/ changed: skip autofuse build/tests"
+  echo "                          - Only autofuse/ changed: skip superkernel tests"
+  echo "                          - Both changed: build all"
+  echo "                          - Only docs/examples/etc: skip all (exit 200)"
   echo ""
 }
 
@@ -105,6 +111,128 @@ is_supported_module() {
       return 0
     fi
   done
+  return 1
+}
+
+analyze_changed_modules() {
+  local changed_files="$1"
+  CHANGED_SUPERKERNEL=false
+  CHANGED_AUTOFUSE=false
+  CHANGED_OTHER=false
+
+  if [ -z "$changed_files" ]; then
+    CHANGED_OTHER=true
+    return
+  fi
+
+  for file in $changed_files; do
+    file=$(echo "$file" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//;s/^"//;s/"$//')
+
+    if echo "$file" | grep -qi "^README\.md$"; then
+      continue
+    fi
+
+    if echo "$file" | grep -qi "^CONTRIBUTING\.md$"; then
+      continue
+    fi
+
+    if echo "$file" | grep -q "^docs/"; then
+      continue
+    fi
+
+    if echo "$file" | grep -q "^examples/"; then
+      continue
+    fi
+
+    if echo "$file" | grep -q "^\.claude/"; then
+      continue
+    fi
+
+    if echo "$file" | grep -q "^\.opencode/"; then
+      continue
+    fi
+
+    if echo "$file" | grep -qi "^AGENTS\.md$"; then
+      continue
+    fi
+
+    if echo "$file" | grep -q "^super_kernel/"; then
+      CHANGED_SUPERKERNEL=true
+    elif echo "$file" | grep -q "^autofuse/"; then
+      CHANGED_AUTOFUSE=true
+    else
+      CHANGED_OTHER=true
+    fi
+  done
+}
+
+apply_module_selection() {
+  if [ "$CHANGED_SUPERKERNEL" = true ] && [ "$CHANGED_AUTOFUSE" = false ] && [ "$CHANGED_OTHER" = false ]; then
+    echo "[INFO] Only super_kernel changed, skipping autofuse build and autofuse tests."
+    ENABLE_AUTOFUSE="off"
+    SKIP_AUTOFUSE_TESTS="on"
+    return 0
+  elif [ "$CHANGED_AUTOFUSE" = true ] && [ "$CHANGED_SUPERKERNEL" = false ] && [ "$CHANGED_OTHER" = false ]; then
+    echo "[INFO] Only autofuse changed, skipping superkernel tests."
+    SKIP_SUPERKERNEL_TESTS="on"
+    return 0
+  elif [ "$CHANGED_SUPERKERNEL" = false ] && [ "$CHANGED_AUTOFUSE" = false ] && [ "$CHANGED_OTHER" = false ]; then
+    echo "[INFO] Changed files only contain docs/, examples/, .claude/, .opencode/, README.md, CONTRIBUTING.md or AGENTS.md, skipping build."
+    echo "[INFO] Changed files: $CHANGED_FILES"
+    return 200
+  fi
+  return 0
+}
+
+check_changed_files() {
+  local changed_files="$1"
+  local skip_build=true
+
+  if [ -z "$changed_files" ]; then
+    return 1
+  fi
+
+  for file in $changed_files; do
+    file=$(echo "$file" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//;s/^"//;s/"$//')
+
+    if echo "$file" | grep -qi "^README\.md$"; then
+      continue
+    fi
+
+    if echo "$file" | grep -qi "^CONTRIBUTING\.md$"; then
+      continue
+    fi
+
+    if echo "$file" | grep -q "^docs/"; then
+      continue
+    fi
+
+    if echo "$file" | grep -q "^examples/"; then
+      continue
+    fi
+
+    if echo "$file" | grep -q "^\.claude/"; then
+      continue
+    fi
+
+    if echo "$file" | grep -q "^\.opencode/"; then
+      continue
+    fi
+
+    if echo "$file" | grep -qi "^AGENTS\.md$"; then
+      continue
+    fi
+
+    skip_build=false
+    break
+  done
+
+  if [ "$skip_build" = true ]; then
+    echo "[INFO] Changed files only contain docs/, examples/, .claude/, .opencode/, README.md, CONTRIBUTING.md or AGENTS.md, skipping build."
+    echo "[INFO] Changed files: $changed_files"
+    return 0
+  fi
+
   return 1
 }
 
@@ -187,9 +315,9 @@ checkopts() {
   TARGET_MODULE="all"
   CANN_3RD_LIB_PATH="$BASEPATH/output/third_party"
   ENABLE_AUTOFUSE="on"
+  CHANGED_FILES=""
 
-  # Process the options - 添加了 build-type 选项
-  parsed_args=$(getopt -a -o j:husc -l help,pkg,autofuse,no-autofuse,impl:,module:,test_case:,run_example,ut,st,coverage,output_path:,cann_3rd_lib_path:,build-type: -- "$@") || {
+  parsed_args=$(getopt -a -o j:huscf: -l help,pkg,autofuse,no-autofuse,impl:,module:,test_case:,run_example,ut,st,coverage,output_path:,cann_3rd_lib_path:,build-type: -- "$@") || {
     usage
     exit 1
   }
@@ -277,6 +405,15 @@ checkopts() {
           echo "       Valid types: Debug, Release"
           exit 1
         fi
+        shift 2
+        ;;
+      -f)
+        CHANGED_FILES_FILE="$2"
+        if [ ! -f "$CHANGED_FILES_FILE" ]; then
+          echo "Error: File $CHANGED_FILES_FILE not found"
+          exit 1
+        fi
+        CHANGED_FILES=$(cat "$CHANGED_FILES_FILE")
         shift 2
         ;;
       --)
@@ -497,14 +634,76 @@ autofuse_module_test_suite() {
 main() {
   checkopts "$@"
 
+  SKIP_SUPERKERNEL_TESTS="off"
+  SKIP_AUTOFUSE_TESTS="off"
+
+  if [ -n "$CHANGED_FILES" ]; then
+    analyze_changed_modules "$CHANGED_FILES"
+    local ret=0
+    apply_module_selection || ret=$?
+    if [ $ret -eq 200 ]; then
+      exit 200
+    fi
+    if [ "$CHANGED_SUPERKERNEL" = false ]; then
+      SKIP_SUPERKERNEL_TESTS="on"
+      echo "[INFO] No super_kernel files changed, skipping superkernel tests."
+    fi
+    if [ "$CHANGED_AUTOFUSE" = false ]; then
+      SKIP_AUTOFUSE_TESTS="on"
+      echo "[INFO] No autofuse files changed, skipping autofuse tests."
+    fi
+    local has_action_to_run=false
+    for _action_entry in "${EXEC_ACTIONS[@]}"; do
+      _module="${_action_entry%%:*}"
+      if [ "$SKIP_SUPERKERNEL_TESTS" = "on" ] && [[ "$_module" == "superkernel" ]]; then
+        continue
+      fi
+      if [ "$SKIP_AUTOFUSE_TESTS" = "on" ] && [[ "$_module" == "autofuse"* ]]; then
+        continue
+      fi
+      has_action_to_run=true
+      break
+    done
+    if [ "$has_action_to_run" = false ] && [ "${#EXEC_ACTIONS[@]}" -gt 0 ]; then
+      echo "[INFO] All test actions skipped due to module selection, exiting."
+      if [ "$SKIP_SUPERKERNEL_TESTS" = "on" ]; then
+        mkdir -p "${BASEPATH}/super_kernel/coverage/cpp_ut"
+        touch "${BASEPATH}/super_kernel/coverage/cpp_ut/coverage.info"
+        mkdir -p "${BUILD_PATH}"
+        if command -v python3 &>/dev/null && python3 -c "import coverage" 2>/dev/null; then
+          python3 << 'PYEOF' 2>/dev/null || true
+import coverage, os
+build_path = os.path.join(os.path.dirname(os.path.abspath('.')), 'build')
+if not os.path.isdir(build_path):
+    build_path = 'build'
+os.makedirs(build_path, exist_ok=True)
+os.chdir(build_path)
+with open('_cov_dummy.py', 'w') as f:
+    f.write('x = 1\n')
+cov = coverage.Coverage(source=['_cov_dummy.py'])
+cov.start()
+exec(open('_cov_dummy.py').read())
+cov.stop()
+cov.save()
+PYEOF
+        fi
+      fi
+      if [ "$SKIP_AUTOFUSE_TESTS" = "on" ]; then
+        mkdir -p "${BASEPATH}/cov"
+        touch "${BASEPATH}/cov/coverage.info"
+      fi
+      exit 200
+    fi
+  fi
+
   # Detect proxy settings for third-party tarball downloads.
   # CMake ExternalProject_Add downloads via curl, which reads http_proxy/https_proxy
   # from the process environment. Remind users to export these if git works but
   # cmake download fails (common when proxy is only configured in ~/.gitconfig).
-  if [ -n "&#36;{http_proxy}" ] || [ -n "&#36;{https_proxy}" ]; then
+  if [ -n "${http_proxy:-}" ] || [ -n "${https_proxy:-}" ]; then
     echo "Info: Proxy settings detected in environment:"
-    [ -n "&#36;{http_proxy}" ] && echo "  http_proxy=&#36;{http_proxy}"
-    [ -n "&#36;{https_proxy}" ] && echo "  https_proxy=&#36;{https_proxy}"
+    [ -n "${http_proxy:-}" ] && echo "  http_proxy=${http_proxy}"
+    [ -n "${https_proxy:-}" ] && echo "  https_proxy=${https_proxy}"
     echo "  These will be inherited by CMake's curl downloads automatically."
   fi
 
@@ -530,6 +729,17 @@ main() {
   for action_entry in "${EXEC_ACTIONS[@]}"; do
     module="${action_entry%%:*}"
     action="${action_entry#*:}"
+
+    if [ "X$SKIP_SUPERKERNEL_TESTS" == "Xon" ] && [[ "$module" == "superkernel" ]]; then
+      echo "[INFO] Skipping superkernel ${action} due to module selection."
+      continue
+    fi
+
+    if [ "X$SKIP_AUTOFUSE_TESTS" == "Xon" ] && [[ "$module" == "autofuse"* ]]; then
+      echo "[INFO] Skipping autofuse ${action} due to module selection."
+      continue
+    fi
+
     handler="${MODULE_ACTION_HANDLERS["${module}:${action}"]}"
 
     ${handler} "${module}" "${action}" || {

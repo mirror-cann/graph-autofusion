@@ -527,6 +527,15 @@ std::string Loop::GetReduceType() const {
   return "";
 }
 
+bool Loop::IsHaveReduceType(const std::string &type) const {
+  for (auto body : this->bodys) {
+    if (body.type == LoopType::CALL && body.call->type == type) {
+      return true;
+    }
+  }
+  return false;
+}
+
 /* 获取reduce api的输出tensor */
 const Tensor* Loop::GetReduceOutputTensor(const TPipe &tpipe) const {
   for (auto it = this->bodys.rbegin(); it != this->bodys.rend(); ++it) {
@@ -603,7 +612,7 @@ Status Loop::GenerateLoop(const Tiler &tiler, const TPipe &tpipe, std::vector<as
                       "Codegen generate body failed when axis type is block outer");
   } else {
     std::string reduce_dim_a = "reduce_dim_a";
-    if (GetReduceType() == "Mean") {
+    if (IsHaveReduceType("Mean")) {
       ss << "uint32_t " << reduce_dim_a << ";" << std::endl;
     }
     if (axis.type != Axis::Type::kAxisTypeBlockInner && this->is_graph_has_reduce_node) {

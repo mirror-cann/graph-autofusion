@@ -372,6 +372,7 @@ class ScheduleUtils {
   static Status ClearAllSizeVar(const af::AscGraph &graph);
   // 判断节点的Micro API是否支持Scalar输入，用于scalar_broadcast优化
   static bool IsMicroApiSupportsScalarInput(const af::AscNodePtr &node);
+  static void GenerateStrides(const std::vector<ge::Expression> &repeats, std::vector<ge::Expression> &strides);
 };
 }  // namespace optimize
 

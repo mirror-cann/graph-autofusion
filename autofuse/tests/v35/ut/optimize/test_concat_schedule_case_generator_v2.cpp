@@ -286,4 +286,207 @@ TEST_F(ConcatScheduleCaseGeneratorV2Test, OptimizeSameShapeConcat) {
   EXPECT_EQ(graphs.size(), 2);
   EXPECT_TRUE(graphs[0].FindNode("load0_ub_cpy_input_0") != nullptr);
 }
+
+// 测试场景：Concat 输出有 Downcast Cast，Generate 后 Cast 被优化消除
+// 图结构：
+//   data0[FP32] -> load0 ----\
+//                             concat0[FP32] -> cast_out0[FP32→FP16] -> store0 -> output0[FP16]
+//   data1[FP32] -> load1 ---/
+// 优化后（在 Generate 生成的 ImplGraph 中）：
+//   cast_out0 被移除，concat 输出 dtype 变为 FP16，Cast 被拉到输入端
+// 预期：生成的图中 cast_out0 不存在，Cast 数量从 1 变为 2（两个新输入 Cast）
+TEST_F(ConcatScheduleCaseGeneratorV2Test, DowncastCastOptimizeAfterGenerate) {
+  auto s0 = af::Symbol("s0");
+  auto s1 = af::Symbol(8);
+  auto s2 = s1 + s1;
+  auto graph = af::testing::AscGraphBuilder("test_downcast_concat")
+                   .Loops({s0, s2})
+                   .Data("data0", 0, af::DT_FLOAT)
+                   .Load("load0", "data0", {s0, s1}, {s1, af::sym::kSymbolOne})
+                   .Data("data1", 1, af::DT_FLOAT)
+                   .Load("load1", "data1", {s0, s1}, {s1, af::sym::kSymbolOne})
+                   .Concat("concat", {"load0", "load1"})
+                   .Cast("cast_out0", "concat", af::DT_FLOAT16)
+                   .Store("store0", "cast_out0")
+                   .Output("output0", "store0", 0, af::DT_FLOAT16)
+                   .Build();
+
+  std::vector<std::string> score_functions;
+  std::vector<::ascir::ImplGraph> graphs;
+  optimize::ConcatFusionCaseGenerator generator;
+  ASSERT_EQ(generator.Generate(graph, graphs, score_functions), SUCCESS);
+  ASSERT_GE(graphs.size(), 1U);
+
+  size_t cast_count = 0U;
+  for (const auto &node : graphs[0].GetAllNodes()) {
+    if (node->GetType() == Cast::Type) {
+      ++cast_count;
+    }
+  }
+  EXPECT_TRUE(graphs[0].FindNode("cast_out0") == nullptr);
+  EXPECT_EQ(cast_count, 2U);
+}
+
+TEST_F(ConcatScheduleCaseGeneratorV2Test, InputWithTransposeOrReduce_ForceSingleGroup) {
+  auto s0 = af::Symbol("s0");
+  auto s1 = af::Symbol(4);
+  auto s2 = s1 + s1 + s1;
+  auto graph = af::testing::AscGraphBuilder("test_input_transpose_reduce")
+                   .Loops({s0, s2})
+                   .Data("data0", 0, af::DT_FLOAT16)
+                   .Load("load0", "data0", {s0, s1}, {s1, af::sym::kSymbolOne})
+                   .Data("data1", 1, af::DT_FLOAT16)
+                   .Load("load1", "data1", {s0, s1}, {s1, af::sym::kSymbolOne})
+                   .Transpose("transpose0", "load1", {1, 0})
+                   .Data("data2", 2, af::DT_FLOAT16)
+                   .Load("load2", "data2", {s0, s1}, {s1, af::sym::kSymbolOne})
+                   .Concat("concat", {"load0", "transpose0", "load2"}, 1)
+                   .Store("store", "concat")
+                   .Output("out", "store", 0, af::DT_FLOAT16)
+                   .Build();
+
+  auto concat_node = graph.FindNode("concat");
+  ASSERT_TRUE(concat_node != nullptr);
+
+  optimize::ConcatGroupPartitioner partitioner(concat_node, 1);
+  std::vector<optimize::ConcatGroupPartitioner::ConcatGroup> groups;
+  ASSERT_EQ(partitioner.PartitionGroups(groups), af::SUCCESS);
+
+  size_t input_with_transpose = 1UL;
+  bool found_single_group_for_transpose = false;
+  for (const auto &group : groups) {
+    if (group.start == input_with_transpose && group.end == input_with_transpose + 1) {
+      found_single_group_for_transpose = true;
+    }
+  }
+  EXPECT_TRUE(found_single_group_for_transpose);
+}
+
+TEST_F(ConcatScheduleCaseGeneratorV2Test, InputWithReduce_ForceSingleGroup) {
+  auto s0 = af::Symbol("s0");
+  auto s1 = af::Symbol(4);
+  auto s2 = s1 + s1 + s1;
+  auto graph = af::testing::AscGraphBuilder("test_input_reduce")
+      .Loops({s0, s2})
+      .Data("data0", 0, af::DT_FLOAT16)
+      .Load("load0", "data0", {s0, s1}, {s1, af::sym::kSymbolOne})
+      .Data("data1", 1, af::DT_FLOAT16)
+      .Load("load1", "data1", {s0, s1}, {s1, af::sym::kSymbolOne})
+      .Sum("sum0", "load1", {1})
+      .Data("data2", 2, af::DT_FLOAT16)
+      .Load("load2", "data2", {s0, s1}, {s1, af::sym::kSymbolOne})
+      .Concat("concat", {"load0", "sum0", "load2"}, 1)
+      .Store("store", "concat")
+      .Output("out", "store", 0, af::DT_FLOAT16)
+      .Build();
+
+  auto concat_node = graph.FindNode("concat");
+  ASSERT_TRUE(concat_node != nullptr);
+
+  optimize::ConcatGroupPartitioner partitioner(concat_node, 1);
+  std::vector<optimize::ConcatGroupPartitioner::ConcatGroup> groups;
+  ASSERT_EQ(partitioner.PartitionGroups(groups), af::SUCCESS);
+
+  size_t input_with_reduce = 1UL;
+  bool found_single_group_for_reduce = false;
+  for (const auto &group : groups) {
+    if (group.start == input_with_reduce && group.end == input_with_reduce + 1) {
+      found_single_group_for_reduce = true;
+    }
+  }
+  EXPECT_TRUE(found_single_group_for_reduce);
+}
+
+TEST_F(ConcatScheduleCaseGeneratorV2Test, SixInputsWithSharedReduceAndTranspose) {
+  auto s0 = af::Symbol("s0");
+  auto s1 = af::Symbol(4);
+  auto s2 = s1 + s1 + s1 + s1 + s1 + s1;
+  auto graph = af::testing::AscGraphBuilder("test_6input_reduce_transpose")
+      .Loops({s0, s2})
+      .Data("data0", 0, af::DT_FLOAT16)
+      .Load("load0", "data0", {s0, s1}, {s1, af::sym::kSymbolOne})
+      .Data("data_r", 1, af::DT_FLOAT16)
+      .Load("load_r", "data_r", {s0, s1}, {s1, af::sym::kSymbolOne})
+      .Sum("reduce0", "load_r", {1})
+      .Data("data2", 2, af::DT_FLOAT16)
+      .Load("load2", "data2", {s0, s1}, {s1, af::sym::kSymbolOne})
+      .Data("data_t", 3, af::DT_FLOAT16)
+      .Load("load_t", "data_t", {s0, s1}, {s1, af::sym::kSymbolOne})
+      .Transpose("transpose0", "load_t", {1, 0})
+      .Data("data4", 4, af::DT_FLOAT16)
+      .Load("load4", "data4", {s0, s1}, {s1, af::sym::kSymbolOne})
+      .Concat("concat", {"reduce0", "load0", "transpose0", "load2", "load4", "reduce0"}, 1)
+      .Store("store", "concat")
+      .Output("out", "store", 0, af::DT_FLOAT16)
+      .Build();
+
+  auto concat_node = graph.FindNode("concat");
+  ASSERT_TRUE(concat_node != nullptr);
+
+  optimize::ConcatGroupPartitioner partitioner(concat_node, 1);
+  std::vector<optimize::ConcatGroupPartitioner::ConcatGroup> groups;
+  ASSERT_EQ(partitioner.PartitionGroups(groups), af::SUCCESS);
+
+  std::set<size_t> forced_single;
+  for (const auto &group : groups) {
+    if (group.end - group.start == 1) {
+      forced_single.insert(group.start);
+    }
+  }
+  EXPECT_TRUE(forced_single.find(0) != forced_single.end());
+  EXPECT_TRUE(forced_single.find(2) != forced_single.end());
+  EXPECT_TRUE(forced_single.find(5) != forced_single.end());
+  EXPECT_TRUE(forced_single.find(3) == forced_single.end());
+  EXPECT_TRUE(forced_single.find(4) == forced_single.end());
+  size_t total_inputs = 6UL;
+  size_t covered = 0UL;
+  for (const auto &group : groups) {
+    covered += group.end - group.start;
+  }
+  EXPECT_EQ(covered, total_inputs);
+  EXPECT_FALSE(partitioner.HasRecompute());
+}
+
+TEST_F(ConcatScheduleCaseGeneratorV2Test, Generate_SkipsUBConcatForGraphWithTransposeOrReduce) {
+  auto s0 = af::Symbol("s0");
+  auto s1 = af::Symbol(4);
+  auto s2 = s1 + s1;
+
+  auto graph_with_reduce = af::testing::AscGraphBuilder("graph_with_reduce")
+      .Loops({s0, s2})
+      .Data("data0", 0, af::DT_FLOAT16)
+      .Load("load0", "data0", {s0, s1}, {s1, af::sym::kSymbolOne})
+      .Data("data1", 1, af::DT_FLOAT16)
+      .Load("load1", "data1", {s0, s1}, {s1, af::sym::kSymbolOne})
+      .Sum("reduce0", "load1", {1})
+      .Concat("concat", {"load0", "reduce0"}, 1)
+      .Store("store", "concat")
+      .Output("out", "store", 0, af::DT_FLOAT16)
+      .Build();
+
+  std::vector<std::string> score_functions;
+  std::vector<::ascir::ImplGraph> graphs_with_reduce;
+  optimize::ConcatFusionCaseGenerator generator;
+  EXPECT_EQ(generator.Generate(graph_with_reduce, graphs_with_reduce, score_functions), SUCCESS);
+  EXPECT_FALSE(graphs_with_reduce.empty());
+
+  auto graph_no_reduce = af::testing::AscGraphBuilder("graph_no_reduce")
+      .Loops({s0, s2})
+      .Data("data0", 0, af::DT_FLOAT16)
+      .Load("load0", "data0", {s0, s1}, {s1, af::sym::kSymbolOne})
+      .Data("data1", 1, af::DT_FLOAT16)
+      .Load("load1", "data1", {s0, s1}, {s1, af::sym::kSymbolOne})
+      .Concat("concat", {"load0", "load1"}, 1)
+      .Store("store", "concat")
+      .Output("out", "store", 0, af::DT_FLOAT16)
+      .Build();
+
+  std::vector<std::string> score_functions2;
+  std::vector<::ascir::ImplGraph> graphs_no_reduce;
+  optimize::ConcatFusionCaseGenerator generator2;
+  EXPECT_EQ(generator2.Generate(graph_no_reduce, graphs_no_reduce, score_functions2), SUCCESS);
+  EXPECT_FALSE(graphs_no_reduce.empty());
+
+  EXPECT_TRUE(graphs_no_reduce.size() > graphs_with_reduce.size());
+}
 }  // namespace schedule

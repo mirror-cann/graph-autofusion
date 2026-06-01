@@ -19,7 +19,7 @@
 
 namespace optimize {
 struct ExpressionStaticCheckEq {
-  // cooncat子图表达式可能不一致, 依赖guard
+  // concat子图表达式可能不一致, 依赖guard
   bool operator()(const af::Expression &lhs, const af::Expression &rhs) const {
     return af::SymbolicUtils::StaticCheckEq(lhs, rhs) == af::TriBool::kTrue;
   }
@@ -30,19 +30,22 @@ class ConcatFusionCaseGenerator : public FusionCaseGenerator {
   Status Generate(ascir::HintGraph &graph,
                   std::vector<ascir::ImplGraph> &graphs,
                   std::vector<std::string> &score_functions) override;
-  ConcatFusionCaseGenerator& SetConvertToStoreMode();
-  [[nodiscard]] bool HasLoadStoreConversion() const override{
+  Status EliminateConcat(ascir::HintGraph &graph, const af::AscNodePtr &concat_node);
+  [[nodiscard]] bool HasLoadStoreConversion() const override {
     return true;
   }
 
  private:
+  Status AddTemplatesForFirstDimConcat(const af::AscNodePtr &concat_node,
+                                       ascir::HintGraph &graph,
+                                       std::vector<ascir::ImplGraph> &graphs);
   Status AddTemplateForSplitConcat(const ascir::HintGraph &graph, std::vector<ascir::ImplGraph> &graphs);
   static Status AddTemplateForSmallTail(const ascir::HintGraph &graph, std::vector<ascir::ImplGraph> &graphs);
   bool NeedDynSmallTailTemplate(const af::AscNodePtr &concat_node) const;
   Status GenerateScoreFunctions(const std::vector<ascir::ImplGraph> &graphs,
                                 size_t concat_dim,
                                 std::vector<std::string> &score_functions) const;
-  static std::vector<af::AscNodePtr> FindConcatNodes(const ascir::HintGraph &owner_graph);
+  static std::vector<af::AscNodePtr> FindConcatNodes(const ascir::HintGraph &owner_graph, bool *has_unsupported_op = nullptr);
   Status ConvertConcatToStores(ascir::HintGraph &owner_graph, const af::AscNodePtr &concat_node);
   Status SplitConcats(ascir::HintGraph &owner_graph, const af::AscNodePtr &concat_node, bool &split);
   Status Prepare(const af::AscNodePtr &concat_node, size_t concat_dim);
@@ -50,7 +53,7 @@ class ConcatFusionCaseGenerator : public FusionCaseGenerator {
                           const af::Axis &replace_axis);
   Status ConvertSingleInput(ascir::HintGraph &owner_graph, const af::AscNodePtr &concat_node, size_t in_index,
                             size_t group_idx, ConcatDimAxisMap &repeat_to_axis_id);
-  Status PropagateAxisChanges(af::Node *start_node, const std::vector<ascir::AxisId> &new_axis_ids) const;
+  static Status PropagateAxisChanges(af::Node *start_node, const std::vector<ascir::AxisId> &new_axis_ids);
   Status ReplaceWithConcat(::ascir::ImplGraph &owner_graph,
                            const af::AscNodePtr &concat_node,
                            size_t start,
@@ -72,15 +75,16 @@ class ConcatFusionCaseGenerator : public FusionCaseGenerator {
                                 const std::vector<ascir::AxisId> &new_axis_ids);
   static af::Status UpdateRepeatAndStrides(const af::AscNodePtr &node, size_t axis_index,
                                            const af::Expression &axis_size, af::AscTensorAttr &tensor_attr);
-  static Status InsertAxis(ascir::ImplGraph &optimized_graph);
+  static Status InsertAxis(const ascir::ImplGraph &optimized_graph);
   static Status AddTemplateIfCanFitInOneKernel(const af::AscNodePtr &concat_node, ascir::HintGraph &graph,
                                                std::vector<ascir::ImplGraph> &graphs);
-  static Status MarkNoMergeFirstAxis(std::vector<ascir::ImplGraph> &graphs);
+  static Status MarkNoMergeFirstAxis(const std::vector<ascir::ImplGraph> &graphs);
   bool KeepOriginGraph(const af::AscNodePtr &concat_node) const;
   static bool IsSmallBlock(const af::AscNodePtr &concat_node, size_t concat_dim);
   static Status ReconnectIfShareSameAncestor(const std::unordered_map<std::string, af::NodePtr> &name_to_node, const af::InDataAnchorPtr &in_anchor);
   static Status AddExtraShapeEnv(const af::AscNodePtr &concat_node, size_t concat_dim);
   Status PrepareForModifyingGraph(const af::AscNodePtr &concat_node);
+  static Status RunCastOptimizationPass(std::vector<ascir::ImplGraph> &graphs);
 
   std::vector<af::AscNodePtr> post_concat_nodes_;
   std::set<af::AscNodePtr> reachable_load_nodes_;;
@@ -89,7 +93,6 @@ class ConcatFusionCaseGenerator : public FusionCaseGenerator {
   ascir::AxisId concat_axis_id_ = -1;
   size_t concat_dim_ = std::numeric_limits<size_t>::max();
   bool support_small_tail_ = false;
-  bool convert_to_store_ = false;
   bool split_concat_ = false;
   bool has_recompute_ = false;
 };

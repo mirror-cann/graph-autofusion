@@ -12,6 +12,8 @@
 CUR_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 source ${CUR_DIR}/util.sh
+BASEPATH="$(cd "$(dirname "$0")/../../../../.." && pwd)"
+source ${BASEPATH}/scripts/support_multiple_versions_of_lcov.sh
 
 set -e
 
@@ -20,6 +22,9 @@ LCOV_COMPAT_MODE=""
 LCOV_MAJOR_VERSION=0
 LCOV_CAPTURE_OPTS=()
 LCOV_FILTER_OPTS=()
+LCOV_PARALLEL_PARAMS=""
+LCOV_RC_PARAM=""
+GENHTML_IGNORE_ERRORS=""
 CPP_UT_COVERAGE_EXPECTED="${CPP_UT_COVERAGE_EXPECTED:-80}"
 
 progress() {
@@ -38,16 +43,34 @@ init_lcov_compat_options() {
 
   LCOV_CAPTURE_OPTS=()
   LCOV_FILTER_OPTS=()
+  LCOV_PARALLEL_PARAMS=""
+  LCOV_RC_PARAM=""
+  GENHTML_IGNORE_ERRORS=""
   if (( LCOV_MAJOR_VERSION >= 2 )); then
     LCOV_COMPAT_MODE="modern"
-    LCOV_CAPTURE_OPTS=(
-      --quiet
-      --ignore-errors mismatch,mismatch,negative,gcov
-      --rc geninfo_unexecuted_blocks=1
-    )
+    LCOV_PARALLEL_PARAMS=$(get_lcov_parallel_params ${THREAD_NUMBER:-${THREAD_NUM:-8}})
+    LCOV_RC_PARAM=$(get_lcov_unexecuted_blocks_param)
+    GENHTML_IGNORE_ERRORS=$(get_genhtml_ignore_errors)
+
+    if [ -n "${LCOV_PARALLEL_PARAMS}" ]; then
+      LCOV_CAPTURE_OPTS=(
+        --quiet
+        --ignore-errors child,inconsistent,negative,mismatch,empty
+        ${LCOV_RC_PARAM}
+        ${LCOV_PARALLEL_PARAMS}
+      )
+    else
+      LCOV_CAPTURE_OPTS=(
+        --quiet
+        --ignore-errors inconsistent,negative,mismatch,empty
+        ${LCOV_RC_PARAM}
+      )
+    fi
     LCOV_FILTER_OPTS=(
       --quiet
-      --ignore-errors mismatch,mismatch,negative,gcov,empty,unused
+      --ignore-errors inconsistent,negative,mismatch,empty,unused
+      ${LCOV_RC_PARAM}
+      ${LCOV_PARALLEL_PARAMS}
     )
   else
     LCOV_COMPAT_MODE="legacy"
@@ -140,6 +163,7 @@ generate_html() {
           --legend \
           --title "graph-autofusion AOT C++ Coverage" \
           --prefix "${_src}" \
+          ${GENHTML_IGNORE_ERRORS} \
           -o "${_out_path}"
 }
 

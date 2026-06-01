@@ -47,6 +47,42 @@ Status ConcatInputUnificationPass::RunOneGraph(ascir::ImplGraph &graph) {
   return ge::SUCCESS;
 }
 
+bool ConcatInputUnificationPass::CanOptimize(const af::AscNodePtr &concat_node, size_t concat_dim) {
+  if (ascir::utils::AreConcatInputShapesEqual(concat_node) == af::TriBool::kFalse) {
+    GELOGI("input col sizes of Concat differ, cannot optimize");
+    return false;
+  }
+  std::set<int32_t> unused;
+  return CanOptimize(concat_node, concat_dim, unused);
+}
+
+bool ConcatInputUnificationPass::CanOptimize(const af::AscNodePtr &concat_node, size_t concat_dim,
+                                               std::set<int32_t> &input_indices_need_copy) {
+  const auto dtype_size = ge::GetSizeByDataType(concat_node->outputs[0].attr.dtype);
+  GE_WARN_ASSERT(dtype_size > 0, "unsupported output data type");
+  if (IsSrcColSizeOverLimit(concat_node, concat_dim, dtype_size)) {
+    GELOGI("dst col size over limit, cannot optimize");
+    return false;
+  }
+
+  input_indices_need_copy.clear();
+  GE_WARN_ASSERT(GetQueInputIndices(concat_node, input_indices_need_copy) == ge::SUCCESS);
+  const auto load_num = static_cast<uint32_t>(input_indices_need_copy.size());
+  if (load_num == concat_node->inputs.Size()) {
+    GELOGI("all inputs are of compute type Load, can optimize");
+    return true;
+  }
+
+  GE_ASSERT_SUCCESS(CollectSharedInputs(concat_node, input_indices_need_copy));
+  const auto copy_num = static_cast<uint32_t>(input_indices_need_copy.size());
+  constexpr uint32_t kCopyNumLimit = 3U;
+  if (copy_num > kCopyNumLimit) {
+    GELOGI("ub2ub num needed = %u, over limit = %u, cannot optimize", copy_num, kCopyNumLimit);
+    return false;
+  }
+  return true;
+}
+
 bool ConcatInputUnificationPass::NeedOptimize(const af::AscNodePtr &concat_node,
                                               std::set<int32_t> &input_indices_need_copy) {
   GE_WARN_ASSERT(concat_node->inputs.Size() > 0);
@@ -68,28 +104,21 @@ bool ConcatInputUnificationPass::NeedOptimize(const af::AscNodePtr &concat_node,
   GELOGI("input repeat = %s, output repeat = %s, concat_dim = %zu, dtype_size = %d",
          af::ToString(concat_node->inputs[0].attr.repeats).c_str(),
          af::ToString(concat_node->outputs[0].attr.repeats).c_str(), concat_dim, dtype_size);
-  GE_CHK_BOOL_RET_SPECIAL_STATUS(IsSrcColSizeAlignedToB4(concat_node, concat_dim, dtype_size), false,
+  GE_CHK_BOOL_RET_SPECIAL_STATUS(IsSrcColSizeAlignedToB4(concat_node, concat_dim, dtype_size),
+                                 false,
                                  "src col size aligned to B32, no need for optimization");
 
-  // 4. dst_col_size超过阈值不需要
-  GE_CHK_BOOL_RET_SPECIAL_STATUS(IsSrcColSizeOverLimit(concat_node, concat_dim, dtype_size), false,
-                                 "dst col size over limit, no need for optimization");
+  // 4. dst_col_size和ub2ub阈值检查
+  if (!CanOptimize(concat_node, concat_dim, input_indices_need_copy)) {
+    return false;
+  }
 
   // 5. 输入全来自于Load不需要
-  GE_WARN_ASSERT(GetQueInputIndices(concat_node, input_indices_need_copy) == ge::SUCCESS);
-  const auto load_num = static_cast<uint32_t>(input_indices_need_copy.size());
-  GE_CHK_BOOL_RET_SPECIAL_STATUS(load_num == concat_node->inputs.Size(), false,
-                                 "All inputs are of compute type Load, no need for optimization");
+  if (input_indices_need_copy.size() == concat_node->inputs.Size()) {
+    GELOGI("All inputs are of compute type Load, no need for optimization");
+    return false;
+  }
 
-  // 6. 计算输入tbuf多引用需要插入的ub2ub的个数
-  GE_ASSERT_SUCCESS(CollectSharedInputs(concat_node, input_indices_need_copy));
-  const auto copy_num = static_cast<uint32_t>(input_indices_need_copy.size());
-  GELOGI("ub2ub from shared TBuf inputs = %u, from TQue = %u", (copy_num - load_num), load_num);
-
-  // 7. 需要增加的Ub2Ub节点数不能超过阈值
-  constexpr uint32_t kCopyNumLimit = 3U;
-  GE_CHK_BOOL_RET_SPECIAL_STATUS(copy_num > kCopyNumLimit, false,
-                                 "ub2ub num needed = %u, over limit = %zu, do not optimize", copy_num, kCopyNumLimit);
   return true;
 }
 

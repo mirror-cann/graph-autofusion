@@ -925,4 +925,17 @@ bool ScheduleUtils::IsMicroApiSupportsScalarInput(const af::AscNodePtr &node) {
          af::ops::IsOps<af::ascir_op::Add>(node) || af::ops::IsOps<af::ascir_op::Minimum>(node) ||
          af::ops::IsOps<af::ascir_op::Maximum>(node);
 }
+
+void ScheduleUtils::GenerateStrides(const std::vector<ge::Expression> &repeats, std::vector<ge::Expression> &strides) {
+  ge::Expression stride = af::sym::kSymbolOne;
+  strides.resize(repeats.size());
+  for (auto i = static_cast<int32_t>(repeats.size() - 1); i >= 0; --i) {
+    if (ascgen_utils::ExpressEq(repeats[i], af::sym::kSymbolOne)) {
+      strides[i] = af::sym::kSymbolZero;
+    } else {
+      strides[i] = stride;
+    }
+    stride = (stride * repeats[i]);
+  }
+}
 }  // namespace optimize

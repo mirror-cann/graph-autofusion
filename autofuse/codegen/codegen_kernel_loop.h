@@ -185,6 +185,7 @@ struct Loop {
   void GenerateEnCacheCondition(const Tiler &tiler, const TPipe &tpipe, const Axis &axis, std::stringstream &ss) const;
   bool IsFindInUsedCalls(const ApiCall *call) const;
   std::string GetReduceType() const;
+  bool IsHaveReduceType(const std::string &type) const;
   bool IsBodyContainLoop() const;
 };
 } // namespace codegen

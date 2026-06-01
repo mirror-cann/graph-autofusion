@@ -521,7 +521,6 @@ void HintGraph::Dealloc(PyObject *self_pyobject) {
   auto self = reinterpret_cast<HintGraph::Object *>(self_pyobject);
 
   Py_XDECREF(self->name);
-  Py_XDECREF(self);
 
   delete self->graph;
 
@@ -806,8 +805,6 @@ PyTypeObject HintGraph::type = {PyVarObject_HEAD_INIT(nullptr, 0)};
 /** HintComputeGraph */
 namespace pyascir {
 void HintComputeGraph::Dealloc(PyObject *self_pyobject) {
-  auto self = reinterpret_cast<HintComputeGraph::Object *>(self_pyobject);
-  Py_XDECREF(self);
   Py_TYPE(self_pyobject)->tp_free(self_pyobject);
 }
 
@@ -862,8 +859,6 @@ PyTypeObject HintComputeGraph::type = {PyVarObject_HEAD_INIT(nullptr, 0)};
 /** FusedGraph */
 namespace pyascir {
 void FusedGraph::Dealloc(PyObject *self_pyobject) {
-  auto self = reinterpret_cast<FusedGraph::Object *>(self_pyobject);
-  Py_XDECREF(self);
   Py_TYPE(self_pyobject)->tp_free(self_pyobject);
 }
 

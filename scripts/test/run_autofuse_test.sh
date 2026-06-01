@@ -23,6 +23,8 @@ PYTHON_MODULE_PATH=${AUTOFUSE_PATH}/compiler/python/
 TESTS_ST_PATH="${AUTOFUSE_PATH}/tests/st/"
 RUN_V35_TESTS="off"
 
+source ${BASEPATH}/scripts/support_multiple_versions_of_lcov.sh
+
 # TODO(For autofuse): Remove 'export DISABLE_COMPILATION_WERROR=ON' and fix the related compilation errors.
 export DISABLE_COMPILATION_WERROR=ON
 
@@ -518,34 +520,43 @@ build_st_common() {
   echo "$(date '+%F %T') common_st test successfully!"
 }
 
-init_lcov_compat_options() {
-    LCOV_VERSION="$(lcov --version 2>/dev/null | awk '{print $NF}')"
-    LCOV_MAJOR_VERSION="$(printf '%s\n' "${LCOV_VERSION}" | awk -F. '{print $1}')"
-    if [[ -z "${LCOV_MAJOR_VERSION}" || ! "${LCOV_MAJOR_VERSION}" =~ ^[0-9]+$ ]]; then
-        LCOV_MAJOR_VERSION=0
-    fi
-
-    LCOV_CAPTURE_OPTS=()
-    LCOV_FILTER_OPTS=()
-    if (( LCOV_MAJOR_VERSION >= 2 )); then
-        LCOV_CAPTURE_OPTS=(--ignore-errors mismatch,mismatch,negative,gcov)
-        LCOV_FILTER_OPTS=(--ignore-errors mismatch,mismatch,negative,gcov,empty,unused)
-    fi
-}
-
 get_coverage() {
     echo "Generating coverage statistics, please wait..."
     cd "${BASEPATH}"
     rm -rf ${BASEPATH}/cov
     mk_dir ${BASEPATH}/cov
-    init_lcov_compat_options
+
+    local lcov_ignore_params=""
+    local lcov_rc_param=""
+    local lcov_parallel_params=""
+    local genhtml_ignore_errors=""
+
+    if [ "$(get_lcov_major_version)" -ge 2 ] 2>/dev/null; then
+        lcov_ignore_params="--ignore-errors inconsistent,negative,mismatch,empty"
+        lcov_rc_param="--rc geninfo_unexecuted_blocks=1"
+        genhtml_ignore_errors="--ignore-errors inconsistent,corrupt"
+
+        lcov_parallel_params=$(get_lcov_parallel_params ${THREAD_NUMBER:-${THREAD_NUM}})
+        if [ -n "$lcov_parallel_params" ]; then
+            lcov_ignore_params="--ignore-errors child,inconsistent,negative,mismatch,empty"
+        fi
+    fi
+
     lcov -c \
       -d ${BUILD_RELATIVE_PATH}/ \
-      "${LCOV_CAPTURE_OPTS[@]}" \
+      ${lcov_ignore_params} \
+      ${lcov_rc_param} \
+      ${lcov_parallel_params} \
       -o cov/tmp.info
+
     echo ${ASCEND_INSTALL_PATH}
-    lcov -r cov/tmp.info '${ASCEND_INSTALL_PATH}/*' '*/output/*' '*/base/metadef/*' '*/nlohmann/*' '*/${BUILD_RELATIVE_PATH}/opensrc/*' '*/${BUILD_RELATIVE_PATH}/proto/*' '*/third_party/*' '/usr/*' "${LCOV_FILTER_OPTS[@]}" -o cov/coverage.info
-    genhtml cov/coverage.info --output-directory cov/coverage_report
+    lcov -r cov/tmp.info "${ASCEND_INSTALL_PATH}/*" '*/output/*' '*/base/metadef/*' '*/nlohmann/*' \
+        "*/${BUILD_RELATIVE_PATH}/opensrc/*" "*/${BUILD_RELATIVE_PATH}/proto/*" '*/third_party/*' '/usr/*' \
+        ${lcov_ignore_params} --ignore-errors unused \
+        ${lcov_rc_param} \
+        ${lcov_parallel_params} \
+        -o cov/coverage.info
+    genhtml cov/coverage.info --output-directory cov/coverage_report ${genhtml_ignore_errors}
 }
 
 run_codegen_one_e2e_st() {

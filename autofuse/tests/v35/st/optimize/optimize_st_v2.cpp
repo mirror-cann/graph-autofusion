@@ -4680,5 +4680,45 @@ TEST_F(OptimizerStV2, ConcatSameShape_MixTQueAndTBuf) {
   EXPECT_EQ(optimizer.Optimize(graph, fused_schedule_result), 0);
 }
 
+// 测试场景：Concat 输出有 Downcast Cast，Generate 后 Cast 被优化消除
+// 图结构：
+//   data0[FP32] -> load0 ----\
+//                             concat0[FP32] -> cast_out0[FP32→FP16] -> store0 -> output0[FP16]
+//   data1[FP32] -> load1 ---/
+// 优化后（在 Generate 生成的 ImplGraph 中）：
+//   cast_out0 被移除，concat 输出 dtype 变为 FP16，Cast 被拉到输入端
+// 预期：生成的图中 cast_out0 不存在，Cast 数量从 1 变为 2（两个新输入 Cast）
+TEST_F(OptimizerStV2, DowncastCastOptimizeAfterGenerate) {
+  auto s0 = af::Symbol("s0");
+  auto s1 = af::Symbol(8);
+  auto s2 = s1 + s1;
+  auto graph = af::testing::AscGraphBuilder("test_downcast_concat")
+                   .Loops({s0, s2})
+                   .Data("data0", 0, af::DT_FLOAT)
+                   .Load("load0", "data0", {s0, s1}, {s1, af::sym::kSymbolOne})
+                   .Data("data1", 1, af::DT_FLOAT)
+                   .Load("load1", "data1", {s0, s1}, {s1, af::sym::kSymbolOne})
+                   .Concat("concat", {"load0", "load1"})
+                   .Cast("cast_out0", "concat", af::DT_FLOAT16)
+                   .Store("store0", "cast_out0")
+                   .Output("output0", "store0", 0, af::DT_FLOAT16)
+                   .Build();
+
+  auto concat_node = graph.FindNode("concat");
+  ::optimize::Optimizer optimizer(::optimize::OptimizerOptions{});
+  std::vector<::ascir::ScheduledResult> schedule_results;
+  ::ascir::FusedScheduledResult fused_schedule_result;
+  fused_schedule_result.node_idx_to_scheduled_results.push_back(schedule_results);
+  EXPECT_EQ(optimizer.Optimize(graph, fused_schedule_result), 0);
+  auto &graphs = fused_schedule_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs;
+  EXPECT_TRUE(graphs[0].FindNode("cast_out0") == nullptr);
+  size_t cast_count = 0U;
+  for (const auto &node : graphs[0].GetAllNodes()) {
+    if (node->GetType() == Cast::Type) {
+      ++cast_count;
+    }
+  }
+  EXPECT_EQ(cast_count, 2U);
+}
 }  // namespace optimize
 }  // namespace

@@ -1204,8 +1204,8 @@ inline __aicore__ void CompareExtendRepeat(const AscendC::LocalTensor<uint8_t> &
                                tmp_buf);
     } else {
       for (uint32_t i = 0; i < repeat_times; ++i) {
-        CompareExtendInt32<mode>(dst[i * output_last_dim_stride], src0[i * input_last_dim_stride / sizeof(int32_t)],
-                                 src1[i * input_last_dim_stride / sizeof(int32_t)], 1, last_axis, input_last_dim_stride,
+        CompareExtendInt32<mode>(dst[i * output_last_dim_stride], src0[i * input_last_dim_stride],
+                                 src1[i * input_last_dim_stride], 1, last_axis, input_last_dim_stride,
                                  output_last_dim_stride, tmp_buf);
       }
     }
@@ -1222,8 +1222,8 @@ inline __aicore__ void CompareExtendRepeat(const AscendC::LocalTensor<uint8_t> &
       } else {
         for (uint8_t i = 0; i < repeat_times; ++i) {
             CompareExtendInt64EqNe<mode>(dst[i * output_last_dim_stride],
-                                         src0[i * input_last_dim_stride / sizeof(int64_t)],
-                                         src1[i * input_last_dim_stride / sizeof(int64_t)],
+                                         src0[i * input_last_dim_stride],
+                                         src1[i * input_last_dim_stride],
                                          1, 0, input_last_dim_stride, output_last_dim_stride, tmp_buf);
         }
       }
@@ -1235,8 +1235,8 @@ inline __aicore__ void CompareExtendRepeat(const AscendC::LocalTensor<uint8_t> &
       } else {
         for (uint8_t i = 0; i < repeat_times; ++i) {
             CompareExtendInt64GtGeLe<mode>(dst[i * output_last_dim_stride],
-                                           src0[i * input_last_dim_stride / sizeof(int64_t)],
-                                           src1[i * input_last_dim_stride / sizeof(int64_t)],
+                                           src0[i * input_last_dim_stride],
+                                           src1[i * input_last_dim_stride],
                                            1, 0, input_last_dim_stride, output_last_dim_stride, tmp_buf);
         }
       }
@@ -1249,9 +1249,9 @@ inline __aicore__ void CompareExtendRepeat(const AscendC::LocalTensor<uint8_t> &
     } else {
       for (uint8_t i = 0; i < repeat_times; ++i) {
         CompareNormal<T, mode>(dst[i * output_last_dim_stride],
-                               src0[i * input_last_dim_stride / sizeof(T)],
-                               src1[i * input_last_dim_stride / sizeof(T)],
-                               1, 0, input_last_dim_stride, output_last_dim_stride, tmp_buf);
+                               src0[i * input_last_dim_stride],
+                               src1[i * input_last_dim_stride],
+                               1, last_axis, input_last_dim_stride, output_last_dim_stride, tmp_buf);
       }
     }
   }

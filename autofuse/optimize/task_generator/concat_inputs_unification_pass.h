@@ -20,10 +20,13 @@ namespace optimize {
 class ConcatInputUnificationPass {
  public:
   static Status Run(std::vector<ascir::ImplGraph> &graphs);
+  static bool CanOptimize(const af::AscNodePtr &concat_node, size_t concat_dim);
 
  private:
   static Status RunOneGraph(ascir::ImplGraph &graph);
   static bool NeedOptimize(const af::AscNodePtr &concat_node, std::set<int32_t> &input_indices_need_copy);
+  static bool CanOptimize(const af::AscNodePtr &concat_node, size_t concat_dim,
+                          std::set<int32_t> &input_indices_need_copy);
   static Status DoOptimize(ascir::ImplGraph &graph, const af::AscNodePtr &concat_node,
                            const std::set<int32_t> &input_indices_need_copy);
   static af::Expression GetColSize(const af::AscTensor &tensor, size_t concat_dim);
