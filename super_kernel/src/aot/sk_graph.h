@@ -65,9 +65,13 @@ public:
     SuperKernelGraph(aclmdlRI modelRI) : modelRI(modelRI) {}
     SuperKernelGraph(aclmdlRI modelRI, const SuperKernelOptionsManager& opts) : modelRI(modelRI), opts_(&opts) {}
     bool InitSKGraph();
+    void CaptureCurrentModelContext();
 
     SuperKernelBaseNode* GetNodeById(uint64_t nodeId) const;
     aclmdlRI GetModelRI() const { return modelRI; }
+
+    const std::string& GetModelIdCallCount() const { return modelId; }
+    const std::string& GetModelLabel() const { return modelLabel;  }
     const std::vector<uint64_t>& GetHeadNodes() const
     {
         return headNodes;
@@ -176,6 +180,8 @@ private:
     std::vector<uint64_t> nodeSizeInStream;
     std::vector<aclrtStream> streams;
     aclmdlRI modelRI;
+    std::string modelId;
+    std::string modelLabel;
     friend class SuperKernelOptimizer;
     std::unordered_map<std::string, uint32_t> scopeNameToIdx;    ///< scopeName -> scopeIdx
     std::unordered_map<uint32_t, std::string> scopeIdxToName;    ///< scopeIdx -> scopeName (reverse mapping)

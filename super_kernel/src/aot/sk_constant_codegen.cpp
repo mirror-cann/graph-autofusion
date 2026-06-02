@@ -10,6 +10,7 @@
 
 #include "sk_constant_codegen.h"
 #include "sk_log.h"
+#include "sk_model_context.h"
 #include "sk_options_manager.h"
 #include "sk_common.h"  // 路径工具函数
 
@@ -780,7 +781,7 @@ void ConstantFuncHandleManager::Clear()
  * @param sourceCode 生成的源码
  * @param binaryData 编译后的二进制数据
  * @param kernelType 内核类型
- * @param modelRI 模型 RI 指针
+ * @param modelLabel 模型标签
  * @return 是否写入成功
  */
 bool DumpConstantCodegenFiles(
@@ -788,10 +789,9 @@ bool DumpConstantCodegenFiles(
     const std::string& sourceCode,
     const std::vector<uint8_t>& binaryData,
     SkKernelType kernelType,
-    aclmdlRI modelRI)
+    const std::string& modelLabel)
 {
-    // 获取 sk_meta 路径，使用真实的 modelRI
-    std::string baseDir = CreateSkMetaDirectory(modelRI);
+    std::string baseDir = CreateSkMetaDirectory(modelLabel);
     if (baseDir.empty()) {
         SK_LOGE("[ConstantCodegen] Failed to create sk_meta directory");
         return false;
@@ -845,7 +845,7 @@ bool DumpConstantCodegenFiles(
  * @param aicTask AIC 任务队列
  * @param aivTask AIV 任务队列
  * @param opts 选项管理器
- * @param modelRI 模型 RI 指针，用于生成 sk_meta 路径
+ * @param modelLabel 模型标签，用于生成 sk_meta 路径
  * @return std::pair<aclrtFuncHandle, SkKernelType> 
  *         first: 常量化 funcHandle（失败为 nullptr）
  *         second: 内核类型
@@ -854,7 +854,7 @@ std::pair<aclrtFuncHandle, SkKernelType> TryGenerateConstantFuncHandle(
     const SkTask& aicTask,
     const SkTask& aivTask,
     SuperKernelOptionsManager& opts,
-    aclmdlRI modelRI)
+    const std::string& modelLabel)
 {
     SK_LOGI("[ConstantCodegen] Start constant codegen");
     
@@ -952,14 +952,14 @@ std::pair<aclrtFuncHandle, SkKernelType> TryGenerateConstantFuncHandle(
     if (compileResult.specializedFuncHandle == nullptr) {
         SK_LOGE("[ConstantCodegen] JIT compilation failed");
         // 即使编译失败，也保存源码供调试
-        DumpConstantCodegenFiles(skId, genResult.combinedSource, {}, kernelType, modelRI);
+        DumpConstantCodegenFiles(skId, genResult.combinedSource, {}, kernelType, modelLabel);
         return {nullptr, SkKernelType::DEFAULT};
     }
     SK_LOGI("[ConstantCodegen] JIT compilation succeeded, funcHandle=%p, binHandle=%p",
             compileResult.specializedFuncHandle, compileResult.specializedBinHandle);
     
     // ========== 8. 文件落盘 ==========
-    DumpConstantCodegenFiles(skId, genResult.combinedSource, compileResult.compiledBinary, kernelType, modelRI);
+    DumpConstantCodegenFiles(skId, genResult.combinedSource, compileResult.compiledBinary, kernelType, modelLabel);
     
     // ========== 9. 注册到管理器 ==========
     ConstantFuncHandleManager::Instance().RegisterFuncHandle(

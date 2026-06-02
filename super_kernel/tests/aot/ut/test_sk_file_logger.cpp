@@ -41,7 +41,7 @@ protected:
 TEST_F(SkFileLoggerTest, BasicInitialization) {
     LoggerConfig config;
     config.enabled = true;
-    config.modelRI = "test_model_1";
+    config.modelLabel = "test_model_1";
     config.baseDir = testLogDir_;
     config.minLevel = LogLevel::DEBUG;
     
@@ -54,7 +54,7 @@ TEST_F(SkFileLoggerTest, BasicInitialization) {
 TEST_F(SkFileLoggerTest, DisabledInitialization) {
     LoggerConfig config;
     config.enabled = false;
-    config.modelRI = "test_model_2";
+    config.modelLabel = "test_model_2";
     config.baseDir = testLogDir_;
     
     EXPECT_TRUE(FileLogger::Instance().Initialize(config));
@@ -66,7 +66,7 @@ TEST_F(SkFileLoggerTest, DisabledInitialization) {
 TEST_F(SkFileLoggerTest, LogWithOriginalMacros) {
     LoggerConfig config;
     config.enabled = true;
-    config.modelRI = "test_model_3";
+    config.modelLabel = "test_model_3";
     config.baseDir = testLogDir_;
     config.minLevel = LogLevel::DEBUG;
     
@@ -87,7 +87,7 @@ TEST_F(SkFileLoggerTest, LogWithOriginalMacros) {
 TEST_F(SkFileLoggerTest, RAIIContext) {
     LoggerConfig config;
     config.enabled = true;
-    config.modelRI = "test_model_4";
+    config.modelLabel = "test_model_4";
     config.baseDir = testLogDir_;
     
     FileLogger::Instance().Initialize(config);
@@ -107,7 +107,7 @@ TEST_F(SkFileLoggerTest, RAIIContext) {
 TEST_F(SkFileLoggerTest, LogLevelFiltering) {
     LoggerConfig config;
     config.enabled = true;
-    config.modelRI = "test_model_5";
+    config.modelLabel = "test_model_5";
     config.baseDir = testLogDir_;
     config.minLevel = LogLevel::WARNING;  // 只记录WARNING及以上
     
@@ -130,7 +130,7 @@ TEST_F(SkFileLoggerTest, LogLevelFiltering) {
 TEST_F(SkFileLoggerTest, DynamicToggle) {
     LoggerConfig config;
     config.enabled = true;
-    config.modelRI = "test_model_6";
+    config.modelLabel = "test_model_6";
     config.baseDir = testLogDir_;
     
     FileLogger::Instance().Initialize(config);
@@ -154,7 +154,7 @@ TEST_F(SkFileLoggerTest, DynamicToggle) {
 TEST_F(SkFileLoggerTest, ThreadSafety) {
     LoggerConfig config;
     config.enabled = true;
-    config.modelRI = "test_model_7";
+    config.modelLabel = "test_model_7";
     config.baseDir = testLogDir_;
     
     FileLogger::Instance().Initialize(config);
@@ -184,7 +184,7 @@ TEST_F(SkFileLoggerTest, ThreadSafety) {
 TEST_F(SkFileLoggerTest, FileHandleManagement) {
     LoggerConfig config;
     config.enabled = true;
-    config.modelRI = "test_model_8";
+    config.modelLabel = "test_model_8";
     config.baseDir = testLogDir_;
     
     FileLogger::Instance().Initialize(config);
@@ -208,7 +208,7 @@ TEST_F(SkFileLoggerTest, FileHandleManagement) {
 TEST_F(SkFileLoggerTest, LongLogSegmentation) {
     LoggerConfig config;
     config.enabled = true;
-    config.modelRI = "test_model_9";
+    config.modelLabel = "test_model_9";
     config.baseDir = testLogDir_;
     config.maxLineLength = 100;  // 设置较小的行长度
     
@@ -226,7 +226,7 @@ TEST_F(SkFileLoggerTest, LongLogSegmentation) {
 TEST_F(SkFileLoggerTest, ModelRIDirectory) {
     LoggerConfig config;
     config.enabled = true;
-    config.modelRI = "model_with_special_chars/test";
+    config.modelLabel = "model_with_special_chars/test";
     config.baseDir = testLogDir_;
     
     FileLogger::Instance().Initialize(config);
@@ -256,7 +256,7 @@ TEST_F(SkFileLoggerTest, SimplifiedMacros) {
 TEST_F(SkFileLoggerTest, DISABLED_PerformanceBenchmark) {
     LoggerConfig config;
     config.enabled = true;
-    config.modelRI = "perf_test";
+    config.modelLabel = "perf_test";
     config.baseDir = testLogDir_;
     
     FileLogger::Instance().Initialize(config);
@@ -281,7 +281,7 @@ TEST_F(SkFileLoggerTest, DISABLED_PerformanceBenchmark) {
 TEST_F(SkFileLoggerTest, NestedRAIIContext) {
     LoggerConfig config;
     config.enabled = true;
-    config.modelRI = "nested_test";
+    config.modelLabel = "nested_test";
     config.baseDir = testLogDir_;
     
     FileLogger::Instance().Initialize(config);
@@ -310,7 +310,7 @@ TEST_F(SkFileLoggerTest, NestedRAIIContext) {
 TEST_F(SkFileLoggerTest, EmptyMessage) {
     LoggerConfig config;
     config.enabled = true;
-    config.modelRI = "empty_test";
+    config.modelLabel = "empty_test";
     config.baseDir = testLogDir_;
     
     FileLogger::Instance().Initialize(config);

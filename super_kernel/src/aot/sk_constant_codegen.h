@@ -208,7 +208,7 @@ typedef void* aclmdlRI;
  * @param aicTask AIC 任务队列
  * @param aivTask AIV 任务队列
  * @param opts 选项管理器
- * @param modelRI 模型 RI 指针，用于生成 sk_meta 路径
+ * @param modelLabel 模型标签，用于生成 sk_meta 路径
  * @return std::pair<aclrtFuncHandle, SkKernelType> 
  *         first: 常量化 funcHandle（失败为 nullptr）
  *         second: 内核类型
@@ -217,6 +217,6 @@ std::pair<aclrtFuncHandle, SkKernelType> TryGenerateConstantFuncHandle(
     const SkTask& aicTask,
     const SkTask& aivTask,
     SuperKernelOptionsManager& opts,
-    aclmdlRI modelRI);
+    const std::string& modelLabel);
 
 #endif // __SK_CONSTANT_CODEGEN_H__

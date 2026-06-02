@@ -273,7 +273,7 @@ bool SuperKernelOptimizer::Schedule(SuperKernelScopeInfo& scopeInfo, SuperKernel
         SK_LOGE("SkProfiling failed");
         return false;
     }
-    if (!DumpProfilingDetail(reorderedTaskNodes, launchInfo, scopeInfo, graph.modelRI)) {
+    if (!DumpProfilingDetail(reorderedTaskNodes, launchInfo, scopeInfo, graph)) {
         SK_LOGE("Dump sk time profiling detail failed");
         return false;
     }

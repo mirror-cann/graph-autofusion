@@ -18,11 +18,7 @@
 #include <array>
 #include <string>
 #include <cstddef>
-#include <bitset>
 #include <cstdint>
-#include <unistd.h>
-#include <sys/stat.h>
-#include <errno.h>
 #include <acl/acl.h>
 
 // Forward declaration for aclmdlRI
@@ -324,7 +320,7 @@ struct SkHeaderInfo {
     uint32_t dfxOffset;
     uint32_t eventConfigOffset;  // 算子打印事件配置偏移量
     uint32_t nodeCnt;
-    uint64_t modelRIIdAndSkScopeId;
+    uint64_t modelIdIndexAndSkScopeId;
     uint64_t totalSize;
 };
 
@@ -358,7 +354,7 @@ struct SkDeviceEntryArgs {
 // ==================== 事件记录相关结构体 ====================
 // Kernel 侧的时间记录结构体
 struct SkKernelEventRecord {
-    uint64_t modelRI;     // modelRI 标识
+    uint64_t modelIdIndex; // modelId index registered on host
     uint32_t skId;        // SK 标识
     uint32_t nodeId;      // 算子节点 ID
     uint8_t blockIdx;      // block 索引
@@ -376,7 +372,7 @@ struct SkKernelEventCoreBuf {
 // 事件记录配置信息（放在 SkHeaderInfo 的 dfxOffset 位置）
 struct SkEventConfig {
     uint64_t eventGmAddr;   // 事件记录 GM 基地址
-    uint64_t modelRI;       // modelRI 标识
+    uint64_t modelIdIndex;  // modelId index registered on host
     uint32_t skId;          // SK 标识
     uint8_t enabled;       // 是否启用
     uint32_t coreSize;      // 每个core的缓冲区大小（字节）
@@ -385,108 +381,18 @@ struct SkEventConfig {
 bool GetFuncSymbolInfo(aclrtBinHandle binHdl, const char* binAddr, size_t binSize, uint64_t funcAddr, std::string& symbolName,
                        uint64_t& funcSize, std::string& symbolBind);
 
+/*!
+ * \brief Get current device SoC name from ACL runtime
+ * \return SoC name string, or empty string when runtime returns nullptr
+ */
+std::string GetSocName();
+
+
 enum class ScheModeState : uint8_t {
     SCHE_MODE_OFF = 0,
     SCHE_MODE_ON = 1,
     NONE = 0xff,
 };
-
-// ==================== Directory Management Utilities ====================
-
-/**
- * @brief Convert aclmdlRI (void*) to string for logging
- * @param model Model RI pointer
- * @return String representation: "model_{address}"
- * 
- * @example
- *   aclmdlRI model = (aclmdlRI)0x12345678;
- *   std::string modelStr = ModelRIToString(model);
- *   // Returns: "model_305419896"
- */
-inline std::string ModelRIToString(aclmdlRI model) {
-    if (model == nullptr) {
-        return "model_nullptr";
-    }
-    return "model_" + std::to_string(reinterpret_cast<uintptr_t>(model));
-}
-
-/**
- * @brief Sanitize path component by replacing invalid characters
- * @param component Path component to sanitize
- * @return Sanitized string safe for use as directory name
- */
-inline std::string SanitizePathComponent(const std::string& component) {
-    std::string result = component;
-    for (char& c : result) {
-        if (c == '/' || c == '\\' || c == ':' || c == '*' || 
-            c == '?' || c == '"' || c == '<' || c == '>' || c == '|') {
-            c = '_';
-        }
-    }
-    return result;
-}
-
-/**
- * @brief Get sk_meta base directory path (sk_meta/{pid})
- * @return sk_meta/{pid} path string
- * 
- * This is the unified path generation function for sk_meta directory structure.
- * If the path structure needs to change in the future, only modify this function.
- */
-inline std::string GetSkMetaBasePath() {
-    pid_t pid = getpid();
-    return "sk_meta/" + std::to_string(pid);
-}
-
-/**
- * @brief Get full sk_meta directory path (sk_meta/{pid}/{modelRI})
- * @param model Model RI pointer (will be converted to string internally)
- * @return Full path string
- * 
- * This is the unified path generation function for sk_meta directory structure.
- * If the path structure needs to change in the future, only modify this function.
- * 
- * @example
- *   aclmdlRI model = (aclmdlRI)0x12345678;
- *   std::string path = GetSkMetaPath(model);
- *   // Returns: "sk_meta/{pid}/model_305419896"
- *   
- *   std::string path = GetSkMetaPath(nullptr);
- *   // Returns: "sk_meta/{pid}/model_nullptr"
- */
-inline std::string GetSkMetaPath(aclmdlRI model) {
-    std::string basePath = GetSkMetaBasePath();
-    std::string modelStr = ModelRIToString(model);
-    return basePath + "/" + SanitizePathComponent(modelStr);
-}
-
-/**
- * @brief Create directory with full path (recursively create parent directories)
- * @param path Full directory path to create
- * @return true if directory exists or created successfully, false otherwise
- */
-bool CreateDirectoryRecursive(const std::string& path);
-
-/**
- * @brief Create sk_meta directory structure: sk_meta/{pid}/{modelRI}
- * @param model Model RI pointer (will be converted to string internally)
- * @return Full path of created directory, empty string on failure
- * 
- * This function creates the directory structure using the unified path generator:
- * - sk_meta/{pid} (always created)
- * - sk_meta/{pid}/{modelRI} (created based on model pointer)
- * 
- * @example
- *   aclmdlRI model = (aclmdlRI)0x12345678;
- *   std::string path = CreateSkMetaDirectory(model);
- *   // Creates: sk_meta/{pid}/model_305419896
- *   // Returns: "sk_meta/{pid}/model_305419896"
- *   
- *   std::string path = CreateSkMetaDirectory(nullptr);
- *   // Creates: sk_meta/{pid}/model_nullptr
- *   // Returns: "sk_meta/{pid}/model_nullptr"
- */
-std::string CreateSkMetaDirectory(aclmdlRI model);
 
 // ==================== Device Core Number Utilities ====================
 

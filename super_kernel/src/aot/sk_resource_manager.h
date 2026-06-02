@@ -14,8 +14,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <mutex>
-#include <sys/types.h>
-#include <unistd.h>
+#include <string>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -50,13 +49,20 @@ private:
     ~SkResourceManager() = default;
 
     static std::mutex resourceMutex_;
-    static std::unordered_map<aclmdlRI, std::vector<ResourceRecord>> modelResources_;
-    static std::unordered_set<aclmdlRI> registeredModels_;
+    static std::unordered_map<std::string, std::vector<ResourceRecord>> modelResources_;
+    static std::unordered_set<std::string> registeredModelLabels_;
+    static std::unordered_map<void*, std::string> callbackDataLabels_;
     static thread_local aclmdlRI currentModel_;
 
     aclError AllocForModel(aclmdlRI model, void** addr, size_t bytes);
-    static aclError CheckCallbackRegistered(aclmdlRI model);
+    static aclError CheckCallbackRegistered(const std::string& modelLabel);
     static aclError ReleaseRecord(const ResourceRecord& record);
+    static bool TakeCallbackModelLabel(void* userData, std::string& modelLabel);
+    static bool BeginModelResourceRelease(const std::string& modelLabel, std::string& modelId,
+                                          std::vector<ResourceRecord>& resources);
+    static void FinishModelDestroy(const std::string& modelLabel, void* labelCopy);
+    static void ReleaseModelResources(const std::string& modelLabel, const std::string& modelId,
+                                      const std::vector<ResourceRecord>& resources);
     static void OnModelDestroy(void* userData);
 };
 

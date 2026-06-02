@@ -16,6 +16,7 @@
 
 #include "sk_log.h"
 #include "sk_common.h"
+#include "sk_model_context.h"
 #include "securec.h"
 #include "base/err_mgr.h"
 #include <iostream>
@@ -140,16 +141,13 @@ void FileHandleManager::CloseFile(const std::string& name) {
     }
 }
 
-bool FileHandleManager::InitializeDefault(const std::string& baseDir, pid_t pid, aclmdlRI model) {
-    // Use unified path generator with model
-    std::string dirPath = GetSkMetaPath(model);
+bool FileHandleManager::InitializeDefault(const std::string& baseDir, pid_t pid, const std::string& modelLabel) {
+    std::string dirPath = GetSkMetaBasePath() + "/" + SanitizePathComponent(modelLabel);
     if (!CreateDirectoryRecursive(dirPath)) {
         return false;
     }
     
-    // 为不同 model 创建唯一的 handle 名称
-    std::string modelStr = ModelRIToString(model);
-    std::string handleName = "model_" + SanitizePathComponent(modelStr);
+    std::string handleName = "model_" + SanitizePathComponent(modelLabel);
     
     std::string defaultPath = dirPath + "/super_kernel.log";
     return RegisterFile(handleName, defaultPath);
@@ -158,8 +156,8 @@ bool FileHandleManager::InitializeDefault(const std::string& baseDir, pid_t pid,
 // Thread-local current handle initialization
 thread_local std::string FileHandleManager::currentHandle_ = "default";
 
-// 线程局部 modelRI 初始化
-thread_local aclmdlRI FileLogger::currentModelRI_ = nullptr;
+// 线程局部 model label 初始化
+thread_local std::string FileLogger::currentThreadModelLabel_;
 
 FileHandleManager::FileHandleManager() {}
 
@@ -225,25 +223,31 @@ FileLogger& FileLogger::Instance() {
 
 bool FileLogger::Initialize(const LoggerConfig& config) {
     std::lock_guard<std::mutex> lock(mutex_);
-    
-    // 如果已初始化且 modelRI 相同，直接返回
-    if (initialized_.load() && config_.modelRI == config.modelRI) {
+
+    std::string modelLabel = config.modelLabel;
+    if (modelLabel.empty()) {
+        modelLabel = GetCurrentModelLabel();
+    }
+    // 如果已初始化且 frozen model label 相同，直接返回。同地址 model 第二次进入时 label 会从
+    // model_x_1 变成 model_x_2，不能只用原始 model 地址判断。
+    if (initialized_.load() && currentModelLabel_ == modelLabel) {
         return true;
     }
-    
-    // 如果 modelRI 改变，需要为新 modelRI 创建日志文件
-    bool isNewModel = (initialized_.load() && config_.modelRI != config.modelRI);
-    
+
     config_ = config;
-    
+    config_.modelLabel = modelLabel;
+    currentModelLabel_ = modelLabel;
     if (!config_.enabled) {
         SK_DLOGI("File logger is disabled");
         initialized_.store(true);
         return true;
     }
     
-    // Use common utility to create sk_meta directory structure
-    std::string logDir = CreateSkMetaDirectory(config_.modelRI);
+    // Use frozen model label to create sk_meta directory structure
+    std::string logDir = GetSkMetaBasePath() + "/" + SanitizePathComponent(config_.modelLabel);
+    if (!CreateDirectoryRecursive(logDir)) {
+        logDir.clear();
+    }
     if (logDir.empty() && config_.enabled) {
         SK_DLOGE("Failed to create sk_meta directory");
         return false;
@@ -252,13 +256,13 @@ bool FileLogger::Initialize(const LoggerConfig& config) {
     // Extract PID from created directory
     pid_ = getpid();
     
-    // 为新 modelRI 注册日志文件
-    std::string modelStr = ModelRIToString(config_.modelRI);
-    std::string handleName = "model_" + SanitizePathComponent(modelStr);
+    // 为新 model label 注册日志文件
+    std::string modelLabelForLog = config_.modelLabel;
+    std::string handleName = "model_" + SanitizePathComponent(modelLabelForLog);
     std::string defaultPath = logDir + "/super_kernel.log";
     
     if (!FileHandleManager::Instance().RegisterFile(handleName, defaultPath)) {
-        SK_DLOGE("Failed to register log file for model: %s", modelStr.c_str());
+        SK_DLOGE("Failed to register log file for model: %s", modelLabelForLog.c_str());
         return false;
     }
     
@@ -272,21 +276,19 @@ bool FileLogger::Initialize(const LoggerConfig& config) {
     if (realpath(logDir.c_str(), absPath) != nullptr) {
         // Ensure null termination
         absPath[PATH_MAX - 1] = '\0';
-        SK_DLOGI("File logger initialized: dir=%s, model=%s", absPath, modelStr.c_str());
+        SK_DLOGI("File logger initialized: dir=%s, model=%s", absPath, modelLabelForLog.c_str());
     } else {
-        SK_DLOGI("File logger initialized: dir=%s, model=%s", logDir.c_str(), modelStr.c_str());
+        SK_DLOGI("File logger initialized: dir=%s, model=%s", logDir.c_str(), modelLabelForLog.c_str());
     }
     return true;
 }
 
-// 获取当前有效的 modelRI
-aclmdlRI FileLogger::GetEffectiveModelRI() const {
-    // 优先使用线程局部变量
-    if (currentModelRI_ != nullptr) {
-        return currentModelRI_;
+// 获取当前有效的 model label
+std::string FileLogger::GetEffectiveModelLabel() const {
+    if (!currentThreadModelLabel_.empty()) {
+        return currentThreadModelLabel_;
     }
-    // 其次使用配置中的 modelRI
-    return config_.modelRI;
+    return config_.modelLabel;
 }
 
 bool FileLogger::RegisterLogFile(const std::string& name, const std::string& subPath) {
@@ -294,11 +296,12 @@ bool FileLogger::RegisterLogFile(const std::string& name, const std::string& sub
         return false;
     }
     
-    // 使用 GetEffectiveModelRI 获取当前有效的 modelRI
-    aclmdlRI useModel = GetEffectiveModelRI();
+    std::string modelLabel = GetEffectiveModelLabel();
+    if (modelLabel.empty()) {
+        return false;
+    }
     
-    // Use unified path generator
-    std::string basePath = GetSkMetaPath(useModel);
+    std::string basePath = GetSkMetaBasePath() + "/" + SanitizePathComponent(modelLabel);
     std::string filePath = basePath + "/" + name;
     
     // If subPath provided, insert it before filename
@@ -315,9 +318,7 @@ bool FileLogger::RegisterLogFile(const std::string& name, const std::string& sub
         }
     }
     
-    // 为不同 model 创建唯一的 handle 名称
-    std::string modelStr = ModelRIToString(useModel);
-    std::string handleName = "model_" + SanitizePathComponent(modelStr) + "_" + name;
+    std::string handleName = "model_" + SanitizePathComponent(modelLabel) + "_" + name;
     
     return FileHandleManager::Instance().RegisterFile(handleName, filePath);
 }
@@ -334,27 +335,25 @@ void FileLogger::SwitchToDefault() {
 }
 
 std::unique_ptr<LogContextGuard> FileLogger::CreateContext(const std::string& fileName,
-                                                            aclmdlRI model) {
+                                                           const std::string& modelLabel)
+{
     if (!initialized_.load() || !config_.enabled) {
         return nullptr;
     }
-    
-    // Use provided model or GetEffectiveModelRI
-    aclmdlRI useModel = (model != nullptr) ? model : GetEffectiveModelRI();
-    
-    // Use common utility to create directory
-    std::string dirPath = CreateSkMetaDirectory(useModel);
-    
-    if (dirPath.empty()) {
+
+    if (modelLabel.empty()) {
+        return nullptr;
+    }
+
+    std::string sanitizedModelLabel = SanitizePathComponent(modelLabel);
+    std::string dirPath = GetSkMetaBasePath() + "/" + sanitizedModelLabel;
+    if (!CreateDirectoryRecursive(dirPath)) {
         SK_DLOGE("Failed to create directory for context");
         return nullptr;
     }
     
     std::string filePath = dirPath + "/" + fileName;
-    
-    // 为不同 model 创建唯一的 handle 名称
-    std::string modelStr = ModelRIToString(useModel);
-    std::string handleName = "model_" + SanitizePathComponent(modelStr) + "_" + fileName;
+    std::string handleName = "model_" + sanitizedModelLabel + "_" + fileName;
     
     return std::make_unique<LogContextGuard>(handleName, filePath);
 }
@@ -371,12 +370,18 @@ void FileLogger::SetMinLevel(LogLevel level) {
     config_.minLevel = level;
 }
 
-void FileLogger::SetModelRI(aclmdlRI modelRI) {
-    config_.modelRI = modelRI;
+void FileLogger::SetModelLabel(const std::string& modelLabel) {
+    config_.modelLabel = modelLabel;
+    currentModelLabel_ = modelLabel;
 }
 
 bool FileLogger::IsInitialized() const {
     return initialized_.load();
+}
+
+std::string FileLogger::GetCurrentModelLabel() const
+{
+    return currentModelLabel_;
 }
 
 std::string FileLogger::FormatMessage(LogLevel level, const char* funcName,
@@ -449,12 +454,10 @@ void FileLogger::WriteLog(const std::string& message) {
     
     // 如果当前 handle 是 "default" 或以 "model_" 开头但没有额外后缀，
     // 说明没有通过 LogContextGuard 切换到非 default 日志
-    // 此时需要根据当前 modelRI 计算正确的 handle
+    // 此时需要根据当前 model label 计算正确的 handle
     if (currentHandle == "default" || currentHandle.find('_') == currentHandle.rfind('_')) {
-        // 没有在 LogContextGuard 上下文中，使用 modelRI 计算 handle
-        aclmdlRI useModel = GetEffectiveModelRI();
-        std::string modelStr = ModelRIToString(useModel);
-        targetHandle = "model_" + SanitizePathComponent(modelStr);
+        std::string modelLabel = GetEffectiveModelLabel();
+        targetHandle = "model_" + SanitizePathComponent(modelLabel);
     } else {
         // 在 LogContextGuard 上下文中，使用当前 handle
         targetHandle = currentHandle;
@@ -490,11 +493,11 @@ void FileLogger::WriteLog(const std::string& message) {
 
 // ==================== Global Initialization Helper Functions ====================
 
-bool InitializeSkFileLogger(bool enabled, aclmdlRI model,
+bool InitializeSkFileLogger(bool enabled, const std::string& modelLabel,
                              sk::logger::LogLevel minLevel) {
     sk::logger::LoggerConfig config;
     config.enabled = enabled;
-    config.modelRI = model;
+    config.modelLabel = modelLabel;
     config.minLevel = minLevel;
     
     if (!sk::logger::FileLogger::Instance().Initialize(config)) {

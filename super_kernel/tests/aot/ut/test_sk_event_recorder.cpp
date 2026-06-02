@@ -14,6 +14,7 @@
  */
 
 #include <gtest/gtest.h>
+#include "mockcpp/mockcpp.hpp"
 #include <memory>
 #include <string>
 #include <cstdlib>
@@ -24,6 +25,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include "securec.h"
+#include "ut_common_stubs.h"
 
 #define private public
 #define protected public
@@ -31,32 +33,18 @@
 #include "sk_graph.h"
 #include "sk_node.h"
 
-// 辅助函数：复制源文件中的 CoreIsAiv 逻辑用于测试
-// 源文件中的 static 函数无法直接调用，这里复制相同逻辑
+// 辅助函数：包装现已公开的 CoreIsAiv，返回 0/1 以匹配旧测试断言
+// 注：sk_event_recorder.h 中的 CoreIsAiv 现在依赖 GetCurrentSkKernelArch()，
+// stub 的 aclrtGetSocName 返回 "Ascend910B"，因此走 coreId>=25 分支
 static int TestCoreIsAiv(int core_id)
 {
-#if defined(NPU_ARCH) && NPU_ARCH == 310
-    if (core_id < 18) {
-        return 0;
-    } else if (core_id < 54) {
-        return 1;
-    } else if (core_id < 72) {
-        return 0;
-    } else {
-        return 1;
-    }
-#else
-    if (core_id >= 25) {
-        return 1;
-    } else {
-        return 0;
-    }
-#endif
+    return CoreIsAiv(core_id) ? 1 : 0;
 }
 
 class SkEventRecorderTest : public testing::Test {
 protected:
     void SetUp() override {
+        SkUtResetTestControls();
         // 清理环境变量
         unsetenv("ASCEND_PROF_SK_ON");
         // 清理测试文件和目录
@@ -73,10 +61,14 @@ protected:
         SkEventRecorder::Instance().deviceCtxs.outputDir.clear();
         SkEventRecorder::Instance().deviceCtxs.active.store(0);
         SkEventRecorder::Instance().deviceCtxs.totalSize = 0;
-        // 清理 modelRIIndexMap
-        SkEventRecorder::Instance().modelRIIndexMap.clear();
-        SkEventRecorder::Instance().modelRIToIndexMap.clear();
+        // 清理 modelId index 映射表（重构后由 RegisterModelId 维护）
+        SkEventRecorder::Instance().modelIdIndexMap.clear();
+        SkEventRecorder::Instance().modelIdToIndexMap.clear();
+        SkEventRecorder::Instance().nodeInfoMap.clear();
+        SkEventRecorder::Instance().skNameMap.clear();
+        SkEventRecorder::Instance().profBasePath.clear();
         unsetenv("ASCEND_PROF_SK_ON");
+        SkUtResetTestControls();
         // 重置 call_once 标志，使后续测试的 Init() 可以重新执行
         SkEventRecorder::Instance().initFlag_.~once_flag();
         new (&SkEventRecorder::Instance().initFlag_) std::once_flag();
@@ -88,7 +80,8 @@ protected:
     }
 
     // 辅助函数：清理测试文件和目录
-    void CleanupTestFiles() {
+    void CleanupTestFiles()
+    {
         pid_t pid = getpid();
         for (int i = 0; i < 4; i++) {
             // 新路径：./sk_meta/<pid>/
@@ -104,9 +97,10 @@ protected:
 
     // 辅助函数：创建模拟的事件数据
     void CreateMockEventData(SkEventDeviceCtx* ctx, uint32_t coreId,
-                             uint64_t modelRI, uint32_t skId, uint32_t nodeId,
+                             uint64_t modelIdIndex, uint32_t skId, uint32_t nodeId,
                              uint64_t startTime, uint64_t endTime,
-                             uint8_t blockIdx = 0, uint8_t blockNum = 1) {
+                             uint8_t blockIdx = 0, uint8_t blockNum = 1)
+                             {
         uint8_t* hostBuf = ctx->hostBuf.get();
         SkKernelEventCoreBuf* coreBuf = reinterpret_cast<SkKernelEventCoreBuf*>(
             hostBuf + coreId * SkEventRecorder::coreSize_);
@@ -118,7 +112,7 @@ protected:
         // 写入事件记录（紧跟在 SkKernelEventCoreBuf 头部之后）
         SkKernelEventRecord* record = reinterpret_cast<SkKernelEventRecord*>(
             hostBuf + coreId * SkEventRecorder::coreSize_ + sizeof(SkKernelEventCoreBuf));
-        record->modelRI = modelRI;
+        record->modelIdIndex = modelIdIndex;
         record->skId = skId;
         record->nodeId = nodeId;
         record->blockIdx = blockIdx;
@@ -131,7 +125,8 @@ protected:
     }
 
     // 辅助函数：初始化一个模拟的设备上下文
-    void InitMockDeviceCtx() {
+    void InitMockDeviceCtx()
+    {
         SkEventDeviceCtx* ctx = &SkEventRecorder::Instance().deviceCtxs;
         ctx->deviceId = 0;
         ctx->totalSize = SkEventRecorder::totalSize_;
@@ -151,7 +146,8 @@ protected:
     }
 
     // 辅助函数：清理模拟的设备上下文
-    void CleanupMockDeviceCtx() {
+    void CleanupMockDeviceCtx()
+    {
         SkEventDeviceCtx* ctx = &SkEventRecorder::Instance().deviceCtxs;
         if (ctx->gmAddr) {
             // 测试中用 malloc 分配，不能让 unique_ptr 析构调 aclrtFree，先 release 再 free
@@ -162,12 +158,40 @@ protected:
         ctx->outputFp.Close();  // 使用 FileGuard 的 Close 方法
         ctx->active.store(0);
     }
+
+    std::unique_ptr<SuperKernelKernelNode> CreateKernelNode(uint64_t nodeId, const std::string& funcName,
+                                                            uint32_t numBlocks)
+    {
+        auto node = std::make_unique<SuperKernelKernelNode>(
+            nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_STREAM_ID, INVALID_TASK_ID);
+        node->SetNodeId(nodeId);
+        node->SetNodeType(SkNodeType::NODE_KERNEL);
+        node->nodeInfos.kernelInfos.funcName = funcName;
+        node->nodeInfos.kernelInfos.numBlocks = numBlocks;
+        return node;
+    }
+
+    std::unique_ptr<SuperKernelMemoryNode> CreateWaitNode(uint64_t nodeId)
+    {
+        auto node = std::make_unique<SuperKernelMemoryNode>(
+            nullptr, ACL_MODEL_RI_TASK_EVENT_WAIT, 0, 0, INVALID_STREAM_ID, INVALID_TASK_ID);
+        node->SetNodeId(nodeId);
+        node->SetNodeType(SkNodeType::NODE_WAIT);
+        return node;
+    }
+
+    std::string ReadWholeFile(const std::string& fileName)
+    {
+        std::ifstream in(fileName, std::ios::binary);
+        return std::string((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+    }
 };
 
 // ==================== 基础功能测试 ====================
 
 // Test 1: 单例模式验证
-TEST_F(SkEventRecorderTest, InstanceReturnsSameInstance) {
+TEST_F(SkEventRecorderTest, InstanceReturnsSameInstance)
+{
     SkEventRecorder& instance1 = SkEventRecorder::Instance();
     SkEventRecorder& instance2 = SkEventRecorder::Instance();
     
@@ -175,14 +199,16 @@ TEST_F(SkEventRecorderTest, InstanceReturnsSameInstance) {
 }
 
 // Test 2: 默认状态下未启用
-TEST_F(SkEventRecorderTest, DisabledByDefault) {
+TEST_F(SkEventRecorderTest, DisabledByDefault)
+{
     bool result = SkEventRecorder::Instance().Init();
     EXPECT_FALSE(result);
     EXPECT_FALSE(SkEventRecorder::Instance().IsEnabled());
 }
 
 // Test 3: 环境变量设置为 "64" 时启用（64KB coreSize）
-TEST_F(SkEventRecorderTest, EnabledWhenEnvSetToValidSize) {
+TEST_F(SkEventRecorderTest, EnabledWhenEnvSetToValidSize)
+{
     setenv("ASCEND_PROF_SK_ON", "64", 1);
     
     bool result = SkEventRecorder::Instance().Init();
@@ -193,7 +219,8 @@ TEST_F(SkEventRecorderTest, EnabledWhenEnvSetToValidSize) {
 }
 
 // Test 4: 环境变量设置为非 "1" 时不启用
-TEST_F(SkEventRecorderTest, NotEnabledWhenEnvNotOne) {
+TEST_F(SkEventRecorderTest, NotEnabledWhenEnvNotOne)
+{
     setenv("ASCEND_PROF_SK_ON", "0", 1);
     
     bool result = SkEventRecorder::Instance().Init();
@@ -202,7 +229,8 @@ TEST_F(SkEventRecorderTest, NotEnabledWhenEnvNotOne) {
 }
 
 // Test 5: 环境变量设置为其他值时不启用
-TEST_F(SkEventRecorderTest, NotEnabledWhenEnvSetToOtherValue) {
+TEST_F(SkEventRecorderTest, NotEnabledWhenEnvSetToOtherValue)
+{
     setenv("ASCEND_PROF_SK_ON", "true", 1);
     
     bool result = SkEventRecorder::Instance().Init();
@@ -213,77 +241,84 @@ TEST_F(SkEventRecorderTest, NotEnabledWhenEnvSetToOtherValue) {
 // ==================== NodeInfo 测试 ====================
 
 // Test 6: NodeInfo 映射添加和获取
-TEST_F(SkEventRecorderTest, AddAndGetNodeInfo) {
-    uint64_t modelRI = 100;
+TEST_F(SkEventRecorderTest, AddAndGetNodeInfo)
+{
+    std::string modelId = "model_100_1";
     uint32_t skId = 1;
     uint32_t nodeId = 10;
     std::string nodeName = "test_node";
     uint32_t numBlocks = 4;
-    
-    SkEventRecorder::Instance().AddNodeInfoMapping(modelRI, skId, nodeId, nodeName, numBlocks);
-    
-    SkNodeInfo info = SkEventRecorder::Instance().GetNodeInfo(modelRI, skId, nodeId);
-    
+
+    SkEventRecorder::Instance().AddNodeInfoMapping(modelId, skId, nodeId, nodeName, numBlocks);
+
+    SkNodeInfo info = SkEventRecorder::Instance().GetNodeInfo(modelId, skId, nodeId);
+
     EXPECT_EQ(info.nodeName, nodeName);
     EXPECT_EQ(info.numBlocks, numBlocks);
 }
 
 // Test 7: 获取不存在的 NodeInfo
-TEST_F(SkEventRecorderTest, GetNonExistentNodeInfo) {
-    SkNodeInfo info = SkEventRecorder::Instance().GetNodeInfo(999, 999, 999);
-    
+TEST_F(SkEventRecorderTest, GetNonExistentNodeInfo)
+{
+    SkNodeInfo info = SkEventRecorder::Instance().GetNodeInfo("missing_model", 999, 999);
+
     EXPECT_TRUE(info.nodeName.empty());
     EXPECT_EQ(info.numBlocks, 0);
 }
 
 // Test 8: 多个 NodeInfo 映射
-TEST_F(SkEventRecorderTest, MultipleNodeInfoMappings) {
-    SkEventRecorder::Instance().AddNodeInfoMapping(1, 1, 1, "node_1_1_1", 2);
-    SkEventRecorder::Instance().AddNodeInfoMapping(1, 1, 2, "node_1_1_2", 3);
-    SkEventRecorder::Instance().AddNodeInfoMapping(1, 2, 1, "node_1_2_1", 4);
-    SkEventRecorder::Instance().AddNodeInfoMapping(2, 1, 1, "node_2_1_1", 5);
-    
-    EXPECT_EQ(SkEventRecorder::Instance().GetNodeInfo(1, 1, 1).nodeName, "node_1_1_1");
-    EXPECT_EQ(SkEventRecorder::Instance().GetNodeInfo(1, 1, 2).nodeName, "node_1_1_2");
-    EXPECT_EQ(SkEventRecorder::Instance().GetNodeInfo(1, 2, 1).nodeName, "node_1_2_1");
-    EXPECT_EQ(SkEventRecorder::Instance().GetNodeInfo(2, 1, 1).nodeName, "node_2_1_1");
+TEST_F(SkEventRecorderTest, MultipleNodeInfoMappings)
+{
+    SkEventRecorder::Instance().AddNodeInfoMapping("model_1_1", 1, 1, "node_1_1_1", 2);
+    SkEventRecorder::Instance().AddNodeInfoMapping("model_1_1", 1, 2, "node_1_1_2", 3);
+    SkEventRecorder::Instance().AddNodeInfoMapping("model_1_1", 2, 1, "node_1_2_1", 4);
+    SkEventRecorder::Instance().AddNodeInfoMapping("model_2_1", 1, 1, "node_2_1_1", 5);
+
+    EXPECT_EQ(SkEventRecorder::Instance().GetNodeInfo("model_1_1", 1, 1).nodeName, "node_1_1_1");
+    EXPECT_EQ(SkEventRecorder::Instance().GetNodeInfo("model_1_1", 1, 2).nodeName, "node_1_1_2");
+    EXPECT_EQ(SkEventRecorder::Instance().GetNodeInfo("model_1_1", 2, 1).nodeName, "node_1_2_1");
+    EXPECT_EQ(SkEventRecorder::Instance().GetNodeInfo("model_2_1", 1, 1).nodeName, "node_2_1_1");
 }
 
 // Test 9: NodeInfo 映射覆盖
-TEST_F(SkEventRecorderTest, NodeInfoMappingOverwrite) {
-    SkEventRecorder::Instance().AddNodeInfoMapping(100, 1, 10, "old_name", 2);
-    SkEventRecorder::Instance().AddNodeInfoMapping(100, 1, 10, "new_name", 4);
-    
-    SkNodeInfo info = SkEventRecorder::Instance().GetNodeInfo(100, 1, 10);
-    
+TEST_F(SkEventRecorderTest, NodeInfoMappingOverwrite)
+{
+    SkEventRecorder::Instance().AddNodeInfoMapping("model_100_1", 1, 10, "old_name", 2);
+    SkEventRecorder::Instance().AddNodeInfoMapping("model_100_1", 1, 10, "new_name", 4);
+
+    SkNodeInfo info = SkEventRecorder::Instance().GetNodeInfo("model_100_1", 1, 10);
+
     EXPECT_EQ(info.nodeName, "new_name");
     EXPECT_EQ(info.numBlocks, 4);
 }
 
 // Test 10: 空字符串 nodeName
-TEST_F(SkEventRecorderTest, EmptyNodeInfoStrings) {
-    SkEventRecorder::Instance().AddNodeInfoMapping(100, 1, 10, "", 0);
-    
-    SkNodeInfo info = SkEventRecorder::Instance().GetNodeInfo(100, 1, 10);
-    
+TEST_F(SkEventRecorderTest, EmptyNodeInfoStrings)
+{
+    SkEventRecorder::Instance().AddNodeInfoMapping("model_100_1", 1, 10, "", 0);
+
+    SkNodeInfo info = SkEventRecorder::Instance().GetNodeInfo("model_100_1", 1, 10);
+
     EXPECT_TRUE(info.nodeName.empty());
     EXPECT_EQ(info.numBlocks, 0);
 }
 
 // Test 11: 大量 NodeInfo 映射
-TEST_F(SkEventRecorderTest, ManyNodeInfoMappings) {
+TEST_F(SkEventRecorderTest, ManyNodeInfoMappings)
+{
     const int count = 100;
-    
+
     for (int i = 0; i < count; i++) {
         SkEventRecorder::Instance().AddNodeInfoMapping(
-            i, i % 10, i % 20, 
-            "node_" + std::to_string(i), 
+            "model_" + std::to_string(i), i % 10, i % 20,
+            "node_" + std::to_string(i),
             i % 5 + 1
         );
     }
-    
+
     for (int i = 0; i < count; i += 10) {
-        SkNodeInfo info = SkEventRecorder::Instance().GetNodeInfo(i, i % 10, i % 20);
+        SkNodeInfo info = SkEventRecorder::Instance().GetNodeInfo(
+            "model_" + std::to_string(i), i % 10, i % 20);
         EXPECT_EQ(info.nodeName, "node_" + std::to_string(i));
     }
 }
@@ -291,66 +326,72 @@ TEST_F(SkEventRecorderTest, ManyNodeInfoMappings) {
 // ==================== 线程安全测试 ====================
 
 // Test 12: 线程安全 - 并发添加 NodeInfo
-TEST_F(SkEventRecorderTest, ThreadSafeAddNodeInfo) {
+TEST_F(SkEventRecorderTest, ThreadSafeAddNodeInfo)
+{
     const int numThreads = 4;
     const int opsPerThread = 25;
-    
+
     std::vector<std::thread> threads;
-    
+
     for (int t = 0; t < numThreads; t++) {
         threads.emplace_back([t, opsPerThread]() {
             for (int i = 0; i < opsPerThread; i++) {
                 SkEventRecorder::Instance().AddNodeInfoMapping(
-                    t * 1000 + i, t, i,
+                    "model_" + std::to_string(t * 1000 + i), t, i,
                     "node_" + std::to_string(t) + "_" + std::to_string(i),
                     1
                 );
             }
         });
     }
-    
+
     for (auto& thread : threads) {
         thread.join();
     }
-    
+
     for (int t = 0; t < numThreads; t++) {
-        SkNodeInfo info = SkEventRecorder::Instance().GetNodeInfo(t * 1000, t, 0);
+        SkNodeInfo info = SkEventRecorder::Instance().GetNodeInfo(
+            "model_" + std::to_string(t * 1000), t, 0);
         EXPECT_EQ(info.nodeName, "node_" + std::to_string(t) + "_0");
     }
 }
 
 // Test 13: 线程安全 - 并发读取 NodeInfo
-TEST_F(SkEventRecorderTest, ThreadSafeGetNodeInfo) {
+TEST_F(SkEventRecorderTest, ThreadSafeGetNodeInfo)
+{
     for (int i = 0; i < 100; i++) {
-        SkEventRecorder::Instance().AddNodeInfoMapping(i, i, i, "node_" + std::to_string(i), 1);
+        SkEventRecorder::Instance().AddNodeInfoMapping(
+            "model_" + std::to_string(i), i, i, "node_" + std::to_string(i), 1);
     }
-    
+
     const int numThreads = 4;
     std::vector<std::thread> threads;
     std::atomic<int> successCount{0};
-    
+
     for (int t = 0; t < numThreads; t++) {
         threads.emplace_back([&successCount]() {
             for (int i = 0; i < 25; i++) {
-                SkNodeInfo info = SkEventRecorder::Instance().GetNodeInfo(i, i, i);
+                SkNodeInfo info = SkEventRecorder::Instance().GetNodeInfo(
+                    "model_" + std::to_string(i), i, i);
                 if (info.nodeName == "node_" + std::to_string(i)) {
                     successCount++;
                 }
             }
         });
     }
-    
+
     for (auto& thread : threads) {
         thread.join();
     }
-    
+
     EXPECT_EQ(successCount.load(), 100);
 }
 
 // ==================== CoreIsAiv 函数测试 ====================
 
 // Test 14: CoreIsAiv - AIC 核心（core_id < 25）
-TEST_F(SkEventRecorderTest, CoreIsAiv_AicCores) {
+TEST_F(SkEventRecorderTest, CoreIsAiv_AicCores)
+{
     // 对于非 310 架构，core_id < 25 是 AIC
     for (int i = 0; i < 25; i++) {
         EXPECT_EQ(TestCoreIsAiv(i), 0);
@@ -358,7 +399,8 @@ TEST_F(SkEventRecorderTest, CoreIsAiv_AicCores) {
 }
 
 // Test 15: CoreIsAiv - AIV 核心（core_id >= 25）
-TEST_F(SkEventRecorderTest, CoreIsAiv_AivCores) {
+TEST_F(SkEventRecorderTest, CoreIsAiv_AivCores)
+{
     // 对于非 310 架构，core_id >= 25 是 AIV
     for (int i = 25; i < 75; i++) {
         EXPECT_EQ(TestCoreIsAiv(i), 1);
@@ -366,20 +408,100 @@ TEST_F(SkEventRecorderTest, CoreIsAiv_AivCores) {
 }
 
 // Test 16: CoreIsAiv - 边界值
-TEST_F(SkEventRecorderTest, CoreIsAiv_BoundaryValues) {
+TEST_F(SkEventRecorderTest, CoreIsAiv_BoundaryValues)
+{
     // 边界测试：24 是 AIC，25 是 AIV
     EXPECT_EQ(TestCoreIsAiv(24), 0);
     EXPECT_EQ(TestCoreIsAiv(25), 1);
 }
 
+// ==================== CoreIsAiv Dav3510 分支 ====================
+// 默认 stub aclrtGetSocName 返回 "Ascend910B"。该 fixture 通过 mockcpp 把它
+// 替换为 "Ascend950"，专门用来覆盖 sk_event_recorder.h 中 DAV_3510 分支
+// 时的 AIV 区间 [18,53] ∪ [72,107]。
+
+namespace {
+const char* FakeSocName_Ascend950ForCoreIsAiv()
+{
+    return "Ascend950";
+}
+}  // namespace
+
+class SkEventRecorderDav3510Test : public testing::Test {
+protected:
+    void SetUp() override
+    {
+        MOCKER(aclrtGetSocName).stubs().will(invoke(FakeSocName_Ascend950ForCoreIsAiv));
+    }
+
+    void TearDown() override
+    {
+        GlobalMockObject::verify();
+    }
+};
+
+TEST_F(SkEventRecorderDav3510Test, CoreIsAiv_FirstAivRange_18To53)
+{
+    for (int i = 18; i <= 53; ++i) {
+        EXPECT_TRUE(CoreIsAiv(i)) << "expected AIV for core " << i;
+    }
+}
+
+TEST_F(SkEventRecorderDav3510Test, CoreIsAiv_SecondAivRange_72To107)
+{
+    for (int i = 72; i <= 107; ++i) {
+        EXPECT_TRUE(CoreIsAiv(i)) << "expected AIV for core " << i;
+    }
+}
+
+TEST_F(SkEventRecorderDav3510Test, CoreIsAiv_AicCores_BelowFirstRange)
+{
+    for (int i = 0; i < 18; ++i) {
+        EXPECT_FALSE(CoreIsAiv(i)) << "expected AIC for core " << i;
+    }
+}
+
+TEST_F(SkEventRecorderDav3510Test, CoreIsAiv_AicCores_BetweenRanges)
+{
+    // 区间间隙 [54,71] 全部应为 AIC
+    for (int i = 54; i <= 71; ++i) {
+        EXPECT_FALSE(CoreIsAiv(i)) << "expected AIC for core " << i;
+    }
+}
+
+TEST_F(SkEventRecorderDav3510Test, CoreIsAiv_BoundaryValues)
+{
+    // 第一段 AIV 区间边界
+    EXPECT_FALSE(CoreIsAiv(17));
+    EXPECT_TRUE(CoreIsAiv(18));
+    EXPECT_TRUE(CoreIsAiv(53));
+    EXPECT_FALSE(CoreIsAiv(54));
+    // 第二段 AIV 区间边界
+    EXPECT_FALSE(CoreIsAiv(71));
+    EXPECT_TRUE(CoreIsAiv(72));
+    EXPECT_TRUE(CoreIsAiv(107));
+    EXPECT_FALSE(CoreIsAiv(108));
+}
+
+TEST_F(SkEventRecorderDav3510Test, CoreIsAiv_DoesNotFallThroughToAscend910Rule)
+{
+    // 关键回归点：core_id=60 在 Ascend910B 下是 AIV(>=25)，在 Dav3510 下却是
+    // AIC（落在 [54,71] 间隙），防止以后有人把分支条件简化回 coreId>=25。
+    EXPECT_FALSE(CoreIsAiv(60));
+    // 反方向：core_id=20 在 Ascend910B 下是 AIC，在 Dav3510 下是 AIV。
+    EXPECT_TRUE(CoreIsAiv(20));
+}
+
 // Test 17: GetGmAddrForDevice 在未启用时返回 nullptr
-TEST_F(SkEventRecorderTest, GetGmAddrForDeviceReturnsNullWhenDisabled) {
+TEST_F(SkEventRecorderTest, GetGmAddrForDeviceReturnsNullWhenDisabled)
+{
     void* addr = SkEventRecorder::Instance().GetGmAddrForDevice(0);
     EXPECT_EQ(addr, nullptr);
 }
 
 // Test 19: GetGmAddrForDevice 在 deviceId 越界时返回 nullptr
-TEST_F(SkEventRecorderTest, GetGmAddrForDeviceReturnsNullForInvalidDeviceId) {
+TEST_F(SkEventRecorderTest, GetGmAddrForDeviceReturnsNullForInvalidDeviceId)
+{
     SkEventRecorder::Instance().enabled = true;
     
     void* addressBeyondMaxDevice = SkEventRecorder::Instance().GetGmAddrForDevice(SK_EVENT_MAX_DEVICE_NUM);
@@ -390,7 +512,8 @@ TEST_F(SkEventRecorderTest, GetGmAddrForDeviceReturnsNullForInvalidDeviceId) {
 }
 
 // Test 21: GetGmAddrForDevice 已激活的设备返回缓存地址
-TEST_F(SkEventRecorderTest, GetGmAddrForDeviceReturnsCachedAddr) {
+TEST_F(SkEventRecorderTest, GetGmAddrForDeviceReturnsCachedAddr)
+{
     // 手动初始化一个设备上下文
     InitMockDeviceCtx();
     SkEventRecorder::Instance().enabled = true;
@@ -408,7 +531,8 @@ TEST_F(SkEventRecorderTest, GetGmAddrForDeviceReturnsCachedAddr) {
 // ==================== DumpDeviceData 测试 ====================
 
 // Test 23: DumpDeviceData 空数据处理
-TEST_F(SkEventRecorderTest, DumpDeviceDataEmptyData) {
+TEST_F(SkEventRecorderTest, DumpDeviceDataEmptyData)
+{
     InitMockDeviceCtx();
     
     // 没有事件数据
@@ -419,7 +543,8 @@ TEST_F(SkEventRecorderTest, DumpDeviceDataEmptyData) {
 }
 
 // Test 24: DumpDeviceData 空 gmAddr 或 hostBuf
-TEST_F(SkEventRecorderTest, DumpDeviceDataNullPointers) {
+TEST_F(SkEventRecorderTest, DumpDeviceDataNullPointers)
+{
     SkEventDeviceCtx ctx;
     // gmAddr 和 hostBuf 默认构造就是 nullptr 的 unique_ptr
     ctx.deviceId = 0;
@@ -429,7 +554,8 @@ TEST_F(SkEventRecorderTest, DumpDeviceDataNullPointers) {
 }
 
 // Test 28: DumpDeviceData 跳过没有 NodeInfo 的事件
-TEST_F(SkEventRecorderTest, DumpDeviceDataSkipsEventsWithoutNodeInfo) {
+TEST_F(SkEventRecorderTest, DumpDeviceDataSkipsEventsWithoutNodeInfo)
+{
     InitMockDeviceCtx();
 
     SkEventDeviceCtx* ctx = &SkEventRecorder::Instance().deviceCtxs;
@@ -444,10 +570,108 @@ TEST_F(SkEventRecorderTest, DumpDeviceDataSkipsEventsWithoutNodeInfo) {
     CleanupMockDeviceCtx();
 }
 
+TEST_F(SkEventRecorderTest, WriteNodeEventToJsonWritesModelIdFromRegisteredIndex)
+{
+    InitMockDeviceCtx();
+    SkEventDeviceCtx* ctx = &SkEventRecorder::Instance().deviceCtxs;
+
+    std::string outputFile = ctx->outputDir + "/sk_prof_device_0.json";
+    ASSERT_TRUE(ctx->outputFp.Open(outputFile.c_str(), "w+b"));
+    const char* jsonStart = "[{}]";
+    ASSERT_EQ(fwrite(jsonStart, 1, strlen(jsonStart), ctx->outputFp.Get()), strlen(jsonStart));
+
+    const std::string modelId = "model_88_3";
+    uint16_t modelIdIndex = SkEventRecorder::Instance().RegisterModelId(modelId);
+    SkKernelEventRecord record = {};
+    record.modelIdIndex = modelIdIndex;
+    record.skId = 7;
+    record.nodeId = 2;
+    record.blockIdx = 1;
+    record.blockNum = 4;
+    record.startTime = 100;
+    record.endTime = 250;
+    SkNodeInfo nodeInfo;
+    nodeInfo.nodeName = "relu_kernel";
+    nodeInfo.numBlocks = 4;
+
+    EXPECT_TRUE(SkEventRecorder::Instance().WriteNodeEventToJson(ctx, &record, 25, nodeInfo));
+    fflush(ctx->outputFp.Get());
+
+    std::string content = ReadWholeFile(outputFile);
+    EXPECT_NE(content.find("\"modelId\":\"" + modelId + "\""), std::string::npos);
+    EXPECT_EQ(content.find("modelRI"), std::string::npos);
+    EXPECT_NE(content.find("\"pid\":\"AIV\""), std::string::npos);
+    EXPECT_NE(content.find("relu_kernel"), std::string::npos);
+
+    CleanupMockDeviceCtx();
+}
+
+TEST_F(SkEventRecorderTest, WriteSkEventToJsonWritesModelIdAndSkName)
+{
+    InitMockDeviceCtx();
+    SkEventDeviceCtx* ctx = &SkEventRecorder::Instance().deviceCtxs;
+
+    std::string outputFile = ctx->outputDir + "/sk_prof_device_0.json";
+    ASSERT_TRUE(ctx->outputFp.Open(outputFile.c_str(), "w+b"));
+    const char* jsonStart = "[{}]";
+    ASSERT_EQ(fwrite(jsonStart, 1, strlen(jsonStart), ctx->outputFp.Get()), strlen(jsonStart));
+
+    const std::string modelId = "model_99_4";
+    uint16_t modelIdIndex = SkEventRecorder::Instance().RegisterModelId(modelId);
+    SkEventRecorder::Instance().AddSkNameMapping(modelId, 9, "sk_fused_add");
+
+    SkKernelEventRecord record = {};
+    record.modelIdIndex = modelIdIndex;
+    record.skId = 9;
+    record.nodeId = UINT32_MAX;
+    record.blockIdx = 0;
+    record.blockNum = 1;
+    record.startTime = 200;
+    record.endTime = 500;
+
+    EXPECT_TRUE(SkEventRecorder::Instance().WriteSkEventToJson(ctx, &record, 0));
+    fflush(ctx->outputFp.Get());
+
+    std::string content = ReadWholeFile(outputFile);
+    EXPECT_NE(content.find("\"modelId\":\"" + modelId + "\""), std::string::npos);
+    EXPECT_EQ(content.find("modelRI"), std::string::npos);
+    EXPECT_NE(content.find("\"pid\":\"AIC\""), std::string::npos);
+    EXPECT_NE(content.find("sk_fused_add"), std::string::npos);
+
+    CleanupMockDeviceCtx();
+}
+
+TEST_F(SkEventRecorderTest, DumpDeviceDataUsesModelIdIndexForNodeInfoLookup)
+{
+    InitMockDeviceCtx();
+    SkEventDeviceCtx* ctx = &SkEventRecorder::Instance().deviceCtxs;
+
+    std::string outputFile = ctx->outputDir + "/sk_prof_device_0.json";
+    ASSERT_TRUE(ctx->outputFp.Open(outputFile.c_str(), "w+b"));
+    const char* jsonStart = "[{}]";
+    ASSERT_EQ(fwrite(jsonStart, 1, strlen(jsonStart), ctx->outputFp.Get()), strlen(jsonStart));
+
+    const std::string modelId = "model_indexed_1";
+    uint16_t modelIdIndex = SkEventRecorder::Instance().RegisterModelId(modelId);
+    SkEventRecorder::Instance().AddNodeInfoMapping(modelId, 5, 3, "indexed_node", 2);
+    CreateMockEventData(ctx, 0, modelIdIndex, 5, 3, 100, 300, 1, 2);
+
+    SkEventRecorder::Instance().DumpDeviceData(ctx);
+    fflush(ctx->outputFp.Get());
+
+    std::string content = ReadWholeFile(outputFile);
+    EXPECT_NE(content.find("\"modelId\":\"" + modelId + "\""), std::string::npos);
+    EXPECT_NE(content.find("indexed_node"), std::string::npos);
+    EXPECT_EQ(content.find("stale_model_id"), std::string::npos);
+
+    CleanupMockDeviceCtx();
+}
+
 // ==================== CreateDeviceCtx 测试 ====================
 
 // Test 29: CreateDeviceCtx 基本功能
-TEST_F(SkEventRecorderTest, CreateDeviceCtxBasic) {
+TEST_F(SkEventRecorderTest, CreateDeviceCtxBasic)
+{
     SkEventDeviceCtx* ctx = SkEventRecorder::Instance().CreateDeviceCtx(0);
 
     // stub 实现应该成功创建
@@ -473,7 +697,8 @@ TEST_F(SkEventRecorderTest, CreateDeviceCtxBasic) {
 // ==================== Shutdown 测试 ====================
 
 // Test 30: Shutdown 后 IsEnabled 返回 false
-TEST_F(SkEventRecorderTest, IsEnabledFalseAfterShutdown) {
+TEST_F(SkEventRecorderTest, IsEnabledFalseAfterShutdown)
+{
     setenv("ASCEND_PROF_SK_ON", "64", 1);
     SkEventRecorder::Instance().Init();
     EXPECT_TRUE(SkEventRecorder::Instance().IsEnabled());
@@ -483,7 +708,8 @@ TEST_F(SkEventRecorderTest, IsEnabledFalseAfterShutdown) {
 }
 
 // Test 31: Shutdown 未启用时不做任何操作
-TEST_F(SkEventRecorderTest, ShutdownDoesNothingWhenDisabled) {
+TEST_F(SkEventRecorderTest, ShutdownDoesNothingWhenDisabled)
+{
     EXPECT_FALSE(SkEventRecorder::Instance().IsEnabled());
     
     // 不应该崩溃
@@ -494,7 +720,8 @@ TEST_F(SkEventRecorderTest, ShutdownDoesNothingWhenDisabled) {
 }
 
 // Test 32: Shutdown 创建最终文件
-TEST_F(SkEventRecorderTest, ShutdownCreatesFinalFile) {
+TEST_F(SkEventRecorderTest, ShutdownCreatesFinalFile)
+{
     InitMockDeviceCtx();
     SkEventRecorder::Instance().enabled = true;
 
@@ -525,7 +752,8 @@ TEST_F(SkEventRecorderTest, ShutdownCreatesFinalFile) {
 }
 
 // Test 33: Shutdown 释放资源
-TEST_F(SkEventRecorderTest, ShutdownReleasesResources) {
+TEST_F(SkEventRecorderTest, ShutdownReleasesResources)
+{
     InitMockDeviceCtx();
     SkEventRecorder::Instance().enabled = true;
     
@@ -537,13 +765,15 @@ TEST_F(SkEventRecorderTest, ShutdownReleasesResources) {
 }
 
 // Test 36: SkKernelEventRecord 结构体大小验证
-TEST_F(SkEventRecorderTest, EventRecordSize) {
+TEST_F(SkEventRecorderTest, EventRecordSize)
+{
     EXPECT_LE(sizeof(SkKernelEventRecord), 64);
     EXPECT_GE(sizeof(SkKernelEventRecord), sizeof(uint64_t) * 2 + sizeof(uint32_t) * 2 + sizeof(uint8_t) * 2);
 }
 
 // Test 38: SkEventDeviceCtx 初始状态
-TEST_F(SkEventRecorderTest, DeviceCtxInitialState) {
+TEST_F(SkEventRecorderTest, DeviceCtxInitialState)
+{
     SkEventDeviceCtx ctx;
 
     EXPECT_EQ(ctx.active.load(), 0);
@@ -557,7 +787,8 @@ TEST_F(SkEventRecorderTest, DeviceCtxInitialState) {
 // ==================== 多次调用安全性测试 ====================
 
 // Test 39: Init 多次调用安全性
-TEST_F(SkEventRecorderTest, MultipleInitCalls) {
+TEST_F(SkEventRecorderTest, MultipleInitCalls)
+{
     setenv("ASCEND_PROF_SK_ON", "64", 1);
     
     bool result1 = SkEventRecorder::Instance().Init();
@@ -569,7 +800,8 @@ TEST_F(SkEventRecorderTest, MultipleInitCalls) {
 }
 
 // Test 40: Shutdown 多次调用安全性
-TEST_F(SkEventRecorderTest, MultipleShutdownCalls) {
+TEST_F(SkEventRecorderTest, MultipleShutdownCalls)
+{
     SkEventRecorder::Instance().SkProfilingShutdown();
     SkEventRecorder::Instance().SkProfilingShutdown();
     SkEventRecorder::Instance().SkProfilingShutdown();
@@ -580,29 +812,32 @@ TEST_F(SkEventRecorderTest, MultipleShutdownCalls) {
 // ==================== 特殊字符串测试 ====================
 
 // Test 41: 特殊字符 nodeName
-TEST_F(SkEventRecorderTest, SpecialCharacterNodeName) {
+TEST_F(SkEventRecorderTest, SpecialCharacterNodeName)
+{
     std::string specialName = "node-with_special.chars:123/456";
-    
-    SkEventRecorder::Instance().AddNodeInfoMapping(1, 1, 1, specialName, 1);
-    
-    SkNodeInfo info = SkEventRecorder::Instance().GetNodeInfo(1, 1, 1);
+
+    SkEventRecorder::Instance().AddNodeInfoMapping("model_1_1", 1, 1, specialName, 1);
+
+    SkNodeInfo info = SkEventRecorder::Instance().GetNodeInfo("model_1_1", 1, 1);
     EXPECT_EQ(info.nodeName, specialName);
 }
 
 // Test 42: 长字符串 nodeName
-TEST_F(SkEventRecorderTest, LongNodeName) {
+TEST_F(SkEventRecorderTest, LongNodeName)
+{
     std::string longName(256, 'a');
-    
-    SkEventRecorder::Instance().AddNodeInfoMapping(1, 1, 1, longName, 1);
-    
-    SkNodeInfo info = SkEventRecorder::Instance().GetNodeInfo(1, 1, 1);
+
+    SkEventRecorder::Instance().AddNodeInfoMapping("model_1_1", 1, 1, longName, 1);
+
+    SkNodeInfo info = SkEventRecorder::Instance().GetNodeInfo("model_1_1", 1, 1);
     EXPECT_EQ(info.nodeName, longName);
 }
 
 // ==================== 常量验证测试 ====================
 
 // Test 43: 常量值验证
-TEST_F(SkEventRecorderTest, ConstantsVerification) {
+TEST_F(SkEventRecorderTest, ConstantsVerification)
+{
     EXPECT_EQ(SK_EVENT_MAX_DEVICE_NUM, 16);
     EXPECT_EQ(SK_EVENT_CORE_NUM, 75);
     EXPECT_EQ(SK_EVENT_DEFAULT_CORE_SIZE, 1024 * 1024);
@@ -613,7 +848,8 @@ TEST_F(SkEventRecorderTest, ConstantsVerification) {
 // ==================== Init/Shutdown 生命周期测试 ====================
 
 // Test 44: Init 成功后 Shutdown 能正确关闭
-TEST_F(SkEventRecorderTest, InitShutdownLifecycle) {
+TEST_F(SkEventRecorderTest, InitShutdownLifecycle)
+{
     // 设置 64KB coreSize（已对齐，无需向上取整）
     setenv("ASCEND_PROF_SK_ON", "64", 1);
     SkEventRecorder::Instance().Init();
@@ -627,7 +863,8 @@ TEST_F(SkEventRecorderTest, InitShutdownLifecycle) {
 // ==================== DumpThreadFunc 间接测试 ====================
 
 // Test 45: DumpThreadFunc 可以被安全调用
-TEST_F(SkEventRecorderTest, DumpThreadFuncCanBeCalledSafely) {
+TEST_F(SkEventRecorderTest, DumpThreadFuncCanBeCalledSafely)
+{
     InitMockDeviceCtx();
     
     // 直接调用 DumpThreadFunc 的单次迭代逻辑
@@ -641,7 +878,8 @@ TEST_F(SkEventRecorderTest, DumpThreadFuncCanBeCalledSafely) {
 }
 
 // Test 46: DumpThreadFunc 处理单个设备
-TEST_F(SkEventRecorderTest, DumpThreadFuncHandlesSingleDevice) {
+TEST_F(SkEventRecorderTest, DumpThreadFuncHandlesSingleDevice)
+{
     InitMockDeviceCtx();
     
     SkEventRecorder::Instance().globalRunning.store(false);
@@ -658,24 +896,26 @@ TEST_F(SkEventRecorderTest, DumpThreadFuncHandlesSingleDevice) {
 // ==================== 边界条件测试 ====================
 
 // Test 47: GetNodeInfo 部分键存在部分不存在
-TEST_F(SkEventRecorderTest, GetNodeInfoPartialKeyExists) {
-    SkEventRecorder::Instance().AddNodeInfoMapping(1, 1, 1, "node", 1);
-    
-    // modelRI 存在，skId 不存在
-    SkNodeInfo info1 = SkEventRecorder::Instance().GetNodeInfo(1, 999, 1);
+TEST_F(SkEventRecorderTest, GetNodeInfoPartialKeyExists)
+{
+    SkEventRecorder::Instance().AddNodeInfoMapping("model_1_1", 1, 1, "node", 1);
+
+    // modelId 存在，skId 不存在
+    SkNodeInfo info1 = SkEventRecorder::Instance().GetNodeInfo("model_1_1", 999, 1);
     EXPECT_TRUE(info1.nodeName.empty());
-    
-    // modelRI 和 skId 存在，nodeId 不存在
-    SkNodeInfo info2 = SkEventRecorder::Instance().GetNodeInfo(1, 1, 999);
+
+    // modelId 和 skId 存在，nodeId 不存在
+    SkNodeInfo info2 = SkEventRecorder::Instance().GetNodeInfo("model_1_1", 1, 999);
     EXPECT_TRUE(info2.nodeName.empty());
-    
-    // modelRI 不存在
-    SkNodeInfo info3 = SkEventRecorder::Instance().GetNodeInfo(999, 1, 1);
+
+    // modelId 不存在
+    SkNodeInfo info3 = SkEventRecorder::Instance().GetNodeInfo("missing_model", 1, 1);
     EXPECT_TRUE(info3.nodeName.empty());
 }
 
 // Test 48: Double-check locking 路径测试
-TEST_F(SkEventRecorderTest, GetGmAddrForDeviceDoubleCheckLocking) {
+TEST_F(SkEventRecorderTest, GetGmAddrForDeviceDoubleCheckLocking)
+{
     SkEventRecorder::Instance().enabled = true;
 
     // 第一次调用 - slow path
@@ -699,118 +939,143 @@ TEST_F(SkEventRecorderTest, GetGmAddrForDeviceDoubleCheckLocking) {
     }
 }
 
-// ==================== RegisterModelRI / GetModelRIByIndex / PrintModelRIIndexMap 测试 ====================
+// ==================== RegisterModelId / GetModelIdByIndex / PrintModelIdIndexMap 测试 ====================
 
-// Test: RegisterModelRI 基本注册，返回 index 0
-TEST_F(SkEventRecorderTest, RegisterModelRI_FirstRegistrationReturnsZero) {
-    uint16_t idx = SkEventRecorder::Instance().RegisterModelRI(0x123456789ABCDEF0);
+// Test: RegisterModelId 基本注册，返回 index 0
+TEST_F(SkEventRecorderTest, RegisterModelId_FirstRegistrationReturnsZero)
+{
+    uint16_t idx = SkEventRecorder::Instance().RegisterModelId("model_id_0");
     EXPECT_EQ(idx, 0);
 }
 
-// Test: RegisterModelRI 多次注册不同 modelRI，index 递增
-TEST_F(SkEventRecorderTest, RegisterModelRI_MultipleRegistrationsIncrementIndex) {
-    uint16_t idx0 = SkEventRecorder::Instance().RegisterModelRI(0xAAAA);
-    uint16_t idx1 = SkEventRecorder::Instance().RegisterModelRI(0xBBBB);
-    uint16_t idx2 = SkEventRecorder::Instance().RegisterModelRI(0xCCCC);
+// Test: RegisterModelId 多次注册不同 modelId，index 递增
+TEST_F(SkEventRecorderTest, RegisterModelId_MultipleRegistrationsIncrementIndex)
+{
+    uint16_t idx0 = SkEventRecorder::Instance().RegisterModelId("model_aaaa");
+    uint16_t idx1 = SkEventRecorder::Instance().RegisterModelId("model_bbbb");
+    uint16_t idx2 = SkEventRecorder::Instance().RegisterModelId("model_cccc");
     EXPECT_EQ(idx0, 0);
     EXPECT_EQ(idx1, 1);
     EXPECT_EQ(idx2, 2);
 }
 
-// Test: RegisterModelRI 重复注册同一个 modelRI，返回相同 index（去重）
-TEST_F(SkEventRecorderTest, RegisterModelRI_DuplicateRegistrationReturnsSameIndex) {
-    uint16_t idx1 = SkEventRecorder::Instance().RegisterModelRI(0xDEAD);
-    uint16_t idx2 = SkEventRecorder::Instance().RegisterModelRI(0xDEAD);
+// Test: RegisterModelId 重复注册同一个 modelId，返回相同 index（去重）
+TEST_F(SkEventRecorderTest, RegisterModelId_DuplicateRegistrationReturnsSameIndex)
+{
+    uint16_t idx1 = SkEventRecorder::Instance().RegisterModelId("model_dead");
+    uint16_t idx2 = SkEventRecorder::Instance().RegisterModelId("model_dead");
     EXPECT_EQ(idx1, idx2);
 }
 
-// Test: GetModelRIByIndex 通过 index 反查原始 modelRI
-TEST_F(SkEventRecorderTest, GetModelRIByIndex_ReturnsOriginalModelRI) {
-    uint64_t modelRI1 = 0x1234567812345678;
-    uint64_t modelRI2 = 0xAABBCCDDAABBCCDD;
-    uint16_t idx1 = SkEventRecorder::Instance().RegisterModelRI(modelRI1);
-    uint16_t idx2 = SkEventRecorder::Instance().RegisterModelRI(modelRI2);
+// Test: GetModelIdByIndex 通过 index 反查原始 modelId
+TEST_F(SkEventRecorderTest, GetModelIdByIndex_ReturnsModelId)
+{
+    std::string m1 = "model_1234_5";
+    std::string m2 = "model_aabb_7";
+    uint16_t idx1 = SkEventRecorder::Instance().RegisterModelId(m1);
+    uint16_t idx2 = SkEventRecorder::Instance().RegisterModelId(m2);
 
-    EXPECT_EQ(SkEventRecorder::Instance().GetModelRIByIndex(idx1), modelRI1);
-    EXPECT_EQ(SkEventRecorder::Instance().GetModelRIByIndex(idx2), modelRI2);
+    EXPECT_EQ(SkEventRecorder::Instance().GetModelIdByIndex(idx1), m1);
+    EXPECT_EQ(SkEventRecorder::Instance().GetModelIdByIndex(idx2), m2);
 }
 
-// Test: GetModelRIByIndex 越界 index 返回 0
-TEST_F(SkEventRecorderTest, GetModelRIByIndex_OutOfRangeReturnsZero) {
-    SkEventRecorder::Instance().RegisterModelRI(0x1111);
-    EXPECT_EQ(SkEventRecorder::Instance().GetModelRIByIndex(100), 0);
-    EXPECT_EQ(SkEventRecorder::Instance().GetModelRIByIndex(UINT16_MAX), 0);
+TEST_F(SkEventRecorderTest, ModelIdIndexDistinguishesRepeatedModelId)
+{
+    const std::string firstModelId = "48_1";
+    const std::string secondModelId = "48_2";
+
+    uint16_t firstIdx = SkEventRecorder::Instance().RegisterModelId(firstModelId);
+    uint16_t secondIdx = SkEventRecorder::Instance().RegisterModelId(secondModelId);
+
+    EXPECT_NE(firstIdx, secondIdx);
+    EXPECT_EQ(SkEventRecorder::Instance().GetModelIdByIndex(firstIdx), firstModelId);
+    EXPECT_EQ(SkEventRecorder::Instance().GetModelIdByIndex(secondIdx), secondModelId);
 }
 
-// Test: GetModelRIByIndex 空 map 时返回 0
-TEST_F(SkEventRecorderTest, GetModelRIByIndex_EmptyMapReturnsZero) {
-    EXPECT_EQ(SkEventRecorder::Instance().GetModelRIByIndex(0), 0);
+// Test: GetModelIdByIndex 越界 index 返回空串
+TEST_F(SkEventRecorderTest, GetModelIdByIndex_OutOfRangeReturnsEmpty)
+{
+    SkEventRecorder::Instance().RegisterModelId("model_one");
+    EXPECT_TRUE(SkEventRecorder::Instance().GetModelIdByIndex(100).empty());
+    EXPECT_TRUE(SkEventRecorder::Instance().GetModelIdByIndex(UINT16_MAX).empty());
 }
 
-// Test: PrintModelRIIndexMap 不崩溃
-TEST_F(SkEventRecorderTest, PrintModelRIIndexMap_DoesNotCrash) {
-    SkEventRecorder::Instance().RegisterModelRI(0xAAAA);
-    SkEventRecorder::Instance().RegisterModelRI(0xBBBB);
-    SkEventRecorder::Instance().PrintModelRIIndexMap();
+// Test: GetModelIdByIndex 空 map 时返回空串
+TEST_F(SkEventRecorderTest, GetModelIdByIndex_EmptyMapReturnsEmpty)
+{
+    EXPECT_TRUE(SkEventRecorder::Instance().GetModelIdByIndex(0).empty());
+}
+
+// Test: PrintModelIdIndexMap 不崩溃
+TEST_F(SkEventRecorderTest, PrintModelIdIndexMap_DoesNotCrash)
+{
+    SkEventRecorder::Instance().RegisterModelId("model_aaaa");
+    SkEventRecorder::Instance().RegisterModelId("model_bbbb");
+    SkEventRecorder::Instance().PrintModelIdIndexMap();
     SUCCEED();
 }
 
-// Test: PrintModelRIIndexMap 空 map 时不崩溃
-TEST_F(SkEventRecorderTest, PrintModelRIIndexMap_EmptyMapDoesNotCrash) {
-    SkEventRecorder::Instance().PrintModelRIIndexMap();
+// Test: PrintModelIdIndexMap 空 map 时不崩溃
+TEST_F(SkEventRecorderTest, PrintModelIdIndexMap_EmptyMapDoesNotCrash)
+{
+    SkEventRecorder::Instance().PrintModelIdIndexMap();
     SUCCEED();
 }
 
-// ==================== modelRIIdAndSkScopeId 编码测试 ====================
+// ==================== modelIdIndexAndSkScopeId 编码测试 ====================
 
-// Test: modelRIIdAndSkScopeId 编码格式验证
-// 布局: modelRIIdx(16bit)[47:32] | skScopeId(16bit)[31:16] | 低16bit预留[15:0]
-TEST_F(SkEventRecorderTest, ModelRIIdAndSkScopeId_EncodingLayout) {
-    uint64_t modelRI = 0x123456789ABCDEF0;
+// Test: modelIdIndexAndSkScopeId 编码格式验证
+// 布局: modelIdIdx(16bit)[47:32] | skScopeId(16bit)[31:16] | 低16bit预留[15:0]
+TEST_F(SkEventRecorderTest, ModelIdIndexAndSkScopeId_EncodingLayout)
+{
+    std::string modelId = "model_123_1";
     uint16_t skScopeId = 42;
 
-    uint16_t modelRIIdx = SkEventRecorder::Instance().RegisterModelRI(modelRI);
-    uint64_t encoded = (static_cast<uint64_t>(modelRIIdx) << 32) | (static_cast<uint64_t>(skScopeId) << 16);
+    uint16_t modelIdIdx = SkEventRecorder::Instance().RegisterModelId(modelId);
+    uint64_t encoded = (static_cast<uint64_t>(modelIdIdx) << 32) | (static_cast<uint64_t>(skScopeId) << 16);
 
     // 解码验证
     uint16_t decodedIdx = static_cast<uint16_t>((encoded >> 32) & 0xFFFF);
     uint16_t decodedScopeId = static_cast<uint16_t>((encoded >> 16) & 0xFFFF);
     uint16_t decodedLow16 = static_cast<uint16_t>(encoded & 0xFFFF);
 
-    EXPECT_EQ(decodedIdx, modelRIIdx);
+    EXPECT_EQ(decodedIdx, modelIdIdx);
     EXPECT_EQ(decodedScopeId, skScopeId);
     EXPECT_EQ(decodedLow16, 0);  // 低16bit预留，应为0
 }
 
-// Test: modelRIIdAndSkScopeId 编码后能通过 index 反查原始 modelRI
-TEST_F(SkEventRecorderTest, ModelRIIdAndSkScopeId_EncodeDecodeRoundTrip) {
-    uint64_t modelRI = 0xDEADBEEFCAFEBABE;
+// Test: modelIdIndexAndSkScopeId 编码后能通过 index 反查原始 modelId
+TEST_F(SkEventRecorderTest, ModelIdIndexAndSkScopeId_EncodeDecodeRoundTrip)
+{
+    std::string modelId = "model_deadbeef_3";
     uint16_t skScopeId = 100;
 
-    uint16_t modelRIIdx = SkEventRecorder::Instance().RegisterModelRI(modelRI);
-    uint64_t encoded = (static_cast<uint64_t>(modelRIIdx) << 32) | (static_cast<uint64_t>(skScopeId) << 16);
+    uint16_t modelIdIdx = SkEventRecorder::Instance().RegisterModelId(modelId);
+    uint64_t encoded = (static_cast<uint64_t>(modelIdIdx) << 32) | (static_cast<uint64_t>(skScopeId) << 16);
 
     // 从编码中解码出 index
     uint16_t decodedIdx = static_cast<uint16_t>((encoded >> 32) & 0xFFFF);
-    // 通过 index 反查原始 modelRI
-    uint64_t recoveredModelRI = SkEventRecorder::Instance().GetModelRIByIndex(decodedIdx);
+    // 通过 index 反查原始 modelId
+    std::string recoveredModelId = SkEventRecorder::Instance().GetModelIdByIndex(decodedIdx);
 
-    EXPECT_EQ(recoveredModelRI, modelRI);
+    EXPECT_EQ(recoveredModelId, modelId);
 }
 
-// Test: RegisterModelRI 不依赖 profiling 开关
-TEST_F(SkEventRecorderTest, RegisterModelRI_WorksWhenProfilingDisabled) {
+// Test: RegisterModelId 不依赖 profiling 开关
+TEST_F(SkEventRecorderTest, RegisterModelId_WorksWhenProfilingDisabled)
+{
     // 不设置 ASCEND_PROF_SK_ON，profiling 未启用
     ASSERT_FALSE(SkEventRecorder::Instance().IsEnabled());
 
-    uint64_t modelRI = 0x5555555555555555;
-    uint16_t idx = SkEventRecorder::Instance().RegisterModelRI(modelRI);
-    uint64_t recovered = SkEventRecorder::Instance().GetModelRIByIndex(idx);
-    EXPECT_EQ(recovered, modelRI);
+    std::string modelId = "model_5555_1";
+    uint16_t idx = SkEventRecorder::Instance().RegisterModelId(modelId);
+    std::string recovered = SkEventRecorder::Instance().GetModelIdByIndex(idx);
+    EXPECT_EQ(recovered, modelId);
 }
 
-// Test: RegisterModelRI 线程安全
-TEST_F(SkEventRecorderTest, RegisterModelRI_ThreadSafe) {
+// Test: RegisterModelId 线程安全
+TEST_F(SkEventRecorderTest, RegisterModelId_ThreadSafe)
+{
     const int numThreads = 4;
     const int opsPerThread = 100;
     std::vector<std::thread> threads;
@@ -819,8 +1084,8 @@ TEST_F(SkEventRecorderTest, RegisterModelRI_ThreadSafe) {
     for (int t = 0; t < numThreads; t++) {
         threads.emplace_back([&, t]() {
             for (int i = 0; i < opsPerThread; i++) {
-                uint64_t modelRI = static_cast<uint64_t>(t) * 1000 + i;
-                uint16_t idx = SkEventRecorder::Instance().RegisterModelRI(modelRI);
+                std::string modelId = "m_" + std::to_string(t) + "_" + std::to_string(i);
+                uint16_t idx = SkEventRecorder::Instance().RegisterModelId(modelId);
                 results[t].push_back(idx);
             }
         });
@@ -830,27 +1095,28 @@ TEST_F(SkEventRecorderTest, RegisterModelRI_ThreadSafe) {
         thread.join();
     }
 
-    // 验证：所有注册的 modelRI 都能通过 index 反查回来
+    // 验证：所有注册的 modelId 都能通过 index 反查回来
     for (int t = 0; t < numThreads; t++) {
         for (int i = 0; i < opsPerThread; i++) {
-            uint64_t modelRI = static_cast<uint64_t>(t) * 1000 + i;
+            std::string modelId = "m_" + std::to_string(t) + "_" + std::to_string(i);
             uint16_t idx = results[t][i];
-            EXPECT_EQ(SkEventRecorder::Instance().GetModelRIByIndex(idx), modelRI);
+            EXPECT_EQ(SkEventRecorder::Instance().GetModelIdByIndex(idx), modelId);
         }
     }
 }
 
-// Test: RegisterModelRI 重复注册线程安全（去重）
-TEST_F(SkEventRecorderTest, RegisterModelRI_DuplicateRegistrationThreadSafe) {
+// Test: RegisterModelId 重复注册线程安全（去重）
+TEST_F(SkEventRecorderTest, RegisterModelId_DuplicateRegistrationThreadSafe)
+{
     const int numThreads = 4;
     std::vector<std::thread> threads;
     std::vector<uint16_t> results(numThreads);
 
-    uint64_t sharedModelRI = 0x9999999999999999;
+    std::string sharedModelId = "model_9999_1";
 
     for (int t = 0; t < numThreads; t++) {
         threads.emplace_back([&, t]() {
-            results[t] = SkEventRecorder::Instance().RegisterModelRI(sharedModelRI);
+            results[t] = SkEventRecorder::Instance().RegisterModelId(sharedModelId);
         });
     }
 
@@ -864,43 +1130,154 @@ TEST_F(SkEventRecorderTest, RegisterModelRI_DuplicateRegistrationThreadSafe) {
     }
 }
 
-// Test: SkHeaderInfo::modelRIIdAndSkScopeId 字段偏移和大小验证
-TEST_F(SkEventRecorderTest, SkHeaderInfoModelRIIdAndSkScopeId_FieldVerification) {
-    // 验证 modelRIIdAndSkScopeId 字段存在且为 uint64_t
-    SkHeaderInfo headerInfo = {};
-    headerInfo.modelRIIdAndSkScopeId = 0x0001000200000000ULL;
-    EXPECT_EQ(headerInfo.modelRIIdAndSkScopeId, 0x0001000200000000ULL);
+TEST_F(SkEventRecorderTest, DumpProfilingDetailDisabledEncodesModelIdIndexInDevArgs)
+{
+    const aclmdlRI modelRI = reinterpret_cast<aclmdlRI>(static_cast<uintptr_t>(0x12345678));
+    const std::string modelId = "305419896_7";
+    SuperKernelGraph graph(modelRI);
+    graph.modelId = modelId;
 
-    // 验证字段大小
-    EXPECT_EQ(sizeof(headerInfo.modelRIIdAndSkScopeId), sizeof(uint64_t));
+    SuperKernelScopeInfo scopeInfo;
+    SkLaunchInfo launchInfo = {};
+    ASSERT_TRUE(launchInfo.devArgs.Init(sizeof(SkDeviceEntryArgs) + sizeof(SkEventConfig)));
+    (void)memset_s(launchInfo.devArgs.Get(), sizeof(SkDeviceEntryArgs) + sizeof(SkEventConfig), 0,
+                   sizeof(SkDeviceEntryArgs) + sizeof(SkEventConfig));
+    launchInfo.devArgs.Get()->skHeader.eventConfigOffset = sizeof(SkDeviceEntryArgs);
 
-    // 验证可以正确编码/解码
-    uint16_t modelRIIdx = 1;
-    uint16_t skScopeId = 2;
-    headerInfo.modelRIIdAndSkScopeId =
-        (static_cast<uint64_t>(modelRIIdx) << 32) | (static_cast<uint64_t>(skScopeId) << 16);
-    EXPECT_EQ(static_cast<uint16_t>((headerInfo.modelRIIdAndSkScopeId >> 32) & 0xFFFF), modelRIIdx);
-    EXPECT_EQ(static_cast<uint16_t>((headerInfo.modelRIIdAndSkScopeId >> 16) & 0xFFFF), skScopeId);
+    std::vector<SuperKernelBaseNode*> taskNodes;
+    EXPECT_TRUE(DumpProfilingDetail(taskNodes, launchInfo, scopeInfo, graph));
+
+    uint64_t encoded = launchInfo.devArgs.Get()->skHeader.modelIdIndexAndSkScopeId;
+    uint16_t decodedModelIdIndex = static_cast<uint16_t>((encoded >> 32) & 0xFFFF);
+    uint16_t decodedScopeId = static_cast<uint16_t>((encoded >> 16) & 0xFFFF);
+
+    EXPECT_EQ(SkEventRecorder::Instance().GetModelIdByIndex(decodedModelIdIndex), modelId);
+    EXPECT_EQ(decodedScopeId, scopeInfo.GetScopeId());
+    EXPECT_EQ(static_cast<uint16_t>(encoded & 0xFFFF), 0);
+    EXPECT_EQ(SkEventRecorder::Instance().GetSkName(modelId, scopeInfo.GetScopeId()), launchInfo.skFuncName);
+    EXPECT_EQ(launchInfo.eventGmAddr, nullptr);
+    EXPECT_EQ(launchInfo.modelIdIndex, 0U);
+    EXPECT_EQ(launchInfo.skId, 0U);
 }
 
-// Test: 多个不同 modelRI 注册后完整编解码验证
-TEST_F(SkEventRecorderTest, ModelRIIdAndSkScopeId_MultipleModelRIEndToEnd) {
+TEST_F(SkEventRecorderTest, DumpProfilingDetailEnabledUpdatesRuntimeConfigAndMappings)
+{
+    const aclmdlRI modelRI = reinterpret_cast<aclmdlRI>(static_cast<uintptr_t>(0x87654321));
+    const std::string modelId = "2271560481_2";
+    SuperKernelGraph graph(modelRI);
+    graph.modelId = modelId;
+
+    SuperKernelScopeInfo scopeInfo;
+    SkLaunchInfo launchInfo = {};
+    launchInfo.skFuncName = "sk_scope_runtime";
+    ASSERT_TRUE(launchInfo.devArgs.Init(sizeof(SkDeviceEntryArgs) + sizeof(SkEventConfig)));
+    (void)memset_s(launchInfo.devArgs.Get(), sizeof(SkDeviceEntryArgs) + sizeof(SkEventConfig), 0,
+                   sizeof(SkDeviceEntryArgs) + sizeof(SkEventConfig));
+    launchInfo.devArgs.Get()->skHeader.eventConfigOffset = sizeof(SkDeviceEntryArgs);
+
+    auto kernel0 = CreateKernelNode(10, "first_kernel", 8);
+    auto wait = CreateWaitNode(11);
+    auto kernel2 = CreateKernelNode(12, "last_kernel", 16);
+    std::vector<SuperKernelBaseNode*> taskNodes = {kernel0.get(), wait.get(), kernel2.get(), nullptr};
+
+    InitMockDeviceCtx();
+    SkEventDeviceCtx* ctx = &SkEventRecorder::Instance().deviceCtxs;
+    SkEventRecorder::Instance().enabled = true;
+
+    bool ret = DumpProfilingDetail(taskNodes, launchInfo, scopeInfo, graph);
+    EXPECT_TRUE(ret);
+    if (ret) {
+        SkEventConfig* eventConfig = reinterpret_cast<SkEventConfig*>(
+            reinterpret_cast<uint8_t*>(launchInfo.devArgs.Get()) + sizeof(SkDeviceEntryArgs));
+        uint16_t headerModelIdIndex = static_cast<uint16_t>(
+            (launchInfo.devArgs.Get()->skHeader.modelIdIndexAndSkScopeId >> 32) & 0xFFFF);
+        uint16_t headerScopeId = static_cast<uint16_t>(
+            (launchInfo.devArgs.Get()->skHeader.modelIdIndexAndSkScopeId >> 16) & 0xFFFF);
+
+        EXPECT_EQ(launchInfo.eventGmAddr, ctx->gmAddr.get());
+        EXPECT_EQ(SkEventRecorder::Instance().GetModelIdByIndex(static_cast<uint16_t>(launchInfo.modelIdIndex)),
+                  modelId);
+        EXPECT_EQ(headerModelIdIndex, static_cast<uint16_t>(launchInfo.modelIdIndex));
+        EXPECT_EQ(headerScopeId, scopeInfo.GetScopeId());
+        EXPECT_EQ(launchInfo.skId, scopeInfo.GetScopeId());
+        EXPECT_EQ(eventConfig->eventGmAddr, reinterpret_cast<uint64_t>(ctx->gmAddr.get()));
+        EXPECT_EQ(eventConfig->modelIdIndex, launchInfo.modelIdIndex);
+        EXPECT_EQ(eventConfig->skId, launchInfo.skId);
+        EXPECT_EQ(eventConfig->enabled, 1);
+        EXPECT_EQ(eventConfig->coreSize, SkEventRecorder::GetCoreSize());
+        EXPECT_EQ(SkEventRecorder::Instance().GetNodeInfo(modelId, launchInfo.skId, 0).nodeName, "first_kernel");
+        EXPECT_TRUE(SkEventRecorder::Instance().GetNodeInfo(modelId, launchInfo.skId, 1).nodeName.empty());
+        EXPECT_EQ(SkEventRecorder::Instance().GetNodeInfo(modelId, launchInfo.skId, 2).nodeName, "last_kernel");
+        EXPECT_EQ(SkEventRecorder::Instance().GetNodeInfo(modelId, launchInfo.skId, 2).numBlocks, 16U);
+        EXPECT_EQ(SkEventRecorder::Instance().GetSkName(modelId, launchInfo.skId), "sk_scope_runtime");
+    }
+
+    SkEventRecorder::Instance().enabled = false;
+    CleanupMockDeviceCtx();
+}
+
+TEST_F(SkEventRecorderTest, DumpProfilingDetailEnabledReturnsFalseWhenGetDeviceFails)
+{
+    const aclmdlRI modelRI = reinterpret_cast<aclmdlRI>(static_cast<uintptr_t>(0x2222));
+    const std::string modelId = "8738_1";
+    SuperKernelGraph graph(modelRI);
+    graph.modelId = modelId;
+
+    SuperKernelScopeInfo scopeInfo;
+    SkLaunchInfo launchInfo = {};
+    ASSERT_TRUE(launchInfo.devArgs.Init(sizeof(SkDeviceEntryArgs) + sizeof(SkEventConfig)));
+    (void)memset_s(launchInfo.devArgs.Get(), sizeof(SkDeviceEntryArgs) + sizeof(SkEventConfig), 0,
+                   sizeof(SkDeviceEntryArgs) + sizeof(SkEventConfig));
+
+    SkEventRecorder::Instance().enabled = true;
+    SkUtSetAclrtGetDeviceRet(ACL_ERROR_FAILURE);
+
+    std::vector<SuperKernelBaseNode*> taskNodes;
+    EXPECT_FALSE(DumpProfilingDetail(taskNodes, launchInfo, scopeInfo, graph));
+    EXPECT_EQ(SkEventRecorder::Instance().GetSkName(modelId, scopeInfo.GetScopeId()), launchInfo.skFuncName);
+
+    SkEventRecorder::Instance().enabled = false;
+}
+
+// Test: SkHeaderInfo::modelIdIndexAndSkScopeId 字段偏移和大小验证
+TEST_F(SkEventRecorderTest, SkHeaderInfoModelIdIndexAndSkScopeId_FieldVerification)
+{
+    // 验证 modelIdIndexAndSkScopeId 字段存在且为 uint64_t
+    SkHeaderInfo headerInfo = {};
+    headerInfo.modelIdIndexAndSkScopeId = 0x0001000200000000ULL;
+    EXPECT_EQ(headerInfo.modelIdIndexAndSkScopeId, 0x0001000200000000ULL);
+
+    // 验证字段大小
+    EXPECT_EQ(sizeof(headerInfo.modelIdIndexAndSkScopeId), sizeof(uint64_t));
+
+    // 验证可以正确编码/解码
+    uint16_t modelIdIdx = 1;
+    uint16_t skScopeId = 2;
+    headerInfo.modelIdIndexAndSkScopeId =
+        (static_cast<uint64_t>(modelIdIdx) << 32) | (static_cast<uint64_t>(skScopeId) << 16);
+    EXPECT_EQ(static_cast<uint16_t>((headerInfo.modelIdIndexAndSkScopeId >> 32) & 0xFFFF), modelIdIdx);
+    EXPECT_EQ(static_cast<uint16_t>((headerInfo.modelIdIndexAndSkScopeId >> 16) & 0xFFFF), skScopeId);
+}
+
+// Test: 多个不同 modelId 注册后完整编解码验证
+TEST_F(SkEventRecorderTest, ModelIdIndexAndSkScopeId_MultipleModelIdEndToEnd)
+{
     struct TestItem {
-        uint64_t modelRI;
+        std::string modelId;
         uint16_t skScopeId;
     };
 
     std::vector<TestItem> items = {
-        {0xAAAAAAA1, 10},
-        {0xAAAAAAA2, 20},
-        {0xAAAAAAA3, 30},
+        {"model_aaaaaaa1_1", 10},
+        {"model_aaaaaaa2_1", 20},
+        {"model_aaaaaaa3_1", 30},
     };
 
     std::vector<uint64_t> encodedValues;
 
     for (const auto& item : items) {
-        uint16_t modelRIIdx = SkEventRecorder::Instance().RegisterModelRI(item.modelRI);
-        uint64_t encoded = (static_cast<uint64_t>(modelRIIdx) << 32) | (static_cast<uint64_t>(item.skScopeId) << 16);
+        uint16_t modelIdIdx = SkEventRecorder::Instance().RegisterModelId(item.modelId);
+        uint64_t encoded = (static_cast<uint64_t>(modelIdIdx) << 32) | (static_cast<uint64_t>(item.skScopeId) << 16);
         encodedValues.push_back(encoded);
     }
 
@@ -908,56 +1285,61 @@ TEST_F(SkEventRecorderTest, ModelRIIdAndSkScopeId_MultipleModelRIEndToEnd) {
     for (size_t i = 0; i < items.size(); i++) {
         uint16_t decodedIdx = static_cast<uint16_t>((encodedValues[i] >> 32) & 0xFFFF);
         uint16_t decodedScopeId = static_cast<uint16_t>((encodedValues[i] >> 16) & 0xFFFF);
-        uint64_t recoveredModelRI = SkEventRecorder::Instance().GetModelRIByIndex(decodedIdx);
+        std::string recoveredModelId = SkEventRecorder::Instance().GetModelIdByIndex(decodedIdx);
 
-        EXPECT_EQ(recoveredModelRI, items[i].modelRI);
+        EXPECT_EQ(recoveredModelId, items[i].modelId);
         EXPECT_EQ(decodedScopeId, items[i].skScopeId);
     }
 }
 // ==================== SkName 映射测试 ====================
 
 // Test 49: AddSkNameMapping 和 GetSkName 基本功能
-TEST_F(SkEventRecorderTest, AddAndGetSkName) {
-    uint64_t modelRI = 100;
+TEST_F(SkEventRecorderTest, AddAndGetSkName)
+{
+    std::string modelId = "model_100_1";
     uint32_t skId = 1;
     std::string skName = "test_super_kernel";
 
-    SkEventRecorder::Instance().AddSkNameMapping(modelRI, skId, skName);
+    SkEventRecorder::Instance().AddSkNameMapping(modelId, skId, skName);
 
-    std::string result = SkEventRecorder::Instance().GetSkName(modelRI, skId);
+    std::string result = SkEventRecorder::Instance().GetSkName(modelId, skId);
     EXPECT_EQ(result, skName);
 }
 
 // Test 50: GetSkName 获取不存在的映射
-TEST_F(SkEventRecorderTest, GetNonExistentSkName) {
-    std::string result = SkEventRecorder::Instance().GetSkName(999, 999);
+TEST_F(SkEventRecorderTest, GetNonExistentSkName)
+{
+    std::string result = SkEventRecorder::Instance().GetSkName("missing_model", 999);
     EXPECT_TRUE(result.empty());
 }
 
 // Test 51: 多个 SkName 映射
-TEST_F(SkEventRecorderTest, MultipleSkNameMappings) {
-    SkEventRecorder::Instance().AddSkNameMapping(1, 1, "sk_1_1");
-    SkEventRecorder::Instance().AddSkNameMapping(1, 2, "sk_1_2");
-    SkEventRecorder::Instance().AddSkNameMapping(2, 1, "sk_2_1");
+TEST_F(SkEventRecorderTest, MultipleSkNameMappings)
+{
+    SkEventRecorder::Instance().AddSkNameMapping("model_1", 1, "sk_1_1");
+    SkEventRecorder::Instance().AddSkNameMapping("model_1", 2, "sk_1_2");
+    SkEventRecorder::Instance().AddSkNameMapping("model_2", 1, "sk_2_1");
 
-    EXPECT_EQ(SkEventRecorder::Instance().GetSkName(1, 1), "sk_1_1");
-    EXPECT_EQ(SkEventRecorder::Instance().GetSkName(1, 2), "sk_1_2");
-    EXPECT_EQ(SkEventRecorder::Instance().GetSkName(2, 1), "sk_2_1");
+    EXPECT_EQ(SkEventRecorder::Instance().GetSkName("model_1", 1), "sk_1_1");
+    EXPECT_EQ(SkEventRecorder::Instance().GetSkName("model_1", 2), "sk_1_2");
+    EXPECT_EQ(SkEventRecorder::Instance().GetSkName("model_2", 1), "sk_2_1");
 }
 
 // Test 52: SkName 映射覆盖
-TEST_F(SkEventRecorderTest, SkNameMappingOverwrite) {
-    SkEventRecorder::Instance().AddSkNameMapping(100, 1, "old_sk");
-    SkEventRecorder::Instance().AddSkNameMapping(100, 1, "new_sk");
+TEST_F(SkEventRecorderTest, SkNameMappingOverwrite)
+{
+    SkEventRecorder::Instance().AddSkNameMapping("model_100_1", 1, "old_sk");
+    SkEventRecorder::Instance().AddSkNameMapping("model_100_1", 1, "new_sk");
 
-    std::string result = SkEventRecorder::Instance().GetSkName(100, 1);
+    std::string result = SkEventRecorder::Instance().GetSkName("model_100_1", 1);
     EXPECT_EQ(result, "new_sk");
 }
 
 // ==================== ParseEnvAndSetSize 边界测试 ====================
 
 // Test 53: 环境变量非对齐值向上取整
-TEST_F(SkEventRecorderTest, EnvValueAlignmentRoundUp) {
+TEST_F(SkEventRecorderTest, EnvValueAlignmentRoundUp)
+{
     // 100KB 应向上取整到 128KB（64 的倍数）
     setenv("ASCEND_PROF_SK_ON", "100", 1);
 
@@ -970,7 +1352,8 @@ TEST_F(SkEventRecorderTest, EnvValueAlignmentRoundUp) {
 }
 
 // Test 54: 环境变量已经是对齐值
-TEST_F(SkEventRecorderTest, EnvValueAlreadyAligned) {
+TEST_F(SkEventRecorderTest, EnvValueAlreadyAligned)
+{
     // 128KB 已是 64 的倍数，无需取整
     setenv("ASCEND_PROF_SK_ON", "128", 1);
 
@@ -982,7 +1365,8 @@ TEST_F(SkEventRecorderTest, EnvValueAlreadyAligned) {
 }
 
 // Test 55: 环境变量超过 5MB 应失败
-TEST_F(SkEventRecorderTest, EnvValueTooLarge) {
+TEST_F(SkEventRecorderTest, EnvValueTooLarge)
+{
     // 5121KB > 5MB，应失败
     setenv("ASCEND_PROF_SK_ON", "5121", 1);
 
@@ -992,7 +1376,8 @@ TEST_F(SkEventRecorderTest, EnvValueTooLarge) {
 }
 
 // Test 56: 环境变量超过 1MB 但小于 5MB 应成功
-TEST_F(SkEventRecorderTest, EnvValueLargeButValid) {
+TEST_F(SkEventRecorderTest, EnvValueLargeButValid)
+{
     // 2048KB = 2MB，大于 1MB 但小于 5MB，应成功
     setenv("ASCEND_PROF_SK_ON", "2048", 1);
 
@@ -1004,7 +1389,8 @@ TEST_F(SkEventRecorderTest, EnvValueLargeButValid) {
 }
 
 // Test 57: 环境变量边界值 1KB（最小非零值，向上取整到 64KB）
-TEST_F(SkEventRecorderTest, EnvValueMinimumOne) {
+TEST_F(SkEventRecorderTest, EnvValueMinimumOne)
+{
     setenv("ASCEND_PROF_SK_ON", "1", 1);
 
     SkEventRecorder::Instance().Init();
@@ -1018,7 +1404,8 @@ TEST_F(SkEventRecorderTest, EnvValueMinimumOne) {
 // ==================== DumpThreadFunc 文件大小检查测试 ====================
 
 // Test 58: 没有检测到profiling关闭补复制
-TEST_F(SkEventRecorderTest, DumpThreadFuncDstMissingTriggersReCopy) {
+TEST_F(SkEventRecorderTest, DumpThreadFuncDstMissingTriggersReCopy)
+{
     InitMockDeviceCtx();
     SkEventRecorder::Instance().enabled = true;
 
@@ -1081,22 +1468,22 @@ TEST_F(SkEventRecorderTest, DumpThreadFuncDstMissingTriggersReCopy) {
 
 TEST_F(SkEventRecorderTest, RemoveModelMappings_RemovesOnlyTargetModel)
 {
-    constexpr uint64_t targetModelRI = 0x11110000;
-    constexpr uint64_t otherModelRI = 0x22220000;
+    const std::string targetModelId = "model_target_1";
+    const std::string otherModelId = "model_other_1";
 
-    SkEventRecorder::Instance().AddNodeInfoMapping(targetModelRI, 1, 0, "target_node", 4);
-    SkEventRecorder::Instance().AddSkNameMapping(targetModelRI, 1, "target_sk");
-    SkEventRecorder::Instance().AddNodeInfoMapping(otherModelRI, 1, 0, "other_node", 8);
-    SkEventRecorder::Instance().AddSkNameMapping(otherModelRI, 1, "other_sk");
+    SkEventRecorder::Instance().AddNodeInfoMapping(targetModelId, 1, 0, "target_node", 4);
+    SkEventRecorder::Instance().AddSkNameMapping(targetModelId, 1, "target_sk");
+    SkEventRecorder::Instance().AddNodeInfoMapping(otherModelId, 1, 0, "other_node", 8);
+    SkEventRecorder::Instance().AddSkNameMapping(otherModelId, 1, "other_sk");
 
-    SkEventRecorder::Instance().RemoveModelMappings(targetModelRI);
+    SkEventRecorder::Instance().RemoveModelMappings(targetModelId);
 
-    EXPECT_TRUE(SkEventRecorder::Instance().GetNodeInfo(targetModelRI, 1, 0).nodeName.empty());
-    EXPECT_TRUE(SkEventRecorder::Instance().GetSkName(targetModelRI, 1).empty());
-    EXPECT_EQ(SkEventRecorder::Instance().GetNodeInfo(otherModelRI, 1, 0).nodeName, "other_node");
-    EXPECT_EQ(SkEventRecorder::Instance().GetSkName(otherModelRI, 1), "other_sk");
+    EXPECT_TRUE(SkEventRecorder::Instance().GetNodeInfo(targetModelId, 1, 0).nodeName.empty());
+    EXPECT_TRUE(SkEventRecorder::Instance().GetSkName(targetModelId, 1).empty());
+    EXPECT_EQ(SkEventRecorder::Instance().GetNodeInfo(otherModelId, 1, 0).nodeName, "other_node");
+    EXPECT_EQ(SkEventRecorder::Instance().GetSkName(otherModelId, 1), "other_sk");
 
-    SkEventRecorder::Instance().RemoveModelMappings(otherModelRI);
+    SkEventRecorder::Instance().RemoveModelMappings(otherModelId);
 }
 
 TEST_F(SkEventRecorderTest, DumpProfilingDetail_DisabledRegistersModelAndSkName)
@@ -1106,22 +1493,24 @@ TEST_F(SkEventRecorderTest, DumpProfilingDetail_DisabledRegistersModelAndSkName)
     ASSERT_TRUE(launchInfo.devArgs.Init(sizeof(SkDeviceEntryArgs)));
     launchInfo.skFuncName = "sk_disabled_start_add_end_mul";
     aclmdlRI modelRI = reinterpret_cast<aclmdlRI>(0x123456789ABCULL);
-    const uint64_t fullModelRI = static_cast<uint64_t>(reinterpret_cast<uintptr_t>(modelRI));
+    const std::string modelId = "model_disabled_1";
+    SuperKernelGraph graph(modelRI);
+    graph.modelId = modelId;
 
     EXPECT_FALSE(SkEventRecorder::Instance().IsEnabled());
-    EXPECT_TRUE(DumpProfilingDetail({}, launchInfo, scopeInfo, modelRI));
+    EXPECT_TRUE(DumpProfilingDetail({}, launchInfo, scopeInfo, graph));
 
     EXPECT_EQ(launchInfo.eventGmAddr, nullptr);
-    EXPECT_EQ(launchInfo.modelRI, 0);
+    EXPECT_EQ(launchInfo.modelIdIndex, 0);
     EXPECT_EQ(launchInfo.skId, 0);
-    const uint64_t encoded = launchInfo.devArgs.Get()->skHeader.modelRIIdAndSkScopeId;
-    const uint16_t modelRIIdx = static_cast<uint16_t>((encoded >> 32) & 0xFFFF);
+    const uint64_t encoded = launchInfo.devArgs.Get()->skHeader.modelIdIndexAndSkScopeId;
+    const uint16_t modelIdIdx = static_cast<uint16_t>((encoded >> 32) & 0xFFFF);
     const uint16_t skScopeId = static_cast<uint16_t>((encoded >> 16) & 0xFFFF);
     EXPECT_EQ(skScopeId, scopeInfo.GetScopeId());
-    EXPECT_EQ(SkEventRecorder::Instance().GetModelRIByIndex(modelRIIdx), fullModelRI);
-    EXPECT_EQ(SkEventRecorder::Instance().GetSkName(fullModelRI, scopeInfo.GetScopeId()), launchInfo.skFuncName);
+    EXPECT_EQ(SkEventRecorder::Instance().GetModelIdByIndex(modelIdIdx), modelId);
+    EXPECT_EQ(SkEventRecorder::Instance().GetSkName(modelId, scopeInfo.GetScopeId()), launchInfo.skFuncName);
 
-    SkEventRecorder::Instance().RemoveModelMappings(fullModelRI);
+    SkEventRecorder::Instance().RemoveModelMappings(modelId);
 }
 
 TEST_F(SkEventRecorderTest, DumpProfilingDetail_EnabledUpdatesEventConfigAndNodeInfo)
@@ -1144,29 +1533,32 @@ TEST_F(SkEventRecorderTest, DumpProfilingDetail_EnabledUpdatesEventConfigAndNode
     std::vector<SuperKernelBaseNode*> taskNodes = {node.get()};
 
     aclmdlRI modelRI = reinterpret_cast<aclmdlRI>(0x223344556677ULL);
-    const uint64_t fullModelRI = static_cast<uint64_t>(reinterpret_cast<uintptr_t>(modelRI));
+    const std::string modelId = "model_enabled_1";
+    SuperKernelGraph graph(modelRI);
+    graph.modelId = modelId;
 
-    EXPECT_TRUE(DumpProfilingDetail(taskNodes, launchInfo, scopeInfo, modelRI));
+    EXPECT_TRUE(DumpProfilingDetail(taskNodes, launchInfo, scopeInfo, graph));
 
     SkEventDeviceCtx* ctx = &SkEventRecorder::Instance().deviceCtxs;
     EXPECT_EQ(launchInfo.eventGmAddr, ctx->gmAddr.get());
-    EXPECT_EQ(launchInfo.modelRI, fullModelRI);
+    EXPECT_EQ(SkEventRecorder::Instance().GetModelIdByIndex(static_cast<uint16_t>(launchInfo.modelIdIndex)),
+              modelId);
     EXPECT_EQ(launchInfo.skId, scopeInfo.GetScopeId());
 
     auto* eventConfig = reinterpret_cast<SkEventConfig*>(
         reinterpret_cast<uint8_t*>(launchInfo.devArgs.Get()) + launchInfo.devArgs.Get()->skHeader.eventConfigOffset);
     EXPECT_EQ(eventConfig->eventGmAddr, reinterpret_cast<uint64_t>(ctx->gmAddr.get()));
-    EXPECT_EQ(eventConfig->modelRI, fullModelRI);
+    EXPECT_EQ(eventConfig->modelIdIndex, launchInfo.modelIdIndex);
     EXPECT_EQ(eventConfig->skId, scopeInfo.GetScopeId());
     EXPECT_EQ(eventConfig->enabled, 1);
     EXPECT_EQ(eventConfig->coreSize, SkEventRecorder::Instance().GetCoreSize());
 
-    SkNodeInfo nodeInfo = SkEventRecorder::Instance().GetNodeInfo(fullModelRI, scopeInfo.GetScopeId(), 0);
+    SkNodeInfo nodeInfo = SkEventRecorder::Instance().GetNodeInfo(modelId, scopeInfo.GetScopeId(), 0);
     EXPECT_EQ(nodeInfo.nodeName, "add_kernel");
     EXPECT_EQ(nodeInfo.numBlocks, 7);
-    EXPECT_EQ(SkEventRecorder::Instance().GetSkName(fullModelRI, scopeInfo.GetScopeId()), launchInfo.skFuncName);
+    EXPECT_EQ(SkEventRecorder::Instance().GetSkName(modelId, scopeInfo.GetScopeId()), launchInfo.skFuncName);
 
-    SkEventRecorder::Instance().RemoveModelMappings(fullModelRI);
+    SkEventRecorder::Instance().RemoveModelMappings(modelId);
     SkEventRecorder::Instance().enabled = false;
     CleanupMockDeviceCtx();
 }
@@ -1299,4 +1691,3 @@ TEST_F(SkGetSkFuncNameTest, LargeScopeId_ValidOutput)
     };
     EXPECT_EQ(GetSkFuncName(nodes, 65535, "s"), "sk_65535_s_start_k1_end_k1");
 }
-

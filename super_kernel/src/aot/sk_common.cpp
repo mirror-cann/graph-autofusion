@@ -241,9 +241,23 @@ bool GetFuncSymbolInfo(aclrtBinHandle binHdl, const char* binAddr, size_t binSiz
     return false;
 }
 
+std::string GetSocName()
+{
+    SK_LOGI("Init socName");
+    const char* socNameTmp = aclrtGetSocName();
+    if (socNameTmp == nullptr) {
+        SK_LOGE("Failed to get soc name");
+        return "";
+    }
+    std::string socName(socNameTmp);
+    SK_LOGI("Soc name: %s", socName.c_str());
+    return socName;
+}
+
 // ==================== Device Core Number Utilities ====================
 
-int64_t GetDeviceCubeCoreNum() {
+int64_t GetDeviceCubeCoreNum()
+{
     int32_t deviceId = 0;
     aclError ret = aclrtGetDevice(&deviceId);
     if (ret != ACL_SUCCESS) {
@@ -259,7 +273,8 @@ int64_t GetDeviceCubeCoreNum() {
     return cubeNum;
 }
 
-int64_t GetDeviceVecCoreNum() {
+int64_t GetDeviceVecCoreNum()
+{
     int32_t deviceId = 0;
     aclError ret = aclrtGetDevice(&deviceId);
     if (ret != ACL_SUCCESS) {
@@ -275,7 +290,8 @@ int64_t GetDeviceVecCoreNum() {
     return vecNum;
 }
 
-aclError GetDeviceCoreNums(int64_t& cubeNum, int64_t& vecNum) {
+aclError GetDeviceCoreNums(int64_t& cubeNum, int64_t& vecNum)
+{
     cubeNum = GetDeviceCubeCoreNum();
     if (cubeNum <= 0) {
         SK_LOGE("[DeviceCores] GetDeviceCubeCoreNum returned invalid value: %ld", cubeNum);
@@ -288,48 +304,4 @@ aclError GetDeviceCoreNums(int64_t& cubeNum, int64_t& vecNum) {
     }
     SK_LOGI("[DeviceCores] Get core nums: cube=%ld, vec=%ld", cubeNum, vecNum);
     return ACL_SUCCESS;
-}
-
-bool CreateDirectoryRecursive(const std::string& path) {
-    if (path.empty()) {
-        SK_LOGE("[SkMeta] CreateDirectoryRecursive failed: path is empty");
-        return false;
-    }
-    
-    size_t pos = 0;
-    do {
-        pos = path.find('/', pos + 1);
-        std::string subPath = path.substr(0, pos);
-        
-        if (subPath.empty()) {
-            continue;
-        }
-        
-        struct stat st;
-        if (stat(subPath.c_str(), &st) != 0) {
-            if (mkdir(subPath.c_str(), 0755) != 0) {
-                int savedErrno = errno;
-                if (savedErrno != EEXIST) {
-                    SK_LOGE("[SkMeta] mkdir failed for '%s': %s (errno=%d)",
-                            subPath.c_str(), strerror(savedErrno), savedErrno);
-                    return false;
-                }
-            }
-        }
-    } while (pos != std::string::npos && pos < path.size());
-    
-    return true;
-}
-
-std::string CreateSkMetaDirectory(aclmdlRI model) {
-    std::string dirPath = GetSkMetaPath(model);
-    
-    if (!CreateDirectoryRecursive(dirPath)) {
-        SK_LOGE("[SkMeta] Failed to create directory '%s' for model '%s'",
-                dirPath.c_str(), ModelRIToString(model).c_str());
-        return "";
-    }
-    
-    SK_LOGI("[SkMeta] Directory created successfully: %s", dirPath.c_str());
-    return dirPath;
 }

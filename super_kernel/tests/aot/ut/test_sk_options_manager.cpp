@@ -985,10 +985,12 @@ TEST_F(SuperKernelOptionsManagerTest, ParseOptions_LargeNumberOptions)
         if (i % 4 == 0) {
             options[i].optionType = aclskOptionType::PRELOAD_CODE;
             options[i].preload.preloadMode = i;
-        } else if (i % 4 == 1) {
+        } else if (i % 4 == 1)
+        {
             options[i].optionType = aclskOptionType::SPLIT_MODE;
             options[i].splitMode.splitCnt = i;
-        } else if (i % 4 == 2) {
+        } else if (i % 4 == 2)
+        {
             const char* kernelNames[] = {"TestOp"};
             options[i].optionType = aclskOptionType::DCCI_DISABLE_ON_KERNEL;
             options[i].disableKernelDcci.kernelNames = const_cast<char**>(kernelNames);
@@ -1560,6 +1562,50 @@ TEST_F(SuperKernelOptionsManagerTest, ApplySoCSpecificOptions_NonAscend950)
     ASSERT_NE(simtCheckOpt, nullptr);
     EXPECT_EQ(mixSplitOpt->GetIntValue(), 0);
     EXPECT_EQ(simtCheckOpt->GetIntValue(), 0);
+}
+
+namespace {
+const char* FakeSocName_Ascend950ForOptions()
+{
+    return "Ascend950";
+}
+const char* FakeSocName_Ascend950Variant()
+{
+    return "Ascend950PG";
+}
+}  // namespace
+
+TEST_F(SuperKernelOptionsManagerTest, ApplySoCSpecificOptions_Ascend950EnablesMixSplitAndSimtCheck)
+{
+    MOCKER(aclrtGetSocName).stubs().will(invoke(FakeSocName_Ascend950ForOptions));
+
+    opts_test->RegisterDefaultOptions();
+    auto* mixSplitOpt = opts_test->GetOption(SkInnerOptionType::ENABLE_MIX_KERNEL_SPLIT);
+    auto* simtCheckOpt = opts_test->GetOption(SkInnerOptionType::ENABLE_SIMT_OP_CHECK);
+    ASSERT_NE(mixSplitOpt, nullptr);
+    ASSERT_NE(simtCheckOpt, nullptr);
+    EXPECT_EQ(mixSplitOpt->GetIntValue(), 1);
+    EXPECT_EQ(simtCheckOpt->GetIntValue(), 1);
+
+    // JSON 也应反映被改写后的 inner_options 值
+    nlohmann::ordered_json json = opts_test->ToJson();
+    ASSERT_TRUE(json.contains("inner_options"));
+    EXPECT_EQ(json["inner_options"]["enable_mix_kernel_split"]["value"], 1);
+    EXPECT_EQ(json["inner_options"]["enable_simt_op_check"]["value"], 1);
+}
+
+TEST_F(SuperKernelOptionsManagerTest, ApplySoCSpecificOptions_Ascend950SuffixVariantStillEnables)
+{
+    // 防回归：未来如果 GetSocName 返回带后缀的 "Ascend950XXX"，仍应命中
+    MOCKER(aclrtGetSocName).stubs().will(invoke(FakeSocName_Ascend950Variant));
+
+    opts_test->RegisterDefaultOptions();
+    auto* mixSplitOpt = opts_test->GetOption(SkInnerOptionType::ENABLE_MIX_KERNEL_SPLIT);
+    auto* simtCheckOpt = opts_test->GetOption(SkInnerOptionType::ENABLE_SIMT_OP_CHECK);
+    ASSERT_NE(mixSplitOpt, nullptr);
+    ASSERT_NE(simtCheckOpt, nullptr);
+    EXPECT_EQ(mixSplitOpt->GetIntValue(), 1);
+    EXPECT_EQ(simtCheckOpt->GetIntValue(), 1);
 }
 
 TEST_F(SuperKernelOptionsManagerTest, SetInnerOptionValue)

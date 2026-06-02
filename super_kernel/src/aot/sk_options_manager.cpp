@@ -22,6 +22,7 @@
 #include <unordered_set>
 
 #include "sk_options_manager.h"
+#include "sk_common.h"
 #include "sk_log.h"
 #include <nlohmann/json.hpp>
 
@@ -481,19 +482,6 @@ bool SuperKernelOptionsManager::EnableDebug() const {
     return false;
 }
 
-std::string SuperKernelOptionsManager::GetSocName() const
-{
-    SK_LOGI("Init socName");
-    const char* socNameTmp = aclrtGetSocName();
-    if (socNameTmp == nullptr) {
-        SK_LOGW("Failed to get soc name");
-        return "";
-    }
-    std::string socName(socNameTmp);
-    SK_LOGI("Soc name: %s", socName.c_str());
-    return socName;
-}
-
 void SuperKernelOptionsManager::RegisterDefaultSkOptions()
 {
     for (int32_t i = 0; i < static_cast<int32_t>(aclskOptionType::SK_OPTION_MAX); ++i) {
@@ -527,9 +515,8 @@ void SuperKernelOptionsManager::RegisterDefaultInnerOptions()
 void SuperKernelOptionsManager::ApplySoCSpecificOptions()
 {
     std::string socName = GetSocName();
-    bool isAscend950 = socName.find("Ascend950") != std::string::npos;
-    
-    if (isAscend950) {
+    bool isDav3510 = GetCurrentSkKernelArch() == SkKernelArch::DAV_3510;
+    if (isDav3510) {
         auto* mixSplitOpt = GetOption(SkInnerOptionType::ENABLE_MIX_KERNEL_SPLIT);
         if (mixSplitOpt != nullptr) {
             mixSplitOpt->SetValue(1);
@@ -541,9 +528,9 @@ void SuperKernelOptionsManager::ApplySoCSpecificOptions()
         }
     }
     
-    SK_LOGI("ApplySoCSpecificOptions: socName=%s, isAscend950=%d, "
+    SK_LOGI("ApplySoCSpecificOptions: socName=%s, "
             "enableMixKernelSplit=%u, enableSimtOpCheck=%u",
-            socName.c_str(), isAscend950,
+            socName.c_str(),
             GetOption(SkInnerOptionType::ENABLE_MIX_KERNEL_SPLIT) != nullptr ?
                 GetOption(SkInnerOptionType::ENABLE_MIX_KERNEL_SPLIT)->GetIntValue() : 0,
             GetOption(SkInnerOptionType::ENABLE_SIMT_OP_CHECK) != nullptr ?
@@ -766,7 +753,7 @@ void SuperKernelOptionsManager::ParseOptions(const aclskOptions* options) {
         SK_LOGI("aclskOption is nullptr");
         return;
     }
-    SK_LOGI("Options nums: %d\n", static_cast<int>(options->numOptions));
+    SK_LOGI("Options nums: %d", static_cast<int>(options->numOptions));
     if (options->numOptions > 0 && options->options == nullptr) {
         SK_LOGW("aclskOptions options is nullptr while numOptions is %zu", options->numOptions);
         return;
