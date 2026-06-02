@@ -22,28 +22,43 @@
 #include <shared_mutex>
 #include "ge_common/ge_api_types.h"
 #include "ascir.h"
+#include "codegen/expression_convert_struct.h"
 
 namespace codegen {
 
 struct MergeAxesInfo {
-  std::vector<std::string> repeats;
-  std::vector<std::string> gm_strides;
-  std::vector<std::string> ub_strides;
+  // 有效性标志：表示是否有merge axes信息
+  bool valid = false;
+
+  // 这些是原始 SizeExpr，统一用 ActualSize 转换
+  std::vector<ge::Expression> repeats;
+  std::vector<ge::Expression> gm_strides;
+  std::vector<ge::Expression> ub_strides;
 };
+
 struct DataCopyBaseParams {
-  std::string block_count;
-  std::string block_len;
-  std::string src_stride;
-  std::string dst_stride;
+  // 有效性标志：表示是否有本层的结果
+  bool valid = false;
+
+  // block_count/block_len: 简单表达式，用 ActualSize
+  // src_stride/dst_stride: 可能是组合表达式（Size - ActualSize）
+  CombinedExpression block_count;
+  CombinedExpression block_len;
+  CombinedExpression src_stride;
+  CombinedExpression dst_stride;
 };
+
 struct DataCopyLoopModeParams {
-  // loop1Size, loop2Size, loop1是内层循环, loop2是外层循环
-  std::vector<std::string> loop_sizes;
-  // loop1SrcStride, loop2SrcStride 单位: 数字个数，在拼接参数时，会转换成字节数
-  std::vector<std::string> loop_src_strides;
-  // loop1DrcStride, loop2DstStride单位: 数字个数，在拼接参数时，会转换成字节数
-  std::vector<std::string> loop_dst_strides;
+  // 有效性标志：表示是否有loop mode参数
+  bool valid = false;
+
+  // loop_sizes: 用 ActualSize + cast
+  // loop_strides: 用 Size * dtype_size + cast
+  std::vector<CombinedExpression> loop_sizes;
+  std::vector<CombinedExpression> loop_src_strides;
+  std::vector<CombinedExpression> loop_dst_strides;
 };
+
 struct DmaSpecificParams {
   MergeAxesInfo merge_axes_info;
   DataCopyBaseParams data_copy_params;
@@ -101,12 +116,12 @@ struct BroadcastSpecificParams {
   std::string broadcast_type;
 };
 struct TransposeSpecificParams {
-  // Transpose api内部处理的vectorized output dims
-  std::vector<std::string> output_dims;
-  // Transpose api内部处理的vectorized input strides，根据输出tensor的vectorized axis的顺序进行重排
-  std::vector<std::string> input_strides;
-  // Transpose api内部处理的vectorized output strides
-  std::vector<std::string> output_strides;
+  // Transpose api内部处理的vectorized output dims（用 ActualSize）
+  std::vector<CombinedExpression> output_dims;
+  // Transpose api内部处理的vectorized input strides（用 Size）
+  std::vector<CombinedExpression> input_strides;
+  // Transpose api内部处理的vectorized output strides（用 Size）
+  std::vector<CombinedExpression> output_strides;
 };
 
 struct ReduceMergedAxisPlan {
@@ -168,14 +183,15 @@ struct CodegenApiParam {
 
   struct TensorParam {
     TensorParam() = default;
-    TensorParam(const std::string& name, bool is_tensor, const std::string& offset)
+    TensorParam(const std::string& name, bool is_tensor, const CombinedExpression& offset)
                 : name(name), is_tensor(is_tensor), offset(offset) {}
     std::string name;
     bool is_tensor = true;
-    std::string offset;
+    CombinedExpression offset;
   };
 
-  std::vector<std::string> outer_loop_axes;
+  // outer_loop_axes: 简单表达式，统一用 ActualSize 转换
+  std::vector<CombinedExpression> outer_loop_axes;
   std::vector<std::string> api_pre_process;
   std::vector<std::string> api_post_process;
 
@@ -183,7 +199,7 @@ struct CodegenApiParam {
   std::vector<TensorParam> output_params;
 
   std::string tmp_buf_name;
-  std::string cal_count;
+  CombinedExpression cal_count;
 
   using AnySpecificParams = std::variant<
     std::monostate,

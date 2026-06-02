@@ -201,6 +201,47 @@ void SetDmaParams(const TPipe &tpipe, const DataCopyParams &data_copy_param, Dma
   }
 }
 
+void SetDmaParamsExpr(const TPipe &tpipe, const DataCopyParams &data_copy_param, DmaParamsExpr &dma_param, bool copy_in,
+                      bool need_swap) {
+  (void)tpipe;
+  size_t total_len = data_copy_param.repeats.size();
+  if (total_len <= kDmaMaxLen && need_swap) {
+    GELOGI("Can't swap data copy outer_for.");
+    return;
+  }
+  if (total_len == 1) {
+    dma_param.block_count = CombinedExprFactory::Constant(1);
+    dma_param.block_len = CombinedExpression(ExprItemFactory::ActualSize(data_copy_param.repeats[0]));
+    dma_param.src_stride = CombinedExprFactory::Constant(0);
+    dma_param.dst_stride = CombinedExprFactory::Constant(0);
+  } else if (total_len >= kDmaMaxLen) {
+    int64_t block_count_idx = need_swap ? (total_len - kAxisIndex3) : (total_len - kAxisIndex2);
+    // 双切分场景切分在尾轴时，尾块在ub内存在跳写，尾轴上一根轴的stride为尾轴整块向32B对齐的值，因此计算ub内的stride时
+    // merge_ub_stride需要调用Size接口，merge_repeats需要调用ActualSize接口
+
+    // src_gm_stride = ActualSize(gm_strides[block_count_idx] - repeats[total_len - 1])
+    CombinedExpression src_gm_stride = CombinedExprFactory::ActualSizeOfDiff(
+        data_copy_param.gm_strides[block_count_idx], data_copy_param.repeats[total_len - 1]);
+    // src_ub_stride = Size(ub_strides[block_count_idx]) - ActualSize(repeats[total_len - 1])
+    CombinedExpression src_ub_stride = CombinedExprFactory::SizeMinusActualSize(
+        data_copy_param.ub_strides[block_count_idx], data_copy_param.repeats[total_len - 1]);
+    CombinedExpression src_stride = copy_in ? src_gm_stride : src_ub_stride;
+
+    // dst_ub_stride = Size(ub_strides[block_count_idx]) - ActualSize(repeats[total_len - 1])
+    CombinedExpression dst_ub_stride = CombinedExprFactory::SizeMinusActualSize(
+        data_copy_param.ub_strides[block_count_idx], data_copy_param.repeats[total_len - 1]);
+    // dst_gm_stride = ActualSize(gm_strides[block_count_idx] - repeats[total_len - 1])
+    CombinedExpression dst_gm_stride = CombinedExprFactory::ActualSizeOfDiff(
+        data_copy_param.gm_strides[block_count_idx], data_copy_param.repeats[total_len - 1]);
+    CombinedExpression dst_stride = copy_in ? dst_ub_stride : dst_gm_stride;
+
+    dma_param.block_count = CombinedExpression(ExprItemFactory::ActualSize(data_copy_param.repeats[block_count_idx]));
+    dma_param.block_len = CombinedExpression(ExprItemFactory::ActualSize(data_copy_param.repeats[total_len - 1]));
+    dma_param.src_stride = src_stride;
+    dma_param.dst_stride = dst_stride;
+  }
+}
+
 std::string CalcInnerOffset(const TPipe &tpipe, const std::vector<ascir::SizeExpr> &strides) {
   std::stringstream ss;
   for (size_t i = 0; i < strides.size(); i++) {
@@ -210,6 +251,24 @@ std::string CalcInnerOffset(const TPipe &tpipe, const std::vector<ascir::SizeExp
     }
   }
   return ss.str();
+}
+
+// CalcInnerOffset 表达式版本 - 输出到 CombinedExpression
+// 输出结果：outer_for_0 * Size(stride0) + outer_for_1 * Size(stride1) + ...
+CombinedExpression CalcInnerOffsetExpr(const std::vector<ascir::SizeExpr> &strides) {
+  if (strides.empty()) {
+    return CombinedExprFactory::Constant(0);
+  }
+
+  std::vector<ExpressionItem> items;
+  std::vector<std::string> ops;
+  for (size_t i = 0; i < strides.size(); i++) {
+    items.emplace_back(ExprItemFactory::LoopVarTimesSize(strides[i], static_cast<int64_t>(i)));
+    if (i > 0) {
+      ops.emplace_back("+");
+    }
+  }
+  return CombinedExpression(items, ops);
 }
 
 static void CreateDmaCallInner(const TPipe &tpipe, const Tensor &input, const Tensor &output, const string &gm_offset,

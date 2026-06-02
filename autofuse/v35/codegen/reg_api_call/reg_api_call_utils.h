@@ -13,6 +13,7 @@
 
 #include "codegen_kernel.h"
 #include "api_call/utils/api_call_utils.h"
+#include "codegen/expression_convert_struct.h"
 
 namespace codegen {
 /*
@@ -33,6 +34,26 @@ struct LoopModeParams {
   std::vector<std::string> loop_dst_stride = {"0", "0"};
 };
 
+// LoopModeParams 表达式版本 - 使用 CombinedExpression 替代 std::string
+struct LoopModeParamsExpr {
+  // loop1Size, loop2Size - 使用 ActualSize 转换
+  std::vector<CombinedExpression> loop_size;
+  // loop1SrcStride, loop2SrcStride 单位: 数字个数，使用 Size 转换
+  std::vector<CombinedExpression> loop_src_stride;
+  // loop1DstStride, loop2DstStride 单位: 数字个数，使用 Size 转换
+  std::vector<CombinedExpression> loop_dst_stride;
+
+  // 默认构造：初始化为默认值，与 LoopModeParams 保持一致
+  LoopModeParamsExpr() {
+    loop_size.emplace_back(CombinedExprFactory::Constant(1));
+    loop_size.emplace_back(CombinedExprFactory::Constant(1));
+    loop_src_stride.emplace_back(CombinedExprFactory::Constant(0));
+    loop_src_stride.emplace_back(CombinedExprFactory::Constant(0));
+    loop_dst_stride.emplace_back(CombinedExprFactory::Constant(0));
+    loop_dst_stride.emplace_back(CombinedExprFactory::Constant(0));
+  }
+};
+
 struct NddmaParams {
   std::stringstream ss_output_dims;
   std::stringstream ss_output_stride;
@@ -48,13 +69,15 @@ void SetNddmaParams(const TPipe &tpipe, const DataCopyParams &data_copy_param, N
                     const int64_t &tensor_id, std::stringstream &ss);
 void SetLoopModeParams(const TPipe &tpipe, const DataCopyParams &data_copy_param, LoopModeParams &loop_mode_param,
                        bool copy_in);
+void SetLoopModeParamsExpr(const DataCopyParams& data_copy_param, LoopModeParamsExpr& loop_mode_param, bool copy_in);
 std::string GetPaddingMode(const TPipe &tpipe, const Tensor &ub_tensor, const DataCopyParams &data_copy_param);
 void BuildDataCopyApiParamInCVFusion(CodegenApiParam &api_param, DmaSpecificParams &dma_specific_params,
                                      const Tensor &gm, const Tensor &ub, std::string &dtype_name, bool copy_in);
 Status BuildDataCopyApiParamInNormal(const TPipe &tpipe, CodegenApiParam &api_param,
                                      DmaSpecificParams &dma_specific_params, const Tensor &src, const Tensor &dst,
                                      std::string &gm_offset, bool copy_in);
-Status GenDataCopyDimParam(const CodegenApiParam &api_param, std::string graph_name, std::string node_name,
+Status GenDataCopyDimParam(const CodegenApiParam &api_param, const Tiler &tiler,
+                           std::string graph_name, std::string node_name,
                            std::stringstream &ss);
 
 }  // namespace codegen
