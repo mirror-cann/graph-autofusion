@@ -223,9 +223,7 @@ void SkResourceManager::FinishModelDestroy(const std::string& modelLabel, void* 
 {
     std::lock_guard<std::mutex> lock(resourceMutex_);
     registeredModelLabels_.erase(modelLabel);
-    if (labelCopy != nullptr) {
-        free(labelCopy);
-    }
+    free(labelCopy);
 }
 
 void SkResourceManager::ReleaseModelResources(const std::string& modelLabel, const std::string& modelId,
@@ -255,7 +253,6 @@ void SkResourceManager::OnModelDestroy(void* userData)
     std::string modelLabel;
     if (!TakeCallbackModelLabel(userData, modelLabel)) {
         SK_LOGW("sk resource manager OnModelDestroy callback data invalid: userData=%p", userData);
-        free(labelCopy);
         return;
     }
 
