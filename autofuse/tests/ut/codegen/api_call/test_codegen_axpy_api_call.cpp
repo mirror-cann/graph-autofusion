@@ -130,6 +130,6 @@ TEST(CodegenKernel, AxpyApiCall) {
   std::string result;
   call.Generate(tpipe, vector<af::AxisId>{}, result);
   EXPECT_EQ(result, std::string{
-      "Axpy(local_2[0], local_0[0], local_1[0], (float)0.800000, local_0_actual_size, tmp_buf_0);\n"
+      "Axpy(local_2[0], local_0[0], local_1[0], (float)0.800000, tmp_buf_0, local_0_actual_size);\n"
   });
 }

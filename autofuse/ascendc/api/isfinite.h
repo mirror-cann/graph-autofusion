@@ -60,7 +60,7 @@ inline __aicore__ void IsFiniteCompute(
 
 template<typename T>
 inline __aicore__ void IsFiniteExtend(const AscendC::LocalTensor<uint8_t> &dst, const AscendC::LocalTensor<T> &src,
-  const uint32_t size, LocalTensor<uint8_t> &tmp_buf) {
+  LocalTensor<uint8_t> &tmp_buf, const uint32_t size) {
   // Init local tensor from tmp_buf
   using T2 = typename InferCalcType<T>::Type;
   LocalTensor<T2> sign_mask = tmp_buf.ReinterpretCast<T2>();

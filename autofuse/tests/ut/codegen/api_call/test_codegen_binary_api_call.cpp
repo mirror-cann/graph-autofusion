@@ -112,7 +112,7 @@ TEST(CodegenKernel, Reciprocal_divs) {
   std::string result;
   call.Generate(tpipe, vector<af::AxisId>{}, result);
   EXPECT_EQ(result, std::string{
-    "Divs<half, true>(local_2[0], local_0[0], (half)1.0, local_0_actual_size, tmp_buf_0);\n"
+    "Divs<half, true>(local_2[0], local_0[0], (half)1.0, tmp_buf_0, local_0_actual_size);\n"
   });
 }
 
@@ -224,7 +224,7 @@ TEST(CodegenKernel, DivWithSecondInputIsUbScalar) {
   std::string result;
   EXPECT_EQ(call.Generate(tpipe, vector<af::AxisId>{}, result), 0);
   EXPECT_EQ(result, std::string{
-      "Divs<half, true>(local_3[0], local_0[0], (half)local_2_ub_scalar, local_0_actual_size, tmp_buf_0);\n"
+      "Divs<half, true>(local_3[0], local_0[0], (half)local_2_ub_scalar, tmp_buf_0, local_0_actual_size);\n"
   });
 }
 
@@ -310,7 +310,7 @@ TEST(CodegenKernel, Subs) {
   std::string result;
   call.Generate(tpipe, vector<af::AxisId>{}, result);
   EXPECT_EQ(result, std::string{
-    "Subs<half, true>(local_2[0], local_0[0], (half)1.0, local_0_actual_size, tmp_buf_0);\n"
+    "Subs<half, true>(local_2[0], local_0[0], (half)1.0, tmp_buf_0, local_0_actual_size);\n"
   });
 }
 
@@ -396,7 +396,7 @@ TEST(CodegenKernel, SubWithFirstInputIsScalar) {
   std::string result;
   call.Generate(tpipe, vector<af::AxisId>{}, result);
   EXPECT_EQ(result, std::string{
-      "Subs<half, false>(local_2[0], local_0[0], (half)1.0, local_0_actual_size, tmp_buf_0);\n"
+      "Subs<half, false>(local_2[0], local_0[0], (half)1.0, tmp_buf_0, local_0_actual_size);\n"
   });
 }
 
@@ -577,7 +577,7 @@ TEST(CodegenKernel, SubWithSecondInputIsUbScalar) {
   std::string result;
   EXPECT_EQ(call.Generate(tpipe, vector<af::AxisId>{}, result), 0);
   EXPECT_EQ(result, std::string{
-      "Subs<half, true>(local_3[0], local_0[0], (half)local_2_ub_scalar, local_0_actual_size, tmp_buf_0);\n"
+      "Subs<half, true>(local_3[0], local_0[0], (half)local_2_ub_scalar, tmp_buf_0, local_0_actual_size);\n"
   });
 }
 

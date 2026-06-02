@@ -14,7 +14,7 @@
 template <typename T>
 inline __aicore__ void ClipByValue(const AscendC::LocalTensor<T> &dst, const AscendC::LocalTensor<T> &src_x,
                                    const AscendC::LocalTensor<T> &src_min, const AscendC::LocalTensor<T> &src_max,
-                                   const uint32_t calCount, AscendC::LocalTensor<uint8_t> &tmp_buf) {
+                                   AscendC::LocalTensor<uint8_t> &tmp_buf, const uint32_t calCount) {
   const uint32_t max_rpt_cnt = KernelUtils::MaxRptSize<T>();
   const uint32_t loop_cnt = calCount / max_rpt_cnt;
   uint32_t offset = 0;
@@ -35,8 +35,8 @@ inline __aicore__ void ClipByValue(const AscendC::LocalTensor<T> &dst, const Asc
 // 场景2，x是tensor，min, max是scalar
 template <typename T>
 inline __aicore__ void ClipByValue(const AscendC::LocalTensor<T> &dst, const AscendC::LocalTensor<T> &src_x,
-                                   const T &src_min, const T &src_max, const uint32_t calCount,
-                                   AscendC::LocalTensor<uint8_t> &tmp_buf) {
+                                   const T &src_min, const T &src_max,
+                                   AscendC::LocalTensor<uint8_t> &tmp_buf, const uint32_t calCount) {
   constexpr auto minSize = sizeof(T) * 32;
   const auto maxTmpSize = (tmp_buf.GetSize() - minSize) / sizeof(T);
   constexpr auto repeatSize = 256 / sizeof(T);
@@ -68,8 +68,8 @@ inline __aicore__ void ClipByValue(const AscendC::LocalTensor<T> &dst, const Asc
 // 场景3，x、min是tensor，max是scalar
 template <typename T>
 inline __aicore__ void ClipByValue(const AscendC::LocalTensor<T> &dst, const AscendC::LocalTensor<T> &src_x,
-                                   const AscendC::LocalTensor<T> &src_min, const T &src_max, const uint32_t calCount,
-                                   AscendC::LocalTensor<uint8_t> &tmp_buf) {
+                                   const AscendC::LocalTensor<T> &src_min, const T &src_max,
+                                   AscendC::LocalTensor<uint8_t> &tmp_buf, const uint32_t calCount) {
   const uint32_t max_rpt_cnt = KernelUtils::MaxRptSize<T>();
   const uint32_t loop_cnt = calCount / max_rpt_cnt;
   uint32_t offset = 0;
@@ -90,8 +90,8 @@ inline __aicore__ void ClipByValue(const AscendC::LocalTensor<T> &dst, const Asc
 // 场景4，x、max是tensor，min是scalar
 template <typename T>
 inline __aicore__ void ClipByValue(const AscendC::LocalTensor<T> &dst, const AscendC::LocalTensor<T> &src_x,
-                                   const T &src_min, const AscendC::LocalTensor<T> &src_max, const uint32_t calCount,
-                                   AscendC::LocalTensor<uint8_t> &tmp_buf) {
+                                   const T &src_min, const AscendC::LocalTensor<T> &src_max,
+                                   AscendC::LocalTensor<uint8_t> &tmp_buf, const uint32_t calCount) {
   const uint32_t max_rpt_cnt = KernelUtils::MaxRptSize<T>();
   const uint32_t loop_cnt = calCount / max_rpt_cnt;
   uint32_t offset = 0;

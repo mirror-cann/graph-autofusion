@@ -83,12 +83,12 @@ Status CastApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::AxisId
     GELOGD("outer_repeats_size is 0, x_dtype = %s, y_dtype = %s", x_dtype.c_str(), y_dtype.c_str());
     if (x.is_constant) {
       ss << "CastExtend(" << y << "[" << tpipe.tiler.TensorVectorizedOffset(current_axis, y) << "], "
-         << scalar_local_blk_tensor_name << "[0], " << y.actual_size << ", "
-         << tpipe.tmp_buf << "_" << std::to_string(id) << ");" << std::endl;
+         << scalar_local_blk_tensor_name << "[0], " << tpipe.tmp_buf
+         << "_" << std::to_string(id) << ", " << y.actual_size << ");" << std::endl;
     } else {
       ss << "CastExtend(" << y << "[" << tpipe.tiler.TensorVectorizedOffset(current_axis, y) << "], " << x << "["
-         << tpipe.tiler.TensorVectorizedOffset(current_axis, x) << "], " << x.actual_size << ", " << tpipe.tmp_buf
-         << "_" << std::to_string(id) << ");" << std::endl;
+         << tpipe.tiler.TensorVectorizedOffset(current_axis, x) << "], " << tpipe.tmp_buf
+         << "_" << std::to_string(id) << ", " << x.actual_size << ");" << std::endl;
     }
   } else {
     if (EnableCastMaskModeOptimize(x_dtype, y_dtype)) {
@@ -110,10 +110,10 @@ Status CastApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::AxisId
 
       std::stringstream ss1;
       ss1 << "CastExtend(" << y << "[" << output_inner_offset << "], " << x << "[" << input_inner_offset << "], "
+          << tpipe.tmp_buf << "_" << std::to_string(id) << ", "
           << param.outer_repeats[outer_repeats_size - 1] << ", " << tpipe.tiler.ActualSize(param.cal_count) << ", "
           << tpipe.tiler.Size(param.input_second_to_last_stride) << ", "
-          << tpipe.tiler.Size(param.output_second_to_last_stride) << ", " << dtype_size << ", " << tpipe.tmp_buf 
-           << "_" << std::to_string(id) << ");" << std::endl;
+          << tpipe.tiler.Size(param.output_second_to_last_stride) << ", " << dtype_size << ");" << std::endl;
       if (outer_repeats_size == 1U) {
         ss << ss1.str();
       } else {
@@ -127,7 +127,7 @@ Status CastApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::AxisId
       std::string output_inner_offset = CalcInnerOffset(tpipe, param.outputs_strides[0]);
       std::stringstream ss1;
       ss1 << "CastExtend(" << y << "[" << output_inner_offset << "], " << x << "[" << input_inner_offset << "], "
-          << tpipe.tiler.ActualSize(param.cal_count) << ", " << tpipe.tmp_buf << "_" << std::to_string(id)
+          << tpipe.tmp_buf << "_" << std::to_string(id) << ", " << tpipe.tiler.ActualSize(param.cal_count)
           << ");" << std::endl;
       CreateComputeNodeOuterFor(param.outer_repeats, ss1, ss, 0);
     }

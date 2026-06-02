@@ -46,7 +46,7 @@ void CastExtendCalc(InT *x, OutT *y, int size) {
   GmToUb(l_x, x, size);
   GmToUb(l_y, y, size);
 
-  CastExtend(l_y, l_x, size, l_tmp);
+  CastExtend(l_y, l_x, l_tmp, size);
 
   UbToGm(y, l_y, size);
 }

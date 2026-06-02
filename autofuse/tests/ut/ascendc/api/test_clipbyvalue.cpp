@@ -228,7 +228,7 @@ class TestApiClipByValueUT : public testing::Test {
 
     GmToUb(l_x1, param.src0, param.size);
     GmToUb(l_max, param.src2, param.size);
-    ClipByValue(l_y, l_x1, param.src1, l_max, param.size, l_tmp);
+    ClipByValue(l_y, l_x1, param.src1, l_max, l_tmp, param.size);
     UbToGm(param.y, l_y, param.size);
   }
 
@@ -320,7 +320,7 @@ class TestApiClipByValueUT : public testing::Test {
 
     GmToUb(l_x1, param.src0, param.size);
     GmToUb(l_min, param.src1, param.size);
-    ClipByValue(l_y, l_x1, l_min, param.src2, param.size, l_tmp);
+    ClipByValue(l_y, l_x1, l_min, param.src2, l_tmp, param.size);
     UbToGm(param.y, l_y, param.size);
   }
 
@@ -406,7 +406,7 @@ class TestApiClipByValueUT : public testing::Test {
     LocalTensor<uint8_t> l_tmp = tmp.Get<uint8_t>();
 
     GmToUb(l_x1, param.src0, param.size);
-    ClipByValue(l_y, l_x1, param.src1, param.src2, param.size, l_tmp);
+    ClipByValue(l_y, l_x1, param.src1, param.src2, l_tmp, param.size);
     UbToGm(param.y, l_y, param.size);
   }
 
@@ -498,7 +498,7 @@ class TestApiClipByValueUT : public testing::Test {
     GmToUb(l_x1, param.src0, param.size);
     GmToUb(l_min, param.src1, param.size);
     GmToUb(l_max, param.src2, param.size);
-    ClipByValue(l_y, l_x1, l_min, l_max, param.size, l_tmp);
+    ClipByValue(l_y, l_x1, l_min, l_max, l_tmp, param.size);
     UbToGm(param.y, l_y, param.size);
   }
 

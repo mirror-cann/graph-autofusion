@@ -348,7 +348,7 @@ TEST(CodegenKernel, ClipByValueApiCall) {
   std::string result;
   call.Generate(tpipe, vector<af::AxisId>{}, result);
   EXPECT_EQ(result, std::string{
-      "ClipByValue(global_-1[0], global_-1[0], global_-1[0], global_-1[0], global_-1_actual_size, tmp_buf_0);\n"
+      "ClipByValue(global_-1[0], global_-1[0], global_-1[0], global_-1[0], tmp_buf_0, global_-1_actual_size);\n"
   });
 }
 
@@ -449,7 +449,7 @@ TEST(CodegenKernel, ClipByValueWithSecondInputAndThirdInputAreScalar) {
   std::string result;
   call.Generate(tpipe, vector<af::AxisId>{}, result);
   EXPECT_EQ(result, std::string{
-      "ClipByValue(local_3[0], local_0[0], scalar_1, scalar_2, local_0_actual_size, tmp_buf_0);\n"
+      "ClipByValue(local_3[0], local_0[0], scalar_1, scalar_2, tmp_buf_0, local_0_actual_size);\n"
   });
 }
 

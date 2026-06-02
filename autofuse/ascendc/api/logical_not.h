@@ -88,7 +88,7 @@ inline __aicore__ void SpecialTypeLogicalNot(const LocalTensor<T> &dst, const Lo
 
 template <typename T>
 inline __aicore__ void LogicalNot(const LocalTensor<T> &dst, const LocalTensor<T> &src, const LocalTensor<half> &blk_tensor_with_value_1,
-                                  const uint32_t size, LocalTensor<uint8_t> &tmp_buf) {
+                                  LocalTensor<uint8_t> &tmp_buf, const uint32_t size) {
   if constexpr (std::is_same_v<T, int64_t>) {
     SpecialTypeLogicalNot<T>(dst, src, blk_tensor_with_value_1, size, tmp_buf);
     return;

@@ -99,7 +99,7 @@ class TestApiPowUT : public testing::Test {
     LocalTensor<uint8_t> l_tmp = tmp.Get<uint8_t>();
 
     GmToUb(l_src2, param.src1, param.size);
-    Pow(l_y, param.src0, l_src2, param.size, l_tmp);
+    Pow(l_y, param.src0, l_src2, l_tmp, param.size);
     UbToGm(param.y, l_y, param.size);
   }
 
@@ -169,7 +169,7 @@ class TestApiPowUT : public testing::Test {
     LocalTensor<uint8_t> l_tmp = tmp.Get<uint8_t>();
 
     GmToUb(l_src1, param.src0, param.size);
-    Pow(l_y, l_src1, param.src1, param.size, l_tmp);
+    Pow(l_y, l_src1, param.src1, l_tmp, param.size);
     UbToGm(param.y, l_y, param.size);
   }
 
@@ -243,7 +243,7 @@ class TestApiPowUT : public testing::Test {
 
     GmToUb(l_src1, param.src0, param.size);
     GmToUb(l_src2, param.src1, param.size);
-    Pow(l_y, l_src1, l_src2, param.size, l_tmp);
+    Pow(l_y, l_src1, l_src2, l_tmp, param.size);
     UbToGm(param.y, l_y, param.size);
   }
 

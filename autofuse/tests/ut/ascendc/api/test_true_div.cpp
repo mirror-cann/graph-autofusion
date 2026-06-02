@@ -49,7 +49,7 @@ class TestApiTrueDiv :public testing::Test {
 
     GmToUb(l_x1, param.src0, param.size);
     GmToUb(l_x2, param.src1, param.size);
-    TrueDivExtend(l_y, l_x1, l_x2, param.size, l_tmp);
+    TrueDivExtend(l_y, l_x1, l_x2, l_tmp, param.size);
     UbToGm(param.y, l_y, param.size);
   }
 

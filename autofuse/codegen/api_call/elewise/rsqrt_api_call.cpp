@@ -40,8 +40,8 @@ Status RsqrtApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::AxisI
 
   stringstream ss;
   ss << this->api_name_ << "(" << y << "[" << tpipe.tiler.TensorVectorizedOffset(current_axis, y) << "], " << x << "["
-    << tpipe.tiler.TensorVectorizedOffset(current_axis, x) << "], local_blk_tensor_of_float_1, " << x.actual_size << ", " << tpipe.tmp_buf
-    << "_" << std::to_string(id) << ");" << std::endl;
+    << tpipe.tiler.TensorVectorizedOffset(current_axis, x) << "], local_blk_tensor_of_float_1, "
+    << tpipe.tmp_buf << "_" << std::to_string(id) << ", " << x.actual_size << ");" << std::endl;
   result = ss.str();
   return ge::SUCCESS;
 }

@@ -75,8 +75,8 @@ Status BinaryApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::Axis
       << y << "[" << tpipe.tiler.TensorVectorizedOffset(current_axis, y) << "], "
       << x1 << "[" << tpipe.tiler.TensorVectorizedOffset(current_axis, x1) << "], "
       << "(" << dtype_name << ")" << x2.GetScalarValue() << ", "
-      << x1.actual_size << ", "
-      << tpipe.tmp_buf << "_" << std::to_string(id) << ");" << std::endl;
+      << tpipe.tmp_buf << "_" << std::to_string(id) << ", "
+      << x1.actual_size << ");" << std::endl;
     } else if (this->api_name_ == "DivExtend" || this->api_name_ == "SubExtend") {
       ss << this->api_name_ << "s<" << dtype_name << ", " << is_scalar_latter << ">" << "("
       << y << "[" << tpipe.tiler.TensorVectorizedOffset(current_axis, y) << "], "

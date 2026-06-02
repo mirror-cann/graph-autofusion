@@ -64,7 +64,7 @@ TEST(TestApiSubs, Test_scalar_latter) {
     GmToUb(l_x, x, a * b);
     GmToUb(l_y, y, a * b);
 
-    Subs<half>(l_y, l_x, constant_x, cal_cnt, l_tmp);
+    Subs<half>(l_y, l_x, constant_x, l_tmp, cal_cnt);
 
     UbToGm(y, l_y, a * b);                          // 数据搬出
   };
@@ -120,7 +120,7 @@ TEST(TestApiSubs, Test_scalar_front) {
     GmToUb(l_x, x, a * b);
     GmToUb(l_y, y, a * b);
 
-    Subs<half, false>(l_y, l_x, constant_x, cal_cnt, l_tmp);
+    Subs<half, false>(l_y, l_x, constant_x, l_tmp, cal_cnt);
 
     UbToGm(y, l_y, a * b);
   };
@@ -174,7 +174,7 @@ TEST(TestApiSubs, Test_scalar_front_float) {
     GmToUb(l_x, x, cal_cnt);
     GmToUb(l_y, y, cal_cnt);
 
-    Subs<float, false>(l_y, l_x, constant_x, cal_cnt, l_tmp);
+    Subs<float, false>(l_y, l_x, constant_x, l_tmp, cal_cnt);
 
     UbToGm(y, l_y, cal_cnt);
   };
@@ -213,7 +213,7 @@ TEST(TestApiSubs, Test_scalar_both) {
 
     GmToUb(l_y, y, a * b);
 
-    Subs<half>(l_y, constant_x,  constant_y);
+    Subs<half>(l_y, constant_x, constant_y);
 
     UbToGm(y, l_y, a * b);
   };

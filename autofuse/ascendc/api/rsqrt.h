@@ -13,7 +13,7 @@
 template <typename T>
 inline __aicore__ void RsqrtExtend(const AscendC::LocalTensor<T> &dst, const AscendC::LocalTensor<T> &src,
                                    const LocalTensor<float> &blk_tensor_with_value_1,
-                                   const uint32_t size, LocalTensor<uint8_t> &tmp_buf) {
+                                   LocalTensor<uint8_t> &tmp_buf, const uint32_t size) {
   uint32_t offset = 0;
 
   // Prepare sqrt in float type tensor

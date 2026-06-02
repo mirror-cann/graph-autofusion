@@ -131,7 +131,7 @@ void UnaryTest(int size,
 template<typename InT, typename OutT>
 void UnaryCalc(InT *x, OutT *y, int size,
                std::function<void(const LocalTensor<OutT> &y, const LocalTensor<InT> &x,
-                                  uint32_t size, LocalTensor<uint8_t> &tmp)> calc) {
+                                  LocalTensor<uint8_t> &tmp, uint32_t size)> calc) {
   TPipe tpipe;
   TBuf<TPosition::VECCALC> xbuf, ybuf, tmp;
   tpipe.InitBuffer(xbuf, sizeof(InT) * size);
@@ -145,7 +145,7 @@ void UnaryCalc(InT *x, OutT *y, int size,
   GmToUb(l_x, x, size);
   GmToUb(l_y, y, size);
 
-  calc(l_y, l_x, size, l_tmp);
+  calc(l_y, l_x, l_tmp, size);
 
   UbToGm(y, l_y, size);
 }
@@ -153,7 +153,7 @@ void UnaryCalc(InT *x, OutT *y, int size,
 template<typename InT, typename OutT>
 void UnaryTest(int size,
                std::function<void(const LocalTensor<OutT> &y, const LocalTensor<InT> &x,
-                                  uint32_t size, LocalTensor<uint8_t> &tmp)> calc,
+                                  LocalTensor<uint8_t> &tmp, uint32_t size)> calc,
                std::function<OutT(int index, InT src)> expectGen,
                std::function<InT(int index)> srcGen = DefaultSrcGen,
                std::function<bool(OutT a, OutT b)> compare = DefaultCompare
@@ -196,7 +196,7 @@ void UnaryTest(int size,
 
 template<typename T, typename T_ONE>
 void UnaryCalc(T* x, T* y, int size,
-               std::function<void(LocalTensor<T>& x, LocalTensor<T>& y, LocalTensor<T_ONE>& ones, int size, LocalTensor<uint8_t>& tmp)> calc) {
+               std::function<void(LocalTensor<T>& x, LocalTensor<T>& y, LocalTensor<T_ONE>& ones, LocalTensor<uint8_t>& tmp, int size)> calc) {
   TPipe tpipe;
   TBuf<TPosition::VECCALC> xbuf, ybuf, tmp, ones;
   tpipe.InitBuffer(xbuf, sizeof(T) * size);
@@ -214,14 +214,14 @@ void UnaryCalc(T* x, T* y, int size,
   GmToUb(l_x, x, size);
   GmToUb(l_y, y, size);
 
-  calc(l_y, l_x, one_buf, size, l_tmp);
+  calc(l_y, l_x, one_buf, l_tmp, size);
 
   UbToGm(y, l_y, size);
 }
 
 template<typename T, typename T_ONE>
 void UnaryTest(int size,
-               std::function<void(LocalTensor<T>& x, LocalTensor<T>& y, LocalTensor<T_ONE>& ones, int size, LocalTensor<uint8_t>& tmp)> calc,
+               std::function<void(LocalTensor<T>& x, LocalTensor<T>& y, LocalTensor<T_ONE>& ones, LocalTensor<uint8_t>& tmp, int size)> calc,
                std::function<double(double src)> expectGen,
                std::function<double(int index)> srcGen = DefaultSrcGen,
                std::function<double(double a, double b)> compare = DefaultCompare

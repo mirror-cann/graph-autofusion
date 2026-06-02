@@ -79,15 +79,15 @@ Status TrueDivApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::Axi
        << y << "[" << tpipe.tiler.TensorVectorizedOffset(current_axis, y) << "], "
        << x1 << "[" << tpipe.tiler.TensorVectorizedOffset(current_axis, x1) << "], "
        << "(" << x1_dtype_name << ")" << x2.GetScalarValue() << ", "
-       << x1.actual_size << ", "
-       << tpipe.tmp_buf << "_" << std::to_string(id) << ");" << std::endl;
+       << tpipe.tmp_buf << "_" << std::to_string(id) << ", "
+       << x1.actual_size << ");" << std::endl;
   } else {
     GE_ASSERT_TRUE(id != -1L, "TrueDivApiCall cannot find tmp buffer id to use.");
     ss << this->api_name_ << "<" << x1_dtype_name << ", " << y_dtype_name << ">("
        << y << "[" << tpipe.tiler.TensorVectorizedOffset(current_axis, y) << "], "
        << x1 << "[" << tpipe.tiler.TensorVectorizedOffset(current_axis, x1) << "], "
        << x2 << "[" << tpipe.tiler.TensorVectorizedOffset(current_axis, x2) << "], "
-       << x1.actual_size << ", " << tpipe.tmp_buf << "_" << std::to_string(id) << ");" << std::endl;  
+       << tpipe.tmp_buf << "_" << std::to_string(id) << ", " << x1.actual_size << ");" << std::endl;
   }
 
   result = ss.str();

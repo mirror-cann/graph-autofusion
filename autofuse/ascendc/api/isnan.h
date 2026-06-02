@@ -80,7 +80,7 @@ inline __aicore__ void DoIsnan(const AscendC::LocalTensor<uint8_t> &dst, const A
 
 template <typename T>
 inline __aicore__ void IsnanExtend(const AscendC::LocalTensor<uint8_t> &dst, const AscendC::LocalTensor<T> &src,
-                                   const uint32_t size, LocalTensor<uint8_t> &tmp_buf) {
+                                   LocalTensor<uint8_t> &tmp_buf, const uint32_t size) {
   // Init local tensor from tmp_buf
   using T2 = typename GetCalcType<T>::Type;
   LocalTensor<T2> sign_mask;

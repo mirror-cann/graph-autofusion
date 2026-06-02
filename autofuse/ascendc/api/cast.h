@@ -95,7 +95,7 @@ inline __aicore__ void CastWithOr(const AscendC::LocalTensor<OutT> &dst, const A
 
 template <typename InT, typename OutT>
 inline __aicore__ void CastExtend(const AscendC::LocalTensor<OutT> &dst, const AscendC::LocalTensor<InT> &src,
-                                  const uint32_t size, LocalTensor<uint8_t> &tmp_buf) {
+                                  LocalTensor<uint8_t> &tmp_buf, const uint32_t size) {
   if constexpr ((AscendC::SupportType<InT, uint32_t, int32_t>() && AscendC::SupportType<OutT, uint32_t, int32_t>()) ||
                 (AscendC::SupportType<InT, uint16_t, int16_t>() && AscendC::SupportType<OutT, uint16_t, int16_t>()) ||
                 (AscendC::SupportType<InT, uint8_t, int8_t>() && AscendC::SupportType<OutT, uint8_t, int8_t>()) ||
@@ -246,9 +246,10 @@ inline __aicore__ void CastExtendWithOneTransferWithMaskMode(const AscendC::Loca
 
 template <typename InT, typename OutT>
 inline __aicore__ void CastExtend(const AscendC::LocalTensor<OutT> &dst, const AscendC::LocalTensor<InT> &src,
+                                  LocalTensor<uint8_t> &tmp_buf,
                                   const uint32_t first_dim, const uint32_t last_dim,
                                   const uint32_t input_last_dim_stride, const uint32_t output_last_dim_stride,
-                                  const uint32_t dtype_size, LocalTensor<uint8_t> &tmp_buf) {
+                                  const uint32_t dtype_size) {
   if constexpr (((AscendC::IsSameType<InT, uint8_t>::value) && (AscendC::SupportType<OutT, half>())) ||
                 ((AscendC::IsSameType<InT, int64_t>::value) && (AscendC::SupportType<OutT, float, int32_t>())) ||
                 ((AscendC::IsSameType<InT, half>::value) && (AscendC::SupportType<OutT, float, int32_t, int16_t, int8_t, uint8_t, int4b_t>())) ||

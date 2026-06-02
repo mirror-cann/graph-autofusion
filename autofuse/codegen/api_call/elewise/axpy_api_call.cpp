@@ -40,10 +40,10 @@ Status AxpyApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::AxisId
   id = it->second;
 
   ss << this->api_name_ << "(" << y << "[" << tpipe.tiler.TensorVectorizedOffset(current_axis, y) << "], "
-     << x1 << "[" << tpipe.tiler.TensorVectorizedOffset(current_axis, x1) << "], " 
+     << x1 << "[" << tpipe.tiler.TensorVectorizedOffset(current_axis, x1) << "], "
      << x2 << "[" << tpipe.tiler.TensorVectorizedOffset(current_axis, x2) << "], "
-     << "(float)" << std::to_string(this->alpha) << ", " << x1.actual_size << ", "
-     << tpipe.tmp_buf << "_" << std::to_string(id) << ");" << std::endl;
+     << "(float)" << std::to_string(this->alpha) << ", "
+     << tpipe.tmp_buf << "_" << std::to_string(id) << ", " << x1.actual_size << ");" << std::endl;
   result = ss.str();
 
   return ge::SUCCESS;
