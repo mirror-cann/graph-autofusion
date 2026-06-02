@@ -74,13 +74,11 @@ TEST_F(SkResourceManagerTest, CallbackRegisterOrMallocFail_ReturnFailure)
     SkUtSetAclmdlRIDestroyRegisterCallbackRet(ACL_ERROR_FAILURE);
     EXPECT_EQ(SkResourceManager::CallbackRegister(model), ACL_ERROR_FAILURE);
     EXPECT_TRUE(SkResourceManager::callbackDataLabels_.empty());
-    EXPECT_TRUE(SkResourceManager::destroyContexts_.empty());
     EXPECT_TRUE(SkResourceManager::registeredModelLabels_.empty());
 
     SkUtSetAclmdlRIDestroyRegisterCallbackRet(ACL_SUCCESS);
     EXPECT_EQ(SkResourceManager::CallbackRegister(model), ACL_SUCCESS);
     EXPECT_EQ(SkResourceManager::callbackDataLabels_.size(), 1U);
-    EXPECT_EQ(SkResourceManager::destroyContexts_.size(), 1U);
     EXPECT_EQ(SkResourceManager::registeredModelLabels_.size(), 1U);
     SkUtSetAclrtMallocRet(ACL_ERROR_FAILURE);
     EXPECT_EQ(SkResourceManager::ValueMemory(&addr), ACL_ERROR_FAILURE);
@@ -140,13 +138,11 @@ TEST_F(SkResourceManagerTest, OnModelDestroy_RepeatedSameUserData_IgnoredAfterFi
     ASSERT_NE(userData, nullptr);
     SkResourceManager::OnModelDestroy(userData);
     EXPECT_TRUE(SkResourceManager::callbackDataLabels_.empty());
-    EXPECT_TRUE(SkResourceManager::destroyContexts_.empty());
     EXPECT_TRUE(SkResourceManager::registeredModelLabels_.empty());
     EXPECT_TRUE(SkResourceManager::modelResources_.empty());
 
     SkResourceManager::OnModelDestroy(userData);
     EXPECT_TRUE(SkResourceManager::callbackDataLabels_.empty());
-    EXPECT_TRUE(SkResourceManager::destroyContexts_.empty());
     EXPECT_TRUE(SkResourceManager::registeredModelLabels_.empty());
     EXPECT_TRUE(SkResourceManager::modelResources_.empty());
 }

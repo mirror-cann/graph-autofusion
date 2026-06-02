@@ -13,11 +13,8 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <memory>
 #include <mutex>
 #include <string>
-#include <sys/types.h>
-#include <unistd.h>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -38,13 +35,6 @@ public:
         size_t bytes = 0U;
     };
 
-    struct ModelDestroyContext {
-        aclmdlRI model = nullptr;
-        std::string modelId;
-        std::string modelLabel;
-        bool resourcesReleased = false;
-    };
-
     static SkResourceManager& GetInstance();
 
     static void SetCurrentModel(aclmdlRI model);
@@ -61,7 +51,6 @@ private:
     static std::mutex resourceMutex_;
     static std::unordered_map<std::string, std::vector<ResourceRecord>> modelResources_;
     static std::unordered_set<std::string> registeredModelLabels_;
-    static std::unordered_map<std::string, std::unique_ptr<ModelDestroyContext>> destroyContexts_;
     static std::unordered_map<void*, std::string> callbackDataLabels_;
     static thread_local aclmdlRI currentModel_;
 
@@ -71,7 +60,7 @@ private:
     static bool TakeCallbackModelLabel(void* userData, std::string& modelLabel);
     static bool BeginModelResourceRelease(const std::string& modelLabel, std::string& modelId,
                                           std::vector<ResourceRecord>& resources);
-    static void FinishModelDestroy(const std::string& modelLabel);
+    static void FinishModelDestroy(const std::string& modelLabel, void* labelCopy);
     static void ReleaseModelResources(const std::string& modelLabel, const std::string& modelId,
                                       const std::vector<ResourceRecord>& resources);
     static void OnModelDestroy(void* userData);
