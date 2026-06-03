@@ -740,13 +740,6 @@ std::string SkEventRecorder::GetSkName(const std::string& modelId, uint32_t skId
     return skIt->second;
 }
 
-void SkEventRecorder::RemoveModelMappings(const std::string& modelId)
-{
-    std::lock_guard<std::mutex> lock(nodeInfoMapMutex);
-    skNameMap.erase(modelId);
-    nodeInfoMap.erase(modelId);
-}
-
 uint16_t SkEventRecorder::RegisterModelId(const std::string& modelId)
 {
     std::lock_guard<std::mutex> lock(modelIdIndexMapMutex);
