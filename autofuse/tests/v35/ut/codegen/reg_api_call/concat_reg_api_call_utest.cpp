@@ -589,7 +589,7 @@ TEST_F(ConcatRegApiCallUTest, Unaligned_B32_padded) {
   std::cout << result << std::endl;
   EXPECT_EQ(
       result,
-      "const ConcatTilingAllAligned<2> concat_tiling {\n  .dst_col_size = (((16 + t->s2_1) * 8))/(1),\n  .src_col_sizes = { ((8 * t->s2_1))/(1), 128, },\n  .dst_offsets = { 0, ((8 * t->s2_1))/(1), },\n};\nLocalTensor<int32_t> concat_src_tensors[] { local_0, local_2, };\nConcatAllAligned<int32_t, 2>(t->s0, concat_tiling, local_3, concat_src_tensors);\n");
+      "const concat::ConcatTilingPadded<2> concat_tiling {\n  .num_rows = static_cast<uint32_t>(t->s0),\n  .num_dst_cols = (((16 + t->s2_1) * 2))/(1),\n  .num_srcs_cols = {((2 * t->s2_1))/(1), 32, },\n  .src_row_strides = {((8 * t->s2_1))/(1), 128, },\n  .src_second_last_dim_strides = {8, 8, },\n  .gather_mask_dim_sizes = {2, 2, },\n};\nint32_t *concat_src_addrs[] { (int32_t *)local_0.GetPhyAddr(), (int32_t *)local_2.GetPhyAddr(), };\nconcat::ConcatExtend<int32_t, 2>((int32_t *)local_3.GetPhyAddr(), concat_src_addrs, tmp_buf_0, concat_tiling);\n");
 }
 
 TEST_F(ConcatRegApiCallUTest, Unaligned_B32_padded_concat_last_dim) {

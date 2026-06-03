@@ -40,7 +40,7 @@ Status ConcatRegApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::A
 
   ConcatTiling concat_tiling;
   GE_ASSERT_SUCCESS(InitializeTiling(concat_dim, inputs, y, concat_tiling));
-  if (IsAllAligned(concat_tiling, concat_tiling.src_col_actual_size_exprs)) {
+  if (IsAllAligned(concat_tiling, concat_tiling.src_col_size_exprs)) {
     // by copy
     GE_ASSERT_SUCCESS(GenerateForAllAligned(inputs, y, concat_tiling, tpipe.tiler, ss));
   } else {
