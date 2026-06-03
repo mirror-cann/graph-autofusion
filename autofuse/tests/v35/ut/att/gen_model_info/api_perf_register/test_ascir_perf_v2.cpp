@@ -9,8 +9,12 @@
  */
 
 #include <iostream>
+#include <memory>
 #include "gtest/gtest.h"
 #include "graph/ascendc_ir/ascir_registry.h"
+#include "ascir_node_param/ascir_node_param.h"
+#include "ascir_node_param/ascir_param_builder.h"
+#include "ascir_ops.h"
 #include "att/api_perf_register/perf_param_v2.h"
 #include "ascir/generator/v2_ascir_att_impl.h"
 #include "api_perf_register/api_perf_factory.h"
@@ -18,10 +22,13 @@
 #include "common/platform_context.h"
 #include "api_perf_register/utils/api_perf_utils.h"
 #include "graph_construct_utils.h"
+#include "parser/reduce_specific_params_builder.h"
+#include "tests/ut/common/ascir_reduce_test_helpers.h"
 
 using namespace att;
 using namespace af::sym;
 using namespace af::ascir;
+
 class UTestAscirPerfV2 : public ::testing::Test {
 public:
  static ge::RuntimeStubV2 stub_v_2;
@@ -47,6 +54,33 @@ public:
  }
 };
 ge::RuntimeStubV2 UTestAscirPerfV2::stub_v_2;
+
+void SetSingleReduceSpecificParams(NodeInfo &node) {
+  auto &params = node.reduce_specific_params;
+  params.canonical_params.valid = true;
+  params.canonical_params.pattern = codegen::ReducePattern::kAR;
+  params.canonical_params.merge_mode = codegen::ReduceMergeMode::kNone;
+  params.canonical_params.merge_size = CreateExpr(8);
+  params.canonical_params.merge_times = CreateExpr(1);
+  params.canonical_params.reuse = {true, false};
+  params.exprs.merge_size = {true, {{CreateExpr(8), ascir_param::ParamExprRole::kSemantic}}};
+  params.exprs.merge_times = {true, {{CreateExpr(1), ascir_param::ParamExprRole::kSemantic}}};
+}
+
+TEST_F(UTestAscirPerfV2, FillReduceSpecificParamsStoresSharedParamsOnAscNode) {
+  using ascir_reduce_test_helpers::ReduceTestEnv;
+  using ascir_reduce_test_helpers::BuildReduceNodeInfo;
+  ReduceTestEnv env("reduce");
+  env.SetIoAttrs({env.s1, CreateExpr(1)}, {env.s0, CreateExpr(1)}, {CreateExpr(1), CreateExpr(0)});
+  auto node_info = BuildReduceNodeInfo(env, "reduce");
+  const auto params = ascir_param::GetAscirNodeParams(env.node);
+  ASSERT_NE(params, nullptr);
+  const auto *reduce_params = ascir_param::GetSpecificParams<ascir_param::ReduceNodeParams>(*params);
+  ASSERT_NE(reduce_params, nullptr);
+  EXPECT_EQ(node_info.reduce_specific_params.canonical_params.pattern, reduce_params->canonical_params.pattern);
+  EXPECT_EQ(node_info.reduce_specific_params.canonical_params.merge_mode, reduce_params->canonical_params.merge_mode);
+  EXPECT_EQ(node_info.reduce_specific_params.canonical_params.merge_size, reduce_params->canonical_params.merge_size);
+}
 
 // 测试 LoadApi API 边界条件
 TEST_F(UTestAscirPerfV2, TestLoadApiEmptyInput) {
@@ -1499,12 +1533,7 @@ TEST_F(UTestAscirPerfV2, TestMaxV2) {
   output_shapes.emplace_back(output);
 
   NodeInfo node;
-  node.reduce_specific_params.valid = true;
-  node.reduce_specific_params.pattern = codegen::ReducePattern::kAR;
-  node.reduce_specific_params.merge_mode = codegen::ReduceMergeMode::kNone;
-  node.reduce_specific_params.merge_size = CreateExpr(8);
-  node.reduce_specific_params.merge_times = CreateExpr(1);
-  node.reduce_specific_params.reuse = {true, false};
+  SetSingleReduceSpecificParams(node);
   PerfOutputInfo perf_res;
   max_v2_perf(input_shapes, output_shapes, node, perf_res);
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
@@ -1543,12 +1572,7 @@ TEST_F(UTestAscirPerfV2, TestAnyV2) {
   output_shapes.emplace_back(output);
 
   NodeInfo node;
-  node.reduce_specific_params.valid = true;
-  node.reduce_specific_params.pattern = codegen::ReducePattern::kAR;
-  node.reduce_specific_params.merge_mode = codegen::ReduceMergeMode::kNone;
-  node.reduce_specific_params.merge_size = CreateExpr(8);
-  node.reduce_specific_params.merge_times = CreateExpr(1);
-  node.reduce_specific_params.reuse = {true, false};
+  SetSingleReduceSpecificParams(node);
   PerfOutputInfo perf_res;
   any_v2_perf(input_shapes, output_shapes, node, perf_res);
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
@@ -1616,12 +1640,7 @@ TEST_F(UTestAscirPerfV2, TestMinV2) {
   output_shapes.emplace_back(output);
 
   NodeInfo node;
-  node.reduce_specific_params.valid = true;
-  node.reduce_specific_params.pattern = codegen::ReducePattern::kAR;
-  node.reduce_specific_params.merge_mode = codegen::ReduceMergeMode::kNone;
-  node.reduce_specific_params.merge_size = CreateExpr(8);
-  node.reduce_specific_params.merge_times = CreateExpr(1);
-  node.reduce_specific_params.reuse = {true, false};
+  SetSingleReduceSpecificParams(node);
   PerfOutputInfo perf_res;
   min_v2_perf(input_shapes, output_shapes, node, perf_res);
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
@@ -1660,12 +1679,7 @@ TEST_F(UTestAscirPerfV2, TestAllV2) {
   output_shapes.emplace_back(output);
 
   NodeInfo node;
-  node.reduce_specific_params.valid = true;
-  node.reduce_specific_params.pattern = codegen::ReducePattern::kAR;
-  node.reduce_specific_params.merge_mode = codegen::ReduceMergeMode::kNone;
-  node.reduce_specific_params.merge_size = CreateExpr(8);
-  node.reduce_specific_params.merge_times = CreateExpr(1);
-  node.reduce_specific_params.reuse = {true, false};
+  SetSingleReduceSpecificParams(node);
   PerfOutputInfo perf_res;
   all_v2_perf(input_shapes, output_shapes, node, perf_res);
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];

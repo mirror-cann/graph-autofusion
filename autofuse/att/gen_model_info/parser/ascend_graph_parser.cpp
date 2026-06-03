@@ -769,7 +769,7 @@ af::Status AscendGraphParser::ConvertNodeInfos(const af::AscNodePtr &ge_node, co
     }
   }
   node_info.node_ptr = ge_node;
-  GE_ASSERT_SUCCESS(FillReduceSpecificParams(ge_node, attrs, node_info));
+  GE_ASSERT_SUCCESS(FillReduceSpecificParams(ge_node, node_info));
   auto vectorized_axis_ids = GetNodeVectorizedAxis(ge_node, loop_axis);
   for (const auto &axis_info : vectorized_axis_ids) {
     auto sub_axis_iter = sub_axes_info_.find(axis_info);

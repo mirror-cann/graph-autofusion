@@ -20,7 +20,7 @@
 #include "base/model_info.h"
 #include "ascendc_ir/ascendc_ir_core/ascendc_ir_def.h"
 #include "ascendc_ir.h"
-#include "codegen_api_param/codegen_api_param.h"
+#include "ascir_node_param/ascir_node_param.h"
 
 namespace att {
 class TilingScheduleConfigTable;
@@ -204,7 +204,7 @@ struct NodeInfo {
   af::AscNodePtr node_ptr;
   std::set<std::string> from_data; // 隶属的Data节点名称
   std::vector<NodeInfo> sub_nodes_infos;
-  codegen::ReduceSpecificParams reduce_specific_params;
+  ascir_param::ReduceNodeParams reduce_specific_params;
   af::ExecuteCondition exec_condition{af::ExecuteCondition::kNoCache};
   std::string DebugString() const {
     std::stringstream ss;

@@ -28,6 +28,7 @@ target_link_libraries(ascir_builtin_ops PRIVATE
         $<BUILD_INTERFACE:af_intf_pub>
         metadef_headers
         )
+autofuse_apply_shared_visibility(ascir_builtin_ops)
 
 target_include_directories(ascir_builtin_ops PRIVATE
         ${GE_METADEF_INC_DIR}

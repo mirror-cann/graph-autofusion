@@ -62,6 +62,8 @@ Status RegReduceApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::A
 
   std::string reduce_pattern;
   GetIsArAndPattern(y, x.isAr, reduce_pattern);
+  CheckReduceSpecificParamsForCodegen(
+      {this->node, this->api_name_, &tpipe, &x, &y, current_axis.back(), true, is_reuse_source_ == "true"});
 
   std::string dtype_name;
   GE_CHK_STATUS_RET(Tensor::DtypeName(y.dtype, dtype_name), "Codegen(reg reduce) get data type:%d failed", static_cast<int32_t>(y.dtype));

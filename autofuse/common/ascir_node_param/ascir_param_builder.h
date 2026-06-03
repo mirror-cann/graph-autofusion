@@ -8,13 +8,13 @@
  * See LICENSE in the root of the software repository for the full text of the License.
  */
 
-#ifndef PARSER_REDUCE_SPECIFIC_PARAMS_BUILDER_H_
-#define PARSER_REDUCE_SPECIFIC_PARAMS_BUILDER_H_
+#ifndef ASCIR_NODE_PARAM_ASCIR_PARAM_BUILDER_H_
+#define ASCIR_NODE_PARAM_ASCIR_PARAM_BUILDER_H_
 
-#include "tuning_space.h"
+#include "ascir_node_param/ascir_node_param.h"
 
-namespace att {
-af::Status FillReduceSpecificParams(const af::AscNodePtr &ge_node, NodeInfo &node_info);
-}  // namespace att
+namespace ascir_param {
+ge::Status EnrichAscirGraphNodeParams(const af::AscGraph &graph);
+}  // namespace ascir_param
 
-#endif  // PARSER_REDUCE_SPECIFIC_PARAMS_BUILDER_H_
+#endif  // ASCIR_NODE_PARAM_ASCIR_PARAM_BUILDER_H_

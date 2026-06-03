@@ -1,29 +1,226 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
 
 #include "gtest/gtest.h"
+#include <algorithm>
 #include "ascir_ops.h"
+#include "ascir_node_param/ascir_node_param.h"
+#include "ascir_node_param/ascir_param_builder.h"
 #include "codegen_kernel.h"
 #include "utils/api_call_factory.h"
 #include "reduce/reduce_api_call.h"
+#include "reduce/reduce_api_call_base.h"
 
 using namespace af::ops;
 using namespace codegen;
 using namespace af::ascir_op;
+using namespace reduce_base;
 using namespace testing;
 
+namespace {
 class ReduceApicallTest : public ::testing::Test {
-protected:
+ protected:
   void SetUp() override {}
   void TearDown() override {}
 };
+
+ReduceSpecificParams BuildReduceParamForShadowTest() {
+  ReduceSpecificParams params;
+  params.valid = true;
+  params.reduce_type = "Max";
+  params.pattern = ReducePattern::kAR;
+  params.merged_dims = {true, af::Symbol(3U), af::Symbol(5U)};
+  params.merge_mode = ReduceMergeMode::kCopy;
+  params.merge_size = af::Symbol(4U);
+  params.merge_times = af::Symbol(2U);
+  params.reuse = {true, true};
+  return params;
+}
+
+ascir_param::ReduceNodeParams BuildReduceNodeParamForShadowTest() {
+  ascir_param::ReduceNodeParams params;
+  params.canonical_params = BuildReduceParamForShadowTest();
+  params.exprs.merge_size = {true, {{params.canonical_params.merge_size, ascir_param::ParamExprRole::kSemantic}}};
+  params.exprs.merge_times = {true, {{params.canonical_params.merge_times, ascir_param::ParamExprRole::kSemantic}}};
+  return params;
+}
+
+ReduceCodegenShadowCheckInput MakeNonFatalShadowInput(af::AscNodePtr node) {
+  ReduceCodegenShadowCheckInput input;
+  input.api_name = "ReduceMax";
+  input.node = node;
+  return input;
+}
+
+void AddAllAxesToTiler(const af::AscGraph &graph, codegen::Tiler &tiler) {
+  for (const auto &axis : graph.GetAllAxis()) {
+    if (axis != nullptr) {
+      EXPECT_EQ(tiler.AddAxis(*axis), ge::SUCCESS);
+    }
+  }
+}
+
+void BuildRminBaseGraph(af::AscGraph &graph, const af::Axis &z0, const af::Axis &z1, const af::Expression &s0,
+                        const af::Expression &s1) {
+  af::ascir_op::Data x("x");
+  graph.AddNode(x);
+  x.y.dtype = ge::DT_FLOAT;
+
+  af::ascir_op::Load load("load");
+  graph.AddNode(load);
+  load.x = x.y;
+  load.attr.sched.axis = {z0.id, z1.id};
+  *load.y.axis = {z0.id, z1.id};
+  *load.y.repeats = {s0, s1};
+  *load.y.strides = {s1, af::sym::kSymbolOne};
+
+  af::ascir_op::Min rmin("rmin");
+  graph.AddNode(rmin);
+  rmin.x = load.y;
+  rmin.attr.sched.axis = {z0.id, z1.id};
+  *rmin.y.axis = {z0.id, z1.id};
+  *rmin.y.repeats = {s0, af::sym::kSymbolOne};
+  *rmin.y.strides = {af::sym::kSymbolOne, af::sym::kSymbolZero};
+}
+
+void ApplyRminTileSplit(af::AscGraph &graph, const af::Axis &z0, const af::Axis &z1, const af::AscNodePtr &load_node,
+                        const af::AscNodePtr &rmin_node) {
+  auto z0_split = graph.TileSplit(z0.id);
+  auto z0_t = z0_split.first;
+  auto z0_inner = z0_split.second;
+  auto z0_block_split = graph.BlockSplit(z0_t->id);
+  auto z0_block_outer = z0_block_split.first;
+  auto z0_block_inner = z0_block_split.second;
+  auto z1_split = graph.TileSplit(z1.id);
+  auto z1_t = z1_split.first;
+  auto z1_inner = z1_split.second;
+
+  for (auto node : graph.GetAllNodes()) {
+    if (IsOps<af::ascir_op::Data>(node)) {
+      continue;
+    }
+    graph.ApplySplit(node, z0_t->id, z0_inner->id);
+    graph.ApplySplit(node, z0_block_outer->id, z0_block_inner->id);
+    graph.ApplySplit(node, z1_t->id, z1_inner->id);
+    graph.ApplyReorder(node, {z0_block_outer->id, z0_block_inner->id, z1_t->id, z0_inner->id, z1_inner->id});
+  }
+
+  load_node->attr.sched.loop_axis = z1_t->id;
+  load_node->outputs[0].attr.vectorized_axis = {z0_inner->id, z1_inner->id};
+  load_node->outputs[0].attr.vectorized_strides = {graph.FindAxis(z1_inner->id)->size, af::sym::kSymbolOne};
+
+  rmin_node->attr.sched.loop_axis = z1_t->id;
+  rmin_node->outputs[0].attr.vectorized_axis = {z0_inner->id, z1_inner->id};
+  rmin_node->outputs[0].attr.vectorized_strides = {af::sym::kSymbolOne, af::sym::kSymbolZero};
+}
+
+void BuildRminGraph(af::AscGraph &graph) {
+  auto s0 = graph.CreateSizeVar("s0");
+  auto s1 = graph.CreateSizeVar("s1");
+  auto z0 = graph.CreateAxis("z0", s0);
+  auto z1 = graph.CreateAxis("z1", s1);
+
+  BuildRminBaseGraph(graph, z0, z1, s0, s1);
+
+  auto load_node = graph.FindNode("load");
+  auto rmin_node = graph.FindNode("rmin");
+  ASSERT_NE(load_node, nullptr);
+  ASSERT_NE(rmin_node, nullptr);
+  load_node->outputs[0].attr.dtype = ge::DT_FLOAT;
+  rmin_node->outputs[0].attr.dtype = ge::DT_FLOAT;
+  ApplyRminTileSplit(graph, z0, z1, load_node, rmin_node);
+}
+
+void BuildOriginalParentAxisGraph(af::AscGraph &graph) {
+  auto s0 = graph.CreateSizeVar("s0");
+  auto z0 = graph.CreateAxis("z0", s0);
+  auto alias = graph.CreateAxis("z0_alias", af::Axis::kAxisTypeOriginal, s0, {z0.id}, af::kIdNone);
+  auto loop_axis = graph.CreateAxis("z0_loop", af::Axis::kAxisTypeMerged, s0, {alias.id}, af::kIdNone);
+
+  af::ascir_op::Data x("x");
+  graph.AddNode(x);
+  x.y.dtype = ge::DT_FLOAT;
+
+  af::ascir_op::Load load("load");
+  graph.AddNode(load);
+  load.x = x.y;
+  load.attr.sched.axis = {loop_axis.id};
+  load.attr.sched.loop_axis = loop_axis.id;
+  *load.y.axis = {z0.id};
+  *load.y.repeats = {s0};
+  *load.y.strides = {af::sym::kSymbolOne};
+
+  af::ascir_op::Min rmin("rmin");
+  graph.AddNode(rmin);
+  rmin.x = load.y;
+  rmin.attr.sched.axis = {loop_axis.id};
+  rmin.attr.sched.loop_axis = loop_axis.id;
+  *rmin.y.axis = {z0.id};
+  *rmin.y.repeats = {s0};
+  *rmin.y.strides = {af::sym::kSymbolOne};
+
+  auto load_node = graph.FindNode("load");
+  auto rmin_node = graph.FindNode("rmin");
+  ASSERT_NE(load_node, nullptr);
+  ASSERT_NE(rmin_node, nullptr);
+  load_node->outputs[0].attr.dtype = ge::DT_FLOAT;
+  load_node->outputs[0].attr.vectorized_axis = {z0.id};
+  load_node->outputs[0].attr.vectorized_strides = {af::sym::kSymbolOne};
+  rmin_node->outputs[0].attr.dtype = ge::DT_FLOAT;
+  rmin_node->outputs[0].attr.vectorized_axis = {z0.id};
+  rmin_node->outputs[0].attr.vectorized_strides = {af::sym::kSymbolOne};
+}
+
+const af::AscTensor &GetPeerOutputTensor(const af::AscNodePtr &node, size_t input_index) {
+  auto in_anchor = node->GetInDataAnchor(static_cast<int32_t>(input_index));
+  EXPECT_NE(in_anchor, nullptr);
+  auto peer_out_anchor = in_anchor->GetPeerOutAnchor();
+  EXPECT_NE(peer_out_anchor, nullptr);
+  auto peer_node = std::dynamic_pointer_cast<af::AscNode>(peer_out_anchor->GetOwnerNode());
+  EXPECT_NE(peer_node, nullptr);
+  return peer_node->outputs[peer_out_anchor->GetIdx()];
+}
+
+void ExpectReduceShadowParamsMatch(const af::AscGraph &graph, const af::AscNodePtr &node, const std::string &api_name) {
+  ASSERT_EQ(ascir_param::EnrichAscirGraphNodeParams(graph), ge::SUCCESS);
+  const auto params = ascir_param::GetAscirNodeParams(node);
+  ASSERT_NE(params, nullptr);
+  const auto *parser_params = ascir_param::GetSpecificParams<ascir_param::ReduceNodeParams>(*params);
+  ASSERT_NE(parser_params, nullptr);
+
+  codegen::Tiler tiler;
+  AddAllAxesToTiler(graph, tiler);
+  tiler.AddAxisSplitBAttr();
+  codegen::TPipe tpipe("pipe", tiler);
+  std::string input_dtype;
+  const auto &input_tensor = GetPeerOutputTensor(node, 0U);
+  ASSERT_EQ(codegen::Tensor::DtypeName(input_tensor.attr.dtype, input_dtype), ge::SUCCESS);
+  std::string output_dtype;
+  ASSERT_EQ(codegen::Tensor::DtypeName(node->outputs[0].attr.dtype, output_dtype), ge::SUCCESS);
+  codegen::Tensor x(input_tensor, input_dtype);
+  codegen::Tensor y(node->outputs[0], output_dtype);
+  ASSERT_EQ(x.Init(), ge::SUCCESS);
+  ASSERT_EQ(y.Init(), ge::SUCCESS);
+
+  EXPECT_TRUE(parser_params->canonical_params.valid);
+  CheckReduceSpecificParamsForCodegen({node, api_name, &tpipe, &x, &y, node->attr.sched.loop_axis});
+}
+
+void SetAscirNodeParamsForTest(const af::AscNodePtr &node, const ascir_param::AscirNodeParamsPtr &params) {
+  ASSERT_NE(node, nullptr);
+  ASSERT_NE(params, nullptr);
+  auto op_desc = node->GetOpDesc();
+  ASSERT_NE(op_desc, nullptr);
+  ASSERT_TRUE(op_desc->SetExtAttr("AscirNodeParams", params));
+}
+}  // namespace
 
 TEST_F(ReduceApicallTest, ReduceApi_Test_001) {
   std::string api_name = "Max";
@@ -62,7 +259,7 @@ TEST_F(ReduceApicallTest, ReduceApi_Test_001) {
   tensorx.attr.axis = {z0.id, z1.id, z2.id};
   tensorx.attr.vectorized_axis = {z0.id, z2.id};
   tensorx.attr.repeats = {z0.size, z1.size, z2.size};
-  tensorx.attr.strides = {z1.size*z2.size, z2.size, One};
+  tensorx.attr.strides = {z1.size * z2.size, z2.size, One};
   tensorx.attr.mem.tensor_id = 1;
   tensorx.attr.mem.alloc_type = af::AllocType::kAllocTypeBuffer;
   tensorx.attr.mem.position = af::Position::kPositionVecIn;
@@ -85,7 +282,7 @@ TEST_F(ReduceApicallTest, ReduceApi_Test_001) {
 
   std::string dtype_name;
   Tensor::DtypeName(tensory.attr.dtype, dtype_name);
-// Setup inputs
+  // Setup inputs
   Tensor tensor1(tensorx, dtype_name);
   tensor1.is_constant = true;
   Tensor tensor2(tensorx, dtype_name);
@@ -97,7 +294,8 @@ TEST_F(ReduceApicallTest, ReduceApi_Test_001) {
   inputs.push_back(std::ref(tensor3));
 
   // Setup outputs
-  Tensor output_tensor(tensory, dtype_name);;
+  Tensor output_tensor(tensory, dtype_name);
+  ;
   outputs.push_back(std::ref(output_tensor));
 
   codegen::ApiTensor x_tensor, y_tensor;
@@ -160,7 +358,7 @@ TEST_F(ReduceApicallTest, ReduceApi_Test_002) {
   tensorx.attr.axis = {z0.id, z1.id, z2.id};
   tensorx.attr.vectorized_axis = {z0.id, z2.id};
   tensorx.attr.repeats = {z0.size, z1.size, z2.size};
-  tensorx.attr.strides = {z1.size*z2.size, z2.size, One};
+  tensorx.attr.strides = {z1.size * z2.size, z2.size, One};
   tensorx.attr.mem.tensor_id = 1;
   tensorx.attr.mem.alloc_type = af::AllocType::kAllocTypeBuffer;
   tensorx.attr.mem.position = af::Position::kPositionVecIn;
@@ -183,7 +381,7 @@ TEST_F(ReduceApicallTest, ReduceApi_Test_002) {
 
   std::string dtype_name;
   Tensor::DtypeName(tensory.attr.dtype, dtype_name);
-// Setup inputs
+  // Setup inputs
   Tensor tensor1(tensorx, dtype_name);
   tensor1.is_constant = true;
   Tensor tensor2(tensorx, dtype_name);
@@ -262,7 +460,7 @@ TEST_F(ReduceApicallTest, ReduceApi_Test_003) {
   tensorx.attr.axis = {z0.id, z1.id, z2.id, z3.id};
   tensorx.attr.vectorized_axis = {z0.id, z2.id, z3.id};
   tensorx.attr.repeats = {z0.size, z1.size, z2.size, z3.size};
-  tensorx.attr.strides = {z1.size*z2.size*z3.size, z2.size*z3.size, z3.size, One};
+  tensorx.attr.strides = {z1.size * z2.size * z3.size, z2.size * z3.size, z3.size, One};
   tensorx.attr.mem.tensor_id = 1;
   tensorx.attr.mem.alloc_type = af::AllocType::kAllocTypeBuffer;
   tensorx.attr.mem.position = af::Position::kPositionVecIn;
@@ -285,7 +483,7 @@ TEST_F(ReduceApicallTest, ReduceApi_Test_003) {
 
   std::string dtype_name;
   Tensor::DtypeName(tensory.attr.dtype, dtype_name);
-// Setup inputs
+  // Setup inputs
   Tensor tensor1(tensorx, dtype_name);
   tensor1.is_constant = true;
   Tensor tensor2(tensorx, dtype_name);
@@ -297,7 +495,8 @@ TEST_F(ReduceApicallTest, ReduceApi_Test_003) {
   inputs.push_back(std::ref(tensor3));
 
   // Setup outputs
-  Tensor output_tensor(tensory, dtype_name);;
+  Tensor output_tensor(tensory, dtype_name);
+  ;
   outputs.push_back(std::ref(output_tensor));
 
   codegen::ApiTensor x_tensor, y_tensor;
@@ -360,7 +559,7 @@ TEST_F(ReduceApicallTest, ReduceApi_Test_004) {
   tensorx.attr.axis = {z0.id, z1.id, z2.id};
   tensorx.attr.vectorized_axis = {z0.id, z2.id};
   tensorx.attr.repeats = {z0.size, z1.size, z2.size};
-  tensorx.attr.strides = {z1.size*z2.size, z2.size, One};
+  tensorx.attr.strides = {z1.size * z2.size, z2.size, One};
   tensorx.attr.mem.tensor_id = 1;
   tensorx.attr.mem.alloc_type = af::AllocType::kAllocTypeBuffer;
   tensorx.attr.mem.position = af::Position::kPositionVecIn;
@@ -383,7 +582,7 @@ TEST_F(ReduceApicallTest, ReduceApi_Test_004) {
 
   std::string dtype_name;
   Tensor::DtypeName(tensory.attr.dtype, dtype_name);
-// Setup inputs
+  // Setup inputs
   Tensor tensor1(tensorx, dtype_name);
   tensor1.is_constant = true;
   Tensor tensor2(tensorx, dtype_name);
@@ -395,7 +594,8 @@ TEST_F(ReduceApicallTest, ReduceApi_Test_004) {
   inputs.push_back(std::ref(tensor3));
 
   // Setup outputs
-  Tensor output_tensor(tensory, dtype_name);;
+  Tensor output_tensor(tensory, dtype_name);
+  ;
   outputs.push_back(std::ref(output_tensor));
 
   codegen::ApiTensor x_tensor, y_tensor;
@@ -459,7 +659,7 @@ TEST_F(ReduceApicallTest, ReduceApi_Test_All_Reduce) {
   tensorx.attr.axis = {z0.id, z1.id, z2.id};
   tensorx.attr.vectorized_axis = {z0.id, z2.id};
   tensorx.attr.repeats = {z0.size, z1.size, z2.size};
-  tensorx.attr.strides = {z1.size*z2.size, z2.size, One};
+  tensorx.attr.strides = {z1.size * z2.size, z2.size, One};
   tensorx.attr.mem.tensor_id = 1;
   tensorx.attr.mem.alloc_type = af::AllocType::kAllocTypeBuffer;
   tensorx.attr.mem.position = af::Position::kPositionVecIn;
@@ -482,7 +682,7 @@ TEST_F(ReduceApicallTest, ReduceApi_Test_All_Reduce) {
 
   std::string dtype_name;
   Tensor::DtypeName(tensory.attr.dtype, dtype_name);
-// Setup inputs
+  // Setup inputs
   Tensor tensor1(tensorx, dtype_name);
   tensor1.is_constant = true;
   Tensor tensor2(tensorx, dtype_name);
@@ -494,7 +694,8 @@ TEST_F(ReduceApicallTest, ReduceApi_Test_All_Reduce) {
   inputs.push_back(std::ref(tensor3));
 
   // Setup outputs
-  Tensor output_tensor(tensory, dtype_name);;
+  Tensor output_tensor(tensory, dtype_name);
+  ;
   outputs.push_back(std::ref(output_tensor));
 
   codegen::ApiTensor x_tensor, y_tensor;
@@ -516,7 +717,14 @@ TEST_F(ReduceApicallTest, ReduceApi_Test_All_Reduce) {
   call.tmp_buf_id[-1] = 0;
   call.tmp_buf_id[0] = 1;
   Status status = call.Generate(tpipe, current_axis, result);
-  EXPECT_EQ(result, std::string{"{\nuint32_t last = 1 * t->s0 * KernelUtils::SizeAlign(t->s2, 32/sizeof(float));\nuint32_t last_actual = 1 * z0_actual_size * KernelUtils::SizeAlign(z2_actual_size, 32/sizeof(float));\nuint32_t first = 1;\nuint32_t first_actual = 1;\nReduceInit<float, 1, false>(local_1, first_actual, last, last_actual, z2_actual_size);\nAscendC::PipeBarrier<PIPE_V>();\nuint32_t tmp_reduce_shape[] = {first_actual, last};\nReduceMax<float, AscendC::Pattern::Reduce::AR, false>(local_3[0], local_1[0], tmp_buf_0, tmp_reduce_shape, true);\n}\n"});
+  EXPECT_EQ(result,
+            std::string{
+                "{\nuint32_t last = 1 * t->s0 * KernelUtils::SizeAlign(t->s2, 32/sizeof(float));\nuint32_t last_actual "
+                "= 1 * z0_actual_size * KernelUtils::SizeAlign(z2_actual_size, 32/sizeof(float));\nuint32_t first = "
+                "1;\nuint32_t first_actual = 1;\nReduceInit<float, 1, false>(local_1, first_actual, last, last_actual, "
+                "z2_actual_size);\nAscendC::PipeBarrier<PIPE_V>();\nuint32_t tmp_reduce_shape[] = {first_actual, "
+                "last};\nReduceMax<float, AscendC::Pattern::Reduce::AR, false>(local_3[0], local_1[0], tmp_buf_0, "
+                "tmp_reduce_shape, true);\n}\n"});
   // Check the result
   EXPECT_EQ(status, ge::SUCCESS);
 }
@@ -558,7 +766,7 @@ TEST_F(ReduceApicallTest, ReduceApicallTest_Int32_Inner) {
   tensorx.attr.axis = {z0.id, z1.id, z2.id};
   tensorx.attr.vectorized_axis = {z0.id, z2.id};
   tensorx.attr.repeats = {z0.size, z1.size, z2.size};
-  tensorx.attr.strides = {z1.size*z2.size, z2.size, One};
+  tensorx.attr.strides = {z1.size * z2.size, z2.size, One};
   tensorx.attr.mem.tensor_id = 1;
   tensorx.attr.mem.alloc_type = af::AllocType::kAllocTypeBuffer;
   tensorx.attr.mem.position = af::Position::kPositionVecIn;
@@ -583,7 +791,7 @@ TEST_F(ReduceApicallTest, ReduceApicallTest_Int32_Inner) {
 
   std::string dtype_name;
   Tensor::DtypeName(tensory.attr.dtype, dtype_name);
-// Setup inputs
+  // Setup inputs
   Tensor tensor1(tensorx, dtype_name);
   tensor1.is_constant = true;
   Tensor tensor2(tensorx, dtype_name);
@@ -595,7 +803,8 @@ TEST_F(ReduceApicallTest, ReduceApicallTest_Int32_Inner) {
   inputs.push_back(std::ref(tensor3));
 
   // Setup outputs
-  Tensor output_tensor(tensory, dtype_name);;
+  Tensor output_tensor(tensory, dtype_name);
+  ;
   outputs.push_back(std::ref(output_tensor));
 
   codegen::ApiTensor x_tensor, y_tensor;
@@ -658,7 +867,7 @@ TEST_F(ReduceApicallTest, ReduceApicallTest_Int32_Outer) {
   tensorx.attr.axis = {z0.id, z1.id, z2.id};
   tensorx.attr.vectorized_axis = {z0.id, z2.id};
   tensorx.attr.repeats = {z0.size, z1.size, z2.size};
-  tensorx.attr.strides = {z1.size*z2.size, z2.size, One};
+  tensorx.attr.strides = {z1.size * z2.size, z2.size, One};
   tensorx.attr.mem.tensor_id = 1;
   tensorx.attr.mem.alloc_type = af::AllocType::kAllocTypeBuffer;
   tensorx.attr.mem.position = af::Position::kPositionVecIn;
@@ -683,7 +892,7 @@ TEST_F(ReduceApicallTest, ReduceApicallTest_Int32_Outer) {
 
   std::string dtype_name;
   Tensor::DtypeName(tensory.attr.dtype, dtype_name);
-// Setup inputs
+  // Setup inputs
   Tensor tensor1(tensorx, dtype_name);
   tensor1.is_constant = true;
   Tensor tensor2(tensorx, dtype_name);
@@ -695,7 +904,8 @@ TEST_F(ReduceApicallTest, ReduceApicallTest_Int32_Outer) {
   inputs.push_back(std::ref(tensor3));
 
   // Setup outputs
-  Tensor output_tensor(tensory, dtype_name);;
+  Tensor output_tensor(tensory, dtype_name);
+  ;
   outputs.push_back(std::ref(output_tensor));
 
   codegen::ApiTensor x_tensor, y_tensor;
@@ -783,7 +993,7 @@ TEST_F(ReduceApicallTest, ReduceApicallTest_ReduceMean_NoNeed_MultiReduce_Int32)
 
   std::string dtype_name;
   Tensor::DtypeName(tensory.attr.dtype, dtype_name);
-// Setup inputs
+  // Setup inputs
   Tensor tensor1(tensorx, dtype_name);
   tensor1.is_constant = true;
   Tensor tensor2(tensorx, dtype_name);
@@ -795,7 +1005,8 @@ TEST_F(ReduceApicallTest, ReduceApicallTest_ReduceMean_NoNeed_MultiReduce_Int32)
   inputs.push_back(std::ref(tensor3));
 
   // Setup outputs
-  Tensor output_tensor(tensory, dtype_name);;
+  Tensor output_tensor(tensory, dtype_name);
+  ;
   outputs.push_back(std::ref(output_tensor));
 
   codegen::ApiTensor x_tensor, y_tensor;
@@ -883,7 +1094,7 @@ TEST_F(ReduceApicallTest, ReduceApicallTest_ReduceMean_NoNeed_MultiReduce_Float)
 
   std::string dtype_name;
   Tensor::DtypeName(tensory.attr.dtype, dtype_name);
-// Setup inputs
+  // Setup inputs
   Tensor tensor1(tensorx, dtype_name);
   tensor1.is_constant = true;
   Tensor tensor2(tensorx, dtype_name);
@@ -895,7 +1106,8 @@ TEST_F(ReduceApicallTest, ReduceApicallTest_ReduceMean_NoNeed_MultiReduce_Float)
   inputs.push_back(std::ref(tensor3));
 
   // Setup outputs
-  Tensor output_tensor(tensory, dtype_name);;
+  Tensor output_tensor(tensory, dtype_name);
+  ;
   outputs.push_back(std::ref(output_tensor));
 
   codegen::ApiTensor x_tensor, y_tensor;
@@ -919,4 +1131,74 @@ TEST_F(ReduceApicallTest, ReduceApicallTest_ReduceMean_NoNeed_MultiReduce_Float)
   Status status = call.Generate(tpipe, current_axis, result);
   // Check the result
   EXPECT_EQ(status, ge::SUCCESS);
+}
+
+TEST_F(ReduceApicallTest, ReduceShadowCheck_DoesNotFailWhenNodeParamsMissing) {
+  CheckReduceSpecificParamsForCodegen(MakeNonFatalShadowInput(nullptr));
+  SUCCEED();
+}
+
+TEST_F(ReduceApicallTest, ReduceShadowCheck_DoesNotFailWhenStatusNotBuilt) {
+  af::AscGraph graph("shadow_status_graph");
+  af::ascir_op::Add add_op("shadow_status_node");
+  graph.AddNode(add_op);
+  auto node = graph.FindNode("shadow_status_node");
+  ASSERT_NE(node, nullptr);
+
+  auto params = std::make_shared<ascir_param::AscirNodeParams>();
+  params->api_name = "ReduceMax";
+  params->status = ascir_param::ParamBuildStatus::kSkipped;
+  SetAscirNodeParamsForTest(node, params);
+
+  CheckReduceSpecificParamsForCodegen(MakeNonFatalShadowInput(node));
+  SUCCEED();
+}
+
+TEST_F(ReduceApicallTest, ReduceShadowCheck_DoesNotFailWhenSpecificParamsTypeMismatch) {
+  af::AscGraph graph("shadow_type_graph");
+  af::ascir_op::Add add_op("shadow_type_node");
+  graph.AddNode(add_op);
+  auto node = graph.FindNode("shadow_type_node");
+  ASSERT_NE(node, nullptr);
+
+  auto params = std::make_shared<ascir_param::AscirNodeParams>();
+  params->api_name = "ReduceMax";
+  params->status = ascir_param::ParamBuildStatus::kBuilt;
+  SetAscirNodeParamsForTest(node, params);
+
+  CheckReduceSpecificParamsForCodegen(MakeNonFatalShadowInput(node));
+  SUCCEED();
+}
+
+TEST_F(ReduceApicallTest, ReduceShadowCheck_DoesNotFailWhenShadowBuildFails) {
+  af::AscGraph graph("shadow_build_graph");
+  af::ascir_op::Add add_op("shadow_build_node");
+  graph.AddNode(add_op);
+  auto node = graph.FindNode("shadow_build_node");
+  ASSERT_NE(node, nullptr);
+
+  auto params = std::make_shared<ascir_param::AscirNodeParams>();
+  params->api_name = "ReduceMax";
+  params->status = ascir_param::ParamBuildStatus::kBuilt;
+  params->specific_params = BuildReduceNodeParamForShadowTest();
+  SetAscirNodeParamsForTest(node, params);
+
+  CheckReduceSpecificParamsForCodegen(MakeNonFatalShadowInput(node));
+  SUCCEED();
+}
+
+TEST_F(ReduceApicallTest, ReduceShadowCheck_RminTileSplitMatchesParserParams) {
+  af::AscGraph graph("rmin_shadow_graph");
+  BuildRminGraph(graph);
+  auto rmin = graph.FindNode("rmin");
+  ASSERT_NE(rmin, nullptr);
+  ExpectReduceShadowParamsMatch(graph, rmin, "Min");
+}
+
+TEST_F(ReduceApicallTest, ReduceShadowCheck_OriginalParentAxisMatchesParserParams) {
+  af::AscGraph graph("rmin_original_parent_shadow_graph");
+  BuildOriginalParentAxisGraph(graph);
+  auto rmin = graph.FindNode("rmin");
+  ASSERT_NE(rmin, nullptr);
+  ExpectReduceShadowParamsMatch(graph, rmin, "Min");
 }

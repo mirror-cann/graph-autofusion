@@ -10,9 +10,11 @@
 
 #include "codegen.h"
 
+#include <set>
 #include <sstream>
 #include <fstream>
 
+#include "ascir_node_param/ascir_param_builder.h"
 #include "codegen_kernel.h"
 #include "codegen_tiling_data.h"
 #include "ascir_utils.h"
@@ -20,6 +22,7 @@
 #include "common/ge_common/debug/log.h"
 #include "codegen_infershape.h"
 #include "common/platform_context.h"
+#include "graph/ascendc_ir/utils/asc_graph_utils.h"
 
 using namespace codegen;
 using namespace ascgen_utils;
@@ -68,6 +71,37 @@ std::string RemoveAutoFuseTilingHeadGuards(const std::string &input) {
   }
 
   return oss.str();
+}
+
+const void *GetAscirParamGraphKey(const ascir::ImplGraph &impl_graph) {
+  const auto compute_graph = af::AscGraphUtils::GetComputeGraph(impl_graph);
+  return compute_graph == nullptr ? static_cast<const void *>(&impl_graph)
+                                  : static_cast<const void *>(compute_graph.get());
+}
+
+Status EnrichScheduleGroupAscirParams(const ascir::ScheduleGroup &schedule_group,
+                                      std::set<const void *> &enriched_graphs) {
+  for (const auto &impl_graph : schedule_group.impl_graphs) {
+    const auto graph_key = GetAscirParamGraphKey(impl_graph);
+    if (!enriched_graphs.insert(graph_key).second) {
+      continue;
+    }
+    GE_ASSERT_SUCCESS(ascir_param::EnrichAscirGraphNodeParams(impl_graph), "Enrich ascir node params failed.");
+  }
+  return ge::SUCCESS;
+}
+
+Status EnrichScheduledResultAscirParams(const ascir::FusedScheduledResult &fused_schedule_result) {
+  std::set<const void *> enriched_graphs;
+  for (const auto &asc_graph_results : fused_schedule_result.node_idx_to_scheduled_results) {
+    for (const auto &scheduled_result : asc_graph_results) {
+      for (const auto &schedule_group : scheduled_result.schedule_groups) {
+        GE_ASSERT_SUCCESS(EnrichScheduleGroupAscirParams(schedule_group, enriched_graphs),
+                          "Enrich ascir node params failed.");
+      }
+    }
+  }
+  return ge::SUCCESS;
 }
 
 Status CombineTilings(const std::map<std::string, std::string> &tiling_file_name_to_content, std::string &result) {
@@ -343,6 +377,7 @@ std::string Codegen::GeneratorPgo(const ascir::FusedScheduledResult &fused_sched
 
 Status Codegen::GenerateKernel(const ascir::FusedScheduledResult &fused_schedule_result, std::string &result,
                                bool is_inductor) const {
+  GE_CHK_STATUS_RET(EnrichScheduledResultAscirParams(fused_schedule_result), "Enrich ascir node params failed.");
   const auto io_num = fused_schedule_result.input_nodes.size() + fused_schedule_result.output_nodes.size();
   bool use_list_tensor = io_num >= kMaxUnfoldedIoNum;
   CodegenConfig config = {is_inductor, using_att_calc_qbt_size_};

@@ -11,6 +11,7 @@
 #include "v35/att/api_perf_register/ascir_reduce_api_perf_v2.h"
 
 #include <memory>
+#include "ascir_node_param/ascir_node_param.h"
 #include "codegen_api_param/codegen_api_param.h"
 #include "v35/att/api_perf_register/ascendc_api_perf/reduce_api_perf_v2.h"
 #include "v35/att/api_perf_register/ascendc_regbase_perf.h"
@@ -39,9 +40,22 @@ void MergeReduceDimsByLastAxis(ascendcapi_v2::ReducePattern pattern, NodeDetail 
   SetReduceDims(first, in_dims.back(), pattern, node_detail);
 }
 
+Expr ProductExpressions(const std::vector<Expr> &values) {
+  Expr product = CreateExpr(1);
+  for (const auto &value : values) {
+    product = product * value;
+  }
+  return product;
+}
+
+Expr BuildSemanticMergeSizeForAtt(const TensorShapeInfo &output_shape) {
+  return ProductExpressions(output_shape.repeats.empty() ? output_shape.dims : output_shape.repeats);
+}
+
 ge::Status TryGetReuseSource(const NodeInfo &node, bool &is_reuse_source) {
-  if (node.reduce_specific_params.reuse.valid) {
-    is_reuse_source = node.reduce_specific_params.reuse.is_reuse_source;
+  const auto &params = ascir_param::GetCanonicalReduceParams(node.reduce_specific_params);
+  if (params.reuse.valid) {
+    is_reuse_source = params.reuse.is_reuse_source;
     return ge::SUCCESS;
   }
   GELOGW("[ATT Reduce] reuse-source fallback by input fanout, node[%s].", node.name.c_str());
@@ -114,14 +128,16 @@ ge::Status BuildReduceContext(const std::vector<TensorShapeInfo> &input_shapes,
                               const std::vector<TensorShapeInfo> &output_shapes, const NodeInfo &node,
                               ascendcapi_v2::ReduceApiPerfContext &context) {
   const auto &params = node.reduce_specific_params;
-  GE_ASSERT_TRUE(params.valid, "Reduce specific params is invalid, node[%s].", node.name.c_str());
+  GE_ASSERT_SUCCESS(ascir_param::ValidateReduceNodeParams(params), "Reduce specific params is invalid, node[%s].",
+                    node.name.c_str());
+  const auto &codegen_params = ascir_param::GetCanonicalReduceParams(params);
   GE_ASSERT_TRUE(!input_shapes.empty() && !output_shapes.empty());
   GE_ASSERT_SUCCESS(SetNodeDetail(input_shapes, output_shapes, context.node_detail));
   GE_ASSERT_TRUE(!context.node_detail.input_dims.empty(), "Reduce input dims is empty, node[%s].", node.name.c_str());
-  GE_ASSERT_SUCCESS(ConvertReducePattern(params.pattern, context.pattern));
-  GE_ASSERT_SUCCESS(ConvertReduceMergeMode(params.merge_mode, context.merge_mode));
+  GE_ASSERT_SUCCESS(ConvertReducePattern(codegen_params.pattern, context.pattern));
+  GE_ASSERT_SUCCESS(ConvertReduceMergeMode(codegen_params.merge_mode, context.merge_mode));
   codegen::ReduceSpecificParams current_shape_params;
-  GE_ASSERT_SUCCESS(BuildCurrentShapeParams(input_shapes, output_shapes, params, context.merge_mode,
+  GE_ASSERT_SUCCESS(BuildCurrentShapeParams(input_shapes, output_shapes, codegen_params, context.merge_mode,
                                             current_shape_params));
   if (current_shape_params.merged_dims.valid) {
     SetReduceDims(current_shape_params.merged_dims.first, current_shape_params.merged_dims.last, context.pattern,
@@ -133,8 +149,9 @@ ge::Status BuildReduceContext(const std::vector<TensorShapeInfo> &input_shapes,
                  node.name.c_str());
   GE_ASSERT_SUCCESS(TryGetReuseSource(node, context.is_reuse_source),
                     "Reduce reuse-source branch is unknown, node[%s].", node.name.c_str());
-  context.merge_size = current_shape_params.merge_size;
-  context.merge_times = params.merge_times.IsValid() ? params.merge_times : CreateExpr(1);
+  context.merge_size = params.exprs.merge_size.valid ? BuildSemanticMergeSizeForAtt(output_shapes[0])
+                                                     : current_shape_params.merge_size;
+  context.merge_times = ascir_param::ResolveForAtt(params.exprs.merge_times);
   GELOGD(
       "[ATT Reduce] BuildReduceContext: node[%s], pattern[%s], merge_mode[%d], reuse[%d], "
       "merge_size[%s], merge_times[%s].",
@@ -145,7 +162,7 @@ ge::Status BuildReduceContext(const std::vector<TensorShapeInfo> &input_shapes,
 }
 
 bool HasReduceSpecificParams(const NodeInfo &node) {
-  return node.reduce_specific_params.valid;
+  return node.reduce_specific_params.canonical_params.valid;
 }
 
 ge::Status SkipUnsupportedReducePerf(const NodeInfo &node, const ascendcapi_v2::ReduceApiPerfContext &context,

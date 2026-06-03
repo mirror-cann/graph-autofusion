@@ -27,6 +27,9 @@ target_link_libraries(ascir
     PRIVATE
         $<BUILD_INTERFACE:af_intf_pub>
 )
+if (DEFINED RUN_TEST AND RUN_TEST EQUAL 1)
+    autofuse_apply_shared_visibility(ascir)
+endif ()
 
 ################################################################################
 target_sources(aihac_codegen PRIVATE ${META_SRC}
