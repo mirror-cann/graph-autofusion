@@ -63,6 +63,7 @@ private:
     bool ExtractSkDeviceEntryArgsPtr(aclrtExceptionInfo *exceptionInfo);
     bool CopySkDeviceEntryArgsToHost();
     bool ExtractSkHeaderInfo();
+    bool ValidateSkHeaderOffsets();
     bool ExtractTaskQueue();
     void ExtractAndPrintSkInfo();
     void PrintSkHeaderInfo() const;

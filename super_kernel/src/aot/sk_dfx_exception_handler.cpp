@@ -109,6 +109,14 @@ bool SuperKernelExceptionHandler::CopySkDeviceEntryArgsToHost() {
 
     // Step 2: Now that we know totalSize, copy all SkDeviceEntryArgs data to host at once
     SK_LOGI("---Total SkDeviceEntryArgs size: %lu bytes", skHeaderInfoHost->totalSize);
+    if (skHeaderInfoHost->totalSize > skDeviceEntryArgsPtrLen) {
+        SK_LOGE("totalSize(%lu) exceeds skDeviceEntryArgsPtrLen(%u), invalid device address range",
+                skHeaderInfoHost->totalSize, skDeviceEntryArgsPtrLen);
+        aclrtFreeHost(skHeaderInfoHost);
+        skHeaderInfoHost = nullptr;
+        return false;
+    }
+
     if (CheckError(aclrtMallocHost((void **)(&skDeviceEntryArgsHost), skHeaderInfoHost->totalSize),
                    "aclrtMallocHost for skDeviceEntryArgsHost") != ACL_SUCCESS) {
         aclrtFreeHost(skHeaderInfoHost);
@@ -134,6 +142,14 @@ bool SuperKernelExceptionHandler::CopySkDeviceEntryArgsToHost() {
     // Update skHeaderInfoHost to point to skHeaderInfo in skDeviceEntryArgsHost
     skHeaderInfoHost = &(skDeviceEntryArgsHost->skHeader);
 
+    // Validate all offsets in SkHeaderInfo to prevent out-of-bounds access
+    if (!ValidateSkHeaderOffsets()) {
+        aclrtFreeHost(skDeviceEntryArgsHost);
+        skDeviceEntryArgsHost = nullptr;
+        skHeaderInfoHost = nullptr;
+        return false;
+    }
+
     return true;
 }
 
@@ -142,7 +158,12 @@ bool SuperKernelExceptionHandler::ExtractSkDeviceEntryArgsPtr(aclrtExceptionInfo
     SK_LOGI("---skDeviceEntryArgsDev: %p", skDeviceEntryArgsDev);
     SK_LOGI("---skDeviceEntryArgsPtrLen: %d", skDeviceEntryArgsPtrLen);
 
-    if (skDeviceEntryArgsPtrLen < 8) {
+    if (ret != ACL_SUCCESS) {
+        SK_LOGE("aclrtGetArgsFromExceptionInfo failed, ret=%d", ret);
+        return false;
+    }
+
+    if (skDeviceEntryArgsPtrLen < 8 || skDeviceEntryArgsDev == nullptr) {
         SK_LOGI("no args, callback return");
         return false;
     }
@@ -167,6 +188,70 @@ bool SuperKernelExceptionHandler::ExtractSkHeaderInfo() {
 
     // Temporarily save SkHeaderInfo data
     skHeaderInfoHost = tempHeader;
+
+    return true;
+}
+
+bool SuperKernelExceptionHandler::ValidateSkHeaderOffsets() {
+    uint64_t totalSize = skHeaderInfoHost->totalSize;
+
+    // Validate aicQueOffset: offset + aicQueSize must not exceed totalSize
+    if (skHeaderInfoHost->aicQueOffset > 0) {
+        if (skHeaderInfoHost->aicQueOffset >= totalSize) {
+            SK_LOGE("aicQueOffset(%u) >= totalSize(%lu), invalid offset", skHeaderInfoHost->aicQueOffset, totalSize);
+            return false;
+        }
+        uint64_t aicEnd = static_cast<uint64_t>(skHeaderInfoHost->aicQueOffset) + skHeaderInfoHost->aicQueSize;
+        if (aicEnd > totalSize) {
+            SK_LOGE("aicQueOffset(%u) + aicQueSize(%u) exceeds totalSize(%lu), invalid offset",
+                    skHeaderInfoHost->aicQueOffset, skHeaderInfoHost->aicQueSize, totalSize);
+            return false;
+        }
+    }
+
+    // Validate aivQueOffset: offset + aivQueSize must not exceed totalSize
+    if (skHeaderInfoHost->aivQueOffset > 0) {
+        if (skHeaderInfoHost->aivQueOffset >= totalSize) {
+            SK_LOGE("aivQueOffset(%u) >= totalSize(%lu), invalid offset", skHeaderInfoHost->aivQueOffset, totalSize);
+            return false;
+        }
+        uint64_t aivEnd = static_cast<uint64_t>(skHeaderInfoHost->aivQueOffset) + skHeaderInfoHost->aivQueSize;
+        if (aivEnd > totalSize) {
+            SK_LOGE("aivQueOffset(%u) + aivQueSize(%u) exceeds totalSize(%lu), invalid offset",
+                    skHeaderInfoHost->aivQueOffset, skHeaderInfoHost->aivQueSize, totalSize);
+            return false;
+        }
+    }
+
+    // Validate counterOffset: offset + aicoreNums * sizeof(SkCounterInfo) must not exceed totalSize
+    if (skHeaderInfoHost->counterOffset > 0) {
+        if (skHeaderInfoHost->counterOffset >= totalSize) {
+            SK_LOGE("counterOffset(%u) >= totalSize(%lu), invalid offset", skHeaderInfoHost->counterOffset, totalSize);
+            return false;
+        }
+        uint64_t counterEnd = static_cast<uint64_t>(skHeaderInfoHost->counterOffset)
+                            + static_cast<uint64_t>(aicoreNums) * sizeof(SkCounterInfo);
+        if (counterEnd > totalSize) {
+            SK_LOGE("counterOffset(%u) + aicoreNums(%u) * sizeof(SkCounterInfo) exceeds totalSize(%lu), invalid offset",
+                    skHeaderInfoHost->counterOffset, aicoreNums, totalSize);
+            return false;
+        }
+    }
+
+    // Validate dfxOffset: offset + nodeCnt * sizeof(SkDfxInfo) must not exceed totalSize
+    if (skHeaderInfoHost->dfxOffset > 0) {
+        if (skHeaderInfoHost->dfxOffset >= totalSize) {
+            SK_LOGE("dfxOffset(%u) >= totalSize(%lu), invalid offset", skHeaderInfoHost->dfxOffset, totalSize);
+            return false;
+        }
+        uint64_t dfxEnd = static_cast<uint64_t>(skHeaderInfoHost->dfxOffset)
+                        + static_cast<uint64_t>(skHeaderInfoHost->nodeCnt) * sizeof(SkDfxInfo);
+        if (dfxEnd > totalSize) {
+            SK_LOGE("dfxOffset(%u) + nodeCnt(%u) * sizeof(SkDfxInfo) exceeds totalSize(%lu), invalid offset",
+                    skHeaderInfoHost->dfxOffset, skHeaderInfoHost->nodeCnt, totalSize);
+            return false;
+        }
+    }
 
     return true;
 }

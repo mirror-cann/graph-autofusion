@@ -209,7 +209,17 @@ aclError Fake_aclrtGetArgsFromExceptionInfo_Success(const aclrtExceptionInfo* ex
 {
     (void)exceptionInfo;
     *args = reinterpret_cast<void*>(0x3000);  // Directly return GM address
-    *argsLen = 8;
+    // Use g_mockDeviceBufferSize if set, otherwise fallback to 8 (original behavior)
+    *argsLen = g_mockDeviceBufferSize > 0 ? static_cast<uint32_t>(g_mockDeviceBufferSize) : 8;
+    return ACL_SUCCESS;
+}
+
+// Mock that returns small argsLen for testing totalSize > skDeviceEntryArgsPtrLen
+aclError Fake_aclrtGetArgsFromExceptionInfo_SmallLen(const aclrtExceptionInfo* exceptionInfo, void** args, uint32_t* argsLen)
+{
+    (void)exceptionInfo;
+    *args = reinterpret_cast<void*>(0x3000);
+    *argsLen = 8;  // Very small, triggers totalSize > ptrLen check
     return ACL_SUCCESS;
 }
 
@@ -2765,4 +2775,190 @@ TEST_F(SkDfxExceptionHandlerTest, CheckError_OtherError_ReturnsError)
 {
     aclError ret = handler->CheckError(ACL_ERROR_INVALID_PARAM, "Test operation");
     EXPECT_EQ(ret, ACL_ERROR_INVALID_PARAM);
+}
+
+// ==================== ValidateSkHeaderOffsets Tests ====================
+
+TEST_F(SkDfxExceptionHandlerTest, ValidateSkHeaderOffsets_AllOffsetsZero_ReturnsTrue)
+{
+    SkHeaderInfo headerInfo = {};
+    headerInfo.totalSize = sizeof(SkHeaderInfo);
+    handler->skHeaderInfoHost = &headerInfo;
+    EXPECT_TRUE(handler->ValidateSkHeaderOffsets());
+}
+
+TEST_F(SkDfxExceptionHandlerTest, ValidateSkHeaderOffsets_AllOffsetsValid_ReturnsTrue)
+{
+    uint32_t aicQueOffset = sizeof(SkHeaderInfo);
+    uint32_t aicQueSize = sizeof(TaskQue);
+    uint32_t aivQueOffset = aicQueOffset + aicQueSize;
+    uint32_t aivQueSize = sizeof(TaskQue);
+    uint32_t counterOffset = aivQueOffset + aivQueSize;
+    uint64_t counterDataSize = static_cast<uint64_t>(handler->aicoreNums) * sizeof(SkCounterInfo);
+    uint32_t dfxOffset = counterOffset + static_cast<uint32_t>(counterDataSize);
+
+    SkHeaderInfo headerInfo = {};
+    headerInfo.aicQueOffset = aicQueOffset;
+    headerInfo.aicQueSize = aicQueSize;
+    headerInfo.aivQueOffset = aivQueOffset;
+    headerInfo.aivQueSize = aivQueSize;
+    headerInfo.counterOffset = counterOffset;
+    headerInfo.dfxOffset = dfxOffset;
+    headerInfo.nodeCnt = 1;
+    headerInfo.totalSize = dfxOffset + sizeof(SkDfxInfo);
+    handler->skHeaderInfoHost = &headerInfo;
+    EXPECT_TRUE(handler->ValidateSkHeaderOffsets());
+}
+
+TEST_F(SkDfxExceptionHandlerTest, ValidateSkHeaderOffsets_OffsetExceedsTotalSize_ReturnsFalse)
+{
+    // aicQueOffset >= totalSize -> invalid
+    SkHeaderInfo headerInfo = {};
+    headerInfo.aicQueOffset = 2048;
+    headerInfo.aicQueSize = 100;
+    headerInfo.totalSize = 1024;
+    handler->skHeaderInfoHost = &headerInfo;
+    EXPECT_FALSE(handler->ValidateSkHeaderOffsets());
+}
+
+TEST_F(SkDfxExceptionHandlerTest, ValidateSkHeaderOffsets_OffsetPlusSizeExceedsTotalSize_ReturnsFalse)
+{
+    // dfxOffset + nodeCnt * sizeof(SkDfxInfo) > totalSize -> invalid
+    SkHeaderInfo headerInfo = {};
+    headerInfo.dfxOffset = 900;
+    headerInfo.nodeCnt = 10;
+    headerInfo.totalSize = 1024;
+    handler->skHeaderInfoHost = &headerInfo;
+    EXPECT_FALSE(handler->ValidateSkHeaderOffsets());
+}
+
+TEST_F(SkDfxExceptionHandlerTest, ValidateSkHeaderOffsets_PartialOffsetsValid_ReturnsTrue)
+{
+    // Some offsets zero, some valid -> only validate non-zero offsets
+    SkHeaderInfo headerInfo = {};
+    headerInfo.aicQueOffset = sizeof(SkHeaderInfo);
+    headerInfo.aicQueSize = 128;
+    headerInfo.totalSize = sizeof(SkHeaderInfo) + 128;
+    handler->skHeaderInfoHost = &headerInfo;
+    EXPECT_TRUE(handler->ValidateSkHeaderOffsets());
+}
+
+TEST_F(SkDfxExceptionHandlerTest, ValidateSkHeaderOffsets_AicQueOffsetPlusSizeExceedsTotalSize_ReturnsFalse)
+{
+    SkHeaderInfo headerInfo = {};
+    headerInfo.aicQueOffset = 900;
+    headerInfo.aicQueSize = 200;  // 900 + 200 = 1100 > 1024
+    headerInfo.totalSize = 1024;
+    handler->skHeaderInfoHost = &headerInfo;
+    EXPECT_FALSE(handler->ValidateSkHeaderOffsets());
+}
+
+TEST_F(SkDfxExceptionHandlerTest, ValidateSkHeaderOffsets_AivQueOffsetExceedsTotalSize_ReturnsFalse)
+{
+    SkHeaderInfo headerInfo = {};
+    headerInfo.aivQueOffset = 2048;
+    headerInfo.aivQueSize = 100;
+    headerInfo.totalSize = 1024;
+    handler->skHeaderInfoHost = &headerInfo;
+    EXPECT_FALSE(handler->ValidateSkHeaderOffsets());
+}
+
+TEST_F(SkDfxExceptionHandlerTest, ValidateSkHeaderOffsets_AivQueOffsetPlusSizeExceedsTotalSize_ReturnsFalse)
+{
+    SkHeaderInfo headerInfo = {};
+    headerInfo.aivQueOffset = 900;
+    headerInfo.aivQueSize = 200;  // 900 + 200 = 1100 > 1024
+    headerInfo.totalSize = 1024;
+    handler->skHeaderInfoHost = &headerInfo;
+    EXPECT_FALSE(handler->ValidateSkHeaderOffsets());
+}
+
+TEST_F(SkDfxExceptionHandlerTest, ValidateSkHeaderOffsets_CounterOffsetExceedsTotalSize_ReturnsFalse)
+{
+    SkHeaderInfo headerInfo = {};
+    headerInfo.counterOffset = 2048;
+    headerInfo.totalSize = 1024;
+    handler->skHeaderInfoHost = &headerInfo;
+    EXPECT_FALSE(handler->ValidateSkHeaderOffsets());
+}
+
+TEST_F(SkDfxExceptionHandlerTest, ValidateSkHeaderOffsets_CounterOffsetPlusSizeExceedsTotalSize_ReturnsFalse)
+{
+    // counterOffset + aicoreNums(75) * sizeof(SkCounterInfo) > totalSize
+    SkHeaderInfo headerInfo = {};
+    headerInfo.counterOffset = 100;
+    headerInfo.totalSize = 1024;
+    handler->skHeaderInfoHost = &headerInfo;
+    EXPECT_FALSE(handler->ValidateSkHeaderOffsets());
+}
+
+TEST_F(SkDfxExceptionHandlerTest, ValidateSkHeaderOffsets_DfxOffsetExceedsTotalSize_ReturnsFalse)
+{
+    SkHeaderInfo headerInfo = {};
+    headerInfo.dfxOffset = 2048;
+    headerInfo.nodeCnt = 1;
+    headerInfo.totalSize = 1024;
+    handler->skHeaderInfoHost = &headerInfo;
+    EXPECT_FALSE(handler->ValidateSkHeaderOffsets());
+}
+
+// ==================== totalSize vs skDeviceEntryArgsPtrLen Validation Tests ====================
+
+TEST_F(SkDfxExceptionHandlerTest, ExtractSkEntryArgs_TotalSizeExceedsPtrLen_ReturnsFalse)
+{
+    // Use SmallLen mock so skDeviceEntryArgsPtrLen=8 < totalSize
+    constexpr size_t bufferSize = 256;
+    uint8_t* buffer = static_cast<uint8_t*>(malloc(bufferSize));
+    ASSERT_NE(buffer, nullptr);
+    memset_s(buffer, bufferSize, 0, bufferSize);
+
+    SkHeaderInfo headerInfo = {};
+    headerInfo.totalSize = bufferSize;
+    headerInfo.nodeCnt = 0;
+    reinterpret_cast<SkDeviceEntryArgs*>(buffer)->skHeader = headerInfo;
+
+    g_mockDeviceBuffer = buffer;
+    g_mockDeviceBufferSize = bufferSize;
+
+    aclrtExceptionInfo* exceptionInfo = reinterpret_cast<aclrtExceptionInfo*>(0x500);
+    MOCKER(aclrtGetArgsFromExceptionInfo).stubs().will(invoke(Fake_aclrtGetArgsFromExceptionInfo_SmallLen));
+    MOCKER(aclrtMallocHost).stubs().will(invoke(Fake_aclrtMallocHost_Success));
+    MOCKER(aclrtMemcpy).stubs().will(invoke(Fake_aclrtMemcpy_DeviceToHost));
+    MOCKER(aclrtFreeHost).stubs().will(invoke(Fake_aclrtFreeHost_Success));
+
+    EXPECT_FALSE(handler->ExtractSkEntryArgs(exceptionInfo));
+
+    g_mockDeviceBuffer = nullptr;
+    g_mockDeviceBufferSize = 0;
+    free(buffer);
+}
+
+TEST_F(SkDfxExceptionHandlerTest, ExtractSkEntryArgs_InvalidOffsetFailsValidation_ReturnsFalse)
+{
+    // totalSize <= ptrLen passes, but dfxOffset out of bounds fails ValidateSkHeaderOffsets
+    constexpr size_t bufferSize = 256;
+    uint8_t* buffer = static_cast<uint8_t*>(malloc(bufferSize));
+    ASSERT_NE(buffer, nullptr);
+    memset_s(buffer, bufferSize, 0, bufferSize);
+
+    SkHeaderInfo headerInfo = {};
+    headerInfo.totalSize = bufferSize;
+    headerInfo.dfxOffset = 200;
+    headerInfo.nodeCnt = 5;  // 200 + 5 * sizeof(SkDfxInfo) >> 256
+    reinterpret_cast<SkDeviceEntryArgs*>(buffer)->skHeader = headerInfo;
+
+    g_mockDeviceBuffer = buffer;
+    g_mockDeviceBufferSize = bufferSize;
+
+    aclrtExceptionInfo* exceptionInfo = reinterpret_cast<aclrtExceptionInfo*>(0x500);
+    MOCKER(aclrtGetArgsFromExceptionInfo).stubs().will(invoke(Fake_aclrtGetArgsFromExceptionInfo_Success));
+    MOCKER(aclrtMallocHost).stubs().will(invoke(Fake_aclrtMallocHost_Success));
+    MOCKER(aclrtMemcpy).stubs().will(invoke(Fake_aclrtMemcpy_DeviceToHost));
+    MOCKER(aclrtFreeHost).stubs().will(invoke(Fake_aclrtFreeHost_Success));
+
+    EXPECT_FALSE(handler->ExtractSkEntryArgs(exceptionInfo));
+
+    g_mockDeviceBuffer = nullptr;
+    g_mockDeviceBufferSize = 0;
+    free(buffer);
 }
