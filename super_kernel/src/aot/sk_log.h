@@ -159,7 +159,7 @@ struct LoggerConfig {
     bool enabled = false;                    // Enable file logging
     LogLevel minLevel = LogLevel::INFO;      // Minimum log level
     std::string baseDir = "sk_meta";         // Base directory name
-    std::string modelLabel;                  // Frozen label, e.g. model_48_1
+    std::string modelLabel;                  // Current model label, e.g. model_48_1
     size_t maxFileSize = 100 * 1024 * 1024;  // Max file size: 100MB
     size_t maxLineLength = 4096;              // Max line length (for segmentation)
     bool enableTimestamp = true;              // Add timestamp
@@ -297,16 +297,12 @@ public:
         }
     }
     
-    // ========== 线程局部 model label 管理 ==========
-    // 设置当前线程的 model label（用于多 model 场景）
+    // ========== Thread-local model label management ==========
     static void SetCurrentModelLabel(const std::string& modelLabel) {
-        currentThreadModelLabel_ = modelLabel;
+        currentModelLabel_ = modelLabel;
     }
 
-    // 获取当前线程的 model label
-    static const std::string& GetCurrentThreadModelLabel() {
-        return currentThreadModelLabel_;
-    }
+    static const std::string& GetCurrentModelLabel();
     
     // File handle management
     bool RegisterLogFile(const std::string& name, const std::string& subPath = "");
@@ -323,7 +319,6 @@ public:
     void SetMinLevel(LogLevel level);
     void SetModelLabel(const std::string& modelLabel);
     bool IsInitialized() const;
-    std::string GetCurrentModelLabel() const;
     
 private:
     FileLogger() = default;
@@ -339,7 +334,7 @@ private:
     
     void WriteLog(const std::string& message);
     
-    // 获取当前有效的 model label（优先使用线程局部变量，其次使用 config_）
+    // Get the effective model label. Prefer the thread-local label and fall back to config_.
     std::string GetEffectiveModelLabel() const;
 
 private:
@@ -348,11 +343,8 @@ private:
     pid_t pid_{0};
     mutable std::mutex mutex_;
     
-    // 线程局部的 model label（支持多 model 场景）
-    static thread_local std::string currentThreadModelLabel_;
-
-    // Frozen model label used to distinguish repeated aclskOptimize calls that reuse the same modelRI address.
-    std::string currentModelLabel_;
+    // Thread-local model label, used to isolate concurrent aclskOptimize calls.
+    static thread_local std::string currentModelLabel_;
 };
 
 } // namespace logger
@@ -404,13 +396,13 @@ private:
 
 #define SK_LOG_CONTEXT_SIMPLE(fileName) \
     auto _sk_log_context_guard = sk::logger::FileLogger::Instance().CreateContext( \
-        fileName, sk::logger::FileLogger::Instance().GetCurrentModelLabel())
+        fileName, sk::logger::FileLogger::GetCurrentModelLabel())
 
 // ==================== Global Initialization Helper Functions and Macros ====================
 
 /**
- * @brief Initialize logger with frozen model label
- * @param modelLabel Frozen model label, e.g. model_48_1
+ * @brief Initialize logger with the current model label
+ * @param modelLabel Current model label, e.g. model_48_1
  * 
  * Reads environment variable ASCEND_OP_COMPILE_SAVE_KERNEL_META to enable/disable file logging.
  * - ASCEND_OP_COMPILE_SAVE_KERNEL_META=1: Enable file logging
@@ -421,7 +413,6 @@ private:
  *   // Creates directory: sk_meta/{pid}/model_305419896/
  */
 inline void InitSkLogger(const std::string& modelLabel) {
-    // 设置线程局部的 model label（支持多 model 场景）
     sk::logger::FileLogger::SetCurrentModelLabel(modelLabel);
 
     // Read environment variable

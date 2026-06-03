@@ -10,27 +10,19 @@
 
 #include "sk_resource_manager.h"
 #include "sk_log.h"
-#include "sk_event_recorder.h"
 #include "sk_model_context.h"
 
-#include <cstdlib>
-#include <cstring>
 #include <string>
 
 namespace {
 class ScopedModelLogContext {
 public:
     explicit ScopedModelLogContext(const std::string& modelLabel)
-        : previousModelLabel_(sk::logger::FileLogger::GetCurrentThreadModelLabel()),
+        : previousModelLabel_(sk::logger::FileLogger::GetCurrentModelLabel()),
           previousHandle_(sk::logger::FileHandleManager::Instance().GetCurrentHandle())
     {
         sk::logger::FileLogger::SetCurrentModelLabel(modelLabel);
-        if (!modelLabel.empty()) {
-            std::string handleName = "model_" + SanitizePathComponent(modelLabel);
-            sk::logger::FileHandleManager::Instance().SwitchToFile(handleName);
-        } else {
-            sk::logger::FileHandleManager::Instance().SwitchToDefault();
-        }
+        sk::logger::FileHandleManager::Instance().SwitchToDefault();
     }
 
     ~ScopedModelLogContext()
@@ -50,9 +42,7 @@ private:
 }  // namespace
 
 std::mutex SkResourceManager::resourceMutex_;
-std::unordered_map<std::string, std::vector<SkResourceManager::ResourceRecord>> SkResourceManager::modelResources_;
-std::unordered_set<std::string> SkResourceManager::registeredModelLabels_;
-std::unordered_map<void*, std::string> SkResourceManager::callbackDataLabels_;
+std::unordered_map<aclmdlRI, SkResourceManager::ModelResourceContext> SkResourceManager::modelContexts_;
 thread_local aclmdlRI SkResourceManager::currentModel_ = nullptr;
 
 SkResourceManager& SkResourceManager::GetInstance()
@@ -86,40 +76,24 @@ aclError SkResourceManager::CallbackRegister(aclmdlRI model)
     }
 
     std::lock_guard<std::mutex> lock(resourceMutex_);
-    if (registeredModelLabels_.count(modelLabel) != 0U) {
-        SK_LOGI("model destroy callback already registered: modelLabel=%s, modelId=%s",
-                modelLabel.c_str(), modelId.c_str());
-        return ACL_SUCCESS;
-    }
-
-    char* labelCopy = strdup(modelLabel.c_str());
-    if (labelCopy == nullptr) {
-        SK_LOGE("alloc model destroy callback label failed: modelLabel=%s, modelId=%s",
-                modelLabel.c_str(), modelId.c_str());
+    if (modelContexts_.count(model) != 0U) {
+        SK_LOGE("model resource context already exists before model destroy callback: "
+                "model=%p, modelLabel=%s, modelId=%s",
+                model, modelLabel.c_str(), modelId.c_str());
         return ACL_ERROR_FAILURE;
     }
 
-    callbackDataLabels_.emplace(labelCopy, modelLabel);
-
-    aclError ret = aclmdlRIDestroyRegisterCallback(model, OnModelDestroy, labelCopy);
+    aclError ret = aclmdlRIDestroyRegisterCallback(model, OnModelDestroy, model);
     if (ret != ACL_SUCCESS) {
-        callbackDataLabels_.erase(labelCopy);
-        free(labelCopy);
         SK_LOGE("register model destroy callback failed: modelLabel=%s, modelId=%s, ret=%d",
                 modelLabel.c_str(), modelId.c_str(), ret);
         return ret;
     }
 
-    registeredModelLabels_.insert(modelLabel);
+    modelContexts_.emplace(model, ModelResourceContext{model, modelId, modelLabel, {}});
     SK_LOGI("register model destroy callback success: modelLabel=%s, modelId=%s",
             modelLabel.c_str(), modelId.c_str());
     return ACL_SUCCESS;
-}
-
-aclError SkResourceManager::CheckCallbackRegistered(const std::string& modelLabel)
-{
-    std::lock_guard<std::mutex> lock(resourceMutex_);
-    return registeredModelLabels_.count(modelLabel) != 0U ? ACL_SUCCESS : ACL_ERROR_FAILURE;
 }
 
 aclError SkResourceManager::AllocForModel(aclmdlRI model, void** addr, size_t bytes)
@@ -129,39 +103,33 @@ aclError SkResourceManager::AllocForModel(aclmdlRI model, void** addr, size_t by
         return ACL_ERROR_INVALID_PARAM;
     }
 
-    const std::string modelId = GetCurrentModelId();
-    const std::string modelLabel = GetCurrentModelLabel();
-    if (modelId.empty() || modelLabel.empty()) {
-        SK_LOGE("resource alloc failed: no active model context, model=%p", model);
-        return ACL_ERROR_FAILURE;
-    }
-
-    aclError ret = CheckCallbackRegistered(modelLabel);
+    aclError ret = aclrtMalloc(addr, bytes, ACL_MEM_MALLOC_HUGE_FIRST);
     if (ret != ACL_SUCCESS) {
-        SK_LOGE("resource alloc failed: model destroy callback is not registered, modelLabel=%s, modelId=%s",
-                modelLabel.c_str(), modelId.c_str());
-        return ret;
-    }
-
-    ret = aclrtMalloc(addr, bytes, ACL_MEM_MALLOC_HUGE_FIRST);
-    if (ret != ACL_SUCCESS) {
-        SK_LOGE("resource alloc by aclrtMalloc failed: modelLabel=%s, modelId=%s, bytes=%zu, ret=%d",
-                modelLabel.c_str(), modelId.c_str(), bytes, ret);
+        SK_LOGE("resource alloc by aclrtMalloc failed: model=%p, bytes=%zu, ret=%d", model, bytes, ret);
         return ret;
     }
     ret = aclrtMemset(*addr, bytes, 0, bytes);
     if (ret != ACL_SUCCESS) {
-        SK_LOGE("resource memset by aclrtMemset failed: modelLabel=%s, modelId=%s, addr=%p, bytes=%zu, ret=%d",
-                modelLabel.c_str(), modelId.c_str(), *addr, bytes, ret);
+        SK_LOGE("resource memset by aclrtMemset failed: model=%p, addr=%p, bytes=%zu, ret=%d",
+                model, *addr, bytes, ret);
         aclrtFree(*addr);
         *addr = nullptr;
         return ret;
     }
 
     std::lock_guard<std::mutex> lock(resourceMutex_);
-    modelResources_[modelLabel].push_back(ResourceRecord{ResourceKind::kDeviceMemory, *addr, bytes});
+    auto it = modelContexts_.find(model);
+    if (it == modelContexts_.end()) {
+        SK_LOGE("resource alloc failed: model resource context is not registered, model=%p", model);
+        aclrtFree(*addr);
+        *addr = nullptr;
+        return ACL_ERROR_FAILURE;
+    }
+
+    auto& context = it->second;
+    context.resources.push_back(ResourceRecord{ResourceKind::kDeviceMemory, *addr, bytes});
     SK_LOGI("resource alloc success: modelLabel=%s, modelId=%s, addr=%p, bytes=%zu",
-            modelLabel.c_str(), modelId.c_str(), *addr, bytes);
+            context.modelLabel.c_str(), context.modelId.c_str(), *addr, bytes);
     return ACL_SUCCESS;
 }
 
@@ -189,86 +157,48 @@ aclError SkResourceManager::ReleaseRecord(const ResourceRecord& record)
     }
 }
 
-bool SkResourceManager::TakeCallbackModelLabel(void* userData, std::string& modelLabel)
+bool SkResourceManager::ReleaseModelResources(const std::vector<ResourceRecord>& resources)
 {
-    std::lock_guard<std::mutex> lock(resourceMutex_);
-    auto it = callbackDataLabels_.find(userData);
-    if (it == callbackDataLabels_.end()) {
-        return false;
-    }
-
-    modelLabel = it->second;
-    callbackDataLabels_.erase(it);
-    return true;
-}
-
-bool SkResourceManager::BeginModelResourceRelease(const std::string& modelLabel, std::string& modelId,
-                                                  std::vector<ResourceRecord>& resources)
-{
-    std::lock_guard<std::mutex> lock(resourceMutex_);
-    if (registeredModelLabels_.count(modelLabel) == 0U) {
-        return false;
-    }
-
-    modelId = GetCurrentModelId();
-    auto resourceIt = modelResources_.find(modelLabel);
-    if (resourceIt != modelResources_.end()) {
-        resources.swap(resourceIt->second);
-        modelResources_.erase(resourceIt);
-    }
-    return true;
-}
-
-void SkResourceManager::FinishModelDestroy(const std::string& modelLabel, void* labelCopy)
-{
-    std::lock_guard<std::mutex> lock(resourceMutex_);
-    registeredModelLabels_.erase(modelLabel);
-    free(labelCopy);
-}
-
-void SkResourceManager::ReleaseModelResources(const std::string& modelLabel, const std::string& modelId,
-                                              const std::vector<ResourceRecord>& resources)
-{
+    bool releaseSuccess = true;
     for (const auto& record : resources) {
-        SK_LOGI("release resource record: modelLabel=%s, modelId=%s, addr=%p, bytes=%zu",
-                modelLabel.c_str(), modelId.c_str(), record.addr, record.bytes);
         aclError ret = ReleaseRecord(record);
         if (ret != ACL_SUCCESS) {
-            SK_LOGE("Failed to release some resources during model destroy: modelLabel=%s, modelId=%s, ret=%d",
-                    modelLabel.c_str(), modelId.c_str(), ret);
+            releaseSuccess = false;
         }
     }
+    return releaseSuccess;
 }
 
 void SkResourceManager::OnModelDestroy(void* userData)
 {
-    char* labelCopy = static_cast<char*>(userData);
-    if (labelCopy == nullptr) {
-        SK_LOGE("sk resource manager OnModelDestroy invalid userData=%p", userData);
+    aclmdlRI model = static_cast<aclmdlRI>(userData);
+    if (model == nullptr) {
+        SK_DLOGE("sk resource manager OnModelDestroy invalid userData=%p", userData);
         return;
     }
 
-    std::string modelLabel;
-    if (!TakeCallbackModelLabel(userData, modelLabel)) {
-        SK_LOGW("sk resource manager OnModelDestroy callback data invalid: userData=%p", userData);
-        return;
+    ModelResourceContext context;
+    {
+        std::lock_guard<std::mutex> lock(resourceMutex_);
+        auto it = modelContexts_.find(model);
+        if (it == modelContexts_.end()) {
+            return;
+        }
+        context = std::move(it->second);
+        modelContexts_.erase(it);
     }
 
-    std::string modelId;
-    std::vector<ResourceRecord> resources;
-    if (!BeginModelResourceRelease(modelLabel, modelId, resources)) {
-        SK_LOGW("sk resource manager OnModelDestroy invalid model: modelLabel=%s", modelLabel.c_str());
-        FinishModelDestroy(modelLabel, labelCopy);
-        return;
-    }
-
-    ScopedModelLogContext logContext(modelLabel);
+    ScopedModelLogContext logContext(context.modelLabel);
     SK_LOGI("sk resource manager OnModelDestroy called: modelLabel=%s, modelId=%s",
-            modelLabel.c_str(), modelId.c_str());
+            context.modelLabel.c_str(), context.modelId.c_str());
 
-    ReleaseModelResources(modelLabel, modelId, resources);
-    FinishModelDestroy(modelLabel, labelCopy);
+    bool releaseSuccess = ReleaseModelResources(context.resources);
+    if (!releaseSuccess) {
+        SK_LOGE("release some resources during model destroy failed: modelLabel=%s, modelId=%s",
+                context.modelLabel.c_str(), context.modelId.c_str());
+        return;
+    }
 
     SK_LOGI("sk resource manager OnModelDestroy completed: modelLabel=%s, modelId=%s",
-            modelLabel.c_str(), modelId.c_str());
+            context.modelLabel.c_str(), context.modelId.c_str());
 }
