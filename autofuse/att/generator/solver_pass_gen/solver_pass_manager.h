@@ -81,6 +81,7 @@ namespace att
     static std::string GenBaseClass(SolverType type);
 
     ExprExprMap GetInputsAlign(bool do_replace);
+    ExprExprMap GetOriginalInputAlign() const;
 
     L0TileSolverGen GenL0TileSolverGen();
     L2TileSolverGen GenL2TileSolverGen();
