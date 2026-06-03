@@ -36,7 +36,6 @@ constexpr uint32_t K_TYPE_AIC_ROLLBACK = 6;
 constexpr uint32_t K_TYPE_AIV_ROLLBACK = 7;
 
 // Super Kernel Configuration Constants
-constexpr uint32_t DEFAULT_COUNTER_COUNT = 75; // 默认计数器数量（对应平台AIC/AIV核心数）
 constexpr uint32_t TASK_QUE_EXPAND_FACTOR = 2; // TaskQue扩容因子
 
 constexpr uint32_t MAX_TASK_NUM = 1024;

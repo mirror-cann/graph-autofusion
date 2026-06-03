@@ -1361,7 +1361,7 @@ TEST_F(SkTaskBuilderTest, GenEntryArgs_WithoutWorkspace_IgnoresSecondMemsetFailu
     DeviceArgsPtr devArgs = builder->GenEntryArgs(aic, aiv, &dfx, 1);
     ASSERT_NE(devArgs.Get(), nullptr);
     EXPECT_EQ(devArgs.Get()->skHeader.dfxOffset,
-              devArgs.Get()->skHeader.counterOffset + DEFAULT_COUNTER_COUNT * sizeof(SkCounterInfo));
+              devArgs.Get()->skHeader.counterOffset + GetSkRuntimeConfig().eventCoreNum * sizeof(SkCounterInfo));
 }
 
 TEST_F(SkTaskBuilderTest, GenEntryArgs_CounterOffsetAlignedTo64Bytes)

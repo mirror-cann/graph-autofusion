@@ -18,6 +18,7 @@
 #include <string>
 #include <mutex>
 #include <memory>
+#include <vector>
 #include "sk_types.h"
 #include "sk_common.h"
 #include "sk_file_guard.h"
@@ -31,13 +32,7 @@ struct SkNodeInfo {
 
 // ==================== 常量定义 ====================
 constexpr uint32_t SK_EVENT_MAX_DEVICE_NUM = 16;
-constexpr uint32_t SK_EVENT_CORE_NUM = 75;           // 每个 device 的 core 数
 constexpr uint32_t SK_EVENT_DEFAULT_CORE_SIZE = 1024 * 1024; // 默认每个 core 1MB
-#if defined(NPU_ARCH) && NPU_ARCH == 310
-constexpr uint32_t TICK_US_MULTIPLER = 1000;
-#else
-constexpr uint32_t TICK_US_MULTIPLER = 50;
-#endif
 constexpr uint32_t SHAPE_MAX_TENSOR_NUM = 800;
 
 // 打点环境变量名称
@@ -62,7 +57,7 @@ struct SkEventDeviceCtx {
     uint32_t totalSize = 0;                                    // 总大小
     std::string outputDir;                                     // 每个device的profiling输出目录路径
     FileGuard outputFp;                                        // 小算子的时间信息文件的输出文件句柄 (RAII)
-    uint64_t lastOffset[SK_EVENT_CORE_NUM]{};                  // 每个core的上次读取位置
+    std::vector<uint64_t> lastOffset;                          // 每个core的上次读取位置（运行时大小）
     SkEventRecorder* recorder = nullptr;                        // 回调指针
 };
 
@@ -161,7 +156,7 @@ private:
     int32_t dumpDeviceId = 0;                 // dump线程的的device ID
 
     static uint32_t coreSize_;   // 每个 core 的profiling 记录的gm缓冲区大小（字节），由环境变量决定
-    static uint32_t totalSize_;  // 总缓冲区大小 = SK_EVENT_CORE_NUM * coreSize_
+    static uint32_t totalSize_;  // 总缓冲区大小 = SkRuntimeConfig::eventCoreNum * coreSize_
 
     // NodeInfo 映射表：modelId -> skId -> nodeId -> NodeInfo
     mutable std::mutex nodeInfoMapMutex;
@@ -193,7 +188,7 @@ std::string GetSkFuncName(const std::vector<SuperKernelBaseNode*>& nodes, uint16
 
 inline bool CoreIsAiv(int coreId)
 {
-    if (GetCurrentSkKernelArch() == SkKernelArch::DAV_3510) {
+    if (GetSkRuntimeConfig().kernelArch == SkKernelArch::DAV_3510) {
         return (coreId >= 18 && coreId <= 53) || (coreId >= 72 && coreId <= 107);
     }
     return coreId >= 25;

@@ -32,7 +32,7 @@
     } while (0)
 
 uint32_t SkEventRecorder::coreSize_ = SK_EVENT_DEFAULT_CORE_SIZE;
-uint32_t SkEventRecorder::totalSize_ = SK_EVENT_CORE_NUM * SK_EVENT_DEFAULT_CORE_SIZE;
+uint32_t SkEventRecorder::totalSize_ = 0;  // 运行时由 ParseEnvAndSetSize 设置
 
 // ==================== Msprof 回调相关 ====================
 constexpr size_t ASCENDC_KERNEL_ID = 69;
@@ -238,7 +238,7 @@ bool SkEventRecorder::ParseEnvAndSetSize()
     // 向上取整到 64KB 的倍数（输入单位为 KB，对齐到 64）
     uint32_t coreSizeKB = static_cast<uint32_t>((val + 63U) / 64U * 64U);
     coreSize_ = coreSizeKB * 1024U;
-    totalSize_ = SK_EVENT_CORE_NUM * coreSize_;
+    totalSize_ = GetSkRuntimeConfig().eventCoreNum * coreSize_;
 
     SK_LOGI("[sk time profiling] ASCEND_PROF_SK_ON=%s, coreSize=%u KB (aligned), totalSize=%u MB for each device profiling\n",
             env, coreSizeKB, totalSize_ / (1024U * 1024U));
@@ -359,9 +359,7 @@ SkEventDeviceCtx* SkEventRecorder::CreateDeviceCtx(uint32_t deviceId)
     }
     
     // 5. 初始化host偏移量数组
-    for (uint32_t i = 0; i < SK_EVENT_CORE_NUM; i++) {
-        ctx->lastOffset[i] = sizeof(SkKernelEventCoreBuf);
-    }
+    ctx->lastOffset.assign(GetSkRuntimeConfig().eventCoreNum, sizeof(SkKernelEventCoreBuf));
 
     // 6. 设置该device基本信息并标记为激活
     ctx->deviceId = deviceId;
@@ -512,8 +510,8 @@ bool SkEventRecorder::WriteNodeEventToJson(SkEventDeviceCtx* ctx, const SkKernel
             return false;
         }
         
-        double tsStart = (double)record->startTime / TICK_US_MULTIPLER;
-        double tsEnd = (double)record->endTime / TICK_US_MULTIPLER;
+        double tsStart = (double)record->startTime / GetSkRuntimeConfig().tickUsMultiplier;
+        double tsEnd = (double)record->endTime / GetSkRuntimeConfig().tickUsMultiplier;
         char jsonLine[SPRINT_LEN_BUFFER];
         int len = snprintf_s(jsonLine, sizeof(jsonLine), sizeof(jsonLine) - 1,
             "\"ph\":\"X\",\"name\":\"[%u/%u]%s\",\"pid\":\"%s\",\"tid\":%u,"
@@ -566,8 +564,8 @@ bool SkEventRecorder::WriteSkEventToJson(SkEventDeviceCtx* ctx, const SkKernelEv
             return false;
         }
         
-        double tsStart = (double)record->startTime / TICK_US_MULTIPLER;
-        double tsEnd = (double)record->endTime / TICK_US_MULTIPLER;
+        double tsStart = (double)record->startTime / GetSkRuntimeConfig().tickUsMultiplier;
+        double tsEnd = (double)record->endTime / GetSkRuntimeConfig().tickUsMultiplier;
         char jsonLine[SPRINT_LEN_BUFFER];
         std::string skName = SkEventRecorder::Instance().GetSkName(modelId, record->skId);
         int len = snprintf_s(jsonLine, sizeof(jsonLine), sizeof(jsonLine) - 1,
@@ -637,7 +635,8 @@ void SkEventRecorder::DumpDeviceData(SkEventDeviceCtx* ctx)
     bool hasNewData = false;
     
     // 遍历每个 core 的数据
-    for (uint32_t core = 0; core < SK_EVENT_CORE_NUM; core++) {
+    uint32_t coreNum = static_cast<uint32_t>(ctx->lastOffset.size());
+    for (uint32_t core = 0; core < coreNum; core++) {
         SK_LOGI("[sk time profiling] Wait 100 ms then start add some node event on device %u, core %u\n", ctx->deviceId, core);
         SkKernelEventCoreBuf* coreBuf = reinterpret_cast<SkKernelEventCoreBuf*>(
             hostBuf + core * coreSize_);
