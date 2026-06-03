@@ -404,17 +404,20 @@ Status FusedGraphUnfolder::UnfoldFusedGraph(const af::ComputeGraphPtr &fused_gra
   // reset data ir attr
   GE_ASSERT_SUCCESS(ReAssembleDataIrAttr(fused_graph, asc_backend_to_asc_graph),
                     "ReAssembleDataIrAttr failed, graph:[%s].", fused_graph->GetName().c_str());
+  // Log the fused graph name to identify which fused graph the following subgraphs belong to.
+  GELOGI("Start unfolding fused graph [%s] with [%zu] direct nodes.", fused_graph->GetName().c_str(),
+         fused_graph->GetDirectNodePtr().size());
   // step2 do graph unfold
   for (const auto &node : fused_graph->GetDirectNodePtr()) {
     GE_CHECK_NOTNULL(node);
     if (node->GetType() == kAscGraphNodeType) {
       auto iter = asc_backend_to_asc_graph.find(node);
       GE_ASSERT_TRUE(iter != asc_backend_to_asc_graph.end());
-      ascir::utils::DumpGraph(iter->second, "BeforeUnfoldAscBackend_" + iter->second.GetName());
+      ascir::utils::DumpGraph(iter->second, "BeforeUnfoldAscBackend");
       GE_CHK_STATUS_RET(UnfoldAscbcNode(node, iter->second, fused_graph),
                         "Unfold ascgraph node [%s] to fused graph [%s] failed.", node->GetNamePtr(),
                         fused_graph->GetName().c_str());
-      ascir::utils::DumpGraph(iter->second, "AfterUnfoldAscBackend_" + iter->second.GetName());
+      ascir::utils::DumpGraph(iter->second, "AfterUnfoldAscBackend");
     }
   }
   ascir::utils::DumpComputeGraph(fused_graph, "FusedGraphAfterUnfold");
