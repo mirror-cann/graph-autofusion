@@ -229,8 +229,6 @@ void SkResourceManager::FinishModelDestroy(const std::string& modelLabel, void* 
 void SkResourceManager::ReleaseModelResources(const std::string& modelLabel, const std::string& modelId,
                                               const std::vector<ResourceRecord>& resources)
 {
-    SkEventRecorder::Instance().RemoveModelMappings(modelId);
-
     for (const auto& record : resources) {
         SK_LOGI("release resource record: modelLabel=%s, modelId=%s, addr=%p, bytes=%zu",
                 modelLabel.c_str(), modelId.c_str(), record.addr, record.bytes);

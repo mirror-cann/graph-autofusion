@@ -106,10 +106,6 @@ public:
     // 通过 index 获取原始 modelId（线程安全，不依赖 profiling 开关）
     std::string GetModelIdByIndex(uint16_t index) const;
 
-    // 清理指定 modelId 在 skNameMap / nodeInfoMap 中的全部条目（线程安全）
-    // 由 model 销毁回调调用，避免长 session 下 host 侧映射表无限增长
-    void RemoveModelMappings(const std::string& modelId);
-
     // 打印所有 modelId index 映射表（线程安全）
     void PrintModelIdIndexMap() const;
 

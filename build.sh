@@ -169,7 +169,7 @@ analyze_changed_modules() {
 apply_module_selection() {
   if [ "$CHANGED_SUPERKERNEL" = true ] && [ "$CHANGED_AUTOFUSE" = false ] && [ "$CHANGED_OTHER" = false ]; then
     echo "[INFO] Only super_kernel changed, skipping autofuse build and autofuse tests."
-    ENABLE_AUTOFUSE="off"
+    ENABLE_AUTOFUSE="on"
     SKIP_AUTOFUSE_TESTS="on"
     return 0
   elif [ "$CHANGED_AUTOFUSE" = true ] && [ "$CHANGED_SUPERKERNEL" = false ] && [ "$CHANGED_OTHER" = false ]; then

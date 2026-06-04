@@ -1464,9 +1464,9 @@ TEST_F(SkEventRecorderTest, DumpThreadFuncDstMissingTriggersReCopy)
     CleanupMockDeviceCtx();
 }
 
-// ==================== RemoveModelMappings / DumpProfilingDetail Tests ====================
+// ==================== Mapping Lifetime / DumpProfilingDetail Tests ====================
 
-TEST_F(SkEventRecorderTest, RemoveModelMappings_RemovesOnlyTargetModel)
+TEST_F(SkEventRecorderTest, ModelMappings_PreserveMultipleModelsUntilTestTeardown)
 {
     const std::string targetModelId = "model_target_1";
     const std::string otherModelId = "model_other_1";
@@ -1476,14 +1476,10 @@ TEST_F(SkEventRecorderTest, RemoveModelMappings_RemovesOnlyTargetModel)
     SkEventRecorder::Instance().AddNodeInfoMapping(otherModelId, 1, 0, "other_node", 8);
     SkEventRecorder::Instance().AddSkNameMapping(otherModelId, 1, "other_sk");
 
-    SkEventRecorder::Instance().RemoveModelMappings(targetModelId);
-
-    EXPECT_TRUE(SkEventRecorder::Instance().GetNodeInfo(targetModelId, 1, 0).nodeName.empty());
-    EXPECT_TRUE(SkEventRecorder::Instance().GetSkName(targetModelId, 1).empty());
+    EXPECT_EQ(SkEventRecorder::Instance().GetNodeInfo(targetModelId, 1, 0).nodeName, "target_node");
+    EXPECT_EQ(SkEventRecorder::Instance().GetSkName(targetModelId, 1), "target_sk");
     EXPECT_EQ(SkEventRecorder::Instance().GetNodeInfo(otherModelId, 1, 0).nodeName, "other_node");
     EXPECT_EQ(SkEventRecorder::Instance().GetSkName(otherModelId, 1), "other_sk");
-
-    SkEventRecorder::Instance().RemoveModelMappings(otherModelId);
 }
 
 TEST_F(SkEventRecorderTest, DumpProfilingDetail_DisabledRegistersModelAndSkName)
@@ -1509,8 +1505,6 @@ TEST_F(SkEventRecorderTest, DumpProfilingDetail_DisabledRegistersModelAndSkName)
     EXPECT_EQ(skScopeId, scopeInfo.GetScopeId());
     EXPECT_EQ(SkEventRecorder::Instance().GetModelIdByIndex(modelIdIdx), modelId);
     EXPECT_EQ(SkEventRecorder::Instance().GetSkName(modelId, scopeInfo.GetScopeId()), launchInfo.skFuncName);
-
-    SkEventRecorder::Instance().RemoveModelMappings(modelId);
 }
 
 TEST_F(SkEventRecorderTest, DumpProfilingDetail_EnabledUpdatesEventConfigAndNodeInfo)
@@ -1558,7 +1552,6 @@ TEST_F(SkEventRecorderTest, DumpProfilingDetail_EnabledUpdatesEventConfigAndNode
     EXPECT_EQ(nodeInfo.numBlocks, 7);
     EXPECT_EQ(SkEventRecorder::Instance().GetSkName(modelId, scopeInfo.GetScopeId()), launchInfo.skFuncName);
 
-    SkEventRecorder::Instance().RemoveModelMappings(modelId);
     SkEventRecorder::Instance().enabled = false;
     CleanupMockDeviceCtx();
 }
