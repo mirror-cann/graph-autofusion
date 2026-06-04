@@ -17,6 +17,21 @@ class Register {
   Register();
 };
 
+static std::string StripBroadcastSelfIncludes(const std::string &src) {
+    std::string result;
+    size_t pos = 0;
+    while (pos < src.size()) {
+      size_t end = src.find('\n', pos);
+      if (end == std::string::npos) end = src.size();
+      std::string line = src.substr(pos, end - pos);
+      if (line.find("#include \"broadcast") == std::string::npos) {
+        result += line + "\n";
+      }
+      pos = end + 1;
+    }
+    return result;
+  }
+
 Register::Register() {
   const std::string kAscendcCastRegStr = {
 #include "cast_reg_base.h"
@@ -54,9 +69,13 @@ Register::Register() {
   const std::string kAscendcUtilsRegBaseStr = {
 #include "utils_reg_base.h"
   };
-  const std::string kAscendcBroadcastRegStr = {
+  const std::string kAscendcBroadcastRegStr =
+      StripBroadcastSelfIncludes(std::string{
+#include "broadcast_extend_impl_reg_base.h"
+      }) +
+      StripBroadcastSelfIncludes(std::string{
 #include "broadcast_reg_base.h"
-  };
+      });
   const std::string kAscendcLogicalNotStr = {
 #include "logical_not_reg_base.h"
   };
