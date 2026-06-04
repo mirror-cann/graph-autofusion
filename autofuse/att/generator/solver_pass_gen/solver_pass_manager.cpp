@@ -406,6 +406,14 @@ ExprExprMap SolverPassManager::GetInputsAlign(bool do_replace) {
   return input_align;
 }
 
+ExprExprMap SolverPassManager::GetOriginalInputAlign() const {
+  ExprExprMap input_align;
+  for (const auto &arg : args_manager_.GetInputVars()) {
+    input_align[arg] = af::Symbol(1);
+  }
+  return input_align;
+}
+
 std::string SolverPassManager::GenCommonBaseClassesHead(std::vector<ArgsManager> args_managers) {
   std::string base_classes;
   for (uint32_t i = 0U; i < static_cast<std::uint32_t>(SolverType::ERROR); i++) {
@@ -460,7 +468,7 @@ void SolverPassManager::InitSolverGen(AxesReorderSolverGen &solver_gen) {
   solver_gen.SetReplaceVars(args_manager_.GetTernaryOpReplaceVars());
   solver_gen.SetTernaryOps(args_manager_.GetTernaryOps());
   solver_gen.SetExeTimeMap(args_manager_.GetTernaryOpRelatedVars());
-  solver_gen.SetInputAlign(GetInputsAlign(false));
+  solver_gen.SetInputAlign(GetOriginalInputAlign());
   solver_gen.SetVarPriority(args_manager_.GetAxesPriority());
   solver_gen.SetObjFunc(args_manager_.GetHeadCost(), args_manager_.GetObjectFunc());
   solver_gen.SetUBThreshold(ub_threshold_);

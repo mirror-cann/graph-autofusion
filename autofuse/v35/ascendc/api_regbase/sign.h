@@ -45,26 +45,26 @@ inline __aicore__ void SignExtend(const AscendC::LocalTensor<T> &dst, const Asce
   max_repeat = max_repeat > MAX_REPEAT_TIME ? MAX_REPEAT_TIME : max_repeat;
   const int max_repeat_calc_size = max_repeat * AscendC::ONE_REPEAT_BYTE_SIZE / sizeof(float);
   for (; calc_size + max_repeat_calc_size < size; calc_size += max_repeat_calc_size) {
-    CastExtend(float_src, src[calc_size], max_repeat_calc_size, sharedTmpBuffer);
+    CastExtend(float_src, src[calc_size], sharedTmpBuffer, max_repeat_calc_size);
     AscendC::Sign(float_dst, float_src, sharedTmpBuffer, max_repeat_calc_size);
-    CastExtend(dst[calc_size], float_dst, max_repeat_calc_size, sharedTmpBuffer);
+    CastExtend(dst[calc_size], float_dst, sharedTmpBuffer, max_repeat_calc_size);
   }
 
   // Calc max_repeat > size > one_repeat
   constexpr int one_repeat_calc_size = AscendC::ONE_REPEAT_BYTE_SIZE / sizeof(float);
   if (calc_size + one_repeat_calc_size <= size) {
     const int repeat = (size - calc_size) / one_repeat_calc_size;
-    CastExtend(float_src, src[calc_size], repeat * one_repeat_calc_size, sharedTmpBuffer);
+    CastExtend(float_src, src[calc_size], sharedTmpBuffer, repeat * one_repeat_calc_size);
     AscendC::Sign(float_dst, float_src, sharedTmpBuffer, repeat * one_repeat_calc_size);
-    CastExtend(dst[calc_size], float_dst, repeat * one_repeat_calc_size, sharedTmpBuffer);
+    CastExtend(dst[calc_size], float_dst, sharedTmpBuffer, repeat * one_repeat_calc_size);
     calc_size += repeat * one_repeat_calc_size;
   }
 
   // Calc when one_repeat > size
   if (calc_size < size) {
-    CastExtend(float_src, src[calc_size], size - calc_size, sharedTmpBuffer);
+    CastExtend(float_src, src[calc_size], sharedTmpBuffer, size - calc_size);
     AscendC::Sign(float_dst, float_src, sharedTmpBuffer, size - calc_size);
-    CastExtend(dst[calc_size], float_dst, size - calc_size, sharedTmpBuffer);
+    CastExtend(dst[calc_size], float_dst, sharedTmpBuffer, size - calc_size);
   }
 }
 

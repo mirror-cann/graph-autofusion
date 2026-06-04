@@ -34,10 +34,13 @@ Status BinaryApiCallV2::BuildApiParam(const TPipe &tpipe, const std::vector<asci
   auto api_param = af::ComGraphMakeShared<CodegenApiParam>();
   GE_ASSERT_NOTNULL(api_param);
   api_param->api_name = api_name_;
-  api_param->input_params.emplace_back(x1.Str(), true, tpipe.tiler.TensorVectorizedOffset(current_axis, x1));
-  api_param->input_params.emplace_back(x2.Str(), true, tpipe.tiler.TensorVectorizedOffset(current_axis, x2));
-  api_param->output_params.emplace_back(y.Str(), true, tpipe.tiler.TensorVectorizedOffset(current_axis, y));
-  api_param->cal_count = x1.actual_size.Str();
+  api_param->input_params.emplace_back(x1.Str(), true,
+      CombinedExprFactory::SymbolVar(tpipe.tiler.TensorVectorizedOffset(current_axis, x1)));
+  api_param->input_params.emplace_back(x2.Str(), true,
+      CombinedExprFactory::SymbolVar(tpipe.tiler.TensorVectorizedOffset(current_axis, x2)));
+  api_param->output_params.emplace_back(y.Str(), true,
+      CombinedExprFactory::SymbolVar(tpipe.tiler.TensorVectorizedOffset(current_axis, y)));
+  api_param->cal_count = CombinedExprFactory::SymbolVar(x1.actual_size.Str());
 
   GE_CHK_STATUS_RET(CodegenApiParam::Register(this->node, api_param));
   return ge::SUCCESS;

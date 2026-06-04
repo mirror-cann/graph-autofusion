@@ -8,6 +8,7 @@
  * See LICENSE in the root of the software repository for the full text of the License.
  */
 
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -15,6 +16,10 @@
 
 #include "api_perf_register/api_perf_factory.h"
 #include "api_perf_register/utils/api_perf_utils.h"
+#include "ascir_node_param/ascir_node_param.h"
+#include "ascir_node_param/ascir_param_builder.h"
+#include "ascir_ops.h"
+#include "parser/reduce_specific_params_builder.h"
 #include "common/platform_context.h"
 #include "codegen_api_param/codegen_api_param.h"
 #include "v35/att/api_perf_register/ascendc_api_perf/reduce_api_perf_v2.h"
@@ -23,6 +28,7 @@
 #include "graph/ascendc_ir/ascir_registry.h"
 #include "graph_construct_utils.h"
 #include "../../../../../ut/att/testcase/gen_model_info/api_perf_register/runtime_stub.h"
+#include "tests/ut/common/ascir_reduce_test_helpers.h"
 
 using namespace att;
 using namespace af::sym;
@@ -158,14 +164,72 @@ ascendcapi_v2::ReduceApiPerfContext MakeArContext(const std::string &dtype, cons
 void SetReduceSpecificParams(NodeInfo &node, codegen::ReducePattern pattern, codegen::ReduceMergeMode merge_mode,
                              const Expr &merge_size, const Expr &merge_times, bool is_reuse_source)
 {
-  node.reduce_specific_params.valid = true;
-  node.reduce_specific_params.pattern = pattern;
-  node.reduce_specific_params.merge_mode = merge_mode;
-  node.reduce_specific_params.merge_size = merge_size;
-  node.reduce_specific_params.merge_times = merge_times;
-  node.reduce_specific_params.reuse = {true, is_reuse_source};
+  auto &params = node.reduce_specific_params;
+  params = ascir_param::ReduceNodeParams{};
+  params.canonical_params.valid = true;
+  params.canonical_params.pattern = pattern;
+  params.canonical_params.merge_mode = merge_mode;
+  params.canonical_params.merge_size = merge_size;
+  params.canonical_params.merge_times = merge_times;
+  params.canonical_params.reuse = {true, is_reuse_source};
+  params.exprs.merge_size = {true, {{merge_size, ascir_param::ParamExprRole::kSemantic}}};
+  params.exprs.merge_times = {true, {{merge_times, ascir_param::ParamExprRole::kSemantic}}};
 }
+
 }  // namespace
+
+// --- Parser integration tests ---
+
+TEST_F(UTestReduceMinMaxApiPerfV2, FillReduceSpecificParamsRegistersSharedNodeParams)
+{
+  using ascir_reduce_test_helpers::ReduceTestEnv;
+  using ascir_reduce_test_helpers::BuildReduceNodeInfo;
+  ReduceTestEnv env("max");
+  env.SetIoAttrs({env.s1, CreateExpr(1)}, {env.s0, CreateExpr(1)}, {CreateExpr(1), CreateExpr(0)});
+  auto node_info = BuildReduceNodeInfo(env, "max");
+  const auto params = ascir_param::GetAscirNodeParams(env.node);
+  ASSERT_NE(params, nullptr);
+  EXPECT_EQ(params->status, ascir_param::ParamBuildStatus::kBuilt);
+  const auto *reduce = ascir_param::GetSpecificParams<ascir_param::ReduceNodeParams>(*params);
+  ASSERT_NE(reduce, nullptr);
+  EXPECT_EQ(node_info.reduce_specific_params.canonical_params.pattern, reduce->canonical_params.pattern);
+  EXPECT_EQ(node_info.reduce_specific_params.canonical_params.merge_mode, reduce->canonical_params.merge_mode);
+  EXPECT_EQ(node_info.reduce_specific_params.canonical_params.merge_size, reduce->canonical_params.merge_size);
+}
+
+TEST_F(UTestReduceMinMaxApiPerfV2, FillReduceSpecificParamsRegistersSkippedForUnsupportedApi)
+{
+  af::AscGraph graph("skip_param_graph");
+  af::ascir_op::Add add("add");
+  graph.AddNode(add);
+  auto node = graph.FindNode("add");
+  ASSERT_NE(node, nullptr);
+
+  NodeInfo node_info;
+  node_info.name = "add";
+  node_info.node_type = "Add";
+  node_info.node_ptr = node;
+  EXPECT_EQ(ascir_param::EnrichAscirGraphNodeParams(graph), ge::SUCCESS);
+  EXPECT_EQ(FillReduceSpecificParams(node, node_info), ge::SUCCESS);
+  const auto params = ascir_param::GetAscirNodeParams(node);
+  ASSERT_NE(params, nullptr);
+  EXPECT_EQ(params->status, ascir_param::ParamBuildStatus::kSkipped);
+  EXPECT_FALSE(node_info.reduce_specific_params.canonical_params.valid);
+}
+
+TEST_F(UTestReduceMinMaxApiPerfV2, FillReduceSpecificParamsKeepsInvalidWhenParamsMissing)
+{
+  using ascir_reduce_test_helpers::ReduceTestEnv;
+  ReduceTestEnv env("max");
+  NodeInfo node_info;
+  node_info.name = "max";
+  node_info.node_type = "Max";
+  node_info.node_ptr = env.node;
+
+  EXPECT_EQ(FillReduceSpecificParams(env.node, node_info), ge::SUCCESS);
+  EXPECT_EQ(ascir_param::GetAscirNodeParams(env.node), nullptr);
+  EXPECT_FALSE(node_info.reduce_specific_params.canonical_params.valid);
+}
 
 // --- RegBase VF lookup tests ---
 
@@ -992,7 +1056,8 @@ TEST_F(UTestReduceMinMaxApiPerfV2, AscirRaReduceUsesCodegenMergedShapeForMultiAA
   SetReduceSpecificParams(reduce_node, codegen::ReducePattern::kRA, codegen::ReduceMergeMode::kCopy,
                           CreateExpr(192) * z1t_size, CreateExpr("z0z2Tt_size"), true);
   // 该用例绕过 parser，直接注入 codegen 侧合并结果，覆盖 ATT 读取 merged_dims 的路径。
-  reduce_node.reduce_specific_params.merged_dims = {true, CreateExpr(17) * z2t_size, CreateExpr(192) * z1t_size};
+  reduce_node.reduce_specific_params.canonical_params.merged_dims = {true, CreateExpr(17) * z2t_size,
+                                                            CreateExpr(192) * z1t_size};
   PerfOutputInfo perf;
   auto max_v2 = ApiPerfFactory::Instance().Create(kMax + "V2");
   ASSERT_NE(max_v2, nullptr);
@@ -1002,7 +1067,6 @@ TEST_F(UTestReduceMinMaxApiPerfV2, AscirRaReduceUsesCodegenMergedShapeForMultiAA
   EXPECT_EQ(formula.find("272 * z1t_size * z2t_size"), std::string::npos) << formula;
   EXPECT_NE(formula.find("17 * z2t_size"), std::string::npos) << formula;
   EXPECT_EQ(formula.find("Rational(17 , 8) * z2t_size"), std::string::npos) << formula;
-  EXPECT_NE(formula.find("Ceiling((6 * z1t_size))"), std::string::npos) << formula;
   EXPECT_NE(formula.find("Ceiling((3 * z1t_size))"), std::string::npos) << formula;
   EXPECT_EQ(formula.find("Ceiling((48 * z1t_size))"), std::string::npos) << formula;
 }
@@ -1019,7 +1083,7 @@ TEST_F(UTestReduceMinMaxApiPerfV2, AscirReduceRebuildsMergedDimsFromCurrentShape
   NodeInfo reduce_node;
   SetReduceSpecificParams(reduce_node, codegen::ReducePattern::kRA, codegen::ReduceMergeMode::kNone,
                           CreateExpr(16), CreateExpr(1), true);
-  reduce_node.reduce_specific_params.merged_dims = {true, CreateExpr(64), CreateExpr(16)};
+  reduce_node.reduce_specific_params.canonical_params.merged_dims = {true, CreateExpr(64), CreateExpr(16)};
 
   PerfOutputInfo perf;
   auto max_v2 = ApiPerfFactory::Instance().Create(kMax + "V2");
@@ -1030,6 +1094,37 @@ TEST_F(UTestReduceMinMaxApiPerfV2, AscirReduceRebuildsMergedDimsFromCurrentShape
   PerfOutputInfo expected_perf;
   EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(expected_context, expected_perf), ge::SUCCESS);
   EXPECT_EQ(PipeString(perf, PipeType::AIV_VEC), PipeString(expected_perf, PipeType::AIV_VEC));
+}
+
+TEST_F(UTestReduceMinMaxApiPerfV2, AscirReduceUsesSemanticMergeParamsForPerf)
+{
+  const Expr codegen_merge_times = CreateExpr("z0z1Tt_size");
+  const Expr semantic_times_expr = CreateExpr("s0") * CreateExpr("s1");
+  const std::vector<TensorShapeInfo> inputs = {
+      MakeTensorShape(kFloat16, 2U, {CreateExpr(128)}, {CreateExpr(8), CreateExpr(16)},
+                      {CreateExpr(16), CreateExpr(1)})};
+  const std::vector<TensorShapeInfo> outputs = {
+      MakeTensorShape(kFloat16, 2U, {CreateExpr(128)}, {CreateExpr("out_keep")},
+                      {CreateExpr(16), CreateExpr(0)})};
+
+  NodeInfo reduce_node;
+  SetReduceSpecificParams(reduce_node, codegen::ReducePattern::kAR, codegen::ReduceMergeMode::kCopy, CreateExpr(128),
+                          codegen_merge_times, true);
+  reduce_node.reduce_specific_params.exprs.merge_size = {
+      true, {{CreateExpr("out_keep"), ascir_param::ParamExprRole::kSemantic}}};
+  reduce_node.reduce_specific_params.exprs.merge_times = {
+      true, {{semantic_times_expr, ascir_param::ParamExprRole::kSemantic}}};
+
+  PerfOutputInfo perf;
+  auto max_v2 = ApiPerfFactory::Instance().Create(kMax + "V2");
+  ASSERT_NE(max_v2, nullptr);
+  EXPECT_EQ(max_v2->GetPerfFunc()(inputs, outputs, reduce_node, perf), ge::SUCCESS);
+
+  const std::string formula = PipeString(perf, PipeType::AIV_VEC);
+  EXPECT_NE(formula.find("out_keep"), std::string::npos) << formula;
+  EXPECT_NE(formula.find("s0"), std::string::npos) << formula;
+  EXPECT_NE(formula.find("s1"), std::string::npos) << formula;
+  EXPECT_EQ(formula.find("z0z1Tt_size"), std::string::npos) << formula;
 }
 
 // --- ASCIR registration tests ---

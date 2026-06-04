@@ -13,7 +13,7 @@
 template <typename T>
 inline __aicore__ void AxpyExtend(const AscendC::LocalTensor<T> &dst, const AscendC::LocalTensor<T> &src_0,
                                   const AscendC::LocalTensor<T> &src_1, const float alpha,
-                                  const uint32_t count, const AscendC::LocalTensor<uint8_t> &tmp_buf) {
+                                  const AscendC::LocalTensor<uint8_t> &tmp_buf, const uint32_t count) {
 
     if constexpr (AscendC::IsSameType<T, half>::value) {
       // T如果是half类型，需要把tmp_buf分成2份

@@ -124,7 +124,7 @@ TEST(CodegenKernel, TrueDivExtendWhenInputIsFLOAT) {
   std::string result;
   call.Generate(tpipe, vector<af::AxisId>{}, result);
   EXPECT_EQ(result, std::string{
-    "TrueDivExtend<float, float>(local_2[0], local_0[0], local_1[0], local_0_actual_size, tmp_buf_0);\n"
+    "TrueDivExtend<float, float>(local_2[0], local_0[0], local_1[0], tmp_buf_0, local_0_actual_size);\n"
   });
 }
 
@@ -223,7 +223,7 @@ TEST(CodegenKernel, TrueDivExtendWhenInputIsINT32) {
   std::string result;
   call.Generate(tpipe, vector<af::AxisId>{}, result);
   EXPECT_EQ(result, std::string{
-    "TrueDivExtend<int32_t, float>(local_2[0], local_0[0], local_1[0], local_0_actual_size, tmp_buf_0);\n"
+    "TrueDivExtend<int32_t, float>(local_2[0], local_0[0], local_1[0], tmp_buf_0, local_0_actual_size);\n"
   });
 }
 
@@ -308,7 +308,7 @@ TEST(CodegenKernel, TrueDivExtendsWhenInputIsFLOAT) {
   std::string result;
   call.Generate(tpipe, vector<af::AxisId>{}, result);
   EXPECT_EQ(result, std::string{
-    "TrueDivExtends<float, float, false>(local_2[0], local_0[0], (float)1.0, local_0_actual_size, tmp_buf_0);\n"
+    "TrueDivExtends<float, float, false>(local_2[0], local_0[0], (float)1.0, tmp_buf_0, local_0_actual_size);\n"
   });
 }
 
@@ -394,7 +394,7 @@ TEST(CodegenKernel, TrueDivExtendsWhenInputIsINT32) {
   std::string result;
   call.Generate(tpipe, vector<af::AxisId>{}, result);
   EXPECT_EQ(result, std::string{
-    "TrueDivExtends<int32_t, float, false>(local_2[0], local_0[0], (int32_t)1, local_0_actual_size, tmp_buf_0);\n"
+    "TrueDivExtends<int32_t, float, false>(local_2[0], local_0[0], (int32_t)1, tmp_buf_0, local_0_actual_size);\n"
   });
 }
 

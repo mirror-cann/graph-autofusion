@@ -45,7 +45,7 @@ class TestApiPowUT : public testing::Test {
 
     GmToUb(l_x1, param.x1, param.size);
     GmToUb(l_x2, param.x2, param.size);
-    Pow(l_y, l_x1, l_x2, param.size, l_tmp);
+    Pow(l_y, l_x1, l_x2, l_tmp, param.size);
     UbToGm(param.y, l_y, param.size);
   }
 

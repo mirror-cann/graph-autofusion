@@ -70,7 +70,7 @@ static inline bool SaveGroupCache(const std::array<uint32_t, kInputShapeSize>& k
                                    const TilingDataCopy& data,
                                    GroupLevelCache &group_level_cache) {
   bool success = group_level_cache.Insert(key, data);
-  OP_LOGI(OP_NAME, "[Group Cache] SAVE %s: key=[%s], tiling_key=%u\n",
+  OP_LOGI(OP_NAME, "[Group Cache] SAVE %s: key=[%s], tiling_key=%u",
          success ? "SUCCESS" : "FAILED", [&key]()->std::string {
            std::string out;
            for (auto axis : key) {

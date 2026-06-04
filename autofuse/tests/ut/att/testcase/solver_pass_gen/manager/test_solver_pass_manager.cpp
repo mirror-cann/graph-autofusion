@@ -93,3 +93,15 @@ TEST_F(TestSolverPassManager, case0) {
   EXPECT_NE(impl_code, "");
   EXPECT_NE(invoke_code, "");
 }
+
+TEST_F(TestSolverPassManager, AxesReorderInputKeepsOriginalShape) {
+  ModelInfo model_info = CreateModelInfo();
+  ArgsManager args_manager(model_info);
+  ASSERT_TRUE(args_manager.Process(false));
+
+  att::SolverPassManager manager(args_manager, {0}, "TilingData");
+  std::string impl_code = manager.GenAxesReorderFunc("").first;
+
+  EXPECT_NE(impl_code.find("m_size.value = tiling_data.get_m_size();"), std::string::npos);
+  EXPECT_EQ(impl_code.find("m_size.value = (tiling_data.get_m_size()"), std::string::npos);
+}

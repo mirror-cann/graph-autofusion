@@ -63,16 +63,29 @@ Status ReorderInputStrideByOutputAxisOrder(const Tensor &x, const Tensor &y,
   return ge::SUCCESS;
 }
 
-void BuildTransposeLoopParams(const TPipe &tpipe, TransposeSpecificParams &transpose_specific_params,
+void BuildTransposeLoopParams(TransposeSpecificParams &transpose_specific_params,
                               std::vector<ascir::SizeExpr> &out_vectorized_repeats,
                               std::vector<ascir::SizeExpr> &reordered_in_vectorized_strides,
                               std::vector<ascir::SizeExpr> &out_vectorized_strides,
                               uint32_t transpose_total_axis_num) {
   for (size_t i = out_vectorized_repeats.size() - transpose_total_axis_num; i < out_vectorized_repeats.size(); i++) {
-    transpose_specific_params.output_dims.emplace_back(tpipe.tiler.ActualSize(out_vectorized_repeats[i]));
-    transpose_specific_params.input_strides.emplace_back(tpipe.tiler.ActualSize(reordered_in_vectorized_strides[i]));
-    transpose_specific_params.output_strides.emplace_back(tpipe.tiler.Size(out_vectorized_strides[i]));
+    transpose_specific_params.output_dims.emplace_back(
+        CombinedExpression(ExprItemFactory::ActualSize(out_vectorized_repeats[i])));
+    transpose_specific_params.input_strides.emplace_back(
+        CombinedExpression(ExprItemFactory::ActualSize(reordered_in_vectorized_strides[i])));
+    transpose_specific_params.output_strides.emplace_back(
+        CombinedExpression(ExprItemFactory::Size(out_vectorized_strides[i])));
   }
+}
+
+// 构建带循环偏移的 inner_offset 表达式（简化表达式合并操作）
+CombinedExpression BuildInnerOffsetWithLoopOffset(const std::string& base_offset,
+                                                   const std::vector<ascir::SizeExpr>& loop_strides) {
+  CombinedExpression inner_offset = CombinedExpression(
+      ExprItemFactory::Direct(ge::Symbol(base_offset.c_str())));
+  CombinedExpression loop_offset = CalcInnerOffsetExpr(loop_strides);
+  inner_offset.AddExpression(loop_offset, "+");
+  return inner_offset;
 }
 
 Status TransposeRegApiCall::BuildApiParam(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
@@ -91,8 +104,11 @@ Status TransposeRegApiCall::BuildApiParam(const TPipe &tpipe, const std::vector<
   api_param->template_params.emplace_back(std::to_string(transpose_total_axis_num));
   std::vector<ascir::SizeExpr> reordered_in_vectorized_strides;
   GE_CHK_STATUS_RET(ReorderInputStrideByOutputAxisOrder(x, y, reordered_in_vectorized_strides));
-  std::string input_inner_offset = tpipe.tiler.TensorVectorizedOffset(current_axis, x);
-  std::string output_inner_offset = tpipe.tiler.TensorVectorizedOffset(current_axis, y);
+  // 构建 inner_offset 表达式
+  CombinedExpression input_inner_offset = CombinedExpression(
+      ExprItemFactory::Direct(ge::Symbol(tpipe.tiler.TensorVectorizedOffset(current_axis, x).c_str())));
+  CombinedExpression output_inner_offset = CombinedExpression(
+      ExprItemFactory::Direct(ge::Symbol(tpipe.tiler.TensorVectorizedOffset(current_axis, y).c_str())));
   if (transpose_total_axis_num > 4U) {
     std::vector<ascir::SizeExpr> input_loop_stride(reordered_in_vectorized_strides.begin(),
                                                    reordered_in_vectorized_strides.end() - transpose_total_axis_num);
@@ -100,10 +116,12 @@ Status TransposeRegApiCall::BuildApiParam(const TPipe &tpipe, const std::vector<
                                                     y.vectorized_strides.end() - transpose_total_axis_num);
     std::vector<ascir::SizeExpr> out_loop_repeats(out_vectorized_repeats.begin(),
                                                   out_vectorized_repeats.end() - transpose_total_axis_num);
-    input_inner_offset = input_inner_offset + "+" + CalcInnerOffset(tpipe, input_loop_stride);
-    output_inner_offset = output_inner_offset + "+" + CalcInnerOffset(tpipe, output_loop_stride);
+    // 使用辅助函数简化表达式合并
+    input_inner_offset.AddExpression(CalcInnerOffsetExpr(input_loop_stride), "+");
+    output_inner_offset.AddExpression(CalcInnerOffsetExpr(output_loop_stride), "+");
     for (const auto& repeat : out_loop_repeats) {
-      api_param->outer_loop_axes.emplace_back(tpipe.tiler.ActualSize(repeat));
+      api_param->outer_loop_axes.emplace_back(
+          CombinedExpression(ExprItemFactory::ActualSize(repeat)));
     }
   }
   api_param->input_params.emplace_back(x.Str(), true, input_inner_offset);
@@ -117,7 +135,7 @@ Status TransposeRegApiCall::BuildApiParam(const TPipe &tpipe, const std::vector<
   api_param->tmp_buf_name = tpipe.tmp_buf.name + "_" + std::to_string(id);
 
   TransposeSpecificParams transpose_specific_params;
-  BuildTransposeLoopParams(tpipe, transpose_specific_params, out_vectorized_repeats, reordered_in_vectorized_strides,
+  BuildTransposeLoopParams(transpose_specific_params, out_vectorized_repeats, reordered_in_vectorized_strides,
                            y.vectorized_strides, transpose_total_axis_num);
   api_param->specific_params = transpose_specific_params;
 
@@ -125,7 +143,8 @@ Status TransposeRegApiCall::BuildApiParam(const TPipe &tpipe, const std::vector<
   return ge::SUCCESS;
 }
 
-Status GenTransposeDimParam(const CodegenApiParam &api_param, std::string graph_name, std::string node_name,
+Status GenTransposeDimParam(const CodegenApiParam &api_param, const Tiler& tiler,
+                            std::string graph_name, std::string node_name,
                             std::string dtype_name, std::stringstream &ss) {
   auto* transpose_params = std::get_if<TransposeSpecificParams>(&api_param.specific_params);
   GE_ASSERT_NOTNULL(transpose_params, "transpose_params is null, graph name: %s, node name: %s", graph_name.c_str(),
@@ -135,7 +154,7 @@ Status GenTransposeDimParam(const CodegenApiParam &api_param, std::string graph_
     if (i != 0) {
       ss << ", ";
     }
-    ss << "static_cast<" << dtype_name << ">(" << transpose_params->output_dims[i] << ")";
+    ss << "static_cast<" << dtype_name << ">(" << transpose_params->output_dims[i].ToStr(tiler) << ")";
   }
   ss << "}, ";
 
@@ -144,7 +163,7 @@ Status GenTransposeDimParam(const CodegenApiParam &api_param, std::string graph_
     if (i != 0) {
       ss << ", ";
     }
-    ss << "static_cast<" << dtype_name << ">(" << transpose_params->input_strides[i] << ")";
+    ss << "static_cast<" << dtype_name << ">(" << transpose_params->input_strides[i].ToStr(tiler) << ")";
   }
   ss << "}, ";
 
@@ -153,18 +172,18 @@ Status GenTransposeDimParam(const CodegenApiParam &api_param, std::string graph_
     if (i != 0) {
       ss << ", ";
     }
-    ss << "static_cast<" << dtype_name << ">(" << transpose_params->output_strides[i] << ")";
+    ss << "static_cast<" << dtype_name << ">(" << transpose_params->output_strides[i].ToStr(tiler) << ")";
   }
   ss << "}";
   ss << ");" << std::endl;
   return ge::SUCCESS;
 }
 
-Status TransposeRegApiCall::GenDimensionParam(const CodegenApiParam &api_param, std::stringstream &ss) const {
+Status TransposeRegApiCall::GenDimensionParam(const CodegenApiParam &api_param, const Tiler &tiler, std::stringstream &ss) const {
   auto data_type_size = GetSizeByDataType(node->outputs[0].attr.dtype);
   GE_ASSERT_TRUE(data_type_size > 0);
   std::string dtype_name = static_cast<uint32_t>(data_type_size) <= sizeof(int16_t) ? "int16_t" : "int32_t";
-  return GenTransposeDimParam(api_param, graph_name, node_name, dtype_name, ss);
+  return GenTransposeDimParam(api_param, tiler, graph_name, node_name, dtype_name, ss);
 }
 
 static ApiCallRegister<TransposeRegApiCall> register_transpose_api_call("TransposeRegApiCall");

@@ -10,7 +10,9 @@
 #ifndef __AUTOFUSE_REDUCE_API_CALL_BASE_H__
 #define __AUTOFUSE_REDUCE_API_CALL_BASE_H__
 
+#include <map>
 #include <sstream>
+#include <string>
 #include "codegen_kernel.h"
 
 namespace reduce_base {
@@ -29,6 +31,17 @@ struct ReduceOpType {
   static constexpr int32_t kArgMaxMultiRPhase2 = 9;
 };
 
+struct ReduceCodegenShadowCheckInput {
+  af::AscNodePtr node;
+  std::string api_name;
+  const TPipe *tpipe{nullptr};
+  const Tensor *input{nullptr};
+  const Tensor *output{nullptr};
+  ascir::AxisId axis_id{-1};
+  bool has_reuse{false};
+  bool is_reuse_source{false};
+};
+
 static std::map<std::string, std::pair<int, std::string>> reduce_type_map = {
   {"Min", {ReduceOpType::kMin, "Min"}},  {"Max", {ReduceOpType::kMax, "Max"}},
   {"ArgMax", {ReduceOpType::kMax, "Max"}},
@@ -40,6 +53,7 @@ static std::map<std::string, std::pair<int, std::string>> reduce_type_map = {
 };
 
 void GetIsArAndPattern(const Tensor &y, bool &isAr, std::string &reduce_pattern);
+void CheckReduceSpecificParamsForCodegen(const ReduceCodegenShadowCheckInput &input);
 void ReduceMergedSizeCodeGen(const TPipe &tpipe, std::stringstream &ss, const Tensor &src, const Tensor &dst,
                              bool is_tail = false);
 bool IsNeedMultiReduce(const Tiler &tiler, const Tensor &input, const Tensor &output, ascir::AxisId axis_id);

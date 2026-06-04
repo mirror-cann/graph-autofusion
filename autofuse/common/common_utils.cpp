@@ -44,6 +44,9 @@ std::string SubStringReplace(std::string& ori, const std::string& from, const st
   std::size_t pos = 0U;
   std::string result;
 
+  if (from.empty()) {
+    return ori;
+  }
   while ((pos = ori.find(from, pos)) != std::string::npos) {
     result.append(ori, 0, pos);
     result.append(to);

@@ -650,6 +650,28 @@ TEST_F(CommonUtilsTest, GetAscIrAttImplNotNullTest) {
   EXPECT_EQ((uint64_t)(uintptr_t)(att_impl->GetApiPerf()), 0x123456);
 }
 
+// 测试 SubStringReplace 空 from 参数不导致无限循环
+TEST_F(CommonUtilsTest, SubStringReplaceEmptyFromNoInfiniteLoop) {
+  std::string ori = "hello";
+  std::string result = ascgen_utils::SubStringReplace(ori, "", "x");
+  EXPECT_EQ(result, "hello");
+
+  ori = "";
+  result = ascgen_utils::SubStringReplace(ori, "", "x");
+  EXPECT_EQ(result, "");
+}
+
+// 测试 SubStringReplace 正常替换场景
+TEST_F(CommonUtilsTest, SubStringReplaceNormalReplace) {
+  std::string ori = "hello world";
+  std::string result = ascgen_utils::SubStringReplace(ori, "world", "autofusion");
+  EXPECT_EQ(result, "hello autofusion");
+
+  ori = "aaa_bbb_aaa";
+  result = ascgen_utils::SubStringReplace(ori, "aaa", "ccc");
+  EXPECT_EQ(result, "ccc_bbb_ccc");
+}
+
 TEST(CodegenApiParamReduceTest, BuildReduceSpecificParamsBuildsArSingleReduce) {
   codegen::ReduceSpecificParamBuildInput input;
   input.node_name = "reduce_max";

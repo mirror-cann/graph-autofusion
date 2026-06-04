@@ -99,6 +99,6 @@ TEST(CodegenKernel, RsqrtApiCall) {
   std::string result;
   call.Generate(tpipe, current_axis, result);
   EXPECT_EQ(result, std::string{
-                        "RsqrtExtend(local_1[0], local_0[0], local_blk_tensor_of_float_1, local_0_actual_size, tmp_buf_0);\n"
+                        "RsqrtExtend(local_1[0], local_0[0], local_blk_tensor_of_float_1, tmp_buf_0, local_0_actual_size);\n"
                     });
 }

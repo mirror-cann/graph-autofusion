@@ -12,6 +12,7 @@
 #define __AUTOFUSE_API_CALL_UTILS_H__
 
 #include "codegen_kernel.h"
+#include "codegen/expression_convert_struct.h"
 
 namespace codegen {
 
@@ -29,6 +30,43 @@ struct DmaParams {
   std::string dst_stride = "0";
   std::string gm_offset = "0";
   std::string ub_offset = "0";
+};
+
+// DmaParams 表达式版本 - 使用 CombinedExpression 替代 std::string
+struct DmaParamsExpr {
+  CombinedExpression block_count = CombinedExprFactory::Constant(1);
+  CombinedExpression block_len = CombinedExprFactory::Constant(1);  // 这里的单位是数字个数，在DataCopyExtend中会转换成字节数
+  CombinedExpression src_stride = CombinedExprFactory::Constant(0);
+  CombinedExpression dst_stride = CombinedExprFactory::Constant(0);
+  CombinedExpression gm_offset = CombinedExprFactory::Constant(0);
+  CombinedExpression ub_offset = CombinedExprFactory::Constant(0);
+
+  // 辅助方法：转换为字符串（需要 tiler）
+  std::string ToStr(const Tiler& tiler) const {
+    std::stringstream ss;
+    ss << block_count.ToStr(tiler) << ", "
+       << block_len.ToStr(tiler) << ", "
+       << src_stride.ToStr(tiler) << ", "
+       << dst_stride.ToStr(tiler);
+    return ss.str();
+  }
+
+  // 辅助方法：生成带 offset 的调用参数
+  std::string ToStrWithOffset(const Tiler& tiler, bool copy_in, const std::string& src_name, const std::string& dst_name) const {
+    std::stringstream ss;
+    if (copy_in) {
+      ss << dst_name << "[" << ub_offset.ToStr(tiler) << "], "
+         << src_name << "[" << gm_offset.ToStr(tiler) << "], ";
+    } else {
+      ss << dst_name << "[" << gm_offset.ToStr(tiler) << "], "
+         << src_name << "[" << ub_offset.ToStr(tiler) << "], ";
+    }
+    ss << block_count.ToStr(tiler) << ", "
+       << block_len.ToStr(tiler) << ", "
+       << src_stride.ToStr(tiler) << ", "
+       << dst_stride.ToStr(tiler);
+    return ss.str();
+  }
 };
 
 struct AxisInfo {
@@ -70,12 +108,15 @@ bool CalculateDmaParams(const TPipe &tpipe, const Tensor &gm_tensor, const Tenso
                         bool multi_axis_copy = false);
 void SetDmaParams(const TPipe &tpipe, const DataCopyParams &data_copy_param, DmaParams &dma_param, bool copy_in,
                   bool need_swap = false);
+void SetDmaParamsExpr(const TPipe &tpipe, const DataCopyParams &data_copy_param, DmaParamsExpr &dma_param, bool copy_in,
+                      bool need_swap = false);
 void CreateDmaCall(const TPipe &tpipe, const Tensor &input, const Tensor &output, const string &gm_offset,
                    const DataCopyParams &param, const ascir::SizeExpr &offset, std::stringstream &ss, bool copy_in);
 void CreateOuterFor(const TPipe &tpipe, const std::vector<ascir::SizeExpr> &outer_repeats, const std::stringstream &ss1,
                     std::stringstream &ss, size_t cur_idx);
 void GetOneAxisSize(const TPipe &tpipe, const Tensor &tensor, const uint32_t idx, std::stringstream &ss);
 std::string CalcInnerOffset(const TPipe &tpipe, const std::vector<ascir::SizeExpr> &strides);
+CombinedExpression CalcInnerOffsetExpr(const std::vector<ascir::SizeExpr> &strides);
 void CreateComputeNodeOuterFor(const std::vector<std::string> &outer_repeats, const std::stringstream &ss1,
                                std::stringstream &ss, size_t cur_idx);
 bool GenerateVectorizedAxisMergeStatus(const std::vector<Tensor> &inputs, const std::vector<Tensor> &outputs,

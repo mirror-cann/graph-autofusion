@@ -23,6 +23,7 @@ from typing import List
 PYF_PATH = os.path.dirname(os.path.realpath(__file__))
 ASCEND_PATH = os.path.join(PYF_PATH, "..", "..", "..")
 machine = platform.machine()
+HOST_LINK_LIBRARIES = ["graph_base"]
 if not os.path.exists(ASCEND_PATH):
     ASCEND_PATH = os.getenv("ASCEND_HOME_PATH", ASCEND_PATH)
 
@@ -54,10 +55,13 @@ def run_compile_command(cmd: List[str], stage_name):
         print(f"[{stage_name}] {result.stdout}")
 
 
-def link_shared(target_file, obj_files):
+def link_shared(target_file, obj_files, link_libraries=None):
     link_command = [f"{ASCEND_PATH}/tools/bisheng_compiler/bin/bisheng"]
     link_command.extend(obj_files)
     link_command.extend(["-fPIC", "--shared", "-o", target_file])
+    if link_libraries:
+        link_command.extend(["-L", f"{ASCEND_PATH}/{machine}-linux/lib64"])
+        link_command.extend([f"-l{link_library}" for link_library in link_libraries])
     run_compile_command(link_command, "LinkObj")
     return target_file
 
@@ -104,7 +108,8 @@ def build_device_so(args: argparse.Namespace, host_obj_path, temp_dir):
     obj_files = [device_obj_path]
     if host_obj_path is not None:
         obj_files.insert(0, host_obj_path)
-    return link_shared(target_file, obj_files)
+    link_libraries = HOST_LINK_LIBRARIES if host_obj_path is not None else None
+    return link_shared(target_file, obj_files, link_libraries=link_libraries)
 
 
 def clean_before_modify(temp_dir):
@@ -191,7 +196,7 @@ def link_host_target(args, temp_dir):
     # 处理 host 编译阶段
     host_obj_path = compile_host_obj(args, temp_dir)
     so_file = args.host_files.replace('.cpp', '.so')
-    link_shared(so_file, [host_obj_path])
+    link_shared(so_file, [host_obj_path], link_libraries=HOST_LINK_LIBRARIES)
     return so_file
 
 

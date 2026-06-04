@@ -13,8 +13,8 @@
 
 template <typename T, typename U>
 inline __aicore__ void TrueDivExtend(const AscendC::LocalTensor<U> &dst, const AscendC::LocalTensor<T> &src1,
-                                     const AscendC::LocalTensor<T> &src2, const uint32_t size,
-                                     AscendC::LocalTensor<uint8_t> &tmp_buf) {
+                                     const AscendC::LocalTensor<T> &src2,
+                                     AscendC::LocalTensor<uint8_t> &tmp_buf, const uint32_t size) {
   static_assert(std::is_same<T, int32_t>::value || std::is_same<T, float>::value || std::is_same<T, half>::value,
               "Unsupported data type for TrueDivExtend");
   if constexpr (AscendC::IsSameType<T, int32_t>::value) {
@@ -36,7 +36,7 @@ inline __aicore__ void TrueDivExtend(const AscendC::LocalTensor<U> &dst, const A
 
 template <typename T, typename U, bool IS_SCALAR_LATTER = true>
 inline __aicore__ void TrueDivExtends(const LocalTensor<U> &dst, const LocalTensor<T> &src, const T constant_x,
-                            const uint32_t size, LocalTensor<uint8_t> &tmp_buf) {
+                            LocalTensor<uint8_t> &tmp_buf, const uint32_t size) {
   static_assert(std::is_same<T, int32_t>::value || std::is_same<T, float>::value || std::is_same<T, half>::value,
               "Unsupported data type for TrueDivExtend");
   if constexpr (AscendC::IsSameType<T, int32_t>::value) {
@@ -48,9 +48,9 @@ inline __aicore__ void TrueDivExtends(const LocalTensor<U> &dst, const LocalTens
 
     AscendC::Cast(cast_src, src, AscendC::RoundMode::CAST_RINT, size);
     AscendC::PipeBarrier<PIPE_V>();
-    Divs<U, IS_SCALAR_LATTER>(dst, cast_src, static_cast<U>(constant_x), size, left_tmp_buf);
+    Divs<U, IS_SCALAR_LATTER>(dst, cast_src, static_cast<U>(constant_x), left_tmp_buf, size);
   } else {
-    Divs<T, IS_SCALAR_LATTER>(dst, src, constant_x, size, tmp_buf);
+    Divs<T, IS_SCALAR_LATTER>(dst, src, constant_x, tmp_buf, size);
   }
 }
 

@@ -20,7 +20,7 @@ class TransposeRegApiCall final : public ApiCall {
   Status BuildApiParam(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
                        const std::vector<std::reference_wrapper<const Tensor>> &inputs,
                        const std::vector<std::reference_wrapper<const Tensor>> &outputs) const override;
-  Status GenDimensionParam(const CodegenApiParam &api_param, std::stringstream &ss) const override;
+  Status GenDimensionParam(const CodegenApiParam &api_param, const Tiler &tiler, std::stringstream &ss) const override;
 };
 }
 #endif // __AUTOFUSE_TRANSPOSE_API_CALL_H__

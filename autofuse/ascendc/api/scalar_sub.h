@@ -13,7 +13,7 @@
 
 template <typename T, bool IS_SCALAR_LATTER = true>
 inline __aicore__ void Subs(const LocalTensor<T> &dst, const LocalTensor<T> &src, const T constant_x,
-                            const uint32_t calc_cnt, LocalTensor<uint8_t> &tmp_buf) {
+                            LocalTensor<uint8_t> &tmp_buf, const uint32_t calc_cnt) {
   LocalTensor<T> tmp = tmp_buf.template ReinterpretCast<T>();
 
   uint32_t calc_size = 0U;

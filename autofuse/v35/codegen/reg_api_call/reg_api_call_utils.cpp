@@ -42,6 +42,32 @@ void SetLoopModeParams(const TPipe &tpipe, const DataCopyParams &data_copy_param
   }
 }
 
+// SetLoopModeParams 表达式版本 - 输出到 LoopModeParamsExpr
+// 功能与 SetLoopModeParams 完全一致，只是输出类型不同
+void SetLoopModeParamsExpr(const DataCopyParams& data_copy_param, LoopModeParamsExpr& loop_mode_param, bool copy_in){
+  int64_t total_len = data_copy_param.repeats.size();
+  if (total_len <= static_cast<int64_t>(kDmaMaxLen)) {
+    return;
+  }
+
+  int64_t loop_idx = 0;
+  for (int64_t idx = total_len - 1 - kDmaMaxLen; idx >= 0; idx--) {
+    if (loop_idx > 1) {
+      break;
+    }
+    // loop_size: ActualSize 转换，使用赋值替换默认值
+    loop_mode_param.loop_size[loop_idx] =
+        CombinedExpression(ExprItemFactory::ActualSize(data_copy_param.repeats[idx]));
+    // loop_src_stride: Size 转换，根据 copy_in 决定来源
+    const auto& src_stride_expr = copy_in ? data_copy_param.gm_strides[idx] : data_copy_param.ub_strides[idx];
+    loop_mode_param.loop_src_stride[loop_idx] = CombinedExpression(ExprItemFactory::Size(src_stride_expr));
+    // loop_dst_stride: Size 转换，根据 copy_in 决定来源
+    const auto& dst_stride_expr = copy_in ? data_copy_param.ub_strides[idx] : data_copy_param.gm_strides[idx];
+    loop_mode_param.loop_dst_stride[loop_idx] = CombinedExpression(ExprItemFactory::Size(dst_stride_expr));
+    loop_idx++;
+  }
+}
+
 // 根据ub上最后一维的对齐信息以及切分轴信息判断，是否使用Compact模式，如果能明确判断出来，stride与repeat相同且ub切分轴是首轴，则使用compact模式，否则使用normal模式
 std::string GetPaddingMode(const TPipe &tpipe, const Tensor &ub_tensor, const DataCopyParams &data_copy_param) {
   for (auto axis_pos : ub_tensor.vectorized_axis_pos) {
@@ -201,13 +227,14 @@ void CreateNddmaCall(const TPipe &tpipe, const Tensor &input, const Tensor &outp
 void BuildDataCopyApiParamInCVFusion(CodegenApiParam &api_param, DmaSpecificParams &dma_specific_params,
                                      const Tensor &gm, const Tensor &ub, std::string &dtype_name, bool copy_in) {
   api_param.template_params.emplace_back("AscendC::PaddingMode::Normal");
-  dma_specific_params.data_copy_params.block_count = "curAivM";
+  dma_specific_params.data_copy_params.valid = true;  // 标记数据有效
+  dma_specific_params.data_copy_params.block_count = CombinedExprFactory::SymbolVar("curAivM");
   if (copy_in) {
-    api_param.input_params.emplace_back(gm.Str(), true, "offset");
-    api_param.output_params.emplace_back(ub.Str(), true, "0");
-    dma_specific_params.data_copy_params.block_len = "load_block_len";
-    dma_specific_params.data_copy_params.src_stride = "load_src_stride";
-    dma_specific_params.data_copy_params.dst_stride = "load_dst_stride";
+    api_param.input_params.emplace_back(gm.Str(), true, CombinedExprFactory::SymbolVar("offset"));
+    api_param.output_params.emplace_back(ub.Str(), true, CombinedExprFactory::Constant(0));
+    dma_specific_params.data_copy_params.block_len = CombinedExprFactory::SymbolVar("load_block_len");
+    dma_specific_params.data_copy_params.src_stride = CombinedExprFactory::SymbolVar("load_src_stride");
+    dma_specific_params.data_copy_params.dst_stride = CombinedExprFactory::SymbolVar("load_dst_stride");
     int dtype_size = GetSizeByDataType(gm.dtype);
     if (dtype_size == 1 || dtype_size == 2 || dtype_size == 4) {
       // LoadAlign仅支持字节大小为1、2、4的数据类型，否则GatherMask编译错误。
@@ -226,40 +253,51 @@ void BuildDataCopyApiParamInCVFusion(CodegenApiParam &api_param, DmaSpecificPara
       api_param.api_post_process.emplace_back(ss.str());
     }
   } else {
-    api_param.output_params.emplace_back(gm.Str(), true, "offset");
-    api_param.input_params.emplace_back(ub.Str(), true, "0");
-    dma_specific_params.data_copy_params.block_len = "curAivN";
-    dma_specific_params.data_copy_params.src_stride = "0";
-    dma_specific_params.data_copy_params.dst_stride = "(shapeN - curAivN)";
+    api_param.output_params.emplace_back(gm.Str(), true, CombinedExprFactory::SymbolVar("offset"));
+    api_param.input_params.emplace_back(ub.Str(), true, CombinedExprFactory::Constant(0));
+    dma_specific_params.data_copy_params.block_len = CombinedExprFactory::SymbolVar("curAivN");
+    dma_specific_params.data_copy_params.src_stride = CombinedExprFactory::Constant(0);
+    // dst_stride = shapeN - curAivN
+    dma_specific_params.data_copy_params.dst_stride = CombinedExpression(
+        ExprItemFactory::SymbolVar("shapeN"),
+        ExprItemFactory::SymbolVar("curAivN"),
+        "-");
   }
 }
 
 void BuildDataCopyBaseParams(const TPipe &tpipe, DataCopyParams &data_copy_param,
                              DmaSpecificParams &dma_specific_params, bool copy_in) {
-  DmaParams dma_param;
-  SetDmaParams(tpipe, data_copy_param, dma_param, copy_in);
+  DmaParamsExpr dma_param;
+  SetDmaParamsExpr(tpipe, data_copy_param, dma_param, copy_in);
+  dma_specific_params.data_copy_params.valid = true;  // 标记数据有效
   dma_specific_params.data_copy_params.block_count = dma_param.block_count;
   dma_specific_params.data_copy_params.block_len = dma_param.block_len;
   dma_specific_params.data_copy_params.src_stride = dma_param.src_stride;
   dma_specific_params.data_copy_params.dst_stride = dma_param.dst_stride;
 }
 
-void BuildDataCopyLoopModeParams(const TPipe &tpipe, DataCopyParams &data_copy_param,
-                                 DmaSpecificParams &dma_specific_params, int64_t dtype_size, bool copy_in) {
-  LoopModeParams loop_mode_param;
-  SetLoopModeParams(tpipe, data_copy_param, loop_mode_param, copy_in);
-  dma_specific_params.loop_mode_params.loop_sizes.emplace_back("static_cast<uint32_t>(" +
-    loop_mode_param.loop_size[0] + ")");
-  dma_specific_params.loop_mode_params.loop_sizes.emplace_back("static_cast<uint32_t>(" +
-    loop_mode_param.loop_size[1] + ")");
-  dma_specific_params.loop_mode_params.loop_src_strides.emplace_back("static_cast<uint64_t>(" +
-    loop_mode_param.loop_src_stride[0] + " * " + std::to_string(dtype_size) + ")");
-  dma_specific_params.loop_mode_params.loop_src_strides.emplace_back("static_cast<uint64_t>(" +
-    loop_mode_param.loop_src_stride[1] + " * " + std::to_string(dtype_size) + ")");
-  dma_specific_params.loop_mode_params.loop_dst_strides.emplace_back("static_cast<uint64_t>(" +
-    loop_mode_param.loop_dst_stride[0] + " * " + std::to_string(dtype_size) + ")");
-  dma_specific_params.loop_mode_params.loop_dst_strides.emplace_back("static_cast<uint64_t>(" +
-    loop_mode_param.loop_dst_stride[1] + " * " + std::to_string(dtype_size) + ")");
+void BuildDataCopyLoopModeParams(DataCopyParams &data_copy_param, DmaSpecificParams &dma_specific_params,
+                                 int64_t dtype_size, bool copy_in) {
+  LoopModeParamsExpr loop_mode_param;
+  SetLoopModeParamsExpr(data_copy_param, loop_mode_param, copy_in);
+
+  dma_specific_params.loop_mode_params.valid = true;  // 标记loop mode参数有效
+
+  // loop_sizes: ActualSize + cast
+  dma_specific_params.loop_mode_params.loop_sizes.emplace_back(
+      CombinedExprFactory::ActualSizeWithCast(loop_mode_param.loop_size[0].items[0].expr));
+  dma_specific_params.loop_mode_params.loop_sizes.emplace_back(
+      CombinedExprFactory::ActualSizeWithCast(loop_mode_param.loop_size[1].items[0].expr));
+
+  // loop_strides: Size * dtype_size + cast
+  dma_specific_params.loop_mode_params.loop_src_strides.emplace_back(
+      CombinedExprFactory::SizeWithCastAndMultiplier(loop_mode_param.loop_src_stride[0].items[0].expr, dtype_size));
+  dma_specific_params.loop_mode_params.loop_src_strides.emplace_back(
+      CombinedExprFactory::SizeWithCastAndMultiplier(loop_mode_param.loop_src_stride[1].items[0].expr, dtype_size));
+  dma_specific_params.loop_mode_params.loop_dst_strides.emplace_back(
+      CombinedExprFactory::SizeWithCastAndMultiplier(loop_mode_param.loop_dst_stride[0].items[0].expr, dtype_size));
+  dma_specific_params.loop_mode_params.loop_dst_strides.emplace_back(
+      CombinedExprFactory::SizeWithCastAndMultiplier(loop_mode_param.loop_dst_stride[1].items[0].expr, dtype_size));
 }
 
 Status BuildDataCopyApiParamInNormal(const TPipe &tpipe, CodegenApiParam &api_param,
@@ -271,55 +309,78 @@ Status BuildDataCopyApiParamInNormal(const TPipe &tpipe, CodegenApiParam &api_pa
   const Tensor &ub_tensor = copy_in ? dst : src;
   std::string padding_mode = GetPaddingMode(tpipe, ub_tensor, data_copy_param);
   api_param.template_params.emplace_back(padding_mode);
-  std::string ub_offset = "0";
 
   BuildDataCopyBaseParams(tpipe, data_copy_param, dma_specific_params, copy_in);
   if (total_len > kDmaMaxLen) {
-    BuildDataCopyLoopModeParams(tpipe, data_copy_param, dma_specific_params, ge::GetSizeByDataType(src.dtype), copy_in);
+    BuildDataCopyLoopModeParams(data_copy_param, dma_specific_params, ge::GetSizeByDataType(src.dtype), copy_in);
   }
+
+  // 初始化 offset 表达式
+  CombinedExpression gm_offset_expr = CombinedExprFactory::SymbolVar(gm_offset);
+  CombinedExpression ub_offset_expr = CombinedExprFactory::Constant(0);
 
   if (total_len > kFourAxisNum) {
     // 超过四层for循环，需要外抛
+    // 提取外层的 strides 和 repeats
     std::vector<ascir::SizeExpr> gm_stride(data_copy_param.gm_strides.begin(),
                                            data_copy_param.gm_strides.end() - kFourAxisNum);
     std::vector<ascir::SizeExpr> ub_stride(data_copy_param.ub_strides.begin(),
                                            data_copy_param.ub_strides.end() - kFourAxisNum);
     std::vector<ascir::SizeExpr> repeats(data_copy_param.repeats.begin(),
                                          data_copy_param.repeats.end() - kFourAxisNum);
-    std::string gm_inner_offset = CalcInnerOffset(tpipe, gm_stride);
-    std::string ub_inner_offset = CalcInnerOffset(tpipe, ub_stride);
-    gm_offset = gm_offset + " + " + gm_inner_offset;
-    ub_offset = ub_inner_offset;
+
+    // 计算 inner offset 表达式：outer_for_0 * Size(stride0) + outer_for_1 * Size(stride1) + ...
+    CombinedExpression gm_inner_offset = CalcInnerOffsetExpr(gm_stride);
+    CombinedExpression ub_inner_offset = CalcInnerOffsetExpr(ub_stride);
+
+    // gm_offset = gm_offset + gm_inner_offset
+    gm_offset_expr.AddItem(gm_inner_offset.items[0], "+");
+    for (size_t i = 1; i < gm_inner_offset.items.size(); i++) {
+      gm_offset_expr.AddItem(gm_inner_offset.items[i], gm_inner_offset.operators[i-1]);
+    }
+
+    // ub_offset = ub_inner_offset
+    ub_offset_expr = ub_inner_offset;
+
+    // 设置外层循环的 repeats
     for (const auto& repeat : repeats) {
-      api_param.outer_loop_axes.emplace_back(tpipe.tiler.ActualSize(repeat));
+      api_param.outer_loop_axes.emplace_back(
+          CombinedExpression(ExprItemFactory::ActualSize(repeat)));
     }
   }
+
+  // 根据 copy_in 设置 input_params 和 output_params 的 offset
   if (copy_in) {
-    api_param.input_params.emplace_back(src.Str(), true, gm_offset);
-    api_param.output_params.emplace_back(dst.Str(), true, ub_offset);
+    api_param.input_params.emplace_back(src.Str(), true, gm_offset_expr);
+    api_param.output_params.emplace_back(dst.Str(), true, ub_offset_expr);
   } else {
-    api_param.input_params.emplace_back(src.Str(), true, ub_offset);
-    api_param.output_params.emplace_back(dst.Str(), true, gm_offset);
+    api_param.input_params.emplace_back(src.Str(), true, ub_offset_expr);
+    api_param.output_params.emplace_back(dst.Str(), true, gm_offset_expr);
   }
   return af::SUCCESS;
 }
 
-Status GenDataCopyDimParam(const CodegenApiParam &api_param, std::string graph_name, std::string node_name,
+Status GenDataCopyDimParam(const CodegenApiParam &api_param, const Tiler& tiler,
+                           std::string graph_name, std::string node_name,
                            std::stringstream &ss) {
   auto* dma_params = std::get_if<DmaSpecificParams>(&api_param.specific_params);
   GE_ASSERT_NOTNULL(dma_params, "dma_params is null, graph name: %s, node name: %s", graph_name.c_str(),
                     node_name.c_str());
-  ss << dma_params->data_copy_params.block_count << ", ";
-  ss << dma_params->data_copy_params.block_len << ", ";
-  ss << dma_params->data_copy_params.src_stride << ", ";
-  ss << dma_params->data_copy_params.dst_stride;
-  if (dma_params->loop_mode_params.loop_sizes.size() > 0) {
-    ss << ", " << "{" << dma_params->loop_mode_params.loop_sizes[0] << ", "
-       << dma_params->loop_mode_params.loop_sizes[1] << ", "
-       << dma_params->loop_mode_params.loop_src_strides[0] << ", "
-       << dma_params->loop_mode_params.loop_dst_strides[0] << ", "
-       << dma_params->loop_mode_params.loop_src_strides[1] << ", "
-       << dma_params->loop_mode_params.loop_dst_strides[1] << "}";
+
+  // 调用 ToStr 方法转换表达式
+  ss << dma_params->data_copy_params.block_count.ToStr(tiler) << ", ";
+  ss << dma_params->data_copy_params.block_len.ToStr(tiler) << ", ";
+  ss << dma_params->data_copy_params.src_stride.ToStr(tiler) << ", ";
+  ss << dma_params->data_copy_params.dst_stride.ToStr(tiler);
+
+  // 只有loop mode参数有效时才输出
+  if (dma_params->loop_mode_params.valid && !dma_params->loop_mode_params.loop_sizes.empty()) {
+    ss << ", {" << dma_params->loop_mode_params.loop_sizes[0].ToStr(tiler) << ", "
+       << dma_params->loop_mode_params.loop_sizes[1].ToStr(tiler) << ", "
+       << dma_params->loop_mode_params.loop_src_strides[0].ToStr(tiler) << ", "
+       << dma_params->loop_mode_params.loop_dst_strides[0].ToStr(tiler) << ", "
+       << dma_params->loop_mode_params.loop_src_strides[1].ToStr(tiler) << ", "
+       << dma_params->loop_mode_params.loop_dst_strides[1].ToStr(tiler) << "}";
   }
   ss << ");" << std::endl;
   return af::SUCCESS;

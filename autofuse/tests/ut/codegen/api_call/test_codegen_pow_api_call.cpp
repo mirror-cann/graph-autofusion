@@ -135,7 +135,7 @@ TEST(CodegenKernel, PowWithSecondInputIsUbScalar) {
   std::string result;
   EXPECT_EQ(call.Generate(tpipe, vector<af::AxisId>{}, result), 0);
   EXPECT_EQ(result, std::string{
-      "Pow(local_3[0], local_0[0], (half)local_2_ub_scalar, local_0_actual_size, tmp_buf_0);\n"
+      "Pow(local_3[0], local_0[0], (half)local_2_ub_scalar, tmp_buf_0, local_0_actual_size);\n"
   });
 }
 
@@ -247,7 +247,7 @@ TEST(CodegenKernel, PowWithFirstInputIsUbScalar) {
   std::string result;
   EXPECT_EQ(call.Generate(tpipe, vector<af::AxisId>{}, result), 0);
   EXPECT_EQ(result, std::string{
-      "Pow(local_3[0], (half)local_0_ub_scalar, local_2[0], local_2_actual_size, tmp_buf_0);\n"
+      "Pow(local_3[0], (half)local_0_ub_scalar, local_2[0], tmp_buf_0, local_2_actual_size);\n"
   });
 }
 
@@ -333,7 +333,7 @@ TEST(CodegenKernel, PowWithFirstInputIsScalar) {
   std::string result;
   call.Generate(tpipe, vector<af::AxisId>{}, result);
   EXPECT_EQ(result, std::string{
-      "Pow(local_2[0], scalar_1, local_0[0], local_0_actual_size, tmp_buf_0);\n"
+      "Pow(local_2[0], scalar_1, local_0[0], tmp_buf_0, local_0_actual_size);\n"
   });
 }
 
@@ -433,7 +433,7 @@ TEST(CodegenKernel, PowWithAllInputIsTensor) {
   std::string result;
   call.Generate(tpipe, vector<af::AxisId>{}, result);
   EXPECT_EQ(result, std::string{
-      "Pow(local_2[0], local_0[0], local_0[0], local_0_actual_size, tmp_buf_0);\n"
+      "Pow(local_2[0], local_0[0], local_0[0], tmp_buf_0, local_0_actual_size);\n"
   });
 }
 
@@ -504,7 +504,7 @@ TEST(CodegenKernel, PowWithAllInputIsScalar) {
   std::string result;
   EXPECT_EQ(call.Generate(tpipe, vector<af::AxisId>{}, result), 0);
   EXPECT_EQ(result, std::string{
-    "Pow(local_2[0], scalar_0, scalar_1, local_2_actual_size, tmp_buf_0);\n"
+    "Pow(local_2[0], scalar_0, scalar_1, tmp_buf_0, local_2_actual_size);\n"
   });
 }
 
@@ -616,7 +616,7 @@ TEST(CodegenKernel, PowWitAllInputIsUbScalar) {
   std::string result;
   EXPECT_EQ(call.Generate(tpipe, vector<af::AxisId>{}, result), 0);
   EXPECT_EQ(result, std::string{
-      "Pow(local_2[0], (half)local_0_ub_scalar, (half)local_1_ub_scalar, local_2_actual_size, tmp_buf_0);\n"
+      "Pow(local_2[0], (half)local_0_ub_scalar, (half)local_1_ub_scalar, tmp_buf_0, local_2_actual_size);\n"
   });
 }
 
@@ -707,6 +707,6 @@ TEST(CodegenKernel, PowWithInputIsScalarAndUbScalar) {
   std::string result;
   EXPECT_EQ(call.Generate(tpipe, vector<af::AxisId>{}, result), 0);
   EXPECT_EQ(result, std::string{
-    "Pow(local_2[0], scalar_0, (half)local_1_ub_scalar, local_2_actual_size, tmp_buf_0);\n"
+    "Pow(local_2[0], scalar_0, (half)local_1_ub_scalar, tmp_buf_0, local_2_actual_size);\n"
   });
 }

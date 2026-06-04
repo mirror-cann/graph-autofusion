@@ -93,7 +93,7 @@ Status ClipByValueApiCall::Generate(const TPipe &tpipe, const std::vector<ascir:
   }
   if (!(x1_is_scalar_scene && x2_is_scalar_scene && x3_is_scalar_scene)) {
     GE_ASSERT_TRUE(id != -1L, "ClipByValueApiCall cannot find tmp buffer id to use.");
-    ss << ", " << x1.actual_size << ", " << tpipe.tmp_buf << "_" << std::to_string(id) << ");" << std::endl;
+    ss << ", " << tpipe.tmp_buf << "_" << std::to_string(id) << ", " << x1.actual_size << ");" << std::endl;
   } else {
     ss << ");" << std::endl;
   }

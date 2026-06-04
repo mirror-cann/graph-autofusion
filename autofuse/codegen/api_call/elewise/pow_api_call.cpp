@@ -66,8 +66,8 @@ Status PowApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::AxisId>
 
   ss << this->api_name_ << "(" << y << "[" << tpipe.tiler.TensorVectorizedOffset(current_axis, y) << "], ";  // 输出
   if (x1_is_scalar_scene && x2_is_scalar_scene) {
-    ss << x1_scalar << ", " << x2_scalar << ", " << y.actual_size << ", " << tpipe.tmp_buf << "_" << std::to_string(id)
-       << ");" << std::endl;
+    ss << x1_scalar << ", " << x2_scalar << ", " << tpipe.tmp_buf << "_" << std::to_string(id) << ", "
+       << y.actual_size << ");" << std::endl;
   } else {
     if (x1_is_scalar_scene) {
       ss << x1_scalar << ", ";  // 输入1
@@ -81,10 +81,10 @@ Status PowApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::AxisId>
     }
     if (x1_is_scalar_scene) {
       // x1为scalar, cnt为x2.actual_size
-      ss << x2.actual_size << ", " << tpipe.tmp_buf << "_" << std::to_string(id) << ");" << std::endl;
+      ss << tpipe.tmp_buf << "_" << std::to_string(id) << ", " << x2.actual_size << ");" << std::endl;
     } else {
       // x2为scalar或都为tensor的场景, cnt以x1.actual_size为准
-      ss << x1.actual_size << ", " << tpipe.tmp_buf << "_" << std::to_string(id) << ");" << std::endl;
+      ss << tpipe.tmp_buf << "_" << std::to_string(id) << ", " << x1.actual_size << ");" << std::endl;
     }
   }
   result = ss.str();

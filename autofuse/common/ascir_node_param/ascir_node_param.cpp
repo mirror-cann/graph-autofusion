@@ -1,0 +1,83 @@
+/**
+ * Copyright (c) 2026 Huawei Technologies Co., Ltd.
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
+ * CANN Open Software License Agreement Version 2.0 (the "License").
+ * Please refer to the License for details. You may not use this file except in compliance with the License.
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+ * See LICENSE in the root of the software repository for the full text of the License.
+ */
+
+#include "ascir_node_param/ascir_node_param.h"
+
+#include <algorithm>
+
+#include "common/checker.h"
+#include "symbolizer/symbolic_utils.h"
+
+namespace ascir_param {
+namespace {
+constexpr const char *kAscirNodeParams = "AscirNodeParams";
+
+bool HasOnlySemanticRole(const ParamExprProduct &expr) {
+  return std::all_of(expr.factors.begin(), expr.factors.end(),
+                     [](const ParamExprLeaf &factor) { return factor.role == ParamExprRole::kSemantic; });
+}
+
+bool StaticCheckExprNe(const ge::Expression &lhs, const ge::Expression &rhs) {
+  return af::SymbolicUtils::StaticCheckEq(lhs, rhs) == af::TriBool::kFalse;
+}
+
+ge::Status ValidateParamExprProduct(const ParamExprProduct &expr, const ge::Expression &canonical_expr,
+                                    const char *param_name) {
+  GE_ASSERT_TRUE(expr.valid, "Reduce %s expr is invalid.", param_name);
+  GE_ASSERT_TRUE(!expr.factors.empty(), "Reduce %s expr is empty.", param_name);
+  for (const auto &factor : expr.factors) {
+    GE_ASSERT_TRUE(factor.expr.IsValid(), "Reduce %s expr factor is invalid.", param_name);
+  }
+  if (!HasOnlySemanticRole(expr)) {
+    return ge::SUCCESS;
+  }
+  const auto resolved_expr = ResolveForAtt(expr);
+  GE_ASSERT_TRUE(!StaticCheckExprNe(resolved_expr, canonical_expr),
+                 "Reduce %s expr does not match canonical params, expr[%s], canonical[%s].", param_name,
+                 resolved_expr.Str().get(), canonical_expr.Str().get());
+  return ge::SUCCESS;
+}
+}  // namespace
+
+AscirNodeParamsPtr GetAscirNodeParams(af::AscNodePtr node) {
+  if (node == nullptr) {
+    return nullptr;
+  }
+  auto op_desc = node->GetOpDesc();
+  if (op_desc == nullptr) {
+    return nullptr;
+  }
+  return op_desc->TryGetExtAttr(kAscirNodeParams, AscirNodeParamsPtr{});
+}
+
+const codegen::ReduceSpecificParams &GetCanonicalReduceParams(const ReduceNodeParams &params) {
+  return params.canonical_params;
+}
+
+ge::Expression ResolveForAtt(const ParamExprProduct &expr) {
+  ge::Expression value = ge::Symbol(1U);
+  if (!expr.valid) {
+    return value;
+  }
+  for (const auto &factor : expr.factors) {
+    value = value * factor.expr;
+  }
+  return value;
+}
+
+ge::Status ValidateReduceNodeParams(const ReduceNodeParams &params) {
+  GE_ASSERT_TRUE(params.canonical_params.valid, "Reduce canonical params is invalid.");
+  GE_ASSERT_SUCCESS(
+      ValidateParamExprProduct(params.exprs.merge_size, params.canonical_params.merge_size, "merge size"));
+  GE_ASSERT_SUCCESS(
+      ValidateParamExprProduct(params.exprs.merge_times, params.canonical_params.merge_times, "merge times"));
+  return ge::SUCCESS;
+}
+}  // namespace ascir_param

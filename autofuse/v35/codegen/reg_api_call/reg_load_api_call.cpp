@@ -58,8 +58,8 @@ Status LoadRegApiCall::BuildApiParam(const TPipe &tpipe, const std::vector<ascir
   return af::SUCCESS;
 }
 
-Status LoadRegApiCall::GenDimensionParam(const CodegenApiParam &api_param, std::stringstream &ss) const {
-  return GenDataCopyDimParam(api_param, graph_name, node_name, ss);
+Status LoadRegApiCall::GenDimensionParam(const CodegenApiParam &api_param, const Tiler &tiler, std::stringstream &ss) const {
+  return GenDataCopyDimParam(api_param, tiler, graph_name, node_name, ss);
 }
 static ApiCallRegister<LoadRegApiCall> register_load_reg_api_call("LoadRegApiCall");
 }  // namespace codegen

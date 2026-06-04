@@ -22,7 +22,7 @@ class LoadRegApiCall final : public ApiCall {
   Status BuildApiParam(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
                        const std::vector<std::reference_wrapper<const Tensor>> &inputs,
                        const std::vector<std::reference_wrapper<const Tensor>> &outputs) const override;
-  Status GenDimensionParam(const CodegenApiParam &api_param, std::stringstream &ss) const override;
+  Status GenDimensionParam(const CodegenApiParam &api_param, const Tiler &tiler, std::stringstream &ss) const override;
 
  protected:
   Status ParseAttr(const ascir::NodeView &node) override;

@@ -3304,7 +3304,7 @@ TEST(CodegenKernel, IsnanExtendNotThrowingFor) {
   call.Generate(tpipe, current_axis, result);
   std::cout << result << std::endl;
   EXPECT_EQ(result, std::string{
-    "IsnanExtend(local_3[0], local_0[0], local_0_actual_size ,tmp_buf_0);\n"
+    "IsnanExtend(local_3[0], local_0[0], tmp_buf_0, local_0_actual_size);\n"
   });
 }
 
@@ -3395,7 +3395,7 @@ TEST(CodegenKernel, IsnanExtendThrowingFor) {
   call.Generate(tpipe, current_axis, result);
   std::cout << result << std::endl;
   EXPECT_EQ(result, std::string{
-    "for(int outer_for_0 = 0; outer_for_0 < t->s1; outer_for_0++) {\nIsnanExtend(local_3[outer_for_0 * ((16 * Ceiling((Rational(1 , 16) * t->s2))))/(1)], local_0[outer_for_0 * ((16 * Ceiling((Rational(1 , 16) * t->s2))))/(1)], t->s2 ,tmp_buf_0);\n\n}\n"
+    "for(int outer_for_0 = 0; outer_for_0 < t->s1; outer_for_0++) {\nIsnanExtend(local_3[outer_for_0 * ((16 * Ceiling((Rational(1 , 16) * t->s2))))/(1)], local_0[outer_for_0 * ((16 * Ceiling((Rational(1 , 16) * t->s2))))/(1)], tmp_buf_0, t->s2);\n\n}\n"
   });
 }
 

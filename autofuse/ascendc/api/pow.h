@@ -12,26 +12,26 @@
 
 template <typename T>
 inline __aicore__ void Pow(const AscendC::LocalTensor<T> &dst, const AscendC::LocalTensor<T> &src1,
-                           const AscendC::LocalTensor<T> &src2, const uint32_t calCount,
-                           AscendC::LocalTensor<uint8_t> &tmp_buf) {
+                           const AscendC::LocalTensor<T> &src2,
+                           AscendC::LocalTensor<uint8_t> &tmp_buf, const uint32_t calCount) {
   Power(dst, src1, src2, tmp_buf, calCount);
 }
 
 template <typename T>
 inline __aicore__ void Pow(const AscendC::LocalTensor<T> &dst, const AscendC::LocalTensor<T> &src1, const T &src2,
-                           const uint32_t calCount, AscendC::LocalTensor<uint8_t> &tmp_buf) {
+                           AscendC::LocalTensor<uint8_t> &tmp_buf, const uint32_t calCount) {
   Power(dst, src1, src2, tmp_buf, calCount);
 }
 
 template <typename T>
 inline __aicore__ void Pow(const AscendC::LocalTensor<T> &dst, const T &src1, const AscendC::LocalTensor<T> &src2,
-                           const uint32_t calCount, AscendC::LocalTensor<uint8_t> &tmp_buf) {
+                           AscendC::LocalTensor<uint8_t> &tmp_buf, const uint32_t calCount) {
   Power(dst, src1, src2, tmp_buf, calCount);
 }
 
 template <typename T>
-inline __aicore__ void Pow(const AscendC::LocalTensor<T> &dst, const T &src1, const T &src2, const uint32_t calCount,
-                           AscendC::LocalTensor<uint8_t> &tmp_buf) {
+inline __aicore__ void Pow(const AscendC::LocalTensor<T> &dst, const T &src1, const T &src2,
+                           AscendC::LocalTensor<uint8_t> &tmp_buf, const uint32_t calCount) {
   auto block_cnt = KernelUtils::BlkSize<T>();
   // 将src1扩充为一个blockSize的tensor
   LocalTensor<T> src1_buf = tmp_buf.template ReinterpretCast<T>();

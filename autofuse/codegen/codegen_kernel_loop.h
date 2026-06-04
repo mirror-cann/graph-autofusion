@@ -95,8 +95,8 @@ class ApiCall {
   virtual Status BuildApiParam(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
                                const std::vector<std::reference_wrapper<const Tensor>> &input,
                                const std::vector<std::reference_wrapper<const Tensor>> &output) const;
-  virtual Status GenerateApiCallString(std::string &result) const;
-  virtual Status GenDimensionParam(const CodegenApiParam &api_param, std::stringstream &ss) const;
+  virtual Status GenerateApiCallString(const TPipe &tpipe, std::string &result) const;
+  virtual Status GenDimensionParam(const CodegenApiParam &api_param, const Tiler &tiler, std::stringstream &ss) const;
   virtual Status PreProcess(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
                             const std::vector<std::reference_wrapper<const Tensor>> &outputs,
                             std::string &result) const;

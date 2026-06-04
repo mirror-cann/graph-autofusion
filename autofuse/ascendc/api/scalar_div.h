@@ -12,7 +12,7 @@
 
 template <typename T, bool IS_SCALAR_LATTER = true>
 inline __aicore__ void Divs(const LocalTensor<T> &dst, const LocalTensor<T> &src, const T constant_x,
-                            const uint32_t calc_cnt, LocalTensor<uint8_t> &tmp_buf) {
+                            LocalTensor<uint8_t> &tmp_buf, const uint32_t calc_cnt) {
   uint32_t calc_size = 0U;
   uint32_t one_blk_num = KernelUtils::BlkSize<T>();
   LocalTensor<T> tmp = tmp_buf.template ReinterpretCast<T>();
