@@ -47,6 +47,19 @@ constexpr std::array<SkKernelArch, 2> SK_SUPPORTED_KERNEL_ARCHS = {
     SkKernelArch::DAV_3510,
 };
 
+constexpr uint32_t SK_EVENT_DAV_2201_CORE_NUM = 75;
+constexpr uint32_t SK_EVENT_DAV_3510_CORE_NUM = 108;
+constexpr uint32_t SK_DAV_2201_TICK_US_MULTIPLIER = 50;
+constexpr uint32_t SK_DAV_3510_TICK_US_MULTIPLIER = 1000;
+
+struct SkRuntimeConfig {
+    SkKernelArch kernelArch = SkKernelArch::DAV_2201;
+    uint32_t eventCoreNum = SK_EVENT_DAV_2201_CORE_NUM;
+    uint32_t tickUsMultiplier = SK_DAV_2201_TICK_US_MULTIPLIER;
+};
+
+void InitSkRuntimeConfig();
+const SkRuntimeConfig& GetSkRuntimeConfig();
 SkKernelArch GetCurrentSkKernelArch();
 const char* GetSkKernelArchSymbolSuffix(SkKernelArch arch);
 

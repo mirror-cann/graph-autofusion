@@ -22,26 +22,54 @@
 #include <string>
 #include <cstring>
 #include <elf.h>
+#include <mutex>
 #include "sk_log.h"
 
 namespace {
 
 constexpr const char* ASCEND950_SOC_NAME = "Ascend950";
 
+std::once_flag g_skRuntimeConfigInitFlag;
+SkRuntimeConfig g_skRuntimeConfig;
+
+SkRuntimeConfig BuildSkRuntimeConfig()
+{
+    SkRuntimeConfig config;
+    const char* socName = aclrtGetSocName();
+    if (socName == nullptr) {
+        SK_LOGI("SK runtime config: soc name is null, fallback to arch=%s, eventCoreNum=%u, tickUsMultiplier=%u",
+                to_string(config.kernelArch), config.eventCoreNum, config.tickUsMultiplier);
+        return config;
+    }
+
+    if (strstr(socName, ASCEND950_SOC_NAME) != nullptr) {
+        config.kernelArch = SkKernelArch::DAV_3510;
+        config.eventCoreNum = SK_EVENT_DAV_3510_CORE_NUM;
+        config.tickUsMultiplier = SK_DAV_3510_TICK_US_MULTIPLIER;
+    }
+
+    SK_LOGI("SK runtime config initialized: socName=%s, arch=%s, eventCoreNum=%u, tickUsMultiplier=%u",
+            socName, to_string(config.kernelArch), config.eventCoreNum, config.tickUsMultiplier);
+    return config;
+}
+
 } // namespace
+
+void InitSkRuntimeConfig()
+{
+    std::call_once(g_skRuntimeConfigInitFlag, []() {
+        g_skRuntimeConfig = BuildSkRuntimeConfig();
+    });
+}
+
+const SkRuntimeConfig& GetSkRuntimeConfig()
+{
+    return g_skRuntimeConfig;
+}
 
 SkKernelArch GetCurrentSkKernelArch()
 {
-    const char* socName = aclrtGetSocName();
-    if (socName == nullptr) {
-        SK_LOGI("Kernel arch detection: soc name is null, fallback to arch=%s",
-                to_string(SkKernelArch::DAV_2201));
-        return SkKernelArch::DAV_2201;
-    }
-    if (strstr(socName, ASCEND950_SOC_NAME) != nullptr) {
-        return SkKernelArch::DAV_3510;
-    }
-    return SkKernelArch::DAV_2201;
+    return GetSkRuntimeConfig().kernelArch;
 }
 
 const char* GetSkKernelArchSymbolSuffix(SkKernelArch arch)

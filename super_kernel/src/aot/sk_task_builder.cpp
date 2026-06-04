@@ -1231,8 +1231,7 @@ void SkTaskBuilder::RemoveRedundantCrossSync(const std::vector<SuperKernelBaseNo
 namespace {
 void ApplySplitCoreControlMask(SuperKernelBaseNode* task, TaskSyncInfo& taskSyncInfo)
 {
-    static const SkKernelArch currentArch = GetCurrentSkKernelArch();
-    if (currentArch != SkKernelArch::DAV_3510) {
+    if (GetSkRuntimeConfig().kernelArch != SkKernelArch::DAV_3510) {
         return;
     }
     if (task->GetNodeType() != SkNodeType::NODE_KERNEL) {
@@ -1430,7 +1429,7 @@ DeviceArgsPtr SkTaskBuilder::GenEntryArgs(const SkTask& skTaskCube, const SkTask
     size_t header_size = sizeof(SkHeaderInfo);
     size_t aic_que_size = skTaskCube.GetTaskQueSize();
     size_t aiv_que_size = skTaskVec.GetTaskQueSize();
-    size_t counter_size = DEFAULT_COUNTER_COUNT * sizeof(SkCounterInfo);
+    size_t counter_size = GetSkRuntimeConfig().eventCoreNum * sizeof(SkCounterInfo);
     size_t dfx_size = dfxCount * sizeof(SkDfxInfo);
     size_t event_config_size = sizeof(SkEventConfig);
 

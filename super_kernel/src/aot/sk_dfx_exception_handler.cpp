@@ -25,7 +25,7 @@
 #include "runtime/kernel.h"
 
 SuperKernelExceptionHandler::SuperKernelExceptionHandler()
-    : aicoreNums(DEFAULT_COUNTER_COUNT)
+    : aicoreNums(GetSkRuntimeConfig().eventCoreNum)
     , skDeviceEntryArgsDev(nullptr)
     , skDeviceEntryArgsPtrLen(0)
     , skDeviceEntryArgsHost(nullptr)
