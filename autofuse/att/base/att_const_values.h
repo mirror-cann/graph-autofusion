@@ -47,8 +47,11 @@ const uint64_t kNumZero = 0U;
 const uint64_t kNumOne = 1U;
 const uint64_t kNumTwo = 2U;
 const uint64_t kNumThree = 3U;
+const uint64_t kNumFour = 4U;
 const uint64_t kNumFive = 5U;
 const uint64_t kNumSix = 6U;
+const uint64_t kNumSeven = 7U;
+const uint64_t kNumEight = 8U;
 const uint64_t kDmaMaxLen = 2U;
 const double kCompareInt64EqNeAdjustmentFactor = 1.276;
 const double kCompareInt64GtGeLeAdjustmentFactor = 1.18;
@@ -335,6 +338,8 @@ inline const std::string kTruncDiv = "TruncDiv";
 inline const std::string kRoundToInt = "RoundToInt";
 inline const std::string kTruncToInt = "TruncToInt";
 inline const std::string kTrunc = "Trunc";
+inline const std::string kVmAdd = "VmAdd";
+inline const std::string kPlaceholder = "Placeholder";
 #define JOIN(a, b) a##b
 #define JOIN_A_B_C(a, b, c) a##b##c
 }  // namespace att

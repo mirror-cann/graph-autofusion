@@ -2090,7 +2090,7 @@ TEST_F(UTestAscirPerfV2, TestPowV2) {
   pow_v2_perf(input_shapes, output_shapes, node, perf_res);
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
   std::cout << Str(res) << std::endl;
-  EXPECT_EQ(Str(res), "97");
+  EXPECT_EQ(Str(res), "301");
 }
 
 TEST_F(UTestAscirPerfV2, TestErfV2) {
