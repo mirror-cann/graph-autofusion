@@ -59,6 +59,6 @@ TEST_F(TestBufOccupyExpr, TestGlobalOccupy)
   Expr global_occup_expr;
   BufOccupEvaluatorExprPtr buf_evaluator = std::make_shared<BufOccupyExpr>(tuning_space);
   EXPECT_NE(buf_evaluator, nullptr);
-  EXPECT_NE(buf_evaluator->GetTotalGlobalOccup(global_occup_expr), af::SUCCESS);
+  EXPECT_EQ(buf_evaluator->GetTotalGlobalOccup(global_occup_expr), af::SUCCESS);
 }
 }

@@ -12,6 +12,11 @@
 #include "common/checker.h"
 
 namespace att {
+ArgListManager &ArgListManager::GetInstance() {
+  static ArgListManager arg_list_mgr;
+  return arg_list_mgr;
+}
+
 const int32_t kContainerSizeSearch = -1;
 ge::Status ArgListManager::LoadArgList(const TuningSpacePtr &tuning_space) {
   // 每次加载清除历史信息

@@ -26,10 +26,7 @@ inline std::string GetTmpBufferName(int32_t index) {
 
 class ArgListManager {
 public:
-  static ArgListManager &GetInstance() {
-    static ArgListManager arg_list_mgr;
-    return arg_list_mgr;
-  }
+  static ArgListManager &GetInstance();
 
   // 按照目标名保存表达式
   ge::Status SetArgExpr(const std::string &name, const Expr &expr) {
