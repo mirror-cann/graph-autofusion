@@ -44,6 +44,23 @@ bool IsMemAttrEqual(const af::MemAttr &mem1, const af::MemAttr &mem2) {
          (mem1.hardware == mem2.hardware) && (mem1.reuse_id == mem2.reuse_id);
 }
 
+bool IsQueueAttrEqual(const af::MemQueAttr &que1, const af::MemQueAttr &que2) {
+  const bool is_equal = (que1.id == que2.id) && (que1.depth == que2.depth) && (que1.buf_num == que2.buf_num);
+  if (!is_equal) {
+    GELOGD("Queue attr is different, id/depth/buf_num [%ld/%ld/%ld vs %ld/%ld/%ld]", que1.id, que1.depth,
+           que1.buf_num, que2.id, que2.depth, que2.buf_num);
+  }
+  return is_equal;
+}
+
+bool IsBufferAttrEqual(const af::MemBufAttr &buf1, const af::MemBufAttr &buf2) {
+  const bool is_equal = buf1.id == buf2.id;
+  if (!is_equal) {
+    GELOGD("Buffer attr is different, id [%ld vs %ld]", buf1.id, buf2.id);
+  }
+  return is_equal;
+}
+
 bool IsCompareAxis(const af::AxisPtr &axis) {
   return (axis->type == af::Axis::Type::kAxisTypeOriginal) || (axis->type == af::Axis::Type::kAxisTypeTileInner) ||
          (axis->type == af::Axis::Type::kAxisTypeBlockInner) || (axis->type == af::Axis::Type::kAxisTypeMerged);
@@ -111,8 +128,20 @@ bool EquivalentGraphRecognizer::IsMemEquivalent(const af::AscTensorAttr &tensor1
                                                 const af::AscTensorAttr &tensor2) const {
   const auto &mem1 = tensor1.mem;
   const auto &mem2 = tensor2.mem;
-  // 构图连边一致、节点类型一致、数据类型一致，切分方式也一致，当前认为内存复用也是一致的，暂不做额外的比较
-  return IsMemAttrEqual(mem1, mem2);
+  if (!IsMemAttrEqual(mem1, mem2)) {
+    GELOGD("Mem attr is different, alloc/position/hardware/reuse_id [%d/%d/%d/%ld vs %d/%d/%d/%ld]",
+           static_cast<int32_t>(mem1.alloc_type), static_cast<int32_t>(mem1.position),
+           static_cast<int32_t>(mem1.hardware), mem1.reuse_id, static_cast<int32_t>(mem2.alloc_type),
+           static_cast<int32_t>(mem2.position), static_cast<int32_t>(mem2.hardware), mem2.reuse_id);
+    return false;
+  }
+  if (mem1.alloc_type == af::AllocType::kAllocTypeQueue) {
+    return IsQueueAttrEqual(tensor1.que, tensor2.que);
+  }
+  if (mem1.alloc_type == af::AllocType::kAllocTypeBuffer) {
+    return IsBufferAttrEqual(tensor1.buf, tensor2.buf);
+  }
+  return true;
 }
 
 std::string EquivalentGraphRecognizer::ReplaceSearchVarStr(const std::string &str) const {

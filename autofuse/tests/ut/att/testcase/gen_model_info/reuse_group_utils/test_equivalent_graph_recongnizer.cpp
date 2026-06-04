@@ -483,6 +483,80 @@ TEST_F(EquivalentGraphRecongnizerUnitTest, GroupGraphTensorDTypeNotEqual) {
   EXPECT_FALSE(ReuseGroupUtils::IsGroupGraphsEquivalent(group_graphs1, group_graphs2, group_info1, group_info2));
 }
 
+TEST_F(EquivalentGraphRecongnizerUnitTest, IsMemEquivalentQueueIdNotEqual) {
+  af::AscGraph graph1("graph");
+  af::AscGraph graph2("graph1_equal");
+  ReuseScheduleGroupInfo group_info1;
+  ReuseScheduleGroupInfo group_info2;
+  EquivalentGraphRecognizer recognizer(graph1, graph2, group_info1, group_info2);
+  af::AscTensorAttr tensor1;
+  tensor1.mem.alloc_type = af::AllocType::kAllocTypeQueue;
+  tensor1.mem.position = af::Position::kPositionVecIn;
+  tensor1.mem.hardware = af::MemHardware::kMemHardwareUB;
+  tensor1.mem.reuse_id = 0;
+  tensor1.que.id = 1;
+  tensor1.que.depth = 1;
+  tensor1.que.buf_num = 1;
+  af::AscTensorAttr tensor2 = tensor1;
+  tensor2.que.id = 2;
+  EXPECT_FALSE(recognizer.IsMemEquivalent(tensor1, tensor2));
+}
+
+TEST_F(EquivalentGraphRecongnizerUnitTest, IsMemEquivalentQueueDepthNotEqual) {
+  af::AscGraph graph1("graph");
+  af::AscGraph graph2("graph1_equal");
+  ReuseScheduleGroupInfo group_info1;
+  ReuseScheduleGroupInfo group_info2;
+  EquivalentGraphRecognizer recognizer(graph1, graph2, group_info1, group_info2);
+  af::AscTensorAttr tensor1;
+  tensor1.mem.alloc_type = af::AllocType::kAllocTypeQueue;
+  tensor1.mem.position = af::Position::kPositionVecIn;
+  tensor1.mem.hardware = af::MemHardware::kMemHardwareUB;
+  tensor1.mem.reuse_id = 0;
+  tensor1.que.id = 1;
+  tensor1.que.depth = 1;
+  tensor1.que.buf_num = 1;
+  af::AscTensorAttr tensor2 = tensor1;
+  tensor2.que.depth = 2;
+  EXPECT_FALSE(recognizer.IsMemEquivalent(tensor1, tensor2));
+}
+
+TEST_F(EquivalentGraphRecongnizerUnitTest, IsMemEquivalentQueueBufNumNotEqual) {
+  af::AscGraph graph1("graph");
+  af::AscGraph graph2("graph1_equal");
+  ReuseScheduleGroupInfo group_info1;
+  ReuseScheduleGroupInfo group_info2;
+  EquivalentGraphRecognizer recognizer(graph1, graph2, group_info1, group_info2);
+  af::AscTensorAttr tensor1;
+  tensor1.mem.alloc_type = af::AllocType::kAllocTypeQueue;
+  tensor1.mem.position = af::Position::kPositionVecIn;
+  tensor1.mem.hardware = af::MemHardware::kMemHardwareUB;
+  tensor1.mem.reuse_id = 0;
+  tensor1.que.id = 1;
+  tensor1.que.depth = 1;
+  tensor1.que.buf_num = 1;
+  af::AscTensorAttr tensor2 = tensor1;
+  tensor2.que.buf_num = 2;
+  EXPECT_FALSE(recognizer.IsMemEquivalent(tensor1, tensor2));
+}
+
+TEST_F(EquivalentGraphRecongnizerUnitTest, IsMemEquivalentBufferIdNotEqual) {
+  af::AscGraph graph1("graph");
+  af::AscGraph graph2("graph1_equal");
+  ReuseScheduleGroupInfo group_info1;
+  ReuseScheduleGroupInfo group_info2;
+  EquivalentGraphRecognizer recognizer(graph1, graph2, group_info1, group_info2);
+  af::AscTensorAttr tensor1;
+  tensor1.mem.alloc_type = af::AllocType::kAllocTypeBuffer;
+  tensor1.mem.position = af::Position::kPositionVecCalc;
+  tensor1.mem.hardware = af::MemHardware::kMemHardwareUB;
+  tensor1.mem.reuse_id = 0;
+  tensor1.buf.id = 1;
+  af::AscTensorAttr tensor2 = tensor1;
+  tensor2.buf.id = 2;
+  EXPECT_FALSE(recognizer.IsMemEquivalent(tensor1, tensor2));
+}
+
 TEST_F(EquivalentGraphRecongnizerUnitTest, GroupGraphAxisSplitNotEqual) {
   std::vector<af::AscGraph> group_graphs1;
   af::AscGraph graph1("graph");
