@@ -409,4 +409,80 @@ TEST_F(TestCastOptimizationPass, Upcast_GatherAlg_NoDiscontinuity_AllReverseCast
   EXPECT_EQ(GetNodeOutputDtype(graph, "concat0"), DT_FLOAT16);
   EXPECT_EQ(CountNodesByType(graph, ascir_op::Cast::Type), 0U);
 }
+TEST_F(TestCastOptimizationPass, Downcast_ReverseCastWithMultipleConsumers_BypassNotRemove) {
+  auto graph = AscGraphBuilder("test_downcast_reverse_multi_consumer")
+      .Loops({Sym(128), Sym(64)})
+      .Data("data0", 0, DT_FLOAT16)
+      .Data("data1", 1, DT_FLOAT)
+      .Load("load0", "data0")
+      .Load("load1", "data1")
+      .Cast("cast_input0", "load0", DT_FLOAT)
+      .Concat("concat0", {"cast_input0", "load1"}, 0)
+      .Cast("cast_out0", "concat0", DT_FLOAT16)
+      .Store("store0", "cast_out0")
+      .Abs("abs0", "cast_input0")
+      .Store("store1", "abs0")
+      .Output("output0", "store0", 0)
+      .Output("output1", "store1", 1)
+      .Build();
+
+  ASSERT_EQ(CountNodesByType(graph, ascir_op::Cast::Type), 2U);
+  ASSERT_EQ(af::optimize::CastOptimizationPass::Run(graph), SUCCESS);
+  AssertNodesExist(graph, {"cast_out0"}, false);
+  AssertNodesExist(graph, {"cast_input0"}, true);
+  EXPECT_EQ(GetNodeOutputDtype(graph, "concat0"), DT_FLOAT16);
+  EXPECT_EQ(CountNodesByType(graph, ascir_op::Cast::Type), 2U);
+}
+
+TEST_F(TestCastOptimizationPass, Downcast_SharedSourceReverseCastsWithMultipleConsumers_BypassBoth) {
+  auto graph = AscGraphBuilder("test_downcast_shared_reverse_multi")
+      .Loops({Sym(128), Sym(64)})
+      .Data("data0", 0, DT_FLOAT16)
+      .Data("data1", 1, DT_FLOAT)
+      .Load("load0", "data0")
+      .Load("load1", "data1")
+      .Cast("cast_input0", "load0", DT_FLOAT)
+      .Cast("cast_input1", "load0", DT_FLOAT)
+      .Concat("concat0", {"cast_input0", "cast_input1", "load1"}, 0)
+      .Cast("cast_out0", "concat0", DT_FLOAT16)
+      .Store("store0", "cast_out0")
+      .Abs("abs0", "cast_input0")
+      .Store("store1", "abs0")
+      .Output("output0", "store0", 0)
+      .Output("output1", "store1", 1)
+      .Build();
+
+  ASSERT_EQ(CountNodesByType(graph, ascir_op::Cast::Type), 3U);
+  ASSERT_EQ(af::optimize::CastOptimizationPass::Run(graph), SUCCESS);
+  AssertNodesExist(graph, {"cast_out0", "cast_input1"}, false);
+  AssertNodesExist(graph, {"cast_input0"}, true);
+  EXPECT_EQ(GetNodeOutputDtype(graph, "concat0"), DT_FLOAT16);
+  EXPECT_EQ(CountNodesByType(graph, ascir_op::Cast::Type), 2U);
+}
+
+TEST_F(TestCastOptimizationPass, Upcast_GatherAlg_ReverseCastWithMultipleConsumers_BypassNotRemove) {
+  auto graph = AscGraphBuilder("test_upcast_reverse_multi_consumer")
+      .Loops({Sym(128), Sym(64)})
+      .Data("data0", 0, DT_FLOAT)
+      .Data("data1", 1, DT_FLOAT)
+      .Load("load0", "data0")
+      .Load("load1", "data1")
+      .Cast("cast_input0", "load0", DT_FLOAT16)
+      .Cast("cast_input1", "load1", DT_FLOAT16)
+      .Concat("concat0", {"cast_input0", "cast_input1"}, 0)
+      .Cast("cast_out0", "concat0", DT_FLOAT)
+      .Store("store0", "cast_out0")
+      .Abs("abs0", "cast_input0")
+      .Store("store1", "abs0")
+      .Output("output0", "store0", 0)
+      .Output("output1", "store1", 1)
+      .Build();
+
+  ASSERT_EQ(CountNodesByType(graph, ascir_op::Cast::Type), 3U);
+  ASSERT_EQ(af::optimize::CastOptimizationPass::Run(graph, 1), SUCCESS);
+  AssertNodesExist(graph, {"cast_out0", "cast_input1"}, false);
+  AssertNodesExist(graph, {"cast_input0"}, true);
+  EXPECT_EQ(GetNodeOutputDtype(graph, "concat0"), DT_FLOAT);
+  EXPECT_EQ(CountNodesByType(graph, ascir_op::Cast::Type), 1U);
+}
 } // namespace af

@@ -30,8 +30,8 @@ class ConcatFusionCaseGenerator : public FusionCaseGenerator {
   Status Generate(ascir::HintGraph &graph,
                   std::vector<ascir::ImplGraph> &graphs,
                   std::vector<std::string> &score_functions) override;
-  Status EliminateConcat(ascir::HintGraph &graph, const af::AscNodePtr &concat_node);
-  [[nodiscard]] bool HasLoadStoreConversion() const override {
+  ConcatFusionCaseGenerator& SetConvertToStoreMode();
+  [[nodiscard]] bool HasLoadStoreConversion() const override{
     return true;
   }
 
@@ -93,6 +93,7 @@ class ConcatFusionCaseGenerator : public FusionCaseGenerator {
   ascir::AxisId concat_axis_id_ = -1;
   size_t concat_dim_ = std::numeric_limits<size_t>::max();
   bool support_small_tail_ = false;
+  bool convert_to_store_ = false;
   bool split_concat_ = false;
   bool has_recompute_ = false;
 };

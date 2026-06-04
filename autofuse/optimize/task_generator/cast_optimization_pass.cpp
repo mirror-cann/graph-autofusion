@@ -66,6 +66,25 @@ Expression GetColSize(const af::AscTensor &tensor, size_t concat_dim) {
   }
   return col_size;
 }
+
+bool TryRemoveOrBypassReverseCast(const ComputeGraphPtr &cg,
+                                  const AscNode *src_node,
+                                  const OutDataAnchorPtr &src_out_anchor,
+                                  const InDataAnchorPtr &concat_in_anchor) {
+  const auto cast_out_nodes = src_node->GetOutDataNodes();
+  if (cast_out_nodes.size() <= 1UL) {
+    GE_ASSERT_SUCCESS(GraphUtils::IsolateNode(src_out_anchor->GetOwnerNode(), {0}));
+    GE_ASSERT_GRAPH_SUCCESS(GraphUtils::RemoveJustNode(cg, src_out_anchor->GetOwnerNode()));
+    GELOGD("input index = %d, Cast node was removed", concat_in_anchor->GetIdx());
+    return true;
+  }
+  const auto cast_in_anchor = src_node->GetInDataAnchor(0)->GetPeerOutAnchor();
+  GE_ASSERT_NOTNULL(cast_in_anchor);
+  GE_ASSERT_SUCCESS(GraphUtils::RemoveEdge(src_out_anchor, concat_in_anchor));
+  GE_ASSERT_SUCCESS(GraphUtils::AddEdge(cast_in_anchor, concat_in_anchor));
+  GELOGD("input index = %d, bypassed reverse Cast with multiple consumers", concat_in_anchor->GetIdx());
+  return true;
+}
 } // namespace
 
 int32_t CastOptimizationPass::CountDiscontinuousAxes(const af::AscTensorAttr &attr) {
@@ -247,11 +266,8 @@ Status CastOptimizationPass::DoOptimize(AscGraph &graph,
     GE_ASSERT_NOTNULL(src_out_anchor);
     const auto &src_node = dynamic_cast<AscNode *>(src_out_anchor->GetOwnerNodeBarePtr());
     GE_ASSERT_NOTNULL(src_node);
-    if (ops::IsOps<ascir_op::Cast>(src_node)) {
-      if (IsReverseCast(*src_node, src_dtype, dst_dtype)) {
-        GE_ASSERT_SUCCESS(GraphUtils::IsolateNode(src_out_anchor->GetOwnerNode(), {0}));
-        GE_ASSERT_GRAPH_SUCCESS(GraphUtils::RemoveJustNode(cg, src_out_anchor->GetOwnerNode()));
-        GELOGD("input index = %d, Cast node was removed", concat_in_anchor->GetIdx());
+    if (ops::IsOps<ascir_op::Cast>(src_node) && IsReverseCast(*src_node, src_dtype, dst_dtype)) {
+      if (TryRemoveOrBypassReverseCast(cg, src_node, src_out_anchor, concat_in_anchor)) {
         continue;
       }
     }
