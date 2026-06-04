@@ -630,6 +630,128 @@ def Erfcx(owner_graph: ascir.HintGraph,
     return _common_in_1_out_1_normal_op("Erfcx", owner_graph, x, axis=axis, size=size, stride=stride)
 
 
+def ModifiedBesselI0(owner_graph: ascir.HintGraph,
+                     x: ascir.OpsOperatorOutput,
+                     *,
+                     axis: List[ascir.Axis],
+                     size: Optional[List[ascir.SizeExpr]] = None,
+                     stride: Optional[List[ascir.SizeExpr]] = None
+                     ) -> ascir.OpsOperatorOutput:
+    return _common_in_1_out_1_normal_op("ModifiedBesselI0", owner_graph, x, axis=axis, size=size, stride=stride)
+
+
+def Remainder(owner_graph: ascir.HintGraph,
+              x1: ascir.OpsOperatorOutput,
+              x2: ascir.OpsOperatorOutput,
+              *,
+              axis: List[ascir.Axis],
+              size: Optional[List[ascir.SizeExpr]] = None,
+              stride: Optional[List[ascir.SizeExpr]] = None
+              ) -> ascir.OpsOperatorOutput:
+    return _common_in_2_out_1_normal_op("Remainder", owner_graph, x1, x2, axis=axis, size=size, stride=stride)
+
+
+def ModifiedBesselI1(owner_graph: ascir.HintGraph,
+                     x: ascir.OpsOperatorOutput,
+                     *,
+                     axis: List[ascir.Axis],
+                     size: Optional[List[ascir.SizeExpr]] = None,
+                     stride: Optional[List[ascir.SizeExpr]] = None
+                     ) -> ascir.OpsOperatorOutput:
+    return _common_in_1_out_1_normal_op("ModifiedBesselI1", owner_graph, x, axis=axis, size=size, stride=stride)
+
+
+def ModifiedBesselK0(owner_graph: ascir.HintGraph,
+                     x: ascir.OpsOperatorOutput,
+                     *,
+                     axis: List[ascir.Axis],
+                     size: Optional[List[ascir.SizeExpr]] = None,
+                     stride: Optional[List[ascir.SizeExpr]] = None
+                     ) -> ascir.OpsOperatorOutput:
+    return _common_in_1_out_1_normal_op("ModifiedBesselK0", owner_graph, x, axis=axis, size=size, stride=stride)
+
+
+def ModifiedBesselK1(owner_graph: ascir.HintGraph,
+                     x: ascir.OpsOperatorOutput,
+                     *,
+                     axis: List[ascir.Axis],
+                     size: Optional[List[ascir.SizeExpr]] = None,
+                     stride: Optional[List[ascir.SizeExpr]] = None
+                     ) -> ascir.OpsOperatorOutput:
+    return _common_in_1_out_1_normal_op("ModifiedBesselK1", owner_graph, x, axis=axis, size=size, stride=stride)
+
+
+def LaguerrePolynomialL(owner_graph: ascir.HintGraph,
+                        x: ascir.OpsOperatorOutput,
+                        n: ascir.OpsOperatorOutput,
+                        *,
+                        axis: List[ascir.Axis],
+                        size: Optional[List[ascir.SizeExpr]] = None,
+                        stride: Optional[List[ascir.SizeExpr]] = None
+                        ) -> ascir.OpsOperatorOutput:
+    name = _generate_op_name(owner_graph, "laguerre_polynomial_l")
+    op_instance = ascir.ops.LaguerrePolynomialL(name)
+    meta = _get_metadata(owner_graph)
+    meta.ops.append(op_instance)
+    op_instance.attr.sched.axis = axis
+    op_instance.x = x
+    op_instance.n = n
+    _infer_or_set_view(op_instance.y, axis, size, stride)
+    op_instance.infer_dtype()
+    return op_instance.y
+
+
+def LegendrePolynomialP(owner_graph: ascir.HintGraph,
+                        x: ascir.OpsOperatorOutput,
+                        n: ascir.OpsOperatorOutput,
+                        *,
+                        axis: List[ascir.Axis],
+                        size: Optional[List[ascir.SizeExpr]] = None,
+                        stride: Optional[List[ascir.SizeExpr]] = None
+                        ) -> ascir.OpsOperatorOutput:
+    name = _generate_op_name(owner_graph, "legendre_polynomial_p")
+    op_instance = ascir.ops.LegendrePolynomialP(name)
+    meta = _get_metadata(owner_graph)
+    meta.ops.append(op_instance)
+    op_instance.attr.sched.axis = axis
+    op_instance.x = x
+    op_instance.n = n
+    _infer_or_set_view(op_instance.y, axis, size, stride)
+    op_instance.infer_dtype()
+    return op_instance.y
+
+
+def AiryAi(owner_graph: ascir.HintGraph,
+           x: ascir.OpsOperatorOutput,
+           *,
+           axis: List[ascir.Axis],
+           size: Optional[List[ascir.SizeExpr]] = None,
+           stride: Optional[List[ascir.SizeExpr]] = None
+           ) -> ascir.OpsOperatorOutput:
+    return _common_in_1_out_1_normal_op("AiryAi", owner_graph, x, axis=axis, size=size, stride=stride)
+
+
+def Erfinv(owner_graph: ascir.HintGraph,
+           x: ascir.OpsOperatorOutput,
+           *,
+           axis: List[ascir.Axis],
+           size: Optional[List[ascir.SizeExpr]] = None,
+           stride: Optional[List[ascir.SizeExpr]] = None
+           ) -> ascir.OpsOperatorOutput:
+    return _common_in_1_out_1_normal_op("Erfinv", owner_graph, x, axis=axis, size=size, stride=stride)
+
+
+def FloorDiv(owner_graph: ascir.HintGraph,
+             x1: ascir.OpsOperatorOutput,
+             x2: ascir.OpsOperatorOutput,
+             *,
+             axis: List[ascir.Axis],
+             size: Optional[List[ascir.SizeExpr]] = None,
+             stride: Optional[List[ascir.SizeExpr]] = None
+             ) -> ascir.OpsOperatorOutput:
+    return _common_in_2_out_1_normal_op("FloorDiv", owner_graph, x1, x2, axis=axis, size=size, stride=stride)
+
+
 def Sign(owner_graph: ascir.HintGraph,
          x: ascir.OpsOperatorOutput,
          *,

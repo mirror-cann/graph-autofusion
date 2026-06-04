@@ -135,7 +135,77 @@ REG_ASC_IR(Remainder)
     .ComputeType(ComputeType::kComputeElewise)
     .Impl(v2_soc_versions, {af::ascir::AscIrImplCreator<af::ascir::RemainderAscIrAttImplV2>(),
                             af::ascir::AscIrImplCreator<af::ascir::RemainderAscIrCodegenImplV2>(),
-                            {{"T", TensorType{DT_FLOAT16, DT_FLOAT, DT_BF16}}}});
+                            {{"T", TensorType{DT_FLOAT16, DT_FLOAT, DT_BF16, DT_INT32}}}});
+
+REG_ASC_IR(ModifiedBesselI0)
+    .Input("x", "T")
+    .Output("y", "T")
+    .ComputeType(ComputeType::kComputeElewise)
+    .Impl(v2_soc_versions, {af::ascir::AscIrImplCreator<af::ascir::ModifiedBesselI0AscIrAttImplV2>(),
+                            af::ascir::AscIrImplCreator<af::ascir::ModifiedBesselI0AscIrCodegenImplV2>(),
+                            {{"T", TensorType{DT_FLOAT}}}});
+
+REG_ASC_IR(ModifiedBesselI1)
+    .Input("x", "T")
+    .Output("y", "T")
+    .ComputeType(ComputeType::kComputeElewise)
+    .Impl(v2_soc_versions, {af::ascir::AscIrImplCreator<af::ascir::ModifiedBesselI1AscIrAttImplV2>(),
+                            af::ascir::AscIrImplCreator<af::ascir::ModifiedBesselI1AscIrCodegenImplV2>(),
+                            {{"T", TensorType{DT_FLOAT}}}});
+
+REG_ASC_IR(ModifiedBesselK0)
+    .Input("x", "T")
+    .Output("y", "T")
+    .ComputeType(ComputeType::kComputeElewise)
+    .Impl(v2_soc_versions, {af::ascir::AscIrImplCreator<af::ascir::ModifiedBesselK0AscIrAttImplV2>(),
+                            af::ascir::AscIrImplCreator<af::ascir::ModifiedBesselK0AscIrCodegenImplV2>(),
+                            {{"T", TensorType{DT_FLOAT}}}});
+
+REG_ASC_IR(ModifiedBesselK1)
+    .Input("x", "T")
+    .Output("y", "T")
+    .ComputeType(ComputeType::kComputeElewise)
+    .Impl(v2_soc_versions, {af::ascir::AscIrImplCreator<af::ascir::ModifiedBesselK1AscIrAttImplV2>(),
+                            af::ascir::AscIrImplCreator<af::ascir::ModifiedBesselK1AscIrCodegenImplV2>(),
+                            {{"T", TensorType{DT_FLOAT}}}});
+
+REG_ASC_IR(LaguerrePolynomialL)
+    .Input("x", "T")
+    .Input("n", "U")
+    .Output("y", "T")
+    .ComputeType(ComputeType::kComputeElewise)
+    .Impl(v2_soc_versions, {af::ascir::AscIrImplCreator<af::ascir::LaguerrePolynomialLAscIrAttImplV2>(),
+                            af::ascir::AscIrImplCreator<af::ascir::LaguerrePolynomialLAscIrCodegenImplV2>(),
+                            {{"T", TensorType{DT_FLOAT}},
+                             {"U", TensorType{DT_INT8, DT_UINT8, DT_INT16, DT_UINT16,
+                                              DT_INT32, DT_UINT32, DT_INT64, DT_UINT64}}}});
+
+REG_ASC_IR(LegendrePolynomialP)
+    .Input("x", "T")
+    .Input("n", "U")
+    .Output("y", "T")
+    .ComputeType(ComputeType::kComputeElewise)
+    .Impl(v2_soc_versions, {af::ascir::AscIrImplCreator<af::ascir::LegendrePolynomialPAscIrAttImplV2>(),
+                            af::ascir::AscIrImplCreator<af::ascir::LegendrePolynomialPAscIrCodegenImplV2>(),
+                            {{"T", TensorType{DT_FLOAT}},
+                             {"U", TensorType{DT_INT8, DT_UINT8, DT_INT16, DT_UINT16,
+                                              DT_INT32, DT_UINT32, DT_INT64, DT_UINT64}}}});
+
+REG_ASC_IR(AiryAi)
+    .Input("x", "T")
+    .Output("y", "T")
+    .ComputeType(ComputeType::kComputeElewise)
+    .Impl(v2_soc_versions, {af::ascir::AscIrImplCreator<af::ascir::AiryAiAscIrAttImplV2>(),
+                            af::ascir::AscIrImplCreator<af::ascir::AiryAiAscIrCodegenImplV2>(),
+                            {{"T", TensorType{DT_FLOAT}}}});
+
+REG_ASC_IR(Erfinv)
+    .Input("x", "T")
+    .Output("y", "T")
+    .ComputeType(ComputeType::kComputeElewise)
+    .Impl(v2_soc_versions, {af::ascir::AscIrImplCreator<af::ascir::ErfinvAscIrAttImplV2>(),
+                            af::ascir::AscIrImplCreator<af::ascir::ErfinvAscIrCodegenImplV2>(),
+                            {{"T", TensorType{DT_FLOAT}}}});
 
 REG_ASC_IR(VectorFunc)
     .DynamicInput("x", "T")
@@ -738,7 +808,8 @@ REG_ASC_IR(FlashSoftmax)
 REG_ASC_IR(FloorDiv)
     .Impl(v2_soc_versions, {af::ascir::AscIrImplCreator<af::ascir::FloorDivAscIrAttImplV2>(),
                             af::ascir::AscIrImplCreator<af::ascir::FloorDivAscIrCodegenImplV2>(),
-                            {{"T", TensorType{DT_FLOAT16, DT_FLOAT, DT_INT8, DT_INT16, DT_UINT8}}}});
+                            {{"T", TensorType{DT_FLOAT16, DT_FLOAT, DT_INT8, DT_INT16, DT_UINT8, DT_UINT16,
+                                               DT_INT32, DT_UINT32, DT_INT64, DT_UINT64}}}});
 
 REG_ASC_IR(FloorToInt)
     .Input("x", "T1")

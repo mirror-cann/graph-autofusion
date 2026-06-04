@@ -815,6 +815,16 @@ build_backend() {
                       load_where_x2_is_ubscalar_store_test_e2e_v2 \
                       load_where_x3_is_ubscalar_store_test_e2e_v2 \
                       load_tanh_store_test_e2e_v2 \
+                      load_modified_bessel_i0_store_test_e2e_v2 \
+                      load_modified_bessel_i1_store_test_e2e_v2 \
+                      load_modified_bessel_k0_store_test_e2e_v2 \
+                      load_modified_bessel_k1_store_test_e2e_v2 \
+                      laguerre_polynomial_l_store_test_e2e_v2 \
+                      legendre_polynomial_p_store_test_e2e_v2 \
+                      load_airy_ai_store_test_e2e_v2 \
+                      load_erfinv_store_test_e2e_v2 \
+                      remainder_int32_store_test_e2e_v2 \
+                      floor_div_int32_store_test_e2e_v2 \
                       load_compare_store_test_e2e_v2 \
                       load_compare_cast_sum_store_test_e2e_v2 \
                       scalar_div_inf_test_e2e_v2 \

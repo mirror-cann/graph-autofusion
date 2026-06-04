@@ -20,6 +20,7 @@
 #include "gtest/gtest.h"
 #include "tikicpulib.h"
 #include "test_api_utils.h"
+#include "trigonometric_function_utils.h"
 #include "airy_ai.h"
 #include "boost/math/special_functions/airy.hpp"
 

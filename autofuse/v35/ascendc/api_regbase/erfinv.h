@@ -248,19 +248,6 @@ __simd_vf__ inline void ErfinvCoreImpl(
 } // namespace ErfinvAPI
 
 template <typename T, bool isReuseSource = false>
-__aicore__ inline void ErfinvCheckParams(
-    const LocalTensor<T>& dstTensor, const LocalTensor<T>& srcTensor, const LocalTensor<uint8_t>& sharedTmpBuffer,
-    const uint32_t calCount)
-{
-    static_assert(SupportType<T, half, float>(), "current data type is not supported on current device!");
-    CheckTensorPos<T>(dstTensor, Hardware::UB, "dstTensor", "VECIN / VECCALC / VECOUT", "Erfinv");
-    CheckTensorPos<T>(srcTensor, Hardware::UB, "srcTensor", "VECIN / VECCALC / VECOUT", "Erfinv");
-    CheckTensorPos<uint8_t>(sharedTmpBuffer, Hardware::UB, "sharedTmpBuffer", "VECIN / VECCALC / VECOUT", "Erfinv");
-    CheckCalCount(calCount, "calCount", srcTensor, "srcTensor", "Erfinv");
-    CheckCalCount(calCount, "calCount", dstTensor, "dstTensor", "Erfinv");
-}
-
-template <typename T, bool isReuseSource = false>
 __aicore__ inline void Erfinv(
     const LocalTensor<T>& dstTensor, const LocalTensor<T>& srcTensor, const LocalTensor<uint8_t>& sharedTmpBuffer,
     const uint32_t calCount)
@@ -270,7 +257,6 @@ __aicore__ inline void Erfinv(
         return;
     }
 
-    ErfinvCheckParams<T, isReuseSource>(dstTensor, srcTensor, sharedTmpBuffer, calCount);
     __ubuf__ T* dstUb = (__ubuf__ T*)dstTensor.GetPhyAddr();
     __ubuf__ T* srcUb = (__ubuf__ T*)srcTensor.GetPhyAddr();
     uint16_t repeatTimes = CeilDivision(calCount, B32_DATA_NUM_PER_REPEAT);
