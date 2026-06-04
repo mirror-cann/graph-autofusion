@@ -119,7 +119,7 @@ constexpr const char* GetFileName(const char* path)
 
 void ReportErrorMessageInner(const std::string& code, const char* fmt, ...);
 
-const std::string& GetCurrentModelLabel();
+std::string GetCurrentModelLabel();
 
 template <typename... Arguments>
 void ReportErrorMessage(const char* fmt, Arguments&&... args)

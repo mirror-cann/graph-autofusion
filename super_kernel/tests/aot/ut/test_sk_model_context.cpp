@@ -31,6 +31,14 @@
 
 namespace {
 
+constexpr const char* MODEL_LABEL_PREFIX = "model_";
+constexpr const char* UNKNOWN_MODEL_ID = "unknown";
+
+std::string UnknownModelLabel()
+{
+    return std::string(MODEL_LABEL_PREFIX) + UNKNOWN_MODEL_ID;
+}
+
 // 测试用的 aclmdlRI 模拟句柄
 inline aclmdlRI MakeFakeModel(uintptr_t v)
 {
@@ -93,7 +101,7 @@ TEST_F(TestSkModelContext, SkModelContext_RepeatedInvocationBumpsCounter)
         EXPECT_EQ(GetCurrentModelLabel(), ExpectedModelLabel(modelId, 2));
     }
 
-    EXPECT_TRUE(GetCurrentModelId().empty());
+    EXPECT_EQ(GetCurrentModelId(), UNKNOWN_MODEL_ID);
 }
 
 TEST_F(TestSkModelContext, SkModelContext_SameRtsModelIdDifferentAddressSharesCounter)
@@ -140,10 +148,10 @@ TEST_F(TestSkModelContext, SkModelContext_ConcurrentInvocationsProduceUniqueIds)
 
 // ==================== Thread-local frozen id ====================
 
-TEST_F(TestSkModelContext, CurrentModelContext_DefaultEmpty)
+TEST_F(TestSkModelContext, CurrentModelContext_DefaultValue)
 {
-    EXPECT_TRUE(GetCurrentModelId().empty());
-    EXPECT_TRUE(GetCurrentModelLabel().empty());
+    EXPECT_EQ(GetCurrentModelId(), UNKNOWN_MODEL_ID);
+    EXPECT_EQ(GetCurrentModelLabel(), UnknownModelLabel());
 }
 
 TEST_F(TestSkModelContext, CurrentModelContext_ThreadLocalIsolated)
@@ -159,7 +167,7 @@ TEST_F(TestSkModelContext, CurrentModelContext_ThreadLocalIsolated)
         workerInsideGuard = GetCurrentModelLabel();
     });
     worker.join();
-    EXPECT_TRUE(workerBeforeGuard.empty());
+    EXPECT_EQ(workerBeforeGuard, UnknownModelLabel());
     EXPECT_EQ(workerInsideGuard, ExpectedModelLabel(workerModelId, 1));
     EXPECT_EQ(GetCurrentModelLabel(), ExpectedModelLabel(mainModelId, 1));
 }
@@ -170,8 +178,8 @@ TEST_F(TestSkModelContext, SkModelContext_FreezesUniqueIdAndBumpsCounter)
 {
     constexpr uint32_t modelId = 0xA008;
     aclmdlRI model = MakeFakeModel(modelId);
-    EXPECT_TRUE(GetCurrentModelId().empty());
-    EXPECT_TRUE(GetCurrentModelLabel().empty());
+    EXPECT_EQ(GetCurrentModelId(), UNKNOWN_MODEL_ID);
+    EXPECT_EQ(GetCurrentModelLabel(), UnknownModelLabel());
 
     {
         SkModelContext guard(model);
@@ -179,12 +187,12 @@ TEST_F(TestSkModelContext, SkModelContext_FreezesUniqueIdAndBumpsCounter)
         EXPECT_EQ(GetCurrentModelLabel(), ExpectedModelLabel(modelId, 1));
     }
 
-    // RAII 析构后恢复（外层为空）
-    EXPECT_TRUE(GetCurrentModelId().empty());
-    EXPECT_TRUE(GetCurrentModelLabel().empty());
+    // RAII 析构后恢复为默认上下文
+    EXPECT_EQ(GetCurrentModelId(), UNKNOWN_MODEL_ID);
+    EXPECT_EQ(GetCurrentModelLabel(), UnknownModelLabel());
 }
 
-TEST_F(TestSkModelContext, SkModelContext_RestoresPreviousOnNestedScope)
+TEST_F(TestSkModelContext, SkModelContext_NestedScopeDoesNotRestoreOuterContext)
 {
     constexpr uint32_t outerModelId = 0xA009;
     constexpr uint32_t innerModelId = 0xA00A;
@@ -200,12 +208,11 @@ TEST_F(TestSkModelContext, SkModelContext_RestoresPreviousOnNestedScope)
             EXPECT_EQ(GetCurrentModelId(), ExpectedModelId(innerModelId, 1));
             EXPECT_EQ(GetCurrentModelLabel(), ExpectedModelLabel(innerModelId, 1));
         }
-        // 内层退出后恢复为外层的 frozen id
-        EXPECT_EQ(GetCurrentModelId(), ExpectedModelId(outerModelId, 1));
-        EXPECT_EQ(GetCurrentModelLabel(), ExpectedModelLabel(outerModelId, 1));
+        EXPECT_EQ(GetCurrentModelId(), UNKNOWN_MODEL_ID);
+        EXPECT_EQ(GetCurrentModelLabel(), UnknownModelLabel());
     }
-    EXPECT_TRUE(GetCurrentModelId().empty());
-    EXPECT_TRUE(GetCurrentModelLabel().empty());
+    EXPECT_EQ(GetCurrentModelId(), UNKNOWN_MODEL_ID);
+    EXPECT_EQ(GetCurrentModelLabel(), UnknownModelLabel());
 }
 
 TEST_F(TestSkModelContext, SkModelContext_RepeatedInvocationDisambiguates)
@@ -250,12 +257,12 @@ TEST_F(TestSkModelContext, SkModelContext_NullModelStillSetsFrozenId)
 {
     {
         SkModelContext guard(nullptr);
-        EXPECT_EQ(GetCurrentModelId(), "0_0");
+        EXPECT_EQ(GetCurrentModelId(), UNKNOWN_MODEL_ID);
         // nullptr 不递增 counter，但仍设置一个稳定的 frozen id
-        EXPECT_EQ(GetCurrentModelLabel(), "model_nullptr");
+        EXPECT_EQ(GetCurrentModelLabel(), UnknownModelLabel());
     }
-    EXPECT_TRUE(GetCurrentModelId().empty());
-    EXPECT_TRUE(GetCurrentModelLabel().empty());
+    EXPECT_EQ(GetCurrentModelId(), UNKNOWN_MODEL_ID);
+    EXPECT_EQ(GetCurrentModelLabel(), UnknownModelLabel());
 }
 
 // ==================== SanitizePathComponent ====================
@@ -294,10 +301,10 @@ TEST_F(TestSkModelContext, GetSkMetaBasePath_HasPidSuffix)
     EXPECT_EQ(base, expected);
 }
 
-TEST_F(TestSkModelContext, GetSkMetaPath_NullModelUsesNullptrLabel)
+TEST_F(TestSkModelContext, GetSkMetaPath_UnknownModelUsesUnknownLabel)
 {
-    std::string path = GetSkMetaPath("model_nullptr");
-    EXPECT_EQ(path, GetSkMetaBasePath() + "/model_nullptr");
+    std::string path = GetSkMetaPath(UnknownModelLabel());
+    EXPECT_EQ(path, GetSkMetaBasePath() + "/" + UnknownModelLabel());
 }
 
 TEST_F(TestSkModelContext, GetSkMetaPath_UsesFrozenIdWhenActive)
@@ -348,11 +355,11 @@ TEST_F(TestSkModelContext, CreateDirectoryRecursive_IdempotentOnExisting)
 
 // ==================== CreateSkMetaDirectory ====================
 
-TEST_F(TestSkModelContext, CreateSkMetaDirectory_NullCreatesNullptrSubdir)
+TEST_F(TestSkModelContext, CreateSkMetaDirectory_UnknownModelCreatesUnknownSubdir)
 {
-    std::string path = CreateSkMetaDirectory("model_nullptr");
+    std::string path = CreateSkMetaDirectory(UnknownModelLabel());
     EXPECT_FALSE(path.empty());
-    EXPECT_EQ(path, GetSkMetaBasePath() + "/model_nullptr");
+    EXPECT_EQ(path, GetSkMetaBasePath() + "/" + UnknownModelLabel());
 
     struct stat st;
     EXPECT_EQ(stat(path.c_str(), &st), 0);

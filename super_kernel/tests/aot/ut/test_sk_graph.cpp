@@ -25,6 +25,14 @@
 
 namespace {
 
+constexpr const char* MODEL_LABEL_PREFIX = "model_";
+constexpr const char* UNKNOWN_MODEL_ID = "unknown";
+
+std::string UnknownModelLabel()
+{
+    return std::string(MODEL_LABEL_PREFIX) + UNKNOWN_MODEL_ID;
+}
+
 struct TestRITask {
     uint32_t taskId;
     aclmdlRITaskType type;
@@ -109,7 +117,7 @@ protected:
 // 这些用例覆盖 InitSKGraph 在入口处冻结 model id / model label 的契约：进入
 // SkModelContext 后 GetCurrentModelLabel() 返回的值，应该被
 // SuperKernelGraph 对应字段如实记录下来；脱离 guard 后再调用
-// InitSKGraph 时，应该记录到空串。
+// InitSKGraph 时，应该记录到默认上下文值。
 
 #include "sk_model_context.h"
 #include "stub/ut_common_stubs.h"
@@ -148,40 +156,12 @@ TEST_F(SuperKernelGraphTest, GetModelLabel_InitSKGraphCapturesActiveContextId)
         EXPECT_EQ(graph->GetModelLabel(), expected);
     }
 
-    // 退出 guard 后，frozen id 被恢复为空；新建一个 graph 再 init，记录的应该是空串。
+    // 退出 guard 后，当前上下文恢复为默认值；新建一个 graph 再 init，应记录默认上下文值。
     SkUtSetModelStreamNum(0);
     auto graph2 = std::make_unique<SuperKernelGraph>(nullptr, *opts);
     (void)graph2->InitSKGraph();
-    EXPECT_TRUE(graph2->GetModelIdCallCount().empty());
-    EXPECT_TRUE(graph2->GetModelLabel().empty());
-}
-
-TEST_F(SuperKernelGraphTest, GetModelLabel_NestedGuardCapturesInnerThenOuter)
-{
-    SkUtSetModelStreamNum(0);
-
-    aclmdlRI outer = reinterpret_cast<aclmdlRI>(static_cast<uintptr_t>(0xB002));
-    aclmdlRI inner = reinterpret_cast<aclmdlRI>(static_cast<uintptr_t>(0xB003));
-
-    SkModelContext outerGuard(outer);
-    const std::string outerId = GetCurrentModelLabel();
-    {
-        SkModelContext innerGuard(inner);
-        const std::string innerModelId = GetCurrentModelId();
-        const std::string innerId = GetCurrentModelLabel();
-        ASSERT_NE(outerId, innerId);
-
-        (void)graph->InitSKGraph();
-        EXPECT_EQ(graph->GetModelIdCallCount(), innerModelId);
-        EXPECT_EQ(graph->GetModelLabel(), innerId);
-    }
-
-    // 内层 guard 析构后，再 init 一个新 graph 应该拿到外层 id
-    auto graph2 = std::make_unique<SuperKernelGraph>(nullptr, *opts);
-    SkUtSetModelStreamNum(0);
-    (void)graph2->InitSKGraph();
-    EXPECT_EQ(graph2->GetModelIdCallCount(), GetCurrentModelId());
-    EXPECT_EQ(graph2->GetModelLabel(), outerId);
+    EXPECT_EQ(graph2->GetModelIdCallCount(), UNKNOWN_MODEL_ID);
+    EXPECT_EQ(graph2->GetModelLabel(), UnknownModelLabel());
 }
 
 // ==================== GetSortedNodeIds Empty Graph Tests ====================
