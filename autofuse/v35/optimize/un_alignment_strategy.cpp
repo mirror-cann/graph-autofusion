@@ -9,6 +9,8 @@
  */
 
 #include "un_alignment_strategy.h"
+
+#include "ascir_utils.h"
 #include "common_utils.h"
 #include "tensor_layout_utils.h"
 #include "platform/v1/alignment_strategy.h"
@@ -167,7 +169,28 @@ ge::Status UnAlignmentStrategy::BackPropagateAlignment(const af::AscNodePtr &nod
 }
 
 ge::Status UnAlignmentStrategy::ConcatAlignmentInferFunc(const af::AscNodePtr &node) {
+  bool any_input_aligned = false;
+  for (const auto &input : node->inputs()) {
+    auto alignment_iter = tensor_to_align_type_.find(&input->attr);
+    if (alignment_iter == tensor_to_align_type_.end()) {
+      continue;
+    }
+    const AlignmentType input_alignment = alignment_iter->second.align_type;
+    if (input_alignment == AlignmentType::kAligned || input_alignment == AlignmentType::kDiscontinuous) {
+      any_input_aligned = true;
+      break;
+    }
+  }
   const auto &output_attr = node->outputs[0].attr;
+  if (any_input_aligned) {
+    size_t concat_dim = 0UL;
+    bool unused;
+    GE_ASSERT_SUCCESS(ScheduleUtils::ResolveDiffDim(node, concat_dim, unused));
+    if (concat_dim != output_attr.repeats.size() - 1UL) {
+      GELOGI("%s concat_dim is not the last dim, and inputs are aligned, use default infer func", node->GetNamePtr());
+      return DefaultAlignmentInferFunc(node);
+    }
+  }
   tensor_to_align_type_[&output_attr] = {AlignmentType::kFixedNotAligned};
   return ge::SUCCESS;
 }

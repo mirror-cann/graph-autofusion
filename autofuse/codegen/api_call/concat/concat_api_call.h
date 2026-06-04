@@ -65,8 +65,7 @@ class ConcatApiCall : public ApiCall {
                                  const std::vector<std::reference_wrapper<const Tensor>> &inputs,
                                  const Tensor &y,
                                  ConcatTiling &tiling);
-  static bool IsAllAligned(ConcatApiCall::ConcatTiling &tiling,
-                           const std::vector<af::Expression> &col_size_exprs);
+  static bool IsAllAligned(ConcatApiCall::ConcatTiling &tiling);
   static Status GenerateForAllAligned(const vector<std::reference_wrapper<const Tensor>> &inputs,
                                       const Tensor &y,
                                       const ConcatApiCall::ConcatTiling &tiling,
