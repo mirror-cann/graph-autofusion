@@ -135,6 +135,10 @@ const std::array<DefaultInnerOptionFactoryEntry, static_cast<size_t>(SkInnerOpti
             return std::make_unique<NumberOptOption>("enable_simt_op_check",
                 aclskOptionType::SK_OPTION_MAX, 0, 0, 1);
         }},
+        {SkInnerOptionType::ENABLE_SET_DYN_UBUF_SIZE, []() -> std::unique_ptr<OptOptionBase> {
+            return std::make_unique<NumberOptOption>("enable_set_dyn_ubuf_size",
+                aclskOptionType::SK_OPTION_MAX, 0, 0, 1);
+        }},
     }};
 
 const DefaultInnerOptionFactoryEntry* FindDefaultInnerOptionFactory(SkInnerOptionType optType)
@@ -526,15 +530,22 @@ void SuperKernelOptionsManager::ApplySoCSpecificOptions()
         if (simtCheckOpt != nullptr) {
             simtCheckOpt->SetValue(1);
         }
+
+        auto* setDynUbufSizeOpt = GetOption(SkInnerOptionType::ENABLE_SET_DYN_UBUF_SIZE);
+        if (setDynUbufSizeOpt != nullptr) {
+            setDynUbufSizeOpt->SetValue(1);
+        }
     }
     
     SK_LOGI("ApplySoCSpecificOptions: socName=%s, "
-            "enableMixKernelSplit=%u, enableSimtOpCheck=%u",
+            "enableMixKernelSplit=%u, enableSimtOpCheck=%u, enableSetDynUbufSize=%u",
             socName.c_str(),
             GetOption(SkInnerOptionType::ENABLE_MIX_KERNEL_SPLIT) != nullptr ?
                 GetOption(SkInnerOptionType::ENABLE_MIX_KERNEL_SPLIT)->GetIntValue() : 0,
             GetOption(SkInnerOptionType::ENABLE_SIMT_OP_CHECK) != nullptr ?
-                GetOption(SkInnerOptionType::ENABLE_SIMT_OP_CHECK)->GetIntValue() : 0);
+                GetOption(SkInnerOptionType::ENABLE_SIMT_OP_CHECK)->GetIntValue() : 0,
+            GetOption(SkInnerOptionType::ENABLE_SET_DYN_UBUF_SIZE) != nullptr ?
+                GetOption(SkInnerOptionType::ENABLE_SET_DYN_UBUF_SIZE)->GetIntValue() : 0);
 }
 
 void SuperKernelOptionsManager::RegisterDefaultOptions()
@@ -855,6 +866,7 @@ nlohmann::ordered_json SuperKernelOptionsManager::ToJson() const
         switch (type) {
             case SkInnerOptionType::ENABLE_MIX_KERNEL_SPLIT:
             case SkInnerOptionType::ENABLE_SIMT_OP_CHECK:
+            case SkInnerOptionType::ENABLE_SET_DYN_UBUF_SIZE:
                 optJson["value"] = opt->GetIntValue();
                 break;
             default:

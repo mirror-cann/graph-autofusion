@@ -629,6 +629,7 @@ TEST_F(SkDumpJsonDirectHelperTest, SkTaskQueueAndFileWritingHelpers)
     queue->taskInfos[0].entry[0] = 0x2000;
     queue->taskInfos[0].entry[1] = 0x3000;
     queue->taskInfos[0].debugOptions = 3;
+    queue->taskInfos[0].isSimtKernel = 1;
     queue->taskInfos[1].index = 11;
     queue->taskInfos[1].type = SkTaskType::TYPE_EVENT_WAIT;
     queue->taskInfos[1].numBlocks = 1;
@@ -642,6 +643,8 @@ TEST_F(SkDumpJsonDirectHelperTest, SkTaskQueueAndFileWritingHelpers)
 
     Json taskJson = SkTaskToJson(task);
     EXPECT_EQ(taskJson["taskQue"]["taskCnt"], 2);
+    EXPECT_FALSE(taskJson["taskQue"]["taskInfos"][0].contains("isSimtKernel"));
+    EXPECT_FALSE(taskJson["taskQue"]["taskInfos"][1].contains("isSimtKernel"));
     EXPECT_EQ(taskJson["taskQue"]["taskInfos"][0]["entries"].size(), 2);
     EXPECT_EQ(taskJson["taskQue"]["taskInfos"][1]["entries"].size(), 4);
 

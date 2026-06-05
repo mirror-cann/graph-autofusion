@@ -188,6 +188,7 @@ aclError aclrtBinaryGetFunction(aclrtBinHandle binHdl, const char *funcName, acl
     if (funcName == nullptr || funcHdl == nullptr) {
         return ACL_ERROR_INVALID_PARAM;
     }
+    SkUtSetLastBinaryGetFunctionName(funcName);
     if (SkUtGetBinaryGetFunctionNullHandle() != 0) {
         *funcHdl = nullptr;
         return ACL_ERROR_NONE;
@@ -322,6 +323,21 @@ aclError aclrtGetFunctionAttribute(aclrtFuncHandle funcHandle, aclrtFuncAttribut
         *attrValue = 0;
     }
     return ACL_ERROR_NONE;
+}
+
+aclError aclrtFunctionGetAvailDynUbufPerBlock(void *func, uint32_t flags, size_t *dynamicUbufSize)
+{
+    (void)func;
+    (void)flags;
+    aclError forcedRet = SkUtGetAclrtFunctionGetAvailDynUbufPerBlockRet();
+    if (forcedRet != ACL_SUCCESS) {
+        return forcedRet;
+    }
+    if (dynamicUbufSize == nullptr) {
+        return ACL_ERROR_INVALID_PARAM;
+    }
+    *dynamicUbufSize = SkUtGetAclrtFunctionAvailDynUbufSize();
+    return ACL_SUCCESS;
 }
 
 // Memory management

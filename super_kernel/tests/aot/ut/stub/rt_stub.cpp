@@ -97,9 +97,19 @@ rtError_t rtGetExceptionRegInfo(const void* exception, rtExceptionErrRegInfo_t**
 }
 
 static uint32_t g_simtAivType = 0;
+static uint32_t g_functionAllocUbufSize = 0;
+static int g_rtFunctionGetMetaInfoRet = RT_SUCCESS;
 
 void SetSimtAivType(uint32_t aivType) {
     g_simtAivType = aivType;
+}
+
+void SetFunctionAllocUbufSize(uint32_t allocUbufSize) {
+    g_functionAllocUbufSize = allocUbufSize;
+}
+
+void SetRtFunctionGetMetaInfoRet(int ret) {
+    g_rtFunctionGetMetaInfoRet = ret;
 }
 
 rtError_t rtFunctionGetMetaInfo(void* funcHandle, int type_enum, void* data, uint32_t length)
@@ -108,6 +118,13 @@ rtError_t rtFunctionGetMetaInfo(void* funcHandle, int type_enum, void* data, uin
     (void)length;
     if (type_enum == RT_FUNCTION_TYPE_AIV_TYPE_FLAG && data != nullptr) {
         *reinterpret_cast<uint32_t*>(data) = g_simtAivType;
+        return RT_SUCCESS;
+    }
+    if (type_enum == RT_FUNCTION_TYPE_COMPILER_ALLOC_UB_SIZE && data != nullptr) {
+        if (g_rtFunctionGetMetaInfoRet != RT_SUCCESS) {
+            return g_rtFunctionGetMetaInfoRet;
+        }
+        *reinterpret_cast<uint32_t*>(data) = g_functionAllocUbufSize;
         return RT_SUCCESS;
     }
     if (data != nullptr) {

@@ -96,7 +96,8 @@ struct TaskInfo {
     uint64_t extraInfo;
     uint64_t args;
     uint32_t argsSize;
-    uint8_t padding[4];
+    uint8_t isSimtKernel;
+    uint8_t reservedList[3];
 };
 )";
 
@@ -356,7 +357,6 @@ std::string ConstantCodeGenerator::GenerateConstantTaskQue(
             code << KernelTypeToEnumStr(info.relatedType) << ", ";
             code << static_cast<uint32_t>(info.numBlocks) << ", ";
             code << static_cast<uint32_t>(info.entryCnt) << ", ";
-            code << Hex64ToStr(info.args) << ", ";
             
             // entry[4]
             code << "{";
@@ -367,7 +367,16 @@ std::string ConstantCodeGenerator::GenerateConstantTaskQue(
             code << "}, ";
             
             code << Hex64ToStr(info.debugOptions) << ", ";
-            code << Hex64ToStr(info.extraInfo);
+            code << Hex64ToStr(info.extraInfo) << ", ";
+            code << Hex64ToStr(info.args) << ", ";
+            code << info.argsSize << ", ";
+            code << static_cast<uint32_t>(info.isSimtKernel) << ", ";
+            code << "{";
+            for (int j = 0; j < 3; j++) {
+                code << static_cast<uint32_t>(info.reservedList[j]);
+                if (j < 2) code << ", ";
+            }
+            code << "}";
             code << "}";
             
             if (i < taskQue->taskCnt - 1) code << ",";
@@ -457,6 +466,12 @@ std::string ConstantCodeGenerator::GenerateTaskExecutionForSplit(
                  << std::hex << task.entry[entryIdx] << std::dec << "ULL;\n";
             code << "                ((sk_sub_func)(FUNC_ADDR))"
                  << "(reinterpret_cast<const __gm__ void*>(" << Hex64ToStr(task.args) << "), &sysArgs);\n";
+            if (task.isSimtKernel != 0) {
+                code << "#if defined(__NPU_ARCH__) && __NPU_ARCH__ == 3510\n";
+                code << "                AscendC::SetFlag<HardEvent::V_MTE3>(EVENT_ID0);\n";
+                code << "                AscendC::WaitFlag<HardEvent::V_MTE3>(EVENT_ID0);\n";
+                code << "#endif\n";
+            }
             code << "            }\n";
             code << "        }\n";
             break;

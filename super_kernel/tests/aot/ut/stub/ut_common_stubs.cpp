@@ -14,6 +14,7 @@
 */
 
 #include "acl/acl.h"
+#include "runtime/kernel.h"
 #include "sk_scope_kernel_types.h"
 #include <chrono>
 #include <deque>
@@ -41,11 +42,14 @@ aclError g_aclrtMallocRet = ACL_SUCCESS;
 aclError g_aclrtFreeRet = ACL_SUCCESS;
 aclError g_aclrtMemsetRet = ACL_SUCCESS;
 aclError g_aclrtStreamGetIdRet = ACL_SUCCESS;
+aclError g_aclrtFunctionGetAvailDynUbufPerBlockRet = ACL_SUCCESS;
+size_t g_aclrtFunctionAvailDynUbufSize = 0;
 int g_throwOnAclmdlRIGetStreams = 0;
 int g_binaryGetFunctionNullHandle = 0;
 uint32_t g_destroyRegisterCallbackDelayUs = 0;
 uint32_t g_destroyRegisterCallbackCallCount = 0;
 const char* g_aclrtGetSocName = "Ascend910B";
+std::string g_lastBinaryGetFunctionName;
 
 std::unordered_map<aclmdlRI, std::deque<std::pair<aclmdlRIDestroyCallbackFunc, void*>>> g_modelDestroyCallbacks;
 uint32_t g_streamNum = 0;
@@ -97,11 +101,14 @@ void SkUtResetCommonStubControls()
     g_aclrtFreeRet = ACL_SUCCESS;
     g_aclrtMemsetRet = ACL_SUCCESS;
     g_aclrtStreamGetIdRet = ACL_SUCCESS;
+    g_aclrtFunctionGetAvailDynUbufPerBlockRet = ACL_SUCCESS;
+    g_aclrtFunctionAvailDynUbufSize = 0;
     g_throwOnAclmdlRIGetStreams = 0;
     g_binaryGetFunctionNullHandle = 0;
     g_destroyRegisterCallbackDelayUs = 0;
     g_destroyRegisterCallbackCallCount = 0;
     g_aclrtGetSocName = "Ascend910B";
+    g_lastBinaryGetFunctionName.clear();
     g_modelDestroyCallbacks.clear();
 
     g_streamNum = 0;
@@ -109,6 +116,8 @@ void SkUtResetCommonStubControls()
     g_taskTypes.clear();
     g_streamIds.clear();
     g_debugJsonPrintPaths.clear();
+    SetFunctionAllocUbufSize(0);
+    SetRtFunctionGetMetaInfoRet(0);
 }
 
 void SkUtResetTestControls()
@@ -170,6 +179,16 @@ void SkUtSetAclrtFreeRet(aclError ret)
 void SkUtSetAclrtStreamGetIdRet(aclError ret)
 {
     g_aclrtStreamGetIdRet = ret;
+}
+
+void SkUtSetAclrtFunctionGetAvailDynUbufPerBlockRet(aclError ret)
+{
+    g_aclrtFunctionGetAvailDynUbufPerBlockRet = ret;
+}
+
+void SkUtSetAclrtFunctionAvailDynUbufSize(size_t dynUbufSize)
+{
+    g_aclrtFunctionAvailDynUbufSize = dynUbufSize;
 }
 
 void SkUtSetThrowOnAclmdlRIGetStreams(int enable)
@@ -253,6 +272,16 @@ aclError SkUtGetAclrtStreamGetIdRet()
     return g_aclrtStreamGetIdRet;
 }
 
+aclError SkUtGetAclrtFunctionGetAvailDynUbufPerBlockRet()
+{
+    return g_aclrtFunctionGetAvailDynUbufPerBlockRet;
+}
+
+size_t SkUtGetAclrtFunctionAvailDynUbufSize()
+{
+    return g_aclrtFunctionAvailDynUbufSize;
+}
+
 int SkUtGetThrowOnAclmdlRIGetStreams()
 {
     return g_throwOnAclmdlRIGetStreams;
@@ -266,6 +295,11 @@ uint32_t SkUtGetDestroyRegisterCallbackCallCount()
 int SkUtGetBinaryGetFunctionNullHandle()
 {
     return g_binaryGetFunctionNullHandle;
+}
+
+const char* SkUtGetLastBinaryGetFunctionName()
+{
+    return g_lastBinaryGetFunctionName.c_str();
 }
 
 aclError SkUtRegisterModelDestroyCallback(aclmdlRI modelRI, aclmdlRIDestroyCallbackFunc callback, void* userData)
@@ -358,6 +392,11 @@ aclrtTaskType SkUtGetTaskType(uint32_t streamIdx, uint32_t taskIdx)
 void SkUtSetEntryBinHandleNull(int enable)
 {
     g_entryBinHandleNull = enable;
+}
+
+void SkUtSetLastBinaryGetFunctionName(const char* funcName)
+{
+    g_lastBinaryGetFunctionName = funcName == nullptr ? "" : funcName;
 }
 
 void SkUtSetSecurecMemcpyFailOnCall(int hitOnCall)

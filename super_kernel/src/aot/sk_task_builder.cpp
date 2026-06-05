@@ -135,6 +135,48 @@ SkQueueType InferFirstKernelEventQueueType(const std::vector<SuperKernelBaseNode
     return SkQueueType::UNKNOWN;
 }
 
+struct SimtAvailableUbufInfo {
+    bool success = true;
+    bool hasMinAvailableUbufSize = false;
+    size_t minAvailableUbufSize = 0;
+};
+
+SimtAvailableUbufInfo GetMinSimtAvailableUbufSize(const std::vector<SuperKernelBaseNode*>& tasks)
+{
+    SimtAvailableUbufInfo availableUbufInfo;
+    size_t minAvailableUbufSize = SK_TOTAL_UB_SIZE;
+    for (const auto* task : tasks) {
+        if (task == nullptr || task->GetNodeType() != SkNodeType::NODE_KERNEL) {
+            continue;
+        }
+        const KernelInfos& kernelInfo = GetKernelInfos(task);
+        if (!kernelInfo.isSimtOp) {
+            continue;
+        }
+        if (!kernelInfo.hasDynUbufSize || !kernelInfo.hasAllocUbufSize) {
+            SK_LOGE("SIMT kernel lacks ubuf size info, nodeId=%lu, hasDynUbufSize=%d, hasAllocUbufSize=%d",
+                task->GetNodeId(), kernelInfo.hasDynUbufSize, kernelInfo.hasAllocUbufSize);
+            availableUbufInfo.success = false;
+            return availableUbufInfo;
+        }
+        if (kernelInfo.dynUbufSize > SK_TOTAL_UB_SIZE ||
+            kernelInfo.allocUbufSize > SK_TOTAL_UB_SIZE - kernelInfo.dynUbufSize) {
+            SK_LOGE("SIMT kernel ubuf size exceeds total ub size, nodeId=%lu, dynUbufSize=%zu, "
+                "allocUbufSize=%zu, totalUbSize=%zu", task->GetNodeId(), kernelInfo.dynUbufSize,
+                kernelInfo.allocUbufSize, SK_TOTAL_UB_SIZE);
+            availableUbufInfo.success = false;
+            return availableUbufInfo;
+        }
+        availableUbufInfo.hasMinAvailableUbufSize = true;
+        minAvailableUbufSize = std::min(
+            minAvailableUbufSize, SK_TOTAL_UB_SIZE - kernelInfo.dynUbufSize - kernelInfo.allocUbufSize);
+    }
+    if (availableUbufInfo.hasMinAvailableUbufSize) {
+        availableUbufInfo.minAvailableUbufSize = minAvailableUbufSize;
+    }
+    return availableUbufInfo;
+}
+
 SkQueueType ResolveMixWaitEventQueueType(const SuperKernelBaseNode* prevKernel, const SuperKernelBaseNode* mixKernel)
 {
     if (prevKernel == nullptr) {
@@ -1753,6 +1795,7 @@ bool SkTaskBuilder::AddFuncTask(SkTask& skTask, SuperKernelBaseNode* node, SkDfx
     taskInfo.index = nodeIndex;
     taskInfo.type = taskType;
     taskInfo.relatedType = kernelInfo.kernelType;
+    taskInfo.isSimtKernel = (taskType == SkTaskType::TYPE_FUNC && kernelInfo.isSimtOp) ? 1 : 0;
     taskInfo.numBlocks = numBlocks;
     if (kernelInfo.resolvedNum != binCount) {
         SK_LOGW("mismatch num between sub sk registered and sk option, funcName: %s, registered: %d,"
@@ -2209,7 +2252,7 @@ bool SkTaskBuilder::ApplyPerOpMaxCoreNum(const std::vector<SuperKernelBaseNode*>
     return true;
 }
 
-SkHostEntryInfo SkTaskBuilder::GenEntryInfo(SkTask& skTaskCube, SkTask& skTaskVec)
+SkHostEntryInfo SkTaskBuilder::GenEntryInfo(SkTask& skTaskCube, SkTask& skTaskVec, bool useSimtEntry)
 {
     SkHostEntryInfo entryInfo;
     bool enableDebug = opts.EnableDebug();
@@ -2231,52 +2274,57 @@ SkHostEntryInfo SkTaskBuilder::GenEntryInfo(SkTask& skTaskCube, SkTask& skTaskVe
     auto earlyStartOpt = opts.GetOption(aclskOptionType::EARLY_START);
     bool enableEarlyStart = (earlyStartOpt != nullptr && earlyStartOpt->GetIntValue() == 1);
 
-    SK_LOGI("GenEntryInfo: enableDebug=%d, enableProfiling=%d, enableOpTrace=%d, enableEarlyStart=%d",
-            enableDebug, enableProfiling, enableOpTrace, enableEarlyStart);
+    SK_LOGI("GenEntryInfo: enableDebug=%d, enableProfiling=%d, enableOpTrace=%d, enableEarlyStart=%d, "
+            "useSimtEntry=%d",
+            enableDebug, enableProfiling, enableOpTrace, enableEarlyStart, useSimtEntry);
     
     // ========== 1. 首先尝试常量化代码生成 ==========
-    auto [constantFunc, constantType] = TryGenerateConstantFuncHandle(
-        skTaskCube, skTaskVec, opts, graph_.GetModelLabel());
-    
-    if (constantFunc != nullptr) {
-        // 常量化成功，直接使用特化的 funcHandle
-        entryInfo.skEntryFunc = constantFunc;
-        entryInfo.entryType = constantType;
-        
-        // 根据 kernelType 设置 numBlocks
-        bool isMix12 = false;
-        if (constantType == SkKernelType::AIV_ONLY) {
-            entryInfo.numBlocks = skTaskVec.numBlocks;
-            skTaskCube.numBlocks = 0;
-        } else if (constantType == SkKernelType::AIC_ONLY) {
-            entryInfo.numBlocks = skTaskCube.numBlocks;
-            skTaskVec.numBlocks = 0;
-        } else if (constantType == SkKernelType::MIX_AIC_1_2) {
-            uint32_t mix_1_2_aiv_numBlocks = (skTaskVec.numBlocks + 1) / 2;
-            entryInfo.numBlocks = std::max(skTaskCube.numBlocks, mix_1_2_aiv_numBlocks);
-            skTaskCube.numBlocks = entryInfo.numBlocks;
-            skTaskVec.numBlocks = entryInfo.numBlocks * 2;
-            isMix12 = true;
-        } else { // MIX_AIC_1_1
-            entryInfo.numBlocks = skTaskCube.numBlocks;
-            skTaskVec.numBlocks = skTaskCube.numBlocks;
-        }
-        
-        SK_LOGI("sk entry resolved via CONSTANT_CODEGEN: type=%s, funcHandle=%p, numBlocks=%u",
-                to_string(entryInfo.entryType), entryInfo.skEntryFunc, entryInfo.numBlocks);
-        
-        // 处理 MIX_AIC_1_2 的 numBlocks 调整
-        if (isMix12) {
-            auto* taskQue = skTaskVec.GetTaskQue();
-            for (auto i = 0; i < taskQue->taskCnt; i++) {
-                TaskInfo& taskInfo = taskQue->taskInfos[i];
-                if (taskInfo.relatedType == SkKernelType::MIX_AIC_1_1) {
-                    taskInfo.numBlocks = taskInfo.numBlocks * 2;
+    if (!useSimtEntry) {
+        auto [constantFunc, constantType] = TryGenerateConstantFuncHandle(
+            skTaskCube, skTaskVec, opts, graph_.GetModelLabel());
+
+        if (constantFunc != nullptr) {
+            // 常量化成功，直接使用特化的 funcHandle
+            entryInfo.skEntryFunc = constantFunc;
+            entryInfo.entryType = constantType;
+
+            // 根据 kernelType 设置 numBlocks
+            bool isMix12 = false;
+            if (constantType == SkKernelType::AIV_ONLY) {
+                entryInfo.numBlocks = skTaskVec.numBlocks;
+                skTaskCube.numBlocks = 0;
+            } else if (constantType == SkKernelType::AIC_ONLY) {
+                entryInfo.numBlocks = skTaskCube.numBlocks;
+                skTaskVec.numBlocks = 0;
+            } else if (constantType == SkKernelType::MIX_AIC_1_2) {
+                uint32_t mix_1_2_aiv_numBlocks = (skTaskVec.numBlocks + 1) / 2;
+                entryInfo.numBlocks = std::max(skTaskCube.numBlocks, mix_1_2_aiv_numBlocks);
+                skTaskCube.numBlocks = entryInfo.numBlocks;
+                skTaskVec.numBlocks = entryInfo.numBlocks * 2;
+                isMix12 = true;
+            } else { // MIX_AIC_1_1
+                entryInfo.numBlocks = skTaskCube.numBlocks;
+                skTaskVec.numBlocks = skTaskCube.numBlocks;
+            }
+
+            SK_LOGI("sk entry resolved via CONSTANT_CODEGEN: type=%s, funcHandle=%p, numBlocks=%u",
+                    to_string(entryInfo.entryType), entryInfo.skEntryFunc, entryInfo.numBlocks);
+
+            // 处理 MIX_AIC_1_2 的 numBlocks 调整
+            if (isMix12) {
+                auto* taskQue = skTaskVec.GetTaskQue();
+                for (auto i = 0; i < taskQue->taskCnt; i++) {
+                    TaskInfo& taskInfo = taskQue->taskInfos[i];
+                    if (taskInfo.relatedType == SkKernelType::MIX_AIC_1_1) {
+                        taskInfo.numBlocks = taskInfo.numBlocks * 2;
+                    }
                 }
             }
+
+            return entryInfo;
         }
-        
-        return entryInfo;
+    } else {
+        SK_LOGI("Skip constant codegen because SIMT ubuf constraint requires SIMT sk entry");
     }
     
     // ========== 2. 常量化失败，回退到原有逻辑 ==========
@@ -2349,6 +2397,9 @@ SkHostEntryInfo SkTaskBuilder::GenEntryInfo(SkTask& skTaskCube, SkTask& skTaskVe
     
     const char* baseName = GetBaseEntryFuncName(kernelType);
     std::string entryFuncName = BuildEntryFuncName(baseName, funcFlags);
+    if (useSimtEntry) {
+        entryFuncName += "_simt";
+    }
     
     entryInfo.skEntryFunc = ResolveSkEntryFunc(entryFuncName.c_str());
     if (entryInfo.skEntryFunc == nullptr) {
@@ -2653,8 +2704,21 @@ SkBuildResult SkTaskBuilder::Build(std::string skFuncName, const std::vector<Sup
         SK_LOGI("[DEBUG_PER_OP_MAX_CORE] ApplyPerOpMaxCoreNum returned false, using default numBlocks");
     }
 
+    bool useSimtEntry = false;
+    size_t minAvailableUbufSize = 0;
+    const auto* setDynUbufSizeOpt = opts.GetOption(SkInnerOptionType::ENABLE_SET_DYN_UBUF_SIZE);
+    if (setDynUbufSizeOpt != nullptr && setDynUbufSizeOpt->GetIntValue() == 1) {
+        const SimtAvailableUbufInfo availableUbufInfo = GetMinSimtAvailableUbufSize(tasks);
+        if (!availableUbufInfo.success) {
+            SK_LOGE("Build failed: get SIMT min available ubuf size failed");
+            return {};
+        }
+        useSimtEntry = availableUbufInfo.hasMinAvailableUbufSize;
+        minAvailableUbufSize = availableUbufInfo.minAvailableUbufSize;
+    }
+
     SK_LOGI("Get entry info...");
-    SkHostEntryInfo entryInfo = GenEntryInfo(aicTask, aivTask);
+    SkHostEntryInfo entryInfo = GenEntryInfo(aicTask, aivTask, useSimtEntry);
     if (entryInfo.skEntryFunc == nullptr) {
         SK_LOGE("Build failed: GenEntryInfo failed");
         return {};
@@ -2674,6 +2738,12 @@ SkBuildResult SkTaskBuilder::Build(std::string skFuncName, const std::vector<Sup
     launchInfo.entryInfo = std::move(entryInfo);
     launchInfo.devArgs = std::move(devArgs);
     launchInfo.skFuncName = skFuncName;
+    launchInfo.hasMinAvailableUbufSize = useSimtEntry;
+    launchInfo.minAvailableUbufSize = minAvailableUbufSize;
+    if (useSimtEntry) {
+        SK_LOGI("Build launch info with SIMT min available ubuf size, minAvailableUbufSize=%zu",
+            minAvailableUbufSize);
+    }
 
     // Generate task queue JSON for aggregation
     SK_LOGI("SkTaskToQueueJson: generating task queue JSON for scopeId=%u", scopeId);

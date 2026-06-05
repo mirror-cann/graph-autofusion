@@ -541,6 +541,25 @@ TEST_F(SkTaskBuilderTest, EntryInfoAndArgs_GenerateSuccessfully)
     EXPECT_NE(devArgs.Get(), nullptr);
 }
 
+TEST_F(SkTaskBuilderTest, AddFuncTask_SimtKernelSetsTaskInfoFlagForFuncOnly)
+{
+    SkTask aic;
+    ASSERT_TRUE(aic.taskQue.Init(8));
+
+    auto* kernel = CreateKernelNodeEx(2002, 0, INVALID_TASK_ID, INVALID_TASK_ID, SkKernelType::AIV_ONLY);
+    kernel->nodeInfos.kernelInfos.isSimtOp = true;
+    SkDfxInfo dfx {};
+
+    ASSERT_TRUE(builder->AddFuncTask(aic, kernel, &dfx, 0, 0, 1, SkTaskType::TYPE_FUNC, 1));
+    ASSERT_TRUE(builder->AddFuncTask(aic, kernel, &dfx, 0, 0, 1, SkTaskType::TYPE_PRELOAD, 1));
+
+    TaskQue* taskQue = aic.GetTaskQue();
+    ASSERT_NE(taskQue, nullptr);
+    ASSERT_EQ(taskQue->taskCnt, 2U);
+    EXPECT_EQ(taskQue->taskInfos[0].isSimtKernel, 1U);
+    EXPECT_EQ(taskQue->taskInfos[1].isSimtKernel, 0U);
+}
+
 TEST_F(SkTaskBuilderTest, GetPreFetchCnt_OptionBranches)
 {
     opts->AddOption(std::make_unique<NumberOptOption>("preload", aclskOptionType::PRELOAD_CODE, 1, 0, 2));
@@ -813,6 +832,126 @@ TEST_F(SkTaskBuilderTest, Build_WithCustomNotifyWaitReset_Success)
     SkLaunchInfo& launchInfo = buildResult.launchInfo;
     EXPECT_NE(launchInfo.entryInfo.skEntryFunc, nullptr);
     EXPECT_NE(launchInfo.devArgs.Get(), nullptr);
+}
+
+TEST_F(SkTaskBuilderTest, Build_WithSimtTasks_RecordsMinAvailableUbufSize)
+{
+    opts->RegisterDefaultOptions();
+    auto* splitOpt = opts->GetOption(aclskOptionType::SPLIT_MODE);
+    ASSERT_NE(splitOpt, nullptr);
+    splitOpt->SetValue(1);
+    auto* setDynUbufSizeOpt = opts->GetOption(SkInnerOptionType::ENABLE_SET_DYN_UBUF_SIZE);
+    ASSERT_NE(setDynUbufSizeOpt, nullptr);
+    setDynUbufSizeOpt->SetValue(1);
+
+    auto* k0 = CreateKernelNodeEx(7051, 0, INVALID_TASK_ID, 7052, SkKernelType::AIV_ONLY);
+    auto* k1 = CreateKernelNodeEx(7052, 0, 7051, 7053, SkKernelType::AIV_ONLY);
+    auto* k2 = CreateKernelNodeEx(7053, 0, 7052, INVALID_TASK_ID, SkKernelType::AIC_ONLY);
+
+    k0->nodeInfos.kernelInfos.isSimtOp = true;
+    k0->nodeInfos.kernelInfos.hasDynUbufSize = true;
+    k0->nodeInfos.kernelInfos.hasAllocUbufSize = true;
+    k0->nodeInfos.kernelInfos.dynUbufSize = 8192;
+    k0->nodeInfos.kernelInfos.allocUbufSize = 4096;
+    k1->nodeInfos.kernelInfos.isSimtOp = true;
+    k1->nodeInfos.kernelInfos.hasDynUbufSize = true;
+    k1->nodeInfos.kernelInfos.hasAllocUbufSize = true;
+    k1->nodeInfos.kernelInfos.dynUbufSize = 24576;
+    k1->nodeInfos.kernelInfos.allocUbufSize = 8192;
+    k2->nodeInfos.kernelInfos.isSimtOp = false;
+    k2->nodeInfos.kernelInfos.hasDynUbufSize = true;
+    k2->nodeInfos.kernelInfos.hasAllocUbufSize = true;
+    k2->nodeInfos.kernelInfos.dynUbufSize = 65536;
+    k2->nodeInfos.kernelInfos.allocUbufSize = 65536;
+
+    std::vector<SuperKernelBaseNode*> tasks = {k0, k1, k2};
+    SkBuildResult buildResult = builder->Build("Unknown", tasks, {}, 0);
+    SkLaunchInfo& launchInfo = buildResult.launchInfo;
+
+    EXPECT_NE(launchInfo.entryInfo.skEntryFunc, nullptr);
+    EXPECT_TRUE(launchInfo.hasMinAvailableUbufSize);
+    EXPECT_EQ(launchInfo.minAvailableUbufSize, SK_TOTAL_UB_SIZE - 24576U - 8192U);
+    EXPECT_STREQ(SkUtGetLastBinaryGetFunctionName(), "sk_entry_mix11_simt");
+}
+
+TEST_F(SkTaskBuilderTest, Build_WithSimtTasks_DynUbufOptionDisabledSkipsRecord)
+{
+    opts->RegisterDefaultOptions();
+    auto* splitOpt = opts->GetOption(aclskOptionType::SPLIT_MODE);
+    ASSERT_NE(splitOpt, nullptr);
+    splitOpt->SetValue(1);
+    auto* setDynUbufSizeOpt = opts->GetOption(SkInnerOptionType::ENABLE_SET_DYN_UBUF_SIZE);
+    ASSERT_NE(setDynUbufSizeOpt, nullptr);
+    EXPECT_EQ(setDynUbufSizeOpt->GetIntValue(), 0);
+
+    auto* k0 = CreateKernelNodeEx(7061, 0, INVALID_TASK_ID, 7062, SkKernelType::AIV_ONLY);
+    auto* k1 = CreateKernelNodeEx(7062, 0, 7061, INVALID_TASK_ID, SkKernelType::AIV_ONLY);
+
+    k0->nodeInfos.kernelInfos.isSimtOp = true;
+    k0->nodeInfos.kernelInfos.hasDynUbufSize = true;
+    k0->nodeInfos.kernelInfos.hasAllocUbufSize = true;
+    k0->nodeInfos.kernelInfos.dynUbufSize = 8192;
+    k0->nodeInfos.kernelInfos.allocUbufSize = 4096;
+    k1->nodeInfos.kernelInfos.isSimtOp = true;
+    k1->nodeInfos.kernelInfos.hasDynUbufSize = true;
+    k1->nodeInfos.kernelInfos.hasAllocUbufSize = true;
+    k1->nodeInfos.kernelInfos.dynUbufSize = 24576;
+    k1->nodeInfos.kernelInfos.allocUbufSize = 8192;
+
+    std::vector<SuperKernelBaseNode*> tasks = {k0, k1};
+    SkBuildResult buildResult = builder->Build("Unknown", tasks, {}, 0);
+    SkLaunchInfo& launchInfo = buildResult.launchInfo;
+
+    EXPECT_NE(launchInfo.entryInfo.skEntryFunc, nullptr);
+    EXPECT_FALSE(launchInfo.hasMinAvailableUbufSize);
+    EXPECT_EQ(launchInfo.minAvailableUbufSize, 0U);
+    EXPECT_STREQ(SkUtGetLastBinaryGetFunctionName(), "sk_entry_aiv");
+}
+
+TEST_F(SkTaskBuilderTest, Build_WithSimtTaskMissingAllocUbufSize_ReturnsEmpty)
+{
+    opts->RegisterDefaultOptions();
+    auto* splitOpt = opts->GetOption(aclskOptionType::SPLIT_MODE);
+    ASSERT_NE(splitOpt, nullptr);
+    splitOpt->SetValue(1);
+    auto* setDynUbufSizeOpt = opts->GetOption(SkInnerOptionType::ENABLE_SET_DYN_UBUF_SIZE);
+    ASSERT_NE(setDynUbufSizeOpt, nullptr);
+    setDynUbufSizeOpt->SetValue(1);
+
+    auto* k0 = CreateKernelNodeEx(7071, 0, INVALID_TASK_ID, INVALID_TASK_ID, SkKernelType::AIV_ONLY);
+    k0->nodeInfos.kernelInfos.isSimtOp = true;
+    k0->nodeInfos.kernelInfos.hasDynUbufSize = true;
+    k0->nodeInfos.kernelInfos.dynUbufSize = 8192;
+
+    std::vector<SuperKernelBaseNode*> tasks = {k0};
+    SkBuildResult buildResult = builder->Build("Unknown", tasks, {}, 0);
+
+    EXPECT_EQ(buildResult.launchInfo.entryInfo.skEntryFunc, nullptr);
+    EXPECT_FALSE(buildResult.launchInfo.hasMinAvailableUbufSize);
+}
+
+TEST_F(SkTaskBuilderTest, Build_WithSimtTaskUbufSizeOverflow_ReturnsEmpty)
+{
+    opts->RegisterDefaultOptions();
+    auto* splitOpt = opts->GetOption(aclskOptionType::SPLIT_MODE);
+    ASSERT_NE(splitOpt, nullptr);
+    splitOpt->SetValue(1);
+    auto* setDynUbufSizeOpt = opts->GetOption(SkInnerOptionType::ENABLE_SET_DYN_UBUF_SIZE);
+    ASSERT_NE(setDynUbufSizeOpt, nullptr);
+    setDynUbufSizeOpt->SetValue(1);
+
+    auto* k0 = CreateKernelNodeEx(7072, 0, INVALID_TASK_ID, INVALID_TASK_ID, SkKernelType::AIV_ONLY);
+    k0->nodeInfos.kernelInfos.isSimtOp = true;
+    k0->nodeInfos.kernelInfos.hasDynUbufSize = true;
+    k0->nodeInfos.kernelInfos.hasAllocUbufSize = true;
+    k0->nodeInfos.kernelInfos.dynUbufSize = SK_TOTAL_UB_SIZE - 1024U;
+    k0->nodeInfos.kernelInfos.allocUbufSize = 2048U;
+
+    std::vector<SuperKernelBaseNode*> tasks = {k0};
+    SkBuildResult buildResult = builder->Build("Unknown", tasks, {}, 0);
+
+    EXPECT_EQ(buildResult.launchInfo.entryInfo.skEntryFunc, nullptr);
+    EXPECT_FALSE(buildResult.launchInfo.hasMinAvailableUbufSize);
 }
 
 TEST_F(SkTaskBuilderTest, Build_WithResetTask_Success)
