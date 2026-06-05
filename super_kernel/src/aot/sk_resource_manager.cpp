@@ -10,24 +10,24 @@
 
 #include "sk_resource_manager.h"
 #include "sk_log.h"
-#include "sk_event_recorder.h"
+#include "sk_model_context.h"
 
 #include <string>
 
 namespace {
 class ScopedModelLogContext {
 public:
-    explicit ScopedModelLogContext(aclmdlRI model)
-        : previousModel_(sk::logger::FileLogger::GetCurrentModelRI()),
+    explicit ScopedModelLogContext(const std::string& modelLabel)
+        : previousModelLabel_(sk::logger::FileLogger::GetCurrentModelLabel()),
           previousHandle_(sk::logger::FileHandleManager::Instance().GetCurrentHandle())
     {
-        sk::logger::FileLogger::SetCurrentModelRI(model);
+        sk::logger::FileLogger::SetCurrentModelLabel(modelLabel);
         sk::logger::FileHandleManager::Instance().SwitchToDefault();
     }
 
     ~ScopedModelLogContext()
     {
-        sk::logger::FileLogger::SetCurrentModelRI(previousModel_);
+        sk::logger::FileLogger::SetCurrentModelLabel(previousModelLabel_);
         if (previousHandle_ == "default") {
             sk::logger::FileHandleManager::Instance().SwitchToDefault();
             return;
@@ -36,14 +36,13 @@ public:
     }
 
 private:
-    aclmdlRI previousModel_ = nullptr;
+    std::string previousModelLabel_;
     std::string previousHandle_;
 };
 }  // namespace
 
 std::mutex SkResourceManager::resourceMutex_;
-std::unordered_map<aclmdlRI, std::vector<SkResourceManager::ResourceRecord>> SkResourceManager::modelResources_;
-std::unordered_set<aclmdlRI> SkResourceManager::registeredModels_;
+std::unordered_map<aclmdlRI, SkResourceManager::ModelResourceContext> SkResourceManager::modelContexts_;
 thread_local aclmdlRI SkResourceManager::currentModel_ = nullptr;
 
 SkResourceManager& SkResourceManager::GetInstance()
@@ -69,30 +68,32 @@ aclError SkResourceManager::CallbackRegister(aclmdlRI model)
         return ACL_ERROR_INVALID_PARAM;
     }
 
+    const std::string modelId = GetCurrentModelId();
+    const std::string modelLabel = GetCurrentModelLabel();
+    if (modelId.empty() || modelLabel.empty()) {
+        SK_LOGE("ensure destroy callback failed: no active model context, model=%p", model);
+        return ACL_ERROR_FAILURE;
+    }
+
     std::lock_guard<std::mutex> lock(resourceMutex_);
-    if (registeredModels_.count(model) != 0U) {
-        SK_LOGI("model destroy callback already registered: model=%p", model);
-        return ACL_SUCCESS;
+    if (modelContexts_.count(model) != 0U) {
+        SK_LOGE("model resource context already exists before model destroy callback: "
+                "model=%p, modelLabel=%s, modelId=%s",
+                model, modelLabel.c_str(), modelId.c_str());
+        return ACL_ERROR_FAILURE;
     }
 
     aclError ret = aclmdlRIDestroyRegisterCallback(model, OnModelDestroy, model);
     if (ret != ACL_SUCCESS) {
-        SK_LOGE("register model destroy callback failed: model=%p, ret=%d", model, ret);
+        SK_LOGE("register model destroy callback failed: modelLabel=%s, modelId=%s, ret=%d",
+                modelLabel.c_str(), modelId.c_str(), ret);
         return ret;
     }
 
-    registeredModels_.insert(model);
-    SK_LOGI("register model destroy callback success: model=%p", model);
+    modelContexts_.emplace(model, ModelResourceContext{model, modelId, modelLabel, {}});
+    SK_LOGI("register model destroy callback success: modelLabel=%s, modelId=%s",
+            modelLabel.c_str(), modelId.c_str());
     return ACL_SUCCESS;
-}
-
-aclError SkResourceManager::CheckCallbackRegistered(aclmdlRI model)
-{
-    std::lock_guard<std::mutex> lock(resourceMutex_);
-    if (registeredModels_.count(model) != 0U) {
-        return ACL_SUCCESS;
-    }
-    return ACL_ERROR_FAILURE;
 }
 
 aclError SkResourceManager::AllocForModel(aclmdlRI model, void** addr, size_t bytes)
@@ -102,28 +103,33 @@ aclError SkResourceManager::AllocForModel(aclmdlRI model, void** addr, size_t by
         return ACL_ERROR_INVALID_PARAM;
     }
 
-    aclError ret = CheckCallbackRegistered(model);
-    if (ret != ACL_SUCCESS) {
-        SK_LOGE("resource alloc failed: model destroy callback is not registered, model=%p", model);
-        return ret;
-    }
-
-    ret = aclrtMalloc(addr, bytes, ACL_MEM_MALLOC_HUGE_FIRST);
+    aclError ret = aclrtMalloc(addr, bytes, ACL_MEM_MALLOC_HUGE_FIRST);
     if (ret != ACL_SUCCESS) {
         SK_LOGE("resource alloc by aclrtMalloc failed: model=%p, bytes=%zu, ret=%d", model, bytes, ret);
         return ret;
     }
     ret = aclrtMemset(*addr, bytes, 0, bytes);
-    if(ret != ACL_SUCCESS) {
-        SK_LOGE("resource memset by aclrtMemset failed: model=%p, addr=%p, bytes=%zu, ret=%d", model, *addr, bytes, ret);
+    if (ret != ACL_SUCCESS) {
+        SK_LOGE("resource memset by aclrtMemset failed: model=%p, addr=%p, bytes=%zu, ret=%d",
+                model, *addr, bytes, ret);
         aclrtFree(*addr);
         *addr = nullptr;
         return ret;
     }
 
     std::lock_guard<std::mutex> lock(resourceMutex_);
-    modelResources_[model].push_back(ResourceRecord{ResourceKind::kDeviceMemory, *addr, bytes});
-    SK_LOGI("resource alloc success: model=%p, addr=%p, bytes=%zu", model, *addr, bytes);
+    auto it = modelContexts_.find(model);
+    if (it == modelContexts_.end()) {
+        SK_LOGE("resource alloc failed: model resource context is not registered, model=%p", model);
+        aclrtFree(*addr);
+        *addr = nullptr;
+        return ACL_ERROR_FAILURE;
+    }
+
+    auto& context = it->second;
+    context.resources.push_back(ResourceRecord{ResourceKind::kDeviceMemory, *addr, bytes});
+    SK_LOGI("resource alloc success: modelLabel=%s, modelId=%s, addr=%p, bytes=%zu",
+            context.modelLabel.c_str(), context.modelId.c_str(), *addr, bytes);
     return ACL_SUCCESS;
 }
 
@@ -135,49 +141,64 @@ aclError SkResourceManager::ReleaseRecord(const ResourceRecord& record)
     }
 
     switch (record.kind) {
-    case ResourceKind::kDeviceMemory: {
-        aclError ret = aclrtFree(record.addr);
-        if (ret != ACL_SUCCESS) {
-            SK_LOGE("resource free failed: addr=%p, bytes=%zu, ret=%d",
-                    record.addr, record.bytes, ret);
-        } else {
-            SK_LOGI("resource free success: addr=%p, bytes=%zu", record.addr, record.bytes);
+        case ResourceKind::kDeviceMemory: {
+            aclError ret = aclrtFree(record.addr);
+            if (ret != ACL_SUCCESS) {
+                SK_LOGE("resource free failed: addr=%p, bytes=%zu, ret=%d",
+                        record.addr, record.bytes, ret);
+            } else {
+                SK_LOGI("resource free success: addr=%p, bytes=%zu", record.addr, record.bytes);
+            }
+            return ret;
         }
-        return ret;
+        default:
+            SK_LOGE("unknown resource kind: addr=%p", record.addr);
+            return ACL_ERROR_FAILURE;
     }
-    default:
-        SK_LOGE("unknown resource kind: addr=%p", record.addr);
-        return ACL_ERROR_FAILURE;
+}
+
+bool SkResourceManager::ReleaseModelResources(const std::vector<ResourceRecord>& resources)
+{
+    bool releaseSuccess = true;
+    for (const auto& record : resources) {
+        aclError ret = ReleaseRecord(record);
+        if (ret != ACL_SUCCESS) {
+            releaseSuccess = false;
+        }
     }
+    return releaseSuccess;
 }
 
 void SkResourceManager::OnModelDestroy(void* userData)
 {
-    aclmdlRI model = reinterpret_cast<aclmdlRI>(userData);
-    ScopedModelLogContext logContext(model);
-    SK_LOGI("sk resource manager OnModelDestroy called: model=%p", model);
-    std::vector<ResourceRecord> resources;
+    aclmdlRI model = static_cast<aclmdlRI>(userData);
+    if (model == nullptr) {
+        SK_DLOGE("sk resource manager OnModelDestroy invalid userData=%p", userData);
+        return;
+    }
 
+    ModelResourceContext context;
     {
         std::lock_guard<std::mutex> lock(resourceMutex_);
-        auto it = modelResources_.find(model);
-        if (it != modelResources_.end()) {
-            resources.swap(it->second);
-            modelResources_.erase(it);
+        auto it = modelContexts_.find(model);
+        if (it == modelContexts_.end()) {
+            return;
         }
-        registeredModels_.erase(model);
+        context = std::move(it->second);
+        modelContexts_.erase(it);
     }
 
-    // 清理 SkEventRecorder 中按 modelRI 索引的 host 侧映射表
-    SkEventRecorder::Instance().RemoveModelMappings(
-        static_cast<uint64_t>(reinterpret_cast<uintptr_t>(model)));
+    ScopedModelLogContext logContext(context.modelLabel);
+    SK_LOGI("sk resource manager OnModelDestroy called: modelLabel=%s, modelId=%s",
+            context.modelLabel.c_str(), context.modelId.c_str());
 
-    for (const auto& record : resources) {
-        SK_LOGI("release resource record: model=%p, addr=%p, bytes=%zu", model, record.addr, record.bytes);
-        aclError ret = ReleaseRecord(record);
-        if (ret != ACL_SUCCESS) {
-            SK_LOGE("Failed to release some resources during model destroy: model=%p, ret=%d", model, ret);
-        }
+    bool releaseSuccess = ReleaseModelResources(context.resources);
+    if (!releaseSuccess) {
+        SK_LOGE("release some resources during model destroy failed: modelLabel=%s, modelId=%s",
+                context.modelLabel.c_str(), context.modelId.c_str());
+        return;
     }
-    SK_LOGI("sk resource manager OnModelDestroy completed: model=%p", model);
+
+    SK_LOGI("sk resource manager OnModelDestroy completed: modelLabel=%s, modelId=%s",
+            context.modelLabel.c_str(), context.modelId.c_str());
 }

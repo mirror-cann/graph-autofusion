@@ -71,6 +71,9 @@ int SkUtSecurecShouldFailMemset();
 void SkUtSetStreamId(uint32_t streamIdx, int32_t streamId);
 int32_t SkUtGetStreamId(uint32_t streamIdx);
 
+void SkUtSetAclrtGetSocName(const char* socName);
+const char* SkUtGetAclrtGetSocName();
+
 #ifdef __cplusplus
 }
 #endif

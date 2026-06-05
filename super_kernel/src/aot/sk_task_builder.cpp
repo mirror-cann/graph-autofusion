@@ -12,7 +12,8 @@
 #include "sk_graph.h"
 #include "sk_dump_json.h"
 #include "sk_log.h"
-#include "sk_constant_codegen.h"  // 常量化代码生成模块
+#include "sk_constant_codegen.h"
+#include "sk_common.h"
 #include <algorithm>
 #include <cstring>
 #include <limits>
@@ -1230,8 +1231,7 @@ void SkTaskBuilder::RemoveRedundantCrossSync(const std::vector<SuperKernelBaseNo
 namespace {
 void ApplySplitCoreControlMask(SuperKernelBaseNode* task, TaskSyncInfo& taskSyncInfo)
 {
-    static const SkKernelArch currentArch = GetCurrentSkKernelArch();
-    if (currentArch != SkKernelArch::DAV_3510) {
+    if (GetSkRuntimeConfig().kernelArch != SkKernelArch::DAV_3510) {
         return;
     }
     if (task->GetNodeType() != SkNodeType::NODE_KERNEL) {
@@ -1429,7 +1429,7 @@ DeviceArgsPtr SkTaskBuilder::GenEntryArgs(const SkTask& skTaskCube, const SkTask
     size_t header_size = sizeof(SkHeaderInfo);
     size_t aic_que_size = skTaskCube.GetTaskQueSize();
     size_t aiv_que_size = skTaskVec.GetTaskQueSize();
-    size_t counter_size = DEFAULT_COUNTER_COUNT * sizeof(SkCounterInfo);
+    size_t counter_size = GetSkRuntimeConfig().eventCoreNum * sizeof(SkCounterInfo);
     size_t dfx_size = dfxCount * sizeof(SkDfxInfo);
     size_t event_config_size = sizeof(SkEventConfig);
 
@@ -2133,6 +2133,58 @@ std::string BuildEntryFuncName(const char* baseName, EntryFuncFlag flags)
 
 } // namespace
 
+bool SkTaskBuilder::ApplyPerOpMaxCoreNum(const std::vector<SuperKernelBaseNode*>& tasks, SkTask& aicTask, SkTask& aivTask)
+{
+    auto perOpMaxCoreOpt = opts.GetOption(aclskOptionType::DEBUG_PER_OP_MAX_CORE_NUM);
+    if (perOpMaxCoreOpt == nullptr || perOpMaxCoreOpt->GetIntValue() != 1) {
+        SK_LOGI("[DEBUG_PER_OP_MAX_CORE] DEBUG_PER_OP_MAX_CORE_NUM not enabled, skip");
+        return false;
+    }
+
+    SK_LOGI("[DEBUG_PER_OP_MAX_CORE] DEBUG_PER_OP_MAX_CORE_NUM enabled, processing...");
+
+    const size_t taskCount = tasks.size();
+    if (taskCount != 1) {
+        SK_LOGE("[DEBUG_PER_OP_MAX_CORE] Validation failed: taskCount=%zu, expected exactly 1 task", taskCount);
+        return false;
+    }
+
+    SuperKernelBaseNode* singleTask = tasks[0];
+    if (singleTask->GetNodeType() != SkNodeType::NODE_KERNEL) {
+        SK_LOGE("[DEBUG_PER_OP_MAX_CORE] Validation failed: task type=%s, expected NODE_KERNEL",
+                to_string(singleTask->GetNodeType()));
+        return false;
+    }
+
+    SuperKernelKernelNode* kernelNode = static_cast<SuperKernelKernelNode*>(singleTask);
+    int64_t maxCubeNum = GetDeviceCubeCoreNum();
+    int64_t maxVecNum = GetDeviceVecCoreNum();
+    if (maxCubeNum <= 0 || maxVecNum <= 0) {
+        SK_LOGE("[DEBUG_PER_OP_MAX_CORE] Failed to get device core nums: cube=%ld, vec=%ld", maxCubeNum, maxVecNum);
+        return false;
+    }
+
+    if (kernelNode->IsScheModeOn()) {
+        uint32_t cubeNum = kernelNode->GetCubeNum();
+        uint32_t vecNum = kernelNode->GetVecNum();
+        if (cubeNum == 0 && vecNum > 0) {
+            cubeNum = (vecNum + 1) / 2;
+            SK_LOGI("[DEBUG_PER_OP_MAX_CORE] Pure V kernel: vecNum=%u -> cubeNum=%u", vecNum, cubeNum);
+        }
+        aicTask.numBlocks = cubeNum;
+        aivTask.numBlocks = cubeNum * 2;
+        SK_LOGI("[DEBUG_PER_OP_MAX_CORE] ScheMode=1: cube=%u, vec=%u", cubeNum, aivTask.numBlocks);
+    } else {
+        aicTask.numBlocks = static_cast<uint32_t>(maxCubeNum);
+        aivTask.numBlocks = static_cast<uint32_t>(maxVecNum);
+        SK_LOGI("[DEBUG_PER_OP_MAX_CORE] ScheMode=0: cube=%u, vec=%u", 
+                static_cast<uint32_t>(maxCubeNum), static_cast<uint32_t>(maxVecNum));
+    }
+
+    SK_LOGI("[DEBUG_PER_OP_MAX_CORE] Successfully applied per-op max core numBlocks");
+    return true;
+}
+
 SkHostEntryInfo SkTaskBuilder::GenEntryInfo(SkTask& skTaskCube, SkTask& skTaskVec)
 {
     SkHostEntryInfo entryInfo;
@@ -2160,7 +2212,7 @@ SkHostEntryInfo SkTaskBuilder::GenEntryInfo(SkTask& skTaskCube, SkTask& skTaskVe
     
     // ========== 1. 首先尝试常量化代码生成 ==========
     auto [constantFunc, constantType] = TryGenerateConstantFuncHandle(
-        skTaskCube, skTaskVec, opts, graph_.GetModelRI());
+        skTaskCube, skTaskVec, opts, graph_.GetModelLabel());
     
     if (constantFunc != nullptr) {
         // 常量化成功，直接使用特化的 funcHandle
@@ -2240,6 +2292,14 @@ SkHostEntryInfo SkTaskBuilder::GenEntryInfo(SkTask& skTaskCube, SkTask& skTaskVe
     } else {
         SK_LOGE("both skTaskCube and skTaskVec have no task, aborting");
         return {};
+    }
+
+    auto perOpMaxCoreOpt = opts.GetOption(aclskOptionType::DEBUG_PER_OP_MAX_CORE_NUM);
+    bool enablePerOpMaxCore = (perOpMaxCoreOpt != nullptr && perOpMaxCoreOpt->GetIntValue() == 1);
+    if (enablePerOpMaxCore) {
+        kernelType = SkKernelType::MIX_AIC_1_2;
+        isMix12 = true;
+        SK_LOGI("[DEBUG_PER_OP_MAX_CORE] Forced kernelType=MIX_AIC_1_2");
     }
     
     entryInfo.entryType = kernelType;
@@ -2559,6 +2619,11 @@ SkBuildResult SkTaskBuilder::Build(std::string skFuncName, const std::vector<Sup
             }
         }
         SK_LOGI("finish process custom tasks");
+    }
+
+    bool perOpMaxCoreApplied = ApplyPerOpMaxCoreNum(tasks, aicTask, aivTask);
+    if (!perOpMaxCoreApplied) {
+        SK_LOGI("[DEBUG_PER_OP_MAX_CORE] ApplyPerOpMaxCoreNum returned false, using default numBlocks");
     }
 
     SK_LOGI("Get entry info...");

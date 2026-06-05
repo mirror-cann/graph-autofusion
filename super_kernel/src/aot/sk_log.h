@@ -119,6 +119,8 @@ constexpr const char* GetFileName(const char* path)
 
 void ReportErrorMessageInner(const std::string& code, const char* fmt, ...);
 
+std::string GetCurrentModelLabel();
+
 template <typename... Arguments>
 void ReportErrorMessage(const char* fmt, Arguments&&... args)
 {
@@ -157,7 +159,7 @@ struct LoggerConfig {
     bool enabled = false;                    // Enable file logging
     LogLevel minLevel = LogLevel::INFO;      // Minimum log level
     std::string baseDir = "sk_meta";         // Base directory name
-    aclmdlRI modelRI = nullptr;               // Model RI pointer
+    std::string modelLabel;                  // Current model label, e.g. model_48_1
     size_t maxFileSize = 100 * 1024 * 1024;  // Max file size: 100MB
     size_t maxLineLength = 4096;              // Max line length (for segmentation)
     bool enableTimestamp = true;              // Add timestamp
@@ -238,7 +240,7 @@ public:
     void CloseFile(const std::string& name);
     
     // Initialize default file
-    bool InitializeDefault(const std::string& baseDir, pid_t pid, aclmdlRI model);
+    bool InitializeDefault(const std::string& baseDir, pid_t pid, const std::string& modelLabel);
     
 private:
     FileHandleManager();
@@ -295,16 +297,12 @@ public:
         }
     }
     
-    // ========== 线程局部 modelRI 管理 ==========
-    // 设置当前线程的 modelRI（用于多 model 场景）
-    static void SetCurrentModelRI(aclmdlRI model) {
-        currentModelRI_ = model;
+    // ========== Thread-local model label management ==========
+    static void SetCurrentModelLabel(const std::string& modelLabel) {
+        currentModelLabel_ = modelLabel;
     }
-    
-    // 获取当前线程的 modelRI
-    static aclmdlRI GetCurrentModelRI() {
-        return currentModelRI_;
-    }
+
+    static const std::string& GetCurrentModelLabel();
     
     // File handle management
     bool RegisterLogFile(const std::string& name, const std::string& subPath = "");
@@ -313,13 +311,13 @@ public:
     
     // RAII context management
     std::unique_ptr<LogContextGuard> CreateContext(const std::string& fileName,
-                                                    aclmdlRI model = nullptr);
+                                                    const std::string& modelLabel);
     
     // Configuration management
     void SetEnabled(bool enabled);
     bool IsEnabled() const;
     void SetMinLevel(LogLevel level);
-    void SetModelRI(aclmdlRI modelRI);
+    void SetModelLabel(const std::string& modelLabel);
     bool IsInitialized() const;
     
 private:
@@ -336,8 +334,8 @@ private:
     
     void WriteLog(const std::string& message);
     
-    // 获取当前有效的 modelRI（优先使用线程局部变量，其次使用 config_）
-    aclmdlRI GetEffectiveModelRI() const;
+    // Get the effective model label. Prefer the thread-local label and fall back to config_.
+    std::string GetEffectiveModelLabel() const;
 
 private:
     LoggerConfig config_;
@@ -345,8 +343,8 @@ private:
     pid_t pid_{0};
     mutable std::mutex mutex_;
     
-    // 线程局部的 modelRI（支持多 model 场景）
-    static thread_local aclmdlRI currentModelRI_;
+    // Thread-local model label, used to isolate concurrent aclskOptimize calls.
+    static thread_local std::string currentModelLabel_;
 };
 
 } // namespace logger
@@ -393,32 +391,30 @@ private:
     } while (0)
 
 // ==================== RAII Context Macros ====================
-#define SK_LOG_CONTEXT(fileName, modelRI) \
-    auto _sk_log_context_guard = sk::logger::FileLogger::Instance().CreateContext(fileName, modelRI)
+#define SK_LOG_CONTEXT(fileName, modelLabel) \
+    auto _sk_log_context_guard = sk::logger::FileLogger::Instance().CreateContext(fileName, modelLabel)
 
 #define SK_LOG_CONTEXT_SIMPLE(fileName) \
-    auto _sk_log_context_guard = sk::logger::FileLogger::Instance().CreateContext(fileName)
+    auto _sk_log_context_guard = sk::logger::FileLogger::Instance().CreateContext( \
+        fileName, sk::logger::FileLogger::GetCurrentModelLabel())
 
 // ==================== Global Initialization Helper Functions and Macros ====================
 
-// Note: ModelRIToString is now defined in sk_common.h
-
 /**
- * @brief Initialize logger with aclmdlRI pointer
- * @param model Model RI pointer (will be converted to string internally)
+ * @brief Initialize logger with the current model label
+ * @param modelLabel Current model label, e.g. model_48_1
  * 
  * Reads environment variable ASCEND_OP_COMPILE_SAVE_KERNEL_META to enable/disable file logging.
  * - ASCEND_OP_COMPILE_SAVE_KERNEL_META=1: Enable file logging
  * - ASCEND_OP_COMPILE_SAVE_KERNEL_META=0 or unset: Disable file logging
  * 
  * @example
- *   InitSkLogger(model);
+ *   InitSkLogger(modelLabel);
  *   // Creates directory: sk_meta/{pid}/model_305419896/
  */
-inline void InitSkLogger(aclmdlRI model) {
-    // 设置线程局部的 modelRI（支持多 model 场景）
-    sk::logger::FileLogger::SetCurrentModelRI(model);
-    
+inline void InitSkLogger(const std::string& modelLabel) {
+    sk::logger::FileLogger::SetCurrentModelLabel(modelLabel);
+
     // Read environment variable
     const char* envVar = std::getenv("ASCEND_OP_COMPILE_SAVE_KERNEL_META");
     bool enabled = false;
@@ -444,7 +440,7 @@ inline void InitSkLogger(aclmdlRI model) {
     // Initialize file logger
     sk::logger::LoggerConfig config;
     config.enabled = enabled;
-    config.modelRI = model;
+    config.modelLabel = modelLabel;
     config.minLevel = sk::logger::LogLevel::DEBUG;
     config.baseDir = "sk_meta";
     
@@ -456,14 +452,14 @@ inline void InitSkLogger(aclmdlRI model) {
 }
 
 // Manual initialization function
-bool InitializeSkFileLogger(bool enabled, aclmdlRI model = nullptr,
+bool InitializeSkFileLogger(bool enabled, const std::string& modelLabel = "",
                              sk::logger::LogLevel minLevel = sk::logger::LogLevel::INFO);
 
-#define INIT_SK_FILE_LOGGER(modelRI) \
-    InitializeSkFileLogger(true, modelRI, sk::logger::LogLevel::DEBUG)
+#define INIT_SK_FILE_LOGGER(modelLabel) \
+    InitializeSkFileLogger(true, modelLabel, sk::logger::LogLevel::DEBUG)
 
-#define INIT_SK_FILE_LOGGER_MINIMAL(modelRI) \
-    InitializeSkFileLogger(true, modelRI, sk::logger::LogLevel::INFO)
+#define INIT_SK_FILE_LOGGER_MINIMAL(modelLabel) \
+    InitializeSkFileLogger(true, modelLabel, sk::logger::LogLevel::INFO)
 
 #define DISABLE_SK_FILE_LOGGER() \
     sk::logger::FileLogger::Instance().SetEnabled(false)

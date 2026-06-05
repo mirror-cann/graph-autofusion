@@ -20,11 +20,20 @@
 #include "sk_dfx_exception_handler.h"
 #include "sk_log.h"
 #include "sk_types.h"
+#include "sk_common.h"
 #include "sk_event_recorder.h"
 #include "runtime/kernel.h"
 
+// COND register index in errReg[] for different architectures
+// DAV_2201: errReg[20] is low 32 bits, errReg[21] is high 32 bits
+constexpr uint32_t SK_COND_ERR_REG_LOW_IDX_DAV2201 = 20;
+constexpr uint32_t SK_COND_ERR_REG_HIGH_IDX_DAV2201 = 21;
+// DAV_3510: errReg[32] is low 32 bits, errReg[33] is high 32 bits
+constexpr uint32_t SK_COND_ERR_REG_LOW_IDX_DAV3510 = 32;
+constexpr uint32_t SK_COND_ERR_REG_HIGH_IDX_DAV3510 = 33;
+
 SuperKernelExceptionHandler::SuperKernelExceptionHandler()
-    : aicoreNums(DEFAULT_COUNTER_COUNT)
+    : aicoreNums(GetSkRuntimeConfig().eventCoreNum)
     , skDeviceEntryArgsDev(nullptr)
     , skDeviceEntryArgsPtrLen(0)
     , skDeviceEntryArgsHost(nullptr)
@@ -71,8 +80,8 @@ void SuperKernelExceptionHandler::HandleException(aclrtExceptionInfo *exceptionI
         return;
     }
 
-    // Print modelRI index mapping table for debugging
-    SkEventRecorder::Instance().PrintModelRIIndexMap();
+    // Print modelId index mapping table for debugging
+    SkEventRecorder::Instance().PrintModelIdIndexMap();
 
     // Print op trace for all cores
     PrintAllCoreSymbols();
@@ -100,6 +109,14 @@ bool SuperKernelExceptionHandler::CopySkDeviceEntryArgsToHost() {
 
     // Step 2: Now that we know totalSize, copy all SkDeviceEntryArgs data to host at once
     SK_LOGI("---Total SkDeviceEntryArgs size: %lu bytes", skHeaderInfoHost->totalSize);
+    if (skHeaderInfoHost->totalSize > skDeviceEntryArgsPtrLen) {
+        SK_LOGE("totalSize(%lu) exceeds skDeviceEntryArgsPtrLen(%u), invalid device address range",
+                skHeaderInfoHost->totalSize, skDeviceEntryArgsPtrLen);
+        aclrtFreeHost(skHeaderInfoHost);
+        skHeaderInfoHost = nullptr;
+        return false;
+    }
+
     if (CheckError(aclrtMallocHost((void **)(&skDeviceEntryArgsHost), skHeaderInfoHost->totalSize),
                    "aclrtMallocHost for skDeviceEntryArgsHost") != ACL_SUCCESS) {
         aclrtFreeHost(skHeaderInfoHost);
@@ -125,6 +142,14 @@ bool SuperKernelExceptionHandler::CopySkDeviceEntryArgsToHost() {
     // Update skHeaderInfoHost to point to skHeaderInfo in skDeviceEntryArgsHost
     skHeaderInfoHost = &(skDeviceEntryArgsHost->skHeader);
 
+    // Validate all offsets in SkHeaderInfo to prevent out-of-bounds access
+    if (!ValidateSkHeaderOffsets()) {
+        aclrtFreeHost(skDeviceEntryArgsHost);
+        skDeviceEntryArgsHost = nullptr;
+        skHeaderInfoHost = nullptr;
+        return false;
+    }
+
     return true;
 }
 
@@ -133,7 +158,12 @@ bool SuperKernelExceptionHandler::ExtractSkDeviceEntryArgsPtr(aclrtExceptionInfo
     SK_LOGI("---skDeviceEntryArgsDev: %p", skDeviceEntryArgsDev);
     SK_LOGI("---skDeviceEntryArgsPtrLen: %d", skDeviceEntryArgsPtrLen);
 
-    if (skDeviceEntryArgsPtrLen < 8) {
+    if (ret != ACL_SUCCESS) {
+        SK_LOGE("aclrtGetArgsFromExceptionInfo failed, ret=%d", ret);
+        return false;
+    }
+
+    if (skDeviceEntryArgsPtrLen < 8 || skDeviceEntryArgsDev == nullptr) {
         SK_LOGI("no args, callback return");
         return false;
     }
@@ -158,6 +188,70 @@ bool SuperKernelExceptionHandler::ExtractSkHeaderInfo() {
 
     // Temporarily save SkHeaderInfo data
     skHeaderInfoHost = tempHeader;
+
+    return true;
+}
+
+bool SuperKernelExceptionHandler::ValidateSkHeaderOffsets() {
+    uint64_t totalSize = skHeaderInfoHost->totalSize;
+
+    // Validate aicQueOffset: offset + aicQueSize must not exceed totalSize
+    if (skHeaderInfoHost->aicQueOffset > 0) {
+        if (skHeaderInfoHost->aicQueOffset >= totalSize) {
+            SK_LOGE("aicQueOffset(%u) >= totalSize(%lu), invalid offset", skHeaderInfoHost->aicQueOffset, totalSize);
+            return false;
+        }
+        uint64_t aicEnd = static_cast<uint64_t>(skHeaderInfoHost->aicQueOffset) + skHeaderInfoHost->aicQueSize;
+        if (aicEnd > totalSize) {
+            SK_LOGE("aicQueOffset(%u) + aicQueSize(%u) exceeds totalSize(%lu), invalid offset",
+                    skHeaderInfoHost->aicQueOffset, skHeaderInfoHost->aicQueSize, totalSize);
+            return false;
+        }
+    }
+
+    // Validate aivQueOffset: offset + aivQueSize must not exceed totalSize
+    if (skHeaderInfoHost->aivQueOffset > 0) {
+        if (skHeaderInfoHost->aivQueOffset >= totalSize) {
+            SK_LOGE("aivQueOffset(%u) >= totalSize(%lu), invalid offset", skHeaderInfoHost->aivQueOffset, totalSize);
+            return false;
+        }
+        uint64_t aivEnd = static_cast<uint64_t>(skHeaderInfoHost->aivQueOffset) + skHeaderInfoHost->aivQueSize;
+        if (aivEnd > totalSize) {
+            SK_LOGE("aivQueOffset(%u) + aivQueSize(%u) exceeds totalSize(%lu), invalid offset",
+                    skHeaderInfoHost->aivQueOffset, skHeaderInfoHost->aivQueSize, totalSize);
+            return false;
+        }
+    }
+
+    // Validate counterOffset: offset + aicoreNums * sizeof(SkCounterInfo) must not exceed totalSize
+    if (skHeaderInfoHost->counterOffset > 0) {
+        if (skHeaderInfoHost->counterOffset >= totalSize) {
+            SK_LOGE("counterOffset(%u) >= totalSize(%lu), invalid offset", skHeaderInfoHost->counterOffset, totalSize);
+            return false;
+        }
+        uint64_t counterEnd = static_cast<uint64_t>(skHeaderInfoHost->counterOffset)
+                            + static_cast<uint64_t>(aicoreNums) * sizeof(SkCounterInfo);
+        if (counterEnd > totalSize) {
+            SK_LOGE("counterOffset(%u) + aicoreNums(%u) * sizeof(SkCounterInfo) exceeds totalSize(%lu), invalid offset",
+                    skHeaderInfoHost->counterOffset, aicoreNums, totalSize);
+            return false;
+        }
+    }
+
+    // Validate dfxOffset: offset + nodeCnt * sizeof(SkDfxInfo) must not exceed totalSize
+    if (skHeaderInfoHost->dfxOffset > 0) {
+        if (skHeaderInfoHost->dfxOffset >= totalSize) {
+            SK_LOGE("dfxOffset(%u) >= totalSize(%lu), invalid offset", skHeaderInfoHost->dfxOffset, totalSize);
+            return false;
+        }
+        uint64_t dfxEnd = static_cast<uint64_t>(skHeaderInfoHost->dfxOffset)
+                        + static_cast<uint64_t>(skHeaderInfoHost->nodeCnt) * sizeof(SkDfxInfo);
+        if (dfxEnd > totalSize) {
+            SK_LOGE("dfxOffset(%u) + nodeCnt(%u) * sizeof(SkDfxInfo) exceeds totalSize(%lu), invalid offset",
+                    skHeaderInfoHost->dfxOffset, skHeaderInfoHost->nodeCnt, totalSize);
+            return false;
+        }
+    }
 
     return true;
 }
@@ -198,11 +292,11 @@ void SuperKernelExceptionHandler::PrintSkHeaderInfo() const {
     SK_LOGI("dfxOffset: %u", skHeaderInfoHost->dfxOffset);
     SK_LOGI("nodeCnt: %u", skHeaderInfoHost->nodeCnt);
     SK_LOGI("totalSize: %lu", skHeaderInfoHost->totalSize);
-    uint16_t modelRIIdx = static_cast<uint16_t>((skHeaderInfoHost->modelRIIdAndSkScopeId >> 32) & 0xFFFF);
-    uint16_t skScopeId = static_cast<uint16_t>((skHeaderInfoHost->modelRIIdAndSkScopeId >> 16) & 0xFFFF);
-    uint64_t originalModelRI = SkEventRecorder::Instance().GetModelRIByIndex(modelRIIdx);
-    SK_LOGI("modelRIIdAndSkScopeId: 0x%lx (modelRIIdx=%u, skScopeId=%u, originalModelRI=0x%lx)",
-            skHeaderInfoHost->modelRIIdAndSkScopeId, modelRIIdx, skScopeId, originalModelRI);
+    uint16_t modelIdIdx = static_cast<uint16_t>((skHeaderInfoHost->modelIdIndexAndSkScopeId >> 32) & 0xFFFF);
+    uint16_t skScopeId = static_cast<uint16_t>((skHeaderInfoHost->modelIdIndexAndSkScopeId >> 16) & 0xFFFF);
+    std::string modelId = SkEventRecorder::Instance().GetModelIdByIndex(modelIdIdx);
+    SK_LOGI("modelIdIndexAndSkScopeId: 0x%lx (modelIdIdx=%u, skScopeId=%u, modelId=%s)",
+            skHeaderInfoHost->modelIdIndexAndSkScopeId, modelIdIdx, skScopeId, modelId.c_str());
 }
 
 void SuperKernelExceptionHandler::ExtractAndPrintSkInfo() {
@@ -300,20 +394,29 @@ bool SuperKernelExceptionHandler::GetExceptionRegInfo(const aclrtExceptionInfo &
 }
 
 uint64_t SuperKernelExceptionHandler::GetCondRegValue(const rtExceptionErrRegInfo_t &coreErrRegInfo) {
-    // COND register is 64-bit: errReg[20] is low 32 bits, errReg[21] is high 32 bits
-    constexpr uint32_t COND_REG_LOW_IDX = 20;
-    constexpr uint32_t COND_REG_HIGH_IDX = 21;
-    uint64_t condValue = (static_cast<uint64_t>(coreErrRegInfo.errReg[COND_REG_HIGH_IDX]) << 32)
-                       | static_cast<uint64_t>(coreErrRegInfo.errReg[COND_REG_LOW_IDX]);
+    // COND register is 64-bit
+    // For DAV_2201: errReg[20] is low 32 bits, errReg[21] is high 32 bits
+    // For DAV_3510: errReg[32] is low 32 bits, errReg[33] is high 32 bits
+    uint32_t condRegLowIdx = SK_COND_ERR_REG_LOW_IDX_DAV2201;
+    uint32_t condRegHighIdx = SK_COND_ERR_REG_HIGH_IDX_DAV2201;
+    SkKernelArch arch = GetCurrentSkKernelArch();
+    if (arch == SkKernelArch::DAV_3510) {
+        condRegLowIdx = SK_COND_ERR_REG_LOW_IDX_DAV3510;
+        condRegHighIdx = SK_COND_ERR_REG_HIGH_IDX_DAV3510;
+    }
+    SK_LOGE("GetCondRegValue: arch=%s, condRegLowIdx=%u, condRegHighIdx=%u",
+            to_string(arch), condRegLowIdx, condRegHighIdx);
+    uint64_t condValue = (static_cast<uint64_t>(coreErrRegInfo.errReg[condRegHighIdx]) << 32)
+                       | static_cast<uint64_t>(coreErrRegInfo.errReg[condRegLowIdx]);
     return condValue;
 }
 
 void SuperKernelExceptionHandler::ParseAndPrintCondInfo(uint32_t coreId, rtCoreType_t coreType, uint64_t condValue) {
     // Cond value is set by sk_entry kernel via set_cond instruction.
-    // Format: cond = modelRIIdAndSkScopeId | (opState + (task->index << 8))
+    // Format: cond = modelIdIndexAndSkScopeId | (opState + (task->index << 8))
     //   bits [7:0]   : opState (SkOpTraceType)
     //   bits [15:8]  : task->index (sub-operator index)
-    //   bits [63:16] : modelRIIdAndSkScopeId
+    //   bits [63:16] : modelIdIndexAndSkScopeId
     // If cond is 0, the runtime/driver does not support this feature yet, skip printing.
     if (condValue == 0) {
         SK_LOGE("[Core %u] Failed to get COND register value, possible reason: driver package not upgraded", coreId);
@@ -439,12 +542,12 @@ void SuperKernelExceptionHandler::PrintMatchedNodeBasicInfo(
         uint32_t nodeIdx, int entryIdx, uint64_t entryAddr, uint64_t endAddr,
         uint32_t funcSize, const SkDfxInfo &dfxNode) const {
     const char *coreTypeName = (coreType == RT_CORE_TYPE_AIC) ? "AIC" : "AIV";
-    uint16_t modelRIIdx = static_cast<uint16_t>((skHeaderInfoHost->modelRIIdAndSkScopeId >> 32) & 0xFFFF);
-    uint16_t skScopeId = static_cast<uint16_t>((skHeaderInfoHost->modelRIIdAndSkScopeId >> 16) & 0xFFFF);
-    uint64_t originalModelRI = SkEventRecorder::Instance().GetModelRIByIndex(modelRIIdx);
+    uint16_t modelIdIdx = static_cast<uint16_t>((skHeaderInfoHost->modelIdIndexAndSkScopeId >> 32) & 0xFFFF);
+    uint16_t skScopeId = static_cast<uint16_t>((skHeaderInfoHost->modelIdIndexAndSkScopeId >> 16) & 0xFFFF);
+    std::string modelId = SkEventRecorder::Instance().GetModelIdByIndex(modelIdIdx);
 
     SK_LOGE("============================================================");
-    SK_LOGE("[Core %u] ModelRIIdx=%u, OriginalModelRI=0x%lx, SkScopeId=%u", coreId, modelRIIdx, originalModelRI, skScopeId);
+    SK_LOGE("[Core %u] ModelIdIdx=%u, ModelId=%s, SkScopeId=%u", coreId, modelIdIdx, modelId.c_str(), skScopeId);
     SK_LOGE("[Core %u] CoreType: %s", coreId, coreTypeName);
     SK_LOGE("[Core %u] StartPC: 0x%lx", coreId, startPC);
     SK_LOGE("[Core %u] CurrentPC: 0x%lx", coreId, currentPC);
@@ -530,13 +633,13 @@ void SuperKernelExceptionHandler::PrintNodeDevArgs(
 void SuperKernelExceptionHandler::PrintNoMatchInfo(
         uint32_t coreId, rtCoreType_t coreType, uint64_t startPC, uint64_t currentPC) const {
     const char *coreTypeName = (coreType == RT_CORE_TYPE_AIC) ? "AIC" : "AIV";
-    uint16_t modelRIIdx = static_cast<uint16_t>((skHeaderInfoHost->modelRIIdAndSkScopeId >> 32) & 0xFFFF);
-    uint16_t skScopeId = static_cast<uint16_t>((skHeaderInfoHost->modelRIIdAndSkScopeId >> 16) & 0xFFFF);
-    uint64_t originalModelRI = SkEventRecorder::Instance().GetModelRIByIndex(modelRIIdx);
+    uint16_t modelIdIdx = static_cast<uint16_t>((skHeaderInfoHost->modelIdIndexAndSkScopeId >> 32) & 0xFFFF);
+    uint16_t skScopeId = static_cast<uint16_t>((skHeaderInfoHost->modelIdIndexAndSkScopeId >> 16) & 0xFFFF);
+    std::string modelId = SkEventRecorder::Instance().GetModelIdByIndex(modelIdIdx);
 
     SK_LOGE("============================================================");
     SK_LOGE("[Core %u] No sub kernel matched, aicore error occurred in sk entry.", coreId);
-    SK_LOGE("[Core %u] ModelRIIdx=%u, OriginalModelRI=0x%lx, SkScopeId=%u", coreId, modelRIIdx, originalModelRI, skScopeId);
+    SK_LOGE("[Core %u] ModelIdIdx=%u, ModelId=%s, SkScopeId=%u", coreId, modelIdIdx, modelId.c_str(), skScopeId);
     SK_LOGE("[Core %u] CoreType: %s", coreId, coreTypeName);
     SK_LOGE("[Core %u] startPC: 0x%lx", coreId, startPC);
     SK_LOGE("[Core %u] CurrentPC: 0x%lx", coreId, currentPC);
@@ -661,7 +764,7 @@ void SuperKernelExceptionHandler::PrintAllCoreSymbols() {
 
     for (uint32_t coreId = 0; coreId < aicoreNums; coreId++) {
         // Determine core type
-        rtCoreType_t coreType = (coreId < 25) ? RT_CORE_TYPE_AIC : RT_CORE_TYPE_AIV;
+        rtCoreType_t coreType = CoreIsAiv(coreId) ? RT_CORE_TYPE_AIV : RT_CORE_TYPE_AIC;
 
         // Temporarily use default values, as real PC values cannot be obtained from counter info
         uint64_t startPC = 0;
@@ -817,10 +920,10 @@ aclError SuperKernelExceptionHandler::PopulateSkEntryFields(Adx::ExceptionDumpIn
         return ACL_ERROR_FAILURE;
     }
 
-    uint16_t modelRIIdx = static_cast<uint16_t>((skHeaderInfoHost->modelRIIdAndSkScopeId >> 32) & 0xFFFF);
-    uint16_t skScopeId = static_cast<uint16_t>((skHeaderInfoHost->modelRIIdAndSkScopeId >> 16) & 0xFFFF);
-    uint64_t originalModelRI = SkEventRecorder::Instance().GetModelRIByIndex(modelRIIdx);
-    std::string skNameFromRecorder = SkEventRecorder::Instance().GetSkName(originalModelRI, skScopeId);
+    uint16_t modelIdIdx = static_cast<uint16_t>((skHeaderInfoHost->modelIdIndexAndSkScopeId >> 32) & 0xFFFF);
+    uint16_t skScopeId = static_cast<uint16_t>((skHeaderInfoHost->modelIdIndexAndSkScopeId >> 16) & 0xFFFF);
+    std::string modelId = SkEventRecorder::Instance().GetModelIdByIndex(modelIdIdx);
+    std::string skNameFromRecorder = SkEventRecorder::Instance().GetSkName(modelId, skScopeId);
     if (!skNameFromRecorder.empty()) {
         snprintf_s(dumpInfo.kernelDisplayName, Adx::MAX_KERNELNAME_LEN, Adx::MAX_KERNELNAME_LEN - 1,
                    "%s", skNameFromRecorder.c_str());

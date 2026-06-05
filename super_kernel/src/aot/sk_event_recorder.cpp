@@ -9,6 +9,7 @@
 */
 
 #include "sk_event_recorder.h"
+#include "sk_options_manager.h"
 #include <cstdlib>
 #include <cstring>
 #include <unistd.h>
@@ -17,6 +18,7 @@
 #include <fstream>
 #include "acl/acl.h"
 #include "sk_log.h"
+#include "sk_model_context.h"
 #include "aprof_pub.h"
 #include "sk_file_guard.h"
 
@@ -30,7 +32,7 @@
     } while (0)
 
 uint32_t SkEventRecorder::coreSize_ = SK_EVENT_DEFAULT_CORE_SIZE;
-uint32_t SkEventRecorder::totalSize_ = SK_EVENT_CORE_NUM * SK_EVENT_DEFAULT_CORE_SIZE;
+uint32_t SkEventRecorder::totalSize_ = 0;  // 运行时由 ParseEnvAndSetSize 设置
 
 // ==================== Msprof 回调相关 ====================
 constexpr size_t ASCENDC_KERNEL_ID = 69;
@@ -51,16 +53,83 @@ static int32_t AscendProfilingCallBack(uint32_t type, void *data, uint32_t len)
     return 0;
 }
 
-SkEventRecorder& SkEventRecorder::Instance() {
+namespace {
+void SetupProfilingModelContext(SkLaunchInfo& launchInfo, const SuperKernelScopeInfo& scopeInfo,
+                                const std::string& modelId)
+{
+    if (launchInfo.devArgs.Get() == nullptr) {
+        SK_LOGI("[sk time profiling] devArgs is null, skip setting modelIdIndexAndSkScopeId");
+        return;
+    }
+
+    uint16_t modelIdIdx = SkEventRecorder::Instance().RegisterModelId(modelId);
+    uint16_t skScopeId = scopeInfo.GetScopeId();
+    launchInfo.devArgs.Get()->skHeader.modelIdIndexAndSkScopeId =
+        (static_cast<uint64_t>(modelIdIdx) << 32) | (static_cast<uint64_t>(skScopeId) << 16);
+}
+
+bool SetupProfilingRuntime(const std::vector<SuperKernelBaseNode*>& taskNodes, SkLaunchInfo& launchInfo,
+                           const SuperKernelScopeInfo& scopeInfo, const std::string& modelId)
+{
+    int32_t deviceId = 0;
+    aclError aclRet = aclrtGetDevice(&deviceId);
+    if (aclRet != ACL_SUCCESS) {
+        SK_LOGE("[sk time profiling] Failed to get device id, ret=%d\n", aclRet);
+        return false;
+    }
+    launchInfo.eventGmAddr = SkEventRecorder::Instance().GetGmAddrForDevice(deviceId);
+    // 获取gm地址失败后，只通知 kernel 侧禁用 profiling（enabled=0），不中断后续host调度流程 
+    const bool profilingEnabled = (launchInfo.eventGmAddr != nullptr);
+    if (!profilingEnabled) {
+        SK_LOGE("[sk time profiling] Failed to get event GM address\n");
+    }
+
+    launchInfo.modelIdIndex = SkEventRecorder::Instance().RegisterModelId(modelId);
+    launchInfo.skId = static_cast<uint32_t>(scopeInfo.GetScopeId());
+    SK_LOGI("[sk time profiling] Event recording %s, gm_addr=%p, modelId=%s, skId=%u\n",
+            profilingEnabled ? "enabled" : "disabled", launchInfo.eventGmAddr, modelId.c_str(), launchInfo.skId);
+    // 更新 devArgs 中的事件配置（通过 profilingEnabled 控制 enabled 值，防止kernel侧往错误的地址写入）
+    if (launchInfo.devArgs.Get() != nullptr && launchInfo.devArgs.Get()->skHeader.eventConfigOffset != 0) {
+        uint8_t* base = reinterpret_cast<uint8_t*>(launchInfo.devArgs.Get());
+        SkEventConfig* eventConfig = reinterpret_cast<SkEventConfig*>(
+            base + launchInfo.devArgs.Get()->skHeader.eventConfigOffset);
+        eventConfig->eventGmAddr = reinterpret_cast<uint64_t>(launchInfo.eventGmAddr);
+        eventConfig->modelIdIndex = launchInfo.modelIdIndex;
+        eventConfig->skId = launchInfo.skId;
+        eventConfig->enabled = profilingEnabled ? 1 : 0;
+        eventConfig->coreSize = SkEventRecorder::Instance().GetCoreSize();
+    }
+    SK_LOGI("[sk time profiling] Event recording %s, gm_addr=%p, modelId=%lu, skId=%u\n",
+ 	             profilingEnabled ? "enabled" : "disabled",
+ 	             launchInfo.eventGmAddr, launchInfo.modelIdIndex, launchInfo.skId);
+    // 建立 modelId -> skId -> nodeId -> (nodeName, numBlocks) 映射
+    for (size_t nodeId = 0; nodeId < taskNodes.size(); ++nodeId) {
+        SuperKernelBaseNode* node = taskNodes[nodeId];
+        if (node != nullptr && node->GetNodeType() == SkNodeType::NODE_KERNEL) {
+            const NodeInfos& nodeInfos = node->GetNodeInfos();
+            const std::string& funcName = nodeInfos.kernelInfos.funcName;
+            SkEventRecorder::Instance().AddNodeInfoMapping(
+                modelId, launchInfo.skId, static_cast<uint32_t>(nodeId), funcName, nodeInfos.kernelInfos.numBlocks);
+        }
+    }
+    SkEventRecorder::Instance().AddSkNameMapping(modelId, launchInfo.skId, launchInfo.skFuncName);
+    return true;
+}
+}  // namespace
+
+SkEventRecorder& SkEventRecorder::Instance()
+{
     static SkEventRecorder instance;
     return instance;
 }
 
-SkEventRecorder::~SkEventRecorder() {
+SkEventRecorder::~SkEventRecorder()
+{
     SkProfilingShutdown();
 }
 
-std::string SkEventRecorder::CreateOutputDir() {
+std::string SkEventRecorder::CreateOutputDir()
+{
     // 获取当前进程 pid
     pid_t pid = getpid();
 
@@ -69,7 +138,7 @@ std::string SkEventRecorder::CreateOutputDir() {
     struct stat st;
     if (stat(skMetaDir, &st) != 0) {
         // sk_meta 不存在，创建它
-        if (mkdir(skMetaDir, 0755) != 0) {
+        if (mkdir(skMetaDir, 0755) != 0 && errno != EEXIST) {
             SK_LOGE("[sk time profiling] Failed to create sk_meta directory, errno=%d\n", errno);
             return "";
         }
@@ -87,7 +156,7 @@ std::string SkEventRecorder::CreateOutputDir() {
 
     if (stat(pidDir, &st) != 0) {
         // sk_meta/<pid> 不存在，创建它
-        if (mkdir(pidDir, 0755) != 0) {
+        if (mkdir(pidDir, 0755) != 0 && errno != EEXIST) {
             SK_LOGE("[sk time profiling] Failed to create pid directory %s, errno=%d\n", pidDir, errno);
             return "";
         }
@@ -97,14 +166,15 @@ std::string SkEventRecorder::CreateOutputDir() {
     return std::string(pidDir);
 }
 
-bool SkEventRecorder::Init() {
+bool SkEventRecorder::Init()
+{
     // 已经初始化过，直接返回
     if (enabled.load()) {
-        SK_LOGI("[sk time profiling] Dump the time of superkernel has already been initialized, skip re-initialization\n");
+        SK_LOGI("[sk time profiling] Dump the time of superkernel has already been initialized, skip re-initialization");
         return true;
     }
     std::call_once(initFlag_, [this]() {
-        SK_LOGI("[sk time profiling] ===================== Start dump the time of superkernel =======================\n");
+        SK_LOGI("[sk time profiling] ===================== Start dump the time of superkernel =======================");
         // 检查打点环境变量是否开启（值代表每个core申请了几KB的空间，0表示关闭）
         if (!ParseEnvAndSetSize()) {
             return;
@@ -168,14 +238,15 @@ bool SkEventRecorder::ParseEnvAndSetSize()
     // 向上取整到 64KB 的倍数（输入单位为 KB，对齐到 64）
     uint32_t coreSizeKB = static_cast<uint32_t>((val + 63U) / 64U * 64U);
     coreSize_ = coreSizeKB * 1024U;
-    totalSize_ = SK_EVENT_CORE_NUM * coreSize_;
+    totalSize_ = GetSkRuntimeConfig().eventCoreNum * coreSize_;
 
     SK_LOGI("[sk time profiling] ASCEND_PROF_SK_ON=%s, coreSize=%u KB (aligned), totalSize=%u MB for each device profiling\n",
             env, coreSizeKB, totalSize_ / (1024U * 1024U));
     return true;
 }
 
-void* SkEventRecorder::GetGmAddrForDevice(uint32_t deviceId) {
+void* SkEventRecorder::GetGmAddrForDevice(uint32_t deviceId)
+{
     SK_LOGI("[sk time profiling] Start getting device gm addr for device %u\n", deviceId);
     if (!enabled.load() || deviceId >= SK_EVENT_MAX_DEVICE_NUM) {
         SK_LOGE("[sk time profiling] Printing has not started or deviceId %u is out of range\n", deviceId);
@@ -200,6 +271,11 @@ void* SkEventRecorder::GetGmAddrForDevice(uint32_t deviceId) {
         SK_LOGI("[sk time profiling] Device buffer not allocated yet, allocating now for device %u\n", deviceId);
         // 创建上下文
         ctx = CreateDeviceCtx(deviceId);
+        if (ctx == nullptr) {
+                SK_LOGE("[sk time profiling] Failed to create device ctx for device %u\n", deviceId);
+                SK_LOGI("[sk time profiling] End get device gm addr on device: %u\n", deviceId);
+                return nullptr;
+            }
         SK_LOGI("[sk time profiling] Device gm addr created for device: %u, addr: %p\n", deviceId, ctx->gmAddr.get());
         SK_LOGI("[sk time profiling] End get device gm addr on device: %u\n", deviceId);
     }
@@ -207,7 +283,34 @@ void* SkEventRecorder::GetGmAddrForDevice(uint32_t deviceId) {
     return ctx ? ctx->gmAddr.get() : nullptr;
 }
 
-SkEventDeviceCtx* SkEventRecorder::CreateDeviceCtx(uint32_t deviceId) {
+bool SkEventRecorder::InitDeviceOutputFile(SkEventDeviceCtx* ctx, uint32_t deviceId)
+{
+    char filename[SPRINT_LEN_BUFFER];
+    errno_t snpRet = snprintf_s(filename, sizeof(filename), sizeof(filename) - 1,
+                                "%s/sk_prof_device_%u.json", ctx->outputDir.c_str(), deviceId);
+    if (snpRet < 0) {
+        SK_LOGE("[sk time profiling] snprintf_s filename failed for device %u, ret=%d\n", deviceId, snpRet);
+        SkProfilingShutdown();
+        return false;
+    }
+
+    if (!ctx->outputFp.Open(filename, "w+b")) {
+        return true;
+    }
+
+    const char* jsonStart = "[{}]";
+    size_t written = fwrite(jsonStart, 1, strlen(jsonStart), ctx->outputFp.Get());
+    if (written != strlen(jsonStart)) {
+        SK_LOGE("[sk time profiling] Failed to write JSON start to file\n");
+        SkProfilingShutdown();
+        return false;
+    }
+
+    return true;
+}
+
+SkEventDeviceCtx* SkEventRecorder::CreateDeviceCtx(uint32_t deviceId)
+{
     SkEventDeviceCtx* ctx = &deviceCtxs;
     ctx->recorder = this; // 设置回调指针
     
@@ -250,33 +353,13 @@ SkEventDeviceCtx* SkEventRecorder::CreateDeviceCtx(uint32_t deviceId) {
         SkProfilingShutdown();
         return nullptr;
     }
-    
     // 4. 创建临时输出文件（用于存储 node 事件）
-    char filename[SPRINT_LEN_BUFFER];
-    errno_t snpRet = snprintf_s(filename, sizeof(filename), sizeof(filename) - 1,
-                            "%s/sk_prof_device_%u.json", ctx->outputDir.c_str(), deviceId);
-    if (snpRet < 0) {
-        SK_LOGE("[sk time profiling] snprintf_s filename failed for device %u, ret=%d\n", deviceId, snpRet);
-        SkProfilingShutdown();
+    if (!InitDeviceOutputFile(ctx, deviceId)) {
         return nullptr;
     }
     
-    // 直接使用 ctx->outputFp 打开文件
-    if (ctx->outputFp.Open(filename, "w+b")) {
-        // 写入 JSON 数组开头
-        const char* jsonStart = "[{}]";
-        size_t written = fwrite(jsonStart, 1, strlen(jsonStart), ctx->outputFp.Get());
-        if (written != strlen(jsonStart)) {
-            SK_LOGE("[sk time profiling] Failed to write JSON start to file\n");
-            SkProfilingShutdown();
-            return nullptr;
-        }
-    }
-    
     // 5. 初始化host偏移量数组
-    for (uint32_t i = 0; i < SK_EVENT_CORE_NUM; i++) {
-        ctx->lastOffset[i] = sizeof(SkKernelEventCoreBuf);
-    }
+    ctx->lastOffset.assign(GetSkRuntimeConfig().eventCoreNum, sizeof(SkKernelEventCoreBuf));
 
     // 6. 设置该device基本信息并标记为激活
     ctx->deviceId = deviceId;
@@ -289,11 +372,13 @@ SkEventDeviceCtx* SkEventRecorder::CreateDeviceCtx(uint32_t deviceId) {
     return ctx;
 }
 
-void SkEventRecorder::SetProfSignal(uint32_t val) {
+void SkEventRecorder::SetProfSignal(uint32_t val)
+{
     g_profSignal.store(val, std::memory_order_relaxed);
 }
 
-void SkEventRecorder::CopyOutputToProfPath(SkEventDeviceCtx* ctx) {
+void SkEventRecorder::CopyOutputToProfPath(SkEventDeviceCtx* ctx)
+{
     if (!ctx->outputFp.IsValid()) {
         SK_LOGI("[sk time profiling] Output file is not valid, skip copy\n");
         return;
@@ -344,19 +429,16 @@ void SkEventRecorder::CopyOutputToProfPath(SkEventDeviceCtx* ctx) {
     }
 }
 
-// core id 大于25就是aiv
-static bool CoreIsAiv(int coreId) {
-    return coreId >= 25;
-}
-void* SkEventRecorder::DumpThreadFunc(void* arg) {
+void* SkEventRecorder::DumpThreadFunc(void* arg)
+{
     SkEventRecorder* recorder = static_cast<SkEventRecorder*>(arg);
-    SK_LOGI("[sk time profiling] New global dump thread setdevice: %d\n, recorder->dumpDeviceId");
+    SK_LOGI("[sk time profiling] New global dump thread setdevice: %d\n", recorder->dumpDeviceId);
     aclError result = aclrtSetDevice(recorder->dumpDeviceId);
     if (result != 0) {
         SK_LOGE("[sk time profiling] Acl set device failed, ERROR: %ld, deviceId: %d\n", result, recorder->dumpDeviceId);
         return nullptr;
     }
-    SK_LOGI("[sk time profiling] Global dump thread started on deviceId: %d\n", recorder->dumpDeviceId);
+    SK_LOGI("[sk time profiling] Global dump thread started write on deviceId: %d\n", recorder->dumpDeviceId);
     while (recorder->globalRunning.load()) {
         // 处理激活的 device
         SkEventDeviceCtx* ctx = &recorder->deviceCtxs;
@@ -410,11 +492,14 @@ void* SkEventRecorder::DumpThreadFunc(void* arg) {
 }
 
 bool SkEventRecorder::WriteNodeEventToJson(SkEventDeviceCtx* ctx, const SkKernelEventRecord* record,
-                                            uint32_t core, const SkNodeInfo& nodeInfo) {
+                                            uint32_t core, const SkNodeInfo& nodeInfo)
+{
     if (!ctx->outputFp.IsValid()) {
         SK_LOGE("[sk time profiling] Failed to open the output file\n");
         return false;  // 文件未打开，跳过写入
     }
+
+    std::string modelId = SkEventRecorder::Instance().GetModelIdByIndex(static_cast<uint16_t>(record->modelIdIndex));
     
     if (record->endTime > record->startTime) {
         // 移动到 "}]" 之前
@@ -425,18 +510,18 @@ bool SkEventRecorder::WriteNodeEventToJson(SkEventDeviceCtx* ctx, const SkKernel
             return false;
         }
         
-        double tsStart = (double)record->startTime / TICK_US_MULTIPLER;
-        double tsEnd = (double)record->endTime / TICK_US_MULTIPLER;
+        double tsStart = (double)record->startTime / GetSkRuntimeConfig().tickUsMultiplier;
+        double tsEnd = (double)record->endTime / GetSkRuntimeConfig().tickUsMultiplier;
         char jsonLine[SPRINT_LEN_BUFFER];
         int len = snprintf_s(jsonLine, sizeof(jsonLine), sizeof(jsonLine) - 1,
             "\"ph\":\"X\",\"name\":\"[%u/%u]%s\",\"pid\":\"%s\",\"tid\":%u,"
-            "\"ts\":%f,\"dur\":%f,\"args\":{\"modelRI\":%lu,\"skId\":%u,\"nodeId\":%u}},\n{}]",
+            "\"ts\":%f,\"dur\":%f,\"args\":{\"modelId\":\"%s\",\"skId\":%u,\"nodeId\":%u}},\n{}]",
             record->blockIdx, record->blockNum, nodeInfo.nodeName.c_str(), CoreIsAiv(core) ? "AIV" : "AIC", core,
-            tsStart, (tsEnd - tsStart), record->modelRI, record->skId, record->nodeId);
+            tsStart, (tsEnd - tsStart), modelId.c_str(), record->skId, record->nodeId);
         
         if (len < 0) {
-            SK_LOGE("[sk time profiling] snprintf_s failed for JSON line, modelRI=%lu, skId=%u, nodeId=%u\n", 
-                    record->modelRI, record->skId, record->nodeId);
+            SK_LOGE("[sk time profiling] snprintf_s failed for JSON line, modelId=%s, skId=%u, nodeId=%u\n",
+                    modelId.c_str(), record->skId, record->nodeId);
             ctx->outputFp.Close();
             SkProfilingShutdown();
             return false;
@@ -449,23 +534,27 @@ bool SkEventRecorder::WriteNodeEventToJson(SkEventDeviceCtx* ctx, const SkKernel
                 return false;
             }
         } else {
-            SK_LOGW("[sk time profiling] JSON line too long or truncated, modelRI=%lu, skId=%u, nodeName=%s,len=%d\n", 
-                    record->modelRI, record->skId, nodeInfo.nodeName.c_str(), len);
+            SK_LOGW("[sk time profiling] JSON line too long or truncated, modelId=%s, skId=%u, nodeName=%s,len=%d\n",
+                    modelId.c_str(), record->skId, nodeInfo.nodeName.c_str(), len);
         }
     } else {
-        SK_LOGW("[sk time profiling] Invalid event record with endTime <= startTime, modelRI=%lu, skId=%u, nodeId=%u, nodeInfo.nodeName=%s\n", 
-                record->modelRI, record->skId, record->nodeId, nodeInfo.nodeName.c_str());
+            SK_LOGW("[sk time profiling] Invalid event record with endTime <= startTime, "
+                    "modelId=%s, skId=%u, nodeId=%u, nodeInfo.nodeName=%s\n",
+                    modelId.c_str(), record->skId, record->nodeId, nodeInfo.nodeName.c_str());
     }
 
     return true;
 }
 
-bool SkEventRecorder::WriteSkEventToJson(SkEventDeviceCtx* ctx, const SkKernelEventRecord* record, uint32_t core) {
+bool SkEventRecorder::WriteSkEventToJson(SkEventDeviceCtx* ctx, const SkKernelEventRecord* record, uint32_t core)
+{
     if (!ctx->outputFp.IsValid()) {
         SK_LOGE("[sk time profiling] SK event failed to open the output file\n");
         return false;  // 文件未打开，跳过写入
     }
-    
+
+    std::string modelId = SkEventRecorder::Instance().GetModelIdByIndex(static_cast<uint16_t>(record->modelIdIndex));
+
     if (record->endTime > record->startTime) {
         // 移动到 "}]" 之前
         if (fseek(ctx->outputFp.Get(), -2, SEEK_END) != 0) {
@@ -475,19 +564,19 @@ bool SkEventRecorder::WriteSkEventToJson(SkEventDeviceCtx* ctx, const SkKernelEv
             return false;
         }
         
-        double tsStart = (double)record->startTime / TICK_US_MULTIPLER;
-        double tsEnd = (double)record->endTime / TICK_US_MULTIPLER;
+        double tsStart = (double)record->startTime / GetSkRuntimeConfig().tickUsMultiplier;
+        double tsEnd = (double)record->endTime / GetSkRuntimeConfig().tickUsMultiplier;
         char jsonLine[SPRINT_LEN_BUFFER];
-        std::string skName = SkEventRecorder::Instance().GetSkName(record->modelRI, record->skId);
+        std::string skName = SkEventRecorder::Instance().GetSkName(modelId, record->skId);
         int len = snprintf_s(jsonLine, sizeof(jsonLine), sizeof(jsonLine) - 1,
             "\"ph\":\"X\",\"name\":\"[%u/%u] %s\",\"pid\":\"%s\",\"tid\":%u,"
-            "\"ts\":%f,\"dur\":%f,\"args\":{\"modelRI\":%lu,\"skId\":%u}},\n{}]",
+            "\"ts\":%f,\"dur\":%f,\"args\":{\"modelId\":\"%s\",\"skId\":%u}},\n{}]",
             record->blockIdx, record->blockNum, skName.c_str(), CoreIsAiv(core) ? "AIV" : "AIC", core,
-            tsStart, (tsEnd - tsStart), record->modelRI, record->skId);
+            tsStart, (tsEnd - tsStart), modelId.c_str(), record->skId);
         
         if (len < 0) {
-            SK_LOGE("[sk time profiling] SK event snprintf_s failed for JSON line, modelRI=%lu, skId=%u", 
-                    record->modelRI, record->skId);
+            SK_LOGE("[sk time profiling] SK event snprintf_s failed for JSON line, modelId=%s, skId=%u",
+                    modelId.c_str(), record->skId);
             ctx->outputFp.Close();
             SkProfilingShutdown();
             return false;
@@ -500,18 +589,39 @@ bool SkEventRecorder::WriteSkEventToJson(SkEventDeviceCtx* ctx, const SkKernelEv
                 return false;
             }
         } else {
-            SK_LOGW("[sk time profiling] sk event JSON line too long or truncated, modelRI=%lu, skId=%u, len=%d\n", 
-                    record->modelRI, record->skId, len);
+            SK_LOGW("[sk time profiling] sk event JSON line too long or truncated, modelId=%s, skId=%u, len=%d\n",
+                    modelId.c_str(), record->skId, len);
         }
     } else {
-        SK_LOGW("[sk time profiling] Invalid event record with endTime <= startTime, modelRI=%lu, skId=%u, skName=%s\n", 
-                record->modelRI, record->skId, SkEventRecorder::Instance().GetSkName(record->modelRI, record->skId).c_str());
+        SK_LOGW("[sk time profiling] Invalid event record with endTime <= startTime, modelId=%s, skId=%u, skName=%s\n",
+                modelId.c_str(), record->skId, SkEventRecorder::Instance().GetSkName(modelId, record->skId).c_str());
     }
 
     return true;
 }
 
-void SkEventRecorder::DumpDeviceData(SkEventDeviceCtx* ctx) {
+bool SkEventRecorder::DumpEventRecord(SkEventDeviceCtx* ctx, const SkKernelEventRecord* record, uint32_t core)
+{
+    if (record->nodeId != UINT32_MAX) {
+        std::string modelId = SkEventRecorder::Instance().GetModelIdByIndex(
+            static_cast<uint16_t>(record->modelIdIndex));
+        SkNodeInfo nodeInfo = SkEventRecorder::Instance().GetNodeInfo(modelId, record->skId, record->nodeId);
+        if (nodeInfo.nodeName != "" && !WriteNodeEventToJson(ctx, record, core, nodeInfo)) {
+            SK_LOGE("[sk time profiling] Failed to write node event to json, device %u\n", ctx->deviceId);
+            return false;
+        }
+        return true;
+    }
+
+    if (!WriteSkEventToJson(ctx, record, core)) {
+        SK_LOGE("[sk time profiling] Failed to write sk event to json, device %u\n", ctx->deviceId);
+        return false;
+    }
+    return true;
+}
+
+void SkEventRecorder::DumpDeviceData(SkEventDeviceCtx* ctx)
+{
     if (ctx->gmAddr == nullptr || ctx->hostBuf == nullptr) {
         return;
     }
@@ -525,7 +635,8 @@ void SkEventRecorder::DumpDeviceData(SkEventDeviceCtx* ctx) {
     bool hasNewData = false;
     
     // 遍历每个 core 的数据
-    for (uint32_t core = 0; core < SK_EVENT_CORE_NUM; core++) {
+    uint32_t coreNum = static_cast<uint32_t>(ctx->lastOffset.size());
+    for (uint32_t core = 0; core < coreNum; core++) {
         SK_LOGI("[sk time profiling] Wait 100 ms then start add some node event on device %u, core %u\n", ctx->deviceId, core);
         SkKernelEventCoreBuf* coreBuf = reinterpret_cast<SkKernelEventCoreBuf*>(
             hostBuf + core * coreSize_);
@@ -538,22 +649,8 @@ void SkEventRecorder::DumpDeviceData(SkEventDeviceCtx* ctx) {
                lastOff + sizeof(SkKernelEventRecord) <= coreSize_) {
             SkKernelEventRecord* record = reinterpret_cast<SkKernelEventRecord*>(
                 hostBuf + core * coreSize_ + lastOff);
-            if (record->nodeId != UINT32_MAX) {
-                // 写入node 信息 查询 NodeInfo
-                SkNodeInfo nodeInfo = SkEventRecorder::Instance().GetNodeInfo(record->modelRI, record->skId, record->nodeId);
-                if (nodeInfo.nodeName != "") {
-                    // 写入 JSON trace 文件
-                    if (!WriteNodeEventToJson(ctx, record, core, nodeInfo)) {
-                        SK_LOGE("[sk time profiling] Failed to write node event to json, device %u\n", ctx->deviceId);
-                        return;
-                    }
-                }
-            } else if (record->nodeId == UINT32_MAX) {
-                // 写入sk信息
-                if (!WriteSkEventToJson(ctx, record, core)) {
-                    SK_LOGE("[sk time profiling] Failed to write sk event to json, device %u\n", ctx->deviceId);
-                    return;
-                }
+            if (!DumpEventRecord(ctx, record, core)) {
+                return;
             }
             hasNewData = true;
             lastOff += sizeof(SkKernelEventRecord);
@@ -571,7 +668,8 @@ void SkEventRecorder::DumpDeviceData(SkEventDeviceCtx* ctx) {
     }
 }
 
-void SkEventRecorder::SkProfilingShutdown() {
+void SkEventRecorder::SkProfilingShutdown()
+{
  	if (!enabled.load()) {
         return;
     }
@@ -591,20 +689,22 @@ void SkEventRecorder::SkProfilingShutdown() {
     enabled.store(false);
 }
 
-void SkEventRecorder::AddNodeInfoMapping(uint64_t modelRI, uint32_t skId, uint32_t nodeId,
-                                          const std::string& nodeName, uint32_t numBlocks) {
+void SkEventRecorder::AddNodeInfoMapping(const std::string& modelId, uint32_t skId, uint32_t nodeId,
+                                          const std::string& nodeName, uint32_t numBlocks)
+{
     std::lock_guard<std::mutex> lock(nodeInfoMapMutex);
     SkNodeInfo info;
     info.nodeName = nodeName;
     info.numBlocks = numBlocks;
-    nodeInfoMap[modelRI][skId][nodeId] = info;
+    nodeInfoMap[modelId][skId][nodeId] = info;
 }
 
-SkNodeInfo SkEventRecorder::GetNodeInfo(uint64_t modelRI, uint32_t skId, uint32_t nodeId) const {
+SkNodeInfo SkEventRecorder::GetNodeInfo(const std::string& modelId, uint32_t skId, uint32_t nodeId) const
+{
     std::lock_guard<std::mutex> lock(nodeInfoMapMutex);
     SkNodeInfo emptyInfo;
     
-    auto modelIt = nodeInfoMap.find(modelRI);
+    auto modelIt = nodeInfoMap.find(modelId);
     if (modelIt == nodeInfoMap.end()) {
         return emptyInfo;
     }
@@ -619,14 +719,16 @@ SkNodeInfo SkEventRecorder::GetNodeInfo(uint64_t modelRI, uint32_t skId, uint32_
     return nodeIt->second;
 }
 
-void SkEventRecorder::AddSkNameMapping(uint64_t modelRI, uint32_t skId, const std::string& skName) {
+void SkEventRecorder::AddSkNameMapping(const std::string& modelId, uint32_t skId, const std::string& skName)
+{
     std::lock_guard<std::mutex> lock(nodeInfoMapMutex);
-    skNameMap[modelRI][skId] = skName;
+    skNameMap[modelId][skId] = skName;
 }
 
-std::string SkEventRecorder::GetSkName(uint64_t modelRI, uint32_t skId) const {
+std::string SkEventRecorder::GetSkName(const std::string& modelId, uint32_t skId) const
+{
     std::lock_guard<std::mutex> lock(nodeInfoMapMutex);
-    auto modelIt = skNameMap.find(modelRI);
+    auto modelIt = skNameMap.find(modelId);
     if (modelIt == skNameMap.end()) {
         return "";
     }
@@ -637,49 +739,49 @@ std::string SkEventRecorder::GetSkName(uint64_t modelRI, uint32_t skId) const {
     return skIt->second;
 }
 
-void SkEventRecorder::RemoveModelMappings(uint64_t modelRI) {
-    std::lock_guard<std::mutex> lock(nodeInfoMapMutex);
-    skNameMap.erase(modelRI);
-    nodeInfoMap.erase(modelRI);
-}
-
-uint16_t SkEventRecorder::RegisterModelRI(uint64_t modelRI) {
-    std::lock_guard<std::mutex> lock(modelRIIndexMapMutex);
+uint16_t SkEventRecorder::RegisterModelId(const std::string& modelId)
+{
+    std::lock_guard<std::mutex> lock(modelIdIndexMapMutex);
     // 如果已注册，返回已有 index
-    auto it = modelRIToIndexMap.find(modelRI);
-    if (it != modelRIToIndexMap.end()) {
+    auto it = modelIdToIndexMap.find(modelId);
+    if (it != modelIdToIndexMap.end()) {
         return it->second;
     }
     // 新注册，index 为当前 vector 大小
-    uint16_t index = static_cast<uint16_t>(modelRIIndexMap.size());
-    if (modelRIIndexMap.size() >= UINT16_MAX) {
-        SK_LOGE("[sk] modelRIIndexMap is full (max=%u), cannot register more modelRI\n", UINT16_MAX);
+    uint16_t index = static_cast<uint16_t>(modelIdIndexMap.size());
+    if (modelIdIndexMap.size() >= UINT16_MAX) {
+        SK_LOGE("[sk] modelIdIndexMap is full (max=%u), cannot register more modelId\n", UINT16_MAX);
         return 0;  // 溢出保护
     }
-    modelRIIndexMap.push_back(modelRI);
-    modelRIToIndexMap[modelRI] = index;
+    modelIdIndexMap.push_back(modelId);
+    modelIdToIndexMap[modelId] = index;
     return index;
 }
 
-uint64_t SkEventRecorder::GetModelRIByIndex(uint16_t index) const {
-    std::lock_guard<std::mutex> lock(modelRIIndexMapMutex);
-    if (index >= modelRIIndexMap.size()) {
-        return 0;
+std::string SkEventRecorder::GetModelIdByIndex(uint16_t index) const
+{
+    std::lock_guard<std::mutex> lock(modelIdIndexMapMutex);
+    if (index >= modelIdIndexMap.size()) {
+        SK_LOGE("[sk] GetModelIdByIndex: index=%u out of range (size=%zu), modelId not registered or header corrupted",
+                index, modelIdIndexMap.size());
+        return "";
     }
-    return modelRIIndexMap[index];
+    return modelIdIndexMap[index];
 }
 
-void SkEventRecorder::PrintModelRIIndexMap() const {
-    std::lock_guard<std::mutex> lock(modelRIIndexMapMutex);
-    SK_LOGE("=== modelRI Index Map (total=%zu) ===", modelRIIndexMap.size());
-    for (size_t i = 0; i < modelRIIndexMap.size(); ++i) {
-        SK_LOGE("  [%zu] modelRI=0x%lx", i, modelRIIndexMap[i]);
+void SkEventRecorder::PrintModelIdIndexMap() const
+{
+    std::lock_guard<std::mutex> lock(modelIdIndexMapMutex);
+    SK_LOGE("=== modelId Index Map (total=%zu) ===", modelIdIndexMap.size());
+    for (size_t i = 0; i < modelIdIndexMap.size(); ++i) {
+        SK_LOGE("  [%zu] modelId=%s", i, modelIdIndexMap[i].c_str());
     }
 }
 
 // ==================== 性能分析相关函数 ====================
 bool SkProfiling(const SuperKernelScopeInfo &scopeInfo, SkLaunchInfo &launchInfo,
-                                        SuperKernelGraph& graph) {
+                                        SuperKernelGraph& graph) 
+{
     SK_LOGI("[sk shape profiling] =============== Start shape profiling ===================");
     SkHostEntryInfo& skEntryInfo = launchInfo.entryInfo;
     
@@ -823,70 +925,23 @@ bool SkProfiling(const SuperKernelScopeInfo &scopeInfo, SkLaunchInfo &launchInfo
     return true;
 }
 
-static bool SetupProfilingRuntime(const std::vector<SuperKernelBaseNode*>& taskNodes, SkLaunchInfo& launchInfo,
-                                  const SuperKernelScopeInfo& scopeInfo, uint64_t fullModelRI) {
-    int32_t deviceId = 0;
-    aclrtGetDevice(&deviceId);
-    launchInfo.eventGmAddr = SkEventRecorder::Instance().GetGmAddrForDevice(deviceId);
-    if (launchInfo.eventGmAddr == nullptr) {
-            SK_LOGE("[sk time profiling] Failed to get event GM address\n");
-            return false;
-        }
-    launchInfo.modelRI = fullModelRI;
-    launchInfo.skId = static_cast<uint32_t>(scopeInfo.GetScopeId());
-    SK_LOGI("[sk time profiling] Event recording enabled, gm_addr=%p, modelRI=%lu, skId=%u\n", launchInfo.eventGmAddr, launchInfo.modelRI, launchInfo.skId);
-
-    // 更新 devArgs 中的事件配置
-    if (launchInfo.devArgs.Get() != nullptr &&
-        launchInfo.devArgs.Get()->skHeader.eventConfigOffset != 0) {
-        uint8_t* base = reinterpret_cast<uint8_t*>(launchInfo.devArgs.Get());
-        SkEventConfig* eventConfig = reinterpret_cast<SkEventConfig*>(
-            base + launchInfo.devArgs.Get()->skHeader.eventConfigOffset);
-        eventConfig->eventGmAddr = reinterpret_cast<uint64_t>(launchInfo.eventGmAddr);
-        eventConfig->modelRI = launchInfo.modelRI;
-        eventConfig->skId = launchInfo.skId;
-        eventConfig->enabled = 1;
-        eventConfig->coreSize = SkEventRecorder::Instance().GetCoreSize();
-    }
-
-    // 建立 modelRI -> skId -> nodeId -> (nodeName, numBlocks) 映射
-    for (size_t nodeId = 0; nodeId < taskNodes.size(); ++nodeId) {
-        SuperKernelBaseNode* node = taskNodes[nodeId];
-        if (node != nullptr && node->GetNodeType() == SkNodeType::NODE_KERNEL) {
-            const NodeInfos& nodeInfos = node->GetNodeInfos();
-            const std::string& funcName = nodeInfos.kernelInfos.funcName;
-            // launchInfo.entryInfo.numBlocks是sk大算子的numBlocks
-            SkEventRecorder::Instance().AddNodeInfoMapping(
-                launchInfo.modelRI, launchInfo.skId, static_cast<uint32_t>(nodeId), funcName, nodeInfos.kernelInfos.numBlocks);
-        }
-    }
-    return true;
-}
-
 bool DumpProfilingDetail(const std::vector<SuperKernelBaseNode*>& taskNodes, SkLaunchInfo& launchInfo,
-                                const SuperKernelScopeInfo& scopeInfo, aclmdlRI modelRI) {
+                         const SuperKernelScopeInfo& scopeInfo, const SuperKernelGraph& graph)
+{
     // 获取事件记录 GM 地址并更新 devArgs 中的事件配置
-    // 填充 devArgs 中的 modelRIIdAndSkScopeId（不依赖 profiling 开关）
-    uint64_t fullModelRI = static_cast<uint64_t>(reinterpret_cast<uintptr_t>(modelRI));
-    if (launchInfo.devArgs.Get() != nullptr) {
-        uint16_t modelRIIdx = SkEventRecorder::Instance().RegisterModelRI(fullModelRI);
-        uint16_t skScopeId = scopeInfo.GetScopeId();
-        launchInfo.devArgs.Get()->skHeader.modelRIIdAndSkScopeId =
-            (static_cast<uint64_t>(modelRIIdx) << 32) | (static_cast<uint64_t>(skScopeId) << 16);
-    }
+    // 填充 devArgs 中的 modelIdIndexAndSkScopeId（不依赖 profiling 开关）
+    const std::string& modelId = graph.GetModelIdCallCount();
+    SetupProfilingModelContext(launchInfo, scopeInfo, modelId);
 
-    // skName 映射不依赖 profiling 开关：异常 handler 在 profiling 关闭时也要靠这张表
-    // 拿到含 start_op/end_op 的完整名字（与 launchInfo.skFuncName 一致）
-    SkEventRecorder::Instance().AddSkNameMapping(
-        fullModelRI, static_cast<uint32_t>(scopeInfo.GetScopeId()), launchInfo.skFuncName);
+    // skName 映射不依赖 profiling 开关：异常 handler 在 profiling 关闭时也要靠这张表。
+    SkEventRecorder::Instance().AddSkNameMapping(modelId, static_cast<uint32_t>(scopeInfo.GetScopeId()),
+                                                 launchInfo.skFuncName);
 
     if (SkEventRecorder::Instance().IsEnabled()) {
-        if (!SetupProfilingRuntime(taskNodes, launchInfo, scopeInfo, fullModelRI)) {
-            return false;
-        }
+        return SetupProfilingRuntime(taskNodes, launchInfo, scopeInfo, modelId);
     } else {
         launchInfo.eventGmAddr = nullptr;
-        launchInfo.modelRI = 0;
+        launchInfo.modelIdIndex = 0;
         launchInfo.skId = 0;
     }
     return true;

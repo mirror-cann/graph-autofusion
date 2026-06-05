@@ -10,19 +10,27 @@
 
 #include <gtest/gtest.h>
 #include <cstring>
+#include <unistd.h>
 #include <vector>
 #include <elf.h>
+#include "mockcpp/mockcpp.hpp"
+#include "acl/acl.h"
+#include "sk_common.h"
+#include "stub/ut_common_stubs.h"
 
 #define private public
 #define protected public
-#include "sk_common.h"
+/*!
+ * \file test_sk_common.cpp
+ * \brief Unit tests for sk_common.cpp host helpers (GetSocName, GetCurrentSkKernelArch).
+ */
 
 namespace {
 
 class SkCommonTest : public testing::Test {
 protected:
-    void SetUp() override {}
-    void TearDown() override {}
+    void SetUp() override { SkUtResetTestControls(); }
+    void TearDown() override { SkUtResetTestControls(); }
 };
 
 std::vector<uint8_t> BuildMinimalValidElf64()
@@ -79,6 +87,39 @@ std::vector<uint8_t> BuildMinimalValidElf64()
     char* strtab = reinterpret_cast<char*>(buffer.data() + shdr[2].sh_offset + shdr[2].sh_size);
     
     return buffer;
+}
+
+// Fake aclrtGetSocName implementations for mockcpp stubs.
+const char* FakeSocName_Null()
+{
+    return nullptr;
+}
+const char* FakeSocName_Ascend910B()
+{
+    return "Ascend910B";
+}
+const char* FakeSocName_Ascend950()
+{
+    return "Ascend950PG";
+}
+const char* FakeSocName_Ascend950Exact()
+{
+    return "Ascend950";
+}
+const char* FakeSocName_Ascend910()
+{
+    return "Ascend910";
+}
+const char* FakeSocName_Empty()
+{
+    return "";
+}
+
+void ExitIsolatedSkRuntimeConfigTest()
+{
+    GlobalMockObject::verify();
+    fflush(nullptr);
+    _exit(::testing::Test::HasFailure() ? 1 : 0);
 }
 
 } // namespace
@@ -322,4 +363,157 @@ TEST_F(SkCommonTest, GetFuncSymbolInfo_SameBinHandleUsesCache)
     EXPECT_EQ(symbolName1, symbolName2);
     EXPECT_EQ(funcSize1, funcSize2);
     EXPECT_EQ(symbolBind1, symbolBind2);
+}
+
+TEST_F(SkCommonTest, GetDeviceCubeCoreNum_GetDeviceFails_Returns0)
+{
+    SkUtSetAclrtGetDeviceRet(ACL_ERROR_INVALID_PARAM);
+    int64_t result = GetDeviceCubeCoreNum();
+    EXPECT_EQ(result, 0);
+}
+
+TEST_F(SkCommonTest, GetDeviceVecCoreNum_GetDeviceFails_Returns0)
+{
+    SkUtSetAclrtGetDeviceRet(ACL_ERROR_INVALID_PARAM);
+    int64_t result = GetDeviceVecCoreNum();
+    EXPECT_EQ(result, 0);
+}
+
+TEST_F(SkCommonTest, GetDeviceCubeCoreNum_GetDeviceInfoFails_Returns0)
+{
+    SkUtSetAclrtGetDeviceInfoRet(ACL_ERROR_INVALID_PARAM);
+    int64_t result = GetDeviceCubeCoreNum();
+    EXPECT_EQ(result, 0);
+}
+
+TEST_F(SkCommonTest, GetDeviceVecCoreNum_GetDeviceInfoFails_Returns0)
+{
+    SkUtSetAclrtGetDeviceInfoRet(ACL_ERROR_INVALID_PARAM);
+    int64_t result = GetDeviceVecCoreNum();
+    EXPECT_EQ(result, 0);
+}
+
+TEST_F(SkCommonTest, GetDeviceCoreNums_Success_ReturnsValidValues)
+{
+    int64_t cubeNum = 0, vecNum = 0;
+    aclError ret = GetDeviceCoreNums(cubeNum, vecNum);
+    EXPECT_EQ(ret, ACL_SUCCESS);
+    EXPECT_GT(cubeNum, 0);
+    EXPECT_GT(vecNum, 0);
+}
+
+class SkCommonSocTest : public testing::Test {
+protected:
+    void SetUp() override
+    {
+        SkUtResetTestControls();
+    }
+
+    void TearDown() override
+    {
+        GlobalMockObject::verify();
+        SkUtResetTestControls();
+    }
+};
+
+// ==================== GetSocName ====================
+
+TEST_F(SkCommonSocTest, GetSocName_ReturnsAscend910BFromDefaultStub)
+{
+    // 默认 stub 返回 "Ascend910B"，无需 mock
+    EXPECT_EQ(GetSocName(), "Ascend910B");
+}
+
+TEST_F(SkCommonSocTest, GetSocName_NullptrReturnsEmptyString)
+{
+    MOCKER(aclrtGetSocName).stubs().will(invoke(FakeSocName_Null));
+    EXPECT_EQ(GetSocName(), "");
+}
+
+TEST_F(SkCommonSocTest, GetSocName_EmptyStringIsReturnedAsIs)
+{
+    MOCKER(aclrtGetSocName).stubs().will(invoke(FakeSocName_Empty));
+    EXPECT_EQ(GetSocName(), "");
+}
+
+TEST_F(SkCommonSocTest, GetSocName_Ascend950Variant)
+{
+    MOCKER(aclrtGetSocName).stubs().will(invoke(FakeSocName_Ascend950));
+    EXPECT_EQ(GetSocName(), "Ascend950PG");
+}
+
+// ==================== GetCurrentSkKernelArch ====================
+
+TEST_F(SkCommonSocTest, GetCurrentSkKernelArch_DefaultStubIsDav2201)
+{
+    // 默认 stub 返回 "Ascend910B"，不匹配 "Ascend950"
+    InitSkRuntimeConfig();
+    EXPECT_EQ(GetCurrentSkKernelArch(), SkKernelArch::DAV_2201);
+}
+
+TEST_F(SkCommonSocTest, GetCurrentSkKernelArch_NullptrFallsBackToDav2201)
+{
+    MOCKER(aclrtGetSocName).stubs().will(invoke(FakeSocName_Null));
+    InitSkRuntimeConfig();
+    EXPECT_EQ(GetCurrentSkKernelArch(), SkKernelArch::DAV_2201);
+}
+
+TEST_F(SkCommonSocTest, GetCurrentSkKernelArch_EmptyStringIsDav2201)
+{
+    MOCKER(aclrtGetSocName).stubs().will(invoke(FakeSocName_Empty));
+    InitSkRuntimeConfig();
+    EXPECT_EQ(GetCurrentSkKernelArch(), SkKernelArch::DAV_2201);
+}
+
+TEST_F(SkCommonSocTest, GetCurrentSkKernelArch_Ascend910IsDav2201)
+{
+    MOCKER(aclrtGetSocName).stubs().will(invoke(FakeSocName_Ascend910));
+    InitSkRuntimeConfig();
+    EXPECT_EQ(GetCurrentSkKernelArch(), SkKernelArch::DAV_2201);
+}
+
+TEST_F(SkCommonSocTest, GetCurrentSkKernelArch_ExactAscend950IsDav3510)
+{
+    ::testing::FLAGS_gtest_death_test_style = "threadsafe";
+    ASSERT_EXIT({
+        MOCKER(aclrtGetSocName).stubs().will(invoke(FakeSocName_Ascend950Exact));
+        InitSkRuntimeConfig();
+        EXPECT_EQ(GetCurrentSkKernelArch(), SkKernelArch::DAV_3510);
+        ExitIsolatedSkRuntimeConfigTest();
+    }, ::testing::ExitedWithCode(0), "");
+}
+
+TEST_F(SkCommonSocTest, GetCurrentSkKernelArch_Ascend950WithSuffixIsDav3510)
+{
+    ::testing::FLAGS_gtest_death_test_style = "threadsafe";
+    ASSERT_EXIT({
+        // 后缀变体（如 "Ascend950PG"）也应被识别
+        MOCKER(aclrtGetSocName).stubs().will(invoke(FakeSocName_Ascend950));
+        InitSkRuntimeConfig();
+        EXPECT_EQ(GetCurrentSkKernelArch(), SkKernelArch::DAV_3510);
+        ExitIsolatedSkRuntimeConfigTest();
+    }, ::testing::ExitedWithCode(0), "");
+}
+
+TEST_F(SkCommonSocTest, InitSkRuntimeConfig_DefaultStubUsesDav2201Defaults)
+{
+    InitSkRuntimeConfig();
+    const SkRuntimeConfig& config = GetSkRuntimeConfig();
+    EXPECT_EQ(config.kernelArch, SkKernelArch::DAV_2201);
+    EXPECT_EQ(config.eventCoreNum, SK_EVENT_DAV_2201_CORE_NUM);
+    EXPECT_EQ(config.tickUsMultiplier, SK_DAV_2201_TICK_US_MULTIPLIER);
+}
+
+TEST_F(SkCommonSocTest, InitSkRuntimeConfig_Ascend950UsesDav3510Config)
+{
+    ::testing::FLAGS_gtest_death_test_style = "threadsafe";
+    ASSERT_EXIT({
+        MOCKER(aclrtGetSocName).stubs().will(invoke(FakeSocName_Ascend950Exact));
+        InitSkRuntimeConfig();
+        const SkRuntimeConfig& config = GetSkRuntimeConfig();
+        EXPECT_EQ(config.kernelArch, SkKernelArch::DAV_3510);
+        EXPECT_EQ(config.eventCoreNum, SK_EVENT_DAV_3510_CORE_NUM);
+        EXPECT_EQ(config.tickUsMultiplier, SK_DAV_3510_TICK_US_MULTIPLIER);
+        ExitIsolatedSkRuntimeConfigTest();
+    }, ::testing::ExitedWithCode(0), "");
 }

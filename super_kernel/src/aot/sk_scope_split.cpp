@@ -128,6 +128,39 @@ bool EventOnlyStreamRemovePass::Run(std::vector<SuperKernelScopeInfo>& scopes) {
     return true;
 }
 
+// ============ PerOpMaxCoreSplitPass Implementation ============
+
+PerOpMaxCoreSplitPass::PerOpMaxCoreSplitPass(SuperKernelGraph& inputGraph)
+    : ScopeSplitPass(inputGraph) {}
+
+bool PerOpMaxCoreSplitPass::Run(std::vector<SuperKernelScopeInfo>& scopes) {
+    SK_LOGI("[PerOpMaxCore] %s pass starting", GetName().c_str());
+    scopes.clear();
+
+    const auto& headNodes = graph_.GetHeadNodes();
+    for (uint64_t headNodeId : headNodes) {
+        uint64_t nodeId = headNodeId;
+        while (nodeId != INVALID_TASK_ID) {
+            SuperKernelBaseNode* node = graph_.GetNodeById(nodeId);
+            if (node == nullptr) break;
+
+            if (node->GetNodeType() == SkNodeType::NODE_KERNEL && node->IsFusible()) {
+                SuperKernelScopeInfo scope;
+                scope.AddNode(node);
+                scope.MutableBreakInfo().SetReason(ScopeBreakReason::DEBUG_PER_OP_MAX_CORE);
+                RebuildStreamInfos(scope);
+                scopes.push_back(std::move(scope));
+                SK_LOGI("[PerOpMaxCore] Created scope for kernel %lu (scopeIdx=%zu)",
+                        node->GetNodeId(), scopes.size() - 1);
+            }
+            nodeId = node->GetNextNodeId();
+        }
+    }
+
+    SK_LOGI("[PerOpMaxCore] Completed, %zu scopes", scopes.size());
+    return true;
+}
+
 // ============ ScopeSplitPass Base Class Implementation ============
 
 void ScopeSplitPass::PrintScopeDetails(const std::vector<SuperKernelScopeInfo>& scopes,
@@ -1394,34 +1427,33 @@ SuperKernelScopeSplitter::SuperKernelScopeSplitter(SuperKernelGraph& inputGraph,
     const auto* option = static_cast<const AggressiveOptStrategiesOption*>(
         opts.GetOption(aclskOptionType::AGGRESSIVE_OPT_STRATEGIES));
     enableTaskBreakerBypass_ = (option != nullptr && option->GetValue().taskBreakerBypass == 1);
-    if (enableTaskBreakerBypass_) {
-        SK_LOGI("[ScopeSplitter] taskBreakerBypass enabled, using new split pipeline");
-    } else {
-        SK_LOGI("[ScopeSplitter] taskBreakerBypass disabled, using legacy pipeline");
-    }
 
     auto autoOpParallel = opts.GetOption(aclskOptionType::AUTO_OP_PARALLEL);
     SkHeapType heapType = SkHeapType::PRIORITY_QUEUE;
     if (autoOpParallel != nullptr) {
         heapType = static_cast<SkHeapType>(autoOpParallel->GetIntValue());
     }
-    // Initialize passes in execution order
-    // Pass 0: Initial scope splitting
-    passes_.push_back(std::make_unique<InitialScopeSplitPass>(inputGraph, heapType));
-    // Pass 1: ScheMode kernel core trend based split refinement 
-    passes_.push_back(std::make_unique<ScheModeKernelSplitPass>(inputGraph));
-    // Pass 2: Deadlock detection and refinement	 
-    passes_.push_back(std::make_unique<DeadlockRefinePass>(inputGraph, *opts_));
-    // Pass 3 (conditional): Default node process pass
-    if (enableTaskBreakerBypass_) {
-        passes_.push_back(std::make_unique<DefaultNodeProcessPass>(inputGraph));
-        // Pass 4: Second deadlock detection pass (after default removal)
-        passes_.push_back(std::make_unique<DeadlockRefinePass>(inputGraph, *opts_));
-    }
-    // Pass 5 (or 3 if bypass disabled): Remove event-only streams from scopes
-    passes_.push_back(std::make_unique<EventOnlyStreamRemovePass>(inputGraph));
 
-    // Set splitter reference for all passes to enable re-split requests
+    auto perOpMaxCoreOpt = opts.GetOption(aclskOptionType::DEBUG_PER_OP_MAX_CORE_NUM);
+    bool enablePerOpMaxCore = (perOpMaxCoreOpt != nullptr && perOpMaxCoreOpt->GetIntValue() == 1);
+
+    if (enablePerOpMaxCore) {
+        SK_LOGI("[ScopeSplitter] DEBUG_PER_OP_MAX_CORE_NUM enabled");
+        passes_.push_back(std::make_unique<PerOpMaxCoreSplitPass>(inputGraph));
+    } else {
+        if (enableTaskBreakerBypass_) {
+            SK_LOGI("[ScopeSplitter] taskBreakerBypass enabled");
+        }
+        passes_.push_back(std::make_unique<InitialScopeSplitPass>(inputGraph, heapType));
+        passes_.push_back(std::make_unique<ScheModeKernelSplitPass>(inputGraph));
+        passes_.push_back(std::make_unique<DeadlockRefinePass>(inputGraph, *opts_));
+        if (enableTaskBreakerBypass_) {
+            passes_.push_back(std::make_unique<DefaultNodeProcessPass>(inputGraph));
+            passes_.push_back(std::make_unique<DeadlockRefinePass>(inputGraph, *opts_));
+        }
+        passes_.push_back(std::make_unique<EventOnlyStreamRemovePass>(inputGraph));
+    }
+
     for (auto& pass : passes_) {
         pass->SetSplitter(this);
     }

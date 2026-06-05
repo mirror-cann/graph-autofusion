@@ -19,6 +19,7 @@
 #include <memory>
 #define private public
 #define protected public
+#include "sk_common.h"
 #include "sk_options_manager.h"
 
 /**
@@ -985,10 +986,12 @@ TEST_F(SuperKernelOptionsManagerTest, ParseOptions_LargeNumberOptions)
         if (i % 4 == 0) {
             options[i].optionType = aclskOptionType::PRELOAD_CODE;
             options[i].preload.preloadMode = i;
-        } else if (i % 4 == 1) {
+        } else if (i % 4 == 1)
+        {
             options[i].optionType = aclskOptionType::SPLIT_MODE;
             options[i].splitMode.splitCnt = i;
-        } else if (i % 4 == 2) {
+        } else if (i % 4 == 2)
+        {
             const char* kernelNames[] = {"TestOp"};
             options[i].optionType = aclskOptionType::DCCI_DISABLE_ON_KERNEL;
             options[i].disableKernelDcci.kernelNames = const_cast<char**>(kernelNames);
@@ -1560,6 +1563,65 @@ TEST_F(SuperKernelOptionsManagerTest, ApplySoCSpecificOptions_NonAscend950)
     ASSERT_NE(simtCheckOpt, nullptr);
     EXPECT_EQ(mixSplitOpt->GetIntValue(), 0);
     EXPECT_EQ(simtCheckOpt->GetIntValue(), 0);
+}
+
+namespace {
+const char* FakeSocName_Ascend950ForOptions()
+{
+    return "Ascend950";
+}
+const char* FakeSocName_Ascend950Variant()
+{
+    return "Ascend950PG";
+}
+
+void ExpectAscend950OptionsEnabled(const char* (*socNameStub)())
+{
+    MOCKER(aclrtGetSocName).stubs().will(invoke(socNameStub));
+    InitSkRuntimeConfig();
+
+    SuperKernelOptionsManager opts;
+    opts.RegisterDefaultOptions();
+    auto* mixSplitOpt = opts.GetOption(SkInnerOptionType::ENABLE_MIX_KERNEL_SPLIT);
+    auto* simtCheckOpt = opts.GetOption(SkInnerOptionType::ENABLE_SIMT_OP_CHECK);
+    ASSERT_NE(mixSplitOpt, nullptr);
+    ASSERT_NE(simtCheckOpt, nullptr);
+    EXPECT_EQ(mixSplitOpt->GetIntValue(), 1);
+    EXPECT_EQ(simtCheckOpt->GetIntValue(), 1);
+}
+
+void ExitIsolatedOptionsTest()
+{
+    GlobalMockObject::verify();
+    fflush(nullptr);
+    _exit(::testing::Test::HasFailure() ? 1 : 0);
+}
+}  // namespace
+
+TEST_F(SuperKernelOptionsManagerTest, ApplySoCSpecificOptions_Ascend950EnablesMixSplitAndSimtCheck)
+{
+    ::testing::FLAGS_gtest_death_test_style = "threadsafe";
+    ASSERT_EXIT({
+        ExpectAscend950OptionsEnabled(FakeSocName_Ascend950ForOptions);
+
+        SuperKernelOptionsManager opts;
+        opts.RegisterDefaultOptions();
+        nlohmann::ordered_json json = opts.ToJson();
+        ASSERT_TRUE(json.contains("inner_options"));
+        EXPECT_EQ(json["inner_options"]["enable_mix_kernel_split"]["value"], 1);
+        EXPECT_EQ(json["inner_options"]["enable_simt_op_check"]["value"], 1);
+        ExitIsolatedOptionsTest();
+    }, ::testing::ExitedWithCode(0), "");
+}
+
+TEST_F(SuperKernelOptionsManagerTest, ApplySoCSpecificOptions_Ascend950SuffixVariantStillEnables)
+{
+    ::testing::FLAGS_gtest_death_test_style = "threadsafe";
+    ASSERT_EXIT({
+        // 防回归：未来如果 GetSocName 返回带后缀的 "Ascend950XXX"，仍应命中
+        ExpectAscend950OptionsEnabled(FakeSocName_Ascend950Variant);
+        ExitIsolatedOptionsTest();
+    }, ::testing::ExitedWithCode(0), "");
 }
 
 TEST_F(SuperKernelOptionsManagerTest, SetInnerOptionValue)

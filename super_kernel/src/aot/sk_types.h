@@ -36,7 +36,6 @@ constexpr uint32_t K_TYPE_AIC_ROLLBACK = 6;
 constexpr uint32_t K_TYPE_AIV_ROLLBACK = 7;
 
 // Super Kernel Configuration Constants
-constexpr uint32_t DEFAULT_COUNTER_COUNT = 75; // 默认计数器数量（对应平台AIC/AIV核心数）
 constexpr uint32_t TASK_QUE_EXPAND_FACTOR = 2; // TaskQue扩容因子
 
 constexpr uint32_t MAX_TASK_NUM = 1024;
@@ -288,7 +287,7 @@ struct SkLaunchInfo {
     void* cacheInfo; // sk融合算子的shape信息，由sk_optimizer.cpp在构建launchInfo时填充，实际类型是CacheopInfoBasic，包含一个可变长度的tensorData数组
     size_t cacheopInfoSize;
     void* eventGmAddr;  // 事件记录 GM 地址
-    uint64_t modelRI;   // modelRI 标识
+    uint64_t modelIdIndex{0}; // modelId index registered on host
     uint32_t skId;      // SK 标识
     std::string skFuncName = "Unknown"; // SK function name for profiling and debugging
 };

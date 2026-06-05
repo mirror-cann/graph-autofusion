@@ -34,6 +34,7 @@
 #include "sk_scope_info.h"
 #include "sk_lock_detector.h"
 #include "sk_common.h"
+#include "sk_model_context.h"
 #include "sk_options_manager.h"
 #include "kernel.h"
 #include "base.h"

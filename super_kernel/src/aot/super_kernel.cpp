@@ -20,9 +20,11 @@
 #include "sk_dump_json.h"
 #include "sk_dfx_exception_handler.h"
 #include "sk_lock_detector.h"
+#include "sk_common.h"
 #include "sk_resource_manager.h"
 #include "sk_scope_launch.h"
 #include "sk_event_recorder.h"
+#include "sk_model_context.h"
 
 namespace {
 class CurrentModelGuard {
@@ -75,7 +77,7 @@ aclError PrepareGraphDumpEnv(aclmdlRI model, int32_t& deviceId, std::string& met
         SK_LOGE("Failed to get device id.");
         return ACL_ERROR_FAILURE;
     }
-    metaDir = CreateSkMetaDirectory(model);
+    metaDir = CreateSkMetaDirectory(GetCurrentModelLabel());
     return ACL_SUCCESS;
 }
 
@@ -87,8 +89,12 @@ extern "C" {
 
 aclError aclskOptimize(aclmdlRI model, aclskOptions *options) {
 
+    SkModelContext modelContext(model);
+
     // Initialize logger first (controlled by environment variable ASCEND_OP_COMPILE_SAVE_KERNEL_META)
-    InitSkLogger(model);
+    InitSkLogger(GetCurrentModelLabel());
+    // Init device socname, corenum, TICK_US_MULTIPLIER
+    InitSkRuntimeConfig();
 
     int32_t deviceId;
     std::string metaDir;
@@ -187,7 +193,7 @@ aclError aclskOptimize(aclmdlRI model, aclskOptions *options) {
 
     SK_LOGI("Start dump kernel binaries...");
     if (sk::logger::FileLogger::Instance().IsEnabled()) {
-        std::string binPath = CreateSkMetaDirectory(model);
+        std::string binPath = CreateSkMetaDirectory(graph.GetModelLabel());
         if (!DumpKernelBinaries(graph, binPath)) {
             SK_LOGE("Failed to dump kernel binaries: %s/bin_files", binPath.c_str());
             return ACL_ERROR_FAILURE;
@@ -205,6 +211,7 @@ aclError aclskOptimize(aclmdlRI model, aclskOptions *options) {
 }
 
 aclError aclskScopeBegin(const char* scopeName, aclrtStream stream) {
+    InitSkRuntimeConfig();
     if (scopeName != nullptr && scopeName[0] == '\0') {
         SK_LOGE("Invalid scopeName: name is empty.");
         return ACL_ERROR_INVALID_PARAM;
@@ -213,6 +220,7 @@ aclError aclskScopeBegin(const char* scopeName, aclrtStream stream) {
 }
 
 aclError aclskScopeEnd(const char* scopeName, aclrtStream stream) {
+    InitSkRuntimeConfig();
     if (scopeName != nullptr && scopeName[0] == '\0') {
         SK_LOGE("Invalid scopeName: name is empty.");
         return ACL_ERROR_INVALID_PARAM;

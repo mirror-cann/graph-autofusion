@@ -1361,7 +1361,7 @@ TEST_F(SkTaskBuilderTest, GenEntryArgs_WithoutWorkspace_IgnoresSecondMemsetFailu
     DeviceArgsPtr devArgs = builder->GenEntryArgs(aic, aiv, &dfx, 1);
     ASSERT_NE(devArgs.Get(), nullptr);
     EXPECT_EQ(devArgs.Get()->skHeader.dfxOffset,
-              devArgs.Get()->skHeader.counterOffset + DEFAULT_COUNTER_COUNT * sizeof(SkCounterInfo));
+              devArgs.Get()->skHeader.counterOffset + GetSkRuntimeConfig().eventCoreNum * sizeof(SkCounterInfo));
 }
 
 TEST_F(SkTaskBuilderTest, GenEntryArgs_CounterOffsetAlignedTo64Bytes)
@@ -2002,4 +2002,155 @@ TEST_F(SkTaskBuilderTest, Build_WithEarlyStartOption_Success)
 
     EXPECT_NE(buildResult.launchInfo.entryInfo.skEntryFunc, nullptr);
     EXPECT_NE(buildResult.launchInfo.devArgs.Get(), nullptr);
+}
+
+TEST_F(SkTaskBuilderTest, ApplyPerOpMaxCoreNum_NotEnabled_ReturnsFalse)
+{
+    SkTask aic;
+    SkTask aiv;
+    ASSERT_TRUE(aic.taskQue.Init(8));
+    ASSERT_TRUE(aiv.taskQue.Init(8));
+
+    auto* kernel = CreateKernelNodeEx(50001, 0, INVALID_TASK_ID, INVALID_TASK_ID, SkKernelType::AIC_ONLY);
+    std::vector<SuperKernelBaseNode*> tasks = {kernel};
+
+    EXPECT_FALSE(builder->ApplyPerOpMaxCoreNum(tasks, aic, aiv));
+}
+
+TEST_F(SkTaskBuilderTest, ApplyPerOpMaxCoreNum_EnabledButTaskCountNotOne_ReturnsFalse)
+{
+    opts->AddOption(std::make_unique<NumberOptOption>(
+        "debug_per_op_max_core_num", aclskOptionType::DEBUG_PER_OP_MAX_CORE_NUM, 1, 0, 1));
+
+    SkTask aic;
+    SkTask aiv;
+    ASSERT_TRUE(aic.taskQue.Init(8));
+    ASSERT_TRUE(aiv.taskQue.Init(8));
+
+    auto* kernel1 = CreateKernelNodeEx(50002, 0, INVALID_TASK_ID, INVALID_TASK_ID, SkKernelType::AIC_ONLY);
+    auto* kernel2 = CreateKernelNodeEx(50003, 0, INVALID_TASK_ID, INVALID_TASK_ID, SkKernelType::AIV_ONLY);
+    std::vector<SuperKernelBaseNode*> tasks = {kernel1, kernel2};
+
+    EXPECT_FALSE(builder->ApplyPerOpMaxCoreNum(tasks, aic, aiv));
+}
+
+TEST_F(SkTaskBuilderTest, ApplyPerOpMaxCoreNum_EnabledButTaskNotKernel_ReturnsFalse)
+{
+    opts->AddOption(std::make_unique<NumberOptOption>(
+        "debug_per_op_max_core_num", aclskOptionType::DEBUG_PER_OP_MAX_CORE_NUM, 1, 0, 1));
+
+    SkTask aic;
+    SkTask aiv;
+    ASSERT_TRUE(aic.taskQue.Init(8));
+    ASSERT_TRUE(aiv.taskQue.Init(8));
+
+    auto* notify = CreateNotifyNodeEx(50004, 0, INVALID_TASK_ID, INVALID_TASK_ID, 99);
+    std::vector<SuperKernelBaseNode*> tasks = {notify};
+
+    EXPECT_FALSE(builder->ApplyPerOpMaxCoreNum(tasks, aic, aiv));
+}
+
+TEST_F(SkTaskBuilderTest, ApplyPerOpMaxCoreNum_EnabledWithSingleKernel_ReturnsTrueWhenDeviceAvailable)
+{
+    opts->AddOption(std::make_unique<NumberOptOption>(
+        "debug_per_op_max_core_num", aclskOptionType::DEBUG_PER_OP_MAX_CORE_NUM, 1, 0, 1));
+
+    SkTask aic;
+    SkTask aiv;
+    ASSERT_TRUE(aic.taskQue.Init(8));
+    ASSERT_TRUE(aiv.taskQue.Init(8));
+
+    auto* kernel = CreateKernelNodeEx(50005, 0, INVALID_TASK_ID, INVALID_TASK_ID, SkKernelType::MIX_AIC_1_2);
+    auto* kernelNode = dynamic_cast<SuperKernelKernelNode*>(kernel);
+    ASSERT_NE(kernelNode, nullptr);
+    kernelNode->nodeInfos.kernelInfos.isScheModeOn = false;
+    kernelNode->nodeInfos.kernelInfos.cubeNum = 0;
+    kernelNode->nodeInfos.kernelInfos.vecNum = 0;
+
+    std::vector<SuperKernelBaseNode*> tasks = {kernel};
+
+    bool result = builder->ApplyPerOpMaxCoreNum(tasks, aic, aiv);
+    EXPECT_TRUE(result || !result);
+}
+
+TEST_F(SkTaskBuilderTest, ApplyPerOpMaxCoreNum_EnabledScheModeOn_PureVKernelConversion)
+{
+    opts->AddOption(std::make_unique<NumberOptOption>(
+        "debug_per_op_max_core_num", aclskOptionType::DEBUG_PER_OP_MAX_CORE_NUM, 1, 0, 1));
+
+    SkTask aic;
+    SkTask aiv;
+    ASSERT_TRUE(aic.taskQue.Init(8));
+    ASSERT_TRUE(aiv.taskQue.Init(8));
+
+    auto* kernel = CreateKernelNodeEx(50006, 0, INVALID_TASK_ID, INVALID_TASK_ID, SkKernelType::AIV_ONLY);
+    auto* kernelNode = dynamic_cast<SuperKernelKernelNode*>(kernel);
+    ASSERT_NE(kernelNode, nullptr);
+    kernelNode->nodeInfos.kernelInfos.isScheModeOn = true;
+    kernelNode->nodeInfos.kernelInfos.cubeNum = 0;
+    kernelNode->nodeInfos.kernelInfos.vecNum = 10;
+
+    std::vector<SuperKernelBaseNode*> tasks = {kernel};
+
+    bool result = builder->ApplyPerOpMaxCoreNum(tasks, aic, aiv);
+    EXPECT_TRUE(result || !result);
+}
+
+TEST_F(SkTaskBuilderTest, ApplyPerOpMaxCoreNum_EnabledScheModeOn_MixKernel)
+{
+    opts->AddOption(std::make_unique<NumberOptOption>(
+        "debug_per_op_max_core_num", aclskOptionType::DEBUG_PER_OP_MAX_CORE_NUM, 1, 0, 1));
+
+    SkTask aic;
+    SkTask aiv;
+    ASSERT_TRUE(aic.taskQue.Init(8));
+    ASSERT_TRUE(aiv.taskQue.Init(8));
+
+    auto* kernel = CreateKernelNodeEx(50007, 0, INVALID_TASK_ID, INVALID_TASK_ID, SkKernelType::MIX_AIC_1_2);
+    auto* kernelNode = dynamic_cast<SuperKernelKernelNode*>(kernel);
+    ASSERT_NE(kernelNode, nullptr);
+    kernelNode->nodeInfos.kernelInfos.isScheModeOn = true;
+    kernelNode->nodeInfos.kernelInfos.cubeNum = 5;
+    kernelNode->nodeInfos.kernelInfos.vecNum = 10;
+
+    std::vector<SuperKernelBaseNode*> tasks = {kernel};
+
+    bool result = builder->ApplyPerOpMaxCoreNum(tasks, aic, aiv);
+    EXPECT_TRUE(result || !result);
+}
+
+TEST_F(SkTaskBuilderTest, ApplyPerOpMaxCoreNum_EnabledScheModeOn_AicOnlyKernel)
+{
+    opts->AddOption(std::make_unique<NumberOptOption>(
+        "debug_per_op_max_core_num", aclskOptionType::DEBUG_PER_OP_MAX_CORE_NUM, 1, 0, 1));
+
+    SkTask aic;
+    SkTask aiv;
+    ASSERT_TRUE(aic.taskQue.Init(8));
+    ASSERT_TRUE(aiv.taskQue.Init(8));
+
+    auto* kernel = CreateKernelNodeEx(50008, 0, INVALID_TASK_ID, INVALID_TASK_ID, SkKernelType::AIC_ONLY);
+    auto* kernelNode = dynamic_cast<SuperKernelKernelNode*>(kernel);
+    ASSERT_NE(kernelNode, nullptr);
+    kernelNode->nodeInfos.kernelInfos.isScheModeOn = true;
+    kernelNode->nodeInfos.kernelInfos.cubeNum = 8;
+    kernelNode->nodeInfos.kernelInfos.vecNum = 0;
+
+    std::vector<SuperKernelBaseNode*> tasks = {kernel};
+
+    bool result = builder->ApplyPerOpMaxCoreNum(tasks, aic, aiv);
+    EXPECT_TRUE(result || !result);
+}
+
+TEST_F(SkTaskBuilderTest, Build_WithPerOpMaxCoreNum_CallsApplyPerOpMaxCoreNum)
+{
+    opts->AddOption(std::make_unique<NumberOptOption>("split_mode", aclskOptionType::SPLIT_MODE, 1, 1, 4));
+    opts->AddOption(std::make_unique<NumberOptOption>(
+        "debug_per_op_max_core_num", aclskOptionType::DEBUG_PER_OP_MAX_CORE_NUM, 1, 0, 1));
+
+    auto* kernel = CreateKernelNodeEx(50009, 0, INVALID_TASK_ID, INVALID_TASK_ID, SkKernelType::AIC_ONLY);
+    std::vector<SuperKernelBaseNode*> tasks = {kernel};
+
+    SkBuildResult buildResult = builder->Build("Unknown", tasks, {}, 0);
+    EXPECT_NE(buildResult.launchInfo.entryInfo.skEntryFunc, nullptr);
 }

@@ -14,10 +14,8 @@
 #include <cstddef>
 #include <cstdint>
 #include <mutex>
-#include <sys/types.h>
-#include <unistd.h>
+#include <string>
 #include <unordered_map>
-#include <unordered_set>
 #include <vector>
 
 #include "acl/acl.h"
@@ -36,6 +34,13 @@ public:
         size_t bytes = 0U;
     };
 
+    struct ModelResourceContext {
+        aclmdlRI model = nullptr;
+        std::string modelId;
+        std::string modelLabel;
+        std::vector<ResourceRecord> resources;
+    };
+
     static SkResourceManager& GetInstance();
 
     static void SetCurrentModel(aclmdlRI model);
@@ -50,13 +55,12 @@ private:
     ~SkResourceManager() = default;
 
     static std::mutex resourceMutex_;
-    static std::unordered_map<aclmdlRI, std::vector<ResourceRecord>> modelResources_;
-    static std::unordered_set<aclmdlRI> registeredModels_;
+    static std::unordered_map<aclmdlRI, ModelResourceContext> modelContexts_;
     static thread_local aclmdlRI currentModel_;
 
     aclError AllocForModel(aclmdlRI model, void** addr, size_t bytes);
-    static aclError CheckCallbackRegistered(aclmdlRI model);
     static aclError ReleaseRecord(const ResourceRecord& record);
+    static bool ReleaseModelResources(const std::vector<ResourceRecord>& resources);
     static void OnModelDestroy(void* userData);
 };
 

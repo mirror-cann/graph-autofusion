@@ -16,6 +16,7 @@
 #include "acl/acl.h"
 #include "sk_scope_kernel_types.h"
 #include <chrono>
+#include <deque>
 #include <thread>
 #include <unordered_map>
 #include <vector>
@@ -43,8 +44,9 @@ int g_throwOnAclmdlRIGetStreams = 0;
 int g_binaryGetFunctionNullHandle = 0;
 uint32_t g_destroyRegisterCallbackDelayUs = 0;
 uint32_t g_destroyRegisterCallbackCallCount = 0;
+const char* g_aclrtGetSocName = "Ascend910B";
 
-std::unordered_map<aclmdlRI, std::pair<aclmdlRIDestroyCallbackFunc, void*>> g_modelDestroyCallbacks;
+std::unordered_map<aclmdlRI, std::deque<std::pair<aclmdlRIDestroyCallbackFunc, void*>>> g_modelDestroyCallbacks;
 uint32_t g_streamNum = 0;
 std::vector<uint32_t> g_streamTaskNums;
 std::vector<std::vector<aclrtTaskType>> g_taskTypes;
@@ -97,6 +99,7 @@ void SkUtResetCommonStubControls()
     g_binaryGetFunctionNullHandle = 0;
     g_destroyRegisterCallbackDelayUs = 0;
     g_destroyRegisterCallbackCallCount = 0;
+    g_aclrtGetSocName = "Ascend910B";
     g_modelDestroyCallbacks.clear();
 
     g_streamNum = 0;
@@ -271,26 +274,34 @@ aclError SkUtRegisterModelDestroyCallback(aclmdlRI modelRI, aclmdlRIDestroyCallb
     if (g_destroyRegisterCallbackDelayUs > 0U) {
         std::this_thread::sleep_for(std::chrono::microseconds(g_destroyRegisterCallbackDelayUs));
     }
-    g_modelDestroyCallbacks[modelRI] = std::make_pair(callback, userData);
+    g_modelDestroyCallbacks[modelRI].emplace_back(callback, userData);
     return ACL_SUCCESS;
 }
 
 aclError SkUtInvokeModelDestroyCallback(aclmdlRI modelRI)
 {
     auto it = g_modelDestroyCallbacks.find(modelRI);
-    if (it == g_modelDestroyCallbacks.end()) {
+    if (it == g_modelDestroyCallbacks.end() || it->second.empty()) {
         return ACL_ERROR_INVALID_PARAM;
     }
-    auto callback = it->second.first;
-    void* userData = it->second.second;
-    g_modelDestroyCallbacks.erase(it);
+    auto callbackInfo = it->second.front();
+    it->second.pop_front();
+    if (it->second.empty()) {
+        g_modelDestroyCallbacks.erase(it);
+    }
+    auto callback = callbackInfo.first;
+    void* userData = callbackInfo.second;
     callback(userData);
     return ACL_SUCCESS;
 }
 
 size_t SkUtGetModelDestroyCallbackCount()
 {
-    return g_modelDestroyCallbacks.size();
+    size_t callbackCount = 0U;
+    for (const auto& callbackEntry : g_modelDestroyCallbacks) {
+        callbackCount += callbackEntry.second.size();
+    }
+    return callbackCount;
 }
 
 void SkUtSetModelStreamNum(uint32_t streamNum)
@@ -434,6 +445,16 @@ void sk_placeholder_kernel_do_dav_3510(void* stream, ScopeKernelArgs args)
 {
     (void)stream;
     (void)args;
+}
+
+void SkUtSetAclrtGetSocName(const char* socName)
+{
+    g_aclrtGetSocName = socName;
+}
+
+const char* SkUtGetAclrtGetSocName()
+{
+    return g_aclrtGetSocName;
 }
 
 } // extern "C"

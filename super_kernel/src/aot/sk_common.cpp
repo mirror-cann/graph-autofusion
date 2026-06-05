@@ -22,26 +22,54 @@
 #include <string>
 #include <cstring>
 #include <elf.h>
+#include <mutex>
 #include "sk_log.h"
 
 namespace {
 
 constexpr const char* ASCEND950_SOC_NAME = "Ascend950";
 
+std::once_flag g_skRuntimeConfigInitFlag;
+SkRuntimeConfig g_skRuntimeConfig;
+
+SkRuntimeConfig BuildSkRuntimeConfig()
+{
+    SkRuntimeConfig config;
+    const char* socName = aclrtGetSocName();
+    if (socName == nullptr) {
+        SK_LOGI("SK runtime config: soc name is null, fallback to arch=%s, eventCoreNum=%u, tickUsMultiplier=%u",
+                to_string(config.kernelArch), config.eventCoreNum, config.tickUsMultiplier);
+        return config;
+    }
+
+    if (strstr(socName, ASCEND950_SOC_NAME) != nullptr) {
+        config.kernelArch = SkKernelArch::DAV_3510;
+        config.eventCoreNum = SK_EVENT_DAV_3510_CORE_NUM;
+        config.tickUsMultiplier = SK_DAV_3510_TICK_US_MULTIPLIER;
+    }
+
+    SK_LOGI("SK runtime config initialized: socName=%s, arch=%s, eventCoreNum=%u, tickUsMultiplier=%u",
+            socName, to_string(config.kernelArch), config.eventCoreNum, config.tickUsMultiplier);
+    return config;
+}
+
 } // namespace
+
+void InitSkRuntimeConfig()
+{
+    std::call_once(g_skRuntimeConfigInitFlag, []() {
+        g_skRuntimeConfig = BuildSkRuntimeConfig();
+    });
+}
+
+const SkRuntimeConfig& GetSkRuntimeConfig()
+{
+    return g_skRuntimeConfig;
+}
 
 SkKernelArch GetCurrentSkKernelArch()
 {
-    const char* socName = aclrtGetSocName();
-    if (socName == nullptr) {
-        SK_LOGI("Kernel arch detection: soc name is null, fallback to arch=%s",
-                to_string(SkKernelArch::DAV_2201));
-        return SkKernelArch::DAV_2201;
-    }
-    if (strstr(socName, ASCEND950_SOC_NAME) != nullptr) {
-        return SkKernelArch::DAV_3510;
-    }
-    return SkKernelArch::DAV_2201;
+    return GetSkRuntimeConfig().kernelArch;
 }
 
 const char* GetSkKernelArchSymbolSuffix(SkKernelArch arch)
@@ -239,4 +267,69 @@ bool GetFuncSymbolInfo(aclrtBinHandle binHdl, const char* binAddr, size_t binSiz
     }
     SK_LOGW("Function symbol not found for addr=0x%lx", funcAddr);
     return false;
+}
+
+std::string GetSocName()
+{
+    SK_LOGI("Init socName");
+    const char* socNameTmp = aclrtGetSocName();
+    if (socNameTmp == nullptr) {
+        SK_LOGE("Failed to get soc name");
+        return "";
+    }
+    std::string socName(socNameTmp);
+    SK_LOGI("Soc name: %s", socName.c_str());
+    return socName;
+}
+
+// ==================== Device Core Number Utilities ====================
+
+int64_t GetDeviceCubeCoreNum()
+{
+    int32_t deviceId = 0;
+    aclError ret = aclrtGetDevice(&deviceId);
+    if (ret != ACL_SUCCESS) {
+        SK_LOGE("[DeviceCores] Failed to get deviceId, ret=%d", ret);
+        return 0;
+    }
+    int64_t cubeNum = 0;
+    ret = aclrtGetDeviceInfo(deviceId, ACL_DEV_ATTR_CUBE_CORE_NUM, &cubeNum);
+    if (ret != ACL_SUCCESS) {
+        SK_LOGE("[DeviceCores] Failed to get cube core num, ret=%d", ret);
+        return 0;
+    }
+    return cubeNum;
+}
+
+int64_t GetDeviceVecCoreNum()
+{
+    int32_t deviceId = 0;
+    aclError ret = aclrtGetDevice(&deviceId);
+    if (ret != ACL_SUCCESS) {
+        SK_LOGE("[DeviceCores] Failed to get deviceId, ret=%d", ret);
+        return 0;
+    }
+    int64_t vecNum = 0;
+    ret = aclrtGetDeviceInfo(deviceId, ACL_DEV_ATTR_VECTOR_CORE_NUM, &vecNum);
+    if (ret != ACL_SUCCESS) {
+        SK_LOGE("[DeviceCores] Failed to get vec core num, ret=%d", ret);
+        return 0;
+    }
+    return vecNum;
+}
+
+aclError GetDeviceCoreNums(int64_t& cubeNum, int64_t& vecNum)
+{
+    cubeNum = GetDeviceCubeCoreNum();
+    if (cubeNum <= 0) {
+        SK_LOGE("[DeviceCores] GetDeviceCubeCoreNum returned invalid value: %ld", cubeNum);
+        return ACL_ERROR_INVALID_PARAM;
+    }
+    vecNum = GetDeviceVecCoreNum();
+    if (vecNum <= 0) {
+        SK_LOGE("[DeviceCores] GetDeviceVecCoreNum returned invalid value: %ld", vecNum);
+        return ACL_ERROR_INVALID_PARAM;
+    }
+    SK_LOGI("[DeviceCores] Get core nums: cube=%ld, vec=%ld", cubeNum, vecNum);
+    return ACL_SUCCESS;
 }
