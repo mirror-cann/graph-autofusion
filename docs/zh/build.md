@@ -139,7 +139,7 @@ bash scripts/check_env.sh
 | **[ERROR]** | 关键依赖缺失或版本不兼容 | 必须修复，否则无法编译 |
 
 > [!NOTE] 注意
-> 环境检查脚本中所有的检查项和版本约束严格来源于 docs/build.md 和 super_kernel/requirements-dev.txt，如文档和依赖更新，请同步修改[脚本](../../scripts/check_env.sh)。
+> 环境检查脚本中所有的检查项和版本约束严格来源于 docs/zh/build.md 和 super_kernel/requirements-dev.txt，如文档和依赖更新，请同步修改[脚本](../../scripts/check_env.sh)。
 
 ### 4.3 编译
 

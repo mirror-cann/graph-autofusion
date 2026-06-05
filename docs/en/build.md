@@ -139,7 +139,7 @@ Check result descriptions:
 | **[ERROR]** | Critical dependency missing or version incompatible | Must fix, otherwise compilation cannot proceed |
 
 > [!NOTE] Note
-> All check items and version constraints in the environment check script come strictly from docs/build.md and super_kernel/requirements-dev.txt. If documentation and dependencies update, synchronize changes to the [script](../../scripts/check_env.sh).
+> All check items and version constraints in the environment check script come strictly from docs/en/build.md and super_kernel/requirements-dev.txt. If documentation and dependencies update, synchronize changes to the [script](../../scripts/check_env.sh).
 
 ### 4.3 Compilation
 
