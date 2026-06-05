@@ -173,6 +173,10 @@ Status ReducePartitionCaseGenerator::GeneratorRCoreTask(ascir::HintGraph &optimi
     if (task.reduce_type != ReduceTemplateType::kCommon) {
       continue;
     }
+    if (HasArgMaxReduce(task)) {
+      GELOGI("Task contains ArgMax reduce op, skip R-core template generation");
+      continue;
+    }
     std::vector<::ascir::ImplGraph> new_task_grouped_graphs;
     std::map<size_t, std::vector<size_t>> map;
     size_t phase_2_graph_size = 0;
@@ -617,6 +621,20 @@ bool ReducePartitionCaseGenerator::HasReduce(const ascir::ImplGraph &impl_graph)
   for (const auto &node : impl_graph.GetAllNodes()) {
     if (ScheduleUtils::IsReduce(node)) {
       return true;
+    }
+  }
+  return false;
+}
+
+bool ReducePartitionCaseGenerator::HasArgMaxReduce(const ScheduleTask &task) {
+  for (const auto &grouped_graph : task.grouped_graphs) {
+    if (!HasReduce(grouped_graph)) {
+      continue;
+    }
+    for (const auto &node : grouped_graph.GetAllNodes()) {
+      if (ScheduleUtils::IsReduce(node) && node->GetType() == "ArgMax") {
+        return true;
+      }
     }
   }
   return false;

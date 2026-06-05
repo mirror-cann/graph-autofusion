@@ -352,7 +352,7 @@ void ReduceMergedSizeCodeGen(const TPipe &tpipe, std::stringstream &ss, const Te
   last << "uint32_t " << (is_tail ? "last_tail" : "last") << " = 1";
   last_actual << "uint32_t " << (is_tail ? "last_tail_actual" : "last_actual") << " = 1";
   std::string dtype_name;
-  Tensor::DtypeName(dst.dtype, dtype_name);
+  Tensor::DtypeName(src.dtype, dtype_name);
   bool is_first = true;
   const size_t num_axes = GetAxesNumExceptZeroTail(src, dst); // 从后往前过滤无效轴，防止{R, 1} + {A, B}水平融合时没有尾轴对齐
   ascir::SizeExpr lastNonZeroStride = Zero;
