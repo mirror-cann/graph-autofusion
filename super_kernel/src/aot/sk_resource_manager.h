@@ -16,7 +16,6 @@
 #include <mutex>
 #include <string>
 #include <unordered_map>
-#include <unordered_set>
 #include <vector>
 
 #include "acl/acl.h"
@@ -35,6 +34,13 @@ public:
         size_t bytes = 0U;
     };
 
+    struct ModelResourceContext {
+        aclmdlRI model = nullptr;
+        std::string modelId;
+        std::string modelLabel;
+        std::vector<ResourceRecord> resources;
+    };
+
     static SkResourceManager& GetInstance();
 
     static void SetCurrentModel(aclmdlRI model);
@@ -49,20 +55,12 @@ private:
     ~SkResourceManager() = default;
 
     static std::mutex resourceMutex_;
-    static std::unordered_map<std::string, std::vector<ResourceRecord>> modelResources_;
-    static std::unordered_set<std::string> registeredModelLabels_;
-    static std::unordered_map<void*, std::string> callbackDataLabels_;
+    static std::unordered_map<aclmdlRI, ModelResourceContext> modelContexts_;
     static thread_local aclmdlRI currentModel_;
 
     aclError AllocForModel(aclmdlRI model, void** addr, size_t bytes);
-    static aclError CheckCallbackRegistered(const std::string& modelLabel);
     static aclError ReleaseRecord(const ResourceRecord& record);
-    static bool TakeCallbackModelLabel(void* userData, std::string& modelLabel);
-    static bool BeginModelResourceRelease(const std::string& modelLabel, std::string& modelId,
-                                          std::vector<ResourceRecord>& resources);
-    static void FinishModelDestroy(const std::string& modelLabel, void* labelCopy);
-    static void ReleaseModelResources(const std::string& modelLabel, const std::string& modelId,
-                                      const std::vector<ResourceRecord>& resources);
+    static bool ReleaseModelResources(const std::vector<ResourceRecord>& resources);
     static void OnModelDestroy(void* userData);
 };
 

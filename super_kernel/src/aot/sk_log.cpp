@@ -156,8 +156,8 @@ bool FileHandleManager::InitializeDefault(const std::string& baseDir, pid_t pid,
 // Thread-local current handle initialization
 thread_local std::string FileHandleManager::currentHandle_ = "default";
 
-// 线程局部 model label 初始化
-thread_local std::string FileLogger::currentThreadModelLabel_;
+// Thread-local current model label
+thread_local std::string FileLogger::currentModelLabel_;
 
 FileHandleManager::FileHandleManager() {}
 
@@ -228,22 +228,19 @@ bool FileLogger::Initialize(const LoggerConfig& config) {
     if (modelLabel.empty()) {
         modelLabel = GetCurrentModelLabel();
     }
-    // 如果已初始化且 frozen model label 相同，直接返回。同地址 model 第二次进入时 label 会从
-    // model_x_1 变成 model_x_2，不能只用原始 model 地址判断。
-    if (initialized_.load() && currentModelLabel_ == modelLabel) {
-        return true;
+    if (modelLabel.empty()) {
+        modelLabel = config_.modelLabel;
     }
 
     config_ = config;
     config_.modelLabel = modelLabel;
-    currentModelLabel_ = modelLabel;
     if (!config_.enabled) {
         SK_DLOGI("File logger is disabled");
         initialized_.store(true);
         return true;
     }
     
-    // Use frozen model label to create sk_meta directory structure
+    // Use the current model label to create sk_meta directory structure.
     std::string logDir = GetSkMetaBasePath() + "/" + SanitizePathComponent(config_.modelLabel);
     if (!CreateDirectoryRecursive(logDir)) {
         logDir.clear();
@@ -283,10 +280,9 @@ bool FileLogger::Initialize(const LoggerConfig& config) {
     return true;
 }
 
-// 获取当前有效的 model label
 std::string FileLogger::GetEffectiveModelLabel() const {
-    if (!currentThreadModelLabel_.empty()) {
-        return currentThreadModelLabel_;
+    if (!currentModelLabel_.empty()) {
+        return currentModelLabel_;
     }
     return config_.modelLabel;
 }
@@ -372,14 +368,13 @@ void FileLogger::SetMinLevel(LogLevel level) {
 
 void FileLogger::SetModelLabel(const std::string& modelLabel) {
     config_.modelLabel = modelLabel;
-    currentModelLabel_ = modelLabel;
 }
 
 bool FileLogger::IsInitialized() const {
     return initialized_.load();
 }
 
-std::string FileLogger::GetCurrentModelLabel() const
+const std::string& FileLogger::GetCurrentModelLabel()
 {
     return currentModelLabel_;
 }
@@ -495,6 +490,7 @@ void FileLogger::WriteLog(const std::string& message) {
 
 bool InitializeSkFileLogger(bool enabled, const std::string& modelLabel,
                              sk::logger::LogLevel minLevel) {
+    sk::logger::FileLogger::Instance().SetCurrentModelLabel(modelLabel);
     sk::logger::LoggerConfig config;
     config.enabled = enabled;
     config.modelLabel = modelLabel;
