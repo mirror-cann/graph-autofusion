@@ -1873,6 +1873,37 @@ TEST_F(SkTaskBuilderTest, ApplyEarlyStartSyncPass_RewritesPreviousCrossSyncWitho
     EXPECT_TRUE(builder->taskSyncInfos_[0].crossSyncInfo.empty());
 }
 
+TEST_F(SkTaskBuilderTest, ApplyEarlyStartSyncPass_AllSyncBarrierStopsCrossBarrierRewrite)
+{
+    auto* prev = CreateKernelNodeEx(43111, 0, INVALID_TASK_ID, INVALID_TASK_ID, SkKernelType::AIV_ONLY);
+    auto* barrier = CreateKernelNodeEx(43112, 0, INVALID_TASK_ID, INVALID_TASK_ID, SkKernelType::AIC_ONLY);
+    auto* cur = CreateKernelNodeEx(43113, 0, INVALID_TASK_ID, INVALID_TASK_ID, SkKernelType::AIV_ONLY);
+    cur->nodeInfos.kernelInfos.capBits.earlyStartWaitFlag = true;
+
+    std::vector<SuperKernelBaseNode*> tasks = {prev, barrier, cur};
+    builder->taskSyncInfos_.clear();
+    builder->taskSyncInfos_.resize(tasks.size());
+    builder->taskSyncInfos_[0].queueType = SkQueueType::AIV;
+    builder->taskSyncInfos_[1].queueType = SkQueueType::AIC;
+    builder->taskSyncInfos_[2].queueType = SkQueueType::AIV;
+    builder->taskSyncInfos_[0].crossSyncInfo[static_cast<size_t>(SkQueueType::AIV)] = SyncDirection::VEC_TO_VEC;
+    builder->taskSyncInfos_[1].crossSyncInfo[static_cast<size_t>(SkQueueType::AIC)] = SyncDirection::ALL_SYNC;
+
+    ASSERT_TRUE(builder->ApplyEarlyStartSyncPass(tasks));
+
+    const auto& prevEarlyStart = builder->taskSyncInfos_[0].earlyStartInfo;
+    const auto& barrierEarlyStart = builder->taskSyncInfos_[1].earlyStartInfo;
+    const auto& curEarlyStart = builder->taskSyncInfos_[2].earlyStartInfo;
+    EXPECT_EQ(prevEarlyStart.nextAivRelatedNode, nullptr);
+    ASSERT_EQ(builder->taskSyncInfos_[0].crossSyncInfo.count(static_cast<size_t>(SkQueueType::AIV)), 1U);
+    EXPECT_EQ(builder->taskSyncInfos_[0].crossSyncInfo[static_cast<size_t>(SkQueueType::AIV)],
+              SyncDirection::VEC_TO_VEC);
+    EXPECT_EQ(barrierEarlyStart.nextAivRelatedNode, cur);
+    EXPECT_FALSE(curEarlyStart.CheckFuncMask(SkEarlyStartMask::AIV_TO_AIV_WAIT));
+    EXPECT_FALSE(prevEarlyStart.CheckSyncMask(SkEarlyStartMask::AIV_TO_AIV_SET));
+    EXPECT_FALSE(prevEarlyStart.CheckSyncMask(SkEarlyStartMask::AIV_TO_AIV_WAIT));
+}
+
 TEST_F(SkTaskBuilderTest, ApplyEarlyStartSyncPass_NonKernelTaskDoesNotFail)
 {
     auto* node = CreateDefaultNodeEx(43201, 0, INVALID_TASK_ID, INVALID_TASK_ID);
