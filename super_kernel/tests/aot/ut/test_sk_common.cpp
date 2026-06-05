@@ -396,9 +396,15 @@ TEST_F(SkCommonTest, GetDeviceCoreNums_Success_ReturnsValidValues)
 
 class SkCommonSocTest : public testing::Test {
 protected:
+    void SetUp() override
+    {
+        SkUtResetTestControls();
+    }
+
     void TearDown() override
     {
         GlobalMockObject::verify();
+        SkUtResetTestControls();
     }
 };
 

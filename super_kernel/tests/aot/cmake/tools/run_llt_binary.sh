@@ -105,3 +105,9 @@ set -e
 if [[ ${STATUS} -ne 0 ]]; then
   exit "${STATUS}"
 fi
+
+if grep -Eq '^\[[[:space:]]*SKIPPED[[:space:]]*\][[:space:]]+[1-9][0-9]*[[:space:]]+tests?' "${LOG_FILE}"; then
+  echo "[ERROR] AOT C++ tests contain skipped cases. Please fix or explicitly remove the skipped tests." >&2
+  grep -E '^\[[[:space:]]*SKIPPED[[:space:]]*\]' "${LOG_FILE}" >&2 || true
+  exit 1
+fi
