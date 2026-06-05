@@ -12,7 +12,12 @@ add_library(autofuse_headers INTERFACE)
 target_include_directories(autofuse_headers INTERFACE
     $<BUILD_INTERFACE:${AUTOFUSE_DIR}>
     $<BUILD_INTERFACE:${AUTOFUSE_DIR}/inc>
+    $<BUILD_INTERFACE:${AUTOFUSE_DIR}/att>
+    $<BUILD_INTERFACE:${AUTOFUSE_DIR}/common>
+    $<BUILD_INTERFACE:${AUTOFUSE_DIR}/ascir/meta>
     $<BUILD_INTERFACE:${AUTOFUSE_DIR}/autofuse>
     $<BUILD_INTERFACE:${AUTOFUSE_DIR}/autofuse/utils>
+    $<BUILD_INTERFACE:${AUTOFUSE_DIR}/inc/graph_metadef>
+    $<BUILD_INTERFACE:${AUTOFUSE_DIR}/inc/graph_metadef/graph>
     $<BUILD_INTERFACE:${AUTOFUSE_DIR}/inc/graph_metadef/graph/ascendc_ir/ascendc_ir_core>
 )
