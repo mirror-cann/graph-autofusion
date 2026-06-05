@@ -2142,7 +2142,7 @@ std::string TilingLib::GenPgoAutofuseTiling(const ascir::FusedScheduledResult &f
   ss << " const ResLimit *limit = (res_limit == nullptr) ? &g_no_limit_res : res_limit;" << std::endl;
   ss << pgo_shape_dim.tiling_set_shape_dim.str();
   ss << "  tiling->set_block_dim(limit->aiv_num);" << std::endl;
-  ss << "  tiling->set_ub_size(limit->ub_size);" << std::endl;
+  ss << "  tiling->set_ub_size(limit->ub_size - 256);" << std::endl;
   if (!ascgen_utils::IsJustCubeFixpip(fused_schedule_result)) {
     if (enable_autofuse_pgo_) {
         ss << "  if (!PGOGetTilingKey(config_file, *tiling)) {" << std::endl;
