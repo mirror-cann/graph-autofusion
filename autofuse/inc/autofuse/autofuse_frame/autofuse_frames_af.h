@@ -12,9 +12,11 @@
 #define AUTOFUSE_FRAME_AUTOFUSE_FRAMES_H_
 
 #include <cstdint>
+#include <functional>
 
 #include "ge_common/ge_api_types.h"
 #include "graph/gnode.h"
+#include "graph/node.h"
 
 namespace af {
 class Counter {
@@ -31,8 +33,8 @@ using af::Counter;
 using af::CounterPtr;
 
 struct GraphPasses {
-  std::function<Status(const ComputeGraphPtr &)> prune_graph_func;
-  std::function<Status(NodePtr &)> constant_folding_func;
+  std::function<af::Status(const af::ComputeGraphPtr &)> prune_graph_func;
+  std::function<af::Status(af::NodePtr &)> constant_folding_func;
 };
 }  // namespace ge
 

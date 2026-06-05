@@ -52,7 +52,8 @@ Status ConcatFusionCaseGenerator::AddTemplatesForFirstDimConcat(const af::AscNod
                                                                 ascir::HintGraph &graph,
                                                                 std::vector<ascir::ImplGraph> &graphs) {
   const bool is_one_axis = (concat_node->outputs[0].attr.repeats.size() == 1UL);
-  if ((concat_node->inputs.Size() != 1U) && (!support_small_tail_) && (is_one_axis || (concat_dim_ > 0))) {
+  const bool is_single_input = concat_node->inputs.Size() == 1U;
+  if ((!is_single_input) && (!convert_to_store_) && (!support_small_tail_) && (is_one_axis || (concat_dim_ > 0))) {
     // 单维concat, 在前面补轴，复用非首轴处理逻辑
     // 先限制单维，后续处理多维但小包场景
     if (is_one_axis) {
@@ -122,12 +123,9 @@ Status ConcatFusionCaseGenerator::Generate(ascir::HintGraph &graph,
   return af::SUCCESS;
 }
 
-Status ConcatFusionCaseGenerator::EliminateConcat(ascir::HintGraph &graph, const af::AscNodePtr &concat_node) {
-  bool is_first_dim = false;
-  GE_CHK_STATUS_RET(ScheduleUtils::ResolveDiffDim(concat_node, concat_dim_, is_first_dim), "ResolveConcatDim failed");
-  GE_CHK_STATUS_RET(Prepare(concat_node, concat_dim_), "Prepare failed");
-  GE_CHK_STATUS_RET(ConvertConcatToStores(graph, concat_node), "ConvertConcatToStores failed");
-  return af::SUCCESS;
+ConcatFusionCaseGenerator &ConcatFusionCaseGenerator::SetConvertToStoreMode() {
+  convert_to_store_ = true;
+  return *this;
 }
 
 Status ConcatFusionCaseGenerator::AddTemplateForSplitConcat(const ascir::HintGraph &graph, std::vector<ascir::ImplGraph> &graphs) {

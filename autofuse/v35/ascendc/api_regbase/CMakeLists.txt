@@ -2,6 +2,7 @@ set(ascendc_api_regbase_extend_src
         concat.h
         datacopy.h
         broadcast.h
+        broadcast_extend_impl.h
         datacopy_nddma.h
         gather.h
         clipbyvalue.h

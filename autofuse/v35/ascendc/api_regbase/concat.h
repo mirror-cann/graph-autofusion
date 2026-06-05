@@ -261,23 +261,34 @@ __aicore__ inline void ScatterInput(__ubuf__ T *dst_addr,
 }
 
 template <typename U>
-__aicore__ inline AscendC::MicroAPI::MaskReg GenMaskReg(uint32_t vf_len, uint32_t block_size,
+__aicore__ inline AscendC::MicroAPI::MaskReg GenMaskReg(uint32_t block_size,
                                                         uint32_t gather_mask_repeat_stride,
                                                         uint32_t gather_mask_dim_size, __ubuf__ uint32_t *index_addr) {
+  constexpr uint32_t kVfLen = VECTOR_REG_WIDTH / sizeof(U);
   constexpr uint16_t kDataBlockSize = 32 / sizeof(U);
-  uint16_t loop_times = static_cast<uint16_t>(vf_len / block_size);
+  const uint16_t loop_times = static_cast<uint16_t>(kVfLen / block_size);
   // 不对齐, 必然有tail
-  uint16_t all_num = (gather_mask_repeat_stride / kDataBlockSize) - 1;
-  uint16_t tail_num = gather_mask_dim_size % (32 / sizeof(U));
-  uint16_t index = 0;
-  for (uint16_t i = 0; i < loop_times; ++i) {
-    for (uint16_t j = 0; j < all_num; ++j) {
-      index_addr[index++] = 0xffffffffU;
+  const uint16_t all_num = (gather_mask_repeat_stride / kDataBlockSize) - 1;
+  const uint16_t tail_num = gather_mask_dim_size % (32 / sizeof(U));
+  const uint16_t tail_mask = (1U << (tail_num * sizeof(U))) - 1U;
+  if (all_num == 0) {
+    for (uint16_t i = 0; i < loop_times; ++i) {
+      index_addr[i] = tail_mask;
     }
-    index_addr[index++] = (1U << (tail_num * sizeof(U))) - 1U;
-  }
-  for (; index < 8; ++index) {
-    index_addr[index] = 0;
+    for (uint16_t i = loop_times; i < 8; ++i) {
+      index_addr[i] = 0;
+    }
+  } else {
+    uint16_t index = 0;
+    for (uint16_t i = 0; i < loop_times; ++i) {
+      for (uint16_t j = 0; j < all_num; ++j) {
+        index_addr[index++] = 0xffffffffU;
+      }
+      index_addr[index++] = tail_mask;
+    }
+    for (; index < 8; ++index) {
+      index_addr[index] = 0;
+    }
   }
 
   MicroAPI::MaskReg p_copy_mask = MicroAPI::CreateMask<U, MicroAPI::MaskPattern::ALLF>();
@@ -310,7 +321,7 @@ __aicore__ inline void ScatterInputPadded(__ubuf__ T *dst_addr, __ubuf__ T *src_
 
     auto tmp_buf_addr = (__ubuf__ uint32_t *)(index_addr + kVfLen);
     MicroAPI::MaskReg copy_in_mask =
-        GenMaskReg<U>(kVfLen, src_row_stride, gather_mask_repeat_stride, gather_mask_dim_size, tmp_buf_addr);
+        GenMaskReg<U>(src_row_stride, gather_mask_repeat_stride, gather_mask_dim_size, tmp_buf_addr);
     MicroAPI::DataCopy(vd_dst_index_base, index_addr);
 
     for (uint16_t i = 0; i < loop_times; ++i) {

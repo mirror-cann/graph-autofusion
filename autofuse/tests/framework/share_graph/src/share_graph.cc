@@ -6264,6 +6264,477 @@ af::ComputeGraphPtr ShareGraph::LoadTanhStoreFusedGraph(size_t dims_size) {
   return compute_graph;
 }
 
+static af::ComputeGraphPtr CreateOneInputAscGraphComputeGraph(const std::string &graph_name,
+                                                              const std::string &sub_graph_name, size_t dims_size,
+                                                              void (*create_sub_graph)(af::AscGraph &, size_t)) {
+  auto builder = GraphBuilder(graph_name);
+  auto data0 = builder.AddNode("data0", "Data", 0, 1);
+  af::AttrUtils::SetInt(data0->GetOpDescBarePtr(), "_parent_node_index", 0);
+
+  auto ascbc = builder.AddNode("ascbc", "AscGraph", 1, 1);
+  auto netoutput = builder.AddNode("netoutput1", af::NETOUTPUT, 1, 0);
+
+  builder.AddDataEdge(data0, 0, ascbc, 0);
+  builder.AddDataEdge(ascbc, 0, netoutput, 0);
+  auto one_input_compute_graph = builder.GetGraph();
+  if (one_input_compute_graph == nullptr) {
+    return nullptr;
+  }
+  auto one_input_ascbc_node = one_input_compute_graph->FindNode("ascbc");
+  af::AscGraph one_input_sub_graph(sub_graph_name.c_str());
+  create_sub_graph(one_input_sub_graph, dims_size);
+
+  std::string one_input_sub_graph_str;
+  af::AscGraphUtils::SerializeToReadable(one_input_sub_graph, one_input_sub_graph_str);
+  af::AttrUtils::SetStr(one_input_ascbc_node->GetOpDescBarePtr(), "ascgraph", one_input_sub_graph_str);
+  return one_input_compute_graph;
+}
+
+static af::ComputeGraphPtr CreateTwoInputAscGraphComputeGraph(const std::string &graph_name,
+                                                              const std::string &sub_graph_name, size_t dims_size,
+                                                              void (*create_sub_graph)(af::AscGraph &, size_t)) {
+  auto builder = GraphBuilder(graph_name);
+  auto data0 = builder.AddNode("data0", "Data", 0, 1);
+  af::AttrUtils::SetInt(data0->GetOpDescBarePtr(), "_parent_node_index", 0);
+  auto data1 = builder.AddNode("data1", "Data", 0, 1);
+  af::AttrUtils::SetInt(data1->GetOpDescBarePtr(), "_parent_node_index", 1);
+
+  auto ascbc = builder.AddNode("ascbc", "AscGraph", 2, 1);
+  auto netoutput = builder.AddNode("netoutput1", af::NETOUTPUT, 1, 0);
+
+  builder.AddDataEdge(data0, 0, ascbc, 0);
+  builder.AddDataEdge(data1, 0, ascbc, 1);
+  builder.AddDataEdge(ascbc, 0, netoutput, 0);
+  auto compute_graph = builder.GetGraph();
+  if (compute_graph == nullptr) {
+    return nullptr;
+  }
+  auto ascbc_node = compute_graph->FindNode("ascbc");
+  af::AscGraph sub_graph(sub_graph_name.c_str());
+  create_sub_graph(sub_graph, dims_size);
+
+  std::string sub_graph_str;
+  af::AscGraphUtils::SerializeToReadable(sub_graph, sub_graph_str);
+  af::AttrUtils::SetStr(ascbc_node->GetOpDescBarePtr(), "ascgraph", sub_graph_str);
+  return compute_graph;
+}
+
+/**
+ *         data0
+ *           |
+ *         load0
+ *           |
+ *    ModifiedBesselI0
+ *           |
+ *         store
+ *           |
+ *        output0
+ */
+static void CreateLoadModifiedBesselI0StoreAscGraph(af::AscGraph &graph, size_t dims_size) {
+  af::ascir_op::Data x1("data0", graph);
+  x1.ir_attr.SetIndex(0);
+
+  af::ascir_op::Load x1Local("load0");
+  x1Local.x = x1.y;
+
+  af::ascir_op::ModifiedBesselI0 i0("modified_bessel_i0");
+  i0.x = x1Local.y;
+
+  af::ascir_op::Store i0_store("store");
+  i0_store.x = i0.y;
+
+  af::ascir_op::Output y("output");
+  y.x = i0_store.y;
+
+  y.ir_attr.SetIndex(0);
+
+  ConstructVVAscGraphAxisInfo(graph, dims_size);
+}
+
+af::ComputeGraphPtr ShareGraph::LoadModifiedBesselI0StoreFusedGraph(size_t dims_size) {
+  return CreateOneInputAscGraphComputeGraph("load_modified_bessel_i0_store_test", "load_modified_bessel_i0_store",
+                                            dims_size, CreateLoadModifiedBesselI0StoreAscGraph);
+}
+
+/**
+ *         data0
+ *           |
+ *         load0
+ *           |
+ *    ModifiedBesselI1
+ *           |
+ *         store
+ *           |
+ *        output0
+ */
+static void CreateLoadModifiedBesselI1StoreAscGraph(af::AscGraph &graph, size_t dims_size) {
+  af::ascir_op::Data x("data0", graph);
+  x.ir_attr.SetIndex(0);
+
+  af::ascir_op::Load load("load0");
+  load.x = x.y;
+
+  af::ascir_op::ModifiedBesselI1 op("modified_bessel_i1");
+  op.x = load.y;
+
+  af::ascir_op::Store store("store");
+  store.x = op.y;
+
+  af::ascir_op::Output y("output");
+  y.x = store.y;
+
+  y.ir_attr.SetIndex(0);
+
+  ConstructVVAscGraphAxisInfo(graph, dims_size);
+}
+
+af::ComputeGraphPtr ShareGraph::LoadModifiedBesselI1StoreFusedGraph(size_t dims_size) {
+  return CreateOneInputAscGraphComputeGraph("load_modified_bessel_i1_store_test", "load_modified_bessel_i1_store",
+                                            dims_size, CreateLoadModifiedBesselI1StoreAscGraph);
+}
+
+/**
+ *         data0
+ *           |
+ *         load0
+ *           |
+ *    ModifiedBesselK0
+ *           |
+ *         store
+ *           |
+ *        output0
+ */
+static void CreateLoadModifiedBesselK0StoreAscGraph(af::AscGraph &graph, size_t dims_size) {
+  af::ascir_op::Data x("data0", graph);
+  x.ir_attr.SetIndex(0);
+
+  af::ascir_op::Load load("load0");
+  load.x = x.y;
+
+  af::ascir_op::ModifiedBesselK0 op("modified_bessel_k0");
+  op.x = load.y;
+
+  af::ascir_op::Store store("store");
+  store.x = op.y;
+
+  af::ascir_op::Output y("output");
+  y.x = store.y;
+
+  y.ir_attr.SetIndex(0);
+
+  ConstructVVAscGraphAxisInfo(graph, dims_size);
+}
+
+af::ComputeGraphPtr ShareGraph::LoadModifiedBesselK0StoreFusedGraph(size_t dims_size) {
+  return CreateOneInputAscGraphComputeGraph("load_modified_bessel_k0_store_test", "load_modified_bessel_k0_store",
+                                            dims_size, CreateLoadModifiedBesselK0StoreAscGraph);
+}
+
+/**
+ *         data0
+ *           |
+ *         load0
+ *           |
+ *    ModifiedBesselK1
+ *           |
+ *         store
+ *           |
+ *        output0
+ */
+static void CreateLoadModifiedBesselK1StoreAscGraph(af::AscGraph &graph, size_t dims_size) {
+  af::ascir_op::Data x("data0", graph);
+  x.ir_attr.SetIndex(0);
+
+  af::ascir_op::Load load("load0");
+  load.x = x.y;
+
+  af::ascir_op::ModifiedBesselK1 op("modified_bessel_k1");
+  op.x = load.y;
+
+  af::ascir_op::Store store("store");
+  store.x = op.y;
+
+  af::ascir_op::Output y("output");
+  y.x = store.y;
+
+  y.ir_attr.SetIndex(0);
+
+  ConstructVVAscGraphAxisInfo(graph, dims_size);
+}
+
+af::ComputeGraphPtr ShareGraph::LoadModifiedBesselK1StoreFusedGraph(size_t dims_size) {
+  return CreateOneInputAscGraphComputeGraph("load_modified_bessel_k1_store_test", "load_modified_bessel_k1_store",
+                                            dims_size, CreateLoadModifiedBesselK1StoreAscGraph);
+}
+
+/**
+ *      data0    data1
+ *        |        |
+ *      load0    load1
+ *         \      /
+ *   LaguerrePolynomialL
+ *          |
+ *        store
+ *          |
+ *       output0
+ */
+static void CreateLaguerrePolynomialLStoreAscGraph(af::AscGraph &graph, size_t dims_size) {
+  af::ascir_op::Data x("data0", graph);
+  x.ir_attr.SetIndex(0);
+
+  af::ascir_op::Data n("data1", graph);
+  n.ir_attr.SetIndex(1);
+  n.y.dtype = af::DT_INT32;
+
+  af::ascir_op::Load load_x("load0");
+  load_x.x = x.y;
+
+  af::ascir_op::Load load_n("load1");
+  load_n.x = n.y;
+  load_n.y.dtype = af::DT_INT32;
+
+  af::ascir_op::LaguerrePolynomialL op("laguerre_polynomial_l");
+  op.x = load_x.y;
+  op.n = load_n.y;
+
+  af::ascir_op::Store store("store");
+  store.x = op.y;
+
+  af::ascir_op::Output y("output");
+  y.x = store.y;
+
+  y.ir_attr.SetIndex(0);
+
+  ConstructVVAscGraphAxisInfo(graph, dims_size);
+}
+
+af::ComputeGraphPtr ShareGraph::LaguerrePolynomialLStoreFusedGraph(size_t dims_size) {
+  return CreateTwoInputAscGraphComputeGraph("laguerre_polynomial_l_store_test", "laguerre_polynomial_l_store",
+                                            dims_size, CreateLaguerrePolynomialLStoreAscGraph);
+}
+
+/**
+ *      data0    data1
+ *        |        |
+ *      load0    load1
+ *         \      /
+ *   LegendrePolynomialP
+ *          |
+ *        store
+ *          |
+ *       output0
+ */
+static void CreateLegendrePolynomialPStoreAscGraph(af::AscGraph &graph, size_t dims_size) {
+  af::ascir_op::Data polynomial_x("data0", graph);
+  polynomial_x.ir_attr.SetIndex(0);
+
+  af::ascir_op::Data polynomial_n("data1", graph);
+  polynomial_n.ir_attr.SetIndex(1);
+  polynomial_n.y.dtype = af::DT_INT32;
+
+  af::ascir_op::Load load_polynomial_x("load0");
+  load_polynomial_x.x = polynomial_x.y;
+
+  af::ascir_op::Load load_polynomial_n("load1");
+  load_polynomial_n.x = polynomial_n.y;
+  load_polynomial_n.y.dtype = af::DT_INT32;
+
+  af::ascir_op::LegendrePolynomialP op("legendre_polynomial_p");
+  op.x = load_polynomial_x.y;
+  op.n = load_polynomial_n.y;
+
+  af::ascir_op::Store store("store");
+  store.x = op.y;
+
+  af::ascir_op::Output y("output");
+  y.x = store.y;
+
+  y.ir_attr.SetIndex(0);
+
+  ConstructVVAscGraphAxisInfo(graph, dims_size);
+}
+
+af::ComputeGraphPtr ShareGraph::LegendrePolynomialPStoreFusedGraph(size_t dims_size) {
+  return CreateTwoInputAscGraphComputeGraph("legendre_polynomial_p_store_test", "legendre_polynomial_p_store",
+                                            dims_size, CreateLegendrePolynomialPStoreAscGraph);
+}
+
+/**
+ *         data0
+ *           |
+ *         load0
+ *           |
+ *        AiryAi
+ *           |
+ *         store
+ *           |
+ *        output0
+ */
+static void CreateLoadAiryAiStoreAscGraph(af::AscGraph &graph, size_t dims_size) {
+  af::ascir_op::Data x("data0", graph);
+  x.ir_attr.SetIndex(0);
+
+  af::ascir_op::Load load("load0");
+  load.x = x.y;
+
+  af::ascir_op::AiryAi op("airy_ai");
+  op.x = load.y;
+
+  af::ascir_op::Store store("store");
+  store.x = op.y;
+
+  af::ascir_op::Output y("output");
+  y.x = store.y;
+
+  y.ir_attr.SetIndex(0);
+
+  ConstructVVAscGraphAxisInfo(graph, dims_size);
+}
+
+af::ComputeGraphPtr ShareGraph::LoadAiryAiStoreFusedGraph(size_t dims_size) {
+  return CreateOneInputAscGraphComputeGraph("load_airy_ai_store_test", "load_airy_ai_store", dims_size,
+                                            CreateLoadAiryAiStoreAscGraph);
+}
+
+/**
+ *         data0
+ *           |
+ *         load0
+ *           |
+ *        Erfinv
+ *           |
+ *         store
+ *           |
+ *        output0
+ */
+static void CreateLoadErfinvStoreAscGraph(af::AscGraph &graph, size_t dims_size) {
+  af::ascir_op::Data x("data0", graph);
+  x.ir_attr.SetIndex(0);
+
+  af::ascir_op::Load load("load0");
+  load.x = x.y;
+
+  af::ascir_op::Erfinv op("erfinv");
+  op.x = load.y;
+
+  af::ascir_op::Store store("store");
+  store.x = op.y;
+
+  af::ascir_op::Output y("output");
+  y.x = store.y;
+
+  y.ir_attr.SetIndex(0);
+
+  ConstructVVAscGraphAxisInfo(graph, dims_size);
+}
+
+af::ComputeGraphPtr ShareGraph::LoadErfinvStoreFusedGraph(size_t dims_size) {
+  return CreateOneInputAscGraphComputeGraph("load_erfinv_store_test", "load_erfinv_store", dims_size,
+                                            CreateLoadErfinvStoreAscGraph);
+}
+
+/**
+ *   data0  data1
+ *     |      |
+ *   load0  load1
+ *     \    /
+ *   Remainder
+ *      |
+ *    store
+ *      |
+ *   output0
+ */
+static void CreateRemainderInt32StoreAscGraph(af::AscGraph &graph, size_t dims_size) {
+  af::ascir_op::Data x1("data0", graph);
+  x1.ir_attr.SetIndex(0);
+  x1.y.dtype = af::DT_INT32;
+
+  af::ascir_op::Data x2("data1", graph);
+  x2.ir_attr.SetIndex(1);
+  x2.y.dtype = af::DT_INT32;
+
+  af::ascir_op::Load load_x1("load0");
+  load_x1.x = x1.y;
+  load_x1.y.dtype = af::DT_INT32;
+
+  af::ascir_op::Load load_x2("load1");
+  load_x2.x = x2.y;
+  load_x2.y.dtype = af::DT_INT32;
+
+  af::ascir_op::Remainder op("remainder");
+  op.x1 = load_x1.y;
+  op.x2 = load_x2.y;
+  op.y.dtype = af::DT_INT32;
+
+  af::ascir_op::Store store("store");
+  store.x = op.y;
+  store.y.dtype = af::DT_INT32;
+
+  af::ascir_op::Output y("output");
+  y.x = store.y;
+  y.y.dtype = af::DT_INT32;
+
+  y.ir_attr.SetIndex(0);
+
+  ConstructVVAscGraphAxisInfo(graph, dims_size);
+}
+
+af::ComputeGraphPtr ShareGraph::RemainderInt32StoreFusedGraph(size_t dims_size) {
+  return CreateTwoInputAscGraphComputeGraph("remainder_int32_store_test", "remainder_int32_store", dims_size,
+                                            CreateRemainderInt32StoreAscGraph);
+}
+
+/**
+ *   data0  data1
+ *     |      |
+ *   load0  load1
+ *     \    /
+ *   FloorDiv
+ *      |
+ *    store
+ *      |
+ *   output0
+ */
+static void CreateFloorDivInt32StoreAscGraph(af::AscGraph &graph, size_t dims_size) {
+  af::ascir_op::Data floor_div_x1("data0", graph);
+  floor_div_x1.ir_attr.SetIndex(0);
+  floor_div_x1.y.dtype = af::DT_INT32;
+
+  af::ascir_op::Data floor_div_x2("data1", graph);
+  floor_div_x2.ir_attr.SetIndex(1);
+  floor_div_x2.y.dtype = af::DT_INT32;
+
+  af::ascir_op::Load floor_div_load_x1("load0");
+  floor_div_load_x1.x = floor_div_x1.y;
+  floor_div_load_x1.y.dtype = af::DT_INT32;
+
+  af::ascir_op::Load floor_div_load_x2("load1");
+  floor_div_load_x2.x = floor_div_x2.y;
+  floor_div_load_x2.y.dtype = af::DT_INT32;
+
+  af::ascir_op::FloorDiv floor_div_op("floor_div");
+  floor_div_op.x1 = floor_div_load_x1.y;
+  floor_div_op.x2 = floor_div_load_x2.y;
+  floor_div_op.y.dtype = af::DT_INT32;
+
+  af::ascir_op::Store floor_div_store("store");
+  floor_div_store.x = floor_div_op.y;
+  floor_div_store.y.dtype = af::DT_INT32;
+
+  af::ascir_op::Output floor_div_output("output");
+  floor_div_output.x = floor_div_store.y;
+  floor_div_output.y.dtype = af::DT_INT32;
+
+  floor_div_output.ir_attr.SetIndex(0);
+
+  ConstructVVAscGraphAxisInfo(graph, dims_size);
+}
+
+af::ComputeGraphPtr ShareGraph::FloorDivInt32StoreFusedGraph(size_t dims_size) {
+  return CreateTwoInputAscGraphComputeGraph("floor_div_int32_store_test", "floor_div_int32_store", dims_size,
+                                            CreateFloorDivInt32StoreAscGraph);
+}
+
 static void CreateSinBf16AscGraph(af::AscGraph &graph, size_t dims_size) {
   af::ascir_op::Data x("data0", graph);
   x.y.dtype = af::DataType::DT_BF16;

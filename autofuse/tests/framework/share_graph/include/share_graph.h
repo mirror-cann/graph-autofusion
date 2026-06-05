@@ -57,6 +57,16 @@ struct ShareGraph {
   static af::ComputeGraphPtr AddExpBf16FusedGraph(size_t dims_size);
   static af::ComputeGraphPtr FloordivAbsFusedGraph(size_t dims_size);
   static af::ComputeGraphPtr LoadTanhStoreFusedGraph(size_t dims_size);
+  static af::ComputeGraphPtr LoadModifiedBesselI0StoreFusedGraph(size_t dims_size);
+  static af::ComputeGraphPtr LoadModifiedBesselI1StoreFusedGraph(size_t dims_size);
+  static af::ComputeGraphPtr LoadModifiedBesselK0StoreFusedGraph(size_t dims_size);
+  static af::ComputeGraphPtr LoadModifiedBesselK1StoreFusedGraph(size_t dims_size);
+  static af::ComputeGraphPtr LaguerrePolynomialLStoreFusedGraph(size_t dims_size);
+  static af::ComputeGraphPtr LegendrePolynomialPStoreFusedGraph(size_t dims_size);
+  static af::ComputeGraphPtr LoadAiryAiStoreFusedGraph(size_t dims_size);
+  static af::ComputeGraphPtr LoadErfinvStoreFusedGraph(size_t dims_size);
+  static af::ComputeGraphPtr RemainderInt32StoreFusedGraph(size_t dims_size);
+  static af::ComputeGraphPtr FloorDivInt32StoreFusedGraph(size_t dims_size);
   static af::ComputeGraphPtr LoadTanhBf16FusedGraph(size_t dims_size);
   static af::ComputeGraphPtr AddAbsScalarFusedGraph(size_t dims_size, af::DataType dtype);
   static af::ComputeGraphPtr AbsBrcAddFusedGraph(size_t dims_size);

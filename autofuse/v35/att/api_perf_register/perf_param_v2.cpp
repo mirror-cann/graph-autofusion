@@ -377,6 +377,24 @@ const std::map<std::string, std::vector<VfInstructPerf>> &PerfParamTableV2::GetV
               {VfInstructPerf{{kUInt32, kInt32, kFloat32, kUInt64, kInt64}, 0, 1}},
           },
       },
+      {
+          kVmAdd,
+          {
+              {VfInstructPerf{
+                  {kBfloat16, kFloat16, kFloat32},
+                  6,
+                  1}},
+          },
+      },
+      {
+          kPlaceholder,
+          {
+              {VfInstructPerf{
+                  {kUInt8, kInt8, kUInt16, kInt16, kBfloat16, kFloat16, kUInt32, kInt32, kFloat32, kUInt64, kInt64},
+                  0,
+                  0}},
+          },
+      },
   };
   return kVfInstructPerfTable;
 }

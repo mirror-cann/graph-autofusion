@@ -13,6 +13,9 @@
 #include "gtest/gtest.h"
 #include "tikicpulib.h"
 #include "test_api_utils.h"
+#include "modified_bessel_utils.h"
+#include "modified_bessel_i0.h"
+#include "modified_bessel_k0.h"
 #include "scaled_modified_bessel_k0.h"
 
 using namespace AscendC;

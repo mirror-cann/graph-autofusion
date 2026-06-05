@@ -90,7 +90,7 @@ Status ConcatApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::Axis
          << ");" << std::endl;
     }
   } else {
-    if (IsAllAligned(concat_tiling, concat_tiling.src_col_actual_size_exprs)) {
+    if (IsAllAligned(concat_tiling)) {
       GE_ASSERT_SUCCESS(GenerateForAllAligned(inputs, y, concat_tiling, tpipe.tiler, ss));
     } else {
       GE_ASSERT_TRUE(id != -1L, "ConcatApiCall cannot find tmp buffer id to use.");
@@ -434,10 +434,8 @@ void ConcatApiCall::DefineInputList(const ConcatTiling &tiling, const std::strin
   ss << "};" << std::endl;
 }
 
-bool ConcatApiCall::IsAllAligned(ConcatApiCall::ConcatTiling &tiling,
-                                 const std::vector<af::Expression> &col_size_exprs) {
-  tiling.dst_offsets.resize(col_size_exprs.size());
-  auto offset = af::ops::Zero;
+bool ConcatApiCall::IsAllAligned(ConcatApiCall::ConcatTiling &tiling) {
+  const auto &col_size_exprs = tiling.src_col_actual_size_exprs;
   for (size_t index = 0U; index < col_size_exprs.size(); ++index) {
     auto size = af::Symbol(tiling.data_type_size) * col_size_exprs[index];
     if (af::SymbolicUtils::StaticCheckEq(af::sym::Mod(size, af::Symbol(kDataBlockSize)), af::ops::Zero) != af::TriBool::kTrue) {
@@ -445,11 +443,18 @@ bool ConcatApiCall::IsAllAligned(ConcatApiCall::ConcatTiling &tiling,
              af::SymbolicUtils::ToString(col_size_exprs[index]).c_str());
       return false;
     }
-    if (!col_size_exprs[index].IsConstExpr()) {
+  }
+  // 当前Gather->Reshape->Concat融合时, 存在补轴错位问题, 可能会导致src_col_actual_size_exprs的大小不准确,
+  // 所以此处改为使用src_row_strides
+  tiling.dst_offsets.resize(col_size_exprs.size());
+  auto offset = af::ops::Zero;
+  for (size_t index = 0U; index < tiling.src_row_strides.size(); ++index) {
+    const auto &src_row_stride = tiling.src_row_strides[index];
+    if (!src_row_stride.IsConstExpr()) {
       tiling.all_static = false;
     }
     tiling.dst_offsets[index] = offset;
-    offset = offset + col_size_exprs[index];
+    offset = offset + src_row_stride;
   }
   return true;
 }
@@ -461,7 +466,7 @@ void ConcatApiCall::GenConcatTilingForAllAligned(const ConcatApiCall::ConcatTili
   ss << "ConcatTilingAllAligned<" << tiling.src_col_size_exprs.size() << "> concat_tiling {" << std::endl;
   ss << "  .dst_col_size = " << tiler.Size(tiling.dst_row_stride, true) << "," << std::endl;
   ss << "  .src_col_sizes = { ";
-  for (const auto &src_col_size : tiling.src_col_actual_size_exprs) {
+  for (const auto &src_col_size : tiling.src_row_strides) {
     ss << tiler.Size(src_col_size, true) << ", ";
   }
   ss << "}," << std::endl;

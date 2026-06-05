@@ -10,8 +10,6 @@
 #ifndef __ASCEND_API_AIRY_AI_H
 #define __ASCEND_API_AIRY_AI_H
 
-#include "trigonometric_function_utils.h"
-
 using namespace AscendC;
 
 constexpr float AN[] = {

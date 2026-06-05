@@ -47,7 +47,7 @@ Status SplitConcatOptimizationPass::RunPass(af::AscGraph &graph) {
   bool is_first_dim_concat = false;
   GE_ASSERT_SUCCESS(ScheduleUtils::ResolveDiffDim(concat_node, concat_dim, is_first_dim_concat));
   GE_ASSERT_TRUE(is_first_dim_concat, "%s: concat_dim = %zu, not the first dim", concat_node->GetNamePtr(), concat_dim);
-  GE_ASSERT_SUCCESS(OptimizeOutConcat(graph, concat_node));
+  GE_ASSERT_SUCCESS(OptimizeOutConcat(graph));
   return ge::SUCCESS;
 }
 
@@ -62,9 +62,15 @@ Status SplitConcatOptimizationPass::OptimizeOutSplit(ascir::HintGraph &owner_gra
   return ge::SUCCESS;
 }
 
-Status SplitConcatOptimizationPass::OptimizeOutConcat(ascir::HintGraph &owner_graph, const af::AscNodePtr &concat_node) {
-  ConcatFusionCaseGenerator gen;
-  GE_ASSERT_SUCCESS(gen.EliminateConcat(owner_graph, concat_node));
+Status SplitConcatOptimizationPass::OptimizeOutConcat(ascir::HintGraph &owner_graph) {
+  // first-dim concat
+  std::vector<ascir::ImplGraph> graphs;
+  std::vector<std::string> unused_score_funcs;
+  // graph被原地修改
+  GE_ASSERT_SUCCESS(
+      ConcatFusionCaseGenerator().SetConvertToStoreMode().Generate(owner_graph, graphs, unused_score_funcs));
+  GE_ASSERT_TRUE(graphs.size() == 1UL, "first dim concat should generate only one template, but got %zu",
+                 graphs.size());
   return ge::SUCCESS;
 }
 

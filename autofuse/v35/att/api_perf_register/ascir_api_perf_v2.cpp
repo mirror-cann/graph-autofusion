@@ -761,6 +761,22 @@ ApiPerfRegister<ApiPerf> xor_api_perf_v2(ApiPerfRegisterV2(kXor, GetPerfFunc(kXo
 ApiPerfRegister<ApiPerf> remainder_api_perf_v2(ApiPerfRegisterV2(kRemainder, GetPerfFunc(kRemainder + "V2"), nullptr,
                                                                  &perf_param_table_v2,
                                                                  &tiling_schedule_config_table_v2));
+ApiPerfRegister<ApiPerf> modified_bessel_i0_api_perf_v2(ApiPerfRegisterV2(kModifiedBesselI0, GetPerfFunc(kUnitVector), nullptr,
+                                                                          &perf_param_table_v2, &tiling_schedule_config_table_v2));
+ApiPerfRegister<ApiPerf> modified_bessel_i1_api_perf_v2(ApiPerfRegisterV2(kModifiedBesselI1, GetPerfFunc(kUnitVector), nullptr,
+                                                                          &perf_param_table_v2, &tiling_schedule_config_table_v2));
+ApiPerfRegister<ApiPerf> modified_bessel_k0_api_perf_v2(ApiPerfRegisterV2(kModifiedBesselK0, GetPerfFunc(kUnitVector), nullptr,
+                                                                          &perf_param_table_v2, &tiling_schedule_config_table_v2));
+ApiPerfRegister<ApiPerf> modified_bessel_k1_api_perf_v2(ApiPerfRegisterV2(kModifiedBesselK1, GetPerfFunc(kUnitVector), nullptr,
+                                                                          &perf_param_table_v2, &tiling_schedule_config_table_v2));
+ApiPerfRegister<ApiPerf> laguerre_polynomial_l_api_perf_v2(ApiPerfRegisterV2(kLaguerrePolynomialL, GetPerfFunc(kUnitVector), nullptr,
+                                                                             &perf_param_table_v2, &tiling_schedule_config_table_v2));
+ApiPerfRegister<ApiPerf> legendre_polynomial_p_api_perf_v2(ApiPerfRegisterV2(kLegendrePolynomialP, GetPerfFunc(kUnitVector), nullptr,
+                                                                             &perf_param_table_v2, &tiling_schedule_config_table_v2));
+ApiPerfRegister<ApiPerf> airy_ai_api_perf_v2(ApiPerfRegisterV2(kAiryAi, GetPerfFunc(kUnitVector), nullptr,
+                                                                &perf_param_table_v2, &tiling_schedule_config_table_v2));
+ApiPerfRegister<ApiPerf> erfinv_api_perf_v2(ApiPerfRegisterV2(kErfinv, GetPerfFunc(kUnitVector), nullptr,
+                                                              &perf_param_table_v2, &tiling_schedule_config_table_v2));
 ApiPerfRegister<ApiPerf> square_api_perf_v2(ApiPerfRegisterV2(kSquare, GetPerfFunc(kSquare + "V2"), nullptr,
                                                               &perf_param_table_v2, &tiling_schedule_config_table_v2));
 

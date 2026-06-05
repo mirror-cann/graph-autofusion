@@ -93,6 +93,14 @@ PyMODINIT_FUNC PyInit_pyautofuse(void);
   OP(Mul)              \
   OP(TrueDiv)          \
   OP(Remainder)        \
+  OP(ModifiedBesselI0) \
+  OP(ModifiedBesselI1) \
+  OP(ModifiedBesselK0) \
+  OP(ModifiedBesselK1) \
+  OP(LaguerrePolynomialL) \
+  OP(LegendrePolynomialP) \
+  OP(AiryAi)           \
+  OP(Erfinv)           \
   OP(Minimum)          \
   OP(Maximum)          \
   OP(LogicalOr)        \

@@ -11,8 +11,6 @@
 #ifndef __ASCENDC_API_REGBASE_MODIFIED_BESSEL_K1_H__
 #define __ASCENDC_API_REGBASE_MODIFIED_BESSEL_K1_H__
 
-#include "modified_bessel_i1.h"
-
 constexpr float K1_A[11] = {
     -7.02386347938628759343e-18,
     -2.42744985051936593393e-15,

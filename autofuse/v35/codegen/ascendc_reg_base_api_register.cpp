@@ -17,6 +17,21 @@ class Register {
   Register();
 };
 
+static std::string StripBroadcastSelfIncludes(const std::string &src) {
+    std::string result;
+    size_t pos = 0;
+    while (pos < src.size()) {
+      size_t end = src.find('\n', pos);
+      if (end == std::string::npos) end = src.size();
+      std::string line = src.substr(pos, end - pos);
+      if (line.find("#include \"broadcast") == std::string::npos) {
+        result += line + "\n";
+      }
+      pos = end + 1;
+    }
+    return result;
+  }
+
 Register::Register() {
   const std::string kAscendcCastRegStr = {
 #include "cast_reg_base.h"
@@ -54,9 +69,13 @@ Register::Register() {
   const std::string kAscendcUtilsRegBaseStr = {
 #include "utils_reg_base.h"
   };
-  const std::string kAscendcBroadcastRegStr = {
+  const std::string kAscendcBroadcastRegStr =
+      StripBroadcastSelfIncludes(std::string{
+#include "broadcast_extend_impl_reg_base.h"
+      }) +
+      StripBroadcastSelfIncludes(std::string{
 #include "broadcast_reg_base.h"
-  };
+      });
   const std::string kAscendcLogicalNotStr = {
 #include "logical_not_reg_base.h"
   };
@@ -123,6 +142,36 @@ Register::Register() {
   const std::string kAscendcTransposeRegBaseStr = {
 #include "transpose_reg_base.h"
   };
+  const std::string kAscendcTrigonometricFunctionUtilsRegBaseStr = {
+#include "trigonometric_function_utils_reg_base.h"
+  };
+  const std::string kAscendcModifiedBesselUtilsRegBaseStr = {
+#include "modified_bessel_utils_reg_base.h"
+  };
+  const std::string kAscendcModifiedBesselI0RegBaseStr = {
+#include "modified_bessel_i0_reg_base.h"
+  };
+  const std::string kAscendcModifiedBesselI1RegBaseStr = {
+#include "modified_bessel_i1_reg_base.h"
+  };
+  const std::string kAscendcModifiedBesselK0RegBaseStr = {
+#include "modified_bessel_k0_reg_base.h"
+  };
+  const std::string kAscendcModifiedBesselK1RegBaseStr = {
+#include "modified_bessel_k1_reg_base.h"
+  };
+  const std::string kAscendcLaguerrePolynomialLRegBaseStr = {
+#include "laguerre_polynomial_l_reg_base.h"
+  };
+  const std::string kAscendcLegendrePolynomialPRegBaseStr = {
+#include "legendre_polynomial_p_reg_base.h"
+  };
+  const std::string kAscendcAiryAiRegBaseStr = {
+#include "airy_ai_reg_base.h"
+  };
+  const std::string kAscendcErfinvRegBaseStr = {
+#include "erfinv_reg_base.h"
+  };
   std::unordered_map<std::string, std::string> api_to_file{
       {"cast_reg_base.h", kAscendcCastRegStr},
       {"compare_reg_base.h", kAscendcCompareRegStr},
@@ -159,6 +208,16 @@ Register::Register() {
       {"neg_reg_base.h", kAscendcNegRegBaseStr},
       {"square_reg_base.h", kAscendcSquareRegBaseStr},
       {"transpose_reg_base.h", kAscendcTransposeRegBaseStr},
+      {"trigonometric_function_utils_reg_base.h", kAscendcTrigonometricFunctionUtilsRegBaseStr},
+      {"modified_bessel_utils_reg_base.h", kAscendcModifiedBesselUtilsRegBaseStr},
+      {"modified_bessel_i0_reg_base.h", kAscendcModifiedBesselI0RegBaseStr},
+      {"modified_bessel_i1_reg_base.h", kAscendcModifiedBesselI1RegBaseStr},
+      {"modified_bessel_k0_reg_base.h", kAscendcModifiedBesselK0RegBaseStr},
+      {"modified_bessel_k1_reg_base.h", kAscendcModifiedBesselK1RegBaseStr},
+      {"laguerre_polynomial_l_reg_base.h", kAscendcLaguerrePolynomialLRegBaseStr},
+      {"legendre_polynomial_p_reg_base.h", kAscendcLegendrePolynomialPRegBaseStr},
+      {"airy_ai_reg_base.h", kAscendcAiryAiRegBaseStr},
+      {"erfinv_reg_base.h", kAscendcErfinvRegBaseStr},
   };
 
   AscendCApiRegistry::GetInstance().RegisterApi(api_to_file);
