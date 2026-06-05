@@ -24,6 +24,14 @@
 #include "sk_event_recorder.h"
 #include "runtime/kernel.h"
 
+// COND register index in errReg[] for different architectures
+// DAV_2201: errReg[20] is low 32 bits, errReg[21] is high 32 bits
+constexpr uint32_t SK_COND_ERR_REG_LOW_IDX_DAV2201 = 20;
+constexpr uint32_t SK_COND_ERR_REG_HIGH_IDX_DAV2201 = 21;
+// DAV_3510: errReg[32] is low 32 bits, errReg[33] is high 32 bits
+constexpr uint32_t SK_COND_ERR_REG_LOW_IDX_DAV3510 = 32;
+constexpr uint32_t SK_COND_ERR_REG_HIGH_IDX_DAV3510 = 33;
+
 SuperKernelExceptionHandler::SuperKernelExceptionHandler()
     : aicoreNums(GetSkRuntimeConfig().eventCoreNum)
     , skDeviceEntryArgsDev(nullptr)
@@ -301,11 +309,20 @@ bool SuperKernelExceptionHandler::GetExceptionRegInfo(const aclrtExceptionInfo &
 }
 
 uint64_t SuperKernelExceptionHandler::GetCondRegValue(const rtExceptionErrRegInfo_t &coreErrRegInfo) {
-    // COND register is 64-bit: errReg[20] is low 32 bits, errReg[21] is high 32 bits
-    constexpr uint32_t COND_REG_LOW_IDX = 20;
-    constexpr uint32_t COND_REG_HIGH_IDX = 21;
-    uint64_t condValue = (static_cast<uint64_t>(coreErrRegInfo.errReg[COND_REG_HIGH_IDX]) << 32)
-                       | static_cast<uint64_t>(coreErrRegInfo.errReg[COND_REG_LOW_IDX]);
+    // COND register is 64-bit
+    // For DAV_2201: errReg[20] is low 32 bits, errReg[21] is high 32 bits
+    // For DAV_3510: errReg[32] is low 32 bits, errReg[33] is high 32 bits
+    uint32_t condRegLowIdx = SK_COND_ERR_REG_LOW_IDX_DAV2201;
+    uint32_t condRegHighIdx = SK_COND_ERR_REG_HIGH_IDX_DAV2201;
+    SkKernelArch arch = GetCurrentSkKernelArch();
+    if (arch == SkKernelArch::DAV_3510) {
+        condRegLowIdx = SK_COND_ERR_REG_LOW_IDX_DAV3510;
+        condRegHighIdx = SK_COND_ERR_REG_HIGH_IDX_DAV3510;
+    }
+    SK_LOGE("GetCondRegValue: arch=%s, condRegLowIdx=%u, condRegHighIdx=%u",
+            to_string(arch), condRegLowIdx, condRegHighIdx);
+    uint64_t condValue = (static_cast<uint64_t>(coreErrRegInfo.errReg[condRegHighIdx]) << 32)
+                       | static_cast<uint64_t>(coreErrRegInfo.errReg[condRegLowIdx]);
     return condValue;
 }
 

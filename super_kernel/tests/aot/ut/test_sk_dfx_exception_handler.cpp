@@ -24,6 +24,7 @@
 #include "sk_common.h"
 #include "sk_event_recorder.h"
 #include "runtime/kernel.h"
+#include "stub/ut_common_stubs.h"
 
 class SkDfxExceptionHandlerTest : public testing::Test {
 protected:
@@ -34,10 +35,20 @@ protected:
     void TearDown() override {
         GlobalMockObject::verify();
         handler.reset();
+        SkUtSetAclrtGetSocName("Ascend910B");  // Reset to default arch (DAV_2201)
     }
 
     std::unique_ptr<SuperKernelExceptionHandler> handler;
 };
+
+// ==================== Fake GetCurrentSkKernelArch for DAV_3510 mock ====================
+// SkRuntimeConfig is initialized once per process via std::call_once, so
+// SkUtSetAclrtGetSocName("Ascend950") cannot change the arch after initialization.
+// Instead, we mock GetCurrentSkKernelArch directly to return DAV_3510.
+static SkKernelArch FakeGetCurrentSkKernelArch_Dav3510()
+{
+    return SkKernelArch::DAV_3510;
+}
 
 // ==================== Helper Functions for Test Setup ====================
 
@@ -1518,6 +1529,141 @@ TEST_F(SkDfxExceptionHandlerTest, GetCondRegValue_OtherRegistersUnaffected)
     regInfo.errReg[63] = 0xFFFFFFFF;
     uint64_t result = SuperKernelExceptionHandler::GetCondRegValue(regInfo);
     EXPECT_EQ(result, 0x0000000200000001ULL);
+}
+
+// ==================== GetCondRegValue DAV_3510 Tests (Commit b9bbb50) ====================
+
+TEST_F(SkDfxExceptionHandlerTest, GetCondRegValue_Dav3510_ZeroRegisters)
+{
+    MOCKER(GetCurrentSkKernelArch).stubs().will(invoke(FakeGetCurrentSkKernelArch_Dav3510));
+    rtExceptionErrRegInfo_t regInfo = {};
+    uint64_t result = SuperKernelExceptionHandler::GetCondRegValue(regInfo);
+    EXPECT_EQ(result, 0ULL);
+}
+
+TEST_F(SkDfxExceptionHandlerTest, GetCondRegValue_Dav3510_Low32Only)
+{
+    MOCKER(GetCurrentSkKernelArch).stubs().will(invoke(FakeGetCurrentSkKernelArch_Dav3510));
+    rtExceptionErrRegInfo_t regInfo = {};
+    regInfo.errReg[32] = 0xDEADBEEF;  // low 32 bits for 3510
+    regInfo.errReg[33] = 0;           // high 32 bits for 3510
+    uint64_t result = SuperKernelExceptionHandler::GetCondRegValue(regInfo);
+    EXPECT_EQ(result, 0x00000000DEADBEEFULL);
+}
+
+TEST_F(SkDfxExceptionHandlerTest, GetCondRegValue_Dav3510_High32Only)
+{
+    MOCKER(GetCurrentSkKernelArch).stubs().will(invoke(FakeGetCurrentSkKernelArch_Dav3510));
+    rtExceptionErrRegInfo_t regInfo = {};
+    regInfo.errReg[32] = 0;           // low 32 bits for 3510
+    regInfo.errReg[33] = 0x12345678;  // high 32 bits for 3510
+    uint64_t result = SuperKernelExceptionHandler::GetCondRegValue(regInfo);
+    EXPECT_EQ(result, 0x1234567800000000ULL);
+}
+
+TEST_F(SkDfxExceptionHandlerTest, GetCondRegValue_Dav3510_Full64Bit)
+{
+    MOCKER(GetCurrentSkKernelArch).stubs().will(invoke(FakeGetCurrentSkKernelArch_Dav3510));
+    rtExceptionErrRegInfo_t regInfo = {};
+    regInfo.errReg[32] = 0xAAAAAAAA;  // low 32 bits for 3510
+    regInfo.errReg[33] = 0xBBBBBBBB;  // high 32 bits for 3510
+    uint64_t result = SuperKernelExceptionHandler::GetCondRegValue(regInfo);
+    EXPECT_EQ(result, 0xBBBBBBBBAAAAAAAAULL);
+}
+
+TEST_F(SkDfxExceptionHandlerTest, GetCondRegValue_Dav3510_EncodedOpStateAndIndex)
+{
+    MOCKER(GetCurrentSkKernelArch).stubs().will(invoke(FakeGetCurrentSkKernelArch_Dav3510));
+    // Simulate a cond value: opState=OP_LAUNCHED(2), opIndex=5
+    rtExceptionErrRegInfo_t regInfo = {};
+    uint64_t expected = static_cast<uint64_t>(SkOpTraceType::OP_LAUNCHED) | (5ULL << 8);
+    regInfo.errReg[32] = static_cast<uint32_t>(expected & 0xFFFFFFFF);
+    regInfo.errReg[33] = static_cast<uint32_t>(expected >> 32);
+    uint64_t result = SuperKernelExceptionHandler::GetCondRegValue(regInfo);
+    EXPECT_EQ(result, expected);
+    EXPECT_EQ(static_cast<uint8_t>(result & 0xFF), static_cast<uint8_t>(SkOpTraceType::OP_LAUNCHED));
+    EXPECT_EQ(static_cast<uint32_t>((result >> 8) & 0xFF), 5U);
+}
+
+TEST_F(SkDfxExceptionHandlerTest, GetCondRegValue_Dav3510_OtherRegistersUnaffected)
+{
+    MOCKER(GetCurrentSkKernelArch).stubs().will(invoke(FakeGetCurrentSkKernelArch_Dav3510));
+    // errReg at other indices (including 20/21 for 2201) should not affect 3510 result
+    rtExceptionErrRegInfo_t regInfo = {};
+    regInfo.errReg[0] = 0xFFFFFFFF;
+    regInfo.errReg[20] = 0xFFFFFFFF;  // 2201 low idx, should be ignored for 3510
+    regInfo.errReg[21] = 0xFFFFFFFF;  // 2201 high idx, should be ignored for 3510
+    regInfo.errReg[31] = 0xFFFFFFFF;
+    regInfo.errReg[32] = 0x00000001;  // 3510 low idx
+    regInfo.errReg[33] = 0x00000002;  // 3510 high idx
+    regInfo.errReg[34] = 0xFFFFFFFF;
+    regInfo.errReg[63] = 0xFFFFFFFF;
+    uint64_t result = SuperKernelExceptionHandler::GetCondRegValue(regInfo);
+    EXPECT_EQ(result, 0x0000000200000001ULL);
+}
+
+TEST_F(SkDfxExceptionHandlerTest, GetCondRegValue_Dav3510_2201RegsIgnored)
+{
+    MOCKER(GetCurrentSkKernelArch).stubs().will(invoke(FakeGetCurrentSkKernelArch_Dav3510));
+    // When on 3510, errReg[20]/[21] should NOT be read; only [32]/[33] matter
+    rtExceptionErrRegInfo_t regInfo = {};
+    regInfo.errReg[20] = 0xFFFFFFFF;  // Would be low for 2201, ignored on 3510
+    regInfo.errReg[21] = 0xFFFFFFFF;  // Would be high for 2201, ignored on 3510
+    regInfo.errReg[32] = 0x00000000;  // 3510 low idx
+    regInfo.errReg[33] = 0x00000000;  // 3510 high idx
+    uint64_t result = SuperKernelExceptionHandler::GetCondRegValue(regInfo);
+    EXPECT_EQ(result, 0ULL);  // Should be 0, not 0xFFFFFFFFFFFFFFFF
+}
+
+TEST_F(SkDfxExceptionHandlerTest, GetCondRegValue_Dav2201_3510RegsIgnored)
+{
+    SkUtSetAclrtGetSocName("Ascend910B");  // default 2201 arch
+    // When on 2201, errReg[32]/[33] should NOT be read; only [20]/[21] matter
+    rtExceptionErrRegInfo_t regInfo = {};
+    regInfo.errReg[20] = 0x00000000;  // 2201 low idx
+    regInfo.errReg[21] = 0x00000000;  // 2201 high idx
+    regInfo.errReg[32] = 0xFFFFFFFF;  // Would be low for 3510, ignored on 2201
+    regInfo.errReg[33] = 0xFFFFFFFF;  // Would be high for 3510, ignored on 2201
+    uint64_t result = SuperKernelExceptionHandler::GetCondRegValue(regInfo);
+    EXPECT_EQ(result, 0ULL);  // Should be 0, not 0xFFFFFFFFFFFFFFFF
+}
+
+TEST_F(SkDfxExceptionHandlerTest, GetCondRegValue_Dav3510_Integration_ParseAndPrintCondInfo)
+{
+    MOCKER(GetCurrentSkKernelArch).stubs().will(invoke(FakeGetCurrentSkKernelArch_Dav3510));
+    // Build an rtExceptionErrRegInfo_t with COND values at 3510 indices
+    // opState=OP_FINISHED(3), opIndex=1, modelRIIdAndSkScopeId in upper bits
+    uint64_t expectedCond = static_cast<uint64_t>(SkOpTraceType::OP_FINISHED) | (1ULL << 8) | (0xABCDULL << 16);
+
+    rtExceptionErrRegInfo_t regInfo = {};
+    regInfo.coreId = 3;
+    regInfo.coreType = RT_CORE_TYPE_AIC;
+    regInfo.errReg[32] = static_cast<uint32_t>(expectedCond & 0xFFFFFFFF);
+    regInfo.errReg[33] = static_cast<uint32_t>(expectedCond >> 32);
+
+    // Verify GetCondRegValue extracts correctly for 3510
+    uint64_t condValue = SuperKernelExceptionHandler::GetCondRegValue(regInfo);
+    EXPECT_EQ(condValue, expectedCond);
+
+    // Verify ParseAndPrintCondInfo doesn't crash with the extracted value
+    SkHeaderInfo headerInfo;
+    SkDeviceEntryArgs* deviceArgs;
+    uint8_t* buffer = SetupOpTraceTestBuffer(3, true, headerInfo, deviceArgs, handler.get());
+    if (buffer == nullptr) {
+        return;
+    }
+
+    SkDfxInfo* dfxInfo = reinterpret_cast<SkDfxInfo*>(buffer + headerInfo.dfxOffset);
+    dfxInfo[0].funcHdlOri = 0xDEAD0001;
+    dfxInfo[1].funcHdlOri = 0xDEAD0002;
+    dfxInfo[2].funcHdlOri = 0xDEAD0003;
+
+    MOCKER(aclrtGetFunctionName).stubs().will(invoke(Fake_aclrtGetFunctionName_other));
+
+    handler->ParseAndPrintCondInfo(3, RT_CORE_TYPE_AIC, condValue);
+
+    free(buffer);
+    SUCCEED();
 }
 
 // ==================== ParseAndPrintCondInfo Tests (PR 485) ====================
