@@ -50,7 +50,7 @@ if (NOT DEFINED CANN_3RD_LIB_PATH)
     set(CANN_3RD_LIB_PATH ${CMAKE_CURRENT_SOURCE_DIR}/output/third_party)
 endif ()
 
-include_directories(${CODE_ROOT_DIR}/autofuse/cmake/autofuse_headers.cmake)
+include(${CODE_ROOT_DIR}/cmake/autofuse_headers.cmake)
 include_directories(${GE_METADEF_DIR}/third_party/transformer/inc)
 include_directories(${GE_METADEF_INC_DIR})
 include_directories(${GE_METADEF_INC_DIR}/common)
