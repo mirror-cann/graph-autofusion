@@ -421,86 +421,111 @@ TEST_F(SkEventRecorderTest, CoreIsAiv_BoundaryValues)
 }
 
 // ==================== CoreIsAiv Dav3510 分支 ====================
-// 默认 stub aclrtGetSocName 返回 "Ascend910B"。该 fixture 通过 mockcpp 把它
-// 替换为 "Ascend950"，专门用来覆盖 sk_event_recorder.h 中 DAV_3510 分支
-// 时的 AIV 区间 [18,53] ∪ [72,107]。
+// 默认 stub aclrtGetSocName 返回 "Ascend910B"。这里在子进程中 mock 成
+// "Ascend950"，专门覆盖 sk_event_recorder.h 中 DAV_3510 分支时的
+// AIV 区间 [18,53] ∪ [72,107]。
 
 namespace {
 const char* FakeSocName_Ascend950ForCoreIsAiv()
 {
     return "Ascend950";
 }
+
+void InitDav3510RuntimeConfigForCoreIsAiv()
+{
+    SkUtResetTestControls();
+    MOCKER(aclrtGetSocName).stubs().will(invoke(FakeSocName_Ascend950ForCoreIsAiv));
+    InitSkRuntimeConfig();
+}
+
+void ExitIsolatedCoreIsAivTest()
+{
+    GlobalMockObject::verify();
+    fflush(nullptr);
+    _exit(::testing::Test::HasFailure() ? 1 : 0);
+}
 }  // namespace
 
-class SkEventRecorderDav3510Test : public testing::Test {
-protected:
-    void SetUp() override
-    {
-        MOCKER(aclrtGetSocName).stubs().will(invoke(FakeSocName_Ascend950ForCoreIsAiv));
-    }
-
-    void TearDown() override
-    {
-        GlobalMockObject::verify();
-    }
-};
-
-TEST_F(SkEventRecorderDav3510Test, CoreIsAiv_FirstAivRange_18To53)
+TEST(SkEventRecorderDav3510Test, CoreIsAiv_FirstAivRange_18To53)
 {
-    GTEST_SKIP() << "SkRuntimeConfig is initialized once per process; SoC-variant coverage needs an isolated test process.";
-    for (int i = 18; i <= 53; ++i) {
-        EXPECT_TRUE(CoreIsAiv(i)) << "expected AIV for core " << i;
-    }
+    ::testing::FLAGS_gtest_death_test_style = "threadsafe";
+    ASSERT_EXIT({
+        InitDav3510RuntimeConfigForCoreIsAiv();
+        for (int i = 18; i <= 53; ++i) {
+            EXPECT_TRUE(CoreIsAiv(i)) << "expected AIV for core " << i;
+        }
+        ExitIsolatedCoreIsAivTest();
+    }, ::testing::ExitedWithCode(0), "");
 }
 
-TEST_F(SkEventRecorderDav3510Test, CoreIsAiv_SecondAivRange_72To107)
+TEST(SkEventRecorderDav3510Test, CoreIsAiv_SecondAivRange_72To107)
 {
-    GTEST_SKIP() << "SkRuntimeConfig is initialized once per process; SoC-variant coverage needs an isolated test process.";
-    for (int i = 72; i <= 107; ++i) {
-        EXPECT_TRUE(CoreIsAiv(i)) << "expected AIV for core " << i;
-    }
+    ::testing::FLAGS_gtest_death_test_style = "threadsafe";
+    ASSERT_EXIT({
+        InitDav3510RuntimeConfigForCoreIsAiv();
+        for (int i = 72; i <= 107; ++i) {
+            EXPECT_TRUE(CoreIsAiv(i)) << "expected AIV for core " << i;
+        }
+        ExitIsolatedCoreIsAivTest();
+    }, ::testing::ExitedWithCode(0), "");
 }
 
-TEST_F(SkEventRecorderDav3510Test, CoreIsAiv_AicCores_BelowFirstRange)
+TEST(SkEventRecorderDav3510Test, CoreIsAiv_AicCores_BelowFirstRange)
 {
-    GTEST_SKIP() << "SkRuntimeConfig is initialized once per process; SoC-variant coverage needs an isolated test process.";
-    for (int i = 0; i < 18; ++i) {
-        EXPECT_FALSE(CoreIsAiv(i)) << "expected AIC for core " << i;
-    }
+    ::testing::FLAGS_gtest_death_test_style = "threadsafe";
+    ASSERT_EXIT({
+        InitDav3510RuntimeConfigForCoreIsAiv();
+        for (int i = 0; i < 18; ++i) {
+            EXPECT_FALSE(CoreIsAiv(i)) << "expected AIC for core " << i;
+        }
+        ExitIsolatedCoreIsAivTest();
+    }, ::testing::ExitedWithCode(0), "");
 }
 
-TEST_F(SkEventRecorderDav3510Test, CoreIsAiv_AicCores_BetweenRanges)
+TEST(SkEventRecorderDav3510Test, CoreIsAiv_AicCores_BetweenRanges)
 {
-    GTEST_SKIP() << "SkRuntimeConfig is initialized once per process; SoC-variant coverage needs an isolated test process.";
-    // 区间间隙 [54,71] 全部应为 AIC
-    for (int i = 54; i <= 71; ++i) {
-        EXPECT_FALSE(CoreIsAiv(i)) << "expected AIC for core " << i;
-    }
+    ::testing::FLAGS_gtest_death_test_style = "threadsafe";
+    ASSERT_EXIT({
+        InitDav3510RuntimeConfigForCoreIsAiv();
+        // 区间间隙 [54,71] 全部应为 AIC
+        for (int i = 54; i <= 71; ++i) {
+            EXPECT_FALSE(CoreIsAiv(i)) << "expected AIC for core " << i;
+        }
+        ExitIsolatedCoreIsAivTest();
+    }, ::testing::ExitedWithCode(0), "");
 }
 
-TEST_F(SkEventRecorderDav3510Test, CoreIsAiv_BoundaryValues)
+TEST(SkEventRecorderDav3510Test, CoreIsAiv_BoundaryValues)
 {
-    GTEST_SKIP() << "SkRuntimeConfig is initialized once per process; SoC-variant coverage needs an isolated test process.";
-    // 第一段 AIV 区间边界
-    EXPECT_FALSE(CoreIsAiv(17));
-    EXPECT_TRUE(CoreIsAiv(18));
-    EXPECT_TRUE(CoreIsAiv(53));
-    EXPECT_FALSE(CoreIsAiv(54));
-    // 第二段 AIV 区间边界
-    EXPECT_FALSE(CoreIsAiv(71));
-    EXPECT_TRUE(CoreIsAiv(72));
-    EXPECT_TRUE(CoreIsAiv(107));
-    EXPECT_FALSE(CoreIsAiv(108));
+    ::testing::FLAGS_gtest_death_test_style = "threadsafe";
+    ASSERT_EXIT({
+        InitDav3510RuntimeConfigForCoreIsAiv();
+        // 第一段 AIV 区间边界
+        EXPECT_FALSE(CoreIsAiv(17));
+        EXPECT_TRUE(CoreIsAiv(18));
+        EXPECT_TRUE(CoreIsAiv(53));
+        EXPECT_FALSE(CoreIsAiv(54));
+        // 第二段 AIV 区间边界
+        EXPECT_FALSE(CoreIsAiv(71));
+        EXPECT_TRUE(CoreIsAiv(72));
+        EXPECT_TRUE(CoreIsAiv(107));
+        EXPECT_FALSE(CoreIsAiv(108));
+        ExitIsolatedCoreIsAivTest();
+    }, ::testing::ExitedWithCode(0), "");
 }
 
-TEST_F(SkEventRecorderDav3510Test, CoreIsAiv_DoesNotFallThroughToAscend910Rule)
+TEST(SkEventRecorderDav3510Test, CoreIsAiv_DoesNotFallThroughToAscend910Rule)
 {
-    GTEST_SKIP() << "SkRuntimeConfig is initialized once per process; SoC-variant coverage needs an isolated test process.";
-    // 关键回归点：core_id=60 在 Ascend910B 下是 AIV(>=25)，在 Dav3510 下却是
-    // AIC（落在 [54,71] 间隙），防止以后有人把分支条件简化回 coreId>=25。
-    EXPECT_FALSE(CoreIsAiv(60));
-    // 反方向：core_id=20 在 Ascend910B 下是 AIC，在 Dav3510 下是 AIV。
-    EXPECT_TRUE(CoreIsAiv(20));
+    ::testing::FLAGS_gtest_death_test_style = "threadsafe";
+    ASSERT_EXIT({
+        InitDav3510RuntimeConfigForCoreIsAiv();
+        // 关键回归点：core_id=60 在 Ascend910B 下是 AIV(>=25)，在 Dav3510 下却是
+        // AIC（落在 [54,71] 间隙），防止以后有人把分支条件简化回 coreId>=25。
+        EXPECT_FALSE(CoreIsAiv(60));
+        // 反方向：core_id=20 在 Ascend910B 下是 AIC，在 Dav3510 下是 AIV。
+        EXPECT_TRUE(CoreIsAiv(20));
+        ExitIsolatedCoreIsAivTest();
+    }, ::testing::ExitedWithCode(0), "");
 }
 
 // Test 17: GetGmAddrForDevice 在未启用时返回 nullptr
