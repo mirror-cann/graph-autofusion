@@ -28,13 +28,14 @@
 
 #include "acl/acl.h"
 
-const std::string& GetCurrentModelId();
+std::string GetCurrentModelId();
 
-const std::string& GetCurrentModelLabel();
+std::string GetCurrentModelLabel();
+
 // RAII scope installed at the aclskOptimize entry. Bumps the call counter and
 // freezes the model identity once, so every downstream consumer reads one stable
-// value rather than recomputing from the mutable counter. Restores the previous
-// frozen value on destruction, which keeps nested/reentrant entry well-behaved.
+// value rather than recomputing from the mutable counter. Nested/reentrant
+// contexts are not supported by the current aclskOptimize flow.
 class SkModelContext {
 public:
     explicit SkModelContext(aclmdlRI model);
@@ -45,8 +46,11 @@ public:
     SkModelContext& operator=(const SkModelContext&) = delete;
 
 private:
-    std::string previousModelId_;
-    std::string previousModelLabel_;
+    friend std::string GetCurrentModelId();
+    friend std::string GetCurrentModelLabel();
+
+    std::string modelId_;
+    std::string modelLabel_;
 };
 
 // ==================== sk_meta directory layout ====================
