@@ -10,6 +10,7 @@
 
 #include <gtest/gtest.h>
 #include <cstring>
+#include <unistd.h>
 #include <vector>
 #include <elf.h>
 #include "mockcpp/mockcpp.hpp"
@@ -112,6 +113,13 @@ const char* FakeSocName_Ascend910()
 const char* FakeSocName_Empty()
 {
     return "";
+}
+
+void ExitIsolatedSkRuntimeConfigTest()
+{
+    GlobalMockObject::verify();
+    fflush(nullptr);
+    _exit(::testing::Test::HasFailure() ? 1 : 0);
 }
 
 } // namespace
@@ -466,19 +474,25 @@ TEST_F(SkCommonSocTest, GetCurrentSkKernelArch_Ascend910IsDav2201)
 
 TEST_F(SkCommonSocTest, GetCurrentSkKernelArch_ExactAscend950IsDav3510)
 {
-    GTEST_SKIP() << "SkRuntimeConfig is initialized once per process; SoC-variant coverage needs an isolated test process.";
-    MOCKER(aclrtGetSocName).stubs().will(invoke(FakeSocName_Ascend950Exact));
-    InitSkRuntimeConfig();
-    EXPECT_EQ(GetCurrentSkKernelArch(), SkKernelArch::DAV_3510);
+    ::testing::FLAGS_gtest_death_test_style = "threadsafe";
+    ASSERT_EXIT({
+        MOCKER(aclrtGetSocName).stubs().will(invoke(FakeSocName_Ascend950Exact));
+        InitSkRuntimeConfig();
+        EXPECT_EQ(GetCurrentSkKernelArch(), SkKernelArch::DAV_3510);
+        ExitIsolatedSkRuntimeConfigTest();
+    }, ::testing::ExitedWithCode(0), "");
 }
 
 TEST_F(SkCommonSocTest, GetCurrentSkKernelArch_Ascend950WithSuffixIsDav3510)
 {
-    GTEST_SKIP() << "SkRuntimeConfig is initialized once per process; SoC-variant coverage needs an isolated test process.";
-    // 后缀变体（如 "Ascend950PG"）也应被识别
-    MOCKER(aclrtGetSocName).stubs().will(invoke(FakeSocName_Ascend950));
-    InitSkRuntimeConfig();
-    EXPECT_EQ(GetCurrentSkKernelArch(), SkKernelArch::DAV_3510);
+    ::testing::FLAGS_gtest_death_test_style = "threadsafe";
+    ASSERT_EXIT({
+        // 后缀变体（如 "Ascend950PG"）也应被识别
+        MOCKER(aclrtGetSocName).stubs().will(invoke(FakeSocName_Ascend950));
+        InitSkRuntimeConfig();
+        EXPECT_EQ(GetCurrentSkKernelArch(), SkKernelArch::DAV_3510);
+        ExitIsolatedSkRuntimeConfigTest();
+    }, ::testing::ExitedWithCode(0), "");
 }
 
 TEST_F(SkCommonSocTest, InitSkRuntimeConfig_DefaultStubUsesDav2201Defaults)
@@ -492,11 +506,14 @@ TEST_F(SkCommonSocTest, InitSkRuntimeConfig_DefaultStubUsesDav2201Defaults)
 
 TEST_F(SkCommonSocTest, InitSkRuntimeConfig_Ascend950UsesDav3510Config)
 {
-    GTEST_SKIP() << "SkRuntimeConfig is initialized once per process; SoC-variant coverage needs an isolated test process.";
-    MOCKER(aclrtGetSocName).stubs().will(invoke(FakeSocName_Ascend950Exact));
-    InitSkRuntimeConfig();
-    const SkRuntimeConfig& config = GetSkRuntimeConfig();
-    EXPECT_EQ(config.kernelArch, SkKernelArch::DAV_3510);
-    EXPECT_EQ(config.eventCoreNum, SK_EVENT_DAV_3510_CORE_NUM);
-    EXPECT_EQ(config.tickUsMultiplier, SK_DAV_3510_TICK_US_MULTIPLIER);
+    ::testing::FLAGS_gtest_death_test_style = "threadsafe";
+    ASSERT_EXIT({
+        MOCKER(aclrtGetSocName).stubs().will(invoke(FakeSocName_Ascend950Exact));
+        InitSkRuntimeConfig();
+        const SkRuntimeConfig& config = GetSkRuntimeConfig();
+        EXPECT_EQ(config.kernelArch, SkKernelArch::DAV_3510);
+        EXPECT_EQ(config.eventCoreNum, SK_EVENT_DAV_3510_CORE_NUM);
+        EXPECT_EQ(config.tickUsMultiplier, SK_DAV_3510_TICK_US_MULTIPLIER);
+        ExitIsolatedSkRuntimeConfigTest();
+    }, ::testing::ExitedWithCode(0), "");
 }
