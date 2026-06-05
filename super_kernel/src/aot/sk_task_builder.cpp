@@ -1237,10 +1237,6 @@ void ApplySplitCoreControlMask(SuperKernelBaseNode* task, TaskSyncInfo& taskSync
     if (task->GetNodeType() != SkNodeType::NODE_KERNEL) {
         return;
     }
-    const auto& kernelInfo = GetKernelInfos(task);
-    if (kernelInfo.kernelType != SkKernelType::MIX_AIC_1_1) {
-        return;
-    }
     taskSyncInfo.earlyStartInfo.ApplyFuncMask(SkEarlyStartMask::SPLIT_CORE_CTRL);
     SK_LOGI("early-start control: nodeId=%lu, set split-core ctrl mask", task->GetNodeId());
 }
@@ -1357,6 +1353,16 @@ void LogEarlyStartFinalState(const std::vector<SuperKernelBaseNode*>& tasks,
                 relatedNodeId, nextAicNodeId, nextAivNodeId);
     }
 }
+
+bool HasAllSyncBarrier(const TaskSyncInfo& taskSyncInfo)
+{
+    for (const auto& syncInfo : taskSyncInfo.crossSyncInfo) {
+        if (syncInfo.second == SyncDirection::ALL_SYNC) {
+            return true;
+        }
+    }
+    return false;
+}
 } // namespace
 
 bool SkTaskBuilder::ApplyEarlyStartSyncPass(const std::vector<SuperKernelBaseNode*>& tasks)
@@ -1373,7 +1379,13 @@ bool SkTaskBuilder::ApplyEarlyStartSyncPass(const std::vector<SuperKernelBaseNod
             && !ApplyEarlyStartSyncForQueue(tasks, taskSyncInfos_, i, lastAivTaskIdx, SkQueueType::AIV)) {
             return false;
         }
+        // DAV_3510 early-start uses split-core control for all kernel types.
         ApplySplitCoreControlMask(tasks[i], taskSyncInfos_[i]);
+        if (HasAllSyncBarrier(taskSyncInfos_[i])) {
+            lastAicTaskIdx = i;
+            lastAivTaskIdx = i;
+            SK_LOGI("early-start barrier: task[%zu](nodeId=%lu) has ALL_SYNC barrier.", i, tasks[i]->GetNodeId());
+        }
     }
     LogEarlyStartFinalState(tasks, taskSyncInfos_);
     return true;
