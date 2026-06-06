@@ -72,6 +72,16 @@ private:
     void PrintDfxInfo() const;
     bool ParseAndPrintSubKernelSymbols(aclrtExceptionInfo *exceptionInfo);
     KernelFuncName GetOrLoadKernelSymbols(uint32_t opId);
+    struct ErrorNodeMatchInfo {
+        uint32_t nodeIdx = 0;
+        int entryIdx = -1;
+        uint64_t entryAddr = 0;
+        uint64_t endAddr = 0;
+        uint32_t funcSize = 0;
+        const uint64_t *entries = nullptr;
+        const SkDfxInfo *dfxNode = nullptr;
+    };
+    bool FindErrorNodeByPC(rtCoreType_t coreType, uint64_t currentPC, ErrorNodeMatchInfo &matchInfo) const;
     void IdentifyErrorNodeByPC(uint32_t coreId, rtCoreType_t coreType, uint64_t startPC, uint64_t currentPC);
     void PrintMatchedNodeBasicInfo(uint32_t coreId, rtCoreType_t coreType, uint64_t startPC, uint64_t currentPC,
                                    uint32_t nodeIdx, int entryIdx, uint64_t entryAddr, uint64_t endAddr,
@@ -102,6 +112,10 @@ private:
     void PopulateTensorFields(Adx::ExceptionDumpInfo& dumpInfo, uint32_t coreId, rtCoreType_t coreType);
     bool PopulateSubKernelFields(Adx::ExceptionDumpInfo& dumpInfo, int32_t errorNodeIdx,
                                 aclrtExceptionInfo* exceptionInfo);
+    uint32_t FillUniqueExceptionDumpInfos(aclrtExceptionInfo* exceptionInfo,
+                                          const ExceptionRegInfo& exceptionRegInfo,
+                                          Adx::ExceptionDumpInfo* exceptionDumpInfo,
+                                          uint32_t exceptionDumpSize);
 
     uint32_t aicoreNums;
     std::map<uint32_t, KernelFuncName> opSymbolCache;  // Operator function name cache: opId -> KernelFuncName

@@ -25,6 +25,7 @@
 #include "sk_event_recorder.h"
 #include "runtime/kernel.h"
 #include "stub/ut_common_stubs.h"
+#include "stub/dlog_pub.h"
 
 class SkDfxExceptionHandlerTest : public testing::Test {
 protected:
@@ -2218,6 +2219,36 @@ int Fake_rtGetExceptionRegInfo_SingleCore(const void* exception, rtExceptionErrR
     return 0;
 }
 
+int Fake_rtGetExceptionRegInfo_SingleCoreNoMatch(const void* exception, rtExceptionErrRegInfo_t** errRegInfo, uint32_t* coreNum)
+{
+    (void)exception;
+    static rtExceptionErrRegInfo_t g_singleCoreErrRegInfo;
+    g_singleCoreErrRegInfo.coreId = 0;
+    g_singleCoreErrRegInfo.coreType = RT_CORE_TYPE_AIC;
+    g_singleCoreErrRegInfo.startPC = 0x1000;
+    g_singleCoreErrRegInfo.currentPC = 0xFFFF;
+    *errRegInfo = &g_singleCoreErrRegInfo;
+    *coreNum = 1;
+    return 0;
+}
+
+int Fake_rtGetExceptionRegInfo_TwoCoresSameBin(const void* exception, rtExceptionErrRegInfo_t** errRegInfo, uint32_t* coreNum)
+{
+    (void)exception;
+    static rtExceptionErrRegInfo_t g_errRegInfo[2];
+    g_errRegInfo[0].coreId = 0;
+    g_errRegInfo[0].coreType = RT_CORE_TYPE_AIC;
+    g_errRegInfo[0].startPC = 0x1000;
+    g_errRegInfo[0].currentPC = 0x1100;
+    g_errRegInfo[1].coreId = 1;
+    g_errRegInfo[1].coreType = RT_CORE_TYPE_AIC;
+    g_errRegInfo[1].startPC = 0x2000;
+    g_errRegInfo[1].currentPC = 0x2100;
+    *errRegInfo = g_errRegInfo;
+    *coreNum = 2;
+    return 0;
+}
+
 TEST_F(SkDfxExceptionHandlerTest, PopulateDumpInfoFields_GetFuncHandleFail_ReturnsFailure)
 {
     aclrtExceptionInfo* exceptionInfo = reinterpret_cast<aclrtExceptionInfo*>(0x500);
@@ -2758,6 +2789,124 @@ TEST_F(SkDfxExceptionHandlerTest, ExceptionDumpInfoCallBack_SuperKernelException
     EXPECT_EQ(dumpInfo[0].extraTensor[0].tensorSize, bufferSize);
     EXPECT_EQ(dumpInfo[0].extraTensor[0].tensorAddr, reinterpret_cast<int64_t*>(0x3000));
 
+    g_mockDeviceBuffer = nullptr;
+    g_mockDeviceBufferSize = 0;
+    free(buffer);
+}
+
+TEST_F(SkDfxExceptionHandlerTest, ExceptionDumpInfoCallBack_SameBinHandle_ReturnsOneDump)
+{
+    constexpr size_t bufferSize = 2048;
+    uint8_t* buffer = static_cast<uint8_t*>(malloc(bufferSize));
+    ASSERT_NE(buffer, nullptr);
+    memset_s(buffer, bufferSize, 0, bufferSize);
+
+    auto* deviceArgs = reinterpret_cast<SkDeviceEntryArgs*>(buffer);
+    SkHeaderInfo& headerInfo = deviceArgs->skHeader;
+    headerInfo.totalSize = bufferSize;
+    headerInfo.nodeCnt = 2;
+    headerInfo.dfxOffset = sizeof(SkHeaderInfo);
+    headerInfo.aicQueOffset = headerInfo.dfxOffset + sizeof(SkDfxInfo) * 2;
+    headerInfo.modelIdIndexAndSkScopeId = 0;
+
+    SkDfxInfo* dfxInfo = reinterpret_cast<SkDfxInfo*>(buffer + headerInfo.dfxOffset);
+    dfxInfo[0].binHdl = 0xAAAA;
+    dfxInfo[0].funcHdlOri = 0xBBBB;
+    dfxInfo[0].entryAic[0] = 0x1000;
+    dfxInfo[0].aicSize = 0x200;
+    dfxInfo[1].binHdl = 0xAAAA;
+    dfxInfo[1].funcHdlOri = 0xCCCC;
+    dfxInfo[1].entryAic[0] = 0x2000;
+    dfxInfo[1].aicSize = 0x200;
+
+    TaskQue* aicTaskQue = reinterpret_cast<TaskQue*>(buffer + headerInfo.aicQueOffset);
+    aicTaskQue->taskCnt = 2;
+    aicTaskQue->cap = 2;
+    aicTaskQue->taskInfos[0].index = 0;
+    aicTaskQue->taskInfos[0].type = SkTaskType::TYPE_FUNC;
+    aicTaskQue->taskInfos[0].args = 0xDEADBEEF;
+    aicTaskQue->taskInfos[0].argsSize = 256;
+    aicTaskQue->taskInfos[1].index = 1;
+    aicTaskQue->taskInfos[1].type = SkTaskType::TYPE_FUNC;
+    aicTaskQue->taskInfos[1].args = 0xCAFEBABE;
+    aicTaskQue->taskInfos[1].argsSize = 512;
+
+    g_mockDeviceBuffer = buffer;
+    g_mockDeviceBufferSize = bufferSize;
+
+    aclrtExceptionInfo exceptionInfo = {};
+    exceptionInfo.expandInfo.type = RT_EXCEPTION_AICORE;
+    Adx::ExceptionDumpInfo dumpInfo[2] = {};
+    uint32_t realSize = 0;
+    Adx::ExceptionDumpMode mode = Adx::ExceptionDumpMode::DUMP_MODE_NONE;
+
+    MOCKER(aclrtGetFuncHandleFromExceptionInfo).stubs().will(invoke(Fake_aclrtGetFuncHandleFromExceptionInfo_Success));
+    MOCKER(aclrtGetFunctionName).stubs().will(invoke(Fake_aclrtGetFunctionName_sk_entry));
+    MOCKER(aclrtGetArgsFromExceptionInfo).stubs().will(invoke(Fake_aclrtGetArgsFromExceptionInfo_Success));
+    MOCKER(aclrtMemcpy).stubs().will(invoke(Fake_aclrtMemcpy_DeviceToHost));
+    MOCKER(rtGetExceptionRegInfo).stubs().will(invoke(Fake_rtGetExceptionRegInfo_TwoCoresSameBin));
+
+    uint32_t ret = ExceptionDumpInfoCallBack(&exceptionInfo, dumpInfo, 2, &realSize, &mode);
+    EXPECT_EQ(ret, ACL_SUCCESS);
+    EXPECT_EQ(realSize, 1);
+    EXPECT_EQ(mode, Adx::ExceptionDumpMode::DUMP_MODE_OVERWRITE);
+    EXPECT_EQ(dumpInfo[0].coreId, 0);
+    EXPECT_EQ(dumpInfo[0].bin, reinterpret_cast<void*>(0xAAAA));
+    EXPECT_EQ(dumpInfo[0].argAddr, reinterpret_cast<void*>(0xDEADBEEF));
+    EXPECT_EQ(dumpInfo[0].argSize, 256);
+    EXPECT_EQ(dumpInfo[1].argAddr, nullptr);
+
+    g_mockDeviceBuffer = nullptr;
+    g_mockDeviceBufferSize = 0;
+    free(buffer);
+}
+
+TEST_F(SkDfxExceptionHandlerTest, ExceptionDumpInfoCallBack_NoMatch_DoesNotPrintNoMatchInfo)
+{
+    constexpr size_t bufferSize = 2048;
+    uint8_t* buffer = static_cast<uint8_t*>(malloc(bufferSize));
+    ASSERT_NE(buffer, nullptr);
+    memset_s(buffer, bufferSize, 0, bufferSize);
+
+    auto* deviceArgs = reinterpret_cast<SkDeviceEntryArgs*>(buffer);
+    SkHeaderInfo& headerInfo = deviceArgs->skHeader;
+    headerInfo.totalSize = bufferSize;
+    headerInfo.nodeCnt = 1;
+    headerInfo.dfxOffset = sizeof(SkHeaderInfo);
+    headerInfo.modelIdIndexAndSkScopeId = 0;
+
+    SkDfxInfo* dfxInfo = reinterpret_cast<SkDfxInfo*>(buffer + headerInfo.dfxOffset);
+    dfxInfo[0].entryAic[0] = 0x1000;
+    dfxInfo[0].aicSize = 0x200;
+
+    g_mockDeviceBuffer = buffer;
+    g_mockDeviceBufferSize = bufferSize;
+
+    aclrtExceptionInfo exceptionInfo = {};
+    exceptionInfo.expandInfo.type = RT_EXCEPTION_AICORE;
+    Adx::ExceptionDumpInfo dumpInfo[1] = {};
+    uint32_t realSize = 0;
+    Adx::ExceptionDumpMode mode = Adx::ExceptionDumpMode::DUMP_MODE_NONE;
+
+    MOCKER(aclrtGetFuncHandleFromExceptionInfo).stubs().will(invoke(Fake_aclrtGetFuncHandleFromExceptionInfo_Success));
+    MOCKER(aclrtGetFunctionName).stubs().will(invoke(Fake_aclrtGetFunctionName_sk_entry));
+    MOCKER(aclrtGetArgsFromExceptionInfo).stubs().will(invoke(Fake_aclrtGetArgsFromExceptionInfo_Success));
+    MOCKER(aclrtMemcpy).stubs().will(invoke(Fake_aclrtMemcpy_DeviceToHost));
+    MOCKER(rtGetExceptionRegInfo).stubs().will(invoke(Fake_rtGetExceptionRegInfo_SingleCoreNoMatch));
+
+    ut_log::LogBuffer::Instance().Clear();
+    uint32_t ret = ExceptionDumpInfoCallBack(&exceptionInfo, dumpInfo, 1, &realSize, &mode);
+    std::string logContent = ut_log::LogBuffer::Instance().GetContent();
+
+    EXPECT_EQ(ret, ACL_SUCCESS);
+    EXPECT_EQ(realSize, 1);
+    EXPECT_EQ(mode, Adx::ExceptionDumpMode::DUMP_MODE_OVERWRITE);
+    EXPECT_STREQ(dumpInfo[0].kernelName, "sk_entry");
+    EXPECT_EQ(dumpInfo[0].argAddr, nullptr);
+    EXPECT_EQ(dumpInfo[0].argSize, 0);
+    EXPECT_EQ(logContent.find("No sub kernel matched, aicore error occurred in sk entry."), std::string::npos);
+
+    ut_log::LogBuffer::Instance().Clear();
     g_mockDeviceBuffer = nullptr;
     g_mockDeviceBufferSize = 0;
     free(buffer);

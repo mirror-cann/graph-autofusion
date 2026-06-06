@@ -17,6 +17,7 @@
 #include <cstring>
 #include <set>
 #include <map>
+#include <unordered_set>
 #include "sk_dfx_exception_handler.h"
 #include "sk_log.h"
 #include "sk_types.h"
@@ -649,8 +650,27 @@ void SuperKernelExceptionHandler::PrintNoMatchInfo(
 void SuperKernelExceptionHandler::IdentifyErrorNodeByPC(uint32_t coreId, rtCoreType_t coreType,
                                                      uint64_t startPC, uint64_t currentPC) {
     errorNodeIdx_ = -1;
+    ErrorNodeMatchInfo matchInfo;
+    if (FindErrorNodeByPC(coreType, currentPC, matchInfo)) {
+        PrintMatchedNodeBasicInfo(coreId, coreType, startPC, currentPC, matchInfo.nodeIdx, matchInfo.entryIdx,
+                                  matchInfo.entryAddr, matchInfo.endAddr, matchInfo.funcSize, *matchInfo.dfxNode);
+        PrintFuncSymbolInfo(coreId, coreType, matchInfo.nodeIdx, matchInfo.entryIdx,
+                            matchInfo.entries, *matchInfo.dfxNode);
+        PrintNodeDevArgs(coreId, coreType, matchInfo.nodeIdx);
+        SK_LOGE("============================================================");
+        errorNodeIdx_ = matchInfo.nodeIdx;
+        SK_LOGE("errorNodeIdx_ = %d", errorNodeIdx_);
+        return;  // Found the error node
+    }
+
+    PrintNoMatchInfo(coreId, coreType, startPC, currentPC);
+    SK_LOGE("errorNodeIdx_ = -1");
+}
+
+bool SuperKernelExceptionHandler::FindErrorNodeByPC(
+        rtCoreType_t coreType, uint64_t currentPC, ErrorNodeMatchInfo &matchInfo) const {
     if (skHeaderInfoHost->dfxOffset == 0 || skHeaderInfoHost->nodeCnt == 0 || currentPC == 0) {
-        return;
+        return false;
     }
 
     uint8_t *dataBase = reinterpret_cast<uint8_t*>(skDeviceEntryArgsHost);
@@ -671,19 +691,19 @@ void SuperKernelExceptionHandler::IdentifyErrorNodeByPC(uint32_t coreId, rtCoreT
 
             // Check if currentPC falls within this entry's range [entryAddr, entryAddr + funcSize)
             if (currentPC >= entryAddr && currentPC < endAddr) {
-                PrintMatchedNodeBasicInfo(coreId, coreType, startPC, currentPC, i, j, entryAddr, endAddr, funcSize, dfxInfo[i]);
-                PrintFuncSymbolInfo(coreId, coreType, i, j, entries, dfxInfo[i]);
-                PrintNodeDevArgs(coreId, coreType, i);
-                SK_LOGE("============================================================");
-                errorNodeIdx_ = i; 
-                SK_LOGE("errorNodeIdx_ = %d", errorNodeIdx_);
-                return;  // Found the error node
+                matchInfo.nodeIdx = i;
+                matchInfo.entryIdx = j;
+                matchInfo.entryAddr = entryAddr;
+                matchInfo.endAddr = endAddr;
+                matchInfo.funcSize = funcSize;
+                matchInfo.entries = entries;
+                matchInfo.dfxNode = &dfxInfo[i];
+                return true;
             }
         }
     }
 
-    PrintNoMatchInfo(coreId, coreType, startPC, currentPC);
-    SK_LOGE("errorNodeIdx_ = -1");
+    return false;
 }
 
 void SuperKernelExceptionHandler::PrintCoreSymbols(uint32_t coreId, rtCoreType_t coreType,
@@ -1081,8 +1101,11 @@ aclError SuperKernelExceptionHandler::FillExceptionDumpInfo(Adx::ExceptionDumpIn
     int32_t errorNodeIdx = -1;
     for (uint32_t i = 0; i < exceptionRegInfo.coreNum; i++) {
         rtExceptionErrRegInfo_t coreErr = exceptionRegInfo.errRegInfo[i];
-        IdentifyErrorNodeByPC(coreErr.coreId, (rtCoreType_t)coreErr.coreType, 
-                             coreErr.startPC, coreErr.currentPC);
+        errorNodeIdx_ = -1;
+        ErrorNodeMatchInfo matchInfo;
+        if (FindErrorNodeByPC((rtCoreType_t)coreErr.coreType, coreErr.currentPC, matchInfo)) {
+            errorNodeIdx_ = matchInfo.nodeIdx;
+        }
         errorNodeIdx = errorNodeIdx_;
         (void)PopulateDumpInfoFields(dumpInfo, errorNodeIdx, exceptionInfo, coreErr.coreId, (rtCoreType_t)coreErr.coreType);
     }
@@ -1124,6 +1147,41 @@ bool SuperKernelExceptionHandler::GetSubKernelTaskArgs(uint32_t nodeIdx, uint64_
         return true;
     }
     return false;
+}
+
+uint32_t SuperKernelExceptionHandler::FillUniqueExceptionDumpInfos(aclrtExceptionInfo* exceptionInfo,
+    const ExceptionRegInfo& exceptionRegInfo, Adx::ExceptionDumpInfo* exceptionDumpInfo, uint32_t exceptionDumpSize)
+{
+    uint32_t validDumpNum = 0;
+    std::unordered_set<uintptr_t> seenBinHandles;
+    for (uint32_t i = 0; i < exceptionRegInfo.coreNum && validDumpNum < exceptionDumpSize; ++i) {
+        rtExceptionErrRegInfo_t& coreErr = exceptionRegInfo.errRegInfo[i];
+        errorNodeIdx_ = -1;
+        ErrorNodeMatchInfo matchInfo;
+        if (FindErrorNodeByPC((rtCoreType_t)coreErr.coreType, coreErr.currentPC, matchInfo)) {
+            errorNodeIdx_ = matchInfo.nodeIdx;
+        }
+
+        Adx::ExceptionDumpInfo candidate = {};
+        aclError ret = PopulateDumpInfoFields(candidate, errorNodeIdx_, exceptionInfo, coreErr.coreId, (rtCoreType_t)coreErr.coreType);
+        if (ret != ACL_SUCCESS) {
+            continue;
+        }
+
+        uintptr_t binHandle = reinterpret_cast<uintptr_t>(candidate.bin);
+        if (binHandle != 0 && seenBinHandles.find(binHandle) != seenBinHandles.end()) {
+            SK_LOGI("Skip duplicate ExceptionDumpInfo by binHandle=0x%lx, coreId=%u, coreType=%u",
+                    binHandle, coreErr.coreId, coreErr.coreType);
+            continue;
+        }
+        if (binHandle != 0) {
+            seenBinHandles.insert(binHandle);
+        }
+
+        exceptionDumpInfo[validDumpNum] = candidate;
+        validDumpNum++;
+    }
+    return validDumpNum;
 }
 
 namespace {
@@ -1237,16 +1295,8 @@ uint32_t SuperKernelExceptionHandler::ProcessExceptionDump(
         return ret;
     }
 
-    uint32_t validDumpNum = 0;
-    for (uint32_t i = 0; i < exceptionRegInfo.coreNum && validDumpNum < exceptionDumpSize; ++i) {
-        rtExceptionErrRegInfo_t& coreErr = exceptionRegInfo.errRegInfo[i];
-        IdentifyErrorNodeByPC(coreErr.coreId, (rtCoreType_t)coreErr.coreType, coreErr.startPC, coreErr.currentPC);
-        
-        aclError ret = PopulateDumpInfoFields(exceptionDumpInfo[validDumpNum], errorNodeIdx_, exceptionInfo, coreErr.coreId, (rtCoreType_t)coreErr.coreType);
-        if (ret == ACL_SUCCESS) {
-            validDumpNum++;
-        }
-    }
+    uint32_t validDumpNum = FillUniqueExceptionDumpInfos(
+        exceptionInfo, exceptionRegInfo, exceptionDumpInfo, exceptionDumpSize);
 
     PrintExceptionDumpInfoArray(exceptionDumpInfo, validDumpNum);
     *exceptionDumpRealSize = validDumpNum;
