@@ -18,29 +18,13 @@
 #include "graph_utils.h"
 #include "schedule_utils.h"
 #include "task_generator/concat_inputs_unification_pass.h"
-#include "tensor_layout_utils.h"
 
-#include <queue>
 #include <set>
 
 namespace af::optimize {
 namespace {
 bool IsReverseCast(AscNode &asc_node, DataType src_dtype, DataType dst_dtype) {
   return (asc_node.inputs[0].attr.dtype == dst_dtype) && (asc_node.outputs[0].attr.dtype == src_dtype);
-}
-
-bool AllInputsAreReverseCast(const Node::Vistor<ge::NodePtr> &nodes, DataType src_dtype, DataType dst_dtype) {
-  for (const auto &node : nodes) {
-    if (!ops::IsOps<ascir_op::Cast>(node)) {
-      return false;
-    }
-    const auto asc_node = std::dynamic_pointer_cast<ge::AscNode>(node);
-    GE_ASSERT_NOTNULL(asc_node);
-    if (!IsReverseCast(*asc_node, src_dtype, dst_dtype)) {
-      return false;
-    }
-  }
-  return true;
 }
 
 Status UpdateDtype(const AscNodePtr &node, DataType dtype) {
@@ -86,73 +70,6 @@ bool TryRemoveOrBypassReverseCast(const ComputeGraphPtr &cg,
   return true;
 }
 } // namespace
-
-int32_t CastOptimizationPass::CountDiscontinuousAxes(const af::AscTensorAttr &attr) {
-  const auto &axis = attr.axis;
-  const auto &repeats = attr.repeats;
-  const auto &strides = attr.strides;
-
-  int32_t discontinuous_cnt = 0;
-  af::Expression expected_stride = af::sym::kSymbolOne;
-
-  for (size_t i = axis.size(); i > 1UL; --i) {
-    const size_t idx = i - 1UL;
-    GE_ASSERT_TRUE(idx < strides.size() && idx < repeats.size());
-    const auto &stride = strides[idx];
-    const auto &repeat = repeats[idx];
-
-    const bool is_stride_zero = ascgen_utils::ExpressEq(stride, af::sym::kSymbolZero);
-    const bool is_repeat_one = ascgen_utils::ExpressEq(repeat, af::sym::kSymbolOne);
-    if (is_repeat_one || is_stride_zero) {
-      continue;
-    }
-
-    if (!ascgen_utils::ExpressEq(stride, expected_stride)) {
-      ++discontinuous_cnt;
-      expected_stride = stride;
-    }
-
-    expected_stride = expected_stride * repeat;
-  }
-
-  return discontinuous_cnt;
-}
-
-bool CastOptimizationPass::HasMultipleDiscontinuities(const AscNodePtr &concat_node) {
-  std::set<af::Node *> visited;
-  for (const auto &in_anchor : concat_node->GetAllInDataAnchors()) {
-    const auto &src_out_anchor = in_anchor->GetPeerOutAnchor();
-    GE_ASSERT_NOTNULL(src_out_anchor);
-    auto start_node = src_out_anchor->GetOwnerNode().get();
-    if (visited.count(start_node) > 0UL) {
-      continue;
-    }
-    visited.emplace(start_node);
-    std::queue<af::Node *> node_queue;
-    node_queue.emplace(start_node);
-    while (!node_queue.empty()) {
-      const auto curr_node = node_queue.front();
-      node_queue.pop();
-      if (ops::IsOps<ascir_op::Load>(curr_node)) {
-        const auto load_node = dynamic_cast<af::AscNode *>(curr_node);
-        GE_ASSERT_NOTNULL(load_node);
-        if (CountDiscontinuousAxes(load_node->outputs[0].attr) > 1) {
-          GELOGI("concat input[%u] load node %s has multiple discontinuities",
-                 in_anchor->GetIdx(), curr_node->GetNamePtr());
-          return true;
-        }
-        continue;
-      }
-      for (const auto &in_node : curr_node->GetInDataNodes()) {
-        if (visited.count(in_node.get()) == 0UL) {
-          visited.emplace(in_node.get());
-          node_queue.emplace(in_node.get());
-        }
-      }
-    }
-  }
-  return false;
-}
 
 bool CastOptimizationPass::MayCauseDegradation(const AscNodePtr &concat_node,
                                                int32_t src_dtype_size,
@@ -213,45 +130,24 @@ bool CastOptimizationPass::NeedOptimize(const AscNodePtr &node,
                                         DataType src_dtype,
                                         DataType dst_dtype,
                                         int32_t concat_alg) {
-  constexpr int32_t kConcatAlgTranspose = 0;
   const auto src_dtype_size = GetSizeByDataType(src_dtype);
   const auto dst_dtype_size = GetSizeByDataType(dst_dtype);
-  // for platform V1
-  if (concat_alg == kConcatAlgTranspose) {
-    if (dst_dtype_size < src_dtype_size) {
-      GELOGD("Cast from %s(size = %d) to %s(size = %d) with transpose based concat, need optimize",
-             TypeUtils::DataTypeToSerialString(src_dtype).c_str(),
-             src_dtype_size,
-             TypeUtils::DataTypeToSerialString(dst_dtype).c_str(),
-             dst_dtype_size);
-      return true;
-    }
-    GELOGI("dtype size grows with transpose based concat (%d -> %d), do not optimize", src_dtype_size, dst_dtype_size);
+  if (dst_dtype_size >= src_dtype_size) {
     return false;
   }
+  // dst_dtype_size < src_dtype_size (downcast)
   // for platform V2
-  if (dst_dtype_size < src_dtype_size) {
-    if (MayCauseDegradation(node, src_dtype_size, dst_dtype_size)) {
-      GELOGI("changing dtype of Concat node: %s may cause degradation, do not optimize", node->GetNamePtr());
-      return false;
-    }
-    GELOGD("Cast from %s(size = %d) to %s(size = %d), need optimize",
-           TypeUtils::DataTypeToSerialString(src_dtype).c_str(),
-           src_dtype_size,
-           TypeUtils::DataTypeToSerialString(dst_dtype).c_str(),
-           dst_dtype_size);
-    return true;
+  constexpr int32_t kConcatAlgGather = 1;
+  if ((concat_alg == kConcatAlgGather) && MayCauseDegradation(node, src_dtype_size, dst_dtype_size)) {
+    GELOGI("changing dtype of Concat node: %s may cause degradation, do not optimize", node->GetNamePtr());
+    return false;
   }
-  if (AllInputsAreReverseCast(node->GetInDataNodes(), src_dtype, dst_dtype)) {
-    // 包含多处不连续时会引入对齐, 此时改变dtype可能会导致VF性能劣化
-    if (HasMultipleDiscontinuities(node)) {
-      GELOGI("concat has input with multiple discontinuities, changing dtype may cause degradation");
-      return false;
-    }
-    GELOGD("can eliminate casts around Concat node, need optimize");
-    return true;
-  }
-  return false;
+  GELOGD("Cast from %s(size = %d) to %s(size = %d), need optimize",
+         TypeUtils::DataTypeToSerialString(src_dtype).c_str(),
+         src_dtype_size,
+         TypeUtils::DataTypeToSerialString(dst_dtype).c_str(),
+         dst_dtype_size);
+  return true;
 }
 
 Status CastOptimizationPass::DoOptimize(AscGraph &graph,
