@@ -182,8 +182,8 @@ __aicore__ inline void ReduceInit(const LocalTensor<T> &dstTensor, const uint32_
     inner_r_upper = CeilDivision(inner_r, alignCount) * alignCount;
     inner_r_down = (inner_r / alignCount) * alignCount;
 
-    if ((dim_a == 1) && (dim_r == dim_r_current)) {
-        un_dim_a = dim_r / inner_r_upper;
+    if ((dim_r % inner_r_upper == 0) && (dim_r == dim_r_current)) {
+        un_dim_a = dim_a * dim_r / inner_r_upper;
         un_dim_r = inner_r_upper;
         un_dim_r_current = inner_r_upper;
     } else {

@@ -59,6 +59,7 @@ private:
   static Status PartitionLoad(af::AscNodePtr &src_node, af::AscNodePtr &dst_node, ascir::ImplGraph &impl_graph);
   static Status PartitionScalar(af::AscNodePtr &src_node, af::AscNodePtr &dst_node, ascir::ImplGraph &impl_graph);
   static bool HasReduce(const ascir::ImplGraph &impl_graph);
+  static bool HasArgMaxReduce(const ScheduleTask &task);
   static bool IsGroupGraphLegal(const ascir::ImplGraph &impl_graph);
   static bool CanReduceFuse(const ascir::ImplGraph &impl_graph);
   Status ReducePartitionMultipleCitations(ascir::ImplGraph &impl_graph);
