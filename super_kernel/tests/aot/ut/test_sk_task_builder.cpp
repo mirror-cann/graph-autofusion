@@ -1813,7 +1813,8 @@ TEST_F(SkTaskBuilderTest, ApplyEarlyStartSyncPass_RewritesAicAndAivSyncInfo)
     ASSERT_TRUE(builder->ApplyEarlyStartSyncPass(tasks));
 
     const auto& firstAicInfo = builder->taskSyncInfos_[0].earlyStartInfo;
-    EXPECT_EQ(firstAicInfo.relatedNode, aicSet);
+    EXPECT_EQ(firstAicInfo.relatedSetNode, aicSet);
+    EXPECT_EQ(firstAicInfo.relatedWaitNode, nullptr);
     EXPECT_EQ(firstAicInfo.nextAicRelatedNode, aicWait);
     EXPECT_TRUE(firstAicInfo.CheckFuncMask(SkEarlyStartMask::AIC_TO_AIC_SET));
     EXPECT_TRUE(firstAicInfo.CheckSyncMask(SkEarlyStartMask::AIC_TO_AIC_SET));
@@ -1823,7 +1824,8 @@ TEST_F(SkTaskBuilderTest, ApplyEarlyStartSyncPass_RewritesAicAndAivSyncInfo)
     EXPECT_TRUE(builder->taskSyncInfos_[0].cubSendInfo.empty());
 
     const auto& secondAicInfo = builder->taskSyncInfos_[1].earlyStartInfo;
-    EXPECT_EQ(secondAicInfo.relatedNode, aicWait);
+    EXPECT_EQ(secondAicInfo.relatedSetNode, nullptr);
+    EXPECT_EQ(secondAicInfo.relatedWaitNode, aicWait);
     EXPECT_TRUE(secondAicInfo.CheckFuncMask(SkEarlyStartMask::AIC_TO_AIC_WAIT));
     EXPECT_TRUE(secondAicInfo.CheckFuncMask(SkEarlyStartMask::AIC_TO_AIV_SET));
     EXPECT_TRUE(secondAicInfo.CheckFuncMask(SkEarlyStartMask::AIV_TO_AIC_WAIT));
@@ -1831,7 +1833,8 @@ TEST_F(SkTaskBuilderTest, ApplyEarlyStartSyncPass_RewritesAicAndAivSyncInfo)
     EXPECT_TRUE(builder->taskSyncInfos_[1].cubRecvInfo.empty());
 
     const auto& firstAivInfo = builder->taskSyncInfos_[2].earlyStartInfo;
-    EXPECT_EQ(firstAivInfo.relatedNode, aivSet);
+    EXPECT_EQ(firstAivInfo.relatedSetNode, aivSet);
+    EXPECT_EQ(firstAivInfo.relatedWaitNode, nullptr);
     EXPECT_EQ(firstAivInfo.nextAivRelatedNode, aivWait);
     EXPECT_TRUE(firstAivInfo.CheckFuncMask(SkEarlyStartMask::AIV_TO_AIV_SET));
     EXPECT_TRUE(firstAivInfo.CheckSyncMask(SkEarlyStartMask::AIV_TO_AIV_SET));
@@ -1841,7 +1844,8 @@ TEST_F(SkTaskBuilderTest, ApplyEarlyStartSyncPass_RewritesAicAndAivSyncInfo)
     EXPECT_TRUE(builder->taskSyncInfos_[2].vecSendInfo.empty());
 
     const auto& secondAivInfo = builder->taskSyncInfos_[3].earlyStartInfo;
-    EXPECT_EQ(secondAivInfo.relatedNode, aivWait);
+    EXPECT_EQ(secondAivInfo.relatedSetNode, nullptr);
+    EXPECT_EQ(secondAivInfo.relatedWaitNode, aivWait);
     EXPECT_TRUE(secondAivInfo.CheckFuncMask(SkEarlyStartMask::AIV_TO_AIV_WAIT));
     EXPECT_TRUE(secondAivInfo.CheckFuncMask(SkEarlyStartMask::AIV_TO_AIC_SET));
     EXPECT_TRUE(secondAivInfo.CheckFuncMask(SkEarlyStartMask::AIC_TO_AIV_WAIT));
@@ -1866,6 +1870,8 @@ TEST_F(SkTaskBuilderTest, ApplyEarlyStartSyncPass_RewritesPreviousCrossSyncWitho
 
     const auto& prevEarlyStart = builder->taskSyncInfos_[0].earlyStartInfo;
     const auto& curEarlyStart = builder->taskSyncInfos_[1].earlyStartInfo;
+    EXPECT_EQ(prevEarlyStart.relatedSetNode, nullptr);
+    EXPECT_EQ(curEarlyStart.relatedWaitNode, cur);
     EXPECT_EQ(prevEarlyStart.nextAicRelatedNode, cur);
     EXPECT_TRUE(prevEarlyStart.CheckSyncMask(SkEarlyStartMask::AIC_TO_AIC_SET));
     EXPECT_TRUE(prevEarlyStart.CheckSyncMask(SkEarlyStartMask::AIC_TO_AIC_WAIT));
@@ -1899,6 +1905,7 @@ TEST_F(SkTaskBuilderTest, ApplyEarlyStartSyncPass_AllSyncBarrierStopsCrossBarrie
     EXPECT_EQ(builder->taskSyncInfos_[0].crossSyncInfo[static_cast<size_t>(SkQueueType::AIV)],
               SyncDirection::VEC_TO_VEC);
     EXPECT_EQ(barrierEarlyStart.nextAivRelatedNode, cur);
+    EXPECT_EQ(curEarlyStart.relatedWaitNode, cur);
     EXPECT_FALSE(curEarlyStart.CheckFuncMask(SkEarlyStartMask::AIV_TO_AIV_WAIT));
     EXPECT_FALSE(prevEarlyStart.CheckSyncMask(SkEarlyStartMask::AIV_TO_AIV_SET));
     EXPECT_FALSE(prevEarlyStart.CheckSyncMask(SkEarlyStartMask::AIV_TO_AIV_WAIT));
@@ -1962,7 +1969,8 @@ TEST_F(SkTaskBuilderTest, DispatchSyncTasks_EarlyStartMasksEnqueueTasks)
     nextAiv->nodeInfos.kernelInfos.numBlocks = 4;
 
     EarlyStartInfo info;
-    info.relatedNode = related;
+    info.relatedSetNode = related;
+    info.relatedWaitNode = related;
     info.nextAicRelatedNode = nextAic;
     info.nextAivRelatedNode = nextAiv;
     info.ApplySyncMask(SkEarlyStartMask::AIV_TO_AIC_WAIT);
@@ -1981,12 +1989,46 @@ TEST_F(SkTaskBuilderTest, DispatchSyncTasks_EarlyStartMasksEnqueueTasks)
 
     EXPECT_TRUE(builder->DispatchSyncTasks(aic, aiv, 0, info, false, SkQueueType::AIC));
     EXPECT_TRUE(builder->DispatchSyncTasks(aic, aiv, 0, info, true, SkQueueType::AIC));
-    EXPECT_GT(aic.taskQue.get()->taskCnt, 0U);
-    EXPECT_GT(aiv.taskQue.get()->taskCnt, 0U);
+    ASSERT_EQ(aic.taskQue.get()->taskCnt, 4U);
+    ASSERT_EQ(aiv.taskQue.get()->taskCnt, 4U);
+
+    EXPECT_EQ(aic.taskQue.get()->taskInfos[0].relatedType, SkKernelType::MIX_AIC_1_2);
+    EXPECT_EQ(aic.taskQue.get()->taskInfos[0].numBlocks, 2U);
+    EXPECT_EQ(aic.taskQue.get()->taskInfos[0].reserved,
+              static_cast<uint64_t>(SkEarlyStartMask::AIV_TO_AIC_WAIT));
+    EXPECT_EQ(aic.taskQue.get()->taskInfos[1].relatedType, SkKernelType::MIX_AIC_1_2);
+    EXPECT_EQ(aic.taskQue.get()->taskInfos[1].numBlocks, 2U);
+    EXPECT_EQ(aic.taskQue.get()->taskInfos[1].reserved,
+              static_cast<uint64_t>(SkEarlyStartMask::AIC_TO_AIC_SET));
+    EXPECT_EQ(aic.taskQue.get()->taskInfos[2].relatedType, SkKernelType::AIC_ONLY);
+    EXPECT_EQ(aic.taskQue.get()->taskInfos[2].numBlocks, 3U);
+    EXPECT_EQ(aic.taskQue.get()->taskInfos[2].reserved,
+              static_cast<uint64_t>(SkEarlyStartMask::AIC_TO_AIC_WAIT));
+    EXPECT_EQ(aic.taskQue.get()->taskInfos[3].relatedType, SkKernelType::AIC_ONLY);
+    EXPECT_EQ(aic.taskQue.get()->taskInfos[3].numBlocks, 3U);
+    EXPECT_EQ(aic.taskQue.get()->taskInfos[3].reserved,
+              static_cast<uint64_t>(SkEarlyStartMask::AIC_TO_AIV_SET));
+
+    EXPECT_EQ(aiv.taskQue.get()->taskInfos[0].relatedType, SkKernelType::MIX_AIC_1_2);
+    EXPECT_EQ(aiv.taskQue.get()->taskInfos[0].numBlocks, 4U);
+    EXPECT_EQ(aiv.taskQue.get()->taskInfos[0].reserved,
+              static_cast<uint64_t>(SkEarlyStartMask::AIC_TO_AIV_WAIT));
+    EXPECT_EQ(aiv.taskQue.get()->taskInfos[1].relatedType, SkKernelType::MIX_AIC_1_2);
+    EXPECT_EQ(aiv.taskQue.get()->taskInfos[1].numBlocks, 4U);
+    EXPECT_EQ(aiv.taskQue.get()->taskInfos[1].reserved,
+              static_cast<uint64_t>(SkEarlyStartMask::AIV_TO_AIV_SET));
+    EXPECT_EQ(aiv.taskQue.get()->taskInfos[2].relatedType, SkKernelType::AIV_ONLY);
+    EXPECT_EQ(aiv.taskQue.get()->taskInfos[2].numBlocks, 4U);
+    EXPECT_EQ(aiv.taskQue.get()->taskInfos[2].reserved,
+              static_cast<uint64_t>(SkEarlyStartMask::AIV_TO_AIV_WAIT));
+    EXPECT_EQ(aiv.taskQue.get()->taskInfos[3].relatedType, SkKernelType::AIV_ONLY);
+    EXPECT_EQ(aiv.taskQue.get()->taskInfos[3].numBlocks, 4U);
+    EXPECT_EQ(aiv.taskQue.get()->taskInfos[3].reserved,
+              static_cast<uint64_t>(SkEarlyStartMask::AIV_TO_AIC_SET));
 
     auto* defaultNode = CreateDefaultNodeEx(43404, 0, INVALID_TASK_ID, INVALID_TASK_ID);
     EarlyStartInfo defaultInfo;
-    defaultInfo.relatedNode = defaultNode;
+    defaultInfo.relatedWaitNode = defaultNode;
     defaultInfo.ApplySyncMask(SkEarlyStartMask::AIV_TO_AIC_WAIT);
     defaultInfo.ApplySyncMask(SkEarlyStartMask::AIC_TO_AIV_WAIT);
 
@@ -2001,7 +2043,7 @@ TEST_F(SkTaskBuilderTest, DispatchSyncTasks_EarlyStartAddFailureReturnsFalse)
 {
     auto* related = CreateKernelNodeEx(43411, 0, INVALID_TASK_ID, INVALID_TASK_ID, SkKernelType::AIC_ONLY);
     EarlyStartInfo info;
-    info.relatedNode = related;
+    info.relatedWaitNode = related;
 
     SkTask missingAicQueue;
     SkTask aiv;
@@ -2010,7 +2052,7 @@ TEST_F(SkTaskBuilderTest, DispatchSyncTasks_EarlyStartAddFailureReturnsFalse)
     EXPECT_FALSE(builder->DispatchSyncTasks(missingAicQueue, aiv, 0, info, false, SkQueueType::AIC));
 
     EarlyStartInfo aivInfo;
-    aivInfo.relatedNode = related;
+    aivInfo.relatedWaitNode = related;
     aivInfo.ApplySyncMask(SkEarlyStartMask::AIC_TO_AIV_WAIT);
     SkTask aic;
     SkTask missingAivQueue;
