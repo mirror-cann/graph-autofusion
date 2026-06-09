@@ -2605,7 +2605,7 @@ Status Kernel::GenMulGroupKernelWithParseTilingData(const ascir::FusedScheduledR
       }
     }
     auto max_group_per_compile_unit = GetMaxGroupPerCompileUnit(enable_parallel_compile);
-    if (per_group_func_calls.size() <= static_cast<size_t>(max_group_per_compile_unit)) {
+    if (config.is_inductor || (per_group_func_calls.size() <= static_cast<size_t>(max_group_per_compile_unit))) {
       AppendFuncCall(ss1, per_group_func_calls.cbegin(), per_group_func_calls.cend());
     } else {
       const auto kernel_args = PackingFuncArgs("AutofuseTilingData", fused_schedule_result, use_list_tensor);

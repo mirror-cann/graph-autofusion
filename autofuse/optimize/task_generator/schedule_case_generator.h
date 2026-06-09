@@ -17,6 +17,7 @@
 #include "schedule_group_partitioner.h"
 #include "schedule_task_generator.h"
 #include "schedule_utils.h"
+#include "backend/backend_spec.h"
 
 namespace optimize {
 class FusionCaseGenerator {
@@ -44,6 +45,16 @@ class FusionCaseGenerator {
                         "Failed to partition graph");
       if (need_update_axis && task.grouped_graphs.size() > 1) {
         GE_ASSERT_SUCCESS(UpdateAxisSizes(task.grouped_graphs));
+      }
+      uint32_t max_group_num = 32U;
+      if (options.graph_type == GraphType::kFusedAscBackend) {
+        const auto backend_spec = BackendSpec::GetInstance();
+        GE_ASSERT_NOTNULL(backend_spec);
+        max_group_num = backend_spec->max_group_num_per_compile_unit;
+      }
+      if (options.graph_type == GraphType::kFusedAscBackend) {
+        GE_CHK_STATUS_RET(ScheduleGroupGraphPartitioner::ReduceGraphCount(task.grouped_graphs, max_group_num),
+                          "Failed to reduce graph count");
       }
       tasks.emplace_back(std::move(task));
     }
