@@ -157,7 +157,10 @@ Status VFLoop::ConstructFromNodes(ascir::NodeViewVisitorConst nodes, const ascir
 
     for (auto out : node->outputs()) {
       tensor_calls.insert({out->attr.mem.tensor_id, call});
-      auto peer_input = out->anchor.GetPeerInDataAnchors().at(0);
+      auto peer_anchors = out->anchor.GetPeerInDataAnchors();
+ 	    GE_CHK_BOOL_RET_STATUS(!peer_anchors.empty(), ge::FAILED,
+ 	                           "Codegen node[%s] output has no peer input anchor", node->GetNamePtr());
+ 	    auto peer_input = peer_anchors.at(0);
       auto output_node = std::dynamic_pointer_cast<af::AscNode>(peer_input->GetOwnerNode());
       GE_CHK_BOOL_RET_STATUS(output_node != nullptr, ge::FAILED, "Codegen node[%s] output_node is nullptr",
                              node->GetNamePtr());

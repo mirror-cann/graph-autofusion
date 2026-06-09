@@ -2055,6 +2055,13 @@ Status Kernel::Generate(const std::string &impl_graph_name, const std::string &t
 
   ss << "}" << std::endl;
 
+  if (ascir::utils::IsCodegenCompileEnabled()) {
+    std::string prefix = ascir::utils::GetDumpFilePrefix();
+    if (!prefix.empty()) {
+      (void)CodegenApiParam::DumpGraphApiParams(graph, this->tiler, prefix);
+    }
+  }
+
   result = ss.str();
   return af::SUCCESS;
 }

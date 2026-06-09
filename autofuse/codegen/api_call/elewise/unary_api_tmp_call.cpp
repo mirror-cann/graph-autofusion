@@ -17,6 +17,7 @@
 #include "graph/ascendc_ir/utils/asc_tensor_utils.h"
 #include "common/checker.h"
 #include "api_call/utils/api_call_factory.h"
+#include "codegen/expression_convert_struct.h"
 
 namespace codegen {
 using namespace std;
@@ -37,6 +38,8 @@ Status UnaryApiTmpCall::Generate(const TPipe &tpipe, const std::vector<ascir::Ax
   auto it = this->tmp_buf_id.find(life_time_axis_id);
   GE_ASSERT_TRUE(it != this->tmp_buf_id.end(), "UnaryApiTmpCall cannot find tmp buffer id to use.");
   id = it->second;
+
+  (void)RegisterBasicDumpParam(this->api_name_, inputs, outputs, CombinedExprFactory::SymbolVar(x.actual_size.Str()), tpipe.tmp_buf.name + "_" + std::to_string(id));
 
   stringstream ss;
   ss << this->api_name_ << "(" << y << "[" << tpipe.tiler.TensorVectorizedOffset(current_axis, y) << "], " << x << "["

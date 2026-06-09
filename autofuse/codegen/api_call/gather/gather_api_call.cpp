@@ -21,6 +21,7 @@
 #include "../utils/api_call_factory.h"
 #include "../utils/api_call_utils.h"
 #include "graph/symbolizer/symbolic_utils.h"
+#include "codegen/expression_convert_struct.h"
 
 namespace codegen {
 using namespace std;
@@ -80,6 +81,7 @@ Status GatherApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::Axis
   const auto &x1 = inputs[0].get();  // param_gm
   const auto &x2 = inputs[1].get();  // indices_gm
   const auto &y = outputs[0].get();  // dst_ub
+  (void)RegisterBasicDumpParam(this->api_name_, inputs, outputs);
   DataCopyParams param_x1;
   DataCopyParams param_x2;
   DataCopyParams param;

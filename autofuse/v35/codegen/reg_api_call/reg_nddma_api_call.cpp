@@ -15,6 +15,7 @@
 #include "api_call/utils/api_call_factory.h"
 #include "reg_api_call_utils.h"
 #include "reg_nddma_api_call.h"
+#include "codegen/expression_convert_struct.h"
 
 using namespace af::ops;
 using namespace af::ascir_op;
@@ -36,6 +37,7 @@ Status NddmaApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::AxisI
   std::stringstream ss;
   const auto &gm = inputs[0].get();
   const auto &ub = outputs[0].get();
+  (void)RegisterBasicDumpParam(this->api_name_, inputs, outputs);
   if (tpipe.cv_fusion_type == ascir::CubeTemplateType::kUBFuse) {
     GE_ASSERT_TRUE(gm.axis_size.size() >= 2U, "Nddma src axis-size less than 2 is invalid in CV-Fusion case");
     auto last_index = gm.axis_size.size() - 1U;

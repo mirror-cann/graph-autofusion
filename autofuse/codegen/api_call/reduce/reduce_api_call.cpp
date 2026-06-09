@@ -20,6 +20,7 @@
 #include "common/checker.h"
 #include "api_call/utils/api_call_factory.h"
 #include "api_call/utils/api_call_utils.h"
+#include "codegen/expression_convert_struct.h"
 
 namespace codegen {
 using namespace std;
@@ -50,6 +51,8 @@ Status ReduceApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::Axis
 
   // 获取tmp_buf复用TBuf的id
   int64_t id = GetTmpBufIdByLifeTime(-1L, this->api_name_);
+
+  (void)RegisterBasicDumpParam(this->api_name_, inputs, outputs, {}, tpipe.tmp_buf.name + "_" + std::to_string(id));
 
   std::string reduce_pattern;
   GetIsArAndPattern(y, x.isAr, reduce_pattern);

@@ -19,6 +19,7 @@
 #include "../utils/api_call_utils.h"
 
 #include "store_api_call.h"
+#include "codegen/expression_convert_struct.h"
 
 using namespace af::ops;
 using namespace af::ascir_op;
@@ -51,6 +52,7 @@ Status StoreApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::AxisI
   std::stringstream ss;
   const auto &gm = outputs[0].get();
   const auto &ub = inputs[0].get();
+  (void)RegisterBasicDumpParam(this->api_name_, inputs, outputs);
   DataCopyParams param;
 
   bool status = CalculateDmaParams(tpipe, gm, gm, param);

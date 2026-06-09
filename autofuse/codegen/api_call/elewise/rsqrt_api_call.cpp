@@ -17,6 +17,7 @@
 #include "graph/ascendc_ir/utils//asc_tensor_utils.h"
 #include "common/checker.h"
 #include "api_call/utils/api_call_factory.h"
+#include "codegen/expression_convert_struct.h"
 
 namespace codegen {
 using namespace std;
@@ -38,6 +39,7 @@ Status RsqrtApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::AxisI
   GE_ASSERT_TRUE(it != this->tmp_buf_id.end(), "RsqrtApiCall cannot find tmp buffer id to use.");
   id = it->second;
 
+  (void)RegisterBasicDumpParam(this->api_name_, inputs, outputs, CombinedExprFactory::SymbolVar(x.actual_size.Str()));  
   stringstream ss;
   ss << this->api_name_ << "(" << y << "[" << tpipe.tiler.TensorVectorizedOffset(current_axis, y) << "], " << x << "["
     << tpipe.tiler.TensorVectorizedOffset(current_axis, x) << "], local_blk_tensor_of_float_1, "

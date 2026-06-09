@@ -22,6 +22,7 @@
 #include "api_call/utils/api_call_utils.h"
 #include "graph/symbolizer/symbolic_utils.h"
 #include "api_call/gather/gather_api_call.h"
+#include "codegen/expression_convert_struct.h"
 
 namespace codegen {
 using namespace std;
@@ -225,6 +226,7 @@ Status GatherRegApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::A
   if (it != this->tmp_buf_id.end()) {
     id = it->second;
   }
+  (void)RegisterBasicDumpParam(this->api_name_, inputs, outputs);
   if (this->compute_type == af::ComputeType::kComputeGather) {
     return GenerateComputeTypeGather(tpipe, current_axis, inputs, outputs, id, result);
   }

@@ -17,6 +17,7 @@
 #include "graph/ascendc_ir/utils/asc_tensor_utils.h"
 #include "common/checker.h"
 #include "api_call/utils/api_call_factory.h"
+#include "codegen/expression_convert_struct.h"
 
 namespace codegen {
 using namespace std;
@@ -32,6 +33,7 @@ Status ClipByValueApiCallV2::Generate(const TPipe &tpipe, const std::vector<asci
   const auto &x2 = inputs[1].get();
   const auto &x3 = inputs[2].get();
   const auto &y = outputs[0].get();
+  (void)RegisterBasicDumpParam(this->api_name_, inputs, outputs);
   GELOGD("x1, is_constant:%d, is_ub_scalar:%d, need_gen_get_value_of_ub_scalar:%d",
          static_cast<int32_t>(x1.is_constant), static_cast<int32_t>(x1.is_ub_scalar),
          static_cast<int32_t>(x1.need_gen_get_value_of_ub_scalar));

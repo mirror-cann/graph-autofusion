@@ -14,6 +14,7 @@
 #include "api_call/utils/api_call_utils.h"
 #include "api_call/utils/api_call_factory.h"
 #include "api_call/broadcast/broadcast_api_call.h"
+#include "codegen/expression_convert_struct.h"
 
 namespace codegen {
 using namespace std;
@@ -71,6 +72,7 @@ Status BroadcastRegApiCall::Generate(const TPipe &tpipe, const std::vector<ascir
                                      std::string &result) const {
   const auto &x = inputs[0].get();
   const auto &y = outputs[0].get();
+  (void)RegisterBasicDumpParam(this->api_name_, inputs, outputs);
 
   if (IsBroadcastConstantTensor(x)) {
     int64_t id = -1;

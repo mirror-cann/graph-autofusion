@@ -38,6 +38,16 @@ void DumpComputeGraph(const af::ComputeGraphPtr &compute_graph, const std::strin
 void DumpImplGraphs(const std::vector<ascir::ImplGraph> &graphs, const std::string &suffix);
 
 void DumpPyCode(const af::AscGraph &graph);
+
+/**
+ * @brief 检查 AUTOFUSE_DFX_FLAGS 中是否开启了 codegen_compile_debug=true
+ */
+bool IsCodegenCompileEnabled();
+
+/**
+ * @brief 获取 dump 文件输出目录前缀（自动创建目录），未开启时返回空串
+ */
+std::string GetDumpFilePrefix();
 /**
  * @brief Prints nodes info in graph.
  */

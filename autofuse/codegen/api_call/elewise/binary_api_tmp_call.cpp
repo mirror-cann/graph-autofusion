@@ -17,6 +17,7 @@
 #include "graph/ascendc_ir/utils//asc_tensor_utils.h"
 #include "common/checker.h"
 #include "api_call/utils/api_call_factory.h"
+#include "codegen/expression_convert_struct.h"
 
 namespace codegen {
 using namespace std;
@@ -42,6 +43,8 @@ Status BinaryApiTmpCall::Generate(const TPipe &tpipe, const std::vector<ascir::A
   auto it = this->tmp_buf_id.find(life_time_axis_id);
   GE_ASSERT_TRUE(it != this->tmp_buf_id.end(), "BinaryApiTmpCall cannot find tmp buffer id to use.");
   id = it->second;
+
+  (void)RegisterBasicDumpParam(this->api_name_, inputs, outputs, CombinedExprFactory::SymbolVar(x1.actual_size.Str()), tpipe.tmp_buf.name + "_" + std::to_string(id));
 
   // 如果第2个输入是ub_scalar场景, 初始化x2为ub_scalar对应的变量
   bool is_scalar_scene = (x2.is_constant) || (x2.is_ub_scalar && x2.need_gen_get_value_of_ub_scalar);

@@ -10,6 +10,7 @@
 
 #include "concat_reg_api_call.h"
 #include "api_call/utils/api_call_factory.h"
+#include "codegen/expression_convert_struct.h"
 #include "ascir_ops.h"
 #include "ascir_utils.h"
 
@@ -28,6 +29,7 @@ Status ConcatRegApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::A
                          "Codegen input or output tensor is empty");
   const auto &x0 = inputs[0].get();
   const auto &y = outputs[0].get();
+  (void)RegisterBasicDumpParam(this->api_name_, inputs, outputs);
   size_t concat_dim;
   GE_ASSERT_SUCCESS(ParseConcatDim(x0, y, concat_dim), "Failed to parse concat dim");
   std::stringstream ss;

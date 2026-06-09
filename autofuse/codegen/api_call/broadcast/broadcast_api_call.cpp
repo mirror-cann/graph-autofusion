@@ -19,6 +19,7 @@
 #include "../utils/api_call_factory.h"
 #include "../utils/api_call_utils.h"
 #include "graph/symbolizer/symbolic_utils.h"
+#include "codegen/expression_convert_struct.h"
 
 namespace {
 constexpr size_t kSingleAxisSize = 1U;
@@ -284,6 +285,8 @@ Status BroadcastApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::A
   if (it != this->tmp_buf_id.end()) {
     id = it->second;
   }
+
+  (void)RegisterBasicDumpParam(this->api_name_, inputs, outputs, {}, tpipe.tmp_buf.name + "_" + std::to_string(id));
 
   // 处理scalar broadcast场景
   if (IsBroadcastConstantTensor(x)) {

@@ -18,6 +18,7 @@
 #include "common/checker.h"
 #include "api_call/utils/api_call_factory.h"
 #include "api_call/utils/api_call_utils.h"
+#include "codegen/expression_convert_struct.h"
 
 namespace codegen {
 using namespace std;
@@ -53,10 +54,12 @@ Status UnaryBitWidthChangeApiCall::Generate(const TPipe &tpipe,
   SaveApiLoopAxisParams(merge_info, param);
   stringstream ss;
   if (param.outer_repeats.size() == 0) {
+    (void)RegisterBasicDumpParam(this->api_name_, inputs, outputs, CombinedExprFactory::SymbolVar(x.actual_size.Str()), tpipe.tmp_buf.name + "_" + std::to_string(id));
     ss << this->api_name_ << "(" << y << "[" << tpipe.tiler.TensorVectorizedOffset(current_axis, y) << "], " << x << "["
        << tpipe.tiler.TensorVectorizedOffset(current_axis, x) << "], " << tpipe.tmp_buf << "_" << std::to_string(id)
        << ", " << x.actual_size << ");" << std::endl;
   } else {
+    (void)RegisterBasicDumpParam(this->api_name_, inputs, outputs, CombinedExprFactory::SymbolVar(tpipe.tiler.ActualSize(param.cal_count)), tpipe.tmp_buf.name + "_" + std::to_string(id));
     std::string input_inner_offset = CalcInnerOffset(tpipe, param.inputs_strides[0]);
     std::string output_inner_offset = CalcInnerOffset(tpipe, param.outputs_strides[0]);
     std::stringstream ss1;

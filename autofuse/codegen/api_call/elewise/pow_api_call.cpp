@@ -17,6 +17,7 @@
 #include "graph/ascendc_ir/utils//asc_tensor_utils.h"
 #include "common/checker.h"
 #include "api_call/utils/api_call_factory.h"
+#include "codegen/expression_convert_struct.h"
 
 namespace codegen {
 using namespace std;
@@ -66,12 +67,15 @@ Status PowApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::AxisId>
 
   ss << this->api_name_ << "(" << y << "[" << tpipe.tiler.TensorVectorizedOffset(current_axis, y) << "], ";  // 输出
   if (x1_is_scalar_scene && x2_is_scalar_scene) {
+    (void)RegisterBasicDumpParam(this->api_name_, inputs, outputs, CombinedExprFactory::SymbolVar(y.actual_size.Str()), tpipe.tmp_buf.name + "_" + std::to_string(id));
     ss << x1_scalar << ", " << x2_scalar << ", " << tpipe.tmp_buf << "_" << std::to_string(id) << ", "
        << y.actual_size << ");" << std::endl;
   } else {
     if (x1_is_scalar_scene) {
+      (void)RegisterBasicDumpParam(this->api_name_, inputs, outputs, CombinedExprFactory::SymbolVar(x2.actual_size.Str()), tpipe.tmp_buf.name + "_" + std::to_string(id));
       ss << x1_scalar << ", ";  // 输入1
     } else {
+      (void)RegisterBasicDumpParam(this->api_name_, inputs, outputs, CombinedExprFactory::SymbolVar(x1.actual_size.Str()), tpipe.tmp_buf.name + "_" + std::to_string(id));
       ss << x1 << "[" << tpipe.tiler.TensorVectorizedOffset(current_axis, x1) << "], ";  // 输入1
     }
     if (x2_is_scalar_scene) {

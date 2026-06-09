@@ -18,6 +18,7 @@
 #include "common/checker.h"
 #include "api_call/utils/api_call_factory.h"
 #include "codegen_api_param/codegen_api_param.h"
+#include "codegen/expression_convert_struct.h"
 
 namespace codegen {
 using namespace std;

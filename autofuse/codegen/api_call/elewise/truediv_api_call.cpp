@@ -17,6 +17,7 @@
 #include "graph/ascendc_ir/utils//asc_tensor_utils.h"
 #include "common/checker.h"
 #include "api_call/utils/api_call_factory.h"
+#include "codegen/expression_convert_struct.h"
 
 namespace codegen {
 using namespace std;
@@ -53,6 +54,8 @@ Status TrueDivApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::Axi
   auto it = this->tmp_buf_id.find(life_time_axis_id);
   GE_ASSERT_TRUE(it != this->tmp_buf_id.end(), "TrueDivApiCall cannot find tmp buffer id to use.");
   id = it->second;
+
+  (void)RegisterBasicDumpParam(this->api_name_, inputs, outputs, CombinedExprFactory::SymbolVar(x1.actual_size.Str()), tpipe.tmp_buf.name + "_" + std::to_string(id));
 
   std::string x1_dtype_name;
   std::string x2_dtype_name;

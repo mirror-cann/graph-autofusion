@@ -10,6 +10,8 @@
 
 #include "codegen_kernel_loop.h"
 #include "codegen_kernel.h"
+#include "codegen_api_param/codegen_api_param.h"
+#include "codegen/expression_convert_struct.h"
 #include "ascir_ops.h"
 #include "common_utils.h"
 #include "ascir_utils.h"
@@ -1478,6 +1480,34 @@ bool ApiCall::IsUnitLastRead(const ApiTensor &tensor) const {
     }
   }
   return false;
+}
+
+ge::Status ApiCall::RegisterBasicDumpParam(
+    const std::string &api_name,
+    const std::vector<std::reference_wrapper<const Tensor>> &inputs,
+    const std::vector<std::reference_wrapper<const Tensor>> &outputs,
+    const CombinedExpression &cal_count,
+    const std::string &tmp_buf_name) const {
+  auto api_param = std::make_shared<CodegenApiParam>();
+  api_param->api_name = api_name;
+
+  for (const auto &ref : outputs) {
+    const auto &t = ref.get();
+    api_param->output_params.emplace_back(t.name, true, CombinedExprFactory::Constant(0));
+  }
+  for (const auto &ref : inputs) {
+    const auto &t = ref.get();
+    api_param->input_params.emplace_back(t.name, !t.is_constant, CombinedExprFactory::Constant(0));
+  }
+  if (!tmp_buf_name.empty()) {
+    api_param->tmp_buf_name = tmp_buf_name;
+  }
+  if (!cal_count.IsEmpty()) {
+    api_param->cal_count = cal_count;
+  }
+
+  GE_CHK_STATUS_RET(CodegenApiParam::Register(this->node, api_param));
+  return af::SUCCESS;
 }
 
 namespace {

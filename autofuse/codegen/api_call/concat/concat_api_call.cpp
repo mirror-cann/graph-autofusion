@@ -14,6 +14,7 @@
 #include "ascir_ops.h"
 #include "common/checker.h"
 #include "../utils/api_call_factory.h"
+#include "codegen/expression_convert_struct.h"
 
 namespace codegen {
 using namespace ascgen_utils;
@@ -56,14 +57,14 @@ Status ConcatApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::Axis
                          "Codegen input or output tensor is empty");
   const auto &x0 = inputs[0].get();
   const auto &y = outputs[0].get();
+  (void)RegisterBasicDumpParam(this->api_name_, inputs, outputs);
   size_t concat_dim;
   GE_ASSERT_SUCCESS(ParseConcatDim(x0, y, concat_dim), "Failed to parse concat dim");
   std::string dtype_name;
   GE_CHK_STATUS_RET(Tensor::DtypeName(y.dtype, dtype_name), "Codegen get data type:%d failed",
                     static_cast<int32_t>(y.dtype));
   // 获取tmp_buf复用TBuf的id
-  int64_t life_time_axis_id = -1L;
-  int64_t id = -1L;
+  int64_t life_time_axis_id = -1L, id = -1L;
   auto it = this->tmp_buf_id.find(life_time_axis_id);
   if (it != this->tmp_buf_id.end()) {
     id = it->second;
