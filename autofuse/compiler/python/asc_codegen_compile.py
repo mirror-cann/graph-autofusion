@@ -1785,11 +1785,30 @@ def asc_codegen_compile(*args, **kwargs):
             CommonUtility.print_compile_log("", f"compute_graph and symbol_source_info do not exist",
                                             AscendCLogLevel.LOG_ERROR)
             raise Exception("An error occurred autofuse compile for check extra_params")
-        compute_graph_compile(*args,
-                              temp_dir=temp_dir,
-                              params=extra_params,
-                              vector_core_num=vector_core_num,
-                              device_id=device_id)
+        try:
+            compute_graph_compile(*args,
+                                  temp_dir=temp_dir,
+                                  params=extra_params,
+                                  vector_core_num=vector_core_num,
+                                  device_id=device_id)
+        except Exception as e1:
+            dfx_flags = os.environ.get('AUTOFUSE_DFX_FLAGS', '')
+            if "codegen_compile_debug=true" not in dfx_flags:
+                try:
+                    CommonUtility.print_compile_log("", "generate debug info when catch exception",
+                                                    AscendCLogLevel.LOG_INFO)
+                    os.environ['AUTOFUSE_DFX_FLAGS'] = "codegen_compile_debug=true;" + dfx_flags
+                    compute_graph_compile(*args,
+                                          temp_dir=temp_dir,
+                                          params=extra_params,
+                                          vector_core_num=vector_core_num,
+                                          device_id=device_id)
+                except Exception as e2:
+                    CommonUtility.print_compile_log("", "catch exception when generate debug info",
+                                                    AscendCLogLevel.LOG_INFO)
+            raise
+
+
 
 
     kernel_meta_dir = get_current_build_config("kernel_meta_parent_dir")

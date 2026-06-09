@@ -246,17 +246,8 @@ DumpConfig ParseDfxFlags(const char *dfx_flags) {
   return cfg;
 }
 
-std::optional<DumpConfig> &GetMutableDumpConfig() {
-  static std::optional<DumpConfig> config;
-  return config;
-}
-
-const DumpConfig &GetDumpConfig() {
-  auto &config = GetMutableDumpConfig();
-  if (!config.has_value()) {
-    config = ParseDfxFlags(std::getenv("AUTOFUSE_DFX_FLAGS"));
-  }
-  return config.value();
+DumpConfig GetDumpConfig() {
+  return ParseDfxFlags(std::getenv("AUTOFUSE_DFX_FLAGS"));
 }
 
 std::string GetCodegenCompileDebugDir() {
@@ -1050,7 +1041,6 @@ std::string SetCurrentFusedGraphName(const std::string &name) {
 }
 
 void ResetDumpConfig() {
-  GetMutableDumpConfig().reset();
   // 清除目录缓存
   g_cached_pid_dir.clear();
   g_created_graph_dirs.clear();
