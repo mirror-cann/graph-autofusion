@@ -278,7 +278,6 @@ file(GLOB SOURCES
     ${ATT_DIR}/gen_model_info/api_tiling_gen/api/*.cpp
     ${ATT_DIR}/gen_model_info/sketch_gen/*.cpp
     ${ATT_DIR}/gen_tiling_impl.cpp
-    ${CODEGEN_COMMON_SRCS}
     )
 
 
@@ -339,6 +338,7 @@ target_link_libraries(att PRIVATE
         ge_log_utils
         ascir_builtin_ops
         autofuse_runtime_stub
+        ascgen_common
 )
 
 if (DEFINED ENABLE_OPEN_SRC)

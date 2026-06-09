@@ -119,6 +119,7 @@ target_link_libraries(att_ut PRIVATE
         autofuse_runtime_stub
         aihac_ir
         aihac_symbolizer_af
+        ascgen_common
         ascir_builtin_ops
         aihac_ir_register
         ascir_ops_headers

@@ -102,6 +102,7 @@ target_link_libraries(att_st
         asc_slog_stub
         autofuse_runtime_stub
         aihac_ir
+        ascgen_common
         ascir_builtin_ops
         aihac_symbolizer_af
         ascir_ops_headers

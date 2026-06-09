@@ -56,6 +56,83 @@ include_directories(${CODE_ROOT_DIR}/tests/framework/share_graph/include)
 include_directories(${CODE_ROOT_DIR}/tests/st/backend_e2e)
 include(backend_e2e.cmake)
 
+set(INDUCTOR_HOST_HELPER_COMMON_DIR ${CMAKE_CURRENT_SOURCE_DIR}/common)
+set(INDUCTOR_ASCEND_LIBRARY_DIRS "")
+if(ASCEND_INSTALL_PATH)
+    set(INDUCTOR_ASCEND_LIBRARY_DIRS
+        ${ASCEND_INSTALL_PATH}/lib64
+        ${ASCEND_INSTALL_PATH}/${CMAKE_SYSTEM_PROCESSOR}-linux/lib64
+        ${ASCEND_INSTALL_PATH}/${CMAKE_SYSTEM_PROCESSOR}-linux/devlib
+        ${ASCEND_INSTALL_PATH}/${CMAKE_SYSTEM_PROCESSOR}-linux/devlib/${CMAKE_SYSTEM_PROCESSOR}
+        ${ASCEND_INSTALL_PATH}/${CMAKE_SYSTEM_PROCESSOR}-linux/devlib/linux/${CMAKE_SYSTEM_PROCESSOR}
+        ${ASCEND_INSTALL_PATH}/${CMAKE_SYSTEM_PROCESSOR}-linux/devlib/device
+        ${ASCEND_INSTALL_PATH}/${CMAKE_SYSTEM_PROCESSOR}-linux/lib64/device/lib64
+        ${ASCEND_INSTALL_PATH}/devlib
+        ${ASCEND_INSTALL_PATH}/devlib/${CMAKE_SYSTEM_PROCESSOR}
+        ${ASCEND_INSTALL_PATH}/devlib/linux/${CMAKE_SYSTEM_PROCESSOR}
+        ${ASCEND_INSTALL_PATH}/runtime/lib64/stub
+        ${ASCEND_INSTALL_PATH}/runtime/lib64/stub/linux/${CMAKE_SYSTEM_PROCESSOR}
+        ${ASCEND_INSTALL_PATH}/toolkit/devlib
+    )
+endif()
+set(INDUCTOR_ASCEND_VALID_LIBRARY_DIRS "")
+foreach(dir IN LISTS INDUCTOR_ASCEND_LIBRARY_DIRS)
+    if(IS_DIRECTORY "${dir}")
+        list(APPEND INDUCTOR_ASCEND_VALID_LIBRARY_DIRS "${dir}")
+    endif()
+endforeach()
+list(REMOVE_DUPLICATES INDUCTOR_ASCEND_VALID_LIBRARY_DIRS)
+set(INDUCTOR_ASCEND_LIBRARY_PATH "")
+if(INDUCTOR_ASCEND_VALID_LIBRARY_DIRS)
+    list(JOIN INDUCTOR_ASCEND_VALID_LIBRARY_DIRS ":" INDUCTOR_ASCEND_LIBRARY_PATH)
+endif()
+
+add_library(inductor_host_helper_common STATIC ${INDUCTOR_HOST_HELPER_COMMON_DIR}/inductor_host_helper_common.cpp)
+target_include_directories(inductor_host_helper_common PUBLIC
+    ${INDUCTOR_HOST_HELPER_COMMON_DIR}
+)
+target_link_libraries(inductor_host_helper_common PUBLIC
+    dl
+    json
+)
+target_compile_options(inductor_host_helper_common PUBLIC
+    -U_GLIBCXX_USE_CXX11_ABI -D_GLIBCXX_USE_CXX11_ABI=1
+)
+
+function(add_inductor_ascend_runtime_path target)
+    if(INDUCTOR_ASCEND_LIBRARY_PATH)
+        set_target_properties(${target} PROPERTIES BUILD_RPATH "${INDUCTOR_ASCEND_LIBRARY_PATH}")
+        target_link_options(${target} PRIVATE -Wl,--disable-new-dtags)
+    endif()
+endfunction()
+
+function(add_inductor_host_abi1_helper helper_target codegen_outputs workdir)
+    set(options)
+    set(one_value_args DYNAMIC_ARG_COUNT)
+    set(multi_value_args)
+    cmake_parse_arguments(HOST_HELPER "${options}" "${one_value_args}" "${multi_value_args}" ${ARGN})
+    if(HOST_HELPER_UNPARSED_ARGUMENTS)
+        message(FATAL_ERROR "Unexpected add_inductor_host_abi1_helper args: ${HOST_HELPER_UNPARSED_ARGUMENTS}")
+    endif()
+
+    set(dynamic_shape_arg_count 0)
+    if(DEFINED HOST_HELPER_DYNAMIC_ARG_COUNT AND NOT "${HOST_HELPER_DYNAMIC_ARG_COUNT}" STREQUAL "")
+        set(dynamic_shape_arg_count ${HOST_HELPER_DYNAMIC_ARG_COUNT})
+    endif()
+    add_executable(${helper_target} ${INDUCTOR_HOST_HELPER_COMMON_DIR}/inductor_host_abi1_helper.cpp)
+    add_dependencies(${helper_target} ${codegen_outputs})
+    target_include_directories(${helper_target} PRIVATE ${workdir})
+    target_compile_definitions(${helper_target} PRIVATE
+        INDUCTOR_HOST_HELPER_DYNAMIC_ARG_COUNT=${dynamic_shape_arg_count}
+    )
+    target_link_libraries(${helper_target} PRIVATE inductor_host_helper_common)
+    add_inductor_ascend_runtime_path(${helper_target})
+endfunction()
+
+function(add_inductor_split_compile_test_runtime test_target)
+    add_inductor_ascend_runtime_path(${test_target})
+endfunction()
+
 add_subdirectory(add_abs_test)
 add_subdirectory(sub_abs_test)
 add_subdirectory(scalar_float_inf_test)
@@ -90,8 +167,8 @@ add_subdirectory(pgo_add_abs_test)
 add_subdirectory(matmul_elemwise_test)
 # add_subdirectory(conv2d_elemwise_test)
 add_subdirectory(argmax_test)
-# add_subdirectory(inductor_topn_test)
-# add_subdirectory(inductor_tail_brc_tail_reduce_test)
-# add_subdirectory(inductor_topn_concat_test)
-# add_subdirectory(pgo_add_abs_inductor_test)
-# add_subdirectory(pgo_add_abs_inductor_concat_test)
+add_subdirectory(inductor_topn_test)
+add_subdirectory(inductor_tail_brc_tail_reduce_test)
+add_subdirectory(inductor_topn_concat_test)
+add_subdirectory(pgo_add_abs_inductor_test)
+add_subdirectory(pgo_add_abs_inductor_concat_test)

@@ -761,7 +761,12 @@ build_backend() {
                     matmul_elemwise_test_e2e \
                     argmax_test_e2e \
                     axpy_abs_test_e2e \
-                    load_logical_not_store_test_e2e"
+                    load_logical_not_store_test_e2e \
+                    inductor_topn_test_e2e \
+                    inductor_tail_brc_tail_reduce_test_e2e \
+                    inductor_topn_concat_test_e2e \
+                    pgo_add_abs_inductor_test_e2e \
+                    pgo_add_abs_inductor_concat_test_e2e"
   if [[ "X$RUN_V35_TESTS" = "Xon" ]]; then
     MAKE_TARGET_LIST="${MAKE_TARGET_LIST} \
                       load_loop_mode_test_e2e_v2\
@@ -881,7 +886,9 @@ build_backend() {
   fi
   echo "$(date '+%F %T') make build_backend_test1 end"
 
-  export LD_LIBRARY_PATH=${METADEF_LIB_PATH}:${ASCEND_INSTALL_LIB_PATH}:${LD_LIBRARY_PATH}
+  ASCEND_DEVLIB_PATH=${ASCEND_INSTALL_PATH}/toolkit/devlib
+  ASCEND_RUNTIME_STUB_PATH=${ASCEND_INSTALL_PATH}/runtime/lib64/stub
+  export LD_LIBRARY_PATH=${METADEF_LIB_PATH}:${ASCEND_INSTALL_LIB_PATH}:${ASCEND_DEVLIB_PATH}:${ASCEND_RUNTIME_STUB_PATH}:${LD_LIBRARY_PATH}
   ctest --output-on-failure -j${THREAD_NUM} -L st -L build_backend_test1 --test-dir ${AUTOFUSE_BUILD_PATH}/tests --no-tests=error \
         -O ${BUILD_PATH}/ctest_build_backend_test1.log
   if [ $? -ne 0 ]; then
@@ -897,7 +904,7 @@ build_backend() {
   fi
   echo "$(date '+%F %T') make build_backend_test2 end"
 
-  export LD_LIBRARY_PATH=${METADEF_LIB_PATH}:${ASCEND_INSTALL_LIB_PATH}:${LD_LIBRARY_PATH}
+  export LD_LIBRARY_PATH=${METADEF_LIB_PATH}:${ASCEND_INSTALL_LIB_PATH}:${ASCEND_DEVLIB_PATH}:${ASCEND_RUNTIME_STUB_PATH}:${LD_LIBRARY_PATH}
   ctest --output-on-failure -j${THREAD_NUM} -L st -L build_backend_test2 --test-dir ${AUTOFUSE_BUILD_PATH}/tests --no-tests=error \
         -O ${BUILD_PATH}/ctest_build_backend_test2.log
   if [ $? -ne 0 ]; then
