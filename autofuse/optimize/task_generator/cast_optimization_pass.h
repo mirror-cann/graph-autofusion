@@ -20,8 +20,6 @@ class CastOptimizationPass {
  private:
   static bool NeedOptimize(const AscNodePtr &node, DataType src_dtype, DataType dst_dtype, int32_t concat_alg);
   static bool MayCauseDegradation(const AscNodePtr &concat_node, int32_t src_dtype_size, int32_t dst_dtype_size);
-  static bool HasMultipleDiscontinuities(const AscNodePtr &concat_node);
-  static int32_t CountDiscontinuousAxes(const af::AscTensorAttr &attr);
   static Status DoOptimize(AscGraph &graph,
                            const AscNodePtr &node,
                            const AscNodePtr &out_cast_node,
