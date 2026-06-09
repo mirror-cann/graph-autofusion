@@ -88,8 +88,9 @@ inline const char* to_string(SyncDirection dir)
 }
 
 struct EarlyStartInfo {
-    SuperKernelBaseNode* relatedNode = nullptr;
     uint32_t funcEarlyStartConfig = 0U;
+    SuperKernelBaseNode* relatedSetNode = nullptr;
+    SuperKernelBaseNode* relatedWaitNode = nullptr;
     SuperKernelBaseNode* nextAicRelatedNode = nullptr;
     SuperKernelBaseNode* nextAivRelatedNode = nullptr;
     uint32_t syncEarlyStartConfig = 0U;
