@@ -191,6 +191,7 @@ namespace att {
     std::string GenEmptyTensorCheckInSolver();
     std::string GenOriginExpr(const std::vector<Expr> &exprs, const std::string &indent) const;
     std::pair<std::string, std::string> GenOriginBufExpr(const Expr &expr, const std::string &indent) const;
+    std::pair<std::string, std::string> GenNamedOriginBufExpr(const Expr &expr, const std::string &indent) const;
     std::string GenPgoSetTiling();
     std::string GenPgoSetMaxBlockDim() const;
     std::vector<uint32_t> GetArgRelateCons(const Expr &arg, const std::vector<Expr> &all_cons) const;

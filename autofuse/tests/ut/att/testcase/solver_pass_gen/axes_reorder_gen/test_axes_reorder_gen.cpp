@@ -15,6 +15,24 @@
 #include "gen_model_info/api_perf_register/v1/perf_param_v1.h"
 using namespace att;
 
+size_t CountSubstr(const std::string &text, const std::string &pattern)
+{
+  size_t count = 0U;
+  size_t pos = text.find(pattern);
+  while (pos != std::string::npos) {
+    ++count;
+    pos = text.find(pattern, pos + pattern.size());
+  }
+  return count;
+}
+
+void ExpectNoTempVars(const std::string &actual)
+{
+  EXPECT_EQ(actual.find("temp0"), std::string::npos);
+  EXPECT_EQ(actual.find("temp1"), std::string::npos);
+  EXPECT_EQ(actual.find("auto temp"), std::string::npos);
+}
+
 class TestAxesReorderSolverGen : public ::testing::Test {
  public:
   static void TearDownTestCase()
@@ -756,4 +774,320 @@ TEST_F(TestAxesReorderSolverGen, GenGetBlockDimStatic_ShouldClampToOneWhenCoreNu
 
   EXPECT_TRUE(actual.find("return 0;") == std::string::npos) << actual;
   EXPECT_TRUE(actual.find("return std::max(1, static_cast<int32_t>(0));") != std::string::npos) << actual;
+}
+
+TEST_F(TestAxesReorderSolverGen, GenGetUbSizeStaticFunc_UsesNamedExprForSemanticContainer)
+{
+  AxesReorderSolverGen solver("case_test", "TilingData");
+  Expr tensor = CreateExpr("tensor_0");
+  Expr s2 = CreateExpr("S2");
+  Expr s1tt_size = CreateExpr("s1tt_size");
+  Expr common_size = CreateExpr(4) * s2 * s1tt_size;
+  std::map<HardwareDef, Expr> hardware_use_map;
+  hardware_use_map[HardwareDef::UB] = CreateExpr(32) * af::sym::Ceiling(tensor * af::sym::Rational(1, 32));
+  solver.SetBufferUseAlg(hardware_use_map);
+  solver.SetContainerExpr({{tensor, common_size}});
+  solver.SetContainerNames({{tensor, "tensor_0"}});
+
+  std::string actual = solver.GenGetUbSizeStaticFunc();
+
+  ExpectNoTempVars(actual);
+  EXPECT_NE(actual.find("tensor_size_0"), std::string::npos) << actual;
+  EXPECT_EQ(actual.find("que_size_"), std::string::npos) << actual;
+  EXPECT_EQ(CountSubstr(actual, "auto tensor_size_0 ="), 1U) << actual;
+  const size_t tensor_decl = actual.find("auto tensor_size_0 =");
+  ASSERT_NE(tensor_decl, std::string::npos) << actual;
+  const size_t tensor_decl_end = actual.find('\n', tensor_decl);
+  const std::string tensor_decl_line = actual.substr(tensor_decl, tensor_decl_end - tensor_decl);
+  EXPECT_EQ(tensor_decl_line.find("common_size_"), std::string::npos) << actual;
+  EXPECT_NE(actual.find("ub_size = (32 * Ceiling((Rational(1,32) * tensor_size_0)))"), std::string::npos) << actual;
+}
+
+TEST_F(TestAxesReorderSolverGen, GenGetUbSizeStaticFunc_NamesExpandedUbExpr)
+{
+  AxesReorderSolverGen solver("case_test", "TilingData");
+  Expr s2 = CreateExpr("S2");
+  Expr s1tt_size = CreateExpr("s1tt_size");
+  Expr tensor_size = CreateExpr(4) * s2 * s1tt_size;
+  std::map<HardwareDef, Expr> hardware_use_map;
+  hardware_use_map[HardwareDef::UB] = CreateExpr(32) * af::sym::Ceiling(tensor_size * af::sym::Rational(1, 32));
+  solver.SetBufferUseAlg(hardware_use_map);
+
+  std::string actual = solver.GenGetUbSizeStaticFunc();
+
+  ExpectNoTempVars(actual);
+  EXPECT_EQ(actual.find("auto common_size_"), std::string::npos) << actual;
+  EXPECT_EQ(actual.find("auto que_size_"), std::string::npos) << actual;
+  EXPECT_NE(actual.find("int64_t ub_size = (32 * Ceiling(((Rational(1,8) * S2) * s1tt_size)));"),
+            std::string::npos) << actual;
+}
+
+TEST_F(TestAxesReorderSolverGen, GenGetUbSizeStaticFunc_ReusesDuplicateSemanticExpr)
+{
+  AxesReorderSolverGen solver("case_test", "TilingData");
+  Expr tensor0 = CreateExpr("tensor_0");
+  Expr tensor1 = CreateExpr("tensor_1");
+  Expr s2 = CreateExpr("S2");
+  Expr s1tt_size = CreateExpr("s1tt_size");
+  Expr common_size = CreateExpr(4) * s2 * s1tt_size;
+  std::map<HardwareDef, Expr> hardware_use_map;
+  hardware_use_map[HardwareDef::UB] = af::sym::Max(tensor0, tensor1);
+  solver.SetBufferUseAlg(hardware_use_map);
+  solver.SetContainerExpr({{tensor0, common_size}, {tensor1, common_size}});
+  solver.SetContainerNames({{tensor0, "tensor_0"}, {tensor1, "tensor_1"}});
+
+  std::string actual = solver.GenGetUbSizeStaticFunc();
+
+  ExpectNoTempVars(actual);
+  EXPECT_EQ(CountSubstr(actual, "auto tensor_size_0 ="), 1U) << actual;
+  EXPECT_EQ(actual.find("auto tmp_buffer_size_"), std::string::npos) << actual;
+  EXPECT_NE(actual.find("ub_size = Max(tensor_size_0,tensor_size_0);"), std::string::npos) << actual;
+}
+
+TEST_F(TestAxesReorderSolverGen, GenGetUbSizeStaticFunc_NoUbKeepsReturnZero)
+{
+  AxesReorderSolverGen solver("case_test", "TilingData");
+
+  std::string actual = solver.GenGetUbSizeStaticFunc();
+
+  ExpectNoTempVars(actual);
+  EXPECT_NE(actual.find("return 0;"), std::string::npos) << actual;
+}
+
+TEST_F(TestAxesReorderSolverGen, GenUbIndirectPathsReuseGetUbSizeStatic)
+{
+  AxesReorderSolverGen solver("case_test", "TilingData");
+  Expr z0t_size = CreateExpr("z0t_size");
+  Expr z1t_size = CreateExpr("z1t_size");
+  Expr z0 = CreateExpr("z0");
+  std::map<HardwareDef, Expr> hardware_use_map;
+  hardware_use_map[HardwareDef::CORENUM] = z0 * z0t_size;
+  hardware_use_map[HardwareDef::UB] =
+      CreateExpr(32) * af::sym::Ceiling((z0t_size * z1t_size) * af::sym::Rational(1, 32));
+  solver.SetBufferUseAlg(hardware_use_map);
+  solver.SetInputArgs({z0});
+  solver.SetSearchArgs({z0t_size, z1t_size});
+  solver.SetFromAxesMap({{z0t_size, {z0}}});
+  solver.Arrange();
+
+  std::string tiling_data_func = solver.GenGetTilingDataUbSizeStaticFunc();
+  std::string threshold_func = solver.GenUBThresholdFunc();
+  std::string cons_func = solver.GenConsUbFunc(0, {z0t_size}, {z0});
+
+  EXPECT_NE(tiling_data_func.find("return GetUbSizeStatic("), std::string::npos) << tiling_data_func;
+  EXPECT_NE(threshold_func.find("GetUbSizeStatic("), std::string::npos) << threshold_func;
+  EXPECT_NE(cons_func.find("GetUbSizeStatic("), std::string::npos) << cons_func;
+  ExpectNoTempVars(tiling_data_func);
+  ExpectNoTempVars(threshold_func);
+  ExpectNoTempVars(cons_func);
+}
+
+TEST_F(TestAxesReorderSolverGen, GenConsFunc_BufferStillUsesOriginTempExpr)
+{
+  AxesReorderSolverGen solver("case_test", "TilingData");
+  Expr tiling_var = CreateExpr("tiling_var");
+  Expr cons_var = CreateExpr("cons_var");
+  Expr cons = tiling_var * cons_var;
+
+  std::string actual = solver.GenConsFunc(0, ConsType::BUFFER, cons, {tiling_var}, {cons_var});
+
+  EXPECT_NE(actual.find("auto temp"), std::string::npos) << actual;
+  EXPECT_EQ(actual.find("tensor_size_"), std::string::npos) << actual;
+  EXPECT_EQ(actual.find("que_size_"), std::string::npos) << actual;
+}
+
+TEST_F(TestAxesReorderSolverGen, GenGetUbSizeStaticFunc_LeafUbExprDoesNotCreateIntermediate)
+{
+  AxesReorderSolverGen solver("case_test", "TilingData");
+  Expr var = CreateExpr("var");
+  std::map<HardwareDef, Expr> hardware_use_map;
+  hardware_use_map[HardwareDef::UB] = var;
+  solver.SetBufferUseAlg(hardware_use_map);
+
+  std::string actual = solver.GenGetUbSizeStaticFunc();
+
+  ExpectNoTempVars(actual);
+  EXPECT_NE(actual.find("int64_t ub_size = var;"), std::string::npos) << actual;
+  EXPECT_EQ(actual.find("auto common_size_"), std::string::npos) << actual;
+}
+
+TEST_F(TestAxesReorderSolverGen, GenGetUbSizeStaticFunc_AvoidsGeneratedNameCollision)
+{
+  AxesReorderSolverGen solver("case_test", "TilingData");
+  Expr tensor_size_0 = CreateExpr("tensor_size_0");
+  Expr tensor = CreateExpr("tensor_0");
+  std::map<HardwareDef, Expr> hardware_use_map;
+  hardware_use_map[HardwareDef::UB] = tensor + tensor_size_0;
+  solver.SetBufferUseAlg(hardware_use_map);
+  solver.SetContainerExpr({{tensor, tensor_size_0 * CreateExpr(4)}});
+  solver.SetContainerNames({{tensor, "tensor_0"}});
+
+  std::string actual = solver.GenGetUbSizeStaticFunc();
+
+  ExpectNoTempVars(actual);
+  EXPECT_EQ(actual.find("auto tensor_size_0 ="), std::string::npos) << actual;
+  EXPECT_NE(actual.find("auto tensor_size_1 ="), std::string::npos) << actual;
+}
+
+TEST_F(TestAxesReorderSolverGen, GenGetUbSizeStaticFunc_QueryTensorNameUsesTensorKind)
+{
+  AxesReorderSolverGen solver("case_test", "TilingData");
+  Expr tensor = CreateExpr("tensor_0");
+  Expr axis = CreateExpr("axis_size");
+  std::map<HardwareDef, Expr> hardware_use_map;
+  hardware_use_map[HardwareDef::UB] = tensor + CreateExpr(1);
+  solver.SetBufferUseAlg(hardware_use_map);
+  solver.SetContainerExpr({{tensor, axis * CreateExpr(4)}});
+  solver.SetContainerNames({{tensor, "query"}});
+
+  std::string actual = solver.GenGetUbSizeStaticFunc();
+
+  ExpectNoTempVars(actual);
+  EXPECT_NE(actual.find("auto tensor_size_0 ="), std::string::npos) << actual;
+  EXPECT_EQ(actual.find("auto que_size_"), std::string::npos) << actual;
+}
+
+TEST_F(TestAxesReorderSolverGen, GenGetUbSizeStaticFunc_KeepsFirstKindWhenSemanticExprReused)
+{
+  AxesReorderSolverGen solver("case_test", "TilingData");
+  Expr tensor = CreateExpr("a_tensor_0");
+  Expr buffer = CreateExpr("z_buffer_size");
+  Expr axis = CreateExpr("axis_size");
+  Expr shared = axis * CreateExpr(4);
+  std::map<HardwareDef, Expr> hardware_use_map;
+  hardware_use_map[HardwareDef::UB] = tensor + buffer;
+  solver.SetBufferUseAlg(hardware_use_map);
+  solver.SetContainerExpr({{tensor, shared}, {buffer, shared}});
+  solver.SetContainerNames({{tensor, "a_tensor_0"}, {buffer, "z_buffer_size"}});
+
+  std::string actual = solver.GenGetUbSizeStaticFunc();
+
+  ExpectNoTempVars(actual);
+  EXPECT_EQ(CountSubstr(actual, "auto tensor_size_0 ="), 1U) << actual;
+  EXPECT_EQ(actual.find("auto tmp_buffer_size_0 ="), std::string::npos) << actual;
+  EXPECT_NE(actual.find("int64_t ub_size = (tensor_size_0 + tensor_size_0);"), std::string::npos) << actual;
+}
+
+TEST_F(TestAxesReorderSolverGen, GenGetUbSizeStaticFunc_QueueAlignSupportsRightMultiply)
+{
+  AxesReorderSolverGen solver("case_test", "TilingData");
+  Expr tensor = CreateExpr("tensor_0");
+  Expr axis = CreateExpr("axis_size");
+  std::map<HardwareDef, Expr> hardware_use_map;
+  hardware_use_map[HardwareDef::UB] = af::sym::Ceiling(tensor) * CreateExpr(32);
+  solver.SetBufferUseAlg(hardware_use_map);
+  solver.SetContainerExpr({{tensor, axis * CreateExpr(4)}});
+  solver.SetContainerNames({{tensor, "tensor_0"}});
+
+  std::string actual = solver.GenGetUbSizeStaticFunc();
+
+  ExpectNoTempVars(actual);
+  EXPECT_EQ(actual.find("auto que_size_"), std::string::npos) << actual;
+  EXPECT_NE(actual.find("int64_t ub_size = (32 * Ceiling(tensor_size_0));"), std::string::npos) << actual;
+}
+
+TEST_F(TestAxesReorderSolverGen, GenGetUbSizeStaticFunc_KeepsShortCeilingInline)
+{
+  AxesReorderSolverGen solver("case_test", "TilingData");
+  Expr tensor = CreateExpr("tensor_0");
+  Expr axis = CreateExpr("axis_size");
+  std::map<HardwareDef, Expr> hardware_use_map;
+  hardware_use_map[HardwareDef::UB] = af::sym::Ceiling(tensor) + CreateExpr(1);
+  solver.SetBufferUseAlg(hardware_use_map);
+  solver.SetContainerExpr({{tensor, axis * CreateExpr(4)}});
+  solver.SetContainerNames({{tensor, "tensor_0"}});
+
+  std::string actual = solver.GenGetUbSizeStaticFunc();
+
+  ExpectNoTempVars(actual);
+  EXPECT_EQ(actual.find("auto que_size_"), std::string::npos) << actual;
+  EXPECT_NE(actual.find("int64_t ub_size = (1 + Ceiling(tensor_size_0));"), std::string::npos) << actual;
+}
+
+TEST_F(TestAxesReorderSolverGen, GenGetUbSizeStaticFunc_MaterializesRepeatedSubExpr)
+{
+  AxesReorderSolverGen solver("case_test", "TilingData");
+  Expr tensor0 = CreateExpr("tensor_0");
+  Expr tensor1 = CreateExpr("tensor_1");
+  Expr axis_size = CreateExpr("axis_size");
+  Expr repeated_size = axis_size * CreateExpr(4);
+  std::map<HardwareDef, Expr> hardware_use_map;
+  hardware_use_map[HardwareDef::UB] = tensor0 + tensor1;
+  solver.SetBufferUseAlg(hardware_use_map);
+  solver.SetContainerExpr({{tensor0, repeated_size}, {tensor1, repeated_size}});
+  solver.SetContainerNames({{tensor0, "tensor_0"}, {tensor1, "tensor_1"}});
+
+  std::string actual = solver.GenGetUbSizeStaticFunc();
+
+  ExpectNoTempVars(actual);
+  EXPECT_EQ(CountSubstr(actual, "auto tensor_size_0 = (4 * axis_size);"), 1U) << actual;
+  EXPECT_NE(actual.find("int64_t ub_size = (tensor_size_0 + tensor_size_0);"), std::string::npos) << actual;
+}
+
+TEST_F(TestAxesReorderSolverGen, GenGetUbSizeStaticFunc_MaterializesLongSubExpr)
+{
+  AxesReorderSolverGen solver("case_test", "TilingData");
+  Expr very_long_axis_size_0 = CreateExpr("very_long_axis_size_0");
+  Expr very_long_axis_size_1 = CreateExpr("very_long_axis_size_1");
+  Expr very_long_axis_size_2 = CreateExpr("very_long_axis_size_2");
+  Expr very_long_axis_size_3 = CreateExpr("very_long_axis_size_3");
+  Expr long_expr = very_long_axis_size_0 * very_long_axis_size_1 * very_long_axis_size_2 * very_long_axis_size_3;
+  std::map<HardwareDef, Expr> hardware_use_map;
+  hardware_use_map[HardwareDef::UB] = long_expr + CreateExpr(1);
+  solver.SetBufferUseAlg(hardware_use_map);
+
+  std::string actual = solver.GenGetUbSizeStaticFunc();
+
+  ExpectNoTempVars(actual);
+  EXPECT_NE(actual.find("auto common_size_"), std::string::npos) << actual;
+  EXPECT_NE(actual.find("int64_t ub_size = (common_size_"), std::string::npos) << actual;
+}
+
+TEST_F(TestAxesReorderSolverGen, GenGetUbSizeStaticFunc_UsesQueueSemanticName)
+{
+  AxesReorderSolverGen solver("case_test", "TilingData");
+  Expr q0 = CreateExpr("q0");
+  Expr q1 = CreateExpr("q1");
+  Expr axis0 = CreateExpr("axis0_size");
+  Expr axis1 = CreateExpr("axis1_size");
+  std::map<HardwareDef, Expr> hardware_use_map;
+  hardware_use_map[HardwareDef::UB] =
+      CreateExpr(32) * af::sym::Ceiling(q0 * af::sym::Rational(1, 32)) +
+      CreateExpr(64) * af::sym::Ceiling(q1 * af::sym::Rational(1, 64));
+  solver.SetBufferUseAlg(hardware_use_map);
+  solver.SetContainerExpr({{q0, axis0 * CreateExpr(4)}, {q1, axis1 * CreateExpr(8)}});
+  solver.SetContainerNames({{q0, "q0"}, {q1, "q1"}});
+
+  std::string actual = solver.GenGetUbSizeStaticFunc();
+
+  ExpectNoTempVars(actual);
+  EXPECT_NE(actual.find("auto q0_size ="), std::string::npos) << actual;
+  EXPECT_NE(actual.find("auto q1_size ="), std::string::npos) << actual;
+  EXPECT_NE(actual.find("auto q0_que_size ="), std::string::npos) << actual;
+  EXPECT_NE(actual.find("auto q1_que_size ="), std::string::npos) << actual;
+  EXPECT_NE(actual.find("int64_t ub_size = (q0_que_size + q1_que_size);"), std::string::npos) << actual;
+  EXPECT_EQ(actual.find("auto que_size_"), std::string::npos) << actual;
+}
+
+TEST_F(TestAxesReorderSolverGen, GenGetUbSizeStaticFunc_UsesBufferSemanticName)
+{
+  AxesReorderSolverGen solver("case_test", "TilingData");
+  Expr buffer = CreateExpr("buffer_size_0");
+  Expr tmp_buffer = CreateExpr("tmp_buffer");
+  Expr axis0 = CreateExpr("axis0_size");
+  Expr axis1 = CreateExpr("axis1_size");
+  std::map<HardwareDef, Expr> hardware_use_map;
+  hardware_use_map[HardwareDef::UB] = af::sym::Max(buffer, tmp_buffer);
+  solver.SetBufferUseAlg(hardware_use_map);
+  solver.SetContainerExpr({{buffer, axis0 * CreateExpr(4)}, {tmp_buffer, axis1 * CreateExpr(8)}});
+  solver.SetContainerNames({{buffer, "buffer_size_0"}, {tmp_buffer, "tmp_buffer"}});
+
+  std::string actual = solver.GenGetUbSizeStaticFunc();
+
+  ExpectNoTempVars(actual);
+  EXPECT_NE(actual.find("auto buffer_size_0 ="), std::string::npos) << actual;
+  EXPECT_NE(actual.find("auto tmp_buffer_size ="), std::string::npos) << actual;
+  EXPECT_NE(actual.find("auto tmp_buffer_size_max = Max(buffer_size_0"), std::string::npos) << actual;
+  EXPECT_NE(actual.find("int64_t ub_size = tmp_buffer_size_max;"), std::string::npos) << actual;
+  EXPECT_EQ(actual.find("auto tmp_buffer_size_0 ="), std::string::npos) << actual;
 }
