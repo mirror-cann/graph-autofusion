@@ -375,9 +375,7 @@ TEST_F(ReduceScheduleCaseGeneratorTest, TestReduce_Multi_Cita_Store) {
   optimize::ReducePartitionCaseGenerator generator;
   OptimizerOptions options;
   generator.GeneratorTask(graph, tasks, options);
-  ASSERT_EQ(tasks.size(), 2UL);
-  ASSERT_EQ(tasks[0].grouped_graphs.size(), 3UL);
-  ASSERT_EQ(tasks[1].grouped_graphs.size(), 4UL);
+  ASSERT_EQ(tasks.size(), 0UL);
 }
 
 void ConstructReduceWithScalarData(AscGraph &graph) {

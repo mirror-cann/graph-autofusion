@@ -219,25 +219,40 @@ Status ReducePartitionCaseGenerator::GeneratorRCoreTask(ascir::HintGraph &optimi
 }
 
 Status ReducePartitionCaseGenerator::GeneratorTask(ascir::HintGraph &optimize_graph, std::vector<ScheduleTask> &tasks,
-  	                                                    const OptimizerOptions &options) {
-  	   bool is_norm_like_reduce = autoschedule::IsNormLikeReduceGraph(optimize_graph);
-  	   (void)options;
-  	   if (is_norm_like_reduce) {
-  	     GELOGI("Graph %s satisfies norm-like reduce conditions, only generate AllLoad tasks", optimize_graph.GetName().c_str());
-  	     GE_CHK_STATUS_RET(GeneratorAllLoadTask(optimize_graph, tasks));
-  	   } else {
-  	     GELOGI("Graph %s does not satisfy norm-like reduce conditions, use general strategy", optimize_graph.GetName().c_str());
-  	     GE_CHK_STATUS_RET(GeneratorGeneralTask(optimize_graph, tasks));
-  	     GE_CHK_STATUS_RET(GeneratorRCoreTask(optimize_graph, tasks));
-  	     GE_CHK_STATUS_RET(GeneratorAllLoadTask(optimize_graph, tasks));
-  	   }
-  	   return ge::GRAPH_SUCCESS;
-  	 }
+   	                                                    const OptimizerOptions &options) {
+   	   (void)options;
+   	   if (ShouldForceAllLoad(optimize_graph)) {
+   	     GELOGI("Graph %s satisfies force AllLoad conditions, only generate AllLoad tasks", optimize_graph.GetName().c_str());
+   	     GE_CHK_STATUS_RET(GeneratorAllLoadTask(optimize_graph, tasks));
+   	   } else {
+   	     GELOGI("Graph %s does not satisfy force AllLoad conditions, use general strategy", optimize_graph.GetName().c_str());
+   	     GE_CHK_STATUS_RET(GeneratorGeneralTask(optimize_graph, tasks));
+   	     GE_CHK_STATUS_RET(GeneratorRCoreTask(optimize_graph, tasks));
+   	     GE_CHK_STATUS_RET(GeneratorAllLoadTask(optimize_graph, tasks));
+   	   }
+   	   return ge::GRAPH_SUCCESS;
+   	 }
 
 Status ReducePartitionCaseGenerator::Generate([[maybe_unused]] ascir::HintGraph &graph,
                                               [[maybe_unused]] std::vector<ascir::ImplGraph> &graphs,
                                               [[maybe_unused]] std::vector<std::string> &score_functions) {
   return ge::GRAPH_SUCCESS;
+}
+
+bool ReducePartitionCaseGenerator::ShouldForceAllLoad(ascir::HintGraph &graph) {
+  if (!IsGroupGraphLegal(graph)) {
+    return true;
+  }
+
+  ascir::ImplGraph impl_graph(graph.GetName().c_str());
+  impl_graph.CopyFrom(graph);
+  node_order_.clear();
+  auto loop_start_end = FindNormLoops(impl_graph);
+  if (!loop_start_end.empty()) {
+    return true;
+  }
+
+  return false;
 }
 
 Status ReducePartitionCaseGenerator::GenerateGeneralCase(ascir::HintGraph &graph,
@@ -249,21 +264,8 @@ Status ReducePartitionCaseGenerator::GenerateGeneralCase(ascir::HintGraph &graph
   ascir::ImplGraph optimize_graph(graph.GetName().c_str());
   optimize_graph.CopyFrom(graph);
 
-  // 以多输出节点为起点遍历，找环路的终点：如有环路则返回终点的列表
-  std::vector<std::pair<af::AscNodePtr, af::AscNodePtr>> loop_start_end;
-  for (auto node : optimize_graph.GetAllNodes()) {
-    if (node->GetOutDataNodes().empty()) {
-      node_order_.emplace_back(node);
-    }
-    if (node->GetOutNodes().size() <= 1UL) {
-      continue;
-    }
-    std::vector<af::AscNodePtr> loop_ends;
-    FindNormLoop(node, loop_ends);
-    for (const auto &end : loop_ends) {
-      loop_start_end.emplace_back(node, end);
-    }
-  }
+  node_order_.clear();
+  auto loop_start_end = FindNormLoops(optimize_graph);
   std::sort(loop_start_end.begin(), loop_start_end.end(), [](
     const std::pair<af::AscNodePtr, af::AscNodePtr> &lhs, const std::pair<af::AscNodePtr, af::AscNodePtr> &rhs) {
     return lhs.second->GetOpDescBarePtr()->GetId() < rhs.second->GetOpDescBarePtr()->GetId();
@@ -545,6 +547,25 @@ bool ReducePartitionCaseGenerator::IsInputNodePartitioned(const std::shared_ptr<
     partitioned = partitioned && IsInputNodePartitioned(start, in_node);
   }
   return partitioned;
+}
+
+std::vector<std::pair<af::AscNodePtr, af::AscNodePtr>> ReducePartitionCaseGenerator::FindNormLoops(
+    ascir::ImplGraph &graph) {
+  std::vector<std::pair<af::AscNodePtr, af::AscNodePtr>> loop_start_end;
+  for (auto node : graph.GetAllNodes()) {
+    if (node->GetOutDataNodes().empty()) {
+      node_order_.emplace_back(node);
+    }
+    if (node->GetOutNodes().size() <= 1UL) {
+      continue;
+    }
+    std::vector<af::AscNodePtr> loop_ends;
+    FindNormLoop(node, loop_ends);
+    for (const auto &end : loop_ends) {
+      loop_start_end.emplace_back(node, end);
+    }
+  }
+  return loop_start_end;
 }
 
 Status ReducePartitionCaseGenerator::FindNormLoop(const af::AscNodePtr &start, std::vector<af::AscNodePtr> &ends) {

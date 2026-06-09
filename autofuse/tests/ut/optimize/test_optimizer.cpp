@@ -6371,25 +6371,7 @@ TEST_F(TestOptimizer, ReducePartition) {
   ::ascir::FusedScheduledResult fused_scheduled_result;
   EXPECT_EQ(optimizer.Optimize(graph, fused_scheduled_result), 0);
   EXPECT_EQ(fused_scheduled_result.node_idx_to_scheduled_results.size(), 1);
-  EXPECT_EQ(fused_scheduled_result.node_idx_to_scheduled_results[0].size(), 3);
-  EXPECT_EQ(fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups.size(), 2);
-  EXPECT_EQ(fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs.size(), 2);
-  EXPECT_EQ(fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[1].impl_graphs.size(), 2);
-  EXPECT_EQ(fused_scheduled_result.node_idx_to_scheduled_results[0][1].schedule_groups.size(), 3);
-  EXPECT_EQ(fused_scheduled_result.node_idx_to_scheduled_results[0][1].schedule_groups[0].impl_graphs.size(), 1);
-
-  auto impl_graph_sum_phase1 = fused_scheduled_result.node_idx_to_scheduled_results[0][1].schedule_groups[0].impl_graphs[0];
-  auto impl_graph_sum_phase2 = fused_scheduled_result.node_idx_to_scheduled_results[0][1].schedule_groups[1].impl_graphs[0];
-  auto impl_graph_sub = fused_scheduled_result.node_idx_to_scheduled_results[0][1].schedule_groups[2].impl_graphs[0];
-
-  auto phase1_workspace = impl_graph_sum_phase1.FindNode("reduce_partition_0_r_multicore_phase_2_graph_workspace");
-  auto phase2_workspace1 = impl_graph_sum_phase2.FindNode("reduce_partition_0_r_multicore_phase_2_graph_workspace");
-  auto phase2_workspace2 = impl_graph_sum_phase2.FindNode("sum_Workspace");
-  auto sub_workspace = impl_graph_sub.FindNode("sum_Workspace");
-  ASSERT_NE(phase1_workspace, nullptr);
-  ASSERT_NE(phase2_workspace1, nullptr);
-  ASSERT_NE(phase2_workspace2, nullptr);
-  ASSERT_NE(sub_workspace, nullptr);
+  EXPECT_EQ(fused_scheduled_result.node_idx_to_scheduled_results[0].size(), 1);
 }
 
 TEST_F(TestOptimizer, ReducePartitionLoad) {
@@ -6492,41 +6474,7 @@ TEST_F(TestOptimizer, ReducePartitionLoad) {
   ::ascir::FusedScheduledResult fused_scheduled_result;
   EXPECT_EQ(optimizer.Optimize(graph, fused_scheduled_result), 0);
   EXPECT_EQ(fused_scheduled_result.node_idx_to_scheduled_results.size(), 1);
-  EXPECT_EQ(fused_scheduled_result.node_idx_to_scheduled_results[0].size(), 3);
-  EXPECT_EQ(fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups.size(), 3);
-  EXPECT_EQ(fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs.size(), 1);
-  EXPECT_EQ(fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[1].impl_graphs.size(), 1);
-  EXPECT_EQ(fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[2].impl_graphs.size(), 2);
-  EXPECT_EQ(fused_scheduled_result.node_idx_to_scheduled_results[0][1].schedule_groups.size(), 5);
-  EXPECT_EQ(fused_scheduled_result.node_idx_to_scheduled_results[0][1].schedule_groups[0].impl_graphs.size(), 1);
-  EXPECT_EQ(fused_scheduled_result.node_idx_to_scheduled_results[0][1].schedule_groups[1].impl_graphs.size(), 1);
-  EXPECT_EQ(fused_scheduled_result.node_idx_to_scheduled_results[0][1].schedule_groups[2].impl_graphs.size(), 1);
-  EXPECT_EQ(fused_scheduled_result.node_idx_to_scheduled_results[0][1].schedule_groups[3].impl_graphs.size(), 1);
-  EXPECT_EQ(fused_scheduled_result.node_idx_to_scheduled_results[0][1].schedule_groups[4].impl_graphs.size(), 2);
-
-  auto impl_graph_max_phase1 = fused_scheduled_result.node_idx_to_scheduled_results[0][1].schedule_groups[0].impl_graphs[0];
-  auto impl_graph_max_phase2 = fused_scheduled_result.node_idx_to_scheduled_results[0][1].schedule_groups[1].impl_graphs[0];
-  auto impl_graph_sum_phase1 = fused_scheduled_result.node_idx_to_scheduled_results[0][1].schedule_groups[2].impl_graphs[0];
-  auto impl_graph_sum_phase2 = fused_scheduled_result.node_idx_to_scheduled_results[0][1].schedule_groups[3].impl_graphs[0];
-  auto impl_graph_div = fused_scheduled_result.node_idx_to_scheduled_results[0][1].schedule_groups[4].impl_graphs[0];
-
-  auto max_phase1_workspace = impl_graph_max_phase1.FindNode("Reduce_partition_load_0_r_multicore_phase_2_graph_workspace");
-  auto max_phase2_workspace1 = impl_graph_max_phase2.FindNode("Reduce_partition_load_0_r_multicore_phase_2_graph_workspace");
-  auto max_phase2_workspace2 = impl_graph_max_phase2.FindNode("b0_max_Workspace");
-  auto sum_phase1_workspace1 = impl_graph_sum_phase1.FindNode("b0_max_Workspace");
-  auto sum_phase1_workspace2 = impl_graph_sum_phase1.FindNode("Reduce_partition_load_1_r_multicore_phase_2_graph_workspace");
-  auto sum_phase2_workspace1 = impl_graph_sum_phase2.FindNode("Reduce_partition_load_1_r_multicore_phase_2_graph_workspace");
-  auto sum_phase2_workspace2 = impl_graph_sum_phase2.FindNode("b2_sum_Workspace");
-  auto div_workspace = impl_graph_div.FindNode("b2_sum_Workspace");
-
-  ASSERT_NE(max_phase1_workspace, nullptr);
-  ASSERT_NE(max_phase2_workspace1, nullptr);
-  ASSERT_NE(max_phase2_workspace2, nullptr);
-  ASSERT_NE(sum_phase1_workspace1, nullptr);
-  ASSERT_NE(sum_phase1_workspace2, nullptr);
-  ASSERT_NE(sum_phase2_workspace1, nullptr);
-  ASSERT_NE(sum_phase2_workspace2, nullptr);
-  ASSERT_NE(div_workspace, nullptr);
+  EXPECT_EQ(fused_scheduled_result.node_idx_to_scheduled_results[0].size(), 1);
 }
 
 TEST_F(TestOptimizer, ReducePartition3) {
@@ -6886,25 +6834,7 @@ TEST_F(TestOptimizer, ReducePartitionScalar) {
   ::ascir::FusedScheduledResult fused_scheduled_result;
   EXPECT_EQ(optimizer.Optimize(graph, fused_scheduled_result), 0);
   EXPECT_EQ(fused_scheduled_result.node_idx_to_scheduled_results.size(), 1);
-  EXPECT_EQ(fused_scheduled_result.node_idx_to_scheduled_results[0].size(), 3);
-  EXPECT_EQ(fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups.size(), 2);
-  EXPECT_EQ(fused_scheduled_result.node_idx_to_scheduled_results[0][1].schedule_groups.size(), 3);
-
-  auto sum_graph = fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs[0];
-  auto sub_add_graph = fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[1].impl_graphs[0];
-  auto copy_scalar = sub_add_graph.FindNode("copy_from_scalar");
-  auto copy_load = sub_add_graph.FindNode("copy_from_load");
-  auto copy_workspace = sub_add_graph.FindNode("copy_from_workspace");
-  ASSERT_NE(copy_scalar, nullptr);
-  ASSERT_NE(copy_load, nullptr);
-  ASSERT_NE(copy_workspace, nullptr);
-
-  auto impl_graph_phase1 = fused_scheduled_result.node_idx_to_scheduled_results[0][1].schedule_groups[0].impl_graphs[0];
-  auto impl_graph_phase2 = fused_scheduled_result.node_idx_to_scheduled_results[0][1].schedule_groups[1].impl_graphs[0];
-  auto phase1_workspace = impl_graph_phase1.FindNode("reduce_partition_scalar_0_r_multicore_phase_2_graph_workspace");
-  auto phase2_workspace1 = impl_graph_phase2.FindNode("reduce_partition_scalar_0_r_multicore_phase_2_graph_workspace");
-  ASSERT_NE(phase1_workspace, nullptr);
-  ASSERT_NE(phase2_workspace1, nullptr);
+  EXPECT_EQ(fused_scheduled_result.node_idx_to_scheduled_results[0].size(), 1);
 }
 
 TEST_F(TestOptimizer, ReduceAllLoad) {
@@ -7003,7 +6933,7 @@ TEST_F(TestOptimizer, ReduceAllLoad) {
   ::ascir::FusedScheduledResult fused_scheduled_result;
   EXPECT_EQ(optimizer.Optimize(graph, fused_scheduled_result), 0);
   EXPECT_EQ(fused_scheduled_result.node_idx_to_scheduled_results.size(), 1);
-  EXPECT_EQ(fused_scheduled_result.node_idx_to_scheduled_results[0].size(), 6);
+  EXPECT_EQ(fused_scheduled_result.node_idx_to_scheduled_results[0].size(), 1);
 }
 
 /**
