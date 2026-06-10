@@ -18,6 +18,54 @@ void to_json(nlohmann::json &j, const Expression &arg) {
 }
 }
 namespace att {
+namespace {
+void AddDenominatorSymbol(const Expr &symbol, const ExprExprMap &container_expr,
+                          std::set<std::string> &denominator_symbols) {
+  auto iter = container_expr.find(symbol);
+  if (iter == container_expr.end()) {
+    denominator_symbols.insert(Str(symbol));
+    return;
+  }
+  for (const auto &arg : iter->second.FreeSymbols()) {
+    if (arg.GetExprType() == af::ExprType::kExprVariable) {
+      denominator_symbols.insert(Str(arg));
+    }
+  }
+}
+
+void CollectDenominatorSymbols(const Expr &expr, const ExprExprMap &container_expr,
+                               std::set<std::string> &denominator_symbols) {
+  if (!expr.IsValid() || expr.IsConstExpr()) {
+    return;
+  }
+  Expr numer;
+  Expr denom;
+  expr.AsNumerDenom(numer, denom);
+  if (denom.IsValid() && !denom.IsConstExpr()) {
+    for (const auto &symbol : denom.FreeSymbols()) {
+      if (symbol.GetExprType() == af::ExprType::kExprVariable) {
+        AddDenominatorSymbol(symbol, container_expr, denominator_symbols);
+      }
+    }
+  }
+  Expr expr_copy = expr;
+  for (const auto &arg : expr_copy.GetArgs()) {
+    CollectDenominatorSymbols(arg, container_expr, denominator_symbols);
+  }
+}
+
+std::string GenDenominatorGuard(const std::set<std::string> &denominator_symbols) {
+  std::string guard_code;
+  for (const auto &symbol : denominator_symbols) {
+    guard_code += "    if (" + symbol + " <= 0) {\n";
+    guard_code += "      OP_LOGW(OP_NAME, \"Invalid workspace denominator " + symbol + "=%lf.\", " + symbol + ");\n";
+    guard_code += "      return;\n";
+    guard_code += "    }\n";
+  }
+  return guard_code;
+}
+}  // namespace
+
 const std::string AddAnotationBlock(std::string strs, std::string indent) {
   std::string str = indent + "/*\n" + strs + indent + "*/\n";
   return str;
@@ -49,9 +97,11 @@ const std::string GenWorkspaceRelatedVars(const std::map<int64_t, Expr> &workspa
                                           const ExprExprMap &container_expr) {
   std::string ret;
   std::set<std::string> arg_names;
+  std::set<std::string> denominator_symbols;
   ExprExprMap params_map;
   for (const auto &workspace_size_func : workspace_size_map) {
     GELOGD("The workspace_size func is [%s].", Str(workspace_size_func.second).c_str());
+    CollectDenominatorSymbols(workspace_size_func.second, container_expr, denominator_symbols);
     for (const auto &arg : workspace_size_func.second.FreeSymbols()) {
       AnalysisArg(arg, container_expr, arg_names, params_map);
     }
@@ -59,6 +109,7 @@ const std::string GenWorkspaceRelatedVars(const std::map<int64_t, Expr> &workspa
   for (const auto &arg_name : arg_names) {
     ret += "    double " + arg_name + " = tiling_data.get_" + arg_name + "();\n";
   }
+  ret += GenDenominatorGuard(denominator_symbols);
   for (const auto &workspace_size : workspace_size_map) {
     auto tensor_id = std::to_string(workspace_size.first);
     ret += "\n    auto it" + tensor_id + " = workspace_map.find(" + tensor_id + ");\n";

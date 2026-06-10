@@ -1208,6 +1208,45 @@ TEST_F(TestCodegenTiling, SingleGroupWorkspaceValueTest) {
     "}\n"});
 }
 
+TEST_F(TestCodegenTiling, GetWorkspaceSizeGuardsDynamicDenominator) {
+  ascir::ImplGraph graph0("test_graph0");
+  auto a1t_size = graph0.CreateSizeVar("a1t_size");
+  auto z0 = graph0.CreateAxis("z0", af::ops::One);
+
+  af::ascir_op::Workspace workspace("workspace");
+  graph0.AddNode(workspace);
+  workspace.y.dtype = ge::DT_FLOAT16;
+
+  af::ascir_op::Load load("load");
+  graph0.AddNode(load);
+  load.x = workspace.y;
+  load.attr.sched.axis = {z0.id};
+  *load.y.axis = {z0.id};
+  *load.y.repeats = {af::sym::Ceiling(af::Symbol(512) / a1t_size)};
+  *load.y.strides = {af::ops::One};
+
+  auto load_node = graph0.FindNode("load");
+  auto workspace_node = graph0.FindNode("workspace");
+  workspace_node->outputs[0].attr.dtype = ge::DT_FLOAT16;
+  workspace_node->outputs[0].attr.mem.tensor_id = 0;
+  load_node->outputs[0].attr.dtype = ge::DT_FLOAT16;
+  load_node->outputs[0].attr.mem.tensor_id = 1;
+
+  ascir::ScheduledResult schedule_result;
+  ascir::ScheduleGroup schedule_group;
+  schedule_group.impl_graphs.push_back(graph0);
+  schedule_result.schedule_groups.push_back(schedule_group);
+
+  ascir::FusedScheduledResult fused_schedule_result;
+  fused_schedule_result.workspace_nodes.push_back(workspace_node);
+  fused_schedule_result.node_idx_to_scheduled_results.push_back({schedule_result});
+
+  const auto code = this->GenGetWorkspaceSizeFunc("AutofuseTilingData", fused_schedule_result);
+  EXPECT_NE(code.find("if (t.a1t_size <= 0) {"), std::string::npos);
+  EXPECT_NE(code.find("return ws_size;"), std::string::npos);
+  EXPECT_LT(code.find("if (t.a1t_size <= 0) {"), code.find("ws_size += "));
+}
+
 TEST_F(TestCodegenTiling, MultiGroupWorkspaceSymbolTest) {
   ascir::ImplGraph graph0("test_graph0");
   auto s0 = graph0.CreateSizeVar("s0");
@@ -3163,7 +3202,24 @@ TEST_F(TestCodegenTiling, ExplicitDefaultConfigRequestMustFailWithoutDefaultCand
   const auto &tiling_impl = tiling_files.at(codegen::kTilingDefAndConstIdentify);
   EXPECT_NE(tiling_impl.find("bool found_default_candidate = false;"), std::string::npos);
   EXPECT_NE(tiling_impl.find("if (solution.is_default) { found_default_candidate = true; }"), std::string::npos);
-  EXPECT_NE(tiling_impl.find("if (is_default_config_request && !found_default_candidate) { return -1; }"), std::string::npos);
+  EXPECT_NE(tiling_impl.find("if (is_default_config_request && !found_default_candidate) {"), std::string::npos);
+  EXPECT_NE(tiling_impl.find("default topn candidate not found"), std::string::npos);
+}
+
+TEST_F(TestCodegenTiling, GenerateTopnShouldWarnForIntermediateSearchFailureAndErrorOnlyAtFinalFailure) {
+  auto fused_schedule_result = this->GenBasicFusedScheduleResult({af::Symbol("s0"), af::Symbol("s1")});
+  auto tiling_files = this->GenerateForInductor(fused_schedule_result);
+  ASSERT_TRUE(tiling_files.find(codegen::kTilingDefAndConstIdentify) != tiling_files.end());
+  const auto &tiling_impl = tiling_files.at(codegen::kTilingDefAndConstIdentify);
+
+  EXPECT_NE(tiling_impl.find("std::string error_message;"), std::string::npos);
+  EXPECT_NE(tiling_impl.find("response.error_message ="), std::string::npos);
+  EXPECT_NE(tiling_impl.find("OP_LOGW(OP_NAME, \"PGOSearchTilingKey failed"), std::string::npos);
+  EXPECT_NE(tiling_impl.find("OP_LOGE(OP_NAME, \"GenerateTopnSolutions failed: %s\""),
+            std::string::npos);
+  EXPECT_NE(tiling_impl.find("response.error_message.c_str()"), std::string::npos);
+  EXPECT_EQ(tiling_impl.find("if (GetTopnCandidateSolutions(request, response) != 0) { return -1; }"),
+            std::string::npos);
 }
 
 // Task 1 Step 2: multi-group semantic annotations — must match TF PGO real implementation
