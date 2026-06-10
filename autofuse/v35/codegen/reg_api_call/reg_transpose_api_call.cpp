@@ -9,7 +9,6 @@
  */
 #include "reg_transpose_api_call.h"
 
-#include <sstream>
 #include "attr_utils.h"
 #include "ascir_ops.h"
 #include "common_utils.h"
@@ -18,6 +17,7 @@
 #include "common/checker.h"
 #include "api_call/utils/api_call_factory.h"
 #include "codegen_api_param/codegen_api_param.h"
+#include "codegen/expression_convert_struct.h"
 #include "api_call/utils/api_call_utils.h"
 
 namespace codegen {

@@ -11,10 +11,9 @@
 #include "codegen_api_param.h"
 
 #include <utility>
+#include <sstream>
 
 using namespace codegen;
-
-const char *const kCodegenApiParam = "CodegenApiParam";
 
 namespace {
 ge::Expression AlignUp(const ge::Expression &value, uint32_t alignment) {

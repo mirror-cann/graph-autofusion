@@ -17,6 +17,7 @@
 #include "graph/ascendc_ir/utils/asc_tensor_utils.h"
 #include "common/checker.h"
 #include "api_call/utils/api_call_factory.h"
+#include "codegen/expression_convert_struct.h"
 
 namespace codegen {
 using namespace std;
@@ -30,6 +31,7 @@ Status FloorToIntApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::
                                   std::string &result) const {
   auto x = inputs[0].get();
   auto y = outputs[0].get();
+  (void)RegisterBasicDumpParam(this->api_name_, inputs, outputs, CombinedExprFactory::SymbolVar(x.actual_size.Str()));
   GELOGI("FloorToInt x_dtype:%d, y_dtype:%d.", static_cast<int32_t>(x.dtype), static_cast<int32_t>(y.dtype));
   stringstream ss;
 

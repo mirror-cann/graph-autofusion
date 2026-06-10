@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Huawei Technologies Co., Ltd.
+ * Copyright (c) 2026 Huawei Technologies Co., Ltd.
  * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
@@ -8,10 +8,12 @@
  * See LICENSE in the root of the software repository for the full text of the License.
  */
 #include "axes_reorder_solver_gen.h"
+#include <algorithm>
 #include <set>
 #include "autofuse_config/auto_fuse_config.h"
 #include "graph/symbolizer/symbolic_utils.h"
 #include "common_utils.h"
+#include "named_origin_buf_expr_generator.h"
 
 using namespace ascgen_utils;
 
@@ -293,6 +295,11 @@ std::pair<std::string, std::string> AxesReorderSolverGen::GenOriginBufExpr(const
   return std::make_pair(tmp_def, func_return_expr);
 }
 
+std::pair<std::string, std::string> AxesReorderSolverGen::GenNamedOriginBufExpr(
+    const Expr &expr, const std::string &indent) const {
+  return NamedOriginBufExprGenerator(container_expr_, container_names_).Generate(expr, indent);
+}
+
 std::string AxesReorderSolverGen::GenObjFunc() {
   std::string codes;
   std::string pipe_obj;
@@ -397,7 +404,7 @@ std::string AxesReorderSolverGen::GenGetUbSizeStaticFunc() {
   bool ub_exist = false;
   auto ub_iter = hardware_use_map_.find(HardwareDef::UB);
   if (ub_iter != hardware_use_map_.end()) {
-    auto tmp_func_pair = GenOriginBufExpr(ub_iter->second, "  ");
+    auto tmp_func_pair = GenNamedOriginBufExpr(ub_iter->second, "  ");
     std::string tmp_def = tmp_func_pair.first;
     std::string func_return_expr = tmp_func_pair.second;
     codes += tmp_def;

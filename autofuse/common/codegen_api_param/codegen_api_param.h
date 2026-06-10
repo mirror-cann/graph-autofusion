@@ -22,9 +22,13 @@
 #include <shared_mutex>
 #include "ge_common/ge_api_types.h"
 #include "ascir.h"
-#include "codegen/expression_convert_struct.h"
+#include "expression_struct.h"
 
 namespace codegen {
+
+class Tiler;
+
+const char *const kCodegenApiParam = "CodegenApiParam";
 
 struct MergeAxesInfo {
   // 有效性标志：表示是否有merge axes信息
@@ -178,6 +182,8 @@ using CodegenApiParamPtr = std::shared_ptr<CodegenApiParam>;
 struct CodegenApiParam {
   static ge::Status Register(af::AscNodePtr node, CodegenApiParamPtr api_param);
   static CodegenApiParamPtr GetNodeApiParam(af::AscNodePtr node);
+  static ge::Status DumpGraphApiParams(const ascir::ImplGraph &graph, const Tiler &tiler,
+                                       const std::string &prefix);
   std::string api_name;
   std::vector<std::string> template_params;
 

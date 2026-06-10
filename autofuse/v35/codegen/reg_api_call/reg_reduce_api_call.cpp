@@ -18,6 +18,7 @@
 #include "common/checker.h"
 #include "graph/ascendc_ir/utils/asc_tensor_utils.h"
 #include "api_call/utils/api_call_factory.h"
+#include "codegen/expression_convert_struct.h"
 #include "reg_api_call_utils.h"
 
 namespace codegen {
@@ -59,6 +60,7 @@ Status RegReduceApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::A
 
   auto x = inputs[0].get();
   auto y = outputs[0].get();
+  (void)RegisterBasicDumpParam(this->api_name_, inputs, outputs);
 
   std::string reduce_pattern;
   GetIsArAndPattern(y, x.isAr, reduce_pattern);

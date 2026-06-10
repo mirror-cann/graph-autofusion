@@ -17,6 +17,7 @@
 #include "graph/ascendc_ir/utils/asc_tensor_utils.h"
 #include "common/checker.h"
 #include "api_call/utils/api_call_factory.h"
+#include "codegen/expression_convert_struct.h"
 
 namespace codegen {
 using namespace std;
@@ -39,6 +40,7 @@ Status PadApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::AxisId>
     id = it->second;
   }
 
+  (void)RegisterBasicDumpParam(this->api_name_, inputs, outputs, {}, tpipe.tmp_buf.name + "_" + std::to_string(id));
   stringstream ss;
   stringstream axis_size_product;
   size_t axis_num = y.vectorized_axis.size();

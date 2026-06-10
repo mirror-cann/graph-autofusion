@@ -53,6 +53,8 @@ private:
   bool IsInputNodePartitioned(const std::shared_ptr<af::Node>& start, const std::shared_ptr<af::Node>& node);
   Status FindNormLoop(const af::AscNodePtr &start, std::vector<af::AscNodePtr> &ends);
   bool IsNorm(const af::AscNodePtr &start, const af::AscNodePtr &end);
+  std::vector<std::pair<af::AscNodePtr, af::AscNodePtr>> FindNormLoops(ascir::ImplGraph &graph);
+  bool ShouldForceAllLoad(ascir::HintGraph &graph);
   Status PartitionNorm(ascir::ImplGraph &impl_graph, std::vector<std::pair<af::AscNodePtr, af::AscNodePtr>> &loop_start_end);
   void FindAllPath(const af::AscNodePtr& start, const af::AscNodePtr& end,
                        std::vector<af::AscNodePtr> &path, std::vector<std::vector<af::AscNodePtr>> &all_paths);

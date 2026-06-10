@@ -17,6 +17,9 @@ from typing import List
 from autofuse import ascendc_compile
 import re
 
+HOST_DEFAULT_CXX11_ABI = "-D_GLIBCXX_USE_CXX11_ABI=1"
+HOST_CXX11_ABI_PREFIX = "-D_GLIBCXX_USE_CXX11_ABI="
+
 
 def str2bool(v):
     v_lower = v.lower()
@@ -125,8 +128,8 @@ def prepare_compile_context(argv, stage, tiling_repr):
     args = parse_compile_args(argv)
     args.stage = stage
     args.tiling_repr = tiling_repr
-    if stage == 'host':
-        args.compile_options = (args.compile_options + " -D_GLIBCXX_USE_CXX11_ABI=0").strip()
+    if stage == 'host' and HOST_CXX11_ABI_PREFIX not in args.compile_options:
+        args.compile_options = (args.compile_options + " " + HOST_DEFAULT_CXX11_ABI).strip()
 
     args.graph_name = camel_to_snake(gen_valid_name(args.graph_name))
     auto_cleanup = not args.output_path and not get_debug_flag()

@@ -17,6 +17,7 @@
 #include "graph/ascendc_ir/utils/asc_tensor_utils.h"
 #include "common/checker.h"
 #include "api_call/utils/api_call_factory.h"
+#include "codegen/expression_convert_struct.h"
 
 namespace codegen {
 using namespace std;
@@ -30,6 +31,7 @@ Status Ub2ubApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::AxisI
                               std::string &result) const {
   auto x = inputs[0].get();
   auto y = outputs[0].get();
+  (void)RegisterBasicDumpParam(this->api_name_, inputs, outputs, CombinedExprFactory::SymbolVar(x.actual_size.Str()));
   stringstream ss;
   string blk_align;
   GE_CHK_STATUS_RET(KernelUtils::BlkAlign(x.dtype, blk_align), "Codegen blk align failed");

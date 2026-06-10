@@ -18,6 +18,7 @@
 #include "../utils/api_call_utils.h"
 
 #include "load_api_call.h"
+#include "codegen/expression_convert_struct.h"
 
 using namespace af::ops;
 using namespace af::ascir_op;
@@ -38,6 +39,7 @@ Status LoadApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::AxisId
   std::stringstream ss;
   const auto &gm = inputs[0].get();
   const auto &ub = outputs[0].get();
+  (void)RegisterBasicDumpParam(this->api_name_, inputs, outputs);
   DataCopyParams param;
   (void)CalculateDmaParams(tpipe, ub, ub, param);
   std::string gm_offset = ub.is_ub_scalar ? "0" : tpipe.tiler.Offset(current_axis, ub.axis, ub.axis_strides);

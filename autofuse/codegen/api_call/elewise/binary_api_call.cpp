@@ -18,6 +18,7 @@
 #include "graph/symbolizer/symbolic_utils.h"
 #include "common/checker.h"
 #include "api_call/utils/api_call_factory.h"
+#include "codegen/expression_convert_struct.h"
 
 namespace codegen {
 using namespace std;
@@ -49,6 +50,10 @@ Status BinaryApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::Axis
          static_cast<int32_t>(x2.need_gen_get_value_of_ub_scalar));
 
   const auto &y = outputs[0].get();
+
+  (void)RegisterBasicDumpParam(this->api_name_, inputs, outputs,
+                               CombinedExprFactory::SymbolVar(x1.actual_size.Str()));
+
   stringstream ss;
   std::string dtype_name;
   GE_CHK_STATUS_RET(Tensor::DtypeName(x1.dtype, dtype_name), "Codegen get data type:%d failed",

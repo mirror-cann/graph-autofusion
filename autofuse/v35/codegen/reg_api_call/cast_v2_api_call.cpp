@@ -18,6 +18,7 @@
 #include "common/checker.h"
 #include "api_call/utils/api_call_factory.h"
 #include "api_call/utils/api_call_utils.h"
+#include "codegen/expression_convert_struct.h"
 
 namespace codegen {
 using namespace std;
@@ -32,6 +33,7 @@ Status CastV2ApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::Axis
   (void)this->api_name_;
   auto x = inputs[0].get();
   auto y = outputs[0].get();
+  (void)RegisterBasicDumpParam(this->api_name_, inputs, outputs);
   GELOGD("x, is_constant:%d", static_cast<int32_t>(x.is_constant));
   GELOGI("cast x_dtype:%d, y.dtype:%d.", static_cast<int32_t>(x.dtype), static_cast<int32_t>(y.dtype));
   GE_ASSERT_TRUE((x.dtype != y.dtype), "cast s_dtype:%d, y.dtype:%d", static_cast<int32_t>(x.dtype),

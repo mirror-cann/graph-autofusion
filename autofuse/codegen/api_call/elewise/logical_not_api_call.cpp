@@ -17,6 +17,7 @@
 #include "graph/ascendc_ir/utils//asc_tensor_utils.h"
 #include "common/checker.h"
 #include "api_call/utils/api_call_factory.h"
+#include "codegen/expression_convert_struct.h"
 
 namespace codegen {
 using namespace std;
@@ -30,6 +31,9 @@ Status LogicalNotApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::
                                    std::string &result) const {
   const auto &x = inputs[0].get();
   const auto &y = outputs[0].get();
+
+  (void)RegisterBasicDumpParam(this->api_name_, inputs, outputs,
+                               CombinedExprFactory::SymbolVar(x.actual_size.Str()));
 
   // 获取tmp_buf复用TBuf的id
   int64_t life_time_axis_id = -1L;

@@ -41,6 +41,7 @@ add_library(test_regbase_ascendc OBJECT
     ./test_legendre_polynomial_p.cpp
     ./test_igamma.cpp
     ./test_igammac.cpp
+    ./test_frexp.cpp
     ./test_transpose.cpp
     ./test_bessel_j0.cpp
     ./test_bessel_j1.cpp

@@ -17,6 +17,7 @@
 #include "graph/ascendc_ir/utils/asc_tensor_utils.h"
 #include "common/checker.h"
 #include "api_call/utils/api_call_factory.h"
+#include "codegen/expression_convert_struct.h"
 
 namespace codegen {
 using namespace std;
@@ -73,6 +74,10 @@ Status ClipByValueApiCall::Generate(const TPipe &tpipe, const std::vector<ascir:
   if (it != this->tmp_buf_id.end()) {
     id = it->second;
   }
+
+  (void)RegisterBasicDumpParam(this->api_name_, inputs, outputs,
+                               CombinedExprFactory::SymbolVar(x1.actual_size.Str()),
+                               tpipe.tmp_buf.name + "_" + std::to_string(id));
 
   stringstream ss;
   ss << this->api_name_ << "(" << y << "[" << tpipe.tiler.TensorVectorizedOffset(current_axis, y) << "], ";  // 输出

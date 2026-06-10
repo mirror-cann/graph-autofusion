@@ -18,6 +18,7 @@
 #include "common/checker.h"
 #include "api_call/utils/api_call_factory.h"
 #include "api_call/utils/api_call_utils.h"
+#include "codegen/expression_convert_struct.h"
 
 namespace codegen {
 using namespace std;
@@ -287,6 +288,7 @@ Status WhereRegApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::Ax
   const Tensor *y = nullptr;
 
   GE_CHK_STATUS_RET(PrepareInputsAndOutputs(inputs, outputs, x1, x2, x3, y));
+  (void)RegisterBasicDumpParam(this->api_name_, inputs, outputs);
 
   ApiLoopParams param;
   GE_CHK_STATUS_RET(GenerateLoopParams(*x1, *x2, *x3, *y, tpipe, param));

@@ -18,6 +18,7 @@
 #include "common/checker.h"
 #include "api_call/utils/api_call_factory.h"
 #include "api_call/utils/api_call_utils.h"
+#include "codegen/expression_convert_struct.h"
 namespace codegen {
 using namespace std;
 using namespace af::ops;
@@ -30,6 +31,7 @@ Status UnaryBitWidthChangeApiCallV2::Generate(const TPipe &tpipe, const std::vec
                               std::string &result) const {
   auto x = inputs[0].get();
   auto y = outputs[0].get();
+  (void)RegisterBasicDumpParam(this->api_name_, inputs, outputs);
   stringstream ss;
 
   ss << "LocalTensor<bool> " << y << "_cast"

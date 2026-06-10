@@ -14,6 +14,7 @@
 #include "graph/symbolizer/symbolic_utils.h"
 #include "ascir_ops.h"
 #include "common/checker.h"
+#include "codegen/expression_convert_struct.h"
 
 namespace codegen {
 using namespace ascgen_utils;
@@ -179,6 +180,7 @@ Status SplitRegApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::Ax
                          "Codegen input or output tensor is empty");
   const auto &x = inputs[0].get();
   const auto &y0 = outputs[0].get();
+  (void)RegisterBasicDumpParam(this->api_name_, inputs, outputs);
   size_t split_dim;
   GE_ASSERT_SUCCESS(ParseSplitDim(x, y0, split_dim), "Failed to parse split dim");
   SplitTiling split_tiling;

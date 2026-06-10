@@ -8,20 +8,15 @@
  * See LICENSE in the root of the software repository for the full text of the License.
  */
 
-#include <algorithm>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <dlfcn.h>
 #include <fstream>
 #include <gtest/gtest.h>
-#include <map>
 #include <sstream>
 #include <string>
 #include <sys/wait.h>
-#include <vector>
-
-#include "autofuse_tiling_data.h"
 
 #ifndef HOST_CODE_FILE
 #define HOST_CODE_FILE ""
@@ -32,21 +27,24 @@
 #ifndef OUTPUT_DIR
 #define OUTPUT_DIR ""
 #endif
-
-struct ResLimit {
-  uint32_t valid_num = 0;
-  uint32_t aiv_num = 0;
-  uint32_t aic_num = 0;
-  uint32_t ub_size = 0;
-  uint32_t resv[10];
-};
-
-using GenerateTopnSolutionsFn = int64_t (*)(const std::vector<std::map<std::string, std::string>> &,
-                                            int64_t, std::vector<AutofuseTilingData> &,
-                                            std::vector<int64_t> &, std::vector<int64_t> &, ResLimit *);
-using GetTilingDataReprFn = std::string (*)(const AutofuseTilingData *);
-using GetModeledPerfForTestingFn = double (*)(const AutofuseTilingData *);
-using AutofuseTilingFn = int64_t (*)(AutofuseTilingData *, uint32_t *, uint32_t *, ResLimit *);
+#ifndef HOST_HELPER_BIN
+#define HOST_HELPER_BIN ""
+#endif
+#ifndef HOST_DYNAMIC_SHAPE_ARGS
+#define HOST_DYNAMIC_SHAPE_ARGS ""
+#endif
+#ifndef HOST_INPUT_CONFIGS_JSON
+#define HOST_INPUT_CONFIGS_JSON "[]"
+#endif
+#ifndef HOST_TOPN
+#define HOST_TOPN 4
+#endif
+#ifndef HOST_PERF_ORDER
+#define HOST_PERF_ORDER "ascending-skip-first"
+#endif
+#ifndef HOST_VERIFY_EMPTY_CONFIG
+#define HOST_VERIFY_EMPTY_CONFIG 0
+#endif
 
 namespace {
 
@@ -75,6 +73,10 @@ bool FileExists(const std::string &path) {
   return f.good();
 }
 
+bool HasCxx11AbiSymbols(const std::string &path) {
+  return RunCommand("nm -D " + path + " 2>/dev/null | c++filt | grep -q 'std::__cxx11'") == 0;
+}
+
 #ifndef PYAUTOFUSE_DIR
 #define PYAUTOFUSE_DIR ""
 #endif
@@ -91,15 +93,21 @@ std::string PythonPreamble() {
     "pkg_dir = os.path.join('" + std::string(OUTPUT_DIR) + "', 'autofuse_pkg')\n"
     "os.makedirs(pkg_dir, exist_ok=True)\n"
     "autofuse_dir = os.path.join(pkg_dir, 'autofuse')\n"
-    "try:\n"
-    "    os.symlink('" + std::string(AUTOFUSE_PYTHON_DIR) + "', autofuse_dir)\n"
-    "except FileExistsError:\n"
-    "    pass\n"
+    "if os.path.islink(autofuse_dir) or os.path.isfile(autofuse_dir):\n"
+    "    os.unlink(autofuse_dir)\n"
+    "os.makedirs(autofuse_dir, exist_ok=True)\n"
+    "for name in os.listdir('" + std::string(AUTOFUSE_PYTHON_DIR) + "'):\n"
+    "    src = os.path.join('" + std::string(AUTOFUSE_PYTHON_DIR) + "', name)\n"
+    "    dst = os.path.join(autofuse_dir, name)\n"
+    "    if not os.path.lexists(dst):\n"
+    "        os.symlink(src, dst)\n"
+    "pyautofuse_src = os.path.join('" + std::string(PYAUTOFUSE_DIR) + "', 'pyautofuse.so')\n"
+    "if not os.path.exists(pyautofuse_src):\n"
+    "    raise FileNotFoundError(pyautofuse_src)\n"
     "pyautofuse_dst = os.path.join(autofuse_dir, 'pyautofuse.so')\n"
-    "try:\n"
-    "    os.symlink('" + std::string(PYAUTOFUSE_DIR) + "/pyautofuse.so', pyautofuse_dst)\n"
-    "except FileExistsError:\n"
-    "    pass\n"
+    "if os.path.lexists(pyautofuse_dst):\n"
+    "    os.unlink(pyautofuse_dst)\n"
+    "os.symlink(pyautofuse_src, pyautofuse_dst)\n"
     "sys.path.insert(0, pkg_dir)\n"
     "import autofuse.ascendc_compile as _ac\n"
     "_ac.ASCEND_PATH = '" + std::string(ASCEND_HOME_PATH) + "'\n";
@@ -131,6 +139,25 @@ int RunHostCompile(const std::string &tiling_def, const std::string &host_code, 
   std::string cmd = "ASCEND_HOME_PATH=" + std::string(ASCEND_HOME_PATH) + " python3 " + script_path + " 2>&1";
   int ret = RunCommand(cmd);
   if (ret != 0) printf("host_compile failed, ret=%d\n", ret);
+  return ret;
+}
+
+int RunHostHelper(const std::string &host_bin, const std::string &tiling_repr_file) {
+  const std::string input_configs_file = OUTPUT_DIR "/host_input_configs.json";
+  WriteFile(input_configs_file, HOST_INPUT_CONFIGS_JSON);
+  std::string cmd = std::string(HOST_HELPER_BIN) + " --host-so " + host_bin + " --tiling-repr-out " +
+                    tiling_repr_file + " --input-configs " + input_configs_file + " --topn " +
+                    std::to_string(HOST_TOPN) +
+                    " --perf-order " + std::string(HOST_PERF_ORDER);
+  if (!std::string(HOST_DYNAMIC_SHAPE_ARGS).empty()) {
+    cmd += " --dynamic-shape-args " + std::string(HOST_DYNAMIC_SHAPE_ARGS);
+  }
+  if (HOST_VERIFY_EMPTY_CONFIG != 0) {
+    cmd += " --verify-empty-config";
+  }
+  cmd += " 2>&1";
+  int ret = RunCommand(cmd);
+  if (ret != 0) printf("host helper failed, ret=%d\n", ret);
   return ret;
 }
 
@@ -193,86 +220,6 @@ void PrepareInputs(std::string &tiling_def, std::string &host_code, std::string 
   ASSERT_FALSE(device_code.empty()) << "device_code empty";
 }
 
-void CompileHostAndResolve(const std::string &tiling_def, const std::string &host_code,
-                           std::string &host_bin, DlHandle &host_handle, GenerateTopnSolutionsFn &gen_fn,
-                           GetTilingDataReprFn &repr_fn, GetModeledPerfForTestingFn &perf_fn,
-                           AutofuseTilingFn &autofuse_tiling_fn) {
-  host_bin = OUTPUT_DIR "/inductor_topn_concat_host.so";
-  ASSERT_EQ(RunHostCompile(tiling_def, host_code, host_bin), 0);
-  ASSERT_TRUE(FileExists(host_bin)) << "host so not found: " << host_bin;
-
-  host_handle.ptr = dlopen(host_bin.c_str(), RTLD_LAZY | RTLD_LOCAL);
-  ASSERT_TRUE(host_handle) << "dlopen host failed: " << dlerror();
-  gen_fn = reinterpret_cast<GenerateTopnSolutionsFn>(dlsym(host_handle.ptr, "GenerateTopnSolutions"));
-  repr_fn = reinterpret_cast<GetTilingDataReprFn>(dlsym(host_handle.ptr, "GetTilingDataRepr"));
-  perf_fn = reinterpret_cast<GetModeledPerfForTestingFn>(dlsym(host_handle.ptr, "GetModeledPerfForTesting"));
-  autofuse_tiling_fn = reinterpret_cast<AutofuseTilingFn>(dlsym(host_handle.ptr, "AutofuseTiling"));
-  ASSERT_NE(gen_fn, nullptr) << "GenerateTopnSolutions not found";
-  ASSERT_NE(repr_fn, nullptr) << "GetTilingDataRepr not found";
-  ASSERT_NE(perf_fn, nullptr) << "GetModeledPerfForTesting not found";
-  ASSERT_NE(autofuse_tiling_fn, nullptr) << "AutofuseTiling not found";
-}
-
-std::string GenerateTopnAndReprForDefaultConfigRequest(GenerateTopnSolutionsFn gen_fn,
-                                                       GetTilingDataReprFn repr_fn,
-                                                       GetModeledPerfForTestingFn perf_fn,
-                                                       AutofuseTilingFn autofuse_tiling_fn) {
-  std::vector<AutofuseTilingData> tiling_datas;
-  std::vector<int64_t> workspaces;
-  std::vector<int64_t> block_dims;
-  ResLimit res_limit = {1, 48, 0, 192 * 1024, {0}};
-  const std::vector<std::map<std::string, std::string>> input_configs = {{}};
-
-  // 1. Reject invalid topn
-  std::vector<AutofuseTilingData> invalid_tiling_datas;
-  std::vector<int64_t> invalid_workspaces;
-  std::vector<int64_t> invalid_block_dims;
-  EXPECT_EQ(gen_fn(input_configs, 0, invalid_tiling_datas, invalid_workspaces, invalid_block_dims, &res_limit), -1);
-  EXPECT_TRUE(invalid_tiling_datas.empty());
-  EXPECT_TRUE(invalid_workspaces.empty());
-  EXPECT_TRUE(invalid_block_dims.empty());
-
-  // 2. Default top1 must match AutofuseTiling baseline
-  AutofuseTilingData default_tiling_data = {};
-  uint32_t default_workspace = 0;
-  uint32_t default_block_dim = 0;
-  EXPECT_EQ(autofuse_tiling_fn(&default_tiling_data, &default_workspace, &default_block_dim, &res_limit), 0);
-
-  EXPECT_EQ(gen_fn(input_configs, 1, tiling_datas, workspaces, block_dims, &res_limit), 0);
-  EXPECT_EQ(tiling_datas.size(), 1U);
-  EXPECT_EQ(workspaces.size(), 1U);
-  EXPECT_EQ(block_dims.size(), 1U);
-  EXPECT_EQ(workspaces[0], static_cast<int64_t>(default_workspace));
-  EXPECT_EQ(block_dims[0], static_cast<int64_t>(default_block_dim));
-
-  const std::string default_repr = repr_fn(&default_tiling_data);
-  const std::string tiling_repr = repr_fn(&tiling_datas[0]);
-  EXPECT_FALSE(tiling_repr.empty());
-  EXPECT_EQ(tiling_repr, default_repr);
-  EXPECT_NE(tiling_repr.find("AutofuseTilingData{"), std::string::npos);
-
-  // 3. Multi-candidate uniqueness and modeled_perf ascending sort (topn=10)
-  tiling_datas.clear();
-  workspaces.clear();
-  block_dims.clear();
-  EXPECT_EQ(gen_fn(input_configs, 10, tiling_datas, workspaces, block_dims, &res_limit), 0);
-  EXPECT_GT(tiling_datas.size(), 1U);
-  EXPECT_EQ(tiling_datas.size(), workspaces.size());
-  EXPECT_EQ(tiling_datas.size(), block_dims.size());
-  EXPECT_EQ(repr_fn(&tiling_datas[0]), default_repr);
-  for (size_t i = 0; i < tiling_datas.size(); ++i) {
-    for (size_t j = i + 1; j < tiling_datas.size(); ++j) {
-      EXPECT_NE(repr_fn(&tiling_datas[i]), repr_fn(&tiling_datas[j]));
-    }
-  }
-  for (size_t i = 2; i < tiling_datas.size(); ++i) {
-    EXPECT_LE(perf_fn(&tiling_datas[i - 1]), perf_fn(&tiling_datas[i]))
-        << "perf not ascending: sol[" << (i - 1) << "]=" << perf_fn(&tiling_datas[i - 1])
-        << " > sol[" << i << "]=" << perf_fn(&tiling_datas[i]);
-  }
-  return tiling_repr;
-}
-
 void CompileAndVerifyKernels(const std::string &tiling_def, const std::string &device_code,
                              const std::string &tiling_repr) {
   const std::string static_dir = OUTPUT_DIR "/device_static";
@@ -310,15 +257,13 @@ TEST_F(TestBackendInductorTopnConcatSplitCompile, SplitCompileChainWorks) {
   std::string tiling_def, host_code, device_code;
   PrepareInputs(tiling_def, host_code, device_code);
 
-  std::string host_bin;
-  DlHandle host_handle(nullptr);
-  GenerateTopnSolutionsFn gen_fn = nullptr;
-  GetTilingDataReprFn repr_fn = nullptr;
-  GetModeledPerfForTestingFn perf_fn = nullptr;
-  AutofuseTilingFn autofuse_tiling_fn = nullptr;
-  CompileHostAndResolve(tiling_def, host_code, host_bin, host_handle, gen_fn, repr_fn, perf_fn, autofuse_tiling_fn);
-
-  std::string tiling_repr = GenerateTopnAndReprForDefaultConfigRequest(gen_fn, repr_fn, perf_fn, autofuse_tiling_fn);
+  const std::string host_bin = OUTPUT_DIR "/inductor_topn_concat_host.so";
+  ASSERT_EQ(RunHostCompile(tiling_def, host_code, host_bin), 0);
+  ASSERT_TRUE(FileExists(host_bin)) << "host so not found: " << host_bin;
+  ASSERT_TRUE(HasCxx11AbiSymbols(host_bin)) << "host so should use ABI=1: " << host_bin;
+  const std::string tiling_repr_file = OUTPUT_DIR "/tiling_repr.txt";
+  ASSERT_EQ(RunHostHelper(host_bin, tiling_repr_file), 0);
+  std::string tiling_repr = ReadFile(tiling_repr_file);
   ASSERT_FALSE(tiling_repr.empty());
 
   CompileAndVerifyKernels(tiling_def, device_code, tiling_repr);

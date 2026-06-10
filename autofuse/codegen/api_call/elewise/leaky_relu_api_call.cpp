@@ -17,6 +17,7 @@
 #include "graph/ascendc_ir/utils/asc_tensor_utils.h"
 #include "common/checker.h"
 #include "api_call/utils/api_call_factory.h"
+#include "codegen/expression_convert_struct.h"
 
 namespace codegen {
 using namespace std;
@@ -30,6 +31,8 @@ Status LeakyReluApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::A
                                   std::string &result) const {
   auto x = inputs[0].get();
   auto y = outputs[0].get();
+
+  (void)RegisterBasicDumpParam(this->api_name_, inputs, outputs, CombinedExprFactory::SymbolVar(x.actual_size.Str()));
 
   std::string x_dtype;
   GE_CHK_STATUS_RET(Tensor::DtypeName(x.dtype, x_dtype), "get name of dtype:%d failed", static_cast<int32_t>(x.dtype));

@@ -18,6 +18,7 @@
 #include "common/checker.h"
 #include "api_call/utils/api_call_factory.h"
 #include "api_call/utils/api_call_utils.h"
+#include "codegen/expression_convert_struct.h"
 
 namespace codegen {
 using namespace std;
@@ -56,6 +57,10 @@ Status CompareApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::Axi
   auto it = this->tmp_buf_id.find(life_time_axis_id);
   GE_ASSERT_TRUE(it != this->tmp_buf_id.end(), "CompareApiCall cannot find tmp buffer id to use.");
   id = it->second;
+
+  (void)RegisterBasicDumpParam(this->api_name_, inputs, outputs,
+                               {},
+                               tpipe.tmp_buf.name + "_" + std::to_string(id));
 
   // 如果第2个输入是ub_scalar场景, 初始化x2为ub_scalar对应的变量
   std::string dtype_name;

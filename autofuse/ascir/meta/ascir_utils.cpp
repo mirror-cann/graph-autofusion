@@ -246,21 +246,8 @@ DumpConfig ParseDfxFlags(const char *dfx_flags) {
   return cfg;
 }
 
-std::optional<DumpConfig> &GetMutableDumpConfig() {
-  static std::optional<DumpConfig> config;
-  return config;
-}
-
-const DumpConfig &GetDumpConfig() {
-  auto &config = GetMutableDumpConfig();
-  if (!config.has_value()) {
-    config = ParseDfxFlags(std::getenv("AUTOFUSE_DFX_FLAGS"));
-  }
-  return config.value();
-}
-
-bool IsCodegenCompileEnabled() {
-  return GetDumpConfig().enabled;
+DumpConfig GetDumpConfig() {
+  return ParseDfxFlags(std::getenv("AUTOFUSE_DFX_FLAGS"));
 }
 
 std::string GetCodegenCompileDebugDir() {
@@ -766,7 +753,7 @@ static void DumpComputeGraphImpl(const af::ComputeGraphPtr &compute_graph, const
 
 void DumpComputeGraph(const af::ComputeGraphPtr &compute_graph, const std::string &suffix, bool always_dump) {
   // 使用统一的 AUTOFUSE_DFX_FLAGS 环境变量检查
-  if (!always_dump && !IsCodegenCompileEnabled()) {
+  if (!always_dump && !ascir::utils::IsCodegenCompileEnabled()) {
     return;
   }
   std::string prefix = GetDumpGraphPrefixAndCreateDir();
@@ -798,7 +785,7 @@ static void DumpGraphImpl(const ascir::Graph &graph, const std::string &suffix, 
 }
 
 void DumpGraph(const ascir::Graph &graph, const std::string &suffix, const uint32_t graph_id, const bool verbose) {
-  if (!IsCodegenCompileEnabled()) {
+  if (!ascir::utils::IsCodegenCompileEnabled()) {
     // 环境变量没开启时, 捕获图对象为异常退出时维测服务
     AscGraphDumperContext::GetThreadLocalCtx().AddWatchGraph(suffix, graph);
     return;
@@ -808,7 +795,7 @@ void DumpGraph(const ascir::Graph &graph, const std::string &suffix, const uint3
 
 void AlwaysDumpGraph(const Graph &graph, const string &suffix, const uint32_t graph_id, const bool verbose) {
   // AlwaysDumpGraph 用于在没开 codegen_compile_debug=true时，当异常时强制 dump
-  if (IsCodegenCompileEnabled()) {
+  if (ascir::utils::IsCodegenCompileEnabled()) {
     // 正常流程已经 dump，这里不需要再 dump
     return;
   }
@@ -816,7 +803,7 @@ void AlwaysDumpGraph(const Graph &graph, const string &suffix, const uint32_t gr
 }
 
 void DumpImplGraphs(const std::vector<ascir::Graph> &graphs, const std::string &suffix) {
-  if (!IsCodegenCompileEnabled()) {
+  if (!ascir::utils::IsCodegenCompileEnabled()) {
     return;
   }
   for (size_t i = 0UL; i < graphs.size(); ++i) {
@@ -825,7 +812,7 @@ void DumpImplGraphs(const std::vector<ascir::Graph> &graphs, const std::string &
 }
 
 void DumpPyCode(const af::AscGraph &graph) {
-  if (!IsCodegenCompileEnabled()) {
+  if (!ascir::utils::IsCodegenCompileEnabled()) {
     return;
   }
   std::string prefix = GetDumpGraphPrefixAndCreateDir();
@@ -1054,12 +1041,22 @@ std::string SetCurrentFusedGraphName(const std::string &name) {
 }
 
 void ResetDumpConfig() {
-  GetMutableDumpConfig().reset();
   // 清除目录缓存
   g_cached_pid_dir.clear();
   g_created_graph_dirs.clear();
   g_current_fused_graph_name.clear();
   g_current_fused_graph_dump_index = 0UL;
   g_current_onnx_dump_index = 0UL;
+}
+
+bool IsCodegenCompileEnabled() {
+  return GetDumpConfig().enabled;
+}
+
+std::string GetDumpFilePrefix() {
+  if (!ascir::utils::IsCodegenCompileEnabled()) {
+    return "";
+  }
+  return GetDumpGraphPrefixAndCreateDir();
 }
 }  // namespace ascir::utils
