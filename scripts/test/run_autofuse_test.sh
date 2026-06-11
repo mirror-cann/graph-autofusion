@@ -703,6 +703,18 @@ codegen_e2e_st() {
   echo "$(date '+%F %T') codegen_e2e_st execute success!"
 }
 
+build_backend_test_regex() {
+  local test_regex=""
+  local test_name
+  for test_name in "$@"; do
+    if [ -n "${test_regex}" ]; then
+      test_regex="${test_regex}|"
+    fi
+    test_regex="${test_regex}${test_name}"
+  done
+  echo "^(${test_regex})$"
+}
+
 build_backend() {
   echo "$(date '+%F %T') create build directory and build build_backend";
   mk_dir "${BUILD_PATH}"
@@ -730,7 +742,7 @@ build_backend() {
 
   cmake $CMAKE_ARGS ../
 
-  # st用例可执行文件的列表
+  # st用例可执行文件的列表，inductor split_compile 仅保留 presubmit 代表用例，其余放 nightly。
   MAKE_TARGET_LIST="add_abs_test_e2e \
                     axpy_abs_test_e2e \
                     sub_abs_test_e2e \
@@ -762,9 +774,7 @@ build_backend() {
                     argmax_test_e2e \
                     axpy_abs_test_e2e \
                     load_logical_not_store_test_e2e \
-                    inductor_topn_test_e2e \
                     inductor_tail_brc_tail_reduce_test_e2e \
-                    inductor_topn_concat_test_e2e \
                     pgo_add_abs_inductor_test_e2e \
                     pgo_add_abs_inductor_concat_test_e2e"
   if [[ "X$RUN_V35_TESTS" = "Xon" ]]; then
@@ -876,6 +886,8 @@ build_backend() {
                       expm_test_e2e_v2"
   fi
   MAKE_TARGET_LIST_CODEGEN=$(echo "${MAKE_TARGET_LIST}" | sed 's/e2e/codegen/g')
+  CTEST_BACKEND_TEST1_REGEX=$(build_backend_test_regex ${MAKE_TARGET_LIST_CODEGEN})
+  CTEST_BACKEND_TEST2_REGEX=$(build_backend_test_regex ${MAKE_TARGET_LIST})
   echo "MAKE_TARGET_LIST_CODEGEN"
   echo $MAKE_TARGET_LIST_CODEGEN
   make -j${THREAD_NUM} $MAKE_TARGET_LIST_CODEGEN
@@ -889,8 +901,9 @@ build_backend() {
   ASCEND_DEVLIB_PATH=${ASCEND_INSTALL_PATH}/toolkit/devlib
   ASCEND_RUNTIME_STUB_PATH=${ASCEND_INSTALL_PATH}/runtime/lib64/stub
   export LD_LIBRARY_PATH=${METADEF_LIB_PATH}:${ASCEND_INSTALL_LIB_PATH}:${ASCEND_DEVLIB_PATH}:${ASCEND_RUNTIME_STUB_PATH}:${LD_LIBRARY_PATH}
-  ctest --output-on-failure -j${THREAD_NUM} -L st -L build_backend_test1 --test-dir ${AUTOFUSE_BUILD_PATH}/tests --no-tests=error \
-        -O ${BUILD_PATH}/ctest_build_backend_test1.log
+  (cd "${AUTOFUSE_BUILD_PATH}/tests" && \
+    ctest --output-on-failure -j${THREAD_NUM} -L st -L build_backend_test1 -R "${CTEST_BACKEND_TEST1_REGEX}" \
+          --no-tests=error -O ${BUILD_PATH}/ctest_build_backend_test1.log)
   if [ $? -ne 0 ]; then
     echo "execute command: run build_backend_test1 failed."
     return 1
@@ -905,8 +918,9 @@ build_backend() {
   echo "$(date '+%F %T') make build_backend_test2 end"
 
   export LD_LIBRARY_PATH=${METADEF_LIB_PATH}:${ASCEND_INSTALL_LIB_PATH}:${ASCEND_DEVLIB_PATH}:${ASCEND_RUNTIME_STUB_PATH}:${LD_LIBRARY_PATH}
-  ctest --output-on-failure -j${THREAD_NUM} -L st -L build_backend_test2 --test-dir ${AUTOFUSE_BUILD_PATH}/tests --no-tests=error \
-        -O ${BUILD_PATH}/ctest_build_backend_test2.log
+  (cd "${AUTOFUSE_BUILD_PATH}/tests" && \
+    ctest --output-on-failure -j${THREAD_NUM} -L st -L build_backend_test2 -R "${CTEST_BACKEND_TEST2_REGEX}" \
+          --no-tests=error -O ${BUILD_PATH}/ctest_build_backend_test2.log)
   if [ $? -ne 0 ]; then
     echo "execute command: run build_backend_test2 failed."
     return 1
