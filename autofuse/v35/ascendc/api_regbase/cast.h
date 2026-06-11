@@ -624,6 +624,16 @@ __aicore__ inline void CastExtend(const AscendC::LocalTensor<OutT> &dst, const A
 
     constexpr bool s64U8Cast = SupportType<Tuple<OutT, InT>, Tuple<uint8_t, int64_t>>();
 
+    int64_t ctrl60_value = AscendC::GetCtrlSpr<60, 60>();
+    int64_t ctrl48_value = AscendC::GetCtrlSpr<48, 48>();
+    int64_t ctrl59_value = AscendC::GetCtrlSpr<59, 59>();
+
+    #if defined(__NPU_ARCH__) && (__NPU_ARCH__ == 5102)
+    AscendC::SetCtrlSpr<60, 60>(1);
+    AscendC::SetCtrlSpr<48, 48>(0);
+    AscendC::SetCtrlSpr<59, 59>(0);
+    #endif
+
     if constexpr (b4Cast) {
         constexpr auto func = CastExtendB4<InT, OutT, roundMode>;
         CastExtendImpl<func, InT, OutT, roundMode, dim>(dstUb, srcUb, count, repeatTimes, innerLoopStride,
@@ -677,13 +687,17 @@ __aicore__ inline void CastExtend(const AscendC::LocalTensor<OutT> &dst, const A
         CastExtendImpl<func, InT, OutT, roundMode, dim>(dstUb, srcUb, count, repeatTimes, innerLoopStride,
             output_dims, output_stride, input_stride);
     } else {
-        int64_t ctrl_value = AscendC::GetCtrlSpr<60, 60>();
+        #if defined(__NPU_ARCH__) && (__NPU_ARCH__ == 3510)
         AscendC::SetCtrlSpr<60, 60>(0);
+        #endif
         constexpr auto func = CastExtendCommon<InT, OutT, roundMode>;
         CastExtendImpl<func, InT, OutT, roundMode, dim>(dstUb, srcUb, count, repeatTimes, innerLoopStride,
             output_dims, output_stride, input_stride);
-        AscendC::SetCtrlSpr<60, 60>(ctrl_value);
     }
+
+    AscendC::SetCtrlSpr<60, 60>(ctrl60_value);
+    AscendC::SetCtrlSpr<48, 48>(ctrl48_value);
+    AscendC::SetCtrlSpr<59, 59>(ctrl59_value);
 }
 
 template <typename InT, typename OutT, uint8_t dim>

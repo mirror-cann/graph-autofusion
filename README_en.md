@@ -30,8 +30,12 @@ Component features:
 ├── cmake                          # Project build directory
 ├── CMakeLists.txt                 # Project CMakeLists
 ├── docs                           # Project overall documentation
-│  ├── build.md                    # One-click build script documentation
-│  ├── ...                         # Other documentation related to this project
+│  ├── zh                          # Chinese documentation
+│  │  ├── build.md                 # One-click build script documentation
+│  │  └── ...                      # Other Chinese documentation
+│  ├── en                          # English documentation
+│  │  ├── build.md                 # One-click build script documentation
+│  │  └── ...                      # Other English documentation
 ├── super_kernel                   # SuperKernel component. SuperKernel source code, tests, and documentation are in this subdirectory.
 ├── ...                            # Planned future components
 ├── README.md                      # graph-autofusion project overall functionality introduction
@@ -41,6 +45,6 @@ Component features:
 
 ## 📝Related Information
 
-- [Contributing Guide](CONTRIBUTING.md)
-- [Security Statement](SECURITY.md)
+- [Contributing Guide](CONTRIBUTING_en.md)
+- [Security Statement](SECURITY_en.md)
 - [License](LICENSE)

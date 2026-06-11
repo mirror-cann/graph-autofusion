@@ -147,6 +147,10 @@ struct CompileInfo {
                                   const ::ascir::FusedScheduledResult &fused_schedule_result) const;
     void GenTopnCollectCandidates(std::stringstream &ss, const std::string &tiling) const;
     void GenTopnSearchTilingKeyCall(std::stringstream &ss, const ::ascir::FusedScheduledResult &fused_schedule_result) const;
+    void GenTopnSetFailureMessage(std::stringstream &ss, const std::string &indent,
+                                  const std::string &reason) const;
+    void GenTopnDefaultTilingAndFinalChecks(std::stringstream &ss, const std::string &tiling,
+                                            const ::ascir::FusedScheduledResult &fused_schedule_result) const;
     void GenGenerateTopnSolutionsEntry(std::stringstream &ss,
                                        const ::ascir::FusedScheduledResult &fused_schedule_result,
                                        const std::string &tiling, const codegen::PgoShapeStringStream &pgo_shape_dim) const;

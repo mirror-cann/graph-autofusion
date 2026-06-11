@@ -31,6 +31,7 @@
 #include "reuse_group_utils/reuse_group_utils.h"
 #include "tiling_data_gen/tiling_data_generator.h"
 #include "base/base_types.h"
+#include "util/base_types_printer.h"
 
 const std::string op_name = "OpTest";
 
@@ -431,6 +432,99 @@ TEST(GeneratorUT, GenTilingPGOSuccess) {
   EXPECT_EQ(genImpl.tiling_func_.GetOutputStr().empty(), false);
 }
 
+TEST(GeneratorUT, RootGetTilingFailuresUseWarningLogOnlyForPGOPath) {
+  TilingCodeGenConfig config;
+  TilingModelInfo tiling_model_info;
+  ModelInfo info;
+  tiling_model_info.push_back(info);
+  ScoreFuncs score_funcs;
+  MockHighPerfTilingCodeGenImpl genImpl("test", config, tiling_model_info, score_funcs, false);
+  genImpl.config_.cache_enabled_at_compile_time = false;
+  std::map<size_t, std::map<size_t, std::map<size_t, std::pair<std::string, std::string>>>> namespace_map;
+  namespace_map[0][0] = {};
+
+  genImpl.tiling_func_.Reset();
+  EXPECT_EQ(genImpl.GenFusedScheduleResultsGetTilingDefine(namespace_map), ge::SUCCESS);
+  std::string tiling_func_output = genImpl.tiling_func_.GetOutputStr();
+  EXPECT_NE(tiling_func_output.find("OP_LOGE(OP_NAME, \"Failed to get tiling of AscGraph0.\");"),
+            std::string::npos);
+  EXPECT_EQ(tiling_func_output.find("OP_LOGW(OP_NAME, \"Failed to get tiling of AscGraph0.\");"),
+            std::string::npos);
+
+  genImpl.config_.is_inductor_scene = true;
+  genImpl.tiling_func_.Reset();
+  EXPECT_EQ(genImpl.GenFusedScheduleResultsGetTilingDefine(namespace_map), ge::SUCCESS);
+  tiling_func_output = genImpl.tiling_func_.GetOutputStr();
+  EXPECT_NE(tiling_func_output.find("OP_LOGW(OP_NAME, \"Failed to get tiling of AscGraph0.\");"),
+            std::string::npos);
+  EXPECT_EQ(tiling_func_output.find("OP_LOGE(OP_NAME, \"Failed to get tiling of AscGraph0.\");"),
+            std::string::npos);
+
+  genImpl.tiling_func_.Reset();
+  EXPECT_EQ(genImpl.GenPGOByCoreNumFusedScheduleResultsGetTilingDefine(namespace_map), ge::SUCCESS);
+  tiling_func_output = genImpl.tiling_func_.GetOutputStr();
+  EXPECT_NE(tiling_func_output.find("OP_LOGW(OP_NAME, \"Failed to get tiling of AscGraph0.\");"),
+            std::string::npos);
+  EXPECT_EQ(tiling_func_output.find("OP_LOGE(OP_NAME, \"Failed to get tiling of AscGraph0.\");"),
+            std::string::npos);
+
+  genImpl.tiling_func_.Reset();
+  EXPECT_EQ(genImpl.GenPGOFusedScheduleResultsGetTilingDefine(namespace_map), ge::SUCCESS);
+  tiling_func_output = genImpl.tiling_func_.GetOutputStr();
+  EXPECT_NE(tiling_func_output.find("OP_LOGW(OP_NAME, \"Failed to get tiling of AscGraph0.\");"),
+            std::string::npos);
+  EXPECT_EQ(tiling_func_output.find("OP_LOGE(OP_NAME, \"Failed to get tiling of AscGraph0.\");"),
+            std::string::npos);
+}
+
+TEST(GeneratorUT, PGOGetTilingKeyFailureUsesWarningLog) {
+  TilingCodeGenConfig config;
+  TilingModelInfo tiling_model_info;
+  ScoreFuncs score_funcs;
+  ModelInfo info;
+  info.schedule_group_ident.group_id = 0;
+  tiling_model_info.push_back(info);
+
+  MockHighPerfTilingCodeGenImpl genImpl("test", config, tiling_model_info, score_funcs, true);
+  genImpl.config_.enable_autofuse_pgo = true;
+  genImpl.config_.is_inductor_scene = true;
+  genImpl.config_.cache_enabled_at_compile_time = false;
+  EXPECT_EQ(genImpl.GenGetTilingKeyCall(""), ge::SUCCESS);
+
+  const std::string tiling_func_output = genImpl.tiling_func_.GetOutputStr();
+  EXPECT_NE(tiling_func_output.find("OP_LOGW(OP_NAME, \"GetTiling Failed.\");"), std::string::npos);
+  EXPECT_EQ(tiling_func_output.find("OP_LOGE(OP_NAME, \"GetTiling Failed.\");"), std::string::npos);
+}
+
+TEST(GeneratorUT, GetResultSummaryFailureUsesWarningLogForPGOPath) {
+  TilingCodeGenConfig config;
+  TilingModelInfo tiling_model_info;
+  ModelInfo info;
+  tiling_model_info.push_back(info);
+  ScoreFuncs score_funcs;
+  MockHighPerfTilingCodeGenImpl genImpl("test", config, tiling_model_info, score_funcs, true);
+
+  EXPECT_EQ(genImpl.GenGetResultSummary(0), ge::SUCCESS);
+  std::string tiling_func_output = genImpl.tiling_func_.GetOutputStr();
+  EXPECT_NE(tiling_func_output.find("OP_LOGE(OP_NAME, \"GetTiling Failed.\");"), std::string::npos);
+  EXPECT_EQ(tiling_func_output.find("OP_LOGW(OP_NAME, \"GetTiling Failed.\");"), std::string::npos);
+
+  genImpl.config_.enable_autofuse_pgo = true;
+  genImpl.tiling_func_.Reset();
+  EXPECT_EQ(genImpl.GenGetResultSummary(0), ge::SUCCESS);
+  tiling_func_output = genImpl.tiling_func_.GetOutputStr();
+  EXPECT_NE(tiling_func_output.find("OP_LOGW(OP_NAME, \"GetTiling Failed.\");"), std::string::npos);
+  EXPECT_EQ(tiling_func_output.find("OP_LOGE(OP_NAME, \"GetTiling Failed.\");"), std::string::npos);
+
+  genImpl.config_.enable_autofuse_pgo = false;
+  genImpl.config_.is_inductor_scene = true;
+  genImpl.tiling_func_.Reset();
+  EXPECT_EQ(genImpl.GenGetResultSummary(0), ge::SUCCESS);
+  tiling_func_output = genImpl.tiling_func_.GetOutputStr();
+  EXPECT_NE(tiling_func_output.find("OP_LOGW(OP_NAME, \"GetTiling Failed.\");"), std::string::npos);
+  EXPECT_EQ(tiling_func_output.find("OP_LOGE(OP_NAME, \"GetTiling Failed.\");"), std::string::npos);
+}
+
 static const std::string kExpectPGOCode =
     R"rawliteral(inline bool GetScheduleResult0PGO(std::vector<AutofuseTilingDataPerf>& tiling_data_list, const uint32_t ori_block_dim, const int32_t tiling_case_id,AutofuseTilingData &tiling_data, double &cur_perf, double &best_perf, uint32_t &cur_block_dim,void* stream, uint32_t workspaceSize, std::vector<uint32_t*> multi_group_block_dim_list = {}, const SearchConfig *search_cfg=nullptr) {
   (void)cur_perf; (void)cur_block_dim;
@@ -440,10 +534,13 @@ static const std::string kExpectPGOCode =
   tiling_data.set_graph0_tiling_key(0);
   auto &group0_tiling_data = tiling_data.group0_tiling_data;
   group0_tiling_data.set_block_dim(ori_block_dim);
+  size_t candidate_begin_index0 = tiling_data_list_tmp.size();
   auto result0 = ScheduleResult0::PGOSearchTilingKey(tiling_data_list_tmp, group0_tiling_data, tiling_case_id, &tiling_data, stream, workspaceSize, best_perf, workspace_map_filter_use, multi_group_block_dim_list, search_cfg);
   if (result0) {
     bool has_solution = true;
-    for (auto &tiling_data_perf : tiling_data_list_tmp) {
+    std::vector<bool> valid_candidates(tiling_data_list_tmp.size() - candidate_begin_index0, true);
+    for (size_t candidate_index = candidate_begin_index0; candidate_index < tiling_data_list_tmp.size(); ++candidate_index) {
+      auto &tiling_data_perf = tiling_data_list_tmp[candidate_index];
       auto &tiling_data = tiling_data_perf.tiling_data;
       std::unordered_map<int64_t, uint64_t> workspace_map;
       workspace_map.reserve(workspace_map_filter_use.size());
@@ -452,6 +549,7 @@ static const std::string kExpectPGOCode =
       has_solution = ScheduleResult0::GetTiling(tiling_data.group1_tiling_data, workspace_map, -1);
       if (!has_solution) {
         OP_LOGI(OP_NAME, "No solution for group0 at group1");
+        valid_candidates[candidate_index - candidate_begin_index0] = false;
         continue;
       }
       auto workspaceSizeTmp = GetWorkspaceSize(tiling_data);
@@ -463,7 +561,12 @@ static const std::string kExpectPGOCode =
     if (PgoConfig::Instance().batch_callback) {
       PgoConfig::Instance().batch_callback(stream, workspaceSize, &tiling_data_list_tmp);
     }
-    for (auto &tiling_data_perf : tiling_data_list_tmp) {
+    for (size_t candidate_index = candidate_begin_index0; candidate_index < tiling_data_list_tmp.size(); ++candidate_index) {
+      const size_t candidate_offset = candidate_index - candidate_begin_index0;
+      if (candidate_offset >= valid_candidates.size() || !valid_candidates[candidate_offset]) {
+        continue;
+      }
+      auto &tiling_data_perf = tiling_data_list_tmp[candidate_index];
       tiling_data_list.push_back(tiling_data_perf);
       if (tiling_data_perf.best_perf < best_perf) {
         tiling_data = tiling_data_perf.tiling_data;
@@ -473,10 +576,13 @@ static const std::string kExpectPGOCode =
   }
   auto &group1_tiling_data = tiling_data.group1_tiling_data;
   group1_tiling_data.set_block_dim(ori_block_dim);
+  size_t candidate_begin_index1 = tiling_data_list_tmp.size();
   auto result1 = ScheduleResult0::PGOSearchTilingKey(tiling_data_list_tmp, group1_tiling_data, tiling_case_id, &tiling_data, stream, workspaceSize, best_perf, workspace_map_filter_use, multi_group_block_dim_list, search_cfg);
   if (result1) {
     bool has_solution = true;
-    for (auto &tiling_data_perf : tiling_data_list_tmp) {
+    std::vector<bool> valid_candidates(tiling_data_list_tmp.size() - candidate_begin_index1, true);
+    for (size_t candidate_index = candidate_begin_index1; candidate_index < tiling_data_list_tmp.size(); ++candidate_index) {
+      auto &tiling_data_perf = tiling_data_list_tmp[candidate_index];
       auto &tiling_data = tiling_data_perf.tiling_data;
       std::unordered_map<int64_t, uint64_t> workspace_map;
       workspace_map.reserve(workspace_map_filter_use.size());
@@ -490,7 +596,12 @@ static const std::string kExpectPGOCode =
     if (PgoConfig::Instance().batch_callback) {
       PgoConfig::Instance().batch_callback(stream, workspaceSize, &tiling_data_list_tmp);
     }
-    for (auto &tiling_data_perf : tiling_data_list_tmp) {
+    for (size_t candidate_index = candidate_begin_index1; candidate_index < tiling_data_list_tmp.size(); ++candidate_index) {
+      const size_t candidate_offset = candidate_index - candidate_begin_index1;
+      if (candidate_offset >= valid_candidates.size() || !valid_candidates[candidate_offset]) {
+        continue;
+      }
+      auto &tiling_data_perf = tiling_data_list_tmp[candidate_index];
       tiling_data_list.push_back(tiling_data_perf);
       if (tiling_data_perf.best_perf < best_perf) {
         tiling_data = tiling_data_perf.tiling_data;
@@ -541,6 +652,18 @@ TEST(GeneratorUT, GenGetScheduleResultPGOSuccess) {
   genImpl.enable_group_parallels_ = enable_group_parallels;
   EXPECT_EQ(genImpl.GenPGOGetScheduleResult(0, 0, graph_info, hardware_map), af::SUCCESS);
   EXPECT_EQ(genImpl.tiling_func_.GetOutputStr().empty(), false);
+}
+
+TEST(GeneratorUT, GenWorkspaceRelatedVarsGuardsDynamicDenominator) {
+  std::map<int64_t, Expr> workspace_size_map;
+  workspace_size_map[0] = af::sym::Ceiling(CreateExpr(512) / CreateExpr("a1t_size"));
+
+  const auto code = GenWorkspaceRelatedVars(workspace_size_map, {});
+
+  EXPECT_NE(code.find("double a1t_size = tiling_data.get_a1t_size();"), std::string::npos);
+  EXPECT_NE(code.find("if (a1t_size <= 0) {"), std::string::npos);
+  EXPECT_NE(code.find("return;"), std::string::npos);
+  EXPECT_LT(code.find("if (a1t_size <= 0) {"), code.find("static_cast<uint64_t>(Ceiling(512/a1t_size))"));
 }
 
 // UT测试：验证tiling_data.set参数溢出修复

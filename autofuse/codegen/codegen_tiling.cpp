@@ -14,6 +14,7 @@
 #include <string>
 #include <cstdlib>
 #include <fstream>
+#include <set>
 #include <securec.h>
 
 #include "dlfcn.h"
@@ -168,6 +169,38 @@ bool IsNeedFfts() {
   const auto backend_spec = optimize::BackendSpec::GetInstance();
   GE_ASSERT_NOTNULL(backend_spec);
   return backend_spec->pgo_spec.need_ffts;
+}
+
+void CollectWorkspaceDenominatorSymbols(const af::Expression &expr, std::set<std::string> &denominator_symbols) {
+  if (!expr.IsValid() || expr.IsConstExpr()) {
+    return;
+  }
+  af::Expression numer;
+  af::Expression denom;
+  expr.AsNumerDenom(numer, denom);
+  if (denom.IsValid() && !denom.IsConstExpr()) {
+    for (const auto &symbol : denom.FreeSymbols()) {
+      if (symbol.GetExprType() == af::ExprType::kExprVariable) {
+        denominator_symbols.insert(af::SymbolicUtils::ToString(symbol));
+      }
+    }
+  }
+  af::Expression expr_copy = expr;
+  for (const auto &arg : expr_copy.GetArgs()) {
+    CollectWorkspaceDenominatorSymbols(arg, denominator_symbols);
+  }
+}
+
+void GenWorkspaceDenominatorGuards(std::stringstream &ss, const af::Expression &expr, const std::string &indent) {
+  std::set<std::string> denominator_symbols;
+  CollectWorkspaceDenominatorSymbols(expr, denominator_symbols);
+  for (const auto &symbol : denominator_symbols) {
+    ss << indent << "if (" << symbol << " <= 0) {" << std::endl;
+    ss << indent << "  OP_LOGW(OP_NAME, \"Invalid workspace denominator " << symbol
+       << "=%lf.\", static_cast<double>(" << symbol << "));" << std::endl;
+    ss << indent << "  return ws_size;" << std::endl;
+    ss << indent << "}" << std::endl;
+  }
 }
 }
 
@@ -1999,8 +2032,10 @@ std::string TilingLib::GenImplGraphWorkspaceSize(const ascir::ImplGraph &graph, 
       sizes.emplace_back(std::make_pair(ori, tiling_sizevar));
     }
   }
-  std::string ws_size_str = af::SymbolicUtils::ToString(ws_size.Replace(sizes));
+  af::Expression replaced_ws_size = ws_size.Replace(sizes);
+  std::string ws_size_str = af::SymbolicUtils::ToString(replaced_ws_size);
 
+  GenWorkspaceDenominatorGuards(ss, replaced_ws_size, "      ");
   ss << "      ws_size += " << ws_size_str << ";" << std::endl;
   ss << "    }" << std::endl;
   return ss.str();
@@ -3641,7 +3676,10 @@ void TilingLib::GenTopnInitSearchTiling(std::stringstream &ss,
                                          const std::string &tiling, int symbol_value_count) const {
   ss << "  const ResLimit *limit = (request.res_limit == nullptr || request.res_limit->aiv_num == 0) "
      << "? &g_no_limit_res : request.res_limit;" << std::endl;
-  ss << "  if (request.symbol_values.size() != " << symbol_value_count << "ULL) { return -1; }" << std::endl;
+  ss << "  if (request.symbol_values.size() != " << symbol_value_count << "ULL) {" << std::endl;
+  ss << "    response.error_message = \"symbol_values size mismatch\";" << std::endl;
+  ss << "    return -1;" << std::endl;
+  ss << "  }" << std::endl;
   ss << "  const bool is_default_config_request = internal_no_config_path || "
      << "(request.input_configs != nullptr && request.input_configs->size() == 1 && request.input_configs->front().empty());"
      << std::endl;
@@ -3668,36 +3706,31 @@ void TilingLib::GenTopnGetTilingFunc(std::stringstream &ss, const ascir::FusedSc
                                      const std::string &tiling, int symbol_value_count) const {
   ss << "static int64_t GetTopnCandidateSolutions(const GetTilingRequest &request, GetTilingResponse &response) {" << std::endl;
   ss << "  response.candidate_solutions.clear();" << std::endl;
+  ss << "  response.error_message.clear();" << std::endl;
   ss << "  OP_LOGI(OP_NAME, \"GetTopnCandidateSolutions enter: topn=%ld, symbol_values.size=%zu, input_configs=%s\", "
      << "static_cast<long>(request.topn), request.symbol_values.size(), "
      << "request.input_configs == nullptr ? \"null\" : \"present\");" << std::endl;
-  ss << "  if (request.topn <= 0) { return -1; }" << std::endl;
+  ss << "  if (request.topn <= 0) {" << std::endl;
+  GenTopnSetFailureMessage(ss, "    ", "invalid topn");
+  ss << "    return -1;" << std::endl;
+  ss << "  }" << std::endl;
   ss << "  std::vector<SearchConfig> configs;" << std::endl;
   ss << "  const bool internal_no_config_path = (request.input_configs == nullptr);" << std::endl;
   ss << "  if (internal_no_config_path) {" << std::endl;
   ss << "    configs.push_back(SearchConfig());" << std::endl;
   ss << "  } else {" << std::endl;
   ss << "    configs = ParseSearchConfigs(*request.input_configs);" << std::endl;
-  ss << "    if (configs.empty()) { return -1; }" << std::endl;
+  ss << "    if (configs.empty()) {" << std::endl;
+  GenTopnSetFailureMessage(ss, "      ", "invalid input configs");
+  ss << "      return -1;" << std::endl;
+  ss << "    }" << std::endl;
   ss << "  }" << std::endl;
   ss << std::endl;
 
   GenTopnInitSearchTiling(ss, fused_schedule_result, tiling, symbol_value_count);
 
-  ss << "  PgoConfig::Instance().ResetRuntimeOverrides();" << std::endl;
-  ss << "  std::string default_repr;" << std::endl;
-  ss << "  bool found_default_candidate = false;" << std::endl;
-  ss << "  " << tiling << " default_tiling = search_tiling;" << std::endl;
-  ss << "  if (is_default_config_request) {" << std::endl;
-  ss << "    if (GetTiling(default_tiling, -1)) {" << std::endl;
-  ss << "      default_repr = GetTilingDataRepr(&default_tiling);" << std::endl;
-  ss << "    }" << std::endl;
-  ss << "  }" << std::endl;
-  GenTopnSearchTilingSetup(ss, tiling, fused_schedule_result);
-  GenTopnCollectCandidates(ss, tiling);
-  ss << "  if (is_default_config_request && !found_default_candidate) { return -1; }" << std::endl;
-  ss << "  OP_LOGI(OP_NAME, \"GetTopnCandidateSolutions collected %zu candidates\", response.candidate_solutions.size());" << std::endl;
-  ss << "  return response.candidate_solutions.empty() ? -1 : 0;" << std::endl;
+  GenTopnDefaultTilingAndFinalChecks(ss, tiling, fused_schedule_result);
+  ss << "  return 0;" << std::endl;
   ss << "}" << std::endl;
   ss << std::endl;
 }
@@ -3717,9 +3750,20 @@ void TilingLib::GenTopnSearchTilingSetup(std::stringstream &ss, const std::strin
     ss << "    std::unordered_map<int64_t, uint64_t> workspace_map;" << std::endl;
   }
   GenTopnSearchTilingKeyCall(ss, fused_schedule_result);
-  ss << "    if (!helper_ret) { continue; }" << std::endl;
+  ss << "    if (!helper_ret) {" << std::endl;
+  ss << "      ++failed_config_count;" << std::endl;
+  ss << "      response.error_message = \"PGOSearchTilingKey failed for topn config\";" << std::endl;
+  ss << "      OP_LOGW(OP_NAME, \"PGOSearchTilingKey failed for topn config, failed=%zu/%zu.\", "
+     << "failed_config_count, configs.size());" << std::endl;
+  ss << "      continue;" << std::endl;
+  ss << "    }" << std::endl;
   ss << "    OP_LOGI(OP_NAME, \"PGOSearchTilingKey returned %zu raw_candidates, best_perf=%.6f\", "
      << "raw_candidates.size(), best_perf);" << std::endl;
+  ss << "    if (raw_candidates.empty()) {" << std::endl;
+  ss << "      response.error_message = \"PGOSearchTilingKey returned no raw candidate\";" << std::endl;
+  ss << "      OP_LOGW(OP_NAME, \"PGOSearchTilingKey returned no raw candidate for topn config.\");" << std::endl;
+  ss << "      continue;" << std::endl;
+  ss << "    }" << std::endl;
 }
 
 void TilingLib::GenTopnCollectCandidates(std::stringstream &ss, const std::string &tiling) const {
@@ -3771,6 +3815,43 @@ void TilingLib::GenTopnSearchTilingKeyCall(std::stringstream &ss,
   }
 }
 
+void TilingLib::GenTopnSetFailureMessage(std::stringstream &ss, const std::string &indent,
+                                         const std::string &reason) const {
+  ss << indent << "response.error_message = \"" << reason << "\";" << std::endl;
+}
+
+void TilingLib::GenTopnDefaultTilingAndFinalChecks(std::stringstream &ss, const std::string &tiling,
+                                                   const ascir::FusedScheduledResult &fused_schedule_result) const {
+  ss << "  PgoConfig::Instance().ResetRuntimeOverrides();" << std::endl;
+  ss << "  size_t failed_config_count = 0U;" << std::endl;
+  ss << "  std::string default_repr;" << std::endl;
+  ss << "  bool found_default_candidate = false;" << std::endl;
+  ss << "  " << tiling << " default_tiling = search_tiling;" << std::endl;
+  ss << "  if (is_default_config_request) {" << std::endl;
+  ss << "    if (GetTiling(default_tiling, -1)) {" << std::endl;
+  ss << "      default_repr = GetTilingDataRepr(&default_tiling);" << std::endl;
+  ss << "    } else {" << std::endl;
+  ss << "      OP_LOGW(OP_NAME, \"GetTiling failed for default topn config.\");" << std::endl;
+  ss << "      response.error_message = \"GetTiling failed for default topn config\";" << std::endl;
+  ss << "    }" << std::endl;
+  ss << "  }" << std::endl;
+  GenTopnSearchTilingSetup(ss, tiling, fused_schedule_result);
+  GenTopnCollectCandidates(ss, tiling);
+  ss << "  if (is_default_config_request && !found_default_candidate) {" << std::endl;
+  ss << "    if (response.error_message.empty()) {" << std::endl;
+  GenTopnSetFailureMessage(ss, "      ", "default topn candidate not found");
+  ss << "    }" << std::endl;
+  ss << "    return -1;" << std::endl;
+  ss << "  }" << std::endl;
+  ss << "  OP_LOGI(OP_NAME, \"GetTopnCandidateSolutions collected %zu candidates\", response.candidate_solutions.size());" << std::endl;
+  ss << "  if (response.candidate_solutions.empty()) {" << std::endl;
+  ss << "    if (response.error_message.empty()) {" << std::endl;
+  GenTopnSetFailureMessage(ss, "      ", "no topn candidate solution found");
+  ss << "    }" << std::endl;
+  ss << "    return -1;" << std::endl;
+  ss << "  }" << std::endl;
+}
+
 void TilingLib::GenGenerateTopnSolutionsEntry(std::stringstream &ss,
                                               const ascir::FusedScheduledResult &fused_schedule_result,
                                               const std::string &tiling,
@@ -3784,7 +3865,10 @@ void TilingLib::GenGenerateTopnSolutionsEntry(std::stringstream &ss,
   ss << "  tiling_datas.clear();" << std::endl;
   ss << "  workspaces.clear();" << std::endl;
   ss << "  block_dims.clear();" << std::endl;
-  ss << "  if (topn <= 0) { return -1; }" << std::endl;
+  ss << "  if (topn <= 0) {" << std::endl;
+  ss << "    OP_LOGE(OP_NAME, \"GenerateTopnSolutions failed: invalid topn.\");" << std::endl;
+  ss << "    return -1;" << std::endl;
+  ss << "  }" << std::endl;
   ss << "  OP_LOGI(OP_NAME, \"GenerateTopnSolutions enter: topn=%ld, input_configs.size=%zu\", "
      << "static_cast<long>(topn), input_configs.size());" << std::endl;
   ss << "  GetTilingRequest request;" << std::endl;
@@ -3798,9 +3882,16 @@ void TilingLib::GenGenerateTopnSolutionsEntry(std::stringstream &ss,
   ss << "  request.res_limit = res_limit;" << std::endl;
   ss << "  request.topn = topn;" << std::endl;
   ss << "  GetTilingResponse response;" << std::endl;
-  ss << "  if (GetTopnCandidateSolutions(request, response) != 0) { return -1; }" << std::endl;
+  ss << "  if (GetTopnCandidateSolutions(request, response) != 0) {" << std::endl;
+  ss << "    if (response.error_message.empty()) { response.error_message = \"unknown topn candidate generation failure\"; }" << std::endl;
+  ss << "    OP_LOGE(OP_NAME, \"GenerateTopnSolutions failed: %s\", response.error_message.c_str());" << std::endl;
+  ss << "    return -1;" << std::endl;
+  ss << "  }" << std::endl;
   ss << "  SelectTopnCandidateSolutions(response.candidate_solutions, topn);" << std::endl;
-  ss << "  if (response.candidate_solutions.empty()) { return -1; }" << std::endl;
+  ss << "  if (response.candidate_solutions.empty()) {" << std::endl;
+  ss << "    OP_LOGE(OP_NAME, \"GenerateTopnSolutions failed: no candidate after topn selection.\");" << std::endl;
+  ss << "    return -1;" << std::endl;
+  ss << "  }" << std::endl;
   ss << "  OP_LOGI(OP_NAME, \"SelectTopn: %zu solutions after dedup+sort+truncate (topn=%ld)\", "
      << "response.candidate_solutions.size(), static_cast<long>(topn));" << std::endl;
   ss << "  for (const auto &sol : response.candidate_solutions) {" << std::endl;
@@ -3834,6 +3925,7 @@ std::string TilingLib::GenCandidateSolutionProtocolForInductor(const std::string
   ss << std::endl;
   ss << "struct GetTilingResponse {" << std::endl;
   ss << "  std::vector<CandidateSolution> candidate_solutions;" << std::endl;
+  ss << "  std::string error_message;" << std::endl;
   ss << "};" << std::endl;
   ss << std::endl;
   return ss.str();

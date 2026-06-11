@@ -31,8 +31,12 @@ Graph-autofusion 是一个面向昇腾（Ascend）芯片的轻量级、解耦式
 ├── cmake                          # 项目工程编译目录
 ├── CMakeLists.txt                 # 项目 CMakeLists
 ├── docs                           # 项目整体文档
-│  ├── build.md                    # 一键式构建脚本文档
-│  ├── ...                         # 其他有关该项目的文档说明
+│  ├── zh                          # 中文文档
+│  │  ├── build.md                 # 一键式构建脚本文档
+│  │  └── ...                      # 其他中文文档
+│  ├── en                          # 英文文档
+│  │  ├── build.md                 # 一键式构建脚本文档
+│  │  └── ...                      # 其他英文文档
 ├── super_kernel                   # SuperKernel 组件，SuperKernel 源代码、测试、文档均在该子目录中
 ├── ...                            # 未来规划的组件
 ├── README.md                      # graph-autofusion项目整体功能介绍
