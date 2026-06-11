@@ -76,7 +76,8 @@ static constexpr size_t kMaxFullLoadAxisSizeForNorm = 3UL;
 static bool CalculateRAxisTotalSize(const af::AscTensorAttr &input_attr,
                                      const af::AscTensorAttr &output_attr,
                                      int64_t &r_axis_total_size,
-                                     int64_t &a_axis_total_size) {
+                                     int64_t &a_axis_total_size,
+                                     const char *node_name) {
   r_axis_total_size = 1;
   a_axis_total_size = 1;
   if (output_attr.repeats.empty() || output_attr.repeats.size() > kMaxFullLoadAxisSizeForNorm) {
@@ -84,20 +85,31 @@ static bool CalculateRAxisTotalSize(const af::AscTensorAttr &input_attr,
            output_attr.repeats.size(), kMaxFullLoadAxisSizeForNorm);
     return false;
   }
-  if (af::SymbolicUtils::StaticCheckEq(input_attr.repeats[0], output_attr.repeats[0]) != af::TriBool::kTrue) {
-    GELOGD("First axis of input and output not equal, not AR/ARA pattern");
-    return false;
-  }
 
+  std::string repeats_info;
   for (size_t i = 0; i < input_attr.repeats.size(); ++i) {
-    if (!input_attr.repeats[i].IsConstExpr() || !output_attr.repeats[i].IsConstExpr()) {
-      return false;
-    }
+    int64_t in_val = 0;
+    int64_t out_val = 0;
+    (void)input_attr.repeats[i].GetConstValue(in_val);
+    (void)output_attr.repeats[i].GetConstValue(out_val);
+    repeats_info += "axis[" + std::to_string(i) + "]: in=" + std::to_string(in_val) +
+                    " out=" + std::to_string(out_val) + "; ";
+  }
+  GELOGD("Node %s repeats: %s", node_name, repeats_info.c_str());
 
+  bool first_valid_axis_checked = false;
+  for (size_t i = 0; i < input_attr.repeats.size(); ++i) {
     int64_t input_size = 0;
     int64_t output_size = 0;
-    if (!input_attr.repeats[i].GetConstValue(input_size) || !output_attr.repeats[i].GetConstValue(output_size)) {
-      return false;
+    (void)input_attr.repeats[i].GetConstValue(input_size);
+    (void)output_attr.repeats[i].GetConstValue(output_size);
+
+    if (!first_valid_axis_checked && (input_size > 1 || output_size > 1)) {
+      first_valid_axis_checked = true;
+      if (input_size != output_size) {
+        GELOGD("First valid axis (index %zu) of input and output not equal, not AR/ARA pattern", i);
+        return false;
+      }
     }
 
     if (input_size > output_size) {
@@ -105,6 +117,11 @@ static bool CalculateRAxisTotalSize(const af::AscTensorAttr &input_attr,
     } else {
       a_axis_total_size *= output_size;
     }
+  }
+
+  if (!first_valid_axis_checked) {
+    GELOGD("No valid axis found (all repeats are 1), not AR/ARA pattern");
+    return false;
   }
 
   return true;
@@ -190,7 +207,7 @@ static bool CheckReduceNodeNormLike(const af::AscNodePtr &asc_node) {
 
   int64_t r_axis_total_size = 1;
   int64_t a_axis_total_size = 1;
-  if (!CalculateRAxisTotalSize(*input_attr_ptr, output.attr, r_axis_total_size, a_axis_total_size)) {
+  if (!CalculateRAxisTotalSize(*input_attr_ptr, output.attr, r_axis_total_size, a_axis_total_size, asc_node->GetNamePtr())) {
     GELOGD("Reduce node %s: failed to calculate R/A axis size (non-const shape)", asc_node->GetNamePtr());
     return false;
   }
