@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -23,6 +23,9 @@ using namespace af;
 
 namespace optimize {
 namespace {
+using Element = std::pair<size_t, size_t>;
+using MinHeap = std::priority_queue<Element, std::vector<Element>, std::greater<>>;
+
 template<typename Heap>
 size_t GetMinMergeCost(const Heap &heap) {
   auto temp = heap;
@@ -49,6 +52,11 @@ bool IsAxisVecEqual(const std::vector<af::AxisPtr> &lhs, const std::vector<af::A
     }
   }
   return true;
+}
+
+size_t FindRoot(std::unordered_map<size_t, size_t> &idx_to_parent, size_t x) {
+  while (idx_to_parent[x] != x) { x = idx_to_parent[x] = idx_to_parent[idx_to_parent[x]]; }
+  return x;
 }
 }  // namespace
 
@@ -275,17 +283,24 @@ std::vector<MergeableGraphs> ScheduleGroupGraphPartitioner::FindMergeableGraphs(
       mergeable_groups.push_back(std::move(group));
     }
   }
+  for (const auto &mergeable_group : mergeable_groups) {
+    GELOGD("mergeable_group: %s, node_num = %s",
+           ToString(mergeable_group.graph_indices).c_str(),
+           ToString(mergeable_group.node_counts).c_str());
+  }
 
   return mergeable_groups;
 }
 
 Status ScheduleGroupGraphPartitioner::MergeGraphs(::ascir::ImplGraph &dst,
-                                                   const std::vector<const ::ascir::ImplGraph *> &srcs) {
-  for (const auto *src : srcs) {
-    GELOGI("MergeGraphs: merging %s into %s", src->GetName().c_str(), dst.GetName().c_str());
+                                                   const std::vector<::ascir::ImplGraph> &grouped_graphs,
+                                                   const std::vector<size_t> &group) {
+  for (size_t idx : group) {
+    const auto &src = grouped_graphs[idx];
+    GELOGI("MergeGraphs: merging %s into %s", src.GetName().c_str(), dst.GetName().c_str());
 
     std::unordered_map<std::string, af::NodePtr> all_new_nodes;
-    for (const auto &node : src->GetAllNodes()) {
+    for (const auto &node : src.GetAllNodes()) {
       const auto asc_node = std::dynamic_pointer_cast<af::AscNode>(node);
       GE_CHECK_NOTNULL(asc_node);
 
@@ -298,7 +313,7 @@ Status ScheduleGroupGraphPartitioner::MergeGraphs(::ascir::ImplGraph &dst,
       all_new_nodes.emplace(asc_node->GetName(), std::move(dst_new_node));
     }
 
-    for (const auto &node : src->GetAllNodes()) {
+    for (const auto &node : src.GetAllNodes()) {
       auto asc_node = std::dynamic_pointer_cast<af::AscNode>(node);
       GE_CHK_STATUS_RET(af::GraphUtils::RelinkGraphEdges(asc_node, "", all_new_nodes), "RelinkGraphEdges failed");
     }
@@ -310,48 +325,58 @@ Status ScheduleGroupGraphPartitioner::MergeGraphs(::ascir::ImplGraph &dst,
 
 MergePlan ScheduleGroupGraphPartitioner::ResolveMergePlan(const std::vector<MergeableGraphs> &mergeable_groups,
                                                            size_t reductions_needed) {
-  using NodeCountAndGraphIndex = std::pair<size_t, size_t>;
-  using MinHeap = std::priority_queue<NodeCountAndGraphIndex, std::vector<NodeCountAndGraphIndex>, std::greater<> >;
-  std::vector<MinHeap> heaps(mergeable_groups.size());
-  std::set<std::pair<size_t, size_t> > global_heap;
+  GELOGD("ResolveMergePlan: reductions_needed=%zu, mergeable_groups=%zu", reductions_needed, mergeable_groups.size());
 
-  for (size_t grp_idx = 0UL; grp_idx < mergeable_groups.size(); ++grp_idx) {
-    for (size_t i = 0UL; i < mergeable_groups[grp_idx].graph_indices.size(); ++i) {
-      heaps[grp_idx].emplace(mergeable_groups[grp_idx].node_counts[i], mergeable_groups[grp_idx].graph_indices[i]);
+  std::unordered_map<size_t, size_t> idx_to_parent;
+  for (const auto &group : mergeable_groups) {
+    for (size_t idx : group.graph_indices) {
+      idx_to_parent[idx] = idx;
     }
-    global_heap.insert({GetMinMergeCost(heaps[grp_idx]), grp_idx});
   }
 
-  std::unordered_map<size_t, size_t> dst_to_group;
+  std::vector<MinHeap> heaps(mergeable_groups.size());
+  std::set<Element> global_heap;
 
-  MergePlan plan;
+  for (size_t g = 0; g < mergeable_groups.size(); ++g) {
+    for (size_t i = 0; i < mergeable_groups[g].graph_indices.size(); ++i) {
+      heaps[g].emplace(mergeable_groups[g].node_counts[i], mergeable_groups[g].graph_indices[i]);
+    }
+    global_heap.insert({GetMinMergeCost(heaps[g]), g});
+  }
+
   size_t reductions = reductions_needed;
-  while (reductions > 0 && (!global_heap.empty())) {
-    const auto grp_idx = global_heap.begin()->second;
+  while (reductions > 0 && !global_heap.empty()) {
+    const auto g = global_heap.begin()->second;
     global_heap.erase(global_heap.begin());
 
-    const auto e1 = heaps[grp_idx].top();
-    heaps[grp_idx].pop();
-    const auto e2 = heaps[grp_idx].top();
-    heaps[grp_idx].pop();
+    auto [cost1, idx1] = heaps[g].top(); heaps[g].pop();
+    auto [cost2, idx2] = heaps[g].top(); heaps[g].pop();
 
-    auto it = dst_to_group.find(e2.second);
-    if (it != dst_to_group.end()) {
-      plan.merge_groups[it->second].push_back(e1.second);
-    } else {
-      const size_t group_idx = plan.merge_groups.size();
-      plan.merge_groups.push_back({e2.second, e1.second});
-      dst_to_group[e2.second] = group_idx;
+    GELOGD("ResolveMergePlan: merge graph[%zu](%zu) and graph[%zu](%zu)", idx1, cost1, idx2, cost2);
+
+    idx_to_parent[FindRoot(idx_to_parent, idx1)] = FindRoot(idx_to_parent, idx2);
+    heaps[g].emplace(cost1 + cost2, FindRoot(idx_to_parent, idx2));
+
+    if (heaps[g].size() > 1) {
+      global_heap.insert({GetMinMergeCost(heaps[g]), g});
     }
     --reductions;
+  }
 
-    heaps[grp_idx].emplace(e1.first + e2.first, e2.second);
+  std::unordered_map<size_t, std::vector<size_t>> clusters;
+  for (const auto &idx_and_parent : idx_to_parent) {
+    clusters[FindRoot(idx_to_parent, idx_and_parent.first)].push_back(idx_and_parent.first);
+  }
 
-    if (heaps[grp_idx].size() > 1) {
-      global_heap.insert({GetMinMergeCost(heaps[grp_idx]), grp_idx});
+  MergePlan plan;
+  for (auto &root_and_members : clusters) {
+    if (root_and_members.second.size() > 1) {
+      std::sort(root_and_members.second.begin(), root_and_members.second.end());
+      plan.merge_groups.push_back(std::move(root_and_members.second));
     }
   }
 
+  GELOGD("ResolveMergePlan: %zu merge groups, %zu reductions remaining", plan.merge_groups.size(), reductions);
   return plan;
 }
 
@@ -375,25 +400,38 @@ Status ScheduleGroupGraphPartitioner::ReduceGraphCount(std::vector<::ascir::Impl
     return ge::SUCCESS;
   }
 
-  for (const auto &group : plan.merge_groups) {
-    const size_t dst = group[0];
-    std::vector<const ::ascir::ImplGraph *> src_ptrs;
-    src_ptrs.reserve(group.size() - 1);
-    for (size_t i = 1; i < group.size(); ++i) {
-      src_ptrs.push_back(&grouped_graphs[group[i]]);
+  GELOGD("ReduceGraphCount: merge plan has %zu groups", plan.merge_groups.size());
+  for (size_t i = 0; i < plan.merge_groups.size(); ++i) {
+    const auto &group = plan.merge_groups[i];
+    GELOGD("  group[%zu]: sources=[", i);
+    for (size_t j = 0; j < group.size(); ++j) {
+      GELOGD("    graph[%zu]%s", group[j], (j < group.size() - 1) ? "," : "");
     }
-
-    GE_CHK_STATUS_RET(MergeGraphs(grouped_graphs[dst], src_ptrs), "Failed to merge graphs into %zu", dst);
+    GELOGD("  ]");
   }
 
+  // For each merge group, create a new empty graph and merge all sources into it
+  for (const auto &group : plan.merge_groups) {
+    // Create new empty graph with attributes from first source
+    ::ascir::ImplGraph new_graph(("merged_" + std::to_string(group[0])).c_str());
+    new_graph.CopyAttrFrom(grouped_graphs[group[0]]);
+
+    GE_CHK_STATUS_RET(MergeGraphs(new_graph, grouped_graphs, group), "Failed to merge graphs");
+
+    // Add new graph to grouped_graphs
+    grouped_graphs.push_back(std::move(new_graph));
+  }
+
+  // Erase all source graphs (in reverse order to maintain index validity)
   std::set<size_t> to_erase;
   for (const auto &group : plan.merge_groups) {
-    for (size_t i = 1UL; i < group.size(); ++i) {
-      to_erase.insert(group[i]);
+    for (size_t idx : group) {
+      to_erase.insert(idx);
     }
   }
 
   for (auto it = to_erase.rbegin(); it != to_erase.rend(); ++it) {
+    GELOGD("  erasing graph[%zu]", *it);
     grouped_graphs.erase(grouped_graphs.begin() + static_cast<int32_t>(*it));
   }
 

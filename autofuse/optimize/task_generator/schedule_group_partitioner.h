@@ -37,7 +37,8 @@ class ScheduleGroupGraphPartitioner {
   static MergePlan ResolveMergePlan(const std::vector<MergeableGraphs> &mergeable_groups, size_t reductions_needed);
   static bool IsSimpleComputeGraph(const ::ascir::ImplGraph &graph, size_t &node_count);
   static Status MergeGraphs(::ascir::ImplGraph &dst,
-                            const std::vector<const ::ascir::ImplGraph *> &srcs);
+                            const std::vector<::ascir::ImplGraph> &grouped_graphs,
+                            const std::vector<size_t> &group);
   static Status AddConnectedNodes(const af::AscNodePtr &root_node, ::ascir::ImplGraph &sub_graph,
                                   std::set<af::NodePtr> &all_visited);
   static Status CollectConnectedNodes(const af::AscNodePtr &root_node, std::set<af::NodePtr> &visited,
