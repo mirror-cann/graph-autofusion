@@ -16,6 +16,7 @@
 */
 
 #include "acl/acl.h"
+#include "ut_common_stubs.h"
 #include "runtime/kernel.h"
 #include "runtime/base.h"
 #include <cstring>
@@ -117,8 +118,8 @@ rtError_t rtFunctionGetMetaInfo(void* funcHandle, int type_enum, void* data, uin
 
 aclError aclmdlRIDebugJsonPrint(aclmdlRI model, const char* path, uint32_t flag) {
     (void)model;
-    (void)path;
     (void)flag;
+    SkUtRecordDebugJsonPrintPath(path);
     return ACL_SUCCESS;
 }
 

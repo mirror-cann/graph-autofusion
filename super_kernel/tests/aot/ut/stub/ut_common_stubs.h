@@ -74,6 +74,10 @@ int32_t SkUtGetStreamId(uint32_t streamIdx);
 void SkUtSetAclrtGetSocName(const char* socName);
 const char* SkUtGetAclrtGetSocName();
 
+uint32_t SkUtGetDebugJsonPrintCallCount();
+const char* SkUtGetDebugJsonPrintPath(uint32_t index);
+void SkUtRecordDebugJsonPrintPath(const char* path);
+
 #ifdef __cplusplus
 }
 #endif
