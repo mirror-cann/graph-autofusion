@@ -2321,6 +2321,9 @@ SkHostEntryInfo SkTaskBuilder::GenEntryInfo(SkTask& skTaskCube, SkTask& skTaskVe
     auto perOpMaxCoreOpt = opts.GetOption(aclskOptionType::DEBUG_PER_OP_MAX_CORE_NUM);
     bool enablePerOpMaxCore = (perOpMaxCoreOpt != nullptr && perOpMaxCoreOpt->GetIntValue() == 1);
     if (enablePerOpMaxCore) {
+        if (kernelType == SkKernelType::AIV_ONLY) {
+            entryInfo.numBlocks = (entryInfo.numBlocks + 1) / 2;
+        }
         kernelType = SkKernelType::MIX_AIC_1_2;
         isMix12 = true;
         SK_LOGI("[DEBUG_PER_OP_MAX_CORE] Forced kernelType=MIX_AIC_1_2");

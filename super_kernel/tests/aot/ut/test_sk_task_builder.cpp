@@ -982,6 +982,25 @@ TEST_F(SkTaskBuilderTest, GenEntryInfo_AllModeBranches)
     EXPECT_EQ(invalid.entryType, SkKernelType::DEFAULT);
 }
 
+TEST_F(SkTaskBuilderTest, GenEntryInfo_PerOpMaxCoreNum_AivOnlyHalvesEntryBlocks)
+{
+    opts->AddOption(std::make_unique<NumberOptOption>(
+        "debug_per_op_max_core_num", aclskOptionType::DEBUG_PER_OP_MAX_CORE_NUM, 1, 0, 1));
+
+    SkTask aic;
+    SkTask aiv;
+    ASSERT_TRUE(aiv.taskQue.Init(8));
+
+    aic.funcCnt = 0;
+    aiv.funcCnt = 1;
+    aiv.numBlocks = 5;
+
+    SkHostEntryInfo entryInfo = builder->GenEntryInfo(aic, aiv);
+    ASSERT_NE(entryInfo.skEntryFunc, nullptr);
+    EXPECT_EQ(entryInfo.entryType, SkKernelType::MIX_AIC_1_2);
+    EXPECT_EQ(entryInfo.numBlocks, 3U);
+}
+
 TEST_F(SkTaskBuilderTest, Build_WithNotifyAndWaitNodes_Success)
 {
     opts->AddOption(std::make_unique<NumberOptOption>("split_mode", aclskOptionType::SPLIT_MODE, 1, 1, 4));
