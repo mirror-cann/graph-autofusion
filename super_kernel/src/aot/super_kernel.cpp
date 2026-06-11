@@ -104,7 +104,7 @@ aclError aclskOptimize(aclmdlRI model, aclskOptions *options) {
     }
 
     SK_LOGI("Start dump tasks by use rts api to JSON...");
-    ret = DumpGraphJson(model, metaDir, deviceId, "sk_graph_rts_before");
+    ret = DumpGraphJson(model, metaDir, deviceId, "sk_graph_rts_before_device");
     if (ret != ACL_SUCCESS) {
         return ret;
     }
@@ -202,7 +202,7 @@ aclError aclskOptimize(aclmdlRI model, aclskOptions *options) {
     SK_LOGI("End dump kernel binaries");
 
     SK_LOGI("Start dump tasks after update by use rts api to JSON...");
-    ret = DumpGraphJson(model, metaDir, deviceId, "sk_graph_rts_after");
+    ret = DumpGraphJson(model, metaDir, deviceId, "sk_graph_rts_after_device");
     if (ret != ACL_SUCCESS) {
         return ret;
     }

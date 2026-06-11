@@ -169,9 +169,9 @@ void DumpTaskQueDetail(const TaskQue* que, const char* name, const std::vector<S
         const TaskInfo& ti = que->taskInfos[i];
         const uint64_t nodeId = GetDumpTaskNodeId(ti.index, tasks);
         SK_LOGD("[%u] type=%s, idx=%u, nodeId=%lu, relatedType=%s, blk=%u, entries=%u, args=0x%llx, "
-                "debugOptions=0x%llx, reserved=0x%llx",
+                "debugOptions=0x%llx, extraInfo=0x%llx",
                 i, to_string(ti.type), ti.index, nodeId, to_string(ti.relatedType), ti.numBlocks, ti.entryCnt,
-                (unsigned long long)ti.args, (unsigned long long)ti.debugOptions, (unsigned long long)ti.reserved);
+                (unsigned long long)ti.args, (unsigned long long)ti.debugOptions, (unsigned long long)ti.extraInfo);
         for (uint32_t j = 0; j < ti.entryCnt; ++j) {
             SK_LOGD("   entry[%u]=0x%llx", j, (unsigned long long)ti.entry[j]);
         }
@@ -1574,7 +1574,7 @@ bool SkTaskBuilder::AddSyncTask(SkTask& skTask, size_t nodeIndex, SkCoreSyncType
     taskInfo.type = SkTaskType::TYPE_SYNC;
     taskInfo.args = static_cast<uint32_t>(syncType);
     taskInfo.numBlocks = static_cast<uint8_t>(skipCoreCount);
-    taskInfo.reserved = static_cast<uint64_t>(earlyStartConfig);
+    taskInfo.extraInfo = static_cast<uint64_t>(earlyStartConfig);
     taskInfo.relatedType = relatedType;
     if (opts.EnableDebug() && debugSyncAll == 1) {
         taskInfo.debugOptions |= 0x2;
@@ -1768,7 +1768,7 @@ bool SkTaskBuilder::AddFuncTask(SkTask& skTask, SuperKernelBaseNode* node, SkDfx
             }
             taskInfo.args = addrIndex == 0 ? prefetchCntValue.first : prefetchCntValue.second;
             taskInfo.argsSize = static_cast<uint32_t>(node->GetTaskParams().kernelTaskParams.argsSize);
-            taskInfo.reserved = static_cast<uint64_t>(reinterpret_cast<uintptr_t>(kernelInfo.devArgs));
+            taskInfo.extraInfo = static_cast<uint64_t>(reinterpret_cast<uintptr_t>(kernelInfo.devArgs));
         }
 
         uint64_t addr = resolved.funcAddr[addrIndex];
@@ -1788,7 +1788,7 @@ bool SkTaskBuilder::AddFuncTask(SkTask& skTask, SuperKernelBaseNode* node, SkDfx
 
     if (taskType == SkTaskType::TYPE_FUNC) {
         taskInfo.args = static_cast<uint64_t>(reinterpret_cast<uintptr_t>(kernelInfo.devArgs));
-        taskInfo.reserved = nodeIndex < taskSyncInfos_.size() ?
+        taskInfo.extraInfo = nodeIndex < taskSyncInfos_.size() ?
             static_cast<uint64_t>(taskSyncInfos_[nodeIndex].earlyStartInfo.funcEarlyStartConfig) :
             static_cast<uint64_t>(SkEarlyStartMask::NONE);
         taskInfo.argsSize = static_cast<uint32_t>(node->GetTaskParams().kernelTaskParams.argsSize);

@@ -17,6 +17,7 @@
 #include "sk_scope_kernel_types.h"
 #include <chrono>
 #include <deque>
+#include <string>
 #include <thread>
 #include <unordered_map>
 #include <vector>
@@ -51,6 +52,7 @@ uint32_t g_streamNum = 0;
 std::vector<uint32_t> g_streamTaskNums;
 std::vector<std::vector<aclrtTaskType>> g_taskTypes;
 std::vector<int32_t> g_streamIds;
+std::vector<std::string> g_debugJsonPrintPaths;
 
 void EnsureStreamStorage(uint32_t streamIdx)
 {
@@ -106,6 +108,7 @@ void SkUtResetCommonStubControls()
     g_streamTaskNums.clear();
     g_taskTypes.clear();
     g_streamIds.clear();
+    g_debugJsonPrintPaths.clear();
 }
 
 void SkUtResetTestControls()
@@ -455,6 +458,24 @@ void SkUtSetAclrtGetSocName(const char* socName)
 const char* SkUtGetAclrtGetSocName()
 {
     return g_aclrtGetSocName;
+}
+
+uint32_t SkUtGetDebugJsonPrintCallCount()
+{
+    return static_cast<uint32_t>(g_debugJsonPrintPaths.size());
+}
+
+const char* SkUtGetDebugJsonPrintPath(uint32_t index)
+{
+    if (index >= g_debugJsonPrintPaths.size()) {
+        return nullptr;
+    }
+    return g_debugJsonPrintPaths[index].c_str();
+}
+
+void SkUtRecordDebugJsonPrintPath(const char* path)
+{
+    g_debugJsonPrintPaths.emplace_back(path == nullptr ? "" : path);
 }
 
 } // extern "C"

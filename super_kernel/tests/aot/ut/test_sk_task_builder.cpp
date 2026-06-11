@@ -494,15 +494,15 @@ TEST_F(SkTaskBuilderTest, AddEventTask_EncodesCustomValueAndWaitFlag)
 
     EXPECT_EQ(taskQue->taskInfos[0].args, static_cast<uint64_t>(reinterpret_cast<uintptr_t>(notify->nodeInfos.syncInfos.addrValue)));
     EXPECT_EQ(taskQue->taskInfos[0].entry[0], 9U);
-    EXPECT_EQ(taskQue->taskInfos[0].reserved, 0U);
+    EXPECT_EQ(taskQue->taskInfos[0].extraInfo, 0U);
 
     EXPECT_EQ(taskQue->taskInfos[1].args, static_cast<uint64_t>(reinterpret_cast<uintptr_t>(wait->nodeInfos.syncInfos.addrValue)));
     EXPECT_EQ(taskQue->taskInfos[1].entry[0], 12U);
-    EXPECT_EQ(taskQue->taskInfos[1].reserved, static_cast<uint64_t>(SkMemoryWaitFlag::AND));
+    EXPECT_EQ(taskQue->taskInfos[1].extraInfo, static_cast<uint64_t>(SkMemoryWaitFlag::AND));
 
     EXPECT_EQ(taskQue->taskInfos[2].args, static_cast<uint64_t>(reinterpret_cast<uintptr_t>(reset->nodeInfos.syncInfos.addrValue)));
     EXPECT_EQ(taskQue->taskInfos[2].entry[0], 0U);
-    EXPECT_EQ(taskQue->taskInfos[2].reserved, 0U);
+    EXPECT_EQ(taskQue->taskInfos[2].extraInfo, 0U);
 }
 
 TEST_F(SkTaskBuilderTest, AddEventTask_UnexpectedEventTaskTypeUsesZeroDefaultValue)
@@ -520,7 +520,7 @@ TEST_F(SkTaskBuilderTest, AddEventTask_UnexpectedEventTaskTypeUsesZeroDefaultVal
     ASSERT_NE(taskQue, nullptr);
     ASSERT_EQ(taskQue->taskCnt, 1U);
     EXPECT_EQ(taskQue->taskInfos[0].entry[0], 0U);
-    EXPECT_EQ(taskQue->taskInfos[0].reserved, SK_DEFAULT_WRITE_FLAG);
+    EXPECT_EQ(taskQue->taskInfos[0].extraInfo, SK_DEFAULT_WRITE_FLAG);
 }
 
 TEST_F(SkTaskBuilderTest, EntryInfoAndArgs_GenerateSuccessfully)
@@ -1994,36 +1994,36 @@ TEST_F(SkTaskBuilderTest, DispatchSyncTasks_EarlyStartMasksEnqueueTasks)
 
     EXPECT_EQ(aic.taskQue.get()->taskInfos[0].relatedType, SkKernelType::MIX_AIC_1_2);
     EXPECT_EQ(aic.taskQue.get()->taskInfos[0].numBlocks, 2U);
-    EXPECT_EQ(aic.taskQue.get()->taskInfos[0].reserved,
+    EXPECT_EQ(aic.taskQue.get()->taskInfos[0].extraInfo,
               static_cast<uint64_t>(SkEarlyStartMask::AIV_TO_AIC_WAIT));
     EXPECT_EQ(aic.taskQue.get()->taskInfos[1].relatedType, SkKernelType::MIX_AIC_1_2);
     EXPECT_EQ(aic.taskQue.get()->taskInfos[1].numBlocks, 2U);
-    EXPECT_EQ(aic.taskQue.get()->taskInfos[1].reserved,
+    EXPECT_EQ(aic.taskQue.get()->taskInfos[1].extraInfo,
               static_cast<uint64_t>(SkEarlyStartMask::AIC_TO_AIC_SET));
     EXPECT_EQ(aic.taskQue.get()->taskInfos[2].relatedType, SkKernelType::AIC_ONLY);
     EXPECT_EQ(aic.taskQue.get()->taskInfos[2].numBlocks, 3U);
-    EXPECT_EQ(aic.taskQue.get()->taskInfos[2].reserved,
+    EXPECT_EQ(aic.taskQue.get()->taskInfos[2].extraInfo,
               static_cast<uint64_t>(SkEarlyStartMask::AIC_TO_AIC_WAIT));
     EXPECT_EQ(aic.taskQue.get()->taskInfos[3].relatedType, SkKernelType::AIC_ONLY);
     EXPECT_EQ(aic.taskQue.get()->taskInfos[3].numBlocks, 3U);
-    EXPECT_EQ(aic.taskQue.get()->taskInfos[3].reserved,
+    EXPECT_EQ(aic.taskQue.get()->taskInfos[3].extraInfo,
               static_cast<uint64_t>(SkEarlyStartMask::AIC_TO_AIV_SET));
 
     EXPECT_EQ(aiv.taskQue.get()->taskInfos[0].relatedType, SkKernelType::MIX_AIC_1_2);
     EXPECT_EQ(aiv.taskQue.get()->taskInfos[0].numBlocks, 4U);
-    EXPECT_EQ(aiv.taskQue.get()->taskInfos[0].reserved,
+    EXPECT_EQ(aiv.taskQue.get()->taskInfos[0].extraInfo,
               static_cast<uint64_t>(SkEarlyStartMask::AIC_TO_AIV_WAIT));
     EXPECT_EQ(aiv.taskQue.get()->taskInfos[1].relatedType, SkKernelType::MIX_AIC_1_2);
     EXPECT_EQ(aiv.taskQue.get()->taskInfos[1].numBlocks, 4U);
-    EXPECT_EQ(aiv.taskQue.get()->taskInfos[1].reserved,
+    EXPECT_EQ(aiv.taskQue.get()->taskInfos[1].extraInfo,
               static_cast<uint64_t>(SkEarlyStartMask::AIV_TO_AIV_SET));
     EXPECT_EQ(aiv.taskQue.get()->taskInfos[2].relatedType, SkKernelType::AIV_ONLY);
     EXPECT_EQ(aiv.taskQue.get()->taskInfos[2].numBlocks, 4U);
-    EXPECT_EQ(aiv.taskQue.get()->taskInfos[2].reserved,
+    EXPECT_EQ(aiv.taskQue.get()->taskInfos[2].extraInfo,
               static_cast<uint64_t>(SkEarlyStartMask::AIV_TO_AIV_WAIT));
     EXPECT_EQ(aiv.taskQue.get()->taskInfos[3].relatedType, SkKernelType::AIV_ONLY);
     EXPECT_EQ(aiv.taskQue.get()->taskInfos[3].numBlocks, 4U);
-    EXPECT_EQ(aiv.taskQue.get()->taskInfos[3].reserved,
+    EXPECT_EQ(aiv.taskQue.get()->taskInfos[3].extraInfo,
               static_cast<uint64_t>(SkEarlyStartMask::AIV_TO_AIC_SET));
 
     auto* defaultNode = CreateDefaultNodeEx(43404, 0, INVALID_TASK_ID, INVALID_TASK_ID);

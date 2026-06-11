@@ -91,14 +91,14 @@ TEST(ConstantCodeGeneratorTest, GenerateTaskExecutionForSplit_EmitsEarlyStartFun
     func.entryCnt = 1;
     func.args = 0x4000;
     func.entry[0] = 0x5000;
-    func.reserved = static_cast<uint64_t>(SkEarlyStartMask::AIC_TO_AIV_SET);
+    func.extraInfo = static_cast<uint64_t>(SkEarlyStartMask::AIC_TO_AIV_SET);
 
     TaskInfo& sync = taskQue->taskInfos[taskQue->taskCnt++];
     sync = {};
     sync.type = SkTaskType::TYPE_SYNC;
     sync.args = static_cast<uint64_t>(SkCoreSyncType::CROSS_SYNC_AIC_TO_AIC);
     sync.numBlocks = 7;
-    sync.reserved = static_cast<uint64_t>(SkEarlyStartMask::AIC_TO_AIC_SET);
+    sync.extraInfo = static_cast<uint64_t>(SkEarlyStartMask::AIC_TO_AIC_SET);
 
     const std::string funcCode = generator.GenerateTaskExecutionForSplit(taskQue, 0, true, 0);
     EXPECT_TRUE(Contains(funcCode, "sysArgs.skTaskSyncCfg = static_cast<uint16_t>(4ULL);"));
@@ -107,6 +107,52 @@ TEST(ConstantCodeGeneratorTest, GenerateTaskExecutionForSplit_EmitsEarlyStartFun
     EXPECT_TRUE(Contains(syncCode,
         "AscendC::AutoCoreSyncImpl<aic, aiv>(static_cast<SkCoreSyncType>(1), static_cast<uint8_t>(7), "
         "0x0000000000000001ULL);"));
+}
+
+TEST(ConstantCodeGeneratorTest, GenerateConstantTaskQue_EmitsExtraInfoField)
+{
+    ConstantCodeGenOptions options;
+    ConstantCodeGenerator generator(options);
+
+    SkTask task;
+    ASSERT_TRUE(task.Init(1));
+    TaskQue* taskQue = task.GetTaskQue();
+    ASSERT_NE(taskQue, nullptr);
+
+    TaskInfo& info = taskQue->taskInfos[taskQue->taskCnt++];
+    info = {};
+    info.type = SkTaskType::TYPE_FUNC;
+    info.relatedType = SkKernelType::AIC_ONLY;
+    info.extraInfo = 0x123456789ABCDEF0ULL;
+
+    const std::string code = generator.GenerateConstantTaskQue(task, "aic");
+    EXPECT_TRUE(Contains(code, "0x123456789abcdef0ULL"));
+}
+
+TEST(ConstantCodeGeneratorTest, GenerateTaskExecutionForSplit_PreloadEmitsDcPreloadForExtraInfoPair)
+{
+    ConstantCodeGenOptions options;
+    ConstantCodeGenerator generator(options);
+
+    SkTask task;
+    ASSERT_TRUE(task.Init(1));
+    TaskQue* taskQue = task.GetTaskQue();
+    ASSERT_NE(taskQue, nullptr);
+
+    TaskInfo& preload = taskQue->taskInfos[taskQue->taskCnt++];
+    preload = {};
+    preload.type = SkTaskType::TYPE_PRELOAD;
+    preload.numBlocks = 4;
+    preload.entryCnt = 1;
+    preload.entry[0] = 0x5000;
+    preload.args = 64;
+    preload.extraInfo = 0x6000;
+
+    const std::string code = generator.GenerateTaskExecutionForSplit(taskQue, 0, true, 0);
+    EXPECT_TRUE(Contains(code,
+        "dc_preload(reinterpret_cast<__gm__ uint64_t*>(0x0000000000006000ULL), 0);"));
+    EXPECT_TRUE(Contains(code,
+        "dc_preload(reinterpret_cast<__gm__ uint64_t*>(0x0000000000006008ULL), 0);"));
 }
 
 TEST(ConstantCodeGeneratorTest, GenerateCombinedSource_IncludesEarlyStartRuntimeHelpers)
