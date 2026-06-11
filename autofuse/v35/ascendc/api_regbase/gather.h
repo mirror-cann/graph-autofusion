@@ -776,6 +776,9 @@ inline __aicore__ void GatherExtendShortVector(AscendC::LocalTensor<T1> &dst, co
     AscendC::SetFlag<AscendC::HardEvent::V_MTE2>(event_id_v_to_mte2);
     AscendC::WaitFlag<AscendC::HardEvent::V_MTE2>(event_id_v_to_mte2);
     AscendC::DataCopyPad(xLocal, src1, param_src, param_src_pad);
+    int32_t event_id_mte2_to_v = static_cast<int32_t>(GetTPipePtr()->FetchEventID(AscendC::HardEvent::MTE2_V));
+    AscendC::SetFlag<AscendC::HardEvent::MTE2_V>(event_id_mte2_to_v);
+    AscendC::WaitFlag<AscendC::HardEvent::MTE2_V>(event_id_mte2_to_v);
     __ubuf__ int64_t *xAddr = (__ubuf__ int64_t *)xLocal.GetPhyAddr();
     AscendC::Simt::VF_CALL<GatherSimtParamFullLoad<int64_t, T2, uint32_t, CASE, VECTORIZED_AXIS_SIZE, sizeof(int64_t) / sizeof(T1), negative_index_support>>(AscendC::Simt::Dim3(THREAD_NUMBER), dst_p, xAddr, x2_gm, ub_actual_size,
                   static_cast<uint32_t>(offset), static_cast<uint32_t>(x1_gather_dim_size),
