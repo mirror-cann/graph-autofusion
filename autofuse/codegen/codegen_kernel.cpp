@@ -535,21 +535,54 @@ bool Tiler::HasSameOriginAxis(ascir::AxisId src, ascir::AxisId dst) const {
 }
 
 std::string codegen::Tiler::Size(const ascir::SizeExpr &size, bool using_int_tiling_data) const {
-  std::string const_expr_str = std::string(size.Str().get());
+  if (!size.IsValid()) {
+    GELOGE(af::FAILED, "Tiler::Size input size is invalid");
+    return "";
+  }
+  auto raw = size.Str();
+  std::string const_expr_str = (raw != nullptr) ? std::string(raw.get()) : std::string();
   if (size.IsConstExpr()) {
     return (const_expr_str.find("Rational") != std::string::npos) ?
             af::SymbolicUtils::AsNumerDenomToString(size) : const_expr_str;
   }
-  std::string str_ret = std::string((size.Replace(this->sizes)).Str().get());
+  auto replaced = size.Replace(this->sizes);
+  if (!replaced.IsValid()) {
+    GELOGE(af::FAILED, "Tiler::Size Replace(sizes) failed, size=%s", const_expr_str.c_str());
+    return "";
+  }
+  auto replaced_str = replaced.Str();
+  if (replaced_str == nullptr) {
+    GELOGE(af::FAILED, "Tiler::Size Str() returned null after replace, size=%s", const_expr_str.c_str());
+    return "";
+  }
+  std::string str_ret(replaced_str.get());
   return (using_int_tiling_data || str_ret.find("Rational") != std::string::npos) ?
-          af::SymbolicUtils::AsNumerDenomToString(size.Replace(this->sizes)) : str_ret;
+          af::SymbolicUtils::AsNumerDenomToString(replaced) : str_ret;
 }
 
 std::string codegen::Tiler::ActualSize(const ascir::SizeExpr &size, bool using_int_tiling_data) const {
+  if (!size.IsValid()) {
+    GELOGE(af::FAILED, "Tiler::ActualSize input size is invalid");
+    return "";
+  }
   auto replace_actual = size.Replace(this->actual_sizes);
-  std::string str_ret = std::string((replace_actual.Replace(this->sizes)).Str().get());
+  if (!replace_actual.IsValid()) {
+    GELOGE(af::FAILED, "Tiler::ActualSize Replace(actual_sizes) failed");
+    return "";
+  }
+  auto replaced = replace_actual.Replace(this->sizes);
+  if (!replaced.IsValid()) {
+    GELOGE(af::FAILED, "Tiler::ActualSize Replace(sizes) failed");
+    return "";
+  }
+  auto cstr = replaced.Str();
+  if (cstr == nullptr) {
+    GELOGE(af::FAILED, "Tiler::ActualSize Str() returned null after replace");
+    return "";
+  }
+  std::string str_ret(cstr.get());
   return (using_int_tiling_data || str_ret.find("Rational") != std::string::npos) ?
-          af::SymbolicUtils::AsNumerDenomToString(replace_actual.Replace(this->sizes)) : str_ret;
+          af::SymbolicUtils::AsNumerDenomToString(replaced) : str_ret;
 }
 
 std::string Tiler::TensorActualSize(const Tensor &tensor) const {
