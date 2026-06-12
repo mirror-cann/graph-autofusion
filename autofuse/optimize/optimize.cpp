@@ -603,6 +603,7 @@ Status Optimizer::OptimizeFusedAscBackend(const af::ComputeGraphPtr &fused_graph
   fused_scheduled_result.origin_vars.assign(original_var_set.begin(), original_var_set.end());
   GE_CHK_STATUS_RET(BufQueAllocator().AllocBufQue(fused_scheduled_result));
   GELOGI("AllocBufQue end");
+  TryEnableGroupParallel(fused_scheduled_result);
   for (auto &scheduled_results : fused_scheduled_result.node_idx_to_scheduled_results) {
     for (auto &result : scheduled_results) {
       GE_ASSERT_SUCCESS(FusedGraphModifier::ChangeStartingOutputToWorkspace(result.schedule_groups),

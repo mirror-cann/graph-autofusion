@@ -288,4 +288,52 @@ TEST_F(ScheduleGroupGraphPartitionerTest, ReduceGraphCount_MergedGraph_ContainsA
   EXPECT_EQ(graphs.size(), 5UL);
 }
 
+// Test 11: Verify that a graph used as source is not reused as destination
+TEST_F(ScheduleGroupGraphPartitionerTest, ReduceGraphCount_NoSourceReuseAsDestination) {
+  std::vector<af::AscGraph> graphs;
+  auto base_graph = CreateSimpleGraph("base", 0);
+
+  // Create 6 graphs with varying node counts to force multiple merges
+  // Graph 0: 1 node (smallest)
+  auto graph0 = AscGraphBuilder("graph0")
+      .Loops({Sym(128), Sym(64)})
+      .Data("data0", 0)
+      .Load("load0", "data0")
+      .Output("out0", "load0", 0)
+      .Build();
+  CopyAxisAttrs(graph0, base_graph);
+  graphs.push_back(std::move(graph0));
+
+  // Graph 1-5: 3 nodes each
+  for (int i = 1; i < 6; ++i) {
+    auto graph = CreateSimpleGraph("graph" + std::to_string(i), i);
+    CopyAxisAttrs(graph, base_graph);
+    graphs.push_back(std::move(graph));
+  }
+
+  // Count total nodes before merge
+  size_t total_nodes_before = 0;
+  for (const auto &g : graphs) {
+    for (const auto &node : g.GetAllNodes()) {
+      (void) node;
+      ++total_nodes_before;
+    }
+  }
+
+  // Reduce from 6 to 2 (4 reductions needed)
+  EXPECT_EQ(ScheduleGroupGraphPartitioner::ReduceGraphCount(graphs, 2), ge::SUCCESS);
+
+  EXPECT_EQ(graphs.size(), 2UL);
+
+  // Count total nodes after merge - should equal original total
+  size_t total_nodes_after = 0;
+  for (const auto &g : graphs) {
+    for (const auto &node : g.GetAllNodes()) {
+      (void) node;
+      ++total_nodes_after;
+    }
+  }
+
+  EXPECT_EQ(total_nodes_after, total_nodes_before);
+}
 }  // namespace schedule

@@ -13,7 +13,10 @@
 #include <cstdlib>
 #include <dlfcn.h>
 #include <fstream>
+#include <future>
 #include <gtest/gtest.h>
+
+#include "../common/inductor_split_compile_common.h"
 #include <sstream>
 #include <string>
 #include <sys/wait.h>
@@ -90,7 +93,7 @@ bool HasCxx11AbiSymbols(const std::string &path) {
 std::string PythonPreamble() {
   return
     "import sys, os, traceback\n"
-    "pkg_dir = os.path.join('" + std::string(OUTPUT_DIR) + "', 'autofuse_pkg')\n"
+    "pkg_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'autofuse_pkg')\n"
     "os.makedirs(pkg_dir, exist_ok=True)\n"
     "autofuse_dir = os.path.join(pkg_dir, 'autofuse')\n"
     "if os.path.islink(autofuse_dir) or os.path.isfile(autofuse_dir):\n"
@@ -200,13 +203,6 @@ int RunKernelCompile(const std::string &tiling_def, const std::string &device_co
   return ret;
 }
 
-struct DlHandle {
-  void *ptr = nullptr;
-  explicit DlHandle(void *p) : ptr(p) {}
-  ~DlHandle() { if (ptr) dlclose(ptr); }
-  operator bool() const { return ptr != nullptr; }
-};
-
 }  // namespace
 class TestBackendInductorTopnConcatSplitCompile : public testing::Test {
 };
@@ -224,21 +220,10 @@ void CompileAndVerifyKernels(const std::string &tiling_def, const std::string &d
                              const std::string &tiling_repr) {
   const std::string static_dir = OUTPUT_DIR "/device_static";
   const std::string kernel_static = OUTPUT_DIR "/inductor_topn_concat_static.so";
-  ASSERT_EQ(RunKernelCompile(tiling_def, device_code, kernel_static, static_dir, tiling_repr), 0);
-  ASSERT_TRUE(FileExists(kernel_static)) << "static device so not found: " << kernel_static;
-
   const std::string dynamic_dir = OUTPUT_DIR "/device_dynamic";
   const std::string kernel_dynamic = OUTPUT_DIR "/inductor_topn_concat_dynamic.so";
-  ASSERT_EQ(RunKernelCompile(tiling_def, device_code, kernel_dynamic, dynamic_dir, ""), 0);
-  ASSERT_TRUE(FileExists(kernel_dynamic)) << "dynamic device so not found: " << kernel_dynamic;
-
-  DlHandle static_handle(dlopen(kernel_static.c_str(), RTLD_NOW | RTLD_LOCAL));
-  ASSERT_TRUE(static_handle) << "dlopen static device failed: " << dlerror();
-  EXPECT_NE(dlsym(static_handle.ptr, "AutofuseLaunch"), nullptr) << "AutofuseLaunch missing in static so";
-
-  DlHandle dynamic_handle(dlopen(kernel_dynamic.c_str(), RTLD_NOW | RTLD_LOCAL));
-  ASSERT_TRUE(dynamic_handle) << "dlopen dynamic device failed: " << dlerror();
-  EXPECT_NE(dlsym(dynamic_handle.ptr, "AutofuseLaunch"), nullptr) << "AutofuseLaunch missing in dynamic so";
+  autofuse::tests::ParallelCompileAndVerifySo(tiling_def, device_code, tiling_repr, static_dir, kernel_static,
+                                              dynamic_dir, kernel_dynamic, RunKernelCompile);
 
   const std::string static_src = ReadFile(static_dir + "/device/inductor_topn_concat_op_kernel.cpp");
   EXPECT_NE(static_src.find("constexpr AutofuseTilingData t = AutofuseTilingData{"), std::string::npos)

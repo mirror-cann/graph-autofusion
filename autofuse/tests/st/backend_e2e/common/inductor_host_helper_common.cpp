@@ -240,12 +240,20 @@ bool VerifyPerfOrder(HostCaseRunner *runner, PerfOrderMode mode) {
   return true;
 }
 
+bool IsDefaultConfigRequest(const InputConfigs &input_configs) {
+  return input_configs.empty() || (input_configs.size() == 1U && input_configs.front().empty());
+}
+
 bool VerifyTopnUniqueness(HostCaseRunner *runner, const InputConfigs &input_configs, const HostHelperOptions &options) {
-  return Check(runner->GenerateTopn(input_configs, options.topn) == 0,
-               "multi-candidate GenerateTopnSolutions failed") &&
-         VerifyTopnResultShape(runner, options.topn) &&
-         Check(runner->ResultRepr(0) == runner->DefaultRepr(), "first topn repr should match default") &&
-         VerifyUniqueReprs(runner) && VerifyPerfOrder(runner, options.perf_order_mode);
+  if (!Check(runner->GenerateTopn(input_configs, options.topn) == 0, "multi-candidate GenerateTopnSolutions failed") ||
+      !VerifyTopnResultShape(runner, options.topn)) {
+    return false;
+  }
+  if (IsDefaultConfigRequest(input_configs) &&
+      !Check(runner->ResultRepr(0) == runner->DefaultRepr(), "first topn repr should match default")) {
+    return false;
+  }
+  return VerifyUniqueReprs(runner) && VerifyPerfOrder(runner, options.perf_order_mode);
 }
 
 bool VerifyEmptyConfigPath(HostCaseRunner *runner) {
@@ -257,6 +265,13 @@ bool VerifyEmptyConfigPath(HostCaseRunner *runner) {
                "empty config workspace mismatch") &&
          Check(runner->ResultBlockDim(0) == static_cast<int64_t>(runner->DefaultBlockDim()),
                "empty config block_dim mismatch");
+}
+
+InputConfigs GetDefaultCheckConfigs(const InputConfigs &input_configs) {
+  if (IsDefaultConfigRequest(input_configs)) {
+    return input_configs;
+  }
+  return InputConfigs(1);
 }
 
 bool WriteFile(const std::string &path, const std::string &content) {
@@ -296,12 +311,13 @@ int RunHostCheck(const HostHelperOptions &options, HostCaseRunner *runner) {
     return 1;
   }
 
-  const bool passed =
-      LoadInputConfigs(options.input_configs_file, &input_configs) && runner->Resolve(host_handle.ptr) &&
-      VerifyInvalidTopn(runner, input_configs) && VerifyDefaultTopn(runner, input_configs) &&
-      VerifyTopnUniqueness(runner, input_configs, options) &&
-      (!options.verify_empty_config || VerifyEmptyConfigPath(runner)) &&
-      WriteFile(options.tiling_repr_out, runner->DefaultRepr());
+  const bool loaded = LoadInputConfigs(options.input_configs_file, &input_configs);
+  const InputConfigs default_check_configs = GetDefaultCheckConfigs(input_configs);
+  const bool passed = loaded && runner->Resolve(host_handle.ptr) && VerifyInvalidTopn(runner, input_configs) &&
+                      VerifyDefaultTopn(runner, default_check_configs) &&
+                      VerifyTopnUniqueness(runner, input_configs, options) &&
+                      (!options.verify_empty_config || VerifyEmptyConfigPath(runner)) &&
+                      WriteFile(options.tiling_repr_out, runner->DefaultRepr());
   if (!host_handle.Close()) {
     return 1;
   }

@@ -3,6 +3,12 @@ set(PGO_ADD_ABS_INDUCTOR_CONCAT_TILING_DEF ${PGO_ADD_ABS_INDUCTOR_CONCAT_WORKDIR
 set(PGO_ADD_ABS_INDUCTOR_CONCAT_HOST_CODE ${PGO_ADD_ABS_INDUCTOR_CONCAT_WORKDIR}/pgo_add_abs_inductor_concat_host.cpp)
 set(PGO_ADD_ABS_INDUCTOR_CONCAT_DEVICE_CODE ${PGO_ADD_ABS_INDUCTOR_CONCAT_WORKDIR}/pgo_add_abs_inductor_concat_device.cpp)
 set(PGO_ADD_ABS_INDUCTOR_CONCAT_OUTPUT_DIR ${PGO_ADD_ABS_INDUCTOR_CONCAT_WORKDIR}/split_compile_out)
+string(CONCAT PGO_ADD_ABS_INDUCTOR_CONCAT_INPUT_CONFIGS_JSON
+    "["
+    "{\\\"ub_threshold\\\":0.2,\\\"corenum_threshold\\\":0.4,\\\"enable_multicore_ub_tradeoff\\\":false},"
+    "{\\\"ub_threshold\\\":0.05,\\\"corenum_threshold\\\":1.0,\\\"enable_multicore_ub_tradeoff\\\":false},"
+    "{\\\"ub_threshold\\\":0.1,\\\"corenum_threshold\\\":0.8,\\\"enable_multicore_ub_tradeoff\\\":true}"
+    "]")
 
 set(PYAUTOFUSE_DIR ${CMAKE_BINARY_DIR}/autofuse/tests)
 set(AUTOFUSE_PYTHON_DIR ${CODE_ROOT_DIR}/compiler/python)
@@ -46,7 +52,7 @@ target_compile_definitions(pgo_add_abs_inductor_concat_test_e2e PRIVATE
     AUTOFUSE_PYTHON_DIR="${AUTOFUSE_PYTHON_DIR}"
     ASCEND_HOME_PATH="${ASCEND_INSTALL_PATH}"
     HOST_HELPER_BIN="$<TARGET_FILE:pgo_add_abs_inductor_concat_host_abi1_helper>"
-    HOST_INPUT_CONFIGS_JSON="[{}]"
+    HOST_INPUT_CONFIGS_JSON="${PGO_ADD_ABS_INDUCTOR_CONCAT_INPUT_CONFIGS_JSON}"
     HOST_TOPN=10
     HOST_VERIFY_EMPTY_CONFIG=1
 )
