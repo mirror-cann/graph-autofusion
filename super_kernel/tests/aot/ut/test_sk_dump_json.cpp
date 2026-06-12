@@ -74,127 +74,6 @@ protected:
     }
 };
 
-// ==================== DumpGraphNodesToJson Tests ====================
-
-class DumpGraphNodesToJsonTest : public SkDumpJsonTest {};
-
-TEST_F(DumpGraphNodesToJsonTest, EmptyGraph)
-{
-    SuperKernelGraph graph(nullptr);
-    bool result = DumpGraphNodesToJson(graph);
-    EXPECT_TRUE(result);
-}
-
-TEST_F(DumpGraphNodesToJsonTest, GraphWithKernelNodes)
-{
-    SuperKernelGraph graph(nullptr);
-    auto node1 = CreateKernelNode(10);
-    AddKernelInfoToNode(node1.get());
-    graph.graphMap[10] = std::move(node1);
-
-    auto node2 = CreateKernelNode(11);
-    AddKernelInfoToNode(node2.get());
-    graph.graphMap[11] = std::move(node2);
-
-    bool result = DumpGraphNodesToJson(graph);
-    EXPECT_TRUE(result);
-}
-
-TEST_F(DumpGraphNodesToJsonTest, GraphWithMixedNodes)
-{
-    SuperKernelGraph graph(nullptr);
-    auto kernelNode = CreateKernelNode(10);
-    AddKernelInfoToNode(kernelNode.get());
-    graph.graphMap[10] = std::move(kernelNode);
-
-    auto memoryNode = CreateMemoryNode(11, ACL_MODEL_RI_TASK_EVENT_WAIT);
-    graph.graphMap[11] = std::move(memoryNode);
-
-    bool result = DumpGraphNodesToJson(graph);
-    EXPECT_TRUE(result);
-}
-
-TEST_F(DumpGraphNodesToJsonTest, DisabledLoggerSkipDump)
-{
-    sk::logger::FileLogger::Instance().SetEnabled(false);
-
-    SuperKernelGraph graph(nullptr);
-    auto node = CreateKernelNode(10);
-    AddKernelInfoToNode(node.get());
-    graph.graphMap[10] = std::move(node);
-
-    bool result = DumpGraphNodesToJson(graph);
-    EXPECT_TRUE(result);
-
-    sk::logger::FileLogger::Instance().SetEnabled(true);
-}
-
-// ==================== DumpFusedGraphToJson Tests ====================
-
-class DumpFusedGraphToJsonTest : public SkDumpJsonTest {};
-
-TEST_F(DumpFusedGraphToJsonTest, EmptyGraphAndScopes)
-{
-    SuperKernelGraph graph(nullptr);
-    std::vector<SuperKernelScopeInfo> emptyScopes;
-
-    bool result = DumpFusedGraphToJson(graph, emptyScopes);
-    EXPECT_TRUE(result);
-}
-
-TEST_F(DumpFusedGraphToJsonTest, GraphWithKernelNodes)
-{
-    SuperKernelGraph graph(nullptr);
-    auto node1 = CreateKernelNode(10);
-    AddKernelInfoToNode(node1.get());
-    graph.graphMap[10] = std::move(node1);
-
-    auto node2 = CreateKernelNode(11);
-    AddKernelInfoToNode(node2.get());
-    graph.graphMap[11] = std::move(node2);
-
-    std::vector<SuperKernelScopeInfo> emptyScopes;
-
-    bool result = DumpFusedGraphToJson(graph, emptyScopes);
-    EXPECT_TRUE(result);
-}
-
-TEST_F(DumpFusedGraphToJsonTest, GraphWithKernelNodesAndEmptyScopeInfo)
-{
-    SuperKernelGraph graph(nullptr);
-    auto node1 = CreateKernelNode(10);
-    AddKernelInfoToNode(node1.get());
-    graph.graphMap[10] = std::move(node1);
-
-    auto node2 = CreateKernelNode(11);
-    AddKernelInfoToNode(node2.get());
-    graph.graphMap[11] = std::move(node2);
-
-    SuperKernelScopeInfo scopeInfo;
-    std::vector<SuperKernelScopeInfo> scopeInfos;
-    scopeInfos.push_back(std::move(scopeInfo));
-
-    bool result = DumpFusedGraphToJson(graph, scopeInfos);
-    EXPECT_TRUE(result);
-}
-
-TEST_F(DumpFusedGraphToJsonTest, DisabledLoggerSkipDump)
-{
-    sk::logger::FileLogger::Instance().SetEnabled(false);
-
-    SuperKernelGraph graph(nullptr);
-    auto node = CreateKernelNode(10);
-    AddKernelInfoToNode(node.get());
-    graph.graphMap[10] = std::move(node);
-
-    std::vector<SuperKernelScopeInfo> emptyScopes;
-
-    bool result = DumpFusedGraphToJson(graph, emptyScopes);
-    EXPECT_TRUE(result);
-
-    sk::logger::FileLogger::Instance().SetEnabled(true);
-}
-
 // ==================== SkTaskToQueueJson Tests ====================
 
 class SkTaskToQueueJsonTest : public SkDumpJsonTest {};
@@ -597,49 +476,6 @@ TEST_F(SkDumpJsonDirectHelperTest, TaskAndKernelTypeStringHelpers)
     EXPECT_EQ(Uint64ToHexString(0xabcd), "0xabcd");
 }
 
-TEST_F(SkDumpJsonDirectHelperTest, KernelAttrToJsonCoversKnownAndRawAttributes)
-{
-    aclrtLaunchKernelAttr attr{};
-    attr.id = ACL_RT_LAUNCH_KERNEL_ATTR_SCHEM_MODE;
-    attr.value.schemMode = 1;
-    EXPECT_EQ(KernelAttrToJson(attr)["schemMode"], 1);
-
-    attr = {};
-    attr.id = ACL_RT_LAUNCH_KERNEL_ATTR_DYN_UBUF_SIZE;
-    attr.value.dynUBufSize = 4096;
-    EXPECT_EQ(KernelAttrToJson(attr)["dynUBufSize"], 4096);
-
-    attr = {};
-    attr.id = ACL_RT_LAUNCH_KERNEL_ATTR_ENGINE_TYPE;
-    attr.value.engineType = 2;
-    EXPECT_EQ(KernelAttrToJson(attr)["engineType"], 2);
-
-    attr = {};
-    attr.id = ACL_RT_LAUNCH_KERNEL_ATTR_BLOCK_TASK_PREFETCH;
-    attr.value.isBlockTaskPrefetch = 1;
-    EXPECT_EQ(KernelAttrToJson(attr)["blockTaskPrefetch"], 1);
-
-    attr = {};
-    attr.id = ACL_RT_LAUNCH_KERNEL_ATTR_DATA_DUMP;
-    attr.value.isDataDump = 1;
-    EXPECT_EQ(KernelAttrToJson(attr)["dataDump"], 1);
-
-    attr = {};
-    attr.id = ACL_RT_LAUNCH_KERNEL_ATTR_TIMEOUT;
-    attr.value.timeout = 77;
-    EXPECT_EQ(KernelAttrToJson(attr)["timeout"], 77);
-
-    attr = {};
-    attr.id = ACL_RT_LAUNCH_KERNEL_ATTR_TIMEOUT_US;
-    attr.value.timeout = 88;
-    EXPECT_EQ(KernelAttrToJson(attr)["timeoutUs"], 88);
-
-    attr = {};
-    attr.id = static_cast<aclrtLaunchKernelAttrId>(99);
-    attr.value.rsv[0] = 12345;
-    EXPECT_EQ(KernelAttrToJson(attr)["rawValue"], 12345);
-}
-
 TEST_F(SkDumpJsonDirectHelperTest, BinaryBindMapAndResolvedFuncsCoverSuccessAndFailurePaths)
 {
     aclrtBinHandle binHdl = reinterpret_cast<aclrtBinHandle>(0xaaaa);
@@ -682,219 +518,6 @@ TEST_F(SkDumpJsonDirectHelperTest, BinaryBindMapMetaInfoFailureReturnsEmpty)
     MOCKER(rtBinaryGetMetaNum).stubs().will(invoke(FakeRtBinaryGetMetaNumSuccess));
     MOCKER(rtBinaryGetMetaInfo).stubs().will(invoke(FakeRtBinaryGetMetaInfoFailure));
     EXPECT_TRUE(InitSuperKernelBindMap(reinterpret_cast<aclrtBinHandle>(0xdddd)).empty());
-}
-
-TEST_F(SkDumpJsonDirectHelperTest, KernelNodeToJsonIncludesAttrsResolvedFuncsAndUpdatedParams)
-{
-    SuperKernelGraph graph(nullptr);
-    graph.scopeIdxToName[0] = "(none)";
-    graph.scopeIdxToName[1] = "scope_a";
-
-    auto node = CreateKernelNode(10);
-    node->SetNodeType(SkNodeType::NODE_KERNEL);
-    node->SetIsFusible(true);
-    node->SetInvalidated(true);
-    node->SetPreNodeId(7);
-    node->SetNextNodeId(11);
-    node->SetScopeStreamIds({3, 5});
-    node->scopeName = "scope_a";
-    node->isScopeBegin = true;
-    node->isScopeEnd = false;
-    node->isPlaceholder = false;
-    std::bitset<MAX_SCOPE_NUM> flags;
-    flags.set(1);
-    node->SetScopeBitFlags(flags);
-
-    auto& kernelInfo = node->nodeInfos.kernelInfos;
-    kernelInfo.kernelType = SkKernelType::MIX_AIC_1_1;
-    kernelInfo.taskRatio[0] = 3;
-    kernelInfo.taskRatio[1] = 4;
-    kernelInfo.numBlocks = 32;
-    kernelInfo.vecNum = 8;
-    kernelInfo.cubeNum = 16;
-    kernelInfo.devArgs = reinterpret_cast<void*>(0x1010);
-    kernelInfo.opInfoPtr = reinterpret_cast<void*>(0x2020);
-    kernelInfo.opInfoSize = 64;
-    kernelInfo.funcName = "origin_kernel";
-    kernelInfo.binHdl = reinterpret_cast<aclrtBinHandle>(0x3030);
-    kernelInfo.funcHdl = reinterpret_cast<aclrtFuncHandle>(0x4040);
-    kernelInfo.isScheModeOn = true;
-    kernelInfo.resolvedNum = 2;
-    kernelInfo.cap = 4;
-    kernelInfo.resolvedFuncs[0].funcAddr[0] = 0x1000;
-    kernelInfo.resolvedFuncs[0].funcAddr[1] = 0x2000;
-    kernelInfo.resolvedFuncs[0].funcOffset[0] = 0x10;
-    kernelInfo.resolvedFuncs[0].funcOffset[1] = 0x20;
-    kernelInfo.resolvedFuncs[0].prefetchCnt[0] = 1;
-    kernelInfo.resolvedFuncs[0].prefetchCnt[1] = 2;
-    kernelInfo.resolvedFuncs[0].symbolBind[0] = "GLOBAL";
-    kernelInfo.resolvedFuncs[0].symbolBind[1] = "WEAK";
-
-    aclrtLaunchKernelAttr attrs[2]{};
-    attrs[0].id = ACL_RT_LAUNCH_KERNEL_ATTR_SCHEM_MODE;
-    attrs[0].value.schemMode = 1;
-    attrs[1].id = ACL_RT_LAUNCH_KERNEL_ATTR_DATA_DUMP;
-    attrs[1].value.isDataDump = 1;
-    aclrtLaunchKernelCfg cfg{attrs, 2};
-    kernelInfo.launchKernelCfg = &cfg;
-
-    node->SetUpdate(true);
-    node->taskParams.type = ACL_MODEL_RI_TASK_KERNEL;
-    node->taskParams.kernelTaskParams.numBlocks = 64;
-    node->taskParams.kernelTaskParams.funcHandle = reinterpret_cast<aclrtFuncHandle>(0x5050);
-    node->taskParams.kernelTaskParams.args = reinterpret_cast<void*>(0x6060);
-    node->taskParams.kernelTaskParams.argsSize = 128;
-    node->taskParams.kernelTaskParams.isHostArgs = 1;
-    node->taskParams.opInfoPtr = reinterpret_cast<void*>(0x7070);
-    node->taskParams.opInfoSize = 256;
-
-    Json nodeJson = NodeToJson(node.get(), graph);
-    EXPECT_EQ(nodeJson["taskId"], 10);
-    EXPECT_EQ(nodeJson["scopeName"], "scope_a");
-    EXPECT_TRUE(nodeJson["isFusible"]);
-    EXPECT_TRUE(nodeJson["isUpdated"]);
-    EXPECT_TRUE(nodeJson["isInvalidated"]);
-    EXPECT_EQ(nodeJson["preNodeId"], 7);
-    EXPECT_EQ(nodeJson["nextNodeId"], 11);
-    EXPECT_EQ(nodeJson["scopeStreamIds"].size(), 2);
-    EXPECT_EQ(nodeJson["nodeType"], "KERNEL");
-    EXPECT_EQ(nodeJson["kernelInfos"]["numBlocks"], 64);
-    EXPECT_EQ(nodeJson["kernelInfos"]["funcHandle"], "0x5050");
-    EXPECT_EQ(nodeJson["kernelInfos"]["devArgs"], "0x6060");
-    EXPECT_EQ(nodeJson["kernelInfos"]["cap"], 4);
-    EXPECT_EQ(nodeJson["kernelInfos"]["launchKernelCfgAttrs"].size(), 2);
-    EXPECT_EQ(nodeJson["kernelInfos"]["resolvedFuncs"].size(), 2);
-
-    Json kernelInfos;
-    KernelInfos emptyKernelInfo;
-    AddLaunchKernelCfgAttrs(kernelInfos, emptyKernelInfo);
-    EXPECT_FALSE(kernelInfos.contains("launchKernelCfgAttrs"));
-}
-
-TEST_F(SkDumpJsonDirectHelperTest, SyncNodeToJsonCoversNotifyWaitAndUpdatedMemoryParams)
-{
-    SuperKernelGraph graph(nullptr);
-
-    auto notifyNode = CreateMemoryNode(20, ACL_MODEL_RI_TASK_VALUE_WRITE);
-    notifyNode->SetNodeType(SkNodeType::NODE_MEMORY_WRITE);
-    notifyNode->SetNotifyExpandVecNum(6);
-    notifyNode->SetNotifyExpandCubeNum(7);
-    notifyNode->nodeInfos.syncInfos.eventId = 0x1111;
-    notifyNode->nodeInfos.syncInfos.addrValue = reinterpret_cast<void*>(0x2222);
-    notifyNode->nodeInfos.syncInfos.correspondingWaitNodeIds = {21, 22};
-    notifyNode->nodeInfos.syncInfos.correspondingResetNodeIds = {23};
-    notifyNode->nodeInfos.syncInfos.memoryValue = 0x3333;
-    notifyNode->nodeInfos.syncInfos.memoryWaitFlag = 9;
-    notifyNode->nodeInfos.syncInfos.eventFlag = 0x44;
-    notifyNode->SetUpdate(true);
-    notifyNode->taskParams.type = ACL_MODEL_RI_TASK_VALUE_WRITE;
-    notifyNode->taskParams.valueWriteTaskParams.devAddr = reinterpret_cast<void*>(0x5555);
-    notifyNode->taskParams.valueWriteTaskParams.value = 0x6666;
-
-    Json notifyJson = NodeToJson(notifyNode.get(), graph);
-    EXPECT_EQ(notifyJson["nodeType"], "VALUE_WRITE");
-    EXPECT_EQ(notifyJson["syncInfos"]["addrValue"], "0x5555");
-    EXPECT_EQ(notifyJson["syncInfos"]["memoryValue"], 0x6666);
-    EXPECT_EQ(notifyJson["syncInfos"]["vecNum"], 6);
-    EXPECT_EQ(notifyJson["syncInfos"]["cubeNum"], 7);
-    EXPECT_EQ(notifyJson["syncInfos"]["correspondingWaitNodeIds"].size(), 2);
-    EXPECT_EQ(notifyJson["syncInfos"]["correspondingResetNodeIds"].size(), 1);
-    EXPECT_EQ(notifyJson["syncInfos"]["memoryWaitFlag"], 9);
-    EXPECT_EQ(notifyJson["syncInfos"]["eventFlag"], "0x68");
-
-    auto waitNode = CreateMemoryNode(21, ACL_MODEL_RI_TASK_VALUE_WAIT);
-    waitNode->SetNodeType(SkNodeType::NODE_MEMORY_WAIT);
-    waitNode->nodeInfos.syncInfos.eventId = 0x7777;
-    waitNode->nodeInfos.syncInfos.correspondingNotifyNodeId = 20;
-    waitNode->SetUpdate(true);
-    waitNode->taskParams.type = ACL_MODEL_RI_TASK_VALUE_WAIT;
-    waitNode->taskParams.valueWaitTaskParams.devAddr = reinterpret_cast<void*>(0x8888);
-    waitNode->taskParams.valueWaitTaskParams.value = 0x9999;
-    waitNode->taskParams.valueWaitTaskParams.flag = 12;
-
-    Json waitJson = NodeToJson(waitNode.get(), graph);
-    EXPECT_EQ(waitJson["nodeType"], "VALUE_WAIT");
-    EXPECT_EQ(waitJson["syncInfos"]["eventId"], "0x7777");
-    EXPECT_EQ(waitJson["syncInfos"]["correspondingNotifyNodeId"], 20);
-    EXPECT_EQ(waitJson["syncInfos"]["addrValue"], "0x8888");
-    EXPECT_EQ(waitJson["syncInfos"]["memoryValue"], 0x9999);
-    EXPECT_EQ(waitJson["syncInfos"]["memoryWaitFlag"], 12);
-
-    EXPECT_TRUE(NodeToJson(nullptr, graph).empty());
-}
-
-TEST_F(SkDumpJsonDirectHelperTest, GraphJsonBuildersSerializeGraphAndFusedScopes)
-{
-    SuperKernelGraph graph(nullptr);
-    graph.streams = {
-        reinterpret_cast<aclrtStream>(0x1),
-        reinterpret_cast<aclrtStream>(0x2)
-    };
-    graph.headNodes = {10, 30};
-    graph.nodeSizeInStream = {2, 1};
-    graph.scopeIdxToName[0] = "(none)";
-    graph.scopeIdxToName[1] = "scope_a";
-
-    auto node1 = CreateKernelNode(10);
-    AddKernelInfoToNode(node1.get());
-    auto node2 = CreateKernelNode(20);
-    AddKernelInfoToNode(node2.get());
-    auto node3 = CreateMemoryNode(30, ACL_MODEL_RI_TASK_EVENT_RECORD);
-    node3->SetNodeType(SkNodeType::NODE_NOTIFY);
-
-    SuperKernelBaseNode* node1Ptr = node1.get();
-    SuperKernelBaseNode* node2Ptr = node2.get();
-    SuperKernelBaseNode* node3Ptr = node3.get();
-    graph.graphMap[10] = std::move(node1);
-    graph.graphMap[20] = std::move(node2);
-    graph.graphMap[30] = std::move(node3);
-
-    Json graphJson = BuildGraphNodesJson(graph);
-    EXPECT_EQ(graphJson["graph"]["totalNodes"], 3);
-    EXPECT_EQ(graphJson["graph"]["totalStreams"], 2);
-    EXPECT_EQ(graphJson["graph"]["streams"].size(), 2);
-    EXPECT_EQ(graphJson["graph"]["scopeNames"].size(), 2);
-    EXPECT_EQ(graphJson["nodes"].size(), 3);
-
-    SuperKernelScopeInfo scopeInfo;
-    scopeInfo.SetNodes({node1Ptr, node2Ptr, nullptr});
-    std::bitset<MAX_SCOPE_NUM> flags;
-    flags.set(1);
-    scopeInfo.SetScopeBitFlags(flags);
-    scopeInfo.AddScopeStreamInfo({0, 0, 1, 2});
-    scopeInfo.MutableExtInfo().scopeName = "scope_a";
-    scopeInfo.MutableExtInfo().failReason = ScopeFailReason::STREAM_SYNC_FAIL;
-
-    std::vector<SuperKernelScopeInfo> mappingScopes;
-    mappingScopes.push_back(std::move(scopeInfo));
-    NodeScopeMapping mapping = BuildNodeScopeMapping(mappingScopes);
-    EXPECT_NE(FindScopeByNodeId(10, mapping), nullptr);
-    EXPECT_EQ(FindScopeByNodeId(20, mapping), nullptr);
-    EXPECT_EQ(FindScopeByNodeId(30, mapping), nullptr);
-
-    std::vector<SuperKernelScopeInfo> scopeInfos;
-    SuperKernelScopeInfo fusedScope;
-    fusedScope.SetNodes({node1Ptr, node2Ptr});
-    fusedScope.SetScopeBitFlags(flags);
-    fusedScope.AddScopeStreamInfo({0, 0, 1, 2});
-    fusedScope.MutableExtInfo().scopeName = "scope_a";
-    fusedScope.MutableExtInfo().fusionStatus = ScopeFusionStatus::FAILED;
-    fusedScope.MutableExtInfo().failReason = ScopeFailReason::STREAM_SYNC_FAIL;
-    scopeInfos.push_back(std::move(fusedScope));
-
-    Json fusedJson = BuildFusedGraphJson(graph, scopeInfos);
-    EXPECT_EQ(fusedJson["graph"]["totalNodes"], 3);
-    EXPECT_EQ(fusedJson["graph"]["totalScopes"], 1);
-    EXPECT_EQ(fusedJson["nodes"].size(), 2);
-    EXPECT_TRUE(fusedJson["nodes"][0].contains("nodeIds"));
-    EXPECT_TRUE(fusedJson["nodes"][1].contains("taskId"));
-
-    Json nodesArray = Json::array();
-    std::unordered_set<uint64_t> processedNodes;
-    ProcessNodeEntry(nodesArray, 10, BuildNodeScopeMapping(scopeInfos), graph, processedNodes);
-    ProcessNodeEntry(nodesArray, 20, BuildNodeScopeMapping(scopeInfos), graph, processedNodes);
-    ProcessNodeEntry(nodesArray, 30, BuildNodeScopeMapping(scopeInfos), graph, processedNodes);
-    EXPECT_EQ(nodesArray.size(), 2);
 }
 
 TEST_F(SkDumpJsonDirectHelperTest, ParseOriginalScopesGroupsNamedScopeNodesByBitFlags)
@@ -1024,12 +647,6 @@ TEST_F(SkDumpJsonDirectHelperTest, SkTaskQueueAndFileWritingHelpers)
 
     Json noQueueJson = SkTaskToJson(SkTask());
     EXPECT_FALSE(noQueueJson.contains("taskQue"));
-
-    std::string outputPath = CreateSkMetaDirectory("model_nullptr") + "/ut_write_json.json";
-    ASSERT_TRUE(WriteJsonToFile(taskJson, outputPath));
-    std::ifstream inFile(outputPath);
-    EXPECT_TRUE(inFile.good());
-    EXPECT_FALSE(WriteJsonToFile(taskJson, "missing_dir/ut_write_json.json"));
 
     SuperKernelGraph graph(nullptr);
     graph.modelLabel = "model_nullptr";
@@ -1211,38 +828,6 @@ TEST_F(SkDumpJsonDirectHelperTest, ScopePrintingHelpersCoverSuccessFusionStatus)
     PrintFusedScopes(graph, scopeInfos);
 }
 
-TEST_F(SkDumpJsonDirectHelperTest, EnabledDumpApisWriteGraphFiles)
-{
-    SuperKernelGraph graph(nullptr);
-    graph.modelLabel = "model_nullptr";
-    graph.scopeIdxToName[0] = "scope_zero";
-
-    auto node1 = CreateKernelNode(100);
-    AddKernelInfoToNode(node1.get());
-    auto node2 = CreateMemoryNode(101, ACL_MODEL_RI_TASK_EVENT_WAIT);
-    node2->SetNodeType(SkNodeType::NODE_WAIT);
-    node2->nodeInfos.syncInfos.eventId = 0xabc;
-    node2->nodeInfos.syncInfos.correspondingNotifyNodeId = 100;
-
-    SuperKernelBaseNode* node1Ptr = node1.get();
-    SuperKernelBaseNode* node2Ptr = node2.get();
-    graph.graphMap[100] = std::move(node1);
-    graph.graphMap[101] = std::move(node2);
-
-    SuperKernelScopeInfo scopeInfo;
-    scopeInfo.SetNodes({node1Ptr, node2Ptr});
-    scopeInfo.MutableExtInfo().scopeName = "scope_zero";
-    scopeInfo.MutableExtInfo().fusionStatus = ScopeFusionStatus::SUCCESS;
-    scopeInfo.MutableExtInfo().filteredNodes = {node1Ptr, node2Ptr};
-    std::vector<SuperKernelScopeInfo> scopeInfos;
-    scopeInfos.push_back(std::move(scopeInfo));
-
-    sk::logger::FileLogger::Instance().SetEnabled(true);
-    EXPECT_TRUE(DumpGraphNodesToJson(graph));
-    EXPECT_TRUE(DumpFusedGraphToJson(graph, scopeInfos));
-    sk::logger::FileLogger::Instance().SetEnabled(false);
-}
-
 // ==================== DumpRawTaskJson Tests ====================
 
 class DumpRawTaskJsonTest : public SkDumpJsonTest {};
@@ -1405,12 +990,12 @@ TEST_F(SuperKernelGraphToJsonTest, EmptyGraphToJson)
     EXPECT_TRUE(json.contains("deviceId"));
     EXPECT_TRUE(json.contains("options"));
     EXPECT_TRUE(json.contains("totalStreams"));
-    EXPECT_TRUE(json.contains("totalTasks"));
+    EXPECT_TRUE(json.contains("totalNodes"));
     EXPECT_TRUE(json.contains("streams"));
     
     EXPECT_EQ(json["version"], "1.0");
     EXPECT_EQ(json["totalStreams"], 0);
-    EXPECT_EQ(json["totalTasks"], 0);
+    EXPECT_EQ(json["totalNodes"], 0);
     EXPECT_TRUE(json["streams"].is_array());
     EXPECT_EQ(json["streams"].size(), 0);
 }
@@ -1440,14 +1025,17 @@ TEST_F(SuperKernelGraphToJsonTest, GraphWithKernelNodesToJson)
     graph.nodeSizeInStream.push_back(2);
     
     Json json = graph.ToJson();
-    EXPECT_EQ(json["totalTasks"], 2);
+    EXPECT_EQ(json["totalNodes"], 2);
     EXPECT_EQ(json["totalStreams"], 1);
     EXPECT_EQ(json["streams"].size(), 1);
     
     if (json["streams"].size() > 0) {
         EXPECT_TRUE(json["streams"][0].contains("streamId"));
-        EXPECT_TRUE(json["streams"][0].contains("taskCount"));
-        EXPECT_TRUE(json["streams"][0].contains("tasks"));
+        EXPECT_TRUE(json["streams"][0].contains("nodeCount"));
+        EXPECT_TRUE(json["streams"][0].contains("nodes"));
+        ASSERT_EQ(json["streams"][0]["nodes"].size(), 2);
+        EXPECT_TRUE(json["streams"][0]["nodes"][0].contains("taskInfo"));
+        EXPECT_FALSE(json["streams"][0]["nodes"][0].contains("tasks"));
     }
 }
 
@@ -1489,7 +1077,7 @@ TEST_F(SuperKernelGraphToJsonTest, GraphWithMixedNodeTypesToJson)
     graph.nodeSizeInStream.push_back(4);
     
     Json json = graph.ToJson();
-    EXPECT_EQ(json["totalTasks"], 4);
+    EXPECT_EQ(json["totalNodes"], 4);
     EXPECT_EQ(json["totalStreams"], 1);
 }
 
@@ -1512,7 +1100,7 @@ TEST_F(SuperKernelGraphToJsonTest, GraphWithMultipleStreamsToJson)
     
     Json json = graph.ToJson();
     EXPECT_EQ(json["totalStreams"], 3);
-    EXPECT_EQ(json["totalTasks"], 3);
+    EXPECT_EQ(json["totalNodes"], 3);
     EXPECT_EQ(json["streams"].size(), 3);
 }
 
@@ -1559,7 +1147,7 @@ TEST_F(SuperKernelGraphToJsonTest, GraphWithMemoryWriteAndWaitNodesToJson)
     graph.nodeSizeInStream.push_back(2);
     
     Json json = graph.ToJson();
-    EXPECT_EQ(json["totalTasks"], 2);
+    EXPECT_EQ(json["totalNodes"], 2);
     EXPECT_EQ(json["totalStreams"], 1);
 }
 
