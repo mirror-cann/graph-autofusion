@@ -9,11 +9,14 @@
 # See LICENSE in the root of the software repository for the full text of the License.
 # -----------------------------------------------------------------------------------------------------------
 
-import pytest
+import ctypes
+import inspect
 import importlib.util
 import os
 import sys
 import types
+
+import pytest
 
 
 _BASE_DIR = os.path.dirname(
@@ -53,6 +56,19 @@ def stub_module(name, **attrs):
         setattr(module, key, value)
     sys.modules[name] = module
     return module
+
+
+class FakeCFunc(object):
+    def __init__(self, result=None, on_call=None):
+        self.result = result
+        self.on_call = on_call
+        self.calls = []
+
+    def __call__(self, *args):
+        self.calls.append(args)
+        if self.on_call is not None:
+            return self.on_call(*args)
+        return self.result
 
 
 @pytest.fixture(scope="module")
@@ -355,6 +371,146 @@ class TestGenerateCmakeLists:
 
 class TestStaticShapeCompileHasattrCheck:
     """测试 static_shape_compile 函数的 hasattr 检查"""
+
+    @staticmethod
+    def test_static_shape_compile_related_api_keeps_argument_count(asc_codegen_compile_module):
+        """新增上下文参数后，相关 API 入参不超过代码检查阈值"""
+        function_names = [
+            "template_decider",
+            "create_matmul_tiling_data",
+            "create_conv_tiling_data",
+        ]
+
+        for name in function_names:
+            params = inspect.signature(getattr(asc_codegen_compile_module, name)).parameters
+            assert len(params) <= 5
+
+    @staticmethod
+    def test_static_shape_compile_keeps_soc_vector_core_num_by_default(asc_codegen_compile_module, tmpdir,
+                                                                       monkeypatch):
+        """未传 vector_core_num 时保持原有 get_soc_spec 行为"""
+        temp_dir = str(tmpdir)
+        fake_lib = SimpleNamespace(GenConstTilingData=FakeCFunc(b"new tiling"))
+        TestStaticShapeCompileHasattrCheck._prepare_tiling_file(temp_dir)
+        TestStaticShapeCompileHasattrCheck._mock_static_compile_dependencies(asc_codegen_compile_module, monkeypatch,
+                                                                            fake_lib)
+
+        asc_codegen_compile_module.static_shape_compile(kernel_name="kernel", temp_dir=temp_dir, graph_name="graph")
+
+        assert fake_lib.GenConstTilingData.calls[0][1].value == 8
+
+    @staticmethod
+    def test_static_shape_compile_uses_vector_core_num_when_provided(asc_codegen_compile_module, tmpdir, monkeypatch):
+        """传入 vector_core_num 时静态化 tiling 使用同源核数"""
+        temp_dir = str(tmpdir)
+        fake_lib = SimpleNamespace(GenConstTilingData=FakeCFunc(b"new tiling"))
+        TestStaticShapeCompileHasattrCheck._prepare_tiling_file(temp_dir)
+        TestStaticShapeCompileHasattrCheck._mock_static_compile_dependencies(asc_codegen_compile_module, monkeypatch,
+                                                                            fake_lib)
+
+        asc_codegen_compile_module.static_shape_compile(kernel_name="kernel", temp_dir=temp_dir, graph_name="graph",
+                                                        vector_core_num=4)
+
+        assert fake_lib.GenConstTilingData.calls[0][1].value == 4
+
+    @staticmethod
+    def test_static_shape_cv_compile_uses_vector_core_num_when_provided(asc_codegen_compile_module, tmpdir,
+                                                                        monkeypatch):
+        """CV 模板选择使用传入的 vector_core_num"""
+        fake_lib = SimpleNamespace(GenCVFusionTilingKey=FakeCFunc(0))
+        TestStaticShapeCompileHasattrCheck._mock_static_compile_dependencies(asc_codegen_compile_module, monkeypatch,
+                                                                            fake_lib)
+
+        asc_codegen_compile_module.static_shape_cv_compile(kernel_name="kernel", temp_dir=str(tmpdir),
+                                                           graph_name="graph", vector_core_num=4)
+
+        assert fake_lib.GenCVFusionTilingKey.calls[0][1].value == 4
+
+    @staticmethod
+    def test_static_shape_cv_common_compile_uses_vector_core_num_when_provided(asc_codegen_compile_module, tmpdir,
+                                                                               monkeypatch):
+        """CV common block dim/wss 计算使用传入的 vector_core_num"""
+        def fill_outputs(config_path, aiv_num, ub_size, workspace_size, block_dim):
+            ctypes.cast(workspace_size, ctypes.POINTER(ctypes.c_uint32)).contents.value = 16
+            ctypes.cast(block_dim, ctypes.POINTER(ctypes.c_uint32)).contents.value = aiv_num.value
+            return 0
+
+        fake_lib = SimpleNamespace(GenTilingDataValueBlockDimAndWss=FakeCFunc(on_call=fill_outputs))
+        TestStaticShapeCompileHasattrCheck._mock_static_compile_dependencies(asc_codegen_compile_module, monkeypatch,
+                                                                            fake_lib)
+
+        vec_block_dim, _ = asc_codegen_compile_module.static_shape_cv_common_compile(kernel_name="kernel",
+                                                                                     temp_dir=str(tmpdir),
+                                                                                     graph_name="graph",
+                                                                                     vector_core_num=4)
+
+        assert fake_lib.GenTilingDataValueBlockDimAndWss.calls[0][1].value == 4
+        assert vec_block_dim == 4
+
+    @staticmethod
+    def test_template_decider_passes_vector_core_num_to_cv_static_compile(asc_codegen_compile_module, tmpdir,
+                                                                          monkeypatch):
+        """CV 模板决策继续向底层静态编译透传 vector_core_num"""
+        calls = []
+        monkeypatch.setattr(asc_codegen_compile_module, "static_shape_cv_compile",
+                            lambda **kwargs: calls.append(("cv_compile", kwargs["vector_core_num"])) or -1)
+        monkeypatch.setattr(asc_codegen_compile_module, "static_shape_cv_common_compile",
+                            lambda **kwargs: calls.append(("cv_common", kwargs["vector_core_num"])) or (4, 16))
+
+        tiling_info = SimpleNamespace(tiling_key=2, file_content="")
+        cube_info = [4, False, 4, [False], False]
+        compile_context = asc_codegen_compile_module.StaticCompileContext("kernel", str(tmpdir), "graph", 4)
+        asc_codegen_compile_module.template_decider(compile_context, tiling_info, cube_info)
+
+        assert calls == [("cv_compile", 4), ("cv_common", 4)]
+
+    @staticmethod
+    def test_asc_codegen_compile_logs_core_limits(asc_codegen_compile_module, tmpdir, monkeypatch):
+        """入口保留控核日志，并将 vector_core_num 继续透传"""
+        log_messages = []
+        set_platform_calls = []
+        compile_calls = []
+
+        class MockContext(object):
+            @staticmethod
+            def get_op_info():
+                extra_params = {"compute_graph": "graph", "symbol_source_info": "symbol"}
+                return [SimpleNamespace(extra_params=extra_params)]
+
+            @staticmethod
+            def get_addition(key):
+                return {"_op_vectorcore_num": "4", "_op_aicore_num": "2", "device_id": "0"}.get(key)
+
+        context_module = sys.modules["tbe.common.context"]
+        monkeypatch.setattr(context_module, "__path__", [], raising=False)
+        stub_module("tbe.common.context.op_context", get_context=lambda: MockContext())
+        stub_module("autofuse.compile_adapter", get_debug_flag=lambda: False)
+        monkeypatch.setattr(asc_codegen_compile_module, "get_current_build_config", lambda key: str(tmpdir))
+        monkeypatch.setattr(
+            asc_codegen_compile_module,
+            "get_soc_spec",
+            lambda key: {"NpuArch": "Ascend910", "vector_core_cnt": 8, "ub_size": 1024}.get(key),
+        )
+        monkeypatch.setattr(
+            asc_codegen_compile_module.CommonUtility,
+            "print_compile_log",
+            lambda unused, message, level: log_messages.append((message, level)),
+        )
+        asc_codegen_compile_module.ascir.utils = SimpleNamespace(
+            set_platform=lambda *args: set_platform_calls.append(args)
+        )
+        monkeypatch.setattr(
+            asc_codegen_compile_module,
+            "compute_graph_compile",
+            lambda *args, **kwargs: compile_calls.append(kwargs),
+        )
+
+        asc_codegen_compile_module.asc_codegen_compile("kernel")
+
+        assert ("Ascend910", 4, 1024) in set_platform_calls
+        assert compile_calls[0]["vector_core_num"] == "4"
+        assert any("vector_core_num=4, vector_core_num_limited=4" in message for message, _ in log_messages)
+        assert any("ai_core_num_limited=2" in message for message, _ in log_messages)
     
     @staticmethod
     def test_static_shape_compile_uses_hasattr_for_gen_const_tiling_data(asc_codegen_compile_module, tmpdir):
@@ -399,6 +555,23 @@ class TestStaticShapeCompileHasattrCheck:
             if original_static_shape_kernel_proc:
                 asc_codegen_compile_module.static_shape_kernel_proc = original_static_shape_kernel_proc
 
+    @staticmethod
+    def _mock_static_compile_dependencies(asc_codegen_compile_module, monkeypatch, fake_lib):
+        monkeypatch.setattr(asc_codegen_compile_module, "ascendc_clean", lambda *args, **kwargs: None)
+        monkeypatch.setattr(asc_codegen_compile_module, "ascbc_host_compile", lambda *args, **kwargs: None)
+        monkeypatch.setattr(asc_codegen_compile_module, "static_shape_kernel_proc", lambda *args, **kwargs: None)
+        monkeypatch.setattr(asc_codegen_compile_module, "get_soc_spec",
+                            lambda key: 8 if key == "vector_core_cnt" else 1024)
+        monkeypatch.setattr(ctypes, "CDLL", lambda path: fake_lib)
+
+    @staticmethod
+    def _prepare_tiling_file(temp_dir, use_cv_common=False):
+        device_dir = os.path.join(temp_dir, "device", "cv_common") if use_cv_common else os.path.join(temp_dir,
+                                                                                                      "device")
+        os.makedirs(device_dir, exist_ok=True)
+        with open(os.path.join(device_dir, "autofuse_tiling_data.h"), "w") as file:
+            file.write("old tiling")
+
 
 class TestDynamicShapeCompile:
     """测试新增的 dynamic_shape_compile 函数"""
@@ -411,7 +584,6 @@ class TestDynamicShapeCompile:
     @staticmethod
     def test_dynamic_shape_compile_signature(asc_codegen_compile_module):
         """验证 dynamic_shape_compile 函数签名"""
-        import inspect
         sig = inspect.signature(asc_codegen_compile_module.dynamic_shape_compile)
         params = list(sig.parameters.keys())
         
@@ -434,7 +606,6 @@ class TestAscbcConvKernelTilingPro:
     @staticmethod
     def test_ascbc_conv_kernel_tiling_pro_signature(asc_codegen_compile_module):
         """验证函数签名"""
-        import inspect
         sig = inspect.signature(asc_codegen_compile_module.ascbc_conv_kernel_tiling_pro)
         params = list(sig.parameters.keys())
         
@@ -457,7 +628,6 @@ class TestAscbcMatmulKernelDynamicTilingPro:
     @staticmethod
     def test_ascbc_matmul_kernel_dynamic_tiling_pro_signature(asc_codegen_compile_module):
         """验证函数签名"""
-        import inspect
         sig = inspect.signature(asc_codegen_compile_module.ascbc_matmul_kernel_dynamic_tiling_pro)
         params = list(sig.parameters.keys())
         
