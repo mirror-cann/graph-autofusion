@@ -2,7 +2,7 @@
 
 ## 用例功能：
 
-autofuse 融合 add + ne 两个算子。
+autofuse 融合 add + ge 两个算子。
 
 ## 执行命令
 
