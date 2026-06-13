@@ -173,7 +173,8 @@ aclError aclskOptimize(aclmdlRI model, aclskOptions *options) {
     SK_LOGI("End update graph");
 
     SK_LOGI("Start dump raw tasks after update from modelRI to JSON...");
-    if (!DumpRawTaskJson(model, opts, metaDir, "sk_graph_updated")) {
+    const auto& scopeInfos = optimizer.GetScopeInfos();
+    if (!DumpRawTaskJson(model, opts, metaDir, "sk_graph_updated", &scopeInfos)) {
         return ACL_ERROR_FAILURE;
     }
     SK_LOGI("End dump raw tasks after update from modelRI to JSON...");

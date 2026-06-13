@@ -84,8 +84,10 @@ void PrintFusedScopes(const SuperKernelGraph& graph,
  * @param opts SuperKernel options manager
  * @param metaDir Meta directory path
  * @param filename Filename without .json suffix (e.g., "test" or "test_2")
+ * @param scopeInfos Optional processed scope infos used to add SK metadata
  * @return true if dump successful or skipped, false otherwise
  */
-bool DumpRawTaskJson(aclmdlRI model, const SuperKernelOptionsManager& opts, const std::string& metaDir, const std::string& filename);
+bool DumpRawTaskJson(aclmdlRI model, const SuperKernelOptionsManager& opts, const std::string& metaDir,
+                     const std::string& filename, const std::vector<SuperKernelScopeInfo>* scopeInfos = nullptr);
 
 #endif // SK_DUMP_JSON_H

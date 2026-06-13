@@ -41,6 +41,15 @@ SkBindMap InitSuperKernelBindMap(aclrtBinHandle binHdl);
 
 namespace {
 
+struct SkInfoForDump {
+    uint16_t scopeId = 0;
+    std::string scopeName;
+    std::string startKernelFuncName;
+    std::string endKernelFuncName;
+};
+
+using SkInfoForDumpMap = std::unordered_map<uint64_t, SkInfoForDump>;
+
 /**
  * @brief Fill symbol info for a single core type (AIC/AIV) in resolved function info
  */
@@ -537,6 +546,78 @@ void CollectFusedNodes(const ScopeExtInfo& extInfo,
     }
 }
 
+SkInfoForDumpMap BuildSkInfoForDumpMap(const std::vector<SuperKernelScopeInfo>& scopeInfos)
+{
+    SkInfoForDumpMap skInfos;
+    for (const auto& scopeInfo : scopeInfos) {
+        const auto& extInfo = scopeInfo.GetExtInfo();
+        if (extInfo.fusionStatus != ScopeFusionStatus::SUCCESS || extInfo.skMainNodeId == INVALID_TASK_ID) {
+            continue;
+        }
+
+        const SuperKernelBaseNode* startKernelNode = nullptr;
+        const SuperKernelBaseNode* endKernelNode = nullptr;
+        for (const auto* node : extInfo.filteredNodes) {
+            if (node == nullptr || node->GetNodeType() != SkNodeType::NODE_KERNEL) {
+                continue;
+            }
+            if (startKernelNode == nullptr) {
+                startKernelNode = node;
+            }
+            endKernelNode = node;
+        }
+        if (startKernelNode == nullptr || endKernelNode == nullptr) {
+            continue;
+        }
+
+        SkInfoForDump skInfo;
+        skInfo.scopeId = scopeInfo.GetScopeId();
+        skInfo.scopeName = extInfo.scopeName;
+        skInfo.startKernelFuncName = startKernelNode->GetNodeInfos().kernelInfos.funcName;
+        skInfo.endKernelFuncName = endKernelNode->GetNodeInfos().kernelInfos.funcName;
+        skInfos[extInfo.skMainNodeId] = skInfo;
+    }
+    return skInfos;
+}
+
+Json SkInfoForDumpToJson(const SkInfoForDump& skInfo)
+{
+    Json skInfoJson;
+    skInfoJson["scopeId"] = skInfo.scopeId;
+    skInfoJson["scopeName"] = skInfo.scopeName.empty() ? Json() : Json(skInfo.scopeName);
+    skInfoJson["startKernelFuncName"] = skInfo.startKernelFuncName;
+    skInfoJson["endKernelFuncName"] = skInfo.endKernelFuncName;
+    return skInfoJson;
+}
+
+void InjectSkInfos(Json& graphJson, const SkInfoForDumpMap& skInfos)
+{
+    if (skInfos.empty() || !graphJson.contains("streams") || !graphJson["streams"].is_array()) {
+        return;
+    }
+
+    for (auto& streamJson : graphJson["streams"]) {
+        if (!streamJson.contains("nodes") || !streamJson["nodes"].is_array()) {
+            continue;
+        }
+
+        for (auto& nodeJson : streamJson["nodes"]) {
+            if (!nodeJson.contains("nodeId") || !nodeJson["nodeId"].is_number_unsigned()) {
+                continue;
+            }
+            auto it = skInfos.find(nodeJson["nodeId"].get<uint64_t>());
+            if (it != skInfos.end()) {
+                nodeJson["skinfos"] = SkInfoForDumpToJson(it->second);
+            }
+        }
+    }
+}
+
+void InjectSkInfos(Json& graphJson, const std::vector<SuperKernelScopeInfo>& scopeInfos)
+{
+    InjectSkInfos(graphJson, BuildSkInfoForDumpMap(scopeInfos));
+}
+
 } // anonymous namespace
 
 void PrintFusedScopes(const SuperKernelGraph& graph,
@@ -658,7 +739,8 @@ bool DumpAllTaskQueuesToJson(const SuperKernelGraph& graph,
     }
 }
 
-bool DumpRawTaskJson(aclmdlRI model, const SuperKernelOptionsManager& opts, const std::string& metaDir, const std::string& filename)
+bool DumpRawTaskJson(aclmdlRI model, const SuperKernelOptionsManager& opts, const std::string& metaDir,
+                     const std::string& filename, const std::vector<SuperKernelScopeInfo>* scopeInfos)
 {
     if (!sk::logger::FileLogger::Instance().IsEnabled()) {
         return true;  // Kernel meta save is disabled, skip
@@ -683,6 +765,9 @@ bool DumpRawTaskJson(aclmdlRI model, const SuperKernelOptionsManager& opts, cons
     std::ofstream testJsonFile(testJsonPath);
     if (testJsonFile.is_open()) {
         nlohmann::ordered_json graphJson = tempGraph.ToJson();
+        if (scopeInfos != nullptr) {
+            InjectSkInfos(graphJson, *scopeInfos);
+        }
         graphJson["options"] = opts.ToJson();
         testJsonFile << graphJson.dump(2);  // Pretty print with 2-space indentation
         testJsonFile.close();

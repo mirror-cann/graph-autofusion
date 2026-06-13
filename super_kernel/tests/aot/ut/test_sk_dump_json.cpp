@@ -828,6 +828,46 @@ TEST_F(SkDumpJsonDirectHelperTest, ScopePrintingHelpersCoverSuccessFusionStatus)
     PrintFusedScopes(graph, scopeInfos);
 }
 
+TEST_F(SkDumpJsonDirectHelperTest, InjectSkInfosBuildsMetadataFromScopeInfos)
+{
+    Json graphJson;
+    graphJson["streams"] = Json::array();
+    graphJson["streams"].push_back({
+        {"nodes", Json::array({
+            {{"nodeId", 100U}},
+            {{"nodeId", 200U}}
+        })}
+    });
+
+    auto startNode = CreateKernelNode(10);
+    startNode->SetNodeType(SkNodeType::NODE_KERNEL);
+    startNode->nodeInfos.kernelInfos.funcName = "start_func";
+    auto endNode = CreateKernelNode(11);
+    endNode->SetNodeType(SkNodeType::NODE_KERNEL);
+    endNode->nodeInfos.kernelInfos.funcName = "end_func";
+
+    SuperKernelBaseNode* startNodePtr = startNode.get();
+    SuperKernelBaseNode* endNodePtr = endNode.get();
+
+    SuperKernelScopeInfo scopeInfo;
+    scopeInfo.MutableExtInfo().fusionStatus = ScopeFusionStatus::SUCCESS;
+    scopeInfo.MutableExtInfo().skMainNodeId = 200;
+    scopeInfo.MutableExtInfo().scopeName = "scope_a";
+    scopeInfo.MutableExtInfo().filteredNodes = {startNodePtr, endNodePtr};
+
+    std::vector<SuperKernelScopeInfo> scopeInfos;
+    scopeInfos.push_back(std::move(scopeInfo));
+
+    InjectSkInfos(graphJson, scopeInfos);
+
+    EXPECT_FALSE(graphJson["streams"][0]["nodes"][0].contains("skinfos"));
+    ASSERT_TRUE(graphJson["streams"][0]["nodes"][1].contains("skinfos"));
+    EXPECT_EQ(graphJson["streams"][0]["nodes"][1]["skinfos"]["scopeId"], scopeInfos[0].GetScopeId());
+    EXPECT_EQ(graphJson["streams"][0]["nodes"][1]["skinfos"]["scopeName"], "scope_a");
+    EXPECT_EQ(graphJson["streams"][0]["nodes"][1]["skinfos"]["startKernelFuncName"], "start_func");
+    EXPECT_EQ(graphJson["streams"][0]["nodes"][1]["skinfos"]["endKernelFuncName"], "end_func");
+}
+
 // ==================== DumpRawTaskJson Tests ====================
 
 class DumpRawTaskJsonTest : public SkDumpJsonTest {};
