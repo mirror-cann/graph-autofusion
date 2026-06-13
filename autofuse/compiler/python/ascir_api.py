@@ -52,7 +52,7 @@ def _derive_strides(size: List[ascir.SizeExpr]) -> List[ascir.SizeExpr]:
 
 
 def _derive_sizes_and_strides(axis: List[ascir.Axis]) -> (List[ascir.SizeExpr], List[ascir.SizeExpr]):
-    """根据 aixs 推导连续内存的 sizes and strides"""
+    """根据 axis 推导连续内存的 sizes and strides"""
     tmp_repeats = []
     tmp_strides = []
     for tmp_axis in reversed(axis):
