@@ -2,7 +2,7 @@
 
 ## Use Case Function:
 
-Autofuse fuses add + ne two operators.
+Autofuse fuses add + ge two operators.
 
 ## Execution Command
 
