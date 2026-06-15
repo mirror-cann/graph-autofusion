@@ -44,7 +44,6 @@ public:
  * @brief Dump graph to JSON file for debugging
  * @param model Model RI handle
  * @param metaDir Meta directory path
- * @param deviceId Device ID
  * @param suffix Filename suffix (e.g., "before" or "after")
  * @return aclError status
  */
@@ -62,20 +61,13 @@ aclError DumpMdlJson(aclmdlRI model, const std::string& metaDir, const std::stri
 }
 
 /**
- * @brief Get device ID and create meta directory for graph dumping
- * @param model Model RI handle
- * @param deviceId Output device ID
+ * @brief Create meta directory for graph dumping
  * @param metaDir Output meta directory path
  * @return aclError status
  */
-aclError PrepareGraphDumpEnv(aclmdlRI model, int32_t& deviceId, std::string& metaDir) {
+aclError PrepareGraphDumpEnv(std::string& metaDir) {
     if (!sk::logger::FileLogger::Instance().IsEnabled()) {
         return ACL_SUCCESS;  // Kernel meta save is disabled, skip directory creation
-    }
-    aclError ret = aclrtGetDevice(&deviceId);
-    if (ret != ACL_SUCCESS) {
-        SK_LOGE("Failed to get device id.");
-        return ACL_ERROR_FAILURE;
     }
     metaDir = CreateSkMetaDirectory(GetCurrentModelLabel());
     return ACL_SUCCESS;
@@ -96,9 +88,8 @@ aclError aclskOptimize(aclmdlRI model, aclskOptions *options) {
     // Init device socname, corenum, TICK_US_MULTIPLIER
     InitSkRuntimeConfig();
 
-    int32_t deviceId;
     std::string metaDir;
-    aclError ret = PrepareGraphDumpEnv(model, deviceId, metaDir);
+    aclError ret = PrepareGraphDumpEnv(metaDir);
     if (ret != ACL_SUCCESS) {
         return ret;
     }

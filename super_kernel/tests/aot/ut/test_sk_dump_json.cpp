@@ -1102,7 +1102,7 @@ TEST_F(SuperKernelGraphToJsonTest, GraphWithKernelNodesToJson)
     EXPECT_EQ(json["streams"].size(), 1);
     
     if (json["streams"].size() > 0) {
-        EXPECT_TRUE(json["streams"][0].contains("streamId"));
+        EXPECT_EQ(json["streams"][0]["streamIdxInGraph"], 0);
         EXPECT_TRUE(json["streams"][0].contains("nodeCount"));
         EXPECT_TRUE(json["streams"][0].contains("nodes"));
         ASSERT_EQ(json["streams"][0]["nodes"].size(), 2);

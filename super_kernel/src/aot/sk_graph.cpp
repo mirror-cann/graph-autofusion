@@ -1468,14 +1468,8 @@ static Json CollectStreamsToJson(const SuperKernelGraph& graph)
 
     for (size_t streamIdx = 0; streamIdx < streams.size(); ++streamIdx) {
         Json streamJson;
-        int32_t streamId = -1;
-        aclError ret = aclrtStreamGetId(streams[streamIdx], &streamId);
-        if (ret != ACL_SUCCESS) {
-            SK_LOGE("Failed to get stream ID for stream %zu, ret=%d", streamIdx, ret);
-            return Json::object();
-        }
 
-        streamJson["streamId"] = streamIdx;
+        streamJson["streamIdxInGraph"] = streamIdx;
         streamJson["nodeCount"] = (streamIdx < nodeSizeInStream.size()) ? nodeSizeInStream[streamIdx] : 0;
 
         // Collect nodes for this stream. Currently each node maps to one raw task.
