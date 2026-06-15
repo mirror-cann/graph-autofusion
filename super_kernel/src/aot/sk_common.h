@@ -249,17 +249,17 @@ struct TaskInfo {
     //      该bit由host端根据disableDcci和afterKernelEnd综合计算得出
     //      kernel侧只需检查此bit即可，无需组合判断
     uint64_t debugOptions;
-    uint64_t reserved;
+    uint64_t extraInfo;
     uint64_t args;
     uint32_t argsSize;
-    uint8_t reservedList[4];
+    uint8_t padding[4];
 };
 
 inline void SetEventTaskArgs(TaskInfo& taskInfo, uint64_t addr, uint64_t value, uint32_t flag)
 {
     taskInfo.args = addr;
     taskInfo.entry[0] = value;
-    taskInfo.reserved = static_cast<uint64_t>(flag);
+    taskInfo.extraInfo = static_cast<uint64_t>(flag);
 }
 
 inline uint64_t GetEventTaskAddr(const TaskInfo& taskInfo)
@@ -315,7 +315,7 @@ inline uint64_t GetEventTaskValue(const TaskInfo& taskInfo)
 
 inline uint32_t GetEventTaskFlag(const TaskInfo& taskInfo)
 {
-    return static_cast<uint32_t>(taskInfo.reserved);
+    return static_cast<uint32_t>(taskInfo.extraInfo);
 }
 
 struct TaskQue {
@@ -354,7 +354,7 @@ struct SkDfxInfo {
     uint32_t numBlocks;   // 算子所需的 block 数量
     uint32_t cubeNum;     // 算子所需的 cube core 数量
     uint32_t vecNum;      // 算子所需的 vec core 数量
-    uint32_t reserved;    // 保留对齐
+    uint32_t padding;     // 保留对齐
     uint64_t aicFuncOffset[4];   // AIC function offset within bin for each split
     uint64_t aivFuncOffset[4];   // AIV function offset within bin for each split
 };

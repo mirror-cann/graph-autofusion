@@ -93,10 +93,10 @@ struct TaskInfo {
     uint8_t entryCnt;
     uint64_t entry[4];
     uint64_t debugOptions;
-    uint64_t reserved;
+    uint64_t extraInfo;
     uint64_t args;
     uint32_t argsSize;
-    uint8_t reservedList[4];
+    uint8_t padding[4];
 };
 )";
 
@@ -367,7 +367,7 @@ std::string ConstantCodeGenerator::GenerateConstantTaskQue(
             code << "}, ";
             
             code << Hex64ToStr(info.debugOptions) << ", ";
-            code << Hex64ToStr(info.reserved);
+            code << Hex64ToStr(info.extraInfo);
             code << "}";
             
             if (i < taskQue->taskCnt - 1) code << ",";
@@ -434,8 +434,8 @@ std::string ConstantCodeGenerator::GenerateTaskExecutionForSplit(
                  << static_cast<int64_t>(task.args) << "L);\n";
             
             // dc_preload 调用
-            code << "                dc_preload(reinterpret_cast<__gm__ uint64_t*>(" << Hex64ToStr(task.reserved) << "), 0);\n";
-            code << "                dc_preload(reinterpret_cast<__gm__ uint64_t*>(" << Hex64ToStr(task.reserved + 8) << "), 0);\n";
+            code << "                dc_preload(reinterpret_cast<__gm__ uint64_t*>(" << Hex64ToStr(task.extraInfo) << "), 0);\n";
+            code << "                dc_preload(reinterpret_cast<__gm__ uint64_t*>(" << Hex64ToStr(task.extraInfo + 8) << "), 0);\n";
             code << "            }\n";
             code << "        }\n";
             break;
@@ -448,7 +448,7 @@ std::string ConstantCodeGenerator::GenerateTaskExecutionForSplit(
             code << "                sk::SkSystemArgs sysArgs = {};\n";
             code << "                sysArgs.skBlockIdx = static_cast<uint16_t>(AscendC::GetBlockIdx());\n";
             code << "                sysArgs.skNumBlocks = " << static_cast<uint32_t>(task.numBlocks) << ";\n";
-            code << "                sysArgs.skTaskSyncCfg = static_cast<uint16_t>(" << task.reserved << "ULL);\n";
+            code << "                sysArgs.skTaskSyncCfg = static_cast<uint16_t>(" << task.extraInfo << "ULL);\n";
             
             // [SPLIT优化] 直接使用编译期确定的 entry 索引
             int entryIdx = (task.entryCnt > 0) ? (splitIdx % task.entryCnt) : 0;
@@ -464,7 +464,7 @@ std::string ConstantCodeGenerator::GenerateTaskExecutionForSplit(
         case SkTaskType::TYPE_SYNC: {
             code << "        AscendC::AutoCoreSyncImpl<aic, aiv>(static_cast<SkCoreSyncType>(" << task.args
                  << "), static_cast<uint8_t>(" << static_cast<uint32_t>(task.numBlocks) << "), "
-                 << Hex64ToStr(task.reserved) << ");\n";
+                 << Hex64ToStr(task.extraInfo) << ");\n";
             break;
         }
         case SkTaskType::TYPE_EVENT_NOTIFY: {
@@ -477,10 +477,10 @@ std::string ConstantCodeGenerator::GenerateTaskExecutionForSplit(
         case SkTaskType::TYPE_EVENT_WAIT: {
             code << "        if ASCEND_IS_AIC { AscendC::WaitFunc<true>(" << Hex64ToStr(task.args)
                  << ", " << Hex64ToStr(task.entry[0]) << ", "
-                 << static_cast<uint32_t>(task.reserved) << "U); }\n";
+                 << static_cast<uint32_t>(task.extraInfo) << "U); }\n";
             code << "        if ASCEND_IS_AIV { AscendC::WaitFunc<false>(" << Hex64ToStr(task.args)
                  << ", " << Hex64ToStr(task.entry[0]) << ", "
-                 << static_cast<uint32_t>(task.reserved) << "U); }\n";
+                 << static_cast<uint32_t>(task.extraInfo) << "U); }\n";
             break;
         }
         case SkTaskType::TYPE_EVENT_RESET: {

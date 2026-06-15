@@ -10,6 +10,8 @@
 
 #include <gtest/gtest.h>
 #include <mockcpp/mockcpp.hpp>
+#include <cstdlib>
+#include <string>
 
 #include "super_kernel.h"
 #include "sk_scope_kernel_types.h"
@@ -95,6 +97,7 @@ protected:
     void TearDown() override
     {
         (void)SkUtInvokeModelDestroyCallback(model_);
+        unsetenv("ASCEND_OP_COMPILE_SAVE_KERNEL_META");
         SkUtResetTestControls();
         GlobalMockObject::verify();
     }
@@ -113,4 +116,16 @@ TEST_F(SuperKernelApiTest, Optimize_GraphUpdateFailure_ReturnsError)
     MOCKER(aclrtMemcpy).stubs().will(invoke(FakeAclrtMemcpy));
 
     EXPECT_EQ(aclskOptimize(model_, nullptr), ACL_ERROR_FAILURE);
+}
+
+TEST_F(SuperKernelApiTest, Optimize_SuccessDumpsAfterUpdateRtsJson)
+{
+    setenv("ASCEND_OP_COMPILE_SAVE_KERNEL_META", "1", 1);
+
+    ASSERT_EQ(aclskOptimize(model_, nullptr), ACL_SUCCESS);
+
+    ASSERT_EQ(SkUtGetDebugJsonPrintCallCount(), 2U);
+    const char* afterPath = SkUtGetDebugJsonPrintPath(1);
+    ASSERT_NE(afterPath, nullptr);
+    EXPECT_NE(std::string(afterPath).find("sk_mdl_updated.json"), std::string::npos);
 }
