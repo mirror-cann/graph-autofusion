@@ -25,6 +25,7 @@ add_library(test_regbase_ascendc OBJECT
     ./test_sinh.cpp
     ./test_tan.cpp
     ./test_square.cpp
+    ./test_signbit.cpp
     ./test_round_to_int.cpp
     ./test_trunc_div.cpp
     ./test_trunc_to_int.cpp
