@@ -223,7 +223,7 @@ bool SkEventRecorder::ParseEnvAndSetSize()
     // 解析环境变量值为 KB
     char* end = nullptr;
     long val = std::strtol(env, &end, 10);
-    if (end == env || val <= 0) {
+    if (end == env || *end != '\0' || val <= 0) {
         SK_LOGE("[sk time profiling] Invalid ASCEND_PROF_SK_ON value: %s, expected a positive number (KB)\n", env);
         return false;
     }
