@@ -75,7 +75,22 @@ void PrintFusedScopes(const SuperKernelGraph& graph,
                       const std::vector<SuperKernelScopeInfo>& processedScopeInfos);
 
 /**
- * @brief Dump graph to test JSON file (test.json or test_2.json)
+ * @brief Dump an existing graph to JSON file
+ *
+ * Only dumps when FileLogger is enabled (ASCEND_OP_COMPILE_SAVE_KERNEL_META is set).
+ *
+ * @param graph Existing SuperKernel graph
+ * @param opts SuperKernel options manager
+ * @param metaDir Meta directory path
+ * @param filename Filename without .json suffix (e.g., "test" or "test_2")
+ * @param scopeInfos Optional processed scope infos used to add SK metadata
+ * @return true if dump successful or skipped, false otherwise
+ */
+bool DumpGraphJson(const SuperKernelGraph& graph, const SuperKernelOptionsManager& opts, const std::string& metaDir,
+                   const std::string& filename, const std::vector<SuperKernelScopeInfo>* scopeInfos = nullptr);
+
+/**
+ * @brief Dump a graph captured from modelRI to JSON file
  *
  * Creates a temporary graph from modelRI, initializes it, and dumps to JSON file.
  * Only dumps when FileLogger is enabled (ASCEND_OP_COMPILE_SAVE_KERNEL_META is set).
@@ -87,7 +102,7 @@ void PrintFusedScopes(const SuperKernelGraph& graph,
  * @param scopeInfos Optional processed scope infos used to add SK metadata
  * @return true if dump successful or skipped, false otherwise
  */
-bool DumpRawTaskJson(aclmdlRI model, const SuperKernelOptionsManager& opts, const std::string& metaDir,
-                     const std::string& filename, const std::vector<SuperKernelScopeInfo>* scopeInfos = nullptr);
+bool DumpGraphJson(aclmdlRI model, const SuperKernelOptionsManager& opts, const std::string& metaDir,
+                   const std::string& filename, const std::vector<SuperKernelScopeInfo>* scopeInfos = nullptr);
 
 #endif // SK_DUMP_JSON_H

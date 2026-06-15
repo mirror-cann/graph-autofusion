@@ -48,7 +48,7 @@ public:
  * @param suffix Filename suffix (e.g., "before" or "after")
  * @return aclError status
  */
-aclError DumpGraphJson(aclmdlRI model, const std::string& metaDir, const std::string& suffix) {
+aclError DumpMdlJson(aclmdlRI model, const std::string& metaDir, const std::string& suffix) {
     if (!sk::logger::FileLogger::Instance().IsEnabled()) {
         return ACL_SUCCESS;  // Kernel meta save is disabled, skip
     }
@@ -104,7 +104,7 @@ aclError aclskOptimize(aclmdlRI model, aclskOptions *options) {
     }
 
     SK_LOGI("Start dump tasks by use rts api to JSON...");
-    ret = DumpGraphJson(model, metaDir, "sk_mdl_origin");
+    ret = DumpMdlJson(model, metaDir, "sk_mdl_origin");
     if (ret != ACL_SUCCESS) {
         return ret;
     }
@@ -140,9 +140,9 @@ aclError aclskOptimize(aclmdlRI model, aclskOptions *options) {
         return ACL_ERROR_FAILURE;
     }
 
-    // Dump graph to test.json using ToJson method (create new graph to get fresh model info)
-    SK_LOGI("Start dump raw tasks from modelRI to JSON...");
-    if (!DumpRawTaskJson(model, opts, metaDir, "sk_graph_origin")) {
+    // Dump the initialized graph directly before optimization.
+    SK_LOGI("Start dump raw tasks from graph to JSON...");
+    if (!DumpGraphJson(graph, opts, metaDir, "sk_graph_origin")) {
         return ACL_ERROR_FAILURE;
     }
 
@@ -174,7 +174,7 @@ aclError aclskOptimize(aclmdlRI model, aclskOptions *options) {
 
     SK_LOGI("Start dump raw tasks after update from modelRI to JSON...");
     const auto& scopeInfos = optimizer.GetScopeInfos();
-    if (!DumpRawTaskJson(model, opts, metaDir, "sk_graph_updated", &scopeInfos)) {
+    if (!DumpGraphJson(model, opts, metaDir, "sk_graph_updated", &scopeInfos)) {
         return ACL_ERROR_FAILURE;
     }
     SK_LOGI("End dump raw tasks after update from modelRI to JSON...");
@@ -190,7 +190,7 @@ aclError aclskOptimize(aclmdlRI model, aclskOptions *options) {
     SK_LOGI("End dump kernel binaries");
 
     SK_LOGI("Start dump tasks after update by use rts api to JSON...");
-    ret = DumpGraphJson(model, metaDir, "sk_mdl_updated");
+    ret = DumpMdlJson(model, metaDir, "sk_mdl_updated");
     if (ret != ACL_SUCCESS) {
         return ret;
     }

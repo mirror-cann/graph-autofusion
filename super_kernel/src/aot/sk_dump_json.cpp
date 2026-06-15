@@ -618,6 +618,28 @@ void InjectSkInfos(Json& graphJson, const std::vector<SuperKernelScopeInfo>& sco
     InjectSkInfos(graphJson, BuildSkInfoForDumpMap(scopeInfos));
 }
 
+bool DumpGraphJsonToFile(Json graphJson, const SuperKernelOptionsManager& opts, const std::string& metaDir,
+                         const std::string& filename, const std::vector<SuperKernelScopeInfo>* scopeInfos)
+{
+    if (scopeInfos != nullptr) {
+        InjectSkInfos(graphJson, *scopeInfos);
+    }
+    graphJson["options"] = opts.ToJson();
+
+    std::string fullFilename = filename + ".json";
+    std::string testJsonPath = metaDir + "/" + fullFilename;
+    std::ofstream testJsonFile(testJsonPath);
+    if (!testJsonFile.is_open()) {
+        SK_LOGE("Failed to open %s for writing: %s", fullFilename.c_str(), testJsonPath.c_str());
+        return false;
+    }
+
+    testJsonFile << graphJson.dump(2);  // Pretty print with 2-space indentation
+    testJsonFile.close();
+    SK_LOGI("Successfully dumped graph to %s: %s", fullFilename.c_str(), testJsonPath.c_str());
+    return true;
+}
+
 } // anonymous namespace
 
 void PrintFusedScopes(const SuperKernelGraph& graph,
@@ -739,15 +761,15 @@ bool DumpAllTaskQueuesToJson(const SuperKernelGraph& graph,
     }
 }
 
-bool DumpRawTaskJson(aclmdlRI model, const SuperKernelOptionsManager& opts, const std::string& metaDir,
-                     const std::string& filename, const std::vector<SuperKernelScopeInfo>* scopeInfos)
+bool DumpGraphJson(aclmdlRI model, const SuperKernelOptionsManager& opts, const std::string& metaDir,
+                   const std::string& filename, const std::vector<SuperKernelScopeInfo>* scopeInfos)
 {
     if (!sk::logger::FileLogger::Instance().IsEnabled()) {
         return true;  // Kernel meta save is disabled, skip
     }
 
     if (filename.empty()) {
-        SK_LOGE("DumpRawTaskJson failed: filename is empty");
+        SK_LOGE("DumpGraphJson failed: filename is empty");
         return false;
     }
 
@@ -760,21 +782,20 @@ bool DumpRawTaskJson(aclmdlRI model, const SuperKernelOptionsManager& opts, cons
     }
     SK_LOGI("End creating temp graph for %s dump", filename.c_str());
 
-    std::string fullFilename = filename + ".json";
-    std::string testJsonPath = metaDir + "/" + fullFilename;
-    std::ofstream testJsonFile(testJsonPath);
-    if (testJsonFile.is_open()) {
-        nlohmann::ordered_json graphJson = tempGraph.ToJson();
-        if (scopeInfos != nullptr) {
-            InjectSkInfos(graphJson, *scopeInfos);
-        }
-        graphJson["options"] = opts.ToJson();
-        testJsonFile << graphJson.dump(2);  // Pretty print with 2-space indentation
-        testJsonFile.close();
-        SK_LOGI("Successfully dumped graph to %s: %s", fullFilename.c_str(), testJsonPath.c_str());
-    } else {
-        SK_LOGE("Failed to open %s for writing: %s", fullFilename.c_str(), testJsonPath.c_str());
+    return DumpGraphJsonToFile(tempGraph.ToJson(), opts, metaDir, filename, scopeInfos);
+}
+
+bool DumpGraphJson(const SuperKernelGraph& graph, const SuperKernelOptionsManager& opts, const std::string& metaDir,
+                   const std::string& filename, const std::vector<SuperKernelScopeInfo>* scopeInfos)
+{
+    if (!sk::logger::FileLogger::Instance().IsEnabled()) {
+        return true;  // Kernel meta save is disabled, skip
+    }
+
+    if (filename.empty()) {
+        SK_LOGE("DumpGraphJson failed: filename is empty");
         return false;
     }
-    return true;
+
+    return DumpGraphJsonToFile(graph.ToJson(), opts, metaDir, filename, scopeInfos);
 }
