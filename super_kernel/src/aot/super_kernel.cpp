@@ -44,15 +44,14 @@ public:
  * @brief Dump graph to JSON file for debugging
  * @param model Model RI handle
  * @param metaDir Meta directory path
- * @param deviceId Device ID
  * @param suffix Filename suffix (e.g., "before" or "after")
  * @return aclError status
  */
-aclError DumpGraphJson(aclmdlRI model, const std::string& metaDir, int32_t deviceId, const std::string& suffix) {
+aclError DumpMdlJson(aclmdlRI model, const std::string& metaDir, const std::string& suffix) {
     if (!sk::logger::FileLogger::Instance().IsEnabled()) {
         return ACL_SUCCESS;  // Kernel meta save is disabled, skip
     }
-    std::string jsonPath = metaDir + "/" + suffix + "_" + std::to_string(deviceId) + ".json";
+    std::string jsonPath = metaDir + "/" + suffix + ".json";
     aclError ret = aclmdlRIDebugJsonPrint(model, jsonPath.c_str(), 0);
     if (ret != ACL_SUCCESS) {
         SK_LOGE("Failed to print json file: %s", jsonPath.c_str());
@@ -62,20 +61,13 @@ aclError DumpGraphJson(aclmdlRI model, const std::string& metaDir, int32_t devic
 }
 
 /**
- * @brief Get device ID and create meta directory for graph dumping
- * @param model Model RI handle
- * @param deviceId Output device ID
+ * @brief Create meta directory for graph dumping
  * @param metaDir Output meta directory path
  * @return aclError status
  */
-aclError PrepareGraphDumpEnv(aclmdlRI model, int32_t& deviceId, std::string& metaDir) {
+aclError PrepareGraphDumpEnv(std::string& metaDir) {
     if (!sk::logger::FileLogger::Instance().IsEnabled()) {
         return ACL_SUCCESS;  // Kernel meta save is disabled, skip directory creation
-    }
-    aclError ret = aclrtGetDevice(&deviceId);
-    if (ret != ACL_SUCCESS) {
-        SK_LOGE("Failed to get device id.");
-        return ACL_ERROR_FAILURE;
     }
     metaDir = CreateSkMetaDirectory(GetCurrentModelLabel());
     return ACL_SUCCESS;
@@ -96,15 +88,14 @@ aclError aclskOptimize(aclmdlRI model, aclskOptions *options) {
     // Init device socname, corenum, TICK_US_MULTIPLIER
     InitSkRuntimeConfig();
 
-    int32_t deviceId;
     std::string metaDir;
-    aclError ret = PrepareGraphDumpEnv(model, deviceId, metaDir);
+    aclError ret = PrepareGraphDumpEnv(metaDir);
     if (ret != ACL_SUCCESS) {
         return ret;
     }
 
     SK_LOGI("Start dump tasks by use rts api to JSON...");
-    ret = DumpGraphJson(model, metaDir, deviceId, "sk_graph_rts_before_device");
+    ret = DumpMdlJson(model, metaDir, "sk_mdl_origin");
     if (ret != ACL_SUCCESS) {
         return ret;
     }
@@ -140,15 +131,9 @@ aclError aclskOptimize(aclmdlRI model, aclskOptions *options) {
         return ACL_ERROR_FAILURE;
     }
 
-    SK_LOGI("End init sk graph, start dump graph to JSON...");
-    if (!DumpGraphNodesToJson(graph)) {
-        SK_LOGE("Failed to dump graph nodes to JSON, continuing...");
-        return ACL_ERROR_FAILURE;
-    }
-
-    // Dump graph to test.json using ToJson method (create new graph to get fresh model info)
-    SK_LOGI("Start dump raw tasks from modelRI to JSON...");
-    if (!DumpRawTaskJson(model, opts, metaDir, "sk_raw_tasks_before")) {
+    // Dump the initialized graph directly before optimization.
+    SK_LOGI("Start dump raw tasks from graph to JSON...");
+    if (!DumpGraphJson(graph, opts, metaDir, "sk_graph_origin")) {
         return ACL_ERROR_FAILURE;
     }
 
@@ -179,17 +164,11 @@ aclError aclskOptimize(aclmdlRI model, aclskOptions *options) {
     SK_LOGI("End update graph");
 
     SK_LOGI("Start dump raw tasks after update from modelRI to JSON...");
-    if (!DumpRawTaskJson(model, opts, metaDir, "sk_raw_tasks_after")) {
+    const auto& scopeInfos = optimizer.GetScopeInfos();
+    if (!DumpGraphJson(model, opts, metaDir, "sk_graph_updated", &scopeInfos)) {
         return ACL_ERROR_FAILURE;
     }
     SK_LOGI("End dump raw tasks after update from modelRI to JSON...");
-
-    SK_LOGI("Start dump fused graph to JSON...");
-    if (!DumpFusedGraphToJson(graph, optimizer.GetScopeInfos())) {
-        SK_LOGE("Failed to dump fused graph to JSON, continuing...");
-        return ACL_ERROR_FAILURE;
-    }
-    SK_LOGI("End dump fused graph to JSON");
 
     SK_LOGI("Start dump kernel binaries...");
     if (sk::logger::FileLogger::Instance().IsEnabled()) {
@@ -202,7 +181,7 @@ aclError aclskOptimize(aclmdlRI model, aclskOptions *options) {
     SK_LOGI("End dump kernel binaries");
 
     SK_LOGI("Start dump tasks after update by use rts api to JSON...");
-    ret = DumpGraphJson(model, metaDir, deviceId, "sk_graph_rts_after_device");
+    ret = DumpMdlJson(model, metaDir, "sk_mdl_updated");
     if (ret != ACL_SUCCESS) {
         return ret;
     }

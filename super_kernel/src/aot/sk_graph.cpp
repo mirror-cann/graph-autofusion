@@ -1430,6 +1430,33 @@ static Json NodeToJsonByType(const SuperKernelBaseNode* node)
     }
 }
 
+static Json NodeWrapperToJson(const SuperKernelBaseNode* node)
+{
+    Json nodeJson;
+    if (node == nullptr) {
+        return nodeJson;
+    }
+
+    nodeJson["nodeId"] = node->GetNodeId();
+    nodeJson["streamIdxInGraph"] = node->GetStreamIdxInGraph();
+    nodeJson["nodeIdxInStream"] = node->GetNodeIdxInStream();
+    nodeJson["nodeType"] = to_string(node->GetNodeType());
+    const std::string scopeName = node->GetScopeName();
+    nodeJson["scopeName"] = scopeName.empty() ? Json() : Json(scopeName);
+    nodeJson["isScopeNode"] = node->IsScopeNode();
+    nodeJson["isScopeBegin"] = node->IsScopeBegin();
+    nodeJson["isScopeEnd"] = node->IsScopeEnd();
+    nodeJson["isScopePlaceholder"] = node->IsScopePlaceholder();
+
+    const uint64_t preNodeId = node->GetPreNodeId();
+    nodeJson["preNodeId"] = (preNodeId == INVALID_TASK_ID) ? Json("none") : Json(preNodeId);
+    const uint64_t nextNodeId = node->GetNextNodeId();
+    nodeJson["nextNodeId"] = (nextNodeId == INVALID_TASK_ID) ? Json("none") : Json(nextNodeId);
+
+    nodeJson["taskInfo"] = Json::array({NodeToJsonByType(node)});
+    return nodeJson;
+}
+
 /**
  * @brief Collect all nodes grouped by streams to JSON
  */
@@ -1441,26 +1468,20 @@ static Json CollectStreamsToJson(const SuperKernelGraph& graph)
 
     for (size_t streamIdx = 0; streamIdx < streams.size(); ++streamIdx) {
         Json streamJson;
-        int32_t streamId = -1;
-        aclError ret = aclrtStreamGetId(streams[streamIdx], &streamId);
-        if (ret != ACL_SUCCESS) {
-            SK_LOGE("Failed to get stream ID for stream %zu, ret=%d", streamIdx, ret);
-            return Json::object();
-        }
 
-        streamJson["streamId"] = streamId;
-        streamJson["taskCount"] = (streamIdx < nodeSizeInStream.size()) ? nodeSizeInStream[streamIdx] : 0;
+        streamJson["streamIdxInGraph"] = streamIdx;
+        streamJson["nodeCount"] = (streamIdx < nodeSizeInStream.size()) ? nodeSizeInStream[streamIdx] : 0;
 
-        // Collect tasks for this stream
-        Json tasksJson = Json::array();
+        // Collect nodes for this stream. Currently each node maps to one raw task.
+        Json nodesJson = Json::array();
         std::vector<uint64_t> sortedNodeIds = graph.GetSortedNodeIds();
         for (uint64_t nodeId : sortedNodeIds) {
             const SuperKernelBaseNode* node = graph.GetNodeById(nodeId);
             if (node != nullptr && static_cast<uint32_t>(streamIdx) == node->GetStreamIdxInGraph()) {
-                tasksJson.push_back(NodeToJsonByType(node));
+                nodesJson.push_back(NodeWrapperToJson(node));
             }
         }
-        streamJson["tasks"] = tasksJson;
+        streamJson["nodes"] = nodesJson;
 
         streamsJson.push_back(streamJson);
     }
@@ -1486,13 +1507,13 @@ Json SuperKernelGraph::ToJson() const
 
     // Total counts
     rootJson["totalStreams"] = streams.size();
-    size_t totalTasks = 0;
+    size_t totalNodes = 0;
     for (const auto& pair : graphMap) {
         if (pair.second != nullptr) {
-            totalTasks++;
+            totalNodes++;
         }
     }
-    rootJson["totalTasks"] = totalTasks;
+    rootJson["totalNodes"] = totalNodes;
 
     // Streams with tasks
     rootJson["streams"] = CollectStreamsToJson(*this);

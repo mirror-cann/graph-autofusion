@@ -27,17 +27,6 @@ class SkTask;
 class SuperKernelOptionsManager;
 
 /**
- * @brief Dump SuperKernel graph node information to JSON file
- *
- * Outputs all nodes' detailed information after initialization to a JSON file
- * for debugging and analysis purposes.
- *
- * @param graph Reference to the SuperKernelGraph
- * @return true if dump successful, false otherwise
- */
-bool DumpGraphNodesToJson(const SuperKernelGraph& graph);
-
-/**
  * @brief Convert SkTask (AIC/AIV task queue) to JSON object
  *
  * Converts the AIC and AIV task queue information to a JSON object
@@ -63,39 +52,6 @@ bool DumpAllTaskQueuesToJson(const SuperKernelGraph& graph,
                              const std::unordered_map<std::string, Json>& taskQueueJsons);
 
 /**
- * @brief Dump fused (after fusion) SuperKernel graph to JSON file with nested structure
- *
- * Outputs the graph after fusion in a nested format where superkernel scopes are
- * represented as nested objects containing their constituent nodes.
- * Format: Non-fused nodes are output as flat entries, fused scopes are output as
- * nested entries containing all their member nodes.
- *
- * Example:
- *   Before fusion: node1, node2, node3, node4, node5, node6, node7, node8, node9
- *   After fusion:  node3-node6 fused into superkernel scope1
- *   JSON output:
- *   {
- *     "nodes": [
- *       {"nodeId": 1, ...},
- *       {"nodeId": 2, ...},
- *       {
- *         "scopeId": 1,
- *         "scopeName": "scope1",
- *         "nodeIds": [3, 4, 5, 6],
- *         "nodes": [...]
- *       },
- *       {"nodeId": 7, ...},
- *       ...
- *     ]
- *   }
- *
- * @param graph Reference to the SuperKernelGraph
- * @param scopeInfos Reference to the vector of SuperKernelScopeInfo containing fusion results
- * @return true if dump successful, false otherwise
- */
-bool DumpFusedGraphToJson(const SuperKernelGraph& graph, const std::vector<SuperKernelScopeInfo>& scopeInfos);
-
-/**
  * @brief Print original scopes before fusion to current log context
  *
  * Iterates through original scope infos and prints scopeId, scopeNames, totalNodes,
@@ -119,7 +75,22 @@ void PrintFusedScopes(const SuperKernelGraph& graph,
                       const std::vector<SuperKernelScopeInfo>& processedScopeInfos);
 
 /**
- * @brief Dump graph to test JSON file (test.json or test_2.json)
+ * @brief Dump an existing graph to JSON file
+ *
+ * Only dumps when FileLogger is enabled (ASCEND_OP_COMPILE_SAVE_KERNEL_META is set).
+ *
+ * @param graph Existing SuperKernel graph
+ * @param opts SuperKernel options manager
+ * @param metaDir Meta directory path
+ * @param filename Filename without .json suffix (e.g., "test" or "test_2")
+ * @param scopeInfos Optional processed scope infos used to add SK metadata
+ * @return true if dump successful or skipped, false otherwise
+ */
+bool DumpGraphJson(const SuperKernelGraph& graph, const SuperKernelOptionsManager& opts, const std::string& metaDir,
+                   const std::string& filename, const std::vector<SuperKernelScopeInfo>* scopeInfos = nullptr);
+
+/**
+ * @brief Dump a graph captured from modelRI to JSON file
  *
  * Creates a temporary graph from modelRI, initializes it, and dumps to JSON file.
  * Only dumps when FileLogger is enabled (ASCEND_OP_COMPILE_SAVE_KERNEL_META is set).
@@ -128,8 +99,10 @@ void PrintFusedScopes(const SuperKernelGraph& graph,
  * @param opts SuperKernel options manager
  * @param metaDir Meta directory path
  * @param filename Filename without .json suffix (e.g., "test" or "test_2")
+ * @param scopeInfos Optional processed scope infos used to add SK metadata
  * @return true if dump successful or skipped, false otherwise
  */
-bool DumpRawTaskJson(aclmdlRI model, const SuperKernelOptionsManager& opts, const std::string& metaDir, const std::string& filename);
+bool DumpGraphJson(aclmdlRI model, const SuperKernelOptionsManager& opts, const std::string& metaDir,
+                   const std::string& filename, const std::vector<SuperKernelScopeInfo>* scopeInfos = nullptr);
 
 #endif // SK_DUMP_JSON_H
