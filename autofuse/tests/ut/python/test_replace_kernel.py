@@ -213,13 +213,11 @@ def test_device_miss_host_hit_keeps_host_replacement_independent(tmpdir, asc_cod
     assert host_build_dir.join("demo_graph_tiling_func_0.cpp").read() == "new0"
 
 
-def test_host_replacement_happens_once_before_static_shape_compile_and_uses_final_host_dir(monkeypatch,
-                                                                                           tmpdir,
-                                                                                           asc_codegen_compile_module):
-    calls = []
-
-    tmp_path = str(tmpdir)
-    host_cv_common_dir = tmpdir.ensure("host", "cv_common", dir=True)
+def _mock_host_replacement_compile_flow(asc_codegen_compile_module, monkeypatch, tmpdir, calls):
+    def fake_static_shape_compile(**kwargs):
+        if "use_cv_common" in kwargs:
+            kwargs["use_cv_common"][0] = True
+        calls.append(("static_shape_compile", kwargs["graph_name"], kwargs))
 
     monkeypatch.setattr(asc_codegen_compile_module,
                         "get_graph_basic_info",
@@ -236,12 +234,6 @@ def test_host_replacement_happens_once_before_static_shape_compile_and_uses_fina
     monkeypatch.setattr(asc_codegen_compile_module,
                         "ascbc_matmul_kernel_tiling_pro",
                         lambda *args, **kwargs: kwargs["use_cv_common"].__setitem__(0, True))
-
-    def fake_static_shape_compile(**kwargs):
-        if "use_cv_common" in kwargs:
-            kwargs["use_cv_common"][0] = True
-        calls.append(("static_shape_compile", kwargs["graph_name"]))
-
     monkeypatch.setattr(asc_codegen_compile_module, "static_shape_compile", fake_static_shape_compile)
     monkeypatch.setattr(asc_codegen_compile_module,
                         "get_replace_kernel_root",
@@ -260,9 +252,17 @@ def test_host_replacement_happens_once_before_static_shape_compile_and_uses_fina
                         lambda *args, **kwargs: calls.append(("post", args[0])))
     monkeypatch.setattr(asc_codegen_compile_module, "timestamp_set", lambda *args, **kwargs: None)
 
+
+def test_host_replacement_happens_once_before_static_shape_compile_and_uses_final_host_dir(monkeypatch,
+                                                                                           tmpdir,
+                                                                                           asc_codegen_compile_module):
+    calls = []
+    host_cv_common_dir = tmpdir.ensure("host", "cv_common", dir=True)
+    _mock_host_replacement_compile_flow(asc_codegen_compile_module, monkeypatch, tmpdir, calls)
+
     asc_codegen_compile_module.asc_graph_compile("arg0",
                                                  "kernel_name",
-                                                 temp_dir=tmp_path,
+                                                 temp_dir=str(tmpdir),
                                                  params={
                                                      "schedule_results": object(),
                                                      "vector_core_num": 1,
@@ -274,6 +274,8 @@ def test_host_replacement_happens_once_before_static_shape_compile_and_uses_fina
     assert replace_calls[0][1] == str(host_cv_common_dir)
     order = [item[0] for item in calls]
     assert order.index("replace_host") < order.index("static_shape_compile")
+    static_shape_calls = [item for item in calls if item[0] == "static_shape_compile"]
+    assert static_shape_calls[0][2]["vector_core_num"] == 1
 
 
 class _LogCapture(object):

@@ -146,7 +146,7 @@ Status BinaryApiCall::BrcInlineGenerate(const TPipe &tpipe, const std::vector<as
   std::string shape = "{" + tpipe.tiler.ActualSize(meger_shape[0]) + ", " +
                       af::SymbolicUtils::ToString(meger_shape[1]) + "}";
 
-  af::Expression v_strides;
+  af::Expression v_strides = af::sym::kSymbolZero;
   auto& x_in = (input_idx_2_brc_inline[0] != 0) ? x1 : x2;
   for (size_t i = 0UL; i < x_in.vectorized_axis_pos.size(); ++i) {
     const uint32_t axis_ids = x_in.vectorized_axis_pos[i];

@@ -18,6 +18,7 @@ import tempfile
 import platform
 import json
 import time
+from collections import namedtuple
 
 from tbe.common.buildcfg import get_current_build_config
 from tbe.tikcpp.compile_op import CommonUtility, AscendCLogLevel
@@ -35,6 +36,11 @@ from tbe.tikcpp import OpInfo
 PYF_PATH = os.path.dirname(os.path.realpath(__file__))
 ASCEND_PATH = os.path.join(PYF_PATH, "..", "..", "..")
 timestamp_list = []
+StaticCompileContext = namedtuple("StaticCompileContext", ["kernel_name", "temp_dir", "graph_name", "vector_core_num"])
+CodegenCompileContext = namedtuple(
+    "CodegenCompileContext",
+    ["extra_params", "vector_core_num", "ai_core_num_limited", "device_id", "static_compile_vector_core_num"],
+)
 CV_COMMON_MIX_WHITE_LIST = [
     4096, 4097, 4112, 4113, 4160, 4161, 4176, 4177,
     8192, 8208, 8256, 8272,
@@ -289,8 +295,43 @@ def static_shape_kernel_proc(kernel_src, temp_dir, kernel_type, use_cv_common=No
         file.write(code)
 
 
+def get_static_compile_vector_core_num(vector_core_num=None):
+    soc_vector_core_cnt = int(get_soc_spec('vector_core_cnt'))
+    if vector_core_num is None or str(vector_core_num) in ("", "0"):
+        return soc_vector_core_cnt
+    return min(int(vector_core_num), soc_vector_core_cnt)
+
+
+def get_codegen_compile_context():
+    import tbe.common.context.op_context as op_context
+    context = op_context.get_context()
+    op_info = context.get_op_info()
+    vector_core_num = context.get_addition("_op_vectorcore_num")
+    return CodegenCompileContext(
+        op_info[0].extra_params,
+        vector_core_num,
+        context.get_addition("_op_aicore_num"),
+        context.get_addition("device_id"),
+        get_static_compile_vector_core_num(vector_core_num),
+    )
+
+
+def log_core_limit_info(codegen_context):
+    CommonUtility.print_compile_log(
+        "",
+        f"[AUTOFUSE_DEBUG] vector_core_num={codegen_context.static_compile_vector_core_num}, "
+        f"vector_core_num_limited={codegen_context.vector_core_num}",
+        AscendCLogLevel.LOG_INFO,
+    )
+    CommonUtility.print_compile_log(
+        "",
+        f"[AUTOFUSE_DEBUG] ai_core_num_limited={codegen_context.ai_core_num_limited}",
+        AscendCLogLevel.LOG_INFO,
+    )
+
+
 def static_shape_compile(kernel_name, temp_dir, graph_name, tiling_key_list=None, kernel_type_list=None,
-                         use_cv_common=None, is_cube=False):
+                         use_cv_common=None, is_cube=False, vector_core_num=None):
     if use_cv_common and use_cv_common[0]:
         host_build_dir = os.path.join(temp_dir, "host", "cv_common")
     else:
@@ -313,8 +354,7 @@ def static_shape_compile(kernel_name, temp_dir, graph_name, tiling_key_list=None
         lib.GenConstTilingData.argtypes = []
         lib.GenConstTilingData.restype = ctypes.c_char_p
         result = lib.GenConstTilingData(ctypes.c_char_p(pgo_config_path.encode('utf-8')),
-                                        ctypes.c_int(
-                                            int(get_soc_spec('vector_core_cnt'))),
+                                        ctypes.c_int(get_static_compile_vector_core_num(vector_core_num)),
                                         ctypes.c_int(int(get_soc_spec('ub_size'))))
 
     const_tiling_data = result.decode('utf-8')
@@ -391,7 +431,7 @@ def dynamic_shape_compile(kernel_name, temp_dir, graph_name, use_cv_common=None,
         file.write(const_tiling_data)
 
 
-def static_shape_cv_compile(kernel_name, temp_dir, graph_name):
+def static_shape_cv_compile(kernel_name, temp_dir, graph_name, vector_core_num=None):
     host_build_dir = os.path.join(temp_dir, "host")
     ascbc_host_compile(graph_name, kernel_name, host_build_dir, False, True, True)
     host_so = os.path.join(host_build_dir, f"lib{kernel_name}.so")
@@ -406,7 +446,7 @@ def static_shape_cv_compile(kernel_name, temp_dir, graph_name):
     result = -1
     if hasattr(lib, 'GenCVFusionTilingKey'):
         result = lib.GenCVFusionTilingKey(ctypes.c_char_p(pgo_config_path.encode('utf-8')),
-                                          ctypes.c_int(int(get_soc_spec('vector_core_cnt'))),
+                                          ctypes.c_int(get_static_compile_vector_core_num(vector_core_num)),
                                           ctypes.c_int(int(get_soc_spec('ub_size'))))
     return result
 
@@ -429,7 +469,7 @@ def get_cv_ub_fusion_stage_size_name(kernel_name, temp_dir, graph_name):
     return stage_size_name
 
 
-def static_shape_cv_common_compile(kernel_name, temp_dir, graph_name):
+def static_shape_cv_common_compile(kernel_name, temp_dir, graph_name, vector_core_num=None):
     host_build_dir = os.path.join(temp_dir, "host", "cv_common")
     ascbc_host_compile(graph_name, kernel_name, host_build_dir, False, True, True)
     host_so = os.path.join(host_build_dir, f"lib{kernel_name}.so")
@@ -448,7 +488,7 @@ def static_shape_cv_common_compile(kernel_name, temp_dir, graph_name):
         workspace_size = ctypes.c_uint32()
         block_dim = ctypes.c_uint32()
         ret = lib.GenTilingDataValueBlockDimAndWss(ctypes.c_char_p(pgo_config_path.encode('utf-8')),
-                                                   ctypes.c_uint32(int(get_soc_spec('vector_core_cnt'))),
+                                                   ctypes.c_uint32(get_static_compile_vector_core_num(vector_core_num)),
                                                    ctypes.c_uint32(int(get_soc_spec('ub_size'))),
                                                    ctypes.byref(workspace_size),
                                                    ctypes.byref(block_dim))
@@ -940,7 +980,8 @@ def pgo_second_optimization(*args, temp_dir, params, op_kernel_src, mspti_so_lis
         tiling_key_list, kernel_type_list = [-1], ["KERNEL_TYPE_AIV_ONLY"]
         pgo_write_config(config_path, config_line)
         static_shape_compile(kernel_name=kernel_name, temp_dir=temp_dir, graph_name=graph_name,
-                             tiling_key_list=tiling_key_list, kernel_type_list=kernel_type_list)
+                             tiling_key_list=tiling_key_list, kernel_type_list=kernel_type_list,
+                             vector_core_num=params.get('vector_core_num'))
         try:
             kernel_file, json_file = ascbc_kernel_compile(args, graph_name=graph_name, kernel_name=kernel_name,
                 input_num=input_num, output_num=output_num, temp_build_dir=kernel_build_dir,
@@ -1175,10 +1216,14 @@ def is_matmul_relu_fixpip(tiling_info, cube_info):
     return has_relu and (cube_tiling_key_fixpip == 1)
 
 
-def template_decider(kernel_name, temp_dir, graph_name, tiling_info, cube_info, is_conv=False):
+def template_decider(compile_context, tiling_info, cube_info, is_conv=False):
     _, is_batch, cube_block_dim, use_cv_common, has_relu = cube_info[:5]
-    tiling_key = static_shape_cv_compile(kernel_name=kernel_name, temp_dir=temp_dir,
-                                         graph_name=graph_name)
+    tiling_key = static_shape_cv_compile(
+        kernel_name=compile_context.kernel_name,
+        temp_dir=compile_context.temp_dir,
+        graph_name=compile_context.graph_name,
+        vector_core_num=compile_context.vector_core_num,
+    )
     logger.info("CV fusion op, get vector tilingkey(%s)", tiling_key)
     use_cv_common = use_cv_common or [False]
     tiling_key_transpose_mask = 0xF0
@@ -1195,8 +1240,12 @@ def template_decider(kernel_name, temp_dir, graph_name, tiling_info, cube_info, 
                     tiling_key, is_batch, tiling_info.tiling_key)
         tiling_info.file_content += "\n#define CV_SAFETY_FUSION 1\n"
         use_cv_common[0] = True
-        vec_block_dim, wss = static_shape_cv_common_compile(kernel_name=kernel_name, temp_dir=temp_dir,
-                                                            graph_name=graph_name)
+        vec_block_dim, wss = static_shape_cv_common_compile(
+            kernel_name=compile_context.kernel_name,
+            temp_dir=compile_context.temp_dir,
+            graph_name=compile_context.graph_name,
+            vector_core_num=compile_context.vector_core_num,
+        )
         logger.info("CV fusion op, CV_AIC_NUM=[%s] CV_AIV_NUM=[%s] CV_VEC_WSS=[%s]", str(cube_block_dim),
                     str(vec_block_dim), str(wss))
         for name, value in [("CV_AIC_NUM", cube_block_dim), ("CV_AIV_NUM", vec_block_dim), ("CV_VEC_WSS", wss)]:
@@ -1224,7 +1273,7 @@ def map_dtype_to_string(dtype):
     return dtype_map.get(dtype.lower(), dtype)
 
 
-def create_matmul_tiling_data(kernel_name, temp_dir, graph_name, tiling_info, cube_info):
+def create_matmul_tiling_data(compile_context, tiling_info, cube_info):
     cube_output_type_size, is_batch, _, _, has_relu, origin_inputs, origin_outputs = cube_info[:7]
 
     # 根据is_batch设置结构体名称和数据访问路径
@@ -1248,11 +1297,12 @@ GET_TILING_DATA_PTR_WITH_STRUCT({struct_name}, tmpTilingData, tmpTilingGM);
 
     # 写入host端文件
     host_tiling_content = tiling_info.file_content + host_tiling_data + class_body
-    generate_file(os.path.join(temp_dir, "host"), "autofuse_cube_tiling_data.h", host_tiling_content)
-    generate_file(os.path.join(temp_dir, "host", "cv_common"), "autofuse_cube_tiling_data.h", host_tiling_content)
+    generate_file(os.path.join(compile_context.temp_dir, "host"), "autofuse_cube_tiling_data.h", host_tiling_content)
+    generate_file(os.path.join(compile_context.temp_dir, "host", "cv_common"), "autofuse_cube_tiling_data.h",
+                  host_tiling_content)
 
     # 生成决定走哪一个vector模板的宏
-    template_decider(kernel_name, temp_dir, graph_name, tiling_info, cube_info)
+    template_decider(compile_context, tiling_info, cube_info)
 
     # 写入device端文件
     device_tiling_data = f"""\n#include "arch35/mat_mul_tiling_data.h"
@@ -1280,8 +1330,9 @@ GET_TILING_DATA_PTR_WITH_STRUCT({struct_name}, tmpTilingData, tmpTilingGM);
     tiling_info.file_content += device_tiling_data
     device_tiling_content = tiling_info_undef
     device_tiling_content += tiling_info.file_content
-    generate_file(os.path.join(temp_dir, "device"), "autofuse_cube_tiling_data.h", device_tiling_content)
-    generate_file(os.path.join(temp_dir, "device", "cv_common"), "autofuse_cube_tiling_data.h",
+    generate_file(os.path.join(compile_context.temp_dir, "device"),
+                  "autofuse_cube_tiling_data.h", device_tiling_content)
+    generate_file(os.path.join(compile_context.temp_dir, "device", "cv_common"), "autofuse_cube_tiling_data.h",
                   device_tiling_content)
 
 
@@ -1335,7 +1386,7 @@ struct CVAutofuseTilingData {{
                   device_tiling_content)
 
 
-def create_conv_tiling_data(kernel_name, temp_dir, graph_name, tiling_info, cube_info, cube_attributes):
+def create_conv_tiling_data(compile_context, tiling_info, cube_info, cube_attributes):
     cube_output_type_size, _, _, is_bias, is_offset_w, origin_inputs, origin_outputs = cube_info[:7]
     struct_name = "Conv2DTilingData"
     data_prefix = "(*tmpTilingData).conv2dApiTiling"
@@ -1358,11 +1409,12 @@ GET_TILING_DATA_PTR_WITH_STRUCT({struct_name}, tmpTilingData, tmpTilingGM);
     class_body += f"const int32_t basen_basem_align = std::max({data_prefix}.nL0 / {vec_num}, 16u) * basen_align;\n"
 
     host_tiling_content = tiling_info.file_content + host_tiling_data + class_body
-    generate_file(os.path.join(temp_dir, "host"), "autofuse_cube_tiling_data.h", host_tiling_content)
-    generate_file(os.path.join(temp_dir, "host", "cv_common"), "autofuse_cube_tiling_data.h", host_tiling_content)
+    generate_file(os.path.join(compile_context.temp_dir, "host"), "autofuse_cube_tiling_data.h", host_tiling_content)
+    generate_file(os.path.join(compile_context.temp_dir, "host", "cv_common"), "autofuse_cube_tiling_data.h",
+                  host_tiling_content)
 
     # 生成决定走哪一个vector模板的宏
-    template_decider(kernel_name, temp_dir, graph_name, tiling_info, cube_info, True)
+    template_decider(compile_context, tiling_info, cube_info, True)
 
     device_tiling_data = f"""\n#include "arch35/conv2d_v2_tiling_def.h"
 #define IS_ENABLE_BIAS {str(is_bias).lower()}
@@ -1389,8 +1441,9 @@ GET_TILING_DATA_PTR_WITH_STRUCT({struct_name}, tmpTilingData, tmpTilingGM);
     tiling_info.file_content += device_tiling_data
     device_tiling_content = tiling_data_undef
     device_tiling_content += tiling_info.file_content
-    generate_file(os.path.join(temp_dir, "device"), "autofuse_cube_tiling_data.h", device_tiling_content)
-    generate_file(os.path.join(temp_dir, "device", "cv_common"), "autofuse_cube_tiling_data.h",
+    generate_file(os.path.join(compile_context.temp_dir, "device"),
+                  "autofuse_cube_tiling_data.h", device_tiling_content)
+    generate_file(os.path.join(compile_context.temp_dir, "device", "cv_common"), "autofuse_cube_tiling_data.h",
                   device_tiling_content)
 
 
@@ -1404,7 +1457,8 @@ def ascbc_conv_kernel_tiling_pro(
     use_list_tensor_desc,
     cube_attrs,
     tiling_key_list,
-    use_cv_common=None
+    use_cv_common=None,
+    vector_core_num=None
 ):
     graph_name = camel_to_snake(graph_name)
     args_list = args[0]
@@ -1474,7 +1528,8 @@ def ascbc_conv_kernel_tiling_pro(
     cube_output_type_size = cube_attributes.get("type_size", 4)
     cube_info = [cube_output_type_size, cube_block_dim, use_cv_common, is_bias, is_offset_w,
                  _origin_inputs_, _origin_outputs_]
-    create_conv_tiling_data(kernel_name, temp_dir, graph_name, tiling_info, cube_info, cube_attributes)
+    compile_context = StaticCompileContext(kernel_name, temp_dir, graph_name, vector_core_num)
+    create_conv_tiling_data(compile_context, tiling_info, cube_info, cube_attributes)
 
 
 def ascbc_matmul_kernel_tiling_pro(
@@ -1487,7 +1542,8 @@ def ascbc_matmul_kernel_tiling_pro(
     use_list_tensor_desc,
     cube_attrs,
     tiling_key_list,
-    use_cv_common=None
+    use_cv_common=None,
+    vector_core_num=None
 ):
     graph_name = camel_to_snake(graph_name)
     args_list = args[0]
@@ -1538,7 +1594,8 @@ def ascbc_matmul_kernel_tiling_pro(
     cube_output_type_size = cube_attributes.get("type_size", 4)
     cube_info = [cube_output_type_size, is_batch, cube_block_dim, use_cv_common, has_relu, _origin_inputs_,
                  _origin_outputs_]
-    create_matmul_tiling_data(kernel_name, temp_dir, graph_name, tiling_info, cube_info)
+    compile_context = StaticCompileContext(kernel_name, temp_dir, graph_name, vector_core_num)
+    create_matmul_tiling_data(compile_context, tiling_info, cube_info)
 
 
 def ascbc_matmul_kernel_dynamic_tiling_pro(
@@ -1663,6 +1720,7 @@ def asc_graph_compile(*args, temp_dir, params):
     use_list_tensor_desc = op_kernel_src.find('kernel_operator_list_tensor_intf.h') > 0
     enable_parallel_compile = op_kernel_src.rfind('void fake_tiling_ids()') > 0
     use_cv_common = [False]
+    vector_core_num = params.get('vector_core_num')
     replace_root = get_replace_kernel_root()
 
     if is_cube:
@@ -1671,17 +1729,19 @@ def asc_graph_compile(*args, temp_dir, params):
                 ascbc_conv_kernel_tiling_pro(args, temp_dir=temp_dir, graph_name=graph_name, kernel_name=kernel_name,
                                              input_num=input_num, output_num=output_num,
                                              use_list_tensor_desc=use_list_tensor_desc, cube_attrs=cube_attrs,
-                                             tiling_key_list=tiling_key_list, use_cv_common=use_cv_common)
+                                             tiling_key_list=tiling_key_list, use_cv_common=use_cv_common,
+                                             vector_core_num=vector_core_num)
             else:
                 ascbc_matmul_kernel_tiling_pro(args, temp_dir=temp_dir, graph_name=graph_name, kernel_name=kernel_name,
                                                input_num=input_num, output_num=output_num,
                                                use_list_tensor_desc=use_list_tensor_desc, cube_attrs=cube_attrs,
-                                               tiling_key_list=tiling_key_list, use_cv_common=use_cv_common)
+                                               tiling_key_list=tiling_key_list, use_cv_common=use_cv_common,
+                                               vector_core_num=vector_core_num)
             replace_host_files_if_needed(
                 replace_root, temp_dir, use_cv_common, graph_name)
             static_shape_compile(kernel_name=kernel_name, temp_dir=temp_dir, graph_name=graph_name,
                                  tiling_key_list=tiling_key_list, kernel_type_list=kernel_type_list,
-                                 use_cv_common=use_cv_common, is_cube=is_cube)
+                                 use_cv_common=use_cv_common, is_cube=is_cube, vector_core_num=vector_core_num)
         else:
             if (not is_conv):
                 replace_host_files_if_needed(
@@ -1701,7 +1761,8 @@ def asc_graph_compile(*args, temp_dir, params):
         replace_host_files_if_needed(replace_root, temp_dir, use_cv_common, graph_name)
         timestamp_set(True, graph_name, "CompileHost")
         static_shape_compile(kernel_name=kernel_name, temp_dir=temp_dir, graph_name=graph_name,
-                             tiling_key_list=tiling_key_list, kernel_type_list=kernel_type_list)
+                             tiling_key_list=tiling_key_list, kernel_type_list=kernel_type_list,
+                             vector_core_num=vector_core_num)
         timestamp_set(False, graph_name, "CompileHost")
 
     kernel_build_dir = get_device_build_dir(temp_dir, use_cv_common)
@@ -1764,17 +1825,15 @@ def asc_codegen_compile(*args, **kwargs):
     """
 
     def asc_codegen_compile_with_tmpdir(*args, temp_dir, **kwargs):
-        import tbe.common.context.op_context as op_context
-        context = op_context.get_context()
-        op_info = context.get_op_info()
-        extra_params = op_info[0].extra_params
-        vector_core_num = op_context.get_context().get_addition("_op_vectorcore_num")
-        device_id = op_context.get_context().get_addition("device_id")
+        codegen_context = get_codegen_compile_context()
+        extra_params = codegen_context.extra_params
+        log_core_limit_info(codegen_context)
 
         # 设置 platform 到 context
         npu_arch = get_soc_spec('NpuArch')
         if npu_arch:
-            ascir.utils.set_platform(npu_arch, int(get_soc_spec('vector_core_cnt')), int(get_soc_spec('ub_size')))
+            ascir.utils.set_platform(npu_arch, codegen_context.static_compile_vector_core_num,
+                                     int(get_soc_spec('ub_size')))
             CommonUtility.print_compile_log("", f"Set platform from get_soc_spec: {npu_arch}",
                                             AscendCLogLevel.LOG_DEBUG)
 
@@ -1789,8 +1848,8 @@ def asc_codegen_compile(*args, **kwargs):
             compute_graph_compile(*args,
                                   temp_dir=temp_dir,
                                   params=extra_params,
-                                  vector_core_num=vector_core_num,
-                                  device_id=device_id)
+                                  vector_core_num=codegen_context.vector_core_num,
+                                  device_id=codegen_context.device_id)
         except Exception as e1:
             dfx_flags = os.environ.get('AUTOFUSE_DFX_FLAGS', '')
             if "codegen_compile_debug=true" not in dfx_flags:
@@ -1801,8 +1860,8 @@ def asc_codegen_compile(*args, **kwargs):
                     compute_graph_compile(*args,
                                           temp_dir=temp_dir,
                                           params=extra_params,
-                                          vector_core_num=vector_core_num,
-                                          device_id=device_id)
+                                          vector_core_num=codegen_context.vector_core_num,
+                                          device_id=codegen_context.device_id)
                 except Exception as e2:
                     CommonUtility.print_compile_log("", "catch exception when generate debug info",
                                                     AscendCLogLevel.LOG_INFO)
