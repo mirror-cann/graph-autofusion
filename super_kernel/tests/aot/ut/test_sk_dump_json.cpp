@@ -473,7 +473,7 @@ TEST_F(SkDumpJsonDirectHelperTest, TaskAndKernelTypeStringHelpers)
     EXPECT_STREQ(GetKernelTypeString(ACL_KERNEL_TYPE_AICPU, taskRatio), "DEFAULT");
 
     EXPECT_EQ(PtrToHexString(reinterpret_cast<void*>(0x1234)), "0x1234");
-    EXPECT_EQ(Uint64ToHexString(0xabcd), "0xabcd");
+    EXPECT_EQ(UintToHexString(0xabcd), "0xabcd");
 }
 
 TEST_F(SkDumpJsonDirectHelperTest, BinaryBindMapAndResolvedFuncsCoverSuccessAndFailurePaths)
@@ -687,27 +687,33 @@ TEST_F(SkDumpJsonDirectHelperTest, RawTaskParamJsonCoversAllTaskTypes)
     params.type = ACL_MODEL_RI_TASK_EVENT_RECORD;
     params.eventRecordTaskParams.event = reinterpret_cast<aclrtEvent>(0x500);
     params.eventRecordTaskParams.eventFlag = 9;
+    params.eventRecordTaskParams.recordFlag = ACL_EVENT_RECORD_EXTERNAL;
     Json recordJson;
     AddTaskParamsToJson(recordJson, params, nullptr);
     EXPECT_EQ(recordJson["eventRecordParams"]["eventId"], "0x500");
     EXPECT_EQ(recordJson["eventRecordParams"]["eventFlag"], 9);
+    EXPECT_EQ(recordJson["eventRecordParams"]["recordFlag"], ACL_EVENT_RECORD_EXTERNAL);
 
     params = {};
     params.type = ACL_MODEL_RI_TASK_EVENT_WAIT;
     params.eventWaitTaskParams.event = reinterpret_cast<aclrtEvent>(0x600);
     params.eventWaitTaskParams.eventFlag = 10;
+    params.eventWaitTaskParams.waitFlag = ACL_EVENT_WAIT_EXTERNAL;
     Json waitJson = TaskToJson(1, 8, ACL_MODEL_RI_TASK_EVENT_WAIT, &params, nullptr);
     EXPECT_EQ(waitJson["eventWaitParams"]["event"], "0x600");
     EXPECT_EQ(waitJson["eventWaitParams"]["eventFlag"], 10);
+    EXPECT_EQ(waitJson["eventWaitParams"]["waitFlag"], ACL_EVENT_WAIT_EXTERNAL);
 
     params = {};
     params.type = ACL_MODEL_RI_TASK_EVENT_RESET;
     params.eventResetTaskParams.event = reinterpret_cast<aclrtEvent>(0x700);
     params.eventResetTaskParams.eventFlag = 11;
+    params.eventResetTaskParams.resetFlag = 1;
     Json resetJson;
     AddTaskParamsToJson(resetJson, params, nullptr);
     EXPECT_EQ(resetJson["eventResetParams"]["event"], "0x700");
     EXPECT_EQ(resetJson["eventResetParams"]["eventFlag"], 11);
+    EXPECT_EQ(resetJson["eventResetParams"]["resetFlag"], 1);
 
     params = {};
     params.type = ACL_MODEL_RI_TASK_VALUE_WRITE;

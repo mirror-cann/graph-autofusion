@@ -536,7 +536,7 @@ static std::string PtrToHexString(const void* ptr)
     return hexStream.str();
 }
 
-static std::string Uint64ToHexString(uint64_t value)
+static std::string UintToHexString(uint64_t value)
 {
     std::stringstream hexStream;
     hexStream << "0x" << std::hex << value;
@@ -549,7 +549,7 @@ Json KernelInfosToJson(const KernelInfos& kernelInfos)
     kernelJson["funcName"] = kernelInfos.funcName;
     kernelJson["funcHandle"] = PtrToHexString(kernelInfos.funcHdl);
     kernelJson["numBlocks"] = kernelInfos.numBlocks;
-    kernelJson["cap"] = Uint64ToHexString(kernelInfos.cap);
+    kernelJson["cap"] = UintToHexString(kernelInfos.cap);
     kernelJson["devargs"] = PtrToHexString(kernelInfos.devArgs);
     kernelJson["argsSize"] = 0;  // Will be filled by caller if available
     kernelJson["isHostArgs"] = false;
@@ -569,12 +569,12 @@ Json KernelInfosToJson(const KernelInfos& kernelInfos)
     Json resolvedFuncs = Json::array();
     for (size_t i = 0; i < kernelInfos.resolvedNum && i < K_MAX_SPLIT_BIN_COUNT; ++i) {
         Json rfJson;
-        rfJson["funcAddr"][0] = Uint64ToHexString(kernelInfos.resolvedFuncs[i].funcAddr[0]);
-        rfJson["funcAddr"][1] = Uint64ToHexString(kernelInfos.resolvedFuncs[i].funcAddr[1]);
+        rfJson["funcAddr"][0] = UintToHexString(kernelInfos.resolvedFuncs[i].funcAddr[0]);
+        rfJson["funcAddr"][1] = UintToHexString(kernelInfos.resolvedFuncs[i].funcAddr[1]);
         rfJson["prefetchCnt"][0] = kernelInfos.resolvedFuncs[i].prefetchCnt[0];
         rfJson["prefetchCnt"][1] = kernelInfos.resolvedFuncs[i].prefetchCnt[1];
-        rfJson["funcOffset"][0] = Uint64ToHexString(kernelInfos.resolvedFuncs[i].funcOffset[0]);
-        rfJson["funcOffset"][1] = Uint64ToHexString(kernelInfos.resolvedFuncs[i].funcOffset[1]);
+        rfJson["funcOffset"][0] = UintToHexString(kernelInfos.resolvedFuncs[i].funcOffset[0]);
+        rfJson["funcOffset"][1] = UintToHexString(kernelInfos.resolvedFuncs[i].funcOffset[1]);
         rfJson["symbolBind"][0] = kernelInfos.resolvedFuncs[i].symbolBind[0];
         rfJson["symbolBind"][1] = kernelInfos.resolvedFuncs[i].symbolBind[1];
         resolvedFuncs.push_back(rfJson);
@@ -587,7 +587,7 @@ Json KernelInfosToJson(const KernelInfos& kernelInfos)
 Json SyncInfosToJson(const SyncInfos& syncInfos, SkNodeType nodeType)
 {
     Json syncJson;
-    syncJson["eventId"] = Uint64ToHexString(syncInfos.eventId);
+    syncJson["eventId"] = UintToHexString(syncInfos.eventId);
 
     if (nodeType == SkNodeType::NODE_WAIT || nodeType == SkNodeType::NODE_MEMORY_WAIT) {
         syncJson["correspondingNotifyNodeId"] = syncInfos.correspondingNotifyNodeId;
@@ -598,17 +598,17 @@ Json SyncInfosToJson(const SyncInfos& syncInfos, SkNodeType nodeType)
     if (!syncInfos.correspondingWaitNodeIds.empty()) {
         syncJson["correspondingWaitNodeIds"] = syncInfos.correspondingWaitNodeIds;
     }
-    if (!syncInfos.correspondingResetNodeIds.empty()) {
-        syncJson["correspondingResetNodeIds"] = syncInfos.correspondingResetNodeIds;
-    }
     if (syncInfos.memoryValue != std::numeric_limits<uint64_t>::max()) {
-        syncJson["memoryValue"] = Uint64ToHexString(syncInfos.memoryValue);
+        syncJson["memoryValue"] = UintToHexString(syncInfos.memoryValue);
     }
     if (syncInfos.memoryWaitFlag != std::numeric_limits<uint32_t>::max()) {
         syncJson["memoryWaitFlag"] = syncInfos.memoryWaitFlag;
     }
-    if (syncInfos.eventFlag != std::numeric_limits<uint64_t>::max()) {
-        syncJson["eventFlag"] = Uint64ToHexString(syncInfos.eventFlag);
+    if (syncInfos.eventFlag != std::numeric_limits<uint32_t>::max()) {
+        syncJson["eventFlag"] = UintToHexString(syncInfos.eventFlag);
+    }
+    if (syncInfos.eventTaskFlag != std::numeric_limits<uint32_t>::max()) {
+        syncJson["eventTaskFlag"] = syncInfos.eventTaskFlag;
     }
 
     return syncJson;
@@ -1097,8 +1097,10 @@ bool SuperKernelMemoryNode::InitNode(const SuperKernelOptionsManager* opts) {
                 nodeType = SkNodeType::NODE_NOTIFY;
                 nodeInfos.syncInfos.eventId = reinterpret_cast<uintptr_t>(eventParam.event);
                 nodeInfos.syncInfos.eventFlag = eventParam.eventFlag;
+                nodeInfos.syncInfos.eventTaskFlag = eventParam.recordFlag;
                 nodeInfos.syncInfos.memoryValue = SK_DEFAULT_NOTIFY_VALUE;
                 nodeInfos.syncInfos.memoryWaitFlag = SK_DEFAULT_WRITE_FLAG;
+                isFusible = nodeInfos.syncInfos.eventTaskFlag == ACL_EVENT_RECORD_DEFAULT;
                 break;
             }
             case ACL_MODEL_RI_TASK_EVENT_WAIT: {
@@ -1106,8 +1108,10 @@ bool SuperKernelMemoryNode::InitNode(const SuperKernelOptionsManager* opts) {
                 nodeType = SkNodeType::NODE_WAIT;
                 nodeInfos.syncInfos.eventId = reinterpret_cast<uintptr_t>(eventParam.event);
                 nodeInfos.syncInfos.eventFlag = eventParam.eventFlag;
+                nodeInfos.syncInfos.eventTaskFlag = eventParam.waitFlag;
                 nodeInfos.syncInfos.memoryValue = SK_DEFAULT_WAIT_VALUE;
                 nodeInfos.syncInfos.memoryWaitFlag = static_cast<uint32_t>(SkMemoryWaitFlag::EQ);
+                isFusible = nodeInfos.syncInfos.eventTaskFlag == ACL_EVENT_WAIT_DEFAULT;
                 break;
             }
             case ACL_MODEL_RI_TASK_EVENT_RESET: {
@@ -1115,11 +1119,16 @@ bool SuperKernelMemoryNode::InitNode(const SuperKernelOptionsManager* opts) {
                 nodeType = SkNodeType::NODE_RESET;
                 nodeInfos.syncInfos.eventId = reinterpret_cast<uintptr_t>(eventParam.event);
                 nodeInfos.syncInfos.eventFlag = eventParam.eventFlag;
+                nodeInfos.syncInfos.eventTaskFlag = eventParam.resetFlag;
                 nodeInfos.syncInfos.memoryValue = SK_DEFAULT_RESET_VALUE;
                 nodeInfos.syncInfos.memoryWaitFlag = SK_DEFAULT_WRITE_FLAG;
-                break;
+                isFusible = false;
+                SetFusionFailReason(FusionFailReason::RESET_TYPE_NODE);
+                SK_LOGI("Event %s: is reset type, cannot be fused in super kernel", Format().c_str());
+                return true;
             }
             default:
+                isFusible = false;
                 SK_LOGE("Unsupported event type %u for %s, which cannot be fused in super kernel.",
                         rtNodeType, Format().c_str());
                 SetFusionFailReason(FusionFailReason::UNSUPPORT_EVENT_TYPE);
@@ -1127,21 +1136,13 @@ bool SuperKernelMemoryNode::InitNode(const SuperKernelOptionsManager* opts) {
         }
 
         // Check internal (not external)
-        if ((nodeInfos.syncInfos.eventFlag & ACL_EVENT_EXTERNAL) == 0) {
-            isFusible = true;
-            SK_LOGI("Event %s: internal to ModelRI, fusible in super kernel", Format().c_str());
-        } else {
+        if (!isFusible || (nodeInfos.syncInfos.eventFlag & ACL_EVENT_EXTERNAL)) {
             isFusible = false;
             SetFusionFailReason(FusionFailReason::EXTERNAL_DEPEND);
             SK_LOGI("Event %s: has external dependencies or is reset, cannot be fused in super kernel",
                     Format().c_str());
-        }
-
-        // Reset nodes preserve synchronization semantics only and must not enter fusion.
-        if (rtNodeType == ACL_MODEL_RI_TASK_EVENT_RESET) {
-            isFusible = false;
-            SetFusionFailReason(FusionFailReason::RESET_TYPE_NODE);
-            SK_LOGI("Event %s: is reset type, cannot be fused in super kernel", Format().c_str());
+        } else {
+            SK_LOGI("Event %s: internal to ModelRI, fusible in super kernel", Format().c_str());
         }
 
         return true;
@@ -1248,14 +1249,16 @@ std::string SuperKernelMemoryNode::Format() const {
             break;
     }
     uint64_t eventId = GetEventId();
-    uint64_t eventFlag = nodeInfos.syncInfos.eventFlag;
+    uint32_t eventFlag = nodeInfos.syncInfos.eventFlag;
+    uint32_t eventTaskFlag = nodeInfos.syncInfos.eventTaskFlag;
 
     oss << "[nodeId:" << nodeId
         << ", streamId:" << streamId
         << ", streamIdxInGraph:" << streamIdxInGraph
         << ", nodeIdxInStream:" << nodeIdxInStream
         << ", " << eventType << "(eventId:0x" << std::hex << eventId
-        << ", eventFlag:0x" << eventFlag << std::dec << ")]";
+        << ", eventFlag:0x" << eventFlag
+        << ", eventTaskFlag:0x" << eventTaskFlag << std::dec << ")]";
 
     return oss.str();
 }
@@ -1348,20 +1351,21 @@ Json SuperKernelMemoryNodeToJson(const SuperKernelMemoryNode* node)
             Json eventParams;
             eventParams["eventId"] = PtrToHexString(reinterpret_cast<const void*>(syncInfos.eventId));
             eventParams["eventFlag"] = syncInfos.eventFlag;
+            eventParams["eventTaskFlag"] = syncInfos.eventTaskFlag;
             nodeJson["eventParams"] = eventParams;
             break;
         }
         case SkNodeType::NODE_MEMORY_WRITE: {
             Json valueParams;
             valueParams["devAddr"] = PtrToHexString(syncInfos.addrValue);
-            valueParams["value"] = Uint64ToHexString(syncInfos.memoryValue);
+            valueParams["value"] = UintToHexString(syncInfos.memoryValue);
             nodeJson["valueWriteParams"] = valueParams;
             break;
         }
         case SkNodeType::NODE_MEMORY_WAIT: {
             Json valueParams;
             valueParams["devAddr"] = PtrToHexString(syncInfos.addrValue);
-            valueParams["value"] = Uint64ToHexString(syncInfos.memoryValue);
+            valueParams["value"] = UintToHexString(syncInfos.memoryValue);
             valueParams["flag"] = syncInfos.memoryWaitFlag;
             nodeJson["valueWaitParams"] = valueParams;
             break;
