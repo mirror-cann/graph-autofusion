@@ -25,6 +25,7 @@ add_library(test_regbase_ascendc OBJECT
     ./test_sinh.cpp
     ./test_tan.cpp
     ./test_square.cpp
+    ./test_signbit.cpp
     ./test_round_to_int.cpp
     ./test_trunc_div.cpp
     ./test_trunc_to_int.cpp
@@ -45,6 +46,8 @@ add_library(test_regbase_ascendc OBJECT
     ./test_transpose.cpp
     ./test_bessel_j0.cpp
     ./test_bessel_j1.cpp
+    ./test_bessel_y0.cpp
+    ./test_bessel_y1.cpp
     ./test_shifted_chebyshev_polynomial_t.cpp
     ./test_shifted_chebyshev_polynomial_u.cpp
     ./test_shifted_chebyshev_polynomial_v.cpp
