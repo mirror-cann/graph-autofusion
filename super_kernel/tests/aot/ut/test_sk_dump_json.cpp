@@ -748,6 +748,10 @@ TEST_F(SkDumpJsonDirectHelperTest, RawTaskParamJsonCoversAllTaskTypes)
 
 TEST_F(SkDumpJsonDirectHelperTest, ScopePrintingHelpersCoverKernelSetAndBatchBranches)
 {
+    EXPECT_STREQ(to_string(ScopeProcessStatus::RESOURCE_INSUFFICIENT), "RESOURCE_INSUFFICIENT");
+    EXPECT_STREQ(ScopeProcessStatusDetail(ScopeProcessStatus::RESOURCE_INSUFFICIENT),
+                 "Insufficient stream task slots or event memory resources");
+
     SuperKernelGraph graph(nullptr);
     graph.scopeIdxToName[1] = "scope_one";
     std::bitset<MAX_SCOPE_NUM> flags;
@@ -792,7 +796,7 @@ TEST_F(SkDumpJsonDirectHelperTest, ScopePrintingHelpersCoverKernelSetAndBatchBra
     scopeInfo.SetScopeBitFlags(flags);
     scopeInfo.SetNodes({node1Ptr, node2Ptr, markerPtr});
     scopeInfo.MutableExtInfo().filteredNodes = {nullptr, markerPtr, node1Ptr, node2Ptr};
-    scopeInfo.MutableExtInfo().processStatus = ScopeProcessStatus::STREAM_SYNC_FAIL;
+    scopeInfo.MutableExtInfo().processStatus = ScopeProcessStatus::RESOURCE_INSUFFICIENT;
     scopeInfo.SetBreakInfo(ScopeBreakInfo()
         .SetReason(ScopeBreakReason::UNFUSIBLE_NODE)
         .SetTriggerNode(202, 0)

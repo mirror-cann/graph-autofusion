@@ -50,6 +50,20 @@ struct SkInfoForDump {
 
 using SkInfoForDumpMap = std::unordered_map<uint64_t, SkInfoForDump>;
 
+const char* ScopeProcessStatusDetail(ScopeProcessStatus status)
+{
+    switch (status) {
+        case ScopeProcessStatus::RESOURCE_INSUFFICIENT:
+            return "Insufficient stream task slots or event memory resources";
+        case ScopeProcessStatus::NO_TARGET_NODE:
+            return "No target node remains after filtering";
+        case ScopeProcessStatus::UNRECOVERABLE_FAIL:
+            return "Unrecoverable failure that cannot be skipped";
+        default:
+            return "";
+    }
+}
+
 /**
  * @brief Fill symbol info for a single core type (AIC/AIV) in resolved function info
  */
@@ -686,7 +700,8 @@ void PrintFusedScopes(const SuperKernelGraph& graph,
         if (extInfo.processStatus == ScopeProcessStatus::SUCCESS) {
             SK_LOGI("    scopeStatus=SUCCESS");
         } else {
-            SK_LOGI("    scopeStatus=%s", to_string(extInfo.processStatus));
+            SK_LOGI("    scopeStatus=%s, scopeStatusDetail=%s", to_string(extInfo.processStatus),
+                    ScopeProcessStatusDetail(extInfo.processStatus));
         }
 
         // Line 3: breakReason (if kernel set differs from original scope)

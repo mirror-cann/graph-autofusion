@@ -53,11 +53,11 @@ struct ScopeStreamInfo {
  * \brief Processing result status for scope
  */
 enum class ScopeProcessStatus : uint8_t {
-    INIT = 0,           // Scope has not been processed
-    SUCCESS,            // Scope processing succeeded
-    STREAM_SYNC_FAIL,   // Insufficient resources or sync event processing failure
-    NO_TARGET_NODE,     // No target node remains after filtering
-    UNRECOVERABLE_FAIL, // Unrecoverable failure that cannot be skipped
+    INIT = 0,              // Scope has not been processed
+    SUCCESS,               // Scope processing succeeded
+    RESOURCE_INSUFFICIENT, // Insufficient stream task slots or event memory resources
+    NO_TARGET_NODE,        // No target node remains after filtering
+    UNRECOVERABLE_FAIL,    // Unrecoverable failure that cannot be skipped
 };
 
 /*!
@@ -70,12 +70,12 @@ inline const char* to_string(ScopeProcessStatus status)
             return "INIT";
         case ScopeProcessStatus::SUCCESS:
             return "SUCCESS";
-        case ScopeProcessStatus::STREAM_SYNC_FAIL:
-            return "Insufficient resources or sync event processing failure";
+        case ScopeProcessStatus::RESOURCE_INSUFFICIENT:
+            return "RESOURCE_INSUFFICIENT";
         case ScopeProcessStatus::NO_TARGET_NODE:
-            return "No target node remains after filtering";
+            return "NO_TARGET_NODE";
         case ScopeProcessStatus::UNRECOVERABLE_FAIL:
-            return "Unrecoverable failure that cannot be skipped";
+            return "UNRECOVERABLE_FAIL";
         default:
             return "UNKNOWN";
     }

@@ -943,7 +943,7 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_StreamSelectFailed_EventAddr
     EXPECT_FALSE(result);
     EXPECT_TRUE(scopeInfo.extInfo_.filteredNodes.empty());
     EXPECT_EQ(scopeInfo.extInfo_.skMainNodeId, INVALID_TASK_ID);
-    EXPECT_EQ(scopeInfo.extInfo_.processStatus, ScopeProcessStatus::STREAM_SYNC_FAIL);
+    EXPECT_EQ(scopeInfo.extInfo_.processStatus, ScopeProcessStatus::RESOURCE_INSUFFICIENT);
 
     auto* notifyAfter = graph->GetNodeById(30);
     auto* resetAfter = graph->GetNodeById(31);
@@ -1042,7 +1042,7 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_AdvanceNodeNextNotFound_Fail
     EXPECT_FALSE(result);
     EXPECT_TRUE(scopeInfo.extInfo_.filteredNodes.empty());
     EXPECT_EQ(scopeInfo.extInfo_.skMainNodeId, INVALID_TASK_ID);
-    EXPECT_EQ(scopeInfo.extInfo_.processStatus, ScopeProcessStatus::STREAM_SYNC_FAIL);
+    EXPECT_EQ(scopeInfo.extInfo_.processStatus, ScopeProcessStatus::RESOURCE_INSUFFICIENT);
 }
 
 // Test case for "find kernel with reserve unsuccessful"
@@ -1148,7 +1148,7 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_StreamSyncResourceInsufficie
     EXPECT_FALSE(result);
     EXPECT_TRUE(scopeInfo.extInfo_.filteredNodes.empty());
     EXPECT_EQ(scopeInfo.extInfo_.skMainNodeId, INVALID_TASK_ID);
-    EXPECT_EQ(scopeInfo.extInfo_.processStatus, ScopeProcessStatus::STREAM_SYNC_FAIL);
+    EXPECT_EQ(scopeInfo.extInfo_.processStatus, ScopeProcessStatus::RESOURCE_INSUFFICIENT);
 }
 
 // Test case for "unable to find main SK node in scope, skip update"

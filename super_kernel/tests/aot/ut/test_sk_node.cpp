@@ -461,8 +461,8 @@ TEST_F(SkNodeTest, FusionFailReasonInfo_BindmapDetailsAndStrings)
 
 TEST_F(SkNodeTest, FusionFailReasonInfo_ScopeAndDeadlockDetails)
 {
-    FusionFailReasonInfo scopeInfo(FusionFailReason::SCOPE_FUSE_PART, ScopeProcessStatus::STREAM_SYNC_FAIL);
-    EXPECT_EQ(scopeInfo.GetScopeDetail(), ScopeProcessStatus::STREAM_SYNC_FAIL);
+    FusionFailReasonInfo scopeInfo(FusionFailReason::SCOPE_FUSE_PART, ScopeProcessStatus::RESOURCE_INSUFFICIENT);
+    EXPECT_EQ(scopeInfo.GetScopeDetail(), ScopeProcessStatus::RESOURCE_INSUFFICIENT);
     EXPECT_NE(FusionFailReasonToStr(scopeInfo).find("["), std::string::npos);
 
     FusionFailReasonInfo deadlockInfo(FusionFailReason::EXIST_DEADLOCK, static_cast<DeadlockFailReason>(1));
@@ -1204,9 +1204,9 @@ TEST_F(SkNodeTest, Node_FusionFailReasonManagement)
 
     EXPECT_EQ(node.GetFusionFailReason(), FusionFailReason::RESET_TYPE_NODE);
 
-    node.SetFusionFailReason(FusionFailReason::SCOPE_FUSE_PART, ScopeProcessStatus::STREAM_SYNC_FAIL);
+    node.SetFusionFailReason(FusionFailReason::SCOPE_FUSE_PART, ScopeProcessStatus::RESOURCE_INSUFFICIENT);
     EXPECT_EQ(node.GetFusionFailReason(), FusionFailReason::SCOPE_FUSE_PART);
-    EXPECT_EQ(node.GetFusionFailReasonInfo().GetScopeDetail(), ScopeProcessStatus::STREAM_SYNC_FAIL);
+    EXPECT_EQ(node.GetFusionFailReasonInfo().GetScopeDetail(), ScopeProcessStatus::RESOURCE_INSUFFICIENT);
 
     node.SetFusionFailReason(FusionFailReason::EXIST_DEADLOCK, DeadlockFailReason::NOTIFY_NOT_IN_GRAPH);
     EXPECT_EQ(node.GetFusionFailReason(), FusionFailReason::EXIST_DEADLOCK);

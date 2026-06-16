@@ -408,7 +408,7 @@ bool GetMainAndSubStreamOrder(SuperKernelGraph& graph, std::vector<StreamPostPla
     subStreamOrder.reserve(streamCount);
 
     if (!CollectStreamCandidates(graph, scopeStreamInfos, plans, needFrontWaitCount, candidates)) {
-        extInfo.processStatus = ScopeProcessStatus::STREAM_SYNC_FAIL;
+        extInfo.processStatus = ScopeProcessStatus::RESOURCE_INSUFFICIENT;
         return false;
     }
 
@@ -634,7 +634,7 @@ bool SuperKernelScopePostProcessor::ProcessSubStreamSyncEvents(
             SK_LOGE("process front-wait failed streamId=%u, nodeSize=%lu, FrontWait=%u",
                     scopeStreamInfos[curStreamIdx].streamIdx,
                     scopeStreamInfos[curStreamIdx].nodeSize, plans[curStreamIdx].needFrontWait);
-            tempExtInfo.processStatus = ScopeProcessStatus::STREAM_SYNC_FAIL;
+            tempExtInfo.processStatus = ScopeProcessStatus::RESOURCE_INSUFFICIENT;
             return false;
         }
 
@@ -643,7 +643,7 @@ bool SuperKernelScopePostProcessor::ProcessSubStreamSyncEvents(
             SK_LOGE("process back-block failed streamId=%u, nodeSize=%lu, BackBlock=%u",
                     scopeStreamInfos[curStreamIdx].streamIdx,
                     scopeStreamInfos[curStreamIdx].nodeSize, plans[curStreamIdx].needBackBlock);
-            tempExtInfo.processStatus = ScopeProcessStatus::STREAM_SYNC_FAIL;
+            tempExtInfo.processStatus = ScopeProcessStatus::RESOURCE_INSUFFICIENT;
             return false;
         }
     }
