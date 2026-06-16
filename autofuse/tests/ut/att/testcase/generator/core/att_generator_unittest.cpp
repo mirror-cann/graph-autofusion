@@ -525,6 +525,32 @@ TEST(GeneratorUT, GetResultSummaryFailureUsesWarningLogForPGOPath) {
   EXPECT_EQ(tiling_func_output.find("OP_LOGE(OP_NAME, \"GetTiling Failed.\");"), std::string::npos);
 }
 
+TEST(GeneratorUT, PGOGetAllSchedulesResultsDoesNotPushGraphTilingTmpOutsideScheduleResult) {
+  TilingCodeGenConfig config;
+  config.tiling_data_type_name = "AutofuseTilingData";
+  config.enable_autofuse_pgo = true;
+  config.is_inductor_scene = true;
+  TilingModelInfo tiling_model_info;
+  ModelInfo info;
+  tiling_model_info.push_back(info);
+  ScoreFuncs score_funcs;
+  MockHighPerfTilingCodeGenImpl genImpl("test", config, tiling_model_info, score_funcs, false);
+  std::map<size_t, std::map<size_t, std::pair<std::string, std::string>>> namespace_map;
+  namespace_map[0] = {};
+  namespace_map[1] = {};
+
+  genImpl.GenPGOGetAllSchedulesResults(0, namespace_map);
+
+  const std::string tiling_func_output = genImpl.tiling_func_.GetOutputStr();
+  EXPECT_NE(tiling_func_output.find("if (!AscGraph0::GetTiling(tilingTmp, index)) {"), std::string::npos);
+  EXPECT_NE(tiling_func_output.find("cur_perf = DBL_MAX;"), std::string::npos);
+  EXPECT_NE(tiling_func_output.find("continue;"), std::string::npos);
+  EXPECT_EQ(tiling_func_output.find("tiling_perf.tiling_data = tilingTmp;"), std::string::npos);
+  EXPECT_EQ(tiling_func_output.find("tiling_data_list.push_back(tiling_perf);"), std::string::npos);
+  EXPECT_EQ(tiling_func_output.find("PgoConfig::Instance().single_callback("), std::string::npos);
+  EXPECT_EQ(tiling_func_output.find("*tilingData = tilingTmp;"), std::string::npos);
+}
+
 static const std::string kExpectPGOCode =
     R"rawliteral(inline bool GetScheduleResult0PGO(std::vector<AutofuseTilingDataPerf>& tiling_data_list, const uint32_t ori_block_dim, const int32_t tiling_case_id,AutofuseTilingData &tiling_data, double &cur_perf, double &best_perf, uint32_t &cur_block_dim,void* stream, uint32_t workspaceSize, std::vector<uint32_t*> multi_group_block_dim_list = {}, const SearchConfig *search_cfg=nullptr) {
   (void)cur_perf; (void)cur_block_dim;
