@@ -383,7 +383,7 @@ Status Codegen::GenerateKernel(const ascir::FusedScheduledResult &fused_schedule
   CodegenConfig config = {is_inductor, using_att_calc_qbt_size_};
   if (is_inductor) {
     use_list_tensor = false;
-    GE_ASSERT_TRUE(io_num < kKernelMaxIoNum, "Too many io, io num is %zu", io_num);
+    GE_LOGW_IF(io_num >= kKernelMaxIoNum, "Too many io, io num is %zu", io_num);
   }
   std::string graph_name = ascgen_utils::GenValidName(fused_schedule_result.fused_graph_name.GetString());
   GELOGI("kernel_name = %s, num_inputs = %zu, num_outputs = %zu, use list tensor desc = %d", graph_name.c_str(),
