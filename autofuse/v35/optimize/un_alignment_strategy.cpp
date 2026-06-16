@@ -71,7 +71,11 @@ ge::Status UnAlignmentStrategy::StoreAlignmentInferFunc(const af::AscNodePtr &no
     }
   }
 
-  if (!ScheduleUtils::IsVectorizedAxisContinuousInGM(output_attr) && (tile_inner_axis_size > 1UL)) {
+  if (ScheduleUtils::IsNeedDiscontinuousAligned(output_attr)) {
+    GELOGD("Node[%s] is last axis discontinuous writing, input tensor needs to be aligned.", node->GetNamePtr());
+    tensor_to_align_type_[&output_attr] = {AlignmentType::kDiscontinuous};
+    GE_ASSERT_SUCCESS(BackPropagateAlignment(node, AlignmentType::kDiscontinuous));
+  } else if (!ScheduleUtils::IsVectorizedAxisContinuousInGM(output_attr) && (tile_inner_axis_size > 1UL)) {
     GELOGD("Node[%s] is discontinuous writing, input tensor needs to be aligned.", node->GetNamePtr());
     tensor_to_align_type_[&output_attr] = {AlignmentType::kAligned};
     GE_ASSERT_SUCCESS(BackPropagateAlignment(node, AlignmentType::kAligned));
