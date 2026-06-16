@@ -1319,7 +1319,7 @@ SuperKernelGraph::FusionFailStats SuperKernelGraph::CollectFusionFailStats() {
         stats.nodeLogEntries.push_back(std::move(logEntry));
         
         // Collect unfusible KERNEL node log entry only (for log file)
-        if (!isFusible && node->GetNodeType() == SkNodeType::NODE_KERNEL) {
+        if (!isFusible && node->GetNodeType() == SkNodeType::NODE_KERNEL && !node->IsScopeNode()) {
             stats.unfusibleNodeLogEntries.push_back(
                 "Node " + node->Format() + ": reason: " + reasonStr);
         }

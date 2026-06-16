@@ -218,10 +218,10 @@ TEST_F(SuperKernelScopeInfoTest, ScopeMutableExtInfo)
     SuperKernelScopeInfo scopeInfo;
     auto& extInfo = scopeInfo.MutableExtInfo();
 
-    extInfo.fusionStatus = ScopeFusionStatus::SUCCESS;
+    extInfo.processStatus = ScopeProcessStatus::SUCCESS;
     extInfo.filteredNodes = {};
 
-    EXPECT_EQ(extInfo.fusionStatus, ScopeFusionStatus::SUCCESS);
+    EXPECT_EQ(extInfo.processStatus, ScopeProcessStatus::SUCCESS);
     EXPECT_EQ(extInfo.filteredNodes.size(), 0);
 }
 
@@ -792,8 +792,7 @@ TEST_F(SkDumpJsonDirectHelperTest, ScopePrintingHelpersCoverKernelSetAndBatchBra
     scopeInfo.SetScopeBitFlags(flags);
     scopeInfo.SetNodes({node1Ptr, node2Ptr, markerPtr});
     scopeInfo.MutableExtInfo().filteredNodes = {nullptr, markerPtr, node1Ptr, node2Ptr};
-    scopeInfo.MutableExtInfo().fusionStatus = ScopeFusionStatus::FAILED;
-    scopeInfo.MutableExtInfo().failReason = ScopeFailReason::STREAM_SYNC_FAIL;
+    scopeInfo.MutableExtInfo().processStatus = ScopeProcessStatus::STREAM_SYNC_FAIL;
     scopeInfo.SetBreakInfo(ScopeBreakInfo()
         .SetReason(ScopeBreakReason::UNFUSIBLE_NODE)
         .SetTriggerNode(202, 0)
@@ -813,7 +812,7 @@ TEST_F(SkDumpJsonDirectHelperTest, ScopePrintingHelpersCoverKernelSetAndBatchBra
     PrintFusedScopes(graph, scopeInfos);
 }
 
-TEST_F(SkDumpJsonDirectHelperTest, ScopePrintingHelpersCoverSuccessFusionStatus)
+TEST_F(SkDumpJsonDirectHelperTest, ScopePrintingHelpersCoverSuccessScopeStatus)
 {
     SuperKernelGraph graph(nullptr);
     std::bitset<MAX_SCOPE_NUM> flags;
@@ -830,7 +829,7 @@ TEST_F(SkDumpJsonDirectHelperTest, ScopePrintingHelpersCoverSuccessFusionStatus)
     scopeInfo.SetScopeBitFlags(flags);
     scopeInfo.SetNodes({nodePtr});
     scopeInfo.MutableExtInfo().filteredNodes = {nodePtr};
-    scopeInfo.MutableExtInfo().fusionStatus = ScopeFusionStatus::SUCCESS;
+    scopeInfo.MutableExtInfo().processStatus = ScopeProcessStatus::SUCCESS;
 
     std::vector<SuperKernelScopeInfo> scopeInfos;
     scopeInfos.push_back(std::move(scopeInfo));
@@ -859,7 +858,7 @@ TEST_F(SkDumpJsonDirectHelperTest, InjectSkInfosBuildsMetadataFromScopeInfos)
     SuperKernelBaseNode* endNodePtr = endNode.get();
 
     SuperKernelScopeInfo scopeInfo;
-    scopeInfo.MutableExtInfo().fusionStatus = ScopeFusionStatus::SUCCESS;
+    scopeInfo.MutableExtInfo().processStatus = ScopeProcessStatus::SUCCESS;
     scopeInfo.MutableExtInfo().skMainNodeId = 200;
     scopeInfo.MutableExtInfo().scopeName = "scope_a";
     scopeInfo.MutableExtInfo().filteredNodes = {startNodePtr, endNodePtr};

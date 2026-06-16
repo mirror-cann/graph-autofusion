@@ -38,8 +38,8 @@ class SuperKernelGraph;
 class SuperKernelOptionsManager;
 struct SkLaunchInfo;
 
-// Forward declaration for ScopeFailReason (defined in sk_scope_info.h)
-enum class ScopeFailReason : uint8_t;
+// Forward declaration for ScopeProcessStatus (defined in sk_scope_info.h)
+enum class ScopeProcessStatus : uint8_t;
 
 // Forward declaration for DeadlockFailReason (defined in sk_lock_detector.h)
 enum class DeadlockFailReason : uint8_t;
@@ -63,7 +63,7 @@ enum class FusionFailReason {
     RESET_TYPE_NODE,    // 6: reset type node placed at end
     ISOLATED_EVENT,     // 7: Isolated event exists
     EXIST_DEADLOCK,     // 8: Deadlock exists
-    SCOPE_FUSE_PART,    // 9: Scope fusion failed (see ScopeFailReason for details)
+    SCOPE_FUSE_PART,    // 9: Scope processing skipped part of the original scope
     EXTERNAL_DEPEND,    // 10: Event has external dependency
     UNSUPPORT_EVENT_TYPE, // 11: Unsupported event type
     MEMORY_WAIT_NODE_ONLY, // 12: No memory write exists, meaning the memory write is outside modelRI,
@@ -89,22 +89,22 @@ enum class BindmapFailReason : uint8_t {
 };
 
 // Fusion fail reason with optional scope/deadlock detail
-// Note: scopeDetailValue stores ScopeFailReason as uint8_t to avoid circular dependency
+// Note: scopeDetailValue stores ScopeProcessStatus as uint8_t to avoid circular dependency
 // Note: deadlockDetailValue stores DeadlockFailReason as uint8_t to avoid circular dependency
 struct FusionFailReasonInfo {
     FusionFailReason primary = FusionFailReason::CAN_FUSE;
-    uint8_t scopeDetailValue = 0;       // ScopeFailReason::NONE
+    uint8_t scopeDetailValue = 0;       // ScopeProcessStatus::INIT
     uint8_t deadlockDetailValue = 0;    // DeadlockFailReason::NOT_FIND_DEADLOCK
     uint8_t bindmapDetailValue = 0;     // BindmapFailReason::NONE
     
     FusionFailReasonInfo() = default;
     explicit FusionFailReasonInfo(FusionFailReason reason) : primary(reason) {}
-    FusionFailReasonInfo(FusionFailReason reason, ScopeFailReason scopeReason);
+    FusionFailReasonInfo(FusionFailReason reason, ScopeProcessStatus scopeStatus);
     FusionFailReasonInfo(FusionFailReason reason, DeadlockFailReason deadlockReason);
     FusionFailReasonInfo(FusionFailReason reason, BindmapFailReason bindmapReason);
     
-    ScopeFailReason GetScopeDetail() const;
-    void SetScopeDetail(ScopeFailReason scopeReason);
+    ScopeProcessStatus GetScopeDetail() const;
+    void SetScopeDetail(ScopeProcessStatus scopeStatus);
     
     DeadlockFailReason GetDeadlockDetail() const;
     void SetDeadlockDetail(DeadlockFailReason deadlockReason);
@@ -435,9 +435,9 @@ public:
     void SetUpdate(bool update) { isUpdate = update; }
 
     // Fusion fail reason setters
-    void SetFusionFailReason(FusionFailReason reason, ScopeFailReason scopeReason = static_cast<ScopeFailReason>(0)) {
+    void SetFusionFailReason(FusionFailReason reason, ScopeProcessStatus scopeStatus = static_cast<ScopeProcessStatus>(0)) {
         fusionFailReason_.primary = reason;
-        fusionFailReason_.SetScopeDetail(scopeReason);
+        fusionFailReason_.SetScopeDetail(scopeStatus);
     }
     void SetFusionFailReason(FusionFailReason reason, DeadlockFailReason deadlockReason) {
         fusionFailReason_.primary = reason;

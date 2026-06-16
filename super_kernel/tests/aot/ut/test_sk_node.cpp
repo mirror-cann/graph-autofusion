@@ -461,17 +461,17 @@ TEST_F(SkNodeTest, FusionFailReasonInfo_BindmapDetailsAndStrings)
 
 TEST_F(SkNodeTest, FusionFailReasonInfo_ScopeAndDeadlockDetails)
 {
-    FusionFailReasonInfo scopeInfo(FusionFailReason::SCOPE_FUSE_PART, static_cast<ScopeFailReason>(1));
-    EXPECT_EQ(scopeInfo.GetScopeDetail(), static_cast<ScopeFailReason>(1));
+    FusionFailReasonInfo scopeInfo(FusionFailReason::SCOPE_FUSE_PART, ScopeProcessStatus::STREAM_SYNC_FAIL);
+    EXPECT_EQ(scopeInfo.GetScopeDetail(), ScopeProcessStatus::STREAM_SYNC_FAIL);
     EXPECT_NE(FusionFailReasonToStr(scopeInfo).find("["), std::string::npos);
 
     FusionFailReasonInfo deadlockInfo(FusionFailReason::EXIST_DEADLOCK, static_cast<DeadlockFailReason>(1));
     EXPECT_EQ(deadlockInfo.GetDeadlockDetail(), static_cast<DeadlockFailReason>(1));
     EXPECT_NE(FusionFailReasonToStr(deadlockInfo).find("["), std::string::npos);
 
-    scopeInfo.SetScopeDetail(static_cast<ScopeFailReason>(0));
+    scopeInfo.SetScopeDetail(ScopeProcessStatus::INIT);
     deadlockInfo.SetDeadlockDetail(static_cast<DeadlockFailReason>(0));
-    EXPECT_EQ(scopeInfo.GetScopeDetail(), static_cast<ScopeFailReason>(0));
+    EXPECT_EQ(scopeInfo.GetScopeDetail(), ScopeProcessStatus::INIT);
     EXPECT_EQ(deadlockInfo.GetDeadlockDetail(), static_cast<DeadlockFailReason>(0));
 }
 
@@ -1204,9 +1204,9 @@ TEST_F(SkNodeTest, Node_FusionFailReasonManagement)
 
     EXPECT_EQ(node.GetFusionFailReason(), FusionFailReason::RESET_TYPE_NODE);
 
-    node.SetFusionFailReason(FusionFailReason::SCOPE_FUSE_PART, ScopeFailReason::STREAM_SYNC_FAIL);
+    node.SetFusionFailReason(FusionFailReason::SCOPE_FUSE_PART, ScopeProcessStatus::STREAM_SYNC_FAIL);
     EXPECT_EQ(node.GetFusionFailReason(), FusionFailReason::SCOPE_FUSE_PART);
-    EXPECT_EQ(node.GetFusionFailReasonInfo().GetScopeDetail(), ScopeFailReason::STREAM_SYNC_FAIL);
+    EXPECT_EQ(node.GetFusionFailReasonInfo().GetScopeDetail(), ScopeProcessStatus::STREAM_SYNC_FAIL);
 
     node.SetFusionFailReason(FusionFailReason::EXIST_DEADLOCK, DeadlockFailReason::NOTIFY_NOT_IN_GRAPH);
     EXPECT_EQ(node.GetFusionFailReason(), FusionFailReason::EXIST_DEADLOCK);

@@ -49,36 +49,37 @@ struct ScopeStreamInfo {
 };
 
 /*!
- * \enum ScopeFusionStatus
- * \brief Fusion status for scope after PostProcess
+ * \enum ScopeProcessStatus
+ * \brief Processing result status for scope
  */
-enum class ScopeFusionStatus : uint8_t {
-    FAILED = 0,     // Scope fusion failed (initial state)
-    SUCCESS,        // Scope fusion succeeded after PostProcess
+enum class ScopeProcessStatus : uint8_t {
+    INIT = 0,           // Scope has not been processed
+    SUCCESS,            // Scope processing succeeded
+    STREAM_SYNC_FAIL,   // Insufficient resources or sync event processing failure
+    NO_TARGET_NODE,     // No target node remains after filtering
+    UNRECOVERABLE_FAIL, // Unrecoverable failure that cannot be skipped
 };
 
 /*!
- * \brief Convert ScopeFusionStatus to string
+ * \brief Convert ScopeProcessStatus to string
  */
-inline const char* ScopeFusionStatusToStr(ScopeFusionStatus status) {
+inline const char* to_string(ScopeProcessStatus status)
+{
     switch (status) {
-        case ScopeFusionStatus::FAILED:
-            return "FAILED";
-        case ScopeFusionStatus::SUCCESS:
+        case ScopeProcessStatus::INIT:
+            return "INIT";
+        case ScopeProcessStatus::SUCCESS:
             return "SUCCESS";
+        case ScopeProcessStatus::STREAM_SYNC_FAIL:
+            return "Insufficient resources or sync event processing failure";
+        case ScopeProcessStatus::NO_TARGET_NODE:
+            return "No target node remains after filtering";
+        case ScopeProcessStatus::UNRECOVERABLE_FAIL:
+            return "Unrecoverable failure that cannot be skipped";
         default:
             return "UNKNOWN";
     }
 }
-
-/*!
- * \enum ScopeFailReason
- * \brief Failure reasons for scope processing (when fusion failed)
- */
-enum class ScopeFailReason : uint8_t {
-    NONE = 0,
-    STREAM_SYNC_FAIL, // Insufficient resources are needed for scope fusion
-};
 
 /*!
  * \enum ScopeBreakReason
@@ -236,16 +237,15 @@ private:
 
 /*!
  * \struct ScopeExtInfo
- * \brief Extended information for scope post-processing and scheduling
+ * \brief Extended information for scope processing and scheduling
  */
 struct ScopeExtInfo {
     std::vector<std::vector<aclmdlRITaskParams>> customParamsList; ///< Custom parameters for each stream
-    std::vector<SuperKernelBaseNode*> filteredNodes;               ///< Post-processed nodes used for scheduling
+    std::vector<SuperKernelBaseNode*> filteredNodes;               ///< Filtered nodes used for scheduling
     std::vector<std::unique_ptr<SuperKernelBaseNode>> eventNodes;  ///< Synthesized event nodes for stream sync
     uint64_t skMainNodeId = INVALID_TASK_ID;                       ///< Main launch node ID for this scope
     std::string scopeName;
-    ScopeFusionStatus fusionStatus = ScopeFusionStatus::FAILED;    ///< Fusion status (initial: FAILED, PostProcess success: SUCCESS)
-    ScopeFailReason failReason = ScopeFailReason::NONE;            ///< Failure reason when fusion failed
+    ScopeProcessStatus processStatus = ScopeProcessStatus::INIT;   ///< Processing result status for this scope
 
     ScopeExtInfo() = default;
     ScopeExtInfo(const ScopeExtInfo&) = delete;
@@ -253,19 +253,6 @@ struct ScopeExtInfo {
     ScopeExtInfo(ScopeExtInfo&&) = default;
     ScopeExtInfo& operator=(ScopeExtInfo&&) = default;
 };
-
-/*!
- * \brief Convert ScopeFailReason to string
- */
-inline const char* ScopeFailReasonToStr(ScopeFailReason reason)
-{
-    switch (reason) {
-        case ScopeFailReason::STREAM_SYNC_FAIL:
-            return "Insufficient resources are needed for scope fusion";
-        default:
-            return "UNKNOWN REASON";
-    }
-}
 
 /*!
  * \class SuperKernelScopeInfo
@@ -339,7 +326,7 @@ private:
     std::vector<SuperKernelBaseNode*> nodes_;       ///< All nodes in this scope
     std::bitset<MAX_SCOPE_NUM> scopeBitFlags_;      ///< Scope bit flags
     ScopeBreakInfo breakInfo_;                      ///< Break reason for this scope boundary
-    ScopeExtInfo extInfo_;                          ///< Extended info for post-processing and scheduling
+    ScopeExtInfo extInfo_;                          ///< Extended info for scope processing and scheduling
 };
 
 #endif // __SK_SCOPE_INFO_H__

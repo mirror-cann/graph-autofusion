@@ -554,7 +554,7 @@ SkInfoForDumpMap BuildSkInfoForDumpMap(const std::vector<SuperKernelScopeInfo>& 
     SkInfoForDumpMap skInfos;
     for (const auto& scopeInfo : scopeInfos) {
         const auto& extInfo = scopeInfo.GetExtInfo();
-        if (extInfo.fusionStatus != ScopeFusionStatus::SUCCESS || extInfo.skMainNodeId == INVALID_TASK_ID) {
+        if (extInfo.processStatus != ScopeProcessStatus::SUCCESS || extInfo.skMainNodeId == INVALID_TASK_ID) {
             continue;
         }
 
@@ -682,12 +682,11 @@ void PrintFusedScopes(const SuperKernelGraph& graph,
         // Line 1: fusedNodeIds
         PrintFusedNodeIds(fusedNodeIds);
 
-        // Line 2: fusionStatus (failReason if not success)
-        if (extInfo.fusionStatus == ScopeFusionStatus::SUCCESS) {
-            SK_LOGI("    fusionStatus=SUCCESS");
+        // Line 2: scopeStatus
+        if (extInfo.processStatus == ScopeProcessStatus::SUCCESS) {
+            SK_LOGI("    scopeStatus=SUCCESS");
         } else {
-            SK_LOGI("    fusionStatus=%s, failReason=%s",
-                    ScopeFusionStatusToStr(extInfo.fusionStatus), ScopeFailReasonToStr(extInfo.failReason));
+            SK_LOGI("    scopeStatus=%s", to_string(extInfo.processStatus));
         }
 
         // Line 3: breakReason (if kernel set differs from original scope)

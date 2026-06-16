@@ -70,19 +70,19 @@ KernelCapBits ParseKernelCapBits(uint64_t cap)
     return bits;
 }
 
-// Implementation of FusionFailReasonInfo methods (requires complete ScopeFailReason/DeadlockFailReason definition)
-FusionFailReasonInfo::FusionFailReasonInfo(FusionFailReason reason, ScopeFailReason scopeReason)
-    : primary(reason), scopeDetailValue(static_cast<uint8_t>(scopeReason)) {}
+// Implementation of FusionFailReasonInfo methods (requires complete ScopeProcessStatus/DeadlockFailReason definition)
+FusionFailReasonInfo::FusionFailReasonInfo(FusionFailReason reason, ScopeProcessStatus scopeStatus)
+    : primary(reason), scopeDetailValue(static_cast<uint8_t>(scopeStatus)) {}
 
 FusionFailReasonInfo::FusionFailReasonInfo(FusionFailReason reason, DeadlockFailReason deadlockReason)
     : primary(reason), deadlockDetailValue(static_cast<uint8_t>(deadlockReason)) {}
 
-ScopeFailReason FusionFailReasonInfo::GetScopeDetail() const {
-    return static_cast<ScopeFailReason>(scopeDetailValue);
+ScopeProcessStatus FusionFailReasonInfo::GetScopeDetail() const {
+    return static_cast<ScopeProcessStatus>(scopeDetailValue);
 }
 
-void FusionFailReasonInfo::SetScopeDetail(ScopeFailReason scopeReason) {
-    scopeDetailValue = static_cast<uint8_t>(scopeReason);
+void FusionFailReasonInfo::SetScopeDetail(ScopeProcessStatus scopeStatus) {
+    scopeDetailValue = static_cast<uint8_t>(scopeStatus);
 }
 
 DeadlockFailReason FusionFailReasonInfo::GetDeadlockDetail() const {
@@ -123,10 +123,10 @@ const char* BindmapFailReasonToStr(BindmapFailReason reason) {
 std::string FusionFailReasonToStr(const FusionFailReasonInfo& info) {
     std::string result = FusionFailReasonToStr(info.primary);
     if (info.primary == FusionFailReason::SCOPE_FUSE_PART) {
-        ScopeFailReason scopeDetail = info.GetScopeDetail();
-        if (scopeDetail != ScopeFailReason::NONE) {
+        ScopeProcessStatus scopeDetail = info.GetScopeDetail();
+        if (scopeDetail != ScopeProcessStatus::INIT && scopeDetail != ScopeProcessStatus::SUCCESS) {
             result += " [";
-            result += ScopeFailReasonToStr(scopeDetail);
+            result += to_string(scopeDetail);
             result += "]";
         }
     } else if (info.primary == FusionFailReason::EXIST_DEADLOCK) {
