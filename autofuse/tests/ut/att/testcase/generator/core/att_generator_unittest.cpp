@@ -542,7 +542,7 @@ TEST(GeneratorUT, PGOGetAllSchedulesResultsDoesNotPushGraphTilingTmpOutsideSched
   genImpl.GenPGOGetAllSchedulesResults(0, namespace_map);
 
   const std::string tiling_func_output = genImpl.tiling_func_.GetOutputStr();
-  EXPECT_NE(tiling_func_output.find("if (!AscGraph0::GetTiling(tilingTmp, index)) {"), std::string::npos);
+  EXPECT_NE(tiling_func_output.find("if (!AscGraph0::GetTiling(tilingTmp, index, nullptr)) {"), std::string::npos);
   EXPECT_NE(tiling_func_output.find("cur_perf = DBL_MAX;"), std::string::npos);
   EXPECT_NE(tiling_func_output.find("continue;"), std::string::npos);
   EXPECT_EQ(tiling_func_output.find("tiling_perf.tiling_data = tilingTmp;"), std::string::npos);

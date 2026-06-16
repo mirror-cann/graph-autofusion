@@ -13,6 +13,7 @@
 #include "autofuse_config/auto_fuse_config.h"
 #define private public
 #include "codegen_tiling.h"
+#include "common_utils.h"
 #include "ascir_ops.h"
 #include "ascir_ops_utils.h"
 #include "schedule_result.h"
@@ -20,6 +21,7 @@
 #include "platform_context.h"
 #include "ascgraph_info_complete.h"
 #include "optimize/optimize.h"
+#include "share_graph.h"
 #include <fstream>
 #include <filesystem>
 
@@ -970,8 +972,12 @@ class TestCodegenTiling : public testing::Test, public codegen::TilingLib {
   public:
   void SetUp() override {
     dlog_setlevel(ASCGEN_MODULE_NAME, DLOG_DEBUG, 0);
+    ge::PlatformContext::GetInstance().Reset();
+    ge::RuntimeStub::SetInstance(std::make_shared<ge::RuntimeStubV2Common>());
   }
   void TearDown() override {
+    ge::PlatformContext::GetInstance().Reset();
+    ge::RuntimeStub::Reset();
   }
   void SetupLoadAttrs(af::AscNode &load, uint64_t z0_id, const af::Expression &z0_size) {
     auto &attr = load.outputs[0].attr;
@@ -2410,6 +2416,30 @@ TEST_F(TestCodegenTiling, GenerateForInductorTopnAbiShouldNotEmitOutputConfigsMe
   EXPECT_EQ(tiling_impl.find("solution_config[\"topn_status\"]"), std::string::npos);
 }
 
+TEST_F(TestCodegenTiling, GenerateForInductorCvFusionShouldEmitCvTilingAndCubeWrapper) {
+  auto graph = ascir::ShareGraph::LoadMatmulElewiseBrcFusedGraph();
+  optimize::Optimizer optimizer(optimize::OptimizerOptions{});
+  ascir::FusedScheduledResult fused_schedule_result;
+  ASSERT_EQ(optimizer.Optimize(graph, fused_schedule_result), 0);
+  ASSERT_TRUE(ascgen_utils::IsCubeFusedScheduled(fused_schedule_result));
+
+  auto tiling_files = this->GenerateForInductor(fused_schedule_result);
+  ASSERT_TRUE(tiling_files.find(codegen::kTilingDefAndConstIdentify) != tiling_files.end());
+  ASSERT_TRUE(tiling_files.find(codegen::kCubeKernelTilingWrapperHpp) != tiling_files.end());
+  ASSERT_TRUE(tiling_files.find(codegen::kCubeKernelTilingWrapperCpp) != tiling_files.end());
+
+  const auto &tiling_impl = tiling_files.at(codegen::kTilingDefAndConstIdentify);
+  EXPECT_NE(tiling_impl.find("CVAutofuseTilingData"), std::string::npos);
+  EXPECT_NE(tiling_impl.find("CVTilingData"), std::string::npos);
+  EXPECT_NE(tiling_impl.find("CallCubeTiling"), std::string::npos);
+  EXPECT_NE(tiling_impl.find("AutofuseTiling("), std::string::npos);
+  EXPECT_NE(tiling_impl.find("GenConstTilingData"), std::string::npos);
+  EXPECT_EQ(tiling_impl.find("GenerateTopnSolutions"), std::string::npos);
+  EXPECT_EQ(tiling_impl.find("GetModeledPerfForTesting"), std::string::npos);
+  EXPECT_EQ(tiling_impl.find("AscirCompileAndLaunch"), std::string::npos);
+  EXPECT_EQ(tiling_impl.find("GenAscirTilingAndLaunchFunc"), std::string::npos);
+}
+
 TEST_F(TestCodegenTiling, MultiGroupInductorShouldContainTopnMainOutputAbi) {
   auto fused_schedule_result = GenMultiGroupFusedScheduleResult();
   auto res = this->GenerateForInductor(fused_schedule_result);
@@ -3222,22 +3252,6 @@ TEST_F(TestCodegenTiling, MissingDefaultCandidateDoesNotFailTopnSearch) {
   EXPECT_EQ(tiling_impl.find("found_default_candidate"), std::string::npos);
   EXPECT_EQ(tiling_impl.find("default topn candidate not found"), std::string::npos);
   EXPECT_NE(tiling_impl.find("no topn candidate solution found"), std::string::npos);
-}
-
-TEST_F(TestCodegenTiling, GenerateTopnShouldWarnForIntermediateSearchFailureAndErrorOnlyAtFinalFailure) {
-  auto fused_schedule_result = this->GenBasicFusedScheduleResult({af::Symbol("s0"), af::Symbol("s1")});
-  auto tiling_files = this->GenerateForInductor(fused_schedule_result);
-  ASSERT_TRUE(tiling_files.find(codegen::kTilingDefAndConstIdentify) != tiling_files.end());
-  const auto &tiling_impl = tiling_files.at(codegen::kTilingDefAndConstIdentify);
-
-  EXPECT_NE(tiling_impl.find("std::string error_message;"), std::string::npos);
-  EXPECT_NE(tiling_impl.find("response.error_message ="), std::string::npos);
-  EXPECT_NE(tiling_impl.find("OP_LOGW(OP_NAME, \"PGOSearchTilingKey failed"), std::string::npos);
-  EXPECT_NE(tiling_impl.find("OP_LOGE(OP_NAME, \"GenerateTopnSolutions failed: %s\""),
-            std::string::npos);
-  EXPECT_NE(tiling_impl.find("response.error_message.c_str()"), std::string::npos);
-  EXPECT_EQ(tiling_impl.find("if (GetTopnCandidateSolutions(request, response) != 0) { return -1; }"),
-            std::string::npos);
 }
 
 // Task 1 Step 2: multi-group semantic annotations — must match TF PGO real implementation

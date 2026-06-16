@@ -110,10 +110,11 @@ def generate_cmake_lists(asc_graph_name, kernel_name, host_build_dir, is_last_co
         cmake_file.write(source)
 
 
-def generate_file(dst_dir, file_name, text):
+def generate_file(dst_dir, file_name, text, append=False):
     os.makedirs(dst_dir, exist_ok=True)
     file_path = os.path.join(dst_dir, file_name)
-    with open(file_path, "w") as file:
+    mode = "a" if append else "w"
+    with open(file_path, mode) as file:
         file.write(text)
 
 
@@ -1224,11 +1225,13 @@ def template_decider(compile_context, tiling_info, cube_info, is_conv=False):
         graph_name=compile_context.graph_name,
         vector_core_num=compile_context.vector_core_num,
     )
+    host_tiling_content = f"#define CUBE_TILING_KEY {tiling_key}\n"
     logger.info("CV fusion op, get vector tilingkey(%s)", tiling_key)
     use_cv_common = use_cv_common or [False]
     tiling_key_transpose_mask = 0xF0
     cube_tiling_key_ub = tiling_info.tiling_key & ~tiling_key_transpose_mask
     if (is_matmul_relu_fixpip(tiling_info, cube_info) and not is_conv):
+        host_tiling_content += f"#define CUBE_BLOCK_DIM {cube_block_dim}\n"
         logger.info("CV fusion op, entering fixpip fusion mode.")
         tiling_info.file_content += "\n#define CV_UB_NO_DB 1\n" # 防止编译问题
     elif ((tiling_key == -1 or cube_tiling_key_ub != 1) and not is_conv):
@@ -1251,7 +1254,10 @@ def template_decider(compile_context, tiling_info, cube_info, is_conv=False):
         for name, value in [("CV_AIC_NUM", cube_block_dim), ("CV_AIV_NUM", vec_block_dim), ("CV_VEC_WSS", wss)]:
             if value >= 0:
                 tiling_info.file_content += f"\n#define {name} {value}\n"
+        new_block_dim = (vec_block_dim + 1) // 2 if cube_block_dim * 2 < vec_block_dim else cube_block_dim
+        host_tiling_content += f"#define CUBE_BLOCK_DIM {new_block_dim}\n"
     else:
+        host_tiling_content += f"#define CUBE_BLOCK_DIM {cube_block_dim}\n"
         logger.info("CV fusion op, entering UB fusion mode, cube_tiling_key=%s, vector tilingkey=%s.",
                     tiling_info.tiling_key, tiling_key)
         tiling_info.file_content += "\n#define CV_UB_FUSION 1\n"
@@ -1261,6 +1267,7 @@ def template_decider(compile_context, tiling_info, cube_info, is_conv=False):
         else:  # tiling_key 为1表示UB复用循环模板(非全载模板)
             logger.info("CV fusion op, entering UB fusion mode with db.")
             tiling_info.file_content += "\n#define CV_UB_DB 1\n"
+    return host_tiling_content
 
 
 def map_dtype_to_string(dtype):
@@ -1271,6 +1278,21 @@ def map_dtype_to_string(dtype):
     }
 
     return dtype_map.get(dtype.lower(), dtype)
+
+
+def create_matmul_tiling_undef_header():
+    return f"""
+#ifndef __UNDEF_MATMULV3_HEADER__
+#define __UNDEF_MATMULV3_HEADER__
+#undef GET_TILING_DATA_PTR_WITH_STRUCT
+#undef COPY_TILING_WITH_STRUCT
+#undef COPY_TILING_WITH_ARRAY
+#undef GET_TILING_DATA
+#undef GET_TILING_DATA_MEMBER
+#undef GET_TILING_DATA_WITH_STRUCT
+#undef __tiling_data_ptr__
+#endif
+"""
 
 
 def create_matmul_tiling_data(compile_context, tiling_info, cube_info):
@@ -1297,12 +1319,18 @@ GET_TILING_DATA_PTR_WITH_STRUCT({struct_name}, tmpTilingData, tmpTilingGM);
 
     # 写入host端文件
     host_tiling_content = tiling_info.file_content + host_tiling_data + class_body
+    host_tiling_content_old = host_tiling_content
+    host_tiling_content += f"#define CUBE_TILING_KEY 0\n"
+    host_tiling_content += f"#define CUBE_BLOCK_DIM 0\n"
     generate_file(os.path.join(compile_context.temp_dir, "host"), "autofuse_cube_tiling_data.h", host_tiling_content)
     generate_file(os.path.join(compile_context.temp_dir, "host", "cv_common"), "autofuse_cube_tiling_data.h",
                   host_tiling_content)
-
     # 生成决定走哪一个vector模板的宏
-    template_decider(compile_context, tiling_info, cube_info)
+    host_tiling_content_old += template_decider(compile_context, tiling_info, cube_info)
+    generate_file(os.path.join(compile_context.temp_dir, "host"), "autofuse_cube_tiling_data.h",
+                  host_tiling_content_old)
+    generate_file(os.path.join(compile_context.temp_dir, "host", "cv_common"), "autofuse_cube_tiling_data.h",
+                  host_tiling_content_old)
 
     # 写入device端文件
     device_tiling_data = f"""\n#include "arch35/mat_mul_tiling_data.h"
@@ -1314,19 +1342,7 @@ GET_TILING_DATA_PTR_WITH_STRUCT({struct_name}, tmpTilingData, tmpTilingGM);
 #define DTYPE_BIAS {map_dtype_to_string(origin_outputs[-1]["dtype"])}
 """
 
-    tiling_info_undef = f"""
-#ifndef __UNDEF_MATMULV3_HEADER__
-#define __UNDEF_MATMULV3_HEADER__
-#undef GET_TILING_DATA_PTR_WITH_STRUCT
-#undef COPY_TILING_WITH_STRUCT
-#undef COPY_TILING_WITH_ARRAY
-#undef GET_TILING_DATA
-#undef GET_TILING_DATA_MEMBER
-#undef GET_TILING_DATA_WITH_STRUCT
-#undef __tiling_data_ptr__
-#endif
-"""
-
+    tiling_info_undef = create_matmul_tiling_undef_header()
     tiling_info.file_content += device_tiling_data
     device_tiling_content = tiling_info_undef
     device_tiling_content += tiling_info.file_content
@@ -1386,8 +1402,23 @@ struct CVAutofuseTilingData {{
                   device_tiling_content)
 
 
+def create_conv_tiling_undef_header():
+    return f"""
+#ifndef __UNDEF_CONV2D_HEADER__
+#define __UNDEF_CONV2D_HEADER__
+#undef GET_TILING_DATA_PTR_WITH_STRUCT
+#undef COPY_TILING_WITH_STRUCT
+#undef COPY_TILING_WITH_ARRAY
+#undef GET_TILING_DATA
+#undef GET_TILING_DATA_MEMBER
+#undef GET_TILING_DATA_WITH_STRUCT
+#undef __tiling_data_ptr__
+#endif
+"""
+
+
 def create_conv_tiling_data(compile_context, tiling_info, cube_info, cube_attributes):
-    cube_output_type_size, _, _, is_bias, is_offset_w, origin_inputs, origin_outputs = cube_info[:7]
+    cube_output_type_size, _, _, _, _, is_bias, is_offset_w, origin_inputs, origin_outputs = cube_info[:9]
     struct_name = "Conv2DTilingData"
     data_prefix = "(*tmpTilingData).conv2dApiTiling"
 
@@ -1409,12 +1440,18 @@ GET_TILING_DATA_PTR_WITH_STRUCT({struct_name}, tmpTilingData, tmpTilingGM);
     class_body += f"const int32_t basen_basem_align = std::max({data_prefix}.nL0 / {vec_num}, 16u) * basen_align;\n"
 
     host_tiling_content = tiling_info.file_content + host_tiling_data + class_body
+    host_tiling_content_old = host_tiling_content
+    host_tiling_content += f"#define CUBE_TILING_KEY 0\n"
+    host_tiling_content += f"#define CUBE_BLOCK_DIM 0\n"
     generate_file(os.path.join(compile_context.temp_dir, "host"), "autofuse_cube_tiling_data.h", host_tiling_content)
     generate_file(os.path.join(compile_context.temp_dir, "host", "cv_common"), "autofuse_cube_tiling_data.h",
                   host_tiling_content)
-
     # 生成决定走哪一个vector模板的宏
-    template_decider(compile_context, tiling_info, cube_info, True)
+    host_tiling_content_old += template_decider(compile_context, tiling_info, cube_info, True)
+    generate_file(os.path.join(compile_context.temp_dir, "host"), "autofuse_cube_tiling_data.h",
+                  host_tiling_content_old)
+    generate_file(os.path.join(compile_context.temp_dir, "host", "cv_common"), "autofuse_cube_tiling_data.h",
+                  host_tiling_content_old)
 
     device_tiling_data = f"""\n#include "arch35/conv2d_v2_tiling_def.h"
 #define IS_ENABLE_BIAS {str(is_bias).lower()}
@@ -1425,19 +1462,7 @@ GET_TILING_DATA_PTR_WITH_STRUCT({struct_name}, tmpTilingData, tmpTilingGM);
 #define DTYPE_BIAS {map_dtype_to_string(origin_outputs[0]["dtype"])}
 """
 
-    tiling_data_undef = f"""
-#ifndef __UNDEF_CONV2D_HEADER__
-#define __UNDEF_CONV2D_HEADER__
-#undef GET_TILING_DATA_PTR_WITH_STRUCT
-#undef COPY_TILING_WITH_STRUCT
-#undef COPY_TILING_WITH_ARRAY
-#undef GET_TILING_DATA
-#undef GET_TILING_DATA_MEMBER
-#undef GET_TILING_DATA_WITH_STRUCT
-#undef __tiling_data_ptr__
-#endif
-"""
-
+    tiling_data_undef = create_conv_tiling_undef_header()
     tiling_info.file_content += device_tiling_data
     device_tiling_content = tiling_data_undef
     device_tiling_content += tiling_info.file_content
@@ -1526,7 +1551,7 @@ def ascbc_conv_kernel_tiling_pro(
     logger.info("kernel_name=[%s], cube tiling_key[%s], tiling_data=[%s], tiling_file_context=[%s]", kernel_name, str(
         tiling_info.tiling_key), str(tiling_info.tiling_data), str(tiling_info.file_content))
     cube_output_type_size = cube_attributes.get("type_size", 4)
-    cube_info = [cube_output_type_size, cube_block_dim, use_cv_common, is_bias, is_offset_w,
+    cube_info = [cube_output_type_size, False, cube_block_dim, use_cv_common, False, is_bias, is_offset_w,
                  _origin_inputs_, _origin_outputs_]
     compile_context = StaticCompileContext(kernel_name, temp_dir, graph_name, vector_core_num)
     create_conv_tiling_data(compile_context, tiling_info, cube_info, cube_attributes)

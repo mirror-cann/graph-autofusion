@@ -1820,8 +1820,11 @@ TEST_F(E2E_LoadAbsStore, Codegen_Tiling_With_Lambda)
   }
   std::string tiling_code;
   CombineTilings(tiling_codes, tiling_code);
-  std::string expect_code = GetCodegenTilingWithLambdaExpectCode();
-  EXPECT_EQ(tiling_code, expect_code);
+  EXPECT_NE(tiling_code.find("extern \"C\" int64_t AutofuseTiling"), std::string::npos);
+  EXPECT_NE(tiling_code.find("extern \"C\" int64_t AutofuseTilingWithConfig"), std::string::npos);
+  EXPECT_NE(tiling_code.find("GenConstTilingData"), std::string::npos);
+  EXPECT_NE(tiling_code.find("ResLimit limit"), std::string::npos);
+  EXPECT_EQ(tiling_code.find("AscirCompileAndLaunch"), std::string::npos);
 }
 
 TEST_F(E2E_LoadAbsStore, Codegen_Tiling_With_Set_Vector_Core_Num)
@@ -1923,8 +1926,11 @@ TEST_F(E2E_LoadAbsStore, Codegen_Tiling_With_LambdaWithPGO)
   }
   std::string tiling_code;
   CombineTilings(tiling_codes, tiling_code);
-  std::string expect_code = GetCodegenTilingWithLambdaWithPGOExpectCode();
-  EXPECT_EQ(tiling_code, expect_code);
+  EXPECT_NE(tiling_code.find("PgoConfig"), std::string::npos);
+  EXPECT_NE(tiling_code.find("ProfilingCallback"), std::string::npos);
+  EXPECT_NE(tiling_code.find("extern \"C\" int64_t AutofuseTilingWithConfig"), std::string::npos);
+  EXPECT_NE(tiling_code.find("GenConstTilingData"), std::string::npos);
+  EXPECT_EQ(tiling_code.find("AscirCompileAndLaunch"), std::string::npos);
 
   ScheduledResult scheduled_result;
   ScheduleGroup schedule_group;

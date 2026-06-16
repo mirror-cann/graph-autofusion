@@ -234,6 +234,7 @@ namespace ascgen_utils {
   af::Status GetCubeInputNum(const ascir::NodeView &node, uint32_t &num);
   af::Status CreateCVFusionResult(ascir::FusedScheduledResult &elemwise_schedule_result);
   af::Status CreateCVFusionCommonResult(ascir::FusedScheduledResult &elemwise_schedule_result);
+  af::Status ProcessCubeFusionResultDynamic(ascir::FusedScheduledResult &fused_result);
   bool IsCVFusionUBGraph(const ascir::ImplGraph &impl_graph, ascir::CubeTemplateType cv_fusion_type);
   af::Status FilterCVFusionUBResult(ascir::FusedScheduledResult &ub_schedule_result);
   af::Status FilterCVFusionCommonResult(ascir::FusedScheduledResult &common_schedule_result);
@@ -243,6 +244,8 @@ namespace ascgen_utils {
   bool IsConv2DGraphType(const ascir::ImplGraph &impl_graph);
   bool IsConv2DTypeWithBias(const ascir::ImplGraph &impl_graph);
   bool IsConv2DTypeWithOffsetW(const ascir::ImplGraph &impl_graph);
-}  // namespace ascgen_utils
+  ge::Status GetCubeInfo(const ascir::FusedScheduledResult &fused_schedule_result, bool &is_batch, bool &is_conv,
+                         std::string &input_type, std::string &output_type);
+  }  // namespace ascgen_utils
 
 #endif

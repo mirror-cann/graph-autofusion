@@ -843,7 +843,7 @@ ge::Status TilingCodeGenImpl::GenCacheHashMapDef() {
      visited.insert({Str(hardware_arg) + "_upper_bound", true});
      std::vector<Expr> from_axes = GetFromAxes(hardware_arg, args_manager, hardware_def);
      std::string hardware_arg_value = "";
-    
+
      for (uint32_t i = 0u; i < from_axes.size(); ++i) {
        auto primary_args = from_axes[i].FreeSymbols();
        if (primary_args.empty() && from_axes[i].IsConstExpr()) {
@@ -2678,7 +2678,7 @@ ge::Status TilingCodeGenImpl::GenGetTilingKey() {
       tiling_func_.AddLine("    tiling_case = " + std::to_string(model_info.tiling_case_id) + ";");
       tiling_func_.AddLine("    tiling_data->set_block_dim(block_dim_i);");
       tiling_func_.AddLine("    tiling_data->set_tiling_key(tiling_case);");
-      tiling_func_.AddLine("    if (GetTiling(*tiling_data, tiling_case)) {");
+      tiling_func_.AddLine("    if (GetTiling(*tiling_data, tiling_case, nullptr)) {");
       tiling_func_.AddLine("      tiling_data_tmp = *tiling_data;");
       tiling_func_.AddLine("      tiling_data_list.push_back(tiling_data_tmp);");
       tiling_func_.AddLine("    }");
@@ -3100,7 +3100,7 @@ void TilingCodeGenImpl::GenDoGroupTilingGetTilingCalls(
       std::string group_var = group_info.second.second + "_tiling_data";
       std::string group_class = group_info.second.first;
       get_tiling_condition += "(" + group_class + "::GetTiling(" + group_var + ", workspace_map, case_ids_or_keys[" +
-                              std::to_string(group_index) + "]))";
+                              std::to_string(group_index) + "], nullptr))";
       if (group_index < graph_info.size() - 1) {
         get_tiling_condition += " && ";
       }
@@ -3358,14 +3358,14 @@ ge::Status TilingCodeGenImpl::GenGetScheduleResult(
      tiling_func_.AddLine("    "+ config_.tiling_data_type_name +" tiling_data_tmp" + std::to_string(index) + "= tiling_data;");
      tiling_func_.AddLine("    auto sub_tiling_data_tmp" + std::to_string(index) + "= tiling_data_tmp" + std::to_string(index) + "." + hard_ware_param + "_tiling_data" + ";");
      tiling_func_.AddLine("    sub_tiling_data_tmp" + std::to_string(index) + ".set_tiling_key(" + std::to_string(model_info.tiling_case_id) + ");");
-     tiling_func_.AddLine("    if (" + schedule_result_prefex + "::GetTiling(sub_tiling_data_tmp" + std::to_string(index) + ", workspace_map, " +std::to_string(model_info.tiling_case_id) + ")) { ");
+      tiling_func_.AddLine("    if (" + schedule_result_prefex + "::GetTiling(sub_tiling_data_tmp" + std::to_string(index) + ", workspace_map, " +std::to_string(model_info.tiling_case_id) + ", nullptr)) { ");
      std::string tiling_data_add("      ");
      tiling_data_add.append("tiling_data_tmp" + std::to_string(index) + ".").append(hard_ware_param).append("_tiling_data=sub_tiling_data_tmp" + std::to_string(index) +";");
      tiling_func_.AddLine(tiling_data_add);
      tiling_func_.AddLine("      tiling_data_list_tmp" + std::to_string(group_index) + ".push_back(tiling_data_tmp" + std::to_string(index) + ");");
      tiling_func_.AddLine("    }");
      index++;
-   }
+  }
  }
 
  void TilingCodeGenImpl::GenPGOByCoreNumGetScheduleResult(const size_t asc_graph_id, const size_t impl_graph_id, 
@@ -3723,13 +3723,14 @@ ge::Status TilingCodeGenImpl::GenPGOGetScheduleResult(const size_t asc_graph_id,
  }
 
  ge::Status TilingCodeGenImpl::GenFusedScheduleResultsGetTilingDefine(const FusedGraphNamespaceMap &namespace_map) {
-   tiling_func_.AddLine("bool GetTiling(" + config_.tiling_data_type_name + " &tiling_data, int32_t tiling_case_id) {");
-   tiling_head_.AddLine("bool GetTiling(" + config_.tiling_data_type_name + " &tiling_data, int32_t tiling_case_id);");
+   tiling_func_.AddLine("bool GetTiling(" + config_.tiling_data_type_name +
+                        " &tiling_data, int32_t tiling_case_id, double *perf) {");
+   tiling_head_.AddLine("bool GetTiling(" + config_.tiling_data_type_name +
+                        " &tiling_data, int32_t tiling_case_id, double *perf = nullptr);");
 
    // 添加算子级缓存逻辑
-   GE_ASSERT_SUCCESS(
-       cache::OperatorLevelCacheGen::GenInitAndQueryCacheCode(tiling_func_, tiling_model_info_, config_),
-       "Generate init and query cache code failed.");
+   GE_ASSERT_SUCCESS(cache::OperatorLevelCacheGen::GenInitAndQueryCacheCode(tiling_func_, tiling_model_info_, config_),
+                     "Generate init and query cache code failed.");
    tiling_func_.AddLine("  bool ret = true;");  // 声明ret变量用于缓存保存操作
 
    size_t asc_graph_id = 0UL;
@@ -3741,7 +3742,7 @@ ge::Status TilingCodeGenImpl::GenPGOGetScheduleResult(const size_t asc_graph_id,
        tiling_func_.AddLine("  uint32_t org_block_dim = tiling_data.get_block_dim();");
      }
      const std::string &asc_graph_namespace = "AscGraph" + std::to_string(asc_graph_namespace_map.first);
-     tiling_func_.AddLine("  if (!" + asc_graph_namespace + "::GetTiling(tiling_data, tiling_case_id)) {");
+     tiling_func_.AddLine("  if (!" + asc_graph_namespace + "::GetTiling(tiling_data, tiling_case_id, perf)) {");
      tiling_func_.AddLine("    " + failed_log_level + "(OP_NAME, \"Failed to get tiling of " + asc_graph_namespace +
                           ".\");");
      tiling_func_.AddLine("    return false;");
@@ -3751,15 +3752,17 @@ ge::Status TilingCodeGenImpl::GenPGOGetScheduleResult(const size_t asc_graph_id,
          "  max_block_dim = (tiling_data.get_block_dim() > max_block_dim) ? tiling_data.get_block_dim() : "
          "max_block_dim;");
      asc_graph_id++;
-    }
-    tiling_func_.AddLine("  tiling_data.set_block_dim(max_block_dim);");
+   }
+   tiling_func_.AddLine("  tiling_data.set_block_dim(max_block_dim);");
 
-    // 保存算子级缓存
-    GE_ASSERT_SUCCESS(cache::OperatorLevelCacheGen::GenSaveCacheCalls(tiling_func_, tiling_model_info_, config_),
-                      "Generate save cache calls failed.");
-    tiling_func_.AddLine("  OP_LOGI(OP_NAME, \"End GetTiling.\");");
-    tiling_func_.AddLine("  return ret;");
-    tiling_func_.AddLine("}");
+   // 保存算子级缓存
+   GE_ASSERT_SUCCESS(cache::OperatorLevelCacheGen::GenSaveCacheCalls(tiling_func_, tiling_model_info_, config_),
+                     "Generate save cache calls failed.");
+
+   tiling_func_.AddLine("  (void)perf;");
+   tiling_func_.AddLine("  OP_LOGI(OP_NAME, \"End GetTiling.\");");
+   tiling_func_.AddLine("  return ret;");
+   tiling_func_.AddLine("}");
     return ge::SUCCESS;
   }
 
@@ -3852,7 +3855,7 @@ ge::Status TilingCodeGenImpl::GenPGOGetScheduleResult(const size_t asc_graph_id,
     tiling_func_.AddLine("    tilingTmp = tiling_data;");
     tiling_func_.AddLine("    tilingTmp.set_" + tiling_key_prefix + "tiling_key(index);");
     tiling_func_.AddLine("    cur_perf = DBL_MAX;");
-    tiling_func_.AddLine("    if (!AscGraph" + std::to_string(asc_graph_id) + "::GetTiling(tilingTmp, index)) {");
+    tiling_func_.AddLine("    if (!AscGraph" + std::to_string(asc_graph_id) + "::GetTiling(tilingTmp, index, nullptr)) {");
     tiling_func_.AddLine("      OP_LOGW(OP_NAME, \"Skip invalid PGO schedule result candidate.\");");
     tiling_func_.AddLine("      continue;");
     tiling_func_.AddLine("    }");
@@ -3865,9 +3868,10 @@ ge::Status TilingCodeGenImpl::GenPGOGetScheduleResult(const size_t asc_graph_id,
  ge::Status TilingCodeGenImpl::GenGetTilingForAllSchedulesResults(const uint32_t asc_graph_id,
                                                                   const AscGraphNamepspaceMap &asc_graph_map) {
    tiling_func_.AddLine("bool GetTiling(" + config_.tiling_data_type_name + " &tiling_data, " +
-                        "int32_t tiling_case_id) {");
+                        "int32_t tiling_case_id, double *perf) {");
    tiling_head_.AddLine("bool GetTiling(" + config_.tiling_data_type_name + " &tiling_data, " +
-                        "int32_t tiling_case_id);");
+                        "int32_t tiling_case_id, double *perf);");
+   tiling_func_.AddLine("  (void)perf;");
    GE_ASSERT_SUCCESS(GenDurationBeginCode(TilingFuncDurationType::TILING_FUNC_DURATION_TOTAL, "  "),
                      "Generate begin code!");
    GE_ASSERT_SUCCESS(GenGetTilingForAllInitLines());
@@ -3885,7 +3889,7 @@ ge::Status TilingCodeGenImpl::GenPGOGetScheduleResult(const size_t asc_graph_id,
    tiling_func_.AddLine("}");
    tiling_func_.AddLine("} // namespace AscGraph" + std::to_string(asc_graph_id) + " {");
    return ge::SUCCESS;
- }
+  }
 
  ge::Status TilingCodeGenImpl::GenGetTilingForScheduleResult() {
    std::map<std::string, std::set<std::string>> hardware_map;
@@ -4030,9 +4034,9 @@ void TilingCodeGenImpl::GenGetTilingFunctionSignature(const std::string &workspa
     return;
   }
   tiling_func_.AddLine("bool GetTiling(" + config_.tiling_data_type_name +
-                       " &tiling_data" + workspace_define + ", int32_t tiling_case_id" + cache_define_func + ") {");
+                       " &tiling_data" + workspace_define + ", int32_t tiling_case_id" + cache_define_func + ", double *perf) {");
   tiling_head_.AddLine("bool GetTiling(" + config_.tiling_data_type_name +
-                       " &tiling_data" + workspace_define + ", int32_t tiling_case_id" + cache_define_head + ");");
+                       " &tiling_data" + workspace_define + ", int32_t tiling_case_id" + cache_define_head + ", double *perf = nullptr);");
 }
 
 ge::Status TilingCodeGenImpl::GenGetTilingFunctionBody(bool use_cache, bool is_tail, const std::string &cache_used) {
@@ -4060,6 +4064,11 @@ ge::Status TilingCodeGenImpl::GenGetTilingFunctionBody(bool use_cache, bool is_t
 
   // 生成duration end代码
   GE_ASSERT_SUCCESS(GenDurationCode(false), "Generate duration end code failed.");
+
+  // 如果 perf 不为空，计算并赋值性能
+  tiling_func_.AddLine("  if (perf != nullptr) {");
+  tiling_func_.AddLine("    *perf = GetPerf(tiling_data);");
+  tiling_func_.AddLine("  }");
 
   tiling_func_.AddLine("  return ret;");
   tiling_func_.AddLine("}");
@@ -4361,8 +4370,8 @@ ge::Status TilingCodeGenImpl::ValidateGroupModeForceTilingCase(
      return GenReuseGroupTilingWrapper(tiling_res);
    }
    GE_ASSERT_SUCCESS(GenTilingKeyFunc());
+   GE_ASSERT_SUCCESS(GenGetPerf(), "Generate getperf failed.");
    if (!is_uniq_group_) {
-     GE_ASSERT_SUCCESS(GenGetPerf(), "Generate getperf failed.");
      GE_ASSERT_SUCCESS(GenGetSummary(), "Generate getsummary failed.");
      tiling_head_.AddLine("} // namespace " + cur_ident.GetGroupPrefix());
      tiling_func_.AddLine("} // namespace " + cur_ident.GetGroupPrefix());

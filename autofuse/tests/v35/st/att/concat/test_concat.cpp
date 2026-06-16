@@ -36,6 +36,9 @@ std::string kRunTilingFuncMainTwoGroup = R"RAW(
 #include <iostream>
 #include "Concat_tiling_data.h"
 using namespace optiling;
+namespace optiling {
+bool GetTiling(graph_two_group_testTilingData &tiling_data, int32_t tiling_case_id, double *perf);
+}
 
 int main() {
   graph_two_group_testTilingData tilingData;
@@ -54,7 +57,7 @@ int main() {
   std::cout << "Group0: z0_0 = 2, z1 = 32" << std::endl;
   std::cout << "Group1: z0_1 = 128, z1 = 32" << std::endl;
 
-  if (GetTiling(tilingData)) {
+  if (GetTiling(tilingData, -1, nullptr)) {
     std::cout << "Test passed!" << std::endl;
   } else {
     std::cout << "Tiling func execute failed." << std::endl;
@@ -431,6 +434,9 @@ TEST_F(STestGenConcatV2, test_vector_function_parse) {
   const std::string kRunTilingFuncMainLocal = R"(
 #include "Concat_tiling_data.h"
 using namespace optiling;
+namespace optiling {
+bool GetTiling(graph_ndTilingData &tiling_data, int32_t tiling_case_id, double *perf);
+}
 void PrintResult(graph_ndTilingData& tilingData) {
   std::cout << "====================================================" << std::endl;
   MY_ASSERT_EQ(tilingData.get_z0bt_size(), 10);
@@ -444,7 +450,7 @@ int main() {
   tilingData.set_block_dim(64);
   tilingData.set_ub_size(245760);
   tilingData.set_S0(10);
-  if (GetTiling(tilingData)) {
+  if (GetTiling(tilingData, -1, nullptr)) {
     PrintResult(tilingData);
   } else {
     std::cout << "addlayernorm tiling func execute failed." << std::endl;
@@ -471,6 +477,9 @@ TEST_F(STestGenConcatV2, test_vector_function_parse_with_auto_tuning) {
   const std::string kRunTilingFuncMainLocal = R"(
 #include "Concat_tiling_data.h"
 using namespace optiling;
+namespace optiling {
+bool GetTiling(graph_ndTilingData &tiling_data, int32_t tiling_case_id, double *perf);
+}
 void PrintResult(graph_ndTilingData& tilingData) {
   std::cout << "====================================================" << std::endl;
   MY_ASSERT_EQ(tilingData.get_z0t_size(), 1);
@@ -484,7 +493,7 @@ int main() {
   tilingData.set_block_dim(64);
   tilingData.set_ub_size(245760);
   tilingData.set_S0(10);
-  if (GetTiling(tilingData)) {
+  if (GetTiling(tilingData, -1, nullptr)) {
     PrintResult(tilingData);
   } else {
     std::cout << "concat tiling func execute failed." << std::endl;

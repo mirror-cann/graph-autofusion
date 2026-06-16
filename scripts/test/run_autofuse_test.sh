@@ -774,6 +774,8 @@ build_backend() {
                     argmax_test_e2e \
                     axpy_abs_test_e2e \
                     load_logical_not_store_test_e2e \
+                    inductor_topn_test_e2e \
+                    inductor_matmul_elemwise_test_e2e \
                     inductor_tail_brc_tail_reduce_test_e2e \
                     pgo_add_abs_inductor_test_e2e \
                     pgo_add_abs_inductor_concat_test_e2e"

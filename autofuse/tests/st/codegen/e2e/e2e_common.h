@@ -123,8 +123,9 @@ namespace {
 	ss << "#define OP_LOGE(name, fmt, ...) GELOGE(-1, \"[%s]\" fmt, name, ##__VA_ARGS__)" << std::endl;
 	ss << "#define OP_NAME \"asc0000_autofused_abs\"" << std::endl;
   ss << "namespace optiling {" << std::endl;
-  ss << "static bool GetTiling(AutofuseTilingData &tiling_data, int32_t tilingCaseId) {" << std::endl;
+  ss << "static bool GetTiling(AutofuseTilingData &tiling_data, int32_t tilingCaseId, double *perf = nullptr) {" << std::endl;
   ss << "  (void)tilingCaseId;" << std::endl;
+  ss << "  (void)perf;" << std::endl;
   ss << "  return true;" << std::endl;
   ss << "}" << std::endl;
   ss << "using namespace std;" << std::endl;

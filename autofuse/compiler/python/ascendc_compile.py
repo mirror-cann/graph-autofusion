@@ -23,7 +23,7 @@ from typing import List
 PYF_PATH = os.path.dirname(os.path.realpath(__file__))
 ASCEND_PATH = os.path.join(PYF_PATH, "..", "..", "..")
 machine = platform.machine()
-HOST_LINK_LIBRARIES = ["graph_base"]
+HOST_LINK_LIBRARIES = ["tiling_api", "platform", "graph_base", "register"]
 if not os.path.exists(ASCEND_PATH):
     ASCEND_PATH = os.getenv("ASCEND_HOME_PATH", ASCEND_PATH)
 
@@ -69,6 +69,7 @@ def link_shared(target_file, obj_files, link_libraries=None):
 def compile_host_obj(args: argparse.Namespace, temp_dir):
     base_host_file = os.path.basename(args.host_files)
     soc_version = get_soc_type(args)
+    host_abi_option = [] if "-D_GLIBCXX_USE_CXX11_ABI=" in args.compile_options else ["-D", "_GLIBCXX_USE_CXX11_ABI=0"]
     host_compile_cmd = [
         f"{ASCEND_PATH}/tools/bisheng_compiler/bin/bisheng",
         "-D", "kernel_EXPORTS",
@@ -80,9 +81,15 @@ def compile_host_obj(args: argparse.Namespace, temp_dir):
         "-I", f"{ASCEND_PATH}/{machine}-linux/pkg_inc/base",
         "-I", f"{ASCEND_PATH}/{machine}-linux/include",
         "-I", f"{ASCEND_PATH}/{machine}-linux/ascendc/include/highlevel_api/tiling/platform",
+        "-I", f"{ASCEND_PATH}/{machine}-linux/ascendc/include/highlevel_api",
+        "-I", f"{ASCEND_PATH}/opp/built-in/op_impl/ai_core/tbe/impl/ascendc/mat_mul_v3",
+        "-I", f"{ASCEND_PATH}/opp/built-in/op_impl/ai_core/tbe/impl/ops_nn/ascendc/mat_mul_v3",
+        "-I", f"{ASCEND_PATH}/opp/built-in/op_impl/ai_core/tbe/impl/ascendc/conv2d_v2",
+        "-I", f"{ASCEND_PATH}/opp/built-in/op_impl/ai_core/tbe/impl/ops_nn/ascendc/conv2d_v2",
+        "-I", f"{ASCEND_PATH}/opp/built-in/op_impl/ai_core/tbe/impl/ops_nn/ascendc/common",
         "-fPIC", f"--npu-arch={soc_version}", "-O2", "-fno-common", "-Wextra", "-Wfloat-equal", "-fvisibility=default",
         *args.compile_options.split(),
-        "-D", "LOG_CPP", "-o",
+        "-D", "LOG_CPP", *host_abi_option, "-o",
         f"{temp_dir}/host/{base_host_file}.o", "-c", "-x", "asc",
         f"{temp_dir}/host/{base_host_file}"]
     run_compile_command(host_compile_cmd, "Host")
@@ -95,6 +102,18 @@ def compile_device_obj(args: argparse.Namespace, temp_dir):
     device_compile_cmd = [
         f"{ASCEND_PATH}/tools/bisheng_compiler/bin/bisheng",
         "-I", f"{temp_dir}/device",
+        "-I", f"{ASCEND_PATH}/opp/built-in/op_impl/ai_core/tbe/impl/ascendc/common",
+        "-I", f"{ASCEND_PATH}/opp/built-in/op_impl/ai_core/tbe/impl/ops_nn/ascendc/common",
+        "-I", f"{ASCEND_PATH}/opp/built-in/op_impl/ai_core/tbe/impl/ascendc/mat_mul_v3",
+        "-I", f"{ASCEND_PATH}/opp/built-in/op_impl/ai_core/tbe/impl/ascendc/batch_mat_mul_v3",
+        "-I", f"{ASCEND_PATH}/opp/built-in/op_impl/ai_core/tbe/impl/ops_nn/ascendc/mat_mul_v3",
+        "-I", f"{ASCEND_PATH}/opp/built-in/op_impl/ai_core/tbe/impl/ops_nn/ascendc/batch_mat_mul_v3",
+        "-I", f"{ASCEND_PATH}/opp/built-in/op_impl/ai_core/tbe/impl/ascendc/common",
+        "-I", f"{ASCEND_PATH}/opp/built-in/op_impl/ai_core/tbe/impl/ascendc/common",
+        "-I", f"{ASCEND_PATH}/opp/built-in/op_impl/ai_core/tbe/impl/ascendc/common/cmct",
+        "-I", f"{ASCEND_PATH}/opp/built-in/op_impl/ai_core/tbe/impl/ops_nn/ascendc/common",
+        "-I", f"{ASCEND_PATH}/opp/built-in/op_impl/ai_core/tbe/impl/ops_nn/ascendc/common",
+        "-I", f"{ASCEND_PATH}/opp/built-in/op_impl/ai_core/tbe/impl/ops_nn/ascendc/common/cmct",
         "-fPIC", "-D", "HAVE_TILING", "-D", "AUTO_FUSE_DEVICE=1", f"--npu-arch={soc_version}",
         "-o", f"{temp_dir}/device/{base_device_file}.o",
         "-c", "-x", "asc", f"{temp_dir}/device/{base_device_file}"]
@@ -134,6 +153,8 @@ def static_shape_kernel_proc(args: argparse.Namespace, temp_dir, tiling_repr=Non
 
     with open(kernel_file, 'r') as f:
         lines = f.readlines()
+    if any('INDUCTOR_CONST_TILING_DATA' in line for line in lines):
+        lines = expand_inductor_const_tiling_data(lines, tiling_repr)
 
     result = []
     for line in lines:
@@ -169,6 +190,54 @@ def static_shape_kernel_proc(args: argparse.Namespace, temp_dir, tiling_repr=Non
         f.writelines(result)
 
 
+def expand_inductor_const_tiling_data(lines, tiling_repr=None):
+    result = []
+    index = 0
+    pending_const_tiling = False
+    while index < len(lines):
+        line = lines[index]
+        if is_inductor_dynamic_tiling_param(lines, index):
+            if tiling_repr is None and result:
+                result[-1] = result[-1].rstrip('\n') + ', AutofuseTilingData t'
+            elif tiling_repr is not None:
+                pending_const_tiling = True
+            index += 3
+            continue
+        if is_inductor_const_tiling_branch(lines, index):
+            result.append(lines[index + (1 if tiling_repr is not None else 3)])
+            index += 5
+            continue
+        result.append(line)
+        if pending_const_tiling and line.strip() == ') {':
+            result.append(f'  constexpr AutofuseTilingData t = {tiling_repr};\n')
+            pending_const_tiling = False
+        index += 1
+    return result
+
+
+def is_inductor_dynamic_tiling_param(lines, index):
+    if index + 2 >= len(lines):
+        return False
+    return (lines[index].strip() == '#ifndef INDUCTOR_CONST_TILING_DATA' and
+            lines[index + 1].strip() == ', AutofuseTilingData t' and
+            lines[index + 2].strip() == '#endif')
+
+
+def is_inductor_const_tiling_branch(lines, index):
+    if index + 4 >= len(lines):
+        return False
+    return (lines[index].strip() == '#ifdef INDUCTOR_CONST_TILING_DATA' and
+            lines[index + 2].strip() == '#else' and
+            lines[index + 4].strip() == '#endif')
+
+
+def has_inductor_const_tiling_data(args: argparse.Namespace, temp_dir):
+    base_device_files = os.path.basename(args.device_files)
+    kernel_file = os.path.join(temp_dir, "device", base_device_files)
+    with open(kernel_file, 'r') as f:
+        return 'INDUCTOR_CONST_TILING_DATA' in f.read()
+
+
 def try_static_shape_compile(args: argparse.Namespace, temp_dir, so_path):
     if args.force_unknown:
         return False
@@ -201,9 +270,11 @@ def link_host_target(args, temp_dir):
 
 
 def link_kernel_target(args, host_obj_path, temp_dir):
-    if args.stage == 'device' and args.tiling_repr is not None:
-        print("process static shape kernel with tiling_repr")
-        static_shape_kernel_proc(args, temp_dir, args.tiling_repr)
+    if args.stage == 'device':
+        if args.tiling_repr is not None or has_inductor_const_tiling_data(args, temp_dir):
+            if args.tiling_repr is not None:
+                print("process static shape kernel with tiling_repr")
+            static_shape_kernel_proc(args, temp_dir, args.tiling_repr)
 
     # 首次编译
     so_file = build_device_so(args, host_obj_path, temp_dir)

@@ -8,7 +8,9 @@
  * See LICENSE in the root of the software repository for the full text of the License.
  */
 
+#ifndef INDUCTOR_CV_FUSION
 #include "autofuse_cube_tiling_data.h"
+#endif
 
 using namespace AscendC;
 using namespace matmul;
@@ -127,8 +129,14 @@ constexpr CubeFormat format_y = CubeFormat::ND;
     } while (0)
 template <int8_t BATCH_API_LEVEL, int8_t BATCH_A_TRANS, int8_t BATCH_B_TRANS, int8_t BATCH_ITER_MODEL, int8_t BMODEL,
     int8_t BATCH_FULL_LOAD, int8_t BATCH_L0C2OUT_MODEL>
-__global__ __aicore__ void batch_mat_mul_v3(
-    GM_ADDR aGM, GM_ADDR bGM, GM_ADDR biasGM, GM_ADDR offsetWGM, GM_ADDR cGM, GM_ADDR workspaceGM, GM_ADDR tilingGM)
+__aicore__ void batch_mat_mul_v3(
+    GM_ADDR aGM, GM_ADDR bGM, GM_ADDR biasGM, GM_ADDR offsetWGM, GM_ADDR cGM, GM_ADDR workspaceGM, 
+#ifdef INDUCTOR_TILING_DATA
+    const CVAutofuseTilingData& tilingGM
+#else
+    GM_ADDR tilingGM
+#endif
+)
 {
     __gm__ uint8_t* user = GetUserWorkspace(workspaceGM);
 
@@ -208,9 +216,101 @@ __global__ __aicore__ void batch_mat_mul_v3(
 
 template <int8_t BATCH_API_LEVEL, int8_t BATCH_A_TRANS, int8_t BATCH_B_TRANS, int8_t BATCH_ITER_MODEL, int8_t BMODEL,
     int8_t BATCH_FULL_LOAD, int8_t BATCH_L0C2OUT_MODEL>
-__global__ __aicore__ void batch_mat_mul_v3_fusion(
-    GM_ADDR aGM, GM_ADDR bGM, GM_ADDR biasGM, GM_ADDR offsetWGM, GM_ADDR cGM, GM_ADDR workspaceGM, GM_ADDR tilingGM,
+__aicore__ void batch_mat_mul_v3_fusion(
+    GM_ADDR aGM, GM_ADDR bGM, GM_ADDR biasGM, GM_ADDR offsetWGM, GM_ADDR cGM, GM_ADDR workspaceGM,
+#ifdef INDUCTOR_TILING_DATA
+    const CVAutofuseTilingData& tilingGM,
+#else
+    GM_ADDR tilingGM,
+#endif
     AutoFusionVector::Params *param)
+{
+    __gm__ uint8_t* user = GetUserWorkspace(workspaceGM);
+
+    constexpr bool aTran = (BATCH_A_TRANS == 1);
+    constexpr bool bTran = (BATCH_B_TRANS == 1);
+
+#if !(defined(__NPU_ARCH__) && (__NPU_ARCH__ == 5102))
+    using aLayout = std::conditional_t<aTran, layout::ColumnMajor, layout::RowMajor>;
+    using bLayout = std::conditional_t<bTran, layout::ColumnMajor, layout::RowMajor>;
+#endif
+
+    REGISTER_TILING_DEFAULT(BatchMatMulV3TilingData);
+
+    if constexpr (
+        BATCH_API_LEVEL == MAT_MUL_HIGH_LEVEL && BMODEL == MAT_MUL_BASIC && BATCH_FULL_LOAD == MAT_MUL_NO_FULL_LOAD &&
+        BATCH_L0C2OUT_MODEL == MAT_MUL_ON_THE_FLY && BATCH_ITER_MODEL == MAT_MUL_FOR_BATCH) {
+        BMMV3_IMPL_CLASS_COMMON_TRNAS(
+            aTran, bTran, BatchMatMulV3Advanced::BatchMatMulAswKernel, BatchMatMulV3Advanced::BatchMatMulAswBlock,
+            MM_CFG_NO_PRELOAD);
+    } else if constexpr (
+        BATCH_API_LEVEL == MAT_MUL_HIGH_LEVEL && BMODEL == MAT_MUL_BASIC && BATCH_FULL_LOAD == MAT_MUL_NO_FULL_LOAD &&
+        BATCH_L0C2OUT_MODEL == MAT_MUL_ON_THE_FLY && BATCH_ITER_MODEL == MAT_MUL_ITER_BATCH_SINGLE_BIAS) {
+        BMMV3_IMPL_CLASS_TRANS(
+            aTran, bTran, BatchMatMulV3Advanced::BatchMatMulMultiBatchKernel,
+            BatchMatMulV3Advanced::BatchMatMulMultiBatchBaseBlock, MM_CFG_MULTI_BATCH_OUT_SING_BIAS);
+#if !(defined(__NPU_ARCH__) && (__NPU_ARCH__ == 5102))
+    } else if constexpr (
+        BATCH_API_LEVEL == MAT_MUL_BASIC_LEVEL && BMODEL == MAT_MUL_BASIC && BATCH_FULL_LOAD == MAT_MUL_NO_FULL_LOAD &&
+        BATCH_L0C2OUT_MODEL == MAT_MUL_ON_THE_FLY && BATCH_ITER_MODEL == MAT_MUL_ITER_BATCH_SINGLE_BIAS) {
+        GET_TILING_DATA_WITH_STRUCT(BatchMatMulV3IterBatchBasicTilingData, tilingData, tilingGM);
+        BatchMatMulActIterBatchKernel<DTYPE_X1, DTYPE_X2, DTYPE_Y, DTYPE_BIAS, aLayout, bLayout, layout::RowMajor>(
+            aGM, bGM, biasGM, cGM, workspaceGM, tilingData);
+    } else if constexpr (
+        BATCH_API_LEVEL == MAT_MUL_BASIC_LEVEL && BMODEL == MAT_MUL_BASIC && BATCH_FULL_LOAD == MAT_MUL_NO_FULL_LOAD &&
+        BATCH_L0C2OUT_MODEL == MAT_MUL_1V2_ND_ALIG_FIXPIPE && BATCH_ITER_MODEL == MAT_MUL_ITER_BATCH_SINGLE_BIAS) {
+        GET_TILING_DATA_WITH_STRUCT(BatchMatMulV3IterBatchBasicTilingData, tilingData, tilingGM);
+        BatchMatMulActIterBatchKernel<
+            DTYPE_X1, DTYPE_X2, DTYPE_Y, DTYPE_BIAS, aLayout, bLayout, layout::RowMajor, MatMulL0C2Out::ND_FIXPIPE_1_2>(
+            aGM, bGM, biasGM, cGM, workspaceGM, tilingData);
+    } else if constexpr (
+        BATCH_API_LEVEL == MAT_MUL_BASIC_LEVEL && BMODEL == MAT_MUL_BASIC && BATCH_FULL_LOAD == MAT_MUL_NO_FULL_LOAD &&
+        BATCH_L0C2OUT_MODEL == MAT_MUL_ON_THE_FLY && BATCH_ITER_MODEL == MAT_MUL_BATCH_MATMUL_TO_MUL) {
+        GET_TILING_DATA_WITH_STRUCT(BatchMatMulToMulBasicTilingData, tilingData, tilingGM);
+        BatchMatMulToMulActKernel<DTYPE_X1, DTYPE_X2, DTYPE_Y, DTYPE_BIAS, aLayout, bLayout, layout::RowMajor>(
+            aGM, bGM, biasGM, cGM, workspaceGM, tilingData);
+    }
+    else if constexpr (
+        BATCH_API_LEVEL == MAT_MUL_BASIC_LEVEL && BMODEL == MAT_MUL_BASIC && BATCH_FULL_LOAD == MAT_MUL_NO_FULL_LOAD &&
+        BATCH_L0C2OUT_MODEL == MAT_MUL_ON_THE_FLY && BATCH_ITER_MODEL == MAT_MUL_FOR_BATCH) {
+        GET_TILING_DATA_WITH_STRUCT(BatchMatMulV3BasicTilingData, tilingData, tilingGM);
+        MatmulV3Advanced::MatMulActKernelFusion<DTYPE_X1, DTYPE_X2, DTYPE_Y, DTYPE_BIAS, aLayout, bLayout, layout::RowMajor,
+            0, OP_TYPE_RELU_VALUE>(
+            aGM, bGM, biasGM, cGM, workspaceGM, tilingData.matMulTilingData, param, tilingData.batchDimAll);
+    } else if constexpr (
+        BATCH_API_LEVEL == MAT_MUL_BASIC_LEVEL && BMODEL == MAT_MUL_BASIC && BATCH_FULL_LOAD == MAT_MUL_A_FULL_LOAD &&
+        BATCH_L0C2OUT_MODEL == MAT_MUL_ON_THE_FLY && BATCH_ITER_MODEL == MAT_MUL_FOR_BATCH) {
+        GET_TILING_DATA_WITH_STRUCT(BatchMatMulV3BasicTilingData, tilingData, tilingGM);
+        MatmulV3Advanced::MatMulActKernelFusion<
+            DTYPE_X1, DTYPE_X2, DTYPE_Y, DTYPE_BIAS, aLayout, bLayout, layout::RowMajor, A_FULL_LOAD_MODE, OP_TYPE_RELU_VALUE>(
+            aGM, bGM, biasGM, cGM, workspaceGM, tilingData.matMulTilingData, param, tilingData.batchDimAll);
+    } else if constexpr (
+        BATCH_API_LEVEL == MAT_MUL_BASIC_LEVEL && BMODEL == MAT_MUL_BASIC && BATCH_FULL_LOAD == MAT_MUL_B_FULL_LOAD &&
+        BATCH_L0C2OUT_MODEL == MAT_MUL_ON_THE_FLY && BATCH_ITER_MODEL == MAT_MUL_FOR_BATCH) {
+        GET_TILING_DATA_WITH_STRUCT(BatchMatMulV3BasicTilingData, tilingData, tilingGM);
+        MatmulV3Advanced::MatMulActKernelFusion<
+            DTYPE_X1, DTYPE_X2, DTYPE_Y, DTYPE_BIAS, aLayout, bLayout, layout::RowMajor, B_FULL_LOAD_MODE, OP_TYPE_RELU_VALUE>(
+            aGM, bGM, biasGM, cGM, workspaceGM, tilingData.matMulTilingData, param, tilingData.batchDimAll);
+    } else if constexpr (
+        BATCH_API_LEVEL == MAT_MUL_HIGH_LEVEL && BMODEL == MAT_MUL_K_EQUAL_ZERO && BATCH_FULL_LOAD == MAT_MUL_NO_FULL_LOAD &&
+        BATCH_L0C2OUT_MODEL == MAT_MUL_ON_THE_FLY && BATCH_ITER_MODEL == MAT_MUL_FOR_BATCH) {
+        TPipe pipe;
+        GET_TILING_DATA_WITH_STRUCT(MatMulV3KEqZeroBasicTilingData, tilingData, tilingGM);
+        MatmulV3Advanced::MatMulInputKEqZeroClearOutput(biasGM, cGM, tilingData);
+#endif
+    }
+}
+
+template <int8_t BATCH_API_LEVEL, int8_t BATCH_A_TRANS, int8_t BATCH_B_TRANS, int8_t BATCH_ITER_MODEL, int8_t BMODEL,
+    int8_t BATCH_FULL_LOAD, int8_t BATCH_L0C2OUT_MODEL>
+__aicore__ void batch_mat_mul_v3_fusion_db(
+    GM_ADDR aGM, GM_ADDR bGM, GM_ADDR biasGM, GM_ADDR offsetWGM, GM_ADDR cGM, GM_ADDR workspaceGM,
+#ifdef INDUCTOR_TILING_DATA
+    const CVAutofuseTilingData& tilingGM,
+#else
+    GM_ADDR tilingGM,
+#endif
+    AutoFusionVectorDB::Params *param)
 {
     __gm__ uint8_t* user = GetUserWorkspace(workspaceGM);
 

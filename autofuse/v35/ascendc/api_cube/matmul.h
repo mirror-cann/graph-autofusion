@@ -13,7 +13,9 @@
  * \brief
  */
 
+#ifndef INDUCTOR_CV_FUSION
 #include "autofuse_cube_tiling_data.h"
+#endif
 
 using namespace Cmct;
 using namespace Cmct::Gemm;
@@ -39,7 +41,6 @@ constexpr CubeFormat format_y = CubeFormat::NZ;
 #else
 constexpr CubeFormat format_y = CubeFormat::ND;
 #endif
-
 #define MMV3_IMPL_CLASS_TRANS(tilingData, tilingGM, transA, transB, workspace, templateClass, ...)     \
     do {                                                                                               \
         uint64_t tilingdata_offset =                                                                   \

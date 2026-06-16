@@ -301,7 +301,7 @@ Status Codegen::Generate(const ascir::FusedScheduledResult &fused_schedule_resul
 Status Codegen::GenerateForInductor(const ascir::FusedScheduledResult &fused_schedule_result,
                                     CodegenResult &result) const {
   GE_CHK_STATUS_RET(GenerateKernel(fused_schedule_result, result.kernel, true), "Codegen generate kernel failed");
-  result.tiling_data = GenerateTilingData(fused_schedule_result);
+  result.tiling_data = GenerateTilingData(fused_schedule_result, true);
   std::map<std::string, std::string> tiling_file_name_to_content;
   GE_CHK_STATUS_RET(GenerateTilingForInductor(fused_schedule_result, tiling_file_name_to_content));
   GE_CHK_STATUS_RET(CombineTilings(tiling_file_name_to_content, result.tiling));
@@ -311,7 +311,7 @@ Status Codegen::GenerateForInductor(const ascir::FusedScheduledResult &fused_sch
 Status Codegen::Generate(const std::map<std::string, std::string> &shape_info,
                          const ascir::FusedScheduledResult &fused_schedule_result, CodegenResult &result) const {
   GE_CHK_STATUS_RET(GenerateKernel(fused_schedule_result, result.kernel, false), "Codegen generate kernel failed");
-  result.tiling_data = GenerateTilingData(fused_schedule_result);
+  result.tiling_data = GenerateTilingData(fused_schedule_result, false);
   std::map<std::string, std::string> tiling_file_name_to_content;
   GE_CHK_STATUS_RET(GenerateTiling(fused_schedule_result, shape_info, "", "0", tiling_file_name_to_content));
   GE_CHK_STATUS_RET(CombineTilings(tiling_file_name_to_content, result.tiling));
@@ -319,9 +319,9 @@ Status Codegen::Generate(const std::map<std::string, std::string> &shape_info,
   return ge::SUCCESS;
 }
 
-std::string Codegen::GenerateTilingData(const ascir::FusedScheduledResult &fused_schedule_result) const {
+std::string Codegen::GenerateTilingData(const ascir::FusedScheduledResult &fused_schedule_result, bool is_inductor) const {
   std::stringstream ss;
-  ss << TilingData("Autofuse").Generate(fused_schedule_result);
+  ss << TilingData("Autofuse").Generate(fused_schedule_result, is_inductor);
   return ss.str();
 }
 

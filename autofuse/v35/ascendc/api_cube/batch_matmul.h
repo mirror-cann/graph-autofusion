@@ -12,7 +12,9 @@
  * \file batch_mat_mul_v3.cpp
  * \brief
  */
+#ifndef INDUCTOR_CV_FUSION
 #include "autofuse_cube_tiling_data.h"
+#endif
 
 using namespace AscendC;
 using namespace matmul;

@@ -1018,6 +1018,36 @@ ge::Status CreateCVFusionCommonResult(ascir::FusedScheduledResult &elemwise_sche
   return ge::GRAPH_SUCCESS;
 }
 
+ge::Status ProcessCubeFusionResultDynamic(ascir::FusedScheduledResult &fused_result) {
+  ascir::FusedScheduledResult common_schedule_result = fused_result;
+  if (ascgen_utils::IsCubeUBFusedScheduled(fused_result)) {
+    GE_ASSERT_SUCCESS(ascgen_utils::CreateCVFusionResult(fused_result));
+  }
+  if (ascgen_utils::IsCubeCommonFusedScheduled(common_schedule_result)) {
+    GE_ASSERT_SUCCESS(ascgen_utils::CreateCVFusionCommonResult(common_schedule_result));
+  }
+
+  for (size_t i = 0; i < common_schedule_result.node_idx_to_scheduled_results.size(); i++) {
+    auto &common_scheduled_results = common_schedule_result.node_idx_to_scheduled_results[i];
+    auto &target_scheduled_results = fused_result.node_idx_to_scheduled_results[i];
+
+    for (size_t j = 0; j < common_scheduled_results.size() && j < target_scheduled_results.size(); j++) {
+      auto &common_scheduled_result = common_scheduled_results[j];
+      auto &target_scheduled_result = target_scheduled_results[j];
+
+      for (size_t k = 0; k < common_scheduled_result.schedule_groups.size(); k++) {
+        for (auto &impl_graph : common_scheduled_result.schedule_groups[k].impl_graphs) {
+          if (k < target_scheduled_result.schedule_groups.size()) {
+            target_scheduled_result.schedule_groups[k].impl_graphs.push_back(impl_graph);
+          }
+        }
+      }
+    }
+  }
+
+  return ge::SUCCESS;
+}
+
 bool IsCVFusionUBGraph(const ascir::ImplGraph &impl_graph, ascir::CubeTemplateType cv_fusion_type) {
   if ((!ascgen_utils::IsCubeType(impl_graph)) && (cv_fusion_type == ascir::CubeTemplateType::kUBFuse)) {
     return true;
@@ -1037,6 +1067,72 @@ ge::Status FilterCVFusionUBResult(ascir::FusedScheduledResult &ub_schedule_resul
                             scheduled_results.end());
   }
   return ge::SUCCESS;
+}
+
+ge::Status GetCubeInfo(const ascir::FusedScheduledResult &fused_schedule_result, bool &is_batch, bool &is_conv,
+                       std::string &input_type, std::string &output_type) {
+  is_batch = false;
+  is_conv = false;
+  auto extract_from_impl_graphs = [&is_batch, &is_conv, &input_type, &output_type](const auto &schedule_groups) {
+    for (const auto &schedule_group : schedule_groups) {
+      for (const auto &impl_graph : schedule_group.impl_graphs) {
+        for (const auto &node : impl_graph.GetAllNodes()) {
+          if (node->attr.api.compute_type != af::ComputeType::kComputeCube) {
+            continue;
+          }
+          if (IsConv2DGraphType(impl_graph)) {
+            is_batch = false;
+            is_conv = true;
+          } else {
+            ascgen_utils::MatMulAttr mm_attr_data;
+            if (ascgen_utils::ParseMatmulAttr(node, mm_attr_data) != ge::SUCCESS) {
+              return false;
+            }
+            is_batch = mm_attr_data.is_batch;
+            input_type = mm_attr_data.input_dtype;
+            output_type = mm_attr_data.output_dtype;
+
+            // 如果 ParseMatmulAttr 返回的 dtype 为空，从 node 的输入输出获取
+            if (input_type.empty() && !node->inputs().empty()) {
+              ge::DataType dtype = node->inputs()[0]->attr.dtype;
+              if (DtypeName(dtype, input_type) != ge::SUCCESS) {
+                GELOGE(ge::FAILED, "Failed to get input dtype from node");
+                return false;
+              }
+            }
+            if (output_type.empty() && !node->outputs().empty()) {
+              ge::DataType dtype = node->outputs()[0]->attr.dtype;
+              if (DtypeName(dtype, output_type) != ge::SUCCESS) {
+                GELOGE(ge::FAILED, "Failed to get output dtype from node");
+                return false;
+              }
+            }
+          }
+
+          return true;
+        }
+      }
+    }
+    return false;
+  };
+
+  auto process_scheduled_results = [&extract_from_impl_graphs](const auto &scheduled_results) {
+    for (const auto &scheduled_result : scheduled_results) {
+      if (scheduled_result.cube_type != ascir::CubeTemplateType::kDefault) {
+        if (extract_from_impl_graphs(scheduled_result.schedule_groups)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  };
+
+  for (const auto &scheduled_results : fused_schedule_result.node_idx_to_scheduled_results) {
+    if (process_scheduled_results(scheduled_results)) {
+      return ge::SUCCESS;
+    }
+  }
+  return ge::FAILED;
 }
 
 ge::Status FilterCVFusionCommonResult(ascir::FusedScheduledResult &common_schedule_result) {

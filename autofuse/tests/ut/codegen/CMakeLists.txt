@@ -10,6 +10,7 @@ target_compile_definitions(test_codegen PRIVATE
 )
 target_include_directories(test_codegen PRIVATE
         ${CODE_ROOT_DIR}
+        ${CODE_ROOT_DIR}/tests/framework/share_graph/include
         ${CODE_ROOT_DIR}/tests/depends/runtime/src
         ${ASCEND_INSTALL_PATH}/x86_64-linux/include/acl/error_codes
 )
@@ -22,6 +23,7 @@ target_link_libraries(test_codegen PRIVATE
     aihac_ir
     graph_base_af
     graph_af
+    share_graph
     ascir
     ascgen_common
     aihac_symbolizer_af

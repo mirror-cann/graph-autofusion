@@ -11,6 +11,9 @@
 #include <iostream>
 #include "Matmul_tiling_data.h"
 using namespace optiling;
+namespace optiling {
+bool GetTiling(MMTilingData &tiling_data, int32_t tiling_case_id, double *perf);
+}
 bool TestCase(std::vector<int64_t> shapes) {
   int64_t m = shapes[0];
   int64_t k = shapes[1];
@@ -29,7 +32,7 @@ bool TestCase(std::vector<int64_t> shapes) {
   std::cout << "k"<< " = " << k << std::endl;
   std::cout << "n"<< " = " << n << std::endl;
     
-  const auto status = GetTiling(tilingData, 1u);
+  const auto status = GetTiling(tilingData, 1u, nullptr);
   if ((status)) {
     std::cout << "tile_l2_m"<< " = " << tilingData.get_tilem_size() << std::endl;
     std::cout << "tile_l2_n"<< " = " << tilingData.get_tilen_size() << std::endl;
