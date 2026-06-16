@@ -127,5 +127,5 @@ TEST_F(SuperKernelApiTest, Optimize_SuccessDumpsAfterUpdateRtsJson)
     ASSERT_EQ(SkUtGetDebugJsonPrintCallCount(), 2U);
     const char* afterPath = SkUtGetDebugJsonPrintPath(1);
     ASSERT_NE(afterPath, nullptr);
-    EXPECT_NE(std::string(afterPath).find("sk_graph_rts_after_device_0.json"), std::string::npos);
+    EXPECT_NE(std::string(afterPath).find("sk_mdl_updated.json"), std::string::npos);
 }
