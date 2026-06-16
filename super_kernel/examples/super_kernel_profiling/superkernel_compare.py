@@ -277,6 +277,6 @@ def superkernel_compare():
                      dsq1_activate_scale, dsq1_group_index, gmm3_weight)
             prof.step()
 
-    print("execute samples success")
+    print("execute sample success")
 
 superkernel_compare()

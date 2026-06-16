@@ -6,7 +6,7 @@ autofuse 融合 mul + reducesum 两个算子。
 
 ## 执行命令
 
-```
+```bash
 python3 af_mul_reducesum.py
 ```
 

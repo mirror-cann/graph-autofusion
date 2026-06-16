@@ -9,7 +9,7 @@ This document is intended for SuperKernel project developers, explaining how to 
 
 ## Directory Structure Overview
 
-```
+```text
 super_kernel/
   src/
     superkernel/    # core business code

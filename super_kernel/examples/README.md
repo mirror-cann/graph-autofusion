@@ -5,7 +5,7 @@
 使用super_kernel完成算子融合
 
 ## 目录结构
-```
+```text
 ├── super_kernel_base             # 基础功能的样例
 │  └── superkernel_scope.py       # 通过super_kernel完成算子融合
 └── super_kernel_profiling        # 展示profiling的样例

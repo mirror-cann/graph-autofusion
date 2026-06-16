@@ -8,7 +8,7 @@ Core features:
 - Uses Python wrapper for underlying C interfaces, simplifying development workflow.
 
 ## Directory Structure
-```
+```text
 ├── super_kernel_runtime_ascendc_only             # directory
    └── superkernel_runtime_ascendc_basic.py       # main entry, flow includes sub-kernel compilation, superkernel compilation, memory allocation, loading execution, and so on
    └── compile_sk.py                              # compile sub_kernel, super_kernel operators
@@ -50,13 +50,13 @@ This use case demonstrates super_kernel basic functionality through compile-time
 
 ## Execution Command
 
-```
+```bash
 python3 superkernel_runtime_ascendc_basic.py
 ```
 
 ## Expected Execution Result
 
 After execution, print shows success:
-```
+```text
 execute sample success
 ```

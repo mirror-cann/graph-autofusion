@@ -6,7 +6,7 @@ autofuse 融合 add + ge 两个算子。
 
 ## 执行命令
 
-```
+```bash
 python3 af_add_ge.py
 ```
 

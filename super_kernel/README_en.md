@@ -46,7 +46,7 @@ Additionally, SuperKernel supports memory semantics-based Notify and Wait events
 
 ## Directory Structure
 
-```
+```text
 super_kernel/
 ├── docs                   # documentation introduction
 ├── examples               # example scripts or Notebooks demonstrating typical usage

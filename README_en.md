@@ -24,7 +24,7 @@ Component features:
 
 ## 🔍Directory Structure
 
-```
+```text
 ├── autofuse                       # Autofuse component. Autofuse source code, tests, and documentation are in this subdirectory.
 ├── build.sh                       # One-click project build script
 ├── cmake                          # Project build directory

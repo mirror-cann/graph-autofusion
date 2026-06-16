@@ -7,7 +7,7 @@
 - 使用python封装底层c接口，简化开发流程。
 
 ## 目录结构
-```
+```text
 ├── super_kernel_runtime_ascendc_only             # 目录
    └── superkernel_runtime_ascendc_basic.py       # 主入口，流程上包含子kernel编译、superkernel编译、内存分配、加载执行等
    └── compile_sk.py                              # 编译sub_kernel、super_kernel算子
@@ -49,13 +49,13 @@ graph TB
 
 ## 执行命令
 
-```
+```bash
 python3 superkernel_runtime_ascendc_basic.py
 ```
 
 ## 预期执行结果
 
 执行后打印显示success
-```
+```text
 execute sample success
 ```
