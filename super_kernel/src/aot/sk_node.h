@@ -222,6 +222,10 @@ struct KernelInfos {
     const void *devArgs = nullptr;
     void* opInfoPtr = nullptr;
     size_t opInfoSize = 0;
+    size_t dynUbufSize = 0;
+    size_t allocUbufSize = 0;
+    bool hasDynUbufSize = false;
+    bool hasAllocUbufSize = false;
     std::string funcName = "Unknown";
     aclrtBinHandle binHdl = nullptr;
     aclrtFuncHandle funcHdl = nullptr;
@@ -514,11 +518,14 @@ public:
     bool IsScheModeOn() const override { return nodeInfos.kernelInfos.isScheModeOn; }
 private:
     void IdentifyAndHandleSimtKernel(const SuperKernelOptionsManager* opts);
+    bool SetupLaunchKernelCfgWithDynUbuf(size_t minAvailableUbufSize);
     
     bool isScopeBegin = false;
     bool isScopeEnd = false;
     bool isPlaceholder = false;
     std::string scopeName;
+    std::vector<aclrtLaunchKernelAttr> launchKernelAttrs_;
+    aclrtLaunchKernelCfg launchKernelCfg_{};
 };
 
 class SuperKernelMemoryNode : public SuperKernelBaseNode {

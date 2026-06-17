@@ -31,9 +31,12 @@ void SkUtSetAclrtMallocRet(aclError ret);
 void SkUtSetAclrtFreeRet(aclError ret);
 void SkUtSetAclrtMemsetRet(aclError ret);
 void SkUtSetAclrtStreamGetIdRet(aclError ret);
+void SkUtSetAclrtFunctionGetAvailDynUbufPerBlockRet(aclError ret);
+void SkUtSetAclrtFunctionAvailDynUbufSize(size_t dynUbufSize);
 void SkUtSetThrowOnAclmdlRIGetStreams(int enable);
 void SkUtSetDestroyRegisterCallbackDelayUs(uint32_t delayUs);
 int SkUtGetBinaryGetFunctionNullHandle();
+const char* SkUtGetLastBinaryGetFunctionName();
 
 aclError SkUtGetAclmdlRIGetStreamsRet(int phase);
 aclError SkUtGetAclrtStreamGetTasksRet(int phase);
@@ -46,6 +49,8 @@ aclError SkUtGetAclrtMallocRet();
 aclError SkUtGetAclrtFreeRet();
 aclError SkUtGetAclrtMemsetRet();
 aclError SkUtGetAclrtStreamGetIdRet();
+aclError SkUtGetAclrtFunctionGetAvailDynUbufPerBlockRet();
+size_t SkUtGetAclrtFunctionAvailDynUbufSize();
 int SkUtGetThrowOnAclmdlRIGetStreams();
 uint32_t SkUtGetDestroyRegisterCallbackCallCount();
 aclError SkUtRegisterModelDestroyCallback(aclmdlRI modelRI, aclmdlRIDestroyCallbackFunc callback, void* userData);
@@ -62,6 +67,7 @@ aclrtTaskType SkUtGetTaskType(uint32_t streamIdx, uint32_t taskIdx);
 
 void SkUtSetEntryBinHandleNull(int enable);
 void SkUtSetBinaryGetFunctionNullHandle(int enable);
+void SkUtSetLastBinaryGetFunctionName(const char* funcName);
 
 void SkUtSetSecurecMemcpyFailOnCall(int hitOnCall);
 void SkUtSetSecurecMemsetFailOnCall(int hitOnCall);

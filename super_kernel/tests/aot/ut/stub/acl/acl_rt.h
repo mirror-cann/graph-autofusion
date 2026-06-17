@@ -268,6 +268,7 @@ aclError aclrtKernelArgsFinalize(aclrtArgsHandle argsHdl);
 aclError aclrtGetFunctionName(aclrtFuncHandle funcHandle, uint32_t maxLen, char* name);
 aclError aclrtBinaryGetDevAddress(aclrtBinHandle binHdl, void** devAddr, size_t* devSize);
 aclError aclrtGetFunctionAttribute(aclrtFuncHandle funcHandle, aclrtFuncAttribute attrType, int64_t *attrValue);
+aclError aclrtFunctionGetAvailDynUbufPerBlock(void *func, uint32_t flags, size_t *dynamicUbufSize);
 
 // Memory management functions
 aclError aclrtSetDevice(int32_t deviceId);

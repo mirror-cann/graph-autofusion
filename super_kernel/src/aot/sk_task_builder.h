@@ -234,7 +234,7 @@ private:
     // Print sync metadata (debug only)
     void PrintSyncInfo(const char* stage);
 
-    SkHostEntryInfo GenEntryInfo(SkTask& skTaskCube, SkTask& skTaskVec);
+    SkHostEntryInfo GenEntryInfo(SkTask& skTaskCube, SkTask& skTaskVec, bool useSimtEntry = false);
     DeviceArgsPtr GenEntryArgs(const SkTask& skTaskCube, const SkTask& skTaskVec, const SkDfxInfo* dfxInfos,
                                uint32_t dfxCount, const SkEventConfig *eventConfig = nullptr);
 

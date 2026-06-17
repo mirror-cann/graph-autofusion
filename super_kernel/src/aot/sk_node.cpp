@@ -43,6 +43,19 @@ extern "C" aclrtBinHandle AscendGetEntryBinHandle();
 
 constexpr uint64_t INVALID_SK_BIND_VALUE = 0xffffffffffffffffULL;
 
+bool GetFunctionAllocUbufSize(aclrtFuncHandle funcHandle, size_t& allocUbufSize, const std::string& context)
+{
+    uint32_t allocUbufSizeValue = 0;
+    rtError_t ret = rtFunctionGetMetaInfo(funcHandle, RT_FUNCTION_TYPE_COMPILER_ALLOC_UB_SIZE,
+        &allocUbufSizeValue, sizeof(allocUbufSizeValue));
+    if (ret != RT_ERROR_NONE) {
+        SK_LOGE("rtFunctionGetMetaInfo COMPILER_ALLOC_UB_SIZE failed for %s, ret=%d", context.c_str(), ret);
+        return false;
+    }
+    allocUbufSize = static_cast<size_t>(allocUbufSizeValue);
+    return true;
+}
+
 KernelCapBits ParseKernelCapBits(uint64_t cap)
 {
     const auto getBit = [cap](KernelCapBitOffset offset) -> bool {
@@ -562,6 +575,10 @@ Json KernelInfosToJson(const KernelInfos& kernelInfos)
     kernelJson["taskRatio"] = Json::array({kernelInfos.taskRatio[0], kernelInfos.taskRatio[1]});
     kernelJson["opInfoPtr"] = PtrToHexString(kernelInfos.opInfoPtr);
     kernelJson["opInfoSize"] = static_cast<uint64_t>(kernelInfos.opInfoSize);
+    kernelJson["dynUbufSize"] = static_cast<uint64_t>(kernelInfos.dynUbufSize);
+    kernelJson["allocUbufSize"] = static_cast<uint64_t>(kernelInfos.allocUbufSize);
+    kernelJson["hasDynUbufSize"] = kernelInfos.hasDynUbufSize;
+    kernelJson["hasAllocUbufSize"] = kernelInfos.hasAllocUbufSize;
     kernelJson["taskGrp"] = "0x0";
     kernelJson["resolvedNum"] = kernelInfos.resolvedNum;
 
@@ -907,7 +924,7 @@ bool SuperKernelKernelNode::InitNode(const SuperKernelOptionsManager* opts) {
         }
     }
 
-    // SIMT算子不支持SuperKernel融合，仅检查含AIV section的kernel类型
+    // SIMT kernels need dynamic ubuf size propagated to the SK launch cfg.
     IdentifyAndHandleSimtKernel(opts);
 
     if (taskParams.taskGrp != nullptr) {
@@ -941,6 +958,10 @@ bool SuperKernelKernelNode::GetScheMode() const
 
 void SuperKernelKernelNode::IdentifyAndHandleSimtKernel(const SuperKernelOptionsManager* opts) {
     nodeInfos.kernelInfos.isSimtOp = false;
+    nodeInfos.kernelInfos.hasDynUbufSize = false;
+    nodeInfos.kernelInfos.hasAllocUbufSize = false;
+    nodeInfos.kernelInfos.dynUbufSize = 0;
+    nodeInfos.kernelInfos.allocUbufSize = 0;
     if (opts == nullptr) {
         return;
     }
@@ -969,12 +990,77 @@ void SuperKernelKernelNode::IdentifyAndHandleSimtKernel(const SuperKernelOptions
     }
     bool isSimt = (aivType == AIV_TYPE_SIMT_VF_ONLY || aivType == AIV_TYPE_SIMD_SIMT_MIX_VF);
     if (isSimt) {
-        nodeInfos.kernelInfos.isSimtOp = true;
-        isFusible = false;
-        SetFusionFailReason(FusionFailReason::SIMT_OP_NOT_SUPPORTED);
+        isFusible = false;	 
+        SetFusionFailReason(FusionFailReason::SIMT_OP_NOT_SUPPORTED);	 
         SK_LOGI("%s is SIMT type, aivType=%u, not fusible", Format().c_str(), aivType);
+
+        nodeInfos.kernelInfos.isSimtOp = true;
+        size_t dynUbufSize = 0;
+        aclError aclRet = aclrtFunctionGetAvailDynUbufPerBlock(taskParams.kernelTaskParams.funcHandle, 0,
+                                                               &dynUbufSize);
+        if (aclRet != ACL_SUCCESS) {
+            SK_LOGE("Failed to get available dynamic ubuf size for %s, ret=%d", Format().c_str(), aclRet);
+            isFusible = false;
+            SetFusionFailReason(FusionFailReason::KERNEL_ATTR_GET_FAILED);
+            return;
+        }
+        size_t allocUbufSize = 0;
+        if (!GetFunctionAllocUbufSize(taskParams.kernelTaskParams.funcHandle, allocUbufSize, Format())) {
+            isFusible = false;
+            SetFusionFailReason(FusionFailReason::KERNEL_ATTR_GET_FAILED);
+            return;
+        }
+        nodeInfos.kernelInfos.dynUbufSize = dynUbufSize;
+        nodeInfos.kernelInfos.allocUbufSize = allocUbufSize;
+        nodeInfos.kernelInfos.hasDynUbufSize = true;
+        nodeInfos.kernelInfos.hasAllocUbufSize = true;
+        SK_LOGI("%s is SIMT type, aivType=%u, dynUbufSize=%zu, allocUbufSize=%zu",
+            Format().c_str(), aivType, dynUbufSize, allocUbufSize);
     }
     return;
+}
+
+bool SuperKernelKernelNode::SetupLaunchKernelCfgWithDynUbuf(size_t minAvailableUbufSize)
+{
+    launchKernelAttrs_.clear();
+    const aclrtLaunchKernelCfg* originCfg = taskParams.kernelTaskParams.cfg;
+    if (originCfg != nullptr && originCfg->attrs != nullptr) {
+        launchKernelAttrs_.reserve(originCfg->numAttrs + 1);
+        for (size_t attrIdx = 0; attrIdx < originCfg->numAttrs; ++attrIdx) {
+            const aclrtLaunchKernelAttr& originAttr = originCfg->attrs[attrIdx];
+            if (originAttr.id != ACL_RT_LAUNCH_KERNEL_ATTR_DYN_UBUF_SIZE) {
+                launchKernelAttrs_.push_back(originAttr);
+            }
+        }
+    }
+
+    aclrtLaunchKernelAttr dynUbufAttr{};
+    dynUbufAttr.id = ACL_RT_LAUNCH_KERNEL_ATTR_DYN_UBUF_SIZE;
+    size_t skAllocUbufSize = 0;
+    if (!GetFunctionAllocUbufSize(taskParams.kernelTaskParams.funcHandle, skAllocUbufSize, Format())) {
+        return false;
+    }
+    if (minAvailableUbufSize > SK_TOTAL_UB_SIZE || skAllocUbufSize > SK_TOTAL_UB_SIZE - minAvailableUbufSize) {
+        SK_LOGE("invalid dyn ubuf calculation for %s, totalUbSize=%zu, minAvailableUbufSize=%zu, "
+            "skAllocUbufSize=%zu", Format().c_str(), SK_TOTAL_UB_SIZE, minAvailableUbufSize, skAllocUbufSize);
+        return false;
+    }
+    size_t finalDynUbufSize = SK_TOTAL_UB_SIZE - minAvailableUbufSize - skAllocUbufSize;
+    if (finalDynUbufSize > std::numeric_limits<uint32_t>::max()) {
+        SK_LOGE("dynUbufSize exceeds uint32_t range for %s, dynUbufSize=%zu",
+            Format().c_str(), finalDynUbufSize);
+        return false;
+    }
+    dynUbufAttr.value.dynUBufSize = static_cast<uint32_t>(finalDynUbufSize);
+    launchKernelAttrs_.push_back(dynUbufAttr);
+
+    launchKernelCfg_.attrs = launchKernelAttrs_.data();
+    launchKernelCfg_.numAttrs = launchKernelAttrs_.size();
+    taskParams.kernelTaskParams.cfg = &launchKernelCfg_;
+    SK_LOGI("Set dyn ubuf launch cfg for %s, minAvailableUbufSize=%zu, skAllocUbufSize=%zu, "
+        "finalDynUbufSize=%zu, attrCount=%zu",
+        Format().c_str(), minAvailableUbufSize, skAllocUbufSize, finalDynUbufSize, launchKernelCfg_.numAttrs);
+    return true;
 }
 
 std::string SuperKernelKernelNode::Format() const {
@@ -1000,6 +1086,12 @@ std::string KernelInfos::Format() const {
         << ", needMixKernelSplit:" << needMixKernelSplit;
     if (isSimtOp) {
         oss << ", isSimtOp:" << isSimtOp;
+    }
+    if (hasDynUbufSize) {
+        oss << ", dynUbufSize:" << dynUbufSize;
+    }
+    if (hasAllocUbufSize) {
+        oss << ", allocUbufSize:" << allocUbufSize;
     }
     oss << ", resolvedNum:" << resolvedNum;
     if (binHdl != nullptr) {
@@ -1058,6 +1150,11 @@ bool SuperKernelKernelNode::Update(const UpdateContext &ctx) {
         taskParams.type = ACL_MODEL_RI_TASK_KERNEL;
         taskParams.opInfoPtr = ctx.launchInfo->cacheInfo;
         taskParams.opInfoSize = ctx.launchInfo->cacheopInfoSize;
+        if (ctx.launchInfo->hasMinAvailableUbufSize &&
+            !SetupLaunchKernelCfgWithDynUbuf(ctx.launchInfo->minAvailableUbufSize)) {
+            SK_LOGE("Failed to setup dyn ubuf launch cfg for kernel node %s", Format().c_str());
+            return false;
+        }
 
         aclError aclRet = aclmdlRITaskSetParams(*originTask, &taskParams);
 

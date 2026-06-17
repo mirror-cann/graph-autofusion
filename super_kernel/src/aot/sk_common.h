@@ -252,7 +252,8 @@ struct TaskInfo {
     uint64_t extraInfo;
     uint64_t args;
     uint32_t argsSize;
-    uint8_t padding[4];
+    uint8_t isSimtKernel;
+    uint8_t reservedList[3];
 };
 
 inline void SetEventTaskArgs(TaskInfo& taskInfo, uint64_t addr, uint64_t value, uint32_t flag)
