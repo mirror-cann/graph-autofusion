@@ -12,6 +12,15 @@
 #include "tikicpulib.h"
 
 #include "autofuse_tiling_data.h"
+#ifndef AUTOFUSE_PGO_TENSOR_ARGS_DEFINED
+#define AUTOFUSE_PGO_TENSOR_ARGS_DEFINED
+struct PgoTensorArgs {
+  void **inputs = nullptr;
+  uint32_t input_num = 0;
+  void **outputs = nullptr;
+  uint32_t output_num = 0;
+};
+#endif
 struct ResLimit {
   uint32_t valid_num = 0;
   uint32_t aiv_num = 0;
@@ -22,16 +31,21 @@ struct ResLimit {
 ResLimit g_no_limit_res = {1, 10, 0, 192 * 1024, {}};
 extern "C" __global__ __aicore__ void add_abs_test(GM_ADDR x1, GM_ADDR x2, GM_ADDR y, GM_ADDR workspace, GM_ADDR tiling);
 extern "C" int64_t AutofuseTiling(AutofuseTilingData* tiling, uint32_t* workspaceSize, uint32_t *blockDim, uint32_t aiv_num, uint32_t ub_size);
-typedef long int (*ProfilingCallback)(void* input0, void* input1, void* output0, void* stream, uint32_t workspaceSize, AutofuseTilingData* tiling_data, double* cost_time);
-typedef long int (*ProfilingBatchCallback)(void* input0, void* input1, void* output0, void* stream, uint32_t workspaceSize, std::vector<AutofuseTilingDataPerf> *profiles);
+typedef long int (*ProfilingCallback)(PgoTensorArgs *tensor_args, void* stream, uint32_t workspaceSize, AutofuseTilingData* tiling_data, double* cost_time);
+typedef long int (*ProfilingBatchCallback)(PgoTensorArgs *tensor_args, void* stream, uint32_t workspaceSize, std::vector<AutofuseTilingDataPerf> *profiles);
 extern "C" int64_t PgoTilingSearch(char *search_file, char *config_file, AutofuseTilingData *tiling,
                                    uint32_t *workspaceSize, uint32_t *blockDim, ResLimit *res_limit = nullptr,
-                                   void *input0 = nullptr, void *input1 = nullptr, void *output0 = nullptr,
-                                   void *stream = nullptr, ProfilingCallback prof_callback = nullptr,
+                                   PgoTensorArgs *tensor_args = nullptr, void *stream = nullptr,
+                                   ProfilingCallback prof_callback = nullptr,
                                    ProfilingBatchCallback prof_batch_callback = nullptr);
 
-extern "C" int64_t StubPgoGetProfilingBatch(void* input0, void* input1, void* output0, void* stream,
-                                      uint32_t workspaceSize, std::vector<AutofuseTilingDataPerf> *profiles) {
+extern "C" int64_t StubPgoGetProfilingBatch(PgoTensorArgs *tensor_args, void* stream, uint32_t workspaceSize,
+                                      std::vector<AutofuseTilingDataPerf> *profiles) {
+  (void)stream;
+  (void)workspaceSize;
+  void* input0 = tensor_args->inputs[0];
+  void* input1 = tensor_args->inputs[1];
+  void* output0 = tensor_args->outputs[0];
   static double prof_time = 1;
   for (auto &profile : *profiles) {
     if (prof_time < 1){
@@ -47,8 +61,13 @@ extern "C" int64_t StubPgoGetProfilingBatch(void* input0, void* input1, void* ou
 static float* g_expect_data = nullptr;
 static int g_test_size = 0;
 
-extern "C" int64_t StubPgoGetProfiling(void* input0, void* input1, void* output0, void* stream,
-                               uint32_t workspaceSize, AutofuseTilingData* tiling_data, double* cost_time) {
+extern "C" int64_t StubPgoGetProfiling(PgoTensorArgs *tensor_args, void* stream, uint32_t workspaceSize,
+                               AutofuseTilingData* tiling_data, double* cost_time) {
+  (void)stream;
+  (void)workspaceSize;
+  void* input0 = tensor_args->inputs[0];
+  void* input1 = tensor_args->inputs[1];
+  void* output0 = tensor_args->outputs[0];
   static double prof_time = 1;
   *cost_time = prof_time;
   prof_time += 0.1;
@@ -131,20 +150,26 @@ protected:
 
 TEST_P(E2E_BackendPgoAddAbs_Code, PgoByCoreNum) {
   uint32_t ws_size = 0;
+  void *inputs[] = {input1, input2};
+  void *outputs[] = {y};
+  PgoTensorArgs tensor_args = {inputs, 2U, outputs, 1U};
 
   int result = PgoTilingSearch("./tests/st/backend_e2e/pgo_add_abs_test/search.txt",
                                "./tests/st/backend_e2e/pgo_add_abs_test/config.txt", &tiling_data, &ws_size, &block_dim,
-                               &g_no_limit_res, (void *)input1, (void *)input2, (void *)y, nullptr, StubPgoGetProfiling,
+                               &g_no_limit_res, &tensor_args, nullptr, StubPgoGetProfiling,
                                StubPgoGetProfilingBatch);
   EXPECT_EQ(result, 0);
 }
 
 TEST_P(E2E_BackendPgoAddAbs_Code, PgoByFilter) {
   uint32_t ws_size = 0;
+  void *inputs[] = {input1, input2};
+  void *outputs[] = {y};
+  PgoTensorArgs tensor_args = {inputs, 2U, outputs, 1U};
   setenv("AUTOFUSE_DFX_FLAGS", "autofuse_pgo_algo=pruning", 1);
   int result = PgoTilingSearch("./tests/st/backend_e2e/pgo_add_abs_test/search.txt",
                                "./tests/st/backend_e2e/pgo_add_abs_test/config.txt", &tiling_data, &ws_size, &block_dim,
-                               &g_no_limit_res, (void *)input1, (void *)input2, (void *)y, nullptr, StubPgoGetProfiling,
+                               &g_no_limit_res, &tensor_args, nullptr, StubPgoGetProfiling,
                                StubPgoGetProfilingBatch);
   unsetenv("AUTOFUSE_DFX_FLAGS");
   EXPECT_EQ(result, 0);

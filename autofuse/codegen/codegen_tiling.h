@@ -111,6 +111,7 @@ struct CompileInfo {
 
     std::string ExternFunctionDeclare(const ::ascir::FusedScheduledResult& fused_schedule_result,
                                       const std::string tiling) const;
+    std::string PGOTensorArgsDef() const;
     std::string PGOProfilingCallbackDef(const ::ascir::FusedScheduledResult &fused_schedule_result,
                                         const std::string tiling) const;
     std::string PGOSearchFuncInputOutputCallBackDef(const ::ascir::FusedScheduledResult& fused_schedule_result) const;
@@ -118,9 +119,11 @@ struct CompileInfo {
     std::string PGOSearchFuncInputOutputCall(const ::ascir::FusedScheduledResult& fused_schedule_result) const;
     std::string PGOSearchStructInputOutputDef(const ::ascir::FusedScheduledResult &fused_schedule_result) const;
     std::string PGOSearchTensorInputOutputDef(const ::ascir::FusedScheduledResult &fused_schedule_result) const;
+    std::string PGOSearchTensorArgsUpdateDef(const ::ascir::FusedScheduledResult &fused_schedule_result) const;
     std::string PGOSearchFuncInputOutputStructAssignDef(const ::ascir::FusedScheduledResult &fused_schedule_result,
                                                         const std::string &struct_var_name) const;
     uint32_t PGOSearchFuncGetInputOutputCount(const ::ascir::FusedScheduledResult &fused_schedule_result) const;
+    uint32_t PGOSearchFuncGetOutputCount(const ::ascir::FusedScheduledResult &fused_schedule_result) const;
     std::string CalculateTensorMemorySizeStr(const ::ascir::TensorAttr& tensor) const;
     std::string PGOSearchTensorMallocDef(const ::ascir::FusedScheduledResult &fused_schedule_result) const;
     std::string PGOSearchTensorFreeDef(const ::ascir::FusedScheduledResult &fused_schedule_result) const;
@@ -239,7 +242,7 @@ struct CompileInfo {
     void GenPgoMsptiToolFunction(std::stringstream &ss) const;
     void GenPgoMsptiProfiling(std::stringstream &ss) const;
     void GenPgoBatchCallback(std::stringstream &ss) const;
-    void GenPgoBatchProcess(const ::ascir::FusedScheduledResult &fused_schedule_result, std::stringstream &ss) const;
+    void GenPgoBatchProcess(std::stringstream &ss) const;
     void GenPgoGetProfilingBatch(const ::ascir::FusedScheduledResult &fused_schedule_result, std::stringstream &ss) const;
     void GenPgoProfilingCallback(std::stringstream &ss) const;
     void GenPgoGetProfiling(const ::ascir::FusedScheduledResult &fused_schedule_result, std::stringstream &ss) const;
