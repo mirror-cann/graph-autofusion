@@ -27,6 +27,7 @@ class AlignmentStrategy : public BaseAlignmentStrategy {
   af::Status EleWiseAlignmentInferFunc(const af::AscNodePtr &node) override;
   af::Status LoadAlignmentInferFunc(const af::AscNodePtr &node) override;
   af::Status StoreAlignmentInferFunc(const af::AscNodePtr &node) override;
+  af::Status SetAlignWidth(const ascir::ImplGraph &impl_graph) override;
 };
 
 }  // namespace optimize

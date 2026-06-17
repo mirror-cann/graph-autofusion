@@ -49,6 +49,7 @@ class BaseAlignmentStrategy {
   // 只允许load出现尾轴非连续
   af::Status AlignVectorizedStrides(ascir::ImplGraph &impl_graph);
   static af::Status SetVectorizedStridesForTensor(const af::NodePtr &node, af::AscTensorAttr &output_attr, const AlignmentType align_type);
+  static uint32_t GetAlignWidth() { return align_width_; }
 
  protected:
   virtual AlignmentType GetDefaultAlignmentType() = 0;
@@ -63,7 +64,7 @@ class BaseAlignmentStrategy {
   virtual af::Status ReduceAlignmentInferFunc(const af::AscNodePtr &node);
   virtual af::Status SplitAlignmentInferFunc(const af::AscNodePtr &node);
 
-  static af::Status SetAlignWidth(const ascir::ImplGraph &impl_graph);
+  virtual af::Status SetAlignWidth(const ascir::ImplGraph &impl_graph);
   af::Status InferAlignmentForOneNode(const af::AscNodePtr &node);
   // 当前tensor的对齐行为只会出现在尾轴,如果没有新的对齐行为或者类型,该函数不应该修改
   af::Status SetVectorizedStridesForOneNode(const af::AscNodePtr &node);

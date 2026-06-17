@@ -2789,10 +2789,10 @@ TEST_F(TestOptimizerV2, LoadGEWhereTransposeCase) {
   EXPECT_EQ(impl_graphs[0].scheduled_graph.GetName(), "gen_nddma_B0X3Y0_nddma");
   for (auto node: impl_graphs[0].scheduled_graph.GetAllNodes()) {
     if (node->GetType() == "Nddma") {
-      EXPECT_EQ(att::Str(node->outputs[0].attr.vectorized_strides[0]), "(2592 * z3t_size)");
+      EXPECT_EQ(att::Str(node->outputs[0].attr.vectorized_strides[0]), "(8 * Ceiling((Rational(513 , 2) * z3t_size)))");
     }
     if (node->GetType() == att::kGe) {
-      EXPECT_EQ(att::Str(node->outputs[0].attr.vectorized_strides[0]), "(3456 * z3t_size)");
+      EXPECT_EQ(att::Str(node->outputs[0].attr.vectorized_strides[0]), "(32 * Ceiling((Rational(513 , 8) * z3t_size)))");
     }
   }
 }

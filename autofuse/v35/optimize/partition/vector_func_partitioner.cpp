@@ -272,9 +272,8 @@ ge::Status ApplyMerge(const af::AscNodePtr &node, const af::AxisPtr &merged_axis
                       const std::vector<af::AxisId> &from_ids) {
   // vector axis
   for (const auto output : node->outputs()) {
-    std::vector<af::Expression> vec_repeats;
-    GE_ASSERT_SUCCESS(optimize::ScheduleUtils::GetVectorRepeats(output->attr.repeats, output->attr.axis,
-                                                                output->attr.vectorized_axis, vec_repeats));
+    // 因为后续不需要更新repeats，而且在有多组axis需要合并的场景，第一组合并之后的新vec_axis会找不到对应的repeats，所以这里仅初始化一个空的repeats
+    std::vector<af::Expression> vec_repeats(output->attr.vectorized_axis.size());
     const auto &view = af::AxisUtils::MergeView(
         {output->attr.vectorized_axis, vec_repeats, output->attr.vectorized_strides}, merged_axis->id, from_ids);
     output->attr.vectorized_axis = view.axis_ids;
