@@ -145,49 +145,103 @@ def clean_before_modify(temp_dir):
     os.chdir(src_directory)
 
 
-def static_shape_kernel_proc(args: argparse.Namespace, temp_dir, tiling_repr=None):
-    clean_before_modify(temp_dir)
+def remove_tiling_data_from_launch(lines, start_index, launch_pattern):
+    launch_lines = []
+    index = start_index
+    while index < len(lines):
+        launch_lines.append(lines[index])
+        if ');' in lines[index]:
+            break
+        index += 1
+
+    launch_code = ''.join(launch_lines)
+    launch_code, replace_count = launch_pattern.subn('', launch_code, count=1)
+    return launch_code.splitlines(keepends=True), index + 1, replace_count > 0
+
+
+def remove_tiling_data_from_kernel_definition(lines, start_index, kernel_param_pattern, tiling_repr):
+    definition_lines = []
+    index = start_index
+    while index < len(lines):
+        definition_lines.append(lines[index])
+        if '{' in lines[index]:
+            break
+        index += 1
+
+    definition_code = ''.join(definition_lines)
+    definition_code, replace_count = kernel_param_pattern.subn('', definition_code, count=1)
+    if replace_count == 0:
+        return definition_lines, index + 1, False
+
+    definition_lines = definition_code.splitlines(keepends=True)
+    if tiling_repr is None:
+        definition_lines.append('  const AutofuseTilingData t;\n')
+    else:
+        definition_lines.append(f'  constexpr AutofuseTilingData t = {tiling_repr};\n')
+    return definition_lines, index + 1, True
+
+
+def prepare_static_shape_kernel(args: argparse.Namespace, temp_dir, tiling_repr=None):
     base_device_files = os.path.basename(args.device_files)
     kernel_file = os.path.join(temp_dir, "device", base_device_files)
-    pattern = re.compile(r'^extern\s+"C"\s+__global__\s+__aicore__\s+void\s+(\w+)\s*\(([^)]*)\)\s*{')
-
     with open(kernel_file, 'r') as f:
         lines = f.readlines()
-    if any('INDUCTOR_CONST_TILING_DATA' in line for line in lines):
+    has_inductor_const_tiling = any('INDUCTOR_CONST_TILING_DATA' in line for line in lines)
+    if has_inductor_const_tiling:
         lines = expand_inductor_const_tiling_data(lines, tiling_repr)
+    return kernel_file, lines
+
+
+def write_kernel_lines(kernel_file, lines):
+    with open(kernel_file, 'w') as f:
+        f.writelines(lines)
+
+
+def static_shape_kernel_proc(args: argparse.Namespace, temp_dir, tiling_repr=None):
+    clean_before_modify(temp_dir)
+    kernel_file, lines = prepare_static_shape_kernel(args, temp_dir, tiling_repr)
+    if tiling_repr is None and getattr(args, 'stage', None) == 'device':
+        with open(kernel_file, 'w') as f:
+            f.writelines(lines)
+        return
+
+    kernel_start_pattern = re.compile(r'^\s*(extern\s+"C"\s+)?__global__\s+__aicore__\s+void\s+(\w+)\s*\(')
+    kernel_param_pattern = re.compile(r',\s*AutofuseTilingData\s+t(?=\s*\)\s*\{)', re.DOTALL)
+    launch_start_pattern = re.compile(r'\b(\w+)\s*(?:<[^<>]*>)?\s*<<<')
+    launch_pattern = re.compile(r',\s*\*\s*tiling_data(?=\s*\);)', re.DOTALL)
+    definition_result = []
+    rewritten_kernels = set()
+    line_index = 0
+    while line_index < len(lines):
+        line = lines[line_index]
+        kernel_match = kernel_start_pattern.match(line)
+        if kernel_match:
+            definition_lines, line_index, is_rewritten = remove_tiling_data_from_kernel_definition(
+                lines, line_index, kernel_param_pattern, tiling_repr)
+            definition_result.extend(definition_lines)
+            if is_rewritten:
+                rewritten_kernels.add(kernel_match.group(2))
+            continue
+
+        definition_result.append(line)
+        line_index += 1
 
     result = []
-    for line in lines:
-        match = pattern.match(line)
-        if not match:
-            result.append(line)
+    line_index = 0
+    while line_index < len(definition_result):
+        line = definition_result[line_index]
+        launch_match = launch_start_pattern.search(line)
+        if launch_match and launch_match.group(1) in rewritten_kernels:
+            launch_lines, line_index, is_rewritten = remove_tiling_data_from_launch(
+                definition_result, line_index, launch_pattern)
+            if not is_rewritten:
+                raise CompileError(f"Failed to remove tiling data from launch of {launch_match.group(1)}")
+            result.extend(launch_lines)
             continue
+        result.append(line)
+        line_index += 1
 
-        func_name = match.group(1)
-        params_str = match.group(2).strip()
-        if not params_str:
-            result.append(line)
-            continue
-
-        params = [p.strip() for p in params_str.split(',')]
-        if not params or params[-1] != 'AutofuseTilingData t':
-            result.append(line)
-            continue
-
-        # 匹配到 AutofuseTilingData t 参数的 kernel 函数，进行静态 shape 优化：
-        # 1. 将参数名 t 改为 param，避免与后续声明的 t 变量冲突
-        # 2. 在函数体内插入 t 变量声明，用于存储静态 tiling 数据
-        params[-1] = 'AutofuseTilingData param'
-        new_params = ', '.join(params)
-        new_line = f'extern "C" __global__ __aicore__ void {func_name}({new_params}) {{\n'
-        result.append(new_line)
-        if tiling_repr is None:
-            result.append('  const AutofuseTilingData t;\n')
-        else:
-            result.append(f'  constexpr AutofuseTilingData t = {tiling_repr};\n')
-
-    with open(kernel_file, 'w') as f:
-        f.writelines(result)
+    write_kernel_lines(kernel_file, result)
 
 
 def expand_inductor_const_tiling_data(lines, tiling_repr=None):
