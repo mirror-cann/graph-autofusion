@@ -5,7 +5,7 @@
 Use super_kernel to complete operator fusion.
 
 ## Directory Structure
-```
+```text
 ├── super_kernel_base             # basic functionality sample
 │  └── superkernel_scope.py       # complete operator fusion through super_kernel
 └── super_kernel_profiling        # profiling demonstration sample

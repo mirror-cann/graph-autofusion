@@ -52,6 +52,7 @@ add_library(test_regbase_ascendc OBJECT
     ./test_shifted_chebyshev_polynomial_u.cpp
     ./test_shifted_chebyshev_polynomial_v.cpp
     ./test_shifted_chebyshev_polynomial_w.cpp
+    ./test_zeta.cpp
     )
 target_link_libraries(test_regbase_ascendc
     ascendc_api_regbase_extend

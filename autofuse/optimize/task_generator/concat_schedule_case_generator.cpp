@@ -46,6 +46,14 @@ void CollectInAndOutNodes(const af::NodePtr &node, std::set<af::Node *> &visited
     }
   }
 }
+
+void ReplaceAxisById(std::vector<ascir::AxisId> &axes, ascir::AxisId old_id, ascir::AxisId new_id) {
+  for (auto &axis_id : axes) {
+    if (axis_id == old_id) {
+      axis_id = new_id;
+    }
+  }
+}
 }  // namespace
 
 Status ConcatFusionCaseGenerator::AddTemplatesForFirstDimConcat(const af::AscNodePtr &concat_node,
@@ -87,6 +95,12 @@ Status ConcatFusionCaseGenerator::Generate(ascir::HintGraph &graph,
   GE_ASSERT_SUCCESS(AddExtraShapeEnv(concat_node, concat_dim_));
   GE_ASSERT_SUCCESS(SplitDataForDifferentConcatDim(graph),
                     "Failed to split data for graph:[%s].", graph.GetName().c_str());
+  if (has_unsupported_op) {
+    GE_CHK_STATUS_RET(Prepare(concat_node, concat_dim_), "Prepare failed");
+    GE_CHK_STATUS_RET(ConvertConcatToStores(graph, concat_node), "ConvertConcatToStores failed");
+    return af::SUCCESS;
+  }
+
   const auto backend_spec = BackendSpec::GetInstance();
   GE_ASSERT_NOTNULL(backend_spec);
   support_small_tail_ = backend_spec->concat_alg == kConcatAlgTranspose;
@@ -96,7 +110,7 @@ Status ConcatFusionCaseGenerator::Generate(ascir::HintGraph &graph,
   }
 
   // case2. 生成ub内concat的case
-  if ((!has_unsupported_op) && (concat_node->inputs.Size() <= kMaxInputNum)) {
+  if ((concat_node->inputs.Size() <= kMaxInputNum)) {
     graphs.emplace_back(graph);
     // 如果匹配小尾轴, UB能全载，则不需要生成case3模板
     if (support_small_tail_ && ascir::utils::UseSmallTailConcatApi(*concat_node)) {
@@ -109,7 +123,7 @@ Status ConcatFusionCaseGenerator::Generate(ascir::HintGraph &graph,
   GE_ASSERT_SUCCESS(AddTemplateForSplitConcat(graph, graphs));
 
   // 如果是动态shape, 添加small tail模板，运行时通过score func选择
-  if ((!has_unsupported_op) && NeedDynSmallTailTemplate(concat_node)) {
+  if (NeedDynSmallTailTemplate(concat_node)) {
     GE_ASSERT_SUCCESS(AddTemplateForSmallTail(graph, graphs));
   }
 
@@ -309,7 +323,8 @@ Status ConcatFusionCaseGenerator::Prepare(const af::AscNodePtr &concat_node, siz
 }
 
 Status ConcatFusionCaseGenerator::PropagateAxisChanges(af::Node *start_node,
-                                                       const std::vector<ascir::AxisId> &new_axis_ids) {
+                                                       ascir::AxisId old_axis_id,
+                                                       ascir::AxisId new_axis_id) {
   std::set<af::Node *> visited_nodes;
   std::queue<af::Node *> node_queue;
 
@@ -321,9 +336,9 @@ Status ConcatFusionCaseGenerator::PropagateAxisChanges(af::Node *start_node,
     node_queue.pop();
     GE_ASSERT_NOTNULL(curr_node);
     if (curr_node->attr.api.type != af::ApiType::kAPITypeBuffer) {
-      curr_node->attr.sched.axis = new_axis_ids;
+      ReplaceAxisById(curr_node->attr.sched.axis, old_axis_id, new_axis_id);
       for (const auto &out_tensor: curr_node->outputs()) {
-        out_tensor->attr.axis = new_axis_ids;
+        ReplaceAxisById(out_tensor->attr.axis, old_axis_id, new_axis_id);
       }
     }
 
@@ -349,10 +364,10 @@ Status ConcatFusionCaseGenerator::ReplaceWithStore(const af::AscNodePtr &concat_
                                                    const af::Axis &replace_axis) {
   const auto in_index = concat_in_anchor->GetIdx();
   const auto &src_out_anchor = concat_in_anchor->GetPeerOutAnchor();
+  const auto old_axis_id = concat_node->attr.sched.axis[concat_dim_];
+  const auto new_axis_id = replace_axis.id;
   // 前向刷轴
-  std::vector<ascir::AxisId> new_axis_ids = concat_node->attr.sched.axis;
-  new_axis_ids[concat_dim_] = replace_axis.id;
-  GE_CHK_STATUS_RET(PropagateAxisChanges(concat_node.get(), new_axis_ids),
+  GE_CHK_STATUS_RET(PropagateAxisChanges(concat_node.get(), old_axis_id, new_axis_id),
                     "PropagateAxisChanges failed in ReplaceWithStore");
   GE_ASSERT_NOTNULL(src_out_anchor);
   concat_in_anchor->UnlinkAll();
@@ -361,7 +376,7 @@ Status ConcatFusionCaseGenerator::ReplaceWithStore(const af::AscNodePtr &concat_
   GE_ASSERT_NOTNULL(src_node);
   std::unordered_map<std::string, af::NodePtr> name_to_new_node;
   GE_ASSERT_SUCCESS(
-      CloneNonConcatNodes(replace_axis, in_index, dst_in_anchors, new_axis_ids, name_to_new_node));
+      CloneNonConcatNodes(replace_axis, old_axis_id, in_index, dst_in_anchors, name_to_new_node));
   for (const auto &peer_in_anchor : dst_in_anchors) {
     GE_ASSERT_GRAPH_SUCCESS(af::GraphUtils::AddEdge(src_out_anchor, peer_in_anchor));
     GE_ASSERT_SUCCESS(ReconnectIfShareSameAncestor(name_to_new_node, peer_in_anchor));
@@ -393,17 +408,17 @@ Status ConcatFusionCaseGenerator::ReplaceWithConcat(ascir::ImplGraph &owner_grap
       owner_graph.CreateAxis(concat_axis.name + "_ss_" + std::to_string(start), output_repeats[concat_dim_]);
 
   // 前向刷轴
-  std::vector<ascir::AxisId> new_axis_ids = concat_node->attr.sched.axis;
-  new_axis_ids[concat_dim_] = new_concat_axis.id;
-  GE_CHK_STATUS_RET(PropagateAxisChanges(concat_node.get(), new_axis_ids),
+  const auto old_axis_id = concat_node->attr.sched.axis[concat_dim_];
+  const auto new_axis_id = new_concat_axis.id;
+  GE_CHK_STATUS_RET(PropagateAxisChanges(concat_node.get(), old_axis_id, new_axis_id),
                     "PropagateAxisChanges failed in ReplaceWithStore");
   GELOGD("New axis %s, size = %s", new_concat_axis.name.c_str(),
          af::SymbolicUtils::ToString(new_concat_axis.size).c_str());
   std::vector<af::InDataAnchorPtr> dst_in_anchors;
-  GE_ASSERT_SUCCESS(ReplaceAxis(new_concat_node, concat_dim_, new_concat_axis, new_axis_ids));
+  GE_ASSERT_SUCCESS(ReplaceAxis(new_concat_node, old_axis_id, new_concat_axis));
   std::unordered_map<std::string, af::NodePtr> name_to_new_node;
   GE_ASSERT_SUCCESS(
-      CloneNonConcatNodes(new_concat_axis, start, dst_in_anchors, new_axis_ids, name_to_new_node));
+      CloneNonConcatNodes(new_concat_axis, old_axis_id, start, dst_in_anchors, name_to_new_node));
   for (const auto &in_anchor : new_concat_node->GetAllInDataAnchors()) {
     GE_ASSERT_SUCCESS(ReconnectIfShareSameAncestor(name_to_new_node, in_anchor));
   }
@@ -529,9 +544,9 @@ Status ConcatFusionCaseGenerator::CollectReachableLoadNodes(const af::NodePtr &c
 }
 
 Status ConcatFusionCaseGenerator::CloneNonConcatNodes(const af::Axis &new_axis,
+                                                      ascir::AxisId old_axis_id,
                                                       size_t index,
                                                       std::vector<af::InDataAnchorPtr> &in_anchors,
-                                                      const std::vector<ascir::AxisId> &new_axis_ids,
                                                       std::unordered_map<std::string, af::NodePtr> &name_to_new_node) {
   GE_ASSERT_TRUE(!post_concat_nodes_.empty());
   ascir::ImplGraph owner_graph("owner_graph");
@@ -574,7 +589,7 @@ Status ConcatFusionCaseGenerator::CloneNonConcatNodes(const af::Axis &new_axis,
       }
     }
     if (!ScheduleUtils::IsBuffer(dst_new_node)) {
-      GE_ASSERT_SUCCESS(ReplaceAxis(dst_new_node, concat_dim_, new_axis, new_axis_ids));
+      GE_ASSERT_SUCCESS(ReplaceAxis(dst_new_node, old_axis_id, new_axis));
     }
   }
   for (const auto &src_node : post_concat_nodes_) {
@@ -583,14 +598,17 @@ Status ConcatFusionCaseGenerator::CloneNonConcatNodes(const af::Axis &new_axis,
   return af::SUCCESS;
 }
 
-// concat concat场景不会出现transpose,所以直接进行轴替换
-af::Status ConcatFusionCaseGenerator::ReplaceAxis(const af::AscNodePtr &node, size_t axis_index,
-                                                  const af::Axis &to_axis,
-                                                  const std::vector<ascir::AxisId> &new_axis_ids) {
-  node->attr.sched.axis = new_axis_ids;
+af::Status ConcatFusionCaseGenerator::ReplaceAxis(const af::AscNodePtr &node,
+                                                  ascir::AxisId old_axis_id,
+                                                  const af::Axis &to_axis) {
+  for (int64_t &axis_id : node->attr.sched.axis) {
+    if (axis_id == old_axis_id) {
+      axis_id = to_axis.id;
+    }
+  }
+
   for (uint32_t i = 0U; i < node->outputs().size(); ++i) {
-    node->outputs[i].attr.axis = new_axis_ids;
-    GE_ASSERT_SUCCESS(UpdateRepeatAndStrides(node, axis_index, to_axis.size, node->outputs[i].attr),
+    GE_ASSERT_SUCCESS(UpdateOutputAttr(node, old_axis_id, to_axis, node->outputs[i].attr),
                       "Failed to update repeat and strides for outputs[%u], node = %s(%s)", i, node->GetNamePtr(),
                       node->GetTypePtr());
   }
@@ -598,10 +616,23 @@ af::Status ConcatFusionCaseGenerator::ReplaceAxis(const af::AscNodePtr &node, si
   return af::SUCCESS;
 }
 
-af::Status ConcatFusionCaseGenerator::UpdateRepeatAndStrides(const af::AscNodePtr &node,
-                                                             size_t axis_index,
-                                                             const af::Expression &axis_size,
-                                                             af::AscTensorAttr &tensor_attr) {
+af::Status ConcatFusionCaseGenerator::UpdateOutputAttr(const af::AscNodePtr &node,
+                                                       ascir::AxisId old_axis_id,
+                                                       const af::Axis &to_axis,
+                                                       af::AscTensorAttr &tensor_attr) {
+  size_t axis_index = std::numeric_limits<size_t>::max();
+  for (size_t i = 0UL; i < tensor_attr.axis.size(); ++i) {
+    if (tensor_attr.axis[i] == old_axis_id) {
+      tensor_attr.axis[i] = to_axis.id;
+      axis_index = i;
+    } else if (tensor_attr.axis[i] == to_axis.id) {
+      axis_index = i;
+    }
+  }
+  GE_ASSERT_TRUE(axis_index != std::numeric_limits<size_t>::max(),
+                 "axis id %ld (old) / %ld (new) not found in node %s(%s) tensor_attr.axis",
+                 old_axis_id, to_axis.id, node->GetNamePtr(), node->GetTypePtr());
+
   auto &repeats = tensor_attr.repeats;
   auto &strides = tensor_attr.strides;
   GELOGD("before update, repeats = %s, strides = %s", af::ToString(repeats).c_str(), af::ToString(strides).c_str());
@@ -611,10 +642,10 @@ af::Status ConcatFusionCaseGenerator::UpdateRepeatAndStrides(const af::AscNodePt
   if (af::SymbolicUtils::StaticCheckEq(repeats[axis_index], af::ops::One) == af::TriBool::kTrue) {
     return af::SUCCESS;
   }
-  repeats[axis_index] = axis_size;
+  repeats[axis_index] = to_axis.size;
   // Load/Store的stride为GM的stride, 不需要改变
   if (af::ops::IsOps<af::ascir_op::Load>(node) || af::ops::IsOps<af::ascir_op::Store>(node)) {
-    if (af::SymbolicUtils::StaticCheckEq(axis_size, af::ops::One) == af::TriBool::kTrue) {
+    if (af::SymbolicUtils::StaticCheckEq(to_axis.size, af::ops::One) == af::TriBool::kTrue) {
       node->outputs[0].attr.strides[axis_index] = af::ops::Zero;
     }
     return af::SUCCESS;

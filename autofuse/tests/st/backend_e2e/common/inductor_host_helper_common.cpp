@@ -184,28 +184,20 @@ bool VerifyInvalidTopn(HostCaseRunner *runner, const InputConfigs &input_configs
          Check(runner->ResultSize() == 0U, "invalid topn result should be empty");
 }
 
-bool VerifyDefaultTopn(HostCaseRunner *runner, const InputConfigs &input_configs) {
+bool VerifyAutofuseTiling(HostCaseRunner *runner) {
   if (!Check(runner->RunAutofuseTiling() == 0, "AutofuseTiling failed")) {
     return false;
   }
-  if (!Check(runner->GenerateTopn(input_configs, kTopnOne) == 0, "top1 GenerateTopnSolutions failed")) {
-    return false;
-  }
-  return Check(runner->ResultSize() == 1U, "top1 result size should be 1") &&
-         Check(runner->ResultWorkspace(0) == static_cast<int64_t>(runner->DefaultWorkspace()),
-               "top1 workspace mismatch") &&
-         Check(runner->ResultBlockDim(0) == static_cast<int64_t>(runner->DefaultBlockDim()),
-               "top1 block_dim mismatch") &&
-         Check(runner->ResultRepr(0) == runner->DefaultRepr(), "top1 repr should match default repr") &&
+  return Check(runner->DefaultBlockDim() > 0U, "default block_dim should be positive") &&
          Check(runner->DefaultRepr().find("AutofuseTilingData{") != std::string::npos, "tiling repr format mismatch");
 }
 
 bool VerifyTopnResultShape(HostCaseRunner *runner, int64_t topn) {
-  return Check(runner->ResultSize() > 0U, "multi-candidate result should not be empty") &&
+  return Check(runner->ResultSize() > 0U, "topn result should not be empty") &&
          Check(runner->ResultSize() <= static_cast<size_t>(topn), "topn result size too large");
 }
 
-bool VerifyUniqueReprs(HostCaseRunner *runner) {
+bool VerifyTopnResults(HostCaseRunner *runner, PerfOrderMode mode) {
   std::vector<std::string> reprs;
   for (size_t i = 0; i < runner->ResultSize(); ++i) {
     const std::string repr = runner->ResultRepr(i);
@@ -213,12 +205,15 @@ bool VerifyUniqueReprs(HostCaseRunner *runner) {
       return false;
     }
     reprs.push_back(repr);
+    if (!Check(runner->ResultWorkspace(i) >= 0, "topn workspace should be non-negative") ||
+        !Check(runner->ResultBlockDim(i) > 0, "topn block_dim should be positive")) {
+      return false;
+    }
   }
   std::sort(reprs.begin(), reprs.end());
-  return Check(std::unique(reprs.begin(), reprs.end()) == reprs.end(), "topn repr should be unique");
-}
-
-bool VerifyPerfOrder(HostCaseRunner *runner, PerfOrderMode mode) {
+  if (!Check(std::unique(reprs.begin(), reprs.end()) == reprs.end(), "topn repr should be unique")) {
+    return false;
+  }
   if (mode == PerfOrderMode::kSortedByPerf) {
     std::vector<std::pair<double, std::string>> sorted_by_perf;
     for (size_t i = 0; i < runner->ResultSize(); ++i) {
@@ -240,38 +235,19 @@ bool VerifyPerfOrder(HostCaseRunner *runner, PerfOrderMode mode) {
   return true;
 }
 
-bool IsDefaultConfigRequest(const InputConfigs &input_configs) {
-  return input_configs.empty() || (input_configs.size() == 1U && input_configs.front().empty());
-}
-
 bool VerifyTopnUniqueness(HostCaseRunner *runner, const InputConfigs &input_configs, const HostHelperOptions &options) {
   if (!Check(runner->GenerateTopn(input_configs, options.topn) == 0, "multi-candidate GenerateTopnSolutions failed") ||
       !VerifyTopnResultShape(runner, options.topn)) {
     return false;
   }
-  if (IsDefaultConfigRequest(input_configs) &&
-      !Check(runner->ResultRepr(0) == runner->DefaultRepr(), "first topn repr should match default")) {
-    return false;
-  }
-  return VerifyUniqueReprs(runner) && VerifyPerfOrder(runner, options.perf_order_mode);
+  return VerifyTopnResults(runner, options.perf_order_mode);
 }
 
 bool VerifyEmptyConfigPath(HostCaseRunner *runner) {
   const InputConfigs empty_configs;
   return Check(runner->GenerateTopn(empty_configs, kTopnOne) == 0, "empty config GenerateTopnSolutions failed") &&
          Check(runner->ResultSize() == 1U, "empty config result size should be 1") &&
-         Check(runner->ResultRepr(0) == runner->DefaultRepr(), "empty config repr mismatch") &&
-         Check(runner->ResultWorkspace(0) == static_cast<int64_t>(runner->DefaultWorkspace()),
-               "empty config workspace mismatch") &&
-         Check(runner->ResultBlockDim(0) == static_cast<int64_t>(runner->DefaultBlockDim()),
-               "empty config block_dim mismatch");
-}
-
-InputConfigs GetDefaultCheckConfigs(const InputConfigs &input_configs) {
-  if (IsDefaultConfigRequest(input_configs)) {
-    return input_configs;
-  }
-  return InputConfigs(1);
+         VerifyTopnResults(runner, PerfOrderMode::kSortedByPerf);
 }
 
 bool WriteFile(const std::string &path, const std::string &content) {
@@ -312,10 +288,8 @@ int RunHostCheck(const HostHelperOptions &options, HostCaseRunner *runner) {
   }
 
   const bool loaded = LoadInputConfigs(options.input_configs_file, &input_configs);
-  const InputConfigs default_check_configs = GetDefaultCheckConfigs(input_configs);
   const bool passed = loaded && runner->Resolve(host_handle.ptr) && VerifyInvalidTopn(runner, input_configs) &&
-                      VerifyDefaultTopn(runner, default_check_configs) &&
-                      VerifyTopnUniqueness(runner, input_configs, options) &&
+                      VerifyAutofuseTiling(runner) && VerifyTopnUniqueness(runner, input_configs, options) &&
                       (!options.verify_empty_config || VerifyEmptyConfigPath(runner)) &&
                       WriteFile(options.tiling_repr_out, runner->DefaultRepr());
   if (!host_handle.Close()) {

@@ -323,6 +323,30 @@ inline __simd_vf__ void CastExtendInt16ToUint8(__ubuf__ OutT *dstUb, __ubuf__ In
 }
 
 template <typename InT, typename OutT, AscendC::RoundMode roundMode>
+inline __simd_vf__ void CastExtendBool(__ubuf__ OutT *dstUb, __ubuf__ InT *srcUb, const int64_t count,
+    uint32_t repeatTimes, uint32_t innerLoopStride)
+{
+    uint32_t sreg = static_cast<uint32_t>(count);
+    int16_t shift = 31;
+    MicroAPI::RegTensor<InT> srcVreg;
+    MicroAPI::RegTensor<uint32_t> negVreg, u32Vreg, unsignVreg, notVreg;
+    MicroAPI::MaskReg stMaskReg, exMaskReg;
+    exMaskReg = MicroAPI::CreateMask<uint8_t, MicroAPI::MaskPattern::ALL>();
+    MicroAPI::Duplicate(unsignVreg, 0x7FFFFFFF, exMaskReg);
+
+    for (uint32_t i = 0; i < repeatTimes; i++) {
+        stMaskReg = MicroAPI::UpdateMask<float>(sreg);
+        MicroAPI::DataCopy(srcVreg, srcUb + innerLoopStride * i);
+        MicroAPI::And(u32Vreg, (MicroAPI::RegTensor<uint32_t>&)srcVreg, unsignVreg, exMaskReg);
+        MicroAPI::Not(notVreg, u32Vreg, exMaskReg);
+        MicroAPI::Adds(negVreg, notVreg, 1u, exMaskReg);
+        MicroAPI::Or(u32Vreg, negVreg, u32Vreg, exMaskReg);
+        MicroAPI::ShiftRights(u32Vreg, u32Vreg, shift, exMaskReg);
+        MicroAPI::DataCopy<uint8_t, MicroAPI::StoreDist::DIST_PACK4_B32>(dstUb + innerLoopStride * i, (MicroAPI::RegTensor<uint8_t>&)u32Vreg, stMaskReg);
+    }
+}
+
+template <typename InT, typename OutT, AscendC::RoundMode roundMode>
 inline __simd_vf__ void CastExtendB64(__ubuf__ OutT *dstUb, __ubuf__ InT *srcUb, const int64_t count,
     uint32_t repeatTimes, uint32_t innerLoopStride)
 {
@@ -610,6 +634,8 @@ __aicore__ inline void CastExtend(const AscendC::LocalTensor<OutT> &dst, const A
 
     constexpr bool b4Cast = SupportType<Tuple<OutT, InT>, Tuple<half, int4x2_t>, Tuple<int4x2_t, half>>();
 
+    constexpr bool boolCast = SupportType<Tuple<OutT, InT>, Tuple<bool, float>>();
+
     constexpr bool b8Cast =
         AscendC::IsSameType<InT, uint8_t>::value && AscendC::SupportType<OutT, float, int32_t, int16_t, int4x2_t>();
 
@@ -634,7 +660,11 @@ __aicore__ inline void CastExtend(const AscendC::LocalTensor<OutT> &dst, const A
     AscendC::SetCtrlSpr<59, 59>(0);
     #endif
 
-    if constexpr (b4Cast) {
+    if constexpr (boolCast) {
+        constexpr auto func = CastExtendBool<InT, OutT, roundMode>;
+        CastExtendImpl<func, InT, OutT, roundMode, dim>(dstUb, srcUb, count, repeatTimes, innerLoopStride,
+            output_dims, output_stride, input_stride);
+    } else if constexpr (b4Cast) {
         constexpr auto func = CastExtendB4<InT, OutT, roundMode>;
         CastExtendImpl<func, InT, OutT, roundMode, dim>(dstUb, srcUb, count, repeatTimes, innerLoopStride,
             output_dims, output_stride, input_stride);

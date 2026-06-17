@@ -4674,7 +4674,6 @@ TEST_F(TestOptimizer, NodeCacheMarkerConcat) {
   auto z0 = graph.CreateAxis("z0", s0);
   auto z1 = graph.CreateAxis("z1", s1);
   auto z2 = graph.CreateAxis("z2", s2 * af::Symbol(2));
-  auto z2_0 = graph.CreateAxis("z2_0", s2);
 
   af::ascir_op::Data data0("data0", graph);
   data0.ir_attr.SetIndex(0);
@@ -4685,10 +4684,10 @@ TEST_F(TestOptimizer, NodeCacheMarkerConcat) {
 
   af::ascir_op::Load load0("load0");
   load0.x = data0.y;
-  load0.attr.sched.axis = {z0.id, z1.id, z2_0.id};
+  load0.attr.sched.axis = {z0.id, z1.id, z2.id};
   load0.attr.api.compute_type = af::ComputeType::kComputeLoad;
   load0.y.dtype = ge::DT_INT8;
-  *load0.y.axis = {z0.id, z1.id, z2_0.id};
+  *load0.y.axis = {z0.id, z1.id, z2.id};
   *load0.y.repeats = {s0, s1, s2};
   *load0.y.strides = {s1 * s2, s2, One};
 
@@ -4704,28 +4703,28 @@ TEST_F(TestOptimizer, NodeCacheMarkerConcat) {
 
   af::ascir_op::Broadcast brc0("brc0");
   brc0.x = scalar.y;
-  brc0.attr.sched.axis = {z0.id, z1.id, z2_0.id};
+  brc0.attr.sched.axis = {z0.id, z1.id, z2.id};
   brc0.attr.api.compute_type = af::ComputeType::kComputeBroadcast;
   brc0.y.dtype = ge::DT_INT8;
-  *brc0.y.axis = {z0.id, z1.id, z2_0.id};
+  *brc0.y.axis = {z0.id, z1.id, z2.id};
   *brc0.y.repeats = {One, One, s2};
   *brc0.y.strides = {Zero, Zero, One};
 
   af::ascir_op::Broadcast brc1("brc1");
   brc1.x = brc0.y;
-  brc1.attr.sched.axis = {z0.id, z1.id, z2_0.id};
+  brc1.attr.sched.axis = {z0.id, z1.id, z2.id};
   brc1.attr.api.compute_type = af::ComputeType::kComputeBroadcast;
   brc1.y.dtype = ge::DT_INT8;
-  *brc1.y.axis = {z0.id, z1.id, z2_0.id};
+  *brc1.y.axis = {z0.id, z1.id, z2.id};
   *brc1.y.repeats = {One, s1, s2};
   *brc1.y.strides = {Zero, s2, One};
 
   af::ascir_op::Broadcast brc2("brc2");
   brc2.x = brc1.y;
-  brc2.attr.sched.axis = {z0.id, z1.id, z2_0.id};
+  brc2.attr.sched.axis = {z0.id, z1.id, z2.id};
   brc2.attr.api.compute_type = af::ComputeType::kComputeBroadcast;
   brc2.y.dtype = ge::DT_INT8;
-  *brc2.y.axis = {z0.id, z1.id, z2_0.id};
+  *brc2.y.axis = {z0.id, z1.id, z2.id};
   *brc2.y.repeats = {s0, s1, s2};
   *brc2.y.strides = {s1 * s2, s2, One};
 
@@ -4758,10 +4757,10 @@ TEST_F(TestOptimizer, NodeCacheMarkerConcat) {
 
   af::ascir_op::Store store1("store1");
   store1.x = brc2.y;
-  store1.attr.sched.axis = {z0.id, z1.id, z2_0.id};
+  store1.attr.sched.axis = {z0.id, z1.id, z2.id};
   store1.attr.api.compute_type = af::ComputeType::kComputeStore;
   store1.y.dtype = ge::DT_INT8;
-  *store1.y.axis = {z0.id, z1.id, z2_0.id};
+  *store1.y.axis = {z0.id, z1.id, z2.id};
   *store1.y.repeats = {s0, s1, s2};
   *store1.y.strides = {s1 * s2, s2, One};
 

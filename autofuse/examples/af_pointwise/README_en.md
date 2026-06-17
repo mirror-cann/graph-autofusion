@@ -6,7 +6,7 @@ Autofuse fuses add + ge two operators.
 
 ## Execution Command
 
-```
+```bash
 python3 af_add_ge.py
 ```
 

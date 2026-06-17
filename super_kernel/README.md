@@ -52,7 +52,7 @@
 
 ## 目录结构
 
-```
+```text
 super_kernel/
 ├── docs                   # 文档介绍
 ├── examples               # 示例脚本或 Notebook，演示典型用法

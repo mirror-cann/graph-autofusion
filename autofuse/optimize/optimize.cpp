@@ -865,10 +865,10 @@ Status Optimizer::OptimizeForHintGraph(af::AscGraph &hint_graph,
   GE_CHK_STATUS_RET(AscGraphInfoComplete::CompleteApiInfo(optimize_graph), "CompleteApiInfo failed");
   GE_ASSERT_GRAPH_SUCCESS(ScheduleUtils::TopologicalSorting(optimize_graph));
   utils::DumpGraph(optimize_graph, "AfterGraphPass");
-  // 这里concat已经打破了一套轴的约束
-  GE_ASSERT_SUCCESS(RemoveAllZeroStrideLoopAxis(optimize_graph), "Remove All zero stride axis failed.");
   // cube拆分后再做合轴
   if (!ScheduleUtils::HasComputeType(optimize_graph, af::ComputeType::kComputeCube)) {
+  // 这里concat已经打破了一套轴的约束
+    GE_ASSERT_SUCCESS(RemoveAllZeroStrideLoopAxis(optimize_graph), "Remove All zero stride axis failed.");
     GE_ASSERT_SUCCESS(MergeContinuousAxis(optimize_graph), "Merge continuous axes failed.");
   }
   ascir::utils::DumpGraph(optimize_graph, "AfterMergeAxis");

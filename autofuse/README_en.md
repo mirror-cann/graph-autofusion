@@ -8,7 +8,7 @@ For detailed introduction, refer to "[Autofuse Automatic Fusion](https://www.hia
 
 ## Autofuse Directory Structure
 
-```
+```text
 autofuse/
 ├── ascendc                # ascendc api definitions
 ├── ascir                  # operator registration ascir
@@ -83,7 +83,7 @@ AutoFuse provides abundant sample use cases. Refer to [AutoFuse Samples](./examp
 ### Set Environment Variables
 
 Before executing use cases, set the following environment variables to configure the NPU device:
-```
+```bash
 # Your own driver package installation path
 source /usr/local/Ascend/driver/bin/setenv.sh
 # Your own CANN package installation path
@@ -107,7 +107,7 @@ python3 test.py
 Purpose: Native torch environment variable that enables detailed debug logging and saving of compilation intermediate artifacts.
 
 Usage:
-```
+```bash
 export TORCH_COMPILE_DEBUG=1
 ```
 Note: Multiple executions of the same script may skip compilation due to cache. Can use with TORCHINDUCTOR_FORCE_DISABLE_CACHES to force recompilation each execution.
@@ -117,7 +117,7 @@ Note: Multiple executions of the same script may skip compilation due to cache. 
 Purpose: Native torch environment variable that disables Inductor cache, forcing recompilation each execution.
 
 Usage:
-```
+```bash
 export TORCHINDUCTOR_FORCE_DISABLE_CACHES=1
 ```
 Note: Significantly increases graph startup time. Do not use this environment variable in actual deployment.
@@ -127,7 +127,7 @@ Note: Significantly increases graph startup time. Do not use this environment va
 Purpose: Native torch_npu environment variable that enables Ascend kernel synchronous execution. Each kernel launch waits for completion, facilitating identification of the first erroneous kernel.
 
 Usage:
-```
+```bash
 export ASCEND_LAUNCH_BLOCKING=1
 ```
 Note: Significantly reduces launch performance. Do not use this environment variable in actual deployment.
@@ -137,7 +137,7 @@ Note: Significantly reduces launch performance. Do not use this environment vari
 Purpose: AutoFuse DFX environment variable that dumps internal fusion graph structure for each auto-fusion operator. pbtxt files can be opened with netron.app.
 
 Usage:
-```
+```bash
 export AUTOFUSE_DFX_FLAGS="--codegen_compile_debug=true;--debug_dir=/path-to-dump/"
 ```
 Note: Generates dump graphs for each fused operator from AutoFuse backend in the specified dump path.

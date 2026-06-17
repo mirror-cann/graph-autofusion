@@ -195,6 +195,12 @@ std::string GenTilingDataFieldConstDefFunc(const std::string &f_name, uint32_t v
   ss_mid << f_name << " = " << std::to_string(value) << ";" << std::endl;
   return ss_mid.str();
 }
+std::string GenTilingDataFieldConstDefFunc(const std::string &f_name, uint64_t value) {
+  std::stringstream ss_mid;
+  ss_mid << "const uint64_t ";
+  ss_mid << f_name << " = " << std::to_string(value) << ";" << std::endl;
+  return ss_mid.str();
+}
 
 std::string GenTilingDataFieldConstValueFunc(uint32_t value) {
   std::stringstream ss_mid;
@@ -346,6 +352,12 @@ void replaceSubstring(std::string& ori_str, const std::string& old_sub_str, cons
 std::string GenTilingDataFieldConstDefFunc(const std::string &f_name, uint32_t value) {
   std::stringstream ss_mid;
   ss_mid << "const uint32_t ";
+  ss_mid << f_name << " = " << std::to_string(value) << ";" << std::endl;
+  return ss_mid.str();
+}
+std::string GenTilingDataFieldConstDefFunc(const std::string &f_name, uint64_t value) {
+  std::stringstream ss_mid;
+  ss_mid << "const uint64_t ";
   ss_mid << f_name << " = " << std::to_string(value) << ";" << std::endl;
   return ss_mid.str();
 }

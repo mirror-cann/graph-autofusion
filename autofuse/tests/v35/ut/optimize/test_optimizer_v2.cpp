@@ -3489,17 +3489,17 @@ TEST_F(TestOptimizerV2, SliceSliceConcatD) {
   *data1.y.strides = {s1_0, One, One};
 
   Load load0("load0");
-  load0.attr.sched.axis = {z0.id, z1_0.id};
+  load0.attr.sched.axis = {z0.id, z1.id};
   load0.x = data1.y;
-  *load0.y.axis = {z0.id, z1_0.id};
+  *load0.y.axis = {z0.id, z1.id};
   load0.y.dtype = af::DT_FLOAT;
   *load0.y.repeats = {s0, s1_0};
   *load0.y.strides = {s3 * s1_0, s3};
 
   Load load1("load1");
-  load1.attr.sched.axis = {z0.id, z1_1.id};
+  load1.attr.sched.axis = {z0.id, z1.id};
   load1.x = data0.y;
-  *load1.y.axis = {z0.id, z1_1.id};
+  *load1.y.axis = {z0.id, z1.id};
   load1.y.dtype = af::DT_FLOAT;
   *load1.y.repeats = {s0, s1_1};
   *load1.y.strides = {s4 * s1_1, s4};
@@ -3579,17 +3579,17 @@ TEST_F(TestOptimizerV2, LoadAlignmentInferFunc_multiple_axis_discontine) {
   *data1.y.strides = {s5 * s4 * s3 * s2 * s1 , s5 * s4 * s3 * s2, s5 * s4 * s3, s5 * s4, s5, One};
 
   Load load0("load0");
-  load0.attr.sched.axis = {z0.id, z1_0.id, z2.id, z3_0.id, z4_0.id, z5.id};
+  load0.attr.sched.axis = {z0.id, z1.id, z2.id, z3.id, z4.id, z5.id};
   load0.x = data0.y;
-  *load0.y.axis = {z0.id, z1_0.id, z2.id, z3_0.id, z4_0.id, z5.id};
+  *load0.y.axis = {z0.id, z1.id, z2.id, z3.id, z4.id, z5.id};
   load0.y.dtype = af::DT_FLOAT;
   *load0.y.repeats = {s0, s1_0, s2, s3_0, s4_0, s5};
   *load0.y.strides = {s5 * s4_0 * s3_0 * s2 * s1_0 * Two * Two, s5 * s4_0 * s3_0 * s2* Two * Two, s5 * s4_0 * s3_0 * Two * Two, s5 * s4_0 * Two * Two, s5 * Two * Two, Two};
 
   Load load1("load1");
-  load1.attr.sched.axis = {z0.id, z1_1.id, z2.id, z3_0.id, z4_0.id, z5.id};
+  load1.attr.sched.axis = {z0.id, z1.id, z2.id, z3.id, z4.id, z5.id};
   load1.x = data1.y;
-  *load1.y.axis = {z0.id, z1_1.id, z2.id, z3_0.id, z4_0.id, z5.id};
+  *load1.y.axis = {z0.id, z1.id, z2.id, z3.id, z4.id, z5.id};
   load1.y.dtype = af::DT_FLOAT;
   *load1.y.repeats = {s0, s1_1, s2, s3_0, s4_0, s5};
   *load1.y.strides = {s5 * s4_0 * s3_0 * s2 * s1_1* Two * Two, s5 * s4_0 * s3_0 * s2 * Two * Two, s5 * s4_0 * s3_0* Two * Two, s5 * s4_0* Two * Two, s5 * Two * Two, Two};

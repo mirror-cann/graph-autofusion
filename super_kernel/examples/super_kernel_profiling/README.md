@@ -9,24 +9,24 @@
 ## 融合算子
 
 使用如下with语句块（super_kernel），语句块内算子均被融合为一个超级Kernel进行计算
-```
+```python
 with torchair.scope.super_kernel("sk1"): 
 ```
 详细功能介绍见[图内标定SuperKernel范围](https://www.hiascend.com/document/redirect/PytorchTorchairSuperKernel)。
 ## 执行命令
 
-```
+```bash
 python3 superkernel_compare.py
 ```
 
 ## 预期执行结果
 
 执行后打印显示success
-```
+```text
 execute sample success
 ```
 在执行目录生成prof_result文件夹，目录如下，获取数据后对比耗时
-```
+```text
 prof_result
 ├── sk_model                             # 带superkernel结果
 │  ├── localhost.localdomain_ascend_pt   

@@ -5,7 +5,7 @@
 使用 autofuse 完成各种类型的算子融合
 
 ## 目录结构
-```
+```text
 ├── af_pointwise                  # pointwise 类型算子融合的样例
 │  └── af_add_ge.py               # 通过 autofuse 完成 add 和 ge 两个 pointwise 类型算子的融合
 ├── af_reduce                     # reduce 类型算子融合的样例

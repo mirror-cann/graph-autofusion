@@ -6,7 +6,7 @@ Autofuse fuses mul + reducesum two operators.
 
 ## Execution Command
 
-```
+```bash
 python3 af_mul_reducesum.py
 ```
 

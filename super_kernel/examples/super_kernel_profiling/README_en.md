@@ -9,26 +9,26 @@ Compile models using super_kernel and not using super_kernel, output performance
 ## Operator Fusion
 
 Use the following with statement block (super_kernel). Operators within the statement block are all fused into one super kernel for computation:
-```
+```python
 with torchair.scope.super_kernel("sk1"): 
 ```
 For detailed function introduction, see [Mark SuperKernel Scope in Graph](https://www.hiascend.com/document/redirect/PytorchTorchairSuperKernel).
 
 ## Execution Command
 
-```
+```bash
 python3 superkernel_compare.py
 ```
 
 ## Expected Execution Result
 
 After execution, print shows success:
-```
+```text
 execute sample success
 ```
 
 A prof_result folder is generated in execution directory with the following structure. After obtaining data, compare time consumption:
-```
+```text
 prof_result
 ├── sk_model                             # with superkernel result
 │  ├── localhost.localdomain_ascend_pt   

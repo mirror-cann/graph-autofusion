@@ -5,7 +5,7 @@
 Use autofuse to complete various types of operator fusion.
 
 ## Directory Structure
-```
+```text
 ├── af_pointwise                  # pointwise type operator fusion sample
 │  └── af_add_ge.py               # complete fusion of add and ge two pointwise type operators through autofuse
 ├── af_reduce                     # reduce type operator fusion sample

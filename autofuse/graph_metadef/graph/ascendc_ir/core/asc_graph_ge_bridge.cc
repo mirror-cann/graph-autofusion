@@ -170,6 +170,11 @@ AscNodePtr AscGraphAddAscirNodeByType(AscGraph &asc_graph,
   if (type == ascir_op::Where::Type)                { MAKE_NODE(Where); }
   if (type == ascir_op::Workspace::Type)            { MAKE_NODE(Workspace); }
   if (type == ascir_op::Xor::Type)                  { MAKE_NODE(Xor); }
+  if (type == ascir_op::Conv2D::Type)               { MAKE_NODE(Conv2D); }
+  if (type == ascir_op::Conv2DBias::Type)           { MAKE_NODE(Conv2DBias); }
+  if (type == ascir_op::Conv2DOffset::Type)         { MAKE_NODE(Conv2DOffset); }
+  if (type == ascir_op::Conv2DOffsetBias::Type)     { MAKE_NODE(Conv2DOffsetBias); }
+
 
 #undef MAKE_NODE
 

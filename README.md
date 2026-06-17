@@ -25,7 +25,7 @@ Graph-autofusion 是一个面向昇腾（Ascend）芯片的轻量级、解耦式
 
 ## 🔍目录结构
 
-```
+```text
 ├── autofuse                       # Autofuse 组件，Autofuse 源代码、测试、文档均在该子目录中
 ├── build.sh                       # 一键式项目工程编译脚本
 ├── cmake                          # 项目工程编译目录

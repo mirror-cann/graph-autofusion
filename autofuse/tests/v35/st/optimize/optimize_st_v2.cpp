@@ -1157,7 +1157,9 @@ TEST_F(OptimizerStV2, OneAxisSliceNoNeedAlign) {
   EXPECT_EQ(fused_scheduled.node_idx_to_scheduled_results[0][0].schedule_groups.size(), 1);
   auto impl_graph = fused_scheduled.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs[0];
   auto load_node = impl_graph.FindNode("load0");
-  std::vector<af::Expression> golden_stride{af::Symbol(4), af::sym::kSymbolOne};
+  // Store 输出尾轴 GM stride = s2 = 3 != 1, 触发 IsNeedDiscontinuousAligned, 回传 kDiscontinuous 到 Load
+  // FP32: align_factor = 32 / 4 = 8, 尾轴 stride = Align(1, 8) = 8, 次尾轴 stride = 8 * s1 = 32
+  std::vector<af::Expression> golden_stride{af::Symbol(8) * s1, af::Symbol(8)};
   EXPECT_EQ(load_node->outputs[0].attr.vectorized_strides, golden_stride);
 }
 
@@ -1187,7 +1189,9 @@ TEST_F(OptimizerStV2, TwoAxisSliceNeedAlign) {
   EXPECT_EQ(fused_scheduled.node_idx_to_scheduled_results[0][0].schedule_groups.size(), 1);
   auto impl_graph = fused_scheduled.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs[1];
   auto load_node = impl_graph.FindNode("load0");
-  std::vector<af::Expression> golden_stride{af::Symbol(4), af::sym::kSymbolOne};
+  // Store 输出尾轴 GM stride = s2 = 3 != 1, 触发 IsNeedDiscontinuousAligned, 回传 kDiscontinuous 到 Load
+  // FP32: align_factor = 32 / 4 = 8, 尾轴 stride = Align(1, 8) = 8, 次尾轴 stride = 8 * s1 = 32
+  std::vector<af::Expression> golden_stride{af::Symbol(8) * s1, af::Symbol(8)};
   EXPECT_EQ(load_node->outputs[0].attr.vectorized_strides, golden_stride);
 }
 

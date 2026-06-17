@@ -26,6 +26,8 @@ inline const std::string kCubeKernelTilingWrapperHppValue = R"(
 #include <cstring>
 #include <iomanip>
 #include <algorithm>
+#include "acl/acl.h"
+#include "platform/platform_info.h"
 
 namespace ge {
 namespace autofuse {
@@ -908,7 +910,6 @@ private:
 )";
 
 inline const std::string kCubeKernelTilingWrapperCppValue = R"(
-#include "cube_kernel_tiling_wrapper.h"
 #include <sstream>
 #include <iomanip>
 #include <dlfcn.h>
@@ -925,6 +926,17 @@ using SHA1 = ge::autofuse::crypto::SHA1;
 #ifndef DEFAULT_ASCEND_OPP_PATH
 #define DEFAULT_ASCEND_OPP_PATH "/usr/local/Ascend/cann/opp"
 #endif
+
+extern "C" const char *DoOpTilingForCompile(const char *optype,
+                                            const char *compile_info,
+                                            const char *compile_info_hash,
+                                            const char *inputs,
+                                            const char *outputs,
+                                            const char *attrs,
+                                            char *run_info_json,
+                                            size_t run_info_len,
+                                            uint64_t *elapse,
+                                            const char *extra_info);
 
 namespace ge {
 namespace autofuse {
@@ -1184,135 +1196,27 @@ char* CubeKernelTilingWrapper::CallDoOpTilingForCompile(const char* op_type,
                                                         size_t buf_size,
                                                         uint64_t* timer,
                                                         const char* extra_params) {
-    const char* ascend_opp_path_env = std::getenv("ASCEND_OPP_PATH");
-    std::string opp_base_path;
-    
-    if (ascend_opp_path_env != nullptr && std::strlen(ascend_opp_path_env) > 0) {
-        opp_base_path = ascend_opp_path_env;
-        OP_LOGI(OP_NAME, "Using ASCEND_OPP_PATH from environment: %s", opp_base_path.c_str());
-    } else {
-        opp_base_path = DEFAULT_ASCEND_OPP_PATH;
-        OP_LOGI(OP_NAME, "Using default ASCEND_OPP_PATH: %s", opp_base_path.c_str());
-    }
-
-    // 尝试从 ASCEND_OPP_PATH 推断 libregister.so 的位置
-    std::vector<std::string> libregister_paths = {
-        opp_base_path + "/../x86_64-linux/lib64/libregister.so",
-        opp_base_path + "/../../../x86_64-linux/lib64/libregister.so",
-        opp_base_path + "/../../../runtime/lib64/libregister.so",
-        opp_base_path + "/../../../compiler/lib64/libregister.so",
-        "libregister.so"  // 最后尝试让系统自动查找
-    };
-
-    void* libregister_handle = nullptr;
-    for (const auto& lib_path : libregister_paths) {
-        OP_LOGI(OP_NAME, "Trying to load: %s", lib_path.c_str());
-        libregister_handle = dlopen(lib_path.c_str(), RTLD_LAZY | RTLD_GLOBAL);
-        if (libregister_handle != nullptr) {
-            OP_LOGI(OP_NAME, "Successfully loaded libregister.so from: %s", lib_path.c_str());
-            break;
-        } else {
-            OP_LOGE(OP_NAME, "Failed: %s", dlerror());
-        }
-    }
-
-    if (libregister_handle == nullptr) {
-        OP_LOGE(OP_NAME, "Failed to load libregister.so from all locations");
+    fe::PlatFormInfos platform_infos;
+    fe::OptionalInfos q;
+    const char* soc_name = aclrtGetSocName();
+    std::string soc_ver = soc_name ? soc_name : "";
+    q.Init();
+    q.SetSocVersion(soc_ver);
+    fe::PlatformInfoManager::Instance().SetOptionalCompilationInfo(q); // 这两个SetOptionalCompilationInfo都得有
+    fe::PlatformInfoManager::GeInstance().SetOptionalCompilationInfo(q); // 否则获取soc version失败tiling计算出错
+    fe::PlatformInfoManager::GeInstance().InitRuntimePlatformInfos(soc_ver);
+    int32_t device_id = 0;
+    aclrtGetDevice(&device_id);
+    if (fe::PlatformInfoManager::GeInstance().GetRuntimePlatformInfosByDevice(device_id, platform_infos) != 0) {
+        OP_LOGE(OP_NAME, "GetRuntimePlatformInfosByDevice failed");
         return nullptr;
     }
-
-    std::vector<void*> loaded_handles;
-    loaded_handles.push_back(libregister_handle);
-
-    typedef void (*TbeLoadSoAndSaveToRegistryFunc)(const char*);
-    TbeLoadSoAndSaveToRegistryFunc tbe_load_func = 
-        reinterpret_cast<TbeLoadSoAndSaveToRegistryFunc>(dlsym(libregister_handle, "TbeLoadSoAndSaveToRegistry"));
-
-    std::vector<std::string> tiling_lib_paths = {
-        opp_base_path + "/built-in/op_impl/ai_core/tbe/op_tiling/lib/linux/x86_64/libopmaster_rt.so",
-        opp_base_path + "/built-in/op_impl/ai_core/tbe/op_tiling/lib/linux/x86_64/libopmaster_rt2.0.so",
-        opp_base_path + "/op_impl/built-in/ai_core/tbe/op_tiling/lib/linux/x86_64/libopmaster_rt.so",
-        opp_base_path + "/op_impl/built-in/ai_core/tbe/op_tiling/lib/linux/x86_64/libopmaster_rt2.0.so"
-    };
-
-    int loaded_count = 0;
-    for (const auto& tiling_lib_path : tiling_lib_paths) {
-        OP_LOGI(OP_NAME, "Checking tiling library: %s", tiling_lib_path.c_str());
-        if (access(tiling_lib_path.c_str(), F_OK) == 0) {
-            OP_LOGI(OP_NAME, "File exists, loading...");
-            void* tiling_handle = dlopen(tiling_lib_path.c_str(), RTLD_LAZY | RTLD_GLOBAL);
-            if (tiling_handle != nullptr) {
-                if (tbe_load_func != nullptr) {
-                    tbe_load_func(tiling_lib_path.c_str());
-                }
-                loaded_handles.push_back(tiling_handle);
-                loaded_count++;
-                OP_LOGI(OP_NAME, "Successfully loaded and registered");
-            } else {
-                OP_LOGE(OP_NAME, "Failed to load: %s", dlerror());
-            }
-        } else {
-            OP_LOGI(OP_NAME, "File does not exist");
-        }
-    }
-    
-    // 如果没有加载到任何 tiling 库，尝试从 ascend-toolkit 路径加载
-    if (loaded_count == 0) {
-        OP_LOGI(OP_NAME, "No tiling libraries loaded from current path, trying ascend-toolkit path...");
-        std::string ascend_toolkit_opp = opp_base_path;
-        size_t pos = ascend_toolkit_opp.find("/cann-");
-        if (pos != std::string::npos) {
-            ascend_toolkit_opp.replace(pos, 6, "/ascend-toolkit/");
-            OP_LOGI(OP_NAME, "Trying ASCEND_OPP_PATH: %s", ascend_toolkit_opp.c_str());
-            
-            std::vector<std::string> toolkit_tiling_paths = {
-                ascend_toolkit_opp + "/built-in/op_impl/ai_core/tbe/op_tiling/lib/linux/x86_64/libopmaster_rt.so",
-                ascend_toolkit_opp + "/built-in/op_impl/ai_core/tbe/op_tiling/lib/linux/x86_64/libopmaster_rt2.0.so"
-            };
-            
-            for (const auto& tiling_lib_path : toolkit_tiling_paths) {
-                OP_LOGI(OP_NAME, "Checking tiling library: %s", tiling_lib_path.c_str());
-                if (access(tiling_lib_path.c_str(), F_OK) == 0) {
-                    OP_LOGI(OP_NAME, "File exists, loading...");
-                    void* tiling_handle = dlopen(tiling_lib_path.c_str(), RTLD_LAZY | RTLD_GLOBAL);
-                    if (tiling_handle != nullptr) {
-                        if (tbe_load_func != nullptr) {
-                            tbe_load_func(tiling_lib_path.c_str());
-                        }
-                        loaded_handles.push_back(tiling_handle);
-                        loaded_count++;
-                        OP_LOGI(OP_NAME, "Successfully loaded and registered");
-                    } else {
-                        OP_LOGE(OP_NAME, "Failed to load: %s", dlerror());
-                    }
-                } else {
-                    OP_LOGI(OP_NAME, "File does not exist");
-                }
-            }
-        }
-    }
-    
-    if (loaded_count == 0) {
-        OP_LOGE(OP_NAME, "Warning: No tiling libraries were loaded!");
-    } else {
-        OP_LOGI(OP_NAME, "Total tiling libraries loaded: %d", loaded_count);
-    }
-
-    typedef char* (*DoOpTilingFunc)(const char*, const char*, const char*,
-                                    const char*, const char*, const char*,
-                                    char*, size_t, uint64_t*, const char*);
-    DoOpTilingFunc func = reinterpret_cast<DoOpTilingFunc>(dlsym(libregister_handle, "DoOpTilingForCompile"));
-    if (func == nullptr) {
-        OP_LOGE(OP_NAME, "Failed to find DoOpTilingForCompile function in libregister.so");
-        return nullptr;
-    }
-
     OP_LOGI(OP_NAME, "Calling DoOpTilingForCompile...");
-    char* result = func(op_type, compile_info, compile_info_hash,
+    const char* result = DoOpTilingForCompile(op_type, compile_info, compile_info_hash,
                         inputs, outputs, attrs, buf, buf_size, timer, extra_params);
     OP_LOGI(OP_NAME, "DoOpTilingForCompile returned");
 
-    return result;
+    return const_cast<char*>(result);
 }
 
 TilingResult CubeKernelTilingWrapper::DoMatMulTiling(const CompileInfo& compile_info,

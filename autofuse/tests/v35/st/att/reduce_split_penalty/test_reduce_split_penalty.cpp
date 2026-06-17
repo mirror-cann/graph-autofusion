@@ -44,6 +44,9 @@ std::string CreateRunTestMainV2() {
   return R"(
 #include <iostream>
 using namespace optiling;
+namespace optiling {
+bool GetTiling(ReduceSplitPenaltyTilingData &tiling_data, int32_t tiling_case_id, double *perf);
+}
 
 void Test1(ReduceSplitPenaltyTilingData &tilingData) {
   std::cout << "====================================================" << std::endl;
@@ -69,7 +72,7 @@ int main() {
   // 新增：测试S0=1024,S1=1024时的block_dim
   tilingData.set_S0(1024);
   tilingData.set_S1(1024);
-  if (GetTiling(tilingData)) {
+  if (GetTiling(tilingData, -1, nullptr)) {
     Test1(tilingData);
   } else {
     std::cout << "addlayernorm tiling func execute failed." << std::endl;
@@ -79,7 +82,7 @@ int main() {
   // 新增：测试S0=1024,S1=32时的block_dim
   tilingData.set_S0(1024);
   tilingData.set_S1(32);
-  if (GetTiling(tilingData)) {
+  if (GetTiling(tilingData, -1, nullptr)) {
     Test2(tilingData);
   } else {
     std::cout << "addlayernorm tiling func execute failed." << std::endl;

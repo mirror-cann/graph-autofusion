@@ -408,12 +408,14 @@ class Kernel {
                                        bool is_inductor = false);
   std::string TilingKeyFuncDeclare(const std::string &impl_graph_name, const std::string &tiling_data) const;
   std::string GenTilingFuncCall(const std::string &impl_graph_name, const std::string &tiling_data, uint32_t index,
-                                bool enable_group_parallel = false, bool need_sync_all = false) const;
+                                bool enable_group_parallel = false, bool need_sync_all = false,
+                                const std::string &workspace_tiling_data = "t") const;
   std::string GenTilingFuncCall(const std::string &impl_graph_name, const std::string &tiling_data) const;
-  std::string GenCubeTilingFuncCall(const ascir::ImplGraph &impl_graph) const;
-  std::string GenCubeTilingSingleFuncCall(const bool is_batch, const bool is_cv_fuse, bool is_bias,
-                                          bool is_offset_w, bool is_conv2d) const;
-  ge::Status GenCubeCommonTiling(std::stringstream &ss, const bool is_batch, bool is_conv2d = false) const;
+  std::string GenCubeTilingFuncCall(const ascir::ImplGraph &impl_graph, bool is_dynamic = false) const;
+  std::string GenCubeTilingSingleFuncCall(const bool is_batch, const bool is_cv_fuse, bool is_bias, bool is_offset_w,
+                                          bool is_conv2d, bool is_dynamic = false, bool is_db = false) const;
+  ge::Status GenCubeCommonTiling(std::stringstream &ss, const bool is_batch, bool is_conv2d = false,
+                                 bool is_dynamic = false, bool is_db = false) const;
   std::string GenCubeCommonTilingSingleFuncCall(const ascir::ImplGraph &impl_graph) const;
   static std::string KernelFuncDeclare(const std::string &graph_name,
                                        const ascir::FusedScheduledResult &fused_schedule_result,
@@ -437,8 +439,10 @@ class Kernel {
   void SetUsingAttCalcQBTSizeConfig(bool using_att_calc_qbt_size);
   void SetEnableParallelCompile(bool enable_parallel_compile);
   bool GetEnableParallelCompile() const;
-  Status GenerateVecFuncOfCVFusion(std::stringstream &result, bool vector_no_db_flag, bool is_conv2d);
-  Status InitCVFusionAddr(std::stringstream &result, bool vector_no_db_flag);
+  Status GenerateVecFuncOfCVFusion(std::stringstream &result, bool vector_no_db_flag, bool is_conv2d,
+                                   bool is_dynamic = false, bool is_inductor = false);
+  Status InitCVFusionAddr(std::stringstream &result, bool vector_no_db_flag, bool is_dynamic = false,
+                          bool is_inductor = false);
   static std::string GenKernelFuncCallForInductor(const ascir::FusedScheduledResult &fused_schedule_result);
   Status ParseUbScalarOptimizationInfo(const ascir::NodeView& node, Tensor& t, ascir::TensorId id, bool is_all_link_vf);
   Status JudgeIsLoadLinkStoreAndVec(const ascir::NodeView& node, Tensor& t, ascir::TensorId id) const;
@@ -490,14 +494,16 @@ class Kernel {
                                             const size_t graph_id, const size_t common_index,
                                             const CodegenConfig &config, std::stringstream &ss, std::stringstream &ss1,
                                             const bool use_list_tensor,
-                                            std::unordered_set<const std::string *> &kernel_file_ptr);
+                                            std::unordered_set<const std::string *> &kernel_file_ptr, bool is_dynamic = false);
   static Status GenCubeCommonFuncForScheduleGroup(const ascir::FusedScheduledResult &fused_schedule_result,
                                                   const size_t graph_id, const size_t common_index,
                                                   const size_t group_index, const CodegenConfig &config,
                                                   std::stringstream &ss, std::stringstream &res_ss,
                                                   const bool use_list_tensor,
                                                   std::unordered_set<const std::string *> &kernel_file_ptr);
-
+  static Status GenCVKernelFuncWithMulGroup(const ascir::FusedScheduledResult &fused_schedule_result,
+                                            const CodegenConfig &config, std::stringstream &ss, std::stringstream &ss1,
+                                            bool use_list_tensor);
  private:
   static Status GenCubeCommonFuncForAIV(const ascir::FusedScheduledResult &fused_schedule_result, size_t graph_id,
                                         const size_t common_index, const size_t group_index,
@@ -510,11 +516,28 @@ class Kernel {
                                         const bool use_list_tensor,
                                         std::unordered_set<const std::string *> &kernel_file_ptr);
   static Status GenCubeCommonFuncForAICMix(const ascir::FusedScheduledResult &fused_schedule_result,
-                                                   const size_t graph_id, const size_t common_index,
-                                                   const size_t group_index, const CodegenConfig &config,
-                                                   std::stringstream &ss, std::stringstream &cube_ss,
-                                                   const bool use_list_tensor,
-                                                   std::unordered_set<const std::string *> &kernel_file_ptr);
+                                           const size_t graph_id, const size_t common_index, const size_t group_index,
+                                           const CodegenConfig &config, std::stringstream &ss,
+                                           std::stringstream &cube_ss, const bool use_list_tensor,
+                                           std::unordered_set<const std::string *> &kernel_file_ptr);
+  static Status GenCubeCommonFuncForAICMixDynamic(const ascir::FusedScheduledResult &fused_schedule_result,
+                                                  const size_t graph_id, const size_t common_index,
+                                                  const size_t group_index, const CodegenConfig &config,
+                                                  std::stringstream &ss, std::stringstream &cube_ss,
+                                                  const bool use_list_tensor,
+                                                  std::unordered_set<const std::string *> &kernel_file_ptr);
+  static Status GenCubeCommonFuncForAICDynamic(const ascir::FusedScheduledResult &fused_schedule_result,
+                                               const size_t graph_id, const size_t common_index,
+                                               const size_t group_index, const CodegenConfig &config,
+                                               std::stringstream &ss, std::stringstream &cube_ss,
+                                               const bool use_list_tensor,
+                                               std::unordered_set<const std::string *> &kernel_file_ptr);
+  static Status GenCubeCommonFuncForAIVDynamic(const ascir::FusedScheduledResult &fused_schedule_result,
+                                               const size_t graph_id, const size_t common_index,
+                                               const size_t group_index, const CodegenConfig &config,
+                                               std::stringstream &ss, std::stringstream &vec_ss,
+                                               const bool use_list_tensor,
+                                               std::unordered_set<const std::string *> &kernel_file_ptr);
   std::map<std::string, size_t> input_name_to_index_;
   std::map<std::string, size_t> output_name_to_index_;
   bool use_list_tensor_ = false;

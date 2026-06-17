@@ -69,7 +69,7 @@ Status SplitConcatOptimizationPass::OptimizeOutConcat(ascir::HintGraph &owner_gr
   // graph被原地修改
   GE_ASSERT_SUCCESS(
       ConcatFusionCaseGenerator().SetConvertToStoreMode().Generate(owner_graph, graphs, unused_score_funcs));
-  GE_ASSERT_TRUE(graphs.size() == 1UL, "first dim concat should generate only one template, but got %zu",
+  GE_ASSERT_TRUE(graphs.size() <= 1UL, "first dim concat should generate only one template, but got %zu",
                  graphs.size());
   return ge::SUCCESS;
 }

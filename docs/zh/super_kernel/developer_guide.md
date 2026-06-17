@@ -9,7 +9,7 @@
 
 ## 目录结构概览
 
-```
+```text
 super_kernel/
   src/
     superkernel/    # 核心业务代码
