@@ -50,15 +50,21 @@ struct SkInfoForDump {
 
 using SkInfoForDumpMap = std::unordered_map<uint64_t, SkInfoForDump>;
 
-const char* ScopeProcessStatusDetail(ScopeProcessStatus status)
+const char* ScopeBreakReasonDetail(ScopeBreakReason reason)
 {
-    switch (status) {
-        case ScopeProcessStatus::RESOURCE_INSUFFICIENT:
-            return "Insufficient stream task slots or event memory resources";
-        case ScopeProcessStatus::NO_TARGET_NODE:
-            return "No target node remains after filtering";
-        case ScopeProcessStatus::UNRECOVERABLE_FAIL:
-            return "Unrecoverable failure that cannot be skipped";
+    switch (reason) {
+        case ScopeBreakReason::UNFUSIBLE_NODE:
+            return "There exists unfusible node in scope";
+        case ScopeBreakReason::DEADLOCK_DETECTED:
+            return "There exists deadlock in scope";
+        case ScopeBreakReason::SCHEMODE_CORE_DROP:
+            return "There exists an operator for full kernel synchronization, and the number of kernels of this "
+                   "operator is less than the maximum number of kernels of the fused superkernel";
+        case ScopeBreakReason::SCHEMODE_CORE_RISE:
+            return "There exists an operator for full kernel synchronization, and the number of kernels of this "
+                   "operator is greater than the maximum number of kernels of the previously fused superkernel";
+        case ScopeBreakReason::DEBUG_PER_OP_MAX_CORE:
+            return "Per-Op debug mode: each operator is an independent scope";
         default:
             return "";
     }
@@ -706,7 +712,9 @@ void PrintFusedScopes(const SuperKernelGraph& graph,
 
         // Line 3: breakReason (if kernel set differs from original scope)
         if (rootScopeBreakInfo.GetReason() != ScopeBreakReason::NONE && !IsKernelSetMatch(scopeInfo, originalKernelSets, graph)) {
-            SK_LOGI("    breakReason=[%s], scopeName=[%s]", rootScopeBreakInfo.Format().c_str(), scopeNames.c_str());
+            SK_LOGI("    breakReason=[%s], breakReasonDetail=%s, scopeName=[%s]",
+                    rootScopeBreakInfo.Format().c_str(),
+                    ScopeBreakReasonDetail(rootScopeBreakInfo.GetReason()), scopeNames.c_str());
         }
     }
 }

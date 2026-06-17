@@ -88,80 +88,106 @@ enum class BindmapFailReason : uint8_t {
     BIN_HOST_ADDR_GET_FAILED, // 9: Failed to get binary host address
 };
 
+inline const char* to_string(BindmapFailReason reason)
+{
+    switch (reason) {
+        case BindmapFailReason::NONE:
+            return "NONE";
+        case BindmapFailReason::BINDMAP_INIT_EMPTY:
+            return "BINDMAP_INIT_EMPTY";
+        case BindmapFailReason::BINHDL_NULL:
+            return "BINHDL_NULL";
+        case BindmapFailReason::FUNCHDL_NULL:
+            return "FUNCHDL_NULL";
+        case BindmapFailReason::FUNC_NOT_FOUND:
+            return "FUNC_NOT_FOUND";
+        case BindmapFailReason::BIN_DEV_ADDR_GET_FAILED:
+            return "BIN_DEV_ADDR_GET_FAILED";
+        case BindmapFailReason::FUNC_ADDR_GET_FAILED:
+            return "FUNC_ADDR_GET_FAILED";
+        case BindmapFailReason::BINDMAP_ENTRY_CONFLICT:
+            return "BINDMAP_ENTRY_CONFLICT";
+        case BindmapFailReason::BINDMAP_CAP_INCONSISTENT:
+            return "BINDMAP_CAP_INCONSISTENT";
+        case BindmapFailReason::BIN_HOST_ADDR_GET_FAILED:
+            return "BIN_HOST_ADDR_GET_FAILED";
+        default:
+            return "UNKNOWN_BINDMAP_REASON";
+    }
+}
+
 // Fusion fail reason with optional scope/deadlock detail
-// Note: scopeDetailValue stores ScopeProcessStatus as uint8_t to avoid circular dependency
-// Note: deadlockDetailValue stores DeadlockFailReason as uint8_t to avoid circular dependency
 struct FusionFailReasonInfo {
     FusionFailReason primary = FusionFailReason::CAN_FUSE;
-    uint8_t scopeDetailValue = 0;       // ScopeProcessStatus::INIT
-    uint8_t deadlockDetailValue = 0;    // DeadlockFailReason::NOT_FIND_DEADLOCK
-    uint8_t bindmapDetailValue = 0;     // BindmapFailReason::NONE
+    ScopeProcessStatus scopeProcessStatus;
+    DeadlockFailReason deadlockFailReason;
+    BindmapFailReason bindmapFailReason;
     
-    FusionFailReasonInfo() = default;
-    explicit FusionFailReasonInfo(FusionFailReason reason) : primary(reason) {}
+    FusionFailReasonInfo();
+    explicit FusionFailReasonInfo(FusionFailReason reason);
     FusionFailReasonInfo(FusionFailReason reason, ScopeProcessStatus scopeStatus);
     FusionFailReasonInfo(FusionFailReason reason, DeadlockFailReason deadlockReason);
     FusionFailReasonInfo(FusionFailReason reason, BindmapFailReason bindmapReason);
     
-    ScopeProcessStatus GetScopeDetail() const;
-    void SetScopeDetail(ScopeProcessStatus scopeStatus);
+    ScopeProcessStatus GetScopeProcessStatus() const;
+    void SetScopeProcessStatus(ScopeProcessStatus scopeStatus);
+    const char* GetScopeDetail() const;
     
-    DeadlockFailReason GetDeadlockDetail() const;
-    void SetDeadlockDetail(DeadlockFailReason deadlockReason);
+    DeadlockFailReason GetDeadlockFailReason() const;
+    void SetDeadlockFailReason(DeadlockFailReason deadlockReason);
+    const char* GetDeadlockDetail() const;
 
-    BindmapFailReason GetBindmapDetail() const;
-    void SetBindmapDetail(BindmapFailReason bindmapReason);
+    BindmapFailReason GetBindmapFailReason() const;
+    void SetBindmapFailReason(BindmapFailReason bindmapReason);
+    const char* GetBindmapDetail() const;
     
     bool operator==(FusionFailReason reason) const { return primary == reason; }
     bool operator!=(FusionFailReason reason) const { return primary != reason; }
 };
 
-// Declaration for BindmapFailReasonToStr
-const char* BindmapFailReasonToStr(BindmapFailReason reason);
-
 // Declaration for AlignUpAndClamp
 size_t AlignUpAndClamp(size_t value, size_t coreIdx);
 
-inline const char* FusionFailReasonToStr(FusionFailReason reason) {
+inline const char* to_string(FusionFailReason reason) {
     switch (reason) {
-        case FusionFailReason::CAN_FUSE:              
-            return "node can fuse";
-        case FusionFailReason::BINDMAP_IS_EMPTY:     
-            return "The operator does not support the operation of fusing SuperKernel";
-        case FusionFailReason::TASK_GROUP_NOT_EMPTY:   
-            return "The operator will refresh task information at runtime, but SK does not support fusing dynamically changing tasks";
-        case FusionFailReason::NOT_IN_SCOPE:      
-            return "The user actively marked that this operator is not fused";
-        case FusionFailReason::IN_UNFUSIBLE_SCOPE: 
-            return "This operator is not within the fusion range marked by the user";
-        case FusionFailReason::EXCEED_DEVICE_MAX:  
-            return "The number of kernels required by the operator exceeds the maximum number of kernels that the device can provide";
-        case FusionFailReason::RESET_TYPE_NODE:    
-            return "reset type node in end";
-        case FusionFailReason::ISOLATED_EVENT:    
-            return "There is no kernel node on the stream where the current node is located, and this stream is within the scope";
+        case FusionFailReason::CAN_FUSE:
+            return "CAN_FUSE";
+        case FusionFailReason::BINDMAP_IS_EMPTY:
+            return "BINDMAP_IS_EMPTY";
+        case FusionFailReason::TASK_GROUP_NOT_EMPTY:
+            return "TASK_GROUP_NOT_EMPTY";
+        case FusionFailReason::NOT_IN_SCOPE:
+            return "NOT_IN_SCOPE";
+        case FusionFailReason::IN_UNFUSIBLE_SCOPE:
+            return "IN_UNFUSIBLE_SCOPE";
+        case FusionFailReason::EXCEED_DEVICE_MAX:
+            return "EXCEED_DEVICE_MAX";
+        case FusionFailReason::RESET_TYPE_NODE:
+            return "RESET_TYPE_NODE";
+        case FusionFailReason::ISOLATED_EVENT:
+            return "ISOLATED_EVENT";
         case FusionFailReason::EXIST_DEADLOCK:    
-            return "exist deadlock";
+            return "EXIST_DEADLOCK";
         case FusionFailReason::SCOPE_FUSE_PART:   
-            return "scope fuse failed";
+            return "SCOPE_FUSE_PART";
         case FusionFailReason::EXTERNAL_DEPEND:   
-            return "event node has external dependency";
+            return "EXTERNAL_DEPEND";
         case FusionFailReason::UNSUPPORT_EVENT_TYPE: 
-            return "unsupport event type";
+            return "UNSUPPORT_EVENT_TYPE";
         case FusionFailReason::MEMORY_WAIT_NODE_ONLY: 
-            return "No memory write exists, meaning the memory write is outside modelRI. Therefore change all waits to event semantics, but they cannot be fused.";
+            return "MEMORY_WAIT_NODE_ONLY";
         case FusionFailReason::MEMORY_WRITE_NODE_ONLY: 
-            return "only exists memory write nodes, mask it as unfusible";
+            return "MEMORY_WRITE_NODE_ONLY";
         case FusionFailReason::DEFAULT_NODE: 
-            return "default node uses aicpu resources, mask it as unfusible";
+            return "DEFAULT_NODE";
         case FusionFailReason::SIMT_OP_NOT_SUPPORTED:
-            return "SIMT operator is not supported for SuperKernel fusion";
+            return "SIMT_OP_NOT_SUPPORTED";
         case FusionFailReason::KERNEL_ATTR_GET_FAILED:
-            return "Failed to get kernel attribute for SuperKernel fusion";
+            return "KERNEL_ATTR_GET_FAILED";
         case FusionFailReason::EXCEED_SCOPE_MAX:
-            return "Exceeded maximum scope number limit for SuperKernel fusion";
+            return "EXCEED_SCOPE_MAX";
         default:                                  
-            return "UNKNOWN_REASON";
+            return "UNKNOWN_FUSION_FAIL_REASON";
     }
 }
 
@@ -435,17 +461,15 @@ public:
     void SetUpdate(bool update) { isUpdate = update; }
 
     // Fusion fail reason setters
-    void SetFusionFailReason(FusionFailReason reason, ScopeProcessStatus scopeStatus = static_cast<ScopeProcessStatus>(0)) {
-        fusionFailReason_.primary = reason;
-        fusionFailReason_.SetScopeDetail(scopeStatus);
-    }
+    void SetFusionFailReason(FusionFailReason reason);
+    void SetFusionFailReason(FusionFailReason reason, ScopeProcessStatus scopeStatus);
     void SetFusionFailReason(FusionFailReason reason, DeadlockFailReason deadlockReason) {
         fusionFailReason_.primary = reason;
-        fusionFailReason_.SetDeadlockDetail(deadlockReason);
+        fusionFailReason_.SetDeadlockFailReason(deadlockReason);
     }
     void SetFusionFailReason(FusionFailReason reason, BindmapFailReason bindmapReason) {
         fusionFailReason_.primary = reason;
-        fusionFailReason_.SetBindmapDetail(bindmapReason);
+        fusionFailReason_.SetBindmapFailReason(bindmapReason);
     }    
     void SetFusionFailReason(const FusionFailReasonInfo& info) { fusionFailReason_ = info; }
     

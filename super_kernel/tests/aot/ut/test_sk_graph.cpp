@@ -1033,19 +1033,49 @@ TEST_F(SuperKernelGraphTest, CollectFusionFailStats_WithNodes)
     auto node1 = std::make_unique<SuperKernelKernelNode>(
         nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_STREAM_ID, INVALID_TASK_ID);
     node1->SetNodeId(10);
+    node1->SetNodeType(SkNodeType::NODE_KERNEL);
     node1->SetIsFusible(true);
     graph->graphMap[10] = std::move(node1);
 
     auto node2 = std::make_unique<SuperKernelKernelNode>(
         nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_STREAM_ID, INVALID_TASK_ID);
     node2->SetNodeId(20);
+    node2->SetNodeType(SkNodeType::NODE_KERNEL);
     node2->SetIsFusible(false);
     node2->SetFusionFailReason(FusionFailReason::UNSUPPORT_EVENT_TYPE);
     graph->graphMap[20] = std::move(node2);
 
+    auto node3 = std::make_unique<SuperKernelKernelNode>(
+        nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_STREAM_ID, INVALID_TASK_ID);
+    node3->SetNodeId(30);
+    node3->SetNodeType(SkNodeType::NODE_KERNEL);
+    node3->SetIsFusible(false);
+    node3->SetFusionFailReason(FusionFailReason::BINDMAP_IS_EMPTY, BindmapFailReason::BINHDL_NULL);
+    graph->graphMap[30] = std::move(node3);
+
+    auto node4 = std::make_unique<SuperKernelKernelNode>(
+        nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_STREAM_ID, INVALID_TASK_ID);
+    node4->SetNodeId(40);
+    node4->SetNodeType(SkNodeType::NODE_KERNEL);
+    node4->SetIsFusible(false);
+    node4->SetFusionFailReason(FusionFailReason::SCOPE_FUSE_PART, ScopeProcessStatus::RESOURCE_INSUFFICIENT);
+    graph->graphMap[40] = std::move(node4);
+
     auto stats = graph->CollectFusionFailStats();
     EXPECT_EQ(stats.fusibleCount, 1);
-    EXPECT_EQ(stats.unfusibleCount, 1);
+    EXPECT_EQ(stats.unfusibleCount, 3);
+    EXPECT_EQ(stats.reasonStats["The operator does not support the operation of fusing SuperKernel [BINHDL_NULL]"], 1);
+    EXPECT_EQ(stats.reasonStats["scope fuse failed [RESOURCE_INSUFFICIENT]"], 1);
+    ASSERT_EQ(stats.unfusibleNodeLogEntries.size(), 3);
+    bool hasBindmapDetail = false;
+    bool hasScopeDetail = false;
+    for (const auto& entry : stats.unfusibleNodeLogEntries) {
+        hasBindmapDetail = hasBindmapDetail || entry.find("reasonDetail: binHdl is null") != std::string::npos;
+        hasScopeDetail = hasScopeDetail ||
+            entry.find("reasonDetail: Insufficient stream task slots or event memory resources") != std::string::npos;
+    }
+    EXPECT_TRUE(hasBindmapDetail);
+    EXPECT_TRUE(hasScopeDetail);
 }
 
 // ==================== PostProcessMemoryNode Extended Tests ====================

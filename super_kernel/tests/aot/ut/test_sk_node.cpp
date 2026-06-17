@@ -442,37 +442,53 @@ std::string MakeTmpDir(const std::string& suffix)
 TEST_F(SkNodeTest, FusionFailReasonInfo_BindmapDetailsAndStrings)
 {
     FusionFailReasonInfo noneInfo(FusionFailReason::BINDMAP_IS_EMPTY, BindmapFailReason::NONE);
-    EXPECT_EQ(noneInfo.GetBindmapDetail(), BindmapFailReason::NONE);
-    EXPECT_EQ(FusionFailReasonToStr(noneInfo),
-        std::string(FusionFailReasonToStr(FusionFailReason::BINDMAP_IS_EMPTY)));
+    EXPECT_EQ(noneInfo.GetBindmapFailReason(), BindmapFailReason::NONE);
+    EXPECT_NE(FusionFailReasonToStr(noneInfo).find("does not support"), std::string::npos);
+    EXPECT_STREQ(to_string(FusionFailReason::BINDMAP_IS_EMPTY), "BINDMAP_IS_EMPTY");
 
     FusionFailReasonInfo info(FusionFailReason::BINDMAP_IS_EMPTY, BindmapFailReason::FUNCHDL_NULL);
-    EXPECT_EQ(info.GetBindmapDetail(), BindmapFailReason::FUNCHDL_NULL);
-    EXPECT_NE(FusionFailReasonToStr(info).find("funcHdl is null"), std::string::npos);
+    EXPECT_EQ(info.GetBindmapFailReason(), BindmapFailReason::FUNCHDL_NULL);
+    EXPECT_NE(FusionFailReasonToStr(info).find("FUNCHDL_NULL"), std::string::npos);
 
-    info.SetBindmapDetail(BindmapFailReason::FUNC_NOT_FOUND);
-    EXPECT_EQ(info.GetBindmapDetail(), BindmapFailReason::FUNC_NOT_FOUND);
-    EXPECT_NE(FusionFailReasonToStr(info).find("function not found in bind map"), std::string::npos);
+    info.SetBindmapFailReason(BindmapFailReason::FUNC_NOT_FOUND);
+    EXPECT_EQ(info.GetBindmapFailReason(), BindmapFailReason::FUNC_NOT_FOUND);
+    EXPECT_NE(FusionFailReasonToStr(info).find("FUNC_NOT_FOUND"), std::string::npos);
 
-    EXPECT_STREQ(BindmapFailReasonToStr(BindmapFailReason::BINDMAP_INIT_EMPTY), "bindmap init empty");
-    EXPECT_STREQ(BindmapFailReasonToStr(BindmapFailReason::BINHDL_NULL), "binHdl is null");
-    EXPECT_STREQ(BindmapFailReasonToStr(static_cast<BindmapFailReason>(255)), "UNKNOWN_BINDMAP_REASON");
+    EXPECT_STREQ(to_string(BindmapFailReason::BINDMAP_INIT_EMPTY), "BINDMAP_INIT_EMPTY");
+    EXPECT_STREQ(to_string(BindmapFailReason::BINHDL_NULL), "BINHDL_NULL");
+    EXPECT_STREQ(to_string(static_cast<BindmapFailReason>(255)), "UNKNOWN_BINDMAP_REASON");
+    EXPECT_STREQ(FusionFailReasonInfo(FusionFailReason::BINDMAP_IS_EMPTY, BindmapFailReason::BINHDL_NULL)
+                     .GetBindmapDetail(),
+                 "binHdl is null");
+    EXPECT_STREQ(FusionFailReasonInfo(FusionFailReason::BINDMAP_IS_EMPTY, static_cast<BindmapFailReason>(255))
+                     .GetBindmapDetail(),
+                 "");
 }
 
 TEST_F(SkNodeTest, FusionFailReasonInfo_ScopeAndDeadlockDetails)
 {
     FusionFailReasonInfo scopeInfo(FusionFailReason::SCOPE_FUSE_PART, ScopeProcessStatus::RESOURCE_INSUFFICIENT);
-    EXPECT_EQ(scopeInfo.GetScopeDetail(), ScopeProcessStatus::RESOURCE_INSUFFICIENT);
+    EXPECT_EQ(scopeInfo.GetScopeProcessStatus(), ScopeProcessStatus::RESOURCE_INSUFFICIENT);
+    EXPECT_STREQ(scopeInfo.GetScopeDetail(), "Insufficient stream task slots or event memory resources");
     EXPECT_NE(FusionFailReasonToStr(scopeInfo).find("["), std::string::npos);
 
     FusionFailReasonInfo deadlockInfo(FusionFailReason::EXIST_DEADLOCK, static_cast<DeadlockFailReason>(1));
-    EXPECT_EQ(deadlockInfo.GetDeadlockDetail(), static_cast<DeadlockFailReason>(1));
+    EXPECT_EQ(deadlockInfo.GetDeadlockFailReason(), static_cast<DeadlockFailReason>(1));
     EXPECT_NE(FusionFailReasonToStr(deadlockInfo).find("["), std::string::npos);
+    EXPECT_NE(FusionFailReasonToStr(deadlockInfo).find("KERNEL_INSUFFICIENT_CORES"), std::string::npos);
+    EXPECT_STREQ(to_string(DeadlockFailReason::NOTIFY_NOT_IN_GRAPH), "NOTIFY_NOT_IN_GRAPH");
+    EXPECT_STREQ(to_string(static_cast<DeadlockFailReason>(255)), "UNKNOWN_DEADLOCK_REASON");
+    EXPECT_STREQ(FusionFailReasonInfo(FusionFailReason::EXIST_DEADLOCK, DeadlockFailReason::FIRST_WAIT)
+                     .GetDeadlockDetail(),
+                 "The wait node is first node in scope");
+    EXPECT_STREQ(FusionFailReasonInfo(FusionFailReason::EXIST_DEADLOCK, static_cast<DeadlockFailReason>(255))
+                     .GetDeadlockDetail(),
+                 "");
 
-    scopeInfo.SetScopeDetail(ScopeProcessStatus::INIT);
-    deadlockInfo.SetDeadlockDetail(static_cast<DeadlockFailReason>(0));
-    EXPECT_EQ(scopeInfo.GetScopeDetail(), ScopeProcessStatus::INIT);
-    EXPECT_EQ(deadlockInfo.GetDeadlockDetail(), static_cast<DeadlockFailReason>(0));
+    scopeInfo.SetScopeProcessStatus(ScopeProcessStatus::INIT);
+    deadlockInfo.SetDeadlockFailReason(static_cast<DeadlockFailReason>(0));
+    EXPECT_EQ(scopeInfo.GetScopeProcessStatus(), ScopeProcessStatus::INIT);
+    EXPECT_EQ(deadlockInfo.GetDeadlockFailReason(), static_cast<DeadlockFailReason>(0));
 }
 
 TEST_F(SkNodeTest, AlignUpAndClamp_CoversAlignmentAndCoreClamp)
@@ -613,7 +629,7 @@ TEST_F(SkNodeTest, KernelInitNode_BindmapEmptyReasonIsRecorded)
     EXPECT_TRUE(node.InitNode());
     EXPECT_FALSE(node.IsFusible());
     EXPECT_EQ(node.GetFusionFailReason(), FusionFailReason::BINDMAP_IS_EMPTY);
-    EXPECT_EQ(node.GetFusionFailReasonInfo().GetBindmapDetail(), BindmapFailReason::BINDMAP_INIT_EMPTY);
+    EXPECT_EQ(node.GetFusionFailReasonInfo().GetBindmapFailReason(), BindmapFailReason::BINDMAP_INIT_EMPTY);
 }
 
 TEST_F(SkNodeTest, KernelInitNode_MixSplitFlagHonorsUbufLockIgnoreKernel)
@@ -660,7 +676,7 @@ TEST_F(SkNodeTest, KernelInitNode_NullFuncHandleRecordsBindmapReason)
     EXPECT_TRUE(node.InitNode());
     EXPECT_FALSE(node.IsFusible());
     EXPECT_EQ(node.GetFusionFailReason(), FusionFailReason::BINDMAP_IS_EMPTY);
-    EXPECT_EQ(node.GetFusionFailReasonInfo().GetBindmapDetail(), BindmapFailReason::FUNCHDL_NULL);
+    EXPECT_EQ(node.GetFusionFailReasonInfo().GetBindmapFailReason(), BindmapFailReason::FUNCHDL_NULL);
 }
 
 TEST_F(SkNodeTest, KernelInitNode_RecordsConsistentCapInKernelInfos)
@@ -713,7 +729,7 @@ TEST_F(SkNodeTest, KernelInitNode_InconsistentCapRecordsBindmapReason)
     EXPECT_EQ(node.nodeInfos.kernelInfos.bindmapFailReason, BindmapFailReason::BINDMAP_CAP_INCONSISTENT);
     EXPECT_EQ(node.nodeInfos.kernelInfos.resolvedNum, 0U);
     EXPECT_EQ(node.GetFusionFailReason(), FusionFailReason::BINDMAP_IS_EMPTY);
-    EXPECT_EQ(node.GetFusionFailReasonInfo().GetBindmapDetail(), BindmapFailReason::BINDMAP_CAP_INCONSISTENT);
+    EXPECT_EQ(node.GetFusionFailReasonInfo().GetBindmapFailReason(), BindmapFailReason::BINDMAP_CAP_INCONSISTENT);
 }
 
 TEST_F(SkNodeTest, KernelInitNode_BindmapEntryConflictRecordsBindmapReason)
@@ -736,7 +752,7 @@ TEST_F(SkNodeTest, KernelInitNode_BindmapEntryConflictRecordsBindmapReason)
     EXPECT_TRUE(node.InitNode());
     EXPECT_FALSE(node.IsFusible());
     EXPECT_EQ(node.nodeInfos.kernelInfos.bindmapFailReason, BindmapFailReason::BINDMAP_ENTRY_CONFLICT);
-    EXPECT_EQ(node.GetFusionFailReasonInfo().GetBindmapDetail(), BindmapFailReason::BINDMAP_ENTRY_CONFLICT);
+    EXPECT_EQ(node.GetFusionFailReasonInfo().GetBindmapFailReason(), BindmapFailReason::BINDMAP_ENTRY_CONFLICT);
 }
 
 TEST_F(SkNodeTest, KernelInitNode_FunctionNotInBindmapRecordsBindmapReason)
@@ -759,7 +775,7 @@ TEST_F(SkNodeTest, KernelInitNode_FunctionNotInBindmapRecordsBindmapReason)
     EXPECT_TRUE(node.InitNode());
     EXPECT_FALSE(node.IsFusible());
     EXPECT_EQ(node.nodeInfos.kernelInfos.bindmapFailReason, BindmapFailReason::FUNC_NOT_FOUND);
-    EXPECT_EQ(node.GetFusionFailReasonInfo().GetBindmapDetail(), BindmapFailReason::FUNC_NOT_FOUND);
+    EXPECT_EQ(node.GetFusionFailReasonInfo().GetBindmapFailReason(), BindmapFailReason::FUNC_NOT_FOUND);
 }
 
 TEST_F(SkNodeTest, KernelInitNode_BinHostAddrGetFailedRecordsBindmapReason)
@@ -783,7 +799,7 @@ TEST_F(SkNodeTest, KernelInitNode_BinHostAddrGetFailedRecordsBindmapReason)
     EXPECT_TRUE(node.InitNode());
     EXPECT_FALSE(node.IsFusible());
     EXPECT_EQ(node.nodeInfos.kernelInfos.bindmapFailReason, BindmapFailReason::BIN_HOST_ADDR_GET_FAILED);
-    EXPECT_EQ(node.GetFusionFailReasonInfo().GetBindmapDetail(), BindmapFailReason::BIN_HOST_ADDR_GET_FAILED);
+    EXPECT_EQ(node.GetFusionFailReasonInfo().GetBindmapFailReason(), BindmapFailReason::BIN_HOST_ADDR_GET_FAILED);
 }
 
 TEST_F(SkNodeTest, KernelInitNode_TaskGroupNotEmptyRecordsReason)
@@ -1206,15 +1222,15 @@ TEST_F(SkNodeTest, Node_FusionFailReasonManagement)
 
     node.SetFusionFailReason(FusionFailReason::SCOPE_FUSE_PART, ScopeProcessStatus::RESOURCE_INSUFFICIENT);
     EXPECT_EQ(node.GetFusionFailReason(), FusionFailReason::SCOPE_FUSE_PART);
-    EXPECT_EQ(node.GetFusionFailReasonInfo().GetScopeDetail(), ScopeProcessStatus::RESOURCE_INSUFFICIENT);
+    EXPECT_EQ(node.GetFusionFailReasonInfo().GetScopeProcessStatus(), ScopeProcessStatus::RESOURCE_INSUFFICIENT);
 
     node.SetFusionFailReason(FusionFailReason::EXIST_DEADLOCK, DeadlockFailReason::NOTIFY_NOT_IN_GRAPH);
     EXPECT_EQ(node.GetFusionFailReason(), FusionFailReason::EXIST_DEADLOCK);
-    EXPECT_EQ(node.GetFusionFailReasonInfo().GetDeadlockDetail(), DeadlockFailReason::NOTIFY_NOT_IN_GRAPH);
+    EXPECT_EQ(node.GetFusionFailReasonInfo().GetDeadlockFailReason(), DeadlockFailReason::NOTIFY_NOT_IN_GRAPH);
 
     node.SetFusionFailReason(FusionFailReason::BINDMAP_IS_EMPTY, BindmapFailReason::FUNC_NOT_FOUND);
     EXPECT_EQ(node.GetFusionFailReason(), FusionFailReason::BINDMAP_IS_EMPTY);
-    EXPECT_EQ(node.GetFusionFailReasonInfo().GetBindmapDetail(), BindmapFailReason::FUNC_NOT_FOUND);
+    EXPECT_EQ(node.GetFusionFailReasonInfo().GetBindmapFailReason(), BindmapFailReason::FUNC_NOT_FOUND);
 }
 
 // ==================== Node Stream and Index Tests ====================
@@ -1729,48 +1745,49 @@ TEST_F(SkNodeTest, SimtAivType_SimdSimtMix)
     EXPECT_EQ(aivType, 4);
 }
 
-TEST_F(SkNodeTest, BindmapFailReasonToStr_NewReasons)
+TEST_F(SkNodeTest, BindmapFailReasonStrings_NewReasons)
 {
-    EXPECT_STREQ(BindmapFailReasonToStr(BindmapFailReason::BIN_DEV_ADDR_GET_FAILED),
-                 "failed to get binary device address");
-    EXPECT_STREQ(BindmapFailReasonToStr(BindmapFailReason::FUNC_ADDR_GET_FAILED),
-                 "failed to get function address");
-    EXPECT_STREQ(BindmapFailReasonToStr(BindmapFailReason::BINDMAP_ENTRY_CONFLICT),
-                 "bind map entry conflict");
-    EXPECT_STREQ(BindmapFailReasonToStr(BindmapFailReason::BINDMAP_CAP_INCONSISTENT),
-                 "bind map cap inconsistent");
-    EXPECT_STREQ(BindmapFailReasonToStr(BindmapFailReason::BIN_HOST_ADDR_GET_FAILED),
-                 "failed to get binary host address");
+    EXPECT_STREQ(to_string(BindmapFailReason::BIN_DEV_ADDR_GET_FAILED), "BIN_DEV_ADDR_GET_FAILED");
+    EXPECT_STREQ(to_string(BindmapFailReason::FUNC_ADDR_GET_FAILED), "FUNC_ADDR_GET_FAILED");
+    EXPECT_STREQ(to_string(BindmapFailReason::BINDMAP_ENTRY_CONFLICT), "BINDMAP_ENTRY_CONFLICT");
+    EXPECT_STREQ(to_string(BindmapFailReason::BINDMAP_CAP_INCONSISTENT), "BINDMAP_CAP_INCONSISTENT");
+    EXPECT_STREQ(to_string(BindmapFailReason::BIN_HOST_ADDR_GET_FAILED), "BIN_HOST_ADDR_GET_FAILED");
 }
 
 TEST_F(SkNodeTest, FusionFailReasonInfo_BindmapNewReasons)
 {
     FusionFailReasonInfo info1(FusionFailReason::BINDMAP_IS_EMPTY,
         BindmapFailReason::BIN_DEV_ADDR_GET_FAILED);
-    EXPECT_EQ(info1.GetBindmapDetail(), BindmapFailReason::BIN_DEV_ADDR_GET_FAILED);
+    EXPECT_EQ(info1.GetBindmapFailReason(), BindmapFailReason::BIN_DEV_ADDR_GET_FAILED);
     std::string str1 = FusionFailReasonToStr(info1);
-    EXPECT_NE(str1.find("failed to get binary device address"), std::string::npos);
+    EXPECT_NE(str1.find("BIN_DEV_ADDR_GET_FAILED"), std::string::npos);
 
     FusionFailReasonInfo info2(FusionFailReason::BINDMAP_IS_EMPTY,
         BindmapFailReason::FUNC_ADDR_GET_FAILED);
-    EXPECT_EQ(info2.GetBindmapDetail(), BindmapFailReason::FUNC_ADDR_GET_FAILED);
+    EXPECT_EQ(info2.GetBindmapFailReason(), BindmapFailReason::FUNC_ADDR_GET_FAILED);
     std::string str2 = FusionFailReasonToStr(info2);
-    EXPECT_NE(str2.find("failed to get function address"), std::string::npos);
+    EXPECT_NE(str2.find("FUNC_ADDR_GET_FAILED"), std::string::npos);
 
-    info1.SetBindmapDetail(BindmapFailReason::FUNC_ADDR_GET_FAILED);
-    EXPECT_EQ(info1.GetBindmapDetail(), BindmapFailReason::FUNC_ADDR_GET_FAILED);
+    info1.SetBindmapFailReason(BindmapFailReason::FUNC_ADDR_GET_FAILED);
+    EXPECT_EQ(info1.GetBindmapFailReason(), BindmapFailReason::FUNC_ADDR_GET_FAILED);
 }
 
 TEST_F(SkNodeTest, FusionFailReasonToStr_NewKernelAttrFailed)
 {
-    const char* str = FusionFailReasonToStr(FusionFailReason::KERNEL_ATTR_GET_FAILED);
-    EXPECT_NE(std::string(str).find("Failed to get kernel attribute"), std::string::npos);
+    const char* str = to_string(FusionFailReason::KERNEL_ATTR_GET_FAILED);
+    EXPECT_STREQ(str, "KERNEL_ATTR_GET_FAILED");
+    EXPECT_NE(FusionFailReasonToStr(FusionFailReasonInfo(FusionFailReason::KERNEL_ATTR_GET_FAILED))
+                  .find("Failed to get kernel attribute"),
+              std::string::npos);
 }
 
 TEST_F(SkNodeTest, FusionFailReasonToStr_ExceedScopeMax)
 {
-    const char* str = FusionFailReasonToStr(FusionFailReason::EXCEED_SCOPE_MAX);
-    EXPECT_NE(std::string(str).find("Exceeded maximum scope number limit"), std::string::npos);
+    const char* str = to_string(FusionFailReason::EXCEED_SCOPE_MAX);
+    EXPECT_STREQ(str, "EXCEED_SCOPE_MAX");
+    EXPECT_NE(FusionFailReasonToStr(FusionFailReasonInfo(FusionFailReason::EXCEED_SCOPE_MAX))
+                  .find("Exceeded maximum scope number limit"),
+              std::string::npos);
 }
 
 aclError FakeAclrtBinaryGetDevAddressFailure(aclrtBinHandle binHdl, void** devAddr, size_t* devSize)
@@ -1820,7 +1837,7 @@ TEST_F(SkNodeTest, KernelInitNode_BinaryDevAddrGetFailed_RecordsBindmapReason)
     EXPECT_TRUE(node.InitNode());
     EXPECT_FALSE(node.IsFusible());
     EXPECT_EQ(node.GetFusionFailReason(), FusionFailReason::BINDMAP_IS_EMPTY);
-    EXPECT_EQ(node.GetFusionFailReasonInfo().GetBindmapDetail(),
+    EXPECT_EQ(node.GetFusionFailReasonInfo().GetBindmapFailReason(),
               BindmapFailReason::BIN_DEV_ADDR_GET_FAILED);
 }
 
@@ -1852,7 +1869,7 @@ TEST_F(SkNodeTest, KernelInitNode_FunctionAddrGetFailed_RecordsBindmapReason)
     EXPECT_TRUE(node.InitNode());
     EXPECT_FALSE(node.IsFusible());
     EXPECT_EQ(node.GetFusionFailReason(), FusionFailReason::BINDMAP_IS_EMPTY);
-    EXPECT_EQ(node.GetFusionFailReasonInfo().GetBindmapDetail(),
+    EXPECT_EQ(node.GetFusionFailReasonInfo().GetBindmapFailReason(),
               BindmapFailReason::FUNC_ADDR_GET_FAILED);
 }
 

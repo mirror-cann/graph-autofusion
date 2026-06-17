@@ -749,8 +749,14 @@ TEST_F(SkDumpJsonDirectHelperTest, RawTaskParamJsonCoversAllTaskTypes)
 TEST_F(SkDumpJsonDirectHelperTest, ScopePrintingHelpersCoverKernelSetAndBatchBranches)
 {
     EXPECT_STREQ(to_string(ScopeProcessStatus::RESOURCE_INSUFFICIENT), "RESOURCE_INSUFFICIENT");
+    EXPECT_STREQ(ScopeProcessStatusDetail(ScopeProcessStatus::INIT), "Scope has not been processed");
     EXPECT_STREQ(ScopeProcessStatusDetail(ScopeProcessStatus::RESOURCE_INSUFFICIENT),
                  "Insufficient stream task slots or event memory resources");
+    EXPECT_STREQ(to_string(ScopeBreakReason::UNFUSIBLE_NODE), "UNFUSIBLE_NODE");
+    EXPECT_STREQ(ScopeBreakReasonDetail(ScopeBreakReason::UNFUSIBLE_NODE),
+                 "There exists unfusible node in scope");
+    EXPECT_STREQ(to_string(static_cast<ScopeBreakReason>(255)), "UNKNOWN_SCOPE_BREAK_REASON");
+    EXPECT_STREQ(ScopeBreakReasonDetail(static_cast<ScopeBreakReason>(255)), "");
 
     SuperKernelGraph graph(nullptr);
     graph.scopeIdxToName[1] = "scope_one";
@@ -801,6 +807,9 @@ TEST_F(SkDumpJsonDirectHelperTest, ScopePrintingHelpersCoverKernelSetAndBatchBra
         .SetReason(ScopeBreakReason::UNFUSIBLE_NODE)
         .SetTriggerNode(202, 0)
         .SetFusionFailReason(FusionFailReason::IN_UNFUSIBLE_SCOPE));
+    std::string breakInfo = scopeInfo.GetBreakInfo().Format();
+    EXPECT_NE(breakInfo.find("breakReason=UNFUSIBLE_NODE"), std::string::npos);
+    EXPECT_EQ(breakInfo.find("breakReasonDetail="), std::string::npos);
 
     auto originalSets = BuildOriginalKernelSets(graph, graph.GetOriginalScopeInfos());
     EXPECT_FALSE(IsKernelSetMatch(scopeInfo, originalSets, graph));

@@ -1351,7 +1351,7 @@ ScheModeScopeProcessResult ScheModeKernelSplitPass::ProcessSingleScope(
                     node->Format().c_str(),
                     mergedCubeNum, mergedVecNum,
                     curCubeNum, curVecNum,
-                    ScopeBreakReasonToStr(breakReason),
+                    to_string(breakReason),
                     scopeBefore.GetNodes().size(), scopeAfter.GetNodes().size());
 
             // Check if scopeAfter has same kernel nodes as original
@@ -1736,7 +1736,7 @@ void PrintRootBreakReasonSummary(const std::unordered_map<ScopeBreakReason, size
 {
     SK_LOGI("Root Break Reason Summary:");
     for (const auto& pair : rootReasonCounts) {
-        SK_LOGI("  %s: %zu scopes", ScopeBreakReasonToStr(pair.first), pair.second);
+        SK_LOGI("  %s: %zu scopes", to_string(pair.first), pair.second);
     }
 }
 ScopeBreakInfo FindRootBreakInfo(const SuperKernelScopeInfo& scope,

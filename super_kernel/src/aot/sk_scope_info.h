@@ -82,6 +82,25 @@ inline const char* to_string(ScopeProcessStatus status)
 }
 
 /*!
+ * \brief Convert ScopeProcessStatus to user-facing detail string
+ */
+inline const char* ScopeProcessStatusDetail(ScopeProcessStatus status)
+{
+    switch (status) {
+        case ScopeProcessStatus::INIT:
+            return "Scope has not been processed";
+        case ScopeProcessStatus::RESOURCE_INSUFFICIENT:
+            return "Insufficient stream task slots or event memory resources";
+        case ScopeProcessStatus::NO_TARGET_NODE:
+            return "No target node remains after filtering";
+        case ScopeProcessStatus::UNRECOVERABLE_FAIL:
+            return "Unrecoverable failure that cannot be skipped";
+        default:
+            return "";
+    }
+}
+
+/*!
  * \enum ScopeBreakReason
  * \brief Reasons why a scope boundary was created (scope was split)
  */
@@ -95,22 +114,25 @@ enum class ScopeBreakReason : uint8_t {
 };
 
 /*!
- * \brief Convert ScopeBreakReason to string
+ * \brief Convert ScopeBreakReason to enum name string
  */
-inline const char* ScopeBreakReasonToStr(ScopeBreakReason reason) {
+inline const char* to_string(ScopeBreakReason reason)
+{
     switch (reason) {
+        case ScopeBreakReason::NONE:
+            return "NONE";
         case ScopeBreakReason::UNFUSIBLE_NODE:
-            return "There exists unfusible node in scope";
+            return "UNFUSIBLE_NODE";
         case ScopeBreakReason::DEADLOCK_DETECTED:
-            return "There exists deadlock in scope";
+            return "DEADLOCK_DETECTED";
         case ScopeBreakReason::SCHEMODE_CORE_DROP:
-            return "There exists an operator for full kernel synchronization, and the number of kernels of this operator is less than the maximum number of kernels of the fused superkernel";
+            return "SCHEMODE_CORE_DROP";
         case ScopeBreakReason::SCHEMODE_CORE_RISE:
-            return "There exists an operator for full kernel synchronization, and the number of kernels of this operator is greater than the maximum number of kernels of the previously fused superkernel";
+            return "SCHEMODE_CORE_RISE";
         case ScopeBreakReason::DEBUG_PER_OP_MAX_CORE:
-            return "Per-Op debug mode: each operator is an independent scope";
+            return "DEBUG_PER_OP_MAX_CORE";
         default:
-            return "UNKNOWN REASON";
+            return "UNKNOWN_SCOPE_BREAK_REASON";
     }
 }
 
@@ -175,7 +197,7 @@ public:
     std::string Format() const {
         std::string result; 
         if (reason != ScopeBreakReason::NONE) {
-            result = "breakReason=" + std::string(ScopeBreakReasonToStr(reason));
+            result = "breakReason=" + std::string(to_string(reason));
         }
         if (triggerNodeId != INVALID_TASK_ID) {
             result += ", triggerNode=" + std::to_string(triggerNodeId);
