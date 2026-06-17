@@ -161,16 +161,6 @@ public:
         return *this;
     }
 
-    ScopeBreakInfo& SetFusionFailReason(const FusionFailReasonInfo& failInfo) {
-        fusionFailReason = failInfo;
-        return *this;
-    }
-
-    ScopeBreakInfo& SetFusionFailReason(FusionFailReason failReason) {
-        fusionFailReason = FusionFailReasonInfo(failReason);
-        return *this;
-    }
-
     ScopeBreakInfo& SetParentScopeId(uint16_t id) {
         parentScopeId = id;
         return *this;
@@ -190,7 +180,6 @@ public:
     ScopeBreakReason GetReason() const { return reason; }
     uint64_t GetTriggerNodeId() const { return triggerNodeId; }
     uint32_t GetTriggerStreamIdx() const { return triggerStreamIdx; }
-    const FusionFailReasonInfo& GetFusionFailReason() const { return fusionFailReason; }
     uint16_t GetParentScopeId() const { return parentScopeId; }
     const std::string& GetDetail() const { return detail; }
 
@@ -205,9 +194,6 @@ public:
         if (triggerStreamIdx != 0 || triggerNodeId != INVALID_TASK_ID) {
             result += ", triggerStream=" + std::to_string(triggerStreamIdx);
         }
-        if (fusionFailReason != FusionFailReason::CAN_FUSE) {
-            result += ", fusionFailReason=" + FusionFailReasonToStr(fusionFailReason);
-        }
         if (parentScopeId != INVALID_SCOPE_ID) {
             result += ", parentScope=" + std::to_string(parentScopeId);
         }
@@ -221,7 +207,6 @@ private:
     ScopeBreakReason reason = ScopeBreakReason::NONE;
     uint64_t triggerNodeId = INVALID_TASK_ID;      // Node that triggered the break
     uint32_t triggerStreamIdx = 0;                 // Stream of trigger node
-    FusionFailReasonInfo fusionFailReason;         // Detailed fusion failure reason (if applicable)
     uint16_t parentScopeId = INVALID_SCOPE_ID;     // Parent scope ID (split from, for tracing split chain)
     std::string detail;                            // Human-readable description
 };

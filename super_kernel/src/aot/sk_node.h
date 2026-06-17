@@ -55,7 +55,7 @@ using SkBindMap = std::unordered_map<uint64_t, SkBindInfo>;
 // Unfused reason
 enum class FusionFailReason {
     CAN_FUSE,               // 0: Can fuse (default)
-    BINDMAP_IS_EMPTY,      // 1: Operator does not support SuperKernel fusion
+    BINDMAP_RESOLVE_FAILED, // 1: Failed to resolve SuperKernel bind map for the operator
     TASK_GROUP_NOT_EMPTY,   // 2: Operator dynamically refreshes task info at runtime, SK does not support fusing dynamically changing tasks
     NOT_IN_SCOPE,       // 3: Operator is not within user-marked fusion range
     IN_UNFUSIBLE_SCOPE, // 4: User actively marked this operator as unfusible
@@ -125,9 +125,9 @@ struct FusionFailReasonInfo {
     
     FusionFailReasonInfo();
     explicit FusionFailReasonInfo(FusionFailReason reason);
-    FusionFailReasonInfo(FusionFailReason reason, ScopeProcessStatus scopeStatus);
-    FusionFailReasonInfo(FusionFailReason reason, DeadlockFailReason deadlockReason);
-    FusionFailReasonInfo(FusionFailReason reason, BindmapFailReason bindmapReason);
+    explicit FusionFailReasonInfo(ScopeProcessStatus scopeStatus);
+    explicit FusionFailReasonInfo(DeadlockFailReason deadlockReason);
+    explicit FusionFailReasonInfo(BindmapFailReason bindmapReason);
     
     ScopeProcessStatus GetScopeProcessStatus() const;
     void SetScopeProcessStatus(ScopeProcessStatus scopeStatus);
@@ -152,9 +152,9 @@ inline const char* to_string(FusionFailReason reason) {
     switch (reason) {
         case FusionFailReason::CAN_FUSE:
             return "CAN_FUSE";
-        case FusionFailReason::BINDMAP_IS_EMPTY:
-            return "BINDMAP_IS_EMPTY";
-        case FusionFailReason::TASK_GROUP_NOT_EMPTY:
+        case FusionFailReason::BINDMAP_RESOLVE_FAILED:
+            return "BINDMAP_RESOLVE_FAILED";
+        case FusionFailReason::TASK_GROUP_NOT_EMPTY:   
             return "TASK_GROUP_NOT_EMPTY";
         case FusionFailReason::NOT_IN_SCOPE:
             return "NOT_IN_SCOPE";
@@ -195,6 +195,7 @@ inline const char* to_string(FusionFailReason reason) {
 const char* GetKernelTypeString(uint32_t kernelType, const uint32_t taskRatio[2]);
 // Declaration - implementation in sk_node.cpp after including sk_scope_info.h
 std::string FusionFailReasonToStr(const FusionFailReasonInfo& info);
+std::string FusionFailReasonDetailToStr(const FusionFailReasonInfo& info);
 
 // Update context for node update operations
 struct UpdateContext {
@@ -461,14 +462,19 @@ public:
     void SetUpdate(bool update) { isUpdate = update; }
 
     // Fusion fail reason setters
-    void SetFusionFailReason(FusionFailReason reason);
-    void SetFusionFailReason(FusionFailReason reason, ScopeProcessStatus scopeStatus);
-    void SetFusionFailReason(FusionFailReason reason, DeadlockFailReason deadlockReason) {
+    void SetFusionFailReason(FusionFailReason reason) {
         fusionFailReason_.primary = reason;
+    }
+    void SetFusionFailReason(ScopeProcessStatus scopeStatus) {
+        fusionFailReason_.primary = FusionFailReason::SCOPE_FUSE_PART;
+        fusionFailReason_.SetScopeProcessStatus(scopeStatus);
+    }
+    void SetFusionFailReason(DeadlockFailReason deadlockReason) {
+        fusionFailReason_.primary = FusionFailReason::EXIST_DEADLOCK;
         fusionFailReason_.SetDeadlockFailReason(deadlockReason);
     }
-    void SetFusionFailReason(FusionFailReason reason, BindmapFailReason bindmapReason) {
-        fusionFailReason_.primary = reason;
+    void SetFusionFailReason(BindmapFailReason bindmapReason) {
+        fusionFailReason_.primary = FusionFailReason::BINDMAP_RESOLVE_FAILED;
         fusionFailReason_.SetBindmapFailReason(bindmapReason);
     }    
     void SetFusionFailReason(const FusionFailReasonInfo& info) { fusionFailReason_ = info; }

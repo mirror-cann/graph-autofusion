@@ -483,7 +483,7 @@ bool LockDetector::IsFusible(SuperKernelBaseNode& curNode) {
         curNode.SetIsFusible(false);
         // If deadlock was detected, set the failure reason with detail
         if (deadlockReason_ != DeadlockFailReason::NOT_FIND_DEADLOCK) {
-            curNode.SetFusionFailReason(FusionFailReason::EXIST_DEADLOCK, deadlockReason_);
+            curNode.SetFusionFailReason(deadlockReason_);
         }
     }
 

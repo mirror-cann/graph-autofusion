@@ -78,20 +78,6 @@ bool IsNotifyByMemoryWaitRule(uint64_t writeMemoryValue, uint64_t memoryWaitValu
     }
 }
 
-std::string FusionFailReasonSubDetail(const FusionFailReasonInfo& info)
-{
-    if (info.primary == FusionFailReason::EXIST_DEADLOCK) {
-        return info.GetDeadlockDetail();
-    }
-    if (info.primary == FusionFailReason::BINDMAP_IS_EMPTY) {
-        return info.GetBindmapDetail();
-    }
-    if (info.primary == FusionFailReason::SCOPE_FUSE_PART) {
-        return info.GetScopeDetail();
-    }
-    return "";
-}
-
 } // namespace
 
 
@@ -1328,7 +1314,7 @@ SuperKernelGraph::FusionFailStats SuperKernelGraph::CollectFusionFailStats() {
         }
 
         std::string reasonForLog = reasonKey;
-        std::string reasonDetail = FusionFailReasonSubDetail(reasonInfo);
+        std::string reasonDetail = FusionFailReasonDetailToStr(reasonInfo);
         if (!reasonDetail.empty()) {
             reasonForLog += ", reasonDetail: " + reasonDetail;
         }

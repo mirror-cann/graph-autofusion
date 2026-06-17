@@ -748,13 +748,38 @@ TEST_F(SkDumpJsonDirectHelperTest, RawTaskParamJsonCoversAllTaskTypes)
 
 TEST_F(SkDumpJsonDirectHelperTest, ScopePrintingHelpersCoverKernelSetAndBatchBranches)
 {
+    EXPECT_STREQ(to_string(ScopeProcessStatus::INIT), "INIT");
+    EXPECT_STREQ(to_string(ScopeProcessStatus::SUCCESS), "SUCCESS");
     EXPECT_STREQ(to_string(ScopeProcessStatus::RESOURCE_INSUFFICIENT), "RESOURCE_INSUFFICIENT");
+    EXPECT_STREQ(to_string(ScopeProcessStatus::NO_TARGET_NODE), "NO_TARGET_NODE");
+    EXPECT_STREQ(to_string(ScopeProcessStatus::UNRECOVERABLE_FAIL), "UNRECOVERABLE_FAIL");
+    EXPECT_STREQ(to_string(static_cast<ScopeProcessStatus>(255)), "UNKNOWN");
     EXPECT_STREQ(ScopeProcessStatusDetail(ScopeProcessStatus::INIT), "Scope has not been processed");
     EXPECT_STREQ(ScopeProcessStatusDetail(ScopeProcessStatus::RESOURCE_INSUFFICIENT),
                  "Insufficient stream task slots or event memory resources");
+    EXPECT_STREQ(ScopeProcessStatusDetail(ScopeProcessStatus::NO_TARGET_NODE),
+                 "No target node remains after filtering");
+    EXPECT_STREQ(ScopeProcessStatusDetail(ScopeProcessStatus::UNRECOVERABLE_FAIL),
+                 "Unrecoverable failure that cannot be skipped");
+    EXPECT_STREQ(ScopeProcessStatusDetail(static_cast<ScopeProcessStatus>(255)), "");
+    EXPECT_STREQ(to_string(ScopeBreakReason::NONE), "NONE");
     EXPECT_STREQ(to_string(ScopeBreakReason::UNFUSIBLE_NODE), "UNFUSIBLE_NODE");
+    EXPECT_STREQ(to_string(ScopeBreakReason::DEADLOCK_DETECTED), "DEADLOCK_DETECTED");
+    EXPECT_STREQ(to_string(ScopeBreakReason::SCHEMODE_CORE_DROP), "SCHEMODE_CORE_DROP");
+    EXPECT_STREQ(to_string(ScopeBreakReason::SCHEMODE_CORE_RISE), "SCHEMODE_CORE_RISE");
+    EXPECT_STREQ(to_string(ScopeBreakReason::DEBUG_PER_OP_MAX_CORE), "DEBUG_PER_OP_MAX_CORE");
     EXPECT_STREQ(ScopeBreakReasonDetail(ScopeBreakReason::UNFUSIBLE_NODE),
                  "There exists unfusible node in scope");
+    EXPECT_STREQ(ScopeBreakReasonDetail(ScopeBreakReason::DEADLOCK_DETECTED),
+                 "There exists deadlock in scope");
+    EXPECT_NE(std::string(ScopeBreakReasonDetail(ScopeBreakReason::SCHEMODE_CORE_DROP))
+                  .find("less than the maximum number of kernels"),
+              std::string::npos);
+    EXPECT_NE(std::string(ScopeBreakReasonDetail(ScopeBreakReason::SCHEMODE_CORE_RISE))
+                  .find("greater than the maximum number of kernels"),
+              std::string::npos);
+    EXPECT_STREQ(ScopeBreakReasonDetail(ScopeBreakReason::DEBUG_PER_OP_MAX_CORE),
+                 "Per-Op debug mode: each operator is an independent scope");
     EXPECT_STREQ(to_string(static_cast<ScopeBreakReason>(255)), "UNKNOWN_SCOPE_BREAK_REASON");
     EXPECT_STREQ(ScopeBreakReasonDetail(static_cast<ScopeBreakReason>(255)), "");
 
@@ -805,8 +830,7 @@ TEST_F(SkDumpJsonDirectHelperTest, ScopePrintingHelpersCoverKernelSetAndBatchBra
     scopeInfo.MutableExtInfo().processStatus = ScopeProcessStatus::RESOURCE_INSUFFICIENT;
     scopeInfo.SetBreakInfo(ScopeBreakInfo()
         .SetReason(ScopeBreakReason::UNFUSIBLE_NODE)
-        .SetTriggerNode(202, 0)
-        .SetFusionFailReason(FusionFailReason::IN_UNFUSIBLE_SCOPE));
+        .SetTriggerNode(202, 0));
     std::string breakInfo = scopeInfo.GetBreakInfo().Format();
     EXPECT_NE(breakInfo.find("breakReason=UNFUSIBLE_NODE"), std::string::npos);
     EXPECT_EQ(breakInfo.find("breakReasonDetail="), std::string::npos);

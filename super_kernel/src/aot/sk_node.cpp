@@ -62,8 +62,8 @@ const char* FusionFailReasonDetail(FusionFailReason reason)
     switch (reason) {
         case FusionFailReason::CAN_FUSE:
             return "node can fuse";
-        case FusionFailReason::BINDMAP_IS_EMPTY:
-            return "The operator does not support the operation of fusing SuperKernel";
+        case FusionFailReason::BINDMAP_RESOLVE_FAILED:
+            return "Failed to resolve SuperKernel bind map for the operator";
         case FusionFailReason::TASK_GROUP_NOT_EMPTY:
             return "The operator will refresh task information at runtime, but SK does not support fusing dynamically changing tasks";
         case FusionFailReason::NOT_IN_SCOPE:
@@ -84,8 +84,6 @@ const char* FusionFailReasonDetail(FusionFailReason reason)
             return "event node has external dependency";
         case FusionFailReason::UNSUPPORT_EVENT_TYPE:
             return "unsupport event type";
-        case FusionFailReason::NOTIFY_NO_WAIT_NODE:
-            return "notify node has no wait node in modelRI, mark as unfusible";
         case FusionFailReason::MEMORY_WAIT_NODE_ONLY:
             return "No memory write exists, meaning the memory write is outside modelRI. Therefore change all waits to event semantics, but they cannot be fused.";
         case FusionFailReason::MEMORY_WRITE_NODE_ONLY:
@@ -131,14 +129,14 @@ FusionFailReasonInfo::FusionFailReasonInfo(FusionFailReason reason)
       deadlockFailReason(DeadlockFailReason::NOT_FIND_DEADLOCK),
       bindmapFailReason(BindmapFailReason::NONE) {}
 
-FusionFailReasonInfo::FusionFailReasonInfo(FusionFailReason reason, ScopeProcessStatus scopeStatus)
-    : primary(reason),
+FusionFailReasonInfo::FusionFailReasonInfo(ScopeProcessStatus scopeStatus)
+    : primary(FusionFailReason::SCOPE_FUSE_PART),
       scopeProcessStatus(scopeStatus),
       deadlockFailReason(DeadlockFailReason::NOT_FIND_DEADLOCK),
       bindmapFailReason(BindmapFailReason::NONE) {}
 
-FusionFailReasonInfo::FusionFailReasonInfo(FusionFailReason reason, DeadlockFailReason deadlockReason)
-    : primary(reason),
+FusionFailReasonInfo::FusionFailReasonInfo(DeadlockFailReason deadlockReason)
+    : primary(FusionFailReason::EXIST_DEADLOCK),
       scopeProcessStatus(ScopeProcessStatus::INIT),
       deadlockFailReason(deadlockReason),
       bindmapFailReason(BindmapFailReason::NONE) {}
@@ -186,8 +184,8 @@ const char* FusionFailReasonInfo::GetDeadlockDetail() const
     }
 }
 
-FusionFailReasonInfo::FusionFailReasonInfo(FusionFailReason reason, BindmapFailReason bindmapReason)
-    : primary(reason),
+FusionFailReasonInfo::FusionFailReasonInfo(BindmapFailReason bindmapReason)
+    : primary(FusionFailReason::BINDMAP_RESOLVE_FAILED),
       scopeProcessStatus(ScopeProcessStatus::INIT),
       deadlockFailReason(DeadlockFailReason::NOT_FIND_DEADLOCK),
       bindmapFailReason(bindmapReason) {}
@@ -226,31 +224,66 @@ const char* FusionFailReasonInfo::GetBindmapDetail() const
     }
 }
 
-std::string FusionFailReasonToStr(const FusionFailReasonInfo& info) {
-    std::string result = FusionFailReasonDetail(info.primary);
+std::string FusionFailReasonToStr(const FusionFailReasonInfo& info)
+{
+    std::string reasonKey = to_string(info.primary);
     if (info.primary == FusionFailReason::SCOPE_FUSE_PART) {
-        ScopeProcessStatus scopeDetail = info.GetScopeProcessStatus();
-        if (scopeDetail != ScopeProcessStatus::INIT && scopeDetail != ScopeProcessStatus::SUCCESS) {
-            result += " [";
-            result += to_string(scopeDetail);
-            result += "]";
+        ScopeProcessStatus scopeStatus = info.GetScopeProcessStatus();
+        if (scopeStatus != ScopeProcessStatus::INIT && scopeStatus != ScopeProcessStatus::SUCCESS) {
+            reasonKey += " [";
+            reasonKey += to_string(scopeStatus);
+            reasonKey += "]";
         }
     } else if (info.primary == FusionFailReason::EXIST_DEADLOCK) {
-        DeadlockFailReason deadlockDetail = info.GetDeadlockFailReason();
-        if (deadlockDetail != DeadlockFailReason::NOT_FIND_DEADLOCK) {
-            result += " [";
-            result += to_string(deadlockDetail);
-            result += "]";
+        DeadlockFailReason deadlockReason = info.GetDeadlockFailReason();
+        if (deadlockReason != DeadlockFailReason::NOT_FIND_DEADLOCK) {
+            reasonKey += " [";
+            reasonKey += to_string(deadlockReason);
+            reasonKey += "]";
         }
-    } else if (info.primary == FusionFailReason::BINDMAP_IS_EMPTY) {
-        BindmapFailReason bindmapDetail = info.GetBindmapFailReason();
-        if (bindmapDetail != BindmapFailReason::NONE) {
-            result += " [";
-            result += to_string(bindmapDetail);
-            result += "]";
+    } else if (info.primary == FusionFailReason::BINDMAP_RESOLVE_FAILED) {
+        BindmapFailReason bindmapReason = info.GetBindmapFailReason();
+        if (bindmapReason != BindmapFailReason::NONE) {
+            reasonKey += " [";
+            reasonKey += to_string(bindmapReason);
+            reasonKey += "]";
         }
     }
-    return result;
+    return reasonKey;
+}
+
+std::string FusionFailReasonDetailToStr(const FusionFailReasonInfo& info)
+{
+    std::string reasonDetail = FusionFailReasonDetail(info.primary);
+    if (info.primary == FusionFailReason::SCOPE_FUSE_PART) {
+        ScopeProcessStatus scopeStatus = info.GetScopeProcessStatus();
+        if (scopeStatus != ScopeProcessStatus::INIT && scopeStatus != ScopeProcessStatus::SUCCESS) {
+            const char* scopeDetailStr = info.GetScopeDetail();
+            if (scopeDetailStr[0] != '\0') {
+                reasonDetail += ", ";
+                reasonDetail += scopeDetailStr;
+            }
+        }
+    } else if (info.primary == FusionFailReason::EXIST_DEADLOCK) {
+        DeadlockFailReason deadlockReason = info.GetDeadlockFailReason();
+        if (deadlockReason != DeadlockFailReason::NOT_FIND_DEADLOCK) {
+            const char* deadlockDetailStr = info.GetDeadlockDetail();
+            if (deadlockDetailStr[0] != '\0') {
+                reasonDetail += ", ";
+                reasonDetail += deadlockDetailStr;
+            }
+        }
+    } else if (info.primary == FusionFailReason::BINDMAP_RESOLVE_FAILED) {
+        BindmapFailReason bindmapReason = info.GetBindmapFailReason();
+        if (bindmapReason != BindmapFailReason::NONE) {
+            const char* bindmapDetailStr = info.GetBindmapDetail();
+            if (bindmapDetailStr[0] != '\0') {
+                reasonDetail += ", ";
+                reasonDetail += bindmapDetailStr;
+            }
+        }
+    }
+    return reasonDetail;
 }
 
 SkBindMap InitSuperKernelBindMap(aclrtBinHandle binHdl)
@@ -813,17 +846,6 @@ bool SuperKernelBaseNode::InitNode(const SuperKernelOptionsManager* opts) {
     return true;
 }
 
-void SuperKernelBaseNode::SetFusionFailReason(FusionFailReason reason)
-{
-    SetFusionFailReason(reason, ScopeProcessStatus::INIT);
-}
-
-void SuperKernelBaseNode::SetFusionFailReason(FusionFailReason reason, ScopeProcessStatus scopeStatus)
-{
-    fusionFailReason_.primary = reason;
-    fusionFailReason_.SetScopeProcessStatus(scopeStatus);
-}
-
 bool SuperKernelBaseNode::Update(const UpdateContext &ctx) {
     if (isUpdate) {
         SK_LOGE("Node has already been updated and cannot be updated again, %s", Format().c_str());
@@ -1037,7 +1059,7 @@ bool SuperKernelKernelNode::InitNode(const SuperKernelOptionsManager* opts) {
     if (!isScopeNode && !nodeInfos.kernelInfos.funcName.empty() && nodeInfos.kernelInfos.binHdl != nullptr) {
         isFusible = InitKernelResolvedFuncs(nodeInfos.kernelInfos);
         if (!isFusible) {
-            SetFusionFailReason(FusionFailReason::BINDMAP_IS_EMPTY, nodeInfos.kernelInfos.bindmapFailReason);
+            SetFusionFailReason(nodeInfos.kernelInfos.bindmapFailReason);
         }
     }
 

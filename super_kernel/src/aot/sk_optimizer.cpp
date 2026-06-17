@@ -323,7 +323,7 @@ bool SuperKernelOptimizer::Process(SuperKernelGraph& graph)
             // Set fusion fail reason for all nodes in this scope with scope detail
             for (auto* node : scopeInfo.GetNodes()) {
                 if (node != nullptr) {
-                    node->SetFusionFailReason(FusionFailReason::SCOPE_FUSE_PART, processStatus);
+                    node->SetFusionFailReason(processStatus);
                     node->SetIsFusible(false);
                 }
             }

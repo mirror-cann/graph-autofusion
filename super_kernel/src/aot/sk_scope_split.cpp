@@ -575,7 +575,6 @@ void InitialScopeSplitPass::TryAddNodeToHeap(uint32_t streamIdx) {
         currentScope_->MutableBreakInfo()
             .SetReason(ScopeBreakReason::UNFUSIBLE_NODE)
             .SetTriggerNode(node->GetNodeId(), streamIdx)
-            .SetFusionFailReason(node->GetFusionFailReasonInfo())
             .SetDetail("unfused node causes scope break");
 
         SK_LOGI("Current scope has %zu nodes", currentScope_->GetNodes().size());
@@ -1033,7 +1032,6 @@ static void SetupScopeBeforeBreakInfo(SuperKernelScopeInfo& scopeBefore,
         scopeBefore.MutableBreakInfo()
             .SetReason(ScopeBreakReason::DEADLOCK_DETECTED)
             .SetTriggerNode(deadlockNode->GetNodeId(), deadlockNode->GetStreamIdxInGraph())
-            .SetFusionFailReason(FusionFailReason::EXIST_DEADLOCK)
             .SetDetail("Deadlock at node " + std::to_string(deadlockNode->GetNodeId()) +
                        ", split at Wait node " + std::to_string(deadlockWaitNode->GetNodeId()));
         SK_LOGI("[DeadlockRefine] scopeBefore kernel different, gets deadlock break info");
