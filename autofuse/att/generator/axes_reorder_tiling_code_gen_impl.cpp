@@ -126,8 +126,6 @@ ge::Status AxesReorderTilingCodeGenImpl::GenDoTiling(const ModelInfo &model_info
   solver_pass_manager.SetIsInductorScene(config_.is_inductor_scene);
 
   GenGetSetTilingImpl(model_info);
-  solver_pass_manager.SetInputOutputDef(GenLaunchLikeInputOutputDef());
-  solver_pass_manager.SetInputOutputCall(GenLaunchLikeInputOutputDef(false));
   solver_pass_manager.SetIsUniGroup(is_uniq_group_);
   solver_pass_manager.SetTilingDataSubGroupItemName(model_info.schedule_group_ident.GetItemPrefix() + "_tiling_data");
   return GenDoTilingCommon(model_info, solver_pass_manager.GenAxesReorderFunc(arrange_code_));

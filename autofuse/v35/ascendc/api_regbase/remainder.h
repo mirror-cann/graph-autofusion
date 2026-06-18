@@ -18,11 +18,9 @@ __aicore__ inline void RemainderImplVF(__ubuf__ T* dst, __ubuf__ T* src1, __ubuf
     constexpr uint32_t oneRepElm = static_cast<uint32_t>(AscendC::GetVecLen() / sizeof(T));
     AscendC::MicroAPI::RegTensor<T> srcVreg1;
     AscendC::MicroAPI::RegTensor<T> srcVreg2;
-    AscendC::MicroAPI::RegTensor<T> dstVreg;
     AscendC::MicroAPI::MaskReg mask;
     AscendC::MicroAPI::RegTensor<T> quotient;
     AscendC::MicroAPI::RegTensor<T> truncatedQuotient;
-    AscendC::MicroAPI::RegTensor<T> mulResult;
 
     for (uint16_t i = 0; i < repeat_time; i++) {
         mask = AscendC::MicroAPI::UpdateMask<T>(count);
@@ -35,13 +33,12 @@ __aicore__ inline void RemainderImplVF(__ubuf__ T* dst, __ubuf__ T* src1, __ubuf
         // Truncate to floor
         AscendC::MicroAPI::Truncate<T, AscendC::RoundMode::CAST_FLOOR>(truncatedQuotient, quotient, mask);
 
-        // Calculate x2 * floor(x1/x2)
-        AscendC::MicroAPI::Mul(mulResult, srcVreg2, truncatedQuotient, mask);
-
         // Calculate remainder: x1 - x2 * floor(x1/x2)
-        AscendC::MicroAPI::Sub(dstVreg, srcVreg1, mulResult, mask);
+        // srcVreg1 = x1 + x2 * (-floorQ)
+        AscendC::MicroAPI::Muls(truncatedQuotient, truncatedQuotient, T(-1), mask);
+        AscendC::MicroAPI::MulAddDst(srcVreg1, srcVreg2, truncatedQuotient, mask);
 
-        AscendC::MicroAPI::DataCopy(dst + i * oneRepElm, dstVreg, mask);
+        AscendC::MicroAPI::DataCopy(dst + i * oneRepElm, srcVreg1, mask);
     }
 }
 

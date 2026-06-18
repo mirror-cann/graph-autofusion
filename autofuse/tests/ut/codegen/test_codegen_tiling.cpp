@@ -3065,6 +3065,71 @@ TEST_F(TestCodegenTiling, NoEarlyStopByTopnOrDefault) {
   EXPECT_EQ(tiling_impl.find("if (found_default) break"), std::string::npos);
 }
 
+TEST_F(TestCodegenTiling, GenerateForPgoShouldUseTensorArgsForProfilingSignatures) {
+  auto fused_schedule_result = this->GenBasicFusedScheduleResult({af::Symbol("s0"), af::Symbol("s1")});
+  fused_schedule_result.input_nodes.push_back(fused_schedule_result.input_nodes.front());
+  fused_schedule_result.input_nodes.push_back(fused_schedule_result.input_nodes.front());
+  fused_schedule_result.output_nodes.push_back(fused_schedule_result.output_nodes.front());
+  auto tiling_code = this->GenerateForPgo(fused_schedule_result, "/tmp");
+
+  EXPECT_NE(tiling_code.find("struct PgoTensorArgs"), std::string::npos);
+  EXPECT_NE(tiling_code.find("PgoTensorArgs *tensor_args"), std::string::npos);
+  EXPECT_EQ(tiling_code.find("void* input1,"), std::string::npos);
+  EXPECT_EQ(tiling_code.find("void* input2,"), std::string::npos);
+  EXPECT_EQ(tiling_code.find("void* output1,"), std::string::npos);
+  EXPECT_NE(tiling_code.find("int WrapperOnlyLaunch(uint32_t workspace_size, AutofuseTilingData *tiling_data)"),
+            std::string::npos);
+  EXPECT_NE(tiling_code.find("int ProfilingBatchProcess(uint32_t workspace_size, "
+                             "std::vector<AutofuseTilingDataPerf>::iterator begin"),
+            std::string::npos);
+  EXPECT_EQ(tiling_code.find("WrapperOnlyLaunch(PgoTensorArgs *tensor_args"), std::string::npos);
+  EXPECT_EQ(tiling_code.find("ProfilingBatchProcess(PgoTensorArgs *tensor_args"), std::string::npos);
+  EXPECT_NE(tiling_code.find("uint64_t input1;"), std::string::npos);
+  EXPECT_NE(tiling_code.find("uint64_t output1;"), std::string::npos);
+}
+
+TEST_F(TestCodegenTiling, PgoConfigShouldKeepCurrentTensorArgs) {
+  auto fused_schedule_result = this->GenBasicFusedScheduleResult({af::Symbol("s0"), af::Symbol("s1")});
+  auto pgo_config_code = this->PGOProfilingCallbackDef(fused_schedule_result, "AutofuseTilingData");
+
+  EXPECT_NE(pgo_config_code.find("PgoTensorArgs *tensor_args = nullptr;"), std::string::npos);
+}
+
+TEST_F(TestCodegenTiling, ExecutePGOSolverShouldUseTensorArgsInsteadOfExpandedInputs) {
+  auto fused_schedule_result = this->GenBasicFusedScheduleResult({af::Symbol("s0"), af::Symbol("s1")});
+  fused_schedule_result.input_nodes.push_back(fused_schedule_result.input_nodes.front());
+  fused_schedule_result.input_nodes.push_back(fused_schedule_result.input_nodes.front());
+  auto tiling_files = this->GenerateForInductor(fused_schedule_result);
+
+  std::string all_tiling_code;
+  for (const auto &tiling_file : tiling_files) {
+    all_tiling_code += tiling_file.second;
+  }
+  EXPECT_NE(all_tiling_code.find("PgoTensorArgs *tensor_args"), std::string::npos);
+  EXPECT_EQ(all_tiling_code.find("void* input1,"), std::string::npos);
+  EXPECT_EQ(all_tiling_code.find("void* input2,"), std::string::npos);
+  if (all_tiling_code.find("ExecutePGOSolver(") != std::string::npos) {
+    EXPECT_EQ(all_tiling_code.find("(void)input1"), std::string::npos);
+  }
+}
+
+TEST_F(TestCodegenTiling, TopnSearchTilingKeyShouldPassSingleTensorArgs) {
+  auto fused_schedule_result = this->GenBasicFusedScheduleResult({af::Symbol("s0"), af::Symbol("s1")});
+  fused_schedule_result.input_nodes.push_back(fused_schedule_result.input_nodes.front());
+  fused_schedule_result.input_nodes.push_back(fused_schedule_result.input_nodes.front());
+  fused_schedule_result.output_nodes.push_back(fused_schedule_result.output_nodes.front());
+  auto tiling_files = this->GenerateForInductor(fused_schedule_result);
+
+  ASSERT_TRUE(tiling_files.find(codegen::kTilingDefAndConstIdentify) != tiling_files.end());
+  const auto &tiling_impl = tiling_files.at(codegen::kTilingDefAndConstIdentify);
+  EXPECT_NE(tiling_impl.find("PGOSearchTilingKey(raw_candidates, cur_search_tiling, -1, &cur_search_tiling, "
+                             "nullptr, nullptr, 0, best_perf"),
+            std::string::npos);
+  EXPECT_EQ(tiling_impl.find("PGOSearchTilingKey(raw_candidates, cur_search_tiling, -1, &cur_search_tiling, "
+                             "nullptr, nullptr, nullptr,"),
+            std::string::npos);
+}
+
 // Task 5: multi-group must carry workspace_map / block_dim_vec
 
 TEST_F(TestCodegenTiling, MultiGroupDoesNotCarryWorkspaceMap) {

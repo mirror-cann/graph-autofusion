@@ -38,6 +38,12 @@ class NddmaTemplate : public BaseTemplate {
   std::string GetScoreFunc(const af::AscGraph &origin_graph, const af::AscGraph &nddma_graph) override;
   static ge::Status ReorderRepeats(const af::AscNodePtr &node_src, const af::AscNodePtr &node_dst);
   ge::Status ProcessSliceToNddma(const af::AscNodePtr &node, bool &is_nddma_generated_cur);
+  static bool IsGraphHasBroadcastNode(af::AscGraph &graph);
+  static uint32_t GetStoreContinuousAxisNum(const af::AscNodePtr &node);
+  static uint32_t GetNodeContinuousAxisNum(const af::AscNodePtr &node);
+  static Status UpdateOutputVectorizedStrides(const af::AscNodePtr &node, uint32_t continuous_axis_num,
+                                              uint32_t align_width);
+  static Status ModifyTransposeFusionVectorizedStrides(af::AscGraph &nddma_graph, uint32_t align_width);
   NddmaTemplate(const NddmaTemplate &) = delete;
   NddmaTemplate &operator=(const NddmaTemplate &) = delete;
   NddmaTemplate(NddmaTemplate &&) = delete;

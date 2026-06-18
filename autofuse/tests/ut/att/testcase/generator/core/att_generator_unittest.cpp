@@ -561,7 +561,7 @@ static const std::string kExpectPGOCode =
   auto &group0_tiling_data = tiling_data.group0_tiling_data;
   group0_tiling_data.set_block_dim(ori_block_dim);
   size_t candidate_begin_index0 = tiling_data_list_tmp.size();
-  auto result0 = ScheduleResult0::PGOSearchTilingKey(tiling_data_list_tmp, group0_tiling_data, tiling_case_id, &tiling_data, stream, workspaceSize, best_perf, workspace_map_filter_use, multi_group_block_dim_list, search_cfg);
+  auto result0 = ScheduleResult0::PGOSearchTilingKey(tiling_data_list_tmp, group0_tiling_data, tiling_case_id, &tiling_data, PgoConfig::Instance().tensor_args, stream, workspaceSize, best_perf, workspace_map_filter_use, multi_group_block_dim_list, search_cfg);
   if (result0) {
     bool has_solution = true;
     std::vector<bool> valid_candidates(tiling_data_list_tmp.size() - candidate_begin_index0, true);
@@ -585,7 +585,7 @@ static const std::string kExpectPGOCode =
     }
     workspaceSize += 16 * 1024 * 1024;
     if (PgoConfig::Instance().batch_callback) {
-      PgoConfig::Instance().batch_callback(stream, workspaceSize, &tiling_data_list_tmp);
+      PgoConfig::Instance().batch_callback(PgoConfig::Instance().tensor_args, stream, workspaceSize, &tiling_data_list_tmp);
     }
     for (size_t candidate_index = candidate_begin_index0; candidate_index < tiling_data_list_tmp.size(); ++candidate_index) {
       const size_t candidate_offset = candidate_index - candidate_begin_index0;
@@ -603,7 +603,7 @@ static const std::string kExpectPGOCode =
   auto &group1_tiling_data = tiling_data.group1_tiling_data;
   group1_tiling_data.set_block_dim(ori_block_dim);
   size_t candidate_begin_index1 = tiling_data_list_tmp.size();
-  auto result1 = ScheduleResult0::PGOSearchTilingKey(tiling_data_list_tmp, group1_tiling_data, tiling_case_id, &tiling_data, stream, workspaceSize, best_perf, workspace_map_filter_use, multi_group_block_dim_list, search_cfg);
+  auto result1 = ScheduleResult0::PGOSearchTilingKey(tiling_data_list_tmp, group1_tiling_data, tiling_case_id, &tiling_data, PgoConfig::Instance().tensor_args, stream, workspaceSize, best_perf, workspace_map_filter_use, multi_group_block_dim_list, search_cfg);
   if (result1) {
     bool has_solution = true;
     std::vector<bool> valid_candidates(tiling_data_list_tmp.size() - candidate_begin_index1, true);
@@ -620,7 +620,7 @@ static const std::string kExpectPGOCode =
     }
     workspaceSize += 16 * 1024 * 1024;
     if (PgoConfig::Instance().batch_callback) {
-      PgoConfig::Instance().batch_callback(stream, workspaceSize, &tiling_data_list_tmp);
+      PgoConfig::Instance().batch_callback(PgoConfig::Instance().tensor_args, stream, workspaceSize, &tiling_data_list_tmp);
     }
     for (size_t candidate_index = candidate_begin_index1; candidate_index < tiling_data_list_tmp.size(); ++candidate_index) {
       const size_t candidate_offset = candidate_index - candidate_begin_index1;

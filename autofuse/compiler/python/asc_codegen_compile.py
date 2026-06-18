@@ -1592,7 +1592,7 @@ def ascbc_matmul_kernel_tiling_pro(
 
     mm_attr1 = {"name":"transpose_x1", "dtype":"bool", "value":cube_attributes.get("transpose_x1", False)}
     mm_attr2 = {"name":"transpose_x2", "dtype":"bool", "value":cube_attributes.get("transpose_x2", False)}
-    mm_attr3 = {"name":"offset_x", "dtype":"int", "value":cube_attributes.get("offset_x", 0)}
+    mm_attr3 = {"name": "offset_x", "dtype": "int", "value": 0x80}
     if is_batch:
         mm_attr4 = {"name":"enable_hf32", "dtype":"bool", "value":cube_attributes.get("enable_hf32", False)}
     else:

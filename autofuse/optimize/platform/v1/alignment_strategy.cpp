@@ -188,4 +188,19 @@ af::Status AlignmentStrategy::DefaultAlignmentInferFunc(const af::AscNodePtr &no
 
   return ge::SUCCESS;
 }
+
+ge::Status AlignmentStrategy::SetAlignWidth(const ascir::ImplGraph &impl_graph) {
+  // 依据数据类型判断对齐到32B还是64B
+  align_width_ = 32U;
+  for (const auto &node : impl_graph.GetAllNodes()) {
+    GE_ASSERT_NOTNULL(node);
+    auto dtype = node->outputs[0].attr.dtype;
+    if ((dtype == ge::DT_FLOAT) && node->attr.api.compute_type == af::ComputeType::kComputeTranspose) {
+      align_width_ = 64U;
+      break;
+    }
+  }
+  GELOGD("[%s]'s align width is [%d].", impl_graph.GetName().c_str(), align_width_);
+  return af::SUCCESS;
+}
 }  // namespace optimize
