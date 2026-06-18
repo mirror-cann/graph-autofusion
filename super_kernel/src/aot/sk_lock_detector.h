@@ -33,40 +33,39 @@ class SuperKernelOptionsManager;
  * \brief Detailed failure reasons for deadlock detection
  */
 enum class DeadlockFailReason : uint8_t {
-    NOT_FIND_DEADLOCK = 0,
-    KERNEL_INSUFFICIENT_CORES,      ///< Kernel node requires more cores than available
-    NOTIFY_NOT_IN_GRAPH,       ///< Wait node's notify not found in graph
-    NOTIFY_AFTER_SK_RANGE,     ///< Notify node is after SK range
-    NOTIFY_INVALID,         ///< Deadlock detected in wait node's pre-path
-    NOTIFY_INSUFFICIENT_CORES,      ///< Notify node in other SK that requires more cores than available
-    FIRST_WAIT,                ///< First wait node in the graph is locked
-    NO_SUPPORT_NODE,            ///< Not support node type in waiting for nodes
+  NOT_FIND_DEADLOCK = 0,
+  KERNEL_INSUFFICIENT_CORES,  ///< Kernel node requires more cores than available
+  NOTIFY_NOT_IN_GRAPH,        ///< Wait node's notify not found in graph
+  NOTIFY_AFTER_SK_RANGE,      ///< Notify node is after SK range
+  NOTIFY_INVALID,             ///< Deadlock detected in wait node's pre-path
+  NOTIFY_INSUFFICIENT_CORES,  ///< Notify node in other SK that requires more cores than available
+  FIRST_WAIT,                 ///< First wait node in the graph is locked
+  NO_SUPPORT_NODE,            ///< Not support node type in waiting for nodes
 };
 /*!
  * \brief Convert DeadlockFailReason to enum name string
  */
-inline const char* to_string(DeadlockFailReason reason)
-{
-    switch (reason) {
-        case DeadlockFailReason::NOT_FIND_DEADLOCK:
-            return "NOT_FIND_DEADLOCK";
-        case DeadlockFailReason::KERNEL_INSUFFICIENT_CORES:
-            return "KERNEL_INSUFFICIENT_CORES";
-        case DeadlockFailReason::NOTIFY_INSUFFICIENT_CORES:
-            return "NOTIFY_INSUFFICIENT_CORES";
-        case DeadlockFailReason::NOTIFY_NOT_IN_GRAPH:
-            return "NOTIFY_NOT_IN_GRAPH";
-        case DeadlockFailReason::NOTIFY_AFTER_SK_RANGE:
-            return "NOTIFY_AFTER_SK_RANGE";
-        case DeadlockFailReason::NOTIFY_INVALID:
-            return "NOTIFY_INVALID";
-        case DeadlockFailReason::FIRST_WAIT:
-            return "FIRST_WAIT";
-        case DeadlockFailReason::NO_SUPPORT_NODE:
-            return "NO_SUPPORT_NODE";
-        default:
-            return "UNKNOWN_DEADLOCK_REASON";
-    }
+inline const char *to_string(DeadlockFailReason reason) {
+  switch (reason) {
+    case DeadlockFailReason::NOT_FIND_DEADLOCK:
+      return "NOT_FIND_DEADLOCK";
+    case DeadlockFailReason::KERNEL_INSUFFICIENT_CORES:
+      return "KERNEL_INSUFFICIENT_CORES";
+    case DeadlockFailReason::NOTIFY_INSUFFICIENT_CORES:
+      return "NOTIFY_INSUFFICIENT_CORES";
+    case DeadlockFailReason::NOTIFY_NOT_IN_GRAPH:
+      return "NOTIFY_NOT_IN_GRAPH";
+    case DeadlockFailReason::NOTIFY_AFTER_SK_RANGE:
+      return "NOTIFY_AFTER_SK_RANGE";
+    case DeadlockFailReason::NOTIFY_INVALID:
+      return "NOTIFY_INVALID";
+    case DeadlockFailReason::FIRST_WAIT:
+      return "FIRST_WAIT";
+    case DeadlockFailReason::NO_SUPPORT_NODE:
+      return "NO_SUPPORT_NODE";
+    default:
+      return "UNKNOWN_DEADLOCK_REASON";
+  }
 }
 
 /**
@@ -76,116 +75,115 @@ inline const char* to_string(DeadlockFailReason reason)
  * 该类通过分析节点的核心使用情况和依赖关系，判断是否可以将节点融合到SuperKernel中。
  */
 class LockDetector {
-public:
-    /**
-     * @brief 构造函数，传入图对象
-     * @param graph 图对象引用
-     */
-    explicit LockDetector(SuperKernelGraph& graph)
-    {
-        Init(graph);
+ public:
+  /**
+   * @brief 构造函数，传入图对象
+   * @param graph 图对象引用
+   */
+  explicit LockDetector(SuperKernelGraph &graph) {
+    Init(graph);
+  }
+
+  LockDetector(SuperKernelGraph &graph, const SuperKernelOptionsManager &opts) : opts_(&opts) {
+    Init(graph);
+  }
+
+  ~LockDetector() {
+    if (graph_ != nullptr) {
+      Reset();
     }
+  }
 
-    LockDetector(SuperKernelGraph& graph, const SuperKernelOptionsManager& opts) : opts_(&opts)
-    {
-        Init(graph);
-    }
+  static aclError GetDeviceCores();
 
-    ~LockDetector()
-    {
-        if (graph_ != nullptr) {
-            Reset();
-        }
-    }
+  /**
+   * @brief 重置检测器状态
+   */
+  void Reset();
 
-    static aclError GetDeviceCores();
+  /**
+   * @brief 获取最近一次检测到的死锁原因
+   */
+  DeadlockFailReason GetDeadlockReason() const {
+    return deadlockReason_;
+  }
 
-    /**
-     * @brief 重置检测器状态
-     */
-    void Reset();
+  /**
+   * @brief 判断节点是否可融合到SuperKernel中
+   * @param curNode 待检测的节点
+   * @return true 可融合，false 不可融合（会导致死锁）
+   */
+  bool IsFusible(SuperKernelBaseNode &curNode);
 
-    /**
-     * @brief 获取最近一次检测到的死锁原因
-     */
-    DeadlockFailReason GetDeadlockReason() const { return deadlockReason_; }
+  /**
+   * @brief 设置scope中Notify节点的expand number
+   * @param scope Scope信息
+   *
+   * 该函数遍历scope中的所有节点，找出最大的vec/cube num，
+   * 并将其设置到所有Notify节点上。
+   */
+  void SetNotifyNodesExpandNumForScope(SuperKernelScopeInfo &scope);
 
-    /**
-     * @brief 判断节点是否可融合到SuperKernel中
-     * @param curNode 待检测的节点
-     * @return true 可融合，false 不可融合（会导致死锁）
-     */
-    bool IsFusible(SuperKernelBaseNode& curNode);
+  /**
+   * @brief 重置scope中Notify节点的expand number为0
+   * @param scope Scope信息
+   *
+   * 该函数将scope中所有Notify节点的expandVecNum和expandCubeNum重置为0，
+   * 用于在死锁检测Pass结束时复原节点状态，使得Pass可重入。
+   */
+  void ResetNotifyExpandNumForScope(SuperKernelScopeInfo &scope);
 
-    /**
-     * @brief 设置scope中Notify节点的expand number
-     * @param scope Scope信息
-     *
-     * 该函数遍历scope中的所有节点，找出最大的vec/cube num，
-     * 并将其设置到所有Notify节点上。
-     */
-    void SetNotifyNodesExpandNumForScope(SuperKernelScopeInfo& scope);
+ private:
+  void Init(SuperKernelGraph &graph);
 
-    /**
-     * @brief 重置scope中Notify节点的expand number为0
-     * @param scope Scope信息
-     *
-     * 该函数将scope中所有Notify节点的expandVecNum和expandCubeNum重置为0，
-     * 用于在死锁检测Pass结束时复原节点状态，使得Pass可重入。
-     */
-    void ResetNotifyExpandNumForScope(SuperKernelScopeInfo& scope);
+  std::pair<uint64_t, uint64_t> GetAvailableCores(bool isSuperKernel) const;
 
-private:
-    void Init(SuperKernelGraph& graph);
+  bool IsInSKStream(const SuperKernelBaseNode &node);
 
-    std::pair<uint64_t, uint64_t> GetAvailableCores(bool isSuperKernel) const;
+  void UpdateNodeInfo(const SuperKernelBaseNode &node);
 
-    bool IsInSKStream(const SuperKernelBaseNode& node);
+  void UpdateSKRangeInStream(const SuperKernelBaseNode &node);
 
-    void UpdateNodeInfo(const SuperKernelBaseNode& node);
+  bool IsBeforeSKRange(const SuperKernelBaseNode &node);
 
-    void UpdateSKRangeInStream(const SuperKernelBaseNode& node);
+  bool IsAfterSKRange(const SuperKernelBaseNode &node);
 
-    bool IsBeforeSKRange(const SuperKernelBaseNode& node);
+  bool HasIntersection(const std::unordered_set<uint32_t> &lhsStreams, const std::unordered_set<uint32_t> &rhsStreams);
 
-    bool IsAfterSKRange(const SuperKernelBaseNode& node);
+  bool HasDeadlock(SuperKernelBaseNode *curNode);
 
-    bool HasIntersection(const std::unordered_set<uint32_t>& lhsStreams, const std::unordered_set<uint32_t>& rhsStreams);
+  bool CheckKernelNodeDeadlock(SuperKernelBaseNode *preNode);
 
-    bool HasDeadlock(SuperKernelBaseNode* curNode);
+  bool CheckWaitNodeDeadlock(SuperKernelBaseNode *preNode);
 
-    bool CheckKernelNodeDeadlock(SuperKernelBaseNode* preNode);
+  bool CheckNotifyNodeDeadlock(SuperKernelBaseNode *preNode);
 
-    bool CheckWaitNodeDeadlock(SuperKernelBaseNode* preNode);
+  bool GetWaitNodeFusibleStatus(SuperKernelBaseNode &curNode);
 
-    bool CheckNotifyNodeDeadlock(SuperKernelBaseNode* preNode);
+  bool CheckNotifyInSKStream(SuperKernelBaseNode &curNode, SuperKernelBaseNode &notifyNode);
 
-    bool GetWaitNodeFusibleStatus(SuperKernelBaseNode& curNode);
+  bool GetFusibleStatus(SuperKernelBaseNode &curNode);
+  bool ShouldBypassValueWaitDeadlock(const SuperKernelBaseNode &curNode) const;
 
-    bool CheckNotifyInSKStream(SuperKernelBaseNode& curNode, SuperKernelBaseNode& notifyNode);
+  bool HasEnoughCores(const SuperKernelBaseNode *curNode, bool isSuperKernel);
 
-    bool GetFusibleStatus(SuperKernelBaseNode& curNode);
-    bool ShouldBypassValueWaitDeadlock(const SuperKernelBaseNode& curNode) const;
+  void RollbackVisitedState(std::vector<uint64_t> &visitedNodes);
 
-    bool HasEnoughCores(const SuperKernelBaseNode* curNode, bool isSuperKernel);
-
-    void RollbackVisitedState(std::vector<uint64_t>& visitedNodes);
-
-    std::vector<uint64_t> nodes; // visited nodes
-    std::vector<uint64_t> tempVisitedNodes; // temporary visited nodes for HasDeadlock
-    uint32_t depOpCubeNum;       // visited op cube num outside superkernel
-    uint32_t depOpVecNum;        // visited op vec num outside superkernel
-    uint32_t superKernelCubeNum; // fused op cube num in superkernel
-    uint32_t superKernelVecNum;  // fused op vec num in superkernel
-    static int64_t deviceRealCubeNum;
-    static int64_t deviceRealVecNum;
-    std::unordered_set<uint32_t> skStreamIds;
-    uint32_t nodeNum;
-    uint32_t kernelNodeNum;
-    std::unordered_map<uint32_t, std::pair<uint64_t, uint64_t>> skRangeInStream;
-    SuperKernelGraph* graph_;  // 存储graph指针，用于析构时调用Reset
-    const SuperKernelOptionsManager* opts_ = nullptr;
-    DeadlockFailReason deadlockReason_ = DeadlockFailReason::NOT_FIND_DEADLOCK;  // 当前检测到的死锁原因
+  std::vector<uint64_t> nodes;             // visited nodes
+  std::vector<uint64_t> tempVisitedNodes;  // temporary visited nodes for HasDeadlock
+  uint32_t depOpCubeNum;                   // visited op cube num outside superkernel
+  uint32_t depOpVecNum;                    // visited op vec num outside superkernel
+  uint32_t superKernelCubeNum;             // fused op cube num in superkernel
+  uint32_t superKernelVecNum;              // fused op vec num in superkernel
+  static int64_t deviceRealCubeNum;
+  static int64_t deviceRealVecNum;
+  std::unordered_set<uint32_t> skStreamIds;
+  uint32_t nodeNum;
+  uint32_t kernelNodeNum;
+  std::unordered_map<uint32_t, std::pair<uint64_t, uint64_t>> skRangeInStream;
+  SuperKernelGraph *graph_;  // 存储graph指针，用于析构时调用Reset
+  const SuperKernelOptionsManager *opts_ = nullptr;
+  DeadlockFailReason deadlockReason_ = DeadlockFailReason::NOT_FIND_DEADLOCK;  // 当前检测到的死锁原因
 };
 
-#endif // __SK_LOCK_DETECTOR_H__
+#endif  // __SK_LOCK_DETECTOR_H__

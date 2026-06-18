@@ -24,99 +24,93 @@
 
 namespace {
 
-constexpr const char* MODEL_LABEL_PREFIX = "model_";
-constexpr const char* DEFAULT_MODEL_ID = "unknown";
+constexpr const char *MODEL_LABEL_PREFIX = "model_";
+constexpr const char *DEFAULT_MODEL_ID = "unknown";
 
 struct ModelIdentity {
-    std::string modelId;
-    std::string modelLabel;
+  std::string modelId;
+  std::string modelLabel;
 };
 
 class ModelContextState {
-public:
-    // aclskOptimize treats every invocation as a distinct model instance. The RTS
-    // model id is the stable prefix; this counter disambiguates repeated appearances
-    // of the same RTS model id, regardless of whether the aclmdlRI address is reused.
-    inline static std::map<uint32_t, uint64_t> modelCallCounter_{};
-    inline static std::mutex modelCounterMutex_{};
-    // Keep TLS storage trivial; model strings are owned by the stack RAII context.
-    inline static thread_local const SkModelContext* currentContext_ = nullptr;
+ public:
+  // aclskOptimize treats every invocation as a distinct model instance. The RTS
+  // model id is the stable prefix; this counter disambiguates repeated appearances
+  // of the same RTS model id, regardless of whether the aclmdlRI address is reused.
+  inline static std::map<uint32_t, uint64_t> modelCallCounter_{};
+  inline static std::mutex modelCounterMutex_{};
+  // Keep TLS storage trivial; model strings are owned by the stack RAII context.
+  inline static thread_local const SkModelContext *currentContext_ = nullptr;
 };
 
-bool GetRtsModelId(aclmdlRI model, uint32_t& rtsModelId)
-{
-    if (model == nullptr) {
-        SK_DLOGE("Failed to get model id: model is nullptr");
-        return false;
-    }
-    aclError ret = aclmdlRIGetId(model, &rtsModelId);
-    if (ret != ACL_SUCCESS) {
-        SK_DLOGE("Failed to get model id, ret=%d", ret);
-        return false;
-    }
-    return true;
+bool GetRtsModelId(aclmdlRI model, uint32_t &rtsModelId) {
+  if (model == nullptr) {
+    SK_DLOGE("Failed to get model id: model is nullptr");
+    return false;
+  }
+  aclError ret = aclmdlRIGetId(model, &rtsModelId);
+  if (ret != ACL_SUCCESS) {
+    SK_DLOGE("Failed to get model id, ret=%d", ret);
+    return false;
+  }
+  return true;
 }
 
-ModelIdentity BuildModelIdentity(aclmdlRI model, bool bumpCounter)
-{
-    if (model == nullptr) {
-        SK_DLOGE("Failed to make model identity: model is nullptr");
-        return {DEFAULT_MODEL_ID, std::string(MODEL_LABEL_PREFIX) + DEFAULT_MODEL_ID};
-    }
+ModelIdentity BuildModelIdentity(aclmdlRI model, bool bumpCounter) {
+  if (model == nullptr) {
+    SK_DLOGE("Failed to make model identity: model is nullptr");
+    return {DEFAULT_MODEL_ID, std::string(MODEL_LABEL_PREFIX) + DEFAULT_MODEL_ID};
+  }
 
-    uint32_t rtsModelId = 0U;
-    if (!GetRtsModelId(model, rtsModelId)) {
-        return {DEFAULT_MODEL_ID, std::string(MODEL_LABEL_PREFIX) + DEFAULT_MODEL_ID};
-    }
+  uint32_t rtsModelId = 0U;
+  if (!GetRtsModelId(model, rtsModelId)) {
+    return {DEFAULT_MODEL_ID, std::string(MODEL_LABEL_PREFIX) + DEFAULT_MODEL_ID};
+  }
 
-    uint64_t callCount = 0U;
-    if (bumpCounter) {
-        std::lock_guard<std::mutex> lock(ModelContextState::modelCounterMutex_);
-        callCount = ++ModelContextState::modelCallCounter_[rtsModelId];
-    }
+  uint64_t callCount = 0U;
+  if (bumpCounter) {
+    std::lock_guard<std::mutex> lock(ModelContextState::modelCounterMutex_);
+    callCount = ++ModelContextState::modelCallCounter_[rtsModelId];
+  }
 
-    std::string uniqueModelId = std::to_string(rtsModelId) + "_" + std::to_string(callCount);
-    return {uniqueModelId, std::string(MODEL_LABEL_PREFIX) + uniqueModelId};
+  std::string uniqueModelId = std::to_string(rtsModelId) + "_" + std::to_string(callCount);
+  return {uniqueModelId, std::string(MODEL_LABEL_PREFIX) + uniqueModelId};
 }
 
 }  // namespace
 
-std::string GetCurrentModelId()
-{
-    const auto* context = ModelContextState::currentContext_;
-    if (context == nullptr) {
-        SK_DLOGE("Failed to get current model id: no active SkModelContext");
-        return DEFAULT_MODEL_ID;
-    }
-    return context->modelId_;
+std::string GetCurrentModelId() {
+  const auto *context = ModelContextState::currentContext_;
+  if (context == nullptr) {
+    SK_DLOGE("Failed to get current model id: no active SkModelContext");
+    return DEFAULT_MODEL_ID;
+  }
+  return context->modelId_;
 }
 
-std::string GetCurrentModelLabel()
-{
-    const auto* context = ModelContextState::currentContext_;
-    if (context == nullptr) {
-        SK_DLOGE("Failed to get current model label: no active SkModelContext");
-        return std::string(MODEL_LABEL_PREFIX) + DEFAULT_MODEL_ID;
-    }
-    return context->modelLabel_;
+std::string GetCurrentModelLabel() {
+  const auto *context = ModelContextState::currentContext_;
+  if (context == nullptr) {
+    SK_DLOGE("Failed to get current model label: no active SkModelContext");
+    return std::string(MODEL_LABEL_PREFIX) + DEFAULT_MODEL_ID;
+  }
+  return context->modelLabel_;
 }
 
-SkModelContext::SkModelContext(aclmdlRI model)
-{
-    if (ModelContextState::currentContext_ != nullptr) {
-        SK_DLOGE("Nested SkModelContext is unsupported and will overwrite current model context");
-    }
-    auto identity = BuildModelIdentity(model, true);
-    modelId_ = std::move(identity.modelId);
-    modelLabel_ = std::move(identity.modelLabel);
-    ModelContextState::currentContext_ = this;
+SkModelContext::SkModelContext(aclmdlRI model) {
+  if (ModelContextState::currentContext_ != nullptr) {
+    SK_DLOGE("Nested SkModelContext is unsupported and will overwrite current model context");
+  }
+  auto identity = BuildModelIdentity(model, true);
+  modelId_ = std::move(identity.modelId);
+  modelLabel_ = std::move(identity.modelLabel);
+  ModelContextState::currentContext_ = this;
 }
 
-SkModelContext::~SkModelContext()
-{
-    if (ModelContextState::currentContext_ != this) {
-        SK_DLOGE("SkModelContext destruction order mismatch, current model context has changed");
-        return;
-    }
-    ModelContextState::currentContext_ = nullptr;
+SkModelContext::~SkModelContext() {
+  if (ModelContextState::currentContext_ != this) {
+    SK_DLOGE("SkModelContext destruction order mismatch, current model context has changed");
+    return;
+  }
+  ModelContextState::currentContext_ = nullptr;
 }

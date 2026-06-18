@@ -31,36 +31,38 @@ class SkTaskBuilder;
  * 4. 通过 Update 持久化参数到 RTS buffer，支持 replay
  */
 class SuperKernelOptimizer {
-public:
-    SuperKernelOptimizer(SuperKernelOptionsManager& opts) : opts(opts) {}
-    virtual ~SuperKernelOptimizer() = default;
-    bool Process(SuperKernelGraph& graph);
+ public:
+  SuperKernelOptimizer(SuperKernelOptionsManager &opts) : opts(opts) {}
+  virtual ~SuperKernelOptimizer() = default;
+  bool Process(SuperKernelGraph &graph);
 
-    /*!
-     * @brief Get the processed scope infos after fusion
-     * @return Const reference to the vector of scope infos
-     * @note Only valid after Process() has been called successfully
-     */
-    const std::vector<SuperKernelScopeInfo>& GetScopeInfos() const { return processedScopeInfos_; }
+  /*!
+   * @brief Get the processed scope infos after fusion
+   * @return Const reference to the vector of scope infos
+   * @note Only valid after Process() has been called successfully
+   */
+  const std::vector<SuperKernelScopeInfo> &GetScopeInfos() const {
+    return processedScopeInfos_;
+  }
 
-    /*!
-     * @brief Add task queue JSON for a scope
-     * @param scopeId Scope ID
-     * @param taskQueueJson JSON object for the task queue
-     */
-    void AddScopeTaskQueueJson(uint16_t scopeId, Json taskQueueJson) {
-        taskQueueJsons_[std::to_string(scopeId)] = taskQueueJson;
-    }
+  /*!
+   * @brief Add task queue JSON for a scope
+   * @param scopeId Scope ID
+   * @param taskQueueJson JSON object for the task queue
+   */
+  void AddScopeTaskQueueJson(uint16_t scopeId, Json taskQueueJson) {
+    taskQueueJsons_[std::to_string(scopeId)] = taskQueueJson;
+  }
 
-private:
-    SuperKernelOptionsManager& opts;
-    bool ShouldReorderWaitNodesForTaskBuild() const;
-    std::vector<SuperKernelBaseNode*> ReorderWaitNodesForTaskBuild(
-        const std::vector<SuperKernelBaseNode*>& taskNodes) const;
-    std::vector<SuperKernelScopeInfo> processedScopeInfos_;
-    std::unordered_map<std::string, Json> taskQueueJsons_;  // scopeId -> task queue json
-    bool Schedule(SuperKernelScopeInfo& scopeInfo, SuperKernelGraph& graph, SkTaskBuilder& builder);
-    bool Update(SuperKernelScopeInfo& scopeInfo, SuperKernelGraph& graph, const SkLaunchInfo& launchInfo);
+ private:
+  SuperKernelOptionsManager &opts;
+  bool ShouldReorderWaitNodesForTaskBuild() const;
+  std::vector<SuperKernelBaseNode *> ReorderWaitNodesForTaskBuild(
+      const std::vector<SuperKernelBaseNode *> &taskNodes) const;
+  std::vector<SuperKernelScopeInfo> processedScopeInfos_;
+  std::unordered_map<std::string, Json> taskQueueJsons_;  // scopeId -> task queue json
+  bool Schedule(SuperKernelScopeInfo &scopeInfo, SuperKernelGraph &graph, SkTaskBuilder &builder);
+  bool Update(SuperKernelScopeInfo &scopeInfo, SuperKernelGraph &graph, const SkLaunchInfo &launchInfo);
 };
 
-#endif // __SK_OPTIMIZER_H__
+#endif  // __SK_OPTIMIZER_H__

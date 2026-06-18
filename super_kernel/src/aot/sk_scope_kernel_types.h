@@ -21,5 +21,5 @@
 constexpr uint32_t MAX_SCOPE_NAME_LEN = 256;
 
 struct ScopeKernelArgs {
-    char name[MAX_SCOPE_NAME_LEN] = "";
+  char name[MAX_SCOPE_NAME_LEN] = "";
 };
