@@ -243,6 +243,15 @@ TEST_F(SkEventRecorderTest, NotEnabledWhenEnvSetToOtherValue)
     EXPECT_FALSE(SkEventRecorder::Instance().IsEnabled());
 }
 
+TEST_F(SkEventRecorderTest, NotEnabledWhenEnvHasTrailingCharacters)
+{
+    setenv("ASCEND_PROF_SK_ON", "123abc", 1);
+
+    bool result = SkEventRecorder::Instance().Init();
+    EXPECT_FALSE(result);
+    EXPECT_FALSE(SkEventRecorder::Instance().IsEnabled());
+}
+
 // ==================== NodeInfo 测试 ====================
 
 // Test 6: NodeInfo 映射添加和获取

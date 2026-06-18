@@ -524,6 +524,52 @@ TEST_F(SkNodeTest, KernelUpdate_CustomParamsSyncTaskParamsForDump)
     EXPECT_EQ(node.GetTaskParams().valueWriteTaskParams.value, 0x1234U);
 }
 
+TEST_F(SkNodeTest, KernelUpdate_LaunchInfoDynUbufAppendsLaunchCfg)
+{
+    UtSkNodeRITaskInternal task{};
+    task.taskId = 18;
+    task.type = ACL_MODEL_RI_TASK_KERNEL;
+    task.params.type = ACL_MODEL_RI_TASK_KERNEL;
+    task.params.kernelTaskParams.funcHandle = reinterpret_cast<aclrtFuncHandle>(0x3018);
+    task.params.kernelTaskParams.numBlocks = 1;
+
+    aclrtLaunchKernelAttr originAttr{};
+    originAttr.id = ACL_RT_LAUNCH_KERNEL_ATTR_SCHEM_MODE;
+    originAttr.value.schemMode = 1;
+    aclrtLaunchKernelCfg originCfg{};
+    originCfg.attrs = &originAttr;
+    originCfg.numAttrs = 1;
+    task.params.kernelTaskParams.cfg = &originCfg;
+
+    SuperKernelKernelNode node(MakeOriginTask(task), ACL_MODEL_RI_TASK_KERNEL, 0, 0, 0, INVALID_TASK_ID);
+    MOCKER(aclrtGetFunctionName).stubs().will(invoke(FakeAclrtGetFunctionNameRegular));
+    MOCKER(aclrtGetFunctionAttribute).stubs().will(invoke(FakeAclrtGetFunctionAttributeMix11));
+    MOCKER(aclrtFunctionGetBinary).stubs().will(invoke(FakeAclrtFunctionGetBinaryNonNull));
+    ASSERT_TRUE(node.InitNode());
+
+    SkLaunchInfo launchInfo{};
+    launchInfo.entryInfo.skEntryFunc = reinterpret_cast<aclrtFuncHandle>(0x4018);
+    launchInfo.entryInfo.numBlocks = 2;
+    ASSERT_TRUE(launchInfo.devArgs.Init(sizeof(SkDeviceEntryArgs)));
+    launchInfo.devArgs.Get()->skHeader.totalSize = sizeof(SkDeviceEntryArgs);
+    launchInfo.hasMinAvailableUbufSize = true;
+    launchInfo.minAvailableUbufSize = 32768;
+    SetFunctionAllocUbufSize(4096);
+
+    UpdateContext ctx{};
+    ctx.launchInfo = &launchInfo;
+    EXPECT_TRUE(node.Update(ctx));
+
+    const auto& params = node.GetTaskParams();
+    ASSERT_NE(params.kernelTaskParams.cfg, nullptr);
+    ASSERT_EQ(params.kernelTaskParams.cfg->numAttrs, 2U);
+    ASSERT_NE(params.kernelTaskParams.cfg->attrs, nullptr);
+    EXPECT_EQ(params.kernelTaskParams.cfg->attrs[0].id, ACL_RT_LAUNCH_KERNEL_ATTR_SCHEM_MODE);
+    EXPECT_EQ(params.kernelTaskParams.cfg->attrs[0].value.schemMode, 1U);
+    EXPECT_EQ(params.kernelTaskParams.cfg->attrs[1].id, ACL_RT_LAUNCH_KERNEL_ATTR_DYN_UBUF_SIZE);
+    EXPECT_EQ(params.kernelTaskParams.cfg->attrs[1].value.dynUBufSize, SK_TOTAL_UB_SIZE - 32768U - 4096U);
+}
+
 TEST_F(SkNodeTest, MemoryUpdate_CustomParamsSyncTaskParamsForDump)
 {
     UtSkNodeRITaskInternal task{};
@@ -817,6 +863,7 @@ TEST_F(SkNodeTest, MemoryNodeInitNode_EventRecordInternalFusible)
     task.type = ACL_MODEL_RI_TASK_EVENT_RECORD;
     task.params.eventRecordTaskParams.event = reinterpret_cast<aclrtEvent>(0x1000);
     task.params.eventRecordTaskParams.eventFlag = 0;
+    task.params.eventRecordTaskParams.recordFlag = ACL_EVENT_RECORD_DEFAULT;
 
     SuperKernelMemoryNode node(MakeTaskHandle(task), ACL_MODEL_RI_TASK_EVENT_RECORD, 0, 0,
                                INVALID_STREAM_ID, INVALID_TASK_ID);
@@ -827,6 +874,30 @@ TEST_F(SkNodeTest, MemoryNodeInitNode_EventRecordInternalFusible)
     EXPECT_TRUE(node.IsFusible());
     EXPECT_EQ(node.nodeInfos.syncInfos.eventId, 0x1000U);
     EXPECT_EQ(node.nodeInfos.syncInfos.eventFlag, 0U);
+    EXPECT_EQ(node.nodeInfos.syncInfos.eventTaskFlag, ACL_EVENT_RECORD_DEFAULT);
+    EXPECT_EQ(node.nodeInfos.syncInfos.memoryValue, SK_DEFAULT_NOTIFY_VALUE);
+    EXPECT_EQ(node.nodeInfos.syncInfos.memoryWaitFlag, SK_DEFAULT_WRITE_FLAG);
+}
+
+TEST_F(SkNodeTest, MemoryNodeInitNode_EventRecordExternalTaskFlagNotFusible)
+{
+    TestRITask task{};
+    task.taskId = 105;
+    task.type = ACL_MODEL_RI_TASK_EVENT_RECORD;
+    task.params.eventRecordTaskParams.event = reinterpret_cast<aclrtEvent>(0x5000);
+    task.params.eventRecordTaskParams.eventFlag = 0;
+    task.params.eventRecordTaskParams.recordFlag = ACL_EVENT_RECORD_EXTERNAL;
+
+    SuperKernelMemoryNode node(MakeTaskHandle(task), ACL_MODEL_RI_TASK_EVENT_RECORD, 0, 0,
+                               INVALID_STREAM_ID, INVALID_TASK_ID);
+
+    ASSERT_TRUE(node.InitNode());
+    EXPECT_EQ(node.GetNodeType(), SkNodeType::NODE_NOTIFY);
+    EXPECT_FALSE(node.IsFusible());
+    EXPECT_EQ(node.GetFusionFailReason(), FusionFailReason::EXTERNAL_DEPEND);
+    EXPECT_EQ(node.nodeInfos.syncInfos.eventId, 0x5000U);
+    EXPECT_EQ(node.nodeInfos.syncInfos.eventFlag, 0U);
+    EXPECT_EQ(node.nodeInfos.syncInfos.eventTaskFlag, ACL_EVENT_RECORD_EXTERNAL);
     EXPECT_EQ(node.nodeInfos.syncInfos.memoryValue, SK_DEFAULT_NOTIFY_VALUE);
     EXPECT_EQ(node.nodeInfos.syncInfos.memoryWaitFlag, SK_DEFAULT_WRITE_FLAG);
 }
@@ -838,6 +909,7 @@ TEST_F(SkNodeTest, MemoryNodeInitNode_EventWaitExternalNotFusible)
     task.type = ACL_MODEL_RI_TASK_EVENT_WAIT;
     task.params.eventWaitTaskParams.event = reinterpret_cast<aclrtEvent>(0x2000);
     task.params.eventWaitTaskParams.eventFlag = ACL_EVENT_EXTERNAL;
+    task.params.eventWaitTaskParams.waitFlag = ACL_EVENT_WAIT_EXTERNAL;
 
     SuperKernelMemoryNode node(MakeTaskHandle(task), ACL_MODEL_RI_TASK_EVENT_WAIT, 0, 0,
                                INVALID_STREAM_ID, INVALID_TASK_ID);
@@ -847,6 +919,7 @@ TEST_F(SkNodeTest, MemoryNodeInitNode_EventWaitExternalNotFusible)
     EXPECT_FALSE(node.IsFusible());
     EXPECT_EQ(node.nodeInfos.syncInfos.eventId, 0x2000U);
     EXPECT_EQ(node.nodeInfos.syncInfos.eventFlag, ACL_EVENT_EXTERNAL);
+    EXPECT_EQ(node.nodeInfos.syncInfos.eventTaskFlag, ACL_EVENT_WAIT_EXTERNAL);
     EXPECT_EQ(node.nodeInfos.syncInfos.memoryValue, SK_DEFAULT_WAIT_VALUE);
     EXPECT_EQ(node.nodeInfos.syncInfos.memoryWaitFlag, static_cast<uint32_t>(SkMemoryWaitFlag::EQ));
 }
@@ -858,6 +931,7 @@ TEST_F(SkNodeTest, MemoryNodeInitNode_EventResetInternalNotFusible)
     task.type = ACL_MODEL_RI_TASK_EVENT_RESET;
     task.params.eventResetTaskParams.event = reinterpret_cast<aclrtEvent>(0x3000);
     task.params.eventResetTaskParams.eventFlag = 0;
+    task.params.eventResetTaskParams.resetFlag = 1;
 
     SuperKernelMemoryNode node(MakeTaskHandle(task), ACL_MODEL_RI_TASK_EVENT_RESET, 0, 0,
                                INVALID_STREAM_ID, INVALID_TASK_ID);
@@ -867,6 +941,7 @@ TEST_F(SkNodeTest, MemoryNodeInitNode_EventResetInternalNotFusible)
     EXPECT_FALSE(node.IsFusible());
     EXPECT_EQ(node.GetFusionFailReason(), FusionFailReason::RESET_TYPE_NODE);
     EXPECT_EQ(node.nodeInfos.syncInfos.eventId, 0x3000U);
+    EXPECT_EQ(node.nodeInfos.syncInfos.eventTaskFlag, 1U);
     EXPECT_EQ(node.nodeInfos.syncInfos.memoryValue, SK_DEFAULT_RESET_VALUE);
     EXPECT_EQ(node.nodeInfos.syncInfos.memoryWaitFlag, SK_DEFAULT_WRITE_FLAG);
 }
@@ -1442,17 +1517,16 @@ TEST_F(SkNodeTest, SyncInfosToJson_WithCorrespondingNodes)
     syncInfo.memoryValue = 0x9abc;
     syncInfo.memoryWaitFlag = 7;
     syncInfo.correspondingWaitNodeIds = {101, 102, 103};
-    syncInfo.correspondingResetNodeIds = {201, 202};
     syncInfo.eventFlag = 0x55;
+    syncInfo.eventTaskFlag = 1;
     
     Json notifyJson = SyncInfosToJson(syncInfo, SkNodeType::NODE_NOTIFY);
     
     EXPECT_EQ(notifyJson["eventId"], "0x1234");
     EXPECT_TRUE(notifyJson.contains("correspondingWaitNodeIds"));
     EXPECT_EQ(notifyJson["correspondingWaitNodeIds"].size(), 3);
-    EXPECT_TRUE(notifyJson.contains("correspondingResetNodeIds"));
-    EXPECT_EQ(notifyJson["correspondingResetNodeIds"].size(), 2);
     EXPECT_EQ(notifyJson["eventFlag"], "0x55");
+    EXPECT_EQ(notifyJson["eventTaskFlag"], 1);
 }
 
 TEST_F(SkNodeTest, SyncInfosToJson_WaitNodeWithCorrespondingNotify)
@@ -1495,7 +1569,8 @@ TEST_F(SkNodeTest, SyncInfosToJson_DefaultValuesFiltered)
     syncInfo.addrValue = reinterpret_cast<void*>(0x5678);
     syncInfo.memoryValue = std::numeric_limits<uint64_t>::max();
     syncInfo.memoryWaitFlag = std::numeric_limits<uint32_t>::max();
-    syncInfo.eventFlag = std::numeric_limits<uint64_t>::max();
+    syncInfo.eventFlag = std::numeric_limits<uint32_t>::max();
+    syncInfo.eventTaskFlag = std::numeric_limits<uint32_t>::max();
     syncInfo.correspondingWaitNodeIds = {};
     
     Json json = SyncInfosToJson(syncInfo, SkNodeType::NODE_NOTIFY);
@@ -1505,6 +1580,7 @@ TEST_F(SkNodeTest, SyncInfosToJson_DefaultValuesFiltered)
     EXPECT_FALSE(json.contains("memoryValue"));
     EXPECT_FALSE(json.contains("memoryWaitFlag"));
     EXPECT_FALSE(json.contains("eventFlag"));
+    EXPECT_FALSE(json.contains("eventTaskFlag"));
     EXPECT_FALSE(json.contains("correspondingWaitNodeIds"));
 }
 
@@ -2043,6 +2119,8 @@ TEST_F(SkNodeTest, IdentifyAndHandleSimtKernel_AivOnly_SimtType3)
     simtOpt->SetValue(1);
 
     SetSimtAivType(3);
+    SkUtSetAclrtFunctionAvailDynUbufSize(4096);
+    SetFunctionAllocUbufSize(1024);
 
     MOCKER(aclrtGetFunctionName).stubs().will(invoke(FakeAclrtGetFunctionNameRegular));
     MOCKER(aclrtGetFunctionAttribute).stubs().will(invoke(FakeAclrtGetFunctionAttributeAivOnly));
@@ -2052,6 +2130,10 @@ TEST_F(SkNodeTest, IdentifyAndHandleSimtKernel_AivOnly_SimtType3)
     EXPECT_TRUE(node.InitNode(&opts));
     EXPECT_EQ(node.nodeInfos.kernelInfos.kernelType, SkKernelType::AIV_ONLY);
     EXPECT_TRUE(node.nodeInfos.kernelInfos.isSimtOp);
+    EXPECT_TRUE(node.nodeInfos.kernelInfos.hasDynUbufSize);
+    EXPECT_TRUE(node.nodeInfos.kernelInfos.hasAllocUbufSize);
+    EXPECT_EQ(node.nodeInfos.kernelInfos.dynUbufSize, 4096U);
+    EXPECT_EQ(node.nodeInfos.kernelInfos.allocUbufSize, 1024U);
     EXPECT_FALSE(node.IsFusible());
     EXPECT_EQ(node.GetFusionFailReason(), FusionFailReason::SIMT_OP_NOT_SUPPORTED);
 }
@@ -2072,6 +2154,8 @@ TEST_F(SkNodeTest, IdentifyAndHandleSimtKernel_AivOnly_SimtType4)
     simtOpt->SetValue(1);
 
     SetSimtAivType(4);
+    SkUtSetAclrtFunctionAvailDynUbufSize(8192);
+    SetFunctionAllocUbufSize(2048);
 
     MOCKER(aclrtGetFunctionName).stubs().will(invoke(FakeAclrtGetFunctionNameRegular));
     MOCKER(aclrtGetFunctionAttribute).stubs().will(invoke(FakeAclrtGetFunctionAttributeAivOnly));
@@ -2081,6 +2165,10 @@ TEST_F(SkNodeTest, IdentifyAndHandleSimtKernel_AivOnly_SimtType4)
     EXPECT_TRUE(node.InitNode(&opts));
     EXPECT_EQ(node.nodeInfos.kernelInfos.kernelType, SkKernelType::AIV_ONLY);
     EXPECT_TRUE(node.nodeInfos.kernelInfos.isSimtOp);
+    EXPECT_TRUE(node.nodeInfos.kernelInfos.hasDynUbufSize);
+    EXPECT_TRUE(node.nodeInfos.kernelInfos.hasAllocUbufSize);
+    EXPECT_EQ(node.nodeInfos.kernelInfos.dynUbufSize, 8192U);
+    EXPECT_EQ(node.nodeInfos.kernelInfos.allocUbufSize, 2048U);
     EXPECT_FALSE(node.IsFusible());
     EXPECT_EQ(node.GetFusionFailReason(), FusionFailReason::SIMT_OP_NOT_SUPPORTED);
 }
@@ -2101,6 +2189,8 @@ TEST_F(SkNodeTest, IdentifyAndHandleSimtKernel_Mix11_SimtType)
     simtOpt->SetValue(1);
 
     SetSimtAivType(3);
+    SkUtSetAclrtFunctionAvailDynUbufSize(12288);
+    SetFunctionAllocUbufSize(4096);
 
     MOCKER(aclrtGetFunctionName).stubs().will(invoke(FakeAclrtGetFunctionNameRegular));
     MOCKER(aclrtGetFunctionAttribute).stubs().will(invoke(FakeAclrtGetFunctionAttributeMix11));
@@ -2110,6 +2200,10 @@ TEST_F(SkNodeTest, IdentifyAndHandleSimtKernel_Mix11_SimtType)
     EXPECT_TRUE(node.InitNode(&opts));
     EXPECT_EQ(node.nodeInfos.kernelInfos.kernelType, SkKernelType::MIX_AIC_1_1);
     EXPECT_TRUE(node.nodeInfos.kernelInfos.isSimtOp);
+    EXPECT_TRUE(node.nodeInfos.kernelInfos.hasDynUbufSize);
+    EXPECT_TRUE(node.nodeInfos.kernelInfos.hasAllocUbufSize);
+    EXPECT_EQ(node.nodeInfos.kernelInfos.dynUbufSize, 12288U);
+    EXPECT_EQ(node.nodeInfos.kernelInfos.allocUbufSize, 4096U);
     EXPECT_FALSE(node.IsFusible());
     EXPECT_EQ(node.GetFusionFailReason(), FusionFailReason::SIMT_OP_NOT_SUPPORTED);
 }
@@ -2130,6 +2224,8 @@ TEST_F(SkNodeTest, IdentifyAndHandleSimtKernel_Mix12_SimtType)
     simtOpt->SetValue(1);
 
     SetSimtAivType(4);
+    SkUtSetAclrtFunctionAvailDynUbufSize(16384);
+    SetFunctionAllocUbufSize(8192);
 
     MOCKER(aclrtGetFunctionName).stubs().will(invoke(FakeAclrtGetFunctionNameRegular));
     MOCKER(aclrtGetFunctionAttribute).stubs().will(invoke(FakeAclrtGetFunctionAttributeMix12));
@@ -2139,6 +2235,71 @@ TEST_F(SkNodeTest, IdentifyAndHandleSimtKernel_Mix12_SimtType)
     EXPECT_TRUE(node.InitNode(&opts));
     EXPECT_EQ(node.nodeInfos.kernelInfos.kernelType, SkKernelType::MIX_AIC_1_2);
     EXPECT_TRUE(node.nodeInfos.kernelInfos.isSimtOp);
+    EXPECT_TRUE(node.nodeInfos.kernelInfos.hasDynUbufSize);
+    EXPECT_TRUE(node.nodeInfos.kernelInfos.hasAllocUbufSize);
+    EXPECT_EQ(node.nodeInfos.kernelInfos.dynUbufSize, 16384U);
+    EXPECT_EQ(node.nodeInfos.kernelInfos.allocUbufSize, 8192U);
     EXPECT_FALSE(node.IsFusible());
     EXPECT_EQ(node.GetFusionFailReason(), FusionFailReason::SIMT_OP_NOT_SUPPORTED);
+}
+
+TEST_F(SkNodeTest, IdentifyAndHandleSimtKernel_DynUbufQueryFailed)
+{
+    UtSkNodeRITaskInternal task{};
+    task.taskId = 2010;
+    task.type = ACL_MODEL_RI_TASK_KERNEL;
+    task.params.type = ACL_MODEL_RI_TASK_KERNEL;
+    task.params.kernelTaskParams.funcHandle = reinterpret_cast<aclrtFuncHandle>(0x2010);
+    task.params.kernelTaskParams.numBlocks = 4;
+
+    SuperKernelOptionsManager opts;
+    opts.RegisterDefaultOptions();
+    auto* simtOpt = opts.GetOption(SkInnerOptionType::ENABLE_SIMT_OP_CHECK);
+    ASSERT_NE(simtOpt, nullptr);
+    simtOpt->SetValue(1);
+
+    SetSimtAivType(3);
+    SkUtSetAclrtFunctionGetAvailDynUbufPerBlockRet(ACL_ERROR_FAILURE);
+
+    MOCKER(aclrtGetFunctionName).stubs().will(invoke(FakeAclrtGetFunctionNameRegular));
+    MOCKER(aclrtGetFunctionAttribute).stubs().will(invoke(FakeAclrtGetFunctionAttributeAivOnly));
+    MOCKER(aclrtFunctionGetBinary).stubs().will(invoke(FakeAclrtFunctionGetBinaryNonNull));
+
+    SuperKernelKernelNode node(MakeOriginTask(task), ACL_MODEL_RI_TASK_KERNEL, 0, 0, 0, INVALID_TASK_ID);
+    EXPECT_TRUE(node.InitNode(&opts));
+    EXPECT_TRUE(node.nodeInfos.kernelInfos.isSimtOp);
+    EXPECT_FALSE(node.nodeInfos.kernelInfos.hasDynUbufSize);
+    EXPECT_FALSE(node.IsFusible());
+    EXPECT_EQ(node.GetFusionFailReason(), FusionFailReason::KERNEL_ATTR_GET_FAILED);
+}
+
+TEST_F(SkNodeTest, IdentifyAndHandleSimtKernel_AllocUbufQueryFailed)
+{
+    UtSkNodeRITaskInternal task{};
+    task.taskId = 2011;
+    task.type = ACL_MODEL_RI_TASK_KERNEL;
+    task.params.type = ACL_MODEL_RI_TASK_KERNEL;
+    task.params.kernelTaskParams.funcHandle = reinterpret_cast<aclrtFuncHandle>(0x2011);
+    task.params.kernelTaskParams.numBlocks = 4;
+
+    SuperKernelOptionsManager opts;
+    opts.RegisterDefaultOptions();
+    auto* simtOpt = opts.GetOption(SkInnerOptionType::ENABLE_SIMT_OP_CHECK);
+    ASSERT_NE(simtOpt, nullptr);
+    simtOpt->SetValue(1);
+
+    SetSimtAivType(3);
+    SkUtSetAclrtFunctionAvailDynUbufSize(4096);
+    SetRtFunctionGetMetaInfoRet(-1);
+
+    MOCKER(aclrtGetFunctionName).stubs().will(invoke(FakeAclrtGetFunctionNameRegular));
+    MOCKER(aclrtGetFunctionAttribute).stubs().will(invoke(FakeAclrtGetFunctionAttributeAivOnly));
+    MOCKER(aclrtFunctionGetBinary).stubs().will(invoke(FakeAclrtFunctionGetBinaryNonNull));
+
+    SuperKernelKernelNode node(MakeOriginTask(task), ACL_MODEL_RI_TASK_KERNEL, 0, 0, 0, INVALID_TASK_ID);
+    EXPECT_TRUE(node.InitNode(&opts));
+    EXPECT_TRUE(node.nodeInfos.kernelInfos.isSimtOp);
+    EXPECT_FALSE(node.nodeInfos.kernelInfos.hasAllocUbufSize);
+    EXPECT_FALSE(node.IsFusible());
+    EXPECT_EQ(node.GetFusionFailReason(), FusionFailReason::KERNEL_ATTR_GET_FAILED);
 }

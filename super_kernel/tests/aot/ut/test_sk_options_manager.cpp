@@ -1536,6 +1536,15 @@ TEST_F(SuperKernelOptionsManagerTest, GetInnerOption_EnableSimtOpCheck)
     EXPECT_EQ(opt->GetIntValue(), 0);
 }
 
+TEST_F(SuperKernelOptionsManagerTest, GetInnerOption_EnableSetDynUbufSize)
+{
+    opts_test->RegisterDefaultOptions();
+    auto* opt = opts_test->GetOption(SkInnerOptionType::ENABLE_SET_DYN_UBUF_SIZE);
+    ASSERT_NE(opt, nullptr);
+    EXPECT_EQ(opt->GetName(), "enable_set_dyn_ubuf_size");
+    EXPECT_EQ(opt->GetIntValue(), 0);
+}
+
 TEST_F(SuperKernelOptionsManagerTest, GetInnerOption_InvalidType)
 {
     opts_test->RegisterDefaultOptions();
@@ -1550,8 +1559,10 @@ TEST_F(SuperKernelOptionsManagerTest, ToJson_InnerOptionsContent)
     ASSERT_TRUE(json.contains("inner_options"));
     EXPECT_TRUE(json["inner_options"].contains("enable_mix_kernel_split"));
     EXPECT_TRUE(json["inner_options"].contains("enable_simt_op_check"));
+    EXPECT_TRUE(json["inner_options"].contains("enable_set_dyn_ubuf_size"));
     EXPECT_EQ(json["inner_options"]["enable_mix_kernel_split"]["value"], 0);
     EXPECT_EQ(json["inner_options"]["enable_simt_op_check"]["value"], 0);
+    EXPECT_EQ(json["inner_options"]["enable_set_dyn_ubuf_size"]["value"], 0);
 }
 
 TEST_F(SuperKernelOptionsManagerTest, ApplySoCSpecificOptions_NonAscend950)
@@ -1559,10 +1570,13 @@ TEST_F(SuperKernelOptionsManagerTest, ApplySoCSpecificOptions_NonAscend950)
     opts_test->RegisterDefaultOptions();
     auto* mixSplitOpt = opts_test->GetOption(SkInnerOptionType::ENABLE_MIX_KERNEL_SPLIT);
     auto* simtCheckOpt = opts_test->GetOption(SkInnerOptionType::ENABLE_SIMT_OP_CHECK);
+    auto* setDynUbufSizeOpt = opts_test->GetOption(SkInnerOptionType::ENABLE_SET_DYN_UBUF_SIZE);
     ASSERT_NE(mixSplitOpt, nullptr);
     ASSERT_NE(simtCheckOpt, nullptr);
+    ASSERT_NE(setDynUbufSizeOpt, nullptr);
     EXPECT_EQ(mixSplitOpt->GetIntValue(), 0);
     EXPECT_EQ(simtCheckOpt->GetIntValue(), 0);
+    EXPECT_EQ(setDynUbufSizeOpt->GetIntValue(), 0);
 }
 
 namespace {
@@ -1584,10 +1598,19 @@ void ExpectAscend950OptionsEnabled(const char* (*socNameStub)())
     opts.RegisterDefaultOptions();
     auto* mixSplitOpt = opts.GetOption(SkInnerOptionType::ENABLE_MIX_KERNEL_SPLIT);
     auto* simtCheckOpt = opts.GetOption(SkInnerOptionType::ENABLE_SIMT_OP_CHECK);
+    auto* setDynUbufSizeOpt = opts.GetOption(SkInnerOptionType::ENABLE_SET_DYN_UBUF_SIZE);
     ASSERT_NE(mixSplitOpt, nullptr);
     ASSERT_NE(simtCheckOpt, nullptr);
+    ASSERT_NE(setDynUbufSizeOpt, nullptr);
     EXPECT_EQ(mixSplitOpt->GetIntValue(), 1);
     EXPECT_EQ(simtCheckOpt->GetIntValue(), 1);
+    EXPECT_EQ(setDynUbufSizeOpt->GetIntValue(), 1);
+
+    nlohmann::ordered_json json = opts.ToJson();
+    ASSERT_TRUE(json.contains("inner_options"));
+    EXPECT_EQ(json["inner_options"]["enable_mix_kernel_split"]["value"], 1);
+    EXPECT_EQ(json["inner_options"]["enable_simt_op_check"]["value"], 1);
+    EXPECT_EQ(json["inner_options"]["enable_set_dyn_ubuf_size"]["value"], 1);
 }
 
 void ExitIsolatedOptionsTest()
@@ -1598,27 +1621,20 @@ void ExitIsolatedOptionsTest()
 }
 }  // namespace
 
-TEST_F(SuperKernelOptionsManagerTest, ApplySoCSpecificOptions_Ascend950EnablesMixSplitAndSimtCheck)
+TEST_F(SuperKernelOptionsManagerTest, ApplySoCSpecificOptions_Ascend950EnablesDav3510InnerOptions)
 {
     ::testing::FLAGS_gtest_death_test_style = "threadsafe";
     ASSERT_EXIT({
         ExpectAscend950OptionsEnabled(FakeSocName_Ascend950ForOptions);
-
-        SuperKernelOptionsManager opts;
-        opts.RegisterDefaultOptions();
-        nlohmann::ordered_json json = opts.ToJson();
-        ASSERT_TRUE(json.contains("inner_options"));
-        EXPECT_EQ(json["inner_options"]["enable_mix_kernel_split"]["value"], 1);
-        EXPECT_EQ(json["inner_options"]["enable_simt_op_check"]["value"], 1);
         ExitIsolatedOptionsTest();
     }, ::testing::ExitedWithCode(0), "");
 }
 
 TEST_F(SuperKernelOptionsManagerTest, ApplySoCSpecificOptions_Ascend950SuffixVariantStillEnables)
 {
+    // 防回归：未来如果 GetSocName 返回带后缀的 "Ascend950XXX"，仍应命中
     ::testing::FLAGS_gtest_death_test_style = "threadsafe";
     ASSERT_EXIT({
-        // 防回归：未来如果 GetSocName 返回带后缀的 "Ascend950XXX"，仍应命中
         ExpectAscend950OptionsEnabled(FakeSocName_Ascend950Variant);
         ExitIsolatedOptionsTest();
     }, ::testing::ExitedWithCode(0), "");

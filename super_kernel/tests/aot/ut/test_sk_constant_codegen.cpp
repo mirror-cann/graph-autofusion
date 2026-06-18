@@ -92,6 +92,7 @@ TEST(ConstantCodeGeneratorTest, GenerateTaskExecutionForSplit_EmitsEarlyStartFun
     func.args = 0x4000;
     func.entry[0] = 0x5000;
     func.extraInfo = static_cast<uint64_t>(SkEarlyStartMask::AIC_TO_AIV_SET);
+    func.isSimtKernel = 1;
 
     TaskInfo& sync = taskQue->taskInfos[taskQue->taskCnt++];
     sync = {};
@@ -102,6 +103,8 @@ TEST(ConstantCodeGeneratorTest, GenerateTaskExecutionForSplit_EmitsEarlyStartFun
 
     const std::string funcCode = generator.GenerateTaskExecutionForSplit(taskQue, 0, true, 0);
     EXPECT_TRUE(Contains(funcCode, "sysArgs.skTaskSyncCfg = static_cast<uint16_t>(4ULL);"));
+    EXPECT_TRUE(Contains(funcCode, "AscendC::SetFlag<HardEvent::V_MTE3>(EVENT_ID0);"));
+    EXPECT_TRUE(Contains(funcCode, "AscendC::WaitFlag<HardEvent::V_MTE3>(EVENT_ID0);"));
 
     const std::string syncCode = generator.GenerateTaskExecutionForSplit(taskQue, 1, true, 0);
     EXPECT_TRUE(Contains(syncCode,
@@ -124,9 +127,15 @@ TEST(ConstantCodeGeneratorTest, GenerateConstantTaskQue_EmitsExtraInfoField)
     info.type = SkTaskType::TYPE_FUNC;
     info.relatedType = SkKernelType::AIC_ONLY;
     info.extraInfo = 0x123456789ABCDEF0ULL;
+    info.args = 0x1111222233334444ULL;
+    info.argsSize = 64;
+    info.isSimtKernel = 1;
+    info.reservedList[0] = 2;
+    info.reservedList[1] = 3;
+    info.reservedList[2] = 4;
 
     const std::string code = generator.GenerateConstantTaskQue(task, "aic");
-    EXPECT_TRUE(Contains(code, "0x123456789abcdef0ULL"));
+    EXPECT_TRUE(Contains(code, "0x123456789abcdef0ULL, 0x1111222233334444ULL, 64, 1, {2, 3, 4}"));
 }
 
 TEST(ConstantCodeGeneratorTest, GenerateTaskExecutionForSplit_PreloadEmitsDcPreloadForExtraInfoPair)

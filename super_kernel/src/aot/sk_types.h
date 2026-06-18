@@ -40,6 +40,7 @@ constexpr uint32_t TASK_QUE_EXPAND_FACTOR = 2; // TaskQue扩容因子
 
 constexpr uint32_t MAX_TASK_NUM = 1024;
 constexpr uint32_t MAX_SCOPE_NUM = 1024;
+constexpr size_t SK_TOTAL_UB_SIZE = 256U * 1024U;
 constexpr uint16_t INVALID_SCOPE_ID = std::numeric_limits<uint16_t>::max();
 constexpr uint32_t INVALID_STREAM_ID = std::numeric_limits<uint32_t>::max();
 constexpr uint64_t INVALID_TASK_ID = std::numeric_limits<uint64_t>::max();
@@ -286,6 +287,8 @@ struct SkLaunchInfo {
     DeviceArgsPtr devArgs;
     void* cacheInfo; // sk融合算子的shape信息，由sk_optimizer.cpp在构建launchInfo时填充，实际类型是CacheopInfoBasic，包含一个可变长度的tensorData数组
     size_t cacheopInfoSize;
+    size_t minAvailableUbufSize = 0;
+    bool hasMinAvailableUbufSize = false;
     void* eventGmAddr;  // 事件记录 GM 地址
     uint64_t modelIdIndex{0}; // modelId index registered on host
     uint32_t skId;      // SK 标识
