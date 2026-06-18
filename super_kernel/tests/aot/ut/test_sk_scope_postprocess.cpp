@@ -95,6 +95,7 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_NotifyWaitPairCancelled_Succ
 
     EXPECT_FALSE(result);
     EXPECT_TRUE(scopeInfo.extInfo_.filteredNodes.empty());
+    EXPECT_EQ(scopeInfo.extInfo_.processStatus, ScopeProcessStatus::NO_TARGET_NODE);
 }
 
 TEST_F(SuperKernelScopePostprocessTest, PostProcess_NotifyOneToManyWaits_AllCancelled_Success)
@@ -157,6 +158,7 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_NotifyOneToManyWaits_AllCanc
     EXPECT_FALSE(result);
     EXPECT_TRUE(scopeInfo.extInfo_.filteredNodes.empty());
     EXPECT_EQ(scopeInfo.extInfo_.skMainNodeId, INVALID_TASK_ID);
+    EXPECT_EQ(scopeInfo.extInfo_.processStatus, ScopeProcessStatus::NO_TARGET_NODE);
 }
 
 TEST_F(SuperKernelScopePostprocessTest, PostProcess_NotifyWithoutWait_NoKernelCandidate_SkipSuccess)
@@ -188,6 +190,65 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_NotifyWithoutWait_NoKernelCa
     EXPECT_FALSE(result);
     EXPECT_TRUE(scopeInfo.extInfo_.filteredNodes.empty());
     EXPECT_EQ(scopeInfo.extInfo_.skMainNodeId, INVALID_TASK_ID);
+    EXPECT_EQ(scopeInfo.extInfo_.processStatus, ScopeProcessStatus::NO_TARGET_NODE);
+}
+
+TEST_F(SuperKernelScopePostprocessTest, PostProcess_EmptyUserScopeWithOnlyScopeMarkers_NoTargetNode)
+{
+    auto beginNode = std::make_unique<SuperKernelKernelNode>(nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0,
+                                                             INVALID_STREAM_ID, INVALID_TASK_ID);
+    beginNode->SetNodeType(SkNodeType::NODE_KERNEL);
+    beginNode->SetNodeId(7);
+    beginNode->SetPreNodeId(INVALID_TASK_ID);
+    beginNode->SetNextNodeId(8);
+    beginNode->SetIsFusible(true);
+    beginNode->SetIsScopeNode(true);
+    beginNode->isScopeBegin = true;
+    beginNode->scopeName = "empty_scope";
+
+    auto placeholderNode = std::make_unique<SuperKernelKernelNode>(nullptr, ACL_MODEL_RI_TASK_KERNEL, 1, 0,
+                                                                    INVALID_STREAM_ID, 7);
+    placeholderNode->SetNodeType(SkNodeType::NODE_KERNEL);
+    placeholderNode->SetNodeId(8);
+    placeholderNode->SetPreNodeId(7);
+    placeholderNode->SetNextNodeId(9);
+    placeholderNode->SetIsFusible(true);
+    placeholderNode->SetIsScopeNode(true);
+    placeholderNode->isPlaceholder = true;
+    placeholderNode->scopeName = "empty_scope";
+
+    auto endNode = std::make_unique<SuperKernelKernelNode>(nullptr, ACL_MODEL_RI_TASK_KERNEL, 2, 0,
+                                                           INVALID_STREAM_ID, 8);
+    endNode->SetNodeType(SkNodeType::NODE_KERNEL);
+    endNode->SetNodeId(9);
+    endNode->SetPreNodeId(8);
+    endNode->SetNextNodeId(INVALID_TASK_ID);
+    endNode->SetIsFusible(true);
+    endNode->SetIsScopeNode(true);
+    endNode->isScopeEnd = true;
+    endNode->scopeName = "empty_scope";
+
+    SuperKernelScopeInfo scopeInfo;
+    scopeInfo.nodes_ = {beginNode.get(), placeholderNode.get(), endNode.get()};
+
+    ScopeStreamInfo streamInfo;
+    streamInfo.streamIdx = 0;
+    streamInfo.headNodeIdx = 7;
+    streamInfo.tailNodeIdx = 9;
+    streamInfo.nodeSize = 3;
+    scopeInfo.scopeStreamInfos_.push_back(streamInfo);
+
+    graph->graphMap[7] = std::move(beginNode);
+    graph->graphMap[8] = std::move(placeholderNode);
+    graph->graphMap[9] = std::move(endNode);
+
+    SuperKernelScopePostProcessor postProcessor(*graph);
+    bool result = postProcessor.PostProcess(scopeInfo);
+
+    EXPECT_FALSE(result);
+    EXPECT_TRUE(scopeInfo.extInfo_.filteredNodes.empty());
+    EXPECT_EQ(scopeInfo.extInfo_.skMainNodeId, INVALID_TASK_ID);
+    EXPECT_EQ(scopeInfo.extInfo_.processStatus, ScopeProcessStatus::NO_TARGET_NODE);
 }
 
 TEST_F(SuperKernelScopePostprocessTest, PostProcess_SingleKernel_SelectMainNode_Success)
@@ -259,6 +320,7 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_StreamHeadMissing_Failed)
     EXPECT_FALSE(result);
     EXPECT_TRUE(scopeInfo.extInfo_.filteredNodes.empty());
     EXPECT_EQ(scopeInfo.extInfo_.skMainNodeId, INVALID_TASK_ID);
+    EXPECT_EQ(scopeInfo.extInfo_.processStatus, ScopeProcessStatus::UNRECOVERABLE_FAIL);
 }
 
 TEST_F(SuperKernelScopePostprocessTest, PostProcess_FrontWait_Success)
@@ -412,6 +474,7 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_NoKernelCandidate_SkipSucces
     EXPECT_FALSE(result);
     EXPECT_TRUE(scopeInfo.extInfo_.filteredNodes.empty());
     EXPECT_EQ(scopeInfo.extInfo_.skMainNodeId, INVALID_TASK_ID);
+    EXPECT_EQ(scopeInfo.extInfo_.processStatus, ScopeProcessStatus::NO_TARGET_NODE);
 }
 
 TEST_F(SuperKernelScopePostprocessTest, PostProcess_NoKernelAfterFilter_SkipSuccess)
@@ -442,6 +505,7 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_NoKernelAfterFilter_SkipSucc
     EXPECT_FALSE(result);
     EXPECT_TRUE(scopeInfo.extInfo_.filteredNodes.empty());
     EXPECT_EQ(scopeInfo.extInfo_.skMainNodeId, INVALID_TASK_ID);
+    EXPECT_EQ(scopeInfo.extInfo_.processStatus, ScopeProcessStatus::NO_TARGET_NODE);
 }
 
 TEST_F(SuperKernelScopePostprocessTest, PostProcess_MultiStreamKernelOnly_Success)
@@ -539,6 +603,7 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_MainSelectReserveBoundaryAnd
     EXPECT_FALSE(result);
     EXPECT_TRUE(scopeInfo.extInfo_.filteredNodes.empty());
     EXPECT_EQ(scopeInfo.extInfo_.skMainNodeId, INVALID_TASK_ID);
+    EXPECT_EQ(scopeInfo.extInfo_.processStatus, ScopeProcessStatus::UNRECOVERABLE_FAIL);
 }
 
 TEST_F(SuperKernelScopePostprocessTest, PostProcess_FrontWaitMoveWorkNodePath_Success)
@@ -878,6 +943,7 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_StreamSelectFailed_EventAddr
     EXPECT_FALSE(result);
     EXPECT_TRUE(scopeInfo.extInfo_.filteredNodes.empty());
     EXPECT_EQ(scopeInfo.extInfo_.skMainNodeId, INVALID_TASK_ID);
+    EXPECT_EQ(scopeInfo.extInfo_.processStatus, ScopeProcessStatus::RESOURCE_INSUFFICIENT);
 
     auto* notifyAfter = graph->GetNodeById(30);
     auto* resetAfter = graph->GetNodeById(31);
@@ -976,6 +1042,7 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_AdvanceNodeNextNotFound_Fail
     EXPECT_FALSE(result);
     EXPECT_TRUE(scopeInfo.extInfo_.filteredNodes.empty());
     EXPECT_EQ(scopeInfo.extInfo_.skMainNodeId, INVALID_TASK_ID);
+    EXPECT_EQ(scopeInfo.extInfo_.processStatus, ScopeProcessStatus::RESOURCE_INSUFFICIENT);
 }
 
 // Test case for "find kernel with reserve unsuccessful"
@@ -1025,11 +1092,11 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_FindKernelWithReserveUnsucce
     EXPECT_FALSE(result);
     EXPECT_TRUE(scopeInfo.extInfo_.filteredNodes.empty());
     EXPECT_EQ(scopeInfo.extInfo_.skMainNodeId, INVALID_TASK_ID);
+    EXPECT_EQ(scopeInfo.extInfo_.processStatus, ScopeProcessStatus::NO_TARGET_NODE);
 }
 
-// Test case for "unable to find main SK node in scope during post-process, skip update"
-// and "scope post-process unprocessable: unable to select main stream and sub stream"
-TEST_F(SuperKernelScopePostprocessTest, PostProcess_UnableToFindMainSkNode_Failed)
+// Test case for "stream sync resource insufficient" during candidate collection
+TEST_F(SuperKernelScopePostprocessTest, PostProcess_StreamSyncResourceInsufficient_Failed)
 {
     ScopedModelContext modelCtx(reinterpret_cast<aclmdlRI>(0x1));
 
@@ -1081,12 +1148,13 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_UnableToFindMainSkNode_Faile
     EXPECT_FALSE(result);
     EXPECT_TRUE(scopeInfo.extInfo_.filteredNodes.empty());
     EXPECT_EQ(scopeInfo.extInfo_.skMainNodeId, INVALID_TASK_ID);
+    EXPECT_EQ(scopeInfo.extInfo_.processStatus, ScopeProcessStatus::RESOURCE_INSUFFICIENT);
 }
 
-// Test case for "unable to find entry sub stream in scope during post-process, skip update"
+// Test case for "unable to find main SK node in scope, skip update"
 // This case: only one stream qualifies as both mainStream and subStreamEntry candidate
 // When selecting it as main, no other stream can be entry sub stream
-TEST_F(SuperKernelScopePostprocessTest, PostProcess_UnableToFindEntrySubStream_Failed)
+TEST_F(SuperKernelScopePostprocessTest, PostProcess_UnableToFindMainEntryCombination_Failed)
 {
     ScopedModelContext modelCtx(reinterpret_cast<aclmdlRI>(0x1));
 
@@ -1144,4 +1212,5 @@ TEST_F(SuperKernelScopePostprocessTest, PostProcess_UnableToFindEntrySubStream_F
     EXPECT_FALSE(result);
     EXPECT_TRUE(scopeInfo.extInfo_.filteredNodes.empty());
     EXPECT_EQ(scopeInfo.extInfo_.skMainNodeId, INVALID_TASK_ID);
+    EXPECT_EQ(scopeInfo.extInfo_.processStatus, ScopeProcessStatus::NO_TARGET_NODE);
 }

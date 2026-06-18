@@ -1033,19 +1033,68 @@ TEST_F(SuperKernelGraphTest, CollectFusionFailStats_WithNodes)
     auto node1 = std::make_unique<SuperKernelKernelNode>(
         nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_STREAM_ID, INVALID_TASK_ID);
     node1->SetNodeId(10);
+    node1->SetNodeType(SkNodeType::NODE_KERNEL);
     node1->SetIsFusible(true);
     graph->graphMap[10] = std::move(node1);
 
     auto node2 = std::make_unique<SuperKernelKernelNode>(
         nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_STREAM_ID, INVALID_TASK_ID);
     node2->SetNodeId(20);
+    node2->SetNodeType(SkNodeType::NODE_KERNEL);
     node2->SetIsFusible(false);
     node2->SetFusionFailReason(FusionFailReason::UNSUPPORT_EVENT_TYPE);
     graph->graphMap[20] = std::move(node2);
 
+    auto node3 = std::make_unique<SuperKernelKernelNode>(
+        nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_STREAM_ID, INVALID_TASK_ID);
+    node3->SetNodeId(30);
+    node3->SetNodeType(SkNodeType::NODE_KERNEL);
+    node3->SetIsFusible(false);
+    node3->SetFusionFailReason(BindmapFailReason::BINHDL_NULL);
+    graph->graphMap[30] = std::move(node3);
+
+    auto node4 = std::make_unique<SuperKernelKernelNode>(
+        nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_STREAM_ID, INVALID_TASK_ID);
+    node4->SetNodeId(40);
+    node4->SetNodeType(SkNodeType::NODE_KERNEL);
+    node4->SetIsFusible(false);
+    node4->SetFusionFailReason(ScopeProcessStatus::RESOURCE_INSUFFICIENT);
+    graph->graphMap[40] = std::move(node4);
+
+    auto node5 = std::make_unique<SuperKernelKernelNode>(
+        nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_STREAM_ID, INVALID_TASK_ID);
+    node5->SetNodeId(50);
+    node5->SetNodeType(SkNodeType::NODE_KERNEL);
+    node5->SetIsFusible(false);
+    node5->SetFusionFailReason(DeadlockFailReason::KERNEL_INSUFFICIENT_CORES);
+    graph->graphMap[50] = std::move(node5);
+
     auto stats = graph->CollectFusionFailStats();
     EXPECT_EQ(stats.fusibleCount, 1);
-    EXPECT_EQ(stats.unfusibleCount, 1);
+    EXPECT_EQ(stats.unfusibleCount, 4);
+    EXPECT_EQ(stats.reasonStats["BINDMAP_RESOLVE_FAILED [BINHDL_NULL]"], 1);
+    EXPECT_EQ(stats.reasonStats["SCOPE_FUSE_PART [RESOURCE_INSUFFICIENT]"], 1);
+    EXPECT_EQ(stats.reasonStats["EXIST_DEADLOCK [KERNEL_INSUFFICIENT_CORES]"], 1);
+    ASSERT_EQ(stats.unfusibleNodeLogEntries.size(), 4);
+    bool hasBindmapDetail = false;
+    bool hasScopeDetail = false;
+    bool hasDeadlockDetail = false;
+    for (const auto& entry : stats.unfusibleNodeLogEntries) {
+        hasBindmapDetail = hasBindmapDetail ||
+            entry.find("reasonDetail: Failed to resolve SuperKernel bind map for the operator, "
+                       "binHdl is null") != std::string::npos;
+        hasScopeDetail = hasScopeDetail ||
+            entry.find("reasonDetail: scope fuse failed, "
+                       "Insufficient stream task slots or event memory resources") != std::string::npos;
+        const std::string deadlockDetail =
+            "reasonDetail: exist deadlock, "
+            "The wait node depends on a kernel node that requires more cores than available";
+        hasDeadlockDetail = hasDeadlockDetail ||
+            entry.find(deadlockDetail) != std::string::npos;
+    }
+    EXPECT_TRUE(hasBindmapDetail);
+    EXPECT_TRUE(hasScopeDetail);
+    EXPECT_TRUE(hasDeadlockDetail);
 }
 
 // ==================== PostProcessMemoryNode Extended Tests ====================

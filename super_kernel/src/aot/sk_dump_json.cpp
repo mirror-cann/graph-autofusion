@@ -50,6 +50,26 @@ struct SkInfoForDump {
 
 using SkInfoForDumpMap = std::unordered_map<uint64_t, SkInfoForDump>;
 
+const char* ScopeBreakReasonDetail(ScopeBreakReason reason)
+{
+    switch (reason) {
+        case ScopeBreakReason::UNFUSIBLE_NODE:
+            return "There exists unfusible node in scope";
+        case ScopeBreakReason::DEADLOCK_DETECTED:
+            return "There exists deadlock in scope";
+        case ScopeBreakReason::SCHEMODE_CORE_DROP:
+            return "There exists an operator for full kernel synchronization, and the number of kernels of this "
+                   "operator is less than the maximum number of kernels of the fused superkernel";
+        case ScopeBreakReason::SCHEMODE_CORE_RISE:
+            return "There exists an operator for full kernel synchronization, and the number of kernels of this "
+                   "operator is greater than the maximum number of kernels of the previously fused superkernel";
+        case ScopeBreakReason::DEBUG_PER_OP_MAX_CORE:
+            return "Per-Op debug mode: each operator is an independent scope";
+        default:
+            return "";
+    }
+}
+
 /**
  * @brief Fill symbol info for a single core type (AIC/AIV) in resolved function info
  */
@@ -554,7 +574,7 @@ SkInfoForDumpMap BuildSkInfoForDumpMap(const std::vector<SuperKernelScopeInfo>& 
     SkInfoForDumpMap skInfos;
     for (const auto& scopeInfo : scopeInfos) {
         const auto& extInfo = scopeInfo.GetExtInfo();
-        if (extInfo.fusionStatus != ScopeFusionStatus::SUCCESS || extInfo.skMainNodeId == INVALID_TASK_ID) {
+        if (extInfo.processStatus != ScopeProcessStatus::SUCCESS || extInfo.skMainNodeId == INVALID_TASK_ID) {
             continue;
         }
 
@@ -682,17 +702,19 @@ void PrintFusedScopes(const SuperKernelGraph& graph,
         // Line 1: fusedNodeIds
         PrintFusedNodeIds(fusedNodeIds);
 
-        // Line 2: fusionStatus (failReason if not success)
-        if (extInfo.fusionStatus == ScopeFusionStatus::SUCCESS) {
-            SK_LOGI("    fusionStatus=SUCCESS");
+        // Line 2: scopeStatus
+        if (extInfo.processStatus == ScopeProcessStatus::SUCCESS) {
+            SK_LOGI("    scopeStatus=SUCCESS");
         } else {
-            SK_LOGI("    fusionStatus=%s, failReason=%s",
-                    ScopeFusionStatusToStr(extInfo.fusionStatus), ScopeFailReasonToStr(extInfo.failReason));
+            SK_LOGI("    scopeStatus=%s, scopeStatusDetail=%s", to_string(extInfo.processStatus),
+                    ScopeProcessStatusDetail(extInfo.processStatus));
         }
 
         // Line 3: breakReason (if kernel set differs from original scope)
         if (rootScopeBreakInfo.GetReason() != ScopeBreakReason::NONE && !IsKernelSetMatch(scopeInfo, originalKernelSets, graph)) {
-            SK_LOGI("    breakReason=[%s], scopeName=[%s]", rootScopeBreakInfo.Format().c_str(), scopeNames.c_str());
+            SK_LOGI("    breakReason=[%s], breakReasonDetail=%s, scopeName=[%s]",
+                    rootScopeBreakInfo.Format().c_str(),
+                    ScopeBreakReasonDetail(rootScopeBreakInfo.GetReason()), scopeNames.c_str());
         }
     }
 }

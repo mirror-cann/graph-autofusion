@@ -311,20 +311,26 @@ bool SuperKernelOptimizer::Process(SuperKernelGraph& graph)
         auto& scopeInfo = processedScopeInfos_[i];
         SK_LOGI("process scope begin: scopeId=%u", scopeInfo.GetScopeId());
         if (!postProcessor.PostProcess(scopeInfo)) {
-            scopeInfo.MutableExtInfo().failReason = ScopeFailReason::STREAM_SYNC_FAIL;
-            SK_LOGI("scope unprocessable after post-process, skip schedule/update: scopeId=%u, reason=%s",
-                    scopeInfo.GetScopeId(), ScopeFailReasonToStr(scopeInfo.GetExtInfo().failReason));
-            ScopeFailReason failReason = scopeInfo.GetExtInfo().failReason;            // Set fusion fail reason for all nodes in this scope with scope detail
+            const ScopeProcessStatus processStatus = scopeInfo.GetExtInfo().processStatus;
+            if (processStatus == ScopeProcessStatus::UNRECOVERABLE_FAIL) {
+                SK_LOGE("scope processing encountered an unrecoverable failure that cannot be skipped, "
+                        "abort super kernel optimization: scopeId=%u, scopeStatus=%s",
+                        scopeInfo.GetScopeId(), to_string(processStatus));
+                return false;
+            }
+            SK_LOGI("scope unprocessable, skip schedule/update: scopeId=%u, scopeStatus=%s",
+                    scopeInfo.GetScopeId(), to_string(processStatus));
+            // Set fusion fail reason for all nodes in this scope with scope detail
             for (auto* node : scopeInfo.GetNodes()) {
                 if (node != nullptr) {
-                    node->SetFusionFailReason(FusionFailReason::SCOPE_FUSE_PART, failReason);
+                    node->SetFusionFailReason(processStatus);
                     node->SetIsFusible(false);
                 }
             }
             continue;
         }
         if (scopeInfo.GetExtInfo().filteredNodes.empty()) {
-            SK_LOGI("scope has no nodes after post-process, skipping schedule/update: scopeId=%u", scopeInfo.GetScopeId());
+            SK_LOGI("scope has no nodes after processing, skipping schedule/update: scopeId=%u", scopeInfo.GetScopeId());
             continue;
         }
 

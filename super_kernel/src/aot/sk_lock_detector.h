@@ -43,29 +43,29 @@ enum class DeadlockFailReason : uint8_t {
     NO_SUPPORT_NODE,            ///< Not support node type in waiting for nodes
 };
 /*!
- * \brief Convert DeadlockFailReason to string
+ * \brief Convert DeadlockFailReason to enum name string
  */
-inline const char* DeadlockFailReasonToStr(DeadlockFailReason reason)
+inline const char* to_string(DeadlockFailReason reason)
 {
     switch (reason) {
         case DeadlockFailReason::NOT_FIND_DEADLOCK:
-            return "not find deadlock";
+            return "NOT_FIND_DEADLOCK";
         case DeadlockFailReason::KERNEL_INSUFFICIENT_CORES:
-            return "The wait node depends on a kernel node that requires more cores than available";
+            return "KERNEL_INSUFFICIENT_CORES";
         case DeadlockFailReason::NOTIFY_INSUFFICIENT_CORES:
-            return "The wait node depends on a notify node which has fused in other SK that it requires more cores";
+            return "NOTIFY_INSUFFICIENT_CORES";
         case DeadlockFailReason::NOTIFY_NOT_IN_GRAPH:
-            return "The wait node depends on a notify node that it is not in graph";
+            return "NOTIFY_NOT_IN_GRAPH";
         case DeadlockFailReason::NOTIFY_AFTER_SK_RANGE:
-            return "The wait node depends on a notify node that it is after SK range";
+            return "NOTIFY_AFTER_SK_RANGE";
         case DeadlockFailReason::NOTIFY_INVALID:
-            return "In check deadlock of this wait node, get invalid notify node";
+            return "NOTIFY_INVALID";
         case DeadlockFailReason::FIRST_WAIT:
-            return "The wait node is first node in scope";
+            return "FIRST_WAIT";
         case DeadlockFailReason::NO_SUPPORT_NODE:
-            return "The wait node waiting for unsupport node type";
+            return "NO_SUPPORT_NODE";
         default:
-            return "UNKNOWN REASON";
+            return "UNKNOWN_DEADLOCK_REASON";
     }
 }
 

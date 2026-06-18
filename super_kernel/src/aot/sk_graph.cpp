@@ -1303,25 +1303,31 @@ SuperKernelGraph::FusionFailStats SuperKernelGraph::CollectFusionFailStats() {
         
         const FusionFailReasonInfo& reasonInfo = node->fusionFailReason_;
         bool isFusible = node->IsFusible();
-        std::string reasonStr = FusionFailReasonToStr(reasonInfo);
+        const std::string reasonKey = FusionFailReasonToStr(reasonInfo);
         
         // Update statistics
         if (isFusible) {
             stats.fusibleCount++;
         } else {
             stats.unfusibleCount++;
-            stats.reasonStats[reasonStr]++;
+            stats.reasonStats[reasonKey]++;
+        }
+
+        std::string reasonForLog = reasonKey;
+        std::string reasonDetail = FusionFailReasonDetailToStr(reasonInfo);
+        if (!reasonDetail.empty()) {
+            reasonForLog += ", reasonDetail: " + reasonDetail;
         }
         
         // Collect node log entry for all nodes (for plog)
         std::string logEntry = "Node " + node->Format() + ": isFusible: " + 
-                               std::to_string(isFusible) + ", reason: " + reasonStr;
+                               std::to_string(isFusible) + ", reason: " + reasonForLog;
         stats.nodeLogEntries.push_back(std::move(logEntry));
         
         // Collect unfusible KERNEL node log entry only (for log file)
-        if (!isFusible && node->GetNodeType() == SkNodeType::NODE_KERNEL) {
+        if (!isFusible && node->GetNodeType() == SkNodeType::NODE_KERNEL && !node->IsScopeNode()) {
             stats.unfusibleNodeLogEntries.push_back(
-                "Node " + node->Format() + ": reason: " + reasonStr);
+                "Node " + node->Format() + ": reason: " + reasonForLog);
         }
     }
     

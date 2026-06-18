@@ -575,7 +575,6 @@ void InitialScopeSplitPass::TryAddNodeToHeap(uint32_t streamIdx) {
         currentScope_->MutableBreakInfo()
             .SetReason(ScopeBreakReason::UNFUSIBLE_NODE)
             .SetTriggerNode(node->GetNodeId(), streamIdx)
-            .SetFusionFailReason(node->GetFusionFailReasonInfo())
             .SetDetail("unfused node causes scope break");
 
         SK_LOGI("Current scope has %zu nodes", currentScope_->GetNodes().size());
@@ -1033,7 +1032,6 @@ static void SetupScopeBeforeBreakInfo(SuperKernelScopeInfo& scopeBefore,
         scopeBefore.MutableBreakInfo()
             .SetReason(ScopeBreakReason::DEADLOCK_DETECTED)
             .SetTriggerNode(deadlockNode->GetNodeId(), deadlockNode->GetStreamIdxInGraph())
-            .SetFusionFailReason(FusionFailReason::EXIST_DEADLOCK)
             .SetDetail("Deadlock at node " + std::to_string(deadlockNode->GetNodeId()) +
                        ", split at Wait node " + std::to_string(deadlockWaitNode->GetNodeId()));
         SK_LOGI("[DeadlockRefine] scopeBefore kernel different, gets deadlock break info");
@@ -1351,7 +1349,7 @@ ScheModeScopeProcessResult ScheModeKernelSplitPass::ProcessSingleScope(
                     node->Format().c_str(),
                     mergedCubeNum, mergedVecNum,
                     curCubeNum, curVecNum,
-                    ScopeBreakReasonToStr(breakReason),
+                    to_string(breakReason),
                     scopeBefore.GetNodes().size(), scopeAfter.GetNodes().size());
 
             // Check if scopeAfter has same kernel nodes as original
@@ -1736,7 +1734,7 @@ void PrintRootBreakReasonSummary(const std::unordered_map<ScopeBreakReason, size
 {
     SK_LOGI("Root Break Reason Summary:");
     for (const auto& pair : rootReasonCounts) {
-        SK_LOGI("  %s: %zu scopes", ScopeBreakReasonToStr(pair.first), pair.second);
+        SK_LOGI("  %s: %zu scopes", to_string(pair.first), pair.second);
     }
 }
 ScopeBreakInfo FindRootBreakInfo(const SuperKernelScopeInfo& scope,
