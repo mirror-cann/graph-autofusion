@@ -3501,8 +3501,12 @@ TEST_F(SuperKernelScopeSplitterTest, ScheMode_IncreasingCores_SplitAtRisePoint) 
   EXPECT_EQ(inputScopes.size(), 3);  // core递增，每个上升点都分割
   ASSERT_GE(inputScopes[0].nodes_.size(), 1);
   EXPECT_EQ(inputScopes[0].nodes_[0]->GetNodeId(), 1);
+  EXPECT_EQ(inputScopes[0].GetBreakInfo().GetReason(), ScopeBreakReason::SYNCALL_OP_DROP);
+  EXPECT_EQ(inputScopes[0].GetBreakInfo().GetSyncAllNodeIds(), std::vector<uint64_t>({1}));
   ASSERT_GE(inputScopes[1].nodes_.size(), 1);
   EXPECT_EQ(inputScopes[1].nodes_[0]->GetNodeId(), 2);
+  EXPECT_EQ(inputScopes[1].GetBreakInfo().GetReason(), ScopeBreakReason::SYNCALL_OP_DROP);
+  EXPECT_EQ(inputScopes[1].GetBreakInfo().GetSyncAllNodeIds(), std::vector<uint64_t>({2}));
   ASSERT_GE(inputScopes[2].nodes_.size(), 1);
   EXPECT_EQ(inputScopes[2].nodes_[0]->GetNodeId(), 3);
 }
@@ -3560,8 +3564,12 @@ TEST_F(SuperKernelScopeSplitterTest, ScheMode_DecreasingCube_SplitAtDropPoint) {
   EXPECT_EQ(inputScopes.size(), 3);  // 连续下降，分成3个scope
   ASSERT_GE(inputScopes[0].nodes_.size(), 1);
   EXPECT_EQ(inputScopes[0].nodes_[0]->GetNodeId(), 1);
+  EXPECT_EQ(inputScopes[0].GetBreakInfo().GetReason(), ScopeBreakReason::SYNCALL_OP_DROP);
+  EXPECT_EQ(inputScopes[0].GetBreakInfo().GetSyncAllNodeIds(), std::vector<uint64_t>({2}));
   ASSERT_GE(inputScopes[1].nodes_.size(), 1);
   EXPECT_EQ(inputScopes[1].nodes_[0]->GetNodeId(), 2);
+  EXPECT_EQ(inputScopes[1].GetBreakInfo().GetReason(), ScopeBreakReason::SYNCALL_OP_DROP);
+  EXPECT_EQ(inputScopes[1].GetBreakInfo().GetSyncAllNodeIds(), std::vector<uint64_t>({3}));
   ASSERT_GE(inputScopes[2].nodes_.size(), 1);
   EXPECT_EQ(inputScopes[2].nodes_[0]->GetNodeId(), 3);
 }
@@ -3592,8 +3600,12 @@ TEST_F(SuperKernelScopeSplitterTest, ScheMode_DecreasingVec_SplitAtDropPoint) {
   EXPECT_EQ(inputScopes.size(), 3);  // 连续下降，分成3个scope
   ASSERT_GE(inputScopes[0].nodes_.size(), 1);
   EXPECT_EQ(inputScopes[0].nodes_[0]->GetNodeId(), 1);
+  EXPECT_EQ(inputScopes[0].GetBreakInfo().GetReason(), ScopeBreakReason::SYNCALL_OP_DROP);
+  EXPECT_EQ(inputScopes[0].GetBreakInfo().GetSyncAllNodeIds(), std::vector<uint64_t>({2}));
   ASSERT_GE(inputScopes[1].nodes_.size(), 1);
   EXPECT_EQ(inputScopes[1].nodes_[0]->GetNodeId(), 2);
+  EXPECT_EQ(inputScopes[1].GetBreakInfo().GetReason(), ScopeBreakReason::SYNCALL_OP_DROP);
+  EXPECT_EQ(inputScopes[1].GetBreakInfo().GetSyncAllNodeIds(), std::vector<uint64_t>({3}));
   ASSERT_GE(inputScopes[2].nodes_.size(), 1);
   EXPECT_EQ(inputScopes[2].nodes_[0]->GetNodeId(), 3);
 }
@@ -3928,8 +3940,12 @@ TEST_F(SuperKernelScopeSplitterTest, ScheMode_CoreDropThenRise_SplitAtDropAndRis
   EXPECT_EQ(inputScopes.size(), 3);  // k2处CORE_DROP分割，k3处CORE_RISE分割
   ASSERT_GE(inputScopes[0].nodes_.size(), 1);
   EXPECT_EQ(inputScopes[0].nodes_[0]->GetNodeId(), 1);
+  EXPECT_EQ(inputScopes[0].GetBreakInfo().GetReason(), ScopeBreakReason::SYNCALL_OP_DROP);
+  EXPECT_EQ(inputScopes[0].GetBreakInfo().GetSyncAllNodeIds(), std::vector<uint64_t>({2}));
   ASSERT_GE(inputScopes[1].nodes_.size(), 1);
   EXPECT_EQ(inputScopes[1].nodes_[0]->GetNodeId(), 2);
+  EXPECT_EQ(inputScopes[1].GetBreakInfo().GetReason(), ScopeBreakReason::SYNCALL_OP_DROP);
+  EXPECT_EQ(inputScopes[1].GetBreakInfo().GetSyncAllNodeIds(), std::vector<uint64_t>({2}));
   ASSERT_GE(inputScopes[2].nodes_.size(), 1);
   EXPECT_EQ(inputScopes[2].nodes_[0]->GetNodeId(), 3);
 }
@@ -4559,7 +4575,7 @@ TEST_F(SuperKernelScopeSplitterTest, PerOpMaxCoreSplitPass_MultipleHeadNodes_Cre
   EXPECT_EQ(splitter.GetScopeInfos().size(), 3);
 }
 
-TEST_F(SuperKernelScopeSplitterTest, PerOpMaxCoreSplitPass_BreakReason_SetCorrectly) {
+TEST_F(SuperKernelScopeSplitterTest, PerOpMaxCoreSplitPass_DoesNotSetBreakReason) {
   opts->AddOption(std::make_unique<NumberOptOption>("debug_per_op_max_core_num",
                                                     aclskOptionType::DEBUG_PER_OP_MAX_CORE_NUM, 1, 0, 1));
 
@@ -4572,5 +4588,6 @@ TEST_F(SuperKernelScopeSplitterTest, PerOpMaxCoreSplitPass_BreakReason_SetCorrec
 
   EXPECT_TRUE(result);
   EXPECT_EQ(splitter.GetScopeInfos().size(), 1);
-  EXPECT_EQ(splitter.GetScopeInfos()[0].GetBreakInfo().GetReason(), ScopeBreakReason::DEBUG_PER_OP_MAX_CORE);
+  EXPECT_TRUE(splitter.IsDebugPerOpMaxCoreEnabled());
+  EXPECT_EQ(splitter.GetScopeInfos()[0].GetBreakInfo().GetReason(), ScopeBreakReason::NONE);
 }

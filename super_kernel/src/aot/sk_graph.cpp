@@ -1297,7 +1297,8 @@ SuperKernelGraph::FusionFailStats SuperKernelGraph::CollectFusionFailStats() {
   return stats;
 }
 
-void SuperKernelGraph::DumpFusionFailReasons(const std::vector<SuperKernelScopeInfo> &processedScopeInfos) {
+void SuperKernelGraph::DumpFusionFailReasons(const std::vector<SuperKernelScopeInfo> &processedScopeInfos,
+                                             bool debugPerOpMaxCoreEnabled) {
   SK_LOGI("Starting to dump fusion fail reasons for all nodes");
 
   // Collect statistics
@@ -1316,7 +1317,7 @@ void SuperKernelGraph::DumpFusionFailReasons(const std::vector<SuperKernelScopeI
     PrintOriginalScopes(*this);
 
     // Print scopes after fusion
-    PrintFusedScopes(*this, processedScopeInfos);
+    PrintFusedScopes(*this, processedScopeInfos, debugPerOpMaxCoreEnabled);
   }  // End of SK_LOG_CONTEXT_SIMPLE block
 
   // Output unfusible KERNEL nodes to plog (same as log file)
@@ -1327,7 +1328,7 @@ void SuperKernelGraph::DumpFusionFailReasons(const std::vector<SuperKernelScopeI
   // Print original scope to fused scope mapping
   SK_LOGI("Original Scope to Fused Scope Mapping:");
   PrintOriginalScopes(*this);
-  PrintFusedScopes(*this, processedScopeInfos);
+  PrintFusedScopes(*this, processedScopeInfos, debugPerOpMaxCoreEnabled);
 
   // Print summary statistics
   SK_LOGI("Fusion fail reasons summary:");

@@ -342,7 +342,7 @@ bool SuperKernelOptimizer::Process(SuperKernelGraph &graph) {
   }
 
   // Dump all nodes' fusion fail reasons after all scopes are processed
-  graph.DumpFusionFailReasons(processedScopeInfos_);
+  graph.DumpFusionFailReasons(processedScopeInfos_, splitter.IsDebugPerOpMaxCoreEnabled());
 
   // Dump all task queues to a single JSON file
   if (!taskQueueJsons_.empty()) {

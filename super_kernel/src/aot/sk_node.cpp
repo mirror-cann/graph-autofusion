@@ -59,16 +59,16 @@ const char *FusionFailReasonDetail(FusionFailReason reason) {
   switch (reason) {
     case FusionFailReason::CAN_FUSE:
       return "node can fuse";
-    case FusionFailReason::BINDMAP_RESOLVE_FAILED:
+    case FusionFailReason::OP_UNSUPPORT:
       return "Failed to resolve SuperKernel bind map for the operator";
-    case FusionFailReason::TASK_GROUP_NOT_EMPTY:
+    case FusionFailReason::DYNAMIC_TASK_UNSUPPORT:
       return "The operator will refresh task information at runtime, but SK does not support fusing dynamically "
              "changing tasks";
     case FusionFailReason::NOT_IN_SCOPE:
       return "The user actively marked that this operator is not fused";
     case FusionFailReason::IN_UNFUSIBLE_SCOPE:
       return "This operator is not within the fusion range marked by the user";
-    case FusionFailReason::EXCEED_DEVICE_MAX:
+    case FusionFailReason::EXCEED_CORE_MAX:
       return "The number of kernels required by the operator exceeds the maximum number of kernels that the device can "
              "provide";
     case FusionFailReason::RESET_TYPE_NODE:
@@ -91,7 +91,7 @@ const char *FusionFailReasonDetail(FusionFailReason reason) {
       return "only exists memory write nodes, mask it as unfusible";
     case FusionFailReason::DEFAULT_NODE:
       return "default node uses aicpu resources, mask it as unfusible";
-    case FusionFailReason::SIMT_OP_NOT_SUPPORTED:
+    case FusionFailReason::SIMT_OP_UNSUPPORT:
       return "SIMT operator is not supported for SuperKernel fusion";
     case FusionFailReason::KERNEL_ATTR_GET_FAILED:
       return "Failed to get kernel attribute for SuperKernel fusion";
@@ -183,7 +183,7 @@ const char *FusionFailReasonInfo::GetDeadlockDetail() const {
 }
 
 FusionFailReasonInfo::FusionFailReasonInfo(BindmapFailReason bindmapReason)
-    : primary(FusionFailReason::BINDMAP_RESOLVE_FAILED),
+    : primary(FusionFailReason::OP_UNSUPPORT),
       scopeProcessStatus(ScopeProcessStatus::INIT),
       deadlockFailReason(DeadlockFailReason::NOT_FIND_DEADLOCK),
       bindmapFailReason(bindmapReason) {}
@@ -237,7 +237,7 @@ std::string FusionFailReasonToStr(const FusionFailReasonInfo &info) {
       reasonKey += to_string(deadlockReason);
       reasonKey += "]";
     }
-  } else if (info.primary == FusionFailReason::BINDMAP_RESOLVE_FAILED) {
+  } else if (info.primary == FusionFailReason::OP_UNSUPPORT) {
     BindmapFailReason bindmapReason = info.GetBindmapFailReason();
     if (bindmapReason != BindmapFailReason::NONE) {
       reasonKey += " [";
@@ -268,7 +268,7 @@ std::string FusionFailReasonDetailToStr(const FusionFailReasonInfo &info) {
         reasonDetail += deadlockDetailStr;
       }
     }
-  } else if (info.primary == FusionFailReason::BINDMAP_RESOLVE_FAILED) {
+  } else if (info.primary == FusionFailReason::OP_UNSUPPORT) {
     BindmapFailReason bindmapReason = info.GetBindmapFailReason();
     if (bindmapReason != BindmapFailReason::NONE) {
       const char *bindmapDetailStr = info.GetBindmapDetail();
@@ -1035,7 +1035,7 @@ bool SuperKernelKernelNode::InitNode(const SuperKernelOptionsManager *opts) {
   if (taskParams.taskGrp != nullptr) {
     SK_LOGI("Kernel node %lu has a non-null task group and cannot be fused in super kernel.", nodeId);
     isFusible = false;
-    SetFusionFailReason(FusionFailReason::TASK_GROUP_NOT_EMPTY);
+    SetFusionFailReason(FusionFailReason::DYNAMIC_TASK_UNSUPPORT);
   }
 
   return true;
@@ -1092,7 +1092,7 @@ void SuperKernelKernelNode::IdentifyAndHandleSimtKernel(const SuperKernelOptions
   bool isSimt = (aivType == AIV_TYPE_SIMT_VF_ONLY || aivType == AIV_TYPE_SIMD_SIMT_MIX_VF);
   if (isSimt) {
     isFusible = false;
-    SetFusionFailReason(FusionFailReason::SIMT_OP_NOT_SUPPORTED);
+    SetFusionFailReason(FusionFailReason::SIMT_OP_UNSUPPORT);
     SK_LOGI("%s is SIMT type, aivType=%u, not fusible", Format().c_str(), aivType);
 
     nodeInfos.kernelInfos.isSimtOp = true;
