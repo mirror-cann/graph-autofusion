@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -13,10 +13,9 @@
 
 #include "autofuse_tiling_data.h"
 extern "C" __global__ __aicore__ void load_rsum_ra_store(GM_ADDR x, GM_ADDR y, GM_ADDR workspace, GM_ADDR tiling);
-extern "C" void GetTiling(AutofuseTilingData& tiling_data);
+extern "C" void GetTiling(AutofuseTilingData &tiling_data);
 
-class E2E_LoadRsumRAStore_Code : public testing::Test,
-    public testing::WithParamInterface<std::vector<int>> {};
+class E2E_LoadRsumRAStore_Code : public testing::Test, public testing::WithParamInterface<std::vector<int>> {};
 
 TEST_P(E2E_LoadRsumRAStore_Code, CalculateCorrect) {
   auto test_shape = GetParam();
@@ -36,7 +35,8 @@ TEST_P(E2E_LoadRsumRAStore_Code, CalculateCorrect) {
   }
 
   for (int i = 0; i < output_size; i++) {
-    expect[i] = (double)(test_shape[0] * test_shape[2]);;
+    expect[i] = (double)(test_shape[0] * test_shape[2]);
+    ;
   }
 
   // Launch
@@ -67,6 +67,4 @@ TEST_P(E2E_LoadRsumRAStore_Code, CalculateCorrect) {
 }
 
 INSTANTIATE_TEST_SUITE_P(CalcWithDifferentShape, E2E_LoadRsumRAStore_Code,
-    ::testing::Values(
-        std::vector<int>{7, 8, 86, 11}
-        ));
+                         ::testing::Values(std::vector<int>{7, 8, 86, 11}));

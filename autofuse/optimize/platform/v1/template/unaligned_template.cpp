@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -90,8 +90,7 @@ Status UnalignedTemplate::ReverseDfsUnAlignNode(af::AscGraph &impl_graph, const 
  * 处理逻辑如下：先找到所有的output节点，然后倒序遍历，逐节点还原vector_strides，若遇到brc则停止，并在其后插入RemovePad节点。
  */
 af::Status UnalignedTemplate::Generate(const af::AscGraph &origin_graph,
-                                       [[maybe_unused]] const af::AscGraph &based_case,
-                                       af::AscGraph &new_case) {
+                                       [[maybe_unused]] const af::AscGraph &based_case, af::AscGraph &new_case) {
   if (!ScheduleUtils::NotNeedAlignVectorStride(origin_graph)) {
     GELOGD("Not need to generate unaligned template for TilingCase: %s", origin_graph.GetName().c_str());
     return af::FAILED;
@@ -130,7 +129,7 @@ af::Status UnalignedTemplate::Generate(const af::AscGraph &origin_graph,
 }
 
 bool UnalignedTemplate::NeedDropBasedCase([[maybe_unused]] const af::AscGraph &origin_graph,
-                                          [[maybe_unused]] const af::AscGraph &based_case, 
+                                          [[maybe_unused]] const af::AscGraph &based_case,
                                           const af::AscGraph &new_case) {
   // 场景1：有Concat节点并且没有RemovePad节点，此时一定是Concat小尾轴场景，所以一定走非对齐模板
   const auto has_concat_node = ScheduleUtils::FindFirstNodeOfType<af::ascir_op::Concat>(new_case) != nullptr;
@@ -144,7 +143,7 @@ bool UnalignedTemplate::NeedDropBasedCase([[maybe_unused]] const af::AscGraph &o
   const auto store_node = ScheduleUtils::FindFirstNodeOfType<af::ascir_op::Store>(new_case);
   if (ScheduleUtils::IsTailAxisLessThan(store_node, kAlignWidth)) {
     GELOGI("Graph[%s] Store[%s] tail axis size < %u Bytes.", new_case.GetName().c_str(), store_node->GetNamePtr(),
-      kAlignWidth);
+           kAlignWidth);
     return true;
   }
 

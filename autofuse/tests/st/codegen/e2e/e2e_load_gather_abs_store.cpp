@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -67,7 +67,7 @@ void LoadGatherAbsStore_BeforeAutofuse(af::AscGraph &graph, int64_t gather_axis,
   *abs.y.axis = {z0.id, z1.id, z5.id, z6.id, z3.id, z4.id};
   *abs.y.repeats = {s0, s1, s5, s6, s3, s4};
   *abs.y.strides = {s1 * s5 * s6 * s3 * s4, s5 * s6 * s3 * s4, s6 * s3 * s4, s3 * s4, s4, One};
-  abs.attr.tmp_buffers = {{{af::Symbol(8192), -1}, MemAttr(), 0}};  
+  abs.attr.tmp_buffers = {{{af::Symbol(8192), -1}, MemAttr(), 0}};
 
   Store store("store");
   graph.AddNode(store);
@@ -83,7 +83,7 @@ void LoadGatherAbsStore_BeforeAutofuse(af::AscGraph &graph, int64_t gather_axis,
   y.y.dtype = data_type;
 }
 
-void LoadGather_BT_T_AbsStore_AfterAutofuse(af::AscGraph& graph, ge::DataType data_type) {
+void LoadGather_BT_T_AbsStore_AfterAutofuse(af::AscGraph &graph, ge::DataType data_type) {
   auto x1 = graph.FindNode("x1");
   x1->attr.api.compute_type = ComputeType::kComputeInvalid;
   x1->attr.api.type = ApiType::kAPITypeBuffer;
@@ -212,7 +212,7 @@ void LoadGather_BT_T_AbsStore_AfterAutofuse(af::AscGraph& graph, ge::DataType da
 
   store->outputs[0].attr.mem.tensor_id = 4;
   store->outputs[0].attr.mem.alloc_type = AllocType::kAllocTypeGlobal;
-  store->outputs[0].attr.mem.hardware =  MemHardware::kMemHardwareGM;
+  store->outputs[0].attr.mem.hardware = MemHardware::kMemHardwareGM;
   store->outputs[0].attr.mem.position = Position::kPositionGM;
   store->outputs[0].attr.buf.id = af::kIdNone;
   store->outputs[0].attr.que.id = af::kIdNone;
@@ -221,7 +221,7 @@ void LoadGather_BT_T_AbsStore_AfterAutofuse(af::AscGraph& graph, ge::DataType da
   store->outputs[0].attr.opt.merge_scope = af::kIdNone;
 }
 
-void LoadGather_T_BT_AbsStore_AfterAutofuse(af::AscGraph& graph, ge::DataType data_type) {
+void LoadGather_T_BT_AbsStore_AfterAutofuse(af::AscGraph &graph, ge::DataType data_type) {
   auto x1 = graph.FindNode("x1");
   x1->attr.api.compute_type = ComputeType::kComputeInvalid;
   x1->attr.api.type = ApiType::kAPITypeBuffer;
@@ -350,7 +350,7 @@ void LoadGather_T_BT_AbsStore_AfterAutofuse(af::AscGraph& graph, ge::DataType da
 
   store->outputs[0].attr.mem.tensor_id = 4;
   store->outputs[0].attr.mem.alloc_type = AllocType::kAllocTypeGlobal;
-  store->outputs[0].attr.mem.hardware =  MemHardware::kMemHardwareGM;
+  store->outputs[0].attr.mem.hardware = MemHardware::kMemHardwareGM;
   store->outputs[0].attr.mem.position = Position::kPositionGM;
   store->outputs[0].attr.buf.id = af::kIdNone;
   store->outputs[0].attr.que.id = af::kIdNone;
@@ -359,7 +359,7 @@ void LoadGather_T_BT_AbsStore_AfterAutofuse(af::AscGraph& graph, ge::DataType da
   store->outputs[0].attr.opt.merge_scope = af::kIdNone;
 }
 
-void LoadGather_B_T_AbsStore_AfterAutofuse(af::AscGraph& graph, ge::DataType data_type) {
+void LoadGather_B_T_AbsStore_AfterAutofuse(af::AscGraph &graph, ge::DataType data_type) {
   auto x1 = graph.FindNode("x1");
   x1->attr.api.compute_type = ComputeType::kComputeInvalid;
   x1->attr.api.type = ApiType::kAPITypeBuffer;
@@ -485,7 +485,7 @@ void LoadGather_B_T_AbsStore_AfterAutofuse(af::AscGraph& graph, ge::DataType dat
 
   store->outputs[0].attr.mem.tensor_id = 4;
   store->outputs[0].attr.mem.alloc_type = AllocType::kAllocTypeGlobal;
-  store->outputs[0].attr.mem.hardware =  MemHardware::kMemHardwareGM;
+  store->outputs[0].attr.mem.hardware = MemHardware::kMemHardwareGM;
   store->outputs[0].attr.mem.position = Position::kPositionGM;
   store->outputs[0].attr.buf.id = af::kIdNone;
   store->outputs[0].attr.que.id = af::kIdNone;
@@ -494,7 +494,7 @@ void LoadGather_B_T_AbsStore_AfterAutofuse(af::AscGraph& graph, ge::DataType dat
   store->outputs[0].attr.opt.merge_scope = af::kIdNone;
 }
 
-void LoadGather_BT_AbsStore_AfterAutofuse(af::AscGraph& graph, ge::DataType data_type) {
+void LoadGather_BT_AbsStore_AfterAutofuse(af::AscGraph &graph, ge::DataType data_type) {
   auto x1 = graph.FindNode("x1");
   x1->attr.api.compute_type = ComputeType::kComputeInvalid;
   x1->attr.api.type = ApiType::kAPITypeBuffer;
@@ -620,7 +620,7 @@ void LoadGather_BT_AbsStore_AfterAutofuse(af::AscGraph& graph, ge::DataType data
 
   store->outputs[0].attr.mem.tensor_id = 4;
   store->outputs[0].attr.mem.alloc_type = AllocType::kAllocTypeGlobal;
-  store->outputs[0].attr.mem.hardware =  MemHardware::kMemHardwareGM;
+  store->outputs[0].attr.mem.hardware = MemHardware::kMemHardwareGM;
   store->outputs[0].attr.mem.position = Position::kPositionGM;
   store->outputs[0].attr.buf.id = af::kIdNone;
   store->outputs[0].attr.que.id = af::kIdNone;
@@ -629,7 +629,8 @@ void LoadGather_BT_AbsStore_AfterAutofuse(af::AscGraph& graph, ge::DataType data
   store->outputs[0].attr.opt.merge_scope = af::kIdNone;
 }
 
-void LoadGather_FirstAxis_B_T_AbsStore_BeforeAutofuse(af::AscGraph &graph, int64_t gather_axis, ge::DataType data_type) {
+void LoadGather_FirstAxis_B_T_AbsStore_BeforeAutofuse(af::AscGraph &graph, int64_t gather_axis,
+                                                      ge::DataType data_type) {
   auto s0 = graph.CreateSizeVar("s0");
   auto s1 = graph.CreateSizeVar("s1");
   auto s2 = graph.CreateSizeVar("s2");
@@ -689,7 +690,7 @@ void LoadGather_FirstAxis_B_T_AbsStore_BeforeAutofuse(af::AscGraph &graph, int64
   y.y.dtype = data_type;
 }
 
-void LoadGather_FirstAxis_B_T_AbsStore_AfterAutofuse(af::AscGraph& graph, ge::DataType data_type) {
+void LoadGather_FirstAxis_B_T_AbsStore_AfterAutofuse(af::AscGraph &graph, ge::DataType data_type) {
   auto x1 = graph.FindNode("x1");
   x1->attr.api.compute_type = ComputeType::kComputeInvalid;
   x1->attr.api.type = ApiType::kAPITypeBuffer;
@@ -810,7 +811,7 @@ void LoadGather_FirstAxis_B_T_AbsStore_AfterAutofuse(af::AscGraph& graph, ge::Da
 
   store->outputs[0].attr.mem.tensor_id = 4;
   store->outputs[0].attr.mem.alloc_type = AllocType::kAllocTypeGlobal;
-  store->outputs[0].attr.mem.hardware =  MemHardware::kMemHardwareGM;
+  store->outputs[0].attr.mem.hardware = MemHardware::kMemHardwareGM;
   store->outputs[0].attr.mem.position = Position::kPositionGM;
   store->outputs[0].attr.buf.id = af::kIdNone;
   store->outputs[0].attr.que.id = af::kIdNone;

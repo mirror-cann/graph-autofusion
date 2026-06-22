@@ -1,5 +1,5 @@
 /**
-* Copyright (c) 2026 Huawei Technologies Co., Ltd.
+ * Copyright (c) 2026 Huawei Technologies Co., Ltd.
  * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
@@ -28,7 +28,7 @@ class ConcatInputUnificationPassTest : public ::testing::Test {
   void TearDown() override {}
 
   static af::AscGraph BuildGraph(const af::Expression &s0, const af::Expression &s1,
-                             const std::vector<bool> &inputs_is_load, DataType dtype = af::DT_FLOAT16) {
+                                 const std::vector<bool> &inputs_is_load, DataType dtype = af::DT_FLOAT16) {
     auto s2 = s1 * af::Symbol(inputs_is_load.size());
     af::testing::AscGraphBuilder graph_builder("test_graph");
     graph_builder.Loops({s0, s2});
@@ -69,7 +69,8 @@ class ConcatInputUnificationPassTest : public ::testing::Test {
     return graph_builder.Build();
   }
 
-  static AscGraph Build2InputGraph(const af::Expression &s0, const af::Expression &s1, DataType dtype = ge::DT_FLOAT16) {
+  static AscGraph Build2InputGraph(const af::Expression &s0, const af::Expression &s1,
+                                   DataType dtype = ge::DT_FLOAT16) {
     const std::vector<bool> inputs_is_load{true, false};
     return BuildGraph(s0, s1, inputs_is_load, dtype);
   }

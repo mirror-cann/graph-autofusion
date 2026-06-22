@@ -91,29 +91,35 @@ bool HasCxx11AbiSymbols(const std::string &path) {
 #endif
 
 std::string PythonPreamble() {
-  return
-    "import sys, os, traceback\n"
-    "pkg_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'autofuse_pkg')\n"
-    "os.makedirs(pkg_dir, exist_ok=True)\n"
-    "autofuse_dir = os.path.join(pkg_dir, 'autofuse')\n"
-    "if os.path.islink(autofuse_dir) or os.path.isfile(autofuse_dir):\n"
-    "    os.unlink(autofuse_dir)\n"
-    "os.makedirs(autofuse_dir, exist_ok=True)\n"
-    "for name in os.listdir('" + std::string(AUTOFUSE_PYTHON_DIR) + "'):\n"
-    "    src = os.path.join('" + std::string(AUTOFUSE_PYTHON_DIR) + "', name)\n"
-    "    dst = os.path.join(autofuse_dir, name)\n"
-    "    if not os.path.lexists(dst):\n"
-    "        os.symlink(src, dst)\n"
-    "pyautofuse_src = os.path.join('" + std::string(PYAUTOFUSE_DIR) + "', 'pyautofuse.so')\n"
-    "if not os.path.exists(pyautofuse_src):\n"
-    "    raise FileNotFoundError(pyautofuse_src)\n"
-    "pyautofuse_dst = os.path.join(autofuse_dir, 'pyautofuse.so')\n"
-    "if os.path.lexists(pyautofuse_dst):\n"
-    "    os.unlink(pyautofuse_dst)\n"
-    "os.symlink(pyautofuse_src, pyautofuse_dst)\n"
-    "sys.path.insert(0, pkg_dir)\n"
-    "import autofuse.ascendc_compile as _ac\n"
-    "_ac.ASCEND_PATH = '" + std::string(ASCEND_HOME_PATH) + "'\n";
+  return "import sys, os, traceback\n"
+         "pkg_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'autofuse_pkg')\n"
+         "os.makedirs(pkg_dir, exist_ok=True)\n"
+         "autofuse_dir = os.path.join(pkg_dir, 'autofuse')\n"
+         "if os.path.islink(autofuse_dir) or os.path.isfile(autofuse_dir):\n"
+         "    os.unlink(autofuse_dir)\n"
+         "os.makedirs(autofuse_dir, exist_ok=True)\n"
+         "for name in os.listdir('" +
+         std::string(AUTOFUSE_PYTHON_DIR) +
+         "'):\n"
+         "    src = os.path.join('" +
+         std::string(AUTOFUSE_PYTHON_DIR) +
+         "', name)\n"
+         "    dst = os.path.join(autofuse_dir, name)\n"
+         "    if not os.path.lexists(dst):\n"
+         "        os.symlink(src, dst)\n"
+         "pyautofuse_src = os.path.join('" +
+         std::string(PYAUTOFUSE_DIR) +
+         "', 'pyautofuse.so')\n"
+         "if not os.path.exists(pyautofuse_src):\n"
+         "    raise FileNotFoundError(pyautofuse_src)\n"
+         "pyautofuse_dst = os.path.join(autofuse_dir, 'pyautofuse.so')\n"
+         "if os.path.lexists(pyautofuse_dst):\n"
+         "    os.unlink(pyautofuse_dst)\n"
+         "os.symlink(pyautofuse_src, pyautofuse_dst)\n"
+         "sys.path.insert(0, pkg_dir)\n"
+         "import autofuse.ascendc_compile as _ac\n"
+         "_ac.ASCEND_PATH = '" +
+         std::string(ASCEND_HOME_PATH) + "'\n";
 }
 
 int RunHostCompile(const std::string &tiling_def, const std::string &host_code, const std::string &output_file) {
@@ -121,22 +127,31 @@ int RunHostCompile(const std::string &tiling_def, const std::string &host_code, 
   WriteFile(OUTPUT_DIR "/host_impl.cpp", host_code);
 
   std::string script_path = std::string(OUTPUT_DIR) + "/run_host_compile.py";
-  WriteFile(script_path,
-    PythonPreamble() +
-    "try:\n"
-    "    from autofuse.compile_adapter import host_compile\n"
-    "    import os\n"
-    "    os.makedirs('" + std::string(OUTPUT_DIR) + "/host_out', exist_ok=True)\n"
-    "    td = open('" + std::string(OUTPUT_DIR) + "/host_tiling_def.h').read()\n"
-    "    hc = open('" + std::string(OUTPUT_DIR) + "/host_impl.cpp').read()\n"
-    "    host_compile(td, hc, [\n"
-    "        '--graph_name=pgo_add_abs_inductor_concat',\n"
-    "        '--output_file=" + output_file + "',\n"
-    "        '--output_path=" + std::string(OUTPUT_DIR) + "/host_out',\n"
-    "        '--soc_version=Ascend910B'])\n"
-    "except Exception:\n"
-    "    traceback.print_exc()\n"
-    "    sys.exit(1)\n");
+  WriteFile(script_path, PythonPreamble() +
+                             "try:\n"
+                             "    from autofuse.compile_adapter import host_compile\n"
+                             "    import os\n"
+                             "    os.makedirs('" +
+                             std::string(OUTPUT_DIR) +
+                             "/host_out', exist_ok=True)\n"
+                             "    td = open('" +
+                             std::string(OUTPUT_DIR) +
+                             "/host_tiling_def.h').read()\n"
+                             "    hc = open('" +
+                             std::string(OUTPUT_DIR) +
+                             "/host_impl.cpp').read()\n"
+                             "    host_compile(td, hc, [\n"
+                             "        '--graph_name=pgo_add_abs_inductor_concat',\n"
+                             "        '--output_file=" +
+                             output_file +
+                             "',\n"
+                             "        '--output_path=" +
+                             std::string(OUTPUT_DIR) +
+                             "/host_out',\n"
+                             "        '--soc_version=Ascend910B'])\n"
+                             "except Exception:\n"
+                             "    traceback.print_exc()\n"
+                             "    sys.exit(1)\n");
 
   std::string cmd = "ASCEND_HOME_PATH=" + std::string(ASCEND_HOME_PATH) + " python3 " + script_path + " 2>&1";
   int ret = RunCommand(cmd);
@@ -147,9 +162,8 @@ int RunHostCompile(const std::string &tiling_def, const std::string &host_code, 
 int RunHostHelper(const std::string &host_bin, const std::string &tiling_repr_file) {
   const std::string input_configs_file = OUTPUT_DIR "/host_input_configs.json";
   WriteFile(input_configs_file, HOST_INPUT_CONFIGS_JSON);
-  std::string cmd = std::string(HOST_HELPER_BIN) + " --host-so " + host_bin + " --tiling-repr-out " +
-                    tiling_repr_file + " --input-configs " + input_configs_file + " --topn " +
-                    std::to_string(HOST_TOPN) +
+  std::string cmd = std::string(HOST_HELPER_BIN) + " --host-so " + host_bin + " --tiling-repr-out " + tiling_repr_file +
+                    " --input-configs " + input_configs_file + " --topn " + std::to_string(HOST_TOPN) +
                     " --perf-order " + std::string(HOST_PERF_ORDER);
   if (!std::string(HOST_DYNAMIC_SHAPE_ARGS).empty()) {
     cmd += " --dynamic-shape-args " + std::string(HOST_DYNAMIC_SHAPE_ARGS);
@@ -163,9 +177,8 @@ int RunHostHelper(const std::string &host_bin, const std::string &tiling_repr_fi
   return ret;
 }
 
-int RunKernelCompile(const std::string &tiling_def, const std::string &device_code,
-                     const std::string &output_file, const std::string &work_dir,
-                     const std::string &tiling_repr) {
+int RunKernelCompile(const std::string &tiling_def, const std::string &device_code, const std::string &output_file,
+                     const std::string &work_dir, const std::string &tiling_repr) {
   std::string mkdir_cmd = "mkdir -p " + work_dir;
   RunCommand(mkdir_cmd);
   WriteFile(work_dir + "/device_tiling_def.h", tiling_def);
@@ -178,23 +191,34 @@ int RunKernelCompile(const std::string &tiling_def, const std::string &device_co
   }
 
   std::string script_path = work_dir + "/run_kernel_compile.py";
-  WriteFile(script_path,
-    PythonPreamble() +
-    "try:\n"
-    "    from autofuse.compile_adapter import kernel_compile\n"
-    "    import os\n"
-    "    os.makedirs('" + work_dir + "', exist_ok=True)\n"
-    "    td = open('" + work_dir + "/device_tiling_def.h').read()\n"
-    "    dc = open('" + work_dir + "/device_impl.cpp').read()\n"
-    "    argv = ['--graph_name=pgo_add_abs_inductor_concat',\n"
-    "            '--output_file=" + output_file + "',\n"
-    "            '--output_path=" + work_dir + "',\n"
-    "            '--soc_version=Ascend910B',\n"
-    "            '--compile_options=-D_GLIBCXX_USE_CXX11_ABI=0']\n"
-    "    kernel_compile(td, dc, argv" + repr_arg + ")\n"
-    "except Exception:\n"
-    "    traceback.print_exc()\n"
-    "    sys.exit(1)\n");
+  WriteFile(script_path, PythonPreamble() +
+                             "try:\n"
+                             "    from autofuse.compile_adapter import kernel_compile\n"
+                             "    import os\n"
+                             "    os.makedirs('" +
+                             work_dir +
+                             "', exist_ok=True)\n"
+                             "    td = open('" +
+                             work_dir +
+                             "/device_tiling_def.h').read()\n"
+                             "    dc = open('" +
+                             work_dir +
+                             "/device_impl.cpp').read()\n"
+                             "    argv = ['--graph_name=pgo_add_abs_inductor_concat',\n"
+                             "            '--output_file=" +
+                             output_file +
+                             "',\n"
+                             "            '--output_path=" +
+                             work_dir +
+                             "',\n"
+                             "            '--soc_version=Ascend910B',\n"
+                             "            '--compile_options=-D_GLIBCXX_USE_CXX11_ABI=0']\n"
+                             "    kernel_compile(td, dc, argv" +
+                             repr_arg +
+                             ")\n"
+                             "except Exception:\n"
+                             "    traceback.print_exc()\n"
+                             "    sys.exit(1)\n");
 
   std::string cmd = "ASCEND_HOME_PATH=" + std::string(ASCEND_HOME_PATH) + " python3 " + script_path + " 2>&1";
   int ret = RunCommand(cmd);
@@ -203,8 +227,7 @@ int RunKernelCompile(const std::string &tiling_def, const std::string &device_co
 }
 
 }  // namespace
-class TestBackendPgoAddAbsInductorConcatSplitCompile : public testing::Test {
-};
+class TestBackendPgoAddAbsInductorConcatSplitCompile : public testing::Test {};
 
 void PrepareInputs(std::string &tiling_def, std::string &host_code, std::string &device_code) {
   tiling_def = ReadFile(TILING_DEF_FILE);

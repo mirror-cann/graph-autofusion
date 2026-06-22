@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -187,36 +187,56 @@ void ClipByValueFloat_AfterScheduler(af::AscGraph &graph) {
   graph.ApplySplit(load1, z0T->id, z0t->id);
   graph.ApplySplit(load1, z0TB->id, z0Tb->id);
   load1->attr.sched.loop_axis = z0Tb->id;
-  load1->outputs[0].attr.vectorized_axis = {z0t->id,};
-  load1->outputs[0].attr.vectorized_strides = {One,};
+  load1->outputs[0].attr.vectorized_axis = {
+      z0t->id,
+  };
+  load1->outputs[0].attr.vectorized_strides = {
+      One,
+  };
 
   auto load2 = graph.FindNode("load2");
   graph.ApplySplit(load2, z0T->id, z0t->id);
   graph.ApplySplit(load2, z0TB->id, z0Tb->id);
   load2->attr.sched.loop_axis = z0Tb->id;
-  load2->outputs[0].attr.vectorized_axis = {z0t->id,};
-  load2->outputs[0].attr.vectorized_strides = {One,};
+  load2->outputs[0].attr.vectorized_axis = {
+      z0t->id,
+  };
+  load2->outputs[0].attr.vectorized_strides = {
+      One,
+  };
 
   auto load3 = graph.FindNode("load3");
   graph.ApplySplit(load3, z0T->id, z0t->id);
   graph.ApplySplit(load3, z0TB->id, z0Tb->id);
   load3->attr.sched.loop_axis = z0Tb->id;
-  load3->outputs[0].attr.vectorized_axis = {z0t->id,};
-  load3->outputs[0].attr.vectorized_strides = {One,};
+  load3->outputs[0].attr.vectorized_axis = {
+      z0t->id,
+  };
+  load3->outputs[0].attr.vectorized_strides = {
+      One,
+  };
 
   auto clipbyvalue = graph.FindNode("clipbyvalue");
   graph.ApplySplit(clipbyvalue, z0T->id, z0t->id);
   graph.ApplySplit(clipbyvalue, z0TB->id, z0Tb->id);
   clipbyvalue->attr.sched.loop_axis = z0Tb->id;
-  clipbyvalue->outputs[0].attr.vectorized_axis = {z0t->id,};
-  clipbyvalue->outputs[0].attr.vectorized_strides = {One,};
+  clipbyvalue->outputs[0].attr.vectorized_axis = {
+      z0t->id,
+  };
+  clipbyvalue->outputs[0].attr.vectorized_strides = {
+      One,
+  };
 
   auto store = graph.FindNode("store");
   graph.ApplySplit(store, z0T->id, z0t->id);
   graph.ApplySplit(store, z0TB->id, z0Tb->id);
   store->attr.sched.loop_axis = z0Tb->id;
-  store->outputs[0].attr.vectorized_axis = {z0t->id,};
-  store->outputs[0].attr.vectorized_strides = {One,};
+  store->outputs[0].attr.vectorized_axis = {
+      z0t->id,
+  };
+  store->outputs[0].attr.vectorized_strides = {
+      One,
+  };
 }
 
 void ClipByValueFloat_AfterQueBufAlloc(af::AscGraph &graph) {
@@ -347,9 +367,10 @@ TEST(CodegenKernel, ClipByValueApiCall) {
 
   std::string result;
   call.Generate(tpipe, vector<af::AxisId>{}, result);
-  EXPECT_EQ(result, std::string{
-      "ClipByValue(global_-1[0], global_-1[0], global_-1[0], global_-1[0], tmp_buf_0, global_-1_actual_size);\n"
-  });
+  EXPECT_EQ(
+      result,
+      std::string{
+          "ClipByValue(global_-1[0], global_-1[0], global_-1[0], global_-1[0], tmp_buf_0, global_-1_actual_size);\n"});
 }
 
 TEST(CodegenKernel, ClipByValueWithSecondInputAndThirdInputAreScalar) {
@@ -396,7 +417,6 @@ TEST(CodegenKernel, ClipByValueWithSecondInputAndThirdInputAreScalar) {
   load->outputs[0].attr.que.id = 1;
   load->outputs[0].attr.opt.merge_scope = af::kIdNone;
 
-
   auto constant1_node = graph.FindNode("constant1");
   constant1_node->outputs[0].attr.mem.alloc_type = af::AllocType::kAllocTypeInvalid;
   constant1_node->outputs[0].attr.mem.tensor_id = 1;
@@ -408,8 +428,6 @@ TEST(CodegenKernel, ClipByValueWithSecondInputAndThirdInputAreScalar) {
   constant2_node->outputs[0].attr.mem.tensor_id = 2;
   constant2_node->outputs[0].attr.mem.position = af::Position::kPositionInvalid;
   constant2_node->outputs[0].attr.dtype = ge::DT_FLOAT16;
-
-
 
   auto clipbyvalue = graph.FindNode("clipbyvalue");
   clipbyvalue->attr.tmp_buffers = {{{af::Symbol(8192), -1}, af::MemAttr(), 0}};
@@ -439,7 +457,6 @@ TEST(CodegenKernel, ClipByValueWithSecondInputAndThirdInputAreScalar) {
   x2.id = constant1_node->outputs[0].attr.mem.tensor_id;
   x3.id = constant2_node->outputs[0].attr.mem.tensor_id;
 
-
   codegen::ClipByValueApiCall call("ClipByValue");
   EXPECT_EQ(call.Init(clipbyvalue), 0);
   call.inputs.push_back(&x1);
@@ -448,11 +465,9 @@ TEST(CodegenKernel, ClipByValueWithSecondInputAndThirdInputAreScalar) {
 
   std::string result;
   call.Generate(tpipe, vector<af::AxisId>{}, result);
-  EXPECT_EQ(result, std::string{
-      "ClipByValue(local_3[0], local_0[0], scalar_1, scalar_2, tmp_buf_0, local_0_actual_size);\n"
-  });
+  EXPECT_EQ(result,
+            std::string{"ClipByValue(local_3[0], local_0[0], scalar_1, scalar_2, tmp_buf_0, local_0_actual_size);\n"});
 }
-
 
 TEST(CodegenKernel, ClipByValueWithAllInputAreScalar) {
   af::AscGraph graph("test_graph");
@@ -477,7 +492,6 @@ TEST(CodegenKernel, ClipByValueWithAllInputAreScalar) {
   graph.AddNode(constant3_op);
   graph.AddNode(clipbyvalue_op);
 
-
   clipbyvalue_op.x1 = constant1_op.y;
   clipbyvalue_op.x2 = constant2_op.y;
   clipbyvalue_op.x3 = constant3_op.y;
@@ -499,8 +513,6 @@ TEST(CodegenKernel, ClipByValueWithAllInputAreScalar) {
   constant3_node->outputs[0].attr.mem.tensor_id = 2;
   constant3_node->outputs[0].attr.mem.position = af::Position::kPositionInvalid;
   constant3_node->outputs[0].attr.dtype = ge::DT_FLOAT16;
-
-
 
   auto clipbyvalue = graph.FindNode("clipbyvalue");
   clipbyvalue->attr.api.unit = af::ComputeUnit::kUnitVector;
@@ -529,7 +541,6 @@ TEST(CodegenKernel, ClipByValueWithAllInputAreScalar) {
   x2.id = constant2_node->outputs[0].attr.mem.tensor_id;
   x3.id = constant3_node->outputs[0].attr.mem.tensor_id;
 
-
   codegen::ClipByValueApiCall call("ClipByValue");
   EXPECT_EQ(call.Init(clipbyvalue), 0);
   call.inputs.push_back(&x1);
@@ -538,9 +549,7 @@ TEST(CodegenKernel, ClipByValueWithAllInputAreScalar) {
 
   std::string result;
   call.Generate(tpipe, vector<af::AxisId>{}, result);
-  EXPECT_EQ(result, std::string{
-      "ClipByValue(local_3[0], scalar_0, scalar_1, scalar_2);\n"
-  });
+  EXPECT_EQ(result, std::string{"ClipByValue(local_3[0], scalar_0, scalar_1, scalar_2);\n"});
 }
 
 TEST(WhereApiCallTest, ClipByValueWithAllInputAreUbScalar) {
@@ -588,7 +597,7 @@ TEST(WhereApiCallTest, ClipByValueWithAllInputAreUbScalar) {
   clipbyvalue_op.x3 = load_op3.y;
   *clipbyvalue_op.y.axis = {z0.id, z1.id, z2.id};
   *clipbyvalue_op.y.repeats = {s0, s1, s2};
-  *clipbyvalue_op.y.strides = {s1*s2, s2, One};
+  *clipbyvalue_op.y.strides = {s1 * s2, s2, One};
 
   auto load1 = graph.FindNode("load1");
   load1->attr.api.compute_type = af::ComputeType::kComputeLoad;
@@ -700,7 +709,8 @@ TEST(WhereApiCallTest, ClipByValueWithAllInputAreUbScalar) {
   std::string result;
   call.Generate(tpipe, current_axis, result);
   std::cout << result << std::endl;
-  EXPECT_EQ(result, std::string{
-      "ClipByValue(local_3[0], (float)local_0_ub_scalar, (float)local_1_ub_scalar, (float)local_2_ub_scalar);\n"
-  });
+  EXPECT_EQ(
+      result,
+      std::string{
+          "ClipByValue(local_3[0], (float)local_0_ub_scalar, (float)local_1_ub_scalar, (float)local_2_ub_scalar);\n"});
 }

@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -27,7 +27,7 @@ using namespace af::ops;
 using namespace af::ascir_op;
 using namespace codegen;
 
-template<ge::DataType T>
+template <ge::DataType T>
 void CreateGraph(af::AscGraph &graph, int axis = 0) {
   af::Expression One = af::Symbol(1);
   af::Expression param_last_exp = af::Symbol(4000);
@@ -80,7 +80,7 @@ void CreateGraph(af::AscGraph &graph, int axis = 0) {
   *y.y.strides = {indices_second_exp, One};
 }
 
-template<ge::DataType T>
+template <ge::DataType T>
 void CreateManyAxisGraph(af::AscGraph &graph, std::vector<af::Axis> &axes, std::vector<af::Expression> &exps) {
   af::ascir_op::Data x1("x1", graph);
   af::ascir_op::Data x2("x2", graph);
@@ -124,8 +124,9 @@ void CreateManyAxisGraph(af::AscGraph &graph, std::vector<af::Axis> &axes, std::
   *y.y.strides = {exps[3], exps[4]};
 }
 
-template<ge::DataType T>
-std::vector<af::AxisId> CreateGraphAttrAxisIsNotLastAxisAndOneVecAxis(af::AscGraph &graph, codegen::Tiler &tiler, int gather_axis = 0) {
+template <ge::DataType T>
+std::vector<af::AxisId> CreateGraphAttrAxisIsNotLastAxisAndOneVecAxis(af::AscGraph &graph, codegen::Tiler &tiler,
+                                                                      int gather_axis = 0) {
   auto s0 = graph.CreateSizeVar("s0");
   auto s1 = graph.CreateSizeVar("s1");
   auto s2 = graph.CreateSizeVar("s2");
@@ -288,7 +289,7 @@ std::vector<af::AxisId> CreateGraphAttrAxisIsNotLastAxisAndOneVecAxis(af::AscGra
 
   store->outputs[0].attr.mem.tensor_id = 4;
   store->outputs[0].attr.mem.alloc_type = af::AllocType::kAllocTypeGlobal;
-  store->outputs[0].attr.mem.hardware =  af::MemHardware::kMemHardwareGM;
+  store->outputs[0].attr.mem.hardware = af::MemHardware::kMemHardwareGM;
   store->outputs[0].attr.mem.position = af::Position::kPositionGM;
   store->outputs[0].attr.buf.id = af::kIdNone;
   store->outputs[0].attr.que.id = af::kIdNone;
@@ -300,8 +301,9 @@ std::vector<af::AxisId> CreateGraphAttrAxisIsNotLastAxisAndOneVecAxis(af::AscGra
   return current_axis;
 }
 
-template<ge::DataType T>
-std::vector<af::AxisId> CreateGraphAttrAxisIsNotLastAxisAndTwoVecAxis(af::AscGraph &graph, codegen::Tiler &tiler, int gather_axis = 0) {
+template <ge::DataType T>
+std::vector<af::AxisId> CreateGraphAttrAxisIsNotLastAxisAndTwoVecAxis(af::AscGraph &graph, codegen::Tiler &tiler,
+                                                                      int gather_axis = 0) {
   auto s0 = graph.CreateSizeVar("s0");
   auto s1 = graph.CreateSizeVar("s1");
   auto s2 = graph.CreateSizeVar("s2");
@@ -467,7 +469,7 @@ std::vector<af::AxisId> CreateGraphAttrAxisIsNotLastAxisAndTwoVecAxis(af::AscGra
 
   store->outputs[0].attr.mem.tensor_id = 4;
   store->outputs[0].attr.mem.alloc_type = af::AllocType::kAllocTypeGlobal;
-  store->outputs[0].attr.mem.hardware =  af::MemHardware::kMemHardwareGM;
+  store->outputs[0].attr.mem.hardware = af::MemHardware::kMemHardwareGM;
   store->outputs[0].attr.mem.position = af::Position::kPositionGM;
   store->outputs[0].attr.buf.id = af::kIdNone;
   store->outputs[0].attr.que.id = af::kIdNone;
@@ -479,8 +481,10 @@ std::vector<af::AxisId> CreateGraphAttrAxisIsNotLastAxisAndTwoVecAxis(af::AscGra
   return current_axis;
 }
 
-template<ge::DataType T>
-std::vector<af::AxisId> CreateGraphAttrAxisIsLastAxisAndParamHasMoreThanOneAxis(af::AscGraph &graph, codegen::Tiler &tiler, int gather_axis = 0) {
+template <ge::DataType T>
+std::vector<af::AxisId> CreateGraphAttrAxisIsLastAxisAndParamHasMoreThanOneAxis(af::AscGraph &graph,
+                                                                                codegen::Tiler &tiler,
+                                                                                int gather_axis = 0) {
   auto s0 = graph.CreateSizeVar("s0");
   auto s1 = graph.CreateSizeVar("s1");
   auto s2 = graph.CreateSizeVar("s2");
@@ -643,7 +647,7 @@ std::vector<af::AxisId> CreateGraphAttrAxisIsLastAxisAndParamHasMoreThanOneAxis(
 
   store->outputs[0].attr.mem.tensor_id = 4;
   store->outputs[0].attr.mem.alloc_type = af::AllocType::kAllocTypeGlobal;
-  store->outputs[0].attr.mem.hardware =  af::MemHardware::kMemHardwareGM;
+  store->outputs[0].attr.mem.hardware = af::MemHardware::kMemHardwareGM;
   store->outputs[0].attr.mem.position = af::Position::kPositionGM;
   store->outputs[0].attr.buf.id = af::kIdNone;
   store->outputs[0].attr.que.id = af::kIdNone;
@@ -655,14 +659,14 @@ std::vector<af::AxisId> CreateGraphAttrAxisIsLastAxisAndParamHasMoreThanOneAxis(
   return current_axis;
 }
 
-template<ge::DataType T>
-std::vector<af::AxisId> CreateGraphAttrAxisIsLastAxisAndParamHasOnlyOneAxis(af::AscGraph &graph, codegen::Tiler &tiler, int gather_axis = 0) {
+template <ge::DataType T>
+std::vector<af::AxisId> CreateGraphAttrAxisIsLastAxisAndParamHasOnlyOneAxis(af::AscGraph &graph, codegen::Tiler &tiler,
+                                                                            int gather_axis = 0) {
   auto s0 = graph.CreateSizeVar("s0");
   auto s1 = graph.CreateSizeVar("s1");
 
   auto z0 = graph.CreateAxis("z0", s0);
   auto z1 = graph.CreateAxis("z1", s1);
-
 
   Data x1_("x1");
   graph.AddNode(x1_);
@@ -799,7 +803,7 @@ std::vector<af::AxisId> CreateGraphAttrAxisIsLastAxisAndParamHasOnlyOneAxis(af::
 
   store->outputs[0].attr.mem.tensor_id = 4;
   store->outputs[0].attr.mem.alloc_type = af::AllocType::kAllocTypeGlobal;
-  store->outputs[0].attr.mem.hardware =  af::MemHardware::kMemHardwareGM;
+  store->outputs[0].attr.mem.hardware = af::MemHardware::kMemHardwareGM;
   store->outputs[0].attr.mem.position = af::Position::kPositionGM;
   store->outputs[0].attr.buf.id = af::kIdNone;
   store->outputs[0].attr.que.id = af::kIdNone;
@@ -835,9 +839,8 @@ TEST(CodegenKernel, LoadGatherApiCall_ShouldReturnSuccess_WhenInputsAreNormal) {
 
   std::string result;
   call.Generate(tpipe, vector<af::AxisId>{}, result);
-  EXPECT_EQ(result, std::string{
-      "GatherExtend(global_-1, global_-1, global_-1[0], 4000, global_-1_actual_size, tmp_buf_0);\n"
-  });
+  EXPECT_EQ(result,
+            std::string{"GatherExtend(global_-1, global_-1, global_-1[0], 4000, global_-1_actual_size, tmp_buf_0);\n"});
 }
 
 TEST(CodegenKernel, LoadGatherApiCall_ShouldReturnSuccess_WhenParamHasOnlyOneAxis) {
@@ -868,9 +871,9 @@ TEST(CodegenKernel, LoadGatherApiCall_ShouldReturnSuccess_WhenParamHasOnlyOneAxi
   std::string result;
   auto status = call.Generate(tpipe, current_axis, result);
   EXPECT_EQ(status, ge::SUCCESS);
-  EXPECT_EQ(result, std::string{
-      "GatherExtend(local_2, global_0, global_1[(int64_t)z1TB * (int64_t)(z1Tb_size * z1t_size) + (int64_t)z1Tb * (int64_t)z1t_size], (s0)/(1), local_2_actual_size, tmp_buf_0);\n"
-  });
+  EXPECT_EQ(result,
+            std::string{"GatherExtend(local_2, global_0, global_1[(int64_t)z1TB * (int64_t)(z1Tb_size * z1t_size) + "
+                        "(int64_t)z1Tb * (int64_t)z1t_size], (s0)/(1), local_2_actual_size, tmp_buf_0);\n"});
 }
 
 TEST(CodegenKernel, LoadGatherApiCall_WhenAttrAxisIsNotLastAxisAndOneVecAxis) {
@@ -931,7 +934,7 @@ TEST(CodegenKernel, LoadGatherApiCall_WhenAttrAxisIsNotLastAxisAndTwoVecAxis) {
   EXPECT_EQ(status, ge::SUCCESS);
 }
 
-TEST(CodegenKernel,  LoadGatherApiCall_WhenAxisIsBiggerThanParamSize) {
+TEST(CodegenKernel, LoadGatherApiCall_WhenAxisIsBiggerThanParamSize) {
   std::string binaryname = "GatherExtend";
 
   codegen::Tiler tiler;
@@ -960,7 +963,7 @@ TEST(CodegenKernel,  LoadGatherApiCall_WhenAxisIsBiggerThanParamSize) {
   EXPECT_EQ(status, ge::FAILED);
 }
 
-TEST(CodegenKernel,  LoadGatherApiCall_WhenAixsIsLastAxisAndParamHasMoreThanOneAxis) {
+TEST(CodegenKernel, LoadGatherApiCall_WhenAixsIsLastAxisAndParamHasMoreThanOneAxis) {
   std::string binaryname = "GatherExtend";
 
   codegen::Tiler tiler;
@@ -988,7 +991,6 @@ TEST(CodegenKernel,  LoadGatherApiCall_WhenAixsIsLastAxisAndParamHasMoreThanOneA
   std::string result;
   auto status = call.Generate(tpipe, current_axis, result);
   EXPECT_EQ(status, ge::SUCCESS);
-  EXPECT_EQ(result, std::string{
-      "GatherExtend(local_2, global_0[z0z1z2z3 * (s4)/(1)], global_1[(int64_t)z5z6T * (int64_t)z5z6t_size], (s4)/(1), local_2_actual_size, tmp_buf_0);\n"
-  });
+  EXPECT_EQ(result, std::string{"GatherExtend(local_2, global_0[z0z1z2z3 * (s4)/(1)], global_1[(int64_t)z5z6T * "
+                                "(int64_t)z5z6t_size], (s4)/(1), local_2_actual_size, tmp_buf_0);\n"});
 }

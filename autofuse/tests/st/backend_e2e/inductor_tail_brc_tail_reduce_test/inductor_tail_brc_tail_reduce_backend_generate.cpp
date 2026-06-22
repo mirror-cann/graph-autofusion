@@ -27,8 +27,7 @@ constexpr size_t kHostFileIndex = 1;
 constexpr size_t kDeviceFileIndex = 2;
 constexpr size_t kExpectedKernelSrcCount = 3;
 
-class TestBackendInductorTailBrcTailReduceE2e : public testing::Test {
-};
+class TestBackendInductorTailBrcTailReduceE2e : public testing::Test {};
 
 void AssertMultiGroupOrMultiImpl(const std::vector<::ascir::ScheduledResult> &graph_results) {
   ASSERT_FALSE(graph_results.empty());

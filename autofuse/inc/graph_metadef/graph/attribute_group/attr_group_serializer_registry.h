@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -18,21 +18,22 @@
 #include "graph/attribute_group/af_attr_group_base.h"
 #include "proto/af_ir.pb.h"
 
-#define REG_ATTR_GROUP_SERIALIZER(serializer_name, cls, obj_type, bin_type)                              \
-    REG_ATTR_GROUP_SERIALIZER_BUILDER_UNIQ_HELPER(serializer_name, __COUNTER__, cls, obj_type, bin_type)
+#define REG_ATTR_GROUP_SERIALIZER(serializer_name, cls, obj_type, bin_type) \
+  REG_ATTR_GROUP_SERIALIZER_BUILDER_UNIQ_HELPER(serializer_name, __COUNTER__, cls, obj_type, bin_type)
 
-#define REG_ATTR_GROUP_SERIALIZER_BUILDER_UNIQ_HELPER(name, ctr, cls, obj_type, bin_type)                \
-    REG_ATTR_GROUP_SERIALIZER_BUILDER_UNIQ(name, ctr, cls, obj_type, bin_type)
+#define REG_ATTR_GROUP_SERIALIZER_BUILDER_UNIQ_HELPER(name, ctr, cls, obj_type, bin_type) \
+  REG_ATTR_GROUP_SERIALIZER_BUILDER_UNIQ(name, ctr, cls, obj_type, bin_type)
 
-#define REG_ATTR_GROUP_SERIALIZER_BUILDER_UNIQ(name, ctr, cls, obj_type, bin_type)               \
-  static ::af::AttrGroupSerializerRegister register_serialize_##name##ctr                      \
-      __attribute__((unused)) =                                                            \
-          ::af::AttrGroupSerializerRegister([]()->std::unique_ptr<af::AttrGroupsBase>{     \
-               return std::unique_ptr<af::AttrGroupsBase>(new(std::nothrow)cls());     \
-          }, obj_type, bin_type)
+#define REG_ATTR_GROUP_SERIALIZER_BUILDER_UNIQ(name, ctr, cls, obj_type, bin_type)                  \
+  static ::af::AttrGroupSerializerRegister register_serialize_##name##ctr __attribute__((unused)) = \
+      ::af::AttrGroupSerializerRegister(                                                            \
+          []() -> std::unique_ptr<af::AttrGroupsBase> {                                             \
+            return std::unique_ptr<af::AttrGroupsBase>(new (std::nothrow) cls());                   \
+          },                                                                                        \
+          obj_type, bin_type)
 
 namespace af {
-template<typename T>
+template <typename T>
 struct HashedPointer {
   explicit HashedPointer(const T *ptr) : hash_value(std::hash<const T *>{}(ptr)) {}
   size_t hash_value;
@@ -63,8 +64,7 @@ class AttrGroupSerializerRegistry {
    * @param obj_type 内存中的数据类型，可以通过`GetTypeId<T>`函数获得
    * @param proto_type protobuf数据类型枚举值
    */
-  void RegisterAttrGroupSerialize(const AttrGroupSerializeBuilder &builder,
-                                  const TypeId obj_type,
+  void RegisterAttrGroupSerialize(const AttrGroupSerializeBuilder &builder, const TypeId obj_type,
                                   const af::proto::AttrGroupDef::AttrGroupCase proto_type);
 
   std::unique_ptr<AttrGroupsBase> GetSerializer(const TypeId obj_type);
@@ -75,15 +75,15 @@ class AttrGroupSerializerRegistry {
 
   std::mutex mutex_;
   std::map<TypeId, AttrGroupSerializeBuilder> serializer_builder_map_;
-  std::map<af::proto::AttrGroupDef::AttrGroupCase, std::pair<AttrGroupSerializeBuilder, TypeId>> deserializer_builder_map_;
+  std::map<af::proto::AttrGroupDef::AttrGroupCase, std::pair<AttrGroupSerializeBuilder, TypeId>>
+      deserializer_builder_map_;
 };
 
 class AttrGroupSerializerRegister {
  public:
-  AttrGroupSerializerRegister(const AttrGroupSerializeBuilder builder,
-                              const TypeId obj_type,
+  AttrGroupSerializerRegister(const AttrGroupSerializeBuilder builder, const TypeId obj_type,
                               const af::proto::AttrGroupDef::AttrGroupCase proto_type) noexcept;
   ~AttrGroupSerializerRegister() = default;
 };
-}  // namespace ge
-#endif // METADEF_CXX_INC_GRAPH_ATTRIBUTE_GROUP_ATTR_GROUP_SERIALIZER_REGISTRY_H_
+}  // namespace af
+#endif  // METADEF_CXX_INC_GRAPH_ATTRIBUTE_GROUP_ATTR_GROUP_SERIALIZER_REGISTRY_H_

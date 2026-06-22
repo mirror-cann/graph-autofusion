@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -92,8 +92,8 @@ int64_t GetNodeOutputRealSize(const NodePtr &node, std::vector<NodeStatus> &node
       continue;
     }
     int64_t output_size = 0;
-    (void) af::TensorUtils::CalcTensorMemSize(out_desc->GetShape(), out_desc->GetFormat(), out_desc->GetDataType(),
-                                              output_size);
+    (void)af::TensorUtils::CalcTensorMemSize(out_desc->GetShape(), out_desc->GetFormat(), out_desc->GetDataType(),
+                                             output_size);
     total_size += output_size;
   }
   if (total_size != 0) {
@@ -119,7 +119,8 @@ struct NodeCmp {
 struct NodeOutInfo {
   NodeOutInfo(const NodePtr &node, std::vector<NodeStatus> *nodes_info)
       : num_out_data_nodes(node->GetOutDataNodesSize()),
-        output_size(GetNodeOutputRealSize(node, *nodes_info)), node_name(node->GetName()) {}
+        output_size(GetNodeOutputRealSize(node, *nodes_info)),
+        node_name(node->GetName()) {}
 
   bool operator<(const NodeOutInfo &rhs) const {
     if (num_out_data_nodes < rhs.num_out_data_nodes) {
@@ -144,11 +145,11 @@ struct NodeOutInfo {
 
 bool IsMemoryPriority() {
   std::string memory_optimization_policy;
-  (void) af::GetContext().GetOption(af::MEMORY_OPTIMIZATION_POLICY, memory_optimization_policy);
+  (void)af::GetContext().GetOption(af::MEMORY_OPTIMIZATION_POLICY, memory_optimization_policy);
   return (memory_optimization_policy == kMemoryPriority);
 }
 
-bool InputIsLongLifeTimeNode(const NodePtr& node, const ConstComputeGraphPtr &graph) {
+bool InputIsLongLifeTimeNode(const NodePtr &node, const ConstComputeGraphPtr &graph) {
   bool match = false;
   for (const auto &in_data_anchor : node->GetAllInDataAnchorsPtr()) {
     if (in_data_anchor == nullptr) {
@@ -166,8 +167,8 @@ bool InputIsLongLifeTimeNode(const NodePtr& node, const ConstComputeGraphPtr &gr
         ((graph.get() == peer_node->GetOwnerComputeGraphBarePtr()) &&
          (OpTypeUtils::IsDataNode(peer_node->GetType()) || OpTypeUtils::IsConstPlaceHolderNode(peer_node->GetType())));
     std::string op_type;
-    if ((!NodeUtils::GetConstOpType(peer_node, op_type)) && (!OpTypeUtils::IsVariableNode(peer_node->GetType()))
-        && (!is_io_data)) {
+    if ((!NodeUtils::GetConstOpType(peer_node, op_type)) && (!OpTypeUtils::IsVariableNode(peer_node->GetType())) &&
+        (!is_io_data)) {
       return false;
     } else {
       match = true;
@@ -222,7 +223,7 @@ graphStatus GetOutNodeIndex(std::vector<NodePtr> &nodes, size_t &index, size_t &
   }
 
   if (delay_node != nullptr) {
-    index = static_cast<size_t >(min_index);
+    index = static_cast<size_t>(min_index);
     if (index > (static_cast<size_t>(op_desc->GetId()) + 1U)) {
       GELOGD("Node:%s id:%ld delay to:%s id:%zu", node->GetName().c_str(), op_desc->GetId(),
              delay_node->GetName().c_str(), index);
@@ -250,12 +251,11 @@ void DelayTopoSort(std::vector<NodePtr> &nodes, const ConstComputeGraphPtr &grap
   for (size_t i = 0U; i < delay_nodes.size(); ++i) {
     size_t delay_to_index = 0U;
     size_t out_count = 0U;
-    if (delay_nodes[i].first
-        && (GetOutNodeIndex(delay_nodes[i].second, delay_to_index, out_count, graph) == GRAPH_SUCCESS)
-        && (delay_to_index < delay_nodes.size()) && (delay_to_index > (i + 1U))) {
+    if (delay_nodes[i].first &&
+        (GetOutNodeIndex(delay_nodes[i].second, delay_to_index, out_count, graph) == GRAPH_SUCCESS) &&
+        (delay_to_index < delay_nodes.size()) && (delay_to_index > (i + 1U))) {
       delay_nodes[delay_to_index].second.insert(delay_nodes[delay_to_index].second.begin(),
-                                                delay_nodes[i].second.begin(),
-                                                delay_nodes[i].second.end());
+                                                delay_nodes[i].second.begin(), delay_nodes[i].second.end());
       if (out_count > 1U) {
         // last node can not be delay
         delay_nodes[delay_to_index].first = false;
@@ -279,14 +279,13 @@ class TopoSortStack {
  public:
   explicit TopoSortStack(std::vector<NodeStatus> *nodes_info, const bool is_mem_priority = false,
                          const bool is_dfs = false, const bool is_reverse_dfs = false)
-      : is_mem_priority_(is_mem_priority), is_dfs_(is_dfs), is_reverse_dfs_(is_reverse_dfs),
-        nodes_info_(nodes_info) {}
+      : is_mem_priority_(is_mem_priority), is_dfs_(is_dfs), is_reverse_dfs_(is_reverse_dfs), nodes_info_(nodes_info) {}
 
   NodePtr Pop() {
     if (is_mem_priority_ && (!is_reverse_dfs_)) {
       const auto &it = mem_priority_stack_.cbegin();
       const NodePtr node = it->second;
-      (void) mem_priority_stack_.erase(it);
+      (void)mem_priority_stack_.erase(it);
       return node;
     }
     const NodePtr node = normal_stack_.back();
@@ -296,13 +295,13 @@ class TopoSortStack {
 
   void Push(const NodePtr &node) {
     if (is_mem_priority_ && (!is_reverse_dfs_)) {
-      (void) mem_priority_stack_.emplace(NodeOutInfo(node, nodes_info_), node);
+      (void)mem_priority_stack_.emplace(NodeOutInfo(node, nodes_info_), node);
       return;
     }
     if (is_dfs_) {
-      (void) normal_stack_.insert(normal_stack_.end(), node);
+      (void)normal_stack_.insert(normal_stack_.end(), node);
     } else {
-      (void) normal_stack_.insert(normal_stack_.begin(), node);
+      (void)normal_stack_.insert(normal_stack_.begin(), node);
     }
   }
 
@@ -374,8 +373,7 @@ graphStatus InheritUserSteamLabelFromOriginNodes(const std::vector<NodePtr> &ori
   return GRAPH_SUCCESS;
 }
 
-graphStatus InheritSkFromOriginNodes(const std::vector<NodePtr> &ori_nodes,
-                                     const std::vector<OpDescPtr> &fusion_ops) {
+graphStatus InheritSkFromOriginNodes(const std::vector<NodePtr> &ori_nodes, const std::vector<OpDescPtr> &fusion_ops) {
   const std::unordered_set<std::string> scopes = GetAttrStringSet(ori_nodes, ATTR_NAME_SUPER_KERNEL_SCOPE);
   const std::unordered_set<std::string> kernel_options = GetAttrStringSet(ori_nodes, ATTR_NAME_SUPER_KERNEL_OPTIONS);
   if (scopes.empty() && kernel_options.empty()) {
@@ -394,7 +392,8 @@ graphStatus InheritSkFromOriginNodes(const std::vector<NodePtr> &ori_nodes,
   return GRAPH_SUCCESS;
 }
 
-graphStatus InheritCoreNumFromOriginNodes(const std::vector<NodePtr> &ori_nodes, const std::vector<OpDescPtr> &fusion_ops) {
+graphStatus InheritCoreNumFromOriginNodes(const std::vector<NodePtr> &ori_nodes,
+                                          const std::vector<OpDescPtr> &fusion_ops) {
   std::unordered_set<std::string> origin_ai_core_nums;
   std::unordered_set<std::string> origin_vector_core_nums;
 
@@ -432,17 +431,15 @@ graphStatus InheritCoreNumFromOriginNodes(const std::vector<NodePtr> &ori_nodes,
 }  // namespace
 
 ComputeGraphImpl::ComputeGraphImpl(const std::string &name)
-    : name_(name),
-      nodes_(),
-      input_nodes_(),
-      sub_graph_(),
-      is_valid_flag_(false),
-      need_iteration_(false) {
+    : name_(name), nodes_(), input_nodes_(), sub_graph_(), is_valid_flag_(false), need_iteration_(false) {}
+
+std::string ComputeGraphImpl::GetName() const {
+  return name_;
 }
 
-std::string ComputeGraphImpl::GetName() const { return name_; }
-
-void ComputeGraphImpl::SetName(const std::string &name) { name_ = name; }
+void ComputeGraphImpl::SetName(const std::string &name) {
+  name_ = name;
+}
 
 size_t ComputeGraphImpl::GetAllNodesSize(const ConstComputeGraphPtr &compute_graph) const {
   return GetAllNodes(compute_graph).size();
@@ -454,7 +451,7 @@ ComputeGraphImpl::Vistor<NodePtr> ComputeGraphImpl::GetAllNodes(const ConstCompu
 }
 
 void ComputeGraphImpl::GetAllNodesFromOpdesc(const OpDesc &op_desc, const GraphFilter &graph_filter,
-                                             std::deque<NodePtr>& candidates, const NodePtr node) const {
+                                             std::deque<NodePtr> &candidates, const NodePtr node) const {
   const auto &subgraph_names = op_desc.GetSubgraphInstanceNames();
   auto name_iter = subgraph_names.rbegin();
   while (name_iter != subgraph_names.rend()) {
@@ -462,7 +459,7 @@ void ComputeGraphImpl::GetAllNodesFromOpdesc(const OpDesc &op_desc, const GraphF
     if (subgraph != nullptr) {
       if ((graph_filter == nullptr) || graph_filter(*node, name_iter->c_str(), subgraph)) {
         auto subgraph_nodes = subgraph->GetDirectNode();
-        (void) (candidates.insert(candidates.begin(), subgraph_nodes.begin(), subgraph_nodes.end()));
+        (void)(candidates.insert(candidates.begin(), subgraph_nodes.begin(), subgraph_nodes.end()));
       }
     }
     ++name_iter;
@@ -494,7 +491,7 @@ ComputeGraphImpl::Vistor<NodePtr> ComputeGraphImpl::GetAllNodes(const NodeFilter
 }
 
 void inline ComputeGraphImpl::GetAllNodesFromOpdesc(std::vector<ComputeGraphPtr> &subgraphs, const OpDesc &op_desc,
-                                                    std::deque<NodePtr>& candidates) const {
+                                                    std::deque<NodePtr> &candidates) const {
   const auto &subgraph_names = op_desc.GetSubgraphInstanceNames();
   auto name_iter = subgraph_names.rbegin();
   while (name_iter != subgraph_names.rend()) {
@@ -502,14 +499,14 @@ void inline ComputeGraphImpl::GetAllNodesFromOpdesc(std::vector<ComputeGraphPtr>
     if (subgraph != nullptr) {
       subgraphs.emplace_back(subgraph);
       auto subgraph_nodes = subgraph->GetDirectNode();
-      (void) candidates.insert(candidates.begin(), subgraph_nodes.begin(), subgraph_nodes.end());
+      (void)candidates.insert(candidates.begin(), subgraph_nodes.begin(), subgraph_nodes.end());
     }
     ++name_iter;
   }
 }
 
 void inline ComputeGraphImpl::GetAllNodesPtrFromOpdesc(std::vector<ComputeGraphPtr> &subgraphs, const OpDesc &op_desc,
-                                                       std::deque<Node *>& candidates) const {
+                                                       std::deque<Node *> &candidates) const {
   const auto &subgraph_names = op_desc.GetSubgraphInstanceNames();
   auto name_iter = subgraph_names.rbegin();
   while (name_iter != subgraph_names.rend()) {
@@ -573,14 +570,15 @@ ComputeGraphImpl::Vistor<NodePtr> ComputeGraphImpl::GetNodes(const bool is_unkno
   }
 }
 
-ComputeGraphImpl::Vistor<NodePtr> ComputeGraphImpl::GetNodes(const bool is_unknown_shape,
-                                                             const NodeFilter &node_filter,
+ComputeGraphImpl::Vistor<NodePtr> ComputeGraphImpl::GetNodes(const bool is_unknown_shape, const NodeFilter &node_filter,
                                                              const GraphFilter &graph_filter,
                                                              const ConstComputeGraphPtr &compute_graph) const {
   return is_unknown_shape ? GetDirectNode(compute_graph) : GetAllNodes(node_filter, graph_filter, compute_graph);
 }
 
-size_t ComputeGraphImpl::GetDirectNodesSize() const { return direct_nodes_size_; }
+size_t ComputeGraphImpl::GetDirectNodesSize() const {
+  return direct_nodes_size_;
+}
 
 ComputeGraphImpl::Vistor<NodePtr> ComputeGraphImpl::GetDirectNode(const ConstComputeGraphPtr &compute_graph) const {
   return Vistor<NodePtr>(compute_graph, nodes_);
@@ -649,7 +647,8 @@ bool ComputeGraphImpl::VectorInputNodePtrIsEqual(const std::vector<NodePtr> &lef
                          "Check failed with graph input_nodes_: "
                          "left inputNodes size %zu is different with right inputNodes size %zu .",
                          left_nodes_size, right_nodes_size);
-    GELOGE(GRAPH_FAILED, "[Check][Param] failed with graph input_nodes_: "
+    GELOGE(GRAPH_FAILED,
+           "[Check][Param] failed with graph input_nodes_: "
            "left inputNodes size %zu is different with right inputNodes size %zu .",
            left_nodes_size, right_nodes_size);
     return false;
@@ -667,7 +666,8 @@ bool ComputeGraphImpl::VectorInputNodePtrIsEqual(const std::vector<NodePtr> &lef
                            "Check failed with graph input_nodes_: "
                            "left inputNode name %s is different with right inputNode name %s at inputNodes index %zu.",
                            left_input_name.c_str(), right_input_name.c_str(), j);
-      GELOGE(GRAPH_FAILED, "[Check][Param] failed with graph input_nodes_: "
+      GELOGE(GRAPH_FAILED,
+             "[Check][Param] failed with graph input_nodes_: "
              "left inputNode name %s is different with right inputNode name %s at inputNodes index %zu.",
              left_input_name.c_str(), right_input_name.c_str(), j);
       return false;
@@ -707,9 +707,8 @@ bool ComputeGraphImpl::operator==(const ComputeGraphImpl &r_graph) const {
     const auto &node_name = left_node->GetName();
     // After TopologicalSorting, node order can change, so find node by name
     const auto &right_node = r_graph.FindNode(node_name);
-    GE_IF_BOOL_EXEC(right_node == nullptr,
-                    REPORT_INNER_ERR_MSG("E18888", "left_node:%s not find in r_graph:%s",
-                                       node_name.c_str(), r_graph.GetName().c_str());
+    GE_IF_BOOL_EXEC(right_node == nullptr, REPORT_INNER_ERR_MSG("E18888", "left_node:%s not find in r_graph:%s",
+                                                                node_name.c_str(), r_graph.GetName().c_str());
                     GELOGE(GRAPH_FAILED, "[Check][Param] right_node is NULL!!!"); return false);
     if (!((*right_node) == (*left_node))) {
       REPORT_INNER_ERR_MSG("E18888", "Compare graph failed, node:%s not equal.", node_name.c_str());
@@ -744,8 +743,7 @@ NodePtr ComputeGraphImpl::AddNodeFront(const NodePtr node) {
   return node;
 }
 
-NodePtr ComputeGraphImpl::AddNodeFront(const OpDescPtr &op,
-                                       const ComputeGraphPtr &compute_graph) {
+NodePtr ComputeGraphImpl::AddNodeFront(const OpDescPtr &op, const ComputeGraphPtr &compute_graph) {
   if (op == nullptr) {
     REPORT_INNER_ERR_MSG("E18888", "The OpDesc ptr should not be null.");
     GELOGE(GRAPH_FAILED, "[Check][Param] The OpDesc ptr should not be null.");
@@ -753,17 +751,14 @@ NodePtr ComputeGraphImpl::AddNodeFront(const OpDescPtr &op,
   }
   op->SetId(static_cast<int64_t>(GetDirectNodesSize()));
   const NodePtr node_ptr = std::shared_ptr<Node>(new (std::nothrow) Node(op, compute_graph));
-  GE_IF_BOOL_EXEC(node_ptr == nullptr, GELOGE(GRAPH_FAILED, "[Create][Node] node_ptr is NULL!!!");
-                  return nullptr);
+  GE_IF_BOOL_EXEC(node_ptr == nullptr, GELOGE(GRAPH_FAILED, "[Create][Node] node_ptr is NULL!!!"); return nullptr);
   GE_IF_BOOL_EXEC(node_ptr->Init() != GRAPH_SUCCESS,
                   REPORT_INNER_ERR_MSG("E18888", "node %s init failed.", op->GetName().c_str());
-                  GELOGE(GRAPH_FAILED, "node init fail.");
-                  return nullptr);
+                  GELOGE(GRAPH_FAILED, "node init fail."); return nullptr);
   return AddNodeFront(node_ptr);
 }
 
-af::NodePtr ComputeGraphImpl::CreateNodeFromOpDesc(const OpDescPtr &op_desc,
-                                                   const ComputeGraphPtr &compute_graph,
+af::NodePtr ComputeGraphImpl::CreateNodeFromOpDesc(const OpDescPtr &op_desc, const ComputeGraphPtr &compute_graph,
                                                    const int64_t topo_id) {
   GE_ASSERT_NOTNULL(op_desc);
   op_desc->SetId(topo_id);
@@ -775,15 +770,14 @@ af::NodePtr ComputeGraphImpl::CreateNodeFromOpDesc(const OpDescPtr &op_desc,
   return node;
 }
 
-std::vector<NodePtr> ComputeGraphImpl::InsertNodes(const NodePtr &node,
-                                                   const std::vector<OpDescPtr> &insert_ops,
+std::vector<NodePtr> ComputeGraphImpl::InsertNodes(const NodePtr &node, const std::vector<OpDescPtr> &insert_ops,
                                                    const ComputeGraphPtr &compute_graph) {
   GE_ASSERT_NOTNULL(node);
   GE_ASSERT_NOTNULL(node->GetOpDesc());
   const auto topo_id = node->GetOpDesc()->GetId();
   auto iter = std::find(nodes_.begin(), nodes_.end(), node);
-  GE_ASSERT_TRUE(iter != nodes_.end(), "Cannot find before node: %s in graph: %s",
-      node->GetName().c_str(), compute_graph->GetName().c_str());
+  GE_ASSERT_TRUE(iter != nodes_.end(), "Cannot find before node: %s in graph: %s", node->GetName().c_str(),
+                 compute_graph->GetName().c_str());
   iter = next(iter);
   std::vector<af::NodePtr> insert_nodes;
   for (const auto &op_desc : insert_ops) {
@@ -795,23 +789,21 @@ std::vector<NodePtr> ComputeGraphImpl::InsertNodes(const NodePtr &node,
   return insert_nodes;
 }
 
-NodePtr ComputeGraphImpl::InsertNodeBefore(const NodePtr &node,
-                                           const OpDescPtr &insert_op,
+NodePtr ComputeGraphImpl::InsertNodeBefore(const NodePtr &node, const OpDescPtr &insert_op,
                                            const ComputeGraphPtr &compute_graph) {
   GE_ASSERT_NOTNULL(node);
   GE_ASSERT_NOTNULL(node->GetOpDesc());
   const auto topo_id = node->GetOpDesc()->GetId();
   auto iter = std::find(nodes_.begin(), nodes_.end(), node);
-  GE_ASSERT_TRUE(iter != nodes_.end(), "Cannot find node: %s in graph: %s",
-                 node->GetNamePtr(), compute_graph->GetName().c_str());
+  GE_ASSERT_TRUE(iter != nodes_.end(), "Cannot find node: %s in graph: %s", node->GetNamePtr(),
+                 compute_graph->GetName().c_str());
   auto insert_node = CreateNodeFromOpDesc(insert_op, compute_graph, topo_id);
   GE_ASSERT_NOTNULL(insert_node);
   InsertToNodeList(iter, insert_node);
   return insert_node;
 }
 
-NodePtr ComputeGraphImpl::InsertNode(const NodePtr &node,
-                                     const OpDescPtr &insert_op,
+NodePtr ComputeGraphImpl::InsertNode(const NodePtr &node, const OpDescPtr &insert_op,
                                      const ComputeGraphPtr &compute_graph) {
   std::vector<OpDescPtr> ops_vec = {insert_op};
   const auto node_vec = InsertNodes(node, ops_vec, compute_graph);
@@ -843,7 +835,8 @@ bool ComputeGraphImpl::IsSupportFuse(const std::vector<NodePtr> &nodes, std::str
     return false;
   }
 
-  const std::unordered_set<std::string> vectorcore_num_options = GetAttrStringSet(nodes, public_attr::OP_VECTOR_CORE_NUM);
+  const std::unordered_set<std::string> vectorcore_num_options =
+      GetAttrStringSet(nodes, public_attr::OP_VECTOR_CORE_NUM);
   if (vectorcore_num_options.size() > 1U) {
     AssembleFuseFailReason(nodes, vectorcore_num_options, public_attr::OP_VECTOR_CORE_NUM, reason_not_support);
     return false;
@@ -895,13 +888,11 @@ NodePtr ComputeGraphImpl::AddNode(const OpDescPtr op, const ComputeGraphPtr &com
   }
   op->SetId(static_cast<int64_t>(GetDirectNodesSize()));
   const NodePtr node_ptr = std::shared_ptr<Node>(new (std::nothrow) Node(op, compute_graph));
-  GE_IF_BOOL_EXEC(node_ptr == nullptr,
-                  REPORT_INNER_ERR_MSG("E18888", "create node failed.");
+  GE_IF_BOOL_EXEC(node_ptr == nullptr, REPORT_INNER_ERR_MSG("E18888", "create node failed.");
                   GELOGE(GRAPH_FAILED, "[Create][Node] node_ptr is NULL!!!"); return nullptr);
   GE_IF_BOOL_EXEC(node_ptr->Init() != GRAPH_SUCCESS,
                   REPORT_INNER_ERR_MSG("E18888", "node:%s init failed.", op->GetName().c_str());
-                  GELOGE(GRAPH_FAILED, "[Init][Node] %s fail.", op->GetName().c_str());
-                  return nullptr);
+                  GELOGE(GRAPH_FAILED, "[Init][Node] %s fail.", op->GetName().c_str()); return nullptr);
   return AddNode(node_ptr);
 }
 
@@ -913,13 +904,10 @@ NodePtr ComputeGraphImpl::AddNode(const OpDescPtr op, const int64_t id, const Co
   }
   op->SetId(id);
   const NodePtr node = std::shared_ptr<Node>(new (std::nothrow) Node(op, compute_graph));
-  GE_IF_BOOL_EXEC(node == nullptr,
-                  REPORT_INNER_ERR_MSG("E18888", "create node failed.");
+  GE_IF_BOOL_EXEC(node == nullptr, REPORT_INNER_ERR_MSG("E18888", "create node failed.");
                   GELOGE(GRAPH_FAILED, "[Create][Node] node_ptr is NULL!!!"); return nullptr);
-  GE_IF_BOOL_EXEC(node->Init() != GRAPH_SUCCESS,
-                  REPORT_INNER_ERR_MSG("E18888", "node init failed.");
-                  GELOGE(GRAPH_FAILED, "[Init][Node] fail.");
-                  return nullptr);
+  GE_IF_BOOL_EXEC(node->Init() != GRAPH_SUCCESS, REPORT_INNER_ERR_MSG("E18888", "node init failed.");
+                  GELOGE(GRAPH_FAILED, "[Init][Node] fail."); return nullptr);
   node->SetHostNode(is_valid_flag_);
   PushBackToNodeList(node);
   AddInputDataNode(node);
@@ -1023,8 +1011,7 @@ graphStatus ComputeGraphImpl::RemoveNode(const NodePtr &node) {
   (void)RemoveOutputNode(node);
 
   if (IsolateNode(node) != GRAPH_SUCCESS) {
-    GELOGE(GRAPH_FAILED, "[Isolate][Node] failed, node name: %s, graph:%s.", node->GetName().c_str(),
-           name_.c_str());
+    GELOGE(GRAPH_FAILED, "[Isolate][Node] failed, node name: %s, graph:%s.", node->GetName().c_str(), name_.c_str());
     return GRAPH_FAILED;
   }
 
@@ -1108,8 +1095,7 @@ graphStatus ComputeGraphImpl::RemoveSubGraph(const std::shared_ptr<ComputeGraph>
   return GRAPH_SUCCESS;
 }
 
-graphStatus ComputeGraphImpl::AddSubgraph(const std::string &name,
-                                          const std::shared_ptr<ComputeGraph> &subgraph) {
+graphStatus ComputeGraphImpl::AddSubgraph(const std::string &name, const std::shared_ptr<ComputeGraph> &subgraph) {
   if (subgraph == nullptr) {
     REPORT_INNER_ERR_MSG("E18888", "Try to add a null subgraph, name %s", name.c_str());
     GE_LOGE("[Check][Param] Try to add a null subgraph, name %s", name.c_str());
@@ -1132,9 +1118,10 @@ graphStatus ComputeGraphImpl::AddSubgraph(const std::string &name,
                          "Try to add a subgraph which parent node's graph is not equal to "
                          "the subgraph's parent graph, subgraph name %s, parent node name %s",
                          subgraph->GetName().c_str(), parent_graph->GetName().c_str());
-    GE_LOGE("[Check][Param] Try to add a subgraph which parent node's graph is not equal to "
-            "the subgraph's parent graph, subgraph name %s, parent node name %s",
-            subgraph->GetName().c_str(), parent_graph->GetName().c_str());
+    GE_LOGE(
+        "[Check][Param] Try to add a subgraph which parent node's graph is not equal to "
+        "the subgraph's parent graph, subgraph name %s, parent node name %s",
+        subgraph->GetName().c_str(), parent_graph->GetName().c_str());
     return GRAPH_PARAM_INVALID;
   }
   if (!this->parent_graph_.expired()) {
@@ -1306,8 +1293,7 @@ graphStatus ComputeGraphImpl::UpdateOutputMapping(const std::map<uint32_t, uint3
 graphStatus ComputeGraphImpl::ReorderEventNodes(const ConstComputeGraphPtr &compute_graph) {
   std::list<NodePtr> &node_list = nodes_;
   for (const auto &node : GetDirectNode(compute_graph)) {
-    if ((strcmp(node->GetTypePtr(), RECV) == 0) ||
-        (strcmp(node->GetTypePtr(), RECV_NOTIFY) == 0)) {
+    if ((strcmp(node->GetTypePtr(), RECV) == 0) || (strcmp(node->GetTypePtr(), RECV_NOTIFY) == 0)) {
       const auto iter = find(node_list.cbegin(), node_list.cend(), node);
       if (iter != node_list.cend()) {
         (void)node_list.erase(iter);
@@ -1316,8 +1302,7 @@ graphStatus ComputeGraphImpl::ReorderEventNodes(const ConstComputeGraphPtr &comp
       const auto dst_iter = find(node_list.cbegin(), node_list.cend(), node->GetOutControlNodes().at(0UL));
       (void)node_list.insert(dst_iter, node);
     }
-    if ((strcmp(node->GetTypePtr(), SEND) == 0) ||
-        (strcmp(node->GetTypePtr(), SEND_NOTIFY) == 0)) {
+    if ((strcmp(node->GetTypePtr(), SEND) == 0) || (strcmp(node->GetTypePtr(), SEND_NOTIFY) == 0)) {
       const auto iter = find(node_list.cbegin(), node_list.cend(), node);
       if (iter != node_list.cend()) {
         (void)node_list.erase(iter);
@@ -1353,7 +1338,7 @@ graphStatus ComputeGraphImpl::InsertGraphEvents(const ConstComputeGraphPtr &comp
   std::vector<ComputeGraphPtr> subgraphs;
   const auto nodes = AllGraphNodes(subgraphs, compute_graph);
   for (size_t i = 0UL; i < nodes.size(); ++i) {
-    const NodePtr node = nodes.at(i);   // [node: should not be null]
+    const NodePtr node = nodes.at(i);                          // [node: should not be null]
     node->GetOpDescBarePtr()->SetId(static_cast<int64_t>(i));  // [node->GetOpDescBarePtr(): should not be null]
   }
 
@@ -1366,8 +1351,8 @@ graphStatus ComputeGraphImpl::DFSTopologicalSorting(std::vector<NodePtr> &node_v
   std::vector<NodePtr> stack;
   std::map<NodePtr, uint32_t> map_in_edge_num;
   // Record the number of non data nodes but no input nodes
-  GE_CHK_BOOL_EXEC(SortNodes(stack, map_in_edge_num, compute_graph) == GRAPH_SUCCESS,
-                   return GRAPH_FAILED, "sort nodes failed");
+  GE_CHK_BOOL_EXEC(SortNodes(stack, map_in_edge_num, compute_graph) == GRAPH_SUCCESS, return GRAPH_FAILED,
+                   "sort nodes failed");
   const bool is_mem_priority = IsMemoryPriority();
   std::vector<NodeStatus> nodes_info;
   if (is_mem_priority) {
@@ -1378,14 +1363,14 @@ graphStatus ComputeGraphImpl::DFSTopologicalSorting(std::vector<NodePtr> &node_v
     topo_sort_stack.Push(node);
   }
   std::vector<NodePtr> out_nodes;
-  const auto stack_push = [&reverse, &topo_sort_stack](std::vector<NodePtr>& tmp_out_nodes) {
-      if (reverse) {
-        std::reverse(tmp_out_nodes.begin(), tmp_out_nodes.end());
-      }
-      for (const auto &node: tmp_out_nodes) {
-        topo_sort_stack.Push(node);
-      }
-      tmp_out_nodes.clear();
+  const auto stack_push = [&reverse, &topo_sort_stack](std::vector<NodePtr> &tmp_out_nodes) {
+    if (reverse) {
+      std::reverse(tmp_out_nodes.begin(), tmp_out_nodes.end());
+    }
+    for (const auto &node : tmp_out_nodes) {
+      topo_sort_stack.Push(node);
+    }
+    tmp_out_nodes.clear();
   };
   // Only data nodes here
   while (!topo_sort_stack.Empty()) {
@@ -1406,12 +1391,12 @@ graphStatus ComputeGraphImpl::DFSTopologicalSorting(std::vector<NodePtr> &node_v
       }
       stack_push(out_nodes);
     }
-    GE_IF_BOOL_EXEC(node->GetOutControlAnchor() != nullptr,
-        for (const AnchorPtr peer_in_anchor : node->GetOutControlAnchor()->GetPeerAnchors()) {
+    GE_IF_BOOL_EXEC(
+        node->GetOutControlAnchor() != nullptr, for (const AnchorPtr peer_in_anchor
+                                                     : node->GetOutControlAnchor()->GetPeerAnchors()) {
           GE_CHECK_NOTNULL(peer_in_anchor);
           GetOutNodesFromAnchor(peer_in_anchor, map_in_edge_num, out_nodes);
-        }
-        stack_push(out_nodes);)
+        } stack_push(out_nodes);)
   }
 
   return GRAPH_SUCCESS;
@@ -1419,7 +1404,7 @@ graphStatus ComputeGraphImpl::DFSTopologicalSorting(std::vector<NodePtr> &node_v
 
 graphStatus ComputeGraphImpl::StableRDFSTopologicalSorting(std::vector<NodePtr> &node_vec, const bool reverse,
                                                            const ConstComputeGraphPtr &compute_graph) const {
-  (void) reverse;
+  (void)reverse;
   GELOGI("Runing_Stable_Reverse_Dfs_Sort: %s", name_.c_str());
   std::vector<NodeStatus> nodes_info;
   InitNodeStatus(compute_graph, nodes_info);
@@ -1446,7 +1431,7 @@ graphStatus ComputeGraphImpl::StableRDFSTopologicalSorting(std::vector<NodePtr> 
         }
         std::vector<Node *> in_nodes_has_not_been_walked;
         in_nodes_has_not_been_walked.reserve(in_all_nodes.size());
-        for (const auto in_node: in_all_nodes) {
+        for (const auto in_node : in_all_nodes) {
           if (nodes_info[in_node->GetOpDesc()->GetId()].status == WalkStatus::kNotWalked) {
             in_nodes_has_not_been_walked.push_back(in_node);
           }
@@ -1457,8 +1442,8 @@ graphStatus ComputeGraphImpl::StableRDFSTopologicalSorting(std::vector<NodePtr> 
           return lhs->GetOpDescBarePtr()->GetId() > rhs->GetOpDescBarePtr()->GetId();
         };
         // 输入节点的排序使用原始的顺序，可以保证原有topo如果满足当前图的遍历关系，最大程度的保留下来
-        std::set<Node *, decltype(cmp)>
-            input_nodes{in_nodes_has_not_been_walked.begin(), in_nodes_has_not_been_walked.end(), cmp};
+        std::set<Node *, decltype(cmp)> input_nodes{in_nodes_has_not_been_walked.begin(),
+                                                    in_nodes_has_not_been_walked.end(), cmp};
         stack.insert(stack.end(), input_nodes.cbegin(), input_nodes.cend());
       } else {
         stack.pop_back();
@@ -1478,7 +1463,7 @@ graphStatus ComputeGraphImpl::StableRDFSTopologicalSorting(std::vector<NodePtr> 
 
 graphStatus ComputeGraphImpl::RDFSTopologicalSorting(std::vector<NodePtr> &node_vec, const bool reverse,
                                                      const ConstComputeGraphPtr &compute_graph) const {
-  (void) reverse;
+  (void)reverse;
   GELOGI("Runing_Reverse_Dfs_Sort: %s", name_.c_str());
   std::vector<NodeStatus> nodes_info;
   InitNodeStatus(compute_graph, nodes_info);
@@ -1517,7 +1502,7 @@ graphStatus ComputeGraphImpl::RDFSTopologicalSorting(std::vector<NodePtr> &node_
 graphStatus ComputeGraphImpl::BFSTopologicalSorting(std::vector<NodePtr> &node_vec, const bool reverse,
                                                     const ConstComputeGraphPtr &compute_graph) const {
   GELOGI("Runing_Bfs_Sort: %s", name_.c_str());
-  (void) reverse;
+  (void)reverse;
   const bool is_mem_priority = IsMemoryPriority();
   std::vector<NodeStatus> nodes_info;
   if (is_mem_priority) {
@@ -1528,8 +1513,8 @@ graphStatus ComputeGraphImpl::BFSTopologicalSorting(std::vector<NodePtr> &node_v
   std::map<std::string, NodePtr> breadth_node_map;
   std::map<NodePtr, uint32_t> map_in_edge_num;
   // Record the number of non data nodes but no input nodes
-  GE_CHK_BOOL_EXEC(SortNodes(stack_input, map_in_edge_num, compute_graph) == GRAPH_SUCCESS,
-                   return GRAPH_FAILED, "sort nodes failed");
+  GE_CHK_BOOL_EXEC(SortNodes(stack_input, map_in_edge_num, compute_graph) == GRAPH_SUCCESS, return GRAPH_FAILED,
+                   "sort nodes failed");
 
   // Only data nodes here
   while ((!stack_input.empty()) || (!topo_sort_stack.Empty())) {
@@ -1547,7 +1532,7 @@ graphStatus ComputeGraphImpl::BFSTopologicalSorting(std::vector<NodePtr> &node_v
     (void)CollectBreadthOutNode(node, map_in_edge_num, breadth_node_map);
 
     for (const auto &name_node : breadth_node_map) {
-      (void) topo_sort_stack.Push(name_node.second);
+      (void)topo_sort_stack.Push(name_node.second);
     }
     breadth_node_map.clear();
   }
@@ -1900,7 +1885,8 @@ graphStatus ComputeGraphImpl::UpdateNetOutput(const ComputeGraphPtr &compute_gra
   return GRAPH_SUCCESS;
 }
 
-graphStatus ComputeGraphImpl::UpdateNetOutputParentNodeIndex(const af::NodePtr &net_output, const std::vector<RetvalInfo> &output_nodes_info) const {
+graphStatus ComputeGraphImpl::UpdateNetOutputParentNodeIndex(const af::NodePtr &net_output,
+                                                             const std::vector<RetvalInfo> &output_nodes_info) const {
   int32_t net_input_index = 0;
   for (auto &item : output_nodes_info) {
     NodePtr src_node = item.output_node;
@@ -2079,15 +2065,15 @@ graphStatus ComputeGraphImpl::CreateOrUpdateNetoutput(const ComputeGraphPtr &com
 }
 
 graphStatus ComputeGraphImpl::CollectBreadthOutNode(const NodePtr &node, std::map<NodePtr, uint32_t> &map_in_edge_num,
-    std::map<std::string, NodePtr> &breadth_node_map) const {
+                                                    std::map<std::string, NodePtr> &breadth_node_map) const {
   for (const auto &anchor : node->GetAllOutDataAnchors()) {
     for (const auto &peer_in_anchor : anchor->GetPeerInDataAnchorsPtr()) {
       const auto iter = map_in_edge_num.find(peer_in_anchor->GetOwnerNode());
       if (iter != map_in_edge_num.end()) {
         --iter->second;
         if (iter->second == 0U) {
-          (void) breadth_node_map.emplace(peer_in_anchor->GetOwnerNodeBarePtr()->GetName(),
-                                          peer_in_anchor->GetOwnerNode());
+          (void)breadth_node_map.emplace(peer_in_anchor->GetOwnerNodeBarePtr()->GetName(),
+                                         peer_in_anchor->GetOwnerNode());
         }
       }
     }
@@ -2097,8 +2083,8 @@ graphStatus ComputeGraphImpl::CollectBreadthOutNode(const NodePtr &node, std::ma
       if (iter != map_in_edge_num.end()) {
         --iter->second;
         if (iter->second == 0U) {
-          (void) breadth_node_map.emplace(peer_in_anchor->GetOwnerNodeBarePtr()->GetName(),
-                                          peer_in_anchor->GetOwnerNode());
+          (void)breadth_node_map.emplace(peer_in_anchor->GetOwnerNodeBarePtr()->GetName(),
+                                         peer_in_anchor->GetOwnerNode());
         }
       }
     }
@@ -2109,8 +2095,8 @@ graphStatus ComputeGraphImpl::CollectBreadthOutNode(const NodePtr &node, std::ma
       if (iter != map_in_edge_num.end()) {
         --iter->second;
         if (iter->second == 0U) {
-          (void) breadth_node_map.emplace(peer_in_anchor->GetOwnerNodeBarePtr()->GetName(),
-                                          peer_in_anchor->GetOwnerNode());
+          (void)breadth_node_map.emplace(peer_in_anchor->GetOwnerNodeBarePtr()->GetName(),
+                                         peer_in_anchor->GetOwnerNode());
         }
       }
     }
@@ -2118,7 +2104,7 @@ graphStatus ComputeGraphImpl::CollectBreadthOutNode(const NodePtr &node, std::ma
   return GRAPH_SUCCESS;
 }
 
-void ComputeGraphImpl::TopologicalSorting(const std::function<bool (const NodePtr &, const NodePtr &)> comp) {
+void ComputeGraphImpl::TopologicalSorting(const std::function<bool(const NodePtr &, const NodePtr &)> comp) {
   nodes_.sort(std::move(comp));
   int64_t num = 0;
   for (const NodePtr &node : nodes_) {
@@ -2156,7 +2142,7 @@ graphStatus ComputeGraphImpl::TopologicalSorting(const ComputeGraphPtr &const_gr
   std::vector<std::shared_ptr<ComputeGraph>> subgraphs;
   auto nodes = AllGraphNodes(subgraphs, const_compute_graph);
   for (size_t i = 0UL; i < nodes.size(); i++) {
-    const NodePtr node = nodes.at(i);   // [node: should not be null]
+    const NodePtr node = nodes.at(i);                          // [node: should not be null]
     node->GetOpDescBarePtr()->SetId(static_cast<int64_t>(i));  // [node->GetOpDescBarePtr(): should not be null]
   }
   if (sub_graph_.size() != subgraphs.size()) {  // Graph Partition use subgraph, Keep original
@@ -2169,10 +2155,9 @@ graphStatus ComputeGraphImpl::TopologicalSorting(const ComputeGraphPtr &const_gr
 }
 
 graphStatus ComputeGraphImpl::DoTopologicalSorting(const ConstComputeGraphPtr &compute_graph,
-                                                   TopoSortingMode sorting_mode,
-                                                   bool dfs_reverse) {
+                                                   TopoSortingMode sorting_mode, bool dfs_reverse) {
   using TopoSortingStrategy =
-  std::function<graphStatus(ComputeGraphImpl *, std::vector<NodePtr> &, const bool, const ConstComputeGraphPtr &)>;
+      std::function<graphStatus(ComputeGraphImpl *, std::vector<NodePtr> &, const bool, const ConstComputeGraphPtr &)>;
   static const std::map<TopoSortingMode, TopoSortingStrategy> topo_sorting_strategy{
       {TopoSortingMode::kBFS, &ComputeGraphImpl::BFSTopologicalSorting},
       {TopoSortingMode::kDFS, &ComputeGraphImpl::DFSTopologicalSorting},
@@ -2193,7 +2178,7 @@ graphStatus ComputeGraphImpl::DoTopologicalSorting(const ConstComputeGraphPtr &c
   if (node_vec.size() != GetDirectNodesSize()) {
     std::set<Node *> itered_nodes_set;
     for (auto &node : node_vec) {
-      (void) itered_nodes_set.insert(node.get());
+      (void)itered_nodes_set.insert(node.get());
     }
     REPORT_INNER_ERR_MSG("E18888", "Failed to do topo sorting total %zu, itered %zu, exist closed loop in graph:%s",
                          GetDirectNodesSize(), node_vec.size(), name_.c_str());
@@ -2213,7 +2198,7 @@ graphStatus ComputeGraphImpl::DoTopologicalSorting(const ConstComputeGraphPtr &c
     DelayTopoSort(node_vec, compute_graph);
   }
   for (size_t i = 0UL; i < node_vec.size(); i++) {
-    const NodePtr node = node_vec[i];   // [node: should not be null]
+    const NodePtr node = node_vec[i];                          // [node: should not be null]
     node->GetOpDescBarePtr()->SetId(static_cast<int64_t>(i));  // [node->GetOpDescBarePtr(): should not be null]
     PushBackToNodeList(node);
   }
@@ -2232,8 +2217,7 @@ graphStatus ComputeGraphImpl::TopologicalSortingGraph(const ConstComputeGraphPtr
   return DoTopologicalSorting(compute_graph, topo_sorting_mode, false);
 }
 
-graphStatus ComputeGraphImpl::SortNodes(std::vector<NodePtr> &stack,
-                                        std::map<NodePtr, uint32_t> &map_in_edge_num,
+graphStatus ComputeGraphImpl::SortNodes(std::vector<NodePtr> &stack, std::map<NodePtr, uint32_t> &map_in_edge_num,
                                         const ConstComputeGraphPtr &compute_graph) const {
   // Record the number of non data nodes but no input nodes
   uint32_t spec_node_size = 0U;
@@ -2242,8 +2226,8 @@ graphStatus ComputeGraphImpl::SortNodes(std::vector<NodePtr> &stack,
     map_in_edge_num[node] = static_cast<uint32_t>(GetInEdgeSize(node));
     if (map_in_edge_num[node] == 0U) {
       if ((!OpTypeUtils::IsDataNode(node->GetOpDescBarePtr()->GetType())) &&
-          (node->GetOpDescBarePtr()->GetType() != INPUT_TYPE) && (node->GetOpDescBarePtr()->GetType() != RECV)
-          && (node->GetOpDescBarePtr()->GetType() != SEND)) {
+          (node->GetOpDescBarePtr()->GetType() != INPUT_TYPE) && (node->GetOpDescBarePtr()->GetType() != RECV) &&
+          (node->GetOpDescBarePtr()->GetType() != SEND)) {
         (void)stack.insert(stack.begin(), node);
         spec_node_size++;
         continue;
@@ -2324,9 +2308,13 @@ size_t ComputeGraphImpl::GetOutEdgeSize(const NodePtr &node) const {
   return out_edge_size;
 }
 
-bool ComputeGraphImpl::IsValid() const { return is_valid_flag_; }
+bool ComputeGraphImpl::IsValid() const {
+  return is_valid_flag_;
+}
 
-void ComputeGraphImpl::InValid() { is_valid_flag_ = false; }
+void ComputeGraphImpl::InValid() {
+  is_valid_flag_ = false;
+}
 
 void ComputeGraphImpl::Dump(const ConstComputeGraphPtr &graph) const {
   if (!IsLogEnable(GE_MODULE_NAME, DLOG_INFO)) {
@@ -2432,46 +2420,46 @@ graphStatus ComputeGraphImpl::IsolateNode(const NodePtr &node) const {
     if (pre_out_data_anchor != nullptr) {
       GE_CHK_BOOL_EXEC(GraphUtils::RemoveEdge(pre_out_data_anchor, in_data_anchor) == GRAPH_SUCCESS,
                        REPORT_INNER_ERR_MSG("E18888", "remove edge from %s to %s failed",
-                                         pre_out_data_anchor->GetOwnerNode()->GetName().c_str(),
-                                         in_data_anchor->GetOwnerNode()->GetName().c_str());
+                                            pre_out_data_anchor->GetOwnerNode()->GetName().c_str(),
+                                            in_data_anchor->GetOwnerNode()->GetName().c_str());
                        return GRAPH_FAILED, "[Remove][Edge] from %s to %s failed",
-                       pre_out_data_anchor->GetOwnerNode()->GetName().c_str(),
-                       in_data_anchor->GetOwnerNode()->GetName().c_str());
+                              pre_out_data_anchor->GetOwnerNode()->GetName().c_str(),
+                              in_data_anchor->GetOwnerNode()->GetName().c_str());
       GE_IF_BOOL_EXEC((pre_out_data_anchor->GetOwnerNode()->GetType() == CONSTANT) ||
-                      (pre_out_data_anchor->GetOwnerNode()->GetType() == CONSTANTOP),
+                          (pre_out_data_anchor->GetOwnerNode()->GetType() == CONSTANTOP),
                       continue);
       for (const auto &out_data_anchor : node->GetAllOutDataAnchors()) {
         for (const auto &next_in_data_anchor : out_data_anchor->GetPeerInDataAnchors()) {
           GE_CHK_BOOL_EXEC(GraphUtils::RemoveEdge(out_data_anchor, next_in_data_anchor) == GRAPH_SUCCESS,
                            REPORT_INNER_ERR_MSG("E18888", "remove edge from %s to %s failed",
-                                             out_data_anchor->GetOwnerNode()->GetName().c_str(),
-                                             next_in_data_anchor->GetOwnerNode()->GetName().c_str());
+                                                out_data_anchor->GetOwnerNode()->GetName().c_str(),
+                                                next_in_data_anchor->GetOwnerNode()->GetName().c_str());
                            return GRAPH_FAILED, "[Remove][Edge] from %s to %s failed",
-                           out_data_anchor->GetOwnerNode()->GetName().c_str(),
-                           next_in_data_anchor->GetOwnerNode()->GetName().c_str());
+                                  out_data_anchor->GetOwnerNode()->GetName().c_str(),
+                                  next_in_data_anchor->GetOwnerNode()->GetName().c_str());
           GE_CHK_BOOL_EXEC(GraphUtils::AddEdge(pre_out_data_anchor, next_in_data_anchor) == GRAPH_SUCCESS,
                            REPORT_INNER_ERR_MSG("E18888", "add edge from %s to %s failed",
-                                             pre_out_data_anchor->GetOwnerNode()->GetName().c_str(),
-                                             next_in_data_anchor->GetOwnerNode()->GetName().c_str());
+                                                pre_out_data_anchor->GetOwnerNode()->GetName().c_str(),
+                                                next_in_data_anchor->GetOwnerNode()->GetName().c_str());
                            return GRAPH_FAILED, "[Add][Edge] from %s to %s failed",
-                           pre_out_data_anchor->GetOwnerNode()->GetName().c_str(),
-                           next_in_data_anchor->GetOwnerNode()->GetName().c_str());
+                                  pre_out_data_anchor->GetOwnerNode()->GetName().c_str(),
+                                  next_in_data_anchor->GetOwnerNode()->GetName().c_str());
         }
         for (const auto &next_in_ctrl_anchor : out_data_anchor->GetPeerInControlAnchors()) {
           GE_CHK_BOOL_EXEC(GraphUtils::RemoveEdge(out_data_anchor, next_in_ctrl_anchor) == GRAPH_SUCCESS,
                            REPORT_INNER_ERR_MSG("E18888", "remove edge from %s to %s failed",
-                                             out_data_anchor->GetOwnerNode()->GetName().c_str(),
-                                             next_in_ctrl_anchor->GetOwnerNode()->GetName().c_str());
+                                                out_data_anchor->GetOwnerNode()->GetName().c_str(),
+                                                next_in_ctrl_anchor->GetOwnerNode()->GetName().c_str());
                            return GRAPH_FAILED, "[Remove][Edge] from %s to %s failed",
-                           out_data_anchor->GetOwnerNode()->GetName().c_str(),
-                           next_in_ctrl_anchor->GetOwnerNode()->GetName().c_str());
+                                  out_data_anchor->GetOwnerNode()->GetName().c_str(),
+                                  next_in_ctrl_anchor->GetOwnerNode()->GetName().c_str());
           GE_CHK_BOOL_EXEC(GraphUtils::AddEdge(pre_out_data_anchor, next_in_ctrl_anchor) == GRAPH_SUCCESS,
                            REPORT_INNER_ERR_MSG("E18888", "add edge from %s to %s failed",
-                                             pre_out_data_anchor->GetOwnerNode()->GetName().c_str(),
-                                             next_in_ctrl_anchor->GetOwnerNode()->GetName().c_str());
+                                                pre_out_data_anchor->GetOwnerNode()->GetName().c_str(),
+                                                next_in_ctrl_anchor->GetOwnerNode()->GetName().c_str());
                            return GRAPH_FAILED, "[Add][Edge] from %s to %s failed",
-                           pre_out_data_anchor->GetOwnerNode()->GetName().c_str(),
-                           next_in_ctrl_anchor->GetOwnerNode()->GetName().c_str());
+                                  pre_out_data_anchor->GetOwnerNode()->GetName().c_str(),
+                                  next_in_ctrl_anchor->GetOwnerNode()->GetName().c_str());
         }
       }
       const auto out_ctrl_anchor = node->GetOutControlAnchor();
@@ -2481,18 +2469,18 @@ graphStatus ComputeGraphImpl::IsolateNode(const NodePtr &node) const {
       for (const auto &next_in_ctrl_anchor : out_ctrl_anchor->GetPeerInControlAnchors()) {
         GE_CHK_BOOL_EXEC(GraphUtils::RemoveEdge(out_ctrl_anchor, next_in_ctrl_anchor) == GRAPH_SUCCESS,
                          REPORT_INNER_ERR_MSG("E18888", "remove edge from %s to %s failed",
-                                           out_ctrl_anchor->GetOwnerNode()->GetName().c_str(),
-                                           next_in_ctrl_anchor->GetOwnerNode()->GetName().c_str());
+                                              out_ctrl_anchor->GetOwnerNode()->GetName().c_str(),
+                                              next_in_ctrl_anchor->GetOwnerNode()->GetName().c_str());
                          return GRAPH_FAILED, "[Remove][Edge] from %s to %s failed",
-                         out_ctrl_anchor->GetOwnerNode()->GetName().c_str(),
-                         next_in_ctrl_anchor->GetOwnerNode()->GetName().c_str());
+                                out_ctrl_anchor->GetOwnerNode()->GetName().c_str(),
+                                next_in_ctrl_anchor->GetOwnerNode()->GetName().c_str());
         GE_CHK_BOOL_EXEC(GraphUtils::AddEdge(pre_out_ctrl_anchor, next_in_ctrl_anchor) == GRAPH_SUCCESS,
                          REPORT_INNER_ERR_MSG("E18888", "add edge from %s to %s failed",
-                                           pre_out_ctrl_anchor->GetOwnerNode()->GetName().c_str(),
-                                           next_in_ctrl_anchor->GetOwnerNode()->GetName().c_str());
+                                              pre_out_ctrl_anchor->GetOwnerNode()->GetName().c_str(),
+                                              next_in_ctrl_anchor->GetOwnerNode()->GetName().c_str());
                          return GRAPH_FAILED, "[Add][Edge] from %s to %s failed",
-                         pre_out_ctrl_anchor->GetOwnerNode()->GetName().c_str(),
-                         next_in_ctrl_anchor->GetOwnerNode()->GetName().c_str());
+                                pre_out_ctrl_anchor->GetOwnerNode()->GetName().c_str(),
+                                next_in_ctrl_anchor->GetOwnerNode()->GetName().c_str());
       }
     }
   }
@@ -2503,27 +2491,27 @@ graphStatus ComputeGraphImpl::IsolateNode(const NodePtr &node) const {
   for (const auto &pre_out_ctrl_anchor : in_ctrl_anchor->GetPeerOutControlAnchors()) {
     GE_CHK_BOOL_EXEC(GraphUtils::RemoveEdge(pre_out_ctrl_anchor, in_ctrl_anchor) == GRAPH_SUCCESS,
                      REPORT_INNER_ERR_MSG("E18888", "remove edge from %s to %s failed",
-                                       pre_out_ctrl_anchor->GetOwnerNode()->GetName().c_str(),
-                                       in_ctrl_anchor->GetOwnerNode()->GetName().c_str());
+                                          pre_out_ctrl_anchor->GetOwnerNode()->GetName().c_str(),
+                                          in_ctrl_anchor->GetOwnerNode()->GetName().c_str());
                      return GRAPH_FAILED, "[Remove][Edge] from %s to %s failed",
-                     pre_out_ctrl_anchor->GetOwnerNode()->GetName().c_str(),
-                     in_ctrl_anchor->GetOwnerNode()->GetName().c_str());
+                            pre_out_ctrl_anchor->GetOwnerNode()->GetName().c_str(),
+                            in_ctrl_anchor->GetOwnerNode()->GetName().c_str());
     for (const auto &out_data_anchor : node->GetAllOutDataAnchors()) {
       for (const auto &next_in_ctrl_anchor : out_data_anchor->GetPeerInControlAnchors()) {
         GE_CHK_BOOL_EXEC(GraphUtils::RemoveEdge(out_data_anchor, next_in_ctrl_anchor) == GRAPH_SUCCESS,
                          REPORT_INNER_ERR_MSG("E18888", "remove edge from %s to %s failed",
-                                           out_data_anchor->GetOwnerNode()->GetName().c_str(),
-                                           next_in_ctrl_anchor->GetOwnerNode()->GetName().c_str());
+                                              out_data_anchor->GetOwnerNode()->GetName().c_str(),
+                                              next_in_ctrl_anchor->GetOwnerNode()->GetName().c_str());
                          return GRAPH_FAILED, "[Remove][Edge] from %s to %s failed",
-                         out_data_anchor->GetOwnerNode()->GetName().c_str(),
-                         next_in_ctrl_anchor->GetOwnerNode()->GetName().c_str());
+                                out_data_anchor->GetOwnerNode()->GetName().c_str(),
+                                next_in_ctrl_anchor->GetOwnerNode()->GetName().c_str());
         GE_CHK_BOOL_EXEC(GraphUtils::AddEdge(pre_out_ctrl_anchor, next_in_ctrl_anchor) == GRAPH_SUCCESS,
                          REPORT_INNER_ERR_MSG("E18888", "add edge from %s to %s failed",
-                                           pre_out_ctrl_anchor->GetOwnerNode()->GetName().c_str(),
-                                           next_in_ctrl_anchor->GetOwnerNode()->GetName().c_str());
+                                              pre_out_ctrl_anchor->GetOwnerNode()->GetName().c_str(),
+                                              next_in_ctrl_anchor->GetOwnerNode()->GetName().c_str());
                          return GRAPH_FAILED, "[Add][Edge] from %s to %s failed",
-                         pre_out_ctrl_anchor->GetOwnerNode()->GetName().c_str(),
-                         next_in_ctrl_anchor->GetOwnerNode()->GetName().c_str());
+                                pre_out_ctrl_anchor->GetOwnerNode()->GetName().c_str(),
+                                next_in_ctrl_anchor->GetOwnerNode()->GetName().c_str());
       }
     }
     const auto out_ctrl_anchor = node->GetOutControlAnchor();
@@ -2531,18 +2519,18 @@ graphStatus ComputeGraphImpl::IsolateNode(const NodePtr &node) const {
       for (const auto &next_in_ctrl_anchor : out_ctrl_anchor->GetPeerInControlAnchors()) {
         GE_CHK_BOOL_EXEC(GraphUtils::RemoveEdge(out_ctrl_anchor, next_in_ctrl_anchor) == GRAPH_SUCCESS,
                          REPORT_INNER_ERR_MSG("E18888", "remove edge from %s to %s failed",
-                                           out_ctrl_anchor->GetOwnerNode()->GetName().c_str(),
-                                           next_in_ctrl_anchor->GetOwnerNode()->GetName().c_str());
+                                              out_ctrl_anchor->GetOwnerNode()->GetName().c_str(),
+                                              next_in_ctrl_anchor->GetOwnerNode()->GetName().c_str());
                          return GRAPH_FAILED, "[Remove][Edge] from %s to %s failed",
-                         out_ctrl_anchor->GetOwnerNode()->GetName().c_str(),
-                         next_in_ctrl_anchor->GetOwnerNode()->GetName().c_str());
+                                out_ctrl_anchor->GetOwnerNode()->GetName().c_str(),
+                                next_in_ctrl_anchor->GetOwnerNode()->GetName().c_str());
         GE_CHK_BOOL_EXEC(GraphUtils::AddEdge(pre_out_ctrl_anchor, next_in_ctrl_anchor) == GRAPH_SUCCESS,
                          REPORT_INNER_ERR_MSG("E18888", "add edge from %s to %s failed",
-                                           pre_out_ctrl_anchor->GetOwnerNode()->GetName().c_str(),
-                                           next_in_ctrl_anchor->GetOwnerNode()->GetName().c_str());
+                                              pre_out_ctrl_anchor->GetOwnerNode()->GetName().c_str(),
+                                              next_in_ctrl_anchor->GetOwnerNode()->GetName().c_str());
                          return GRAPH_FAILED, "[Add][Edge] from %s to %s failed",
-                         pre_out_ctrl_anchor->GetOwnerNode()->GetName().c_str(),
-                         next_in_ctrl_anchor->GetOwnerNode()->GetName().c_str());
+                                pre_out_ctrl_anchor->GetOwnerNode()->GetName().c_str(),
+                                next_in_ctrl_anchor->GetOwnerNode()->GetName().c_str());
       }
     }
   }
@@ -2550,20 +2538,20 @@ graphStatus ComputeGraphImpl::IsolateNode(const NodePtr &node) const {
   for (const auto &out_peer_data_anchor : in_ctrl_anchor->GetPeerOutDataAnchors()) {
     GE_CHK_BOOL_EXEC(GraphUtils::RemoveEdge(out_peer_data_anchor, in_ctrl_anchor) == GRAPH_SUCCESS,
                      REPORT_INNER_ERR_MSG("E18888", "remove edge from %s to %s failed",
-                                       out_peer_data_anchor->GetOwnerNode()->GetName().c_str(),
-                                       in_ctrl_anchor->GetOwnerNode()->GetName().c_str());
+                                          out_peer_data_anchor->GetOwnerNode()->GetName().c_str(),
+                                          in_ctrl_anchor->GetOwnerNode()->GetName().c_str());
                      return GRAPH_FAILED, "[Remove][Edge] from %s to %s failed",
-                     out_peer_data_anchor->GetOwnerNode()->GetName().c_str(),
-                     in_ctrl_anchor->GetOwnerNode()->GetName().c_str());
+                            out_peer_data_anchor->GetOwnerNode()->GetName().c_str(),
+                            in_ctrl_anchor->GetOwnerNode()->GetName().c_str());
     for (const auto &next_node : next_nodes) {
       const auto next_in_control_anchor = next_node->GetInControlAnchor();
       GE_CHK_BOOL_EXEC(GraphUtils::AddEdge(out_peer_data_anchor, next_in_control_anchor) == GRAPH_SUCCESS,
                        REPORT_INNER_ERR_MSG("E18888", "add edge from %s to %s failed",
-                                         out_peer_data_anchor->GetOwnerNode()->GetName().c_str(),
-                                         next_in_control_anchor->GetOwnerNode()->GetName().c_str());
+                                            out_peer_data_anchor->GetOwnerNode()->GetName().c_str(),
+                                            next_in_control_anchor->GetOwnerNode()->GetName().c_str());
                        return GRAPH_FAILED, "[Add][Edge] from %s to %s failed",
-                       out_peer_data_anchor->GetOwnerNode()->GetName().c_str(),
-                       next_in_control_anchor->GetOwnerNode()->GetName().c_str());
+                              out_peer_data_anchor->GetOwnerNode()->GetName().c_str(),
+                              next_in_control_anchor->GetOwnerNode()->GetName().c_str());
     }
   }
 
@@ -2577,21 +2565,21 @@ graphStatus ComputeGraphImpl::RemoveExtraOutEdge(const NodePtr &node) const {
     for (const auto &next_in_data_anchor : out_data_anchor->GetPeerInDataAnchors()) {
       GE_CHK_BOOL_EXEC(GraphUtils::RemoveEdge(out_data_anchor, next_in_data_anchor) == GRAPH_SUCCESS,
                        REPORT_INNER_ERR_MSG("E18888", "remove edge from %s to %s failed",
-                                         out_data_anchor->GetOwnerNode()->GetName().c_str(),
-                                         next_in_data_anchor->GetOwnerNode()->GetName().c_str());
+                                            out_data_anchor->GetOwnerNode()->GetName().c_str(),
+                                            next_in_data_anchor->GetOwnerNode()->GetName().c_str());
                        return GRAPH_FAILED, "[Remove][Edge] from %s to %s failed",
-                       out_data_anchor->GetOwnerNode()->GetName().c_str(),
-                       next_in_data_anchor->GetOwnerNode()->GetName().c_str());
+                              out_data_anchor->GetOwnerNode()->GetName().c_str(),
+                              next_in_data_anchor->GetOwnerNode()->GetName().c_str());
     }
 
     for (const auto &next_in_ctrl_anchor : out_data_anchor->GetPeerInControlAnchors()) {
       GE_CHK_BOOL_EXEC(GraphUtils::RemoveEdge(out_data_anchor, next_in_ctrl_anchor) == GRAPH_SUCCESS,
                        REPORT_INNER_ERR_MSG("E18888", "remove edge from %s to %s failed",
-                                         out_data_anchor->GetOwnerNode()->GetName().c_str(),
-                                         next_in_ctrl_anchor->GetOwnerNode()->GetName().c_str());
+                                            out_data_anchor->GetOwnerNode()->GetName().c_str(),
+                                            next_in_ctrl_anchor->GetOwnerNode()->GetName().c_str());
                        return GRAPH_FAILED, "[Remove][Edge] from %s to %s failed",
-                       out_data_anchor->GetOwnerNode()->GetName().c_str(),
-                       next_in_ctrl_anchor->GetOwnerNode()->GetName().c_str());
+                              out_data_anchor->GetOwnerNode()->GetName().c_str(),
+                              next_in_ctrl_anchor->GetOwnerNode()->GetName().c_str());
     }
   }
   const auto out_ctrl_anchor = node->GetOutControlAnchor();
@@ -2599,11 +2587,11 @@ graphStatus ComputeGraphImpl::RemoveExtraOutEdge(const NodePtr &node) const {
     for (const auto &next_in_ctrl_anchor : out_ctrl_anchor->GetPeerInControlAnchors()) {
       GE_CHK_BOOL_EXEC(GraphUtils::RemoveEdge(out_ctrl_anchor, next_in_ctrl_anchor) == GRAPH_SUCCESS,
                        REPORT_INNER_ERR_MSG("E18888", "remove edge from %s to %s failed",
-                                         out_ctrl_anchor->GetOwnerNode()->GetName().c_str(),
-                                         next_in_ctrl_anchor->GetOwnerNode()->GetName().c_str());
+                                            out_ctrl_anchor->GetOwnerNode()->GetName().c_str(),
+                                            next_in_ctrl_anchor->GetOwnerNode()->GetName().c_str());
                        return GRAPH_FAILED, "[Remove][Edge] from %s to %s failed",
-                       out_ctrl_anchor->GetOwnerNode()->GetName().c_str(),
-                       next_in_ctrl_anchor->GetOwnerNode()->GetName().c_str());
+                              out_ctrl_anchor->GetOwnerNode()->GetName().c_str(),
+                              next_in_ctrl_anchor->GetOwnerNode()->GetName().c_str());
     }
   }
   return GRAPH_SUCCESS;
@@ -2617,7 +2605,9 @@ ConstProtoAttrMap &ComputeGraphImpl::GetAttrMap() const {
   return attrs_;
 }
 
-const std::map<OperatorImplPtr, NodePtr> &ComputeGraphImpl::GetAllNodesInfo() const { return all_nodes_infos_; }
+const std::map<OperatorImplPtr, NodePtr> &ComputeGraphImpl::GetAllNodesInfo() const {
+  return all_nodes_infos_;
+}
 
 void ComputeGraphImpl::SetUserDefOutput(const std::string &output_name) {
   if (output_name.empty()) {
@@ -2677,29 +2667,28 @@ const std::string ComputeGraphImpl::GetOutput() {
   return result.substr(0UL, result.length() - 1UL);
 }
 
-
 void ComputeGraphImpl::EraseFromNodeList(const std::list<NodePtr>::iterator &position) {
-  (void) nodes_.erase(position);
+  (void)nodes_.erase(position);
   --direct_nodes_size_;
 }
 
 void ComputeGraphImpl::InsertToNodeList(const std::list<NodePtr>::iterator &position, const NodePtr &node) {
-  (void) nodes_.insert(position, node);
+  (void)nodes_.insert(position, node);
   ++direct_nodes_size_;
 }
 
 void ComputeGraphImpl::PushBackToNodeList(const NodePtr &node) {
-  (void) nodes_.push_back(node);
+  (void)nodes_.push_back(node);
   ++direct_nodes_size_;
 }
 
 void ComputeGraphImpl::EmplaceBackToNodeList(const NodePtr &node) {
-  (void) nodes_.emplace_back(node);
+  (void)nodes_.emplace_back(node);
   ++direct_nodes_size_;
 }
 
 void ComputeGraphImpl::ClearNodeList() {
-  (void) nodes_.clear();
+  (void)nodes_.clear();
   direct_nodes_size_ = 0UL;
 }
 
@@ -2715,26 +2704,26 @@ void ComputeGraphImpl::ReorderByNodeId() {
 }
 
 GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY ComputeGraph::ComputeGraph(const std::string &name)
-    : enable_shared_from_this(),
-      AttrHolder(),
-      impl_(ComGraphMakeSharedAndThrow<ComputeGraphImpl>(name)) {}
+    : enable_shared_from_this(), AttrHolder(), impl_(ComGraphMakeSharedAndThrow<ComputeGraphImpl>(name)) {}
 
 GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY ComputeGraph::ComputeGraph(const char_t *name)
     : ComputeGraph(std::string((name == nullptr) ? "" : name)) {}
 
 ComputeGraph::~ComputeGraph() {}
 
-GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY ComputeGraph::ComputeGraph(const ComputeGraph& compute_graph)
+GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY ComputeGraph::ComputeGraph(const ComputeGraph &compute_graph)
     : enable_shared_from_this(),
       AttrHolder(compute_graph),
       impl_(ComGraphMakeSharedAndThrow<ComputeGraphImpl>(*(compute_graph.impl_))) {}
 
-GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY ComputeGraph::ComputeGraph(ComputeGraph&& compute_graph)
+GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY ComputeGraph::ComputeGraph(ComputeGraph &&compute_graph)
     : enable_shared_from_this(),
       AttrHolder(std::move(compute_graph)),
       impl_(ComGraphMakeSharedAndThrow<ComputeGraphImpl>(std::move(*(compute_graph.impl_)))) {}
 
-GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY std::string ComputeGraph::GetName() const { return impl_->GetName(); }
+GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY std::string ComputeGraph::GetName() const {
+  return impl_->GetName();
+}
 
 GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY void ComputeGraph::SetName(const std::string &name) {
   impl_->SetName(name);
@@ -2754,8 +2743,8 @@ GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY std::vector<Node *> ComputeGraph:
   return AllGraphNodesPtr(subgraphs);
 }
 
-GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY ComputeGraph::Vistor<NodePtr>
-ComputeGraph::GetAllNodes(const NodeFilter &node_filter, const GraphFilter &graph_filter) const {
+GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY ComputeGraph::Vistor<NodePtr> ComputeGraph::GetAllNodes(
+    const NodeFilter &node_filter, const GraphFilter &graph_filter) const {
   return impl_->GetAllNodes(node_filter, graph_filter, shared_from_this());
 }
 
@@ -2767,14 +2756,13 @@ std::vector<Node *> ComputeGraph::AllGraphNodesPtr(std::vector<ComputeGraphPtr> 
   return impl_->AllGraphNodesPtr(subgraphs);
 }
 
-GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY
-ComputeGraph::Vistor<NodePtr> ComputeGraph::GetNodes(const bool is_unknown_shape) const {
+GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY ComputeGraph::Vistor<NodePtr> ComputeGraph::GetNodes(
+    const bool is_unknown_shape) const {
   return impl_->GetNodes(is_unknown_shape, shared_from_this());
 }
 
-GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY ComputeGraph::Vistor<NodePtr>
-ComputeGraph::GetNodes(const bool is_unknown_shape, const NodeFilter &node_filter,
-                       const GraphFilter &graph_filter) const {
+GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY ComputeGraph::Vistor<NodePtr> ComputeGraph::GetNodes(
+    const bool is_unknown_shape, const NodeFilter &node_filter, const GraphFilter &graph_filter) const {
   return impl_->GetNodes(is_unknown_shape, node_filter, graph_filter, shared_from_this());
 }
 
@@ -2802,8 +2790,8 @@ GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY NodePtr ComputeGraph::FindNode(co
   return impl_->FindNode(name);
 }
 
-GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY
-NodePtr ComputeGraph::FindFirstNodeMatchType(const std::string &name) const {
+GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY NodePtr
+ComputeGraph::FindFirstNodeMatchType(const std::string &name) const {
   return impl_->FindFirstNodeMatchType(name);
 }
 
@@ -2829,7 +2817,7 @@ GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY bool ComputeGraph::operator==(
   return (*impl_) == (*(r_compute_graph.impl_));
 }
 
-ComputeGraph& ComputeGraph::operator=(ComputeGraph &compute_graph) {
+ComputeGraph &ComputeGraph::operator=(ComputeGraph &compute_graph) {
   if (&compute_graph == this) {
     return *this;
   }
@@ -2855,13 +2843,13 @@ GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY std::vector<NodePtr> ComputeGraph
   return impl_->InsertNodes(node, insert_ops, shared_from_this());
 }
 
-GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY NodePtr ComputeGraph::InsertNode(
-    const NodePtr &node, const OpDescPtr &insert_op) {
+GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY NodePtr ComputeGraph::InsertNode(const NodePtr &node,
+                                                                                const OpDescPtr &insert_op) {
   return impl_->InsertNode(node, insert_op, shared_from_this());
 }
 
-GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY NodePtr ComputeGraph::InsertNodeBefore(
-    const NodePtr &node, const OpDescPtr &insert_op) {
+GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY NodePtr ComputeGraph::InsertNodeBefore(const NodePtr &node,
+                                                                                      const OpDescPtr &insert_op) {
   return impl_->InsertNodeBefore(node, insert_op, shared_from_this());
 }
 
@@ -2958,8 +2946,8 @@ GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY void ComputeGraph::SetAllSubgraph
   return impl_->SetAllSubgraphs(subgraphs);
 }
 
-GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY
-const std::map<std::vector<std::string>, std::vector<std::string>> &ComputeGraph::GetShareParamLayer() const {
+GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY const std::map<std::vector<std::string>, std::vector<std::string>> &
+ComputeGraph::GetShareParamLayer() const {
   return impl_->GetShareParamLayer();
 }
 
@@ -3017,8 +3005,8 @@ GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY void ComputeGraph::SetParentNode(
   return impl_->SetParentNode(parent);
 }
 
-GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY
-const std::map<std::string, std::vector<int32_t>> &ComputeGraph::GetGraphOutNodes() const {
+GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY const std::map<std::string, std::vector<int32_t>> &
+ComputeGraph::GetGraphOutNodes() const {
   return impl_->GetGraphOutNodes();
 }
 
@@ -3096,16 +3084,16 @@ GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY graphStatus ComputeGraph::InsertG
 graphStatus ComputeGraph::DFSTopologicalSorting(std::vector<NodePtr> &node_vec,
                                                 const std::map<NodePtr, uint32_t> &map_in_edge_num,
                                                 const std::vector<NodePtr> &stack, const bool reverse) {
-  (void) map_in_edge_num;
-  (void) stack;
+  (void)map_in_edge_num;
+  (void)stack;
   return impl_->DFSTopologicalSorting(node_vec, reverse, shared_from_this());
 }
 
 graphStatus ComputeGraph::BFSTopologicalSorting(std::vector<NodePtr> &node_vec,
                                                 const std::map<NodePtr, uint32_t> &map_in_edge_num,
                                                 const std::deque<NodePtr> &stack) {
-  (void) map_in_edge_num;
-  (void) stack;
+  (void)map_in_edge_num;
+  (void)stack;
   return impl_->BFSTopologicalSorting(node_vec, false, shared_from_this());
 }
 
@@ -3115,7 +3103,7 @@ graphStatus ComputeGraph::CollectBreadthOutNode(const NodePtr &node, std::map<No
 }
 
 GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY void ComputeGraph::TopologicalSorting(
-    const std::function<bool (const NodePtr &, const NodePtr &)> comp) {
+    const std::function<bool(const NodePtr &, const NodePtr &)> comp) {
   return impl_->TopologicalSorting(comp);
 }
 
@@ -3143,7 +3131,7 @@ GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY bool ComputeGraph::IsValid() cons
   return impl_->IsValid();
 }
 
-GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY  void ComputeGraph::InValid() {
+GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY void ComputeGraph::InValid() {
   impl_->InValid();
 }
 
@@ -3213,8 +3201,8 @@ GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY void ComputeGraph::SetGraphOpName
   impl_->SetGraphOpName(op_name_map);
 }
 
-GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY
-const std::map<uint32_t, std::string> &ComputeGraph::GetGraphOpName() const {
+GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY const std::map<uint32_t, std::string> &ComputeGraph::GetGraphOpName()
+    const {
   return impl_->GetGraphOpName();
 }
 
@@ -3229,7 +3217,8 @@ GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY graphStatus ComputeGraph::SetGrap
   return CreateOrUpdateNetoutput(update_data_edge);
 }
 
-GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY graphStatus ComputeGraph::CreateOrUpdateNetoutput(bool update_data_edge) {
+GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY graphStatus
+ComputeGraph::CreateOrUpdateNetoutput(bool update_data_edge) {
   return impl_->CreateOrUpdateNetoutput(shared_from_this(), update_data_edge);
 }
 
@@ -3238,8 +3227,8 @@ GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY void ComputeGraph::AppendGraphOut
   impl_->AppendGraphOutNodesInfo(out_nodes_info);
 }
 
-GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY
-const std::vector<std::pair<NodePtr, int32_t>> &ComputeGraph::GetGraphOutNodesInfo() const {
+GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY const std::vector<std::pair<NodePtr, int32_t>> &
+ComputeGraph::GetGraphOutNodesInfo() const {
   return impl_->GetGraphOutNodesInfo();
 }
 
@@ -3249,8 +3238,8 @@ ComputeGraph::SetGraphTargetNodesInfo(const std::vector<NodePtr> &target_nodes_i
   return CreateOrUpdateNetoutput();
 }
 
-GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY
-const std::vector<NodePtr> &ComputeGraph::GetGraphTargetNodesInfo() const {
+GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY const std::vector<NodePtr> &ComputeGraph::GetGraphTargetNodesInfo()
+    const {
   return impl_->GetGraphTargetNodesInfo();
 }
 
@@ -3289,11 +3278,11 @@ GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY void ComputeGraph::SetSummaryFlag
 GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY void ComputeGraph::ReorderByNodeId() {
   impl_->ReorderByNodeId();
 }
-GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY
-graphStatus ComputeGraph::TopologicalSorting(TopoSortingMode topo_sorting_mode) {
+GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY graphStatus
+ComputeGraph::TopologicalSorting(TopoSortingMode topo_sorting_mode) {
   return impl_->TopologicalSortingGraph(shared_from_this(), topo_sorting_mode);
 }
-}  // namespace ge
+}  // namespace af
 
 af::ComputeGraphPtr GeApiWrapper_MakeComputeGraphPtr(const char *graph_name) {
   return af::MakeShared<af::ComputeGraph>(graph_name);

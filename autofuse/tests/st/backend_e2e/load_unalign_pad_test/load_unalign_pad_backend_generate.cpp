@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -29,20 +29,20 @@ class TestBackendLoadUnalignPadE2e : public testing::Test {
     af::ascir_op::Data x1("pad_data0", graph);
     x1.ir_attr.SetIndex(0);
     x1.y.dtype = ge::DT_INT32;
-    x1.attr.tmp_buffers = {{{af::Symbol(32*32), -1}, af::MemAttr(), 0}};
+    x1.attr.tmp_buffers = {{{af::Symbol(32 * 32), -1}, af::MemAttr(), 0}};
 
     af::ascir_op::Data x2("pad_data1", graph);
     x2.ir_attr.SetIndex(1);
     x2.y.dtype = ge::DT_INT32;
-    x2.attr.tmp_buffers = {{{af::Symbol(32*32), -1}, af::MemAttr(), 1}};
+    x2.attr.tmp_buffers = {{{af::Symbol(32 * 32), -1}, af::MemAttr(), 1}};
 
     af::ascir_op::Load x1Local("load0");
     x1Local.x = x1.y;
-    x1Local.y.dtype =  ge::DT_INT32;
+    x1Local.y.dtype = ge::DT_INT32;
 
     af::ascir_op::Load x2Local("load1");
     x2Local.x = x2.y;
-    x2Local.y.dtype =  ge::DT_INT32;
+    x2Local.y.dtype = ge::DT_INT32;
 
     af::ascir_op::Add pad("add");
     pad.x1 = x1Local.y;
@@ -123,11 +123,11 @@ TEST_F(TestBackendLoadUnalignPadE2e, PadE2eCodegen) {
 
   af::AscGraph graph("load_unalign_pad_test");
   CreatePadAscGraph(graph, {"100", "51"});
-  std::cout<<"KERNEL_SRC_LIST="<<KERNEL_SRC_LIST<<std::endl;
+  std::cout << "KERNEL_SRC_LIST=" << KERNEL_SRC_LIST << std::endl;
   std::vector<std::string> parts = splitString(KERNEL_SRC_LIST, ':');
-  std::string kernel_src_file_name = parts[0];      // add_abs_test_tiling.cpp
-  std::string tiling_src_file_name = parts[1];      // add_abs_test_kernel.cpp
-  std::string tiling_data_src_file_name = parts[2]; // autofuse_tiling_data.h
+  std::string kernel_src_file_name = parts[0];       // add_abs_test_tiling.cpp
+  std::string tiling_src_file_name = parts[1];       // add_abs_test_kernel.cpp
+  std::string tiling_data_src_file_name = parts[2];  // autofuse_tiling_data.h
 
   try {
     optimize::Optimizer optimizer(optimize::OptimizerOptions{});
@@ -146,8 +146,7 @@ TEST_F(TestBackendLoadUnalignPadE2e, PadE2eCodegen) {
     kernel_file << tilig_stub << RemoveSubDirInclude(result.kernel);
     tiling_file << result.tiling;
     tiling_data_file << result.tiling_data;
-  }
-  catch (...) {
+  } catch (...) {
     gen_success = false;
   }
 

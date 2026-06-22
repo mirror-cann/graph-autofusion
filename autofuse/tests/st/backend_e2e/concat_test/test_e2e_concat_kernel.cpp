@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -13,22 +13,12 @@
 #include "tikicpulib.h"
 
 #include "autofuse_tiling_data.h"
-extern "C" __global__ __aicore__ void concat_test(GM_ADDR data0,
-                                                  GM_ADDR data1,
-                                                  GM_ADDR output,
-                                                  GM_ADDR workspace,
+extern "C" __global__ __aicore__ void concat_test(GM_ADDR data0, GM_ADDR data1, GM_ADDR output, GM_ADDR workspace,
                                                   GM_ADDR gm_tiling_data);
-extern "C" int64_t AutofuseTiling(uint32_t s0,
-                                  uint32_t s1,
-                                  AutofuseTilingData *tiling,
-                                  uint32_t *workspace_size,
-                                  uint64_t *block_dim,
-                                  uint32_t aiv_num,
-                                  uint32_t ub_size);
+extern "C" int64_t AutofuseTiling(uint32_t s0, uint32_t s1, AutofuseTilingData *tiling, uint32_t *workspace_size,
+                                  uint64_t *block_dim, uint32_t aiv_num, uint32_t ub_size);
 
-class E2E_BackendConcat_Code
-    : public testing::Test, public testing::WithParamInterface<std::vector<int>> {
-};
+class E2E_BackendConcat_Code : public testing::Test, public testing::WithParamInterface<std::vector<int>> {};
 
 TEST_P(E2E_BackendConcat_Code, CalculateCorrect) {
   auto test_shape = GetParam();
@@ -40,10 +30,10 @@ TEST_P(E2E_BackendConcat_Code, CalculateCorrect) {
   int output_size = input_size * 2;
 
   AutofuseTilingData tiling_data;
-  int32_t *input1 = (int32_t *) AscendC::GmAlloc(input_size * sizeof(int32_t) + 32);
-  int32_t *input2 = (int32_t *) AscendC::GmAlloc(input_size * sizeof(int32_t) + 32);
-  int32_t *y = (int32_t *) AscendC::GmAlloc(output_size * sizeof(int32_t) + 32);
-  int32_t *expect = (int32_t *) AscendC::GmAlloc(output_size * sizeof(int32_t) + 32);
+  int32_t *input1 = (int32_t *)AscendC::GmAlloc(input_size * sizeof(int32_t) + 32);
+  int32_t *input2 = (int32_t *)AscendC::GmAlloc(input_size * sizeof(int32_t) + 32);
+  int32_t *y = (int32_t *)AscendC::GmAlloc(output_size * sizeof(int32_t) + 32);
+  int32_t *expect = (int32_t *)AscendC::GmAlloc(output_size * sizeof(int32_t) + 32);
 
   // Prepare test and expect data
   int32_t value = 0;
@@ -73,13 +63,8 @@ TEST_P(E2E_BackendConcat_Code, CalculateCorrect) {
   }
 
   AscendC::SetKernelMode(KernelMode::AIV_MODE);
-  ICPU_RUN_KF(concat_test,
-              tiling_data.block_dim,
-              (uint8_t *) input1,
-              (uint8_t *) input2,
-              (uint8_t *) y,
-              nullptr,
-              (uint8_t *) &tiling_data);
+  ICPU_RUN_KF(concat_test, tiling_data.block_dim, (uint8_t *)input1, (uint8_t *)input2, (uint8_t *)y, nullptr,
+              (uint8_t *)&tiling_data);
 
   // Count difference
   uint32_t diff_count = 0;
@@ -98,15 +83,9 @@ TEST_P(E2E_BackendConcat_Code, CalculateCorrect) {
 }
 
 INSTANTIATE_TEST_SUITE_P(CalcWithDifferentShape, E2E_BackendConcat_Code,
-                         ::testing::Values(std::vector<int>{100, 1},
-                                           std::vector<int>{100, 15},
-                                           std::vector<int>{100, 16},
-                                           std::vector<int>{100, 17},
-                                           std::vector<int>{100, 31},
-                                           std::vector<int>{100, 32},
-                                           std::vector<int>{100, 33},
-                                           std::vector<int>{100, 47},
-                                           std::vector<int>{100, 48},
-                                           std::vector<int>{100, 49},
-                                           std::vector<int>{100, 65}
-                         ));
+                         ::testing::Values(std::vector<int>{100, 1}, std::vector<int>{100, 15},
+                                           std::vector<int>{100, 16}, std::vector<int>{100, 17},
+                                           std::vector<int>{100, 31}, std::vector<int>{100, 32},
+                                           std::vector<int>{100, 33}, std::vector<int>{100, 47},
+                                           std::vector<int>{100, 48}, std::vector<int>{100, 49},
+                                           std::vector<int>{100, 65}));

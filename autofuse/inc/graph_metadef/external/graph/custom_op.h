@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -34,7 +34,7 @@ class EagerExecuteOp : public BaseCustomOp {
 using BaseOpCreator = std::function<std::unique_ptr<BaseCustomOp>()>;
 
 class CustomOpCreatorRegister {
-public:
+ public:
   CustomOpCreatorRegister(const AscendString &operator_type, const BaseOpCreator &op_creator);
   ~CustomOpCreatorRegister() = default;
 };
@@ -45,11 +45,11 @@ using BaseCustomOp = af::BaseCustomOp;
 using EagerExecuteOp = af::EagerExecuteOp;
 using BaseOpCreator = af::BaseOpCreator;
 using CustomOpCreatorRegister = af::CustomOpCreatorRegister;
-}  // namespace ge
+}  // namespace af
 
 #define REG_JOIN(g_register, y) g_register##y
 #define REG_AUTO_MAPPING_OP(custom_op_class) REG_AUTO_MAPPING_OP_UNIQ(__COUNTER__, custom_op_class)
-#define REG_AUTO_MAPPING_OP_UNIQ(ctr, custom_op_class)             \
+#define REG_AUTO_MAPPING_OP_UNIQ(ctr, custom_op_class)                        \
   static const af::CustomOpCreatorRegister REG_JOIN(custom_op_register, ctr)( \
       #custom_op_class, []() -> std::unique_ptr<af::BaseCustomOp> { return std::make_unique<custom_op_class>(); })
 

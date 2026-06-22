@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -49,7 +49,8 @@ class ValueHolder {
     ~CurrentComputeNodeGuarder() {
       try {
         ValueHolder::SetCurrentComputeNode(old_node_);
-      } catch (...) {}
+      } catch (...) {
+      }
     }
 
    private:
@@ -84,7 +85,7 @@ class ValueHolder {
   const int32_t &GetPlacement() const;
   void SetPlacement(const int32_t &placement);
 
-  template<typename T, typename... Args>
+  template <typename T, typename... Args>
   std::vector<std::shared_ptr<T>> AppendOutputs(size_t append_count, Args... args) {
     auto start_index = fast_node_->GetDataOutNum();
     auto ret = ge::FastNodeUtils::AppendOutputEdgeInfo(fast_node_, start_index + append_count);
@@ -111,7 +112,7 @@ class ValueHolder {
   static std::vector<ValueHolderPtr> CreateDataOutput(const ge::char_t *node_type,
                                                       const std::vector<ValueHolderPtr> &inputs, size_t out_count);
 
-  template<typename T, typename... Args>
+  template <typename T, typename... Args>
   static std::shared_ptr<T> CreateVoid(const ge::char_t *node_type, const std::vector<ValueHolderPtr> &inputs,
                                        Args... args) {
     auto node = CreateNode(node_type, inputs, 0);
@@ -125,7 +126,8 @@ class ValueHolder {
   static HyperStatus AddDependency(const ValueHolderPtr &src, const ValueHolderPtr &dst);
 
   /**
-   * 压栈一个Root GraphFrame，只有栈底的GraphFrame才被称为ROOT GraphFrame，因此调用此借口前，需要保证栈内不存在GraphFrame，否则会失败
+   * 压栈一个Root GraphFrame，只有栈底的GraphFrame才被称为ROOT
+   * GraphFrame，因此调用此借口前，需要保证栈内不存在GraphFrame，否则会失败
    * @return 成功后，返回创建好的GraphFrame指针，失败时返回空指针
    */
   static GraphFrame *PushGraphFrame();
@@ -163,9 +165,9 @@ class ValueHolder {
   static ge::FastNode *AddNode(const ge::char_t *node_type, size_t input_count, size_t output_count,
                                const GraphFrame &frame);
 
-  template<typename T, typename... Args>
-  static std::vector<std::shared_ptr<T>> CreateFromNode(ge::FastNode *node, size_t start_index,
-                                                        size_t create_count, Args... args) {
+  template <typename T, typename... Args>
+  static std::vector<std::shared_ptr<T>> CreateFromNode(ge::FastNode *node, size_t start_index, size_t create_count,
+                                                        Args... args) {
     if (node == nullptr) {
       return {create_count, nullptr};
     }
@@ -178,7 +180,7 @@ class ValueHolder {
     return holders;
   }
 
-  template<typename T, typename... Args>
+  template <typename T, typename... Args>
   static std::shared_ptr<T> CreateFromNode(ge::FastNode *node, int32_t index, ValueHolderType type, Args... args) {
     auto holder = std::shared_ptr<T>(new (std::nothrow) T(args...));
     GE_ASSERT_NOTNULL(holder);
@@ -198,13 +200,12 @@ class ValueHolder {
 
  protected:
   ValueHolder();
-  
+
   static ge::FastNode *CreateNode(const ge::char_t *node_type, const std::vector<ValueHolderPtr> &inputs,
                                   size_t out_count);
 
-  template<typename T, typename... Args>
-  static std::vector<std::shared_ptr<T>> CreateFromNodeStart(ge::FastNode *node, size_t out_count,
-                                                             Args... args) {
+  template <typename T, typename... Args>
+  static std::vector<std::shared_ptr<T>> CreateFromNodeStart(ge::FastNode *node, size_t out_count, Args... args) {
     return CreateFromNode<T>(node, 0U, out_count, args...);
   }
 
@@ -214,7 +215,7 @@ class ValueHolder {
   static std::atomic<int64_t> id_generator_;
   int64_t id_;
   ValueHolder::ValueHolderType type_;
-  ge::FastNode *fast_node_; // 通过ValueHolder创建的fast_node节点如果后续在图中被删除，此处会是无效指针，不能直接使用
+  ge::FastNode *fast_node_;  // 通过ValueHolder创建的fast_node节点如果后续在图中被删除，此处会是无效指针，不能直接使用
   ge::OpDescPtr op_desc_;
   int32_t index_;
   int32_t placement_;

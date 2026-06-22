@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -33,6 +33,7 @@ class TestBackendMatmulE2e : public testing::Test, public codegen::TilingLib {
   void TearDown() override {
     dlog_setlevel(ASCGEN_MODULE_NAME, DLOG_ERROR, 0);
   }
+
  protected:
   TestBackendMatmulE2e() : codegen::TilingLib("test", "test") {}
 };
@@ -48,7 +49,7 @@ void CreateMatmulGraph(af::AscGraph &graph) {
   data0.y.dtype = ge::DT_FLOAT16;
   *data0.y.axis = {z0.id, z1.id};
   data0.attr.api.compute_type = af::ComputeType::kComputeInvalid;
-  *data0.y.strides = {s1 ,af::ops::One};
+  *data0.y.strides = {s1, af::ops::One};
   *data0.y.repeats = {s0, s1};
   data0.ir_attr.SetIndex(0);
 
@@ -57,7 +58,7 @@ void CreateMatmulGraph(af::AscGraph &graph) {
   load0.x = data0.y;
   *load0.y.axis = {z0.id, z1.id};
   load0.y.dtype = ge::DT_FLOAT16;
-  *load0.y.strides = {s1 ,af::ops::One};
+  *load0.y.strides = {s1, af::ops::One};
   *load0.y.repeats = {s0, s1};
 
   af::ascir_op::Data data1("data1", graph);
@@ -96,7 +97,7 @@ void CreateMatmulGraph(af::AscGraph &graph) {
   store_op.x = matmul.y;
   *store_op.y.axis = {z0.id, z1.id};
   store_op.y.dtype = ge::DT_FLOAT;
-  *store_op.y.strides = {s1 ,af::ops::One};
+  *store_op.y.strides = {s1, af::ops::One};
   *store_op.y.repeats = {s0, s1};
   store_op.ir_attr.SetOffset(af::ops::One);
 
@@ -170,7 +171,7 @@ void CreateBatchMatmulDynamicGraph(af::AscGraph &graph) {
   optimize::AscGraphInfoComplete::CompleteApiInfo(graph);
 }
 TEST_F(TestBackendMatmulE2e, MatmulE2eCodegen) {
-  bool gen_success= true;
+  bool gen_success = true;
   af::AscGraph graph("matmul_elemwise_pro");
 
   auto s0 = graph.CreateSizeVar(64);
@@ -183,7 +184,7 @@ TEST_F(TestBackendMatmulE2e, MatmulE2eCodegen) {
   data0.y.dtype = ge::DT_FLOAT;
   *data0.y.axis = {z0.id, z1.id};
   data0.attr.api.compute_type = af::ComputeType::kComputeInvalid;
-  *data0.y.strides = {s1 ,af::ops::One};
+  *data0.y.strides = {s1, af::ops::One};
   *data0.y.repeats = {s0, s1};
   data0.ir_attr.SetIndex(0);
 
@@ -192,7 +193,7 @@ TEST_F(TestBackendMatmulE2e, MatmulE2eCodegen) {
   load0.x = data0.y;
   *load0.y.axis = {z0.id, z1.id};
   load0.y.dtype = ge::DT_FLOAT;
-  *load0.y.strides = {s1 ,af::ops::One};
+  *load0.y.strides = {s1, af::ops::One};
   *load0.y.repeats = {s0, s1};
 
   af::ascir_op::Abs abs("abs");
@@ -285,7 +286,7 @@ TEST_F(TestBackendMatmulE2e, MatmulE2eCodegen) {
   store_op.x = mul.y;
   *store_op.y.axis = {z0.id, z1.id};
   store_op.y.dtype = ge::DT_FLOAT;
-  *store_op.y.strides = {s1 ,af::ops::One};
+  *store_op.y.strides = {s1, af::ops::One};
   *store_op.y.repeats = {s0, s1};
 
   af::ascir_op::Output output_op("output");
@@ -323,7 +324,8 @@ TEST_F(TestBackendMatmulE2e, MatmulE2eCodegen) {
     std::fstream tiling_data_file(tiling_data_src_file_name, std::ios::out);
     tiling_data_file << "";
 
-    auto pos = res["tiling_def_and_tiling_const"].find("extern \"C\" int64_t GenCVFusionTilingKey(char* config_file, int aiv_num, int ub_size)");
+    auto pos = res["tiling_def_and_tiling_const"].find(
+        "extern \"C\" int64_t GenCVFusionTilingKey(char* config_file, int aiv_num, int ub_size)");
     ASSERT_NE(pos, std::string::npos);
   } catch (...) {
     gen_success = false;
@@ -397,7 +399,8 @@ TEST_F(TestBackendMatmulE2e, BatchMatmulDynamicShapeE2eCodegen) {
     std::string tiling_data_src_file_name = parts[0];
     std::fstream tiling_data_file(tiling_data_src_file_name, std::ios::out);
     tiling_data_file << "";
-    auto pos = res["tiling_def_and_tiling_const"].find("extern \"C\" int64_t GenCVFusionTilingKey(char* config_file, int aiv_num, int ub_size)");
+    auto pos = res["tiling_def_and_tiling_const"].find(
+        "extern \"C\" int64_t GenCVFusionTilingKey(char* config_file, int aiv_num, int ub_size)");
     ASSERT_NE(pos, std::string::npos);
   } catch (...) {
     gen_success = false;

@@ -16,8 +16,7 @@ extern "C" __global__ __aicore__ void argmax_test(GM_ADDR x, GM_ADDR y, GM_ADDR 
 extern "C" int64_t AutofuseTiling(AutofuseTilingData *tiling, uint32_t *workspaceSize, uint64_t *blockDim,
                                   uint32_t aiv_num, uint32_t ub_size);
 
-class E2E_BackendArgMax_Code : public testing::Test, public testing::WithParamInterface<std::vector<int>> {
-};
+class E2E_BackendArgMax_Code : public testing::Test, public testing::WithParamInterface<std::vector<int>> {};
 
 TEST_P(E2E_BackendArgMax_Code, CalculateCorrect) {
   auto test_shape = GetParam();
@@ -28,9 +27,9 @@ TEST_P(E2E_BackendArgMax_Code, CalculateCorrect) {
   int output_size = test_shape[0] * test_shape[1];  // ArgMax reduces the last dimension
 
   AutofuseTilingData tiling_data;
-  float* input = (float *)AscendC::GmAlloc(test_size * sizeof(float) + 32);
-  int64_t* y = (int64_t *)AscendC::GmAlloc(output_size * sizeof(int64_t) + 32);
-  int64_t* expect = (int64_t *)AscendC::GmAlloc(output_size * sizeof(int64_t) + 32);
+  float *input = (float *)AscendC::GmAlloc(test_size * sizeof(float) + 32);
+  int64_t *y = (int64_t *)AscendC::GmAlloc(output_size * sizeof(int64_t) + 32);
+  int64_t *expect = (int64_t *)AscendC::GmAlloc(output_size * sizeof(int64_t) + 32);
 
   // Prepare test and expect data
   srand(1);
@@ -53,10 +52,10 @@ TEST_P(E2E_BackendArgMax_Code, CalculateCorrect) {
 
   // Launch
   uint32_t ws_size = 0;
-  AutofuseTiling(&tiling_data, &ws_size, &block_dim, 48, 192*1024);
+  AutofuseTiling(&tiling_data, &ws_size, &block_dim, 48, 192 * 1024);
 
   AscendC::SetKernelMode(KernelMode::AIV_MODE);
-  ICPU_RUN_KF(argmax_test, tiling_data.block_dim, (uint8_t *)input, (uint8_t *)y, nullptr, (uint8_t*)&tiling_data);
+  ICPU_RUN_KF(argmax_test, tiling_data.block_dim, (uint8_t *)input, (uint8_t *)y, nullptr, (uint8_t *)&tiling_data);
 
   // Count difference
   uint32_t diff_count = 0;
@@ -77,5 +76,4 @@ TEST_P(E2E_BackendArgMax_Code, CalculateCorrect) {
 }
 
 INSTANTIATE_TEST_SUITE_P(CalcWithDifferentShape, E2E_BackendArgMax_Code,
-    ::testing::Values(std::vector<int>{32, 16, 16}
-                      ));
+                         ::testing::Values(std::vector<int>{32, 16, 16}));

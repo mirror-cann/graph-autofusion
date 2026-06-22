@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -49,12 +49,12 @@ class DumpGraphGuard {
 };
 }  // namespace
 class AutofuserOptions {
-public:
+ public:
   struct Object {
     PyObject_HEAD
 
-    optimize::OptimizerOptions* optimizer;
-    codegen::CodegenOptions* codegen;
+        optimize::OptimizerOptions *optimizer;
+    codegen::CodegenOptions *codegen;
   };
 
   static PyTypeObject type;
@@ -63,9 +63,7 @@ public:
   static int Init(PyObject *self, PyObject *args, PyObject *kwds);
 };
 
-PyTypeObject AutofuserOptions::type = {
-  PyVarObject_HEAD_INIT(nullptr, 0)
-};
+PyTypeObject AutofuserOptions::type = {PyVarObject_HEAD_INIT(nullptr, 0)};
 
 void AutofuserOptions::Dealloc(PyObject *self) {
   auto self_ = reinterpret_cast<AutofuserOptions::Object *>(self);
@@ -76,8 +74,7 @@ void AutofuserOptions::Dealloc(PyObject *self) {
   Py_TYPE(self)->tp_free(self);
 }
 
-PyObject *AutofuserOptions::New(PyTypeObject *type, PyObject *args, PyObject *kwds)
-{
+PyObject *AutofuserOptions::New(PyTypeObject *type, PyObject *args, PyObject *kwds) {
   (void)args;
   (void)kwds;
   auto self = reinterpret_cast<AutofuserOptions::Object *>(type->tp_alloc(type, 0));
@@ -89,8 +86,7 @@ PyObject *AutofuserOptions::New(PyTypeObject *type, PyObject *args, PyObject *kw
   return reinterpret_cast<PyObject *>(self);
 }
 
-int AutofuserOptions::Init(PyObject *self, PyObject *args, PyObject *kwds)
-{
+int AutofuserOptions::Init(PyObject *self, PyObject *args, PyObject *kwds) {
   (void)args;
   auto self_ = reinterpret_cast<AutofuserOptions::Object *>(self);
 
@@ -101,15 +97,16 @@ int AutofuserOptions::Init(PyObject *self, PyObject *args, PyObject *kwds)
     PyObject *tiling_lib_path_kwarg = PyDict_GetItemString(kwds, "tiling_lib_path");
     PyObject *tiling_lib_codegen_symbol_kwarg = PyDict_GetItemString(kwds, "tiling_lib_codegen_symbol");
 
-    if (tiling_lib_path_kwarg!= nullptr && PyUnicode_Check(tiling_lib_path_kwarg)) {
+    if (tiling_lib_path_kwarg != nullptr && PyUnicode_Check(tiling_lib_path_kwarg)) {
       Py_ssize_t tiling_lib_path_len;
-      const char* tiling_lib_path = PyUnicode_AsUTF8AndSize(tiling_lib_path_kwarg, &tiling_lib_path_len);
+      const char *tiling_lib_path = PyUnicode_AsUTF8AndSize(tiling_lib_path_kwarg, &tiling_lib_path_len);
       self_->codegen->tiling_lib_path = std::string(tiling_lib_path, tiling_lib_path_len);
     }
 
-    if (tiling_lib_codegen_symbol_kwarg!= nullptr && PyUnicode_Check(tiling_lib_codegen_symbol_kwarg)) {
+    if (tiling_lib_codegen_symbol_kwarg != nullptr && PyUnicode_Check(tiling_lib_codegen_symbol_kwarg)) {
       Py_ssize_t tiling_lib_codegen_symbol_len;
-      const char* tiling_lib_codegen_symbol = PyUnicode_AsUTF8AndSize(tiling_lib_codegen_symbol_kwarg, &tiling_lib_codegen_symbol_len);
+      const char *tiling_lib_codegen_symbol =
+          PyUnicode_AsUTF8AndSize(tiling_lib_codegen_symbol_kwarg, &tiling_lib_codegen_symbol_len);
       self_->codegen->tiling_lib_codegen_symbol = std::string(tiling_lib_codegen_symbol, tiling_lib_codegen_symbol_len);
     }
 
@@ -123,14 +120,13 @@ int AutofuserOptions::Init(PyObject *self, PyObject *args, PyObject *kwds)
   return 0;
 }
 
-
 class Autofuser {
  public:
   struct Object {
     PyObject_HEAD
 
-    optimize::Optimizer* optimizer;
-    codegen::Codegen* codegen;
+        optimize::Optimizer *optimizer;
+    codegen::Codegen *codegen;
   };
 
   static PyTypeObject type;
@@ -140,21 +136,19 @@ class Autofuser {
   static PyObject *New(PyTypeObject *type, PyObject *args, PyObject *kwds);
   static int Init(PyObject *self, PyObject *args, PyObject *kwds);
 
-  static PyObject* AutofuseBackend(PyObject *self, PyObject *args, PyObject *kwds);
-  static PyObject* Schedule(PyObject *self, PyObject *args, PyObject *kwds);
-  static PyObject* Codegen(PyObject *self, PyObject *args, PyObject *kwds);
+  static PyObject *AutofuseBackend(PyObject *self, PyObject *args, PyObject *kwds);
+  static PyObject *Schedule(PyObject *self, PyObject *args, PyObject *kwds);
+  static PyObject *Codegen(PyObject *self, PyObject *args, PyObject *kwds);
 };
 
 PyMethodDef Autofuser::methods[] = {
-  {"autofuse_backend", reinterpret_cast<PyCFunction>(Autofuser::AutofuseBackend), METH_VARARGS | METH_KEYWORDS, nullptr},
-  {"schedule", reinterpret_cast<PyCFunction>(Autofuser::Schedule), METH_VARARGS | METH_KEYWORDS, nullptr},
-  {"codegen", reinterpret_cast<PyCFunction>(Autofuser::Codegen), METH_VARARGS | METH_KEYWORDS, nullptr},
-  {nullptr, nullptr, 0, nullptr}
-};
+    {"autofuse_backend", reinterpret_cast<PyCFunction>(Autofuser::AutofuseBackend), METH_VARARGS | METH_KEYWORDS,
+     nullptr},
+    {"schedule", reinterpret_cast<PyCFunction>(Autofuser::Schedule), METH_VARARGS | METH_KEYWORDS, nullptr},
+    {"codegen", reinterpret_cast<PyCFunction>(Autofuser::Codegen), METH_VARARGS | METH_KEYWORDS, nullptr},
+    {nullptr, nullptr, 0, nullptr}};
 
-PyTypeObject Autofuser::type = {
-  PyVarObject_HEAD_INIT(nullptr, 0)
-};
+PyTypeObject Autofuser::type = {PyVarObject_HEAD_INIT(nullptr, 0)};
 
 void Autofuser::Dealloc(PyObject *self) {
   auto self_ = reinterpret_cast<Autofuser::Object *>(self);
@@ -181,7 +175,7 @@ int Autofuser::Init(PyObject *self, PyObject *args, PyObject *kwds) {
   (void)kwds;
   auto self_ = reinterpret_cast<Autofuser::Object *>(self);
 
-  AutofuserOptions::Object* options = nullptr;
+  AutofuserOptions::Object *options = nullptr;
   if (PyArg_ParseTuple(args, "O!", &AutofuserOptions::type, &options) == kPythonFail) {
     return -1;
   }
@@ -201,11 +195,11 @@ PyObject *Autofuser::Schedule(PyObject *self, PyObject *args, PyObject *kwds) {
     return PyErr_Format(PyExc_ValueError, "autofuse input args error");
   }
 
-  PyObject* fused_schedule_result_obj = pyascir::FusedScheduledResult::New(&pyascir::FusedScheduledResult::type,
-                                                                            nullptr, nullptr);
+  PyObject *fused_schedule_result_obj =
+      pyascir::FusedScheduledResult::New(&pyascir::FusedScheduledResult::type, nullptr, nullptr);
   auto ret_init = pyascir::FusedScheduledResult::Init(fused_schedule_result_obj, nullptr, nullptr);
   GE_CHK_BOOL_RET_SPECIAL_STATUS(ret_init != 0, PyErr_Format(PyExc_TypeError, "FusedScheduledResult init fail"),
-                                  "FusedScheduledResult init fail");
+                                 "FusedScheduledResult init fail");
   auto fused_schedule_result = reinterpret_cast<pyascir::FusedScheduledResult::Object *>(fused_schedule_result_obj);
   if (PyObject_IsInstance(graph_obj, reinterpret_cast<PyObject *>(&pyascir::HintGraph::type)) == kPythonSuccess) {
     auto hint_graph = reinterpret_cast<pyascir::HintGraph::Object *>(graph_obj);
@@ -218,7 +212,8 @@ PyObject *Autofuser::Schedule(PyObject *self, PyObject *args, PyObject *kwds) {
       return PyErr_Format(PyExc_RuntimeError, "Optimize fail");
     }
     return Py_BuildValue("O", fused_schedule_result_obj);
-  } else if (PyObject_IsInstance(graph_obj, reinterpret_cast<PyObject *>(&pyascir::FusedGraph::type)) == kPythonSuccess) {
+  } else if (PyObject_IsInstance(graph_obj, reinterpret_cast<PyObject *>(&pyascir::FusedGraph::type)) ==
+             kPythonSuccess) {
     auto fused_graph = reinterpret_cast<pyascir::FusedGraph::Object *>(graph_obj);
     auto ret = self_->optimizer->Optimize(fused_graph->graph, fused_schedule_result->fused_schedule_result);
     if (ret != 0) {
@@ -275,7 +270,8 @@ PyObject *Autofuser::AutofuseBackend(PyObject *self, PyObject *args, PyObject *k
       ERROR_PRINT("Optimize fail ret %d", ret);
       return PyErr_Format(PyExc_RuntimeError, "Optimize fail");
     }
-  } else if (PyObject_IsInstance(graph_obj, reinterpret_cast<PyObject *>(&pyascir::FusedGraph::type)) == kPythonSuccess) {
+  } else if (PyObject_IsInstance(graph_obj, reinterpret_cast<PyObject *>(&pyascir::FusedGraph::type)) ==
+             kPythonSuccess) {
     auto fused_graph = reinterpret_cast<pyascir::FusedGraph::Object *>(graph_obj);
     auto ret = self_->optimizer->Optimize(fused_graph->graph, fused_schedule_result);
     if (ret != 0) {
@@ -301,8 +297,7 @@ PyObject *Autofuser::AutofuseBackend(PyObject *self, PyObject *args, PyObject *k
 class Schedule {
  public:
   struct Object {
-    PyObject_HEAD
-    optimize::Optimizer* optimizer;
+    PyObject_HEAD optimize::Optimizer *optimizer;
   };
 
   static PyTypeObject type;
@@ -312,19 +307,16 @@ class Schedule {
   static PyObject *New(PyTypeObject *type, PyObject *args, PyObject *kwds);
   static int Init(PyObject *self_pyobject, PyObject *args, PyObject *kwds);
 
-  static PyObject* ScheduleV1(PyObject *self_pyobject, PyObject *args, PyObject *kwds);
-  static PyObject* ScheduleV2(PyObject *self_pyobject, PyObject *args, PyObject *kwds);
+  static PyObject *ScheduleV1(PyObject *self_pyobject, PyObject *args, PyObject *kwds);
+  static PyObject *ScheduleV2(PyObject *self_pyobject, PyObject *args, PyObject *kwds);
 };
 
 PyMethodDef Schedule::methods[] = {
-  {"schedule", reinterpret_cast<PyCFunction>(Schedule::ScheduleV1), METH_VARARGS | METH_KEYWORDS, nullptr},
-  {"scheduleV2", reinterpret_cast<PyCFunction>(Schedule::ScheduleV2), METH_VARARGS | METH_KEYWORDS, nullptr},
-  {nullptr, nullptr, 0, nullptr}
-};
+    {"schedule", reinterpret_cast<PyCFunction>(Schedule::ScheduleV1), METH_VARARGS | METH_KEYWORDS, nullptr},
+    {"scheduleV2", reinterpret_cast<PyCFunction>(Schedule::ScheduleV2), METH_VARARGS | METH_KEYWORDS, nullptr},
+    {nullptr, nullptr, 0, nullptr}};
 
-PyTypeObject Schedule::type = {
-  PyVarObject_HEAD_INIT(nullptr, 0)
-};
+PyTypeObject Schedule::type = {PyVarObject_HEAD_INIT(nullptr, 0)};
 
 void Schedule::Dealloc(PyObject *self_pyobject) {
   auto self = reinterpret_cast<Schedule::Object *>(self_pyobject);
@@ -359,15 +351,15 @@ PyObject *Schedule::ScheduleV1(PyObject *self_pyobject, PyObject *args, PyObject
   ascir::AscGraphDumperContext::GetThreadLocalCtx().ClearAllWatchGraphs();
   auto self = reinterpret_cast<Schedule::Object *>(self_pyobject);
 
-  pyascir::HintGraph::Object* hint_graph = nullptr;
+  pyascir::HintGraph::Object *hint_graph = nullptr;
   if (PyArg_ParseTuple(args, "O!", &pyascir::HintGraph::type, &hint_graph) == kPythonFail) {
     return PyErr_Format(PyExc_ValueError, "Schedule requires a hint graph");
   }
-  PyObject* fused_schedule_result_obj = pyascir::FusedScheduledResult::New(&pyascir::FusedScheduledResult::type,
-                                                                          nullptr, nullptr);
+  PyObject *fused_schedule_result_obj =
+      pyascir::FusedScheduledResult::New(&pyascir::FusedScheduledResult::type, nullptr, nullptr);
   auto ret_init = pyascir::FusedScheduledResult::Init(fused_schedule_result_obj, nullptr, nullptr);
   GE_CHK_BOOL_RET_SPECIAL_STATUS(ret_init != 0, PyErr_Format(PyExc_TypeError, "FusedScheduledResult init fail"),
-                                  "FusedScheduledResult init fail");
+                                 "FusedScheduledResult init fail");
   auto fused_schedule_result = reinterpret_cast<pyascir::FusedScheduledResult::Object *>(fused_schedule_result_obj);
   PY_ASSERT_NOTNULL(hint_graph->graph);
   AssignDefaultIoIndex(*hint_graph->graph);
@@ -382,20 +374,19 @@ PyObject *Schedule::ScheduleV2(PyObject *self_pyobject, PyObject *args, PyObject
   ascir::AscGraphDumperContext::GetThreadLocalCtx().ClearAllWatchGraphs();
   auto self = reinterpret_cast<Schedule::Object *>(self_pyobject);
 
-  pyascir::HintComputeGraph::Object* hint_compute_graph = nullptr;
+  pyascir::HintComputeGraph::Object *hint_compute_graph = nullptr;
   if (PyArg_ParseTuple(args, "O!", &pyascir::HintComputeGraph::type, &hint_compute_graph) == kPythonFail) {
     return PyErr_Format(PyExc_ValueError, "Schedule requires a hint compute graph");
   }
 
-  PyObject* fused_schedule_result_obj = pyascir::FusedScheduledResult::New(&pyascir::FusedScheduledResult::type,
-                                                                          nullptr, nullptr);
+  PyObject *fused_schedule_result_obj =
+      pyascir::FusedScheduledResult::New(&pyascir::FusedScheduledResult::type, nullptr, nullptr);
 
   GE_CHK_BOOL_RET_SPECIAL_STATUS(hint_compute_graph->compute_graph == nullptr,
-                                 PyErr_Format(PyExc_RuntimeError, "compute_graph is nullptr"),
-                                 "HintGraph new fail");
+                                 PyErr_Format(PyExc_RuntimeError, "compute_graph is nullptr"), "HintGraph new fail");
   auto ret_init = pyascir::FusedScheduledResult::Init(fused_schedule_result_obj, nullptr, nullptr);
   GE_CHK_BOOL_RET_SPECIAL_STATUS(ret_init != 0, PyErr_Format(PyExc_TypeError, "FusedScheduledResult init fail"),
-                                   "FusedScheduledResult init fail");
+                                 "FusedScheduledResult init fail");
 
   auto fused_schedule_result = reinterpret_cast<pyascir::FusedScheduledResult::Object *>(fused_schedule_result_obj);
   auto ret = self->optimizer->Optimize(hint_compute_graph->compute_graph, fused_schedule_result->fused_schedule_result);
@@ -411,8 +402,7 @@ PyObject *Schedule::ScheduleV2(PyObject *self_pyobject, PyObject *args, PyObject
 class CodeGen {
  public:
   struct Object {
-    PyObject_HEAD
-    codegen::Codegen* codegen;
+    PyObject_HEAD codegen::Codegen *codegen;
   };
 
   static PyTypeObject type;
@@ -422,10 +412,10 @@ class CodeGen {
   static PyObject *New(PyTypeObject *type, PyObject *args, PyObject *kwds);
   static int Init(PyObject *self_pyobject, PyObject *args, PyObject *kwds);
 
-  static PyObject* device_code_generator(PyObject *self_pyobject, PyObject *args, PyObject *kwds);
-  static PyObject* host_code_generator(PyObject *self_pyobject, PyObject *args, PyObject *kwds);
-  static PyObject* get_kernel_and_json_generator(PyObject *self_pyobject, PyObject *args, const PyObject *kwds);
-  static PyObject* pgo_code_generator(PyObject *self_pyobject, PyObject *args, const PyObject *kwds);
+  static PyObject *device_code_generator(PyObject *self_pyobject, PyObject *args, PyObject *kwds);
+  static PyObject *host_code_generator(PyObject *self_pyobject, PyObject *args, PyObject *kwds);
+  static PyObject *get_kernel_and_json_generator(PyObject *self_pyobject, PyObject *args, const PyObject *kwds);
+  static PyObject *pgo_code_generator(PyObject *self_pyobject, PyObject *args, const PyObject *kwds);
 
   static ge::Status HandleDeviceCodeGenForCVFusion(CodeGen::Object *self,
                                                    const ascir::FusedScheduledResult &fused_schedule_result,
@@ -438,29 +428,30 @@ class CodeGen {
                                                  const std::map<std::string, std::string> &symbol_source_info,
                                                  const char *pgo_dir, const char *vector_core_num,
                                                  PyObject *py_tilings);
-static ge::Status HandleHostCodeGenForNonCVFusion(CodeGen::Object *self,
-                                                     const ascir::FusedScheduledResult &fused_schedule_result,
-                                                     const std::map<std::string, std::string> &symbol_source_info,
-                                                     const char *pgo_dir, const char *vector_core_num,
-                                                     PyObject *py_tilings);
-  static PyObject* GenerateHostCodeResult(CodeGen::Object *self,
-                                           pyascir::FusedScheduledResult::Object *fused_schedule_result,
-                                           PyObject *shape_info_obj,
-                                           const std::vector<std::vector<std::string>> &output_shape,
-                                           const char *pgo_dir, const char *vector_core_num);
+  static ge::Status HandleHostCodeGenForNonCVFusion(CodeGen::Object *self,
+                                                    const ascir::FusedScheduledResult &fused_schedule_result,
+                                                    const std::map<std::string, std::string> &symbol_source_info,
+                                                    const char *pgo_dir, const char *vector_core_num,
+                                                    PyObject *py_tilings);
+  static PyObject *GenerateHostCodeResult(CodeGen::Object *self,
+                                          pyascir::FusedScheduledResult::Object *fused_schedule_result,
+                                          PyObject *shape_info_obj,
+                                          const std::vector<std::vector<std::string>> &output_shape,
+                                          const char *pgo_dir, const char *vector_core_num);
 };
 
 PyMethodDef CodeGen::methods[] = {
-  {"device_code_generator", reinterpret_cast<PyCFunction>(CodeGen::device_code_generator), METH_VARARGS | METH_KEYWORDS, nullptr},
-  {"host_code_generator", reinterpret_cast<PyCFunction>(CodeGen::host_code_generator), METH_VARARGS | METH_KEYWORDS, nullptr},
-  {"get_kernel_and_json_generator", reinterpret_cast<PyCFunction>(CodeGen::get_kernel_and_json_generator), METH_VARARGS | METH_KEYWORDS, nullptr},
-  {"pgo_code_generator", reinterpret_cast<PyCFunction>(CodeGen::pgo_code_generator), METH_VARARGS | METH_KEYWORDS, nullptr},
-  {nullptr, nullptr, 0, nullptr}
-};
+    {"device_code_generator", reinterpret_cast<PyCFunction>(CodeGen::device_code_generator),
+     METH_VARARGS | METH_KEYWORDS, nullptr},
+    {"host_code_generator", reinterpret_cast<PyCFunction>(CodeGen::host_code_generator), METH_VARARGS | METH_KEYWORDS,
+     nullptr},
+    {"get_kernel_and_json_generator", reinterpret_cast<PyCFunction>(CodeGen::get_kernel_and_json_generator),
+     METH_VARARGS | METH_KEYWORDS, nullptr},
+    {"pgo_code_generator", reinterpret_cast<PyCFunction>(CodeGen::pgo_code_generator), METH_VARARGS | METH_KEYWORDS,
+     nullptr},
+    {nullptr, nullptr, 0, nullptr}};
 
-PyTypeObject CodeGen::type = {
-  PyVarObject_HEAD_INIT(nullptr, 0)
-};
+PyTypeObject CodeGen::type = {PyVarObject_HEAD_INIT(nullptr, 0)};
 
 void CodeGen::Dealloc(PyObject *self_pyobject) {
   auto self = reinterpret_cast<CodeGen::Object *>(self_pyobject);
@@ -484,21 +475,22 @@ int CodeGen::Init(PyObject *self_pyobject, PyObject *args, PyObject *kwds) {
   (void)args;
   auto self = reinterpret_cast<CodeGen::Object *>(self_pyobject);
   auto options = new codegen::CodegenOptions();
-  GE_CHK_BOOL_RET_SPECIAL_STATUS(options == nullptr, -1 ,"self is nullptr");
+  GE_CHK_BOOL_RET_SPECIAL_STATUS(options == nullptr, -1, "self is nullptr");
 
   if (kwds != nullptr) {
     PyObject *tiling_lib_path_kwarg = PyDict_GetItemString(kwds, "tiling_lib_path");
     PyObject *tiling_lib_codegen_symbol_kwarg = PyDict_GetItemString(kwds, "tiling_lib_codegen_symbol");
 
-    if (tiling_lib_path_kwarg!= nullptr && PyUnicode_Check(tiling_lib_path_kwarg)) {
+    if (tiling_lib_path_kwarg != nullptr && PyUnicode_Check(tiling_lib_path_kwarg)) {
       Py_ssize_t tiling_lib_path_len;
-      const char* tiling_lib_path = PyUnicode_AsUTF8AndSize(tiling_lib_path_kwarg, &tiling_lib_path_len);
+      const char *tiling_lib_path = PyUnicode_AsUTF8AndSize(tiling_lib_path_kwarg, &tiling_lib_path_len);
       options->tiling_lib_path = std::string(tiling_lib_path, tiling_lib_path_len);
     }
 
-    if (tiling_lib_codegen_symbol_kwarg!= nullptr && PyUnicode_Check(tiling_lib_codegen_symbol_kwarg)) {
+    if (tiling_lib_codegen_symbol_kwarg != nullptr && PyUnicode_Check(tiling_lib_codegen_symbol_kwarg)) {
       Py_ssize_t tiling_lib_codegen_symbol_len;
-      const char* tiling_lib_codegen_symbol = PyUnicode_AsUTF8AndSize(tiling_lib_codegen_symbol_kwarg, &tiling_lib_codegen_symbol_len);
+      const char *tiling_lib_codegen_symbol =
+          PyUnicode_AsUTF8AndSize(tiling_lib_codegen_symbol_kwarg, &tiling_lib_codegen_symbol_len);
       options->tiling_lib_codegen_symbol = std::string(tiling_lib_codegen_symbol, tiling_lib_codegen_symbol_len);
     }
   }
@@ -540,9 +532,8 @@ ge::Status CodeGen::HandleDeviceCodeGenForCVFusion(CodeGen::Object *self,
   PyObjectGuard g_common_tiling(PyUnicode_FromString(common_tiling_data.c_str()));
   PyObjectGuard g_ub_kernel(PyUnicode_FromString(ub_kernel.c_str()));
   PyObjectGuard g_common_kernel(PyUnicode_FromString(common_kernel.c_str()));
-  if (g_ub_tiling.get() == nullptr || g_common_tiling.get() == nullptr ||
-      g_ub_kernel.get() == nullptr || g_common_kernel.get() == nullptr ||
-      PyDict_SetItemString(tiling_dict, "ub", g_ub_tiling.get()) != 0 ||
+  if (g_ub_tiling.get() == nullptr || g_common_tiling.get() == nullptr || g_ub_kernel.get() == nullptr ||
+      g_common_kernel.get() == nullptr || PyDict_SetItemString(tiling_dict, "ub", g_ub_tiling.get()) != 0 ||
       PyDict_SetItemString(tiling_dict, "common", g_common_tiling.get()) != 0 ||
       PyDict_SetItemString(kernel_dict, "ub", g_ub_kernel.get()) != 0 ||
       PyDict_SetItemString(kernel_dict, "common", g_common_kernel.get()) != 0) {
@@ -587,10 +578,9 @@ ge::Status CodeGen::HandleHostCodeGenForCVFusion(CodeGen::Object *self,
   // 生成UB模板的代码,存在没有UB模板的场景
   std::map<std::string, std::string> ub_tiling_file_name_to_content;
   if (ascgen_utils::HasCubeUBFusedScheduled(ub_schedule_result)) {
-    GE_CHK_STATUS_RET(
-        self->codegen->GenerateTiling(ub_schedule_result, symbol_source_info, pgo_dir, vector_core_num,
-                                      ub_tiling_file_name_to_content),
-        "generate ub tiling failed");
+    GE_CHK_STATUS_RET(self->codegen->GenerateTiling(ub_schedule_result, symbol_source_info, pgo_dir, vector_core_num,
+                                                    ub_tiling_file_name_to_content),
+                      "generate ub tiling failed");
   } else {
     GELOGI("Has no cube ub fused shcedule result, no need to generate ub tiling");
   }
@@ -598,10 +588,9 @@ ge::Status CodeGen::HandleHostCodeGenForCVFusion(CodeGen::Object *self,
   // 生成兜底模板的代码，必须有兜底模板
   GE_ASSERT_TRUE(ascgen_utils::HasCubeCommonFusedScheduled(common_schedule_result));
   std::map<std::string, std::string> common_tiling_file_name_to_content;
-  GE_CHK_STATUS_RET(
-      self->codegen->GenerateTiling(common_schedule_result, symbol_source_info, pgo_dir, vector_core_num,
-                                    common_tiling_file_name_to_content),
-      "generate common tiling failed");
+  GE_CHK_STATUS_RET(self->codegen->GenerateTiling(common_schedule_result, symbol_source_info, pgo_dir, vector_core_num,
+                                                  common_tiling_file_name_to_content),
+                    "generate common tiling failed");
 
   // 创建UB模板、兜底模板的内层字典
   PyObject *ub_dict = PyDict_New();
@@ -646,10 +635,9 @@ ge::Status CodeGen::HandleHostCodeGenForNonCVFusion(CodeGen::Object *self,
                                                     PyObject *py_tilings) {
   // 非CV融合场景，生成一种结果
   std::map<std::string, std::string> tiling_file_name_to_content;
-  GE_CHK_STATUS_RET(
-      self->codegen->GenerateTiling(fused_schedule_result, symbol_source_info, pgo_dir, vector_core_num,
-                                    tiling_file_name_to_content),
-      "generate tiling failed");
+  GE_CHK_STATUS_RET(self->codegen->GenerateTiling(fused_schedule_result, symbol_source_info, pgo_dir, vector_core_num,
+                                                  tiling_file_name_to_content),
+                    "generate tiling failed");
 
   PyObject *default_dict = PyDict_New();
   if (default_dict == nullptr) {
@@ -680,7 +668,8 @@ PyObject *CodeGen::device_code_generator(PyObject *self_pyobject, PyObject *args
     return PyErr_Format(PyExc_ValueError, "codegen param parse failed");
   }
 
-  if (PyObject_IsInstance(list_result_result, reinterpret_cast<PyObject *>(&pyascir::FusedScheduledResult::type)) != kPythonSuccess) {
+  if (PyObject_IsInstance(list_result_result, reinterpret_cast<PyObject *>(&pyascir::FusedScheduledResult::type)) !=
+      kPythonSuccess) {
     return PyErr_Format(PyExc_TypeError, "device_code_generator requires FusedScheduledResult");
   }
   auto fused_schedule_result = reinterpret_cast<pyascir::FusedScheduledResult::Object *>(list_result_result);
@@ -724,11 +713,11 @@ PyObject *CodeGen::device_code_generator(PyObject *self_pyobject, PyObject *args
   return Py_BuildValue("OO", tiling_dict, kernel_dict);
 }
 
-PyObject* CodeGen::GenerateHostCodeResult(CodeGen::Object *self,
-                                           pyascir::FusedScheduledResult::Object *fused_schedule_result,
-                                           PyObject *shape_info_obj,
-                                           const std::vector<std::vector<std::string>> &output_shape,
-                                           const char *pgo_dir, const char *vector_core_num) {
+PyObject *CodeGen::GenerateHostCodeResult(CodeGen::Object *self,
+                                          pyascir::FusedScheduledResult::Object *fused_schedule_result,
+                                          PyObject *shape_info_obj,
+                                          const std::vector<std::vector<std::string>> &output_shape,
+                                          const char *pgo_dir, const char *vector_core_num) {
   ge::Status ret = ge::FAILED;
   std::string infer_shape;
 
@@ -744,7 +733,8 @@ PyObject* CodeGen::GenerateHostCodeResult(CodeGen::Object *self,
   try {
     std::map<std::string, std::string> symbol_source_info;
     if (shape_info_obj != Py_None) {
-      if (PyObject_IsInstance(shape_info_obj, reinterpret_cast<PyObject *>(&pyascir::ShapeInfo::type)) != kPythonSuccess) {
+      if (PyObject_IsInstance(shape_info_obj, reinterpret_cast<PyObject *>(&pyascir::ShapeInfo::type)) !=
+          kPythonSuccess) {
         return PyErr_Format(PyExc_TypeError, "host_code_generator shape_info must be ShapeInfo type");
       }
       symbol_source_info = (reinterpret_cast<pyascir::ShapeInfo::Object *>(shape_info_obj))->shape_info;
@@ -787,11 +777,13 @@ PyObject *CodeGen::host_code_generator(PyObject *self_pyobject, PyObject *args, 
 
   if (shape_info_obj == Py_None) {
     GELOGW("host_code_generator shape info is none");
-  } else if (PyObject_IsInstance(shape_info_obj, reinterpret_cast<PyObject *>(&pyascir::ShapeInfo::type)) == kPythonFail) {
+  } else if (PyObject_IsInstance(shape_info_obj, reinterpret_cast<PyObject *>(&pyascir::ShapeInfo::type)) ==
+             kPythonFail) {
     return PyErr_Format(PyExc_ValueError, "host_code_generator shape info type invalid");
   }
 
-  if (PyObject_IsInstance(list_result_result, reinterpret_cast<PyObject *>(&pyascir::FusedScheduledResult::type)) != kPythonSuccess) {
+  if (PyObject_IsInstance(list_result_result, reinterpret_cast<PyObject *>(&pyascir::FusedScheduledResult::type)) !=
+      kPythonSuccess) {
     return PyErr_Format(PyExc_TypeError, "host_code_generator requires FusedScheduledResult");
   }
   auto fused_schedule_result = reinterpret_cast<pyascir::FusedScheduledResult::Object *>(list_result_result);
@@ -808,8 +800,8 @@ PyObject *CodeGen::get_kernel_and_json_generator(PyObject *self_pyobject, PyObje
   (void)kwds;
   auto self = reinterpret_cast<CodeGen::Object *>(self_pyobject);
   std::string get_kernel;
-  const char* kernel_path = nullptr;
-  const char* json_path = nullptr;
+  const char *kernel_path = nullptr;
+  const char *json_path = nullptr;
   if (PyArg_ParseTuple(args, "ss", &kernel_path, &json_path) == kPythonFail) {
     return PyErr_Format(PyExc_ValueError, "codegen param parse failed");
   }
@@ -830,13 +822,14 @@ PyObject *CodeGen::pgo_code_generator(PyObject *self_pyobject, PyObject *args, c
   auto self = reinterpret_cast<CodeGen::Object *>(self_pyobject);
 
   PyObject *list_result_result = nullptr;
-  const char* pgo_dir = nullptr;
+  const char *pgo_dir = nullptr;
   std::string pgo_src;
   if (PyArg_ParseTuple(args, "Os", &list_result_result, &pgo_dir) == kPythonFail) {
     return PyErr_Format(PyExc_ValueError, "codegen param parse failed");
   }
 
-  if (PyObject_IsInstance(list_result_result, reinterpret_cast<PyObject *>(&pyascir::FusedScheduledResult::type)) != kPythonSuccess) {
+  if (PyObject_IsInstance(list_result_result, reinterpret_cast<PyObject *>(&pyascir::FusedScheduledResult::type)) !=
+      kPythonSuccess) {
     return PyErr_Format(PyExc_TypeError, "pgo_code_generator requires FusedScheduledResult");
   }
   auto fused_schedule_result = reinterpret_cast<pyascir::FusedScheduledResult::Object *>(list_result_result);
@@ -851,13 +844,13 @@ PyObject *CodeGen::pgo_code_generator(PyObject *self_pyobject, PyObject *args, c
 
   return Py_BuildValue("s", pgo_src.c_str());
 }
-}
+}  // namespace pyascir
 
 static PyModuleDef PyAutofuseModule = {
-  PyModuleDef_HEAD_INIT,
-  "autofuse",
-  "Autofuse module",
-  -1,
+    PyModuleDef_HEAD_INIT,
+    "autofuse",
+    "Autofuse module",
+    -1,
 };
 
 void pyautofuse_type_init() {
@@ -927,28 +920,29 @@ PyMODINIT_FUNC PyInit_pyautofuse(void) {
     Py_DECREF(pyascir_module);
     return nullptr;
   };
-  PyModule_AddObject(pyautofuse_module, "AutofuserOptions", reinterpret_cast<PyObject*>(&pyascir::AutofuserOptions::type));
+  PyModule_AddObject(pyautofuse_module, "AutofuserOptions",
+                     reinterpret_cast<PyObject *>(&pyascir::AutofuserOptions::type));
 
   if (PyType_Ready(&pyascir::Autofuser::type) < 0) {
     Py_DECREF(pyautofuse_module);
     Py_DECREF(pyascir_module);
     return nullptr;
   }
-  PyModule_AddObject(pyautofuse_module, "Autofuser", reinterpret_cast<PyObject*>(&pyascir::Autofuser::type));
+  PyModule_AddObject(pyautofuse_module, "Autofuser", reinterpret_cast<PyObject *>(&pyascir::Autofuser::type));
 
   if (PyType_Ready(&pyascir::Schedule::type) < 0) {
     Py_DECREF(pyautofuse_module);
     Py_DECREF(pyascir_module);
     return nullptr;
   }
-  PyModule_AddObject(pyautofuse_module, "Schedule", reinterpret_cast<PyObject*>(&pyascir::Schedule::type));
+  PyModule_AddObject(pyautofuse_module, "Schedule", reinterpret_cast<PyObject *>(&pyascir::Schedule::type));
 
   if (PyType_Ready(&pyascir::CodeGen::type) < 0) {
     Py_DECREF(pyautofuse_module);
     Py_DECREF(pyascir_module);
     return nullptr;
   }
-  PyModule_AddObject(pyautofuse_module, "CodeGen", reinterpret_cast<PyObject*>(&pyascir::CodeGen::type));
+  PyModule_AddObject(pyautofuse_module, "CodeGen", reinterpret_cast<PyObject *>(&pyascir::CodeGen::type));
 
   // Register ascir as a top-level module in sys.modules
   // This allows "from ascir import Max, Min, Mod" to work directly

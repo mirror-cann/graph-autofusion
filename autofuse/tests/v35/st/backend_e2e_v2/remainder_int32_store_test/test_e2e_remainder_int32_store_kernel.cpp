@@ -15,13 +15,12 @@
 #include "autofuse_tiling_data.h"
 #include "tikicpulib.h"
 
-extern "C" __global__ __aicore__ void remainder_int32_store_test(GM_ADDR x1, GM_ADDR x2, GM_ADDR y1,
-                                                                 GM_ADDR workspace, GM_ADDR tiling);
-extern "C" int64_t AutofuseTiling(uint32_t s0, uint32_t s1, AutofuseTilingData* tiling, uint32_t* workspaceSize,
+extern "C" __global__ __aicore__ void remainder_int32_store_test(GM_ADDR x1, GM_ADDR x2, GM_ADDR y1, GM_ADDR workspace,
+                                                                 GM_ADDR tiling);
+extern "C" int64_t AutofuseTiling(uint32_t s0, uint32_t s1, AutofuseTilingData *tiling, uint32_t *workspaceSize,
                                   uint64_t *blockDim, uint32_t aiv_num, uint32_t ub_size);
 
-class E2EBackendRemainderInt32StoreCode : public testing::Test,
-                                          public testing::WithParamInterface<std::vector<int>> {};
+class E2EBackendRemainderInt32StoreCode : public testing::Test, public testing::WithParamInterface<std::vector<int>> {};
 
 static int32_t RemainderFloorDivReference(int32_t dividend, int32_t divisor) {
   if (divisor == 0) {
@@ -41,10 +40,10 @@ TEST_P(E2EBackendRemainderInt32StoreCode, CalculateCorrect) {
   int test_size = test_shape[0] * test_shape[1];
 
   AutofuseTilingData tiling_data;
-  int32_t* x1 = static_cast<int32_t*>(AscendC::GmAlloc(test_size * sizeof(int32_t) + 32));
-  int32_t* x2 = static_cast<int32_t*>(AscendC::GmAlloc(test_size * sizeof(int32_t) + 32));
-  int32_t* y = static_cast<int32_t*>(AscendC::GmAlloc(test_size * sizeof(int32_t) + 32));
-  int32_t* expect = static_cast<int32_t*>(AscendC::GmAlloc(test_size * sizeof(int32_t) + 32));
+  int32_t *x1 = static_cast<int32_t *>(AscendC::GmAlloc(test_size * sizeof(int32_t) + 32));
+  int32_t *x2 = static_cast<int32_t *>(AscendC::GmAlloc(test_size * sizeof(int32_t) + 32));
+  int32_t *y = static_cast<int32_t *>(AscendC::GmAlloc(test_size * sizeof(int32_t) + 32));
+  int32_t *expect = static_cast<int32_t *>(AscendC::GmAlloc(test_size * sizeof(int32_t) + 32));
 
   for (int i = 0; i < test_size; i++) {
     x1[i] = static_cast<int32_t>((i % 31) - 15);
@@ -58,9 +57,9 @@ TEST_P(E2EBackendRemainderInt32StoreCode, CalculateCorrect) {
   uint32_t ws_size = 0;
   AutofuseTiling(test_shape[0], test_shape[1], &tiling_data, &ws_size, &block_dim, 48, 192 * 1024);
   AscendC::SetKernelMode(KernelMode::AIV_MODE);
-  ICPU_RUN_KF(remainder_int32_store_test, tiling_data.block_dim, reinterpret_cast<uint8_t*>(x1),
-              reinterpret_cast<uint8_t*>(x2), reinterpret_cast<uint8_t*>(y), nullptr,
-              reinterpret_cast<uint8_t*>(&tiling_data));
+  ICPU_RUN_KF(remainder_int32_store_test, tiling_data.block_dim, reinterpret_cast<uint8_t *>(x1),
+              reinterpret_cast<uint8_t *>(x2), reinterpret_cast<uint8_t *>(y), nullptr,
+              reinterpret_cast<uint8_t *>(&tiling_data));
 
   uint32_t diff_count = 0;
   for (int i = 0; i < test_size; i++) {

@@ -1,11 +1,11 @@
 /**
-* Copyright (c) 2026 Huawei Technologies Co., Ltd.
-* This program is free software, you can redistribute it and/or modify it under the terms and conditions of
-* CANN Open Software License Agreement Version 2.0 (the "License").
-* Please refer to the License for details. You may not use this file except in compliance with the License.
-* THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
-* INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
-* See LICENSE in the root of the software repository for the full text of the License.
+ * Copyright (c) 2026 Huawei Technologies Co., Ltd.
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
+ * CANN Open Software License Agreement Version 2.0 (the "License").
+ * Please refer to the License for details. You may not use this file except in compliance with the License.
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+ * See LICENSE in the root of the software repository for the full text of the License.
  */
 
 #include "axes_reorder_solver_code_common.h"
@@ -100,7 +100,9 @@ std::string GenObjDrivenOptimize(bool enable_equal_order_tiling) {
   codes += "  auto save_core_num = input_.core_num;\n";
   if (enable_equal_order_tiling) {
     codes += "  if (!AutoTuning(is_trade_off, enable_equal_order)) {\n";
-    codes += "    OP_LOGD(OP_NAME, \"Do not need auto tuning, is_trade_off: %d, enable_equal_order: %d, input: %s.\", is_trade_off,\n";
+    codes +=
+        "    OP_LOGD(OP_NAME, \"Do not need auto tuning, is_trade_off: %d, enable_equal_order: %d, input: %s.\", "
+        "is_trade_off,\n";
     codes += "            enable_equal_order, input_.DebugString().c_str());\n";
     codes += "    return false;\n";
     codes += "  }\n";
@@ -125,8 +127,12 @@ std::string GenEmptyTensorCheck() {
   codes += "  auto is_var_empty = [](const TilingVariable *var) -> bool {\n";
   codes += "    return var->upper_bound(var->upper_bound_vars) == 0;\n";
   codes += "  };\n";
-  codes += "  bool has_empty = std::any_of(input_.pure_mc_vars, input_.pure_mc_vars + input_.pure_mc_vars_size, is_var_empty) ||\n";
-  codes += "                   std::any_of(input_.local_buffer_vars, input_.local_buffer_vars + input_.local_buffer_vars_size,\n";
+  codes +=
+      "  bool has_empty = std::any_of(input_.pure_mc_vars, input_.pure_mc_vars + input_.pure_mc_vars_size, "
+      "is_var_empty) ||\n";
+  codes +=
+      "                   std::any_of(input_.local_buffer_vars, input_.local_buffer_vars + "
+      "input_.local_buffer_vars_size,\n";
   codes += "                               is_var_empty);\n";
   codes += "  if (has_empty) {\n";
   codes += "    OP_LOGW(OP_NAME, \"Got empty tensor, input[%s]\", input_.DebugString().c_str());\n";
@@ -139,8 +145,9 @@ std::string GenEmptyTensorCheck() {
 
 std::string GenAxesReorderRun(bool enable_equal_order_tiling) {
   std::string codes;
-  std::string run_impl_start = "bool AxesReorderSolver::Run(const bool is_trade_off, const bool is_block_loop_auto_tune, "
-                               "const bool enable_auto_tune, const bool enable_equal_order) {\n";
+  std::string run_impl_start =
+      "bool AxesReorderSolver::Run(const bool is_trade_off, const bool is_block_loop_auto_tune, "
+      "const bool enable_auto_tune, const bool enable_equal_order) {\n";
   codes += "// is_trade_off 描述:表示是否使能根据ub占用率/多核占用率双阈值调优的策略\n";
   codes += "//              使用说明：默认打开，关闭场景：1)Vector重型算子 2)att_enable_multicore_ub_tradeoff开启\n";
   codes += "// is_block_loop_auto_tune 描述：表示多核调优时是否根据性能公式权衡核数和核内循环\n";
@@ -194,7 +201,8 @@ std::string GetAxesSolverPgoSolverHead(int64_t pgo_step_max) {
   codes += "  std::vector<std::vector<uint32_t>> availiable_tiling_data_list_;\n";
   codes += "  int64_t pgo_step_max_{" + std::to_string(pgo_step_max) + "};\n";
   codes += "  void PgoSolverGenerateAllTilingDataInner(const uint32_t index, std::vector<uint32_t> &ans_item,\n";
-  codes += "                                           std::vector<std::vector<uint32_t>> &ans, int64_t step_max = 16);\n";
+  codes +=
+      "                                           std::vector<std::vector<uint32_t>> &ans, int64_t step_max = 16);\n";
   codes += "};\n";
   return codes;
 }
@@ -306,4 +314,4 @@ const std::string AXES_SOLVER_CODE_HEAD = GetAxesSolverSolverHead(true);
 const std::string AXES_SOLVER_CODE_FUNC = GetAxesSolverSolverFunc(true);
 const std::string AXES_SOLVER_PGO_CODE_FUNC = GetAxesSolverPgoSolverFunc();
 
-} // namespace att
+}  // namespace att

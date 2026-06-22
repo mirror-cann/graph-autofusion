@@ -1,15 +1,15 @@
 /**
-* Copyright (c) Huawei Technologies Co., Ltd. 2026. All rights reserved.
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Copyright (c) Huawei Technologies Co., Ltd. 2026. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 /**
  * test_add.cpp
@@ -57,9 +57,9 @@ class TestRegbaseApiAiryAiUT : public testing::Test {
     std::mt19937 eng(1);
 
     for (uint32_t i = 0; i < param.size; i++) {
-        std::uniform_real_distribution<float> distr(-20.0f, 20.0f);
-        param.x1[i] = static_cast<T>(distr(eng));
-        param.exp[i] = static_cast<T>(boost::math::airy_ai((double)(param.x1[i])));
+      std::uniform_real_distribution<float> distr(-20.0f, 20.0f);
+      param.x1[i] = static_cast<T>(distr(eng));
+      param.exp[i] = static_cast<T>(boost::math::airy_ai((double)(param.x1[i])));
     }
   }
 
@@ -82,11 +82,13 @@ class TestRegbaseApiAiryAiUT : public testing::Test {
 };
 
 TEST_F(TestRegbaseApiAiryAiUT, AiryAi_TensorTensor_Test) {
-    AiryAiTensorTensorTest<float>(ONE_BLK_SIZE / sizeof(float));
-    AiryAiTensorTensorTest<float>(ONE_REPEAT_BYTE_SIZE / sizeof(float));
-    AiryAiTensorTensorTest<float>(MAX_REPEAT_NUM * ONE_REPEAT_BYTE_SIZE / 2 / sizeof(float));
-    AiryAiTensorTensorTest<float>((ONE_BLK_SIZE - sizeof(float)) / sizeof(float));
-    AiryAiTensorTensorTest<float>((ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) / sizeof(float));
-    AiryAiTensorTensorTest<float>(((MAX_REPEAT_NUM - 1) * ONE_REPEAT_BYTE_SIZE + (ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) + (ONE_BLK_SIZE - sizeof(float))) / 2 /sizeof(float));
+  AiryAiTensorTensorTest<float>(ONE_BLK_SIZE / sizeof(float));
+  AiryAiTensorTensorTest<float>(ONE_REPEAT_BYTE_SIZE / sizeof(float));
+  AiryAiTensorTensorTest<float>(MAX_REPEAT_NUM * ONE_REPEAT_BYTE_SIZE / 2 / sizeof(float));
+  AiryAiTensorTensorTest<float>((ONE_BLK_SIZE - sizeof(float)) / sizeof(float));
+  AiryAiTensorTensorTest<float>((ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) / sizeof(float));
+  AiryAiTensorTensorTest<float>(((MAX_REPEAT_NUM - 1) * ONE_REPEAT_BYTE_SIZE + (ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) +
+                                 (ONE_BLK_SIZE - sizeof(float))) /
+                                2 / sizeof(float));
 }
-}
+}  // namespace af

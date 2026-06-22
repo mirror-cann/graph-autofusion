@@ -1003,7 +1003,7 @@ TEST_F(ConcatScheduleCaseGeneratorTest, ConcatBackwardFusion_WithSameLoad) {
   std::vector<std::string> score_functions;
   EXPECT_EQ(generator.Generate(graph, generated_graphs, score_functions), ge::SUCCESS);
   ASSERT_EQ(generated_graphs.size(), 3UL);
-  for (const auto & generated_graph : generated_graphs) {
+  for (const auto &generated_graph : generated_graphs) {
     auto cg = af::AscGraphUtils::GetComputeGraph(generated_graph);
     auto add_node = cg->FindFirstNodeMatchType("Add");
     ASSERT_TRUE(add_node != nullptr);
@@ -1401,18 +1401,18 @@ TEST_F(ConcatScheduleCaseGeneratorTest, ConcatWithScalarDataInput) {
   // 预期：scalar_data0 被分裂为多个副本时保持 ScalarData 类型
 
   auto graph = af::testing::AscGraphBuilder("concat_scalar_data")
-    .Loops({af::testing::Sym(32), af::testing::Sym(64)})
-    .Data("data0", 0)
-    .Load("load0", "data0")
-    .Data("data1", 1)
-    .Load("load1", "data1")
-    .ScalarData("scalar_data0", 2)
-    .Add("add0", "load0", "scalar_data0")
-    .Add("add1", "load1", "scalar_data0")
-    .Concat("concat0", {"add0", "add1"})
-    .Store("store", "concat0")
-    .Output("out", "store", 0)
-    .Build();
+                   .Loops({af::testing::Sym(32), af::testing::Sym(64)})
+                   .Data("data0", 0)
+                   .Load("load0", "data0")
+                   .Data("data1", 1)
+                   .Load("load1", "data1")
+                   .ScalarData("scalar_data0", 2)
+                   .Add("add0", "load0", "scalar_data0")
+                   .Add("add1", "load1", "scalar_data0")
+                   .Concat("concat0", {"add0", "add1"})
+                   .Store("store", "concat0")
+                   .Output("out", "store", 0)
+                   .Build();
 
   optimize::ConcatFusionCaseGenerator generator;
   std::vector<af::AscGraph> generated_graphs;
@@ -1425,7 +1425,7 @@ TEST_F(ConcatScheduleCaseGeneratorTest, ConcatWithScalarDataInput) {
     std::string name(node->GetNamePtr());
     if (name.find("scalar_data") != std::string::npos) {
       EXPECT_EQ(std::string(node->GetTypePtr()), "ScalarData")
-        << "Node " << name << " should be ScalarData but got " << node->GetTypePtr();
+          << "Node " << name << " should be ScalarData but got " << node->GetTypePtr();
       if (name != "scalar_data0") {
         found_scalar_data_copy = true;
       }
@@ -1444,20 +1444,18 @@ TEST_F(ConcatScheduleCaseGeneratorTest, ConcatWithTranspose_AxisOrderPreserved) 
   auto s1_1 = af::Symbol("s1_1");
 
   auto graph = af::testing::AscGraphBuilder("concat_transpose_axis_order")
-      .Loops({s0, s1_0 + s1_1})
-      .Data("data0", 0, ge::DT_FLOAT16)
-      .Load("load0", "data0",
-            std::vector<af::Expression>{s0, s1_0},
-            std::vector<af::Expression>{s1_0, af::sym::kSymbolOne})
-      .Transpose("transpose0", "load0", {1, 0})
-      .Data("data1", 1, ge::DT_FLOAT16)
-      .Load("load1", "data1",
-            std::vector<af::Expression>{s0, s1_1},
-            std::vector<af::Expression>{s1_1, af::sym::kSymbolOne})
-      .Concat("concat", {"transpose0", "load1"}, 1)
-      .Store("store", "concat")
-      .Output("out", "store", 0)
-      .Build();
+                   .Loops({s0, s1_0 + s1_1})
+                   .Data("data0", 0, ge::DT_FLOAT16)
+                   .Load("load0", "data0", std::vector<af::Expression>{s0, s1_0},
+                         std::vector<af::Expression>{s1_0, af::sym::kSymbolOne})
+                   .Transpose("transpose0", "load0", {1, 0})
+                   .Data("data1", 1, ge::DT_FLOAT16)
+                   .Load("load1", "data1", std::vector<af::Expression>{s0, s1_1},
+                         std::vector<af::Expression>{s1_1, af::sym::kSymbolOne})
+                   .Concat("concat", {"transpose0", "load1"}, 1)
+                   .Store("store", "concat")
+                   .Output("out", "store", 0)
+                   .Build();
 
   auto z0_id = graph.GetAllAxis()[0]->id;
   auto z1_id = graph.GetAllAxis()[1]->id;
@@ -1489,8 +1487,7 @@ TEST_F(ConcatScheduleCaseGeneratorTest, ConcatWithTranspose_AxisOrderPreserved) 
 
   const auto &output_axis = load0_after->outputs[0].attr.axis;
   ASSERT_EQ(output_axis.size(), 2UL);
-  EXPECT_NE(output_axis[0], output_axis[1])
-      << "Load0 output axis[0] and axis[1] should be different axis IDs";
+  EXPECT_NE(output_axis[0], output_axis[1]) << "Load0 output axis[0] and axis[1] should be different axis IDs";
   EXPECT_EQ(output_axis[0], z1_id)
       << "Load0 output axis[0] should still be z1 (order preserved, only concat dim replaced)";
 }

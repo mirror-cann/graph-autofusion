@@ -12,13 +12,11 @@
 #include "stub_ffn_modelinfo.h"
 
 namespace {
-att::Expr GetSafeDivisor(const att::Expr &expr)
-{
+att::Expr GetSafeDivisor(const att::Expr &expr) {
   return af::sym::Max(af::sym::kSymbolOne, expr);
 }
 
-att::Expr GetSafeOffsetDivisor(const att::Expr &expr)
-{
+att::Expr GetSafeOffsetDivisor(const att::Expr &expr) {
   return af::sym::Max(af::sym::kSymbolOne, att::CreateExpr(-1) + expr);
 }
 
@@ -34,11 +32,8 @@ struct FfnExprContext {
   att::Expr expr_basen2;
 };
 
-
-void BuildFfnMaxTokenAxes(att::ModelInfo &model_info, FfnExprContext &ctx,
-                          att::AttAxisPtr &maxTokens, att::AttAxisPtr &basem1, att::AttAxisPtr &ubm,
-                          att::AttAxisPtr &basem2)
-{
+void BuildFfnMaxTokenAxes(att::ModelInfo &model_info, FfnExprContext &ctx, att::AttAxisPtr &maxTokens,
+                          att::AttAxisPtr &basem1, att::AttAxisPtr &ubm, att::AttAxisPtr &basem2) {
   ctx.expr_maxTokens = att::CreateExpr("maxTokens");
   ctx.expr_basem1 = att::CreateExpr("base_m1");
   ctx.expr_basem2 = att::CreateExpr("base_m2");
@@ -95,8 +90,7 @@ void BuildFfnMaxTokenAxes(att::ModelInfo &model_info, FfnExprContext &ctx,
   basem2->from_axis = {maxTokens.get()};
 }
 
-void BuildFfnN1Axes(FfnExprContext &ctx, att::AttAxisPtr &n1, att::AttAxisPtr &basen1)
-{
+void BuildFfnN1Axes(FfnExprContext &ctx, att::AttAxisPtr &n1, att::AttAxisPtr &basen1) {
   ctx.expr_n1 = att::CreateExpr("N1");
   ctx.expr_basen1 = att::CreateExpr("base_n1");
 
@@ -125,8 +119,7 @@ void BuildFfnN1Axes(FfnExprContext &ctx, att::AttAxisPtr &n1, att::AttAxisPtr &b
   basen1->from_axis = {n1.get()};
 }
 
-void BuildFfnK1Axis(FfnExprContext &ctx, att::AttAxisPtr &k1)
-{
+void BuildFfnK1Axis(FfnExprContext &ctx, att::AttAxisPtr &k1) {
   ctx.expr_k1 = att::CreateExpr("K1");
   att::SymVarInfoPtr sym_k1 = std::make_shared<att::SymVarInfo>(ctx.expr_k1);
   k1 = std::make_shared<att::AttAxis>();
@@ -138,8 +131,7 @@ void BuildFfnK1Axis(FfnExprContext &ctx, att::AttAxisPtr &k1)
   k1->size = sym_k1;
 }
 
-void BuildFfnN2Axes(FfnExprContext &ctx, att::AttAxisPtr &n2, att::AttAxisPtr &basen2)
-{
+void BuildFfnN2Axes(FfnExprContext &ctx, att::AttAxisPtr &n2, att::AttAxisPtr &basen2) {
   ctx.expr_n2 = att::CreateExpr("N2");
   ctx.expr_basen2 = att::CreateExpr("base_n2");
 
@@ -168,20 +160,18 @@ void BuildFfnN2Axes(FfnExprContext &ctx, att::AttAxisPtr &n2, att::AttAxisPtr &b
   basen2->from_axis = {n2.get()};
 }
 
-att::Expr CalcCube1Mte2(const FfnExprContext &ctx, const att::Expr &n1_cnt, const att::Expr &m1_cnt)
-{
+att::Expr CalcCube1Mte2(const FfnExprContext &ctx, const att::Expr &n1_cnt, const att::Expr &m1_cnt) {
   att::Expr expr_m1n1 = ((((att::CreateExpr(0.05624f) * ctx.expr_basem1) + att::CreateExpr(0.3984f)) *
-                           att::CreateExpr(6.2712e-05f) * ctx.expr_k1 * ctx.expr_basen1) +
+                          att::CreateExpr(6.2712e-05f) * ctx.expr_k1 * ctx.expr_basen1) +
                          (att::CreateExpr(0.0008295f) * ctx.expr_k1 * ctx.expr_basen1));
   att::Expr weight_m1n1 = ((att::CreateExpr(0.05761f) * ctx.expr_basen1) + att::CreateExpr(0.0f));
   att::Expr mte2_m1n1 = expr_m1n1 * weight_m1n1;
   att::Expr expr_n1m1 = ((((att::CreateExpr(0.05940f) * ctx.expr_basen1) + att::CreateExpr(20.0944f)) *
-                           att::CreateExpr(6.2712e-05f) * ctx.expr_k1 * ctx.expr_basem1) +
+                          att::CreateExpr(6.2712e-05f) * ctx.expr_k1 * ctx.expr_basem1) +
                          (att::CreateExpr(0.0008295f) * ctx.expr_k1 * ctx.expr_basem1));
   att::Expr weight_n1m1 = ((att::CreateExpr(0.07543f) * ctx.expr_k1) + att::CreateExpr(0.0f));
   att::Expr mte2_n1m1 = expr_n1m1 * weight_n1m1;
-  att::Expr weight1 = (att::CreateExpr(0.000216f) * ctx.expr_basen1) +
-                      (att::CreateExpr(0.0003614f) * ctx.expr_basem1) +
+  att::Expr weight1 = (att::CreateExpr(0.000216f) * ctx.expr_basen1) + (att::CreateExpr(0.0003614f) * ctx.expr_basem1) +
                       (att::CreateExpr(0.0005757f) * ctx.expr_k1);
   att::Expr weight2 = (att::CreateExpr(0.0f) * ctx.expr_k1 * ctx.expr_basem1) +
                       (att::CreateExpr(0.0f) * ctx.expr_basem1 * ctx.expr_basen1) +
@@ -189,20 +179,18 @@ att::Expr CalcCube1Mte2(const FfnExprContext &ctx, const att::Expr &n1_cnt, cons
   return (mte2_m1n1 + mte2_n1m1) * (n1_cnt * m1_cnt) / (weight1 + weight2);
 }
 
-att::Expr CalcCube2Mte2(const FfnExprContext &ctx, const att::Expr &n2_cnt, const att::Expr &m2_cnt)
-{
+att::Expr CalcCube2Mte2(const FfnExprContext &ctx, const att::Expr &n2_cnt, const att::Expr &m2_cnt) {
   att::Expr expr_m2n2 = ((((att::CreateExpr(0.05624f) * ctx.expr_basem2) + att::CreateExpr(0.3984f)) *
-                           att::CreateExpr(6.2712e-05f) * ctx.expr_n1 * ctx.expr_basen2) +
+                          att::CreateExpr(6.2712e-05f) * ctx.expr_n1 * ctx.expr_basen2) +
                          (att::CreateExpr(0.0008295f) * ctx.expr_n1 * ctx.expr_basen2));
   att::Expr weight_m2n2 = ((att::CreateExpr(0.05761f) * ctx.expr_basen2) + att::CreateExpr(0.0f));
   att::Expr mte2_m2n2 = expr_m2n2 * weight_m2n2;
   att::Expr expr_n2m2 = ((((att::CreateExpr(0.05940f) * ctx.expr_basen2) + att::CreateExpr(20.0944f)) *
-                           att::CreateExpr(6.2712e-05f) * ctx.expr_n1 * ctx.expr_basem2) +
+                          att::CreateExpr(6.2712e-05f) * ctx.expr_n1 * ctx.expr_basem2) +
                          (att::CreateExpr(0.0008295f) * ctx.expr_n1 * ctx.expr_basem2));
   att::Expr weight_n2m2 = ((att::CreateExpr(0.07543f) * ctx.expr_n1) + att::CreateExpr(0.0f));
   att::Expr mte2_n2m2 = expr_n2m2 * weight_n2m2;
-  att::Expr weight1 = (att::CreateExpr(0.000216f) * ctx.expr_basen2) +
-                      (att::CreateExpr(0.0003614f) * ctx.expr_basem2) +
+  att::Expr weight1 = (att::CreateExpr(0.000216f) * ctx.expr_basen2) + (att::CreateExpr(0.0003614f) * ctx.expr_basem2) +
                       (att::CreateExpr(0.0005757f) * ctx.expr_n1);
   att::Expr weight2 = (att::CreateExpr(0.0f) * ctx.expr_n1 * ctx.expr_basem2) +
                       (att::CreateExpr(0.0f) * ctx.expr_basem2 * ctx.expr_basen2) +
@@ -210,8 +198,7 @@ att::Expr CalcCube2Mte2(const FfnExprContext &ctx, const att::Expr &n2_cnt, cons
   return (mte2_m2n2 + mte2_n2m2) * (n2_cnt * m2_cnt) / (weight1 + weight2);
 }
 
-void FillFfnModelInfo(att::ModelInfo &model_info, const FfnExprContext &ctx)
-{
+void FillFfnModelInfo(att::ModelInfo &model_info, const FfnExprContext &ctx) {
   att::Expr btbuf_occupy = af::sym::Max((att::CreateExpr(4) * ctx.expr_basen1), (att::CreateExpr(4) * ctx.expr_basen2));
   att::Expr l0c_occupy = af::sym::Max((att::CreateExpr(4) * ctx.expr_basen1 * ctx.expr_basem1),
                                       (att::CreateExpr(4) * ctx.expr_basen2 * ctx.expr_basem2));
@@ -228,20 +215,24 @@ void FillFfnModelInfo(att::ModelInfo &model_info, const FfnExprContext &ctx)
 
   att::Expr vec_ub = ((att::CreateExpr(4) * ctx.expr_basen1 * ctx.expr_ubm) / GetSafeOffsetDivisor(ctx.expr_basen1) +
                       att::CreateExpr(4));
-  att::Expr vec_m1n1 = ((att::CreateExpr(8) * ctx.expr_basem1 * ctx.expr_basen1) /
-                        GetSafeOffsetDivisor(ctx.expr_basen1) + att::CreateExpr(4));
-  att::Expr vec_m2n2 = ((att::CreateExpr(8) * ctx.expr_basem2 * ctx.expr_basen2) /
-                        GetSafeOffsetDivisor(ctx.expr_basen2) + att::CreateExpr(4));
-  att::Expr vec = (vec_ub * (m1_cnt * n1_cnt * ubm_cnt)) + (vec_m1n1 * (m1_cnt * n1_cnt)) +
-                  (vec_m2n2 * (m2_cnt * n2_cnt));
+  att::Expr vec_m1n1 =
+      ((att::CreateExpr(8) * ctx.expr_basem1 * ctx.expr_basen1) / GetSafeOffsetDivisor(ctx.expr_basen1) +
+       att::CreateExpr(4));
+  att::Expr vec_m2n2 =
+      ((att::CreateExpr(8) * ctx.expr_basem2 * ctx.expr_basen2) / GetSafeOffsetDivisor(ctx.expr_basen2) +
+       att::CreateExpr(4));
+  att::Expr vec =
+      (vec_ub * (m1_cnt * n1_cnt * ubm_cnt)) + (vec_m1n1 * (m1_cnt * n1_cnt)) + (vec_m2n2 * (m2_cnt * n2_cnt));
 
   att::Expr mte3_ub = ((att::CreateExpr(0.01741f) * ctx.expr_basen1 * ctx.expr_ubm) + att::CreateExpr(0.22f));
   att::Expr v_mte3 = mte3_ub * (m1_cnt * n1_cnt * ubm_cnt);
 
-  att::Expr mte2_n1 = ((att::CreateExpr(5.01f) / (att::CreateExpr(27240.69f) + ctx.expr_basen1)) + att::CreateExpr(1051.66f)) *
-                      (ctx.expr_basen1 / att::CreateExpr(30421.24f));
-  att::Expr mte2_n2 = ((att::CreateExpr(5.01f) / (att::CreateExpr(27240.69f) + ctx.expr_basen2)) + att::CreateExpr(1051.66f)) *
-                      (ctx.expr_basen2 / att::CreateExpr(30421.24f));
+  att::Expr mte2_n1 =
+      ((att::CreateExpr(5.01f) / (att::CreateExpr(27240.69f) + ctx.expr_basen1)) + att::CreateExpr(1051.66f)) *
+      (ctx.expr_basen1 / att::CreateExpr(30421.24f));
+  att::Expr mte2_n2 =
+      ((att::CreateExpr(5.01f) / (att::CreateExpr(27240.69f) + ctx.expr_basen2)) + att::CreateExpr(1051.66f)) *
+      (ctx.expr_basen2 / att::CreateExpr(30421.24f));
   att::Expr mte2_ub = (att::CreateExpr(0.007f) * ctx.expr_basen1 * ctx.expr_ubm) + att::CreateExpr(7.97f);
   att::Expr v_mte2 = mte2_n1 * n1_cnt + mte2_n2 * n2_cnt + mte2_ub * (m1_cnt * n1_cnt * ubm_cnt);
 
@@ -261,8 +252,7 @@ void FillFfnModelInfo(att::ModelInfo &model_info, const FfnExprContext &ctx)
 void AppendFfnArgList(att::ModelInfo &model_info, const att::AttAxisPtr &maxTokens, const att::AttAxisPtr &basen1,
                       const att::AttAxisPtr &basen2, const att::AttAxisPtr &n1, const att::AttAxisPtr &basem1,
                       const att::AttAxisPtr &k1, const att::AttAxisPtr &n2, const att::AttAxisPtr &basem2,
-                      const att::AttAxisPtr &ubm)
-{
+                      const att::AttAxisPtr &ubm) {
   model_info.arg_list.emplace_back(maxTokens);
   model_info.arg_list.emplace_back(basen1);
   model_info.arg_list.emplace_back(basen2);
@@ -276,8 +266,7 @@ void AppendFfnArgList(att::ModelInfo &model_info, const att::AttAxisPtr &maxToke
 }  // namespace
 
 namespace att {
-ModelInfo GenFFNModelInfo()
-{
+ModelInfo GenFFNModelInfo() {
   ModelInfo model_info;
   FfnExprContext ctx;
 

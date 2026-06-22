@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -54,7 +54,8 @@ const std::unordered_map<TilingDataType, std::string> kTilingDataTypeToAnnotatio
      "  // 含义：本轴的父轴是按照{切分类型}切分后的尾块，父轴的尾块需要循环多少次最内轴元素\n"
      "  // 约束：1.仅父轴按照{切分类型}切分时生成该参数；\n"
      "  //      2.当前仅支持父轴对Block切分的场景(比如先切Block，后切Tile);\n"
-     "  // 计算公式：{轴的父轴}_tail_{切分类型}_{轴}_tail_size = ({轴的父轴}_tail_size % {轴}_size) == 0 ? {轴}_size : \n"
+     "  // 计算公式：{轴的父轴}_tail_{切分类型}_{轴}_tail_size = ({轴的父轴}_tail_size % {轴}_size) == 0 ? {轴}_size : "
+     "\n"
      "  //         ({轴的父轴}_tail_size % {轴}_size)"},
     {TilingDataType::SPLIT_OUTER_AXIS_TAIL_LOOP_NUM,
      "  // 参数：{轴的父轴}_tail_{切分类型}_{轴}_loop_num\n"
@@ -94,8 +95,10 @@ const std::unordered_map<TilingDataGenType, IsGenEnableFunc> kIsGenEnableFuncMap
        (void)config;
        return true;
      }},
-    {TilingDataGenType::MEMORY_TILING_DATA_GEN,
-     [](const ExtraInfoConfig &config) -> bool { (void)config; return true; }}};
+    {TilingDataGenType::MEMORY_TILING_DATA_GEN, [](const ExtraInfoConfig &config) -> bool {
+       (void)config;
+       return true;
+     }}};
 
 bool IsGenEnable(const TilingDataGenType tiling_data_gen_type) {
   const auto iter = kIsGenEnableFuncMap.find(tiling_data_gen_type);
@@ -153,7 +156,8 @@ ge::Status GetOneParentAxesTilingDataSize(const AttAxis *parent_size, std::strin
   std::vector<std::pair<Expr, Expr>> var_replacement;
   for (auto &var : parent_contain_vars) {
     GELOGD("contains var: %s", var.c_str());
-    var_replacement.emplace_back(std::make_pair(CreateExpr(var.c_str()), CreateExpr((kTilingDataPrefix + var + kTilingDataSuffix).c_str())));
+    var_replacement.emplace_back(
+        std::make_pair(CreateExpr(var.c_str()), CreateExpr((kTilingDataPrefix + var + kTilingDataSuffix).c_str())));
   }
   result += Str(parent_size->size->symbol_expr.Replace(var_replacement));
   return ge::SUCCESS;
@@ -202,7 +206,7 @@ void SetTilingData(const TilingDataType tiling_data_type, const std::string &til
                    const std::string &tiling_data_expr, TilingDataMap &tiling_data_map) {
   tiling_data_map[tiling_data_name] = std::make_pair(tiling_data_type, tiling_data_expr);
   GELOGD("Add tiling data:(type:%d, name:%s, expr:%s)", static_cast<int32_t>(tiling_data_type),
-          tiling_data_name.c_str(), tiling_data_expr.c_str());
+         tiling_data_name.c_str(), tiling_data_expr.c_str());
 }
 }  // namespace
 
@@ -241,7 +245,7 @@ ge::Status AxesTilingDataGen::AddAxesTailSizeAndLoopNum() {
     // 轴的TailSize = 父轴的BaseSize % 轴的BaseSize
     std::string parent_base_size;
     GE_ASSERT_SUCCESS(GetOneParentAxesTilingDataSize(axis->from_axis[0], parent_base_size),
-                       "Get parent size failed of axis[%s]", axis->name.c_str());
+                      "Get parent size failed of axis[%s]", axis->name.c_str());
     const auto axis_tail_size = StrCalcTail(parent_base_size, Str(axis_base_size));
     GE_ASSERT_SUCCESS(
         SetAxisArgExpr(axis->name, {TilingDataType::AXIS_TAIL_SIZE, GetAxisTailSizeName(axis->name), axis_tail_size}),
@@ -252,8 +256,8 @@ ge::Status AxesTilingDataGen::AddAxesTailSizeAndLoopNum() {
         SetAxisArgExpr(axis->name, {TilingDataType::AXIS_LOOP_NUM, GetAxisLoopNumName(axis->name), axis_loop_num}),
         "Set axis[%s] loop num failed", axis->name.c_str());
     GELOGD("Add axis[%s] args: tail_size[%s], loop_num[%s], parent_base_size[%s], axis_base_size[%s]",
-            axis->name.c_str(), axis_tail_size.c_str(), axis_loop_num.c_str(), parent_base_size.c_str(),
-            axis_base_size.Str().get());
+           axis->name.c_str(), axis_tail_size.c_str(), axis_loop_num.c_str(), parent_base_size.c_str(),
+           axis_base_size.Str().get());
   }
   return ge::SUCCESS;
 }
@@ -268,10 +272,10 @@ ge::Status AxesTilingDataGen::AddSplitOuterAxisTailArgs() {
     // INNER axis should only has one parent axis
     std::string parents_size;
     GE_ASSERT_SUCCESS(GetOneParentAxesTilingDataSize(axis->from_axis[0], parents_size),
-                       "Get parent size failed of axis[%s]", axis->name.c_str());
+                      "Get parent size failed of axis[%s]", axis->name.c_str());
     GELOGD("INNER axis[%s] parent axis size[%zu] expr[%s] bind_multicore[%d] parent_axis->axis_type[%d]",
-            axis->name.c_str(), axis->from_axis.size(), parents_size.c_str(), axis->bind_multicore,
-            static_cast<int32_t>(axis->axis_pos));
+           axis->name.c_str(), axis->from_axis.size(), parents_size.c_str(), axis->bind_multicore,
+           static_cast<int32_t>(axis->axis_pos));
     //  s1
     //   |
     //  |  |
@@ -300,7 +304,7 @@ ge::Status AxesTilingDataGen::AddSplitOuterAxisTailArgs() {
                             GetSplitTailPrefix(parent_axis->name, axis).append(kLoopNumSuffix), tail_part_loop_num}),
             "Set split outer axis tail loop num failed, axis[%s]", axis->name.c_str());
         GELOGD("Add parent axis[%s] tail block axis[%s] args: loop_num[%s], tail_size[%s]", parent_axis->name.c_str(),
-                axis->name.c_str(), tail_part_loop_num.c_str(), tail_part_tail_size.c_str());
+               axis->name.c_str(), tail_part_loop_num.c_str(), tail_part_tail_size.c_str());
       }
     }
   }
@@ -322,8 +326,8 @@ std::vector<AxisTilingData> AxesTilingDataGen::GetAxisTilingData(const std::stri
 ge::Status AxesTilingDataGen::SetAxisArgExpr(const std::string &axis_name, const AxisTilingData &axis_tiling_data) {
   axes_tiling_data_map_[axis_name].emplace_back(axis_tiling_data);
   GELOGD("Add tiling data axis[%s], type:%d, name:%s, expr:%s", axis_name.c_str(),
-          static_cast<int32_t>(axis_tiling_data.arg_type), axis_tiling_data.arg_name.c_str(),
-          axis_tiling_data.arg_expr.c_str());
+         static_cast<int32_t>(axis_tiling_data.arg_type), axis_tiling_data.arg_name.c_str(),
+         axis_tiling_data.arg_expr.c_str());
   return ge::SUCCESS;
 }
 
@@ -337,7 +341,7 @@ std::pair<std::string, std::string> AxesTilingDataGen::GetAxisTilingData(const s
   }
   // cannot found
   GELOGD("Cannot find axis tiling data by axis_name[%s], arg_type[%d]", axis_name.c_str(),
-          static_cast<int32_t>(arg_type));
+         static_cast<int32_t>(arg_type));
   return std::pair<std::string, std::string>();
 }
 
@@ -373,7 +377,7 @@ std::vector<std::pair<std::string, std::string>> AxesTilingDataGen::GetAxesTilin
   for (const auto &axis_tiling_data : all_axis_tiling_datas) {
     tiling_datas_exprs.emplace_back(std::make_pair(axis_tiling_data.arg_name, axis_tiling_data.arg_expr));
     GELOGD("Get axes tiling data(arg_name[%s], arg_expr[%s])", axis_tiling_data.arg_name.c_str(),
-            axis_tiling_data.arg_expr.c_str());
+           axis_tiling_data.arg_expr.c_str());
   }
   return tiling_datas_exprs;
 }
@@ -381,8 +385,7 @@ std::vector<std::pair<std::string, std::string>> AxesTilingDataGen::GetAxesTilin
 std::vector<std::string> AxesTilingDataGen::GetTilingFuncImpl(const std::string &tiling_type) const {
   // gen axes tiling func impl
   std::vector<std::string> impl_codes;
-  impl_codes.emplace_back(
-      ("  void UpdateAxesTilingData(" + tiling_type + "& tiling_data) {"));
+  impl_codes.emplace_back(("  void UpdateAxesTilingData(" + tiling_type + "& tiling_data) {"));
   // example: tiling_data.set_{{tiling_data_name}}(tiling_data_expr)
   for (const auto &tiling_code : GetAxesTilingDataWithExpr()) {
     impl_codes.emplace_back(("    tiling_data.set_") + (tiling_code.first) + ("(") + (tiling_code.second) + (");"));
@@ -466,11 +469,11 @@ ge::Status BlockDimTilingDataGen::AddUsedCoreNum() {
 
 std::vector<std::string> BlockDimTilingDataGen::GetTilingFuncImpl(const std::string &tiling_type) const {
   std::vector<std::string> impl_codes;
-  impl_codes.emplace_back(
-      ("  void UpdateGeneralTilingData(" + tiling_type + "& tiling_data) {"));
+  impl_codes.emplace_back(("  void UpdateGeneralTilingData(" + tiling_type + "& tiling_data) {"));
   // example: tiling_data.set_{{tiling_data_name}}(tiling_data_expr)
   for (const auto &tiling_code : tiling_data_map_) {
-    impl_codes.emplace_back("    tiling_data.set_" + (tiling_code.first) + ("(") + (tiling_code.second.second) + (");"));
+    impl_codes.emplace_back("    tiling_data.set_" + (tiling_code.first) + ("(") + (tiling_code.second.second) +
+                            (");"));
   }
   impl_codes.emplace_back("  }\n");
   return impl_codes;
@@ -502,8 +505,7 @@ std::string MemoryTilingDataGen::GenFuncImpl(const std::pair<std::string, Expr> 
       GELOGW("Container[%s] expr does't exist.", var_name.c_str());
       continue;
     }
-    if ((origin_var.IsConstExpr()) ||
-        (define_vars.find(Str(origin_var)) != define_vars.cend())) {
+    if ((origin_var.IsConstExpr()) || (define_vars.find(Str(origin_var)) != define_vars.cend())) {
       continue;
     }
     func_impl += "    const auto " + Str(origin_var) + " = tiling_data.get_" + Str(origin_var) + "();\n";
@@ -598,7 +600,7 @@ ge::Status TilingDataGenerator::Init() {
   }
   for (const auto &model_info : model_info_list_) {
     GE_ASSERT_SUCCESS(GenTilingData(model_info), "Generate tiling data failed, tiling_key[%u].",
-                       model_info.tiling_case_id);
+                      model_info.tiling_case_id);
   }
   inited_ = true;
   return ge::SUCCESS;
@@ -635,7 +637,7 @@ std::vector<std::pair<std::string, std::string>> TilingDataGenerator::GetTilingD
   }
   for (const auto &tiling_data_gen : iter->second) {
     GELOGI("GetTilingDataWithAnnotation tiling_data_gen_type[%d] gen_type[%d]",
-            static_cast<int32_t>(tiling_data_gen_type), static_cast<int32_t>(tiling_data_gen->GetTilingDataGenType()));
+           static_cast<int32_t>(tiling_data_gen_type), static_cast<int32_t>(tiling_data_gen->GetTilingDataGenType()));
     if (((tiling_data_gen_type == TilingDataGenType::ALL_TILING_DATA_GEN) ||
          (tiling_data_gen->GetTilingDataGenType() == tiling_data_gen_type)) &&
         (IsGenEnable(tiling_data_gen_type))) {
@@ -650,12 +652,11 @@ std::vector<std::pair<std::string, std::string>> TilingDataGenerator::GetTilingD
 std::vector<std::pair<std::string, std::string>> TilingDataGenerator::GetTilingDataWithAnnotation(
     const TilingDataGenType tiling_data_gen_type) const {
   std::vector<std::pair<std::string, std::string>> res;
-  for (const auto &iter: graphs_tiling_data_gens_) {
+  for (const auto &iter : graphs_tiling_data_gens_) {
     for (const auto &tiling_data_gen : iter.second) {
       GELOGI("GetTilingDataWithAnnotation tiling_data_gen_type[%d] gen_type[%d]",
              static_cast<int32_t>(tiling_data_gen_type), static_cast<int32_t>(tiling_data_gen->GetTilingDataGenType()));
-      if ((tiling_data_gen->GetTilingDataGenType() == tiling_data_gen_type) &&
-          (IsGenEnable(tiling_data_gen_type))) {
+      if ((tiling_data_gen->GetTilingDataGenType() == tiling_data_gen_type) && (IsGenEnable(tiling_data_gen_type))) {
         const auto &data_with_annotation = tiling_data_gen->GetTilingDataWithAnnotation();
         res.insert(res.end(), data_with_annotation.cbegin(), data_with_annotation.cend());
       }

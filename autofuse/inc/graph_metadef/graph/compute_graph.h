@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -53,8 +53,8 @@ class ComputeGraph : public std::enable_shared_from_this<ComputeGraph>, public A
   explicit ComputeGraph(const std::string &name);
   explicit ComputeGraph(const char_t *name);
   ~ComputeGraph() override;
-  ComputeGraph(const ComputeGraph& compute_graph);
-  ComputeGraph(ComputeGraph&& compute_graph);
+  ComputeGraph(const ComputeGraph &compute_graph);
+  ComputeGraph(ComputeGraph &&compute_graph);
 
   std::string GetName() const;
   void SetName(const std::string &name);
@@ -93,7 +93,7 @@ class ComputeGraph : public std::enable_shared_from_this<ComputeGraph>, public A
   // AddNode with NodePtr
   NodePtr AddNode(const NodePtr node);
   NodePtr AddNode(const OpDescPtr op);
-  NodePtr AddNode(const OpDescPtr op, const int64_t id);    // for unserialize
+  NodePtr AddNode(const OpDescPtr op, const int64_t id);  // for unserialize
 
   /**
    * 将所有的insert_ops中的OpDesc构造出Node插到nodes_中，插在node的后面
@@ -120,12 +120,12 @@ class ComputeGraph : public std::enable_shared_from_this<ComputeGraph>, public A
   NodePtr InsertNodeBefore(const NodePtr &node, const OpDescPtr &insert_op);
 
   /**
-  * 判断是否支持融合
-  * @param origin_nodes 被融合的Node集合
-  * @param reason_not_support 不支持融合的原因
-  * @return 是否支持融合
-  * @note
-  *     1. 被融合的Node集合中若拥有不同的UserStreamLabel，则不支持融合
+   * 判断是否支持融合
+   * @param origin_nodes 被融合的Node集合
+   * @param reason_not_support 不支持融合的原因
+   * @return 是否支持融合
+   * @note
+   *     1. 被融合的Node集合中若拥有不同的UserStreamLabel，则不支持融合
    */
   bool IsSupportFuse(const std::vector<NodePtr> &origin_nodes, std::string &reason_not_support) const;
 
@@ -181,7 +181,7 @@ class ComputeGraph : public std::enable_shared_from_this<ComputeGraph>, public A
   /// @return graphStatus
   graphStatus UpdateOutputMapping(const std::map<uint32_t, uint32_t> &output_mapping);
 
-  void TopologicalSorting(const std::function<bool (const NodePtr &, const NodePtr &)> comp);
+  void TopologicalSorting(const std::function<bool(const NodePtr &, const NodePtr &)> comp);
   graphStatus TopologicalSorting();
   /**
    * 对当前图直接指定内部的合法topo策略
@@ -198,7 +198,7 @@ class ComputeGraph : public std::enable_shared_from_this<ComputeGraph>, public A
   graphStatus IsolateNode(const NodePtr &node);
   graphStatus InsertGraphEvents();
   bool operator==(const ComputeGraph &r_compute_graph) const;
-  ComputeGraph& operator=(ComputeGraph &compute_graph);
+  ComputeGraph &operator=(ComputeGraph &compute_graph);
 
   const std::map<std::vector<std::string>, std::vector<std::string>> &GetShareParamLayer() const;
 
@@ -217,10 +217,10 @@ class ComputeGraph : public std::enable_shared_from_this<ComputeGraph>, public A
   const Node *GetParentNodeBarePtr() const;
   void SetParentNode(const std::shared_ptr<Node> &parent);
   /**
- * 获取图的`NETOUTPUT`节点, 如果图中直接获取的`NETOUTPUT`节点无效，则会遍历图寻找
- * 类型为`NETOUTPUT`的节点，调用`SetNetOutputNode`刷新并返回
- * @return 如果查找成功返回图的输出节点，如果失败返回nullptr
- */
+   * 获取图的`NETOUTPUT`节点, 如果图中直接获取的`NETOUTPUT`节点无效，则会遍历图寻找
+   * 类型为`NETOUTPUT`的节点，调用`SetNetOutputNode`刷新并返回
+   * @return 如果查找成功返回图的输出节点，如果失败返回nullptr
+   */
   std::shared_ptr<Node> GetOrUpdateNetOutputNode();
   void SetNetOutputNode(const std::shared_ptr<Node> &netoutput_node);
   const std::map<std::string, std::vector<int32_t>> &GetGraphOutNodes() const;
@@ -258,7 +258,8 @@ class ComputeGraph : public std::enable_shared_from_this<ComputeGraph>, public A
   void SetAllNodesInfo(const std::map<OperatorImplPtr, NodePtr> &nodes);
 
   /**
-   * @brief 设置图的输出节点和输出节点索引，并且创建或更新NetOutput，如果NetOutput已经创建，可以通过update_data_edge参数设置
+   * @brief
+   * 设置图的输出节点和输出节点索引，并且创建或更新NetOutput，如果NetOutput已经创建，可以通过update_data_edge参数设置
    * 是否根据out_nodes_info更新NetOutput的数据连边，默认行为是更新。如果只是记录输出信息，调用者自己去手动更新数据连边，
    * 可以将update_data_edge参数设置为false
    * @param out_nodes_info 图的所有输出节点和节点的索引，容器为有序容器，顺序代表图的输出顺序
@@ -310,7 +311,7 @@ class ComputeGraph : public std::enable_shared_from_this<ComputeGraph>, public A
   void ClearNodeList();
   void ReorderByNodeId();
 
-  template<class T>
+  template <class T>
   T *GetOrCreateAttrsGroup() {
     return MutableAttrMap().GetOrCreateAttrsGroup<T>();
   }
@@ -336,8 +337,7 @@ class ComputeGraph : public std::enable_shared_from_this<ComputeGraph>, public A
   graphStatus RemoveExtraOutEdge(const NodePtr &node) const;
   bool GraphMembersAreEqual(const ComputeGraph &r_graph) const;
   bool GraphAttrsAreEqual(const ComputeGraph &r_graph) const;
-  bool VectorInputNodePtrIsEqual(const std::vector<NodePtr> &left_nodes,
-                                 const std::vector<NodePtr> &right_nodes) const;
+  bool VectorInputNodePtrIsEqual(const std::vector<NodePtr> &left_nodes, const std::vector<NodePtr> &right_nodes) const;
 
   void SetNodesOwner();
   // Update parent graph of the subgraph which is the direct subgraph of the root graph.

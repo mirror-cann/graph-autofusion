@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -26,7 +26,8 @@ class SplitFusionCaseGenerator : public FusionCaseGenerator {
   static std::vector<af::AscNodePtr> FindSplitNodes(const ascir::HintGraph &owner_graph);
   static Status ResolveSplitDim(const af::AscNodePtr &split_node, size_t &split_dim, bool &is_first_dim);
   Status ConvertSplitToLoads(ascir::HintGraph &owner_graph, const af::AscNodePtr &split_node, size_t split_dim);
-  Status SplitSplits(const ascir::HintGraph &owner_graph, const af::AscNodePtr &split_node, size_t split_dim, const bool &split);
+  Status SplitSplits(const ascir::HintGraph &owner_graph, const af::AscNodePtr &split_node, size_t split_dim,
+                     const bool &split);
   Status Prepare(const af::AscNodePtr &split_node, size_t split_dim);
   Status ReplaceWithLoad(::ascir::ImplGraph &owner_graph, const af::AscNodePtr &split_node,
                          const af::OutDataAnchorPtr &split_out_anchor);
@@ -41,17 +42,14 @@ class SplitFusionCaseGenerator : public FusionCaseGenerator {
                                    size_t start, size_t end);
   af::Status SetLoadOpAttr(af::ascir_op::Store &store_op, const af::ascir_op::Split &split_op,
                            size_t start_index) const;
-  af::Status SplitOutReplaceAxis(ascir::ImplGraph &owner_graph,
-                                std::vector<af::AscNodePtr> &nodes,
-                                const af::AscNodePtr &load_node_new,
-                                int32_t out_index,
-                                af::AscNodePtr &broadcast_node);
-  af::Status CollectBackwardNodes(const af::AscNodePtr &load_node,
-                                  std::vector<af::AscNodePtr> &nodes,
+  af::Status SplitOutReplaceAxis(ascir::ImplGraph &owner_graph, std::vector<af::AscNodePtr> &nodes,
+                                 const af::AscNodePtr &load_node_new, int32_t out_index,
+                                 af::AscNodePtr &broadcast_node);
+  af::Status CollectBackwardNodes(const af::AscNodePtr &load_node, std::vector<af::AscNodePtr> &nodes,
                                   af::AscNodePtr &broadcast_node) const;
   af::Status SplitDataForConvertLoad(ascir::ImplGraph &owner_graph, const af::AscNodePtr &split_node,
                                      const af::OutDataAnchorPtr &split_out_anchor, af::AscNodePtr &new_load_node);
-  void IsBroadcastNode(const af::NodePtr &origin_node, af::AscNodePtr &broadcast_node, bool &has_broadcast_node) const;                                     
+  void IsBroadcastNode(const af::NodePtr &origin_node, af::AscNodePtr &broadcast_node, bool &has_broadcast_node) const;
   std::vector<af::Expression> offsets_;
   af::AscNodePtr ori_load_node_;
   af::AscNodePtr ori_in_data_node_;

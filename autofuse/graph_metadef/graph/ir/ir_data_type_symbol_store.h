@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -32,7 +32,8 @@ class IRDataTypeSymbolStore {
   // 类型推导入口函数，op的输入dtype和属性视作符号实际值的上下文，推导结果原地更新到op上
   graphStatus InferDtype(const OpDescPtr &op) const;
   bool IsSupportSymbolicInferDtype() const;
-  bool IsSupportOrderedSymbolicInferDtype() const;;
+  bool IsSupportOrderedSymbolicInferDtype() const;
+  ;
 
   // 创建一个Sym，用于Sym出现早于定义的情况
   SymDtype *GetOrCreateSymbol(const std::string &origin_sym_id);
@@ -62,6 +63,7 @@ class IRDataTypeSymbolStore {
   std::vector<SymDtype *> GetOutSymbols() const {
     return output_syms_;
   }
+
  private:
   size_t num_ir_inputs = 0U;
   // 全部的Sym，包含T方式声明的Sym，以及Legacy注册的输入输出无效Sym，在DATATYPE声明前，无法确定Sym是否有效
@@ -72,5 +74,5 @@ class IRDataTypeSymbolStore {
   std::vector<SymDtype *> output_syms_;
   std::vector<std::pair<std::string, IrOutputType>> output_name_and_types_;
 };
-}  // namespace ge
+}  // namespace af
 #endif  // METADEF_CXX_GRAPH_IR_DATA_TYPE_SYMBOL_STORE_H_

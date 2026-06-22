@@ -16,49 +16,47 @@
 using namespace AscendC;
 
 template <typename T, int64_t N>
-__aicore__ inline void ShiftedChebyshevPolynomialUCal(__ubuf__ T* dst, __ubuf__ T* src, uint32_t calCount)
-{
-    uint32_t vlSize = static_cast<uint32_t>(GetVecLen() / sizeof(T));
-    uint16_t repeatTime = static_cast<uint16_t>(CeilDivision(calCount, vlSize));
+__aicore__ inline void ShiftedChebyshevPolynomialUCal(__ubuf__ T *dst, __ubuf__ T *src, uint32_t calCount) {
+  uint32_t vlSize = static_cast<uint32_t>(GetVecLen() / sizeof(T));
+  uint16_t repeatTime = static_cast<uint16_t>(CeilDivision(calCount, vlSize));
 
-    Reg::RegTensor<T> srcReg, dstReg, temp1Reg, temp2Reg;
-    Reg::MaskReg mask;
-    mask = Reg::UpdateMask<T>(calCount);
+  Reg::RegTensor<T> srcReg, dstReg, temp1Reg, temp2Reg;
+  Reg::MaskReg mask;
+  mask = Reg::UpdateMask<T>(calCount);
 
-    for (uint16_t i = 0U; i < repeatTime; ++i) {
-        Reg::LoadAlign(srcReg, src + i * vlSize);
+  for (uint16_t i = 0U; i < repeatTime; ++i) {
+    Reg::LoadAlign(srcReg, src + i * vlSize);
 
-        Reg::Muls(dstReg, srcReg, (T)4.0, mask);
-        Reg::Adds(dstReg, dstReg, (T)(-2.0), mask);  // dstReg = 4x-2
+    Reg::Muls(dstReg, srcReg, (T)4.0, mask);
+    Reg::Adds(dstReg, dstReg, (T)(-2.0), mask);  // dstReg = 4x-2
 
-        Reg::Move(srcReg, dstReg);  // srcReg = 4x-2
+    Reg::Move(srcReg, dstReg);  // srcReg = 4x-2
 
-        Reg::Duplicate(temp1Reg, (T)1.0, mask);
+    Reg::Duplicate(temp1Reg, (T)1.0, mask);
 
-        ShiftedChebyshevPolynomialCal<T, N>(dstReg, srcReg, temp1Reg, temp2Reg, mask);
+    ShiftedChebyshevPolynomialCal<T, N>(dstReg, srcReg, temp1Reg, temp2Reg, mask);
 
-        Reg::StoreAlign(dst + i * vlSize, dstReg, mask);
-    }
+    Reg::StoreAlign(dst + i * vlSize, dstReg, mask);
+  }
 }
 
 template <typename T, int64_t N>
-__aicore__ inline void ShiftedChebyshevPolynomialUExtend(
-    const LocalTensor<T> &dst, const LocalTensor<T> &src,
-    const LocalTensor<uint8_t>& sharedTmpBuffer, const uint32_t calCount
-) {
-    static_assert(SupportType<T, float>(), "Current data type is  not supported on current device!");
+__aicore__ inline void ShiftedChebyshevPolynomialUExtend(const LocalTensor<T> &dst, const LocalTensor<T> &src,
+                                                         const LocalTensor<uint8_t> &sharedTmpBuffer,
+                                                         const uint32_t calCount) {
+  static_assert(SupportType<T, float>(), "Current data type is  not supported on current device!");
 
-    if constexpr (N < 0) {
-        Duplicate(dst, (T)0.0, calCount);
-    } else if constexpr (N == 1) {
-        Muls(dst, src, (T)4.0, calCount);
-        Adds(dst, dst, (T)(-2.0), calCount);
-    } else if constexpr (N == 0) {
-        Duplicate(dst, (T)1.0, calCount);
-    } else {
-        VF_CALL<ShiftedChebyshevPolynomialUCal<T, N>>(
-            (__ubuf__ T*)dst.GetPhyAddr(), (__ubuf__ T*)src.GetPhyAddr(), calCount);
-    }
+  if constexpr (N < 0) {
+    Duplicate(dst, (T)0.0, calCount);
+  } else if constexpr (N == 1) {
+    Muls(dst, src, (T)4.0, calCount);
+    Adds(dst, dst, (T)(-2.0), calCount);
+  } else if constexpr (N == 0) {
+    Duplicate(dst, (T)1.0, calCount);
+  } else {
+    VF_CALL<ShiftedChebyshevPolynomialUCal<T, N>>((__ubuf__ T *)dst.GetPhyAddr(), (__ubuf__ T *)src.GetPhyAddr(),
+                                                  calCount);
+  }
 }
 
 #endif

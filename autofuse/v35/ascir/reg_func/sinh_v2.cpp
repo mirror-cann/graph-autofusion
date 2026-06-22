@@ -28,4 +28,4 @@ std::vector<std::unique_ptr<TmpBufDesc>> CalcSinhTmpSizeV2(const AscNode &node) 
   return tmp_buf_descs;
 }
 }  // namespace ascir
-} // namespace ge
+}  // namespace af

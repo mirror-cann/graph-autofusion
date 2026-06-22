@@ -15,7 +15,9 @@
 // REPORT_INNER_ERR_MSG is a macro used in error reporting, defined as no-op in test environment
 
 #ifdef STUB_LOG
-#define REPORT_INNER_ERR_MSG(err_code, fmt, ...) do {} while (0)
+#define REPORT_INNER_ERR_MSG(err_code, fmt, ...) \
+  do {                                           \
+  } while (0)
 #else
 #define REPORT_INNER_ERR_MSG(err_code, fmt, ...) printf("[ERR_MSG]" fmt "\n", ##__VA_ARGS__)
 #endif

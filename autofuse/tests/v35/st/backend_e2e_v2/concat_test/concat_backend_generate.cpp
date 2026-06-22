@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -41,7 +41,8 @@ class TestBackendConcatE2e : public testing::Test {
     if (dim_str[0] == 's') {
       return af::Symbol(dim_str.c_str());
     }
-    return af::Symbol(std::atoi(dim_str.c_str()));;
+    return af::Symbol(std::atoi(dim_str.c_str()));
+    ;
   }
 
   static af::AscGraph CreateConcatAscGraph(const std::vector<std::string> &dims, af::DataType dtype) {
@@ -124,13 +125,11 @@ TEST_F(TestBackendConcatE2e, ConcatNotAllAligned) {
 )";
 
   auto graph = CreateConcatAscGraphDiffSymbol("concat_v2_test");
-  std::map<std::string, std::string> shape_info(
-      {{"s0", "stub_s0"}, {"s1", "stub_s1"}, {"s2", "stub_s2"}}
-  );
+  std::map<std::string, std::string> shape_info({{"s0", "stub_s0"}, {"s1", "stub_s1"}, {"s2", "stub_s2"}});
   std::vector<std::string> parts = splitString(KERNEL_SRC_LIST, ':');
-  std::string kernel_src_file_name = parts[0];      // add_abs_test_tiling.cpp
-  std::string tiling_src_file_name = parts[1];      // add_abs_test_kernel.cpp
-  std::string tiling_data_src_file_name = parts[2]; // autofuse_tiling_data.h
+  std::string kernel_src_file_name = parts[0];       // add_abs_test_tiling.cpp
+  std::string tiling_src_file_name = parts[1];       // add_abs_test_kernel.cpp
+  std::string tiling_data_src_file_name = parts[2];  // autofuse_tiling_data.h
 
   try {
     optimize::Optimizer optimizer(optimize::OptimizerOptions{});
@@ -151,8 +150,7 @@ TEST_F(TestBackendConcatE2e, ConcatNotAllAligned) {
     kernel_file << tilig_stub << RemoveSubDirInclude(result.kernel);
     tiling_file << result.tiling;
     tiling_data_file << result.tiling_data;
-  }
-  catch (...) {
+  } catch (...) {
     gen_success = false;
   }
 
@@ -162,9 +160,7 @@ TEST_F(TestBackendConcatE2e, ConcatNotAllAligned) {
 TEST_F(TestBackendConcatE2e, ConcatNotAllAligned_B64) {
   bool gen_success = true;
   af::AscGraph graph = CreateConcatAscGraph({"s0", "s1"}, af::DT_INT64);
-  std::map<std::string, std::string> shape_info(
-      {{"s0", "stub_s0"}, {"s1", "stub_s1"}}
-  );
+  std::map<std::string, std::string> shape_info({{"s0", "stub_s0"}, {"s1", "stub_s1"}});
 
   try {
     optimize::Optimizer optimizer(optimize::OptimizerOptions{});
@@ -182,8 +178,7 @@ TEST_F(TestBackendConcatE2e, ConcatNotAllAligned_B64) {
     EXPECT_TRUE(kernel.find(expected) != std::string::npos);
     expected = "concat::ConcatExtendDyn<uint32_t, 2>((uint32_t *)";
     EXPECT_TRUE(kernel.find(expected) != std::string::npos);
-  }
-  catch (...) {
+  } catch (...) {
     gen_success = false;
   }
 
@@ -193,9 +188,7 @@ TEST_F(TestBackendConcatE2e, ConcatNotAllAligned_B64) {
 TEST_F(TestBackendConcatE2e, ConcatNotAllAligned_B8) {
   bool gen_success = true;
   af::AscGraph graph = CreateConcatAscGraphInputReverted({"s0", "s1"}, af::DT_INT8);
-  std::map<std::string, std::string> shape_info(
-      {{"s0", "stub_s0"}, {"s1", "stub_s1"}}
-  );
+  std::map<std::string, std::string> shape_info({{"s0", "stub_s0"}, {"s1", "stub_s1"}});
   try {
     optimize::Optimizer optimizer(optimize::OptimizerOptions{});
     codegen::Codegen codegen(codegen::CodegenOptions{});
@@ -211,8 +204,7 @@ TEST_F(TestBackendConcatE2e, ConcatNotAllAligned_B8) {
     EXPECT_TRUE(kernel.find(expected) != std::string::npos);
     expected = "concat::ConcatExtendDyn<uint8_t, 2>((uint8_t *)";
     EXPECT_TRUE(kernel.find(expected) != std::string::npos);
-  }
-  catch (...) {
+  } catch (...) {
     gen_success = false;
   }
 
@@ -222,9 +214,7 @@ TEST_F(TestBackendConcatE2e, ConcatNotAllAligned_B8) {
 TEST_F(TestBackendConcatE2e, ConcatNotAllAligned_B8ToB16) {
   bool gen_success = true;
   af::AscGraph graph = CreateConcatAscGraph({"s0", "130"}, af::DT_INT8);
-  std::map<std::string, std::string> shape_info(
-      {{"s0", "stub_s0"}}
-  );
+  std::map<std::string, std::string> shape_info({{"s0", "stub_s0"}});
   try {
     optimize::Optimizer optimizer(optimize::OptimizerOptions{});
     codegen::Codegen codegen(codegen::CodegenOptions{});
@@ -237,16 +227,16 @@ TEST_F(TestBackendConcatE2e, ConcatNotAllAligned_B8ToB16) {
     EXPECT_EQ(codegen.Generate(shape_info, fused_schedule_result, result), 0);
     const auto &kernel = RemoveSubDirInclude(result.kernel);
 
-    std::string expected = "    const concat::ConcatTiling<2> concat_tiling {\n"
-                           "      .num_rows = static_cast<uint32_t>(z0t_actual_size),\n"
-                           "      .num_dst_cols = 130,\n"
-                           "      .num_srcs_cols = {65, 65, },\n"
-                           "    };\n";
+    std::string expected =
+        "    const concat::ConcatTiling<2> concat_tiling {\n"
+        "      .num_rows = static_cast<uint32_t>(z0t_actual_size),\n"
+        "      .num_dst_cols = 130,\n"
+        "      .num_srcs_cols = {65, 65, },\n"
+        "    };\n";
     EXPECT_TRUE(kernel.find(expected) != std::string::npos);
     expected = "concat::ConcatExtend<uint16_t, 2>((uint16_t *)";
     EXPECT_TRUE(kernel.find(expected) != std::string::npos);
-  }
-  catch (...) {
+  } catch (...) {
     gen_success = false;
   }
 
@@ -256,9 +246,7 @@ TEST_F(TestBackendConcatE2e, ConcatNotAllAligned_B8ToB16) {
 TEST_F(TestBackendConcatE2e, ConcatAllAligned) {
   bool gen_success = true;
   af::AscGraph graph = CreateConcatAscGraph({"s0", "32"}, af::DT_INT8);
-  std::map<std::string, std::string> shape_info(
-      {{"s0", "stub_s0"}}
-  );
+  std::map<std::string, std::string> shape_info({{"s0", "stub_s0"}});
   try {
     optimize::Optimizer optimizer(optimize::OptimizerOptions{});
     codegen::Codegen codegen(codegen::CodegenOptions{});
@@ -270,16 +258,16 @@ TEST_F(TestBackendConcatE2e, ConcatAllAligned) {
     codegen::CodegenResult result;
     EXPECT_EQ(codegen.Generate(shape_info, fused_schedule_result, result), 0);
     const auto &kernel = RemoveSubDirInclude(result.kernel);
-    std::string expected = "    constexpr ConcatTilingAllAligned<2> concat_tiling {\n"
-                           "      .dst_col_size = 64,\n"
-                           "      .src_col_sizes = { 32, 32, },\n"
-                           "      .dst_offsets = { 0, 32, },\n"
-                           "    };\n";
+    std::string expected =
+        "    constexpr ConcatTilingAllAligned<2> concat_tiling {\n"
+        "      .dst_col_size = 64,\n"
+        "      .src_col_sizes = { 32, 32, },\n"
+        "      .dst_offsets = { 0, 32, },\n"
+        "    };\n";
     EXPECT_TRUE(kernel.find(expected) != std::string::npos);
     expected = "ConcatAllAligned<int8_t, 2>(";
     EXPECT_TRUE(kernel.find(expected) != std::string::npos);
-  }
-  catch (...) {
+  } catch (...) {
     gen_success = false;
   }
 
@@ -289,9 +277,7 @@ TEST_F(TestBackendConcatE2e, ConcatAllAligned) {
 TEST_F(TestBackendConcatE2e, ConcatOneAxis) {
   bool gen_success = true;
   af::AscGraph graph = CreateOneAxisConcatAscGraph({"1", "2"}, af::DT_FLOAT);
-  std::map<std::string, std::string> shape_info(
-      {{"s0", "stub_s0"}}
-  );
+  std::map<std::string, std::string> shape_info({{"s0", "stub_s0"}});
   try {
     optimize::Optimizer optimizer(optimize::OptimizerOptions{});
     codegen::Codegen codegen(codegen::CodegenOptions{});
@@ -306,8 +292,7 @@ TEST_F(TestBackendConcatE2e, ConcatOneAxis) {
 
     std::string expected = "concat::ConcatOneAxis";
     EXPECT_TRUE(kernel.find(expected) != std::string::npos);
-  }
-  catch (...) {
+  } catch (...) {
     gen_success = false;
   }
 

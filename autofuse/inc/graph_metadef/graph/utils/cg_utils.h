@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -28,7 +28,8 @@ namespace sym = ::ge::sym;
 namespace sym = ::af::sym;
 #endif
 constexpr char RELATED_OP[] = "RelatedOp";
-#define THROW(condition) if (!(condition)) throw std::runtime_error("Check Failed: " #condition)
+#define THROW(condition) \
+  if (!(condition)) throw std::runtime_error("Check Failed: " #condition)
 struct LoopOption {
   bool pad_tensor_axes_to_loop;
 };
@@ -110,7 +111,7 @@ class VectorizedLoopGuard {
     auto context = ascir::cg::CgContext::GetThreadLocalContext();  \
     if (context != nullptr) {                                      \
       (op).attr.sched.axis = (context)->GetLoopAxisIds();          \
-      if (!((op).attr.sched.axis.empty()))   {                     \
+      if (!((op).attr.sched.axis.empty())) {                       \
         (op).attr.sched.loop_axis = ((op).attr.sched.axis.back()); \
       }                                                            \
     }                                                              \
@@ -139,6 +140,7 @@ class CodeGenUtils {
     GE_ASSERT_NOTNULL(op_desc, "op_desc is null.");
     return op_desc->GetOrCreateAttrsGroup<AscNodeAttr>();
   }
+
  private:
   static int64_t GenNextExecId(const ComputeGraphPtr &graph);
 };
@@ -198,6 +200,6 @@ inline bool PadOutputViewToSched(AscOpOutput &output) {
 }
 }  // namespace cg
 }  // namespace ascir
-}
+}  // namespace af
 
 #endif  // AUTOFUSE_CG_UTILS_H

@@ -49,9 +49,9 @@ TEST_F(TestBackendLoadModifiedBesselI0StoreE2e, LoadModifiedBesselI0StoreE2eCode
   std::map<std::string, std::string> i0_shape_info({{"s0", "stub_s0"}, {"s1", "stub_s1"}});
   auto graph = ascir::ShareGraph::LoadModifiedBesselI0StoreFusedGraph(2);
   std::vector<std::string> i0_parts = splitString(KERNEL_SRC_LIST, ':');
-  const std::string& kernel_src_file_name = i0_parts[0];
-  const std::string& tiling_src_file_name = i0_parts[1];
-  const std::string& tiling_data_src_file_name = i0_parts[2];
+  const std::string &kernel_src_file_name = i0_parts[0];
+  const std::string &tiling_src_file_name = i0_parts[1];
+  const std::string &tiling_data_src_file_name = i0_parts[2];
 
   try {
     optimize::Optimizer i0_optimizer(optimize::OptimizerOptions{});

@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -34,7 +34,7 @@ Status BuildEqAscendGraphND(af::AscGraph &graph) {
   auto z3 = graph.CreateAxis("z3", s3);
   auto [z0T, z0t] = graph.TileSplit(z0.id);
   auto [z0TB, z0Tb] = graph.BlockSplit(z0T->id);
-  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {z0, z2, z3},  FORMAT_ND);
+  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {z0, z2, z3}, FORMAT_ND);
   LOOP(*z0TB) {
     LOOP(*z0T) {
       auto load1 = Load("load1", data1).TQue(Position::kPositionVecIn, 1, 1);
@@ -119,31 +119,24 @@ static Status BuildVectorFuncTestGraph(af::AscGraph &graph) {
   att::GraphConstructUtils::UpdateGraphVectorizedStride(graph);
   return af::SUCCESS;
 }
-}
-}
-}
+}  // namespace cg
+}  // namespace ascir
+}  // namespace af
 namespace att {
 static TuningSpacePtr tuning_space = std::make_shared<TuningSpace>();
 class TestPipePerfExpr : public ::testing::Test {
  public:
-  static void TearDownTestCase()
-  {
+  static void TearDownTestCase() {
     std::cout << "Test end." << std::endl;
   }
-  static void SetUpTestCase()
-  {
+  static void SetUpTestCase() {
     std::cout << "Test begin." << std::endl;
   }
-  void SetUp() override
-  {
-  }
-  void TearDown() override
-  {
-  }
+  void SetUp() override {}
+  void TearDown() override {}
 };
 
-TEST_F(TestPipePerfExpr, case0)
-{
+TEST_F(TestPipePerfExpr, case0) {
   af::AscGraph graph("graph");
   att::FaBeforeAutoFuse(graph);
   att::FaAfterScheduler(graph);
@@ -197,8 +190,7 @@ void VerifyDescriptions(const std::map<Expr, TernaryOp, ExprCmp> &exe_times) {
 }
 }  // namespace
 
-TEST_F(TestPipePerfExpr, case_get_perf_for_loop)
-{
+TEST_F(TestPipePerfExpr, case_get_perf_for_loop) {
   af::AscGraph graph("graph");
   ASSERT_EQ(af::ascir::cg::BuildEqAscendGraphND(graph), af::SUCCESS);
   graph.FindNode("eq")->outputs[0].attr.dtype = af::DT_UINT8;
@@ -237,8 +229,7 @@ TEST_F(TestPipePerfExpr, case_get_perf_for_loop)
   }
 }
 
-TEST_F(TestPipePerfExpr, case1)
-{
+TEST_F(TestPipePerfExpr, case1) {
   af::AscGraph graph("graph");
   att::FaBeforeAutoFuse(graph);
   att::FaAfterScheduler(graph);
@@ -258,8 +249,8 @@ TEST_F(TestPipePerfExpr, case1)
     if (skip_node_types.count(node.node_type) != 0U) {
       continue;
     }
-    std::vector<TensorPtr> l2_inputs; // 涉及L2的tensor
-    std::map<uint32_t, uint32_t> tensor_ids; // stride==0的index
+    std::vector<TensorPtr> l2_inputs;         // 涉及L2的tensor
+    std::map<uint32_t, uint32_t> tensor_ids;  // stride==0的index
 
     uint32_t idx = 0U;
     bool is_input_from_l2 = false;
@@ -287,8 +278,8 @@ TEST_F(TestPipePerfExpr, case1)
     }
 
     if (is_input_from_l2) {
-        match_input_from_l2 = true;
-//       EXPECT_TRUE(pipe_perf.GetL2PerfExpr(pipe_costs, node, l2_inputs, tensor_ids) != SUCCESS);
+      match_input_from_l2 = true;
+      //       EXPECT_TRUE(pipe_perf.GetL2PerfExpr(pipe_costs, node, l2_inputs, tensor_ids) != SUCCESS);
     }
   }
   // 当前构图不涉及L2，后续适配
@@ -311,7 +302,7 @@ TEST_F(TestPipePerfExpr, TestTailExeTimeCase1) {
   tensor->dim_info = {z1t_size.get()};
 
   NodeInfo node;
-  node.inputs.emplace_back(tensor); 
+  node.inputs.emplace_back(tensor);
   node.loop_axes = {z1T_size.get()};
 
   Expr tail_exe_times;
@@ -360,7 +351,7 @@ TEST_F(TestPipePerfExpr, TestTailExeTimeCase2) {
   tensor->dim_info = {z1t_size.get()};
 
   NodeInfo node;
-  node.inputs.emplace_back(tensor); 
+  node.inputs.emplace_back(tensor);
   node.loop_axes = {z0z1Tb_size.get()};
 
   Expr tail_exe_times;
@@ -397,7 +388,8 @@ TEST_F(TestPipePerfExpr, TestTailRepeatCase1) {
   EXPECT_EQ(Str(ret[1]), "z1t_size_tail");
   auto iter = ternary_ops.find(ret[1]);
   EXPECT_TRUE(iter != ternary_ops.end());
-  EXPECT_EQ(iter->second.GetTernaryOpStr(), "TernaryOp(IsEqual(Mod(z1_size, z1t_size), 0), z1t_size, Mod(z1_size, z1t_size))");
+  EXPECT_EQ(iter->second.GetTernaryOpStr(),
+            "TernaryOp(IsEqual(Mod(z1_size, z1t_size), 0), z1t_size, Mod(z1_size, z1t_size))");
 }
 
 TEST_F(TestPipePerfExpr, TestTailRepeatCase2) {
@@ -442,8 +434,7 @@ TEST_F(TestPipePerfExpr, TestUpdatePipeHead) {
   EXPECT_EQ(pipe_perf.UpdatePipeHead(pipe_costs, ternary_ops), af::SUCCESS);
   auto iter = pipe_costs.find(PipeType::PIPE_NONE);
   EXPECT_TRUE(iter != pipe_costs.end());
-  EXPECT_EQ(Str(iter->second),
-            "((32.7200012207031 * block_dim) + 1575.03002929688)");
+  EXPECT_EQ(Str(iter->second), "((32.7200012207031 * block_dim) + 1575.03002929688)");
 }
 
 TEST_F(TestPipePerfExpr, TestUpdatePipeHeadV1) {
@@ -461,8 +452,7 @@ TEST_F(TestPipePerfExpr, TestUpdatePipeHeadV1) {
   EXPECT_EQ(pipe_perf.UpdatePipeHead(pipe_costs, ternary_ops), af::SUCCESS);
   auto iter = pipe_costs.find(PipeType::AIV_MTE2);
   EXPECT_TRUE(iter != pipe_costs.end());
-  EXPECT_EQ(Str(iter->second),
-            "((32.7200012207031 * block_dim) + 1575.03002929688)");
+  EXPECT_EQ(Str(iter->second), "((32.7200012207031 * block_dim) + 1575.03002929688)");
 }
 
 TEST_F(TestPipePerfExpr, TestUpdatePipeHeadV2) {
@@ -480,8 +470,7 @@ TEST_F(TestPipePerfExpr, TestUpdatePipeHeadV2) {
   EXPECT_EQ(pipe_perf.UpdatePipeHead(pipe_costs, ternary_ops), af::SUCCESS);
   auto iter = pipe_costs.find(PipeType::AIV_MTE2);
   EXPECT_TRUE(iter != pipe_costs.end());
-  EXPECT_EQ(Str(iter->second),
-            "((15.8900003433228 * block_dim) + 882.090026855469)");
+  EXPECT_EQ(Str(iter->second), "((15.8900003433228 * block_dim) + 882.090026855469)");
 }
 
 TEST_F(TestPipePerfExpr, TestUpdatePipeHeadV3) {
@@ -505,8 +494,7 @@ TEST_F(TestPipePerfExpr, TestUpdatePipeHeadV3) {
   EXPECT_EQ(pipe_perf.UpdatePipeHead(pipe_costs, ternary_ops), af::SUCCESS);
   auto iter = pipe_costs.find(PipeType::AIV_MTE2);
   EXPECT_TRUE(iter != pipe_costs.end());
-  EXPECT_EQ(Str(iter->second),
-            "((32.7200012207031 * block_dim) + 1575.03002929688)");
+  EXPECT_EQ(Str(iter->second), "((32.7200012207031 * block_dim) + 1575.03002929688)");
 }
 
 TEST_F(TestPipePerfExpr, TestUpdatePipeHeadTernaryOp) {
@@ -527,7 +515,8 @@ TEST_F(TestPipePerfExpr, TestUpdatePipeHeadTernaryOp) {
   auto iter2 = ternary_ops.find(iter->second);
   EXPECT_TRUE(iter2 != ternary_ops.end());
   EXPECT_EQ(iter2->second.GetTernaryOpStr(),
-            "TernaryOp((2 * z0t_size) < 25000, ((15.8900003433228 * block_dim) + 882.090026855469), ((32.7200012207031 * block_dim) + 1575.03002929688))");
+            "TernaryOp((2 * z0t_size) < 25000, ((15.8900003433228 * block_dim) + 882.090026855469), ((32.7200012207031 "
+            "* block_dim) + 1575.03002929688))");
 }
 
 // 测试VectorFunc性能注释生成
@@ -563,4 +552,4 @@ TEST_F(TestPipePerfExpr, TestVectorFuncPerfAnnotation) {
   auto iter = pipe_costs.find(PipeType::AIV_VEC);
   EXPECT_TRUE(iter != pipe_costs.end()) << "pipe_costs should contain AIV_VEC performance";
 }
-}
+}  // namespace att

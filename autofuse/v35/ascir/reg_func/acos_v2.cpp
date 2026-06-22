@@ -13,22 +13,21 @@
 
 namespace af {
 namespace ascir {
-std::vector<std::unique_ptr<TmpBufDesc>> CalcAcosTmpSizeV2(const AscNode &node)
-{
-    auto node_inputs = node.inputs;
-    GELOGD("Node %s[%s] inputs[0] data type size is: %d", node.GetTypePtr(), node.GetNamePtr(),
-           GetSizeByDataType(node_inputs[0].attr.dtype));
-    constexpr uint32_t ACOS_FLOAT_CALC_FAC = 2;
-    constexpr uint32_t ACOS_HALF_CALC_FAC = 6;
-    constexpr uint32_t ACOS_ONE_REPEAT_BYTE_SIZE = 256;
-    Expression buf_nums =
-        ((node_inputs[0].attr.dtype == ge::DT_FLOAT) ? Symbol(ACOS_FLOAT_CALC_FAC) : Symbol(ACOS_HALF_CALC_FAC));
-    Expression total_size = buf_nums * Symbol(ACOS_ONE_REPEAT_BYTE_SIZE);
-    GELOGD("Get temp buffer size: %s", total_size.Str().get());
-    TmpBufDesc desc = {total_size, -1};
-    std::vector<std::unique_ptr<TmpBufDesc>> tmp_buf_descs;
-    tmp_buf_descs.emplace_back(std::make_unique<TmpBufDesc>(desc));
-    return tmp_buf_descs;
+std::vector<std::unique_ptr<TmpBufDesc>> CalcAcosTmpSizeV2(const AscNode &node) {
+  auto node_inputs = node.inputs;
+  GELOGD("Node %s[%s] inputs[0] data type size is: %d", node.GetTypePtr(), node.GetNamePtr(),
+         GetSizeByDataType(node_inputs[0].attr.dtype));
+  constexpr uint32_t ACOS_FLOAT_CALC_FAC = 2;
+  constexpr uint32_t ACOS_HALF_CALC_FAC = 6;
+  constexpr uint32_t ACOS_ONE_REPEAT_BYTE_SIZE = 256;
+  Expression buf_nums =
+      ((node_inputs[0].attr.dtype == ge::DT_FLOAT) ? Symbol(ACOS_FLOAT_CALC_FAC) : Symbol(ACOS_HALF_CALC_FAC));
+  Expression total_size = buf_nums * Symbol(ACOS_ONE_REPEAT_BYTE_SIZE);
+  GELOGD("Get temp buffer size: %s", total_size.Str().get());
+  TmpBufDesc desc = {total_size, -1};
+  std::vector<std::unique_ptr<TmpBufDesc>> tmp_buf_descs;
+  tmp_buf_descs.emplace_back(std::make_unique<TmpBufDesc>(desc));
+  return tmp_buf_descs;
 }
-}
-}
+}  // namespace ascir
+}  // namespace af

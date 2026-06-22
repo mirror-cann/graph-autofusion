@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -103,21 +103,21 @@ ExprType Expression::GetExprType() const {
 }
 
 bool Expression::IsConstExpr() const {
-  if (impl_!= nullptr) {
+  if (impl_ != nullptr) {
     return impl_->IsConstExpr();
   }
   return false;
 }
 
 bool Expression::IsVariableExpr() const {
-  if (impl_!= nullptr) {
+  if (impl_ != nullptr) {
     return impl_->IsVariableExpr();
   }
   return false;
 }
 
 bool Expression::IsBooleanExpr() const {
-  if (impl_!= nullptr) {
+  if (impl_ != nullptr) {
     return impl_->IsBooleanExpr();
   }
   return false;
@@ -146,7 +146,7 @@ Expression Expression::Subs(const std::vector<std::pair<Expression, Expression>>
 }
 
 std::vector<Expression> Expression::FreeSymbols() const {
-  if (impl_!= nullptr) {
+  if (impl_ != nullptr) {
     std::vector<Expression> ret;
     for (auto &free_symbol : impl_->FreeSymbols()) {
       ret.emplace_back(Expression(std::move(free_symbol)));
@@ -177,17 +177,17 @@ uint64_t Expression::Hash() const {
 }
 
 int64_t Expression::Compare(const Expression &e) const {
-  if (impl_!= nullptr) {
+  if (impl_ != nullptr) {
     return impl_->Compare(*e.impl_);
   }
   return std::numeric_limits<int64_t>::max();
 }
 
 // 模板函数的定义
-template<typename T>
+template <typename T>
 typename std::enable_if<std::is_integral<T>::value || std::is_floating_point<T>::value, bool>::type
 Expression::GetConstValue(T &value) const {
-  if (!IsConstExpr() || impl_== nullptr) {
+  if (!IsConstExpr() || impl_ == nullptr) {
     return false;
   }
   return impl_->GetConstValue(value);
@@ -266,8 +266,7 @@ std::ostream &operator<<(std::ostream &os, const Expression &e) {
   return os;
 }
 
-Expression::Expression(ExpressionImplPtr &&e)
-    : impl_(std::move(e)) {}
+Expression::Expression(ExpressionImplPtr &&e) : impl_(std::move(e)) {}
 
 Expression::Expression() {
   impl_ = ComGraphMakeUnique<ExpressionImpl>("");
@@ -318,7 +317,7 @@ std::unique_ptr<char_t[]> Symbol::GetName() const {
   return nullptr;
 }
 
-template<typename T>
+template <typename T>
 typename std::enable_if<std::is_integral<T>::value || std::is_floating_point<T>::value, bool>::type
 Expression::ComputeHint(T &hint) const {
   if (IsConstExpr()) {

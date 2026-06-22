@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -87,8 +87,9 @@ inline __aicore__ void SpecialTypeLogicalNot(const LocalTensor<T> &dst, const Lo
 }
 
 template <typename T>
-inline __aicore__ void LogicalNot(const LocalTensor<T> &dst, const LocalTensor<T> &src, const LocalTensor<half> &blk_tensor_with_value_1,
-                                  LocalTensor<uint8_t> &tmp_buf, const uint32_t size) {
+inline __aicore__ void LogicalNot(const LocalTensor<T> &dst, const LocalTensor<T> &src,
+                                  const LocalTensor<half> &blk_tensor_with_value_1, LocalTensor<uint8_t> &tmp_buf,
+                                  const uint32_t size) {
   if constexpr (std::is_same_v<T, int64_t>) {
     SpecialTypeLogicalNot<T>(dst, src, blk_tensor_with_value_1, size, tmp_buf);
     return;
@@ -116,8 +117,10 @@ inline __aicore__ void LogicalNot(const LocalTensor<T> &dst, const LocalTensor<T
   for (; calc_size + max_repeat_calc_size < size; calc_size += max_repeat_calc_size) {
     if constexpr (std::is_same_v<T, half>) {
       Abs(half_not[0], src[calc_size], max_repeat_calc_size);
-      AscendC::Min(half_not[0], blk_tensor_with_value_1[0], half_not[0], ONE_REPEAT_BYTE_SIZE / sizeof(half), max_repeat, sub_repeat);
-      Sub(half_not[0], blk_tensor_with_value_1[0], half_not[0], ONE_REPEAT_BYTE_SIZE / sizeof(half), max_repeat, sub_repeat);
+      AscendC::Min(half_not[0], blk_tensor_with_value_1[0], half_not[0], ONE_REPEAT_BYTE_SIZE / sizeof(half),
+                   max_repeat, sub_repeat);
+      Sub(half_not[0], blk_tensor_with_value_1[0], half_not[0], ONE_REPEAT_BYTE_SIZE / sizeof(half), max_repeat,
+          sub_repeat);
       Abs(dst[calc_size], half_not[0], max_repeat_calc_size);
     } else if constexpr (!std::is_same_v<T, int64_t>) {
       Cast(half_not[0], src[calc_size], round_mode, max_repeat_calc_size);
@@ -132,8 +135,10 @@ inline __aicore__ void LogicalNot(const LocalTensor<T> &dst, const LocalTensor<T
     int repeat = (size - calc_size) / one_repeat_calc_size;
     if constexpr (std::is_same_v<T, half>) {
       Abs(half_not[0], src[calc_size], repeat * one_repeat_calc_size);
-      AscendC::Min(half_not[0], blk_tensor_with_value_1[0], half_not[0], ONE_REPEAT_BYTE_SIZE / sizeof(half), repeat, sub_repeat);
-      Sub(half_not[0], blk_tensor_with_value_1[0], half_not[0], ONE_REPEAT_BYTE_SIZE / sizeof(half), repeat, sub_repeat);
+      AscendC::Min(half_not[0], blk_tensor_with_value_1[0], half_not[0], ONE_REPEAT_BYTE_SIZE / sizeof(half), repeat,
+                   sub_repeat);
+      Sub(half_not[0], blk_tensor_with_value_1[0], half_not[0], ONE_REPEAT_BYTE_SIZE / sizeof(half), repeat,
+          sub_repeat);
       Abs(dst[calc_size], half_not[0], repeat * one_repeat_calc_size);
     } else if constexpr (!std::is_same_v<T, int64_t>) {
       Cast(half_not[0], src[calc_size], round_mode, repeat * one_repeat_calc_size);
@@ -148,7 +153,8 @@ inline __aicore__ void LogicalNot(const LocalTensor<T> &dst, const LocalTensor<T
     sub_repeat.blockNumber = (size - calc_size + ONE_BLK_SIZE / sizeof(half) - 1) / (ONE_BLK_SIZE / sizeof(half));
     if constexpr (std::is_same_v<T, half>) {
       Abs(half_not[0], src[calc_size], size - calc_size);
-      AscendC::Min(half_not[0], blk_tensor_with_value_1[0], half_not[0], ONE_REPEAT_BYTE_SIZE / sizeof(half), 1, sub_repeat);
+      AscendC::Min(half_not[0], blk_tensor_with_value_1[0], half_not[0], ONE_REPEAT_BYTE_SIZE / sizeof(half), 1,
+                   sub_repeat);
       Sub(half_not[0], blk_tensor_with_value_1[0], half_not[0], ONE_REPEAT_BYTE_SIZE / sizeof(half), 1, sub_repeat);
       Abs(dst[calc_size], half_not[0], size - calc_size);
     } else if constexpr (!std::is_same_v<T, int64_t>) {

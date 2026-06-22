@@ -16,7 +16,7 @@
 
 using namespace AscendC;
 
-namespace af{
+namespace af {
 
 template <typename T>
 struct SinhInputParam {
@@ -66,12 +66,12 @@ class TestRegbaseApiSinhUT : public testing::Test {
     uint32_t diff_count = 0;
     for (uint32_t i = 0; i < param.size; i++) {
       auto diff = (double)(param.y[i] - param.exp[i]);
-      if(diff < -1e-2 || diff > 1e-2) {
+      if (diff < -1e-2 || diff > 1e-2) {
         diff_count++;
         printf("diff at index %d: x: %f, y: %f, expect: %f, diff: %f\n", i, static_cast<float>(param.x[i]),
                static_cast<float>(param.y[i]), static_cast<float>(param.exp[i]),
                static_cast<float>(param.y[i] - param.exp[i]));
-    }
+      }
     }
     return diff_count;
   }
@@ -112,7 +112,9 @@ TEST_F(TestRegbaseApiSinhUT, Sinh_TensorTensor_Test) {
   SinhTest<float>((ONE_BLK_SIZE - sizeof(float)) / sizeof(float));
   SinhTest<float>((ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) / sizeof(float));
   SinhTest<float>((MAX_REPEAT_NUM - 1) * ONE_REPEAT_BYTE_SIZE / 2 / sizeof(float));
-  SinhTest<float>(((MAX_REPEAT_NUM - 1) * ONE_REPEAT_BYTE_SIZE + (ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) + (ONE_BLK_SIZE - sizeof(float))) / 2 /sizeof(float));
+  SinhTest<float>(((MAX_REPEAT_NUM - 1) * ONE_REPEAT_BYTE_SIZE + (ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) +
+                   (ONE_BLK_SIZE - sizeof(float))) /
+                  2 / sizeof(float));
 }
 
-} // namespace ge
+}  // namespace af

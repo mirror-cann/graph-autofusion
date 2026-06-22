@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -22,12 +22,11 @@ class FftsGraphUtils {
   using CalcFunc = std::function<std::vector<uint32_t>(const NodePtr &)>;
   static graphStatus GraphPartition(ComputeGraph &graph, const std::set<NodePtr> &unsupported_nodes);
 
-  static graphStatus GraphPartition(ComputeGraph &graph,
-                                    const CalcFunc &calc_func,
+  static graphStatus GraphPartition(ComputeGraph &graph, const CalcFunc &calc_func,
                                     const std::vector<uint32_t> &upper_limit);
+
  private:
-  static graphStatus CollectClipNodesAndGraphs(const ComputeGraphPtr &graph,
-                                               const std::set<NodePtr> &unsupported_nodes,
+  static graphStatus CollectClipNodesAndGraphs(const ComputeGraphPtr &graph, const std::set<NodePtr> &unsupported_nodes,
                                                std::unordered_set<NodePtr> &nodes_need_clip,
                                                std::unordered_set<ComputeGraphPtr> &graphs_need_split);
 
@@ -54,16 +53,15 @@ class FftsGraphUtils {
 
   static graphStatus SetAttrForFftsPlusSubgraph(const ComputeGraphPtr &subgraph);
 
-  static graphStatus Calculate(const ComputeGraphPtr &graph,
-                               const CalcFunc &calc_func,
+  static graphStatus Calculate(const ComputeGraphPtr &graph, const CalcFunc &calc_func,
                                std::map<NodePtr, std::vector<uint32_t>> &node_value,
                                std::map<ComputeGraphPtr, std::vector<uint32_t>> &graph_value,
                                const uint32_t recursive_depth = 1U);
 
   static std::vector<uint32_t> Calculate(const NodePtr &node, const CalcFunc &calc_func,
-                                        std::map<NodePtr, std::vector<uint32_t>> &node_value,
-                                        std::map<ComputeGraphPtr, std::vector<uint32_t>> &graph_value,
-                                        const uint32_t recursive_depth);
+                                         std::map<NodePtr, std::vector<uint32_t>> &node_value,
+                                         std::map<ComputeGraphPtr, std::vector<uint32_t>> &graph_value,
+                                         const uint32_t recursive_depth);
 
   static bool IsValueValid(const ComputeGraphPtr &graph, const std::vector<uint32_t> &upper_limit,
                            const std::map<NodePtr, std::vector<uint32_t>> &node_value,
@@ -78,8 +76,7 @@ class FftsGraphUtils {
   static graphStatus SplitFuncNode(const std::vector<NodePtr> exceed_single_node,
                                    std::map<NodePtr, std::vector<uint32_t>> &node_value,
                                    std::map<ComputeGraphPtr, std::vector<uint32_t>> &graph_value,
-                                   const std::vector<uint32_t> &upper_limit,
-                                   const uint32_t recursive_depth);
+                                   const std::vector<uint32_t> &upper_limit, const uint32_t recursive_depth);
 };
-}  // namespace ge
+}  // namespace af
 #endif  // INC_GRAPH_UTILS_GRAPH_UTILS_H_

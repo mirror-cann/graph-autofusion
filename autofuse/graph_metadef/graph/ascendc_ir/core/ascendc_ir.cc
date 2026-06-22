@@ -1,13 +1,12 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
-
 
 #include "graph/ascendc_ir/ascendc_ir_core/ascendc_ir.h"
 #include "ascendc_ir_impl.h"
@@ -32,7 +31,7 @@ constexpr int32_t kDefaultAlignVal = 1;
 constexpr uint32_t kMinMergeAxisFromSize = 2U;
 const char *const kAscData = DATA;
 const char *const kAscOutput = "Output";
-}
+}  // namespace
 
 // TODO ascend attr will be split into asc_attr_group
 std::unique_ptr<AfAttrGroupsBase> AscGraphAttr::CloneAf() {
@@ -109,8 +108,7 @@ AscTensorAttr &AscTensorAttr::GetTensorAttr(const OutDataAnchor &output) {
     auto attr_group = GetTensorAttrPtr(output);
     CHECK_NOTNULL_WITH_THROW_EXCEPTION(attr_group);
     return *attr_group;
-  }
-  catch (const AscIRException &exception) {
+  } catch (const AscIRException &exception) {
     GELOGE(FAILED, "Create failed, reason is %s", exception.GetInfo().error_msg.c_str());
     static AscTensorAttr asc_tensor_attr;
     return asc_tensor_attr;
@@ -159,9 +157,7 @@ AscTensor &AscNodeOutputs::operator[](uint32_t index) {
   if (tensors_.empty()) {
     Init();
   }
-  CHECK_BOOL_WITH_THROW_EXCEPTION(index < tensors_.size(),
-                                  "index = %u but tensors_.size() = %zu",
-                                  index,
+  CHECK_BOOL_WITH_THROW_EXCEPTION(index < tensors_.size(), "index = %u but tensors_.size() = %zu", index,
                                   tensors_.size());
   return tensors_[index];
 }
@@ -227,9 +223,11 @@ uint32_t AscNodeInputs::Size() {
 
 // 此处op_desc和GetOrCreateAttrsGroup的返回值未判空,内部构造AscNode前已判空
 // 资料需注明不允许外部用户构造AscNode
-AscNode::AscNode(const OpDescPtr &op_desc, const ComputeGraphPtr &compute_graph) :
-    Node(op_desc, compute_graph), inputs(this), outputs(this),
-    attr(*(op_desc->GetOrCreateAttrsGroup<AscNodeAttr>())) {
+AscNode::AscNode(const OpDescPtr &op_desc, const ComputeGraphPtr &compute_graph)
+    : Node(op_desc, compute_graph),
+      inputs(this),
+      outputs(this),
+      attr(*(op_desc->GetOrCreateAttrsGroup<AscNodeAttr>())) {
   if (op_desc != nullptr) {
     attr.name = op_desc->GetName();
     attr.type = op_desc->GetType();
@@ -252,8 +250,7 @@ bool AscNodeIter::operator!=(const AscNodeIter &other) const {
   return impl_ != other.impl_;
 }
 
-AscNodeVisitor::AscNodeVisitor(ComputeGraph::Vistor<NodePtr> &&visitor)
-    : impl_(visitor) {}
+AscNodeVisitor::AscNodeVisitor(ComputeGraph::Vistor<NodePtr> &&visitor) : impl_(visitor) {}
 
 AscNodeIter AscNodeVisitor::begin() {
   return AscNodeIter(impl_.begin());
@@ -263,13 +260,11 @@ AscNodeIter AscNodeVisitor::end() {
   return AscNodeIter(impl_.end());
 }
 
-AscGraphImpl::AscGraphImpl(const char *name) :
-  compute_graph_(ComGraphMakeSharedAndThrow<ComputeGraph>(name)) {}
+AscGraphImpl::AscGraphImpl(const char *name) : compute_graph_(ComGraphMakeSharedAndThrow<ComputeGraph>(name)) {}
 
 std::string AscGraphImpl::GetName() const {
   return compute_graph_->GetName();
 }
-
 
 void AscGraphImpl::SetTilingKey(const uint32_t tiling_key) {
   const auto graph_attr_group_ptr = GetOrCreateGraphAttrsGroup();
@@ -306,22 +301,22 @@ AscNodePtr AscGraphImpl::AddNode(Operator &op) {
   auto node = compute_graph_->AddNode(asc_node);
   auto new_node = std::dynamic_pointer_cast<AscNode>(node);
   // update
-  (void) new_node->inputs();
-  (void) new_node->outputs();
+  (void)new_node->inputs();
+  (void)new_node->outputs();
   return new_node;
 }
 
-AscNodePtr AscGraphImpl::FindNode(const char *name) const{
+AscNodePtr AscGraphImpl::FindNode(const char *name) const {
   auto node = compute_graph_->FindNode(name);
   auto dst_node = std::dynamic_pointer_cast<AscNode>(node);
   return dst_node;
 }
 
-AscNodeVisitor AscGraphImpl::GetAllNodes() const{
+AscNodeVisitor AscGraphImpl::GetAllNodes() const {
   return AscNodeVisitor(compute_graph_->GetAllNodes());
 }
 
-AscNodeVisitor AscGraphImpl::GetInputNodes() const{
+AscNodeVisitor AscGraphImpl::GetInputNodes() const {
   return AscNodeVisitor(compute_graph_->GetInputNodes());
 }
 
@@ -345,8 +340,8 @@ Expression AscGraphImpl::CreateSizeVar(const std::string &name) {
   return graph_attr_group_ptr->size_vars.back()->expr;
 }
 
-AxisPtr AscGraphImpl::CreateAxis(const std::string &name, Axis::Type type,
-                                 const Expression &size, const std::vector<int64_t> &from, const int64_t split_peer) {
+AxisPtr AscGraphImpl::CreateAxis(const std::string &name, Axis::Type type, const Expression &size,
+                                 const std::vector<int64_t> &from, const int64_t split_peer) {
   const auto graph_attr_group_ptr = GetOrCreateGraphAttrsGroup();
   GE_ASSERT_NOTNULL(graph_attr_group_ptr);
   auto axis = ComGraphMakeShared<Axis>();
@@ -480,16 +475,16 @@ bool AscGraphImpl::BindBlock(const int64_t outter_id, const int64_t inner_id) {
   return true;
 }
 
-bool AscGraphImpl::DoApplySplit(const AscNodePtr &node, const int64_t outter_id,
-                                const int64_t inner_id, const int64_t original_id) {
+bool AscGraphImpl::DoApplySplit(const AscNodePtr &node, const int64_t outter_id, const int64_t inner_id,
+                                const int64_t original_id) {
   GE_ASSERT_NOTNULL(node);
   GE_ASSERT_TRUE(DoApplySchedAxisSplit(node, outter_id, inner_id, original_id));
   GE_ASSERT_TRUE(DoApplyTensorAxisSplit(node, outter_id, inner_id, original_id));
   return true;
 }
 
-bool AscGraphImpl::DoApplyTensorAxisSplit(const AscNodePtr &node, const int64_t outter_id,
-                                          const int64_t inner_id, const int64_t original_id) {
+bool AscGraphImpl::DoApplyTensorAxisSplit(const AscNodePtr &node, const int64_t outter_id, const int64_t inner_id,
+                                          const int64_t original_id) {
   const auto graph_attr_group_ptr = GetOrCreateGraphAttrsGroup();
   GE_ASSERT_NOTNULL(graph_attr_group_ptr);
   const auto &all_axis = graph_attr_group_ptr->axis;
@@ -497,17 +492,10 @@ bool AscGraphImpl::DoApplyTensorAxisSplit(const AscNodePtr &node, const int64_t 
   const Expression &split_size = all_axis[inner_id]->size;
   for (uint32_t i = 0; i < node->GetAllOutDataAnchorsSize(); i++) {
     const auto &result =
-        AxisUtils::SplitView({node->outputs[i].attr.axis,
-                              node->outputs[i].attr.repeats, node->outputs[i].attr.strides},
-                             split_size,
-                             outter_id,
-                             inner_id,
-                             original_id);
-    GE_ASSERT_TRUE(!result.axis_ids.empty(),
-                   "Split out view failed for node %s %s, index %u",
-                   node->GetNamePtr(),
-                   node->GetTypePtr(),
-                   i);
+        AxisUtils::SplitView({node->outputs[i].attr.axis, node->outputs[i].attr.repeats, node->outputs[i].attr.strides},
+                             split_size, outter_id, inner_id, original_id);
+    GE_ASSERT_TRUE(!result.axis_ids.empty(), "Split out view failed for node %s %s, index %u", node->GetNamePtr(),
+                   node->GetTypePtr(), i);
     node->outputs[i].attr.axis = result.axis_ids;
     node->outputs[i].attr.repeats = result.repeats;
     node->outputs[i].attr.strides = result.strides;
@@ -515,8 +503,8 @@ bool AscGraphImpl::DoApplyTensorAxisSplit(const AscNodePtr &node, const int64_t 
   return true;
 }
 
-bool AscGraphImpl::DoApplySchedAxisSplit(const AscNodePtr &node, const int64_t outter_id,
-                                         const int64_t inner_id, const int64_t original_id) {
+bool AscGraphImpl::DoApplySchedAxisSplit(const AscNodePtr &node, const int64_t outter_id, const int64_t inner_id,
+                                         const int64_t original_id) {
   std::vector<int64_t> new_node_attr_axis;
   const auto &node_axis = node->attr.sched.axis;
   for (auto &node_axis_id : node_axis) {
@@ -536,21 +524,17 @@ bool AscGraphImpl::ApplySplit(const AscNodePtr &node, const int64_t outter_id, c
   const auto graph_attr_group_ptr = GetOrCreateGraphAttrsGroup();
   GE_ASSERT_NOTNULL(graph_attr_group_ptr);
   const auto &all_axis = graph_attr_group_ptr->axis;
-  GE_ASSERT_TRUE(
-      (outter_id >= 0) && (outter_id < static_cast<int64_t>(all_axis.size())) &&
-          (inner_id >= 0) && (inner_id < static_cast<int64_t>(all_axis.size())));
+  GE_ASSERT_TRUE((outter_id >= 0) && (outter_id < static_cast<int64_t>(all_axis.size())) && (inner_id >= 0) &&
+                 (inner_id < static_cast<int64_t>(all_axis.size())));
   const auto &out_axis = *all_axis[outter_id];
   const auto &in_axis = *all_axis[inner_id];
-  GE_ASSERT_TRUE((out_axis.type == Axis::kAxisTypeBlockOuter &&
-      in_axis.type == Axis::kAxisTypeBlockInner) ||
-      (out_axis.type == Axis::kAxisTypeTileOuter && in_axis.type == Axis::kAxisTypeTileInner));
-  GE_ASSERT_TRUE(
-      (out_axis.from.size() == 1U) && (in_axis.from.size() == 1U) && (out_axis.from[0] == in_axis.from[0]));
+  GE_ASSERT_TRUE((out_axis.type == Axis::kAxisTypeBlockOuter && in_axis.type == Axis::kAxisTypeBlockInner) ||
+                 (out_axis.type == Axis::kAxisTypeTileOuter && in_axis.type == Axis::kAxisTypeTileInner));
+  GE_ASSERT_TRUE((out_axis.from.size() == 1U) && (in_axis.from.size() == 1U) && (out_axis.from[0] == in_axis.from[0]));
   return DoApplySplit(node, outter_id, inner_id, out_axis.from[0]);
 }
 
-bool AscGraphImpl::DoApplyMerge(const AscNodePtr &node,
-                                const int64_t merged_axis_id,
+bool AscGraphImpl::DoApplyMerge(const AscNodePtr &node, const int64_t merged_axis_id,
                                 const std::vector<int64_t> &original) {
   GE_ASSERT_NOTNULL(node);
   GE_ASSERT_TRUE(DoApplySchedAxisMerge(node, merged_axis_id, original));
@@ -568,22 +552,20 @@ bool AscGraphImpl::DoApplySchedAxisMerge(const AscNodePtr &node, const int64_t m
   for (size_t axis_index = 0; axis_index < node->attr.sched.axis.size(); ++axis_index) {
     if (original_set.find(node->attr.sched.axis[axis_index]) != original_set.end()) {
       if (first_merge_axis_index == SIZE_MAX) {
-        first_merge_axis_index = axis_index; // 记录首个待合并轴的位置
+        first_merge_axis_index = axis_index;  // 记录首个待合并轴的位置
       }
       merge_axis_set.emplace(node->attr.sched.axis[axis_index]);
       if (merge_axis_set.size() == original.size()) {
-        new_node_attr_axis.insert(new_node_attr_axis.begin() + first_merge_axis_index, merged_axis_id); // 合并轴放入首个待合并轴位置
+        new_node_attr_axis.insert(new_node_attr_axis.begin() + first_merge_axis_index,
+                                  merged_axis_id);  // 合并轴放入首个待合并轴位置
       }
     } else {
       new_node_attr_axis.push_back(node->attr.sched.axis[axis_index]);
     }
   }
-  GE_ASSERT_TRUE(
-      merge_axis_set.size() == original.size() || merge_axis_set.empty(),
-      "node {%s} has sched.axis %s but origin is %s",
-      node->GetNamePtr(),
-      ViewMemberToString(node->attr.sched.axis).c_str(),
-      ViewMemberToString(original).c_str());
+  GE_ASSERT_TRUE(merge_axis_set.size() == original.size() || merge_axis_set.empty(),
+                 "node {%s} has sched.axis %s but origin is %s", node->GetNamePtr(),
+                 ViewMemberToString(node->attr.sched.axis).c_str(), ViewMemberToString(original).c_str());
   node->attr.sched.axis = new_node_attr_axis;
   return true;
 }
@@ -592,8 +574,7 @@ bool AscGraphImpl::DoApplySchedAxisReorder(const AscNodePtr &node, const std::ve
   const auto &node_axis = node->attr.sched.axis;
   for (const auto axis_id : reordered_axis) {
     const auto it = std::find(node_axis.begin(), node_axis.end(), axis_id);
-    GE_ASSERT_TRUE(it != node_axis.end(),
-                   "can not find axis_id[%ld] of reordered_axis, node[%s,%s]", axis_id,
+    GE_ASSERT_TRUE(it != node_axis.end(), "can not find axis_id[%ld] of reordered_axis, node[%s,%s]", axis_id,
                    node->GetNamePtr(), node->GetTypePtr());
   }
   node->attr.sched.axis = reordered_axis;
@@ -692,8 +673,7 @@ bool AscGraphImpl::DoCopyAscNodeTensorAttr(const AscNodePtr &src_node, AscNodePt
 
 // original中的轴不连续时没法做合轴
 // 判断轴是否连续 stride_i == repeat_{i+1} * stride_{i+1}
-bool AscGraphImpl::CheckContinuous(const AscNodePtr &node,
-                                   const uint32_t tensor_index,
+bool AscGraphImpl::CheckContinuous(const AscNodePtr &node, const uint32_t tensor_index,
                                    const std::vector<int64_t> &original) {
   std::vector<Expression> repeats;
   std::vector<Expression> strides;
@@ -707,12 +687,9 @@ bool AscGraphImpl::CheckContinuous(const AscNodePtr &node,
       merge_axis_set.emplace(axis[axis_index]);
     }
   }
-  GE_ASSERT_TRUE(
-      merge_axis_set.size() == original_set.size() || merge_axis_set.empty(),
-      "node {%s}'s output[%u] has axis %s but origin is %s",
-      node->GetNamePtr(), tensor_index,
-      ViewMemberToString(axis).c_str(),
-      ViewMemberToString(original).c_str());
+  GE_ASSERT_TRUE(merge_axis_set.size() == original_set.size() || merge_axis_set.empty(),
+                 "node {%s}'s output[%u] has axis %s but origin is %s", node->GetNamePtr(), tensor_index,
+                 ViewMemberToString(axis).c_str(), ViewMemberToString(original).c_str());
   if (repeats.size() <= 1U) {
     return true;
   }
@@ -749,11 +726,9 @@ bool AscGraphImpl::ApplyMerge(const AscNodePtr &node, const int64_t merged_axis_
   const auto graph_attr_group_ptr = GetOrCreateGraphAttrsGroup();
   GE_ASSERT_NOTNULL(graph_attr_group_ptr);
   const auto &all_axis = graph_attr_group_ptr->axis;
-  GE_ASSERT_TRUE(
-      (merged_axis_id >= 0) && (merged_axis_id < static_cast<int64_t>(all_axis.size())));
+  GE_ASSERT_TRUE((merged_axis_id >= 0) && (merged_axis_id < static_cast<int64_t>(all_axis.size())));
   const auto &axis = *all_axis[merged_axis_id];
-  GE_ASSERT_TRUE((axis.type == Axis::kAxisTypeMerged) &&
-      axis.from.size() >= kMinMergeAxisFromSize);
+  GE_ASSERT_TRUE((axis.type == Axis::kAxisTypeMerged) && axis.from.size() >= kMinMergeAxisFromSize);
   return DoApplyMerge(node, merged_axis_id, axis.from);
 }
 
@@ -762,11 +737,9 @@ bool AscGraphImpl::ApplyTensorAxisMerge(const AscNodePtr &node, const int64_t me
   const auto graph_attr_group_ptr = GetOrCreateGraphAttrsGroup();
   GE_ASSERT_NOTNULL(graph_attr_group_ptr);
   const auto &all_axis = graph_attr_group_ptr->axis;
-  GE_ASSERT_TRUE(
-      (merged_axis_id >= 0) && (merged_axis_id < static_cast<int64_t>(all_axis.size())));
+  GE_ASSERT_TRUE((merged_axis_id >= 0) && (merged_axis_id < static_cast<int64_t>(all_axis.size())));
   const auto &axis = *all_axis[merged_axis_id];
-  GE_ASSERT_TRUE(
-      (axis.type == Axis::kAxisTypeMerged) && axis.from.size() >= kMinMergeAxisFromSize);
+  GE_ASSERT_TRUE((axis.type == Axis::kAxisTypeMerged) && axis.from.size() >= kMinMergeAxisFromSize);
   return DoApplyTensorAxisMerge(node, merged_axis_id, axis.from);
 }
 
@@ -775,23 +748,19 @@ bool AscGraphImpl::ApplySchedAxisMerge(const AscNodePtr &node, const int64_t mer
   const auto graph_attr_group_ptr = GetOrCreateGraphAttrsGroup();
   GE_ASSERT_NOTNULL(graph_attr_group_ptr);
   const auto &all_axis = graph_attr_group_ptr->axis;
-  GE_ASSERT_TRUE(
-      (merged_axis_id >= 0) && (merged_axis_id < static_cast<int64_t>(all_axis.size())));
+  GE_ASSERT_TRUE((merged_axis_id >= 0) && (merged_axis_id < static_cast<int64_t>(all_axis.size())));
   const auto &axis = *all_axis[merged_axis_id];
-  GE_ASSERT_TRUE(
-      (axis.type == Axis::kAxisTypeMerged) && axis.from.size() >= kMinMergeAxisFromSize);
+  GE_ASSERT_TRUE((axis.type == Axis::kAxisTypeMerged) && axis.from.size() >= kMinMergeAxisFromSize);
   return DoApplySchedAxisMerge(node, merged_axis_id, axis.from);
 }
 
-bool AscGraphImpl::ApplyTensorAxisMerge(const AscNodePtr &node,
-                                        const int64_t merged_axis_id,
+bool AscGraphImpl::ApplyTensorAxisMerge(const AscNodePtr &node, const int64_t merged_axis_id,
                                         const std::vector<int64_t> &original) {
   GE_ASSERT_NOTNULL(node);
   return DoApplyTensorAxisMerge(node, merged_axis_id, original);
 }
 
-bool AscGraphImpl::ApplySchedAxisMerge(const AscNodePtr &node,
-                                       const int64_t merged_axis_id,
+bool AscGraphImpl::ApplySchedAxisMerge(const AscNodePtr &node, const int64_t merged_axis_id,
                                        const std::vector<int64_t> &original) {
   GE_ASSERT_NOTNULL(node);
   return DoApplySchedAxisMerge(node, merged_axis_id, original);
@@ -845,13 +814,11 @@ AscGraphAttr *AscGraphImpl::GetOrCreateGraphAttrsGroup() {
   return compute_graph_->GetOrCreateAttrsGroup<AscGraphAttr>();
 }
 
-AscGraphAttr *AscGraphImpl::GetGraphAttrsGroup() const{
+AscGraphAttr *AscGraphImpl::GetGraphAttrsGroup() const {
   return compute_graph_->GetAttrsGroup<AscGraphAttr>();
 }
 
-AscOpOutput AscGraphImpl::CreateContiguousData(const char *name,
-                                               const ge::DataType &dt,
-                                               const vector<Axis> &axes,
+AscOpOutput AscGraphImpl::CreateContiguousData(const char *name, const ge::DataType &dt, const vector<Axis> &axes,
                                                const Format &format) {
   auto data_op_desc = OpDescBuilder(name, kAscData).AddOutput("y").Build();
   GE_ASSERT_NOTNULL(data_op_desc);
@@ -870,17 +837,15 @@ AscOpOutput AscGraphImpl::CreateContiguousData(const char *name,
   GE_ASSERT_GRAPH_SUCCESS(data_ir_attr->SetIndex(data_attr->sched.exec_order));
   data_attr->ir_attr = std::move(data_ir_attr);
 
-  AscOpOutput asc_op_output(data_op.get(), 0U); // data只有一个输出
+  AscOpOutput asc_op_output(data_op.get(), 0U);  // data只有一个输出
   asc_op_output.dtype = dt;
-  asc_op_output.format = format; // tensor上的format
+  asc_op_output.format = format;  // tensor上的format
   GE_ASSERT_TRUE(asc_op_output.SetContiguousView(axes));
   *asc_op_output.vectorized_axis = AxisUtils::GetDefaultVectorizedAxis(*asc_op_output.axis, -1);
   return asc_op_output;
 }
 
-AscOpOutput AscGraphImpl::CreateContiguousOut(const char *name,
-                                              const DataType &dt,
-                                              const vector<Axis> &axes,
+AscOpOutput AscGraphImpl::CreateContiguousOut(const char *name, const DataType &dt, const vector<Axis> &axes,
                                               const Format &format) {
   auto out_op_desc = OpDescBuilder(name, kAscOutput).AddInput("x").AddOutput("y").Build();
   GE_ASSERT_NOTNULL(out_op_desc);
@@ -888,7 +853,7 @@ AscOpOutput AscGraphImpl::CreateContiguousOut(const char *name,
   GE_ASSERT_NOTNULL(out_op);
   AddNode(*out_op);
   out_op_desc->SetExtAttr(ascir::cg::RELATED_OP, out_op);
-  AscOpOutput asc_op_output(out_op.get(), 0U); // output只有一个输出
+  AscOpOutput asc_op_output(out_op.get(), 0U);  // output只有一个输出
   asc_op_output.dtype = dt;
   asc_op_output.format = format;
   GE_ASSERT_TRUE(asc_op_output.SetContiguousView(axes));
@@ -944,8 +909,7 @@ Status AscGraphImpl::FindSubGraph(const std::string &name, std::shared_ptr<AscGr
   return ge::SUCCESS;
 }
 
-AscGraph::AscGraph(const char *name) :
-    impl_(ComGraphMakeSharedAndThrow<AscGraphImpl>(name)) {}
+AscGraph::AscGraph(const char *name) : impl_(ComGraphMakeSharedAndThrow<AscGraphImpl>(name)) {}
 
 std::string AscGraph::GetName() const {
   return impl_->GetName();
@@ -1091,14 +1055,12 @@ bool AscGraph::ApplyTensorAxisMerge(const AscNodePtr &node, const int64_t merged
   return impl_->ApplyTensorAxisMerge(node, merged_axis_id);
 }
 
-bool AscGraph::ApplySchedAxisMerge(const AscNodePtr &node,
-                                   const int64_t merged_axis_id,
+bool AscGraph::ApplySchedAxisMerge(const AscNodePtr &node, const int64_t merged_axis_id,
                                    const std::vector<int64_t> &original) {
   return impl_->ApplySchedAxisMerge(node, merged_axis_id, original);
 }
 
-bool AscGraph::ApplyTensorAxisMerge(const AscNodePtr &node,
-                                    const int64_t merged_axis_id,
+bool AscGraph::ApplyTensorAxisMerge(const AscNodePtr &node, const int64_t merged_axis_id,
                                     const std::vector<int64_t> &original) {
   return impl_->ApplyTensorAxisMerge(node, merged_axis_id, original);
 }
@@ -1119,16 +1081,16 @@ bool AscGraph::TryApplyAxisReplace(const AscNodePtr &node, const Axis &src, cons
   return impl_->TryApplyAxisReplace(node, src, dst);
 }
 
-std::vector<AxisPtr> AscGraph::GetAllAxis() const{
+std::vector<AxisPtr> AscGraph::GetAllAxis() const {
   return impl_->GetAllAxis();
 }
 
-std::vector<SizeVarPtr> AscGraph::GetAllSizeVar() const{
+std::vector<SizeVarPtr> AscGraph::GetAllSizeVar() const {
   return impl_->GetAllSizeVar();
 }
 
 AscGraph::~AscGraph() {
-  for (const auto &node: impl_->GetAllNodes()) {
+  for (const auto &node : impl_->GetAllNodes()) {
     if (node == nullptr) {
       continue;
     }
@@ -1148,8 +1110,7 @@ bool AscGraph::CheckExprValid() const {
     int32_t output_index = -1;
     for (const auto &tensor : node->outputs()) {
       output_index++;
-      GE_ASSERT_NOTNULL(tensor, "Tensor ptr is null, index[%d], node name[%s].", output_index,
-                        node->GetName().c_str());
+      GE_ASSERT_NOTNULL(tensor, "Tensor ptr is null, index[%d], node name[%s].", output_index, node->GetName().c_str());
     }
   }
   return true;
@@ -1174,8 +1135,8 @@ bool AscGraph::CheckAxisValid() const {
       GE_ASSERT_TRUE(sched_axis >= 0L, "Invalid sched axis[%ld], node_name[%s], index[%d].", sched_axis,
                      node->GetName().c_str(), sched_axis_index);
       GE_ASSERT_TRUE(sched_axis < static_cast<int64_t>(axes.size()),
-                     "Invalid sched axis[%ld], node_name[%s], index[%d].", sched_axis,
-                     node->GetName().c_str(), sched_axis_index);
+                     "Invalid sched axis[%ld], node_name[%s], index[%d].", sched_axis, node->GetName().c_str(),
+                     sched_axis_index);
       const auto iter = sched_axis_set.find(sched_axis);
       GE_ASSERT_TRUE(iter == sched_axis_set.cend(), "Redundant sched axis[%ld], node_name[%s].", sched_axis,
                      node->GetName().c_str());
@@ -1188,20 +1149,18 @@ bool AscGraph::CheckAxisValid() const {
                      node->GetName().c_str());
       GE_ASSERT_TRUE(tensor->attr.axis.size() == tensor->attr.repeats.size(),
                      "Tensor axis size[%zu] is not equal to repeat size[%zu], index[%d], node name[%s].",
-                     tensor->attr.axis.size(), tensor->attr.repeats.size(), output_index,
-                     node->GetName().c_str());
+                     tensor->attr.axis.size(), tensor->attr.repeats.size(), output_index, node->GetName().c_str());
       GE_ASSERT_TRUE(tensor->attr.axis.size() == tensor->attr.strides.size(),
                      "Tensor axis size[%zu] is not equal to stride size[%zu], index[%d], node name[%s].",
-                     tensor->attr.axis.size(), tensor->attr.strides.size(), output_index,
-                     node->GetName().c_str());
+                     tensor->attr.axis.size(), tensor->attr.strides.size(), output_index, node->GetName().c_str());
       for (const auto &axis : tensor->attr.axis) {
         GE_ASSERT_TRUE(axis >= 0, "Invalid tensor axis[%ld].", axis);
         GE_ASSERT_TRUE(axis < static_cast<int64_t>(axes.size()), "Invalid tensor axis[%ld].", axis);
       }
       for (const auto &vectorized_axis : tensor->attr.vectorized_axis) {
         GE_ASSERT_TRUE(vectorized_axis >= 0, "Invalid tensor vectorized_axis[%ld].", vectorized_axis);
-        GE_ASSERT_TRUE(vectorized_axis < static_cast<int64_t>(axes.size()),
-                       "Invalid tensor vectorized_axis[%ld].", vectorized_axis);
+        GE_ASSERT_TRUE(vectorized_axis < static_cast<int64_t>(axes.size()), "Invalid tensor vectorized_axis[%ld].",
+                       vectorized_axis);
       }
     }
   }
@@ -1238,8 +1197,8 @@ bool AscGraph::CheckTensorValid() const {
         continue;
       }
       GE_LOGE("Invalid mem, alloc type[%d], que id[%ld], buf id[%ld], tensor index[%d], node[%s].",
-              static_cast<int32_t>(tensor->attr.mem.alloc_type), tensor->attr.que.id, tensor->attr.buf.id,
-              output_index, node->GetName().c_str());
+              static_cast<int32_t>(tensor->attr.mem.alloc_type), tensor->attr.que.id, tensor->attr.buf.id, output_index,
+              node->GetName().c_str());
       return false;
     }
   }
@@ -1249,8 +1208,8 @@ bool AscGraph::CheckTensorValid() const {
 bool AscGraph::CheckNodeConnectionValid() const {
   for (const auto &node : GetAllNodes()) {
     for (uint32_t index = 0U; index < node->inputs.Size(); index++) {
-      GE_ASSERT_TRUE(node->GetInDataAnchor(index) != nullptr, "Input is not connected, index[%u], node[%s].",
-                     index, node->GetName().c_str());
+      GE_ASSERT_TRUE(node->GetInDataAnchor(index) != nullptr, "Input is not connected, index[%u], node[%s].", index,
+                     node->GetName().c_str());
       GE_ASSERT_TRUE(node->GetInDataAnchor(index)->GetPeerOutAnchor() != nullptr,
                      "Input is not connected, index[%u], node[%s].", index, node->GetName().c_str());
     }
@@ -1278,16 +1237,12 @@ TransInfoRoadOfGraph AscGraph::GetAllAxisTransInfo() const {
   return impl_->GetAllAxisTransInfo();
 }
 
-AscOpOutput AscGraph::CreateContiguousData(const char *name,
-                                           const ge::DataType &dt,
-                                           const std::vector<Axis> &axes,
+AscOpOutput AscGraph::CreateContiguousData(const char *name, const ge::DataType &dt, const std::vector<Axis> &axes,
                                            const ge::Format &format) {
   return impl_->CreateContiguousData(name, dt, axes, format);
 }
 
-AscOpOutput AscGraph::CreateContiguousOut(const char *name,
-                                          const ge::DataType &dt,
-                                          const std::vector<Axis> &axes,
+AscOpOutput AscGraph::CreateContiguousOut(const char *name, const ge::DataType &dt, const std::vector<Axis> &axes,
                                           const ge::Format &format) {
   return impl_->CreateContiguousOut(name, dt, axes, format);
 }
@@ -1302,17 +1257,16 @@ graphStatus AddEdgeForNode(const Operator &src_op, int32_t src_index, Operator &
     auto dst_op_desc = OpDescUtils::GetOpDescFromOperator(dst_op);
     auto dst_asc_node = std::make_shared<AscNode>(dst_op_desc, com_graph);
     GE_ASSERT_NOTNULL(dst_asc_node);
-    (void) dst_asc_node->Init();
+    (void)dst_asc_node->Init();
     ConstNodePtr const_dst_node = dst_asc_node;
-    GE_ASSERT_GRAPH_SUCCESS(
-        NodeUtilsEx::SetNodeToOperator(dst_op, const_dst_node));
+    GE_ASSERT_GRAPH_SUCCESS(NodeUtilsEx::SetNodeToOperator(dst_op, const_dst_node));
     dst_node = com_graph->AddNode(dst_asc_node);
     GE_ASSERT_NOTNULL(dst_node);
     GE_ASSERT_GRAPH_SUCCESS(
         GraphUtils::AddEdge(src_node->GetOutDataAnchor(src_index), dst_node->GetInDataAnchor(dst_index)));
     // update tensors
-    (void) dst_asc_node->inputs();
-    (void) dst_asc_node->outputs();
+    (void)dst_asc_node->inputs();
+    (void)dst_asc_node->outputs();
   } else {
     GE_ASSERT_GRAPH_SUCCESS(
         GraphUtils::AddEdge(src_node->GetOutDataAnchor(src_index), dst_node->GetInDataAnchor(dst_index)));
@@ -1331,14 +1285,11 @@ int64_t AscOpOutput::GenNextReuseId() {
 }
 
 bool AscOpOutput::UseTQue(const Position pos, const int64_t depth, const int64_t buf_num, const int64_t id) {
-  GE_ASSERT_TRUE(!HasBindToContainer(),
-                 " this tensor has been bound to a que, can not use any other que.");
+  GE_ASSERT_TRUE(!HasBindToContainer(), " this tensor has been bound to a que, can not use any other que.");
   GE_ASSERT_TRUE(buf_num > 0, "input buf_num should be greater than 0.");
-  GE_ASSERT_TRUE(buf_num < static_cast<int64_t>(INT32_MAX),
-                 "input buf_num should be less than INT32_MAX.");
+  GE_ASSERT_TRUE(buf_num < static_cast<int64_t>(INT32_MAX), "input buf_num should be less than INT32_MAX.");
   GE_ASSERT_TRUE(depth > 0, "input depth should be greater than 0.");
-  GE_ASSERT_TRUE(depth < static_cast<int64_t>(INT32_MAX),
-                 "input depth should be less than INT32_MAX.");
+  GE_ASSERT_TRUE(depth < static_cast<int64_t>(INT32_MAX), "input depth should be less than INT32_MAX.");
   mem->position = pos;
   mem->alloc_type = AllocType::kAllocTypeQueue;
   buf->id = kIdNone;
@@ -1353,8 +1304,7 @@ bool AscOpOutput::UseTQue(const Position pos, const int64_t depth, const int64_t
 }
 
 bool AscOpOutput::UseTBuf(const Position pos, const int64_t id) {
-  GE_ASSERT_TRUE(!HasBindToContainer(),
-                 " this tensor has been bound to a buf, can not use any other buf.");
+  GE_ASSERT_TRUE(!HasBindToContainer(), " this tensor has been bound to a buf, can not use any other buf.");
   mem->position = pos;
   mem->alloc_type = AllocType::kAllocTypeBuffer;
   que->id = kIdNone;
@@ -1372,12 +1322,12 @@ bool AscOpOutput::HasBindToContainer() const {
   // 1.if alloc type has set to que or buffer means has binding to a container
   // 2.if que/buf is valid, means also means has binding to a container
   return ((mem->alloc_type == AllocType::kAllocTypeQueue) || (mem->alloc_type == AllocType::kAllocTypeBuffer)) &&
-      (has_bind_que || has_bind_buf);
+         (has_bind_que || has_bind_buf);
 }
 
 // 既有动态输出，也有普通的输出，返回错误
 static Status GetAndCheckDynamicOutput(const std::vector<std::pair<std::string, IrOutputType>> &ir_outputs,
-                                        bool &only_has_one_dynamic_output) {
+                                       bool &only_has_one_dynamic_output) {
   bool has_dynamic_output = false;
   bool has_com_output = false;
   for (const auto &ir_output : ir_outputs) {
@@ -1392,10 +1342,7 @@ static Status GetAndCheckDynamicOutput(const std::vector<std::pair<std::string, 
   return (has_dynamic_output && has_com_output) ? ge::FAILED : ge::SUCCESS;
 }
 
-graphStatus LinkByIrIndex(const Operator &src_op,
-                          uint32_t src_ir_index,
-                          Operator &dst_op,
-                          uint32_t dst_ir_index,
+graphStatus LinkByIrIndex(const Operator &src_op, uint32_t src_ir_index, Operator &dst_op, uint32_t dst_ir_index,
                           uint32_t dynamic_index) {
   auto dst_op_desc = OpDescUtils::GetOpDescFromOperator(dst_op);
   auto src_op_desc = OpDescUtils::GetOpDescFromOperator(src_op);
@@ -1405,17 +1352,17 @@ graphStatus LinkByIrIndex(const Operator &src_op,
   const std::vector<std::pair<std::string, IrOutputType>> &ir_outputs = src_op_desc->GetIrOutputs();
   bool only_has_one_dynamic_output = false;
   GE_ASSERT_SUCCESS(GetAndCheckDynamicOutput(ir_outputs, only_has_one_dynamic_output),
-    "Not supporting both dynamic and non dynamic outputs");
+                    "Not supporting both dynamic and non dynamic outputs");
 
-  GE_ASSERT_TRUE(dst_ir_index < ir_inputs.size(),
-                 "dst_ir_index = %u, ir_inputs size = %zu", dst_ir_index, ir_inputs.size());
+  GE_ASSERT_TRUE(dst_ir_index < ir_inputs.size(), "dst_ir_index = %u, ir_inputs size = %zu", dst_ir_index,
+                 ir_inputs.size());
   auto &name_to_input_idx = dst_op_desc->MutableAllInputName();
   auto &name_to_output_idx = src_op_desc->MutableAllOutputName();
   uint32_t src_index;
   uint32_t dst_index;
   if (ir_inputs[dst_ir_index].second == IrInputType::kIrInputDynamic) {
     std::map<size_t, std::pair<size_t, size_t>> ir_input_2_range;
-    (void) OpDescUtils::GetIrInputInstanceDescRange(dst_op_desc, ir_input_2_range);
+    (void)OpDescUtils::GetIrInputInstanceDescRange(dst_op_desc, ir_input_2_range);
     dst_index = ir_input_2_range[dst_ir_index].first + dynamic_index;
   } else {
     dst_index = name_to_input_idx[ir_inputs[dst_ir_index].first];
@@ -1439,10 +1386,9 @@ graphStatus SetDynamicInputNumByIrIndex(Operator &op, uint32_t ir_index, uint32_
   GE_ASSERT_TRUE(ir_index < ir_inputs.size());
   GE_ASSERT_TRUE(ir_inputs[ir_index].second == IrInputType::kIrInputDynamic);
   std::map<size_t, std::pair<size_t, size_t>> ir_input_2_range;
-  (void) OpDescUtils::GetIrInputInstanceDescRange(op_desc, ir_input_2_range);
+  (void)OpDescUtils::GetIrInputInstanceDescRange(op_desc, ir_input_2_range);
 
-  GE_ASSERT_TRUE(ir_input_2_range[ir_index].second < dynamic_num,
-                 "Dynamic index [%u] is invalid.", dynamic_num);
+  GE_ASSERT_TRUE(ir_input_2_range[ir_index].second < dynamic_num, "Dynamic index [%u] is invalid.", dynamic_num);
   op_desc->AddDynamicInputDescByIndex(ir_inputs[ir_index].first, dynamic_num, ir_input_2_range[ir_index].first);
   GELOGD("Add DynamicInputDescByIndex for op_desc[%s], ir_index[%u], dynamic_num[%u]", op_desc->GetNamePtr(), ir_index,
          dynamic_num);
@@ -1511,13 +1457,12 @@ graphStatus AscGraphAttr::DeserializeAttr(const ascendc_ir::proto::AscGraphAttrG
 }
 
 graphStatus AscGraphAttr::Deserialize(const proto::AttrGroupDef &attr_group_def, AttrHolder *attr_holder) {
-  (void) attr_holder;
+  (void)attr_holder;
   const auto &asc_graph_attr_group_def = attr_group_def.asc_graph_attr_group();
   return DeserializeAttr(asc_graph_attr_group_def);
 }
 
-
-graphStatus AscNodeAttr::SerializeAttr(ascendc_ir::proto::AscNodeAttrGroupsDef &asc_node_group) const{
+graphStatus AscNodeAttr::SerializeAttr(ascendc_ir::proto::AscNodeAttrGroupsDef &asc_node_group) const {
   asc_node_group.set_name(name);
   asc_node_group.set_type(type);
   auto sched_def = asc_node_group.mutable_sched();
@@ -1607,7 +1552,7 @@ graphStatus AscNodeAttr::Serialize(proto::AttrGroupDef &attr_group_def) {
 }
 
 graphStatus AscNodeAttr::Deserialize(const proto::AttrGroupDef &attr_group_def, AttrHolder *attr_holder) {
-  (void) attr_holder;
+  (void)attr_holder;
   const auto &asc_node_attr_def = attr_group_def.asc_node_attr_group();
   return DeserializeAttr(asc_node_attr_def);
 }
@@ -1720,9 +1665,8 @@ graphStatus AscIrAttrDefBase::Serialize(ascendc_ir::proto::AscIrAttrDef &asc_ir_
   std::map<std::string, AnyValue> names_to_attr;
   attr_store_.GetAllAttrs(names_to_attr);
   auto &attr_map = *asc_ir_attr_def.mutable_attr();
-  for (const auto &pair:names_to_attr) {
-    const auto serializer = AttrSerializerRegistry::GetInstance().GetSerializer(
-        pair.second.GetValueTypeId());
+  for (const auto &pair : names_to_attr) {
+    const auto serializer = AttrSerializerRegistry::GetInstance().GetSerializer(pair.second.GetValueTypeId());
     GE_ASSERT_NOTNULL(serializer);
     proto::AttrDef attr_def;
     GE_ASSERT_GRAPH_SUCCESS(serializer->Serialize(pair.second, attr_def));
@@ -1733,9 +1677,8 @@ graphStatus AscIrAttrDefBase::Serialize(ascendc_ir::proto::AscIrAttrDef &asc_ir_
 
 graphStatus AscIrAttrDefBase::Deserialize(const ascendc_ir::proto::AscIrAttrDef &asc_ir_attr_def) {
   const auto &attr_map = asc_ir_attr_def.attr();
-  for (const auto &pair:attr_map) {
-    const auto deserializer = AttrSerializerRegistry::GetInstance()
-        .GetDeserializer(pair.second.value_case());
+  for (const auto &pair : attr_map) {
+    const auto deserializer = AttrSerializerRegistry::GetInstance().GetDeserializer(pair.second.value_case());
     GE_ASSERT_NOTNULL(deserializer);
     auto attr_value = attr_store_.GetOrCreateAnyValue(pair.first);
     GE_ASSERT_NOTNULL(attr_value);
@@ -1763,20 +1706,12 @@ graphStatus AscDataIrAttrDef::SetIndex(int64_t index) {
   return value->SetValue(index);
 }
 REG_ATTR_GROUP_SERIALIZER(AscNodeAttr, AscNodeAttr, GetTypeId<AscNodeAttr>(), proto::AttrGroupDef::kAscNodeAttrGroup);
-REG_ATTR_GROUP_SERIALIZER(AscGraphAttr,
-                          AscGraphAttr,
-                          GetTypeId<AscGraphAttr>(),
+REG_ATTR_GROUP_SERIALIZER(AscGraphAttr, AscGraphAttr, GetTypeId<AscGraphAttr>(),
                           proto::AttrGroupDef::kAscGraphAttrGroup);
-REG_ATTR_GROUP_SERIALIZER(AscTensorAttr,
-                          AscTensorAttr,
-                          GetTypeId<AscTensorAttr>(),
+REG_ATTR_GROUP_SERIALIZER(AscTensorAttr, AscTensorAttr, GetTypeId<AscTensorAttr>(),
                           proto::AttrGroupDef::kAscTensorAttrGroup);
-REG_ATTR_GROUP_SERIALIZER(ShapeEnvAttr,
-                          ShapeEnvAttr,
-                          GetTypeId<ShapeEnvAttr>(),
+REG_ATTR_GROUP_SERIALIZER(ShapeEnvAttr, ShapeEnvAttr, GetTypeId<ShapeEnvAttr>(),
                           proto::AttrGroupDef::kShapeEnvAttrGroup);
-REG_ATTR_GROUP_SERIALIZER(SymbolicDescAttr,
-                          SymbolicDescAttr,
-                          GetTypeId<SymbolicDescAttr>(),
+REG_ATTR_GROUP_SERIALIZER(SymbolicDescAttr, SymbolicDescAttr, GetTypeId<SymbolicDescAttr>(),
                           proto::AttrGroupDef::kTensorAttrGroup);
-}  // namespace ge
+}  // namespace af

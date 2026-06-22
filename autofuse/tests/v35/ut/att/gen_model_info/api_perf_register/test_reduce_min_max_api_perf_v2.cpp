@@ -38,20 +38,17 @@ class UTestReduceMinMaxApiPerfV2 : public ::testing::Test {
  public:
   static ge::RuntimeStubV2Common stub_v_2;
 
-  static void SetUpTestCase()
-  {
+  static void SetUpTestCase() {
     ge::RuntimeStub::Install(&stub_v_2);
     ge::PlatformContext::GetInstance().Reset();
   }
 
-  static void TearDownTestCase()
-  {
+  static void TearDownTestCase() {
     ge::RuntimeStub::UnInstall(&stub_v_2);
     ge::PlatformContext::GetInstance().Reset();
   }
 
-  void SetUp() override
-  {
+  void SetUp() override {
     setenv("ASCEND_GLOBAL_LOG_LEVEL", "0", 1);
     setenv("ASCEND_SLOG_PRINT_TO_STDOUT", "1", 1);
   }
@@ -59,8 +56,7 @@ class UTestReduceMinMaxApiPerfV2 : public ::testing::Test {
 
 ge::RuntimeStubV2Common UTestReduceMinMaxApiPerfV2::stub_v_2;
 
-NodeDetail MakeNodeDetail(const std::string &dtype, const std::vector<Expr> &dims)
-{
+NodeDetail MakeNodeDetail(const std::string &dtype, const std::vector<Expr> &dims) {
   NodeDetail node_detail;
   node_detail.name = "ReduceMinMaxNode";
   node_detail.optype = "Reduce";
@@ -72,8 +68,7 @@ NodeDetail MakeNodeDetail(const std::string &dtype, const std::vector<Expr> &dim
 }
 
 TensorShapeInfo MakeTensorShape(const std::string &dtype, uint32_t type_size, const std::vector<Expr> &dims,
-                                const std::vector<Expr> &strides)
-{
+                                const std::vector<Expr> &strides) {
   TensorShapeInfo shape;
   shape.data_type = dtype;
   shape.data_type_size = type_size;
@@ -85,16 +80,14 @@ TensorShapeInfo MakeTensorShape(const std::string &dtype, uint32_t type_size, co
 }
 
 TensorShapeInfo MakeTensorShape(const std::string &dtype, uint32_t type_size, const std::vector<Expr> &dims,
-                                const std::vector<Expr> &repeats, const std::vector<Expr> &strides)
-{
+                                const std::vector<Expr> &repeats, const std::vector<Expr> &strides) {
   TensorShapeInfo shape = MakeTensorShape(dtype, type_size, dims, strides);
   shape.repeats = repeats;
   shape.origin_repeats = repeats;
   return shape;
 }
 
-std::string PipeString(const PerfOutputInfo &perf, PipeType pipe_type)
-{
+std::string PipeString(const PerfOutputInfo &perf, PipeType pipe_type) {
   const auto iter = perf.pipe_res.find(pipe_type);
   if (iter == perf.pipe_res.end()) {
     return "";
@@ -104,8 +97,7 @@ std::string PipeString(const PerfOutputInfo &perf, PipeType pipe_type)
   return Str(pipe_expr);
 }
 
-std::string TernaryChoiceString(const PerfOutputInfo &perf, bool choice_a)
-{
+std::string TernaryChoiceString(const PerfOutputInfo &perf, bool choice_a) {
   if (perf.ternary_ops.empty()) {
     return "";
   }
@@ -116,8 +108,7 @@ std::string TernaryChoiceString(const PerfOutputInfo &perf, bool choice_a)
   return Str(choice_expr);
 }
 
-Expr ResolvedPipeExpr(const PerfOutputInfo &perf, PipeType pipe_type)
-{
+Expr ResolvedPipeExpr(const PerfOutputInfo &perf, PipeType pipe_type) {
   const auto iter = perf.pipe_res.find(pipe_type);
   if (iter == perf.pipe_res.end()) {
     return CreateExpr(0);
@@ -127,8 +118,7 @@ Expr ResolvedPipeExpr(const PerfOutputInfo &perf, PipeType pipe_type)
   return pipe_expr;
 }
 
-const PerfBreakdownItem *FindBreakdownItem(const PerfOutputInfo &perf, const std::string &name)
-{
+const PerfBreakdownItem *FindBreakdownItem(const PerfOutputInfo &perf, const std::string &name) {
   for (const auto &group : perf.perf_breakdowns) {
     for (const auto &item : group.items) {
       if (item.name == name) {
@@ -140,8 +130,7 @@ const PerfBreakdownItem *FindBreakdownItem(const PerfOutputInfo &perf, const std
 }
 
 ascendcapi_v2::ReduceApiPerfContext MakeRaContext(const std::string &dtype, const std::vector<Expr> &dims,
-                                                  bool is_reuse_source = true)
-{
+                                                  bool is_reuse_source = true) {
   ascendcapi_v2::ReduceApiPerfContext context;
   context.node_detail = MakeNodeDetail(dtype, dims);
   context.pattern = ascendcapi_v2::ReducePattern::kRA;
@@ -151,8 +140,7 @@ ascendcapi_v2::ReduceApiPerfContext MakeRaContext(const std::string &dtype, cons
 }
 
 ascendcapi_v2::ReduceApiPerfContext MakeArContext(const std::string &dtype, const std::vector<Expr> &dims,
-                                                  bool is_reuse_source = true)
-{
+                                                  bool is_reuse_source = true) {
   ascendcapi_v2::ReduceApiPerfContext context;
   context.node_detail = MakeNodeDetail(dtype, dims);
   context.pattern = ascendcapi_v2::ReducePattern::kAR;
@@ -162,8 +150,7 @@ ascendcapi_v2::ReduceApiPerfContext MakeArContext(const std::string &dtype, cons
 }
 
 void SetReduceSpecificParams(NodeInfo &node, codegen::ReducePattern pattern, codegen::ReduceMergeMode merge_mode,
-                             const Expr &merge_size, const Expr &merge_times, bool is_reuse_source)
-{
+                             const Expr &merge_size, const Expr &merge_times, bool is_reuse_source) {
   auto &params = node.reduce_specific_params;
   params = ascir_param::ReduceNodeParams{};
   params.canonical_params.valid = true;
@@ -180,10 +167,9 @@ void SetReduceSpecificParams(NodeInfo &node, codegen::ReducePattern pattern, cod
 
 // --- Parser integration tests ---
 
-TEST_F(UTestReduceMinMaxApiPerfV2, FillReduceSpecificParamsRegistersSharedNodeParams)
-{
-  using ascir_reduce_test_helpers::ReduceTestEnv;
+TEST_F(UTestReduceMinMaxApiPerfV2, FillReduceSpecificParamsRegistersSharedNodeParams) {
   using ascir_reduce_test_helpers::BuildReduceNodeInfo;
+  using ascir_reduce_test_helpers::ReduceTestEnv;
   ReduceTestEnv env("max");
   env.SetIoAttrs({env.s1, CreateExpr(1)}, {env.s0, CreateExpr(1)}, {CreateExpr(1), CreateExpr(0)});
   auto node_info = BuildReduceNodeInfo(env, "max");
@@ -197,8 +183,7 @@ TEST_F(UTestReduceMinMaxApiPerfV2, FillReduceSpecificParamsRegistersSharedNodePa
   EXPECT_EQ(node_info.reduce_specific_params.canonical_params.merge_size, reduce->canonical_params.merge_size);
 }
 
-TEST_F(UTestReduceMinMaxApiPerfV2, FillReduceSpecificParamsRegistersSkippedForUnsupportedApi)
-{
+TEST_F(UTestReduceMinMaxApiPerfV2, FillReduceSpecificParamsRegistersSkippedForUnsupportedApi) {
   af::AscGraph graph("skip_param_graph");
   af::ascir_op::Add add("add");
   graph.AddNode(add);
@@ -217,8 +202,7 @@ TEST_F(UTestReduceMinMaxApiPerfV2, FillReduceSpecificParamsRegistersSkippedForUn
   EXPECT_FALSE(node_info.reduce_specific_params.canonical_params.valid);
 }
 
-TEST_F(UTestReduceMinMaxApiPerfV2, FillReduceSpecificParamsKeepsInvalidWhenParamsMissing)
-{
+TEST_F(UTestReduceMinMaxApiPerfV2, FillReduceSpecificParamsKeepsInvalidWhenParamsMissing) {
   using ascir_reduce_test_helpers::ReduceTestEnv;
   ReduceTestEnv env("max");
   NodeInfo node_info;
@@ -233,8 +217,7 @@ TEST_F(UTestReduceMinMaxApiPerfV2, FillReduceSpecificParamsKeepsInvalidWhenParam
 
 // --- RegBase VF lookup tests ---
 
-TEST_F(UTestReduceMinMaxApiPerfV2, RegBaseReduceMinMaxUseVfTable)
-{
+TEST_F(UTestReduceMinMaxApiPerfV2, RegBaseReduceMinMaxUseVfTable) {
   PerfOutputInfo min_perf;
   PerfOutputInfo max_perf;
   NodeDetail node_detail = MakeNodeDetail(kFloat16, {CreateExpr(128)});
@@ -245,8 +228,7 @@ TEST_F(UTestReduceMinMaxApiPerfV2, RegBaseReduceMinMaxUseVfTable)
   EXPECT_FALSE(PipeString(max_perf, PipeType::AIV_VEC).empty());
 }
 
-TEST_F(UTestReduceMinMaxApiPerfV2, RegBaseReduceMinMaxCoverIntegerDtypes)
-{
+TEST_F(UTestReduceMinMaxApiPerfV2, RegBaseReduceMinMaxCoverIntegerDtypes) {
   const std::vector<std::string> dtypes = {kInt64, kUInt64, kUInt16, kUInt32};
   for (const auto &dtype : dtypes) {
     PerfOutputInfo min_perf;
@@ -257,8 +239,7 @@ TEST_F(UTestReduceMinMaxApiPerfV2, RegBaseReduceMinMaxCoverIntegerDtypes)
   }
 }
 
-TEST_F(UTestReduceMinMaxApiPerfV2, ReduceMergedShapeUsesZeroStrideWhenLegacyPathHasNoNonZeroStride)
-{
+TEST_F(UTestReduceMinMaxApiPerfV2, ReduceMergedShapeUsesZeroStrideWhenLegacyPathHasNoNonZeroStride) {
   const auto plan = codegen::BuildReduceMergedAxisPlan({false, true, false}, {true, false, false});
   EXPECT_TRUE(plan.valid);
   EXPECT_TRUE(plan.use_last_non_zero_stride);
@@ -274,8 +255,7 @@ TEST_F(UTestReduceMinMaxApiPerfV2, ReduceMergedShapeUsesZeroStrideWhenLegacyPath
 
 // --- AscendC API layer tests ---
 
-TEST_F(UTestReduceMinMaxApiPerfV2, AscendCApiReduceMinMaxArRaBranches)
-{
+TEST_F(UTestReduceMinMaxApiPerfV2, AscendCApiReduceMinMaxArRaBranches) {
   using ascendcapi_v2::ReduceApiPerfContext;
   using ascendcapi_v2::ReduceMergeMode;
   using ascendcapi_v2::ReducePattern;
@@ -309,8 +289,7 @@ TEST_F(UTestReduceMinMaxApiPerfV2, AscendCApiReduceMinMaxArRaBranches)
   EXPECT_NE(PipeString(ar_max_perf, PipeType::AIV_VEC), PipeString(ra_max_perf, PipeType::AIV_VEC));
 }
 
-TEST_F(UTestReduceMinMaxApiPerfV2, AscendCApiReduceSumProdMeanUseReduceBranches)
-{
+TEST_F(UTestReduceMinMaxApiPerfV2, AscendCApiReduceSumProdMeanUseReduceBranches) {
   auto ar_context = MakeArContext(kFloat32, {CreateExpr(8), CreateExpr(64)}, false);
   auto ra_context = MakeRaContext(kFloat32, {CreateExpr(8), CreateExpr(64)}, true);
 
@@ -337,8 +316,7 @@ TEST_F(UTestReduceMinMaxApiPerfV2, AscendCApiReduceSumProdMeanUseReduceBranches)
   EXPECT_EQ(Str(mean_delta), Str(ResolvedPipeExpr(muls_perf, PipeType::AIV_VEC)));
 }
 
-TEST_F(UTestReduceMinMaxApiPerfV2, AscendCApiReduceSumMeanProdRejectUnsupportedDtypes)
-{
+TEST_F(UTestReduceMinMaxApiPerfV2, AscendCApiReduceSumMeanProdRejectUnsupportedDtypes) {
   auto float16_context = MakeRaContext(kFloat16, {CreateExpr(8), CreateExpr(64)}, true);
   auto int16_context = MakeRaContext(kInt16, {CreateExpr(8), CreateExpr(64)}, true);
   auto bfloat16_context = MakeRaContext(kBfloat16, {CreateExpr(8), CreateExpr(64)}, true);
@@ -356,8 +334,7 @@ TEST_F(UTestReduceMinMaxApiPerfV2, AscendCApiReduceSumMeanProdRejectUnsupportedD
   EXPECT_NE(ascendcapi_v2::ReduceProdPerf(uint64_context, uint64_prod_perf), ge::SUCCESS);
 }
 
-TEST_F(UTestReduceMinMaxApiPerfV2, AscendCApiReduceSumSupportsAscendC3510Dtypes)
-{
+TEST_F(UTestReduceMinMaxApiPerfV2, AscendCApiReduceSumSupportsAscendC3510Dtypes) {
   const std::vector<std::string> dtypes = {kInt32, kUInt32, kFloat32, kInt64, kUInt64};
 
   for (const auto &dtype : dtypes) {
@@ -372,8 +349,7 @@ TEST_F(UTestReduceMinMaxApiPerfV2, AscendCApiReduceSumSupportsAscendC3510Dtypes)
   }
 }
 
-TEST_F(UTestReduceMinMaxApiPerfV2, ReduceSumB64UsesSpecializedAscendC3510Cost)
-{
+TEST_F(UTestReduceMinMaxApiPerfV2, ReduceSumB64UsesSpecializedAscendC3510Cost) {
   auto int64_context = MakeRaContext(kInt64, {CreateExpr(8), CreateExpr(64)}, true);
   auto uint64_context = MakeArContext(kUInt64, {CreateExpr(8), CreateExpr(64)}, true);
 
@@ -385,8 +361,7 @@ TEST_F(UTestReduceMinMaxApiPerfV2, ReduceSumB64UsesSpecializedAscendC3510Cost)
   EXPECT_FALSE(PipeString(uint64_perf, PipeType::AIV_VEC).empty());
 }
 
-TEST_F(UTestReduceMinMaxApiPerfV2, ReducePerfProvidesReadableBreakdownItems)
-{
+TEST_F(UTestReduceMinMaxApiPerfV2, ReducePerfProvidesReadableBreakdownItems) {
   auto context = MakeRaContext(kInt64, {CreateExpr(16), CreateExpr(4)}, true);
   context.merge_mode = ascendcapi_v2::ReduceMergeMode::kCopy;
   context.merge_size = CreateExpr(4);
@@ -410,8 +385,7 @@ TEST_F(UTestReduceMinMaxApiPerfV2, ReducePerfProvidesReadableBreakdownItems)
   EXPECT_EQ(Str(total_expr), PipeString(perf, PipeType::AIV_VEC));
 }
 
-TEST_F(UTestReduceMinMaxApiPerfV2, AscendCApiReduceMaxB64AndMergeBranches)
-{
+TEST_F(UTestReduceMinMaxApiPerfV2, AscendCApiReduceMaxB64AndMergeBranches) {
   using ascendcapi_v2::ReduceApiPerfContext;
   using ascendcapi_v2::ReduceMergeMode;
   using ascendcapi_v2::ReducePattern;
@@ -443,8 +417,7 @@ TEST_F(UTestReduceMinMaxApiPerfV2, AscendCApiReduceMaxB64AndMergeBranches)
   EXPECT_NE(PipeString(copy_perf, PipeType::AIV_VEC), PipeString(merge_perf, PipeType::AIV_VEC));
 }
 
-TEST_F(UTestReduceMinMaxApiPerfV2, AscendCApiReduceReuseSourceChangesFormula)
-{
+TEST_F(UTestReduceMinMaxApiPerfV2, AscendCApiReduceReuseSourceChangesFormula) {
   auto reuse_context = MakeArContext(kFloat16, {CreateExpr(8), CreateExpr(256)}, true);
   auto non_reuse_context = MakeArContext(kFloat16, {CreateExpr(8), CreateExpr(256)}, false);
 
@@ -455,8 +428,7 @@ TEST_F(UTestReduceMinMaxApiPerfV2, AscendCApiReduceReuseSourceChangesFormula)
   EXPECT_NE(PipeString(reuse_perf, PipeType::AIV_VEC), PipeString(non_reuse_perf, PipeType::AIV_VEC));
 }
 
-TEST_F(UTestReduceMinMaxApiPerfV2, AscendCApiReduceArAlignedNonReuseGreaterThanReuse)
-{
+TEST_F(UTestReduceMinMaxApiPerfV2, AscendCApiReduceArAlignedNonReuseGreaterThanReuse) {
   auto reuse_context = MakeArContext(kFloat16, {CreateExpr(8), CreateExpr(256)}, true);
   auto non_reuse_context = MakeArContext(kFloat16, {CreateExpr(8), CreateExpr(256)}, false);
 
@@ -472,8 +444,7 @@ TEST_F(UTestReduceMinMaxApiPerfV2, AscendCApiReduceArAlignedNonReuseGreaterThanR
   EXPECT_NE(Str(reuse_cost), Str(non_reuse_cost));
 }
 
-TEST_F(UTestReduceMinMaxApiPerfV2, AscendCApiReduceNonReuseCopyFallsBackForB64Dtype)
-{
+TEST_F(UTestReduceMinMaxApiPerfV2, AscendCApiReduceNonReuseCopyFallsBackForB64Dtype) {
   using ascendcapi_v2::ReduceApiPerfContext;
   using ascendcapi_v2::ReduceMergeMode;
   using ascendcapi_v2::ReducePattern;
@@ -494,8 +465,7 @@ TEST_F(UTestReduceMinMaxApiPerfV2, AscendCApiReduceNonReuseCopyFallsBackForB64Dt
   EXPECT_NE(PipeString(reuse_perf, PipeType::AIV_VEC), PipeString(non_reuse_perf, PipeType::AIV_VEC));
 }
 
-TEST_F(UTestReduceMinMaxApiPerfV2, AscendCApiReduceMaxB64AlignedRaBranch)
-{
+TEST_F(UTestReduceMinMaxApiPerfV2, AscendCApiReduceMaxB64AlignedRaBranch) {
   using ascendcapi_v2::ReduceApiPerfContext;
   using ascendcapi_v2::ReduceMergeMode;
   using ascendcapi_v2::ReducePattern;
@@ -527,8 +497,7 @@ TEST_F(UTestReduceMinMaxApiPerfV2, AscendCApiReduceMaxB64AlignedRaBranch)
 
 // --- RA Tree Reduction modeling tests ---
 
-TEST_F(UTestReduceMinMaxApiPerfV2, RaB64UnalignedTreeReduction)
-{
+TEST_F(UTestReduceMinMaxApiPerfV2, RaB64UnalignedTreeReduction) {
   using ascendcapi_v2::ReduceApiPerfContext;
   using ascendcapi_v2::ReduceMergeMode;
   using ascendcapi_v2::ReducePattern;
@@ -557,8 +526,7 @@ TEST_F(UTestReduceMinMaxApiPerfV2, RaB64UnalignedTreeReduction)
   EXPECT_NE(PipeString(perf, PipeType::AIV_VEC), PipeString(small_perf, PipeType::AIV_VEC));
 }
 
-TEST_F(UTestReduceMinMaxApiPerfV2, RaNormalAlignedTreeReduction)
-{
+TEST_F(UTestReduceMinMaxApiPerfV2, RaNormalAlignedTreeReduction) {
   using ascendcapi_v2::ReduceApiPerfContext;
   using ascendcapi_v2::ReduceMergeMode;
   using ascendcapi_v2::ReducePattern;
@@ -576,8 +544,7 @@ TEST_F(UTestReduceMinMaxApiPerfV2, RaNormalAlignedTreeReduction)
   EXPECT_FALSE(perf.ternary_ops.empty());
 }
 
-TEST_F(UTestReduceMinMaxApiPerfV2, RaNormalUnalignedTreeReduction)
-{
+TEST_F(UTestReduceMinMaxApiPerfV2, RaNormalUnalignedTreeReduction) {
   using ascendcapi_v2::ReduceApiPerfContext;
   using ascendcapi_v2::ReduceMergeMode;
   using ascendcapi_v2::ReducePattern;
@@ -595,8 +562,7 @@ TEST_F(UTestReduceMinMaxApiPerfV2, RaNormalUnalignedTreeReduction)
   EXPECT_FALSE(perf.ternary_ops.empty());
 }
 
-TEST_F(UTestReduceMinMaxApiPerfV2, RaNormalLargeFirstMultiRound)
-{
+TEST_F(UTestReduceMinMaxApiPerfV2, RaNormalLargeFirstMultiRound) {
   using ascendcapi_v2::ReduceApiPerfContext;
   using ascendcapi_v2::ReduceMergeMode;
   using ascendcapi_v2::ReducePattern;
@@ -626,8 +592,7 @@ TEST_F(UTestReduceMinMaxApiPerfV2, RaNormalLargeFirstMultiRound)
   EXPECT_NE(PipeString(perf, PipeType::AIV_VEC), PipeString(small_perf, PipeType::AIV_VEC));
 }
 
-TEST_F(UTestReduceMinMaxApiPerfV2, RaB64AlignedTreeReduction)
-{
+TEST_F(UTestReduceMinMaxApiPerfV2, RaB64AlignedTreeReduction) {
   using ascendcapi_v2::ReduceApiPerfContext;
   using ascendcapi_v2::ReduceMergeMode;
   using ascendcapi_v2::ReducePattern;
@@ -645,8 +610,7 @@ TEST_F(UTestReduceMinMaxApiPerfV2, RaB64AlignedTreeReduction)
   EXPECT_FALSE(perf.ternary_ops.empty());
 }
 
-TEST_F(UTestReduceMinMaxApiPerfV2, RaB64SymbolicDimRIncludesTreeReduceCost)
-{
+TEST_F(UTestReduceMinMaxApiPerfV2, RaB64SymbolicDimRIncludesTreeReduceCost) {
   const Expr z0t_size = CreateExpr("z0t_size");
   auto context = MakeRaContext(kInt64, {CreateExpr(136) * z0t_size, CreateExpr(12)});
 
@@ -657,8 +621,7 @@ TEST_F(UTestReduceMinMaxApiPerfV2, RaB64SymbolicDimRIncludesTreeReduceCost)
   EXPECT_NE(perf_expr.find("z0t_size"), std::string::npos);
 }
 
-TEST_F(UTestReduceMinMaxApiPerfV2, RaNormalSymbolicDimRIncludesTreeReduceCost)
-{
+TEST_F(UTestReduceMinMaxApiPerfV2, RaNormalSymbolicDimRIncludesTreeReduceCost) {
   const Expr z0t_size = CreateExpr("z0t_size");
   auto concat_context = MakeRaContext(kFloat16, {CreateExpr(136) * z0t_size, CreateExpr(64)});
   auto over_vl_context = MakeRaContext(kFloat16, {CreateExpr(136) * z0t_size, CreateExpr(144)});
@@ -676,8 +639,7 @@ TEST_F(UTestReduceMinMaxApiPerfV2, RaNormalSymbolicDimRIncludesTreeReduceCost)
   EXPECT_NE(TernaryChoiceString(unaligned_perf, false).find("z0t_size"), std::string::npos);
 }
 
-TEST_F(UTestReduceMinMaxApiPerfV2, SymbolicDimRUsesFiniteTreeCases)
-{
+TEST_F(UTestReduceMinMaxApiPerfV2, SymbolicDimRUsesFiniteTreeCases) {
   const Expr z0t_size = CreateExpr("z0t_size");
   auto ra_context = MakeRaContext(kInt64, {CreateExpr(136) * z0t_size, CreateExpr(12)});
   auto ar_context = MakeArContext(kFloat16, {CreateExpr(16), z0t_size});
@@ -695,8 +657,7 @@ TEST_F(UTestReduceMinMaxApiPerfV2, SymbolicDimRUsesFiniteTreeCases)
   EXPECT_EQ(ra_formula.find("Ceiling(((136 * z0t_size) * Rational(1 , 8)))"), std::string::npos) << ra_formula;
 }
 
-TEST_F(UTestReduceMinMaxApiPerfV2, SymbolicDimRNonReuseExactPowerUsesSplitBranch)
-{
+TEST_F(UTestReduceMinMaxApiPerfV2, SymbolicDimRNonReuseExactPowerUsesSplitBranch) {
   const Expr z0t_size = CreateExpr("z0t_size");
   auto reuse_ra_context = MakeRaContext(kFloat16, {z0t_size, CreateExpr(144)}, true);
   auto non_reuse_ra_context = MakeRaContext(kFloat16, {z0t_size, CreateExpr(144)}, false);
@@ -722,8 +683,7 @@ TEST_F(UTestReduceMinMaxApiPerfV2, SymbolicDimRNonReuseExactPowerUsesSplitBranch
   EXPECT_NE(non_reuse_ar_formula.find("IsEqual(z0t_size, 256)"), std::string::npos) << non_reuse_ar_formula;
 }
 
-TEST_F(UTestReduceMinMaxApiPerfV2, Bfloat16NormalReduceUsesHalfVectorRepeat)
-{
+TEST_F(UTestReduceMinMaxApiPerfV2, Bfloat16NormalReduceUsesHalfVectorRepeat) {
   const Expr z1t_size = CreateExpr("z1t_size");
   auto context = MakeRaContext(kBfloat16, {CreateExpr(136), z1t_size});
 
@@ -735,8 +695,7 @@ TEST_F(UTestReduceMinMaxApiPerfV2, Bfloat16NormalReduceUsesHalfVectorRepeat)
   EXPECT_EQ(aligned_formula.find("Rational(1 , 64)"), std::string::npos) << aligned_formula;
 }
 
-TEST_F(UTestReduceMinMaxApiPerfV2, RaB64SmallLastUsesOneVectorBlock)
-{
+TEST_F(UTestReduceMinMaxApiPerfV2, RaB64SmallLastUsesOneVectorBlock) {
   auto aligned_small_context = MakeRaContext(kInt64, {CreateExpr(8), CreateExpr(12)});
   auto aligned_one_block_context = MakeRaContext(kInt64, {CreateExpr(8), CreateExpr(64)});
   auto aligned_two_blocks_context = MakeRaContext(kInt64, {CreateExpr(8), CreateExpr(128)});
@@ -763,8 +722,7 @@ TEST_F(UTestReduceMinMaxApiPerfV2, RaB64SmallLastUsesOneVectorBlock)
   EXPECT_NE(TernaryChoiceString(unaligned_small_perf, false), TernaryChoiceString(unaligned_two_blocks_perf, false));
 }
 
-TEST_F(UTestReduceMinMaxApiPerfV2, RaB64ExpandsInt64BinaryFuncCost)
-{
+TEST_F(UTestReduceMinMaxApiPerfV2, RaB64ExpandsInt64BinaryFuncCost) {
   auto aligned_context = MakeRaContext(kInt64, {CreateExpr(2176), CreateExpr(64)});
 
   PerfOutputInfo perf;
@@ -773,8 +731,7 @@ TEST_F(UTestReduceMinMaxApiPerfV2, RaB64ExpandsInt64BinaryFuncCost)
   EXPECT_EQ(TernaryChoiceString(perf, true), "99911");
 }
 
-TEST_F(UTestReduceMinMaxApiPerfV2, ArB64UnalignedSmallLastUsesOneVectorBlock)
-{
+TEST_F(UTestReduceMinMaxApiPerfV2, ArB64UnalignedSmallLastUsesOneVectorBlock) {
   auto small_context = MakeArContext(kInt64, {CreateExpr(8), CreateExpr(9)});
   auto one_block_context = MakeArContext(kInt64, {CreateExpr(8), CreateExpr(63)});
   auto two_blocks_context = MakeArContext(kInt64, {CreateExpr(8), CreateExpr(65)});
@@ -790,8 +747,7 @@ TEST_F(UTestReduceMinMaxApiPerfV2, ArB64UnalignedSmallLastUsesOneVectorBlock)
   EXPECT_NE(TernaryChoiceString(small_perf, false), TernaryChoiceString(two_blocks_perf, false));
 }
 
-TEST_F(UTestReduceMinMaxApiPerfV2, ArNormalUnalignedSmallLastUsesOneVectorBlock)
-{
+TEST_F(UTestReduceMinMaxApiPerfV2, ArNormalUnalignedSmallLastUsesOneVectorBlock) {
   auto small_context = MakeArContext(kFloat16, {CreateExpr(8), CreateExpr(65)});
   auto one_block_context = MakeArContext(kFloat16, {CreateExpr(8), CreateExpr(127)});
   auto two_blocks_context = MakeArContext(kFloat16, {CreateExpr(8), CreateExpr(129)});
@@ -807,8 +763,7 @@ TEST_F(UTestReduceMinMaxApiPerfV2, ArNormalUnalignedSmallLastUsesOneVectorBlock)
   EXPECT_NE(TernaryChoiceString(small_perf, false), TernaryChoiceString(two_blocks_perf, false));
 }
 
-TEST_F(UTestReduceMinMaxApiPerfV2, ArUnalignedNonReuseDoesNotAddCopyCost)
-{
+TEST_F(UTestReduceMinMaxApiPerfV2, ArUnalignedNonReuseDoesNotAddCopyCost) {
   auto reuse_context = MakeArContext(kInt64, {CreateExpr(8), CreateExpr(65)}, true);
   auto non_reuse_context = MakeArContext(kInt64, {CreateExpr(8), CreateExpr(65)}, false);
 
@@ -820,8 +775,7 @@ TEST_F(UTestReduceMinMaxApiPerfV2, ArUnalignedNonReuseDoesNotAddCopyCost)
   EXPECT_EQ(TernaryChoiceString(reuse_perf, false), TernaryChoiceString(non_reuse_perf, false));
 }
 
-TEST_F(UTestReduceMinMaxApiPerfV2, ArUnalignedDoesNotUseGlobalPenalty)
-{
+TEST_F(UTestReduceMinMaxApiPerfV2, ArUnalignedDoesNotUseGlobalPenalty) {
   auto b64_context = MakeArContext(kInt64, {CreateExpr(8), CreateExpr(65)});
   auto normal_context = MakeArContext(kFloat16, {CreateExpr(8), CreateExpr(129)});
 
@@ -836,8 +790,7 @@ TEST_F(UTestReduceMinMaxApiPerfV2, ArUnalignedDoesNotUseGlobalPenalty)
   EXPECT_EQ(normal_unaligned.find("2.5"), std::string::npos) << normal_unaligned;
 }
 
-TEST_F(UTestReduceMinMaxApiPerfV2, RaB64SymbolicAlignedLastUsesVectorBlockCeil)
-{
+TEST_F(UTestReduceMinMaxApiPerfV2, RaB64SymbolicAlignedLastUsesVectorBlockCeil) {
   const Expr z0t_size = CreateExpr("z0t_size");
   const Expr z5t_size = CreateExpr("z5t_size");
   auto aligned_last = CreateExpr(4) * af::sym::Ceiling(z5t_size / CreateExpr(4));
@@ -851,8 +804,7 @@ TEST_F(UTestReduceMinMaxApiPerfV2, RaB64SymbolicAlignedLastUsesVectorBlockCeil)
   EXPECT_EQ(aligned_formula.find("Rational(1 , 8)"), std::string::npos);
 }
 
-TEST_F(UTestReduceMinMaxApiPerfV2, RaB64UnalignedNonReuseMatchesReuseSource)
-{
+TEST_F(UTestReduceMinMaxApiPerfV2, RaB64UnalignedNonReuseMatchesReuseSource) {
   using ascendcapi_v2::ReduceApiPerfContext;
   using ascendcapi_v2::ReduceMergeMode;
   using ascendcapi_v2::ReducePattern;
@@ -875,8 +827,7 @@ TEST_F(UTestReduceMinMaxApiPerfV2, RaB64UnalignedNonReuseMatchesReuseSource)
   EXPECT_EQ(TernaryChoiceString(reuse_perf, false), TernaryChoiceString(non_reuse_perf, false));
 }
 
-TEST_F(UTestReduceMinMaxApiPerfV2, RaTreeReductionCostIncreasesWithFirst)
-{
+TEST_F(UTestReduceMinMaxApiPerfV2, RaTreeReductionCostIncreasesWithFirst) {
   using ascendcapi_v2::ReduceApiPerfContext;
   using ascendcapi_v2::ReduceMergeMode;
   using ascendcapi_v2::ReducePattern;
@@ -902,8 +853,7 @@ TEST_F(UTestReduceMinMaxApiPerfV2, RaTreeReductionCostIncreasesWithFirst)
   EXPECT_NE(PipeString(big_perf, PipeType::AIV_VEC), PipeString(small_perf, PipeType::AIV_VEC));
 }
 
-TEST_F(UTestReduceMinMaxApiPerfV2, RaPipeBarrierVPerfIsZeroInFirstPhase)
-{
+TEST_F(UTestReduceMinMaxApiPerfV2, RaPipeBarrierVPerfIsZeroInFirstPhase) {
   auto base_context = MakeRaContext(kFloat16, {CreateExpr(8), CreateExpr(64)});
   auto merge_context = base_context;
   merge_context.merge_mode = ascendcapi_v2::ReduceMergeMode::kMergeByElementwise;
@@ -921,8 +871,7 @@ TEST_F(UTestReduceMinMaxApiPerfV2, RaPipeBarrierVPerfIsZeroInFirstPhase)
   EXPECT_EQ(Str(merge_delta), Str(ResolvedPipeExpr(elementwise_perf, PipeType::AIV_VEC)));
 }
 
-TEST_F(UTestReduceMinMaxApiPerfV2, MultiReduceCopyMergeUsesAlignedTempSizeAndElementwiseTail)
-{
+TEST_F(UTestReduceMinMaxApiPerfV2, MultiReduceCopyMergeUsesAlignedTempSizeAndElementwiseTail) {
   auto base_context = MakeRaContext(kInt64, {CreateExpr(1224), CreateExpr(12)});
   auto merge_context = base_context;
   merge_context.merge_mode = ascendcapi_v2::ReduceMergeMode::kCopy;
@@ -942,14 +891,12 @@ TEST_F(UTestReduceMinMaxApiPerfV2, MultiReduceCopyMergeUsesAlignedTempSizeAndEle
 
   Expr merge_delta = ResolvedPipeExpr(merge_perf, PipeType::AIV_VEC) - ResolvedPipeExpr(base_perf, PipeType::AIV_VEC);
   merge_delta.Simplify();
-  Expr expected = (ub_copy_res + CreateExpr(8) * ResolvedPipeExpr(elementwise_perf, PipeType::AIV_VEC)) /
-                  CreateExpr(9);
+  Expr expected = (ub_copy_res + CreateExpr(8) * ResolvedPipeExpr(elementwise_perf, PipeType::AIV_VEC)) / CreateExpr(9);
   expected.Simplify();
   EXPECT_EQ(Str(merge_delta), Str(expected));
 }
 
-TEST_F(UTestReduceMinMaxApiPerfV2, MultiReduceCopyMergeSymbolicTailUsesVectorBlock)
-{
+TEST_F(UTestReduceMinMaxApiPerfV2, MultiReduceCopyMergeSymbolicTailUsesVectorBlock) {
   const Expr z5t_size = CreateExpr("z5t_size");
   auto base_context = MakeRaContext(kInt64, {CreateExpr(2176), CreateExpr(4) * af::sym::Ceiling(z5t_size / kSymFour)});
   auto merge_context = base_context;
@@ -969,8 +916,7 @@ TEST_F(UTestReduceMinMaxApiPerfV2, MultiReduceCopyMergeSymbolicTailUsesVectorBlo
   EXPECT_EQ(merge_formula.find("Rational(1 , 4)"), std::string::npos);
 }
 
-TEST_F(UTestReduceMinMaxApiPerfV2, RaB64UnalignedNonReuseDoesNotAddCopyCost)
-{
+TEST_F(UTestReduceMinMaxApiPerfV2, RaB64UnalignedNonReuseDoesNotAddCopyCost) {
   auto reuse_context = MakeRaContext(kInt64, {CreateExpr(8), CreateExpr(9)}, true);
   auto non_reuse_context = MakeRaContext(kInt64, {CreateExpr(8), CreateExpr(9)}, false);
 
@@ -982,8 +928,7 @@ TEST_F(UTestReduceMinMaxApiPerfV2, RaB64UnalignedNonReuseDoesNotAddCopyCost)
   EXPECT_EQ(TernaryChoiceString(reuse_perf, false), TernaryChoiceString(non_reuse_perf, false));
 }
 
-TEST_F(UTestReduceMinMaxApiPerfV2, RaNormalUnalignedNonReuseDoesNotAddCopyCost)
-{
+TEST_F(UTestReduceMinMaxApiPerfV2, RaNormalUnalignedNonReuseDoesNotAddCopyCost) {
   auto reuse_context = MakeRaContext(kFloat16, {CreateExpr(8), CreateExpr(65)}, true);
   auto non_reuse_context = MakeRaContext(kFloat16, {CreateExpr(8), CreateExpr(65)}, false);
 
@@ -995,8 +940,7 @@ TEST_F(UTestReduceMinMaxApiPerfV2, RaNormalUnalignedNonReuseDoesNotAddCopyCost)
   EXPECT_EQ(TernaryChoiceString(reuse_perf, false), TernaryChoiceString(non_reuse_perf, false));
 }
 
-TEST_F(UTestReduceMinMaxApiPerfV2, RaNormalAlignedSubpathsProduceDistinctFormulas)
-{
+TEST_F(UTestReduceMinMaxApiPerfV2, RaNormalAlignedSubpathsProduceDistinctFormulas) {
   auto concat_context = MakeRaContext(kFloat16, {CreateExpr(8), CreateExpr(32)});
   auto less_than_vl_context = MakeRaContext(kFloat16, {CreateExpr(8), CreateExpr(96)});
   auto over_vl_context = MakeRaContext(kFloat16, {CreateExpr(8), CreateExpr(144)});
@@ -1012,8 +956,7 @@ TEST_F(UTestReduceMinMaxApiPerfV2, RaNormalAlignedSubpathsProduceDistinctFormula
   EXPECT_NE(TernaryChoiceString(less_than_vl_perf, true), TernaryChoiceString(over_vl_perf, true));
 }
 
-TEST_F(UTestReduceMinMaxApiPerfV2, RaB64LargeUnalignedDoesNotCollapseToSmallFirstFormula)
-{
+TEST_F(UTestReduceMinMaxApiPerfV2, RaB64LargeUnalignedDoesNotCollapseToSmallFirstFormula) {
   auto large_context = MakeRaContext(kInt64, {CreateExpr(1224), CreateExpr(9)});
   auto small_context = MakeRaContext(kInt64, {CreateExpr(8), CreateExpr(9)});
 
@@ -1025,8 +968,7 @@ TEST_F(UTestReduceMinMaxApiPerfV2, RaB64LargeUnalignedDoesNotCollapseToSmallFirs
   EXPECT_NE(TernaryChoiceString(large_perf, false), TernaryChoiceString(small_perf, false));
 }
 
-TEST_F(UTestReduceMinMaxApiPerfV2, RaAlignedNonReuseChangesTreeStructure)
-{
+TEST_F(UTestReduceMinMaxApiPerfV2, RaAlignedNonReuseChangesTreeStructure) {
   auto reuse_context = MakeRaContext(kFloat16, {CreateExpr(16), CreateExpr(96)}, true);
   auto non_reuse_context = MakeRaContext(kFloat16, {CreateExpr(16), CreateExpr(96)}, false);
 
@@ -1038,17 +980,16 @@ TEST_F(UTestReduceMinMaxApiPerfV2, RaAlignedNonReuseChangesTreeStructure)
   EXPECT_NE(TernaryChoiceString(reuse_perf, true), TernaryChoiceString(non_reuse_perf, true));
 }
 
-TEST_F(UTestReduceMinMaxApiPerfV2, AscirRaReduceUsesCodegenMergedShapeForMultiAAxes)
-{
+TEST_F(UTestReduceMinMaxApiPerfV2, AscirRaReduceUsesCodegenMergedShapeForMultiAAxes) {
   const Expr z1t_size = CreateExpr("z1t_size");
   const Expr z2t_size = CreateExpr("z2t_size");
   const std::vector<Expr> repeats = {z2t_size, CreateExpr(17), z1t_size, CreateExpr(16), CreateExpr(9)};
-  const std::vector<Expr> input_strides = {CreateExpr(3264) * z1t_size, CreateExpr(192) * z1t_size,
-                                           CreateExpr(192), CreateExpr(12), CreateExpr(1)};
+  const std::vector<Expr> input_strides = {CreateExpr(3264) * z1t_size, CreateExpr(192) * z1t_size, CreateExpr(192),
+                                           CreateExpr(12), CreateExpr(1)};
   const std::vector<Expr> output_strides = {CreateExpr(0), CreateExpr(0), CreateExpr(192), CreateExpr(12),
                                             CreateExpr(1)};
-  const std::vector<TensorShapeInfo> inputs = {MakeTensorShape(
-      kInt64, 8U, {CreateExpr(272) * z1t_size * z2t_size, CreateExpr(12)}, repeats, input_strides)};
+  const std::vector<TensorShapeInfo> inputs = {
+      MakeTensorShape(kInt64, 8U, {CreateExpr(272) * z1t_size * z2t_size, CreateExpr(12)}, repeats, input_strides)};
   const std::vector<TensorShapeInfo> outputs = {
       MakeTensorShape(kInt64, 8U, {CreateExpr(192) * z1t_size}, repeats, output_strides)};
 
@@ -1057,7 +998,7 @@ TEST_F(UTestReduceMinMaxApiPerfV2, AscirRaReduceUsesCodegenMergedShapeForMultiAA
                           CreateExpr(192) * z1t_size, CreateExpr("z0z2Tt_size"), true);
   // 该用例绕过 parser，直接注入 codegen 侧合并结果，覆盖 ATT 读取 merged_dims 的路径。
   reduce_node.reduce_specific_params.canonical_params.merged_dims = {true, CreateExpr(17) * z2t_size,
-                                                            CreateExpr(192) * z1t_size};
+                                                                     CreateExpr(192) * z1t_size};
   PerfOutputInfo perf;
   auto max_v2 = ApiPerfFactory::Instance().Create(kMax + "V2");
   ASSERT_NE(max_v2, nullptr);
@@ -1071,18 +1012,15 @@ TEST_F(UTestReduceMinMaxApiPerfV2, AscirRaReduceUsesCodegenMergedShapeForMultiAA
   EXPECT_EQ(formula.find("Ceiling((48 * z1t_size))"), std::string::npos) << formula;
 }
 
-TEST_F(UTestReduceMinMaxApiPerfV2, AscirReduceRebuildsMergedDimsFromCurrentShape)
-{
-  const std::vector<TensorShapeInfo> tail_inputs = {
-      MakeTensorShape(kFloat16, 2U, {CreateExpr(4), CreateExpr(16)}, {CreateExpr(4), CreateExpr(16)},
-                      {CreateExpr(16), CreateExpr(1)})};
+TEST_F(UTestReduceMinMaxApiPerfV2, AscirReduceRebuildsMergedDimsFromCurrentShape) {
+  const std::vector<TensorShapeInfo> tail_inputs = {MakeTensorShape(
+      kFloat16, 2U, {CreateExpr(4), CreateExpr(16)}, {CreateExpr(4), CreateExpr(16)}, {CreateExpr(16), CreateExpr(1)})};
   const std::vector<TensorShapeInfo> tail_outputs = {
-      MakeTensorShape(kFloat16, 2U, {CreateExpr(16)}, {CreateExpr(4), CreateExpr(16)},
-                      {CreateExpr(0), CreateExpr(1)})};
+      MakeTensorShape(kFloat16, 2U, {CreateExpr(16)}, {CreateExpr(4), CreateExpr(16)}, {CreateExpr(0), CreateExpr(1)})};
 
   NodeInfo reduce_node;
-  SetReduceSpecificParams(reduce_node, codegen::ReducePattern::kRA, codegen::ReduceMergeMode::kNone,
-                          CreateExpr(16), CreateExpr(1), true);
+  SetReduceSpecificParams(reduce_node, codegen::ReducePattern::kRA, codegen::ReduceMergeMode::kNone, CreateExpr(16),
+                          CreateExpr(1), true);
   reduce_node.reduce_specific_params.canonical_params.merged_dims = {true, CreateExpr(64), CreateExpr(16)};
 
   PerfOutputInfo perf;
@@ -1096,16 +1034,13 @@ TEST_F(UTestReduceMinMaxApiPerfV2, AscirReduceRebuildsMergedDimsFromCurrentShape
   EXPECT_EQ(PipeString(perf, PipeType::AIV_VEC), PipeString(expected_perf, PipeType::AIV_VEC));
 }
 
-TEST_F(UTestReduceMinMaxApiPerfV2, AscirReduceUsesSemanticMergeParamsForPerf)
-{
+TEST_F(UTestReduceMinMaxApiPerfV2, AscirReduceUsesSemanticMergeParamsForPerf) {
   const Expr codegen_merge_times = CreateExpr("z0z1Tt_size");
   const Expr semantic_times_expr = CreateExpr("s0") * CreateExpr("s1");
-  const std::vector<TensorShapeInfo> inputs = {
-      MakeTensorShape(kFloat16, 2U, {CreateExpr(128)}, {CreateExpr(8), CreateExpr(16)},
-                      {CreateExpr(16), CreateExpr(1)})};
+  const std::vector<TensorShapeInfo> inputs = {MakeTensorShape(
+      kFloat16, 2U, {CreateExpr(128)}, {CreateExpr(8), CreateExpr(16)}, {CreateExpr(16), CreateExpr(1)})};
   const std::vector<TensorShapeInfo> outputs = {
-      MakeTensorShape(kFloat16, 2U, {CreateExpr(128)}, {CreateExpr("out_keep")},
-                      {CreateExpr(16), CreateExpr(0)})};
+      MakeTensorShape(kFloat16, 2U, {CreateExpr(128)}, {CreateExpr("out_keep")}, {CreateExpr(16), CreateExpr(0)})};
 
   NodeInfo reduce_node;
   SetReduceSpecificParams(reduce_node, codegen::ReducePattern::kAR, codegen::ReduceMergeMode::kCopy, CreateExpr(128),
@@ -1129,8 +1064,7 @@ TEST_F(UTestReduceMinMaxApiPerfV2, AscirReduceUsesSemanticMergeParamsForPerf)
 
 // --- ASCIR registration tests ---
 
-TEST_F(UTestReduceMinMaxApiPerfV2, AscirRegistersReduceMinMaxOpsAndAliases)
-{
+TEST_F(UTestReduceMinMaxApiPerfV2, AscirRegistersReduceMinMaxOpsAndAliases) {
   const std::vector<TensorShapeInfo> reduce_inputs = {
       MakeTensorShape(kFloat16, 2U, {CreateExpr(8), CreateExpr(64)}, {CreateExpr(64), CreateExpr(1)})};
   const std::vector<TensorShapeInfo> reduce_outputs = {
@@ -1162,8 +1096,7 @@ TEST_F(UTestReduceMinMaxApiPerfV2, AscirRegistersReduceMinMaxOpsAndAliases)
   EXPECT_EQ(PipeString(reduce_max_perf, PipeType::AIV_VEC), PipeString(max_reduce_alias_perf, PipeType::AIV_VEC));
 }
 
-TEST_F(UTestReduceMinMaxApiPerfV2, AscirRegistersReduceAnyAllOps)
-{
+TEST_F(UTestReduceMinMaxApiPerfV2, AscirRegistersReduceAnyAllOps) {
   const std::vector<TensorShapeInfo> logical_reduce_inputs = {
       MakeTensorShape(kFloat32, 4U, {CreateExpr(8), CreateExpr(64)}, {CreateExpr(64), CreateExpr(1)})};
   const std::vector<TensorShapeInfo> logical_reduce_outputs = {
@@ -1188,8 +1121,7 @@ TEST_F(UTestReduceMinMaxApiPerfV2, AscirRegistersReduceAnyAllOps)
   EXPECT_EQ(PipeString(reduce_any_perf, PipeType::AIV_VEC).find("reduce_ar_normal_align_case"), std::string::npos);
 }
 
-TEST_F(UTestReduceMinMaxApiPerfV2, AscirRegistersReduceSumMeanProdOpsAndAliases)
-{
+TEST_F(UTestReduceMinMaxApiPerfV2, AscirRegistersReduceSumMeanProdOpsAndAliases) {
   const std::vector<TensorShapeInfo> reduce_inputs = {
       MakeTensorShape(kFloat32, 4U, {CreateExpr(8), CreateExpr(64)}, {CreateExpr(64), CreateExpr(1)})};
   const std::vector<TensorShapeInfo> reduce_outputs = {
@@ -1234,8 +1166,7 @@ TEST_F(UTestReduceMinMaxApiPerfV2, AscirRegistersReduceSumMeanProdOpsAndAliases)
   EXPECT_NE(PipeString(reduce_sum_perf, PipeType::AIV_VEC), PipeString(reduce_prod_perf, PipeType::AIV_VEC));
 }
 
-TEST_F(UTestReduceMinMaxApiPerfV2, AscirReduceSumMeanProdSkipUnsupportedDtypes)
-{
+TEST_F(UTestReduceMinMaxApiPerfV2, AscirReduceSumMeanProdSkipUnsupportedDtypes) {
   const std::vector<TensorShapeInfo> int64_inputs = {
       MakeTensorShape(kInt64, 8U, {CreateExpr(8), CreateExpr(64)}, {CreateExpr(64), CreateExpr(1)})};
   const std::vector<TensorShapeInfo> uint64_mean_inputs = {
@@ -1272,8 +1203,7 @@ TEST_F(UTestReduceMinMaxApiPerfV2, AscirReduceSumMeanProdSkipUnsupportedDtypes)
   EXPECT_TRUE(PipeString(prod_perf, PipeType::AIV_VEC).empty());
 }
 
-TEST_F(UTestReduceMinMaxApiPerfV2, AscirRegistersElementwiseMinMaxOps)
-{
+TEST_F(UTestReduceMinMaxApiPerfV2, AscirRegistersElementwiseMinMaxOps) {
   const std::vector<TensorShapeInfo> elementwise_inputs = {
       MakeTensorShape(kFloat16, 2U, {CreateExpr(128)}, {CreateExpr(1)}),
       MakeTensorShape(kFloat16, 2U, {CreateExpr(128)}, {CreateExpr(1)})};
@@ -1293,8 +1223,7 @@ TEST_F(UTestReduceMinMaxApiPerfV2, AscirRegistersElementwiseMinMaxOps)
   EXPECT_FALSE(PipeString(maximum_perf, PipeType::AIV_VEC).empty());
 }
 
-TEST_F(UTestReduceMinMaxApiPerfV2, ReduceAnyAllUseLogicalReduceEntrypoints)
-{
+TEST_F(UTestReduceMinMaxApiPerfV2, ReduceAnyAllUseLogicalReduceEntrypoints) {
   auto any_context = MakeRaContext(kUInt8, {CreateExpr(8), CreateExpr(64)});
   auto all_context = MakeArContext(kFloat32, {CreateExpr(8), CreateExpr(64)});
 
@@ -1313,13 +1242,10 @@ TEST_F(UTestReduceMinMaxApiPerfV2, ReduceAnyAllUseLogicalReduceEntrypoints)
   EXPECT_NE(ascendcapi_v2::ReduceAnyPerf(unsupported_context, unsupported_perf), ge::SUCCESS);
 }
 
-TEST_F(UTestReduceMinMaxApiPerfV2, AscirMaxMinAnyAllFallbackToElementwiseWhenReduceInfoUnknown)
-{
-  const std::vector<TensorShapeInfo> inputs = {
-      MakeTensorShape(kFloat32, 2U, {CreateExpr(129)}, {CreateExpr(1)}),
-      MakeTensorShape(kFloat32, 2U, {CreateExpr(129)}, {CreateExpr(1)})};
-  const std::vector<TensorShapeInfo> outputs = {
-      MakeTensorShape(kFloat32, 2U, {CreateExpr(129)}, {CreateExpr(1)})};
+TEST_F(UTestReduceMinMaxApiPerfV2, AscirMaxMinAnyAllFallbackToElementwiseWhenReduceInfoUnknown) {
+  const std::vector<TensorShapeInfo> inputs = {MakeTensorShape(kFloat32, 2U, {CreateExpr(129)}, {CreateExpr(1)}),
+                                               MakeTensorShape(kFloat32, 2U, {CreateExpr(129)}, {CreateExpr(1)})};
+  const std::vector<TensorShapeInfo> outputs = {MakeTensorShape(kFloat32, 2U, {CreateExpr(129)}, {CreateExpr(1)})};
   const std::vector<std::string> tags = {kMax, kMin, kAny, kAll};
 
   NodeInfo node;
@@ -1332,8 +1258,7 @@ TEST_F(UTestReduceMinMaxApiPerfV2, AscirMaxMinAnyAllFallbackToElementwiseWhenRed
   }
 }
 
-TEST_F(UTestReduceMinMaxApiPerfV2, AscirReduceFailsWhenCodegenModeUnknown)
-{
+TEST_F(UTestReduceMinMaxApiPerfV2, AscirReduceFailsWhenCodegenModeUnknown) {
   const std::vector<TensorShapeInfo> reduce_inputs = {
       MakeTensorShape(kFloat16, 2U, {CreateExpr(8), CreateExpr(64)}, {CreateExpr(64), CreateExpr(1)})};
   const std::vector<TensorShapeInfo> reduce_outputs = {
@@ -1348,8 +1273,7 @@ TEST_F(UTestReduceMinMaxApiPerfV2, AscirReduceFailsWhenCodegenModeUnknown)
 
 // --- dtype registration tests ---
 
-TEST_F(UTestReduceMinMaxApiPerfV2, MinAscirUsesMinAttImpl)
-{
+TEST_F(UTestReduceMinMaxApiPerfV2, MinAscirUsesMinAttImpl) {
   auto att_impl = af::ascir::AscirRegistry::GetInstance().GetIrAttImpl("3510", "Min");
   ASSERT_NE(att_impl, nullptr);
   EXPECT_STREQ(reinterpret_cast<const char *>(att_impl->GetApiPerf()), "MinV2");

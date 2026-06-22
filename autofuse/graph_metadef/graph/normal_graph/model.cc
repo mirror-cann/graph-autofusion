@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -37,7 +37,7 @@ using google::protobuf::io::FileOutputStream;
 using google::protobuf::io::ZeroCopyInputStream;
 
 const int32_t DEFAULT_VERSION = 1;
-const int32_t ACCESS_PERMISSION_BITS = 256; // 0400;
+const int32_t ACCESS_PERMISSION_BITS = 256;  // 0400;
 static af::ModelSerialize SERIALIZE;
 }  // namespace
 
@@ -60,7 +60,7 @@ void Model::Init() {
   version_ = 0U;
 }
 
-Model::Model() :AttrHolder() {
+Model::Model() : AttrHolder() {
   Init();
 }
 
@@ -70,28 +70,38 @@ Model::Model(const std::string &name, const std::string &custom_version)
 }
 
 Model::Model(const char_t *name, const char_t *custom_version)
-    : Model(std::string(name == nullptr ? "" : name),
-            std::string(custom_version == nullptr ? "" : custom_version)) {}
+    : Model(std::string(name == nullptr ? "" : name), std::string(custom_version == nullptr ? "" : custom_version)) {}
 
-std::string Model::GetName() const { return name_; }
+std::string Model::GetName() const {
+  return name_;
+}
 
-void Model::SetName(const std::string &name) { name_ = name; }
+void Model::SetName(const std::string &name) {
+  name_ = name;
+}
 
-uint32_t Model::GetVersion() const { return version_; }
+uint32_t Model::GetVersion() const {
+  return version_;
+}
 
-std::string Model::GetPlatformVersion() const { return platform_version_; }
+std::string Model::GetPlatformVersion() const {
+  return platform_version_;
+}
 
-void Model::SetGraph(const ComputeGraphPtr &graph) { graph_ = graph; }
+void Model::SetGraph(const ComputeGraphPtr &graph) {
+  graph_ = graph;
+}
 
-const ComputeGraphPtr Model::GetGraph() const { return graph_; }
+const ComputeGraphPtr Model::GetGraph() const {
+  return graph_;
+}
 
 graphStatus Model::Save(Buffer &buffer, const bool is_dump) const {
   buffer = SERIALIZE.SerializeModel(*this, is_dump);
   return (buffer.GetSize() > 0U) ? GRAPH_SUCCESS : GRAPH_FAILED;
 }
 
-graphStatus Model::SaveWithoutSeparate(Buffer &buffer,
-                                       const bool is_dump) const {
+graphStatus Model::SaveWithoutSeparate(Buffer &buffer, const bool is_dump) const {
   std::string path;
   buffer = SERIALIZE.SerializeModel(*this, path, false, is_dump);
   return (buffer.GetSize() > 0U) ? GRAPH_SUCCESS : GRAPH_FAILED;
@@ -111,7 +121,9 @@ graphStatus Model::Save(proto::ModelDef &model_def, const bool is_dump) const {
   return SERIALIZE.SerializeModel(*this, is_dump, model_def);
 }
 
-void Model::SetAttr(const ProtoAttrMap &attrs) { attrs_ = attrs; }
+void Model::SetAttr(const ProtoAttrMap &attrs) {
+  attrs_ = attrs;
+}
 
 graphStatus Model::Load(const uint8_t *data, size_t len, Model &model) {
   return SERIALIZE.UnserializeModel(data, len, model) ? GRAPH_SUCCESS : GRAPH_FAILED;
@@ -135,8 +147,7 @@ graphStatus Model::SaveToFile(const std::string &file_name, const bool force_sep
   std::string file;
   SplitFilePath(file_name, dir_path, file);
   if (!dir_path.empty()) {
-    GE_ASSERT_TRUE((CreateDir(dir_path) == 0),
-                   "Create direct failed, path: %s.", file_name.c_str());
+    GE_ASSERT_TRUE((CreateDir(dir_path) == 0), "Create direct failed, path: %s.", file_name.c_str());
   } else {
     GE_ASSERT_SUCCESS(GetAscendWorkPath(dir_path));
     if (dir_path.empty()) {
@@ -165,9 +176,10 @@ graphStatus Model::SaveToFile(const std::string &file_name, const bool force_sep
     if (!ge_proto.ParseFromString(str)) {
       return GRAPH_FAILED;
     }
-    const int32_t fd =
-        mmOpen2(&real_path[0], static_cast<int32_t>(static_cast<uint32_t>(M_WRONLY) | static_cast<uint32_t>(M_CREAT) |
-            static_cast<uint32_t>(O_TRUNC)), static_cast<uint32_t>(ACCESS_PERMISSION_BITS));
+    const int32_t fd = mmOpen2(&real_path[0],
+                               static_cast<int32_t>(static_cast<uint32_t>(M_WRONLY) | static_cast<uint32_t>(M_CREAT) |
+                                                    static_cast<uint32_t>(O_TRUNC)),
+                               static_cast<uint32_t>(ACCESS_PERMISSION_BITS));
     if (fd < 0) {
       const std::string reason = GetStrError();
       REPORT_INNER_ERR_MSG("E18888", "open file:%s failed, reason:%s", &real_path[0], reason.c_str());
@@ -201,7 +213,9 @@ graphStatus Model::SaveToFile(const std::string &file_name, const bool force_sep
   return GRAPH_SUCCESS;
 }
 
-bool Model::IsValid() const { return graph_ != nullptr; }
+bool Model::IsValid() const {
+  return graph_ != nullptr;
+}
 
 graphStatus Model::LoadFromFile(const std::string &file_name) {
   char_t real_path[MMPA_MAX_PATH] = {};
@@ -251,26 +265,27 @@ graphStatus Model::LoadFromFile(const std::string &file_name) {
   return Load(model_def, file_name);
 }
 
-ProtoAttrMap &Model::MutableAttrMap() { return attrs_; }
+ProtoAttrMap &Model::MutableAttrMap() {
+  return attrs_;
+}
 
 ConstProtoAttrMap &Model::GetAttrMap() const {
   return attrs_;
 }
-}  // namespace ge
+}  // namespace af
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-ge::Status GeApiWrapper_ModelSaveToString(const af::Graph &graph,
-                                          const std::string &node_name,
+ge::Status GeApiWrapper_ModelSaveToString(const af::Graph &graph, const std::string &node_name,
                                           std::string &model_str) {
   std::string model_name = "onnx_compute_model_" + node_name;
   af::Buffer model_buf;
   af::Model onnx_model(model_name.c_str(), "");
   onnx_model.SetGraph(af::GraphUtilsEx::GetComputeGraph(graph));
-  GE_ASSERT_SUCCESS(onnx_model.Save(model_buf, false),
-    "[GEOP] node:%s Onnx Model Serialized Failed.", node_name.c_str());
+  GE_ASSERT_SUCCESS(onnx_model.Save(model_buf, false), "[GEOP] node:%s Onnx Model Serialized Failed.",
+                    node_name.c_str());
   model_str = std::string(reinterpret_cast<const char *>(model_buf.GetData()), model_buf.GetSize());
   return ge::SUCCESS;
 }

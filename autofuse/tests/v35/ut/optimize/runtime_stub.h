@@ -15,7 +15,7 @@
 // tests/depends/runtime/src is in the include path, so <runtime_stub.h> resolves correctly.
 #include <runtime_stub.h>
 
-namespace af{
+namespace af {
 class RuntimeStubV2 : public ge::RuntimeStub {
  public:
   rtError_t rtGetSocVersion(char *version, const uint32_t maxLen) override {
@@ -23,7 +23,7 @@ class RuntimeStubV2 : public ge::RuntimeStub {
     return RT_ERROR_NONE;
   }
 
-  rtError_t rtGetSocSpec(const char* label, const char* key, char* val, const uint32_t maxLen) override {
+  rtError_t rtGetSocSpec(const char *label, const char *key, char *val, const uint32_t maxLen) override {
     (void)label;
     (void)key;
     (void)strcpy_s(val, maxLen, "3510");

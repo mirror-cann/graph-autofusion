@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -18,7 +18,8 @@
 namespace af {
 class CycleDetector {
   friend class GraphUtils;
-public:
+
+ public:
   CycleDetector() = default;
   ~CycleDetector() = default;
   /* Detect whether there are cycles in graph
@@ -48,7 +49,7 @@ public:
    * */
   bool HasDetectedCycle(const std::vector<std::vector<NodePtr>> &fusion_nodes);
 
-   /**
+  /**
    * Update connection matrix based on graph.
    * Connection matrix is served for cycle detection.
    *
@@ -56,16 +57,17 @@ public:
    */
   void Update(const ComputeGraphPtr &graph, const std::vector<NodePtr> &fusion_nodes);
 
-   /**
+  /**
    * Expand dim and update connection matrix based on graph.
    */
   void ExpandAndUpdate(const vector<NodePtr> &fusion_nodes, const std::string &node_name);
-private:
+
+ private:
   graphStatus Init(const ComputeGraphPtr &graph);
   std::unique_ptr<ConnectionMatrix> connectivity_{nullptr};
 };
 
 using CycleDetectorPtr = std::unique_ptr<CycleDetector>;
 using CycleDetectorSharedPtr = std::shared_ptr<CycleDetector>;
-}
+}  // namespace af
 #endif  // GRAPH_CYCLE_DETECTOR_H_

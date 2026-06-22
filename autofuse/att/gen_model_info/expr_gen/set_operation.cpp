@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -15,8 +15,7 @@
 namespace att {
 std::vector<DimRange> SetOperation::Diff(DimRange &range1, DimRange &range2) {
   std::vector<DimRange> new_dim_ranges;
-  if ((range1.lower_bound == range2.lower_bound) &&
-      (range1.upper_bound == range2.upper_bound)) {
+  if ((range1.lower_bound == range2.lower_bound) && (range1.upper_bound == range2.upper_bound)) {
     return new_dim_ranges;
   }
   Expr ori_lower_bound = range1.lower_bound;
@@ -98,7 +97,7 @@ DimRange SetOperation::Intersection(DimRange &range1, DimRange &range2) {
   Expr lower_bound = af::sym::Max(range1.lower_bound, range2.lower_bound);
   Expr upper_bound = af::sym::Min(range1.upper_bound, range2.upper_bound);
 
-  new_dim_range.lower_bound  = lower_bound;
+  new_dim_range.lower_bound = lower_bound;
   new_dim_range.upper_bound = upper_bound;
   return new_dim_range;
 }
@@ -120,9 +119,8 @@ TensorRange SetOperation::Intersection(TensorRange &range1, TensorRange &range2)
   return new_range;
 }
 
-void SetOperation::ProductImplement(std::vector<std::vector<uint32_t>> &seq,
-                                    std::vector<std::vector<uint32_t>> &res, uint32_t layer,
-                                    std::vector<uint32_t> &tmp) {
+void SetOperation::ProductImplement(std::vector<std::vector<uint32_t>> &seq, std::vector<std::vector<uint32_t>> &res,
+                                    uint32_t layer, std::vector<uint32_t> &tmp) {
   if (seq.size() != 0U) {
     if (layer < seq.size() - 1U) {
       for (size_t i = 0U; i < seq[layer].size(); i++) {
@@ -152,4 +150,4 @@ Expr SetOperation::SetComputation(TensorRange &range) {
   }
   return total_num;
 }
-}
+}  // namespace att

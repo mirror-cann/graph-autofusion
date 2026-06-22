@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -49,7 +49,7 @@ Status PowApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::AxisId>
   stringstream ss;
   const bool x1_is_scalar_scene = (x1.is_constant) || (x1.is_ub_scalar && x1.need_gen_get_value_of_ub_scalar);
   const bool x2_is_scalar_scene = (x2.is_constant) || (x2.is_ub_scalar && x2.need_gen_get_value_of_ub_scalar);
-  
+
   // api层面x1 x2 dtype类型一样
   std::string x1_dtype_name;
   std::string x2_dtype_name;
@@ -67,15 +67,20 @@ Status PowApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::AxisId>
 
   ss << this->api_name_ << "(" << y << "[" << tpipe.tiler.TensorVectorizedOffset(current_axis, y) << "], ";  // 输出
   if (x1_is_scalar_scene && x2_is_scalar_scene) {
-    (void)RegisterBasicDumpParam(this->api_name_, inputs, outputs, CombinedExprFactory::SymbolVar(y.actual_size.Str()), tpipe.tmp_buf.name + "_" + std::to_string(id));
-    ss << x1_scalar << ", " << x2_scalar << ", " << tpipe.tmp_buf << "_" << std::to_string(id) << ", "
-       << y.actual_size << ");" << std::endl;
+    (void)RegisterBasicDumpParam(this->api_name_, inputs, outputs, CombinedExprFactory::SymbolVar(y.actual_size.Str()),
+                                 tpipe.tmp_buf.name + "_" + std::to_string(id));
+    ss << x1_scalar << ", " << x2_scalar << ", " << tpipe.tmp_buf << "_" << std::to_string(id) << ", " << y.actual_size
+       << ");" << std::endl;
   } else {
     if (x1_is_scalar_scene) {
-      (void)RegisterBasicDumpParam(this->api_name_, inputs, outputs, CombinedExprFactory::SymbolVar(x2.actual_size.Str()), tpipe.tmp_buf.name + "_" + std::to_string(id));
+      (void)RegisterBasicDumpParam(this->api_name_, inputs, outputs,
+                                   CombinedExprFactory::SymbolVar(x2.actual_size.Str()),
+                                   tpipe.tmp_buf.name + "_" + std::to_string(id));
       ss << x1_scalar << ", ";  // 输入1
     } else {
-      (void)RegisterBasicDumpParam(this->api_name_, inputs, outputs, CombinedExprFactory::SymbolVar(x1.actual_size.Str()), tpipe.tmp_buf.name + "_" + std::to_string(id));
+      (void)RegisterBasicDumpParam(this->api_name_, inputs, outputs,
+                                   CombinedExprFactory::SymbolVar(x1.actual_size.Str()),
+                                   tpipe.tmp_buf.name + "_" + std::to_string(id));
       ss << x1 << "[" << tpipe.tiler.TensorVectorizedOffset(current_axis, x1) << "], ";  // 输入1
     }
     if (x2_is_scalar_scene) {

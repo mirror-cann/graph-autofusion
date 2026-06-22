@@ -30,7 +30,7 @@ struct TensorTransposeInputParam {
   U size;
 };
 
-class TestRegbaseApiTranspose :public testing::Test {
+class TestRegbaseApiTranspose : public testing::Test {
  protected:
   template <typename T, typename U>
   static void InvokeKernelTestIndex(TensorTransposeInputParam<T, U> &param) {
@@ -40,21 +40,27 @@ class TestRegbaseApiTranspose :public testing::Test {
     tpipe.InitBuffer(idx_buf, sizeof(U) * param.size);
     LocalTensor<U> l_idx = idx_buf.Get<U>();
     if (param.dst_dims.size() == 1) {
-      GenTransposeIndex<U, 1>((__ubuf__ U*)l_idx.GetPhyAddr(), {param.dst_dims[0]}, {param.src_strides[0]}, param.size);
+      GenTransposeIndex<U, 1>((__ubuf__ U *)l_idx.GetPhyAddr(), {param.dst_dims[0]}, {param.src_strides[0]},
+                              param.size);
     } else if (param.dst_dims.size() == 2) {
-      GenTransposeIndex<U, 2>((__ubuf__ U*)l_idx.GetPhyAddr(), {param.dst_dims[0], param.dst_dims[1]},
-        {param.src_strides[0], param.src_strides[1]}, param.size);
+      GenTransposeIndex<U, 2>((__ubuf__ U *)l_idx.GetPhyAddr(), {param.dst_dims[0], param.dst_dims[1]},
+                              {param.src_strides[0], param.src_strides[1]}, param.size);
     } else if (param.dst_dims.size() == 3) {
-      GenTransposeIndex<U, 3>((__ubuf__ U*)l_idx.GetPhyAddr(), {param.dst_dims[0], param.dst_dims[1], param.dst_dims[2]},
-        {param.src_strides[0], param.src_strides[1], param.src_strides[2]}, param.size);
+      GenTransposeIndex<U, 3>((__ubuf__ U *)l_idx.GetPhyAddr(),
+                              {param.dst_dims[0], param.dst_dims[1], param.dst_dims[2]},
+                              {param.src_strides[0], param.src_strides[1], param.src_strides[2]}, param.size);
     } else if (param.dst_dims.size() == 4) {
-      GenTransposeIndex<U, 4>((__ubuf__ U*)l_idx.GetPhyAddr(),
-        {param.dst_dims[0], param.dst_dims[1], param.dst_dims[2], param.dst_dims[3]},
-        {param.src_strides[0], param.src_strides[1], param.src_strides[2], param.src_strides[3]}, param.size);
+      GenTransposeIndex<U, 4>((__ubuf__ U *)l_idx.GetPhyAddr(),
+                              {param.dst_dims[0], param.dst_dims[1], param.dst_dims[2], param.dst_dims[3]},
+                              {param.src_strides[0], param.src_strides[1], param.src_strides[2], param.src_strides[3]},
+                              param.size);
     } else if (param.dst_dims.size() == 5) {
-      GenTransposeIndex<U, 5>((__ubuf__ U*)l_idx.GetPhyAddr(),
-        {param.dst_dims[0], param.dst_dims[1], param.dst_dims[2], param.dst_dims[3], param.dst_dims[4]},
-        {param.src_strides[0], param.src_strides[1], param.src_strides[2], param.src_strides[3], param.src_strides[4]}, param.size);
+      GenTransposeIndex<U, 5>(
+          (__ubuf__ U *)l_idx.GetPhyAddr(),
+          {param.dst_dims[0], param.dst_dims[1], param.dst_dims[2], param.dst_dims[3], param.dst_dims[4]},
+          {param.src_strides[0], param.src_strides[1], param.src_strides[2], param.src_strides[3],
+           param.src_strides[4]},
+          param.size);
     }
     UbToGm(param.idx, l_idx, param.size);
   }
@@ -181,16 +187,17 @@ class TestRegbaseApiTranspose :public testing::Test {
       TransposeExtend<1, 1, T>(l_y, l_x, tmp_buf, {param.dst_dims[0]}, {param.src_strides[0]}, {param.dst_strides[0]});
     } else if (param.dst_dims.size() == 2) {
       TransposeExtend<2, 2, T>(l_y, l_x, tmp_buf, {param.dst_dims[0], param.dst_dims[1]},
-        {param.src_strides[0], param.src_strides[1]}, {param.dst_strides[0], param.dst_strides[1]});
+                               {param.src_strides[0], param.src_strides[1]},
+                               {param.dst_strides[0], param.dst_strides[1]});
     } else if (param.dst_dims.size() == 3) {
       TransposeExtend<2, 3, T>(l_y, l_x, tmp_buf, {param.dst_dims[0], param.dst_dims[1], param.dst_dims[2]},
-        {param.src_strides[0], param.src_strides[1], param.src_strides[2]},
-        {param.dst_strides[0], param.dst_strides[1], param.dst_strides[2]});
+                               {param.src_strides[0], param.src_strides[1], param.src_strides[2]},
+                               {param.dst_strides[0], param.dst_strides[1], param.dst_strides[2]});
     } else if (param.dst_dims.size() == 4) {
-      TransposeExtend<2, 4, T>(l_y, l_x, tmp_buf,
-        {param.dst_dims[0], param.dst_dims[1], param.dst_dims[2], param.dst_dims[3]},
-        {param.src_strides[0], param.src_strides[1], param.src_strides[2], param.src_strides[3]},
-        {param.dst_strides[0], param.dst_strides[1], param.dst_strides[2], param.dst_strides[3]});
+      TransposeExtend<2, 4, T>(
+          l_y, l_x, tmp_buf, {param.dst_dims[0], param.dst_dims[1], param.dst_dims[2], param.dst_dims[3]},
+          {param.src_strides[0], param.src_strides[1], param.src_strides[2], param.src_strides[3]},
+          {param.dst_strides[0], param.dst_strides[1], param.dst_strides[2], param.dst_strides[3]});
     }
     UbToGm(param.y, l_y, param.size);
   }

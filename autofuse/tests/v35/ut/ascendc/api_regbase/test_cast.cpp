@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -29,7 +29,7 @@ struct TensorCastInputParam {
   uint32_t size{0};
 };
 
-class TestApiCast :public testing::Test {
+class TestApiCast : public testing::Test {
  protected:
   template <typename InT, typename OutT, uint8_t dim>
   static void InvokeKernelWithTwoTensorInput(TensorCastInputParam<InT, OutT, dim> &param) {
@@ -79,11 +79,10 @@ class TestApiCast :public testing::Test {
   }
 
   template <typename InT, typename OutT, uint8_t dim>
-  static void CastTest(const uint32_t (&output_dims)[dim],
-                       const uint32_t (&output_stride)[dim],
+  static void CastTest(const uint32_t (&output_dims)[dim], const uint32_t (&output_stride)[dim],
                        const uint32_t (&input_stride)[dim]) {
     TensorCastInputParam<InT, OutT, dim> param{};
-    static_assert(dim==2, "dim must be 2, if dim < 2, set stride as {0, 1}");
+    static_assert(dim == 2, "dim must be 2, if dim < 2, set stride as {0, 1}");
     param.size = output_dims[0] * output_dims[1];
     for (int i = 0; i < 2; ++i) {
       param.output_dims[i] = output_dims[i];

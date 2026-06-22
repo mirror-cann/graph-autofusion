@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -39,11 +39,11 @@ Status RsqrtApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::AxisI
   GE_ASSERT_TRUE(it != this->tmp_buf_id.end(), "RsqrtApiCall cannot find tmp buffer id to use.");
   id = it->second;
 
-  (void)RegisterBasicDumpParam(this->api_name_, inputs, outputs, CombinedExprFactory::SymbolVar(x.actual_size.Str()));  
+  (void)RegisterBasicDumpParam(this->api_name_, inputs, outputs, CombinedExprFactory::SymbolVar(x.actual_size.Str()));
   stringstream ss;
   ss << this->api_name_ << "(" << y << "[" << tpipe.tiler.TensorVectorizedOffset(current_axis, y) << "], " << x << "["
-    << tpipe.tiler.TensorVectorizedOffset(current_axis, x) << "], local_blk_tensor_of_float_1, "
-    << tpipe.tmp_buf << "_" << std::to_string(id) << ", " << x.actual_size << ");" << std::endl;
+     << tpipe.tiler.TensorVectorizedOffset(current_axis, x) << "], local_blk_tensor_of_float_1, " << tpipe.tmp_buf
+     << "_" << std::to_string(id) << ", " << x.actual_size << ");" << std::endl;
   result = ss.str();
   return ge::SUCCESS;
 }

@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -21,27 +21,24 @@ using namespace att;
 
 class TestL2SolverGen : public ::testing::Test {
  public:
-  static void TearDownTestCase()
-  {
+  static void TearDownTestCase() {
     std::cout << "Test end." << std::endl;
   }
-  static void SetUpTestCase()
-  {
+  static void SetUpTestCase() {
     std::cout << "Test begin." << std::endl;
   }
   void SetUp() override {
-     // Code here will be called immediately after the constructor (right
-     // before each test).
+    // Code here will be called immediately after the constructor (right
+    // before each test).
   }
 
   void TearDown() override {
-     // Code here will be called immediately after each test (right
-     // before the destructor).
+    // Code here will be called immediately after each test (right
+    // before the destructor).
   }
 };
 
-TEST_F(TestL2SolverGen, TEST_GEN_SOLVER)
-{
+TEST_F(TestL2SolverGen, TEST_GEN_SOLVER) {
   Expr m = CreateExpr("m");
   Expr n = CreateExpr("n");
   Expr k = CreateExpr("k");
@@ -89,8 +86,7 @@ TEST_F(TestL2SolverGen, TEST_GEN_SOLVER)
   EXPECT_NE(invoke_code, "");
 }
 
-TEST_F(TestL2SolverGen, TEST_KSOLVER_GEN_ERR)
-{
+TEST_F(TestL2SolverGen, TEST_KSOLVER_GEN_ERR) {
   Expr m = CreateExpr("m");
   Expr n = CreateExpr("n");
   Expr k = CreateExpr("k");
@@ -138,9 +134,7 @@ TEST_F(TestL2SolverGen, TEST_KSOLVER_GEN_ERR)
   EXPECT_EQ(impl_code, "Solver Gen Error");
 }
 
-
-TEST_F(TestL2SolverGen, TEST_IS_CLASH_POSSIBLE)
-{
+TEST_F(TestL2SolverGen, TEST_IS_CLASH_POSSIBLE) {
   Expr m = CreateExpr("m");
   Expr n = CreateExpr("n");
   Expr k = CreateExpr("k");
@@ -188,8 +182,7 @@ TEST_F(TestL2SolverGen, TEST_IS_CLASH_POSSIBLE)
   // EXPECT_EQ(solver_gen->IsClashPossible(), false);
 }
 
-TEST_F(TestL2SolverGen, TEST_GET_RELATED_L0_ARGS)
-{
+TEST_F(TestL2SolverGen, TEST_GET_RELATED_L0_ARGS) {
   Expr m = CreateExpr("m");
   Expr n = CreateExpr("n");
   Expr k = CreateExpr("k");

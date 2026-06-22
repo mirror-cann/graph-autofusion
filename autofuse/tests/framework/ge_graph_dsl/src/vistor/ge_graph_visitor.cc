@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -33,7 +33,9 @@ GE_NS_BEGIN
 
 GeGraphVisitor::GeGraphVisitor() : build_graph_(std::make_shared<ComputeGraph>("")) {}
 
-void GeGraphVisitor::reset(const ComputeGraphPtr &graph) { build_graph_ = graph; }
+void GeGraphVisitor::reset(const ComputeGraphPtr &graph) {
+  build_graph_ = graph;
+}
 
 Graph GeGraphVisitor::BuildGeGraph() const {
   for (const auto &id_and_index : outputs_) {
@@ -48,7 +50,9 @@ Graph GeGraphVisitor::BuildGeGraph() const {
   return GraphUtilsEx::CreateGraphFromComputeGraph(build_graph_);
 }
 
-ComputeGraphPtr GeGraphVisitor::BuildComputeGraph() const { return build_graph_; }
+ComputeGraphPtr GeGraphVisitor::BuildComputeGraph() const {
+  return build_graph_;
+}
 
 Status GeGraphVisitor::Visit(const ::EG_NS::Graph &graph) {
   build_graph_->SetName(graph.GetName());

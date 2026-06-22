@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -50,10 +50,12 @@ constexpr const ge::char_t *kBuffer = "buffer";
 // 打在exe graph上，保存了本graph涉及的ModelDesc信息
 constexpr const ge::char_t *kModelDesc = "ModelDesc";
 
-// 打在exe node上，类型是int，代表两层含义：1. 本node释放一个资源；2. 本node释放的资源位于本node的第n的输入index；n为属性的值
+// 打在exe node上，类型是int，代表两层含义：1. 本node释放一个资源；2.
+// 本node释放的资源位于本node的第n的输入index；n为属性的值
 constexpr ge::char_t kReleaseResourceIndex[] = "ReleaseResourceIndex";
 
-// 作为扩展属性打在exe graph上，类型是ge::ComputeGraphPtr，保存的是原来的计算图，未来会删除，因为无法做序列化，执行图序列化反序列化后会丢失该属性
+// 作为扩展属性打在exe
+// graph上，类型是ge::ComputeGraphPtr，保存的是原来的计算图，未来会删除，因为无法做序列化，执行图序列化反序列化后会丢失该属性
 constexpr const ge::char_t *kComputeGraph = "_compute_graph";
 
 // 作为扩展属性打在exe node上，类型是PassChangedKernels，记录执行图经过pass后的新旧exe nodes输出的对应关系

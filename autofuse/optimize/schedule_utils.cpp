@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -86,7 +86,7 @@ bool ScheduleUtils::IsContinuesBroadcast(const std::vector<af::Expression> &in_r
   for (size_t i = 0UL; i < in_repeats.size(); ++i) {
     // 连续广播轴是只有一处repeat不同，其余全部相同，比如：(1,1,1,3) -> (1,4,2,3)，
     // 则是将中间的两个轴(1,1)->(4,2)，则是连续的。
-    if (af::SymbolicUtils::StaticCheckEq(in_repeats[i], out_repeats[i]) != af::TriBool::kTrue ) {
+    if (af::SymbolicUtils::StaticCheckEq(in_repeats[i], out_repeats[i]) != af::TriBool::kTrue) {
       if (last_one_index.has_value() && i != *last_one_index + 1) {
         return false;
       }
@@ -194,11 +194,10 @@ bool ScheduleUtils::NotNeedAlignVectorStride(const af::AscGraph &graph) {
       }
     } else if (IsConcat(node)) {
       bool output_need_align = false;
-      bool need_align =
-          (!ascir::utils::IsConcatAllInputsAligned(*node))
-              && (!ascir::utils::UseSmallTailConcatApi(*node, &output_need_align));
-      GE_CHK_BOOL_RET_SPECIAL_STATUS((need_align || output_need_align), false,
-                                     "Node %s[%s] need align vector stride", node->GetTypePtr(), node->GetNamePtr());
+      bool need_align = (!ascir::utils::IsConcatAllInputsAligned(*node)) &&
+                        (!ascir::utils::UseSmallTailConcatApi(*node, &output_need_align));
+      GE_CHK_BOOL_RET_SPECIAL_STATUS((need_align || output_need_align), false, "Node %s[%s] need align vector stride",
+                                     node->GetTypePtr(), node->GetNamePtr());
       exist_concat_node = true;
     } else {
       // do nothing
@@ -215,8 +214,8 @@ bool ScheduleUtils::IsIntervalBroadcast(const std::vector<af::Expression> &in_re
   if (in_repeats.size() != out_repeats.size()) {
     return false;
   }
-  constexpr int64_t api_support_brc_axes_cnt = 2L; // 目前api只支持同时广播两根轴
-  constexpr int64_t api_support_vec_axes_cnt = 4L; // 目前api只支持ABAB、BABA、BAB 三种场景，最多支持4根向量化轴
+  constexpr int64_t api_support_brc_axes_cnt = 2L;  // 目前api只支持同时广播两根轴
+  constexpr int64_t api_support_vec_axes_cnt = 4L;  // 目前api只支持ABAB、BABA、BAB 三种场景，最多支持4根向量化轴
   int64_t brc_cnt = 0L;
   int64_t pre_brc_index = -1L;
 
@@ -267,7 +266,6 @@ bool ScheduleUtils::IsStaticGraph(const af::AscGraph &graph) {
   return true;
 }
 
-
 Status ScheduleUtils::GetNonBrcInputTensor(const ascir::NodeView &node, const size_t index,
                                            std::unique_ptr<af::AscTensor> &tensor) {
   GE_WARN_ASSERT(node != nullptr);
@@ -295,7 +293,6 @@ bool ScheduleUtils::GetTailAxisDataSize(const af::AscNodePtr &node, uint32_t &si
   return true;
 }
 
-
 bool ScheduleUtils::IsTailAxisLessThan(const af::AscNodePtr &node, const uint32_t value) {
   uint32_t size = 0;
   return GetTailAxisDataSize(node, size) && size < value;
@@ -306,7 +303,6 @@ bool ScheduleUtils::IsTailAxisAlignedBy(const af::AscNodePtr &node, const uint32
   uint32_t size = 0;
   return GetTailAxisDataSize(node, size) && size % align_bytes == 0;
 }
-
 
 Status ScheduleUtils::TopologicalSorting(af::AscGraph &graph) {
   auto compute_graph = af::AscGraphUtils::GetComputeGraph(graph);
@@ -353,7 +349,7 @@ Status ScheduleUtils::TopologicalSorting(af::AscGraph &graph) {
 Status ScheduleUtils::RemoveUnusedAxes(af::AscGraph &graph) {
   GELOGD("RemoveUnusedAxes start, graph = %s", graph.GetName().c_str());
   const auto graph_attr = af::AscGraphUtils::GetComputeGraph(graph)->GetOrCreateAttrsGroup<af::AscGraphAttr>();
-  auto src_axes = graph_attr->axis; // copy
+  auto src_axes = graph_attr->axis;  // copy
   std::map<af::AxisId, af::AxisId> prev_id_to_new_id;
   for (const auto &node : graph.GetAllNodes()) {
     for (auto &axis_id : node->attr.sched.axis) {
@@ -405,7 +401,8 @@ Status ScheduleUtils::GetVectorRepeats(const std::vector<af::Expression> &repeat
                                        const std::vector<int64_t> &vector_axis,
                                        std::vector<af::Expression> &vector_repeats) {
   GE_WARN_ASSERT(repeats.size() == axis.size(), "Repeats size(%zu) != axis size(%zu)", repeats.size(), axis.size());
-  GE_WARN_ASSERT(vector_axis.size() <= axis.size(), "Vector axis size(%zu) >= axis size(%zu)", vector_axis.size(), axis.size());
+  GE_WARN_ASSERT(vector_axis.size() <= axis.size(), "Vector axis size(%zu) >= axis size(%zu)", vector_axis.size(),
+                 axis.size());
   if (vector_axis.empty()) {
     return ge::SUCCESS;
   }
@@ -488,7 +485,7 @@ std::string ScheduleUtils::AxesToString(const std::vector<af::AxisPtr> &axes) {
 
 std::vector<af::AscNodePtr> GetParentNodes(const af::AscNodePtr &node) {
   std::vector<af::AscNodePtr> parentNodes;
-  const auto& inNodes = node->GetInNodes();
+  const auto &inNodes = node->GetInNodes();
   for (const auto &parentNode : inNodes) {
     af::AscNodePtr ascParentNode = std::dynamic_pointer_cast<af::AscNode>(parentNode);
     if (ascParentNode != nullptr) {
@@ -500,7 +497,7 @@ std::vector<af::AscNodePtr> GetParentNodes(const af::AscNodePtr &node) {
 
 std::vector<af::AscNodePtr> GetChildNodes(const af::AscNodePtr &node) {
   std::vector<af::AscNodePtr> childNodes;
-  const auto& outNodes = node->GetOutNodes();
+  const auto &outNodes = node->GetOutNodes();
   for (const auto &childNode : outNodes) {
     af::AscNodePtr ascChildNode = std::dynamic_pointer_cast<af::AscNode>(childNode);
     if (ascChildNode != nullptr) {
@@ -510,7 +507,7 @@ std::vector<af::AscNodePtr> GetChildNodes(const af::AscNodePtr &node) {
   return childNodes;
 }
 
-static bool DfsReduceNodeBetweenBA(const af::AscNodePtr& current, const af::AscNodePtr& target, bool hasReduce) {
+static bool DfsReduceNodeBetweenBA(const af::AscNodePtr &current, const af::AscNodePtr &target, bool hasReduce) {
   if (ScheduleUtils::IsReduce(current)) {
     hasReduce = true;
   }
@@ -520,7 +517,7 @@ static bool DfsReduceNodeBetweenBA(const af::AscNodePtr& current, const af::AscN
   }
 
   const auto parents = GetParentNodes(current);
-  for (const auto& parent : parents) {
+  for (const auto &parent : parents) {
     if (DfsReduceNodeBetweenBA(parent, target, hasReduce)) {
       return true;
     }
@@ -529,26 +526,27 @@ static bool DfsReduceNodeBetweenBA(const af::AscNodePtr& current, const af::AscN
   return false;
 }
 
-bool HasReduceNodeOnPath(const af::AscNodePtr& b, const af::AscNodePtr& a) {
+bool HasReduceNodeOnPath(const af::AscNodePtr &b, const af::AscNodePtr &a) {
   return DfsReduceNodeBetweenBA(b, a, false);
 }
 
 bool ScheduleUtils::IsLastAxisReduce(const ascir::ImplGraph &impl_graph) {
-  for (const auto& node : impl_graph.GetAllNodes()) {
+  for (const auto &node : impl_graph.GetAllNodes()) {
     if (ScheduleUtils::IsReduce(node)) {
       std::vector<ascir::SizeExpr> src_strides;
       ScheduleUtils::GetReduceInputStrides(*node, src_strides);
       const std::vector<ascir::SizeExpr> &dst_strides = node->outputs[0].attr.strides;
       auto last_index = src_strides.size() - 1;
-      return (af::SymbolicUtils::StaticCheckEq(src_strides[last_index], dst_strides[last_index]) != af::TriBool::kTrue) &&
+      return (af::SymbolicUtils::StaticCheckEq(src_strides[last_index], dst_strides[last_index]) !=
+              af::TriBool::kTrue) &&
              (af::SymbolicUtils::StaticCheckEq(dst_strides[last_index], af::sym::kSymbolZero) == af::TriBool::kTrue);
     }
   }
   return false;
 }
 
-bool ScheduleUtils::IsNormStruct(const ascir::ImplGraph& implGraph) {
-  for (const auto& node : implGraph.GetAllNodes()) {
+bool ScheduleUtils::IsNormStruct(const ascir::ImplGraph &implGraph) {
+  for (const auto &node : implGraph.GetAllNodes()) {
     auto parents = GetParentNodes(node);
     if (parents.size() <= 1) {
       continue;
@@ -557,7 +555,7 @@ bool ScheduleUtils::IsNormStruct(const ascir::ImplGraph& implGraph) {
     std::vector<std::unordered_set<af::AscNodePtr>> parentAncestors(parents.size());
     std::unordered_map<af::AscNodePtr, int> ancestorDistances;
     for (size_t i = 0; i < parents.size(); ++i) {
-      auto& ancestors = parentAncestors[i];
+      auto &ancestors = parentAncestors[i];
       std::stack<std::pair<af::AscNodePtr, int>> stack;
       stack.push({parents[i], 1});
 
@@ -575,7 +573,7 @@ bool ScheduleUtils::IsNormStruct(const ascir::ImplGraph& implGraph) {
         }
 
         const auto currentParents = GetParentNodes(current);
-        for (const auto& currentParent : currentParents) {
+        for (const auto &currentParent : currentParents) {
           stack.push({currentParent, distance + 1});
         }
       }
@@ -584,9 +582,9 @@ bool ScheduleUtils::IsNormStruct(const ascir::ImplGraph& implGraph) {
 
     af::AscNodePtr nearestCommonAncestor = nullptr;
     int32_t minDistance = std::numeric_limits<int>::max();
-    for (const auto& potentialAncestor : allAncestors) {
+    for (const auto &potentialAncestor : allAncestors) {
       bool isCommon = true;
-      for (const auto& ancestors : parentAncestors) {
+      for (const auto &ancestors : parentAncestors) {
         if (ancestors.count(potentialAncestor) == 0) {
           isCommon = false;
           break;
@@ -615,9 +613,9 @@ bool ScheduleUtils::IsNormStruct(const ascir::ImplGraph& implGraph) {
   return false;
 }
 
-bool HasBroadcastDescendantNode(const af::AscNodePtr& node) {
-  const auto& outNodes = node->GetOutNodes();
-  for (const auto& childNode : outNodes) {
+bool HasBroadcastDescendantNode(const af::AscNodePtr &node) {
+  const auto &outNodes = node->GetOutNodes();
+  for (const auto &childNode : outNodes) {
     af::AscNodePtr ascChildNode = std::dynamic_pointer_cast<af::AscNode>(childNode);
     std::stack<af::AscNodePtr> stack;
     stack.push(ascChildNode);
@@ -629,7 +627,7 @@ bool HasBroadcastDescendantNode(const af::AscNodePtr& node) {
       }
 
       const auto currentChilds = GetChildNodes(current);
-      for (const auto& currentChild : currentChilds) {
+      for (const auto &currentChild : currentChilds) {
         stack.push(currentChild);
       }
     }
@@ -637,8 +635,8 @@ bool HasBroadcastDescendantNode(const af::AscNodePtr& node) {
   return false;
 }
 
-bool ScheduleUtils::IsReduceArFullLoad(const ascir::ImplGraph& implGraph) {
-  for (const auto& node : implGraph.GetAllNodes()) {
+bool ScheduleUtils::IsReduceArFullLoad(const ascir::ImplGraph &implGraph) {
+  for (const auto &node : implGraph.GetAllNodes()) {
     if (!ScheduleUtils::IsReduce(node)) {
       continue;
     }
@@ -652,7 +650,7 @@ bool ScheduleUtils::IsReduceArFullLoad(const ascir::ImplGraph& implGraph) {
     std::unordered_set<af::AscNodePtr> allAncestors;
     std::vector<std::unordered_set<af::AscNodePtr>> parentAncestors(parents.size());
     for (size_t i = 0; i < parents.size(); ++i) {
-      auto& ancestors = parentAncestors[i];
+      auto &ancestors = parentAncestors[i];
       std::stack<std::pair<af::AscNodePtr, int>> stack;
       stack.push({parents[i], 1});
 
@@ -666,14 +664,14 @@ bool ScheduleUtils::IsReduceArFullLoad(const ascir::ImplGraph& implGraph) {
         ancestors.insert(current);
 
         const auto currentParents = GetParentNodes(current);
-        for (const auto& currentParent : currentParents) {
+        for (const auto &currentParent : currentParents) {
           stack.push({currentParent, distance + 1});
         }
       }
       allAncestors.insert(ancestors.begin(), ancestors.end());
     }
 
-    for (const auto& potentialAncestor : allAncestors) {
+    for (const auto &potentialAncestor : allAncestors) {
       if (GetChildNodes(potentialAncestor).size() > 1) {
         GELOGD("The reduce node %s is multiref struct.", node->GetName().c_str());
         return true;
@@ -711,14 +709,13 @@ bool ScheduleUtils::IsScalarBrc(const af::AscNodePtr &node) {
     return false;
   }
   const auto &repeats = node->inputs[0].attr.repeats;
-  return std::all_of(repeats.begin(), repeats.end(), [](const af::Expression &repeat) {
-    return ascgen_utils::ExpressEq(repeat, af::sym::kSymbolOne);
-  });
+  return std::all_of(repeats.begin(), repeats.end(),
+                     [](const af::Expression &repeat) { return ascgen_utils::ExpressEq(repeat, af::sym::kSymbolOne); });
 }
 
 bool ScheduleUtils::HasSameInput(const af::AscNodePtr &node) {
   std::set<af::NodePtr> inputs;
-  for (const auto& in_anchor : node->GetAllInDataAnchors()) {
+  for (const auto &in_anchor : node->GetAllInDataAnchors()) {
     GE_ASSERT_NOTNULL(in_anchor);
     GE_ASSERT_NOTNULL(in_anchor->GetPeerOutAnchor());
     GE_ASSERT_NOTNULL(in_anchor->GetPeerOutAnchor()->GetOwnerNode());
@@ -794,7 +791,8 @@ Status ScheduleUtils::RemoveNode(const ascir::ImplGraph &impl_graph, const af::A
   return ge::SUCCESS;
 }
 
-bool ScheduleUtils::FindContinuesBroadcastNode(const ascir::NodeView &node, std::vector<af::AscNodePtr> &continues_brc_nodes) {
+bool ScheduleUtils::FindContinuesBroadcastNode(const ascir::NodeView &node,
+                                               std::vector<af::AscNodePtr> &continues_brc_nodes) {
   auto brc_node = node;
   continues_brc_nodes.push_back(node);
   while (brc_node != nullptr) {
@@ -897,7 +895,7 @@ Status ScheduleUtils::RecalculateStridesFromRepeats(const std::vector<af::Expres
   af::Expression current_stride = af::sym::kSymbolOne;
   for (size_t i = repeats.size(); i > 0; --i) {
     size_t idx = i - 1;
-    if (af::SymbolicUtils::StaticCheckEq(repeats[i-1], af::sym::kSymbolOne) == af::TriBool::kTrue) {
+    if (af::SymbolicUtils::StaticCheckEq(repeats[i - 1], af::sym::kSymbolOne) == af::TriBool::kTrue) {
       strides[idx] = af::sym::kSymbolZero;
     } else {
       strides[idx] = current_stride;

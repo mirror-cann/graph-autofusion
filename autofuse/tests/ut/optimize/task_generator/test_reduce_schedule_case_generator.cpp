@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -84,7 +84,7 @@ void ConstructNormStruct3Elewise(af::AscGraph &graph) {
   load.x = data.y;
   *load.y.axis = {z0.id, z1.id};
   load.y.dtype = ge::DT_FLOAT;
-  *load.y.strides = {s1 ,af::ops::One};
+  *load.y.strides = {s1, af::ops::One};
   *load.y.repeats = {s0, s1};
 
   Sum sum("sum");
@@ -103,7 +103,7 @@ void ConstructNormStruct3Elewise(af::AscGraph &graph) {
   *abs.y.axis = {z0.id, z1.id};
   abs.y.dtype = ge::DT_FLOAT;
   *abs.y.strides = {af::ops::Zero, af::ops::Zero};
-  *abs.y.repeats =  {af::ops::One, af::ops::One};
+  *abs.y.repeats = {af::ops::One, af::ops::One};
 
   Exp exp("exp");
   exp.x = abs.y;
@@ -153,7 +153,7 @@ void ConstructNormStruct1Elewise(af::AscGraph &graph) {
   load.x = data.y;
   *load.y.axis = {z0.id, z1.id};
   load.y.dtype = ge::DT_FLOAT;
-  *load.y.strides = {s1 ,af::ops::One};
+  *load.y.strides = {s1, af::ops::One};
   *load.y.repeats = {s0, s1};
 
   Sum sum("sum");
@@ -172,7 +172,7 @@ void ConstructNormStruct1Elewise(af::AscGraph &graph) {
   *abs.y.axis = {z0.id, z1.id};
   abs.y.dtype = ge::DT_FLOAT;
   *abs.y.strides = {af::ops::Zero, af::ops::Zero};
-  *abs.y.repeats =  {af::ops::One, af::ops::One};
+  *abs.y.repeats = {af::ops::One, af::ops::One};
 
   Store store_op1("store1");
   store_op1.attr.sched.axis = {z0.id, z1.id};
@@ -204,7 +204,7 @@ void ConstructNormStructMultiplyCitations(af::AscGraph &graph) {
   load.x = data.y;
   *load.y.axis = {z0.id, z1.id};
   load.y.dtype = ge::DT_FLOAT;
-  *load.y.strides = {s1 ,af::ops::One};
+  *load.y.strides = {s1, af::ops::One};
   *load.y.repeats = {s0, s1};
 
   Data data1("data1", graph);
@@ -216,7 +216,7 @@ void ConstructNormStructMultiplyCitations(af::AscGraph &graph) {
   load1.x = data.y;
   *load1.y.axis = {z0.id, z1.id};
   load1.y.dtype = ge::DT_FLOAT;
-  *load1.y.strides = {s1 ,af::ops::One};
+  *load1.y.strides = {s1, af::ops::One};
   *load1.y.repeats = {s0, s1};
 
   Sum sum("sum");
@@ -236,7 +236,7 @@ void ConstructNormStructMultiplyCitations(af::AscGraph &graph) {
   *add.y.axis = {z0.id, z1.id};
   add.y.dtype = ge::DT_FLOAT;
   *add.y.strides = {s1, One};
-  *add.y.repeats =  {s0, s1};
+  *add.y.repeats = {s0, s1};
 
   Store store_op1("store1");
   store_op1.attr.sched.axis = {z0.id, z1.id};
@@ -268,7 +268,7 @@ void ConstructNormStruct4Elewise(af::AscGraph &graph) {
   load.x = data.y;
   *load.y.axis = {z0.id, z1.id};
   load.y.dtype = ge::DT_FLOAT;
-  *load.y.strides = {s1 ,af::ops::One};
+  *load.y.strides = {s1, af::ops::One};
   *load.y.repeats = {s0, s1};
 
   Sum sum("sum");
@@ -287,7 +287,7 @@ void ConstructNormStruct4Elewise(af::AscGraph &graph) {
   *abs.y.axis = {z0.id, z1.id};
   abs.y.dtype = ge::DT_FLOAT;
   *abs.y.strides = {af::ops::Zero, af::ops::Zero};
-  *abs.y.repeats =  {af::ops::One, af::ops::One};
+  *abs.y.repeats = {af::ops::One, af::ops::One};
 
   Tanh tanh("tanh");
   tanh.x = abs.y;
@@ -296,7 +296,7 @@ void ConstructNormStruct4Elewise(af::AscGraph &graph) {
   *tanh.y.axis = {z0.id, z1.id};
   tanh.y.dtype = ge::DT_FLOAT;
   *tanh.y.strides = {af::ops::Zero, af::ops::Zero};
-  *tanh.y.repeats =  {af::ops::One, af::ops::One};
+  *tanh.y.repeats = {af::ops::One, af::ops::One};
 
   Exp exp("exp");
   exp.x = tanh.y;
@@ -342,7 +342,6 @@ TEST_F(ReduceScheduleCaseGeneratorTest, TestReduce_Three_Elewise_Store) {
   ASSERT_EQ(tasks[0].grouped_graphs.size(), 1UL);
   ASSERT_EQ(tasks[1].grouped_graphs.size(), 2UL);
 }
-
 
 TEST_F(ReduceScheduleCaseGeneratorTest, TestReduce_One_Elewise_Store) {
   af::AscGraph graph("reduce_one_elewise_store");
@@ -449,4 +448,4 @@ TEST_F(ReduceScheduleCaseGeneratorTest, TestReduce_ScalarData_Input) {
     }
   }
 }
-}
+}  // namespace schedule

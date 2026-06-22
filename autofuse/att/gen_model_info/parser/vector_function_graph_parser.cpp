@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -19,7 +19,7 @@ namespace {
 constexpr af::char_t kSubGraphName[] = "sub_graph_name";
 constexpr af::char_t kInputPrefix[] = "_input_";
 constexpr af::char_t kOutputPrefix[] = "_output_";
-}
+}  // namespace
 using namespace af::ops;
 using namespace af::ascir_op;
 af::Status VectorFunctionGraphParser::ParseNodeInfos(NodeInfo &node_info) {
@@ -111,10 +111,10 @@ af::Status VectorFunctionGraphParser::Parse() {
     NodeInfo node_info;
     node_info.node_type = node->GetType();
     node_info.name = node->GetName();
-    GE_ASSERT_SUCCESS(ParseNodeInfos(node_info), "Parse node infos failed, node name:%s, %s.",
-                      node->GetNamePtr(), node->GetTypePtr());
+    GE_ASSERT_SUCCESS(ParseNodeInfos(node_info), "Parse node infos failed, node name:%s, %s.", node->GetNamePtr(),
+                      node->GetTypePtr());
     nodes_infos_.emplace_back(node_info);
   }
   return af::SUCCESS;
 }
-}
+}  // namespace att

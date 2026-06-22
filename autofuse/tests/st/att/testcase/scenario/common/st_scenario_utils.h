@@ -268,7 +268,8 @@ inline void CleanupTestArtifacts() {
   // 删除日志文件
   (void)system("rm -f *.log");
   // 删除生成的二进制文件
-  (void)system("rm -f ./tiling_func_main ./tiling_func_main_concat ./tiling_func_main_transpose ./tiling_func_main_softmax");
+  (void)system(
+      "rm -f ./tiling_func_main ./tiling_func_main_concat ./tiling_func_main_transpose ./tiling_func_main_softmax");
   // 删除生成的tiling data和func文件
   (void)system("rm -f ./*_tiling_data.h ./*_tiling_func.cpp ./tiling_func_main_*.cpp");
 }

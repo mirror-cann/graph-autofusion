@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -691,61 +691,61 @@ TEST_F(BufQueAllocatorUT, test_shorten_load_lifetime) {
 
 TEST_F(BufQueAllocatorUT, test_shorten_vecin_lifecycle_with_sorting) {
   auto graph = af::testing::AscGraphBuilder("shorten_load")
-    .Loops({af::testing::Sym(32), af::testing::Sym(16)})
-    .Data("data0", 0)
-    .Load("load00", "data0")
-    .Load("load01", "data0")
-    .Data("data1", 1)
-    .Load("load10", "data1")
-    .Load("load11", "data1")
-    .Data("data2", 2)
-    .Load("load20", "data2")
-    .Load("load21", "data2")
-    .Data("data3", 3)
-    .Load("load30", "data3")
-    .Load("load31", "data3")
-    .Data("data4", 4)
-    .Load("load40", "data4")
-    .Load("load41", "data4")
-    .Data("data5", 5)
-    .Load("load50", "data5")
-    .Load("load51", "data5")
-    .Data("data6", 6)
-    .Load("load60", "data6")
-    .Load("load61", "data6")
-    .Data("data7", 7)
-    .Load("load70", "data7")
-    .Load("load71", "data7")
-    .Data("data8", 8)
-    .Load("load80", "data8")
-    .Load("load81", "data8")
-    .Data("data9", 9)
-    .Load("load90", "data9")
-    .Load("load91", "data9")
-    .Mul("mul0", "load00", "load01")
-    .Mul("mul1", "load01", "load10")
-    .Mul("mul2", "load10", "load11")
-    .Mul("mul3", "load11", "load20")
-    .Mul("mul4", "load20", "load21")
-    .Mul("mul5", "load21", "load30")
-    .Mul("mul6", "load30", "load31")
-    .Mul("mul7", "load31", "load40")
-    .Mul("mul8", "load40", "load41")
-    .Mul("mul9", "load41", "load50")
-    .Mul("mul10", "load50", "load51")
-    .Mul("mul11", "load51", "load60")
-    .Mul("mul12", "load60", "load61")
-    .Mul("mul13", "load61", "load70")
-    .Mul("mul14", "load70", "load71")
-    .Mul("mul15", "load71", "load80")
-    .Mul("mul16", "load80", "load81")
-    .Mul("mul17", "load81", "load90")
-    .Mul("mul18", "load90", "load91")
-    .Concat("cat", {"mul1", "mul2", "mul3", "mul4", "mul5", "mul6", "mul7", "mul8", "mul9",
-                    "mul10", "mul11", "mul12", "mul13", "mul14", "mul15", "mul16", "mul17", "mul18"})
-    .Store("store", "cat")
-    .Output("out", "store", 0)
-    .Build();
+                   .Loops({af::testing::Sym(32), af::testing::Sym(16)})
+                   .Data("data0", 0)
+                   .Load("load00", "data0")
+                   .Load("load01", "data0")
+                   .Data("data1", 1)
+                   .Load("load10", "data1")
+                   .Load("load11", "data1")
+                   .Data("data2", 2)
+                   .Load("load20", "data2")
+                   .Load("load21", "data2")
+                   .Data("data3", 3)
+                   .Load("load30", "data3")
+                   .Load("load31", "data3")
+                   .Data("data4", 4)
+                   .Load("load40", "data4")
+                   .Load("load41", "data4")
+                   .Data("data5", 5)
+                   .Load("load50", "data5")
+                   .Load("load51", "data5")
+                   .Data("data6", 6)
+                   .Load("load60", "data6")
+                   .Load("load61", "data6")
+                   .Data("data7", 7)
+                   .Load("load70", "data7")
+                   .Load("load71", "data7")
+                   .Data("data8", 8)
+                   .Load("load80", "data8")
+                   .Load("load81", "data8")
+                   .Data("data9", 9)
+                   .Load("load90", "data9")
+                   .Load("load91", "data9")
+                   .Mul("mul0", "load00", "load01")
+                   .Mul("mul1", "load01", "load10")
+                   .Mul("mul2", "load10", "load11")
+                   .Mul("mul3", "load11", "load20")
+                   .Mul("mul4", "load20", "load21")
+                   .Mul("mul5", "load21", "load30")
+                   .Mul("mul6", "load30", "load31")
+                   .Mul("mul7", "load31", "load40")
+                   .Mul("mul8", "load40", "load41")
+                   .Mul("mul9", "load41", "load50")
+                   .Mul("mul10", "load50", "load51")
+                   .Mul("mul11", "load51", "load60")
+                   .Mul("mul12", "load60", "load61")
+                   .Mul("mul13", "load61", "load70")
+                   .Mul("mul14", "load70", "load71")
+                   .Mul("mul15", "load71", "load80")
+                   .Mul("mul16", "load80", "load81")
+                   .Mul("mul17", "load81", "load90")
+                   .Mul("mul18", "load90", "load91")
+                   .Concat("cat", {"mul1", "mul2", "mul3", "mul4", "mul5", "mul6", "mul7", "mul8", "mul9", "mul10",
+                                   "mul11", "mul12", "mul13", "mul14", "mul15", "mul16", "mul17", "mul18"})
+                   .Store("store", "cat")
+                   .Output("out", "store", 0)
+                   .Build();
   optimize::AscGraphInfoComplete::CompleteApiInfo(graph);
 
   ScheduleUtils::TopologicalSorting(graph);
@@ -1662,14 +1662,14 @@ TEST_F(BufQueAllocatorUT, test_scalar_data_input_allocation) {
   // 预期：ScalarData 被正确识别为 IO 节点，buffer 分配成功
 
   auto graph = af::testing::AscGraphBuilder("scalar_data_alloc")
-    .Loops({af::testing::Sym(32), af::testing::Sym(16)})
-    .Data("data0", 0)
-    .Load("load0", "data0")
-    .ScalarData("scalar_data0", 1)
-    .Add("add0", "load0", "scalar_data0")
-    .Store("store", "add0")
-    .Output("out", "store", 0)
-    .Build();
+                   .Loops({af::testing::Sym(32), af::testing::Sym(16)})
+                   .Data("data0", 0)
+                   .Load("load0", "data0")
+                   .ScalarData("scalar_data0", 1)
+                   .Add("add0", "load0", "scalar_data0")
+                   .Store("store", "add0")
+                   .Output("out", "store", 0)
+                   .Build();
 
   optimize::AscGraphInfoComplete::CompleteApiInfo(graph);
   ScheduleUtils::TopologicalSorting(graph);

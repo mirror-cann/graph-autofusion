@@ -1,12 +1,12 @@
 /**
-* Copyright (c) 2025 Huawei Technologies Co., Ltd.
-* This program is free software, you can redistribute it and/or modify it under the terms and conditions of
-* CANN Open Software License Agreement Version 2.0 (the "License").
-* Please refer to the License for details. You may not use this file except in compliance with the License.
-* THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
-* INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
-* See LICENSE in the root of the software repository for the full text of the License.
-*/
+ * Copyright (c) 2025 Huawei Technologies Co., Ltd.
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
+ * CANN Open Software License Agreement Version 2.0 (the "License").
+ * Please refer to the License for details. You may not use this file except in compliance with the License.
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+ * See LICENSE in the root of the software repository for the full text of the License.
+ */
 
 #include <cmath>
 #include <cstdlib>
@@ -28,7 +28,7 @@ struct TensorTrueDivInputParam {
   uint32_t out_size{0};
 };
 
-class TestApiTrueDiv :public testing::Test {
+class TestApiTrueDiv : public testing::Test {
  protected:
   template <typename T, typename U>
   static void InvokeKernelWithTwoTensorInput(TensorTrueDivInputParam<T, U> &param) {
@@ -43,7 +43,6 @@ class TestApiTrueDiv :public testing::Test {
     LocalTensor<T> l_x1 = x1buf.Get<T>();
     LocalTensor<T> l_x2 = x2buf.Get<T>();
 
-
     LocalTensor<U> l_y = ybuf.Get<U>();
     LocalTensor<uint8_t> l_tmp = tmp.Get<uint8_t>();
 
@@ -52,7 +51,6 @@ class TestApiTrueDiv :public testing::Test {
     TrueDivExtend(l_y, l_x1, l_x2, l_tmp, param.size);
     UbToGm(param.y, l_y, param.size);
   }
-
 
   template <typename T, typename U>
   static void CreateTensorInput(TensorTrueDivInputParam<T, U> &param) {

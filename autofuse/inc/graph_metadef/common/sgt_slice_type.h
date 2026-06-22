@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -23,26 +23,20 @@ const std::string kAttrSgtStructInfoDy = "_sgt_struct_info_dy";
 const size_t kSgtTillingNum = 2U;
 
 struct OpCut {
-    int16_t split_cut_idx = -1;
-    int16_t reduce_cut_idx = -1;
-    int64_t cut_id = -1;
+  int16_t split_cut_idx = -1;
+  int16_t reduce_cut_idx = -1;
+  int64_t cut_id = -1;
 };
 
 struct DimRange {
   int64_t lower;
   int64_t higher;
-  bool operator==(const DimRange& dim_range) const {
+  bool operator==(const DimRange &dim_range) const {
     return (this->higher == dim_range.higher) && (this->lower == dim_range.lower);
   }
 };
 
-enum class AtomicType {
-  None = 0,
-  ADD = 1,
-  SUB,
-  MUL,
-  DIV
-};
+enum class AtomicType { None = 0, ADD = 1, SUB, MUL, DIV };
 
 struct ThreadSliceMap {
   uint32_t thread_scope_id;
@@ -72,22 +66,29 @@ struct ThreadSliceMap {
   std::vector<std::vector<std::vector<DimRange>>> ori_output_tensor_slice;
   std::vector<std::vector<int64_t>> input_cut_list;
   std::vector<std::vector<int64_t>> output_cut_list;
-  ThreadSliceMap() : thread_scope_id(1U), is_first_node_in_topo_order(false), thread_mode(0U),
-      node_num_in_thread_scope(1U), is_input_node_of_thread_scope(false), is_output_node_of_thread_scope(false),
-      slice_instance_num(1U), parallel_window_size(1U), thread_id(0U) {}
+  ThreadSliceMap()
+      : thread_scope_id(1U),
+        is_first_node_in_topo_order(false),
+        thread_mode(0U),
+        node_num_in_thread_scope(1U),
+        is_input_node_of_thread_scope(false),
+        is_output_node_of_thread_scope(false),
+        slice_instance_num(1U),
+        parallel_window_size(1U),
+        thread_id(0U) {}
   bool GetThreadMode() const {
     return (thread_mode == 0U) ? false : true;
   }
 };
 
 struct ThreadSliceMapDy {
-    uint32_t slice_instance_num;
-    uint32_t parallel_window_size;
-    std::vector<uint32_t> input_tensor_indexes;
-    std::vector<uint32_t> output_tensor_indexes;
-    std::vector<std::vector<std::vector<int64_t>>> input_tensor_slice;
-    std::vector<std::vector<std::vector<int64_t>>> output_tensor_slice;
-    ThreadSliceMapDy() : slice_instance_num(1U), parallel_window_size(1U) {}
+  uint32_t slice_instance_num;
+  uint32_t parallel_window_size;
+  std::vector<uint32_t> input_tensor_indexes;
+  std::vector<uint32_t> output_tensor_indexes;
+  std::vector<std::vector<std::vector<int64_t>>> input_tensor_slice;
+  std::vector<std::vector<std::vector<int64_t>>> output_tensor_slice;
+  ThreadSliceMapDy() : slice_instance_num(1U), parallel_window_size(1U) {}
 };
 
 using ThreadSliceMapPtr = std::shared_ptr<ThreadSliceMap>;

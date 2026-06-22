@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -14,8 +14,7 @@
 #include "ascir_utils.h"
 
 namespace optimize {
-ConcatScoreFunctionGenerator::ConcatScoreFunctionGenerator(const ascir::HintGraph &graph,
-                                                           af::AscNodePtr concat_node,
+ConcatScoreFunctionGenerator::ConcatScoreFunctionGenerator(const ascir::HintGraph &graph, af::AscNodePtr concat_node,
                                                            uint32_t concat_dim)
     : graph_(&graph), concat_node_(std::move(concat_node)), concat_dim_(concat_dim) {}
 
@@ -62,8 +61,7 @@ ge::Status ConcatScoreFunctionGenerator::ParseStride() {
       const_part_stride = const_part_stride * dim_expr;
     }
   }
-  GE_ASSERT_TRUE(const_part_stride.GetConstValue(const_part_stride_),
-                 "Failed to get int value, expr = %s",
+  GE_ASSERT_TRUE(const_part_stride.GetConstValue(const_part_stride_), "Failed to get int value, expr = %s",
                  const_part_stride.Str().get());
   return ge::SUCCESS;
 }
@@ -80,8 +78,7 @@ Status ConcatScoreFunctionGenerator::TryGetScoreByConstExpr(int32_t &score) {
     return ge::SUCCESS;
   }
   int64_t concat_dim_size = -1;
-  GE_ASSERT_TRUE(output_concat_dim.GetConstValue(concat_dim_size),
-                 "Failed to get int value, expr = %s",
+  GE_ASSERT_TRUE(output_concat_dim.GetConstValue(concat_dim_size), "Failed to get int value, expr = %s",
                  output_concat_dim.Str().get());
   int64_t num_aligned = 0U;
   auto align_threshold =
@@ -90,8 +87,7 @@ Status ConcatScoreFunctionGenerator::TryGetScoreByConstExpr(int32_t &score) {
     const auto &input = concat_node_->inputs[i];
     GE_WARN_ASSERT(input.attr.repeats[concat_dim_].IsConstExpr(), "concat dim of input[%zu] is non-const", i);
     int64_t dim = -1;
-    GE_ASSERT_TRUE(input.attr.repeats[concat_dim_].GetConstValue(dim),
-                   "Failed to get int value, expr = %s",
+    GE_ASSERT_TRUE(input.attr.repeats[concat_dim_].GetConstValue(dim), "Failed to get int value, expr = %s",
                    input.attr.repeats[concat_dim_].Str().get());
     if ((dim * const_part_stride_) % kAlignment_ == 0) {
       GELOGD("input[%zu] is aligned, dim_size = %ld", i, dim);
@@ -137,8 +133,7 @@ Status ConcatScoreFunctionGenerator::GenerateForUnaligned() {
   ss_ << "  concat_dims.reserve(" << num_inputs_ << ");" << std::endl;
   for (size_t i = 0U; i < num_inputs_; ++i) {
     ss_ << "  concat_dims.emplace_back(static_cast<int64_t>("
-        << concat_node_->inputs[i].attr.repeats[concat_dim_].Replace(replacements).Str().get()
-        << "));" << std::endl;
+        << concat_node_->inputs[i].attr.repeats[concat_dim_].Replace(replacements).Str().get() << "));" << std::endl;
   }
   ss_ << "  size_t num_unaligned = 0U;" << std::endl;
   ss_ << "  size_t max_unaligned = static_cast<int64_t>(std::ceil(static_cast<double>(";
@@ -161,7 +156,7 @@ Status ConcatScoreFunctionGenerator::GenerateForCheckSmallTail(std::string &scor
   ss_ << "int32_t CalcScore(const AutofuseTilingData &tiling_data) {" << std::endl;
   GE_CHK_STATUS_RET(ParseStride());
   if (const_part_stride_ % kAlignment_ == 0U) {
-    GenerateReturnValue(-1); // 使用default 模板即可
+    GenerateReturnValue(-1);  // 使用default 模板即可
     score_func = ss_.str();
     return ASCCOMMON_SUC;
   }
@@ -203,4 +198,4 @@ void ConcatScoreFunctionGenerator::GenerateScoreOne(std::string &score_func) {
   ss << "}" << std::endl;
   score_func = ss.str();
 }
-}  // optimize
+}  // namespace optimize

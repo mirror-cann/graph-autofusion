@@ -209,7 +209,8 @@ ge::Status StorePerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   GE_ASSERT_SUCCESS(GetPerf(
       {kMoveUbToGm, node_info.input_dtype[0], node_info.output_dtype[0], padded_dims, CreateExpr(0)}, res_normal));
   GE_ASSERT_SUCCESS(GetPerf({kMoveUbToGm + "Stride", node_info.input_dtype[0], node_info.output_dtype[0],
-                             node_info.repeats, node_info.gm_stride, node_info.block_count_idx}, res_stride));
+                             node_info.repeats, node_info.gm_stride, node_info.block_count_idx},
+                            res_stride));
   GE_ASSERT_SUCCESS(AppendCacheLineConfig(node_info, CacheLineDirection::kUbToGm, perf.cache_line_config));
   perf.pipe_res[PipeType::AIV_MTE3] = res_normal + res_stride;
   return ge::SUCCESS;
@@ -304,8 +305,9 @@ ge::Status NddmaPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
                     node_info.ToString().c_str());
   GE_ASSERT_SUCCESS(
       GetPerf({kNddma, node_info.input_dtype[0], node_info.output_dtype[0], dims, node_info.gm_stride}, res_normal));
-  GE_ASSERT_SUCCESS(GetPerf({kNddma + "Stride", node_info.input_dtype[0], node_info.output_dtype[0],
-                             node_info.repeats, node_info.gm_stride, node_info.block_count_idx}, res_stride));
+  GE_ASSERT_SUCCESS(GetPerf({kNddma + "Stride", node_info.input_dtype[0], node_info.output_dtype[0], node_info.repeats,
+                             node_info.gm_stride, node_info.block_count_idx},
+                            res_stride));
   GE_ASSERT_SUCCESS(AppendCacheLineConfig(node_info, CacheLineDirection::kGmToUb, perf.cache_line_config));
   perf.pipe_res[PipeType::AIV_MTE2] = res_normal + res_stride;
   return ge::SUCCESS;

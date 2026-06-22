@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -17,7 +17,7 @@
 
 namespace att {
 namespace {
-std::string EnsureTrailingSlash(const std::string& path) {
+std::string EnsureTrailingSlash(const std::string &path) {
   return path.back() == '/' ? path : path + "/";
 }
 bool IsUniqueGroups(const TilingModelInfo &all_model_infos) {
@@ -31,7 +31,7 @@ bool IsUniqueGroups(const TilingModelInfo &all_model_infos) {
   }
   return (asc_graphs.size() == 1UL) && (groups_ids.size() == 1UL) && (impl_graphs_ids.size() == 1UL);
 }
-}
+}  // namespace
 
 af::Status TilingCodeGenerator::GenTilingCode(const std::string &op_type, const TilingModelInfo &model_infos,
                                               const TilingCodeGenConfig &config) {
@@ -40,7 +40,7 @@ af::Status TilingCodeGenerator::GenTilingCode(const std::string &op_type, const 
   ge::CodePrinter tiling_dumper;
   if (config.gen_tiling_data) {
     GE_ASSERT_TRUE(tiling_res.find(config.tiling_data_type_name) != tiling_res.end(),
-                  "Generate tiling data [%s] failed.", config.tiling_data_type_name.c_str());
+                   "Generate tiling data [%s] failed.", config.tiling_data_type_name.c_str());
     tiling_dumper.AddLine(tiling_res.at(config.tiling_data_type_name));
     if (!config.path.empty()) {
       tiling_dumper.SaveToFile(EnsureTrailingSlash(config.path) + op_type + "_" + kDefaultTilingDataFileName);
@@ -65,8 +65,8 @@ af::Status TilingCodeGenerator::GenTilingCode(const std::string &op_type, const 
 }
 
 af::Status TilingCodeGenerator::GenTilingCode(const std::string &op_type, const TilingModelInfo &model_infos,
-                                          const TilingCodeGenConfig &config,
-                                          std::map<std::string, std::string> &tiling_res) {
+                                              const TilingCodeGenConfig &config,
+                                              std::map<std::string, std::string> &tiling_res) {
   GELOGI("[DFX] Start to gen tiling code, config[%s].", config.Debug().c_str());
   TilingCodeGenImplPtr impl = CreateTilingCodeGenImpl(op_type, config, model_infos, {}, true);
   GE_ASSERT_NOTNULL(impl, "Create tiling code gen impl failed, type[%d].", static_cast<int32_t>(config.type));
@@ -87,11 +87,11 @@ TilingCodeGenImplPtr TilingCodeGenerator::CreateTilingCodeGenImpl(const std::str
                                                                   const bool is_uniq_group) {
   TilingCodeGenImplPtr impl;
   if (config.type == TilingImplType::HIGH_PERF) {
-    impl = std::shared_ptr<HighPerfTilingCodeGenImpl>(af::MakeShared<HighPerfTilingCodeGenImpl>(
-        op_name, config, model_infos, score_funcs, is_uniq_group));
+    impl = std::shared_ptr<HighPerfTilingCodeGenImpl>(
+        af::MakeShared<HighPerfTilingCodeGenImpl>(op_name, config, model_infos, score_funcs, is_uniq_group));
   } else if (config.type == TilingImplType::AXES_REORDER) {
-    impl = std::shared_ptr<AxesReorderTilingCodeGenImpl>(af::MakeShared<AxesReorderTilingCodeGenImpl>(
-        op_name, config, model_infos, score_funcs, is_uniq_group));
+    impl = std::shared_ptr<AxesReorderTilingCodeGenImpl>(
+        af::MakeShared<AxesReorderTilingCodeGenImpl>(op_name, config, model_infos, score_funcs, is_uniq_group));
   }
   return impl;
 }
@@ -120,32 +120,33 @@ inline std::unordered_map<std::string, std::string> GetCacheReuseInfo(
   return cache_reuse_info;
 }
 
-inline void SaveVarRelationsInfo(VarRelations &var_relations, size_t asc_graph_id, size_t impl_graph_id,
-                                 const std::map<size_t, std::map<size_t, std::map<std::string, af::Expression>>> &schedule_result_var_relations) {
+inline void SaveVarRelationsInfo(
+    VarRelations &var_relations, size_t asc_graph_id, size_t impl_graph_id,
+    const std::map<size_t, std::map<size_t, std::map<std::string, af::Expression>>> &schedule_result_var_relations) {
   for (auto schedule_result_var_relation = schedule_result_var_relations.begin();
-         schedule_result_var_relation != schedule_result_var_relations.end(); ++schedule_result_var_relation) {
+       schedule_result_var_relation != schedule_result_var_relations.end(); ++schedule_result_var_relation) {
     size_t dst_schedule_group_id = schedule_result_var_relation->first;
-    const auto& dst_var_relations_from_src = schedule_result_var_relation->second;
+    const auto &dst_var_relations_from_src = schedule_result_var_relation->second;
     for (auto dst_var_relation_from_src = dst_var_relations_from_src.begin();
          dst_var_relation_from_src != dst_var_relations_from_src.end(); ++dst_var_relation_from_src) {
       size_t src_schedule_group_id = dst_var_relation_from_src->first;
-      const auto& relations = dst_var_relation_from_src->second;
+      const auto &relations = dst_var_relation_from_src->second;
       if (!relations.empty()) {
         GELOGD("[VAR_RELATIONS] graph_id = [%u], result_id = [%u], dst_group_id = [%u], src_group_id = [%u]:",
-               asc_graph_id, impl_graph_id, dst_schedule_group_id,
-               src_schedule_group_id);
+               asc_graph_id, impl_graph_id, dst_schedule_group_id, src_schedule_group_id);
       }
       for (auto relation = relations.begin(); relation != relations.end(); ++relation) {
-        GELOGD("[VAR_RELATIONS]     dst_var_name is [%s], src_var_expression_string is [%s]",
-               relation->first.c_str(), af::SymbolicUtils::ToString(relation->second).c_str());
+        GELOGD("[VAR_RELATIONS]     dst_var_name is [%s], src_var_expression_string is [%s]", relation->first.c_str(),
+               af::SymbolicUtils::ToString(relation->second).c_str());
       }
     }
   }
   var_relations[asc_graph_id][impl_graph_id] = schedule_result_var_relations;
 }
 
-inline af::Status GetWorkspaceTensorId(TensorIdSet &workspace_tensor_id_set, const TilingModelInfo &groups_tiling_model_info,
-                                       const size_t asc_graph_id, const size_t impl_graph_id) {
+inline af::Status GetWorkspaceTensorId(TensorIdSet &workspace_tensor_id_set,
+                                       const TilingModelInfo &groups_tiling_model_info, const size_t asc_graph_id,
+                                       const size_t impl_graph_id) {
   for (const auto &model_info : groups_tiling_model_info) {
     for (const auto &pair : model_info.workspace_size_map) {
       workspace_tensor_id_set[asc_graph_id][impl_graph_id].insert(pair.first);
@@ -165,10 +166,10 @@ af::Status TilingCodeGenerator::GenTilingCode(const std::string &op_type,
   TensorIdSet workspace_tensor_id_set;
   size_t group_num = 0UL;
 
-  GE_ASSERT_SUCCESS(CollectModelInfosAndMetadata(fused_parsed_schedule_result, all_model_infos, group_num,
-                                                 schedule_result_score_func, var_relations, enable_group_parallels,
-                                                 workspace_tensor_id_set),
-                    "Collect model infos and metadata failed.");
+  GE_ASSERT_SUCCESS(
+      CollectModelInfosAndMetadata(fused_parsed_schedule_result, all_model_infos, group_num, schedule_result_score_func,
+                                   var_relations, enable_group_parallels, workspace_tensor_id_set),
+      "Collect model infos and metadata failed.");
   GE_ASSERT_TRUE(group_num != 0UL, "group num is zero of op type = %s.", op_type.c_str());
 
   const bool is_uniq_group = (group_num == 1UL);
@@ -192,11 +193,10 @@ af::Status TilingCodeGenerator::GenTilingCode(const std::string &op_type,
   return af::SUCCESS;
 }
 
-af::Status TilingCodeGenerator::GenTilingHead(const std::string &op_type,
-                                          const TilingModelInfo &all_model_infos,
-                                          const TilingCodeGenConfig &config,
-                                          std::map<std::string, std::string> &tiling_res,
-                                          [[maybe_unused]] const EnableGroupParallels &enable_group_parallels) {
+af::Status TilingCodeGenerator::GenTilingHead(const std::string &op_type, const TilingModelInfo &all_model_infos,
+                                              const TilingCodeGenConfig &config,
+                                              std::map<std::string, std::string> &tiling_res,
+                                              [[maybe_unused]] const EnableGroupParallels &enable_group_parallels) {
   GELOGI("Start to gen tiling head.");
   TilingCodeGenImplPtr impl =
       CreateTilingCodeGenImpl(op_type, config, all_model_infos, {}, IsUniqueGroups(all_model_infos));
@@ -206,53 +206,50 @@ af::Status TilingCodeGenerator::GenTilingHead(const std::string &op_type,
   return af::SUCCESS;
 }
 
-af::Status TilingCodeGenerator::GenTilingBody(const GenTilingParams& params, std::map<std::string, std::string> &tiling_res,
-                                              const bool is_uniq_group, uint32_t cache_capacity,
+af::Status TilingCodeGenerator::GenTilingBody(const GenTilingParams &params,
+                                              std::map<std::string, std::string> &tiling_res, const bool is_uniq_group,
+                                              uint32_t cache_capacity,
                                               [[maybe_unused]] const EnableGroupParallels &enable_group_parallels) {
   GELOGI("Start to gen tiling body.");
-  TilingCodeGenImplPtr impl = CreateTilingCodeGenImpl(params.op_type, params.config, params.all_model_infos, {}, is_uniq_group);
+  TilingCodeGenImplPtr impl =
+      CreateTilingCodeGenImpl(params.op_type, params.config, params.all_model_infos, {}, is_uniq_group);
   GE_ASSERT_NOTNULL(impl, "Create tiling code gen impl failed, type[%d].", static_cast<int32_t>(params.config.type));
 
   GE_ASSERT_SUCCESS(impl->GenTiling(tiling_res, params.cache_reuse_info, cache_capacity, enable_group_parallels),
-                    "Gen tiling body impl failed, type[%d].",
-                    static_cast<int32_t>(params.config.type));
+                    "Gen tiling body impl failed, type[%d].", static_cast<int32_t>(params.config.type));
   return af::SUCCESS;
 }
 
-af::Status TilingCodeGenerator::GenTilingTail(const GenTilingParams &params, std::map<std::string, std::string> &tiling_res,
+af::Status TilingCodeGenerator::GenTilingTail(const GenTilingParams &params,
+                                              std::map<std::string, std::string> &tiling_res,
                                               const GenTilingTailExtParams &ext_params) {
   GELOGI("Start to gen tiling tail for %s.", params.op_type.c_str());
-  TilingCodeGenImplPtr impl =
-      CreateTilingCodeGenImpl(params.op_type, params.config, params.all_model_infos, ext_params.score_funcs,
-                              IsUniqueGroups(params.all_model_infos));
+  TilingCodeGenImplPtr impl = CreateTilingCodeGenImpl(params.op_type, params.config, params.all_model_infos,
+                                                      ext_params.score_funcs, IsUniqueGroups(params.all_model_infos));
   GE_ASSERT_NOTNULL(impl, "Create tiling code gen impl failed, type[%d].", static_cast<int32_t>(params.config.type));
-  GenTilingTailImplExtParams impl_ext_params{
-      std::move(params.cache_reuse_info),
-      std::move(ext_params.var_relations),
-      std::move(ext_params.enable_group_parallels),
-      std::move(ext_params.workspace_tensor_id_set)
-  };
-  GE_ASSERT_SUCCESS(impl->GenTilingTail(tiling_res, impl_ext_params),
-                    "Gen tiling tail impl failed, type[%d].",
+  GenTilingTailImplExtParams impl_ext_params{std::move(params.cache_reuse_info), std::move(ext_params.var_relations),
+                                             std::move(ext_params.enable_group_parallels),
+                                             std::move(ext_params.workspace_tensor_id_set)};
+  GE_ASSERT_SUCCESS(impl->GenTilingTail(tiling_res, impl_ext_params), "Gen tiling tail impl failed, type[%d].",
                     static_cast<int32_t>(params.config.type));
   return af::SUCCESS;
 }
 
 af::Status TilingCodeGenerator::CollectModelInfosAndMetadata(
-    const FusedParsedScheduleResult &fused_parsed_schedule_result,
-    TilingModelInfo &all_model_infos, size_t &group_num,
-    ScoreFuncs &schedule_result_score_func, VarRelations &var_relations,
-    EnableGroupParallels &enable_group_parallels, TensorIdSet &workspace_tensor_id_set) {
+    const FusedParsedScheduleResult &fused_parsed_schedule_result, TilingModelInfo &all_model_infos, size_t &group_num,
+    ScoreFuncs &schedule_result_score_func, VarRelations &var_relations, EnableGroupParallels &enable_group_parallels,
+    TensorIdSet &workspace_tensor_id_set) {
   group_num = 0UL;
   for (const auto &asc_graph_models : fused_parsed_schedule_result) {
     for (const auto &impl_graph_groups : asc_graph_models.second) {
-      const auto& parsed_result = impl_graph_groups.second;
+      const auto &parsed_result = impl_graph_groups.second;
       size_t asc_graph_id = parsed_result.asc_graph_id;
       size_t impl_graph_id = parsed_result.impl_graph_id;
       for (const auto &sub_graphs : impl_graph_groups.second.groups_tiling_model_info) {
         group_num++;
         all_model_infos.insert(all_model_infos.end(), sub_graphs.second.begin(), sub_graphs.second.end());
-        GE_ASSERT_SUCCESS(GetWorkspaceTensorId(workspace_tensor_id_set, sub_graphs.second, asc_graph_id, impl_graph_id));
+        GE_ASSERT_SUCCESS(
+            GetWorkspaceTensorId(workspace_tensor_id_set, sub_graphs.second, asc_graph_id, impl_graph_id));
       }
       schedule_result_score_func[kModelInfoLevel::K_SCHEDULE_RESULT_LEVEL][asc_graph_models.first]
                                 [impl_graph_groups.second.impl_graph_id] = impl_graph_groups.second.score_func;
@@ -272,17 +269,20 @@ af::Status TilingCodeGenerator::GenScheduleGroupTilingBodies(
     std::map<std::string, std::string> &tiling_res) {
   GELOGD("[DFX] schedule_results count: %zu, op_type[%s]", fused_parsed_schedule_result.size(), op_type.c_str());
   for (auto &asc_graph : fused_parsed_schedule_result) {
-    GELOGD("[DFX] asc_graph_id: %zu, results: %zu, op_type[%s]", asc_graph.first, asc_graph.second.size(), op_type.c_str());
+    GELOGD("[DFX] asc_graph_id: %zu, results: %zu, op_type[%s]", asc_graph.first, asc_graph.second.size(),
+           op_type.c_str());
     for (auto &result : asc_graph.second) {
       GELOGD("[DFX] got result(impl_graph_id): %zu, op_type[%s]", result.first, op_type.c_str());
       // 计算当前ScheduleResult中的Group个数
       size_t group_num = result.second.groups_tiling_model_info.size();
       for (auto &group_graphs : result.second.groups_tiling_model_info) {
         TilingCodeGenConfig cur_config = config;
-        cur_config.tiling_data_type_name = group_graphs.second[0].schedule_group_ident.GetGroupPrefix() + kDefaultTilingDataTypeName;
+        cur_config.tiling_data_type_name =
+            group_graphs.second[0].schedule_group_ident.GetGroupPrefix() + kDefaultTilingDataTypeName;
         GenTilingParams params = {op_type, group_graphs.second, cur_config, cache_reuse_info};
         // 创建impl并设置Group个数
-        TilingCodeGenImplPtr impl = CreateTilingCodeGenImpl(params.op_type, params.config, params.all_model_infos, {}, false);
+        TilingCodeGenImplPtr impl =
+            CreateTilingCodeGenImpl(params.op_type, params.config, params.all_model_infos, {}, false);
         GE_ASSERT_NOTNULL(impl, "Create tiling code gen impl failed, type[%d].", params.config.type);
         auto key = std::make_pair(group_graphs.second[0].schedule_group_ident.asc_graph_id,
                                   group_graphs.second[0].schedule_group_ident.impl_graph_id);

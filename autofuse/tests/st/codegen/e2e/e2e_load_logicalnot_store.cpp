@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -39,7 +39,7 @@ void LoadLogicalNotStore_BeforeAutofuse(af::AscGraph &graph, ge::DataType in_dat
   load.y.dtype = in_data_type;
   *load.y.axis = {z0.id, z1.id, z2.id};
   *load.y.repeats = {s0, s1, s2};
-  *load.y.strides = {s1*s2, s2, One};
+  *load.y.strides = {s1 * s2, s2, One};
 
   af::ascir_op::LogicalNot logical_not_op("logical_not");
   graph.AddNode(logical_not_op);
@@ -47,7 +47,7 @@ void LoadLogicalNotStore_BeforeAutofuse(af::AscGraph &graph, ge::DataType in_dat
   logical_not_op.y.dtype = out_data_type;
   logical_not_op.attr.sched.axis = {z0.id, z1.id, z2.id};
   *logical_not_op.y.repeats = {s0, s1, s2};
-  *logical_not_op.y.strides = {s1*s2, s2, One};
+  *logical_not_op.y.strides = {s1 * s2, s2, One};
   logical_not_op.attr.tmp_buffers = {{{af::Symbol(8192), -1}, MemAttr(), 0}};
 
   Store store("store");
@@ -57,7 +57,7 @@ void LoadLogicalNotStore_BeforeAutofuse(af::AscGraph &graph, ge::DataType in_dat
   store.y.dtype = out_data_type;
   *store.y.axis = {z0.id, z1.id, z2.id};
   *store.y.repeats = {s0, s1, s2};
-  *store.y.strides = {s1*s2, s2, One};
+  *store.y.strides = {s1 * s2, s2, One};
 
   Output y("y");
   graph.AddNode(y);
@@ -69,7 +69,7 @@ void LoadLogicalNotStore_BeforeAutofuse(af::AscGraph &graph, ge::DataType in_dat
 
 void LoadLogicalNotStore_AfterInferOutput(af::AscGraph &graph, ge::DataType in_data_type, ge::DataType out_data_type) {
   auto x = graph.FindNode("x");
-  x->attr.api.compute_type = ComputeType::kComputeInvalid; // ComputeType::COMPUTE_DATA;
+  x->attr.api.compute_type = ComputeType::kComputeInvalid;  // ComputeType::COMPUTE_DATA;
 
   auto load = graph.FindNode("load");
   load->outputs[0].attr.dtype = in_data_type;

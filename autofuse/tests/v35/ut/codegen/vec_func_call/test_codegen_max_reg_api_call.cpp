@@ -1,11 +1,11 @@
 /* Copyright (c) 2025 Huawei Technologies Co., Ltd.
-* This file is a part of the CANN Open Software.
-* Licensed under CANN Open Software License Agreement Version 1.0 (the "License").
-* Please refer to the License for details. You may not use this file except in compliance with the License.
-* THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
-* INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
-* See LICENSE in the root of the software repository for the full text of the License.
-* ===================================================================================================================*/
+ * This file is a part of the CANN Open Software.
+ * Licensed under CANN Open Software License Agreement Version 1.0 (the "License").
+ * Please refer to the License for details. You may not use this file except in compliance with the License.
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+ * See LICENSE in the root of the software repository for the full text of the License.
+ * ===================================================================================================================*/
 
 #include "gtest/gtest.h"
 #include "ascir_ops.h"
@@ -22,7 +22,7 @@ using namespace af::ascir_op;
 using namespace testing;
 
 class RegReduceMaxApicallTest : public ::testing::Test {
-protected:
+ protected:
   void SetUp() override {
     ge::PlatformContext::GetInstance().Reset();
     auto stub_v2 = std::make_shared<ge::RuntimeStubV2Common>();
@@ -73,7 +73,7 @@ TEST_F(RegReduceMaxApicallTest, Max_INT8) {
   tensorx.attr.axis = {z0.id, z1.id, z2.id};
   tensorx.attr.vectorized_axis = {z0.id, z2.id};
   tensorx.attr.repeats = {z0.size, z1.size, z2.size};
-  tensorx.attr.strides = {z1.size*z2.size, z2.size, One};
+  tensorx.attr.strides = {z1.size * z2.size, z2.size, One};
   tensorx.attr.mem.tensor_id = 1;
   tensorx.attr.mem.alloc_type = af::AllocType::kAllocTypeBuffer;
   tensorx.attr.mem.position = af::Position::kPositionVecIn;
@@ -174,7 +174,7 @@ TEST_F(RegReduceMaxApicallTest, Max_INT16) {
   tensorx.attr.axis = {z0.id, z1.id, z2.id};
   tensorx.attr.vectorized_axis = {z0.id, z2.id};
   tensorx.attr.repeats = {z0.size, z1.size, z2.size};
-  tensorx.attr.strides = {z1.size*z2.size, z2.size, One};
+  tensorx.attr.strides = {z1.size * z2.size, z2.size, One};
   tensorx.attr.mem.tensor_id = 1;
   tensorx.attr.mem.alloc_type = af::AllocType::kAllocTypeBuffer;
   tensorx.attr.mem.position = af::Position::kPositionVecIn;
@@ -275,7 +275,7 @@ TEST_F(RegReduceMaxApicallTest, Max_BF16) {
   tensorx.attr.axis = {z0.id, z1.id, z2.id};
   tensorx.attr.vectorized_axis = {z0.id, z2.id};
   tensorx.attr.repeats = {z0.size, z1.size, z2.size};
-  tensorx.attr.strides = {z1.size*z2.size, z2.size, One};
+  tensorx.attr.strides = {z1.size * z2.size, z2.size, One};
   tensorx.attr.mem.tensor_id = 1;
   tensorx.attr.mem.alloc_type = af::AllocType::kAllocTypeBuffer;
   tensorx.attr.mem.position = af::Position::kPositionVecIn;

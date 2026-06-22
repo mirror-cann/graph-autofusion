@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -25,7 +25,7 @@ InFastNodesToOut GetFullConnectIONodes(const FastNode *fast_node) {
   const auto &in_nodes = fast_node->GetAllInNodes();
   const auto &out_nodes = fast_node->GetAllOutNodes();
   for (const auto &in_node : in_nodes) {
-    (void) in_nodes_to_out.emplace(in_node, out_nodes);
+    (void)in_nodes_to_out.emplace(in_node, out_nodes);
   }
   return in_nodes_to_out;
 }
@@ -228,7 +228,7 @@ GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY FastNode *ExecuteGraphUtils::Find
     auto iter = exe_graph->graph_shared_->nodes_.end();
     while (iter != exe_graph->graph_shared_->nodes_.begin()) {
       --iter;
-      (void) candidates.insert(candidates.begin(), &FastGraphUtils::GetNode(iter.element_));
+      (void)candidates.insert(candidates.begin(), &FastGraphUtils::GetNode(iter.element_));
     }
   };
   std::deque<FastNode *> candidates;
@@ -286,9 +286,9 @@ FastNode *ExecuteGraphUtils::FindFirstNodeMatchType(ExecuteGraph *exe_graph, con
   return nullptr;
 }
 
-GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY graphStatus ExecuteGraphUtils::InsertNodeAfter(
-    const EdgeSrcEndpoint &src, const std::vector<EdgeDstEndpoint> &dsts, FastNode *insert_node,
-    const uint32_t input_index, const uint32_t output_index) {
+GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY graphStatus
+ExecuteGraphUtils::InsertNodeAfter(const EdgeSrcEndpoint &src, const std::vector<EdgeDstEndpoint> &dsts,
+                                   FastNode *insert_node, const uint32_t input_index, const uint32_t output_index) {
   GE_ASSERT_NOTNULL(insert_node);
   const auto src_node = src.node;
   GE_ASSERT_NOTNULL(src_node);
@@ -606,7 +606,7 @@ ExecuteGraphUtils::RemoveSubgraphRecursively(ExecuteGraph *execute_graph, FastNo
     auto iter = exe_graph->graph_shared_->nodes_.end();
     while (iter != exe_graph->graph_shared_->nodes_.begin()) {
       --iter;
-      (void) candidates.insert(candidates.begin(), &FastGraphUtils::GetNode(iter.element_));
+      (void)candidates.insert(candidates.begin(), &FastGraphUtils::GetNode(iter.element_));
     }
   };
   while (!nodes_to_visit.empty()) {
@@ -640,10 +640,10 @@ ExecuteGraphUtils::RemoveNodeWithoutRelink(ExecuteGraph *execute_graph, FastNode
   GE_ASSERT_NOTNULL(execute_graph);
   GE_ASSERT_NOTNULL(node, "param node is nullptr, check invalid.");
   // If the node save as input node, delete it
-  (void) execute_graph->RemoveInputNode(node);
+  (void)execute_graph->RemoveInputNode(node);
 
   // If the node save as output node, delete it
-  (void) execute_graph->RemoveOutputNode(node);
+  (void)execute_graph->RemoveOutputNode(node);
 
   // If the node has sub-graphs, delete them
   GE_ASSERT_GRAPH_SUCCESS(RemoveSubgraphRecursively(execute_graph, node), "Remove subgraph of node %s failed.",
@@ -666,7 +666,7 @@ ExecuteGraphUtils::GetNodeMapFromAllNodes(ExecuteGraph *exe_graph) {
     auto iter = exe_graph->graph_shared_->nodes_.end();
     while (iter != exe_graph->graph_shared_->nodes_.begin()) {
       --iter;
-      (void) candidates.insert(candidates.begin(), &FastGraphUtils::GetNode(iter.element_));
+      (void)candidates.insert(candidates.begin(), &FastGraphUtils::GetNode(iter.element_));
     }
   };
   std::deque<FastNode *> candidates;
@@ -691,4 +691,4 @@ ExecuteGraphUtils::GetNodeMapFromAllNodes(ExecuteGraph *exe_graph) {
   }
   return node_name_to_nodes;
 }
-}  // namespace ge
+}  // namespace af

@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -144,8 +144,8 @@ Status TransposeApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::A
                                              "TRANSPOSE_ND2ND_2103", "TRANSPOSE_ND2ND_021", "TRANSPOSE_ND2ND_210",
                                              "TRANSPOSE_ND2ND_0321", "TRANSPOSE_INVALID"};
   GE_ASSERT_TRUE(static_cast<uint8_t>(transpose_type) < transTypeValue.size());
-  ss << "AutoFuseTransposeType transposeType = AutoFuseTransposeType::" << transTypeValue[static_cast<uint8_t>(transpose_type)]
-     << ";" << std::endl;
+  ss << "AutoFuseTransposeType transposeType = AutoFuseTransposeType::"
+     << transTypeValue[static_cast<uint8_t>(transpose_type)] << ";" << std::endl;
 
   /* 获取TilingData */
   uint32_t tiling_case_id = tpipe.tiler.GetTilingCaseId();
@@ -153,7 +153,8 @@ Status TransposeApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::A
   ss << "auto apiTilingData = " << apiTilingDataString << ";" << std::endl;
   ss << "codegen::ConfusionTranspose<" << dtype_name << ">" << "(" << y << "["
      << tpipe.tiler.TensorVectorizedOffset(current_axis, y) << "], " << x << "["
-     << tpipe.tiler.TensorVectorizedOffset(current_axis, x) << "], " << tpipe.tmp_buf << "_" << std::to_string(id) << ", "
+     << tpipe.tiler.TensorVectorizedOffset(current_axis, x) << "], " << tpipe.tmp_buf << "_" << std::to_string(id)
+     << ", "
      << "transposeType, apiTilingData);" << std::endl;
   ss << "AscendC::PipeBarrier<PIPE_ALL>();" << std::endl;
 

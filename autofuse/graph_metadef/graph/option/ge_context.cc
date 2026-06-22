@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -23,7 +23,7 @@ const int32_t kDecimal = 10;
 const char_t *kHostExecPlacement = "HOST";
 const char_t *kEnabled = "1";
 
-template<class T>
+template <class T>
 ge::Status GetOptionValue(const std::string &option_name, T &var) {
   std::string option;
   if (af::GetContext().GetOption(option_name, option) != GRAPH_SUCCESS) {
@@ -53,7 +53,7 @@ ge::Status GetOptionValue(const std::string &option_name, T &var) {
 }  // namespace
 
 GEContext &GetContext() {
-  static GEContext ge_context {};
+  static GEContext ge_context{};
   return ge_context;
 }
 
@@ -141,19 +141,21 @@ std::map<std::string, std::string> &GetMutableGlobalOptions() {
 }
 
 void GEContext::Init() {
-  (void) GetOptionValue("ge.exec.sessionId", session_id_);
-  (void) GetOptionValue("ge.exec.deviceId", device_id_);
+  (void)GetOptionValue("ge.exec.sessionId", session_id_);
+  (void)GetOptionValue("ge.exec.deviceId", device_id_);
 
   int32_t stream_sync_timeout = -1;
-  (void) GetOptionValue("stream_sync_timeout", stream_sync_timeout);
+  (void)GetOptionValue("stream_sync_timeout", stream_sync_timeout);
   SetStreamSyncTimeout(stream_sync_timeout);
 
   int32_t event_sync_timeout = -1;
-  (void) GetOptionValue("event_sync_timeout", event_sync_timeout);
+  (void)GetOptionValue("event_sync_timeout", event_sync_timeout);
   SetEventSyncTimeout(event_sync_timeout);
 }
 
-uint64_t GEContext::SessionId() const { return session_id_; }
+uint64_t GEContext::SessionId() const {
+  return session_id_;
+}
 
 uint32_t GEContext::DeviceId() const {
   uint32_t device_id = 0U;
@@ -162,19 +164,33 @@ uint32_t GEContext::DeviceId() const {
   return (status == ge::SUCCESS) ? device_id : device_id_;
 }
 
-int32_t GEContext::StreamSyncTimeout() const { return GetThreadLocalContext().StreamSyncTimeout(); }
+int32_t GEContext::StreamSyncTimeout() const {
+  return GetThreadLocalContext().StreamSyncTimeout();
+}
 
-int32_t GEContext::EventSyncTimeout() const { return GetThreadLocalContext().EventSyncTimeout(); }
+int32_t GEContext::EventSyncTimeout() const {
+  return GetThreadLocalContext().EventSyncTimeout();
+}
 
-void GEContext::SetSessionId(const uint64_t session_id) { session_id_ = session_id; }
+void GEContext::SetSessionId(const uint64_t session_id) {
+  session_id_ = session_id;
+}
 
-void GEContext::SetContextId(const uint64_t context_id) { context_id_ = context_id; }
+void GEContext::SetContextId(const uint64_t context_id) {
+  context_id_ = context_id;
+}
 
-void GEContext::SetCtxDeviceId(const uint32_t device_id) { device_id_ = device_id; }
+void GEContext::SetCtxDeviceId(const uint32_t device_id) {
+  device_id_ = device_id;
+}
 
-void GEContext::SetStreamSyncTimeout(const int32_t timeout) { GetThreadLocalContext().SetStreamSyncTimeout(timeout); }
+void GEContext::SetStreamSyncTimeout(const int32_t timeout) {
+  GetThreadLocalContext().SetStreamSyncTimeout(timeout);
+}
 
-void GEContext::SetEventSyncTimeout(const int32_t timeout) { GetThreadLocalContext().SetEventSyncTimeout(timeout); }
+void GEContext::SetEventSyncTimeout(const int32_t timeout) {
+  GetThreadLocalContext().SetEventSyncTimeout(timeout);
+}
 
 graphStatus GEContext::SetOptionNameMap(const std::string &option_name_map_json) {
   return GetThreadLocalContext().SetOptionNameMap(option_name_map_json);

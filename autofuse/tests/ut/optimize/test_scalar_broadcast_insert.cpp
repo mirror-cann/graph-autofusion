@@ -86,14 +86,14 @@ size_t CountOutDataEdges(AscGraph &graph, const std::string &node_name) {
 
 TEST_F(TestScalarBroadcastInsert, ScalarDirectToCompute_InsertsBroadcast) {
   auto graph = AscGraphBuilder("test_scalar_to_add")
-    .Loops({Sym("s0"), Sym("s1")})
-    .Data("data0", 0)
-    .Load("load0", "data0")
-    .Scalar("scalar0", "1.0")
-    .Add("add0", "load0", "scalar0")
-    .Store("store0", "add0")
-    .Output("output0", "store0")
-    .Build();
+                   .Loops({Sym("s0"), Sym("s1")})
+                   .Data("data0", 0)
+                   .Load("load0", "data0")
+                   .Scalar("scalar0", "1.0")
+                   .Add("add0", "load0", "scalar0")
+                   .Store("store0", "add0")
+                   .Output("output0", "store0")
+                   .Build();
 
   optimize::AscGraphInfoComplete::CompleteApiInfo(graph);
   size_t brc_before = CountNodesByType(graph, ascir_op::Broadcast::Type);
@@ -112,15 +112,15 @@ TEST_F(TestScalarBroadcastInsert, ScalarDirectToCompute_InsertsBroadcast) {
 
 TEST_F(TestScalarBroadcastInsert, ScalarAlreadyHasBroadcast_NoInsert) {
   auto graph = AscGraphBuilder("test_scalar_with_brc")
-    .Loops({Sym("s0"), Sym("s1")})
-    .Data("data0", 0)
-    .Load("load0", "data0")
-    .Scalar("scalar0", "1.0")
-    .Broadcast("brc0", "scalar0", {Sym("s0"), Sym("s1")})
-    .Add("add0", "load0", "brc0")
-    .Store("store0", "add0")
-    .Output("output0", "store0")
-    .Build();
+                   .Loops({Sym("s0"), Sym("s1")})
+                   .Data("data0", 0)
+                   .Load("load0", "data0")
+                   .Scalar("scalar0", "1.0")
+                   .Broadcast("brc0", "scalar0", {Sym("s0"), Sym("s1")})
+                   .Add("add0", "load0", "brc0")
+                   .Store("store0", "add0")
+                   .Output("output0", "store0")
+                   .Build();
 
   optimize::AscGraphInfoComplete::CompleteApiInfo(graph);
   size_t brc_before = CountNodesByType(graph, ascir_op::Broadcast::Type);
@@ -136,11 +136,11 @@ TEST_F(TestScalarBroadcastInsert, ScalarAlreadyHasBroadcast_NoInsert) {
 
 TEST_F(TestScalarBroadcastInsert, ScalarDirectToStore_InsertsBroadcast) {
   auto graph = AscGraphBuilder("test_scalar_to_store")
-    .Loops({Sym("s0")})
-    .Scalar("scalar0", "2.0")
-    .Store("store0", "scalar0")
-    .Output("output0", "store0")
-    .Build();
+                   .Loops({Sym("s0")})
+                   .Scalar("scalar0", "2.0")
+                   .Store("store0", "scalar0")
+                   .Output("output0", "store0")
+                   .Build();
 
   optimize::AscGraphInfoComplete::CompleteApiInfo(graph);
 
@@ -156,13 +156,13 @@ TEST_F(TestScalarBroadcastInsert, ScalarDirectToStore_InsertsBroadcast) {
 
 TEST_F(TestScalarBroadcastInsert, ScalarNoDownstream_NoInsert) {
   auto graph = AscGraphBuilder("test_scalar_no_downstream")
-    .Loops({Sym("s0")})
-    .Scalar("scalar0", "1.0")
-    .Data("data0", 0)
-    .Load("load0", "data0")
-    .Store("store0", "load0")
-    .Output("output0", "store0")
-    .Build();
+                   .Loops({Sym("s0")})
+                   .Scalar("scalar0", "1.0")
+                   .Data("data0", 0)
+                   .Load("load0", "data0")
+                   .Store("store0", "load0")
+                   .Output("output0", "store0")
+                   .Build();
 
   optimize::AscGraphInfoComplete::CompleteApiInfo(graph);
 
@@ -177,19 +177,19 @@ TEST_F(TestScalarBroadcastInsert, ScalarNoDownstream_NoInsert) {
 
 TEST_F(TestScalarBroadcastInsert, ScalarMultipleDownstreams_InsertsOneSharedBroadcast) {
   auto graph = AscGraphBuilder("test_scalar_multi_downstream")
-    .Loops({Sym("s0")})
-    .Data("data0", 0)
-    .Data("data1", 1)
-    .Load("load0", "data0")
-    .Load("load1", "data1")
-    .Scalar("scalar0", "1.0")
-    .Add("add0", "load0", "scalar0")
-    .Mul("mul0", "load1", "scalar0")
-    .Store("store0", "add0")
-    .Store("store1", "mul0")
-    .Output("output0", "store0")
-    .Output("output1", "store1", 1)
-    .Build();
+                   .Loops({Sym("s0")})
+                   .Data("data0", 0)
+                   .Data("data1", 1)
+                   .Load("load0", "data0")
+                   .Load("load1", "data1")
+                   .Scalar("scalar0", "1.0")
+                   .Add("add0", "load0", "scalar0")
+                   .Mul("mul0", "load1", "scalar0")
+                   .Store("store0", "add0")
+                   .Store("store1", "mul0")
+                   .Output("output0", "store0")
+                   .Output("output1", "store1", 1)
+                   .Build();
 
   optimize::AscGraphInfoComplete::CompleteApiInfo(graph);
 
@@ -216,10 +216,10 @@ TEST_F(TestScalarBroadcastInsert, ScalarMultipleDownstreams_InsertsOneSharedBroa
 
 TEST_F(TestScalarBroadcastInsert, ScalarDirectToOutput_NoInsert) {
   auto graph = AscGraphBuilder("test_scalar_to_output")
-    .Loops({Sym("s0")})
-    .Scalar("scalar0", "1.0")
-    .Output("output0", "scalar0")
-    .Build();
+                   .Loops({Sym("s0")})
+                   .Scalar("scalar0", "1.0")
+                   .Output("output0", "scalar0")
+                   .Build();
 
   optimize::AscGraphInfoComplete::CompleteApiInfo(graph);
 
@@ -234,13 +234,13 @@ TEST_F(TestScalarBroadcastInsert, ScalarDirectToOutput_NoInsert) {
 
 TEST_F(TestScalarBroadcastInsert, NoScalarInGraph_NoChange) {
   auto graph = AscGraphBuilder("test_no_scalar")
-    .Loops({Sym("s0")})
-    .Data("data0", 0)
-    .Load("load0", "data0")
-    .Abs("abs0", "load0")
-    .Store("store0", "abs0")
-    .Output("output0", "store0")
-    .Build();
+                   .Loops({Sym("s0")})
+                   .Data("data0", 0)
+                   .Load("load0", "data0")
+                   .Abs("abs0", "load0")
+                   .Store("store0", "abs0")
+                   .Output("output0", "store0")
+                   .Build();
 
   optimize::AscGraphInfoComplete::CompleteApiInfo(graph);
 
@@ -255,23 +255,23 @@ TEST_F(TestScalarBroadcastInsert, NoScalarInGraph_NoChange) {
 
 TEST_F(TestScalarBroadcastInsert, MixedScalarOnlyInsertsForDirectOnes) {
   auto graph = AscGraphBuilder("test_mixed_scalar")
-    .Loops({Sym("s0"), Sym("s1")})
-    .Data("data0", 0)
-    .Data("data1", 1)
-    .Load("load0", "data0")
-    .Load("load1", "data1")
-    // scalar0 直连 add0（需要插 broadcast）
-    .Scalar("scalar0", "1.0")
-    .Add("add0", "load0", "scalar0")
-    // scalar1 已有 broadcast（不需要插）
-    .Scalar("scalar1", "2.0")
-    .Broadcast("brc0", "scalar1", {Sym("s0"), Sym("s1")})
-    .Mul("mul0", "load1", "brc0")
-    .Store("store0", "add0")
-    .Store("store1", "mul0")
-    .Output("output0", "store0")
-    .Output("output1", "store1", 1)
-    .Build();
+                   .Loops({Sym("s0"), Sym("s1")})
+                   .Data("data0", 0)
+                   .Data("data1", 1)
+                   .Load("load0", "data0")
+                   .Load("load1", "data1")
+                   // scalar0 直连 add0（需要插 broadcast）
+                   .Scalar("scalar0", "1.0")
+                   .Add("add0", "load0", "scalar0")
+                   // scalar1 已有 broadcast（不需要插）
+                   .Scalar("scalar1", "2.0")
+                   .Broadcast("brc0", "scalar1", {Sym("s0"), Sym("s1")})
+                   .Mul("mul0", "load1", "brc0")
+                   .Store("store0", "add0")
+                   .Store("store1", "mul0")
+                   .Output("output0", "store0")
+                   .Output("output1", "store1", 1)
+                   .Build();
 
   optimize::AscGraphInfoComplete::CompleteApiInfo(graph);
   size_t brc_before = CountNodesByType(graph, ascir_op::Broadcast::Type);
@@ -293,12 +293,12 @@ TEST_F(TestScalarBroadcastInsert, MixedScalarOnlyInsertsForDirectOnes) {
 
 TEST_F(TestScalarBroadcastInsert, BroadcastDtypeMatchesScalar) {
   auto graph = AscGraphBuilder("test_brc_dtype")
-    .Loops({Sym("s0")})
-    .Scalar("scalar0", "1.0", ge::DT_FLOAT16)
-    .Abs("abs0", "scalar0")
-    .Store("store0", "abs0")
-    .Output("output0", "store0", 0, ge::DT_FLOAT16)
-    .Build();
+                   .Loops({Sym("s0")})
+                   .Scalar("scalar0", "1.0", ge::DT_FLOAT16)
+                   .Abs("abs0", "scalar0")
+                   .Store("store0", "abs0")
+                   .Output("output0", "store0", 0, ge::DT_FLOAT16)
+                   .Build();
 
   optimize::AscGraphInfoComplete::CompleteApiInfo(graph);
 
@@ -322,18 +322,18 @@ TEST_F(TestScalarBroadcastInsert, BroadcastDtypeMatchesScalar) {
 
 TEST_F(TestScalarBroadcastInsert, MultipleScalarsAllGetBroadcast) {
   auto graph = AscGraphBuilder("test_multi_scalars")
-    .Loops({Sym("s0")})
-    .Data("data0", 0)
-    .Load("load0", "data0")
-    .Scalar("scalar0", "1.0")
-    .Scalar("scalar1", "2.0")
-    .Add("add0", "load0", "scalar0")
-    .Mul("mul0", "load0", "scalar1")
-    .Store("store0", "add0")
-    .Store("store1", "mul0")
-    .Output("output0", "store0")
-    .Output("output1", "store1", 1)
-    .Build();
+                   .Loops({Sym("s0")})
+                   .Data("data0", 0)
+                   .Load("load0", "data0")
+                   .Scalar("scalar0", "1.0")
+                   .Scalar("scalar1", "2.0")
+                   .Add("add0", "load0", "scalar0")
+                   .Mul("mul0", "load0", "scalar1")
+                   .Store("store0", "add0")
+                   .Store("store1", "mul0")
+                   .Output("output0", "store0")
+                   .Output("output1", "store1", 1)
+                   .Build();
 
   optimize::AscGraphInfoComplete::CompleteApiInfo(graph);
 
@@ -352,11 +352,11 @@ TEST_F(TestScalarBroadcastInsert, MultipleScalarsAllGetBroadcast) {
 
 TEST_F(TestScalarBroadcastInsert, ScalarDirectToData_NoInsert) {
   auto graph = AscGraphBuilder("test_scalar_to_data")
-    .Loops({Sym("s0")})
-    .Scalar("scalar0", "1.0")
-    .Data("data0", 0)
-    .Output("output0", "data0")
-    .Build();
+                   .Loops({Sym("s0")})
+                   .Scalar("scalar0", "1.0")
+                   .Data("data0", 0)
+                   .Output("output0", "data0")
+                   .Build();
 
   optimize::AscGraphInfoComplete::CompleteApiInfo(graph);
 
@@ -369,15 +369,15 @@ TEST_F(TestScalarBroadcastInsert, ScalarDirectToData_NoInsert) {
 
 TEST_F(TestScalarBroadcastInsert, ScalarToBothComputeAndOutput_OnlyInterceptsCompute) {
   auto graph = AscGraphBuilder("test_scalar_compute_output")
-    .Loops({Sym("s0")})
-    .Data("data0", 0)
-    .Load("load0", "data0")
-    .Scalar("scalar0", "1.0")
-    .Add("add0", "load0", "scalar0")
-    .Store("store0", "add0")
-    .Output("output0", "store0")
-    .Output("output1", "scalar0", 1)
-    .Build();
+                   .Loops({Sym("s0")})
+                   .Data("data0", 0)
+                   .Load("load0", "data0")
+                   .Scalar("scalar0", "1.0")
+                   .Add("add0", "load0", "scalar0")
+                   .Store("store0", "add0")
+                   .Output("output0", "store0")
+                   .Output("output1", "scalar0", 1)
+                   .Build();
 
   optimize::AscGraphInfoComplete::CompleteApiInfo(graph);
 
@@ -396,14 +396,15 @@ TEST_F(TestScalarBroadcastInsert, ScalarToBothComputeAndOutput_OnlyInterceptsCom
 TEST_F(TestScalarBroadcastInsert, BroadcastReorderBasic) {
   auto s0 = Sym(4);
   auto s1 = Sym(512 * 1024);  // > 256*1024
-  auto graph = AscGraphBuilder("broadcast_reorder_basic")
-                   .Loops({s0, s1})
-                   .Data("data0", 0, {af::sym::kSymbolOne, s1}, {af::sym::kSymbolZero, af::sym::kSymbolOne}, ge::DT_FLOAT16)
-                   .Load("load0", "data0", {af::sym::kSymbolOne, s1}, {af::sym::kSymbolZero, af::sym::kSymbolOne})
-                   .Abs("abs0", "load0")
-                   .Store("store0", "abs0")
-                   .Output("y", "store0", 0, ge::DT_FLOAT16)
-                   .Build();
+  auto graph =
+      AscGraphBuilder("broadcast_reorder_basic")
+          .Loops({s0, s1})
+          .Data("data0", 0, {af::sym::kSymbolOne, s1}, {af::sym::kSymbolZero, af::sym::kSymbolOne}, ge::DT_FLOAT16)
+          .Load("load0", "data0", {af::sym::kSymbolOne, s1}, {af::sym::kSymbolZero, af::sym::kSymbolOne})
+          .Abs("abs0", "load0")
+          .Store("store0", "abs0")
+          .Output("y", "store0", 0, ge::DT_FLOAT16)
+          .Build();
   optimize::AscGraphInfoComplete::CompleteApiInfo(graph);
 
   auto load_node = graph.FindNode("load0");
@@ -427,14 +428,15 @@ TEST_F(TestScalarBroadcastInsert, BroadcastReorderBasic) {
 TEST_F(TestScalarBroadcastInsert, BroadcastReorderSkipBrcTooLarge) {
   auto s0 = Sym(32);
   auto s1 = Sym(512 * 1024);
-  auto graph = AscGraphBuilder("broadcast_reorder_large_brc")
-                   .Loops({s0, s1})
-                   .Data("data0", 0, {af::sym::kSymbolOne, s1}, {af::sym::kSymbolZero, af::sym::kSymbolOne}, ge::DT_FLOAT16)
-                   .Load("load0", "data0", {af::sym::kSymbolOne, s1}, {af::sym::kSymbolZero, af::sym::kSymbolOne})
-                   .Abs("abs0", "load0")
-                   .Store("store0", "abs0")
-                   .Output("y", "store0", 0, ge::DT_FLOAT16)
-                   .Build();
+  auto graph =
+      AscGraphBuilder("broadcast_reorder_large_brc")
+          .Loops({s0, s1})
+          .Data("data0", 0, {af::sym::kSymbolOne, s1}, {af::sym::kSymbolZero, af::sym::kSymbolOne}, ge::DT_FLOAT16)
+          .Load("load0", "data0", {af::sym::kSymbolOne, s1}, {af::sym::kSymbolZero, af::sym::kSymbolOne})
+          .Abs("abs0", "load0")
+          .Store("store0", "abs0")
+          .Output("y", "store0", 0, ge::DT_FLOAT16)
+          .Build();
   optimize::AscGraphInfoComplete::CompleteApiInfo(graph);
 
   auto load_node = graph.FindNode("load0");
@@ -452,14 +454,15 @@ TEST_F(TestScalarBroadcastInsert, BroadcastReorderSkipBrcTooLarge) {
 TEST_F(TestScalarBroadcastInsert, BroadcastReorderSkipDataTooSmall) {
   auto s0 = Sym(4);
   auto s1 = Sym(8);
-  auto graph = AscGraphBuilder("broadcast_reorder_small_data")
-                   .Loops({s0, s1})
-                   .Data("data0", 0, {af::sym::kSymbolOne, s1}, {af::sym::kSymbolZero, af::sym::kSymbolOne}, ge::DT_FLOAT16)
-                   .Load("load0", "data0", {af::sym::kSymbolOne, s1}, {af::sym::kSymbolZero, af::sym::kSymbolOne})
-                   .Abs("abs0", "load0")
-                   .Store("store0", "abs0")
-                   .Output("y", "store0", 0, ge::DT_FLOAT16)
-                   .Build();
+  auto graph =
+      AscGraphBuilder("broadcast_reorder_small_data")
+          .Loops({s0, s1})
+          .Data("data0", 0, {af::sym::kSymbolOne, s1}, {af::sym::kSymbolZero, af::sym::kSymbolOne}, ge::DT_FLOAT16)
+          .Load("load0", "data0", {af::sym::kSymbolOne, s1}, {af::sym::kSymbolZero, af::sym::kSymbolOne})
+          .Abs("abs0", "load0")
+          .Store("store0", "abs0")
+          .Output("y", "store0", 0, ge::DT_FLOAT16)
+          .Build();
   optimize::AscGraphInfoComplete::CompleteApiInfo(graph);
 
   auto load_node = graph.FindNode("load0");

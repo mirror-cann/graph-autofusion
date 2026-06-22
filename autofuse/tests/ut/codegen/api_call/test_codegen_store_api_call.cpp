@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -127,17 +127,13 @@ TEST(CodegenKernel, StoreApiCall_TwoStoreOneOutput) {
 
   std::string result;
   call_0.Generate(tpipe, vector<af::AxisId>{}, result);
-  EXPECT_EQ(result, std::string{
-      "DataCopyPadExtend(local_1[0 + 0], local_0, 1, 1, 16 - 1, 0);\n"
-  });
+  EXPECT_EQ(result, std::string{"DataCopyPadExtend(local_1[0 + 0], local_0, 1, 1, 16 - 1, 0);\n"});
 
   codegen::StoreApiCall call_1("Store");
   EXPECT_EQ(call_1.Init(store_1), 0);
   call_1.inputs.push_back(&x1);
   call_1.Generate(tpipe, vector<af::AxisId>{}, result);
-  EXPECT_EQ(result, std::string{
-      "DataCopyPadExtend(local_1[0 + 1], local_0, z0_t_size, 1, 16 - 1, 0);\n"
-  });
+  EXPECT_EQ(result, std::string{"DataCopyPadExtend(local_1[0 + 1], local_0, z0_t_size, 1, 16 - 1, 0);\n"});
 }
 
 TEST(CodegenKernel, StoreApiCall_NeetMte3SyncMte2) {
@@ -242,12 +238,10 @@ TEST(CodegenKernel, StoreApiCall_NeetMte3SyncMte2) {
   call_1.inputs.push_back(&x1);
   x1.reads.push_back(&call_1);
   call_1.Generate(kernel.tpipe, vector<af::AxisId>{}, result);
-  EXPECT_EQ(result, std::string{
-  "DataCopyPadExtend(local_1[0 + 0], local_0, 1, 1, 16 - 1, 0);\n"
-   "auto local_0_e_mte3_2_mte2_t_0 = tpipe.AllocEventID<HardEvent::MTE3_MTE2>();\n"
-   "TQueSync<PIPE_MTE3, PIPE_MTE2> local_0_s_mte3_2_mte2_t_0;\n"
-   "local_0_s_mte3_2_mte2_t_0.SetFlag(local_0_e_mte3_2_mte2_t_0);\n"
-   "local_0_s_mte3_2_mte2_t_0.WaitFlag(local_0_e_mte3_2_mte2_t_0);\n"
-   "tpipe.ReleaseEventID<HardEvent::MTE3_MTE2>(local_0_e_mte3_2_mte2_t_0);\n"
-  });
+  EXPECT_EQ(result, std::string{"DataCopyPadExtend(local_1[0 + 0], local_0, 1, 1, 16 - 1, 0);\n"
+                                "auto local_0_e_mte3_2_mte2_t_0 = tpipe.AllocEventID<HardEvent::MTE3_MTE2>();\n"
+                                "TQueSync<PIPE_MTE3, PIPE_MTE2> local_0_s_mte3_2_mte2_t_0;\n"
+                                "local_0_s_mte3_2_mte2_t_0.SetFlag(local_0_e_mte3_2_mte2_t_0);\n"
+                                "local_0_s_mte3_2_mte2_t_0.WaitFlag(local_0_e_mte3_2_mte2_t_0);\n"
+                                "tpipe.ReleaseEventID<HardEvent::MTE3_MTE2>(local_0_e_mte3_2_mte2_t_0);\n"});
 }

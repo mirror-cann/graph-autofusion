@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -43,7 +43,7 @@ struct SubgraphLayoutVisitor : GraphVisitor {
 std::string GetGraphLayoutTitle(const Graph &graph, const GraphEasyLayoutContext &ctxt) {
   std::string flowDirection = (ctxt.GetOptions().dir_ == FlowDir::LR) ? "east" : "down";
   std::string graphTitle = std::string("graph { label : ") + graph.GetName() + "; flow : " + flowDirection +
-      " ; } node.subgraph { border : double-dash; }";
+                           " ; } node.subgraph { border : double-dash; }";
   return graphTitle;
 }
 /////////////////////////////////////////////////////////////////////////
@@ -54,8 +54,7 @@ std::string GetNodeLayout(const Node &node, GraphEasyLayoutContext &ctxt) {
   SubgraphLayoutVisitor subgraphVisitor(id, ctxt);
   node.Accept(subgraphVisitor);
 
-  if (!subgraphVisitor.hasSubgraph || ctxt.InLinking())
-    return nodeBox;
+  if (!subgraphVisitor.hasSubgraph || ctxt.InLinking()) return nodeBox;
 
   return (std::string("( ") + id + ": " + nodeBox + subgraphVisitor.layout + ")");
 }
@@ -89,7 +88,7 @@ INTERFACE(EdgeLayout) {
   ABSTRACT(std::string GetArrowLayout() const);
 
  protected:
-  GraphEasyLayoutContext &ctxt_;
+  GraphEasyLayoutContext & ctxt_;
   const GraphEasyOption &options_;
   const Edge &edge_;
 };
@@ -100,8 +99,7 @@ struct CtrlEdgeLayout : EdgeLayout {
 
  private:
   std::string GetAttrLayout() const override {
-    if (edge_.GetLabel() == "")
-      return "";
+    if (edge_.GetLabel() == "") return "";
     return std::string("{label : ") + edge_.GetLabel() + "}";
   }
 
@@ -126,7 +124,7 @@ struct DataEdgeLayout : EdgeLayout {
  private:
   std::string GetPortPair() const {
     return std::string("(") + std::to_string(edge_.GetSrc().getPortId()) + "," +
-        std::to_string(edge_.GetDst().getPortId()) + ")";
+           std::to_string(edge_.GetDst().getPortId()) + ")";
   }
 
   std::string GetLabelAttr() const {
@@ -139,7 +137,7 @@ struct DataEdgeLayout : EdgeLayout {
 
   std::string GetOutPortAttr() const {
     return std::string(" start : ") + "front" + ", " + std::to_string(edge_.GetSrc().getPortId() * options_.scale_) +
-        "; ";
+           "; ";
   }
 
   std::string GetInPortAttr() const {
@@ -165,8 +163,7 @@ Status GraphEasyVisitor::Visit(const Edge &edge) {
   ScopeGuard guard([this]() { ctxt_.LinkBegin(); }, [this]() { ctxt_.LinkEnd(); });
 
   auto makeEdgeLayout = [this, &edge]() -> const EdgeLayout * {
-    if (edge.GetType() == EdgeType::CTRL)
-      return new CtrlEdgeLayout(ctxt_, edge);
+    if (edge.GetType() == EdgeType::CTRL) return new CtrlEdgeLayout(ctxt_, edge);
     return new DataEdgeLayout(ctxt_, edge);
   };
 

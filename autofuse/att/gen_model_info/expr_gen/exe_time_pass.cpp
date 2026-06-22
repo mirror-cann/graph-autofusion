@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -22,8 +22,8 @@ namespace {
   }
 }
 
-void CheckSplit(const std::map<std::string, std::set<std::string>> &axis_list, 
-                                    const std::string &node_name, const std::string &orig_name, bool &is_split) {
+void CheckSplit(const std::map<std::string, std::set<std::string>> &axis_list, const std::string &node_name,
+                const std::string &orig_name, bool &is_split) {
   const auto iter = axis_list.find(node_name);
   if (iter != axis_list.end()) {
     if (iter->second.size() > 0) {
@@ -42,7 +42,7 @@ void InsertAxis(const SubAxis *cur_dim, const NodeInfo &node_info,
     }
   }
 }
-}
+}  // namespace
 void ExeTimePassManager::AddBAxis(const std::string &dim_name, const Expr &repeat, const Expr &stride,
                                   const NodeInfo &node_info) {
   TensorPtr output_tensor = node_info.outputs[0];
@@ -156,7 +156,8 @@ void ExeTimePassManager::UpdateBufNode(const std::vector<NodeInfo> &nodes) {
   GELOGD("Brc related node is {%s}.", log.c_str());
 }
 
-void ExeTimePassManager::GenLog(const std::string &type_name, const std::map<std::string, std::set<std::string>> &axis_list) const {
+void ExeTimePassManager::GenLog(const std::string &type_name,
+                                const std::map<std::string, std::set<std::string>> &axis_list) const {
   std::string log;
   for (const auto &pair : axis_list) {
     log.clear();
@@ -216,28 +217,26 @@ bool ExeTimePassManager::CheckAxisSplit(const NodeInfo &node, const SubAxis *axi
 }
 
 TernaryOp ExeTimePassManager::HandleBroadcastSplit(const NodeInfo &node, const Expr &exe_time,
-                                                     const Expr &fused_exe_time) const {
-  GELOGD("[DFX] fused broadcast updates [%s] exe time : [%s] -> [%s]", node.name.c_str(),
-         Str(exe_time).c_str(), Str(fused_exe_time).c_str());
+                                                   const Expr &fused_exe_time) const {
+  GELOGD("[DFX] fused broadcast updates [%s] exe time : [%s] -> [%s]", node.name.c_str(), Str(exe_time).c_str(),
+         Str(fused_exe_time).c_str());
   return TernaryOp(fused_exe_time);
 }
 
-TernaryOp ExeTimePassManager::HandleReduceOrNormalSplit(const NodeInfo &node, const Expr &exe_time,
-                                                         const SubAxis *axis,
-                                                         bool r_split, bool a_split) const {
+TernaryOp ExeTimePassManager::HandleReduceOrNormalSplit(const NodeInfo &node, const Expr &exe_time, const SubAxis *axis,
+                                                        bool r_split, bool a_split) const {
   Expr cur_exe_time = af::sym::Div(exe_time, axis->repeat);
   if (r_split || !a_split) {
     GELOGD("Axis [%s] r_split and not asplit.", axis->name.c_str());
-    GELOGD("Brc buf module updates [%s] exe time : [%s] -> [%s]", node.name.c_str(),
-           Str(exe_time).c_str(), Str(cur_exe_time).c_str());
+    GELOGD("Brc buf module updates [%s] exe time : [%s] -> [%s]", node.name.c_str(), Str(exe_time).c_str(),
+           Str(cur_exe_time).c_str());
     return TernaryOp(cur_exe_time);
   }
   GELOGD("Axis [%s] a_split.", axis->name.c_str());
   Expr r_loop;
   if (GetRLoop(node, r_loop)) {
-    GELOGD("Brc buf module updates [%s] exe time : [%s] -> [%s == 1 ? %s : %s]",
-           node.name.c_str(), Str(exe_time).c_str(), Str(r_loop).c_str(),
-           Str(cur_exe_time).c_str(), Str(exe_time).c_str());
+    GELOGD("Brc buf module updates [%s] exe time : [%s] -> [%s == 1 ? %s : %s]", node.name.c_str(),
+           Str(exe_time).c_str(), Str(r_loop).c_str(), Str(cur_exe_time).c_str(), Str(exe_time).c_str());
     return TernaryOp(CondType::K_EQ, r_loop, CreateExpr(1.0f), af::sym::Div(cur_exe_time, r_loop), exe_time);
   }
   return TernaryOp(exe_time);

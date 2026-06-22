@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -106,7 +106,8 @@ ExecuteGraph *FastNodeUtils::GetSubgraphFromNode(const FastNode *const node, con
   return root_graph->GetSubGraph(op_desc->GetSubgraphInstanceName(index));
 }
 
-graphStatus FastNodeUtils::MountSubgraphToNode(FastNode *const node, const uint32_t index, const ExecuteGraphPtr &subgraph) {
+graphStatus FastNodeUtils::MountSubgraphToNode(FastNode *const node, const uint32_t index,
+                                               const ExecuteGraphPtr &subgraph) {
   GE_ASSERT_NOTNULL(node);
   GE_ASSERT_NOTNULL(subgraph, "[Check][Param] Failed to set subgraph to node %s index %u, null subgraph",
                     node->GetNamePtr(), index);
@@ -231,4 +232,4 @@ EdgeSrcEndpoint FastNodeUtils::GetSrcEndpoint(const FastEdge *const edge) {
   GE_ASSERT_NOTNULL(edge);
   return {edge->src, edge->src_output};
 }
-}  // namespace ge
+}  // namespace af

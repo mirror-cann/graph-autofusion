@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -135,8 +135,9 @@ std::pair<bool, View> ApplyViewTrans(const TransInfoRoadOfGraph &trans_info_road
   for (const auto &one_trans_info : trans_info_road_of_graph) {
     GE_ASSERT_TRUE(CheckAxisValid(one_trans_info, revert));
     switch (one_trans_info.trans_type) {
-      case TransType::kSplit:GE_ASSERT_TRUE(one_trans_info.src_axis.size() == 1U, "[Check][Axis], size[%zu]",
-                                            one_trans_info.src_axis.size());
+      case TransType::kSplit:
+        GE_ASSERT_TRUE(one_trans_info.src_axis.size() == 1U, "[Check][Axis], size[%zu]",
+                       one_trans_info.src_axis.size());
         GE_ASSERT_TRUE(one_trans_info.dst_axis.size() == 2U, "[Check][Axis], size[%zu]",
                        one_trans_info.dst_axis.size());
         GE_ASSERT_NOTNULL(one_trans_info.src_axis.front());
@@ -234,8 +235,8 @@ std::vector<int64_t> AxisUtils::GetDefaultVectorizedAxis(const std::vector<int64
   }
 }
 
-View AxisUtils::SplitView(const View &src_view, const Expression &split_size,
-                          const int64_t outter_id, const int64_t inner_id, const int64_t original_id) {
+View AxisUtils::SplitView(const View &src_view, const Expression &split_size, const int64_t outter_id,
+                          const int64_t inner_id, const int64_t original_id) {
   View new_view;
   auto &new_axes = new_view.axis_ids;
   auto &new_repeat = new_view.repeats;
@@ -305,8 +306,7 @@ View AxisUtils::MergeView(const View &src_view, const int64_t merged_axis_id, co
   }
   // 不支持merge不全的情况
   GE_ASSERT_TRUE(merge_axis_set.size() == original_set.size() || merge_axis_set.empty(),
-                 "tensor has view %s but origin is %s",
-                 ViewToString(src_view).c_str(),
+                 "tensor has view %s but origin is %s", ViewToString(src_view).c_str(),
                  ViewMemberToString(original).c_str());
   GELOGI("After merge, view is %s", ViewToString(new_view).c_str());
   return new_view;
@@ -353,16 +353,13 @@ View AxisUtils::ReorderView(const View &src_view, const std::vector<int64_t> &my
               const auto left_iter = std::find(my_api_sched_axes.cbegin(), my_api_sched_axes.cend(), left.first);
               const auto right_iter = std::find(my_api_sched_axes.cbegin(), my_api_sched_axes.cend(), right.first);
               // the condition for reorder
-              if ((left_iter == my_api_sched_axes.cend()) &&
-                  (right_iter == my_api_sched_axes.cend())) {
+              if ((left_iter == my_api_sched_axes.cend()) && (right_iter == my_api_sched_axes.cend())) {
                 return false;
               }
-              if ((left_iter == my_api_sched_axes.cend()) &&
-                  (right_iter != my_api_sched_axes.cend())) {
+              if ((left_iter == my_api_sched_axes.cend()) && (right_iter != my_api_sched_axes.cend())) {
                 return false;
               }
-              if ((left_iter != my_api_sched_axes.cend()) &&
-                  (right_iter == my_api_sched_axes.cend())) {
+              if ((left_iter != my_api_sched_axes.cend()) && (right_iter == my_api_sched_axes.cend())) {
                 // for example, my schedule = [a,b], axes = [c,a,d], a is in my schedule, should reorder [c,a] in axes
                 return true;
               }
@@ -381,4 +378,4 @@ View AxisUtils::ReorderView(const View &src_view, const std::vector<int64_t> &my
   GELOGI("After reorder, view is %s", ViewToString(output_view).c_str());
   return output_view;
 }
-}  // namespace ge
+}  // namespace af

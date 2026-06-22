@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -173,18 +173,18 @@ class NodeUtils {
   static std::vector<NodePtr> GetSubgraphDataNodesByIndex(const Node &node, const int32_t index);
 
   /**
- * 获取`node`挂载的所有子图中的NetOutput节点集合;
- * 每个子图有且只有一个NetOutput节点
- * @param node
- * @return
- */
+   * 获取`node`挂载的所有子图中的NetOutput节点集合;
+   * 每个子图有且只有一个NetOutput节点
+   * @param node
+   * @return
+   */
   static std::vector<NodePtr> GetSubgraphOutputNodes(const Node &node);
 
   /**
- * 获取`node`所在的图对应的根图
- * @param node
- * @return
- */
+   * 获取`node`所在的图对应的根图
+   * @param node
+   * @return
+   */
   static ComputeGraphPtr FindRootGraph(const Node &node);
 
   /**
@@ -195,11 +195,11 @@ class NodeUtils {
    */
   static std::vector<NodePtr> GetOutControlNodes(const Node &node, const NodeFilter &node_filter);
   /**
- * 根据`node_filter`获取node的输出数据消费节点
- * @param node
- * @param node_filter 数据边拷贝白名单过滤器，可以通过传递此参数实现满足条件的输出节点的获取
- * @return
- */
+   * 根据`node_filter`获取node的输出数据消费节点
+   * @param node
+   * @param node_filter 数据边拷贝白名单过滤器，可以通过传递此参数实现满足条件的输出节点的获取
+   * @return
+   */
   static std::vector<NodePtr> GetOutDataNodes(const Node &node, const NodeFilter &node_filter);
 
   /**
@@ -210,11 +210,11 @@ class NodeUtils {
    */
   static std::vector<NodePtr> GetInControlNodes(const Node &node, const NodeFilter &node_filter);
   /**
-  * 根据`node_filter`获取node的数据输入节点
-  * @param node
-  * @param node_filter 数据边拷贝白名单过滤器，可以通过传递此参数实现满足条件的输入节点的获取
-  * @return
-  */
+   * 根据`node_filter`获取node的数据输入节点
+   * @param node
+   * @param node_filter 数据边拷贝白名单过滤器，可以通过传递此参数实现满足条件的输入节点的获取
+   * @return
+   */
   static std::vector<NodePtr> GetInDataNodes(const Node &node, const NodeFilter &node_filter);
 
   static NodePtr GetInDataNodeByIndex(const Node &node, const int32_t index);
@@ -224,19 +224,19 @@ class NodeUtils {
                                                                                            const int32_t index);
 
   /**
-  * 适用于`node`节点作为子图中的Data占位节点时，获取根图中父节点对应的实际输入节点的类型
-  * 其他情况返回`node`本身的节点类型
-  * @param node
-  * @return
-  */
+   * 适用于`node`节点作为子图中的Data占位节点时，获取根图中父节点对应的实际输入节点的类型
+   * 其他情况返回`node`本身的节点类型
+   * @param node
+   * @return
+   */
   static std::string GetInConstNodeTypeCrossSubgraph(const NodePtr &node);
 
   /**
-* 适用于`node`节点作为子图中的Data占位节点时，获取根图中父节点对应的实际输入节点对象
-* 其他情况返回`node`本身
-* @param node
-* @return
-*/
+   * 适用于`node`节点作为子图中的Data占位节点时，获取根图中父节点对应的实际输入节点对象
+   * 其他情况返回`node`本身
+   * @param node
+   * @return
+   */
   static NodePtr GetInNodeCrossSubgraph(const NodePtr &node);
 
   /// @brief Get peer input node, supported get cross PartitionedCall .
@@ -276,11 +276,11 @@ class NodeUtils {
    */
   static graphStatus TryGetWeightByPlaceHolderNode(const NodePtr &node_ptr, ConstGeTensorPtr &ge_tensor);
   /**
-  * 尝试通过Data占位节点对应的实际const节点来获取权重
-  * @param node_ptr Data占位节点，常见于子图的输入节点类型
-  * @param ge_tensor 权重的承载对象，成功获取时ge_tensor被设置为非空
-  * @return 失败时代表内部流程错误，成功时不代表一定获取到了权重
-  */
+   * 尝试通过Data占位节点对应的实际const节点来获取权重
+   * @param node_ptr Data占位节点，常见于子图的输入节点类型
+   * @param ge_tensor 权重的承载对象，成功获取时ge_tensor被设置为非空
+   * @return 失败时代表内部流程错误，成功时不代表一定获取到了权重
+   */
   static graphStatus TryGetWeightByDataNode(const NodePtr &node_ptr, ConstGeTensorPtr &ge_tensor);
   /**
    * 判断`node`的名称是否是`name`
@@ -318,6 +318,6 @@ struct NodeCompareKey {
   }
 };
 using OrderedNodeSet = std::set<NodePtr, NodeCompareKey>;
-}  // namespace ge
+}  // namespace af
 /*lint +e148*/
 #endif  // INC_GRAPH_UTILS_NODE_UTILS_H_

@@ -19,8 +19,7 @@
 namespace att {
 namespace ascir_reduce_v2 {
 namespace {
-void SetReduceDims(const Expr &first, const Expr &last, ascendcapi_v2::ReducePattern pattern,
-                   NodeDetail &node_detail) {
+void SetReduceDims(const Expr &first, const Expr &last, ascendcapi_v2::ReducePattern pattern, NodeDetail &node_detail) {
   node_detail.input_dims = {first, last};
   node_detail.output_dims = {pattern == ascendcapi_v2::ReducePattern::kRA ? last : first};
 }
@@ -137,8 +136,8 @@ ge::Status BuildReduceContext(const std::vector<TensorShapeInfo> &input_shapes,
   GE_ASSERT_SUCCESS(ConvertReducePattern(codegen_params.pattern, context.pattern));
   GE_ASSERT_SUCCESS(ConvertReduceMergeMode(codegen_params.merge_mode, context.merge_mode));
   codegen::ReduceSpecificParams current_shape_params;
-  GE_ASSERT_SUCCESS(BuildCurrentShapeParams(input_shapes, output_shapes, codegen_params, context.merge_mode,
-                                            current_shape_params));
+  GE_ASSERT_SUCCESS(
+      BuildCurrentShapeParams(input_shapes, output_shapes, codegen_params, context.merge_mode, current_shape_params));
   if (current_shape_params.merged_dims.valid) {
     SetReduceDims(current_shape_params.merged_dims.first, current_shape_params.merged_dims.last, context.pattern,
                   context.node_detail);
@@ -149,8 +148,8 @@ ge::Status BuildReduceContext(const std::vector<TensorShapeInfo> &input_shapes,
                  node.name.c_str());
   GE_ASSERT_SUCCESS(TryGetReuseSource(node, context.is_reuse_source),
                     "Reduce reuse-source branch is unknown, node[%s].", node.name.c_str());
-  context.merge_size = params.exprs.merge_size.valid ? BuildSemanticMergeSizeForAtt(output_shapes[0])
-                                                     : current_shape_params.merge_size;
+  context.merge_size =
+      params.exprs.merge_size.valid ? BuildSemanticMergeSizeForAtt(output_shapes[0]) : current_shape_params.merge_size;
   context.merge_times = ascir_param::ResolveForAtt(params.exprs.merge_times);
   GELOGD(
       "[ATT Reduce] BuildReduceContext: node[%s], pattern[%s], merge_mode[%d], reuse[%d], "

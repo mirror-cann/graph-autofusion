@@ -13,59 +13,59 @@
 #include "tikicpulib.h"
 #include "autofuse_tiling_data.h"
 
-extern "C" __global__ __aicore__ void fmod_float_test(GM_ADDR x1, GM_ADDR x2, GM_ADDR y, GM_ADDR workspace, GM_ADDR tiling_data);
-extern "C" int64_t AutofuseTiling(uint32_t s0, uint32_t s1, AutofuseTilingData* tiling, uint32_t* workspaceSize, uint64_t *blockDim, uint32_t aiv_num, uint32_t ub_size);
+extern "C" __global__ __aicore__ void fmod_float_test(GM_ADDR x1, GM_ADDR x2, GM_ADDR y, GM_ADDR workspace,
+                                                      GM_ADDR tiling_data);
+extern "C" int64_t AutofuseTiling(uint32_t s0, uint32_t s1, AutofuseTilingData *tiling, uint32_t *workspaceSize,
+                                  uint64_t *blockDim, uint32_t aiv_num, uint32_t ub_size);
 
 namespace {
-class E2E_FmodFloat_Code : public testing::Test, public testing::WithParamInterface<std::vector<int>> {
-};
+class E2E_FmodFloat_Code : public testing::Test, public testing::WithParamInterface<std::vector<int>> {};
 
-TEST_P(E2E_FmodFloat_Code, CalculateCorrect){
- auto test_shape = GetParam();
+TEST_P(E2E_FmodFloat_Code, CalculateCorrect) {
+  auto test_shape = GetParam();
 
- uint64_t block_dim = 48;
+  uint64_t block_dim = 48;
 
- int test_size = test_shape[0] * test_shape[1];
+  int test_size = test_shape[0] * test_shape[1];
 
- AutofuseTilingData tiling_data;
- float* x1 = (float *)AscendC::GmAlloc(test_size * sizeof(float) + 32);
- float* x2 = (float *)AscendC::GmAlloc(test_size * sizeof(float) + 32);
- float* y = (float *)AscendC::GmAlloc(test_size * sizeof(float) + 32);
- float *expect = (float *)AscendC::GmAlloc(test_size * sizeof(float) + 32);
+  AutofuseTilingData tiling_data;
+  float *x1 = (float *)AscendC::GmAlloc(test_size * sizeof(float) + 32);
+  float *x2 = (float *)AscendC::GmAlloc(test_size * sizeof(float) + 32);
+  float *y = (float *)AscendC::GmAlloc(test_size * sizeof(float) + 32);
+  float *expect = (float *)AscendC::GmAlloc(test_size * sizeof(float) + 32);
 
- for (int i = 0; i < test_size; i++) {
-   x1[i] = static_cast<float>(i) / test_size * 9.9f + 0.1f;
-   x2[i] = 0.3f;
-   expect[i] = static_cast<float>(std::fmod(static_cast<float>(x1[i]), static_cast<float>(x2[i])));
- }
+  for (int i = 0; i < test_size; i++) {
+    x1[i] = static_cast<float>(i) / test_size * 9.9f + 0.1f;
+    x2[i] = 0.3f;
+    expect[i] = static_cast<float>(std::fmod(static_cast<float>(x1[i]), static_cast<float>(x2[i])));
+  }
 
- uint32_t ws_size = 0;
- AutofuseTiling(test_shape[0], test_shape[1], &tiling_data, &ws_size, &block_dim, 48, 192*1024);
- printf("tiling key: %d, core_num: %d\n", tiling_data.tiling_key, tiling_data.block_dim);
+  uint32_t ws_size = 0;
+  AutofuseTiling(test_shape[0], test_shape[1], &tiling_data, &ws_size, &block_dim, 48, 192 * 1024);
+  printf("tiling key: %d, core_num: %d\n", tiling_data.tiling_key, tiling_data.block_dim);
 
- AscendC::SetKernelMode(KernelMode::AIV_MODE);
- ICPU_RUN_KF(fmod_float_test, tiling_data.block_dim, (uint8_t *)x1, (uint8_t *)x2, (uint8_t *)y, nullptr, (uint8_t *)&tiling_data);
+  AscendC::SetKernelMode(KernelMode::AIV_MODE);
+  ICPU_RUN_KF(fmod_float_test, tiling_data.block_dim, (uint8_t *)x1, (uint8_t *)x2, (uint8_t *)y, nullptr,
+              (uint8_t *)&tiling_data);
 
- uint32_t diff_count = 0;
- const float EPS = 1e-5;
- for (int i = 0; i < test_size; i++) {
-   auto diff = (double)(y[i] - expect[i]);
-   if(diff < -EPS || diff > EPS) {
-     printf("diff at index %d: x1: %f, x2: %f, y: %f, expect: %f, diff: %f\n", i, static_cast<float>(x1[i]),
-            static_cast<float>(x2[i]), static_cast<float>(y[i]),
-            static_cast<float>(expect[i]), diff);
-     diff_count++;
-   }
- }
+  uint32_t diff_count = 0;
+  const float EPS = 1e-5;
+  for (int i = 0; i < test_size; i++) {
+    auto diff = (double)(y[i] - expect[i]);
+    if (diff < -EPS || diff > EPS) {
+      printf("diff at index %d: x1: %f, x2: %f, y: %f, expect: %f, diff: %f\n", i, static_cast<float>(x1[i]),
+             static_cast<float>(x2[i]), static_cast<float>(y[i]), static_cast<float>(expect[i]), diff);
+      diff_count++;
+    }
+  }
 
- EXPECT_EQ(diff_count, 0) << " of " << test_size;
+  EXPECT_EQ(diff_count, 0) << " of " << test_size;
 
- AscendC::GmFree(x1);
- AscendC::GmFree(x2);
- AscendC::GmFree(expect);
+  AscendC::GmFree(x1);
+  AscendC::GmFree(x2);
+  AscendC::GmFree(expect);
 }
 
-INSTANTIATE_TEST_SUITE_P(CalcWithDifferentShape, E2E_FmodFloat_Code,
-                        ::testing::Values(std::vector<int>{2,8}));
+INSTANTIATE_TEST_SUITE_P(CalcWithDifferentShape, E2E_FmodFloat_Code, ::testing::Values(std::vector<int>{2, 8}));
 
-}
+}  // namespace

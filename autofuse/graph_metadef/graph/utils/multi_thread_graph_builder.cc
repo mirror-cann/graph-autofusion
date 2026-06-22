@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -13,8 +13,7 @@
 #include "graph_metadef/graph/debug/ge_util.h"
 
 namespace af {
-MultiThreadGraphBuilder::MultiThreadGraphBuilder(int32_t thread_num)
-    : thread_num_(thread_num < 1 ? 1 : thread_num) {}
+MultiThreadGraphBuilder::MultiThreadGraphBuilder(int32_t thread_num) : thread_num_(thread_num < 1 ? 1 : thread_num) {}
 
 graphStatus MultiThreadGraphBuilder::GetGraphRelatedOperators(const std::vector<Operator> &inputs,
                                                               std::vector<OperatorImplPtr> &related_ops) {
@@ -23,8 +22,7 @@ graphStatus MultiThreadGraphBuilder::GetGraphRelatedOperators(const std::vector<
     GE_CHECK_NOTNULL(it.operator_impl_);
     vec_inputs.push_back(it.operator_impl_);
   }
-  GE_CHK_GRAPH_STATUS_RET(WalkForwardOperators(vec_inputs, related_ops),
-                          "Fail to walk all forward operators.");
+  GE_CHK_GRAPH_STATUS_RET(WalkForwardOperators(vec_inputs, related_ops), "Fail to walk all forward operators.");
   return GRAPH_SUCCESS;
 }
 
@@ -73,9 +71,7 @@ void MultiThreadGraphBuilder::ResetOpSubgraphBuilder(const OpDescPtr &op_desc, O
     if (builder == nullptr) {
       continue;
     }
-    std::shared_future<Graph> future_graph = pool_->commit([builder]() -> Graph {
-      return builder();
-    });
+    std::shared_future<Graph> future_graph = pool_->commit([builder]() -> Graph { return builder(); });
     auto future_graph_ptr = std::make_shared<std::shared_future<Graph>>(future_graph);
     auto graph_builder = [future_graph_ptr, builder]() mutable {
       Graph graph;
@@ -113,4 +109,4 @@ Graph &MultiThreadGraphBuilder::SetInputs(const std::vector<Operator> &inputs, G
   }
   return graph.SetInputs(inputs);
 }
-} // namespace af
+}  // namespace af

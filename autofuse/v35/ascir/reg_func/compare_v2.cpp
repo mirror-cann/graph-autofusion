@@ -18,12 +18,12 @@
 namespace af {
 namespace ascir {
 
-std::vector<std::unique_ptr<TmpBufDesc>> GetCompareSizeV2([[maybe_unused]]const AscNode &node) {
-    Expression TmpSize = Symbol(32);
-    TmpBufDesc desc = {TmpSize, -1};
-    std::vector<std::unique_ptr<TmpBufDesc>> tmpBufDescs;
-    tmpBufDescs.emplace_back(std::make_unique<TmpBufDesc>(desc));
-    return tmpBufDescs;
+std::vector<std::unique_ptr<TmpBufDesc>> GetCompareSizeV2([[maybe_unused]] const AscNode &node) {
+  Expression TmpSize = Symbol(32);
+  TmpBufDesc desc = {TmpSize, -1};
+  std::vector<std::unique_ptr<TmpBufDesc>> tmpBufDescs;
+  tmpBufDescs.emplace_back(std::make_unique<TmpBufDesc>(desc));
+  return tmpBufDescs;
 }
 
 }  // namespace ascir

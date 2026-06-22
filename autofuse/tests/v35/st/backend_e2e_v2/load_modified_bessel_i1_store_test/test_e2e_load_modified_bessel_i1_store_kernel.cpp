@@ -17,8 +17,8 @@
 #include "tikicpulib.h"
 
 extern "C" __global__ __aicore__ void load_modified_bessel_i1_store_test(GM_ADDR x1, GM_ADDR y1, GM_ADDR workspace,
-                                                                          GM_ADDR tiling);
-extern "C" int64_t AutofuseTiling(uint32_t s0, uint32_t s1, AutofuseTilingData* tiling, uint32_t* workspaceSize,
+                                                                         GM_ADDR tiling);
+extern "C" int64_t AutofuseTiling(uint32_t s0, uint32_t s1, AutofuseTilingData *tiling, uint32_t *workspaceSize,
                                   uint64_t *blockDim, uint32_t aiv_num, uint32_t ub_size);
 
 class E2EBackendLoadModifiedBesselI1StoreCode : public testing::Test,
@@ -41,9 +41,9 @@ TEST_P(E2EBackendLoadModifiedBesselI1StoreCode, CalculateCorrect) {
   int i1_test_size = i1_test_shape[0] * i1_test_shape[1];
 
   AutofuseTilingData tiling_data;
-  float* i1_x = static_cast<float*>(AscendC::GmAlloc(i1_test_size * sizeof(float) + 32));
-  float* i1_y = static_cast<float*>(AscendC::GmAlloc(i1_test_size * sizeof(float) + 32));
-  float* i1_expect = static_cast<float*>(AscendC::GmAlloc(i1_test_size * sizeof(float) + 32));
+  float *i1_x = static_cast<float *>(AscendC::GmAlloc(i1_test_size * sizeof(float) + 32));
+  float *i1_y = static_cast<float *>(AscendC::GmAlloc(i1_test_size * sizeof(float) + 32));
+  float *i1_expect = static_cast<float *>(AscendC::GmAlloc(i1_test_size * sizeof(float) + 32));
 
   for (int i = 0; i < i1_test_size; i++) {
     i1_x[i] = static_cast<float>((i % 9) - 4) / 4.0F;
@@ -53,8 +53,8 @@ TEST_P(E2EBackendLoadModifiedBesselI1StoreCode, CalculateCorrect) {
   uint32_t ws_size = 0;
   AutofuseTiling(i1_test_shape[0], i1_test_shape[1], &tiling_data, &ws_size, &i1_block_dim, 48, 192 * 1024);
   AscendC::SetKernelMode(KernelMode::AIV_MODE);
-  ICPU_RUN_KF(load_modified_bessel_i1_store_test, tiling_data.block_dim, reinterpret_cast<uint8_t*>(i1_x),
-              reinterpret_cast<uint8_t*>(i1_y), nullptr, reinterpret_cast<uint8_t*>(&tiling_data));
+  ICPU_RUN_KF(load_modified_bessel_i1_store_test, tiling_data.block_dim, reinterpret_cast<uint8_t *>(i1_x),
+              reinterpret_cast<uint8_t *>(i1_y), nullptr, reinterpret_cast<uint8_t *>(&tiling_data));
 
   uint32_t i1_diff_count = 0;
   for (int i = 0; i < i1_test_size; i++) {

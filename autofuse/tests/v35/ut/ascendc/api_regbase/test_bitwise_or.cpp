@@ -1,15 +1,15 @@
 /**
-* Copyright (c) Huawei Technologies Co., Ltd. 2026. All rights reserved.
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Copyright (c) Huawei Technologies Co., Ltd. 2026. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 /**
  * test_bitwise_or.cpp
@@ -23,7 +23,7 @@
 
 using namespace AscendC;
 
-namespace af{
+namespace af {
 
 class TestRegbaseApiBitwiseOrUT : public testing::Test {
  protected:
@@ -91,7 +91,7 @@ class TestRegbaseApiBitwiseOrUT : public testing::Test {
     CreateTensorInput(param);
 
     // 构造Api调用函数
-    auto kernel = [&param] { InvokeTensorTensorKernel(param);};
+    auto kernel = [&param] { InvokeTensorTensorKernel(param); };
 
     // 调用kernel
     AscendC::SetKernelMode(KernelMode::AIV_MODE);
@@ -138,4 +138,4 @@ TEST_F(TestRegbaseApiBitwiseOrUT, BitwiseOr_TensorTensor_Test) {
   BitwiseOrTensorTensorTest<uint64_t>((MAX_REPEAT_NUM - 1) * ONE_REPEAT_BYTE_SIZE / 2 / sizeof(uint64_t));
 }
 
-}  // namespace ge
+}  // namespace af

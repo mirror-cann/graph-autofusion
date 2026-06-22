@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -31,12 +31,12 @@ class TeOpVarAttrArgsImpl;
 class TeOpVarAttrArgs {
   friend class VarAttrHelper;
 
-public:
+ public:
   TeOpVarAttrArgs() = default;
   ~TeOpVarAttrArgs() = default;
   const uint8_t *GetData(const std::string &name, const std::string &dtype, size_t &size) const;
 
-private:
+ private:
   std::shared_ptr<TeOpVarAttrArgsImpl> impl_;
 };
 
@@ -84,7 +84,7 @@ struct OpCompileInfo {
 namespace utils {
 class OpRunInfoImpl;
 class OpRunInfo {
-public:
+ public:
   OpRunInfo();
   ~OpRunInfo() = default;
 
@@ -111,16 +111,16 @@ public:
   const std::vector<int64_t> &GetAllWorkspaces() const;
   void SetWorkspaces(const std::vector<int64_t> &workspaces);
 
-  template<class T>
+  template <class T>
   void AddTilingData(const T &value) {
     AddTilingData(reinterpret_cast<const char *>(&value), sizeof(value));
   }
   template <typename T>
-  void operator << (const T &value) {
+  void operator<<(const T &value) {
     AddTilingData(reinterpret_cast<const char *>(&value), sizeof(T));
   }
   void AddTilingData(const char *value, const size_t size);
-  void* GetAddrBase(uint64_t& max_size) const;
+  void *GetAddrBase(uint64_t &max_size) const;
   void SetAddrBaseOffset(const uint64_t size);
   ByteBuffer &GetAllTilingData();
   const ByteBuffer &GetAllTilingData() const;
@@ -139,13 +139,14 @@ public:
   int32_t GetTilingCond() const;
   void SetLocalMemorySize(const uint32_t local_memory_size);
   uint32_t GetLocalMemorySize() const;
-private:
+
+ private:
   std::shared_ptr<OpRunInfoImpl> impl_;
 };
 
 class OpCompileInfoImpl;
 class OpCompileInfo {
-public:
+ public:
   OpCompileInfo();
   ~OpCompileInfo() = default;
   OpCompileInfo(const ge::AscendString &key, const ge::AscendString &value);
@@ -165,9 +166,9 @@ public:
   void SetValue(const ge::AscendString &value);
   const ge::AscendString &GetValue() const;
 
-private:
+ private:
   std::shared_ptr<OpCompileInfoImpl> impl_;
 };
-}
+}  // namespace utils
 }  // namespace optiling
 #endif  // INC_REGISTER_OP_TILING_REGISTRY_H_

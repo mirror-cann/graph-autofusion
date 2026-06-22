@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2026 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -14,7 +14,7 @@
 using namespace AscendC;
 
 template <typename T>
-__aicore__ inline void CopySignImplVF(__ubuf__ T* dst, __ubuf__ T* src0, __ubuf__ T* src1, uint32_t calc_cnt) {
+__aicore__ inline void CopySignImplVF(__ubuf__ T *dst, __ubuf__ T *src0, __ubuf__ T *src1, uint32_t calc_cnt) {
   uint32_t vl_size = static_cast<uint32_t>(GetVecLen() / sizeof(T));
   uint16_t repeat_time = static_cast<uint16_t>(AscendC::CeilDivision(calc_cnt, vl_size));
 
@@ -47,22 +47,22 @@ __aicore__ inline void CopySignImplVF(__ubuf__ T* dst, __ubuf__ T* src0, __ubuf_
 }
 
 template <typename T>
-__aicore__ inline void CopySignExtend(const LocalTensor<T>& dst, const LocalTensor<T>& src0, const LocalTensor<T>& src1,
+__aicore__ inline void CopySignExtend(const LocalTensor<T> &dst, const LocalTensor<T> &src0, const LocalTensor<T> &src1,
                                       const uint32_t calc_cnt) {
   if (sizeof(T) == 2) {
     LocalTensor<uint16_t> dst_ext = dst.template ReinterpretCast<uint16_t>();
     LocalTensor<uint16_t> src0_ext = src0.template ReinterpretCast<uint16_t>();
     LocalTensor<uint16_t> src1_ext = src1.template ReinterpretCast<uint16_t>();
-    VF_CALL<CopySignImplVF<uint16_t>>((__ubuf__ uint16_t*)dst_ext.GetPhyAddr(),
-                                      (__ubuf__ uint16_t*)src0_ext.GetPhyAddr(),
-                                      (__ubuf__ uint16_t*)src1_ext.GetPhyAddr(), calc_cnt);
+    VF_CALL<CopySignImplVF<uint16_t>>((__ubuf__ uint16_t *)dst_ext.GetPhyAddr(),
+                                      (__ubuf__ uint16_t *)src0_ext.GetPhyAddr(),
+                                      (__ubuf__ uint16_t *)src1_ext.GetPhyAddr(), calc_cnt);
   } else if (sizeof(T) == 4) {
     LocalTensor<uint32_t> dst_ext = dst.template ReinterpretCast<uint32_t>();
     LocalTensor<uint32_t> src0_ext = src0.template ReinterpretCast<uint32_t>();
     LocalTensor<uint32_t> src1_ext = src1.template ReinterpretCast<uint32_t>();
-    VF_CALL<CopySignImplVF<uint32_t>>((__ubuf__ uint32_t*)dst_ext.GetPhyAddr(),
-                                      (__ubuf__ uint32_t*)src0_ext.GetPhyAddr(),
-                                      (__ubuf__ uint32_t*)src1_ext.GetPhyAddr(), calc_cnt);
+    VF_CALL<CopySignImplVF<uint32_t>>((__ubuf__ uint32_t *)dst_ext.GetPhyAddr(),
+                                      (__ubuf__ uint32_t *)src0_ext.GetPhyAddr(),
+                                      (__ubuf__ uint32_t *)src1_ext.GetPhyAddr(), calc_cnt);
   }
 }
 #endif

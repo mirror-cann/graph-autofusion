@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -176,36 +176,56 @@ void ClipByValueFloat_AfterScheduler(af::AscGraph &graph) {
   graph.ApplySplit(load1, z0T->id, z0t->id);
   graph.ApplySplit(load1, z0TB->id, z0Tb->id);
   load1->attr.sched.loop_axis = z0Tb->id;
-  load1->outputs[0].attr.vectorized_axis = {z0t->id,};
-  load1->outputs[0].attr.vectorized_strides = {One,};
+  load1->outputs[0].attr.vectorized_axis = {
+      z0t->id,
+  };
+  load1->outputs[0].attr.vectorized_strides = {
+      One,
+  };
 
   auto load2 = graph.FindNode("load2");
   graph.ApplySplit(load2, z0T->id, z0t->id);
   graph.ApplySplit(load2, z0TB->id, z0Tb->id);
   load2->attr.sched.loop_axis = z0Tb->id;
-  load2->outputs[0].attr.vectorized_axis = {z0t->id,};
-  load2->outputs[0].attr.vectorized_strides = {One,};
+  load2->outputs[0].attr.vectorized_axis = {
+      z0t->id,
+  };
+  load2->outputs[0].attr.vectorized_strides = {
+      One,
+  };
 
   auto load3 = graph.FindNode("load3");
   graph.ApplySplit(load3, z0T->id, z0t->id);
   graph.ApplySplit(load3, z0TB->id, z0Tb->id);
   load3->attr.sched.loop_axis = z0Tb->id;
-  load3->outputs[0].attr.vectorized_axis = {z0t->id,};
-  load3->outputs[0].attr.vectorized_strides = {One,};
+  load3->outputs[0].attr.vectorized_axis = {
+      z0t->id,
+  };
+  load3->outputs[0].attr.vectorized_strides = {
+      One,
+  };
 
   auto clipbyvalue = graph.FindNode("clipbyvalue");
   graph.ApplySplit(clipbyvalue, z0T->id, z0t->id);
   graph.ApplySplit(clipbyvalue, z0TB->id, z0Tb->id);
   clipbyvalue->attr.sched.loop_axis = z0Tb->id;
-  clipbyvalue->outputs[0].attr.vectorized_axis = {z0t->id,};
-  clipbyvalue->outputs[0].attr.vectorized_strides = {One,};
+  clipbyvalue->outputs[0].attr.vectorized_axis = {
+      z0t->id,
+  };
+  clipbyvalue->outputs[0].attr.vectorized_strides = {
+      One,
+  };
 
   auto store = graph.FindNode("store");
   graph.ApplySplit(store, z0T->id, z0t->id);
   graph.ApplySplit(store, z0TB->id, z0Tb->id);
   store->attr.sched.loop_axis = z0Tb->id;
-  store->outputs[0].attr.vectorized_axis = {z0t->id,};
-  store->outputs[0].attr.vectorized_strides = {One,};
+  store->outputs[0].attr.vectorized_axis = {
+      z0t->id,
+  };
+  store->outputs[0].attr.vectorized_strides = {
+      One,
+  };
   cout << utils::DebugHintGraphStr(graph) << endl;
 }
 
@@ -290,7 +310,7 @@ void ClipByValueFloat_AfterQueBufAlloc(af::AscGraph &graph) {
 }
 
 void ClipByValueFloat_AfterAutofuse(af::AscGraph &graph, std::vector<af::AscGraph> &impl_graphs,
-                                            ge::DataType data_type) {
+                                    ge::DataType data_type) {
   ClipByValueFloat_BeforeAutofuse(graph, data_type);
   ClipByValueFloat_AfterInferOutput(graph, data_type);
 

@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -49,20 +49,20 @@ af::Status GetStoreCase(const NodeDetail &node_info, Expr &case1, Expr &case2, E
   GE_ASSERT_TRUE(iter1 != kBlkEleMap.end());
   Expr blocklen = node_info.input_dims[dim_size - 1UL];
   Expr blkelem = iter1->second;
-  Expr cachelen = CreateExpr(512);   // 待匹配各芯片的cacheline大小
+  Expr cachelen = CreateExpr(512);  // 待匹配各芯片的cacheline大小
   if (blocklen.IsConstExpr()) {
     int32_t blklen;
     int32_t elelen;
-    int32_t cacheline = 512U;   // 待匹配各芯片的cacheline大小
+    int32_t cacheline = 512U;  // 待匹配各芯片的cacheline大小
     blocklen.GetConstValue(blklen);
     blkelem.GetConstValue(elelen);
-    if (blklen % elelen == 0) {   // 32B对齐
+    if (blklen % elelen == 0) {  // 32B对齐
       use_case = kCaseOne;
     } else if (blklen > cacheline) {  // 大于512B非对齐
       use_case = kCaseTwo;
-    } else if (blklen > elelen) {   // 大于32B且小于512B非对齐
+    } else if (blklen > elelen) {  // 大于32B且小于512B非对齐
       use_case = kCaseThree;
-    } else {    // 小于32B非对齐
+    } else {  // 小于32B非对齐
       use_case = kCaseFour;
     }
   } else {
@@ -80,10 +80,9 @@ af::Status GetStorePerf(const NodeDetail &node_info, Expr &res_normal, Expr &res
                         Expr &res_small_blk) {
   Expr res_stride;
   Expr res_continuous;
-  GE_ASSERT_SUCCESS(GetPerf(
-      {kMoveUbToGm, node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride,
-       node_info.block_count_idx},
-      res_continuous));
+  GE_ASSERT_SUCCESS(GetPerf({kMoveUbToGm, node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims,
+                             node_info.gm_stride, node_info.block_count_idx},
+                            res_continuous));
   GE_ASSERT_SUCCESS(GetPerf({kMoveUbToGm + "Stride", node_info.input_dtype[0], node_info.output_dtype[0],
                              node_info.input_dims, node_info.gm_stride, node_info.block_count_idx},
                             res_stride));
@@ -101,7 +100,7 @@ af::Status GetStorePerf(const NodeDetail &node_info, Expr &res_normal, Expr &res
          res_normal.Str().get());
   return ge::SUCCESS;
 }
-}
+}  // namespace
 
 af::Status LoadPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res_normal;
@@ -112,14 +111,18 @@ af::Status LoadPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr data_size;
   int32_t use_case = 0;
   GELOGD("Dma with Load: %s", node_info.ToString().c_str());
-  GE_ASSERT_SUCCESS(GetPerf({kMoveGmToUb, node_info.input_dtype[0],node_info.output_dtype[0],
-                             node_info.input_dims, CreateExpr(0)}, res_continuous));
+  GE_ASSERT_SUCCESS(
+      GetPerf({kMoveGmToUb, node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, CreateExpr(0)},
+              res_continuous));
   GE_ASSERT_SUCCESS(GetPerf({kMoveGmToUb + "Stride", node_info.input_dtype[0], node_info.output_dtype[0],
-                             node_info.input_dims, node_info.gm_stride, node_info.block_count_idx}, res_stride));
+                             node_info.input_dims, node_info.gm_stride, node_info.block_count_idx},
+                            res_stride));
   GE_ASSERT_SUCCESS(GetPerf({kMoveGmToUb + "UbStride", node_info.input_dtype[0], node_info.output_dtype[0],
-                             node_info.input_dims, CreateExpr(0), node_info.block_count_idx}, res_ub_stride));
+                             node_info.input_dims, CreateExpr(0), node_info.block_count_idx},
+                            res_ub_stride));
   GE_ASSERT_SUCCESS(GetPerf({kMoveGmToUb + "SmallBlk", node_info.input_dtype[0], node_info.output_dtype[0],
-                             node_info.input_dims, CreateExpr(0)}, res_small_blk));
+                             node_info.input_dims, CreateExpr(0)},
+                            res_small_blk));
   GE_ASSERT_SUCCESS(GetLoadCase(node_info, data_size, use_case));
   res_normal = res_continuous + res_stride;
   res_small_blk = res_small_blk + res_stride;
@@ -137,7 +140,8 @@ af::Status LoadPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
     auto data_type_size = kDataTypeSizeMap.find(node_info.input_dtype[0]);
     GE_ASSERT_TRUE(data_type_size != kDataTypeSizeMap.end());
     Expr block_len = Mul(node_info.input_dims[node_info.input_dims.size() - 1UL], data_type_size->second);
-    Expr block_len_checker = af::sym::LogicalAnd({af::sym::Gt(node_info.ub_stride, CreateExpr(0)), af::sym::Lt(block_len, kBlkSize)});
+    Expr block_len_checker =
+        af::sym::LogicalAnd({af::sym::Gt(node_info.ub_stride, CreateExpr(0)), af::sym::Lt(block_len, kBlkSize)});
     auto normal_case = std::make_shared<IfCase>(res_normal);
     GE_ASSERT_NOTNULL(normal_case);
     auto ub_stride_case = std::make_shared<IfCase>(res_ub_stride);
@@ -147,7 +151,8 @@ af::Status LoadPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
     auto res_case = std::make_shared<IfCase>(CondType::K_EQ, block_len_checker, CreateExpr(false),
                                              std::move(small_blk_case), std::move(ub_stride_case));
     GE_ASSERT_NOTNULL(res_case);
-    TernaryOp ternary_op = TernaryOp(CondType::K_LT, data_size, kLoadExprThres, std::move(res_case), std::move(normal_case));
+    TernaryOp ternary_op =
+        TernaryOp(CondType::K_LT, data_size, kLoadExprThres, std::move(res_case), std::move(normal_case));
     ternary_op.SetVariable(res);
     perf.ternary_ops[res] = ternary_op;
     perf.pipe_res[PipeType::AIV_MTE2] = res;
@@ -216,4 +221,4 @@ af::Status StorePerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
 }
 REGISTER_ASCENDC_EVAL_FUNC(kLoad, LoadPerf);
 REGISTER_ASCENDC_EVAL_FUNC(kStore, StorePerf);
-}
+}  // namespace att

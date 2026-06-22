@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -59,8 +59,8 @@ Status HcomTopoInfo::GetGroupOrderedStream(const int32_t device_id, const char_t
     const std::lock_guard<std::mutex> lock(mutex_);
     const auto iter = device_id_to_group_to_ordered_stream_.find(device_id);
     if (iter == device_id_to_group_to_ordered_stream_.end()) {
-        GELOGW("[Check][Param] device[%d] has not been added, get failed.", device_id);
-        return ge::GRAPH_FAILED;
+      GELOGW("[Check][Param] device[%d] has not been added, get failed.", device_id);
+      return ge::GRAPH_FAILED;
     }
 
     const auto &iter_inner = iter->second.find(group);
@@ -74,16 +74,16 @@ Status HcomTopoInfo::GetGroupOrderedStream(const int32_t device_id, const char_t
   return ge::GRAPH_SUCCESS;
 }
 
- void HcomTopoInfo::UnsetGroupOrderedStream(const int32_t device_id, const char_t *group) {
-    const std::lock_guard<std::mutex> lock(mutex_);
-    auto iter = device_id_to_group_to_ordered_stream_.find(device_id);
-    if (iter != device_id_to_group_to_ordered_stream_.end()) {
-      (void) iter->second.erase(group);
-      if (iter->second.empty()) {
-        (void) device_id_to_group_to_ordered_stream_.erase(iter);
-      }
+void HcomTopoInfo::UnsetGroupOrderedStream(const int32_t device_id, const char_t *group) {
+  const std::lock_guard<std::mutex> lock(mutex_);
+  auto iter = device_id_to_group_to_ordered_stream_.find(device_id);
+  if (iter != device_id_to_group_to_ordered_stream_.end()) {
+    (void)iter->second.erase(group);
+    if (iter->second.empty()) {
+      (void)device_id_to_group_to_ordered_stream_.erase(iter);
     }
-  };
+  }
+};
 
 HcomTopoInfo::TopoDescs *HcomTopoInfo::GetGroupTopoDesc(const char_t *group) {
   const std::lock_guard<std::mutex> lock(mutex_);
@@ -147,4 +147,4 @@ Status HcomTopoInfo::GetGroupLocalWindowSize(const char_t *group, uint64_t &loca
   return ge::GRAPH_SUCCESS;
 }
 
-}
+}  // namespace af

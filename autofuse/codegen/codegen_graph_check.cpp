@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2026 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -46,7 +46,8 @@ bool ProcessDynamicInput(const af::AscNodePtr &node, size_t index, size_t count,
     GE_ASSERT_TRUE(static_cast<uint32_t>(i) < node->inputs.Size());
     unique_dtypes.insert(node->inputs[i].attr.dtype);
   }
-  GE_ASSERT_TRUE(unique_dtypes.size() == 1U, "%s dynamic_input should have uniform dtypes", node->GetOpDesc()->GetNamePtr());
+  GE_ASSERT_TRUE(unique_dtypes.size() == 1U, "%s dynamic_input should have uniform dtypes",
+                 node->GetOpDesc()->GetNamePtr());
   input_dtypes.push_back(*unique_dtypes.begin());
   return true;
 }
@@ -56,7 +57,8 @@ bool CollectInputDtypesForOutput(const ascir::NodeView &node, std::vector<ge::Da
   for (const auto input : node->inputs()) {
     unique_dtypes.insert(input->attr.dtype);
   }
-  GE_ASSERT_TRUE(unique_dtypes.size() == 1U, "%s %s should have uniform dtypes", node->GetNamePtr(), node->GetTypePtr());
+  GE_ASSERT_TRUE(unique_dtypes.size() == 1U, "%s %s should have uniform dtypes", node->GetNamePtr(),
+                 node->GetTypePtr());
   input_dtypes.push_back(*unique_dtypes.begin());
   return true;
 }
@@ -71,7 +73,8 @@ bool CollectInputDtypesForWorkspace(const ascir::NodeView &node, std::vector<ge:
     unique_dtypes.insert(node->outputs()[0]->attr.dtype);
   }
 
-  GE_ASSERT_TRUE(unique_dtypes.size() == 1U, "%s %s should have uniform dtypes", node->GetNamePtr(), node->GetTypePtr());
+  GE_ASSERT_TRUE(unique_dtypes.size() == 1U, "%s %s should have uniform dtypes", node->GetNamePtr(),
+                 node->GetTypePtr());
   input_dtypes.push_back(*unique_dtypes.begin());
   return true;
 }
@@ -147,7 +150,8 @@ bool CollectOutputDtypes(const ascir::NodeView &node, std::vector<ge::DataType> 
     }
     unique_dtypes.insert(output->attr.dtype);
   }
-  GE_ASSERT_TRUE(unique_dtypes.size() == 1U, "%s dynamic_input should have uniform dtypes", node->GetOpDesc()->GetNamePtr());
+  GE_ASSERT_TRUE(unique_dtypes.size() == 1U, "%s dynamic_input should have uniform dtypes",
+                 node->GetOpDesc()->GetNamePtr());
   output_dtypes.push_back(*unique_dtypes.begin());
   return true;
 }
@@ -191,13 +195,16 @@ Status IsRepeatStrideValid(const ascir::ImplGraph &graph) {
       continue;
     }
     for (const auto &out : node->outputs()) {
-      GE_ASSERT_TRUE(out->attr.axis.size() == out->attr.repeats.size(), "Node(%s) output tensor axis size %d "
-                     "does not match repeat size %d, which is invalid.", node->GetNamePtr(), out->attr.axis.size(),
-                     out->attr.repeats.size());
-      GE_ASSERT_TRUE(out->attr.axis.size() == out->attr.strides.size(), "Node(%s) output tensor axis size %d "
-                     "does not match stride size %d, which is invalid.", node->GetNamePtr(), out->attr.axis.size(),
-                     out->attr.strides.size());
-      GE_ASSERT_TRUE(out->attr.vectorized_axis.size() == out->attr.vectorized_strides.size(), "Node(%s) output tensor "
+      GE_ASSERT_TRUE(out->attr.axis.size() == out->attr.repeats.size(),
+                     "Node(%s) output tensor axis size %d "
+                     "does not match repeat size %d, which is invalid.",
+                     node->GetNamePtr(), out->attr.axis.size(), out->attr.repeats.size());
+      GE_ASSERT_TRUE(out->attr.axis.size() == out->attr.strides.size(),
+                     "Node(%s) output tensor axis size %d "
+                     "does not match stride size %d, which is invalid.",
+                     node->GetNamePtr(), out->attr.axis.size(), out->attr.strides.size());
+      GE_ASSERT_TRUE(out->attr.vectorized_axis.size() == out->attr.vectorized_strides.size(),
+                     "Node(%s) output tensor "
                      "vectorized_axis size %d does not match vectorized_strides size %d, which is invalid.",
                      node->GetNamePtr(), out->attr.vectorized_axis.size(), out->attr.vectorized_strides.size());
     }
@@ -230,8 +237,9 @@ Status CheckGraphValidity(const ascir::ImplGraph &graph) {
   std::vector<af::AscGraph> sub_graphs;
   GE_ASSERT_SUCCESS(graph.GetAllSubGraphs(sub_graphs), "Graph: %s get sub graph failed", graph.GetName().c_str());
   for (auto sub_graph : sub_graphs) {
-    GE_ASSERT_SUCCESS(CheckSingleGraphValidity(sub_graph), "SubGraph: %s check validity failed", sub_graph.GetName().c_str());
+    GE_ASSERT_SUCCESS(CheckSingleGraphValidity(sub_graph), "SubGraph: %s check validity failed",
+                      sub_graph.GetName().c_str());
   }
   return af::SUCCESS;
 }
-} // namespace codegen
+}  // namespace codegen

@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -64,8 +64,7 @@ bool ArgsReplacer::DoReplace(const std::map<std::string, std::vector<std::pair<E
 }
 
 // 按对齐值来做变量替换，如果对齐值为1，那么不需要做变量替换，否则替换为x_div_align*align
-Expr ArgsReplacer::ReplaceCommonExpr(const Expr &e, const Expr &align,
-                                     ExprExprMap &new_expr_ori_expr_map,
+Expr ArgsReplacer::ReplaceCommonExpr(const Expr &e, const Expr &align, ExprExprMap &new_expr_ori_expr_map,
                                      ExprExprMap &new_expr_replacements) {
   if (align.IsConstExpr() &&
       (af::SymbolicUtils::StaticCheckLe(align, af::Symbol(kMinDimLength)) == af::TriBool::kTrue)) {
@@ -93,8 +92,8 @@ bool ArgsReplacer::IsAllFactorReplaced(const ExprExprMap &replaced_vars, std::ve
 bool ArgsReplacer::InitWithEqCons(const std::map<std::string, std::vector<std::pair<Expr, Expr>>> &eq_exprs) {
   for (const auto &eq_cons : eq_exprs) {
     // 如果等式约束中包含非整除约束，返回失败
-    GE_ASSERT_TRUE(eq_cons.first == kFatherToChildNoTail,
-                   "CreateExpr[%s] Repalce doesn't support non notail eq exprs.", eq_cons.first.c_str());
+    GE_ASSERT_TRUE(eq_cons.first == kFatherToChildNoTail, "CreateExpr[%s] Repalce doesn't support non notail eq exprs.",
+                   eq_cons.first.c_str());
     for (const auto &expr : eq_cons.second) {
       expr_factors_map_[expr.first].emplace_back(expr.second);
       factor_expr_map_[expr.second] = expr.first;
@@ -121,7 +120,8 @@ bool ArgsReplacer::GetLeafExprs() {
         if (factor_align.IsConstExpr()) {
           int32_t factor_align_const_value;
           factor_align.GetConstValue(factor_align_const_value);
-          GE_ASSERT_TRUE(IsPowerOfTwo(factor_align_const_value), "CreateExpr Repalce doesn't support align is not power of 2.");
+          GE_ASSERT_TRUE(IsPowerOfTwo(factor_align_const_value),
+                         "CreateExpr Repalce doesn't support align is not power of 2.");
         }
         // 每个叶子节点只能有一个父节点，反过来一个父节点可以有多个子节点
         GE_ASSERT_TRUE(ori_expr_new_expr_map_.find(factor) == ori_expr_new_expr_map_.end(),
@@ -129,8 +129,8 @@ bool ArgsReplacer::GetLeafExprs() {
         // 对于存在变量整除关系的子节点，变量替换规则为align * 2^new_var
         Expr new_variable = CreateExpr((Str(factor) + kPowBase).c_str());
         Expr new_factor_expr = af::sym::Mul(factor_align, af::sym::Pow(CreateExpr(kBaseTwo), new_variable));
-        new_expr_replacements_.emplace(new_variable, af::sym::Log(af::sym::Div(factor, factor_align),
-          CreateExpr(kBaseTwo)));
+        new_expr_replacements_.emplace(new_variable,
+                                       af::sym::Log(af::sym::Div(factor, factor_align), CreateExpr(kBaseTwo)));
         new_expr_init_values_.emplace(new_variable, af::sym::kSymbolZero);
         new_expr_ori_expr_map_.emplace(new_variable, factor);
         ori_expr_new_expr_map_.emplace(factor, new_factor_expr);
@@ -149,8 +149,8 @@ void ArgsReplacer::GetSelfReplacedVars(const Expr &expr) {
 }
 
 void ArgsReplacer::GetAlignReplacedVars(const Expr &expr) {
-  Expr replaced_expr = ReplaceCommonExpr(expr, vars_infos_.at(expr).align,
-                                         new_expr_ori_expr_map_, new_expr_replacements_);
+  Expr replaced_expr =
+      ReplaceCommonExpr(expr, vars_infos_.at(expr).align, new_expr_ori_expr_map_, new_expr_replacements_);
   ori_expr_new_expr_map_.emplace(expr, replaced_expr);
   replaced_expr_queue_.push(expr);
 }
@@ -172,7 +172,8 @@ void ArgsReplacer::GetFactorReplacedVars(const Expr &expr) {
     } else {
       new_variable = CreateExpr((Str(expr) + kPowBase).c_str());
       new_expr = af::sym::Mul(new_align_expr, af::sym::Pow(CreateExpr(kBaseTwo), new_variable));
-      new_expr_replacements_.emplace(new_variable, af::sym::Log(af::sym::Div(expr, new_align_expr), CreateExpr(kBaseTwo)));
+      new_expr_replacements_.emplace(new_variable,
+                                     af::sym::Log(af::sym::Div(expr, new_align_expr), CreateExpr(kBaseTwo)));
       new_expr_init_values_.emplace(new_variable, af::sym::kSymbolZero);
     }
     new_expr_ori_expr_map_.emplace(new_variable, expr);
@@ -213,8 +214,8 @@ void ArgsReplacer::ReplaceNaiveExpr() {
         ori_expr_new_expr_map_.emplace(expr_info.first, expr_info.first);
         continue;
       }
-      Expr new_expr = ReplaceCommonExpr(expr_info.first, expr_info.second.align,
-                                        new_expr_ori_expr_map_, new_expr_replacements_);
+      Expr new_expr =
+          ReplaceCommonExpr(expr_info.first, expr_info.second.align, new_expr_ori_expr_map_, new_expr_replacements_);
       ori_expr_new_expr_map_.emplace(expr_info.first, new_expr);
     }
   }
@@ -227,7 +228,7 @@ void ArgsReplacer::Reset() {
   new_expr_init_values_.clear();
   factor_expr_map_.clear();
   std::queue<Expr> empty_queue;
-  replaced_expr_queue_.swap(empty_queue);  
+  replaced_expr_queue_.swap(empty_queue);
   expr_factors_map_.clear();
 }
-}  // namespace
+}  // namespace att

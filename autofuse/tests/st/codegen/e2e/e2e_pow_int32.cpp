@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -147,29 +147,45 @@ void PowInt32_AfterScheduler(af::AscGraph &graph) {
   graph.ApplySplit(load1, z0T->id, z0t->id);
   graph.ApplySplit(load1, z0TB->id, z0Tb->id);
   load1->attr.sched.loop_axis = z0Tb->id;
-  load1->outputs[0].attr.vectorized_axis = {z0t->id,};
-  load1->outputs[0].attr.vectorized_strides = {One,};
+  load1->outputs[0].attr.vectorized_axis = {
+      z0t->id,
+  };
+  load1->outputs[0].attr.vectorized_strides = {
+      One,
+  };
 
   auto load2 = graph.FindNode("load2");
   graph.ApplySplit(load2, z0T->id, z0t->id);
   graph.ApplySplit(load2, z0TB->id, z0Tb->id);
   load2->attr.sched.loop_axis = z0Tb->id;
-  load2->outputs[0].attr.vectorized_axis = {z0t->id,};
-  load2->outputs[0].attr.vectorized_strides = {One,};
+  load2->outputs[0].attr.vectorized_axis = {
+      z0t->id,
+  };
+  load2->outputs[0].attr.vectorized_strides = {
+      One,
+  };
 
   auto pow = graph.FindNode("pow");
   graph.ApplySplit(pow, z0T->id, z0t->id);
   graph.ApplySplit(pow, z0TB->id, z0Tb->id);
   pow->attr.sched.loop_axis = z0Tb->id;
-  pow->outputs[0].attr.vectorized_axis = {z0t->id,};
-  pow->outputs[0].attr.vectorized_strides = {One,};
+  pow->outputs[0].attr.vectorized_axis = {
+      z0t->id,
+  };
+  pow->outputs[0].attr.vectorized_strides = {
+      One,
+  };
 
   auto store = graph.FindNode("store");
   graph.ApplySplit(store, z0T->id, z0t->id);
   graph.ApplySplit(store, z0TB->id, z0Tb->id);
   store->attr.sched.loop_axis = z0Tb->id;
-  store->outputs[0].attr.vectorized_axis = {z0t->id,};
-  store->outputs[0].attr.vectorized_strides = {One,};
+  store->outputs[0].attr.vectorized_axis = {
+      z0t->id,
+  };
+  store->outputs[0].attr.vectorized_strides = {
+      One,
+  };
   cout << utils::DebugHintGraphStr(graph) << endl;
 }
 
@@ -234,8 +250,7 @@ void PowInt32_AfterQueBufAlloc(af::AscGraph &graph) {
   store->outputs[0].attr.mem.position = Position::kPositionGM;
 }
 
-void PowInt32_AfterAutofuse(af::AscGraph &graph, std::vector<af::AscGraph> &impl_graphs,
-                                            ge::DataType data_type) {
+void PowInt32_AfterAutofuse(af::AscGraph &graph, std::vector<af::AscGraph> &impl_graphs, ge::DataType data_type) {
   PowInt32_BeforeAutofuse(graph, data_type);
   PowInt32_AfterInferOutput(graph, data_type);
 

@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -18,19 +18,19 @@ class Register {
 };
 
 static std::string StripBroadcastSelfIncludes(const std::string &src) {
-    std::string result;
-    size_t pos = 0;
-    while (pos < src.size()) {
-      size_t end = src.find('\n', pos);
-      if (end == std::string::npos) end = src.size();
-      std::string line = src.substr(pos, end - pos);
-      if (line.find("#include \"broadcast") == std::string::npos) {
-        result += line + "\n";
-      }
-      pos = end + 1;
+  std::string result;
+  size_t pos = 0;
+  while (pos < src.size()) {
+    size_t end = src.find('\n', pos);
+    if (end == std::string::npos) end = src.size();
+    std::string line = src.substr(pos, end - pos);
+    if (line.find("#include \"broadcast") == std::string::npos) {
+      result += line + "\n";
     }
-    return result;
+    pos = end + 1;
   }
+  return result;
+}
 
 Register::Register() {
   const std::string kAscendcCastRegStr = {
@@ -69,13 +69,12 @@ Register::Register() {
   const std::string kAscendcUtilsRegBaseStr = {
 #include "utils_reg_base.h"
   };
-  const std::string kAscendcBroadcastRegStr =
-      StripBroadcastSelfIncludes(std::string{
+  const std::string kAscendcBroadcastRegStr = StripBroadcastSelfIncludes(std::string{
 #include "broadcast_extend_impl_reg_base.h"
-      }) +
-      StripBroadcastSelfIncludes(std::string{
+                                              }) +
+                                              StripBroadcastSelfIncludes(std::string{
 #include "broadcast_reg_base.h"
-      });
+                                              });
   const std::string kAscendcLogicalNotStr = {
 #include "logical_not_reg_base.h"
   };

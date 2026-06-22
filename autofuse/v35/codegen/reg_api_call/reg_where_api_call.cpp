@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -39,12 +39,10 @@ Status WhereRegApiCall::PrepareInputsAndOutputs(const std::vector<std::reference
   y = &outputs[0].get();
 
   GELOGD("x2, is_constant:%d, is_ub_scalar:%d, need_gen_get_value_of_ub_scalar:%d",
-         static_cast<int32_t>(x2->is_constant),
-         static_cast<int32_t>(x2->is_ub_scalar),
+         static_cast<int32_t>(x2->is_constant), static_cast<int32_t>(x2->is_ub_scalar),
          static_cast<int32_t>(x2->need_gen_get_value_of_ub_scalar));
   GELOGD("x3, is_constant:%d, is_ub_scalar:%d, need_gen_get_value_of_ub_scalar:%d",
-         static_cast<int32_t>(x3->is_constant),
-         static_cast<int32_t>(x3->is_ub_scalar),
+         static_cast<int32_t>(x3->is_constant), static_cast<int32_t>(x3->is_ub_scalar),
          static_cast<int32_t>(x3->need_gen_get_value_of_ub_scalar));
 
   return ge::SUCCESS;
@@ -99,16 +97,15 @@ Status WhereRegApiCall::GenerateNoLoopCase(const TPipe &tpipe, const std::vector
   return ge::SUCCESS;
 }
 
-Status WhereRegApiCall::GenerateBothScalarCase(const TPipe &tpipe, const ApiLoopParams &param,
-                                               const Tensor &x1, const Tensor &y,
-                                               const std::string &scalar_local_blk_tensor_name_x2,
+Status WhereRegApiCall::GenerateBothScalarCase(const TPipe &tpipe, const ApiLoopParams &param, const Tensor &x1,
+                                               const Tensor &y, const std::string &scalar_local_blk_tensor_name_x2,
                                                const std::string &scalar_local_blk_tensor_name_x3,
                                                std::stringstream &ss) const {
   stringstream ss1;
 
   size_t output_strides_size = param.outputs_strides[0].size();
   std::vector<ascir::SizeExpr> inner_output_strides(param.outputs_strides[0].begin(),
-                                                      param.outputs_strides[0].begin() + output_strides_size - 1);
+                                                    param.outputs_strides[0].begin() + output_strides_size - 1);
   std::string output_inner_offset = output_strides_size == 1 ? "0" : CalcInnerOffset(tpipe, inner_output_strides);
 
   uint32_t index = 0U;
@@ -118,11 +115,10 @@ Status WhereRegApiCall::GenerateBothScalarCase(const TPipe &tpipe, const ApiLoop
   std::string input0_inner_offset = input0_strides_size == 1 ? "0" : CalcInnerOffset(tpipe, inner0_input_strides);
 
   ss1 << this->api_name_ << "<true, true>(" << y << "[" << output_inner_offset << "], " << x1 << "["
-      << input0_inner_offset << "], "
-      << scalar_local_blk_tensor_name_x2 << "[0], "
-      << scalar_local_blk_tensor_name_x3 << "[0], "
-      << "{static_cast<uint16_t>(" << param.outer_repeats[param.outer_repeats.size() - 1]
-      << "), static_cast<uint16_t>(" << tpipe.tiler.ActualSize(param.cal_count) << ")}, "
+      << input0_inner_offset << "], " << scalar_local_blk_tensor_name_x2 << "[0], " << scalar_local_blk_tensor_name_x3
+      << "[0], "
+      << "{static_cast<uint16_t>(" << param.outer_repeats[param.outer_repeats.size() - 1] << "), static_cast<uint16_t>("
+      << tpipe.tiler.ActualSize(param.cal_count) << ")}, "
       << "{static_cast<uint16_t>(" << tpipe.tiler.Size(param.output_second_to_last_stride)
       << "), static_cast<uint16_t>(1)" << "}, "
       << "{static_cast<uint16_t>(" << tpipe.tiler.Size(param.input_second_to_last_stride)
@@ -139,15 +135,15 @@ Status WhereRegApiCall::GenerateBothScalarCase(const TPipe &tpipe, const ApiLoop
   return ge::SUCCESS;
 }
 
-Status WhereRegApiCall::GenerateX2ScalarCase(const TPipe &tpipe, const ApiLoopParams &param,
-                                             const Tensor &x1, const Tensor &x3, const Tensor &y,
+Status WhereRegApiCall::GenerateX2ScalarCase(const TPipe &tpipe, const ApiLoopParams &param, const Tensor &x1,
+                                             const Tensor &x3, const Tensor &y,
                                              const std::string &scalar_local_blk_tensor_name_x2,
                                              std::stringstream &ss) const {
   stringstream ss1;
 
   size_t output_strides_size = param.outputs_strides[0].size();
   std::vector<ascir::SizeExpr> inner_output_strides(param.outputs_strides[0].begin(),
-                                                      param.outputs_strides[0].begin() + output_strides_size - 1);
+                                                    param.outputs_strides[0].begin() + output_strides_size - 1);
   std::string output_inner_offset = output_strides_size == 1 ? "0" : CalcInnerOffset(tpipe, inner_output_strides);
 
   uint32_t index = 0U;
@@ -163,11 +159,10 @@ Status WhereRegApiCall::GenerateX2ScalarCase(const TPipe &tpipe, const ApiLoopPa
   std::string input2_inner_offset = input2_strides_size == 1 ? "0" : CalcInnerOffset(tpipe, inner2_input_strides);
 
   ss1 << this->api_name_ << "<true, false>(" << y << "[" << output_inner_offset << "], " << x1 << "["
-      << input0_inner_offset << "], "
-      << scalar_local_blk_tensor_name_x2 << "[0], "
-      << x3 << "[" << input2_inner_offset << "], "
-      << "{static_cast<uint16_t>(" << param.outer_repeats[param.outer_repeats.size() - 1]
-      << "), static_cast<uint16_t>(" << tpipe.tiler.ActualSize(param.cal_count) << ")}, "
+      << input0_inner_offset << "], " << scalar_local_blk_tensor_name_x2 << "[0], " << x3 << "[" << input2_inner_offset
+      << "], "
+      << "{static_cast<uint16_t>(" << param.outer_repeats[param.outer_repeats.size() - 1] << "), static_cast<uint16_t>("
+      << tpipe.tiler.ActualSize(param.cal_count) << ")}, "
       << "{static_cast<uint16_t>(" << tpipe.tiler.Size(param.output_second_to_last_stride)
       << "), static_cast<uint16_t>(1)" << "}, "
       << "{static_cast<uint16_t>(" << tpipe.tiler.Size(param.input_second_to_last_stride)
@@ -184,15 +179,15 @@ Status WhereRegApiCall::GenerateX2ScalarCase(const TPipe &tpipe, const ApiLoopPa
   return ge::SUCCESS;
 }
 
-Status WhereRegApiCall::GenerateX3ScalarCase(const TPipe &tpipe, const ApiLoopParams &param,
-                                             const Tensor &x1, const Tensor &x2, const Tensor &y,
+Status WhereRegApiCall::GenerateX3ScalarCase(const TPipe &tpipe, const ApiLoopParams &param, const Tensor &x1,
+                                             const Tensor &x2, const Tensor &y,
                                              const std::string &scalar_local_blk_tensor_name_x3,
                                              std::stringstream &ss) const {
   stringstream ss1;
 
   size_t output_strides_size = param.outputs_strides[0].size();
   std::vector<ascir::SizeExpr> inner_output_strides(param.outputs_strides[0].begin(),
-                                                      param.outputs_strides[0].begin() + output_strides_size - 1);
+                                                    param.outputs_strides[0].begin() + output_strides_size - 1);
   std::string output_inner_offset = output_strides_size == 1 ? "0" : CalcInnerOffset(tpipe, inner_output_strides);
 
   uint32_t index = 0U;
@@ -208,11 +203,10 @@ Status WhereRegApiCall::GenerateX3ScalarCase(const TPipe &tpipe, const ApiLoopPa
   std::string input1_inner_offset = input1_strides_size == 1 ? "0" : CalcInnerOffset(tpipe, inner1_input_strides);
 
   ss1 << this->api_name_ << "<false, true>(" << y << "[" << output_inner_offset << "], " << x1 << "["
-      << input0_inner_offset << "], "
-      << x2 << "[" << input1_inner_offset << "], "
-      << scalar_local_blk_tensor_name_x3 << "[0], "
-      << "{static_cast<uint16_t>(" << param.outer_repeats[param.outer_repeats.size() - 1]
-      << "), static_cast<uint16_t>(" << tpipe.tiler.ActualSize(param.cal_count) << ")}, "
+      << input0_inner_offset << "], " << x2 << "[" << input1_inner_offset << "], " << scalar_local_blk_tensor_name_x3
+      << "[0], "
+      << "{static_cast<uint16_t>(" << param.outer_repeats[param.outer_repeats.size() - 1] << "), static_cast<uint16_t>("
+      << tpipe.tiler.ActualSize(param.cal_count) << ")}, "
       << "{static_cast<uint16_t>(" << tpipe.tiler.Size(param.output_second_to_last_stride)
       << "), static_cast<uint16_t>(1)" << "}, "
       << "{static_cast<uint16_t>(" << tpipe.tiler.Size(param.input_second_to_last_stride)
@@ -229,14 +223,14 @@ Status WhereRegApiCall::GenerateX3ScalarCase(const TPipe &tpipe, const ApiLoopPa
   return ge::SUCCESS;
 }
 
-Status WhereRegApiCall::GenerateNormalCase(const TPipe &tpipe, const ApiLoopParams &param,
-                                           const Tensor &x1, const Tensor &x2, const Tensor &x3, const Tensor &y,
+Status WhereRegApiCall::GenerateNormalCase(const TPipe &tpipe, const ApiLoopParams &param, const Tensor &x1,
+                                           const Tensor &x2, const Tensor &x3, const Tensor &y,
                                            std::stringstream &ss) const {
   stringstream ss1;
 
   size_t output_strides_size = param.outputs_strides[0].size();
   std::vector<ascir::SizeExpr> inner_output_strides(param.outputs_strides[0].begin(),
-                                                      param.outputs_strides[0].begin() + output_strides_size - 1);
+                                                    param.outputs_strides[0].begin() + output_strides_size - 1);
   std::string output_inner_offset = output_strides_size == 1 ? "0" : CalcInnerOffset(tpipe, inner_output_strides);
 
   uint32_t index = 0U;
@@ -258,11 +252,10 @@ Status WhereRegApiCall::GenerateNormalCase(const TPipe &tpipe, const ApiLoopPara
   std::string input2_inner_offset = input2_strides_size == 1 ? "0" : CalcInnerOffset(tpipe, inner2_input_strides);
 
   ss1 << this->api_name_ << "<false, false>(" << y << "[" << output_inner_offset << "], " << x1 << "["
-      << input0_inner_offset << "], "
-      << x2 << "[" << input1_inner_offset << "], "
-      << x3 << "[" << input2_inner_offset << "], "
-      << "{static_cast<uint16_t>(" << param.outer_repeats[param.outer_repeats.size() - 1]
-      << "), static_cast<uint16_t>(" << tpipe.tiler.ActualSize(param.cal_count) << ")}, "
+      << input0_inner_offset << "], " << x2 << "[" << input1_inner_offset << "], " << x3 << "[" << input2_inner_offset
+      << "], "
+      << "{static_cast<uint16_t>(" << param.outer_repeats[param.outer_repeats.size() - 1] << "), static_cast<uint16_t>("
+      << tpipe.tiler.ActualSize(param.cal_count) << ")}, "
       << "{static_cast<uint16_t>(" << tpipe.tiler.Size(param.output_second_to_last_stride)
       << "), static_cast<uint16_t>(1)" << "}, "
       << "{static_cast<uint16_t>(" << tpipe.tiler.Size(param.input_second_to_last_stride)
@@ -280,8 +273,9 @@ Status WhereRegApiCall::GenerateNormalCase(const TPipe &tpipe, const ApiLoopPara
 }
 
 Status WhereRegApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
-  const std::vector<std::reference_wrapper<const Tensor>> &inputs,
-  const std::vector<std::reference_wrapper<const Tensor>> &outputs, std::string &result) const {
+                                 const std::vector<std::reference_wrapper<const Tensor>> &inputs,
+                                 const std::vector<std::reference_wrapper<const Tensor>> &outputs,
+                                 std::string &result) const {
   const Tensor *x1 = nullptr;
   const Tensor *x2 = nullptr;
   const Tensor *x3 = nullptr;
@@ -300,17 +294,17 @@ Status WhereRegApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::Ax
 
   std::string x2_dtype_name;
   std::string x3_dtype_name;
-  GE_CHK_STATUS_RET(Tensor::DtypeName(x2->dtype, x2_dtype_name),
-    "Codegen get data type:%d failed", static_cast<int32_t>(x2->dtype));
-  GE_CHK_STATUS_RET(Tensor::DtypeName(x3->dtype, x3_dtype_name),
-    "Codegen get data type:%d failed", static_cast<int32_t>(x3->dtype));
-  GE_ASSERT_TRUE(x2_dtype_name == x3_dtype_name, "x2_dtype_name:%s, x3_dtype_name:%s",
-    x2_dtype_name.c_str(), x3_dtype_name.c_str());
+  GE_CHK_STATUS_RET(Tensor::DtypeName(x2->dtype, x2_dtype_name), "Codegen get data type:%d failed",
+                    static_cast<int32_t>(x2->dtype));
+  GE_CHK_STATUS_RET(Tensor::DtypeName(x3->dtype, x3_dtype_name), "Codegen get data type:%d failed",
+                    static_cast<int32_t>(x3->dtype));
+  GE_ASSERT_TRUE(x2_dtype_name == x3_dtype_name, "x2_dtype_name:%s, x3_dtype_name:%s", x2_dtype_name.c_str(),
+                 x3_dtype_name.c_str());
 
-  std::string x2_scalar = x2->need_gen_get_value_of_ub_scalar ? ("(" + x2_dtype_name + ")" + x2->ub_scalar_name) :
-                          x2->Str();
-  std::string x3_scalar = x3->need_gen_get_value_of_ub_scalar ? ("(" + x3_dtype_name + ")" + x3->ub_scalar_name) :
-                          x3->Str();
+  std::string x2_scalar =
+      x2->need_gen_get_value_of_ub_scalar ? ("(" + x2_dtype_name + ")" + x2->ub_scalar_name) : x2->Str();
+  std::string x3_scalar =
+      x3->need_gen_get_value_of_ub_scalar ? ("(" + x3_dtype_name + ")" + x3->ub_scalar_name) : x3->Str();
 
   if (param.outer_repeats.size() == 0) {
     GE_CHK_STATUS_RET(GenerateNoLoopCase(tpipe, current_axis, *x1, *x2, *x3, *y, x2_scalar, x3_scalar, ss));
@@ -318,7 +312,7 @@ Status WhereRegApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::Ax
     std::string scalar_local_blk_tensor_name_x2 = x2->IsConstScalar() ? "local_blk_tensor_of_" + x2->name : x2->name;
     std::string scalar_local_blk_tensor_name_x3 = x3->IsConstScalar() ? "local_blk_tensor_of_" + x3->name : x3->name;
     GE_CHK_STATUS_RET(GenerateBothScalarCase(tpipe, param, *x1, *y, scalar_local_blk_tensor_name_x2,
-                      scalar_local_blk_tensor_name_x3, ss));
+                                             scalar_local_blk_tensor_name_x3, ss));
   } else if (x2_is_scalar_scene) {
     std::string scalar_local_blk_tensor_name_x2 = x2->IsConstScalar() ? "local_blk_tensor_of_" + x2->name : x2->name;
     GE_CHK_STATUS_RET(GenerateX2ScalarCase(tpipe, param, *x1, *x3, *y, scalar_local_blk_tensor_name_x2, ss));
@@ -334,4 +328,4 @@ Status WhereRegApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::Ax
 }
 
 static ApiCallRegister<WhereRegApiCall> register_where_reg_api_call("WhereRegApiCall");
-}
+}  // namespace codegen

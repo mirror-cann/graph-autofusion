@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -48,20 +48,22 @@ class HcomTopoInfo {
   Status GetGroupNotifyHandle(const char_t *group, void *&notify_handle);
   void UnsetGroupTopoInfo(const char_t *group) {
     const std::lock_guard<std::mutex> lock(mutex_);
-    (void) rank_info_.erase(group);
+    (void)rank_info_.erase(group);
   }
 
   Status SetGroupOrderedStream(const int32_t device_id, const char_t *group, void *stream);
   Status GetGroupOrderedStream(const int32_t device_id, const char_t *group, void *&stream);
   void UnsetGroupOrderedStream(const int32_t device_id, const char_t *group);
   Status GetGroupLocalWindowSize(const char_t *group, uint64_t &local_window_size);
+
  private:
   HcomTopoInfo() = default;
   ~HcomTopoInfo() = default;
   std::unordered_map<std::string, TopoInfo> rank_info_;
   std::mutex mutex_;
-  std::unordered_map<int32_t, std::unordered_map<std::string, void*>> device_id_to_group_to_ordered_stream_; // 通信域保序流
+  std::unordered_map<int32_t, std::unordered_map<std::string, void *>>
+      device_id_to_group_to_ordered_stream_;  // 通信域保序流
 };
-}
+}  // namespace af
 
-#endif // METADEF_CXX_INC_EXTERNAL_HCOM_HCOM_TOPO_INFO_H_
+#endif  // METADEF_CXX_INC_EXTERNAL_HCOM_HCOM_TOPO_INFO_H_

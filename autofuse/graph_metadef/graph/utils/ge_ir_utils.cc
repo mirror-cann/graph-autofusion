@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -33,12 +33,18 @@ namespace af {
 // Part 1: from IR convert to ONNX Protobuf
 namespace {
 const std::map<ge::DataType, onnx::TensorProto_DataType> kGeDataTypeToOnnxMap = {
-    {DT_INT64, onnx::TensorProto_DataType_INT64},   {DT_UINT64, onnx::TensorProto_DataType_UINT64},
-    {DT_FLOAT, onnx::TensorProto_DataType_FLOAT},   {DT_INT32, onnx::TensorProto_DataType_INT32},
-    {DT_UINT32, onnx::TensorProto_DataType_UINT32}, {DT_INT8, onnx::TensorProto_DataType_INT8},
-    {DT_UINT8, onnx::TensorProto_DataType_UINT8},   {DT_INT16, onnx::TensorProto_DataType_INT16},
-    {DT_UINT16, onnx::TensorProto_DataType_UINT16}, {DT_FLOAT16, onnx::TensorProto_DataType_FLOAT16},
-    {DT_DOUBLE, onnx::TensorProto_DataType_DOUBLE}, {DT_BOOL, onnx::TensorProto_DataType_BOOL},
+    {DT_INT64, onnx::TensorProto_DataType_INT64},
+    {DT_UINT64, onnx::TensorProto_DataType_UINT64},
+    {DT_FLOAT, onnx::TensorProto_DataType_FLOAT},
+    {DT_INT32, onnx::TensorProto_DataType_INT32},
+    {DT_UINT32, onnx::TensorProto_DataType_UINT32},
+    {DT_INT8, onnx::TensorProto_DataType_INT8},
+    {DT_UINT8, onnx::TensorProto_DataType_UINT8},
+    {DT_INT16, onnx::TensorProto_DataType_INT16},
+    {DT_UINT16, onnx::TensorProto_DataType_UINT16},
+    {DT_FLOAT16, onnx::TensorProto_DataType_FLOAT16},
+    {DT_DOUBLE, onnx::TensorProto_DataType_DOUBLE},
+    {DT_BOOL, onnx::TensorProto_DataType_BOOL},
     {DT_FLOAT8_E5M2, onnx::TensorProto_DataType_FLOAT8E5M2},
     {DT_FLOAT8_E4M3FN, onnx::TensorProto_DataType_FLOAT8E4M3FN},
 };
@@ -70,24 +76,18 @@ const OnnxUtils::TensordescAttrHandlers OnnxUtils::ext_meta_attr_handlers_ = {
 };
 
 const OnnxUtils::TensordescAttrHandlers OnnxUtils::normal_member_attr_handlers_ = {
-    {"dtype", onnx::AttributeProto_AttributeType_STRING, [](const ConstGeTensorDescPtr &desc) {
-      return ge::TypeUtils::DataTypeToSerialString(desc->GetDataType());
-    }},
-    {"origin_dtype", onnx::AttributeProto_AttributeType_STRING, [](const ConstGeTensorDescPtr &desc) {
-      return ge::TypeUtils::DataTypeToSerialString(desc->GetOriginDataType());
-    }},
-    {"shape", onnx::AttributeProto_AttributeType_INTS, [](const ConstGeTensorDescPtr &desc) {
-      return desc->GetShape().GetDims();
-    }},
-    {"origin_shape", onnx::AttributeProto_AttributeType_INTS, [](const ConstGeTensorDescPtr &desc) {
-      return desc->GetOriginShape().GetDims();
-    }},
-    {"layout", onnx::AttributeProto_AttributeType_STRING, [](const ConstGeTensorDescPtr &desc) {
-      return ge::TypeUtils::FormatToSerialString(desc->GetFormat());
-    }},
-    {"origin_layout", onnx::AttributeProto_AttributeType_STRING, [](const ConstGeTensorDescPtr &desc) {
-      return ge::TypeUtils::FormatToSerialString(desc->GetOriginFormat());
-    }},
+    {"dtype", onnx::AttributeProto_AttributeType_STRING,
+     [](const ConstGeTensorDescPtr &desc) { return ge::TypeUtils::DataTypeToSerialString(desc->GetDataType()); }},
+    {"origin_dtype", onnx::AttributeProto_AttributeType_STRING,
+     [](const ConstGeTensorDescPtr &desc) { return ge::TypeUtils::DataTypeToSerialString(desc->GetOriginDataType()); }},
+    {"shape", onnx::AttributeProto_AttributeType_INTS,
+     [](const ConstGeTensorDescPtr &desc) { return desc->GetShape().GetDims(); }},
+    {"origin_shape", onnx::AttributeProto_AttributeType_INTS,
+     [](const ConstGeTensorDescPtr &desc) { return desc->GetOriginShape().GetDims(); }},
+    {"layout", onnx::AttributeProto_AttributeType_STRING,
+     [](const ConstGeTensorDescPtr &desc) { return ge::TypeUtils::FormatToSerialString(desc->GetFormat()); }},
+    {"origin_layout", onnx::AttributeProto_AttributeType_STRING,
+     [](const ConstGeTensorDescPtr &desc) { return ge::TypeUtils::FormatToSerialString(desc->GetOriginFormat()); }},
 };
 struct AttrNameComp {
   inline bool operator()(const onnx::AttributeProto &lsh, const onnx::AttributeProto &rsh) const {
@@ -326,7 +326,7 @@ void OnnxUtils::AddAttrProto(onnx::NodeProto *const node_proto, const onnx::Attr
 void OnnxUtils::AddAllAttrToJson(const ConstGeTensorDescPtr &tensor_desc, nlohmann::json &tensor_json) {
   const std::map<std::string, AnyValue> attr_maps = tensor_desc->GetAllAttrs();
   google::protobuf::Map<std::string, af::proto::AttrDef> tensor_desc_map;
-  (void) ModelSerializeImp::SerializeAllAttrsFromAnyMap(attr_maps, &tensor_desc_map);
+  (void)ModelSerializeImp::SerializeAllAttrsFromAnyMap(attr_maps, &tensor_desc_map);
   for (const auto &pair : tensor_desc_map) {
     AddJson(pair.first, tensor_json, pair.second.DebugString());
   }
@@ -336,7 +336,7 @@ void OnnxUtils::AddAllAttrToProto(onnx::NodeProto *const node_proto, const Const
                                   const char_t *const prefix, const uint32_t idx) {
   const std::map<std::string, AnyValue> attr_maps = tensor_desc->GetAllAttrs();
   google::protobuf::Map<std::string, af::proto::AttrDef> tensor_desc_map;
-  (void) ModelSerializeImp::SerializeAllAttrsFromAnyMap(attr_maps, &tensor_desc_map);
+  (void)ModelSerializeImp::SerializeAllAttrsFromAnyMap(attr_maps, &tensor_desc_map);
   const std::string suffix = ":" + std::to_string(idx);
   AddAttrProtoForAttrsFromAttrMap(tensor_desc_map, node_proto, prefix, suffix);
 }
@@ -344,29 +344,25 @@ void OnnxUtils::AddAllAttrToProto(onnx::NodeProto *const node_proto, const Const
 void OnnxUtils::AddAllAttrGroupToJson(const ConstGeTensorDescPtr &tensor_desc, nlohmann::json &tensor_json) {
   const auto attr_store = tensor_desc->GetAttrMap();
   af::proto::AttrGroups attr_groups;
-  (void) AttrGroupSerialize::SerializeAllAttr(attr_groups, attr_store);
+  (void)AttrGroupSerialize::SerializeAllAttr(attr_groups, attr_store);
   if (attr_groups.attr_group_def_size() > 0) {
     AddJson("attr_groups", tensor_json, attr_groups.DebugString());
   }
 }
 
-void OnnxUtils::AddAllAttrGroupToProto(onnx::NodeProto *const node_proto,
-                                       const ConstGeTensorDescPtr &tensor_desc,
-                                       const char_t *const prefix,
-                                       const uint32_t idx) {
+void OnnxUtils::AddAllAttrGroupToProto(onnx::NodeProto *const node_proto, const ConstGeTensorDescPtr &tensor_desc,
+                                       const char_t *const prefix, const uint32_t idx) {
   const auto attr_store = tensor_desc->GetAttrMap();
   af::proto::AttrGroups attr_groups;
-  (void) AttrGroupSerialize::SerializeAllAttr(attr_groups, attr_store);
+  (void)AttrGroupSerialize::SerializeAllAttr(attr_groups, attr_store);
   if (attr_groups.attr_group_def_size() > 0) {
     const std::string attr_groups_readable = attr_groups.DebugString();
-    AddAttrProto(node_proto,
-                 onnx::AttributeProto_AttributeType_STRING,
-                 std::string(prefix) + "groups:" + std::to_string(idx),
-                 &attr_groups_readable);
+    AddAttrProto(node_proto, onnx::AttributeProto_AttributeType_STRING,
+                 std::string(prefix) + "groups:" + std::to_string(idx), &attr_groups_readable);
   }
 }
 void OnnxUtils::AddShapeFormatAndDtypeToJson(const af::ConstGeTensorDescPtr &desc, nlohmann::json &tensor_json) {
-  for (const auto &item :normal_member_attr_handlers_) {
+  for (const auto &item : normal_member_attr_handlers_) {
     switch (item.attr_type) {
       case onnx::AttributeProto_AttributeType_INTS:
         AddJson(item.name, tensor_json, item.member_ints_getter(desc));
@@ -374,16 +370,15 @@ void OnnxUtils::AddShapeFormatAndDtypeToJson(const af::ConstGeTensorDescPtr &des
       case onnx::AttributeProto_AttributeType_STRING:
         AddJson(item.name, tensor_json, item.member_str_getter(desc));
         break;
-      default:GELOGW("Unsupported ext meta type %ld", static_cast<int64_t>(item.attr_type));
+      default:
+        GELOGW("Unsupported ext meta type %ld", static_cast<int64_t>(item.attr_type));
     }
   }
 }
 
-void OnnxUtils::AddShapeFormatAndDtypeToProto(const af::ConstGeTensorDescPtr &desc,
-                                              const std::string &prefix,
-                                              const uint32_t idx,
-                                              onnx::NodeProto *const node_proto) {
-  for (const auto &item :normal_member_attr_handlers_) {
+void OnnxUtils::AddShapeFormatAndDtypeToProto(const af::ConstGeTensorDescPtr &desc, const std::string &prefix,
+                                              const uint32_t idx, onnx::NodeProto *const node_proto) {
+  for (const auto &item : normal_member_attr_handlers_) {
     const std::string attr_name = prefix + item.name + ":" + std::to_string(idx);
     switch (item.attr_type) {
       case onnx::AttributeProto_AttributeType_INTS: {
@@ -396,7 +391,8 @@ void OnnxUtils::AddShapeFormatAndDtypeToProto(const af::ConstGeTensorDescPtr &de
         AddAttrProto(node_proto, item.attr_type, attr_name, &value);
         break;
       };
-      default:GELOGW("Unsupported ext meta type %ld", static_cast<int64_t>(item.attr_type));
+      default:
+        GELOGW("Unsupported ext meta type %ld", static_cast<int64_t>(item.attr_type));
     }
   }
 }
@@ -405,24 +401,19 @@ void OnnxUtils::AddExtMetaToJson(const GeTensorDescImpl::ExtMeta &tensor_descrip
   for (const auto &item : ext_meta_attr_handlers_) {
     switch (item.attr_type) {
       case onnx::AttributeProto_AttributeType_INT:
-        AddJson(item.name,
-                tensor_json,
-                item.ext_meta_int_getter(tensor_descriptor));
+        AddJson(item.name, tensor_json, item.ext_meta_int_getter(tensor_descriptor));
         break;
       case onnx::AttributeProto_AttributeType_STRING:
-        AddJson(item.name,
-                tensor_json,
-                item.ext_meta_str_getter(tensor_descriptor));
+        AddJson(item.name, tensor_json, item.ext_meta_str_getter(tensor_descriptor));
         break;
-      default:GELOGW("Unsupported ext meta type %ld", static_cast<int64_t>(item.attr_type));
+      default:
+        GELOGW("Unsupported ext meta type %ld", static_cast<int64_t>(item.attr_type));
     }
   }
 }
 
-void OnnxUtils::AddExtMetaToProto(const GeTensorDescImpl::ExtMeta &tensor_descriptor,
-                                  const std::string &prefix,
-                                  uint32_t index,
-                                  onnx::NodeProto *node_proto) {
+void OnnxUtils::AddExtMetaToProto(const GeTensorDescImpl::ExtMeta &tensor_descriptor, const std::string &prefix,
+                                  uint32_t index, onnx::NodeProto *node_proto) {
   for (const auto &item : ext_meta_attr_handlers_) {
     const std::string attr_name = prefix + item.name + ":" + std::to_string(index);
     switch (item.attr_type) {
@@ -436,15 +427,14 @@ void OnnxUtils::AddExtMetaToProto(const GeTensorDescImpl::ExtMeta &tensor_descri
         AddAttrProto(node_proto, item.attr_type, attr_name, &value);
         break;
       }
-      default:GELOGW("Unsupported ext meta type %ld", static_cast<int64_t>(item.attr_type));
+      default:
+        GELOGW("Unsupported ext meta type %ld", static_cast<int64_t>(item.attr_type));
     }
   }
 }
 
-template<typename DescGetter>
-void OnnxUtils::ProcessTensorDescImpl(const OpDescPtr &op_desc,
-                                      const string &desc_type,
-                                      DescGetter desc_getter,
+template <typename DescGetter>
+void OnnxUtils::ProcessTensorDescImpl(const OpDescPtr &op_desc, const string &desc_type, DescGetter desc_getter,
                                       onnx::NodeProto *node_proto) {
   const auto size = desc_type == "input" ? op_desc->GetAllInputsSize() : op_desc->GetOutputsSize();
   const std::string nums_name = desc_type + "_desc_nums";
@@ -477,17 +467,13 @@ void OnnxUtils::ProcessTensorDescImpl(const OpDescPtr &op_desc,
 }
 
 void OnnxUtils::AddAttrProtoForOpInDesc(onnx::NodeProto *const node_proto, const OpDescPtr &op_desc) {
-  return ProcessTensorDescImpl(op_desc, "input",
-                               [](const OpDescPtr &op, uint32_t i) {
-                                 return op->GetInputDescPtrDfault(i);
-                               }, node_proto);
+  return ProcessTensorDescImpl(
+      op_desc, "input", [](const OpDescPtr &op, uint32_t i) { return op->GetInputDescPtrDfault(i); }, node_proto);
 }
 
 void OnnxUtils::AddAttrProtoForOpOutDesc(onnx::NodeProto *const node_proto, const OpDescPtr &op_desc) {
-  return ProcessTensorDescImpl(op_desc, "output",
-                               [](const OpDescPtr &op, uint32_t i) {
-                                 return op->GetOutputDescPtr(i);
-                               }, node_proto);
+  return ProcessTensorDescImpl(
+      op_desc, "output", [](const OpDescPtr &op, uint32_t i) { return op->GetOutputDescPtr(i); }, node_proto);
 }
 
 void OnnxUtils::AddAttrProtoForOpInAndOutDesc(onnx::NodeProto *const node_proto, const OpDescPtr &op_desc) {
@@ -502,7 +488,7 @@ void OnnxUtils::AddAttrProtoForOpInAndOutDesc(onnx::NodeProto *const node_proto,
 
 void OnnxUtils::AddAttrProtoForAttrsFromAttrMap(
     const ::google::protobuf::Map<std::string, ::af::proto::AttrDef> &attr_map, onnx::NodeProto *const node_proto,
-    const std::string& prefix, const std::string& suffix) {
+    const std::string &prefix, const std::string &suffix) {
   for (const auto &item : attr_map) {
     const auto attr_name = item.first;
     const auto attr_def = item.second;
@@ -511,21 +497,21 @@ void OnnxUtils::AddAttrProtoForAttrsFromAttrMap(
       const auto &tensor_def = attr_def.t();
       const auto &tensor_desc = tensor_def.desc();
       const auto data_type = af::proto::DataType_Name(tensor_desc.dtype());
-      AddAttrProto(node_proto, onnx::AttributeProto_AttributeType_STRING,
-                   prefix + attr_name + "_desc_dtype" + suffix, &data_type);
+      AddAttrProto(node_proto, onnx::AttributeProto_AttributeType_STRING, prefix + attr_name + "_desc_dtype" + suffix,
+                   &data_type);
       const auto dims = tensor_desc.shape().dim();
-      AddAttrProto(node_proto, onnx::AttributeProto_AttributeType_INTS,
-                   prefix + attr_name + "_desc_shape" + suffix, dims);
+      AddAttrProto(node_proto, onnx::AttributeProto_AttributeType_INTS, prefix + attr_name + "_desc_shape" + suffix,
+                   dims);
       const auto layout = tensor_desc.layout();
-      AddAttrProto(node_proto, onnx::AttributeProto_AttributeType_STRING,
-                   prefix + attr_name + "_desc_layout" + suffix, &layout);
+      AddAttrProto(node_proto, onnx::AttributeProto_AttributeType_STRING, prefix + attr_name + "_desc_layout" + suffix,
+                   &layout);
       const auto device_type = tensor_desc.device_type();
       AddAttrProto(node_proto, af::onnx::AttributeProto_AttributeType_STRING,
                    prefix + attr_name + "_desc_device_type" + suffix, &device_type);
       if (dump_level_ == DumpLevel::DUMP_ALL) {
         const auto data = tensor_def.data();
-        AddAttrProto(node_proto, onnx::AttributeProto_AttributeType_STRING,
-                     prefix + attr_name + "_data" + suffix, &data);
+        AddAttrProto(node_proto, onnx::AttributeProto_AttributeType_STRING, prefix + attr_name + "_data" + suffix,
+                     &data);
       }
     }
     if (attr_type == af::proto::AttrDef::kS) {
@@ -562,9 +548,8 @@ void OnnxUtils::AddAttrProtoForAttrsFromAttrMap(
   }
 }
 
-void OnnxUtils::AddListAttrProto(const std::string &attr_name,
-                                 const ::af::proto::AttrDef &attr_def, const std::string &prefix,
-                                 const std::string &suffix, onnx::NodeProto *node_proto) {
+void OnnxUtils::AddListAttrProto(const std::string &attr_name, const ::af::proto::AttrDef &attr_def,
+                                 const std::string &prefix, const std::string &suffix, onnx::NodeProto *node_proto) {
   const auto &list_value = attr_def.list();
   const auto &list_value_type = list_value.val_type();
   if (list_value_type == af::proto::AttrDef_ListValue_ListValueType::AttrDef_ListValue_ListValueType_VT_LIST_STRING) {
@@ -590,11 +575,10 @@ void OnnxUtils::AddListAttrProto(const std::string &attr_name,
 void OnnxUtils::AddCommonAttrGroupIntoProto(const OpDescPtr &op_desc, onnx::NodeProto *const node_proto) {
   const auto attr_store = op_desc->GetAttrMap();
   af::proto::AttrGroups attr_groups;
-  (void) AttrGroupSerialize::SerializeAllAttr(attr_groups, attr_store);
+  (void)AttrGroupSerialize::SerializeAllAttr(attr_groups, attr_store);
   if (attr_groups.attr_group_def_size() > 0) {
     const std::string attr_groups_readable = attr_groups.DebugString();
-    AddAttrProto(node_proto, onnx::AttributeProto_AttributeType_STRING,
-                 "attr_groups", &attr_groups_readable);
+    AddAttrProto(node_proto, onnx::AttributeProto_AttributeType_STRING, "attr_groups", &attr_groups_readable);
   }
 }
 
@@ -656,7 +640,7 @@ void OnnxUtils::AddAttrProtoFromNodeMembers(const NodePtr &node, onnx::NodeProto
     const auto input_name_2_indexs = op_desc->GetAllInputName();
     ::google::protobuf::RepeatedPtrField<::std::string> input_names;
     ::google::protobuf::RepeatedField<::google::protobuf::int64> input_indexes;
-    for (const auto &input_name_2_index: input_name_2_indexs) {
+    for (const auto &input_name_2_index : input_name_2_indexs) {
       std::string input_name = input_name_2_index.first;
       input_names.Add(std::move(input_name));
       input_indexes.Add(static_cast<int64_t>(input_name_2_index.second));
@@ -844,19 +828,26 @@ bool OnnxUtils::EncodeGraph(const ConstComputeGraphPtr &graph, onnx::GraphProto 
 bool OnnxUtils::ConvertGeModelToModelProto(const af::Model &model, onnx::ModelProto &model_proto) {
   const char_t *dump_ge_graph = nullptr;
   MM_SYS_GET_ENV(MM_ENV_DUMP_GE_GRAPH, dump_ge_graph);
-  auto dump_level = (dump_ge_graph != nullptr) ?
-      static_cast<DumpLevel>(std::strtol(dump_ge_graph, nullptr, kDecimalBase)) : DumpLevel::NO_DUMP;
+  auto dump_level = (dump_ge_graph != nullptr)
+                        ? static_cast<DumpLevel>(std::strtol(dump_ge_graph, nullptr, kDecimalBase))
+                        : DumpLevel::NO_DUMP;
   return ConvertGeModelToModelProto(model, model_proto, dump_level);
 }
 
 // Part 2: from ONNX Protobuf convert to IR
 static std::map<onnx::TensorProto_DataType, ge::DataType> onnxDataTypeToGeMap = {
-    {onnx::TensorProto_DataType_INT64, DT_INT64},   {onnx::TensorProto_DataType_UINT64, DT_UINT64},
-    {onnx::TensorProto_DataType_FLOAT, DT_FLOAT},   {onnx::TensorProto_DataType_INT32, DT_INT32},
-    {onnx::TensorProto_DataType_UINT32, DT_UINT32}, {onnx::TensorProto_DataType_INT8, DT_INT8},
-    {onnx::TensorProto_DataType_UINT8, DT_UINT8},   {onnx::TensorProto_DataType_INT16, DT_INT16},
-    {onnx::TensorProto_DataType_UINT16, DT_UINT16}, {onnx::TensorProto_DataType_FLOAT16, DT_FLOAT16},
-    {onnx::TensorProto_DataType_DOUBLE, DT_DOUBLE}, {onnx::TensorProto_DataType_BOOL, DT_BOOL},
+    {onnx::TensorProto_DataType_INT64, DT_INT64},
+    {onnx::TensorProto_DataType_UINT64, DT_UINT64},
+    {onnx::TensorProto_DataType_FLOAT, DT_FLOAT},
+    {onnx::TensorProto_DataType_INT32, DT_INT32},
+    {onnx::TensorProto_DataType_UINT32, DT_UINT32},
+    {onnx::TensorProto_DataType_INT8, DT_INT8},
+    {onnx::TensorProto_DataType_UINT8, DT_UINT8},
+    {onnx::TensorProto_DataType_INT16, DT_INT16},
+    {onnx::TensorProto_DataType_UINT16, DT_UINT16},
+    {onnx::TensorProto_DataType_FLOAT16, DT_FLOAT16},
+    {onnx::TensorProto_DataType_DOUBLE, DT_DOUBLE},
+    {onnx::TensorProto_DataType_BOOL, DT_BOOL},
     {onnx::TensorProto_DataType_FLOAT8E5M2, DT_FLOAT8_E5M2},
     {onnx::TensorProto_DataType_FLOAT8E4M3FN, DT_FLOAT8_E4M3FN},
 };
@@ -999,15 +990,14 @@ void OnnxUtils::DecodeAttribute(const af::onnx::AttributeProto &attr_proto, int6
 }
 
 void OnnxUtils::DecodeNodeAttributeForOpInDesc(const onnx::AttributeProto &attr_proto,
-                                               const std::string &attr_name_for_input_desc,
-                                               const int32_t idx,
+                                               const std::string &attr_name_for_input_desc, const int32_t idx,
                                                const OpDescPtr &op_desc) {
   const auto tensor_desc = op_desc->MutableInputDesc(static_cast<uint32_t>(idx));
   if ((tensor_desc == nullptr) || (tensor_desc->impl_ == nullptr)) {
     REPORT_INNER_ERR_MSG("E18888", "MutableInputDesc index:%d return nullptr, op:%s, attr:%s", idx,
                          op_desc->GetName().c_str(), attr_name_for_input_desc.c_str());
-    GELOGE(GRAPH_FAILED, "[Invoke][MutableInputDesc] index:%d return nullptr, op name %s, attr name %s",
-           idx, op_desc->GetName().c_str(), attr_name_for_input_desc.c_str());
+    GELOGE(GRAPH_FAILED, "[Invoke][MutableInputDesc] index:%d return nullptr, op name %s, attr name %s", idx,
+           op_desc->GetName().c_str(), attr_name_for_input_desc.c_str());
     return;
   }
   if (attr_name_for_input_desc == "input_desc_dtype") {
@@ -1043,14 +1033,14 @@ void OnnxUtils::DecodeNodeAttributeForOpInDesc(const onnx::AttributeProto &attr_
 }
 
 void OnnxUtils::DecodeNodeAttributeForOpOutDesc(const onnx::AttributeProto &attr_proto,
-                                                const std::string &attr_name_for_output_desc,
-                                                const int32_t index, const OpDescPtr &op_desc) {
+                                                const std::string &attr_name_for_output_desc, const int32_t index,
+                                                const OpDescPtr &op_desc) {
   const auto tensor_desc = op_desc->MutableOutputDesc(static_cast<uint32_t>(index));
   if ((tensor_desc == nullptr) || (tensor_desc->impl_ == nullptr)) {
     REPORT_INNER_ERR_MSG("E18888", "MutableOutputDesc index:%d return nullptr, op:%s, attr:%s", index,
                          op_desc->GetName().c_str(), attr_name_for_output_desc.c_str());
-    GELOGE(GRAPH_FAILED, "[Invoke][MutableOutputDesc] index:%d return nullptr, op name %s, attr name %s",
-           index, op_desc->GetName().c_str(), attr_name_for_output_desc.c_str());
+    GELOGE(GRAPH_FAILED, "[Invoke][MutableOutputDesc] index:%d return nullptr, op name %s, attr name %s", index,
+           op_desc->GetName().c_str(), attr_name_for_output_desc.c_str());
     return;
   }
   if (attr_name_for_output_desc == "output_desc_dtype") {
@@ -1087,8 +1077,7 @@ void OnnxUtils::DecodeNodeAttributeForOpOutDesc(const onnx::AttributeProto &attr
 
 void OnnxUtils::DecodeNodeAttributeForOpInAndOutDesc(const onnx::AttributeProto &attr_proto,
                                                      const std::string &attr_name_for_input_output_desc,
-                                                     const int32_t idx,
-                                                     const OpDescPtr &op_desc) {
+                                                     const int32_t idx, const OpDescPtr &op_desc) {
   if (op_desc == nullptr) {
     REPORT_INNER_ERR_MSG("E18888", "param op_desc is nullptr, check invalid.");
     GELOGE(GRAPH_FAILED, "[Check][Param] op_desc is nullptr");
@@ -1195,8 +1184,7 @@ bool OnnxUtils::DecodeNodeDesc(const onnx::NodeProto *const node_proto, OpDescPt
   return true;
 }
 
-bool OnnxUtils::AddInputAndOutputNodesForGraph(const onnx::GraphProto &graph_proto,
-                                               ComputeGraphPtr &graph,
+bool OnnxUtils::AddInputAndOutputNodesForGraph(const onnx::GraphProto &graph_proto, ComputeGraphPtr &graph,
                                                const std::map<std::string, NodePtr> &node_map) {
   // Add inputs nodes for graph
   for (const auto &input : graph_proto.input()) {
@@ -1208,8 +1196,8 @@ bool OnnxUtils::AddInputAndOutputNodesForGraph(const onnx::GraphProto &graph_pro
       return false;
     }
     const auto ret = graph->AddInputNode(input_node_item->second);
-    GE_CHK_BOOL_EXEC(ret != nullptr, continue,
-                     "[Add][InputNode] %s failed, graph:%s", input_node_name.c_str(), graph->GetName().c_str());
+    GE_CHK_BOOL_EXEC(ret != nullptr, continue, "[Add][InputNode] %s failed, graph:%s", input_node_name.c_str(),
+                     graph->GetName().c_str());
   }
   // Add outputs nodes for graph
   for (const auto &output : graph_proto.output()) {
@@ -1229,8 +1217,8 @@ bool OnnxUtils::AddInputAndOutputNodesForGraph(const onnx::GraphProto &graph_pro
   return true;
 }
 
-bool OnnxUtils::DecodeGraph(const int32_t recursion_depth,
-                            const onnx::GraphProto &graph_proto, ComputeGraphPtr &graph) {
+bool OnnxUtils::DecodeGraph(const int32_t recursion_depth, const onnx::GraphProto &graph_proto,
+                            ComputeGraphPtr &graph) {
   if (recursion_depth > kMaxRecursiveDepth) {
     REPORT_INNER_ERR_MSG("E18888", "param recursion_depth:%d is bigger than kMaxRecursiveDepth:%d", recursion_depth,
                          kMaxRecursiveDepth);
@@ -1239,8 +1227,7 @@ bool OnnxUtils::DecodeGraph(const int32_t recursion_depth,
   }
 
   graph = ComGraphMakeShared<ComputeGraph>(graph_proto.name());
-  GE_CHK_BOOL_EXEC(graph != nullptr,
-                   REPORT_INNER_ERR_MSG("E18888", "create ComputeGraph failed.");
+  GE_CHK_BOOL_EXEC(graph != nullptr, REPORT_INNER_ERR_MSG("E18888", "create ComputeGraph failed.");
                    return false, "[Create][ComputeGraph]ComputeGraph make shared failed");
   /// 1. Decode all nodes first, node should include input
   /// and output nodes and nodes which represent sub graphs
@@ -1299,7 +1286,7 @@ bool OnnxUtils::ConvertGeModelToModelProto(const Model &model, onnx::ModelProto 
   }
   const auto graph_proto = model_proto.mutable_graph();
   if (graph_proto == nullptr) {
-    REPORT_INNER_ERR_MSG("E18888", "mutable_graph return nullptr, graph:%s",  compute_graph->GetName().c_str());
+    REPORT_INNER_ERR_MSG("E18888", "mutable_graph return nullptr, graph:%s", compute_graph->GetName().c_str());
     GELOGE(GRAPH_FAILED, "[Invoke][MutableGraph] return nullptr, graph:%s", compute_graph->GetName().c_str());
     return false;
   }
@@ -1337,4 +1324,4 @@ bool OnnxUtils::ConvertGeModelToModelProto(const Model &model, onnx::ModelProto 
   }
   return true;
 }
-} // namespace ge
+}  // namespace af

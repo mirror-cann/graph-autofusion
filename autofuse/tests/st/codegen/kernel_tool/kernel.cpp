@@ -1,5 +1,5 @@
 #define REGISTER_TILING_DEFAULT(tiling)
-#define GET_TILING_DATA(t, tiling)  AutofuseTilingData t = *(AutofuseTilingData*)tiling;
+#define GET_TILING_DATA(t, tiling) AutofuseTilingData t = *(AutofuseTilingData *)tiling;
 #include "kernel_operator.h"
 #include "autofuse_tiling_data.h"
 
@@ -7,13 +7,12 @@ using namespace AscendC;
 
 KERNEL_TASK_TYPE_DEFAULT(KERNEL_TYPE_AIV_ONLY);
 
-
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -85,7 +84,8 @@ constexpr inline __aicore__ T2 Mod(T1 a, T2 b) {
     uint64_t mod_num = a_tmp % b_tmp;
     return static_cast<uint64_t>(mod_num);
   } else if constexpr (std::is_same<T1, uint64_t>::value || std::is_same<T2, uint64_t>::value) {
-    ASCENDC_ASSERT(true, { KERNEL_LOG(KERNEL_ERROR, "does not support mix type of uint64 because of possible overflow!"); });
+    ASCENDC_ASSERT(true,
+                   { KERNEL_LOG(KERNEL_ERROR, "does not support mix type of uint64 because of possible overflow!"); });
     return 0;
   } else {
     ASCENDC_ASSERT(b != 0, { KERNEL_LOG(KERNEL_ERROR, "b can't be equal to 0, b is %d!", b); });
@@ -96,7 +96,7 @@ constexpr inline __aicore__ T2 Mod(T1 a, T2 b) {
   }
 }
 
-template<typename TilingData>
+template <typename TilingData>
 inline __aicore__ bool MatchTilingKeyAndBlockDim(TilingData &t, uint32_t tiling_key) {
   auto block_dim = GetBlockIdx();
   // reuse ub_size as block_offset
@@ -280,7 +280,7 @@ constexpr __aicore__ static inline T AfInfinity() {
 }
 
 static constexpr float ROUND_TO_NEAREST_INT_BIAS = 0.5f;
-template<typename T>
+template <typename T>
 inline __aicore__ uint32_t ConvertToUint32(T value) {
   if constexpr (std::is_floating_point<T>::value) {
     // 默认tiling_data是uint32_t的，而ascendc不支持将uint32_t转为float
@@ -300,16 +300,16 @@ inline __aicore__ uint32_t ConvertToUint32(T value) {
 
 template <typename T>
 inline __aicore__ void BinaryBrcInlineApiWithTwoVectorizedAxis(
-  const LocalTensor<T>& dstLocal,const LocalTensor<T>& src0Local, const LocalTensor<T>& src1Local,
-  const int64_t shape0,  // 输出的两个向量化轴的repeate.由于都是对齐的，直接取repeate
-  const int64_t shape1,
-  const uint8_t is_input0_block_brc,  // index0是否支持广播
-  const uint8_t is_input1_block_brc,  // index1是否支持广播
-  const int64_t first_axis_v_stride,  // 首轴v_stride
-  const int64_t dtype_size,
-  void (*FUNC1)(const LocalTensor<T>&, const LocalTensor<T>&, const LocalTensor<T>&, const int32_t&),
-  void (*FUNC2)(const LocalTensor<T>&, const LocalTensor<T>&, const LocalTensor<T>&, uint64_t, const uint8_t, const BinaryRepeatParams&)
-){
+    const LocalTensor<T> &dstLocal, const LocalTensor<T> &src0Local, const LocalTensor<T> &src1Local,
+    const int64_t shape0,  // 输出的两个向量化轴的repeate.由于都是对齐的，直接取repeate
+    const int64_t shape1,
+    const uint8_t is_input0_block_brc,  // index0是否支持广播
+    const uint8_t is_input1_block_brc,  // index1是否支持广播
+    const int64_t first_axis_v_stride,  // 首轴v_stride
+    const int64_t dtype_size,
+    void (*FUNC1)(const LocalTensor<T> &, const LocalTensor<T> &, const LocalTensor<T> &, const int32_t &),
+    void (*FUNC2)(const LocalTensor<T> &, const LocalTensor<T> &, const LocalTensor<T> &, uint64_t, const uint8_t,
+                  const BinaryRepeatParams &)) {
   int64_t element = shape1;
   int64_t block = shape0;
   int64_t elem_in_one_repeat = 256 / dtype_size;
@@ -336,29 +336,33 @@ inline __aicore__ void BinaryBrcInlineApiWithTwoVectorizedAxis(
   for (int64_t outer_for = 0; outer_for < cut_quotient; outer_for++) {
     calcSize = outer_for * elem_in_one_repeat;
     while (block > 255) {
-      FUNC2(dstLocal[calcSize+offset], src0Local[calcSize+is_input0_block_brc*offset], src1Local[calcSize+is_input1_block_brc*offset], 
-            elem_in_one_repeat, 255, {dst_block_stride, src0_block_stride, src1_block_stride, dst_repeat_stride,
-            src0_repeat_stride, src1_repeat_stride});
+      FUNC2(dstLocal[calcSize + offset], src0Local[calcSize + is_input0_block_brc * offset],
+            src1Local[calcSize + is_input1_block_brc * offset], elem_in_one_repeat, 255,
+            {dst_block_stride, src0_block_stride, src1_block_stride, dst_repeat_stride, src0_repeat_stride,
+             src1_repeat_stride});
       block -= 255;
       offset += first_axis_v_stride * 255;
     }
-    FUNC2(dstLocal[calcSize+offset], src0Local[calcSize+is_input0_block_brc*offset], src1Local[calcSize+is_input1_block_brc*offset], 
-          elem_in_one_repeat, block, {dst_block_stride, src0_block_stride, src1_block_stride, dst_repeat_stride,
-          src0_repeat_stride, src1_repeat_stride});
+    FUNC2(dstLocal[calcSize + offset], src0Local[calcSize + is_input0_block_brc * offset],
+          src1Local[calcSize + is_input1_block_brc * offset], elem_in_one_repeat, block,
+          {dst_block_stride, src0_block_stride, src1_block_stride, dst_repeat_stride, src0_repeat_stride,
+           src1_repeat_stride});
   }
   //  处理尾块
   if (cut_reminder > 0) {
     calcSize = cut_quotient * elem_in_one_repeat;
     while (block > 255) {
-      FUNC2(dstLocal[calcSize+offset], src0Local[calcSize+is_input0_block_brc*offset], src1Local[calcSize+is_input1_block_brc*offset], 
-            cut_reminder, 255, {dst_block_stride, src0_block_stride, src1_block_stride, dst_repeat_stride, 
-            src0_repeat_stride, src1_repeat_stride});
+      FUNC2(dstLocal[calcSize + offset], src0Local[calcSize + is_input0_block_brc * offset],
+            src1Local[calcSize + is_input1_block_brc * offset], cut_reminder, 255,
+            {dst_block_stride, src0_block_stride, src1_block_stride, dst_repeat_stride, src0_repeat_stride,
+             src1_repeat_stride});
       block -= 255;
       offset += first_axis_v_stride * 255;
     }
-    FUNC2(dstLocal[calcSize+offset], src0Local[calcSize+is_input0_block_brc*offset], src1Local[calcSize+is_input1_block_brc*offset], 
-          cut_reminder, block, {dst_block_stride, src0_block_stride, src1_block_stride, dst_repeat_stride,
-          src0_repeat_stride, src1_repeat_stride});
+    FUNC2(dstLocal[calcSize + offset], src0Local[calcSize + is_input0_block_brc * offset],
+          src1Local[calcSize + is_input1_block_brc * offset], cut_reminder, block,
+          {dst_block_stride, src0_block_stride, src1_block_stride, dst_repeat_stride, src0_repeat_stride,
+           src1_repeat_stride});
   }
 }
 
@@ -405,124 +409,135 @@ inline __aicore__ void DataCopyExtend(const AscendC::LocalTensor<T> &dst, const 
 }
 
 #endif  // __ASCENDC_API_DATACOPY_H__
-inline __aicore__ void autofuse_pointwise_0__abs__add_0_general_0_nil_2_nil(GM_ADDR Add_out0_graph_Data_0, GM_ADDR Add_out0_graph_Data_1, GM_ADDR Add_out0_graph_Output_0, GM_ADDR workspace, const AutofuseTilingData *t) {
-const int z0_axis_size = t->s2;
-const int z0_loop_size = z0_axis_size;
-const int z0_actual_size = z0_axis_size;
-const int z1_axis_size = t->s3;
-const int z1_loop_size = z1_axis_size;
-const int z1_actual_size = z1_axis_size;
-const int z0z1_axis_size = (t->s2 * t->s3);
-const int z0z1_loop_size = z0z1_axis_size;
-const int z0z1_actual_size = z0z1_axis_size;
-const int z0z1t_axis_size = t->z0z1t_size;
-const int z0z1t_tail_size = z0z1_loop_size % z0z1t_axis_size;
-const int z0z1T_axis_size = z0z1_loop_size / z0z1t_axis_size;
-const int z0z1T_loop_size = z0z1T_axis_size + (z0z1t_tail_size > 0);
-const int z0z1Tb_axis_size = t->z0z1Tb_size;
-const int z0z1Tb_tail_size = z0z1T_loop_size % z0z1Tb_axis_size;
-const int z0z1TB_axis_size = z0z1T_loop_size / z0z1Tb_axis_size;
-const int z0z1TB_loop_size = z0z1TB_axis_size + (z0z1Tb_tail_size > 0);
-int block_dim = GetBlockIdx();
-if (block_dim >= t->block_dim) { 
-  return;
+inline __aicore__ void autofuse_pointwise_0__abs__add_0_general_0_nil_2_nil(GM_ADDR Add_out0_graph_Data_0,
+                                                                            GM_ADDR Add_out0_graph_Data_1,
+                                                                            GM_ADDR Add_out0_graph_Output_0,
+                                                                            GM_ADDR workspace,
+                                                                            const AutofuseTilingData *t) {
+  const int z0_axis_size = t->s2;
+  const int z0_loop_size = z0_axis_size;
+  const int z0_actual_size = z0_axis_size;
+  const int z1_axis_size = t->s3;
+  const int z1_loop_size = z1_axis_size;
+  const int z1_actual_size = z1_axis_size;
+  const int z0z1_axis_size = (t->s2 * t->s3);
+  const int z0z1_loop_size = z0z1_axis_size;
+  const int z0z1_actual_size = z0z1_axis_size;
+  const int z0z1t_axis_size = t->z0z1t_size;
+  const int z0z1t_tail_size = z0z1_loop_size % z0z1t_axis_size;
+  const int z0z1T_axis_size = z0z1_loop_size / z0z1t_axis_size;
+  const int z0z1T_loop_size = z0z1T_axis_size + (z0z1t_tail_size > 0);
+  const int z0z1Tb_axis_size = t->z0z1Tb_size;
+  const int z0z1Tb_tail_size = z0z1T_loop_size % z0z1Tb_axis_size;
+  const int z0z1TB_axis_size = z0z1T_loop_size / z0z1Tb_axis_size;
+  const int z0z1TB_loop_size = z0z1TB_axis_size + (z0z1Tb_tail_size > 0);
+  int block_dim = GetBlockIdx();
+  if (block_dim >= t->block_dim) {
+    return;
+  }
+  const int z0z1TB = block_dim % z0z1TB_loop_size;
+
+  GlobalTensor<float> global_0;
+  global_0.SetGlobalBuffer((__gm__ float *)Add_out0_graph_Data_0);
+  GlobalTensor<float> global_1;
+  global_1.SetGlobalBuffer((__gm__ float *)Add_out0_graph_Data_1);
+  GlobalTensor<float> global_2;
+  global_2.SetGlobalBuffer((__gm__ float *)Add_out0_graph_Output_0);
+
+  TPipe tpipe;
+
+  const uint32_t local_3_size = KernelUtils::BlkAlign<float>((t->z0z1t_size - 1) + 1);
+  const uint32_t local_3_que_buf_num = 2;
+  const uint32_t local_4_size = KernelUtils::BlkAlign<float>((t->z0z1t_size - 1) + 1);
+  const uint32_t local_5_size = KernelUtils::BlkAlign<float>((t->z0z1t_size - 1) + 1);
+  const uint32_t local_5_que_buf_num = 2;
+  const uint32_t local_6_size = KernelUtils::BlkAlign<float>((t->z0z1t_size - 1) + 1);
+  const uint32_t local_6_que_buf_num = 2;
+
+  // const uint32_t b0_size = KernelUtils::Max(local_4_size * sizeof(float));
+  TBuf<TPosition::VECCALC> b0;
+  // tpipe.InitBuffer(b0, KernelUtils::BlkAlign<uint8_t>(b0_size));
+  tpipe.InitBuffer(b0, t->b0_size);
+  LocalTensor<float> local_4 = b0.Get<float>();
+
+  // const uint32_t q0_size = KernelUtils::Max(local_3_size * sizeof(float));
+  const uint32_t q0_buf_num = KernelUtils::Max(2);
+  TQue<TPosition::VECIN, 1> q0;
+  // tpipe.InitBuffer(q0, q0_buf_num, KernelUtils::BlkAlign<uint8_t>(q0_size));
+  tpipe.InitBuffer(q0, q0_buf_num, t->q0_size);
+
+  // const uint32_t q1_size = KernelUtils::Max(local_5_size * sizeof(float));
+  const uint32_t q1_buf_num = KernelUtils::Max(2);
+  TQue<TPosition::VECIN, 1> q1;
+  // tpipe.InitBuffer(q1, q1_buf_num, KernelUtils::BlkAlign<uint8_t>(q1_size));
+  tpipe.InitBuffer(q1, q1_buf_num, t->q1_size);
+
+  // const uint32_t q2_size = KernelUtils::Max(local_6_size * sizeof(float));
+  const uint32_t q2_buf_num = KernelUtils::Max(2);
+  TQue<TPosition::VECOUT, 1> q2;
+  // tpipe.InitBuffer(q2, q2_buf_num, KernelUtils::BlkAlign<uint8_t>(q2_size));
+  tpipe.InitBuffer(q2, q2_buf_num, t->q2_size);
+
+  int z0z1Tb_actual_size = z0z1TB < z0z1TB_axis_size ? z0z1Tb_axis_size : z0z1Tb_tail_size;
+  int z0z1Tb_loop_size = z0z1Tb_actual_size;
+  int32_t block_dim_offset = z0z1TB * t->z0z1Tb_size;
+  for (int z0z1Tb = 0; z0z1Tb < z0z1Tb_loop_size; z0z1Tb++) {
+    int z0z1T = block_dim_offset + z0z1Tb;
+    int z0z1t_actual_size = z0z1T < z0z1T_axis_size ? z0z1t_axis_size : z0z1t_tail_size;
+    int z0z1t_loop_size = z0z1t_actual_size;
+    uint32_t q0_reuse0_offset = 0;
+    LocalTensor<uint8_t> q0_buf = q0.AllocTensor<uint8_t>();
+    const uint32_t local_3_actual_size = (z0z1t_actual_size - 1) + 1;
+    LocalTensor<float> local_3;
+    local_3 = q0_buf[q0_reuse0_offset].template ReinterpretCast<float>();
+    DataCopyPadExtend(local_3,
+                      global_0[(int64_t)z0z1TB * (int64_t)(t->z0z1Tb_size * t->z0z1t_size) +
+                               (int64_t)z0z1Tb * (int64_t)t->z0z1t_size + 0],
+                      1, z0z1t_actual_size, 0, 0);
+    q0.EnQue(q0_buf);
+
+    q0_buf = q0.DeQue<uint8_t>();
+    const uint32_t local_4_actual_size = (z0z1t_actual_size - 1) + 1;
+    Abs(local_4[0], local_3[0], KernelUtils::BlkAlign<float>(local_3_actual_size));
+    q0.FreeTensor(q0_buf);
+
+    uint32_t q1_reuse1_offset = 0;
+    LocalTensor<uint8_t> q1_buf = q1.AllocTensor<uint8_t>();
+    const uint32_t local_5_actual_size = (z0z1t_actual_size - 1) + 1;
+    LocalTensor<float> local_5;
+    local_5 = q1_buf[q1_reuse1_offset].template ReinterpretCast<float>();
+    DataCopyPadExtend(local_5,
+                      global_1[(int64_t)z0z1TB * (int64_t)(t->z0z1Tb_size * t->z0z1t_size) +
+                               (int64_t)z0z1Tb * (int64_t)t->z0z1t_size + 0],
+                      1, z0z1t_actual_size, 0, 0);
+    q1.EnQue(q1_buf);
+
+    AscendC::PipeBarrier<PIPE_V>();
+    q1_buf = q1.DeQue<uint8_t>();
+    uint32_t q2_reuse2_offset = 0;
+    LocalTensor<uint8_t> q2_buf = q2.AllocTensor<uint8_t>();
+    const uint32_t local_6_actual_size = (z0z1t_actual_size - 1) + 1;
+    LocalTensor<float> local_6;
+    local_6 = q2_buf[q2_reuse2_offset].template ReinterpretCast<float>();
+    Add(local_6[0], local_4[0], local_5[0], local_4_actual_size);
+    q2.EnQue(q2_buf);
+    q1.FreeTensor(q1_buf);
+
+    q2_buf = q2.DeQue<uint8_t>();
+    DataCopyPadExtend(global_2[(int64_t)z0z1TB * (int64_t)(t->z0z1Tb_size * t->z0z1t_size) +
+                               (int64_t)z0z1Tb * (int64_t)t->z0z1t_size + 0],
+                      local_6, 1, z0z1t_actual_size, 0, 0);
+    q2.FreeTensor(q2_buf);
+  }
 }
-const int z0z1TB = block_dim % z0z1TB_loop_size; 
-
-GlobalTensor<float> global_0;
-global_0.SetGlobalBuffer((__gm__ float*)Add_out0_graph_Data_0);
-GlobalTensor<float> global_1;
-global_1.SetGlobalBuffer((__gm__ float*)Add_out0_graph_Data_1);
-GlobalTensor<float> global_2;
-global_2.SetGlobalBuffer((__gm__ float*)Add_out0_graph_Output_0);
-
-TPipe tpipe;
-
-const uint32_t local_3_size = KernelUtils::BlkAlign<float>((t->z0z1t_size - 1) + 1);
-const uint32_t local_3_que_buf_num = 2;
-const uint32_t local_4_size = KernelUtils::BlkAlign<float>((t->z0z1t_size - 1) + 1);
-const uint32_t local_5_size = KernelUtils::BlkAlign<float>((t->z0z1t_size - 1) + 1);
-const uint32_t local_5_que_buf_num = 2;
-const uint32_t local_6_size = KernelUtils::BlkAlign<float>((t->z0z1t_size - 1) + 1);
-const uint32_t local_6_que_buf_num = 2;
-
-
-// const uint32_t b0_size = KernelUtils::Max(local_4_size * sizeof(float));
-TBuf<TPosition::VECCALC> b0;
-// tpipe.InitBuffer(b0, KernelUtils::BlkAlign<uint8_t>(b0_size));
-tpipe.InitBuffer(b0, t->b0_size);
-LocalTensor<float> local_4 = b0.Get<float>();
-
-// const uint32_t q0_size = KernelUtils::Max(local_3_size * sizeof(float));
-const uint32_t q0_buf_num = KernelUtils::Max(2);
-TQue<TPosition::VECIN, 1> q0;
-// tpipe.InitBuffer(q0, q0_buf_num, KernelUtils::BlkAlign<uint8_t>(q0_size));
-tpipe.InitBuffer(q0, q0_buf_num, t->q0_size);
-
-// const uint32_t q1_size = KernelUtils::Max(local_5_size * sizeof(float));
-const uint32_t q1_buf_num = KernelUtils::Max(2);
-TQue<TPosition::VECIN, 1> q1;
-// tpipe.InitBuffer(q1, q1_buf_num, KernelUtils::BlkAlign<uint8_t>(q1_size));
-tpipe.InitBuffer(q1, q1_buf_num, t->q1_size);
-
-// const uint32_t q2_size = KernelUtils::Max(local_6_size * sizeof(float));
-const uint32_t q2_buf_num = KernelUtils::Max(2);
-TQue<TPosition::VECOUT, 1> q2;
-// tpipe.InitBuffer(q2, q2_buf_num, KernelUtils::BlkAlign<uint8_t>(q2_size));
-tpipe.InitBuffer(q2, q2_buf_num, t->q2_size);
-
-
-
-
-int z0z1Tb_actual_size = z0z1TB < z0z1TB_axis_size ? z0z1Tb_axis_size : z0z1Tb_tail_size;
-int z0z1Tb_loop_size = z0z1Tb_actual_size;
-int32_t block_dim_offset = z0z1TB * t->z0z1Tb_size;
-for (int z0z1Tb = 0; z0z1Tb < z0z1Tb_loop_size; z0z1Tb++) {
-int z0z1T = block_dim_offset + z0z1Tb;
-int z0z1t_actual_size = z0z1T < z0z1T_axis_size ? z0z1t_axis_size : z0z1t_tail_size;
-int z0z1t_loop_size = z0z1t_actual_size;
-uint32_t q0_reuse0_offset = 0;
-LocalTensor<uint8_t> q0_buf = q0.AllocTensor<uint8_t>();
-const uint32_t local_3_actual_size = (z0z1t_actual_size - 1) + 1;
-LocalTensor<float> local_3;
-local_3 = q0_buf[q0_reuse0_offset].template ReinterpretCast<float>();
-DataCopyPadExtend(local_3, global_0[(int64_t)z0z1TB * (int64_t)(t->z0z1Tb_size * t->z0z1t_size) + (int64_t)z0z1Tb * (int64_t)t->z0z1t_size + 0], 1, z0z1t_actual_size, 0, 0);
-q0.EnQue(q0_buf);
-
-q0_buf = q0.DeQue<uint8_t>();
-const uint32_t local_4_actual_size = (z0z1t_actual_size - 1) + 1;
-Abs(local_4[0], local_3[0], KernelUtils::BlkAlign<float>(local_3_actual_size));
-q0.FreeTensor(q0_buf);
-
-uint32_t q1_reuse1_offset = 0;
-LocalTensor<uint8_t> q1_buf = q1.AllocTensor<uint8_t>();
-const uint32_t local_5_actual_size = (z0z1t_actual_size - 1) + 1;
-LocalTensor<float> local_5;
-local_5 = q1_buf[q1_reuse1_offset].template ReinterpretCast<float>();
-DataCopyPadExtend(local_5, global_1[(int64_t)z0z1TB * (int64_t)(t->z0z1Tb_size * t->z0z1t_size) + (int64_t)z0z1Tb * (int64_t)t->z0z1t_size + 0], 1, z0z1t_actual_size, 0, 0);
-q1.EnQue(q1_buf);
-
-AscendC::PipeBarrier<PIPE_V>();
-q1_buf = q1.DeQue<uint8_t>();
-uint32_t q2_reuse2_offset = 0;
-LocalTensor<uint8_t> q2_buf = q2.AllocTensor<uint8_t>();
-const uint32_t local_6_actual_size = (z0z1t_actual_size - 1) + 1;
-LocalTensor<float> local_6;
-local_6 = q2_buf[q2_reuse2_offset].template ReinterpretCast<float>();
-Add(local_6[0], local_4[0], local_5[0], local_4_actual_size);
-q2.EnQue(q2_buf);
-q1.FreeTensor(q1_buf);
-
-q2_buf = q2.DeQue<uint8_t>();
-DataCopyPadExtend(global_2[(int64_t)z0z1TB * (int64_t)(t->z0z1Tb_size * t->z0z1t_size) + (int64_t)z0z1Tb * (int64_t)t->z0z1t_size + 0], local_6, 1, z0z1t_actual_size, 0, 0);
-q2.FreeTensor(q2_buf);
-
-}
-}
-extern "C" __global__ __aicore__ void autofuse_pointwise_0__abs__add(GM_ADDR Add_out0_graph_Data_0, GM_ADDR Add_out0_graph_Data_1, GM_ADDR Add_out0_graph_Output_0, GM_ADDR workspace, GM_ADDR gm_tiling_data) {
+extern "C" __global__ __aicore__ void autofuse_pointwise_0__abs__add(GM_ADDR Add_out0_graph_Data_0,
+                                                                     GM_ADDR Add_out0_graph_Data_1,
+                                                                     GM_ADDR Add_out0_graph_Output_0, GM_ADDR workspace,
+                                                                     GM_ADDR gm_tiling_data) {
   REGISTER_TILING_DEFAULT(AutofuseTilingData);
   GET_TILING_DATA(t, gm_tiling_data);
   if (TILING_KEY_IS(0)) {
-    autofuse_pointwise_0__abs__add_0_general_0_nil_2_nil(Add_out0_graph_Data_0, Add_out0_graph_Data_1, Add_out0_graph_Output_0, workspace, &t);
+    autofuse_pointwise_0__abs__add_0_general_0_nil_2_nil(Add_out0_graph_Data_0, Add_out0_graph_Data_1,
+                                                         Add_out0_graph_Output_0, workspace, &t);
   }
 }

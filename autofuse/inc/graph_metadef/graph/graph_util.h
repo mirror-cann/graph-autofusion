@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -23,7 +23,7 @@ static const char OP_TYPE_INPUT[] = "Input";
 static const char ATTR_KEY_INPUT_FORMAT[] = "input_format";
 static const char ATTR_KEY_OUTPUT_FORMAT[] = "output_format";
 static const char OP_TYPE_ANN_DATA[] = "AnnData";
-}  // namespace ge
+}  // namespace af
 
 #if !defined(__ANDROID__) && !defined(ANDROID)
 #include "dlog_pub.h"
@@ -110,7 +110,7 @@ const char levelStr[8][8] = {"EMERG", "ALERT", "CRIT", "ERROR", "WARNING", "NOTI
 
 // Do not add do...while(0), otherwise it wll introduce security issues
 #define GRAPH_IF_BOOL_EXEC(expr, exec_expr) \
-  {                                      \
+  {                                         \
     if (expr) {                             \
       exec_expr;                            \
     }                                       \

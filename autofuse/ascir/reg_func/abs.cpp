@@ -12,28 +12,27 @@
 namespace af {
 namespace ascir {
 std::vector<std::unique_ptr<TmpBufDesc>> CalcAbsTmpSize(const AscNode &node) {
-    AscNodeInputs node_inputs = node.inputs;
-    // 获取输入数据的元素个数
-    const auto input_size = GetInputSize(node_inputs);
-    // 根据数据类型计算临时buffer大小
-    // 对于int32类型：需要临时buffer用于非原地计算的中间结果存储
-    auto data_type = node_inputs[0].attr.dtype;
-    const auto data_type_size = GetSizeByDataType(data_type);
+  AscNodeInputs node_inputs = node.inputs;
+  // 获取输入数据的元素个数
+  const auto input_size = GetInputSize(node_inputs);
+  // 根据数据类型计算临时buffer大小
+  // 对于int32类型：需要临时buffer用于非原地计算的中间结果存储
+  auto data_type = node_inputs[0].attr.dtype;
+  const auto data_type_size = GetSizeByDataType(data_type);
 
-    if (data_type == ge::DT_INT32) {
-        // int32类型：tmp_buf大小需要 >= size * sizeof(int32_t)
-        // 用于原地计算时的数据暂存或中间结果存储
-        const Expression total_size = Symbol(data_type_size) * input_size;
-        GELOGD("Node %s[%s] AbsExtend int32 tmp buffer size: %s (input_size: %s, type_size: %d)",
-            node.GetTypePtr(), node.GetNamePtr(), total_size.Str().get(),
-            input_size.Str().get(), data_type_size);
-        return GetTmpBuffer(total_size);
-    } else {
-        // 其他数据类型：返回默认大小
-        GELOGW("Node %s[%s] AbsExtend unsupported data type, use default tmp buffer size",
-            node.GetTypePtr(), node.GetNamePtr());
-        return CalcDefaultTmpSize(node);
-    }
+  if (data_type == ge::DT_INT32) {
+    // int32类型：tmp_buf大小需要 >= size * sizeof(int32_t)
+    // 用于原地计算时的数据暂存或中间结果存储
+    const Expression total_size = Symbol(data_type_size) * input_size;
+    GELOGD("Node %s[%s] AbsExtend int32 tmp buffer size: %s (input_size: %s, type_size: %d)", node.GetTypePtr(),
+           node.GetNamePtr(), total_size.Str().get(), input_size.Str().get(), data_type_size);
+    return GetTmpBuffer(total_size);
+  } else {
+    // 其他数据类型：返回默认大小
+    GELOGW("Node %s[%s] AbsExtend unsupported data type, use default tmp buffer size", node.GetTypePtr(),
+           node.GetNamePtr());
+    return CalcDefaultTmpSize(node);
+  }
 }
 }  // namespace ascir
 }  // namespace af

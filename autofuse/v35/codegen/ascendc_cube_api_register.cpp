@@ -100,8 +100,7 @@ Register::Register() {
       {"mat_mul_tiling_key_dynamic.h", kAscendcmat_mul_tiling_key_dynamic},
       {"batch_mat_mul_v3_tiling_key_dynamic.h", kAscendcbatch_mat_mul_v3_tiling_key_dynamic},
       {"mat_mul_pingpong_basic_cmct_dynamic.h", kAscendcmat_mul_pingpong_basic_cmct_dynamic},
-      {"batch_matmul_dynamic.h", kAscendcbatch_matmul_dynamic}
-  };
+      {"batch_matmul_dynamic.h", kAscendcbatch_matmul_dynamic}};
 
   AscendCApiRegistry::GetInstance().RegisterApi(api_to_file);
 }

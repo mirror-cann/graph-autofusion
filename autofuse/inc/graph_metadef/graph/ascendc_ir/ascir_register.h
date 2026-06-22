@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -40,7 +40,7 @@ class AscirRegister {
   AscirRegister &ComputeType(ComputeType compute_type);
   AscirRegister &Comment(const std::string &comment);
 
-  template<class T>
+  template <class T>
   AscirRegister &Attr(ge::AscendString &&name);
 
   AscirRegister &InferDataType(AscIrDef::CodeGenerator infer_data_type_generator);
@@ -88,19 +88,19 @@ class AscirRegister {
 
 #define REG_ASC_IR(type) static auto g_register_##type = af::ascir::AscirRegister(#type, __FILE__, __LINE__)
 #define REG_ASC_IR_START_NODE(type) REG_ASC_IR(type).Inputs({}).Outputs({"y"}).StartNode()
-#define REG_ASC_IR_START_NODE_WITH_ATTR(type)                                                                          \
+#define REG_ASC_IR_START_NODE_WITH_ATTR(type) \
   REG_ASC_IR(type).Inputs({}).Outputs({"y"}).Attr<int64_t>("index").StartNode()
 #define REG_ASC_IR_1IO(type) REG_ASC_IR(type).Input("x", "T").Output("y", "T").DataType("T", TensorType::ALL())
-#define REG_ASC_IR_2I1O(type)                                                                                          \
+#define REG_ASC_IR_2I1O(type) \
   REG_ASC_IR(type).Input("x1", "T").Input("x2", "T").Output("y", "T").DataType("T", TensorType::ALL())
 
 #define EXPAND_CHAIN_CALL(...) #__VA_ARGS__
-#define REG_ASC_IR_WITH_COMMENT(type, ...)                                                                             \
-  constexpr const char *comment_##type =                                                                               \
-      R"COMMENT(REG_ASC_IR()COMMENT" #type ")\n" EXPAND_CHAIN_CALL(__VA_ARGS__) ";";                                   \
+#define REG_ASC_IR_WITH_COMMENT(type, ...)                                           \
+  constexpr const char *comment_##type =                                             \
+      R"COMMENT(REG_ASC_IR()COMMENT" #type ")\n" EXPAND_CHAIN_CALL(__VA_ARGS__) ";"; \
   static auto g_register_##type = AscirRegister(#type, __FILE__, __LINE__) __VA_ARGS__.Comment(comment_##type)
 #define EXPORT_GENERATOR()
 }  // namespace ascir
-}  // namespace ge
+}  // namespace af
 
 #endif  // AUTOFUSE_ASCIR_REGISTER_H

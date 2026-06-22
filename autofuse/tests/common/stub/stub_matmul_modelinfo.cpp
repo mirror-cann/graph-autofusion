@@ -12,8 +12,7 @@
 #include "stub_matmul_modelinfo.h"
 
 namespace {
-att::Expr GetSafeDivisor(const att::Expr &expr)
-{
+att::Expr GetSafeDivisor(const att::Expr &expr) {
   return af::sym::Max(af::sym::kSymbolOne, expr);
 }
 
@@ -31,8 +30,7 @@ struct MatmulExprContext {
   att::Expr expr_basek;
 };
 
-void BuildCoreAxis(att::ModelInfo &model_info, MatmulExprContext &ctx)
-{
+void BuildCoreAxis(att::ModelInfo &model_info, MatmulExprContext &ctx) {
   ctx.expr_corenum = att::CreateExpr("block_dim");
   att::SymVarInfoPtr sym_corenum = std::make_shared<att::SymVarInfo>(ctx.expr_corenum);
   att::AttAxisPtr core = std::make_shared<att::AttAxis>();
@@ -45,8 +43,7 @@ void BuildCoreAxis(att::ModelInfo &model_info, MatmulExprContext &ctx)
   model_info.arg_list.emplace_back(core);
 }
 
-void BuildMAxes(MatmulExprContext &ctx, att::AttAxisPtr &m, att::AttAxisPtr &tilem, att::AttAxisPtr &basem)
-{
+void BuildMAxes(MatmulExprContext &ctx, att::AttAxisPtr &m, att::AttAxisPtr &tilem, att::AttAxisPtr &basem) {
   ctx.expr_m = att::CreateExpr("m_size");
   ctx.expr_tilem = att::CreateExpr("tilem_size");
   ctx.expr_basem = att::CreateExpr("basem_size");
@@ -89,8 +86,7 @@ void BuildMAxes(MatmulExprContext &ctx, att::AttAxisPtr &m, att::AttAxisPtr &til
   basem->from_axis = {tilem.get()};
 }
 
-void BuildNAxes(MatmulExprContext &ctx, att::AttAxisPtr &n, att::AttAxisPtr &tilen, att::AttAxisPtr &basen)
-{
+void BuildNAxes(MatmulExprContext &ctx, att::AttAxisPtr &n, att::AttAxisPtr &tilen, att::AttAxisPtr &basen) {
   ctx.expr_n = att::CreateExpr("n_size");
   ctx.expr_tilen = att::CreateExpr("tilen_size");
   ctx.expr_basen = att::CreateExpr("basen_size");
@@ -133,9 +129,8 @@ void BuildNAxes(MatmulExprContext &ctx, att::AttAxisPtr &n, att::AttAxisPtr &til
   basen->from_axis = {tilen.get()};
 }
 
-void BuildKAxes(MatmulExprContext &ctx, att::AttAxisPtr &k, att::AttAxisPtr &stepka,
-                att::AttAxisPtr &stepkb, att::AttAxisPtr &basek)
-{
+void BuildKAxes(MatmulExprContext &ctx, att::AttAxisPtr &k, att::AttAxisPtr &stepka, att::AttAxisPtr &stepkb,
+                att::AttAxisPtr &basek) {
   ctx.expr_k = att::CreateExpr("k_size");
   ctx.expr_stepka = att::CreateExpr("stepka_size");
   ctx.expr_stepkb = att::CreateExpr("stepkb_size");
@@ -195,8 +190,7 @@ void BuildKAxes(MatmulExprContext &ctx, att::AttAxisPtr &k, att::AttAxisPtr &ste
 void AppendArgList(att::ModelInfo &model_info, const att::AttAxisPtr &m, const att::AttAxisPtr &tilen,
                    const att::AttAxisPtr &tilem, const att::AttAxisPtr &stepka, const att::AttAxisPtr &stepkb,
                    const att::AttAxisPtr &basek, const att::AttAxisPtr &basen, const att::AttAxisPtr &basem,
-                   const att::AttAxisPtr &n, const att::AttAxisPtr &k)
-{
+                   const att::AttAxisPtr &n, const att::AttAxisPtr &k) {
   model_info.arg_list.emplace_back(m);
   model_info.arg_list.emplace_back(tilen);
   model_info.arg_list.emplace_back(tilem);
@@ -209,15 +203,15 @@ void AppendArgList(att::ModelInfo &model_info, const att::AttAxisPtr &m, const a
   model_info.arg_list.emplace_back(k);
 }
 
-void FillMatmulHardwareCons(att::ModelInfo &model_info, const MatmulExprContext &ctx)
-{
+void FillMatmulHardwareCons(att::ModelInfo &model_info, const MatmulExprContext &ctx) {
   model_info.hardware_cons[att::HardwareDef::L0A] = ctx.expr_basem * ctx.expr_basek * att::CreateExpr(4);
   model_info.hardware_cons[att::HardwareDef::L0B] = ctx.expr_basek * ctx.expr_basen * att::CreateExpr(4);
   model_info.hardware_cons[att::HardwareDef::L0C] = ctx.expr_basem * ctx.expr_basen * att::CreateExpr(4);
-  model_info.hardware_cons[att::HardwareDef::L1] = (ctx.expr_stepka * ctx.expr_basem * att::CreateExpr(4)) +
-                                                    (ctx.expr_stepkb * ctx.expr_basen * att::CreateExpr(4));
-  model_info.hardware_cons[att::HardwareDef::L2] = (ctx.expr_tilen * ctx.expr_tilem * att::CreateExpr(2)) +
-                                                    ((ctx.expr_tilen + ctx.expr_tilem) * ctx.expr_k * att::CreateExpr(2));
+  model_info.hardware_cons[att::HardwareDef::L1] =
+      (ctx.expr_stepka * ctx.expr_basem * att::CreateExpr(4)) + (ctx.expr_stepkb * ctx.expr_basen * att::CreateExpr(4));
+  model_info.hardware_cons[att::HardwareDef::L2] =
+      (ctx.expr_tilen * ctx.expr_tilem * att::CreateExpr(2)) +
+      ((ctx.expr_tilen + ctx.expr_tilem) * ctx.expr_k * att::CreateExpr(2));
   model_info.hardware_cons[att::HardwareDef::UB] = att::CreateExpr(0L);
 }
 
@@ -229,30 +223,24 @@ struct MatmulPerfContext {
   att::Expr l0_cnt;
 };
 
-
-MatmulPerfContext CalcMatmulLoopCnts(const MatmulExprContext &ctx)
-{
+MatmulPerfContext CalcMatmulLoopCnts(const MatmulExprContext &ctx) {
   MatmulPerfContext perf;
-  perf.tile_cnt = ((ctx.expr_n / GetSafeDivisor(ctx.expr_tilen)) *
-                   (ctx.expr_m / GetSafeDivisor(ctx.expr_tilem)));
-  perf.base_cnt = af::sym::Max(af::sym::kSymbolOne,
-                               (((ctx.expr_tilem / GetSafeDivisor(ctx.expr_basem)) *
-                                 (ctx.expr_tilen / GetSafeDivisor(ctx.expr_basen))) /
-                                GetSafeDivisor(ctx.expr_corenum)));
+  perf.tile_cnt = ((ctx.expr_n / GetSafeDivisor(ctx.expr_tilen)) * (ctx.expr_m / GetSafeDivisor(ctx.expr_tilem)));
+  perf.base_cnt = af::sym::Max(af::sym::kSymbolOne, (((ctx.expr_tilem / GetSafeDivisor(ctx.expr_basem)) *
+                                                      (ctx.expr_tilen / GetSafeDivisor(ctx.expr_basen))) /
+                                                     GetSafeDivisor(ctx.expr_corenum)));
   perf.al1_cnt = ctx.expr_k / GetSafeDivisor(ctx.expr_stepka);
   perf.bl1_cnt = ctx.expr_stepka / GetSafeDivisor(ctx.expr_stepkb);
   perf.l0_cnt = ctx.expr_stepkb / GetSafeDivisor(ctx.expr_basek);
   return perf;
 }
 
-void FillMatmulPerfObjects(att::ModelInfo &model_info, const MatmulExprContext &ctx,
-                           const MatmulPerfContext &perf)
-{
+void FillMatmulPerfObjects(att::ModelInfo &model_info, const MatmulExprContext &ctx, const MatmulPerfContext &perf) {
   att::Expr l1_cnt = perf.al1_cnt * perf.bl1_cnt;
-  att::Expr al0_mte1 = (((ctx.expr_basem * ctx.expr_basek) * att::CreateExpr(2)) / att::CreateExpr(512)) +
-                       att::CreateExpr(26);
-  att::Expr bl0_mte1 = (((ctx.expr_basek * ctx.expr_basen) * att::CreateExpr(2)) / att::CreateExpr(256)) +
-                       att::CreateExpr(26);
+  att::Expr al0_mte1 =
+      (((ctx.expr_basem * ctx.expr_basek) * att::CreateExpr(2)) / att::CreateExpr(512)) + att::CreateExpr(26);
+  att::Expr bl0_mte1 =
+      (((ctx.expr_basek * ctx.expr_basen) * att::CreateExpr(2)) / att::CreateExpr(256)) + att::CreateExpr(26);
   att::Expr mte1 = (perf.tile_cnt * perf.base_cnt * l1_cnt * perf.l0_cnt) * (al0_mte1 + bl0_mte1);
   std::cout << "mte1: " << mte1 << std::endl;
 
@@ -262,14 +250,14 @@ void FillMatmulPerfObjects(att::ModelInfo &model_info, const MatmulExprContext &
   att::Expr mac = (perf.tile_cnt * perf.base_cnt * l1_cnt * perf.l0_cnt) * l0_mac;
   std::cout << "mac: " << mac << std::endl;
 
-  att::Expr al1_mte2 = (((ctx.expr_basem * ctx.expr_stepka) * att::CreateExpr(2)) /
-                        (att::CreateExpr(32) / af::sym::Max(af::sym::kSymbolOne,
-                                                            (att::CreateExpr(256) / ctx.expr_stepka)))) +
-                       att::CreateExpr(210);
-  att::Expr bl1_mte2 = (((ctx.expr_stepkb * ctx.expr_basen) * att::CreateExpr(2)) /
-                        (att::CreateExpr(32) / af::sym::Max(af::sym::kSymbolOne,
-                                                            (att::CreateExpr(256) / ctx.expr_basen)))) +
-                       att::CreateExpr(210);
+  att::Expr al1_mte2 =
+      (((ctx.expr_basem * ctx.expr_stepka) * att::CreateExpr(2)) /
+       (att::CreateExpr(32) / af::sym::Max(af::sym::kSymbolOne, (att::CreateExpr(256) / ctx.expr_stepka)))) +
+      att::CreateExpr(210);
+  att::Expr bl1_mte2 =
+      (((ctx.expr_stepkb * ctx.expr_basen) * att::CreateExpr(2)) /
+       (att::CreateExpr(32) / af::sym::Max(af::sym::kSymbolOne, (att::CreateExpr(256) / ctx.expr_basen)))) +
+      att::CreateExpr(210);
   att::Expr mte2 = perf.tile_cnt * perf.base_cnt * perf.al1_cnt * (al1_mte2 + (perf.bl1_cnt * bl1_mte2));
   std::cout << "mte2: " << mte2 << std::endl;
 
@@ -282,8 +270,7 @@ void FillMatmulPerfObjects(att::ModelInfo &model_info, const MatmulExprContext &
   model_info.objects[att::PipeType::AIC_FIXPIPE] = fixpipe;
 }
 
-void FillModelInfo(att::ModelInfo &model_info, const MatmulExprContext &ctx)
-{
+void FillModelInfo(att::ModelInfo &model_info, const MatmulExprContext &ctx) {
   FillMatmulHardwareCons(model_info, ctx);
   MatmulPerfContext perf = CalcMatmulLoopCnts(ctx);
   FillMatmulPerfObjects(model_info, ctx, perf);
@@ -303,8 +290,7 @@ void FillModelInfo(att::ModelInfo &model_info, const MatmulExprContext &ctx)
 }  // namespace
 
 namespace att {
-ModelInfo GenMatmulModelInfo()
-{
+ModelInfo GenMatmulModelInfo() {
   ModelInfo model_info;
   MatmulExprContext ctx;
   BuildCoreAxis(model_info, ctx);

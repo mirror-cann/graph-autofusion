@@ -20,7 +20,7 @@
 #include "ascir_utils.h"
 #include "default_reg_func_v2.h"
 
-namespace af{
+namespace af {
 namespace ascir {
 
 using namespace testing;
@@ -37,66 +37,65 @@ class CalcXorTmpSizeV2Test : public ::testing::Test {
  * @tc.number: CalcXorTmpSizeV2_Test_001
  * @tc.desc: Test CalcXorTmpSizeV2 returns correct size when input is DT_INT16
  */
-TEST_F(CalcXorTmpSizeV2Test, CalcXorTmpSizeV2_ShouldReturnCorrectSize_WhenInputsIsINT16)
-{
-    af::AscGraph graph("test");
-    auto s0 = graph.CreateSizeVar("s0");
-    auto s1 = graph.CreateSizeVar("s1");
-    auto s2 = graph.CreateSizeVar("s2");
+TEST_F(CalcXorTmpSizeV2Test, CalcXorTmpSizeV2_ShouldReturnCorrectSize_WhenInputsIsINT16) {
+  af::AscGraph graph("test");
+  auto s0 = graph.CreateSizeVar("s0");
+  auto s1 = graph.CreateSizeVar("s1");
+  auto s2 = graph.CreateSizeVar("s2");
 
-    auto z0 = graph.CreateAxis("z0", s0);
-    auto zo = graph.CreateAxis("zo", s1 + s2);
-    auto zo_s_0 = graph.CreateAxis("zo_s_0", Axis::Type::kAxisTypeOriginal, s1, {zo.id}, af::kIdNone);
-    auto zo_s_1 = graph.CreateAxis("zo_s_1", Axis::Type::kAxisTypeOriginal, s2, {zo.id}, af::kIdNone);
+  auto z0 = graph.CreateAxis("z0", s0);
+  auto zo = graph.CreateAxis("zo", s1 + s2);
+  auto zo_s_0 = graph.CreateAxis("zo_s_0", Axis::Type::kAxisTypeOriginal, s1, {zo.id}, af::kIdNone);
+  auto zo_s_1 = graph.CreateAxis("zo_s_1", Axis::Type::kAxisTypeOriginal, s2, {zo.id}, af::kIdNone);
 
-    af::ascir_op::Data x1("x1", graph);
-    af::ascir_op::Load load1("load1");
-    af::ascir_op::Xor xor_op("xor");
-    af::ascir_op::Store store("store");
-    af::ascir_op::Output y("y");
+  af::ascir_op::Data x1("x1", graph);
+  af::ascir_op::Load load1("load1");
+  af::ascir_op::Xor xor_op("xor");
+  af::ascir_op::Store store("store");
+  af::ascir_op::Output y("y");
 
-    x1.attr.sched.axis = {z0.id, zo_s_0.id};
-    x1.y.dtype = af::DT_INT16;
-    *x1.y.axis = {z0.id, zo_s_0.id};
-    *x1.y.repeats = {s0, s1};
-    *x1.y.strides = {s1, Symbol(1)};
+  x1.attr.sched.axis = {z0.id, zo_s_0.id};
+  x1.y.dtype = af::DT_INT16;
+  *x1.y.axis = {z0.id, zo_s_0.id};
+  *x1.y.repeats = {s0, s1};
+  *x1.y.strides = {s1, Symbol(1)};
 
-    load1.x = x1.y;
-    load1.attr.sched.axis = {z0.id, zo_s_0.id};
-    load1.y.dtype = af::DT_INT16;
-    *load1.y.axis = {z0.id, zo_s_0.id};
-    *load1.y.repeats = {s0, s1};
-    *load1.y.strides = {s1, Symbol(1)};
-    *load1.y.vectorized_axis = {z0.id, zo_s_0.id};
+  load1.x = x1.y;
+  load1.attr.sched.axis = {z0.id, zo_s_0.id};
+  load1.y.dtype = af::DT_INT16;
+  *load1.y.axis = {z0.id, zo_s_0.id};
+  *load1.y.repeats = {s0, s1};
+  *load1.y.strides = {s1, Symbol(1)};
+  *load1.y.vectorized_axis = {z0.id, zo_s_0.id};
 
-    xor_op.x1 = load1.y;
-    xor_op.x2 = load1.y;
-    xor_op.attr.sched.axis = {z0.id, zo_s_0.id};
-    xor_op.y.dtype = af::DT_INT16;
-    *xor_op.y.axis = {z0.id, zo_s_0.id};
-    *xor_op.y.repeats = {s0, s1};
-    *xor_op.y.strides = {s1, Symbol(1)};
+  xor_op.x1 = load1.y;
+  xor_op.x2 = load1.y;
+  xor_op.attr.sched.axis = {z0.id, zo_s_0.id};
+  xor_op.y.dtype = af::DT_INT16;
+  *xor_op.y.axis = {z0.id, zo_s_0.id};
+  *xor_op.y.repeats = {s0, s1};
+  *xor_op.y.strides = {s1, Symbol(1)};
 
-    store.x = xor_op.y;
-    store.attr.sched.axis = {z0.id, zo_s_0.id};
-    store.y.dtype = af::DT_INT16;
-    *store.y.axis = {z0.id, zo_s_0.id};
-    *store.y.repeats = {s0, s1};
-    *store.y.strides = {s1, Symbol(1)};
+  store.x = xor_op.y;
+  store.attr.sched.axis = {z0.id, zo_s_0.id};
+  store.y.dtype = af::DT_INT16;
+  *store.y.axis = {z0.id, zo_s_0.id};
+  *store.y.repeats = {s0, s1};
+  *store.y.strides = {s1, Symbol(1)};
 
-    y.x = store.y;
-    y.attr.sched.axis = {z0.id, zo_s_0.id};
-    y.y.dtype = af::DT_INT16;
-    *y.y.axis = {z0.id, zo_s_0.id};
-    *y.y.repeats = {s0, s1};
-    *y.y.strides = {s1, Symbol(1)};
+  y.x = store.y;
+  y.attr.sched.axis = {z0.id, zo_s_0.id};
+  y.y.dtype = af::DT_INT16;
+  *y.y.axis = {z0.id, zo_s_0.id};
+  *y.y.repeats = {s0, s1};
+  *y.y.strides = {s1, Symbol(1)};
 
-    std::shared_ptr<af::AscNode> node = graph.FindNode("xor");
-    node->inputs[0].attr.vectorized_strides = {s1, Symbol(1)};
-    std::vector<std::unique_ptr<af::TmpBufDesc>> result = CalcXorTmpSizeV2(*node);
-    ASSERT_EQ(result.size(), 1);
-    ASSERT_EQ(result[0]->size, Symbol(256));  // XOR_ONE_REPEAT_BYTE_SIZE * XOR_UINT16_CALC_PROC = 256 * 1
-    ASSERT_EQ(result[0]->life_time_axis_id, -1);
+  std::shared_ptr<af::AscNode> node = graph.FindNode("xor");
+  node->inputs[0].attr.vectorized_strides = {s1, Symbol(1)};
+  std::vector<std::unique_ptr<af::TmpBufDesc>> result = CalcXorTmpSizeV2(*node);
+  ASSERT_EQ(result.size(), 1);
+  ASSERT_EQ(result[0]->size, Symbol(256));  // XOR_ONE_REPEAT_BYTE_SIZE * XOR_UINT16_CALC_PROC = 256 * 1
+  ASSERT_EQ(result[0]->life_time_axis_id, -1);
 }
 
 /**
@@ -104,67 +103,66 @@ TEST_F(CalcXorTmpSizeV2Test, CalcXorTmpSizeV2_ShouldReturnCorrectSize_WhenInputs
  * @tc.number: CalcXorTmpSizeV2_Test_002
  * @tc.desc: Test CalcXorTmpSizeV2 returns correct size when input is DT_UINT16
  */
-TEST_F(CalcXorTmpSizeV2Test, CalcXorTmpSizeV2_ShouldReturnCorrectSize_WhenInputsIsUINT16)
-{
-    af::AscGraph graph("test");
-    auto s0 = graph.CreateSizeVar("s0");
-    auto s1 = graph.CreateSizeVar("s1");
-    auto s2 = graph.CreateSizeVar("s2");
+TEST_F(CalcXorTmpSizeV2Test, CalcXorTmpSizeV2_ShouldReturnCorrectSize_WhenInputsIsUINT16) {
+  af::AscGraph graph("test");
+  auto s0 = graph.CreateSizeVar("s0");
+  auto s1 = graph.CreateSizeVar("s1");
+  auto s2 = graph.CreateSizeVar("s2");
 
-    auto z0 = graph.CreateAxis("z0", s0);
-    auto zo = graph.CreateAxis("zo", s1 + s2);
-    auto zo_s_0 = graph.CreateAxis("zo_s_0", Axis::Type::kAxisTypeOriginal, s1, {zo.id}, af::kIdNone);
-    auto zo_s_1 = graph.CreateAxis("zo_s_1", Axis::Type::kAxisTypeOriginal, s2, {zo.id}, af::kIdNone);
+  auto z0 = graph.CreateAxis("z0", s0);
+  auto zo = graph.CreateAxis("zo", s1 + s2);
+  auto zo_s_0 = graph.CreateAxis("zo_s_0", Axis::Type::kAxisTypeOriginal, s1, {zo.id}, af::kIdNone);
+  auto zo_s_1 = graph.CreateAxis("zo_s_1", Axis::Type::kAxisTypeOriginal, s2, {zo.id}, af::kIdNone);
 
-    af::ascir_op::Data x1("x1", graph);
-    af::ascir_op::Load load1("load1");
-    af::ascir_op::Xor xor_op("xor");
-    af::ascir_op::Store store("store");
-    af::ascir_op::Output y("y");
+  af::ascir_op::Data x1("x1", graph);
+  af::ascir_op::Load load1("load1");
+  af::ascir_op::Xor xor_op("xor");
+  af::ascir_op::Store store("store");
+  af::ascir_op::Output y("y");
 
-    x1.attr.sched.axis = {z0.id, zo_s_0.id};
-    x1.y.dtype = af::DT_UINT16;
-    *x1.y.axis = {z0.id, zo_s_0.id};
-    *x1.y.repeats = {s0, s1};
-    *x1.y.strides = {s1, Symbol(1)};
+  x1.attr.sched.axis = {z0.id, zo_s_0.id};
+  x1.y.dtype = af::DT_UINT16;
+  *x1.y.axis = {z0.id, zo_s_0.id};
+  *x1.y.repeats = {s0, s1};
+  *x1.y.strides = {s1, Symbol(1)};
 
-    load1.x = x1.y;
-    load1.attr.sched.axis = {z0.id, zo_s_0.id};
-    load1.y.dtype = af::DT_UINT16;
-    *load1.y.axis = {z0.id, zo_s_0.id};
-    *load1.y.repeats = {s0, s1};
-    *load1.y.strides = {s1, Symbol(1)};
-    *load1.y.vectorized_axis = {z0.id, zo_s_0.id};
+  load1.x = x1.y;
+  load1.attr.sched.axis = {z0.id, zo_s_0.id};
+  load1.y.dtype = af::DT_UINT16;
+  *load1.y.axis = {z0.id, zo_s_0.id};
+  *load1.y.repeats = {s0, s1};
+  *load1.y.strides = {s1, Symbol(1)};
+  *load1.y.vectorized_axis = {z0.id, zo_s_0.id};
 
-    xor_op.x1 = load1.y;
-    xor_op.x2 = load1.y;
-    xor_op.attr.sched.axis = {z0.id, zo_s_0.id};
-    xor_op.y.dtype = af::DT_UINT16;
-    *xor_op.y.axis = {z0.id, zo_s_0.id};
-    *xor_op.y.repeats = {s0, s1};
-    *xor_op.y.strides = {s1, Symbol(1)};
+  xor_op.x1 = load1.y;
+  xor_op.x2 = load1.y;
+  xor_op.attr.sched.axis = {z0.id, zo_s_0.id};
+  xor_op.y.dtype = af::DT_UINT16;
+  *xor_op.y.axis = {z0.id, zo_s_0.id};
+  *xor_op.y.repeats = {s0, s1};
+  *xor_op.y.strides = {s1, Symbol(1)};
 
-    store.x = xor_op.y;
-    store.attr.sched.axis = {z0.id, zo_s_0.id};
-    store.y.dtype = af::DT_UINT16;
-    *store.y.axis = {z0.id, zo_s_0.id};
-    *store.y.repeats = {s0, s1};
-    *store.y.strides = {s1, Symbol(1)};
+  store.x = xor_op.y;
+  store.attr.sched.axis = {z0.id, zo_s_0.id};
+  store.y.dtype = af::DT_UINT16;
+  *store.y.axis = {z0.id, zo_s_0.id};
+  *store.y.repeats = {s0, s1};
+  *store.y.strides = {s1, Symbol(1)};
 
-    y.x = store.y;
-    y.attr.sched.axis = {z0.id, zo_s_0.id};
-    y.y.dtype = af::DT_UINT16;
-    *y.y.axis = {z0.id, zo_s_0.id};
-    *y.y.repeats = {s0, s1};
-    *y.y.strides = {s1, Symbol(1)};
+  y.x = store.y;
+  y.attr.sched.axis = {z0.id, zo_s_0.id};
+  y.y.dtype = af::DT_UINT16;
+  *y.y.axis = {z0.id, zo_s_0.id};
+  *y.y.repeats = {s0, s1};
+  *y.y.strides = {s1, Symbol(1)};
 
-    std::shared_ptr<af::AscNode> node = graph.FindNode("xor");
-    node->inputs[0].attr.vectorized_strides = {s1, Symbol(1)};
-    std::vector<std::unique_ptr<af::TmpBufDesc>> result = CalcXorTmpSizeV2(*node);
-    ASSERT_EQ(result.size(), 1);
-    ASSERT_EQ(result[0]->size, Symbol(256));  // XOR_ONE_REPEAT_BYTE_SIZE * XOR_UINT16_CALC_PROC = 256 * 1
-    ASSERT_EQ(result[0]->life_time_axis_id, -1);
+  std::shared_ptr<af::AscNode> node = graph.FindNode("xor");
+  node->inputs[0].attr.vectorized_strides = {s1, Symbol(1)};
+  std::vector<std::unique_ptr<af::TmpBufDesc>> result = CalcXorTmpSizeV2(*node);
+  ASSERT_EQ(result.size(), 1);
+  ASSERT_EQ(result[0]->size, Symbol(256));  // XOR_ONE_REPEAT_BYTE_SIZE * XOR_UINT16_CALC_PROC = 256 * 1
+  ASSERT_EQ(result[0]->life_time_axis_id, -1);
 }
 
-} // namespace ascir
-} // namespace ge
+}  // namespace ascir
+}  // namespace af

@@ -1,16 +1,15 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
 
 #ifndef GRAPH_GE_TENSOR_IMPL_H_
 #define GRAPH_GE_TENSOR_IMPL_H_
-
 
 #include <string>
 #include <vector>
@@ -75,16 +74,15 @@ class GeTensorDescImpl {
 
   class ExtMeta {
    public:
-    bool operator==(const ExtMeta& other) const {
+    bool operator==(const ExtMeta &other) const {
       return (name == other.name) && (device_type == other.device_type) && (size == other.size) &&
-        (weight_size == other.weight_size) && (cmps_tab_offset == other.cmps_tab_offset) &&
-        (reuse_input_index == other.reuse_input_index) && (cmps_tab == other.cmps_tab) &&
-        (data_offset == other.data_offset) && (cmps_size == other.cmps_size) &&
-        (real_dim_cnt == other.real_dim_cnt) &&
-        (other.reuse_input ? reuse_input : !reuse_input) &&
-        (other.input_tensor ? input_tensor : !input_tensor) &&
-        (other.output_tensor ? output_tensor : !output_tensor) &&
-        (other.origin_shape_inited_ ? origin_shape_inited_ : !origin_shape_inited_);
+             (weight_size == other.weight_size) && (cmps_tab_offset == other.cmps_tab_offset) &&
+             (reuse_input_index == other.reuse_input_index) && (cmps_tab == other.cmps_tab) &&
+             (data_offset == other.data_offset) && (cmps_size == other.cmps_size) &&
+             (real_dim_cnt == other.real_dim_cnt) && (other.reuse_input ? reuse_input : !reuse_input) &&
+             (other.input_tensor ? input_tensor : !input_tensor) &&
+             (other.output_tensor ? output_tensor : !output_tensor) &&
+             (other.origin_shape_inited_ ? origin_shape_inited_ : !origin_shape_inited_);
     }
     // for name
     std::string GetName() const {
@@ -264,8 +262,8 @@ class TensorDataImpl {
 
   TensorDataImpl &operator=(const TensorDataImpl &other);
 
-  graphStatus SetData(const uint8_t * const data, const size_t size);
-  graphStatus SetData(uint8_t * const data, const size_t size, const AlignedPtr::Deleter &delete_fuc);
+  graphStatus SetData(const uint8_t *const data, const size_t size);
+  graphStatus SetData(uint8_t *const data, const size_t size, const AlignedPtr::Deleter &delete_fuc);
   void SetData(std::shared_ptr<AlignedPtr> aligned_ptr, const size_t size);
 
   graphStatus ResetData(uint8_t *const data, const size_t size, const AlignedPtr::Deleter &delete_fuc);
@@ -281,7 +279,9 @@ class TensorDataImpl {
 
   uint8_t operator[](const size_t index) const;
 
-  const std::shared_ptr<AlignedPtr> &GetAlignedPtr() const { return aligned_ptr_; }
+  const std::shared_ptr<AlignedPtr> &GetAlignedPtr() const {
+    return aligned_ptr_;
+  }
 
  private:
   friend class GeTensorImpl;
@@ -303,7 +303,7 @@ class GeTensorImpl {
   GeTensorImpl();
   explicit GeTensorImpl(const GeTensorDesc &tensor_desc);
   GeTensorImpl(const GeTensorDesc &tensor_desc, const std::vector<uint8_t> &data);
-  GeTensorImpl(const GeTensorDesc &tensor_desc, const uint8_t * const data, const size_t size);
+  GeTensorImpl(const GeTensorDesc &tensor_desc, const uint8_t *const data, const size_t size);
   GeTensorImpl(GeTensorDesc &&tensor_desc, std::vector<uint8_t> &&data);
   GeTensorImpl(const GeTensorDesc &tensor_desc, const Buffer &data);
   GeTensorImpl(const GeTensorDesc &tensor_desc, std::shared_ptr<AlignedPtr> aligned_ptr, const size_t size);
@@ -319,16 +319,20 @@ class GeTensorImpl {
   void BuildAlignerPtrWithProtoData();
   graphStatus SetData(std::vector<uint8_t> &&data);
   graphStatus SetData(const std::vector<uint8_t> &data);
-  graphStatus SetData(const uint8_t * const data, size_t const size);
+  graphStatus SetData(const uint8_t *const data, size_t const size);
   graphStatus SetData(const Buffer &data);
   graphStatus SetData(const TensorData &data);
-  graphStatus SetData(uint8_t * const data, const size_t size, const AlignedPtr::Deleter &delete_fuc);
+  graphStatus SetData(uint8_t *const data, const size_t size, const AlignedPtr::Deleter &delete_fuc);
   void ClearData();
   void Clone(GeTensorImpl &tensor) const;
 
   std::shared_ptr<AlignedPtr> GetAlignedPtr() const;
-  const TensorData &GetData() const { return tensor_data_; }
-  TensorData &MutableData() { return tensor_data_; }
+  const TensorData &GetData() const {
+    return tensor_data_;
+  }
+  TensorData &MutableData() {
+    return tensor_data_;
+  }
   bool IsTensorDataValid() const;
   // zero copy SetData
   void SetData(std::shared_ptr<AlignedPtr> aligned_ptr, const size_t size) {
@@ -346,5 +350,5 @@ class GeTensorImpl {
   mutable GeTensorDesc desc_;
   TensorData tensor_data_;
 };
-}  // namespace ge
+}  // namespace af
 #endif  // GRAPH_GE_TENSOR_IMPL_H_

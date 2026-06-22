@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -41,16 +41,13 @@ Status GatherRegApiCall::GetGatherCase(const Tensor &x1, std::string &result) co
   if (x1_axis_size == 1 && this->axis == 0) {
     result = single_axis;
     return ge::SUCCESS;
-  }
-  else if (x1_axis_size > 1 && this->axis == 0) {
+  } else if (x1_axis_size > 1 && this->axis == 0) {
     result = begin_axis;
     return ge::SUCCESS;
-  }
-  else if (x1_axis_size > 1 && this->axis == x1_axis_size - 1) {
+  } else if (x1_axis_size > 1 && this->axis == x1_axis_size - 1) {
     result = end_axis;
     return ge::SUCCESS;
-  }
-  else if (x1_axis_size > 1 && this->axis != x1_axis_size - 1 && this->axis > 0) { // 对中间轴gahter
+  } else if (x1_axis_size > 1 && this->axis != x1_axis_size - 1 && this->axis > 0) {  // 对中间轴gahter
     result = mid_axis;
     return ge::SUCCESS;
   }
@@ -59,9 +56,9 @@ Status GatherRegApiCall::GetGatherCase(const Tensor &x1, std::string &result) co
 }
 
 std::string GenerateNonLastAxisGatherSimt(const std::vector<ascir::AxisId> &current_axis,
-                                      const std::vector<std::reference_wrapper<const Tensor>> &inputs,
-                                      const std::vector<std::reference_wrapper<const Tensor>> &outputs,
-                                      int64_t gather_axis, const TPipe &tpipe) {
+                                          const std::vector<std::reference_wrapper<const Tensor>> &inputs,
+                                          const std::vector<std::reference_wrapper<const Tensor>> &outputs,
+                                          int64_t gather_axis, const TPipe &tpipe) {
   stringstream ss;
   const auto &x1 = inputs[0].get();  // param_gm
   const auto &x2 = inputs[1].get();  // indices_gm
@@ -96,10 +93,10 @@ std::string GenerateNonLastAxisGatherSimt(const std::vector<ascir::AxisId> &curr
     auto inner_size = CalGatherInnerSize(x1.axis, gather_axis, tpipe);
     auto outer_size = CalGatherOuterSize(x1.axis, gather_axis, tpipe);
     auto gather_size = CalGatherSize(x2.axis, tpipe);
-    ss << "auto y_index_base =  " << outer_axis_offset << " * " << inner_size << " + " << outer_axis << " * " << tpipe.tiler.Size(axis0.size) << ";"
-       << std::endl;
-    ss << "GatherSimtNonTailExtend(" << y << "[0], " << x1 << ", " << x2 << ", y_index_base, " << gather_size << ", " << outer_size << ", " << inner_size << ", " << gather_dim_size << ", "<<axis0.actual_size<<");"
-       << std::endl;
+    ss << "auto y_index_base =  " << outer_axis_offset << " * " << inner_size << " + " << outer_axis << " * "
+       << tpipe.tiler.Size(axis0.size) << ";" << std::endl;
+    ss << "GatherSimtNonTailExtend(" << y << "[0], " << x1 << ", " << x2 << ", y_index_base, " << gather_size << ", "
+       << outer_size << ", " << inner_size << ", " << gather_dim_size << ", " << axis0.actual_size << ");" << std::endl;
   }
   return ss.str();
 }
@@ -131,8 +128,8 @@ Status GatherRegApiCall::GenerateComputeTypeGather(const TPipe &tpipe, const std
     GE_ASSERT_TRUE(tmp_buf_id != -1, "GatherRegApiCall cannot find tmp buffer id to use.");
     if (x1_axis_size == 1) {
       ss << this->api_name_ << "(" << y << ", " << x1 << ", " << x2 << "[" << dst_offset << "], "
-         << tpipe.tiler.Size(x1.axis_size[0], true) << ", " << y.actual_size << ", " << tpipe.tmp_buf
-         << "_" << std::to_string(tmp_buf_id) << ");" << std::endl;
+         << tpipe.tiler.Size(x1.axis_size[0], true) << ", " << y.actual_size << ", " << tpipe.tmp_buf << "_"
+         << std::to_string(tmp_buf_id) << ");" << std::endl;
     } else {
       string first_merge_axis = "0";
       string block_inner_axis;
@@ -174,17 +171,19 @@ Status GatherRegApiCall::GenerateComputeTypeLoad(const TPipe &tpipe, const std::
     return ge::FAILED;
   }
   ss << case_ << ", " << y.vectorized_axis.size() << ", " << this->negative_index_support << ">(";
-  ss << y <<  ", " << x1 << ", " << x2 << ", ";
+  ss << y << ", " << x1 << ", " << x2 << ", ";
   for (int i = y.vectorized_axis.size() - 1; i >= 0; i--) {
     auto vectorized_axis = tpipe.tiler.GetAxis(y.vectorized_axis[i]);
-	vectorized_axis.type == Axis::Type::kAxisTypeTileInner ? ss << vectorized_axis.actual_size : ss << tpipe.tiler.Size(y.axis_size[y.vectorized_axis_pos[i]]);
+    vectorized_axis.type == Axis::Type::kAxisTypeTileInner
+        ? ss << vectorized_axis.actual_size
+        : ss << tpipe.tiler.Size(y.axis_size[y.vectorized_axis_pos[i]]);
     if (i != 0) {
       ss << "*";
     }
   }
   ss << ", " << tpipe.tiler.Offset(current_axis, y.axis, y.axis_strides) << ", ";
   for (int i = x2.axis_size.size() - 1; i >= 0; i--) {
-     ss << tpipe.tiler.Size(x2.axis_size[i]) << " * ";
+    ss << tpipe.tiler.Size(x2.axis_size[i]) << " * ";
   }
   ss << "1, ";
   ss << tpipe.tiler.Size(x1.axis_size[this->axis]) << ", ";
@@ -194,8 +193,9 @@ Status GatherRegApiCall::GenerateComputeTypeLoad(const TPipe &tpipe, const std::
   ss << "1, ";
   af::Expression param_size = af::Symbol(1);
   GE_ASSERT_TRUE(tmp_buf_id != -1, "GatherRegApiCall cannot find tmp buffer id to use.");
-  ss << tpipe.tmp_buf << "_" << std::to_string(tmp_buf_id) << ", " << "t->" << "b" << std::to_string(tmp_buf_id) << "_size, ";
-  for (size_t i=0; i< x1.axis_size.size();i++) {
+  ss << tpipe.tmp_buf << "_" << std::to_string(tmp_buf_id) << ", " << "t->" << "b" << std::to_string(tmp_buf_id)
+     << "_size, ";
+  for (size_t i = 0; i < x1.axis_size.size(); i++) {
     ss << tpipe.tiler.Size(x1.axis_size[i]) << " * ";
     param_size = af::sym::Mul(param_size, x1.axis_size[i]);
   }
@@ -203,22 +203,27 @@ Status GatherRegApiCall::GenerateComputeTypeLoad(const TPipe &tpipe, const std::
   ss << x1.axis_size.size() << ", ";
   for (int i = y.vectorized_axis.size() - 1; i >= 0; i--) {
     auto vectorized_axis = tpipe.tiler.GetAxis(y.vectorized_axis[i]);
-	vectorized_axis.type == Axis::Type::kAxisTypeTileInner ? ss << vectorized_axis.actual_size : ss << tpipe.tiler.Size(y.axis_size[y.vectorized_axis_pos[i]]);
-    ss << ", " << tpipe.tiler.Size(y.vectorized_strides[i]) << ", " << tpipe.tiler.Size(y.axis_strides[y.vectorized_axis_pos[i]]);
+    vectorized_axis.type == Axis::Type::kAxisTypeTileInner
+        ? ss << vectorized_axis.actual_size
+        : ss << tpipe.tiler.Size(y.axis_size[y.vectorized_axis_pos[i]]);
+    ss << ", " << tpipe.tiler.Size(y.vectorized_strides[i]) << ", "
+       << tpipe.tiler.Size(y.axis_strides[y.vectorized_axis_pos[i]]);
     if (i != 0) {
       ss << ",";
     }
   }
   ss << ");" << std::endl;
-  ss << "AscendC::PipeBarrier<PIPE_ALL>();" << std::endl; // Gather以load形式存在，可能会存在同步遗漏的情况（比如直接接concat），在这里手动加一个。可能是由于SIMT影响，仅增加PIPE_V不行。
+  ss << "AscendC::PipeBarrier<PIPE_ALL>();"
+     << std::
+            endl;  // Gather以load形式存在，可能会存在同步遗漏的情况（比如直接接concat），在这里手动加一个。可能是由于SIMT影响，仅增加PIPE_V不行。
   result = ss.str();
   return ge::SUCCESS;
 }
 
 Status GatherRegApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
-                               const std::vector<std::reference_wrapper<const Tensor>> &inputs,
-                               const std::vector<std::reference_wrapper<const Tensor>> &outputs,
-                               std::string &result) const {
+                                  const std::vector<std::reference_wrapper<const Tensor>> &inputs,
+                                  const std::vector<std::reference_wrapper<const Tensor>> &outputs,
+                                  std::string &result) const {
   // 获取tmp_buf复用TBuf的id
   int64_t life_time_axis_id = -1L;
   int64_t id = -1L;
@@ -229,8 +234,7 @@ Status GatherRegApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::A
   (void)RegisterBasicDumpParam(this->api_name_, inputs, outputs);
   if (this->compute_type == af::ComputeType::kComputeGather) {
     return GenerateComputeTypeGather(tpipe, current_axis, inputs, outputs, id, result);
-  }
-  else if (this->compute_type == af::ComputeType::kComputeLoad) {
+  } else if (this->compute_type == af::ComputeType::kComputeLoad) {
     return GenerateComputeTypeLoad(tpipe, current_axis, inputs, outputs, id, result);
   }
   GELOGE(ge::FAILED, "gather's compute_type(%d) must be kComputeLoad or kComputeGather", this->compute_type);
@@ -240,12 +244,13 @@ Status GatherRegApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::A
 Status GatherRegApiCall::ParseAttr(const ascir::NodeView &node) {
   GE_CHK_GRAPH_STATUS_RET(node->attr.ir_attr->GetAttrValue("axis", this->axis),
                           "Failed to get Gahter axis attr, node = %s", node->GetNamePtr());
-  if (node->attr.api.compute_type == af::ComputeType::kComputeLoad) { 
-      GE_CHK_GRAPH_STATUS_RET(node->attr.ir_attr->GetAttrValue("negative_index_support", this->negative_index_support),
+  if (node->attr.api.compute_type == af::ComputeType::kComputeLoad) {
+    GE_CHK_GRAPH_STATUS_RET(node->attr.ir_attr->GetAttrValue("negative_index_support", this->negative_index_support),
                             "Failed to get Gather negative_index_support attr, node = %s", node->GetNamePtr());
-      GELOGI("name:%s, axis:%lld, negative_index_support:%d", node->GetNamePtr(), this->axis, this->negative_index_support);
+    GELOGI("name:%s, axis:%lld, negative_index_support:%d", node->GetNamePtr(), this->axis,
+           this->negative_index_support);
   } else {
-      GELOGI("name:%s, axis:%lld", node->GetNamePtr(), this->axis);
+    GELOGI("name:%s, axis:%lld", node->GetNamePtr(), this->axis);
   }
   this->compute_type = node->attr.api.compute_type;
   return ge::SUCCESS;

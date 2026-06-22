@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -529,12 +529,13 @@ inline __aicore__ void Broadcast(const LocalTensor<T> &dst, const LocalTensor<T>
                                  const uint32_t src_n, const uint32_t src_k, const uint32_t src_z, const uint32_t dst_m,
                                  const uint32_t dst_n, const uint32_t dst_k, const uint32_t dst_z,
                                  LocalTensor<uint8_t> &tmp_buf, const uint32_t last_dim_stride = 1) {
-  if (src_m == 1 && src_k == 1 && src_n == dst_n && src_z == dst_z) {        // (1,B,1,B) -> (A, B, A, B), broadcast first and third dim
+  if (src_m == 1 && src_k == 1 && src_n == dst_n &&
+      src_z == dst_z) {  // (1,B,1,B) -> (A, B, A, B), broadcast first and third dim
     Broadcast(dst, src, src_n, src_k, src_z, dst_n, dst_k, dst_z, tmp_buf);  // (B, 1, B) -> (B, A, B)
     AscendC::PipeBarrier<PIPE_V>();
     const uint32_t offset = dst_n * dst_k * dst_z;
     Broadcast(dst[offset], dst, src_m, offset, 0, dst_m - 1, offset, 0, tmp_buf);  // (1, BAB) -> (A, BAB)
-  } else if (src_n == 1 && src_z == 1) {                                           // (A, 1, A, 1) -> (A, B, A, B), broadcast second and fourth dim
+  } else if (src_n == 1 && src_z == 1) {  // (A, 1, A, 1) -> (A, B, A, B), broadcast second and fourth dim
     const uint32_t offset = dst_m * src_n * dst_k;
     ASSERT((tmp_buf.GetSize() > (offset * dst_z + dst_m * dst_n) * sizeof(T)) && "tmp_buf size is not enough.");
     LocalTensor<T> inter_buf = tmp_buf.template ReinterpretCast<T>();

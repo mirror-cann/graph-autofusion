@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -157,8 +157,7 @@ template <typename InT, typename OutT>
 inline __aicore__ void CastExtendWithMaskMode(const AscendC::LocalTensor<OutT> &dst,
                                               const AscendC::LocalTensor<InT> &src, const uint32_t first_dim,
                                               const uint32_t last_dim, const uint32_t input_last_dim_stride,
-                                              const uint32_t output_last_dim_stride,
-                                              const uint32_t dtype_size,
+                                              const uint32_t output_last_dim_stride, const uint32_t dtype_size,
                                               LocalTensor<uint8_t> &tmp_buf) {
   if (input_last_dim_stride == output_last_dim_stride) {
     AscendC::Cast(dst, src, GetRoundMode<InT, OutT>(), output_last_dim_stride * first_dim);
@@ -193,18 +192,20 @@ inline __aicore__ void CastExtendWithMaskMode(const AscendC::LocalTensor<OutT> &
   }
 }
 
-
 template <typename InT, typename OutT>
 inline __aicore__ void CastExtendWithOneTransferWithMaskMode(const AscendC::LocalTensor<OutT> &dst,
-                                                             const AscendC::LocalTensor<InT> &src, const uint32_t first_dim,
-                                                             const uint32_t last_dim, const uint32_t input_last_dim_stride,
-                                                             const uint32_t output_last_dim_stride, const uint32_t dtype_size,
-                                                             LocalTensor<uint8_t> &tmp_buf) {
-  if constexpr (((AscendC::IsSameType<InT, uint8_t>::value) && (AscendC::SupportType<OutT, float, int32_t, int16_t, int8_t, int4b_t>()))) { // u8 -> !(half)
+                                                             const AscendC::LocalTensor<InT> &src,
+                                                             const uint32_t first_dim, const uint32_t last_dim,
+                                                             const uint32_t input_last_dim_stride,
+                                                             const uint32_t output_last_dim_stride,
+                                                             const uint32_t dtype_size, LocalTensor<uint8_t> &tmp_buf) {
+  if constexpr (((AscendC::IsSameType<InT, uint8_t>::value) &&
+                 (AscendC::SupportType<OutT, float, int32_t, int16_t, int8_t, int4b_t>()))) {  // u8 -> !(half)
     uint32_t max_dtype_size_between_src_and_mid = 2;
     uint32_t max_dtype_size_between_mid_and_dst = 0;
-    auto elem_in_one_block = ConvertToUint32(Rational(32, 2)); // 一个block占的元素个数（中间转换类型为half，占2个字节）
-    auto blocks_for_last_dim_elems = Ceiling(last_dim * Rational(2, 32)); // last_dim个元素所占的Block个数
+    auto elem_in_one_block =
+        ConvertToUint32(Rational(32, 2));  // 一个block占的元素个数（中间转换类型为half，占2个字节）
+    auto blocks_for_last_dim_elems = Ceiling(last_dim * Rational(2, 32));  // last_dim个元素所占的Block个数
     uint32_t mid_last_dim_stride = elem_in_one_block * blocks_for_last_dim_elems;
     if constexpr (AscendC::SupportType<OutT, float, int32_t>()) {
       max_dtype_size_between_mid_and_dst = 4;
@@ -219,16 +220,19 @@ inline __aicore__ void CastExtendWithOneTransferWithMaskMode(const AscendC::Loca
       max_dtype_size_between_mid_and_dst = 2;
     }
     auto mid_ub = tmp_buf[0].template ReinterpretCast<half>();
-    CastExtendWithMaskMode<InT, half>(mid_ub, src, first_dim, last_dim, input_last_dim_stride, mid_last_dim_stride, max_dtype_size_between_src_and_mid, tmp_buf);
+    CastExtendWithMaskMode<InT, half>(mid_ub, src, first_dim, last_dim, input_last_dim_stride, mid_last_dim_stride,
+                                      max_dtype_size_between_src_and_mid, tmp_buf);
     AscendC::PipeBarrier<PIPE_V>();
-    CastExtendWithMaskMode<half, OutT>(dst, mid_ub, first_dim, last_dim, mid_last_dim_stride, output_last_dim_stride, max_dtype_size_between_mid_and_dst, tmp_buf);
+    CastExtendWithMaskMode<half, OutT>(dst, mid_ub, first_dim, last_dim, mid_last_dim_stride, output_last_dim_stride,
+                                       max_dtype_size_between_mid_and_dst, tmp_buf);
   }
   if constexpr ((AscendC::IsSameType<InT, int64_t>::value && AscendC::IsSameType<OutT, half>::value) ||
                 (AscendC::IsSameType<InT, half>::value && AscendC::IsSameType<OutT, int64_t>::value)) {
     uint32_t max_dtype_size_between_src_and_mid = 0;
     uint32_t max_dtype_size_between_mid_and_dst = 0;
-    auto elem_in_one_block = ConvertToUint32(Rational(32, 4)); // 一个block占的元素个数（中间转换类型为float，占4个字节）
-    auto blocks_for_last_dim_elems = Ceiling(last_dim * Rational(4, 32)); // last_dim个元素所占的Block个数
+    auto elem_in_one_block =
+        ConvertToUint32(Rational(32, 4));  // 一个block占的元素个数（中间转换类型为float，占4个字节）
+    auto blocks_for_last_dim_elems = Ceiling(last_dim * Rational(4, 32));  // last_dim个元素所占的Block个数
     uint32_t mid_last_dim_stride = elem_in_one_block * blocks_for_last_dim_elems;
     auto mid_ub = tmp_buf[0].template ReinterpretCast<float>();
     if constexpr (AscendC::IsSameType<InT, int64_t>::value) {
@@ -238,33 +242,38 @@ inline __aicore__ void CastExtendWithOneTransferWithMaskMode(const AscendC::Loca
       uint32_t max_dtype_size_between_src_and_mid = 4;
       uint32_t max_dtype_size_between_mid_and_dst = 8;
     }
-    CastExtendWithMaskMode<InT, float>(mid_ub, src, first_dim, last_dim, input_last_dim_stride, mid_last_dim_stride, max_dtype_size_between_src_and_mid, tmp_buf);
+    CastExtendWithMaskMode<InT, float>(mid_ub, src, first_dim, last_dim, input_last_dim_stride, mid_last_dim_stride,
+                                       max_dtype_size_between_src_and_mid, tmp_buf);
     AscendC::PipeBarrier<PIPE_V>();
-    CastExtendWithMaskMode<float, OutT>(dst, mid_ub, first_dim, last_dim, mid_last_dim_stride, output_last_dim_stride, max_dtype_size_between_mid_and_dst, tmp_buf);
+    CastExtendWithMaskMode<float, OutT>(dst, mid_ub, first_dim, last_dim, mid_last_dim_stride, output_last_dim_stride,
+                                        max_dtype_size_between_mid_and_dst, tmp_buf);
   }
 }
 
 template <typename InT, typename OutT>
 inline __aicore__ void CastExtend(const AscendC::LocalTensor<OutT> &dst, const AscendC::LocalTensor<InT> &src,
-                                  LocalTensor<uint8_t> &tmp_buf,
-                                  const uint32_t first_dim, const uint32_t last_dim,
+                                  LocalTensor<uint8_t> &tmp_buf, const uint32_t first_dim, const uint32_t last_dim,
                                   const uint32_t input_last_dim_stride, const uint32_t output_last_dim_stride,
                                   const uint32_t dtype_size) {
   if constexpr (((AscendC::IsSameType<InT, uint8_t>::value) && (AscendC::SupportType<OutT, half>())) ||
                 ((AscendC::IsSameType<InT, int64_t>::value) && (AscendC::SupportType<OutT, float, int32_t>())) ||
-                ((AscendC::IsSameType<InT, half>::value) && (AscendC::SupportType<OutT, float, int32_t, int16_t, int8_t, uint8_t, int4b_t>())) ||
-                ((AscendC::IsSameType<InT, float>::value) && (AscendC::SupportType<OutT, float, half, int64_t, int32_t, int16_t, bfloat16_t>())) ||
+                ((AscendC::IsSameType<InT, half>::value) &&
+                 (AscendC::SupportType<OutT, float, int32_t, int16_t, int8_t, uint8_t, int4b_t>())) ||
+                ((AscendC::IsSameType<InT, float>::value) &&
+                 (AscendC::SupportType<OutT, float, half, int64_t, int32_t, int16_t, bfloat16_t>())) ||
                 ((AscendC::IsSameType<InT, int4b_t>::value) && (AscendC::SupportType<OutT, half>())) ||
                 ((AscendC::IsSameType<InT, int16_t>::value) && (AscendC::SupportType<OutT, half, float>())) ||
-                ((AscendC::IsSameType<InT, int32_t>::value) && (AscendC::SupportType<OutT, float, int64_t, int16_t, half>())) ||
+                ((AscendC::IsSameType<InT, int32_t>::value) &&
+                 (AscendC::SupportType<OutT, float, int64_t, int16_t, half>())) ||
                 ((AscendC::IsSameType<InT, bfloat16_t>::value) && (AscendC::SupportType<OutT, float, int32_t>()))) {
     CastExtendWithMaskMode<InT, OutT>(dst, src, first_dim, last_dim, input_last_dim_stride, output_last_dim_stride,
-                                      dtype_size, tmp_buf); // 直接使用AscendC::Cast实现
-  } else if constexpr (((AscendC::IsSameType<InT, uint8_t>::value) && (AscendC::SupportType<OutT, float, int32_t, int16_t, int8_t, int4b_t>())) ||
+                                      dtype_size, tmp_buf);  // 直接使用AscendC::Cast实现
+  } else if constexpr (((AscendC::IsSameType<InT, uint8_t>::value) &&
+                        (AscendC::SupportType<OutT, float, int32_t, int16_t, int8_t, int4b_t>())) ||
                        ((AscendC::IsSameType<InT, int64_t>::value) && (AscendC::SupportType<OutT, half>())) ||
                        ((AscendC::IsSameType<InT, half>::value) && (AscendC::SupportType<OutT, int64_t>()))) {
     CastExtendWithOneTransferWithMaskMode<InT, OutT>(dst, src, first_dim, last_dim, input_last_dim_stride,
-                                                     output_last_dim_stride, dtype_size, tmp_buf); // 需要一次中间转换
+                                                     output_last_dim_stride, dtype_size, tmp_buf);  // 需要一次中间转换
   } else {
     ASCENDC_ASSERT(false, { KERNEL_LOG(KERNEL_ERROR, "Current conversion not support mask mode"); });
   }

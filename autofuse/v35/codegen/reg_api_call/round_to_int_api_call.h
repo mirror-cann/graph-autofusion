@@ -14,7 +14,7 @@
 
 namespace codegen {
 class RoundToIntApiCall final : public ApiCall {
-public:
+ public:
   using ApiCall::Generate;
   explicit RoundToIntApiCall(const std::string &api_name) : ApiCall(api_name) {}
   ~RoundToIntApiCall() final = default;
@@ -22,5 +22,5 @@ public:
                   const std::vector<std::reference_wrapper<const Tensor>> &inputs,
                   const std::vector<std::reference_wrapper<const Tensor>> &outputs, std::string &result) const override;
 };
-}
-#endif // __AUTOFUSE_ROUND_TO_INT_API_CALL_H__
+}  // namespace codegen
+#endif  // __AUTOFUSE_ROUND_TO_INT_API_CALL_H__

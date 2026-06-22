@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -24,11 +24,11 @@
 #include "graph/ascend_limits.h"
 
 namespace af {
+using ge::DataType;
 using ge::DT_FLOAT;
 using ge::DT_UNDEFINED;
-using ge::DataType;
-using ge::FORMAT_ND;
 using ge::Format;
+using ge::FORMAT_ND;
 using ge::Placement;
 class GeShapeImpl;
 using GeShapeImplPtr = std::shared_ptr<GeShapeImpl>;
@@ -78,28 +78,28 @@ class GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY GeShape {
   int64_t GetShapeSize() const;
   std::string ToString() const;
 
-/**
- * 根据tensor的shape的各个维度的dim值判断tensor是否是unknown shape
- * @return
- * 如果某一维的dim值小于0，那么返回true, 代表是unknown shape
- * 如果所有维度的dim值都大于等于0，那么返回false, 代表是known shape
- */
+  /**
+   * 根据tensor的shape的各个维度的dim值判断tensor是否是unknown shape
+   * @return
+   * 如果某一维的dim值小于0，那么返回true, 代表是unknown shape
+   * 如果所有维度的dim值都大于等于0，那么返回false, 代表是known shape
+   */
   bool IsUnknownShape() const;
 
-/**
- * 根据tensor的shape的dim值的个数返回tensor是否是个标量
- * @return
- * 如果dim的维度是0维，则返回true,代表是标量
- * 其他情况返回false, 代表非标量
- */
+  /**
+   * 根据tensor的shape的dim值的个数返回tensor是否是个标量
+   * @return
+   * 如果dim的维度是0维，则返回true,代表是标量
+   * 其他情况返回false, 代表非标量
+   */
   bool IsScalar() const;
 
-/**
- * 根据tensor的shape的dim值是否含0判断tensor是否是个空tensor
- * @return
- * 如果任一维度的dim值为0，则返回true,代表是空tensor
- * 其他情况返回false, 代表非空tensor
- */
+  /**
+   * 根据tensor的shape的dim值是否含0判断tensor是否是个空tensor
+   * @return
+   * 如果任一维度的dim值为0，则返回true,代表是空tensor
+   * 其他情况返回false, 代表非空tensor
+   */
   bool IsEmptyTensor() const;
 
   GeShape(const GeShape &other);
@@ -192,7 +192,7 @@ class GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY GeTensorDesc : public AttrH
   using AttrHolder::HasAttr;
   using AttrHolder::SetAttr;
 
-  template<class T>
+  template <class T>
   T *GetOrCreateAttrsGroup() {
     return MutableAttrMap().GetOrCreateAttrsGroup<T>();
   }
@@ -227,7 +227,7 @@ class GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY TensorData {
   graphStatus SetData(const Buffer &data);
   graphStatus SetData(const TensorData &data);
   graphStatus SetData(const uint8_t *const data, const size_t size);
-  graphStatus SetData(uint8_t *const data, const size_t size, const AlignedPtr::Deleter &delete_fuc);  /*lint !e148*/
+  graphStatus SetData(uint8_t *const data, const size_t size, const AlignedPtr::Deleter &delete_fuc); /*lint !e148*/
 
   graphStatus ResetData(uint8_t *const data, const size_t size, const AlignedPtr::Deleter &delete_fuc);
 
@@ -255,6 +255,7 @@ class GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY TensorData {
   // zero copy SetData
   // replace using TensorUtils::ShareAlignedPtr(std::shared_ptr<AlignedPtr> ptr, size_t size, TensorData &to)
   void SetData(std::shared_ptr<AlignedPtr> aligned_ptr, const size_t size);
+
  private:
   friend class GeTensor;
   friend class GeTensorImpl;

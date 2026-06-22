@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -16,15 +16,15 @@ namespace optimize {
 using SubstitutionFunc = std::function<af::Status(af::AscGraph &, const af::AscNodePtr &)>;
 
 enum class PatternType : uint8_t {
-  kZero = 0U,  // 0.0 (pow 0 = Brc one)
-  kHalf = 1U,       // 0.5 (pow 0.5 = sqrt)
-  kNegHalf = 2U,    // -0.5 (pow -0.5 = 1/sqrt)
-  kOne = 3U,        // 1.0 (pow 1 just remove node)
-  kNegOne = 4U,     // -1.0 (pow -1 = reciprocal)
-  kTwo = 5U,        // 2.0 (pow 2 = mul)
-  kNegTwo = 6U,     // -2.0 (pow -2 = 1/(x*x))
-  kThree = 7U,      // 3.0 (pow 3 = mul(x,x)*x)
-  kFour = 8U,       // 4.0 (pow 4 = mul(x*x,x*x))
+  kZero = 0U,     // 0.0 (pow 0 = Brc one)
+  kHalf = 1U,     // 0.5 (pow 0.5 = sqrt)
+  kNegHalf = 2U,  // -0.5 (pow -0.5 = 1/sqrt)
+  kOne = 3U,      // 1.0 (pow 1 just remove node)
+  kNegOne = 4U,   // -1.0 (pow -1 = reciprocal)
+  kTwo = 5U,      // 2.0 (pow 2 = mul)
+  kNegTwo = 6U,   // -2.0 (pow -2 = 1/(x*x))
+  kThree = 7U,    // 3.0 (pow 3 = mul(x,x)*x)
+  kFour = 8U,     // 4.0 (pow 4 = mul(x*x,x*x))
   kNone = 100U
 };
 

@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -32,12 +32,12 @@ class ScheduleGroupGraphPartitioner {
   static Status NeedRefreshAxisSize(const ::ascir::ImplGraph &optimize_graph, bool &need_refresh);
   static Status RefreshAxisSize(const ::ascir::ImplGraph &sub_graph);
   static Status ReduceGraphCount(std::vector<::ascir::ImplGraph> &grouped_graphs, size_t target_count = 5);
+
  private:
   static std::vector<MergeableGraphs> FindMergeableGraphs(const std::vector<::ascir::ImplGraph> &grouped_graphs);
   static MergePlan ResolveMergePlan(const std::vector<MergeableGraphs> &mergeable_groups, size_t reductions_needed);
   static bool IsSimpleComputeGraph(const ::ascir::ImplGraph &graph, size_t &node_count);
-  static Status MergeGraphs(::ascir::ImplGraph &dst,
-                            const std::vector<::ascir::ImplGraph> &grouped_graphs,
+  static Status MergeGraphs(::ascir::ImplGraph &dst, const std::vector<::ascir::ImplGraph> &grouped_graphs,
                             const std::vector<size_t> &group);
   static Status AddConnectedNodes(const af::AscNodePtr &root_node, ::ascir::ImplGraph &sub_graph,
                                   std::set<af::NodePtr> &all_visited);

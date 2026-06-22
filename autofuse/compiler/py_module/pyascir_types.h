@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -55,7 +55,7 @@ class Axis {
   struct Object {
     PyObject_HEAD
 
-    int id;
+        int id;
     PyObject *size;
     PyObject *name;
     PyObject *type;
@@ -66,7 +66,7 @@ class Axis {
 
   static void Dealloc(PyObject *self);
   static PyObject *New(PyTypeObject *type, PyObject *args, PyObject *kwargs);
-  static int Init(PyObject *self_pyobject, int id, const af::Expression& size, const char *name, af::Axis::Type type);
+  static int Init(PyObject *self_pyobject, int id, const af::Expression &size, const char *name, af::Axis::Type type);
 };
 
 class Operator {
@@ -74,9 +74,9 @@ class Operator {
   struct Object {
     PyObject_HEAD
 
-    PyObject *name;
+        PyObject *name;
     PyObject *type;
-    af::Operator* op;
+    af::Operator *op;
   };
 
   static PyTypeObject type;
@@ -93,26 +93,26 @@ class HintGraph {
   struct Object {
     PyObject_HEAD
 
-    PyObject *name;
-    af::AscGraph* graph;
+        PyObject *name;
+    af::AscGraph *graph;
   };
 
   static PyTypeObject type;
   static PyMemberDef members[];
   static PyMethodDef methods[];
 
-  static void Dealloc(PyObject* self_pyobject);
-  static PyObject* New(PyTypeObject* type, PyObject* args, PyObject* kwargs);
-  static int Init(PyObject* self_pyobject, PyObject* args, PyObject* kwargs);
-  static PyObject* CreateSize(PyObject* self_pyobject, PyObject* args);
-  static PyObject* CreateAxis(PyObject* self_pyobject, PyObject* args, PyObject *kwargs);
-  static PyObject* SetAxisMap(PyObject* self_pyobject, PyObject* args);
-  static PyObject* FromGraph(af::AscGraph* graph);
-  static PyObject* InferDtype(PyObject *self_pyobject);
-  static PyObject* GetInputNum(PyObject *self_pyobject);
-  static PyObject* GetOutputNum(PyObject *self_pyobject);
-  static PyObject* GetName(PyObject *self_pyobject);
-  static PyObject* SetName(PyObject* self_pyobject, PyObject* args);
+  static void Dealloc(PyObject *self_pyobject);
+  static PyObject *New(PyTypeObject *type, PyObject *args, PyObject *kwargs);
+  static int Init(PyObject *self_pyobject, PyObject *args, PyObject *kwargs);
+  static PyObject *CreateSize(PyObject *self_pyobject, PyObject *args);
+  static PyObject *CreateAxis(PyObject *self_pyobject, PyObject *args, PyObject *kwargs);
+  static PyObject *SetAxisMap(PyObject *self_pyobject, PyObject *args);
+  static PyObject *FromGraph(af::AscGraph *graph);
+  static PyObject *InferDtype(PyObject *self_pyobject);
+  static PyObject *GetInputNum(PyObject *self_pyobject);
+  static PyObject *GetOutputNum(PyObject *self_pyobject);
+  static PyObject *GetName(PyObject *self_pyobject);
+  static PyObject *SetName(PyObject *self_pyobject, PyObject *args);
   static bool ProcessSingleNode(const af::AscNodePtr &node);
 };
 
@@ -121,90 +121,93 @@ class HintComputeGraph {
   struct Object {
     PyObject_HEAD
 
-    af::ComputeGraphPtr compute_graph;
+        af::ComputeGraphPtr compute_graph;
   };
 
   static PyTypeObject type;
   static PyMemberDef members[];
   static PyMethodDef methods[];
 
-  static void Dealloc(PyObject* self_pyobject);
-  static PyObject* New(PyTypeObject* type, PyObject* args, PyObject* kwargs);
-  static int Init(PyObject* self_pyobject, PyObject* args, PyObject* kwargs);
-  static PyObject* GetInfo(PyObject *self_pyobject);
-  static PyObject* GetName(PyObject *self_pyobject);
+  static void Dealloc(PyObject *self_pyobject);
+  static PyObject *New(PyTypeObject *type, PyObject *args, PyObject *kwargs);
+  static int Init(PyObject *self_pyobject, PyObject *args, PyObject *kwargs);
+  static PyObject *GetInfo(PyObject *self_pyobject);
+  static PyObject *GetName(PyObject *self_pyobject);
 };
 
 class FusedGraph {
  public:
   struct Object {
-    PyObject_HEAD
-    af::ComputeGraphPtr graph;
+    PyObject_HEAD af::ComputeGraphPtr graph;
   };
 
   static PyTypeObject type;
   static PyMemberDef members[];
   static PyMethodDef methods[];
 
-  static void Dealloc(PyObject* self_pyobject);
-  static PyObject* New(PyTypeObject* type, PyObject* args, PyObject* kwargs);
-  static int Init(PyObject* self_pyobject, PyObject* args, PyObject* kwargs);
+  static void Dealloc(PyObject *self_pyobject);
+  static PyObject *New(PyTypeObject *type, PyObject *args, PyObject *kwargs);
+  static int Init(PyObject *self_pyobject, PyObject *args, PyObject *kwargs);
 };
 
 class ShapeInfo {
  public:
   struct Object {
-    PyObject_HEAD
-    std::map<std::string, std::string> shape_info;
+    PyObject_HEAD std::map<std::string, std::string> shape_info;
   };
 
   static PyTypeObject type;
   static PyMemberDef members[];
   static PyMethodDef methods[];
 
-  static void Dealloc(PyObject* self_pyobject);
-  static PyObject* New(PyTypeObject* type, PyObject* args, PyObject* kwargs);
-  static int Init(PyObject* self_pyobject, PyObject* args, PyObject* kwargs);
+  static void Dealloc(PyObject *self_pyobject);
+  static PyObject *New(PyTypeObject *type, PyObject *args, PyObject *kwargs);
+  static int Init(PyObject *self_pyobject, PyObject *args, PyObject *kwargs);
 };
 
 class FusedScheduledResult {
  public:
   struct Object {
-    PyObject_HEAD
-    ascir::FusedScheduledResult fused_schedule_result;
+    PyObject_HEAD ascir::FusedScheduledResult fused_schedule_result;
   };
 
   static PyTypeObject type;
   static PyMemberDef members[];
   static PyMethodDef methods[];
 
-  static void Dealloc(PyObject* self_pyobject);
-  static PyObject* New(PyTypeObject* type, PyObject* args, PyObject* kwargs);
-  static int32_t Init(PyObject* self_pyobject, PyObject* args, PyObject* kwargs);
-  static PyObject* GetInputNum(PyObject *self_pyobject);
-  static PyObject* GetOutputNum(PyObject *self_pyobject);
-  static PyObject* GetName(PyObject *self_pyobject);
-  static PyObject* IsCubeType(PyObject *self_pyobject);
-  static PyObject* GetCubeAttributes(PyObject *self_pyobject);
-  static PyObject* IsConvType(PyObject *self_pyobject);
+  static void Dealloc(PyObject *self_pyobject);
+  static PyObject *New(PyTypeObject *type, PyObject *args, PyObject *kwargs);
+  static int32_t Init(PyObject *self_pyobject, PyObject *args, PyObject *kwargs);
+  static PyObject *GetInputNum(PyObject *self_pyobject);
+  static PyObject *GetOutputNum(PyObject *self_pyobject);
+  static PyObject *GetName(PyObject *self_pyobject);
+  static PyObject *IsCubeType(PyObject *self_pyobject);
+  static PyObject *GetCubeAttributes(PyObject *self_pyobject);
+  static PyObject *IsConvType(PyObject *self_pyobject);
 };
 
-#define SET_DICT_LONG(dict, key, value) do { \
-    PyObject *tmp = PyLong_FromLong(value); \
+#define SET_DICT_LONG(dict, key, value)          \
+  do {                                           \
+    PyObject *tmp = PyLong_FromLong(value);      \
     PY_ASSERT_NOTNULL(tmp, key " is not ready"); \
-    PyDict_SetItemString(dict, key, tmp); \
-    Py_DECREF(tmp); \
-} while(0)
+    PyDict_SetItemString(dict, key, tmp);        \
+    Py_DECREF(tmp);                              \
+  } while (0)
 
 class PyObjectGuard {
-    PyObject* obj;
-public:
-    explicit PyObjectGuard(PyObject* o) : obj(o) {}
-    ~PyObjectGuard() { Py_XDECREF(obj); }
-    PyObject* get() const { return obj; }
-    PyObjectGuard(const PyObjectGuard&) = delete;
-    PyObjectGuard& operator=(const PyObjectGuard&) = delete;
+  PyObject *obj;
+
+ public:
+  explicit PyObjectGuard(PyObject *o) : obj(o) {}
+  ~PyObjectGuard() {
+    Py_XDECREF(obj);
+  }
+  PyObject *get() const {
+    return obj;
+  }
+  PyObjectGuard(const PyObjectGuard &) = delete;
+  PyObjectGuard &operator=(const PyObjectGuard &) = delete;
 };
-}
+}  // namespace pyascir
 
 #endif

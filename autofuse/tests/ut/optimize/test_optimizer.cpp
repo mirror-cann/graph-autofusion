@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -46,9 +46,9 @@
 using namespace af;
 using namespace af::ops;
 using namespace af::ascir_op;
-using ge::RuntimeStub;
 using ge::GraphInputShapeSourceStub;
 using ge::InputValueSumSourceStub;
+using ge::RuntimeStub;
 
 namespace {
 class GraphBuilder {
@@ -1440,7 +1440,7 @@ TEST_F(TestOptimizer, only_concat_graph_tail_dim1_scene) {
   EXPECT_EQ(fused_scheduled_result.output_nodes.size(), 1UL);
 
   auto codegen = codegen::Codegen(
-    codegen::CodegenOptions{.tiling_lib_path = "gen_tiling.so", .tiling_lib_codegen_symbol = "CodegenTiling"});
+      codegen::CodegenOptions{.tiling_lib_path = "gen_tiling.so", .tiling_lib_codegen_symbol = "CodegenTiling"});
   codegen::CodegenResult result;
   codegen.Generate(fused_scheduled_result, result);
 
@@ -5535,36 +5535,36 @@ TEST_F(TestOptimizer, TransposeLongTailWithoutUB) {
   auto compute_graph = af::AscGraphUtils::GetComputeGraph(schedule_tasks[1].grouped_graphs[0]);
   ASSERT_EQ(compute_graph->FindNode("transpose"), nullptr);
   ASSERT_EQ(schedule_tasks[0].score_func,
-    "int32_t CalcScore(const AutofuseTilingData &tiling_data) {\n"
-    "  return -1;\n"
-    "}\n");
+            "int32_t CalcScore(const AutofuseTilingData &tiling_data) {\n"
+            "  return -1;\n"
+            "}\n");
 }
 
 TEST_F(TestOptimizer, PowEqiv) {
   auto graph = af::testing::AscGraphBuilder("PowBrc")
-    .Loops({af::testing::Sym(32)})
-    .Data("data0", 0)
-    .Load("load0", "data0")
-    .Scalar("scalar0", "-1")
-    .template Op<af::ascir_op::Pow>("pow0", {"load0", "scalar0"})
-    .Load("load1", "data0")
-    .Scalar("scalar1", "-2")
-    .template Op<af::ascir_op::Pow>("pow1", {"load1", "scalar1"})
-    .Load("load2", "data0")
-    .Scalar("scalar2", "-0.5")
-    .template Op<af::ascir_op::Pow>("pow2", {"load2", "scalar2"})
-    .Scalar("scalar3", "3")
-    .template Op<af::ascir_op::Pow>("pow3", {"scalar3", "scalar3"})
-    .Load("load4", "data0")
-    .Scalar("scalar4", "4")
-    .template Op<af::ascir_op::Pow>("pow4", {"load4", "scalar4"})
-    .Add("add0", "pow0", "pow1")
-    .Add("add1", "pow2", "pow3")
-    .Add("add2", "add0", "add1")
-    .Add("add3", "add2", "pow4")
-    .Store("store", "add3")
-    .Output("y", "store", 0)
-    .Build();
+                   .Loops({af::testing::Sym(32)})
+                   .Data("data0", 0)
+                   .Load("load0", "data0")
+                   .Scalar("scalar0", "-1")
+                   .template Op<af::ascir_op::Pow>("pow0", {"load0", "scalar0"})
+                   .Load("load1", "data0")
+                   .Scalar("scalar1", "-2")
+                   .template Op<af::ascir_op::Pow>("pow1", {"load1", "scalar1"})
+                   .Load("load2", "data0")
+                   .Scalar("scalar2", "-0.5")
+                   .template Op<af::ascir_op::Pow>("pow2", {"load2", "scalar2"})
+                   .Scalar("scalar3", "3")
+                   .template Op<af::ascir_op::Pow>("pow3", {"scalar3", "scalar3"})
+                   .Load("load4", "data0")
+                   .Scalar("scalar4", "4")
+                   .template Op<af::ascir_op::Pow>("pow4", {"load4", "scalar4"})
+                   .Add("add0", "pow0", "pow1")
+                   .Add("add1", "pow2", "pow3")
+                   .Add("add2", "add0", "add1")
+                   .Add("add3", "add2", "pow4")
+                   .Store("store", "add3")
+                   .Output("y", "store", 0)
+                   .Build();
   optimize::AscGraphInfoComplete::CompleteApiInfo(graph);
 
   ::ascir::utils::DumpGraph(graph, "BEFORE");
@@ -5587,18 +5587,18 @@ TEST_F(TestOptimizer, PowEqiv) {
 
 TEST_F(TestOptimizer, PowEqivCase2) {
   auto graph = af::testing::AscGraphBuilder("PowBrc")
-    .Loops({af::testing::Sym(32)})
-    .Data("data0", 0)
-    .Load("load0", "data0")
-    .template Op<af::ascir_op::Pow>("pow0", {"load0", "load0"})
-    .Data("data1", 1)
-    .Load("load1", "data1")
-    .Scalar("scalar1", "0")
-    .template Op<af::ascir_op::Pow>("pow1", {"load1", "scalar1"})
-    .Add("add0", "pow0", "pow1")
-    .Store("store", "add0")
-    .Output("y", "store", 0)
-    .Build();
+                   .Loops({af::testing::Sym(32)})
+                   .Data("data0", 0)
+                   .Load("load0", "data0")
+                   .template Op<af::ascir_op::Pow>("pow0", {"load0", "load0"})
+                   .Data("data1", 1)
+                   .Load("load1", "data1")
+                   .Scalar("scalar1", "0")
+                   .template Op<af::ascir_op::Pow>("pow1", {"load1", "scalar1"})
+                   .Add("add0", "pow0", "pow1")
+                   .Store("store", "add0")
+                   .Output("y", "store", 0)
+                   .Build();
   optimize::AscGraphInfoComplete::CompleteApiInfo(graph);
 
   ::ascir::utils::DumpGraph(graph, "BEFORE");
@@ -5617,32 +5617,32 @@ TEST_F(TestOptimizer, PowEqivCase2) {
 
 TEST_F(TestOptimizer, SkipPruneGraph) {
   auto graph = af::testing::AscGraphBuilder("PowBrc")
-    .Loops({af::testing::Sym(32)})
-    .Data("data0", 0)
-    .Load("load0", "data0")
-    .template Op<af::ascir_op::Pow>("pow0", {"load0", "load0"})
-    .Build();
+                   .Loops({af::testing::Sym(32)})
+                   .Data("data0", 0)
+                   .Load("load0", "data0")
+                   .template Op<af::ascir_op::Pow>("pow0", {"load0", "load0"})
+                   .Build();
   optimize::AscGraphInfoComplete::CompleteApiInfo(graph);
   ::ascir::utils::DumpGraph(graph, "BEFORE");
   Status res = optimize::PassUtils::PruneGraph(graph);
   EXPECT_EQ(res, ge::SUCCESS);
-    ::ascir::utils::DumpGraph(graph, "After");
+  ::ascir::utils::DumpGraph(graph, "After");
   auto cg = af::AscGraphUtils::GetComputeGraph(graph);
   EXPECT_EQ(cg->GetAllNodesSize(), 3UL);
 }
 
 TEST_F(TestOptimizer, OptimizeRemoveDanglingNodes) {
   auto graph = af::testing::AscGraphBuilder("RemoveDanglingNodes")
-    .Loops({af::testing::Sym(32)})
-    .Data("data0", 0)
-    .Load("load0", "data0")
-    .Abs("abs0", "load0")
-    .Store("store", "abs0")
-    .Output("output", "store", 0)
-    .Data("data1", 1)
-    .Load("load1", "data1")
-    .Abs("dangling_abs", "load1")
-    .Build();
+                   .Loops({af::testing::Sym(32)})
+                   .Data("data0", 0)
+                   .Load("load0", "data0")
+                   .Abs("abs0", "load0")
+                   .Store("store", "abs0")
+                   .Output("output", "store", 0)
+                   .Data("data1", 1)
+                   .Load("load1", "data1")
+                   .Abs("dangling_abs", "load1")
+                   .Build();
   optimize::AscGraphInfoComplete::CompleteApiInfo(graph);
 
   auto cg = af::AscGraphUtils::GetComputeGraph(graph);
@@ -5670,13 +5670,13 @@ TEST_F(TestOptimizer, OptimizeRemoveDanglingNodes) {
 
 TEST_F(TestOptimizer, OptimizeRemoveDanglingNodesWithWorkspaceOutput) {
   auto graph = af::testing::AscGraphBuilder("RemoveDanglingNodesWithWorkspaceOutput")
-    .Loops({af::testing::Sym(32)})
-    .Data("data0", 0)
-    .Load("load0", "data0")
-    .Abs("abs0", "load0")
-    .Workspace("workspace", "abs0")
-    .ScalarData("scalar_data", 1)
-    .Build();
+                   .Loops({af::testing::Sym(32)})
+                   .Data("data0", 0)
+                   .Load("load0", "data0")
+                   .Abs("abs0", "load0")
+                   .Workspace("workspace", "abs0")
+                   .ScalarData("scalar_data", 1)
+                   .Build();
   optimize::AscGraphInfoComplete::CompleteApiInfo(graph);
 
   auto workspace_node = graph.FindNode("workspace");
@@ -5790,9 +5790,9 @@ TEST_F(TestOptimizer, TransposeWithUB) {
   auto compute_graph = af::AscGraphUtils::GetComputeGraph(schedule_tasks[1].grouped_graphs[0]);
   ASSERT_EQ(compute_graph->FindNode("transpose"), nullptr);
   ASSERT_EQ(schedule_tasks[0].score_func,
-    "int32_t CalcScore(const AutofuseTilingData &tiling_data) {\n"
-    "  return 1;\n"
-    "}\n");
+            "int32_t CalcScore(const AutofuseTilingData &tiling_data) {\n"
+            "  return 1;\n"
+            "}\n");
   SetCurShapeEnvContext(nullptr);
 }
 
@@ -5889,9 +5889,9 @@ TEST_F(TestOptimizer, TransposeWithDynamicTail) {
   auto compute_graph = af::AscGraphUtils::GetComputeGraph(schedule_tasks[1].grouped_graphs[0]);
   ASSERT_EQ(compute_graph->FindNode("transpose"), nullptr);
   ASSERT_EQ(schedule_tasks[0].score_func,
-    "int32_t CalcScore(const AutofuseTilingData &tiling_data) {\n"
-    "  return 1;\n"
-    "}\n");
+            "int32_t CalcScore(const AutofuseTilingData &tiling_data) {\n"
+            "  return 1;\n"
+            "}\n");
   SetCurShapeEnvContext(nullptr);
 }
 
@@ -6317,7 +6317,7 @@ TEST_F(TestOptimizer, ReducePartition) {
   load.x = data.y;
   *load.y.axis = {z0.id, z1.id};
   load.y.dtype = ge::DT_FLOAT;
-  *load.y.strides = {s1 ,af::ops::One};
+  *load.y.strides = {s1, af::ops::One};
   *load.y.repeats = {s0, s1};
 
   Exp exp("exp");
@@ -6325,7 +6325,7 @@ TEST_F(TestOptimizer, ReducePartition) {
   exp.attr.sched.axis = {z0.id, z1.id};
   *exp.y.axis = {z0.id, z1.id};
   exp.y.dtype = ge::DT_FLOAT;
-  *exp.y.strides = {s1 ,af::ops::One};
+  *exp.y.strides = {s1, af::ops::One};
   *exp.y.repeats = {s0, s1};
 
   Sum sum("sum");
@@ -6341,7 +6341,7 @@ TEST_F(TestOptimizer, ReducePartition) {
   broadcast.attr.sched.axis = {z0.id, z1.id};
   *broadcast.y.axis = {z0.id, z1.id};
   broadcast.y.dtype = ge::DT_FLOAT;
-  *broadcast.y.strides = {s1 ,af::ops::One};
+  *broadcast.y.strides = {s1, af::ops::One};
   *broadcast.y.repeats = {s0, s1};
 
   Sub sub("sub");
@@ -6350,7 +6350,7 @@ TEST_F(TestOptimizer, ReducePartition) {
   sub.attr.sched.axis = {z0.id, z1.id};
   *sub.y.axis = {z0.id, z1.id};
   sub.y.dtype = ge::DT_FLOAT;
-  *sub.y.strides = {s1 ,af::ops::One};
+  *sub.y.strides = {s1, af::ops::One};
   *sub.y.repeats = {s0, s1};
 
   Store store_op1("store1");
@@ -6358,7 +6358,7 @@ TEST_F(TestOptimizer, ReducePartition) {
   store_op1.x = sub.y;
   *store_op1.y.axis = {z0.id, z1.id};
   store_op1.y.dtype = ge::DT_FLOAT;
-  *store_op1.y.strides = {s1 ,af::ops::One};
+  *store_op1.y.strides = {s1, af::ops::One};
   *store_op1.y.repeats = {s0, s1};
 
   Output output_op("output");
@@ -6493,7 +6493,7 @@ TEST_F(TestOptimizer, ReducePartition3) {
   load.x = data.y;
   *load.y.axis = {z0.id, z1.id};
   load.y.dtype = ge::DT_FLOAT;
-  *load.y.strides = {s1 ,af::ops::One};
+  *load.y.strides = {s1, af::ops::One};
   *load.y.repeats = {s0, s1};
 
   Exp exp("exp");
@@ -6501,7 +6501,7 @@ TEST_F(TestOptimizer, ReducePartition3) {
   exp.attr.sched.axis = {z0.id, z1.id};
   *exp.y.axis = {z0.id, z1.id};
   exp.y.dtype = ge::DT_FLOAT;
-  *exp.y.strides = {s1 ,af::ops::One};
+  *exp.y.strides = {s1, af::ops::One};
   *exp.y.repeats = {s0, s1};
 
   Abs abs("abs");
@@ -6509,7 +6509,7 @@ TEST_F(TestOptimizer, ReducePartition3) {
   abs.x = exp.y;
   *abs.y.axis = {z0.id, z1.id};
   abs.y.dtype = ge::DT_FLOAT;
-  *abs.y.strides = {s1 ,af::ops::One};
+  *abs.y.strides = {s1, af::ops::One};
   *abs.y.repeats = {s0, s1};
 
   Sub sub("sub");
@@ -6518,7 +6518,7 @@ TEST_F(TestOptimizer, ReducePartition3) {
   sub.attr.sched.axis = {z0.id, z1.id};
   *sub.y.axis = {z0.id, z1.id};
   sub.y.dtype = ge::DT_FLOAT;
-  *sub.y.strides = {s1 ,af::ops::One};
+  *sub.y.strides = {s1, af::ops::One};
   *sub.y.repeats = {s0, s1};
 
   Sum sum("b2_sum");
@@ -6583,7 +6583,7 @@ TEST_F(TestOptimizer, ReducePartition4) {
   load.x = data.y;
   *load.y.axis = {z0.id, z1.id};
   load.y.dtype = ge::DT_FLOAT;
-  *load.y.strides = {s1 ,af::ops::One};
+  *load.y.strides = {s1, af::ops::One};
   *load.y.repeats = {s0, s1};
 
   Exp exp("exp");
@@ -6591,7 +6591,7 @@ TEST_F(TestOptimizer, ReducePartition4) {
   exp.attr.sched.axis = {z0.id, z1.id};
   *exp.y.axis = {z0.id, z1.id};
   exp.y.dtype = ge::DT_FLOAT;
-  *exp.y.strides = {s1 ,af::ops::One};
+  *exp.y.strides = {s1, af::ops::One};
   *exp.y.repeats = {s0, s1};
 
   Abs abs("abs");
@@ -6599,7 +6599,7 @@ TEST_F(TestOptimizer, ReducePartition4) {
   abs.x = exp.y;
   *abs.y.axis = {z0.id, z1.id};
   abs.y.dtype = ge::DT_FLOAT;
-  *abs.y.strides = {s1 ,af::ops::One};
+  *abs.y.strides = {s1, af::ops::One};
   *abs.y.repeats = {s0, s1};
 
   Sub sub("sub");
@@ -6608,7 +6608,7 @@ TEST_F(TestOptimizer, ReducePartition4) {
   sub.attr.sched.axis = {z0.id, z1.id};
   *sub.y.axis = {z0.id, z1.id};
   sub.y.dtype = ge::DT_FLOAT;
-  *sub.y.strides = {s1 ,af::ops::One};
+  *sub.y.strides = {s1, af::ops::One};
   *sub.y.repeats = {s0, s1};
 
   Sum sum("b2_sum");
@@ -6632,7 +6632,7 @@ TEST_F(TestOptimizer, ReducePartition4) {
   broadcast.attr.sched.axis = {z0.id, z1.id};
   *broadcast.y.axis = {z0.id, z1.id};
   broadcast.y.dtype = ge::DT_FLOAT;
-  *broadcast.y.strides = {s1 ,af::ops::One};
+  *broadcast.y.strides = {s1, af::ops::One};
   *broadcast.y.repeats = {s0, s1};
 
   Store store_op1("store1");
@@ -6640,7 +6640,7 @@ TEST_F(TestOptimizer, ReducePartition4) {
   store_op1.x = broadcast.y;
   *store_op1.y.axis = {z0.id, z1.id};
   store_op1.y.dtype = ge::DT_FLOAT;
-  *store_op1.y.strides = {s1 ,af::ops::One};
+  *store_op1.y.strides = {s1, af::ops::One};
   *store_op1.y.repeats = {s0, s1};
 
   Output output_op("output");
@@ -6686,7 +6686,7 @@ TEST_F(TestOptimizer, ReduceRMulticore) {
   load.x = data.y;
   *load.y.axis = {z0.id, z1.id};
   load.y.dtype = ge::DT_FLOAT;
-  *load.y.strides = {s1 ,af::ops::One};
+  *load.y.strides = {s1, af::ops::One};
   *load.y.repeats = {s0, s1};
 
   Exp exp("exp");
@@ -6694,7 +6694,7 @@ TEST_F(TestOptimizer, ReduceRMulticore) {
   exp.attr.sched.axis = {z0.id, z1.id};
   *exp.y.axis = {z0.id, z1.id};
   exp.y.dtype = ge::DT_FLOAT;
-  *exp.y.strides = {s1 ,af::ops::One};
+  *exp.y.strides = {s1, af::ops::One};
   *exp.y.repeats = {s0, s1};
 
   Abs abs("abs");
@@ -6702,7 +6702,7 @@ TEST_F(TestOptimizer, ReduceRMulticore) {
   abs.x = exp.y;
   *abs.y.axis = {z0.id, z1.id};
   abs.y.dtype = ge::DT_FLOAT;
-  *abs.y.strides = {s1 ,af::ops::One};
+  *abs.y.strides = {s1, af::ops::One};
   *abs.y.repeats = {s0, s1};
 
   Sum sum("b2_sum");
@@ -6770,7 +6770,7 @@ TEST_F(TestOptimizer, ReducePartitionScalar) {
   load.x = workspace.y;
   *load.y.axis = {z0.id, z1.id};
   load.y.dtype = ge::DT_FLOAT;
-  *load.y.strides = {s1 ,af::ops::One};
+  *load.y.strides = {s1, af::ops::One};
   *load.y.repeats = {s0, s1};
 
   Add add("add");
@@ -6779,7 +6779,7 @@ TEST_F(TestOptimizer, ReducePartitionScalar) {
   add.attr.sched.axis = {z0.id, z1.id};
   *add.y.axis = {z0.id, z1.id};
   add.y.dtype = ge::DT_FLOAT;
-  *add.y.strides = {s1 ,af::ops::One};
+  *add.y.strides = {s1, af::ops::One};
   *add.y.repeats = {s0, s1};
 
   Mean mean("b2_mean");
@@ -6795,7 +6795,7 @@ TEST_F(TestOptimizer, ReducePartitionScalar) {
   broadcast.attr.sched.axis = {z0.id, z1.id};
   *broadcast.y.axis = {z0.id, z1.id};
   broadcast.y.dtype = ge::DT_FLOAT;
-  *broadcast.y.strides = {s1 ,af::ops::One};
+  *broadcast.y.strides = {s1, af::ops::One};
   *broadcast.y.repeats = {s0, s1};
 
   Sub sub("sub");
@@ -6804,7 +6804,7 @@ TEST_F(TestOptimizer, ReducePartitionScalar) {
   sub.attr.sched.axis = {z0.id, z1.id};
   *sub.y.axis = {z0.id, z1.id};
   sub.y.dtype = ge::DT_FLOAT;
-  *sub.y.strides = {s1 ,af::ops::One};
+  *sub.y.strides = {s1, af::ops::One};
   *sub.y.repeats = {s0, s1};
 
   Add add1("add1");
@@ -6813,7 +6813,7 @@ TEST_F(TestOptimizer, ReducePartitionScalar) {
   add1.attr.sched.axis = {z0.id, z1.id};
   *add1.y.axis = {z0.id, z1.id};
   add1.y.dtype = ge::DT_FLOAT;
-  *add1.y.strides = {s1 ,af::ops::One};
+  *add1.y.strides = {s1, af::ops::One};
   *add1.y.repeats = {s0, s1};
 
   Store store_op1("store1");
@@ -6966,7 +6966,7 @@ TEST_F(TestOptimizer, LoadOpSequenceAdjustCase1) {
   load0.x = data0.y;
   *load0.y.axis = {z0.id, z1.id};
   load0.y.dtype = ge::DT_FLOAT;
-  *load0.y.strides = {s1 ,af::ops::One};
+  *load0.y.strides = {s1, af::ops::One};
   *load0.y.repeats = {s0, s1};
 
   af::ascir_op::Abs abs("abs");
@@ -6988,7 +6988,7 @@ TEST_F(TestOptimizer, LoadOpSequenceAdjustCase1) {
   load1.x = data1.y;
   *load1.y.axis = {z0.id, z1.id};
   load1.y.dtype = ge::DT_FLOAT;
-  *load1.y.strides = {af::ops::One ,af::ops::One};
+  *load1.y.strides = {af::ops::One, af::ops::One};
   *load1.y.repeats = {af::ops::One, af::ops::One};
 
   Broadcast broadcast("broadcast");
@@ -6996,7 +6996,7 @@ TEST_F(TestOptimizer, LoadOpSequenceAdjustCase1) {
   broadcast.attr.sched.axis = {z0.id, z1.id};
   *broadcast.y.axis = {z0.id, z1.id};
   broadcast.y.dtype = ge::DT_FLOAT;
-  *broadcast.y.strides = {s1 ,af::ops::One};
+  *broadcast.y.strides = {s1, af::ops::One};
   *broadcast.y.repeats = {s0, s1};
 
   af::ascir_op::Add add_op("add");
@@ -7013,7 +7013,7 @@ TEST_F(TestOptimizer, LoadOpSequenceAdjustCase1) {
   store_op.x = add_op.y;
   *store_op.y.axis = {z0.id, z1.id};
   store_op.y.dtype = ge::DT_FLOAT;
-  *store_op.y.strides = {s1 ,af::ops::One};
+  *store_op.y.strides = {s1, af::ops::One};
   *store_op.y.repeats = {s0, s1};
 
   Output output_op("output");
@@ -7031,7 +7031,8 @@ TEST_F(TestOptimizer, LoadOpSequenceAdjustCase1) {
   ::ascir::FusedScheduledResult fused_scheduled_result;
   EXPECT_EQ(optimizer.Optimize(graph, fused_scheduled_result), 0);
 
-  for (const auto &node : fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs[0].GetAllNodes()) {
+  for (const auto &node :
+       fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs[0].GetAllNodes()) {
     if (node->GetOpDesc()->GetId() == 2) {
       EXPECT_EQ(node->GetOpDesc()->GetType(), "Data");
     }
@@ -7061,7 +7062,7 @@ TEST_F(TestOptimizer, LoadOpSequenceAdjustCase2) {
   data0.y.dtype = ge::DT_FLOAT;
   *data0.y.axis = {z0.id, z1.id};
   data0.attr.api.compute_type = af::ComputeType::kComputeInvalid;
-  *data0.y.strides = {s1 ,af::ops::One};
+  *data0.y.strides = {s1, af::ops::One};
   *data0.y.repeats = {s0, s1};
   data0.ir_attr.SetIndex(0);
 
@@ -7070,7 +7071,7 @@ TEST_F(TestOptimizer, LoadOpSequenceAdjustCase2) {
   load0.x = data0.y;
   *load0.y.axis = {z0.id, z1.id};
   load0.y.dtype = ge::DT_FLOAT;
-  *load0.y.strides = {s1 ,af::ops::One};
+  *load0.y.strides = {s1, af::ops::One};
   *load0.y.repeats = {s0, s1};
 
   af::ascir_op::Abs abs("abs");
@@ -7141,7 +7142,6 @@ TEST_F(TestOptimizer, LoadOpSequenceAdjustCase2) {
   *broadcast2.y.repeats = {One, s1};
   *broadcast2.y.strides = {Zero, One};
 
-
   Broadcast broadcast3("broadcast3");
   broadcast3.x = broadcast2.y;
   broadcast3.attr.sched.axis = {z0.id, z1.id};
@@ -7164,7 +7164,7 @@ TEST_F(TestOptimizer, LoadOpSequenceAdjustCase2) {
   store_op.x = mul.y;
   *store_op.y.axis = {z0.id, z1.id};
   store_op.y.dtype = ge::DT_FLOAT;
-  *store_op.y.strides = {s1 ,af::ops::One};
+  *store_op.y.strides = {s1, af::ops::One};
   *store_op.y.repeats = {s0, s1};
 
   Output output_op("output");
@@ -7176,7 +7176,8 @@ TEST_F(TestOptimizer, LoadOpSequenceAdjustCase2) {
   ::ascir::FusedScheduledResult fused_scheduled_result;
   EXPECT_EQ(optimizer.Optimize(graph, fused_scheduled_result), 0);
 
-  for (const auto &node : fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs[0].GetAllNodes()) {
+  for (const auto &node :
+       fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs[0].GetAllNodes()) {
     if (node->GetOpDesc()->GetId() == 2) {
       EXPECT_EQ(node->GetOpDesc()->GetType(), "Data");
     }
@@ -7478,7 +7479,6 @@ TEST_F(TestOptimizer, LastAxisStoreWithStride) {
   *load0.y.axis = {z0.id};
   *load0.y.repeats = {s0};
   *load0.y.strides = {af::ops::One};
-
 
   Store store0("store0");
   store0.attr.sched.axis = {z0.id};

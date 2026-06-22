@@ -1,5 +1,5 @@
 /**
-* Copyright (c) 2026 Huawei Technologies Co., Ltd.
+ * Copyright (c) 2026 Huawei Technologies Co., Ltd.
  * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
@@ -32,7 +32,7 @@ class OperatorLevelCacheGen : public TilingCacheCodeGen {
    * @param code_printer 代码打印器
    * @return ge::Status
    */
-  ge::Status GenFixedSizeHashMapDef(ge::CodePrinter& code_printer) override;
+  ge::Status GenFixedSizeHashMapDef(ge::CodePrinter &code_printer) override;
 
   /**
    * @brief 生成Context类私有Hash函数
@@ -46,8 +46,7 @@ class OperatorLevelCacheGen : public TilingCacheCodeGen {
    * @param tiling_data_type_name TilingData类型名称
    * @return ge::Status
    */
-  static ge::Status GenOperatorCacheFunctions(ge::CodePrinter &code_printer,
-                                              const std::string &tiling_data_type_name);
+  static ge::Status GenOperatorCacheFunctions(ge::CodePrinter &code_printer, const std::string &tiling_data_type_name);
 
   /**
    * @brief 生成TilingCacheContext类定义
@@ -55,15 +54,14 @@ class OperatorLevelCacheGen : public TilingCacheCodeGen {
    * @param tiling_data_type_name TilingData类型名称
    * @return ge::Status
    */
-  static ge::Status GenTilingCacheContext(ge::CodePrinter &code_printer,
-                                          const std::string& tiling_data_type_name);
+  static ge::Status GenTilingCacheContext(ge::CodePrinter &code_printer, const std::string &tiling_data_type_name);
 
   /**
    * @brief 生成TilingCacheContext静态成员定义（必须在cpp文件中）
    * @param code_printer 代码打印器
    * @return ge::Status
    */
-  static ge::Status GenTilingCacheContextStaticDefs(ge::CodePrinter& code_printer);
+  static ge::Status GenTilingCacheContextStaticDefs(ge::CodePrinter &code_printer);
 
   /**
    * @brief 生成算子级缓存类型定义
@@ -71,8 +69,7 @@ class OperatorLevelCacheGen : public TilingCacheCodeGen {
    * @param tiling_data_type_name TilingData类型名称
    * @return ge::Status
    */
-  static ge::Status GenOperatorCacheTypes(ge::CodePrinter &code_printer,
-                                          const std::string &tiling_data_type_name);
+  static ge::Status GenOperatorCacheTypes(ge::CodePrinter &code_printer, const std::string &tiling_data_type_name);
   /**
    *
    * @param code_printer 代码打印器（函数体）
@@ -80,8 +77,7 @@ class OperatorLevelCacheGen : public TilingCacheCodeGen {
    * @param config 生成器配置
    * @return ge::Status
    */
-  static ge::Status GenSaveCacheCalls(ge::CodePrinter &code_printer,
-                                      const TilingModelInfo &tiling_model_info,
+  static ge::Status GenSaveCacheCalls(ge::CodePrinter &code_printer, const TilingModelInfo &tiling_model_info,
                                       const TilingCodeGenConfig &config);
 
   /**
@@ -91,8 +87,7 @@ class OperatorLevelCacheGen : public TilingCacheCodeGen {
    * @param config 生成器配置
    * @return ge::Status
    */
-  static ge::Status GenInitAndQueryCacheCode(ge::CodePrinter &code_printer,
-                                             const TilingModelInfo &tiling_model_info,
+  static ge::Status GenInitAndQueryCacheCode(ge::CodePrinter &code_printer, const TilingModelInfo &tiling_model_info,
                                              const TilingCodeGenConfig &config);
 
   /**
@@ -100,7 +95,7 @@ class OperatorLevelCacheGen : public TilingCacheCodeGen {
    * @param tiling_data_type_name TilingData类型名称
    * @return ge::Status
    */
-  static std::string GenContextClass(const std::string& tiling_data_type_name);
+  static std::string GenContextClass(const std::string &tiling_data_type_name);
 
   /**
    * @brief 生成Context类结构体
@@ -119,14 +114,14 @@ class OperatorLevelCacheGen : public TilingCacheCodeGen {
    * @param tiling_data_type_name TilingData类型名称
    * @return ge::Status
    */
-  static std::string GenContextCacheOperations(const std::string& tiling_data_type_name);
+  static std::string GenContextCacheOperations(const std::string &tiling_data_type_name);
 
   /**
    * @brief 生成FindOperatorCache实现代码
    * @param tiling_data_type_name TilingData类型名称
    * @return 生成的代码字符串
    */
-  static std::string GenFindOperatorCacheImpl(const std::string& tiling_data_type_name);
+  static std::string GenFindOperatorCacheImpl(const std::string &tiling_data_type_name);
 
   /**
    * @brief 生成SaveOperatorCache实现代码
@@ -135,8 +130,8 @@ class OperatorLevelCacheGen : public TilingCacheCodeGen {
    */
   static std::string GenSaveOperatorCacheImpl(const std::string &tiling_data_type_name);
 };
-} // namespace cache
+}  // namespace cache
 
-} // namespace att
+}  // namespace att
 
-#endif // ATT_OPERATOR_LEVEL_CACHE_GEN_H_
+#endif  // ATT_OPERATOR_LEVEL_CACHE_GEN_H_

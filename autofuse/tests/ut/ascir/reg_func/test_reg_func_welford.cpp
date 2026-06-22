@@ -19,435 +19,428 @@
 #include "ascir_utils.h"
 
 #include "../test_util.h"
-namespace af{
-namespace ascir{
+namespace af {
+namespace ascir {
 extern std::vector<std::unique_ptr<af::TmpBufDesc>> CalcWelfordUpdateTmpSize(const af::AscNode &node);
 extern std::vector<std::unique_ptr<af::TmpBufDesc>> CalcWelfordFinalizeTmpSize(const af::AscNode &node);
 
 using namespace testing;
 
-class CalcWelfordUpdateTmpSizeTest:public::testing::Test{
-protected:
-    void SetUp() override{}
-    void TearDown() override{}
+class CalcWelfordUpdateTmpSizeTest : public ::testing::Test {
+ protected:
+  void SetUp() override {}
+  void TearDown() override {}
 };
 
 // 使用符号化size构建2D shape [rn_len, ab_len]，测试CalcWelfordUpdateTmpSize
 // 公式: ceil(rn_len * ab_len / 64) * 512
-TEST_F(CalcWelfordUpdateTmpSizeTest, CalcWelfordUpdateTmpSizeWithSymbolicShape)
-{
-    af::AscGraph graph("test");
-    auto s0 = graph.CreateSizeVar("s0");
-    auto s1 = graph.CreateSizeVar("s1");
+TEST_F(CalcWelfordUpdateTmpSizeTest, CalcWelfordUpdateTmpSizeWithSymbolicShape) {
+  af::AscGraph graph("test");
+  auto s0 = graph.CreateSizeVar("s0");
+  auto s1 = graph.CreateSizeVar("s1");
 
-    auto z0 = graph.CreateAxis("z0", s0);
-    auto zo = graph.CreateAxis("zo", s1);
+  auto z0 = graph.CreateAxis("z0", s0);
+  auto zo = graph.CreateAxis("zo", s1);
 
-    af::ascir_op::Data x1("x1", graph);
-    af::ascir_op::Load load1("load1");
-    af::ascir_op::Erf erf("erf");
-    af::ascir_op::Store store("store");
-    af::ascir_op::Output y("y");
+  af::ascir_op::Data x1("x1", graph);
+  af::ascir_op::Load load1("load1");
+  af::ascir_op::Erf erf("erf");
+  af::ascir_op::Store store("store");
+  af::ascir_op::Output y("y");
 
-    x1.attr.sched.axis = {z0.id, zo.id};
-    x1.y.dtype = af::DT_FLOAT;
-    *x1.y.axis = {z0.id, zo.id};
-    *x1.y.repeats = {s0, s1};
-    *x1.y.strides = {s1, Symbol(1)};
+  x1.attr.sched.axis = {z0.id, zo.id};
+  x1.y.dtype = af::DT_FLOAT;
+  *x1.y.axis = {z0.id, zo.id};
+  *x1.y.repeats = {s0, s1};
+  *x1.y.strides = {s1, Symbol(1)};
 
-    load1.x = x1.y;
-    load1.attr.sched.axis = {z0.id, zo.id};
-    load1.y.dtype = af::DT_FLOAT;
-    *load1.y.axis = {z0.id, zo.id};
-    *load1.y.repeats = {s0, s1};
-    *load1.y.strides = {s1, Symbol(1)};
-    *load1.y.vectorized_axis = {z0.id, zo.id};
+  load1.x = x1.y;
+  load1.attr.sched.axis = {z0.id, zo.id};
+  load1.y.dtype = af::DT_FLOAT;
+  *load1.y.axis = {z0.id, zo.id};
+  *load1.y.repeats = {s0, s1};
+  *load1.y.strides = {s1, Symbol(1)};
+  *load1.y.vectorized_axis = {z0.id, zo.id};
 
-    erf.x = load1.y;
-    erf.attr.sched.axis = {z0.id, zo.id};
-    erf.y.dtype = af::DT_FLOAT;
-    *erf.y.axis = {z0.id, zo.id};
-    *erf.y.repeats = {s0, s1};
-    *erf.y.strides = {s1, Symbol(1)};
+  erf.x = load1.y;
+  erf.attr.sched.axis = {z0.id, zo.id};
+  erf.y.dtype = af::DT_FLOAT;
+  *erf.y.axis = {z0.id, zo.id};
+  *erf.y.repeats = {s0, s1};
+  *erf.y.strides = {s1, Symbol(1)};
 
-    store.x = erf.y;
-    store.attr.sched.axis = {z0.id, zo.id};
-    store.y.dtype = af::DT_FLOAT;
-    *store.y.axis = {z0.id, zo.id};
-    *store.y.repeats = {s0, s1};
-    *store.y.strides = {s1, Symbol(1)};
+  store.x = erf.y;
+  store.attr.sched.axis = {z0.id, zo.id};
+  store.y.dtype = af::DT_FLOAT;
+  *store.y.axis = {z0.id, zo.id};
+  *store.y.repeats = {s0, s1};
+  *store.y.strides = {s1, Symbol(1)};
 
-    y.x = store.y;
-    y.attr.sched.axis = {z0.id, zo.id};
-    y.y.dtype = af::DT_FLOAT;
-    *y.y.axis = {z0.id, zo.id};
-    *y.y.repeats = {s0, s1};
-    *y.y.strides = {s1, Symbol(1)};
+  y.x = store.y;
+  y.attr.sched.axis = {z0.id, zo.id};
+  y.y.dtype = af::DT_FLOAT;
+  *y.y.axis = {z0.id, zo.id};
+  *y.y.repeats = {s0, s1};
+  *y.y.strides = {s1, Symbol(1)};
 
-    std::shared_ptr<af::AscNode> node = graph.FindNode("erf");
-    node->inputs[0].attr.vectorized_strides = {s1, Symbol(1)};
+  std::shared_ptr<af::AscNode> node = graph.FindNode("erf");
+  node->inputs[0].attr.vectorized_strides = {s1, Symbol(1)};
 
-    std::vector<std::unique_ptr<af::TmpBufDesc>> result = CalcWelfordUpdateTmpSize(*node);
-    ASSERT_EQ(result.size(), 1);
-    ASSERT_EQ(result[0]->life_time_axis_id, -1);
-    // ceil(s0 * s1 / 64) * 512
-    ASSERT_EQ(result[0]->size, sym::Min(Symbol(65312), (((s0 * s1) + Symbol(63)) * Symbol(8))));
+  std::vector<std::unique_ptr<af::TmpBufDesc>> result = CalcWelfordUpdateTmpSize(*node);
+  ASSERT_EQ(result.size(), 1);
+  ASSERT_EQ(result[0]->life_time_axis_id, -1);
+  // ceil(s0 * s1 / 64) * 512
+  ASSERT_EQ(result[0]->size, sym::Min(Symbol(65312), (((s0 * s1) + Symbol(63)) * Symbol(8))));
 }
 
 // 使用具体数值: rn_len=10, ab_len=100 => ceil(1000/64)*512 = 16*512 = 8192
-TEST_F(CalcWelfordUpdateTmpSizeTest, CalcWelfordUpdateTmpSizeWithConcreteValues)
-{
-    af::AscGraph graph("test");
-    auto s0 = graph.CreateSizeVar(10);
-    auto s1 = graph.CreateSizeVar(100);
+TEST_F(CalcWelfordUpdateTmpSizeTest, CalcWelfordUpdateTmpSizeWithConcreteValues) {
+  af::AscGraph graph("test");
+  auto s0 = graph.CreateSizeVar(10);
+  auto s1 = graph.CreateSizeVar(100);
 
-    auto z0 = graph.CreateAxis("z0", s0);
-    auto zo = graph.CreateAxis("zo", s1);
+  auto z0 = graph.CreateAxis("z0", s0);
+  auto zo = graph.CreateAxis("zo", s1);
 
-    af::ascir_op::Data x1("x1", graph);
-    af::ascir_op::Load load1("load1");
-    af::ascir_op::Erf erf("erf");
-    af::ascir_op::Store store("store");
-    af::ascir_op::Output y("y");
+  af::ascir_op::Data x1("x1", graph);
+  af::ascir_op::Load load1("load1");
+  af::ascir_op::Erf erf("erf");
+  af::ascir_op::Store store("store");
+  af::ascir_op::Output y("y");
 
-    x1.attr.sched.axis = {z0.id, zo.id};
-    x1.y.dtype = af::DT_FLOAT;
-    *x1.y.axis = {z0.id, zo.id};
-    *x1.y.repeats = {s0, s1};
-    *x1.y.strides = {s1, Symbol(1)};
+  x1.attr.sched.axis = {z0.id, zo.id};
+  x1.y.dtype = af::DT_FLOAT;
+  *x1.y.axis = {z0.id, zo.id};
+  *x1.y.repeats = {s0, s1};
+  *x1.y.strides = {s1, Symbol(1)};
 
-    load1.x = x1.y;
-    load1.attr.sched.axis = {z0.id, zo.id};
-    load1.y.dtype = af::DT_FLOAT;
-    *load1.y.axis = {z0.id, zo.id};
-    *load1.y.repeats = {s0, s1};
-    *load1.y.strides = {s1, Symbol(1)};
-    *load1.y.vectorized_axis = {z0.id, zo.id};
+  load1.x = x1.y;
+  load1.attr.sched.axis = {z0.id, zo.id};
+  load1.y.dtype = af::DT_FLOAT;
+  *load1.y.axis = {z0.id, zo.id};
+  *load1.y.repeats = {s0, s1};
+  *load1.y.strides = {s1, Symbol(1)};
+  *load1.y.vectorized_axis = {z0.id, zo.id};
 
-    erf.x = load1.y;
-    erf.attr.sched.axis = {z0.id, zo.id};
-    erf.y.dtype = af::DT_FLOAT;
-    *erf.y.axis = {z0.id, zo.id};
-    *erf.y.repeats = {s0, s1};
-    *erf.y.strides = {s1, Symbol(1)};
+  erf.x = load1.y;
+  erf.attr.sched.axis = {z0.id, zo.id};
+  erf.y.dtype = af::DT_FLOAT;
+  *erf.y.axis = {z0.id, zo.id};
+  *erf.y.repeats = {s0, s1};
+  *erf.y.strides = {s1, Symbol(1)};
 
-    store.x = erf.y;
-    store.attr.sched.axis = {z0.id, zo.id};
-    store.y.dtype = af::DT_FLOAT;
-    *store.y.axis = {z0.id, zo.id};
-    *store.y.repeats = {s0, s1};
-    *store.y.strides = {s1, Symbol(1)};
+  store.x = erf.y;
+  store.attr.sched.axis = {z0.id, zo.id};
+  store.y.dtype = af::DT_FLOAT;
+  *store.y.axis = {z0.id, zo.id};
+  *store.y.repeats = {s0, s1};
+  *store.y.strides = {s1, Symbol(1)};
 
-    y.x = store.y;
-    y.attr.sched.axis = {z0.id, zo.id};
-    y.y.dtype = af::DT_FLOAT;
-    *y.y.axis = {z0.id, zo.id};
-    *y.y.repeats = {s0, s1};
-    *y.y.strides = {s1, Symbol(1)};
+  y.x = store.y;
+  y.attr.sched.axis = {z0.id, zo.id};
+  y.y.dtype = af::DT_FLOAT;
+  *y.y.axis = {z0.id, zo.id};
+  *y.y.repeats = {s0, s1};
+  *y.y.strides = {s1, Symbol(1)};
 
-    std::shared_ptr<af::AscNode> node = graph.FindNode("erf");
-    node->inputs[0].attr.vectorized_strides = {s1, Symbol(1)};
+  std::shared_ptr<af::AscNode> node = graph.FindNode("erf");
+  node->inputs[0].attr.vectorized_strides = {s1, Symbol(1)};
 
-    std::vector<std::unique_ptr<af::TmpBufDesc>> result = CalcWelfordUpdateTmpSize(*node);
-    ASSERT_EQ(result.size(), 1);
-    ASSERT_EQ(result[0]->life_time_axis_id, -1);
-    ASSERT_EQ(result[0]->size, Symbol(8504));
+  std::vector<std::unique_ptr<af::TmpBufDesc>> result = CalcWelfordUpdateTmpSize(*node);
+  ASSERT_EQ(result.size(), 1);
+  ASSERT_EQ(result[0]->life_time_axis_id, -1);
+  ASSERT_EQ(result[0]->size, Symbol(8504));
 }
 
 // 测试repeats只有1维时走默认ab_len=1的分支: ceil(s0 / 64) * 512
-TEST_F(CalcWelfordUpdateTmpSizeTest, CalcWelfordUpdateTmpSizeWithSingleDimShape)
-{
-    af::AscGraph graph("test");
-    auto s0 = graph.CreateSizeVar("s0");
+TEST_F(CalcWelfordUpdateTmpSizeTest, CalcWelfordUpdateTmpSizeWithSingleDimShape) {
+  af::AscGraph graph("test");
+  auto s0 = graph.CreateSizeVar("s0");
 
-    auto z0 = graph.CreateAxis("z0", s0);
+  auto z0 = graph.CreateAxis("z0", s0);
 
-    af::ascir_op::Data x1("x1", graph);
-    af::ascir_op::Load load1("load1");
-    af::ascir_op::Erf erf("erf");
-    af::ascir_op::Store store("store");
-    af::ascir_op::Output y("y");
+  af::ascir_op::Data x1("x1", graph);
+  af::ascir_op::Load load1("load1");
+  af::ascir_op::Erf erf("erf");
+  af::ascir_op::Store store("store");
+  af::ascir_op::Output y("y");
 
-    x1.attr.sched.axis = {z0.id};
-    x1.y.dtype = af::DT_FLOAT;
-    *x1.y.axis = {z0.id};
-    *x1.y.repeats = {s0};
-    *x1.y.strides = {Symbol(1)};
+  x1.attr.sched.axis = {z0.id};
+  x1.y.dtype = af::DT_FLOAT;
+  *x1.y.axis = {z0.id};
+  *x1.y.repeats = {s0};
+  *x1.y.strides = {Symbol(1)};
 
-    load1.x = x1.y;
-    load1.attr.sched.axis = {z0.id};
-    load1.y.dtype = af::DT_FLOAT;
-    *load1.y.axis = {z0.id};
-    *load1.y.repeats = {s0};
-    *load1.y.strides = {Symbol(1)};
-    *load1.y.vectorized_axis = {z0.id};
+  load1.x = x1.y;
+  load1.attr.sched.axis = {z0.id};
+  load1.y.dtype = af::DT_FLOAT;
+  *load1.y.axis = {z0.id};
+  *load1.y.repeats = {s0};
+  *load1.y.strides = {Symbol(1)};
+  *load1.y.vectorized_axis = {z0.id};
 
-    erf.x = load1.y;
-    erf.attr.sched.axis = {z0.id};
-    erf.y.dtype = af::DT_FLOAT;
-    *erf.y.axis = {z0.id};
-    *erf.y.repeats = {s0};
-    *erf.y.strides = {Symbol(1)};
+  erf.x = load1.y;
+  erf.attr.sched.axis = {z0.id};
+  erf.y.dtype = af::DT_FLOAT;
+  *erf.y.axis = {z0.id};
+  *erf.y.repeats = {s0};
+  *erf.y.strides = {Symbol(1)};
 
-    store.x = erf.y;
-    store.attr.sched.axis = {z0.id};
-    store.y.dtype = af::DT_FLOAT;
-    *store.y.axis = {z0.id};
-    *store.y.repeats = {s0};
-    *store.y.strides = {Symbol(1)};
+  store.x = erf.y;
+  store.attr.sched.axis = {z0.id};
+  store.y.dtype = af::DT_FLOAT;
+  *store.y.axis = {z0.id};
+  *store.y.repeats = {s0};
+  *store.y.strides = {Symbol(1)};
 
-    y.x = store.y;
-    y.attr.sched.axis = {z0.id};
-    y.y.dtype = af::DT_FLOAT;
-    *y.y.axis = {z0.id};
-    *y.y.repeats = {s0};
-    *y.y.strides = {Symbol(1)};
+  y.x = store.y;
+  y.attr.sched.axis = {z0.id};
+  y.y.dtype = af::DT_FLOAT;
+  *y.y.axis = {z0.id};
+  *y.y.repeats = {s0};
+  *y.y.strides = {Symbol(1)};
 
-    std::shared_ptr<af::AscNode> node = graph.FindNode("erf");
-    node->inputs[0].attr.vectorized_strides = {Symbol(1)};
+  std::shared_ptr<af::AscNode> node = graph.FindNode("erf");
+  node->inputs[0].attr.vectorized_strides = {Symbol(1)};
 
-    std::vector<std::unique_ptr<af::TmpBufDesc>> result = CalcWelfordUpdateTmpSize(*node);
-    ASSERT_EQ(result.size(), 1);
-    // repeats.size() == 1 < 2 => ab_len = 1 => ceil(s0 * 1 / 64) * 512
-    ASSERT_EQ(result[0]->size, sym::Min(Symbol(65312), ((Symbol(63) + s0) * Symbol(8))));
+  std::vector<std::unique_ptr<af::TmpBufDesc>> result = CalcWelfordUpdateTmpSize(*node);
+  ASSERT_EQ(result.size(), 1);
+  // repeats.size() == 1 < 2 => ab_len = 1 => ceil(s0 * 1 / 64) * 512
+  ASSERT_EQ(result[0]->size, sym::Min(Symbol(65312), ((Symbol(63) + s0) * Symbol(8))));
 }
 
-class CalcWelfordFinalizeTmpSizeTest:public::testing::Test{
-protected:
-    void SetUp() override{}
-    void TearDown() override{}
+class CalcWelfordFinalizeTmpSizeTest : public ::testing::Test {
+ protected:
+  void SetUp() override {}
+  void TearDown() override {}
 };
 
 // 使用符号化size构建1D shape [ab_len]，测试CalcWelfordFinalizeTmpSize
 // 公式: max(1024, 512 + ab_len * 8)
-TEST_F(CalcWelfordFinalizeTmpSizeTest, CalcWelfordFinalizeTmpSizeWithSymbolicShape)
-{
-    af::AscGraph graph("test");
-    auto s0 = graph.CreateSizeVar("s0");
+TEST_F(CalcWelfordFinalizeTmpSizeTest, CalcWelfordFinalizeTmpSizeWithSymbolicShape) {
+  af::AscGraph graph("test");
+  auto s0 = graph.CreateSizeVar("s0");
 
-    auto z0 = graph.CreateAxis("z0", s0);
+  auto z0 = graph.CreateAxis("z0", s0);
 
-    af::ascir_op::Data x1("x1", graph);
-    af::ascir_op::Load load1("load1");
-    af::ascir_op::Erf erf("erf");
-    af::ascir_op::Store store("store");
-    af::ascir_op::Output y("y");
+  af::ascir_op::Data x1("x1", graph);
+  af::ascir_op::Load load1("load1");
+  af::ascir_op::Erf erf("erf");
+  af::ascir_op::Store store("store");
+  af::ascir_op::Output y("y");
 
-    x1.attr.sched.axis = {z0.id};
-    x1.y.dtype = af::DT_FLOAT;
-    *x1.y.axis = {z0.id};
-    *x1.y.repeats = {s0};
-    *x1.y.strides = {Symbol(1)};
+  x1.attr.sched.axis = {z0.id};
+  x1.y.dtype = af::DT_FLOAT;
+  *x1.y.axis = {z0.id};
+  *x1.y.repeats = {s0};
+  *x1.y.strides = {Symbol(1)};
 
-    load1.x = x1.y;
-    load1.attr.sched.axis = {z0.id};
-    load1.y.dtype = af::DT_FLOAT;
-    *load1.y.axis = {z0.id};
-    *load1.y.repeats = {s0};
-    *load1.y.strides = {Symbol(1)};
-    *load1.y.vectorized_axis = {z0.id};
+  load1.x = x1.y;
+  load1.attr.sched.axis = {z0.id};
+  load1.y.dtype = af::DT_FLOAT;
+  *load1.y.axis = {z0.id};
+  *load1.y.repeats = {s0};
+  *load1.y.strides = {Symbol(1)};
+  *load1.y.vectorized_axis = {z0.id};
 
-    erf.x = load1.y;
-    erf.attr.sched.axis = {z0.id};
-    erf.y.dtype = af::DT_FLOAT;
-    *erf.y.axis = {z0.id};
-    *erf.y.repeats = {s0};
-    *erf.y.strides = {Symbol(1)};
+  erf.x = load1.y;
+  erf.attr.sched.axis = {z0.id};
+  erf.y.dtype = af::DT_FLOAT;
+  *erf.y.axis = {z0.id};
+  *erf.y.repeats = {s0};
+  *erf.y.strides = {Symbol(1)};
 
-    store.x = erf.y;
-    store.attr.sched.axis = {z0.id};
-    store.y.dtype = af::DT_FLOAT;
-    *store.y.axis = {z0.id};
-    *store.y.repeats = {s0};
-    *store.y.strides = {Symbol(1)};
+  store.x = erf.y;
+  store.attr.sched.axis = {z0.id};
+  store.y.dtype = af::DT_FLOAT;
+  *store.y.axis = {z0.id};
+  *store.y.repeats = {s0};
+  *store.y.strides = {Symbol(1)};
 
-    y.x = store.y;
-    y.attr.sched.axis = {z0.id};
-    y.y.dtype = af::DT_FLOAT;
-    *y.y.axis = {z0.id};
-    *y.y.repeats = {s0};
-    *y.y.strides = {Symbol(1)};
+  y.x = store.y;
+  y.attr.sched.axis = {z0.id};
+  y.y.dtype = af::DT_FLOAT;
+  *y.y.axis = {z0.id};
+  *y.y.repeats = {s0};
+  *y.y.strides = {Symbol(1)};
 
-    std::shared_ptr<af::AscNode> node = graph.FindNode("erf");
-    node->inputs[0].attr.vectorized_strides = {Symbol(1)};
+  std::shared_ptr<af::AscNode> node = graph.FindNode("erf");
+  node->inputs[0].attr.vectorized_strides = {Symbol(1)};
 
-    std::vector<std::unique_ptr<af::TmpBufDesc>> result = CalcWelfordFinalizeTmpSize(*node);
-    ASSERT_EQ(result.size(), 1);
-    ASSERT_EQ(result[0]->life_time_axis_id, -1);
-    // max(1024, 512 + s0 * 8)
-    ASSERT_EQ(result[0]->size, sym::Min(Symbol(65312), af::sym::Max(Symbol(1024), Symbol(512) + Symbol(8) * s0)));
+  std::vector<std::unique_ptr<af::TmpBufDesc>> result = CalcWelfordFinalizeTmpSize(*node);
+  ASSERT_EQ(result.size(), 1);
+  ASSERT_EQ(result[0]->life_time_axis_id, -1);
+  // max(1024, 512 + s0 * 8)
+  ASSERT_EQ(result[0]->size, sym::Min(Symbol(65312), af::sym::Max(Symbol(1024), Symbol(512) + Symbol(8) * s0)));
 }
 
 // ab_len=32 (<64): max(1024, 512+32*8) = max(1024, 768) = 1024
-TEST_F(CalcWelfordFinalizeTmpSizeTest, CalcWelfordFinalizeTmpSizeWhenAbLenSmall)
-{
-    af::AscGraph graph("test");
-    auto s0 = graph.CreateSizeVar(32);
+TEST_F(CalcWelfordFinalizeTmpSizeTest, CalcWelfordFinalizeTmpSizeWhenAbLenSmall) {
+  af::AscGraph graph("test");
+  auto s0 = graph.CreateSizeVar(32);
 
-    auto z0 = graph.CreateAxis("z0", s0);
+  auto z0 = graph.CreateAxis("z0", s0);
 
-    af::ascir_op::Data x1("x1", graph);
-    af::ascir_op::Load load1("load1");
-    af::ascir_op::Erf erf("erf");
-    af::ascir_op::Store store("store");
-    af::ascir_op::Output y("y");
+  af::ascir_op::Data x1("x1", graph);
+  af::ascir_op::Load load1("load1");
+  af::ascir_op::Erf erf("erf");
+  af::ascir_op::Store store("store");
+  af::ascir_op::Output y("y");
 
-    x1.attr.sched.axis = {z0.id};
-    x1.y.dtype = af::DT_FLOAT;
-    *x1.y.axis = {z0.id};
-    *x1.y.repeats = {s0};
-    *x1.y.strides = {Symbol(1)};
+  x1.attr.sched.axis = {z0.id};
+  x1.y.dtype = af::DT_FLOAT;
+  *x1.y.axis = {z0.id};
+  *x1.y.repeats = {s0};
+  *x1.y.strides = {Symbol(1)};
 
-    load1.x = x1.y;
-    load1.attr.sched.axis = {z0.id};
-    load1.y.dtype = af::DT_FLOAT;
-    *load1.y.axis = {z0.id};
-    *load1.y.repeats = {s0};
-    *load1.y.strides = {Symbol(1)};
-    *load1.y.vectorized_axis = {z0.id};
+  load1.x = x1.y;
+  load1.attr.sched.axis = {z0.id};
+  load1.y.dtype = af::DT_FLOAT;
+  *load1.y.axis = {z0.id};
+  *load1.y.repeats = {s0};
+  *load1.y.strides = {Symbol(1)};
+  *load1.y.vectorized_axis = {z0.id};
 
-    erf.x = load1.y;
-    erf.attr.sched.axis = {z0.id};
-    erf.y.dtype = af::DT_FLOAT;
-    *erf.y.axis = {z0.id};
-    *erf.y.repeats = {s0};
-    *erf.y.strides = {Symbol(1)};
+  erf.x = load1.y;
+  erf.attr.sched.axis = {z0.id};
+  erf.y.dtype = af::DT_FLOAT;
+  *erf.y.axis = {z0.id};
+  *erf.y.repeats = {s0};
+  *erf.y.strides = {Symbol(1)};
 
-    store.x = erf.y;
-    store.attr.sched.axis = {z0.id};
-    store.y.dtype = af::DT_FLOAT;
-    *store.y.axis = {z0.id};
-    *store.y.repeats = {s0};
-    *store.y.strides = {Symbol(1)};
+  store.x = erf.y;
+  store.attr.sched.axis = {z0.id};
+  store.y.dtype = af::DT_FLOAT;
+  *store.y.axis = {z0.id};
+  *store.y.repeats = {s0};
+  *store.y.strides = {Symbol(1)};
 
-    y.x = store.y;
-    y.attr.sched.axis = {z0.id};
-    y.y.dtype = af::DT_FLOAT;
-    *y.y.axis = {z0.id};
-    *y.y.repeats = {s0};
-    *y.y.strides = {Symbol(1)};
+  y.x = store.y;
+  y.attr.sched.axis = {z0.id};
+  y.y.dtype = af::DT_FLOAT;
+  *y.y.axis = {z0.id};
+  *y.y.repeats = {s0};
+  *y.y.strides = {Symbol(1)};
 
-    std::shared_ptr<af::AscNode> node = graph.FindNode("erf");
-    node->inputs[0].attr.vectorized_strides = {Symbol(1)};
+  std::shared_ptr<af::AscNode> node = graph.FindNode("erf");
+  node->inputs[0].attr.vectorized_strides = {Symbol(1)};
 
-    std::vector<std::unique_ptr<af::TmpBufDesc>> result = CalcWelfordFinalizeTmpSize(*node);
-    ASSERT_EQ(result.size(), 1);
-    ASSERT_EQ(result[0]->size, Symbol(1024));
+  std::vector<std::unique_ptr<af::TmpBufDesc>> result = CalcWelfordFinalizeTmpSize(*node);
+  ASSERT_EQ(result.size(), 1);
+  ASSERT_EQ(result[0]->size, Symbol(1024));
 }
 
 // ab_len=100 (>64): max(1024, 512+100*8) = max(1024, 1312) = 1312
-TEST_F(CalcWelfordFinalizeTmpSizeTest, CalcWelfordFinalizeTmpSizeWhenAbLenLarge)
-{
-    af::AscGraph graph("test");
-    auto s0 = graph.CreateSizeVar(100);
+TEST_F(CalcWelfordFinalizeTmpSizeTest, CalcWelfordFinalizeTmpSizeWhenAbLenLarge) {
+  af::AscGraph graph("test");
+  auto s0 = graph.CreateSizeVar(100);
 
-    auto z0 = graph.CreateAxis("z0", s0);
+  auto z0 = graph.CreateAxis("z0", s0);
 
-    af::ascir_op::Data x1("x1", graph);
-    af::ascir_op::Load load1("load1");
-    af::ascir_op::Erf erf("erf");
-    af::ascir_op::Store store("store");
-    af::ascir_op::Output y("y");
+  af::ascir_op::Data x1("x1", graph);
+  af::ascir_op::Load load1("load1");
+  af::ascir_op::Erf erf("erf");
+  af::ascir_op::Store store("store");
+  af::ascir_op::Output y("y");
 
-    x1.attr.sched.axis = {z0.id};
-    x1.y.dtype = af::DT_FLOAT;
-    *x1.y.axis = {z0.id};
-    *x1.y.repeats = {s0};
-    *x1.y.strides = {Symbol(1)};
+  x1.attr.sched.axis = {z0.id};
+  x1.y.dtype = af::DT_FLOAT;
+  *x1.y.axis = {z0.id};
+  *x1.y.repeats = {s0};
+  *x1.y.strides = {Symbol(1)};
 
-    load1.x = x1.y;
-    load1.attr.sched.axis = {z0.id};
-    load1.y.dtype = af::DT_FLOAT;
-    *load1.y.axis = {z0.id};
-    *load1.y.repeats = {s0};
-    *load1.y.strides = {Symbol(1)};
-    *load1.y.vectorized_axis = {z0.id};
+  load1.x = x1.y;
+  load1.attr.sched.axis = {z0.id};
+  load1.y.dtype = af::DT_FLOAT;
+  *load1.y.axis = {z0.id};
+  *load1.y.repeats = {s0};
+  *load1.y.strides = {Symbol(1)};
+  *load1.y.vectorized_axis = {z0.id};
 
-    erf.x = load1.y;
-    erf.attr.sched.axis = {z0.id};
-    erf.y.dtype = af::DT_FLOAT;
-    *erf.y.axis = {z0.id};
-    *erf.y.repeats = {s0};
-    *erf.y.strides = {Symbol(1)};
+  erf.x = load1.y;
+  erf.attr.sched.axis = {z0.id};
+  erf.y.dtype = af::DT_FLOAT;
+  *erf.y.axis = {z0.id};
+  *erf.y.repeats = {s0};
+  *erf.y.strides = {Symbol(1)};
 
-    store.x = erf.y;
-    store.attr.sched.axis = {z0.id};
-    store.y.dtype = af::DT_FLOAT;
-    *store.y.axis = {z0.id};
-    *store.y.repeats = {s0};
-    *store.y.strides = {Symbol(1)};
+  store.x = erf.y;
+  store.attr.sched.axis = {z0.id};
+  store.y.dtype = af::DT_FLOAT;
+  *store.y.axis = {z0.id};
+  *store.y.repeats = {s0};
+  *store.y.strides = {Symbol(1)};
 
-    y.x = store.y;
-    y.attr.sched.axis = {z0.id};
-    y.y.dtype = af::DT_FLOAT;
-    *y.y.axis = {z0.id};
-    *y.y.repeats = {s0};
-    *y.y.strides = {Symbol(1)};
+  y.x = store.y;
+  y.attr.sched.axis = {z0.id};
+  y.y.dtype = af::DT_FLOAT;
+  *y.y.axis = {z0.id};
+  *y.y.repeats = {s0};
+  *y.y.strides = {Symbol(1)};
 
-    std::shared_ptr<af::AscNode> node = graph.FindNode("erf");
-    node->inputs[0].attr.vectorized_strides = {Symbol(1)};
+  std::shared_ptr<af::AscNode> node = graph.FindNode("erf");
+  node->inputs[0].attr.vectorized_strides = {Symbol(1)};
 
-    std::vector<std::unique_ptr<af::TmpBufDesc>> result = CalcWelfordFinalizeTmpSize(*node);
-    ASSERT_EQ(result.size(), 1);
-    ASSERT_EQ(result[0]->size, Symbol(1312));
+  std::vector<std::unique_ptr<af::TmpBufDesc>> result = CalcWelfordFinalizeTmpSize(*node);
+  ASSERT_EQ(result.size(), 1);
+  ASSERT_EQ(result[0]->size, Symbol(1312));
 }
 
 // ab_len=64 (边界值): max(1024, 512+64*8) = max(1024, 1024) = 1024
-TEST_F(CalcWelfordFinalizeTmpSizeTest, CalcWelfordFinalizeTmpSizeWhenAbLenEq64)
-{
-    af::AscGraph graph("test");
-    auto s0 = graph.CreateSizeVar(64);
+TEST_F(CalcWelfordFinalizeTmpSizeTest, CalcWelfordFinalizeTmpSizeWhenAbLenEq64) {
+  af::AscGraph graph("test");
+  auto s0 = graph.CreateSizeVar(64);
 
-    auto z0 = graph.CreateAxis("z0", s0);
+  auto z0 = graph.CreateAxis("z0", s0);
 
-    af::ascir_op::Data x1("x1", graph);
-    af::ascir_op::Load load1("load1");
-    af::ascir_op::Erf erf("erf");
-    af::ascir_op::Store store("store");
-    af::ascir_op::Output y("y");
+  af::ascir_op::Data x1("x1", graph);
+  af::ascir_op::Load load1("load1");
+  af::ascir_op::Erf erf("erf");
+  af::ascir_op::Store store("store");
+  af::ascir_op::Output y("y");
 
-    x1.attr.sched.axis = {z0.id};
-    x1.y.dtype = af::DT_FLOAT;
-    *x1.y.axis = {z0.id};
-    *x1.y.repeats = {s0};
-    *x1.y.strides = {Symbol(1)};
+  x1.attr.sched.axis = {z0.id};
+  x1.y.dtype = af::DT_FLOAT;
+  *x1.y.axis = {z0.id};
+  *x1.y.repeats = {s0};
+  *x1.y.strides = {Symbol(1)};
 
-    load1.x = x1.y;
-    load1.attr.sched.axis = {z0.id};
-    load1.y.dtype = af::DT_FLOAT;
-    *load1.y.axis = {z0.id};
-    *load1.y.repeats = {s0};
-    *load1.y.strides = {Symbol(1)};
-    *load1.y.vectorized_axis = {z0.id};
+  load1.x = x1.y;
+  load1.attr.sched.axis = {z0.id};
+  load1.y.dtype = af::DT_FLOAT;
+  *load1.y.axis = {z0.id};
+  *load1.y.repeats = {s0};
+  *load1.y.strides = {Symbol(1)};
+  *load1.y.vectorized_axis = {z0.id};
 
-    erf.x = load1.y;
-    erf.attr.sched.axis = {z0.id};
-    erf.y.dtype = af::DT_FLOAT;
-    *erf.y.axis = {z0.id};
-    *erf.y.repeats = {s0};
-    *erf.y.strides = {Symbol(1)};
+  erf.x = load1.y;
+  erf.attr.sched.axis = {z0.id};
+  erf.y.dtype = af::DT_FLOAT;
+  *erf.y.axis = {z0.id};
+  *erf.y.repeats = {s0};
+  *erf.y.strides = {Symbol(1)};
 
-    store.x = erf.y;
-    store.attr.sched.axis = {z0.id};
-    store.y.dtype = af::DT_FLOAT;
-    *store.y.axis = {z0.id};
-    *store.y.repeats = {s0};
-    *store.y.strides = {Symbol(1)};
+  store.x = erf.y;
+  store.attr.sched.axis = {z0.id};
+  store.y.dtype = af::DT_FLOAT;
+  *store.y.axis = {z0.id};
+  *store.y.repeats = {s0};
+  *store.y.strides = {Symbol(1)};
 
-    y.x = store.y;
-    y.attr.sched.axis = {z0.id};
-    y.y.dtype = af::DT_FLOAT;
-    *y.y.axis = {z0.id};
-    *y.y.repeats = {s0};
-    *y.y.strides = {Symbol(1)};
+  y.x = store.y;
+  y.attr.sched.axis = {z0.id};
+  y.y.dtype = af::DT_FLOAT;
+  *y.y.axis = {z0.id};
+  *y.y.repeats = {s0};
+  *y.y.strides = {Symbol(1)};
 
-    std::shared_ptr<af::AscNode> node = graph.FindNode("erf");
-    node->inputs[0].attr.vectorized_strides = {Symbol(1)};
+  std::shared_ptr<af::AscNode> node = graph.FindNode("erf");
+  node->inputs[0].attr.vectorized_strides = {Symbol(1)};
 
-    std::vector<std::unique_ptr<af::TmpBufDesc>> result = CalcWelfordFinalizeTmpSize(*node);
-    ASSERT_EQ(result.size(), 1);
-    ASSERT_EQ(result[0]->size, Symbol(1024));
+  std::vector<std::unique_ptr<af::TmpBufDesc>> result = CalcWelfordFinalizeTmpSize(*node);
+  ASSERT_EQ(result.size(), 1);
+  ASSERT_EQ(result[0]->size, Symbol(1024));
 }
 
-} // namespace ascir
-} // namespace ge
+}  // namespace ascir
+}  // namespace af

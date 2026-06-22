@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -216,7 +216,7 @@ int ApiInfo::set(PyObject *self, PyObject *value, void *closure) {
       {"store", af::ComputeType::kComputeStore},         {"elemwise", af::ComputeType::kComputeElewise},
       {"broadcast", af::ComputeType::kComputeBroadcast}, {"reduce", af::ComputeType::kComputeReduce},
       {"transpose", af::ComputeType::kComputeTranspose}, {"concat", af::ComputeType::kComputeConcat},
-      {"cube", af::ComputeType::kComputeCube},       {"split", af::ComputeType::kComputeSplit},
+      {"cube", af::ComputeType::kComputeCube},           {"split", af::ComputeType::kComputeSplit},
   };
 
   auto type_iter = name_to_type.find(string(val));
@@ -238,11 +238,16 @@ PyObject *ApiInfo::get(PyObject *self, void *closure) {
   }
   static const map<af::ComputeType, string> type_to_name = {
       {af::ComputeType::kComputeLoad, "load"},
-      {af::ComputeType::kComputeStore, "store"},         {af::ComputeType::kComputeReduceStore, "reduce_store"},
-      {af::ComputeType::kComputeElewise, "elewise"},     {af::ComputeType::kComputeBroadcast, "broadcast"},
-      {af::ComputeType::kComputeReduce, "reduce"},       {af::ComputeType::kComputeTranspose, "transpose"},
-      {af::ComputeType::kComputeConcat, "concat"},       {af::ComputeType::kComputeGather, "gather"},
-      {af::ComputeType::kComputeSplit, "split"},         {af::ComputeType::kComputeCube, "cube"},
+      {af::ComputeType::kComputeStore, "store"},
+      {af::ComputeType::kComputeReduceStore, "reduce_store"},
+      {af::ComputeType::kComputeElewise, "elewise"},
+      {af::ComputeType::kComputeBroadcast, "broadcast"},
+      {af::ComputeType::kComputeReduce, "reduce"},
+      {af::ComputeType::kComputeTranspose, "transpose"},
+      {af::ComputeType::kComputeConcat, "concat"},
+      {af::ComputeType::kComputeGather, "gather"},
+      {af::ComputeType::kComputeSplit, "split"},
+      {af::ComputeType::kComputeCube, "cube"},
   };
 
   auto type_iter = type_to_name.find(hint_type->api_info->compute_type);
@@ -359,7 +364,7 @@ class IrAttr {
 
 // 初始化 TypeData
 template <typename OpType>
-auto IrAttr<OpType>::GetTypeData() -> typename IrAttr<OpType>::TypeData& {
+auto IrAttr<OpType>::GetTypeData() -> typename IrAttr<OpType>::TypeData & {
   static TypeData data = []() {
     TypeData d = {};
     PyGetSetDef sentinel = {nullptr, nullptr, nullptr, nullptr, nullptr};
@@ -810,7 +815,7 @@ class OpsOperator {
 
   static PyObject *OpsOperator_new(PyTypeObject *type, PyObject *args, PyObject *kwargs) {
     auto self = ge::PtrToPtr<PyObject, Object>(Operator::New(type, args, kwargs));
-  	PY_ASSERT_NOTNULL(self);
+    PY_ASSERT_NOTNULL(self);
 
     self->attr = Py_None;
     self->input_output_num = 0;
@@ -825,8 +830,8 @@ class OpsOperator {
     uint32_t dynamic_output_num = 0U;
     PyObject *graph_object{nullptr};
     auto ops_type = OpsOperatorTypeObject::GetOpsType(Py_TYPE(self_pyobject));
-    const auto has_dynamic_output = ops_type.output_defs.size() == 1U &&
-                                    ops_type.output_defs[0U].second == af::kIrOutputDynamic;
+    const auto has_dynamic_output =
+        ops_type.output_defs.size() == 1U && ops_type.output_defs[0U].second == af::kIrOutputDynamic;
     if (!ParseOpsOperatorInitArgs(args, has_dynamic_output, name_ptr, dynamic_output_num, graph_object)) {
       return -1;
     }
@@ -868,12 +873,12 @@ class OpsOperator {
     self->attr = AscNodeAttr::FromAscNode<OpType>(op->attr, op_type.GetString());
     if (has_dynamic_output) {
       if (!SetupOutputs<OpType>(self_pyobject, op)) {
-		delete op;
-		self->op = nullptr;
-		self->op_base.op = nullptr;
-		self->attr = Py_None;
-		return -1;
-	  }
+        delete op;
+        self->op = nullptr;
+        self->op_base.op = nullptr;
+        self->attr = Py_None;
+        return -1;
+      }
       return 0;
     }
     for (size_t i = 0UL; i < op->GetOutputsSize(); ++i) {
@@ -1104,7 +1109,7 @@ int OpsOperatorInput::_setter_or_setter_list(PyObject *self, PyObject *value, vo
 }
 
 template <typename OpType, typename AttrDefType>
-auto GetValidatedIrAttr(PyObject *self, const char *attr_type_name) -> AttrDefType* {
+auto GetValidatedIrAttr(PyObject *self, const char *attr_type_name) -> AttrDefType * {
   auto ir_attr_obj = reinterpret_cast<typename IrAttr<OpType>::Object *>(self);
   PY_ASSERT(ir_attr_obj != nullptr, "Inner error, has no ir attr", "");
   auto target_attr = dynamic_cast<AttrDefType *>(ir_attr_obj->ir_attr);
@@ -1118,7 +1123,7 @@ auto GetValidatedIrAttr(PyObject *self, const char *attr_type_name) -> AttrDefTy
   PyObject *OpsOperatorIrAttr<af::ascir_op::OpType, AttrName>::_getter(PyObject *self, void *closure) {            \
     (void)closure;                                                                                                 \
     auto *attr = GetValidatedIrAttr<af::ascir_op::OpType, af::ascir_op::OpType::AttrType>(self, #AttrType);        \
-    ValueType v{};                                                                                                   \
+    ValueType v{};                                                                                                 \
     return attr ? (attr->GetMethod(v), ConvFunc(v)) : nullptr;                                                     \
   }                                                                                                                \
   template <>                                                                                                      \
@@ -1144,10 +1149,10 @@ DEFINE_IR_ATTR_ACCESSORS(Gather, AscGatherIrAttrDef, kAxisAttr, int64_t, PyLong_
                          SetAxis, GetAxis)
 DEFINE_IR_ATTR_ACCESSORS(MatMul, AscMatMulIrAttrDef, kHasRelu, int64_t, PyLong_Check, PyLong_FromLong, PyLong_AsLong,
                          SetHas_relu, GetHas_relu)
-DEFINE_IR_ATTR_ACCESSORS(MatMul, AscMatMulIrAttrDef, kTransposeX1, int64_t, PyLong_Check, PyLong_FromLong, PyLong_AsLong,
-                         SetTranspose_x1, GetTranspose_x1)
-DEFINE_IR_ATTR_ACCESSORS(MatMul, AscMatMulIrAttrDef, kTransposeX2, int64_t, PyLong_Check, PyLong_FromLong, PyLong_AsLong,
-                         SetTranspose_x2, GetTranspose_x2)
+DEFINE_IR_ATTR_ACCESSORS(MatMul, AscMatMulIrAttrDef, kTransposeX1, int64_t, PyLong_Check, PyLong_FromLong,
+                         PyLong_AsLong, SetTranspose_x1, GetTranspose_x1)
+DEFINE_IR_ATTR_ACCESSORS(MatMul, AscMatMulIrAttrDef, kTransposeX2, int64_t, PyLong_Check, PyLong_FromLong,
+                         PyLong_AsLong, SetTranspose_x2, GetTranspose_x2)
 DEFINE_IR_ATTR_ACCESSORS(MatMul, AscMatMulIrAttrDef, kOffsetX, int64_t, PyLong_Check, PyLong_FromLong, PyLong_AsLong,
                          SetOffset_x, GetOffset_x)
 DEFINE_IR_ATTR_ACCESSORS(MatMul, AscMatMulIrAttrDef, kEnableHf32, int64_t, PyLong_Check, PyLong_FromLong, PyLong_AsLong,
@@ -1165,8 +1170,8 @@ DEFINE_IR_ATTR_ACCESSORS(BatchMatMul, AscBatchMatMulIrAttrDef, kEnableHf32, int6
 DEFINE_IR_ATTR_ACCESSORS(
     Scalar, AscScalarIrAttrDef, kValueAttr, std::string, PyUnicode_Check,
     [](const std::string &str) { return PyUnicode_FromString(str.c_str()); }, PyUnicode_AsUTF8, SetValue, GetValue)
-DEFINE_IR_ATTR_ACCESSORS(LeakyRelu, AscLeakyReluIrAttrDef, kNegativeSlopeAttr, float, PyFloat_Check, PyFloat_FromDouble, PyFloat_AsDouble,
-                         SetNegative_slope, GetNegative_slope)
+DEFINE_IR_ATTR_ACCESSORS(LeakyRelu, AscLeakyReluIrAttrDef, kNegativeSlopeAttr, float, PyFloat_Check, PyFloat_FromDouble,
+                         PyFloat_AsDouble, SetNegative_slope, GetNegative_slope)
 DEFINE_IR_ATTR_ACCESSORS(Axpy, AscAxpyIrAttrDef, kAlphaAttr, float, PyFloat_Check, PyFloat_FromDouble, PyFloat_AsDouble,
                          SetAlpha, GetAlpha)
 
@@ -1362,7 +1367,7 @@ static PyObject *UtilsDumpGraph(PyObject *self_pyobject, PyObject *args) {
 }
 namespace {
 // Template function for binary operations on SizeExpr (Max, Min, Mod, etc.)
-template <af::Expression (*BinaryOp)(const af::Expression&, const af::Expression&)>
+template <af::Expression (*BinaryOp)(const af::Expression &, const af::Expression &)>
 static PyObject *SizeExpr_BinaryOp(PyObject *self, PyObject *args) {
   (void)self;
   PyObject *left;
@@ -1401,12 +1406,11 @@ PyMethodDef UtilsMethods[] = {
      "set platform for platform context"},
     {NULL}};
 
-PyMethodDef AscirMethods[] = {
-    {"Max", SizeExprMax, METH_VARARGS, "Return the maximum of two SizeExpr values"},
-    {"Min", SizeExprMin, METH_VARARGS, "Return the minimum of two SizeExpr values"},
-    {"Mod", SizeExprMod, METH_VARARGS, "Return the modulo of two SizeExpr values"},
-    {NULL}};
-}
+PyMethodDef AscirMethods[] = {{"Max", SizeExprMax, METH_VARARGS, "Return the maximum of two SizeExpr values"},
+                              {"Min", SizeExprMin, METH_VARARGS, "Return the minimum of two SizeExpr values"},
+                              {"Mod", SizeExprMod, METH_VARARGS, "Return the modulo of two SizeExpr values"},
+                              {NULL}};
+}  // namespace
 
 static PyModuleDef UtilsModule = {
     PyModuleDef_HEAD_INIT, "utils", "Utils module", -1, UtilsMethods,
@@ -1420,11 +1424,7 @@ static PyModuleDef OpsModule = {
 };
 
 static PyModuleDef AscirModule = {
-    PyModuleDef_HEAD_INIT,
-    "ascir",
-    "AscendC IR",
-    -1,
-    AscirMethods,
+    PyModuleDef_HEAD_INIT, "ascir", "AscendC IR", -1, AscirMethods,
 };
 
 static PyModuleDef DtypesModule = {

@@ -13,8 +13,7 @@
 
 namespace af {
 namespace ascir {
-std::vector<std::unique_ptr<TmpBufDesc>>
-CalcCoshTmpSizeV2(const AscNode &node) {
+std::vector<std::unique_ptr<TmpBufDesc>> CalcCoshTmpSizeV2(const AscNode &node) {
   auto node_inputs = node.inputs;
   GELOGD("Node %s[%s] inputs[0] data type size is: %d", node.GetTypePtr(), node.GetNamePtr(),
          GetSizeByDataType(node_inputs[0].attr.dtype));
@@ -30,5 +29,5 @@ CalcCoshTmpSizeV2(const AscNode &node) {
   tmp_buf_descs.emplace_back(std::make_unique<TmpBufDesc>(desc));
   return tmp_buf_descs;
 }
-} // namespace ascir
-} // namespace ge
+}  // namespace ascir
+}  // namespace af

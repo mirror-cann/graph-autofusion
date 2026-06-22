@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -14,7 +14,6 @@
 #include "ascir_ops_utils.h"
 #include "codegen_kernel.h"
 #include "codegen_tiling_data.h"
-
 
 class TestCodegenTilingData : public testing::Test, public codegen::TilingData {
  protected:
@@ -310,7 +309,6 @@ struct AutofuseTilingDataPerf {
 )rawliteral";
   EXPECT_EQ(this->GenerateConst(fused_schedule_result), test_res);
 }
-
 
 TEST_F(TestCodegenTilingData, multiGroupGenerateConstTilingDataWithTranspose) {
   af::AscGraph graph0("test_graph0");
@@ -682,61 +680,59 @@ struct AutofuseTilingDataPerf {
   EXPECT_EQ(this->Generate(fused_schedule_result), test_res);
 }
 
-
 TEST_F(TestCodegenTilingData, AddApiTilingData) {
-    af::AscGraph graph("test_graph");
+  af::AscGraph graph("test_graph");
 
-    auto s0 = graph.CreateSizeVar("s0");
-    auto s1 = graph.CreateSizeVar("s1");
-    auto z0 = graph.CreateAxis("z0", s0);
-    auto z1 = graph.CreateAxis("z1", s1);
+  auto s0 = graph.CreateSizeVar("s0");
+  auto s1 = graph.CreateSizeVar("s1");
+  auto z0 = graph.CreateAxis("z0", s0);
+  auto z1 = graph.CreateAxis("z1", s1);
 
-    /* x是否需要指定位宽，调度API函数需要指定 */
-    af::ascir_op::Transpose transpose_op("Transpose");
-    graph.AddNode(transpose_op);
+  /* x是否需要指定位宽，调度API函数需要指定 */
+  af::ascir_op::Transpose transpose_op("Transpose");
+  graph.AddNode(transpose_op);
 
-    /* TODO：perm成员赋值方式 */
-    //transpose_op.perm = std::vector<int32>{0, 2, 1};
+  /* TODO：perm成员赋值方式 */
+  // transpose_op.perm = std::vector<int32>{0, 2, 1};
 
-    *transpose_op.y.axis = {z1.id, z0.id};
+  *transpose_op.y.axis = {z1.id, z0.id};
 
-    auto transpose = graph.FindNode("Transpose");
-    transpose->attr.api.compute_type = af::ComputeType::kComputeTranspose;
-    transpose->attr.api.type = af::ApiType::kAPITypeCompute;
-    transpose->attr.api.unit = af::ComputeUnit::kUnitVector;
+  auto transpose = graph.FindNode("Transpose");
+  transpose->attr.api.compute_type = af::ComputeType::kComputeTranspose;
+  transpose->attr.api.type = af::ApiType::kAPITypeCompute;
+  transpose->attr.api.unit = af::ComputeUnit::kUnitVector;
 
-    /* TODO:不配置循环轴 */
-    transpose->attr.sched.loop_axis = z0.id;
+  /* TODO:不配置循环轴 */
+  transpose->attr.sched.loop_axis = z0.id;
 
-    /* TODO：新增perm节点 ？？ */
-    transpose->outputs[0].attr.vectorized_axis = {z1.id, z0.id};
-    transpose->outputs[0].attr.dtype = ge::DT_FLOAT;
-    transpose->outputs[0].attr.mem.position = af::Position::kPositionVecOut;
-    transpose->outputs[0].attr.mem.tensor_id = 1;
-    transpose->outputs[0].attr.mem.alloc_type = af::AllocType::kAllocTypeQueue;
-    transpose->outputs[0].attr.que.id = 2;
-    transpose->outputs[0].attr.opt.merge_scope = af::kIdNone;
+  /* TODO：新增perm节点 ？？ */
+  transpose->outputs[0].attr.vectorized_axis = {z1.id, z0.id};
+  transpose->outputs[0].attr.dtype = ge::DT_FLOAT;
+  transpose->outputs[0].attr.mem.position = af::Position::kPositionVecOut;
+  transpose->outputs[0].attr.mem.tensor_id = 1;
+  transpose->outputs[0].attr.mem.alloc_type = af::AllocType::kAllocTypeQueue;
+  transpose->outputs[0].attr.que.id = 2;
+  transpose->outputs[0].attr.opt.merge_scope = af::kIdNone;
 
-    codegen::Tiler tiler;
-    codegen::TPipe tpipe("tpipe", tiler);
+  codegen::Tiler tiler;
+  codegen::TPipe tpipe("tpipe", tiler);
 
-    /*  TODO：AddTensor只需要add输出吗？ Perm是否需要体现 */
-    tpipe.AddTensor(transpose->outputs[0]);
+  /*  TODO：AddTensor只需要add输出吗？ Perm是否需要体现 */
+  tpipe.AddTensor(transpose->outputs[0]);
 
-    tiler.AddAxis(z0);
-    tiler.AddAxis(z1);
-    tiler.AddSizeVar(af::SizeVar(s0));
-    tiler.AddSizeVar(af::SizeVar(s1));
-    tiler.SetTilingCaseId(0);
-    codegen::ApiTensor x;
+  tiler.AddAxis(z0);
+  tiler.AddAxis(z1);
+  tiler.AddSizeVar(af::SizeVar(s0));
+  tiler.AddSizeVar(af::SizeVar(s1));
+  tiler.SetTilingCaseId(0);
+  codegen::ApiTensor x;
 
-    std::stringstream ss;
-    uint32_t tiling_case_id = 0;
-    std::string tilingString;
-    codegen::TilingData::AddApiTilingData(graph, ss, tiling_case_id);
-    tilingString = ss.str();
+  std::stringstream ss;
+  uint32_t tiling_case_id = 0;
+  std::string tilingString;
+  codegen::TilingData::AddApiTilingData(graph, ss, tiling_case_id);
+  tilingString = ss.str();
 
-    EXPECT_EQ(tilingString, std::string{
-      "  TILING_DATA_FIELD_DEF_T_STRUCT(ConfusionTransposeTiling, Transpose_tilingData_0);\n"
-    });
+  EXPECT_EQ(tilingString,
+            std::string{"  TILING_DATA_FIELD_DEF_T_STRUCT(ConfusionTransposeTiling, Transpose_tilingData_0);\n"});
 }

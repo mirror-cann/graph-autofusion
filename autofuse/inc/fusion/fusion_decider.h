@@ -24,7 +24,7 @@ using ge::NodePtr;
 namespace af {
 enum class FusionPriority : uint32_t {
   HIGHEST = 0U,  // CanFuse阶段需要保证Split之间完成融合后再进行Split与其它类型节点间的融合
-  HIGHER = 1U,   // CanFuse阶段需要保证Split优先与其它类型节点完成融合，保证Split的CanFuse融合预判与最终融合结果一致
+  HIGHER = 1U,  // CanFuse阶段需要保证Split优先与其它类型节点完成融合，保证Split的CanFuse融合预判与最终融合结果一致
   HIGH = 2U,
   DEFAULT = 3U,
   LOW = 4U
@@ -65,8 +65,8 @@ class FusionDecider {
 }  // namespace af
 
 namespace ge {
-using af::FusionPriority;
 using af::FusionDecider;
+using af::FusionPriority;
 }  // namespace ge
 
 #endif  // INC_FUSION_FUSION_DECIDER_H_

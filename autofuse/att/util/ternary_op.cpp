@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -74,16 +74,17 @@ TernaryOp::TernaryOp(const Expr &expr) {
 }
 
 TernaryOp::TernaryOp(const CondType &cond_type, const Expr &cond_left, const Expr &cond_right, const Expr &choice_a,
-                   const Expr &choice_b) {
-  ternary_op_ = std::make_shared<IfCase>(cond_type, cond_left, cond_right, std::make_shared<IfCase>(choice_a), std::make_shared<IfCase>(choice_b));
+                     const Expr &choice_b) {
+  ternary_op_ = std::make_shared<IfCase>(cond_type, cond_left, cond_right, std::make_shared<IfCase>(choice_a),
+                                         std::make_shared<IfCase>(choice_b));
   AddUsedArgs(cond_left, related_vars_);
   AddUsedArgs(cond_right, related_vars_);
   AddUsedArgs(choice_a, related_vars_);
   AddUsedArgs(choice_b, related_vars_);
 }
 
-TernaryOp::TernaryOp(const CondType &cond_type, const Expr &cond_left, const Expr &cond_right, 
-                   std::shared_ptr<IfCase> &&if_case_a, std::shared_ptr<IfCase> &&if_case_b) {
+TernaryOp::TernaryOp(const CondType &cond_type, const Expr &cond_left, const Expr &cond_right,
+                     std::shared_ptr<IfCase> &&if_case_a, std::shared_ptr<IfCase> &&if_case_b) {
   ternary_op_ = std::make_shared<IfCase>(cond_type, cond_left, cond_right, std::move(if_case_a), std::move(if_case_b));
   ternary_op_->GetUsedArgs(related_vars_);
 }
@@ -96,10 +97,10 @@ TernaryOp::TernaryOp(const Expr &var, std::shared_ptr<IfCase> &&op, const std::v
   }
 }
 
-TernaryOp::TernaryOp(const CondType &cond_type, const Expr &cond_left, const Expr &cond_right, 
-                   const TernaryOp &ternary_op_a, const TernaryOp &ternary_op_b) {
-  ternary_op_ = std::make_shared<IfCase>(cond_type, cond_left, cond_right, 
-                                       ternary_op_a.DeepCopyIfCase(), ternary_op_b.DeepCopyIfCase());
+TernaryOp::TernaryOp(const CondType &cond_type, const Expr &cond_left, const Expr &cond_right,
+                     const TernaryOp &ternary_op_a, const TernaryOp &ternary_op_b) {
+  ternary_op_ = std::make_shared<IfCase>(cond_type, cond_left, cond_right, ternary_op_a.DeepCopyIfCase(),
+                                         ternary_op_b.DeepCopyIfCase());
   for (const auto &var : ternary_op_a.GetRelatedVars()) {
     related_vars_.emplace_back(var);
   }
@@ -186,8 +187,8 @@ std::shared_ptr<IfCase> TernaryOp::DeepCopyIfCase() const {
 }
 
 namespace {
-bool InTernaryOps(const TernaryOp &ternary_op, const std::map<Expr, TernaryOp, ExprCmp> &ternary_ops, const ExprExprMap &res,
-                 std::stack<Expr> &replace_stack) {
+bool InTernaryOps(const TernaryOp &ternary_op, const std::map<Expr, TernaryOp, ExprCmp> &ternary_ops,
+                  const ExprExprMap &res, std::stack<Expr> &replace_stack) {
   bool ret = false;
   for (const auto &args : ternary_op.GetRelatedVars()) {
     if (ternary_ops.find(args) != ternary_ops.end() && res.find(args) == res.end()) {
@@ -198,7 +199,8 @@ bool InTernaryOps(const TernaryOp &ternary_op, const std::map<Expr, TernaryOp, E
   return ret;
 }
 
-void AddRelatedVars(const Expr &expr, const TernaryOp &ternary_op, const std::map<Expr, TernaryOp, ExprCmp> &ternary_ops,
+void AddRelatedVars(const Expr &expr, const TernaryOp &ternary_op,
+                    const std::map<Expr, TernaryOp, ExprCmp> &ternary_ops,
                     std::map<Expr, std::vector<Expr>, ExprCmp> &res) {
   std::vector<Expr> related_vars;
   for (const auto &arg : ternary_op.GetRelatedVars()) {
@@ -215,7 +217,7 @@ void AddRelatedVars(const Expr &expr, const TernaryOp &ternary_op, const std::ma
   }
   res[expr] = related_vars;
 }
-} // namespace
+}  // namespace
 
 std::vector<std::pair<Expr, Expr>> ConcursiveReplaceVars(const std::map<Expr, TernaryOp, ExprCmp> &ternary_ops) {
   Expr cur_var;
@@ -252,7 +254,8 @@ std::vector<std::pair<Expr, Expr>> ConcursiveReplaceVars(const std::map<Expr, Te
   return replace_vars;
 }
 
-std::map<Expr, std::vector<Expr>, ExprCmp> ConcursiveRelatedVars(const std::map<Expr, TernaryOp, ExprCmp> &ternary_ops) {
+std::map<Expr, std::vector<Expr>, ExprCmp> ConcursiveRelatedVars(
+    const std::map<Expr, TernaryOp, ExprCmp> &ternary_ops) {
   std::vector<Expr> cur_related;
   std::map<Expr, std::vector<Expr>, ExprCmp> res;
   for (const auto &pair : ternary_ops) {
@@ -297,8 +300,14 @@ std::string CondToStr(CondType type, const Expr &left, const Expr &right) {
 
 // 尝试将字符串解析为数值：处理 "False"/"True" 和纯数字字符串
 bool TryParseConstStr(const std::string &s, double &val) {
-  if (s == "False") { val = 0.0; return true; }
-  if (s == "True")  { val = 1.0; return true; }
+  if (s == "False") {
+    val = 0.0;
+    return true;
+  }
+  if (s == "True") {
+    val = 1.0;
+    return true;
+  }
   try {
     size_t pos = 0;
     val = std::stod(s, &pos);
@@ -344,8 +353,8 @@ bool TryEvalConstCond(CondType type, const Expr &left, const Expr &right, bool &
 // 叶子节点表达式超过 kLeafExprMaxInlineLen 时也提取为命名 double 变量。
 // is_root=true 时，返回完整 TernaryOp 表达式供调用者赋值给外层变量（不额外包一层）。
 // is_root=false 时，生成一个 double 子变量，返回该变量名（避免嵌套字面量）。
-std::string DecomposeIfCase(const IfCase &node, const std::string &prefix, int &counter,
-                             std::string &preamble, bool is_root = false) {
+std::string DecomposeIfCase(const IfCase &node, const std::string &prefix, int &counter, std::string &preamble,
+                            bool is_root = false) {
   if (node.IsLeaf()) {
     std::string leaf_expr = Str(node.GetExpr());
     if (leaf_expr.length() <= kLeafExprMaxInlineLen) {
@@ -357,14 +366,14 @@ std::string DecomposeIfCase(const IfCase &node, const std::string &prefix, int &
     return case_var;
   }
   // 常量条件折叠：若 cond 两侧均为常量，直接取对应分支，不生成 bool/TernaryOp
-  if (bool const_result = false; TryEvalConstCond(node.GetCondType(), node.GetCondLeft(), node.GetCondRight(),
-                                                  const_result)) {
+  if (bool const_result = false;
+      TryEvalConstCond(node.GetCondType(), node.GetCondLeft(), node.GetCondRight(), const_result)) {
     const IfCase &taken = const_result ? *node.GetChoiceA() : *node.GetChoiceB();
     return DecomposeIfCase(taken, prefix, counter, preamble, is_root);
   }
   const std::string cond_name = prefix + "_cond" + std::to_string(counter++);
-  preamble += "  bool " + cond_name + " = " +
-              CondToStr(node.GetCondType(), node.GetCondLeft(), node.GetCondRight()) + ";\n";
+  preamble +=
+      "  bool " + cond_name + " = " + CondToStr(node.GetCondType(), node.GetCondLeft(), node.GetCondRight()) + ";\n";
   const std::string true_str = DecomposeIfCase(*node.GetChoiceA(), prefix, counter, preamble);
   const std::string false_str = DecomposeIfCase(*node.GetChoiceB(), prefix, counter, preamble);
   const std::string tenary_str = "TernaryOp(" + cond_name + ", " + true_str + ", " + false_str + ")";

@@ -1,10 +1,10 @@
 
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -33,10 +33,10 @@
 using namespace std;
 using namespace testing;
 
-namespace af{
+namespace af {
 class LoopNodeLoweringUTV2 : public testing::Test {
-public:
-protected:
+ public:
+ protected:
   void SetUp() override {
     es_graph_ = std::unique_ptr<es::Graph>(new es::Graph("Hi Lowering graph"));
     ge::PlatformContext::GetInstance().Reset();
@@ -66,18 +66,16 @@ es::Tensor CreateConst(es::Graph &graph, af::DataType dtype, const std::vector<i
 
 REG_OP(Split)
     .INPUT(split_dim, TensorType({DT_INT32}))
-    .INPUT(x, TensorType({DT_COMPLEX128, DT_COMPLEX64, DT_DOUBLE, DT_FLOAT,  DT_FLOAT16, DT_INT16,
-                          DT_INT32,      DT_INT64,     DT_INT8,   DT_QINT16, DT_QINT32,  DT_QINT8,
-                          DT_QUINT16,    DT_QUINT8,    DT_UINT16, DT_UINT32, DT_UINT64,  DT_UINT8,
-                          DT_BF16,       DT_BOOL}))
-    .DYNAMIC_OUTPUT(y, TensorType({DT_COMPLEX128, DT_COMPLEX64, DT_DOUBLE, DT_FLOAT,  DT_FLOAT16, DT_INT16,
-                                   DT_INT32,      DT_INT64,     DT_INT8,   DT_QINT16, DT_QINT32,  DT_QINT8,
-                                   DT_QUINT16,    DT_QUINT8,    DT_UINT16, DT_UINT32, DT_UINT64,  DT_UINT8,
-                                   DT_BF16,       DT_BOOL}))
+    .INPUT(x, TensorType({DT_COMPLEX128, DT_COMPLEX64, DT_DOUBLE, DT_FLOAT,  DT_FLOAT16, DT_INT16,   DT_INT32,
+                          DT_INT64,      DT_INT8,      DT_QINT16, DT_QINT32, DT_QINT8,   DT_QUINT16, DT_QUINT8,
+                          DT_UINT16,     DT_UINT32,    DT_UINT64, DT_UINT8,  DT_BF16,    DT_BOOL}))
+    .DYNAMIC_OUTPUT(y, TensorType({DT_COMPLEX128, DT_COMPLEX64, DT_DOUBLE, DT_FLOAT,  DT_FLOAT16, DT_INT16,   DT_INT32,
+                                   DT_INT64,      DT_INT8,      DT_QINT16, DT_QINT32, DT_QINT8,   DT_QUINT16, DT_QUINT8,
+                                   DT_UINT16,     DT_UINT32,    DT_UINT64, DT_UINT8,  DT_BF16,    DT_BOOL}))
     .REQUIRED_ATTR(num_split, Int)
     .OP_END_FACTORY_REG(Split)
 
-TEST_F(LoopNodeLoweringUTV2, LoweringSplitInt32) {
+        TEST_F(LoopNodeLoweringUTV2, LoweringSplitInt32) {
   [this]() {
     es_graph_->CreateInput(0, "split_dim", nullptr);
     auto data = es_graph_->CreateInput(1, "x", nullptr);
@@ -109,4 +107,4 @@ TEST_F(LoopNodeLoweringUTV2, LoweringSplitInt32) {
             "tmp0 = ops.Load(\"x:0\")\n"
             "tmp1 = ops.StoreSplit([\"Split_1:1\"], [tmp0], split_dim=1)\n");
 }
-}  // namespace ge
+}  // namespace af

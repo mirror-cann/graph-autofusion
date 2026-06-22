@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -13,10 +13,12 @@
 
 #include "autofuse_tiling_data.h"
 
-extern "C" __global__ __aicore__ void broadcast_force_merge(GM_ADDR x0, GM_ADDR x1, GM_ADDR y, GM_ADDR workspace, GM_ADDR tiling_data);
+extern "C" __global__ __aicore__ void broadcast_force_merge(GM_ADDR x0, GM_ADDR x1, GM_ADDR y, GM_ADDR workspace,
+                                                            GM_ADDR tiling_data);
 extern "C" void GetTiling(AutofuseTilingData &tiling_data);
 
-class E2E_Broadcast_Force_Merge : public testing::Test, public testing::WithParamInterface<std::pair<std::vector<int>, std::vector<int>>> {};
+class E2E_Broadcast_Force_Merge : public testing::Test,
+                                  public testing::WithParamInterface<std::pair<std::vector<int>, std::vector<int>>> {};
 
 TEST_P(E2E_Broadcast_Force_Merge, broadcast_force_merge_0) {
   auto [test_shape, test_tiling] = GetParam();
@@ -78,5 +80,4 @@ TEST_P(E2E_Broadcast_Force_Merge, broadcast_force_merge_0) {
 INSTANTIATE_TEST_SUITE_P(CalcWithDifferentShape, E2E_Broadcast_Force_Merge,
                          ::testing::Values(std::pair<std::vector<int>, std::vector<int>>{{8, 8}, {32, 1, 2}},
                                            std::pair<std::vector<int>, std::vector<int>>{{8, 8}, {16, 1, 4}},
-                                           std::pair<std::vector<int>, std::vector<int>>{{8, 8}, {8, 3, 3}}
-                                          ));
+                                           std::pair<std::vector<int>, std::vector<int>>{{8, 8}, {8, 3, 3}}));

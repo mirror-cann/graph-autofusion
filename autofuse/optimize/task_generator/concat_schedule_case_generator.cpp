@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -81,8 +81,7 @@ Status ConcatFusionCaseGenerator::AddTemplatesForFirstDimConcat(const af::AscNod
   return af::SUCCESS;
 }
 
-Status ConcatFusionCaseGenerator::Generate(ascir::HintGraph &graph,
-                                           std::vector<ascir::ImplGraph> &graphs,
+Status ConcatFusionCaseGenerator::Generate(ascir::HintGraph &graph, std::vector<ascir::ImplGraph> &graphs,
                                            std::vector<std::string> &score_functions) {
   bool has_unsupported_op = false;
   const auto concat_nodes = FindConcatNodes(graph, &has_unsupported_op);
@@ -93,8 +92,8 @@ Status ConcatFusionCaseGenerator::Generate(ascir::HintGraph &graph,
   bool is_first_dim = false;
   GE_CHK_STATUS_RET(ScheduleUtils::ResolveDiffDim(concat_node, concat_dim_, is_first_dim), "ResolveConcatDim failed");
   GE_ASSERT_SUCCESS(AddExtraShapeEnv(concat_node, concat_dim_));
-  GE_ASSERT_SUCCESS(SplitDataForDifferentConcatDim(graph),
-                    "Failed to split data for graph:[%s].", graph.GetName().c_str());
+  GE_ASSERT_SUCCESS(SplitDataForDifferentConcatDim(graph), "Failed to split data for graph:[%s].",
+                    graph.GetName().c_str());
   if (has_unsupported_op) {
     GE_CHK_STATUS_RET(Prepare(concat_node, concat_dim_), "Prepare failed");
     GE_CHK_STATUS_RET(ConvertConcatToStores(graph, concat_node), "ConvertConcatToStores failed");
@@ -142,7 +141,8 @@ ConcatFusionCaseGenerator &ConcatFusionCaseGenerator::SetConvertToStoreMode() {
   return *this;
 }
 
-Status ConcatFusionCaseGenerator::AddTemplateForSplitConcat(const ascir::HintGraph &graph, std::vector<ascir::ImplGraph> &graphs) {
+Status ConcatFusionCaseGenerator::AddTemplateForSplitConcat(const ascir::HintGraph &graph,
+                                                            std::vector<ascir::ImplGraph> &graphs) {
   ascir::ImplGraph optimized_graph((graph.GetName() + "_group_concat").c_str());
   GE_ASSERT_TRUE(optimized_graph.CopyFrom(graph));
   auto concat_node = FindConcatNodes(optimized_graph).front();
@@ -166,10 +166,9 @@ Status ConcatFusionCaseGenerator::AddTemplateForSplitConcat(const ascir::HintGra
 bool ConcatFusionCaseGenerator::NeedDynSmallTailTemplate(const af::AscNodePtr &concat_node) const {
   const auto dtype_size = GetSizeByDataType(concat_node->outputs[0].attr.dtype);
   GE_WARN_ASSERT(dtype_size > 0);
-  return support_small_tail_ &&
-      ((dtype_size == sizeof(uint16_t)) || (dtype_size == sizeof(uint32_t))) &&
-      (concat_node->inputs.Size() <= kMaxInputNum) &&
-      (!concat_node->outputs[0].attr.strides[concat_dim_ - 1].IsConstExpr());
+  return support_small_tail_ && ((dtype_size == sizeof(uint16_t)) || (dtype_size == sizeof(uint32_t))) &&
+         (concat_node->inputs.Size() <= kMaxInputNum) &&
+         (!concat_node->outputs[0].attr.strides[concat_dim_ - 1].IsConstExpr());
 }
 
 Status ConcatFusionCaseGenerator::AddTemplateForSmallTail(const ascir::HintGraph &graph,
@@ -183,8 +182,7 @@ Status ConcatFusionCaseGenerator::AddTemplateForSmallTail(const ascir::HintGraph
   return af::SUCCESS;
 }
 
-Status ConcatFusionCaseGenerator::GenerateScoreFunctions(const std::vector<ascir::ImplGraph> &graphs,
-                                                         size_t concat_dim,
+Status ConcatFusionCaseGenerator::GenerateScoreFunctions(const std::vector<ascir::ImplGraph> &graphs, size_t concat_dim,
                                                          std::vector<std::string> &score_functions) const {
   GE_CHK_BOOL_RET_STATUS_NOLOG((graphs.size() > 1U), af::SUCCESS);
   if (support_small_tail_) {
@@ -205,7 +203,8 @@ Status ConcatFusionCaseGenerator::GenerateScoreFunctions(const std::vector<ascir
     if (!split_concat_) {
       const auto concat_node = FindConcatNodes(graphs.front()).front();
       constexpr uint32_t kMaxNumInputs = 16;
-      if ((!has_recompute_) && (concat_node->inputs.Size() <= kMaxNumInputs) && IsSmallBlock(concat_node, concat_dim_)) {
+      if ((!has_recompute_) && (concat_node->inputs.Size() <= kMaxNumInputs) &&
+          IsSmallBlock(concat_node, concat_dim_)) {
         score_functions.resize(graphs.size());
         ConcatScoreFunctionGenerator::GenerateScoreOne(score_functions.front());
       }
@@ -322,8 +321,7 @@ Status ConcatFusionCaseGenerator::Prepare(const af::AscNodePtr &concat_node, siz
   return af::SUCCESS;
 }
 
-Status ConcatFusionCaseGenerator::PropagateAxisChanges(af::Node *start_node,
-                                                       ascir::AxisId old_axis_id,
+Status ConcatFusionCaseGenerator::PropagateAxisChanges(af::Node *start_node, ascir::AxisId old_axis_id,
                                                        ascir::AxisId new_axis_id) {
   std::set<af::Node *> visited_nodes;
   std::queue<af::Node *> node_queue;
@@ -337,7 +335,7 @@ Status ConcatFusionCaseGenerator::PropagateAxisChanges(af::Node *start_node,
     GE_ASSERT_NOTNULL(curr_node);
     if (curr_node->attr.api.type != af::ApiType::kAPITypeBuffer) {
       ReplaceAxisById(curr_node->attr.sched.axis, old_axis_id, new_axis_id);
-      for (const auto &out_tensor: curr_node->outputs()) {
+      for (const auto &out_tensor : curr_node->outputs()) {
         ReplaceAxisById(out_tensor->attr.axis, old_axis_id, new_axis_id);
       }
     }
@@ -375,8 +373,7 @@ Status ConcatFusionCaseGenerator::ReplaceWithStore(const af::AscNodePtr &concat_
   auto src_node = dynamic_cast<af::AscNode *>(src_out_anchor->GetOwnerNodeBarePtr());
   GE_ASSERT_NOTNULL(src_node);
   std::unordered_map<std::string, af::NodePtr> name_to_new_node;
-  GE_ASSERT_SUCCESS(
-      CloneNonConcatNodes(replace_axis, old_axis_id, in_index, dst_in_anchors, name_to_new_node));
+  GE_ASSERT_SUCCESS(CloneNonConcatNodes(replace_axis, old_axis_id, in_index, dst_in_anchors, name_to_new_node));
   for (const auto &peer_in_anchor : dst_in_anchors) {
     GE_ASSERT_GRAPH_SUCCESS(af::GraphUtils::AddEdge(src_out_anchor, peer_in_anchor));
     GE_ASSERT_SUCCESS(ReconnectIfShareSameAncestor(name_to_new_node, peer_in_anchor));
@@ -417,8 +414,7 @@ Status ConcatFusionCaseGenerator::ReplaceWithConcat(ascir::ImplGraph &owner_grap
   std::vector<af::InDataAnchorPtr> dst_in_anchors;
   GE_ASSERT_SUCCESS(ReplaceAxis(new_concat_node, old_axis_id, new_concat_axis));
   std::unordered_map<std::string, af::NodePtr> name_to_new_node;
-  GE_ASSERT_SUCCESS(
-      CloneNonConcatNodes(new_concat_axis, old_axis_id, start, dst_in_anchors, name_to_new_node));
+  GE_ASSERT_SUCCESS(CloneNonConcatNodes(new_concat_axis, old_axis_id, start, dst_in_anchors, name_to_new_node));
   for (const auto &in_anchor : new_concat_node->GetAllInDataAnchors()) {
     GE_ASSERT_SUCCESS(ReconnectIfShareSameAncestor(name_to_new_node, in_anchor));
   }
@@ -429,10 +425,8 @@ Status ConcatFusionCaseGenerator::ReplaceWithConcat(ascir::ImplGraph &owner_grap
 }
 
 af::Status ConcatFusionCaseGenerator::SetConcatOpAttr(af::ascir_op::Concat &concat_op,
-                                                      const af::AscNodePtr &concat_node,
-                                                      size_t concat_dim,
-                                                      size_t start,
-                                                      size_t end) {
+                                                      const af::AscNodePtr &concat_node, size_t concat_dim,
+                                                      size_t start, size_t end) {
   GE_ASSERT_TRUE(end <= concat_node->inputs.Size());
   auto repeats = concat_node->inputs[start].attr.repeats;
   for (size_t i = start + 1U; i < end; ++i) {
@@ -461,8 +455,7 @@ Status ConcatFusionCaseGenerator::RemoveUnusedNodes(const af::AscNodePtr &concat
   GE_CHK_STATUS_RET(owner_compute_graph->RemoveNode(concat_node), "Failed to remote node: %s",
                     concat_node->GetNamePtr());
   for (const auto &node : nodes) {
-    GE_CHK_STATUS_RET(owner_compute_graph->RemoveNode(node), "Failed to remote node: %s",
-                      node->GetNamePtr());
+    GE_CHK_STATUS_RET(owner_compute_graph->RemoveNode(node), "Failed to remote node: %s", node->GetNamePtr());
   }
   return af::SUCCESS;
 }
@@ -543,14 +536,13 @@ Status ConcatFusionCaseGenerator::CollectReachableLoadNodes(const af::NodePtr &c
   return af::SUCCESS;
 }
 
-Status ConcatFusionCaseGenerator::CloneNonConcatNodes(const af::Axis &new_axis,
-                                                      ascir::AxisId old_axis_id,
-                                                      size_t index,
+Status ConcatFusionCaseGenerator::CloneNonConcatNodes(const af::Axis &new_axis, ascir::AxisId old_axis_id, size_t index,
                                                       std::vector<af::InDataAnchorPtr> &in_anchors,
                                                       std::unordered_map<std::string, af::NodePtr> &name_to_new_node) {
   GE_ASSERT_TRUE(!post_concat_nodes_.empty());
   ascir::ImplGraph owner_graph("owner_graph");
-  GE_ASSERT_SUCCESS(af::AscGraphUtils::FromComputeGraph(post_concat_nodes_.front()->GetOwnerComputeGraph(), owner_graph));
+  GE_ASSERT_SUCCESS(
+      af::AscGraphUtils::FromComputeGraph(post_concat_nodes_.front()->GetOwnerComputeGraph(), owner_graph));
   std::string suffix;
   if (index != 0UL) {
     suffix = "_split_" + std::to_string(index);
@@ -565,8 +557,7 @@ Status ConcatFusionCaseGenerator::CloneNonConcatNodes(const af::Axis &new_axis,
     all_new_nodes[dst_new_node->GetName()] = dst_new_node;
     name_to_new_node[asc_node->GetName()] = dst_new_node;
     GE_ASSERT_TRUE(af::AscGraph::CopyAscNodeTensorAttr(asc_node, dst_new_node),
-                   "DoCopyAscNodeTensorAttr failed, node = %s[%s]",
-                   asc_node->GetNamePtr(), asc_node->GetTypePtr());
+                   "DoCopyAscNodeTensorAttr failed, node = %s[%s]", asc_node->GetNamePtr(), asc_node->GetTypePtr());
     if (dst_new_node->GetType() == af::ascir_op::Store::Type) {
       const auto offset = concat_dim_offsets_[index] * dst_new_node->outputs[0].attr.strides[concat_dim_];
       const auto ir_attr = dst_new_node->attr.ir_attr->DownCastTo<af::ascir_op::Store::AscStoreIrAttrDef>();
@@ -598,8 +589,7 @@ Status ConcatFusionCaseGenerator::CloneNonConcatNodes(const af::Axis &new_axis,
   return af::SUCCESS;
 }
 
-af::Status ConcatFusionCaseGenerator::ReplaceAxis(const af::AscNodePtr &node,
-                                                  ascir::AxisId old_axis_id,
+af::Status ConcatFusionCaseGenerator::ReplaceAxis(const af::AscNodePtr &node, ascir::AxisId old_axis_id,
                                                   const af::Axis &to_axis) {
   for (int64_t &axis_id : node->attr.sched.axis) {
     if (axis_id == old_axis_id) {
@@ -616,10 +606,8 @@ af::Status ConcatFusionCaseGenerator::ReplaceAxis(const af::AscNodePtr &node,
   return af::SUCCESS;
 }
 
-af::Status ConcatFusionCaseGenerator::UpdateOutputAttr(const af::AscNodePtr &node,
-                                                       ascir::AxisId old_axis_id,
-                                                       const af::Axis &to_axis,
-                                                       af::AscTensorAttr &tensor_attr) {
+af::Status ConcatFusionCaseGenerator::UpdateOutputAttr(const af::AscNodePtr &node, ascir::AxisId old_axis_id,
+                                                       const af::Axis &to_axis, af::AscTensorAttr &tensor_attr) {
   size_t axis_index = std::numeric_limits<size_t>::max();
   for (size_t i = 0UL; i < tensor_attr.axis.size(); ++i) {
     if (tensor_attr.axis[i] == old_axis_id) {
@@ -630,8 +618,8 @@ af::Status ConcatFusionCaseGenerator::UpdateOutputAttr(const af::AscNodePtr &nod
     }
   }
   GE_ASSERT_TRUE(axis_index != std::numeric_limits<size_t>::max(),
-                 "axis id %ld (old) / %ld (new) not found in node %s(%s) tensor_attr.axis",
-                 old_axis_id, to_axis.id, node->GetNamePtr(), node->GetTypePtr());
+                 "axis id %ld (old) / %ld (new) not found in node %s(%s) tensor_attr.axis", old_axis_id, to_axis.id,
+                 node->GetNamePtr(), node->GetTypePtr());
 
   auto &repeats = tensor_attr.repeats;
   auto &strides = tensor_attr.strides;
@@ -840,4 +828,4 @@ Status ConcatFusionCaseGenerator::RunCastOptimizationPass(std::vector<ascir::Imp
   }
   return af::SUCCESS;
 }
-} // namespace optimize
+}  // namespace optimize

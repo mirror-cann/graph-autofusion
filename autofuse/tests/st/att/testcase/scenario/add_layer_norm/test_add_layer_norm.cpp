@@ -3,7 +3,7 @@
  * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -23,19 +23,16 @@
 
 using namespace af::ascir_op;
 namespace ascir {
-constexpr int64_t ID_NONE = -1; //取多少？
+constexpr int64_t ID_NONE = -1;  // 取多少？
 using namespace ge;
-using HintGraph=AscGraph;
-}
+using HintGraph = AscGraph;
+}  // namespace ascir
 
 using namespace att;
 
 namespace {
 template <typename NodeT>
-void SetNodeScheduleAndTensor(NodeT &node,
-                              int &exec_order,
-                              std::initializer_list<int64_t> axis,
-                              ge::DataType dtype,
+void SetNodeScheduleAndTensor(NodeT &node, int &exec_order, std::initializer_list<int64_t> axis, ge::DataType dtype,
                               std::initializer_list<af::Expression> repeats,
                               std::initializer_list<af::Expression> strides) {
   node.attr.sched.exec_order = exec_order++;
@@ -47,12 +44,8 @@ void SetNodeScheduleAndTensor(NodeT &node,
 }
 
 template <typename NodeT, typename InputT>
-void InitInputNode(NodeT &node,
-                   const InputT &input,
-                   int &exec_order,
-                   std::initializer_list<int64_t> axis,
-                   ge::DataType dtype,
-                   std::initializer_list<af::Expression> repeats,
+void InitInputNode(NodeT &node, const InputT &input, int &exec_order, std::initializer_list<int64_t> axis,
+                   ge::DataType dtype, std::initializer_list<af::Expression> repeats,
                    std::initializer_list<af::Expression> strides) {
   node.x = input;
   SetNodeScheduleAndTensor(node, exec_order, axis, dtype, repeats, strides);
@@ -65,10 +58,7 @@ void SetGmOutputNode(const NodeT &node) {
 }
 
 template <typename NodeT>
-void SetQueueNode(const NodeT &node,
-                  int &tensor_id,
-                  int queue_id,
-                  af::Position position) {
+void SetQueueNode(const NodeT &node, int &tensor_id, int queue_id, af::Position position) {
   node->outputs[0].attr.mem.tensor_id = tensor_id++;
   node->outputs[0].attr.mem.alloc_type = af::AllocType::kAllocTypeQueue;
   node->outputs[0].attr.mem.hardware = af::MemHardware::kMemHardwareUB;
@@ -83,8 +73,7 @@ void SetQueueNode(const NodeT &node,
 
 void CreateDataAndLoad(Load &load, ascir::HintGraph &graph, const char *data_name, int &exec_order,
                        std::initializer_list<int64_t> axis, ge::DataType dtype,
-                       std::initializer_list<af::Expression> repeats,
-                       std::initializer_list<af::Expression> strides) {
+                       std::initializer_list<af::Expression> repeats, std::initializer_list<af::Expression> strides) {
   Data data(data_name, graph);
   SetNodeScheduleAndTensor(data, exec_order, axis, dtype, repeats, strides);
   InitInputNode(load, data.y, exec_order, axis, dtype, repeats, strides);
@@ -104,12 +93,8 @@ void SetBufferNode(const NodeT &node, int &tensor_id, int buf_id) {
   node->outputs[0].attr.opt.ref_tensor = ascir::ID_NONE;
 }
 
-void ApplySplitAndVectorize(ascir::HintGraph &graph,
-                            const char *node_name,
-                            int64_t outer_axis,
-                            int64_t inner_axis_outer,
-                            int64_t inner_axis_inner,
-                            int64_t loop_axis,
+void ApplySplitAndVectorize(ascir::HintGraph &graph, const char *node_name, int64_t outer_axis,
+                            int64_t inner_axis_outer, int64_t inner_axis_inner, int64_t loop_axis,
                             std::initializer_list<int64_t> vectorized_axis,
                             af::ComputeUnit compute_unit = af::ComputeUnit::kUnitInvalid) {
   auto node = graph.FindNode(node_name);
@@ -121,16 +106,14 @@ void ApplySplitAndVectorize(ascir::HintGraph &graph,
   node->attr.sched.loop_axis = loop_axis;
   node->outputs[0].attr.vectorized_axis = vectorized_axis;
 }
-}
+}  // namespace
 
 class TestGenAddLayerNormalModelInfo : public ::testing::Test {
  public:
-  static void TearDownTestCase()
-  {
+  static void TearDownTestCase() {
     std::cout << "Test end." << std::endl;
   }
-  static void SetUpTestCase()
-  {
+  static void SetUpTestCase() {
     std::cout << "Test begin." << std::endl;
   }
   void SetUp() override {
@@ -208,7 +191,6 @@ void Add_Layer_Norm_Normal_BeforeAutofuseConstInput(ascir::HintGraph &graph) {
   Output buf("buf");
   InitInputNode(buf, y_out.y, exec_order, axes, ge::DT_FLOAT16, {A, R, ONE}, {R, ONE, ZERO});
 }
-
 
 void Add_Layer_Norm_Normal_BeforeAutofuse(ascir::HintGraph &graph, const std::string &ident = "") {
   auto ONE = af::sym::kSymbolOne;
@@ -302,7 +284,7 @@ void Add_Layer_Norm_Normal_AfterScheduler(ascir::HintGraph &graph, const std::st
   auto a = graph.FindAxis(0)->id;
   auto r = graph.FindAxis(1)->id;
 
-  auto [aBO, aBI] = graph.BlockSplit(a, "nbi" + ident, "nbo" + ident);   // AB Ab
+  auto [aBO, aBI] = graph.BlockSplit(a, "nbi" + ident, "nbo" + ident);         // AB Ab
   auto [aBIO, aBII] = graph.TileSplit(aBI->id, "nii" + ident, "nio" + ident);  // AbT Abt
 
   ApplySplitAndVectorize(graph, "x1", aBO->id, aBI->id, aBII->id, aBIO->id, {aBII->id, r});
@@ -311,14 +293,14 @@ void Add_Layer_Norm_Normal_AfterScheduler(ascir::HintGraph &graph, const std::st
   ApplySplitAndVectorize(graph, "x1Local", aBO->id, aBI->id, aBII->id, aBIO->id, {aBII->id, r});
   ApplySplitAndVectorize(graph, "x2Local", aBO->id, aBI->id, aBII->id, aBIO->id, {aBII->id, r});
   ApplySplitAndVectorize(graph, "biasLocal", aBO->id, aBI->id, aBII->id, aBIO->id, {aBII->id, r});
-  ApplySplitAndVectorize(
-      graph, "mean", aBO->id, aBI->id, aBII->id, aBIO->id, {aBII->id, r}, af::ComputeUnit::kUnitVector);
+  ApplySplitAndVectorize(graph, "mean", aBO->id, aBI->id, aBII->id, aBIO->id, {aBII->id, r},
+                         af::ComputeUnit::kUnitVector);
   ApplySplitAndVectorize(graph, "x_out", aBO->id, aBI->id, aBII->id, aBIO->id, {aBII->id, r});
   ApplySplitAndVectorize(graph, "mean_out", aBO->id, aBI->id, aBII->id, aBIO->id, {aBII->id, r});
-  ApplySplitAndVectorize(
-      graph, "rstd", aBO->id, aBI->id, aBII->id, aBIO->id, {aBII->id, r}, af::ComputeUnit::kUnitVector);
-  ApplySplitAndVectorize(
-      graph, "rstd_out", aBO->id, aBI->id, aBII->id, aBIO->id, {aBII->id, r}, af::ComputeUnit::kUnitVector);
+  ApplySplitAndVectorize(graph, "rstd", aBO->id, aBI->id, aBII->id, aBIO->id, {aBII->id, r},
+                         af::ComputeUnit::kUnitVector);
+  ApplySplitAndVectorize(graph, "rstd_out", aBO->id, aBI->id, aBII->id, aBIO->id, {aBII->id, r},
+                         af::ComputeUnit::kUnitVector);
   ApplySplitAndVectorize(graph, "betaLocal", aBO->id, aBI->id, aBII->id, aBIO->id, {r});
   ApplySplitAndVectorize(graph, "gammaLocal", aBO->id, aBI->id, aBII->id, aBIO->id, {r});
   ApplySplitAndVectorize(graph, "y", aBO->id, aBI->id, aBII->id, aBIO->id, {aBII->id, r});
@@ -330,8 +312,8 @@ void SetGmOutputNodeByName(ascir::HintGraph &graph, const char *name) {
   SetGmOutputNode(node);
 }
 
-void SetQueueNodeByName(ascir::HintGraph &graph, const char *name,
-                        int &tensor_id, int queue_id, af::Position position) {
+void SetQueueNodeByName(ascir::HintGraph &graph, const char *name, int &tensor_id, int queue_id,
+                        af::Position position) {
   auto node = graph.FindNode(name);
   SetQueueNode(node, tensor_id, queue_id, position);
 }
@@ -478,7 +460,8 @@ void Add_Layer_Norm_Slice_AfterScheduler(ascir::HintGraph &graph) {
 void Add_Layer_Norm_Slice_AfterQueBufAlloc(ascir::HintGraph &graph) {
   int tensorID = 0;
   int queID = 0;
-  int bufID = 0; (void)bufID;
+  int bufID = 0;
+  (void)bufID;
   int x1Que = queID++;
   int x2Que = queID++;
   int biasQue = queID++;
@@ -658,7 +641,8 @@ void BuildAddLayerNormGraphs(std::vector<ascir::AscGraph> &graphs, bool use_cons
 }
 
 void BuildAddLayerNormBinary() {
-  auto ret = std::system(std::string("cp ").append(TILING_DATA_DIR).append("/tiling_func_main_add_layer_norm.cpp ./ -f").c_str());
+  auto ret = std::system(
+      std::string("cp ").append(TILING_DATA_DIR).append("/tiling_func_main_add_layer_norm.cpp ./ -f").c_str());
   ret = std::system(std::string("cp ").append(ST_DIR).append("/testcase/stub/op_log.h ./ -f").c_str());
   ret = autofuse::test::CopyStubFiles(ST_DIR, "testcase/stub/");
   EXPECT_EQ(ret, 0);
@@ -671,7 +655,8 @@ void BuildAddLayerNormBinary() {
 void Add_Layer_Norm_Welford_AfterQueBufAlloc(ascir::HintGraph &graph) {
   int tensorID = 0;
   int queID = 0;
-  int bufID = 0; (void)bufID;
+  int bufID = 0;
+  (void)bufID;
   int x1Que = queID++;
   int x2Que = queID++;
   int biasQue = queID++;
@@ -703,8 +688,7 @@ void Add_Layer_Norm_Welford_AfterQueBufAlloc(ascir::HintGraph &graph) {
   SetGmOutputNodeByName(graph, "y_out");
 }
 
-TEST_F(TestGenAddLayerNormalModelInfo, case0)
-{
+TEST_F(TestGenAddLayerNormalModelInfo, case0) {
   std::vector<ascir::AscGraph> graphs;
   BuildAddLayerNormGraphs(graphs, false);
 
@@ -718,9 +702,7 @@ TEST_F(TestGenAddLayerNormalModelInfo, case0)
   auto ret = std::system("./tiling_func_main_add_layer_norm");
 }
 
-
-TEST_F(TestGenAddLayerNormalModelInfo, case_axes_reorder)
-{
+TEST_F(TestGenAddLayerNormalModelInfo, case_axes_reorder) {
   std::vector<ascir::AscGraph> graphs;
   BuildAddLayerNormGraphs(graphs, true);
 
@@ -734,8 +716,7 @@ TEST_F(TestGenAddLayerNormalModelInfo, case_axes_reorder)
   auto ret = std::system("./tiling_func_main_add_layer_norm");
 }
 
-TEST_F(TestGenAddLayerNormalModelInfo, case_axes_reorder_replace)
-{
+TEST_F(TestGenAddLayerNormalModelInfo, case_axes_reorder_replace) {
   std::vector<ascir::AscGraph> graphs;
   BuildAddLayerNormGraphs(graphs, true);
 
@@ -747,4 +728,3 @@ TEST_F(TestGenAddLayerNormalModelInfo, case_axes_reorder_replace)
   options["solver_type"] = "AxesReorder";
   EXPECT_EQ(GenTilingImpl("AddLayerNorm", graphs, options), true);
 }
-

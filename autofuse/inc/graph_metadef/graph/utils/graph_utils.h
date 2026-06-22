@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -48,11 +48,11 @@
  * @param compute_graph
  * @param name 用于拼接文件的名称
  */
-#define GE_DUMP(compute_graph, name)                                                                                   \
-  do {                                                                                                                 \
-    af::GraphUtils::DumpGEGraph((compute_graph), (name));                                                              \
-    af::GraphUtils::DumpGEGraphToOnnx(*(compute_graph), (name));                                                       \
-    af::GraphUtils::DumpGEGraphToReadable((compute_graph), (name));                                                    \
+#define GE_DUMP(compute_graph, name)                                \
+  do {                                                              \
+    af::GraphUtils::DumpGEGraph((compute_graph), (name));           \
+    af::GraphUtils::DumpGEGraphToOnnx(*(compute_graph), (name));    \
+    af::GraphUtils::DumpGEGraphToReadable((compute_graph), (name)); \
   } while (false)
 
 namespace af {
@@ -97,7 +97,7 @@ class NodeIndexIO {
     }
   }
 
-  bool operator==(const NodeIndexIO& other) const {
+  bool operator==(const NodeIndexIO &other) const {
     return value_ == other.value_;
   }
 
@@ -110,7 +110,7 @@ class NodeIndexIO {
 
 // Symbol: nodeName, out or in and index, for example: Sqrt0trans_Cast_4_in_0. @see NodeIndexIO::ToValue()
 using SymbolToAnchors = std::unordered_map<std::string, std::list<NodeIndexIO>>;
-using AnchorToSymbol = std::unordered_map<std::string, std::string>; // symbol and its peer out anchor's symbol
+using AnchorToSymbol = std::unordered_map<std::string, std::string>;  // symbol and its peer out anchor's symbol
 
 class GraphUtils {
  public:
@@ -242,30 +242,30 @@ class GraphUtils {
   static graphStatus CopyComputeGraph(const ComputeGraphPtr &src_compute_graph, ComputeGraphPtr &dst_compute_graph);
 
   /**
-    * ComputeGraph图对象的深拷贝接口
-    * @param src_compute_graph 需要是根图对象
-    * @param node_filter 节点拷贝白名单过滤器，可以通过传递此参数实现满足条件的节点的复制，不传递时代表全量拷贝
-    * @param graph_filter 子图拷贝白名单过滤器，可以通过传递此参数实现满足条件的子图的复制，不传递时代表全量拷贝
-    * @param attr_filter 节点上属性拷贝白名单过滤器，可以通过传递此参数实现满足条件的属性复制，不传递时代表全量拷贝
-    * @param dst_compute_graph
-    * @return
-    */
+   * ComputeGraph图对象的深拷贝接口
+   * @param src_compute_graph 需要是根图对象
+   * @param node_filter 节点拷贝白名单过滤器，可以通过传递此参数实现满足条件的节点的复制，不传递时代表全量拷贝
+   * @param graph_filter 子图拷贝白名单过滤器，可以通过传递此参数实现满足条件的子图的复制，不传递时代表全量拷贝
+   * @param attr_filter 节点上属性拷贝白名单过滤器，可以通过传递此参数实现满足条件的属性复制，不传递时代表全量拷贝
+   * @param dst_compute_graph
+   * @return
+   */
   static graphStatus CopyComputeGraph(const ComputeGraphPtr &src_compute_graph, const NodeFilter &node_filter,
                                       const GraphFilter &graph_filter, const AttrFilter &attr_filter,
                                       ComputeGraphPtr &dst_compute_graph);
 
   /**
-  * ComputeGraph图对象的深拷贝接口
-  * @param src_compute_graph
-  * @param node_filter 节点拷贝白名单过滤器，可以通过传递此参数实现满足条件的节点的复制，不传递时代表全量拷贝
-  * @param graph_filter 子图拷贝白名单过滤器，可以通过传递此参数实现满足条件的子图的复制，不传递时代表全量拷贝
-  * @param attr_filter 节点上属性拷贝白名单过滤器，可以通过传递此参数实现满足条件的属性复制，不传递时代表全量拷贝
-  * @param dst_compute_graph
-  * @param node_old_2_new 新旧节点映射关系
-  * @param op_desc_old_2_new 新旧节点描述信息的映射关系
-  * @param depth 子图拷贝深度, 最大支持为10
-  * @return
-  */
+   * ComputeGraph图对象的深拷贝接口
+   * @param src_compute_graph
+   * @param node_filter 节点拷贝白名单过滤器，可以通过传递此参数实现满足条件的节点的复制，不传递时代表全量拷贝
+   * @param graph_filter 子图拷贝白名单过滤器，可以通过传递此参数实现满足条件的子图的复制，不传递时代表全量拷贝
+   * @param attr_filter 节点上属性拷贝白名单过滤器，可以通过传递此参数实现满足条件的属性复制，不传递时代表全量拷贝
+   * @param dst_compute_graph
+   * @param node_old_2_new 新旧节点映射关系
+   * @param op_desc_old_2_new 新旧节点描述信息的映射关系
+   * @param depth 子图拷贝深度, 最大支持为10
+   * @return
+   */
   static graphStatus CopyComputeGraph(const ComputeGraphPtr &src_compute_graph, const NodeFilter &node_filter,
                                       const GraphFilter &graph_filter, const AttrFilter &attr_filter,
                                       ComputeGraphPtr &dst_compute_graph,
@@ -417,14 +417,14 @@ class GraphUtils {
    * @param is_always_dump 如果值为true，则接口行为不受环境变量约束
    * @param user_graph_name 用于指定落盘的文件名和文件路径
    */
-  static void DumpGEGraph(const ComputeGraphPtr &graph, const std::string &suffix,
-                          const bool is_always_dump = false, const std::string &user_graph_name = "");
+  static void DumpGEGraph(const ComputeGraphPtr &graph, const std::string &suffix, const bool is_always_dump = false,
+                          const std::string &user_graph_name = "");
   /**
-    * 图dump接口，用于把`graph`对象序列化到文件，落盘到`path`指定的路径, 文件名将在函数内生成
-    * @param graph
-    * @param path 指定落盘的路径
-    * @param suffix 用于拼接文件的名称
-    */
+   * 图dump接口，用于把`graph`对象序列化到文件，落盘到`path`指定的路径, 文件名将在函数内生成
+   * @param graph
+   * @param path 指定落盘的路径
+   * @param suffix 用于拼接文件的名称
+   */
   static void DumpGEGrph(const ComputeGraphPtr &graph, const std::string &path, const std::string &suffix);
   /**
    * 图dump接口，用于把`graph`对象序列化到文件，落盘到`file_path`，文件名由file_path指定
@@ -467,7 +467,7 @@ class GraphUtils {
    * @return ge::SUCCESS：成功，其他：失败
    */
   static graphStatus GenDumpReadableTxtFileName(const ComputeGraphPtr &compute_graph, const std::string &suffix,
-                                      const std::string &user_graph_name, std::string &real_path_name);
+                                                const std::string &user_graph_name, std::string &real_path_name);
 
   /**
    * 图dump接口，用于把`graph`对象按照onnx的格式序列化到文件，默认落盘到当前路径
@@ -478,25 +478,24 @@ class GraphUtils {
   static void DumpGEGraphToOnnx(const ComputeGraph &compute_graph, const std::string &suffix);
 
   /**
-    * 图dump接口，用于把`graph`对象按照onnx的格式序列化到文件，默认落盘到当前路径
-    * 该接口受DUMP_GRAPH_LEVEL/DUMP_GE_GRAPH环境变量控制, 除非is_always_dump为true
-    * @param compute_graph
-    * @param suffix 用于拼接文件名
-    * @param is_always_dump 如果值为true，则接口行为不受环境变量约束
-    */
-  static void DumpGEGraphToOnnx(const ComputeGraph &compute_graph, const std::string &suffix,
-                                bool is_always_dump);
+   * 图dump接口，用于把`graph`对象按照onnx的格式序列化到文件，默认落盘到当前路径
+   * 该接口受DUMP_GRAPH_LEVEL/DUMP_GE_GRAPH环境变量控制, 除非is_always_dump为true
+   * @param compute_graph
+   * @param suffix 用于拼接文件名
+   * @param is_always_dump 如果值为true，则接口行为不受环境变量约束
+   */
+  static void DumpGEGraphToOnnx(const ComputeGraph &compute_graph, const std::string &suffix, bool is_always_dump);
 
   /**
-    * 图dump接口，用于把`graph`对象按照onnx的格式序列化到文件，默认落盘到当前路径
-    * 该接口不受DUMP_GRAPH_LEVEL环境变量控制，调用就会dump
-    * @param compute_graph
-    * @param suffix 用于拼接文件名
-    * @param content_level DUMP_GE_GRAPH环境变量表示的级别，表示dump file内容的级别。取值由低到高，内容逐渐简化
-    *                      1：包含连边关系和数据信息的全量dump。
-    *                      2：不含有权重等数据的基本版dump。
-    *                      3：只显示节点关系的精简版dump。
-    */
+   * 图dump接口，用于把`graph`对象按照onnx的格式序列化到文件，默认落盘到当前路径
+   * 该接口不受DUMP_GRAPH_LEVEL环境变量控制，调用就会dump
+   * @param compute_graph
+   * @param suffix 用于拼接文件名
+   * @param content_level DUMP_GE_GRAPH环境变量表示的级别，表示dump file内容的级别。取值由低到高，内容逐渐简化
+   *                      1：包含连边关系和数据信息的全量dump。
+   *                      2：不含有权重等数据的基本版dump。
+   *                      3：只显示节点关系的精简版dump。
+   */
   static void DumpGEGraphToOnnxByContentLevel(const ComputeGraph &compute_graph, const std::string &suffix,
                                               DumpLevel content_level);
   /**
@@ -537,7 +536,7 @@ class GraphUtils {
    * @param user_graph_name 用于指定落盘的文件名和文件路径
    */
   static void DumpGEGraphToReadable(const ComputeGraphPtr &graph, const std::string &suffix,
-                          const bool is_always_dump = false, const std::string &user_graph_name = "");
+                                    const bool is_always_dump = false, const std::string &user_graph_name = "");
 
   static graphStatus AppendInputNode(const ComputeGraphPtr &graph, const NodePtr &node);
 
@@ -604,90 +603,89 @@ class GraphUtils {
                                             const std::vector<int32_t> &outputs_map);
 
   /**
-  * 将`old_nodes`替换为`new_nodes`，并完成数据边的处理。
-  * ！！！注意：本接口不做成环校验！！！
-  * new_nodes需要跟old_nodes处于相同的图对象,接口内部并不会将old_nodes从图里面清除
-  * 按照在`vector`中的顺序，依次将所有`nodes`的输入/输出`index`排列，生成`vector`中全量`nodes`的`indexes`，
-  *
-  * `inputs_map`、`outputs_map`基于上述`indexes`工作，描述如何将`old_nodes`的数据输入、数据输出映射到`new_nodes`上。
-  * 映射规则为：
-  * 把`old_node`的第`inputs_map[i]`/`outputs_map[i]`个数据锚点的数据关系替换到`new_nodes`的第`i`个数据锚点上。
-  * `i`的取值范围是[0, `inputs_map`/`outputs_map`的元素个数）;
-  * 如果`inputs_map[i]`/`outputs_map[i]`的值小于0，那么`new_nodes`的第`i`个数据锚点的数据关系保持原样；
-  * 如果`inputs_map[i]`/`outputs_map[i]`的值超出`old_nodes`的索引范围，函数报错。
-  */
+   * 将`old_nodes`替换为`new_nodes`，并完成数据边的处理。
+   * ！！！注意：本接口不做成环校验！！！
+   * new_nodes需要跟old_nodes处于相同的图对象,接口内部并不会将old_nodes从图里面清除
+   * 按照在`vector`中的顺序，依次将所有`nodes`的输入/输出`index`排列，生成`vector`中全量`nodes`的`indexes`，
+   *
+   * `inputs_map`、`outputs_map`基于上述`indexes`工作，描述如何将`old_nodes`的数据输入、数据输出映射到`new_nodes`上。
+   * 映射规则为：
+   * 把`old_node`的第`inputs_map[i]`/`outputs_map[i]`个数据锚点的数据关系替换到`new_nodes`的第`i`个数据锚点上。
+   * `i`的取值范围是[0, `inputs_map`/`outputs_map`的元素个数）;
+   * 如果`inputs_map[i]`/`outputs_map[i]`的值小于0，那么`new_nodes`的第`i`个数据锚点的数据关系保持原样；
+   * 如果`inputs_map[i]`/`outputs_map[i]`的值超出`old_nodes`的索引范围，函数报错。
+   */
   static graphStatus ReplaceNodesDataAnchors(const std::vector<NodePtr> &new_nodes,
                                              const std::vector<NodePtr> &old_nodes,
                                              const std::vector<int32_t> &inputs_map,
                                              const std::vector<int32_t> &outputs_map);
 
   /**
-  * 将`old_nodes`替换为`new_nodes`，并完成输入数据边的处理。
-  * ！！！注意：本接口不做成环校验！！！
-  * new_nodes需要跟old_nodes处于相同的图对象,接口内部并不会将old_nodes从图里面清除
-  * 按照在`vector`中的顺序，依次将所有`nodes`的输入`index`排列，生成`vector`中全量`nodes`的`indexes`，
-  *
-  * `inputs_map`基于上述`indexes`工作，描述如何将`old_nodes`的数据输入映射到`new_nodes`上。
-  * 映射规则为：
-  * 把`old_node`的第`inputs_map[i]`个数据锚点的数据关系替换到`new_nodes`的第`i`个数据锚点上。
-  * `i`的取值范围是[0, `inputs_map`的元素个数）;
-  * 如果`inputs_map[i]`的值小于0，那么`new_nodes`的第`i`个数据锚点的数据关系保持原样；
-  * 如果`inputs_map[i]`的值超出`old_nodes`的索引范围，函数报错。
-  */
+   * 将`old_nodes`替换为`new_nodes`，并完成输入数据边的处理。
+   * ！！！注意：本接口不做成环校验！！！
+   * new_nodes需要跟old_nodes处于相同的图对象,接口内部并不会将old_nodes从图里面清除
+   * 按照在`vector`中的顺序，依次将所有`nodes`的输入`index`排列，生成`vector`中全量`nodes`的`indexes`，
+   *
+   * `inputs_map`基于上述`indexes`工作，描述如何将`old_nodes`的数据输入映射到`new_nodes`上。
+   * 映射规则为：
+   * 把`old_node`的第`inputs_map[i]`个数据锚点的数据关系替换到`new_nodes`的第`i`个数据锚点上。
+   * `i`的取值范围是[0, `inputs_map`的元素个数）;
+   * 如果`inputs_map[i]`的值小于0，那么`new_nodes`的第`i`个数据锚点的数据关系保持原样；
+   * 如果`inputs_map[i]`的值超出`old_nodes`的索引范围，函数报错。
+   */
   static graphStatus ReplaceNodesInDataAnchors(const std::vector<NodePtr> &new_nodes,
                                                const std::vector<NodePtr> &old_nodes,
                                                const std::vector<int32_t> &inputs_map);
 
   /**
-  * 将`old_nodes`替换为`new_nodes`，并完成输出数据边的处理。
-  * ！！！注意：本接口不做成环校验！！！
-  * new_nodes需要跟old_nodes处于相同的图对象,接口内部并不会将old_nodes从图里面清除
-  * 按照在`vector`中的顺序，依次将所有`nodes`的输出`index`排列，生成`vector`中全量`nodes`的`indexes`，
-  *
-  * `outputs_map`基于上述`indexes`工作，描述如何将`old_nodes`的数据输出映射到`new_nodes`上。
-  * 映射规则为：
-  * 把`old_node`的第`outputs_map[i]`个数据锚点的数据关系替换到`new_nodes`的第`i`个数据锚点上。
-  * `i`的取值范围是[0, `outputs_map`的元素个数）;
-  * 如果`outputs_map[i]`的值小于0，那么`new_nodes`的第`i`个数据锚点的数据关系保持原样；
-  * 如果`outputs_map[i]`的值超出`old_nodes`的索引范围，函数报错。
-  */
+   * 将`old_nodes`替换为`new_nodes`，并完成输出数据边的处理。
+   * ！！！注意：本接口不做成环校验！！！
+   * new_nodes需要跟old_nodes处于相同的图对象,接口内部并不会将old_nodes从图里面清除
+   * 按照在`vector`中的顺序，依次将所有`nodes`的输出`index`排列，生成`vector`中全量`nodes`的`indexes`，
+   *
+   * `outputs_map`基于上述`indexes`工作，描述如何将`old_nodes`的数据输出映射到`new_nodes`上。
+   * 映射规则为：
+   * 把`old_node`的第`outputs_map[i]`个数据锚点的数据关系替换到`new_nodes`的第`i`个数据锚点上。
+   * `i`的取值范围是[0, `outputs_map`的元素个数）;
+   * 如果`outputs_map[i]`的值小于0，那么`new_nodes`的第`i`个数据锚点的数据关系保持原样；
+   * 如果`outputs_map[i]`的值超出`old_nodes`的索引范围，函数报错。
+   */
   static graphStatus ReplaceNodesOutDataAnchors(const std::vector<NodePtr> &new_nodes,
                                                 const std::vector<NodePtr> &old_nodes,
                                                 const std::vector<int32_t> &outputs_map);
 
   /**
-  * 将`old_nodes`的数据输入拷贝到`new_nodes`上
-  * ！！！注意：本接口不做成环校验！！！
-  * new_nodes需要跟old_nodes处于相同的图对象,接口内部并不会将old_nodes从图里面清除
-  * 按照在`vector`中的顺序，依次将所有`nodes`的输入`index`排列，生成`vector`中全量`nodes`的`indexes`，
-  *
-  * `inputs_map`基于上述`indexes`工作，描述如何将`old_nodes`的数据输入映射到`new_nodes`上。
-  * 映射规则为：
-  * 把`old_node`的第`inputs_map[i]`个数据锚点的数据关系拷贝到`new_nodes`的第`i`个数据锚点上。
-  * `i`的取值范围是[0, `inputs_map`的元素个数）;
-  * 如果`inputs_map[i]`的值小于0，那么`new_nodes`的第`i`个数据锚点的数据关系保持原样；
-  * 如果`inputs_map[i]`的值超出`old_nodes`的索引范围，函数报错。
-  */
+   * 将`old_nodes`的数据输入拷贝到`new_nodes`上
+   * ！！！注意：本接口不做成环校验！！！
+   * new_nodes需要跟old_nodes处于相同的图对象,接口内部并不会将old_nodes从图里面清除
+   * 按照在`vector`中的顺序，依次将所有`nodes`的输入`index`排列，生成`vector`中全量`nodes`的`indexes`，
+   *
+   * `inputs_map`基于上述`indexes`工作，描述如何将`old_nodes`的数据输入映射到`new_nodes`上。
+   * 映射规则为：
+   * 把`old_node`的第`inputs_map[i]`个数据锚点的数据关系拷贝到`new_nodes`的第`i`个数据锚点上。
+   * `i`的取值范围是[0, `inputs_map`的元素个数）;
+   * 如果`inputs_map[i]`的值小于0，那么`new_nodes`的第`i`个数据锚点的数据关系保持原样；
+   * 如果`inputs_map[i]`的值超出`old_nodes`的索引范围，函数报错。
+   */
   static graphStatus CopyNodesInDataAnchors(const std::vector<NodePtr> &new_nodes,
                                             const std::vector<NodePtr> &old_nodes,
                                             const std::vector<int32_t> &inputs_map);
 
   /*
-  * `old_nodes`、`new_nodes`均被认为是一个整体，`old_nodes`内部节点之间的控制边被丢弃。
-  * 全量`old_nodes`作为整体，输入、输出控制关系被保留，生效到全量`new_nodes`上。
-  * 具体来说，`new_nodes`前后创建`noop`，输入/输出控制节点全连接到前/后面的`noop`节点上，
-  * 同时前后`noop`向所有`new_nodes`做控制边全连接
-  * need_convert_data_edges_2_ctrl_edges = false
-  * cp所有old node的in ctrl到noop_in的in ctrl上, 添加noop_in的ctrl out到所有new nodes的ctrl in
-  * cp所有old node的out ctrl到noop_out的out ctrl上, 添加所有new nodes的ctrl out到noop_out的ctrl in
-  *
-  * 更严格的行为：need_convert_data_edges_2_ctrl_edges = true
-  * 在之前行为的基础上，
-  * 把old node的in data也转换为noop_in的in ctrl;
-  * 把old node的out data也转换为noop_in的out ctrl;
-  */
-  static graphStatus InheritExecutionOrder(const std::vector<NodePtr> &new_nodes,
-                                           const std::vector<NodePtr> &old_nodes,
+   * `old_nodes`、`new_nodes`均被认为是一个整体，`old_nodes`内部节点之间的控制边被丢弃。
+   * 全量`old_nodes`作为整体，输入、输出控制关系被保留，生效到全量`new_nodes`上。
+   * 具体来说，`new_nodes`前后创建`noop`，输入/输出控制节点全连接到前/后面的`noop`节点上，
+   * 同时前后`noop`向所有`new_nodes`做控制边全连接
+   * need_convert_data_edges_2_ctrl_edges = false
+   * cp所有old node的in ctrl到noop_in的in ctrl上, 添加noop_in的ctrl out到所有new nodes的ctrl in
+   * cp所有old node的out ctrl到noop_out的out ctrl上, 添加所有new nodes的ctrl out到noop_out的ctrl in
+   *
+   * 更严格的行为：need_convert_data_edges_2_ctrl_edges = true
+   * 在之前行为的基础上，
+   * 把old node的in data也转换为noop_in的in ctrl;
+   * 把old node的out data也转换为noop_in的out ctrl;
+   */
+  static graphStatus InheritExecutionOrder(const std::vector<NodePtr> &new_nodes, const std::vector<NodePtr> &old_nodes,
                                            const ComputeGraphPtr &graph,
                                            bool need_convert_data_edges_2_ctrl_edges = false);
   /**
@@ -699,23 +697,22 @@ class GraphUtils {
   static graphStatus CopyInCtrlEdges(const NodePtr &src_node, const NodePtr &dst_node);
 
   /**
- * 拷贝`src_node`的控制输入边到`dst_node`上
- * @param src_node
- * @param dst_node
- * @param node_filter 控制边拷贝白名单过滤器，可以通过传递此参数实现满足条件的边的复制，不传递时代表全量拷贝
- * @return
- */
+   * 拷贝`src_node`的控制输入边到`dst_node`上
+   * @param src_node
+   * @param dst_node
+   * @param node_filter 控制边拷贝白名单过滤器，可以通过传递此参数实现满足条件的边的复制，不传递时代表全量拷贝
+   * @return
+   */
   static graphStatus CopyInCtrlEdges(const NodePtr &src_node, const NodePtr &dst_node, const NodeFilter &node_filter);
 
   /**
-  * 把`src_node`的数据输入边转换成`dst_node`上的控制输入边
-  * @param src_node
-  * @param dst_node
-  * @param node_filter 数据边转换白名单过滤器，可以通过传递此参数实现满足条件的边的转换，不传递时代表全量数据边转换
-  * @return
-  */
-  static graphStatus ConvertInDataEdgesToInCtrlEdges(const NodePtr &src_node,
-                                                     const NodePtr &dst_node,
+   * 把`src_node`的数据输入边转换成`dst_node`上的控制输入边
+   * @param src_node
+   * @param dst_node
+   * @param node_filter 数据边转换白名单过滤器，可以通过传递此参数实现满足条件的边的转换，不传递时代表全量数据边转换
+   * @return
+   */
+  static graphStatus ConvertInDataEdgesToInCtrlEdges(const NodePtr &src_node, const NodePtr &dst_node,
                                                      const NodeFilter &node_filter);
 
   /**
@@ -733,23 +730,22 @@ class GraphUtils {
    */
   static graphStatus CopyOutCtrlEdges(const NodePtr &src_node, const NodePtr &dst_node);
   /**
-    * 选择性拷贝`src_node`的控制输出边到`dst_node`上
-    * @param src_node
-    * @param dst_node
-    * @param node_filter 控制边拷贝白名单过滤器，可以通过传递此参数实现满足条件的边的复制，不传递时代表全量拷贝
-    * @return
-    */
+   * 选择性拷贝`src_node`的控制输出边到`dst_node`上
+   * @param src_node
+   * @param dst_node
+   * @param node_filter 控制边拷贝白名单过滤器，可以通过传递此参数实现满足条件的边的复制，不传递时代表全量拷贝
+   * @return
+   */
   static graphStatus CopyOutCtrlEdges(const NodePtr &src_node, const NodePtr &dst_node, const NodeFilter &node_filter);
 
   /**
-  * 把`src_node`的数据输出边转换成`dst_node`上的控制输出边
-  * @param src_node
-  * @param dst_node
-  * @param node_filter 数据边转换白名单过滤器，可以通过传递此参数实现满足条件的边的转换，不传递时代表全量数据边转换
-  * @return
-  */
-  static graphStatus ConvertOutDataEdgesToOutCtrlEdges(const NodePtr &src_node,
-                                                       const NodePtr &dst_node,
+   * 把`src_node`的数据输出边转换成`dst_node`上的控制输出边
+   * @param src_node
+   * @param dst_node
+   * @param node_filter 数据边转换白名单过滤器，可以通过传递此参数实现满足条件的边的转换，不传递时代表全量数据边转换
+   * @return
+   */
+  static graphStatus ConvertOutDataEdgesToOutCtrlEdges(const NodePtr &src_node, const NodePtr &dst_node,
                                                        const NodeFilter &node_filter);
 
   /**
@@ -792,12 +788,12 @@ class GraphUtils {
   static graphStatus CopyTensorAttrs(const OpDescPtr &dst_desc, const NodePtr &src_node);
 
   /**
- * 获取当前图里面的所有的节点的输入输出tensor的复用关系
- * @param graph
- * @param symbol_to_anchors
- * @param anchor_to_symbol
- * @return
- */
+   * 获取当前图里面的所有的节点的输入输出tensor的复用关系
+   * @param graph
+   * @param symbol_to_anchors
+   * @param anchor_to_symbol
+   * @return
+   */
   static graphStatus GetRefMapping(const ComputeGraphPtr &graph, SymbolToAnchors &symbol_to_anchors,
                                    AnchorToSymbol &anchor_to_symbol);
 
@@ -835,12 +831,12 @@ class GraphUtils {
   static graphStatus CheckIsRefFromOther(const OutDataAnchorPtr &out_data_anchor, NodePtr &refed_node,
                                          bool &is_ref_from_other);
   /**
-  * 针对含有`ATTR_NAME_NOPADDING_CONTINUOUS_INPUT`和`ATTR_NAME_NOPADDING_CONTINUOUS_OUTPUT`类型的节点
-  * 单独封装的复用接口
-  * @param out_data_anchor
-  * @param reuse_in_index 出参，如果存在复用，值为0
-  * @return 如果存在复用，返回true,负责返回false
-  */
+   * 针对含有`ATTR_NAME_NOPADDING_CONTINUOUS_INPUT`和`ATTR_NAME_NOPADDING_CONTINUOUS_OUTPUT`类型的节点
+   * 单独封装的复用接口
+   * @param out_data_anchor
+   * @param reuse_in_index 出参，如果存在复用，值为0
+   * @return 如果存在复用，返回true,负责返回false
+   */
   static bool IsNoPaddingRefFromInput(const OutDataAnchorPtr &out_data_anchor, int32_t &reuse_in_index);
   /**
    * 用于判断`node`是否直接或者间接从属于`graph`, `间接`的一种含义是`node`的父图是`graph`
@@ -917,11 +913,11 @@ class GraphUtils {
   static CycleDetectorSharedPtr CreateSharedCycleDetector(const ComputeGraphPtr &graph);
 
   /**
-     * 将node所有的输入、输出边断开，并移动到dst_graph
-     * @param dst_graph 目的Graph，
-     * @param node 需要移动的Node
-     * @return 成功时，返回ge::GRAPH_SUCCESS
-     */
+   * 将node所有的输入、输出边断开，并移动到dst_graph
+   * @param dst_graph 目的Graph，
+   * @param node 需要移动的Node
+   * @return 成功时，返回ge::GRAPH_SUCCESS
+   */
   static graphStatus MoveNodeToGraph(const NodePtr &node, ComputeGraph &dst_graph);
 
   /**
@@ -948,7 +944,7 @@ class GraphUtils {
   /// @return success: GRAPH_SUCESS
   static graphStatus RelinkGraphEdges(const NodePtr &node, const std::string &suffix,
                                       const std::unordered_map<std::string, NodePtr> &all_nodes);
-  
+
   /**
    * 将src_graph中所有节点插入到target_graph中，插入节点在列表中的位置在target_node之后
    * @param target_graph 需要被插入算子的图
@@ -956,8 +952,7 @@ class GraphUtils {
    * @param insert_nodes 表示要插入的节点
    * @return 如果插入成功返回GRAPH_SUCCESS，失败返回GRAPH_FAILED
    */
-  static graphStatus MoveNodesToGraphAfterTargetNode(const ComputeGraphPtr &target_graph,
-                                                     const NodePtr &target_node,
+  static graphStatus MoveNodesToGraphAfterTargetNode(const ComputeGraphPtr &target_graph, const NodePtr &target_node,
                                                      const ComputeGraphPtr &src_graph);
 
  private:
@@ -1107,16 +1102,16 @@ class GraphUtils {
  * @param name 用于拼接文件的名称
  */
 inline void GE_DUMP_BLACK_BOX(const ComputeGraphPtr &compute_graph, const std::string &name) {
- GraphUtils::DumpGEGraph((compute_graph), (name), true);
- GraphUtils::DumpGEGraphToOnnx(*(compute_graph), (name), true);
- GraphUtils::DumpGEGraphToReadable(compute_graph, name, true);
- uint64_t i = 0U;
- for (const auto &sub_graph_func: (compute_graph)->GetAllSubgraphs()) {
-  const auto sub_graph_func_name = std::string(name) + std::string("_sub_graph_") + std::to_string(i++);
-  GraphUtils::DumpGEGraph(sub_graph_func, sub_graph_func_name, true);
-  GraphUtils::DumpGEGraphToOnnx(*sub_graph_func, sub_graph_func_name, true);
-   GraphUtils::DumpGEGraphToReadable(sub_graph_func, sub_graph_func_name, true);
- }
+  GraphUtils::DumpGEGraph((compute_graph), (name), true);
+  GraphUtils::DumpGEGraphToOnnx(*(compute_graph), (name), true);
+  GraphUtils::DumpGEGraphToReadable(compute_graph, name, true);
+  uint64_t i = 0U;
+  for (const auto &sub_graph_func : (compute_graph)->GetAllSubgraphs()) {
+    const auto sub_graph_func_name = std::string(name) + std::string("_sub_graph_") + std::to_string(i++);
+    GraphUtils::DumpGEGraph(sub_graph_func, sub_graph_func_name, true);
+    GraphUtils::DumpGEGraphToOnnx(*sub_graph_func, sub_graph_func_name, true);
+    GraphUtils::DumpGEGraphToReadable(sub_graph_func, sub_graph_func_name, true);
+  }
 }
 
 class ComputeGraphBuilder {
@@ -1387,6 +1382,6 @@ class PartialGraphBuilder : public ComputeGraphBuilder {
 
   std::vector<NodePtr> exist_nodes_;
 };
-}  // namespace ge
+}  // namespace af
 
 #endif  // INC_GRAPH_UTILS_GRAPH_UTILS_H_

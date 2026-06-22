@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -91,30 +91,24 @@ Status BuildReduceAscendGraphND(AscGraph &graph) {
 namespace att {
 class TestAscendGraphParser : public ::testing::Test {
  public:
-  static void TearDownTestCase()
-  {
+  static void TearDownTestCase() {
     std::cout << "Test end." << std::endl;
   }
-  static void SetUpTestCase()
-  {
+  static void SetUpTestCase() {
     std::cout << "Test begin." << std::endl;
   }
-  void SetUp() override
-  {
+  void SetUp() override {
     graph = std::make_shared<af::AscGraph>("graph");
     EXPECT_NE(graph, nullptr);
     att::FaBeforeAutoFuse(*graph);
     att::FaAfterScheduler(*graph);
     att::FaAfterQueBufAlloc(*graph);
   }
-  void TearDown() override
-  {
-  }
+  void TearDown() override {}
   std::shared_ptr<af::AscGraph> graph;
 };
 
-TEST_F(TestAscendGraphParser, case1)
-{
+TEST_F(TestAscendGraphParser, case1) {
   af::AscGraph graph1("graph");
   att::TuningSpacePtr tuning_space = std::make_shared<att::TuningSpace>();
   EXPECT_NE(tuning_space, nullptr);
@@ -122,8 +116,7 @@ TEST_F(TestAscendGraphParser, case1)
   EXPECT_EQ(ascend_graph_parser.GraphParser(graph1), af::SUCCESS);
 }
 
-TEST_F(TestAscendGraphParser, test_gather_graph_parse)
-{
+TEST_F(TestAscendGraphParser, test_gather_graph_parse) {
   af::AscGraph graph1("gather_graph");
   ASSERT_EQ(af::ascir::cg::BuildGatherAscendGraphND(graph1), af::SUCCESS);
   att::TuningSpacePtr tuning_space = std::make_shared<att::TuningSpace>();
@@ -141,8 +134,7 @@ TEST_F(TestAscendGraphParser, test_gather_graph_parse)
   EXPECT_EQ(cache_count, 1);
 }
 
-TEST_F(TestAscendGraphParser, test_reduce_graph_parse)
-{
+TEST_F(TestAscendGraphParser, test_reduce_graph_parse) {
   af::AscGraph graph1("reduce_graph");
   ASSERT_EQ(af::ascir::cg::BuildReduceAscendGraphND(graph1), af::SUCCESS);
   att::TuningSpacePtr tuning_space = std::make_shared<att::TuningSpace>();
@@ -159,8 +151,7 @@ TEST_F(TestAscendGraphParser, test_reduce_graph_parse)
 }
 
 extern AxisPosition ConvertAxisType(const af::Axis::Type &type);
-TEST_F(TestAscendGraphParser, ValidAxisTypes)
-{
+TEST_F(TestAscendGraphParser, ValidAxisTypes) {
   EXPECT_EQ(ConvertAxisType(af::Axis::kAxisTypeOriginal), AxisPosition::ORIGIN);
   EXPECT_EQ(ConvertAxisType(af::Axis::kAxisTypeBlockOuter), AxisPosition::OUTER);
   EXPECT_EQ(ConvertAxisType(af::Axis::kAxisTypeBlockInner), AxisPosition::INNER);
@@ -169,13 +160,11 @@ TEST_F(TestAscendGraphParser, ValidAxisTypes)
   EXPECT_EQ(ConvertAxisType(af::Axis::kAxisTypeMerged), AxisPosition::MERGED);
 }
 
-TEST_F(TestAscendGraphParser, InvalidAxisType)
-{
+TEST_F(TestAscendGraphParser, InvalidAxisType) {
   EXPECT_EQ(ConvertAxisType(static_cast<af::Axis::Type>(-1)), AxisPosition::POSERR);
 }
 
-TEST_F(TestAscendGraphParser, BasicOriginAxisParsing)
-{
+TEST_F(TestAscendGraphParser, BasicOriginAxisParsing) {
   att::TuningSpacePtr tuning_space = std::make_shared<att::TuningSpace>();
   EXPECT_NE(tuning_space, nullptr);
   att::AscendGraphParser parser(tuning_space);
@@ -186,8 +175,7 @@ TEST_F(TestAscendGraphParser, BasicOriginAxisParsing)
   EXPECT_EQ(parser.orig_axes_info_.size(), 18);
 }
 
-TEST_F(TestAscendGraphParser, ComplexSchedInfoParsing)
-{
+TEST_F(TestAscendGraphParser, ComplexSchedInfoParsing) {
   att::TuningSpacePtr tuning_space = std::make_shared<att::TuningSpace>();
   EXPECT_NE(tuning_space, nullptr);
   att::AscendGraphParser parser(tuning_space);
@@ -198,8 +186,7 @@ TEST_F(TestAscendGraphParser, ComplexSchedInfoParsing)
   EXPECT_EQ(parser.graph_sched_info_.size(), 34);
 }
 
-TEST_F(TestAscendGraphParser, BasicSubAxisInfoCreation)
-{
+TEST_F(TestAscendGraphParser, BasicSubAxisInfoCreation) {
   att::TuningSpacePtr tuning_space = std::make_shared<att::TuningSpace>();
   EXPECT_NE(tuning_space, nullptr);
   att::AscendGraphParser parser(tuning_space);
@@ -210,8 +197,7 @@ TEST_F(TestAscendGraphParser, BasicSubAxisInfoCreation)
   EXPECT_EQ(parser.parent_axes_info_.size(), 11);
 }
 
-TEST_F(TestAscendGraphParser, BasicSubAxisParsing)
-{
+TEST_F(TestAscendGraphParser, BasicSubAxisParsing) {
   att::TuningSpacePtr tuning_space = std::make_shared<att::TuningSpace>();
   EXPECT_NE(tuning_space, nullptr);
   att::AscendGraphParser parser(tuning_space);
@@ -229,36 +215,24 @@ TEST_F(TestAscendGraphParser, BasicSubAxisParsing)
   EXPECT_EQ(sub_axis_ptr->align, 1);
 }
 
-TEST_F(TestAscendGraphParser, TmpBuffer)
-{
+TEST_F(TestAscendGraphParser, TmpBuffer) {
   att::TuningSpacePtr tuning_space = std::make_shared<att::TuningSpace>();
   EXPECT_NE(tuning_space, nullptr);
   att::AscendGraphParser parser(tuning_space);
   std::map<int64_t, Expr> max_tmp_buffers_map;
   std::vector<af::TmpBuffer> tmp_buffers;
-  tmp_buffers = {
-      {{CreateExpr(100), 1}},
-      {{CreateExpr(200), 2}},
-      {{CreateExpr(50), 1}},
-      {{CreateExpr(300), 2}}
-  };
+  tmp_buffers = {{{CreateExpr(100), 1}}, {{CreateExpr(200), 2}}, {{CreateExpr(50), 1}}, {{CreateExpr(300), 2}}};
   parser.SaveTmpBufferInfos("", max_tmp_buffers_map, tmp_buffers);
-  tmp_buffers = {
-      {{CreateExpr(220), 1}},
-      {{CreateExpr(200), 2}},
-      {{CreateExpr(50), 1}},
-      {{CreateExpr(300), 2}}
-  };
+  tmp_buffers = {{{CreateExpr(220), 1}}, {{CreateExpr(200), 2}}, {{CreateExpr(50), 1}}, {{CreateExpr(300), 2}}};
   parser.SaveTmpBufferInfos("", max_tmp_buffers_map, tmp_buffers);
   Expr sum = CreateExpr(0.0f);
-  for (const auto& pair : max_tmp_buffers_map) {
+  for (const auto &pair : max_tmp_buffers_map) {
     sum = sum + pair.second;
   }
   EXPECT_EQ(Str(sum), "770");
 }
 
-TEST_F(TestAscendGraphParser, BasicPrioritySetting)
-{
+TEST_F(TestAscendGraphParser, BasicPrioritySetting) {
   att::TuningSpacePtr tuning_space = std::make_shared<att::TuningSpace>();
   EXPECT_NE(tuning_space, nullptr);
   att::AscendGraphParser parser(tuning_space);
@@ -300,8 +274,7 @@ TEST_F(TestAscendGraphParser, BasicPrioritySetting)
   EXPECT_FALSE(parser.sub_axes_info_[3]->is_last);
 }
 
-TEST_F(TestAscendGraphParser, BasicAssemble)
-{
+TEST_F(TestAscendGraphParser, BasicAssemble) {
   att::TuningSpacePtr tuning_space = std::make_shared<att::TuningSpace>();
   EXPECT_NE(tuning_space, nullptr);
   att::AscendGraphParser parser(tuning_space);
@@ -323,8 +296,7 @@ TEST_F(TestAscendGraphParser, BasicAssemble)
   EXPECT_EQ(parser.tuning_space_->containers[3]->name, "buf_container2");
 }
 
-TEST_F(TestAscendGraphParser, NoQueueContainers)
-{
+TEST_F(TestAscendGraphParser, NoQueueContainers) {
   att::TuningSpacePtr tuning_space = std::make_shared<att::TuningSpace>();
   EXPECT_NE(tuning_space, nullptr);
   att::AscendGraphParser parser(tuning_space);
@@ -340,8 +312,7 @@ TEST_F(TestAscendGraphParser, NoQueueContainers)
   EXPECT_EQ(parser.tuning_space_->containers[1]->name, "buf_container2");
 }
 
-TEST_F(TestAscendGraphParser, GenGlobalContainers)
-{
+TEST_F(TestAscendGraphParser, GenGlobalContainers) {
   att::TuningSpacePtr tuning_space = std::make_shared<att::TuningSpace>();
   EXPECT_NE(tuning_space, nullptr);
   att::AscendGraphParser parser(tuning_space);
@@ -354,8 +325,7 @@ TEST_F(TestAscendGraphParser, GenGlobalContainers)
   EXPECT_EQ(parser.tuning_space_->global_containers[0]->name, "GlobalContainer-GM");
 }
 
-TEST_F(TestAscendGraphParser, NoBufContainers)
-{
+TEST_F(TestAscendGraphParser, NoBufContainers) {
   att::TuningSpacePtr tuning_space = std::make_shared<att::TuningSpace>();
   EXPECT_NE(tuning_space, nullptr);
   att::AscendGraphParser parser(tuning_space);
@@ -371,8 +341,7 @@ TEST_F(TestAscendGraphParser, NoBufContainers)
   EXPECT_EQ(parser.tuning_space_->containers[1]->name, "queue_container2");
 }
 
-TEST_F(TestAscendGraphParser, NoContainers)
-{
+TEST_F(TestAscendGraphParser, NoContainers) {
   att::TuningSpacePtr tuning_space = std::make_shared<att::TuningSpace>();
   EXPECT_NE(tuning_space, nullptr);
   att::AscendGraphParser parser(tuning_space);
@@ -381,8 +350,7 @@ TEST_F(TestAscendGraphParser, NoContainers)
   ASSERT_EQ(parser.tuning_space_->containers.size(), 0);
 }
 
-TEST_F(TestAscendGraphParser, NonSparseScenario)
-{
+TEST_F(TestAscendGraphParser, NonSparseScenario) {
   att::TuningSpacePtr tuning_space = std::make_shared<att::TuningSpace>();
   EXPECT_NE(tuning_space, nullptr);
   att::AscendGraphParser parser(tuning_space);
@@ -407,8 +375,7 @@ graph_input_infos.optional_atts.size()  parser.ParserOptionalInfos(*graph);
 }
 */
 
-TEST_F(TestAscendGraphParser, ConvertToTuningSpace)
-{
+TEST_F(TestAscendGraphParser, ConvertToTuningSpace) {
   att::TuningSpacePtr tuning_space = std::make_shared<att::TuningSpace>();
   EXPECT_NE(tuning_space, nullptr);
   att::AscendGraphParser parser(tuning_space);
@@ -416,12 +383,11 @@ TEST_F(TestAscendGraphParser, ConvertToTuningSpace)
   af::Status status = parser.ConvertToTuningSpace(*graph);
   EXPECT_EQ(status, af::SUCCESS);
   ASSERT_EQ(parser.tuning_space_->sub_axes.size(), 0);
-  //ASSERT_EQ(parser.tuning_space_->graph_input_infos.optional_atts.size(), 1);
+  // ASSERT_EQ(parser.tuning_space_->graph_input_infos.optional_atts.size(), 1);
   ASSERT_EQ(parser.tuning_space_->block_dims.size(), 0);
 }
 
-TEST_F(TestAscendGraphParser, case_global_container)
-{
+TEST_F(TestAscendGraphParser, case_global_container) {
   att::TuningSpacePtr tuning_space = std::make_shared<att::TuningSpace>();
   EXPECT_NE(tuning_space, nullptr);
   att::AscendGraphParser ascend_graph_parser(tuning_space);
@@ -431,8 +397,7 @@ TEST_F(TestAscendGraphParser, case_global_container)
   EXPECT_EQ(ascend_graph_parser.ConstructGlobalContainer(ascir_tensor_info), af::SUCCESS);
 }
 
-TEST_F(TestAscendGraphParser, TestPrint)
-{
+TEST_F(TestAscendGraphParser, TestPrint) {
   att::TuningSpacePtr tuning_space = std::make_shared<att::TuningSpace>();
   EXPECT_NE(tuning_space, nullptr);
   att::AscendGraphParser parser(tuning_space);
@@ -451,8 +416,7 @@ TEST_F(TestAscendGraphParser, TestPrint)
 
   EXPECT_NE(parser.TuningSpacePrint(), "");
 }
-TEST_F(TestAscendGraphParser, get_need_ub_mc_tradeoff_1_dim)
-{
+TEST_F(TestAscendGraphParser, get_need_ub_mc_tradeoff_1_dim) {
   att::TuningSpacePtr tuning_space = std::make_shared<att::TuningSpace>();
   EXPECT_NE(tuning_space, nullptr);
   TensorPtr tensor = std::make_shared<att::Tensor>();
@@ -461,7 +425,7 @@ TEST_F(TestAscendGraphParser, get_need_ub_mc_tradeoff_1_dim)
   tensor->repeat = {dim1};
   tensor->gm_stride = {af::sym::kSymbolOne};
   NodeInfo node;
-  node.outputs.emplace_back(tensor); 
+  node.outputs.emplace_back(tensor);
   tuning_space->node_infos.emplace_back(node);
   att::GenerateTilingExpr tiling_expr(tuning_space);
   ModelInfo model_info;
@@ -469,8 +433,7 @@ TEST_F(TestAscendGraphParser, get_need_ub_mc_tradeoff_1_dim)
   EXPECT_EQ(model_info.tiling_schedule_config.trade_off_config.is_enable, false);
 }
 
-TEST_F(TestAscendGraphParser, get_need_ub_mc_tradeoff)
-{
+TEST_F(TestAscendGraphParser, get_need_ub_mc_tradeoff) {
   att::TuningSpacePtr tuning_space = std::make_shared<att::TuningSpace>();
   EXPECT_NE(tuning_space, nullptr);
   TensorPtr tensor = std::make_shared<att::Tensor>();
@@ -481,7 +444,7 @@ TEST_F(TestAscendGraphParser, get_need_ub_mc_tradeoff)
   tensor->repeat = {dim1, dim2, dim3};
   tensor->gm_stride = {dim2 * dim3, dim3 * dim2, af::sym::kSymbolOne};
   NodeInfo node;
-  node.outputs.emplace_back(tensor); 
+  node.outputs.emplace_back(tensor);
   tuning_space->node_infos.emplace_back(node);
   att::GenerateTilingExpr tiling_expr(tuning_space);
   ModelInfo model_info;
@@ -489,8 +452,7 @@ TEST_F(TestAscendGraphParser, get_need_ub_mc_tradeoff)
   EXPECT_EQ(model_info.tiling_schedule_config.trade_off_config.is_enable, true);
 }
 
-TEST_F(TestAscendGraphParser, get_need_ub_mc_tradeoff_inputs)
-{
+TEST_F(TestAscendGraphParser, get_need_ub_mc_tradeoff_inputs) {
   att::TuningSpacePtr tuning_space = std::make_shared<att::TuningSpace>();
   EXPECT_NE(tuning_space, nullptr);
   TensorPtr tensor = std::make_shared<att::Tensor>();
@@ -501,7 +463,7 @@ TEST_F(TestAscendGraphParser, get_need_ub_mc_tradeoff_inputs)
   tensor->repeat = {dim1, dim2, dim3};
   tensor->gm_stride = {dim2 * dim3, dim3 * dim2, af::sym::kSymbolOne};
   NodeInfo node;
-  node.inputs.emplace_back(tensor); 
+  node.inputs.emplace_back(tensor);
   tuning_space->node_infos.emplace_back(node);
   att::GenerateTilingExpr tiling_expr(tuning_space);
   ModelInfo model_info;
@@ -509,8 +471,7 @@ TEST_F(TestAscendGraphParser, get_need_ub_mc_tradeoff_inputs)
   EXPECT_EQ(model_info.tiling_schedule_config.trade_off_config.is_enable, true);
 }
 
-TEST_F(TestAscendGraphParser, get_need_ub_mc_tradeoff_non_gm)
-{
+TEST_F(TestAscendGraphParser, get_need_ub_mc_tradeoff_non_gm) {
   att::TuningSpacePtr tuning_space = std::make_shared<att::TuningSpace>();
   EXPECT_NE(tuning_space, nullptr);
   TensorPtr tensor = std::make_shared<att::Tensor>();
@@ -521,7 +482,7 @@ TEST_F(TestAscendGraphParser, get_need_ub_mc_tradeoff_non_gm)
   tensor->repeat = {dim1, dim2, dim3};
   tensor->gm_stride = {dim2 * dim3, dim3 * dim2, af::sym::kSymbolOne};
   NodeInfo node;
-  node.outputs.emplace_back(tensor); 
+  node.outputs.emplace_back(tensor);
   tuning_space->node_infos.emplace_back(node);
   att::GenerateTilingExpr tiling_expr(tuning_space);
   ModelInfo model_info;
@@ -529,8 +490,7 @@ TEST_F(TestAscendGraphParser, get_need_ub_mc_tradeoff_non_gm)
   EXPECT_EQ(model_info.tiling_schedule_config.trade_off_config.is_enable, false);
 }
 
-TEST_F(TestAscendGraphParser, get_need_ub_mc_tradeoff_symbol_zero)
-{
+TEST_F(TestAscendGraphParser, get_need_ub_mc_tradeoff_symbol_zero) {
   att::TuningSpacePtr tuning_space = std::make_shared<att::TuningSpace>();
   EXPECT_NE(tuning_space, nullptr);
   TensorPtr tensor = std::make_shared<att::Tensor>();
@@ -541,11 +501,11 @@ TEST_F(TestAscendGraphParser, get_need_ub_mc_tradeoff_symbol_zero)
   tensor->repeat = {dim1, dim2, dim3};
   tensor->gm_stride = {dim2 * dim3, af::sym::kSymbolZero, af::sym::kSymbolOne};
   NodeInfo node;
-  node.outputs.emplace_back(tensor); 
+  node.outputs.emplace_back(tensor);
   tuning_space->node_infos.emplace_back(node);
   att::GenerateTilingExpr tiling_expr(tuning_space);
   ModelInfo model_info;
   tiling_expr.UpdateNeedUBMCTradeoff(model_info);
   EXPECT_EQ(model_info.tiling_schedule_config.trade_off_config.is_enable, false);
 }
-}
+}  // namespace att

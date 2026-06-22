@@ -27,7 +27,7 @@ struct TensorRemainderInputParam {
   uint32_t out_size{0};
 };
 
-class TestRegbaseApiRemainder :public testing::Test {
+class TestRegbaseApiRemainder : public testing::Test {
  protected:
   template <typename T>
   static void InvokeKernelWithTwoTensorInput(TensorRemainderInputParam<T> &param) {
@@ -47,8 +47,7 @@ class TestRegbaseApiRemainder :public testing::Test {
     GmToUb(l_x2, param.src1, param.size);
     RemainderExtend(l_y, l_x1, l_x2, param.size);
     UbToGm(param.y, l_y, param.size);
-}
-
+  }
 
   template <typename T>
   static void CreateTensorInput(TensorRemainderInputParam<T> &param) {
@@ -130,10 +129,12 @@ TEST_F(TestRegbaseApiRemainder, Remainder_Test) {
   RemainderTest<float>(MAX_REPEAT_NUM * ONE_REPEAT_BYTE_SIZE / 2 / sizeof(float));
   RemainderTest<float>((ONE_BLK_SIZE - sizeof(float)) / sizeof(float));
   RemainderTest<float>((ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) / sizeof(float));
-  RemainderTest<float>(((MAX_REPEAT_NUM - 1) * ONE_REPEAT_BYTE_SIZE + (ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) + (ONE_BLK_SIZE - sizeof(float))) / 2 /sizeof(float));
+  RemainderTest<float>(((MAX_REPEAT_NUM - 1) * ONE_REPEAT_BYTE_SIZE + (ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) +
+                        (ONE_BLK_SIZE - sizeof(float))) /
+                       2 / sizeof(float));
 }
 
-class TestRegbaseApiRemainderFloor :public testing::Test {
+class TestRegbaseApiRemainderFloor : public testing::Test {
  protected:
   template <typename T>
   static void InvokeKernelWithTwoTensorInput(TensorRemainderInputParam<T> &param) {
@@ -154,7 +155,7 @@ class TestRegbaseApiRemainderFloor :public testing::Test {
     GmToUb(l_x2, param.src1, param.size);
     RemainderExtend(l_y, l_x1, l_x2, tmp, param.size);
     UbToGm(param.y, l_y, param.size);
-}
+  }
 
   template <typename T>
   static void CreateTensorInput(TensorRemainderInputParam<T> &param) {

@@ -14,11 +14,11 @@
 extern "C" {
 #endif
 typedef enum {
-  C_DT_FLOAT = 0,            // float type
-  C_DT_FLOAT16 = 1,          // fp16 type
-  C_DT_INT8 = 2,             // int8 type
-  C_DT_INT32 = 3,            // int32 type
-  C_DT_UINT8 = 4,            // uint8 type
+  C_DT_FLOAT = 0,    // float type
+  C_DT_FLOAT16 = 1,  // fp16 type
+  C_DT_INT8 = 2,     // int8 type
+  C_DT_INT32 = 3,    // int32 type
+  C_DT_UINT8 = 4,    // uint8 type
   // reserved
   C_DT_INT16 = 6,            // int16 type
   C_DT_UINT16 = 7,           // uint16 type
@@ -98,7 +98,7 @@ typedef enum {
   C_FORMAT_CN,
   C_FORMAT_NC = 35,
   C_FORMAT_DHWNC,
-  C_FORMAT_FRACTAL_Z_3D_TRANSPOSE, // 3D filter(transpose) input tensor format
+  C_FORMAT_FRACTAL_Z_3D_TRANSPOSE,  // 3D filter(transpose) input tensor format
   C_FORMAT_FRACTAL_ZN_LSTM,
   C_FORMAT_FRACTAL_Z_G,
   C_FORMAT_RESERVED = 40,

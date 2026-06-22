@@ -39,24 +39,21 @@ class TestBackendReciprocalBf16E2e : public testing::Test {
 };
 
 TEST_F(TestBackendReciprocalBf16E2e, ReciprocalBf16E2eCodegen) {
-
   bool gen_success = true;
   std::string tilig_stub = R"(
 #define REGISTER_TILING_DEFAULT(tiling)
 #define GET_TILING_DATA(t, tiling)  AutofuseTilingData t = *(AutofuseTilingData*)tiling;
 )";
-      // 数量由3决定
-      // 如, 3=2
-      // { {"s0", "stub_s0"}, {"s1", "stub_s1"}}
-  std::map<std::string, std::string> shape_info(
-        { {"s0", "stub_s0"}, {"s1", "stub_s1"}, {"s2", "stub_s2"} }
-    );
+  // 数量由3决定
+  // 如, 3=2
+  // { {"s0", "stub_s0"}, {"s1", "stub_s1"}}
+  std::map<std::string, std::string> shape_info({{"s0", "stub_s0"}, {"s1", "stub_s1"}, {"s2", "stub_s2"}});
   auto graph = ascir::ShareGraph::ReciprocalBf16FusedGraph(3);
-  std::cout<<"KERNEL_SRC_LIST="<<KERNEL_SRC_LIST<<std::endl;
+  std::cout << "KERNEL_SRC_LIST=" << KERNEL_SRC_LIST << std::endl;
   std::vector<std::string> parts = splitString(KERNEL_SRC_LIST, ':');
-  std::string kernel_src_file_name = parts[0];      // 3_test_tiling.cpp
-  std::string tiling_src_file_name = parts[1];      // 3_test_kernel.cpp
-  std::string tiling_data_src_file_name = parts[2]; // autofuse_tiling_data.h
+  std::string kernel_src_file_name = parts[0];       // 3_test_tiling.cpp
+  std::string tiling_src_file_name = parts[1];       // 3_test_kernel.cpp
+  std::string tiling_data_src_file_name = parts[2];  // autofuse_tiling_data.h
 
   try {
     optimize::Optimizer optimizer(optimize::OptimizerOptions{});
@@ -75,8 +72,7 @@ TEST_F(TestBackendReciprocalBf16E2e, ReciprocalBf16E2eCodegen) {
     kernel_file << tilig_stub << RemoveSubDirInclude(result.kernel);
     tiling_file << result.tiling;
     tiling_data_file << result.tiling_data;
-  }
-  catch (...) {
+  } catch (...) {
     gen_success = false;
   }
 

@@ -43,10 +43,10 @@ inline std::string SanitizeNodeName(const std::string &name) {
 // 注释显示格式：{node_name}_{node_type}_in{input_shapes}_out{output_shapes}
 // 示例：表达式=load1_Load，注释=load1_Load_in[32,64]_out[32,64]
 struct NodeExprId {
-  std::string node_name;                  // 节点名称
-  std::string node_type;                  // 节点类型
-  std::vector<std::string> input_shapes;  // 输入张量形状摘要
-  std::vector<std::string> output_shapes; // 输出张量形状摘要
+  std::string node_name;                   // 节点名称
+  std::string node_type;                   // 节点类型
+  std::vector<std::string> input_shapes;   // 输入张量形状摘要
+  std::vector<std::string> output_shapes;  // 输出张量形状摘要
 
   // 生成表达式变量名前缀：sanitized(node_name) + "_" + node_type
   std::string GetExprVarPrefix() const {
@@ -79,6 +79,6 @@ struct NodeExprId {
 // 从 NodeInfo 构建节点表达式标识符
 NodeExprId BuildNodeExprId(const NodeInfo &node_info);
 
-} // namespace att
+}  // namespace att
 
-#endif // ATT_GEN_MODEL_INFO_UTILS_NODE_EXPR_ID_H_
+#endif  // ATT_GEN_MODEL_INFO_UTILS_NODE_EXPR_ID_H_

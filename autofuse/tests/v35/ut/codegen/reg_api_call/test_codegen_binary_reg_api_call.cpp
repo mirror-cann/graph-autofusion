@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -69,12 +69,10 @@ TEST(CodegenKernel, BinaryApiCallDivExtend) {
   load->outputs[0].attr.que.id = 1;
   load->outputs[0].attr.opt.merge_scope = af::kIdNone;
 
-
   auto constant_node = graph.FindNode("constant");
   constant_node->outputs[0].attr.mem.alloc_type = af::AllocType::kAllocTypeInvalid;
   constant_node->outputs[0].attr.mem.tensor_id = 1;
   constant_node->outputs[0].attr.mem.position = af::Position::kPositionInvalid;
-
 
   auto div = graph.FindNode("div");
   div->attr.api.unit = af::ComputeUnit::kUnitVector;
@@ -107,7 +105,5 @@ TEST(CodegenKernel, BinaryApiCallDivExtend) {
 
   std::string result;
   call.Generate(tpipe, vector<af::AxisId>{}, result);
-  EXPECT_EQ(result, std::string{
-    "DivExtends<half, true>(local_2[0], local_0[0], (half)1.0, local_0_actual_size);\n"
-  });
+  EXPECT_EQ(result, std::string{"DivExtends<half, true>(local_2[0], local_0[0], (half)1.0, local_0_actual_size);\n"});
 }

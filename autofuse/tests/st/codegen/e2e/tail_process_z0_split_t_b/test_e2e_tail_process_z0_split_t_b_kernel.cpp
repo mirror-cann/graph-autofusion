@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -13,10 +13,10 @@
 
 #include "autofuse_tiling_data.h"
 extern "C" __global__ __aicore__ void load_abs_store(GM_ADDR x, GM_ADDR y, GM_ADDR workspace, GM_ADDR tiling);
-extern "C" void GetTiling(AutofuseTilingData& tiling_data);
+extern "C" void GetTiling(AutofuseTilingData &tiling_data);
 
-class E2E_LoadAbsStore_Code : public testing::Test, public testing::WithParamInterface<std::pair<std::vector<int>, std::vector<int>>> {
-};
+class E2E_LoadAbsStore_Code : public testing::Test,
+                              public testing::WithParamInterface<std::pair<std::vector<int>, std::vector<int>>> {};
 
 TEST_P(E2E_LoadAbsStore_Code, CalculateCorrect) {
   auto [test_shape, test_tiling] = GetParam();
@@ -40,9 +40,9 @@ TEST_P(E2E_LoadAbsStore_Code, CalculateCorrect) {
   tiling_data.graph0_result0_g0_tiling_data.s0 = test_shape[0];
   tiling_data.graph0_result0_g0_tiling_data.s1 = test_shape[1];
   // tiling信息由用例输入参数确定
-  if (test_tiling.size() == 0U) { // tiling data 来源于tiling函数GetTiling
+  if (test_tiling.size() == 0U) {  // tiling data 来源于tiling函数GetTiling
     GetTiling(tiling_data);
-  } else {                        // tiling信息来源于测试用例入参
+  } else {  // tiling信息来源于测试用例入参
     tiling_data.block_dim = test_tiling[0];
     tiling_data.graph0_result0_g0_tiling_data.z0Tb_size = test_tiling[1];
     tiling_data.graph0_result0_g0_tiling_data.z0t_size = test_tiling[2];
@@ -51,7 +51,7 @@ TEST_P(E2E_LoadAbsStore_Code, CalculateCorrect) {
   tiling_data.graph0_result0_g0_tiling_data.tiling_key = 0;
 
   AscendC::SetKernelMode(KernelMode::AIV_MODE);
-  ICPU_RUN_KF(load_abs_store, tiling_data.block_dim, (uint8_t *)x, (uint8_t *)y, nullptr, (uint8_t*)&tiling_data);
+  ICPU_RUN_KF(load_abs_store, tiling_data.block_dim, (uint8_t *)x, (uint8_t *)y, nullptr, (uint8_t *)&tiling_data);
 
   // Count difference
   uint32_t diff_count = 0;
@@ -70,10 +70,10 @@ TEST_P(E2E_LoadAbsStore_Code, CalculateCorrect) {
 }
 
 INSTANTIATE_TEST_SUITE_P(CalcWithDifferentShape, E2E_LoadAbsStore_Code,
-    ::testing::Values(
-                      std::pair<std::vector<int>, std::vector<int>>{{(48*64*4 - 4), 16}, {48, 64, 4}}, // block尾块 尾轴32对齐padding为size32
-                      std::pair<std::vector<int>, std::vector<int>>{{(48*64*4 - 4), 36}, {48, 64, 4}}, // block尾块 尾轴32对齐padding为size64
-                      std::pair<std::vector<int>, std::vector<int>>{{4096, 32}, {48, 1, 86}}           // tile尾块
-                      ));
-
-
+                         ::testing::Values(
+                             std::pair<std::vector<int>, std::vector<int>>{
+                                 {(48 * 64 * 4 - 4), 16}, {48, 64, 4}},  // block尾块 尾轴32对齐padding为size32
+                             std::pair<std::vector<int>, std::vector<int>>{
+                                 {(48 * 64 * 4 - 4), 36}, {48, 64, 4}},  // block尾块 尾轴32对齐padding为size64
+                             std::pair<std::vector<int>, std::vector<int>>{{4096, 32}, {48, 1, 86}}  // tile尾块
+                             ));

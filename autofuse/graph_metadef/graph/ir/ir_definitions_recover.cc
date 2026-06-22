@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -92,7 +92,6 @@ std::string IrDefsToString(const IrDef &ir_defs) {
   return oss.str();
 }
 
-
 template <typename IrDef, typename IrType>
 af::graphStatus AppendIrDefs(const af::OpDescPtr &op_desc, const IrDef &ir_ins, const IrDef &ir_defs,
                              const af::RecoverIrUtils::IrDefAppender<IrType> appender,
@@ -166,18 +165,17 @@ af::graphStatus ValidateIrInputOutputOrderCompatibility(const af::OpDescPtr &des
   return af::GRAPH_SUCCESS;
 }
 
-}
+}  // namespace
 namespace af {
 // 处理前向兼容的输入：检查并删除多余的未使用可选输入
-graphStatus RecoverIrUtils::ProcessForwardCompatInputs(const af::OpDescPtr &desc,
-                                                        const InputIrDefs &ir_inputs_in_node,
-                                                        const IrDefinition &ir_def) {
+graphStatus RecoverIrUtils::ProcessForwardCompatInputs(const af::OpDescPtr &desc, const InputIrDefs &ir_inputs_in_node,
+                                                       const IrDefinition &ir_def) {
   // 检查直构图IR中存在但兼容图IR中不存在的可选输入（从ir_def.inputs.size()开始都是新增的）
   for (size_t i = ir_def.inputs.size(); i < ir_inputs_in_node.size(); ++i) {
     // 保存输入名副本，因为RemoveIrInput会删除字符串，导致引用失效
     const std::string ir_input_name = ir_inputs_in_node[i].first;
     const af::IrInputType ir_input_type = ir_inputs_in_node[i].second;
-    
+
     // 该输入在兼容图IR中不存在，检查是否为可选输入
     GE_ASSERT_TRUE(ir_input_type == af::kIrInputOptional,
                    "Forward compatibility failed: operator[%s][%s] has required input[%s] "
@@ -185,20 +183,20 @@ graphStatus RecoverIrUtils::ProcessForwardCompatInputs(const af::OpDescPtr &desc
                    "This is an incompatible change.",
                    desc->GetName().c_str(), desc->GetType().c_str(), ir_input_name.c_str(),
                    IrInputTypeToString(ir_input_type).c_str());
-    
+
     // 可选输入，检查是否已连边
     GE_ASSERT_TRUE(!IsInputConnected(desc, ir_input_name),
                    "Forward compatibility failed: operator[%s][%s] uses optional input[%s] "
                    "that does not exist in the compatible IR version. "
                    "The input is connected in the node but not supported by the runtime environment.",
                    desc->GetName().c_str(), desc->GetType().c_str(), ir_input_name.c_str());
-    
+
     // 未连边的可选输入，直接删除（RecoverIrUtils是OpDesc的友元类，可以访问impl_）
     desc->impl_->MutableIRMeta().RemoveIrInput(ir_input_name);
-    GELOGD("Forward compatibility: removed unused optional input[%s] from node[%s(%s)]",
-           ir_input_name.c_str(), desc->GetName().c_str(), desc->GetType().c_str());
+    GELOGD("Forward compatibility: removed unused optional input[%s] from node[%s(%s)]", ir_input_name.c_str(),
+           desc->GetName().c_str(), desc->GetType().c_str());
   }
-  
+
   return af::GRAPH_SUCCESS;
 }
 
@@ -239,8 +237,8 @@ graphStatus RecoverIrUtils::RecoverIrAttrNames(const af::OpDescPtr &desc, IrDefi
     // 当前运行版本中，算子属性在后面增加了，需要拷贝到node中，或者 ir_attr_names_in_node 为空，全部拷贝到node中
     for (size_t i = ir_attr_names_in_node.size(); i < ir_def.attr_names.size(); ++i) {
       desc->AppendIrAttrName(ir_def.attr_names[i]);
-      GELOGD("Append ir attr name:%s for desc[%s(%s), is_required_attr:%d]", ir_def.attr_names[i].c_str(), desc->GetName().c_str(),
-             desc->GetType().c_str(), ir_def.is_required_attr[i]);
+      GELOGD("Append ir attr name:%s for desc[%s(%s), is_required_attr:%d]", ir_def.attr_names[i].c_str(),
+             desc->GetName().c_str(), desc->GetType().c_str(), ir_def.is_required_attr[i]);
     }
     return af::GRAPH_SUCCESS;
   }
@@ -275,7 +273,7 @@ void RecoverIrUtils::InitIrDefinitionsIfNeed(const string &op_type, IrDefinition
 }
 
 graphStatus RecoverIrUtils::RecoverIrAttrDefaultValue(const af::OpDescPtr &desc, const string &op_type,
-                                                       IrDefinition &ir_def) {
+                                                      IrDefinition &ir_def) {
   const auto node_all_attrs = af::AttrUtils::GetAllAttrs(desc);
   for (const auto &name : ir_def.attr_names) {
     if (node_all_attrs.find(name) != node_all_attrs.cend()) {
@@ -345,8 +343,8 @@ graphStatus RecoverIrUtils::RecoverOpDescIrDefinition(const af::OpDescPtr &desc,
   }
 
   // ir_attr_names
-  GE_ASSERT_GRAPH_SUCCESS(RecoverIrAttrNames(desc, ir_def), "%s %s recover ir attr names failed.",
-                          desc->GetNamePtr(), desc->GetTypePtr());
+  GE_ASSERT_GRAPH_SUCCESS(RecoverIrAttrNames(desc, ir_def), "%s %s recover ir attr names failed.", desc->GetNamePtr(),
+                          desc->GetTypePtr());
   // ir input and output
   GE_ASSERT_GRAPH_SUCCESS(RecoverIrInputAndOutput(desc, ir_def), "%s %s recover ir input and output failed.",
                           desc->GetNamePtr(), desc->GetTypePtr());
@@ -410,14 +408,14 @@ af::graphStatus RecoverIrUtils::RecoverIrDefinitions(const af::ComputeGraphPtr &
   for (const auto &node : graph->GetAllNodes()) {
     std::string op_type = af::NodeUtils::GetNodeType(node);
     auto &ir_def = op_type_to_ir_def[op_type];
-    if (RecoverNodeIrDefinitions(node, op_type, ir_def)  != af::GRAPH_SUCCESS) {
-      GELOGE(af::GRAPH_FAILED, "[Recover][NodeIrDefinitions] failed, node[%s], type[%s]",
-             node->GetName().c_str(), node->GetType().c_str());
+    if (RecoverNodeIrDefinitions(node, op_type, ir_def) != af::GRAPH_SUCCESS) {
+      GELOGE(af::GRAPH_FAILED, "[Recover][NodeIrDefinitions] failed, node[%s], type[%s]", node->GetName().c_str(),
+             node->GetType().c_str());
       return af::GRAPH_FAILED;
     }
     for (const auto &attr_name : attr_names) {
       af::ComputeGraphPtr graph_ptr = nullptr;
-      (void) af::AttrUtils::GetGraph(node->GetOpDesc(), attr_name, graph_ptr);
+      (void)af::AttrUtils::GetGraph(node->GetOpDesc(), attr_name, graph_ptr);
       if (graph_ptr == nullptr) {
         continue;
       }
@@ -425,9 +423,9 @@ af::graphStatus RecoverIrUtils::RecoverIrDefinitions(const af::ComputeGraphPtr &
         GELOGE(af::GRAPH_FAILED, "[Recover][IrDefinitions] failed, graph[%s]", graph_ptr->GetName().c_str());
         return af::GRAPH_FAILED;
       }
-      (void) af::AttrUtils::SetGraph(node->GetOpDesc(), attr_name, graph_ptr);
-      GELOGD("Success to recover definitions for graph:%s with node:%s and attr:%s.",
-             graph->GetName().c_str(), node->GetName().c_str(), attr_name.c_str());
+      (void)af::AttrUtils::SetGraph(node->GetOpDesc(), attr_name, graph_ptr);
+      GELOGD("Success to recover definitions for graph:%s with node:%s and attr:%s.", graph->GetName().c_str(),
+             node->GetName().c_str(), attr_name.c_str());
     }
   }
   GELOGD("Success to recover all ir definitions for graph:%s.", graph->GetName().c_str());
@@ -479,12 +477,13 @@ bool CheckIrSpec(const af::OpDescPtr &desc) {
     }
     const std::map<std::string, af::AnyValue>::const_iterator iter = ir_def.attr_value.find(name);
     if (iter == ir_def.attr_value.cend()) {
-      GELOGI("node[%s(%s)] missing attr name[%s], and can not find default value for the attr,"
-             " it may be REQUIRED_ATTR.",
-             desc->GetName().c_str(), op_type.c_str(), name.c_str());
+      GELOGI(
+          "node[%s(%s)] missing attr name[%s], and can not find default value for the attr,"
+          " it may be REQUIRED_ATTR.",
+          desc->GetName().c_str(), op_type.c_str(), name.c_str());
       return false;
     }
   }
   return true;
 }
-} // namespace ge
+}  // namespace af

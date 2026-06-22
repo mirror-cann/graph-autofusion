@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -46,7 +46,6 @@ class PatternFusionBasePass : public GraphPass {
 
   PatternFusionBasePass();
   ~PatternFusionBasePass() override;
-
 
   /** execute pass
    *
@@ -136,10 +135,10 @@ class PatternFusionBasePass : public GraphPass {
   bool CheckAccuracySupported(const ge::NodePtr &node) const;
 
   /** check whether the input graph is Cyclic
-  *
-  *  @param graph need to be checked
-  *  @return false or true
-  */
+   *
+   *  @param graph need to be checked
+   *  @return false or true
+   */
   bool CheckGraphCycle(ge::ComputeGraph &graph) const;
 
   void DumpMapping(const FusionPattern &pattern, const Mapping &mapping) const;
@@ -175,8 +174,7 @@ class PatternFusionBasePass : public GraphPass {
    *             */
   bool DetectOneScope(const std::vector<ge::NodePtr> &scope_nodes) const;
 
-  bool CheckEachPeerOut(const ge::NodePtr &node,
-                        const std::unordered_set<ge::NodePtr> &scope_nodes_set,
+  bool CheckEachPeerOut(const ge::NodePtr &node, const std::unordered_set<ge::NodePtr> &scope_nodes_set,
                         const std::vector<ge::NodePtr> &scope_nodes) const;
 
   void StoreOriginOpNames(const Mapping &mapping, std::vector<std::string> &origin_op_names) const;

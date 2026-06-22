@@ -42,18 +42,15 @@ struct OpInfo {
   std::string engine;  // which engin
   /*lint -e148*/
   std::string opKernelLib;  // which opsKernelStore
-  int32_t computeCost;     // compute cost
-  bool flagPartial;    // whether to support is related to shape
-  bool flagAsync;      // Whether to support asynchronous
-  bool isAtomic;       // whether to support atomic addr clean
+  int32_t computeCost;      // compute cost
+  bool flagPartial;         // whether to support is related to shape
+  bool flagAsync;           // Whether to support asynchronous
+  bool isAtomic;            // whether to support atomic addr clean
   std::string opFileName;   // op file name
   std::string opFuncName;   // op function name
 };
 
-enum class CheckSupportFlag : uint32_t {
-  kDefault = 0,
-  kNotSupportDynamicShape
-};
+enum class CheckSupportFlag : uint32_t { kDefault = 0, kNotSupportDynamicShape };
 
 enum class ModelTaskType : uint32_t {
   MODEL_TASK_KERNEL = 0,
@@ -108,6 +105,6 @@ enum class ModelTaskType : uint32_t {
   MODEL_TASK_CCU_KERNEL,
   MODEL_TASK_CUSTOM_KERNEL
 };
-}  // namespace ge
+}  // namespace af
 
 #endif  // INC_COMMON_OPSKERNEL_OPS_KERNEL_INFO_TYPES_H_

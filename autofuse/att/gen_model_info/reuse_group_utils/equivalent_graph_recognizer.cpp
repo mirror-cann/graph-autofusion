@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -40,15 +40,15 @@ bool IsAxisEqual(const af::AxisPtr &axis1, const af::AxisPtr &axis2) {
 }
 
 bool IsMemAttrEqual(const af::MemAttr &mem1, const af::MemAttr &mem2) {
-  return (mem1.alloc_type == mem2.alloc_type) && (mem1.position == mem2.position) &&
-         (mem1.hardware == mem2.hardware) && (mem1.reuse_id == mem2.reuse_id);
+  return (mem1.alloc_type == mem2.alloc_type) && (mem1.position == mem2.position) && (mem1.hardware == mem2.hardware) &&
+         (mem1.reuse_id == mem2.reuse_id);
 }
 
 bool IsQueueAttrEqual(const af::MemQueAttr &que1, const af::MemQueAttr &que2) {
   const bool is_equal = (que1.id == que2.id) && (que1.depth == que2.depth) && (que1.buf_num == que2.buf_num);
   if (!is_equal) {
-    GELOGD("Queue attr is different, id/depth/buf_num [%ld/%ld/%ld vs %ld/%ld/%ld]", que1.id, que1.depth,
-           que1.buf_num, que2.id, que2.depth, que2.buf_num);
+    GELOGD("Queue attr is different, id/depth/buf_num [%ld/%ld/%ld vs %ld/%ld/%ld]", que1.id, que1.depth, que1.buf_num,
+           que2.id, que2.depth, que2.buf_num);
   }
   return is_equal;
 }
@@ -75,10 +75,11 @@ std::vector<af::AxisPtr> GetCompareAxes(const std::vector<af::AxisPtr> &graph1_a
   }
   return graph1_axes;
 }
-}
+}  // namespace
 
 bool EquivalentGraphRecognizer::IsInputVar(const Expr &expr1, const Expr &expr2) const {
-  const bool is_expr1_input_var = (expr1.GetExprType() == af::ExprType::kExprVariable) &&
+  const bool is_expr1_input_var =
+      (expr1.GetExprType() == af::ExprType::kExprVariable) &&
       (input_axes_name_to_.find(af::SymbolicUtils::ToString(expr1)) != input_axes_name_to_.end());
   const bool is_expr2_input_var =
       (expr2.GetExprType() == af::ExprType::kExprVariable) &&
@@ -101,7 +102,7 @@ EquivalentGraphRecognizer::EquivalentGraphRecognizer(const af::AscGraph &graph_t
 bool EquivalentGraphRecognizer::CompareAxis(const int64_t axis_id, const int64_t axis_id2) const {
   const auto iter1 = axis_id_to_axis_map_to_.find(axis_id);
   const auto iter2 = axis_id_to_axis_map_from_.find(axis_id2);
-  if ((iter1 != axis_id_to_axis_map_to_.cend()) && (iter2!= axis_id_to_axis_map_from_.cend())) {
+  if ((iter1 != axis_id_to_axis_map_to_.cend()) && (iter2 != axis_id_to_axis_map_from_.cend())) {
     auto axis1_from = iter1->second->from;
     auto axis2_from = iter2->second->from;
     if (axis1_from.size() != axis2_from.size()) {
@@ -115,8 +116,8 @@ bool EquivalentGraphRecognizer::CompareAxis(const int64_t axis_id, const int64_t
     for (size_t i = 0; i < axis1_from.size(); ++i) {
       bool is_equal = CompareAxis(axis1_from[i], axis2_from[i]);
       if (!is_equal) {
-        GELOGD("Axis: [%d] and Axis: [%d] has different parent axis [%d vs %d]", axis_id, axis_id2,
-               axis1_from[i], axis2_from[i]);
+        GELOGD("Axis: [%d] and Axis: [%d] has different parent axis [%d vs %d]", axis_id, axis_id2, axis1_from[i],
+               axis2_from[i]);
         return false;
       }
     }
@@ -170,23 +171,21 @@ bool EquivalentGraphRecognizer::CanExprEquivalentAfterReplace(const af::Expressi
     const auto &reuse_expr3 = ReplaceSearchVarStr(af::SymbolicUtils::ToString(reuse_expr));
     GELOGD("After replace input var[%s] is %s, reuse expr %s, replace org expr %s, replace reuse_expr %s",
            input_var.c_str(), af::SymbolicUtils::ToString(replace_expr2).c_str(),
-           af::SymbolicUtils::ToString(reuse_expr).c_str(), replace_expr3.c_str(),
-           reuse_expr3.c_str());
+           af::SymbolicUtils::ToString(reuse_expr).c_str(), replace_expr3.c_str(), reuse_expr3.c_str());
     if (replace_expr3 == reuse_expr3) {
       const auto &iter = mapped_input_axes_names_.find(af::SymbolicUtils::ToString(reuse_expr));
       if (iter == mapped_input_axes_names_.end()) {
         GELOGD("Update map input axes %s->%s of graph %s->%s", af::SymbolicUtils::ToString(reuse_expr).c_str(),
-            input_var.c_str(), graph_from_.GetName().c_str(), graph_to_.GetName().c_str());
+               input_var.c_str(), graph_from_.GetName().c_str(), graph_to_.GetName().c_str());
         mapped_input_axes_names_[af::SymbolicUtils::ToString(reuse_expr)] = input_var;
         return true;
       }
       // 当前输入轴已经被映射过，但是映射的结果不一致，认为不一致
       if (iter->second != input_var) {
         GELOGD("Current map is %s->%s, but already has map %s->%s of graph %s->%s",
-            af::SymbolicUtils::ToString(reuse_expr).c_str(),
-            input_var.c_str(), af::SymbolicUtils::ToString(reuse_expr).c_str(),
-            iter->second.c_str(), graph_from_.GetName().c_str(),
-            graph_to_.GetName().c_str());
+               af::SymbolicUtils::ToString(reuse_expr).c_str(), input_var.c_str(),
+               af::SymbolicUtils::ToString(reuse_expr).c_str(), iter->second.c_str(), graph_from_.GetName().c_str(),
+               graph_to_.GetName().c_str());
         return false;
       }
       return true;
@@ -201,8 +200,8 @@ bool EquivalentGraphRecognizer::CanExprEquivalentAfterReplace(const af::Expressi
 bool EquivalentGraphRecognizer::CompareExpression(const af::Expression &expr1, const af::Expression &expr2) {
   if (expr1.GetExprType() != expr2.GetExprType()) {
     GELOGD("Expression: [%s] and Expression: [%s] has different type [%d vs %d]",
-        af::SymbolicUtils::ToString(expr1).c_str(), af::SymbolicUtils::ToString(expr2).c_str(),
-        static_cast<int32_t>(expr1.GetExprType()), static_cast<int32_t>(expr2.GetExprType()));
+           af::SymbolicUtils::ToString(expr1).c_str(), af::SymbolicUtils::ToString(expr2).c_str(),
+           static_cast<int32_t>(expr1.GetExprType()), static_cast<int32_t>(expr2.GetExprType()));
     return false;
   }
   if (expr1.IsConstExpr() && expr2.IsConstExpr()) {
@@ -218,8 +217,8 @@ bool EquivalentGraphRecognizer::CompareExpression(const af::Expression &expr1, c
   const auto &free_sym2 = expr2.FreeSymbols();
   if (free_sym1.size() != free_sym2.size()) {
     GELOGD("Expression: [%s] and Expression: [%s] has different free symbols size [%zu vs %zu]",
-        af::SymbolicUtils::ToString(expr1).c_str(), af::SymbolicUtils::ToString(expr2).c_str(),
-        free_sym1.size(), free_sym2.size());
+           af::SymbolicUtils::ToString(expr1).c_str(), af::SymbolicUtils::ToString(expr2).c_str(), free_sym1.size(),
+           free_sym2.size());
     return false;
   }
   std::vector<std::pair<Expr, Expr>> var_replacement;
@@ -227,8 +226,8 @@ bool EquivalentGraphRecognizer::CompareExpression(const af::Expression &expr1, c
   for (size_t i = 0UL; i < free_sym1.size(); i++) {
     const auto &replace_expr = free_sym1[i];
     const auto &reuse_expr = free_sym2[i];
-    if (!IsInputVar( replace_expr, reuse_expr)) {
-      var_replacement.emplace_back(std::make_pair( replace_expr, reuse_expr));
+    if (!IsInputVar(replace_expr, reuse_expr)) {
+      var_replacement.emplace_back(std::make_pair(replace_expr, reuse_expr));
     }
   }
   auto replaced_expr1 = expr1.Replace(var_replacement);
@@ -319,8 +318,8 @@ bool EquivalentGraphRecognizer::IsAscTensorEquivalent(const af::AscTensorAttr &t
 
 bool EquivalentGraphRecognizer::IsAscNodeEquivalent(af::AscNode &node1, af::AscNode &node2) {
   if (node1.GetType() != node2.GetType()) {
-    GELOGD("Node: [%s] and Node: [%s] has different type [%s vs %s]", node1.GetName().c_str(),
-           node2.GetName().c_str(), node1.GetType().c_str(), node2.GetType().c_str());
+    GELOGD("Node: [%s] and Node: [%s] has different type [%s vs %s]", node1.GetName().c_str(), node2.GetName().c_str(),
+           node1.GetType().c_str(), node2.GetType().c_str());
     return false;
   }
   const auto &node1_outputs = node1.outputs();
@@ -344,8 +343,7 @@ bool EquivalentGraphRecognizer::IsAscNodeEquivalent(af::AscNode &node1, af::AscN
   return true;
 }
 
-bool EquivalentGraphRecognizer::IsInputNodeSame(const af::AscNodePtr &asc_node1,
-                                                const af::AscNodePtr &asc_node2) {
+bool EquivalentGraphRecognizer::IsInputNodeSame(const af::AscNodePtr &asc_node1, const af::AscNodePtr &asc_node2) {
   std::vector<af::Node *> input_nodes1;
   for (const auto &input : asc_node1->inputs()) {
     GE_ASSERT_NOTNULL(input);
@@ -456,7 +454,7 @@ bool EquivalentGraphRecognizer::IsEquivalent() {
   }
   const auto &graph1_axes = GetCompareAxes(graph_to_.GetAllAxis());
   const auto &graph2_axes = GetCompareAxes(graph_from_.GetAllAxis());
-  if (graph1_axes.size()!= graph2_axes.size()) {
+  if (graph1_axes.size() != graph2_axes.size()) {
     GELOGD("Graph: [%s] and Graph: [%s] has different axis size [%zu vs %zu]", graph_to_.GetName().c_str(),
            graph_from_.GetName().c_str(), graph1_axes.size(), graph2_axes.size());
     return false;
@@ -488,4 +486,4 @@ bool EquivalentGraphRecognizer::IsEquivalent() {
   }
   return UpdateOrderedInputNames();
 }
-}
+}  // namespace att

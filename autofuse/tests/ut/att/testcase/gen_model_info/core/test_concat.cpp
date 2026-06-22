@@ -61,7 +61,7 @@ void InitOutputNode(Output &node, int &exec_order, const std::vector<int64_t> &a
 }
 }  // namespace
 namespace ascir {
-constexpr int64_t ID_NONE = -1;  //取多少？
+constexpr int64_t ID_NONE = -1;  // 取多少？
 using namespace af;
 using HintGraph = AscGraph;
 }  // namespace ascir
@@ -125,32 +125,53 @@ void Concat_Normal_BeforeAutofuse(ascir::HintGraph &graph) {
   auto str_a = std::vector<af::Expression>{ONE, ZERO, ZERO};
   int exec_order = 0;
 
-  Data x1("x1", graph); InitDataNode(x1, exec_order, axis, af::DT_FLOAT16, rep_ar, str_ar);
-  Load x1L("x1Local"); x1L.x = x1.y; InitLoadNode(x1L, exec_order, axis, af::DT_FLOAT16, rep_ar, str_ar);
-  Data x2("x2", graph); InitDataNode(x2, exec_order, axis, af::DT_FLOAT16, rep_ar, str_ar);
-  Load x2L("x2Local"); x2L.x = x2.y; InitLoadNode(x2L, exec_order, axis, af::DT_FLOAT16, rep_ar, str_ar);
-  Data bias("bias", graph); InitDataNode(bias, exec_order, axis, af::DT_FLOAT16, rep_ar, str_ar);
-  Load biasL("biasLocal"); biasL.x = bias.y; InitLoadNode(biasL, exec_order, axis, af::DT_FLOAT16, rep_ar, str_ar);
+  Data x1("x1", graph);
+  InitDataNode(x1, exec_order, axis, af::DT_FLOAT16, rep_ar, str_ar);
+  Load x1L("x1Local");
+  x1L.x = x1.y;
+  InitLoadNode(x1L, exec_order, axis, af::DT_FLOAT16, rep_ar, str_ar);
+  Data x2("x2", graph);
+  InitDataNode(x2, exec_order, axis, af::DT_FLOAT16, rep_ar, str_ar);
+  Load x2L("x2Local");
+  x2L.x = x2.y;
+  InitLoadNode(x2L, exec_order, axis, af::DT_FLOAT16, rep_ar, str_ar);
+  Data bias("bias", graph);
+  InitDataNode(bias, exec_order, axis, af::DT_FLOAT16, rep_ar, str_ar);
+  Load biasL("biasLocal");
+  biasL.x = bias.y;
+  InitLoadNode(biasL, exec_order, axis, af::DT_FLOAT16, rep_ar, str_ar);
 
   Concat mean("mean");
   mean.x = {x1L.y, x2L.y, biasL.y};
   InitConcatAxes(mean, exec_order, axis, af::DT_FLOAT, rep_ar, str_ar);
-  Store x_out("x_out"); x_out.x = mean.y; InitStoreNode(x_out, exec_order, axis, af::DT_FLOAT16, rep_ar, str_ar);
-  Store mean_out("mean_out"); mean_out.x = mean.y; InitStoreNode(mean_out, exec_order, axis, af::DT_FLOAT, rep_a, str_a);
+  Store x_out("x_out");
+  x_out.x = mean.y;
+  InitStoreNode(x_out, exec_order, axis, af::DT_FLOAT16, rep_ar, str_ar);
+  Store mean_out("mean_out");
+  mean_out.x = mean.y;
+  InitStoreNode(mean_out, exec_order, axis, af::DT_FLOAT, rep_a, str_a);
 
   Data one("one", graph);
   InitDataNode(one, exec_order, axis, af::DT_FLOAT, {ONE, ONE, BL}, {ZERO, ZERO, ONE});
   Concat rstd("rstd");
   rstd.x = {mean.y, mean.y, one.y};
   InitConcatAxes(rstd, exec_order, axis, af::DT_FLOAT, rep_ar, str_ar);
-  Store rstd_out("rstd_out"); rstd_out.x = rstd.y; InitStoreNode(rstd_out, exec_order, axis, af::DT_FLOAT, rep_a, str_a);
+  Store rstd_out("rstd_out");
+  rstd_out.x = rstd.y;
+  InitStoreNode(rstd_out, exec_order, axis, af::DT_FLOAT, rep_a, str_a);
 
   auto rep_r = std::vector<af::Expression>{ONE, R, ONE};
   auto str_r = std::vector<af::Expression>{ZERO, ONE, ZERO};
-  Data beta("beta", graph); InitDataNode(beta, exec_order, axis, af::DT_FLOAT16, rep_r, str_r);
-  Load betaL("betaLocal"); betaL.x = beta.y; InitLoadNode(betaL, exec_order, axis, af::DT_FLOAT16, rep_r, str_r);
-  Data gamma("gamma", graph); InitDataNode(gamma, exec_order, axis, af::DT_FLOAT16, rep_r, str_r);
-  Load gammaL("gammaLocal"); gammaL.x = gamma.y; InitLoadNode(gammaL, exec_order, axis, af::DT_FLOAT16, rep_r, str_r);
+  Data beta("beta", graph);
+  InitDataNode(beta, exec_order, axis, af::DT_FLOAT16, rep_r, str_r);
+  Load betaL("betaLocal");
+  betaL.x = beta.y;
+  InitLoadNode(betaL, exec_order, axis, af::DT_FLOAT16, rep_r, str_r);
+  Data gamma("gamma", graph);
+  InitDataNode(gamma, exec_order, axis, af::DT_FLOAT16, rep_r, str_r);
+  Load gammaL("gammaLocal");
+  gammaL.x = gamma.y;
+  InitLoadNode(gammaL, exec_order, axis, af::DT_FLOAT16, rep_r, str_r);
 
   Concat y("y");
   y.attr.api.unit = af::ComputeUnit::kUnitVector;
@@ -160,16 +181,32 @@ void Concat_Normal_BeforeAutofuse(ascir::HintGraph &graph) {
   y.y.dtype = af::DT_FLOAT16;
   *y.y.axis = axis, *y.y.repeats = rep_ar, *y.y.strides = str_ar;
 
-  Concat concat("concat"); concat.x = {x1L.y, x2L.y}; concat.attr.sched.axis = axis;
+  Concat concat("concat");
+  concat.x = {x1L.y, x2L.y};
+  concat.attr.sched.axis = axis;
   *concat.y.axis = axis, *concat.y.repeats = rep_ar, *concat.y.strides = str_ar;
-  Store cat_out("cat_out"); cat_out.x = y.y; InitStoreNode(cat_out, exec_order, axis, af::DT_FLOAT16, rep_ar, str_ar);
-  Store y_out("y_out"); y_out.x = y.y; InitStoreNode(y_out, exec_order, axis, af::DT_FLOAT16, rep_ar, str_ar);
+  Store cat_out("cat_out");
+  cat_out.x = y.y;
+  InitStoreNode(cat_out, exec_order, axis, af::DT_FLOAT16, rep_ar, str_ar);
+  Store y_out("y_out");
+  y_out.x = y.y;
+  InitStoreNode(y_out, exec_order, axis, af::DT_FLOAT16, rep_ar, str_ar);
 
-  Output buf1("buf1"); buf1.x = x_out.y; InitOutputNode(buf1, exec_order, axis, af::DT_FLOAT16, rep_ar, str_ar);
-  Output buf2("buf2"); buf2.x = mean_out.y; InitOutputNode(buf2, exec_order, axis, af::DT_FLOAT, rep_a, str_a);
-  Output buf3("buf3"); buf3.x = rstd_out.y; InitOutputNode(buf3, exec_order, axis, af::DT_FLOAT, rep_a, str_a);
-  Output buf("buf"); buf.x = y_out.y; InitOutputNode(buf, exec_order, axis, af::DT_FLOAT16, rep_ar, str_ar);
-  Output buf4("buf4"); buf4.x = cat_out.y; InitOutputNode(buf4, exec_order, axis, af::DT_FLOAT16, rep_ar, str_ar);
+  Output buf1("buf1");
+  buf1.x = x_out.y;
+  InitOutputNode(buf1, exec_order, axis, af::DT_FLOAT16, rep_ar, str_ar);
+  Output buf2("buf2");
+  buf2.x = mean_out.y;
+  InitOutputNode(buf2, exec_order, axis, af::DT_FLOAT, rep_a, str_a);
+  Output buf3("buf3");
+  buf3.x = rstd_out.y;
+  InitOutputNode(buf3, exec_order, axis, af::DT_FLOAT, rep_a, str_a);
+  Output buf("buf");
+  buf.x = y_out.y;
+  InitOutputNode(buf, exec_order, axis, af::DT_FLOAT16, rep_ar, str_ar);
+  Output buf4("buf4");
+  buf4.x = cat_out.y;
+  InitOutputNode(buf4, exec_order, axis, af::DT_FLOAT16, rep_ar, str_ar);
 }
 
 /*
@@ -192,8 +229,8 @@ for aBO
         Store y
 */
 
-void ApplySplitToNode(ascir::HintGraph &graph, const char *name, int64_t aBO, int64_t aBI, int64_t aBIO,
-                      int64_t aBII, std::vector<int64_t> vec_axis) {
+void ApplySplitToNode(ascir::HintGraph &graph, const char *name, int64_t aBO, int64_t aBI, int64_t aBIO, int64_t aBII,
+                      std::vector<int64_t> vec_axis) {
   auto node = graph.FindNode(name);
   graph.ApplySplit(node, aBO, aBI);
   graph.ApplySplit(node, aBIO, aBII);
@@ -210,8 +247,8 @@ void Concat_Normal_AfterScheduler(ascir::HintGraph &graph) {
   auto vec_ar = std::vector<int64_t>{aBII->id, r};
   auto vec_r = std::vector<int64_t>{r};
 
-  const char *ar_nodes[] = {"x1", "x2", "bias", "x1Local", "x2Local", "biasLocal", "mean", "x_out", "mean_out",
-                             "rstd", "rstd_out", "y", "cat_out"};
+  const char *ar_nodes[] = {"x1",    "x2",       "bias", "x1Local",  "x2Local", "biasLocal", "mean",
+                            "x_out", "mean_out", "rstd", "rstd_out", "y",       "cat_out"};
   for (auto name : ar_nodes) {
     ApplySplitToNode(graph, name, aBO->id, aBI->id, aBIO->id, aBII->id, vec_ar);
   }
@@ -234,8 +271,7 @@ void SetGmOutput(ascir::HintGraph &graph, const char *name) {
   node->outputs[0].attr.mem.position = af::Position::kPositionGM;
 }
 
-void SetQueueOutput(ascir::HintGraph &graph, const char *name, int &tensor_id, int que_id,
-                    af::Position position) {
+void SetQueueOutput(ascir::HintGraph &graph, const char *name, int &tensor_id, int que_id, af::Position position) {
   auto node = graph.FindNode(name);
   node->outputs[0].attr.mem.tensor_id = tensor_id++;
   node->outputs[0].attr.mem.alloc_type = af::AllocType::kAllocTypeQueue;
@@ -543,8 +579,7 @@ void WriteConcatTilingFunc(const std::string &tiling_func) {
 }
 
 void GenerateConcatTilingData(const ascir::FusedScheduledResult &fused_result,
-                               const std::map<std::string, std::string> &options,
-                               const std::string &graph_name) {
+                              const std::map<std::string, std::string> &options, const std::string &graph_name) {
   TilingCodeGenerator generator;
   TilingCodeGenConfig generator_config;
   std::map<std::string, std::string> tiling_res;
@@ -562,8 +597,8 @@ void GenerateConcatTilingData(const ascir::FusedScheduledResult &fused_result,
 }
 
 void PrepareStubAndCompile() {
-  auto ret = std::system(
-      std::string("cp ").append(TOP_DIR).append("/tests/st/att/testcase/stub/op_log.h ./ -f").c_str());
+  auto ret =
+      std::system(std::string("cp ").append(TOP_DIR).append("/tests/st/att/testcase/stub/op_log.h ./ -f").c_str());
   EXPECT_EQ(ret, 0);
   ret = autofuse::test::CopyStubFiles(UT_DIR, "testcase/stub/");
   EXPECT_EQ(ret, 0);

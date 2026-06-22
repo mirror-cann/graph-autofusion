@@ -187,7 +187,7 @@ class STestGenConcatV2 : public ::testing::Test {
 };
 af::RuntimeStubV2 STestGenConcatV2::stub_v_2;
 
-namespace af{
+namespace af {
 namespace ascir {
 namespace cg {
 Status BuildVectorFunctionSubgraph(af::AscGraph &subgraph) {
@@ -355,7 +355,7 @@ Status BuildTwoGroupTestAscGraph_Z0_1(af::AscGraph &graph) {
 }
 }  // namespace cg
 }  // namespace ascir
-}  // namespace ge
+}  // namespace af
 const std::string kFirstGraphName = "case0";
 const std::string kSecondGraphName = "case1";
 
@@ -593,8 +593,8 @@ void PrepareTwoGroupTestEnv() {
 
 // 辅助函数：编译和运行测试
 void CompileAndRunTwoGroupTest() {
-  auto ret = std::system(
-      "g++ tiling_func_main_concat.cpp Concat_tiling_func.cpp -o tiling_func_main_concat -I ./ -DSTUB_LOG");
+  auto ret =
+      std::system("g++ tiling_func_main_concat.cpp Concat_tiling_func.cpp -o tiling_func_main_concat -I ./ -DSTUB_LOG");
   EXPECT_EQ(ret, 0);
 
   ret = std::system("./tiling_func_main_concat > ./info.log");

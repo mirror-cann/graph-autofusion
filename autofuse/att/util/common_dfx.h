@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -24,13 +24,13 @@
 
 #define GE_MODULE_NAME static_cast<int32_t>(45)
 inline bool IsLogPrintStdout() {
- static int32_t stdout_flag = -1;
- if (stdout_flag == -1) {
-   const char *env_ret = getenv("ASCEND_SLOG_PRINT_TO_STDOUT");
-   const bool print_stdout = ((env_ret != nullptr) && (strcmp(env_ret, "1") == 0));
-   stdout_flag = print_stdout ? 1 : 0;
- }
- return (stdout_flag == 1) ? true : false;
+  static int32_t stdout_flag = -1;
+  if (stdout_flag == -1) {
+    const char *env_ret = getenv("ASCEND_SLOG_PRINT_TO_STDOUT");
+    const bool print_stdout = ((env_ret != nullptr) && (strcmp(env_ret, "1") == 0));
+    stdout_flag = print_stdout ? 1 : 0;
+  }
+  return (stdout_flag == 1) ? true : false;
 }
 
 static int32_t cached_level = []() {
@@ -43,7 +43,7 @@ static inline bool CheckCachedLogLevel(int32_t log_level) {
 }
 
 inline uint64_t GetTid() {
-   return static_cast<uint64_t>(syscall(__NR_gettid));
+  return static_cast<uint64_t>(syscall(__NR_gettid));
 }
 
 inline std::vector<char> CreateErrorMsg(const char *format, ...) {
@@ -70,10 +70,10 @@ inline std::vector<char> CreateErrorMsg(const char *format, ...) {
                (ERROR_CODE), "", "", ##__VA_ARGS__);                                                               \
   } while (false)
 
-#define GELOGE(ERROR_CODE, fmt, ...)                           \
-  do {                                                         \
-    auto msg = CreateErrorMsg(fmt, ##__VA_ARGS__);                  \
-    REPORT_INNER_ERR_MSG("E19999", "%s", msg.data());          \
+#define GELOGE(ERROR_CODE, fmt, ...)                               \
+  do {                                                             \
+    auto msg = CreateErrorMsg(fmt, ##__VA_ARGS__);                 \
+    REPORT_INNER_ERR_MSG("E19999", "%s", msg.data());              \
     GE_ONLY_LOGE(ERROR_CODE, "%s", msg.empty() ? "" : msg.data()); \
   } while (false)
 
@@ -86,7 +86,7 @@ inline std::vector<char> CreateErrorMsg(const char *format, ...) {
 
 #define GELOGI(fmt, ...)                                                                            \
   do {                                                                                              \
-    if (CheckCachedLogLevel(DLOG_INFO)) {                                                          \
+    if (CheckCachedLogLevel(DLOG_INFO)) {                                                           \
       dlog_info(GE_MODULE_NAME, "%" PRIu64 " %s:" fmt, GetTid(), &__FUNCTION__[0U], ##__VA_ARGS__); \
     }                                                                                               \
   } while (false)

@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -148,7 +148,8 @@ std::string ReadableDump::GetNodeInputInstanceWithIr(const Node *node, OutputHan
 
   const auto &ir_inputs = op_desc->GetIrInputs();
   if (ir_inputs.empty()) {
-    GELOGI("[ReadableDump][GetNodeInputInstanceWithIr] Node %s IR inputs definition is empty.", node->GetName().c_str());
+    GELOGI("[ReadableDump][GetNodeInputInstanceWithIr] Node %s IR inputs definition is empty.",
+           node->GetName().c_str());
     return "";
   }
 
@@ -205,8 +206,10 @@ std::string ReadableDump::GetNodeInputInstance(const Node *node, OutputHandler &
     return input_instance_with_ir;
   }
 
-  GELOGI("[ReadableDump][GetNodeInputInstance] get node %s input instance with IR definition failed, "
-         "using parameters (_input_0, _input_1, ...) instead.", node->GetName().c_str());
+  GELOGI(
+      "[ReadableDump][GetNodeInputInstance] get node %s input instance with IR definition failed, "
+      "using parameters (_input_0, _input_1, ...) instead.",
+      node->GetName().c_str());
   std::stringstream input_instance_ss;
   bool first = true;
   for (size_t i = 0U; i < node->GetAllInDataAnchorsSize(); i++) {
@@ -238,7 +241,8 @@ std::string ReadableDump::GetAttrValueStr(const OpDescPtr &op_desc, const std::s
     auto attr_tensor_value = attr_value.Get<GeTensor>();
     GE_ASSERT_NOTNULL(attr_tensor_value);
     auto attr_tensor_type = attr_tensor_value->GetTensorDesc().GetDataType();
-    return TensorValueUtils::ConvertTensorValue(TensorAdapter::AsTensor(*attr_tensor_value), attr_tensor_type, " ", true);
+    return TensorValueUtils::ConvertTensorValue(TensorAdapter::AsTensor(*attr_tensor_value), attr_tensor_type, " ",
+                                                true);
   }
 
   std::string attr_value_str;
@@ -276,7 +280,7 @@ std::map<size_t, std::pair<size_t, size_t>> ReadableDump::GetIrGraphDescRange(co
       }
       continue;
     }
-    
+
     // 动态子图：IR 名称需要添加索引
     std::set<uint32_t> indexes;
     for (size_t n = 0U;; n++) {
@@ -297,14 +301,14 @@ std::map<size_t, std::pair<size_t, size_t>> ReadableDump::GetIrGraphDescRange(co
       ir_graph_to_range.emplace(ir_idx, std::make_pair(*indexes.begin(), indexes.size()));
     } else {
       GELOGI("[ReadableDump][GetIrGraphDescRange] Node %s dynamic subgraph %s desc index is not continuous.",
-        node->GetName().c_str(), ir_name_to_type.first.c_str());
+             node->GetName().c_str(), ir_name_to_type.first.c_str());
     }
   }
   return ir_graph_to_range;
 }
 
 void ReadableDump::CollectSubgraphIfNeeded(std::vector<ComputeGraphPtr> &subgraphs_to_dump,
-                                           const std::string &instance_name,DumpContext &ctx) {
+                                           const std::string &instance_name, DumpContext &ctx) {
   if (instance_name.empty()) {
     return;
   }
@@ -404,8 +408,10 @@ std::string ReadableDump::GetSubgraphAttrs(const Node *node, std::vector<Compute
     return subgraph_attrs_contents;
   }
 
-  GELOGI("[ReadableDump][GetSubgraphAttrs] get node %s subgraph attrs with IR definition failed, "
-         "using parameters (_graph_0, _graph_1, ...) instead.", node->GetName().c_str());
+  GELOGI(
+      "[ReadableDump][GetSubgraphAttrs] get node %s subgraph attrs with IR definition failed, "
+      "using parameters (_graph_0, _graph_1, ...) instead.",
+      node->GetName().c_str());
 
   std::stringstream ss;
   bool first = true;
@@ -429,8 +435,7 @@ void ReadableDump::AppendNodeAttrs(std::stringstream &attr_contents, const Node 
   const auto &ir_attr_names = op_desc->GetIrAttrNames();
   std::map<AscendString, AscendString> ir_names_to_type;
   if (op.GetAllIrAttrNamesAndTypes(ir_names_to_type) != GRAPH_SUCCESS) {
-    GELOGW("[ReadableDump][GenNodeAttrs] failed, get node %s attr names to type failed",
-           node->GetName().c_str());
+    GELOGW("[ReadableDump][GenNodeAttrs] failed, get node %s attr names to type failed", node->GetName().c_str());
     return;
   }
 
@@ -540,4 +545,4 @@ void ReadableDump::GenGraphOutput(std::stringstream &graph_output_ss, const Node
   graph_output_ss << GetGraphOutputInstance(net_output, output_handler);
   graph_output_ss << ")";
 }
-}  // namespace ge
+}  // namespace af

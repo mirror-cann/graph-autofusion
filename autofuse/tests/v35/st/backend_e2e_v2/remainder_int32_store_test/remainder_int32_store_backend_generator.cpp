@@ -49,9 +49,9 @@ TEST_F(TestBackendRemainderInt32StoreE2e, RemainderInt32StoreE2eCodegen) {
   std::map<std::string, std::string> remainder_shape_info({{"s0", "stub_s0"}, {"s1", "stub_s1"}});
   auto graph = ascir::ShareGraph::RemainderInt32StoreFusedGraph(2);
   std::vector<std::string> remainder_parts = splitString(KERNEL_SRC_LIST, ':');
-  const std::string& kernel_src_file_name = remainder_parts[0];
-  const std::string& tiling_src_file_name = remainder_parts[1];
-  const std::string& tiling_data_src_file_name = remainder_parts[2];
+  const std::string &kernel_src_file_name = remainder_parts[0];
+  const std::string &tiling_src_file_name = remainder_parts[1];
+  const std::string &tiling_data_src_file_name = remainder_parts[2];
 
   try {
     optimize::Optimizer remainder_optimizer(optimize::OptimizerOptions{});

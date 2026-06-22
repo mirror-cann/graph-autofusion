@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -130,22 +130,34 @@ void ConstantLoadLeStore_AfterScheduler(af::AscGraph &graph) {
   graph.ApplySplit(load, z0T->id, z0t->id);
   graph.ApplySplit(load, z0TB->id, z0Tb->id);
   load->attr.sched.loop_axis = z0Tb->id;
-  load->outputs[0].attr.vectorized_axis = {z0t->id,};
-  load->outputs[0].attr.vectorized_strides = {One,};
+  load->outputs[0].attr.vectorized_axis = {
+      z0t->id,
+  };
+  load->outputs[0].attr.vectorized_strides = {
+      One,
+  };
 
   auto le = graph.FindNode("le");
   graph.ApplySplit(le, z0T->id, z0t->id);
   graph.ApplySplit(le, z0TB->id, z0Tb->id);
   le->attr.sched.loop_axis = z0Tb->id;
-  le->outputs[0].attr.vectorized_axis = {z0t->id,};
-  le->outputs[0].attr.vectorized_strides = {One,};
+  le->outputs[0].attr.vectorized_axis = {
+      z0t->id,
+  };
+  le->outputs[0].attr.vectorized_strides = {
+      One,
+  };
 
   auto store = graph.FindNode("store");
   graph.ApplySplit(store, z0T->id, z0t->id);
   graph.ApplySplit(store, z0TB->id, z0Tb->id);
   store->attr.sched.loop_axis = z0Tb->id;
-  store->outputs[0].attr.vectorized_axis = {z0t->id,};
-  store->outputs[0].attr.vectorized_strides = {One,};
+  store->outputs[0].attr.vectorized_axis = {
+      z0t->id,
+  };
+  store->outputs[0].attr.vectorized_strides = {
+      One,
+  };
   cout << utils::DebugHintGraphStr(graph) << endl;
 }
 
@@ -161,13 +173,13 @@ void ConstantLoadLeStore_AfterQueBufAlloc(af::AscGraph &graph) {
   auto x = graph.FindNode("x");
   x->outputs[0].attr.mem.tensor_id = tensor_id++;
   x->outputs[0].attr.mem.alloc_type = AllocType::kAllocTypeGlobal;
-  x->outputs[0].attr.mem.hardware = MemHardware:: kMemHardwareGM;
+  x->outputs[0].attr.mem.hardware = MemHardware::kMemHardwareGM;
   x->outputs[0].attr.mem.position = Position::kPositionGM;
 
   auto load = graph.FindNode("load");
   load->outputs[0].attr.mem.tensor_id = tensor_id++;
   load->outputs[0].attr.mem.alloc_type = AllocType::kAllocTypeQueue;
-  load->outputs[0].attr.mem.hardware = MemHardware:: kMemHardwareUB;
+  load->outputs[0].attr.mem.hardware = MemHardware::kMemHardwareUB;
   load->outputs[0].attr.mem.position = Position::kPositionVecIn;
   load->outputs[0].attr.buf.id = af::kIdNone;
   load->outputs[0].attr.que.id = 0;
@@ -180,7 +192,7 @@ void ConstantLoadLeStore_AfterQueBufAlloc(af::AscGraph &graph) {
   auto le = graph.FindNode("le");
   le->outputs[0].attr.mem.tensor_id = tensor_id++;
   le->outputs[0].attr.mem.alloc_type = AllocType::kAllocTypeQueue;
-  le->outputs[0].attr.mem.hardware = MemHardware:: kMemHardwareUB;
+  le->outputs[0].attr.mem.hardware = MemHardware::kMemHardwareUB;
   le->outputs[0].attr.mem.position = Position::kPositionVecOut;
   le->outputs[0].attr.buf.id = af::kIdNone;
   le->outputs[0].attr.que.id = 1;
@@ -193,7 +205,7 @@ void ConstantLoadLeStore_AfterQueBufAlloc(af::AscGraph &graph) {
   auto store = graph.FindNode("store");
   store->outputs[0].attr.mem.tensor_id = tensor_id++;
   store->outputs[0].attr.mem.alloc_type = AllocType::kAllocTypeGlobal;
-  store->outputs[0].attr.mem.hardware = MemHardware:: kMemHardwareGM;
+  store->outputs[0].attr.mem.hardware = MemHardware::kMemHardwareGM;
   store->outputs[0].attr.mem.position = Position::kPositionGM;
 }
 

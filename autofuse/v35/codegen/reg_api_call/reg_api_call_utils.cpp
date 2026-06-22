@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -44,7 +44,7 @@ void SetLoopModeParams(const TPipe &tpipe, const DataCopyParams &data_copy_param
 
 // SetLoopModeParams 表达式版本 - 输出到 LoopModeParamsExpr
 // 功能与 SetLoopModeParams 完全一致，只是输出类型不同
-void SetLoopModeParamsExpr(const DataCopyParams& data_copy_param, LoopModeParamsExpr& loop_mode_param, bool copy_in){
+void SetLoopModeParamsExpr(const DataCopyParams &data_copy_param, LoopModeParamsExpr &loop_mode_param, bool copy_in) {
   int64_t total_len = data_copy_param.repeats.size();
   if (total_len <= static_cast<int64_t>(kDmaMaxLen)) {
     return;
@@ -56,13 +56,12 @@ void SetLoopModeParamsExpr(const DataCopyParams& data_copy_param, LoopModeParams
       break;
     }
     // loop_size: ActualSize 转换，使用赋值替换默认值
-    loop_mode_param.loop_size[loop_idx] =
-        CombinedExpression(ExprItemFactory::ActualSize(data_copy_param.repeats[idx]));
+    loop_mode_param.loop_size[loop_idx] = CombinedExpression(ExprItemFactory::ActualSize(data_copy_param.repeats[idx]));
     // loop_src_stride: Size 转换，根据 copy_in 决定来源
-    const auto& src_stride_expr = copy_in ? data_copy_param.gm_strides[idx] : data_copy_param.ub_strides[idx];
+    const auto &src_stride_expr = copy_in ? data_copy_param.gm_strides[idx] : data_copy_param.ub_strides[idx];
     loop_mode_param.loop_src_stride[loop_idx] = CombinedExpression(ExprItemFactory::Size(src_stride_expr));
     // loop_dst_stride: Size 转换，根据 copy_in 决定来源
-    const auto& dst_stride_expr = copy_in ? data_copy_param.ub_strides[idx] : data_copy_param.gm_strides[idx];
+    const auto &dst_stride_expr = copy_in ? data_copy_param.ub_strides[idx] : data_copy_param.gm_strides[idx];
     loop_mode_param.loop_dst_stride[loop_idx] = CombinedExpression(ExprItemFactory::Size(dst_stride_expr));
     loop_idx++;
   }
@@ -99,8 +98,8 @@ std::string GenLoopModeParams(const LoopModeParams &loop_mode_param, int64_t inp
   return ss.str();
 }
 
-void CreateBaseDmaCall(const Tensor &input, const Tensor &output, const DmaParams &dma_param,
-                       std::string &padding_mode, std::stringstream &ss, bool copy_in) {
+void CreateBaseDmaCall(const Tensor &input, const Tensor &output, const DmaParams &dma_param, std::string &padding_mode,
+                       std::stringstream &ss, bool copy_in) {
   std::string dtype_name;
   Tensor::DtypeName(input.dtype, dtype_name);
   ss << "DataCopyPadExtend<" << dtype_name << ", " << padding_mode << ">(";
@@ -247,7 +246,8 @@ void BuildDataCopyApiParamInCVFusion(CodegenApiParam &api_param, DmaSpecificPara
       ss << "uint8_t mask = 7;" << std::endl;
       ss << "uint64_t rsvdCnt = 0;" << std::endl;
       ss << "AscendC::GatherMask(" << ub << ", " << ub << ", mask, true, static_cast<uint32_t>(curAlignN)"
-         << ", {1, static_cast<uint16_t>(curAivM), static_cast<uint16_t>(KernelUtils::BlkAlign<" << dtype_name << ">(curAlignN) * sizeof(" << dtype_name << ") / ONE_BLK_SIZE), 0}"
+         << ", {1, static_cast<uint16_t>(curAivM), static_cast<uint16_t>(KernelUtils::BlkAlign<" << dtype_name
+         << ">(curAlignN) * sizeof(" << dtype_name << ") / ONE_BLK_SIZE), 0}"
          << ", rsvdCnt);" << std::endl;
       ss << "}" << std::endl;
       api_param.api_post_process.emplace_back(ss.str());
@@ -258,10 +258,8 @@ void BuildDataCopyApiParamInCVFusion(CodegenApiParam &api_param, DmaSpecificPara
     dma_specific_params.data_copy_params.block_len = CombinedExprFactory::SymbolVar("curAivN");
     dma_specific_params.data_copy_params.src_stride = CombinedExprFactory::Constant(0);
     // dst_stride = shapeN - curAivN
-    dma_specific_params.data_copy_params.dst_stride = CombinedExpression(
-        ExprItemFactory::SymbolVar("shapeN"),
-        ExprItemFactory::SymbolVar("curAivN"),
-        "-");
+    dma_specific_params.data_copy_params.dst_stride =
+        CombinedExpression(ExprItemFactory::SymbolVar("shapeN"), ExprItemFactory::SymbolVar("curAivN"), "-");
   }
 }
 
@@ -326,8 +324,7 @@ Status BuildDataCopyApiParamInNormal(const TPipe &tpipe, CodegenApiParam &api_pa
                                            data_copy_param.gm_strides.end() - kFourAxisNum);
     std::vector<ascir::SizeExpr> ub_stride(data_copy_param.ub_strides.begin(),
                                            data_copy_param.ub_strides.end() - kFourAxisNum);
-    std::vector<ascir::SizeExpr> repeats(data_copy_param.repeats.begin(),
-                                         data_copy_param.repeats.end() - kFourAxisNum);
+    std::vector<ascir::SizeExpr> repeats(data_copy_param.repeats.begin(), data_copy_param.repeats.end() - kFourAxisNum);
 
     // 计算 inner offset 表达式：outer_for_0 * Size(stride0) + outer_for_1 * Size(stride1) + ...
     CombinedExpression gm_inner_offset = CalcInnerOffsetExpr(gm_stride);
@@ -336,16 +333,15 @@ Status BuildDataCopyApiParamInNormal(const TPipe &tpipe, CodegenApiParam &api_pa
     // gm_offset = gm_offset + gm_inner_offset
     gm_offset_expr.AddItem(gm_inner_offset.items[0], "+");
     for (size_t i = 1; i < gm_inner_offset.items.size(); i++) {
-      gm_offset_expr.AddItem(gm_inner_offset.items[i], gm_inner_offset.operators[i-1]);
+      gm_offset_expr.AddItem(gm_inner_offset.items[i], gm_inner_offset.operators[i - 1]);
     }
 
     // ub_offset = ub_inner_offset
     ub_offset_expr = ub_inner_offset;
 
     // 设置外层循环的 repeats
-    for (const auto& repeat : repeats) {
-      api_param.outer_loop_axes.emplace_back(
-          CombinedExpression(ExprItemFactory::ActualSize(repeat)));
+    for (const auto &repeat : repeats) {
+      api_param.outer_loop_axes.emplace_back(CombinedExpression(ExprItemFactory::ActualSize(repeat)));
     }
   }
 
@@ -360,10 +356,9 @@ Status BuildDataCopyApiParamInNormal(const TPipe &tpipe, CodegenApiParam &api_pa
   return af::SUCCESS;
 }
 
-Status GenDataCopyDimParam(const CodegenApiParam &api_param, const Tiler& tiler,
-                           std::string graph_name, std::string node_name,
-                           std::stringstream &ss) {
-  auto* dma_params = std::get_if<DmaSpecificParams>(&api_param.specific_params);
+Status GenDataCopyDimParam(const CodegenApiParam &api_param, const Tiler &tiler, std::string graph_name,
+                           std::string node_name, std::stringstream &ss) {
+  auto *dma_params = std::get_if<DmaSpecificParams>(&api_param.specific_params);
   GE_ASSERT_NOTNULL(dma_params, "dma_params is null, graph name: %s, node name: %s", graph_name.c_str(),
                     node_name.c_str());
 

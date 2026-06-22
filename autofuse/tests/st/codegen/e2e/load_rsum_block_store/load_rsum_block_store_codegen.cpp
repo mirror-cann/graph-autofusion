@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -23,20 +23,19 @@
 
 using namespace ascir;
 
-std::vector<std::string> splitString(const std::string& input, char delimiter) {
-    std::vector<std::string> result;
-    std::stringstream ss(input);
-    std::string token;
+std::vector<std::string> splitString(const std::string &input, char delimiter) {
+  std::vector<std::string> result;
+  std::stringstream ss(input);
+  std::string token;
 
-    while (std::getline(ss, token, delimiter)) {
-        result.push_back(token);
-    }
+  while (std::getline(ss, token, delimiter)) {
+    result.push_back(token);
+  }
 
-    return result;
+  return result;
 }
 
-class LoadRsumBlkStoreSt : public testing::Test {
-};
+class LoadRsumBlkStoreSt : public testing::Test {};
 
 TEST_F(LoadRsumBlkStoreSt, reduceSumTest) {
   bool gen_success = true;
@@ -57,9 +56,10 @@ TEST_F(LoadRsumBlkStoreSt, reduceSumTest) {
   std::string tiling_data_src_file_name_block = "autofuse_tiling_data.h";
 
   try {
-    auto codegen = codegen::Codegen(codegen::CodegenOptions{
-         // lib + 用例文件夹名 + _gen_tiling.so
-        .tiling_lib_path = ATT_SO_NAME, .tiling_lib_codegen_symbol = "CodegenTiling", .using_att_calc_qbt_size = false});
+    auto codegen = codegen::Codegen(codegen::CodegenOptions{// lib + 用例文件夹名 + _gen_tiling.so
+                                                            .tiling_lib_path = ATT_SO_NAME,
+                                                            .tiling_lib_codegen_symbol = "CodegenTiling",
+                                                            .using_att_calc_qbt_size = false});
     std::fstream kernel_file(kernel_src_file_name_block, std::ios::out);
     std::fstream tiling_file(tiling_src_file_name_block, std::ios::out);
     std::fstream tiling_data_file(tiling_data_src_file_name_block, std::ios::out);
@@ -75,28 +75,29 @@ TEST_F(LoadRsumBlkStoreSt, reduceSumTest) {
     kernel_file << tilig_stub << RemoveSubDirInclude(result.kernel);
     tiling_file << result.tiling;
     tiling_data_file << result.tiling_data;
-  }
-  catch (...) {
+  } catch (...) {
     gen_success = false;
   }
 
-    EXPECT_EQ(gen_success, true);
+  EXPECT_EQ(gen_success, true);
 
   // Add reducesum int32 no tileouter axis
   af::AscGraph test_graph_int32_block("load_rsum_store_int32_block");
   LoadRsumStore_BeforeAutofuse(test_graph_int32_block, ge::DT_INT32);
   LoadRsumUbStore_AfterAutofuse(test_graph_int32_block, ge::DT_INT32);
 
-  std::vector<af::AscGraph> test_impl_graphs_int32_blk = {af::AscGraph("load_rsum_store_int32_block_general_0_nil_0_nil")};
+  std::vector<af::AscGraph> test_impl_graphs_int32_blk = {
+      af::AscGraph("load_rsum_store_int32_block_general_0_nil_0_nil")};
   test_impl_graphs_int32_blk[0].CopyFrom(test_graph_int32_block);
 
   std::string kernel_src_file_name_int32_block = "load_rsum_block_store_kernel.cpp";
   std::string tiling_src_file_name_int32_block = "load_rsum_block_store_tiling.cpp";
 
   try {
-    auto codegen_int32_blk = codegen::Codegen(codegen::CodegenOptions{
-         // lib + 用例文件夹名 + _gen_tiling.so
-        .tiling_lib_path = ATT_SO_NAME, .tiling_lib_codegen_symbol = "CodegenTiling", .using_att_calc_qbt_size = false});
+    auto codegen_int32_blk = codegen::Codegen(codegen::CodegenOptions{// lib + 用例文件夹名 + _gen_tiling.so
+                                                                      .tiling_lib_path = ATT_SO_NAME,
+                                                                      .tiling_lib_codegen_symbol = "CodegenTiling",
+                                                                      .using_att_calc_qbt_size = false});
     std::fstream kernel_file_int32_blk(kernel_src_file_name_int32_block, std::ios::out);
     std::fstream tiling_file_int32_blk(tiling_src_file_name_int32_block, std::ios::out);
 
@@ -109,10 +110,9 @@ TEST_F(LoadRsumBlkStoreSt, reduceSumTest) {
     codegen::CodegenResult result_int32_blk;
     EXPECT_EQ(codegen_int32_blk.Generate(fused_schedule_result_int32_blk, result_int32_blk), 0);
     kernel_file_int32_blk << tilig_stub << RemoveSubDirInclude(result_int32_blk.kernel);
-  }
-  catch (...) {
+  } catch (...) {
     gen_success = false;
   }
 
-    EXPECT_EQ(gen_success, true);
+  EXPECT_EQ(gen_success, true);
 }

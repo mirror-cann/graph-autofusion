@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -20,7 +20,7 @@
 
 #ifdef NO_OPERATOR_IMPL
 namespace af {
-  class Operator;
+class Operator;
 }
 #else
 #include "graph/operator_reg.h"
@@ -35,15 +35,15 @@ namespace optiling {
 using OP_CHECK_FUNC = ge::graphStatus (*)(const af::Operator &op, ge::AscendString &result);
 
 using PARAM_GENERALIZE_FUNC = ge::graphStatus (*)(const af::Operator &op, const ge::AscendString &generalize_config,
-                                      ge::AscendString &generalized_op_params);
+                                                  ge::AscendString &generalized_op_params);
 
 class OpCheckFuncHelper {
-public:
+ public:
   OpCheckFuncHelper(const ge::AscendString &check_type, const ge::AscendString &op_type, OP_CHECK_FUNC func);
 
   OpCheckFuncHelper(const ge::AscendString &op_type, PARAM_GENERALIZE_FUNC func);
 };
-}
+}  // namespace optiling
 
 namespace ops {
 class AclnnOpGenerator;
@@ -56,25 +56,11 @@ class OpParamTrunk;
 
 enum Option { IGNORE = 0, OPTIONAL = 1, REQUIRED = 2, DYNAMIC = 3, VIRTUAL = 4 };
 
-enum class FormatCheckOption : uint32_t {
-  DEFAULT = 0,
-  STRICT = 1,
-  MAX
-};
+enum class FormatCheckOption : uint32_t { DEFAULT = 0, STRICT = 1, MAX };
 
-enum class DependScope : uint32_t {
-  ALL = 0,
-  TILING = 1,
-  INVALID_SCOPE
-};
+enum class DependScope : uint32_t { ALL = 0, TILING = 1, INVALID_SCOPE };
 
-enum class FollowType : uint32_t {
-  ALL = 0,
-  DTYPE = 1,
-  FORMAT = 2,
-  SHAPE = 3,
-  INVALID_TYPE
-};
+enum class FollowType : uint32_t { ALL = 0, DTYPE = 1, FORMAT = 2, SHAPE = 3, INVALID_TYPE };
 
 enum class AttrDataType {
   ATTR_DT_BOOL = 0,
@@ -117,12 +103,7 @@ enum class ScalarType : uint32_t {
   INVALID_DTYPE = static_cast<uint32_t>(-1),
 };
 
-enum class HcclServerType : uint32_t {
-  AICPU = 0,
-  AICORE = 1,
-  CCU = 2,
-  MAX
-};
+enum class HcclServerType : uint32_t { AICPU = 0, AICORE = 1, CCU = 2, MAX };
 
 union ScalarNum {
   uint64_t value_u64;
@@ -176,7 +157,7 @@ struct ScalarVar {
       scalar_num = ScalarNum(static_cast<int64_t>(num));
     }
   }
-  bool operator==(const ScalarVar& other) const {
+  bool operator==(const ScalarVar &other) const {
     if (scalar_type == other.scalar_type && scalar_num.value_u64 == other.scalar_num.value_u64) {
       return true;
     }
@@ -188,7 +169,7 @@ enum class ItemFindStatus { ITEM_FIND = 0, ITEM_NOEXIST = 1 };
 
 class OpParamDefImpl;
 class OpParamDef {
-public:
+ public:
   explicit OpParamDef(const char *name);
   OpParamDef(const OpParamDef &def);
   ~OpParamDef();
@@ -218,7 +199,7 @@ public:
   OpParamDef &Follow(const char *paramName, FollowType ftype);
   OpParamDef &Comment(const char *comment);
 
-private:
+ private:
   friend class AclnnFallBackGenerator;
   friend class AclnnOpGenerator;
   friend class Generator;
@@ -274,7 +255,7 @@ private:
 
 class OpAICPUDefImpl;
 class OpAICPUDef {
-public:
+ public:
   OpAICPUDef();
   OpAICPUDef(const OpAICPUDef &aicpu_def);
   ~OpAICPUDef();
@@ -290,7 +271,7 @@ public:
 
   OpAICPUDef &ExtendCfgInfo(const char *key, const char *value);
 
-private:
+ private:
   friend class Generator;
   friend class GeneratorFactory;
   friend class CPUCfgGenerator;
@@ -307,7 +288,7 @@ private:
 
 class OpHostCPUDefImpl;
 class OpHostCPUDef {
-public:
+ public:
   OpHostCPUDef();
   OpHostCPUDef(const OpHostCPUDef &hostcpu_def);
   ~OpHostCPUDef();
@@ -323,7 +304,7 @@ public:
 
   OpHostCPUDef &ExtendCfgInfo(const char *key, const char *value);
 
-private:
+ private:
   friend class Generator;
   friend class GeneratorFactory;
   friend class CPUCfgGenerator;
@@ -340,7 +321,7 @@ private:
 
 class OpAttrDefImpl;
 class OpAttrDef {
-public:
+ public:
   explicit OpAttrDef(const char *name);
   OpAttrDef(const OpAttrDef &attr_def);
   ~OpAttrDef();
@@ -367,7 +348,7 @@ public:
   ge::AscendString &GetName(void) const;
   bool IsRequired(void);
 
-private:
+ private:
   friend class AclnnFallBackGenerator;
   friend class AclnnOpGenerator;
   friend class Generator;
@@ -391,7 +372,7 @@ private:
 
 class OpAICoreConfigImpl;
 class OpAICoreConfig {
-public:
+ public:
   OpAICoreConfig();
   OpAICoreConfig(const char *soc);
   OpAICoreConfig(const OpAICoreConfig &aicore_config);
@@ -407,7 +388,7 @@ public:
   OpAICoreConfig &PrecisionReduceFlag(bool flag);
   OpAICoreConfig &ExtendCfgInfo(const char *key, const char *value);
 
-private:
+ private:
   friend class AclnnFallBackGenerator;
   friend class AclnnOpGenerator;
   friend class Generator;
@@ -431,7 +412,7 @@ private:
 
 class OpAICoreDefImpl;
 class OpAICoreDef {
-public:
+ public:
   OpAICoreDef();
   OpAICoreDef(const OpAICoreDef &aicore_def);
   ~OpAICoreDef();
@@ -452,7 +433,7 @@ public:
   OpAICoreDef &AddConfig(const char *soc);
   OpAICoreDef &AddConfig(const char *soc, OpAICoreConfig &aicore_config);
 
-private:
+ private:
   friend class AclnnFallBackGenerator;
   friend class AclnnOpGenerator;
   friend class Generator;
@@ -472,7 +453,7 @@ private:
 
 class OpMC2DefImpl;
 class OpMC2Def {
-public:
+ public:
   OpMC2Def();
   OpMC2Def(const OpMC2Def &mc2_def);
   ~OpMC2Def();
@@ -481,7 +462,7 @@ public:
   OpMC2Def &HcclGroup(std::vector<const char *> value);
   void HcclServerType(enum HcclServerType type, const char *soc = nullptr);
 
-private:
+ private:
   friend class AclnnFallBackGenerator;
   friend class AclnnOpGenerator;
   friend class Generator;
@@ -499,7 +480,7 @@ private:
 
 class OpDefImpl;
 class OpDef {
-public:
+ public:
   explicit OpDef(const char *type);
   OpDef(const OpDef &op_def);
   ~OpDef();
@@ -521,7 +502,7 @@ public:
   OpDef &FormatMatchMode(FormatCheckOption option);
   OpDef &EnableFallBack(void);
 
-private:
+ private:
   friend class AclnnFallBackGenerator;
   friend class AclnnOpGenerator;
   friend class CPUCfgGenerator;
@@ -538,12 +519,7 @@ private:
     std::vector<ArrParam> types;
     std::vector<ArrParam> formats;
   };
-  enum class PortStat : uint32_t {
-    IN = 0,
-    OUT = 1,
-    INOUT = 2,
-    INVALID_STAT
-  };
+  enum class PortStat : uint32_t { IN = 0, OUT = 1, INOUT = 2, INVALID_STAT };
   struct PortFollowInfo {
     PortStat port_stat = PortStat::IN;
     uint32_t index_in = 0;
@@ -563,31 +539,30 @@ private:
   std::vector<OpAttrDef> &GetAttrs(void);
   std::vector<OpParamDef> GetMergeInputs(OpAICoreConfig &aicore_config);
   std::vector<OpParamDef> GetMergeOutputs(OpAICoreConfig &aicore_config);
-  void CheckIncompatible(const std::vector<OpParamDef>& all) const;
+  void CheckIncompatible(const std::vector<OpParamDef> &all) const;
   void FullPermutation(std::vector<OpParamDef> &input_param, std::vector<OpParamDef> &output_param);
-  void DfsFullPermutation(DfsParam &dfs_param, const std::vector<OpParamDef> &all_param,
-                          uint32_t list_idx, uint32_t non_list_idx) const;
-  void DfsDataType(DfsParam &dfs_param, const std::vector<OpParamDef> &all_param,
-                   uint32_t list_idx, uint32_t non_list_idx) const;
-  void DfsFormat(DfsParam &dfs_param, const std::vector<OpParamDef> &all_param,
-                 uint32_t list_idx, uint32_t non_list_idx) const;
+  void DfsFullPermutation(DfsParam &dfs_param, const std::vector<OpParamDef> &all_param, uint32_t list_idx,
+                          uint32_t non_list_idx) const;
+  void DfsDataType(DfsParam &dfs_param, const std::vector<OpParamDef> &all_param, uint32_t list_idx,
+                   uint32_t non_list_idx) const;
+  void DfsFormat(DfsParam &dfs_param, const std::vector<OpParamDef> &all_param, uint32_t list_idx,
+                 uint32_t non_list_idx) const;
   uint32_t GetNonListLen(std::vector<OpParamDef> &input_param, std::vector<OpParamDef> &output_param) const;
   bool IsNonListTypes(const OpParamDef &def) const;
   bool IsNonListFormats(const OpParamDef &def) const;
   void SetDefaultND(std::vector<OpParamDef> &defs) const;
   std::vector<std::vector<OpParamDef>> GetMergeInputsOutputs(const OpAICoreConfig &aicore_config);
-  void SetPermutedParam(const DfsParam &dfs_param, std::vector<OpParamDef> &input,
-                              std::vector<OpParamDef> &output);
+  void SetPermutedParam(const DfsParam &dfs_param, std::vector<OpParamDef> &input, std::vector<OpParamDef> &output);
   void MergeParam(std::vector<OpParamDef> &merge, std::vector<OpParamDef> &aicore_params) const;
   ItemFindStatus FindAttr(const char *name, OpAttrDef **attr);
   OpAttrDef &AddAttr(OpAttrDef &attr);
   OpAttrDef &GetOrCreateAttr(const char *name);
   void FollowImpl(void);
-  void FollowListImpl(const DfsParam &dfs_param, std::vector<OpParamDef>& input, std::vector<OpParamDef>& output);
+  void FollowListImpl(const DfsParam &dfs_param, std::vector<OpParamDef> &input, std::vector<OpParamDef> &output);
   std::map<ge::AscendString, OpDef::PortFollowInfo> GetFollowMap(void);
   std::map<ge::AscendString, std::vector<std::pair<ge::AscendString, OpDef::PortStat>>> GetFollowShapeMap(void);
   std::map<ge::AscendString, std::vector<std::pair<ge::AscendString, OpDef::PortStat>>> GetFollowTypeMap(void);
-  OpParamDef GetParamDef(const ge::AscendString& name, OpDef::PortStat stat);
+  OpParamDef GetParamDef(const ge::AscendString &name, OpDef::PortStat stat);
   FormatCheckOption GetFormatMatchMode(void);
   bool IsEnableFallBack(void);
   void UpdateInput(const DfsParam &dfs_param, std::vector<OpParamDef> &input);

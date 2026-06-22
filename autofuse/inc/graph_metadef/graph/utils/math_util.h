@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -35,7 +35,7 @@ constexpr uint32_t kDiv32RightShiftBits = 5U;
  * @param [out]  output  array to be initialized
  * @return      Status
  */
-template<typename Dtype>
+template <typename Dtype>
 Status NnSet(const int32_t n, const Dtype alpha, Dtype *const output) {
   GE_CHECK_NOTNULL(output);
 
@@ -69,7 +69,7 @@ Status NnSet(const int32_t n, const Dtype alpha, Dtype *const output) {
   return ge::SUCCESS;
 }
 
-template<typename T, typename TR>
+template <typename T, typename TR>
 bool RoundUpOverflow(T value, T multiple_of, TR &ret) {
   if (multiple_of == 0) {
     ret = 0;
@@ -85,7 +85,7 @@ bool RoundUpOverflow(T value, T multiple_of, TR &ret) {
   }
   return ge::AddOverflow(value - remainder, multiple_of, ret);
 }
-template<typename T>
+template <typename T>
 T CeilDiv16(const T n) {
   if (n & 0xF) {
     return (n >> kDiv16RightShiftBits) + 1;
@@ -94,7 +94,7 @@ T CeilDiv16(const T n) {
   }
 }
 
-template<typename T>
+template <typename T>
 T CeilDiv32(const T n) {
   if (n & 0x1F) {
     return (n >> kDiv32RightShiftBits) + 1;
@@ -103,7 +103,7 @@ T CeilDiv32(const T n) {
   }
 }
 
-template<typename T>
+template <typename T>
 T CeilDiv(const T n1, const T n2) {
   if (n1 == 0) {
     return 0;
@@ -111,7 +111,7 @@ T CeilDiv(const T n1, const T n2) {
   return (n2 != 0) ? (((n1 - 1) / n2) + 1) : n1;
 }
 
-template<typename T>
+template <typename T>
 T FloorDiv(const T u_value, const T d_value) {
   if (d_value == 0) {
     return u_value;
@@ -129,43 +129,43 @@ inline uint64_t RoundUp(const uint64_t origin_value, const uint64_t multiple_of)
 
 inline Status GeMemcpy(uint8_t *dst_ptr, size_t dst_size, const uint8_t *src_ptr, const size_t src_size) {
   GE_CHK_BOOL_RET_STATUS((dst_size >= src_size), ge::PARAM_INVALID, "memcpy_s verify fail, src size %zu, dst size %zu",
-      src_size, dst_size);
+                         src_size, dst_size);
   size_t offset = 0U;
   size_t remain_size = src_size;
   do {
     size_t copy_size = (remain_size > SECUREC_MEM_MAX_LEN) ? SECUREC_MEM_MAX_LEN : remain_size;
     const auto err = memcpy_s((dst_ptr + offset), copy_size, (src_ptr + offset), copy_size);
     GE_CHK_BOOL_RET_STATUS(err == EOK, ge::PARAM_INVALID,
-                           "memcpy_s err, src ptr %p size %zu, dst ptr %p size %zu, offset %zu, err %d",
-                           src_ptr, copy_size, dst_ptr, (dst_size - offset), offset, err);
+                           "memcpy_s err, src ptr %p size %zu, dst ptr %p size %zu, offset %zu, err %d", src_ptr,
+                           copy_size, dst_ptr, (dst_size - offset), offset, err);
     offset += copy_size;
     remain_size -= copy_size;
   } while (remain_size > 0U);
   return ge::SUCCESS;
 }
-}  // end namespace ge
+}  // namespace af
 
-#define REQUIRE_COMPAT(T, v)                                                                                           \
-  do {                                                                                                                 \
-    if (!IntegerChecker<T>::Compat((v))) {                                                                             \
-      std::stringstream ss;                                                                                            \
-      ss << #v << " value " << (v) << " out of " << #T << " range [" << std::numeric_limits<T>::min() << ","           \
-         << std::numeric_limits<T>::max() << "]";                                                                      \
-      GELOGE(ge::FAILED, "%s", ss.str().c_str());                                                                      \
-      return ge::FAILED;                                                                                               \
-    }                                                                                                                  \
+#define REQUIRE_COMPAT(T, v)                                                                                 \
+  do {                                                                                                       \
+    if (!IntegerChecker<T>::Compat((v))) {                                                                   \
+      std::stringstream ss;                                                                                  \
+      ss << #v << " value " << (v) << " out of " << #T << " range [" << std::numeric_limits<T>::min() << "," \
+         << std::numeric_limits<T>::max() << "]";                                                            \
+      GELOGE(ge::FAILED, "%s", ss.str().c_str());                                                            \
+      return ge::FAILED;                                                                                     \
+    }                                                                                                        \
   } while (false)
 
-#define REQUIRE_COMPAT_FOR_CHAR(T, v)                                                                                  \
-  do {                                                                                                                 \
-    if (!IntegerChecker<T>::Compat((v))) {                                                                             \
-      std::stringstream ss;                                                                                            \
-      ss << #v << " value " << static_cast<int32_t>(v) << " out of " << #T << " range ["                               \
-         << static_cast<int32_t>(std::numeric_limits<T>::min()) << ","                                                 \
-         << static_cast<int32_t>(std::numeric_limits<T>::max()) << "]";                                                \
-      GELOGE(ge::FAILED, "%s", ss.str().c_str());                                                                      \
-      return ge::FAILED;                                                                                               \
-    }                                                                                                                  \
+#define REQUIRE_COMPAT_FOR_CHAR(T, v)                                                    \
+  do {                                                                                   \
+    if (!IntegerChecker<T>::Compat((v))) {                                               \
+      std::stringstream ss;                                                              \
+      ss << #v << " value " << static_cast<int32_t>(v) << " out of " << #T << " range [" \
+         << static_cast<int32_t>(std::numeric_limits<T>::min()) << ","                   \
+         << static_cast<int32_t>(std::numeric_limits<T>::max()) << "]";                  \
+      GELOGE(ge::FAILED, "%s", ss.str().c_str());                                        \
+      return ge::FAILED;                                                                 \
+    }                                                                                    \
   } while (false)
 
 #define REQUIRE_COMPAT_INT8(v) REQUIRE_COMPAT_FOR_CHAR(int8_t, (v))

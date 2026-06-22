@@ -44,11 +44,9 @@ TEST_F(TestBackendFmodFloatE2e, FmodFloatE2eCodegen) {
 #define GET_TILING_DATA(t, tiling)  AutofuseTilingData t = *(AutofuseTilingData*)tiling;
 )";
 
-  std::map<std::string, std::string> shape_info(
-      { {"s0", "stub_s0"}, {"s1", "stub_s1"} }
-  );
+  std::map<std::string, std::string> shape_info({{"s0", "stub_s0"}, {"s1", "stub_s1"}});
   auto graph = ascir::ShareGraph::FmodFloatFusedGraph(2);
-  std::cout<<"KERNEL_SRC_LIST="<<KERNEL_SRC_LIST<<std::endl;
+  std::cout << "KERNEL_SRC_LIST=" << KERNEL_SRC_LIST << std::endl;
   std::vector<std::string> parts = splitString(KERNEL_SRC_LIST, ':');
   std::string kernel_src_file_name = parts[0];
   std::string tiling_src_file_name = parts[1];
@@ -71,8 +69,7 @@ TEST_F(TestBackendFmodFloatE2e, FmodFloatE2eCodegen) {
     kernel_file << tilig_stub << RemoveSubDirInclude(result.kernel);
     tiling_file << result.tiling;
     tiling_data_file << result.tiling_data;
-  }
-  catch (...) {
+  } catch (...) {
     gen_success = false;
   }
 

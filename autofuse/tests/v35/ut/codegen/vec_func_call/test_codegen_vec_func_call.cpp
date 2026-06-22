@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -189,11 +189,14 @@ TEST(CodegenKernel, VfCall_TwoDimLoad) {
 
   std::string result;
   call.Generate(tpipe, vector<af::AxisId>{}, result);
-  EXPECT_EQ(result, std::string{"#if defined(__DAV_C310__) || (defined(__NPU_ARCH__) && (__NPU_ARCH__ == 5102 || __NPU_ARCH__ == 3510))\n"
-    "AscendC::SetCtrlSpr<60, 60>(0);\n"
-    "VFCallvf((__local_mem__ float *)local_1[0].GetPhyAddr(), (__local_mem__ float "
-    "*)local_0[0].GetPhyAddr(), t->s0 * t->s1);\n"
-    "#endif\n"});
+  EXPECT_EQ(
+      result,
+      std::string{
+          "#if defined(__DAV_C310__) || (defined(__NPU_ARCH__) && (__NPU_ARCH__ == 5102 || __NPU_ARCH__ == 3510))\n"
+          "AscendC::SetCtrlSpr<60, 60>(0);\n"
+          "VFCallvf((__local_mem__ float *)local_1[0].GetPhyAddr(), (__local_mem__ float "
+          "*)local_0[0].GetPhyAddr(), t->s0 * t->s1);\n"
+          "#endif\n"});
 }
 
 TEST(CodegenKernel, VfCall_TwoDimLoad_VFLoop) {
@@ -514,11 +517,14 @@ TEST(CodegenKernel, VfCall_TwoDim_Scalar) {
 
   std::string result;
   call.Generate(tpipe, vector<af::AxisId>{}, result);
-  EXPECT_EQ(result, std::string{"#if defined(__DAV_C310__) || (defined(__NPU_ARCH__) && (__NPU_ARCH__ == 5102 || __NPU_ARCH__ == 3510))\n"
-    "AscendC::SetCtrlSpr<60, 60>(0);\n"
-    "VFCallvf((__local_mem__ float *)local_1[0].GetPhyAddr(), (__local_mem__ float "
-    "*)local_1[0].GetPhyAddr(), scalar_0, t->s0 * t->s1);\n"
-    "#endif\n"});
+  EXPECT_EQ(
+      result,
+      std::string{
+          "#if defined(__DAV_C310__) || (defined(__NPU_ARCH__) && (__NPU_ARCH__ == 5102 || __NPU_ARCH__ == 3510))\n"
+          "AscendC::SetCtrlSpr<60, 60>(0);\n"
+          "VFCallvf((__local_mem__ float *)local_1[0].GetPhyAddr(), (__local_mem__ float "
+          "*)local_1[0].GetPhyAddr(), scalar_0, t->s0 * t->s1);\n"
+          "#endif\n"});
 }
 
 TEST(CodegenKernel, VfCall_ThreeDimLoad) {
@@ -687,11 +693,14 @@ TEST(CodegenKernel, VfCall_ThreeDimLoad) {
 
   std::string result;
   call.Generate(tpipe, vector<af::AxisId>{}, result);
-  EXPECT_EQ(result, std::string{"#if defined(__DAV_C310__) || (defined(__NPU_ARCH__) && (__NPU_ARCH__ == 5102 || __NPU_ARCH__ == 3510))\n"
-    "AscendC::SetCtrlSpr<60, 60>(0);\n"
-    "VFCallvf((__local_mem__ float *)local_1[0].GetPhyAddr(), (__local_mem__ float "
-    "*)local_0[0].GetPhyAddr(), t->s0 * t->s1, t->s2, (2 * t->s2), (2 * t->s2));\n"
-    "#endif\n"});
+  EXPECT_EQ(
+      result,
+      std::string{
+          "#if defined(__DAV_C310__) || (defined(__NPU_ARCH__) && (__NPU_ARCH__ == 5102 || __NPU_ARCH__ == 3510))\n"
+          "AscendC::SetCtrlSpr<60, 60>(0);\n"
+          "VFCallvf((__local_mem__ float *)local_1[0].GetPhyAddr(), (__local_mem__ float "
+          "*)local_0[0].GetPhyAddr(), t->s0 * t->s1, t->s2, (2 * t->s2), (2 * t->s2));\n"
+          "#endif\n"});
 }
 
 TEST(CodegenKernel, VfCall_FiveDimLoad) {
@@ -864,17 +873,19 @@ TEST(CodegenKernel, VfCall_FiveDimLoad) {
 
   std::string result;
   call.Generate(tpipe, vector<af::AxisId>{}, result);
-  EXPECT_EQ(result,
-            std::string{
-                "#if defined(__DAV_C310__) || (defined(__NPU_ARCH__) && (__NPU_ARCH__ == 5102 || __NPU_ARCH__ == 3510))\n"
-                "AscendC::SetCtrlSpr<60, 60>(0);\n"
-                "for(int outer_for_0 = 0; outer_for_0 < t->s0; outer_for_0++) {\n"
-                "VFCallvf((__local_mem__ float "
-                "*)local_1[outer_for_0 * (5 * t->s1 * t->s2 * t->s3 * t->s4)].GetPhyAddr(), (__local_mem__ float "
-                "*)local_0[outer_for_0 * (t->s1 * t->s2 * t->s3 * t->s4)].GetPhyAddr(), t->s1, t->s2, t->s3, t->s4, (4 * t->s2 "
-                "* t->s3 * t->s4), (3 * t->s3 * t->s4), (2 * t->s4), (t->s2 * t->s3 * t->s4), (t->s3 * t->s4), t->s4);\n\n"
-                "}\n"
-                "#endif\n"});
+  EXPECT_EQ(
+      result,
+      std::string{
+          "#if defined(__DAV_C310__) || (defined(__NPU_ARCH__) && (__NPU_ARCH__ == 5102 || __NPU_ARCH__ == 3510))\n"
+          "AscendC::SetCtrlSpr<60, 60>(0);\n"
+          "for(int outer_for_0 = 0; outer_for_0 < t->s0; outer_for_0++) {\n"
+          "VFCallvf((__local_mem__ float "
+          "*)local_1[outer_for_0 * (5 * t->s1 * t->s2 * t->s3 * t->s4)].GetPhyAddr(), (__local_mem__ float "
+          "*)local_0[outer_for_0 * (t->s1 * t->s2 * t->s3 * t->s4)].GetPhyAddr(), t->s1, t->s2, t->s3, t->s4, (4 * "
+          "t->s2 "
+          "* t->s3 * t->s4), (3 * t->s3 * t->s4), (2 * t->s4), (t->s2 * t->s3 * t->s4), (t->s3 * t->s4), t->s4);\n\n"
+          "}\n"
+          "#endif\n"});
 }
 
 // 测试单维场景不触发优化逻辑

@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2026 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -27,16 +27,14 @@ using namespace af::ascir_op;
 namespace ascir {
 constexpr int64_t ID_NONE = -1;
 using namespace ge;
-using HintGraph=AscGraph;
-}
+using HintGraph = AscGraph;
+}  // namespace ascir
 // 公共函数声明：生成tiling代码并写入文件
-std::map<std::string, std::string> GenerateTilingCodeCommon(
-    const std::string &op_name,
-    const ascir::FusedScheduledResult &fused_scheduled_result,
-    const std::map<std::string, std::string> &options,
-    const std::string &tiling_func,
-    const std::string &header_file,
-    bool gen_extra_infos);
+std::map<std::string, std::string> GenerateTilingCodeCommon(const std::string &op_name,
+                                                            const ascir::FusedScheduledResult &fused_scheduled_result,
+                                                            const std::map<std::string, std::string> &options,
+                                                            const std::string &tiling_func,
+                                                            const std::string &header_file, bool gen_extra_infos);
 
 namespace {
 using att::test_common::CreateTilingMainFunc;
@@ -346,30 +344,32 @@ int main() {
   return 0;
 }
 )";
-}
+}  // namespace
 using namespace att;
 using namespace att::test;
 
 namespace {
 // 编译命令常量
-const std::string kCompileCmd = "g++ tiling_func_main_concat.cpp Concat_tiling_func.cpp "
-                                "-o tiling_func_main_concat -I ./ -DSTUB_LOG";
-const std::string kCompileDebugCmd = "g++ -ggdb3 -O0 tiling_func_main_concat.cpp Concat_tiling_func.cpp "
-                                     "-o tiling_func_main_concat -I ./ -DSTUB_LOG";
-const std::string kCompileAllCmd = "g++ tiling_func_main_concat.cpp Concat_*_tiling_func.cpp "
-                                   "-o tiling_func_main_concat -I ./ -DSTUB_LOG";
-const std::string kCompileEmptyCmd = "g++ tiling_func_main_concat_empty.cpp Concat_tiling_func.cpp "
-                                     "-o tiling_func_main_concat_empty -I ./ -DSTUB_LOG";
+const std::string kCompileCmd =
+    "g++ tiling_func_main_concat.cpp Concat_tiling_func.cpp "
+    "-o tiling_func_main_concat -I ./ -DSTUB_LOG";
+const std::string kCompileDebugCmd =
+    "g++ -ggdb3 -O0 tiling_func_main_concat.cpp Concat_tiling_func.cpp "
+    "-o tiling_func_main_concat -I ./ -DSTUB_LOG";
+const std::string kCompileAllCmd =
+    "g++ tiling_func_main_concat.cpp Concat_*_tiling_func.cpp "
+    "-o tiling_func_main_concat -I ./ -DSTUB_LOG";
+const std::string kCompileEmptyCmd =
+    "g++ tiling_func_main_concat_empty.cpp Concat_tiling_func.cpp "
+    "-o tiling_func_main_concat_empty -I ./ -DSTUB_LOG";
 }  // namespace
 
 class STestGenConcat : public ::testing::Test {
  public:
-  static void TearDownTestCase()
-  {
+  static void TearDownTestCase() {
     std::cout << "Test end." << std::endl;
   }
-  static void SetUpTestCase()
-  {
+  static void SetUpTestCase() {
     std::cout << "Test begin." << std::endl;
   }
   void SetUp() override {
@@ -397,38 +397,31 @@ class STestGenConcat : public ::testing::Test {
   void VerifyStaticShapeCacheBehavior();
 
   // 辅助函数：构建单个图到schedule_group
-  void BuildSingleGraphToScheduleGroup(
-      ascir::AscGraph& graph,
-      ascir::ScheduleGroup& schedule_group,
-      uint32_t tiling_key);
+  void BuildSingleGraphToScheduleGroup(ascir::AscGraph &graph, ascir::ScheduleGroup &schedule_group,
+                                       uint32_t tiling_key);
 
   // 辅助函数：生成tiling函数并写入文件
-  void GenerateTilingFunctionAndWriteToFile(
-      const std::string& op_name,
-      const ascir::FusedScheduledResult& fused_scheduled_result,
-      std::map<std::string, std::string>& options);
+  void GenerateTilingFunctionAndWriteToFile(const std::string &op_name,
+                                            const ascir::FusedScheduledResult &fused_scheduled_result,
+                                            std::map<std::string, std::string> &options);
 
   // 辅助函数：生成tiling数据和头文件
-  void GenerateTilingDataAndHeader(
-      const std::string& op_name,
-      const std::string& graph_name,
-      const ascir::FusedScheduledResult& fused_scheduled_result,
-      std::map<std::string, std::string>& options);
+  void GenerateTilingDataAndHeader(const std::string &op_name, const std::string &graph_name,
+                                   const ascir::FusedScheduledResult &fused_scheduled_result,
+                                   std::map<std::string, std::string> &options);
 
   // 辅助函数：准备测试环境文件
-  void PrepareTestEnvironmentFiles(const std::string& test_header_content = "");
+  void PrepareTestEnvironmentFiles(const std::string &test_header_content = "");
 
   // 辅助函数：编译生成的tiling代码
   void CompileGeneratedTilingCode();
 
   // 辅助函数：编译并运行tiling测试，验证输出
-  void CompileAndRunTilingTest(const std::string& output_file = "./info.log");
+  void CompileAndRunTilingTest(const std::string &output_file = "./info.log");
 
   // 辅助函数：构造两个图+两个schedule_result的fused_scheduled_result
-  void ConstructTwoGraphTwoResult(
-      const std::string& graph_name,
-      ascir::AscGraph& graph1, ascir::AscGraph& graph2,
-      ascir::FusedScheduledResult& fused_scheduled_result);
+  void ConstructTwoGraphTwoResult(const std::string &graph_name, ascir::AscGraph &graph1, ascir::AscGraph &graph2,
+                                  ascir::FusedScheduledResult &fused_scheduled_result);
 
   // 静态成员：静态shape缓存测试主函数代码
   static const std::string kStaticShapeCacheTestMain;
@@ -442,8 +435,8 @@ struct ConcatNormalAxisInfo {
 
 // 创建Data节点（输入数据）并设置属性
 void CreateDataNode(Data &node, ascir::HintGraph &graph, const char *name, int &exec_order,
-                    const ConcatNormalAxisInfo &ax, ge::DataType dtype,
-                    const std::vector<af::Expression> &repeats, const std::vector<af::Expression> &strides) {
+                    const ConcatNormalAxisInfo &ax, ge::DataType dtype, const std::vector<af::Expression> &repeats,
+                    const std::vector<af::Expression> &strides) {
   node.attr.sched.exec_order = exec_order++;
   node.attr.sched.axis = {ax.a_id, ax.r_id, ax.bl_id};
   node.y.dtype = dtype;
@@ -453,8 +446,7 @@ void CreateDataNode(Data &node, ascir::HintGraph &graph, const char *name, int &
 }
 
 // 创建Load节点并设置属性
-void CreateLoadNode(Load &node, const Data &src, int &exec_order,
-                    const ConcatNormalAxisInfo &ax, ge::DataType dtype,
+void CreateLoadNode(Load &node, const Data &src, int &exec_order, const ConcatNormalAxisInfo &ax, ge::DataType dtype,
                     const std::vector<af::Expression> &repeats, const std::vector<af::Expression> &strides) {
   node.x = src.y;
   node.attr.sched.exec_order = exec_order++;
@@ -466,9 +458,8 @@ void CreateLoadNode(Load &node, const Data &src, int &exec_order,
 }
 
 // 创建Store节点并设置属性
-void CreateStoreNode(Store &node, int &exec_order, const ConcatNormalAxisInfo &ax,
-                      ge::DataType dtype, const std::vector<af::Expression> &repeats,
-                      const std::vector<af::Expression> &strides) {
+void CreateStoreNode(Store &node, int &exec_order, const ConcatNormalAxisInfo &ax, ge::DataType dtype,
+                     const std::vector<af::Expression> &repeats, const std::vector<af::Expression> &strides) {
   node.attr.sched.exec_order = exec_order++;
   node.attr.sched.axis = {ax.a_id, ax.r_id, ax.bl_id};
   node.y.dtype = dtype;
@@ -478,9 +469,8 @@ void CreateStoreNode(Store &node, int &exec_order, const ConcatNormalAxisInfo &a
 }
 
 // 创建Output节点并设置属性
-void CreateOutputNode(Output &node, int &exec_order, const ConcatNormalAxisInfo &ax,
-                        ge::DataType dtype, const std::vector<af::Expression> &repeats,
-                        const std::vector<af::Expression> &strides) {
+void CreateOutputNode(Output &node, int &exec_order, const ConcatNormalAxisInfo &ax, ge::DataType dtype,
+                      const std::vector<af::Expression> &repeats, const std::vector<af::Expression> &strides) {
   node.attr.sched.exec_order = exec_order++;
   node.y.dtype = dtype;
   *node.y.axis = {ax.a_id, ax.r_id, ax.bl_id};
@@ -489,7 +479,7 @@ void CreateOutputNode(Output &node, int &exec_order, const ConcatNormalAxisInfo 
 }
 
 void BuildMeanConcatNode(Concat &mean, int &exec_order, const ConcatNormalAxisInfo &ax,
-                            const std::vector<af::AscOpOutput> &inputs) {
+                         const std::vector<af::AscOpOutput> &inputs) {
   auto aoo = std::vector<af::Expression>{ax.A, ax.ONE, ax.ONE};
   auto oss_v = std::vector<af::Expression>{ax.ONE, ax.ZERO, ax.ZERO};
   mean.attr.api.unit = af::ComputeUnit::kUnitVector;
@@ -502,8 +492,8 @@ void BuildMeanConcatNode(Concat &mean, int &exec_order, const ConcatNormalAxisIn
   *mean.y.strides = oss_v;
 }
 
-void BuildConcatOutputNodes(int &exec_order, const ConcatNormalAxisInfo &ax,
-                             const Store &x_out, const std::vector<Store> &output_stores) {
+void BuildConcatOutputNodes(int &exec_order, const ConcatNormalAxisInfo &ax, const Store &x_out,
+                            const std::vector<Store> &output_stores) {
   auto arb = std::vector<af::Expression>{ax.A, ax.R, ax.ONE};
   auto rs = std::vector<af::Expression>{ax.R, ax.ONE, ax.ZERO};
   auto aoo = std::vector<af::Expression>{ax.A, ax.ONE, ax.ONE};
@@ -537,9 +527,8 @@ struct ConcatVecExprs {
   std::vector<af::Expression> oss_v;
 };
 
-
-void CreateStoreFp16Node(Store &store, int &exec_order, const ConcatNormalAxisInfo &ax,
-                           const af::AscOpOutput &input, const ConcatVecExprs &vecs) {
+void CreateStoreFp16Node(Store &store, int &exec_order, const ConcatNormalAxisInfo &ax, const af::AscOpOutput &input,
+                         const ConcatVecExprs &vecs) {
   store.attr.sched.exec_order = exec_order++;
   store.attr.sched.axis = {ax.a_id, ax.r_id, ax.bl_id};
   store.x = input;
@@ -669,9 +658,8 @@ for aBO
         Store y
 */
 
-void ApplySplitToNode(ascir::HintGraph &graph, const char *name, int64_t aBO, int64_t aBI,
-                       int64_t aBIO, int64_t aBII, std::initializer_list<int64_t> vec_axis,
-                       bool set_unit_vector = false) {
+void ApplySplitToNode(ascir::HintGraph &graph, const char *name, int64_t aBO, int64_t aBI, int64_t aBIO, int64_t aBII,
+                      std::initializer_list<int64_t> vec_axis, bool set_unit_vector = false) {
   auto node = graph.FindNode(name);
   graph.ApplySplit(node, aBO, aBI);
   graph.ApplySplit(node, aBIO, aBII);
@@ -688,8 +676,7 @@ void SetGmNode(ascir::HintGraph &graph, const char *name) {
   node->outputs[0].attr.mem.position = af::Position::kPositionGM;
 }
 
-void SetQueueNode(ascir::HintGraph &graph, const char *name, int &tensor_id, int que_id,
-                   af::Position position) {
+void SetQueueNode(ascir::HintGraph &graph, const char *name, int &tensor_id, int que_id, af::Position position) {
   auto node = graph.FindNode(name);
   node->outputs[0].attr.mem.tensor_id = tensor_id++;
   node->outputs[0].attr.mem.alloc_type = af::AllocType::kAllocTypeQueue;
@@ -820,8 +807,8 @@ Status BuildConcatGroupAscendGraphS0S1MultiTiling(af::AscGraph &graph) {
       auto load1 = Load("load1", data1).TQue(Position::kPositionVecIn, 1, 1);
       auto abs = Abs("abs1", load1).TQue(Position::kPositionVecOut, 1, 1);
       auto store1 = Store("store1", abs);
-      GE_ASSERT_SUCCESS(GraphConstructUtils::UpdateOutputTensorAxes({*s1Ts2TB, *s1Ts2Tb, *s1t, *s2t},
-                                                                    {load1, store1}, 1));
+      GE_ASSERT_SUCCESS(
+          GraphConstructUtils::UpdateOutputTensorAxes({*s1Ts2TB, *s1Ts2Tb, *s1t, *s2t}, {load1, store1}, 1));
       *load1.axis = {s1Ts2Tb->id, s2t->id, s1t->id};
       *load1.repeats = {s1Ts2Tb->size, s2t->size, s1t->size};
       *load1.strides = {s2t->size * s1t->size, s1t->size, CreateExpr(1)};
@@ -988,8 +975,7 @@ Status BuildConcatGroupAscendGraphND2WithAbs(af::AscGraph &graph) {
       auto store1 = Store("store1", abs);
       auto store2 = Store("store2", load2_perm);
       GE_ASSERT_SUCCESS(GraphConstructUtils::UpdateOutputTensorAxes({*ndB, *ndbT, *ndb, *ndbt},
-                                                                    {load1, load2_perm, abs, store1, store2},
-                                                                    2));
+                                                                    {load1, load2_perm, abs, store1, store2}, 2));
       auto output1 = Output("output1", store1);
       auto output2 = Output("output2", store2);
     }
@@ -1011,8 +997,8 @@ Status BuildConcatGroupAscendGraphND2TB(af::AscGraph &graph) {
       auto load2_perm = Load("load2", data2).TQue(Position::kPositionVecIn, 1, 2);
       auto store1 = Store("store1", load1);
       auto store2 = Store("store2", load2_perm);
-      GE_ASSERT_SUCCESS(GraphConstructUtils::UpdateOutputTensorAxes({*ndTB, *ndTb, *ndt},
-                                                                    {load1, load2_perm, store1, store2}, 2));
+      GE_ASSERT_SUCCESS(
+          GraphConstructUtils::UpdateOutputTensorAxes({*ndTB, *ndTb, *ndt}, {load1, load2_perm, store1, store2}, 2));
       auto output1 = Output("output1", store1);
       auto output2 = Output("output2", store2);
     }
@@ -1070,13 +1056,13 @@ Status BuildTqueTbufAscendGraph_single_case(af::AscGraph &graph) {
       auto load2 = Load("load2", data2).TBuf(Position::kPositionVecOut);
       auto store1 = Store("store1", load1);
       auto store2 = Store("store2", load2);
-      GE_ASSERT_SUCCESS(GraphConstructUtils::UpdateOutputTensorAxes({*ndB, *ndbT, *ndb, *ndbt},
-                                                                    {load1, load2, store1, store2}, 2));
+      GE_ASSERT_SUCCESS(
+          GraphConstructUtils::UpdateOutputTensorAxes({*ndB, *ndbT, *ndb, *ndbt}, {load1, load2, store1, store2}, 2));
       auto output1 = Output("output1", store1);
       auto output2 = Output("output2", store2);
     }
   }
-  auto data = graph.FindNode("load1"); 
+  auto data = graph.FindNode("load1");
   data->attr.tmp_buffers.emplace_back(TmpBuffer{TmpBufDesc{af::Symbol(16 * 1024), -1}, {}, 0});
   return ge::SUCCESS;
 }
@@ -1116,11 +1102,11 @@ Status BuildTqueTbufAscendGraphMultiCaseG0(af::AscGraph &graph) {
       auto output4 = Output("output2", store4);
     }
   }
-  auto data_node = graph.FindNode("load1"); 
+  auto data_node = graph.FindNode("load1");
   data_node->attr.tmp_buffers.emplace_back(TmpBuffer{TmpBufDesc{af::Symbol(16 * 1024), -1}, {}, 0});
   auto data1_node = graph.FindNode("load2");
   data1_node->attr.tmp_buffers.emplace_back(TmpBuffer{TmpBufDesc{af::Symbol(1024), 0}, {}, 0});
-  data1_node->attr.tmp_buffers.emplace_back(TmpBuffer{TmpBufDesc{af::Symbol(2*1024), 0}, {}, 0});
+  data1_node->attr.tmp_buffers.emplace_back(TmpBuffer{TmpBufDesc{af::Symbol(2 * 1024), 0}, {}, 0});
   return ge::SUCCESS;
 }
 
@@ -1159,7 +1145,7 @@ Status BuildTqueTbufAscendGraphMultiCaseG1(af::AscGraph &graph) {
       auto output4 = Output("output2", store4);
     }
   }
-  auto data_node = graph.FindNode("load1"); 
+  auto data_node = graph.FindNode("load1");
   data_node->attr.tmp_buffers.emplace_back(TmpBuffer{TmpBufDesc{af::Symbol(16 * 1024), 0}, {}, 0});
   return ge::SUCCESS;
 }
@@ -1184,8 +1170,7 @@ Status BuildMultiCaseG0(af::AscGraph &graph) {
       auto store3 = Store("store2", load_tbuf1);
       auto store4 = Store("store2", load_tbuf2);
       GE_ASSERT_SUCCESS(GraphConstructUtils::UpdateOutputTensorAxes(
-          {*ndTB, *ndTb, *ndt}, {load_tque0, load_tbuf0, load_tbuf1, load_tbuf2, store1, store2, store3, store4},
-          1));
+          {*ndTB, *ndTb, *ndt}, {load_tque0, load_tbuf0, load_tbuf1, load_tbuf2, store1, store2, store3, store4}, 1));
       auto output1 = Output("output1", store1);
       auto output2 = Output("output2", store2);
       auto output3 = Output("output2", store3);
@@ -1196,7 +1181,7 @@ Status BuildMultiCaseG0(af::AscGraph &graph) {
   data_node->attr.tmp_buffers.emplace_back(TmpBuffer{TmpBufDesc{af::Symbol(16 * 1024), -1}, {}, 0});
   auto data1_node = graph.FindNode("load2");
   data1_node->attr.tmp_buffers.emplace_back(TmpBuffer{TmpBufDesc{af::Symbol(1024), 0}, {}, 0});
-  data1_node->attr.tmp_buffers.emplace_back(TmpBuffer{TmpBufDesc{af::Symbol(2*1024), 0}, {}, 0});
+  data1_node->attr.tmp_buffers.emplace_back(TmpBuffer{TmpBufDesc{af::Symbol(2 * 1024), 0}, {}, 0});
   return ge::SUCCESS;
 }
 
@@ -1220,8 +1205,7 @@ Status BuildMultiCaseG1(af::AscGraph &graph) {
       auto store3 = Store("store2", load_tque2);
       auto store4 = Store("store2", load_tbuf0);
       GE_ASSERT_SUCCESS(GraphConstructUtils::UpdateOutputTensorAxes(
-          {*z0TB, *z0Tb, *z0t}, {load_tque0, load_tque1, load_tque2, load_tbuf0, store1, store2, store3, store4},
-          1));
+          {*z0TB, *z0Tb, *z0t}, {load_tque0, load_tque1, load_tque2, load_tbuf0, store1, store2, store3, store4}, 1));
       auto output1 = Output("output1", store1);
       auto output2 = Output("output2", store2);
       auto output3 = Output("output2", store3);
@@ -1265,8 +1249,8 @@ Status BuildSevenInputsMiddleAxisCacheLineConflict(ge::AscGraph &graph) {
       auto store7 = Store("store7", load7);
       GE_ASSERT_SUCCESS(GraphConstructUtils::UpdateOutputTensorAxes(
           {*s0B, *s0bT, *s0b, *s0bt},
-          {load1, load2, load3, load4, load5, load6, load7,
-           store1, store2, store3, store4, store5, store6, store7}, 2));
+          {load1, load2, load3, load4, load5, load6, load7, store1, store2, store3, store4, store5, store6, store7},
+          2));
       auto output1 = Output("output1", store1);
       auto output2 = Output("output2", store2);
       auto output3 = Output("output3", store3);
@@ -1278,9 +1262,9 @@ Status BuildSevenInputsMiddleAxisCacheLineConflict(ge::AscGraph &graph) {
   }
   return ge::SUCCESS;
 }
-}
-}
-}
+}  // namespace cg
+}  // namespace ascir
+}  // namespace ge
 const std::string kTqueTbufCase0Main = R"(
 #include <iostream>
 #include "Concat_tiling_data.h"
@@ -1307,8 +1291,7 @@ int main() {
 const std::string kFirstGraphName = "case0";
 const std::string kSecondGraphName = "case1";
 
-TEST_F(STestGenConcat, tque_tbuf_case0)
-{
+TEST_F(STestGenConcat, tque_tbuf_case0) {
   const std::string kCaseName = "tque_tbuf_case0";
   ascir::AscGraph graph(kCaseName.c_str());
   ASSERT_EQ(af::ascir::cg::BuildTqueTbufAscendGraph_single_case(graph), ge::SUCCESS);
@@ -1331,8 +1314,8 @@ TEST_F(STestGenConcat, tque_tbuf_case0)
   CombineTilings(tiling_funcs, tiling_func);
   EXPECT_EQ(res, true);
 
-  auto tiling_res = GenerateTilingCodeCommon(
-      "Concat", fused_scheduled_result, options, tiling_func, "Concat_tiling_data.h", false);
+  auto tiling_res =
+      GenerateTilingCodeCommon("Concat", fused_scheduled_result, options, tiling_func, "Concat_tiling_data.h", false);
   std::ofstream oss;
   oss.open("Concat_tiling_data.h", std::ios::out);
   oss << tiling_res[kCaseName + "TilingData"];
@@ -1350,14 +1333,11 @@ TEST_F(STestGenConcat, tque_tbuf_case0)
 }
 
 // 公共函数定义：生成tiling代码并写入文件
-std::map<std::string, std::string> GenerateTilingCodeCommon(
-    const std::string &op_name,
-    const ascir::FusedScheduledResult &fused_scheduled_result,
-    const std::map<std::string, std::string> &options,
-    const std::string &tiling_func,
-    const std::string &header_file,
-    bool gen_extra_infos) {
-
+std::map<std::string, std::string> GenerateTilingCodeCommon(const std::string &op_name,
+                                                            const ascir::FusedScheduledResult &fused_scheduled_result,
+                                                            const std::map<std::string, std::string> &options,
+                                                            const std::string &tiling_func,
+                                                            const std::string &header_file, bool gen_extra_infos) {
   std::ofstream oss;
   oss.open("Concat_tiling_func.cpp", std::ios::out);
   oss << "#include \"" << header_file << "\"\n";
@@ -1379,10 +1359,8 @@ std::map<std::string, std::string> GenerateTilingCodeCommon(
 }
 
 // 完整的Concat tiling生成流水线：GenTiling → 写文件 → GenTilingCode → 写data → CopyStub
-void GenConcatTilingFullPipeline(const std::string &op_name,
-                                  const ascir::FusedScheduledResult &fused_scheduled_result,
-                                  std::map<std::string, std::string> &options,
-                                  const std::string &graph_name) {
+void GenConcatTilingFullPipeline(const std::string &op_name, const ascir::FusedScheduledResult &fused_scheduled_result,
+                                 std::map<std::string, std::string> &options, const std::string &graph_name) {
   std::map<std::string, std::string> tiling_funcs;
   auto res = GenTilingImplAutoFuseV3(op_name, fused_scheduled_result, options, tiling_funcs, true);
   std::string tiling_func;
@@ -1809,8 +1787,8 @@ void BuildEmptyTensorGraph(const std::string &graph_name, ascir::ScheduledResult
 }
 
 void GenerateTilingCodeForEmptyTensor(const std::string &op_name,
-                                         const std::vector<ascir::ScheduledResult> &schedule_results,
-                                         const std::string &graph_name) {
+                                      const std::vector<ascir::ScheduledResult> &schedule_results,
+                                      const std::string &graph_name) {
   std::map<std::string, std::string> options;
   std::map<std::string, std::string> tiling_funcs;
   options.emplace(kGenConfigType, "AxesReorder");
@@ -1821,8 +1799,8 @@ void GenerateTilingCodeForEmptyTensor(const std::string &op_name,
   CombineTilings(tiling_funcs, tiling_func);
   EXPECT_EQ(res, true);
 
-  auto tiling_res = GenerateTilingCodeCommon(
-      op_name, fused_scheduled_result, options, tiling_func, "Concat_tiling_data.h", true);
+  auto tiling_res =
+      GenerateTilingCodeCommon(op_name, fused_scheduled_result, options, tiling_func, "Concat_tiling_data.h", true);
 
   std::ofstream oss;
   oss.open("Concat_tiling_data.h", std::ios::out);
@@ -1865,7 +1843,7 @@ int main() {
   EXPECT_EQ(ret, 0);
   EXPECT_EQ(ResultCheckerUtils::IsFileContainsString("./info_empty.log", "GetTiling success with empty tensor"), true);
 }
-}
+}  // namespace
 
 ge::Status ConstructTQueTBufScheduleResults(std::vector<ascir::ScheduledResult> &schedule_results) {
   ascir::ScheduleGroup schedule_group1;
@@ -1949,11 +1927,10 @@ ge::Status GenTilingImpl(std::vector<ascir::ScheduledResult> &schedule_results) 
   fused_scheduled_result.node_idx_to_scheduled_results.emplace_back(schedule_results);
   auto res = GenTilingImplAutoFuseV3(op_name, fused_scheduled_result, options, tiling_funcs, true);
   GE_ASSERT_EQ(res, true);
-  GE_ASSERT_EQ(att::test_common::GenTilingCodeToFile(
-      op_name, tiling_funcs, fused_scheduled_result, options,
-      kFirstGraphName + "TilingData"), ge::SUCCESS);
-  auto ret =
-      autofuse::test::CopyOpLog(TOP_DIR);
+  GE_ASSERT_EQ(att::test_common::GenTilingCodeToFile(op_name, tiling_funcs, fused_scheduled_result, options,
+                                                     kFirstGraphName + "TilingData"),
+               ge::SUCCESS);
+  auto ret = autofuse::test::CopyOpLog(TOP_DIR);
   GE_ASSERT_EQ(ret, 0);
   ret = autofuse::test::CopyStubFiles(TOP_DIR, "autofuse/tests/st/att/testcase/stub/");
   GE_ASSERT_EQ(ret, 0);
@@ -1981,8 +1958,7 @@ ge::Status ConstructSingleCaseForMultiTile() {
   return ge::SUCCESS;
 }
 
-TEST_F(STestGenConcat, construct_single_case_for_multi_tile)
-{
+TEST_F(STestGenConcat, construct_single_case_for_multi_tile) {
   EXPECT_EQ(ConstructSingleCaseForMultiTile(), ge::SUCCESS);
   std::ofstream oss;
   oss.open("tiling_func_main_concat.cpp", std::ios::out);
@@ -1999,11 +1975,11 @@ void PrintResult(case0TilingData& tilingData) {
 }
 
 int main() {
-  case0TilingData tilingData;   
+  case0TilingData tilingData;
   tilingData.set_block_dim(1);
   tilingData.set_ub_size(1024);
-  tilingData.set_S1(1024);  
-  tilingData.set_S0(1024); 
+  tilingData.set_S1(1024);
+  tilingData.set_S0(1024);
   if (GetTiling(tilingData)) {
     PrintResult(tilingData);
   } else {
@@ -2028,8 +2004,7 @@ int main() {
 // 2. S0和S1被正确切分
 // 3. UB利用率符合预期
 // 用例描述：验证同等优先级轴的切分功能
-TEST_F(STestGenConcat, equal_priority_tiling)
-{
+TEST_F(STestGenConcat, equal_priority_tiling) {
   EXPECT_EQ(ConstructSingleCaseForMultiTile(), ge::SUCCESS);
   std::ofstream oss;
   oss.open("tiling_func_main_concat_equal_priority.cpp", std::ios::out);
@@ -2049,8 +2024,7 @@ TEST_F(STestGenConcat, equal_priority_tiling)
 // 1. Tiling求解成功
 // 2. S0和S1被正确切分
 // 3. UB利用率符合预期
-TEST_F(STestGenConcat, equal_priority_tiling_trade_off)
-{
+TEST_F(STestGenConcat, equal_priority_tiling_trade_off) {
   setenv("AUTOFUSE_DFX_FLAGS",
          "--att_enable_multicore_ub_tradeoff=true;--att_corenum_threshold=100;--att_ub_threshold=10", 1);
   EXPECT_EQ(ConstructSingleCaseForMultiTile(), ge::SUCCESS);
@@ -2065,8 +2039,7 @@ TEST_F(STestGenConcat, equal_priority_tiling_trade_off)
   EXPECT_EQ(ret, 0);
 }
 
-TEST_F(STestGenConcat, tque_tbuf_case1)
-{
+TEST_F(STestGenConcat, tque_tbuf_case1) {
   setenv("AUTOFUSE_DFX_FLAGS", "--att_accuracy_level=0", 1);
   EXPECT_EQ(ConstructTQueTBufMultiCaseGroup(), ge::SUCCESS);
   std::ofstream oss;
@@ -2093,11 +2066,11 @@ void PrintResult(case0TilingData& tilingData) {
 }
 
 int main() {
-  case0TilingData tilingData;   
+  case0TilingData tilingData;
   tilingData.set_block_dim(64);
   tilingData.set_ub_size(245760);
-  tilingData.graph0_result0_g0_tiling_data.set_ND(1024);  
-  tilingData.graph0_result1_g0_tiling_data.set_S0(1024); 
+  tilingData.graph0_result0_g0_tiling_data.set_ND(1024);
+  tilingData.graph0_result1_g0_tiling_data.set_S0(1024);
   if (GetTiling(tilingData)) {
     PrintResult(tilingData);
   } else {
@@ -2119,8 +2092,7 @@ int main() {
 // 用例期望结果：
 // 1.Tiling求解成功；
 // 2.使用核数未用满
-TEST_F(STestGenConcat, auto_tuning_accuracy_level_0)
-{
+TEST_F(STestGenConcat, auto_tuning_accuracy_level_0) {
   setenv("AUTOFUSE_DFX_FLAGS", "--att_accuracy_level=0", 1);
   EXPECT_EQ(ConstructAutoTuneCaseGroup(), ge::SUCCESS);
   std::ofstream oss;
@@ -2162,8 +2134,7 @@ int main() {
 // 用例期望结果：
 // 1.Tiling求解成功；
 // 2.使用核数相较level0模式上升；
-TEST_F(STestGenConcat, auto_tuning_accuracy_level_1)
-{
+TEST_F(STestGenConcat, auto_tuning_accuracy_level_1) {
   setenv("AUTOFUSE_DFX_FLAGS", "--att_accuracy_level=1", 1);
   EXPECT_EQ(ConstructAutoTuneCaseGroup(), ge::SUCCESS);
   std::ofstream oss;
@@ -2197,7 +2168,7 @@ int main() {
   oss.close();
   auto ret = std::system(kCompileDebugCmd.c_str());
   EXPECT_EQ(ret, 0);
-    ret = std::system("./tiling_func_main_concat");
+  ret = std::system("./tiling_func_main_concat");
   EXPECT_EQ(ret, 0);
 }
 
@@ -2224,8 +2195,9 @@ ge::Status ConstructConcatTwoTilingCaseS0S1() {
   fused_scheduled_result.node_idx_to_scheduled_results.emplace_back(
       std::vector<ascir::ScheduledResult>{schedule_result});
   GE_ASSERT_EQ(GenTilingImplAutoFuseV3("Concat", fused_scheduled_result, options, tiling_funcs, true), true);
-  GE_ASSERT_EQ(att::test_common::GenTilingCodeToFile(
-      "Concat", tiling_funcs, fused_scheduled_result, options, kFirstName + "TilingData"), ge::SUCCESS);
+  GE_ASSERT_EQ(att::test_common::GenTilingCodeToFile("Concat", tiling_funcs, fused_scheduled_result, options,
+                                                     kFirstName + "TilingData"),
+               ge::SUCCESS);
   auto ret = autofuse::test::CopyOpLog(TOP_DIR);
   ret = autofuse::test::CopyStubFiles(TOP_DIR, "autofuse/tests/st/att/testcase/stub/");
   GE_ASSERT_TRUE(ret == 0);
@@ -2281,11 +2253,9 @@ ge::Status ConstructTwoScheduleResultS0S1() {
   ascir::ScheduledResult schedule_result1;
   ascir::ScheduledResult schedule_result2;
   schedule_result1.schedule_groups.emplace_back(schedule_group1);
-  schedule_result1.score_func =
-      ("int32_t CalcScore(" + graph_name + "TilingData &tiling_data) { return 1;}").c_str();
+  schedule_result1.score_func = ("int32_t CalcScore(" + graph_name + "TilingData &tiling_data) { return 1;}").c_str();
   schedule_result2.schedule_groups.emplace_back(schedule_group2);
-  schedule_result2.score_func =
-      ("int32_t CalcScore(" + graph_name + "TilingData &tiling_data) { return 2;}").c_str();
+  schedule_result2.score_func = ("int32_t CalcScore(" + graph_name + "TilingData &tiling_data) { return 2;}").c_str();
 
   std::vector<ascir::ScheduledResult> schedule_results = {schedule_result1, schedule_result2};
   std::map<std::string, std::string> options;
@@ -2294,8 +2264,9 @@ ge::Status ConstructTwoScheduleResultS0S1() {
   ascir::FusedScheduledResult fused_scheduled_result;
   fused_scheduled_result.node_idx_to_scheduled_results.emplace_back(schedule_results);
   GE_ASSERT_TRUE(GenTilingImplAutoFuseV3("Concat", fused_scheduled_result, options, tiling_funcs, true));
-  GE_ASSERT_EQ(att::test_common::GenTilingCodeToFile(
-      "Concat", tiling_funcs, fused_scheduled_result, options, graph_name + "TilingData"), ge::SUCCESS);
+  GE_ASSERT_EQ(att::test_common::GenTilingCodeToFile("Concat", tiling_funcs, fused_scheduled_result, options,
+                                                     graph_name + "TilingData"),
+               ge::SUCCESS);
   auto ret = autofuse::test::CopyOpLog(TOP_DIR);
   ret = autofuse::test::CopyStubFiles(TOP_DIR, "autofuse/tests/st/att/testcase/stub/");
   GE_ASSERT_TRUE(ret == 0);
@@ -2304,8 +2275,7 @@ ge::Status ConstructTwoScheduleResultS0S1() {
   return ge::SUCCESS;
 }
 
-TEST_F(STestGenConcat, case_axes_reorder)
-{
+TEST_F(STestGenConcat, case_axes_reorder) {
   std::vector<ascir::AscGraph> graphs;
   std::string json_info;
   std::vector<att::ModelInfo> model_info_list;
@@ -2330,8 +2300,8 @@ TEST_F(STestGenConcat, case_axes_reorder)
   options["solver_type"] = "AxesReorder";
   EXPECT_EQ(GenTilingImpl("Concat", graphs, options), true);
   AddHeaderGuardToFile("autofuse_tiling_func_common.h", "__AUTOFUSE_TILING_FUNC_COMMON_H__");
-  auto ret = std::system(
-      std::string("cp ").append(TILING_DATA_DIR).append("/tiling_func_main_concat.cpp ./ -f").c_str());
+  auto ret =
+      std::system(std::string("cp ").append(TILING_DATA_DIR).append("/tiling_func_main_concat.cpp ./ -f").c_str());
   ret = autofuse::test::CopyOpLog(TOP_DIR);
   ret = autofuse::test::CopyStubFiles(TOP_DIR, "autofuse/tests/st/att/testcase/stub/");
   EXPECT_EQ(ret, 0);
@@ -2342,8 +2312,7 @@ TEST_F(STestGenConcat, case_axes_reorder)
   ret = std::system("./tiling_func_main_concat");
 }
 
-TEST_F(STestGenConcat, case_axes_reorder_got_static_shape)
-{
+TEST_F(STestGenConcat, case_axes_reorder_got_static_shape) {
   const std::string kGraphName = "graph_static";
   ascir::AscGraph graph_static(kGraphName.c_str());
   ASSERT_EQ(af::ascir::cg::BuildConcatGroupAscendGraphStatic(graph_static), ge::SUCCESS);
@@ -2361,8 +2330,7 @@ TEST_F(STestGenConcat, case_axes_reorder_got_static_shape)
   WriteMainCompileRunAndCheck(kIsStaticShapeTestMain, "Got static graph");
 }
 
-TEST_F(STestGenConcat, case_axes_reorder_got_dynamic_shape)
-{
+TEST_F(STestGenConcat, case_axes_reorder_got_dynamic_shape) {
   const std::string kGraphName = "graph_dynamic";
   ascir::AscGraph graph_dynamic(kGraphName.c_str());
   ASSERT_EQ(af::ascir::cg::BuildConcatGroupAscendGraphND(graph_dynamic), ge::SUCCESS);
@@ -2405,8 +2373,7 @@ void STestGenConcat::VerifyGroupCacheBehavior() {
 
   // Test 6: ND=4096 Operator Cache HIT
   EXPECT_EQ(ResultCheckerUtils::IsFileContainsString("./info.log", "[Operator Cache] HIT! key=[4096]"), true);
-  EXPECT_TRUE(ResultCheckerUtils::IsFileContainsString(
-      "./info.log", "Operator level cache hit, input_shapes[4096]"));
+  EXPECT_TRUE(ResultCheckerUtils::IsFileContainsString("./info.log", "Operator level cache hit, input_shapes[4096]"));
 }
 
 void STestGenConcat::VerifyStaticShapeCacheBehavior() {
@@ -2417,31 +2384,28 @@ void STestGenConcat::VerifyStaticShapeCacheBehavior() {
   // 3. 编译通过且运行时缓存正常工作
 
   // 验证生成的代码包含kInputShapeSize = 0（静态shape）
-  EXPECT_TRUE(ResultCheckerUtils::IsFileContainsString(
-      "Concat_tiling_func.cpp", "constexpr size_t kInputShapeSize = 0;"));
+  EXPECT_TRUE(
+      ResultCheckerUtils::IsFileContainsString("Concat_tiling_func.cpp", "constexpr size_t kInputShapeSize = 0;"));
 
   // 验证生成的代码包含静态shape的缓存处理（空key）
-  EXPECT_TRUE(ResultCheckerUtils::IsFileContainsString(
-      "Concat_tiling_func.cpp", "std::array<uint32_t, kInputShapeSize> input_shapes = {};"));
+  EXPECT_TRUE(ResultCheckerUtils::IsFileContainsString("Concat_tiling_func.cpp",
+                                                       "std::array<uint32_t, kInputShapeSize> input_shapes = {};"));
 
   // 验证生成的代码包含算子级缓存查询（静态shape）
-  EXPECT_TRUE(ResultCheckerUtils::IsFileContainsString(
-      "Concat_tiling_func.cpp", "Operator level cache hit (static shape)"));
+  EXPECT_TRUE(
+      ResultCheckerUtils::IsFileContainsString("Concat_tiling_func.cpp", "Operator level cache hit (static shape)"));
 }
 
-void STestGenConcat::BuildSingleGraphToScheduleGroup(
-    ascir::AscGraph& graph,
-    ascir::ScheduleGroup& schedule_group,
-    uint32_t tiling_key) {
+void STestGenConcat::BuildSingleGraphToScheduleGroup(ascir::AscGraph &graph, ascir::ScheduleGroup &schedule_group,
+                                                     uint32_t tiling_key) {
   graph.SetTilingKey(tiling_key);
   schedule_group.impl_graphs.emplace_back(graph);
   GraphConstructUtils::UpdateGraphsVectorizedStride(schedule_group.impl_graphs);
 }
 
-void STestGenConcat::ConstructTwoGraphTwoResult(
-    const std::string& graph_name,
-    ascir::AscGraph& graph1, ascir::AscGraph& graph2,
-    ascir::FusedScheduledResult& fused_scheduled_result) {
+void STestGenConcat::ConstructTwoGraphTwoResult(const std::string &graph_name, ascir::AscGraph &graph1,
+                                                ascir::AscGraph &graph2,
+                                                ascir::FusedScheduledResult &fused_scheduled_result) {
   ascir::ScheduleGroup schedule_group1;
   ascir::ScheduleGroup schedule_group2;
   ascir::ScheduledResult schedule_result1;
@@ -2452,20 +2416,17 @@ void STestGenConcat::ConstructTwoGraphTwoResult(
   GraphConstructUtils::UpdateGraphsVectorizedStride(schedule_group1.impl_graphs);
   GraphConstructUtils::UpdateGraphsVectorizedStride(schedule_group2.impl_graphs);
   schedule_result1.schedule_groups.emplace_back(schedule_group1);
-  schedule_result1.score_func =
-      ("int32_t CalcScore(" + graph_name + "TilingData &tiling_data) { return 1;}").c_str();
+  schedule_result1.score_func = ("int32_t CalcScore(" + graph_name + "TilingData &tiling_data) { return 1;}").c_str();
   schedule_result2.schedule_groups.emplace_back(schedule_group2);
-  schedule_result2.score_func =
-      ("int32_t CalcScore(" + graph_name + "TilingData &tiling_data) { return 2;}").c_str();
+  schedule_result2.score_func = ("int32_t CalcScore(" + graph_name + "TilingData &tiling_data) { return 2;}").c_str();
   schedule_results.emplace_back(schedule_result1);
   schedule_results.emplace_back(schedule_result2);
   fused_scheduled_result.node_idx_to_scheduled_results.emplace_back(schedule_results);
 }
 
-void STestGenConcat::GenerateTilingFunctionAndWriteToFile(
-    const std::string& op_name,
-    const ascir::FusedScheduledResult& fused_scheduled_result,
-    std::map<std::string, std::string>& options) {
+void STestGenConcat::GenerateTilingFunctionAndWriteToFile(const std::string &op_name,
+                                                          const ascir::FusedScheduledResult &fused_scheduled_result,
+                                                          std::map<std::string, std::string> &options) {
   std::map<std::string, std::string> tiling_funcs;
   auto res = GenTilingImplAutoFuseV3(op_name, fused_scheduled_result, options, tiling_funcs, true);
   EXPECT_EQ(res, true);
@@ -2479,11 +2440,9 @@ void STestGenConcat::GenerateTilingFunctionAndWriteToFile(
   oss.close();
 }
 
-void STestGenConcat::GenerateTilingDataAndHeader(
-    const std::string& op_name,
-    const std::string& graph_name,
-    const ascir::FusedScheduledResult& fused_scheduled_result,
-    std::map<std::string, std::string>& options) {
+void STestGenConcat::GenerateTilingDataAndHeader(const std::string &op_name, const std::string &graph_name,
+                                                 const ascir::FusedScheduledResult &fused_scheduled_result,
+                                                 std::map<std::string, std::string> &options) {
   TilingCodeGenerator generator;
   TilingCodeGenConfig generator_config;
   std::map<std::string, std::string> tiling_res;
@@ -2501,7 +2460,7 @@ void STestGenConcat::GenerateTilingDataAndHeader(
   oss.close();
 }
 
-void STestGenConcat::PrepareTestEnvironmentFiles(const std::string& test_header_content) {
+void STestGenConcat::PrepareTestEnvironmentFiles(const std::string &test_header_content) {
   auto ret = autofuse::test::CopyOpLog(TOP_DIR);
   ret = autofuse::test::CopyStubFiles(TOP_DIR, "autofuse/tests/st/att/testcase/stub/");
   EXPECT_EQ(ret, 0);
@@ -2521,7 +2480,7 @@ void STestGenConcat::CompileGeneratedTilingCode() {
   EXPECT_EQ(ret, 0);
 }
 
-void STestGenConcat::CompileAndRunTilingTest(const std::string& output_file) {
+void STestGenConcat::CompileAndRunTilingTest(const std::string &output_file) {
   auto ret = std::system((kCompileCmd + " 2>&1").c_str());
   EXPECT_EQ(ret, 0);
 
@@ -2566,8 +2525,7 @@ int main() {
 }
 )RAW";
 
-TEST_F(STestGenConcat, reuse_schedule_group_with_same_input_axis_name)
-{
+TEST_F(STestGenConcat, reuse_schedule_group_with_same_input_axis_name) {
   const std::string kGraphName = "graph_nd";
   ascir::AscGraph graph_nd(kGraphName.c_str());
   ascir::AscGraph graph_s0("graph_s0");
@@ -2583,14 +2541,17 @@ TEST_F(STestGenConcat, reuse_schedule_group_with_same_input_axis_name)
   PrepareTestEnvironmentFiles(kConcatTilingTestHead);
 
   // 验证生成的Group缓存代码
-  EXPECT_EQ(ResultCheckerUtils::IsFileContainsString("Concat_tiling_func.cpp",
-              "namespace AscGraph0ScheduleResult0G0"), true);
-  EXPECT_EQ(ResultCheckerUtils::IsFileContainsString("Concat_tiling_func.cpp",
-              "using GroupLevelCache = FixedSizeHashMap<kInputShapeSize, 4, TilingDataCopy>"), true);
-  EXPECT_TRUE(ResultCheckerUtils::IsFileContainsString("Concat_tiling_func.cpp",
-              "bool GetTiling(AscGraph0ScheduleResult0G0TilingData &tiling_data, "
-              "std::unordered_map<int64_t, uint64_t> &workspace_map, "
-              "int32_t tiling_case_id, GroupLevelCache *cache"));
+  EXPECT_EQ(ResultCheckerUtils::IsFileContainsString("Concat_tiling_func.cpp", "namespace AscGraph0ScheduleResult0G0"),
+            true);
+  EXPECT_EQ(
+      ResultCheckerUtils::IsFileContainsString(
+          "Concat_tiling_func.cpp", "using GroupLevelCache = FixedSizeHashMap<kInputShapeSize, 4, TilingDataCopy>"),
+      true);
+  EXPECT_TRUE(
+      ResultCheckerUtils::IsFileContainsString("Concat_tiling_func.cpp",
+                                               "bool GetTiling(AscGraph0ScheduleResult0G0TilingData &tiling_data, "
+                                               "std::unordered_map<int64_t, uint64_t> &workspace_map, "
+                                               "int32_t tiling_case_id, GroupLevelCache *cache"));
 
   std::ofstream oss("tiling_func_main_concat.cpp", std::ios::out);
   oss << kRunTilingFuncMainSameND;
@@ -2602,8 +2563,7 @@ TEST_F(STestGenConcat, reuse_schedule_group_with_same_input_axis_name)
   (void)ret;
 }
 
-TEST_F(STestGenConcat, reuse_schedule_group_with_different_input_axis_name)
-{
+TEST_F(STestGenConcat, reuse_schedule_group_with_different_input_axis_name) {
   const std::string kGraphName = "graph_nd";
   ascir::AscGraph graph_nd(kGraphName.c_str());
   ascir::AscGraph graph_s0("graph_s0");
@@ -2620,8 +2580,7 @@ TEST_F(STestGenConcat, reuse_schedule_group_with_different_input_axis_name)
   WriteMainCompileRunAndCheck(kRunTilingFuncMain, "get_tiling_key = 1");
 }
 
-TEST_F(STestGenConcat, reuse_schedule_group_with_different_search_axis_name)
-{
+TEST_F(STestGenConcat, reuse_schedule_group_with_different_search_axis_name) {
   const std::string kGraphName = "graph_nd";
   ascir::AscGraph graph_nd(kGraphName.c_str());
   ascir::AscGraph graph_s0("graph_s0");
@@ -2638,8 +2597,7 @@ TEST_F(STestGenConcat, reuse_schedule_group_with_different_search_axis_name)
   WriteMainCompileRunAndCheck(kDiffSearchAxisMain, "get_tiling_key = 1");
 }
 
-TEST_F(STestGenConcat, reuse_schedule_group_with_different_input_axis_order)
-{
+TEST_F(STestGenConcat, reuse_schedule_group_with_different_input_axis_order) {
   EXPECT_EQ(ConstructTwoScheduleResultS0S1(), ge::SUCCESS);
   auto ret = std::system(kCompileCmd.c_str());
   EXPECT_EQ(ret, 0);
@@ -2648,8 +2606,7 @@ TEST_F(STestGenConcat, reuse_schedule_group_with_different_input_axis_order)
   EXPECT_EQ(ResultCheckerUtils::IsFileContainsString("./info.log", "get_tiling_key = 1"), true);
 }
 
-TEST_F(STestGenConcat, reuse_schedule_group_with_different_input_axis_order_force_schedule_result)
-{
+TEST_F(STestGenConcat, reuse_schedule_group_with_different_input_axis_order_force_schedule_result) {
   setenv("AUTOFUSE_DFX_FLAGS", "--force_schedule_result=0", 1);
   EXPECT_EQ(ConstructTwoScheduleResultS0S1(), ge::SUCCESS);
   auto ret = std::system(kCompileCmd.c_str());
@@ -2661,8 +2618,7 @@ TEST_F(STestGenConcat, reuse_schedule_group_with_different_input_axis_order_forc
 }
 
 // 默认选择tiling key 0
-TEST_F(STestGenConcat, reuse_schedule_group_with_different_input_axis_order_normal_tiling_case)
-{
+TEST_F(STestGenConcat, reuse_schedule_group_with_different_input_axis_order_normal_tiling_case) {
   EXPECT_EQ(ConstructConcatTwoTilingCaseS0S1(), ge::SUCCESS);
   auto ret = std::system(kCompileCmd.c_str());
   EXPECT_EQ(ret, 0);
@@ -2672,8 +2628,7 @@ TEST_F(STestGenConcat, reuse_schedule_group_with_different_input_axis_order_norm
 }
 
 // 强制选择tiling case 1
-TEST_F(STestGenConcat, reuse_schedule_group_with_different_input_axis_order_force_tiling_case)
-{
+TEST_F(STestGenConcat, reuse_schedule_group_with_different_input_axis_order_force_tiling_case) {
   setenv("AUTOFUSE_DFX_FLAGS", "--force_tiling_case=1", 1);
   EXPECT_EQ(ConstructConcatTwoTilingCaseS0S1(), ge::SUCCESS);
   auto ret = std::system(kCompileCmd.c_str());
@@ -2685,8 +2640,7 @@ TEST_F(STestGenConcat, reuse_schedule_group_with_different_input_axis_order_forc
 }
 
 // 强制指定op name,选择tiling case 1
-TEST_F(STestGenConcat, reuse_schedule_group_with_different_input_axis_order_force_op_name)
-{
+TEST_F(STestGenConcat, reuse_schedule_group_with_different_input_axis_order_force_op_name) {
   setenv("AUTOFUSE_DFX_FLAGS", "--force_template_op_name=Concat;--force_tiling_case=1", 1);
   EXPECT_EQ(ConstructConcatTwoTilingCaseS0S1(), ge::SUCCESS);
   auto ret = std::system(kCompileCmd.c_str());
@@ -2698,8 +2652,7 @@ TEST_F(STestGenConcat, reuse_schedule_group_with_different_input_axis_order_forc
 }
 
 // 强制指定错误的op name,按照默认选择tiling case 0
-TEST_F(STestGenConcat, reuse_schedule_group_with_different_input_axis_order_force_error_op_name)
-{
+TEST_F(STestGenConcat, reuse_schedule_group_with_different_input_axis_order_force_error_op_name) {
   setenv("AUTOFUSE_DFX_FLAGS", "--force_template_op_name=Conct;--force_tiling_case=1", 1);
   EXPECT_EQ(ConstructConcatTwoTilingCaseS0S1(), ge::SUCCESS);
   auto ret = std::system(kCompileCmd.c_str());
@@ -2711,8 +2664,7 @@ TEST_F(STestGenConcat, reuse_schedule_group_with_different_input_axis_order_forc
 }
 
 // 强制指定op name,强制选择group0的tiling case为case 1
-TEST_F(STestGenConcat, reuse_schedule_group_with_different_input_axis_order_force_op_name_group0_1)
-{
+TEST_F(STestGenConcat, reuse_schedule_group_with_different_input_axis_order_force_op_name_group0_1) {
   setenv("AUTOFUSE_DFX_FLAGS", "--force_template_op_name=Concat;--force_tiling_case=g0_1", 1);
   EXPECT_EQ(ConstructConcatTwoTilingCaseS0S1(), ge::SUCCESS);
   auto ret = std::system(kCompileCmd.c_str());
@@ -2724,8 +2676,7 @@ TEST_F(STestGenConcat, reuse_schedule_group_with_different_input_axis_order_forc
 }
 
 // 强制指定错误的op name,按照默认选择schedule result 0
-TEST_F(STestGenConcat, reuse_schedule_group_with_different_input_axis_order_force_error_op_name2)
-{
+TEST_F(STestGenConcat, reuse_schedule_group_with_different_input_axis_order_force_error_op_name2) {
   setenv("AUTOFUSE_DFX_FLAGS", "--force_template_op_name=Conct;--force_schedule_result=1", 1);
   EXPECT_EQ(ConstructConcatTwoTilingCaseS0S1(), ge::SUCCESS);
   auto ret = std::system(kCompileCmd.c_str());
@@ -2737,8 +2688,7 @@ TEST_F(STestGenConcat, reuse_schedule_group_with_different_input_axis_order_forc
 }
 
 // 强制指定正确的的op name,选择schedule result 1
-TEST_F(STestGenConcat, reuse_schedule_group_with_different_input_axis_order_force_op_name2)
-{
+TEST_F(STestGenConcat, reuse_schedule_group_with_different_input_axis_order_force_op_name2) {
   setenv("AUTOFUSE_DFX_FLAGS", "--force_template_op_name=Concat;--force_schedule_result=1", 1);
   EXPECT_EQ(ConstructTwoScheduleResultS0S1(), ge::SUCCESS);
   auto ret = std::system(kCompileCmd.c_str());
@@ -2750,8 +2700,7 @@ TEST_F(STestGenConcat, reuse_schedule_group_with_different_input_axis_order_forc
 }
 
 // 测试att_accuracy_level=1场景，使能自动选择最优核数
-TEST_F(STestGenConcat, reuse_schedule_group_with_different_input_axis_order_auto_tuning)
-{
+TEST_F(STestGenConcat, reuse_schedule_group_with_different_input_axis_order_auto_tuning) {
   setenv("AUTOFUSE_DFX_FLAGS", "--att_accuracy_level=1", 1);
   EXPECT_EQ(ConstructTwoScheduleResultS0S1(), ge::SUCCESS);
   auto ret = std::system(kCompileCmd.c_str());
@@ -2762,8 +2711,7 @@ TEST_F(STestGenConcat, reuse_schedule_group_with_different_input_axis_order_auto
   unsetenv("AUTOFUSE_DFX_FLAGS");
 }
 
-TEST_F(STestGenConcat, fused_schedule_result_reuse_schedule_group)
-{
+TEST_F(STestGenConcat, fused_schedule_result_reuse_schedule_group) {
   ascir::FusedScheduledResult fused_scheduled_result;
   const std::string kGraphName = "graph_nd";
   {
@@ -2792,11 +2740,9 @@ TEST_F(STestGenConcat, fused_schedule_result_reuse_schedule_group)
     GraphConstructUtils::UpdateGraphsVectorizedStride(sg1.impl_graphs);
     GraphConstructUtils::UpdateGraphsVectorizedStride(sg2.impl_graphs);
     sr1.schedule_groups.emplace_back(sg1);
-    sr1.score_func =
-        ("int32_t CalcScore(" + kGraphName + "TilingData &tiling_data) { return 3;}").c_str();
+    sr1.score_func = ("int32_t CalcScore(" + kGraphName + "TilingData &tiling_data) { return 3;}").c_str();
     sr2.schedule_groups.emplace_back(sg2);
-    sr2.score_func =
-        ("int32_t CalcScore(" + kGraphName + "TilingData &tiling_data) { return 2;}").c_str();
+    sr2.score_func = ("int32_t CalcScore(" + kGraphName + "TilingData &tiling_data) { return 2;}").c_str();
     srs.emplace_back(sr1);
     srs.emplace_back(sr2);
     fused_scheduled_result.node_idx_to_scheduled_results.emplace_back(srs);
@@ -2813,8 +2759,7 @@ TEST_F(STestGenConcat, fused_schedule_result_reuse_schedule_group)
 }
 
 namespace {
-void BuildScoreCaseFirstBlock(const std::string &graph_name,
-                               ascir::FusedScheduledResult &fused_scheduled_result) {
+void BuildScoreCaseFirstBlock(const std::string &graph_name, ascir::FusedScheduledResult &fused_scheduled_result) {
   ascir::ScheduleGroup schedule_group1;
   ascir::ScheduleGroup schedule_group2;
   ascir::ScheduledResult schedule_result1;
@@ -2823,8 +2768,8 @@ void BuildScoreCaseFirstBlock(const std::string &graph_name,
   ascir::AscGraph graph_nd(graph_name.c_str());
   const char *kSr0Names[] = {"sr0_graph_g0", "sr0_graph_g1", "sr0_graph_g2", "sr0_graph_g3", "sr0_graph_g4"};
   std::vector<ascir::AscGraph> sr0_graphs = {ascir::AscGraph(kSr0Names[0]), ascir::AscGraph(kSr0Names[1]),
-                                              ascir::AscGraph(kSr0Names[2]), ascir::AscGraph(kSr0Names[3]),
-                                              ascir::AscGraph(kSr0Names[4])};
+                                             ascir::AscGraph(kSr0Names[2]), ascir::AscGraph(kSr0Names[3]),
+                                             ascir::AscGraph(kSr0Names[4])};
   ASSERT_EQ(af::ascir::cg::BuildConcatGroupAscendGraphND(graph_nd), ge::SUCCESS);
   graph_nd.SetTilingKey(0U);
   for (size_t i = 0; i < sr0_graphs.size(); i++) {
@@ -2849,11 +2794,9 @@ void BuildScoreCaseFirstBlock(const std::string &graph_name,
   GraphConstructUtils::UpdateGraphsVectorizedStride(schedule_group1.impl_graphs);
   GraphConstructUtils::UpdateGraphsVectorizedStride(schedule_group2.impl_graphs);
   schedule_result1.schedule_groups.emplace_back(schedule_group1);
-  schedule_result1.score_func =
-      ("int32_t CalcScore(" + graph_name + "TilingData &tiling_data) { return 1;}").c_str();
+  schedule_result1.score_func = ("int32_t CalcScore(" + graph_name + "TilingData &tiling_data) { return 1;}").c_str();
   schedule_result2.schedule_groups.emplace_back(schedule_group2);
-  schedule_result2.score_func =
-      ("int32_t CalcScore(" + graph_name + "TilingData &tiling_data) { return 2;}").c_str();
+  schedule_result2.score_func = ("int32_t CalcScore(" + graph_name + "TilingData &tiling_data) { return 2;}").c_str();
   schedule_results.emplace_back(schedule_result1);
   schedule_results.emplace_back(schedule_result2);
   fused_scheduled_result.node_idx_to_scheduled_results.emplace_back(schedule_results);
@@ -2914,8 +2857,7 @@ TEST_F(STestGenConcat, fused_schedule_result_tiling_case_score_same_schedule) {
 
     ascir::ScheduledResult schedule_result2;
     schedule_result2.schedule_groups.emplace_back(schedule_group2);
-    schedule_result2.score_func =
-        ("int32_t CalcScore(" + kGraphName + "TilingData &tiling_data) { return 2;}").c_str();
+    schedule_result2.score_func = ("int32_t CalcScore(" + kGraphName + "TilingData &tiling_data) { return 2;}").c_str();
     std::vector<ascir::ScheduledResult> schedule_results;
     schedule_results.emplace_back(schedule_result2);
     fused_scheduled_result.node_idx_to_scheduled_results.emplace_back(schedule_results);
@@ -2927,8 +2869,7 @@ TEST_F(STestGenConcat, fused_schedule_result_tiling_case_score_same_schedule) {
   WriteMainCompileRunAndCheck(kScoreSameScheduleMain, "get_tiling_key = ");
 }
 
-TEST_F(STestGenConcat, fused_schedule_result_prompt_aligned)
-{
+TEST_F(STestGenConcat, fused_schedule_result_prompt_aligned) {
   ascir::FusedScheduledResult fused_scheduled_result;
   const std::string kGraphName = "graph_nd";
   {
@@ -2976,8 +2917,7 @@ TEST_F(STestGenConcat, empty_tensor_nd_zero_dynamic_shape) {
 // 1. 生成的TilingFunc包含算子级缓存代码（即使kInputShapeSize=0）
 // 2. 使用空key进行缓存查询和保存
 // 3. 编译通过且运行时缓存正常工作
-TEST_F(STestGenConcat, static_shape_cache_support)
-{
+TEST_F(STestGenConcat, static_shape_cache_support) {
   // 构建图
   ascir::ScheduleGroup schedule_group1;
   ascir::ScheduledResult schedule_result1;
@@ -3027,8 +2967,7 @@ TEST_F(STestGenConcat, static_shape_cache_support)
 // 2. 生成的GetTilingCaseScoreFunc函数包含core_num参数
 // 3. 函数调用链正确传递corenum参数
 // 4. 包含group_num常量和性能调整代码
-TEST_F(STestGenConcat, multi_group_with_enable_group_parallel_optimize)
-{
+TEST_F(STestGenConcat, multi_group_with_enable_group_parallel_optimize) {
   ascir::ScheduleGroup schedule_group1;
   ascir::ScheduleGroup schedule_group2;
   ascir::ScheduledResult schedule_result1;
@@ -3059,18 +2998,15 @@ TEST_F(STestGenConcat, multi_group_with_enable_group_parallel_optimize)
   CompileGeneratedTilingCode();
 
   // 验证生成的代码包含core_num参数传递
+  EXPECT_EQ(ResultCheckerUtils::IsFileContainsString("Concat_tiling_func.cpp", "bool FindPerfBetterTilingbyCaseId"),
+            true);
+  EXPECT_EQ(ResultCheckerUtils::IsFileContainsString("Concat_tiling_func.cpp", ", uint32_t core_num) {"), true);
+  EXPECT_EQ(ResultCheckerUtils::IsFileContainsString("Concat_tiling_func.cpp", "bool GetTilingCaseScoreFunc"), true);
   EXPECT_EQ(ResultCheckerUtils::IsFileContainsString("Concat_tiling_func.cpp",
-              "bool FindPerfBetterTilingbyCaseId"), true);
-  EXPECT_EQ(ResultCheckerUtils::IsFileContainsString("Concat_tiling_func.cpp",
-              ", uint32_t core_num) {"), true);
-  EXPECT_EQ(ResultCheckerUtils::IsFileContainsString("Concat_tiling_func.cpp",
-              "bool GetTilingCaseScoreFunc"), true);
-  EXPECT_EQ(ResultCheckerUtils::IsFileContainsString("Concat_tiling_func.cpp",
-              "uint32_t corenum = tiling_data.get_block_dim()"), true);
-  EXPECT_EQ(ResultCheckerUtils::IsFileContainsString("Concat_tiling_func.cpp",
-              ", corenum);"), true);
-  EXPECT_EQ(ResultCheckerUtils::IsFileContainsString("Concat_tiling_func.cpp",
-              ", core_num);"), true);
+                                                     "uint32_t corenum = tiling_data.get_block_dim()"),
+            true);
+  EXPECT_EQ(ResultCheckerUtils::IsFileContainsString("Concat_tiling_func.cpp", ", corenum);"), true);
+  EXPECT_EQ(ResultCheckerUtils::IsFileContainsString("Concat_tiling_func.cpp", ", core_num);"), true);
 
   auto ret = std::system("./tiling_func_main_concat > ./info.log");
   EXPECT_EQ(ret, 0);

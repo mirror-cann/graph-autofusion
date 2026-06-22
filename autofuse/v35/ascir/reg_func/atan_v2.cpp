@@ -13,23 +13,20 @@
 
 namespace af {
 namespace ascir {
-std::vector<std::unique_ptr<TmpBufDesc>>
-CalcAtanTmpSizeV2(const AscNode &node) {
+std::vector<std::unique_ptr<TmpBufDesc>> CalcAtanTmpSizeV2(const AscNode &node) {
   constexpr uint32_t ATAN_FLOAT_CALC_PROC = 5;
   constexpr uint32_t ATAN_HALF_CALC_PROC = 12;
   constexpr uint32_t ATAN_ONE_REPEAT_BYTE_SIZE = 256;
   auto node_inputs = node.inputs;
-  GE_ASSERT_TRUE(node_inputs.Size() > 0, "Node %s[%s] inputs size is 0.",
-                 node.GetTypePtr(), node.GetNamePtr());
-  uint32_t calc_tmp_buf = ATAN_ONE_REPEAT_BYTE_SIZE * (node_inputs[0].attr.dtype == ge::DT_FLOAT16
-                          ? ATAN_HALF_CALC_PROC : ATAN_FLOAT_CALC_PROC);
-  GELOGD("Node %s[%s] temp buffer size: %u", node.GetTypePtr(),
-         node.GetNamePtr(), calc_tmp_buf);
+  GE_ASSERT_TRUE(node_inputs.Size() > 0, "Node %s[%s] inputs size is 0.", node.GetTypePtr(), node.GetNamePtr());
+  uint32_t calc_tmp_buf = ATAN_ONE_REPEAT_BYTE_SIZE *
+                          (node_inputs[0].attr.dtype == ge::DT_FLOAT16 ? ATAN_HALF_CALC_PROC : ATAN_FLOAT_CALC_PROC);
+  GELOGD("Node %s[%s] temp buffer size: %u", node.GetTypePtr(), node.GetNamePtr(), calc_tmp_buf);
   Expression tmp_size = Symbol(calc_tmp_buf);
   TmpBufDesc desc = {tmp_size, -1};
   std::vector<std::unique_ptr<TmpBufDesc>> tmp_buf_descs;
   tmp_buf_descs.emplace_back(std::make_unique<TmpBufDesc>(desc));
   return tmp_buf_descs;
 }
-} // namespace ascir
-} // namespace ge
+}  // namespace ascir
+}  // namespace af

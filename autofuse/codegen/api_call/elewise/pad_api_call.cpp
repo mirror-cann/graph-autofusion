@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -59,28 +59,27 @@ Status PadApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::AxisId>
   std::string apiTilingDataString = "t->" + this->api_tiling_data_field + "_" + std::to_string(tiling_case_id);
   auto axis_pos = y.vectorized_axis_pos[axis_num - 1];
   if (tpipe.tiler.Size(y.vectorized_strides[axis_num - 2]) != tpipe.tiler.ActualSize(y.axis_size[axis_pos])) {
-     GE_ASSERT_TRUE(id != -1L, "PadApiCall cannot find tmp buffer id to use.");
-    ss << "if (" << tpipe.tiler.Size(y.vectorized_strides[axis_num - 2]) << " != " << tpipe.tiler.ActualSize(y.axis_size[axis_pos]) << ") {" // 2表示倒数第二个维度
-      << std::endl;
+    GE_ASSERT_TRUE(id != -1L, "PadApiCall cannot find tmp buffer id to use.");
+    ss << "if (" << tpipe.tiler.Size(y.vectorized_strides[axis_num - 2])
+       << " != " << tpipe.tiler.ActualSize(y.axis_size[axis_pos]) << ") {"  // 2表示倒数第二个维度
+       << std::endl;
     ss << "AscendC::PadParams padParams = {0, static_cast<uint16_t>("
-      << tpipe.tiler.Size(y.vectorized_strides[axis_num - 2]) << " - " << tpipe.tiler.ActualSize(y.axis_size[axis_pos]) << "), 0};" // 2表示倒数第二个维度
-      << std::endl;
-    ss << "PadTiling apiTilingData = " << apiTilingDataString << ";"
-      << std::endl;
+       << tpipe.tiler.Size(y.vectorized_strides[axis_num - 2]) << " - " << tpipe.tiler.ActualSize(y.axis_size[axis_pos])
+       << "), 0};"  // 2表示倒数第二个维度
+       << std::endl;
+    ss << "PadTiling apiTilingData = " << apiTilingDataString << ";" << std::endl;
     ss << "AscendC::Pad(" << y << "[" << tpipe.tiler.TensorVectorizedOffset(current_axis, y) << "], " << x << "["
-      << tpipe.tiler.TensorVectorizedOffset(current_axis, x) << "], " << "padParams, " << tpipe.tmp_buf  << "_" << std::to_string(id)
-      << ", " << "apiTilingData);"
-      << std::endl;
-    ss << "} else {"
-      << std::endl;
+       << tpipe.tiler.TensorVectorizedOffset(current_axis, x) << "], " << "padParams, " << tpipe.tmp_buf << "_"
+       << std::to_string(id) << ", " << "apiTilingData);" << std::endl;
+    ss << "} else {" << std::endl;
     ss << "AscendC::DataCopy(" << y << "[" << tpipe.tiler.TensorVectorizedOffset(current_axis, y) << "], " << x << "["
-      << tpipe.tiler.TensorVectorizedOffset(current_axis, x) << "], " << blk_align << "(" << axis_size_product.str()
-      << "));"
-      << std::endl;
-    ss << "}"
-      << std::endl;
+       << tpipe.tiler.TensorVectorizedOffset(current_axis, x) << "], " << blk_align << "(" << axis_size_product.str()
+       << "));" << std::endl;
+    ss << "}" << std::endl;
   } else {
-    ss << "AscendC::DataCopy(" << y << "[" << tpipe.tiler.TensorVectorizedOffset(current_axis, y) << "], " << x << "[" << tpipe.tiler.TensorVectorizedOffset(current_axis, x) << "], " << blk_align << "(" << axis_size_product.str() << "));" << std::endl;
+    ss << "AscendC::DataCopy(" << y << "[" << tpipe.tiler.TensorVectorizedOffset(current_axis, y) << "], " << x << "["
+       << tpipe.tiler.TensorVectorizedOffset(current_axis, x) << "], " << blk_align << "(" << axis_size_product.str()
+       << "));" << std::endl;
   }
   result = ss.str();
   return ge::SUCCESS;

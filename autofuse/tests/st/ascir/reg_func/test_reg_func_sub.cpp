@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -19,19 +19,18 @@
 #include "ascir_utils.h"
 
 #include "../test_util.h"
-namespace af{
-namespace ascir{
+namespace af {
+namespace ascir {
 extern std::vector<std::unique_ptr<af::TmpBufDesc>> CalcSubTmpSize(const af::AscNode &node);
 using namespace testing;
 
-class CalcSubTmpSizeTest:public::testing::Test{
-protected:
-  void SetUp() override{}
-  void TearDown() override{}
+class CalcSubTmpSizeTest : public ::testing::Test {
+ protected:
+  void SetUp() override {}
+  void TearDown() override {}
 };
 
-TEST_F(CalcSubTmpSizeTest, CalcSubTmpSize_ShouldReturnCorrectSize_WhenNodeIsUbScalar)
-{
+TEST_F(CalcSubTmpSizeTest, CalcSubTmpSize_ShouldReturnCorrectSize_WhenNodeIsUbScalar) {
   af::AscGraph graph("test");
   auto s0 = graph.CreateSizeVar("s0");
   auto s1 = graph.CreateSizeVar("s1");
@@ -89,8 +88,7 @@ TEST_F(CalcSubTmpSizeTest, CalcSubTmpSize_ShouldReturnCorrectSize_WhenNodeIsUbSc
   ASSERT_EQ(result[0]->life_time_axis_id, -1);
 }
 
-TEST_F(CalcSubTmpSizeTest, CalcSubTmpSize_ShouldReturnCorrectSize_WhenNodeIsScalar)
-{
+TEST_F(CalcSubTmpSizeTest, CalcSubTmpSize_ShouldReturnCorrectSize_WhenNodeIsScalar) {
   af::AscGraph graph("test");
   auto s0 = graph.CreateSizeVar("s0");
   auto s1 = graph.CreateSizeVar("s1");
@@ -139,8 +137,7 @@ TEST_F(CalcSubTmpSizeTest, CalcSubTmpSize_ShouldReturnCorrectSize_WhenNodeIsScal
   ASSERT_EQ(result[0]->life_time_axis_id, -1);
 }
 
-TEST_F(CalcSubTmpSizeTest, CalcSubTmpSize_ShouldReturnCorrectSize_WhenNodeIsTensor)
-{
+TEST_F(CalcSubTmpSizeTest, CalcSubTmpSize_ShouldReturnCorrectSize_WhenNodeIsTensor) {
   af::AscGraph graph("test");
   auto s0 = graph.CreateSizeVar("s0");
   auto s1 = graph.CreateSizeVar("s1");
@@ -185,5 +182,5 @@ TEST_F(CalcSubTmpSizeTest, CalcSubTmpSize_ShouldReturnCorrectSize_WhenNodeIsTens
   ASSERT_EQ(result[0]->size, af::Symbol(32));
   ASSERT_EQ(result[0]->life_time_axis_id, -1);
 }
-} // namespace asci
-} // namespace af
+}  // namespace ascir
+}  // namespace af

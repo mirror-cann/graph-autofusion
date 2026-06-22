@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -22,7 +22,7 @@
 
 using namespace AscendC;
 
-namespace af{
+namespace af {
 template <typename T>
 struct WhereInputParam {
   T *y{};
@@ -148,14 +148,16 @@ class TestApiWhereUT : public testing::Test {
     AscendC::GmFree(param.x3);
     AscendC::GmFree(param.exp);
   }
-// normal
+  // normal
   template <typename T>
   static void CreateNormalInput(WhereInputParam<T> &param) {
     // 构造测试输入和预期结果
     uint32_t y_align = (param.size * sizeof(T) + ONE_BLK_SIZE - 1) / ONE_BLK_SIZE * ONE_BLK_SIZE;
     uint32_t x1_align = (param.size * sizeof(uint8_t) + ONE_BLK_SIZE - 1) / ONE_BLK_SIZE * ONE_BLK_SIZE;
-    uint32_t x2_align = param.x2_bcast ? ONE_BLK_SIZE : (param.x2_size * sizeof(T) + ONE_BLK_SIZE - 1) / ONE_BLK_SIZE * ONE_BLK_SIZE;
-    uint32_t x3_align = param.x3_bcast ? ONE_BLK_SIZE : (param.x3_size * sizeof(T) + ONE_BLK_SIZE - 1) / ONE_BLK_SIZE * ONE_BLK_SIZE;
+    uint32_t x2_align =
+        param.x2_bcast ? ONE_BLK_SIZE : (param.x2_size * sizeof(T) + ONE_BLK_SIZE - 1) / ONE_BLK_SIZE * ONE_BLK_SIZE;
+    uint32_t x3_align =
+        param.x3_bcast ? ONE_BLK_SIZE : (param.x3_size * sizeof(T) + ONE_BLK_SIZE - 1) / ONE_BLK_SIZE * ONE_BLK_SIZE;
 
     param.y_stride = y_align / sizeof(T);
     param.x1_stride = x1_align / sizeof(uint8_t);
@@ -189,23 +191,24 @@ class TestApiWhereUT : public testing::Test {
         if (param.x2_bcast && param.x3_bcast) {
           uint32_t x2_index = i % param.x2_size;
           uint32_t x3_index = i % param.x3_size;
-          param.exp[k * param.y_stride + i] = param.x1[k * param.x1_stride + i] == 1 ?
-                                              static_cast<T>(param.x2_[x2_index]) : static_cast<T>(param.x3_[x3_index]);
+          param.exp[k * param.y_stride + i] = param.x1[k * param.x1_stride + i] == 1
+                                                  ? static_cast<T>(param.x2_[x2_index])
+                                                  : static_cast<T>(param.x3_[x3_index]);
         } else if (param.x2_bcast) {
           uint32_t x2_index = i % param.x2_size;
           uint32_t x3_index = k * param.x3_stride + i;
-          param.exp[k * param.y_stride + i] = param.x1[k * param.x1_stride + i] == 1 ?
-                                              static_cast<T>(param.x2_[x2_index]) : param.x3[x3_index];
+          param.exp[k * param.y_stride + i] =
+              param.x1[k * param.x1_stride + i] == 1 ? static_cast<T>(param.x2_[x2_index]) : param.x3[x3_index];
         } else if (param.x3_bcast) {
           uint32_t x2_index = k * param.x2_stride + i;
           uint32_t x3_index = i % param.x3_size;
-          param.exp[k * param.y_stride + i] = param.x1[k * param.x1_stride + i] == 1 ?
-                                              param.x2[x2_index] : static_cast<T>(param.x3_[x3_index]);
+          param.exp[k * param.y_stride + i] =
+              param.x1[k * param.x1_stride + i] == 1 ? param.x2[x2_index] : static_cast<T>(param.x3_[x3_index]);
         } else {
           uint32_t x2_index = k * param.x2_stride + i;
           uint32_t x3_index = k * param.x3_stride + i;
-          param.exp[k * param.y_stride + i] = param.x1[k * param.x1_stride + i] == 1 ?
-                                              param.x2[x2_index] : param.x3[x3_index];
+          param.exp[k * param.y_stride + i] =
+              param.x1[k * param.x1_stride + i] == 1 ? param.x2[x2_index] : param.x3[x3_index];
         }
       }
     }
@@ -240,7 +243,8 @@ class TestApiWhereUT : public testing::Test {
           param.x2[i] = static_cast<int64_t>((0 + input_offset) % input_value_range) + 20000001;
         }
         if (!param.x3_bcast) {
-          param.x3[k * param.x3_stride + i] = static_cast<int64_t>(-((i + input_offset) % input_value_range)) - 20000001;
+          param.x3[k * param.x3_stride + i] =
+              static_cast<int64_t>(-((i + input_offset) % input_value_range)) - 20000001;
         } else if (i < param.x3_size) { /* scalar */
           param.x3[i] = static_cast<int64_t>(-((0 + input_offset) % input_value_range)) - 20000001;
         }
@@ -258,7 +262,8 @@ class TestApiWhereUT : public testing::Test {
           x2_index = k * param.x2_stride + i;
           x3_index = k * param.x3_stride + i;
         }
-        param.exp[k * param.y_stride + i] = param.x1[k * param.x1_stride + i] == 1 ? param.x2[x2_index] : param.x3[x3_index];
+        param.exp[k * param.y_stride + i] =
+            param.x1[k * param.x1_stride + i] == 1 ? param.x2[x2_index] : param.x3[x3_index];
       }
     }
   }
@@ -308,21 +313,17 @@ class TestApiWhereUT : public testing::Test {
     GmToUb(l_y, param.y, param.y_stride * param.m);
 
     if (param.x2_bcast && param.x3_bcast) {
-      Where<true, true>(l_y, l_x1, l_x2_, l_x3_, param.m, param.size,
-                                   param.y_stride, param.x1_stride,
-                                   param.x2_stride, param.x3_stride, l_tmp, ONE_BLK_SIZE * 2);
+      Where<true, true>(l_y, l_x1, l_x2_, l_x3_, param.m, param.size, param.y_stride, param.x1_stride, param.x2_stride,
+                        param.x3_stride, l_tmp, ONE_BLK_SIZE * 2);
     } else if (param.x2_bcast) {
-      Where<true, false>(l_y, l_x1, l_x2_, l_x3, param.m, param.size,
-                                   param.y_stride, param.x1_stride,
-                                   param.x2_stride, param.x3_stride, l_tmp, ONE_BLK_SIZE);
+      Where<true, false>(l_y, l_x1, l_x2_, l_x3, param.m, param.size, param.y_stride, param.x1_stride, param.x2_stride,
+                         param.x3_stride, l_tmp, ONE_BLK_SIZE);
     } else if (param.x3_bcast) {
-      Where<false, true>(l_y, l_x1, l_x2, l_x3_, param.m, param.size,
-                                   param.y_stride, param.x1_stride,
-                                   param.x2_stride, param.x3_stride, l_tmp, ONE_BLK_SIZE);
+      Where<false, true>(l_y, l_x1, l_x2, l_x3_, param.m, param.size, param.y_stride, param.x1_stride, param.x2_stride,
+                         param.x3_stride, l_tmp, ONE_BLK_SIZE);
     } else {
-      Where<false, false>(l_y, l_x1, l_x2, l_x3, param.m, param.size,
-                                   param.y_stride, param.x1_stride,
-                                   param.x2_stride, param.x3_stride, l_tmp, 0);
+      Where<false, false>(l_y, l_x1, l_x2, l_x3, param.m, param.size, param.y_stride, param.x1_stride, param.x2_stride,
+                          param.x3_stride, l_tmp, 0);
     }
 
     UbToGm(param.y, l_y, param.y_stride * param.m);
@@ -357,21 +358,17 @@ class TestApiWhereUT : public testing::Test {
     GmToUb(l_y, param.y, param.y_stride * param.m);
 
     if (param.x2_bcast && param.x3_bcast) {
-      Where<true, true>(l_y, l_x1, l_x2, l_x3, param.m, param.size,
-                                   param.y_stride, param.x1_stride,
-                                   param.x2_stride, param.x3_stride, l_tmp, ONE_BLK_SIZE * 2);
+      Where<true, true>(l_y, l_x1, l_x2, l_x3, param.m, param.size, param.y_stride, param.x1_stride, param.x2_stride,
+                        param.x3_stride, l_tmp, ONE_BLK_SIZE * 2);
     } else if (param.x2_bcast) {
-      Where<true, false>(l_y, l_x1, l_x2, l_x3, param.m, param.size,
-                                   param.y_stride, param.x1_stride,
-                                   param.x2_stride, param.x3_stride, l_tmp, ONE_BLK_SIZE);
+      Where<true, false>(l_y, l_x1, l_x2, l_x3, param.m, param.size, param.y_stride, param.x1_stride, param.x2_stride,
+                         param.x3_stride, l_tmp, ONE_BLK_SIZE);
     } else if (param.x3_bcast) {
-      Where<false, true>(l_y, l_x1, l_x2, l_x3, param.m, param.size,
-                                   param.y_stride, param.x1_stride,
-                                   param.x2_stride, param.x3_stride, l_tmp, ONE_BLK_SIZE);
+      Where<false, true>(l_y, l_x1, l_x2, l_x3, param.m, param.size, param.y_stride, param.x1_stride, param.x2_stride,
+                         param.x3_stride, l_tmp, ONE_BLK_SIZE);
     } else {
-      Where<false, false>(l_y, l_x1, l_x2, l_x3, param.m, param.size,
-                                   param.y_stride, param.x1_stride,
-                                   param.x2_stride, param.x3_stride, l_tmp, 0);
+      Where<false, false>(l_y, l_x1, l_x2, l_x3, param.m, param.size, param.y_stride, param.x1_stride, param.x2_stride,
+                          param.x3_stride, l_tmp, 0);
     }
 
     UbToGm(param.y, l_y, param.y_stride * param.m);
@@ -382,10 +379,10 @@ class TestApiWhereUT : public testing::Test {
     WhereInputParam<T> param{};
     param.m = m;
     param.size = n;
-    param.x2_size = x2_n == 0 ? n : /* scalar */ONE_BLK_SIZE / sizeof(float);
-    param.x2_bcast = x2_n == 0 ? false : /* scalar */true;
-    param.x3_size = x3_n == 0 ? n : /* scalar */ONE_BLK_SIZE / sizeof(float);
-    param.x3_bcast = x3_n == 0 ? false : /* scalar */true;
+    param.x2_size = x2_n == 0 ? n : /* scalar */ ONE_BLK_SIZE / sizeof(float);
+    param.x2_bcast = x2_n == 0 ? false : /* scalar */ true;
+    param.x3_size = x3_n == 0 ? n : /* scalar */ ONE_BLK_SIZE / sizeof(float);
+    param.x3_bcast = x3_n == 0 ? false : /* scalar */ true;
 
     CreateNormalInput(param);
 
@@ -412,10 +409,10 @@ class TestApiWhereUT : public testing::Test {
     WhereInputParam<int64_t> param{};
     param.m = m;
     param.size = n;
-    param.x2_size = x2_n == 0 ? n : /* scalar */ONE_BLK_SIZE / sizeof(int64_t);
-    param.x2_bcast = x2_n == 0 ? false : /* scalar */true;
-    param.x3_size = x3_n == 0 ? n : /* scalar */ONE_BLK_SIZE / sizeof(int64_t);
-    param.x3_bcast = x3_n == 0 ? false : /* scalar */true;
+    param.x2_size = x2_n == 0 ? n : /* scalar */ ONE_BLK_SIZE / sizeof(int64_t);
+    param.x2_bcast = x2_n == 0 ? false : /* scalar */ true;
+    param.x3_size = x3_n == 0 ? n : /* scalar */ ONE_BLK_SIZE / sizeof(int64_t);
+    param.x3_bcast = x3_n == 0 ? false : /* scalar */ true;
 
     CreateNormalInput(param);
 
@@ -701,7 +698,7 @@ TEST_F(TestApiWhereUT, Where_X2S_X3S_float_normal) {
 }
 TEST_F(TestApiWhereUT, Where_X2S_X3S_half_normal) {
   WhereNormalTest<half>(1, ONE_BLK_SIZE / sizeof(half), 1, 1);
-  WhereNormalTest<half>(1, ONE_REPEAT_BYTE_SIZE / sizeof(half),1 , 1);
+  WhereNormalTest<half>(1, ONE_REPEAT_BYTE_SIZE / sizeof(half), 1, 1);
   WhereNormalTest<half>(1, (ONE_BLK_SIZE - sizeof(half)) / sizeof(half), 1, 1);
   WhereNormalTest<half>(1, (ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) / sizeof(half), 1, 1);
 
@@ -792,10 +789,11 @@ TEST_F(TestApiWhereUT, Where_X2S_float_normal) {
   WhereNormalTest<float>(1, (ONE_BLK_SIZE - sizeof(float)) / sizeof(float), 1, 0);
   WhereNormalTest<float>(1, (ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) / sizeof(float), 1, 0);
   WhereNormalTest<float>(1, (MAX_REPEAT_NUM - 1) * ONE_REPEAT_BYTE_SIZE / sizeof(float), 1, 0);
-  WhereNormalTest<float>(1, ((MAX_REPEAT_NUM - 1) * ONE_REPEAT_BYTE_SIZE + (ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) +
-                    (ONE_BLK_SIZE - sizeof(float))) /
-                       sizeof(float),
-                   1, 0);
+  WhereNormalTest<float>(1,
+                         ((MAX_REPEAT_NUM - 1) * ONE_REPEAT_BYTE_SIZE + (ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) +
+                          (ONE_BLK_SIZE - sizeof(float))) /
+                             sizeof(float),
+                         1, 0);
 
   WhereNormalTest<float>(71, ONE_BLK_SIZE / sizeof(float), 1, 0);
   WhereNormalTest<float>(71, ONE_REPEAT_BYTE_SIZE / sizeof(float), 1, 0);
@@ -810,10 +808,11 @@ TEST_F(TestApiWhereUT, Where_X2S_half_normal) {
   WhereNormalTest<half>(1, (ONE_BLK_SIZE - sizeof(half)) / sizeof(half), 1, 0);
   WhereNormalTest<half>(1, (MAX_REPEAT_NUM - 1) * ONE_REPEAT_BYTE_SIZE / sizeof(half), 1, 0);
   WhereNormalTest<half>(1, (ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) / sizeof(half), 1, 0);
-  WhereNormalTest<half>(1, ((MAX_REPEAT_NUM - 1) * ONE_REPEAT_BYTE_SIZE + (ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) +
-                   (ONE_BLK_SIZE - sizeof(half))) /
-                      sizeof(half),
-                  1, 0);
+  WhereNormalTest<half>(1,
+                        ((MAX_REPEAT_NUM - 1) * ONE_REPEAT_BYTE_SIZE + (ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) +
+                         (ONE_BLK_SIZE - sizeof(half))) /
+                            sizeof(half),
+                        1, 0);
 
   WhereNormalTest<half>(71, ONE_BLK_SIZE / sizeof(half), 1, 0);
   WhereNormalTest<half>(71, ONE_REPEAT_BYTE_SIZE / sizeof(half), 1, 0);
@@ -827,7 +826,8 @@ TEST_F(TestApiWhereUT, Where_X2S_int64_normal) {
   WhereNormalTest(1, (ONE_BLK_SIZE - sizeof(int64_t)) / sizeof(int64_t), 1, 0);
   WhereNormalTest(1, (MAX_REPEAT_NUM - 1) * ONE_REPEAT_BYTE_SIZE / sizeof(int64_t), 1, 0);
   WhereNormalTest(1, (ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) / sizeof(int64_t), 1, 0);
-  WhereNormalTest(1, ((MAX_REPEAT_NUM - 1) * ONE_REPEAT_BYTE_SIZE + (ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) +
+  WhereNormalTest(1,
+                  ((MAX_REPEAT_NUM - 1) * ONE_REPEAT_BYTE_SIZE + (ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) +
                    (ONE_BLK_SIZE - sizeof(int64_t))) /
                       sizeof(int64_t),
                   1, 0);
@@ -844,7 +844,8 @@ TEST_F(TestApiWhereUT, Where_X2S_int32_normal) {
   WhereNormalTest<int32_t>(1, (ONE_BLK_SIZE - sizeof(int32_t)) / sizeof(int32_t), 1, 0);
   WhereNormalTest<int32_t>(1, (ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) / sizeof(int32_t), 1, 0);
   WhereNormalTest<int32_t>(1, (MAX_REPEAT_NUM - 1) * ONE_REPEAT_BYTE_SIZE / sizeof(int32_t), 1, 0);
-  WhereNormalTest<int32_t>(1, ((MAX_REPEAT_NUM - 1) * ONE_REPEAT_BYTE_SIZE + (ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) +
+  WhereNormalTest<int32_t>(1,
+                           ((MAX_REPEAT_NUM - 1) * ONE_REPEAT_BYTE_SIZE + (ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) +
                             (ONE_BLK_SIZE - sizeof(int32_t))) /
                                sizeof(int32_t),
                            1, 0);
@@ -861,7 +862,8 @@ TEST_F(TestApiWhereUT, Where_X2S_int16_normal) {
   WhereNormalTest<int16_t>(1, (ONE_BLK_SIZE - sizeof(int16_t)) / sizeof(int16_t), 1, 0);
   WhereNormalTest<int16_t>(1, (MAX_REPEAT_NUM - 1) * ONE_REPEAT_BYTE_SIZE / sizeof(int16_t), 1, 0);
   WhereNormalTest<int16_t>(1, (ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) / sizeof(int16_t), 1, 0);
-  WhereNormalTest<int16_t>(1, ((MAX_REPEAT_NUM - 1) * ONE_REPEAT_BYTE_SIZE + (ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) +
+  WhereNormalTest<int16_t>(1,
+                           ((MAX_REPEAT_NUM - 1) * ONE_REPEAT_BYTE_SIZE + (ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) +
                             (ONE_BLK_SIZE - sizeof(int16_t))) /
                                sizeof(int16_t),
                            1, 0);
@@ -880,10 +882,11 @@ TEST_F(TestApiWhereUT, Where_X3S_float_normal) {
   WhereNormalTest<float>(1, (ONE_BLK_SIZE - sizeof(float)) / sizeof(float), 0, 1);
   WhereNormalTest<float>(1, (ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) / sizeof(float), 0, 1);
   WhereNormalTest<float>(1, (MAX_REPEAT_NUM - 1) * ONE_REPEAT_BYTE_SIZE / sizeof(float), 0, 1);
-  WhereNormalTest<float>(1, ((MAX_REPEAT_NUM - 1) * ONE_REPEAT_BYTE_SIZE + (ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) +
-                    (ONE_BLK_SIZE - sizeof(float))) /
-                       sizeof(float),
-                   0, 1);
+  WhereNormalTest<float>(1,
+                         ((MAX_REPEAT_NUM - 1) * ONE_REPEAT_BYTE_SIZE + (ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) +
+                          (ONE_BLK_SIZE - sizeof(float))) /
+                             sizeof(float),
+                         0, 1);
 
   WhereNormalTest<float>(71, ONE_BLK_SIZE / sizeof(float), 0, 1);
   WhereNormalTest<float>(71, ONE_REPEAT_BYTE_SIZE / sizeof(float), 0, 1);
@@ -897,10 +900,11 @@ TEST_F(TestApiWhereUT, Where_X3S_half_normal) {
   WhereNormalTest<half>(1, (ONE_BLK_SIZE - sizeof(half)) / sizeof(half), 0, 1);
   WhereNormalTest<half>(1, (MAX_REPEAT_NUM - 1) * ONE_REPEAT_BYTE_SIZE / sizeof(half), 0, 1);
   WhereNormalTest<half>(1, (ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) / sizeof(half), 0, 1);
-  WhereNormalTest<half>(1, ((MAX_REPEAT_NUM - 1) * ONE_REPEAT_BYTE_SIZE + (ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) +
-                   (ONE_BLK_SIZE - sizeof(half))) /
-                      sizeof(half),
-                  0, 1);
+  WhereNormalTest<half>(1,
+                        ((MAX_REPEAT_NUM - 1) * ONE_REPEAT_BYTE_SIZE + (ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) +
+                         (ONE_BLK_SIZE - sizeof(half))) /
+                            sizeof(half),
+                        0, 1);
 
   WhereNormalTest<half>(71, ONE_BLK_SIZE / sizeof(half), 0, 1);
   WhereNormalTest<half>(71, ONE_REPEAT_BYTE_SIZE / sizeof(half), 0, 1);
@@ -914,10 +918,11 @@ TEST_F(TestApiWhereUT, Where_X3S_int64_normal) {
   WhereNormalTest(1, (ONE_BLK_SIZE - sizeof(int64_t)) / sizeof(int64_t), 0, 1);
   WhereNormalTest(1, (MAX_REPEAT_NUM - 1) * ONE_REPEAT_BYTE_SIZE / sizeof(int64_t), 0, 1);
   WhereNormalTest(1, (ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) / sizeof(int64_t), 0, 1);
-  WhereNormalTest(1, ((MAX_REPEAT_NUM - 1) * ONE_REPEAT_BYTE_SIZE + (ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) +
-                      (ONE_BLK_SIZE - sizeof(int64_t))) /
-                         sizeof(int64_t),
-                     0, 1);
+  WhereNormalTest(1,
+                  ((MAX_REPEAT_NUM - 1) * ONE_REPEAT_BYTE_SIZE + (ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) +
+                   (ONE_BLK_SIZE - sizeof(int64_t))) /
+                      sizeof(int64_t),
+                  0, 1);
 
   WhereNormalTest(71, ONE_BLK_SIZE / sizeof(int64_t), 0, 1);
   WhereNormalTest(71, ONE_REPEAT_BYTE_SIZE / sizeof(int64_t), 0, 1);
@@ -931,10 +936,11 @@ TEST_F(TestApiWhereUT, Where_X3S_int32_normal) {
   WhereNormalTest<int32_t>(1, (ONE_BLK_SIZE - sizeof(int32_t)) / sizeof(int32_t), 0, 1);
   WhereNormalTest<int32_t>(1, (ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) / sizeof(int32_t), 0, 1);
   WhereNormalTest<int32_t>(1, (MAX_REPEAT_NUM - 1) * ONE_REPEAT_BYTE_SIZE / sizeof(int32_t), 0, 1);
-  WhereNormalTest<int32_t>(1, ((MAX_REPEAT_NUM - 1) * ONE_REPEAT_BYTE_SIZE + (ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) +
-                      (ONE_BLK_SIZE - sizeof(int32_t))) /
-                         sizeof(int32_t),
-                     0, 1);
+  WhereNormalTest<int32_t>(1,
+                           ((MAX_REPEAT_NUM - 1) * ONE_REPEAT_BYTE_SIZE + (ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) +
+                            (ONE_BLK_SIZE - sizeof(int32_t))) /
+                               sizeof(int32_t),
+                           0, 1);
 
   WhereNormalTest<int32_t>(71, ONE_BLK_SIZE / sizeof(int32_t), 0, 1);
   WhereNormalTest<int32_t>(71, ONE_REPEAT_BYTE_SIZE / sizeof(int32_t), 0, 1);
@@ -948,10 +954,11 @@ TEST_F(TestApiWhereUT, Where_X3S_int16_normal) {
   WhereNormalTest<int16_t>(1, (ONE_BLK_SIZE - sizeof(int16_t)) / sizeof(int16_t), 0, 1);
   WhereNormalTest<int16_t>(1, (MAX_REPEAT_NUM - 1) * ONE_REPEAT_BYTE_SIZE / sizeof(int16_t), 0, 1);
   WhereNormalTest<int16_t>(1, (ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) / sizeof(int16_t), 0, 1);
-  WhereNormalTest<int16_t>(1, ((MAX_REPEAT_NUM - 1) * ONE_REPEAT_BYTE_SIZE + (ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) +
-                      (ONE_BLK_SIZE - sizeof(int16_t))) /
-                         sizeof(int16_t),
-                     0, 1);
+  WhereNormalTest<int16_t>(1,
+                           ((MAX_REPEAT_NUM - 1) * ONE_REPEAT_BYTE_SIZE + (ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) +
+                            (ONE_BLK_SIZE - sizeof(int16_t))) /
+                               sizeof(int16_t),
+                           0, 1);
 
   WhereNormalTest<int16_t>(71, ONE_BLK_SIZE / sizeof(int16_t), 0, 1);
   WhereNormalTest<int16_t>(71, ONE_REPEAT_BYTE_SIZE / sizeof(int16_t), 0, 1);
@@ -1017,4 +1024,4 @@ TEST_F(TestApiWhereUT, Where_int16_normal) {
   WhereNormalTest<int16_t>(71, (ONE_BLK_SIZE - sizeof(int16_t)) / sizeof(int16_t));
   WhereNormalTest<int16_t>(71, (ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) / sizeof(int16_t));
 }
-}  // namespace ge
+}  // namespace af

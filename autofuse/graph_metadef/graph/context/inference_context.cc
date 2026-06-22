@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -30,7 +30,7 @@ class ShapeAndTypeImpl {
 };
 
 struct InnerInferenceContext {
-private:
+ private:
   // For deliver to op in pair, help to support dynamic shape
   std::vector<std::string> marks;
   std::vector<std::vector<ShapeAndType>> input_handle_shapes_and_types;
@@ -44,7 +44,9 @@ private:
   friend class InferenceContext;
 };
 
-ShapeAndType::ShapeAndType() { shape_and_type_impl_ = ComGraphMakeShared<ShapeAndTypeImpl>(); }
+ShapeAndType::ShapeAndType() {
+  shape_and_type_impl_ = ComGraphMakeShared<ShapeAndTypeImpl>();
+}
 
 ShapeAndType::ShapeAndType(const Shape &shape, DataType data_type) {
   shape_and_type_impl_ = ComGraphMakeShared<ShapeAndTypeImpl>(shape, data_type);
@@ -110,7 +112,9 @@ void InferenceContext::SetOutputHandleShapesAndTypes(std::vector<std::vector<Sha
   inner_inference_context_->output_handle_shapes_and_types.swap(shapes_and_types);
 }
 
-void InferenceContext::SetMarks(const std::vector<std::string> &marks) { inner_inference_context_->marks = marks; }
+void InferenceContext::SetMarks(const std::vector<std::string> &marks) {
+  inner_inference_context_->marks = marks;
+}
 
 void InferenceContext::SetMarks(const std::vector<AscendString> &marks) {
   std::vector<std::string> impl_marks;
@@ -122,7 +126,9 @@ void InferenceContext::SetMarks(const std::vector<AscendString> &marks) {
   inner_inference_context_->marks = impl_marks;
 }
 
-const std::vector<std::string> &InferenceContext::GetMarks() const { return inner_inference_context_->marks; }
+const std::vector<std::string> &InferenceContext::GetMarks() const {
+  return inner_inference_context_->marks;
+}
 
 void InferenceContext::GetMarks(std::vector<AscendString> &marks) const {
   for (auto &str_mark : inner_inference_context_->marks) {
@@ -143,8 +149,9 @@ graphStatus InferenceContext::SetResourceContext(const ge::AscendString &key, Re
     return GRAPH_PARAM_INVALID;
   }
   if (inner_inference_context_->resource_context_mgr == nullptr) {
-    GELOGE(GRAPH_FAILED, "No resource context mgr exist, resource context can not deliver in graph."
-                         "Please check session initialized success or not.");
+    GELOGE(GRAPH_FAILED,
+           "No resource context mgr exist, resource context can not deliver in graph."
+           "Please check session initialized success or not.");
     return GRAPH_FAILED;
   }
   (void)inner_inference_context_->resource_context_mgr->SetResourceContext(key.GetString(), resource_context);
@@ -180,4 +187,4 @@ graphStatus InferenceContext::RegisterReliedOnResourceKey(const ge::AscendString
 const std::set<ge::AscendString> &InferenceContext::GetReliedOnResourceKeys() const {
   return inner_inference_context_->relied_resource_keys;
 }
-}  // namespace ge
+}  // namespace af

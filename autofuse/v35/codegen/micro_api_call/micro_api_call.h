@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -54,7 +54,7 @@ class MicroApiTensor : public Variable {
 class TensorManager {
  public:
   Status AddTensor(const MicroApiTensor &tensor);
-  const MicroApiTensor* GetTensor(ascir::TensorId id) const;
+  const MicroApiTensor *GetTensor(ascir::TensorId id) const;
   Status GenerateVreg(std::string &result) const;
 
  private:
@@ -63,12 +63,11 @@ class TensorManager {
 
 class MicroApiCall {
  public:
-  explicit MicroApiCall(std::string api_name)
-      : api_name_(std::move(api_name)) {}
+  explicit MicroApiCall(std::string api_name) : api_name_(std::move(api_name)) {}
   virtual ~MicroApiCall() = default;
 
   // 生成micro api的调用
-  virtual Status Generate(const TensorManager& tensor_mng, const TPipe &tpipe, CallParam &param, std::string &result);
+  virtual Status Generate(const TensorManager &tensor_mng, const TPipe &tpipe, CallParam &param, std::string &result);
 
   // 生成outputs;
   virtual Status Init([[maybe_unused]] const ascir::NodeView &node) {
@@ -110,8 +109,9 @@ class MicroApiCall {
   std::string api_name_;
   std::vector<std::pair<TensorType, ascir::TensorId>> inputs_;
   std::vector<std::pair<TensorType, ascir::TensorId>> outputs_;
+
  public:
   ascir::ComputeUnit unit{ascir::ComputeUnit::kUnitInvalid};
 };
 }  // namespace codegen
-#endif // __AUTOFUSE_MICRO_API_CALL_H__
+#endif  // __AUTOFUSE_MICRO_API_CALL_H__

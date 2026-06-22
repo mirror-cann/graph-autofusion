@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -35,12 +35,12 @@ Status BinaryApiCallV2::BuildApiParam(const TPipe &tpipe, const std::vector<asci
   auto api_param = af::ComGraphMakeShared<CodegenApiParam>();
   GE_ASSERT_NOTNULL(api_param);
   api_param->api_name = api_name_;
-  api_param->input_params.emplace_back(x1.Str(), true,
-      CombinedExprFactory::SymbolVar(tpipe.tiler.TensorVectorizedOffset(current_axis, x1)));
-  api_param->input_params.emplace_back(x2.Str(), true,
-      CombinedExprFactory::SymbolVar(tpipe.tiler.TensorVectorizedOffset(current_axis, x2)));
-  api_param->output_params.emplace_back(y.Str(), true,
-      CombinedExprFactory::SymbolVar(tpipe.tiler.TensorVectorizedOffset(current_axis, y)));
+  api_param->input_params.emplace_back(
+      x1.Str(), true, CombinedExprFactory::SymbolVar(tpipe.tiler.TensorVectorizedOffset(current_axis, x1)));
+  api_param->input_params.emplace_back(
+      x2.Str(), true, CombinedExprFactory::SymbolVar(tpipe.tiler.TensorVectorizedOffset(current_axis, x2)));
+  api_param->output_params.emplace_back(
+      y.Str(), true, CombinedExprFactory::SymbolVar(tpipe.tiler.TensorVectorizedOffset(current_axis, y)));
   api_param->cal_count = CombinedExprFactory::SymbolVar(x1.actual_size.Str());
 
   GE_CHK_STATUS_RET(CodegenApiParam::Register(this->node, api_param));

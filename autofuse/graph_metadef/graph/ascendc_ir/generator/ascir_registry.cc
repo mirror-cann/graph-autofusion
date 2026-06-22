@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -59,7 +59,7 @@ struct AscIrDefImpl {
   std::string tiling_data_name;
   std::map<std::string, AscIrImpl> soc_2_impl_;
   std::map<std::string, AscIrImplV2> soc_2_impl_v2_;
-  std::map<std::string, IRDataTypeSymbolStore>  soc_2_dtype_sym_store_;
+  std::map<std::string, IRDataTypeSymbolStore> soc_2_dtype_sym_store_;
   ComputeType compute_type = ComputeType::kComputeInvalid;
 };
 
@@ -217,7 +217,7 @@ void AscIrDef::AddSocImpl(const std::vector<std::string> &soc_versions, const As
     }
     // bind symbol to dtypes
     for (const auto &iter : impl.support_dtypes) {
-      (void) dtype_sym_store.DeclareSymbol(iter.first, iter.second);
+      (void)dtype_sym_store.DeclareSymbol(iter.first, iter.second);
     }
   }
 }
@@ -236,7 +236,7 @@ void AscIrDef::AddSocImplV2(const std::vector<std::string> &soc_versions, const 
     }
     // bind symbol to dtypes
     for (const auto &iter : impl.support_dtypes) {
-      (void) dtype_sym_store.DeclareSymbol(iter.first, iter.second);
+      (void)dtype_sym_store.DeclareSymbol(iter.first, iter.second);
     }
   }
 }
@@ -297,4 +297,4 @@ void AscirRegistry::ClearAll() {
 };
 
 }  // namespace ascir
-}  // namespace ge
+}  // namespace af

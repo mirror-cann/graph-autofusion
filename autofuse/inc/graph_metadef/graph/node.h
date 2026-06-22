@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -105,9 +105,9 @@ class Node : public std::enable_shared_from_this<Node> {
   Vistor<OutDataAnchorPtr> GetAllOutDataAnchors() const;
 
   /**
- * 获取Node的输出锚点的裸指针，性能优于`Vistor<OutDataAnchorPtr> GetAllOutDataAnchors()`, 适用于只读场景
- * @return
- */
+   * 获取Node的输出锚点的裸指针，性能优于`Vistor<OutDataAnchorPtr> GetAllOutDataAnchors()`, 适用于只读场景
+   * @return
+   */
   std::vector<OutDataAnchor *> GetAllOutDataAnchorsPtr() const;
   uint32_t GetAllInDataAnchorsSize() const;
   uint32_t GetAllOutDataAnchorsSize() const;
@@ -143,9 +143,9 @@ class Node : public std::enable_shared_from_this<Node> {
   Vistor<NodePtr> GetOutNodes() const;
 
   /**
- * 获取Node的输出节点的裸指针，性能优于`Vistor<NodePtr> GetOutNodes()`, 适用于只读场景
- * @return
- */
+   * 获取Node的输出节点的裸指针，性能优于`Vistor<NodePtr> GetOutNodes()`, 适用于只读场景
+   * @return
+   */
   std::vector<Node *> GetOutNodesPtr() const;
 
   AnchorPtr GetInAnchor(const int32_t idx) const;
@@ -210,7 +210,7 @@ class Node : public std::enable_shared_from_this<Node> {
 
   const std::vector<uint32_t> &GetSendEventIdList() const;
 
-  const std::vector<uint32_t> &GetRecvEventIdList() const;  /*lint !e148*/
+  const std::vector<uint32_t> &GetRecvEventIdList() const; /*lint !e148*/
 
   void GetFusionInputFlowList(kFusionDataFlowVec_t &fusion_input_list);
 
@@ -244,6 +244,6 @@ using ConstNode = Node::ConstNode;
 using NodePtr = Node::NodePtr;
 using ConstNodePtr = Node::ConstNodePtr;
 using NodeToOutAnchor = std::pair<NodePtr, OutDataAnchorPtr>;
-}  // namespace ge
+}  // namespace af
 
 #endif  // INC_GRAPH_NODE_H_

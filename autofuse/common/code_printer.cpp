@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -13,19 +13,19 @@
 #include "ascgen_log.h"
 
 namespace ge {
-void CodePrinter::AddInclude(const std::string& include_name) {
+void CodePrinter::AddInclude(const std::string &include_name) {
   output_ << "#include \"" << include_name << "\"" << std::endl;
 }
 
-void CodePrinter::AddNamespaceBegin(const std::string& namespace_name) {
+void CodePrinter::AddNamespaceBegin(const std::string &namespace_name) {
   output_ << "namespace " << namespace_name << " {" << std::endl;
 }
 
-void CodePrinter::AddNamespaceEnd(const std::string& namespace_name) {
-  output_ << "} // namespace " <<  namespace_name << std::endl;
+void CodePrinter::AddNamespaceEnd(const std::string &namespace_name) {
+  output_ << "} // namespace " << namespace_name << std::endl;
 }
 
-void CodePrinter::DefineClassBegin(const std::string& class_name) {
+void CodePrinter::DefineClassBegin(const std::string &class_name) {
   output_ << "class " << class_name << " {" << std::endl;
 }
 
@@ -33,7 +33,7 @@ void CodePrinter::DefineClassEnd() {
   output_ << "};" << std::endl;
 }
 
-void CodePrinter::AddStructBegin(const std::string& struct_name) {
+void CodePrinter::AddStructBegin(const std::string &struct_name) {
   output_ << "struct " << struct_name << " {" << std::endl;
 }
 
@@ -41,21 +41,20 @@ void CodePrinter::AddStructEnd() {
   output_ << "};" << std::endl;
 }
 
-void CodePrinter::DefineFuncBegin(const std::string& return_type, const std::string& func_name,
-                               const std::string& param) {
-  output_ << return_type << " " << func_name << "(" << param << ")" << std::endl
-          << "{" << std::endl;
+void CodePrinter::DefineFuncBegin(const std::string &return_type, const std::string &func_name,
+                                  const std::string &param) {
+  output_ << return_type << " " << func_name << "(" << param << ")" << std::endl << "{" << std::endl;
 }
 
 void CodePrinter::DefineFuncEnd() {
-    output_ << "}" << std::endl;
+  output_ << "}" << std::endl;
 }
 
 std::string CodePrinter::GetOutputStr() const {
   return output_.str();
 }
 
-void CodePrinter::AddLine(const std::string& input_string) {
+void CodePrinter::AddLine(const std::string &input_string) {
   output_ << input_string << std::endl;
 }
 
@@ -64,7 +63,7 @@ void CodePrinter::Reset() {
   output_.swap(new_output);
 }
 
-ge::Status CodePrinter::SaveToFile(const std::string& output_file_path) {
+ge::Status CodePrinter::SaveToFile(const std::string &output_file_path) {
   char realpath_file[PATH_MAX] = {0x00};
   [[maybe_unused]] auto ret = realpath(output_file_path.c_str(), realpath_file);
   std::ofstream out_file(realpath_file);
@@ -73,5 +72,4 @@ ge::Status CodePrinter::SaveToFile(const std::string& output_file_path) {
   out_file.close();
   return ge::SUCCESS;
 }
-} //namespace att
-
+}  // namespace ge

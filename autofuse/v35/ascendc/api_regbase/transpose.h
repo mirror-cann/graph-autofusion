@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2026 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -38,7 +38,7 @@ inline __simd_vf__ void GenOneInnerDimTransposeIndex(__ubuf__ T *dst_idx, const 
 
 template <typename T>
 inline __simd_vf__ void GenTwoInnerDimTransposeIndex(__ubuf__ T *dst_idx, const T dst_dim1, const T src_stride0,
-                                                const T src_stride1, RangeType<T> count) {
+                                                     const T src_stride1, RangeType<T> count) {
   uint16_t vl_size = static_cast<uint16_t>(GetVecLen() / sizeof(T));
   T last_dim_inc = static_cast<T>(vl_size % dst_dim1);
   T last_2nd_dim_inc = static_cast<T>(vl_size / dst_dim1);
@@ -55,7 +55,7 @@ inline __simd_vf__ void GenTwoInnerDimTransposeIndex(__ubuf__ T *dst_idx, const 
   MicroAPI::Arange(idx_reg, 0);
   MicroAPI::Duplicate(dim1_reg, dst_dim1);
   MicroAPI::Div(tmp_reg, idx_reg, dim1_reg, mask);
-  MicroAPI::Copy(dim0_reg, tmp_reg); // vec_b: VL / a
+  MicroAPI::Copy(dim0_reg, tmp_reg);  // vec_b: VL / a
   MicroAPI::Mul(tmp_reg, tmp_reg, dim1_reg, mask);
   MicroAPI::Sub(dim1_reg, idx_reg, tmp_reg, mask);
   // index: vec_a * a_in_offset + vec_b * b_in_offset
@@ -109,14 +109,14 @@ inline __simd_vf__ void GenThreeDimTransposeIndex(__ubuf__ T *dst_idx, const T d
   // vec_a: VL % a
   MicroAPI::Arange(idx_reg, 0);
   MicroAPI::Duplicate(dim2_reg, dst_dim2);
-  MicroAPI::Copy(dim0_reg, dim2_reg); // backup a
+  MicroAPI::Copy(dim0_reg, dim2_reg);  // backup a
   MicroAPI::Div(tmp_reg, idx_reg, dim2_reg, mask);
-  MicroAPI::Copy(dim1_reg, tmp_reg); // backup VL / a
+  MicroAPI::Copy(dim1_reg, tmp_reg);  // backup VL / a
   MicroAPI::Mul(tmp_reg, tmp_reg, dim2_reg, mask);
   MicroAPI::Sub(dim2_reg, idx_reg, tmp_reg, mask);
   // vec_b: VL / a % b
   MicroAPI::Duplicate(tmp1_reg, dst_dim1);
-  MicroAPI::Mul(dim0_reg, dim0_reg, tmp1_reg, mask); // backup b
+  MicroAPI::Mul(dim0_reg, dim0_reg, tmp1_reg, mask);  // backup b
   MicroAPI::Div(tmp_reg, dim1_reg, tmp1_reg, mask);
   MicroAPI::Mul(tmp_reg, tmp_reg, tmp1_reg, mask);
   MicroAPI::Sub(dim1_reg, dim1_reg, tmp_reg, mask);
@@ -168,7 +168,7 @@ inline __simd_vf__ void GenThreeDimTransposeIndex(__ubuf__ T *dst_idx, const T d
 }
 
 template <typename T, uint8_t dim>
-__aicore__ inline void GenTransposeIndex(__ubuf__ T* dst_idx, const T (&dst_dims)[dim], const T (&src_strides)[dim],
+__aicore__ inline void GenTransposeIndex(__ubuf__ T *dst_idx, const T (&dst_dims)[dim], const T (&src_strides)[dim],
                                          RangeType<T> cal_cnt) {
   if constexpr (dim == 1) {
     GenOneInnerDimTransposeIndex(dst_idx, src_strides[0], cal_cnt);
@@ -178,7 +178,7 @@ __aicore__ inline void GenTransposeIndex(__ubuf__ T* dst_idx, const T (&dst_dims
 }
 
 template <typename T>
-inline __simd_vf__ void TransposeExtendImpl(__ubuf__ T* dst, __ubuf__ T* src, __ubuf__ RangeType<T>* index,
+inline __simd_vf__ void TransposeExtendImpl(__ubuf__ T *dst, __ubuf__ T *src, __ubuf__ RangeType<T> *index,
                                             RangeType<T> count) {
   uint16_t vl_size = static_cast<uint16_t>(GetVecLen() / sizeof(T));
   uint32_t cal_cnt = static_cast<uint32_t>(count);
@@ -190,13 +190,13 @@ inline __simd_vf__ void TransposeExtendImpl(__ubuf__ T* dst, __ubuf__ T* src, __
   for (uint16_t i = 0U; i < repeat_time; i++) {
     mask = MicroAPI::UpdateMask<T>(cal_cnt);
     MicroAPI::LoadAlign(idx_reg, index + i * vl_size);
-    MicroAPI::Gather(dst_reg, src, (MicroAPI::RegTensor<IdxType<T>>&)idx_reg, mask);
+    MicroAPI::Gather(dst_reg, src, (MicroAPI::RegTensor<IdxType<T>> &)idx_reg, mask);
     MicroAPI::StoreAlign(dst + i * vl_size, dst_reg, mask);
   }
 }
 
 template <typename T>
-inline __simd_vf__ void Transpose2Dim1InnerDimExtendImpl(__ubuf__ T* dst, __ubuf__ T* src, __ubuf__ RangeType<T>* index,
+inline __simd_vf__ void Transpose2Dim1InnerDimExtendImpl(__ubuf__ T *dst, __ubuf__ T *src, __ubuf__ RangeType<T> *index,
                                                          RangeType<T> dst_dim0, RangeType<T> src_stride0,
                                                          RangeType<T> dst_stride0, RangeType<T> count) {
   uint16_t vl_size = static_cast<uint16_t>(GetVecLen() / sizeof(T));
@@ -210,14 +210,14 @@ inline __simd_vf__ void Transpose2Dim1InnerDimExtendImpl(__ubuf__ T* dst, __ubuf
     mask = MicroAPI::UpdateMask<T>(cal_cnt);
     for (uint16_t i = 0U; i < dst_dim0; i++) {
       MicroAPI::LoadAlign(idx_reg, index + j * vl_size);
-      MicroAPI::Gather(dst_reg, src + i * src_stride0, (MicroAPI::RegTensor<IdxType<T>>&)idx_reg, mask);
+      MicroAPI::Gather(dst_reg, src + i * src_stride0, (MicroAPI::RegTensor<IdxType<T>> &)idx_reg, mask);
       MicroAPI::StoreAlign(dst + i * dst_stride0 + j * vl_size, dst_reg, mask);
     }
   }
 }
 
 template <typename T>
-inline __simd_vf__ void TransposeOneOuterDimExtendImpl(__ubuf__ T* dst, __ubuf__ T* src, __ubuf__ RangeType<T>* index,
+inline __simd_vf__ void TransposeOneOuterDimExtendImpl(__ubuf__ T *dst, __ubuf__ T *src, __ubuf__ RangeType<T> *index,
                                                        RangeType<T> dst_dim0, RangeType<T> src_stride0,
                                                        RangeType<T> dst_stride0, RangeType<T> count) {
   uint16_t vl_size = static_cast<uint16_t>(GetVecLen() / sizeof(T));
@@ -231,14 +231,14 @@ inline __simd_vf__ void TransposeOneOuterDimExtendImpl(__ubuf__ T* dst, __ubuf__
     mask = MicroAPI::UpdateMask<T>(cal_cnt);
     for (uint16_t j = 0U; j < dst_dim0; j++) {
       MicroAPI::LoadAlign(idx_reg, index + i * vl_size);
-      MicroAPI::Gather(dst_reg, src + j * src_stride0, (MicroAPI::RegTensor<IdxType<T>>&)idx_reg, mask);
+      MicroAPI::Gather(dst_reg, src + j * src_stride0, (MicroAPI::RegTensor<IdxType<T>> &)idx_reg, mask);
       MicroAPI::StoreAlign(dst + j * dst_stride0 + i * vl_size, dst_reg, mask);
     }
   }
 }
 
 template <typename T>
-inline __simd_vf__ void TransposeTwoOuterDimExtendImpl(__ubuf__ T* dst, __ubuf__ T* src, __ubuf__ RangeType<T>* index,
+inline __simd_vf__ void TransposeTwoOuterDimExtendImpl(__ubuf__ T *dst, __ubuf__ T *src, __ubuf__ RangeType<T> *index,
                                                        RangeType<T> dst_dim0, RangeType<T> src_stride0,
                                                        RangeType<T> dst_stride0, RangeType<T> dst_dim1,
                                                        RangeType<T> src_stride1, RangeType<T> dst_stride1,
@@ -255,7 +255,7 @@ inline __simd_vf__ void TransposeTwoOuterDimExtendImpl(__ubuf__ T* dst, __ubuf__
     for (uint16_t j = 0U; j < dst_dim0; j++) {
       for (uint16_t k = 0U; k < dst_dim1; k++) {
         MicroAPI::LoadAlign(idx_reg, index + i * vl_size);
-        MicroAPI::Gather(dst_reg, src + j * src_stride0 + k * src_stride1, (MicroAPI::RegTensor<IdxType<T>>&)idx_reg,
+        MicroAPI::Gather(dst_reg, src + j * src_stride0 + k * src_stride1, (MicroAPI::RegTensor<IdxType<T>> &)idx_reg,
                          mask);
         MicroAPI::StoreAlign(dst + i * vl_size + j * dst_stride0 + k * dst_stride1, dst_reg, mask);
       }
@@ -264,7 +264,7 @@ inline __simd_vf__ void TransposeTwoOuterDimExtendImpl(__ubuf__ T* dst, __ubuf__
 }
 
 template <typename T>
-inline __simd_vf__ void TransposeThreeOuterDimExtendImpl(__ubuf__ T* dst, __ubuf__ T* src, __ubuf__ RangeType<T>* index,
+inline __simd_vf__ void TransposeThreeOuterDimExtendImpl(__ubuf__ T *dst, __ubuf__ T *src, __ubuf__ RangeType<T> *index,
                                                          RangeType<T> dst_dim0, RangeType<T> src_stride0,
                                                          RangeType<T> dst_stride0, RangeType<T> dst_dim1,
                                                          RangeType<T> src_stride1, RangeType<T> dst_stride1,
@@ -284,7 +284,7 @@ inline __simd_vf__ void TransposeThreeOuterDimExtendImpl(__ubuf__ T* dst, __ubuf
         for (uint16_t m = 0U; m < dst_dim2; m++) {
           MicroAPI::LoadAlign(idx_reg, index + i * vl_size);
           MicroAPI::Gather(dst_reg, src + j * src_stride0 + k * src_stride1 + m * src_stride2,
-                          (MicroAPI::RegTensor<IdxType<T>>&)idx_reg, mask);
+                           (MicroAPI::RegTensor<IdxType<T>> &)idx_reg, mask);
           MicroAPI::StoreAlign(dst + i * vl_size + j * dst_stride0 + k * dst_stride1 + m * dst_stride2, dst_reg, mask);
         }
       }
@@ -296,9 +296,9 @@ template <uint8_t inner_dim, uint8_t dim, typename T>
 __aicore__ inline void TransposeExtend(const LocalTensor<T> &dst, const LocalTensor<T> &src,
                                        const LocalTensor<uint8_t> &tmp_buf, const RangeType<T> (&dst_dims)[dim],
                                        const RangeType<T> (&src_strides)[dim], const RangeType<T> (&dst_strides)[dim]) {
-  __ubuf__ T* src_buf = (__ubuf__ T*)src.GetPhyAddr();
-  __ubuf__ T* dst_buf = (__ubuf__ T*)dst.GetPhyAddr();
-  __ubuf__ RangeType<T>* index_buf = (__ubuf__ RangeType<T>*)tmp_buf.GetPhyAddr();
+  __ubuf__ T *src_buf = (__ubuf__ T *)src.GetPhyAddr();
+  __ubuf__ T *dst_buf = (__ubuf__ T *)dst.GetPhyAddr();
+  __ubuf__ RangeType<T> *index_buf = (__ubuf__ RangeType<T> *)tmp_buf.GetPhyAddr();
   RangeType<T> cal_cnt = 1;
   for (uint8_t i = dim - inner_dim; i < dim; i++) {
     cal_cnt *= dst_dims[i];

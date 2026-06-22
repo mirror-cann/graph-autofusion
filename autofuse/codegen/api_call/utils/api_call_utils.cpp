@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -76,7 +76,7 @@ static void SetDataCopyParams(const MergeInfo &merge_info, DataCopyParams &param
   param.repeats.assign(merge_repeats.begin(), merge_repeats.end());
   param.gm_strides.assign(merge_gm_strides.begin(), merge_gm_strides.end());
   param.ub_strides.assign(merge_ub_strides.begin(), merge_ub_strides.end());
-  if (multi_axis_copy) { // nddma场景尾轴stride可以不等于1或者0，这种情况不需要补轴
+  if (multi_axis_copy) {  // nddma场景尾轴stride可以不等于1或者0，这种情况不需要补轴
     return;
   }
   if (param.repeats.size() != 0 &&
@@ -147,9 +147,11 @@ bool CalculateDmaParams(const TPipe &tpipe, const Tensor &gm_tensor, const Tenso
     ascir::SizeExpr cur_vectorized_axis_stride = axis_info.prev_vectorized_axis_stride * axis_info.prev_repeat;
     if (af::SymbolicUtils::StaticCheckEq(cur_axis_stride, gm_tensor.axis_strides[axis_pos]) != af::TriBool::kTrue ||
         af::SymbolicUtils::StaticCheckEq(cur_vectorized_axis_stride, ub_tensor.vectorized_strides[vec_axis_pos]) !=
-            af::TriBool::kTrue || merge_info.merge_repeats.empty() ||
+            af::TriBool::kTrue ||
+        merge_info.merge_repeats.empty() ||
         (vec_axis_pos < (ub_tensor.vectorized_axis.size() - 1) &&
-         tpipe.tiler.GetAxis(ub_tensor.vectorized_axis[vec_axis_pos + 1]).type == ascir::Axis::Type::kAxisTypeTileInner)) {
+         tpipe.tiler.GetAxis(ub_tensor.vectorized_axis[vec_axis_pos + 1]).type ==
+             ascir::Axis::Type::kAxisTypeTileInner)) {
       UpdateCalculatedDmaStatus(gm_tensor, ub_tensor, axis_pos, vec_axis_pos, axis_info, merge_info);
       continue;
     }
@@ -365,15 +367,19 @@ void GetOneAxisSize(const TPipe &tpipe, const Tensor &tensor, const uint32_t idx
 bool IsNeedTailExpansion(const VectorizedAxisLoopMergeStatus &merge_info) {
   for (size_t i = 0; i < merge_info.inputs_strides.size(); i++) {
     if (!(merge_info.inputs_strides[i].empty()) &&
-        af::SymbolicUtils::StaticCheckEq(merge_info.inputs_strides[i].back(), af::sym::kSymbolOne) != af::TriBool::kTrue &&
-        af::SymbolicUtils::StaticCheckEq(merge_info.inputs_strides[i].back(), af::sym::kSymbolZero) != af::TriBool::kTrue) {
+        af::SymbolicUtils::StaticCheckEq(merge_info.inputs_strides[i].back(), af::sym::kSymbolOne) !=
+            af::TriBool::kTrue &&
+        af::SymbolicUtils::StaticCheckEq(merge_info.inputs_strides[i].back(), af::sym::kSymbolZero) !=
+            af::TriBool::kTrue) {
       return true;
     }
   }
   for (size_t i = 0; i < merge_info.outputs_strides.size(); i++) {
     if (!(merge_info.outputs_strides[i].empty()) &&
-        af::SymbolicUtils::StaticCheckEq(merge_info.outputs_strides[i].back(), af::sym::kSymbolOne) != af::TriBool::kTrue &&
-        af::SymbolicUtils::StaticCheckEq(merge_info.outputs_strides[i].back(), af::sym::kSymbolZero) != af::TriBool::kTrue) {
+        af::SymbolicUtils::StaticCheckEq(merge_info.outputs_strides[i].back(), af::sym::kSymbolOne) !=
+            af::TriBool::kTrue &&
+        af::SymbolicUtils::StaticCheckEq(merge_info.outputs_strides[i].back(), af::sym::kSymbolZero) !=
+            af::TriBool::kTrue) {
       return true;
     }
   }
@@ -568,7 +574,7 @@ bool GetMaxDtypeSize(const ge::DataType input_data_type, const ge::DataType out_
   return true;
 }
 
-void GenerateLinkStoreEventCode(const Tensor& ub, const std::string& offset_str, std::stringstream& ss) {
+void GenerateLinkStoreEventCode(const Tensor &ub, const std::string &offset_str, std::stringstream &ss) {
   std::hash<std::string> hasher;
   [[maybe_unused]] size_t hasher_value = hasher(offset_str);
 

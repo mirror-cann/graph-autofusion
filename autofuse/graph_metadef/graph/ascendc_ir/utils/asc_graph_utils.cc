@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -109,7 +109,7 @@ graphStatus EstablishAscNodeAndEdges(const ascendc_ir::proto::AscGraphDef &asc_g
          compute_graph->GetDirectNodesSize());
   return GRAPH_SUCCESS;
 }
-}
+}  // namespace
 ComputeGraphPtr AscGraphUtils::GetComputeGraph(const AscGraph &asc_graph) {
   return asc_graph.impl_->GetComputeGraph();
 }
@@ -121,8 +121,7 @@ Status AscGraphUtils::FromComputeGraph(const ComputeGraphPtr &compute_graph, Asc
   return ge::SUCCESS;
 }
 
-graphStatus AscGraphUtils::SerializeToProto(const AscGraph &asc_graph,
-                                            ascendc_ir::proto::AscGraphDef &asc_graph_def) {
+graphStatus AscGraphUtils::SerializeToProto(const AscGraph &asc_graph, ascendc_ir::proto::AscGraphDef &asc_graph_def) {
   const auto &ge_graph = AscGraphUtils::GetComputeGraph(asc_graph);
   GE_ASSERT_NOTNULL(ge_graph);
   asc_graph_def.set_graph_name(asc_graph.GetName());
@@ -378,8 +377,8 @@ graphStatus AscNodeSerializeUtils::SerializeIrDef(const AscNode &node, ascendc_i
   return GRAPH_SUCCESS;
 }
 
-graphStatus AscNodeSerializeUtils::SerializeAttrGroupsDef(const AscNode &node,
-                                                          ascendc_ir::proto::AscNodeAttrGroupsDef &asc_node_attr_groups_def) {
+graphStatus AscNodeSerializeUtils::SerializeAttrGroupsDef(
+    const AscNode &node, ascendc_ir::proto::AscNodeAttrGroupsDef &asc_node_attr_groups_def) {
   const auto op_desc = node.GetOpDesc();
   GE_ASSERT_NOTNULL(op_desc);
   const auto asc_node_attr = op_desc->GetOrCreateAttrsGroup<AscNodeAttr>();
@@ -403,8 +402,8 @@ graphStatus AscNodeDeserializeUtils::DeserializeIrDef(const ascendc_ir::proto::I
   GELOGD("Deserialize ir def node[%s:%s] success.", node.GetNamePtr(), ir_def.type().c_str());
   return GRAPH_SUCCESS;
 }
-graphStatus AscNodeDeserializeUtils::DeserializeAttrGroupsDef(const ascendc_ir::proto::AscNodeAttrGroupsDef &asc_node_attr_groups_def,
-                                                              AscNode &node) {
+graphStatus AscNodeDeserializeUtils::DeserializeAttrGroupsDef(
+    const ascendc_ir::proto::AscNodeAttrGroupsDef &asc_node_attr_groups_def, AscNode &node) {
   const auto op_desc = node.GetOpDesc();
   GE_ASSERT_NOTNULL(op_desc);
   const auto asc_node_attr = op_desc->GetOrCreateAttrsGroup<AscNodeAttr>();
@@ -425,8 +424,5 @@ graphStatus ExpressionSerializer::Deserialize(const GeIrAttrDef &def, AnyValue &
   return av.SetValue(Expression::Deserialize(def.expression().c_str()));
 }
 
-REG_GEIR_SERIALIZER(expression_serializer,
-                    ExpressionSerializer,
-                    ge::GetTypeId<Expression>(),
-                    GeIrAttrDef::kExpression);
+REG_GEIR_SERIALIZER(expression_serializer, ExpressionSerializer, ge::GetTypeId<Expression>(), GeIrAttrDef::kExpression);
 }  // namespace af

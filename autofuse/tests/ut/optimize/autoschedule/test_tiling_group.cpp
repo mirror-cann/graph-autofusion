@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -43,8 +43,7 @@ namespace optimize {
 using namespace ge;
 class TilingGroupUT : public testing::Test {
  protected:
-  void SetUp() override {
-  }
+  void SetUp() override {}
 };
 TEST_F(TilingGroupUT, get_group_type) {
   AxisGroup g0;
@@ -310,7 +309,6 @@ TEST_F(TilingGroupUT, axis_group_is_empty) {
   EXPECT_TRUE(axis_group5.IsEmpty());
 }
 
-
 TEST_F(TilingGroupUT, gen_non_first_axis_concat_axis_group) {
   af::AscGraph graph("test_graph");
   graph.SetGraphType(af::AscGraphType::kImplGraph);
@@ -552,7 +550,11 @@ TEST_F(TilingGroupUT, transpose_axis_group3) {
 
   af::ascir_op::Store store("store");
   store.x = transpose.y;
-  store.attr.sched.axis = {z0.id, z1.id, z2.id, };
+  store.attr.sched.axis = {
+      z0.id,
+      z1.id,
+      z2.id,
+  };
   store.y.dtype = ge::DT_FLOAT16;
   *store.y.axis = {z1.id, z0.id, z2.id};
   *store.y.repeats = {s1, s0, s2};
@@ -609,7 +611,11 @@ TEST_F(TilingGroupUT, transpose_axis_group5) {
 
   af::ascir_op::Store store("store");
   store.x = transpose.y;
-  store.attr.sched.axis = {z0.id, z1.id, z2.id, };
+  store.attr.sched.axis = {
+      z0.id,
+      z1.id,
+      z2.id,
+  };
   store.y.dtype = ge::DT_FLOAT16;
   *store.y.axis = {z0.id, z2.id, z1.id};
   *store.y.repeats = {s0, s2, s1};
@@ -1399,7 +1405,7 @@ TEST_F(TilingGroupUT, get_loop_strides_case2) {
 
   std::vector<af::Expression> res_strides;
   std::vector<af::Expression> exp_strides{s1 * s4,       s4,           af::Symbol(0), af::Symbol(0), af::Symbol(1),
-                                      af::Symbol(0), af::Symbol(0)};
+                                          af::Symbol(0), af::Symbol(0)};
   auto node = graph.FindNode("add");
   ASSERT_EQ(ScheduleUtils::GetReduceInputStrides(*node, res_strides), ge::SUCCESS);
   for (size_t i = 0; i < res_strides.size(); i++) {
@@ -1442,7 +1448,7 @@ TEST_F(TilingGroupUT, get_loop_strides_case3) {
 
   std::vector<af::Expression> res_strides;
   std::vector<af::Expression> exp_strides{af::Symbol(0), s2 * s6,       s6,           af::Symbol(0),
-                                      af::Symbol(0), af::Symbol(0), af::Symbol(1)};
+                                          af::Symbol(0), af::Symbol(0), af::Symbol(1)};
   auto node = graph.FindNode("add");
   ASSERT_EQ(ScheduleUtils::GetReduceInputStrides(*node, res_strides), ge::SUCCESS);
   for (size_t i = 0; i < res_strides.size(); i++) {
@@ -1496,12 +1502,12 @@ TEST_F(TilingGroupUT, gen_first_axis_split_axis_group) {
   split.y[1].dtype = ge::DT_FLOAT16;
   *split.y[1].axis = {z0.id, z1.id, zo.id, z2.id};
   *split.y[1].repeats = {s0, s1, sj, s2};
-  *split.y[1].strides = {s1 * sj * s2, sj * s2, s2, af::ops::One}; 
+  *split.y[1].strides = {s1 * sj * s2, sj * s2, s2, af::ops::One};
 
   split.y[2].dtype = ge::DT_FLOAT16;
   *split.y[2].axis = {z0.id, z1.id, zo.id, z2.id};
   *split.y[2].repeats = {s0, s1, sk, s2};
-  *split.y[2].strides = {s1 * sk * s2, sk * s2, s2, af::ops::One};   
+  *split.y[2].strides = {s1 * sk * s2, sk * s2, s2, af::ops::One};
 
   af::ascir_op::Store store0("store0");
   store0.x = split.y[0];
@@ -1520,7 +1526,7 @@ TEST_F(TilingGroupUT, gen_first_axis_split_axis_group) {
   *store1.y.repeats = {s0, s1, sj, s2};
   *store1.y.strides = {s1 * sj * s2, sj * s2, s2, af::ops::One};
   store1.attr.api.compute_type = af::ComputeType::kComputeStore;
-  
+
   af::ascir_op::Store store2("store2");
   store2.x = split.y[2];
   store2.attr.sched.axis = {z0.id, z1.id, zo.id, z2.id};
@@ -1543,13 +1549,13 @@ TEST_F(TilingGroupUT, gen_first_axis_split_axis_group) {
   y1.y.dtype = ge::DT_FLOAT16;
   *y1.y.axis = {z0.id, z1.id, zo.id, z2.id};
   y1.attr.api.compute_type = af::ComputeType::kComputeInvalid;
-  
+
   af::ascir_op::Output y2("y2");
   y2.x = store2.y;
   y2.attr.sched.axis = {z0.id, z1.id, zo.id, z2.id};
   y2.y.dtype = ge::DT_FLOAT16;
   *y2.y.axis = {z0.id, z1.id, zo.id, z2.id};
-  y2.attr.api.compute_type = af::ComputeType::kComputeInvalid;  
+  y2.attr.api.compute_type = af::ComputeType::kComputeInvalid;
 
   auto split_node = graph.FindNode("split");
   AxisGroup res;
@@ -1560,7 +1566,6 @@ TEST_F(TilingGroupUT, gen_first_axis_split_axis_group) {
   EXPECT_EQ(res.axes_order, golden_order);
   EXPECT_TRUE(res.n_group.empty());
 }
-
 
 TEST_F(TilingGroupUT, gen_not_first_axis_split_axis_group) {
   af::AscGraph graph("test_graph");
@@ -1608,12 +1613,12 @@ TEST_F(TilingGroupUT, gen_not_first_axis_split_axis_group) {
   split.y[1].dtype = ge::DT_FLOAT16;
   *split.y[1].axis = {z0.id, z1.id, zo.id, z2.id};
   *split.y[1].repeats = {s0, s1, sj, s2};
-  *split.y[1].strides = {s1 * sj * s2, sj * s2, s2, af::ops::One}; 
+  *split.y[1].strides = {s1 * sj * s2, sj * s2, s2, af::ops::One};
 
   split.y[2].dtype = ge::DT_FLOAT16;
   *split.y[2].axis = {z0.id, z1.id, zo.id, z2.id};
   *split.y[2].repeats = {s0, s1, sk, s2};
-  *split.y[2].strides = {s1 * sk * s2, sk * s2, s2, af::ops::One};   
+  *split.y[2].strides = {s1 * sk * s2, sk * s2, s2, af::ops::One};
 
   af::ascir_op::Store store0("store0");
   store0.x = split.y[0];
@@ -1632,7 +1637,7 @@ TEST_F(TilingGroupUT, gen_not_first_axis_split_axis_group) {
   *store1.y.repeats = {s0, s1, sj, s2};
   *store1.y.strides = {s1 * sj * s2, sj * s2, s2, af::ops::One};
   store1.attr.api.compute_type = af::ComputeType::kComputeStore;
-  
+
   af::ascir_op::Store store2("store2");
   store2.x = split.y[2];
   store2.attr.sched.axis = {z0.id, z1.id, zo.id, z2.id};
@@ -1655,13 +1660,13 @@ TEST_F(TilingGroupUT, gen_not_first_axis_split_axis_group) {
   y1.y.dtype = ge::DT_FLOAT16;
   *y1.y.axis = {z0.id, z1.id, zo.id, z2.id};
   y1.attr.api.compute_type = af::ComputeType::kComputeInvalid;
-  
+
   af::ascir_op::Output y2("y2");
   y2.x = store2.y;
   y2.attr.sched.axis = {z0.id, z1.id, zo.id, z2.id};
   y2.y.dtype = ge::DT_FLOAT16;
   *y2.y.axis = {z0.id, z1.id, zo.id, z2.id};
-  y2.attr.api.compute_type = af::ComputeType::kComputeInvalid;  
+  y2.attr.api.compute_type = af::ComputeType::kComputeInvalid;
 
   auto split_node = graph.FindNode("split");
   AxisGroup res;

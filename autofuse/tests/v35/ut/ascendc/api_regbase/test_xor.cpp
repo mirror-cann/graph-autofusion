@@ -16,7 +16,7 @@
 
 using namespace AscendC;
 
-namespace af{
+namespace af {
 
 class TestRegbaseApiXorUT : public testing::Test {
  protected:
@@ -85,7 +85,7 @@ class TestRegbaseApiXorUT : public testing::Test {
     CreateTensorInput(param);
 
     // 构造Api调用函数
-    auto kernel = [&param] {InvokeTensorTensorKernel(param);};
+    auto kernel = [&param] { InvokeTensorTensorKernel(param); };
 
     // 调用kernel
     AscendC::SetKernelMode(KernelMode::AIV_MODE);
@@ -118,4 +118,4 @@ TEST_F(TestRegbaseApiXorUT, Xor_TensorTensor_Test) {
   XorTensorTensorTest<uint16_t>((MAX_REPEAT_NUM - 1) * ONE_REPEAT_BYTE_SIZE / 2 / sizeof(uint16_t));
 }
 
-}  // namespace ge
+}  // namespace af

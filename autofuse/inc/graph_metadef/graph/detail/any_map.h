@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -29,8 +29,12 @@ class TypeID {
 
   ~TypeID() = default;
 
-  bool operator==(const TypeID &other) const { return type_ == other.type_; }
-  bool operator!=(const TypeID &other) const { return type_ != other.type_; }
+  bool operator==(const TypeID &other) const {
+    return type_ == other.type_;
+  }
+  bool operator!=(const TypeID &other) const {
+    return type_ != other.type_;
+  }
 
  private:
   explicit TypeID(const std::string &type) : type_(type) {}
@@ -46,10 +50,12 @@ class AnyMap {
   template <class T>
   bool Get(const std::string &name, T &ret_value) const;
 
-  template<class T>
+  template <class T>
   const T *Get(const std::string &name) const;
 
-  bool Has(const std::string &name) const { return any_values_.find(name) != any_values_.end(); }
+  bool Has(const std::string &name) const {
+    return any_values_.find(name) != any_values_.end();
+  }
 
   void Swap(AnyMap &other) {
     any_values_.swap(other.any_values_);
@@ -60,7 +66,9 @@ class AnyMap {
       (void)names.emplace(item.first);
     }
   }
-  bool Erase(const std::string &name) { return (any_values_.erase(name) > 0);}
+  bool Erase(const std::string &name) {
+    return (any_values_.erase(name) > 0);
+  }
 
  private:
   class Placeholder {
@@ -108,7 +116,7 @@ bool AnyMap::Set(const std::string &name, const DT &val) {
   }
 
   if (it == any_values_.end()) {
-    (void) any_values_.emplace(name, tmp);
+    (void)any_values_.emplace(name, tmp);
   } else {
     if (it->second && (it->second->GetTypeInfo() == TypeID::Of<DT>())) {
       it->second = tmp;
@@ -138,7 +146,7 @@ const T *AnyMap::Get(const std::string &name) const {
   if (iter->second->GetTypeInfo() != TypeID::Of<T>()) {
     return nullptr;
   }
-  const auto holder = static_cast<Holder<T>*>(iter->second.get());
+  const auto holder = static_cast<Holder<T> *>(iter->second.get());
   return &holder->value_;
 }
 }  // namespace af

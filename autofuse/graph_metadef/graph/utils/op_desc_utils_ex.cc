@@ -51,16 +51,17 @@ bool EnableIgnoreInferError() {
   GELOGI("Got value of env[IGNORE_INFER_ERROR] is [%s].", env_str_value.c_str());
   return !env_str_value.empty();
 }
-}
+}  // namespace
 
 graphStatus OpDescUtilsEx::CallInferFuncV2(const OpDescPtr &op_desc, Operator &op) {
   const auto call_infer_data_type = OperatorFactoryImpl::GetInferDataTypeFunc();
   const auto call_infer_shape_v2 = OperatorFactoryImpl::GetInferShapeV2Func();
   const auto call_infer_shape_range = OperatorFactoryImpl::GetInferShapeRangeFunc();
   if ((call_infer_data_type == nullptr) || (call_infer_shape_v2 == nullptr) || (call_infer_shape_range == nullptr)) {
-    GELOGW("[Call][InferFuncV2] Node %s(%s) has no infer func v2 either v1. Please check op proto to make sure at "
-           "least has one.",
-           op_desc->GetNamePtr(), op_desc->GetTypePtr());
+    GELOGW(
+        "[Call][InferFuncV2] Node %s(%s) has no infer func v2 either v1. Please check op proto to make sure at "
+        "least has one.",
+        op_desc->GetNamePtr(), op_desc->GetTypePtr());
     return GRAPH_FAILED;
   }
   if (op_desc->GetIrInputs().empty() && op_desc->GetIrOutputs().empty() && op_desc->GetAllOutputsDescSize() != 0U) {
@@ -94,8 +95,7 @@ graphStatus OpDescUtilsEx::CallInferFuncV1(const OpDescPtr &op_desc, Operator &o
   {
     const auto &node_ptr = NodeUtilsEx::GetNodeFromOperator(op);
     const bool empty_name = (node_ptr == nullptr) || (node_ptr->GetOwnerComputeGraph() == nullptr);
-    const auto &graph_name = empty_name ? std::string("")
-                                        : node_ptr->GetOwnerComputeGraph()->GetName();
+    const auto &graph_name = empty_name ? std::string("") : node_ptr->GetOwnerComputeGraph()->GetName();
     TraceOwnerGuard guard("OP", op_desc->GetName() + ":infershape", graph_name);
     auto infer_func = op_desc->GetInferFunc();
     graph_status = infer_func(op);
@@ -117,7 +117,7 @@ graphStatus OpDescUtilsEx::InferCustomOpShape(const OpDescPtr &op_desc, Operator
   GELOGI("[%s][%s] Infer Custom op shape.", op_desc->GetNamePtr(), op_desc->GetTypePtr());
 
   const auto is_infer_shape_v2_registered_func = OperatorFactoryImpl::GetIsInferShapeV2RegisteredFunc();
-  if ((is_infer_shape_v2_registered_func != nullptr) && is_infer_shape_v2_registered_func(op_desc))  {
+  if ((is_infer_shape_v2_registered_func != nullptr) && is_infer_shape_v2_registered_func(op_desc)) {
     GELOGI("[Call][InferFunc] call V2 func for op [%s][%s]", op_desc->GetNamePtr(), op_desc->GetTypePtr());
     return CallInferFuncV2(op_desc, op);
   }
@@ -199,8 +199,7 @@ graphStatus OpDescUtilsEx::InferShapeByOutputShapesAttr(const OpDescPtr &op_desc
   std::vector<std::vector<int64_t>> shape_values;
   const bool got = AttrUtils::GetListListInt(op_desc, ATTR_NAME_PRESET_OUTPUT_SHAPES, shape_values);
   if (!got) {
-    GELOGD("Do not need infer op = %s by shape value, shape_values = %zu.",
-           op_desc->GetNamePtr(), shape_values.size());
+    GELOGD("Do not need infer op = %s by shape value, shape_values = %zu.", op_desc->GetNamePtr(), shape_values.size());
     return GRAPH_SUCCESS;
   }
   GE_ASSERT_TRUE(op_desc->GetAllOutputsDescSize() == static_cast<uint32_t>(shape_values.size()),
@@ -343,8 +342,8 @@ void OpDescUtilsEx::SetType(OpDescPtr &op_desc, const std::string &type) {
 
   op_desc->SetType(type);
   op_desc->SetIrRelated(OpDescUtils::GetOpDescFromOperator(op));
-  TRACE_GEN_RECORD(TraceManager::GetTraceHeader(), "modify", TraceManager::GetOutGraphName(),
-                   op_desc->GetName(), "type", "", "", type);
+  TRACE_GEN_RECORD(TraceManager::GetTraceHeader(), "modify", TraceManager::GetOutGraphName(), op_desc->GetName(),
+                   "type", "", "", type);
 }
 
 void OpDescUtilsEx::ResetFuncHandle(OpDescPtr &op_desc) {
@@ -371,4 +370,4 @@ void OpDescUtilsEx::UpdateShapeAndDType(const GeTensorDescPtr &src, const GeTens
   dst->SetOriginShapeRange(src_shape_range);
   TensorUtils::SetRealDimCnt(*dst, static_cast<uint32_t>(src->GetShape().GetDims().size()));
 }
-} // namespace ge
+}  // namespace af

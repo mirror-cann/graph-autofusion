@@ -8,7 +8,6 @@
  * See LICENSE in the root of the software repository for the full text of the License.
  */
 
-
 #include <ascendc_ir.h>
 #include <ascir_ops.h>
 #include <ascir_utils.h>
@@ -115,11 +114,11 @@ void Construct_ArgMax_Reduce_ARAR(af::AscGraph &graph) {
 
 namespace optimize {
 class AutoSchedulerArgMaxReduceUT : public ::testing::Test {
-  void SetUp() override {
-  }
+  void SetUp() override {}
+
  protected:
   optimize::Optimizer optimizer_;
-  AutoSchedulerArgMaxReduceUT(): optimizer_(optimize::OptimizerOptions{}) {};
+  AutoSchedulerArgMaxReduceUT() : optimizer_(optimize::OptimizerOptions{}) {};
 };
 
 TEST_F(AutoSchedulerArgMaxReduceUT, Autoschedule_argmax_reduce_arar_fusion_rcore) {

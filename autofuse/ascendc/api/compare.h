@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -180,7 +180,7 @@ inline __aicore__ void ApplyCompareMode(LocalTensor<int32_t> &inter_buf, CMPMODE
       AscendC::PipeBarrier<PIPE_V>();
       AscendC::Mins(inter_buf, inter_buf, (int32_t)1, num_elements);
       break;
-      
+
     case CMPMODE::LE:
       AscendC::Adds(inter_buf, inter_buf, (int32_t)(-1), num_elements);
       AscendC::PipeBarrier<PIPE_V>();
@@ -208,12 +208,12 @@ inline __aicore__ void PerformTypeConversion(const LocalTensor<OutT> &dst, Local
   // int32 -> int16
   LocalTensor<int16_t> int16_buf = inter_buf.template ReinterpretCast<int16_t>();
   AscendC::Cast(int16_buf, inter_buf, RoundMode::CAST_NONE, num_elements);
-  
+
   // int16 -> half
   LocalTensor<half> half_buf = inter_buf.template ReinterpretCast<half>();
   AscendC::PipeBarrier<PIPE_V>();
   AscendC::Cast(half_buf, int16_buf, RoundMode::CAST_NONE, num_elements);
-  
+
   // half -> OutT
   AscendC::PipeBarrier<PIPE_V>();
   AscendC::Cast(dst[offset], half_buf, RoundMode::CAST_NONE, num_elements);
@@ -228,7 +228,7 @@ inline __aicore__ void ProcessScalarCompareBlock(const LocalTensor<OutT> &dst, c
                                                  const BinaryRepeatParams &binary_param) {
   AscendC::Sub(inter_buf, src0[offset], tensor_src1[0], mask, repeat_times, binary_param);
   AscendC::PipeBarrier<PIPE_V>();
-  
+
   ApplyCompareMode(inter_buf, mode, num_elements);
   PerformTypeConversion(dst, inter_buf, offset, num_elements);
 }
@@ -254,27 +254,27 @@ inline __aicore__ void CompareScalarExtendInt32(const LocalTensor<OutT> &dst, co
   LocalTensor<int32_t> tensor_src1 = tmp_buf[0].template ReinterpretCast<int32_t>();
   tensor_src1.SetSize(one_blk_num);
   Duplicate(tensor_src1, scalar_src1, one_blk_num);
-  
+
   uint32_t inter_buf_offset = KernelUtils::BlkAlign<uint8_t>(one_blk_num * sizeof(int32_t));
   LocalTensor<int32_t> inter_buf = tmp_buf[inter_buf_offset].template ReinterpretCast<int32_t>();
   inter_buf.SetSize(one_step_num);
-  
+
   BinaryRepeatParams binary_param(1, 1, 0, 8, 8, 0);
   uint64_t mask = one_repeat_num;
   uint32_t offset = 0;
   // 主循环处理
   for (uint32_t i = 0; i < loop_cnt; i++) {
-    ProcessScalarCompareBlock(dst, src0, tensor_src1, inter_buf, offset, mask, 
-                              repeat_times, one_step_num, mode, binary_param);
+    ProcessScalarCompareBlock(dst, src0, tensor_src1, inter_buf, offset, mask, repeat_times, one_step_num, mode,
+                              binary_param);
     offset += one_step_num;
   }
   // 剩余完整repeat块处理
   uint32_t remain_rpt_times = (cal_cnt - offset) / one_repeat_num;
   uint32_t remain_nums = remain_rpt_times * one_repeat_num;
-  
+
   if (remain_rpt_times != 0) {
-    ProcessScalarCompareBlock(dst, src0, tensor_src1, inter_buf, offset, mask, 
-                              remain_rpt_times, remain_nums, mode, binary_param);
+    ProcessScalarCompareBlock(dst, src0, tensor_src1, inter_buf, offset, mask, remain_rpt_times, remain_nums, mode,
+                              binary_param);
     offset += remain_nums;
   }
   // 尾部处理
@@ -284,8 +284,7 @@ inline __aicore__ void CompareScalarExtendInt32(const LocalTensor<OutT> &dst, co
     BinaryRepeatParams tail_param(1, 1, 0, 8, 8, 0);
     tail_param.src0RepStride = aligned_tail;
     tail_param.dstRepStride = aligned_tail;
-    ProcessScalarCompareBlock(dst, src0, tensor_src1, inter_buf, offset, calc_tail, 
-                              1, calc_tail, mode, tail_param);
+    ProcessScalarCompareBlock(dst, src0, tensor_src1, inter_buf, offset, calc_tail, 1, calc_tail, mode, tail_param);
   }
 }
 
@@ -675,8 +674,10 @@ inline __aicore__ void CompareExtend(const LocalTensor<T> &dst, const LocalTenso
   }
 }
 
-inline __aicore__ void GetSignBitTensor(const AscendC::LocalTensor<uint16_t> &dst0, const AscendC::LocalTensor<uint16_t> &dst1,
-                                        const AscendC::LocalTensor<int64_t> &src0, const AscendC::LocalTensor<int64_t> &src1,
+inline __aicore__ void GetSignBitTensor(const AscendC::LocalTensor<uint16_t> &dst0,
+                                        const AscendC::LocalTensor<uint16_t> &dst1,
+                                        const AscendC::LocalTensor<int64_t> &src0,
+                                        const AscendC::LocalTensor<int64_t> &src1,
                                         const AscendC::LocalTensor<uint32_t> &inner_dup, const uint32_t cal_cnt) {
   AscendC::PipeBarrier<PIPE_V>();
   uint32_t quadruple_cal_cnt = 4 * cal_cnt;

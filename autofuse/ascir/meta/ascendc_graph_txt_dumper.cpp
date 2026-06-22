@@ -24,7 +24,7 @@ constexpr int32_t kAxisPriorityTileInner = 4;
 constexpr int32_t kAxisPriorityOriginal = 5;
 constexpr int32_t kAxisPriorityMerged = 6;
 constexpr int32_t kAxisPriorityDefault = 999;
-} // namespace
+}  // namespace
 namespace ascir {
 namespace dumper {
 // =============================================================================
@@ -35,19 +35,13 @@ namespace dumper {
  * @brief 统一的 Dtype 映射表
  */
 static const std::map<ge::DataType, DtypeInfo> kDtypeInfoMap = {
-  {ge::DT_FLOAT, {"float32", "f32", "32f"}},
-  {ge::DT_FLOAT16, {"float16", "f16", "16f"}},
-  {ge::DT_BF16, {"bfloat16", "bf16", "16f"}},
-  {ge::DT_INT8, {"int8_t", "i8", "8i"}},
-  {ge::DT_INT16, {"int16_t", "i16", "16i"}},
-  {ge::DT_INT32, {"int32_t", "i32", "32i"}},
-  {ge::DT_INT64, {"int64_t", "i64", "64i"}},
-  {ge::DT_UINT8, {"uint8_t", "u8", "8u"}},
-  {ge::DT_UINT16, {"uint16_t", "u16", "16u"}},
-  {ge::DT_UINT32, {"uint32_t", "u32", "32u"}},
-  {ge::DT_UINT64, {"uint64_t", "u64", "64u"}},
-  {ge::DT_BOOL, {"bool", "i1", "1i"}},
-  {ge::DT_DOUBLE, {"float64", "f64", "64f"}},
+    {ge::DT_FLOAT, {"float32", "f32", "32f"}},   {ge::DT_FLOAT16, {"float16", "f16", "16f"}},
+    {ge::DT_BF16, {"bfloat16", "bf16", "16f"}},  {ge::DT_INT8, {"int8_t", "i8", "8i"}},
+    {ge::DT_INT16, {"int16_t", "i16", "16i"}},   {ge::DT_INT32, {"int32_t", "i32", "32i"}},
+    {ge::DT_INT64, {"int64_t", "i64", "64i"}},   {ge::DT_UINT8, {"uint8_t", "u8", "8u"}},
+    {ge::DT_UINT16, {"uint16_t", "u16", "16u"}}, {ge::DT_UINT32, {"uint32_t", "u32", "32u"}},
+    {ge::DT_UINT64, {"uint64_t", "u64", "64u"}}, {ge::DT_BOOL, {"bool", "i1", "1i"}},
+    {ge::DT_DOUBLE, {"float64", "f64", "64f"}},
 };
 
 const DtypeInfo *GetDtypeInfo(ge::DataType dtype) {
@@ -60,31 +54,45 @@ const DtypeInfo *GetDtypeInfo(ge::DataType dtype) {
 
 int32_t GetAxisTypePriority(af::Axis::Type type) {
   switch (type) {
-    case af::Axis::Type::kAxisTypeBlockOuter: return kAxisPriorityBlockOuter;
-    case af::Axis::Type::kAxisTypeBlockInner: return kAxisPriorityBlockInner;
-    case af::Axis::Type::kAxisTypeTileOuter: return kAxisPriorityTileOuter;
-    case af::Axis::Type::kAxisTypeTileInner: return kAxisPriorityTileInner;
-    case af::Axis::Type::kAxisTypeOriginal: return kAxisPriorityOriginal;
-    case af::Axis::Type::kAxisTypeMerged: return kAxisPriorityMerged;
-    default: return kAxisPriorityDefault;
+    case af::Axis::Type::kAxisTypeBlockOuter:
+      return kAxisPriorityBlockOuter;
+    case af::Axis::Type::kAxisTypeBlockInner:
+      return kAxisPriorityBlockInner;
+    case af::Axis::Type::kAxisTypeTileOuter:
+      return kAxisPriorityTileOuter;
+    case af::Axis::Type::kAxisTypeTileInner:
+      return kAxisPriorityTileInner;
+    case af::Axis::Type::kAxisTypeOriginal:
+      return kAxisPriorityOriginal;
+    case af::Axis::Type::kAxisTypeMerged:
+      return kAxisPriorityMerged;
+    default:
+      return kAxisPriorityDefault;
   }
 }
 
 std::string GetAxisTypeSuffix(af::Axis::Type type) {
   switch (type) {
-    case af::Axis::Type::kAxisTypeOriginal: return "ORIGINAL";
-    case af::Axis::Type::kAxisTypeTileOuter: return "TILE_OUT";
-    case af::Axis::Type::kAxisTypeBlockOuter: return "BLOCK_OUT";
-    case af::Axis::Type::kAxisTypeBlockInner: return "BLOCK_IN";
-    case af::Axis::Type::kAxisTypeTileInner: return "TILE_IN";
-    case af::Axis::Type::kAxisTypeMerged: return "MERGED";
-    default: return "UNKNOWN";
+    case af::Axis::Type::kAxisTypeOriginal:
+      return "ORIGINAL";
+    case af::Axis::Type::kAxisTypeTileOuter:
+      return "TILE_OUT";
+    case af::Axis::Type::kAxisTypeBlockOuter:
+      return "BLOCK_OUT";
+    case af::Axis::Type::kAxisTypeBlockInner:
+      return "BLOCK_IN";
+    case af::Axis::Type::kAxisTypeTileInner:
+      return "TILE_IN";
+    case af::Axis::Type::kAxisTypeMerged:
+      return "MERGED";
+    default:
+      return "UNKNOWN";
   }
 }
 
 std::map<af::AxisId, std::string> BuildAxisIdToNameMap(const std::vector<af::AxisPtr> &axes) {
   std::map<af::AxisId, std::string> id_to_name;
-  for (const auto &axis: axes) {
+  for (const auto &axis : axes) {
     id_to_name[axis->id] = axis->name;
   }
   return id_to_name;
@@ -92,7 +100,7 @@ std::map<af::AxisId, std::string> BuildAxisIdToNameMap(const std::vector<af::Axi
 
 std::map<int64_t, af::Axis::Type> BuildAxisIdToTypeMap(const std::vector<af::AxisPtr> &axes) {
   std::map<int64_t, af::Axis::Type> id_to_type;
-  for (const auto &axis: axes) {
+  for (const auto &axis : axes) {
     id_to_type[axis->id] = axis->type;
   }
   return id_to_type;
@@ -114,7 +122,7 @@ static std::string GetDtypeString(ge::DataType dtype) {
  */
 static std::string GetTensorTypeStr(const af::AscGraph &graph, const af::AscTensorAttr &attr,
                                     const std::map<af::AxisId, std::string> &axis_id_to_name) {
-  (void) graph;
+  (void)graph;
   std::stringstream ss;
 
   // 数据类型 - 使用简写类型名
@@ -168,25 +176,25 @@ DumpContext BuildDumpContext(const ascir::Graph &graph) {
   ctx.ssa_mapping = BuildSSAMapping(graph.GetAllNodes());
 
   // 收集函数参数（data, workspace, output）
-  for (auto node: graph.GetAllNodes()) {
+  for (auto node : graph.GetAllNodes()) {
     auto node_type = node->GetType();
     if (node_type == NodeType::kData) {
       if (!node->outputs().empty()) {
         auto &output_attr = node->outputs()[0]->attr;
-        ctx.func_params.data_params.push_back({node->GetName(),
-            GetTensorTypeStr(graph, output_attr, ctx.axis_id_to_name)});
+        ctx.func_params.data_params.push_back(
+            {node->GetName(), GetTensorTypeStr(graph, output_attr, ctx.axis_id_to_name)});
       }
     } else if (node_type == NodeType::kWorkspace) {
       if (!node->outputs().empty()) {
         auto &output_attr = node->outputs()[0]->attr;
-        ctx.func_params.workspace_params.push_back({node->GetName(),
-            GetTensorTypeStr(graph, output_attr, ctx.axis_id_to_name)});
+        ctx.func_params.workspace_params.push_back(
+            {node->GetName(), GetTensorTypeStr(graph, output_attr, ctx.axis_id_to_name)});
       }
     } else if (node_type == NodeType::kOutput) {
       if (!node->outputs().empty()) {
         auto &output_attr = node->outputs()[0]->attr;
-        ctx.func_params.output_params.push_back({node->GetName(),
-            GetTensorTypeStr(graph, output_attr, ctx.axis_id_to_name)});
+        ctx.func_params.output_params.push_back(
+            {node->GetName(), GetTensorTypeStr(graph, output_attr, ctx.axis_id_to_name)});
       }
     }
   }
@@ -225,7 +233,7 @@ std::string ExtractAxisListFromTensorType(const std::string &tensor_type) {
 }
 
 std::vector<std::string> CollectInputNames(const ascir::Graph &graph, const af::AscNodePtr &node) {
-  (void) graph;
+  (void)graph;
   std::vector<std::string> input_names;
 
   for (uint32_t index = 0U; index < node->GetAllInDataAnchorsSize(); index++) {
@@ -256,7 +264,7 @@ SSAMappingInfo BuildSSAMapping(af::AscNodeVisitor all_nodes) {
   SSAMappingInfo info;
   size_t topo_id = 0;
 
-  for (auto node: all_nodes) {
+  for (auto node : all_nodes) {
     auto node_type = node->GetType();
     if (node_type == NodeType::kData) {
       info.data_node_names.insert(node->GetName());
@@ -295,8 +303,7 @@ bool IsBroadcastDimension(const af::Expression &stride) {
 /**
  * @brief 获取向量化维度的大小字符串
  */
-std::string GetVectorizedDimSize(const af::AscTensorAttr &attr,
-                                 af::AxisId axis_id,
+std::string GetVectorizedDimSize(const af::AscTensorAttr &attr, af::AxisId axis_id,
                                  const std::map<af::AxisId, std::string> &axis_id_to_name) {
   // 找到 axis_id 在 attr.axis 中的位置
   size_t found_axis_idx = 0;
@@ -357,7 +364,7 @@ std::string GetDtypeSuffix(ge::DataType dtype) {
  */
 static std::string GetVectorizedAxesStr(const ascir::Graph &graph, const af::AscTensorAttr &attr,
                                         const std::map<af::AxisId, std::string> &axis_id_to_name) {
-  (void) graph;
+  (void)graph;
   if (attr.vectorized_axis.empty()) {
     return "";
   }
@@ -391,8 +398,7 @@ static std::string GetVectorizedAxesStr(const ascir::Graph &graph, const af::Asc
 /**
  * @brief 格式化输入参数列表
  */
-static std::string FormatInputParams(const std::vector<std::string> &input_names,
-                                     const SSAMappingInfo &ssa_info) {
+static std::string FormatInputParams(const std::vector<std::string> &input_names, const SSAMappingInfo &ssa_info) {
   std::stringstream ss;
   for (size_t i = 0; i < input_names.size(); ++i) {
     if (i > 0) ss << ", ";
@@ -433,7 +439,7 @@ static std::vector<int64_t> CollectSubgraphLoopAxes(const ascir::Graph &graph,
   std::vector<int64_t> loop_axes_in_order;
   std::set<int64_t> seen_loop_axes;
 
-  for (auto node: all_nodes) {
+  for (auto node : all_nodes) {
     auto node_type = node->GetType();
     if (node_type == NodeType::kData || node_type == NodeType::kOutput || node_type == NodeType::kWorkspace) {
       continue;
@@ -446,15 +452,14 @@ static std::vector<int64_t> CollectSubgraphLoopAxes(const ascir::Graph &graph,
   }
 
   // 按轴类型排序
-  std::sort(loop_axes_in_order.begin(), loop_axes_in_order.end(),
-            [&axis_id_to_type](int64_t a, int64_t b) {
-              int32_t priority_a = GetAxisTypePriority(axis_id_to_type.at(a));
-              int32_t priority_b = GetAxisTypePriority(axis_id_to_type.at(b));
-              if (priority_a != priority_b) {
-                return priority_a < priority_b;
-              }
-              return a < b;
-            });
+  std::sort(loop_axes_in_order.begin(), loop_axes_in_order.end(), [&axis_id_to_type](int64_t a, int64_t b) {
+    int32_t priority_a = GetAxisTypePriority(axis_id_to_type.at(a));
+    int32_t priority_b = GetAxisTypePriority(axis_id_to_type.at(b));
+    if (priority_a != priority_b) {
+      return priority_a < priority_b;
+    }
+    return a < b;
+  });
 
   return loop_axes_in_order;
 }
@@ -466,7 +471,7 @@ static std::map<int64_t, std::vector<af::AscNodePtr> > GroupNodesByLoopAxis(cons
   std::map<int64_t, std::vector<af::AscNodePtr> > nodes_by_loop_axis;
   auto all_nodes = graph.GetAllNodes();
 
-  for (auto node: all_nodes) {
+  for (auto node : all_nodes) {
     auto node_type = node->GetType();
     if (node_type == NodeType::kData || node_type == NodeType::kOutput || node_type == NodeType::kWorkspace) {
       continue;
@@ -481,17 +486,13 @@ static std::map<int64_t, std::vector<af::AscNodePtr> > GroupNodesByLoopAxis(cons
 /**
  * @brief 输出子图中的单个节点
  */
-static void DumpSubgraphNode(std::stringstream &ss,
-                             const ascir::Graph &graph,
-                             const af::AscNodePtr &node,
-                             const SSAMappingInfo &ssa_info,
-                             size_t indent) {
+static void DumpSubgraphNode(std::stringstream &ss, const ascir::Graph &graph, const af::AscNodePtr &node,
+                             const SSAMappingInfo &ssa_info, size_t indent) {
   std::string node_name = node->GetName();
   size_t topo_id = ssa_info.GetTopoId(node_name);
   auto node_type = node->GetType();
 
-  ss << std::string(indent, ' ') << "%" << (topo_id + 1)
-      << " = ascir.ops." << node_type << "(";
+  ss << std::string(indent, ' ') << "%" << (topo_id + 1) << " = ascir.ops." << node_type << "(";
 
   // 输入参数
   auto input_names = CollectInputNames(graph, node);
@@ -511,25 +512,23 @@ static void DumpSubgraphNode(std::stringstream &ss,
 /**
  * @brief 输出嵌套循环中的节点
  */
-static void DumpNodesInLoops(std::stringstream &ss,
-                             const ascir::Graph &graph,
+static void DumpNodesInLoops(std::stringstream &ss, const ascir::Graph &graph,
                              const std::vector<int64_t> &loop_axes_in_order,
                              const std::map<int64_t, std::vector<af::AscNodePtr> > &nodes_by_loop_axis,
-                             const std::map<af::AxisId, std::string> &axis_id_to_name,
-                             const SSAMappingInfo &ssa_info) {
+                             const std::map<af::AxisId, std::string> &axis_id_to_name, const SSAMappingInfo &ssa_info) {
   std::set<int64_t> opened_loops;
   size_t current_depth = 0;
 
-  for (auto axis_id: loop_axes_in_order) {
+  for (auto axis_id : loop_axes_in_order) {
     // 打开循环
-    ss << std::string(current_depth * kIndentSpaces, ' ')
-        << "for %" << axis_id_to_name.at(axis_id) << " in " << axis_id_to_name.at(axis_id) << "_size {" << std::endl;
+    ss << std::string(current_depth * kIndentSpaces, ' ') << "for %" << axis_id_to_name.at(axis_id) << " in "
+       << axis_id_to_name.at(axis_id) << "_size {" << std::endl;
     opened_loops.insert(axis_id);
     current_depth++;
 
     // 输出 loop_axis = 当前轴的节点
     if (nodes_by_loop_axis.count(axis_id) > 0) {
-      for (auto node: nodes_by_loop_axis.at(axis_id)) {
+      for (auto node : nodes_by_loop_axis.at(axis_id)) {
         DumpSubgraphNode(ss, graph, node, ssa_info, current_depth * kIndentSpaces);
       }
     }
@@ -545,16 +544,15 @@ static void DumpNodesInLoops(std::stringstream &ss,
 /**
  * @brief 输出外层节点（loop_axis = kInvalidLoopAxis）
  */
-static void DumpOuterNodes(std::stringstream &ss,
-                           const ascir::Graph &graph,
+static void DumpOuterNodes(std::stringstream &ss, const ascir::Graph &graph,
                            const std::map<int64_t, std::vector<af::AscNodePtr> > &nodes_by_loop_axis,
                            const SSAMappingInfo &ssa_info) {
   if (nodes_by_loop_axis.count(kInvalidLoopAxis) == 0) {
     return;
   }
 
-  for (auto node: nodes_by_loop_axis.at(kInvalidLoopAxis)) {
-    DumpSubgraphNode(ss, graph, node, ssa_info, 2); // 2空格缩进
+  for (auto node : nodes_by_loop_axis.at(kInvalidLoopAxis)) {
+    DumpSubgraphNode(ss, graph, node, ssa_info, 2);  // 2空格缩进
   }
 }
 
@@ -583,7 +581,7 @@ static std::string DumpSubgraphLoopExecution(const ascir::Graph &graph,
 
   return ss.str();
 }
-} // namespace
+}  // namespace
 
 // =============================================================================
 // VIEW 1: Loop Execution 辅助函数实现
@@ -594,8 +592,7 @@ namespace {
  * @brief 检测图是否为子图
  */
 bool IsSubgraph(const std::string &graph_name) {
-  return (graph_name.find("_VfSubgraph_") != std::string::npos ||
-          graph_name.find("_Subgraph_") != std::string::npos);
+  return (graph_name.find("_VfSubgraph_") != std::string::npos || graph_name.find("_Subgraph_") != std::string::npos);
 }
 
 /**
@@ -605,14 +602,14 @@ std::set<int64_t> CollectVectorizedAxes(const ascir::Graph &graph) {
   std::set<int64_t> vectorized_axes;
   auto all_nodes = graph.GetAllNodes();
 
-  for (auto node: all_nodes) {
+  for (auto node : all_nodes) {
     auto node_type = node->GetType();
     if (node_type == NodeType::kData || node_type == NodeType::kOutput) {
       continue;
     }
     if (!node->outputs().empty()) {
       auto &output_attr = node->outputs()[0]->attr;
-      for (auto axis_id: output_attr.vectorized_axis) {
+      for (auto axis_id : output_attr.vectorized_axis) {
         vectorized_axes.insert(axis_id);
       }
     }
@@ -633,34 +630,31 @@ std::string GenerateOriginalShapesComment(const FunctionParams &params) {
   if (!params.data_params.empty()) {
     // 按类型分组输入
     std::map<std::string, std::vector<std::string> > inputs_by_type;
-    for (const auto &input: params.data_params) {
+    for (const auto &input : params.data_params) {
       auto dtype = ExtractDtypeFromTensorType(input.type);
       auto axes = ExtractAxisListFromTensorType(input.type);
       std::string full_type = dtype + axes;
       inputs_by_type[full_type].push_back(input.name);
     }
 
-    for (const auto &entry: inputs_by_type) {
+    for (const auto &entry : inputs_by_type) {
       ss << "#   ";
       for (size_t i = 0; i < entry.second.size(); ++i) {
         if (i > 0) ss << ", ";
         ss << entry.second[i];
       }
-      ss << ": " << ExtractDtypeFromTensorType(entry.first)
-          << ExtractAxisListFromTensorType(entry.first) << std::endl;
+      ss << ": " << ExtractDtypeFromTensorType(entry.first) << ExtractAxisListFromTensorType(entry.first) << std::endl;
     }
   }
 
   // Workspace 参数
-  for (const auto &param: params.workspace_params) {
-    ss << "#   workspace: " << param.name << ": "
-        << ExtractDtypeFromTensorType(param.type) << "[]" << std::endl;
+  for (const auto &param : params.workspace_params) {
+    ss << "#   workspace: " << param.name << ": " << ExtractDtypeFromTensorType(param.type) << "[]" << std::endl;
   }
 
   // Output 参数
-  for (const auto &param: params.output_params) {
-    ss << "#   output: " << param.name << ": "
-        << ExtractDtypeFromTensorType(param.type) << "[]" << std::endl;
+  for (const auto &param : params.output_params) {
+    ss << "#   output: " << param.name << ": " << ExtractDtypeFromTensorType(param.type) << "[]" << std::endl;
   }
 
   ss << "#" << std::endl;
@@ -671,8 +665,7 @@ std::string GenerateOriginalShapesComment(const FunctionParams &params) {
 /**
  * @brief 构建 Tile/Block 分解树
  */
-AxisTreeNode BuildAxisDecompositionTree(const af::AxisPtr &axis,
-                                        const std::vector<af::AxisPtr> &all_axis,
+AxisTreeNode BuildAxisDecompositionTree(const af::AxisPtr &axis, const std::vector<af::AxisPtr> &all_axis,
                                         const std::set<int64_t> &merged_axes) {
   AxisTreeNode node;
   node.axis = axis;
@@ -680,13 +673,13 @@ AxisTreeNode BuildAxisDecompositionTree(const af::AxisPtr &axis,
 
   // 找到所有直接从 axis 分解或合并出来的轴
   std::vector<af::AxisPtr> direct_derived;
-  for (auto &target_axis: all_axis) {
+  for (auto &target_axis : all_axis) {
     if (target_axis->id == axis->id) {
       continue;
     }
     if (!target_axis->from.empty()) {
       bool is_child = false;
-      for (auto from_id: target_axis->from) {
+      for (auto from_id : target_axis->from) {
         if (from_id == axis->id) {
           is_child = true;
           break;
@@ -699,13 +692,12 @@ AxisTreeNode BuildAxisDecompositionTree(const af::AxisPtr &axis,
   }
 
   // 按类型排序
-  std::sort(direct_derived.begin(), direct_derived.end(),
-            [](const af::AxisPtr &a, const af::AxisPtr &b) {
-              return GetAxisTypePriority(a->type) < GetAxisTypePriority(b->type);
-            });
+  std::sort(direct_derived.begin(), direct_derived.end(), [](const af::AxisPtr &a, const af::AxisPtr &b) {
+    return GetAxisTypePriority(a->type) < GetAxisTypePriority(b->type);
+  });
 
   // 递归构建子树
-  for (auto &derived: direct_derived) {
+  for (auto &derived : direct_derived) {
     node.children.push_back(BuildAxisDecompositionTree(derived, all_axis, merged_axes));
   }
 
@@ -715,9 +707,7 @@ AxisTreeNode BuildAxisDecompositionTree(const af::AxisPtr &axis,
 /**
  * @brief 输出 Tile/Block 分解树（递归）
  */
-void PrintAxisDecompositionTree(std::stringstream &ss,
-                                const AxisTreeNode &node,
-                                const std::string &prefix,
+void PrintAxisDecompositionTree(std::stringstream &ss, const AxisTreeNode &node, const std::string &prefix,
                                 const std::string &child_prefix) {
   ss << "#   " << prefix << node.axis->name;
 
@@ -754,14 +744,14 @@ std::string GenerateTileBlockDecompositionComment(const std::vector<af::AxisPtr>
 
   // 收集所有涉及合并的轴
   std::set<int64_t> merged_axes;
-  for (auto &axis: all_axis) {
+  for (auto &axis : all_axis) {
     if (!axis->from.empty() && axis->from.size() > 1) {
       merged_axes.insert(axis->id);
     }
   }
 
   // 构建分解树并按树状图输出
-  for (auto &axis: all_axis) {
+  for (auto &axis : all_axis) {
     if (axis->type == af::Axis::Type::kAxisTypeOriginal) {
       AxisTreeNode root = BuildAxisDecompositionTree(axis, all_axis, merged_axes);
       if (root.children.empty()) {
@@ -781,8 +771,7 @@ std::string GenerateTileBlockDecompositionComment(const std::vector<af::AxisPtr>
 /**
  * @brief 生成函数签名
  */
-std::string GenerateFunctionSignature(const std::string &graph_name,
-                                      const FunctionParams &params) {
+std::string GenerateFunctionSignature(const std::string &graph_name, const FunctionParams &params) {
   std::stringstream ss;
 
   ss << "func @" << graph_name << "(";
@@ -791,21 +780,21 @@ std::string GenerateFunctionSignature(const std::string &graph_name,
   bool first = true;
 
   // Data 参数
-  for (const auto &param: params.data_params) {
+  for (const auto &param : params.data_params) {
     if (!first) ss << ", ";
     ss << "%" << param.name << ": " << param.type;
     first = false;
   }
 
   // Workspace 参数
-  for (const auto &param: params.workspace_params) {
+  for (const auto &param : params.workspace_params) {
     if (!first) ss << ", ";
     ss << "%" << param.name << ": " << param.type;
     first = false;
   }
 
   // Output 参数
-  for (const auto &param: params.output_params) {
+  for (const auto &param : params.output_params) {
     if (!first) ss << ", ";
     ss << "%" << param.name << ": " << param.type;
     first = false;
@@ -823,7 +812,7 @@ std::string GenerateFunctionSignature(const std::string &graph_name,
 bool HasLoopAxis(const ascir::Graph &graph) {
   auto all_nodes = graph.GetAllNodes();
 
-  for (auto node: all_nodes) {
+  for (auto node : all_nodes) {
     auto node_type = node->GetType();
     if (node_type == NodeType::kData || node_type == NodeType::kOutput) {
       continue;
@@ -843,12 +832,11 @@ bool HasLoopAxis(const ascir::Graph &graph) {
 /**
  * @brief 收集有 loop_axis 时的循环轴
  */
-static void CollectLoopAxesWithLoopAxis(const ascir::Graph &graph,
-                                        const std::set<int64_t> &vectorized_axes,
+static void CollectLoopAxesWithLoopAxis(const ascir::Graph &graph, const std::set<int64_t> &vectorized_axes,
                                         std::set<int64_t> &all_loop_axes) {
   auto all_nodes = graph.GetAllNodes();
 
-  for (auto node: all_nodes) {
+  for (auto node : all_nodes) {
     auto node_type = node->GetType();
     if (node_type == NodeType::kData || node_type == NodeType::kOutput) {
       continue;
@@ -857,9 +845,9 @@ static void CollectLoopAxesWithLoopAxis(const ascir::Graph &graph,
     auto loop_axis = node->attr.sched.loop_axis;
     if (loop_axis != kInvalidLoopAxis) {
       auto &axis_list = node->attr.sched.axis;
-      for (auto axis_id: axis_list) {
+      for (auto axis_id : axis_list) {
         if (axis_id == loop_axis) {
-          break; // 到 loop_axis 为止
+          break;  // 到 loop_axis 为止
         }
         if (vectorized_axes.count(axis_id) == 0) {
           all_loop_axes.insert(axis_id);
@@ -875,19 +863,18 @@ static void CollectLoopAxesWithLoopAxis(const ascir::Graph &graph,
 /**
  * @brief 收集无 loop_axis 时的循环轴
  */
-static void CollectLoopAxesWithoutLoopAxis(const ascir::Graph &graph,
-                                           const std::set<int64_t> &vectorized_axes,
+static void CollectLoopAxesWithoutLoopAxis(const ascir::Graph &graph, const std::set<int64_t> &vectorized_axes,
                                            std::set<int64_t> &all_loop_axes) {
   auto all_nodes = graph.GetAllNodes();
 
-  for (auto node: all_nodes) {
+  for (auto node : all_nodes) {
     auto node_type = node->GetType();
     if (node_type == NodeType::kData || node_type == NodeType::kOutput) {
       continue;
     }
 
     auto &axis_list = node->attr.sched.axis;
-    for (auto axis_id: axis_list) {
+    for (auto axis_id : axis_list) {
       if (vectorized_axes.count(axis_id) == 0) {
         all_loop_axes.insert(axis_id);
       }
@@ -901,23 +888,21 @@ static void CollectLoopAxesWithoutLoopAxis(const ascir::Graph &graph,
 static std::vector<int64_t> SortLoopAxesByPriority(const std::set<int64_t> &all_loop_axes,
                                                    const std::map<int64_t, af::Axis::Type> &axis_id_to_type) {
   std::vector<int64_t> sorted_loop_axes(all_loop_axes.begin(), all_loop_axes.end());
-  std::sort(sorted_loop_axes.begin(), sorted_loop_axes.end(),
-            [&axis_id_to_type](int64_t a, int64_t b) {
-              int32_t priority_a = GetAxisTypePriority(axis_id_to_type.at(a));
-              int32_t priority_b = GetAxisTypePriority(axis_id_to_type.at(b));
-              if (priority_a != priority_b) {
-                return priority_a < priority_b;
-              }
-              return a < b;
-            });
+  std::sort(sorted_loop_axes.begin(), sorted_loop_axes.end(), [&axis_id_to_type](int64_t a, int64_t b) {
+    int32_t priority_a = GetAxisTypePriority(axis_id_to_type.at(a));
+    int32_t priority_b = GetAxisTypePriority(axis_id_to_type.at(b));
+    if (priority_a != priority_b) {
+      return priority_a < priority_b;
+    }
+    return a < b;
+  });
   return sorted_loop_axes;
 }
 
 /**
  * @brief 收集所有需要循环的轴
  */
-std::vector<int64_t> CollectLoopAxes(const ascir::Graph &graph,
-                                     const std::set<int64_t> &vectorized_axes,
+std::vector<int64_t> CollectLoopAxes(const ascir::Graph &graph, const std::set<int64_t> &vectorized_axes,
                                      const std::map<int64_t, af::Axis::Type> &axis_id_to_type) {
   std::set<int64_t> all_loop_axes;
   bool has_loop_axis = HasLoopAxis(graph);
@@ -933,10 +918,7 @@ std::vector<int64_t> CollectLoopAxes(const ascir::Graph &graph,
 /**
  * @brief 输出 Scalar 节点
  */
-void DumpScalarNode(std::stringstream &ss,
-                    const af::AscNodePtr &node,
-                    size_t indent_spaces,
-                    size_t topo_id) {
+void DumpScalarNode(std::stringstream &ss, const af::AscNodePtr &node, size_t indent_spaces, size_t topo_id) {
   ss << std::string(indent_spaces, ' ') << "%" << (topo_id + 1) << " = ";
 
   if (node->attr.ir_attr != nullptr) {
@@ -958,11 +940,16 @@ void DumpScalarNode(std::stringstream &ss,
  */
 static std::string ExecuteConditionToString(af::ExecuteCondition condition) {
   switch (condition) {
-    case af::ExecuteCondition::kNoCache: return "no_cache";
-    case af::ExecuteCondition::kCacheBlockSplitFusedBroadcastAxis: return "cache_block_split_fused_brc_axis";
-    case af::ExecuteCondition::kCacheBlockSplitOriginBroadcastAxis: return "cache_block_split_origin_brc_axis";
-    case af::ExecuteCondition::kConditionInvalid: return "invalid";
-    default: return "unknown";
+    case af::ExecuteCondition::kNoCache:
+      return "no_cache";
+    case af::ExecuteCondition::kCacheBlockSplitFusedBroadcastAxis:
+      return "cache_block_split_fused_brc_axis";
+    case af::ExecuteCondition::kCacheBlockSplitOriginBroadcastAxis:
+      return "cache_block_split_origin_brc_axis";
+    case af::ExecuteCondition::kConditionInvalid:
+      return "invalid";
+    default:
+      return "unknown";
   }
 }
 
@@ -977,7 +964,7 @@ std::string GetStoreDestinationComment(const af::AscNodePtr &node) {
   if (out_anchor == nullptr) {
     return "";
   }
-  for (const auto &peer_in_anchor: out_anchor->GetPeerInDataAnchorsPtr()) {
+  for (const auto &peer_in_anchor : out_anchor->GetPeerInDataAnchorsPtr()) {
     auto peer_node = peer_in_anchor->GetOwnerNodeBarePtr();
     if (peer_node == nullptr) continue;
     auto dest_type = peer_node->GetType();
@@ -994,11 +981,8 @@ std::string GetStoreDestinationComment(const af::AscNodePtr &node) {
 /**
  * @brief 输出单个节点的执行语句
  */
-void DumpNodeExecution(std::stringstream &ss,
-                       const ascir::Graph &graph,
-                       const af::AscNodePtr &node,
-                       const SSAMappingInfo &ssa_info,
-                       const std::map<af::AxisId, std::string> &axis_id_to_name,
+void DumpNodeExecution(std::stringstream &ss, const ascir::Graph &graph, const af::AscNodePtr &node,
+                       const SSAMappingInfo &ssa_info, const std::map<af::AxisId, std::string> &axis_id_to_name,
                        size_t indent_spaces) {
   std::string node_name = node->GetName();
   auto node_type = node->GetType();
@@ -1013,14 +997,12 @@ void DumpNodeExecution(std::stringstream &ss,
   // ExecuteCondition 条件判断
   auto exec_condition = node->attr.sched.exec_condition;
   if (exec_condition != af::ExecuteCondition::kNoCache) {
-    ss << std::string(indent_spaces, ' ') << "if ("
-        << ExecuteConditionToString(exec_condition) << ") {" << std::endl;
+    ss << std::string(indent_spaces, ' ') << "if (" << ExecuteConditionToString(exec_condition) << ") {" << std::endl;
     indent_spaces += kIndentSpaces;
   }
 
   // 非Scalar节点的通用处理
-  ss << std::string(indent_spaces, ' ') << "%" << (topo_id + 1)
-      << " = ascir.ops." << node_type << "(";
+  ss << std::string(indent_spaces, ' ') << "%" << (topo_id + 1) << " = ascir.ops." << node_type << "(";
 
   // 输入参数
   auto input_names = CollectInputNames(graph, node);
@@ -1055,11 +1037,9 @@ void DumpNodeExecution(std::stringstream &ss,
  * @param current_depth 当前深度
  * @return 目标深度
  */
-static size_t DetermineNodeTargetDepth(const af::AscNodePtr &node,
-                                       bool has_loop_axis,
+static size_t DetermineNodeTargetDepth(const af::AscNodePtr &node, bool has_loop_axis,
                                        const std::map<int64_t, size_t> &loop_axis_to_depth,
-                                       size_t sorted_loop_axes_size,
-                                       size_t current_depth) {
+                                       size_t sorted_loop_axes_size, size_t current_depth) {
   auto node_type = node->GetType();
   auto loop_axis = node->attr.sched.loop_axis;
   bool is_scalar = (node_type == NodeType::kScalar);
@@ -1081,9 +1061,7 @@ static size_t DetermineNodeTargetDepth(const af::AscNodePtr &node,
  * @param target_depth 目标深度
  * @param opened_loops 已打开的循环集合（会被修改）
  */
-static void CloseUnneededLoops(std::stringstream &ss,
-                               size_t &current_depth,
-                               size_t target_depth,
+static void CloseUnneededLoops(std::stringstream &ss, size_t &current_depth, size_t target_depth,
                                std::set<int64_t> &opened_loops) {
   while (current_depth > target_depth) {
     current_depth--;
@@ -1105,21 +1083,17 @@ static void CloseUnneededLoops(std::stringstream &ss,
  * @param current_depth 当前深度（会被修改）
  * @param opened_loops 已打开的循环集合（会被修改）
  */
-static void OpenNeededLoops(std::stringstream &ss,
-                            const std::vector<int64_t> &sorted_loop_axes,
-                            size_t target_depth,
-                            const std::map<af::AxisId, std::string> &axis_id_to_name,
-                            size_t &current_depth,
+static void OpenNeededLoops(std::stringstream &ss, const std::vector<int64_t> &sorted_loop_axes, size_t target_depth,
+                            const std::map<af::AxisId, std::string> &axis_id_to_name, size_t &current_depth,
                             std::set<int64_t> &opened_loops) {
-  for (auto axis_id: sorted_loop_axes) {
+  for (auto axis_id : sorted_loop_axes) {
     if (opened_loops.count(axis_id) == 0) {
       auto depth_it = std::find(sorted_loop_axes.begin(), sorted_loop_axes.end(), axis_id);
       if (depth_it != sorted_loop_axes.end()) {
         size_t axis_depth = std::distance(sorted_loop_axes.begin(), depth_it) + 1;
         if (axis_depth <= target_depth) {
-          ss << std::string(current_depth * kIndentSpaces, ' ')
-              << "for %" << axis_id_to_name.at(axis_id) << " in "
-              << axis_id_to_name.at(axis_id) << "_size {" << std::endl;
+          ss << std::string(current_depth * kIndentSpaces, ' ') << "for %" << axis_id_to_name.at(axis_id) << " in "
+             << axis_id_to_name.at(axis_id) << "_size {" << std::endl;
           opened_loops.insert(axis_id);
           current_depth++;
         }
@@ -1140,12 +1114,11 @@ static void OpenNeededLoops(std::stringstream &ss,
  * @param ssa_info SSA 映射信息
  * @return 循环执行内容的字符串
  */
-static std::string DumpRegularGraphLoopExecution(
-  const ascir::Graph &graph,
-  const std::map<af::AxisId, std::string> &axis_id_to_name,
-  const std::map<int64_t, af::Axis::Type> &axis_id_to_type,
-  const std::set<int64_t> &vectorized_axes,
-  const SSAMappingInfo &ssa_info) {
+static std::string DumpRegularGraphLoopExecution(const ascir::Graph &graph,
+                                                 const std::map<af::AxisId, std::string> &axis_id_to_name,
+                                                 const std::map<int64_t, af::Axis::Type> &axis_id_to_type,
+                                                 const std::set<int64_t> &vectorized_axes,
+                                                 const SSAMappingInfo &ssa_info) {
   std::stringstream ss;
 
   auto all_nodes = graph.GetAllNodes();
@@ -1163,16 +1136,15 @@ static std::string DumpRegularGraphLoopExecution(
   std::set<int64_t> opened_loops;
   size_t current_depth = 0;
 
-  for (auto node: all_nodes) {
+  for (auto node : all_nodes) {
     auto node_type = node->GetType();
-    if (node_type == NodeType::kData || node_type == NodeType::kOutput ||
-        node_type == NodeType::kWorkspace) {
+    if (node_type == NodeType::kData || node_type == NodeType::kOutput || node_type == NodeType::kWorkspace) {
       continue;
     }
 
     // 确定节点应该在哪个深度
-    size_t target_depth = DetermineNodeTargetDepth(node, has_loop_axis, loop_axis_to_depth,
-                                                   sorted_loop_axes.size(), current_depth);
+    size_t target_depth =
+        DetermineNodeTargetDepth(node, has_loop_axis, loop_axis_to_depth, sorted_loop_axes.size(), current_depth);
 
     // 关闭不需要的循环
     CloseUnneededLoops(ss, current_depth, target_depth, opened_loops);
@@ -1192,7 +1164,7 @@ static std::string DumpRegularGraphLoopExecution(
 
   return ss.str();
 }
-} // namespace
+}  // namespace
 
 // =============================================================================
 // VIEW 1: Loop Execution
@@ -1225,8 +1197,8 @@ std::string DumpLoopExecutionView(const ascir::Graph &graph, const DumpContext &
     ss << DumpSubgraphLoopExecution(graph, ctx.axis_id_to_name, ctx.axis_id_to_type);
   } else {
     // 非子图模式：按照 loop_axis 分层输出节点
-    ss << DumpRegularGraphLoopExecution(graph, ctx.axis_id_to_name, ctx.axis_id_to_type,
-                                        vectorized_axes, ctx.ssa_mapping);
+    ss << DumpRegularGraphLoopExecution(graph, ctx.axis_id_to_name, ctx.axis_id_to_type, vectorized_axes,
+                                        ctx.ssa_mapping);
   }
 
   ss << "}" << std::endl;
@@ -1243,11 +1215,16 @@ std::string DumpLoopExecutionView(const ascir::Graph &graph, const DumpContext &
  */
 std::string PositionToString(af::Position position) {
   switch (position) {
-    case af::Position::kPositionVecIn: return "VECIN";
-    case af::Position::kPositionVecCalc: return "VECCALC";
-    case af::Position::kPositionVecOut: return "VECOUT";
-    case af::Position::kPositionGM: return "GM";
-    default: return "UNKNOWN";
+    case af::Position::kPositionVecIn:
+      return "VECIN";
+    case af::Position::kPositionVecCalc:
+      return "VECCALC";
+    case af::Position::kPositionVecOut:
+      return "VECOUT";
+    case af::Position::kPositionGM:
+      return "GM";
+    default:
+      return "UNKNOWN";
   }
 }
 
@@ -1256,9 +1233,12 @@ std::string PositionToString(af::Position position) {
  */
 std::string MemHardwareToString(af::MemHardware hardware) {
   switch (hardware) {
-    case af::MemHardware::kMemHardwareGM: return "GM";
-    case af::MemHardware::kMemHardwareUB: return "UB";
-    default: return "UNKNOWN";
+    case af::MemHardware::kMemHardwareGM:
+      return "GM";
+    case af::MemHardware::kMemHardwareUB:
+      return "UB";
+    default:
+      return "UNKNOWN";
   }
 }
 
@@ -1273,7 +1253,7 @@ namespace {
 static std::stringstream &OutputShapeStr(std::stringstream &ss, const ascir::Graph &graph,
                                          const af::AscTensorAttr &output_attr,
                                          const std::map<af::AxisId, std::string> &axis_id_to_name) {
-  (void) graph;
+  (void)graph;
   // 输出 axis 列表
   if (!output_attr.axis.empty()) {
     ss << std::string(kTensorPropertyIndent, ' ') << ".axis = {";
@@ -1314,7 +1294,7 @@ static std::stringstream &OutputShapeStr(std::stringstream &ss, const ascir::Gra
 static std::stringstream &OutputVectorizedStr(std::stringstream &ss, const ascir::Graph &graph,
                                               const af::AscTensorAttr &output_attr,
                                               const std::map<af::AxisId, std::string> &axis_id_to_name) {
-  (void) graph;
+  (void)graph;
   if (!output_attr.vectorized_axis.empty()) {
     ss << std::string(kTensorPropertyIndent, ' ') << ".vectorized = {";
     for (size_t i = 0; i < output_attr.vectorized_axis.size(); ++i) {
@@ -1374,7 +1354,7 @@ static std::stringstream &OutputMemStr(std::stringstream &ss, const af::AscTenso
 
   return ss;
 }
-} // namespace
+}  // namespace
 
 // =============================================================================
 // VIEW 2: Graph Structure 辅助函数实现
@@ -1387,7 +1367,7 @@ void DumpSizeVars(std::stringstream &ss, const ascir::Graph &graph) {
   ss << "Sizes:" << std::endl;
   auto all_size_var = graph.GetAllSizeVar();
 
-  for (const auto &size_var: all_size_var) {
+  for (const auto &size_var : all_size_var) {
     if (size_var->expr.GetExprType() == af::ExprType::kExprVariable) {
       ss << "  " << size_var->expr.Str().get() << ": VAR" << std::endl;
     } else {
@@ -1404,7 +1384,7 @@ void DumpAxisList(std::stringstream &ss, const ascir::Graph &graph,
   ss << std::endl << "Axis:" << std::endl;
   auto all_axis = graph.GetAllAxis();
 
-  for (auto &axis: all_axis) {
+  for (auto &axis : all_axis) {
     ss << "  " << axis->name << "(" << axis->id << ") : ";
     ss << GetAxisTypeSuffix(axis->type);
     ss << ", size:" << af::SymbolicUtils::ToString(axis->size);
@@ -1426,8 +1406,7 @@ void DumpAxisList(std::stringstream &ss, const ascir::Graph &graph,
 /**
  * @brief 输出节点调度属性（axis, loop_axis）
  */
-static void DumpNodeSchedProps(std::stringstream &ss,
-                               const af::AscNodePtr &node,
+static void DumpNodeSchedProps(std::stringstream &ss, const af::AscNodePtr &node,
                                const std::map<af::AxisId, std::string> &axis_id_to_name) {
   // 输出 axis 列表
   if (!node->attr.sched.axis.empty()) {
@@ -1443,14 +1422,14 @@ static void DumpNodeSchedProps(std::stringstream &ss,
   // 输出 loop_axis
   if (node->attr.sched.loop_axis >= 0) {
     auto it = axis_id_to_name.find(node->attr.sched.loop_axis);
-    ss << std::string(kPropertyIndent, ' ') << ".loop_axis = "
-        << (it != axis_id_to_name.end() ? it->second : "unknown") << std::endl;
+    ss << std::string(kPropertyIndent, ' ') << ".loop_axis = " << (it != axis_id_to_name.end() ? it->second : "unknown")
+       << std::endl;
   }
 
   // 输出 exec_condition（只显示非默认值）
   if (node->attr.sched.exec_condition != af::ExecuteCondition::kNoCache) {
-    ss << std::string(kPropertyIndent, ' ') << ".exec_condition = "
-        << ExecuteConditionToString(node->attr.sched.exec_condition) << std::endl;
+    ss << std::string(kPropertyIndent, ' ')
+       << ".exec_condition = " << ExecuteConditionToString(node->attr.sched.exec_condition) << std::endl;
   }
 
   const auto &tmp_buffers = node->attr.tmp_buffers;
@@ -1458,9 +1437,8 @@ static void DumpNodeSchedProps(std::stringstream &ss,
     ss << std::string(kPropertyIndent, ' ') << ".tmp_buf = {";
     for (size_t i = 0; i < tmp_buffers.size(); ++i) {
       if (i > 0) ss << ", ";
-      ss << "{id=" << tmp_buffers[i].id
-          << ", size=" << af::SymbolicUtils::ToString(tmp_buffers[i].buf_desc.size)
-          << ", life_cycle=" << tmp_buffers[i].buf_desc.life_time_axis_id << "}";
+      ss << "{id=" << tmp_buffers[i].id << ", size=" << af::SymbolicUtils::ToString(tmp_buffers[i].buf_desc.size)
+         << ", life_cycle=" << tmp_buffers[i].buf_desc.life_time_axis_id << "}";
     }
     ss << "}" << std::endl;
   }
@@ -1473,11 +1451,11 @@ static void DumpNodeIrAttr(std::stringstream &ss, const af::AscNodePtr &node) {
   auto &ir_attr = node->GetOpDesc()->GetAttrsGroup<af::AscNodeAttr>()->ir_attr;
   if (ir_attr != nullptr) {
     ascendc_ir::proto::AscIrAttrDef asc_ir_attr_def;
-    (void) ir_attr->Serialize(asc_ir_attr_def);
+    (void)ir_attr->Serialize(asc_ir_attr_def);
     if (!asc_ir_attr_def.attr().empty()) {
-      for (const auto &pair: asc_ir_attr_def.attr()) {
-        ss << std::string(kPropertyIndent, ' ')
-            << ".ir_attr." << pair.first << " = " << pair.second.ShortDebugString() << std::endl;
+      for (const auto &pair : asc_ir_attr_def.attr()) {
+        ss << std::string(kPropertyIndent, ' ') << ".ir_attr." << pair.first << " = " << pair.second.ShortDebugString()
+           << std::endl;
       }
     }
   }
@@ -1486,8 +1464,7 @@ static void DumpNodeIrAttr(std::stringstream &ss, const af::AscNodePtr &node) {
 /**
  * @brief 输出节点输入
  */
-static void DumpNodeInputs(std::stringstream &ss, const ascir::Graph &graph,
-                           const af::AscNodePtr &node) {
+static void DumpNodeInputs(std::stringstream &ss, const ascir::Graph &graph, const af::AscNodePtr &node) {
   auto input_names = CollectInputNames(graph, node);
   if (input_names.empty()) {
     return;
@@ -1495,7 +1472,7 @@ static void DumpNodeInputs(std::stringstream &ss, const ascir::Graph &graph,
 
   // 检查是否全部为 nil
   bool all_nil = true;
-  for (const auto &name: input_names) {
+  for (const auto &name : input_names) {
     if (name != "nil") {
       all_nil = false;
       break;
@@ -1518,18 +1495,16 @@ static void DumpNodeInputs(std::stringstream &ss, const ascir::Graph &graph,
 /**
  * @brief 输出节点输出
  */
-static void DumpNodeOutputs(std::stringstream &ss, const ascir::Graph &graph,
-                            const af::AscNodePtr &node,
-                            const std::map<af::AxisId, std::string> &axis_id_to_name,
-                            bool verbose, bool is_subgraph) {
+static void DumpNodeOutputs(std::stringstream &ss, const ascir::Graph &graph, const af::AscNodePtr &node,
+                            const std::map<af::AxisId, std::string> &axis_id_to_name, bool verbose, bool is_subgraph) {
   size_t output_count = node->outputs().size();
   for (size_t i = 0; i < output_count; ++i) {
     auto &output_attr = node->outputs()[i]->attr;
 
     // 构建 tensor 名称：多输出用 y[0]，单输出用 y
     std::string tensor_name = (output_count > 1) ? ("y[" + std::to_string(i) + "]") : "y";
-    ss << std::string(kPropertyIndent, ' ') << "." << tensor_name
-        << ": " << GetDtypeString(output_attr.dtype) << std::endl;
+    ss << std::string(kPropertyIndent, ' ') << "." << tensor_name << ": " << GetDtypeString(output_attr.dtype)
+       << std::endl;
 
     // 输出形状、向量化信息
     OutputShapeStr(ss, graph, output_attr, axis_id_to_name);
@@ -1545,10 +1520,8 @@ static void DumpNodeOutputs(std::stringstream &ss, const ascir::Graph &graph,
 /**
  * @brief 输出单个节点的详细信息
  */
-void DumpNodeDetails(std::stringstream &ss, const ascir::Graph &graph,
-                     const af::AscNodePtr &node, size_t idx,
-                     const std::map<af::AxisId, std::string> &axis_id_to_name,
-                     bool verbose, bool is_subgraph) {
+void DumpNodeDetails(std::stringstream &ss, const ascir::Graph &graph, const af::AscNodePtr &node, size_t idx,
+                     const std::map<af::AxisId, std::string> &axis_id_to_name, bool verbose, bool is_subgraph) {
   // 节点名和类型
   ss << "  [" << idx << "] " << node->GetName() << " : ascir.ops." << node->GetType() << std::endl;
 
@@ -1581,7 +1554,7 @@ std::string DumpGraphStructureView(const ascir::Graph &graph, const DumpContext 
   ss << std::endl << "Nodes:" << std::endl;
   size_t idx = 0UL;
 
-  for (auto node: graph.GetAllNodes()) {
+  for (auto node : graph.GetAllNodes()) {
     DumpNodeDetails(ss, graph, node, idx++, ctx.axis_id_to_name, verbose, is_subgraph);
   }
 
@@ -1589,8 +1562,7 @@ std::string DumpGraphStructureView(const ascir::Graph &graph, const DumpContext 
 }
 
 namespace {
-void CollectQueueInfo(const af::AscNodePtr &node, size_t topo_id,
-                      std::map<int32_t, dumper::QueueInfo> &queues) {
+void CollectQueueInfo(const af::AscNodePtr &node, size_t topo_id, std::map<int32_t, dumper::QueueInfo> &queues) {
   if (node->outputs().empty()) {
     return;
   }
@@ -1612,8 +1584,7 @@ void CollectQueueInfo(const af::AscNodePtr &node, size_t topo_id,
   queues[que_id].nodes.push_back({topo_id, node->GetName(), static_cast<int32_t>(mem.reuse_id), ""});
 }
 
-void CollectBufferInfo(const af::AscNodePtr &node, size_t topo_id,
-                       std::map<int32_t, dumper::BufferInfo> &buffers) {
+void CollectBufferInfo(const af::AscNodePtr &node, size_t topo_id, std::map<int32_t, dumper::BufferInfo> &buffers) {
   if (node->outputs().empty()) {
     return;
   }
@@ -1642,8 +1613,7 @@ std::string GetTmpBufSizeStr(const af::TmpBufDesc &buf_desc) {
   return af::SymbolicUtils::ToString(buf_desc.size);
 }
 
-void CollectTmpBufferInfo(const af::AscNodePtr &node, size_t topo_id,
-                          std::map<int32_t, dumper::BufferInfo> &buffers) {
+void CollectTmpBufferInfo(const af::AscNodePtr &node, size_t topo_id, std::map<int32_t, dumper::BufferInfo> &buffers) {
   const auto &tmp_buffers = node->attr.tmp_buffers;
   for (size_t i = 0; i < tmp_buffers.size(); ++i) {
     const auto &tmp_buf = tmp_buffers[i];
@@ -1665,14 +1635,12 @@ void CollectTmpBufferInfo(const af::AscNodePtr &node, size_t topo_id,
 /**
  * @brief 收集 Queue 和 Buffer 信息
  */
-void CollectMemoryInfo(const ascir::Graph &graph,
-                       std::map<int32_t, dumper::QueueInfo> &queues,
+void CollectMemoryInfo(const ascir::Graph &graph, std::map<int32_t, dumper::QueueInfo> &queues,
                        std::map<int32_t, dumper::BufferInfo> &buffers) {
   size_t topo_id = 0;
-  for (auto node: graph.GetAllNodes()) {
+  for (auto node : graph.GetAllNodes()) {
     auto node_type = node->GetType();
-    if (node_type != NodeType::kData && node_type != NodeType::kOutput &&
-        node_type != NodeType::kWorkspace) {
+    if (node_type != NodeType::kData && node_type != NodeType::kOutput && node_type != NodeType::kWorkspace) {
       CollectQueueInfo(node, topo_id, queues);
       CollectBufferInfo(node, topo_id, buffers);
       CollectTmpBufferInfo(node, topo_id, buffers);
@@ -1688,7 +1656,7 @@ void DumpQueues(std::stringstream &ss, const std::map<int32_t, dumper::QueueInfo
   ss << "# Queues (" << queues.size() << " queues)" << std::endl;
   ss << std::endl;
 
-  for (auto &entry: queues) {
+  for (auto &entry : queues) {
     auto &info = entry.second;
     ss << "Queue " << info.que_id << " [" << info.position;
     if (info.buf_num > 0) {
@@ -1698,12 +1666,12 @@ void DumpQueues(std::stringstream &ss, const std::map<int32_t, dumper::QueueInfo
 
     // 按 reuse_id 分组
     std::map<int32_t, std::vector<dumper::QueueNodeInfo> > reuse_groups;
-    for (auto &node_info: info.nodes) {
+    for (auto &node_info : info.nodes) {
       reuse_groups[node_info.reuse_id].push_back(node_info);
     }
 
     // 输出每个 reuse 组
-    for (auto &reuse_entry: reuse_groups) {
+    for (auto &reuse_entry : reuse_groups) {
       auto &nodes = reuse_entry.second;
       for (size_t i = 0; i < nodes.size(); ++i) {
         ss << "  [" << nodes[i].topo_id << "] " << nodes[i].node_name << ".y" << std::endl;
@@ -1720,7 +1688,7 @@ void DumpBuffers(std::stringstream &ss, const std::map<int32_t, dumper::BufferIn
   ss << "# Buffers (" << buffers.size() << " buffers)" << std::endl;
   ss << std::endl;
 
-  for (auto &entry: buffers) {
+  for (auto &entry : buffers) {
     auto &info = entry.second;
     ss << "Buffer " << info.buf_id << ":" << std::endl;
 
@@ -1729,7 +1697,7 @@ void DumpBuffers(std::stringstream &ss, const std::map<int32_t, dumper::BufferIn
     std::sort(sorted_nodes.begin(), sorted_nodes.end(),
               [](const dumper::BufferNodeInfo &a, const dumper::BufferNodeInfo &b) {
                 if (a.is_tmpbuf != b.is_tmpbuf) {
-                  return !a.is_tmpbuf; // 普通 buffer 在前
+                  return !a.is_tmpbuf;  // 普通 buffer 在前
                 }
                 if (a.topo_id != b.topo_id) {
                   return a.topo_id < b.topo_id;
@@ -1737,7 +1705,7 @@ void DumpBuffers(std::stringstream &ss, const std::map<int32_t, dumper::BufferIn
                 return a.tmpbuf_idx < b.tmpbuf_idx;
               });
 
-    for (auto &node_info: sorted_nodes) {
+    for (auto &node_info : sorted_nodes) {
       ss << "  [" << node_info.topo_id << "] " << node_info.node_name;
       if (node_info.is_tmpbuf) {
         ss << ".tmpbuf[" << node_info.tmpbuf_idx << "]";
@@ -1753,7 +1721,7 @@ void DumpBuffers(std::stringstream &ss, const std::map<int32_t, dumper::BufferIn
     ss << std::endl;
   }
 }
-} // namespace
+}  // namespace
 
 std::string DumpMemoryLayoutView(const ascir::Graph &graph, bool verbose) {
   if (!verbose) {
@@ -1817,5 +1785,5 @@ std::string DumpGraphText(const ascir::Graph &graph, bool verbose, bool is_subgr
 
   return ss.str();
 }
-} // namespace dumper
-} // namespace ascir
+}  // namespace dumper
+}  // namespace ascir

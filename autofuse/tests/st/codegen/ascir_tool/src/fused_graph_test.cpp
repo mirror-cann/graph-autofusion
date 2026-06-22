@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -23,27 +23,17 @@ static const int32_t SUCCESS = 0;
 static const int32_t FAILED = -1;
 
 using json = nlohmann::json;
-using TilingFunc = ge::graphStatus(*)(void *, uint32_t *, uint32_t *, void *);
-using LaunchFunc = uint32_t(*)(uint32_t, void *, void **, int32_t, void **, int32_t, void *, void *);
-using GetTilingSizeFunc = size_t(*)();
+using TilingFunc = ge::graphStatus (*)(void *, uint32_t *, uint32_t *, void *);
+using LaunchFunc = uint32_t (*)(uint32_t, void *, void **, int32_t, void **, int32_t, void *, void *);
+using GetTilingSizeFunc = size_t (*)();
 
-std::map<std::string, ge::DataType> kDataTypeMap {
-  {"float32", ge::DT_FLOAT},
-  {"float16", ge::DT_FLOAT16},
-  {"int8", ge::DT_INT8},
-  {"int16", ge::DT_INT16},
-  {"int32", ge::DT_INT32},
-  {"int64", ge::DT_INT64},
-  {"uint8", ge::DT_UINT8},
-  {"uint16", ge::DT_UINT16},
-  {"uint32", ge::DT_UINT32},
-  {"uint64", ge::DT_UINT64},
-  {"double", ge::DT_DOUBLE},
-  {"bool", ge::DT_BOOL},
-  {"string", ge::DT_STRING}
-};
+std::map<std::string, ge::DataType> kDataTypeMap{
+    {"float32", ge::DT_FLOAT}, {"float16", ge::DT_FLOAT16}, {"int8", ge::DT_INT8},     {"int16", ge::DT_INT16},
+    {"int32", ge::DT_INT32},   {"int64", ge::DT_INT64},     {"uint8", ge::DT_UINT8},   {"uint16", ge::DT_UINT16},
+    {"uint32", ge::DT_UINT32}, {"uint64", ge::DT_UINT64},   {"double", ge::DT_DOUBLE}, {"bool", ge::DT_BOOL},
+    {"string", ge::DT_STRING}};
 
-int64_t GetShapeSize(const std::vector<int64_t>& shape) {
+int64_t GetShapeSize(const std::vector<int64_t> &shape) {
   int64_t shapeSize = 1;
   for (auto i : shape) {
     shapeSize *= i;
@@ -51,7 +41,7 @@ int64_t GetShapeSize(const std::vector<int64_t>& shape) {
   return shapeSize;
 }
 
-int EnvInit(int32_t deviceId, aclrtStream* stream) {
+int EnvInit(int32_t deviceId, aclrtStream *stream) {
   // 固定写法 AscendCL初始化
   auto ret = aclInit(nullptr);
   CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclInit failed. ERROR: %d\n", ret); return ret);
@@ -62,9 +52,8 @@ int EnvInit(int32_t deviceId, aclrtStream* stream) {
   return 0;
 }
 
-int32_t CreateDeviceData(const std::vector<int8_t>& host_data,
-                         const std::vector<int64_t>& shape,
-                         ge::DataType dtype, void** device_addr) {
+int32_t CreateDeviceData(const std::vector<int8_t> &host_data, const std::vector<int64_t> &shape, ge::DataType dtype,
+                         void **device_addr) {
   auto size = GetShapeSize(shape) * ge::GetSizeByDataType(dtype);
   // aclrtMalloc device
   auto ret = aclrtMalloc(device_addr, size, ACL_MEM_MALLOC_HUGE_FIRST);
@@ -76,7 +65,8 @@ int32_t CreateDeviceData(const std::vector<int8_t>& host_data,
   return SUCCESS;
 }
 
-int32_t CreateDeviceDataV2(const void* host_addr, const std::vector<int64_t>& shape, ge::DataType dtype, void** device_addr) {
+int32_t CreateDeviceDataV2(const void *host_addr, const std::vector<int64_t> &shape, ge::DataType dtype,
+                           void **device_addr) {
   auto size = GetShapeSize(shape) * ge::GetSizeByDataType(dtype);
   // aclrtMalloc device
   auto ret = aclrtMalloc(device_addr, size, ACL_MEM_MALLOC_HUGE_FIRST);
@@ -94,7 +84,8 @@ void Finalize(int32_t deviceId, aclrtStream stream) {
   aclFinalize();
 }
 
-std::unique_ptr<int8_t[]> GenFromBin(const std::vector<int64_t>& shape, const std::string& file_path, ge::DataType data_type) {
+std::unique_ptr<int8_t[]> GenFromBin(const std::vector<int64_t> &shape, const std::string &file_path,
+                                     ge::DataType data_type) {
   int64_t data_len = GetShapeSize(shape) * ge::GetSizeByDataType(data_type);
   std::ifstream bin_file(file_path.c_str(), std::ifstream::binary);
   if (!bin_file.is_open()) {
@@ -149,7 +140,8 @@ int32_t ParseMapConfig(const json &config_json, const std::string &key, std::map
         configs[it.first.c_str()] = it.second.c_str();
       }
     } catch (const nlohmann::json::exception &e) {
-      LOG_PRINT("ERROR: fail to parse %s from json %s, err msg: %s\n", key.c_str(), config_json[key].dump().c_str(), e.what());
+      LOG_PRINT("ERROR: fail to parse %s from json %s, err msg: %s\n", key.c_str(), config_json[key].dump().c_str(),
+                e.what());
       return FAILED;
     }
   } else {
@@ -188,7 +180,7 @@ std::vector<ge::DataType> ParseDataType(std::string &data_type) {
     }
   }
   return data_types;
-} 
+}
 
 int32_t AutofuseKernelInfo::Init(void *stream, const std::string &config_path) {
   stream_ = stream;
@@ -233,7 +225,8 @@ int32_t AutofuseKernelInfo::SetKernelConfig(std::map<std::string, std::string> &
   kernel_config_.output_data_type = ParseDataType(src_kernel_config["output_data_types"]);
 
   if (kernel_config_.input_num != kernel_config_.input_shape.size()) {
-    LOG_PRINT("ERROR: input_num[%d] != input_shape size[%d]\n.", kernel_config_.input_num, kernel_config_.input_shape.size());
+    LOG_PRINT("ERROR: input_num[%d] != input_shape size[%d]\n.", kernel_config_.input_num,
+              kernel_config_.input_shape.size());
     return FAILED;
   }
   return SUCCESS;
@@ -252,7 +245,8 @@ int32_t AutofuseKernelInfo::InitDeviceData() {
 
   std::vector<std::vector<int8_t>> output_host_data;
   for (int i = 0; i < kernel_config_.output_num; ++i) {
-    int64_t data_size = GetShapeSize(kernel_config_.output_shape[i]) * ge::GetSizeByDataType(kernel_config_.output_data_type[i]);
+    int64_t data_size =
+        GetShapeSize(kernel_config_.output_shape[i]) * ge::GetSizeByDataType(kernel_config_.output_data_type[i]);
     std::vector<int8_t> tmp_host_data;
     for (int64_t j = 0; j < data_size; ++j) {
       tmp_host_data.emplace_back((int8_t)1);
@@ -261,13 +255,17 @@ int32_t AutofuseKernelInfo::InitDeviceData() {
   }
 
   for (int i = 0; i < kernel_config_.input_num; ++i) {
-    auto ret = CreateDeviceDataV2((void *)input_host_data[i].get(), kernel_config_.input_shape[i], kernel_config_.input_data_type[i], &input_addr_[i]);
-    CHECK_RET(ret == SUCCESS, LOG_PRINT("Create input device data failed. input: %d, ERROR: %d\n", i, ret); return FAILED);
+    auto ret = CreateDeviceDataV2((void *)input_host_data[i].get(), kernel_config_.input_shape[i],
+                                  kernel_config_.input_data_type[i], &input_addr_[i]);
+    CHECK_RET(ret == SUCCESS, LOG_PRINT("Create input device data failed. input: %d, ERROR: %d\n", i, ret);
+              return FAILED);
   }
 
   for (int i = 0; i < kernel_config_.output_num; ++i) {
-    auto ret = CreateDeviceData(output_host_data[i], kernel_config_.output_shape[i], kernel_config_.output_data_type[i], &output_addr_[i]);
-    CHECK_RET(ret == SUCCESS, LOG_PRINT("Create output device data failed. output: %d, ERROR: %d\n", i, ret); return FAILED);
+    auto ret = CreateDeviceData(output_host_data[i], kernel_config_.output_shape[i], kernel_config_.output_data_type[i],
+                                &output_addr_[i]);
+    CHECK_RET(ret == SUCCESS, LOG_PRINT("Create output device data failed. output: %d, ERROR: %d\n", i, ret);
+              return FAILED);
   }
   return SUCCESS;
 }
@@ -294,13 +292,15 @@ int32_t AutofuseKernelInfo::LoadSoHandles() {
 int32_t AutofuseKernelInfo::ParseTaskRunParam() {
   // 获取tiling size
   std::string get_tiling_size_func_name = "GetTilingDataSize";
-  const auto get_tiling_size_func = reinterpret_cast<GetTilingSizeFunc>(mmDlsym(handles_, get_tiling_size_func_name.c_str()));
+  const auto get_tiling_size_func =
+      reinterpret_cast<GetTilingSizeFunc>(mmDlsym(handles_, get_tiling_size_func_name.c_str()));
   if (get_tiling_size_func == nullptr) {
     LOG_PRINT("ERROR: get_tiling_size_func is nullptr, %s\n", get_tiling_size_func_name.c_str());
     return FAILED;
   }
   tiling_size_ = get_tiling_size_func();
-  LOG_PRINT("name: %s, tiling_size_: %zu, func_name: %s\n", graph_name_snake_.c_str(), tiling_size_, get_tiling_size_func_name.c_str());
+  LOG_PRINT("name: %s, tiling_size_: %zu, func_name: %s\n", graph_name_snake_.c_str(), tiling_size_,
+            get_tiling_size_func_name.c_str());
   return SUCCESS;
 }
 
@@ -376,8 +376,8 @@ int32_t AutofuseKernelInfo::Distribute(uint64_t *tiling_data) {
   }
 
   const uint64_t startTime = MsprofSysCycleTime();
-  auto ret = launch_func(block_dim_, stream_, input_addr_.get(), kernel_config_.input_num,
-                         output_addr_.get(), kernel_config_.output_num, workspace_, reinterpret_cast<void*>(tiling_data));
+  auto ret = launch_func(block_dim_, stream_, input_addr_.get(), kernel_config_.input_num, output_addr_.get(),
+                         kernel_config_.output_num, workspace_, reinterpret_cast<void *>(tiling_data));
   CHECK_RET(ret == SUCCESS, LOG_PRINT("launch failed, ERROR: %d\n", ret); return FAILED);
   ReportNodeBasicInfo(startTime, block_dim_, graph_name_snake_);
   ReportApiInfo(startTime);
@@ -386,10 +386,11 @@ int32_t AutofuseKernelInfo::Distribute(uint64_t *tiling_data) {
   CHECK_RET(ret == SUCCESS, LOG_PRINT("aclrtSynchronizeStream failed, ERROR: %d\n", ret); return FAILED);
 
   for (int i = 0; i < kernel_config_.output_num; ++i) {
-    auto output_size = GetShapeSize(kernel_config_.output_shape[i]) * ge::GetSizeByDataType(kernel_config_.output_data_type[i]);
+    auto output_size =
+        GetShapeSize(kernel_config_.output_shape[i]) * ge::GetSizeByDataType(kernel_config_.output_data_type[i]);
     std::vector<int8_t> result_data(output_size, 0);
-    ret = aclrtMemcpy(result_data.data(), result_data.size() * sizeof(result_data[0]),
-                      output_addr_[i], output_size, ACL_MEMCPY_DEVICE_TO_HOST);
+    ret = aclrtMemcpy(result_data.data(), result_data.size() * sizeof(result_data[0]), output_addr_[i], output_size,
+                      ACL_MEMCPY_DEVICE_TO_HOST);
     auto file_path = "out/Output_" + std::to_string(i) + ".bin";
     SaveBinToFile(file_path, (void *)result_data.data(), output_size);
   }
@@ -415,7 +416,7 @@ int FuseGraphTest(int deviceId, aclrtStream &stream, const std::string config_pa
   // 构造tiling
   std::unique_ptr<uint8_t[]> tiling_data_holder = MakeUnique<uint8_t[]>(tiling_size);
   CHECK_FREE_RET(tiling_data_holder != nullptr, LOG_PRINT("ERROR: tiling_data_holder is nullptr\n"); return FAILED);
-  
+
   // tiling & malloc workspace addr
   uint32_t workspace_size = 0U;
   ret = fuse_kernel.DoTiling(tiling_data_holder, workspace_size);
@@ -444,7 +445,7 @@ int main(int argc, char *argv[]) {
   LOG_PRINT("DEBUG: kernel_config_path: %s\n", kernel_config_path.c_str());
   // ASCEND_DEVICE_ID
   int32_t deviceId = 0;
-  const char* env_var = std::getenv("ASCEND_DEVICE_ID");
+  const char *env_var = std::getenv("ASCEND_DEVICE_ID");
   if (env_var != nullptr) {
     try {
       deviceId = std::stoi(env_var);

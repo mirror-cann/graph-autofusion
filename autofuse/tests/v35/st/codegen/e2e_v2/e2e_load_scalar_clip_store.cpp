@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -104,7 +104,7 @@ void LoadScalarClipStore_AfterAutofuse(af::AscGraph &graph) {
   auto z1 = all_axis[1]->id;
 
   auto x1 = graph.FindNode("x1");
-  x1->attr.api.compute_type = ComputeType::kComputeInvalid; // ComputeType::COMPUTE_DATA;
+  x1->attr.api.compute_type = ComputeType::kComputeInvalid;  // ComputeType::COMPUTE_DATA;
   x1->attr.api.type = ApiType::kAPITypeBuffer;
   x1->attr.api.unit = ComputeUnit::kUnitNone;
   x1->outputs[0].attr.mem.tensor_id = 0;
@@ -118,7 +118,7 @@ void LoadScalarClipStore_AfterAutofuse(af::AscGraph &graph) {
   x1->outputs[0].attr.opt.merge_scope = af::kIdNone;
 
   auto x2 = graph.FindNode("x2");
-  x2->attr.api.compute_type = ComputeType::kComputeInvalid; // ComputeType::COMPUTE_DATA;
+  x2->attr.api.compute_type = ComputeType::kComputeInvalid;  // ComputeType::COMPUTE_DATA;
   x2->attr.api.type = ApiType::kAPITypeBuffer;
   x2->attr.api.unit = ComputeUnit::kUnitNone;
   x2->outputs[0].attr.mem.tensor_id = 1;
@@ -132,7 +132,7 @@ void LoadScalarClipStore_AfterAutofuse(af::AscGraph &graph) {
   x2->outputs[0].attr.opt.merge_scope = af::kIdNone;
 
   auto x3 = graph.FindNode("x3");
-  x3->attr.api.compute_type = ComputeType::kComputeInvalid; // ComputeType::COMPUTE_DATA;
+  x3->attr.api.compute_type = ComputeType::kComputeInvalid;  // ComputeType::COMPUTE_DATA;
   x3->attr.api.type = ApiType::kAPITypeBuffer;
   x3->attr.api.unit = ComputeUnit::kUnitNone;
   x3->outputs[0].attr.mem.tensor_id = 2;

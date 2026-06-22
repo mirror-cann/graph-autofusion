@@ -13,10 +13,10 @@
 
 #include "autofuse_tiling_data.h"
 extern "C" __global__ __aicore__ void expm_bf16_test(GM_ADDR x1, GM_ADDR y, GM_ADDR workspace, GM_ADDR tiling);
-extern "C" int64_t AutofuseTiling(uint32_t s0, uint32_t s1, uint32_t s2, AutofuseTilingData* tiling, uint32_t* workspaceSize, uint64_t *blockDim, uint32_t aiv_num, uint32_t ub_size);
+extern "C" int64_t AutofuseTiling(uint32_t s0, uint32_t s1, uint32_t s2, AutofuseTilingData *tiling,
+                                  uint32_t *workspaceSize, uint64_t *blockDim, uint32_t aiv_num, uint32_t ub_size);
 
-class E2E_BackendExpm_Code : public testing::Test, public testing::WithParamInterface<std::vector<int>> {
-};
+class E2E_BackendExpm_Code : public testing::Test, public testing::WithParamInterface<std::vector<int>> {};
 
 TEST_P(E2E_BackendExpm_Code, CalculateCorrect) {
   auto test_shape = GetParam();
@@ -26,34 +26,34 @@ TEST_P(E2E_BackendExpm_Code, CalculateCorrect) {
   int test_size = test_shape[0] * test_shape[1] * test_shape[2];
 
   AutofuseTilingData tiling_data;
-  bfloat16_t* input1 = (bfloat16_t *)AscendC::GmAlloc(test_size * sizeof(bfloat16_t) + 32);
-  bfloat16_t* y = (bfloat16_t *)AscendC::GmAlloc(test_size * sizeof(bfloat16_t) + 32);
+  bfloat16_t *input1 = (bfloat16_t *)AscendC::GmAlloc(test_size * sizeof(bfloat16_t) + 32);
+  bfloat16_t *y = (bfloat16_t *)AscendC::GmAlloc(test_size * sizeof(bfloat16_t) + 32);
   bfloat16_t *expect = (bfloat16_t *)AscendC::GmAlloc(test_size * sizeof(bfloat16_t) + 32);
 
   // Prepare test and expect data
   srand(1);
   for (int i = 0; i < test_size; i++) {
-      float val = rand() / (double)RAND_MAX * 2.0f - 1.0f;  // [-1, 1) range for better numerical stability
-      input1[i] = static_cast<bfloat16_t>(val);
-      float exp_val = std::expm1(static_cast<float>(input1[i]));
-      expect[i] = static_cast<bfloat16_t>(exp_val);
+    float val = rand() / (double)RAND_MAX * 2.0f - 1.0f;  // [-1, 1) range for better numerical stability
+    input1[i] = static_cast<bfloat16_t>(val);
+    float exp_val = std::expm1(static_cast<float>(input1[i]));
+    expect[i] = static_cast<bfloat16_t>(exp_val);
   }
 
   // Launch
   uint32_t ws_size = 0;
-  AutofuseTiling(test_shape[0], test_shape[1], test_shape[2], &tiling_data, &ws_size, &block_dim, 48, 192*1024);
+  AutofuseTiling(test_shape[0], test_shape[1], test_shape[2], &tiling_data, &ws_size, &block_dim, 48, 192 * 1024);
   printf("tiling key: %d, core_num: %d\n", tiling_data.tiling_key, tiling_data.block_dim);
 
   AscendC::SetKernelMode(KernelMode::AIV_MODE);
-  ICPU_RUN_KF(expm_bf16_test, tiling_data.block_dim, (uint8_t *)input1, (uint8_t *)y, nullptr, (uint8_t*)&tiling_data);
+  ICPU_RUN_KF(expm_bf16_test, tiling_data.block_dim, (uint8_t *)input1, (uint8_t *)y, nullptr, (uint8_t *)&tiling_data);
 
   // Validate with tolerance for bfloat16_t
   const float EPS = 1e-2;
   uint32_t diff_count = 0;
   for (int i = 0; i < test_size; i++) {
-      float y_val = static_cast<float>(y[i]);
-      float expect_val = static_cast<float>(expect[i]);
-      if (std::fabs(y_val - expect_val) > EPS) diff_count++;
+    float y_val = static_cast<float>(y[i]);
+    float expect_val = static_cast<float>(expect[i]);
+    if (std::fabs(y_val - expect_val) > EPS) diff_count++;
   }
 
   EXPECT_EQ(diff_count, 0) << " of " << test_size;
@@ -63,5 +63,4 @@ TEST_P(E2E_BackendExpm_Code, CalculateCorrect) {
   AscendC::GmFree(expect);
 }
 
-INSTANTIATE_TEST_SUITE_P(CalcWithDifferentShape, E2E_BackendExpm_Code,
-    ::testing::Values(std::vector<int>{32, 16, 16}));
+INSTANTIATE_TEST_SUITE_P(CalcWithDifferentShape, E2E_BackendExpm_Code, ::testing::Values(std::vector<int>{32, 16, 16}));

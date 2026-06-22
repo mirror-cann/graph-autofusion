@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -34,7 +34,7 @@ bool IsSameType(const af::Anchor::TYPE &lh, const af::Anchor::TYPE &rh) {
 
   return (strncmp(lh, rh, kAnchorTypeMaxLen) == 0);
 }
-};
+};  // namespace
 
 namespace af {
 class AnchorImpl {
@@ -74,22 +74,19 @@ size_t AnchorImpl::GetPeerAnchorsSize() const {
   return peer_anchors_.size();
 }
 
-Anchor::Vistor<AnchorPtr> AnchorImpl::GetPeerAnchors(
-    const std::shared_ptr<ConstAnchor> &anchor_ptr) const {
+Anchor::Vistor<AnchorPtr> AnchorImpl::GetPeerAnchors(const std::shared_ptr<ConstAnchor> &anchor_ptr) const {
   std::vector<AnchorPtr> ret;
   ret.resize(peer_anchors_.size());
   (void)std::transform(peer_anchors_.begin(), peer_anchors_.end(), ret.begin(),
-                       [] (const std::weak_ptr<Anchor>& anchor) {
-                         return anchor.lock();
-                       });
+                       [](const std::weak_ptr<Anchor> &anchor) { return anchor.lock(); });
   return Anchor::Vistor<AnchorPtr>(anchor_ptr, ret);
 }
 
 std::vector<Anchor *> AnchorImpl::GetPeerAnchorsPtr() const {
   std::vector<Anchor *> ret;
   ret.resize(peer_anchors_.size());
-  (void) std::transform(peer_anchors_.begin(), peer_anchors_.end(), ret.begin(),
-                        [](const std::weak_ptr<Anchor> &anchor) { return anchor.lock().get(); });
+  (void)std::transform(peer_anchors_.begin(), peer_anchors_.end(), ret.begin(),
+                       [](const std::weak_ptr<Anchor> &anchor) { return anchor.lock().get(); });
   return ret;
 }
 
@@ -108,9 +105,13 @@ Node *AnchorImpl::GetOwnerNodeBarePtr() const {
   return owner_node_ptr_;
 }
 
-int32_t AnchorImpl::GetIdx() const { return idx_; }
+int32_t AnchorImpl::GetIdx() const {
+  return idx_;
+}
 
-void AnchorImpl::SetIdx(const int32_t index) { idx_ = index; }
+void AnchorImpl::SetIdx(const int32_t index) {
+  idx_ = index;
+}
 
 Anchor::Anchor(const NodePtr &owner_node, const int32_t idx)
     : enable_shared_from_this(), impl_(ComGraphMakeShared<AnchorImpl>(owner_node, idx)) {}
@@ -121,8 +122,8 @@ bool Anchor::IsTypeOf(const TYPE type) const {
   return strncmp(Anchor::TypeOf<Anchor>(), type, kAnchorTypeMaxLen) == 0;
 }
 
-bool Anchor::IsTypeIdOf(const TypeId& type) const {
-    return ge::GetTypeId<Anchor>() == type;
+bool Anchor::IsTypeIdOf(const TypeId &type) const {
+  return ge::GetTypeId<Anchor>() == type;
 }
 
 Anchor::TYPE Anchor::GetSelfType() const {
@@ -199,21 +200,21 @@ graphStatus Anchor::Unlink(const AnchorPtr &peer) {
     return ge::GRAPH_FAILED;
   }
   GE_CHK_BOOL_RET_STATUS(impl_ != nullptr, ge::GRAPH_FAILED, "[Check][Param] impl_ of anchor is nullptr");
-  const auto it = std::find_if(impl_->peer_anchors_.begin(), impl_->peer_anchors_.end(),
-      [peer](const std::weak_ptr<Anchor> &an) {
-    const auto anchor = an.lock();
-    return peer->Equal(anchor);
-  });
+  const auto it =
+      std::find_if(impl_->peer_anchors_.begin(), impl_->peer_anchors_.end(), [peer](const std::weak_ptr<Anchor> &an) {
+        const auto anchor = an.lock();
+        return peer->Equal(anchor);
+      });
   if (it == impl_->peer_anchors_.end()) {
     GELOGW("[Check][Param] Unlink failed , as this anchor is not connected to peer.");
     return ge::GRAPH_FAILED;
   }
 
   const auto it_peer = std::find_if(peer->impl_->peer_anchors_.begin(), peer->impl_->peer_anchors_.end(),
-      [this](const std::weak_ptr<Anchor> &an) {
-        const auto anchor = an.lock();
-        return Equal(anchor);
-      });
+                                    [this](const std::weak_ptr<Anchor> &an) {
+                                      const auto anchor = an.lock();
+                                      return Equal(anchor);
+                                    });
 
   GE_CHK_BOOL_RET_STATUS(it_peer != peer->impl_->peer_anchors_.end(), ge::GRAPH_FAILED,
                          "[Check][Param] peer(%s, %d) is not connected to this anchor(%s, %d)",
@@ -254,16 +255,16 @@ graphStatus Anchor::Insert(const AnchorPtr &old_peer, const AnchorPtr &first_pee
   if ((!CanAddPeer(first_peer)) || (!CanAddPeer(second_peer))) {
     REPORT_INNER_ERR_MSG("E18888", "first_peer[%s] or second_peer[%s] check failed", first_peer->GetSelfType(),
                          second_peer->GetSelfType());
-    GELOGE(ge::GRAPH_FAILED, "[Check][Param] first_peer[%s] or second_peer[%s] check failed",
-           first_peer->GetSelfType(), second_peer->GetSelfType());
+    GELOGE(ge::GRAPH_FAILED, "[Check][Param] first_peer[%s] or second_peer[%s] check failed", first_peer->GetSelfType(),
+           second_peer->GetSelfType());
     return ge::GRAPH_FAILED;
   }
 
   const auto this_it = std::find_if(impl_->peer_anchors_.begin(), impl_->peer_anchors_.end(),
-      [old_peer](const std::weak_ptr<Anchor> &an) {
-    const auto anchor = an.lock();
-    return old_peer->Equal(anchor);
-  });
+                                    [old_peer](const std::weak_ptr<Anchor> &an) {
+                                      const auto anchor = an.lock();
+                                      return old_peer->Equal(anchor);
+                                    });
 
   GE_CHK_BOOL_RET_STATUS(this_it != impl_->peer_anchors_.end(), ge::GRAPH_FAILED,
                          "[Check][Param] this anchor(%s, %d) is not connected to old_peer(%s, %d)",
@@ -311,8 +312,8 @@ graphStatus Anchor::ReplacePeer(const AnchorPtr &old_peer, const AnchorPtr &new_
                                     });
   if (this_it == this->impl_->peer_anchors_.end()) {
     GELOGE(ge::GRAPH_FAILED, "[Check][Param] this anchor(%s, %d) is not connected to old_peer(%s, %d)",
-           this->GetOwnerNode()->GetName().c_str(), this->GetIdx(),
-           old_peer->GetOwnerNode()->GetName().c_str(), old_peer->GetIdx());
+           this->GetOwnerNode()->GetName().c_str(), this->GetIdx(), old_peer->GetOwnerNode()->GetName().c_str(),
+           old_peer->GetIdx());
     return ge::GRAPH_FAILED;
   }
 
@@ -332,15 +333,15 @@ bool Anchor::IsLinkedWith(const AnchorPtr &peer) const {
     GELOGE(ge::GRAPH_FAILED, "[Check][Param] impl_ of anchor is nullptr.");
     return false;
   }
-  const auto it = std::find_if(impl_->peer_anchors_.begin(), impl_->peer_anchors_.end(),
-      [peer](const std::weak_ptr<Anchor> &an) {
-    const auto anchor = an.lock();
-    if (peer == nullptr) {
-      GELOGE(ge::GRAPH_FAILED, "[Check][Param] this old peer anchor is nullptr");
-      return false;
-    }
-    return peer->Equal(anchor);
-  });
+  const auto it =
+      std::find_if(impl_->peer_anchors_.begin(), impl_->peer_anchors_.end(), [peer](const std::weak_ptr<Anchor> &an) {
+        const auto anchor = an.lock();
+        if (peer == nullptr) {
+          GELOGE(ge::GRAPH_FAILED, "[Check][Param] this old peer anchor is nullptr");
+          return false;
+        }
+        return peer->Equal(anchor);
+      });
   return (it != impl_->peer_anchors_.end());
 }
 
@@ -392,8 +393,7 @@ OutDataAnchorPtr InDataAnchor::GetPeerOutAnchor() const {
 
 graphStatus InDataAnchor::LinkFrom(const OutDataAnchorPtr &src) {
   // InDataAnchor must be only linkfrom once
-  if ((src == nullptr) || (src->impl_ == nullptr) ||
-      (impl_ == nullptr) || (!impl_->peer_anchors_.empty()))  {
+  if ((src == nullptr) || (src->impl_ == nullptr) || (impl_ == nullptr) || (!impl_->peer_anchors_.empty())) {
     REPORT_INNER_ERR_MSG("E18888", "src anchor is invalid or the peerAnchors is not empty.");
     GELOGE(ge::GRAPH_FAILED, "[Check][Param] src anchor is invalid or the peerAnchors is not empty.");
     return ge::GRAPH_FAILED;
@@ -497,8 +497,7 @@ OutDataAnchor::Vistor<InControlAnchorPtr> OutDataAnchor::GetPeerInControlAnchors
 }
 
 graphStatus OutDataAnchor::LinkTo(const InDataAnchorPtr &dest) {
-  if ((dest == nullptr) || (dest->impl_ == nullptr) ||
-      (!dest->impl_->peer_anchors_.empty())) {
+  if ((dest == nullptr) || (dest->impl_ == nullptr) || (!dest->impl_->peer_anchors_.empty())) {
     REPORT_INNER_ERR_MSG("E18888", "dest anchor is nullptr or the peerAnchors is not empty.");
     GELOGE(ge::GRAPH_FAILED, "[Check][Param] dest anchor is nullptr or the peerAnchors is not empty.");
     return ge::GRAPH_FAILED;
@@ -805,37 +804,37 @@ bool OutControlAnchor::IsTypeIdOf(const TypeId &type) const {
 }  // namespace af
 
 namespace ge {
-template<>
+template <>
 GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY TypeId GetTypeId<af::Anchor>() {
   return reinterpret_cast<TypeId>(1);
 }
 
-template<>
+template <>
 GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY TypeId GetTypeId<af::DataAnchor>() {
   return reinterpret_cast<TypeId>(2);
 }
 
-template<>
+template <>
 GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY TypeId GetTypeId<af::ControlAnchor>() {
   return reinterpret_cast<TypeId>(3);
 }
 
-template<>
+template <>
 GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY TypeId GetTypeId<af::InDataAnchor>() {
   return reinterpret_cast<TypeId>(4);
 }
 
-template<>
+template <>
 GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY TypeId GetTypeId<af::OutDataAnchor>() {
   return reinterpret_cast<TypeId>(5);
 }
 
-template<>
+template <>
 GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY TypeId GetTypeId<af::InControlAnchor>() {
   return reinterpret_cast<TypeId>(6);
 }
 
-template<>
+template <>
 GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY TypeId GetTypeId<af::OutControlAnchor>() {
   return reinterpret_cast<TypeId>(7);
 }

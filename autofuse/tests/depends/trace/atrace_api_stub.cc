@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -16,7 +16,7 @@ int64_t trace_id = 0;
 std::map<std::string, int64_t> trace_handle_map;
 int64_t event_id = 0;
 std::map<std::string, int64_t> event_handle_map;
-}
+}  // namespace
 /**
  * @brief       Create trace handle.
  * @param [in]  tracerType:    trace type
@@ -98,8 +98,8 @@ void *AtraceStructEntryListInit(void) {
   return nullptr;
 }
 void AtraceStructEntryName(TraceStructEntry *entry, const char *name) {}
-void AtraceStructItemSet(TraceStructEntry *entry, const char *name, uint8_t type, uint8_t mode,
-                         uint8_t bytes, uint64_t length) {}
+void AtraceStructItemSet(TraceStructEntry *entry, const char *name, uint8_t type, uint8_t mode, uint8_t bytes,
+                         uint64_t length) {}
 void AtraceStructEntryExit(TraceStructEntry *entry) {}
 
 /**
@@ -112,9 +112,9 @@ TraStatus AtraceReportStart(int32_t devId) {
 }
 
 /**
-* @brief       stop thread to recv device trace log
-* @param [in]  devId:         device id
-*/
+ * @brief       stop thread to recv device trace log
+ * @param [in]  devId:         device id
+ */
 void AtraceReportStop(int32_t devId) {}
 
 /**
@@ -184,6 +184,4 @@ TraStatus AtraceEventReportSync(TraEventHandle eventHandle) {
   return TRACE_SUCCESS;
 }
 
-void AtraceStructItemSet(TraceStructEntry *entry, const char *name,
-                         uint8_t type, uint8_t mode, uint16_t length) {
-}
+void AtraceStructItemSet(TraceStructEntry *entry, const char *name, uint8_t type, uint8_t mode, uint16_t length) {}

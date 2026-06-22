@@ -26,16 +26,13 @@ struct ResLimit {
   uint32_t resv[10];
 };
 
-extern "C" int64_t GenerateTopnSolutions(
-                                          const std::vector<std::map<std::string, std::string>> &input_configs,
-                                          int64_t topn,
-                                          std::vector<AutofuseTilingData> &tiling_datas,
-                                          std::vector<int64_t> &workspaces,
-                                          std::vector<int64_t> &block_dims, ResLimit *res_limit = nullptr);
+extern "C" int64_t GenerateTopnSolutions(const std::vector<std::map<std::string, std::string>> &input_configs,
+                                         int64_t topn, std::vector<AutofuseTilingData> &tiling_datas,
+                                         std::vector<int64_t> &workspaces, std::vector<int64_t> &block_dims,
+                                         ResLimit *res_limit = nullptr);
 std::string GetTilingDataRepr(const AutofuseTilingData *tiling_data);
 
-class E2EBackendInductorTopnConcatCode : public testing::Test {
-};
+class E2EBackendInductorTopnConcatCode : public testing::Test {};
 
 TEST_F(E2EBackendInductorTopnConcatCode, GenerateTopnSolutionsTop1ReturnsOriginalConfigCandidate) {
   ResLimit res_limit = {1, 48, 0, 192 * 1024, {0}};

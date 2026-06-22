@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -26,7 +26,7 @@
 namespace gert {
 namespace bg {
 
-template<typename T, typename std::enable_if<std::is_fundamental<T>::value, int32_t>::type = 0>
+template <typename T, typename std::enable_if<std::is_fundamental<T>::value, int32_t>::type = 0>
 bool AppendFundAttr(const ge::AnyValue &attr, std::vector<std::vector<uint8_t>> &attrs) {
   auto val = attr.Get<T>();
   GE_ASSERT_NOTNULL(val);
@@ -39,11 +39,12 @@ inline bool AppendStrAttr(const ge::AnyValue &attr, std::vector<std::vector<uint
   auto str = attr.Get<std::string>();
   GE_ASSERT_NOTNULL(str);
   std::vector<uint8_t> runtime_attr(str->size() + static_cast<size_t>(1));
-  GE_ASSERT_EOK(strcpy_s(ge::PtrToPtr<uint8_t, ge::char_t>(runtime_attr.data()), str->size() + static_cast<size_t>(1), str->c_str()));
+  GE_ASSERT_EOK(strcpy_s(ge::PtrToPtr<uint8_t, ge::char_t>(runtime_attr.data()), str->size() + static_cast<size_t>(1),
+                         str->c_str()));
   (void)attrs.emplace_back(std::move(runtime_attr));
   return true;
 }
-template<typename T, typename std::enable_if<std::is_fundamental<T>::value, int32_t>::type = 0>
+template <typename T, typename std::enable_if<std::is_fundamental<T>::value, int32_t>::type = 0>
 bool AppendVectorAttr(const ge::AnyValue &attr, std::vector<std::vector<uint8_t>> &attrs) {
   auto val = attr.Get<std::vector<T>>();
   GE_ASSERT_NOTNULL(val);
@@ -98,7 +99,7 @@ inline bool AppendVectorBoolAttr(const ge::AnyValue &attr, std::vector<std::vect
   return true;
 }
 
-template<typename T, typename std::enable_if<std::is_fundamental<T>::value, int32_t>::type = 0>
+template <typename T, typename std::enable_if<std::is_fundamental<T>::value, int32_t>::type = 0>
 bool AppendVectorVectorAttr(const ge::AnyValue &attr, std::vector<std::vector<uint8_t>> &attrs) {
   auto vector_vector_list = attr.Get<std::vector<std::vector<T>>>();
   GE_ASSERT_NOTNULL(vector_vector_list);
@@ -189,8 +190,8 @@ inline bool AppendVectorStrAttr(const ge::AnyValue &attr, std::vector<std::vecto
   size_t offset = 0U;
   for (size_t i = 0U; i < val->size(); ++i) {
     const size_t ele_str_size = (*val)[i].size() + 1U;
-    GE_ASSERT_EOK(strcpy_s(ge::PtrToPtr<uint8_t, char>(ge::PtrAdd(ge::PtrToPtr<void, uint8_t>(cv->MutableData()), 
-                          std::numeric_limits<size_t>::max(), offset)),
+    GE_ASSERT_EOK(strcpy_s(ge::PtrToPtr<uint8_t, char>(ge::PtrAdd(ge::PtrToPtr<void, uint8_t>(cv->MutableData()),
+                                                                  std::numeric_limits<size_t>::max(), offset)),
                            total_str_size, (*val)[i].c_str()));
     offset += ele_str_size;
   }
@@ -258,9 +259,8 @@ inline std::unique_ptr<uint8_t[]> CreateAttrBuffer(const std::vector<std::vector
   auto attr_pos = attr_holder.get();
   for (size_t i = 0; i < attrs.size(); ++i) {
     attr_def->offset[i] = current_offset;
-    const auto ret =
-        ge::GeMemcpy(ge::PtrAdd(attr_pos, std::numeric_limits<size_t>::max(), current_offset), 
-        total_size - current_offset, attrs[i].data(), attrs[i].size());
+    const auto ret = ge::GeMemcpy(ge::PtrAdd(attr_pos, std::numeric_limits<size_t>::max(), current_offset),
+                                  total_size - current_offset, attrs[i].data(), attrs[i].size());
     GE_ASSERT_TRUE((ret == ge::SUCCESS), "memcpy_s failed, copy size is %zu, dst size is %zu", attrs[i].size(),
                    total_size - current_offset);
     current_offset += attrs[i].size();

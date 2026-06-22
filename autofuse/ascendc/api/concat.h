@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -157,7 +157,7 @@ inline __aicore__ void FirstTransposeMatrix(LocalTensor<T> &tmp_buf1,   // 用�
                                             const LocalTensor<T> &src,  // 拼接的输入
                                             const struct TransposeParams &trans_para,
                                             uint32_t cur_row_cnt,  // 临时buff拼接的起始列索引
-                                            uint32_t stride) {     // padding对齐之后，一行的数据个数，单位sizeof(T)
+                                            uint32_t stride) {  // padding对齐之后，一行的数据个数，单位sizeof(T)
   AscendC::TransDataTo5HDParams transDataParams;
   transDataParams.srcHighHalf = false;
   transDataParams.dstHighHalf = false;
@@ -781,8 +781,8 @@ struct ConcatTiling {
   uint32_t src_dim_sizes[INPUT_NUM];
   uint32_t src_strides[INPUT_NUM];  // src loop stride
   uint32_t src_buffer_offsets[INPUT_NUM];
-  uint16_t gather_mask_repeat_strides[INPUT_NUM]; // for remove pad
-  uint32_t gather_mask_dim_sizes[INPUT_NUM]; // for remove pad
+  uint16_t gather_mask_repeat_strides[INPUT_NUM];  // for remove pad
+  uint32_t gather_mask_dim_sizes[INPUT_NUM];       // for remove pad
 };
 
 template <size_t INPUT_NUM>
@@ -893,12 +893,11 @@ inline __aicore__ void RemoveInputPaddings(ConcatContextType &context,
     if (tiling.gather_mask_repeat_strides[index] == 0) {
       src_addrs[index] = context.input_list->src_tensor_base_addrs[index] + loop_index * tiling.src_strides[index];
     } else {
-      GatherMaskParams gather_mask_params
-          {1,
-           static_cast<uint16_t>(context.orig_row_num
-               * (tiling.src_dim_sizes[index] / tiling.gather_mask_dim_sizes[index])),
-           tiling.gather_mask_repeat_strides[index],
-           0};
+      GatherMaskParams gather_mask_params{
+          1,
+          static_cast<uint16_t>(context.orig_row_num *
+                                (tiling.src_dim_sizes[index] / tiling.gather_mask_dim_sizes[index])),
+          tiling.gather_mask_repeat_strides[index], 0};
       uint64_t rsvd_cnt = 0;
       constexpr uint8_t kSrcPattern = 7;
       auto gather_dst = context.tmp_buf_high[tiling.src_buffer_offsets[index]];
@@ -1047,7 +1046,7 @@ inline __aicore__ void ConcatExtendV2(ConcatContextType &context,
     ConcatDiffDimFirstTranspose(context, tiling, k);
     AscendC::PipeBarrier<PIPE_V>();
     int32_t dim_start = 0;
-    #pragma unroll
+#pragma unroll
     for (int index = 0; index < ConcatContextType::kInputNum; ++index) {
       first_copy_params.blockLen = tiling.src_dim_sizes[index] * kScaleToB16;
       first_copy_params.dstStride = tiling.dst_row_num_unit - first_copy_params.blockLen;
@@ -1148,7 +1147,7 @@ inline __aicore__ void ConcatAllAligned(uint32_t num_rows, const ConcatTilingAll
   }
 }
 
-template<uint32_t INPUT_NUM>
+template <uint32_t INPUT_NUM>
 struct ConcatShape {
   uint32_t dst_cols;
   uint32_t src_cols[INPUT_NUM];
@@ -1157,7 +1156,7 @@ struct ConcatShape {
   uint32_t gather_mask_dim_sizes[INPUT_NUM];
 };
 
-template<typename ConcatContextType>
+template <typename ConcatContextType>
 inline __aicore__ void ConcatExtendV2Dyn(ConcatContextType &concat_context,
                                          const ConcatShape<ConcatContextType::kInputNum> &concat_shape,
                                          LocalTensor<typename ConcatContextType::DataType> &dst_tensor,
@@ -1171,18 +1170,18 @@ inline __aicore__ void ConcatExtendV2Dyn(ConcatContextType &concat_context,
   auto max_repeat_times = (tmp_buf_size >> 10U) / concat_shape.dst_cols;
   auto max_element_num = max_repeat_times * concat_shape.dst_cols * kEltNumPerBlock;
   auto max_orig_row_num = max_element_num / concat_shape.dst_cols;
-  ConcatTiling<ConcatContextType::kInputNum> concat_tiling {
-    .gcd = 1,
-    .tmp_buf_size = tmp_buf_size,
-    .dst_dim_size = concat_shape.dst_cols,
-    .dst_row_num_unit = concat_shape.dst_cols * kScaleToB16,
-    .max_repeat_times = max_repeat_times,
-    .max_element_num = max_element_num,
-    .max_orig_row_num = max_orig_row_num,
-    .per_repeat_size = concat_shape.dst_cols * kEltNumPerBlock,
-    .first_copy_repeat_times = static_cast<uint16_t>(max_repeat_times * kAddrListSize / kScaleToB16),
-    .last_trans_repeat_times = static_cast<uint8_t>(max_repeat_times * concat_shape.dst_cols),
-    .gather_mask_repeat_strides = {},
+  ConcatTiling<ConcatContextType::kInputNum> concat_tiling{
+      .gcd = 1,
+      .tmp_buf_size = tmp_buf_size,
+      .dst_dim_size = concat_shape.dst_cols,
+      .dst_row_num_unit = concat_shape.dst_cols * kScaleToB16,
+      .max_repeat_times = max_repeat_times,
+      .max_element_num = max_element_num,
+      .max_orig_row_num = max_orig_row_num,
+      .per_repeat_size = concat_shape.dst_cols * kEltNumPerBlock,
+      .first_copy_repeat_times = static_cast<uint16_t>(max_repeat_times * kAddrListSize / kScaleToB16),
+      .last_trans_repeat_times = static_cast<uint8_t>(max_repeat_times * concat_shape.dst_cols),
+      .gather_mask_repeat_strides = {},
   };
 
   uint32_t buffer_offset = 0;

@@ -22,9 +22,8 @@ Status ConcatRegApiCall::ParseAttr(const ascir::NodeView &node) {
 
 Status ConcatRegApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
                                   const vector<std::reference_wrapper<const Tensor>> &inputs,
-                                  const vector<std::reference_wrapper<const Tensor>> &outputs,
-                                  string &result) const {
-  (void) current_axis;
+                                  const vector<std::reference_wrapper<const Tensor>> &outputs, string &result) const {
+  (void)current_axis;
   GE_CHK_BOOL_RET_STATUS((!inputs.empty()) && (!outputs.empty()), ge::FAILED,
                          "Codegen input or output tensor is empty");
   const auto &x0 = inputs[0].get();
@@ -147,7 +146,7 @@ ge::Status ConcatRegApiCall::GenerateForGather(const vector<std::reference_wrapp
                                                const Tensor &y, const ConcatApiCall::ConcatTiling &tiling,
                                                const TPipe &t_pipe, std::stringstream &ss, const int64_t tmp_buf_id) {
   std::string dtype_name;
-  (void) Tensor::DtypeName(y.dtype, dtype_name);
+  (void)Tensor::DtypeName(y.dtype, dtype_name);
   if (tiling.data_type_size == sizeof(uint64_t)) {
     const ConcatTiling tiling_b32 = B64ToB32(tiling);
     DefineConcatTilingGather(tiling_b32, t_pipe.tiler, ss);
@@ -164,9 +163,8 @@ ge::Status ConcatRegApiCall::GenerateForGather(const vector<std::reference_wrapp
   GenSrcAddrs(inputs, dtype_name, ss);
   ss << "concat::ConcatExtendByGather<" << dtype_name << ", " << inputs.size() << ">("
      << "(" << dtype_name << " *)" << y << ".GetPhyAddr()"
-     << ", " << "concat_src_addrs, "
-     << t_pipe.tmp_buf << "_" << std::to_string(tmp_buf_id)
-     << ", concat_tiling);" << std::endl;
+     << ", " << "concat_src_addrs, " << t_pipe.tmp_buf << "_" << std::to_string(tmp_buf_id) << ", concat_tiling);"
+     << std::endl;
   GELOGD("use ConcatExtendByGather");
   return ge::SUCCESS;
 }
@@ -230,7 +228,7 @@ ge::Status ConcatRegApiCall::CanUseGather(ConcatTiling &tiling) const {
     tiling.all_inputs_shape_equal = af::TriBool::kTrue;
   } else {
     GE_CHK_BOOL_RET_SPECIAL_STATUS((!is_input_tbuf_contiguous), ge::SUCCESS,
-                               "cannot use Gather: input bufs cannot be contiguous");
+                                   "cannot use Gather: input bufs cannot be contiguous");
     tiling.all_inputs_shape_equal = ascir::utils::AreConcatInputShapesEqual(node_);
   }
   if (tiling.src_col_size_exprs[0].IsConstExpr()) {
@@ -238,8 +236,7 @@ ge::Status ConcatRegApiCall::CanUseGather(ConcatTiling &tiling) const {
     GE_ASSERT_TRUE(tiling.src_col_size_exprs[0].GetConstValue(src_col_size));
     constexpr uint32_t kMaxSrcSize = 256U / 2U;
     if (src_col_size * tiling.data_type_size > kMaxSrcSize) {
-      GELOGD("src col size = %u, over %u, cannot use Gather", src_col_size * tiling.data_type_size,
-             kMaxSrcSize);
+      GELOGD("src col size = %u, over %u, cannot use Gather", src_col_size * tiling.data_type_size, kMaxSrcSize);
       return ge::SUCCESS;
     }
   }
@@ -313,8 +310,7 @@ void ConcatRegApiCall::DefineConcatTilingGather(const ConcatTiling &tiling, cons
   ss << "};" << std::endl;
 }
 
-void ConcatRegApiCall::GenSrcAddrs(const vector<std::reference_wrapper<const Tensor>> &inputs,
-                                   const string &dtype_name,
+void ConcatRegApiCall::GenSrcAddrs(const vector<std::reference_wrapper<const Tensor>> &inputs, const string &dtype_name,
                                    std::stringstream &ss) {
   ss << dtype_name << " *concat_src_addrs[] { ";
   for (auto &input : inputs) {

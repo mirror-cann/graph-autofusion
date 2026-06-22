@@ -49,9 +49,9 @@ TEST_F(TestBackendLoadAiryAiStoreE2e, LoadAiryAiStoreE2eCodegen) {
   std::map<std::string, std::string> airy_ai_shape_info({{"s0", "stub_s0"}, {"s1", "stub_s1"}});
   auto graph = ascir::ShareGraph::LoadAiryAiStoreFusedGraph(2);
   std::vector<std::string> airy_ai_parts = splitString(KERNEL_SRC_LIST, ':');
-  const std::string& kernel_src_file_name = airy_ai_parts[0];
-  const std::string& tiling_src_file_name = airy_ai_parts[1];
-  const std::string& tiling_data_src_file_name = airy_ai_parts[2];
+  const std::string &kernel_src_file_name = airy_ai_parts[0];
+  const std::string &tiling_src_file_name = airy_ai_parts[1];
+  const std::string &tiling_data_src_file_name = airy_ai_parts[2];
 
   try {
     optimize::Optimizer airy_ai_optimizer(optimize::OptimizerOptions{});

@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -17,8 +17,8 @@ namespace af {
 graphStatus AttrGroupSerialize::SerializeAllAttr(proto::AttrGroups &attr_groups, const AttrStore &attr_store) {
   GE_ASSERT_GRAPH_SUCCESS(OtherGroupSerialize(attr_groups, attr_store));
 
-  auto& id_2_ptr = attr_store.GetAttrsGroupPtr();
-  for (const auto& ptr : id_2_ptr) {
+  auto &id_2_ptr = attr_store.GetAttrsGroupPtr();
+  for (const auto &ptr : id_2_ptr) {
     if (ptr.second != nullptr) {
       GE_ASSERT_GRAPH_SUCCESS(ptr.second->Serialize(*attr_groups.add_attr_group_def()));
     }
@@ -31,8 +31,7 @@ graphStatus AttrGroupSerialize::DeserializeAllAttr(const proto::AttrGroups &attr
   auto &attr_store = attr_holder->MutableAttrMap();
   GE_ASSERT_GRAPH_SUCCESS(OtherGroupDeserialize(attr_group, attr_store));
   for (const auto &attr_group_def : attr_group.attr_group_def()) {
-    auto deserializer = AttrGroupSerializerRegistry::GetInstance()
-        .GetDeserializer(attr_group_def.attr_group_case());
+    auto deserializer = AttrGroupSerializerRegistry::GetInstance().GetDeserializer(attr_group_def.attr_group_case());
     if (deserializer.impl == nullptr) {
       continue;
     }
@@ -54,4 +53,4 @@ graphStatus AttrGroupSerialize::OtherGroupDeserialize(const proto::AttrGroups &a
   (void)attr_groups;
   return ge::GRAPH_SUCCESS;
 }
-}
+}  // namespace af

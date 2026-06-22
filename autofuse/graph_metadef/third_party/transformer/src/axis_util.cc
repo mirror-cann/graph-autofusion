@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -94,29 +94,37 @@ const int32_t AXIS_FZ_DIM_N0 = 2;
 const int32_t AXIS_FZ_DIM_C0 = 3;
 
 const std::map<ge::Format, std::map<std::string, int32_t>> kFormatAxisIndexMap = {
-    {ge::Format::FORMAT_NCHW, {{"N", AXIS_NCHW_DIM_N}, {"C", AXIS_NCHW_DIM_C},
-                               {"H", AXIS_NCHW_DIM_H}, {"W", AXIS_NCHW_DIM_W}}},
-    {ge::Format::FORMAT_HWCN, {{"N", AXIS_HWCN_DIM_N}, {"C", AXIS_HWCN_DIM_C},
-                               {"H", AXIS_HWCN_DIM_H}, {"W", AXIS_HWCN_DIM_W}}},
-    {ge::Format::FORMAT_NHWC, {{"N", AXIS_NHWC_DIM_N}, {"C", AXIS_NHWC_DIM_C},
-                               {"H", AXIS_NHWC_DIM_H}, {"W", AXIS_NHWC_DIM_W}}},
-    {ge::Format::FORMAT_CHWN, {{"N", AXIS_CHWN_DIM_N}, {"C", AXIS_CHWN_DIM_C},
-                               {"H", AXIS_CHWN_DIM_H}, {"W", AXIS_CHWN_DIM_W}}},
-    {ge::Format::FORMAT_NDHWC, {{"N", NDHWC_DIM_N}, {"C", NDHWC_DIM_C},
-                                {"H", NDHWC_DIM_H}, {"W", NDHWC_DIM_W}, {"D", NDHWC_DIM_D}}},
-    {ge::Format::FORMAT_NCDHW, {{"N", NCDHW_DIM_N}, {"C", NCDHW_DIM_C},
-                                {"H", NCDHW_DIM_H}, {"W", NCDHW_DIM_W}, {"D", NCDHW_DIM_D}}},
-    {ge::Format::FORMAT_DHWCN, {{"N", DHWCN_DIM_N}, {"C", DHWCN_DIM_C},
-                                {"H", DHWCN_DIM_H}, {"W", DHWCN_DIM_W}, {"D", DHWCN_DIM_D}}},
-    {ge::Format::FORMAT_DHWNC, {{"N", DHWNC_DIM_N}, {"C", DHWNC_DIM_C},
-                                {"H", DHWNC_DIM_H}, {"W", DHWNC_DIM_W}, {"D", DHWNC_DIM_D}}},
-    {ge::Format::FORMAT_NC1HWC0, {{"N", AXIS_NC1HWC0_DIM_N}, {"C1", AXIS_NC1HWC0_DIM_C1},
-                                  {"H", AXIS_NC1HWC0_DIM_H}, {"W", AXIS_NC1HWC0_DIM_W}, {"C0", AXIS_NC1HWC0_DIM_C0}}},
-    {ge::Format::FORMAT_NDC1HWC0, {{"N", AXIS_NDC1HWC0_DIM_N}, {"D", AXIS_NDC1HWC0_DIM_D},
-                                   {"C1", AXIS_NDC1HWC0_DIM_C1}, {"H", AXIS_NDC1HWC0_DIM_H},
-                                   {"W", AXIS_NDC1HWC0_DIM_W}, {"C0", AXIS_NDC1HWC0_DIM_C0}}},
-    {ge::Format::FORMAT_FRACTAL_Z, {{"C1HW", AXIS_FZ_DIM_C1HW}, {"N1", AXIS_FZ_DIM_N1},
-                                    {"N0", AXIS_FZ_DIM_N0}, {"C0", AXIS_FZ_DIM_C0}}}};
+    {ge::Format::FORMAT_NCHW,
+     {{"N", AXIS_NCHW_DIM_N}, {"C", AXIS_NCHW_DIM_C}, {"H", AXIS_NCHW_DIM_H}, {"W", AXIS_NCHW_DIM_W}}},
+    {ge::Format::FORMAT_HWCN,
+     {{"N", AXIS_HWCN_DIM_N}, {"C", AXIS_HWCN_DIM_C}, {"H", AXIS_HWCN_DIM_H}, {"W", AXIS_HWCN_DIM_W}}},
+    {ge::Format::FORMAT_NHWC,
+     {{"N", AXIS_NHWC_DIM_N}, {"C", AXIS_NHWC_DIM_C}, {"H", AXIS_NHWC_DIM_H}, {"W", AXIS_NHWC_DIM_W}}},
+    {ge::Format::FORMAT_CHWN,
+     {{"N", AXIS_CHWN_DIM_N}, {"C", AXIS_CHWN_DIM_C}, {"H", AXIS_CHWN_DIM_H}, {"W", AXIS_CHWN_DIM_W}}},
+    {ge::Format::FORMAT_NDHWC,
+     {{"N", NDHWC_DIM_N}, {"C", NDHWC_DIM_C}, {"H", NDHWC_DIM_H}, {"W", NDHWC_DIM_W}, {"D", NDHWC_DIM_D}}},
+    {ge::Format::FORMAT_NCDHW,
+     {{"N", NCDHW_DIM_N}, {"C", NCDHW_DIM_C}, {"H", NCDHW_DIM_H}, {"W", NCDHW_DIM_W}, {"D", NCDHW_DIM_D}}},
+    {ge::Format::FORMAT_DHWCN,
+     {{"N", DHWCN_DIM_N}, {"C", DHWCN_DIM_C}, {"H", DHWCN_DIM_H}, {"W", DHWCN_DIM_W}, {"D", DHWCN_DIM_D}}},
+    {ge::Format::FORMAT_DHWNC,
+     {{"N", DHWNC_DIM_N}, {"C", DHWNC_DIM_C}, {"H", DHWNC_DIM_H}, {"W", DHWNC_DIM_W}, {"D", DHWNC_DIM_D}}},
+    {ge::Format::FORMAT_NC1HWC0,
+     {{"N", AXIS_NC1HWC0_DIM_N},
+      {"C1", AXIS_NC1HWC0_DIM_C1},
+      {"H", AXIS_NC1HWC0_DIM_H},
+      {"W", AXIS_NC1HWC0_DIM_W},
+      {"C0", AXIS_NC1HWC0_DIM_C0}}},
+    {ge::Format::FORMAT_NDC1HWC0,
+     {{"N", AXIS_NDC1HWC0_DIM_N},
+      {"D", AXIS_NDC1HWC0_DIM_D},
+      {"C1", AXIS_NDC1HWC0_DIM_C1},
+      {"H", AXIS_NDC1HWC0_DIM_H},
+      {"W", AXIS_NDC1HWC0_DIM_W},
+      {"C0", AXIS_NDC1HWC0_DIM_C0}}},
+    {ge::Format::FORMAT_FRACTAL_Z,
+     {{"C1HW", AXIS_FZ_DIM_C1HW}, {"N1", AXIS_FZ_DIM_N1}, {"N0", AXIS_FZ_DIM_N0}, {"C0", AXIS_FZ_DIM_C0}}}};
 
 const std::map<ge::Format, std::vector<std::string>> kFormatAxisVec = {
     {ge::Format::FORMAT_NCHW, {"N", "C", "H", "W"}},
@@ -131,11 +139,18 @@ const std::map<ge::Format, std::vector<std::string>> kFormatAxisVec = {
     {ge::Format::FORMAT_NDC1HWC0, {"N", "D", "C1", "H", "W", "C0"}},
     {ge::Format::FORMAT_FRACTAL_Z, {"C1HW", "N1", "N0", "C0"}}};
 
-const std::map<ge::Format, std::map<std::string, std::vector<std::string>>> kFormatSplitOrConcatAxisMap {
+const std::map<ge::Format, std::map<std::string, std::vector<std::string>>> kFormatSplitOrConcatAxisMap{
     {ge::Format::FORMAT_NC1HWC0, {{"C", {"C1", "C0"}}, {"C1", {"C"}}, {"C0", {"C"}}}},
     {ge::Format::FORMAT_NDC1HWC0, {{"C", {"C1", "C0"}}, {"C1", {"C"}}, {"C0", {"C"}}}},
-    {ge::Format::FORMAT_FRACTAL_Z, {{"N", {"N1", "N0"}}, {"C", {"C1HW", "C0"}}, {"H", {"C1HW"}}, {"W", {"C1HW"}},
-                                    {"C1HW", {"C", "H", "W"}}, {"N1", {"N"}}, {"N0", {"N"}}, {"C0", {"C"}}}}};
+    {ge::Format::FORMAT_FRACTAL_Z,
+     {{"N", {"N1", "N0"}},
+      {"C", {"C1HW", "C0"}},
+      {"H", {"C1HW"}},
+      {"W", {"C1HW"}},
+      {"C1HW", {"C", "H", "W"}},
+      {"N1", {"N"}},
+      {"N0", {"N"}},
+      {"C0", {"C"}}}}};
 
 bool AxisUtil::GetAxisValueByOriginFormat(const ge::Format &format, const gert::Shape &shape, AxisValue &axis_value) {
   CHECK(shape.IsScalar(), GELOGI("Original dim vector is empty!"), return true);
@@ -304,8 +319,7 @@ int32_t AxisUtil::GetAxisIndexByFormat(const ge::Format &format, const std::stri
   }
   auto iter2 = iter->second.find(axis);
   if (iter2 == iter->second.end()) {
-    GELOGW("Format %s does not have this axis %s.", ge::TypeUtils::FormatToSerialString(format).c_str(),
-           axis.c_str());
+    GELOGW("Format %s does not have this axis %s.", ge::TypeUtils::FormatToSerialString(format).c_str(), axis.c_str());
     return -1;
   }
   return iter2->second;
@@ -383,4 +397,4 @@ std::vector<std::string> AxisUtil::GetSplitOrConcatAxisByFormat(const ge::Format
   }
   return iter2->second;
 }
-} // namespace transformer
+}  // namespace transformer

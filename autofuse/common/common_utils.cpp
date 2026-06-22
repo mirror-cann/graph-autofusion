@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -33,14 +33,14 @@ const af::Expression ONE = af::Symbol(1);
 constexpr int64_t kMaxGroupPerCompileUnit = 5;
 
 std::string CamelToLowerSneak(const std::string &str) {
-  std::string s1 = std::regex_replace(str, std::regex("(.)([A-Z][a-z]+)"),"$1_$2");
+  std::string s1 = std::regex_replace(str, std::regex("(.)([A-Z][a-z]+)"), "$1_$2");
   std::string s2 = std::regex_replace(s1, std::regex("([a-z0-9])([A-Z])"), "$1_$2");
 
   std::transform(s2.begin(), s2.end(), s2.begin(), ::tolower);
   return s2;
 }
 
-std::string SubStringReplace(std::string& ori, const std::string& from, const std::string& to) {
+std::string SubStringReplace(std::string &ori, const std::string &from, const std::string &to) {
   std::size_t pos = 0U;
   std::string result;
 
@@ -53,19 +53,19 @@ std::string SubStringReplace(std::string& ori, const std::string& from, const st
     ori.erase(0, pos + from.length());  // 删除已处理部分
     pos = 0U;
   }
-  result.append(ori); // 追加剩余字符
+  result.append(ori);  // 追加剩余字符
 
   return result;
 }
 
-std::string GenValidName(const std::string& t_name) {
+std::string GenValidName(const std::string &t_name) {
   string result;
   bool lastWasUnderscore = false;
 
   for (char c : t_name) {
     if (isalnum(c)) {
-        result += c;
-        lastWasUnderscore = false;
+      result += c;
+      lastWasUnderscore = false;
     } else {
       if (!lastWasUnderscore) {
         result += '_';
@@ -75,7 +75,7 @@ std::string GenValidName(const std::string& t_name) {
   }
   // 删除开头的下划线
   if (!result.empty() && result[0] == '_') {
-      result = result.substr(1);
+    result = result.substr(1);
   }
 
   if (!result.empty() && std::isdigit(result[0]) != 0) {
@@ -84,8 +84,7 @@ std::string GenValidName(const std::string& t_name) {
   return result;
 }
 
-bool GetRealPath(const std::string& file_path, std::string& real_file_path)
-{
+bool GetRealPath(const std::string &file_path, std::string &real_file_path) {
   char buf[PATH_MAX] = " ";
   if (realpath(file_path.c_str(), buf) == nullptr) {
     return false;
@@ -94,8 +93,7 @@ bool GetRealPath(const std::string& file_path, std::string& real_file_path)
   return true;
 }
 
-ge::Status GetApiTilingTypeName(const ascir::NodeView& node, std::string& type_name)
-{
+ge::Status GetApiTilingTypeName(const ascir::NodeView &node, std::string &type_name) {
   auto impl = ascgen_utils::GetAscIrCodegenImpl(node->GetType());
   GE_ASSERT_NOTNULL(impl, "GetAscIrCodegenImpl of node %s[%s] is null", node->GetTypePtr(), node->GetNamePtr());
   type_name = impl->GetApiTilingTypeName();
@@ -105,8 +103,7 @@ ge::Status GetApiTilingTypeName(const ascir::NodeView& node, std::string& type_n
   return ge::SUCCESS;
 }
 
-ge::Status GetApiTilingFieldName(const ascir::NodeView& node, std::string& field_name)
-{
+ge::Status GetApiTilingFieldName(const ascir::NodeView &node, std::string &field_name) {
   auto impl = ascgen_utils::GetAscIrCodegenImpl(node->GetType());
   GE_ASSERT_NOTNULL(impl, "GetAscIrCodegenImpl of node %s[%s] is null", node->GetTypePtr(), node->GetNamePtr());
   auto type_name = impl->GetApiTilingTypeName();
@@ -141,7 +138,8 @@ inline bool UpdateCurPerfAndBlockByGroup(std::pair<uint32_t, double> group_block
     return true;
   } else {
     cur_block += group_block;
-    cur_tmp_perf = )" << max_func << R"((cur_tmp_perf, group_perf);
+    cur_tmp_perf = )"
+     << max_func << R"((cur_tmp_perf, group_perf);
     return false;
   }
 }
@@ -153,9 +151,10 @@ af::Expression GetTensorSize(const af::AscTensor &tensor) {
   if (tensor.attr.repeats.size() == 0U) {
     return af::Symbol(0);
   }
-  af::Expression tensor_size = af::Symbol(1); // 当stride全为0时，返回tensorSize为1
+  af::Expression tensor_size = af::Symbol(1);  // 当stride全为0时，返回tensorSize为1
   GE_ASSERT_TRUE(tensor.attr.repeats.size() == tensor.attr.strides.size(),
-                "Check size failed, repeats size is %u, strides size is %u.", tensor.attr.repeats.size(), tensor.attr.strides.size());
+                 "Check size failed, repeats size is %u, strides size is %u.", tensor.attr.repeats.size(),
+                 tensor.attr.strides.size());
   for (size_t i = 0; i < tensor.attr.repeats.size(); i++) {
     if (tensor.attr.strides[i] != 0) {
       tensor_size = af::sym::Max(tensor_size, tensor.attr.repeats[i] * tensor.attr.strides[i]);
@@ -174,7 +173,7 @@ af::Expression CalculateOneWorkspaceSize(const af::AscNodePtr &workspace_nodes) 
     ws_size = af::sym::Max(ws_size, in_size);
   }
   auto out = workspace_nodes->outputs[0U];
-  for (auto &peer_input :  out.anchor.GetPeerInDataAnchors()) {
+  for (auto &peer_input : out.anchor.GetPeerInDataAnchors()) {
     auto load_node = std::dynamic_pointer_cast<af::AscNode>(peer_input->GetOwnerNode());
     auto out_size = GetTensorSize(load_node->outputs[0U]);
     ws_size = af::sym::Max(ws_size, out_size);
@@ -204,18 +203,18 @@ af::Expression CalculateWorkspaceSize(const std::vector<af::AscNodePtr> &workspa
     } else {
       max_sizes[tensor_id] = af::sym::Max(max_sizes[tensor_id], ws_size);
     }
-    GELOGD("[AscgenCommon][CalculateWorkspaceSize] node[%s] tensor id[%ld] tensor size[%s]",
-           node->GetName().c_str(), tensor_id, af::SymbolicUtils::ToString(max_sizes[tensor_id]).c_str());
+    GELOGD("[AscgenCommon][CalculateWorkspaceSize] node[%s] tensor id[%ld] tensor size[%s]", node->GetName().c_str(),
+           tensor_id, af::SymbolicUtils::ToString(max_sizes[tensor_id]).c_str());
   }
   for (const auto &pair : max_sizes) {
     total_workspace_size = af::sym::Add(total_workspace_size, pair.second);
   }
   GELOGD("[AscgenCommon][CalculateWorkspaceSize] workspace total size[%s]",
-      af::SymbolicUtils::ToString(total_workspace_size).c_str());
+         af::SymbolicUtils::ToString(total_workspace_size).c_str());
   return total_workspace_size;
 }
 
-bool IsStaticSchedResult(const ascir::FusedScheduledResult& fused_schedule_result) {
+bool IsStaticSchedResult(const ascir::FusedScheduledResult &fused_schedule_result) {
   for (auto &var : fused_schedule_result.origin_vars) {
     GELOGD("var:%s, is_const:%d", var.Str().get(), static_cast<int32_t>(var.IsConstExpr()));
     if (!var.IsConstExpr()) {
@@ -226,9 +225,8 @@ bool IsStaticSchedResult(const ascir::FusedScheduledResult& fused_schedule_resul
   return true;
 }
 
-ge::Status ScalarValuePreProcess(const std::string& ori_value,
-                                 const std::string& dtype,
-                                 std::string& after_pre_pro_value) {
+ge::Status ScalarValuePreProcess(const std::string &ori_value, const std::string &dtype,
+                                 std::string &after_pre_pro_value) {
   if (ori_value == "inf" || ori_value == "-inf") {
     if ((dtype != "float") && (dtype != "half")) {
       return ge::FAILED;
@@ -241,15 +239,15 @@ ge::Status ScalarValuePreProcess(const std::string& ori_value,
   return ge::SUCCESS;
 }
 
-bool IsEmptyTensorSence(const ascir::FusedScheduledResult& fused_schedule_result)
-{
+bool IsEmptyTensorSence(const ascir::FusedScheduledResult &fused_schedule_result) {
   if (fused_schedule_result.node_idx_to_scheduled_results.empty() ||
       fused_schedule_result.node_idx_to_scheduled_results[0].empty() ||
       fused_schedule_result.node_idx_to_scheduled_results[0][0].schedule_groups.empty() ||
       fused_schedule_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs.empty()) {
     return false;
   }
-  for (const auto &node : fused_schedule_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs[0].GetAllNodes()) {
+  for (const auto &node :
+       fused_schedule_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs[0].GetAllNodes()) {
     if (node->GetType() == "Store") {
       GE_CHECK_NOTNULL_EXEC(node->GetOwnerComputeGraph(), return false;);
       auto attr = node->GetOwnerComputeGraph()->GetAttrsGroup<af::AscGraphAttr>();
@@ -266,15 +264,14 @@ bool IsEmptyTensorSence(const ascir::FusedScheduledResult& fused_schedule_result
 }
 
 bool IsSupportBlkTensorInput(const af::AscNodePtr &next_node) {
-  static const std::set<std::string> supported_ops = {
-    "Where", "Select", "Eq", "Ne", "Gt", "Lt", "Ge", "Le", "Cast"
-  };
+  static const std::set<std::string> supported_ops = {"Where", "Select", "Eq", "Ne", "Gt", "Lt", "Ge", "Le", "Cast"};
   return (supported_ops.count(next_node->GetType()) > 0U);
 }
 
-void MergeBrcAxisRepeats(const std::vector<af::Expression> &input0_repeats, const std::vector<af::Expression> &input1_repeats,
-                         const std::vector<ascir::SizeExpr> &input1_strides, std::vector<af::Expression> &i0_merge_repeats,
-                         std::vector<af::Expression> &i1_merge_repeats) {
+void MergeBrcAxisRepeats(const std::vector<af::Expression> &input0_repeats,
+                         const std::vector<af::Expression> &input1_repeats,
+                         const std::vector<ascir::SizeExpr> &input1_strides,
+                         std::vector<af::Expression> &i0_merge_repeats, std::vector<af::Expression> &i1_merge_repeats) {
   MergeBrcAxisParams in0(input0_repeats, input1_strides);
   MergeBrcAxisParams in1(input1_repeats, input1_strides);
   MergeBrcAxisRepeats(in0, in1);
@@ -338,8 +335,8 @@ void MergeBrcAxisRepeats(MergeBrcAxisParams &in0, MergeBrcAxisParams &in1) {
   }
 }
 
-bool IsGeneralizeBrcInlineScene(const af::AscNodePtr &node, const af::AscTensor &input0,
-  const af::AscTensor &input1, std::vector<uint8_t> &input_idx_2_brc_inline) {
+bool IsGeneralizeBrcInlineScene(const af::AscNodePtr &node, const af::AscTensor &input0, const af::AscTensor &input1,
+                                std::vector<uint8_t> &input_idx_2_brc_inline) {
   GE_CHK_BOOL_RET_STATUS_NOLOG((input0.attr.repeats.size() == input1.attr.repeats.size()), false);
 
   // 构造input0的向量化轴id对应的索引
@@ -360,21 +357,21 @@ bool IsGeneralizeBrcInlineScene(const af::AscNodePtr &node, const af::AscTensor 
 
   GE_CHK_BOOL_RET_STATUS_NOLOG(i0_vectorized_axis_pos.size() == i1_vectorized_axis_pos.size(), false);
 
-  GELOGD("node_name:%s, input0 axis_id:%s, repeates:%s, vectorized_axis:%s, vectorized_axis_pos:%s",
-    node->GetNamePtr(), VectorToStr(input0.attr.axis).c_str(), VectorToStr(input0.attr.repeats).c_str(),
-    VectorToStr(input0.attr.vectorized_axis).c_str(),VectorToStr(i0_vectorized_axis_pos).c_str());
+  GELOGD("node_name:%s, input0 axis_id:%s, repeates:%s, vectorized_axis:%s, vectorized_axis_pos:%s", node->GetNamePtr(),
+         VectorToStr(input0.attr.axis).c_str(), VectorToStr(input0.attr.repeats).c_str(),
+         VectorToStr(input0.attr.vectorized_axis).c_str(), VectorToStr(i0_vectorized_axis_pos).c_str());
 
-  GELOGD("node_name:%s, input0 axis_id:%s, repeates:%s, vectorized_axis:%s, vectorized_axis_pos:%s",
-    node->GetNamePtr(), VectorToStr(input1.attr.axis).c_str(), VectorToStr(input1.attr.repeats).c_str(),
-    VectorToStr(input0.attr.vectorized_axis).c_str(),VectorToStr(i1_vectorized_axis_pos).c_str());
+  GELOGD("node_name:%s, input0 axis_id:%s, repeates:%s, vectorized_axis:%s, vectorized_axis_pos:%s", node->GetNamePtr(),
+         VectorToStr(input1.attr.axis).c_str(), VectorToStr(input1.attr.repeats).c_str(),
+         VectorToStr(input0.attr.vectorized_axis).c_str(), VectorToStr(i1_vectorized_axis_pos).c_str());
 
   /* 对input1, input2进行分组, check分组之后是否为(1, A)广播成(B, A)的场景
-  * 分组原则：
-  * 连续的广播轴合并，连续的非广播轴合并
-  * input1/2都有广播轴, 合并终止, 返回不支持
-  * 合并结果check：
-  * 如果 input0是(1, A), input1是(B, A), 或者input1是(1, A), input0是(B, A)，则认为是支持场景, 否则不支持的场景
-  */
+   * 分组原则：
+   * 连续的广播轴合并，连续的非广播轴合并
+   * input1/2都有广播轴, 合并终止, 返回不支持
+   * 合并结果check：
+   * 如果 input0是(1, A), input1是(B, A), 或者input1是(1, A), input0是(B, A)，则认为是支持场景, 否则不支持的场景
+   */
 
   bool i0_has_brc_axis = false;
   bool i1_has_brc_axis = false;
@@ -401,17 +398,18 @@ bool IsGeneralizeBrcInlineScene(const af::AscNodePtr &node, const af::AscTensor 
   std::vector<af::Expression> i0_meger_repeates;
   std::vector<af::Expression> i1_meger_repeates;
   if (i0_has_brc_axis) {
-    MergeBrcAxisRepeats(i0_v_repeates, i1_v_repeates, input1.attr.vectorized_strides, i0_meger_repeates, i1_meger_repeates);
+    MergeBrcAxisRepeats(i0_v_repeates, i1_v_repeates, input1.attr.vectorized_strides, i0_meger_repeates,
+                        i1_meger_repeates);
   } else {
-    MergeBrcAxisRepeats(i1_v_repeates, i0_v_repeates, input0.attr.vectorized_strides, i1_meger_repeates, i0_meger_repeates);
+    MergeBrcAxisRepeats(i1_v_repeates, i0_v_repeates, input0.attr.vectorized_strides, i1_meger_repeates,
+                        i0_meger_repeates);
   }
 
-  GELOGD("node_name:%s, i0_meger_repeates:%s, i1_meger_repeates:%s",
-    node->GetNamePtr(), VectorToStr(i0_meger_repeates).c_str(), VectorToStr(i1_meger_repeates).c_str());
+  GELOGD("node_name:%s, i0_meger_repeates:%s, i1_meger_repeates:%s", node->GetNamePtr(),
+         VectorToStr(i0_meger_repeates).c_str(), VectorToStr(i1_meger_repeates).c_str());
 
   if (i0_meger_repeates.size() == 2U && i1_meger_repeates.size() == 2U) {
-    if ((i0_meger_repeates[0] == af::Symbol(1)) ||
-        (i1_meger_repeates[0] == af::Symbol(1))) {
+    if ((i0_meger_repeates[0] == af::Symbol(1)) || (i1_meger_repeates[0] == af::Symbol(1))) {
       return true;
     }
   }
@@ -469,7 +467,8 @@ std::string FormatExpression(const std::string &expression) {
   } else {
     // 表达式里的符号值由字母+数字组成，按该规则匹配替换成tiling_data.get_<符号>()
     const std::regex symbol_regex(R"(\b(?=\w*\d)(?=\w*[a-zA-Z])\w+\b)");
-    formatted_expression = "static_cast<int64_t>" + std::regex_replace(expression, symbol_regex, "tiling_data.get_$&()");
+    formatted_expression =
+        "static_cast<int64_t>" + std::regex_replace(expression, symbol_regex, "tiling_data.get_$&()");
   }
   return formatted_expression;
 }
@@ -481,10 +480,10 @@ int32_t CalcReservedTmpBufSizeForAscGraph(const ascir::ImplGraph &graph) {
   return total_reserve_blk_num * one_blk_size;
 }
 
-void GetApiReservedBlockNum(const ascir::ImplGraph &graph, uint32_t& total_blk_num) {
+void GetApiReservedBlockNum(const ascir::ImplGraph &graph, uint32_t &total_blk_num) {
   const std::unordered_set<std::string> type2api = {
-      {Select::Type}, {Where::Type},
-      {Ge::Type}, {Eq::Type}, {Ne::Type}, {Gt::Type}, {Le::Type}, {Lt::Type}, {Gather::Type},
+      {Select::Type}, {Where::Type}, {Ge::Type}, {Eq::Type},     {Ne::Type},
+      {Gt::Type},     {Le::Type},    {Lt::Type}, {Gather::Type},
   };
   for (const auto &node : graph.GetAllNodes()) {
     auto iter = type2api.find(node->GetType());
@@ -506,15 +505,13 @@ af::Expression CalcExtraTmpBufForAscGraph(const ascir::ImplGraph &graph) {
 }
 
 void GetApiExtractDupSet(const ascir::ImplGraph &graph,
-                         std::set<std::pair<std::string, std::string>> &pre_api_extract_dup,
-                         uint32_t& total_blk_num) {
+                         std::set<std::pair<std::string, std::string>> &pre_api_extract_dup, uint32_t &total_blk_num) {
   const std::unordered_map<std::string, std::string> type2api = {
       {LogicalNot::Type, "AscendcLogical_notStr"},
       {Rsqrt::Type, "AscendcRsqrtStr"},
   };
-  const std::unordered_map<string, std::vector<std::pair<std::string, std::string>>> api_extract_dup_map ={
-      {"AscendcRsqrtStr", {{"1", "float"}}},
-      {"AscendcLogical_notStr", {{"1", "half"}}}};
+  const std::unordered_map<string, std::vector<std::pair<std::string, std::string>>> api_extract_dup_map = {
+      {"AscendcRsqrtStr", {{"1", "float"}}}, {"AscendcLogical_notStr", {{"1", "half"}}}};
 
   for (const auto &node : graph.GetAllNodes()) {
     if (af::ops::IsOps<af::ascir_op::Scalar>(node) && IsScalarNextNodeSupportBlkTensor(node)) {
@@ -531,7 +528,7 @@ void GetApiExtractDupSet(const ascir::ImplGraph &graph,
     if (it == api_extract_dup_map.end()) {
       continue;
     }
-    for (const auto& p : it->second) {
+    for (const auto &p : it->second) {
       pre_api_extract_dup.insert(p);  // 集合中插入pair {value, dtype}
     }
   }
@@ -540,14 +537,14 @@ void GetApiExtractDupSet(const ascir::ImplGraph &graph,
 std::unique_ptr<af::ascir::AscIrAtt> GetAscIrAttImpl(const string &ascir_type) {
   std::string platform_name;
   GE_ASSERT_SUCCESS(ge::PlatformContext::GetInstance().GetCurrentPlatformString(platform_name),
-                   "Failed to get platform info.");
+                    "Failed to get platform info.");
   return af::ascir::AscirRegistry::GetInstance().GetIrAttImpl(platform_name, ascir_type);
 }
 
 std::unique_ptr<af::ascir::AscIrCodegen> GetAscIrCodegenImpl(const string &ascir_type) {
   std::string platform_name;
   GE_ASSERT_SUCCESS(ge::PlatformContext::GetInstance().GetCurrentPlatformString(platform_name),
-                   "Failed to get platform info.");
+                    "Failed to get platform info.");
   return af::ascir::AscirRegistry::GetInstance().GetIrCodegenImpl(platform_name, ascir_type);
 }
 
@@ -579,7 +576,7 @@ bool IsNodeSupportsAllScalar(const af::AscNodePtr &node) {
   return IsNodeSupportsScalarInput(node, is_scalar_list);
 }
 
-bool IsNodeSupportsScalarIfExchangeInputs(const af::AscNodePtr &node, const std::vector<bool> &is_scalar_list){
+bool IsNodeSupportsScalarIfExchangeInputs(const af::AscNodePtr &node, const std::vector<bool> &is_scalar_list) {
   const auto &codegen_impl = GetAscIrCodegenImpl(node->GetType());
   GE_ASSERT_NOTNULL(codegen_impl, "Failed to get AscIrCodegen implementation.");
   return codegen_impl->IsScalarInputSupportedIfExchangeInputs(is_scalar_list);
@@ -628,8 +625,8 @@ bool IsNodeContainsBrcInline(const af::AscNodePtr &node) {
   return false;
 }
 
-std::vector<ascir::TensorId> GetWorkspaceTensorIdListInOneScheduleResult(const ascir::FusedScheduledResult& fused_schedule_result)
-{
+std::vector<ascir::TensorId> GetWorkspaceTensorIdListInOneScheduleResult(
+    const ascir::FusedScheduledResult &fused_schedule_result) {
   std::vector<ascir::TensorId> tensorId;
   for (auto workspace : fused_schedule_result.workspace_nodes) {
     GE_ASSERT_NOTNULL(workspace, "fused schedule result workspace node is null");
@@ -1159,7 +1156,7 @@ ge::Status DtypeName(ge::DataType dtype, std::string &dtype_name) {
       [ge::DT_QINT8] = "",          [ge::DT_QINT16] = "",         [ge::DT_QINT32] = "",
       [ge::DT_QUINT8] = "",         [ge::DT_QUINT16] = "",        [ge::DT_RESOURCE] = "",
       [ge::DT_STRING_REF] = "",     [ge::DT_DUAL] = "",           [ge::DT_VARIANT] = "",
-      [ge::DT_BF16] = "bfloat16_t",   [ge::DT_UNDEFINED] = "",      [ge::DT_INT4] = "int4_t",
+      [ge::DT_BF16] = "bfloat16_t", [ge::DT_UNDEFINED] = "",      [ge::DT_INT4] = "int4_t",
       [ge::DT_UINT1] = "",          [ge::DT_INT2] = "",           [ge::DT_UINT2] = "",
       [ge::DT_COMPLEX32] = "",
   };

@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -49,7 +49,7 @@ ge::Status ParseForceTilingCaseForSingleMode(const std::string &input, ForceTili
   has_parsed = false;
   return ge::SUCCESS;
 }
-}
+}  // namespace
 void ForceTilingCaseResult::Clear() {
   is_single_mode = true;
   single_case = -1;
@@ -120,9 +120,9 @@ ge::Status AttStrategyConfigUtils::ParseForceTilingCase(const std::string &input
     // 查找第一个下划线位置（分隔组号和case号）
     size_t first_underscore_pos = token.find('_');
     // 1.无下划线, 2.下划线紧接'g'后（缺少组号）, 3.下划线在末尾（缺少case号）)
-    GE_ASSERT_TRUE(
-        (first_underscore_pos != std::string::npos) && (first_underscore_pos != 1UL) && (first_underscore_pos != token.size() - 1UL),
-        "Invalid underscore position in: %s", token.c_str());
+    GE_ASSERT_TRUE((first_underscore_pos != std::string::npos) && (first_underscore_pos != 1UL) &&
+                       (first_underscore_pos != token.size() - 1UL),
+                   "Invalid underscore position in: %s", token.c_str());
     // 提取组号部分（'g'之后到下划线前）
     std::string group_str = token.substr(1UL, first_underscore_pos - 1UL);
     // 查找第二个下划线位置（分隔case号和sub_tag）

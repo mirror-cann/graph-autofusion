@@ -44,8 +44,8 @@ void InitInputNode(NodeT &node, const InputT &input, int32_t &exec_order, std::i
 }
 
 void ApplySchedulerTransform(ge::AscGraph &graph, const char *name, int64_t z1T, int64_t z1t, int64_t z0z1T,
-                              int64_t z0z1TB, int64_t z0z1Tb, int64_t loop_axis,
-                              std::initializer_list<int64_t> vectorized_axis) {
+                             int64_t z0z1TB, int64_t z0z1Tb, int64_t loop_axis,
+                             std::initializer_list<int64_t> vectorized_axis) {
   auto node = graph.FindNode(name);
   graph.ApplySplit(node, z1T, z1t);
   graph.ApplyMerge(node, z0z1T);

@@ -16,8 +16,7 @@
 
 namespace af::testing {
 namespace {
-void ComputeStrides(const std::vector<Expression> &repeats,
-                    std::vector<Expression> &strides) {
+void ComputeStrides(const std::vector<Expression> &repeats, std::vector<Expression> &strides) {
   strides.clear();
   Expression stride = sym::kSymbolOne;
   for (auto iter = repeats.rbegin(); iter != repeats.rend(); ++iter) {
@@ -30,17 +29,15 @@ void ComputeStrides(const std::vector<Expression> &repeats,
   }
   std::reverse(strides.begin(), strides.end());
 }
-}
+}  // namespace
 
-AscGraphBuilder::AscGraphBuilder(const std::string &name)
-  : impl_(std::make_unique<Impl>(name)) {
-}
+AscGraphBuilder::AscGraphBuilder(const std::string &name) : impl_(std::make_unique<Impl>(name)) {}
 
 AscGraphBuilder::~AscGraphBuilder() = default;
 
 AscGraphBuilder &AscGraphBuilder::Loops(std::initializer_list<int64_t> sizes) {
   std::vector<Expression> expr_sizes;
-  for (auto s: sizes) {
+  for (auto s : sizes) {
     expr_sizes.push_back(Symbol(s));
   }
   return Loops(expr_sizes);
@@ -64,11 +61,9 @@ AxisId AscGraphBuilder::ExtraAxis(const std::string &name, const Expression &siz
   return axis.id;
 }
 
-AscGraphBuilder &AscGraphBuilder::DataImpl(const std::string &name, int64_t index,
-                                            const std::vector<AxisId> *axes,
-                                            const std::vector<Expression> *shape,
-                                            const std::vector<Expression> *strides,
-                                            DataType dtype) {
+AscGraphBuilder &AscGraphBuilder::DataImpl(const std::string &name, int64_t index, const std::vector<AxisId> *axes,
+                                           const std::vector<Expression> *shape, const std::vector<Expression> *strides,
+                                           DataType dtype) {
   ascir_op::Data data_op(name.c_str(), impl_->graph_);
   auto node = impl_->graph_.FindNode(name.c_str());
   assert(node != nullptr);
@@ -93,17 +88,13 @@ AscGraphBuilder &AscGraphBuilder::Data(const std::string &name, int64_t index, D
   return DataImpl(name, index, nullptr, nullptr, nullptr, dtype);
 }
 
-AscGraphBuilder &AscGraphBuilder::Data(const std::string &name, int64_t index,
-                                       const std::vector<Expression> &shape,
-                                       const std::vector<Expression> &strides,
-                                       DataType dtype) {
+AscGraphBuilder &AscGraphBuilder::Data(const std::string &name, int64_t index, const std::vector<Expression> &shape,
+                                       const std::vector<Expression> &strides, DataType dtype) {
   return DataImpl(name, index, nullptr, &shape, &strides, dtype);
 }
 
-AscGraphBuilder &AscGraphBuilder::Data(const std::string &name, int64_t index,
-                                       const std::vector<AxisId> &axes,
-                                       const std::vector<Expression> &shape,
-                                       const std::vector<Expression> &strides,
+AscGraphBuilder &AscGraphBuilder::Data(const std::string &name, int64_t index, const std::vector<AxisId> &axes,
+                                       const std::vector<Expression> &shape, const std::vector<Expression> &strides,
                                        DataType dtype) {
   return DataImpl(name, index, &axes, &shape, &strides, dtype);
 }
@@ -140,8 +131,7 @@ AscGraphBuilder &AscGraphBuilder::Output(const std::string &name, const std::str
   impl_->nodes_[name] = node;
   auto it = impl_->nodes_.find(input);
   assert(it != impl_->nodes_.end());
-  GraphUtils::AddEdge(it->second->GetOutDataAnchor(0),
-                      node->GetInDataAnchor(0));
+  GraphUtils::AddEdge(it->second->GetOutDataAnchor(0), node->GetInDataAnchor(0));
   return *this;
 }
 
@@ -154,16 +144,14 @@ AscGraphBuilder &AscGraphBuilder::Workspace(const std::string &name, const std::
   if (!input.empty()) {
     auto it = impl_->nodes_.find(input);
     assert(it != impl_->nodes_.end());
-    GraphUtils::AddEdge(it->second->GetOutDataAnchor(0),
-                        node->GetInDataAnchor(0));
+    GraphUtils::AddEdge(it->second->GetOutDataAnchor(0), node->GetInDataAnchor(0));
   }
   return *this;
 }
 
 // Load 通用实现（使用默认 axis_ids_）
 AscGraphBuilder &AscGraphBuilder::LoadImpl(const std::string &name, const std::string &input,
-                                           const std::vector<Expression> *shape,
-                                           const std::vector<Expression> *strides,
+                                           const std::vector<Expression> *shape, const std::vector<Expression> *strides,
                                            const Expression *offset) {
   ascir_op::Load load_op(name.c_str());
   load_op.attr.sched.axis = impl_->axis_ids_;
@@ -193,14 +181,12 @@ AscGraphBuilder &AscGraphBuilder::Load(const std::string &name, const std::strin
 }
 
 AscGraphBuilder &AscGraphBuilder::Load(const std::string &name, const std::string &input,
-                                       const std::vector<Expression> &shape,
-                                       const std::vector<Expression> &strides) {
+                                       const std::vector<Expression> &shape, const std::vector<Expression> &strides) {
   return LoadImpl(name, input, &shape, &strides);
 }
 
 AscGraphBuilder &AscGraphBuilder::Load(const std::string &name, const std::string &input,
-                                       const std::vector<Expression> &shape,
-                                       const std::vector<Expression> &strides,
+                                       const std::vector<Expression> &shape, const std::vector<Expression> &strides,
                                        const Expression &offset) {
   return LoadImpl(name, input, &shape, &strides, &offset);
 }
@@ -208,8 +194,7 @@ AscGraphBuilder &AscGraphBuilder::Load(const std::string &name, const std::strin
 // Store 通用实现（使用默认 axis_ids_）
 AscGraphBuilder &AscGraphBuilder::StoreImpl(const std::string &name, const std::string &input,
                                             const std::vector<Expression> *shape,
-                                            const std::vector<Expression> *strides,
-                                            const Expression *offset) {
+                                            const std::vector<Expression> *strides, const Expression *offset) {
   ascir_op::Store store_op(name.c_str());
   store_op.attr.sched.axis = impl_->axis_ids_;
 
@@ -237,14 +222,12 @@ AscGraphBuilder &AscGraphBuilder::Store(const std::string &name, const std::stri
 }
 
 AscGraphBuilder &AscGraphBuilder::Store(const std::string &name, const std::string &input,
-                                        const std::vector<Expression> &shape,
-                                        const std::vector<Expression> &strides) {
+                                        const std::vector<Expression> &shape, const std::vector<Expression> &strides) {
   return StoreImpl(name, input, &shape, &strides);
 }
 
 AscGraphBuilder &AscGraphBuilder::Store(const std::string &name, const std::string &input,
-                                        const std::vector<Expression> &shape,
-                                        const std::vector<Expression> &strides,
+                                        const std::vector<Expression> &shape, const std::vector<Expression> &strides,
                                         const Expression &offset) {
   return StoreImpl(name, input, &shape, &strides, &offset);
 }
@@ -268,7 +251,7 @@ AscGraphBuilder &AscGraphBuilder::Broadcast(const std::string &name, const std::
   auto &input_tensor = GetInputOutputTensor(input);
 
   std::vector<Expression> output_shape = input_tensor.attr.repeats;
-  for (int64_t axis: brc_axes) {
+  for (int64_t axis : brc_axes) {
     if (axis >= 0 && axis < static_cast<int64_t>(output_shape.size()) &&
         axis < static_cast<int64_t>(impl_->loop_repeats_.size())) {
       output_shape[axis] = impl_->loop_repeats_[axis];
@@ -296,7 +279,7 @@ AscGraphBuilder &AscGraphBuilder::Transpose(const std::string &name, const std::
 
   std::vector<Expression> output_shape;
   std::vector<AxisId> output_axis;
-  for (int64_t axis_idx: axes) {
+  for (int64_t axis_idx : axes) {
     if (axis_idx >= 0 && axis_idx < static_cast<int64_t>(input_shape.size())) {
       output_shape.push_back(input_shape[axis_idx]);
     }
@@ -321,7 +304,7 @@ AscGraphBuilder &AscGraphBuilder::Concat(const std::string &name, const std::vec
   ops.reserve(inputs.size());
   outputs.reserve(inputs.size());
 
-  for (const auto &input: inputs) {
+  for (const auto &input : inputs) {
     auto [node, port] = ResolveOutput(input);
     ops.push_back(af::OpDescUtils::CreateOperatorFromNode(node));
     outputs.emplace_back(&ops.back(), static_cast<uint32_t>(port));
@@ -382,7 +365,7 @@ AscGraphBuilder &AscGraphBuilder::Concat(const std::string &name, const std::vec
   ops.reserve(inputs.size());
   outputs.reserve(inputs.size());
 
-  for (const auto &input: inputs) {
+  for (const auto &input : inputs) {
     auto [node, port] = ResolveOutput(input);
     ops.push_back(af::OpDescUtils::CreateOperatorFromNode(node));
     outputs.emplace_back(&ops.back(), static_cast<uint32_t>(port));
@@ -412,13 +395,11 @@ AscGraphBuilder &AscGraphBuilder::Concat(const std::string &name, const std::vec
   return *this;
 }
 
-AscGraphBuilder &AscGraphBuilder::Gather(const std::string &name,
-                                          const std::string &data_input,
-                                          const std::string &index_input,
-                                          int64_t gather_axis,
-                                          const std::vector<AxisId> &output_axes,
-                                          const std::vector<Expression> &output_shape,
-                                          const std::vector<Expression> &output_strides) {
+AscGraphBuilder &AscGraphBuilder::Gather(const std::string &name, const std::string &data_input,
+                                         const std::string &index_input, int64_t gather_axis,
+                                         const std::vector<AxisId> &output_axes,
+                                         const std::vector<Expression> &output_shape,
+                                         const std::vector<Expression> &output_strides) {
   ascir_op::Gather gather_op(name.c_str());
   gather_op.attr.sched.axis = output_axes;
   gather_op.ir_attr.SetAxis(gather_axis);
@@ -441,13 +422,13 @@ AscGraphBuilder &AscGraphBuilder::Gather(const std::string &name,
 }
 
 // 通用 Reduce 模板实现
-template<typename ReduceOp>
+template <typename ReduceOp>
 AscGraphBuilder &AscGraphBuilder::Reduce(const std::string &name, const std::string &input,
                                          const std::vector<size_t> &reduce_axes) {
   auto &input_tensor = GetInputOutputTensor(input);
 
   std::vector<Expression> output_shape = input_tensor.attr.repeats;
-  for (size_t axis: reduce_axes) {
+  for (size_t axis : reduce_axes) {
     if (axis < output_shape.size()) {
       output_shape[axis] = sym::kSymbolOne;
     }
@@ -463,11 +444,11 @@ AscGraphBuilder &AscGraphBuilder::Reduce(const std::string &name, const std::str
   return *this;
 }
 
-template AscGraphBuilder &AscGraphBuilder::Reduce<ascir_op::Max>(
-  const std::string &, const std::string &, const std::vector<size_t> &);
+template AscGraphBuilder &AscGraphBuilder::Reduce<ascir_op::Max>(const std::string &, const std::string &,
+                                                                 const std::vector<size_t> &);
 
-template AscGraphBuilder &AscGraphBuilder::Reduce<ascir_op::Sum>(
-  const std::string &, const std::string &, const std::vector<size_t> &);
+template AscGraphBuilder &AscGraphBuilder::Reduce<ascir_op::Sum>(const std::string &, const std::string &,
+                                                                 const std::vector<size_t> &);
 
 AscGraphBuilder &AscGraphBuilder::Cast(const std::string &name, const std::string &input, DataType dtype) {
   auto &input_tensor = GetInputOutputTensor(input);
@@ -516,7 +497,7 @@ void AscGraphBuilder::ConnectEdge(const std::string &src_name, AscNodePtr dst_no
 }
 
 AscGraph AscGraphBuilder::Build() {
-  for (const auto &[name, node]: impl_->nodes_) {
+  for (const auto &[name, node] : impl_->nodes_) {
     if (node->attr.api.type == af::ApiType::kAPITypeBuffer) {
       continue;
     }
@@ -525,7 +506,7 @@ AscGraph AscGraphBuilder::Build() {
       node->attr.sched.axis = impl_->axis_ids_;
     }
 
-    for (auto &output: node->outputs()) {
+    for (auto &output : node->outputs()) {
       if (output->attr.axis.empty()) {
         output->attr.axis = impl_->axis_ids_;
       }
@@ -542,4 +523,4 @@ AscGraph AscGraphBuilder::Build() {
 
   return impl_->graph_;
 }
-} // namespace af::testing
+}  // namespace af::testing

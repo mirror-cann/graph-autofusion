@@ -13,10 +13,9 @@
 
 #include "autofuse_tiling_data.h"
 extern "C" __global__ __aicore__ void load_rargmax_store(GM_ADDR x, GM_ADDR y, GM_ADDR workspace, GM_ADDR tiling);
-extern "C" void GetTiling(AutofuseTilingData& tiling_data);
+extern "C" void GetTiling(AutofuseTilingData &tiling_data);
 
-class E2E_LoadRargmaxStore_Code : public testing::Test,
-    public testing::WithParamInterface<std::vector<int>> {};
+class E2E_LoadRargmaxStore_Code : public testing::Test, public testing::WithParamInterface<std::vector<int>> {};
 
 TEST_P(E2E_LoadRargmaxStore_Code, CalculateCorrect) {
   auto test_shape = GetParam();
@@ -43,11 +42,11 @@ TEST_P(E2E_LoadRargmaxStore_Code, CalculateCorrect) {
     float max_value = -INFINITY;
     int64_t max_index = 0;
     for (int j = 0; j < test_shape[1]; j++) {
-        int idx = i * test_shape[1] + j;
-        if (x[idx] > max_value) {
-            max_value = x[idx];
-            max_index = j;
-        }
+      int idx = i * test_shape[1] + j;
+      if (x[idx] > max_value) {
+        max_value = x[idx];
+        max_index = j;
+      }
     }
     expect[i] = max_index;
   }
@@ -76,7 +75,4 @@ TEST_P(E2E_LoadRargmaxStore_Code, CalculateCorrect) {
   AscendC::GmFree(expect);
 }
 
-INSTANTIATE_TEST_SUITE_P(CalcWithDifferentShape, E2E_LoadRargmaxStore_Code,
-    ::testing::Values(
-        std::vector<int>{4, 2}
-        ));
+INSTANTIATE_TEST_SUITE_P(CalcWithDifferentShape, E2E_LoadRargmaxStore_Code, ::testing::Values(std::vector<int>{4, 2}));

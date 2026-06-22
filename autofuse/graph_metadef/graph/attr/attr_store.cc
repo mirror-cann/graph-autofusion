@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -143,7 +143,7 @@ bool AttrStore::Delete(const std::string &name) {
   const auto iter = names_to_id_.find(name);
   if (iter != names_to_id_.end()) {
     const auto sub_id = GetSubAttrId(iter->second);
-    (void) names_to_id_.erase(iter);
+    (void)names_to_id_.erase(iter);
     return pre_defined_attrs_.Delete(sub_id);
   }
   return general_attrs_.Delete(name);
@@ -151,7 +151,7 @@ bool AttrStore::Delete(const std::string &name) {
 std::set<std::string> AttrStore::GetAllAttrNames() const {
   std::set<std::string> names;
   for (const auto &iter : names_to_id_) {
-    (void) names.insert(iter.first);
+    (void)names.insert(iter.first);
   }
   general_attrs_.GetAllNames(names);
   return names;
@@ -236,7 +236,7 @@ const AnyValue *AttrStore::CustomDefinedAttrStore::GetAnyValue(const std::string
 }
 void AttrStore::CustomDefinedAttrStore::GetAllNames(std::set<std::string> &names) const {
   for (const auto &iter : attrs_) {
-    (void) names.insert(iter.first);
+    (void)names.insert(iter.first);
   }
 }
 void AttrStore::CustomDefinedAttrStore::GetAllAttrs(std::map<std::string, AnyValue> &names_to_attr) const {
@@ -391,4 +391,4 @@ void OtherAttrs::DeleteAllAttrs() {
 void OtherAttrs::Swap(OtherAttrs &other) {
   keys_to_attrs_.swap(other.keys_to_attrs_);
 }
-}  // namespace ge
+}  // namespace af

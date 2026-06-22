@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -171,7 +171,7 @@ SymEngineExprPtr DivByFactor(const SymEngineExprPtr &x, const SymEngine::integer
     return x;
   }
 }
-}
+}  // namespace
 
 ExpressionImplPtr ExpressionImpl::CreateExpressionImpl(const std::string &name) {
   return ComGraphMakeUnique<ExpressionImpl>(name);
@@ -191,8 +191,7 @@ std::string ExpressionImpl::Str(const StrType type) const {
       return "Rational(" + nums->__str__() + " , " + dens->__str__() + ")";
     }
   }
-  if (((GetExprType() == ExprType::kExprOperation) ||
-       (GetExprType() == ExprType::kExprOperationBoolean)) &&
+  if (((GetExprType() == ExprType::kExprOperation) || (GetExprType() == ExprType::kExprOperationBoolean)) &&
       (GetOpType() != OperationType::kOpNone)) {
     auto printer = ExprManager::GetInstance().GetPrinter(GetOpType());
     GE_ASSERT_NOTNULL(printer);
@@ -215,8 +214,8 @@ ExpressionImplPtr ExpressionImpl::Deserialize(const std::string &expr_str) {
   if (ret->Str() == expr_str) {
     return ret;
   } else {
-    GELOGW("Parse expression str %s abnormal, result is %s, please check the string is valid.",
-           expr_str.c_str(), ret->Str().c_str());
+    GELOGW("Parse expression str %s abnormal, result is %s, please check the string is valid.", expr_str.c_str(),
+           ret->Str().c_str());
     return nullptr;
   }
 }
@@ -417,8 +416,7 @@ bool ExpressionImpl::IsVariableExpr() const {
 }
 
 bool ExpressionImpl::IsBooleanExpr() const {
-  return (GetExprType() == ExprType::kExprOperationBoolean) ||
-      (GetExprType() == ExprType::kExprConstantBoolean);
+  return (GetExprType() == ExprType::kExprOperationBoolean) || (GetExprType() == ExprType::kExprConstantBoolean);
 }
 
 bool ExpressionImpl::GetConstValue(uint32_t &value) const {
@@ -432,7 +430,7 @@ bool ExpressionImpl::GetConstValue(uint64_t &value) const {
   GE_ASSERT_TRUE(!sym_expr_.is_null());
   // 无符号整数类型
   GE_ASSERT_TRUE(SymEngine::is_a<SymEngine::Integer>(*sym_expr_),
-      "Cannot get const uint value from a expression: %s not Integer.", Str().c_str());
+                 "Cannot get const uint value from a expression: %s not Integer.", Str().c_str());
   const auto &integer_expr = SymEngine::down_cast<const SymEngine::Integer &>(*sym_expr_);
   value = integer_expr.as_uint();
   return true;
@@ -449,7 +447,7 @@ bool ExpressionImpl::GetConstValue(int64_t &value) const {
   GE_ASSERT_TRUE(!sym_expr_.is_null());
   // 整数类型
   GE_ASSERT_TRUE(SymEngine::is_a<SymEngine::Integer>(*sym_expr_),
-      "Cannot get const int value from a expression: %s not Integer.", Str().c_str());
+                 "Cannot get const int value from a expression: %s not Integer.", Str().c_str());
   const auto &integer_expr = SymEngine::down_cast<const SymEngine::Integer &>(*sym_expr_);
   value = integer_expr.as_int();
   return true;
@@ -459,7 +457,7 @@ bool ExpressionImpl::GetConstValue(bool &value) const {
   GE_ASSERT_TRUE(!sym_expr_.is_null());
   // bool类型
   GE_ASSERT_TRUE(SymEngine::is_a<SymEngine::BooleanAtom>(*sym_expr_),
-      "Cannot get const bool value from a expression: %s not BooleanAtom.", Str().c_str());
+                 "Cannot get const bool value from a expression: %s not BooleanAtom.", Str().c_str());
   const auto &bool_expr = SymEngine::down_cast<const SymEngine::BooleanAtom &>(*sym_expr_);
   value = bool_expr.get_val();
   return true;
@@ -474,10 +472,9 @@ bool ExpressionImpl::GetConstValue(float &value) const {
 
 bool ExpressionImpl::GetConstValue(double &value) const {
   GE_ASSERT_TRUE(!sym_expr_.is_null());
-  GE_ASSERT_TRUE((SymEngine::is_a<SymEngine::RealDouble>(*sym_expr_)) ||
-      (SymEngine::is_a<SymEngine::Rational>(*sym_expr_)),
-      "Cannot get const float value from a expression: %s not RealDouble or Rational.",
-      Str().c_str());
+  GE_ASSERT_TRUE(
+      (SymEngine::is_a<SymEngine::RealDouble>(*sym_expr_)) || (SymEngine::is_a<SymEngine::Rational>(*sym_expr_)),
+      "Cannot get const float value from a expression: %s not RealDouble or Rational.", Str().c_str());
   if (SymEngine::is_a<SymEngine::RealDouble>(*sym_expr_)) {
     const auto &real_double_expr = SymEngine::down_cast<const SymEngine::RealDouble &>(*sym_expr_);
     value = real_double_expr.as_double();
@@ -684,7 +681,6 @@ ExpressionImplPtr Pow(const ExpressionImplPtr &a, const ExpressionImplPtr &b) {
   return ExpressionImpl::CreateExpressionImpl<const SymEngineExprPtr &>(sym_expr);
 }
 
-
 ExpressionImplPtr Mod(const ExpressionImplPtr &a, const ExpressionImplPtr &b) {
   GE_ASSERT_NOTNULL(a);
   GE_ASSERT_NOTNULL(b);
@@ -795,8 +791,7 @@ ExpressionImplPtr Not(const ExpressionImplPtr &a) {
   GE_ASSERT_NOTNULL(a);
   GE_ASSERT_TRUE(!a->sym_expr_.is_null());
   if (!SymEngine::is_a_Boolean(*a->sym_expr_)) {
-      GELOGE(ge::PARAM_INVALID, "Logic operator Not only can handle Boolean expression:%s",
-          a->Str().c_str());
+    GELOGE(ge::PARAM_INVALID, "Logic operator Not only can handle Boolean expression:%s", a->Str().c_str());
     return nullptr;
   }
   SymEngineExprPtr sym_expr =
@@ -833,4 +828,4 @@ ExpressionImplPtr LogicalOr(const std::vector<ExpressionImplPtr> &s) {
   }
   return ExpressionImpl::CreateExpressionImpl<const SymEngineExprPtr &>(SymEngine::logical_or(set));
 }
-}  // namespace ge
+}  // namespace af

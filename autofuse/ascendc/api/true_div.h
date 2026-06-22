@@ -1,10 +1,10 @@
 
 /**
  * Copyright (c) 2026 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -13,10 +13,10 @@
 
 template <typename T, typename U>
 inline __aicore__ void TrueDivExtend(const AscendC::LocalTensor<U> &dst, const AscendC::LocalTensor<T> &src1,
-                                     const AscendC::LocalTensor<T> &src2,
-                                     AscendC::LocalTensor<uint8_t> &tmp_buf, const uint32_t size) {
+                                     const AscendC::LocalTensor<T> &src2, AscendC::LocalTensor<uint8_t> &tmp_buf,
+                                     const uint32_t size) {
   static_assert(std::is_same<T, int32_t>::value || std::is_same<T, float>::value || std::is_same<T, half>::value,
-              "Unsupported data type for TrueDivExtend");
+                "Unsupported data type for TrueDivExtend");
   if constexpr (AscendC::IsSameType<T, int32_t>::value) {
     constexpr uint32_t cast_dst_align = 32U / sizeof(U);
     uint32_t cast_buf_size = (size + cast_dst_align - 1) / cast_dst_align * cast_dst_align;
@@ -36,9 +36,9 @@ inline __aicore__ void TrueDivExtend(const AscendC::LocalTensor<U> &dst, const A
 
 template <typename T, typename U, bool IS_SCALAR_LATTER = true>
 inline __aicore__ void TrueDivExtends(const LocalTensor<U> &dst, const LocalTensor<T> &src, const T constant_x,
-                            LocalTensor<uint8_t> &tmp_buf, const uint32_t size) {
+                                      LocalTensor<uint8_t> &tmp_buf, const uint32_t size) {
   static_assert(std::is_same<T, int32_t>::value || std::is_same<T, float>::value || std::is_same<T, half>::value,
-              "Unsupported data type for TrueDivExtend");
+                "Unsupported data type for TrueDivExtend");
   if constexpr (AscendC::IsSameType<T, int32_t>::value) {
     constexpr uint32_t cast_dst_align = 32U / sizeof(U);
     uint32_t cast_buf_size = (size + cast_dst_align - 1) / cast_dst_align * cast_dst_align;
@@ -55,7 +55,7 @@ inline __aicore__ void TrueDivExtends(const LocalTensor<U> &dst, const LocalTens
 }
 
 template <typename T, typename U>
-inline __aicore__ void TrueDivExtends(const LocalTensor<U>& dst, const T x, const T y) {
+inline __aicore__ void TrueDivExtends(const LocalTensor<U> &dst, const T x, const T y) {
   U res = static_cast<U>(x) / y;
   AscendC::Duplicate(dst, res, dst.GetSize());
 }

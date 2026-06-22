@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -44,8 +44,8 @@ void InitScheduleResultsByImplGraphs(const std::vector<af::AscGraph> &impl_graph
       fused_schedule_result.workspace_nodes.emplace_back(node);
     }
   }
-  for (auto& schedule_results: fused_schedule_result.node_idx_to_scheduled_results) {
-    for (auto& schedule_result: schedule_results) {
+  for (auto &schedule_results : fused_schedule_result.node_idx_to_scheduled_results) {
+    for (auto &schedule_result : schedule_results) {
       schedule_result.schedule_groups.emplace_back(ascir::ScheduleGroup{impl_graphs});
     }
   }
@@ -68,20 +68,19 @@ void AssignDefaultIoIndex(af::AscGraph &graph) {
 }
 
 std::string PGOSearchFuncInputOutputCallBackDefStub(const ascir::FusedScheduledResult &fused_schedule_result) {
-	std::stringstream ss;
-	int index = 0;
-	for (auto input : fused_schedule_result.input_nodes) {
-		ss << "void* input" << index++ << ", ";
-	}
-	index = 0;
-	for (auto node : fused_schedule_result.output_nodes) {
-		if (af::ops::IsOps<af::ascir_op::Output>(node)) {
-			ss << "void* output" << index++ << ", ";
-		}
-	}
-	return ss.str();
+  std::stringstream ss;
+  int index = 0;
+  for (auto input : fused_schedule_result.input_nodes) {
+    ss << "void* input" << index++ << ", ";
+  }
+  index = 0;
+  for (auto node : fused_schedule_result.output_nodes) {
+    if (af::ops::IsOps<af::ascir_op::Output>(node)) {
+      ss << "void* output" << index++ << ", ";
+    }
+  }
+  return ss.str();
 }
-
 
 std::string OptilingStub(const ascir::FusedScheduledResult &fused_schedule_result) {
   std::stringstream ss;
@@ -101,29 +100,31 @@ namespace {
 }
   )";
   ss << sym_func << std::endl;
-	ss << "#include <iostream>" << std::endl;
-	ss << "#include <fstream>" << std::endl;
-	ss << "#include <cinttypes>" << std::endl;
-	ss << "#include <sys/syscall.h>" << std::endl;
-	ss << "#include <unistd.h>" << std::endl;
-	ss << "#include \"dlog_pub.h\"" << std::endl;
-	ss << "#define OP_LOGD(name, fmt, ...)" << std::endl;
-	ss << "#define OP_LOGI(name, fmt, ...)" << std::endl;
-	ss << "#define GE_MODULE_NAME static_cast<int32_t>(45)" << std::endl;
-	ss << "inline uint64_t GetTid() {" << std::endl;
-	ss << "     return static_cast<uint64_t>(syscall(__NR_gettid));" << std::endl;
-	ss << "}" << std::endl;
+  ss << "#include <iostream>" << std::endl;
+  ss << "#include <fstream>" << std::endl;
+  ss << "#include <cinttypes>" << std::endl;
+  ss << "#include <sys/syscall.h>" << std::endl;
+  ss << "#include <unistd.h>" << std::endl;
+  ss << "#include \"dlog_pub.h\"" << std::endl;
+  ss << "#define OP_LOGD(name, fmt, ...)" << std::endl;
+  ss << "#define OP_LOGI(name, fmt, ...)" << std::endl;
+  ss << "#define GE_MODULE_NAME static_cast<int32_t>(45)" << std::endl;
+  ss << "inline uint64_t GetTid() {" << std::endl;
+  ss << "     return static_cast<uint64_t>(syscall(__NR_gettid));" << std::endl;
+  ss << "}" << std::endl;
 
-	ss << "#define GELOGE(ERROR_CODE, fmt, ...)" << "\\" << std::endl;
-	ss << " do {" << "\\" << std::endl;
-	ss << "     dlog_error(GE_MODULE_NAME, \"%\" PRIu64 \" %s:ErrorNo: %\" PRIuLEAST8 \"(%s) %s\" fmt, " << "\\" << std::endl;
-	ss << "                GetTid(), &__FUNCTION__[0U], (ERROR_CODE), \"\", \"\", ##__VA_ARGS__);" << "\\" << std::endl;
-	ss << " } while (false)" << std::endl;
+  ss << "#define GELOGE(ERROR_CODE, fmt, ...)" << "\\" << std::endl;
+  ss << " do {" << "\\" << std::endl;
+  ss << "     dlog_error(GE_MODULE_NAME, \"%\" PRIu64 \" %s:ErrorNo: %\" PRIuLEAST8 \"(%s) %s\" fmt, " << "\\"
+     << std::endl;
+  ss << "                GetTid(), &__FUNCTION__[0U], (ERROR_CODE), \"\", \"\", ##__VA_ARGS__);" << "\\" << std::endl;
+  ss << " } while (false)" << std::endl;
 
-	ss << "#define OP_LOGE(name, fmt, ...) GELOGE(-1, \"[%s]\" fmt, name, ##__VA_ARGS__)" << std::endl;
-	ss << "#define OP_NAME \"asc0000_autofused_abs\"" << std::endl;
+  ss << "#define OP_LOGE(name, fmt, ...) GELOGE(-1, \"[%s]\" fmt, name, ##__VA_ARGS__)" << std::endl;
+  ss << "#define OP_NAME \"asc0000_autofused_abs\"" << std::endl;
   ss << "namespace optiling {" << std::endl;
-  ss << "static bool GetTiling(AutofuseTilingData &tiling_data, int32_t tilingCaseId, double *perf = nullptr) {" << std::endl;
+  ss << "static bool GetTiling(AutofuseTilingData &tiling_data, int32_t tilingCaseId, double *perf = nullptr) {"
+     << std::endl;
   ss << "  (void)tilingCaseId;" << std::endl;
   ss << "  (void)perf;" << std::endl;
   ss << "  return true;" << std::endl;

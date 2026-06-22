@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -27,23 +27,17 @@ std::stringstream &DumpAscirGraph::AllAxisStr(std::stringstream &ss, AscGraph &g
     return ss;
   }
   static const char *axis_type_str[] = {
-      "ORIGINAL",
-      "BLOCK_OUTER",
-      "BLOCK_INNER",
-      "TILE_OUTER",
-      "TILE_INNER",
-      "MERGED",
-      "INVALID",
+      "ORIGINAL", "BLOCK_OUTER", "BLOCK_INNER", "TILE_OUTER", "TILE_INNER", "MERGED", "INVALID",
   };
   int32_t i = 1;
   for (const auto &axis : graph.GetAllAxis()) {
-    ss << "    axis"<< i << ": " << std::endl;
+    ss << "    axis" << i << ": " << std::endl;
     ss << "        name: " << axis->name << std::endl;
     ss << "        id: " << axis->id << std::endl;
     if (axis->type >= Axis::kAxisTypeOriginal && axis->type <= Axis::kAxisTypeMerged) {
       ss << "        type: " << axis_type_str[axis->type] << std::endl;
     }
-    std::string bind_block = axis->bind_block? "true" : "false";
+    std::string bind_block = axis->bind_block ? "true" : "false";
     ss << "        bind_block: " << bind_block << std::endl;
     ss << "        size: " << axis->size.Str().get() << std::endl;
     ss << "        align: " << axis->align << std::endl;
@@ -56,8 +50,7 @@ std::stringstream &DumpAscirGraph::AllAxisStr(std::stringstream &ss, AscGraph &g
     }
     if (axis->split_pair_other_id == kIdNone) {
       ss << "        split_pair_other_id: -1" << std::endl;
-    }
-    else {
+    } else {
       ss << "        split_pair_other_id: " << axis->split_pair_other_id << std::endl;
     }
     ss << "        allow_oversize_axis: " << axis->allow_oversize_axis << std::endl;
@@ -69,9 +62,9 @@ std::stringstream &DumpAscirGraph::AllAxisStr(std::stringstream &ss, AscGraph &g
 
 std::string DumpAscirGraph::ApiTypeToString(ApiType type) {
   static const std::map<ApiType, std::string> api_type_to_string_map = {
-    {ApiType::kAPITypeBuffer, "BUFFER"},
-    {ApiType::kAPITypeCompute, "COMPUTE"},
-    {ApiType::kAPITypeInvalid, "INVALID"},
+      {ApiType::kAPITypeBuffer, "BUFFER"},
+      {ApiType::kAPITypeCompute, "COMPUTE"},
+      {ApiType::kAPITypeInvalid, "INVALID"},
   };
   const auto it = api_type_to_string_map.find(type);
   if (it != api_type_to_string_map.end()) {
@@ -82,14 +75,9 @@ std::string DumpAscirGraph::ApiTypeToString(ApiType type) {
 
 std::string DumpAscirGraph::ComputUnitToString(ComputeUnit unit) {
   static const std::map<ComputeUnit, std::string> comput_unit_to_string_map = {
-    {ComputeUnit::kUnitNone, "NONE"},
-    {ComputeUnit::kUnitMTE1, "MTE1"},
-    {ComputeUnit::kUnitMTE2, "MTE2"},
-    {ComputeUnit::kUnitMTE3, "MTE3"},
-    {ComputeUnit::kUnitScalar, "SCALAR"},
-    {ComputeUnit::kUnitVector, "VECTOR"},
-    {ComputeUnit::kUnitCube, "CUBE"},
-    {ComputeUnit::kUnitInvalid, "INVALID"},
+      {ComputeUnit::kUnitNone, "NONE"}, {ComputeUnit::kUnitMTE1, "MTE1"},       {ComputeUnit::kUnitMTE2, "MTE2"},
+      {ComputeUnit::kUnitMTE3, "MTE3"}, {ComputeUnit::kUnitScalar, "SCALAR"},   {ComputeUnit::kUnitVector, "VECTOR"},
+      {ComputeUnit::kUnitCube, "CUBE"}, {ComputeUnit::kUnitInvalid, "INVALID"},
   };
   const auto it = comput_unit_to_string_map.find(unit);
   if (it != comput_unit_to_string_map.end()) {
@@ -100,15 +88,15 @@ std::string DumpAscirGraph::ComputUnitToString(ComputeUnit unit) {
 
 std::string DumpAscirGraph::ComputeTypeToString(ComputeType type) {
   static const std::map<ComputeType, std::string> comput_type_to_string_map = {
-    {ComputeType::kComputeLoad, "LOAD"},
-    {ComputeType::kComputeStore, "STORE"},
-    {ComputeType::kComputeReduceStore, "REDUCE_STORE"},
-    {ComputeType::kComputeElewise, "ELEWISE"},
-    {ComputeType::kComputeBroadcast, "BROADCAST"},
-    {ComputeType::kComputeReduce, "REDUCE"},
-    {ComputeType::kComputeTranspose, "TRANPOSE"},
-    {ComputeType::kComputeGather, "GATHER"},
-    {ComputeType::kComputeInvalid, "INVALID"},
+      {ComputeType::kComputeLoad, "LOAD"},
+      {ComputeType::kComputeStore, "STORE"},
+      {ComputeType::kComputeReduceStore, "REDUCE_STORE"},
+      {ComputeType::kComputeElewise, "ELEWISE"},
+      {ComputeType::kComputeBroadcast, "BROADCAST"},
+      {ComputeType::kComputeReduce, "REDUCE"},
+      {ComputeType::kComputeTranspose, "TRANPOSE"},
+      {ComputeType::kComputeGather, "GATHER"},
+      {ComputeType::kComputeInvalid, "INVALID"},
   };
   const auto it = comput_type_to_string_map.find(type);
   if (it != comput_type_to_string_map.end()) {
@@ -140,7 +128,8 @@ std::stringstream &DumpAscirGraph::AscTensorAttrStr(std::stringstream &ss, AscTe
     return ss;
   }
   ss << "            AscTensor: " << std::endl;
-  ss << "                DataType: " << TypeUtils::DataTypeToSerialString(attr->dtype.operator ge::DataType()) << std::endl;
+  ss << "                DataType: " << TypeUtils::DataTypeToSerialString(attr->dtype.operator ge::DataType())
+     << std::endl;
   ss << "                axis: ";
   for (auto axis : attr->axis) {
     ss << axis << ", ";
@@ -174,14 +163,12 @@ std::stringstream &DumpAscirGraph::AscTensorAttrStr(std::stringstream &ss, AscTe
 }
 
 std::string DumpAscirGraph::AllocTypeToString(AllocType type) {
-  static const std::map<AllocType, std::string> alloc_type_to_string_map = {
-    {AllocType::kAllocTypeGlobal, "GLOBAL"},
-    {AllocType::kAllocTypeL1, "L1"},
-    {AllocType::kAllocTypeL2, "L2"},
-    {AllocType::kAllocTypeBuffer, "BUFFER"},
-    {AllocType::kAllocTypeQueue, "QUEUE"}
-  };
-  const auto it =  alloc_type_to_string_map.find(type);
+  static const std::map<AllocType, std::string> alloc_type_to_string_map = {{AllocType::kAllocTypeGlobal, "GLOBAL"},
+                                                                            {AllocType::kAllocTypeL1, "L1"},
+                                                                            {AllocType::kAllocTypeL2, "L2"},
+                                                                            {AllocType::kAllocTypeBuffer, "BUFFER"},
+                                                                            {AllocType::kAllocTypeQueue, "QUEUE"}};
+  const auto it = alloc_type_to_string_map.find(type);
   if (it != alloc_type_to_string_map.end()) {
     return it->second;
   }
@@ -190,11 +177,8 @@ std::string DumpAscirGraph::AllocTypeToString(AllocType type) {
 
 std::string DumpAscirGraph::PositionToString(Position position) {
   static const std::map<Position, std::string> position_to_string_map = {
-    {Position::kPositionGM, "GM"},
-    {Position::kPositionVecIn, "VECIN"},
-    {Position::kPositionVecOut, "VECOUT"}
-  };
-  const auto it =  position_to_string_map.find(position);
+      {Position::kPositionGM, "GM"}, {Position::kPositionVecIn, "VECIN"}, {Position::kPositionVecOut, "VECOUT"}};
+  const auto it = position_to_string_map.find(position);
   if (it != position_to_string_map.end()) {
     return it->second;
   }
@@ -202,11 +186,9 @@ std::string DumpAscirGraph::PositionToString(Position position) {
 }
 
 std::string DumpAscirGraph::HardwareToString(MemHardware hardware) {
-  static const std::map<MemHardware, std::string> hard_ware_to_string_map = {
-    {MemHardware::kMemHardwareGM, "GM"},
-    {MemHardware::kMemHardwareUB, "UB"}
-  };
-  const auto it =  hard_ware_to_string_map.find(hardware);
+  static const std::map<MemHardware, std::string> hard_ware_to_string_map = {{MemHardware::kMemHardwareGM, "GM"},
+                                                                             {MemHardware::kMemHardwareUB, "UB"}};
+  const auto it = hard_ware_to_string_map.find(hardware);
   if (it != hard_ware_to_string_map.end()) {
     return it->second;
   }
@@ -261,7 +243,8 @@ std::stringstream &DumpAscirGraph::NodesStr(std::stringstream &ss, AscNodeVisito
     uint32_t input_size = node.operator*()->inputs.Size();
     ss << "        inputs: " << std::endl;
     for (uint32_t j = 0; j < input_size; j++) {
-      if ((node.operator*()->GetInDataAnchor(j) != nullptr) && (node.operator*()->GetInDataAnchor(j)->GetPeerOutAnchor() != nullptr)) {
+      if ((node.operator*()->GetInDataAnchor(j) != nullptr) &&
+          (node.operator*()->GetInDataAnchor(j)->GetPeerOutAnchor() != nullptr)) {
         AscTensorAttr &temp = node.operator*()->inputs[j].attr;
         AscTensorAttr *tempPtr = &temp;
         AscTensorAttrStr(ss, tempPtr);
@@ -300,4 +283,4 @@ void DumpAscirGraph::WriteOutToFile(const std::string &filename, AscGraph &graph
   outFile.close();
 }
 
-} // namespace af
+}  // namespace af

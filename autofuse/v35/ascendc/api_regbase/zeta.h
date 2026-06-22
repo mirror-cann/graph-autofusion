@@ -15,8 +15,7 @@
 
 namespace AscendC {
 template <typename T>
-__simd_vf__ inline void ZetaImplVF(__ubuf__ T* dst, __ubuf__ T* src0, __ubuf__ T* src1, uint32_t calCount)
-{
+__simd_vf__ inline void ZetaImplVF(__ubuf__ T *dst, __ubuf__ T *src0, __ubuf__ T *src1, uint32_t calCount) {
   constexpr T ZERO = static_cast<T>(0.0);
   constexpr T HALF = static_cast<T>(0.5);
   constexpr T ONE = static_cast<T>(1.0);
@@ -291,21 +290,14 @@ __simd_vf__ inline void ZetaImplVF(__ubuf__ T* dst, __ubuf__ T* src0, __ubuf__ T
 }
 
 template <typename T>
-__aicore__ inline void Zeta(
-  const LocalTensor<T>& dst,
-  const LocalTensor<T>& src0,
-  const LocalTensor<T>& src1,
-  const LocalTensor<uint8_t>& sharedTmpBuffer,
-  const uint32_t calCount)
-{
+__aicore__ inline void Zeta(const LocalTensor<T> &dst, const LocalTensor<T> &src0, const LocalTensor<T> &src1,
+                            const LocalTensor<uint8_t> &sharedTmpBuffer, const uint32_t calCount) {
   if ASCEND_IS_AIC {
     return;
   }
   static_assert((std::is_same_v<T, float>), "Zeta only supports float on current device!");
-  ZetaImplVF<T>((__ubuf__ T*)dst.GetPhyAddr(),
-                (__ubuf__ T*)src0.GetPhyAddr(),
-                (__ubuf__ T*)src1.GetPhyAddr(),
-                 calCount);
+  ZetaImplVF<T>((__ubuf__ T *)dst.GetPhyAddr(), (__ubuf__ T *)src0.GetPhyAddr(), (__ubuf__ T *)src1.GetPhyAddr(),
+                calCount);
 }
 }  // namespace AscendC
 

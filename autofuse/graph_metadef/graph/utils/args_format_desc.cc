@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -21,7 +21,6 @@
 #include "graph/anchor.h"
 #include "graph/compute_graph.h"
 #include "graph/debug/ge_attr_define.h"
-
 
 namespace af {
 using ge::Status;
@@ -44,7 +43,7 @@ struct PatternHandler {
   AddrType type;
 };
 
-graphStatus FindSkSubNode(const OpDescPtr &sk_op, const int32_t id,  NodePtr &sub_node) {
+graphStatus FindSkSubNode(const OpDescPtr &sk_op, const int32_t id, NodePtr &sub_node) {
   GE_ASSERT_NOTNULL(sk_op);
   std::shared_ptr<af::ComputeGraph> sub_graph = nullptr;
   sub_graph = sk_op->TryGetExtAttr("_sk_sub_graph", sub_graph);
@@ -66,23 +65,23 @@ static std::set<AddrType> kNeedEasyParserTypes{
     AddrType::INPUT_INSTANCE, AddrType::OUTPUT_INSTANCE, AddrType::WORKSPACE};
 
 static graphStatus DefaultCalcSize(const OpDescPtr &op_desc, const ArgDesc &arg_desc, size_t &size) {
-  (void) op_desc;
-  (void) arg_desc;
+  (void)op_desc;
+  (void)arg_desc;
   size += sizeof(uintptr_t);
   return ge::GRAPH_SUCCESS;
 }
 
 static graphStatus DefaultParser(const OpDescPtr &op_desc, const std::string &pattern_str, const AddrType type,
                                  std::vector<ArgDesc> &args_desc) {
-  (void) op_desc;
-  (void) pattern_str;
+  (void)op_desc;
+  (void)pattern_str;
   args_desc.push_back({type, kAmbiguousIrIdx, false, {0}});
   return ge::GRAPH_SUCCESS;
 }
 
 static graphStatus PlaceholderParser(const OpDescPtr &op_desc, const std::string &pattern_str, const AddrType type,
                                      std::vector<ArgDesc> &args_desc) {
-  (void) op_desc;
+  (void)op_desc;
   auto width = ArgsFormatWidth::BIT64;
   if (pattern_str == ".32b") {
     width = ArgsFormatWidth::BIT32;
@@ -102,7 +101,7 @@ static void PlaceholderSerializer(std::stringstream &ss, const std::string &patt
 }
 
 static void DefaultSerializer(std::stringstream &ss, const std::string &pattern, const ArgDesc &arg_desc) {
-  (void) arg_desc;
+  (void)arg_desc;
   ss << pattern;
 }
 
@@ -128,7 +127,7 @@ static void ArrayLikeSerializer(std::stringstream &ss, const std::string &patter
 }
 
 static graphStatus WorkspaceCalcSize(const OpDescPtr &op_desc, const ArgDesc &arg_desc, size_t &size) {
-  (void) op_desc;
+  (void)op_desc;
   if (arg_desc.ir_idx == kAmbiguousIrIdx) {
     size += sizeof(uintptr_t) * kMaxWorkspaceNum;
   } else {
@@ -139,7 +138,7 @@ static graphStatus WorkspaceCalcSize(const OpDescPtr &op_desc, const ArgDesc &ar
 
 static graphStatus EventAddrParser(const OpDescPtr &op_desc, const std::string &pattern_str, const AddrType type,
                                    std::vector<ArgDesc> &args_desc) {
-  (void) op_desc;
+  (void)op_desc;
   int32_t ir_idx = 0;
   const std::string prefix = "event_addr";
   for (size_t i = prefix.size(); i < pattern_str.size(); ++i) {
@@ -157,7 +156,7 @@ static void EventAddrSerializer(std::stringstream &ss, const std::string &patter
 
 static graphStatus WorkspaceParser(const OpDescPtr &op_desc, const std::string &pattern_str, const AddrType type,
                                    std::vector<ArgDesc> &args_desc) {
-  (void) op_desc;
+  (void)op_desc;
   if (pattern_str == "ws*") {
     args_desc.push_back({type, kAmbiguousIrIdx, false, {0}});
     return ge::GRAPH_SUCCESS;
@@ -445,7 +444,7 @@ static graphStatus OutputDescCalcSize(const OpDescPtr &op_desc, const ArgDesc &a
 
 static graphStatus IODescParser(const OpDescPtr &op_desc, const std::string &pattern_str, const AddrType type,
                                 std::vector<ArgDesc> &arg_descs) {
-  (void) op_desc;
+  (void)op_desc;
   bool folded{true};
   if (pattern_str[pattern_str.length() - 1] == '*') {
     folded = false;
@@ -465,7 +464,7 @@ static graphStatus IODescParser(const OpDescPtr &op_desc, const std::string &pat
 
 static graphStatus HiddenInputParser(const OpDescPtr &op_desc, const std::string &pattern_str, const AddrType type,
                                      std::vector<ArgDesc> &arg_descs) {
-  (void) op_desc;
+  (void)op_desc;
   ArgDesc arg = {type, kAmbiguousIrIdx, false, {0}};
   if (sscanf_s(pattern_str.c_str(), "hi.hcom%d*", &arg.ir_idx) == kDigitFormatCnt) {
     *reinterpret_cast<uint32_t *>(arg.reserved) = static_cast<uint32_t>(HiddenInputsType::HCOM);
@@ -502,7 +501,7 @@ static void HiddenInputSerializer(std::stringstream &ss, const std::string &patt
 
 static graphStatus TilingContextParser(const OpDescPtr &op_desc, const std::string &pattern_str, const AddrType type,
                                        std::vector<ArgDesc> &arg_descs) {
-  (void) op_desc;
+  (void)op_desc;
   static const std::map<std::string, TilingContextSubType> pattern_to_subtype{
       {"tiling_context", TilingContextSubType::TILING_CONTEXT},
       {"tiling_context.tiling_data", TilingContextSubType::TILING_DATA},
@@ -535,7 +534,7 @@ static void TilingContextSerializer(std::stringstream &ss, const std::string &pa
 
 static graphStatus CustomValueParser(const OpDescPtr &op_desc, const std::string &pattern_str, const AddrType type,
                                      std::vector<ArgDesc> &arg_descs) {
-  (void) op_desc;
+  (void)op_desc;
   auto width = ArgsFormatWidth::BIT64;
   uint64_t payload;
   if (sscanf_s(pattern_str.c_str(), "#.32b%lu", &payload) == kDigitFormatCnt) {
@@ -646,7 +645,7 @@ static graphStatus ConvertArgDescSk2Normal(const ArgDesc &sk_arg_desc, ArgDesc &
 }
 
 static graphStatus SknParser(const OpDescPtr &op_desc, const std::string &pattern_str, const AddrType type,
-    std::vector<ArgDesc> &arg_descs) {
+                             std::vector<ArgDesc> &arg_descs) {
   GELOGD("get pattern %s, type %d", pattern_str.c_str(), type);
   const std::string skn_str = "skn";
   GE_ASSERT_TRUE(pattern_str.substr(0, skn_str.length()) == skn_str);
@@ -676,8 +675,8 @@ static graphStatus SknParser(const OpDescPtr &op_desc, const std::string &patter
   GE_ASSERT_TRUE(sub_arg_descs.size() == 1);
   ArgDesc tmp_sk_desc{};
   GE_ASSERT_GRAPH_SUCCESS(ConvertArgDescNormal2Sk(sub_arg_descs[0], sub_idx, tmp_sk_desc));
-  GELOGD("get sub_pattern_str %s, sub_type %d, sub id %d",
-         sub_pattern_str.c_str(), sub_arg_descs[0].addr_type, sub_arg_descs[0].ir_idx);
+  GELOGD("get sub_pattern_str %s, sub_type %d, sub id %d", sub_pattern_str.c_str(), sub_arg_descs[0].addr_type,
+         sub_arg_descs[0].ir_idx);
 
   arg_descs.emplace_back(tmp_sk_desc);
   return ge::GRAPH_SUCCESS;
@@ -738,7 +737,7 @@ static const std::map<std::string, PatternHandler, PatternCmp> kPatternToHandler
     {"o_instance", {OutputInstanceParser, OutputInstanceCalcSize, ArrayLikeSerializer, AddrType::OUTPUT_INSTANCE}},
     {"event_addr", {EventAddrParser, DefaultCalcSize, EventAddrSerializer, AddrType::EVENT_ADDR}},
     {"skn", {SknParser, SknCalcSize, SknSerializer, AddrType::SUPER_KERNEL_SUB_NODE}},
-  };
+};
 
 void ArgsFormatDesc::Append(AddrType type, int32_t ir_idx, bool folded) {
   int32_t idx = (type == AddrType::HIDDEN_INPUT ? 0 : ir_idx);
@@ -868,21 +867,22 @@ void ArgsFormatDesc::Clear() {
   arg_descs_.clear();
 }
 
-graphStatus ArgsFormatDesc::ConvertArgDescSkToNormal(const ArgDesc &sk_arg_desc,
-                                                     ArgDesc &arg_desc, int32_t &sub_op_id) {
+graphStatus ArgsFormatDesc::ConvertArgDescSkToNormal(const ArgDesc &sk_arg_desc, ArgDesc &arg_desc,
+                                                     int32_t &sub_op_id) {
   return ConvertArgDescSk2Normal(sk_arg_desc, arg_desc, sub_op_id);
 }
 
-graphStatus ArgsFormatDesc::ConvertToSuperKernelArgFormat(const NodePtr &sk_node,
-    const NodePtr &sub_node, const std::string &sub_node_arg_format, std::string &sk_arg_format) {
+graphStatus ArgsFormatDesc::ConvertToSuperKernelArgFormat(const NodePtr &sk_node, const NodePtr &sub_node,
+                                                          const std::string &sub_node_arg_format,
+                                                          std::string &sk_arg_format) {
   GE_ASSERT_NOTNULL(sk_node);
   GE_ASSERT_NOTNULL(sub_node);
   auto sk_opdesc = sk_node->GetOpDesc();
   GE_ASSERT_NOTNULL(sk_opdesc);
   auto sub_op = sub_node->GetOpDesc();
   GE_ASSERT_NOTNULL(sub_op);
-  GELOGI("current sub_op %s arg format %s, sk %s arg format %s",
-      sub_node->GetNamePtr(), sub_node_arg_format.c_str(), sk_node->GetNamePtr(), sk_arg_format.c_str());
+  GELOGI("current sub_op %s arg format %s, sk %s arg format %s", sub_node->GetNamePtr(), sub_node_arg_format.c_str(),
+         sk_node->GetNamePtr(), sk_arg_format.c_str());
 
   std::vector<ArgDesc> cur_op_arg_descs;
   ArgsFormatDesc::Parse(sub_op, sub_node_arg_format, cur_op_arg_descs, false);
@@ -902,4 +902,4 @@ graphStatus ArgsFormatDesc::ConvertToSuperKernelArgFormat(const NodePtr &sk_node
   }
   return ge::GRAPH_SUCCESS;
 }
-}  // namespace ge
+}  // namespace af

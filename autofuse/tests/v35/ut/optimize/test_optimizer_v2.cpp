@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -653,15 +653,15 @@ TEST_F(TestOptimizerV2, PowScalarDtypeCheck) {
   // pow(x, -1) -> 1/x，触发 CreateOneScalarBrc 创建 Scalar(1) 节点
   // Data/Load 使用 DT_FLOAT16（非默认 DT_FLOAT），验证新节点 dtype 正确继承
   auto graph = AscGraphBuilder("PowDtypeCheck")
-      .Loops({s0, s1})
-      .Data("data0", 0, ge::DT_FLOAT16)
-      .Load("load0", "data0")
-      .Scalar("pow_input", "-1.0")
-      .Broadcast("brc_scalar", "pow_input", {s0, s1})
-      .Op<af::ascir_op::Pow>("pow", {"load0", "brc_scalar"})
-      .Store("store", "pow")
-      .Output("y", "store", 0, ge::DT_FLOAT16)
-      .Build();
+                   .Loops({s0, s1})
+                   .Data("data0", 0, ge::DT_FLOAT16)
+                   .Load("load0", "data0")
+                   .Scalar("pow_input", "-1.0")
+                   .Broadcast("brc_scalar", "pow_input", {s0, s1})
+                   .Op<af::ascir_op::Pow>("pow", {"load0", "brc_scalar"})
+                   .Store("store", "pow")
+                   .Output("y", "store", 0, ge::DT_FLOAT16)
+                   .Build();
 
   PowEquivSubstitutionPass pass;
   EXPECT_EQ(pass.RunPass(graph), ge::SUCCESS);
@@ -693,15 +693,15 @@ TEST_F(TestOptimizerV2, PowNegScalarNonFloatSkip) {
 
   // pow(x, -1) 但 dtype 为 DT_INT32（非浮点），不应被替换为 Div
   auto graph = AscGraphBuilder("PowNegNonFloat")
-      .Loops({s0, s1})
-      .Data("data0", 0, ge::DT_INT32)
-      .Load("load0", "data0")
-      .Scalar("pow_input", "-1.0")
-      .Broadcast("brc_scalar", "pow_input", {s0, s1})
-      .Op<af::ascir_op::Pow>("pow", {"load0", "brc_scalar"})
-      .Store("store", "pow")
-      .Output("y", "store", 0, ge::DT_INT32)
-      .Build();
+                   .Loops({s0, s1})
+                   .Data("data0", 0, ge::DT_INT32)
+                   .Load("load0", "data0")
+                   .Scalar("pow_input", "-1.0")
+                   .Broadcast("brc_scalar", "pow_input", {s0, s1})
+                   .Op<af::ascir_op::Pow>("pow", {"load0", "brc_scalar"})
+                   .Store("store", "pow")
+                   .Output("y", "store", 0, ge::DT_INT32)
+                   .Build();
 
   PowEquivSubstitutionPass pass;
   EXPECT_EQ(pass.RunPass(graph), ge::SUCCESS);
@@ -2001,7 +2001,6 @@ TEST_F(TestOptimizerV2, LoadBrcToNddmaAlignLowScoreFunc) {
   EXPECT_EQ(score_func, res);
 }
 
-
 TEST_F(TestOptimizerV2, LoadBrcToNddmaAlignLowScoreFunc_NotContinue) {
   af::AscGraph graph("gen_nddma");
 
@@ -2262,7 +2261,7 @@ TEST_F(TestOptimizerV2, NddmaCaseTranspose10OutputWithSingleRef) {
   load0.x = data0.y;
   *load0.y.axis = {z0.id, z1.id};
   load0.y.dtype = af::DT_FLOAT;
-  *load0.y.strides = {s1 ,One};
+  *load0.y.strides = {s1, One};
   *load0.y.repeats = {s0, s1};
 
   Transpose transpose("transpose");
@@ -2313,7 +2312,7 @@ TEST_F(TestOptimizerV2, NddmaCaseTranspose021OutputWithSingleRef) {
   load0.x = data0.y;
   *load0.y.axis = {z0.id, z1.id, z2.id};
   load0.y.dtype = af::DT_FLOAT;
-  *load0.y.strides = {s1 * s2 , s2 ,  One};
+  *load0.y.strides = {s1 * s2, s2, One};
   *load0.y.repeats = {s0, s1, s2};
 
   Transpose transpose("transpose");
@@ -2696,7 +2695,7 @@ TEST_F(TestOptimizerV2, LoadCastTransposeCase) {
   autoschedule.DoAutoSchedule();
   EXPECT_EQ(impl_graphs.size(), 1);
   EXPECT_EQ(impl_graphs[0].scheduled_graph.GetName(), "gen_nddma_B0X1Y0_nddma");
-  for (auto node: impl_graphs[0].scheduled_graph.GetAllNodes()) {
+  for (auto node : impl_graphs[0].scheduled_graph.GetAllNodes()) {
     if (node->GetType() == "Nddma") {
       EXPECT_EQ(att::Str(node->outputs[0].attr.vectorized_strides[0]), "(16 * Ceiling((Rational(1 , 16) * z0t_size)))");
     }
@@ -2787,12 +2786,13 @@ TEST_F(TestOptimizerV2, LoadGEWhereTransposeCase) {
   autoschedule.DoAutoSchedule();
   EXPECT_EQ(impl_graphs.size(), 3);
   EXPECT_EQ(impl_graphs[0].scheduled_graph.GetName(), "gen_nddma_B0X3Y0_nddma");
-  for (auto node: impl_graphs[0].scheduled_graph.GetAllNodes()) {
+  for (auto node : impl_graphs[0].scheduled_graph.GetAllNodes()) {
     if (node->GetType() == "Nddma") {
       EXPECT_EQ(att::Str(node->outputs[0].attr.vectorized_strides[0]), "(8 * Ceiling((Rational(513 , 2) * z3t_size)))");
     }
     if (node->GetType() == att::kGe) {
-      EXPECT_EQ(att::Str(node->outputs[0].attr.vectorized_strides[0]), "(32 * Ceiling((Rational(513 , 8) * z3t_size)))");
+      EXPECT_EQ(att::Str(node->outputs[0].attr.vectorized_strides[0]),
+                "(32 * Ceiling((Rational(513 , 8) * z3t_size)))");
     }
   }
 }
@@ -3064,7 +3064,7 @@ TEST_F(TestOptimizerV2, LoadOpSequenceAdjustCase1) {
   load0.x = data0.y;
   *load0.y.axis = {z0.id, z1.id};
   load0.y.dtype = af::DT_FLOAT;
-  *load0.y.strides = {s1 ,af::ops::One};
+  *load0.y.strides = {s1, af::ops::One};
   *load0.y.repeats = {s0, s1};
 
   af::ascir_op::Abs abs("abs");
@@ -3086,7 +3086,7 @@ TEST_F(TestOptimizerV2, LoadOpSequenceAdjustCase1) {
   load1.x = data1.y;
   *load1.y.axis = {z0.id, z1.id};
   load1.y.dtype = af::DT_FLOAT;
-  *load1.y.strides = {af::ops::One ,af::ops::One};
+  *load1.y.strides = {af::ops::One, af::ops::One};
   *load1.y.repeats = {af::ops::One, af::ops::One};
 
   Broadcast broadcast("broadcast");
@@ -3094,7 +3094,7 @@ TEST_F(TestOptimizerV2, LoadOpSequenceAdjustCase1) {
   broadcast.attr.sched.axis = {z0.id, z1.id};
   *broadcast.y.axis = {z0.id, z1.id};
   broadcast.y.dtype = af::DT_FLOAT;
-  *broadcast.y.strides = {s1 ,af::ops::One};
+  *broadcast.y.strides = {s1, af::ops::One};
   *broadcast.y.repeats = {s0, s1};
 
   af::ascir_op::Add add_op("add");
@@ -3111,7 +3111,7 @@ TEST_F(TestOptimizerV2, LoadOpSequenceAdjustCase1) {
   store_op.x = add_op.y;
   *store_op.y.axis = {z0.id, z1.id};
   store_op.y.dtype = af::DT_FLOAT;
-  *store_op.y.strides = {s1 ,af::ops::One};
+  *store_op.y.strides = {s1, af::ops::One};
   *store_op.y.repeats = {s0, s1};
 
   Output output_op("output");
@@ -3146,25 +3146,25 @@ TEST_F(TestOptimizerV2, ReduceFuseWithBrc) {
   // data1 [128,112,256,1] FP16 -> load1 -> cast1 (FP16->FP32) -> brc (broadcast 轴3 to 3)
   // div(cast0, brc) -> reduce_max(axes=[0,1,3]) -> cast2 (FP32->FP16) -> store -> out1
   auto graph = AscGraphBuilder("test")
-      .Loops({s0, s1, s2, s3})
-      // 第一个输入路径：data0(index=0, FP16)
-      .Data("data0", 0, af::DT_FLOAT16)
-      .Load("load0", "data0")
-      .Cast("cast0", "load0", af::DT_FLOAT)
-      // 第二个输入路径：data1(index=1, FP16)，需要broadcast
-      .Data("data1", 1, af::DT_FLOAT16)
-      .Load("load1", "data1", {s0, s1, s2, af::sym::kSymbolOne},
-            {s1 * s2, s2, af::sym::kSymbolOne, af::sym::kSymbolZero})
-      .Cast("cast1", "load1", af::DT_FLOAT)
-      .Broadcast("brc", "cast1", {3})
-      .Op<af::ascir_op::TrueDiv>("div", {"cast0", "brc"})
-      .Max("max", "div", {0, 1, 3})
-      // Cast 回 FP16
-      .Cast("cast2", "max", af::DT_FLOAT16)
-      // Store -> Output(index=0)
-      .Store("store", "cast2")
-      .Output("out1", "store", 0)
-      .Build();
+                   .Loops({s0, s1, s2, s3})
+                   // 第一个输入路径：data0(index=0, FP16)
+                   .Data("data0", 0, af::DT_FLOAT16)
+                   .Load("load0", "data0")
+                   .Cast("cast0", "load0", af::DT_FLOAT)
+                   // 第二个输入路径：data1(index=1, FP16)，需要broadcast
+                   .Data("data1", 1, af::DT_FLOAT16)
+                   .Load("load1", "data1", {s0, s1, s2, af::sym::kSymbolOne},
+                         {s1 * s2, s2, af::sym::kSymbolOne, af::sym::kSymbolZero})
+                   .Cast("cast1", "load1", af::DT_FLOAT)
+                   .Broadcast("brc", "cast1", {3})
+                   .Op<af::ascir_op::TrueDiv>("div", {"cast0", "brc"})
+                   .Max("max", "div", {0, 1, 3})
+                   // Cast 回 FP16
+                   .Cast("cast2", "max", af::DT_FLOAT16)
+                   // Store -> Output(index=0)
+                   .Store("store", "cast2")
+                   .Output("out1", "store", 0)
+                   .Build();
 
   ::ascir::FusedScheduledResult fused_scheduled_result;
   EXPECT_EQ(optimizer.Optimize(graph, fused_scheduled_result), af::SUCCESS);
@@ -3322,7 +3322,7 @@ TEST_F(TestOptimizerV2, SplitAndFirstDimConcat) {
   *store_op.y.axis = {z0.id, z1.id};
   store_op.y.dtype = af::DT_FLOAT;
   *store_op.y.repeats = {s0 + s0, s1_0};
-  *store_op.y.strides = {s1_0 , af::ops::One};
+  *store_op.y.strides = {s1_0, af::ops::One};
 
   Output output_op("output");
   output_op.x = store_op.y;
@@ -3332,8 +3332,10 @@ TEST_F(TestOptimizerV2, SplitAndFirstDimConcat) {
   ::ascir::FusedScheduledResult fused_scheduled_result;
   EXPECT_EQ(optimizer.Optimize(graph, fused_scheduled_result), af::SUCCESS);
   auto &impl_graph = fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs[0];
-  EXPECT_TRUE(impl_graph.FindNode("concat") == nullptr);;
-  EXPECT_TRUE(impl_graph.FindNode("split") != nullptr);;
+  EXPECT_TRUE(impl_graph.FindNode("concat") == nullptr);
+  ;
+  EXPECT_TRUE(impl_graph.FindNode("split") != nullptr);
+  ;
 }
 
 TEST_F(TestOptimizerV2, FirstDimSplitAndConcat) {
@@ -3384,7 +3386,7 @@ TEST_F(TestOptimizerV2, FirstDimSplitAndConcat) {
   *store_op.y.axis = {z0.id, z1.id};
   store_op.y.dtype = af::DT_FLOAT;
   *store_op.y.repeats = {s0_0, s1 + s1};
-  *store_op.y.strides = {s1 + s1 , af::ops::One};
+  *store_op.y.strides = {s1 + s1, af::ops::One};
 
   Output output_op("output");
   output_op.x = store_op.y;
@@ -3394,8 +3396,10 @@ TEST_F(TestOptimizerV2, FirstDimSplitAndConcat) {
   ::ascir::FusedScheduledResult fused_scheduled_result;
   EXPECT_EQ(optimizer.Optimize(graph, fused_scheduled_result), af::SUCCESS);
   auto &impl_graph = fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs[0];
-  EXPECT_TRUE(impl_graph.FindNode("concat") != nullptr);;
-  EXPECT_TRUE(impl_graph.FindNode("split") == nullptr);;
+  EXPECT_TRUE(impl_graph.FindNode("concat") != nullptr);
+  ;
+  EXPECT_TRUE(impl_graph.FindNode("split") == nullptr);
+  ;
 }
 
 TEST_F(TestOptimizerV2, ConcatSingleDim) {
@@ -3575,8 +3579,8 @@ TEST_F(TestOptimizerV2, LoadAlignmentInferFunc_multiple_axis_discontine) {
   data1.ir_attr.SetIndex(1);
   data1.attr.sched.axis = {z0.id, z1.id, z2.id, z3.id, z4.id, z5.id};
   *data1.y.axis = {z0.id, z1.id, z2.id, z3.id, z4.id, z5.id};
-  *data1.y.repeats ={s0, s1, s2, s3, s4, s5};
-  *data1.y.strides = {s5 * s4 * s3 * s2 * s1 , s5 * s4 * s3 * s2, s5 * s4 * s3, s5 * s4, s5, One};
+  *data1.y.repeats = {s0, s1, s2, s3, s4, s5};
+  *data1.y.strides = {s5 * s4 * s3 * s2 * s1, s5 * s4 * s3 * s2, s5 * s4 * s3, s5 * s4, s5, One};
 
   Load load0("load0");
   load0.attr.sched.axis = {z0.id, z1.id, z2.id, z3.id, z4.id, z5.id};
@@ -3584,7 +3588,12 @@ TEST_F(TestOptimizerV2, LoadAlignmentInferFunc_multiple_axis_discontine) {
   *load0.y.axis = {z0.id, z1.id, z2.id, z3.id, z4.id, z5.id};
   load0.y.dtype = af::DT_FLOAT;
   *load0.y.repeats = {s0, s1_0, s2, s3_0, s4_0, s5};
-  *load0.y.strides = {s5 * s4_0 * s3_0 * s2 * s1_0 * Two * Two, s5 * s4_0 * s3_0 * s2* Two * Two, s5 * s4_0 * s3_0 * Two * Two, s5 * s4_0 * Two * Two, s5 * Two * Two, Two};
+  *load0.y.strides = {s5 * s4_0 * s3_0 * s2 * s1_0 * Two * Two,
+                      s5 * s4_0 * s3_0 * s2 * Two * Two,
+                      s5 * s4_0 * s3_0 * Two * Two,
+                      s5 * s4_0 * Two * Two,
+                      s5 * Two * Two,
+                      Two};
 
   Load load1("load1");
   load1.attr.sched.axis = {z0.id, z1.id, z2.id, z3.id, z4.id, z5.id};
@@ -3592,7 +3601,12 @@ TEST_F(TestOptimizerV2, LoadAlignmentInferFunc_multiple_axis_discontine) {
   *load1.y.axis = {z0.id, z1.id, z2.id, z3.id, z4.id, z5.id};
   load1.y.dtype = af::DT_FLOAT;
   *load1.y.repeats = {s0, s1_1, s2, s3_0, s4_0, s5};
-  *load1.y.strides = {s5 * s4_0 * s3_0 * s2 * s1_1* Two * Two, s5 * s4_0 * s3_0 * s2 * Two * Two, s5 * s4_0 * s3_0* Two * Two, s5 * s4_0* Two * Two, s5 * Two * Two, Two};
+  *load1.y.strides = {s5 * s4_0 * s3_0 * s2 * s1_1 * Two * Two,
+                      s5 * s4_0 * s3_0 * s2 * Two * Two,
+                      s5 * s4_0 * s3_0 * Two * Two,
+                      s5 * s4_0 * Two * Two,
+                      s5 * Two * Two,
+                      Two};
 
   af::ascir_op::Concat concat_op("concat");
   concat_op.attr.sched.axis = {z0.id, z1.id, z2.id, z3.id, z4.id, z5.id};
@@ -3630,7 +3644,6 @@ TEST_F(TestOptimizerV2, LoadAlignmentInferFunc_multiple_axis_discontine) {
   }
 }
 
-
 TEST_F(TestOptimizerV2, JustMutmul) {
   af::AscGraph graph("mutmul");
 
@@ -3644,7 +3657,7 @@ TEST_F(TestOptimizerV2, JustMutmul) {
   data0.y.dtype = af::DT_FLOAT16;
   *data0.y.axis = {z0.id, z1.id};
   data0.attr.api.compute_type = af::ComputeType::kComputeInvalid;
-  *data0.y.strides = {s1 ,af::ops::One};
+  *data0.y.strides = {s1, af::ops::One};
   *data0.y.repeats = {s0, s1};
   data0.ir_attr.SetIndex(0);
 
@@ -3653,7 +3666,7 @@ TEST_F(TestOptimizerV2, JustMutmul) {
   load0.x = data0.y;
   *load0.y.axis = {z0.id, z1.id};
   load0.y.dtype = af::DT_FLOAT16;
-  *load0.y.strides = {s1 ,af::ops::One};
+  *load0.y.strides = {s1, af::ops::One};
   *load0.y.repeats = {s0, s1};
 
   Data data1("data1", graph);
@@ -3692,7 +3705,7 @@ TEST_F(TestOptimizerV2, JustMutmul) {
   store_op.x = matmul.y;
   *store_op.y.axis = {z0.id, z1.id};
   store_op.y.dtype = af::DT_FLOAT;
-  *store_op.y.strides = {s1 ,af::ops::One};
+  *store_op.y.strides = {s1, af::ops::One};
   *store_op.y.repeats = {s0, s1};
   store_op.ir_attr.SetOffset(af::ops::One);
 
@@ -3705,7 +3718,8 @@ TEST_F(TestOptimizerV2, JustMutmul) {
   ::ascir::FusedScheduledResult fused_scheduled_result;
   EXPECT_EQ(optimizer.Optimize(graph, fused_scheduled_result), 0);
 
-  for (const auto &node : fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs[0].GetAllNodes()) {
+  for (const auto &node :
+       fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs[0].GetAllNodes()) {
     if (node->GetOpDesc()->GetId() == 4) {
       EXPECT_EQ(node->GetOpDesc()->GetType(), "MatMul");
     }
@@ -3738,7 +3752,7 @@ TEST_F(TestOptimizerV2, MutmulAndAdd) {
   data0.y.dtype = af::DT_FLOAT;
   *data0.y.axis = {z0.id, z1.id};
   data0.attr.api.compute_type = af::ComputeType::kComputeInvalid;
-  *data0.y.strides = {s1 ,af::ops::One};
+  *data0.y.strides = {s1, af::ops::One};
   *data0.y.repeats = {s0, s1};
   data0.ir_attr.SetIndex(0);
 
@@ -3747,7 +3761,7 @@ TEST_F(TestOptimizerV2, MutmulAndAdd) {
   load0.x = data0.y;
   *load0.y.axis = {z0.id, z1.id};
   load0.y.dtype = af::DT_FLOAT;
-  *load0.y.strides = {s1 ,af::ops::One};
+  *load0.y.strides = {s1, af::ops::One};
   *load0.y.repeats = {s0, s1};
 
   Data data1("data1", graph);
@@ -3807,7 +3821,7 @@ TEST_F(TestOptimizerV2, MutmulAndAdd) {
   store_op.x = add_op.y;
   *store_op.y.axis = {z0.id, z1.id};
   store_op.y.dtype = af::DT_FLOAT;
-  *store_op.y.strides = {s1 ,af::ops::One};
+  *store_op.y.strides = {s1, af::ops::One};
   *store_op.y.repeats = {s0, s1};
 
   Output output_op("output");
@@ -3819,12 +3833,14 @@ TEST_F(TestOptimizerV2, MutmulAndAdd) {
   ::ascir::FusedScheduledResult fused_scheduled_result;
   EXPECT_EQ(optimizer.Optimize(graph, fused_scheduled_result), 0);
 
-  for (const auto &node : fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[1].impl_graphs[0].GetAllNodes()) {
+  for (const auto &node :
+       fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[1].impl_graphs[0].GetAllNodes()) {
     if (node->GetOpDesc()->GetId() == 4) {
       EXPECT_EQ(node->GetOpDesc()->GetType(), "MatMul");
     }
   }
-  for (const auto &node : fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs[0].GetAllNodes()) {
+  for (const auto &node :
+       fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs[0].GetAllNodes()) {
     if (node->GetOpDesc()->GetId() == 4) {
       EXPECT_EQ(node->GetOpDesc()->GetType(), "Add");
     }
@@ -3846,7 +3862,7 @@ TEST_F(TestOptimizerV2, MutmulAndBroadcastAdd) {
   data0.y.dtype = af::DT_FLOAT;
   *data0.y.axis = {z0.id, z1.id};
   data0.attr.api.compute_type = af::ComputeType::kComputeInvalid;
-  *data0.y.strides = {s1 ,af::ops::One};
+  *data0.y.strides = {s1, af::ops::One};
   *data0.y.repeats = {s0, s1};
   data0.ir_attr.SetIndex(0);
 
@@ -3855,7 +3871,7 @@ TEST_F(TestOptimizerV2, MutmulAndBroadcastAdd) {
   load0.x = data0.y;
   *load0.y.axis = {z0.id, z1.id};
   load0.y.dtype = af::DT_FLOAT;
-  *load0.y.strides = {s1 ,af::ops::One};
+  *load0.y.strides = {s1, af::ops::One};
   *load0.y.repeats = {s0, s1};
 
   Data data1("data1", graph);
@@ -3889,7 +3905,7 @@ TEST_F(TestOptimizerV2, MutmulAndBroadcastAdd) {
   load2.attr.sched.axis = {z0.id, z1.id, z2.id};
   load2.y.dtype = af::DT_FLOAT;
   *load2.y.axis = {z0.id, z1.id, z2.id};
-  *load2.y.strides = {s1*s2, s2, af::ops::One};
+  *load2.y.strides = {s1 * s2, s2, af::ops::One};
   *load2.y.repeats = {s0, s1, s2};
 
   MatMul matmul("matmul");
@@ -3907,7 +3923,7 @@ TEST_F(TestOptimizerV2, MutmulAndBroadcastAdd) {
   brc.y.dtype = af::DT_FLOAT16;
   *brc.y.axis = {z0.id, z1.id, z2.id};
   *brc.y.repeats = {s0, s1, s2};
-  *brc.y.strides = {s1*s2, s2, af::ops::One};
+  *brc.y.strides = {s1 * s2, s2, af::ops::One};
 
   af::ascir_op::Add add_op("add");
   add_op.attr.sched.axis = {z0.id, z1.id, z2.id};
@@ -3915,7 +3931,7 @@ TEST_F(TestOptimizerV2, MutmulAndBroadcastAdd) {
   add_op.x2 = load2.y;
   add_op.y.dtype = af::DT_FLOAT;
   *add_op.y.axis = {z0.id, z1.id, z2.id};
-  *add_op.y.strides = {s1*s2, s2, af::ops::One};
+  *add_op.y.strides = {s1 * s2, s2, af::ops::One};
   *add_op.y.repeats = {s0, s1, s2};
 
   Store store_op("store");
@@ -3923,7 +3939,7 @@ TEST_F(TestOptimizerV2, MutmulAndBroadcastAdd) {
   store_op.x = add_op.y;
   *store_op.y.axis = {z0.id, z1.id, z2.id};
   store_op.y.dtype = af::DT_FLOAT;
-  *store_op.y.strides = {s1*s2, s2, af::ops::One};
+  *store_op.y.strides = {s1 * s2, s2, af::ops::One};
   *store_op.y.repeats = {s0, s1, s2};
 
   Output output_op("output");
@@ -3935,12 +3951,14 @@ TEST_F(TestOptimizerV2, MutmulAndBroadcastAdd) {
   ::ascir::FusedScheduledResult fused_scheduled_result;
   EXPECT_EQ(optimizer.Optimize(graph, fused_scheduled_result), 0);
 
-  for (const auto &node : fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[1].impl_graphs[0].GetAllNodes()) {
+  for (const auto &node :
+       fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[1].impl_graphs[0].GetAllNodes()) {
     if (node->GetOpDesc()->GetId() == 4) {
       EXPECT_EQ(node->GetOpDesc()->GetType(), "MatMul");
     }
   }
-  for (const auto &node : fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs[0].GetAllNodes()) {
+  for (const auto &node :
+       fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs[0].GetAllNodes()) {
     if (node->GetOpDesc()->GetId() == 4) {
       EXPECT_EQ(node->GetOpDesc()->GetType(), "Add");
     }
@@ -3960,7 +3978,7 @@ TEST_F(TestOptimizerV2, JustMutmulBias) {
   data0.y.dtype = af::DT_FLOAT16;
   *data0.y.axis = {z0.id, z1.id};
   data0.attr.api.compute_type = af::ComputeType::kComputeInvalid;
-  *data0.y.strides = {s1 ,af::ops::One};
+  *data0.y.strides = {s1, af::ops::One};
   *data0.y.repeats = {s0, s1};
   data0.ir_attr.SetIndex(0);
 
@@ -3969,7 +3987,7 @@ TEST_F(TestOptimizerV2, JustMutmulBias) {
   load0.x = data0.y;
   *load0.y.axis = {z0.id, z1.id};
   load0.y.dtype = af::DT_FLOAT16;
-  *load0.y.strides = {s1 ,af::ops::One};
+  *load0.y.strides = {s1, af::ops::One};
   *load0.y.repeats = {s0, s1};
 
   Data data1("data1", graph);
@@ -4026,7 +4044,7 @@ TEST_F(TestOptimizerV2, JustMutmulBias) {
   store_op.x = matmul.y;
   *store_op.y.axis = {z0.id, z1.id};
   store_op.y.dtype = af::DT_FLOAT;
-  *store_op.y.strides = {s1 ,af::ops::One};
+  *store_op.y.strides = {s1, af::ops::One};
   *store_op.y.repeats = {s0, s1};
   store_op.ir_attr.SetOffset(af::ops::One);
 
@@ -4039,7 +4057,8 @@ TEST_F(TestOptimizerV2, JustMutmulBias) {
   ::ascir::FusedScheduledResult fused_scheduled_result;
   EXPECT_EQ(optimizer.Optimize(graph, fused_scheduled_result), 0);
 
-  for (const auto &node : fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs[0].GetAllNodes()) {
+  for (const auto &node :
+       fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs[0].GetAllNodes()) {
     if (node->GetOpDesc()->GetId() == 6) {
       EXPECT_EQ(node->GetOpDesc()->GetType(), "MatMulBias");
     }
@@ -4072,7 +4091,7 @@ TEST_F(TestOptimizerV2, JustMutmulOffset) {
   data0.y.dtype = af::DT_FLOAT16;
   *data0.y.axis = {z0.id, z1.id};
   data0.attr.api.compute_type = af::ComputeType::kComputeInvalid;
-  *data0.y.strides = {s1 ,af::ops::One};
+  *data0.y.strides = {s1, af::ops::One};
   *data0.y.repeats = {s0, s1};
   data0.ir_attr.SetIndex(0);
 
@@ -4081,7 +4100,7 @@ TEST_F(TestOptimizerV2, JustMutmulOffset) {
   load0.x = data0.y;
   *load0.y.axis = {z0.id, z1.id};
   load0.y.dtype = af::DT_FLOAT16;
-  *load0.y.strides = {s1 ,af::ops::One};
+  *load0.y.strides = {s1, af::ops::One};
   *load0.y.repeats = {s0, s1};
 
   Data data1("data1", graph);
@@ -4138,7 +4157,7 @@ TEST_F(TestOptimizerV2, JustMutmulOffset) {
   store_op.x = matmul.y;
   *store_op.y.axis = {z0.id, z1.id};
   store_op.y.dtype = af::DT_FLOAT;
-  *store_op.y.strides = {s1 ,af::ops::One};
+  *store_op.y.strides = {s1, af::ops::One};
   *store_op.y.repeats = {s0, s1};
   store_op.ir_attr.SetOffset(af::ops::One);
 
@@ -4151,7 +4170,8 @@ TEST_F(TestOptimizerV2, JustMutmulOffset) {
   ::ascir::FusedScheduledResult fused_scheduled_result;
   EXPECT_EQ(optimizer.Optimize(graph, fused_scheduled_result), 0);
 
-  for (const auto &node : fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs[0].GetAllNodes()) {
+  for (const auto &node :
+       fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs[0].GetAllNodes()) {
     if (node->GetOpDesc()->GetId() == 6) {
       EXPECT_EQ(node->GetOpDesc()->GetType(), "MatMulOffset");
     }
@@ -4184,7 +4204,7 @@ TEST_F(TestOptimizerV2, JustMutmulBaisOffset) {
   data0.y.dtype = af::DT_FLOAT16;
   *data0.y.axis = {z0.id, z1.id};
   data0.attr.api.compute_type = af::ComputeType::kComputeInvalid;
-  *data0.y.strides = {s1 ,af::ops::One};
+  *data0.y.strides = {s1, af::ops::One};
   *data0.y.repeats = {s0, s1};
   data0.ir_attr.SetIndex(0);
 
@@ -4193,7 +4213,7 @@ TEST_F(TestOptimizerV2, JustMutmulBaisOffset) {
   load0.x = data0.y;
   *load0.y.axis = {z0.id, z1.id};
   load0.y.dtype = af::DT_FLOAT16;
-  *load0.y.strides = {s1 ,af::ops::One};
+  *load0.y.strides = {s1, af::ops::One};
   *load0.y.repeats = {s0, s1};
 
   Data data1("data1", graph);
@@ -4268,7 +4288,7 @@ TEST_F(TestOptimizerV2, JustMutmulBaisOffset) {
   store_op.x = matmul.y;
   *store_op.y.axis = {z0.id, z1.id};
   store_op.y.dtype = af::DT_FLOAT;
-  *store_op.y.strides = {s1 ,af::ops::One};
+  *store_op.y.strides = {s1, af::ops::One};
   *store_op.y.repeats = {s0, s1};
   store_op.ir_attr.SetOffset(af::ops::One);
 
@@ -4281,7 +4301,8 @@ TEST_F(TestOptimizerV2, JustMutmulBaisOffset) {
   ::ascir::FusedScheduledResult fused_scheduled_result;
   EXPECT_EQ(optimizer.Optimize(graph, fused_scheduled_result), 0);
 
-  for (const auto &node : fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs[0].GetAllNodes()) {
+  for (const auto &node :
+       fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs[0].GetAllNodes()) {
     if (node->GetOpDesc()->GetId() == 8) {
       EXPECT_EQ(node->GetOpDesc()->GetType(), "MatMulOffsetBias");
     }
@@ -4314,7 +4335,7 @@ TEST_F(TestOptimizerV2, JustBatchMutmul) {
   data0.y.dtype = af::DT_FLOAT16;
   *data0.y.axis = {z0.id, z1.id};
   data0.attr.api.compute_type = af::ComputeType::kComputeInvalid;
-  *data0.y.strides = {s1 ,af::ops::One};
+  *data0.y.strides = {s1, af::ops::One};
   *data0.y.repeats = {s0, s1};
   data0.ir_attr.SetIndex(0);
 
@@ -4323,7 +4344,7 @@ TEST_F(TestOptimizerV2, JustBatchMutmul) {
   load0.x = data0.y;
   *load0.y.axis = {z0.id, z1.id};
   load0.y.dtype = af::DT_FLOAT16;
-  *load0.y.strides = {s1 ,af::ops::One};
+  *load0.y.strides = {s1, af::ops::One};
   *load0.y.repeats = {s0, s1};
 
   Data data1("data1", graph);
@@ -4362,7 +4383,7 @@ TEST_F(TestOptimizerV2, JustBatchMutmul) {
   store_op.x = matmul.y;
   *store_op.y.axis = {z0.id, z1.id};
   store_op.y.dtype = af::DT_FLOAT;
-  *store_op.y.strides = {s1 ,af::ops::One};
+  *store_op.y.strides = {s1, af::ops::One};
   *store_op.y.repeats = {s0, s1};
   store_op.ir_attr.SetOffset(af::ops::One);
 
@@ -4375,7 +4396,8 @@ TEST_F(TestOptimizerV2, JustBatchMutmul) {
   ::ascir::FusedScheduledResult fused_scheduled_result;
   EXPECT_EQ(optimizer.Optimize(graph, fused_scheduled_result), 0);
 
-  for (const auto &node : fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs[0].GetAllNodes()) {
+  for (const auto &node :
+       fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs[0].GetAllNodes()) {
     if (node->GetOpDesc()->GetId() == 4) {
       EXPECT_EQ(node->GetOpDesc()->GetType(), "BatchMatMul");
     }
@@ -4408,7 +4430,7 @@ TEST_F(TestOptimizerV2, BatchMutmulAndAdd) {
   data0.y.dtype = af::DT_FLOAT;
   *data0.y.axis = {z0.id, z1.id};
   data0.attr.api.compute_type = af::ComputeType::kComputeInvalid;
-  *data0.y.strides = {s1 ,af::ops::One};
+  *data0.y.strides = {s1, af::ops::One};
   *data0.y.repeats = {s0, s1};
   data0.ir_attr.SetIndex(0);
 
@@ -4417,7 +4439,7 @@ TEST_F(TestOptimizerV2, BatchMutmulAndAdd) {
   load0.x = data0.y;
   *load0.y.axis = {z0.id, z1.id};
   load0.y.dtype = af::DT_FLOAT;
-  *load0.y.strides = {s1 ,af::ops::One};
+  *load0.y.strides = {s1, af::ops::One};
   *load0.y.repeats = {s0, s1};
 
   Data data1("data1", graph);
@@ -4477,7 +4499,7 @@ TEST_F(TestOptimizerV2, BatchMutmulAndAdd) {
   store_op.x = add_op.y;
   *store_op.y.axis = {z0.id, z1.id};
   store_op.y.dtype = af::DT_FLOAT;
-  *store_op.y.strides = {s1 ,af::ops::One};
+  *store_op.y.strides = {s1, af::ops::One};
   *store_op.y.repeats = {s0, s1};
 
   Output output_op("output");
@@ -4489,12 +4511,14 @@ TEST_F(TestOptimizerV2, BatchMutmulAndAdd) {
   ::ascir::FusedScheduledResult fused_scheduled_result;
   EXPECT_EQ(optimizer.Optimize(graph, fused_scheduled_result), 0);
 
-  for (const auto &node : fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[1].impl_graphs[0].GetAllNodes()) {
+  for (const auto &node :
+       fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[1].impl_graphs[0].GetAllNodes()) {
     if (node->GetOpDesc()->GetId() == 4) {
       EXPECT_EQ(node->GetOpDesc()->GetType(), "BatchMatMul");
     }
   }
-  for (const auto &node : fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs[0].GetAllNodes()) {
+  for (const auto &node :
+       fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs[0].GetAllNodes()) {
     if (node->GetOpDesc()->GetId() == 4) {
       EXPECT_EQ(node->GetOpDesc()->GetType(), "Add");
     }
@@ -4516,7 +4540,7 @@ TEST_F(TestOptimizerV2, BatchMutmulAndBroadcastAdd) {
   data0.y.dtype = af::DT_FLOAT;
   *data0.y.axis = {z0.id, z1.id};
   data0.attr.api.compute_type = af::ComputeType::kComputeInvalid;
-  *data0.y.strides = {s1 ,af::ops::One};
+  *data0.y.strides = {s1, af::ops::One};
   *data0.y.repeats = {s0, s1};
   data0.ir_attr.SetIndex(0);
 
@@ -4525,7 +4549,7 @@ TEST_F(TestOptimizerV2, BatchMutmulAndBroadcastAdd) {
   load0.x = data0.y;
   *load0.y.axis = {z0.id, z1.id};
   load0.y.dtype = af::DT_FLOAT;
-  *load0.y.strides = {s1 ,af::ops::One};
+  *load0.y.strides = {s1, af::ops::One};
   *load0.y.repeats = {s0, s1};
 
   Data data1("data1", graph);
@@ -4559,7 +4583,7 @@ TEST_F(TestOptimizerV2, BatchMutmulAndBroadcastAdd) {
   load2.attr.sched.axis = {z0.id, z1.id, z2.id};
   load2.y.dtype = af::DT_FLOAT;
   *load2.y.axis = {z0.id, z1.id, z2.id};
-  *load2.y.strides = {s1*s2, s2, af::ops::One};
+  *load2.y.strides = {s1 * s2, s2, af::ops::One};
   *load2.y.repeats = {s0, s1, s2};
 
   BatchMatMul matmul("matmul");
@@ -4577,7 +4601,7 @@ TEST_F(TestOptimizerV2, BatchMutmulAndBroadcastAdd) {
   brc.y.dtype = af::DT_FLOAT16;
   *brc.y.axis = {z0.id, z1.id, z2.id};
   *brc.y.repeats = {s0, s1, s2};
-  *brc.y.strides = {s1*s2, s2, af::ops::One};
+  *brc.y.strides = {s1 * s2, s2, af::ops::One};
 
   af::ascir_op::Add add_op("add");
   add_op.attr.sched.axis = {z0.id, z1.id, z2.id};
@@ -4585,7 +4609,7 @@ TEST_F(TestOptimizerV2, BatchMutmulAndBroadcastAdd) {
   add_op.x2 = load2.y;
   add_op.y.dtype = af::DT_FLOAT;
   *add_op.y.axis = {z0.id, z1.id, z2.id};
-  *add_op.y.strides = {s1*s2, s2, af::ops::One};
+  *add_op.y.strides = {s1 * s2, s2, af::ops::One};
   *add_op.y.repeats = {s0, s1, s2};
 
   Store store_op("store");
@@ -4593,7 +4617,7 @@ TEST_F(TestOptimizerV2, BatchMutmulAndBroadcastAdd) {
   store_op.x = add_op.y;
   *store_op.y.axis = {z0.id, z1.id, z2.id};
   store_op.y.dtype = af::DT_FLOAT;
-  *store_op.y.strides = {s1*s2, s2, af::ops::One};
+  *store_op.y.strides = {s1 * s2, s2, af::ops::One};
   *store_op.y.repeats = {s0, s1, s2};
 
   Output output_op("output");
@@ -4605,7 +4629,8 @@ TEST_F(TestOptimizerV2, BatchMutmulAndBroadcastAdd) {
   ::ascir::FusedScheduledResult fused_scheduled_result;
   EXPECT_EQ(optimizer.Optimize(graph, fused_scheduled_result), 0);
 
-  for (const auto &node : fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[1].impl_graphs[0].GetAllNodes()) {
+  for (const auto &node :
+       fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[1].impl_graphs[0].GetAllNodes()) {
     if (node->GetOpDesc()->GetId() == 4) {
       EXPECT_EQ(node->GetOpDesc()->GetType(), "BatchMatMul");
     }
@@ -4627,7 +4652,7 @@ TEST_F(TestOptimizerV2, MatmulAndCastBroadcastAdd) {
   data0.y.dtype = af::DT_FLOAT;
   *data0.y.axis = {z0.id, z1.id};
   data0.attr.api.compute_type = af::ComputeType::kComputeInvalid;
-  *data0.y.strides = {s1 ,af::ops::One};
+  *data0.y.strides = {s1, af::ops::One};
   *data0.y.repeats = {s0, s1};
   data0.ir_attr.SetIndex(0);
 
@@ -4636,7 +4661,7 @@ TEST_F(TestOptimizerV2, MatmulAndCastBroadcastAdd) {
   load0.x = data0.y;
   *load0.y.axis = {z0.id, z1.id};
   load0.y.dtype = af::DT_FLOAT;
-  *load0.y.strides = {s1 ,af::ops::One};
+  *load0.y.strides = {s1, af::ops::One};
   *load0.y.repeats = {s0, s1};
 
   Data data1("data1", graph);
@@ -4670,7 +4695,7 @@ TEST_F(TestOptimizerV2, MatmulAndCastBroadcastAdd) {
   load2.attr.sched.axis = {z0.id, z1.id, z2.id};
   load2.y.dtype = af::DT_FLOAT16;
   *load2.y.axis = {z0.id, z1.id, z2.id};
-  *load2.y.strides = {s1*s2, s2, af::ops::One};
+  *load2.y.strides = {s1 * s2, s2, af::ops::One};
   *load2.y.repeats = {s0, s1, s2};
 
   MatMul matmul("matmul");
@@ -4696,7 +4721,7 @@ TEST_F(TestOptimizerV2, MatmulAndCastBroadcastAdd) {
   brc.y.dtype = af::DT_FLOAT16;
   *brc.y.axis = {z0.id, z1.id, z2.id};
   *brc.y.repeats = {s0, s1, s2};
-  *brc.y.strides = {s1*s2, s2, af::ops::One};
+  *brc.y.strides = {s1 * s2, s2, af::ops::One};
 
   af::ascir_op::Add add_op("add");
   add_op.attr.sched.axis = {z0.id, z1.id, z2.id};
@@ -4704,7 +4729,7 @@ TEST_F(TestOptimizerV2, MatmulAndCastBroadcastAdd) {
   add_op.x2 = load2.y;
   add_op.y.dtype = af::DT_FLOAT16;
   *add_op.y.axis = {z0.id, z1.id, z2.id};
-  *add_op.y.strides = {s1*s2, s2, af::ops::One};
+  *add_op.y.strides = {s1 * s2, s2, af::ops::One};
   *add_op.y.repeats = {s0, s1, s2};
 
   Store store_op("store");
@@ -4712,7 +4737,7 @@ TEST_F(TestOptimizerV2, MatmulAndCastBroadcastAdd) {
   store_op.x = add_op.y;
   *store_op.y.axis = {z0.id, z1.id, z2.id};
   store_op.y.dtype = af::DT_FLOAT16;
-  *store_op.y.strides = {s1*s2, s2, af::ops::One};
+  *store_op.y.strides = {s1 * s2, s2, af::ops::One};
   *store_op.y.repeats = {s0, s1, s2};
 
   Output output_op("output");
@@ -4733,12 +4758,14 @@ TEST_F(TestOptimizerV2, MatmulAndCastBroadcastAdd) {
             "matmul_1_ub_Y3_non_db_S0G0C0");
   EXPECT_EQ(fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs[1].GetName(),
             "matmul_1_ub_Y3_S0G0C1");
-  for (const auto &node : fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[1].impl_graphs[0].GetAllNodes()) {
+  for (const auto &node :
+       fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[1].impl_graphs[0].GetAllNodes()) {
     if (node->GetOpDesc()->GetId() == 4) {
       EXPECT_EQ(node->GetOpDesc()->GetType(), "MatMul");
     }
   }
-  for (const auto &node : fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs[0].GetAllNodes()) {
+  for (const auto &node :
+       fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs[0].GetAllNodes()) {
     if (node->GetOpDesc()->GetId() == 5) {
       EXPECT_EQ(node->GetOpDesc()->GetType(), "Add");
     }
@@ -4758,7 +4785,7 @@ TEST_F(TestOptimizerV2, JustBatchMutmulBias) {
   data0.y.dtype = af::DT_FLOAT16;
   *data0.y.axis = {z0.id, z1.id};
   data0.attr.api.compute_type = af::ComputeType::kComputeInvalid;
-  *data0.y.strides = {s1 ,af::ops::One};
+  *data0.y.strides = {s1, af::ops::One};
   *data0.y.repeats = {s0, s1};
   data0.ir_attr.SetIndex(0);
 
@@ -4767,7 +4794,7 @@ TEST_F(TestOptimizerV2, JustBatchMutmulBias) {
   load0.x = data0.y;
   *load0.y.axis = {z0.id, z1.id};
   load0.y.dtype = af::DT_FLOAT16;
-  *load0.y.strides = {s1 ,af::ops::One};
+  *load0.y.strides = {s1, af::ops::One};
   *load0.y.repeats = {s0, s1};
 
   Data data1("data1", graph);
@@ -4824,7 +4851,7 @@ TEST_F(TestOptimizerV2, JustBatchMutmulBias) {
   store_op.x = matmul.y;
   *store_op.y.axis = {z0.id, z1.id};
   store_op.y.dtype = af::DT_FLOAT;
-  *store_op.y.strides = {s1 ,af::ops::One};
+  *store_op.y.strides = {s1, af::ops::One};
   *store_op.y.repeats = {s0, s1};
   store_op.ir_attr.SetOffset(af::ops::One);
 
@@ -4837,7 +4864,8 @@ TEST_F(TestOptimizerV2, JustBatchMutmulBias) {
   ::ascir::FusedScheduledResult fused_scheduled_result;
   EXPECT_EQ(optimizer.Optimize(graph, fused_scheduled_result), 0);
 
-  for (const auto &node : fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs[0].GetAllNodes()) {
+  for (const auto &node :
+       fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs[0].GetAllNodes()) {
     if (node->GetOpDesc()->GetId() == 6) {
       EXPECT_EQ(node->GetOpDesc()->GetType(), "BatchMatMulBias");
     }
@@ -4870,7 +4898,7 @@ TEST_F(TestOptimizerV2, JustBatchMutmulOffset) {
   data0.y.dtype = af::DT_FLOAT16;
   *data0.y.axis = {z0.id, z1.id};
   data0.attr.api.compute_type = af::ComputeType::kComputeInvalid;
-  *data0.y.strides = {s1 ,af::ops::One};
+  *data0.y.strides = {s1, af::ops::One};
   *data0.y.repeats = {s0, s1};
   data0.ir_attr.SetIndex(0);
 
@@ -4879,7 +4907,7 @@ TEST_F(TestOptimizerV2, JustBatchMutmulOffset) {
   load0.x = data0.y;
   *load0.y.axis = {z0.id, z1.id};
   load0.y.dtype = af::DT_FLOAT16;
-  *load0.y.strides = {s1 ,af::ops::One};
+  *load0.y.strides = {s1, af::ops::One};
   *load0.y.repeats = {s0, s1};
 
   Data data1("data1", graph);
@@ -4936,7 +4964,7 @@ TEST_F(TestOptimizerV2, JustBatchMutmulOffset) {
   store_op.x = matmul.y;
   *store_op.y.axis = {z0.id, z1.id};
   store_op.y.dtype = af::DT_FLOAT;
-  *store_op.y.strides = {s1 ,af::ops::One};
+  *store_op.y.strides = {s1, af::ops::One};
   *store_op.y.repeats = {s0, s1};
   store_op.ir_attr.SetOffset(af::ops::One);
 
@@ -4949,7 +4977,8 @@ TEST_F(TestOptimizerV2, JustBatchMutmulOffset) {
   ::ascir::FusedScheduledResult fused_scheduled_result;
   EXPECT_EQ(optimizer.Optimize(graph, fused_scheduled_result), 0);
 
-  for (const auto &node : fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs[0].GetAllNodes()) {
+  for (const auto &node :
+       fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs[0].GetAllNodes()) {
     if (node->GetOpDesc()->GetId() == 6) {
       EXPECT_EQ(node->GetOpDesc()->GetType(), "BatchMatMulOffset");
     }
@@ -4982,7 +5011,7 @@ TEST_F(TestOptimizerV2, JustBatchMutmulBaisOffset) {
   data0.y.dtype = af::DT_FLOAT16;
   *data0.y.axis = {z0.id, z1.id};
   data0.attr.api.compute_type = af::ComputeType::kComputeInvalid;
-  *data0.y.strides = {s1 ,af::ops::One};
+  *data0.y.strides = {s1, af::ops::One};
   *data0.y.repeats = {s0, s1};
   data0.ir_attr.SetIndex(0);
 
@@ -4991,7 +5020,7 @@ TEST_F(TestOptimizerV2, JustBatchMutmulBaisOffset) {
   load0.x = data0.y;
   *load0.y.axis = {z0.id, z1.id};
   load0.y.dtype = af::DT_FLOAT16;
-  *load0.y.strides = {s1 ,af::ops::One};
+  *load0.y.strides = {s1, af::ops::One};
   *load0.y.repeats = {s0, s1};
 
   Data data1("data1", graph);
@@ -5066,7 +5095,7 @@ TEST_F(TestOptimizerV2, JustBatchMutmulBaisOffset) {
   store_op.x = matmul.y;
   *store_op.y.axis = {z0.id, z1.id};
   store_op.y.dtype = af::DT_FLOAT;
-  *store_op.y.strides = {s1 ,af::ops::One};
+  *store_op.y.strides = {s1, af::ops::One};
   *store_op.y.repeats = {s0, s1};
   store_op.ir_attr.SetOffset(af::ops::One);
 
@@ -5079,7 +5108,8 @@ TEST_F(TestOptimizerV2, JustBatchMutmulBaisOffset) {
   ::ascir::FusedScheduledResult fused_scheduled_result;
   EXPECT_EQ(optimizer.Optimize(graph, fused_scheduled_result), 0);
 
-  for (const auto &node : fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs[0].GetAllNodes()) {
+  for (const auto &node :
+       fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs[0].GetAllNodes()) {
     if (node->GetOpDesc()->GetId() == 8) {
       EXPECT_EQ(node->GetOpDesc()->GetType(), "BatchMatMulOffsetBias");
     }
@@ -5113,7 +5143,7 @@ TEST_F(TestOptimizerV2, MatmulAddExpAddAdd) {
   data0.y.dtype = af::DT_FLOAT16;
   *data0.y.axis = {z0.id, z1.id};
   data0.attr.api.compute_type = af::ComputeType::kComputeInvalid;
-  *data0.y.strides = {s1 ,af::ops::One};
+  *data0.y.strides = {s1, af::ops::One};
   *data0.y.repeats = {s0, s1};
   data0.ir_attr.SetIndex(0);
 
@@ -5122,7 +5152,7 @@ TEST_F(TestOptimizerV2, MatmulAddExpAddAdd) {
   load0.x = data0.y;
   *load0.y.axis = {z0.id, z1.id};
   load0.y.dtype = af::DT_FLOAT16;
-  *load0.y.strides = {s1 ,af::ops::One};
+  *load0.y.strides = {s1, af::ops::One};
   *load0.y.repeats = {s0, s1};
 
   Data data1("data1", graph);
@@ -5156,7 +5186,7 @@ TEST_F(TestOptimizerV2, MatmulAddExpAddAdd) {
   load2.attr.sched.axis = {z0.id, z1.id, z2.id};
   load2.y.dtype = af::DT_FLOAT16;
   *load2.y.axis = {z0.id, z1.id, z2.id};
-  *load2.y.strides = {s1*s2, s2, af::ops::One};
+  *load2.y.strides = {s1 * s2, s2, af::ops::One};
   *load2.y.repeats = {s0, s1, s2};
 
   Data data3("data3", graph);
@@ -5173,7 +5203,7 @@ TEST_F(TestOptimizerV2, MatmulAddExpAddAdd) {
   load3.attr.sched.axis = {z0.id, z1.id, z2.id};
   load3.y.dtype = af::DT_FLOAT16;
   *load3.y.axis = {z0.id, z1.id, z2.id};
-  *load3.y.strides = {s1*s2, s2, af::ops::One};
+  *load3.y.strides = {s1 * s2, s2, af::ops::One};
   *load3.y.repeats = {s0, s1, s2};
 
   MatMul matmul("matmul");
@@ -5191,7 +5221,7 @@ TEST_F(TestOptimizerV2, MatmulAddExpAddAdd) {
   add_op.x2 = load2.y;
   add_op.y.dtype = af::DT_FLOAT16;
   *add_op.y.axis = {z0.id, z1.id, z2.id};
-  *add_op.y.strides = {s1*s2, s2, af::ops::One};
+  *add_op.y.strides = {s1 * s2, s2, af::ops::One};
   *add_op.y.repeats = {s0, s1, s2};
 
   af::ascir_op::Exp exp("exp");
@@ -5199,7 +5229,7 @@ TEST_F(TestOptimizerV2, MatmulAddExpAddAdd) {
   exp.x = add_op.y;
   exp.y.dtype = af::DT_FLOAT16;
   *exp.y.axis = {z0.id, z1.id, z2.id};
-  *exp.y.strides = {s1*s2, s2, af::ops::One};
+  *exp.y.strides = {s1 * s2, s2, af::ops::One};
   *exp.y.repeats = {s0, s1, s2};
 
   af::ascir_op::Add add_op1("add1");
@@ -5208,7 +5238,7 @@ TEST_F(TestOptimizerV2, MatmulAddExpAddAdd) {
   add_op1.x2 = load3.y;
   add_op1.y.dtype = af::DT_FLOAT16;
   *add_op1.y.axis = {z0.id, z1.id, z2.id};
-  *add_op1.y.strides = {s1*s2, s2, af::ops::One};
+  *add_op1.y.strides = {s1 * s2, s2, af::ops::One};
   *add_op1.y.repeats = {s0, s1, s2};
 
   af::ascir_op::Add add_op2("add2");
@@ -5217,7 +5247,7 @@ TEST_F(TestOptimizerV2, MatmulAddExpAddAdd) {
   add_op2.x2 = add_op1.y;
   add_op2.y.dtype = af::DT_FLOAT16;
   *add_op2.y.axis = {z0.id, z1.id, z2.id};
-  *add_op2.y.strides = {s1*s2, s2, af::ops::One};
+  *add_op2.y.strides = {s1 * s2, s2, af::ops::One};
   *add_op2.y.repeats = {s0, s1, s2};
 
   Store store_op("store");
@@ -5225,7 +5255,7 @@ TEST_F(TestOptimizerV2, MatmulAddExpAddAdd) {
   store_op.x = add_op2.y;
   *store_op.y.axis = {z0.id, z1.id, z2.id};
   store_op.y.dtype = af::DT_FLOAT16;
-  *store_op.y.strides = {s1*s2, s2, af::ops::One};
+  *store_op.y.strides = {s1 * s2, s2, af::ops::One};
   *store_op.y.repeats = {s0, s1, s2};
 
   Output output_op("output");
@@ -5265,7 +5295,7 @@ TEST_F(TestOptimizerV2, MatmulAndCastAdd) {
   data0.y.dtype = af::DT_FLOAT;
   *data0.y.axis = {z0.id, z1.id};
   data0.attr.api.compute_type = af::ComputeType::kComputeInvalid;
-  *data0.y.strides = {s1 ,af::ops::One};
+  *data0.y.strides = {s1, af::ops::One};
   *data0.y.repeats = {s0, s1};
   data0.ir_attr.SetIndex(0);
 
@@ -5274,7 +5304,7 @@ TEST_F(TestOptimizerV2, MatmulAndCastAdd) {
   load0.x = data0.y;
   *load0.y.axis = {z0.id, z1.id};
   load0.y.dtype = af::DT_FLOAT;
-  *load0.y.strides = {s1 ,af::ops::One};
+  *load0.y.strides = {s1, af::ops::One};
   *load0.y.repeats = {s0, s1};
 
   Data data1("data1", graph);
@@ -5308,7 +5338,7 @@ TEST_F(TestOptimizerV2, MatmulAndCastAdd) {
   load2.attr.sched.axis = {z0.id, z1.id, z2.id};
   load2.y.dtype = af::DT_FLOAT16;
   *load2.y.axis = {z0.id, z1.id, z2.id};
-  *load2.y.strides = {s1*s2, s2, af::ops::One};
+  *load2.y.strides = {s1 * s2, s2, af::ops::One};
   *load2.y.repeats = {s0, s1, s2};
 
   MatMul matmul("matmul");
@@ -5334,7 +5364,7 @@ TEST_F(TestOptimizerV2, MatmulAndCastAdd) {
   add_op.x2 = load2.y;
   add_op.y.dtype = af::DT_FLOAT16;
   *add_op.y.axis = {z0.id, z1.id, z2.id};
-  *add_op.y.strides = {s1*s2, s2, af::ops::One};
+  *add_op.y.strides = {s1 * s2, s2, af::ops::One};
   *add_op.y.repeats = {s0, s1, s2};
 
   Store store_op("store");
@@ -5342,7 +5372,7 @@ TEST_F(TestOptimizerV2, MatmulAndCastAdd) {
   store_op.x = add_op.y;
   *store_op.y.axis = {z0.id, z1.id, z2.id};
   store_op.y.dtype = af::DT_FLOAT16;
-  *store_op.y.strides = {s1*s2, s2, af::ops::One};
+  *store_op.y.strides = {s1 * s2, s2, af::ops::One};
   *store_op.y.repeats = {s0, s1, s2};
 
   Output output_op("output");
@@ -5367,12 +5397,14 @@ TEST_F(TestOptimizerV2, MatmulAndCastAdd) {
             "matmul_1_ub_Y3_S0G0C2");
   EXPECT_EQ(fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs[3].GetName(),
             "matmul_1_ub_Y2_S0G0C3");
-  for (const auto &node : fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[1].impl_graphs[0].GetAllNodes()) {
+  for (const auto &node :
+       fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[1].impl_graphs[0].GetAllNodes()) {
     if (node->GetOpDesc()->GetId() == 4) {
       EXPECT_EQ(node->GetOpDesc()->GetType(), "MatMul");
     }
   }
-  for (const auto &node : fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs[0].GetAllNodes()) {
+  for (const auto &node :
+       fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs[0].GetAllNodes()) {
     if (node->GetOpDesc()->GetId() == 5) {
       EXPECT_EQ(node->GetOpDesc()->GetType(), "VectorFunc");
     }
@@ -5394,7 +5426,7 @@ TEST_F(TestOptimizerV2, MatmulAndCastMultiRefsAdd) {
   data0.y.dtype = af::DT_FLOAT;
   *data0.y.axis = {z0.id, z1.id};
   data0.attr.api.compute_type = af::ComputeType::kComputeInvalid;
-  *data0.y.strides = {s1 ,af::ops::One};
+  *data0.y.strides = {s1, af::ops::One};
   *data0.y.repeats = {s0, s1};
   data0.ir_attr.SetIndex(0);
 
@@ -5403,7 +5435,7 @@ TEST_F(TestOptimizerV2, MatmulAndCastMultiRefsAdd) {
   load0.x = data0.y;
   *load0.y.axis = {z0.id, z1.id};
   load0.y.dtype = af::DT_FLOAT;
-  *load0.y.strides = {s1 ,af::ops::One};
+  *load0.y.strides = {s1, af::ops::One};
   *load0.y.repeats = {s0, s1};
 
   Data data1("data1", graph);
@@ -5446,7 +5478,7 @@ TEST_F(TestOptimizerV2, MatmulAndCastMultiRefsAdd) {
   add_op.x2 = cast.y;
   add_op.y.dtype = af::DT_FLOAT16;
   *add_op.y.axis = {z0.id, z1.id, z2.id};
-  *add_op.y.strides = {s1*s2, s2, af::ops::One};
+  *add_op.y.strides = {s1 * s2, s2, af::ops::One};
   *add_op.y.repeats = {s0, s1, s2};
 
   Store store_op("store");
@@ -5454,7 +5486,7 @@ TEST_F(TestOptimizerV2, MatmulAndCastMultiRefsAdd) {
   store_op.x = add_op.y;
   *store_op.y.axis = {z0.id, z1.id, z2.id};
   store_op.y.dtype = af::DT_FLOAT16;
-  *store_op.y.strides = {s1*s2, s2, af::ops::One};
+  *store_op.y.strides = {s1 * s2, s2, af::ops::One};
   *store_op.y.repeats = {s0, s1, s2};
 
   Output output_op("output");
@@ -5479,12 +5511,14 @@ TEST_F(TestOptimizerV2, MatmulAndCastMultiRefsAdd) {
             "matmul_1_ub_Y2_S0G0C3");
   EXPECT_EQ(fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[1].impl_graphs[0].GetName(),
             "matmul_0_ub_S0G1C0");
-  for (const auto &node : fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[1].impl_graphs[0].GetAllNodes()) {
+  for (const auto &node :
+       fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[1].impl_graphs[0].GetAllNodes()) {
     if (node->GetOpDesc()->GetId() == 4) {
       EXPECT_EQ(node->GetOpDesc()->GetType(), "MatMul");
     }
   }
-  for (const auto &node : fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs[0].GetAllNodes()) {
+  for (const auto &node :
+       fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs[0].GetAllNodes()) {
     if (node->GetOpDesc()->GetId() == 3) {
       EXPECT_EQ(node->GetOpDesc()->GetType(), "Add");
     }
@@ -5506,7 +5540,7 @@ TEST_F(TestOptimizerV2, MatmulAndBrcLoadMultiRefsAdd) {
   data0.y.dtype = af::DT_FLOAT;
   *data0.y.axis = {z0.id, z1.id};
   data0.attr.api.compute_type = af::ComputeType::kComputeInvalid;
-  *data0.y.strides = {s1 ,af::ops::One};
+  *data0.y.strides = {s1, af::ops::One};
   *data0.y.repeats = {s0, s1};
   data0.ir_attr.SetIndex(0);
 
@@ -5515,7 +5549,7 @@ TEST_F(TestOptimizerV2, MatmulAndBrcLoadMultiRefsAdd) {
   load0.x = data0.y;
   *load0.y.axis = {z0.id, z1.id};
   load0.y.dtype = af::DT_FLOAT;
-  *load0.y.strides = {s1 ,af::ops::One};
+  *load0.y.strides = {s1, af::ops::One};
   *load0.y.repeats = {s0, s1};
 
   Data data1("data1", graph);
@@ -5549,7 +5583,7 @@ TEST_F(TestOptimizerV2, MatmulAndBrcLoadMultiRefsAdd) {
   load2.attr.sched.axis = {z0.id, z1.id, z2.id};
   load2.y.dtype = af::DT_FLOAT;
   *load2.y.axis = {z0.id, z1.id, z2.id};
-  *load2.y.strides = {s1*s2, s2, af::ops::One};
+  *load2.y.strides = {s1 * s2, s2, af::ops::One};
   *load2.y.repeats = {s0, s1, s2};
 
   MatMul matmul("matmul");
@@ -5574,7 +5608,7 @@ TEST_F(TestOptimizerV2, MatmulAndBrcLoadMultiRefsAdd) {
   abs.attr.sched.axis = {z0.id, z1.id, z2.id};
   abs.y.dtype = af::DT_FLOAT;
   *abs.y.axis = {z0.id, z1.id, z2.id};
-  *abs.y.strides = {s1*s2, s2, af::ops::One};
+  *abs.y.strides = {s1 * s2, s2, af::ops::One};
   *abs.y.repeats = {s0, s1, s2};
 
   af::ascir_op::Add add_op("add");
@@ -5583,7 +5617,7 @@ TEST_F(TestOptimizerV2, MatmulAndBrcLoadMultiRefsAdd) {
   add_op.x2 = abs.y;
   add_op.y.dtype = af::DT_FLOAT;
   *add_op.y.axis = {z0.id, z1.id, z2.id};
-  *add_op.y.strides = {s1*s2, s2, af::ops::One};
+  *add_op.y.strides = {s1 * s2, s2, af::ops::One};
   *add_op.y.repeats = {s0, s1, s2};
 
   af::ascir_op::Add add_op1("add1");
@@ -5592,7 +5626,7 @@ TEST_F(TestOptimizerV2, MatmulAndBrcLoadMultiRefsAdd) {
   add_op1.x2 = load2.y;
   add_op1.y.dtype = af::DT_FLOAT;
   *add_op1.y.axis = {z0.id, z1.id, z2.id};
-  *add_op1.y.strides = {s1*s2, s2, af::ops::One};
+  *add_op1.y.strides = {s1 * s2, s2, af::ops::One};
   *add_op1.y.repeats = {s0, s1, s2};
 
   Store store_op("store");
@@ -5600,7 +5634,7 @@ TEST_F(TestOptimizerV2, MatmulAndBrcLoadMultiRefsAdd) {
   store_op.x = add_op1.y;
   *store_op.y.axis = {z0.id, z1.id, z2.id};
   store_op.y.dtype = af::DT_FLOAT;
-  *store_op.y.strides = {s1*s2, s2, af::ops::One};
+  *store_op.y.strides = {s1 * s2, s2, af::ops::One};
   *store_op.y.repeats = {s0, s1, s2};
 
   Output output_op("output");
@@ -5621,12 +5655,14 @@ TEST_F(TestOptimizerV2, MatmulAndBrcLoadMultiRefsAdd) {
             "matmul_1_ub_Y3_non_db_S0G0C0");
   EXPECT_EQ(fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs[1].GetName(),
             "matmul_1_ub_Y3_S0G0C1");
-  for (const auto &node : fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[1].impl_graphs[0].GetAllNodes()) {
+  for (const auto &node :
+       fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[1].impl_graphs[0].GetAllNodes()) {
     if (node->GetOpDesc()->GetId() == 4) {
       EXPECT_EQ(node->GetOpDesc()->GetType(), "MatMul");
     }
   }
-  for (const auto &node : fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs[0].GetAllNodes()) {
+  for (const auto &node :
+       fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs[0].GetAllNodes()) {
     if (node->GetOpDesc()->GetId() == 4) {
       EXPECT_EQ(node->GetOpDesc()->GetType(), "VectorFunc");
     }
@@ -5648,7 +5684,7 @@ TEST_F(TestOptimizerV2, MatmulAndCastBrcMultiRefsAdd) {
   data0.y.dtype = af::DT_FLOAT;
   *data0.y.axis = {z0.id, z1.id};
   data0.attr.api.compute_type = af::ComputeType::kComputeInvalid;
-  *data0.y.strides = {s1 ,af::ops::One};
+  *data0.y.strides = {s1, af::ops::One};
   *data0.y.repeats = {s0, s1};
   data0.ir_attr.SetIndex(0);
 
@@ -5657,7 +5693,7 @@ TEST_F(TestOptimizerV2, MatmulAndCastBrcMultiRefsAdd) {
   load0.x = data0.y;
   *load0.y.axis = {z0.id, z1.id};
   load0.y.dtype = af::DT_FLOAT;
-  *load0.y.strides = {s1 ,af::ops::One};
+  *load0.y.strides = {s1, af::ops::One};
   *load0.y.repeats = {s0, s1};
 
   Data data1("data1", graph);
@@ -5707,7 +5743,7 @@ TEST_F(TestOptimizerV2, MatmulAndCastBrcMultiRefsAdd) {
   abs.attr.sched.axis = {z0.id, z1.id, z2.id};
   abs.y.dtype = af::DT_FLOAT;
   *abs.y.axis = {z0.id, z1.id, z2.id};
-  *abs.y.strides = {s1*s2, s2, af::ops::One};
+  *abs.y.strides = {s1 * s2, s2, af::ops::One};
   *abs.y.repeats = {s0, s1, s2};
 
   af::ascir_op::Add add_op("add");
@@ -5716,7 +5752,7 @@ TEST_F(TestOptimizerV2, MatmulAndCastBrcMultiRefsAdd) {
   add_op.x2 = abs.y;
   add_op.y.dtype = af::DT_FLOAT;
   *add_op.y.axis = {z0.id, z1.id, z2.id};
-  *add_op.y.strides = {s1*s2, s2, af::ops::One};
+  *add_op.y.strides = {s1 * s2, s2, af::ops::One};
   *add_op.y.repeats = {s0, s1, s2};
 
   Store store_op("store");
@@ -5724,7 +5760,7 @@ TEST_F(TestOptimizerV2, MatmulAndCastBrcMultiRefsAdd) {
   store_op.x = add_op.y;
   *store_op.y.axis = {z0.id, z1.id, z2.id};
   store_op.y.dtype = af::DT_FLOAT;
-  *store_op.y.strides = {s1*s2, s2, af::ops::One};
+  *store_op.y.strides = {s1 * s2, s2, af::ops::One};
   *store_op.y.repeats = {s0, s1, s2};
 
   Output output_op("output");
@@ -5739,9 +5775,12 @@ TEST_F(TestOptimizerV2, MatmulAndCastBrcMultiRefsAdd) {
   EXPECT_EQ(fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups.size(), 2UL);
   EXPECT_EQ(fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs.size(), 2UL);
   EXPECT_EQ(fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[1].impl_graphs.size(), 1UL);
-  EXPECT_EQ("matmul_0_S0G1C0", fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[1].impl_graphs[0].GetName());
-  EXPECT_EQ("matmul_1_Y0_S0G0C0", fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs[0].GetName());
-  EXPECT_EQ("matmul_1_Y1_S0G0C1", fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs[1].GetName());
+  EXPECT_EQ("matmul_0_S0G1C0",
+            fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[1].impl_graphs[0].GetName());
+  EXPECT_EQ("matmul_1_Y0_S0G0C0",
+            fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs[0].GetName());
+  EXPECT_EQ("matmul_1_Y1_S0G0C1",
+            fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs[1].GetName());
 }
 
 TEST_F(TestOptimizerV2, MatmulStoreAddExpAddAdd) {
@@ -5756,7 +5795,7 @@ TEST_F(TestOptimizerV2, MatmulStoreAddExpAddAdd) {
   data0.y.dtype = af::DT_FLOAT16;
   *data0.y.axis = {z0.id, z1.id};
   data0.attr.api.compute_type = af::ComputeType::kComputeInvalid;
-  *data0.y.strides = {s1 ,af::ops::One};
+  *data0.y.strides = {s1, af::ops::One};
   *data0.y.repeats = {s0, s1};
   data0.ir_attr.SetIndex(0);
 
@@ -5765,7 +5804,7 @@ TEST_F(TestOptimizerV2, MatmulStoreAddExpAddAdd) {
   load0.x = data0.y;
   *load0.y.axis = {z0.id, z1.id};
   load0.y.dtype = af::DT_FLOAT16;
-  *load0.y.strides = {s1 ,af::ops::One};
+  *load0.y.strides = {s1, af::ops::One};
   *load0.y.repeats = {s0, s1};
 
   Data data1("data1", graph);
@@ -5875,13 +5914,13 @@ TEST_F(TestOptimizerV2, MatmulAndBrcLoadScalarAdd) {
   auto z1 = graph.CreateAxis("z1", s1);
   auto s2 = graph.CreateSizeVar(64);
   auto z2 = graph.CreateAxis("z2", s2);
-  
+
   Data data0("data0", graph);
   data0.attr.sched.axis = {z0.id, z1.id};
   data0.y.dtype = af::DT_FLOAT;
   *data0.y.axis = {z0.id, z1.id};
   data0.attr.api.compute_type = af::ComputeType::kComputeInvalid;
-  *data0.y.strides = {s1 ,af::ops::One};
+  *data0.y.strides = {s1, af::ops::One};
   *data0.y.repeats = {s0, s1};
   data0.ir_attr.SetIndex(0);
 
@@ -5890,7 +5929,7 @@ TEST_F(TestOptimizerV2, MatmulAndBrcLoadScalarAdd) {
   load0.x = data0.y;
   *load0.y.axis = {z0.id, z1.id};
   load0.y.dtype = af::DT_FLOAT;
-  *load0.y.strides = {s1 ,af::ops::One};
+  *load0.y.strides = {s1, af::ops::One};
   *load0.y.repeats = {s0, s1};
 
   Data data1("data1", graph);
@@ -5944,7 +5983,7 @@ TEST_F(TestOptimizerV2, MatmulAndBrcLoadScalarAdd) {
   abs.attr.sched.axis = {z0.id, z1.id, z2.id};
   abs.y.dtype = af::DT_FLOAT;
   *abs.y.axis = {z0.id, z1.id, z2.id};
-  *abs.y.strides = {s1*s2, s2, af::ops::One};
+  *abs.y.strides = {s1 * s2, s2, af::ops::One};
   *abs.y.repeats = {s0, s1, s2};
 
   af::ascir_op::Add add_op("add");
@@ -5953,7 +5992,7 @@ TEST_F(TestOptimizerV2, MatmulAndBrcLoadScalarAdd) {
   add_op.x2 = abs.y;
   add_op.y.dtype = af::DT_FLOAT;
   *add_op.y.axis = {z0.id, z1.id, z2.id};
-  *add_op.y.strides = {s1*s2, s2, af::ops::One};
+  *add_op.y.strides = {s1 * s2, s2, af::ops::One};
   *add_op.y.repeats = {s0, s1, s2};
 
   Store store_op("store");
@@ -5961,7 +6000,7 @@ TEST_F(TestOptimizerV2, MatmulAndBrcLoadScalarAdd) {
   store_op.x = add_op.y;
   *store_op.y.axis = {z0.id, z1.id, z2.id};
   store_op.y.dtype = af::DT_FLOAT;
-  *store_op.y.strides = {s1*s2, s2, af::ops::One};
+  *store_op.y.strides = {s1 * s2, s2, af::ops::One};
   *store_op.y.repeats = {s0, s1, s2};
 
   Output output_op("output");
@@ -5981,12 +6020,14 @@ TEST_F(TestOptimizerV2, MatmulAndBrcLoadScalarAdd) {
             "matmul_1_ub_Y3_non_db_S0G0C0");
   EXPECT_EQ(fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs[1].GetName(),
             "matmul_1_ub_Y3_S0G0C1");
-  for (const auto &node : fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[1].impl_graphs[0].GetAllNodes()) {
+  for (const auto &node :
+       fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[1].impl_graphs[0].GetAllNodes()) {
     if (node->GetOpDesc()->GetId() == 4) {
       EXPECT_EQ(node->GetOpDesc()->GetType(), "MatMul");
     }
   }
-  for (const auto &node : fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs[0].GetAllNodes()) {
+  for (const auto &node :
+       fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs[0].GetAllNodes()) {
     if (node->GetOpDesc()->GetId() == 1) {
       EXPECT_EQ(node->GetOpDesc()->GetType(), "Nddma");
     }
@@ -6007,7 +6048,7 @@ TEST_F(TestOptimizerV2, MatmulAndLoadMultiBrcAdd) {
   data0.y.dtype = af::DT_FLOAT;
   *data0.y.axis = {z0.id, z1.id};
   data0.attr.api.compute_type = af::ComputeType::kComputeInvalid;
-  *data0.y.strides = {s1 ,af::ops::One};
+  *data0.y.strides = {s1, af::ops::One};
   *data0.y.repeats = {s0, s1};
   data0.ir_attr.SetIndex(0);
 
@@ -6016,7 +6057,7 @@ TEST_F(TestOptimizerV2, MatmulAndLoadMultiBrcAdd) {
   load0.x = data0.y;
   *load0.y.axis = {z0.id, z1.id};
   load0.y.dtype = af::DT_FLOAT;
-  *load0.y.strides = {s1 ,af::ops::One};
+  *load0.y.strides = {s1, af::ops::One};
   *load0.y.repeats = {s0, s1};
 
   Data data1("data1", graph);
@@ -6083,7 +6124,7 @@ TEST_F(TestOptimizerV2, MatmulAndLoadMultiBrcAdd) {
   abs.attr.sched.axis = {z0.id, z1.id, z2.id};
   abs.y.dtype = af::DT_FLOAT;
   *abs.y.axis = {z0.id, z1.id, z2.id};
-  *abs.y.strides = {s1*s2, s2, af::ops::One};
+  *abs.y.strides = {s1 * s2, s2, af::ops::One};
   *abs.y.repeats = {s0, s1, s2};
 
   af::ascir_op::Add add_op("add");
@@ -6092,7 +6133,7 @@ TEST_F(TestOptimizerV2, MatmulAndLoadMultiBrcAdd) {
   add_op.x2 = abs.y;
   add_op.y.dtype = af::DT_FLOAT;
   *add_op.y.axis = {z0.id, z1.id, z2.id};
-  *add_op.y.strides = {s1*s2, s2, af::ops::One};
+  *add_op.y.strides = {s1 * s2, s2, af::ops::One};
   *add_op.y.repeats = {s0, s1, s2};
 
   Store store_op("store");
@@ -6100,7 +6141,7 @@ TEST_F(TestOptimizerV2, MatmulAndLoadMultiBrcAdd) {
   store_op.x = add_op.y;
   *store_op.y.axis = {z0.id, z1.id, z2.id};
   store_op.y.dtype = af::DT_FLOAT;
-  *store_op.y.strides = {s1*s2, s2, af::ops::One};
+  *store_op.y.strides = {s1 * s2, s2, af::ops::One};
   *store_op.y.repeats = {s0, s1, s2};
 
   Output output_op("output");
@@ -6120,12 +6161,14 @@ TEST_F(TestOptimizerV2, MatmulAndLoadMultiBrcAdd) {
             "matmul_1_ub_Y3_non_db_S0G0C0");
   EXPECT_EQ(fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs[1].GetName(),
             "matmul_1_ub_Y3_S0G0C1");
-  for (const auto &node : fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[1].impl_graphs[0].GetAllNodes()) {
+  for (const auto &node :
+       fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[1].impl_graphs[0].GetAllNodes()) {
     if (node->GetOpDesc()->GetId() == 4) {
       EXPECT_EQ(node->GetOpDesc()->GetType(), "MatMul");
     }
   }
-  for (const auto &node : fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs[0].GetAllNodes()) {
+  for (const auto &node :
+       fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs[0].GetAllNodes()) {
     if (node->GetOpDesc()->GetId() == 1) {
       EXPECT_EQ(node->GetOpDesc()->GetType(), "Nddma");
     }
@@ -6149,7 +6192,7 @@ TEST_F(TestOptimizerV2, MatmulAndLoadBrcAndAbsBrcAdd) {
   data0.y.dtype = af::DT_FLOAT;
   *data0.y.axis = {z0.id, z1.id};
   data0.attr.api.compute_type = af::ComputeType::kComputeInvalid;
-  *data0.y.strides = {s1 ,af::ops::One};
+  *data0.y.strides = {s1, af::ops::One};
   *data0.y.repeats = {s0, s1};
   data0.ir_attr.SetIndex(0);
 
@@ -6158,7 +6201,7 @@ TEST_F(TestOptimizerV2, MatmulAndLoadBrcAndAbsBrcAdd) {
   load0.x = data0.y;
   *load0.y.axis = {z0.id, z1.id};
   load0.y.dtype = af::DT_FLOAT;
-  *load0.y.strides = {s1 ,af::ops::One};
+  *load0.y.strides = {s1, af::ops::One};
   *load0.y.repeats = {s0, s1};
 
   Data data1("data1", graph);
@@ -6234,7 +6277,7 @@ TEST_F(TestOptimizerV2, MatmulAndLoadBrcAndAbsBrcAdd) {
   add_op.x2 = brc1.y;
   add_op.y.dtype = af::DT_FLOAT;
   *add_op.y.axis = {z0.id, z1.id, z2.id};
-  *add_op.y.strides = {s1*s2, s2, af::ops::One};
+  *add_op.y.strides = {s1 * s2, s2, af::ops::One};
   *add_op.y.repeats = {s0, s1, s2};
 
   Store store_op("store");
@@ -6242,7 +6285,7 @@ TEST_F(TestOptimizerV2, MatmulAndLoadBrcAndAbsBrcAdd) {
   store_op.x = add_op.y;
   *store_op.y.axis = {z0.id, z1.id, z2.id};
   store_op.y.dtype = af::DT_FLOAT;
-  *store_op.y.strides = {s1*s2, s2, af::ops::One};
+  *store_op.y.strides = {s1 * s2, s2, af::ops::One};
   *store_op.y.repeats = {s0, s1, s2};
 
   Output output_op("output");
@@ -6260,12 +6303,14 @@ TEST_F(TestOptimizerV2, MatmulAndLoadBrcAndAbsBrcAdd) {
             "matmul_0_S0G1C0");
   EXPECT_EQ(fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs[0].GetName(),
             "matmul_1_Y0_S0G0C0");
-  for (const auto &node : fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[1].impl_graphs[0].GetAllNodes()) {
+  for (const auto &node :
+       fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[1].impl_graphs[0].GetAllNodes()) {
     if (node->GetOpDesc()->GetId() == 4) {
       EXPECT_EQ(node->GetOpDesc()->GetType(), "MatMul");
     }
   }
-  for (const auto &node : fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs[0].GetAllNodes()) {
+  for (const auto &node :
+       fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs[0].GetAllNodes()) {
     if (node->GetOpDesc()->GetId() == 4) {
       EXPECT_EQ(node->GetOpDesc()->GetType(), "Broadcast");
     }
@@ -6277,7 +6322,7 @@ TEST_F(TestOptimizerV2, LoadSliceCase) {
   auto s0 = graph.CreateSizeVar(256);
   auto s1 = graph.CreateSizeVar(50);
   auto s2 = graph.CreateSizeVar(16);
-  auto s1_orign = graph.CreateSizeVar(100);  
+  auto s1_orign = graph.CreateSizeVar(100);
   auto z0 = graph.CreateAxis("z0", s0);
   auto z1 = graph.CreateAxis("z1", s1);
   auto z2 = graph.CreateAxis("z2", s2);
@@ -6341,5 +6386,5 @@ TEST_F(TestOptimizerV2, LoadSliceCase) {
   optimize::autoschedule::AutoSchedule autoschedule(graph, impl_graphs);
   autoschedule.DoAutoSchedule();
   EXPECT_EQ(impl_graphs.size(), 4);
-  EXPECT_EQ(impl_graphs[0].scheduled_graph.GetName(), "gen_nddma_slice_B0Y0"); 
+  EXPECT_EQ(impl_graphs[0].scheduled_graph.GetName(), "gen_nddma_slice_B0Y0");
 }

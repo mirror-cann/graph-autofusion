@@ -113,7 +113,7 @@ TEST_F(ScheduleGroupGraphPartitionerTest, ReduceGraphCount_Exactly5_NoChange) {
 TEST_F(ScheduleGroupGraphPartitionerTest, ReduceGraphCount_MoreThan5_AllMergeable_ReduceTo5) {
   std::vector<af::AscGraph> graphs;
   auto base_graph = CreateSimpleGraph("base", 0);
-  
+
   for (int i = 0; i < 8; ++i) {
     auto graph = CreateSimpleGraph("graph" + std::to_string(i), i);
     CopyAxisAttrs(graph, base_graph);  // Share same axis attributes
@@ -128,18 +128,18 @@ TEST_F(ScheduleGroupGraphPartitionerTest, ReduceGraphCount_MoreThan5_AllMergeabl
 // Test 4: More than 5 graphs, none mergeable (different axis) - should stay the same
 TEST_F(ScheduleGroupGraphPartitionerTest, ReduceGraphCount_MoreThan5_NoneMergeable_NoChange) {
   std::vector<af::AscGraph> graphs;
-  
+
   // Create graphs with different axis IDs by using different loop configurations
   for (int i = 0; i < 8; ++i) {
     // Each graph will have unique axis IDs because AscGraphBuilder creates new axes
     auto graph = AscGraphBuilder("graph" + std::to_string(i))
-        .Loops({Sym(128 + i), Sym(64 + i)})  // Different sizes for each graph
-        .Data("data", i)
-        .Load("load", "data")
-        .Abs("abs", "load")
-        .Store("store", "abs")
-        .Output("out", "store", 0)
-        .Build();
+                     .Loops({Sym(128 + i), Sym(64 + i)})  // Different sizes for each graph
+                     .Data("data", i)
+                     .Load("load", "data")
+                     .Abs("abs", "load")
+                     .Store("store", "abs")
+                     .Output("out", "store", 0)
+                     .Build();
     graphs.push_back(std::move(graph));
   }
 
@@ -153,7 +153,7 @@ TEST_F(ScheduleGroupGraphPartitionerTest, ReduceGraphCount_MoreThan5_NoneMergeab
 TEST_F(ScheduleGroupGraphPartitionerTest, ReduceGraphCount_MoreThan5_SomeMergeable_PartialReduce) {
   std::vector<af::AscGraph> graphs;
   auto base_graph = CreateSimpleGraph("base", 0);
-  
+
   // 4 graphs with same axis (mergeable)
   for (int i = 0; i < 4; ++i) {
     auto graph = CreateSimpleGraph("same_axis_" + std::to_string(i), i);
@@ -175,35 +175,35 @@ TEST_F(ScheduleGroupGraphPartitionerTest, ReduceGraphCount_MoreThan5_SomeMergeab
 TEST_F(ScheduleGroupGraphPartitionerTest, ReduceGraphCount_Priority_MergeSmallestFirst) {
   std::vector<af::AscGraph> graphs;
   auto base_graph = CreateSimpleGraph("base", 0);
-  
+
   // Small graphs (2 nodes each: Load -> Store)
   for (int i = 0; i < 3; ++i) {
     std::string name = "small_" + std::to_string(i);
     std::string suffix = "_" + name;
     auto graph = AscGraphBuilder(name)
-        .Loops({Sym(128), Sym(64)})
-        .Data("data" + suffix, i)
-        .Load("load" + suffix, "data" + suffix)
-        .Store("store" + suffix, "load" + suffix)
-        .Output("out" + suffix, "store" + suffix, 0)
-        .Build();
+                     .Loops({Sym(128), Sym(64)})
+                     .Data("data" + suffix, i)
+                     .Load("load" + suffix, "data" + suffix)
+                     .Store("store" + suffix, "load" + suffix)
+                     .Output("out" + suffix, "store" + suffix, 0)
+                     .Build();
     CopyAxisAttrs(graph, base_graph);
     graphs.push_back(std::move(graph));
   }
-  
+
   // Large graphs (4 nodes each: Load -> Abs -> Relu -> Store)
   for (int i = 0; i < 5; ++i) {
     std::string name = "large_" + std::to_string(i);
     std::string suffix = "_" + name;
     auto graph = AscGraphBuilder(name)
-        .Loops({Sym(128), Sym(64)})
-        .Data("data" + suffix, i + 10)
-        .Load("load" + suffix, "data" + suffix)
-        .Abs("abs" + suffix, "load" + suffix)
-        .Relu("relu" + suffix, "abs" + suffix)
-        .Store("store" + suffix, "relu" + suffix)
-        .Output("out" + suffix, "store" + suffix, 0)
-        .Build();
+                     .Loops({Sym(128), Sym(64)})
+                     .Data("data" + suffix, i + 10)
+                     .Load("load" + suffix, "data" + suffix)
+                     .Abs("abs" + suffix, "load" + suffix)
+                     .Relu("relu" + suffix, "abs" + suffix)
+                     .Store("store" + suffix, "relu" + suffix)
+                     .Output("out" + suffix, "store" + suffix, 0)
+                     .Build();
     CopyAxisAttrs(graph, base_graph);
     graphs.push_back(std::move(graph));
   }
@@ -217,12 +217,12 @@ TEST_F(ScheduleGroupGraphPartitionerTest, ReduceGraphCount_Priority_MergeSmalles
 // Test 7: Graphs with Concat (not simple compute graph) - should not be merged
 TEST_F(ScheduleGroupGraphPartitionerTest, ReduceGraphCount_WithConcat_NotMerged) {
   std::vector<af::AscGraph> graphs;
-  
+
   // 3 simple graphs (mergeable)
   for (int i = 0; i < 3; ++i) {
     graphs.push_back(CreateSimpleGraph("simple_" + std::to_string(i), i));
   }
-  
+
   // 5 graphs with Concat (not mergeable)
   for (int i = 0; i < 5; ++i) {
     graphs.push_back(CreateGraphWithConcat("concat_" + std::to_string(i), i + 10, i + 20));
@@ -241,7 +241,7 @@ TEST_F(ScheduleGroupGraphPartitionerTest, ReduceGraphCount_WithConcat_NotMerged)
 TEST_F(ScheduleGroupGraphPartitionerTest, ReduceGraphCount_CustomTarget_Respected) {
   std::vector<af::AscGraph> graphs;
   auto base_graph = CreateSimpleGraph("base", 0);
-  
+
   for (int i = 0; i < 10; ++i) {
     auto graph = CreateSimpleGraph("graph" + std::to_string(i), i);
     CopyAxisAttrs(graph, base_graph);
@@ -266,16 +266,16 @@ TEST_F(ScheduleGroupGraphPartitionerTest, ReduceGraphCount_EmptyList_NoCrash) {
 TEST_F(ScheduleGroupGraphPartitionerTest, ReduceGraphCount_MergedGraph_ContainsAllNodes) {
   std::vector<af::AscGraph> graphs;
   auto base_graph = CreateSimpleGraph("base", 0);
-  
+
   auto graph1 = CreateSimpleGraph("graph1", 0);
   auto graph2 = CreateSimpleGraph("graph2", 1);
-  
+
   CopyAxisAttrs(graph1, base_graph);
   CopyAxisAttrs(graph2, base_graph);
-  
+
   graphs.push_back(std::move(graph1));
   graphs.push_back(std::move(graph2));
-  
+
   // Add 4 more to exceed 5
   for (int i = 2; i < 6; ++i) {
     auto graph = CreateSimpleGraph("graph" + std::to_string(i), i);
@@ -296,11 +296,11 @@ TEST_F(ScheduleGroupGraphPartitionerTest, ReduceGraphCount_NoSourceReuseAsDestin
   // Create 6 graphs with varying node counts to force multiple merges
   // Graph 0: 1 node (smallest)
   auto graph0 = AscGraphBuilder("graph0")
-      .Loops({Sym(128), Sym(64)})
-      .Data("data0", 0)
-      .Load("load0", "data0")
-      .Output("out0", "load0", 0)
-      .Build();
+                    .Loops({Sym(128), Sym(64)})
+                    .Data("data0", 0)
+                    .Load("load0", "data0")
+                    .Output("out0", "load0", 0)
+                    .Build();
   CopyAxisAttrs(graph0, base_graph);
   graphs.push_back(std::move(graph0));
 
@@ -315,7 +315,7 @@ TEST_F(ScheduleGroupGraphPartitionerTest, ReduceGraphCount_NoSourceReuseAsDestin
   size_t total_nodes_before = 0;
   for (const auto &g : graphs) {
     for (const auto &node : g.GetAllNodes()) {
-      (void) node;
+      (void)node;
       ++total_nodes_before;
     }
   }
@@ -329,7 +329,7 @@ TEST_F(ScheduleGroupGraphPartitionerTest, ReduceGraphCount_NoSourceReuseAsDestin
   size_t total_nodes_after = 0;
   for (const auto &g : graphs) {
     for (const auto &node : g.GetAllNodes()) {
-      (void) node;
+      (void)node;
       ++total_nodes_after;
     }
   }

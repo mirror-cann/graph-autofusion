@@ -97,9 +97,8 @@ inline std::string StrJoin(const std::vector<int64_t> &vec, const std::string &s
 }
 
 template <typename T>
-inline typename std::enable_if<std::is_integral<T>::value && !std::is_same<T, bool>::value,
-                               std::string>::type
-StrJoin(const std::vector<T> &vec, const std::string &sep = ", ") {
+inline typename std::enable_if<std::is_integral<T>::value && !std::is_same<T, bool>::value, std::string>::type StrJoin(
+    const std::vector<T> &vec, const std::string &sep = ", ") {
   return StrJoin(vec, [](const T &s) { return std::to_string(s); }, sep);
 }
 }  // namespace loop

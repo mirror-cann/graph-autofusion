@@ -46,9 +46,8 @@ void DumpStringList(std::stringstream &ss, const std::string &label, const std::
   ss << "}" << std::endl;
 }
 
-void DumpExpressionList(std::stringstream &ss, const std::string &label,
-                        const std::vector<CombinedExpression> &items, const std::string &indent,
-                        const Tiler &tiler) {
+void DumpExpressionList(std::stringstream &ss, const std::string &label, const std::vector<CombinedExpression> &items,
+                        const std::string &indent, const Tiler &tiler) {
   if (items.empty()) return;
   ss << indent << "." << label << " = {";
   for (size_t i = 0; i < items.size(); ++i) {
@@ -110,8 +109,8 @@ void DumpDataCopyLoopModeParams(std::stringstream &ss, const DataCopyLoopModePar
   ss << indent << "}" << std::endl;
 }
 
-void DumpSpecificParams(std::stringstream &ss, const CodegenApiParam::AnySpecificParams &sp,
-                        const std::string &indent, const Tiler &tiler) {
+void DumpSpecificParams(std::stringstream &ss, const CodegenApiParam::AnySpecificParams &sp, const std::string &indent,
+                        const Tiler &tiler) {
   if (std::holds_alternative<std::monostate>(sp)) return;
   ss << indent << ".specific_params = {" << std::endl;
   if (std::holds_alternative<DmaSpecificParams>(sp)) {
@@ -162,8 +161,8 @@ std::string ApiParamToTxtString(const CodegenApiParam &p, const Tiler &tiler) {
 ge::Status CodegenApiParam::DumpGraphApiParams(const ascir::ImplGraph &graph, const Tiler &tiler,
                                                const std::string &prefix) {
   std::ostringstream name_ss;
-  name_ss << "api_param_" << std::setw(kDumpIndexWidth) << std::setfill('0') << g_api_param_dump_index
-          << "_" << graph.GetName() << ".txt";
+  name_ss << "api_param_" << std::setw(kDumpIndexWidth) << std::setfill('0') << g_api_param_dump_index << "_"
+          << graph.GetName() << ".txt";
   std::string file_path = prefix + SanitizeFileName(name_ss.str());
   ++g_api_param_dump_index;
   std::ofstream ofs(file_path);
@@ -201,7 +200,6 @@ ge::Status CodegenApiParam::DumpGraphApiParams(const ascir::ImplGraph &graph, co
   ofs << "================================================================================" << std::endl;
 
   ofs.close();
-  GELOGI("[DumpCodegenApiParam] dumped %zu nodes of graph %s to %s", idx, graph.GetName().c_str(),
-         file_path.c_str());
+  GELOGI("[DumpCodegenApiParam] dumped %zu nodes of graph %s to %s", idx, graph.GetName().c_str(), file_path.c_str());
   return ge::SUCCESS;
 }

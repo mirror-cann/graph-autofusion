@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -132,9 +132,7 @@ TEST(CodegenKernel, BinaryTmpApicall) {
 
   std::string result;
   call.Generate(tpipe, current_axis, result);
-  EXPECT_EQ(result, std::string{
-    "LogicalAnd(local_3[0], local_0[0], local_1[0], tmp_buf_0, local_0_actual_size);\n"
-  });
+  EXPECT_EQ(result, std::string{"LogicalAnd(local_3[0], local_0[0], local_1[0], tmp_buf_0, local_0_actual_size);\n"});
 }
 
 TEST(CodegenKernel, BinaryTmpApicallLogicalOrWithFloatUbScalar) {
@@ -249,9 +247,8 @@ TEST(CodegenKernel, BinaryTmpApicallLogicalOrWithFloatUbScalar) {
 
   std::string result;
   call.Generate(tpipe, current_axis, result);
-  EXPECT_EQ(result, std::string{
-    "LogicalOrScalarExtend(local_3[0], local_0[0], (float)local_1_ub_scalar, tmp_buf_0, local_0_actual_size);\n"
-  });
+  EXPECT_EQ(result, std::string{"LogicalOrScalarExtend(local_3[0], local_0[0], (float)local_1_ub_scalar, tmp_buf_0, "
+                                "local_0_actual_size);\n"});
 }
 
 TEST(CodegenKernel, BinaryTmpApicallLogicalOrWithUint8UbScalar) {
@@ -366,9 +363,8 @@ TEST(CodegenKernel, BinaryTmpApicallLogicalOrWithUint8UbScalar) {
 
   std::string result;
   call.Generate(tpipe, current_axis, result);
-  EXPECT_EQ(result, std::string{
-    "LogicalOrScalarExtend(local_3[0], local_0[0], (uint8_t)local_1_ub_scalar, tmp_buf_0, local_0_actual_size);\n"
-  });
+  EXPECT_EQ(result, std::string{"LogicalOrScalarExtend(local_3[0], local_0[0], (uint8_t)local_1_ub_scalar, tmp_buf_0, "
+                                "local_0_actual_size);\n"});
 }
 
 TEST(CodegenKernel, BinaryTmpApicallLogicalOrWhenBothAreTensor) {
@@ -475,9 +471,7 @@ TEST(CodegenKernel, BinaryTmpApicallLogicalOrWhenBothAreTensor) {
 
   std::string result;
   call.Generate(tpipe, current_axis, result);
-  EXPECT_EQ(result, std::string{
-    "LogicalOr(local_3[0], local_0[0], local_1[0], tmp_buf_0, local_0_actual_size);\n"
-  });
+  EXPECT_EQ(result, std::string{"LogicalOr(local_3[0], local_0[0], local_1[0], tmp_buf_0, local_0_actual_size);\n"});
 }
 
 TEST(CodegenKernel, BinaryTmpApicallBitwiseAnd) {
@@ -584,7 +578,5 @@ TEST(CodegenKernel, BinaryTmpApicallBitwiseAnd) {
 
   std::string result;
   call.Generate(tpipe, current_axis, result);
-  EXPECT_EQ(result, std::string{
-    "BitwiseAnd(local_3[0], local_0[0], local_1[0], tmp_buf_0, local_0_actual_size);\n"
-  });
+  EXPECT_EQ(result, std::string{"BitwiseAnd(local_3[0], local_0[0], local_1[0], tmp_buf_0, local_0_actual_size);\n"});
 }

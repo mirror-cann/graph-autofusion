@@ -1,15 +1,15 @@
 /**
-* Copyright (c) Huawei Technologies Co., Ltd. 2026. All rights reserved.
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Copyright (c) Huawei Technologies Co., Ltd. 2026. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 #include <cmath>
 #include <random>
@@ -52,9 +52,9 @@ class TestRegbaseApiShiftedChebyshevPolynomialUUT : public testing::Test {
     std::mt19937 eng(1);
 
     for (uint32_t i = 0; i < u_param.size; i++) {
-        std::uniform_real_distribution<float> distr(-5.0f, 5.0f);
-        u_param.x1[i] = static_cast<T>(distr(eng));
-        u_param.exp[i] = static_cast<T>(boost::math::chebyshev_u(N, (double)(2.0 * u_param.x1[i]) - 1.0));
+      std::uniform_real_distribution<float> distr(-5.0f, 5.0f);
+      u_param.x1[i] = static_cast<T>(distr(eng));
+      u_param.exp[i] = static_cast<T>(boost::math::chebyshev_u(N, (double)(2.0 * u_param.x1[i]) - 1.0));
     }
   }
 
@@ -67,8 +67,9 @@ class TestRegbaseApiShiftedChebyshevPolynomialUUT : public testing::Test {
       double rel_err = std::abs(y_val - exp_val) / std::max(std::abs(exp_val), 1.0);
       if (rel_err > 1e-2) {
         diff_count++;
-        printf("diff at index %d: x: %.20e, y: %.20e, expect: %.20e, rel_err: %f\n", i, static_cast<float>(u_param.x1[i]),
-               static_cast<float>(u_param.y[i]), static_cast<float>(u_param.exp[i]), static_cast<float>(rel_err));
+        printf("diff at index %d: x: %.20e, y: %.20e, expect: %.20e, rel_err: %f\n", i,
+               static_cast<float>(u_param.x1[i]), static_cast<float>(u_param.y[i]), static_cast<float>(u_param.exp[i]),
+               static_cast<float>(rel_err));
       }
     }
     return diff_count;
@@ -98,7 +99,10 @@ TEST_F(TestRegbaseApiShiftedChebyshevPolynomialUUT, ShiftedChebyshevPolynomialU_
   ShiftedChebyshevPolynomialUTensorTensorTest<float, 0>(MAX_REPEAT_NUM * ONE_REPEAT_BYTE_SIZE / 2 / sizeof(float));
   ShiftedChebyshevPolynomialUTensorTensorTest<float, 0>((ONE_BLK_SIZE - sizeof(float)) / sizeof(float));
   ShiftedChebyshevPolynomialUTensorTensorTest<float, 0>((ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) / sizeof(float));
-  ShiftedChebyshevPolynomialUTensorTensorTest<float, 0>(((MAX_REPEAT_NUM - 1) * ONE_REPEAT_BYTE_SIZE + (ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) + (ONE_BLK_SIZE - sizeof(float))) / 2 /sizeof(float));
+  ShiftedChebyshevPolynomialUTensorTensorTest<float, 0>(((MAX_REPEAT_NUM - 1) * ONE_REPEAT_BYTE_SIZE +
+                                                         (ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) +
+                                                         (ONE_BLK_SIZE - sizeof(float))) /
+                                                        2 / sizeof(float));
 }
 
 TEST_F(TestRegbaseApiShiftedChebyshevPolynomialUUT, ShiftedChebyshevPolynomialU_TensorTensor_Test_N1) {
@@ -107,7 +111,10 @@ TEST_F(TestRegbaseApiShiftedChebyshevPolynomialUUT, ShiftedChebyshevPolynomialU_
   ShiftedChebyshevPolynomialUTensorTensorTest<float, 0>(MAX_REPEAT_NUM * ONE_REPEAT_BYTE_SIZE / 2 / sizeof(float));
   ShiftedChebyshevPolynomialUTensorTensorTest<float, 0>((ONE_BLK_SIZE - sizeof(float)) / sizeof(float));
   ShiftedChebyshevPolynomialUTensorTensorTest<float, 0>((ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) / sizeof(float));
-  ShiftedChebyshevPolynomialUTensorTensorTest<float, 0>(((MAX_REPEAT_NUM - 1) * ONE_REPEAT_BYTE_SIZE + (ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) + (ONE_BLK_SIZE - sizeof(float))) / 2 /sizeof(float));
+  ShiftedChebyshevPolynomialUTensorTensorTest<float, 0>(((MAX_REPEAT_NUM - 1) * ONE_REPEAT_BYTE_SIZE +
+                                                         (ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) +
+                                                         (ONE_BLK_SIZE - sizeof(float))) /
+                                                        2 / sizeof(float));
 }
 
 TEST_F(TestRegbaseApiShiftedChebyshevPolynomialUUT, ShiftedChebyshevPolynomialU_TensorTensor_Test_N7) {
@@ -116,6 +123,9 @@ TEST_F(TestRegbaseApiShiftedChebyshevPolynomialUUT, ShiftedChebyshevPolynomialU_
   ShiftedChebyshevPolynomialUTensorTensorTest<float, 7>(MAX_REPEAT_NUM * ONE_REPEAT_BYTE_SIZE / 2 / sizeof(float));
   ShiftedChebyshevPolynomialUTensorTensorTest<float, 7>((ONE_BLK_SIZE - sizeof(float)) / sizeof(float));
   ShiftedChebyshevPolynomialUTensorTensorTest<float, 7>((ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) / sizeof(float));
-  ShiftedChebyshevPolynomialUTensorTensorTest<float, 7>(((MAX_REPEAT_NUM - 1) * ONE_REPEAT_BYTE_SIZE + (ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) + (ONE_BLK_SIZE - sizeof(float))) / 2 /sizeof(float));
+  ShiftedChebyshevPolynomialUTensorTensorTest<float, 7>(((MAX_REPEAT_NUM - 1) * ONE_REPEAT_BYTE_SIZE +
+                                                         (ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) +
+                                                         (ONE_BLK_SIZE - sizeof(float))) /
+                                                        2 / sizeof(float));
 }
-}
+}  // namespace ge

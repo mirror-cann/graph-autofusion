@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -99,10 +99,10 @@ TEST(CodegenKernel, NormalModeDataCopyIfDualSplitting) {
   auto s1 = af::Symbol(8);
   auto s2 = af::Symbol(4);
   auto s3 = af::Symbol(2);
-  auto z0 = graph.CreateAxis("z0", af::Axis::kAxisTypeTileInner, s0,  {}, -1);
-  auto z1 = graph.CreateAxis("z1", af::Axis::kAxisTypeTileInner, s1,  {}, -1);
-  auto z2 = graph.CreateAxis("z2", af::Axis::kAxisTypeTileInner, s2,  {}, -1);
-  auto z3 = graph.CreateAxis("z3", af::Axis::kAxisTypeTileInner, s3,  {}, -1);
+  auto z0 = graph.CreateAxis("z0", af::Axis::kAxisTypeTileInner, s0, {}, -1);
+  auto z1 = graph.CreateAxis("z1", af::Axis::kAxisTypeTileInner, s1, {}, -1);
+  auto z2 = graph.CreateAxis("z2", af::Axis::kAxisTypeTileInner, s2, {}, -1);
+  auto z3 = graph.CreateAxis("z3", af::Axis::kAxisTypeTileInner, s3, {}, -1);
 
   Data x_op("x", graph);
   Load load_op("load");

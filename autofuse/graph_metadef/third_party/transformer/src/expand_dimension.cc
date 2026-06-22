@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -23,143 +23,121 @@
 
 namespace transformer {
 namespace {
-  const std::string RESHAPE_TYPE_FORBIDDEN = "FORBIDDEN";
-  const uint32_t kBitsOfByte = 8;
-  const uint32_t kBitSetDisplaySize = 8;
-  const uint32_t kMaxReshapeTypeSize = 56;
+const std::string RESHAPE_TYPE_FORBIDDEN = "FORBIDDEN";
+const uint32_t kBitsOfByte = 8;
+const uint32_t kBitSetDisplaySize = 8;
+const uint32_t kMaxReshapeTypeSize = 56;
 
-  const std::set<af::Format> kSupportedTransFormat = {af::FORMAT_ND, af::FORMAT_FRACTAL_NZ, af::FORMAT_FRACTAL_NZ_C0_2,
-                                                      af::FORMAT_FRACTAL_NZ_C0_4, af::FORMAT_FRACTAL_NZ_C0_8,
-                                                      af::FORMAT_FRACTAL_NZ_C0_16, af::FORMAT_FRACTAL_NZ_C0_32,
-                                                      af::FORMAT_ND_RNN_BIAS, af::FORMAT_FRACTAL_ZN_RNN};
+const std::set<af::Format> kSupportedTransFormat = {af::FORMAT_ND,
+                                                    af::FORMAT_FRACTAL_NZ,
+                                                    af::FORMAT_FRACTAL_NZ_C0_2,
+                                                    af::FORMAT_FRACTAL_NZ_C0_4,
+                                                    af::FORMAT_FRACTAL_NZ_C0_8,
+                                                    af::FORMAT_FRACTAL_NZ_C0_16,
+                                                    af::FORMAT_FRACTAL_NZ_C0_32,
+                                                    af::FORMAT_ND_RNN_BIAS,
+                                                    af::FORMAT_FRACTAL_ZN_RNN};
 
-  const std::map<af::Format, size_t> FULL_SIZE_OF_FORMAT {
-          {af::FORMAT_NCHW,  DIM_SIZE_FOUR},
-          {af::FORMAT_NHWC,  DIM_SIZE_FOUR},
-          {af::FORMAT_HWCN,  DIM_SIZE_FOUR},
-          {af::FORMAT_CHWN,  DIM_SIZE_FOUR},
-          {af::FORMAT_NDHWC, DIM_SIZE_FIVE},
-          {af::FORMAT_NCDHW, DIM_SIZE_FIVE},
-          {af::FORMAT_DHWCN, DIM_SIZE_FIVE},
-          {af::FORMAT_DHWNC, DIM_SIZE_FIVE},
-          {af::FORMAT_ND,    DIM_SIZE_FOUR}
-  };
+const std::map<af::Format, size_t> FULL_SIZE_OF_FORMAT{
+    {af::FORMAT_NCHW, DIM_SIZE_FOUR},  {af::FORMAT_NHWC, DIM_SIZE_FOUR},  {af::FORMAT_HWCN, DIM_SIZE_FOUR},
+    {af::FORMAT_CHWN, DIM_SIZE_FOUR},  {af::FORMAT_NDHWC, DIM_SIZE_FIVE}, {af::FORMAT_NCDHW, DIM_SIZE_FIVE},
+    {af::FORMAT_DHWCN, DIM_SIZE_FIVE}, {af::FORMAT_DHWNC, DIM_SIZE_FIVE}, {af::FORMAT_ND, DIM_SIZE_FOUR}};
 
-  inline uint32_t GenerateFormatKey(af::Format format) {
-    return ((static_cast<uint32_t>(format) & 0xff) << kBitsOfByte);
-  }
+inline uint32_t GenerateFormatKey(af::Format format) {
+  return ((static_cast<uint32_t>(format) & 0xff) << kBitsOfByte);
+}
 
-  inline uint32_t GenerateReshapeTypeKey(af::Format format, size_t size) {
-    return ((static_cast<uint32_t>(format) & 0xff) << kBitsOfByte) | (static_cast<uint32_t>(size) & 0xff);
-  }
+inline uint32_t GenerateReshapeTypeKey(af::Format format, size_t size) {
+  return ((static_cast<uint32_t>(format) & 0xff) << kBitsOfByte) | (static_cast<uint32_t>(size) & 0xff);
+}
 
-  inline uint32_t GenerateAxisIndexKey(af::Format format, char ch) {
-    return ((static_cast<uint32_t>(format) & 0xff) << kBitsOfByte) | (static_cast<uint32_t>(ch) & 0xff);
-  }
+inline uint32_t GenerateAxisIndexKey(af::Format format, char ch) {
+  return ((static_cast<uint32_t>(format) & 0xff) << kBitsOfByte) | (static_cast<uint32_t>(ch) & 0xff);
+}
 
-  const std::unordered_map<uint32_t, std::string> DEFAULT_RESHAPE_TYPE {
-          {GenerateReshapeTypeKey(af::FORMAT_NCHW, 0), ""},
-          {GenerateReshapeTypeKey(af::FORMAT_NHWC, 0), ""},
-          {GenerateReshapeTypeKey(af::FORMAT_HWCN, 0), ""},
-          {GenerateReshapeTypeKey(af::FORMAT_CHWN, 0), ""},
-          {GenerateReshapeTypeKey(af::FORMAT_NDHWC, 0), ""},
-          {GenerateReshapeTypeKey(af::FORMAT_NCDHW, 0), ""},
-          {GenerateReshapeTypeKey(af::FORMAT_DHWCN, 0), ""},
-          {GenerateReshapeTypeKey(af::FORMAT_DHWNC, 0), ""},
+const std::unordered_map<uint32_t, std::string> DEFAULT_RESHAPE_TYPE{
+    {GenerateReshapeTypeKey(af::FORMAT_NCHW, 0), ""},      {GenerateReshapeTypeKey(af::FORMAT_NHWC, 0), ""},
+    {GenerateReshapeTypeKey(af::FORMAT_HWCN, 0), ""},      {GenerateReshapeTypeKey(af::FORMAT_CHWN, 0), ""},
+    {GenerateReshapeTypeKey(af::FORMAT_NDHWC, 0), ""},     {GenerateReshapeTypeKey(af::FORMAT_NCDHW, 0), ""},
+    {GenerateReshapeTypeKey(af::FORMAT_DHWCN, 0), ""},     {GenerateReshapeTypeKey(af::FORMAT_DHWNC, 0), ""},
 
-          {GenerateReshapeTypeKey(af::FORMAT_NCHW, 1), "C"},
-          {GenerateReshapeTypeKey(af::FORMAT_NHWC, 1), "C"},
-          {GenerateReshapeTypeKey(af::FORMAT_HWCN, 1), "C"},
-          {GenerateReshapeTypeKey(af::FORMAT_CHWN, 1), "C"},
-          {GenerateReshapeTypeKey(af::FORMAT_NDHWC, 1), "C"},
-          {GenerateReshapeTypeKey(af::FORMAT_NCDHW, 1), "C"},
-          {GenerateReshapeTypeKey(af::FORMAT_DHWCN, 1), "C"},
-          {GenerateReshapeTypeKey(af::FORMAT_DHWNC, 1), "C"},
+    {GenerateReshapeTypeKey(af::FORMAT_NCHW, 1), "C"},     {GenerateReshapeTypeKey(af::FORMAT_NHWC, 1), "C"},
+    {GenerateReshapeTypeKey(af::FORMAT_HWCN, 1), "C"},     {GenerateReshapeTypeKey(af::FORMAT_CHWN, 1), "C"},
+    {GenerateReshapeTypeKey(af::FORMAT_NDHWC, 1), "C"},    {GenerateReshapeTypeKey(af::FORMAT_NCDHW, 1), "C"},
+    {GenerateReshapeTypeKey(af::FORMAT_DHWCN, 1), "C"},    {GenerateReshapeTypeKey(af::FORMAT_DHWNC, 1), "C"},
 
-          {GenerateReshapeTypeKey(af::FORMAT_NCHW, 2), "CH"},
-          {GenerateReshapeTypeKey(af::FORMAT_NHWC, 2), "HW"},
-          {GenerateReshapeTypeKey(af::FORMAT_HWCN, 2), "CN"},
-          {GenerateReshapeTypeKey(af::FORMAT_CHWN, 2), "WN"},
-          {GenerateReshapeTypeKey(af::FORMAT_NDHWC, 2), "WC"},
-          {GenerateReshapeTypeKey(af::FORMAT_NCDHW, 2), "HW"},
-          {GenerateReshapeTypeKey(af::FORMAT_DHWCN, 2), "CN"},
-          {GenerateReshapeTypeKey(af::FORMAT_DHWNC, 2), "NC"},
+    {GenerateReshapeTypeKey(af::FORMAT_NCHW, 2), "CH"},    {GenerateReshapeTypeKey(af::FORMAT_NHWC, 2), "HW"},
+    {GenerateReshapeTypeKey(af::FORMAT_HWCN, 2), "CN"},    {GenerateReshapeTypeKey(af::FORMAT_CHWN, 2), "WN"},
+    {GenerateReshapeTypeKey(af::FORMAT_NDHWC, 2), "WC"},   {GenerateReshapeTypeKey(af::FORMAT_NCDHW, 2), "HW"},
+    {GenerateReshapeTypeKey(af::FORMAT_DHWCN, 2), "CN"},   {GenerateReshapeTypeKey(af::FORMAT_DHWNC, 2), "NC"},
 
-          {GenerateReshapeTypeKey(af::FORMAT_NCHW, 3), "CHW"},
-          {GenerateReshapeTypeKey(af::FORMAT_NHWC, 3), "HWC"},
-          {GenerateReshapeTypeKey(af::FORMAT_HWCN, 3), "WCN"},
-          {GenerateReshapeTypeKey(af::FORMAT_CHWN, 3), "HWN"},
-          {GenerateReshapeTypeKey(af::FORMAT_NDHWC, 3), "HWC"},
-          {GenerateReshapeTypeKey(af::FORMAT_NCDHW, 3), "DHW"},
-          {GenerateReshapeTypeKey(af::FORMAT_DHWCN, 3), "WCN"},
-          {GenerateReshapeTypeKey(af::FORMAT_DHWNC, 3), "WNC"},
+    {GenerateReshapeTypeKey(af::FORMAT_NCHW, 3), "CHW"},   {GenerateReshapeTypeKey(af::FORMAT_NHWC, 3), "HWC"},
+    {GenerateReshapeTypeKey(af::FORMAT_HWCN, 3), "WCN"},   {GenerateReshapeTypeKey(af::FORMAT_CHWN, 3), "HWN"},
+    {GenerateReshapeTypeKey(af::FORMAT_NDHWC, 3), "HWC"},  {GenerateReshapeTypeKey(af::FORMAT_NCDHW, 3), "DHW"},
+    {GenerateReshapeTypeKey(af::FORMAT_DHWCN, 3), "WCN"},  {GenerateReshapeTypeKey(af::FORMAT_DHWNC, 3), "WNC"},
 
-          {GenerateReshapeTypeKey(af::FORMAT_NDHWC, 4), "DHWC"},
-          {GenerateReshapeTypeKey(af::FORMAT_NCDHW, 4), "CDHW"},
-          {GenerateReshapeTypeKey(af::FORMAT_DHWCN, 4), "HWCN"},
-          {GenerateReshapeTypeKey(af::FORMAT_DHWNC, 4), "HWNC"}
-  };
+    {GenerateReshapeTypeKey(af::FORMAT_NDHWC, 4), "DHWC"}, {GenerateReshapeTypeKey(af::FORMAT_NCDHW, 4), "CDHW"},
+    {GenerateReshapeTypeKey(af::FORMAT_DHWCN, 4), "HWCN"}, {GenerateReshapeTypeKey(af::FORMAT_DHWNC, 4), "HWNC"}};
 
-  const std::unordered_map<uint32_t, int32_t> AXIS_INDEX_OF_FORMAT {
-          {GenerateAxisIndexKey(af::FORMAT_NCHW, 'N'), AXIS_NCHW_DIM_N},
-          {GenerateAxisIndexKey(af::FORMAT_NCHW, 'C'), AXIS_NCHW_DIM_C},
-          {GenerateAxisIndexKey(af::FORMAT_NCHW, 'H'), AXIS_NCHW_DIM_H},
-          {GenerateAxisIndexKey(af::FORMAT_NCHW, 'W'), AXIS_NCHW_DIM_W},
+const std::unordered_map<uint32_t, int32_t> AXIS_INDEX_OF_FORMAT{
+    {GenerateAxisIndexKey(af::FORMAT_NCHW, 'N'), AXIS_NCHW_DIM_N},
+    {GenerateAxisIndexKey(af::FORMAT_NCHW, 'C'), AXIS_NCHW_DIM_C},
+    {GenerateAxisIndexKey(af::FORMAT_NCHW, 'H'), AXIS_NCHW_DIM_H},
+    {GenerateAxisIndexKey(af::FORMAT_NCHW, 'W'), AXIS_NCHW_DIM_W},
 
-          {GenerateAxisIndexKey(af::FORMAT_HWCN, 'N'), AXIS_HWCN_DIM_N},
-          {GenerateAxisIndexKey(af::FORMAT_HWCN, 'C'), AXIS_HWCN_DIM_C},
-          {GenerateAxisIndexKey(af::FORMAT_HWCN, 'H'), AXIS_HWCN_DIM_H},
-          {GenerateAxisIndexKey(af::FORMAT_HWCN, 'W'), AXIS_HWCN_DIM_W},
+    {GenerateAxisIndexKey(af::FORMAT_HWCN, 'N'), AXIS_HWCN_DIM_N},
+    {GenerateAxisIndexKey(af::FORMAT_HWCN, 'C'), AXIS_HWCN_DIM_C},
+    {GenerateAxisIndexKey(af::FORMAT_HWCN, 'H'), AXIS_HWCN_DIM_H},
+    {GenerateAxisIndexKey(af::FORMAT_HWCN, 'W'), AXIS_HWCN_DIM_W},
 
-          {GenerateAxisIndexKey(af::FORMAT_NHWC, 'N'), AXIS_NHWC_DIM_N},
-          {GenerateAxisIndexKey(af::FORMAT_NHWC, 'C'), AXIS_NHWC_DIM_C},
-          {GenerateAxisIndexKey(af::FORMAT_NHWC, 'H'), AXIS_NHWC_DIM_H},
-          {GenerateAxisIndexKey(af::FORMAT_NHWC, 'W'), AXIS_NHWC_DIM_W},
+    {GenerateAxisIndexKey(af::FORMAT_NHWC, 'N'), AXIS_NHWC_DIM_N},
+    {GenerateAxisIndexKey(af::FORMAT_NHWC, 'C'), AXIS_NHWC_DIM_C},
+    {GenerateAxisIndexKey(af::FORMAT_NHWC, 'H'), AXIS_NHWC_DIM_H},
+    {GenerateAxisIndexKey(af::FORMAT_NHWC, 'W'), AXIS_NHWC_DIM_W},
 
-          {GenerateAxisIndexKey(af::FORMAT_CHWN, 'N'), AXIS_CHWN_DIM_N},
-          {GenerateAxisIndexKey(af::FORMAT_CHWN, 'C'), AXIS_CHWN_DIM_C},
-          {GenerateAxisIndexKey(af::FORMAT_CHWN, 'H'), AXIS_CHWN_DIM_H},
-          {GenerateAxisIndexKey(af::FORMAT_CHWN, 'W'), AXIS_CHWN_DIM_W},
+    {GenerateAxisIndexKey(af::FORMAT_CHWN, 'N'), AXIS_CHWN_DIM_N},
+    {GenerateAxisIndexKey(af::FORMAT_CHWN, 'C'), AXIS_CHWN_DIM_C},
+    {GenerateAxisIndexKey(af::FORMAT_CHWN, 'H'), AXIS_CHWN_DIM_H},
+    {GenerateAxisIndexKey(af::FORMAT_CHWN, 'W'), AXIS_CHWN_DIM_W},
 
-          {GenerateAxisIndexKey(af::FORMAT_NDHWC, 'N'), NDHWC_DIM_N},
-          {GenerateAxisIndexKey(af::FORMAT_NDHWC, 'C'), NDHWC_DIM_C},
-          {GenerateAxisIndexKey(af::FORMAT_NDHWC, 'H'), NDHWC_DIM_H},
-          {GenerateAxisIndexKey(af::FORMAT_NDHWC, 'W'), NDHWC_DIM_W},
-          {GenerateAxisIndexKey(af::FORMAT_NDHWC, 'D'), NDHWC_DIM_D},
+    {GenerateAxisIndexKey(af::FORMAT_NDHWC, 'N'), NDHWC_DIM_N},
+    {GenerateAxisIndexKey(af::FORMAT_NDHWC, 'C'), NDHWC_DIM_C},
+    {GenerateAxisIndexKey(af::FORMAT_NDHWC, 'H'), NDHWC_DIM_H},
+    {GenerateAxisIndexKey(af::FORMAT_NDHWC, 'W'), NDHWC_DIM_W},
+    {GenerateAxisIndexKey(af::FORMAT_NDHWC, 'D'), NDHWC_DIM_D},
 
-          {GenerateAxisIndexKey(af::FORMAT_NCDHW, 'N'), NCDHW_DIM_N},
-          {GenerateAxisIndexKey(af::FORMAT_NCDHW, 'C'), NCDHW_DIM_C},
-          {GenerateAxisIndexKey(af::FORMAT_NCDHW, 'H'), NCDHW_DIM_H},
-          {GenerateAxisIndexKey(af::FORMAT_NCDHW, 'W'), NCDHW_DIM_W},
-          {GenerateAxisIndexKey(af::FORMAT_NCDHW, 'D'), NCDHW_DIM_D},
+    {GenerateAxisIndexKey(af::FORMAT_NCDHW, 'N'), NCDHW_DIM_N},
+    {GenerateAxisIndexKey(af::FORMAT_NCDHW, 'C'), NCDHW_DIM_C},
+    {GenerateAxisIndexKey(af::FORMAT_NCDHW, 'H'), NCDHW_DIM_H},
+    {GenerateAxisIndexKey(af::FORMAT_NCDHW, 'W'), NCDHW_DIM_W},
+    {GenerateAxisIndexKey(af::FORMAT_NCDHW, 'D'), NCDHW_DIM_D},
 
-          {GenerateAxisIndexKey(af::FORMAT_DHWCN, 'N'), DHWCN_DIM_N},
-          {GenerateAxisIndexKey(af::FORMAT_DHWCN, 'C'), DHWCN_DIM_C},
-          {GenerateAxisIndexKey(af::FORMAT_DHWCN, 'H'), DHWCN_DIM_H},
-          {GenerateAxisIndexKey(af::FORMAT_DHWCN, 'W'), DHWCN_DIM_W},
-          {GenerateAxisIndexKey(af::FORMAT_DHWCN, 'D'), DHWCN_DIM_D},
+    {GenerateAxisIndexKey(af::FORMAT_DHWCN, 'N'), DHWCN_DIM_N},
+    {GenerateAxisIndexKey(af::FORMAT_DHWCN, 'C'), DHWCN_DIM_C},
+    {GenerateAxisIndexKey(af::FORMAT_DHWCN, 'H'), DHWCN_DIM_H},
+    {GenerateAxisIndexKey(af::FORMAT_DHWCN, 'W'), DHWCN_DIM_W},
+    {GenerateAxisIndexKey(af::FORMAT_DHWCN, 'D'), DHWCN_DIM_D},
 
-          {GenerateAxisIndexKey(af::FORMAT_DHWNC, 'N'), DHWNC_DIM_N},
-          {GenerateAxisIndexKey(af::FORMAT_DHWNC, 'C'), DHWNC_DIM_C},
-          {GenerateAxisIndexKey(af::FORMAT_DHWNC, 'H'), DHWNC_DIM_H},
-          {GenerateAxisIndexKey(af::FORMAT_DHWNC, 'W'), DHWNC_DIM_W},
-          {GenerateAxisIndexKey(af::FORMAT_DHWNC, 'D'), DHWNC_DIM_D}
-  };
+    {GenerateAxisIndexKey(af::FORMAT_DHWNC, 'N'), DHWNC_DIM_N},
+    {GenerateAxisIndexKey(af::FORMAT_DHWNC, 'C'), DHWNC_DIM_C},
+    {GenerateAxisIndexKey(af::FORMAT_DHWNC, 'H'), DHWNC_DIM_H},
+    {GenerateAxisIndexKey(af::FORMAT_DHWNC, 'W'), DHWNC_DIM_W},
+    {GenerateAxisIndexKey(af::FORMAT_DHWNC, 'D'), DHWNC_DIM_D}};
 
-  void GeShapeToRtShape(const af::GeShape &ge_shape, gert::Shape &rt_shape) {
-    rt_shape.SetDimNum(0);
-    for (size_t i = 0; i < ge_shape.GetDimNum(); ++i) {
-      rt_shape.AppendDim(ge_shape.GetDim(i));
-    }
-  }
-
-  void RtShapeToGeShape(const gert::Shape &rt_shape, af::GeShape &ge_shape) {
-    ge_shape.SetDimNum(0);
-    for (size_t i = 0; i < rt_shape.GetDimNum(); ++i) {
-      ge_shape.AppendDim(rt_shape.GetDim(i));
-    }
+void GeShapeToRtShape(const af::GeShape &ge_shape, gert::Shape &rt_shape) {
+  rt_shape.SetDimNum(0);
+  for (size_t i = 0; i < ge_shape.GetDimNum(); ++i) {
+    rt_shape.AppendDim(ge_shape.GetDim(i));
   }
 }
+
+void RtShapeToGeShape(const gert::Shape &rt_shape, af::GeShape &ge_shape) {
+  ge_shape.SetDimNum(0);
+  for (size_t i = 0; i < rt_shape.GetDimNum(); ++i) {
+    ge_shape.AppendDim(rt_shape.GetDim(i));
+  }
+}
+}  // namespace
 
 bool GetDefaultReshapeType(const af::Format &original_format, const size_t &old_dims_size, std::string &reshape_type) {
   int32_t default_key = GenerateReshapeTypeKey(original_format, old_dims_size);
@@ -219,8 +197,8 @@ bool IsReshapeTypeValid(const af::Format &original_format, const size_t &old_dim
   return true;
 }
 
-void ExpandByReshapeType(af::GeShape &shape, const af::Format &original_format,
-                         const size_t &old_dims_size, const size_t &full_size, const std::string &reshape_type) {
+void ExpandByReshapeType(af::GeShape &shape, const af::Format &original_format, const size_t &old_dims_size,
+                         const size_t &full_size, const std::string &reshape_type) {
   GELOGD("Expand tensor through reshape of type %s.", reshape_type.c_str());
   /* Build a array with all 1 of full size. Then we will substitute some of the 1 with the original axis value. */
   for (size_t i = old_dims_size; i < full_size; i++) {
@@ -269,8 +247,8 @@ bool ExpandDimension(const std::string &op_type, const af::Format &original_form
    * the length of reshape type. If the dimension of original shape if larger,
    * we cannot find suitable posotion for all axis in original shape and we just return. */
   if (old_dims_size > valid_reshape_type.length()) {
-    GELOGW("Dimension %zu of tensor %u in %s exceeds the length of the reshape type, which is %zu.",
-           old_dims_size, tensor_index, op_type.c_str(), valid_reshape_type.length());
+    GELOGW("Dimension %zu of tensor %u in %s exceeds the length of the reshape type, which is %zu.", old_dims_size,
+           tensor_index, op_type.c_str(), valid_reshape_type.length());
     return true;
   }
 
@@ -279,9 +257,9 @@ bool ExpandDimension(const std::string &op_type, const af::Format &original_form
   return true;
 }
 
-bool ExpandRangeDimension(const std::string &op_type, const af::Format &original_format,
-    const af::Format &final_format, const uint32_t &tensor_index, const std::string &reshape_type,
-    std::vector<std::pair<int64_t, int64_t>> &ranges) {
+bool ExpandRangeDimension(const std::string &op_type, const af::Format &original_format, const af::Format &final_format,
+                          const uint32_t &tensor_index, const std::string &reshape_type,
+                          std::vector<std::pair<int64_t, int64_t>> &ranges) {
   std::vector<int64_t> range_upper;
   std::vector<int64_t> range_low;
   for (auto &i : ranges) {
@@ -293,7 +271,7 @@ bool ExpandRangeDimension(const std::string &op_type, const af::Format &original
   af::GeShape shape_upper(range_upper);
   auto primary_format = static_cast<af::Format>(ge::GetPrimaryFormat(final_format));
   bool res = ExpandDimension(op_type, original_format, primary_format, tensor_index, reshape_type, shape_low) &&
-      ExpandDimension(op_type, original_format, primary_format, tensor_index, reshape_type, shape_upper);
+             ExpandDimension(op_type, original_format, primary_format, tensor_index, reshape_type, shape_upper);
   if (!res || (shape_low.GetDimNum() != shape_upper.GetDimNum())) {
     return false;
   }
@@ -326,8 +304,8 @@ int64_t ExpandDimension::GenerateReshapeType(const af::Format &origin_format, co
     if (!GetDefaultReshapeType(origin_format, origin_dim_size, valid_shape_type)) {
       return ret_reshape_type;
     }
-    GELOGD("Invalid reshape type [%s], using default reshape type [%s]",
-           reshape_type.c_str(), valid_shape_type.c_str());
+    GELOGD("Invalid reshape type [%s], using default reshape type [%s]", reshape_type.c_str(),
+           valid_shape_type.c_str());
   }
 
   if (origin_dim_size > valid_shape_type.length()) {
@@ -353,9 +331,11 @@ int64_t ExpandDimension::GenerateReshapeType(const af::Format &origin_format, co
   }
 
   ret_reshape_type = ret_reshape_type | (static_cast<uint64_t>(full_size) << kMaxReshapeTypeSize);
-  GELOGD("Integer reshape type [%s] has been generated for the original format [%d], with dim size [%zu] and reshape type [%s].",
-         std::bitset<kBitSetDisplaySize>(ret_reshape_type).to_string().c_str(), origin_format, origin_dim_size,
-         valid_shape_type.c_str());
+  GELOGD(
+      "Integer reshape type [%s] has been generated for the original format [%d], with dim size [%zu] and reshape type "
+      "[%s].",
+      std::bitset<kBitSetDisplaySize>(ret_reshape_type).to_string().c_str(), origin_format, origin_dim_size,
+      valid_shape_type.c_str());
   return ret_reshape_type;
 }
 
@@ -378,12 +358,13 @@ bool ExpandDimension::GenerateReshapeType(const af::Format &origin_format, const
     if (!GetDefaultReshapeType(origin_format, origin_dim_size, valid_shape_type)) {
       return true;
     }
-    GELOGD("Invalid reshape type [%s], using default reshape type [%s]",
-           reshape_type.c_str(), valid_shape_type.c_str());
+    GELOGD("Invalid reshape type [%s], using default reshape type [%s]", reshape_type.c_str(),
+           valid_shape_type.c_str());
   }
 
   if (origin_dim_size > valid_shape_type.length()) {
-    GELOGE(af::GRAPH_FAILED, "The length of reshape type[%s] is longer than dim size[%zu]. Can not generate integer reshape type.",
+    GELOGE(af::GRAPH_FAILED,
+           "The length of reshape type[%s] is longer than dim size[%zu]. Can not generate integer reshape type.",
            valid_shape_type.c_str(), origin_dim_size);
     return false;
   }
@@ -405,9 +386,11 @@ bool ExpandDimension::GenerateReshapeType(const af::Format &origin_format, const
   }
 
   reshape_type_mask = reshape_type_mask | (static_cast<uint64_t>(full_size) << kMaxReshapeTypeSize);
-  GELOGD("Integer reshape type [%s] has been generated for the original format [%d], with dim size [%zu] and reshape type [%s].",
-         std::bitset<kBitSetDisplaySize>(reshape_type_mask).to_string().c_str(), origin_format, origin_dim_size,
-         valid_shape_type.c_str());
+  GELOGD(
+      "Integer reshape type [%s] has been generated for the original format [%d], with dim size [%zu] and reshape type "
+      "[%s].",
+      std::bitset<kBitSetDisplaySize>(reshape_type_mask).to_string().c_str(), origin_format, origin_dim_size,
+      valid_shape_type.c_str());
   return true;
 }
 
@@ -573,8 +556,8 @@ int32_t ExpandDimension::GetAxisIndexByName(char ch, const af::Format &format) {
   }
   return iter->second;
 }
-int64_t ExpandDimension::GetReshapeAxicValue(const int64_t &reshape_type_mask,
-                                             const af::GeShape &shape, int32_t axis_index) {
+int64_t ExpandDimension::GetReshapeAxicValue(const int64_t &reshape_type_mask, const af::GeShape &shape,
+                                             int32_t axis_index) {
   GELOGD("axis_index = %d.", axis_index);
   if (axis_index == -1) {
     return -1;
@@ -585,9 +568,9 @@ int64_t ExpandDimension::GetReshapeAxicValue(const int64_t &reshape_type_mask,
   }
   return shape.GetDim(static_cast<size_t>(axis_index));
 }
-int64_t ExpandDimension::GetReshapeAxicValueByName(const int64_t &reshape_type_mask, char ch,
-                                                   const af::GeShape &shape, const af::Format &format) {
+int64_t ExpandDimension::GetReshapeAxicValueByName(const int64_t &reshape_type_mask, char ch, const af::GeShape &shape,
+                                                   const af::Format &format) {
   auto idx = GetAxisIndexByName(ch, format);
   return GetReshapeAxicValue(reshape_type_mask, shape, idx);
 }
-} // namespace transformer
+}  // namespace transformer

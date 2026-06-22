@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -28,11 +28,12 @@ namespace ascir {
 namespace cg {
 class CodeGenUtils;
 }
-}
+}  // namespace ascir
 class AscGraphImpl {
   friend class AscGraph;
   friend class AscGraphUtils;
   friend class ascir::cg::CodeGenUtils;
+
  public:
   explicit AscGraphImpl(const char *name);
 
@@ -50,8 +51,8 @@ class AscGraphImpl {
 
   Expression CreateSizeVar(const int64_t value);
 
-  AxisPtr CreateAxis(const std::string &name, Axis::Type type, const Expression &size,
-                     const std::vector<int64_t> &from, const int64_t split_peer = 0UL);
+  AxisPtr CreateAxis(const std::string &name, Axis::Type type, const Expression &size, const std::vector<int64_t> &from,
+                     const int64_t split_peer = 0UL);
 
   graphStatus CreateSizeVar(const Expression &expression);
 
@@ -71,14 +72,12 @@ class AscGraphImpl {
 
   bool ApplyMerge(const AscNodePtr &node, const int64_t merged_axis_id);
 
-  static bool ApplyTensorAxisMerge(const AscNodePtr &node,
-                                   const int64_t merged_axis_id,
+  static bool ApplyTensorAxisMerge(const AscNodePtr &node, const int64_t merged_axis_id,
                                    const std::vector<int64_t> &original);
 
   bool ApplyTensorAxisMerge(const AscNodePtr &node, const int64_t merged_axis_id);
 
-  static bool ApplySchedAxisMerge(const AscNodePtr &node,
-                                  const int64_t merged_axis_id,
+  static bool ApplySchedAxisMerge(const AscNodePtr &node, const int64_t merged_axis_id,
                                   const std::vector<int64_t> &original);
 
   bool ApplySchedAxisMerge(const AscNodePtr &node, const int64_t merged_axis_id);
@@ -105,14 +104,10 @@ class AscGraphImpl {
 
   std::string GetName() const;
 
-  AscOpOutput CreateContiguousData(const char *name,
-                                   const ge::DataType &dt,
-                                   const std::vector<Axis> &axes,
+  AscOpOutput CreateContiguousData(const char *name, const ge::DataType &dt, const std::vector<Axis> &axes,
                                    const ge::Format &format);
 
-  AscOpOutput CreateContiguousOut(const char *name,
-                                  const ge::DataType &dt,
-                                  const std::vector<Axis> &axes,
+  AscOpOutput CreateContiguousOut(const char *name, const ge::DataType &dt, const std::vector<Axis> &axes,
                                   const ge::Format &format);
 
   void SortByExecOrder();
@@ -120,6 +115,7 @@ class AscGraphImpl {
   const ComputeGraphPtr GetComputeGraph() const;
 
   static bool CopyFrom(const AscGraph &src_graph, AscGraph &dst_graph);
+
  private:
   std::pair<AxisPtr, AxisPtr> DoSplit(const int64_t axis_id, const std::string &outer_axis_name,
                                       const std::string &inner_axis_name, const bool is_tile_split);
@@ -154,15 +150,15 @@ class AscGraphImpl {
 
   AscGraphAttr *GetOrCreateGraphAttrsGroup();
   AscGraphAttr *GetGraphAttrsGroup() const;
-  static bool CheckContinuous(const AscNodePtr &node,
-                              const uint32_t tensor_index,
+  static bool CheckContinuous(const AscNodePtr &node, const uint32_t tensor_index,
                               const std::vector<int64_t> &original);
   Status AddSubGraph(const ComputeGraphPtr &sub_graph) const;
   Status FindSubGraph(const std::string &name, std::shared_ptr<AscGraphImpl> &graph_impl) const;
+
  private:
   ComputeGraphPtr compute_graph_;
 };
 using AscGraphImplPtr = std::shared_ptr<AscGraphImpl>;
-}  // namespace ge
+}  // namespace af
 
 #endif  // GRAPH_ASCENDC_IR_IMPL_H

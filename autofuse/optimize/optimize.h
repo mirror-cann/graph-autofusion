@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -17,9 +17,9 @@
 
 namespace optimize {
 enum class GraphType {
-  kAscGraph = 0,      // ge
-  kFusedAscBackend,   // inductor
-  kFusedAscGraph,     // concat
+  kAscGraph = 0,     // ge
+  kFusedAscBackend,  // inductor
+  kFusedAscGraph,    // concat
   kInvalidGraph,
 };
 struct OptimizerOptions {
@@ -27,10 +27,10 @@ struct OptimizerOptions {
 };
 
 enum class ReduceTemplateType : int32_t {
-  kDefault = -1,   // 非reduce
-  kCommon,         // 通用模板
-  kAllLoad,        // 全载模板
-  kRCore,          // R轴切多核模板
+  kDefault = -1,  // 非reduce
+  kCommon,        // 通用模板
+  kAllLoad,       // 全载模板
+  kRCore,         // R轴切多核模板
 };
 
 struct ScheduleTask {
@@ -92,7 +92,7 @@ class Optimizer {
   // 一些算子再内存是连续的，但是合轴时需要当成非连续去处理
   static Status GetNonContinuousAxisPairBySpecialRule(::ascir::ImplGraph &impl_graph,
                                                       std::set<std::pair<int64_t, int64_t>> &non_continuous_pair);
-  static bool IsReduceFirstStage(size_t index, ScheduleTask &schedule_task) ;
+  static bool IsReduceFirstStage(size_t index, ScheduleTask &schedule_task);
   void RefreshGroupRelation(size_t index, std::map<std::string, af::Expression> &var_relations,
                             ScheduleTask &schedule_task, ::ascir::ScheduledResult &schedule_result) const;
   static Status InitializeScheduledResults(std::vector<::ascir::ScheduledResult> &scheduled_results_cur,

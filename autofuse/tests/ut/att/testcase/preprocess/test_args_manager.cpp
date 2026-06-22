@@ -27,7 +27,9 @@ using namespace att;
 using namespace testing;
 
 namespace {
-SymVarInfoPtr MakeSymVar(const Expr &expr) { return std::make_shared<SymVarInfo>(expr); }
+SymVarInfoPtr MakeSymVar(const Expr &expr) {
+  return std::make_shared<SymVarInfo>(expr);
+}
 
 AttAxisPtr MakeAxis(const std::string &name, AxisPosition pos, bool bind_mc, bool is_last, bool is_innerest,
                     const SymVarInfoPtr &size, const std::vector<AttAxis *> &from = {}) {

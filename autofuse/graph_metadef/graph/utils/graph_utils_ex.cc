@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -47,9 +47,10 @@ graphStatus GraphUtilsEx::InferShapeInNeed(const ComputeGraphPtr &graph) {
 
       const graphStatus status = NodeUtilsEx::InferShapeAndType(node_ptr);
       if ((!OpTypeUtils::IsDataNode(node_ptr->GetType())) && (status == GRAPH_PARAM_INVALID)) {
-        GELOGI("Op %s does not have the IMPLEMT_INFERFUNC definition, "
-               "and subsequent operators no longer perform shape inference.",
-               node_ptr->GetName().c_str());
+        GELOGI(
+            "Op %s does not have the IMPLEMT_INFERFUNC definition, "
+            "and subsequent operators no longer perform shape inference.",
+            node_ptr->GetName().c_str());
         break;
       }
       if (status != GRAPH_SUCCESS) {
@@ -103,16 +104,17 @@ graphStatus GraphUtilsEx::CopyGraph(const Graph &src_graph, Graph &dst_graph) {
   const ComputeGraphPtr src_compute_graph = GraphUtilsEx::GetComputeGraph(src_graph);
   GE_CHECK_NOTNULL(src_compute_graph);
   if (src_compute_graph->GetParentGraph() != nullptr) {
-    GELOGE(GRAPH_FAILED, "[Check][RootGraph] Only support copy root graph, current graph name:%s, "
-                         "parent graph name:%s.", src_compute_graph->GetName().c_str(),
-           src_compute_graph->GetParentGraph()->GetName().c_str());
+    GELOGE(GRAPH_FAILED,
+           "[Check][RootGraph] Only support copy root graph, current graph name:%s, "
+           "parent graph name:%s.",
+           src_compute_graph->GetName().c_str(), src_compute_graph->GetParentGraph()->GetName().c_str());
     return GRAPH_FAILED;
   }
   const int32_t depth = 0;
   std::map<ConstNodePtr, NodePtr> node_old_2_new;
   std::map<ConstOpDescPtr, OpDescPtr> op_desc_old_2_new;
-  graphStatus ret = GraphUtils::CopyComputeGraph(src_compute_graph, new_compute_graph,
-                                                 node_old_2_new, op_desc_old_2_new, depth);
+  graphStatus ret =
+      GraphUtils::CopyComputeGraph(src_compute_graph, new_compute_graph, node_old_2_new, op_desc_old_2_new, depth);
   if (ret != GRAPH_SUCCESS) {
     GELOGE(GRAPH_FAILED, "[Copy][Graph] failed, ret:%d.", ret);
     return GRAPH_FAILED;
@@ -134,7 +136,7 @@ Graph GraphUtilsEx::CreateGraph() {
 Operator GraphUtilsEx::CreateOperator(const char_t *const operator_name, const char_t *const operator_type) {
   return af::OperatorFactory::CreateOperator(operator_name, operator_type);
 }
-}// namespace af
+}  // namespace af
 
 af::Graph GeApiWrapper_CreateGraphFromComputeGraph(const af::ComputeGraphPtr &compute_graph) {
   return af::GraphUtilsEx::CreateGraphFromComputeGraph(compute_graph);

@@ -1,10 +1,10 @@
 
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -42,21 +42,24 @@
 using namespace std;
 using namespace testing;
 
-namespace af{
+namespace af {
 using namespace autofuse;
 namespace {
 struct ScopedEnv {
-  explicit ScopedEnv(const char* k, const char* v) : key_(k) {
+  explicit ScopedEnv(const char *k, const char *v) : key_(k) {
     old_ = std::getenv(k);
     setenv(k, v, 1);
   }
   ~ScopedEnv() {
-    if (old_) setenv(key_, old_, 1);
-    else      unsetenv(key_);
+    if (old_)
+      setenv(key_, old_, 1);
+    else
+      unsetenv(key_);
   }
-private:
-  const char* key_;
-  const char* old_;
+
+ private:
+  const char *key_;
+  const char *old_;
 };
 
 template <typename T>
@@ -148,7 +151,7 @@ std::string ReadableAscGraph(const AscGraph &asc_graph, bool trip_scope = true) 
   return ss.str();
 }
 
-uint8_t AscSubgraphNodeCount(const NodePtr & AscNode , const string &node_type) {
+uint8_t AscSubgraphNodeCount(const NodePtr &AscNode, const string &node_type) {
   const auto attr = AscNode->GetOpDesc()->GetAttrsGroup<af::AutoFuseAttrs>();
   uint8_t count = 0;
   for (const auto &node : attr->GetAscGraph()->GetAllNodes()) {
@@ -330,7 +333,7 @@ TEST_F(UTestLoweringAndCanfuseV2, A5BroadCastAndTransposeLoweringCanfuse2) {
     data0.SetSymbolShape({"s0", "s1", "s2", "s3"});
     auto data1 = es_graph_->CreateInput(1, "data1", nullptr);
     data1.SetSymbolShape({"s0", "1", "s2", "s3"});
-    auto perms = CreateConst(*es_graph_, af::DT_INT64, {4}, std::vector<int64_t>{0,1,3,2});
+    auto perms = CreateConst(*es_graph_, af::DT_INT64, {4}, std::vector<int64_t>{0, 1, 3, 2});
     auto add = es::Add(data0, data1);
     add.SetSymbolShape({"s0", "s1", "s2", "s3"});
     auto transpose = es::Transpose(add, perms);
@@ -376,7 +379,7 @@ TEST_F(UTestLoweringAndCanfuseV2, A5BroadCastAndTransposeLoweringCanfuse3) {
     data0.SetSymbolShape({"s0", "s1", "s2", "s3"});
     auto data1 = es_graph_->CreateInput(1, "data1", nullptr);
     data1.SetSymbolShape({"s0", "1", "s3", "s2"});
-    auto perms = CreateConst(*es_graph_, af::DT_INT64, {4}, std::vector<int64_t>{0,1,3,2});
+    auto perms = CreateConst(*es_graph_, af::DT_INT64, {4}, std::vector<int64_t>{0, 1, 3, 2});
     auto transpose = es::Transpose(data1, perms);
     transpose.SetSymbolShape({"s0", "1", "s2", "s3"});
     auto add = es::Add(data0, transpose);
@@ -426,7 +429,7 @@ TEST_F(UTestLoweringAndCanfuseV2, A5BroadCastAndTransposeLoweringCanfuse4) {
     data0.SetSymbolShape({"s0", "s1", "s2", "s3"});
     auto data1 = es_graph_->CreateInput(1, "data1", nullptr);
     data1.SetSymbolShape({"1", "s1", "s2", "s0"});
-    auto perms = CreateConst(*es_graph_, af::DT_INT64, {4}, std::vector<int64_t>{3,1,2,0});
+    auto perms = CreateConst(*es_graph_, af::DT_INT64, {4}, std::vector<int64_t>{3, 1, 2, 0});
     auto transpose = es::Transpose(data1, perms);
     transpose.SetSymbolShape({"s0", "s1", "s2", "1"});
     auto add = es::Add(data0, transpose);
@@ -839,7 +842,8 @@ TEST_F(UTestLoweringAndCanfuseV2, CubeAndBroadcastLoweringCanfuseV2CanNotFuseBat
   RuntimeStub::Reset();
 }
 
-// 特殊场景vector的轴信息为m 1 n，对于matmul的m n两根轴来说看起来是batch 轴broadcast，实际可以做无效轴删除然后变成非batch轴broadcast的可融合场景
+// 特殊场景vector的轴信息为m 1 n，对于matmul的m n两根轴来说看起来是batch
+// 轴broadcast，实际可以做无效轴删除然后变成非batch轴broadcast的可融合场景
 TEST_F(UTestLoweringAndCanfuseV2, CubeAndBroadcastLoweringCanfuseV2CanFuseBatchBroadcast2) {
   ge::PlatformContext::GetInstance().Reset();
   auto stub_v2 = std::make_shared<RuntimeStubV2Common>();
@@ -1051,7 +1055,6 @@ TEST_F(UTestLoweringAndCanfuseV2, CubeAndReduceLoweringCanfuseV2CanNotFuseReduce
   auto ReduceSumD_2 = cg->FindNode("ReduceSumD_2");
   ASSERT_NE(ReduceSumD_2, nullptr);
 
-
   af::AscIrLowerer lowerer;
   ASSERT_EQ(lowerer.Lowering(cg), GRAPH_SUCCESS);
   ASSERT_EQ(asc_adapt::GeFallback(cg), GRAPH_SUCCESS);
@@ -1108,7 +1111,6 @@ TEST_F(UTestLoweringAndCanfuseV2, CubeAndElementwiseLoweringCanfuseV2CanNotFuseV
   auto Add_1 = cg->FindNode("Add_1");
   ASSERT_NE(Add_1, nullptr);
 
-
   af::AscIrLowerer lowerer;
   ASSERT_EQ(lowerer.Lowering(cg), GRAPH_SUCCESS);
   ASSERT_EQ(asc_adapt::GeFallback(cg), GRAPH_SUCCESS);
@@ -1164,7 +1166,6 @@ TEST_F(UTestLoweringAndCanfuseV2, CubeAndReduceLoweringCanfuseReluAbs) {
   auto ReduceSumD_2 = cg->FindNode("Abs_2");
   ASSERT_NE(ReduceSumD_2, nullptr);
 
-
   af::AscIrLowerer lowerer;
   ASSERT_EQ(lowerer.Lowering(cg), GRAPH_SUCCESS);
   ASSERT_EQ(asc_adapt::GeFallback(cg), GRAPH_SUCCESS);
@@ -1216,7 +1217,6 @@ TEST_F(UTestLoweringAndCanfuseV2, CubeAndReduceLoweringCanfuseOnlyRelu) {
   auto Add_1 = cg->FindNode("Relu_1");
   ASSERT_NE(Add_1, nullptr);
 
-
   af::AscIrLowerer lowerer;
   ASSERT_EQ(lowerer.Lowering(cg), GRAPH_SUCCESS);
   ASSERT_EQ(asc_adapt::GeFallback(cg), GRAPH_SUCCESS);
@@ -1247,12 +1247,12 @@ TEST_F(UTestLoweringAndCanfuseV2, EleAndSplitLoweringCanfuse) {
   [this]() {
     auto data0 = es_graph_->CreateInput(0, "data0", nullptr);
     data0.SetSymbolShape({"o0", "(3 * o1)", "o2"});
-    auto split_outputs = es::SplitD(data0,1,3);
-    int index = 0 ;
-    for (auto output: split_outputs) {
+    auto split_outputs = es::SplitD(data0, 1, 3);
+    int index = 0;
+    for (auto output : split_outputs) {
       auto esb_out = output.GetEsbTensor();
       esb_out->SetSymbolShape({Symbol("o0"), Symbol("o1"), Symbol("o2")});
-      es_graph_->SetOutput(esb_out,index++);
+      es_graph_->SetOutput(esb_out, index++);
     }
   }();
 
@@ -1283,18 +1283,18 @@ TEST_F(UTestLoweringAndCanfuseV2, SplitAndSplitLoweringCanfuse) {
   [this]() {
     auto data0 = es_graph_->CreateInput(0, "data0", nullptr);
     data0.SetSymbolShape({"o0", "(3 * o1)", "o2"});
-    auto split_outputs = es::SplitD(data0,1,3);
-    int index = 0 ;
-    for (auto output: split_outputs) {
+    auto split_outputs = es::SplitD(data0, 1, 3);
+    int index = 0;
+    for (auto output : split_outputs) {
       auto esb_out = output.GetEsbTensor();
       esb_out->SetSymbolShape({Symbol("o0"), Symbol("o1"), Symbol("o2")});
-      es_graph_->SetOutput(esb_out,index++);
+      es_graph_->SetOutput(esb_out, index++);
     }
-    auto split_outputs1 = es::SplitD(data0,1,3);
-    for (auto output: split_outputs1) {
+    auto split_outputs1 = es::SplitD(data0, 1, 3);
+    for (auto output : split_outputs1) {
       auto esb_out = output.GetEsbTensor();
       esb_out->SetSymbolShape({Symbol("o0"), Symbol("o1"), Symbol("o2")});
-      es_graph_->SetOutput(esb_out,index++);
+      es_graph_->SetOutput(esb_out, index++);
     }
   }();
 
@@ -1328,14 +1328,14 @@ TEST_F(UTestLoweringAndCanfuseV2, EleAndSplitLoweringCanfuseStatic) {
   [this]() {
     auto data0 = es_graph_->CreateInput(0, "data0", nullptr);
     data0.SetSymbolShape({"64", "96", "16"});
-    auto split_outputs = es::SplitD(data0,1,3);
-    int index = 0 ;
-    for (auto output: split_outputs) {
+    auto split_outputs = es::SplitD(data0, 1, 3);
+    int index = 0;
+    for (auto output : split_outputs) {
       auto esb_out = output.GetEsbTensor();
       // 上边这种写法产生的不是ConstExpr
       // esb_out->SetSymbolShape({Symbol("64"), Symbol("32"), Symbol("16")});
       output.SetSymbolShape({"64", "32", "16"});
-      es_graph_->SetOutput(esb_out,index++);
+      es_graph_->SetOutput(esb_out, index++);
     }
   }();
 
@@ -1365,26 +1365,25 @@ TEST_F(UTestLoweringAndCanfuseV2, ReluAndSplitHorizontalLoweringCanfuseStatic) {
   [this]() {
     auto data0 = es_graph_->CreateInput(0, "data0", nullptr);
     data0.SetSymbolShape({"64", "96", "16"});
-    auto split_outputs = es::SplitD(data0,1,3);
-    int index = 0 ;
-    for (auto output: split_outputs) {
+    auto split_outputs = es::SplitD(data0, 1, 3);
+    int index = 0;
+    for (auto output : split_outputs) {
       auto esb_out = output.GetEsbTensor();
       // 上边这种写法产生的不是ConstExpr
       // esb_out->SetSymbolShape({Symbol("64"), Symbol("32"), Symbol("16")});
       output.SetSymbolShape({"64", "32", "16"});
-      es_graph_->SetOutput(esb_out,index++);
+      es_graph_->SetOutput(esb_out, index++);
     }
     auto relu = es::Relu(data0);
     relu.SetSymbolShape({"64", "96", "16"});
-    es_graph_->SetOutput(relu.GetEsbTensor(),index++);
+    es_graph_->SetOutput(relu.GetEsbTensor(), index++);
   }();
 
   auto graph = es_graph_->Build();
   auto cg = GraphUtilsEx::GetComputeGraph(*graph);
 
-
   af::PatternFusion patter_fusion;
-  ASSERT_EQ(patter_fusion.RunAllPatternFusion(cg),GRAPH_SUCCESS);
+  ASSERT_EQ(patter_fusion.RunAllPatternFusion(cg), GRAPH_SUCCESS);
   af::AscIrLowerer lowerer;
   ASSERT_EQ(lowerer.Lowering(cg), GRAPH_SUCCESS);
   ASSERT_EQ(asc_adapt::GeFallback(cg), GRAPH_SUCCESS);
@@ -1407,20 +1406,20 @@ TEST_F(UTestLoweringAndCanfuseV2, SplitAndEleLoweringCanfuseStaticNoLifting) {
   [this]() {
     auto data0 = es_graph_->CreateInput(0, "data0", nullptr);
     data0.SetSymbolShape({"64", "96", "16"});
-    auto split_outputs = es::SplitD(data0,1,3);
-    int index = 0 ;
+    auto split_outputs = es::SplitD(data0, 1, 3);
+    int index = 0;
     split_outputs[0].SetSymbolShape({"64", "32", "16"});
-    es_graph_->SetOutput(split_outputs[0],0);
+    es_graph_->SetOutput(split_outputs[0], 0);
 
     split_outputs[1].SetSymbolShape({"64", "32", "16"});
     auto abs0 = es::Abs(split_outputs[1]);
     abs0.SetSymbolShape({"64", "32", "16"});
-    es_graph_->SetOutput(abs0,1);
+    es_graph_->SetOutput(abs0, 1);
 
     split_outputs[2].SetSymbolShape({"64", "32", "16"});
     auto abs1 = es::Abs(split_outputs[2]);
     abs1.SetSymbolShape({"64", "32", "16"});
-    es_graph_->SetOutput(abs1,2);
+    es_graph_->SetOutput(abs1, 2);
   }();
 
   auto graph = es_graph_->Build();
@@ -1443,7 +1442,7 @@ TEST_F(UTestLoweringAndCanfuseV2, SplitAndEleLoweringCanfuseStaticNoLifting) {
 }
 
 int DumpAllAscGraphs(const ComputeGraphPtr &cg, std::string s) {
-  for (auto node: cg->GetAllNodes()) {
+  for (auto node : cg->GetAllNodes()) {
     GELOGD("node: %s(%s), AscGraph: %s", node->GetName().c_str(), node->GetType().c_str(), s.c_str());
     BackendUtils::DumpAscGraph(node);
   }
@@ -1457,12 +1456,12 @@ TEST_F(UTestLoweringAndCanfuseV2, SingleSplitLoweringCanfuseLifting) {
   [this]() {
     auto data0 = es_graph_->CreateInput(0, "data0", nullptr);
     data0.SetSymbolShape({"o0", "(3 * o1)", "o2"});
-    auto split_outputs = es::SplitD(data0,1,3);
-    int index = 0 ;
-    for (auto output: split_outputs) {
+    auto split_outputs = es::SplitD(data0, 1, 3);
+    int index = 0;
+    for (auto output : split_outputs) {
       auto esb_out = output.GetEsbTensor();
       esb_out->SetSymbolShape({Symbol("o0"), Symbol("o1"), Symbol("o2")});
-      es_graph_->SetOutput(esb_out,index++);
+      es_graph_->SetOutput(esb_out, index++);
     }
   }();
   auto graph = es_graph_->Build();
@@ -1472,7 +1471,7 @@ TEST_F(UTestLoweringAndCanfuseV2, SingleSplitLoweringCanfuseLifting) {
   ASSERT_NE(split, nullptr);
 
   af::PatternFusion patter_fusion;
-  ASSERT_EQ(patter_fusion.RunAllPatternFusion(cg),GRAPH_SUCCESS);
+  ASSERT_EQ(patter_fusion.RunAllPatternFusion(cg), GRAPH_SUCCESS);
   af::AscIrLowerer lowerer;
   ASSERT_EQ(lowerer.Lowering(cg), GRAPH_SUCCESS);
   ASSERT_EQ(asc_adapt::GeFallback(cg), GRAPH_SUCCESS);
@@ -1493,12 +1492,12 @@ TEST_F(UTestLoweringAndCanfuseV2, SingleGiantSplitLoweringCanfuseLifting) {
   [this]() {
     auto data0 = es_graph_->CreateInput(0, "data0", nullptr);
     data0.SetSymbolShape({"32", "4096", "20"});
-    auto split_outputs = es::SplitD(data0,1,1024);
-    int index = 0 ;
-    for (auto output: split_outputs) {
+    auto split_outputs = es::SplitD(data0, 1, 1024);
+    int index = 0;
+    for (auto output : split_outputs) {
       output.SetSymbolShape({"32", "4", "20"});
 
-      es_graph_->SetOutput(output,index++);
+      es_graph_->SetOutput(output, index++);
     }
   }();
   auto graph = es_graph_->Build();
@@ -1508,7 +1507,7 @@ TEST_F(UTestLoweringAndCanfuseV2, SingleGiantSplitLoweringCanfuseLifting) {
   ASSERT_NE(split, nullptr);
 
   af::PatternFusion patter_fusion;
-  ASSERT_EQ(patter_fusion.RunAllPatternFusion(cg),GRAPH_SUCCESS);
+  ASSERT_EQ(patter_fusion.RunAllPatternFusion(cg), GRAPH_SUCCESS);
   af::AscIrLowerer lowerer;
   ASSERT_EQ(lowerer.Lowering(cg), GRAPH_SUCCESS);
   ASSERT_EQ(asc_adapt::GeFallback(cg), GRAPH_SUCCESS);
@@ -1531,17 +1530,17 @@ TEST_F(UTestLoweringAndCanfuseV2, SplitSingleOutputDoubleQuotesLoweringCanfuseLi
   [this]() {
     auto data0 = es_graph_->CreateInput(0, "data0", nullptr);
     data0.SetSymbolShape({"32", "64", "20"});
-    auto split_outputs = es::SplitD(data0,1,1);
-    int index = 0 ;
-    for (auto output: split_outputs) {
+    auto split_outputs = es::SplitD(data0, 1, 1);
+    int index = 0;
+    for (auto output : split_outputs) {
       output.SetSymbolShape({"32", "64", "20"});
     }
     auto abs0 = es::Abs(split_outputs[0]);
     auto abs1 = es::Abs(split_outputs[0]);
     abs0.SetSymbolShape({"32", "64", "20"});
     abs1.SetSymbolShape({"32", "64", "20"});
-    es_graph_->SetOutput(abs0,index++);
-    es_graph_->SetOutput(abs1,index++);
+    es_graph_->SetOutput(abs0, index++);
+    es_graph_->SetOutput(abs1, index++);
   }();
   auto graph = es_graph_->Build();
   auto cg = GraphUtilsEx::GetComputeGraph(*graph);
@@ -1550,7 +1549,7 @@ TEST_F(UTestLoweringAndCanfuseV2, SplitSingleOutputDoubleQuotesLoweringCanfuseLi
   ASSERT_NE(split, nullptr);
 
   af::PatternFusion patter_fusion;
-  ASSERT_EQ(patter_fusion.RunAllPatternFusion(cg),GRAPH_SUCCESS);
+  ASSERT_EQ(patter_fusion.RunAllPatternFusion(cg), GRAPH_SUCCESS);
   af::AscIrLowerer lowerer;
   ASSERT_EQ(lowerer.Lowering(cg), GRAPH_SUCCESS);
   ASSERT_EQ(asc_adapt::GeFallback(cg), GRAPH_SUCCESS);
@@ -1573,18 +1572,18 @@ TEST_F(UTestLoweringAndCanfuseV2, SplitSingleOutputDoubleQuotesLoweringCanfuseLi
   [this]() {
     auto data0 = es_graph_->CreateInput(0, "data0", nullptr);
     data0.SetSymbolShape({"32", "64", "20"});
-    auto split_outputs = es::SplitD(data0,1,1);
-    int index = 0 ;
-    for (auto output: split_outputs) {
+    auto split_outputs = es::SplitD(data0, 1, 1);
+    int index = 0;
+    for (auto output : split_outputs) {
       output.SetSymbolShape({"32", "64", "20"});
     }
-    auto reduce_axis0 = CreateConst(*es_graph_,DT_INT64,{1},std::vector<int64_t>{0});
-    auto reduce0 = es::ReduceAll(split_outputs[0],reduce_axis0);
+    auto reduce_axis0 = CreateConst(*es_graph_, DT_INT64, {1}, std::vector<int64_t>{0});
+    auto reduce0 = es::ReduceAll(split_outputs[0], reduce_axis0);
     reduce0.SetSymbolShape({"64", "20"});
-    auto reduce1 = es::ReduceAll(split_outputs[0],reduce_axis0);
+    auto reduce1 = es::ReduceAll(split_outputs[0], reduce_axis0);
     reduce1.SetSymbolShape({"64", "20"});
-    es_graph_->SetOutput(reduce0,index++);
-    es_graph_->SetOutput(reduce1,index++);
+    es_graph_->SetOutput(reduce0, index++);
+    es_graph_->SetOutput(reduce1, index++);
   }();
   auto graph = es_graph_->Build();
   auto cg = GraphUtilsEx::GetComputeGraph(*graph);
@@ -1593,7 +1592,7 @@ TEST_F(UTestLoweringAndCanfuseV2, SplitSingleOutputDoubleQuotesLoweringCanfuseLi
   ASSERT_NE(split, nullptr);
 
   af::PatternFusion patter_fusion;
-  ASSERT_EQ(patter_fusion.RunAllPatternFusion(cg),GRAPH_SUCCESS);
+  ASSERT_EQ(patter_fusion.RunAllPatternFusion(cg), GRAPH_SUCCESS);
   af::AscIrLowerer lowerer;
   ASSERT_EQ(lowerer.Lowering(cg), GRAPH_SUCCESS);
   ASSERT_EQ(asc_adapt::GeFallback(cg), GRAPH_SUCCESS);
@@ -1609,21 +1608,18 @@ TEST_F(UTestLoweringAndCanfuseV2, SplitSingleOutputDoubleQuotesLoweringCanfuseLi
   RuntimeStub::Reset();
 }
 
-
 REG_OP(SplitV)
-    .INPUT(x, TensorType({DT_COMPLEX128, DT_COMPLEX64, DT_DOUBLE, DT_FLOAT, DT_FLOAT16, DT_INT16,
-                          DT_INT32, DT_INT64, DT_INT8, DT_QINT16, DT_QINT32, DT_QINT8,
-                          DT_QUINT16, DT_QUINT8, DT_UINT16, DT_UINT32, DT_UINT64, DT_UINT8,
-                          DT_BF16, DT_BOOL, DT_STRING}))
+    .INPUT(x, TensorType({DT_COMPLEX128, DT_COMPLEX64, DT_DOUBLE, DT_FLOAT,  DT_FLOAT16, DT_INT16,   DT_INT32,
+                          DT_INT64,      DT_INT8,      DT_QINT16, DT_QINT32, DT_QINT8,   DT_QUINT16, DT_QUINT8,
+                          DT_UINT16,     DT_UINT32,    DT_UINT64, DT_UINT8,  DT_BF16,    DT_BOOL,    DT_STRING}))
     .INPUT(size_splits, TensorType::IndexNumberType())
     .INPUT(split_dim, TensorType({DT_INT32, DT_INT64}))
-    .DYNAMIC_OUTPUT(y, TensorType({DT_COMPLEX128, DT_COMPLEX64, DT_DOUBLE, DT_FLOAT, DT_FLOAT16, DT_INT16,
-                                   DT_INT32, DT_INT64, DT_INT8, DT_QINT16, DT_QINT32, DT_QINT8,
-                                   DT_QUINT16, DT_QUINT8, DT_UINT16, DT_UINT32, DT_UINT64, DT_UINT8,
-                                   DT_BF16, DT_BOOL, DT_STRING}))
+    .DYNAMIC_OUTPUT(y,
+                    TensorType({DT_COMPLEX128, DT_COMPLEX64, DT_DOUBLE, DT_FLOAT,  DT_FLOAT16, DT_INT16,   DT_INT32,
+                                DT_INT64,      DT_INT8,      DT_QINT16, DT_QINT32, DT_QINT8,   DT_QUINT16, DT_QUINT8,
+                                DT_UINT16,     DT_UINT32,    DT_UINT64, DT_UINT8,  DT_BF16,    DT_BOOL,    DT_STRING}))
     .REQUIRED_ATTR(num_split, Int)
-    .OP_END_FACTORY_REG(SplitV)
-TEST_F(UTestLoweringAndCanfuseV2, SplitVLoweringCanfuseStatic) {
+    .OP_END_FACTORY_REG(SplitV) TEST_F(UTestLoweringAndCanfuseV2, SplitVLoweringCanfuseStatic) {
   ge::PlatformContext::GetInstance().Reset();
   auto stub_v2 = std::make_shared<RuntimeStubV2Common>();
   RuntimeStub::SetInstance(stub_v2);
@@ -1634,14 +1630,14 @@ TEST_F(UTestLoweringAndCanfuseV2, SplitVLoweringCanfuseStatic) {
     size_splits.SetSymbolShape({"3"});
     auto split_dim = CreateConst(*es_graph_, af::DT_INT64, {1}, std::vector<int64_t>{1});
     split_dim.SetSymbolShape({"1"});
-    auto split_outputs = es::SplitV(data0,size_splits,split_dim,3);
-    int index = 0 ;
-    for (auto output: split_outputs) {
+    auto split_outputs = es::SplitV(data0, size_splits, split_dim, 3);
+    int index = 0;
+    for (auto output : split_outputs) {
       auto esb_out = output.GetEsbTensor();
       // 上边这种写法产生的不是ConstExpr
       // esb_out->SetSymbolShape({Symbol("64"), Symbol("32"), Symbol("16")});
       output.SetSymbolShape({"64", "32", "16"});
-      es_graph_->SetOutput(esb_out,index++);
+      es_graph_->SetOutput(esb_out, index++);
     }
   }();
 
@@ -1649,7 +1645,7 @@ TEST_F(UTestLoweringAndCanfuseV2, SplitVLoweringCanfuseStatic) {
   auto cg = GraphUtilsEx::GetComputeGraph(*graph);
 
   af::PatternFusion patter_fusion;
-  ASSERT_EQ(patter_fusion.RunAllPatternFusion(cg),GRAPH_SUCCESS);
+  ASSERT_EQ(patter_fusion.RunAllPatternFusion(cg), GRAPH_SUCCESS);
   af::AscIrLowerer lowerer;
   ASSERT_EQ(lowerer.Lowering(cg), GRAPH_SUCCESS);
   ASSERT_EQ(asc_adapt::GeFallback(cg), GRAPH_SUCCESS);
@@ -1678,14 +1674,14 @@ TEST_F(UTestLoweringAndCanfuseV2, SplitVLiftingErrorStatic) {
     size_splits.SetSymbolShape({"3"});
     auto split_dim = CreateConst(*es_graph_, af::DT_INT64, {1}, std::vector<int64_t>{1});
     split_dim.SetSymbolShape({"1"});
-    auto split_outputs = es::SplitV(abs,size_splits,split_dim,3);
-    int index = 0 ;
-    for (auto output: split_outputs) {
+    auto split_outputs = es::SplitV(abs, size_splits, split_dim, 3);
+    int index = 0;
+    for (auto output : split_outputs) {
       auto esb_out = output.GetEsbTensor();
       // 上边这种写法产生的不是ConstExpr
       // esb_out->SetSymbolShape({Symbol("64"), Symbol("32"), Symbol("16")});
       output.SetSymbolShape({"64", "32", "16"});
-      es_graph_->SetOutput(esb_out,index++);
+      es_graph_->SetOutput(esb_out, index++);
     }
   }();
 
@@ -1693,7 +1689,7 @@ TEST_F(UTestLoweringAndCanfuseV2, SplitVLiftingErrorStatic) {
   auto cg = GraphUtilsEx::GetComputeGraph(*graph);
 
   af::PatternFusion patter_fusion;
-  ASSERT_EQ(patter_fusion.RunAllPatternFusion(cg),GRAPH_SUCCESS);
+  ASSERT_EQ(patter_fusion.RunAllPatternFusion(cg), GRAPH_SUCCESS);
   af::AscIrLowerer lowerer;
   ASSERT_EQ(lowerer.Lowering(cg), GRAPH_SUCCESS);
   ASSERT_EQ(asc_adapt::GeFallback(cg), GRAPH_SUCCESS);
@@ -1724,14 +1720,14 @@ TEST_F(UTestLoweringAndCanfuseV2, SingleSplitVLiftingErrorStatic) {
     size_splits.SetSymbolShape({"1"});
     auto split_dim = CreateConst(*es_graph_, af::DT_INT64, {1}, std::vector<int64_t>{1});
     split_dim.SetSymbolShape({"1"});
-    auto split_outputs = es::SplitV(abs1,size_splits,split_dim,1);
-    int index = 0 ;
-    for (auto output: split_outputs) {
+    auto split_outputs = es::SplitV(abs1, size_splits, split_dim, 1);
+    int index = 0;
+    for (auto output : split_outputs) {
       auto esb_out = output.GetEsbTensor();
       // 上边这种写法产生的不是ConstExpr
       // esb_out->SetSymbolShape({Symbol("64"), Symbol("32"), Symbol("16")});
       output.SetSymbolShape({"64", "96", "16"});
-      es_graph_->SetOutput(esb_out,index++);
+      es_graph_->SetOutput(esb_out, index++);
     }
   }();
 
@@ -1739,7 +1735,7 @@ TEST_F(UTestLoweringAndCanfuseV2, SingleSplitVLiftingErrorStatic) {
   auto cg = GraphUtilsEx::GetComputeGraph(*graph);
 
   af::PatternFusion patter_fusion;
-  ASSERT_EQ(patter_fusion.RunAllPatternFusion(cg),GRAPH_SUCCESS);
+  ASSERT_EQ(patter_fusion.RunAllPatternFusion(cg), GRAPH_SUCCESS);
   af::AscIrLowerer lowerer;
   ASSERT_EQ(lowerer.Lowering(cg), GRAPH_SUCCESS);
   ASSERT_EQ(asc_adapt::GeFallback(cg), GRAPH_SUCCESS);
@@ -1760,31 +1756,31 @@ TEST_F(UTestLoweringAndCanfuseV2, FlattenSplitLoweringCanfuseLifting) {
   [this]() {
     auto data0 = es_graph_->CreateInput(0, "data0", nullptr);
     data0.SetSymbolShape({"32", "64", "20"});
-    auto split_dim = CreateConst(*es_graph_,DT_INT64,{1},std::vector<int64_t>{1});
-    auto split0_outputs = es::Split(split_dim,data0,2);
-    int index = 0 ;
-    for (auto output: split0_outputs) {
+    auto split_dim = CreateConst(*es_graph_, DT_INT64, {1}, std::vector<int64_t>{1});
+    auto split0_outputs = es::Split(split_dim, data0, 2);
+    int index = 0;
+    for (auto output : split0_outputs) {
       output.SetSymbolShape({"32", "32", "20"});
       auto esb_out = output.GetEsbTensor();
     }
-    auto split1_outputs = es::Split(split_dim,split0_outputs[0],4);
-    for (auto output: split1_outputs) {
+    auto split1_outputs = es::Split(split_dim, split0_outputs[0], 4);
+    for (auto output : split1_outputs) {
       output.SetSymbolShape({"32", "8", "20"});
       auto esb_out = output.GetEsbTensor();
-      es_graph_->SetOutput(esb_out,index++);
+      es_graph_->SetOutput(esb_out, index++);
     }
-    auto split2_outputs = es::Split(split_dim,split0_outputs[1],4);
-    for (auto output: split2_outputs) {
+    auto split2_outputs = es::Split(split_dim, split0_outputs[1], 4);
+    for (auto output : split2_outputs) {
       output.SetSymbolShape({"32", "8", "20"});
       auto esb_out = output.GetEsbTensor();
-      es_graph_->SetOutput(esb_out,index++);
+      es_graph_->SetOutput(esb_out, index++);
     }
   }();
   auto graph = es_graph_->Build();
   auto cg = GraphUtilsEx::GetComputeGraph(*graph);
 
   af::PatternFusion patter_fusion;
-  ASSERT_EQ(patter_fusion.RunAllPatternFusion(cg),GRAPH_SUCCESS);
+  ASSERT_EQ(patter_fusion.RunAllPatternFusion(cg), GRAPH_SUCCESS);
   af::AscIrLowerer lowerer;
   ASSERT_EQ(lowerer.Lowering(cg), GRAPH_SUCCESS);
   ASSERT_EQ(asc_adapt::GeFallback(cg), GRAPH_SUCCESS);
@@ -1805,32 +1801,32 @@ TEST_F(UTestLoweringAndCanfuseV2, FlattenSplitVLoweringCanfuseLifting) {
   [this]() {
     auto data0 = es_graph_->CreateInput(0, "data0", nullptr);
     data0.SetSymbolShape({"32", "64", "20"});
-    auto split_dim = CreateConst(*es_graph_,DT_INT64,{1},std::vector<int64_t>{1});
-    auto size_splits0 = CreateConst(*es_graph_, af::DT_INT64, {2}, std::vector<int64_t>{32,32});
-    auto split0_outputs = es::SplitV(data0,size_splits0,split_dim,2);
-    int index = 0 ;
-    for (auto output: split0_outputs) {
+    auto split_dim = CreateConst(*es_graph_, DT_INT64, {1}, std::vector<int64_t>{1});
+    auto size_splits0 = CreateConst(*es_graph_, af::DT_INT64, {2}, std::vector<int64_t>{32, 32});
+    auto split0_outputs = es::SplitV(data0, size_splits0, split_dim, 2);
+    int index = 0;
+    for (auto output : split0_outputs) {
       output.SetSymbolShape({"32", "32", "20"});
       auto esb_out = output.GetEsbTensor();
     }
-    auto size_splits1 = CreateConst(*es_graph_, af::DT_INT64, {4}, std::vector<int64_t>{8,8,8,8});
-    auto split1_outputs = es::SplitV(split0_outputs[0],size_splits1,split_dim,4);
-    for (auto output: split1_outputs) {
+    auto size_splits1 = CreateConst(*es_graph_, af::DT_INT64, {4}, std::vector<int64_t>{8, 8, 8, 8});
+    auto split1_outputs = es::SplitV(split0_outputs[0], size_splits1, split_dim, 4);
+    for (auto output : split1_outputs) {
       output.SetSymbolShape({"32", "8", "20"});
       auto esb_out = output.GetEsbTensor();
-      es_graph_->SetOutput(esb_out,index++);
+      es_graph_->SetOutput(esb_out, index++);
     }
-    auto split2_outputs = es::SplitV(split0_outputs[1],size_splits1,split_dim,4);
-    for (auto output: split2_outputs) {
+    auto split2_outputs = es::SplitV(split0_outputs[1], size_splits1, split_dim, 4);
+    for (auto output : split2_outputs) {
       output.SetSymbolShape({"32", "8", "20"});
       auto esb_out = output.GetEsbTensor();
-      es_graph_->SetOutput(esb_out,index++);
+      es_graph_->SetOutput(esb_out, index++);
     }
   }();
   auto graph = es_graph_->Build();
   auto cg = GraphUtilsEx::GetComputeGraph(*graph);
   af::PatternFusion patter_fusion;
-  ASSERT_EQ(patter_fusion.RunAllPatternFusion(cg),GRAPH_SUCCESS);
+  ASSERT_EQ(patter_fusion.RunAllPatternFusion(cg), GRAPH_SUCCESS);
   af::AscIrLowerer lowerer;
   ASSERT_EQ(lowerer.Lowering(cg), GRAPH_SUCCESS);
   ASSERT_EQ(asc_adapt::GeFallback(cg), GRAPH_SUCCESS);
@@ -1851,31 +1847,31 @@ TEST_F(UTestLoweringAndCanfuseV2, FlattenSplitDLoweringCanfuseLifting) {
   [this]() {
     auto data0 = es_graph_->CreateInput(0, "data0", nullptr);
     data0.SetSymbolShape({"32", "64", "20"});
-    auto split_dim = CreateConst(*es_graph_,DT_INT64,{1},std::vector<int64_t>{1});
-    auto split0_outputs = es::SplitD(data0,1,2);
-    int index = 0 ;
-    for (auto output: split0_outputs) {
+    auto split_dim = CreateConst(*es_graph_, DT_INT64, {1}, std::vector<int64_t>{1});
+    auto split0_outputs = es::SplitD(data0, 1, 2);
+    int index = 0;
+    for (auto output : split0_outputs) {
       output.SetSymbolShape({"32", "32", "20"});
       auto esb_out = output.GetEsbTensor();
     }
-    auto split1_outputs = es::SplitD(split0_outputs[0],1,4);
-    for (auto output: split1_outputs) {
+    auto split1_outputs = es::SplitD(split0_outputs[0], 1, 4);
+    for (auto output : split1_outputs) {
       output.SetSymbolShape({"32", "8", "20"});
       auto esb_out = output.GetEsbTensor();
-      es_graph_->SetOutput(esb_out,index++);
+      es_graph_->SetOutput(esb_out, index++);
     }
-    auto split2_outputs = es::SplitD(split0_outputs[1],1,4);
-    for (auto output: split2_outputs) {
+    auto split2_outputs = es::SplitD(split0_outputs[1], 1, 4);
+    for (auto output : split2_outputs) {
       output.SetSymbolShape({"32", "8", "20"});
       auto esb_out = output.GetEsbTensor();
-      es_graph_->SetOutput(esb_out,index++);
+      es_graph_->SetOutput(esb_out, index++);
     }
   }();
   auto graph = es_graph_->Build();
   auto cg = GraphUtilsEx::GetComputeGraph(*graph);
 
   af::PatternFusion patter_fusion;
-  ASSERT_EQ(patter_fusion.RunAllPatternFusion(cg),GRAPH_SUCCESS);
+  ASSERT_EQ(patter_fusion.RunAllPatternFusion(cg), GRAPH_SUCCESS);
   af::AscIrLowerer lowerer;
   ASSERT_EQ(lowerer.Lowering(cg), GRAPH_SUCCESS);
   ASSERT_EQ(asc_adapt::GeFallback(cg), GRAPH_SUCCESS);
@@ -1899,31 +1895,31 @@ TEST_F(UTestLoweringAndCanfuseV2, HierarchicalFlattenSplitLoweringCanfuseLifting
     auto data0 = es_graph_->CreateInput(0, "data0", nullptr);
     data0.SetSymbolShape({"512", "64", "20"});
     data0.GetEsbTensor()->SetSymbolShape({Symbol("512"), Symbol("64"), Symbol("20")});
-    auto split_dim = CreateConst(*es_graph_,DT_INT64,{1},std::vector<int64_t>{0});
-    auto split0_outputs = es::Split(split_dim,data0,2);
+    auto split_dim = CreateConst(*es_graph_, DT_INT64, {1}, std::vector<int64_t>{0});
+    auto split0_outputs = es::Split(split_dim, data0, 2);
     split0_outputs[0].SetSymbolShape({"256", "64", "20"});
     split0_outputs[0].GetEsbTensor()->SetSymbolShape({Symbol("256"), Symbol("64"), Symbol("20")});
     split0_outputs[1].SetSymbolShape({"256", "64", "20"});
-    auto split1_outputs = es::Split(split_dim,split0_outputs[0],2);
+    auto split1_outputs = es::Split(split_dim, split0_outputs[0], 2);
     split1_outputs[0].SetSymbolShape({"128", "64", "20"});
     split1_outputs[1].SetSymbolShape({"128", "64", "20"});
-    auto split2_outputs = es::Split(split_dim,split1_outputs[0],2);
-    for (auto output: split2_outputs) {
+    auto split2_outputs = es::Split(split_dim, split1_outputs[0], 2);
+    for (auto output : split2_outputs) {
       output.SetSymbolShape({"64", "64", "20"});
     }
-    auto split3_outputs = es::Split(split_dim,split2_outputs[0],2);
+    auto split3_outputs = es::Split(split_dim, split2_outputs[0], 2);
     split3_outputs[0].SetSymbolShape({"32", "64", "20"});
     split3_outputs[1].SetSymbolShape({"32", "64", "20"});
-    auto split4_outputs = es::Split(split_dim,split2_outputs[1],2);
+    auto split4_outputs = es::Split(split_dim, split2_outputs[1], 2);
     split4_outputs[0].SetSymbolShape({"32", "64", "20"});
     split4_outputs[1].SetSymbolShape({"32", "64", "20"});
-    es_graph_->SetOutput(split3_outputs[0],0);
-    es_graph_->SetOutput(split4_outputs[0],1);
+    es_graph_->SetOutput(split3_outputs[0], 0);
+    es_graph_->SetOutput(split4_outputs[0], 1);
   }();
   auto graph = es_graph_->Build();
   auto cg = GraphUtilsEx::GetComputeGraph(*graph);
   af::PatternFusion patter_fusion;
-  ASSERT_EQ(patter_fusion.RunAllPatternFusion(cg),GRAPH_SUCCESS);
+  ASSERT_EQ(patter_fusion.RunAllPatternFusion(cg), GRAPH_SUCCESS);
   af::AscIrLowerer lowerer;
   ASSERT_EQ(lowerer.Lowering(cg), GRAPH_SUCCESS);
   ASSERT_EQ(asc_adapt::GeFallback(cg), GRAPH_SUCCESS);
@@ -1944,22 +1940,22 @@ TEST_F(UTestLoweringAndCanfuseV2, GiantSplitLoweringCanfuseLifting) {
   [this]() {
     auto data0 = es_graph_->CreateInput(0, "data0", nullptr);
     data0.SetSymbolShape({"32", "4096", "20"});
-    auto split_dim = CreateConst(*es_graph_,DT_INT64,{1},std::vector<int64_t>{1});
-    auto split0_outputs = es::Split(split_dim,data0,32);
+    auto split_dim = CreateConst(*es_graph_, DT_INT64, {1}, std::vector<int64_t>{1});
+    auto split0_outputs = es::Split(split_dim, data0, 32);
     size_t index = 0U;
-    for (auto output: split0_outputs) {
+    for (auto output : split0_outputs) {
       output.SetSymbolShape({"32", "128", "20"});
-      auto split2_outputs = es::Split(split_dim,output,32);
-      for (auto output: split2_outputs) {
+      auto split2_outputs = es::Split(split_dim, output, 32);
+      for (auto output : split2_outputs) {
         output.SetSymbolShape({"64", "4", "20"});
-        es_graph_->SetOutput(output,index++);
+        es_graph_->SetOutput(output, index++);
       }
     }
   }();
   auto graph = es_graph_->Build();
   auto cg = GraphUtilsEx::GetComputeGraph(*graph);
   af::PatternFusion patter_fusion;
-  ASSERT_EQ(patter_fusion.RunAllPatternFusion(cg),GRAPH_SUCCESS);
+  ASSERT_EQ(patter_fusion.RunAllPatternFusion(cg), GRAPH_SUCCESS);
   af::AscIrLowerer lowerer;
   ASSERT_EQ(lowerer.Lowering(cg), GRAPH_SUCCESS);
   ASSERT_EQ(asc_adapt::GeFallback(cg), GRAPH_SUCCESS);
@@ -1980,21 +1976,21 @@ TEST_F(UTestLoweringAndCanfuseV2, GiantSplitLoweringCanfuseNoLifting) {
   [this]() {
     auto data0 = es_graph_->CreateInput(0, "data0", nullptr);
     data0.SetSymbolShape({"32", "512", "20"});
-    auto split_dim = CreateConst(*es_graph_,DT_INT64,{1},std::vector<int64_t>{1});
-    auto split0_outputs = es::Split(split_dim,data0,4);
+    auto split_dim = CreateConst(*es_graph_, DT_INT64, {1}, std::vector<int64_t>{1});
+    auto split0_outputs = es::Split(split_dim, data0, 4);
     size_t index = 0U;
-    for (auto output: split0_outputs) {
+    for (auto output : split0_outputs) {
       output.SetSymbolShape({"32", "128", "20"});
-      auto split2_outputs = es::Split(split_dim,output,32);
+      auto split2_outputs = es::Split(split_dim, output, 32);
       size_t count = 0;
-      for (auto output: split2_outputs) {
+      for (auto output : split2_outputs) {
         output.SetSymbolShape({"64", "4", "20"});
         if (count == 0U) {
           auto abs = es::Abs(output);
           abs.SetSymbolShape({"64", "4", "20"});
-          es_graph_->SetOutput(abs,index++);
+          es_graph_->SetOutput(abs, index++);
         } else {
-          es_graph_->SetOutput(output,index++);
+          es_graph_->SetOutput(output, index++);
         }
         count++;
       }
@@ -2003,7 +1999,7 @@ TEST_F(UTestLoweringAndCanfuseV2, GiantSplitLoweringCanfuseNoLifting) {
   auto graph = es_graph_->Build();
   auto cg = GraphUtilsEx::GetComputeGraph(*graph);
   af::PatternFusion patter_fusion;
-  ASSERT_EQ(patter_fusion.RunAllPatternFusion(cg),GRAPH_SUCCESS);
+  ASSERT_EQ(patter_fusion.RunAllPatternFusion(cg), GRAPH_SUCCESS);
   af::AscIrLowerer lowerer;
   ASSERT_EQ(lowerer.Lowering(cg), GRAPH_SUCCESS);
   ASSERT_EQ(asc_adapt::GeFallback(cg), GRAPH_SUCCESS);
@@ -2024,21 +2020,21 @@ TEST_F(UTestLoweringAndCanfuseV2, GiantSplitLoweringCanfuseNoLowering) {
   [this]() {
     auto data0 = es_graph_->CreateInput(0, "data0", nullptr);
     data0.SetSymbolShape({"32", "4096", "20"});
-    auto split_dim = CreateConst(*es_graph_,DT_INT64,{1},std::vector<int64_t>{1});
-    auto split0_outputs = es::Split(split_dim,data0,32);
+    auto split_dim = CreateConst(*es_graph_, DT_INT64, {1}, std::vector<int64_t>{1});
+    auto split0_outputs = es::Split(split_dim, data0, 32);
     size_t index = 0U;
-    for (auto output: split0_outputs) {
+    for (auto output : split0_outputs) {
       output.SetSymbolShape({"32", "128", "20"});
-      auto split2_outputs = es::Split(split_dim,output,32);
+      auto split2_outputs = es::Split(split_dim, output, 32);
       size_t count = 0;
-      for (auto output: split2_outputs) {
+      for (auto output : split2_outputs) {
         output.SetSymbolShape({"64", "4", "20"});
         if (count == 0U) {
           auto abs = es::Abs(output);
           abs.SetSymbolShape({"64", "4", "20"});
-          es_graph_->SetOutput(abs,index++);
+          es_graph_->SetOutput(abs, index++);
         } else {
-          es_graph_->SetOutput(output,index++);
+          es_graph_->SetOutput(output, index++);
         }
         count++;
       }
@@ -2048,7 +2044,7 @@ TEST_F(UTestLoweringAndCanfuseV2, GiantSplitLoweringCanfuseNoLowering) {
   auto cg = GraphUtilsEx::GetComputeGraph(*graph);
 
   af::PatternFusion patter_fusion;
-  ASSERT_EQ(patter_fusion.RunAllPatternFusion(cg),GRAPH_SUCCESS);
+  ASSERT_EQ(patter_fusion.RunAllPatternFusion(cg), GRAPH_SUCCESS);
   af::AscIrLowerer lowerer;
   ASSERT_EQ(lowerer.Lowering(cg), GRAPH_SUCCESS);
   ASSERT_EQ(asc_adapt::GeFallback(cg), GRAPH_SUCCESS);
@@ -2069,13 +2065,13 @@ TEST_F(UTestLoweringAndCanfuseV2, SplitAndAddNoBroadcast) {
   [this]() {
     auto data0 = es_graph_->CreateInput(0, "data0", nullptr);
     data0.SetSymbolShape({"20", "20", "20"});
-    auto split_outputs = es::SplitD(data0,1,2);
-    split_outputs[0].SetSymbolShape({"1","20","20"});
-    split_outputs[1].SetSymbolShape({"19","20","20"});
-    es_graph_->SetOutput(split_outputs[1],1);
-    auto add0=es::Add(data0,split_outputs[0]);
-    add0.SetSymbolShape({"20","20","20"});
-    es_graph_->SetOutput(add0,0);
+    auto split_outputs = es::SplitD(data0, 1, 2);
+    split_outputs[0].SetSymbolShape({"1", "20", "20"});
+    split_outputs[1].SetSymbolShape({"19", "20", "20"});
+    es_graph_->SetOutput(split_outputs[1], 1);
+    auto add0 = es::Add(data0, split_outputs[0]);
+    add0.SetSymbolShape({"20", "20", "20"});
+    es_graph_->SetOutput(add0, 0);
   }();
   auto graph = es_graph_->Build();
   auto cg = GraphUtilsEx::GetComputeGraph(*graph);
@@ -2099,17 +2095,17 @@ TEST_F(UTestLoweringAndCanfuseV2, SplitAndConcatAndAbsSplitPartialFuse) {
   [this]() {
     auto data0 = es_graph_->CreateInput(0, "data0", nullptr);
     data0.SetSymbolShape({"32", "32", "96", "64"});
-    auto split0_outputs = es::SplitD(data0,2U,3);
-    for (auto output: split0_outputs) {
+    auto split0_outputs = es::SplitD(data0, 2U, 3);
+    for (auto output : split0_outputs) {
       output.SetSymbolShape({"32", "32", "32", "64"});
     }
     auto abs0 = es::Abs(split0_outputs[2]);
     abs0.SetSymbolShape({"32", "32", "32", "64"});
-    auto reduce_axis0 = CreateConst(*es_graph_,DT_INT64,{1},std::vector<int64_t>{3});
-    auto reduce0 = es::ReduceAny(split0_outputs[0],reduce_axis0);
+    auto reduce_axis0 = CreateConst(*es_graph_, DT_INT64, {1}, std::vector<int64_t>{3});
+    auto reduce0 = es::ReduceAny(split0_outputs[0], reduce_axis0);
     reduce0.SetSymbolShape({"32", "32", "32"});
-    auto reduce_axis1 = CreateConst(*es_graph_,DT_INT64,{1},std::vector<int64_t>{3});
-    auto reduce1 = es::ReduceAny(split0_outputs[1],reduce_axis1);
+    auto reduce_axis1 = CreateConst(*es_graph_, DT_INT64, {1}, std::vector<int64_t>{3});
+    auto reduce1 = es::ReduceAny(split0_outputs[1], reduce_axis1);
     reduce1.SetSymbolShape({"32", "32", "32"});
     es_graph_->SetOutput(reduce0, 0);
     es_graph_->SetOutput(reduce1, 1);
@@ -2120,7 +2116,7 @@ TEST_F(UTestLoweringAndCanfuseV2, SplitAndConcatAndAbsSplitPartialFuse) {
 
   auto prev_node_num = cg->GetDirectNode().size();
   af::PatternFusion patter_fusion;
-  ASSERT_EQ(patter_fusion.RunAllPatternFusion(cg),GRAPH_SUCCESS);
+  ASSERT_EQ(patter_fusion.RunAllPatternFusion(cg), GRAPH_SUCCESS);
   af::AscIrLowerer lowerer;
   ASSERT_EQ(lowerer.Lowering(cg), GRAPH_SUCCESS);
   ASSERT_EQ(asc_adapt::GeFallback(cg), GRAPH_SUCCESS);
@@ -2143,15 +2139,15 @@ TEST_F(UTestLoweringAndCanfuseV2, SplitAndReduceAndAbsSplitLowFuseRatio) {
   [this]() {
     auto data0 = es_graph_->CreateInput(0, "data0", nullptr);
     data0.SetSymbolShape({"32", "32", "96", "64"});
-    auto split0_outputs = es::SplitD(data0,2U,6);
-    for (auto output: split0_outputs) {
+    auto split0_outputs = es::SplitD(data0, 2U, 6);
+    for (auto output : split0_outputs) {
       output.SetSymbolShape({"32", "32", "32", "64"});
     }
     auto abs0 = es::Abs(split0_outputs[0]);
     abs0.SetSymbolShape({"32", "32", "16", "64"});
     for (int32_t i = 0; i < 5U; i++) {
-      auto reduce_axis = CreateConst(*es_graph_,DT_INT64,{1},std::vector<int64_t>{3});
-      auto reduce = es::ReduceAny(split0_outputs[i],reduce_axis);
+      auto reduce_axis = CreateConst(*es_graph_, DT_INT64, {1}, std::vector<int64_t>{3});
+      auto reduce = es::ReduceAny(split0_outputs[i], reduce_axis);
       reduce.SetSymbolShape({"32", "32", "16"});
       es_graph_->SetOutput(reduce, i);
     }
@@ -2162,7 +2158,7 @@ TEST_F(UTestLoweringAndCanfuseV2, SplitAndReduceAndAbsSplitLowFuseRatio) {
 
   auto prev_node_num = cg->GetDirectNode().size();
   af::PatternFusion patter_fusion;
-  ASSERT_EQ(patter_fusion.RunAllPatternFusion(cg),GRAPH_SUCCESS);
+  ASSERT_EQ(patter_fusion.RunAllPatternFusion(cg), GRAPH_SUCCESS);
   af::AscIrLowerer lowerer;
   ASSERT_EQ(lowerer.Lowering(cg), GRAPH_SUCCESS);
   ASSERT_EQ(asc_adapt::GeFallback(cg), GRAPH_SUCCESS);
@@ -2519,7 +2515,7 @@ TEST_F(UTestLoweringAndCanfuseV2, GatherBrocConcatFuse) {
       asc_node_count++;
     }
   }
-  ASSERT_EQ(asc_node_count, 1); // 存在一个tile + concat的融合算子
+  ASSERT_EQ(asc_node_count, 1);  // 存在一个tile + concat的融合算子
 
   SetCurShapeEnvContext(nullptr);
   ge::PlatformContext::GetInstance().Reset();
@@ -2580,7 +2576,7 @@ TEST_F(UTestLoweringAndCanfuseV2, GatherBrocConcatFuse2) {
       asc_node_count++;
     }
   }
-  ASSERT_EQ(asc_node_count, 1); // 存在一个tile + concat + gather的融合算子
+  ASSERT_EQ(asc_node_count, 1);  // 存在一个tile + concat + gather的融合算子
 
   SetCurShapeEnvContext(nullptr);
   ge::PlatformContext::GetInstance().Reset();
@@ -2828,8 +2824,8 @@ TEST_F(UTestLoweringAndCanfuseV2, SplitReshapeSqueezeShouldNotFuseWhenNextIsNetO
   // 验证融合效果：Split不应与Reshape融合（当Reshape下游是NetOutput时）
   // 融合后的节点数应该与融合前相同（没有发生融合）
   EXPECT_EQ(asc_backend_count_after, asc_backend_count_before)
-      << "Expected no fusion between Split and Reshape when next node is NetOutput. Before: " << asc_backend_count_before
-      << ", After: " << asc_backend_count_after;
+      << "Expected no fusion between Split and Reshape when next node is NetOutput. Before: "
+      << asc_backend_count_before << ", After: " << asc_backend_count_after;
   GELOGI("SplitReshapeSqueezeShouldNotFuseWhenNextIsNetOutput: AscBackend nodes before=%zu, after=%zu",
          asc_backend_count_before, asc_backend_count_after);
 
@@ -2910,8 +2906,8 @@ TEST_F(UTestLoweringAndCanfuseV2, SplitReshapeNotSqueezeShouldFuse) {
   EXPECT_LT(asc_backend_count_after, asc_backend_count_before)
       << "Expected fusion to reduce AscBackend node count. Before: " << asc_backend_count_before
       << ", After: " << asc_backend_count_after;
-  GELOGI("SplitReshapeNotSqueezeShouldFuse: AscBackend nodes before=%zu, after=%zu",
-         asc_backend_count_before, asc_backend_count_after);
+  GELOGI("SplitReshapeNotSqueezeShouldFuse: AscBackend nodes before=%zu, after=%zu", asc_backend_count_before,
+         asc_backend_count_after);
 
   ASSERT_EQ(lowerer.Lifting(cg), GRAPH_SUCCESS);
   AscBackendPostProcessor post_processor;
@@ -2920,4 +2916,4 @@ TEST_F(UTestLoweringAndCanfuseV2, SplitReshapeNotSqueezeShouldFuse) {
   ge::PlatformContext::GetInstance().Reset();
   RuntimeStub::Reset();
 }
-}  // namespace ge
+}  // namespace af

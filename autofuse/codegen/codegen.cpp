@@ -105,9 +105,10 @@ Status EnrichScheduledResultAscirParams(const ascir::FusedScheduledResult &fused
 }
 
 Status CombineTilings(const std::map<std::string, std::string> &tiling_file_name_to_content, std::string &result) {
-  GE_CHK_BOOL_RET_STATUS(tiling_file_name_to_content.find(kTilingHeadIdentify) != tiling_file_name_to_content.end(), ge::FAILED,
-                         "tiling_file_name_to_content has no tiling head");
-  result += RemoveAutoFuseTilingHeadGuards(tiling_file_name_to_content.at(kTilingHeadIdentify));  // 删除头文件的宏保护，cpp文件不需要
+  GE_CHK_BOOL_RET_STATUS(tiling_file_name_to_content.find(kTilingHeadIdentify) != tiling_file_name_to_content.end(),
+                         ge::FAILED, "tiling_file_name_to_content has no tiling head");
+  result += RemoveAutoFuseTilingHeadGuards(
+      tiling_file_name_to_content.at(kTilingHeadIdentify));  // 删除头文件的宏保护，cpp文件不需要
 
   // 遍历所有非 TilingHead 和 TilingData 的条目，去掉第一行后拼接
   for (const auto &[key, value] : tiling_file_name_to_content) {
@@ -138,25 +139,24 @@ Status CombineTilings(const std::map<std::string, std::string> &tiling_file_name
 }
 
 struct ScanResult {
-  int open_braces = 0; // 当前行的开大括号{总数
-  int close_braces = 0; // 当前行的闭大括号}总数
-  int line_starts_close_braces = 0; // 当前行首连续闭大括号数量
-  bool has_preprocessor = false; // 当前行是否预处理宏
+  int open_braces = 0;               // 当前行的开大括号{总数
+  int close_braces = 0;              // 当前行的闭大括号}总数
+  int line_starts_close_braces = 0;  // 当前行首连续闭大括号数量
+  bool has_preprocessor = false;     // 当前行是否预处理宏
 };
 
 // 处理字符串状态
-void StringState(char c, size_t i, const std::string& line, bool& in_string, char& string_char) {
+void StringState(char c, size_t i, const std::string &line, bool &in_string, char &string_char) {
   if (!in_string && (c == '"' || c == '\'')) {
     in_string = true;
     string_char = c;
-  } else if (in_string && c == string_char && (i == 0 || line[i-1] != '\\')) {
+  } else if (in_string && c == string_char && (i == 0 || line[i - 1] != '\\')) {
     in_string = false;
   }
 }
 
 // 处理单行/多行注释状态
-bool CommentState(char c, char next_c, size_t& i,
-                  bool in_string, bool& in_block_comment, bool& in_line_comment) {
+bool CommentState(char c, char next_c, size_t &i, bool in_string, bool &in_block_comment, bool &in_line_comment) {
   if (!in_string && !in_block_comment && !in_line_comment) {
     if (c == '/' && next_c == '/') {
       in_line_comment = true;
@@ -175,8 +175,9 @@ bool CommentState(char c, char next_c, size_t& i,
 }
 
 // 大括号统计
-void BraceCount(char c, bool& in_line_start_close_brace, ScanResult& result) {
-  if (in_line_start_close_brace && !std::isspace(static_cast<unsigned char>(c)) && (c != '}')) { // 判断是否仍在闭大括号行首状态
+void BraceCount(char c, bool &in_line_start_close_brace, ScanResult &result) {
+  if (in_line_start_close_brace && !std::isspace(static_cast<unsigned char>(c)) &&
+      (c != '}')) {  // 判断是否仍在闭大括号行首状态
     in_line_start_close_brace = false;
   }
   if (c == '{') {
@@ -189,11 +190,10 @@ void BraceCount(char c, bool& in_line_start_close_brace, ScanResult& result) {
   }
 }
 
-ScanResult ScanLine(const std::string& line, bool& in_block_comment,
-                    bool& in_string, char& string_char) {
+ScanResult ScanLine(const std::string &line, bool &in_block_comment, bool &in_string, char &string_char) {
   ScanResult result;
-  bool in_line_comment = false; // 是否在//单行注释内
-  bool in_line_start_close_brace = true; // 闭大括号是否在行首
+  bool in_line_comment = false;           // 是否在//单行注释内
+  bool in_line_start_close_brace = true;  // 闭大括号是否在行首
   for (size_t i = 0; i < line.length(); ++i) {
     char c = line[i];
     char next_c = (i + 1 < line.length()) ? line[i + 1] : '\0';
@@ -204,16 +204,15 @@ ScanResult ScanLine(const std::string& line, bool& in_block_comment,
     // 1.2 单行/多行注释状态判断
     bool should_continue = CommentState(c, next_c, i, in_string, in_block_comment, in_line_comment);
     if (should_continue) {
-        if (in_line_comment) break;
-        continue;
+      if (in_line_comment) break;
+      continue;
     }
     // 1.3 不在字符串或注释状态，统计大括号数量
     if (!in_string && !in_block_comment && !in_line_comment) {
       BraceCount(c, in_line_start_close_brace, result);
     }
     // 1.4 是否是宏判断
-    if (!in_string && !in_block_comment && !in_line_comment &&
-      i == line.find_first_not_of(" \t") && c == '#') {
+    if (!in_string && !in_block_comment && !in_line_comment && i == line.find_first_not_of(" \t") && c == '#') {
       result.has_preprocessor = true;
     }
   }
@@ -224,10 +223,10 @@ std::string FormatIndentation(const std::string &code) {
   std::istringstream iss(code);
   std::ostringstream oss;
   std::string line;
-  int indent_level = 0; // 当前缩进层级
-  bool in_block_comment = false; // 是否在/* */多行注释内
-  bool in_string = false; // 是否在字符串常量内
-  char string_char = '\0'; // 字符串的引号类型
+  int indent_level = 0;           // 当前缩进层级
+  bool in_block_comment = false;  // 是否在/* */多行注释内
+  bool in_string = false;         // 是否在字符串常量内
+  char string_char = '\0';        // 字符串的引号类型
 
   // 逐行遍历处理
   while (std::getline(iss, line)) {
@@ -249,8 +248,8 @@ std::string FormatIndentation(const std::string &code) {
       continue;
     }
     // 2.3 按照缩进等级增加缩进
-    int current_indent = indent_level; // 当前缩进等级
-    if (result.line_starts_close_braces > 0) { // 如果行首有闭大括号，先减少缩进（用于当前行）
+    int current_indent = indent_level;          // 当前缩进等级
+    if (result.line_starts_close_braces > 0) {  // 如果行首有闭大括号，先减少缩进（用于当前行）
       current_indent = std::max(0, indent_level - result.line_starts_close_braces);
     }
 
@@ -266,7 +265,7 @@ std::string FormatIndentation(const std::string &code) {
 
 }  // namespace
 
-std::string RemoveSubDirInclude(const std::string& kernel_str) {
+std::string RemoveSubDirInclude(const std::string &kernel_str) {
   std::string result = R"(
 #include "kernel_operator.h"
 )";
@@ -319,15 +318,15 @@ Status Codegen::Generate(const std::map<std::string, std::string> &shape_info,
   return ge::SUCCESS;
 }
 
-std::string Codegen::GenerateTilingData(const ascir::FusedScheduledResult &fused_schedule_result, bool is_inductor) const {
+std::string Codegen::GenerateTilingData(const ascir::FusedScheduledResult &fused_schedule_result,
+                                        bool is_inductor) const {
   std::stringstream ss;
   ss << TilingData("Autofuse").Generate(fused_schedule_result, is_inductor);
   return ss.str();
 }
 
-Status Codegen::GenerateTilingForInductor(
-    const ascir::FusedScheduledResult &fused_schedule_result,
-    std::map<std::string, std::string> &tiling_file_name_to_content) const {
+Status Codegen::GenerateTilingForInductor(const ascir::FusedScheduledResult &fused_schedule_result,
+                                          std::map<std::string, std::string> &tiling_file_name_to_content) const {
   tiling_file_name_to_content = this->tiling_lib_.GenerateForInductor(fused_schedule_result);
   for (const auto &pair : tiling_file_name_to_content) {
     GE_CHK_BOOL_RET_STATUS(pair.second != ascgen_utils::INVALID_TILING, ge::FAILED, "tilings(%s) is invalid",
@@ -343,11 +342,10 @@ std::map<std::string, std::string> Codegen::GenerateTilingForInductor(
   return tiling_file_name_to_content;
 }
 
-Status Codegen::GenerateTiling(
-    const ascir::FusedScheduledResult &fused_schedule_result,
-    const std::map<std::string, std::string> &shape_info, const std::string &pgo_dir,
-    const std::string &core_num,
-    std::map<std::string, std::string> &tiling_file_name_to_content) const {
+Status Codegen::GenerateTiling(const ascir::FusedScheduledResult &fused_schedule_result,
+                               const std::map<std::string, std::string> &shape_info, const std::string &pgo_dir,
+                               const std::string &core_num,
+                               std::map<std::string, std::string> &tiling_file_name_to_content) const {
   tiling_file_name_to_content = this->tiling_lib_.Generate(fused_schedule_result, shape_info, pgo_dir, core_num);
   for (const auto &pair : tiling_file_name_to_content) {
     GE_CHK_BOOL_RET_STATUS(pair.second != ascgen_utils::INVALID_TILING, ge::FAILED, "tilings(%s) is invalid",
@@ -356,10 +354,10 @@ Status Codegen::GenerateTiling(
   return ge::SUCCESS;
 }
 
-std::map<std::string, std::string> Codegen::GenerateTiling(
-    const ascir::FusedScheduledResult &fused_schedule_result,
-    const std::map<std::string, std::string> &shape_info, const std::string &pgo_dir,
-    const std::string &core_num) const {
+std::map<std::string, std::string> Codegen::GenerateTiling(const ascir::FusedScheduledResult &fused_schedule_result,
+                                                           const std::map<std::string, std::string> &shape_info,
+                                                           const std::string &pgo_dir,
+                                                           const std::string &core_num) const {
   std::map<std::string, std::string> tiling_file_name_to_content;
   (void)GenerateTiling(fused_schedule_result, shape_info, pgo_dir, core_num, tiling_file_name_to_content);
   return tiling_file_name_to_content;
@@ -371,7 +369,8 @@ std::string Codegen::GenerateInferShape(const std::vector<std::vector<std::strin
   return gen.GenInferShapeFunc(symbol_shape_str, shape_info);
 }
 
-std::string Codegen::GeneratorPgo(const ascir::FusedScheduledResult &fused_schedule_result, const std::string &pgo_dir) const {
+std::string Codegen::GeneratorPgo(const ascir::FusedScheduledResult &fused_schedule_result,
+                                  const std::string &pgo_dir) const {
   return this->tiling_lib_.GenerateForPgo(fused_schedule_result, pgo_dir);
 }
 
@@ -392,8 +391,9 @@ Status Codegen::GenerateKernel(const ascir::FusedScheduledResult &fused_schedule
   std::stringstream ss;
   std::string kernel_task_type = GetKernelTaskType(fused_schedule_result);
   ss << Kernel::IncludeAndDefines(fused_schedule_result, kernel_task_type, use_list_tensor, is_inductor);
-  GE_CHK_STATUS_RET(Kernel::GenKernelFuncByTilingKey(fused_schedule_result, ss, use_list_tensor, config,
-                    kernel_task_type), "Generate kernel func by tiling_key failed.");
+  GE_CHK_STATUS_RET(
+      Kernel::GenKernelFuncByTilingKey(fused_schedule_result, ss, use_list_tensor, config, kernel_task_type),
+      "Generate kernel func by tiling_key failed.");
   if (is_inductor) {
     ss << Kernel::GenKernelFuncCallForInductor(fused_schedule_result);
   }

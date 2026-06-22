@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -244,11 +244,13 @@ TEST_F(UTTEST_GENERAL_SOLVER_GEN_02, test_gen_get_result) {
   std::string expect_codes = "";
 
   expect_codes +=
-      "inline void GeneralSolverCase0::GetResult(int32_t solution_num, uint64_t* solution, TilingData& tiling_data)\n{\n";
+      "inline void GeneralSolverCase0::GetResult(int32_t solution_num, uint64_t* solution, TilingData& "
+      "tiling_data)\n{\n";
   expect_codes += "    if (solution_num > 0) {\n";
   expect_codes += "        OP_LOGD(OP_NAME, \"Filling tilingdata for Case0.\");\n";
   expect_codes += "        OP_LOGD(OP_NAME, \"Estimate the occupy.\");\n";
-  expect_codes += "        OP_LOGD(OP_NAME, \"hbm_size = %ld\", static_cast<uint64_t>(Gethbm_sizeCost(solution) + hbm_size));\n";
+  expect_codes +=
+      "        OP_LOGD(OP_NAME, \"hbm_size = %ld\", static_cast<uint64_t>(Gethbm_sizeCost(solution) + hbm_size));\n";
   expect_codes += "        OP_LOGD(OP_NAME, \"Simulate the cost.\");\n";
   expect_codes += "        OP_LOGD(OP_NAME, \"Objective value for Case0 is %f.\", GetObj(solution));\n";
   expect_codes += "        MapVarVal(solution, tiling_data);\n";
@@ -266,7 +268,8 @@ TEST_F(UTTEST_GENERAL_SOLVER_GEN_02, test_create_input) {
   expect_codes += "    // 由modelinfo传入的不等式约束个数\n";
   expect_codes += "    int32_t num_leq = 2;\n";
   expect_codes +=
-      "    OP_LOGD(OP_NAME, \"The number of variable is %d(x0, x1), the number of constraints is %d.\", num_var, num_leq);\n";
+      "    OP_LOGD(OP_NAME, \"The number of variable is %d(x0, x1), the number of constraints is %d.\", num_var, "
+      "num_leq);\n";
   expect_codes += "    // 初始化解的个数为0\n";
   expect_codes += "    int32_t solution_num = 0;\n";
   expect_codes += "    size_t uint_size = 6 * static_cast<size_t>(num_var) * sizeof(uint64_t);\n";
@@ -276,10 +279,11 @@ TEST_F(UTTEST_GENERAL_SOLVER_GEN_02, test_create_input) {
   expect_codes += "    size_t total_VarVal_size = static_cast<size_t>(2 * cfg_top_num + 1) * VarVal_size;\n";
   expect_codes += "    size_t ret_size = static_cast<size_t>(num_var * cfg_top_num) * sizeof(uint64_t);\n";
   expect_codes += "    size_t visited_size = static_cast<size_t>(num_var * cfg_iterations) * sizeof(uint64_t);\n";
-  expect_codes += "    void* memory_pool = calloc(1, uint_size + double_size + bool_size"
-                      " + sizeof(VarInfo) + sizeof(ConsInfo) + sizeof(Momentum)"
-                      " + total_VarVal_size + sizeof(Result) + ret_size"
-                      " + visited_size + sizeof(VisitedNode));\n";
+  expect_codes +=
+      "    void* memory_pool = calloc(1, uint_size + double_size + bool_size"
+      " + sizeof(VarInfo) + sizeof(ConsInfo) + sizeof(Momentum)"
+      " + total_VarVal_size + sizeof(Result) + ret_size"
+      " + visited_size + sizeof(VisitedNode));\n";
   expect_codes += "    if (memory_pool == nullptr) {\n";
   expect_codes += "        OP_LOGE(OP_NAME, \"Failed to allocate memory pool for solver.\");\n";
   expect_codes += "        return false;\n";
@@ -300,10 +304,12 @@ TEST_F(UTTEST_GENERAL_SOLVER_GEN_02, test_create_input) {
   expect_codes += "    uint64_t* uint_space = (uint64_t*)((char*)memory_pool + offset_uint);\n";
   expect_codes += "    double* double_space = (double*)((char*)memory_pool + offset_double);\n";
   expect_codes += "    bool* bool_space = (bool*)((char*)memory_pool + offset_bool);\n";
-  expect_codes += "    // 可修改参数:待求解变量的上界,过大的上界将导致搜索范围与耗时增加,过小的上界更有可能获得较差的局部最优解\n";
+  expect_codes +=
+      "    // 可修改参数:待求解变量的上界,过大的上界将导致搜索范围与耗时增加,过小的上界更有可能获得较差的局部最优解\n";
   expect_codes += "    uint_space[0] = static_cast<uint64_t>((2 * a));\n";
   expect_codes += "    uint_space[1] = static_cast<uint64_t>((2 * a));\n";
-  expect_codes += "    // 可修改参数:待求解变量的下界,过小的下界将导致搜索范围与耗时增加,过大的下界更有可能获得较差的局部最优解\n";
+  expect_codes +=
+      "    // 可修改参数:待求解变量的下界,过小的下界将导致搜索范围与耗时增加,过大的下界更有可能获得较差的局部最优解\n";
   expect_codes += "    uint_space[2] = static_cast<uint64_t>(1);\n";
   expect_codes += "    if (static_cast<uint64_t>(1) > static_cast<uint64_t>((2 * a))) {\n";
   expect_codes += "        OP_LOGW(OP_NAME, \"Lower_bound[0] is larger than upper_bound[0].\");\n";
@@ -341,7 +347,9 @@ TEST_F(UTTEST_GENERAL_SOLVER_GEN_02, test_create_input) {
   expect_codes += "    var_info->SetVarInfo(num_var, uint_space, bool_space);\n";
   expect_codes += "    cons_info->SetConsInfo(num_leq, double_space);\n";
   expect_codes += "    momentum->SetMomentum(num_var, num_leq, double_space, bool_space);\n";
-  expect_codes += "    result->SetResult(cfg_top_num, num_var, (VarVal*)((char*)memory_pool + offset_varVal),((char*)memory_pool + offset_temp), ((char*)memory_pool + offset_solution));\n";
+  expect_codes +=
+      "    result->SetResult(cfg_top_num, num_var, (VarVal*)((char*)memory_pool + offset_varVal),((char*)memory_pool + "
+      "offset_temp), ((char*)memory_pool + offset_solution));\n";
   expect_codes += "    visited_node->SetVisitedNode(num_var, visited_head);\n";
   expect_codes += "    // 通用求解器的输入参数\n";
   expect_codes += "    SolverInput input;\n";
@@ -366,7 +374,8 @@ TEST_F(UTTEST_GENERAL_SOLVER_GEN_02, test_create_input) {
 TEST_F(UTTEST_GENERAL_SOLVER_GEN_02, test_run_solver) {
   std::string expect_codes = "";
 
-  expect_codes += "    std::shared_ptr<GeneralSolverCase0> solver = std::make_shared<GeneralSolverCase0>(cfg, tiling_data);\n";
+  expect_codes +=
+      "    std::shared_ptr<GeneralSolverCase0> solver = std::make_shared<GeneralSolverCase0>(cfg, tiling_data);\n";
   expect_codes += "    if (solver != nullptr) {\n";
   expect_codes += "        // 导入通用求解器的输入参数并完成初始化\n";
   expect_codes += "        OP_LOGD(OP_NAME, \"Start initializing the input.\");\n";

@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -34,19 +34,19 @@ class ProfilingInfoWrapper {
   }
 
   virtual void SetBlockDim(const uint32_t block_dim, const NodeProfInfoType prof_info_type) {
-    (void) block_dim;
-    (void) prof_info_type;
+    (void)block_dim;
+    (void)prof_info_type;
   }
 
   virtual void SetMixLaunchEnable(const bool mix_launch_enable) {
-    (void) mix_launch_enable;
+    (void)mix_launch_enable;
   }
 
   virtual void SetLaunchTimeStamp(const uint64_t begin_time, const uint64_t end_time,
                                   const NodeProfInfoType prof_info_type) {
-    (void) begin_time;
-    (void) end_time;
-    (void) prof_info_type;
+    (void)begin_time;
+    (void)end_time;
+    (void)prof_info_type;
   }
 
   virtual void SetBlockDimForAtomic(uint32_t block_dim) {
@@ -79,7 +79,6 @@ class ExceptionDumpInfoWrapper {
   virtual void SetDeviceArgs(uintptr_t addr, size_t size) = 0;
   virtual void AddWorkspace(uintptr_t addr, int64_t bytes) = 0;
 };
-}
+}  // namespace gert
 
 #endif
-

@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -28,12 +28,12 @@ void AttrGroupSerializerRegistry::RegisterAttrGroupSerialize(const AttrGroupSeri
     return;
   }
   if (serializer_builder_map_.count(obj_type) > 0U) {
-    GELOGW("Serializer %s for type %s has been registered",
-           typeid(*ptr).name(), HashedPointer<void>(obj_type).ToString().c_str());
+    GELOGW("Serializer %s for type %s has been registered", typeid(*ptr).name(),
+           HashedPointer<void>(obj_type).ToString().c_str());
     return;
   }
-  GELOGD("Serializer %s for type %s register successfully",
-         typeid(*ptr).name(), HashedPointer<void>(obj_type).ToString().c_str());
+  GELOGD("Serializer %s for type %s register successfully", typeid(*ptr).name(),
+         HashedPointer<void>(obj_type).ToString().c_str());
   serializer_builder_map_[obj_type] = builder;
   deserializer_builder_map_[proto_type] = std::make_pair(builder, obj_type);
 }
@@ -47,9 +47,9 @@ std::unique_ptr<AttrGroupsBase> AttrGroupSerializerRegistry::GetSerializer(const
   return iter->second();
 }
 
-AttrGroupDeserializer AttrGroupSerializerRegistry::GetDeserializer(const af::proto::AttrGroupDef::AttrGroupCase proto_type) {
-  const auto iter =
-      deserializer_builder_map_.find(proto_type);
+AttrGroupDeserializer AttrGroupSerializerRegistry::GetDeserializer(
+    const af::proto::AttrGroupDef::AttrGroupCase proto_type) {
+  const auto iter = deserializer_builder_map_.find(proto_type);
   if (iter == deserializer_builder_map_.cend()) {
     GELOGW("Deserializer for type [%d] has not been registered", static_cast<int32_t>(proto_type));
     return AttrGroupDeserializer(nullptr, nullptr);
@@ -57,13 +57,13 @@ AttrGroupDeserializer AttrGroupSerializerRegistry::GetDeserializer(const af::pro
   return AttrGroupDeserializer(iter->second.first(), iter->second.second);
 }
 
-AttrGroupSerializerRegister::AttrGroupSerializerRegister(const AttrGroupSerializeBuilder builder,
-                                                         const TypeId obj_type,
-                                                         const af::proto::AttrGroupDef::AttrGroupCase proto_type) noexcept {
+AttrGroupSerializerRegister::AttrGroupSerializerRegister(
+    const AttrGroupSerializeBuilder builder, const TypeId obj_type,
+    const af::proto::AttrGroupDef::AttrGroupCase proto_type) noexcept {
   if (builder == nullptr) {
     GELOGE(ge::FAILED, "SerializerBuilder is nullptr.");
     return;
   }
   AttrGroupSerializerRegistry::GetInstance().RegisterAttrGroupSerialize(builder, obj_type, proto_type);
 }
-}
+}  // namespace af

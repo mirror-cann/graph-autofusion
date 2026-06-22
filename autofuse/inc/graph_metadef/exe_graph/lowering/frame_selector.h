@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -56,23 +56,23 @@ class FrameSelector {
   static ge::graphStatus OnMainRoot(const std::function<std::vector<ValueHolderPtr>()> &builder,
                                     std::vector<ValueHolderPtr> &outputs);
   /**
- * 选择Main图，将builder中的逻辑生成到Main图上, 并且保证builder生成的节点在main图最开始执行
- * 当前已有阶段，请参考bg::OnMainRootFirstExecStage的枚举值
- *
- * @param builder 执行图构建函数
- * @return 成功时，将builder返回的ValueHolderPtrs作为本函数的返回值；失败时，本函数返回空vector
- */
+   * 选择Main图，将builder中的逻辑生成到Main图上, 并且保证builder生成的节点在main图最开始执行
+   * 当前已有阶段，请参考bg::OnMainRootFirstExecStage的枚举值
+   *
+   * @param builder 执行图构建函数
+   * @return 成功时，将builder返回的ValueHolderPtrs作为本函数的返回值；失败时，本函数返回空vector
+   */
   static std::vector<ValueHolderPtr> OnMainRootFirst(const std::function<std::vector<bg::ValueHolderPtr>()> &builder);
 
   static ValueHolderPtr OnMainRootLast(const std::function<bg::ValueHolderPtr()> &builder);
 
   /**
- * 选择Main图，将builder中的逻辑生成到Main图上, builder生成的节点在LastEventSync阶段执行.
- * 当前已有阶段，请参考bg::OnMainRootLastExecStage的枚举值
- *
- * @param builder 执行图构建函数
- * @return 成功时，将builder返回的ValueHolderPtrs作为本函数的返回值；失败时，本函数返回空vector
- */
+   * 选择Main图，将builder中的逻辑生成到Main图上, builder生成的节点在LastEventSync阶段执行.
+   * 当前已有阶段，请参考bg::OnMainRootLastExecStage的枚举值
+   *
+   * @param builder 执行图构建函数
+   * @return 成功时，将builder返回的ValueHolderPtrs作为本函数的返回值；失败时，本函数返回空vector
+   */
   static std::vector<ValueHolderPtr> OnMainRootLastEventSync(
       const std::function<std::vector<bg::ValueHolderPtr>()> &builder);
 

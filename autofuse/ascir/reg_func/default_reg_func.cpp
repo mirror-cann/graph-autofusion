@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -19,8 +19,7 @@ constexpr int32_t ONE_BLK_SIZE = 32;
 constexpr int32_t ONE_REPEAT_BYTE_SIZE = 256;
 constexpr int32_t MAX_REPEAT_NUM = 255;
 
-std::vector<std::unique_ptr<TmpBufDesc>> GetTmpBuffer(const Expression &tmp_size)
-{
+std::vector<std::unique_ptr<TmpBufDesc>> GetTmpBuffer(const Expression &tmp_size) {
   auto valid_tmp_size = sym::Min(tmp_size, Symbol(MAX_REPEAT_NUM * ONE_REPEAT_BYTE_SIZE + ONE_BLK_SIZE));
   GELOGD("Get temp buffer size: %s", valid_tmp_size.Str().get());
   TmpBufDesc desc = {valid_tmp_size, -1};
@@ -29,8 +28,7 @@ std::vector<std::unique_ptr<TmpBufDesc>> GetTmpBuffer(const Expression &tmp_size
   return tmp_buf_descs;
 }
 
-std::vector<std::unique_ptr<TmpBufDesc>> CalcDefaultTmpSize(const AscNode &node)
-{
+std::vector<std::unique_ptr<TmpBufDesc>> CalcDefaultTmpSize(const AscNode &node) {
   GELOGD("Node %s[%s] default temp buffer size: %u", node.GetTypePtr(), node.GetNamePtr(), DEFAULT_TEMP_BUFFER_SIZE);
   return GetTmpBuffer(Symbol(DEFAULT_TEMP_BUFFER_SIZE));
 }
@@ -56,8 +54,7 @@ uint32_t GetNonScalarAxisId(AscNodeInputs &node_inputs) {
   return UINT32_MAX;
 }
 
-Expression GetInputSize(AscNodeInputs &node_inputs)
-{
+Expression GetInputSize(AscNodeInputs &node_inputs) {
   const uint32_t input_id = GetNonScalarAxisId(node_inputs);
   if (input_id == UINT32_MAX) {
     GELOGD("All input is scalar, return size=1.");
@@ -86,8 +83,7 @@ Expression GetInputSize(AscNodeInputs &node_inputs)
   return input_size;
 }
 
-std::vector<std::unique_ptr<TmpBufDesc>> GetInputDataSizeTmpBuffer(const AscNode &node)
-{
+std::vector<std::unique_ptr<TmpBufDesc>> GetInputDataSizeTmpBuffer(const AscNode &node) {
   auto node_inputs = node.inputs;
   GE_ASSERT_TRUE(node_inputs.Size() > 0U, "Node %s[%s] inputs size is 0.", node.GetTypePtr(), node.GetNamePtr());
   const auto input_size = GetInputSize(node_inputs);
@@ -96,14 +92,13 @@ std::vector<std::unique_ptr<TmpBufDesc>> GetInputDataSizeTmpBuffer(const AscNode
     input_id = node_inputs.Size() - 1U;
   }
   const auto data_type_size = GetSizeByDataType(node_inputs[input_id].attr.dtype);
-  GELOGD("Node %s[%s] inputs[%u] data type size is: %d", node.GetTypePtr(), node.GetNamePtr(),
-    input_id, data_type_size);
+  GELOGD("Node %s[%s] inputs[%u] data type size is: %d", node.GetTypePtr(), node.GetNamePtr(), input_id,
+         data_type_size);
   const Expression total_size = Symbol(data_type_size) * input_size;
   return GetTmpBuffer(total_size);
 }
 
-std::vector<std::unique_ptr<TmpBufDesc>> CalcBinaryApiTmpSize(const AscNode &node)
-{
+std::vector<std::unique_ptr<TmpBufDesc>> CalcBinaryApiTmpSize(const AscNode &node) {
   AscNodeInputs node_inputs = node.inputs;
   // second input is scalar
   if (node_inputs[1].attr.repeats.empty()) {

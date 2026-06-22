@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -33,7 +33,7 @@ class ExecuteGraph : public std::enable_shared_from_this<ExecuteGraph>, public A
   };
 
   explicit ExecuteGraph(const std::string &name);
-  ~ExecuteGraph() override{};
+  ~ExecuteGraph() override {};
 
   /**
    * The function is shallow copy for ExecuteGraph
@@ -253,5 +253,5 @@ class ExecuteGraph : public std::enable_shared_from_this<ExecuteGraph>, public A
   friend class ExecuteGraphUtils;
 };
 using ExecuteGraphPtr = std::shared_ptr<ExecuteGraph>;
-}  // namespace ge
+}  // namespace af
 #endif  // INC_GRAPH_EXECUTE_GRAPH_H

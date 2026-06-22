@@ -12,11 +12,12 @@
 #include "tikicpulib.h"
 
 #include "autofuse_tiling_data.h"
-extern "C" __global__ __aicore__ void remainder_bf16_test(GM_ADDR x1, GM_ADDR x2, GM_ADDR y, GM_ADDR workspace, GM_ADDR tiling);
-extern "C" int64_t AutofuseTiling(uint32_t s0, uint32_t s1, AutofuseTilingData* tiling, uint32_t* workspaceSize, uint64_t *blockDim, uint32_t aiv_num, uint32_t ub_size);
+extern "C" __global__ __aicore__ void remainder_bf16_test(GM_ADDR x1, GM_ADDR x2, GM_ADDR y, GM_ADDR workspace,
+                                                          GM_ADDR tiling);
+extern "C" int64_t AutofuseTiling(uint32_t s0, uint32_t s1, AutofuseTilingData *tiling, uint32_t *workspaceSize,
+                                  uint64_t *blockDim, uint32_t aiv_num, uint32_t ub_size);
 
-class E2E_BackendRemainderBf16_Code : public testing::Test, public testing::WithParamInterface<std::vector<int>> {
-};
+class E2E_BackendRemainderBf16_Code : public testing::Test, public testing::WithParamInterface<std::vector<int>> {};
 
 TEST_P(E2E_BackendRemainderBf16_Code, CalculateCorrect) {
   auto test_shape = GetParam();
@@ -26,16 +27,16 @@ TEST_P(E2E_BackendRemainderBf16_Code, CalculateCorrect) {
   int test_size = test_shape[0] * test_shape[1];
 
   AutofuseTilingData tiling_data;
-  bfloat16_t* input1 = (bfloat16_t *)AscendC::GmAlloc(test_size * sizeof(bfloat16_t) + 32);
-  bfloat16_t* input2 = (bfloat16_t *)AscendC::GmAlloc(test_size * sizeof(bfloat16_t) + 32);
-  bfloat16_t* y = (bfloat16_t *)AscendC::GmAlloc(test_size * sizeof(bfloat16_t) + 32);
+  bfloat16_t *input1 = (bfloat16_t *)AscendC::GmAlloc(test_size * sizeof(bfloat16_t) + 32);
+  bfloat16_t *input2 = (bfloat16_t *)AscendC::GmAlloc(test_size * sizeof(bfloat16_t) + 32);
+  bfloat16_t *y = (bfloat16_t *)AscendC::GmAlloc(test_size * sizeof(bfloat16_t) + 32);
   bfloat16_t *expect = (bfloat16_t *)AscendC::GmAlloc(test_size * sizeof(bfloat16_t) + 32);
 
   // Prepare test and expect data
   srand(1);
   for (int i = 0; i < test_size; i++) {
     float f1 = (float)(rand() % 200) / 10.0f - 10.0f;  // [-10, 10]
-    float f2 = (float)(rand() % 190) / 10.0f + 1.0f;    // [1, 20] to avoid division by zero
+    float f2 = (float)(rand() % 190) / 10.0f + 1.0f;   // [1, 20] to avoid division by zero
     input1[i] = static_cast<bfloat16_t>(f1);
     input2[i] = static_cast<bfloat16_t>(f2);
     expect[i] = static_cast<bfloat16_t>(
@@ -45,19 +46,20 @@ TEST_P(E2E_BackendRemainderBf16_Code, CalculateCorrect) {
 
   // Launch
   uint32_t ws_size = 0;
-  AutofuseTiling(test_shape[0], test_shape[1], &tiling_data, &ws_size, &block_dim, 48, 192*1024);
+  AutofuseTiling(test_shape[0], test_shape[1], &tiling_data, &ws_size, &block_dim, 48, 192 * 1024);
   printf("tiling key: %d, core_num: %d\n", tiling_data.tiling_key, tiling_data.block_dim);
 
   AscendC::SetKernelMode(KernelMode::AIV_MODE);
-  ICPU_RUN_KF(remainder_bf16_test, tiling_data.block_dim, (uint8_t *)input1, (uint8_t *)input2, (uint8_t *)y, nullptr, (uint8_t*)&tiling_data);
+  ICPU_RUN_KF(remainder_bf16_test, tiling_data.block_dim, (uint8_t *)input1, (uint8_t *)input2, (uint8_t *)y, nullptr,
+              (uint8_t *)&tiling_data);
 
   // Count difference
   uint32_t diff_count = 0;
   for (int i = 0; i < test_size; i++) {
     if (std::fabs(static_cast<float>(y[i]) - static_cast<float>(expect[i])) > 1e-2) {
       printf("diff at index %d: x1: %f, x2: %f, y: %f, expect: %f, diff: %f\n", i, static_cast<float>(input1[i]),
-             static_cast<float>(input2[i]),
-             static_cast<float>(y[i]), static_cast<float>(expect[i]), std::fabs(static_cast<float>(y[i]) - static_cast<float>(expect[i])));
+             static_cast<float>(input2[i]), static_cast<float>(y[i]), static_cast<float>(expect[i]),
+             std::fabs(static_cast<float>(y[i]) - static_cast<float>(expect[i])));
       diff_count++;
     }
   }
@@ -71,7 +73,5 @@ TEST_P(E2E_BackendRemainderBf16_Code, CalculateCorrect) {
 }
 
 INSTANTIATE_TEST_SUITE_P(CalcWithDifferentShape, E2E_BackendRemainderBf16_Code,
-    ::testing::Values(std::vector<int>{32, 16},  // 用例输入的维度需要与构图接口的dims_size匹配
-                      std::vector<int>{32, 18},
-                      std::vector<int>{32, 256}
-                      ));
+                         ::testing::Values(std::vector<int>{32, 16},  // 用例输入的维度需要与构图接口的dims_size匹配
+                                           std::vector<int>{32, 18}, std::vector<int>{32, 256}));

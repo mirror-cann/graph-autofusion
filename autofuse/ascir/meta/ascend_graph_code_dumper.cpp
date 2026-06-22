@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -114,15 +114,9 @@ void ExpressionHandle(const af::AscNodeAttr *asc_node_attr, const std::string &n
   value_string = value.Serialize().get();
 }
 
-using handle_ptr = void (*)(
-    const af::AscNodeAttr *asc_node_attr,
-    const std::string &name,
-    std::string &value_string
-);
-std::unordered_map<std::string, handle_ptr> IrAttrHandleMap = {{"float", FloatHandle},
-                                                               {"int64_t", Int64Handle},
-                                                               {"std::string", StringHandle},
-                                                               {"Expression", ExpressionHandle}};
+using handle_ptr = void (*)(const af::AscNodeAttr *asc_node_attr, const std::string &name, std::string &value_string);
+std::unordered_map<std::string, handle_ptr> IrAttrHandleMap = {
+    {"float", FloatHandle}, {"int64_t", Int64Handle}, {"std::string", StringHandle}, {"Expression", ExpressionHandle}};
 
 bool IsNodeWithIrInputs(const af::NodePtr &node) {
   const auto &op_desc = node->GetOpDesc();
@@ -242,9 +236,9 @@ void PythonCodeDumper::GenerateInputCode(const std::string &op_name, const std::
               << GetPythonNodeNameByOriginName(src_node->GetName(), name_generator_) << "." << out_name << "\n";
 }
 
-Status PythonCodeDumper::GenerateDynamicInputCode(const af::Node::Vistor<std::pair<af::NodePtr, af::OutDataAnchorPtr>> &src_nodes,
-                                                  size_t start_index, size_t count, const std::string &op_name,
-                                                  const std::string &input_name, std::ostream &output_file) {
+Status PythonCodeDumper::GenerateDynamicInputCode(
+    const af::Node::Vistor<std::pair<af::NodePtr, af::OutDataAnchorPtr>> &src_nodes, size_t start_index, size_t count,
+    const std::string &op_name, const std::string &input_name, std::ostream &output_file) {
   std::string dynamic_inputs_code = "[";
   for (size_t i = start_index; i < start_index + count; ++i) {
     GE_ASSERT_TRUE(i < src_nodes.size());
@@ -274,16 +268,14 @@ Status PythonCodeDumper::GenerateNodeCode(const af::NodePtr &node, std::ostream 
   uint32_t dynamic_output_count = 0U;
   const auto has_dynamic_output = GetDynamicOutputCount(op_desc, dynamic_output_count);
   if (node->GetInDataNodesSize() == 0U) {
-    output_file << node_name_of_python_ << " = ascir.ops." << node->GetType() << "(" << "\"" << node->GetName()
-                << "\"";
+    output_file << node_name_of_python_ << " = ascir.ops." << node->GetType() << "(" << "\"" << node->GetName() << "\"";
     if (has_dynamic_output) {
       output_file << ", " << dynamic_output_count;
     }
     output_file << ", graph)" << std::endl;
   } else {
     // 有数据输入的节点，不需要graph的入参，通过连边时加入graph中
-    output_file << node_name_of_python_ << " = ascir.ops." << node->GetType() << "(" << "\"" << node->GetName()
-                << "\"";
+    output_file << node_name_of_python_ << " = ascir.ops." << node->GetType() << "(" << "\"" << node->GetName() << "\"";
     if (has_dynamic_output) {
       output_file << ", " << dynamic_output_count;
     }
@@ -309,8 +301,9 @@ Status PythonCodeDumper::GenerateNodeCode(const af::NodePtr &node, std::ostream 
   return SUCCESS;
 }
 
-Status PythonCodeDumper::GenerateDataEdgeCode(const af::Node::Vistor<std::pair<af::NodePtr, af::OutDataAnchorPtr>> &src_nodes,
-                                              const af::NodePtr &dst_node, std::ostream &output_file) {
+Status PythonCodeDumper::GenerateDataEdgeCode(
+    const af::Node::Vistor<std::pair<af::NodePtr, af::OutDataAnchorPtr>> &src_nodes, const af::NodePtr &dst_node,
+    std::ostream &output_file) {
   const auto &op_desc = dst_node->GetOpDesc();
   GE_ASSERT_NOTNULL(op_desc);
   if (src_nodes.empty()) {
@@ -323,7 +316,8 @@ Status PythonCodeDumper::GenerateDataEdgeCode(const af::Node::Vistor<std::pair<a
   std::map<size_t, std::pair<size_t, size_t>> ir_input_2_range;
   GE_ASSERT_GRAPH_SUCCESS(af::OpDescUtils::GetIrInputRawDescRange(op_desc, ir_input_2_range));
   if (dst_node->GetType() == "Output" && src_nodes.size() > 1) {
-    return GenerateDynamicInputCode(src_nodes, 0, src_nodes.size(), node_name_of_python_, ir_inputs[0].first, output_file);
+    return GenerateDynamicInputCode(src_nodes, 0, src_nodes.size(), node_name_of_python_, ir_inputs[0].first,
+                                    output_file);
   }
   for (size_t index = 0; index < src_nodes.size(); ++ir_input_index) {
     const auto &ir_input_2_range_iter = ir_input_2_range.find(ir_input_index);
@@ -493,8 +487,9 @@ Status PythonCodeDumperFused::GenerateDataEdgeCodeWithOutIr(
   return SUCCESS;
 }
 
-Status PythonCodeDumperFused::GenerateDataEdgeCode(const af::Node::Vistor<std::pair<af::NodePtr, af::OutDataAnchorPtr>> &src_nodes,
-                                                   const af::NodePtr &dst_node, std::ofstream &output_file) {
+Status PythonCodeDumperFused::GenerateDataEdgeCode(
+    const af::Node::Vistor<std::pair<af::NodePtr, af::OutDataAnchorPtr>> &src_nodes, const af::NodePtr &dst_node,
+    std::ofstream &output_file) {
   if (!IsNodeWithIrInputs(dst_node)) {
     GELOGW("%s has no ir inputs information", dst_node->GetName().c_str());
     return GenerateDataEdgeCodeWithOutIr(src_nodes, dst_node, output_file);
@@ -503,7 +498,8 @@ Status PythonCodeDumperFused::GenerateDataEdgeCode(const af::Node::Vistor<std::p
   return SUCCESS;
 }
 
-void PythonCodeDumperFused::GenerateGraphInstance(const af::ComputeGraph &compute_graph, std::ofstream &output_file) const {
+void PythonCodeDumperFused::GenerateGraphInstance(const af::ComputeGraph &compute_graph,
+                                                  std::ofstream &output_file) const {
   output_file << "graph = ascir.FusedGraph(" << "\"" << compute_graph.GetName() << "\"" << ")\n";
 }
 

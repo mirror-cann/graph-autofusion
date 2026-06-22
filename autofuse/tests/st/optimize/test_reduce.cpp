@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -36,32 +36,32 @@ using namespace std;
 using namespace af;
 using namespace af::ops;
 using namespace af::ascir_op;
-using optimize::autoschedule::AxisGroup;
-using af::testing::Sym;
 using af::testing::AscGraphBuilder;
+using af::testing::Sym;
+using optimize::autoschedule::AxisGroup;
 
 AscGraph Construct_Reduce_RARA(const std::string &name) {
   return AscGraphBuilder(name)
-    .Loops({Sym("s0"), Sym("s1"), Sym("s2"), Sym("s3")})
-    .Data("arg4_1", 0)
-    .Load("b0_load", "arg4_1")
-    .Abs("abs", "b0_load")
-    .Max("b0_max", "abs", {0, 2})
-    .Store("b3_store", "b0_max")
-    .Output("buf3", "b3_store", 0)
-    .Build();
+      .Loops({Sym("s0"), Sym("s1"), Sym("s2"), Sym("s3")})
+      .Data("arg4_1", 0)
+      .Load("b0_load", "arg4_1")
+      .Abs("abs", "b0_load")
+      .Max("b0_max", "abs", {0, 2})
+      .Store("b3_store", "b0_max")
+      .Output("buf3", "b3_store", 0)
+      .Build();
 }
 
 AscGraph Construct_Reduce_ARAR(const std::string &name) {
   return AscGraphBuilder(name)
-    .Loops({Sym("s0"), Sym("s1"), Sym("s2"), Sym("s3")})
-    .Data("arg4_1", 0)
-    .Load("b0_load", "arg4_1")
-    .Abs("abs", "b0_load")
-    .Max("b0_max", "abs", {1, 3})
-    .Store("b3_store", "b0_max")
-    .Output("buf3", "b3_store", 0)
-    .Build();
+      .Loops({Sym("s0"), Sym("s1"), Sym("s2"), Sym("s3")})
+      .Data("arg4_1", 0)
+      .Load("b0_load", "arg4_1")
+      .Abs("abs", "b0_load")
+      .Max("b0_max", "abs", {1, 3})
+      .Store("b3_store", "b0_max")
+      .Output("buf3", "b3_store", 0)
+      .Build();
 }
 
 void Construct_Reduce_RR(af::AscGraph &graph) {
@@ -111,121 +111,121 @@ AscGraph Construct_Mul_Consumer_Struct(const std::string &name) {
   auto s2 = Sym("s2");
   auto s3 = Sym("s3");
   return AscGraphBuilder(name)
-    .Loops({s0 * s1 * s2, s3})
-    .Data("arg4_1", 0, {s0 * s1 * s2, s3}, {s3, af::ops::One}, af::DT_FLOAT16)
-    .Load("b0_load", "arg4_1", {s0 * s1 * s2, s3}, {s3, af::ops::One})
-    .Exp("b1_exp", "b0_load")
-    .Abs("b0_abs", "b1_exp")
-    .Max("b0_max", "b0_abs", {1})
-    .Broadcast("b1_broadcast", "b0_max", {s0 * s1 * s2, s3})
-    .Store("b0_store", "b1_broadcast")
-    .Output("buf0", "b0_store", 1, af::DT_FLOAT)
-    .template Op<af::ascir_op::Relu>("b0_relu", {"b1_exp"})
-    .Store("b1_store", "b0_relu")
-    .Output("buf1", "b1_store", 2, af::DT_FLOAT)
-    .Build();
+      .Loops({s0 * s1 * s2, s3})
+      .Data("arg4_1", 0, {s0 * s1 * s2, s3}, {s3, af::ops::One}, af::DT_FLOAT16)
+      .Load("b0_load", "arg4_1", {s0 * s1 * s2, s3}, {s3, af::ops::One})
+      .Exp("b1_exp", "b0_load")
+      .Abs("b0_abs", "b1_exp")
+      .Max("b0_max", "b0_abs", {1})
+      .Broadcast("b1_broadcast", "b0_max", {s0 * s1 * s2, s3})
+      .Store("b0_store", "b1_broadcast")
+      .Output("buf0", "b0_store", 1, af::DT_FLOAT)
+      .template Op<af::ascir_op::Relu>("b0_relu", {"b1_exp"})
+      .Store("b1_store", "b0_relu")
+      .Output("buf1", "b1_store", 2, af::DT_FLOAT)
+      .Build();
 }
 
 AscGraph ConstructNormStruct(const std::string &name) {
   return AscGraphBuilder(name)
-    .Loops({Sym(128), Sym(64)})
-    .Data("data", 0)
-    .Load("load", "data")
-    .Exp("exp", "load")
-    .Sum("sum", "exp", {0, 1})
-    .Broadcast("broadcast", "sum", {Sym(128), Sym(64)})
-    .Sub("sub", "broadcast", "exp")
-    .Store("store1", "sub")
-    .Output("output", "store1", 0)
-    .Build();
+      .Loops({Sym(128), Sym(64)})
+      .Data("data", 0)
+      .Load("load", "data")
+      .Exp("exp", "load")
+      .Sum("sum", "exp", {0, 1})
+      .Broadcast("broadcast", "sum", {Sym(128), Sym(64)})
+      .Sub("sub", "broadcast", "exp")
+      .Store("store1", "sub")
+      .Output("output", "store1", 0)
+      .Build();
 }
 
 AscGraph ConstructNormStruct3Elewise(const std::string &name) {
   return AscGraphBuilder(name)
-    .Loops({Sym(128), Sym(64)})
-    .Data("data", 0)
-    .Load("load", "data")
-    .Sum("sum", "load", {0, 1})
-    .Abs("abs", "sum")
-    .Exp("exp", "abs")
-    .Relu("b0_relu", "exp")
-    .Store("store1", "b0_relu")
-    .Output("output", "store1", 0)
-    .Build();
+      .Loops({Sym(128), Sym(64)})
+      .Data("data", 0)
+      .Load("load", "data")
+      .Sum("sum", "load", {0, 1})
+      .Abs("abs", "sum")
+      .Exp("exp", "abs")
+      .Relu("b0_relu", "exp")
+      .Store("store1", "b0_relu")
+      .Output("output", "store1", 0)
+      .Build();
 }
 
 AscGraph ConstructNormStruct1Elewise(const std::string &name) {
   return AscGraphBuilder(name)
-    .Loops({Sym(128), Sym(64)})
-    .Data("data", 0)
-    .Load("load", "data")
-    .Sum("sum", "load", {0, 1})
-    .Abs("abs", "sum")
-    .Store("store1", "abs")
-    .Output("output", "store1", 0)
-    .Build();
+      .Loops({Sym(128), Sym(64)})
+      .Data("data", 0)
+      .Load("load", "data")
+      .Sum("sum", "load", {0, 1})
+      .Abs("abs", "sum")
+      .Store("store1", "abs")
+      .Output("output", "store1", 0)
+      .Build();
 }
 
 AscGraph ConstructNormStruct4Elewise(const std::string &name) {
   return AscGraphBuilder(name)
-    .Loops({Sym(128), Sym(64)})
-    .Data("data", 0)
-    .Load("load", "data")
-    .Sum("sum", "load", {0, 1})
-    .Abs("abs", "sum")
-    .Op<af::ascir_op::Tanh>("tanh", {"abs"})
-    .Exp("exp", "tanh")
-    .Relu("b0_relu", "exp")
-    .Store("store1", "b0_relu")
-    .Output("output", "store1", 0)
-    .Build();
+      .Loops({Sym(128), Sym(64)})
+      .Data("data", 0)
+      .Load("load", "data")
+      .Sum("sum", "load", {0, 1})
+      .Abs("abs", "sum")
+      .Op<af::ascir_op::Tanh>("tanh", {"abs"})
+      .Exp("exp", "tanh")
+      .Relu("b0_relu", "exp")
+      .Store("store1", "b0_relu")
+      .Output("output", "store1", 0)
+      .Build();
 }
 
 AscGraph ConstructNormStruct4Elewise4ReduceMultipleCitations(const std::string &name) {
   return AscGraphBuilder(name)
-    .Loops({Sym(128), Sym(64)})
-    .Data("data", 0)
-    .Load("load", "data")
-    .Sum("sum", "load", {0, 1})
-    .Abs("abs", "sum")
-    .Op<af::ascir_op::Tanh>("tanh", {"sum"})
-    .Add("add", "abs", "tanh")
-    .Relu("b0_relu", "add")
-    .Store("store1", "b0_relu")
-    .Output("output", "store1", 0)
-    .Build();
+      .Loops({Sym(128), Sym(64)})
+      .Data("data", 0)
+      .Load("load", "data")
+      .Sum("sum", "load", {0, 1})
+      .Abs("abs", "sum")
+      .Op<af::ascir_op::Tanh>("tanh", {"sum"})
+      .Add("add", "abs", "tanh")
+      .Relu("b0_relu", "add")
+      .Store("store1", "b0_relu")
+      .Output("output", "store1", 0)
+      .Build();
 }
 
 AscGraph ConstructNormStruct4Elewise3ReduceMultipleCitations(const std::string &name) {
   return AscGraphBuilder(name)
-    .Loops({Sym(128), Sym(64)})
-    .Data("data", 0)
-    .Load("load", "data")
-    .Sum("sum", "load", {0, 1})
-    .Abs("abs", "sum")
-    .Op<af::ascir_op::Tanh>("tanh", {"sum"})
-    .Add("add", "abs", "tanh")
-    .Store("store1", "add")
-    .Output("output", "store1", 0)
-    .Build();
+      .Loops({Sym(128), Sym(64)})
+      .Data("data", 0)
+      .Load("load", "data")
+      .Sum("sum", "load", {0, 1})
+      .Abs("abs", "sum")
+      .Op<af::ascir_op::Tanh>("tanh", {"sum"})
+      .Add("add", "abs", "tanh")
+      .Store("store1", "add")
+      .Output("output", "store1", 0)
+      .Build();
 }
 
 AscGraph ConstructNormStruct4Elewise3(const std::string &name) {
   return AscGraphBuilder(name)
-    .Loops({Sym(128), Sym(64)})
-    .Data("data0", 0)
-    .Load("load0", "data0")
-    .Data("data1", 1)
-    .Load("load1", "data1")
-    .Mul("mul", "load0", "load1")
-    .Sum("sum", "mul", {0, 1})
-    .Relu("b0_relu", "sum")
-    .Op<af::ascir_op::Tanh>("tanh", {"b0_relu"})
-    .Add("add", "tanh", "b0_relu")
-    .Abs("abs", "add")
-    .Store("store1", "abs")
-    .Output("output", "store1", 0)
-    .Build();
+      .Loops({Sym(128), Sym(64)})
+      .Data("data0", 0)
+      .Load("load0", "data0")
+      .Data("data1", 1)
+      .Load("load1", "data1")
+      .Mul("mul", "load0", "load1")
+      .Sum("sum", "mul", {0, 1})
+      .Relu("b0_relu", "sum")
+      .Op<af::ascir_op::Tanh>("tanh", {"b0_relu"})
+      .Add("add", "tanh", "b0_relu")
+      .Abs("abs", "add")
+      .Store("store1", "abs")
+      .Output("output", "store1", 0)
+      .Build();
 }
 
 void Construct_Reduce_Cast_RR(af::AscGraph &graph) {
@@ -283,76 +283,76 @@ AscGraph ConstructNormStruct4MulReduce(const std::string &name) {
   auto s1 = Sym(39);
   auto s2 = Sym(80);
   return AscGraphBuilder(name)
-    .Loops({s0, s1, s2})
-    .Data("data0", 0, {s0, s1, af::ops::One}, {s1, af::ops::One, af::ops::Zero}, af::DT_FLOAT)
-    .Load("load0", "data0", {s0, s1, af::ops::One}, {s1, af::ops::One, af::ops::Zero})
-    .Broadcast("brc", "load0", {s0, s1, s2})
-    .Data("data1", 1, {s0, s1, s2}, {s1 * s2, s2, af::ops::One}, af::DT_FLOAT)
-    .Load("load1", "data1")
-    .Mul("mul", "brc", "load1")
-    .Store("store1", "mul")
-    .Output("output", "store1", 0, af::DT_FLOAT)
-    .Sum("sum", "mul", {1})
-    .Store("store2", "sum")
-    .Output("output2", "store2", 1, af::DT_FLOAT)
-    .Mul("mul1", "mul", "mul")
-    .Sum("sum1", "mul1", {1})
-    .Store("store3", "sum1")
-    .Output("output3", "store3", 2, af::DT_FLOAT)
-    .Build();
+      .Loops({s0, s1, s2})
+      .Data("data0", 0, {s0, s1, af::ops::One}, {s1, af::ops::One, af::ops::Zero}, af::DT_FLOAT)
+      .Load("load0", "data0", {s0, s1, af::ops::One}, {s1, af::ops::One, af::ops::Zero})
+      .Broadcast("brc", "load0", {s0, s1, s2})
+      .Data("data1", 1, {s0, s1, s2}, {s1 * s2, s2, af::ops::One}, af::DT_FLOAT)
+      .Load("load1", "data1")
+      .Mul("mul", "brc", "load1")
+      .Store("store1", "mul")
+      .Output("output", "store1", 0, af::DT_FLOAT)
+      .Sum("sum", "mul", {1})
+      .Store("store2", "sum")
+      .Output("output2", "store2", 1, af::DT_FLOAT)
+      .Mul("mul1", "mul", "mul")
+      .Sum("sum1", "mul1", {1})
+      .Store("store3", "sum1")
+      .Output("output3", "store3", 2, af::DT_FLOAT)
+      .Build();
 }
 
 AscGraph ConstructNormStruct3ElemwiseReducePostMulInput(const std::string &name) {
   return AscGraphBuilder(name)
-    .Loops({Sym(128), Sym(64)})
-    .Data("data0", 0)
-    .Load("load0", "data0")
-    .Data("data1", 1)
-    .Load("load1", "data1")
-    .Mul("mul", "load0", "load1")
-    .Sum("sum", "mul", {0, 1})
-    .Relu("b0_relu", "sum")
-    .Op<af::ascir_op::Tanh>("tanh", {"b0_relu"})
-    .Add("add", "tanh", "b0_relu")
-    .Store("store1", "add")
-    .Output("output", "store1", 0)
-    .Build();
+      .Loops({Sym(128), Sym(64)})
+      .Data("data0", 0)
+      .Load("load0", "data0")
+      .Data("data1", 1)
+      .Load("load1", "data1")
+      .Mul("mul", "load0", "load1")
+      .Sum("sum", "mul", {0, 1})
+      .Relu("b0_relu", "sum")
+      .Op<af::ascir_op::Tanh>("tanh", {"b0_relu"})
+      .Add("add", "tanh", "b0_relu")
+      .Store("store1", "add")
+      .Output("output", "store1", 0)
+      .Build();
 }
 
 AscGraph ConstructNormStruct3ElemwiseReducePostMulInputV2(const std::string &name) {
   return AscGraphBuilder(name)
-    .Loops({Sym(128), Sym(64)})
-    .Data("data0", 0)
-    .Load("load0", "data0")
-    .Data("data1", 1)
-    .Load("load1", "data1")
-    .Mul("mul", "load0", "load1")
-    .Sum("sum", "mul", {0, 1})
-    .Relu("b0_relu", "sum")
-    .Op<af::ascir_op::Tanh>("tanh", {"b0_relu"})
-    .Add("add", "tanh", "mul")
-    .Store("store1", "add")
-    .Output("output", "store1", 0)
-    .Build();
+      .Loops({Sym(128), Sym(64)})
+      .Data("data0", 0)
+      .Load("load0", "data0")
+      .Data("data1", 1)
+      .Load("load1", "data1")
+      .Mul("mul", "load0", "load1")
+      .Sum("sum", "mul", {0, 1})
+      .Relu("b0_relu", "sum")
+      .Op<af::ascir_op::Tanh>("tanh", {"b0_relu"})
+      .Add("add", "tanh", "mul")
+      .Store("store1", "add")
+      .Output("output", "store1", 0)
+      .Build();
 }
 
 AscGraph ConstructNormStruct4Elewise4ReduceMultipleCitationsMulOut(const std::string &name) {
   return AscGraphBuilder(name)
-    .Loops({Sym(128), Sym(64)})
-    .Data("data", 0)
-    .Load("load", "data")
-    .Sum("sum", "load", {0, 1})
-    .Abs("abs", "sum")
-    .Op<af::ascir_op::Tanh>("tanh", {"sum"})
-    .Add("add", "sum", "tanh")
-    .Relu("b0_relu", "sum")
-    .Store("store1", "b0_relu")
-    .Output("output", "store1", 0)
-    .Store("store2", "add")
-    .Output("output1", "store2", 1)
-    .Store("store3", "abs")
-    .Output("output2", "store3", 2)
-    .Build();
+      .Loops({Sym(128), Sym(64)})
+      .Data("data", 0)
+      .Load("load", "data")
+      .Sum("sum", "load", {0, 1})
+      .Abs("abs", "sum")
+      .Op<af::ascir_op::Tanh>("tanh", {"sum"})
+      .Add("add", "sum", "tanh")
+      .Relu("b0_relu", "sum")
+      .Store("store1", "b0_relu")
+      .Output("output", "store1", 0)
+      .Store("store2", "add")
+      .Output("output1", "store2", 1)
+      .Store("store3", "abs")
+      .Output("output2", "store3", 2)
+      .Build();
 }
 
 namespace optimize {

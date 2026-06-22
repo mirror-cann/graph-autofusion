@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -55,7 +55,6 @@ ge::Status BufOccupyExpr::GetCoTensorSizeExpr(const std::vector<std::vector<Tens
   return ge::SUCCESS;
 }
 
-
 ge::Status BufOccupyExpr::GetOccupInContainer(ContainerPtr &container, Expr &occup_per_tensor,
                                               Expr &occup_total) const {
   std::set<TensorPtr> co_tensors;  // 收集所用有同存节点的tensor
@@ -65,7 +64,8 @@ ge::Status BufOccupyExpr::GetOccupInContainer(ContainerPtr &container, Expr &occ
     }
   }
   // 获取共存tensor size total
-  GE_ASSERT_SUCCESS(GetCoTensorSizeExpr(container->GetCoTensors(), occup_per_tensor, container->align), "Get tensor size failed.");
+  GE_ASSERT_SUCCESS(GetCoTensorSizeExpr(container->GetCoTensors(), occup_per_tensor, container->align),
+                    "Get tensor size failed.");
   for (const auto &tensor : container->allocated_tensors) {
     if (co_tensors.find(tensor) != co_tensors.end()) {
       continue;
@@ -73,7 +73,8 @@ ge::Status BufOccupyExpr::GetOccupInContainer(ContainerPtr &container, Expr &occ
     // 对于单个container内的占用，取max
     Expr tensor_size_expr = ArgListManager::GetInstance().GetArgExpr(tensor->name);
     if (IsValid(container->align) && !(container->align == 1)) {
-      tensor_size_expr = af::sym::Mul(af::sym::Ceiling(af::sym::Div(tensor_size_expr, container->align)), container->align);
+      tensor_size_expr =
+          af::sym::Mul(af::sym::Ceiling(af::sym::Div(tensor_size_expr, container->align)), container->align);
     }
     GELOGD("Get tensor [%s] size : [%s]", tensor->name.c_str(), tensor_size_expr.Serialize().get());
     GE_ASSERT_TRUE(IsValid(tensor_size_expr), "Tensor [%s] has no expr.", tensor->name.c_str());
@@ -90,7 +91,8 @@ ge::Status BufOccupyExpr::GetOccupInContainer(ContainerPtr &container, Expr &occ
       constexpr int32_t kMinTmpBufferSize = 8 * 1024;
       auto temp_buffer_size = af::sym::Max(temp_buffer->second, CreateExpr(kMinTmpBufferSize));
       occup_per_tensor = af::sym::Max(occup_per_tensor, temp_buffer_size);
-      GELOGD("reuse temp buffer for tbuf, buf id %lld, result buffer %s", container->container_id, Str(occup_per_tensor).c_str());
+      GELOGD("reuse temp buffer for tbuf, buf id %lld, result buffer %s", container->container_id,
+             Str(occup_per_tensor).c_str());
       tuning_space_->tmp_buffer.erase(container->container_id);
     }
   }
@@ -106,15 +108,17 @@ ge::Status BufOccupyExpr::GetOccupInContainer(ContainerPtr &container, Expr &occ
 }
 
 ge::Status BufOccupyExpr::GetBufferOccupInContainer(std::unordered_map<HardwareDef, Expr> &buffer_occup,
-                                                std::map<std::string, Expr> &container_exprs) {
+                                                    std::map<std::string, Expr> &container_exprs) {
   for (auto &container : tuning_space_->containers) {
     Expr container_occup_expr;
     Expr occup_total;
-    GE_ASSERT_SUCCESS(GetOccupInContainer(container, container_occup_expr, occup_total), "Get container occupy failed.");
+    GE_ASSERT_SUCCESS(GetOccupInContainer(container, container_occup_expr, occup_total),
+                      "Get container occupy failed.");
     container_exprs[container->name] = container_occup_expr;
     for (const auto &scope : container->buf_location) {
       SummaryBufferOccup(buffer_occup, scope, occup_total);
-      GELOGD("Get scope [%d] name: [%s] occupy : [%s]", static_cast<int32_t>(scope), container->name.c_str(), buffer_occup[scope].Str().get());
+      GELOGD("Get scope [%d] name: [%s] occupy : [%s]", static_cast<int32_t>(scope), container->name.c_str(),
+             buffer_occup[scope].Str().get());
     }
   }
   for (auto &pair : tuning_space_->tmp_buffer) {
@@ -141,7 +145,8 @@ ge::Status BufOccupyExpr::GetTotalGlobalOccup(Expr &global_occup_expr) {
   Expr container_occup_expr;
   Expr occup_per_tensor;
   for (auto &container : tuning_space_->global_containers) {
-    GE_ASSERT_SUCCESS(GetOccupInContainer(container, occup_per_tensor, container_occup_expr), "Get container occupy failed.");
+    GE_ASSERT_SUCCESS(GetOccupInContainer(container, occup_per_tensor, container_occup_expr),
+                      "Get container occupy failed.");
     GELOGD("Get container [%s] occupy : [%s]", container->name.c_str(), container_occup_expr.Str().get());
     if (IsValid(global_occup_expr)) {
       global_occup_expr = af::sym::Add(global_occup_expr, container_occup_expr);
@@ -153,7 +158,7 @@ ge::Status BufOccupyExpr::GetTotalGlobalOccup(Expr &global_occup_expr) {
 }
 
 ge::Status BufOccupyExpr::GetTotalBufferOccup(std::unordered_map<HardwareDef, Expr> &buffer_occup,
-                                          std::map<std::string, Expr> &container_exprs) {
+                                              std::map<std::string, Expr> &container_exprs) {
   // 获取queue的buffer占用
   GetBufferOccupInContainer(buffer_occup, container_exprs);
   for (auto &buffer_occup_item : buffer_occup) {

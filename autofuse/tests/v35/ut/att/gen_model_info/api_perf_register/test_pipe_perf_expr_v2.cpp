@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -72,31 +72,24 @@ Status BuildConcatGroupAscendGraphS0WithVectorFunc(af::AscGraph &graph) {
   af::AttrUtils::SetStr(node->GetOpDescBarePtr(), "sub_graph_name", vector_func_node_name);
   return af::SUCCESS;
 }
-}
-}
-}
+}  // namespace cg
+}  // namespace ascir
+}  // namespace af
 namespace att {
 static TuningSpacePtr tuning_space = std::make_shared<TuningSpace>();
 class TestPipePerfExpr : public ::testing::Test {
  public:
-  static void TearDownTestCase()
-  {
+  static void TearDownTestCase() {
     std::cout << "Test end." << std::endl;
   }
-  static void SetUpTestCase()
-  {
+  static void SetUpTestCase() {
     std::cout << "Test begin." << std::endl;
   }
-  void SetUp() override
-  {
-  }
-  void TearDown() override
-  {
-  }
+  void SetUp() override {}
+  void TearDown() override {}
 };
 
-TEST_F(TestPipePerfExpr, case_get_perf_for_loop_with_vf)
-{
+TEST_F(TestPipePerfExpr, case_get_perf_for_loop_with_vf) {
   af::AscGraph graph("graph");
   ASSERT_EQ(af::ascir::cg::BuildConcatGroupAscendGraphS0WithVectorFunc(graph), af::SUCCESS);
   GraphConstructUtils::UpdateGraphVectorizedStride(graph);
@@ -126,4 +119,4 @@ TEST_F(TestPipePerfExpr, case_get_perf_for_loop_with_vf)
               << ", pipe_cost.second: " << pipe_cost.second << std::endl;
   }
 }
-}
+}  // namespace att

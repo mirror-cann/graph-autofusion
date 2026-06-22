@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -211,13 +211,13 @@ static AscGraph BuildAscBackendGraph(const std::string &name, int64_t axis_num =
     sizes.push_back(Sym(("s" + std::to_string(i)).c_str()));
   }
   return AscGraphBuilder(name)
-    .Loops(sizes)
-    .Data(name + "_data", 0, af::DT_INT8)
-    .Load(name + "_load", name + "_data")
-    .Abs(name + "_abs", name + "_load")
-    .Store(name + "_store", name + "_abs")
-    .Output(name + "_out", name + "_store", 0, af::DT_FLOAT16)
-    .Build();
+      .Loops(sizes)
+      .Data(name + "_data", 0, af::DT_INT8)
+      .Load(name + "_load", name + "_data")
+      .Abs(name + "_abs", name + "_load")
+      .Store(name + "_store", name + "_abs")
+      .Output(name + "_out", name + "_store", 0, af::DT_FLOAT16)
+      .Build();
 }
 
 static AscGraph BuildAscBackendGraphTwoInTwoOut(const std::string &name, int64_t axis_num = 2) {
@@ -226,17 +226,17 @@ static AscGraph BuildAscBackendGraphTwoInTwoOut(const std::string &name, int64_t
     sizes.push_back(Sym(("s" + std::to_string(i)).c_str()));
   }
   return AscGraphBuilder(name)
-    .Loops(sizes)
-    .Data(name + "_data0", 0, af::DT_INT8)
-    .Load(name + "_load0", name + "_data0")
-    .Data(name + "_data1", 1, af::DT_INT8)
-    .Load(name + "_load1", name + "_data1")
-    .Add(name + "_add", name + "_load0", name + "_load1")
-    .Store(name + "_store0", name + "_add")
-    .Output(name + "_out0", name + "_store0", 0, af::DT_FLOAT16)
-    .Store(name + "_store1", name + "_add")
-    .Output(name + "_out1", name + "_store1", 1, af::DT_FLOAT16)
-    .Build();
+      .Loops(sizes)
+      .Data(name + "_data0", 0, af::DT_INT8)
+      .Load(name + "_load0", name + "_data0")
+      .Data(name + "_data1", 1, af::DT_INT8)
+      .Load(name + "_load1", name + "_data1")
+      .Add(name + "_add", name + "_load0", name + "_load1")
+      .Store(name + "_store0", name + "_add")
+      .Output(name + "_out0", name + "_store0", 0, af::DT_FLOAT16)
+      .Store(name + "_store1", name + "_add")
+      .Output(name + "_out1", name + "_store1", 1, af::DT_FLOAT16)
+      .Build();
 }
 
 static AscGraph BuildAscBackendGraphTwoInOneOut(const std::string &name, int64_t axis_num = 2) {
@@ -245,40 +245,40 @@ static AscGraph BuildAscBackendGraphTwoInOneOut(const std::string &name, int64_t
     sizes.push_back(Sym(("s" + std::to_string(i)).c_str()));
   }
   return AscGraphBuilder(name)
-    .Loops(sizes)
-    .Data(name + "_data0", 0, af::DT_INT8)
-    .Load(name + "_load0", name + "_data0")
-    .Data(name + "_data1", 1, af::DT_INT8)
-    .Load(name + "_load1", name + "_data1")
-    .Add(name + "_add", name + "_load0", name + "_load1")
-    .Store(name + "_store0", name + "_add")
-    .Output(name + "_out0", name + "_store0", 0, af::DT_FLOAT16)
-    .Build();
+      .Loops(sizes)
+      .Data(name + "_data0", 0, af::DT_INT8)
+      .Load(name + "_load0", name + "_data0")
+      .Data(name + "_data1", 1, af::DT_INT8)
+      .Load(name + "_load1", name + "_data1")
+      .Add(name + "_add", name + "_load0", name + "_load1")
+      .Store(name + "_store0", name + "_add")
+      .Output(name + "_out0", name + "_store0", 0, af::DT_FLOAT16)
+      .Build();
 }
 
 static AscGraph BuildOneNodeAscGraph(const std::string &name, const std::string &prefix = "g0") {
   return AscGraphBuilder(name)
-    .Loops({Sym("s0"), Sym("s1")})
-    .Data(prefix + "sub_data0", 0, {Sym("s0"), Sym("s1")}, {Sym("s1"), af::sym::kSymbolOne})
-    .Load(prefix + "load0", prefix + "sub_data0", {Sym("s0"), af::sym::kSymbolOne})
-    .Broadcast(prefix + "brc0", prefix + "load0", {Sym("s0"), Sym("s1")})
-    .Abs(prefix + "abs0", prefix + "brc0")
-    .Store(prefix + "store0", prefix + "abs0")
-    .Output(prefix + "out0", prefix + "store0", 0, af::DT_FLOAT16)
-    .Build();
+      .Loops({Sym("s0"), Sym("s1")})
+      .Data(prefix + "sub_data0", 0, {Sym("s0"), Sym("s1")}, {Sym("s1"), af::sym::kSymbolOne})
+      .Load(prefix + "load0", prefix + "sub_data0", {Sym("s0"), af::sym::kSymbolOne})
+      .Broadcast(prefix + "brc0", prefix + "load0", {Sym("s0"), Sym("s1")})
+      .Abs(prefix + "abs0", prefix + "brc0")
+      .Store(prefix + "store0", prefix + "abs0")
+      .Output(prefix + "out0", prefix + "store0", 0, af::DT_FLOAT16)
+      .Build();
 }
 
 static AscGraph BuildOneNodeWithReduceAscGraph(const std::string &name, const std::string &prefix = "g0") {
   return AscGraphBuilder(name)
-    .Loops({Sym("s0"), Sym("s1")})
-    .Data(prefix + "sub_data0", 0, {Sym("s0"), Sym("s1")}, {Sym("s1"), af::sym::kSymbolOne})
-    .Load(prefix + "load0", prefix + "sub_data0", {Sym("s0"), af::sym::kSymbolOne})
-    .Max(prefix + "max", prefix + "load0", {0})
-    .Broadcast(prefix + "brc0", prefix + "max", {Sym("s0"), Sym("s1")})
-    .Abs(prefix + "abs0", prefix + "brc0")
-    .Store(prefix + "store0", prefix + "abs0")
-    .Output(prefix + "out0", prefix + "store0", 0, af::DT_FLOAT16)
-    .Build();
+      .Loops({Sym("s0"), Sym("s1")})
+      .Data(prefix + "sub_data0", 0, {Sym("s0"), Sym("s1")}, {Sym("s1"), af::sym::kSymbolOne})
+      .Load(prefix + "load0", prefix + "sub_data0", {Sym("s0"), af::sym::kSymbolOne})
+      .Max(prefix + "max", prefix + "load0", {0})
+      .Broadcast(prefix + "brc0", prefix + "max", {Sym("s0"), Sym("s1")})
+      .Abs(prefix + "abs0", prefix + "brc0")
+      .Store(prefix + "store0", prefix + "abs0")
+      .Output(prefix + "out0", prefix + "store0", 0, af::DT_FLOAT16)
+      .Build();
 }
 
 static AscGraph BuildMidPackAscGraph(const std::string &name) {
@@ -288,26 +288,26 @@ static AscGraph BuildMidPackAscGraph(const std::string &name) {
   const std::vector<Expression> data_strides = {s1, s1, af::sym::kSymbolOne};
 
   return AscGraphBuilder(name)
-    .Loops({s0, s2, s1})
-    .Data("data0", 0, {s0, af::sym::kSymbolOne, s1}, data_strides)
-    .Load("load0", "data0", {s0, af::sym::kSymbolOne, s1}, data_strides, Sym("s88"))
-    .Data("data1", 1, {s0, af::sym::kSymbolOne, s1}, data_strides)
-    .Load("load1", "data1", {s0, af::sym::kSymbolOne, s1}, data_strides)
-    .Concat("concat", {"load0", "load1"})
-    .Store("store", "concat")
-    .Output("out0", "store", 0, af::DT_FLOAT16)
-    .Build();
+      .Loops({s0, s2, s1})
+      .Data("data0", 0, {s0, af::sym::kSymbolOne, s1}, data_strides)
+      .Load("load0", "data0", {s0, af::sym::kSymbolOne, s1}, data_strides, Sym("s88"))
+      .Data("data1", 1, {s0, af::sym::kSymbolOne, s1}, data_strides)
+      .Load("load1", "data1", {s0, af::sym::kSymbolOne, s1}, data_strides)
+      .Concat("concat", {"load0", "load1"})
+      .Store("store", "concat")
+      .Output("out0", "store", 0, af::DT_FLOAT16)
+      .Build();
 }
 
 static AscGraph BuildConcatPostGraph(const std::string &name) {
   return AscGraphBuilder(name)
-    .Loops({Sym("s0")})
-    .Data("data0", 0)
-    .Load("load0", "data0")
-    .Exp("exp0", "load0")
-    .Store("store0", "exp0")
-    .Output("out0", "store0", 0, af::DT_FLOAT16)
-    .Build();
+      .Loops({Sym("s0")})
+      .Data("data0", 0)
+      .Load("load0", "data0")
+      .Exp("exp0", "load0")
+      .Store("store0", "exp0")
+      .Output("out0", "store0", 0, af::DT_FLOAT16)
+      .Build();
 }
 
 NodePtr CreateAscbcToAscGraph(const std::string &name, ComputeGraphPtr &compute_graph, int64_t in_num = 1,
@@ -492,47 +492,47 @@ static AscGraph BuildAddAscGraph(const std::string &name) {
   const auto s0 = Sym("s0");
   const auto s1 = Sym("s1");
   return AscGraphBuilder(name)
-    .Loops({s0, s1})
-    .Data("sub_data0", 0, {s0, s1}, {s1, af::sym::kSymbolOne}, af::DT_INT8)
-    .Load("load0", "sub_data0", {s0, s1}, {s1, af::sym::kSymbolOne}, Sym("s9999"))
-    .Data("sub_data1", 1, {s0, s1}, {s1, af::sym::kSymbolOne})
-    .Load("load1", "sub_data1")
-    .Add("add", "load0", "load1")
-    .Store("store0", "add")
-    .Output("sub_out0", "store0", 0, af::DT_FLOAT16)
-    .Build();
+      .Loops({s0, s1})
+      .Data("sub_data0", 0, {s0, s1}, {s1, af::sym::kSymbolOne}, af::DT_INT8)
+      .Load("load0", "sub_data0", {s0, s1}, {s1, af::sym::kSymbolOne}, Sym("s9999"))
+      .Data("sub_data1", 1, {s0, s1}, {s1, af::sym::kSymbolOne})
+      .Load("load1", "sub_data1")
+      .Add("add", "load0", "load1")
+      .Store("store0", "add")
+      .Output("sub_out0", "store0", 0, af::DT_FLOAT16)
+      .Build();
 }
 
 static AscGraph BuildAddAscGraph2(const std::string &name) {
   const auto s0 = Sym("s0");
   const auto s2 = Sym("s2");
   return AscGraphBuilder(name)
-    .Loops({s0, s2})
-    .Data("sub_data2", 0, {s0, s2}, {s2, af::sym::kSymbolOne})
-    .Load("load2", "sub_data2")
-    .Data("sub_data3", 1, {s0, s2}, {s2, af::sym::kSymbolOne})
-    .Load("load3", "sub_data3")
-    .Add("add1", "load2", "load3")
-    .Store("store1", "add1")
-    .Output("sub_out1", "store1", 0, af::DT_FLOAT16)
-    .Store("store2", "add1")
-    .Output("sub_out2", "store2", 1, af::DT_FLOAT16)
-    .Build();
+      .Loops({s0, s2})
+      .Data("sub_data2", 0, {s0, s2}, {s2, af::sym::kSymbolOne})
+      .Load("load2", "sub_data2")
+      .Data("sub_data3", 1, {s0, s2}, {s2, af::sym::kSymbolOne})
+      .Load("load3", "sub_data3")
+      .Add("add1", "load2", "load3")
+      .Store("store1", "add1")
+      .Output("sub_out1", "store1", 0, af::DT_FLOAT16)
+      .Store("store2", "add1")
+      .Output("sub_out2", "store2", 1, af::DT_FLOAT16)
+      .Build();
 }
 
 static AscGraph BuildAddAscGraph3(const std::string &name) {
   auto graph = AscGraphBuilder(name)
-    .Loops({Sym("s0"), Sym("s1")})
-    .Data("sub2_data0", 0)
-    .Load("sub2_load0", "sub2_data0")
-    .Data("sub2_data1", 1)
-    .Load("sub2_load1", "sub2_data1")
-    .Add("sub2_add0", "sub2_load0", "sub2_load1")
-    .Store("sub2_store0", "sub2_add0")
-    .Output("sub2_out0", "sub2_store0", 0, af::DT_FLOAT16)
-    .Store("sub2_store1", "sub2_add0")
-    .Output("sub2_out1", "sub2_store1", 1, af::DT_FLOAT16)
-    .Build();
+                   .Loops({Sym("s0"), Sym("s1")})
+                   .Data("sub2_data0", 0)
+                   .Load("sub2_load0", "sub2_data0")
+                   .Data("sub2_data1", 1)
+                   .Load("sub2_load1", "sub2_data1")
+                   .Add("sub2_add0", "sub2_load0", "sub2_load1")
+                   .Store("sub2_store0", "sub2_add0")
+                   .Output("sub2_out0", "sub2_store0", 0, af::DT_FLOAT16)
+                   .Store("sub2_store1", "sub2_add0")
+                   .Output("sub2_out1", "sub2_store1", 1, af::DT_FLOAT16)
+                   .Build();
   graph.SetGraphType(af::AscGraphType::kImplGraph);
   return graph;
 }
@@ -542,15 +542,15 @@ static AscGraph BuildAddAscGraphAfterConcat(const std::string &name) {
   const auto s1 = Sym("s1");
   const auto s2 = Sym("s2");
   auto graph = AscGraphBuilder(name)
-    .Loops({s0, s1 + s2 + s2})
-    .Data("sub2_data0", 0, {s0, s1 + s2 + s2}, {s1 + s2 + s2, af::sym::kSymbolOne})
-    .Load("sub2_load0", "sub2_data0")
-    .Data("sub2_data1", 1, {s0, s1 + s2 + s2}, {s1 + s2 + s2, af::sym::kSymbolOne})
-    .Load("sub2_load1", "sub2_data1")
-    .Add("sub2_add0", "sub2_load0", "sub2_load1")
-    .Store("sub2_store0", "sub2_add0")
-    .Output("sub2_out0", "sub2_store0", 0, af::DT_FLOAT16)
-    .Build();
+                   .Loops({s0, s1 + s2 + s2})
+                   .Data("sub2_data0", 0, {s0, s1 + s2 + s2}, {s1 + s2 + s2, af::sym::kSymbolOne})
+                   .Load("sub2_load0", "sub2_data0")
+                   .Data("sub2_data1", 1, {s0, s1 + s2 + s2}, {s1 + s2 + s2, af::sym::kSymbolOne})
+                   .Load("sub2_load1", "sub2_data1")
+                   .Add("sub2_add0", "sub2_load0", "sub2_load1")
+                   .Store("sub2_store0", "sub2_add0")
+                   .Output("sub2_out0", "sub2_store0", 0, af::DT_FLOAT16)
+                   .Build();
   graph.SetGraphType(af::AscGraphType::kImplGraph);
   return graph;
 }
@@ -633,17 +633,17 @@ static AscGraph BuildSingleConcatAscGraph(const std::string &name) {
   const auto s0 = Symbol(32);
   const auto s1 = Symbol(3);
   return AscGraphBuilder(name)
-    .Loops({s0, s1})
-    .Data("concat_data0", 0, {s0, af::sym::kSymbolOne}, {af::sym::kSymbolOne, af::sym::kSymbolZero})
-    .Load("concat_load0", "concat_data0", {s0, af::sym::kSymbolOne})
-    .Data("concat_data1", 1, {s0, af::sym::kSymbolOne}, {af::sym::kSymbolOne, af::sym::kSymbolZero})
-    .Load("concat_load1", "concat_data1", {s0, af::sym::kSymbolOne})
-    .Data("concat_data2", 2, {s0, af::sym::kSymbolOne}, {af::sym::kSymbolOne, af::sym::kSymbolZero})
-    .Load("concat_load2", "concat_data2", {s0, af::sym::kSymbolOne})
-    .Concat("concat", {"concat_load0", "concat_load1", "concat_load2"})
-    .Store("concat_store", "concat")
-    .Output("concat_out", "concat_store", 0, af::DT_FLOAT16)
-    .Build();
+      .Loops({s0, s1})
+      .Data("concat_data0", 0, {s0, af::sym::kSymbolOne}, {af::sym::kSymbolOne, af::sym::kSymbolZero})
+      .Load("concat_load0", "concat_data0", {s0, af::sym::kSymbolOne})
+      .Data("concat_data1", 1, {s0, af::sym::kSymbolOne}, {af::sym::kSymbolOne, af::sym::kSymbolZero})
+      .Load("concat_load1", "concat_data1", {s0, af::sym::kSymbolOne})
+      .Data("concat_data2", 2, {s0, af::sym::kSymbolOne}, {af::sym::kSymbolOne, af::sym::kSymbolZero})
+      .Load("concat_load2", "concat_data2", {s0, af::sym::kSymbolOne})
+      .Concat("concat", {"concat_load0", "concat_load1", "concat_load2"})
+      .Store("concat_store", "concat")
+      .Output("concat_out", "concat_store", 0, af::DT_FLOAT16)
+      .Build();
 }
 
 /**
@@ -668,21 +668,19 @@ static AscGraph BuildRedundantBroadcastGraph(const std::string &name) {
   const auto s1 = Sym("s1");
   const auto s2 = Sym("s2");
   return AscGraphBuilder(name)
-    .Loops({s0, s1, s2})
-    .Data("data0", 0, {af::sym::kSymbolOne, s1, s2},
-         {af::sym::kSymbolZero, s2, af::sym::kSymbolOne}, af::DT_FLOAT16)
-    .Load("load0", "data0", {af::sym::kSymbolOne, s1, s2},
-         {af::sym::kSymbolZero, s2, af::sym::kSymbolOne})
-    .Abs("abs0", "load0")
-    .Exp("exp0", "abs0")
-    .Broadcast("brc0", "abs0", {s0, s1, s2})
-    .Broadcast("brc1", "exp0", {s0, s1, s2})
-    .Add("add0", "brc0", "brc1")
-    .Abs("exp1", "brc0")
-    .Mul("mul0", "add0", "exp1")
-    .Store("store", "mul0")
-    .Output("y", "store", 0, af::DT_FLOAT16)
-    .Build();
+      .Loops({s0, s1, s2})
+      .Data("data0", 0, {af::sym::kSymbolOne, s1, s2}, {af::sym::kSymbolZero, s2, af::sym::kSymbolOne}, af::DT_FLOAT16)
+      .Load("load0", "data0", {af::sym::kSymbolOne, s1, s2}, {af::sym::kSymbolZero, s2, af::sym::kSymbolOne})
+      .Abs("abs0", "load0")
+      .Exp("exp0", "abs0")
+      .Broadcast("brc0", "abs0", {s0, s1, s2})
+      .Broadcast("brc1", "exp0", {s0, s1, s2})
+      .Add("add0", "brc0", "brc1")
+      .Abs("exp1", "brc0")
+      .Mul("mul0", "add0", "exp1")
+      .Store("store", "mul0")
+      .Output("y", "store", 0, af::DT_FLOAT16)
+      .Build();
 }
 }  // namespace
 
@@ -1412,21 +1410,21 @@ TEST_F(OptimizerSt, ScalarBroadcastOptimization_Multi_Out_Success) {
   std::vector<Expression> load_strides = {af::sym::kSymbolZero, af::sym::kSymbolZero, af::sym::kSymbolZero};
 
   auto graph = AscGraphBuilder("ScalarBroadcastOptimization_Multi_Out_Success")
-    .Loops({s0, s1, s2})
-    // Scalar chain: data -> load (all 1s) -> brc1 -> brc2 -> brc3
-    .Data("data", 0, af::DT_FLOAT)
-    .Load("load", "data", load_shape, load_strides)
-    .Broadcast("brc1", "load", {2})  // expand axis 2: {1,1,1} -> {1,1,s2}
-    .Broadcast("brc2", "brc1", {1})  // expand axis 1: {1,1,s2} -> {1,s1,s2}
-    .Broadcast("brc3", "brc2", {0})  // expand axis 0: {1,s1,s2} -> {s0,s1,s2}
-    // Normal data chain
-    .Data("data2", 1, af::DT_FLOAT)
-    .Load("load1", "data2")
-    .Add("add", "brc3", "load1")
-    .Mul("mul", "add", "brc3")
-    .Store("store", "mul")
-    .Output("output", "store", 0, af::DT_FLOAT)
-    .Build();
+                   .Loops({s0, s1, s2})
+                   // Scalar chain: data -> load (all 1s) -> brc1 -> brc2 -> brc3
+                   .Data("data", 0, af::DT_FLOAT)
+                   .Load("load", "data", load_shape, load_strides)
+                   .Broadcast("brc1", "load", {2})  // expand axis 2: {1,1,1} -> {1,1,s2}
+                   .Broadcast("brc2", "brc1", {1})  // expand axis 1: {1,1,s2} -> {1,s1,s2}
+                   .Broadcast("brc3", "brc2", {0})  // expand axis 0: {1,s1,s2} -> {s0,s1,s2}
+                   // Normal data chain
+                   .Data("data2", 1, af::DT_FLOAT)
+                   .Load("load1", "data2")
+                   .Add("add", "brc3", "load1")
+                   .Mul("mul", "add", "brc3")
+                   .Store("store", "mul")
+                   .Output("output", "store", 0, af::DT_FLOAT)
+                   .Build();
 
   ::ascir::FusedScheduledResult fused_scheduled_result;
   Status res = optimizer.Optimize(graph, fused_scheduled_result);
@@ -1577,17 +1575,17 @@ TEST_F(OptimizerSt, ScalarBroadcastOptimization_Same_Input) {
   std::vector<Expression> load_strides = {af::sym::kSymbolZero, af::sym::kSymbolZero, af::sym::kSymbolZero};
 
   auto graph = AscGraphBuilder("ScalarBroadcastOptimization_Same_Input")
-    .Loops({s0, s1, s2})
-    // Scalar chain: data -> load (all 1s) -> brc1 -> brc2 -> brc3
-    .Data("data", 0, af::DT_FLOAT)
-    .Load("load", "data", load_shape, load_strides)
-    .Broadcast("brc1", "load", {2})  // expand axis 2: {1,1,1} -> {1,1,s2}
-    .Broadcast("brc2", "brc1", {1})  // expand axis 1: {1,1,s2} -> {1,s1,s2}
-    .Broadcast("brc3", "brc2", {0})  // expand axis 0: {1,s1,s2} -> {s0,s1,s2}
-    .Add("add", "brc3", "brc3")
-    .Store("store", "add")
-    .Output("output", "store", 0, af::DT_FLOAT)
-    .Build();
+                   .Loops({s0, s1, s2})
+                   // Scalar chain: data -> load (all 1s) -> brc1 -> brc2 -> brc3
+                   .Data("data", 0, af::DT_FLOAT)
+                   .Load("load", "data", load_shape, load_strides)
+                   .Broadcast("brc1", "load", {2})  // expand axis 2: {1,1,1} -> {1,1,s2}
+                   .Broadcast("brc2", "brc1", {1})  // expand axis 1: {1,1,s2} -> {1,s1,s2}
+                   .Broadcast("brc3", "brc2", {0})  // expand axis 0: {1,s1,s2} -> {s0,s1,s2}
+                   .Add("add", "brc3", "brc3")
+                   .Store("store", "add")
+                   .Output("output", "store", 0, af::DT_FLOAT)
+                   .Build();
 
   ::ascir::FusedScheduledResult fused_scheduled_result;
   Status res = optimizer.Optimize(graph, fused_scheduled_result);
@@ -1624,20 +1622,20 @@ TEST_F(OptimizerSt, ScalarBroadcastOptimization_Add_Ne_Common_Scalar_Success) {
   const Expression s2 = af::Symbol(6);
 
   auto graph = AscGraphBuilder("ScalarBroadcastOptimization_Add_Ne_Common_Scalar_Success")
-    .Loops({s0, s1, s2})
-    .Data("data", 0, af::DT_FLOAT)
-    .Load("load", "data", {af::sym::kSymbolOne, af::sym::kSymbolOne, af::sym::kSymbolOne},
-         {af::sym::kSymbolZero, af::sym::kSymbolZero, af::sym::kSymbolZero})
-    .Broadcast("brc1", "load", {2})
-    .Broadcast("brc2", "brc1", {1})
-    .Broadcast("brc3", "brc2", {0})
-    .Data("data2", 1, af::DT_FLOAT)
-    .Load("load1", "data2")
-    .Add("add", "brc3", "load1")
-    .template Op<af::ascir_op::Ne>("ne", {"brc3", "add"})
-    .Store("store", "ne")
-    .Output("output", "store", 0, af::DT_FLOAT)
-    .Build();
+                   .Loops({s0, s1, s2})
+                   .Data("data", 0, af::DT_FLOAT)
+                   .Load("load", "data", {af::sym::kSymbolOne, af::sym::kSymbolOne, af::sym::kSymbolOne},
+                         {af::sym::kSymbolZero, af::sym::kSymbolZero, af::sym::kSymbolZero})
+                   .Broadcast("brc1", "load", {2})
+                   .Broadcast("brc2", "brc1", {1})
+                   .Broadcast("brc3", "brc2", {0})
+                   .Data("data2", 1, af::DT_FLOAT)
+                   .Load("load1", "data2")
+                   .Add("add", "brc3", "load1")
+                   .template Op<af::ascir_op::Ne>("ne", {"brc3", "add"})
+                   .Store("store", "ne")
+                   .Output("output", "store", 0, af::DT_FLOAT)
+                   .Build();
 
   ::ascir::FusedScheduledResult fused_scheduled_result;
   Status res = optimizer.Optimize(graph, fused_scheduled_result);
@@ -1688,32 +1686,32 @@ TEST_F(OptimizerSt, ScalarBroadcastOptimization_Select_2S_3S_Success) {
   const Expression s2 = af::Symbol(6);
 
   auto graph = AscGraphBuilder("ScalarBroadcastOptimization_Select_2S_3S_Success")
-    .Loops({s0, s1, s2})
-    .Data("data0", 0, af::DT_FLOAT)
-    .Load("load0", "data0")
-    .Data("data1", 1, af::DT_FLOAT)
-    .Load("load1", "data1", {af::sym::kSymbolOne, af::sym::kSymbolOne, af::sym::kSymbolOne},
-         {af::sym::kSymbolZero, af::sym::kSymbolZero, af::sym::kSymbolZero})
-    .Broadcast("brc1", "load1", {2})
-    .Broadcast("brc2", "brc1", {1})
-    .Broadcast("brc3", "brc2", {0})
-    .Data("data2", 2, af::DT_FLOAT)
-    .Load("load2", "data2", {af::sym::kSymbolOne, af::sym::kSymbolOne, af::sym::kSymbolOne},
-         {af::sym::kSymbolZero, af::sym::kSymbolZero, af::sym::kSymbolZero})
-    .Broadcast("brc4", "load2", {2})
-    .Broadcast("brc5", "brc4", {1})
-    .Broadcast("brc6", "brc5", {0})
-    .template Op<af::ascir_op::Ne>("ne", {"brc3", "load0"})
-    .Data("data3", 3, af::DT_FLOAT)
-    .Load("load3", "data3", {af::sym::kSymbolOne, af::sym::kSymbolOne, af::sym::kSymbolOne},
-         {af::sym::kSymbolZero, af::sym::kSymbolZero, af::sym::kSymbolZero})
-    .Broadcast("brc7", "load3", {2})
-    .Broadcast("brc8", "brc7", {1})
-    .Broadcast("brc9", "brc8", {0})
-    .template Op<af::ascir_op::Select>("select", {"ne", "brc6", "brc9"})
-    .Store("store", "select")
-    .Output("output", "store", 0, af::DT_FLOAT)
-    .Build();
+                   .Loops({s0, s1, s2})
+                   .Data("data0", 0, af::DT_FLOAT)
+                   .Load("load0", "data0")
+                   .Data("data1", 1, af::DT_FLOAT)
+                   .Load("load1", "data1", {af::sym::kSymbolOne, af::sym::kSymbolOne, af::sym::kSymbolOne},
+                         {af::sym::kSymbolZero, af::sym::kSymbolZero, af::sym::kSymbolZero})
+                   .Broadcast("brc1", "load1", {2})
+                   .Broadcast("brc2", "brc1", {1})
+                   .Broadcast("brc3", "brc2", {0})
+                   .Data("data2", 2, af::DT_FLOAT)
+                   .Load("load2", "data2", {af::sym::kSymbolOne, af::sym::kSymbolOne, af::sym::kSymbolOne},
+                         {af::sym::kSymbolZero, af::sym::kSymbolZero, af::sym::kSymbolZero})
+                   .Broadcast("brc4", "load2", {2})
+                   .Broadcast("brc5", "brc4", {1})
+                   .Broadcast("brc6", "brc5", {0})
+                   .template Op<af::ascir_op::Ne>("ne", {"brc3", "load0"})
+                   .Data("data3", 3, af::DT_FLOAT)
+                   .Load("load3", "data3", {af::sym::kSymbolOne, af::sym::kSymbolOne, af::sym::kSymbolOne},
+                         {af::sym::kSymbolZero, af::sym::kSymbolZero, af::sym::kSymbolZero})
+                   .Broadcast("brc7", "load3", {2})
+                   .Broadcast("brc8", "brc7", {1})
+                   .Broadcast("brc9", "brc8", {0})
+                   .template Op<af::ascir_op::Select>("select", {"ne", "brc6", "brc9"})
+                   .Store("store", "select")
+                   .Output("output", "store", 0, af::DT_FLOAT)
+                   .Build();
 
   ::ascir::FusedScheduledResult fused_scheduled_result;
   Status res = optimizer.Optimize(graph, fused_scheduled_result);
@@ -1757,20 +1755,20 @@ TEST_F(OptimizerSt, ScalarBroadcastOptimization_Add_Le_Common_Scalar_Failed) {
   const Expression s2 = af::Symbol(6);
 
   auto graph = AscGraphBuilder("ScalarBroadcastOptimization_Add_Le_Common_Scalar_Failed")
-    .Loops({s0, s1, s2})
-    .Data("data", 0, af::DT_FLOAT)
-    .Load("load", "data", {af::sym::kSymbolOne, af::sym::kSymbolOne, af::sym::kSymbolOne},
-         {af::sym::kSymbolZero, af::sym::kSymbolZero, af::sym::kSymbolZero})
-    .Broadcast("brc1", "load", {2})
-    .Broadcast("brc2", "brc1", {1})
-    .Broadcast("brc3", "brc2", {0})
-    .Data("data2", 1, af::DT_FLOAT)
-    .Load("load1", "data2")
-    .Add("add", "brc3", "load1")
-    .template Op<af::ascir_op::Le>("le", {"brc3", "add"})
-    .Store("store", "le")
-    .Output("output", "store", 0, af::DT_FLOAT)
-    .Build();
+                   .Loops({s0, s1, s2})
+                   .Data("data", 0, af::DT_FLOAT)
+                   .Load("load", "data", {af::sym::kSymbolOne, af::sym::kSymbolOne, af::sym::kSymbolOne},
+                         {af::sym::kSymbolZero, af::sym::kSymbolZero, af::sym::kSymbolZero})
+                   .Broadcast("brc1", "load", {2})
+                   .Broadcast("brc2", "brc1", {1})
+                   .Broadcast("brc3", "brc2", {0})
+                   .Data("data2", 1, af::DT_FLOAT)
+                   .Load("load1", "data2")
+                   .Add("add", "brc3", "load1")
+                   .template Op<af::ascir_op::Le>("le", {"brc3", "add"})
+                   .Store("store", "le")
+                   .Output("output", "store", 0, af::DT_FLOAT)
+                   .Build();
 
   ::ascir::FusedScheduledResult fused_scheduled_result;
   Status res = optimizer.Optimize(graph, fused_scheduled_result);
@@ -1794,18 +1792,18 @@ TEST_F(OptimizerSt, ScalarBroadcastOptimization_Scalar) {
   const auto s1 = Sym("s1");
   const auto s2 = Sym("s2");
 
-  auto graph = AscGraphBuilder("ScalarBroadcastOptimization_Scalar")
-    .Loops({s0, s1, s2})
-    .Scalar("data0", "0", af::DT_FLOAT16)
-    .Broadcast("brc0", "data0", {af::sym::kSymbolOne, af::sym::kSymbolOne, s2})
-    .Broadcast("brc1", "brc0", {s0, af::sym::kSymbolOne, s2})
-    .Data("data1", 0, af::DT_FLOAT16)
-    .Load("load1", "data1", {s0, af::sym::kSymbolOne, s2},
-         {s2, af::sym::kSymbolZero, af::sym::kSymbolOne})
-    .Add("add", "brc1", "load1")
-    .Store("store", "add")
-    .Output("y", "store", 0, af::DT_FLOAT16)
-    .Build();
+  auto graph =
+      AscGraphBuilder("ScalarBroadcastOptimization_Scalar")
+          .Loops({s0, s1, s2})
+          .Scalar("data0", "0", af::DT_FLOAT16)
+          .Broadcast("brc0", "data0", {af::sym::kSymbolOne, af::sym::kSymbolOne, s2})
+          .Broadcast("brc1", "brc0", {s0, af::sym::kSymbolOne, s2})
+          .Data("data1", 0, af::DT_FLOAT16)
+          .Load("load1", "data1", {s0, af::sym::kSymbolOne, s2}, {s2, af::sym::kSymbolZero, af::sym::kSymbolOne})
+          .Add("add", "brc1", "load1")
+          .Store("store", "add")
+          .Output("y", "store", 0, af::DT_FLOAT16)
+          .Build();
 
   ::ascir::FusedScheduledResult fused_scheduled_result;
   Status res = optimizer.Optimize(graph, fused_scheduled_result);
@@ -1831,20 +1829,21 @@ TEST_F(OptimizerSt, MultiBroadcastCancellation_All_One) {
   const auto all_zero = std::vector<Expression>(5, af::sym::kSymbolZero);
 
   auto graph = AscGraphBuilder("store_load")
-    .Loops({s0, s1, s2, s3, s4})
-    .Data("data0", 0, all_one, all_zero, af::DT_FLOAT16)
-    .Load("load0", "data0", all_one, all_zero)
-    .Abs("abs0", "load0")
-    .Broadcast("brc0", "abs0", {af::sym::kSymbolOne, af::sym::kSymbolOne, af::sym::kSymbolOne, af::sym::kSymbolOne, s4})
-    .Broadcast("brc1", "brc0", {af::sym::kSymbolOne, af::sym::kSymbolOne, af::sym::kSymbolOne, s3, s4})
-    .Broadcast("brc2", "brc1", {af::sym::kSymbolOne, af::sym::kSymbolOne, s2, s3, s4})
-    .Broadcast("brc3", "brc2", {af::sym::kSymbolOne, s1, s2, s3, s4})
-    .Broadcast("brc4", "brc3", {s0, s1, s2, s3, s4})
-    .Exp("exp0", "brc4")
-    .Add("add0", "exp0", "brc4")
-    .Store("store", "add0")
-    .Output("y", "store", 0, af::DT_FLOAT16)
-    .Build();
+                   .Loops({s0, s1, s2, s3, s4})
+                   .Data("data0", 0, all_one, all_zero, af::DT_FLOAT16)
+                   .Load("load0", "data0", all_one, all_zero)
+                   .Abs("abs0", "load0")
+                   .Broadcast("brc0", "abs0",
+                              {af::sym::kSymbolOne, af::sym::kSymbolOne, af::sym::kSymbolOne, af::sym::kSymbolOne, s4})
+                   .Broadcast("brc1", "brc0", {af::sym::kSymbolOne, af::sym::kSymbolOne, af::sym::kSymbolOne, s3, s4})
+                   .Broadcast("brc2", "brc1", {af::sym::kSymbolOne, af::sym::kSymbolOne, s2, s3, s4})
+                   .Broadcast("brc3", "brc2", {af::sym::kSymbolOne, s1, s2, s3, s4})
+                   .Broadcast("brc4", "brc3", {s0, s1, s2, s3, s4})
+                   .Exp("exp0", "brc4")
+                   .Add("add0", "exp0", "brc4")
+                   .Store("store", "add0")
+                   .Output("y", "store", 0, af::DT_FLOAT16)
+                   .Build();
 
   ::ascir::FusedScheduledResult fused_scheduled_result;
   Status res = optimizer.Optimize(graph, fused_scheduled_result);
@@ -1908,21 +1907,21 @@ TEST_F(OptimizerSt, ScalarBroadcastOptimization_Two_Scalar) {
   const auto all_zero = std::vector<Expression>(3, af::sym::kSymbolZero);
 
   auto graph = AscGraphBuilder("ScalarBroadcastOptimization_Two_Scalar")
-    .Loops({s0, s1, s2})
-    .Data("data", 0, af::DT_FLOAT)
-    .Load("load", "data", all_one, all_zero)
-    .Broadcast("brc1", "load", {af::sym::kSymbolOne, af::sym::kSymbolOne, s2})
-    .Broadcast("brc2", "brc1", {af::sym::kSymbolOne, s1, s2})
-    .Broadcast("brc3", "brc2", {s0, s1, s2})
-    .Data("data2", 1, af::DT_FLOAT)
-    .Load("load1", "data2", all_one, all_zero)
-    .Broadcast("brc4", "load1", {af::sym::kSymbolOne, af::sym::kSymbolOne, s2})
-    .Broadcast("brc5", "brc4", {af::sym::kSymbolOne, s1, s2})
-    .Broadcast("brc6", "brc5", {s0, s1, s2})
-    .Op<af::ascir_op::Pow>("pow", {"brc3", "brc6"})
-    .Store("store", "pow")
-    .Output("output", "store", 0, af::DT_FLOAT)
-    .Build();
+                   .Loops({s0, s1, s2})
+                   .Data("data", 0, af::DT_FLOAT)
+                   .Load("load", "data", all_one, all_zero)
+                   .Broadcast("brc1", "load", {af::sym::kSymbolOne, af::sym::kSymbolOne, s2})
+                   .Broadcast("brc2", "brc1", {af::sym::kSymbolOne, s1, s2})
+                   .Broadcast("brc3", "brc2", {s0, s1, s2})
+                   .Data("data2", 1, af::DT_FLOAT)
+                   .Load("load1", "data2", all_one, all_zero)
+                   .Broadcast("brc4", "load1", {af::sym::kSymbolOne, af::sym::kSymbolOne, s2})
+                   .Broadcast("brc5", "brc4", {af::sym::kSymbolOne, s1, s2})
+                   .Broadcast("brc6", "brc5", {s0, s1, s2})
+                   .Op<af::ascir_op::Pow>("pow", {"brc3", "brc6"})
+                   .Store("store", "pow")
+                   .Output("output", "store", 0, af::DT_FLOAT)
+                   .Build();
 
   ::ascir::FusedScheduledResult fused_scheduled_result;
   Status res = optimizer.Optimize(graph, fused_scheduled_result);
@@ -2022,21 +2021,22 @@ TEST_F(OptimizerSt, RemoveContinuesBroadcast) {
   const auto s4 = Sym("s4");
 
   auto graph = AscGraphBuilder("RemoveContinuesBroadcast")
-    .Loops({s0, s1, s2, s3, s4})
-    .Data("data0", 0, af::DT_FLOAT16)
-    .Load("load0", "data0")
-    .Abs("abs0", "load0")
-    .Data("data1", 1, {s0, s1, af::sym::kSymbolOne, af::sym::kSymbolOne, af::sym::kSymbolOne},
-         {s1, af::sym::kSymbolOne, af::sym::kSymbolZero, af::sym::kSymbolZero, af::sym::kSymbolZero}, af::DT_FLOAT16)
-    .Load("load1", "data1", {s0, s1, af::sym::kSymbolOne, af::sym::kSymbolOne, af::sym::kSymbolOne},
-         {s1, af::sym::kSymbolOne, af::sym::kSymbolZero, af::sym::kSymbolZero, af::sym::kSymbolZero})
-    .Broadcast("brc0", "load1", {s0, s1, af::sym::kSymbolOne, af::sym::kSymbolOne, s4})
-    .Broadcast("brc1", "brc0", {s0, s1, af::sym::kSymbolOne, s3, s4})
-    .Broadcast("brc2", "brc1", {s0, s1, s2, s3, s4})
-    .Add("add0", "abs0", "brc2")
-    .Store("store", "add0")
-    .Output("y", "store", 0, af::DT_FLOAT16)
-    .Build();
+                   .Loops({s0, s1, s2, s3, s4})
+                   .Data("data0", 0, af::DT_FLOAT16)
+                   .Load("load0", "data0")
+                   .Abs("abs0", "load0")
+                   .Data("data1", 1, {s0, s1, af::sym::kSymbolOne, af::sym::kSymbolOne, af::sym::kSymbolOne},
+                         {s1, af::sym::kSymbolOne, af::sym::kSymbolZero, af::sym::kSymbolZero, af::sym::kSymbolZero},
+                         af::DT_FLOAT16)
+                   .Load("load1", "data1", {s0, s1, af::sym::kSymbolOne, af::sym::kSymbolOne, af::sym::kSymbolOne},
+                         {s1, af::sym::kSymbolOne, af::sym::kSymbolZero, af::sym::kSymbolZero, af::sym::kSymbolZero})
+                   .Broadcast("brc0", "load1", {s0, s1, af::sym::kSymbolOne, af::sym::kSymbolOne, s4})
+                   .Broadcast("brc1", "brc0", {s0, s1, af::sym::kSymbolOne, s3, s4})
+                   .Broadcast("brc2", "brc1", {s0, s1, s2, s3, s4})
+                   .Add("add0", "abs0", "brc2")
+                   .Store("store", "add0")
+                   .Output("y", "store", 0, af::DT_FLOAT16)
+                   .Build();
 
   ::ascir::FusedScheduledResult fused_scheduled_result;
   Status res = optimizer.Optimize(graph, fused_scheduled_result);
@@ -2073,25 +2073,25 @@ TEST_F(OptimizerSt, RemovePad_not_align_broadcast) {
   std::vector<Expression> load2_strides = {af::sym::kSymbolZero, s2, af::sym::kSymbolOne};
 
   auto graph = AscGraphBuilder("RemovePad_not_align_broadcast")
-    .Loops({s0, s1, s2})
-    // First chain: data0 -> load0 (with padding) -> brc0 (expand axis 0) -> add0 -> store0 -> y0
-    .Data("data0", 0, af::DT_FLOAT16)
-    .Load("load0", "data0", load0_shape, load0_strides)
-    .Broadcast("brc0", "load0", {0})  // broadcast on axis 0: {1, s1, s2} -> {s0, s1, s2}
-    // Second chain: data1 -> load1 (normal)
-    .Data("data1", 1, af::DT_FLOAT16)
-    .Load("load1", "data1")
-    .Add("add0", "brc0", "load1")
-    .Store("store0", "add0")
-    .Output("y0", "store0", 0, af::DT_FLOAT16)
-    // Third chain: data2 -> load2 (with padding) -> brc2 (expand axis 0) -> mul0 -> store1 -> y1
-    .Data("data2", 2, af::DT_FLOAT16)
-    .Load("load2", "data2", load2_shape, load2_strides)
-    .Broadcast("brc2", "load2", {0})  // broadcast on axis 0: {1, s1, s2} -> {s0, s1, s2}
-    .Mul("mul0", "load1", "brc2")
-    .Store("store1", "mul0")
-    .Output("y1", "store1", 1, af::DT_FLOAT16)
-    .Build();
+                   .Loops({s0, s1, s2})
+                   // First chain: data0 -> load0 (with padding) -> brc0 (expand axis 0) -> add0 -> store0 -> y0
+                   .Data("data0", 0, af::DT_FLOAT16)
+                   .Load("load0", "data0", load0_shape, load0_strides)
+                   .Broadcast("brc0", "load0", {0})  // broadcast on axis 0: {1, s1, s2} -> {s0, s1, s2}
+                   // Second chain: data1 -> load1 (normal)
+                   .Data("data1", 1, af::DT_FLOAT16)
+                   .Load("load1", "data1")
+                   .Add("add0", "brc0", "load1")
+                   .Store("store0", "add0")
+                   .Output("y0", "store0", 0, af::DT_FLOAT16)
+                   // Third chain: data2 -> load2 (with padding) -> brc2 (expand axis 0) -> mul0 -> store1 -> y1
+                   .Data("data2", 2, af::DT_FLOAT16)
+                   .Load("load2", "data2", load2_shape, load2_strides)
+                   .Broadcast("brc2", "load2", {0})  // broadcast on axis 0: {1, s1, s2} -> {s0, s1, s2}
+                   .Mul("mul0", "load1", "brc2")
+                   .Store("store1", "mul0")
+                   .Output("y1", "store1", 1, af::DT_FLOAT16)
+                   .Build();
 
   ::ascir::FusedScheduledResult fused_scheduled_result;
   Status res = optimizer.Optimize(graph, fused_scheduled_result);
@@ -2149,16 +2149,16 @@ TEST_F(OptimizerSt, RemoveContinuesBroadcast_BAB) {
   const auto s2 = Sym("s2");
 
   auto graph = AscGraphBuilder("RemoveContinuesBroadcast_BAB")
-    .Loops({s0, s1, s2})
-    .Data("data0", 0, {af::sym::kSymbolOne, s1, af::sym::kSymbolOne},
-         {af::sym::kSymbolZero, af::sym::kSymbolOne, af::sym::kSymbolZero}, af::DT_FLOAT16)
-    .Load("load0", "data0", {af::sym::kSymbolOne, s1, af::sym::kSymbolOne},
-         {af::sym::kSymbolZero, af::sym::kSymbolOne, af::sym::kSymbolZero})
-    .Broadcast("brc0", "load0", {af::sym::kSymbolOne, s1, s2})
-    .Broadcast("brc1", "brc0", {s0, s1, s2})
-    .Store("store", "brc1")
-    .Output("y", "store", 0, af::DT_FLOAT16)
-    .Build();
+                   .Loops({s0, s1, s2})
+                   .Data("data0", 0, {af::sym::kSymbolOne, s1, af::sym::kSymbolOne},
+                         {af::sym::kSymbolZero, af::sym::kSymbolOne, af::sym::kSymbolZero}, af::DT_FLOAT16)
+                   .Load("load0", "data0", {af::sym::kSymbolOne, s1, af::sym::kSymbolOne},
+                         {af::sym::kSymbolZero, af::sym::kSymbolOne, af::sym::kSymbolZero})
+                   .Broadcast("brc0", "load0", {af::sym::kSymbolOne, s1, s2})
+                   .Broadcast("brc1", "brc0", {s0, s1, s2})
+                   .Store("store", "brc1")
+                   .Output("y", "store", 0, af::DT_FLOAT16)
+                   .Build();
 
   ::ascir::FusedScheduledResult fused_scheduled_result;
   Status res = optimizer.Optimize(graph, fused_scheduled_result);
@@ -2985,32 +2985,32 @@ TEST_F(OptimizerSt, TestVecoutNotReusable) {
   const auto s2 = Sym("s2");
 
   auto graph = AscGraphBuilder("shorten_load")
-    .Loops({s0, s1})
-    .Data("x0", 0)
-    .Load("load0", "x0", {s0, s2}, {s2, af::sym::kSymbolOne})
-    .Abs("abs0", "load0")
-    .Store("store0", "abs0")
-    .Output("output0", "store0", 0)
-    .Load("load1", "x0", {s0, s2}, {s2, af::sym::kSymbolOne})
-    .Abs("abs1", "load1")
-    .Store("store1", "abs1")
-    .Output("output1", "store1", 1)
-    .Load("load2", "x0", {s0, s2}, {s2, af::sym::kSymbolOne})
-    .Abs("abs2", "load2")
-    .Store("store2", "abs2")
-    .Output("output2", "store2", 2)
-    .Load("load3", "x0", {s0, s2}, {s2, af::sym::kSymbolOne})
-    .Abs("abs3", "load3")
-    .Store("store3", "abs3")
-    .Output("output3", "store3", 3)
-    .Load("load4", "x0", {s0, s2}, {s2, af::sym::kSymbolOne})
-    .Abs("abs4", "load4")
-    .Store("store4", "abs4")
-    .Output("output4", "store4", 4)
-    .Concat("concat", {"abs0", "abs1", "abs2", "abs3", "abs4"})
-    .Store("store5", "concat")
-    .Output("output5", "store5", 5)
-    .Build();
+                   .Loops({s0, s1})
+                   .Data("x0", 0)
+                   .Load("load0", "x0", {s0, s2}, {s2, af::sym::kSymbolOne})
+                   .Abs("abs0", "load0")
+                   .Store("store0", "abs0")
+                   .Output("output0", "store0", 0)
+                   .Load("load1", "x0", {s0, s2}, {s2, af::sym::kSymbolOne})
+                   .Abs("abs1", "load1")
+                   .Store("store1", "abs1")
+                   .Output("output1", "store1", 1)
+                   .Load("load2", "x0", {s0, s2}, {s2, af::sym::kSymbolOne})
+                   .Abs("abs2", "load2")
+                   .Store("store2", "abs2")
+                   .Output("output2", "store2", 2)
+                   .Load("load3", "x0", {s0, s2}, {s2, af::sym::kSymbolOne})
+                   .Abs("abs3", "load3")
+                   .Store("store3", "abs3")
+                   .Output("output3", "store3", 3)
+                   .Load("load4", "x0", {s0, s2}, {s2, af::sym::kSymbolOne})
+                   .Abs("abs4", "load4")
+                   .Store("store4", "abs4")
+                   .Output("output4", "store4", 4)
+                   .Concat("concat", {"abs0", "abs1", "abs2", "abs3", "abs4"})
+                   .Store("store5", "concat")
+                   .Output("output5", "store5", 5)
+                   .Build();
 
   ::ascir::FusedScheduledResult fused_scheduled;
   int res = optimizer.Optimize(graph, fused_scheduled);
@@ -3589,21 +3589,21 @@ TEST_F(OptimizerSt, LoadOpSequenceAdjustCase) {
   const auto all_zero = std::vector<Expression>(2, af::sym::kSymbolZero);
 
   auto graph = AscGraphBuilder("reorder_load_op")
-    .Loops({s0, s1})
-    .Data("data0", 0, all_one, all_zero, af::DT_FLOAT)
-    .Load("load0", "data0", all_one, all_zero)
-    .Broadcast("broadcast0", "load0", {s0, s1})
-    .Data("data1", 1, {s0, s1}, {s1, af::sym::kSymbolOne}, af::DT_FLOAT)
-    .Load("load1", "data1")
-    .Abs("abs", "load1")
-    .Data("data2", 2, all_one, all_zero, af::DT_FLOAT)
-    .Load("load2", "data2", all_one, all_zero)
-    .Broadcast("broadcast1", "load2", {s0, s1})
-    .Add("add", "abs", "broadcast1")
-    .Mul("mul", "broadcast0", "add")
-    .Store("store", "mul")
-    .Output("output", "store", 8, af::DT_FLOAT)
-    .Build();
+                   .Loops({s0, s1})
+                   .Data("data0", 0, all_one, all_zero, af::DT_FLOAT)
+                   .Load("load0", "data0", all_one, all_zero)
+                   .Broadcast("broadcast0", "load0", {s0, s1})
+                   .Data("data1", 1, {s0, s1}, {s1, af::sym::kSymbolOne}, af::DT_FLOAT)
+                   .Load("load1", "data1")
+                   .Abs("abs", "load1")
+                   .Data("data2", 2, all_one, all_zero, af::DT_FLOAT)
+                   .Load("load2", "data2", all_one, all_zero)
+                   .Broadcast("broadcast1", "load2", {s0, s1})
+                   .Add("add", "abs", "broadcast1")
+                   .Mul("mul", "broadcast0", "add")
+                   .Store("store", "mul")
+                   .Output("output", "store", 8, af::DT_FLOAT)
+                   .Build();
 
   ::ascir::FusedScheduledResult fused_scheduled_result;
   EXPECT_EQ(optimizer.Optimize(graph, fused_scheduled_result), 0);
@@ -3649,14 +3649,14 @@ TEST_F(OptimizerSt, ReduceNeedAlignment) {
   std::vector<Expression> max_strides = {af::sym::kSymbolZero, s3, af::sym::kSymbolZero, af::sym::kSymbolOne};
 
   auto graph = AscGraphBuilder("ReduceNeedAlignment")
-    .Loops({s0, s1, s2, s3})
-    .Data("arg4_1", 0, af::DT_FLOAT)
-    .Load("b0_load", "arg4_1")
-    .Abs("abs", "b0_load")
-    .Max("b0_max", "abs", {0, 2})  // Max reduce on axes {0, 2}
-    .Store("b3_store", "b0_max", max_shape, max_strides)
-    .Output("buf3", "b3_store", 0, af::DT_FLOAT)
-    .Build();
+                   .Loops({s0, s1, s2, s3})
+                   .Data("arg4_1", 0, af::DT_FLOAT)
+                   .Load("b0_load", "arg4_1")
+                   .Abs("abs", "b0_load")
+                   .Max("b0_max", "abs", {0, 2})  // Max reduce on axes {0, 2}
+                   .Store("b3_store", "b0_max", max_shape, max_strides)
+                   .Output("buf3", "b3_store", 0, af::DT_FLOAT)
+                   .Build();
 
   ::ascir::FusedScheduledResult fused_scheduled_result;
   Status res = optimizer.Optimize(graph, fused_scheduled_result);
@@ -3680,11 +3680,11 @@ TEST_F(OptimizerSt, ConstantToStoreNeedBroadCast) {
   const Expression s0 = af::Symbol(128);
 
   auto graph = AscGraphBuilder("test_graph")
-    .Loops({s0})
-    .Scalar("const", "998.998f", af::DT_FLOAT)
-    .Store("store", "const")
-    .Output("output", "store", 0, af::DT_FLOAT)
-    .Build();
+                   .Loops({s0})
+                   .Scalar("const", "998.998f", af::DT_FLOAT)
+                   .Store("store", "const")
+                   .Output("output", "store", 0, af::DT_FLOAT)
+                   .Build();
 
   optimize::Optimizer optimizer(optimize::OptimizerOptions{});
   ::ascir::FusedScheduledResult fused_scheduled_result;
@@ -3714,13 +3714,13 @@ TEST_F(OptimizerSt, ExpandDimsForAllReduce) {
   std::vector<Expression> sum_strides = {af::sym::kSymbolZero, af::sym::kSymbolZero};
 
   auto graph = AscGraphBuilder("all_reduce")
-    .Loops({s0, s1})
-    .Data("data", 0, af::DT_FLOAT)
-    .Load("load", "data")
-    .Sum("sum", "load", {0, 1})  // Sum reduce on both axes
-    .Store("store1", "sum", sum_shape, sum_strides)
-    .Output("output", "store1", 0, af::DT_FLOAT)
-    .Build();
+                   .Loops({s0, s1})
+                   .Data("data", 0, af::DT_FLOAT)
+                   .Load("load", "data")
+                   .Sum("sum", "load", {0, 1})  // Sum reduce on both axes
+                   .Store("store1", "sum", sum_shape, sum_strides)
+                   .Output("output", "store1", 0, af::DT_FLOAT)
+                   .Build();
 
   ::ascir::FusedScheduledResult fused_scheduled_result;
   Status res = optimizer.Optimize(graph, fused_scheduled_result);
@@ -3798,25 +3798,22 @@ TEST_F(OptimizerSt, NodeCacheMarkerBroadcast) {
   auto s0 = af::Symbol(20);
   auto s1 = af::Symbol(32);
 
-  auto graph = AscGraphBuilder("NodeCacheMarkerBroadcast")
-    .Loops({s0, s1})
-    .Scalar("data0", "0", af::DT_FLOAT16)
-    .Broadcast("brc0", "data0", {s0, s1})
-    .Data("data1", 0, {s0, af::sym::kSymbolOne},
-         {af::sym::kSymbolOne, af::sym::kSymbolZero}, af::DT_FLOAT16)
-    .Load("load1", "data1", {s0, af::sym::kSymbolOne},
-         {af::sym::kSymbolOne, af::sym::kSymbolZero})
-    .Broadcast("brc1", "load1", {s0, s1})
-    .Add("add0", "brc0", "brc1")
-    .Store("store0", "add0", {af::sym::kSymbolOne, s1},
-         {af::sym::kSymbolZero, af::sym::kSymbolOne})
-    .Output("y0", "store0", 0, af::DT_FLOAT16)
-    // 验证防止重复判断
-    .Add("add1", "brc0", "brc1")
-    .Store("store1", "add1", {af::sym::kSymbolOne, s1},
-         {af::sym::kSymbolZero, af::sym::kSymbolOne})
-    .Output("y1", "store1", 1, af::DT_FLOAT16)
-    .Build();
+  auto graph =
+      AscGraphBuilder("NodeCacheMarkerBroadcast")
+          .Loops({s0, s1})
+          .Scalar("data0", "0", af::DT_FLOAT16)
+          .Broadcast("brc0", "data0", {s0, s1})
+          .Data("data1", 0, {s0, af::sym::kSymbolOne}, {af::sym::kSymbolOne, af::sym::kSymbolZero}, af::DT_FLOAT16)
+          .Load("load1", "data1", {s0, af::sym::kSymbolOne}, {af::sym::kSymbolOne, af::sym::kSymbolZero})
+          .Broadcast("brc1", "load1", {s0, s1})
+          .Add("add0", "brc0", "brc1")
+          .Store("store0", "add0", {af::sym::kSymbolOne, s1}, {af::sym::kSymbolZero, af::sym::kSymbolOne})
+          .Output("y0", "store0", 0, af::DT_FLOAT16)
+          // 验证防止重复判断
+          .Add("add1", "brc0", "brc1")
+          .Store("store1", "add1", {af::sym::kSymbolOne, s1}, {af::sym::kSymbolZero, af::sym::kSymbolOne})
+          .Output("y1", "store1", 1, af::DT_FLOAT16)
+          .Build();
 
   ::ascir::FusedScheduledResult fused_scheduled_result;
   Status res = optimizer.Optimize(graph, fused_scheduled_result);
@@ -3997,18 +3994,18 @@ TEST_F(OptimizerSt, StaticGraphRecomputeSplit) {
   std::vector<Expression> load0_strides = {af::sym::kSymbolZero, af::sym::kSymbolOne};
 
   auto graph = AscGraphBuilder("StaticGraphRecomputeSplit")
-    .Loops({s0, s1})
-    .Data("data0", 0, af::DT_FLOAT16)
-    .Load("load0", "data0", load0_shape, load0_strides)
-    .Abs("abs0", "load0")
-    .Abs("abs1", "abs0")
-    .Store("store0", "abs1")
-    .Output("out0", "store0", 0, af::DT_FLOAT16)
-    .Broadcast("brc1", "abs1", {0})  // broadcast on axis 0: {1, s1} -> {s0, s1}
-    .Abs("abs2", "brc1")
-    .Store("store1", "abs2")
-    .Output("y0", "store1", 0, af::DT_FLOAT16)
-    .Build();
+                   .Loops({s0, s1})
+                   .Data("data0", 0, af::DT_FLOAT16)
+                   .Load("load0", "data0", load0_shape, load0_strides)
+                   .Abs("abs0", "load0")
+                   .Abs("abs1", "abs0")
+                   .Store("store0", "abs1")
+                   .Output("out0", "store0", 0, af::DT_FLOAT16)
+                   .Broadcast("brc1", "abs1", {0})  // broadcast on axis 0: {1, s1} -> {s0, s1}
+                   .Abs("abs2", "brc1")
+                   .Store("store1", "abs2")
+                   .Output("y0", "store1", 0, af::DT_FLOAT16)
+                   .Build();
 
   ::ascir::FusedScheduledResult fused_scheduled_result;
   Status res = optimizer.Optimize(graph, fused_scheduled_result);
@@ -4041,17 +4038,17 @@ TEST_F(OptimizerSt, NodeCacheMarkerReduce) {
   std::vector<Expression> sum_strides = {s2, af::sym::kSymbolZero, af::sym::kSymbolOne};
 
   auto graph = AscGraphBuilder("NodeCacheMarkerReduce")
-    .Loops({s0, s1, s2})
-    .Data("data0", 0, af::DT_FLOAT16)
-    .Load("load0", "data0")
-    .Data("data1", 1, af::DT_FLOAT16)
-    .Load("load1", "data1", load1_shape, load1_strides)
-    .Broadcast("brc1", "load1", {1})  // broadcast on axis 1: {s0, 1, s2} -> {s0, s1, s2}
-    .Add("add0", "load0", "brc1")
-    .Sum("reduce0", "add0", {1})  // Sum reduce on axis 1
-    .Store("store0", "reduce0", sum_shape, sum_strides)
-    .Output("y0", "store0", 0, af::DT_FLOAT16)
-    .Build();
+                   .Loops({s0, s1, s2})
+                   .Data("data0", 0, af::DT_FLOAT16)
+                   .Load("load0", "data0")
+                   .Data("data1", 1, af::DT_FLOAT16)
+                   .Load("load1", "data1", load1_shape, load1_strides)
+                   .Broadcast("brc1", "load1", {1})  // broadcast on axis 1: {s0, 1, s2} -> {s0, s1, s2}
+                   .Add("add0", "load0", "brc1")
+                   .Sum("reduce0", "add0", {1})  // Sum reduce on axis 1
+                   .Store("store0", "reduce0", sum_shape, sum_strides)
+                   .Output("y0", "store0", 0, af::DT_FLOAT16)
+                   .Build();
 
   ::ascir::FusedScheduledResult fused_scheduled_result;
   Status res = optimizer.Optimize(graph, fused_scheduled_result);
@@ -4118,22 +4115,22 @@ TEST_F(OptimizerSt, PowSubstitutionCase1) {
   const auto s0 = af::Symbol(64);
 
   auto graph = AscGraphBuilder("pow1")
-    .Loops({s0})
-    .Data("data0", 0)
-    .Load("load0", "data0")
-    .Scalar("scalar0", "-0.500000000001")
-    .Op<af::ascir_op::Pow>("pow0", {"load0", "scalar0"})
-    .Scalar("scalar1", "-1")
-    .Op<af::ascir_op::Pow>("pow1", {"pow0", "scalar1"})
-    .Scalar("scalar2", "-2")
-    .Op<af::ascir_op::Pow>("pow2", {"pow1", "scalar2"})
-    .Scalar("scalar3", "3")
-    .Op<af::ascir_op::Pow>("pow3", {"pow2", "scalar3"})
-    .Scalar("scalar4", "4")
-    .Op<af::ascir_op::Pow>("pow4", {"pow3", "scalar4"})
-    .Store("store", "pow4")
-    .Output("out0", "store", 0)
-    .Build();
+                   .Loops({s0})
+                   .Data("data0", 0)
+                   .Load("load0", "data0")
+                   .Scalar("scalar0", "-0.500000000001")
+                   .Op<af::ascir_op::Pow>("pow0", {"load0", "scalar0"})
+                   .Scalar("scalar1", "-1")
+                   .Op<af::ascir_op::Pow>("pow1", {"pow0", "scalar1"})
+                   .Scalar("scalar2", "-2")
+                   .Op<af::ascir_op::Pow>("pow2", {"pow1", "scalar2"})
+                   .Scalar("scalar3", "3")
+                   .Op<af::ascir_op::Pow>("pow3", {"pow2", "scalar3"})
+                   .Scalar("scalar4", "4")
+                   .Op<af::ascir_op::Pow>("pow4", {"pow3", "scalar4"})
+                   .Store("store", "pow4")
+                   .Output("out0", "store", 0)
+                   .Build();
 
   optimize::AscGraphInfoComplete::CompleteApiInfo(graph);
 
@@ -4167,14 +4164,14 @@ TEST_F(OptimizerSt, PowWithTwoScalar) {
   const auto s0 = af::Symbol(64);
 
   auto graph = AscGraphBuilder("pow1")
-    .Loops({s0})
-    .Scalar("scalar0", "0.0")
-    .Scalar("scalar1", "1.0")
-    .Op<af::ascir_op::Pow>("pow0", {"scalar0", "scalar1"})
-    .Abs("abs", "pow0")
-    .Store("store", "abs")
-    .Output("out0", "store", 0)
-    .Build();
+                   .Loops({s0})
+                   .Scalar("scalar0", "0.0")
+                   .Scalar("scalar1", "1.0")
+                   .Op<af::ascir_op::Pow>("pow0", {"scalar0", "scalar1"})
+                   .Abs("abs", "pow0")
+                   .Store("store", "abs")
+                   .Output("out0", "store", 0)
+                   .Build();
 
   optimize::AscGraphInfoComplete::CompleteApiInfo(graph);
 
@@ -4248,19 +4245,19 @@ TEST_F(OptimizerSt, vecoutCanBeReuse) {
   const Expression s0 = af::Symbol(31);
 
   auto graph = AscGraphBuilder("reuse")
-    .Loops({s0})
-    .Data("data0", 0)
-    .Load("load0", "data0")
-    .Abs("abs0", "load0")
-    .Store("store0", "abs0")
-    .Output("out0", "store0", 0)
-    .Abs("abs1", "abs0")
-    .template Op<af::ascir_op::Sigmoid>("sigmoid0", {"abs1"})
-    .Abs("abs2", "sigmoid0")
-    .Abs("abs3", "abs2")
-    .Store("store1", "abs3")
-    .Output("out1", "store1", 1)
-    .Build();
+                   .Loops({s0})
+                   .Data("data0", 0)
+                   .Load("load0", "data0")
+                   .Abs("abs0", "load0")
+                   .Store("store0", "abs0")
+                   .Output("out0", "store0", 0)
+                   .Abs("abs1", "abs0")
+                   .template Op<af::ascir_op::Sigmoid>("sigmoid0", {"abs1"})
+                   .Abs("abs2", "sigmoid0")
+                   .Abs("abs3", "abs2")
+                   .Store("store1", "abs3")
+                   .Output("out1", "store1", 1)
+                   .Build();
 
   optimize::AscGraphInfoComplete::CompleteApiInfo(graph);
 
@@ -4315,25 +4312,25 @@ TEST_F(OptimizerSt, EliminateSizeVar) {
   const Expression s7 = af::Symbol("s7");
 
   auto graph = AscGraphBuilder("EliminateSizeVar")
-      .Loops({s7})
-      .Data("data0", 0)
-      .Load("load0", "data0", {s0}, {af::sym::kSymbolOne})
-      .Data("data1", 1)
-      .Load("load1", "data1", {s1}, {af::sym::kSymbolOne})
-      .Data("data2", 2)
-      .Load("load2", "data2", {s2}, {af::sym::kSymbolOne})
-      .Data("data3", 3)
-      .Load("load3", "data3", {s3}, {af::sym::kSymbolOne})
-      .Data("data4", 4)
-      .Load("load4", "data4", {s4}, {af::sym::kSymbolOne})
-      .Data("data5", 5)
-      .Load("load5", "data5", {s5}, {af::sym::kSymbolOne})
-      .Data("data6", 6)
-      .Load("load6", "data6", {s6}, {af::sym::kSymbolOne})
-      .Concat("concat", {"load0", "load1", "load2", "load3", "load4", "load5", "load6"})
-      .Store("store0", "concat")
-      .Output("out0", "store0", 0)
-      .Build();
+                   .Loops({s7})
+                   .Data("data0", 0)
+                   .Load("load0", "data0", {s0}, {af::sym::kSymbolOne})
+                   .Data("data1", 1)
+                   .Load("load1", "data1", {s1}, {af::sym::kSymbolOne})
+                   .Data("data2", 2)
+                   .Load("load2", "data2", {s2}, {af::sym::kSymbolOne})
+                   .Data("data3", 3)
+                   .Load("load3", "data3", {s3}, {af::sym::kSymbolOne})
+                   .Data("data4", 4)
+                   .Load("load4", "data4", {s4}, {af::sym::kSymbolOne})
+                   .Data("data5", 5)
+                   .Load("load5", "data5", {s5}, {af::sym::kSymbolOne})
+                   .Data("data6", 6)
+                   .Load("load6", "data6", {s6}, {af::sym::kSymbolOne})
+                   .Concat("concat", {"load0", "load1", "load2", "load3", "load4", "load5", "load6"})
+                   .Store("store0", "concat")
+                   .Output("out0", "store0", 0)
+                   .Build();
   graph.CreateSizeVar("s0");
   graph.CreateSizeVar("s1");
   graph.CreateSizeVar("s2");
@@ -4349,27 +4346,48 @@ TEST_F(OptimizerSt, EliminateSizeVar) {
   ASSERT_EQ(fused_scheduled_result.node_idx_to_scheduled_results[0].size(), 1UL);
   ASSERT_EQ(fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups.size(), 7UL);
 
-  EXPECT_EQ(
-    fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs[0].GetAllSizeVar().size(),
-    4UL);
-  EXPECT_EQ(
-    fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[1].impl_graphs[0].GetAllSizeVar().size(),
-    5UL);
-  EXPECT_EQ(
-    fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[2].impl_graphs[0].GetAllSizeVar().size(),
-    6UL);
-  EXPECT_EQ(
-    fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[3].impl_graphs[0].GetAllSizeVar().size(),
-    7UL);
-  EXPECT_EQ(
-    fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[4].impl_graphs[0].GetAllSizeVar().size(),
-    8UL);
-  EXPECT_EQ(
-    fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[5].impl_graphs[0].GetAllSizeVar().size(),
-    9UL);
-  EXPECT_EQ(
-    fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[6].impl_graphs[0].GetAllSizeVar().size(),
-    10UL);
+  EXPECT_EQ(fused_scheduled_result.node_idx_to_scheduled_results[0][0]
+                .schedule_groups[0]
+                .impl_graphs[0]
+                .GetAllSizeVar()
+                .size(),
+            4UL);
+  EXPECT_EQ(fused_scheduled_result.node_idx_to_scheduled_results[0][0]
+                .schedule_groups[1]
+                .impl_graphs[0]
+                .GetAllSizeVar()
+                .size(),
+            5UL);
+  EXPECT_EQ(fused_scheduled_result.node_idx_to_scheduled_results[0][0]
+                .schedule_groups[2]
+                .impl_graphs[0]
+                .GetAllSizeVar()
+                .size(),
+            6UL);
+  EXPECT_EQ(fused_scheduled_result.node_idx_to_scheduled_results[0][0]
+                .schedule_groups[3]
+                .impl_graphs[0]
+                .GetAllSizeVar()
+                .size(),
+            7UL);
+  EXPECT_EQ(fused_scheduled_result.node_idx_to_scheduled_results[0][0]
+                .schedule_groups[4]
+                .impl_graphs[0]
+                .GetAllSizeVar()
+                .size(),
+            8UL);
+  EXPECT_EQ(fused_scheduled_result.node_idx_to_scheduled_results[0][0]
+                .schedule_groups[5]
+                .impl_graphs[0]
+                .GetAllSizeVar()
+                .size(),
+            9UL);
+  EXPECT_EQ(fused_scheduled_result.node_idx_to_scheduled_results[0][0]
+                .schedule_groups[6]
+                .impl_graphs[0]
+                .GetAllSizeVar()
+                .size(),
+            10UL);
 }
 
 TEST_F(OptimizerSt, SliceSliceConcatD) {

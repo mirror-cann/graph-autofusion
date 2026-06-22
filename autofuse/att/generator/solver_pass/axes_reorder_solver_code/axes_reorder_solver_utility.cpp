@@ -1,11 +1,11 @@
 /**
-* Copyright (c) 2026 Huawei Technologies Co., Ltd.
-* This program is free software, you can redistribute it and/or modify it under the terms and conditions of
-* CANN Open Software License Agreement Version 2.0 (the "License").
-* Please refer to the License for details. You may not use this file except in compliance with the License.
-* THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
-* INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
-* See LICENSE in the root of the software repository for the full text of the License.
+ * Copyright (c) 2026 Huawei Technologies Co., Ltd.
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
+ * CANN Open Software License Agreement Version 2.0 (the "License").
+ * Please refer to the License for details. You may not use this file except in compliance with the License.
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+ * See LICENSE in the root of the software repository for the full text of the License.
  */
 
 #include "axes_reorder_solver_code_common.h"
@@ -249,8 +249,9 @@ bool AxesReorderSolver::BinaryFindLowerBoundSatisfiedUBThresholdCond(TilingVaria
     OP_LOGW(OP_NAME, "MultiVarUBThr: upper_bound < lower_bound, return false");
     return false;
   }
-)" + GenBinaryFindUBThr_MultiVarSetup() + GenBinaryFindUBThr_CheckLowerBound() +
-  GenBinaryFindUBThr_SearchLoop() + GenBinaryFindUBThr_RestoreValues() + R"(
+)" + GenBinaryFindUBThr_MultiVarSetup() +
+         GenBinaryFindUBThr_CheckLowerBound() + GenBinaryFindUBThr_SearchLoop() + GenBinaryFindUBThr_RestoreValues() +
+         R"(
   return true;
 }
 )";
@@ -335,9 +336,13 @@ std::string GenBinaryFindCoreNum_BasicReturn() {
 std::string GenBinaryFindLowerBoundSatisfiedCoreNum() {
   std::string codes;
   codes += "// Single-variable version delegates to multi-variable version\n";
-  codes += "inline std::pair<int64_t, int64_t> AxesReorderSolver::BinaryFindLowerBoundSatisfiedCoreNum(TilingVariable *var,\n";
+  codes +=
+      "inline std::pair<int64_t, int64_t> AxesReorderSolver::BinaryFindLowerBoundSatisfiedCoreNum(TilingVariable "
+      "*var,\n";
   codes += "                                                                                           uint32_t idx,\n";
-  codes += "                                                                                           int64_t lower_bound) {\n";
+  codes +=
+      "                                                                                           int64_t lower_bound) "
+      "{\n";
   codes += "  // Delegate to multi-variable version\n";
   codes += "  TilingVariable* vars[] = {var};\n";
   codes += "  uint32_t idxs[] = {idx};\n";
@@ -507,7 +512,8 @@ std::string GenBinaryFindLowerBoundSatisfiedCoreNum_Advanced() {
 std::pair<int64_t, int64_t> AxesReorderSolver::BinaryFindLowerBoundSatisfiedCoreNum(
     TilingVariable **vars, uint32_t *idxs, size_t count, int64_t lower_bound, const int64_t *upper_bounds) {
   if (count == 0) return {lower_bound, lower_bound};
-)" + codes + R"(
+)" + codes +
+         R"(
 }
 )";
 }
@@ -864,7 +870,8 @@ std::string GenProcessMCAxisNaive_SelectBestTile() {
 std::string GenProcessMCAxisNaive() {
   std::string codes;
   codes += "// Helper method to process multi-core related axis\n";
-  codes += "bool AxesReorderSolver::ProcessMCAxisNaive(TilingVariable *var, uint32_t var_idx, int64_t max_core_num) {\n";
+  codes +=
+      "bool AxesReorderSolver::ProcessMCAxisNaive(TilingVariable *var, uint32_t var_idx, int64_t max_core_num) {\n";
   codes += GenProcessMCAxisNaive_FindUBThreshold();
   codes += GenProcessMCAxisNaive_TryLargerTile();
   codes += GenProcessMCAxisNaive_SelectBestTile();
@@ -940,7 +947,8 @@ std::string GenProcessSingleAxisNaive_Finalize() {
 std::string GenProcessSingleAxisNaive() {
   std::string codes;
   codes += "// Helper method to process single axis\n";
-  codes += "bool AxesReorderSolver::ProcessSingleAxisNaive(TilingVariable *var, uint32_t var_idx, int64_t max_core_num) {\n";
+  codes +=
+      "bool AxesReorderSolver::ProcessSingleAxisNaive(TilingVariable *var, uint32_t var_idx, int64_t max_core_num) {\n";
   codes += GenProcessSingleAxisNaive_Initialize();
   codes += GenProcessSingleAxisNaive_HandleMCAxis();
   codes += GenProcessSingleAxisNaive_TuneAndSatisfy();
@@ -950,4 +958,4 @@ std::string GenProcessSingleAxisNaive() {
   return codes;
 }
 
-} // namespace att
+}  // namespace att

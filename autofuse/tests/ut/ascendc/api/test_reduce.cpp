@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -18,16 +18,15 @@ using namespace AscendC;
 #include "test_api_utils.h"
 #include "reduce.h"
 
-class TestApiReduceLast : public testing::Test, public testing::WithParamInterface<std::vector<int>> {
-};
+class TestApiReduceLast : public testing::Test, public testing::WithParamInterface<std::vector<int>> {};
 
 TEST_P(TestApiReduceLast, Test_reduce_min_ab_to_a1) {
   // 构造测试输入和预期结果
   int a = this->GetParam()[0];
   int b = this->GetParam()[1];
   int stride = this->GetParam()[2];
-  auto *x = (half*)AscendC::GmAlloc(sizeof(half) * a * stride);
-  auto *y = (half*)AscendC::GmAlloc(sizeof(half) * a * 1);
+  auto *x = (half *)AscendC::GmAlloc(sizeof(half) * a * stride);
+  auto *y = (half *)AscendC::GmAlloc(sizeof(half) * a * 1);
   half expect[a];
 
   for (int i = 0; i < a; i++) {
@@ -65,10 +64,10 @@ TEST_P(TestApiReduceLast, Test_reduce_min_ab_to_a1) {
   // 验证结果
   int diff_count = 0;
   for (int i = 0; i < a; i++) {
-      auto diff = (double)(y[i] - expect[i]);
-      if (diff < -1e-5 || diff > 1e-5) {
-        diff_count++;
-      }
+    auto diff = (double)(y[i] - expect[i]);
+    if (diff < -1e-5 || diff > 1e-5) {
+      diff_count++;
+    }
   }
 
   EXPECT_EQ(diff_count, 0);
@@ -79,8 +78,8 @@ TEST_P(TestApiReduceLast, Test_reduce_mean_ab_to_a1) {
   int a = this->GetParam()[0];
   int b = this->GetParam()[1];
   int stride = this->GetParam()[2];
-  auto *x = (float*)AscendC::GmAlloc(sizeof(float) * a * stride);
-  auto *y = (float*)AscendC::GmAlloc(sizeof(float) * a * 1);
+  auto *x = (float *)AscendC::GmAlloc(sizeof(float) * a * stride);
+  auto *y = (float *)AscendC::GmAlloc(sizeof(float) * a * 1);
   float expect[a];
 
   for (int i = 0; i < a; i++) {
@@ -132,16 +131,14 @@ TEST_P(TestApiReduceLast, Test_reduce_mean_ab_to_a1) {
 }
 
 INSTANTIATE_TEST_SUITE_P(CalcWithDifferentShape, TestApiReduceLast,
-    ::testing::Values(std::vector<int>{32, 32, 32},
-                      std::vector<int>{300, 32, 32},
-                      std::vector<int>{32, 128, 128},
-                      std::vector<int>{1, 50, 64}));
+                         ::testing::Values(std::vector<int>{32, 32, 32}, std::vector<int>{300, 32, 32},
+                                           std::vector<int>{32, 128, 128}, std::vector<int>{1, 50, 64}));
 
 TEST(TestApiReduceSumInt32, test_ab_to_a) {
   // 构造测试输入和预期结果
   uint32_t a = 16, b = 32;
-  auto *x = (int32_t*)AscendC::GmAlloc(sizeof(int32_t) * a * b);
-  auto *y = (int32_t*)AscendC::GmAlloc(sizeof(int32_t) * a);
+  auto *x = (int32_t *)AscendC::GmAlloc(sizeof(int32_t) * a * b);
+  auto *y = (int32_t *)AscendC::GmAlloc(sizeof(int32_t) * a);
   int32_t expect[a];
 
   for (uint32_t i = 0; i < a * b; i++) {
@@ -201,8 +198,8 @@ TEST(TestApiReduceSumInt32, test_ab_to_a) {
 TEST(TestApiReduceSumInt32, test_ab_to_b) {
   // 构造测试输入和预期结果
   uint32_t a = 16, b = 64;
-  auto *x = (int32_t*)AscendC::GmAlloc(sizeof(int32_t) * a * b);
-  auto *y = (int32_t*)AscendC::GmAlloc(sizeof(int32_t) * b);
+  auto *x = (int32_t *)AscendC::GmAlloc(sizeof(int32_t) * a * b);
+  auto *y = (int32_t *)AscendC::GmAlloc(sizeof(int32_t) * b);
   int32_t expect[b];
 
   for (uint32_t i = 0; i < a * b; i++) {
@@ -262,8 +259,8 @@ TEST(TestApiReduceSumInt32, test_ab_to_b) {
 TEST(TestApiReduceSumInt32, test_ab_to_a_unalign) {
   // 构造测试输入和预期结果
   uint32_t a = 8, b = 8;
-  auto *x = (int32_t*)AscendC::GmAlloc(sizeof(int32_t) * a * b);
-  auto *y = (int32_t*)AscendC::GmAlloc(sizeof(int32_t) * b);
+  auto *x = (int32_t *)AscendC::GmAlloc(sizeof(int32_t) * a * b);
+  auto *y = (int32_t *)AscendC::GmAlloc(sizeof(int32_t) * b);
   int32_t expect[a];
 
   for (uint32_t i = 0; i < a * b; i++) {

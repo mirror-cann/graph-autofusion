@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -107,9 +107,8 @@ TEST(CastV2ApiCallTest, CastV2ApiCall_Zero_Stride) {
   std::string result;
   call.Generate(tpipe, current_axis, result);
   EXPECT_EQ(result, std::string{"CastExtend(local_1[0], local_0[0], {ConvertToUint32(local_0_actual_size)}, "
-  "{ConvertToUint32(1)}, {ConvertToUint32(1)});\n"});
+                                "{ConvertToUint32(1)}, {ConvertToUint32(1)});\n"});
 }
-
 
 TEST(CastV2ApiCallTest, CastV2ApiCallTwoDimension) {
   af::AscGraph graph("test_graph");
@@ -188,9 +187,10 @@ TEST(CastV2ApiCallTest, CastV2ApiCallTwoDimension) {
 
   std::string result;
   call.Generate(tpipe, current_axis, result);
-  EXPECT_EQ(result, std::string{
-    "CastExtend(local_1[0], local_0[0], {ConvertToUint32(t->s0), ConvertToUint32(t->s1)}, {ConvertToUint32(((8 * Ceiling((Rational(1 , 8) * t->s1))))/(1)), ConvertToUint32(1)}, {ConvertToUint32(((16 * Ceiling((Rational(1 , 16) * t->s1))))/(1)), ConvertToUint32(1)});\n"
-  });
+  EXPECT_EQ(result,
+            std::string{"CastExtend(local_1[0], local_0[0], {ConvertToUint32(t->s0), ConvertToUint32(t->s1)}, "
+                        "{ConvertToUint32(((8 * Ceiling((Rational(1 , 8) * t->s1))))/(1)), ConvertToUint32(1)}, "
+                        "{ConvertToUint32(((16 * Ceiling((Rational(1 , 16) * t->s1))))/(1)), ConvertToUint32(1)});\n"});
 }
 
 TEST(CastV2ApiCallTest, CastV2ApiCallThreeDimension) {
@@ -217,7 +217,7 @@ TEST(CastV2ApiCallTest, CastV2ApiCallThreeDimension) {
   cast_op.x = load_op.y;
   *cast_op.y.axis = {z0.id, z1.id, z2.id};
   *cast_op.y.repeats = {s0, s1, s2};
-  *cast_op.y.strides = {s1 * s2 + s1 * s2 + s1 * s2 , s2 + s2, One};
+  *cast_op.y.strides = {s1 * s2 + s1 * s2 + s1 * s2, s2 + s2, One};
 
   auto load = graph.FindNode("load");
   auto size = af::GetSizeByDataType(af::DT_FLOAT16);
@@ -274,9 +274,13 @@ TEST(CastV2ApiCallTest, CastV2ApiCallThreeDimension) {
 
   std::string result;
   call.Generate(tpipe, current_axis, result);
-  EXPECT_EQ(result, std::string{
-    "for(int outer_for_0 = 0; outer_for_0 < t->s0; outer_for_0++) {\nCastExtend(local_1[outer_for_0 * ((16 * Ceiling((Rational(1 , 8) * t->s2)) * t->s1))/(1)], local_0[outer_for_0 * ((16 * Ceiling((Rational(1 , 16) * t->s2)) * t->s1))/(1)], {ConvertToUint32(t->s1), ConvertToUint32(t->s2)}, {ConvertToUint32(((8 * Ceiling((Rational(1 , 8) * t->s2))))/(1)), ConvertToUint32(1)}, {ConvertToUint32(((16 * Ceiling((Rational(1 , 16) * t->s2))))/(1)), ConvertToUint32(1)});\n\n}\n"
-  });
+  EXPECT_EQ(result,
+            std::string{
+                "for(int outer_for_0 = 0; outer_for_0 < t->s0; outer_for_0++) {\nCastExtend(local_1[outer_for_0 * ((16 "
+                "* Ceiling((Rational(1 , 8) * t->s2)) * t->s1))/(1)], local_0[outer_for_0 * ((16 * Ceiling((Rational(1 "
+                ", 16) * t->s2)) * t->s1))/(1)], {ConvertToUint32(t->s1), ConvertToUint32(t->s2)}, "
+                "{ConvertToUint32(((8 * Ceiling((Rational(1 , 8) * t->s2))))/(1)), ConvertToUint32(1)}, "
+                "{ConvertToUint32(((16 * Ceiling((Rational(1 , 16) * t->s2))))/(1)), ConvertToUint32(1)});\n\n}\n"});
 }
 
 TEST(CastV2ApiCallTest, CastV2ApiCall_Offset) {
@@ -359,9 +363,10 @@ TEST(CastV2ApiCallTest, CastV2ApiCall_Offset) {
 
   std::string result;
   call.Generate(tpipe, current_axis, result);
-  EXPECT_EQ(result, std::string{
-    "CastExtend(local_1[0], local_0[0], {ConvertToUint32(t->s1), ConvertToUint32(t->s2)}, {ConvertToUint32(((16 * Ceiling((Rational(1 , 16) * t->s2))))/(1)), ConvertToUint32(1)}, {ConvertToUint32(((16 * Ceiling((Rational(1 , 16) * t->s2))))/(1)), ConvertToUint32(1)});\n"
-  });
+  EXPECT_EQ(result,
+            std::string{"CastExtend(local_1[0], local_0[0], {ConvertToUint32(t->s1), ConvertToUint32(t->s2)}, "
+                        "{ConvertToUint32(((16 * Ceiling((Rational(1 , 16) * t->s2))))/(1)), ConvertToUint32(1)}, "
+                        "{ConvertToUint32(((16 * Ceiling((Rational(1 , 16) * t->s2))))/(1)), ConvertToUint32(1)});\n"});
 }
 
 TEST(CastV2ApiCallTest, CastV2ApiCallThreeDimensionNotSupportNormal) {
@@ -388,7 +393,7 @@ TEST(CastV2ApiCallTest, CastV2ApiCallThreeDimensionNotSupportNormal) {
   cast_op.x = load_op.y;
   *cast_op.y.axis = {z0.id, z1.id, z2.id};
   *cast_op.y.repeats = {s0, s1, s2};
-  *cast_op.y.strides = {s1 * s2 + s1 * s2 + s1 * s2 , s2 + s2, One};
+  *cast_op.y.strides = {s1 * s2 + s1 * s2 + s1 * s2, s2 + s2, One};
 
   auto load = graph.FindNode("load");
   auto size = af::GetSizeByDataType(af::DT_INT64);
@@ -445,47 +450,40 @@ TEST(CastV2ApiCallTest, CastV2ApiCallThreeDimensionNotSupportNormal) {
 
   std::string result;
   call.Generate(tpipe, current_axis, result);
-  std::cout<<"=============search me============"<<"\n";
-  std::cout<<result<<"\n";
-  EXPECT_EQ(result, std::string{
-    "for(int outer_for_0 = 0; outer_for_0 < t->s0; outer_for_0++) {\nCastExtend(local_1[outer_for_0 * ((64 * Ceiling((Rational(1 , 32) * t->s2)) * t->s1))/(1)], local_0[outer_for_0 * ((4 * Ceiling((Rational(1 , 4) * t->s2)) * t->s1))/(1)], {ConvertToUint32(t->s1), ConvertToUint32(t->s2)}, {ConvertToUint32(((32 * Ceiling((Rational(1 , 32) * t->s2))))/(1)), ConvertToUint32(1)}, {ConvertToUint32(((4 * Ceiling((Rational(1 , 4) * t->s2))))/(1)), ConvertToUint32(1)});\n\n}\n"
-  });
-  
+  std::cout << "=============search me============" << "\n";
+  std::cout << result << "\n";
+  EXPECT_EQ(result,
+            std::string{
+                "for(int outer_for_0 = 0; outer_for_0 < t->s0; outer_for_0++) {\nCastExtend(local_1[outer_for_0 * ((64 "
+                "* Ceiling((Rational(1 , 32) * t->s2)) * t->s1))/(1)], local_0[outer_for_0 * ((4 * Ceiling((Rational(1 "
+                ", 4) * t->s2)) * t->s1))/(1)], {ConvertToUint32(t->s1), ConvertToUint32(t->s2)}, "
+                "{ConvertToUint32(((32 * Ceiling((Rational(1 , 32) * t->s2))))/(1)), ConvertToUint32(1)}, "
+                "{ConvertToUint32(((4 * Ceiling((Rational(1 , 4) * t->s2))))/(1)), ConvertToUint32(1)});\n\n}\n"});
 }
 
 TEST(CastV2ApiCallTest, CastV2ApiCall_WithMaskMode) {
   std::vector<std::tuple<af::DataType, af::DataType, std::string>> x_y_max_size_list = {
-    // x_dtype, y_dtype, max_dtype_size
-    std::make_tuple(af::DT_UINT8, af::DT_FLOAT16, "2"),
+      // x_dtype, y_dtype, max_dtype_size
+      std::make_tuple(af::DT_UINT8, af::DT_FLOAT16, "2"),
 
-    std::make_tuple(af::DT_INT64, af::DT_FLOAT, "8"),
-    std::make_tuple(af::DT_INT64, af::DT_INT32, "8"),
+      std::make_tuple(af::DT_INT64, af::DT_FLOAT, "8"),   std::make_tuple(af::DT_INT64, af::DT_INT32, "8"),
 
-    std::make_tuple(af::DT_FLOAT16, af::DT_FLOAT, "4"),
-    std::make_tuple(af::DT_FLOAT16, af::DT_INT32, "4"),
-    std::make_tuple(af::DT_FLOAT16, af::DT_INT16, "2"),
-    std::make_tuple(af::DT_FLOAT16, af::DT_INT8, "2"),
-    std::make_tuple(af::DT_FLOAT16, af::DT_UINT8, "2"),
-    std::make_tuple(af::DT_FLOAT16, af::DT_INT4, "2"),
+      std::make_tuple(af::DT_FLOAT16, af::DT_FLOAT, "4"), std::make_tuple(af::DT_FLOAT16, af::DT_INT32, "4"),
+      std::make_tuple(af::DT_FLOAT16, af::DT_INT16, "2"), std::make_tuple(af::DT_FLOAT16, af::DT_INT8, "2"),
+      std::make_tuple(af::DT_FLOAT16, af::DT_UINT8, "2"), std::make_tuple(af::DT_FLOAT16, af::DT_INT4, "2"),
 
-    std::make_tuple(af::DT_FLOAT, af::DT_FLOAT16, "4"),
-    std::make_tuple(af::DT_FLOAT, af::DT_INT64, "8"),
-    std::make_tuple(af::DT_FLOAT, af::DT_INT32, "4"),
-    std::make_tuple(af::DT_FLOAT, af::DT_INT16, "4"),
-    std::make_tuple(af::DT_FLOAT, af::DT_BF16, "4"),
+      std::make_tuple(af::DT_FLOAT, af::DT_FLOAT16, "4"), std::make_tuple(af::DT_FLOAT, af::DT_INT64, "8"),
+      std::make_tuple(af::DT_FLOAT, af::DT_INT32, "4"),   std::make_tuple(af::DT_FLOAT, af::DT_INT16, "4"),
+      std::make_tuple(af::DT_FLOAT, af::DT_BF16, "4"),
 
-    std::make_tuple(af::DT_INT4, af::DT_FLOAT16, "2"),
+      std::make_tuple(af::DT_INT4, af::DT_FLOAT16, "2"),
 
-    std::make_tuple(af::DT_INT16, af::DT_FLOAT16, "2"),
-    std::make_tuple(af::DT_INT16, af::DT_FLOAT, "4"),
+      std::make_tuple(af::DT_INT16, af::DT_FLOAT16, "2"), std::make_tuple(af::DT_INT16, af::DT_FLOAT, "4"),
 
-    std::make_tuple(af::DT_INT32, af::DT_FLOAT, "4"),
-    std::make_tuple(af::DT_INT32, af::DT_INT64, "8"),
-    std::make_tuple(af::DT_INT32, af::DT_INT16, "4"),
-    std::make_tuple(af::DT_INT32, af::DT_FLOAT16, "4"),
+      std::make_tuple(af::DT_INT32, af::DT_FLOAT, "4"),   std::make_tuple(af::DT_INT32, af::DT_INT64, "8"),
+      std::make_tuple(af::DT_INT32, af::DT_INT16, "4"),   std::make_tuple(af::DT_INT32, af::DT_FLOAT16, "4"),
 
-    std::make_tuple(af::DT_FLOAT16, af::DT_FLOAT, "4"),
-    std::make_tuple(af::DT_FLOAT16, af::DT_INT32, "4"),
+      std::make_tuple(af::DT_FLOAT16, af::DT_FLOAT, "4"), std::make_tuple(af::DT_FLOAT16, af::DT_INT32, "4"),
   };
   for (const auto &t : x_y_max_size_list) {
     af::AscGraph graph("test_graph");
@@ -544,7 +542,7 @@ TEST(CastV2ApiCallTest, CastV2ApiCall_WithMaskMode) {
     cast->outputs[0].attr.mem.alloc_type = af::AllocType::kAllocTypeQueue;
     cast->outputs[0].attr.que.id = 2;
     cast->outputs[0].attr.opt.merge_scope = af::kIdNone;
-    
+
     codegen::Tiler tiler;
     codegen::TPipe tpipe("tpipe", tiler);
 
@@ -568,7 +566,10 @@ TEST(CastV2ApiCallTest, CastV2ApiCall_WithMaskMode) {
 
     std::string result;
     call.Generate(tpipe, current_axis, result);
-    std::string expect = "Cast(local_1[0], local_0[0], {ConvertToUint32(t->s1), ConvertToUint32(t->s2)}, {ConvertToUint32(((16 * Ceiling((Rational(1 , 16) * t->s2))))/(1)), ConvertToUint32(1)}, {ConvertToUint32(((16 * Ceiling((Rational(1 , 16) * t->s2))))/(1)), ConvertToUint32(1)});\n";
+    std::string expect =
+        "Cast(local_1[0], local_0[0], {ConvertToUint32(t->s1), ConvertToUint32(t->s2)}, {ConvertToUint32(((16 * "
+        "Ceiling((Rational(1 , 16) * t->s2))))/(1)), ConvertToUint32(1)}, {ConvertToUint32(((16 * Ceiling((Rational(1 "
+        ", 16) * t->s2))))/(1)), ConvertToUint32(1)});\n";
     EXPECT_EQ(result, expect);
   }
 }

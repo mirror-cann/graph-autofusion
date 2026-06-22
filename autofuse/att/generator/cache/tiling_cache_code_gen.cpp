@@ -197,5 +197,5 @@ std::string TilingCacheCodeGen::GenFindIndexFunction() {
 
   return ss.str();
 }
-} // namespace cache
-} // namespace att
+}  // namespace cache
+}  // namespace att

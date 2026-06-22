@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -73,16 +73,13 @@ bool CanMergeAxisGroup(const AxisGroup &lhs, const AxisGroup &rhs, AxisGroup &me
 
 static constexpr size_t kMaxFullLoadAxisSizeForNorm = 3UL;
 
-static bool CalculateRAxisTotalSize(const af::AscTensorAttr &input_attr,
-                                     const af::AscTensorAttr &output_attr,
-                                     int64_t &r_axis_total_size,
-                                     int64_t &a_axis_total_size,
-                                     const char *node_name) {
+static bool CalculateRAxisTotalSize(const af::AscTensorAttr &input_attr, const af::AscTensorAttr &output_attr,
+                                    int64_t &r_axis_total_size, int64_t &a_axis_total_size, const char *node_name) {
   r_axis_total_size = 1;
   a_axis_total_size = 1;
   if (output_attr.repeats.empty() || output_attr.repeats.size() > kMaxFullLoadAxisSizeForNorm) {
-    GELOGD("Output repeats size %zu exceeds max full load axis size %zu",
-           output_attr.repeats.size(), kMaxFullLoadAxisSizeForNorm);
+    GELOGD("Output repeats size %zu exceeds max full load axis size %zu", output_attr.repeats.size(),
+           kMaxFullLoadAxisSizeForNorm);
     return false;
   }
 
@@ -92,8 +89,8 @@ static bool CalculateRAxisTotalSize(const af::AscTensorAttr &input_attr,
     int64_t out_val = 0;
     (void)input_attr.repeats[i].GetConstValue(in_val);
     (void)output_attr.repeats[i].GetConstValue(out_val);
-    repeats_info += "axis[" + std::to_string(i) + "]: in=" + std::to_string(in_val) +
-                    " out=" + std::to_string(out_val) + "; ";
+    repeats_info +=
+        "axis[" + std::to_string(i) + "]: in=" + std::to_string(in_val) + " out=" + std::to_string(out_val) + "; ";
   }
   GELOGD("Node %s repeats: %s", node_name, repeats_info.c_str());
 
@@ -201,13 +198,15 @@ static bool CheckReduceNodeNormLike(const af::AscNodePtr &asc_node) {
   }
 
   const auto &output = asc_node->outputs[0];
-  if (input_attr_ptr == nullptr || input_attr_ptr->repeats.empty() || input_attr_ptr->repeats.size() != output.attr.repeats.size()) {
+  if (input_attr_ptr == nullptr || input_attr_ptr->repeats.empty() ||
+      input_attr_ptr->repeats.size() != output.attr.repeats.size()) {
     return false;
   }
 
   int64_t r_axis_total_size = 1;
   int64_t a_axis_total_size = 1;
-  if (!CalculateRAxisTotalSize(*input_attr_ptr, output.attr, r_axis_total_size, a_axis_total_size, asc_node->GetNamePtr())) {
+  if (!CalculateRAxisTotalSize(*input_attr_ptr, output.attr, r_axis_total_size, a_axis_total_size,
+                               asc_node->GetNamePtr())) {
     GELOGD("Reduce node %s: failed to calculate R/A axis size (non-const shape)", asc_node->GetNamePtr());
     return false;
   }
@@ -216,8 +215,8 @@ static bool CheckReduceNodeNormLike(const af::AscNodePtr &asc_node) {
     return false;
   }
 
-  GELOGI("Reduce node %s passed check: R_axis=%ld (threshold=%ld), A_axis=%ld (threshold=%ld)",
-         asc_node->GetNamePtr(), r_axis_total_size, kThresholdTR, a_axis_total_size, kThresholdTA);
+  GELOGI("Reduce node %s passed check: R_axis=%ld (threshold=%ld), A_axis=%ld (threshold=%ld)", asc_node->GetNamePtr(),
+         r_axis_total_size, kThresholdTR, a_axis_total_size, kThresholdTA);
   return true;
 }
 
@@ -359,7 +358,8 @@ static bool MergeYRAndY(AxisGroup &lhs_group, AxisGroup &rhs_group, const bool i
   return CheckYAndYR(rhs_group.y_group, lhs_group.y_group, lhs_group.r_group, lhs_group.axes_order, is_canfuse_call);
 }
 
-static bool MergeYRAndYR(AxisGroup &lhs_group, AxisGroup &rhs_group, const bool is_canfuse_call, const bool is_ge_call) {
+static bool MergeYRAndYR(AxisGroup &lhs_group, AxisGroup &rhs_group, const bool is_canfuse_call,
+                         const bool is_ge_call) {
   (void)is_ge_call;
   // y0 == y1, r0 == r1，可以做融合
   if (is_canfuse_call) {
@@ -478,7 +478,8 @@ bool TilingGroup::MergeAxesGroup(AxisGroup &target, AxisGroup &src, const bool i
   return iter->second(target, src, is_canfuse_call, is_ge_call);
 }
 
-Status TilingGroup::GenTilingGroup(const ascir::ImplGraph &impl_graph, AxisGroup &tiling_group, bool is_reduce_fullload) {
+Status TilingGroup::GenTilingGroup(const ascir::ImplGraph &impl_graph, AxisGroup &tiling_group,
+                                   bool is_reduce_fullload) {
   std::vector<std::pair<std::string, AxisGroup>> node_name_to_tiling_group;
   std::set<af::AxisId> n_groupset;
   for (const auto &node : impl_graph.GetAllNodes()) {
@@ -512,9 +513,9 @@ Status TilingGroup::GenElewiseTilingGroup(af::AscNode &node, AxisGroup &axes_gro
   return ge::SUCCESS;
 }
 
-std::vector<af::AxisId> CalcReduceAxes(const std::vector<af::Expression>& src_strides,
-                                       const std::vector<af::Expression>& dst_strides,
-                                       const std::vector<ascir::AxisId>& axes) {
+std::vector<af::AxisId> CalcReduceAxes(const std::vector<af::Expression> &src_strides,
+                                       const std::vector<af::Expression> &dst_strides,
+                                       const std::vector<ascir::AxisId> &axes) {
   GE_ASSERT_TRUE((src_strides.size() == dst_strides.size()),
                  "The output dim cnt [%zu] of reduce mismatch with input dim cnt [%zu].", dst_strides.size(),
                  src_strides.size());
@@ -704,7 +705,7 @@ Status TilingGroup::GenSplitTilingGroup(af::AscNode &node, AxisGroup &axes_group
       axes_group.axes_order.push_back(i);
     }
     return ge::SUCCESS;
-  }  
+  }
 
   axes_group.axes_order.reserve(axes.size());
   for (size_t i = 0UL; i < axes.size(); ++i) {

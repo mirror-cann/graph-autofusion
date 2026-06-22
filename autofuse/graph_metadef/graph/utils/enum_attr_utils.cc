@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -64,8 +64,8 @@ graphStatus EnumAttrUtils::GetAttrName(const vector<string> &enum_attr_names, co
       return GRAPH_SUCCESS;
     } else {
       GELOGE(GRAPH_FAILED,
-             "position[%zu] is not less than enum_attr_names size[%zu] or name_use_string_values size[%zu].",
-             position, enum_attr_names.size(), name_use_string_values.size());
+             "position[%zu] is not less than enum_attr_names size[%zu] or name_use_string_values size[%zu].", position,
+             enum_attr_names.size(), name_use_string_values.size());
       return GRAPH_FAILED;
     }
   } else {
@@ -82,8 +82,8 @@ graphStatus EnumAttrUtils::GetAttrValue(const vector<string> &enum_attr_values, 
     attr_value = enum_attr_values[enum_attr_value];
     return GRAPH_SUCCESS;
   } else {
-    GELOGE(GRAPH_FAILED, "enum_attr_value[%lld] is not less than enum_attr_values size[%zu].",
-           enum_attr_value, enum_attr_values.size());
+    GELOGE(GRAPH_FAILED, "enum_attr_value[%lld] is not less than enum_attr_values size[%zu].", enum_attr_value,
+           enum_attr_values.size());
     return GRAPH_FAILED;
   }
 }
@@ -121,10 +121,9 @@ void EnumAttrUtils::Encode(const uint32_t src, string &dst) {
 void EnumAttrUtils::Decode(const string &src, size_t &dst) {
   // 解码从第2位开始，第一位是标志符'\0'
   for (size_t i = 1U; i < src.size(); i++) {
-    dst += (static_cast<size_t>(static_cast<uint8_t>(src[i])) - 1UL) * 
-            static_cast<size_t>(pow(kMaxValueOfEachDigit, (i - 1U)));
+    dst += (static_cast<size_t>(static_cast<uint8_t>(src[i])) - 1UL) *
+           static_cast<size_t>(pow(kMaxValueOfEachDigit, (i - 1U)));
   }
 }
 
-} // namespace ge
-
+}  // namespace af

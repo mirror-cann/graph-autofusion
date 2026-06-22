@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -44,8 +44,7 @@ std::vector<std::unique_ptr<TmpBufDesc>> GetExtraTmpBuf(const AscNode &node) {
     // when input is u8/s8, we need to cast input before calc and cast to output after calc,
     // so the tmp_buffer size need to be the sum of input_size and output_size and 8192
     auto input_aligned_size = sym::Mul(sym::Align(a_axis_size, align_size), Symbol(half_size));
-    auto output_aligned_size =
-        sym::Mul(sym::Align(sym::Mul(a_axis_size, b_axis_size), align_size), Symbol(half_size));
+    auto output_aligned_size = sym::Mul(sym::Align(sym::Mul(a_axis_size, b_axis_size), align_size), Symbol(half_size));
     total_size = input_aligned_size + output_aligned_size + total_size;
   } else {
     total_size =
@@ -79,8 +78,8 @@ bool NeedExtraTmpBuf(const AscNode &node) {
   bool prev_status = false;
   uint32_t brc_num = 0;
   for (uint32_t i = 0; i < node_outputs[0].attr.repeats.size(); ++i) {
-    bool cur_status = SymbolicUtils::StaticCheckEq(node_outputs[0].attr.repeats[i], node_inputs[0].attr.repeats[i]) !=
-                      TriBool::kTrue;
+    bool cur_status =
+        SymbolicUtils::StaticCheckEq(node_outputs[0].attr.repeats[i], node_inputs[0].attr.repeats[i]) != TriBool::kTrue;
     if (cur_status != prev_status) {
       brc_num = prev_status ? brc_num + 1 : brc_num;
       prev_status = cur_status;

@@ -26,7 +26,9 @@ class PreProcessConfig {
     return config;
   }
 
-  const std::unordered_set<std::string> &GetImprovePrecisionBlacklist() const { return blacklist_; }
+  const std::unordered_set<std::string> &GetImprovePrecisionBlacklist() const {
+    return blacklist_;
+  }
 
   void Reset() {
     blacklist_.clear();
@@ -37,7 +39,9 @@ class PreProcessConfig {
   PreProcessConfig &operator=(const PreProcessConfig &) = delete;
 
  private:
-  PreProcessConfig() { ParseBlacklist(); }
+  PreProcessConfig() {
+    ParseBlacklist();
+  }
 
   // 与前端 ReadImprovePrecisionBlacklist 保持一致的解析逻辑
   static std::unordered_set<std::string> ReadImprovePrecisionBlacklist(std::string &input) {

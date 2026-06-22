@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2026 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -82,7 +82,6 @@ class ST_GENERAL_SOLVER_GEN : public ::testing::Test {
 
 namespace {
 void AppendSolverImplPart0(std::string &codes) {
-
   codes += "/*\n";
   codes += "用户可以在派生类中重载Run函数,构造自定义的求解算法,即\n";
   codes += "  void bool Run(int32_t &solution_num, uint64_t *solutions) override;\n";
@@ -108,8 +107,7 @@ void AppendSolverImplPart0(std::string &codes) {
   codes += "class GeneralSolverCase0 : public GeneralSolver<GeneralSolverCase0>\n";
   codes += "{\n";
   codes += "    public:\n";
-  codes +=
-      "        explicit GeneralSolverCase0(SolverConfig& config, TilingData& tiling_data) {\n";
+  codes += "        explicit GeneralSolverCase0(SolverConfig& config, TilingData& tiling_data) {\n";
   codes += "            solver_config_ = config;\n";
   codes += "            hbm_size = tiling_data.get_hbm_size();\n";
   codes += "            x2 = tiling_data.get_x2();\n";
@@ -272,7 +270,6 @@ void AppendSolverImplPart3(std::string &codes) {
 }
 
 void AppendSolverImplPart4(std::string &codes) {
-
   codes += "inline void GeneralSolverCase0::UpdateLeqs(uint64_t* vars, int32_t idx, double* leqs)\n";
   codes += "{\n";
   codes += "    double x0 = static_cast<double>(vars[x0_idx]);\n";
@@ -314,7 +311,8 @@ void AppendSolverImplPart4(std::string &codes) {
   codes += "    if (solution_num > 0) {\n";
   codes += "        OP_LOGD(OP_NAME, \"Filling tilingdata for Case0.\");\n";
   codes += "        OP_LOGD(OP_NAME, \"Estimate the occupy.\");\n";
-  codes += "        OP_LOGD(OP_NAME, \"hbm_size = %ld\", static_cast<uint64_t>(Gethbm_sizeCost(solution) + hbm_size));\n";
+  codes +=
+      "        OP_LOGD(OP_NAME, \"hbm_size = %ld\", static_cast<uint64_t>(Gethbm_sizeCost(solution) + hbm_size));\n";
   codes += "        OP_LOGD(OP_NAME, \"Simulate the cost.\");\n";
   codes += "        OP_LOGD(OP_NAME, \"Objective value for Case0 is %f.\", GetObj(solution));\n";
 }
@@ -351,7 +349,8 @@ void AppendSolverImplPart5(std::string &codes) {
   codes += "    // 由modelinfo传入的不等式约束个数\n";
   codes += "    int32_t num_leq = 2;\n";
   codes +=
-      "    OP_LOGD(OP_NAME, \"The number of variable is %d(x0, x1), the number of constraints is %d.\", num_var, num_leq);\n";
+      "    OP_LOGD(OP_NAME, \"The number of variable is %d(x0, x1), the number of constraints is %d.\", num_var, "
+      "num_leq);\n";
   codes += "    // (可修改参数) 待求解变量的初始值,算法趋向于求初始值附近的局部最优解\n";
   codes += "    uint64_t init_vars[num_var] = {static_cast<uint64_t>(5), static_cast<uint64_t>((2 * a))};\n";
   codes +=
@@ -439,7 +438,6 @@ std::string GetExpectedSolverImplCodes() {
 }
 
 void AppendSolverInvokePart0(std::string &codes) {
-
   codes += "bool ExecuteCase0GeneralSolver(TilingData& tiling_data)\n";
   codes += "{\n";
 
@@ -467,7 +465,8 @@ void AppendSolverInvokePart0(std::string &codes) {
   codes += "    // 由modelinfo传入的不等式约束个数\n";
   codes += "    int32_t num_leq = 2;\n";
   codes +=
-      "    OP_LOGD(OP_NAME, \"The number of variable is %d(x0, x1), the number of constraints is %d.\", num_var, num_leq);\n";
+      "    OP_LOGD(OP_NAME, \"The number of variable is %d(x0, x1), the number of constraints is %d.\", num_var, "
+      "num_leq);\n";
   codes += "    // (可修改参数) 待求解变量的初始值,算法趋向于求初始值附近的局部最优解\n";
   codes += "    uint64_t init_vars[num_var] = {static_cast<uint64_t>(5), static_cast<uint64_t>((2 * a))};\n";
   codes +=

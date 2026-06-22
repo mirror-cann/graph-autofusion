@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -24,7 +24,7 @@ int main(int argc, char *argv[]) {
 #define GET_TILING_DATA(t, tiling)  AutofuseTilingData t = *(AutofuseTilingData*)tiling;
 )";
   std::vector<af::AscGraph> impl_graphs_multi_axis;
-  ConstructMultiAxisGraph(graph_multi_axis, impl_graphs_multi_axis, {false,false,false,true,true},
+  ConstructMultiAxisGraph(graph_multi_axis, impl_graphs_multi_axis, {false, false, false, true, true},
                           "load_broadcast_mutli_axis_store_general_1_0_nil_0_nil");
   std::cout << utils::DebugImplGraphStr(impl_graphs_multi_axis[0]) << std::endl;
 
@@ -56,7 +56,7 @@ int main(int argc, char *argv[]) {
 #define GET_TILING_DATA(t, tiling)  AutofuseTilingData t = *(AutofuseTilingData*)tiling;
 )";
   std::vector<af::AscGraph> impl_graphs_multi_axis_2;
-  ConstructMultiAxisGraph(graph_multi_axis_2, impl_graphs_multi_axis_2, {false,true,true,false,false},
+  ConstructMultiAxisGraph(graph_multi_axis_2, impl_graphs_multi_axis_2, {false, true, true, false, false},
                           "load_broadcast_mutli_axis_store_general_2_0_nil_0_nil");
   std::cout << utils::DebugImplGraphStr(impl_graphs_multi_axis_2[0]) << std::endl;
 
@@ -87,7 +87,7 @@ int main(int argc, char *argv[]) {
 #define GET_TILING_DATA(t, tiling)  AutofuseTilingData t = *(AutofuseTilingData*)tiling;
 )";
   std::vector<af::AscGraph> impl_graphs_multi_axis_3;
-  ConstructMultiAxisGraph(graph_multi_axis_3, impl_graphs_multi_axis_3, {false,false,false,true,false},
+  ConstructMultiAxisGraph(graph_multi_axis_3, impl_graphs_multi_axis_3, {false, false, false, true, false},
                           "load_broadcast_mutli_axis_store_general_3_0_nil_0_nil");
   std::cout << utils::DebugImplGraphStr(impl_graphs_multi_axis_3[0]) << std::endl;
 

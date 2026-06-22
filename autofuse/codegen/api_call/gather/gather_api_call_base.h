@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -30,8 +30,10 @@ void CollectParamOuterAndInnerAxes(const std::vector<ascir::AxisId> &param_axis,
 std::string CalGatherParamOffset(const std::vector<ascir::AxisId> &param_axis, std::string indices_value,
                                  ascir::AxisId gather_axis_id, const Axis &inner_vectorized_axis, const TPipe &tpipe);
 std::string CalGatherIndicesAxesSize(const std::vector<ascir::AxisId> &indices_axes, const TPipe &tpipe);
-std::string CalGatherOuterSize(const std::vector<ascir::AxisId> &param_axis, ascir::AxisId gather_axis_id, const TPipe &tpipe);
-std::string CalGatherInnerSize(const std::vector<ascir::AxisId> &param_axis, ascir::AxisId gather_axis_id, const TPipe &tpipe);
+std::string CalGatherOuterSize(const std::vector<ascir::AxisId> &param_axis, ascir::AxisId gather_axis_id,
+                               const TPipe &tpipe);
+std::string CalGatherInnerSize(const std::vector<ascir::AxisId> &param_axis, ascir::AxisId gather_axis_id,
+                               const TPipe &tpipe);
 std::string CalGatherSize(const std::vector<ascir::AxisId> &param_axis, const TPipe &tpipe);
-}  // namespace codegen
+}  // namespace gather_base
 #endif  // ASCGEN_GATHER_API_CALL_BASE_H

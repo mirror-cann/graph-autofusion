@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -30,16 +30,16 @@
 
 #define REGISTER_OP_TILING_UNIQ_HELPER_V2(optype, opfunc, counter) REGISTER_OP_TILING_UNIQ_V2(optype, (opfunc), counter)
 
-#define REGISTER_OP_TILING_V3(optype, tilingfunc, parsefunc)                                                           \
+#define REGISTER_OP_TILING_V3(optype, tilingfunc, parsefunc) \
   REGISTER_OP_TILING_UNIQ_HELPER_V3(optype, (tilingfunc), (parsefunc), __COUNTER__)
 
-#define REGISTER_OP_TILING_UNIQ_HELPER_V3(optype, tilingfunc, parsefunc, counter)                                      \
+#define REGISTER_OP_TILING_UNIQ_HELPER_V3(optype, tilingfunc, parsefunc, counter) \
   REGISTER_OP_TILING_UNIQ_V3(optype, (tilingfunc), (parsefunc), counter)
 
-#define REGISTER_OP_TILING_V4(optype, tilingfunc, parsefunc)                                                           \
+#define REGISTER_OP_TILING_V4(optype, tilingfunc, parsefunc) \
   REGISTER_OP_TILING_UNIQ_HELPER_V4(optype, (tilingfunc), (parsefunc), __COUNTER__)
 
-#define REGISTER_OP_TILING_UNIQ_HELPER_V4(optype, tilingfunc, parsefunc, counter)                                      \
+#define REGISTER_OP_TILING_UNIQ_HELPER_V4(optype, tilingfunc, parsefunc, counter) \
   REGISTER_OP_TILING_UNIQ_V4(optype, (tilingfunc), (parsefunc), counter)
 
 #ifdef DISABLE_COMPILE_V1
@@ -48,32 +48,31 @@
 #define REGISTER_OP_TILING_UNIQ_V3(optype, tilingfunc, parsefunc, counter)
 #define REGISTER_OP_TILING_UNIQ_V4(optype, tilingfunc, parsefunc, counter)
 #else
-#define REGISTER_OP_TILING_UNIQ(optype, opfunc, counter)                                                               \
+#define REGISTER_OP_TILING_UNIQ(optype, opfunc, counter) \
   static optiling::OpTilingFuncRegistry g_##optype##TilingRegistryInterfV1##counter(#optype, (opfunc))
 
-#define REGISTER_OP_TILING_UNIQ_V2(optype, opfunc, counter)                                                            \
+#define REGISTER_OP_TILING_UNIQ_V2(optype, opfunc, counter) \
   static optiling::OpTilingFuncRegistry g_##optype##TilingRegistryInterfV2##counter(#optype, (opfunc))
 
-#define REGISTER_OP_TILING_UNIQ_V3(optype, tilingfunc, parsefunc, counter)                                             \
+#define REGISTER_OP_TILING_UNIQ_V3(optype, tilingfunc, parsefunc, counter) \
   static optiling::OpTilingFuncRegistry g_##optype##TilingRegistryInterfV3##counter(#optype, (tilingfunc), (parsefunc))
 
-#define REGISTER_OP_TILING_UNIQ_V4(optype, tilingfunc, parsefunc, counter)                                             \
+#define REGISTER_OP_TILING_UNIQ_V4(optype, tilingfunc, parsefunc, counter) \
   static optiling::OpTilingFuncRegistry g_##optype##TilingRegistryInterfV4##counter(#optype, (tilingfunc), (parsefunc))
 #endif
 
-
 using Status = domi::Status;
 namespace optiling {
-template<class T>
+template <class T>
 ByteBuffer &ByteBufferPut(ByteBuffer &buf, const T &buffer_value) {
-  (void) buf.write(reinterpret_cast<const ge::char_t *>(&buffer_value), static_cast<int64_t>(sizeof(buffer_value)));
-  (void) buf.flush();
+  (void)buf.write(reinterpret_cast<const ge::char_t *>(&buffer_value), static_cast<int64_t>(sizeof(buffer_value)));
+  (void)buf.flush();
   return buf;
 }
 
-template<class T>
+template <class T>
 ByteBuffer &ByteBufferGet(ByteBuffer &buf, T &buffer_value) {
-  (void) buf.read(reinterpret_cast<ge::char_t *>(&buffer_value), static_cast<int64_t>(sizeof(buffer_value)));
+  (void)buf.read(reinterpret_cast<ge::char_t *>(&buffer_value), static_cast<int64_t>(sizeof(buffer_value)));
   return buf;
 }
 
@@ -94,19 +93,19 @@ using OpCompileInfoV2 = utils::OpCompileInfo;
 using OpTilingFuncV2 = std::function<bool(const ge::Operator &, const OpCompileInfoV2 &, OpRunInfoV2 &)>;
 using OpTilingFuncV2Ptr = std::shared_ptr<OpTilingFuncV2>;
 class FMK_FUNC_HOST_VISIBILITY OpTilingRegistryInterf_V2 {
-public:
+ public:
   OpTilingRegistryInterf_V2(const std::string &op_type, OpTilingFuncV2 func);
   ~OpTilingRegistryInterf_V2() = default;
   static std::unordered_map<std::string, OpTilingFuncV2> &RegisteredOpInterf();
 };
 
 using OpTilingFuncV3 = std::function<bool(const ge::Operator &, const void *, OpRunInfoV2 &)>;
-using OpParseFuncV3 = std::function<void*(const ge::Operator &, const ge::AscendString &)>;
+using OpParseFuncV3 = std::function<void *(const ge::Operator &, const ge::AscendString &)>;
 using OpTilingFuncV4 = std::function<bool(const ge::Operator &, const CompileInfoPtr, OpRunInfoV2 &)>;
 using OpParseFuncV4 = std::function<CompileInfoPtr(const ge::Operator &, const ge::AscendString &)>;
 
 class OpTilingFuncInfo {
-public:
+ public:
   explicit OpTilingFuncInfo(const std::string &op_type);
   OpTilingFuncInfo() = default;
   ~OpTilingFuncInfo() = default;
@@ -119,17 +118,17 @@ public:
   void SetOpTilingFuncV2(OpTilingFuncV2 &tiling_func);
   void SetOpTilingFuncV3(OpTilingFuncV3 &tiling_func, OpParseFuncV3 &parse_func);
   void SetOpTilingFuncV4(OpTilingFuncV4 &tiling_func, OpParseFuncV4 &parse_func);
-  const OpTilingFunc& GetOpTilingFunc();
-  const OpTilingFuncV2& GetOpTilingFuncV2();
-  const OpTilingFuncV3& GetOpTilingFuncV3();
-  const OpParseFuncV3& GetOpParseFuncV3();
-  const OpTilingFuncV4& GetOpTilingFuncV4();
-  const OpParseFuncV4& GetOpParseFuncV4();
-  const std::string& GetOpType() const {
+  const OpTilingFunc &GetOpTilingFunc();
+  const OpTilingFuncV2 &GetOpTilingFuncV2();
+  const OpTilingFuncV3 &GetOpTilingFuncV3();
+  const OpParseFuncV3 &GetOpParseFuncV3();
+  const OpTilingFuncV4 &GetOpTilingFuncV4();
+  const OpParseFuncV4 &GetOpParseFuncV4();
+  const std::string &GetOpType() const {
     return op_type_;
   }
 
-private:
+ private:
   std::string op_type_;
   OpTilingFunc tiling_func_;
   OpTilingFuncV2 tiling_func_v2_;
@@ -140,7 +139,7 @@ private:
 };
 
 class FMK_FUNC_HOST_VISIBILITY OpTilingFuncRegistry {
-public:
+ public:
   OpTilingFuncRegistry(const std::string &op_type, OpTilingFunc tiling_func);
   OpTilingFuncRegistry(const std::string &op_type, OpTilingFuncV2 tiling_func);
   OpTilingFuncRegistry(const std::string &op_type, OpTilingFuncV3 tiling_func, OpParseFuncV3 parse_func);

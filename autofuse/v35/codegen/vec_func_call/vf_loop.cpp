@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -48,7 +48,7 @@ std::string GetOriginPregName(const std::vector<ascir::AxisId> &current_axis, in
     return "preg_main";
   }
   return "preg_" + std::to_string(depth);
-} 
+}
 
 void GetUbStorePreg(const Tensor *&ub_tensor, std::string &preg_name) {
   bool all_zero = true;
@@ -158,9 +158,9 @@ Status VFLoop::ConstructFromNodes(ascir::NodeViewVisitorConst nodes, const ascir
     for (auto out : node->outputs()) {
       tensor_calls.insert({out->attr.mem.tensor_id, call});
       auto peer_anchors = out->anchor.GetPeerInDataAnchors();
- 	    GE_CHK_BOOL_RET_STATUS(!peer_anchors.empty(), ge::FAILED,
- 	                           "Codegen node[%s] output has no peer input anchor", node->GetNamePtr());
- 	    auto peer_input = peer_anchors.at(0);
+      GE_CHK_BOOL_RET_STATUS(!peer_anchors.empty(), ge::FAILED, "Codegen node[%s] output has no peer input anchor",
+                             node->GetNamePtr());
+      auto peer_input = peer_anchors.at(0);
       auto output_node = std::dynamic_pointer_cast<af::AscNode>(peer_input->GetOwnerNode());
       GE_CHK_BOOL_RET_STATUS(output_node != nullptr, ge::FAILED, "Codegen node[%s] output_node is nullptr",
                              node->GetNamePtr());
@@ -195,12 +195,14 @@ void VFLoop::Destruct() {
 
 /********************************** 生成阶段调用 ***********************************/
 Status VFLoop::Generate(const TPipe &tpipe, const TensorManager &tensor_mgr, int32_t depth, std::string &result,
-                        std::string &loop_size_result, int32_t &only_loop_max_depth, std::vector<std::string>& loop_size_vec) const {
+                        std::string &loop_size_result, int32_t &only_loop_max_depth,
+                        std::vector<std::string> &loop_size_vec) const {
   std::vector<ascir::AxisId> current_axis;
   std::stringstream ss;
   std::stringstream loop_size_ss;
-  GE_CHK_STATUS_RET(this->GenerateLoop(tpipe, tensor_mgr, depth, current_axis, ss, loop_size_ss, only_loop_max_depth, loop_size_vec),
-                    "Generate loop failed");
+  GE_CHK_STATUS_RET(
+      this->GenerateLoop(tpipe, tensor_mgr, depth, current_axis, ss, loop_size_ss, only_loop_max_depth, loop_size_vec),
+      "Generate loop failed");
   result = ss.str();
   loop_size_result = loop_size_ss.str();
   return ge::SUCCESS;
@@ -208,9 +210,11 @@ Status VFLoop::Generate(const TPipe &tpipe, const TensorManager &tensor_mgr, int
 
 Status VFLoop::GenerateLoop(const TPipe &tpipe, const TensorManager &tensor_mgr, int32_t depth,
                             std::vector<ascir::AxisId> &current_axis, std::stringstream &ss,
-                            std::stringstream &loop_size_ss, int32_t &only_loop_max_depth, std::vector<std::string>& loop_size_vec) const {
+                            std::stringstream &loop_size_ss, int32_t &only_loop_max_depth,
+                            std::vector<std::string> &loop_size_vec) const {
   if (this->axis_id_ == af::kIdNone) {
-    GE_CHK_STATUS_RET(this->GenerateBody(tpipe, tensor_mgr, depth, current_axis, ss, loop_size_ss, only_loop_max_depth, loop_size_vec),
+    GE_CHK_STATUS_RET(this->GenerateBody(tpipe, tensor_mgr, depth, current_axis, ss, loop_size_ss, only_loop_max_depth,
+                                         loop_size_vec),
                       "Codegen generate body failed when axis id is none");
     return ge::SUCCESS;
   }
@@ -222,17 +226,21 @@ Status VFLoop::GenerateLoop(const TPipe &tpipe, const TensorManager &tensor_mgr,
     ss << "  uint32_t sreg_" << current_depth << " = element_count;\n";
     ss << "  AscendC::MicroAPI::MaskReg preg_" << current_depth << ";\n";
   } else {
-    loop_size_ss << "  uint16_t " << axis.loop_size.Str() << " = " << "static_cast<uint16_t>(output_dims_" << current_depth << ");\n";
+    loop_size_ss << "  uint16_t " << axis.loop_size.Str() << " = " << "static_cast<uint16_t>(output_dims_"
+                 << current_depth << ");\n";
   }
   loop_size_vec.push_back(axis.loop_size.Str());
   current_axis.push_back(this->axis_id_);
-  ss << "for (" << "uint16_t " << axis.Variable::name << " = 0; " << axis << " < " << axis.loop_size.Str() << "; " << axis << "++) "
+  ss << "for (" << "uint16_t " << axis.Variable::name << " = 0; " << axis << " < " << axis.loop_size.Str() << "; "
+     << axis << "++) "
      << "{" << std::endl;
   if (current_depth == depth) {
-    ss << "    preg_" << current_depth << " = " << "AscendC::MicroAPI::UpdateMask<" << this->max_dtype_size_ << ">(" << "sreg_" << current_depth << ");\n";
+    ss << "    preg_" << current_depth << " = " << "AscendC::MicroAPI::UpdateMask<" << this->max_dtype_size_ << ">("
+       << "sreg_" << current_depth << ");\n";
   }
-  GE_CHK_STATUS_RET(this->GenerateBody(tpipe, tensor_mgr, depth, current_axis, ss, loop_size_ss, only_loop_max_depth, loop_size_vec),
-                    "Codegen generate body failed for normal loop");
+  GE_CHK_STATUS_RET(
+      this->GenerateBody(tpipe, tensor_mgr, depth, current_axis, ss, loop_size_ss, only_loop_max_depth, loop_size_vec),
+      "Codegen generate body failed for normal loop");
   ss << "}" << std::endl;
 
   current_axis.pop_back();
@@ -241,12 +249,14 @@ Status VFLoop::GenerateLoop(const TPipe &tpipe, const TensorManager &tensor_mgr,
 
 Status VFLoop::GenerateBody(const TPipe &tpipe, const TensorManager &tensor_mgr, int32_t depth,
                             std::vector<ascir::AxisId> &current_axis, std::stringstream &ss,
-                            std::stringstream &loop_size_ss, int32_t &only_loop_max_depth, std::vector<std::string>& loop_size_vec) const {
+                            std::stringstream &loop_size_ss, int32_t &only_loop_max_depth,
+                            std::vector<std::string> &loop_size_vec) const {
   bool has_loop = false;
   bool has_call = false;
   for (const auto &body : this->bodys_) {
     if (body.type_ == LoopType::LOOP) {
-      GE_CHK_STATUS_RET(body.loop_->GenerateLoop(tpipe, tensor_mgr, depth, current_axis, ss, loop_size_ss, only_loop_max_depth, loop_size_vec),
+      GE_CHK_STATUS_RET(body.loop_->GenerateLoop(tpipe, tensor_mgr, depth, current_axis, ss, loop_size_ss,
+                                                 only_loop_max_depth, loop_size_vec),
                         "Generate loop for body failed");
       has_loop = true;
     } else if (body.type_ == LoopType::CALL) {

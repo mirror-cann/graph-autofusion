@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -111,8 +111,6 @@ TEST(CodegenKernel, CastApiCall_Zero_Stride) {
   EXPECT_EQ(result, std::string{"CastExtend(local_1[0], local_0[0], tmp_buf_0, local_0_actual_size);\n"});
 }
 
-
-
 TEST(CodegenKernel, CastApiCall) {
   af::AscGraph graph("test_graph");
 
@@ -187,9 +185,7 @@ TEST(CodegenKernel, CastApiCall) {
 
   std::string result;
   call.Generate(tpipe, current_axis, result);
-  EXPECT_EQ(result, std::string{
-    "CastExtend(local_1[0], local_0[0], tmp_buf_0, local_0_actual_size);\n"
-  });
+  EXPECT_EQ(result, std::string{"CastExtend(local_1[0], local_0[0], tmp_buf_0, local_0_actual_size);\n"});
 }
 
 TEST(CodegenKernel, CastApiCallTwoDimension) {
@@ -270,9 +266,9 @@ TEST(CodegenKernel, CastApiCallTwoDimension) {
 
   std::string result;
   call.Generate(tpipe, current_axis, result);
-  EXPECT_EQ(result, std::string{
-    "CastExtend(local_1[0], local_0[0], tmp_buf_0, t->s0, t->s1, ((16 * Ceiling((Rational(1 , 16) * t->s1))))/(1), ((8 * Ceiling((Rational(1 , 8) * t->s1))))/(1), 4);\n"
-  });
+  EXPECT_EQ(result,
+            std::string{"CastExtend(local_1[0], local_0[0], tmp_buf_0, t->s0, t->s1, ((16 * Ceiling((Rational(1 , 16) "
+                        "* t->s1))))/(1), ((8 * Ceiling((Rational(1 , 8) * t->s1))))/(1), 4);\n"});
 }
 
 TEST(CodegenKernel, CastApiCallThreeDimension) {
@@ -299,7 +295,7 @@ TEST(CodegenKernel, CastApiCallThreeDimension) {
   cast_op.x = load_op.y;
   *cast_op.y.axis = {z0.id, z1.id, z2.id};
   *cast_op.y.repeats = {s0, s1, s2};
-  *cast_op.y.strides = {s1 * s2 + s1 * s2 + s1 * s2 , s2 + s2, One};
+  *cast_op.y.strides = {s1 * s2 + s1 * s2 + s1 * s2, s2 + s2, One};
 
   auto load = graph.FindNode("load");
   auto size = ge::GetSizeByDataType(ge::DT_FLOAT16);
@@ -357,9 +353,12 @@ TEST(CodegenKernel, CastApiCallThreeDimension) {
 
   std::string result;
   call.Generate(tpipe, current_axis, result);
-  EXPECT_EQ(result, std::string{
-    "for(int outer_for_0 = 0; outer_for_0 < t->s0; outer_for_0++) {\nCastExtend(local_1[outer_for_0 * ((16 * Ceiling((Rational(1 , 8) * t->s2)) * t->s1))/(1)], local_0[outer_for_0 * ((16 * Ceiling((Rational(1 , 16) * t->s2)) * t->s1))/(1)], tmp_buf_0, t->s1, t->s2, ((16 * Ceiling((Rational(1 , 16) * t->s2))))/(1), ((8 * Ceiling((Rational(1 , 8) * t->s2))))/(1), 4);\n\n}\n"
-  });
+  EXPECT_EQ(result,
+            std::string{
+                "for(int outer_for_0 = 0; outer_for_0 < t->s0; outer_for_0++) {\nCastExtend(local_1[outer_for_0 * ((16 "
+                "* Ceiling((Rational(1 , 8) * t->s2)) * t->s1))/(1)], local_0[outer_for_0 * ((16 * Ceiling((Rational(1 "
+                ", 16) * t->s2)) * t->s1))/(1)], tmp_buf_0, t->s1, t->s2, ((16 * Ceiling((Rational(1 , 16) * "
+                "t->s2))))/(1), ((8 * Ceiling((Rational(1 , 8) * t->s2))))/(1), 4);\n\n}\n"});
 }
 
 TEST(CodegenKernel, CastApiCall_Offset) {
@@ -443,42 +442,32 @@ TEST(CodegenKernel, CastApiCall_Offset) {
 
   std::string result;
   call.Generate(tpipe, current_axis, result);
-  EXPECT_EQ(result, std::string{
-    "CastExtend(local_1[0], local_0[0], tmp_buf_0, t->s1, t->s2, ((16 * Ceiling((Rational(1 , 16) * t->s2))))/(1), ((16 * Ceiling((Rational(1 , 16) * t->s2))))/(1), 4);\n"
-  });
+  EXPECT_EQ(result,
+            std::string{"CastExtend(local_1[0], local_0[0], tmp_buf_0, t->s1, t->s2, ((16 * Ceiling((Rational(1 , 16) "
+                        "* t->s2))))/(1), ((16 * Ceiling((Rational(1 , 16) * t->s2))))/(1), 4);\n"});
 }
 
 TEST(CodegenKernel, CastApiCall_WithMaskMode) {
   std::vector<std::tuple<ge::DataType, ge::DataType, std::string>> x_y_max_size_list = {
-    // x_dtype, y_dtype, max_dtype_size
-    std::make_tuple(ge::DT_UINT8, ge::DT_FLOAT16, "2"),
+      // x_dtype, y_dtype, max_dtype_size
+      std::make_tuple(ge::DT_UINT8, ge::DT_FLOAT16, "2"),
 
-    std::make_tuple(ge::DT_INT64, ge::DT_FLOAT, "8"),
-    std::make_tuple(ge::DT_INT64, ge::DT_INT32, "8"),
+      std::make_tuple(ge::DT_INT64, ge::DT_FLOAT, "8"),   std::make_tuple(ge::DT_INT64, ge::DT_INT32, "8"),
 
-    std::make_tuple(ge::DT_FLOAT16, ge::DT_FLOAT, "4"),
-    std::make_tuple(ge::DT_FLOAT16, ge::DT_INT32, "4"),
-    std::make_tuple(ge::DT_FLOAT16, ge::DT_INT16, "2"),
-    std::make_tuple(ge::DT_FLOAT16, ge::DT_INT8, "2"),
-    std::make_tuple(ge::DT_FLOAT16, ge::DT_UINT8, "2"),
+      std::make_tuple(ge::DT_FLOAT16, ge::DT_FLOAT, "4"), std::make_tuple(ge::DT_FLOAT16, ge::DT_INT32, "4"),
+      std::make_tuple(ge::DT_FLOAT16, ge::DT_INT16, "2"), std::make_tuple(ge::DT_FLOAT16, ge::DT_INT8, "2"),
+      std::make_tuple(ge::DT_FLOAT16, ge::DT_UINT8, "2"),
 
-    std::make_tuple(ge::DT_FLOAT, ge::DT_FLOAT16, "4"),
-    std::make_tuple(ge::DT_FLOAT, ge::DT_INT64, "8"),
-    std::make_tuple(ge::DT_FLOAT, ge::DT_INT32, "4"),
-    std::make_tuple(ge::DT_FLOAT, ge::DT_INT16, "4"),
-    std::make_tuple(ge::DT_FLOAT, ge::DT_BF16, "4"),
+      std::make_tuple(ge::DT_FLOAT, ge::DT_FLOAT16, "4"), std::make_tuple(ge::DT_FLOAT, ge::DT_INT64, "8"),
+      std::make_tuple(ge::DT_FLOAT, ge::DT_INT32, "4"),   std::make_tuple(ge::DT_FLOAT, ge::DT_INT16, "4"),
+      std::make_tuple(ge::DT_FLOAT, ge::DT_BF16, "4"),
 
+      std::make_tuple(ge::DT_INT16, ge::DT_FLOAT16, "2"), std::make_tuple(ge::DT_INT16, ge::DT_FLOAT, "4"),
 
-    std::make_tuple(ge::DT_INT16, ge::DT_FLOAT16, "2"),
-    std::make_tuple(ge::DT_INT16, ge::DT_FLOAT, "4"),
+      std::make_tuple(ge::DT_INT32, ge::DT_FLOAT, "4"),   std::make_tuple(ge::DT_INT32, ge::DT_INT64, "8"),
+      std::make_tuple(ge::DT_INT32, ge::DT_INT16, "4"),   std::make_tuple(ge::DT_INT32, ge::DT_FLOAT16, "4"),
 
-    std::make_tuple(ge::DT_INT32, ge::DT_FLOAT, "4"),
-    std::make_tuple(ge::DT_INT32, ge::DT_INT64, "8"),
-    std::make_tuple(ge::DT_INT32, ge::DT_INT16, "4"),
-    std::make_tuple(ge::DT_INT32, ge::DT_FLOAT16, "4"),
-
-    std::make_tuple(ge::DT_FLOAT16, ge::DT_FLOAT, "4"),
-    std::make_tuple(ge::DT_FLOAT16, ge::DT_INT32, "4"),
+      std::make_tuple(ge::DT_FLOAT16, ge::DT_FLOAT, "4"), std::make_tuple(ge::DT_FLOAT16, ge::DT_INT32, "4"),
   };
   for (const auto &t : x_y_max_size_list) {
     af::AscGraph graph("test_graph");
@@ -562,7 +551,10 @@ TEST(CodegenKernel, CastApiCall_WithMaskMode) {
 
     std::string result;
     call.Generate(tpipe, current_axis, result);
-    std::string expect = "CastExtend(local_1[0], local_0[0], tmp_buf_0, t->s1, t->s2, ((16 * Ceiling((Rational(1 , 16) * t->s2))))/(1), ((16 * Ceiling((Rational(1 , 16) * t->s2))))/(1), " + max_size + ");\n";
+    std::string expect =
+        "CastExtend(local_1[0], local_0[0], tmp_buf_0, t->s1, t->s2, ((16 * Ceiling((Rational(1 , 16) * t->s2))))/(1), "
+        "((16 * Ceiling((Rational(1 , 16) * t->s2))))/(1), " +
+        max_size + ");\n";
     EXPECT_EQ(result, expect);
   }
 }

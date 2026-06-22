@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -27,9 +27,9 @@ using namespace af::ascir_op;
 using namespace ascgen_utils;
 
 Status CastV2ApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
-  const std::vector<std::reference_wrapper<const Tensor>> &inputs,
-  const std::vector<std::reference_wrapper<const Tensor>> &outputs,
-  std::string &result) const {
+                               const std::vector<std::reference_wrapper<const Tensor>> &inputs,
+                               const std::vector<std::reference_wrapper<const Tensor>> &outputs,
+                               std::string &result) const {
   (void)this->api_name_;
   auto x = inputs[0].get();
   auto y = outputs[0].get();
@@ -65,8 +65,8 @@ Status CastV2ApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::Axis
          << "{" << "ConvertToUint32(" << y.actual_size << ")" << "}, "
          << "{ConvertToUint32(1)}, {ConvertToUint32(1)});" << std::endl;
     } else {
-      ss << this->api_name_ << "(" << y << "[" << tpipe.tiler.TensorVectorizedOffset(current_axis, y) << "], " << x << "["
-         << tpipe.tiler.TensorVectorizedOffset(current_axis, x) << "], "
+      ss << this->api_name_ << "(" << y << "[" << tpipe.tiler.TensorVectorizedOffset(current_axis, y) << "], " << x
+         << "[" << tpipe.tiler.TensorVectorizedOffset(current_axis, x) << "], "
          << "{" << "ConvertToUint32(" << x.actual_size << ")" << "}, "
          << "{ConvertToUint32(1)}, {ConvertToUint32(1)});" << std::endl;
     }
@@ -75,29 +75,31 @@ Status CastV2ApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::Axis
     // 获取输入输出中最大的数据类型max_dtype_size
     std::string dtype_size;
     GE_CHK_BOOL_RET_STATUS(GetMaxDtypeSize(x.dtype, y.dtype, dtype_size) == true, ge::FAILED,
-      "get max data type size failed, x_dtype = %s, y_dtype = %s", x_dtype.c_str(),
-      y_dtype.c_str());
+                           "get max data type size failed, x_dtype = %s, y_dtype = %s", x_dtype.c_str(),
+                           y_dtype.c_str());
     size_t input_strides_size = param.inputs_strides[0].size();
     std::vector<ascir::SizeExpr> inner_input_strides(param.inputs_strides[0].begin(),
-                                param.inputs_strides[0].begin() + input_strides_size - 1);
+                                                     param.inputs_strides[0].begin() + input_strides_size - 1);
     std::string input_inner_offset = input_strides_size == 1U ? "0" : CalcInnerOffset(tpipe, inner_input_strides);
 
     size_t output_strides_size = param.outputs_strides[0].size();
     std::vector<ascir::SizeExpr> inner_output_strides(param.outputs_strides[0].begin(),
-                                param.outputs_strides[0].begin() + output_strides_size - 1);
+                                                      param.outputs_strides[0].begin() + output_strides_size - 1);
     std::string output_inner_offset = output_strides_size == 1U ? "0" : CalcInnerOffset(tpipe, inner_output_strides);
 
     std::stringstream ss1;
     ss1 << this->api_name_ << "(" << y << "[" << output_inner_offset << "], " << x << "[" << input_inner_offset << "], "
-        << "{" << "ConvertToUint32(" << param.outer_repeats[outer_repeats_size - 1] << ")" << ", " << "ConvertToUint32(" << tpipe.tiler.ActualSize(param.cal_count) << ")" << "}, "
-        << "{" << "ConvertToUint32(" << tpipe.tiler.Size(param.output_second_to_last_stride) << ")" << ", " << "ConvertToUint32(1)" << "}, "
-        << "{" << "ConvertToUint32(" << tpipe.tiler.Size(param.input_second_to_last_stride) << ")" << ", " << "ConvertToUint32(1)" << "});"
-        << std::endl;
+        << "{" << "ConvertToUint32(" << param.outer_repeats[outer_repeats_size - 1] << ")" << ", " << "ConvertToUint32("
+        << tpipe.tiler.ActualSize(param.cal_count) << ")" << "}, "
+        << "{" << "ConvertToUint32(" << tpipe.tiler.Size(param.output_second_to_last_stride) << ")" << ", "
+        << "ConvertToUint32(1)" << "}, "
+        << "{" << "ConvertToUint32(" << tpipe.tiler.Size(param.input_second_to_last_stride) << ")" << ", "
+        << "ConvertToUint32(1)" << "});" << std::endl;
     if (outer_repeats_size == 1U) {
       ss << ss1.str();
     } else {
       std::vector<std::string> inner_outer_repeats(param.outer_repeats.begin(),
-                                param.outer_repeats.begin() + outer_repeats_size - 1);
+                                                   param.outer_repeats.begin() + outer_repeats_size - 1);
       CreateComputeNodeOuterFor(inner_outer_repeats, ss1, ss, 0);
     }
   }
@@ -107,4 +109,4 @@ Status CastV2ApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::Axis
 }
 static ApiCallRegister<CastV2ApiCall> register_cast_v2_api_call("CastV2ApiCall");
 
-} // namespace codegen
+}  // namespace codegen

@@ -37,5 +37,5 @@ class OpDescUtilsEx {
   static graphStatus CallInferFormatFuncV2(const OpDescPtr &op_desc, Operator &op);
   static graphStatus InferCustomOpShape(const OpDescPtr &op_desc, Operator &op);
 };
-} // namespace ge
-#endif // __INC_METADEF_OP_DESC_UTILS_EX_H
+}  // namespace af
+#endif  // __INC_METADEF_OP_DESC_UTILS_EX_H

@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -33,14 +33,18 @@ __aicore__ inline void SplitCopy(__ubuf__ T *src_addr_base, __ubuf__ T *dst_addr
     AscendC::MicroAPI::UnalignReg u1;
     AscendC::MicroAPI::RegTensor<T> vd0;
     for (uint16_t i = 0; i < num_rows; i++) {
-      __ubuf__ T* src_ptr1 = src_addr_base + i * row_stride;
+      __ubuf__ T *src_ptr1 = src_addr_base + i * row_stride;
       AscendC::MicroAPI::DataCopyUnAlignPre(u0, src_ptr1);
       for (uint16_t j = 0; j < repeat_times; j++) {
-        AscendC::MicroAPI::DataCopyUnAlign<T, AscendC::MicroAPI::PostLiteral::POST_MODE_UPDATE>(vd0, u0, src_ptr1, vfLen1);
-        AscendC::MicroAPI::DataCopyUnAlign<T, AscendC::MicroAPI::PostLiteral::POST_MODE_UPDATE>(dst_addr, vd0, u1, vfLen1);
+        AscendC::MicroAPI::DataCopyUnAlign<T, AscendC::MicroAPI::PostLiteral::POST_MODE_UPDATE>(vd0, u0, src_ptr1,
+                                                                                                vfLen1);
+        AscendC::MicroAPI::DataCopyUnAlign<T, AscendC::MicroAPI::PostLiteral::POST_MODE_UPDATE>(dst_addr, vd0, u1,
+                                                                                                vfLen1);
       }
-      AscendC::MicroAPI::DataCopyUnAlign<T, AscendC::MicroAPI::PostLiteral::POST_MODE_UPDATE>(vd0, u0, src_ptr1, vfLen1);
-      AscendC::MicroAPI::DataCopyUnAlign<T, AscendC::MicroAPI::PostLiteral::POST_MODE_UPDATE>(dst_addr, vd0, u1, tail_cols);
+      AscendC::MicroAPI::DataCopyUnAlign<T, AscendC::MicroAPI::PostLiteral::POST_MODE_UPDATE>(vd0, u0, src_ptr1,
+                                                                                              vfLen1);
+      AscendC::MicroAPI::DataCopyUnAlign<T, AscendC::MicroAPI::PostLiteral::POST_MODE_UPDATE>(dst_addr, vd0, u1,
+                                                                                              tail_cols);
       AscendC::MicroAPI::DataCopyUnAlignPost<T, AscendC::MicroAPI::PostLiteral::POST_MODE_UPDATE>(dst_addr, u1, 0);
     }
   }

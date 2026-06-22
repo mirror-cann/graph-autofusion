@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -70,7 +70,7 @@ bool OutputSymbolShapeDeserialize(PyObject *output_shape_obj, std::vector<std::v
   return true;
 }
 
-bool ComputeGraphDeserialize(const std::string to_be_deserialized, PyObject* py_obj) {
+bool ComputeGraphDeserialize(const std::string to_be_deserialized, PyObject *py_obj) {
   // construct HintComputeGraph instance
   pyascir::HintComputeGraph::Init(py_obj, nullptr, nullptr);
   auto compute_graph = reinterpret_cast<pyascir::HintComputeGraph::Object *>(py_obj);
@@ -89,15 +89,14 @@ bool ComputeGraphDeserialize(const std::string to_be_deserialized, PyObject* py_
   return true;
 }
 
-PyObject *UtilsDeserialize(PyObject *self_pyobject, PyObject *args, PyObject *kwds)
-{
+PyObject *UtilsDeserialize(PyObject *self_pyobject, PyObject *args, PyObject *kwds) {
   (void)self_pyobject;
   (void)kwds;
   std::string type_graph = "asc_graph";
   std::string type_shape_info = "symbol_source_info";
   std::string type_compute_graph = "compute_graph";
-  const char* type = nullptr;
-  const char* obj = nullptr;
+  const char *type = nullptr;
+  const char *obj = nullptr;
   std::string type_str;
   std::string obj_str;
 
@@ -114,7 +113,7 @@ PyObject *UtilsDeserialize(PyObject *self_pyobject, PyObject *args, PyObject *kw
     if (ret != 0) {
       return PyErr_Format(PyExc_TypeError, "HintGraph DeserializeFromReadable fail");
     }
-    PyObject* hint_graph_obj = pyascir::HintGraph::New(&pyascir::HintGraph::type, nullptr, nullptr);
+    PyObject *hint_graph_obj = pyascir::HintGraph::New(&pyascir::HintGraph::type, nullptr, nullptr);
     GE_CHK_BOOL_RET_SPECIAL_STATUS(hint_graph_obj == nullptr, PyErr_Format(PyExc_TypeError, "HintGraph new fail"),
                                    "HintGraph new fail");
     // construct HinGraph instance
@@ -128,7 +127,7 @@ PyObject *UtilsDeserialize(PyObject *self_pyobject, PyObject *args, PyObject *kw
     PY_ASSERT(hint_graph->graph->CopyFrom(tmp_graph));
     return reinterpret_cast<PyObject *>(hint_graph);
   } else if (type_str == type_shape_info) {
-    PyObject* shape_info = pyascir::ShapeInfo::New(&pyascir::ShapeInfo::type, nullptr, nullptr);
+    PyObject *shape_info = pyascir::ShapeInfo::New(&pyascir::ShapeInfo::type, nullptr, nullptr);
     GE_CHK_BOOL_RET_SPECIAL_STATUS(shape_info == nullptr, PyErr_Format(PyExc_TypeError, "ShapeInfo new fail"),
                                    "ShapeInfo new fail");
     if (!pyascir::ShapeInfoDeserialize(obj_str, shape_info)) {
@@ -138,9 +137,11 @@ PyObject *UtilsDeserialize(PyObject *self_pyobject, PyObject *args, PyObject *kw
     }
     return shape_info;
   } else if (type_str == type_compute_graph) {
-    PyObject* hint_compute_graph_obj = pyascir::HintComputeGraph::New(&pyascir::HintComputeGraph::type, nullptr, nullptr);
+    PyObject *hint_compute_graph_obj =
+        pyascir::HintComputeGraph::New(&pyascir::HintComputeGraph::type, nullptr, nullptr);
     GE_CHK_BOOL_RET_SPECIAL_STATUS(hint_compute_graph_obj == nullptr,
-          PyErr_Format(PyExc_TypeError, "HintComputeGraph new fail"), "HintComputeGraph new fail");
+                                   PyErr_Format(PyExc_TypeError, "HintComputeGraph new fail"),
+                                   "HintComputeGraph new fail");
     if (!pyascir::ComputeGraphDeserialize(obj_str, hint_compute_graph_obj)) {
       ERROR_PRINT("HintComputeGraph Deserialize fail");
       return PyErr_Format(PyExc_TypeError, "HintComputeGraph Deserialize fail");
@@ -178,7 +179,7 @@ PyObject *UtilsReportDurations(PyObject *self_pyobject, PyObject *args, PyObject
 PyObject *UtilsDurationRecord(PyObject *self_pyobject, PyObject *args, PyObject *kwds) {
   (void)self_pyobject;
   (void)kwds;
-  PyObject* target_list_obj = nullptr;
+  PyObject *target_list_obj = nullptr;
   long long start;
   long long duration;
   if (PyArg_ParseTuple(args, "OLL", &target_list_obj, &start, &duration) == kPythonFail) {

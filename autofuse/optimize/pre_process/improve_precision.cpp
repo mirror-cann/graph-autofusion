@@ -29,7 +29,6 @@
 #include "pre_process/pre_process_config.h"
 #include "ascgen_log.h"
 
-
 namespace af::pre_process {
 namespace {
 using af::AscGraph;
@@ -37,13 +36,6 @@ using af::AscGraphUtils;
 using af::AscNodeAttr;
 using af::AscTensorAttr;
 using af::ComputeGraphPtr;
-using ge::DataType;
-using ge::DT_BF16;
-using ge::DT_FLOAT;
-using ge::DT_FLOAT16;
-using ge::DT_INT4;
-using ge::DT_INT8;
-using ge::DT_UINT8;
 using af::GeTensorDescPtr;
 using af::GraphUtils;
 using af::NodePtr;
@@ -51,12 +43,25 @@ using af::NodeUtils;
 using af::OpDescBuilder;
 using af::OpDescUtils;
 using af::TypeUtils;
+using ge::DataType;
+using ge::DT_BF16;
+using ge::DT_FLOAT;
+using ge::DT_FLOAT16;
+using ge::DT_INT4;
+using ge::DT_INT8;
+using ge::DT_UINT8;
 
-bool IsLowPrecisionDataType(DataType dtype) { return dtype == DT_FLOAT16 || dtype == DT_BF16; }
+bool IsLowPrecisionDataType(DataType dtype) {
+  return dtype == DT_FLOAT16 || dtype == DT_BF16;
+}
 
-bool IsHighPrecisionDataType(DataType dtype) { return dtype == DT_FLOAT; }
+bool IsHighPrecisionDataType(DataType dtype) {
+  return dtype == DT_FLOAT;
+}
 
-bool IsFloatDataType(DataType dtype) { return (IsLowPrecisionDataType(dtype) || IsHighPrecisionDataType(dtype)); }
+bool IsFloatDataType(DataType dtype) {
+  return (IsLowPrecisionDataType(dtype) || IsHighPrecisionDataType(dtype));
+}
 
 bool IsUltraLowPrecisionDataType(DataType dtype) {
   return dtype == DT_INT4 || dtype == DT_INT8 || dtype == DT_UINT8;
@@ -71,7 +76,7 @@ bool IsUltraLowToLowPrecision(DataType peer_output_dtype, DataType output_dtype)
 }
 
 bool IsNodeTypeInPeerInNodes(const std::string &node_type, const std::vector<NodePtr> &peer_in_nodes) {
-  for (const auto &peer_in_node: peer_in_nodes) {
+  for (const auto &peer_in_node : peer_in_nodes) {
     if (peer_in_node->GetType() == node_type) {
       return true;
     }
@@ -108,7 +113,7 @@ Status GetPeerOutNodes(const NodePtr &node, std::vector<NodePtr> &peer_out_nodes
 Status GetPeerInNodes(const NodePtr &node, std::vector<NodePtr> &peer_in_nodes, int32_t out_data_idx) {
   const auto out_anchor = node->GetOutDataAnchor(out_data_idx);
   GE_ASSERT_NOTNULL(out_anchor);
-  for (const auto &peer_in_anchor: out_anchor->GetPeerInDataAnchorsPtr()) {
+  for (const auto &peer_in_anchor : out_anchor->GetPeerInDataAnchorsPtr()) {
     GE_ASSERT_NOTNULL(peer_in_anchor);
     const auto peer_in_node = peer_in_anchor->GetOwnerNode();
     GE_ASSERT_NOTNULL(peer_in_node);
@@ -133,7 +138,7 @@ Status DelNode(AscGraph &asc_graph, const NodePtr &node) {
   const auto src_anchor = in_data_anchor->GetPeerOutAnchor();
   GE_ASSERT_NOTNULL(src_anchor);
   GE_ASSERT_GRAPH_SUCCESS(GraphUtils::RemoveEdge(src_anchor, in_data_anchor));
-  for (const auto &dst_anchor: out_data_anchor->GetPeerInDataAnchors()) {
+  for (const auto &dst_anchor : out_data_anchor->GetPeerInDataAnchors()) {
     GE_ASSERT_NOTNULL(dst_anchor);
     GE_ASSERT_GRAPH_SUCCESS(GraphUtils::RemoveEdge(out_data_anchor, dst_anchor));
     GE_ASSERT_GRAPH_SUCCESS(GraphUtils::AddEdge(src_anchor, dst_anchor));
@@ -151,7 +156,7 @@ Status UpdateTopoId(AscGraph &asc_graph, const NodePtr &node, int64_t topo_id_in
   auto topo_id = op_desc->GetId();
   auto compute_graph = AscGraphUtils::GetComputeGraph(asc_graph);
   GE_ASSERT_NOTNULL(compute_graph);
-  for (const auto &n: compute_graph->GetAllNodes()) {
+  for (const auto &n : compute_graph->GetAllNodes()) {
     const auto &n_desc = n->GetOpDesc();
     GE_ASSERT_NOTNULL(n_desc);
     if (n_desc->GetId() > topo_id) {
@@ -177,37 +182,43 @@ Status FromDtypeToOtherDtype(const NodePtr &node, DataType s_dtype, DataType d_d
 
 void TopologicalSorting(const ComputeGraphPtr &graph) {
   graph->TopologicalSorting(
-    [](const af::NodePtr &a, const af::NodePtr &b) { return a->GetOpDesc()->GetId() < b->GetOpDesc()->GetId(); });
+      [](const af::NodePtr &a, const af::NodePtr &b) { return a->GetOpDesc()->GetId() < b->GetOpDesc()->GetId(); });
 }
 
 bool CheckCastDtype(DataType input_dtype, DataType output_dtype) {
   std::vector<DataType> input_dtypes = {input_dtype};
   std::vector<DataType> expect_output_dtypes = {output_dtype};
-  return optimize::ScheduleUtils::CallAscirInferDataType<af::ascir_op::Cast>(input_dtypes, expect_output_dtypes) == ge::SUCCESS;
+  return optimize::ScheduleUtils::CallAscirInferDataType<af::ascir_op::Cast>(input_dtypes, expect_output_dtypes) ==
+         ge::SUCCESS;
 }
 
 std::atomic<int64_t> g_unique_number{0};
 
-int64_t GenUniqueNumber() { return g_unique_number.fetch_add(1); }
+int64_t GenUniqueNumber() {
+  return g_unique_number.fetch_add(1);
+}
 
-void ResetUniqueNumber() { g_unique_number.store(0); }
+void ResetUniqueNumber() {
+  g_unique_number.store(0);
+}
 
 // ====================== Blacklist ======================
 
 const std::unordered_map<std::string, std::string> kBlackList1 = {
-  {af::ascir_op::Data::Type, af::ascir_op::Data::Type},
-  {af::ascir_op::Load::Type, af::ascir_op::Load::Type},
-  {af::ascir_op::Scalar::Type, af::ascir_op::Scalar::Type},
-  {af::ascir_op::Store::Type, af::ascir_op::Store::Type},
-  {af::ascir_op::Output::Type, af::ascir_op::Output::Type},
-  {af::ascir_op::Broadcast::Type, af::ascir_op::Broadcast::Type},
-  {af::ascir_op::Transpose::Type, af::ascir_op::Transpose::Type},
-  {af::ascir_op::Concat::Type, af::ascir_op::Concat::Type},
-  {af::ascir_op::Gather::Type, af::ascir_op::Gather::Type},
-  {"Slice", "Slice"}
-};
+    {af::ascir_op::Data::Type, af::ascir_op::Data::Type},
+    {af::ascir_op::Load::Type, af::ascir_op::Load::Type},
+    {af::ascir_op::Scalar::Type, af::ascir_op::Scalar::Type},
+    {af::ascir_op::Store::Type, af::ascir_op::Store::Type},
+    {af::ascir_op::Output::Type, af::ascir_op::Output::Type},
+    {af::ascir_op::Broadcast::Type, af::ascir_op::Broadcast::Type},
+    {af::ascir_op::Transpose::Type, af::ascir_op::Transpose::Type},
+    {af::ascir_op::Concat::Type, af::ascir_op::Concat::Type},
+    {af::ascir_op::Gather::Type, af::ascir_op::Gather::Type},
+    {"Slice", "Slice"}};
 
-bool IsInBlackList1(const NodePtr &node) { return kBlackList1.find(node->GetType()) != kBlackList1.end(); }
+bool IsInBlackList1(const NodePtr &node) {
+  return kBlackList1.find(node->GetType()) != kBlackList1.end();
+}
 
 bool IsInBlackList2(const NodePtr &node, const std::unordered_set<std::string> &blacklist2) {
   return blacklist2.find(node->GetType()) != blacklist2.end();
@@ -217,7 +228,7 @@ Status CheckNodeDtype(const NodePtr &node) {
   std::vector<NodePtr> peer_out_nodes;
   GE_ASSERT_SUCCESS(GetPeerOutNodes(node, peer_out_nodes));
   std::vector<DataType> input_dtypes;
-  for (const auto &peer_out_node: peer_out_nodes) {
+  for (const auto &peer_out_node : peer_out_nodes) {
     GeTensorDescPtr peer_output_tensor_desc;
     GE_ASSERT_SUCCESS(GetOutputTensorDesc(peer_out_node, peer_output_tensor_desc));
     input_dtypes.push_back(peer_output_tensor_desc->GetDataType());
@@ -239,12 +250,11 @@ Status CheckNodeDtype(const NodePtr &node) {
 }
 
 const std::unordered_map<std::string, std::string> kTypeToGroup = {
-  {af::ascir_op::Cast::Type, af::ascir_op::Cast::Type},
-  {af::ascir_op::Load::Type, af::ascir_op::Load::Type},
-  {af::ascir_op::Gather::Type, af::ascir_op::Gather::Type},
-  {af::ascir_op::Scalar::Type, af::ascir_op::Scalar::Type},
-  {af::ascir_op::Store::Type, af::ascir_op::Store::Type}
-};
+    {af::ascir_op::Cast::Type, af::ascir_op::Cast::Type},
+    {af::ascir_op::Load::Type, af::ascir_op::Load::Type},
+    {af::ascir_op::Gather::Type, af::ascir_op::Gather::Type},
+    {af::ascir_op::Scalar::Type, af::ascir_op::Scalar::Type},
+    {af::ascir_op::Store::Type, af::ascir_op::Store::Type}};
 
 bool ShouldDeleteCastNode(DataType peer_output_dtype, DataType output_dtype) {
   return IsFloatDataType(output_dtype) && IsFloatDataType(peer_output_dtype);
@@ -252,7 +262,7 @@ bool ShouldDeleteCastNode(DataType peer_output_dtype, DataType output_dtype) {
 
 bool ShouldChangeDataType(const NodePtr &node, const std::vector<NodePtr> &peer_in_nodes, DataType peer_output_dtype,
                           DataType output_dtype) {
-  (void) node;
+  (void)node;
   if (IsNodeTypeInPeerInNodes(af::ascir_op::Store::Type, peer_in_nodes)) {
     return false;
   }
@@ -270,8 +280,7 @@ bool IsFloatToUltraLowNeedInsertCast(const NodePtr &peer_out_node, DataType peer
     return false;
   }
   const auto &type = peer_out_node->GetType();
-  if ((type == af::ascir_op::Load::Type || type == af::ascir_op::Gather::Type ||
-       type == af::ascir_op::Cast::Type) &&
+  if ((type == af::ascir_op::Load::Type || type == af::ascir_op::Gather::Type || type == af::ascir_op::Cast::Type) &&
       IsLowPrecisionDataType(peer_output_dtype)) {
     return false;
   }
@@ -292,8 +301,7 @@ NodePtr BuildCastNode(AscGraph &asc_graph, const NodePtr &ref_node) {
   return asc_graph.AddNode(*op);
 }
 
-Status WireCastBeforeInput(AscGraph &asc_graph, const NodePtr &target, NodePtr &cast_node,
-                           int32_t input_idx) {
+Status WireCastBeforeInput(AscGraph &asc_graph, const NodePtr &target, NodePtr &cast_node, int32_t input_idx) {
   cast_node = BuildCastNode(asc_graph, target);
   GE_ASSERT_NOTNULL(cast_node);
   GE_ASSERT_SUCCESS(cast_node->SetOwnerComputeGraph(AscGraphUtils::GetComputeGraph(asc_graph)));
@@ -315,8 +323,8 @@ Status TransferNodeAttrs(const NodePtr &src_node, const NodePtr &dst_node) {
   return ge::SUCCESS;
 }
 
-Status ConfigureCastTensor(const GeTensorDescPtr &src_tensor_desc, const NodePtr &cast_node,
-                           const NodePtr &next_node, bool is_increase) {
+Status ConfigureCastTensor(const GeTensorDescPtr &src_tensor_desc, const NodePtr &cast_node, const NodePtr &next_node,
+                           bool is_increase) {
   // Determine output dtype first
   const auto c_opdesc = cast_node->GetOpDesc();
   GE_ASSERT_NOTNULL(c_opdesc);
@@ -329,8 +337,7 @@ Status ConfigureCastTensor(const GeTensorDescPtr &src_tensor_desc, const NodePtr
     GE_ASSERT_NOTNULL(next_desc);
     auto next_out = next_desc->MutableOutputDesc(0);
     GE_ASSERT_NOTNULL(next_out);
-    c_out_desc->SetDataType(IsLowPrecisionDataType(next_out->GetDataType())
-                                ? next_out->GetDataType() : DT_FLOAT16);
+    c_out_desc->SetDataType(IsLowPrecisionDataType(next_out->GetDataType()) ? next_out->GetDataType() : DT_FLOAT16);
   }
   // Copy tensor attrs from source
   auto c_o_attr = c_out_desc->GetOrCreateAttrsGroup<AscTensorAttr>();
@@ -456,7 +463,7 @@ Status InsertCastBeforeNode(AscGraph &asc_graph, const NodePtr &other_node, bool
   if (!is_need_insert_cast) {
     return ge::SUCCESS;
   }
-  for (auto input_idx: input_idxs) {
+  for (auto input_idx : input_idxs) {
     GE_ASSERT_SUCCESS(UpdateTopoId(asc_graph, other_node, 1));
     NodePtr c_node = nullptr;
     GE_ASSERT_SUCCESS(WireCastBeforeInput(asc_graph, other_node, c_node, input_idx));
@@ -505,13 +512,17 @@ Status IsAllNodesInBlacklist(const AscGraph &asc_graph, bool &result) {
       continue;
     }
     if (has_all) {
-      if (CheckNodeDtype(node) != ge::SUCCESS) { result = false; return ge::SUCCESS; }
+      if (CheckNodeDtype(node) != ge::SUCCESS) {
+        result = false;
+        return ge::SUCCESS;
+      }
     } else if (IsInBlackList1(node)) {
       continue;
     } else if (IsInBlackList2(node, blacklist2)) {
       GE_ASSERT_SUCCESS(CheckNodeDtype(node));
     } else {
-      result = false; return ge::SUCCESS;
+      result = false;
+      return ge::SUCCESS;
     }
   }
   GELOGI("All nodes in graph %s are in the blacklist, skip precision improvement.", asc_graph.GetName().c_str());
@@ -576,18 +587,22 @@ Status ProcessNodeGroups(AscGraph &asc_graph, TypeToNodesMap &type_to_nodes) {
   GE_ASSERT_SUCCESS(ProcessStoreNodes(asc_graph, type_to_nodes[af::ascir_op::Store::Type]));
   return ge::SUCCESS;
 }
-} // namespace
+}  // namespace
 
 ge::Status ImprovePrecisionForAscGraph(AscGraph &asc_graph) {
   ResetUniqueNumber();
   optimize::GraphPropertiesCache cache(asc_graph);
-  if (ShouldSkipGraph(cache, asc_graph)) { return ge::SUCCESS; }
+  if (ShouldSkipGraph(cache, asc_graph)) {
+    return ge::SUCCESS;
+  }
   bool all_in_blacklist = false;
   GE_ASSERT_SUCCESS(IsAllNodesInBlacklist(asc_graph, all_in_blacklist));
-  if (all_in_blacklist) { return ge::SUCCESS; }
+  if (all_in_blacklist) {
+    return ge::SUCCESS;
+  }
   auto type_to_nodes = GroupNodesByType(asc_graph);
   GE_ASSERT_SUCCESS(ProcessNodeGroups(asc_graph, type_to_nodes));
   TopologicalSorting(AscGraphUtils::GetComputeGraph(asc_graph));
   return ge::SUCCESS;
 }
-} // namespace af::pre_process
+}  // namespace af::pre_process

@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -98,8 +98,7 @@ InferFormatFuncRegister::InferFormatFuncRegister(const char_t *const operator_ty
   (void)OperatorFactoryImpl::RegisterInferFormatFunc(op_type, infer_format_func);
 }
 
-InferValueRangeFuncRegister::InferValueRangeFuncRegister(const char_t *const operator_type,
-                                                         const WHEN_CALL when_call,
+InferValueRangeFuncRegister::InferValueRangeFuncRegister(const char_t *const operator_type, const WHEN_CALL when_call,
                                                          const InferValueRangeFunc &infer_value_range_func) {
   std::string op_type;
   if (operator_type != nullptr) {
@@ -127,4 +126,4 @@ VerifyFuncRegister::VerifyFuncRegister(const char_t *const operator_type, const 
   }
   (void)OperatorFactoryImpl::RegisterVerifyFunc(op_type, verify_func);
 }
-}  // namespace ge
+}  // namespace af

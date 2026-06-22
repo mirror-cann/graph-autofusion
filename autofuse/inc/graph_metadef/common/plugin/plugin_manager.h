@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -40,6 +40,7 @@ class PluginManager {
       GELOGI("[GEPERFTRACE] The time cost of InvokeAll [%s] in [%s] is [%lu] micro seconds.", func_name_.c_str(),
              lib_name_.c_str(), std::chrono::duration_cast<std::chrono::microseconds>(end - start_).count());
     }
+
    private:
     std::chrono::high_resolution_clock::time_point start_;
     const std::string &func_name_;
@@ -65,19 +66,14 @@ class PluginManager {
 
   static void SetCustomOpLibPath(const std::string &custom_op_Lib_path);
 
-  static Status GetOppPluginPathOld(const std::string &opp_path,
-                                    const std::string &path_fmt,
-                                    std::string &plugin_path,
+  static Status GetOppPluginPathOld(const std::string &opp_path, const std::string &path_fmt, std::string &plugin_path,
                                     const std::string &path_fmt_custom = "");
 
-  static Status GetOppPluginPathNew(const std::string &opp_path,
-                                    const std::string &path_fmt,
-                                    std::string &plugin_path,
-                                    const std::string &old_custom_path,
-                                    const std::string &path_fmt_custom = "");
+  static Status GetOppPluginPathNew(const std::string &opp_path, const std::string &path_fmt, std::string &plugin_path,
+                                    const std::string &old_custom_path, const std::string &path_fmt_custom = "");
 
   static bool IsSplitOpp();
-  
+
   static Status GetOpsProtoPath(std::string &opsproto_path);
 
   static Status GetUpgradedOpsProtoPath(std::string &opsproto_path);
@@ -95,18 +91,18 @@ class PluginManager {
   static Status GetConstantFoldingOpsPath(const std::string &path_base, std::string &constant_folding_ops_path);
 
   Status LoadSoWithFlags(const std::string &path, const int32_t flags,
-      const std::vector<std::string> &func_check_list = std::vector<std::string>());
+                         const std::vector<std::string> &func_check_list = std::vector<std::string>());
 
   Status LoadSo(const std::string &path, const std::vector<std::string> &func_check_list = std::vector<std::string>());
 
   Status Load(const std::string &path, const std::vector<std::string> &func_check_list = std::vector<std::string>());
 
   Status LoadWithFlags(const std::string &path, const int32_t flags,
-      const std::vector<std::string> &func_check_list = std::vector<std::string>());
+                       const std::vector<std::string> &func_check_list = std::vector<std::string>());
 
   static void GetOppSupportedOsAndCpuType(
-      std::unordered_map<std::string, std::unordered_set<std::string>> &opp_supported_os_cpu,
-      std::string opp_path = "", std::string os_name = "", uint32_t layer = 0U);
+      std::unordered_map<std::string, std::unordered_set<std::string>> &opp_supported_os_cpu, std::string opp_path = "",
+      std::string os_name = "", uint32_t layer = 0U);
 
   static void GetCurEnvPackageOsAndCpuType(std::string &host_env_os, std::string &host_env_cpu);
 
@@ -123,8 +119,7 @@ class PluginManager {
 
   static bool GetVersionFromPathWithName(const std::string &file_path, std::string &version,
                                          const std::string version_name);
-  static void FindSoFilesInCustomPassDirs(const std::string &directory,
-                                          std::vector<std::string> &so_files);
+  static void FindSoFilesInCustomPassDirs(const std::string &directory, std::vector<std::string> &so_files);
 
   static bool IsEndWith(const std::string &path, const std::string &suff);
 
@@ -138,7 +133,7 @@ class PluginManager {
   template <typename R, typename... Types>
   Status GetAllFunctions(const std::string &func_name, std::map<std::string, std::function<R(Types... args)>> &funcs) {
     for (const auto &handle : handles_) {
-      const auto real_fn = reinterpret_cast<R(*)(Types...)>(mmDlsym(handle.second, func_name.c_str()));
+      const auto real_fn = reinterpret_cast<R (*)(Types...)>(mmDlsym(handle.second, func_name.c_str()));
       if (real_fn == nullptr) {
         const char *error = mmDlerror();
         if (error == nullptr) {
@@ -226,7 +221,7 @@ class PluginManager {
     for (const auto &handle : handles_) {
       // If the funcName is existed, signature of realFn can be casted to any type
       InvokeFuncPerfRecorder recorder(func_name, handle.first);
-      const auto real_fn = reinterpret_cast<T2(*)(T1)>(mmDlsym(handle.second, func_name.c_str()));
+      const auto real_fn = reinterpret_cast<T2 (*)(T1)>(mmDlsym(handle.second, func_name.c_str()));
       if (real_fn == nullptr) {
         const char_t *error = mmDlerror();
         if (error == nullptr) {
@@ -249,7 +244,7 @@ class PluginManager {
     for (const auto &handle : handles_) {
       // If the funcName is existed, signature of realFn can be casted to any type
       InvokeFuncPerfRecorder recorder(func_name, handle.first);
-      const auto real_fn = reinterpret_cast<T(*)()>(mmDlsym(handle.second, func_name.c_str()));
+      const auto real_fn = reinterpret_cast<T (*)()>(mmDlsym(handle.second, func_name.c_str()));
       if (real_fn == nullptr) {
         const char_t *error = mmDlerror();
         if (error == nullptr) {
@@ -311,6 +306,6 @@ inline std::string GetModelPathByAddr(void *func_ptr) {
 inline std::string GetModelPath() {
   return GetModelPathByAddr(reinterpret_cast<void *>(&GetModelPath));
 }
-}  // namespace ge
+}  // namespace af
 
 #endif  // GE_COMMON_GE_PLUGIN_MANAGER_H_

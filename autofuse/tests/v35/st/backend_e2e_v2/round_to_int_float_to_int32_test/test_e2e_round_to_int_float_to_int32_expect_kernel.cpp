@@ -13,12 +13,13 @@
 #include "tikicpulib.h"
 #include "autofuse_tiling_data.h"
 
-extern "C" __global__ __aicore__ void round_to_int_float_to_int32_test(GM_ADDR x, GM_ADDR y, GM_ADDR workspace, GM_ADDR tiling);
-extern "C" int64_t AutofuseTiling(uint32_t s0, uint32_t s1, AutofuseTilingData* tiling, uint32_t* workspaceSize, uint64_t *blockDim, uint32_t aiv_num, uint32_t ub_size);
+extern "C" __global__ __aicore__ void round_to_int_float_to_int32_test(GM_ADDR x, GM_ADDR y, GM_ADDR workspace,
+                                                                       GM_ADDR tiling);
+extern "C" int64_t AutofuseTiling(uint32_t s0, uint32_t s1, AutofuseTilingData *tiling, uint32_t *workspaceSize,
+                                  uint64_t *blockDim, uint32_t aiv_num, uint32_t ub_size);
 
 namespace {
-class E2E_RoundToIntFloatToInt32_Code : public testing::Test, public testing::WithParamInterface<std::vector<int>> {
-};
+class E2E_RoundToIntFloatToInt32_Code : public testing::Test, public testing::WithParamInterface<std::vector<int>> {};
 
 TEST_P(E2E_RoundToIntFloatToInt32_Code, CalculateCorrect) {
   auto test_shape = GetParam();
@@ -28,8 +29,8 @@ TEST_P(E2E_RoundToIntFloatToInt32_Code, CalculateCorrect) {
   int test_size = test_shape[0] * test_shape[1];
 
   AutofuseTilingData tiling_data;
-  float* x = (float *)AscendC::GmAlloc(test_size * sizeof(float) + 32);
-  int* y = (int *)AscendC::GmAlloc(test_size * sizeof(int) + 32);
+  float *x = (float *)AscendC::GmAlloc(test_size * sizeof(float) + 32);
+  int *y = (int *)AscendC::GmAlloc(test_size * sizeof(int) + 32);
   int *expect = (int *)AscendC::GmAlloc(test_size * sizeof(int) + 32);
 
   // Prepare test and expect data
@@ -40,11 +41,12 @@ TEST_P(E2E_RoundToIntFloatToInt32_Code, CalculateCorrect) {
 
   // Launch
   uint32_t ws_size = 0;
-  AutofuseTiling(test_shape[0], test_shape[1], &tiling_data, &ws_size, &block_dim, 48, 192*1024);
+  AutofuseTiling(test_shape[0], test_shape[1], &tiling_data, &ws_size, &block_dim, 48, 192 * 1024);
   printf("tiling key: %d, core_num: %d\n", tiling_data.tiling_key, tiling_data.block_dim);
 
   AscendC::SetKernelMode(KernelMode::AIV_MODE);
-  ICPU_RUN_KF(round_to_int_float_to_int32_test, tiling_data.block_dim, (uint8_t *)x, (uint8_t *)y, nullptr, (uint8_t*)&tiling_data);
+  ICPU_RUN_KF(round_to_int_float_to_int32_test, tiling_data.block_dim, (uint8_t *)x, (uint8_t *)y, nullptr,
+              (uint8_t *)&tiling_data);
 
   // Count difference
   uint32_t diff_count = 0;
@@ -63,6 +65,6 @@ TEST_P(E2E_RoundToIntFloatToInt32_Code, CalculateCorrect) {
 }
 
 INSTANTIATE_TEST_SUITE_P(CalcWithDifferentShape, E2E_RoundToIntFloatToInt32_Code,
-                        ::testing::Values(std::vector<int>{64, 16}));
+                         ::testing::Values(std::vector<int>{64, 16}));
 
-}
+}  // namespace

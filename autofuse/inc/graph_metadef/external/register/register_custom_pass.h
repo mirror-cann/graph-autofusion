@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -36,7 +36,7 @@ constexpr int64_t INVALID_STREAM_ID = -1;
 enum class CustomPassStage : uint32_t {
   kBeforeInferShape = 0,
   kAfterInferShape = 1,
-  kAfterAssignLogicStream = 2, // only support CustomAllocateStreamPassFunc in this stage
+  kAfterAssignLogicStream = 2,  // only support CustomAllocateStreamPassFunc in this stage
   kAfterBuiltinFusionPass = 3,
   kAfterOriginGraphOptimize = 4,
   kCompatibleInherited = 5,
@@ -101,29 +101,27 @@ class CustomPassContext {
 };
 
 class StreamPassContext : public CustomPassContext {
-public:
- explicit StreamPassContext(int64_t current_max_stream_id);
+ public:
+  explicit StreamPassContext(int64_t current_max_stream_id);
 
- ~StreamPassContext() override = default;
+  ~StreamPassContext() override = default;
 
- graphStatus SetStreamId(const GNode &node, int64_t stream_id);
+  graphStatus SetStreamId(const GNode &node, int64_t stream_id);
 
- int64_t GetStreamId(const GNode &node) const;
+  int64_t GetStreamId(const GNode &node) const;
 
- int64_t AllocateNextStreamId();
+  int64_t AllocateNextStreamId();
 
- int64_t GetCurrMaxStreamId() const;
+  int64_t GetCurrMaxStreamId() const;
 
-private:
- std::unique_ptr<StreamPassContextImpl> impl_;
+ private:
+  std::unique_ptr<StreamPassContextImpl> impl_;
 };
-}  // namespace ge
+}  // namespace af
 
 #define REGISTER_CUSTOM_PASS(name) REGISTER_CUSTOM_PASS_UNIQ_HELPER(__COUNTER__, (name))
 #define REGISTER_CUSTOM_PASS_UNIQ_HELPER(ctr, name) REGISTER_CUSTOM_PASS_UNIQ(ctr, (name))
-#define REGISTER_CUSTOM_PASS_UNIQ(ctr, name)        \
-  static ::ge::PassReceiver register_pass##ctr      \
-      __attribute__((unused)) =                     \
-          ::ge::PassRegistrationData((name))
+#define REGISTER_CUSTOM_PASS_UNIQ(ctr, name) \
+  static ::ge::PassReceiver register_pass##ctr __attribute__((unused)) = ::ge::PassRegistrationData((name))
 
 #endif  // INC_EXTERNAL_REGISTER_REGISTER_PASS_H_

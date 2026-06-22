@@ -1,11 +1,11 @@
 /**
-* Copyright (c) 2026 Huawei Technologies Co., Ltd.
-* This program is free software, you can redistribute it and/or modify it under the terms and conditions of
-* CANN Open Software License Agreement Version 2.0 (the "License").
-* Please refer to the License for details. You may not use this file except in compliance with the License.
-* THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
-* INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
-* See LICENSE in the root of the software repository for the full text of the License.
+ * Copyright (c) 2026 Huawei Technologies Co., Ltd.
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
+ * CANN Open Software License Agreement Version 2.0 (the "License").
+ * Please refer to the License for details. You may not use this file except in compliance with the License.
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+ * See LICENSE in the root of the software repository for the full text of the License.
  */
 
 #include "axes_reorder_solver_code_common.h"
@@ -99,7 +99,7 @@ std::string GenNaiveLocalBufTilingImpl() {
             upper_bound_satisfied_ub, boundary, var->align, i, input_.DebugString().c_str());
     var->SetValue(upper_bound_satisfied_ub);
 )";
-    std::string kNaiveLocalBufTilingImplPostProcess = R"(
+  std::string kNaiveLocalBufTilingImplPostProcess = R"(
     OP_LOGD(OP_NAME, "After local buffer tiling, input:%s", input_.DebugString().c_str());
     if (!TuneNotailVar(var)) {
       OP_LOGW(OP_NAME, "Tune notail var failed");
@@ -234,7 +234,7 @@ static std::string GenBinaryLocalBufTilingFinalCheck() {
 
 namespace {
 inline std::string GenEqualPriorityAxesTiling() {
-    return R"(
+  return R"(
   // 可在编译时确定axis_id，待优化
   if (enable_equal_order &&
       IdentifyEqualPriorityAxes(kSupportMaxEqualPriorityAxes, axis_idx, min_upper_bound, max_aligned)) {
@@ -269,7 +269,7 @@ inline std::string GenEqualPriorityAxesTiling() {
     }
   })";
 }
-}
+}  // namespace
 
 std::string GenBinaryLoadBufTilingEqualOrder() {
   std::string codes = R"(
@@ -302,7 +302,6 @@ std::string GenBinaryLocalBufTiling(bool enable_equal_order_tiling) {
   return codes.append("}\n");
 }
 
-
 std::string GenLocalBufTiling(bool enable_equal_order_tiling) {
   if (enable_equal_order_tiling) {
     // 使能为 true 时：调用时传写死的 true
@@ -332,4 +331,4 @@ bool AxesReorderSolver::LocalBufTiling(const bool is_tuning, const bool block_lo
   }
 }
 
-} // namespace att
+}  // namespace att

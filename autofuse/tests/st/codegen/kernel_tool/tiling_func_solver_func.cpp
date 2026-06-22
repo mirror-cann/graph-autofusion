@@ -1,27 +1,26 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
 
 #include "autofuse_tiling_func_common.h"
 namespace optiling {
-inline int32_t CeilDiv(int32_t a, int32_t b)
-{
-    int32_t res = a / b;
-    return (res * b == a) ? res : (res + 1);
+inline int32_t CeilDiv(int32_t a, int32_t b) {
+  int32_t res = a / b;
+  return (res * b == a) ? res : (res + 1);
 }
 bool AxesReorderSolver::InitLocalBufferVars() {
   auto *vars = input_.local_buffer_vars;
   const auto size = input_.local_buffer_vars_size;
   for (uint32_t i = 0u; i < size; ++i) {
     const uint32_t remain = std::min(4u, size - i);
-    for (uint32_t k =0u; k < remain; ++k) {
-      if (!vars[i+k]->SetValue(vars[i+k]->align)) {
+    for (uint32_t k = 0u; k < remain; ++k) {
+      if (!vars[i + k]->SetValue(vars[i + k]->align)) {
         OP_LOGW(OP_NAME, "Failed to init local buffer value.");
         return false;
       }
@@ -65,14 +64,14 @@ bool AxesReorderSolver::SatisfyCons(ConstraintType cons_type) {
   auto *cons_list = input_.all_cons;
   for (uint32_t i = 0u; i < size; ++i) {
     const uint32_t remain = std::min(4u, size - i);
-    for (uint32_t k =0u; k < remain; ++k) {
-      auto &cons = cons_list[i+k];
-    if (cons->type != cons_type) {
-      continue;
-    }
-    if (cons->eval(cons->rel_tiling_vars, cons->rel_in_shapes, cons->rel_hw_spec) > 0) {
-      return false;
-    }
+    for (uint32_t k = 0u; k < remain; ++k) {
+      auto &cons = cons_list[i + k];
+      if (cons->type != cons_type) {
+        continue;
+      }
+      if (cons->eval(cons->rel_tiling_vars, cons->rel_in_shapes, cons->rel_hw_spec) > 0) {
+        return false;
+      }
     }
   }
   return true;
@@ -82,14 +81,14 @@ bool AxesReorderSolver::SatisfyCons(TilingVariable *var, ConstraintType cons_typ
   auto *cons_list = var->rel_cons;
   for (uint32_t i = 0u; i < size; ++i) {
     const uint32_t remain = std::min(4u, size - i);
-    for (uint32_t k =0u; k < remain; ++k) {
-      auto &cons = cons_list[i+k];
-    if (cons->type != cons_type) {
-      continue;
-    }
-    if (cons->eval(cons->rel_tiling_vars, cons->rel_in_shapes, cons->rel_hw_spec) > 0) {
-      return false;
-    }
+    for (uint32_t k = 0u; k < remain; ++k) {
+      auto &cons = cons_list[i + k];
+      if (cons->type != cons_type) {
+        continue;
+      }
+      if (cons->eval(cons->rel_tiling_vars, cons->rel_in_shapes, cons->rel_hw_spec) > 0) {
+        return false;
+      }
     }
   }
   return true;
@@ -97,11 +96,10 @@ bool AxesReorderSolver::SatisfyCons(TilingVariable *var, ConstraintType cons_typ
 bool AxesReorderSolver::SatisfyMCCons() {
   int32_t used_core_num = 0;
   CalRealUsedCoreNum(used_core_num);
-  return used_core_num <= static_cast<int32_t>(input_.core_num); 
+  return used_core_num <= static_cast<int32_t>(input_.core_num);
 }
 
-
-bool AxesReorderSolver::TuneNotailVar(TilingVariable* var) {
+bool AxesReorderSolver::TuneNotailVar(TilingVariable *var) {
   if (!var->notail) {
     return true;
   }
@@ -131,7 +129,8 @@ bool AxesReorderSolver::MulticoreTiling(bool enable_workload_balance) {
   auto *vars = input_.pure_mc_vars;
   for (int32_t i = num_vars - 1; i >= 0; --i) {
     auto &var = vars[i];
-    int32_t boundary = var->align;;
+    int32_t boundary = var->align;
+    ;
     auto init_val = var->value;
     int32_t last_boundary = -1;
     int32_t last_val = -1;
@@ -163,86 +162,86 @@ bool AxesReorderSolver::MulticoreTiling(bool enable_workload_balance) {
     return false;
   }
   if (enable_workload_balance) {
-  int32_t cur_corenum = 0;
-  CalRealUsedCoreNum(cur_corenum);
-  if (cur_corenum != 2) {
-    return true;
-  }
-  double cur_corenum_fp = 0.0;
-  CalUsedCoreNum(cur_corenum_fp);
-  TilingVariable optimal_mc_vars[input_.pure_mc_vars_size];
+    int32_t cur_corenum = 0;
+    CalRealUsedCoreNum(cur_corenum);
+    if (cur_corenum != 2) {
+      return true;
+    }
+    double cur_corenum_fp = 0.0;
+    CalUsedCoreNum(cur_corenum_fp);
+    TilingVariable optimal_mc_vars[input_.pure_mc_vars_size];
+
+    for (uint32_t i = 0u; i < input_.pure_mc_vars_size; ++i) {
+      optimal_mc_vars[i] = *vars[i];
+    }
+    double max_balance = std::fmod(cur_corenum_fp, 1.0);
+    OP_LOGD(OP_NAME, "max_balance initialized: %f, current corenum is %d", max_balance, cur_corenum);
+    if (fabs(max_balance) < 0.00000001f) {
+      OP_LOGI(OP_NAME, "max_balance already satisified");
+      return true;
+    }
+    double balance = max_balance;
+    for (int32_t i = num_vars - 1; i >= 0; i--) {
+      auto &var = vars[i];
+      int32_t corenum = 0;
+      auto upper_bound_val = var->upper_bound(var->upper_bound_vars);
+      upper_bound_val = CeilDiv(upper_bound_val, var->align) * var->align;
+      while (SatisfyCons(ConstraintType::MC_MIXED) && (var->value < upper_bound_val)) {
+        var->value += var->align;
+        CalRealUsedCoreNum(corenum);
+        if ((corenum < std::max(1, cur_corenum - 1))) {
+          break;
+        }
+        double corenum_fp;
+        CalUsedCoreNum(corenum_fp);
+        balance = std::fmod(corenum_fp, 1.0);
+        if ((fabs(balance) < 0.00000001f) || (balance > max_balance)) {
+          max_balance = balance;
 
           for (uint32_t i = 0u; i < input_.pure_mc_vars_size; ++i) {
             optimal_mc_vars[i] = *vars[i];
           }
-  double max_balance = std::fmod(cur_corenum_fp, 1.0);
-  OP_LOGD(OP_NAME, "max_balance initialized: %f, current corenum is %d", max_balance, cur_corenum);
-  if (fabs(max_balance) < 0.00000001f) {
-    OP_LOGI(OP_NAME, "max_balance already satisified");
-    return true;
-  }
-  double balance = max_balance;
-  for (int32_t i=num_vars-1; i >= 0; i--) {
-    auto &var = vars[i];
-    int32_t corenum = 0;
-    auto upper_bound_val = var->upper_bound(var->upper_bound_vars);
-    upper_bound_val = CeilDiv(upper_bound_val, var->align) * var->align;
-    while (SatisfyCons(ConstraintType::MC_MIXED) && (var->value < upper_bound_val)) {
-      var->value += var->align;
-      CalRealUsedCoreNum(corenum);
-      if ((corenum < std::max(1, cur_corenum - 1))) {
-        break;
-      }
-      double corenum_fp;
-      CalUsedCoreNum(corenum_fp);
-      balance = std::fmod(corenum_fp, 1.0);
-      if ((fabs(balance) < 0.00000001f) || (balance > max_balance)) {
-        max_balance = balance;
-
-          for (uint32_t i = 0u; i < input_.pure_mc_vars_size; ++i) {
-            optimal_mc_vars[i] = *vars[i];
-          }
-        OP_LOGD(OP_NAME, "max_balance updated: %f, corenum updated: %d", max_balance, corenum);
+          OP_LOGD(OP_NAME, "max_balance updated: %f, corenum updated: %d", max_balance, corenum);
+        }
       }
     }
-  }
-    for (int32_t i=0; i < num_vars; i++) {
+    for (int32_t i = 0; i < num_vars; i++) {
       input_.pure_mc_vars[i]->value = optimal_mc_vars[i].value;
     }
   }
   return true;
 }
 
-  void AxesReorderSolver::ApplyPromptAlign(TilingVariable *var) {
-    auto aligned_val = var->value;
-    while ((aligned_val >= var->prompt_align) && ((aligned_val) % var->prompt_align != 0)) {
-      aligned_val -= var->align;
-    }
-    bool is_applied = (aligned_val != var->value) && (aligned_val > 0);
-    if (is_applied) {
-      if (var->upper_bound == nullptr) {
-        OP_LOGI(OP_NAME, "Var upper bound func is not set.");
-        return;
-      }
-      const auto upper_bound_val = var->upper_bound(var->upper_bound_vars);
-      const auto loop_size = upper_bound_val / var->value;
-      const auto tail_size = upper_bound_val % var->value;
-      const auto tile_data_size = var->value * var->data_type_size;
-      // if tile data size is less than 512B, no need to update prompt align
-      if ((loop_size == 1) && (tail_size == 0) && (tile_data_size <= 512)) {
-        OP_LOGI(OP_NAME, "No need to update promt align, as loop size is 1 and tail size is 0, tile data size is %u",
-                tile_data_size);
-        return;
-      }
-      // 当block_len > 64B 对性能影响较大
-      if ((var->value * var->data_type_size) <= 64) {
-        OP_LOGI(OP_NAME, "No need to update promt align, as block len is less than 64B");
-        return;
-      }
-      OP_LOGI(OP_NAME, "Update prompt align from %u to %u", var->value, aligned_val);
-      var->value = aligned_val;
-    }
+void AxesReorderSolver::ApplyPromptAlign(TilingVariable *var) {
+  auto aligned_val = var->value;
+  while ((aligned_val >= var->prompt_align) && ((aligned_val) % var->prompt_align != 0)) {
+    aligned_val -= var->align;
   }
+  bool is_applied = (aligned_val != var->value) && (aligned_val > 0);
+  if (is_applied) {
+    if (var->upper_bound == nullptr) {
+      OP_LOGI(OP_NAME, "Var upper bound func is not set.");
+      return;
+    }
+    const auto upper_bound_val = var->upper_bound(var->upper_bound_vars);
+    const auto loop_size = upper_bound_val / var->value;
+    const auto tail_size = upper_bound_val % var->value;
+    const auto tile_data_size = var->value * var->data_type_size;
+    // if tile data size is less than 512B, no need to update prompt align
+    if ((loop_size == 1) && (tail_size == 0) && (tile_data_size <= 512)) {
+      OP_LOGI(OP_NAME, "No need to update promt align, as loop size is 1 and tail size is 0, tile data size is %u",
+              tile_data_size);
+      return;
+    }
+    // 当block_len > 64B 对性能影响较大
+    if ((var->value * var->data_type_size) <= 64) {
+      OP_LOGI(OP_NAME, "No need to update promt align, as block len is less than 64B");
+      return;
+    }
+    OP_LOGI(OP_NAME, "Update prompt align from %u to %u", var->value, aligned_val);
+    var->value = aligned_val;
+  }
+}
 bool AxesReorderSolver::NaiveLocalBufTiling() {
   if (!InitLocalBufferVars()) {
     OP_LOGW(OP_NAME, "init local buffer failed");
@@ -287,7 +286,7 @@ bool AxesReorderSolver::NaiveLocalBufTiling() {
       OP_LOGW(OP_NAME, "Tune notail var failed");
       return false;
     }
-    while (!SatisfyCons(var, ConstraintType::LB_MIXED) && var->value!= var->align) {
+    while (!SatisfyCons(var, ConstraintType::LB_MIXED) && var->value != var->align) {
       var->value -= var->align;
       if (!TuneNotailVar(var)) {
         OP_LOGW(OP_NAME, "Tune notail var failed");
@@ -301,7 +300,7 @@ bool AxesReorderSolver::NaiveLocalBufTiling() {
     return false;
   }
   return true;
-  }
+}
 bool AxesReorderSolver::BinaryLocalBufTiling() {
   if (!InitLocalBufferVars()) {
     OP_LOGW(OP_NAME, "init local buffer failed");
@@ -355,7 +354,8 @@ bool AxesReorderSolver::BinaryLocalBufTiling() {
     return false;
   }
   return true;
-}bool AxesReorderSolver::LocalBufTiling(const bool is_tuning) {
+}
+bool AxesReorderSolver::LocalBufTiling(const bool is_tuning) {
   if (is_tuning) {
     return NaiveLocalBufTiling();
   } else {
@@ -378,7 +378,8 @@ bool AxesReorderSolver::PgoSolverGenerateAllTilingData() {
   return true;
 }
 
-void AxesReorderSolver::PgoSolverGenerateAllTilingDataInner(const uint32_t index, std::vector<uint32_t> &ans_item, std::vector<std::vector<uint32_t>> &ans, int32_t step_max) {
+void AxesReorderSolver::PgoSolverGenerateAllTilingDataInner(const uint32_t index, std::vector<uint32_t> &ans_item,
+                                                            std::vector<std::vector<uint32_t>> &ans, int32_t step_max) {
   if (index >= input_.tiling_vars_size) {
     if (!SatisfyMCCons()) {
       return;
@@ -386,7 +387,7 @@ void AxesReorderSolver::PgoSolverGenerateAllTilingDataInner(const uint32_t index
     ans.push_back(ans_item);
     return;
   }
-  TilingVariable* tilingDataVar;
+  TilingVariable *tilingDataVar;
   bool from_local_buffer_vars = true;
   if (index >= input_.local_buffer_vars_size) {
     tilingDataVar = input_.pure_mc_vars[index - input_.local_buffer_vars_size];
@@ -396,7 +397,8 @@ void AxesReorderSolver::PgoSolverGenerateAllTilingDataInner(const uint32_t index
     from_local_buffer_vars = true;
   }
   auto min_ = tilingDataVar->align;
-  auto max_ = CeilDiv(tilingDataVar->upper_bound(tilingDataVar->upper_bound_vars), tilingDataVar->align) * tilingDataVar->align;
+  auto max_ =
+      CeilDiv(tilingDataVar->upper_bound(tilingDataVar->upper_bound_vars), tilingDataVar->align) * tilingDataVar->align;
   auto step = tilingDataVar->align;
   tilingDataVar->value = 0;
   auto var_value = tilingDataVar->value;
@@ -437,7 +439,8 @@ void AxesReorderSolver::PgoSolverGenerateAllTilingDataInner(const uint32_t index
         continue;
       }
     } else {
-      if (!SatisfyCons(tilingDataVar, ConstraintType::LB_MIXED) || !SatisfyCons(tilingDataVar, ConstraintType::LOCAL_BUFFER)) {
+      if (!SatisfyCons(tilingDataVar, ConstraintType::LB_MIXED) ||
+          !SatisfyCons(tilingDataVar, ConstraintType::LOCAL_BUFFER)) {
         continue;
       }
     }
@@ -512,12 +515,11 @@ inline bool AxesReorderSolver::FindNextLowerBlockDim(const uint32_t block_dim, u
   }
   // 计算上一个档位（确保结果至少为1）
   uint32_t candidate = block_dim - step;
-  next_upper_block_dim = std::max(candidate, 1u); // 避免核数为0
+  next_upper_block_dim = std::max(candidate, 1u);  // 避免核数为0
   return true;
 }
 
-inline void AxesReorderSolver::SaveInputTilingVars(TilingVariable *tiling_vars,
-                                                   TilingVariable *pure_mc_vars,
+inline void AxesReorderSolver::SaveInputTilingVars(TilingVariable *tiling_vars, TilingVariable *pure_mc_vars,
                                                    TilingVariable *local_buffer_vars) const {
   for (uint32_t i = 0U; i < input_.tiling_vars_size; i++) {
     tiling_vars[i] = *input_.tiling_vars[i];
@@ -556,10 +558,10 @@ inline void AxesReorderSolver::FindBetterSolutionByLowerBlockDim(double next_low
     current_perf = next_lower_perf;
     current_block_dim = next_lower_block_dim;
     if (!FindNextLowerBlockDim(current_block_dim, next_lower_block_dim)) {
-    OP_LOGD(OP_NAME,
-            "Found better solution by lower block dim, no lower block dim, current_perf: %f, "
-            "current_block_dim: %u, input:%s",
-            current_perf, current_block_dim, input_.DebugString().c_str());
+      OP_LOGD(OP_NAME,
+              "Found better solution by lower block dim, no lower block dim, current_perf: %f, "
+              "current_block_dim: %u, input:%s",
+              current_perf, current_block_dim, input_.DebugString().c_str());
       // 无更低档位，当前input_就是最优解，直接返回下档位的最优解
       OP_LOGD(OP_NAME, "current_perf: %f, next_lower_perf: %f, current_dim %u, next_lower_block_dim %u, input:%s",
               current_perf, next_lower_perf, current_block_dim, next_lower_block_dim, input_.DebugString().c_str());
@@ -628,11 +630,11 @@ bool AxesReorderSolver::AutoTuning(const bool is_trade_off) {
   OP_LOGI(OP_NAME, "Start auto tuning, input:%s", input_.DebugString().c_str());
 
   if (is_trade_off) {
-    OP_LOGD(OP_NAME,"Do not auto tuning, as is_trade_off is %d.", is_trade_off);
+    OP_LOGD(OP_NAME, "Do not auto tuning, as is_trade_off is %d.", is_trade_off);
     return true;
   }
   if (input_.corenum_threshold > 1.0f || input_.ub_threshold < 0.0f) {
-    OP_LOGD(OP_NAME,"Do not auto tuning, as corenum_threshold is invalid:%f.", input_.corenum_threshold);
+    OP_LOGD(OP_NAME, "Do not auto tuning, as corenum_threshold is invalid:%f.", input_.corenum_threshold);
     return true;
   }
   auto current_perf = GetPerf();
@@ -681,9 +683,10 @@ bool AxesReorderSolver::AutoTuning(const bool is_trade_off) {
   double next_lower_perf = GetPerf();
   // 4.当前档位差于下档位，向下找更优解(考虑多核头开销对小Shape场景的影响和同地址冲突对多核的影响，当前更倾向于下档位)
   if (current_perf > next_lower_perf) {
-    OP_LOGD(OP_NAME, "Find lower block dim, as next_lower_perf: %f(block_dim=%u) is better than"
-            "current_perf: %f(block_dim=%u), input: %s", current_perf, block_dim, next_lower_perf,
-            next_lower_block_dim, input_.DebugString().c_str());
+    OP_LOGD(OP_NAME,
+            "Find lower block dim, as next_lower_perf: %f(block_dim=%u) is better than"
+            "current_perf: %f(block_dim=%u), input: %s",
+            current_perf, block_dim, next_lower_perf, next_lower_block_dim, input_.DebugString().c_str());
     FindBetterSolutionByLowerBlockDim(next_lower_perf, next_lower_block_dim);
     return true;
   }
@@ -698,8 +701,8 @@ bool AxesReorderSolver::AutoTuning(const bool is_trade_off) {
   // 5.当前档位差于上档位，向上找更优解
   if (current_perf > next_upper_perf) {
     OP_LOGD(OP_NAME,
-        "Find upper block dim, as next_upper_perf: %f(block_dim=%u) is better than current_perf: %f(block_dim=%u).",
-        current_perf, block_dim, next_upper_perf, next_upper_block_dim);
+            "Find upper block dim, as next_upper_perf: %f(block_dim=%u) is better than current_perf: %f(block_dim=%u).",
+            current_perf, block_dim, next_upper_perf, next_upper_block_dim);
     FindBetterSolutionByUpperBlockDim(next_upper_perf, next_upper_block_dim);
     return true;
   }
@@ -755,4 +758,4 @@ bool AxesReorderSolver::Run(const bool is_trade_off, const bool enable_auto_tune
   return true;
 }
 
-} // namespace optiling
+}  // namespace optiling

@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -48,7 +48,7 @@ graphStatus OptimizationOption::Initialize(const std::map<std::string, std::stri
   for (const auto &opt_info : registered_options) {
     if (OoInfoUtils::IsBitSet(opt_info.second.levels, static_cast<uint32_t>(working_oo_level_))) {
       const auto value_str = OoInfoUtils::GetDefaultValue(opt_info.second, working_oo_level_);
-      (void) working_opt_names_to_value_.emplace(opt_info.first, value_str);
+      (void)working_opt_names_to_value_.emplace(opt_info.first, value_str);
     }
   }
 
@@ -195,8 +195,10 @@ graphStatus OptimizationOption::RefreshPassSwitch(const std::string &fusion_conf
   std::string optimization_switch;
   if (GetThreadLocalContext().GetOption(OPTIMIZATION_SWITCH, optimization_switch) == GRAPH_SUCCESS &&
       (optimization_switch != "forbidden_close_pass:on" && optimization_switch != "forbidden_close_pass:off")) {
-    // 1. 以optimization_switch的配置优先，重复配置的option，使用optimization_switch的配置;FE带过来的fusion_config_str中只有pass开关，不做黑名单校验
-    // 2. tfa/atc场景默认写入optimization_switch为optimization_switch == "forbidden_close_pass:on/off"，此时以fusion_config_str中的配置为准
+    // 1.
+    // 以optimization_switch的配置优先，重复配置的option，使用optimization_switch的配置;FE带过来的fusion_config_str中只有pass开关，不做黑名单校验
+    // 2. tfa/atc场景默认写入optimization_switch为optimization_switch ==
+    // "forbidden_close_pass:on/off"，此时以fusion_config_str中的配置为准
     // 3. forbidden_close_pass对外不可见，因此torch入口传过来的optimization_switch不会为"forbidden_close_pass:on/off"
     return SetPassSwitch(fusion_config_str, std::unordered_set<std::string>{}, false);
   } else {

@@ -15,5 +15,5 @@ namespace att {
 ModelInfo CreateModelInfo(const ge::ExprType expr_type = ge::ExprType::kExprVariable);
 ModelInfo GetMatmulL2TileInfo();
 ModelInfo CreateCeilingModel();
-}
+}  // namespace att
 #endif

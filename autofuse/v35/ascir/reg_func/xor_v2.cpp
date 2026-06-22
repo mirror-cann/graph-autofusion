@@ -24,5 +24,5 @@ std::vector<std::unique_ptr<TmpBufDesc>> CalcXorTmpSizeV2(const AscNode &node) {
   tmp_buf_descs.emplace_back(std::make_unique<TmpBufDesc>(desc));
   return tmp_buf_descs;
 }
-} // namespace ascir
-} // namespace ge
+}  // namespace ascir
+}  // namespace af

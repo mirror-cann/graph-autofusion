@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -64,13 +64,12 @@ class GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY InferenceContext {
   void SetMarks(const std::vector<std::string> &marks);
   void SetMarks(const std::vector<AscendString> &marks);
 
-
   ATTRIBUTED_DEPRECATED(void GetMarks(std::vector<AscendString> &) const)
   const std::vector<std::string> &GetMarks() const;
   void GetMarks(std::vector<AscendString> &marks) const;
 
   static std::unique_ptr<InferenceContext> Create(void *resource_context_mgr = nullptr);
-   /**
+  /**
    * Get corresponding resource_context by key
    * For resource op infershape, invoked by op infer_func.
    * @param key
@@ -95,11 +94,11 @@ class GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY InferenceContext {
   graphStatus RegisterReliedOnResourceKey(const ge::AscendString &key);
 
   /**
-  * During infershape of write op, if resource shape changed, use this to tell.
-  * For resource op infershape, invoked by write_op infer_func.
-  * @param key
-  * @return status
-  */
+   * During infershape of write op, if resource shape changed, use this to tell.
+   * For resource op infershape, invoked by write_op infer_func.
+   * @param key
+   * @return status
+   */
   graphStatus AddChangedResourceKey(const ge::AscendString &key);
 
   /**
@@ -108,14 +107,14 @@ class GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY InferenceContext {
    * @param keys
    * @return status
    */
-  const std::set<ge::AscendString>& GetReliedOnResourceKeys() const;
+  const std::set<ge::AscendString> &GetReliedOnResourceKeys() const;
 
   /**
    * After infershape of write op, ge can get resource_key which shape changed.
    * For resource op infershape, invoked by ge infershape framework.
    * @return keys
    */
-  const std::set<ge::AscendString>& GetChangedResourceKeys() const;
+  const std::set<ge::AscendString> &GetChangedResourceKeys() const;
   /**
    * After handle changed resource shape, should clear changed_keys in context.
    * For resource op infershape, invoked by ge infershape framework.
@@ -128,5 +127,5 @@ class GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY InferenceContext {
 };
 
 using InferenceContextPtr = std::shared_ptr<InferenceContext>;
-}  // namespace ge
+}  // namespace af
 #endif  // INC_EXTERNAL_GRAPH_INFERENCE_CONTEXT_H_

@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -14,9 +14,9 @@
 #include <cstdint>
 
 /**
-* @ingroup dnn
-* @brief struct define of dynamic aipp batch parameter.
-*/
+ * @ingroup dnn
+ * @brief struct define of dynamic aipp batch parameter.
+ */
 struct tagAippDynamicBatchPara {
   int8_t cropSwitch;     // crop switch
   int8_t scfSwitch;      // resize switch
@@ -62,9 +62,9 @@ struct tagAippDynamicBatchPara {
 using kAippDynamicBatchPara = tagAippDynamicBatchPara;
 
 /**
-* @ingroup dnn
-* @brief struct define of dynamic aipp parameter. lite:64+96*batchNum byte ; tiny:64+64*batchNum byte
-*/
+ * @ingroup dnn
+ * @brief struct define of dynamic aipp parameter. lite:64+96*batchNum byte ; tiny:64+64*batchNum byte
+ */
 struct tagAippDynamicPara {
   uint8_t inputFormat;    // input format：YUV420SP_U8/XRGB8888_U8/RGB888_U8
   int8_t cscSwitch;       // csc switch

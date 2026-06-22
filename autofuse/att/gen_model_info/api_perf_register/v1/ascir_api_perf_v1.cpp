@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -25,15 +25,9 @@ namespace {
 constexpr int32_t kMaxDmaLen = 2;
 // bandwidth
 inline const std::map<std::string, Expr> kBandwidthMap = {
-    {kMoveGmToL1, CreateExpr(32U)},
-    {kMoveL2ToL1, CreateExpr(110U)},
-    {kMoveL1ToL0a, CreateExpr(512U)},
-    {kMoveL1ToL0b, CreateExpr(256U)},
-    {kMoveL0cToL2, CreateExpr(86U)},
-    {kMoveL0cToGm, CreateExpr(32U)},
-    {kMoveGmToUb, CreateExpr(32U)},
-    {kMoveUbToGm, CreateExpr(32U)}
-};
+    {kMoveGmToL1, CreateExpr(32U)},   {kMoveL2ToL1, CreateExpr(110U)}, {kMoveL1ToL0a, CreateExpr(512U)},
+    {kMoveL1ToL0b, CreateExpr(256U)}, {kMoveL0cToL2, CreateExpr(86U)}, {kMoveL0cToGm, CreateExpr(32U)},
+    {kMoveGmToUb, CreateExpr(32U)},   {kMoveUbToGm, CreateExpr(32U)}};
 
 ge::Status GetBlkEleNum(const std::string &data_type, Expr &one_block_ele_num) {
   auto it = kBlkEleMap.find(data_type);
@@ -57,7 +51,7 @@ ge::Status CopyPerf(const std::string &op_type, uint32_t data_type_size, const s
   res = Mul(cycles, weight);
   return ge::SUCCESS;
 }
-}
+}  // namespace
 
 namespace ascir_v1 {
 ge::Status MoveGmtoL1Api([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
@@ -196,18 +190,14 @@ Loadapi(DataCopy from GM to UB)的性能公式：
 */
 
 // DMA节点性能计算辅助函数（消除LoadApi和StoreApi重复代码）
-ge::Status InitDmaNodeAndGetPerf(const af::AscNodePtr &node_ptr,
-                                  const std::string &node_name,
-                                  TensorShapeInfo &merged_shapes,
-                                  PerfOutputInfo &perf_res) {
-  GE_ASSERT_SUCCESS(MergeTensorContinuousDims(node_ptr,
-                                               GetNodeOutTensorName(node_ptr, 0),
-                                               merged_shapes));
+ge::Status InitDmaNodeAndGetPerf(const af::AscNodePtr &node_ptr, const std::string &node_name,
+                                 TensorShapeInfo &merged_shapes, PerfOutputInfo &perf_res) {
+  GE_ASSERT_SUCCESS(MergeTensorContinuousDims(node_ptr, GetNodeOutTensorName(node_ptr, 0), merged_shapes));
 
   NodeDetail dma_info;
-  dma_info.name     = node_ptr != nullptr ? node_ptr->GetName() : node_name;
-  dma_info.optype   = node_ptr->GetType();
-  dma_info.input_dtype  = {merged_shapes.data_type};
+  dma_info.name = node_ptr != nullptr ? node_ptr->GetName() : node_name;
+  dma_info.optype = node_ptr->GetType();
+  dma_info.input_dtype = {merged_shapes.data_type};
   dma_info.output_dtype = {merged_shapes.data_type};
 
   GE_ASSERT_SUCCESS(SetDims(merged_shapes, dma_info));
@@ -491,9 +481,8 @@ ge::Status TwoDimBroadCastLastDimAlignPerf(const std::string &data_type, Expr fi
   GE_ASSERT_SUCCESS(ascendcperf::CopyPerf(copy_node1, copy_repeat_perf),
                     "Gen Copy perf failed, node name: %s, type: %s", copy_node1.name.c_str(),
                     copy_node1.optype.c_str());
-  GE_ASSERT_SUCCESS(ascendcperf::CopyPerf(copy_node2, copy_tail_perf),
-                    "Gen Copy perf failed, node name: %s, type: %s", copy_node2.name.c_str(),
-                    copy_node2.optype.c_str());
+  GE_ASSERT_SUCCESS(ascendcperf::CopyPerf(copy_node2, copy_tail_perf), "Gen Copy perf failed, node name: %s, type: %s",
+                    copy_node2.name.c_str(), copy_node2.optype.c_str());
   perf_res.pipe_res[PipeType::AIV_VEC] = GetPipeCost(brcb_perf, PipeType::AIV_VEC) +
                                          copy_cnt * GetPipeCost(copy_repeat_perf, PipeType::AIV_VEC) +
                                          GetPipeCost(copy_tail_perf, PipeType::AIV_VEC) * copy_pad;
@@ -501,8 +490,7 @@ ge::Status TwoDimBroadCastLastDimAlignPerf(const std::string &data_type, Expr fi
 }
 
 ge::Status TwoDimBroadcastLastDim(const std::string &data_type, const std::vector<Expr> &input_dims,
-                                  const std::vector<Expr> &output_dims, PerfOutputInfo &perf_res,
-                                  bool with_stride) {
+                                  const std::vector<Expr> &output_dims, PerfOutputInfo &perf_res, bool with_stride) {
   (void)input_dims;
   Expr one_block_ele_num;
   GE_ASSERT_SUCCESS(GetBlkEleNum(data_type, one_block_ele_num), "Data type [%s] unsatisfied.", data_type.c_str());
@@ -596,28 +584,35 @@ ge::Status BroadcastThreeDim(const std::string &data_type, const std::vector<Exp
 }
 
 ge::Status BroadcastFourDim(const std::string &data_type, const std::vector<Expr> &input_dims,
-                            const std::vector<Expr> &output_dims,
-                            PerfOutputInfo &perf_res) {
+                            const std::vector<Expr> &output_dims, PerfOutputInfo &perf_res) {
   std::vector<Expr> cur_input_dims;
   std::vector<Expr> cur_output_dims;
   PerfOutputInfo broadcast_perf1;
   PerfOutputInfo broadcast_perf2;
-  if (input_dims[kNumZero] == 1U && input_dims[kNumTwo] == 1U && input_dims[kNumOne] == output_dims[kNumOne] && input_dims[kNumThree] == output_dims[kNumThree]) {
+  if (input_dims[kNumZero] == 1U && input_dims[kNumTwo] == 1U && input_dims[kNumOne] == output_dims[kNumOne] &&
+      input_dims[kNumThree] == output_dims[kNumThree]) {
     cur_input_dims = {input_dims[kNumOne], input_dims[kNumTwo], input_dims[kNumThree]};
     cur_output_dims = {output_dims[kNumOne], output_dims[kNumTwo], output_dims[kNumThree]};
-    GE_ASSERT_SUCCESS(BroadcastThreeDim(data_type, cur_input_dims, cur_output_dims, broadcast_perf1), "Gen Broadcast perf Failed.");
+    GE_ASSERT_SUCCESS(BroadcastThreeDim(data_type, cur_input_dims, cur_output_dims, broadcast_perf1),
+                      "Gen Broadcast perf Failed.");
     cur_input_dims = {input_dims[kNumZero], output_dims[kNumOne] * output_dims[kNumTwo] * output_dims[kNumThree]};
     cur_output_dims = {output_dims[kNumZero], output_dims[kNumOne] * output_dims[kNumTwo] * output_dims[kNumThree]};
-    GE_ASSERT_SUCCESS(BroadcastTwoDim(data_type, cur_input_dims, cur_output_dims, broadcast_perf2), "Gen Broadcast perf Failed.");
-    perf_res.pipe_res[PipeType::AIV_VEC] = GetPipeCost(broadcast_perf1, PipeType::AIV_VEC) + GetPipeCost(broadcast_perf2, PipeType::AIV_VEC);
-  } else if (input_dims[kNumZero] == output_dims[kNumZero] && input_dims[kNumOne] == 1U && input_dims[kNumTwo] == output_dims[kNumTwo] && input_dims[kNumThree] == 1U) {
+    GE_ASSERT_SUCCESS(BroadcastTwoDim(data_type, cur_input_dims, cur_output_dims, broadcast_perf2),
+                      "Gen Broadcast perf Failed.");
+    perf_res.pipe_res[PipeType::AIV_VEC] =
+        GetPipeCost(broadcast_perf1, PipeType::AIV_VEC) + GetPipeCost(broadcast_perf2, PipeType::AIV_VEC);
+  } else if (input_dims[kNumZero] == output_dims[kNumZero] && input_dims[kNumOne] == 1U &&
+             input_dims[kNumTwo] == output_dims[kNumTwo] && input_dims[kNumThree] == 1U) {
     cur_input_dims = {input_dims[kNumZero] * input_dims[kNumOne] * input_dims[kNumTwo], input_dims[kNumThree]};
     cur_output_dims = {input_dims[kNumZero] * input_dims[kNumOne] * input_dims[kNumTwo], output_dims[kNumThree]};
-    GE_ASSERT_SUCCESS(BroadcastTwoDim(data_type, cur_input_dims, cur_output_dims, broadcast_perf1), "Gen Broadcast perf Failed.");
+    GE_ASSERT_SUCCESS(BroadcastTwoDim(data_type, cur_input_dims, cur_output_dims, broadcast_perf1),
+                      "Gen Broadcast perf Failed.");
     cur_input_dims = {input_dims[kNumZero], input_dims[kNumOne], input_dims[kNumTwo] * output_dims[kNumThree]};
     cur_output_dims = {output_dims[kNumZero], output_dims[kNumOne], output_dims[kNumTwo] * output_dims[kNumThree]};
-    GE_ASSERT_SUCCESS(BroadcastThreeDim(data_type, cur_input_dims, cur_output_dims, broadcast_perf2), "Gen Broadcast perf Failed.");
-    perf_res.pipe_res[PipeType::AIV_VEC] = GetPipeCost(broadcast_perf1, PipeType::AIV_VEC) + GetPipeCost(broadcast_perf2, PipeType::AIV_VEC);
+    GE_ASSERT_SUCCESS(BroadcastThreeDim(data_type, cur_input_dims, cur_output_dims, broadcast_perf2),
+                      "Gen Broadcast perf Failed.");
+    perf_res.pipe_res[PipeType::AIV_VEC] =
+        GetPipeCost(broadcast_perf1, PipeType::AIV_VEC) + GetPipeCost(broadcast_perf2, PipeType::AIV_VEC);
   }
   return ge::SUCCESS;
 }
@@ -752,7 +747,8 @@ ge::Status BroadcastApi([[maybe_unused]] const std::vector<TensorShapeInfo> &inp
   } else if (input_dims.size() == 1U) {
     GE_ASSERT_SUCCESS(ascendcperf::DuplicatePerf(
                           GenNodeDetail(input_shapes[0].data_type, output_shapes[0].data_type, output_dims), perf_res),
-                      "Gen DuplicateApi perf failed, node name: %s, type: %s", node_ptr->GetNamePtr(), node_ptr->GetTypePtr());
+                      "Gen DuplicateApi perf failed, node name: %s, type: %s", node_ptr->GetNamePtr(),
+                      node_ptr->GetTypePtr());
   } else {
     GELOGW("input_dims.size[%zu] unsupported, input size {%s}, output size {%s}.", input_dims.size(),
            input_shapes[0].GetDimExpr().c_str(), output_shapes[0].GetDimExpr().c_str());
@@ -930,15 +926,15 @@ ArgMaxMultiRPhase1和ArgMaxMultiRPhase2的性能公式：
   性能特征与ArgMax类似，复用ArgMaxPerf
 */
 ge::Status ArgMaxMultiRPhase1Api([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
-                                  [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
-                                  [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
+                                 [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
+                                 [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
   GE_ASSERT_TRUE(!output_shapes.empty() && !input_shapes.empty());
   return ArgMaxPerf(input_shapes, perf_res);
 }
 
 ge::Status ArgMaxMultiRPhase2Api([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
-                                  [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
-                                  [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
+                                 [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
+                                 [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
   GE_ASSERT_TRUE(!input_shapes.empty());
   return ArgMaxPerf(input_shapes, perf_res);
 }
@@ -1151,9 +1147,11 @@ ge::Status GatherApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_
   return ge::SUCCESS;
 }
 
-ge::Status SafeCastNormalPerf(const std::string &input_dtype, const std::string &output_dtype, const Expr &repeat, PerfOutputInfo &perf) {
+ge::Status SafeCastNormalPerf(const std::string &input_dtype, const std::string &output_dtype, const Expr &repeat,
+                              PerfOutputInfo &perf) {
   PerfOutputInfo cast_perf;
-  GE_ASSERT_SUCCESS(ascendcperf::CastPerf(GenNodeDetail(input_dtype, output_dtype, {kRptSizeFloat}), cast_perf), "Gen Cast perf Failed.");
+  GE_ASSERT_SUCCESS(ascendcperf::CastPerf(GenNodeDetail(input_dtype, output_dtype, {kRptSizeFloat}), cast_perf),
+                    "Gen Cast perf Failed.");
   perf.pipe_res[PipeType::AIV_VEC] = repeat * GetPipeCost(cast_perf, PipeType::AIV_VEC);
   return ge::SUCCESS;
 }
@@ -1165,97 +1163,108 @@ ge::Status DoSelectNormalPerf(const std::string &output_dtype, const Expr &repea
   PerfOutputInfo safe_cast_perf2;
   GE_ASSERT_SUCCESS(SafeCastNormalPerf("uint8", "float16", repeat, safe_cast_perf1));
   Expr cmp_size = (kRptSizeFloat * repeat + kRptSizeHalf - af::sym::kSymbolOne) / (kRptSizeHalf * kRptSizeHalf);
-  GE_ASSERT_SUCCESS(ascendcperf::CompareScalarEQPerf(GenNodeDetail("float16", "float16", {cmp_size}), eq_perf), "Gen CompareScalarEQ perf Failed.");
-  GE_ASSERT_SUCCESS(ascendcperf::SelectPerf(GenNodeDetail("float32", "float32", {repeat * kRptSizeFloat}), select_perf), "Gen Select perf Failed.");
+  GE_ASSERT_SUCCESS(ascendcperf::CompareScalarEQPerf(GenNodeDetail("float16", "float16", {cmp_size}), eq_perf),
+                    "Gen CompareScalarEQ perf Failed.");
+  GE_ASSERT_SUCCESS(ascendcperf::SelectPerf(GenNodeDetail("float32", "float32", {repeat * kRptSizeFloat}), select_perf),
+                    "Gen Select perf Failed.");
   GE_ASSERT_SUCCESS(SafeCastNormalPerf("float32", output_dtype, repeat, safe_cast_perf2));
-  perf.pipe_res[PipeType::AIV_VEC] = GetPipeCost(safe_cast_perf1, PipeType::AIV_VEC)
-      + GetPipeCost(eq_perf, PipeType::AIV_VEC)
-      + GetPipeCost(select_perf, PipeType::AIV_VEC)
-      + GetPipeCost(safe_cast_perf2, PipeType::AIV_VEC);
+  perf.pipe_res[PipeType::AIV_VEC] =
+      GetPipeCost(safe_cast_perf1, PipeType::AIV_VEC) + GetPipeCost(eq_perf, PipeType::AIV_VEC) +
+      GetPipeCost(select_perf, PipeType::AIV_VEC) + GetPipeCost(safe_cast_perf2, PipeType::AIV_VEC);
   return ge::SUCCESS;
 }
 
 ge::Status CastSelectNormalPerf(const std::string &src1_dtype, const std::string &src2_dtype,
-                                const std::string &dst_dtype,
-                                const Expr &repeat, PerfOutputInfo &perf) {
+                                const std::string &dst_dtype, const Expr &repeat, PerfOutputInfo &perf) {
   PerfOutputInfo safe_cast_perf1;
   PerfOutputInfo safe_cast_perf2;
   PerfOutputInfo select_perf;
   GE_ASSERT_SUCCESS(SafeCastNormalPerf(src1_dtype, "float32", repeat, safe_cast_perf1));
   GE_ASSERT_SUCCESS(SafeCastNormalPerf(src2_dtype, "float32", repeat, safe_cast_perf2));
   GE_ASSERT_SUCCESS(DoSelectNormalPerf(dst_dtype, repeat, select_perf));
-  perf.pipe_res[PipeType::AIV_VEC] = GetPipeCost(safe_cast_perf1, PipeType::AIV_VEC)
-      + GetPipeCost(safe_cast_perf2, PipeType::AIV_VEC)
-      + GetPipeCost(select_perf, PipeType::AIV_VEC);
+  perf.pipe_res[PipeType::AIV_VEC] = GetPipeCost(safe_cast_perf1, PipeType::AIV_VEC) +
+                                     GetPipeCost(safe_cast_perf2, PipeType::AIV_VEC) +
+                                     GetPipeCost(select_perf, PipeType::AIV_VEC);
   return ge::SUCCESS;
 }
 
-ge::Status SafeCastPerf(const std::string &input_dtype, const std::string &output_dtype, const Expr &do_size, PerfOutputInfo &perf) {
+ge::Status SafeCastPerf(const std::string &input_dtype, const std::string &output_dtype, const Expr &do_size,
+                        PerfOutputInfo &perf) {
   PerfOutputInfo cast_perf;
-  GE_ASSERT_SUCCESS(ascendcperf::CastPerf(GenNodeDetail(input_dtype, output_dtype, {do_size}), cast_perf), "Gen Cast perf failed,"
-                    " input_dtype is %s, output_dtype is %s, do_size is %s.", input_dtype.c_str(), output_dtype.c_str(),
-                    af::SymbolicUtils::ToString(do_size).c_str());
+  GE_ASSERT_SUCCESS(ascendcperf::CastPerf(GenNodeDetail(input_dtype, output_dtype, {do_size}), cast_perf),
+                    "Gen Cast perf failed,"
+                    " input_dtype is %s, output_dtype is %s, do_size is %s.",
+                    input_dtype.c_str(), output_dtype.c_str(), af::SymbolicUtils::ToString(do_size).c_str());
   perf.pipe_res[PipeType::AIV_VEC] = GetPipeCost(cast_perf, PipeType::AIV_VEC);
   return ge::SUCCESS;
 }
 
-ge::Status DoSelectPerf(const std::string &output_dtype, const Expr &do_size, Expr &repeat_times, PerfOutputInfo &perf) {
+ge::Status DoSelectPerf(const std::string &output_dtype, const Expr &do_size, Expr &repeat_times,
+                        PerfOutputInfo &perf) {
   PerfOutputInfo safe_cast_perf1;
   PerfOutputInfo eq_perf;
   PerfOutputInfo select_perf;
   PerfOutputInfo safe_cast_perf2;
   GE_ASSERT_SUCCESS(SafeCastPerf("uint8", "float16", do_size, safe_cast_perf1));
   Expr cmp_size = af::sym::Floor((do_size + kRptSizeHalf - af::sym::kSymbolOne) / (kRptSizeHalf * kRptSizeHalf));
-  GE_ASSERT_SUCCESS(ascendcperf::CompareScalarEQPerf(GenNodeDetail("float16", "float16", {cmp_size}), eq_perf), "Gen CompareScalarEQ perf Failed.");
-  GE_ASSERT_SUCCESS(ascendcperf::SelectPerf(GenNodeDetail("float32", "float32", {repeat_times * kRptSizeFloat}), select_perf), "Gen Select perf Failed.");
+  GE_ASSERT_SUCCESS(ascendcperf::CompareScalarEQPerf(GenNodeDetail("float16", "float16", {cmp_size}), eq_perf),
+                    "Gen CompareScalarEQ perf Failed.");
+  GE_ASSERT_SUCCESS(
+      ascendcperf::SelectPerf(GenNodeDetail("float32", "float32", {repeat_times * kRptSizeFloat}), select_perf),
+      "Gen Select perf Failed.");
   GE_ASSERT_SUCCESS(SafeCastNormalPerf("float32", output_dtype, do_size, safe_cast_perf2));
-  perf.pipe_res[PipeType::AIV_VEC] = GetPipeCost(safe_cast_perf1, PipeType::AIV_VEC)
-      + GetPipeCost(eq_perf, PipeType::AIV_VEC)
-      + GetPipeCost(select_perf, PipeType::AIV_VEC)
-      + GetPipeCost(safe_cast_perf2, PipeType::AIV_VEC);
+  perf.pipe_res[PipeType::AIV_VEC] =
+      GetPipeCost(safe_cast_perf1, PipeType::AIV_VEC) + GetPipeCost(eq_perf, PipeType::AIV_VEC) +
+      GetPipeCost(select_perf, PipeType::AIV_VEC) + GetPipeCost(safe_cast_perf2, PipeType::AIV_VEC);
   return ge::SUCCESS;
 }
 
-Expr CastBeforeSelectPerf(const std::string &src1_dtype, const std::string &src2_dtype,
-                                const std::string &dst_dtype,
-                                const Expr &do_size, Expr repeat_times) {
+Expr CastBeforeSelectPerf(const std::string &src1_dtype, const std::string &src2_dtype, const std::string &dst_dtype,
+                          const Expr &do_size, Expr repeat_times) {
   PerfOutputInfo safe_cast_perf1;
   PerfOutputInfo safe_cast_perf2;
   PerfOutputInfo select_perf;
   GE_ASSERT_SUCCESS(SafeCastPerf(src1_dtype, "float32", do_size, safe_cast_perf1));
   GE_ASSERT_SUCCESS(SafeCastPerf(src2_dtype, "float32", do_size, safe_cast_perf2));
   GE_ASSERT_SUCCESS(DoSelectPerf(dst_dtype, do_size, repeat_times, select_perf));
-  return GetPipeCost(safe_cast_perf1, PipeType::AIV_VEC) + GetPipeCost(safe_cast_perf2, PipeType::AIV_VEC)
-         + GetPipeCost(select_perf, PipeType::AIV_VEC);
+  return GetPipeCost(safe_cast_perf1, PipeType::AIV_VEC) + GetPipeCost(safe_cast_perf2, PipeType::AIV_VEC) +
+         GetPipeCost(select_perf, PipeType::AIV_VEC);
 }
 
 ge::Status WhereBasePerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   GELOGD("WhereBasePerf: node info is %s.", node_info.ToString().c_str());
   Expr one_rpt_size = kRptSizeFloat;
   Expr size = node_info.input_dims[kNumZero];
-  GELOGD("one_rpt_size: [%s], dim size is [%s]", af::SymbolicUtils::ToString(one_rpt_size).c_str(), af::SymbolicUtils::ToString(size).c_str());
-  Expr max_do_size = kMaxRepeatTime * one_rpt_size; // 16320
+  GELOGD("one_rpt_size: [%s], dim size is [%s]", af::SymbolicUtils::ToString(one_rpt_size).c_str(),
+         af::SymbolicUtils::ToString(size).c_str());
+  Expr max_do_size = kMaxRepeatTime * one_rpt_size;  // 16320
   GELOGD("max_do_size is [%s]", af::SymbolicUtils::ToString(max_do_size).c_str());
   Expr branch_max_repeat_cost = CastBeforeSelectPerf(node_info.input_dtype[kNumOne], node_info.input_dtype[kNumTwo],
                                                      node_info.output_dtype[kNumZero], max_do_size, kMaxRepeatTime);
   GELOGD("branch_max_repeat_cost is [%s]", af::SymbolicUtils::ToString(branch_max_repeat_cost).c_str());
-  Expr left_repeat_times = (size - max_do_size) / kSymFour; // 三元表达式的max_do_size <= size可以保证left_repeat_times >= 0
-  Expr left_sign = af::sym::Ceiling(left_repeat_times / (left_repeat_times + af::sym::kSymbolOne)); // 判断left_repeat_times是否为0
+  Expr left_repeat_times =
+      (size - max_do_size) / kSymFour;  // 三元表达式的max_do_size <= size可以保证left_repeat_times >= 0
+  Expr left_sign =
+      af::sym::Ceiling(left_repeat_times / (left_repeat_times + af::sym::kSymbolOne));  // 判断left_repeat_times是否为0
   Expr left_do_size = left_repeat_times * kRptSizeFloat;
-  GELOGD("left_sign is [%s], left_repeat_times is [%s], left_do_size is [%s]", af::SymbolicUtils::ToString(left_sign).c_str(),
-         af::SymbolicUtils::ToString(left_repeat_times).c_str(), af::SymbolicUtils::ToString(left_do_size).c_str());
-  Expr branch_left_repeat_cost = CastBeforeSelectPerf(node_info.input_dtype[kNumOne], node_info.input_dtype[kNumTwo],
-                                                      node_info.output_dtype[kNumZero], left_do_size, left_repeat_times);
+  GELOGD("left_sign is [%s], left_repeat_times is [%s], left_do_size is [%s]",
+         af::SymbolicUtils::ToString(left_sign).c_str(), af::SymbolicUtils::ToString(left_repeat_times).c_str(),
+         af::SymbolicUtils::ToString(left_do_size).c_str());
+  Expr branch_left_repeat_cost =
+      CastBeforeSelectPerf(node_info.input_dtype[kNumOne], node_info.input_dtype[kNumTwo],
+                           node_info.output_dtype[kNumZero], left_do_size, left_repeat_times);
   GELOGD("branch_left_repeat_cost is [%s]", af::SymbolicUtils::ToString(branch_left_repeat_cost).c_str());
   Expr repeat_times = size / kSymFour;
   Expr do_size = repeat_times * kRptSizeFloat;
-  GELOGD("repeat_times is [%s], do_size is [%s]", af::SymbolicUtils::ToString(repeat_times).c_str(), af::SymbolicUtils::ToString(do_size).c_str());
+  GELOGD("repeat_times is [%s], do_size is [%s]", af::SymbolicUtils::ToString(repeat_times).c_str(),
+         af::SymbolicUtils::ToString(do_size).c_str());
   Expr branch_small_repeat_cost = CastBeforeSelectPerf(node_info.input_dtype[kNumOne], node_info.input_dtype[kNumTwo],
                                                        node_info.output_dtype[kNumZero], do_size, repeat_times);
   GELOGD("branch_small_repeat_cost is [%s]", af::SymbolicUtils::ToString(branch_small_repeat_cost).c_str());
   Expr res = CreateExpr("where_base_node");
-  TernaryOp ternary_op = TernaryOp(CondType::K_LE, max_do_size, size, branch_max_repeat_cost + left_sign * branch_left_repeat_cost,
-                                branch_small_repeat_cost);
+  TernaryOp ternary_op =
+      TernaryOp(CondType::K_LE, max_do_size, size, branch_max_repeat_cost + left_sign * branch_left_repeat_cost,
+                branch_small_repeat_cost);
   ternary_op.SetVariable(res);
   perf.ternary_ops[res] = ternary_op;
   perf.pipe_res[PipeType::AIV_VEC] = res;
@@ -1281,24 +1290,27 @@ ge::Status WhereExtendPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr repeat_sign = af::sym::Ceiling(repeat_reminder / (repeat_reminder + af::sym::kSymbolOne));
   GELOGD("element_extent is [%s], repeat_sign is [%s], repeat_reminder is [%s], repeat_throw_for_extent is [%s]",
          af::SymbolicUtils::ToString(element_extent).c_str(), af::SymbolicUtils::ToString(repeat_sign).c_str(),
-         af::SymbolicUtils::ToString(repeat_reminder).c_str(), af::SymbolicUtils::ToString(repeat_throw_for_extent).c_str());
+         af::SymbolicUtils::ToString(repeat_reminder).c_str(),
+         af::SymbolicUtils::ToString(repeat_throw_for_extent).c_str());
   PerfOutputInfo cast_select_perf1;
   PerfOutputInfo cast_select_perf2;
   GE_ASSERT_SUCCESS(CastSelectNormalPerf(node_info.input_dtype[kNumOne], node_info.input_dtype[kNumTwo],
                                          node_info.output_dtype[kNumZero], max_do_rpt_num, cast_select_perf1));
-  GELOGD("cast_select_perf1 is [%s]", af::SymbolicUtils::ToString(GetPipeCost(cast_select_perf1, PipeType::AIV_VEC)).c_str());
+  GELOGD("cast_select_perf1 is [%s]",
+         af::SymbolicUtils::ToString(GetPipeCost(cast_select_perf1, PipeType::AIV_VEC)).c_str());
   GE_ASSERT_SUCCESS(CastSelectNormalPerf(node_info.input_dtype[kNumOne], node_info.input_dtype[kNumTwo],
                                          node_info.output_dtype[kNumZero], repeat_reminder, cast_select_perf2));
-  GELOGD("cast_select_perf2 is [%s]", af::SymbolicUtils::ToString(GetPipeCost(cast_select_perf2, PipeType::AIV_VEC)).c_str());
-  perf.pipe_res[PipeType::AIV_VEC] = element_extent * (repeat_throw_for_extent * GetPipeCost(cast_select_perf1, PipeType::AIV_VEC)
-      + repeat_sign * GetPipeCost(cast_select_perf2, PipeType::AIV_VEC));
+  GELOGD("cast_select_perf2 is [%s]",
+         af::SymbolicUtils::ToString(GetPipeCost(cast_select_perf2, PipeType::AIV_VEC)).c_str());
+  perf.pipe_res[PipeType::AIV_VEC] =
+      element_extent * (repeat_throw_for_extent * GetPipeCost(cast_select_perf1, PipeType::AIV_VEC) +
+                        repeat_sign * GetPipeCost(cast_select_perf2, PipeType::AIV_VEC));
   return ge::SUCCESS;
 }
 
-ge::Status WhereApi([[maybe_unused]]const std::vector<TensorShapeInfo> &input_shapes,
-                    [[maybe_unused]]const std::vector<TensorShapeInfo> &output_shapes,
-                    [[maybe_unused]]const NodeInfo &node,
-                    PerfOutputInfo &perf_res) {
+ge::Status WhereApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
+                    [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
+                    [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
   auto const &node_ptr = node.node_ptr;
   GE_ASSERT_TRUE(input_shapes.size() >= 3U && !output_shapes.empty());
   auto merged_output_shapes = output_shapes[0];
@@ -1414,8 +1426,7 @@ inline Expr CompareInt64EqNeBranchB2(const std::string &mode, const Expr &repeat
 }
 
 inline ge::Status CompareInt64EqNePerf(const std::string &mode, const Expr &repeat_times, const Expr &element_extent,
-                                       const Expr &one_rpt_size, const Expr &last_axis,
-                                       PerfOutputInfo &perf) {
+                                       const Expr &one_rpt_size, const Expr &last_axis, PerfOutputInfo &perf) {
   PerfOutputInfo duplicate_perf;
   ascendcperf::DuplicatePerf(GenNodeDetail("float16", "float16", {kRptSizeHalf}), duplicate_perf);
   Expr duplicate_cost = GetPipeCost(duplicate_perf, PipeType::AIV_VEC);
@@ -1432,13 +1443,14 @@ inline ge::Status CompareInt64EqNePerf(const std::string &mode, const Expr &repe
   std::shared_ptr<IfCase> branch_b2 = std::make_shared<IfCase>(branch_b2_pipe_cost);
   GE_ASSERT_NOTNULL(branch_b1);
   GE_ASSERT_NOTNULL(branch_b2);
-  std::shared_ptr<IfCase> branch_b = std::make_shared<IfCase>(CondType::K_GT, element_extent, repeat_times, std::move(branch_b2), std::move(branch_b1));
+  std::shared_ptr<IfCase> branch_b = std::make_shared<IfCase>(CondType::K_GT, element_extent, repeat_times,
+                                                              std::move(branch_b2), std::move(branch_b1));
   GE_ASSERT_NOTNULL(branch_b);
   TernaryOp ternary_op = TernaryOp(CondType::K_LT, last_axis, one_rpt_size, std::move(branch_a), std::move(branch_b));
   ternary_op.SetVariable(res);
   perf.ternary_ops[res] = ternary_op;
   GELOGD("CompareInt64EqNe's adjustment factor is [%lf]", kCompareInt64EqNeAdjustmentFactor);
-  perf.pipe_res[PipeType::AIV_VEC] = res  * CreateExpr(kCompareInt64EqNeAdjustmentFactor); // verify得到的修正系数
+  perf.pipe_res[PipeType::AIV_VEC] = res * CreateExpr(kCompareInt64EqNeAdjustmentFactor);  // verify得到的修正系数
   return ge::SUCCESS;
 }
 
@@ -1472,7 +1484,8 @@ inline Expr CastTensorToHalfNormalCost(const Expr &double_cal_cnt, const Expr &r
   ascendcperf::OrPerf(GenNodeDetail("uint16", "uint16", {repeat_times * kRptSizeHalf}), or_perf);
   Expr or_cost = GetPipeCost(or_perf, PipeType::AIV_VEC);
   PerfOutputInfo pairreducesum_perf;
-  ascendcperf::PairReduceSumPerf(GenNodeDetail("float16", "float16", {repeat_times * kRptSizeHalf}), pairreducesum_perf);
+  ascendcperf::PairReduceSumPerf(GenNodeDetail("float16", "float16", {repeat_times * kRptSizeHalf}),
+                                 pairreducesum_perf);
   Expr pairreducesum_cost = GetPipeCost(pairreducesum_perf, PipeType::AIV_VEC);
   return duplicate_cost + and_cost + sub_cost + or_cost + pairreducesum_cost;
 }
@@ -1488,7 +1501,8 @@ inline Expr CalcWeightedTensorNormalCost(const Expr &double_cal_cnt, const Expr 
   ascendcperf::MulPerf(GenNodeDetail("float16", "float16", {repeat_times * kRptSizeHalf}), mul_perf);
   Expr mul_cost = GetPipeCost(mul_perf, PipeType::AIV_VEC);
   PerfOutputInfo pairreducesum_perf;
-  ascendcperf::PairReduceSumPerf(GenNodeDetail("float16", "float16", {repeat_times * kRptSizeHalf}), pairreducesum_perf);
+  ascendcperf::PairReduceSumPerf(GenNodeDetail("float16", "float16", {repeat_times * kRptSizeHalf}),
+                                 pairreducesum_perf);
   Expr pairreducesum_cost = GetPipeCost(pairreducesum_perf, PipeType::AIV_VEC);
   return duplicate_cost + duplicate_cost2 + mul_cost + pairreducesum_cost;
 }
@@ -1528,11 +1542,13 @@ inline ge::Status CompareInt64GtGeLePerf(const std::string &mode, const Expr &re
   PerfOutputInfo cast_perf;
   ascendcperf::CastPerf(GenNodeDetail("float16", "uint8", {repeat_times * kRptSizeHalf}), cast_perf);
   Expr cast_cost = GetPipeCost(cast_perf, PipeType::AIV_VEC);
-  Expr one_rpt_cost = get_sign_bit_tensor_normal_cost + sub_cost + cast_tensor_to_half_normal_cost + calc_weighted_tensor_normal_cost +
-      duplicate_cost + and_cost + maxs_cost + mins_cost + add_cost + maxs_cost2 + mins_cost2 + cast_cost;
-  GELOGD("CompareInt64GtGeLe one_rpt_cost: [%s], adjustment factor is [%lf]", af::SymbolicUtils::ToString(one_rpt_cost).c_str(),
-         kCompareInt64GtGeLeAdjustmentFactor);
-  perf.pipe_res[PipeType::AIV_VEC] = element_extent * one_rpt_cost * CreateExpr(kCompareInt64GtGeLeAdjustmentFactor); // verify得到的修正系数
+  Expr one_rpt_cost = get_sign_bit_tensor_normal_cost + sub_cost + cast_tensor_to_half_normal_cost +
+                      calc_weighted_tensor_normal_cost + duplicate_cost + and_cost + maxs_cost + mins_cost + add_cost +
+                      maxs_cost2 + mins_cost2 + cast_cost;
+  GELOGD("CompareInt64GtGeLe one_rpt_cost: [%s], adjustment factor is [%lf]",
+         af::SymbolicUtils::ToString(one_rpt_cost).c_str(), kCompareInt64GtGeLeAdjustmentFactor);
+  perf.pipe_res[PipeType::AIV_VEC] =
+      element_extent * one_rpt_cost * CreateExpr(kCompareInt64GtGeLeAdjustmentFactor);  // verify得到的修正系数
   return ge::SUCCESS;
 }
 
@@ -1563,20 +1579,18 @@ inline Expr CompareBranchInputLastAxisCost(const NodeDetail &node_info, const st
                                            const Expr &repeat_times, const Expr &last_axis,
                                            TernaryOpMap &ternary_ops_map) {
   PerfOutputInfo compare_perf;
-  CompareSpecificPerf(GenNodeDetail(node_info.input_dtype[0], node_info.input_dtype[0], {last_axis}),
-                      mode, compare_perf, ternary_ops_map);
+  CompareSpecificPerf(GenNodeDetail(node_info.input_dtype[0], node_info.input_dtype[0], {last_axis}), mode,
+                      compare_perf, ternary_ops_map);
   Expr compare_cost = GetPipeCost(compare_perf, PipeType::AIV_VEC);
   PerfOutputInfo duplicate_perf;
   ascendcperf::DuplicatePerf(GenNodeDetail(node_info.input_dtype[0], node_info.input_dtype[0], {last_axis}),
                              duplicate_perf);
   Expr duplicate_cost = GetPipeCost(duplicate_perf, PipeType::AIV_VEC);
   PerfOutputInfo select_perf;
-  ascendcperf::SelectPerf(GenNodeDetail(node_info.input_dtype[0], node_info.input_dtype[0], {last_axis}),
-                          select_perf);
+  ascendcperf::SelectPerf(GenNodeDetail(node_info.input_dtype[0], node_info.input_dtype[0], {last_axis}), select_perf);
   Expr select_cost = GetPipeCost(select_perf, PipeType::AIV_VEC);
   PerfOutputInfo cast_perf;
-  ascendcperf::CastPerf(GenNodeDetail(node_info.input_dtype[0], node_info.output_dtype[0], {last_axis}),
-                        cast_perf);
+  ascendcperf::CastPerf(GenNodeDetail(node_info.input_dtype[0], node_info.output_dtype[0], {last_axis}), cast_perf);
   Expr cast_cost = GetPipeCost(cast_perf, PipeType::AIV_VEC);
   return repeat_times * (compare_cost + duplicate_cost + select_cost + cast_cost);
 }
@@ -1587,16 +1601,16 @@ inline ge::Status CompareNormalPerf(const NodeDetail &node_info, const std::stri
   Expr branch_input_repeat_time_cost =
       CompareBranchInputRepeatTimeCost(node_info, mode, repeat_times, one_rpt_size, element_extent, perf.ternary_ops);
   GELOGD("CompareNormal branch_1: [%s]", af::SymbolicUtils::ToString(branch_input_repeat_time_cost).c_str());
-  Expr branch_input_last_axis_cost = CompareBranchInputLastAxisCost(node_info, mode, repeat_times, last_axis,
-                                                                    perf.ternary_ops);
+  Expr branch_input_last_axis_cost =
+      CompareBranchInputLastAxisCost(node_info, mode, repeat_times, last_axis, perf.ternary_ops);
   GELOGD("CompareNormal branch_2: [%s]", af::SymbolicUtils::ToString(branch_input_last_axis_cost).c_str());
   Expr res = CreateExpr("compare_node");
   TernaryOp ternary_op = TernaryOp(CondType::K_GT, element_extent, repeat_times, branch_input_last_axis_cost,
-                                branch_input_repeat_time_cost);
+                                   branch_input_repeat_time_cost);
   ternary_op.SetVariable(res);
   perf.ternary_ops[res] = ternary_op;
   GELOGD("CompareNormal's adjustment factor is [%lf]", kCompareNormalAdjustmentFactor);
-  perf.pipe_res[PipeType::AIV_VEC] = res * CreateExpr(kCompareNormalAdjustmentFactor); // verify得到的修正系数
+  perf.pipe_res[PipeType::AIV_VEC] = res * CreateExpr(kCompareNormalAdjustmentFactor);  // verify得到的修正系数
   return ge::SUCCESS;
 }
 
@@ -1628,10 +1642,9 @@ ge::Status CompareExtendPerf(const NodeDetail &node_info, const std::string &mod
   return ge::SUCCESS;
 }
 
-ge::Status CompareApi([[maybe_unused]]const std::vector<TensorShapeInfo> &input_shapes,
-                      [[maybe_unused]]const std::vector<TensorShapeInfo> &output_shapes,
-                      [[maybe_unused]]const NodeInfo &node, const std::string &mode,
-                      PerfOutputInfo &perf_res) {
+ge::Status CompareApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
+                      [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
+                      [[maybe_unused]] const NodeInfo &node, const std::string &mode, PerfOutputInfo &perf_res) {
   GE_ASSERT_TRUE(input_shapes.size() >= 2U && !output_shapes.empty());
   NodeDetail node_info;
   Expr outer_repeat;
@@ -1644,45 +1657,39 @@ ge::Status CompareApi([[maybe_unused]]const std::vector<TensorShapeInfo> &input_
   return ge::SUCCESS;
 }
 
-ge::Status CompareGeApi([[maybe_unused]]const std::vector<TensorShapeInfo> &input_shapes,
-                        [[maybe_unused]]const std::vector<TensorShapeInfo> &output_shapes,
-                        [[maybe_unused]]const NodeInfo &node,
-                        PerfOutputInfo &perf_res) {
+ge::Status CompareGeApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
+                        [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
+                        [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
   return CompareApi(input_shapes, output_shapes, node, kGe, perf_res);
 }
 
-ge::Status CompareEqApi([[maybe_unused]]const std::vector<TensorShapeInfo> &input_shapes,
-                        [[maybe_unused]]const std::vector<TensorShapeInfo> &output_shapes,
-                        [[maybe_unused]]const NodeInfo &node,
-                        PerfOutputInfo &perf_res) {
+ge::Status CompareEqApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
+                        [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
+                        [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
   return CompareApi(input_shapes, output_shapes, node, kEq, perf_res);
 }
 
-ge::Status CompareNeApi([[maybe_unused]]const std::vector<TensorShapeInfo> &input_shapes,
-                        [[maybe_unused]]const std::vector<TensorShapeInfo> &output_shapes,
-                        [[maybe_unused]]const NodeInfo &node,
-                        PerfOutputInfo &perf_res) {
+ge::Status CompareNeApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
+                        [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
+                        [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
   return CompareApi(input_shapes, output_shapes, node, kNe, perf_res);
 }
 
-ge::Status CompareGtApi([[maybe_unused]]const std::vector<TensorShapeInfo> &input_shapes,
-                        [[maybe_unused]]const std::vector<TensorShapeInfo> &output_shapes,
-                        [[maybe_unused]]const NodeInfo &node,
-                        PerfOutputInfo &perf_res) {
+ge::Status CompareGtApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
+                        [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
+                        [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
   return CompareApi(input_shapes, output_shapes, node, kGt, perf_res);
 }
 
-ge::Status CompareLeApi([[maybe_unused]]const std::vector<TensorShapeInfo> &input_shapes,
-                        [[maybe_unused]]const std::vector<TensorShapeInfo> &output_shapes,
-                        [[maybe_unused]]const NodeInfo &node,
-                        PerfOutputInfo &perf_res) {
+ge::Status CompareLeApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
+                        [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
+                        [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
   return CompareApi(input_shapes, output_shapes, node, kLe, perf_res);
 }
 
-ge::Status CompareLtApi([[maybe_unused]]const std::vector<TensorShapeInfo> &input_shapes,
-                        [[maybe_unused]]const std::vector<TensorShapeInfo> &output_shapes,
-                        [[maybe_unused]]const NodeInfo &node,
-                        PerfOutputInfo &perf_res) {
+ge::Status CompareLtApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
+                        [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
+                        [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
   return CompareApi(input_shapes, output_shapes, node, kLt, perf_res);
 }
 
@@ -1774,75 +1781,142 @@ namespace {
 PerfParamTableV1 perf_param_table_v1;
 TilingScheduleConfigTableV1 tiling_schedule_config_table_v1;
 TilingScheduleConfigTableV1HeavyOp tiling_schedule_config_table_v1_heavy_op;
-ApiPerfRegister<ApiPerf> add_api_perf(kAdd, GetPerfFunc(kAdd), nullptr, &perf_param_table_v1, &tiling_schedule_config_table_v1);
-ApiPerfRegister<ApiPerf> gather_api_perf(kGather, GetPerfFunc(kGather), nullptr, &perf_param_table_v1, &tiling_schedule_config_table_v1);
-ApiPerfRegister<ApiPerf> abs_api_perf(kAbs, GetPerfFunc(kAbs), nullptr, &perf_param_table_v1, &tiling_schedule_config_table_v1);
-ApiPerfRegister<ApiPerf> broadcast_api_perf(kBroadcast, GetPerfFunc(kBroadcast), nullptr, &perf_param_table_v1, &tiling_schedule_config_table_v1);
-ApiPerfRegister<ApiPerf> cast_api_perf(kCast, GetPerfFunc(kCast), nullptr, &perf_param_table_v1, &tiling_schedule_config_table_v1);
-ApiPerfRegister<ApiPerf> div_api_perf(kDiv, GetPerfFunc(kDiv), nullptr, &perf_param_table_v1, &tiling_schedule_config_table_v1);
-ApiPerfRegister<ApiPerf> erf_api_perf(kErf, GetPerfFunc(kErf), nullptr, &perf_param_table_v1, &tiling_schedule_config_table_v1);
-ApiPerfRegister<ApiPerf> exp_api_perf(kExp, GetPerfFunc(kExp), nullptr, &perf_param_table_v1, &tiling_schedule_config_table_v1);
-ApiPerfRegister<ApiPerf> logical_and_api_perf(kLogicalAnd, GetPerfFunc(kLogicalAnd), nullptr, &perf_param_table_v1, &tiling_schedule_config_table_v1);
-ApiPerfRegister<ApiPerf> logical_or_api_perf(kLogicalOr, GetPerfFunc(kLogicalOr), nullptr, &perf_param_table_v1, &tiling_schedule_config_table_v1);
-ApiPerfRegister<ApiPerf> logical_not_api_perf(kLogicalNot, GetPerfFunc(kLogicalNot), nullptr, &perf_param_table_v1, &tiling_schedule_config_table_v1);
-ApiPerfRegister<ApiPerf> maximum_api_perf(kMaximum, GetPerfFunc(kMaximum), nullptr, &perf_param_table_v1, &tiling_schedule_config_table_v1);
-ApiPerfRegister<ApiPerf> minimum_api_perf(kMinimum, GetPerfFunc(kMinimum), nullptr, &perf_param_table_v1, &tiling_schedule_config_table_v1);
-ApiPerfRegister<ApiPerf> min_api_perf(kMin, GetPerfFunc(kMin), nullptr, &perf_param_table_v1, &tiling_schedule_config_table_v1_heavy_op);
-ApiPerfRegister<ApiPerf> mul_api_perf(kMul, GetPerfFunc(kMul), nullptr, &perf_param_table_v1, &tiling_schedule_config_table_v1);
-ApiPerfRegister<ApiPerf> neg_api_perf(kNeg, GetPerfFunc(kNeg), nullptr, &perf_param_table_v1, &tiling_schedule_config_table_v1);
-ApiPerfRegister<ApiPerf> reciprocal_api_perf(kReciprocal, GetPerfFunc(kReciprocal), nullptr, &perf_param_table_v1, &tiling_schedule_config_table_v1);
-ApiPerfRegister<ApiPerf> relu_api_perf(kRelu, GetPerfFunc(kRelu), nullptr, &perf_param_table_v1, &tiling_schedule_config_table_v1);
-ApiPerfRegister<ApiPerf> remove_pad_api_perf(kRemovePad, GetPerfFunc(kRemovePad), nullptr, &perf_param_table_v1, &tiling_schedule_config_table_v1);
-ApiPerfRegister<ApiPerf> rsqrt_api_perf(kRsqrt, GetPerfFunc(kRsqrt), nullptr, &perf_param_table_v1, &tiling_schedule_config_table_v1);
-ApiPerfRegister<ApiPerf> sign_api_perf(kSign, GetPerfFunc(kSign), nullptr, &perf_param_table_v1, &tiling_schedule_config_table_v1);
-ApiPerfRegister<ApiPerf> sqrt_api_perf(kSqrt, GetPerfFunc(kSqrt), nullptr, &perf_param_table_v1, &tiling_schedule_config_table_v1);
-ApiPerfRegister<ApiPerf> sub_api_perf(kSub, GetPerfFunc(kSub), nullptr, &perf_param_table_v1, &tiling_schedule_config_table_v1);
-ApiPerfRegister<ApiPerf> tanh_api_perf(kTanh, GetPerfFunc(kTanh), nullptr, &perf_param_table_v1, &tiling_schedule_config_table_v1);
-ApiPerfRegister<ApiPerf> where_api_perf(kWhere, GetPerfFunc(kWhere), nullptr, &perf_param_table_v1, &tiling_schedule_config_table_v1);
-ApiPerfRegister<ApiPerf> select_api_perf(kSelect, GetPerfFunc(kWhere), nullptr, &perf_param_table_v1, &tiling_schedule_config_table_v1);
-ApiPerfRegister<ApiPerf> ge_api_perf(kGe, GetPerfFunc(kGe), nullptr, &perf_param_table_v1, &tiling_schedule_config_table_v1);
-ApiPerfRegister<ApiPerf> eq_api_perf(kEq, GetPerfFunc(kEq), nullptr, &perf_param_table_v1, &tiling_schedule_config_table_v1);
-ApiPerfRegister<ApiPerf> ne_api_perf(kNe, GetPerfFunc(kNe), nullptr, &perf_param_table_v1, &tiling_schedule_config_table_v1);
-ApiPerfRegister<ApiPerf> gt_api_perf(kGt, GetPerfFunc(kGt), nullptr, &perf_param_table_v1, &tiling_schedule_config_table_v1);
-ApiPerfRegister<ApiPerf> le_api_perf(kLe, GetPerfFunc(kLe), nullptr, &perf_param_table_v1, &tiling_schedule_config_table_v1);
-ApiPerfRegister<ApiPerf> lt_api_perf(kLt, GetPerfFunc(kLt), nullptr, &perf_param_table_v1, &tiling_schedule_config_table_v1);
-ApiPerfRegister<ApiPerf> ub2ub_api_perf(kUb2ub, GetPerfFunc(kUb2ub), nullptr, &perf_param_table_v1, &tiling_schedule_config_table_v1);
-ApiPerfRegister<ApiPerf> load_api_perf(kLoad, GetPerfFunc(kLoad), nullptr, &perf_param_table_v1, &tiling_schedule_config_table_v1);
-ApiPerfRegister<ApiPerf> store_api_perf(kStore, GetPerfFunc(kStore), nullptr, &perf_param_table_v1, &tiling_schedule_config_table_v1);
+ApiPerfRegister<ApiPerf> add_api_perf(kAdd, GetPerfFunc(kAdd), nullptr, &perf_param_table_v1,
+                                      &tiling_schedule_config_table_v1);
+ApiPerfRegister<ApiPerf> gather_api_perf(kGather, GetPerfFunc(kGather), nullptr, &perf_param_table_v1,
+                                         &tiling_schedule_config_table_v1);
+ApiPerfRegister<ApiPerf> abs_api_perf(kAbs, GetPerfFunc(kAbs), nullptr, &perf_param_table_v1,
+                                      &tiling_schedule_config_table_v1);
+ApiPerfRegister<ApiPerf> broadcast_api_perf(kBroadcast, GetPerfFunc(kBroadcast), nullptr, &perf_param_table_v1,
+                                            &tiling_schedule_config_table_v1);
+ApiPerfRegister<ApiPerf> cast_api_perf(kCast, GetPerfFunc(kCast), nullptr, &perf_param_table_v1,
+                                       &tiling_schedule_config_table_v1);
+ApiPerfRegister<ApiPerf> div_api_perf(kDiv, GetPerfFunc(kDiv), nullptr, &perf_param_table_v1,
+                                      &tiling_schedule_config_table_v1);
+ApiPerfRegister<ApiPerf> erf_api_perf(kErf, GetPerfFunc(kErf), nullptr, &perf_param_table_v1,
+                                      &tiling_schedule_config_table_v1);
+ApiPerfRegister<ApiPerf> exp_api_perf(kExp, GetPerfFunc(kExp), nullptr, &perf_param_table_v1,
+                                      &tiling_schedule_config_table_v1);
+ApiPerfRegister<ApiPerf> logical_and_api_perf(kLogicalAnd, GetPerfFunc(kLogicalAnd), nullptr, &perf_param_table_v1,
+                                              &tiling_schedule_config_table_v1);
+ApiPerfRegister<ApiPerf> logical_or_api_perf(kLogicalOr, GetPerfFunc(kLogicalOr), nullptr, &perf_param_table_v1,
+                                             &tiling_schedule_config_table_v1);
+ApiPerfRegister<ApiPerf> logical_not_api_perf(kLogicalNot, GetPerfFunc(kLogicalNot), nullptr, &perf_param_table_v1,
+                                              &tiling_schedule_config_table_v1);
+ApiPerfRegister<ApiPerf> maximum_api_perf(kMaximum, GetPerfFunc(kMaximum), nullptr, &perf_param_table_v1,
+                                          &tiling_schedule_config_table_v1);
+ApiPerfRegister<ApiPerf> minimum_api_perf(kMinimum, GetPerfFunc(kMinimum), nullptr, &perf_param_table_v1,
+                                          &tiling_schedule_config_table_v1);
+ApiPerfRegister<ApiPerf> min_api_perf(kMin, GetPerfFunc(kMin), nullptr, &perf_param_table_v1,
+                                      &tiling_schedule_config_table_v1_heavy_op);
+ApiPerfRegister<ApiPerf> mul_api_perf(kMul, GetPerfFunc(kMul), nullptr, &perf_param_table_v1,
+                                      &tiling_schedule_config_table_v1);
+ApiPerfRegister<ApiPerf> neg_api_perf(kNeg, GetPerfFunc(kNeg), nullptr, &perf_param_table_v1,
+                                      &tiling_schedule_config_table_v1);
+ApiPerfRegister<ApiPerf> reciprocal_api_perf(kReciprocal, GetPerfFunc(kReciprocal), nullptr, &perf_param_table_v1,
+                                             &tiling_schedule_config_table_v1);
+ApiPerfRegister<ApiPerf> relu_api_perf(kRelu, GetPerfFunc(kRelu), nullptr, &perf_param_table_v1,
+                                       &tiling_schedule_config_table_v1);
+ApiPerfRegister<ApiPerf> remove_pad_api_perf(kRemovePad, GetPerfFunc(kRemovePad), nullptr, &perf_param_table_v1,
+                                             &tiling_schedule_config_table_v1);
+ApiPerfRegister<ApiPerf> rsqrt_api_perf(kRsqrt, GetPerfFunc(kRsqrt), nullptr, &perf_param_table_v1,
+                                        &tiling_schedule_config_table_v1);
+ApiPerfRegister<ApiPerf> sign_api_perf(kSign, GetPerfFunc(kSign), nullptr, &perf_param_table_v1,
+                                       &tiling_schedule_config_table_v1);
+ApiPerfRegister<ApiPerf> sqrt_api_perf(kSqrt, GetPerfFunc(kSqrt), nullptr, &perf_param_table_v1,
+                                       &tiling_schedule_config_table_v1);
+ApiPerfRegister<ApiPerf> sub_api_perf(kSub, GetPerfFunc(kSub), nullptr, &perf_param_table_v1,
+                                      &tiling_schedule_config_table_v1);
+ApiPerfRegister<ApiPerf> tanh_api_perf(kTanh, GetPerfFunc(kTanh), nullptr, &perf_param_table_v1,
+                                       &tiling_schedule_config_table_v1);
+ApiPerfRegister<ApiPerf> where_api_perf(kWhere, GetPerfFunc(kWhere), nullptr, &perf_param_table_v1,
+                                        &tiling_schedule_config_table_v1);
+ApiPerfRegister<ApiPerf> select_api_perf(kSelect, GetPerfFunc(kWhere), nullptr, &perf_param_table_v1,
+                                         &tiling_schedule_config_table_v1);
+ApiPerfRegister<ApiPerf> ge_api_perf(kGe, GetPerfFunc(kGe), nullptr, &perf_param_table_v1,
+                                     &tiling_schedule_config_table_v1);
+ApiPerfRegister<ApiPerf> eq_api_perf(kEq, GetPerfFunc(kEq), nullptr, &perf_param_table_v1,
+                                     &tiling_schedule_config_table_v1);
+ApiPerfRegister<ApiPerf> ne_api_perf(kNe, GetPerfFunc(kNe), nullptr, &perf_param_table_v1,
+                                     &tiling_schedule_config_table_v1);
+ApiPerfRegister<ApiPerf> gt_api_perf(kGt, GetPerfFunc(kGt), nullptr, &perf_param_table_v1,
+                                     &tiling_schedule_config_table_v1);
+ApiPerfRegister<ApiPerf> le_api_perf(kLe, GetPerfFunc(kLe), nullptr, &perf_param_table_v1,
+                                     &tiling_schedule_config_table_v1);
+ApiPerfRegister<ApiPerf> lt_api_perf(kLt, GetPerfFunc(kLt), nullptr, &perf_param_table_v1,
+                                     &tiling_schedule_config_table_v1);
+ApiPerfRegister<ApiPerf> ub2ub_api_perf(kUb2ub, GetPerfFunc(kUb2ub), nullptr, &perf_param_table_v1,
+                                        &tiling_schedule_config_table_v1);
+ApiPerfRegister<ApiPerf> load_api_perf(kLoad, GetPerfFunc(kLoad), nullptr, &perf_param_table_v1,
+                                       &tiling_schedule_config_table_v1);
+ApiPerfRegister<ApiPerf> store_api_perf(kStore, GetPerfFunc(kStore), nullptr, &perf_param_table_v1,
+                                        &tiling_schedule_config_table_v1);
 
-ApiPerfRegister<ApiPerf> reduce_all_api_perf(kAll, GetPerfFunc(kUnitVector), nullptr, &perf_param_table_v1, &tiling_schedule_config_table_v1_heavy_op);
-ApiPerfRegister<ApiPerf> reduce_any_api_perf(kAny, GetPerfFunc(kUnitVector), nullptr, &perf_param_table_v1, &tiling_schedule_config_table_v1_heavy_op);
-ApiPerfRegister<ApiPerf> reduce_max_api_perf(kMax, GetPerfFunc(kMax), nullptr, &perf_param_table_v1, &tiling_schedule_config_table_v1_heavy_op);
-ApiPerfRegister<ApiPerf> reduce_mean_api_perf(kMean, GetPerfFunc(kUnitVector), nullptr, &perf_param_table_v1, &tiling_schedule_config_table_v1);
-ApiPerfRegister<ApiPerf> reduce_min_api_perf(kMin, GetPerfFunc(kMin), nullptr, &perf_param_table_v1, &tiling_schedule_config_table_v1_heavy_op);
-ApiPerfRegister<ApiPerf> reduce_prod_api_perf(kProd, GetPerfFunc(kUnitVector), nullptr, &perf_param_table_v1, &tiling_schedule_config_table_v1_heavy_op);
-ApiPerfRegister<ApiPerf> reduce_sum_api_perf(kSum, GetPerfFunc(kSum), nullptr, &perf_param_table_v1, &tiling_schedule_config_table_v1_heavy_op);
+ApiPerfRegister<ApiPerf> reduce_all_api_perf(kAll, GetPerfFunc(kUnitVector), nullptr, &perf_param_table_v1,
+                                             &tiling_schedule_config_table_v1_heavy_op);
+ApiPerfRegister<ApiPerf> reduce_any_api_perf(kAny, GetPerfFunc(kUnitVector), nullptr, &perf_param_table_v1,
+                                             &tiling_schedule_config_table_v1_heavy_op);
+ApiPerfRegister<ApiPerf> reduce_max_api_perf(kMax, GetPerfFunc(kMax), nullptr, &perf_param_table_v1,
+                                             &tiling_schedule_config_table_v1_heavy_op);
+ApiPerfRegister<ApiPerf> reduce_mean_api_perf(kMean, GetPerfFunc(kUnitVector), nullptr, &perf_param_table_v1,
+                                              &tiling_schedule_config_table_v1);
+ApiPerfRegister<ApiPerf> reduce_min_api_perf(kMin, GetPerfFunc(kMin), nullptr, &perf_param_table_v1,
+                                             &tiling_schedule_config_table_v1_heavy_op);
+ApiPerfRegister<ApiPerf> reduce_prod_api_perf(kProd, GetPerfFunc(kUnitVector), nullptr, &perf_param_table_v1,
+                                              &tiling_schedule_config_table_v1_heavy_op);
+ApiPerfRegister<ApiPerf> reduce_sum_api_perf(kSum, GetPerfFunc(kSum), nullptr, &perf_param_table_v1,
+                                             &tiling_schedule_config_table_v1_heavy_op);
 // 不需要建模的ASCIR
-ApiPerfRegister<ApiPerf> data_api_perf(kData, DefaultGetPerf, nullptr, &perf_param_table_v1, &tiling_schedule_config_table_v1);
-ApiPerfRegister<ApiPerf> scalar_api_perf(kScalar, DefaultGetPerf, nullptr, &perf_param_table_v1, &tiling_schedule_config_table_v1);
-ApiPerfRegister<ApiPerf> index_expr_api_perf(kIndexExpr, DefaultGetPerf, nullptr, &perf_param_table_v1, &tiling_schedule_config_table_v1);
-ApiPerfRegister<ApiPerf> output_api_perf(kOutput, DefaultGetPerf, nullptr, &perf_param_table_v1, &tiling_schedule_config_table_v1);
-ApiPerfRegister<ApiPerf> workspace_api_perf(kWorkspace, DefaultGetPerf, nullptr, &perf_param_table_v1, &tiling_schedule_config_table_v1);
+ApiPerfRegister<ApiPerf> data_api_perf(kData, DefaultGetPerf, nullptr, &perf_param_table_v1,
+                                       &tiling_schedule_config_table_v1);
+ApiPerfRegister<ApiPerf> scalar_api_perf(kScalar, DefaultGetPerf, nullptr, &perf_param_table_v1,
+                                         &tiling_schedule_config_table_v1);
+ApiPerfRegister<ApiPerf> index_expr_api_perf(kIndexExpr, DefaultGetPerf, nullptr, &perf_param_table_v1,
+                                             &tiling_schedule_config_table_v1);
+ApiPerfRegister<ApiPerf> output_api_perf(kOutput, DefaultGetPerf, nullptr, &perf_param_table_v1,
+                                         &tiling_schedule_config_table_v1);
+ApiPerfRegister<ApiPerf> workspace_api_perf(kWorkspace, DefaultGetPerf, nullptr, &perf_param_table_v1,
+                                            &tiling_schedule_config_table_v1);
 // 目前无建模的ASCIR
-ApiPerfRegister<ApiPerf> pad_api_perf(kPad, GetPerfFunc(kUnitVector), nullptr, &perf_param_table_v1, &tiling_schedule_config_table_v1);
-ApiPerfRegister<ApiPerf> nop_api_perf(kNop, GetPerfFunc(kUnitVector), nullptr, &perf_param_table_v1, &tiling_schedule_config_table_v1);
-ApiPerfRegister<ApiPerf> ln_api_perf(kLn, GetPerfFunc(kUnitVector), nullptr, &perf_param_table_v1, &tiling_schedule_config_table_v1);
-ApiPerfRegister<ApiPerf> isnan_api_perf(kIsnan, GetPerfFunc(kUnitVector), nullptr, &perf_param_table_v1, &tiling_schedule_config_table_v1);
-ApiPerfRegister<ApiPerf> isfinite_api_perf(kIsFinite, GetPerfFunc(kUnitVector), nullptr, &perf_param_table_v1, &tiling_schedule_config_table_v1);
-ApiPerfRegister<ApiPerf> max_api_perf(kMax, GetPerfFunc(kUnitVector), nullptr, &perf_param_table_v1, &tiling_schedule_config_table_v1);
-ApiPerfRegister<ApiPerf> mean_api_perf(kMean, GetPerfFunc(kUnitVector), nullptr, &perf_param_table_v1, &tiling_schedule_config_table_v1_heavy_op);
-ApiPerfRegister<ApiPerf> prod_api_perf(kProd, GetPerfFunc(kUnitVector), nullptr, &perf_param_table_v1, &tiling_schedule_config_table_v1);
-ApiPerfRegister<ApiPerf> any_api_perf(kAny, GetPerfFunc(kUnitVector), nullptr, &perf_param_table_v1, &tiling_schedule_config_table_v1_heavy_op);
-ApiPerfRegister<ApiPerf> all_api_perf(kAll, GetPerfFunc(kUnitVector), nullptr, &perf_param_table_v1, &tiling_schedule_config_table_v1);
-ApiPerfRegister<ApiPerf> sigmoid_api_perf(kSigmoid, GetPerfFunc(kUnitVector), nullptr, &perf_param_table_v1, &tiling_schedule_config_table_v1);
-ApiPerfRegister<ApiPerf> true_div_api_perf(kTrueDiv, GetPerfFunc(kUnitVector), nullptr, &perf_param_table_v1, &tiling_schedule_config_table_v1);
-ApiPerfRegister<ApiPerf> pow_api_perf(kPow, GetPerfFunc(kUnitVector), nullptr, &perf_param_table_v1, &tiling_schedule_config_table_v1_heavy_op);
-ApiPerfRegister<ApiPerf> clip_by_value_api_perf(kClipByValue, GetPerfFunc(kUnitVector), nullptr, &perf_param_table_v1, &tiling_schedule_config_table_v1);
-ApiPerfRegister<ApiPerf> concat_api_perf(kConcat, GetPerfFunc(kUnitVector), nullptr, &perf_param_table_v1, &tiling_schedule_config_table_v1);
-ApiPerfRegister<ApiPerf> leaky_relu_api_perf(kLeakyRelu, GetPerfFunc(kUnitVector), nullptr, &perf_param_table_v1, &tiling_schedule_config_table_v1);
-ApiPerfRegister<ApiPerf> bitwise_and_api_perf(kBitwiseAnd, GetPerfFunc(kUnitVector), nullptr, &perf_param_table_v1, &tiling_schedule_config_table_v1);
-ApiPerfRegister<ApiPerf> transpose_api_perf(kTranspose, GetPerfFunc(kUnitVector), nullptr, &perf_param_table_v1, &tiling_schedule_config_table_v1);
-ApiPerfRegister<ApiPerf> floor_div_api_perf(kFloorDiv, GetPerfFunc(kUnitVector), nullptr, &perf_param_table_v1, &tiling_schedule_config_table_v1);
-ApiPerfRegister<ApiPerf> gelu_api_perf(kGelu, GetPerfFunc(kUnitVector), nullptr, &perf_param_table_v1, &tiling_schedule_config_table_v1);
-}
+ApiPerfRegister<ApiPerf> pad_api_perf(kPad, GetPerfFunc(kUnitVector), nullptr, &perf_param_table_v1,
+                                      &tiling_schedule_config_table_v1);
+ApiPerfRegister<ApiPerf> nop_api_perf(kNop, GetPerfFunc(kUnitVector), nullptr, &perf_param_table_v1,
+                                      &tiling_schedule_config_table_v1);
+ApiPerfRegister<ApiPerf> ln_api_perf(kLn, GetPerfFunc(kUnitVector), nullptr, &perf_param_table_v1,
+                                     &tiling_schedule_config_table_v1);
+ApiPerfRegister<ApiPerf> isnan_api_perf(kIsnan, GetPerfFunc(kUnitVector), nullptr, &perf_param_table_v1,
+                                        &tiling_schedule_config_table_v1);
+ApiPerfRegister<ApiPerf> isfinite_api_perf(kIsFinite, GetPerfFunc(kUnitVector), nullptr, &perf_param_table_v1,
+                                           &tiling_schedule_config_table_v1);
+ApiPerfRegister<ApiPerf> max_api_perf(kMax, GetPerfFunc(kUnitVector), nullptr, &perf_param_table_v1,
+                                      &tiling_schedule_config_table_v1);
+ApiPerfRegister<ApiPerf> mean_api_perf(kMean, GetPerfFunc(kUnitVector), nullptr, &perf_param_table_v1,
+                                       &tiling_schedule_config_table_v1_heavy_op);
+ApiPerfRegister<ApiPerf> prod_api_perf(kProd, GetPerfFunc(kUnitVector), nullptr, &perf_param_table_v1,
+                                       &tiling_schedule_config_table_v1);
+ApiPerfRegister<ApiPerf> any_api_perf(kAny, GetPerfFunc(kUnitVector), nullptr, &perf_param_table_v1,
+                                      &tiling_schedule_config_table_v1_heavy_op);
+ApiPerfRegister<ApiPerf> all_api_perf(kAll, GetPerfFunc(kUnitVector), nullptr, &perf_param_table_v1,
+                                      &tiling_schedule_config_table_v1);
+ApiPerfRegister<ApiPerf> sigmoid_api_perf(kSigmoid, GetPerfFunc(kUnitVector), nullptr, &perf_param_table_v1,
+                                          &tiling_schedule_config_table_v1);
+ApiPerfRegister<ApiPerf> true_div_api_perf(kTrueDiv, GetPerfFunc(kUnitVector), nullptr, &perf_param_table_v1,
+                                           &tiling_schedule_config_table_v1);
+ApiPerfRegister<ApiPerf> pow_api_perf(kPow, GetPerfFunc(kUnitVector), nullptr, &perf_param_table_v1,
+                                      &tiling_schedule_config_table_v1_heavy_op);
+ApiPerfRegister<ApiPerf> clip_by_value_api_perf(kClipByValue, GetPerfFunc(kUnitVector), nullptr, &perf_param_table_v1,
+                                                &tiling_schedule_config_table_v1);
+ApiPerfRegister<ApiPerf> concat_api_perf(kConcat, GetPerfFunc(kUnitVector), nullptr, &perf_param_table_v1,
+                                         &tiling_schedule_config_table_v1);
+ApiPerfRegister<ApiPerf> leaky_relu_api_perf(kLeakyRelu, GetPerfFunc(kUnitVector), nullptr, &perf_param_table_v1,
+                                             &tiling_schedule_config_table_v1);
+ApiPerfRegister<ApiPerf> bitwise_and_api_perf(kBitwiseAnd, GetPerfFunc(kUnitVector), nullptr, &perf_param_table_v1,
+                                              &tiling_schedule_config_table_v1);
+ApiPerfRegister<ApiPerf> transpose_api_perf(kTranspose, GetPerfFunc(kUnitVector), nullptr, &perf_param_table_v1,
+                                            &tiling_schedule_config_table_v1);
+ApiPerfRegister<ApiPerf> floor_div_api_perf(kFloorDiv, GetPerfFunc(kUnitVector), nullptr, &perf_param_table_v1,
+                                            &tiling_schedule_config_table_v1);
+ApiPerfRegister<ApiPerf> gelu_api_perf(kGelu, GetPerfFunc(kUnitVector), nullptr, &perf_param_table_v1,
+                                       &tiling_schedule_config_table_v1);
+}  // namespace
 }  // namespace att

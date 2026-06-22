@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -28,7 +28,6 @@ void LoadMultiVectorizeAxisStore_BeforeAutofuse(af::AscGraph &graph, bool is_f16
   auto z1 = graph.CreateAxis("z1", s1);
   auto z2 = graph.CreateAxis("z2", s2);
 
-
   Data x("x");
   graph.AddNode(x);
   if (is_f16) {
@@ -43,7 +42,7 @@ void LoadMultiVectorizeAxisStore_BeforeAutofuse(af::AscGraph &graph, bool is_f16
   load.attr.sched.axis = {z0.id, z1.id, z2.id};
   *load.y.axis = {z0.id, z1.id, z2.id};
   *load.y.repeats = {s0, s1, s2};
-  *load.y.strides = {s1*s2, s2, One};
+  *load.y.strides = {s1 * s2, s2, One};
 
   Store store("store");
   graph.AddNode(store);
@@ -51,7 +50,7 @@ void LoadMultiVectorizeAxisStore_BeforeAutofuse(af::AscGraph &graph, bool is_f16
   store.attr.sched.axis = {z0.id, z1.id, z2.id};
   *store.y.axis = {z0.id, z1.id, z2.id};
   *store.y.repeats = {s0, s1, s2};
-  *store.y.strides = {s1*s2, s2, One};
+  *store.y.strides = {s1 * s2, s2, One};
   store.attr.tmp_buffers = {{{af::Symbol(8192), -1}, MemAttr(), 0}};
 
   Output y("y");
@@ -63,11 +62,11 @@ void LoadMultiVectorizeAxisStore_BeforeAutofuse(af::AscGraph &graph, bool is_f16
     y.y.dtype = ge::DT_FLOAT;
   }
 
-  //graph.SetInputs({x});
-  //graph.SetOutputs({y});
+  // graph.SetInputs({x});
+  // graph.SetOutputs({y});
 }
 
-void LoadMultiVectorizeAxisStore_AfterAutofuse(af::AscGraph& graph, bool is_f16 = true) {
+void LoadMultiVectorizeAxisStore_AfterAutofuse(af::AscGraph &graph, bool is_f16 = true) {
   auto x = graph.FindNode("x");
   x->attr.api.compute_type = ComputeType::kComputeInvalid;
   x->attr.api.type = ApiType::kAPITypeBuffer;
@@ -120,7 +119,7 @@ void LoadMultiVectorizeAxisStore_AfterAutofuse(af::AscGraph& graph, bool is_f16 
   std::vector<AxisId> vectorized_axis{z0t->id, z1, z2};
   vector<af::Expression> vectorized_strides{One, One, One};
   vectorized_strides[0] = graph.FindAxis(vectorized_axis[vectorized_axis.size() - 0x2])->size *
-    graph.FindAxis(vectorized_axis[vectorized_axis.size() - 1])->size;
+                          graph.FindAxis(vectorized_axis[vectorized_axis.size() - 1])->size;
   vectorized_strides[1] = graph.FindAxis(vectorized_axis[vectorized_axis.size() - 1])->size;
   // Vectorized/Loop axis
   load->attr.sched.loop_axis = z0Tb->id;
@@ -162,4 +161,3 @@ void LoadMultiVectorizeAxisStore_AfterAutofuse(af::AscGraph& graph, bool is_f16 
   store->outputs[0].attr.opt.ref_tensor = af::kIdNone;
   store->outputs[0].attr.opt.merge_scope = af::kIdNone;
 }
-

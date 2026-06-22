@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -22,24 +22,21 @@
 #include <string>
 #include <sstream>
 
-std::vector<std::string> splitString(const std::string& input, char delimiter) {
-    std::vector<std::string> result;
-    std::stringstream ss(input);
-    std::string token;
+std::vector<std::string> splitString(const std::string &input, char delimiter) {
+  std::vector<std::string> result;
+  std::stringstream ss(input);
+  std::string token;
 
-    while (std::getline(ss, token, delimiter)) {
-        result.push_back(token);
-    }
+  while (std::getline(ss, token, delimiter)) {
+    result.push_back(token);
+  }
 
-    return result;
+  return result;
 }
 
-
-class TailProcessZ0SplitTbUT : public testing::Test {
-};
+class TailProcessZ0SplitTbUT : public testing::Test {};
 
 TEST_F(TailProcessZ0SplitTbUT, Z0SplitTbTailCodegen) {
-
   bool gen_success = true;
   std::string graph_name = "load.abs.store";
   af::AscGraph test_graph(ascgen_utils::GenValidName(graph_name).c_str());
@@ -51,24 +48,24 @@ TEST_F(TailProcessZ0SplitTbUT, Z0SplitTbTailCodegen) {
   LoadAbsStore_AfterInferOutput(test_graph);
 
   std::string impl_graph_name = "0load/abs/store_general_0_nil_0_nil";
-  std::vector<af::AscGraph> test_impl_graphs =
-          {af::AscGraph(ascgen_utils::GenValidName(impl_graph_name).c_str())};
+  std::vector<af::AscGraph> test_impl_graphs = {af::AscGraph(ascgen_utils::GenValidName(impl_graph_name).c_str())};
   test_impl_graphs[0].CopyFrom(test_graph);
   LoadAbsStore_AfterGetApiInfo(test_impl_graphs[0]);
   LoadAbsStore_AfterScheduler_z0_SplitTo_z0TBz0Tbz0t(test_impl_graphs[0]);
   LoadAbsStore_AfterQueBufAlloc(test_impl_graphs[0]);
 
-  std::cout<<"ATT_SO_NAME="<<ATT_SO_NAME<<std::endl;
-  std::cout<<"KERNEL_SRC_LIST="<<KERNEL_SRC_LIST<<std::endl;
+  std::cout << "ATT_SO_NAME=" << ATT_SO_NAME << std::endl;
+  std::cout << "KERNEL_SRC_LIST=" << KERNEL_SRC_LIST << std::endl;
   std::vector<std::string> parts = splitString(KERNEL_SRC_LIST, ':');
-  std::string kernel_src_file_name = parts[0];      // load_abs_store_kernel.cpp
-  std::string tiling_src_file_name = parts[1];      // load_abs_store_tiling.cpp
-  std::string tiling_data_src_file_name = parts[2]; // autofuse_tiling_data.h
+  std::string kernel_src_file_name = parts[0];       // load_abs_store_kernel.cpp
+  std::string tiling_src_file_name = parts[1];       // load_abs_store_tiling.cpp
+  std::string tiling_data_src_file_name = parts[2];  // autofuse_tiling_data.h
 
   try {
-    auto codegen = codegen::Codegen(codegen::CodegenOptions{
-         // lib + 用例文件夹名 + _gen_tiling.so
-        .tiling_lib_path = ATT_SO_NAME, .tiling_lib_codegen_symbol = "CodegenTiling", .using_att_calc_qbt_size = false});
+    auto codegen = codegen::Codegen(codegen::CodegenOptions{// lib + 用例文件夹名 + _gen_tiling.so
+                                                            .tiling_lib_path = ATT_SO_NAME,
+                                                            .tiling_lib_codegen_symbol = "CodegenTiling",
+                                                            .using_att_calc_qbt_size = false});
     std::fstream kernel_file(kernel_src_file_name, std::ios::out);
     std::fstream tiling_file(tiling_src_file_name, std::ios::out);
     std::fstream tiling_data_file(tiling_data_src_file_name, std::ios::out);
@@ -84,8 +81,7 @@ TEST_F(TailProcessZ0SplitTbUT, Z0SplitTbTailCodegen) {
     kernel_file << tilig_stub << RemoveSubDirInclude(result.kernel);
     tiling_file << result.tiling;
     tiling_data_file << result.tiling_data;
-  }
-  catch (...) {
+  } catch (...) {
     gen_success = false;
   }
 

@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -23,7 +23,7 @@
 #include "common/ge_common/string_util.h"
 #include "common/ge_common/scope_guard.h"
 
-using AddrGetter = std::function<const void*(size_t)>;
+using AddrGetter = std::function<const void *(size_t)>;
 
 #define GE_CHECK_POSITIVE_SIZE_RANGE(size)                             \
   do {                                                                 \
@@ -43,11 +43,11 @@ using AddrGetter = std::function<const void*(size_t)>;
 
 // new ge marco
 // Encapsulate common resource releases
-#define GE_MAKE_GUARD_RTMEM(var)  \
-  GE_MAKE_GUARD(var, [&var]() { \
-    if ((var) != nullptr) {       \
+#define GE_MAKE_GUARD_RTMEM(var)     \
+  GE_MAKE_GUARD(var, [&var]() {      \
+    if ((var) != nullptr) {          \
       GE_CHK_RT(aclrtFreeHost(var)); \
-    }                             \
+    }                                \
   })
 
 #define GE_MAKE_GUARD_RTSTREAM(var)    \
@@ -57,20 +57,20 @@ using AddrGetter = std::function<const void*(size_t)>;
     }                                  \
   })
 
-#define GE_MAKE_GUARD_ACLRTSTREAM(var) \
-  GE_MAKE_GUARD(var, [&]() {           \
-    if ((var) != nullptr) {            \
+#define GE_MAKE_GUARD_ACLRTSTREAM(var)    \
+  GE_MAKE_GUARD(var, [&]() {              \
+    if ((var) != nullptr) {               \
       GE_CHK_RT(aclrtDestroyStream(var)); \
-    }                                  \
+    }                                     \
   })
 
 // For propagating errors when calling a function.
-#define GE_RETURN_IF_ERROR(expr)            \
-  do {                                      \
-    const af::Status _chk_status = (expr);  \
-    if (_chk_status != af::SUCCESS) {       \
-      return _chk_status;                   \
-    }                                       \
+#define GE_RETURN_IF_ERROR(expr)           \
+  do {                                     \
+    const af::Status _chk_status = (expr); \
+    if (_chk_status != af::SUCCESS) {      \
+      return _chk_status;                  \
+    }                                      \
   } while (false)
 
 #define GE_RETURN_WITH_LOG_IF_ERROR(expr, ...) \
@@ -121,13 +121,13 @@ using AddrGetter = std::function<const void*(size_t)>;
   } while (false)
 
 // Check if the parameter is null. If yes, return PARAM_INVALID and record the error
-#define GE_CHECK_NOTNULL(val, ...)                                                          \
-  do {                                                                                      \
-    if ((val) == nullptr) {                                                                 \
+#define GE_CHECK_NOTNULL(val, ...)                                                            \
+  do {                                                                                        \
+    if ((val) == nullptr) {                                                                   \
       REPORT_INNER_ERR_MSG("E19999", "Param:" #val " is nullptr, check invalid" __VA_ARGS__); \
-      GELOGE(af::FAILED, "[Check][Param:" #val "]null is invalid" __VA_ARGS__);             \
-      return af::PARAM_INVALID;                                                             \
-    }                                                                                       \
+      GELOGE(af::FAILED, "[Check][Param:" #val "]null is invalid" __VA_ARGS__);               \
+      return af::PARAM_INVALID;                                                               \
+    }                                                                                         \
   } while (false)
 
 // Check if the parameter is null. If yes, just return and record the error
@@ -176,23 +176,23 @@ using AddrGetter = std::function<const void*(size_t)>;
   } while (false)
 
 // Check if the value on the left is greater than or equal to the value on the right
-#define GE_CHECK_GE(lhs, rhs)                                       \
-  do {                                                              \
-    if ((lhs) < (rhs)) {                                            \
-      GELOGE(af::FAILED, "param[%s][%ld] is less than[%s][%ld]",    \
-          #lhs, static_cast<int64_t>(lhs), #rhs, static_cast<int64_t>(rhs)); \
-      return af::PARAM_INVALID;                                     \
-    }                                                               \
+#define GE_CHECK_GE(lhs, rhs)                                                                           \
+  do {                                                                                                  \
+    if ((lhs) < (rhs)) {                                                                                \
+      GELOGE(af::FAILED, "param[%s][%ld] is less than[%s][%ld]", #lhs, static_cast<int64_t>(lhs), #rhs, \
+             static_cast<int64_t>(rhs));                                                                \
+      return af::PARAM_INVALID;                                                                         \
+    }                                                                                                   \
   } while (false)
 
 // Check if the value on the left is less than or equal to the value on the right
-#define GE_CHECK_LE(lhs, rhs)                                          \
-  do {                                                                 \
-    if ((lhs) > (rhs)) {                                               \
-      GELOGE(af::FAILED, "param[%s][%ld] is greater than[%s][%ld]",    \
-          #lhs, static_cast<int64_t>(lhs), #rhs, static_cast<int64_t>(rhs)); \
-      return af::PARAM_INVALID;                                        \
-    }                                                                  \
+#define GE_CHECK_LE(lhs, rhs)                                                                              \
+  do {                                                                                                     \
+    if ((lhs) > (rhs)) {                                                                                   \
+      GELOGE(af::FAILED, "param[%s][%ld] is greater than[%s][%ld]", #lhs, static_cast<int64_t>(lhs), #rhs, \
+             static_cast<int64_t>(rhs));                                                                   \
+      return af::PARAM_INVALID;                                                                            \
+    }                                                                                                      \
   } while (false)
 
 #define GE_DELETE_NEW_SINGLE(var) \
@@ -211,15 +211,15 @@ using AddrGetter = std::function<const void*(size_t)>;
     }                            \
   } while (false)
 
-#define GE_FREE_RT_LOG(addr)                                        \
-  do {                                                              \
-    if ((addr) != nullptr) {                                        \
-      const aclError error = aclrtFree(addr);                         \
-      if (error != ACL_SUCCESS) {                                 \
+#define GE_FREE_RT_LOG(addr)                                               \
+  do {                                                                     \
+    if ((addr) != nullptr) {                                               \
+      const aclError error = aclrtFree(addr);                              \
+      if (error != ACL_SUCCESS) {                                          \
         GELOGE(ge::RT_FAILED, "Call aclrtFree failed, error: %#x", error); \
-      }                                                             \
-      (addr) = nullptr;                                             \
-    }                                                               \
+      }                                                                    \
+      (addr) = nullptr;                                                    \
+    }                                                                      \
   } while (false)
 
 namespace af {
@@ -342,7 +342,7 @@ GE_FUNC_VISIBILITY void SplitStringByComma(const std::string &str, std::vector<s
 /// @param [in] reuse_indexes_str Config string, format: "input_idx,output_idx|input_idx,output_idx|..." e.g., "1,1|2,3"
 /// @param [out] io_same_addr_pairs Parsed pairs list (input_idx, output_idx)
 GE_FUNC_VISIBILITY void ParseOutputReuseInputMemIndexes(const std::string &reuse_indexes_str,
-                                                         std::vector<std::pair<size_t, size_t>> &io_same_addr_pairs);
+                                                        std::vector<std::pair<size_t, size_t>> &io_same_addr_pairs);
 
 /// @ingroup domi_common
 /// @brief Check IO reuse address pairs
@@ -353,8 +353,8 @@ GE_FUNC_VISIBILITY void ParseOutputReuseInputMemIndexes(const std::string &reuse
 /// @param [in] output_num Number of outputs
 /// @return SUCCESS if all addresses match, FAILED otherwise
 GE_FUNC_VISIBILITY Status CheckIoReuseAddrPairs(const std::vector<std::pair<size_t, size_t>> &io_same_addr_pairs,
-                                                 const AddrGetter &get_input_addr, size_t input_num,
-                                                 const AddrGetter &get_output_addr, size_t output_num);
+                                                const AddrGetter &get_input_addr, size_t input_num,
+                                                const AddrGetter &get_output_addr, size_t output_num);
 }  // namespace af
 
 #endif  // AIR_INC_COMMON_UTIL_H_

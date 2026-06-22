@@ -88,7 +88,9 @@ const char *KindToString(NamedExprKind kind) {
   }
 }
 
-std::string KindPrefix(NamedExprKind kind) { return KindToString(kind); }
+std::string KindPrefix(NamedExprKind kind) {
+  return KindToString(kind);
+}
 
 const char *ReasonToString(MaterializeReason reason) {
   switch (reason) {
@@ -163,18 +165,16 @@ std::string NormalizeName(const std::string &name) {
 }
 
 std::string ToLower(std::string name) {
-  std::transform(name.begin(), name.end(), name.begin(), [](unsigned char c) {
-    return static_cast<char>(std::tolower(c));
-  });
+  std::transform(name.begin(), name.end(), name.begin(),
+                 [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
   return name;
 }
 
 bool IsTmpBufferName(const std::string &name) {
   const std::string normalized = ToLower(name);
   if (normalized.size() >= 7U && normalized[0] == 'b' && normalized.rfind("_size") == normalized.size() - 5U) {
-    return std::all_of(normalized.begin() + 1, normalized.end() - 5, [](char c) {
-      return std::isdigit(static_cast<unsigned char>(c));
-    });
+    return std::all_of(normalized.begin() + 1, normalized.end() - 5,
+                       [](char c) { return std::isdigit(static_cast<unsigned char>(c)); });
   }
   return ContainsToken(normalized, "tmp") || ContainsToken(normalized, "temp") || ContainsToken(normalized, "buffer");
 }
@@ -191,9 +191,8 @@ bool IsQueueSemanticName(const std::string &name) {
     base_name = base_name.substr(0U, base_name.size() - kSizeSuffixLength);
   }
   return base_name.size() > 1U && base_name[0] == 'q' &&
-         std::all_of(base_name.begin() + 1, base_name.end(), [](char c) {
-           return std::isdigit(static_cast<unsigned char>(c));
-         });
+         std::all_of(base_name.begin() + 1, base_name.end(),
+                     [](char c) { return std::isdigit(static_cast<unsigned char>(c)); });
 }
 
 bool ShouldUseSemanticBaseName(const std::string &name) {
@@ -262,8 +261,7 @@ bool IsMaxNode(const ASTNode &node) {
 }
 
 bool IsQueueSizeKind(NamedExprKind kind) {
-  return kind == NamedExprKind::kTensorSize || kind == NamedExprKind::kQueSize ||
-         kind == NamedExprKind::kTmpBufferSize;
+  return kind == NamedExprKind::kTensorSize || kind == NamedExprKind::kQueSize || kind == NamedExprKind::kTmpBufferSize;
 }
 
 bool IsQueueAlignNode(const ASTNode &node) {
@@ -380,8 +378,8 @@ NamedExprCode NamedExprPrinter::Generate(const ASTPtr &root, NamedExprContext &c
   return code;
 }
 
-NamedExprCode NamedExprPrinter::GenerateWithRootKind(const ASTPtr &root, NamedExprKind root_kind,
-                                                     NamedExprContext &ctx, const std::string &indent) {
+NamedExprCode NamedExprPrinter::GenerateWithRootKind(const ASTPtr &root, NamedExprKind root_kind, NamedExprContext &ctx,
+                                                     const std::string &indent) {
   NamedExprCode code;
   if (root == nullptr) {
     return code;
@@ -440,8 +438,7 @@ std::string NamedExprPrinter::BuildNode(const ASTPtr &node, NamedExprContext &ct
   if (reason == MaterializeReason::kNone) {
     return expr_string;
   }
-  NamedExprKind kind =
-      (options.is_root && options.root_kind != nullptr) ? *options.root_kind : InferKind(*node, ctx);
+  NamedExprKind kind = (options.is_root && options.root_kind != nullptr) ? *options.root_kind : InferKind(*node, ctx);
   if (IsCeilOrFloor(*node)) {
     for (const auto &child : node->children) {
       if (IsQueueSizeKind(GetChildKind(child, ctx))) {
@@ -462,9 +459,7 @@ void NamedExprPrinter::BuildChildren(const ASTPtr &node, NamedExprContext &ctx, 
 
 std::string NamedExprPrinter::BuildNodeExpr(const ASTNode &node, const NamedExprContext &ctx) const {
   if (node.type == NodeType::FUNCTION) {
-    auto rebuild = [this, &ctx](const ASTNode &child) {
-      return BuildInlineNodeExpr(child, ctx);
-    };
+    auto rebuild = [this, &ctx](const ASTNode &child) { return BuildInlineNodeExpr(child, ctx); };
     return JoinFunctionArgs(node, rebuild);
   }
   if (node.type == NodeType::OPERATOR && node.children.size() == 2U) {
@@ -603,9 +598,8 @@ std::string NamedExprPrinter::GetPreferredVarName(const ASTPtr &node, NamedExprK
   return "";
 }
 
-std::string NamedExprPrinter::MaterializeNode(const ASTPtr &node, const MaterializeInfo &info,
-                                              NamedExprContext &ctx, const std::string &indent,
-                                              std::string &preamble) {
+std::string NamedExprPrinter::MaterializeNode(const ASTPtr &node, const MaterializeInfo &info, NamedExprContext &ctx,
+                                              const std::string &indent, std::string &preamble) {
   const std::string expr_string = BuildNodeExpr(*node, ctx);
   auto expr_iter = ctx.expr_string_to_var.find(expr_string);
   if (expr_iter != ctx.expr_string_to_var.end()) {
@@ -630,10 +624,11 @@ std::string NamedExprPrinter::MaterializeNode(const ASTPtr &node, const Material
     ctx.ast_hash_to_base_name[node->hash] = base_name;
     ctx.var_to_base_name[var_name] = base_name;
   }
-  GELOGD("[DFX][GetUbSizeNamedExpr] materialize var[%s] kind[%s] base[%s] reason[%s] expr_len[%zu] "
-         "ref_count[%zu] expr[%s]",
-         var_name.c_str(), KindToString(info.kind), base_name.c_str(), ReasonToString(info.reason), expr_string.size(),
-         GetAstRefCount(node, ctx), expr_string.c_str());
+  GELOGD(
+      "[DFX][GetUbSizeNamedExpr] materialize var[%s] kind[%s] base[%s] reason[%s] expr_len[%zu] "
+      "ref_count[%zu] expr[%s]",
+      var_name.c_str(), KindToString(info.kind), base_name.c_str(), ReasonToString(info.reason), expr_string.size(),
+      GetAstRefCount(node, ctx), expr_string.c_str());
   return var_name;
 }
 

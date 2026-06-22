@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -43,8 +43,8 @@ class SymbolTensor {
   SymbolTensor(const SymbolTensor &other)
       : origin_symbol_shape_(other.origin_symbol_shape_),
         symbolic_values_(other.symbolic_values_
-                           ? ComGraphMakeUnique<std::vector<af::Expression>>(*other.symbolic_values_)
-                           : nullptr) {}
+                             ? ComGraphMakeUnique<std::vector<af::Expression>>(*other.symbolic_values_)
+                             : nullptr) {}
 
   // 拷贝赋值运算符
   SymbolTensor &operator=(const SymbolTensor &other) {
@@ -127,6 +127,7 @@ class SymbolTensor {
 
     return symbolic_values_.get();
   }
+
  private:
   SymbolShape origin_symbol_shape_;
   std::unique_ptr<std::vector<af::Expression>> symbolic_values_;

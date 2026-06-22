@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -15,22 +15,18 @@
 
 namespace af {
 inline const ge::char_t *GetTopoSortingModeStr(const TopoSortingMode &mode) {
-  static const ge::char_t *topo_sorting_mode_strs[static_cast<int32_t>(TopoSortingMode::kInvalid) + 1U]
-      = {"BFS", "DFS", "RDFS", "StableRDFS", "Invalid"};
+  static const ge::char_t *topo_sorting_mode_strs[static_cast<int32_t>(TopoSortingMode::kInvalid) + 1U] = {
+      "BFS", "DFS", "RDFS", "StableRDFS", "Invalid"};
   if ((mode >= TopoSortingMode::kInvalid) || (mode < TopoSortingMode::kBFS)) {
     return topo_sorting_mode_strs[static_cast<int32_t>(TopoSortingMode::kInvalid)];
   }
   return topo_sorting_mode_strs[static_cast<size_t>(mode)];
 }
 
-enum class WalkStatus {
-  kNotWalked,
-  kWalking,
-  kWalked
-};
+enum class WalkStatus { kNotWalked, kWalking, kWalked };
 class ComputeGraphImpl {
  public:
-  using ConstComputeGraphPtr  = std::shared_ptr<ConstComputeGraph>;
+  using ConstComputeGraphPtr = std::shared_ptr<ConstComputeGraph>;
   template <class T>
   using Vistor = RangeVistor<T, std::shared_ptr<ConstComputeGraph>>;
 
@@ -43,17 +39,13 @@ class ComputeGraphImpl {
 
   size_t GetAllNodesSize(const ConstComputeGraphPtr &compute_graph) const;
   Vistor<NodePtr> GetAllNodes(const ConstComputeGraphPtr &compute_graph) const;
-  Vistor<NodePtr> GetAllNodes(const NodeFilter &node_filter,
-                              const GraphFilter &graph_filter,
+  Vistor<NodePtr> GetAllNodes(const NodeFilter &node_filter, const GraphFilter &graph_filter,
                               const ConstComputeGraphPtr &compute_graph) const;
   Vistor<NodePtr> AllGraphNodes(std::vector<ComputeGraphPtr> &subgraphs,
                                 const ConstComputeGraphPtr &compute_graph) const;
   std::vector<Node *> AllGraphNodesPtr(std::vector<ComputeGraphPtr> &subgraphs) const;
-  Vistor<NodePtr> GetNodes(const bool is_unknown_shape,
-                           const ConstComputeGraphPtr &compute_graph) const;
-  Vistor<NodePtr> GetNodes(const bool is_unknown_shape,
-                           const NodeFilter &node_filter,
-                           const GraphFilter &graph_filter,
+  Vistor<NodePtr> GetNodes(const bool is_unknown_shape, const ConstComputeGraphPtr &compute_graph) const;
+  Vistor<NodePtr> GetNodes(const bool is_unknown_shape, const NodeFilter &node_filter, const GraphFilter &graph_filter,
                            const ConstComputeGraphPtr &compute_graph) const;
   size_t GetDirectNodesSize() const;
   Vistor<NodePtr> GetDirectNode(const ConstComputeGraphPtr &compute_graph) const;
@@ -75,21 +67,15 @@ class ComputeGraphImpl {
   NodePtr AddNode(const OpDescPtr op, const ComputeGraphPtr &compute_graph);
   NodePtr AddNode(const OpDescPtr op, const int64_t id, const ComputeGraphPtr &compute_graph);
 
-  std::vector<NodePtr> InsertNodes(const NodePtr &node,
-                                   const std::vector<OpDescPtr> &insert_ops,
+  std::vector<NodePtr> InsertNodes(const NodePtr &node, const std::vector<OpDescPtr> &insert_ops,
                                    const ComputeGraphPtr &compute_graph);
 
-  NodePtr InsertNode(const NodePtr &node,
-                     const OpDescPtr &insert_op,
-                     const ComputeGraphPtr &compute_graph);
+  NodePtr InsertNode(const NodePtr &node, const OpDescPtr &insert_op, const ComputeGraphPtr &compute_graph);
 
-  NodePtr InsertNodeBefore(const NodePtr &node,
-                           const OpDescPtr &insert_op,
-                           const ComputeGraphPtr &compute_graph);
+  NodePtr InsertNodeBefore(const NodePtr &node, const OpDescPtr &insert_op, const ComputeGraphPtr &compute_graph);
 
-  static bool IsSupportFuse(const std::vector<NodePtr> &nodes, std::string &reason_not_support) ;
-  std::vector<NodePtr> FuseNodeKeepTopo(const std::vector<NodePtr> &ori_nodes,
-                                        const std::vector<OpDescPtr> &fusion_ops,
+  static bool IsSupportFuse(const std::vector<NodePtr> &nodes, std::string &reason_not_support);
+  std::vector<NodePtr> FuseNodeKeepTopo(const std::vector<NodePtr> &ori_nodes, const std::vector<OpDescPtr> &fusion_ops,
                                         const ComputeGraphPtr &compute_graph);
 
   NodePtr AddInputNode(const NodePtr node);
@@ -118,17 +104,35 @@ class ComputeGraphImpl {
   void SetParentNode(const std::shared_ptr<Node> &parent);
   std::shared_ptr<Node> GetOrUpdateNetOutputNode();
   void SetNetOutputNode(const std::shared_ptr<Node> &netoutput_node);
-  const std::map<std::string, std::vector<int32_t>> &GetGraphOutNodes() const { return out_nodes_map_; }
+  const std::map<std::string, std::vector<int32_t>> &GetGraphOutNodes() const {
+    return out_nodes_map_;
+  }
 
-  void SetOrigGraph(const ComputeGraphPtr &orig_graph) { origGraph_ = orig_graph; }
-  ComputeGraphPtr GetOrigGraph(void) { return origGraph_; }
-  void SetOutputSize(const uint32_t size) { output_size_ = size; }
-  uint32_t GetOutputSize() const { return output_size_; }
-  void SetInputSize(const uint32_t size) { input_size_ = size; }
-  uint32_t GetInputSize() const { return input_size_; }
+  void SetOrigGraph(const ComputeGraphPtr &orig_graph) {
+    origGraph_ = orig_graph;
+  }
+  ComputeGraphPtr GetOrigGraph(void) {
+    return origGraph_;
+  }
+  void SetOutputSize(const uint32_t size) {
+    output_size_ = size;
+  }
+  uint32_t GetOutputSize() const {
+    return output_size_;
+  }
+  void SetInputSize(const uint32_t size) {
+    input_size_ = size;
+  }
+  uint32_t GetInputSize() const {
+    return input_size_;
+  }
 
-  void SetNeedIteration(const bool need_iteration) { need_iteration_ = need_iteration; }
-  bool GetNeedIteration() const { return need_iteration_; }
+  void SetNeedIteration(const bool need_iteration) {
+    need_iteration_ = need_iteration;
+  }
+  bool GetNeedIteration() const {
+    return need_iteration_;
+  }
 
   const std::map<std::vector<std::string>, std::vector<std::string>> &GetShareParamLayer() const {
     return params_share_map_;
@@ -137,7 +141,9 @@ class ComputeGraphImpl {
     params_share_map_ = params_share_map;
   }
 
-  void SetInputsOrder(const std::vector<std::string> &inputs_order) { inputs_order_ = inputs_order; }
+  void SetInputsOrder(const std::vector<std::string> &inputs_order) {
+    inputs_order_ = inputs_order;
+  }
   void SetGraphOutNodes(const std::map<std::string, std::vector<int32_t>> &out_nodes_map) {
     out_nodes_map_ = out_nodes_map;
   }
@@ -147,9 +153,15 @@ class ComputeGraphImpl {
     }
   }
 
-  void SetGraphOpName(const std::map<uint32_t, std::string> &op_name_map) { op_name_map_ = op_name_map; }
-  const std::map<uint32_t, std::string> &GetGraphOpName() const { return op_name_map_; }
-  void SetAllNodesInfo(const std::map<OperatorImplPtr, NodePtr> &nodes) { all_nodes_infos_ = nodes; }
+  void SetGraphOpName(const std::map<uint32_t, std::string> &op_name_map) {
+    op_name_map_ = op_name_map;
+  }
+  const std::map<uint32_t, std::string> &GetGraphOpName() const {
+    return op_name_map_;
+  }
+  void SetAllNodesInfo(const std::map<OperatorImplPtr, NodePtr> &nodes) {
+    all_nodes_infos_ = nodes;
+  }
 
   void SetGraphOutNodesInfo(const std::vector<std::pair<NodePtr, int32_t>> &out_nodes_info);
 
@@ -160,18 +172,36 @@ class ComputeGraphImpl {
   const std::vector<std::pair<NodePtr, int32_t>> &GetGraphOutNodesInfo();
 
   void SetGraphTargetNodesInfo(const std::vector<NodePtr> &target_nodes_info);
-  const std::vector<NodePtr> &GetGraphTargetNodesInfo() const { return target_nodes_info_; }
+  const std::vector<NodePtr> &GetGraphTargetNodesInfo() const {
+    return target_nodes_info_;
+  }
 
-  void SetSessionID(const uint64_t session_id) { session_id_ = session_id; }
-  uint64_t GetSessionID() const { return session_id_; }
+  void SetSessionID(const uint64_t session_id) {
+    session_id_ = session_id;
+  }
+  uint64_t GetSessionID() const {
+    return session_id_;
+  }
 
-  void SetGraphID(const uint32_t graph_id) { graph_id_ = graph_id; }
-  uint32_t GetGraphID() const { return graph_id_; }
+  void SetGraphID(const uint32_t graph_id) {
+    graph_id_ = graph_id;
+  }
+  uint32_t GetGraphID() const {
+    return graph_id_;
+  }
 
-  void SaveDataFormat(const ge::Format data_format) { data_format_ = data_format; }
-  ge::Format GetDataFormat() const { return data_format_; }
-  bool IsSummaryGraph() const { return is_summary_graph_; }
-  void SetSummaryFlag(const bool is_summary_graph) { is_summary_graph_ = is_summary_graph; }
+  void SaveDataFormat(const ge::Format data_format) {
+    data_format_ = data_format;
+  }
+  ge::Format GetDataFormat() const {
+    return data_format_;
+  }
+  bool IsSummaryGraph() const {
+    return is_summary_graph_;
+  }
+  void SetSummaryFlag(const bool is_summary_graph) {
+    is_summary_graph_ = is_summary_graph;
+  }
 
   graphStatus UpdateInputMapping(const std::map<uint32_t, uint32_t> &input_mapping);
   graphStatus UpdateOutputMapping(const std::map<uint32_t, uint32_t> &output_mapping) const;
@@ -202,13 +232,11 @@ class ComputeGraphImpl {
                                            const ConstComputeGraphPtr &compute_graph) const;
   graphStatus CollectBreadthOutNode(const NodePtr &node, std::map<NodePtr, uint32_t> &map_in_edge_num,
                                     std::map<std::string, NodePtr> &breadth_node_map) const;
-  void TopologicalSorting(const std::function<bool (const NodePtr &, const NodePtr &)> comp);
+  void TopologicalSorting(const std::function<bool(const NodePtr &, const NodePtr &)> comp);
   graphStatus TopologicalSorting(const ComputeGraphPtr &const_graph_ptr,
                                  const ConstComputeGraphPtr &const_compute_graph);
-  graphStatus TopologicalSortingGraph(const ConstComputeGraphPtr &compute_graph,
-                                      const bool dfs_reverse = false);
-  graphStatus TopologicalSortingGraph(const ConstComputeGraphPtr &compute_graph,
-                                      TopoSortingMode topo_sorting_mode);
+  graphStatus TopologicalSortingGraph(const ConstComputeGraphPtr &compute_graph, const bool dfs_reverse = false);
+  graphStatus TopologicalSortingGraph(const ConstComputeGraphPtr &compute_graph, TopoSortingMode topo_sorting_mode);
   graphStatus SortNodes(std::vector<NodePtr> &stack, std::map<NodePtr, uint32_t> &map_in_edge_num,
                         const ConstComputeGraphPtr &compute_graph) const;
 
@@ -244,17 +272,15 @@ class ComputeGraphImpl {
 
  private:
   void inline AddInputDataNode(const NodePtr &node);
-  NodePtr CreateNodeFromOpDesc(const OpDescPtr &op_desc,
-                                   const ComputeGraphPtr &compute_graph,
-                                   const int64_t topo_id);
+  NodePtr CreateNodeFromOpDesc(const OpDescPtr &op_desc, const ComputeGraphPtr &compute_graph, const int64_t topo_id);
   void inline GetAllNodesFromOpdesc(const OpDesc &op_desc, const GraphFilter &graph_filter,
-                                    std::deque<NodePtr>& candidates, const NodePtr node) const;
+                                    std::deque<NodePtr> &candidates, const NodePtr node) const;
   void inline GetAllNodesFromOpdesc(std::vector<ComputeGraphPtr> &subgraphs, const OpDesc &op_desc,
-                                    std::deque<NodePtr>& candidates) const;
+                                    std::deque<NodePtr> &candidates) const;
   void inline GetAllNodesPtrFromOpdesc(std::vector<ComputeGraphPtr> &subgraphs, const OpDesc &op_desc,
-                                       std::deque<Node *>& candidates) const;
+                                       std::deque<Node *> &candidates) const;
 
-  template<typename AnchorPtr>
+  template <typename AnchorPtr>
   void inline GetOutNodesFromAnchor(const AnchorPtr &peer_in_anchor, std::map<NodePtr, uint32_t> &map_in_edge_num,
                                     std::vector<NodePtr> &out_nodes) const {
     const auto iter = map_in_edge_num.find(peer_in_anchor->GetOwnerNode());
@@ -265,8 +291,7 @@ class ComputeGraphImpl {
       }
     }
   }
-  graphStatus DoTopologicalSorting(const ConstComputeGraphPtr &compute_graph,
-                                   TopoSortingMode sorting_mode,
+  graphStatus DoTopologicalSorting(const ConstComputeGraphPtr &compute_graph, TopoSortingMode sorting_mode,
                                    bool dfs_reverse);
 
  private:
@@ -289,7 +314,8 @@ class ComputeGraphImpl {
   graphStatus RemoveUnusedRetvalNode(const ComputeGraphPtr &compute_graph);
   graphStatus UpdateNetOutput(const ComputeGraphPtr &compute_graph, const NodePtr &output_node, bool update_data_edge);
   graphStatus UpdateNetOutputDesc(const NodePtr &net_output) const;
-  graphStatus UpdateNetOutputParentNodeIndex(const NodePtr &net_output, const std::vector<RetvalInfo> &output_nodes_info) const;
+  graphStatus UpdateNetOutputParentNodeIndex(const NodePtr &net_output,
+                                             const std::vector<RetvalInfo> &output_nodes_info) const;
   graphStatus UnLinkAnchorsOfNetoutput(const NodePtr &net_out_node);
   graphStatus UnLinkDataAnchorOfNetoutput(const NodePtr &net_out_node);
   graphStatus UnLinkControlAnchorOfNetoutput(const NodePtr &net_out_node);
@@ -297,7 +323,7 @@ class ComputeGraphImpl {
 
   bool is_include_special_node_ = false;
   std::set<NodePtr> targets_;
-  std::set<NodePtr> old_targets_; // 在多次SetGraphTargetNodesInfo中保存上一次的信息，用于删除上一次的控制边
+  std::set<NodePtr> old_targets_;  // 在多次SetGraphTargetNodesInfo中保存上一次的信息，用于删除上一次的控制边
 
  private:
   friend class ModelSerializeImp;
@@ -340,5 +366,5 @@ class ComputeGraphImpl {
   Node *parent_node_bare_ptr_ = nullptr;
   ComputeGraph *parent_graph_bare_ptr_ = nullptr;
 };
-}  // namespace ge
+}  // namespace af
 #endif  // GRAPH_COMPUTE_GRAPH_IMPL_H_

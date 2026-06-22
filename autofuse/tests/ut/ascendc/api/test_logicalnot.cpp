@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -41,7 +41,7 @@ class TestApiLogicalNot8 : public testing::Test, public testing::WithParamInterf
 TEST_P(TestApiLogicalNot8, Calc) {
   int size = this->GetParam();
   UnaryTest<uint8_t, half>(size, LogicalNot<uint8_t>, LogicalNotExpectGenUInt8, LogicalNotSrcGenUInt8,
-                     LogicalNotCompareGenUInt8);
+                           LogicalNotCompareGenUInt8);
 }
 
 INSTANTIATE_TEST_SUITE_P(DiffLength, TestApiLogicalNot8,
@@ -82,7 +82,7 @@ class TestApiLogicalNotInt64 : public testing::Test, public testing::WithParamIn
 TEST_P(TestApiLogicalNotInt64, Calc) {
   int size = this->GetParam();
   UnaryTest<int64_t, half>(size, LogicalNot<int64_t>, LogicalNotExpectGenInt64, LogicalNotSrcGenInt64,
-                     LogicalNotCompareGenInt64);
+                           LogicalNotCompareGenInt64);
 }
 
 INSTANTIATE_TEST_SUITE_P(DiffLength, TestApiLogicalNotInt64,
@@ -95,5 +95,6 @@ INSTANTIATE_TEST_SUITE_P(DiffLength, TestApiLogicalNotInt64,
                              /* less than max repeat */
                              (MAX_REPEAT_NUM - 1) * ONE_REPEAT_BYTE_SIZE / sizeof(int64_t),
                              /* mix block, repeat, max repeat*/
-                           ((MAX_REPEAT_NUM - 1) * ONE_REPEAT_BYTE_SIZE + (ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) +
-                             (ONE_BLK_SIZE - sizeof(int64_t))) /sizeof(int64_t)));
+                             ((MAX_REPEAT_NUM - 1) * ONE_REPEAT_BYTE_SIZE + (ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) +
+                              (ONE_BLK_SIZE - sizeof(int64_t))) /
+                                 sizeof(int64_t)));

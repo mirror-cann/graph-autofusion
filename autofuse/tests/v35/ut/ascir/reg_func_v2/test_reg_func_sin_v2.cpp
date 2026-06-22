@@ -24,17 +24,17 @@
 #include "ascir_ops.h"
 #include "ascir_utils.h"
 
-namespace af{
+namespace af {
 namespace ascir {
 extern std::vector<std::unique_ptr<af::TmpBufDesc>> CalcSinTmpSizeV2(const af::AscNode &node);
 
 using namespace testing;
 using namespace af::ascir_op;
 
-class CalcSinTmpSizeV2Test:public::testing::Test{
-protected:
-    void SetUp() override{}
-    void TearDown() override{}
+class CalcSinTmpSizeV2Test : public ::testing::Test {
+ protected:
+  void SetUp() override {}
+  void TearDown() override {}
 };
 
 /**
@@ -42,65 +42,64 @@ protected:
  * @tc.number: CalcSinTmpSizeV2_Test_001
  * @tc.desc: Test CalcSinTmpSizeV2 returns correct size when input is DT_FLOAT
  */
-TEST_F(CalcSinTmpSizeV2Test, CalcSinTmpSizeV2_ShouldReturnCorrectSize_WhenInputsIsFLOAT)
-{
-    af::AscGraph graph("test");
-    auto s0 = graph.CreateSizeVar("s0");
-    auto s1 = graph.CreateSizeVar("s1");
-    auto s2 = graph.CreateSizeVar("s2");
+TEST_F(CalcSinTmpSizeV2Test, CalcSinTmpSizeV2_ShouldReturnCorrectSize_WhenInputsIsFLOAT) {
+  af::AscGraph graph("test");
+  auto s0 = graph.CreateSizeVar("s0");
+  auto s1 = graph.CreateSizeVar("s1");
+  auto s2 = graph.CreateSizeVar("s2");
 
-    auto z0 = graph.CreateAxis("z0", s0);
-    auto zo = graph.CreateAxis("zo", s1 + s2);
-    auto zo_s_0 = graph.CreateAxis("zo_s_0", Axis::Type::kAxisTypeOriginal, s1, {zo.id}, af::kIdNone);
-    auto zo_s_1 = graph.CreateAxis("zo_s_1", Axis::Type::kAxisTypeOriginal, s2, {zo.id}, af::kIdNone);
+  auto z0 = graph.CreateAxis("z0", s0);
+  auto zo = graph.CreateAxis("zo", s1 + s2);
+  auto zo_s_0 = graph.CreateAxis("zo_s_0", Axis::Type::kAxisTypeOriginal, s1, {zo.id}, af::kIdNone);
+  auto zo_s_1 = graph.CreateAxis("zo_s_1", Axis::Type::kAxisTypeOriginal, s2, {zo.id}, af::kIdNone);
 
-    af::ascir_op::Data x1("x1", graph);
-    af::ascir_op::Load load1("load1");
-    af::ascir_op::Sin sin("sin");
-    af::ascir_op::Store store("store");
-    af::ascir_op::Output y("y");
+  af::ascir_op::Data x1("x1", graph);
+  af::ascir_op::Load load1("load1");
+  af::ascir_op::Sin sin("sin");
+  af::ascir_op::Store store("store");
+  af::ascir_op::Output y("y");
 
-    x1.attr.sched.axis = {z0.id, zo_s_0.id};
-    x1.y.dtype = af::DT_FLOAT;
-    *x1.y.axis = {z0.id, zo_s_0.id};
-    *x1.y.repeats = {s0, s1};
-    *x1.y.strides = {s1, Symbol(1)};
+  x1.attr.sched.axis = {z0.id, zo_s_0.id};
+  x1.y.dtype = af::DT_FLOAT;
+  *x1.y.axis = {z0.id, zo_s_0.id};
+  *x1.y.repeats = {s0, s1};
+  *x1.y.strides = {s1, Symbol(1)};
 
-    load1.x = x1.y;
-    load1.attr.sched.axis = {z0.id, zo_s_0.id};
-    load1.y.dtype = af::DT_FLOAT;
-    *load1.y.axis = {z0.id, zo_s_0.id};
-    *load1.y.repeats = {s0, s1};
-    *load1.y.strides = {s1, Symbol(1)};
-    *load1.y.vectorized_axis = {z0.id, zo_s_0.id};
+  load1.x = x1.y;
+  load1.attr.sched.axis = {z0.id, zo_s_0.id};
+  load1.y.dtype = af::DT_FLOAT;
+  *load1.y.axis = {z0.id, zo_s_0.id};
+  *load1.y.repeats = {s0, s1};
+  *load1.y.strides = {s1, Symbol(1)};
+  *load1.y.vectorized_axis = {z0.id, zo_s_0.id};
 
-    sin.x = load1.y;
-    sin.attr.sched.axis = {z0.id, zo_s_0.id};
-    sin.y.dtype = af::DT_FLOAT;
-    *sin.y.axis = {z0.id, zo_s_0.id};
-    *sin.y.repeats = {s0, s1};
-    *sin.y.strides = {s1, Symbol(1)};
+  sin.x = load1.y;
+  sin.attr.sched.axis = {z0.id, zo_s_0.id};
+  sin.y.dtype = af::DT_FLOAT;
+  *sin.y.axis = {z0.id, zo_s_0.id};
+  *sin.y.repeats = {s0, s1};
+  *sin.y.strides = {s1, Symbol(1)};
 
-    store.x = sin.y;
-    store.attr.sched.axis = {z0.id, zo_s_0.id};
-    store.y.dtype = af::DT_FLOAT;
-    *store.y.axis = {z0.id, zo_s_0.id};
-    *store.y.repeats = {s0, s1};
-    *store.y.strides = {s1, Symbol(1)};
+  store.x = sin.y;
+  store.attr.sched.axis = {z0.id, zo_s_0.id};
+  store.y.dtype = af::DT_FLOAT;
+  *store.y.axis = {z0.id, zo_s_0.id};
+  *store.y.repeats = {s0, s1};
+  *store.y.strides = {s1, Symbol(1)};
 
-    y.x = store.y;
-    y.attr.sched.axis = {z0.id, zo_s_0.id};
-    y.y.dtype = af::DT_FLOAT;
-    *y.y.axis = {z0.id, zo_s_0.id};
-    *y.y.repeats = {s0, s1};
-    *y.y.strides = {s1, Symbol(1)};
+  y.x = store.y;
+  y.attr.sched.axis = {z0.id, zo_s_0.id};
+  y.y.dtype = af::DT_FLOAT;
+  *y.y.axis = {z0.id, zo_s_0.id};
+  *y.y.repeats = {s0, s1};
+  *y.y.strides = {s1, Symbol(1)};
 
-    std::shared_ptr<af::AscNode> node = graph.FindNode("sin");
-    node->inputs[0].attr.vectorized_strides = {s1, Symbol(1)};
-    std::vector<std::unique_ptr<af::TmpBufDesc>> result = CalcSinTmpSizeV2(*node);
-    ASSERT_EQ(result.size(), 1);
-    ASSERT_EQ(result[0]->size, Symbol(768));  // SIN_ONE_REPEAT_BYTE_SIZE * SIN_FLOAT_CALC_PROC
-    ASSERT_EQ(result[0]->life_time_axis_id, -1);
+  std::shared_ptr<af::AscNode> node = graph.FindNode("sin");
+  node->inputs[0].attr.vectorized_strides = {s1, Symbol(1)};
+  std::vector<std::unique_ptr<af::TmpBufDesc>> result = CalcSinTmpSizeV2(*node);
+  ASSERT_EQ(result.size(), 1);
+  ASSERT_EQ(result[0]->size, Symbol(768));  // SIN_ONE_REPEAT_BYTE_SIZE * SIN_FLOAT_CALC_PROC
+  ASSERT_EQ(result[0]->life_time_axis_id, -1);
 }
 
 /**
@@ -108,66 +107,65 @@ TEST_F(CalcSinTmpSizeV2Test, CalcSinTmpSizeV2_ShouldReturnCorrectSize_WhenInputs
  * @tc.number: CalcSinTmpSizeV2_Test_002
  * @tc.desc: Test CalcSinTmpSizeV2 returns correct size when input is DT_FLOAT16
  */
-TEST_F(CalcSinTmpSizeV2Test, CalcSinTmpSizeV2_ShouldReturnCorrectSize_WhenInputsIsFLOAT16)
-{
-    af::AscGraph graph("test");
-    auto s0 = graph.CreateSizeVar("s0");
-    auto s1 = graph.CreateSizeVar("s1");
-    auto s2 = graph.CreateSizeVar("s2");
+TEST_F(CalcSinTmpSizeV2Test, CalcSinTmpSizeV2_ShouldReturnCorrectSize_WhenInputsIsFLOAT16) {
+  af::AscGraph graph("test");
+  auto s0 = graph.CreateSizeVar("s0");
+  auto s1 = graph.CreateSizeVar("s1");
+  auto s2 = graph.CreateSizeVar("s2");
 
-    auto z0 = graph.CreateAxis("z0", s0);
-    auto zo = graph.CreateAxis("zo", s1 + s2);
-    auto zo_s_0 = graph.CreateAxis("zo_s_0", Axis::Type::kAxisTypeOriginal, s1, {zo.id}, af::kIdNone);
-    auto zo_s_1 = graph.CreateAxis("zo_s_1", Axis::Type::kAxisTypeOriginal, s2, {zo.id}, af::kIdNone);
+  auto z0 = graph.CreateAxis("z0", s0);
+  auto zo = graph.CreateAxis("zo", s1 + s2);
+  auto zo_s_0 = graph.CreateAxis("zo_s_0", Axis::Type::kAxisTypeOriginal, s1, {zo.id}, af::kIdNone);
+  auto zo_s_1 = graph.CreateAxis("zo_s_1", Axis::Type::kAxisTypeOriginal, s2, {zo.id}, af::kIdNone);
 
-    af::ascir_op::Data x1("x1", graph);
-    af::ascir_op::Load load1("load1");
-    af::ascir_op::Sin sin("sin");
-    af::ascir_op::Store store("store");
-    af::ascir_op::Output y("y");
+  af::ascir_op::Data x1("x1", graph);
+  af::ascir_op::Load load1("load1");
+  af::ascir_op::Sin sin("sin");
+  af::ascir_op::Store store("store");
+  af::ascir_op::Output y("y");
 
-    x1.attr.sched.axis = {z0.id, zo_s_0.id};
-    x1.y.dtype = af::DT_FLOAT16;
-    *x1.y.axis = {z0.id, zo_s_0.id};
-    *x1.y.repeats = {s0, s1};
-    *x1.y.strides = {s1, Symbol(1)};
+  x1.attr.sched.axis = {z0.id, zo_s_0.id};
+  x1.y.dtype = af::DT_FLOAT16;
+  *x1.y.axis = {z0.id, zo_s_0.id};
+  *x1.y.repeats = {s0, s1};
+  *x1.y.strides = {s1, Symbol(1)};
 
-    load1.x = x1.y;
-    load1.attr.sched.axis = {z0.id, zo_s_0.id};
-    load1.y.dtype = af::DT_FLOAT16;
-    *load1.y.axis = {z0.id, zo_s_0.id};
-    *load1.y.repeats = {s0, s1};
-    *load1.y.strides = {s1, Symbol(1)};
-    *load1.y.vectorized_axis = {z0.id, zo_s_0.id};
+  load1.x = x1.y;
+  load1.attr.sched.axis = {z0.id, zo_s_0.id};
+  load1.y.dtype = af::DT_FLOAT16;
+  *load1.y.axis = {z0.id, zo_s_0.id};
+  *load1.y.repeats = {s0, s1};
+  *load1.y.strides = {s1, Symbol(1)};
+  *load1.y.vectorized_axis = {z0.id, zo_s_0.id};
 
-    sin.x = load1.y;
-    sin.attr.sched.axis = {z0.id, zo_s_0.id};
-    sin.y.dtype = af::DT_FLOAT16;
-    *sin.y.axis = {z0.id, zo_s_0.id};
-    *sin.y.repeats = {s0, s1};
-    *sin.y.strides = {s1, Symbol(1)};
+  sin.x = load1.y;
+  sin.attr.sched.axis = {z0.id, zo_s_0.id};
+  sin.y.dtype = af::DT_FLOAT16;
+  *sin.y.axis = {z0.id, zo_s_0.id};
+  *sin.y.repeats = {s0, s1};
+  *sin.y.strides = {s1, Symbol(1)};
 
-    store.x = sin.y;
-    store.attr.sched.axis = {z0.id, zo_s_0.id};
-    store.y.dtype = af::DT_FLOAT16;
-    *store.y.axis = {z0.id, zo_s_0.id};
-    *store.y.repeats = {s0, s1};
-    *store.y.strides = {s1, Symbol(1)};
+  store.x = sin.y;
+  store.attr.sched.axis = {z0.id, zo_s_0.id};
+  store.y.dtype = af::DT_FLOAT16;
+  *store.y.axis = {z0.id, zo_s_0.id};
+  *store.y.repeats = {s0, s1};
+  *store.y.strides = {s1, Symbol(1)};
 
-    y.x = store.y;
-    y.attr.sched.axis = {z0.id, zo_s_0.id};
-    y.y.dtype = af::DT_FLOAT16;
-    *y.y.axis = {z0.id, zo_s_0.id};
-    *y.y.repeats = {s0, s1};
-    *y.y.strides = {s1, Symbol(1)};
+  y.x = store.y;
+  y.attr.sched.axis = {z0.id, zo_s_0.id};
+  y.y.dtype = af::DT_FLOAT16;
+  *y.y.axis = {z0.id, zo_s_0.id};
+  *y.y.repeats = {s0, s1};
+  *y.y.strides = {s1, Symbol(1)};
 
-    std::shared_ptr<af::AscNode> node = graph.FindNode("sin");
-    node->inputs[0].attr.vectorized_strides = {s1, Symbol(1)};
-    std::vector<std::unique_ptr<af::TmpBufDesc>> result = CalcSinTmpSizeV2(*node);
-    ASSERT_EQ(result.size(), 1);
-    ASSERT_EQ(result[0]->size, Symbol(2048));  // SIN_ONE_REPEAT_BYTE_SIZE * SIN_HALF_CALC_PROC = 256 * 4
-    ASSERT_EQ(result[0]->life_time_axis_id, -1);
+  std::shared_ptr<af::AscNode> node = graph.FindNode("sin");
+  node->inputs[0].attr.vectorized_strides = {s1, Symbol(1)};
+  std::vector<std::unique_ptr<af::TmpBufDesc>> result = CalcSinTmpSizeV2(*node);
+  ASSERT_EQ(result.size(), 1);
+  ASSERT_EQ(result[0]->size, Symbol(2048));  // SIN_ONE_REPEAT_BYTE_SIZE * SIN_HALF_CALC_PROC = 256 * 4
+  ASSERT_EQ(result[0]->life_time_axis_id, -1);
 }
 
-} // namespace ascir
-} // namespace ge
+}  // namespace ascir
+}  // namespace af

@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2026 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -19,76 +19,92 @@
 using namespace att;
 
 class MockStL0TileSolver : public L0TileSolver {
-  public:
-    MockStL0TileSolver() {}
-    explicit MockStL0TileSolver(L0TileInput input) : L0TileSolver(input) {}
-    void SetL0A(uint32_t value) { L0A_ = value; }
-    void SetL0B(uint32_t value) { L0B_ = value; }
-    void SetL0C(uint32_t value) { L0C_ = value; }
-    bool CheckBufferUseValid() override {
-      uint32_t l0A = input_.l0_vars[0].value * input_.l0_vars[2].value * 4;
-      uint32_t l0B = input_.l0_vars[2].value * input_.l0_vars[1].value * 4;
-      uint32_t l0C = input_.l0_vars[0].value * input_.l0_vars[1].value * 4;
-      if (l0A > L0A_ || l0B > L0B_ || l0C > L0C_) {
-        return false;
-      }
-      return true;
+ public:
+  MockStL0TileSolver() {}
+  explicit MockStL0TileSolver(L0TileInput input) : L0TileSolver(input) {}
+  void SetL0A(uint32_t value) {
+    L0A_ = value;
+  }
+  void SetL0B(uint32_t value) {
+    L0B_ = value;
+  }
+  void SetL0C(uint32_t value) {
+    L0C_ = value;
+  }
+  bool CheckBufferUseValid() override {
+    uint32_t l0A = input_.l0_vars[0].value * input_.l0_vars[2].value * 4;
+    uint32_t l0B = input_.l0_vars[2].value * input_.l0_vars[1].value * 4;
+    uint32_t l0C = input_.l0_vars[0].value * input_.l0_vars[1].value * 4;
+    if (l0A > L0A_ || l0B > L0B_ || l0C > L0C_) {
+      return false;
     }
+    return true;
+  }
 
-  private:
-    uint32_t L0A_;
-    uint32_t L0B_;
-    uint32_t L0C_;
+ private:
+  uint32_t L0A_;
+  uint32_t L0B_;
+  uint32_t L0C_;
 };
 
 class case1L0TileSolver : public L0TileSolver {
-  public:
-    explicit case1L0TileSolver(L0TileInput &input) : L0TileSolver(input) {};
-    void SetL1(uint32_t &value) { L1_ = value; }
-    void SetL2(uint32_t &value) { L2_ = value; }
-    void SetL0A(uint32_t &value) { L0A_ = value; }
-    void SetL0B(uint32_t &value) { L0B_ = value; }
-    void SetL0C(uint32_t &value) { L0C_ = value; }
-    bool CheckBufferUseValid() override;
-  private:
-    uint32_t L1_;
-    uint32_t L2_;
-    uint32_t L0A_;
-    uint32_t L0B_;
-    uint32_t L0C_;
+ public:
+  explicit case1L0TileSolver(L0TileInput &input) : L0TileSolver(input) {};
+  void SetL1(uint32_t &value) {
+    L1_ = value;
+  }
+  void SetL2(uint32_t &value) {
+    L2_ = value;
+  }
+  void SetL0A(uint32_t &value) {
+    L0A_ = value;
+  }
+  void SetL0B(uint32_t &value) {
+    L0B_ = value;
+  }
+  void SetL0C(uint32_t &value) {
+    L0C_ = value;
+  }
+  bool CheckBufferUseValid() override;
+
+ private:
+  uint32_t L1_;
+  uint32_t L2_;
+  uint32_t L0A_;
+  uint32_t L0B_;
+  uint32_t L0C_;
 };
 bool case1L0TileSolver::CheckBufferUseValid() {
   uint32_t basek_size = input_.l0_vars[0].value;
   uint32_t basem_size = input_.l0_vars[1].value;
   uint32_t basen_size = input_.l0_vars[2].value;
-  
-  uint32_t L0A =  (4 * basek_size * basem_size);
+
+  uint32_t L0A = (4 * basek_size * basem_size);
   if (L0A > L0A_) {
     return false;
-   };
-  uint32_t L0B =  (4 * basek_size * basen_size);
+  };
+  uint32_t L0B = (4 * basek_size * basen_size);
   if (L0B > L0B_) {
     return false;
-   };
-  uint32_t L0C =  (4 * basem_size * basen_size);
+  };
+  uint32_t L0C = (4 * basem_size * basen_size);
   if (L0C > L0C_) {
     return false;
-   };
+  };
   return true;
 }
 
 class TestL0SolverSt : public ::testing::Test {
  public:
   void TearDown() override {
-     // 清理测试生成的临时文件
+    // 清理测试生成的临时文件
     autofuse::test::CleanupTestArtifacts();
-     // before the destructor).
+    // before the destructor).
   }
   MockStL0TileSolver solver;
 };
 
-TEST_F(TestL0SolverSt, TEST_CASE_01)
-{
+TEST_F(TestL0SolverSt, TEST_CASE_01) {
   L0Var M;
   L0Var N;
   L0Var K;
@@ -128,8 +144,7 @@ TEST_F(TestL0SolverSt, TEST_CASE_01)
   delete[] input.l0_vars;
 }
 
-TEST_F(TestL0SolverSt, TEST_CASE_02)
-{
+TEST_F(TestL0SolverSt, TEST_CASE_02) {
   L0Var M;
   L0Var N;
   L0Var K;
@@ -169,9 +184,7 @@ TEST_F(TestL0SolverSt, TEST_CASE_02)
   delete[] input.l0_vars;
 }
 
-
-TEST_F(TestL0SolverSt, TEST_CASE_03)
-{
+TEST_F(TestL0SolverSt, TEST_CASE_03) {
   L0Var M;
   L0Var N;
   L0Var K;
@@ -211,8 +224,7 @@ TEST_F(TestL0SolverSt, TEST_CASE_03)
   delete[] input.l0_vars;
 }
 
-TEST_F(TestL0SolverSt, TEST_CASE_04)
-{
+TEST_F(TestL0SolverSt, TEST_CASE_04) {
   L0Var M;
   L0Var N;
   L0Var K;
@@ -252,10 +264,9 @@ TEST_F(TestL0SolverSt, TEST_CASE_04)
   delete[] input.l0_vars;
 }
 
-TEST_F(TestL0SolverSt, TEST_CASE_05)
-{
+TEST_F(TestL0SolverSt, TEST_CASE_05) {
   L0TileInput l0_input;
-  l0_input.l0_vars = new(std::nothrow) L0Var[3];
+  l0_input.l0_vars = new (std::nothrow) L0Var[3];
   l0_input.size = 3;
   l0_input.core_num = 20;
   L0Var basek_size;
@@ -292,8 +303,7 @@ TEST_F(TestL0SolverSt, TEST_CASE_05)
   delete[] l0_input.l0_vars;
 }
 
-TEST_F(TestL0SolverSt, TEST_CASE_06)
-{
+TEST_F(TestL0SolverSt, TEST_CASE_06) {
   L0Var M;
   L0Var N;
   L0Var K;
@@ -332,5 +342,3 @@ TEST_F(TestL0SolverSt, TEST_CASE_06)
   EXPECT_EQ(output[2], 64);
   delete[] input.l0_vars;
 }
-
-

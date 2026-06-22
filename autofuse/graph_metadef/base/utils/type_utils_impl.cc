@@ -77,11 +77,7 @@ const std::map<Format, std::string> kFormatToStringMap = {
     {FORMAT_MAX, "MAX"}};
 
 const std::map<std::string, Format> kDataFormatMap = {
-    {"NCHW", FORMAT_NCHW},
-    {"NHWC", FORMAT_NHWC},
-    {"NDHWC", FORMAT_NDHWC},
-    {"NCDHW", FORMAT_NCDHW},
-    {"ND",   FORMAT_ND}};
+    {"NCHW", FORMAT_NCHW}, {"NHWC", FORMAT_NHWC}, {"NDHWC", FORMAT_NDHWC}, {"NCDHW", FORMAT_NCDHW}, {"ND", FORMAT_ND}};
 
 const std::map<std::string, Format> kStringToFormatMap = {
     {"NCHW", FORMAT_NCHW},
@@ -139,8 +135,7 @@ const std::map<std::string, Format> kStringToFormatMap = {
     {"FRACTAL_Z_WINO", FORMAT_FRACTAL_Z_WINO},
     {"C1HWC0", FORMAT_C1HWC0},
     {"RESERVED", FORMAT_RESERVED},
-    {"UNDEFINED", FORMAT_RESERVED}
-  };
+    {"UNDEFINED", FORMAT_RESERVED}};
 
 const std::map<DataType, std::string> kDataTypeToStringMap = {
     {DT_UNDEFINED, "DT_UNDEFINED"},
@@ -238,7 +233,7 @@ const std::map<ge::DataType, uint32_t> kDataTypeToLength = {
     {DT_STRING_REF, sizeof(uint64_t) * 2U},
     {DT_STRING, sizeof(uint64_t) * 2U},
 };
-}
+}  // namespace
 
 AscendString TypeUtilsImpl::DataTypeToAscendString(const DataType data_type) {
   const auto it = kDataTypeToStringMap.find(data_type);
@@ -284,7 +279,7 @@ graphStatus SplitFormatFromStr(const std::string &str, std::string &primary_form
         REPORT_INNER_ERR_MSG("E18888", "sub_format: %s is not digital.", sub_format_str.c_str());
         GELOGE(GRAPH_FAILED, "[Check][Param] sub_format: %s is not digital.", sub_format_str.c_str());
         return GRAPH_FAILED;
-                      }
+      }
       sub_format = std::stoi(sub_format_str);
     } catch (std::invalid_argument &) {
       REPORT_INNER_ERR_MSG("E18888", "sub_format: %s is invalid.", sub_format_str.c_str());

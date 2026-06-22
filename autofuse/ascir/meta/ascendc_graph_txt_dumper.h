@@ -25,23 +25,23 @@ constexpr const char *kOutput = "Output";
 constexpr const char *kWorkspace = "Workspace";
 constexpr const char *kScalar = "Scalar";
 constexpr const char *kStore = "Store";
-} // namespace NodeType
+}  // namespace NodeType
 
 // 魔法数字常量
 constexpr int64_t kInvalidLoopAxis = -1;
 constexpr int64_t kInvalidAxisId = -1;
-constexpr size_t kIndentSpaces = 2UL; // 循环缩进空格数
-constexpr size_t kPropertyIndent = 8UL; // 属性缩进空格数 (VIEW 2)
-constexpr size_t kTensorPropertyIndent = 12UL; // tensor 属性缩进空格数 (VIEW 2)
-constexpr size_t kNodeIndent = 4UL; // 节点缩进空格数
+constexpr size_t kIndentSpaces = 2UL;           // 循环缩进空格数
+constexpr size_t kPropertyIndent = 8UL;         // 属性缩进空格数 (VIEW 2)
+constexpr size_t kTensorPropertyIndent = 12UL;  // tensor 属性缩进空格数 (VIEW 2)
+constexpr size_t kNodeIndent = 4UL;             // 节点缩进空格数
 
 /**
  * @brief Dtype 信息结构体
  */
 struct DtypeInfo {
-  const char *full_name; // 完整类型名 (如 "float32")
-  const char *short_name; // 简写类型名 (如 "f32")
-  const char *suffix; // 后缀 (如 "32f")
+  const char *full_name;   // 完整类型名 (如 "float32")
+  const char *short_name;  // 简写类型名 (如 "f32")
+  const char *suffix;      // 后缀 (如 "32f")
 };
 
 /**
@@ -105,9 +105,9 @@ std::vector<std::string> CollectInputNames(const ascir::Graph &graph, const af::
  * @brief SSA 编号映射信息
  */
 struct SSAMappingInfo {
-  std::map<std::string, size_t> node_name_to_ssa_id; // 节点名 -> SSA 编号
-  std::set<std::string> data_node_names; // Data 节点名称集合
-  std::map<std::string, size_t> node_name_to_topo_id; // 节点名 -> topo_id
+  std::map<std::string, size_t> node_name_to_ssa_id;   // 节点名 -> SSA 编号
+  std::set<std::string> data_node_names;               // Data 节点名称集合
+  std::map<std::string, size_t> node_name_to_topo_id;  // 节点名 -> topo_id
 
   /**
    * @brief 获取节点的 SSA 编号
@@ -158,9 +158,9 @@ struct ParamInfo {
  * @brief 函数签名参数（按 data, workspace, output 顺序）
  */
 struct FunctionParams {
-  std::vector<ParamInfo> data_params;      // Data 节点
-  std::vector<ParamInfo> workspace_params; // Workspace 节点
-  std::vector<ParamInfo> output_params;    // Output 节点
+  std::vector<ParamInfo> data_params;       // Data 节点
+  std::vector<ParamInfo> workspace_params;  // Workspace 节点
+  std::vector<ParamInfo> output_params;     // Output 节点
 };
 
 /**
@@ -207,7 +207,7 @@ struct QueueNodeInfo {
 struct QueueInfo {
   int32_t que_id = 0;
   int32_t depth = 0;
-  int32_t buf_num = 0;   // queue 的 buf_num
+  int32_t buf_num = 0;  // queue 的 buf_num
   std::string position;
   std::vector<QueueNodeInfo> nodes;
 };
@@ -218,7 +218,7 @@ struct QueueInfo {
 struct BufferNodeInfo {
   size_t topo_id = 0;
   std::string node_name;
-  std::string size_str;  // tensor 的 vector<> 格式大小
+  std::string size_str;    // tensor 的 vector<> 格式大小
   bool is_tmpbuf = false;  // 是否为节点的 tmpbuf
   int32_t tmpbuf_idx = 0;  // tmpbuf 的索引（仅当 is_tmpbuf=true 时有效）
 };
@@ -265,7 +265,7 @@ std::string DumpMemoryLayoutView(const ascir::Graph &graph, bool verbose);
  * @return 完整的转储文本
  */
 std::string DumpGraphText(const ascir::Graph &graph, bool verbose = false, bool is_subgraph = false);
-} // namespace dumper
-} // namespace ascir
+}  // namespace dumper
+}  // namespace ascir
 
-#endif // ASCENDC_GRAPH_TXT_DUMPER_H
+#endif  // ASCENDC_GRAPH_TXT_DUMPER_H

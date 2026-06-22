@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -95,8 +95,8 @@ bool CheckCastBitWidthGap(const optimize::Cluster &from, const optimize::Cluster
 
   // 检查整体位宽变换倍数是否超过阈值
   if (global_max_width > global_min_width * max_gap) {
-    GELOGD("Cast nodes global bit width gap [%d vs %d] exceeds threshold [%d].",
-           global_max_width, global_min_width, max_gap);
+    GELOGD("Cast nodes global bit width gap [%d vs %d] exceeds threshold [%d].", global_max_width, global_min_width,
+           max_gap);
     return false;
   }
   return true;
@@ -506,8 +506,8 @@ bool VectorFuncPartitioner::HasReduceNodeInGraph(const af::AscGraph &impl_graph)
     }
     // 使用标准的 ScheduleUtils::IsReduce 方法检查是否为 reduce 节点
     if (ScheduleUtils::IsReduce(asc_node)) {
-      GELOGD("Found reduce node [%s] with type [%s] in graph, disable Cast VF fusion.",
-             asc_node->GetNamePtr(), asc_node->GetTypePtr());
+      GELOGD("Found reduce node [%s] with type [%s] in graph, disable Cast VF fusion.", asc_node->GetNamePtr(),
+             asc_node->GetTypePtr());
       return true;
     }
   }
@@ -516,12 +516,8 @@ bool VectorFuncPartitioner::HasReduceNodeInGraph(const af::AscGraph &impl_graph)
 
 bool VectorFuncPartitioner::IsCompareOp(const af::AscNodePtr &node) {
   static const std::unordered_set<std::string> compare_types = {
-    af::ascir_op::Ge::Type,
-    af::ascir_op::Eq::Type,
-    af::ascir_op::Ne::Type,
-    af::ascir_op::Le::Type,
-    af::ascir_op::Lt::Type,
-    af::ascir_op::Gt::Type,
+      af::ascir_op::Ge::Type, af::ascir_op::Eq::Type, af::ascir_op::Ne::Type,
+      af::ascir_op::Le::Type, af::ascir_op::Lt::Type, af::ascir_op::Gt::Type,
   };
   return compare_types.count(node->GetType()) > 0UL;
 }
@@ -530,7 +526,7 @@ ge::Status VectorFuncPartitioner::InitClusters() {
   size_t rank = 0UL;
   GELOGI("InitClusters enter, graph_name[%s].", impl_graph_.GetName().c_str());
 
-  for (const auto &node: impl_graph_.GetAllNodes()) {
+  for (const auto &node : impl_graph_.GetAllNodes()) {
     // 跳过已经加入 cluster 的节点（被 Compare 合并的）
     if (cluster_dict_.GetNodeCluster(node) != nullptr) {
       continue;
@@ -562,7 +558,7 @@ ClusterPtr VectorFuncPartitioner::CreateAndInitCluster(const af::AscNodePtr &nod
 }
 
 void VectorFuncPartitioner::EstablishClusterConnections(ClusterPtr &cluster, const af::AscNodePtr &node) {
-  for (const auto &in_node: node->GetInAllNodes()) {
+  for (const auto &in_node : node->GetInAllNodes()) {
     const auto &in_cluster = cluster_dict_.GetNodeCluster(in_node);
     if (in_cluster == nullptr) {
       GELOGD("The in cluster of the node [%s] is nullptr, and the topological sort may be incorrect.",
@@ -574,9 +570,9 @@ void VectorFuncPartitioner::EstablishClusterConnections(ClusterPtr &cluster, con
 }
 
 void VectorFuncPartitioner::FixAllCompareClusterConnections() {
-  for (const auto &cluster: cluster_dict_.GetAllClusters()) {
+  for (const auto &cluster : cluster_dict_.GetAllClusters()) {
     af::AscNodePtr compare_node = nullptr;
-    for (const auto &node: cluster->nodes_) {
+    for (const auto &node : cluster->nodes_) {
       if (IsCompareOp(node)) {
         compare_node = node;
         break;
@@ -589,7 +585,8 @@ void VectorFuncPartitioner::FixAllCompareClusterConnections() {
   }
 }
 
-void VectorFuncPartitioner::FixCompareClusterConnections(const ClusterPtr &cluster, const af::AscNodePtr &compare_node) {
+void VectorFuncPartitioner::FixCompareClusterConnections(const ClusterPtr &cluster,
+                                                         const af::AscNodePtr &compare_node) {
   std::unordered_set<Cluster *> missing_input_clusters;
   missing_input_clusters.reserve(cluster->in_nodes_.size());
   for (const auto &in_node : cluster->in_nodes_) {
@@ -655,7 +652,7 @@ bool VectorFuncPartitioner::CanMergeClusters(const Cluster &from, const Cluster 
     return false;
   }
   // 两个向量化轴对应的repeats都不空时，尾轴大小必须相同
-  if (!from_meta.vectorized_repeats.empty() && !to_meta.vectorized_repeats.empty() && 
+  if (!from_meta.vectorized_repeats.empty() && !to_meta.vectorized_repeats.empty() &&
       (from_meta.vectorized_repeats != to_meta.vectorized_repeats)) {
     return false;
   }
@@ -699,16 +696,16 @@ bool VectorFuncPartitioner::CanMergeClusters(const Cluster &from, const Cluster 
 ge::Status VectorFuncPartitioner::MergeClusters() {
   // Merge clusters according to the linking relationship
   auto all_clusters = cluster_dict_.GetAllClusters();
-  std::unordered_set<const Cluster *> merged_clusters; // 记录已合并的 cluster
+  std::unordered_set<const Cluster *> merged_clusters;  // 记录已合并的 cluster
 
-  for (const auto &cluster: all_clusters) {
+  for (const auto &cluster : all_clusters) {
     // 如果该 cluster 已被合并到其他 cluster，跳过
     if (merged_clusters.count(cluster.get()) > 0UL) {
       continue;
     }
 
     const auto cluster_inputs = cluster->Inputs();
-    for (const auto &in_cluster: cluster_inputs) {
+    for (const auto &in_cluster : cluster_inputs) {
       // 如果输入 cluster 已被合并，跳过
       if (merged_clusters.count(in_cluster) > 0UL) {
         continue;
@@ -724,7 +721,7 @@ ge::Status VectorFuncPartitioner::MergeClusters() {
       cluster->MergeFrom(*in_cluster);
       merged_clusters.insert(in_cluster);
       // 批量更新 cluster_dict_ 映射
-      for (const auto &node: in_cluster->Nodes()) {
+      for (const auto &node : in_cluster->Nodes()) {
         cluster_dict_.SetNodeClusterPair(node, cluster);
       }
       GELOGD("Merge cluster from %zu to %zu.", in_cluster->Id(), cluster->Id());
@@ -743,9 +740,7 @@ ge::Status VectorFuncPartitioner::SortClustersForBuildSubgraph() {
 
   std::vector<ClusterPtr> sorted_unique_clusters(unique_clusters.begin(), unique_clusters.end());
   std::sort(sorted_unique_clusters.begin(), sorted_unique_clusters.end(),
-            [](const ClusterPtr &clu_a, const ClusterPtr &clu_b) -> bool {
-              return clu_a->Id() < clu_b->Id();
-            });
+            [](const ClusterPtr &clu_a, const ClusterPtr &clu_b) -> bool { return clu_a->Id() < clu_b->Id(); });
 
   cluster_dict_.SwapClusters(sorted_unique_clusters);
   return ge::SUCCESS;
@@ -949,7 +944,8 @@ ge::Status VectorFuncPartitioner::BuildSubgraph(const ClusterPtr &cluster, af::A
       vf_node->attr.api = {af::ApiType::kAPITypeCompute, af::ComputeType::kComputeElewise,
                            af::ComputeUnit::kUnitVector};
     } else {
-      is_all_input_same_cache = is_all_input_same_cache && (vf_node->attr.sched.exec_condition == pre_node->attr.sched.exec_condition);
+      is_all_input_same_cache =
+          is_all_input_same_cache && (vf_node->attr.sched.exec_condition == pre_node->attr.sched.exec_condition);
     }
     vf_node->outputs[parent_out_idx].attr = pre_node->outputs[out_anchor->GetIdx()].attr;
     for (const auto &in_anchor : iter.second) {

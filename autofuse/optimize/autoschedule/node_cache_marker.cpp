@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -44,7 +44,8 @@ void NodeCacheMarker::AddToCacheStartSet(const af::NodePtr &node) {
   cache_start_nodes_.insert(node);
 }
 
-af::ExecuteCondition NodeCacheMarker::DoesNodeNeedCache(const std::vector<int64_t> &in_axis, const std::vector<int64_t> &out_axis,
+af::ExecuteCondition NodeCacheMarker::DoesNodeNeedCache(const std::vector<int64_t> &in_axis,
+                                                        const std::vector<int64_t> &out_axis,
                                                         const std::vector<af::Expression> &in_repeats,
                                                         const std::vector<af::Expression> &out_repeats) const {
   GE_ASSERT_EQ(in_axis.size(), out_axis.size());
@@ -153,7 +154,8 @@ void NodeCacheMarker::MarkNodeCacheable(const af::NodePtr &node) {
 /**
  * 把node及node的所有父节点标记为可缓存
  */
-void NodeCacheMarker::MarkNodesCacheableBottomUp(const af::AscNodePtr &node, [[maybe_unused]] const af::ExecuteCondition condition) {
+void NodeCacheMarker::MarkNodesCacheableBottomUp(const af::AscNodePtr &node,
+                                                 [[maybe_unused]] const af::ExecuteCondition condition) {
   std::queue<af::NodePtr> queue;
   queue.push(node);
   while (!queue.empty()) {
@@ -165,12 +167,14 @@ void NodeCacheMarker::MarkNodesCacheableBottomUp(const af::AscNodePtr &node, [[m
     const auto &asc_tmp_node = std::dynamic_pointer_cast<af::AscNode>(tmp_node);
 
     if (asc_tmp_node != nullptr && ScheduleUtils::IsLoad(asc_tmp_node)) {
-      GELOGD("Graph [%s], find Load node [%s] as cache start boundary, truncate to avoid multi-output pollution from Data node.",
-             graph_.GetName().c_str(), tmp_node->GetNamePtr());
+      GELOGD(
+          "Graph [%s], find Load node [%s] as cache start boundary, truncate to avoid multi-output pollution from Data "
+          "node.",
+          graph_.GetName().c_str(), tmp_node->GetNamePtr());
 
-      MarkNodeCacheable(tmp_node);  // 确保当前 Load 节点自身被正常标记缓存
-      AddToCacheStartSet(tmp_node); // 将 Load 作为正向刷新的 Start 节点
-      continue;                     // 截断！
+      MarkNodeCacheable(tmp_node);   // 确保当前 Load 节点自身被正常标记缓存
+      AddToCacheStartSet(tmp_node);  // 将 Load 作为正向刷新的 Start 节点
+      continue;                      // 截断！
     }
     if (tmp_node->GetInDataNodesSize() == 0UL) {
       AddToCacheStartSet(tmp_node);

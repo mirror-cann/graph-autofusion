@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -30,8 +30,7 @@ constexpr int64_t kMaxBroadcastAxisSize = 16LL;
 constexpr int64_t kMinNonBroadcastAxisSize = 256LL * 1024LL;
 
 void FindNotLoopAxis(const ascir::NodeView &node, ascir::ImplGraph &impl_graph,
-                     std::unordered_set<int64_t> &not_loop_axis_set,
-                     bool has_reduce, bool is_reduce_first_stage) {
+                     std::unordered_set<int64_t> &not_loop_axis_set, bool has_reduce, bool is_reduce_first_stage) {
   for (auto output : node->outputs()) {
     not_loop_axis_set.insert(output->attr.vectorized_axis.begin(), output->attr.vectorized_axis.end());
   }
@@ -71,8 +70,7 @@ void FindNotLoopAxis(const ascir::NodeView &node, ascir::ImplGraph &impl_graph,
   }
 }
 
-bool IsNotLoopAxis(ascir::ImplGraph &impl_graph, int64_t axis,
-                    const std::unordered_set<int64_t> &not_loop_axis_set) {
+bool IsNotLoopAxis(ascir::ImplGraph &impl_graph, int64_t axis, const std::unordered_set<int64_t> &not_loop_axis_set) {
   if (not_loop_axis_set.find(axis) != not_loop_axis_set.end()) {
     return true;
   }
@@ -93,7 +91,7 @@ bool IsNotLoopAxis(ascir::ImplGraph &impl_graph, int64_t axis,
 
 int64_t GetStaticAxisProduct(ascir::ImplGraph &impl_graph, const std::vector<int64_t> &axis_ids) {
   int64_t product = 1;
-  for (const auto axis_id: axis_ids) {
+  for (const auto axis_id : axis_ids) {
     auto axis = impl_graph.FindAxis(axis_id);
     if (axis == nullptr || !axis->size.IsConstExpr()) {
       return -1;
@@ -142,8 +140,8 @@ void PartitionLoopAxes(const ascir::ImplGraph &impl_graph, const std::unordered_
 
 void ReorderBroadcastAxesInner(ascir::ImplGraph &impl_graph) {
   optimize::GraphPropertiesCache cache(impl_graph);
-  if (cache.HasReduce() || cache.HasGather() || cache.HasCube() ||
-      cache.HasTranspose() || cache.HasConcat() || cache.HasSplit()) {
+  if (cache.HasReduce() || cache.HasGather() || cache.HasCube() || cache.HasTranspose() || cache.HasConcat() ||
+      cache.HasSplit()) {
     return;
   }
   auto broadcast_axes = CollectBroadcastAxes(impl_graph);
@@ -167,13 +165,13 @@ void ReorderBroadcastAxesInner(ascir::ImplGraph &impl_graph) {
     return;
   }
   new_order.insert(new_order.end(), brc_axes.begin(), brc_axes.end());
-  for (const auto &node: impl_graph.GetAllNodes()) {
+  for (const auto &node : impl_graph.GetAllNodes()) {
     if (!optimize::ScheduleUtils::IsBuffer(node)) {
       node->attr.sched.axis = new_order;
     }
   }
-  GELOGI("Broadcast reorder: brc_size=%ld, non_brc_size=%ld, graph=[%s]",
-         brc_size, non_brc_size, impl_graph.GetName().c_str());
+  GELOGI("Broadcast reorder: brc_size=%ld, non_brc_size=%ld, graph=[%s]", brc_size, non_brc_size,
+         impl_graph.GetName().c_str());
 }
 
 void AppendIdIfNotDefault(std::stringstream &ss, const std::string &prefix, int64_t id) {
@@ -351,12 +349,12 @@ Status AutoSchedule::PrepareTilingCases(std::vector<TilingCase> &tiling_cases) {
   return af::SUCCESS;
 }
 
-Status AutoSchedule::ProcessOneTilingCase(TilingCase &tiling_case, size_t index,
-                                          bool is_last_axis_reduce, bool is_reduce_full_load) const {
+Status AutoSchedule::ProcessOneTilingCase(TilingCase &tiling_case, size_t index, bool is_last_axis_reduce,
+                                          bool is_reduce_full_load) const {
   const std::string graph_name = GetTilingCaseStr(ascgen_utils::GenValidName(graph_.GetName()), tiling_case);
   AutoScheduleOutput output(graph_name.c_str());
-  GE_ASSERT_TRUE(output.scheduled_graph.CopyFrom(graph_),
-                 "Failed to copy graph for tiling case %zu in graph: [%s]", index, graph_.GetName().c_str());
+  GE_ASSERT_TRUE(output.scheduled_graph.CopyFrom(graph_), "Failed to copy graph for tiling case %zu in graph: [%s]",
+                 index, graph_.GetName().c_str());
 
   Scheduler scheduler(output.scheduled_graph, axes_group_, tiling_case, is_last_axis_reduce, reduce_template_,
                       cube_template_);
@@ -370,7 +368,7 @@ Status AutoSchedule::ProcessOneTilingCase(TilingCase &tiling_case, size_t index,
 
   if (tiling_case.reduce_is_block) {
     GE_ASSERT_TRUE(
-      output.scheduled_graph.BindBlock(tiling_case.block_tiling_id, tiling_case.reduce_block_tiling.second->id));
+        output.scheduled_graph.BindBlock(tiling_case.block_tiling_id, tiling_case.reduce_block_tiling.second->id));
     output.var_relations_["Rm_org_size"] = tiling_case.rm_org_size;
     output.var_relations_["A_org_size"] = tiling_case.a_org_size;
   }

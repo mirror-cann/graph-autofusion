@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -394,8 +394,7 @@ inline __aicore__ void Where(const AscendC::LocalTensor<T> &dst, const AscendC::
  * Normal 模式：两根轴
  */
 template <typename O, typename I, bool isSlice2Buf>
-inline __aicore__ void SafeCastNormal(const AscendC::LocalTensor<O> &dst,
-                                      const AscendC::LocalTensor<I> &src,
+inline __aicore__ void SafeCastNormal(const AscendC::LocalTensor<O> &dst, const AscendC::LocalTensor<I> &src,
                                       const uint64_t mask, const uint8_t repeat_times, const uint32_t stride) {
   uint8_t dstRepStride = 8;
   uint8_t srcRepStride = 8;
@@ -407,11 +406,10 @@ inline __aicore__ void SafeCastNormal(const AscendC::LocalTensor<O> &dst,
     srcRepStride = static_cast<uint8_t>(mask * sizeof(I) / ONE_BLK_SIZE);
   }
   // float -> int64/int32/int16 :: CAST_RINT
-  if constexpr (std::is_same<I, float>::value and
-                (std::is_same<O, int64_t>::value || std::is_same<O, int32_t>::value ||
-                 std::is_same<O, int16_t>::value)) {
+  if constexpr (std::is_same<I, float>::value and (std::is_same<O, int64_t>::value || std::is_same<O, int32_t>::value ||
+                                                   std::is_same<O, int16_t>::value)) {
     Cast(dst, src, RoundMode::CAST_RINT, mask, repeat_times, {1, 1, dstRepStride, srcRepStride});
-  // int64 -> float :: CAST_RINT
+    // int64 -> float :: CAST_RINT
   } else if constexpr (std::is_same<I, int64_t>::value and std::is_same<O, float>::value) {
     Cast(dst, src, RoundMode::CAST_RINT, mask, repeat_times, {1, 1, dstRepStride, srcRepStride});
   } else if constexpr (std::is_same<I, half>::value and std::is_same<O, int16_t>::value) {
@@ -422,24 +420,24 @@ inline __aicore__ void SafeCastNormal(const AscendC::LocalTensor<O> &dst,
 }
 
 inline __aicore__ void MaskSafeCastNormal(const AscendC::LocalTensor<half> &dst,
-                                          const AscendC::LocalTensor<uint8_t> &src,
-                                          const uint64_t mask, const uint8_t repeat_times, const uint32_t stride) {
+                                          const AscendC::LocalTensor<uint8_t> &src, const uint64_t mask,
+                                          const uint8_t repeat_times, const uint32_t stride) {
   uint8_t dstRepStride = 8;
   uint8_t srcRepStride = 8;
   // uint8 -> half :: CAST_NONE
   // AscendC::Select : input is float(32bit), sel mask rptstride = 64(bit)
-  dstRepStride = static_cast<uint8_t>(KernelUtils::RptSize<float>() * sizeof(half)/ ONE_BLK_SIZE);
+  dstRepStride = static_cast<uint8_t>(KernelUtils::RptSize<float>() * sizeof(half) / ONE_BLK_SIZE);
   srcRepStride = static_cast<uint8_t>(stride * sizeof(uint8_t) / ONE_BLK_SIZE);
   Cast(dst, src, RoundMode::CAST_NONE, mask, repeat_times, {1, 1, dstRepStride, srcRepStride});
 }
 
 inline __aicore__ void MaskSafeCastInt64Normal(const AscendC::LocalTensor<half> &dst,
-                                               const AscendC::LocalTensor<uint8_t> &src,
-                                               const uint64_t mask, const uint8_t repeat_times, const uint32_t stride) {
+                                               const AscendC::LocalTensor<uint8_t> &src, const uint64_t mask,
+                                               const uint8_t repeat_times, const uint32_t stride) {
   uint8_t dstRepStride = 8;
   uint8_t srcRepStride = 8;
   // uint8 -> half :: CAST_NONE
-  dstRepStride = static_cast<uint8_t>(KernelUtils::RptSize<float>()/2 * sizeof(half)/ ONE_BLK_SIZE);
+  dstRepStride = static_cast<uint8_t>(KernelUtils::RptSize<float>() / 2 * sizeof(half) / ONE_BLK_SIZE);
   srcRepStride = static_cast<uint8_t>(stride * sizeof(uint8_t) / ONE_BLK_SIZE);
   Cast(dst, src, RoundMode::CAST_NONE, mask, repeat_times, {1, 1, dstRepStride, srcRepStride});
 }
@@ -451,11 +449,11 @@ inline __aicore__ void DoSelectNormal(const AscendC::LocalTensor<T> &dst,
                                       const AscendC::LocalTensor<float> &src1,        // else
                                       DoSelectParams &params) {
   // Cast sel_mask.u8 -> sel_mask.half
-  MaskSafeCastNormal(params.mask_cast_buf[0], sel_mask[params.mask_offset], params.mask,
-                                      params.repeat_times, params.mask_stride);
+  MaskSafeCastNormal(params.mask_cast_buf[0], sel_mask[params.mask_offset], params.mask, params.repeat_times,
+                     params.mask_stride);
   // Compare sel_mask.half -> mask.u8 by bit
-  uint32_t cmp_size = (KernelUtils::RptSize<float>() * params.repeat_times + ONE_REPEAT_HALF_SIZE - 1)
-                      / ONE_REPEAT_HALF_SIZE * ONE_REPEAT_HALF_SIZE;
+  uint32_t cmp_size = (KernelUtils::RptSize<float>() * params.repeat_times + ONE_REPEAT_HALF_SIZE - 1) /
+                      ONE_REPEAT_HALF_SIZE * ONE_REPEAT_HALF_SIZE;
   LocalTensor<uint8_t> mask_tmp_bit_buf = params.mask_cast_buf.ReinterpretCast<uint8_t>();  // reuse this buffer
   CompareScalar(mask_tmp_bit_buf, params.mask_cast_buf[0], (half)1.0, CMPMODE::EQ, cmp_size);
   // Do Select
@@ -531,35 +529,39 @@ inline __aicore__ void CastSelectInt64Normal(const AscendC::LocalTensor<int64_t>
 
   // Step1: interleave mask
   // 1.1 Cast sel_mask.u8 -> sel_mask.half
-  MaskSafeCastInt64Normal(params.mask_cast_buf[0], sel_mask[params.mask_offset], params.mask / 2,
-                                      params.repeat_times, params.mask_stride);
+  MaskSafeCastInt64Normal(params.mask_cast_buf[0], sel_mask[params.mask_offset], params.mask / 2, params.repeat_times,
+                          params.mask_stride);
   // 1.2 Cast sel_mask.half -> sel_mask.16
   uint8_t dstRepStride = 8;
   uint8_t srcRepStride = 8;
   // uint8 -> half :: CAST_NONE
-  dstRepStride = static_cast<uint8_t>(KernelUtils::RptSize<float>()/2 * sizeof(int16_t) / ONE_BLK_SIZE);
-  srcRepStride = static_cast<uint8_t>(KernelUtils::RptSize<float>()/2 * sizeof(half) / ONE_BLK_SIZE);
-  Cast(params.mask_shift_buf[0], params.mask_cast_buf[0], RoundMode::CAST_RINT, params.mask/2, params.repeat_times, {1, 1, dstRepStride, srcRepStride});
+  dstRepStride = static_cast<uint8_t>(KernelUtils::RptSize<float>() / 2 * sizeof(int16_t) / ONE_BLK_SIZE);
+  srcRepStride = static_cast<uint8_t>(KernelUtils::RptSize<float>() / 2 * sizeof(half) / ONE_BLK_SIZE);
+  Cast(params.mask_shift_buf[0], params.mask_cast_buf[0], RoundMode::CAST_RINT, params.mask / 2, params.repeat_times,
+       {1, 1, dstRepStride, srcRepStride});
   // 1.3 Shift sel_mask.16 LEFT by 8 bits
   const AscendC::LocalTensor<int16_t> mask_cast_buf_reuse_buf = params.mask_cast_buf.ReinterpretCast<int16_t>();
   constexpr int16_t shift_left_size = 8;
-  dstRepStride = static_cast<uint8_t>(KernelUtils::RptSize<float>()/2 * sizeof(int16_t) / ONE_BLK_SIZE);
-  srcRepStride = static_cast<uint8_t>(KernelUtils::RptSize<float>()/2 * sizeof(int16_t) / ONE_BLK_SIZE);
-  ShiftLeft(mask_cast_buf_reuse_buf, params.mask_shift_buf[0], shift_left_size, params.mask/2, params.repeat_times, {1, 1, dstRepStride, srcRepStride});
+  dstRepStride = static_cast<uint8_t>(KernelUtils::RptSize<float>() / 2 * sizeof(int16_t) / ONE_BLK_SIZE);
+  srcRepStride = static_cast<uint8_t>(KernelUtils::RptSize<float>() / 2 * sizeof(int16_t) / ONE_BLK_SIZE);
+  ShiftLeft(mask_cast_buf_reuse_buf, params.mask_shift_buf[0], shift_left_size, params.mask / 2, params.repeat_times,
+            {1, 1, dstRepStride, srcRepStride});
   // 1.4 Or low 8 bits and high 8 bits
-  dstRepStride = static_cast<uint8_t>(KernelUtils::RptSize<float>()/2 * sizeof(int16_t) / ONE_BLK_SIZE);
-  srcRepStride = static_cast<uint8_t>(KernelUtils::RptSize<float>()/2 * sizeof(int16_t) / ONE_BLK_SIZE);
-  Or(params.mask_shift_buf[0], mask_cast_buf_reuse_buf, params.mask_shift_buf[0], params.mask/2, params.repeat_times, {1, 1, 1, dstRepStride, srcRepStride, srcRepStride});
+  dstRepStride = static_cast<uint8_t>(KernelUtils::RptSize<float>() / 2 * sizeof(int16_t) / ONE_BLK_SIZE);
+  srcRepStride = static_cast<uint8_t>(KernelUtils::RptSize<float>() / 2 * sizeof(int16_t) / ONE_BLK_SIZE);
+  Or(params.mask_shift_buf[0], mask_cast_buf_reuse_buf, params.mask_shift_buf[0], params.mask / 2, params.repeat_times,
+     {1, 1, 1, dstRepStride, srcRepStride, srcRepStride});
 
   // Step2: Convert mask.u8 to mask.bit
   const AscendC::LocalTensor<uint8_t> mask_shift_cast_buf = params.mask_shift_buf.ReinterpretCast<uint8_t>();
   AscendC::LocalTensor<half> mask_cast_buf_resize_buf = params.mask_cast_buf.ReinterpretCast<half>();
   mask_cast_buf_resize_buf.SetSize(params.mask_cast_buf.GetSize() + params.mask_shift_buf.GetSize());
-  dstRepStride = static_cast<uint8_t>(KernelUtils::RptSize<float>() * sizeof(half)/ ONE_BLK_SIZE);
+  dstRepStride = static_cast<uint8_t>(KernelUtils::RptSize<float>() * sizeof(half) / ONE_BLK_SIZE);
   srcRepStride = static_cast<uint8_t>(KernelUtils::RptSize<float>() * sizeof(uint8_t) / ONE_BLK_SIZE);
-  Cast(mask_cast_buf_resize_buf, mask_shift_cast_buf, RoundMode::CAST_NONE, params.mask, params.repeat_times, {1, 1, dstRepStride, srcRepStride});
-  uint32_t cmp_size =
-      (KernelUtils::RptSize<float>() * params.repeat_times + ONE_REPEAT_HALF_SIZE - 1) / ONE_REPEAT_HALF_SIZE * ONE_REPEAT_HALF_SIZE;
+  Cast(mask_cast_buf_resize_buf, mask_shift_cast_buf, RoundMode::CAST_NONE, params.mask, params.repeat_times,
+       {1, 1, dstRepStride, srcRepStride});
+  uint32_t cmp_size = (KernelUtils::RptSize<float>() * params.repeat_times + ONE_REPEAT_HALF_SIZE - 1) /
+                      ONE_REPEAT_HALF_SIZE * ONE_REPEAT_HALF_SIZE;
   LocalTensor<uint8_t> mask_tmp_bit_buf = mask_cast_buf_resize_buf.ReinterpretCast<uint8_t>();
   CompareScalar(mask_tmp_bit_buf, mask_cast_buf_resize_buf, (half)1.0, CMPMODE::EQ, cmp_size);
 
@@ -585,7 +587,8 @@ inline __aicore__ void WhereExtend(const AscendC::LocalTensor<T> &dst,
   uint32_t element_extent = last_axis / ONE_RPT_SIZE;
   uint32_t element_reminder = last_axis - element_extent * ONE_RPT_SIZE;
   // 2. 根据临时空间，计算外抛实际一次能计算的repeat times
-  uint32_t max_do_rpt_num = KernelUtils::Min(MAX_REPEAT_TIME, params.sel_res_buf.GetSize() / sizeof(float) / ONE_RPT_SIZE);
+  uint32_t max_do_rpt_num =
+      KernelUtils::Min(MAX_REPEAT_TIME, params.sel_res_buf.GetSize() / sizeof(float) / ONE_RPT_SIZE);
 
   uint32_t repeat_throw_for_extent = first_axis / max_do_rpt_num;
   uint32_t repeat_reminder = first_axis - repeat_throw_for_extent * max_do_rpt_num;
@@ -612,7 +615,8 @@ inline __aicore__ void WhereExtend(const AscendC::LocalTensor<T> &dst,
   }
   if (element_reminder != 0) {
     // 5. 尾轴剩余数据不足1个repeat后，调整mask
-    params.mask = KernelUtils::BlkNum<float>(element_reminder + KernelUtils::BlkSize<float>() - 1) * KernelUtils::BlkSize<float>();
+    params.mask = KernelUtils::BlkNum<float>(element_reminder + KernelUtils::BlkSize<float>() - 1) *
+                  KernelUtils::BlkSize<float>();
     // 按照一次指令最大repeat times计算
     params.mask_offset = element_extent * ONE_RPT_SIZE;
     params.dst_offset = element_extent * ONE_RPT_SIZE;
@@ -645,7 +649,8 @@ inline __aicore__ void WhereExtend(const AscendC::LocalTensor<int64_t> &dst,
   uint32_t element_extent = size / ONE_RPT_SIZE;
   uint32_t element_reminder = size - element_extent * ONE_RPT_SIZE;
   // 2. 根据临时空间，计算外抛实际一次能计算的repeat times
-  uint32_t max_do_rpt_num = KernelUtils::Min(MAX_REPEAT_TIME, params.mask_shift_buf.GetSize() / sizeof(float) / ONE_RPT_SIZE);
+  uint32_t max_do_rpt_num =
+      KernelUtils::Min(MAX_REPEAT_TIME, params.mask_shift_buf.GetSize() / sizeof(float) / ONE_RPT_SIZE);
 
   uint32_t repeat_throw_for_extent = first_axis / max_do_rpt_num;
   uint32_t repeat_reminder = first_axis - repeat_throw_for_extent * max_do_rpt_num;
@@ -672,7 +677,8 @@ inline __aicore__ void WhereExtend(const AscendC::LocalTensor<int64_t> &dst,
   }
   if (element_reminder != 0) {
     // 5. 尾轴剩余数据不足1个repeat后, 调整mask
-    params.mask = KernelUtils::BlkNum<float>(element_reminder + KernelUtils::BlkSize<float>() - 1) * KernelUtils::BlkSize<float>();
+    params.mask = KernelUtils::BlkNum<float>(element_reminder + KernelUtils::BlkSize<float>() - 1) *
+                  KernelUtils::BlkSize<float>();
 
     // 按照一次指令最大repeat times计算
     params.mask_offset = element_extent * ONE_RPT_SIZE / 2;
@@ -699,18 +705,20 @@ template <bool isBcastSrc0 = false, bool isBcastSrc1 = false, typename T, typena
 inline __aicore__ void Where(const AscendC::LocalTensor<T> &dst, const AscendC::LocalTensor<uint8_t> &mask,
                              const AscendC::LocalTensor<T1> &src0, const AscendC::LocalTensor<T2> &src1,
                              const uint32_t first_axis, const uint32_t last_axis,
-                             const uint32_t output_last_axis_stride,
-                             const uint32_t mask_last_axis_stride,
-                             const uint32_t input0_last_axis_stride,
-                             const uint32_t input1_last_axis_stride,
+                             const uint32_t output_last_axis_stride, const uint32_t mask_last_axis_stride,
+                             const uint32_t input0_last_axis_stride, const uint32_t input1_last_axis_stride,
                              AscendC::LocalTensor<uint8_t> &tmp_buf, const uint32_t used_size) {
   constexpr uint32_t MAX_VALID_STRIDE_BYTES = ONE_BLK_SIZE * 256 /*range of uint8*/;
-  bool useWhereExtend = input0_last_axis_stride * sizeof(T1) < MAX_VALID_STRIDE_BYTES && input0_last_axis_stride * sizeof(float) < MAX_VALID_STRIDE_BYTES &&
-                        input1_last_axis_stride * sizeof(T2) < MAX_VALID_STRIDE_BYTES && input1_last_axis_stride * sizeof(float) < MAX_VALID_STRIDE_BYTES &&
-                        output_last_axis_stride * sizeof(T) < MAX_VALID_STRIDE_BYTES && output_last_axis_stride * sizeof(float) < MAX_VALID_STRIDE_BYTES &&
+  bool useWhereExtend = input0_last_axis_stride * sizeof(T1) < MAX_VALID_STRIDE_BYTES &&
+                        input0_last_axis_stride * sizeof(float) < MAX_VALID_STRIDE_BYTES &&
+                        input1_last_axis_stride * sizeof(T2) < MAX_VALID_STRIDE_BYTES &&
+                        input1_last_axis_stride * sizeof(float) < MAX_VALID_STRIDE_BYTES &&
+                        output_last_axis_stride * sizeof(T) < MAX_VALID_STRIDE_BYTES &&
+                        output_last_axis_stride * sizeof(float) < MAX_VALID_STRIDE_BYTES &&
                         mask_last_axis_stride * sizeof(uint8_t) < MAX_VALID_STRIDE_BYTES;
   DoSelectParams params;
-  constexpr bool is_int64_scene = std::is_same<T, int64_t>::value && std::is_same<T1, int64_t>::value && std::is_same<T2, int64_t>::value;
+  constexpr bool is_int64_scene =
+      std::is_same<T, int64_t>::value && std::is_same<T1, int64_t>::value && std::is_same<T2, int64_t>::value;
   if constexpr (isBcastSrc0 && isBcastSrc1) {
     // DoSelectParams params;
     if constexpr (is_int64_scene) { /* int64 */
@@ -735,7 +743,7 @@ inline __aicore__ void Where(const AscendC::LocalTensor<T> &dst, const AscendC::
     params.rpt_params.src0BlkStride = 0;
     params.rpt_params.src0RepStride = 0;
     params.src0_select_offset = 0;
-    if (useWhereExtend){
+    if (useWhereExtend) {
       params.rpt_params.src1BlkStride = 1;
       params.rpt_params.src1RepStride = input1_last_axis_stride * sizeof(T2) / ONE_BLK_SIZE;
     }
@@ -775,11 +783,11 @@ inline __aicore__ void Where(const AscendC::LocalTensor<T> &dst, const AscendC::
     params.input1_stride = input1_last_axis_stride;
     WhereExtend(dst, mask, src0, src1, first_axis, last_axis, params);
   } else {
-    for (uint32_t i = 0;i < first_axis;i++) {
+    for (uint32_t i = 0; i < first_axis; i++) {
       DoSelectParams tempParams = params;
-      WhereBase(dst[i * output_last_axis_stride], mask[i * mask_last_axis_stride], 
-        src0[i * params.input0_stride * params.src0_select_offset],
-        src1[i * params.input1_stride * params.src1_select_offset], last_axis, tempParams);
+      WhereBase(dst[i * output_last_axis_stride], mask[i * mask_last_axis_stride],
+                src0[i * params.input0_stride * params.src0_select_offset],
+                src1[i * params.input1_stride * params.src1_select_offset], last_axis, tempParams);
     }
   }
 }

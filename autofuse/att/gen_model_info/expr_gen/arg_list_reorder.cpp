@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -13,10 +13,8 @@
 namespace att {
 namespace {
 constexpr size_t kOrderIdStart = 1;
-const std::vector<std::string> kDefaultNodeWhiteList = {
-    "Data", "Output", "Constant", "Workspace", "TbufData"
-};
-}
+const std::vector<std::string> kDefaultNodeWhiteList = {"Data", "Output", "Constant", "Workspace", "TbufData"};
+}  // namespace
 
 // 初始化arglist的优先级连边图
 // 初始化排序原则：父轴的优先级必须大于子轴，举例说明:
@@ -108,7 +106,8 @@ bool ArgListReorder::IsReduceAxisBlockSplit(const std::vector<SubAxisPtr> &all_a
   return false;
 }
 
-void ArgListReorder::SaveReduceAxisOrig(const SubAxis *reduce_axis, std::set<std::string> &reduce_axis_ori_axes_set) const {
+void ArgListReorder::SaveReduceAxisOrig(const SubAxis *reduce_axis,
+                                        std::set<std::string> &reduce_axis_ori_axes_set) const {
   for (SubAxis *ori_axis : reduce_axis->orig_axis) {
     GELOGI("reduce axis ori set add: [%s]", ori_axis->name.c_str());
     reduce_axis_ori_axes_set.insert(ori_axis->name);
@@ -143,11 +142,11 @@ void ArgListReorder::FindSpecialArgs() {
         kDefaultNodeWhiteList.end()) {
       continue;
     }
-    
+
     const auto &input_tensors = node.inputs;
     const auto &output_tensors = node.outputs;
     std::set<std::string> reduce_axis_ori_axes_set;
-    
+
     for (const auto &tensor : input_tensors) {
       for (size_t i = 0; i < tensor->dim_info.size(); i++) {
         RecordSpecialArgs(node, tensor, i, output_tensors, reduce_axis_ori_axes_set);
@@ -173,7 +172,7 @@ ge::Status ArgListReorder::AddEdgeGroups(const std::vector<std::string> &from_ax
     GE_ASSERT_TRUE(axis_name_2_id_map_.find(from_axis) != axis_name_2_id_map_.end(),
                    "from axis[%s] cannot be found in arg", from_axis.c_str());
     size_t from_axis_id = axis_name_2_id_map_[from_axis];
-    
+
     for (const auto &to_axis : to_axes_group) {
       GE_ASSERT_TRUE(axis_name_2_id_map_.find(to_axis) != axis_name_2_id_map_.end(),
                      "to axis[%s] cannot be found in arg", to_axis.c_str());
@@ -215,13 +214,13 @@ ArgListReorder::AxisCategories ArgListReorder::CategorizeAxesByProperty(const ve
     } else {
       categories.non_reduce_arg_names.push_back(arg->name);
     }
-    
+
     if (broadcast_map_.find(arg->name) != broadcast_map_.end()) {
       categories.broadcast_arg_names.push_back(arg->name);
     } else {
       categories.non_broadcast_arg_names.push_back(arg->name);
     }
-    
+
     if (innermost_dim_map_.find(arg->name) != innermost_dim_map_.end()) {
       categories.innermost_dim_arg_names.push_back(arg->name);
     } else {
@@ -324,7 +323,7 @@ std::vector<AttAxisPtr> ArgListReorder::GetNewArgList(const std::vector<size_t> 
 // 排序的入口函数
 ge::Status ArgListReorder::SortArgList(vector<AttAxisPtr> &arg_list, vector<AttAxisPtr> &tiling_R_arg_list) {
   GE_ASSERT_TRUE(!arg_list.empty(), "arg list is empty");
-  
+
   graph_ = af::MakeShared<ArgPriorityGraph>(arg_list.size());
   GE_ASSERT_NOTNULL(graph_, "Create graph failed");
   GELOGI("Before reorder ArgList:");
@@ -336,7 +335,7 @@ ge::Status ArgListReorder::SortArgList(vector<AttAxisPtr> &arg_list, vector<AttA
   // 构建最终优先级连边图
   GE_ASSERT_SUCCESS(BuildArgListPriorityGraph(arg_list, false), "build arg list graph failed");
   std::vector<AttAxisPtr> new_arg_list = GetNewArgList(graph_->TopologicalSort(), arg_list);
-  
+
   if (tiling_R_) {
     GELOGI("ReduceAxis BlockSplit, another reorder ArgList:");
     graph_ = af::MakeShared<ArgPriorityGraph>(arg_list.size());
@@ -345,7 +344,7 @@ ge::Status ArgListReorder::SortArgList(vector<AttAxisPtr> &arg_list, vector<AttA
     std::vector<AttAxisPtr> tiling_R_new_arg_list = GetNewArgList(graph_->TopologicalSort(), arg_list);
     tiling_R_arg_list = tiling_R_new_arg_list;
   }
-  
+
   arg_list = new_arg_list;
   return ge::SUCCESS;
 }

@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -25,12 +25,7 @@
 #include <vector>
 
 namespace fe {
-enum class BackWardInheritMode {
-  kInsertNode = 0,
-  kFusedNode = 1,
-  kInheritTrue = 2,
-  kDoNotInherit = 3
-};
+enum class BackWardInheritMode { kInsertNode = 0, kFusedNode = 1, kInheritTrue = 2, kDoNotInherit = 3 };
 
 using NodeTypeMap = std::unordered_map<std::string, std::map<std::string, ge::NodePtr>>;
 using NodeTypeMapPtr = std::shared_ptr<NodeTypeMap>;
@@ -40,11 +35,11 @@ struct NodeMapInfo {
 };
 using NodeMapInfoPtr = std::shared_ptr<NodeMapInfo>;
 /** @brief define graph pass, which provides two interface: 1. run pass;
-* 2. record op names before fusion */
+ * 2. record op names before fusion */
 class GraphPassUtil {
  public:
- using OriginOpAttrsVec = std::vector<std::vector<std::string>>;
- using UnorderedMapping = std::unordered_map<std::string, OriginOpAttrsVec>;
+  using OriginOpAttrsVec = std::vector<std::vector<std::string>>;
+  using UnorderedMapping = std::unordered_map<std::string, OriginOpAttrsVec>;
   /** set outputdesc attr for data dump
    *
    * @param origin_index,usually is origin node output index
@@ -109,12 +104,11 @@ class GraphPassUtil {
                                                    const std::vector<ge::NodePtr> &original_nodes,
                                                    const std::string &pass_name);
 
-  static void GetBackWardAttr(const std::vector<ge::NodePtr> &original_nodes,
-                              bool &backward, BackWardInheritMode inherit_mode);
+  static void GetBackWardAttr(const std::vector<ge::NodePtr> &original_nodes, bool &backward,
+                              BackWardInheritMode inherit_mode);
 
   static void InheritGraphRelatedAttr(const std::vector<ge::NodePtr> &original_nodes,
-                                      const std::vector<ge::NodePtr> &fusion_nodes,
-                                      BackWardInheritMode inherit_mode);
+                                      const std::vector<ge::NodePtr> &fusion_nodes, BackWardInheritMode inherit_mode);
 
   /* If one of the original node has attribute like keep_dtype, the fused node
    * will inherit that attribute.
@@ -127,8 +121,8 @@ class GraphPassUtil {
                                       const std::vector<ge::NodePtr> &fusion_nodes,
                                       BackWardInheritMode inherit_mode = BackWardInheritMode::kFusedNode);
 
-  static void RecordOriginalOpAttrs(const std::vector<ge::NodePtr> &original_nodes,
-                                    const ge::OpDescPtr &op_desc, const string &pass_name,
+  static void RecordOriginalOpAttrs(const std::vector<ge::NodePtr> &original_nodes, const ge::OpDescPtr &op_desc,
+                                    const string &pass_name,
                                     const OriginOpAttrsVec &origin_op_attrs = OriginOpAttrsVec());
 
   static void RecordOriginalNames(const std::vector<ge::NodePtr> &original_nodes, const ge::NodePtr &node);
@@ -149,9 +143,9 @@ class GraphPassUtil {
   static void SetOpCustomImplModeToFusNode(const ge::OpDescPtr &fusion_op,
                                            const std::map<std::string, int64_t> &origin_node_impl_mode_map,
                                            const std::set<size_t> &op_impl_mode_priority_set);
-  
+
   static void GetOpCustomGroupIdFromOriginNodes(const std::vector<ge::NodePtr> &original_nodes,
-                                                      uint32_t &parallel_group_id);
+                                                uint32_t &parallel_group_id);
 
   static void SetOpCustomGroupIdToFusNode(const ge::OpDescPtr &fusion_op, const uint32_t &parallel_group_id);
 

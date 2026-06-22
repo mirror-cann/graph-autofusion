@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -169,47 +169,46 @@ Register::Register() {
   const std::string kAscendcNegStr = {
 #include "neg_str.h"
   };
-  std::unordered_map<std::string, std::string> api_to_file{
-      {"bitwise_and.h", kAscendcBitwise_andStr},
-      {"duplicate.h", kAscendcDuplicateStr},
-      {"broadcast.h", kAscendcBroadcastStr},
-      {"cast.h", kAscendcCastStr},
-      {"clipbyvalue.h", kAscendcClipbyvalueStr},
-      {"compare.h", kAscendcCompareStr},
-      {"argmax_with_value.h", kAscendcArgmax_with_valueStr},
-      {"argmax.h", kAscendcArgmaxStr},
-      {"compare_v2.h", kAscendcCompareV2Str},
-      {"concat.h", kAscendcConcatStr},
-      {"datacopy.h", kAscendcDatacopyStr},
-      {"isfinite.h", kAscendcIsfiniteStr},
-      {"isnan.h", kAscendcIsnanStr},
-      {"logical_not.h", kAscendcLogical_notStr},
-      {"logical.h", kAscendcLogicalStr},
-      {"pow.h", kAscendcPowStr},
-      {"axpy.h", kAscendcAxpyStr},
-      {"reciprocal.h", kAscendcReciprocalStr},
-      {"reduce_init.h", kAscendcReduce_initStr},
-      {"removepad.h", kAscendcRemovePadStr},
-      {"reduce_prod.h", kAscendcReduce_prodStr},
-      {"reduce.h", kAscendcReduceStr},
-      {"rsqrt.h", kAscendcRsqrtStr},
-      {"scalar_div.h", kAscendcScalar_divStr},
-      {"floor_div.h", kAscendcFloorDivStr},
-      {"sigmoid.h", kAscendcSigmoidStr},
-      {"sign.h", kAscendcSignStr},
-      {"where.h", kAscendcWhereStr},
-      {"gather.h", kAscendcGatherStr},
-      {"scalar_sub.h", kAscendcScalarSubStr},
-      {"scalar_add.h", kAscendcScalarAddStr},
-      {"scalar_mul.h", kAscendcScalarMulStr},
-      {"scalar_maximum.h", kAscendcScalarMaximumStr},
-      {"scalar_minimum.h", kAscendcScalarMinimumStr},
-      {"transpose_base_type.h", kAscendcTranposeBaseTypeStr},
-      {"transpose.h", kAscendcTranposeStr},
-      {"abs.h", kAscendcAbsStr},
-      {"true_div.h", kAscendcTrueDivStr},
-      {"remainder.h", kAscendcRemainderStr},
-      {"neg.h", kAscendcNegStr}};
+  std::unordered_map<std::string, std::string> api_to_file{{"bitwise_and.h", kAscendcBitwise_andStr},
+                                                           {"duplicate.h", kAscendcDuplicateStr},
+                                                           {"broadcast.h", kAscendcBroadcastStr},
+                                                           {"cast.h", kAscendcCastStr},
+                                                           {"clipbyvalue.h", kAscendcClipbyvalueStr},
+                                                           {"compare.h", kAscendcCompareStr},
+                                                           {"argmax_with_value.h", kAscendcArgmax_with_valueStr},
+                                                           {"argmax.h", kAscendcArgmaxStr},
+                                                           {"compare_v2.h", kAscendcCompareV2Str},
+                                                           {"concat.h", kAscendcConcatStr},
+                                                           {"datacopy.h", kAscendcDatacopyStr},
+                                                           {"isfinite.h", kAscendcIsfiniteStr},
+                                                           {"isnan.h", kAscendcIsnanStr},
+                                                           {"logical_not.h", kAscendcLogical_notStr},
+                                                           {"logical.h", kAscendcLogicalStr},
+                                                           {"pow.h", kAscendcPowStr},
+                                                           {"axpy.h", kAscendcAxpyStr},
+                                                           {"reciprocal.h", kAscendcReciprocalStr},
+                                                           {"reduce_init.h", kAscendcReduce_initStr},
+                                                           {"removepad.h", kAscendcRemovePadStr},
+                                                           {"reduce_prod.h", kAscendcReduce_prodStr},
+                                                           {"reduce.h", kAscendcReduceStr},
+                                                           {"rsqrt.h", kAscendcRsqrtStr},
+                                                           {"scalar_div.h", kAscendcScalar_divStr},
+                                                           {"floor_div.h", kAscendcFloorDivStr},
+                                                           {"sigmoid.h", kAscendcSigmoidStr},
+                                                           {"sign.h", kAscendcSignStr},
+                                                           {"where.h", kAscendcWhereStr},
+                                                           {"gather.h", kAscendcGatherStr},
+                                                           {"scalar_sub.h", kAscendcScalarSubStr},
+                                                           {"scalar_add.h", kAscendcScalarAddStr},
+                                                           {"scalar_mul.h", kAscendcScalarMulStr},
+                                                           {"scalar_maximum.h", kAscendcScalarMaximumStr},
+                                                           {"scalar_minimum.h", kAscendcScalarMinimumStr},
+                                                           {"transpose_base_type.h", kAscendcTranposeBaseTypeStr},
+                                                           {"transpose.h", kAscendcTranposeStr},
+                                                           {"abs.h", kAscendcAbsStr},
+                                                           {"true_div.h", kAscendcTrueDivStr},
+                                                           {"remainder.h", kAscendcRemainderStr},
+                                                           {"neg.h", kAscendcNegStr}};
 
   AscendCApiRegistry::GetInstance().RegisterApi(api_to_file);
 }

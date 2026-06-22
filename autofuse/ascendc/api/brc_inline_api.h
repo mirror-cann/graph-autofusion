@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -12,16 +12,16 @@
 
 template <typename T>
 inline __aicore__ void BinaryBrcInlineApiWithTwoVectorizedAxis(
-  const LocalTensor<T>& dstLocal,const LocalTensor<T>& src0Local, const LocalTensor<T>& src1Local,
-  const int64_t shape0,  // 输出的两个向量化轴的repeate.由于都是对齐的，直接取repeate
-  const int64_t shape1,
-  const uint8_t is_input0_block_brc,  // index0是否支持广播
-  const uint8_t is_input1_block_brc,  // index1是否支持广播
-  const int64_t first_axis_v_stride,  // 首轴v_stride
-  const int64_t dtype_size,
-  void (*FUNC1)(const LocalTensor<T>&, const LocalTensor<T>&, const LocalTensor<T>&, const int32_t&),
-  void (*FUNC2)(const LocalTensor<T>&, const LocalTensor<T>&, const LocalTensor<T>&, uint64_t, const uint8_t, const BinaryRepeatParams&)
-){
+    const LocalTensor<T> &dstLocal, const LocalTensor<T> &src0Local, const LocalTensor<T> &src1Local,
+    const int64_t shape0,  // 输出的两个向量化轴的repeate.由于都是对齐的，直接取repeate
+    const int64_t shape1,
+    const uint8_t is_input0_block_brc,  // index0是否支持广播
+    const uint8_t is_input1_block_brc,  // index1是否支持广播
+    const int64_t first_axis_v_stride,  // 首轴v_stride
+    const int64_t dtype_size,
+    void (*FUNC1)(const LocalTensor<T> &, const LocalTensor<T> &, const LocalTensor<T> &, const int32_t &),
+    void (*FUNC2)(const LocalTensor<T> &, const LocalTensor<T> &, const LocalTensor<T> &, uint64_t, const uint8_t,
+                  const BinaryRepeatParams &)) {
   int64_t element = shape1;
   int64_t block = shape0;
   int64_t elem_in_one_repeat = 256 / dtype_size;
@@ -48,29 +48,33 @@ inline __aicore__ void BinaryBrcInlineApiWithTwoVectorizedAxis(
   for (int64_t outer_for = 0; outer_for < cut_quotient; outer_for++) {
     calcSize = outer_for * elem_in_one_repeat;
     while (block > 255) {
-      FUNC2(dstLocal[calcSize+offset], src0Local[calcSize+is_input0_block_brc*offset], src1Local[calcSize+is_input1_block_brc*offset], 
-            elem_in_one_repeat, 255, {dst_block_stride, src0_block_stride, src1_block_stride, dst_repeat_stride,
-            src0_repeat_stride, src1_repeat_stride});
+      FUNC2(dstLocal[calcSize + offset], src0Local[calcSize + is_input0_block_brc * offset],
+            src1Local[calcSize + is_input1_block_brc * offset], elem_in_one_repeat, 255,
+            {dst_block_stride, src0_block_stride, src1_block_stride, dst_repeat_stride, src0_repeat_stride,
+             src1_repeat_stride});
       block -= 255;
       offset += first_axis_v_stride * 255;
     }
-    FUNC2(dstLocal[calcSize+offset], src0Local[calcSize+is_input0_block_brc*offset], src1Local[calcSize+is_input1_block_brc*offset], 
-          elem_in_one_repeat, block, {dst_block_stride, src0_block_stride, src1_block_stride, dst_repeat_stride,
-          src0_repeat_stride, src1_repeat_stride});
+    FUNC2(dstLocal[calcSize + offset], src0Local[calcSize + is_input0_block_brc * offset],
+          src1Local[calcSize + is_input1_block_brc * offset], elem_in_one_repeat, block,
+          {dst_block_stride, src0_block_stride, src1_block_stride, dst_repeat_stride, src0_repeat_stride,
+           src1_repeat_stride});
   }
   //  处理尾块
   if (cut_reminder > 0) {
     calcSize = cut_quotient * elem_in_one_repeat;
     while (block > 255) {
-      FUNC2(dstLocal[calcSize+offset], src0Local[calcSize+is_input0_block_brc*offset], src1Local[calcSize+is_input1_block_brc*offset], 
-            cut_reminder, 255, {dst_block_stride, src0_block_stride, src1_block_stride, dst_repeat_stride, 
-            src0_repeat_stride, src1_repeat_stride});
+      FUNC2(dstLocal[calcSize + offset], src0Local[calcSize + is_input0_block_brc * offset],
+            src1Local[calcSize + is_input1_block_brc * offset], cut_reminder, 255,
+            {dst_block_stride, src0_block_stride, src1_block_stride, dst_repeat_stride, src0_repeat_stride,
+             src1_repeat_stride});
       block -= 255;
       offset += first_axis_v_stride * 255;
     }
-    FUNC2(dstLocal[calcSize+offset], src0Local[calcSize+is_input0_block_brc*offset], src1Local[calcSize+is_input1_block_brc*offset], 
-          cut_reminder, block, {dst_block_stride, src0_block_stride, src1_block_stride, dst_repeat_stride,
-          src0_repeat_stride, src1_repeat_stride});
+    FUNC2(dstLocal[calcSize + offset], src0Local[calcSize + is_input0_block_brc * offset],
+          src1Local[calcSize + is_input1_block_brc * offset], cut_reminder, block,
+          {dst_block_stride, src0_block_stride, src1_block_stride, dst_repeat_stride, src0_repeat_stride,
+           src1_repeat_stride});
   }
 }
 

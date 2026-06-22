@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -109,8 +109,8 @@ Status GatherApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::Axis
     GE_ASSERT_TRUE(id != -1L, "GatherApiCall cannot find tmp buffer id to use.");
     if (x1.axis_size.size() == 1) {
       ss << this->api_name_ << "(" << y << ", " << x1 << ", " << x2 << "[" << dst_offset << "], "
-         << tpipe.tiler.Size(x1.axis_size[0], true) << ", " << y.actual_size << ", " << tpipe.tmp_buf
-         << "_" << std::to_string(id) << ");" << std::endl;
+         << tpipe.tiler.Size(x1.axis_size[0], true) << ", " << y.actual_size << ", " << tpipe.tmp_buf << "_"
+         << std::to_string(id) << ");" << std::endl;
     } else {
       string first_merge_axis = "0";
       string block_inner_axis;
@@ -125,8 +125,8 @@ Status GatherApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::Axis
       std::string param_last_axis_size = tpipe.tiler.Size(x1.axis_size[x1.axis_size.size() - 1], true);
       x1_offset = first_merge_axis + " * " + param_last_axis_size;
       ss << this->api_name_ << "(" << y << ", " << x1 << "[" << x1_offset << "], " << x2 << "[" << x2_offset << "], "
-         << param_last_axis_size << ", " << y.actual_size << ", " << tpipe.tmp_buf << "_" << std::to_string(id)
-         << ");" << std::endl;
+         << param_last_axis_size << ", " << y.actual_size << ", " << tpipe.tmp_buf << "_" << std::to_string(id) << ");"
+         << std::endl;
     }
   }
   result = ss.str();

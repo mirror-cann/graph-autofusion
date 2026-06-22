@@ -22,11 +22,9 @@ using namespace af::ascir_op;
 
 namespace af {
 class TestCastOptimizationPass : public ::testing::Test {
-  protected:
-    void SetUp() override {
-    }
-    void TearDown() override {
-    }
+ protected:
+  void SetUp() override {}
+  void TearDown() override {}
 };
 
 namespace {
@@ -69,9 +67,7 @@ void AssertNodesExist(AscGraph &graph, const std::vector<std::string> &names, bo
   }
 }
 
-AscGraph BuildTwoInputCastConcatGraph(const std::string &name,
-                                      DataType data_dtype,
-                                      DataType cast_input_dtype,
+AscGraph BuildTwoInputCastConcatGraph(const std::string &name, DataType data_dtype, DataType cast_input_dtype,
                                       DataType cast_out_dtype) {
   return AscGraphBuilder(name)
       .Loops({Sym(128), Sym(64)})
@@ -118,12 +114,9 @@ AscGraph BuildDowncastDiscontinuityTestGraph(const std::string &name, bool disco
       .Loops({s0, s3})
       .Data("data0", 0, DT_FLOAT)
       .Data("data1", 1, DT_FLOAT)
-      .Load("load0",
-            "data0",
-            {s0, s1},
-            discontinuous
-              ? std::vector<Expression>{big_stride, inner_stride}
-              : std::vector<Expression>{s1, af::sym::kSymbolOne})
+      .Load("load0", "data0", {s0, s1},
+            discontinuous ? std::vector<Expression>{big_stride, inner_stride}
+                          : std::vector<Expression>{s1, af::sym::kSymbolOne})
       .Load("load1", "data1", {s0, s2}, {s2, af::sym::kSymbolOne})
       .Add("add0", "load0", "load1")
       .Concat("concat0", {"add0"}, 1)
@@ -133,17 +126,17 @@ AscGraph BuildDowncastDiscontinuityTestGraph(const std::string &name, bool disco
       .Build();
 }
 
-} // namespace
+}  // namespace
 
 TEST_F(TestCastOptimizationPass, NoConcatInGraph_NoChange) {
   auto graph = AscGraphBuilder("test_no_concat")
-      .Loops({Sym(128)})
-      .Data("data0", 0, DT_FLOAT)
-      .Load("load0", "data0")
-      .Abs("abs0", "load0")
-      .Store("store0", "abs0")
-      .Output("output0", "store0")
-      .Build();
+                   .Loops({Sym(128)})
+                   .Data("data0", 0, DT_FLOAT)
+                   .Load("load0", "data0")
+                   .Abs("abs0", "load0")
+                   .Store("store0", "abs0")
+                   .Output("output0", "store0")
+                   .Build();
 
   ASSERT_EQ(af::optimize::CastOptimizationPass::Run(graph), SUCCESS);
   EXPECT_EQ(CountNodesByType(graph, ascir_op::Cast::Type), 0U);
@@ -151,15 +144,15 @@ TEST_F(TestCastOptimizationPass, NoConcatInGraph_NoChange) {
 
 TEST_F(TestCastOptimizationPass, ConcatWithoutCastOutput_NoOptimize) {
   auto graph = AscGraphBuilder("test_concat_no_cast")
-      .Loops({Sym(128)})
-      .Data("data0", 0, DT_FLOAT)
-      .Data("data1", 1, DT_FLOAT)
-      .Load("load0", "data0")
-      .Load("load1", "data1")
-      .Concat("concat0", {"load0", "load1"}, 0)
-      .Store("store0", "concat0")
-      .Output("output0", "store0")
-      .Build();
+                   .Loops({Sym(128)})
+                   .Data("data0", 0, DT_FLOAT)
+                   .Data("data1", 1, DT_FLOAT)
+                   .Load("load0", "data0")
+                   .Load("load1", "data1")
+                   .Concat("concat0", {"load0", "load1"}, 0)
+                   .Store("store0", "concat0")
+                   .Output("output0", "store0")
+                   .Build();
 
   ASSERT_EQ(af::optimize::CastOptimizationPass::Run(graph), SUCCESS);
   EXPECT_EQ(CountNodesByType(graph, ascir_op::Cast::Type), 0U);
@@ -168,17 +161,17 @@ TEST_F(TestCastOptimizationPass, ConcatWithoutCastOutput_NoOptimize) {
 
 TEST_F(TestCastOptimizationPass, ConcatWithMultipleOutputs_NoOptimize) {
   auto graph = AscGraphBuilder("test_concat_multi_out")
-      .Loops({Sym(128)})
-      .Data("data0", 0, DT_FLOAT)
-      .Load("load0", "data0")
-      .Concat("concat0", {"load0"}, 0)
-      .Cast("cast0", "concat0", DT_FLOAT16)
-      .Store("store0", "cast0")
-      .Abs("abs0", "concat0")
-      .Store("store1", "abs0")
-      .Output("output0", "store0")
-      .Output("output1", "store1", 1)
-      .Build();
+                   .Loops({Sym(128)})
+                   .Data("data0", 0, DT_FLOAT)
+                   .Load("load0", "data0")
+                   .Concat("concat0", {"load0"}, 0)
+                   .Cast("cast0", "concat0", DT_FLOAT16)
+                   .Store("store0", "cast0")
+                   .Abs("abs0", "concat0")
+                   .Store("store1", "abs0")
+                   .Output("output0", "store0")
+                   .Output("output1", "store1", 1)
+                   .Build();
 
   ASSERT_EQ(af::optimize::CastOptimizationPass::Run(graph), SUCCESS);
   EXPECT_EQ(CountNodesByType(graph, ascir_op::Cast::Type), 1U);
@@ -187,14 +180,14 @@ TEST_F(TestCastOptimizationPass, ConcatWithMultipleOutputs_NoOptimize) {
 
 TEST_F(TestCastOptimizationPass, ConcatWithNonCastOutput_NoOptimize) {
   auto graph = AscGraphBuilder("test_concat_non_cast_out")
-      .Loops({Sym(128)})
-      .Data("data0", 0, DT_FLOAT)
-      .Load("load0", "data0")
-      .Concat("concat0", {"load0"}, 0)
-      .Abs("abs0", "concat0")
-      .Store("store0", "abs0")
-      .Output("output0", "store0")
-      .Build();
+                   .Loops({Sym(128)})
+                   .Data("data0", 0, DT_FLOAT)
+                   .Load("load0", "data0")
+                   .Concat("concat0", {"load0"}, 0)
+                   .Abs("abs0", "concat0")
+                   .Store("store0", "abs0")
+                   .Output("output0", "store0")
+                   .Build();
 
   ASSERT_EQ(af::optimize::CastOptimizationPass::Run(graph), SUCCESS);
   EXPECT_EQ(CountNodesByType(graph, ascir_op::Cast::Type), 0U);
@@ -202,16 +195,16 @@ TEST_F(TestCastOptimizationPass, ConcatWithNonCastOutput_NoOptimize) {
 
 TEST_F(TestCastOptimizationPass, Downcast_PullUpCastBeforeInputs) {
   auto graph = AscGraphBuilder("test_downcast_pullup")
-      .Loops({Sym(128), Sym(64)})
-      .Data("data0", 0, DT_FLOAT)
-      .Data("data1", 1, DT_FLOAT)
-      .Load("load0", "data0")
-      .Load("load1", "data1")
-      .Concat("concat0", {"load0", "load1"}, 0)
-      .Cast("cast_out0", "concat0", DT_FLOAT16)
-      .Store("store0", "cast_out0")
-      .Output("output0", "store0", 0)
-      .Build();
+                   .Loops({Sym(128), Sym(64)})
+                   .Data("data0", 0, DT_FLOAT)
+                   .Data("data1", 1, DT_FLOAT)
+                   .Load("load0", "data0")
+                   .Load("load1", "data1")
+                   .Concat("concat0", {"load0", "load1"}, 0)
+                   .Cast("cast_out0", "concat0", DT_FLOAT16)
+                   .Store("store0", "cast_out0")
+                   .Output("output0", "store0", 0)
+                   .Build();
 
   ASSERT_EQ(CountNodesByType(graph, ascir_op::Cast::Type), 1U);
   ASSERT_EQ(af::optimize::CastOptimizationPass::Run(graph), SUCCESS);
@@ -222,17 +215,17 @@ TEST_F(TestCastOptimizationPass, Downcast_PullUpCastBeforeInputs) {
 
 TEST_F(TestCastOptimizationPass, Downcast_ReverseInputCastRemoved) {
   auto graph = AscGraphBuilder("test_downcast_reverse_input")
-      .Loops({Sym(128), Sym(64)})
-      .Data("data0", 0, DT_FLOAT16)
-      .Data("data1", 1, DT_FLOAT)
-      .Load("load0", "data0")
-      .Load("load1", "data1")
-      .Cast("cast_input0", "load0", DT_FLOAT)
-      .Concat("concat0", {"cast_input0", "load1"}, 0)
-      .Cast("cast_out0", "concat0", DT_FLOAT16)
-      .Store("store0", "cast_out0")
-      .Output("output0", "store0", 0)
-      .Build();
+                   .Loops({Sym(128), Sym(64)})
+                   .Data("data0", 0, DT_FLOAT16)
+                   .Data("data1", 1, DT_FLOAT)
+                   .Load("load0", "data0")
+                   .Load("load1", "data1")
+                   .Cast("cast_input0", "load0", DT_FLOAT)
+                   .Concat("concat0", {"cast_input0", "load1"}, 0)
+                   .Cast("cast_out0", "concat0", DT_FLOAT16)
+                   .Store("store0", "cast_out0")
+                   .Output("output0", "store0", 0)
+                   .Build();
 
   ASSERT_EQ(CountNodesByType(graph, ascir_op::Cast::Type), 2U);
   ASSERT_EQ(af::optimize::CastOptimizationPass::Run(graph), SUCCESS);
@@ -253,16 +246,16 @@ TEST_F(TestCastOptimizationPass, Downcast_AllReverseInputCastsEliminated) {
 
 TEST_F(TestCastOptimizationPass, Upcast_NoReverseInputCast_NotOptimized) {
   auto graph = AscGraphBuilder("test_upcast_no_reverse")
-      .Loops({Sym(128)})
-      .Data("data0", 0, DT_FLOAT16)
-      .Data("data1", 1, DT_FLOAT16)
-      .Load("load0", "data0")
-      .Load("load1", "data1")
-      .Concat("concat0", {"load0", "load1"}, 0)
-      .Cast("cast_out0", "concat0", DT_FLOAT)
-      .Store("store0", "cast_out0")
-      .Output("output0", "store0", 0)
-      .Build();
+                   .Loops({Sym(128)})
+                   .Data("data0", 0, DT_FLOAT16)
+                   .Data("data1", 1, DT_FLOAT16)
+                   .Load("load0", "data0")
+                   .Load("load1", "data1")
+                   .Concat("concat0", {"load0", "load1"}, 0)
+                   .Cast("cast_out0", "concat0", DT_FLOAT)
+                   .Store("store0", "cast_out0")
+                   .Output("output0", "store0", 0)
+                   .Build();
 
   ASSERT_EQ(af::optimize::CastOptimizationPass::Run(graph), SUCCESS);
   EXPECT_EQ(CountNodesByType(graph, ascir_op::Cast::Type), 1U);
@@ -279,20 +272,20 @@ TEST_F(TestCastOptimizationPass, Upcast_TransposeAlg_NoOptimize) {
 
 TEST_F(TestCastOptimizationPass, MixedReverseAndNonReverseInputCast) {
   auto graph = AscGraphBuilder("test_mixed_input_cast")
-      .Loops({Sym(128), Sym(64)})
-      .Data("data0", 0, DT_FLOAT16)
-      .Data("data1", 1, DT_FLOAT16)
-      .Data("data2", 2, DT_FLOAT)
-      .Load("load0", "data0")
-      .Load("load1", "data1")
-      .Load("load2", "data2")
-      .Cast("cast_input0", "load0", DT_FLOAT)
-      .Cast("cast_input1", "load1", DT_FLOAT)
-      .Concat("concat0", {"cast_input0", "cast_input1", "load2"}, 0)
-      .Cast("cast_out0", "concat0", DT_FLOAT16)
-      .Store("store0", "cast_out0")
-      .Output("output0", "store0", 0)
-      .Build();
+                   .Loops({Sym(128), Sym(64)})
+                   .Data("data0", 0, DT_FLOAT16)
+                   .Data("data1", 1, DT_FLOAT16)
+                   .Data("data2", 2, DT_FLOAT)
+                   .Load("load0", "data0")
+                   .Load("load1", "data1")
+                   .Load("load2", "data2")
+                   .Cast("cast_input0", "load0", DT_FLOAT)
+                   .Cast("cast_input1", "load1", DT_FLOAT)
+                   .Concat("concat0", {"cast_input0", "cast_input1", "load2"}, 0)
+                   .Cast("cast_out0", "concat0", DT_FLOAT16)
+                   .Store("store0", "cast_out0")
+                   .Output("output0", "store0", 0)
+                   .Build();
 
   ASSERT_EQ(CountNodesByType(graph, ascir_op::Cast::Type), 3U);
   ASSERT_EQ(af::optimize::CastOptimizationPass::Run(graph), SUCCESS);
@@ -328,15 +321,15 @@ TEST_F(TestCastOptimizationPass, Downcast_GatherAlg_NoAlignmentDegradation_Optim
 
 TEST_F(TestCastOptimizationPass, Downcast_SharedNonCastInput_OnlyOneCastInserted) {
   auto graph = AscGraphBuilder("test_shared_noncast_downcast")
-      .Loops({Sym(128), Sym(64)})
-      .Data("data0", 0, DT_FLOAT)
-      .Load("load0", "data0")
-      .Relu("relu0", "load0")
-      .Concat("concat0", {"relu0", "relu0"}, 0)
-      .Cast("cast_out0", "concat0", DT_FLOAT16)
-      .Store("store0", "cast_out0")
-      .Output("output0", "store0", 0)
-      .Build();
+                   .Loops({Sym(128), Sym(64)})
+                   .Data("data0", 0, DT_FLOAT)
+                   .Load("load0", "data0")
+                   .Relu("relu0", "load0")
+                   .Concat("concat0", {"relu0", "relu0"}, 0)
+                   .Cast("cast_out0", "concat0", DT_FLOAT16)
+                   .Store("store0", "cast_out0")
+                   .Output("output0", "store0", 0)
+                   .Build();
 
   ASSERT_EQ(CountNodesByType(graph, ascir_op::Cast::Type), 1U);
   ASSERT_EQ(af::optimize::CastOptimizationPass::Run(graph), SUCCESS);
@@ -361,20 +354,20 @@ TEST_F(TestCastOptimizationPass, Downcast_GatherAlg_NoDiscontinuity_Optimize) {
 
 TEST_F(TestCastOptimizationPass, Downcast_ReverseCastWithMultipleConsumers_BypassNotRemove) {
   auto graph = AscGraphBuilder("test_downcast_reverse_multi_consumer")
-      .Loops({Sym(128), Sym(64)})
-      .Data("data0", 0, DT_FLOAT16)
-      .Data("data1", 1, DT_FLOAT)
-      .Load("load0", "data0")
-      .Load("load1", "data1")
-      .Cast("cast_input0", "load0", DT_FLOAT)
-      .Concat("concat0", {"cast_input0", "load1"}, 0)
-      .Cast("cast_out0", "concat0", DT_FLOAT16)
-      .Store("store0", "cast_out0")
-      .Abs("abs0", "cast_input0")
-      .Store("store1", "abs0")
-      .Output("output0", "store0", 0)
-      .Output("output1", "store1", 1)
-      .Build();
+                   .Loops({Sym(128), Sym(64)})
+                   .Data("data0", 0, DT_FLOAT16)
+                   .Data("data1", 1, DT_FLOAT)
+                   .Load("load0", "data0")
+                   .Load("load1", "data1")
+                   .Cast("cast_input0", "load0", DT_FLOAT)
+                   .Concat("concat0", {"cast_input0", "load1"}, 0)
+                   .Cast("cast_out0", "concat0", DT_FLOAT16)
+                   .Store("store0", "cast_out0")
+                   .Abs("abs0", "cast_input0")
+                   .Store("store1", "abs0")
+                   .Output("output0", "store0", 0)
+                   .Output("output1", "store1", 1)
+                   .Build();
 
   ASSERT_EQ(CountNodesByType(graph, ascir_op::Cast::Type), 2U);
   ASSERT_EQ(af::optimize::CastOptimizationPass::Run(graph), SUCCESS);
@@ -386,21 +379,21 @@ TEST_F(TestCastOptimizationPass, Downcast_ReverseCastWithMultipleConsumers_Bypas
 
 TEST_F(TestCastOptimizationPass, Downcast_SharedSourceReverseCastsWithMultipleConsumers_BypassBoth) {
   auto graph = AscGraphBuilder("test_downcast_shared_reverse_multi")
-      .Loops({Sym(128), Sym(64)})
-      .Data("data0", 0, DT_FLOAT16)
-      .Data("data1", 1, DT_FLOAT)
-      .Load("load0", "data0")
-      .Load("load1", "data1")
-      .Cast("cast_input0", "load0", DT_FLOAT)
-      .Cast("cast_input1", "load0", DT_FLOAT)
-      .Concat("concat0", {"cast_input0", "cast_input1", "load1"}, 0)
-      .Cast("cast_out0", "concat0", DT_FLOAT16)
-      .Store("store0", "cast_out0")
-      .Abs("abs0", "cast_input0")
-      .Store("store1", "abs0")
-      .Output("output0", "store0", 0)
-      .Output("output1", "store1", 1)
-      .Build();
+                   .Loops({Sym(128), Sym(64)})
+                   .Data("data0", 0, DT_FLOAT16)
+                   .Data("data1", 1, DT_FLOAT)
+                   .Load("load0", "data0")
+                   .Load("load1", "data1")
+                   .Cast("cast_input0", "load0", DT_FLOAT)
+                   .Cast("cast_input1", "load0", DT_FLOAT)
+                   .Concat("concat0", {"cast_input0", "cast_input1", "load1"}, 0)
+                   .Cast("cast_out0", "concat0", DT_FLOAT16)
+                   .Store("store0", "cast_out0")
+                   .Abs("abs0", "cast_input0")
+                   .Store("store1", "abs0")
+                   .Output("output0", "store0", 0)
+                   .Output("output1", "store1", 1)
+                   .Build();
 
   ASSERT_EQ(CountNodesByType(graph, ascir_op::Cast::Type), 3U);
   ASSERT_EQ(af::optimize::CastOptimizationPass::Run(graph), SUCCESS);
@@ -410,4 +403,4 @@ TEST_F(TestCastOptimizationPass, Downcast_SharedSourceReverseCastsWithMultipleCo
   EXPECT_EQ(CountNodesByType(graph, ascir_op::Cast::Type), 2U);
 }
 
-} // namespace af
+}  // namespace af

@@ -10,11 +10,8 @@
 #ifndef __ASCENDC_API_REGBASE_LAGUERRE_POLYNOMIAL_L_H__
 #define __ASCENDC_API_REGBASE_LAGUERRE_POLYNOMIAL_L_H__
 
-
-static constexpr AscendC::Reg::DivSpecificMode kLaguerreHighPrecisionDivMode = {
-    AscendC::Reg::MaskMergeMode::ZEROING,
-    true
-};
+static constexpr AscendC::Reg::DivSpecificMode kLaguerreHighPrecisionDivMode = {AscendC::Reg::MaskMergeMode::ZEROING,
+                                                                                true};
 
 template <typename T>
 __simd_vf__ inline void LaguerrePolynomialLFillVF(__ubuf__ T *yAddr, uint32_t calCount, T fillValue) {
@@ -49,8 +46,7 @@ __simd_vf__ inline void LaguerrePolynomialLLinearVF(__ubuf__ T *xAddr, __ubuf__ 
 }
 
 template <typename T>
-__simd_vf__ inline void LaguerrePolynomialLImplVF(__ubuf__ T *xAddr, __ubuf__ T *yAddr, int32_t n,
-                                                  uint32_t calCount) {
+__simd_vf__ inline void LaguerrePolynomialLImplVF(__ubuf__ T *xAddr, __ubuf__ T *yAddr, int32_t n, uint32_t calCount) {
   const uint32_t repeatElem = static_cast<uint32_t>(AscendC::GetVecLen() / sizeof(T));
   const uint16_t repeatTime = static_cast<uint16_t>(AscendC::CeilDivision(calCount, repeatElem));
 
@@ -97,10 +93,8 @@ __simd_vf__ inline void LaguerrePolynomialLImplVF(__ubuf__ T *xAddr, __ubuf__ T 
 }
 
 template <typename T, typename U>
-__aicore__ inline void LaguerrePolynomialLExtend(const AscendC::LocalTensor<T> &dst,
-                                                 const AscendC::LocalTensor<T> &src,
-                                                 U n,
-                                                 const uint32_t calcount) {
+__aicore__ inline void LaguerrePolynomialLExtend(const AscendC::LocalTensor<T> &dst, const AscendC::LocalTensor<T> &src,
+                                                 U n, const uint32_t calcount) {
   static_assert(AscendC::SupportType<T, float>(), "Current data type is not supported on current device!");
   const int32_t order = static_cast<int32_t>(n);
 
@@ -126,10 +120,8 @@ __aicore__ inline void LaguerrePolynomialLExtend(const AscendC::LocalTensor<T> &
 }
 
 template <typename T, typename U>
-__aicore__ inline void LaguerrePolynomialLExtend(const AscendC::LocalTensor<T> &dst,
-                                                 const AscendC::LocalTensor<T> &src,
-                                                 const AscendC::LocalTensor<U> &n,
-                                                 const uint32_t calcount) {
+__aicore__ inline void LaguerrePolynomialLExtend(const AscendC::LocalTensor<T> &dst, const AscendC::LocalTensor<T> &src,
+                                                 const AscendC::LocalTensor<U> &n, const uint32_t calcount) {
   LaguerrePolynomialLExtend(dst, src, n.GetValue(0), calcount);
 }
 

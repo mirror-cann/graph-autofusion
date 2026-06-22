@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -210,8 +210,10 @@ class ArgListReorder {
   bool CheckAxisProperty(const SubAxis *dim, const Expr &repeat, const Expr &stride,
                          const std::vector<TensorPtr> &output_tensors, AxisProperty property);
   void FindSpecialArgs();
-  ge::Status AddEdgeGroups(const std::vector<std::string> &from_axes_group, const std::vector<std::string> &to_axes_group);
-  bool IsReduceAxisBlockSplit(const std::vector<SubAxisPtr> &all_axes, const std::set<std::string> &reduce_axis_ori_axes_set) const;
+  ge::Status AddEdgeGroups(const std::vector<std::string> &from_axes_group,
+                           const std::vector<std::string> &to_axes_group);
+  bool IsReduceAxisBlockSplit(const std::vector<SubAxisPtr> &all_axes,
+                              const std::set<std::string> &reduce_axis_ori_axes_set) const;
   void SaveReduceAxisOrig(const SubAxis *reduce_axis, std::set<std::string> &reduce_axis_ori_axes_set) const;
   AxisCategories CategorizeAxesByProperty(const vector<AttAxisPtr> &arg_list);
   ge::Status ApplyPriorityRules(bool tiling_R, const AxisCategories &categories);

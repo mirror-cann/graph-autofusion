@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -86,7 +86,7 @@ void SetupGraphAxes(af::AscGraph &graph, const std::vector<af::Symbol> &loops) {
 }  // namespace
 
 class VfPartition : public testing::Test {
-protected:
+ protected:
   void SetUp() override {
     // setenv("DUMP_GE_GRAPH", "2", 1);
     ge::PlatformContext::GetInstance().Reset();
@@ -211,7 +211,7 @@ TEST_F(VfPartition, brc_abs) {
   VectorFuncPartitioner partitioner(graph);
   ASSERT_EQ(partitioner.Partition(), af::SUCCESS);
 
-  for (const auto &node: graph.GetAllNodes()) {
+  for (const auto &node : graph.GetAllNodes()) {
     if (node->GetType() == "VectorFunc") {
       const std::string *graph_name = af::AttrUtils::GetStr(node->GetOpDescBarePtr(), "sub_graph_name");
       ASSERT_NE(graph_name, nullptr);
@@ -463,7 +463,7 @@ TEST_F(VfPartition, add_more_than_30) {
 
   ::ascir::utils::DumpGraph(graph, "AfterPart");
 
-  for (const auto &node: graph.GetAllNodes()) {
+  for (const auto &node : graph.GetAllNodes()) {
     if (node->GetType() == "VectorFunc") {
       const std::string *graph_name = af::AttrUtils::GetStr(node->GetOpDescBarePtr(), "sub_graph_name");
       ASSERT_NE(graph_name, nullptr);
@@ -1337,7 +1337,7 @@ TEST_F(VfPartition, test_vf_no_cache) {
   ASSERT_EQ(sub_graphs.size(), 1UL);
   auto brc_in_root = graph.FindNode("brc0");
   ASSERT_EQ(brc_in_root, nullptr);
-  for (const auto &node: graph.GetAllNodes()) {
+  for (const auto &node : graph.GetAllNodes()) {
     if (af::ops::IsOps<af::ascir_op::VectorFunc>(node)) {
       EXPECT_EQ(node->attr.sched.exec_condition, af::ExecuteCondition::kNoCache);
     }
@@ -1487,7 +1487,7 @@ TEST_F(VfPartition, test_vf_cache) {
   ASSERT_EQ(sub_graphs.size(), 1UL);
   auto brc_in_root = graph.FindNode("brc0");
   ASSERT_EQ(brc_in_root, nullptr);
-  for (const auto &node: graph.GetAllNodes()) {
+  for (const auto &node : graph.GetAllNodes()) {
     if (af::ops::IsOps<af::ascir_op::VectorFunc>(node)) {
       EXPECT_EQ(node->attr.sched.exec_condition, af::ExecuteCondition::kCacheBlockSplitOriginBroadcastAxis);
     }
@@ -1510,7 +1510,7 @@ TEST_F(VfPartition, cast_bitwidth_gap_exactly_2x) {
 
   af::ascir_op::Cast cast("cast");
   cast.x = abs.y;
-  cast.y.dtype = af::DT_INT16; // INT32 -> INT16, 恰好 2 倍差距
+  cast.y.dtype = af::DT_INT16;  // INT32 -> INT16, 恰好 2 倍差距
 
   af::ascir_op::Exp exp("exp");
   exp.x = cast.y;
@@ -1614,7 +1614,7 @@ TEST_F(VfPartition, cast_high_to_low_no_fuse_with_output) {
 
   af::ascir_op::Cast cast("cast");
   cast.x = abs.y;
-  cast.y.dtype = af::DT_INT32; // INT64 -> INT32, 高→低
+  cast.y.dtype = af::DT_INT32;  // INT64 -> INT32, 高→低
 
   af::ascir_op::Exp exp("exp");
   exp.x = cast.y;
@@ -1681,4 +1681,4 @@ TEST_F(VfPartition, tail_axis_stride_not_one_disable_vf) {
   EXPECT_EQ(graph.GetAllSubGraphs(sub_graphs), ge::SUCCESS);
   EXPECT_EQ(sub_graphs.size(), 0UL);
 }
-} // namespace optimize
+}  // namespace optimize

@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -37,11 +37,12 @@ constexpr uint32_t kConstType = 1U;
 constexpr uint32_t kVarType = 2U;
 constexpr uint32_t kDefaultAlignValue = 1U;
 const std::string kModelInfoFilePath = "./";
-}
+}  // namespace
 
 ge::Status GenerateModelInfo(const af::AscGraph &graph, ModelInfo &model_info, TuningSpacePtr &tuning_space,
                              const uint32_t tiling_case_id) {
-  GELOGI("[DFX]Begin to generate model info for graph %s of tiling case id %u", graph.GetName().c_str(), tiling_case_id);
+  GELOGI("[DFX]Begin to generate model info for graph %s of tiling case id %u", graph.GetName().c_str(),
+         tiling_case_id);
   DURATION_GUARD(DurationType::DURATION_GEN_MODEL_INFO);
   model_info.tiling_case_id = tiling_case_id;
   // step1: get tuningspace from compute graph
@@ -266,8 +267,7 @@ inline bool IsAxesReorderAlgorithm() {
 }
 
 ge::Status GenerateModelInfo(const std::vector<af::AscGraph> &graph_list, std::vector<ModelInfo> &model_info_list,
-                             const std::map<std::string, std::string> &options,
-                             bool enable_group_parallel) {
+                             const std::map<std::string, std::string> &options, bool enable_group_parallel) {
   GE_ASSERT_SUCCESS(CheckKeyValid(graph_list));
   uint32_t tiling_key = 0U;
   for (auto &graph : graph_list) {
@@ -344,13 +344,12 @@ ge::Status GetAllSubImplGraphs(const ascir::FusedScheduledResult &schedule_resul
 }
 
 namespace {
-ge::Status ProcessAndSetScheduleGroupInfo(
-    const std::vector<std::vector<af::AscGraph>> &schedule_groups,
-    const std::map<std::string, std::string> &all_graph_score_funcs,
-    const ascir::FusedScheduledResult &schedule_results,
-    const std::map<std::string, std::string> &options,
-    att::ParsedScheduleResult &out_schedule_groups,
-    size_t asc_graph_id, size_t impl_graph_id) {
+ge::Status ProcessAndSetScheduleGroupInfo(const std::vector<std::vector<af::AscGraph>> &schedule_groups,
+                                          const std::map<std::string, std::string> &all_graph_score_funcs,
+                                          const ascir::FusedScheduledResult &schedule_results,
+                                          const std::map<std::string, std::string> &options,
+                                          att::ParsedScheduleResult &out_schedule_groups, size_t asc_graph_id,
+                                          size_t impl_graph_id) {
   // 第三层表示schedule_group_id
   for (size_t schedule_group_id = 0UL; schedule_group_id < schedule_groups.size(); schedule_group_id++) {
     auto &model_info_list = out_schedule_groups.groups_tiling_model_info[schedule_group_id];
@@ -358,12 +357,10 @@ ge::Status ProcessAndSetScheduleGroupInfo(
         "[DFX]Begin to gen model info for asc graph %zu, schedule result %zu, schedule group %zu, tiling_case size "
         "%zu, graph name %s.",
         asc_graph_id, impl_graph_id, schedule_group_id, schedule_groups[schedule_group_id].size(),
-        !schedule_groups[schedule_group_id].empty() ? schedule_groups[schedule_group_id][0].GetName().c_str()
-                                                    : "null");
+        !schedule_groups[schedule_group_id].empty() ? schedule_groups[schedule_group_id][0].GetName().c_str() : "null");
     GE_ASSERT_SUCCESS(GenerateModelInfo(schedule_groups[schedule_group_id], model_info_list, options,
                                         out_schedule_groups.enable_group_parallel),
-                      "Get model info failed, impl graph id = %ld, group id = %ld.", impl_graph_id,
-                      schedule_group_id);
+                      "Get model info failed, impl graph id = %ld, group id = %ld.", impl_graph_id, schedule_group_id);
     for (auto &model_info : model_info_list) {
       model_info.schedule_group_ident.asc_graph_id = asc_graph_id;
       model_info.schedule_group_ident.impl_graph_id = impl_graph_id;
@@ -376,17 +373,17 @@ ge::Status ProcessAndSetScheduleGroupInfo(
       }
     }
     const auto &ident = model_info_list[0].schedule_group_ident;
-    GELOGI("[DFX]End to gen model info for %s tiling_case size %zu, graph name %s.", ident.GetItemPrefix().c_str(),
-           schedule_groups[schedule_group_id].size(),
-           !schedule_groups[schedule_group_id].empty() ? schedule_groups[schedule_group_id][0].GetName().c_str()
-                                                       : "null");
+    GELOGI(
+        "[DFX]End to gen model info for %s tiling_case size %zu, graph name %s.", ident.GetItemPrefix().c_str(),
+        schedule_groups[schedule_group_id].size(),
+        !schedule_groups[schedule_group_id].empty() ? schedule_groups[schedule_group_id][0].GetName().c_str() : "null");
     GE_ASSERT_SUCCESS(ReuseGroupUtils::InitReuseScheduleGroup(ident, model_info_list),
                       "Init reuse schedule group failed, impl_graph_id[%zu], group_ident[%s].", impl_graph_id,
                       ident.GetItemPrefix().c_str());
   }
   return ge::SUCCESS;
 }
-}
+}  // namespace
 
 ge::Status GetModelInfoMap(const ascir::FusedScheduledResult &schedule_results,
                            const std::map<std::string, std::string> &options,
@@ -407,13 +404,15 @@ ge::Status GetModelInfoMap(const ascir::FusedScheduledResult &schedule_results,
       auto &out_schedule_groups = out_asc_graph_model_infos[impl_graph_id];
       const auto &schedule_result = schedule_results.node_idx_to_scheduled_results[asc_graph_id][impl_graph_id];
       GELOGD(
-          "out_schedule_groups input values: score_func=%s, enable_group_parallel=%d, asc_graph_id=%zu, impl_graph_id=%zu",
+          "out_schedule_groups input values: score_func=%s, enable_group_parallel=%d, asc_graph_id=%zu, "
+          "impl_graph_id=%zu",
           schedule_result.score_func.GetString(), schedule_result.enable_group_parallel, asc_graph_id, impl_graph_id);
       out_schedule_groups.score_func = schedule_result.score_func.GetString();
       out_schedule_groups.enable_group_parallel = schedule_result.enable_group_parallel;
       out_schedule_groups.asc_graph_id = asc_graph_id;
       out_schedule_groups.impl_graph_id = impl_graph_id;
-      out_schedule_groups.var_relations = schedule_results.node_idx_to_scheduled_results[asc_graph_id][impl_graph_id].var_relations;
+      out_schedule_groups.var_relations =
+          schedule_results.node_idx_to_scheduled_results[asc_graph_id][impl_graph_id].var_relations;
       GE_ASSERT_SUCCESS(ProcessAndSetScheduleGroupInfo(schedule_groups, all_graph_score_funcs, schedule_results,
                                                        options, out_schedule_groups, asc_graph_id, impl_graph_id));
     }

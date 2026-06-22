@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -29,8 +29,8 @@ class BufferFusionPassRegistry {
 
   static BufferFusionPassRegistry &GetInstance();
 
-  void RegisterPass(const BufferFusionPassType pass_type, const std::string &pass_name,
-                    CreateFn create_fn, PassAttr attr);
+  void RegisterPass(const BufferFusionPassType pass_type, const std::string &pass_name, CreateFn create_fn,
+                    PassAttr attr);
 
   std::map<std::string, PassDesc> GetPassDesc(const BufferFusionPassType &pass_type);
 
@@ -59,10 +59,10 @@ class BufferFusionPassRegistrar {
 #define REG_BUFFER_FUSION_PASS_UNIQ_HELPER(ctr, pass_name, pass_type, pass_class, attr) \
   REG_BUFFER_FUSION_PASS_UNIQ(ctr, pass_name, pass_type, pass_class, attr)
 
-#define REG_BUFFER_FUSION_PASS_UNIQ(ctr, pass_name, pass_type, pass_class, attr)                     \
-  static ::fe::BufferFusionPassRegistrar register_buffer_fusion_##ctr __attribute__((unused)) = \
-      ::fe::BufferFusionPassRegistrar(                                                               \
-      (pass_type), (pass_name),                                          \
-      []() -> ::fe::BufferFusionPassBase * { return new (std::nothrow) pass_class();}, (attr))
+#define REG_BUFFER_FUSION_PASS_UNIQ(ctr, pass_name, pass_type, pass_class, attr)                                      \
+  static ::fe::BufferFusionPassRegistrar register_buffer_fusion_##ctr __attribute__((unused)) =                       \
+      ::fe::BufferFusionPassRegistrar(                                                                                \
+          (pass_type), (pass_name), []() -> ::fe::BufferFusionPassBase * { return new (std::nothrow) pass_class(); }, \
+          (attr))
 }  // namespace fe
 #endif  // INC_REGISTER_GRAPH_OPTIMIZER_BUFFER_FUSION_BUFFER_FUSION_PASS_REGISTRY_H_

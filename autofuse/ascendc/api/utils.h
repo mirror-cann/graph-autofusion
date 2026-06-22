@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -75,7 +75,8 @@ inline __aicore__ T2 Mod(T1 a, T2 b) {
     uint64_t mod_num = a_tmp % b_tmp;
     return static_cast<uint64_t>(mod_num);
   } else if constexpr (std::is_same<T1, uint64_t>::value || std::is_same<T2, uint64_t>::value) {
-    ASCENDC_ASSERT(true, { KERNEL_LOG(KERNEL_ERROR, "does not support mix type of uint64 because of possible overflow!"); });
+    ASCENDC_ASSERT(true,
+                   { KERNEL_LOG(KERNEL_ERROR, "does not support mix type of uint64 because of possible overflow!"); });
     return 0;
   } else {
     ASCENDC_ASSERT(b != 0, { KERNEL_LOG(KERNEL_ERROR, "b can't be equal to 0, b is %d!", b); });
@@ -86,7 +87,7 @@ inline __aicore__ T2 Mod(T1 a, T2 b) {
   }
 }
 
-template<typename TilingData>
+template <typename TilingData>
 inline __aicore__ bool MatchBlockDim(TilingData &t) {
   auto block_dim = GetBlockIdx();
   // reuse ub_size as block_offset
@@ -98,7 +99,7 @@ inline __aicore__ bool MatchBlockDim(TilingData &t) {
   }
 }
 
-template<typename TilingData>
+template <typename TilingData>
 inline __aicore__ bool MatchTilingKeyAndBlockDim(TilingData &t, uint32_t tiling_key) {
   return (t.tiling_key == tiling_key) && MatchBlockDim(t);
 }
@@ -280,7 +281,7 @@ constexpr __aicore__ static inline T AfInfinity() {
 }
 
 static constexpr float ROUND_TO_NEAREST_INT_BIAS = 0.5f;
-template<typename T>
+template <typename T>
 inline __aicore__ uint32_t ConvertToUint32(T value) {
   if constexpr (std::is_floating_point<T>::value) {
     // 默认tiling_data是uint32_t的，而ascendc不支持将uint32_t转为float

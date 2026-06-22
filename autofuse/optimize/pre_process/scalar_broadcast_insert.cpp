@@ -27,7 +27,7 @@ bool IsSkipDownstreamType(const af::NodePtr &node) {
 }
 
 af::AscNodePtr BuildBroadcastNode(af::AscGraph &asc_graph, const af::AscNodePtr &scalar_node,
-                                   const af::AscNodePtr &ref_node) {
+                                  const af::AscNodePtr &ref_node) {
   std::string brc_name = scalar_node->GetName() + "_broadcast";
   af::ascir_op::Broadcast brc(brc_name.c_str());
   auto b_node = asc_graph.AddNode(brc);
@@ -46,7 +46,7 @@ Status InsertBroadcastAfterScalar(af::AscGraph &asc_graph, const af::AscNodePtr 
   }
 
   std::vector<af::InDataAnchorPtr> compute_anchors;
-  for (const auto &peer: peer_in_anchors) {
+  for (const auto &peer : peer_in_anchors) {
     GE_ASSERT_NOTNULL(peer);
     GE_ASSERT_NOTNULL(peer->GetOwnerNode());
     if (!IsSkipDownstreamType(peer->GetOwnerNode())) {
@@ -61,29 +61,29 @@ Status InsertBroadcastAfterScalar(af::AscGraph &asc_graph, const af::AscNodePtr 
   GE_ASSERT_NOTNULL(ref_node);
   auto b_node = BuildBroadcastNode(asc_graph, scalar_node, ref_node);
   auto b_out = b_node->GetOutDataAnchor(0);
-  for (const auto &dst: compute_anchors) {
+  for (const auto &dst : compute_anchors) {
     GE_ASSERT_GRAPH_SUCCESS(af::GraphUtils::RemoveEdge(out_anchor, dst));
     GE_ASSERT_GRAPH_SUCCESS(af::GraphUtils::AddEdge(b_out, dst));
   }
   GE_ASSERT_GRAPH_SUCCESS(af::GraphUtils::AddEdge(out_anchor, b_node->GetInDataAnchor(0)));
 
-  GELOGD("insert broadcast %s after scalar %s in graph %s.", b_node->GetName().c_str(),
-         scalar_node->GetName().c_str(), asc_graph.GetName().c_str());
+  GELOGD("insert broadcast %s after scalar %s in graph %s.", b_node->GetName().c_str(), scalar_node->GetName().c_str(),
+         asc_graph.GetName().c_str());
   inserted = true;
   return ge::SUCCESS;
 }
-} // namespace
+}  // namespace
 
 ge::Status InsertBroadcastAfterScalarForAscGraph(af::AscGraph &asc_graph) {
   std::vector<af::AscNodePtr> scalar_nodes;
-  for (const auto &node: asc_graph.GetAllNodes()) {
+  for (const auto &node : asc_graph.GetAllNodes()) {
     if (node->GetType() == af::ascir_op::Scalar::Type) {
       scalar_nodes.push_back(node);
     }
   }
 
   bool inserted = false;
-  for (const auto &scalar_node: scalar_nodes) {
+  for (const auto &scalar_node : scalar_nodes) {
     GE_ASSERT_SUCCESS(InsertBroadcastAfterScalar(asc_graph, scalar_node, inserted));
   }
 
@@ -92,4 +92,4 @@ ge::Status InsertBroadcastAfterScalarForAscGraph(af::AscGraph &asc_graph) {
   }
   return ge::SUCCESS;
 }
-} // namespace optimize::pre_process
+}  // namespace af::pre_process

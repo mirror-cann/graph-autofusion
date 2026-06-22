@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -66,15 +66,8 @@ Expr CalculateStridePenalty(int32_t block_count_idx, const Expr &stride, float p
 
 std::string GetDefaultDataType(const std::string dtype) {
   static const std::map<std::string, std::string> kTypeToDType = {
-      {"int8", "float16"},
-      {"uint8", "float16"},
-      {"uint16", "float16"},
-      {"int16", "float16"},
-      {"uint32", "float32"},
-      {"int32", "float32"},
-      {"uint64", "float32"},
-      {"int64", "float32"},
-      {"float32", "float32"},
+      {"int8", "float16"},  {"uint8", "float16"},  {"uint16", "float16"}, {"int16", "float16"},   {"uint32", "float32"},
+      {"int32", "float32"}, {"uint64", "float32"}, {"int64", "float32"},  {"float32", "float32"},
   };
   auto it = kTypeToDType.find(dtype);
   if (it != kTypeToDType.end()) {
@@ -95,15 +88,15 @@ ge::Status StringToJson(const std::string &json_str, Json &json) {
   return ge::SUCCESS;
 }
 
-ge::Status LinearFunc(const std::map<std::string, float> &param_map,
-                      const std::vector<Expr> &dims, const Expr &stride, Expr &res) {
+ge::Status LinearFunc(const std::map<std::string, float> &param_map, const std::vector<Expr> &dims, const Expr &stride,
+                      Expr &res) {
   (void)stride;
   GE_ASSERT_TRUE(!dims.empty(), "Dims is empty.");
   GE_ASSERT_TRUE(param_map.find("k") != param_map.end(), "Param k not found in param_map.");
   GE_ASSERT_TRUE(param_map.find("b") != param_map.end(), "Param b not found in param_map.");
   Expr k = CreateExpr(param_map.at("k"));
   Expr b = CreateExpr(param_map.at("b"));
-  Expr dim_product =  accumulate(dims.begin(), dims.end(), CreateExpr(1), [](Expr a, Expr b) { return a * b; });
+  Expr dim_product = accumulate(dims.begin(), dims.end(), CreateExpr(1), [](Expr a, Expr b) { return a * b; });
   res = k * dim_product + b;
   return ge::SUCCESS;
 }
@@ -158,8 +151,7 @@ bool NeedsReordering(const std::vector<int64_t> &vectorized_axis, const std::vec
 }
 
 // 找出 axis 里哪些轴未在 vectorized_axis 里出现，并记录对应的下标
-std::vector<size_t> FindIndicesToRemove(const std::vector<int64_t> &vectorized_axis,
-                                        const std::vector<int64_t> &axis) {
+std::vector<size_t> FindIndicesToRemove(const std::vector<int64_t> &vectorized_axis, const std::vector<int64_t> &axis) {
   std::vector<size_t> indices_to_remove;
   for (size_t i = 0; i < axis.size(); ++i) {
     int64_t axis_id = axis[i];
@@ -188,9 +180,7 @@ void RemoveIndicesFromRepeats(std::vector<Expr> &repeats, const std::vector<size
 }
 
 // 创建动态shape的StrideResult，处理非连续分支选择
-StrideResult CreateDynamicStrideResult(const Expr &last_stride,
-                                       const Expr &normal_stride,
-                                       int32_t block_count_idx,
+StrideResult CreateDynamicStrideResult(const Expr &last_stride, const Expr &normal_stride, int32_t block_count_idx,
                                        bool is_ub_stride) {
   const char *var_prefix = is_ub_stride ? "ub_stride_select" : "gm_stride_select";
   Expr res = CreateExpr(var_prefix);
@@ -200,7 +190,7 @@ StrideResult CreateDynamicStrideResult(const Expr &last_stride,
 
   constexpr int64_t kContinueLastStrideVal = 1L;
   TernaryOp ternary_op = TernaryOp(CondType::K_GT, last_stride, CreateExpr(kContinueLastStrideVal),
-                                std::move(non_continuous_case), std::move(normal_case));
+                                   std::move(non_continuous_case), std::move(normal_case));
   ternary_op.SetVariable(res);
 
   StrideResult result(res, block_count_idx);
@@ -262,8 +252,8 @@ ge::Status LoadStoreStrideV2Func(const std::map<std::string, float> &param_map, 
   return ge::SUCCESS;
 }
 
-ge::Status LoadStoreStrideV2WithPenaltyFunc(const std::map<std::string, float> &param_map, const std::vector<Expr> &dims,
-                                             const Expr &stride, Expr &res) {
+ge::Status LoadStoreStrideV2WithPenaltyFunc(const std::map<std::string, float> &param_map,
+                                            const std::vector<Expr> &dims, const Expr &stride, Expr &res) {
   GE_ASSERT_TRUE(!dims.empty(), "Dims is empty.");
   const auto k_iter = param_map.find("k");
   const auto u_iter = param_map.find("u");
@@ -327,8 +317,8 @@ ge::Status LoadUbStride(const std::map<std::string, float> &param_map, const std
   return LoadStoreFunc(param_map, dims, stride, res, true);
 }
 
-ge::Status StoreFunc(const std::map<std::string, float> &param_map,
-                     const std::vector<Expr> &dims, const Expr &stride, Expr &res) {
+ge::Status StoreFunc(const std::map<std::string, float> &param_map, const std::vector<Expr> &dims, const Expr &stride,
+                     Expr &res) {
   (void)stride;
   GE_ASSERT_TRUE(!dims.empty(), "Dims is empty.");
   GE_ASSERT_TRUE(param_map.find("h") != param_map.end(), "Param h not found in param_map.");
@@ -345,7 +335,8 @@ ge::Status StoreFunc(const std::map<std::string, float> &param_map,
   Expr data_type_size = CreateExpr(static_cast<int32_t>(param_map.at("data_type_size")));
   Expr blocklen = af::sym::Mul(dims[dims.size() - 1UL], data_type_size);
   Expr blockcount = accumulate(dims.begin(), dims.end() - 1, CreateExpr(1), [](Expr a, Expr b) { return a * b; });
-  GELOGD("Special case for store. Blocklen = [%s]Byte, Blockcount = [%s].", Str(blocklen).c_str(), Str(blockcount).c_str());
+  GELOGD("Special case for store. Blocklen = [%s]Byte, Blockcount = [%s].", Str(blocklen).c_str(),
+         Str(blockcount).c_str());
   Expr blockdim = CreateExpr("block_dim");
   Expr a = ak * blockdim + ab;
   Expr b = bk * blockdim + bb;
@@ -401,16 +392,15 @@ ge::Status UpdateIsContinous(const std::vector<Expr> &repeats, const std::vector
   return ge::SUCCESS;
 }
 
-void UpdateTensorDim(af::AscNode *node, const std::vector<bool> &is_continuous,
-                     const std::vector<Expr> &org_dims, TensorShapeInfo &tensor) {
+void UpdateTensorDim(af::AscNode *node, const std::vector<bool> &is_continuous, const std::vector<Expr> &org_dims,
+                     TensorShapeInfo &tensor) {
   for (size_t i = 1UL; i <= (tensor.repeats.size() - 1UL); ++i) {
     Expr product = tensor.dims.back();
     if (is_continuous[i]) {
       // 连续轴的dim使用合并原始轴后的两个dim乘积
       product = org_dims[i] * product;
       GELOGD("Got continuous axis[%zu], dim[%s] * [%s] = [%s]", i, af::SymbolicUtils::ToString(org_dims[i]).c_str(),
-             af::SymbolicUtils::ToString(tensor.dims.back()).c_str(),
-             af::SymbolicUtils::ToString(product).c_str());
+             af::SymbolicUtils::ToString(tensor.dims.back()).c_str(), af::SymbolicUtils::ToString(product).c_str());
       tensor.dims.pop_back();
     } else {
       // 非连续轴的dim使用stride
@@ -474,8 +464,8 @@ ge::Status UpdateSwapPerf(const NodeDetail &node_info, const int32_t supported_m
     GE_ASSERT_SUCCESS(UpdateTenary(non_swap_perf, perf_res));
     GetPerfVar(att::SanitizeNodeName(node_info.name), res, perf_res.ternary_ops);
     perf_res.ternary_ops[res] = TernaryOp(CondType::K_LT, node_info.input_dims[dim_size - supported_max_dma_len],
-                                        node_info.input_dims[dim_size - supported_max_dma_len - 1],
-                                        GetPipeCost(swap_perf, pipe_type), GetPipeCost(non_swap_perf, pipe_type));
+                                          node_info.input_dims[dim_size - supported_max_dma_len - 1],
+                                          GetPipeCost(swap_perf, pipe_type), GetPipeCost(non_swap_perf, pipe_type));
     perf_res.ternary_ops[res].SetVariable(res);
     perf_res.pipe_res[pipe_type] = res;
   }
@@ -519,9 +509,10 @@ ge::Status GetDmaParams(const vector<Expr> &dims, Expr &outer_repeat, vector<Exp
       }
     }
 
-    GELOGD("[DMA_PARAMS] need_swap=%d, dim_size=%zu, kMaxDmaLen=%d, first_dim_index=%zu, used_dims=[%s], outer_repeat=%s",
-           need_swap, dim_size, supported_max_dma_len, first_dim_index,
-           GetVecString(used_dims).c_str(), outer_repeat.Str().get());
+    GELOGD(
+        "[DMA_PARAMS] need_swap=%d, dim_size=%zu, kMaxDmaLen=%d, first_dim_index=%zu, used_dims=[%s], outer_repeat=%s",
+        need_swap, dim_size, supported_max_dma_len, first_dim_index, GetVecString(used_dims).c_str(),
+        outer_repeat.Str().get());
   }
   return ge::SUCCESS;
 }
@@ -562,8 +553,8 @@ ge::Status GetPerf(const NodePerfInfo &node_perf_info, Expr &res) {
   std::string optype = node_perf_info.optype;
   std::string input_dtype = node_perf_info.input_dtype;
   std::string output_dtype = node_perf_info.output_dtype;
-  GELOGD("GetPerf: optype=[%s], input_dtype=[%s], output_dtype=[%s], block_count_idx=%d", optype.c_str(), input_dtype.c_str(),
-         output_dtype.c_str(), node_perf_info.block_count_idx);
+  GELOGD("GetPerf: optype=[%s], input_dtype=[%s], output_dtype=[%s], block_count_idx=%d", optype.c_str(),
+         input_dtype.c_str(), output_dtype.c_str(), node_perf_info.block_count_idx);
   const auto perf_table = GetParamPerfTable();
   GE_ASSERT_NOTNULL(perf_table);
   const auto ascend_api_perf_table = perf_table->GetAscendCApiPerfTable();
@@ -602,10 +593,9 @@ ge::Status GetPerf(const NodePerfInfo &node_perf_info, Expr &res) {
   return ge::SUCCESS;
 }
 
-inline void FilterStridesAndRepeats(const std::vector<Expr>& strides,
-                                    const std::vector<Expr>& repeats,
-                                    std::vector<Expr>& filtered_strides,  // 输出：过滤后的strides
-                                    std::vector<Expr>& filtered_repeats   // 输出：过滤后的repeats
+inline void FilterStridesAndRepeats(const std::vector<Expr> &strides, const std::vector<Expr> &repeats,
+                                    std::vector<Expr> &filtered_strides,  // 输出：过滤后的strides
+                                    std::vector<Expr> &filtered_repeats   // 输出：过滤后的repeats
 ) {
   size_t loop_max = 0;
   if (!strides.empty() && !repeats.empty()) {
@@ -614,7 +604,7 @@ inline void FilterStridesAndRepeats(const std::vector<Expr>& strides,
   // 过滤出非尾轴的非广播维度
   for (size_t i = 0UL; i < loop_max; ++i) {
     if (!(af::SymbolicUtils::StaticCheckEq(strides[i], af::sym::kSymbolZero) == af::TriBool::kTrue &&
-        af::SymbolicUtils::StaticCheckEq(repeats[i], af::sym::kSymbolOne) == af::TriBool::kTrue)) {
+          af::SymbolicUtils::StaticCheckEq(repeats[i], af::sym::kSymbolOne) == af::TriBool::kTrue)) {
       filtered_strides.emplace_back(strides[i]);
       filtered_repeats.emplace_back(repeats[i]);
     }
@@ -633,8 +623,8 @@ StrideResult CalculateStride(const TensorShapeInfo &shape_info, const bool is_ub
   const std::vector<Expr> &strides = is_ub_stride ? shape_info.strides : shape_info.gm_strides;
   const std::vector<Expr> &repeats = is_ub_stride ? shape_info.origin_repeats : shape_info.repeats;
   const char *stride_type = is_ub_stride ? "ub_stride" : "gm_stride";
-  GELOGD("%s(%s): %s=[%s], repeats=[%s], need_swap=%d", node_info.name.c_str(), node_info.optype.c_str(),
-         stride_type, GetVecString(strides).c_str(), GetVecString(repeats).c_str(), need_swap);
+  GELOGD("%s(%s): %s=[%s], repeats=[%s], need_swap=%d", node_info.name.c_str(), node_info.optype.c_str(), stride_type,
+         GetVecString(strides).c_str(), GetVecString(repeats).c_str(), need_swap);
   std::vector<Expr> filtered_strides;
   std::vector<Expr> filtered_repeats;
   FilterStridesAndRepeats(strides, repeats, filtered_strides, filtered_repeats);
@@ -671,11 +661,10 @@ StrideResult CalculateStride(const TensorShapeInfo &shape_info, const bool is_ub
     }
   } else {
     // 动态shape：使用TernaryOp
-    auto normal_stride = af::sym::Abs(af::sym::Sub(filtered_strides[block_count_idx],
-                                      filtered_repeats[filtered_dim_size - 1]));
+    auto normal_stride =
+        af::sym::Abs(af::sym::Sub(filtered_strides[block_count_idx], filtered_repeats[filtered_dim_size - 1]));
     auto result = CreateDynamicStrideResult(last_stride, normal_stride, block_count_idx, is_ub_stride);
-    GELOGD("%s, dynamic stride select, last_stride=%s", node_info.ToString().c_str(),
-           last_stride.Str().get());
+    GELOGD("%s, dynamic stride select, last_stride=%s", node_info.ToString().c_str(), last_stride.Str().get());
     return result;
   }
   auto expr = af::sym::Abs(af::sym::Sub(filtered_strides[block_count_idx], filtered_repeats[filtered_dim_size - 1]));
@@ -815,8 +804,7 @@ ge::Status ReorderGmStrideByTranspose(const af::AscNodePtr &node, TensorShapeInf
   }
   // 检查是否需要重排
   if (!NeedsReordering(vectorized_axis, axis)) {
-    GELOGD("No transpose detected, skipping repeats reordering, repeats[%s]",
-           GetVecString(tensor.repeats).c_str());
+    GELOGD("No transpose detected, skipping repeats reordering, repeats[%s]", GetVecString(tensor.repeats).c_str());
     return ge::SUCCESS;
   }
   // 找出需要删除的轴下标
@@ -831,8 +819,8 @@ ge::Status ReorderGmStrideByTranspose(const af::AscNodePtr &node, TensorShapeInf
       if (idx < repeats.size()) {
         GELOGD("Node[%s,%s] axis_id[%d] at axis position[%zu] not found in vectorized_axis, will remove repeats[%zu]",
                node->GetNamePtr(), node->GetType().c_str(), axis[idx], idx, idx);
-        GELOGD("Node[%s,%s] removing repeats[%zu]=%s", node->GetNamePtr(), node->GetType().c_str(),
-               idx, Str(repeats[idx]).c_str());
+        GELOGD("Node[%s,%s] removing repeats[%zu]=%s", node->GetNamePtr(), node->GetType().c_str(), idx,
+               Str(repeats[idx]).c_str());
       }
     }
     RemoveIndicesFromRepeats(repeats, indices_to_remove);
@@ -863,7 +851,7 @@ ge::Status ReorderGmStrideByTranspose(const af::AscNodePtr &node, TensorShapeInf
 ge::Status MergeTensorContinuousDims(const af::AscNodePtr &node, const std::string &tensor_name,
                                      TensorShapeInfo &tensor) {
   Expr axis_size;
-  std::vector<Expr> org_dims; // 原始的dim
+  std::vector<Expr> org_dims;  // 原始的dim
   GE_ASSERT_NOTNULL(node);
   GE_ASSERT_TRUE(!tensor.repeats.empty());
   GE_ASSERT_TRUE(tensor.repeats.size() == tensor.strides.size(), "repeats size[%zu] not equal strides size[%zu]",
@@ -881,8 +869,7 @@ ge::Status MergeTensorContinuousDims(const af::AscNodePtr &node, const std::stri
     (void)UpdateIsContinous(tensor.repeats, tensor.strides, is_continuous, "UB");
     if (AttUtils::IsLoadNode(node.get())) {
       // 根据转置信息重排 gm_strides
-      GE_ASSERT_SUCCESS(ReorderGmStrideByTranspose(node, tensor),
-                        "Failed to reorder gm_strides by transpose");
+      GE_ASSERT_SUCCESS(ReorderGmStrideByTranspose(node, tensor), "Failed to reorder gm_strides by transpose");
     }
     if (AttUtils::IsLoadStoreNode(node.get())) {
       (void)UpdateIsContinous(tensor.repeats, tensor.gm_strides, is_continuous, "GM");
@@ -946,7 +933,8 @@ ge::Status GetDmaPerf(const TensorShapeInfo &tensor_info, NodeDetail &node_info,
   swap_perf.cache_line_config = perf_res.cache_line_config;
   const size_t dim_size = node_info.input_dims.size();
   GELOGD("[DMA_PERF] %s: BEGIN GetDmaPerf, dim_size=%zu, input_dims=[%s], supported_max_dma_len=%d, need_swap=%d",
-         node_info.name.c_str(), dim_size, GetVecString(node_info.input_dims).c_str(), supported_max_dma_len, need_swap);
+         node_info.name.c_str(), dim_size, GetVecString(node_info.input_dims).c_str(), supported_max_dma_len,
+         need_swap);
   if (static_cast<int32_t>(dim_size) <= supported_max_dma_len) {
     GE_ASSERT_SUCCESS(SetStride(tensor_info, node_info, supported_max_dma_len));
     GE_ASSERT_SUCCESS(GetDMAActualPerf(node_info, af::sym::kSymbolOne, node_info.input_dims, non_swap_perf));
@@ -958,12 +946,12 @@ ge::Status GetDmaPerf(const TensorShapeInfo &tensor_info, NodeDetail &node_info,
     GELOGD("Perf without swap is [%s]", non_swap_perf.ToString().c_str());
     if (need_swap) {
       GELOGD("[DMA_PERF] %s: swap path start, swap_used_dims will be calculated", node_info.name.c_str());
-      GE_ASSERT_SUCCESS(GetDmaParams(node_info.input_dims, swap_outer_repeat, swap_used_dims, supported_max_dma_len, true));
+      GE_ASSERT_SUCCESS(
+          GetDmaParams(node_info.input_dims, swap_outer_repeat, swap_used_dims, supported_max_dma_len, true));
       GE_ASSERT_SUCCESS(SetStride(tensor_info, node_info, supported_max_dma_len, true));
       GE_ASSERT_SUCCESS(GetDMAActualPerf(node_info, swap_outer_repeat, swap_used_dims, swap_perf));
-      GELOGD("[DMA_PERF] %s: Perf with swap is [%s], swap_used_dims=[%s], swap_outer_repeat=%s",
-             node_info.name.c_str(), swap_perf.ToString().c_str(),
-             GetVecString(swap_used_dims).c_str(), swap_outer_repeat.Str().get());
+      GELOGD("[DMA_PERF] %s: Perf with swap is [%s], swap_used_dims=[%s], swap_outer_repeat=%s", node_info.name.c_str(),
+             swap_perf.ToString().c_str(), GetVecString(swap_used_dims).c_str(), swap_outer_repeat.Str().get());
     } else {
       GE_ASSERT_SUCCESS(UpdateTenary(non_swap_perf, perf_res), "Update non_swap perf failed, node=%s",
                         node_info.ToString().c_str());

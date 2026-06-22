@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -29,8 +29,8 @@ Status ConstructSimpleLoadStoreOp(af::AscGraph &graph) {
       auto abs1 = Abs("Abs", load1).TQue(Position::kPositionVecIn, 1, 2);
       auto store1 = Store("store", abs1);
       std::vector<af::AscOpOutput> simple_outputs_tmp = {load1, abs1, store1};
-      GE_ASSERT_SUCCESS(
-          att::GraphConstructUtils::UpdateOutputTensorAxes({*ndB, *ndbT, *ndb, *ndbt}, std::move(simple_outputs_tmp), 2));
+      GE_ASSERT_SUCCESS(att::GraphConstructUtils::UpdateOutputTensorAxes({*ndB, *ndbT, *ndb, *ndbt},
+                                                                         std::move(simple_outputs_tmp), 2));
       auto output1 = Output("output1", store1);
     }
   }
@@ -61,8 +61,8 @@ Status BuildConcatGroupAscendGraphS0S1ReduceMultiTiling(af::AscGraph &graph) {
       auto mean = Mean("mean1", load1).TQue(Position::kPositionVecOut, 1, 1);
       auto store1 = Store("store1", mean);
       std::vector<af::AscOpOutput> concat_outputs_tmp = {load1, store1};
-      GE_ASSERT_SUCCESS(
-          att::GraphConstructUtils::UpdateOutputTensorAxes({*s1Ts0TB, *s1Ts0Tb, *s1t, *s0t}, std::move(concat_outputs_tmp), 1));
+      GE_ASSERT_SUCCESS(att::GraphConstructUtils::UpdateOutputTensorAxes({*s1Ts0TB, *s1Ts0Tb, *s1t, *s0t},
+                                                                         std::move(concat_outputs_tmp), 1));
       *load1.axis = {s1Ts0Tb->id, s1t->id, s0t->id};
       *load1.repeats = {s1Ts0Tb->size, s1t->size, s0t->size};
       *load1.strides = {s0t->size * s1t->size, s1t->size, att::CreateExpr(1)};
@@ -89,8 +89,8 @@ Status BuildConcatGroupAscendGraphS0S1ReduceMultiTiling(af::AscGraph &graph) {
   }
   return af::SUCCESS;
 }
-}
-}
+}  // namespace cg
+}  // namespace ascir
 }  // namespace af
 namespace att {
 af::AscNodePtr GraphConstructUtils::ConstructSingleOp(const std::string &op_type, int32_t in_cnt, int32_t out_cnt) {

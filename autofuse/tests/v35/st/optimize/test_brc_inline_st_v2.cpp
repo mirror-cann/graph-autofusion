@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -39,7 +39,7 @@ class BrcInlineV2 : public testing::Test {
     ge::PlatformContext::GetInstance().Reset();
     auto stub_v2 = std::make_shared<af::RuntimeStubV2>();
     RuntimeStub::SetInstance(stub_v2);
-    GTEST_SKIP(); // 临时关闭 V2 的 brc inline 模板，启动模板后需要同步打开此用例
+    GTEST_SKIP();  // 临时关闭 V2 的 brc inline 模板，启动模板后需要同步打开此用例
   }
   void TearDown() override {
     // setenv("DUMP_GE_GRAPH", "0", 1);

@@ -85,8 +85,8 @@ void ApplyBmmSched(af::AscGraph &g, const SchedAxis &a, const char *name, const 
   node->outputs[0].attr.vectorized_axis = cfg.vec_axis;
 }
 
-void ApplyVecSched(af::AscGraph &g, const SchedAxis &a, int64_t s1tT, int64_t s1tt,
-                   const char *name, const SchedConfig &cfg) {
+void ApplyVecSched(af::AscGraph &g, const SchedAxis &a, int64_t s1tT, int64_t s1tt, const char *name,
+                   const SchedConfig &cfg) {
   auto node = g.FindNode(name);
   g.ApplySplit(node, a.s1T, a.s1t);
   g.ApplyMerge(node, a.mc);
@@ -187,9 +187,9 @@ void ApplyVec1NodesSched(af::AscGraph &graph, const SchedAxis &a, int64_t s1tT, 
   auto vec1Reorder = {a.mcB, a.mcb, a.s2T, s1tT, s1tt, a.s2t, a.d, a.bl};
   vector<int64_t> vec1{s1tt, a.s2t, a.d};
   SchedConfig vec1Cfg{vec1Reorder, s1tT, vec1};
-  const char *vec1Nodes[] = {"load1", "loadPse", "castPse", "add1", "mul1", "loadAttenMask",
-                             "select", "loadDropMask", "dropout", "castVec1Res",
-                             "softmaxApiTmpBuf", "flashSoftmax"};
+  const char *vec1Nodes[] = {"load1",   "loadPse",       "castPse",          "add1",
+                             "mul1",    "loadAttenMask", "select",           "loadDropMask",
+                             "dropout", "castVec1Res",   "softmaxApiTmpBuf", "flashSoftmax"};
   for (auto name : vec1Nodes) {
     ApplyVecSched(graph, a, s1tT, s1tt, name, vec1Cfg);
   }
@@ -205,22 +205,17 @@ void ApplyVec2NodesSched(af::AscGraph &graph, const SchedAxis &a) {
   auto s1Vec2tt = *(std::get<1>(split));
   auto vec2Reorder = {a.mcB, a.mcb, a.s2T, s1Vec2tT.id, s1Vec2tt.id, a.s2t, a.d, a.bl};
   SchedConfig vec2Cfg{vec2Reorder, s1Vec2tT.id, {s1Vec2tt.id, a.d, a.s2t}};
-  const char *vec2Nodes[] = {"load2", "addResOut", "loadAddResOut", "mulRes", "addRes", "div",
-                             "castBmm2Res", "store"};
+  const char *vec2Nodes[] = {"load2", "addResOut", "loadAddResOut", "mulRes", "addRes", "div", "castBmm2Res", "store"};
   for (auto name : vec2Nodes) {
     ApplyVecSched(graph, a, s1Vec2tT.id, s1Vec2tt.id, name, vec2Cfg);
   }
 }
 }  // namespace
 
-void FaBeforeAutoFuseBmm1(af::AscGraph &graph, int32_t &exec_order,
-                           const std::initializer_list<int64_t> &bmmAxis,
-                           const std::initializer_list<Expr> &vec1R,
-                           const std::initializer_list<Expr> &vec1S,
-                           const Expr &B, const Expr &N, const Expr &G,
-                           const Expr &S1, const Expr &S2, const Expr &D,
-                           const Expr &ONE, const Expr &ZERO,
-                           Add &out_mul1) {
+void FaBeforeAutoFuseBmm1(af::AscGraph &graph, int32_t &exec_order, const std::initializer_list<int64_t> &bmmAxis,
+                          const std::initializer_list<Expr> &vec1R, const std::initializer_list<Expr> &vec1S,
+                          const Expr &B, const Expr &N, const Expr &G, const Expr &S1, const Expr &S2, const Expr &D,
+                          const Expr &ONE, const Expr &ZERO, Add &out_mul1) {
   Data query("query", graph);
   InitDataNode(query, exec_order, bmmAxis, af::DT_FLOAT16, {B, N, G, S1, ONE, D, ONE},
                {N * G * S1 * D, G * S1 * D, S1 * D, D, ZERO, ONE, ZERO});
@@ -254,17 +249,12 @@ void FaBeforeAutoFuseBmm1(af::AscGraph &graph, int32_t &exec_order,
   InitUnaryNode(out_mul1, exec_order, bmmAxis, af::DT_FLOAT, vec1R, vec1S);
 }
 
-void FaBeforeAutoFuseVec1(af::AscGraph &graph, int32_t &exec_order,
-                           const std::initializer_list<int64_t> &bmmAxis,
-                           const std::initializer_list<Expr> &vec1R,
-                           const std::initializer_list<Expr> &vec1S,
-                           const std::initializer_list<Expr> &reduceR,
-                           const std::initializer_list<Expr> &reduceS,
-                           const Expr &B, const Expr &N, const Expr &G,
-                           const Expr &S1, const Expr &S2, const Expr &BL,
-                           const Expr &ONE, const Expr &ZERO,
-                           Add &mul1, Data &out_softmaxExp, Concat &out_flashSoftmax,
-                           Store &out_storeVec1Res) {
+void FaBeforeAutoFuseVec1(af::AscGraph &graph, int32_t &exec_order, const std::initializer_list<int64_t> &bmmAxis,
+                          const std::initializer_list<Expr> &vec1R, const std::initializer_list<Expr> &vec1S,
+                          const std::initializer_list<Expr> &reduceR, const std::initializer_list<Expr> &reduceS,
+                          const Expr &B, const Expr &N, const Expr &G, const Expr &S1, const Expr &S2, const Expr &BL,
+                          const Expr &ONE, const Expr &ZERO, Add &mul1, Data &out_softmaxExp, Concat &out_flashSoftmax,
+                          Store &out_storeVec1Res) {
   auto maskR = std::initializer_list<Expr>{B, ONE, ONE, S1, S2, ONE, ONE};
   auto maskS = std::initializer_list<Expr>{S1 * S2, S1 * S2, S1 * S2, S2, ONE, ZERO, ZERO};
   Data attenMask("attenMask", graph);
@@ -278,14 +268,14 @@ void FaBeforeAutoFuseVec1(af::AscGraph &graph, int32_t &exec_order,
   InitUnaryNode(select, exec_order, bmmAxis, af::DT_FLOAT, vec1R, vec1S);
   InitDataNode(out_softmaxExp, exec_order, bmmAxis, af::DT_FLOAT, reduceR, reduceS);
   Data softmaxApiTmpBuf("softmaxApiTmpBuf", graph);
-  InitDataNode(softmaxApiTmpBuf, exec_order, bmmAxis, af::DT_FLOAT,
-               {ONE, ONE, ONE, S1, S2, ONE, ONE}, {ZERO, ZERO, ZERO, S2, ONE, ZERO, ZERO});
+  InitDataNode(softmaxApiTmpBuf, exec_order, bmmAxis, af::DT_FLOAT, {ONE, ONE, ONE, S1, S2, ONE, ONE},
+               {ZERO, ZERO, ZERO, S2, ONE, ZERO, ZERO});
   out_flashSoftmax.x = {select.y, out_softmaxExp.y, softmaxApiTmpBuf.y};
   InitUnaryNode(out_flashSoftmax, exec_order, bmmAxis, af::DT_FLOAT, vec1R, vec1S);
   Store storeSoftmaxMax("storeSoftmaxMax");
   storeSoftmaxMax.x = out_flashSoftmax.y;
   InitStoreNode(storeSoftmaxMax, exec_order, bmmAxis, af::DT_FLOAT, {B, N, G, S1, S2, ONE, BL},
-               {N * G * S1 * BL, G * S1 * BL, S1 * BL, BL, ZERO, ZERO, ONE});
+                {N * G * S1 * BL, G * S1 * BL, S1 * BL, BL, ZERO, ZERO, ONE});
   Output softmaxMax("softmaxMax");
   softmaxMax.x = storeSoftmaxMax.y;
   softmaxMax.attr.sched.exec_order = exec_order++;
@@ -305,14 +295,10 @@ void FaBeforeAutoFuseVec1(af::AscGraph &graph, int32_t &exec_order,
   InitStoreNode(out_storeVec1Res, exec_order, bmmAxis, af::DT_FLOAT16, vec1R, vec1R);
 }
 
-void FaBeforeAutoFuseBmm2(af::AscGraph &graph, int32_t &exec_order,
-                           const std::initializer_list<int64_t> &bmmAxis,
-                           const std::initializer_list<Expr> &vec2R,
-                           const std::initializer_list<Expr> &vec2S,
-                           const Expr &B, const Expr &N, const Expr &G,
-                           const Expr &S2, const Expr &D,
-                           const Expr &ONE, const Expr &ZERO,
-                           Store &storeVec1Res, Data &softmaxExp, Concat &flashSoftmax) {
+void FaBeforeAutoFuseBmm2(af::AscGraph &graph, int32_t &exec_order, const std::initializer_list<int64_t> &bmmAxis,
+                          const std::initializer_list<Expr> &vec2R, const std::initializer_list<Expr> &vec2S,
+                          const Expr &B, const Expr &N, const Expr &G, const Expr &S2, const Expr &D, const Expr &ONE,
+                          const Expr &ZERO, Store &storeVec1Res, Data &softmaxExp, Concat &flashSoftmax) {
   Data value("value", graph);
   InitDataNode(value, exec_order, bmmAxis, af::DT_FLOAT16, {B, N, G, ONE, S2, D, ONE},
                {N * S2 * D, S2 * D, S2 * D, ZERO, D, ONE, ZERO});
@@ -387,48 +373,48 @@ void FaBeforeAutoFuse(af::AscGraph &graph) {
   Data softmaxExp("softmaxExp", graph);
   Concat flashSoftmax("flashSoftmax");
   Store storeVec1Res("storeVec1Res");
-  FaBeforeAutoFuseVec1(graph, exec_order, bmmAxis, vec1R, vec1S, reduceR, reduceS,
-                       B, N, G, S1, S2, BL, ONE, ZERO, mul1, softmaxExp, flashSoftmax, storeVec1Res);
-  FaBeforeAutoFuseBmm2(graph, exec_order, bmmAxis, vec2R, vec2S, B, N, G, S2, D, ONE, ZERO,
-                       storeVec1Res, softmaxExp, flashSoftmax);
+  FaBeforeAutoFuseVec1(graph, exec_order, bmmAxis, vec1R, vec1S, reduceR, reduceS, B, N, G, S1, S2, BL, ONE, ZERO, mul1,
+                       softmaxExp, flashSoftmax, storeVec1Res);
+  FaBeforeAutoFuseBmm2(graph, exec_order, bmmAxis, vec2R, vec2S, B, N, G, S2, D, ONE, ZERO, storeVec1Res, softmaxExp,
+                       flashSoftmax);
 }
 
 void FaAfterApiInfo(af::AscGraph &graph) {
   ApiInfo infos[] = {
-    {"query", af::ApiType::kAPITypeBuffer, af::ComputeUnit::kUnitNone},
-    {"key", af::ApiType::kAPITypeBuffer, af::ComputeUnit::kUnitNone},
-    {"bmm1", af::ApiType::kAPITypeCompute, af::ComputeUnit::kUnitCube},
-    {"load1", af::ApiType::kAPITypeCompute, af::ComputeUnit::kUnitNone},
-    {"pse", af::ApiType::kAPITypeBuffer, af::ComputeUnit::kUnitNone},
-    {"loadPse", af::ApiType::kAPITypeBuffer, af::ComputeUnit::kUnitNone},
-    {"castPse", af::ApiType::kAPITypeCompute, af::ComputeUnit::kUnitVector},
-    {"add1", af::ApiType::kAPITypeCompute, af::ComputeUnit::kUnitVector},
-    {"scaleValue", af::ApiType::kAPITypeBuffer, af::ComputeUnit::kUnitNone},
-    {"mul1", af::ApiType::kAPITypeCompute, af::ComputeUnit::kUnitVector},
-    {"attenMask", af::ApiType::kAPITypeBuffer, af::ComputeUnit::kUnitNone},
-    {"loadAttenMask", af::ApiType::kAPITypeCompute, af::ComputeUnit::kUnitNone},
-    {"select", af::ApiType::kAPITypeCompute, af::ComputeUnit::kUnitVector},
-    {"softmaxExp", af::ApiType::kAPITypeBuffer, af::ComputeUnit::kUnitNone},
-    {"flashSoftmax", af::ApiType::kAPITypeCompute, af::ComputeUnit::kUnitVector},
-    {"softmaxSum", af::ApiType::kAPITypeBuffer, af::ComputeUnit::kUnitNone},
-    {"storeSoftmaxMax", af::ApiType::kAPITypeCompute, af::ComputeUnit::kUnitNone},
-    {"softmaxMax", af::ApiType::kAPITypeBuffer, af::ComputeUnit::kUnitNone},
-    {"dropMask", af::ApiType::kAPITypeBuffer, af::ComputeUnit::kUnitNone},
-    {"loadDropMask", af::ApiType::kAPITypeCompute, af::ComputeUnit::kUnitNone},
-    {"dropout", af::ApiType::kAPITypeBuffer, af::ComputeUnit::kUnitNone},
-    {"castVec1Res", af::ApiType::kAPITypeCompute, af::ComputeUnit::kUnitVector},
-    {"storeVec1Res", af::ApiType::kAPITypeCompute, af::ComputeUnit::kUnitNone},
-    {"value", af::ApiType::kAPITypeBuffer, af::ComputeUnit::kUnitNone},
-    {"bmm2", af::ApiType::kAPITypeCompute, af::ComputeUnit::kUnitCube},
-    {"load2", af::ApiType::kAPITypeCompute, af::ComputeUnit::kUnitNone},
-    {"addResOut", af::ApiType::kAPITypeBuffer, af::ComputeUnit::kUnitNone},
-    {"loadAddResOut", af::ApiType::kAPITypeCompute, af::ComputeUnit::kUnitNone},
-    {"mulRes", af::ApiType::kAPITypeCompute, af::ComputeUnit::kUnitVector},
-    {"addRes", af::ApiType::kAPITypeCompute, af::ComputeUnit::kUnitVector},
-    {"div", af::ApiType::kAPITypeCompute, af::ComputeUnit::kUnitVector},
-    {"castBmm2Res", af::ApiType::kAPITypeCompute, af::ComputeUnit::kUnitVector},
-    {"store", af::ApiType::kAPITypeCompute, af::ComputeUnit::kUnitNone},
-    {"buf", af::ApiType::kAPITypeBuffer, af::ComputeUnit::kUnitNone},
+      {"query", af::ApiType::kAPITypeBuffer, af::ComputeUnit::kUnitNone},
+      {"key", af::ApiType::kAPITypeBuffer, af::ComputeUnit::kUnitNone},
+      {"bmm1", af::ApiType::kAPITypeCompute, af::ComputeUnit::kUnitCube},
+      {"load1", af::ApiType::kAPITypeCompute, af::ComputeUnit::kUnitNone},
+      {"pse", af::ApiType::kAPITypeBuffer, af::ComputeUnit::kUnitNone},
+      {"loadPse", af::ApiType::kAPITypeBuffer, af::ComputeUnit::kUnitNone},
+      {"castPse", af::ApiType::kAPITypeCompute, af::ComputeUnit::kUnitVector},
+      {"add1", af::ApiType::kAPITypeCompute, af::ComputeUnit::kUnitVector},
+      {"scaleValue", af::ApiType::kAPITypeBuffer, af::ComputeUnit::kUnitNone},
+      {"mul1", af::ApiType::kAPITypeCompute, af::ComputeUnit::kUnitVector},
+      {"attenMask", af::ApiType::kAPITypeBuffer, af::ComputeUnit::kUnitNone},
+      {"loadAttenMask", af::ApiType::kAPITypeCompute, af::ComputeUnit::kUnitNone},
+      {"select", af::ApiType::kAPITypeCompute, af::ComputeUnit::kUnitVector},
+      {"softmaxExp", af::ApiType::kAPITypeBuffer, af::ComputeUnit::kUnitNone},
+      {"flashSoftmax", af::ApiType::kAPITypeCompute, af::ComputeUnit::kUnitVector},
+      {"softmaxSum", af::ApiType::kAPITypeBuffer, af::ComputeUnit::kUnitNone},
+      {"storeSoftmaxMax", af::ApiType::kAPITypeCompute, af::ComputeUnit::kUnitNone},
+      {"softmaxMax", af::ApiType::kAPITypeBuffer, af::ComputeUnit::kUnitNone},
+      {"dropMask", af::ApiType::kAPITypeBuffer, af::ComputeUnit::kUnitNone},
+      {"loadDropMask", af::ApiType::kAPITypeCompute, af::ComputeUnit::kUnitNone},
+      {"dropout", af::ApiType::kAPITypeBuffer, af::ComputeUnit::kUnitNone},
+      {"castVec1Res", af::ApiType::kAPITypeCompute, af::ComputeUnit::kUnitVector},
+      {"storeVec1Res", af::ApiType::kAPITypeCompute, af::ComputeUnit::kUnitNone},
+      {"value", af::ApiType::kAPITypeBuffer, af::ComputeUnit::kUnitNone},
+      {"bmm2", af::ApiType::kAPITypeCompute, af::ComputeUnit::kUnitCube},
+      {"load2", af::ApiType::kAPITypeCompute, af::ComputeUnit::kUnitNone},
+      {"addResOut", af::ApiType::kAPITypeBuffer, af::ComputeUnit::kUnitNone},
+      {"loadAddResOut", af::ApiType::kAPITypeCompute, af::ComputeUnit::kUnitNone},
+      {"mulRes", af::ApiType::kAPITypeCompute, af::ComputeUnit::kUnitVector},
+      {"addRes", af::ApiType::kAPITypeCompute, af::ComputeUnit::kUnitVector},
+      {"div", af::ApiType::kAPITypeCompute, af::ComputeUnit::kUnitVector},
+      {"castBmm2Res", af::ApiType::kAPITypeCompute, af::ComputeUnit::kUnitVector},
+      {"store", af::ApiType::kAPITypeCompute, af::ComputeUnit::kUnitNone},
+      {"buf", af::ApiType::kAPITypeBuffer, af::ComputeUnit::kUnitNone},
   };
   for (const auto &info : infos) {
     auto node = graph.FindNode(info.name);
@@ -482,34 +468,34 @@ void FaAfterQueBufAlloc(af::AscGraph &graph) {
   int32_t vec2ResQueue = queID++;
 
   QueBufInfo nodes[] = {
-    {"query", 0, 0, 0, -1, -1, false, false},
-    {"key", 0, 0, 0, -1, -1, false, false},
-    {"value", 0, 0, 0, -1, -1, false, false},
-    {"bmm1", 1, 0, 0, ids[0], 2, false, false},
-    {"load1", 1, 1, 1, ids[1], 2, false, false},
-    {"loadPse", 2, 1, 1, ids[2], -1, false, false},
-    {"castPse", 2, 1, 2, ids[3], -1, false, false},
-    {"add1", 1, 1, 2, ids[1], 2, false, false},
-    {"mul1", 1, 1, 2, ids[1], 2, false, false},
-    {"select", 1, 1, 2, ids[1], 2, false, false},
-    {"softmaxExp", 1, 1, 1, ids[6], 2, false, false},
-    {"softmaxApiTmpBuf", 2, 1, 1, ids[3], -1, false, false},
-    {"flashSoftmax", 1, 1, 2, ids[1], 2, false, false},
-    {"loadAttenMask", 2, 1, 1, ids[4], -1, false, false},
-    {"loadDropMask", 2, 1, 1, ids[5], -1, false, false},
-    {"dropout", 1, 1, 2, ids[1], 2, false, false},
-    {"castVec1Res", 2, 1, 2, ids[2], -1, false, false},
-    {"storeVec1Res", 1, 0, 0, ids[7], 2, false, false},
-    {"bmm2", 1, 0, 0, mm2ResQueue, 2, false, false},
-    {"load2", 2, 1, 1, ids[3], -1, false, false},
-    {"addResOut", 3, 0, 0, vec2ResQueue, 2, false, false},
-    {"loadAddResOut", 2, 1, 1, stage2Buf, -1, false, false},
-    {"mulRes", 2, 1, 2, stage2Buf, -1, false, false},
-    {"addRes", 2, 1, 2, stage2Buf, -1, false, false},
-    {"div", 2, 1, 2, stage2Buf, -1, false, false},
-    {"castBmm2Res", 2, 1, 2, stage2Buf, -1, true, false},
-    {"store", 3, 0, 0, -1, -1, false, true},
-    {"storeSoftmaxMax", 3, 0, 0, -1, -1, false, true},
+      {"query", 0, 0, 0, -1, -1, false, false},
+      {"key", 0, 0, 0, -1, -1, false, false},
+      {"value", 0, 0, 0, -1, -1, false, false},
+      {"bmm1", 1, 0, 0, ids[0], 2, false, false},
+      {"load1", 1, 1, 1, ids[1], 2, false, false},
+      {"loadPse", 2, 1, 1, ids[2], -1, false, false},
+      {"castPse", 2, 1, 2, ids[3], -1, false, false},
+      {"add1", 1, 1, 2, ids[1], 2, false, false},
+      {"mul1", 1, 1, 2, ids[1], 2, false, false},
+      {"select", 1, 1, 2, ids[1], 2, false, false},
+      {"softmaxExp", 1, 1, 1, ids[6], 2, false, false},
+      {"softmaxApiTmpBuf", 2, 1, 1, ids[3], -1, false, false},
+      {"flashSoftmax", 1, 1, 2, ids[1], 2, false, false},
+      {"loadAttenMask", 2, 1, 1, ids[4], -1, false, false},
+      {"loadDropMask", 2, 1, 1, ids[5], -1, false, false},
+      {"dropout", 1, 1, 2, ids[1], 2, false, false},
+      {"castVec1Res", 2, 1, 2, ids[2], -1, false, false},
+      {"storeVec1Res", 1, 0, 0, ids[7], 2, false, false},
+      {"bmm2", 1, 0, 0, mm2ResQueue, 2, false, false},
+      {"load2", 2, 1, 1, ids[3], -1, false, false},
+      {"addResOut", 3, 0, 0, vec2ResQueue, 2, false, false},
+      {"loadAddResOut", 2, 1, 1, stage2Buf, -1, false, false},
+      {"mulRes", 2, 1, 2, stage2Buf, -1, false, false},
+      {"addRes", 2, 1, 2, stage2Buf, -1, false, false},
+      {"div", 2, 1, 2, stage2Buf, -1, false, false},
+      {"castBmm2Res", 2, 1, 2, stage2Buf, -1, true, false},
+      {"store", 3, 0, 0, -1, -1, false, true},
+      {"storeSoftmaxMax", 3, 0, 0, -1, -1, false, true},
   };
   for (const auto &info : nodes) {
     SetNodeMemAttr(graph.FindNode(info.name), tensorID, info);

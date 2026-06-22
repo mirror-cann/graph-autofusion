@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -24,19 +24,19 @@
 
 namespace af {
 namespace {
-  const char_t *kRefIdx = "_parent_node_index";
-  const char_t *kWhile = "While";
-  const char_t *kIf = "If";
-  const char_t *kCase = "Case";
-  const char_t *kStatelessWhile = "StatelessWhile";
-  std::set<std::string> function_op = {kWhile, kIf, kCase};
-}
+const char_t *kRefIdx = "_parent_node_index";
+const char_t *kWhile = "While";
+const char_t *kIf = "If";
+const char_t *kCase = "Case";
+const char_t *kStatelessWhile = "StatelessWhile";
+std::set<std::string> function_op = {kWhile, kIf, kCase};
+}  // namespace
 
 /* Impl */
 class RefRelations::Impl {
-public:
+ public:
   graphStatus LookUpRefRelations(const RefCell &key, std::unordered_set<RefCell, RefCellHash> &result) {
-   const auto iter = look_up_table_.find(key.hash_key);
+    const auto iter = look_up_table_.find(key.hash_key);
     if (iter != look_up_table_.end()) {
       for (auto &c : iter->second) {
         (void)result.insert(c);
@@ -53,37 +53,33 @@ public:
     values_.clear();
     return GRAPH_SUCCESS;
   };
-private:
+
+ private:
   friend class RefRelations;
   graphStatus BuildLookUpTables();
   graphStatus BuildRefRelationsForBranch(
-                  const NodePtr &root_node,
-                  const std::vector<std::vector<NodePtr>> &classed_data_nodes,
-                  const std::vector<std::vector<std::pair<NodePtr, size_t>>> &classed_netoutput_nodes,
-                  std::vector<std::vector<RefCell>> &node_refs) const;
+      const NodePtr &root_node, const std::vector<std::vector<NodePtr>> &classed_data_nodes,
+      const std::vector<std::vector<std::pair<NodePtr, size_t>>> &classed_netoutput_nodes,
+      std::vector<std::vector<RefCell>> &node_refs) const;
   graphStatus BuildRefRelationsForWhile(
-                  const NodePtr &root_node,
-                  const std::vector<std::vector<NodePtr>> &classed_data_nodes,
-                  const std::vector<std::vector<std::pair<NodePtr, size_t>>> &classed_netoutput_nodes,
-                  std::vector<std::vector<RefCell>> &node_refs) const;
+      const NodePtr &root_node, const std::vector<std::vector<NodePtr>> &classed_data_nodes,
+      const std::vector<std::vector<std::pair<NodePtr, size_t>>> &classed_netoutput_nodes,
+      std::vector<std::vector<RefCell>> &node_refs) const;
   graphStatus BuildRelationsWithFuncNodeType(
-                  const NodePtr &root_node,
-                  const std::vector<std::vector<NodePtr>> &classed_data_nodes,
-                  const std::vector<std::vector<std::pair<NodePtr, size_t>>> &classed_netoutput_nodes,
-                  std::vector<std::vector<RefCell>> &node_refs) const;
-  void GetDataAndNetoutputOfSubGraph(
-                  const af::ComputeGraph &root_graph,
-                  std::vector<NodePtr> &graph_data_nodes,
-                  std::vector<NodePtr> &netoutput_nodes,
-                  const std::vector<std::string> &sub_graph_names,
-                  const std::string &node_type) const;
+      const NodePtr &root_node, const std::vector<std::vector<NodePtr>> &classed_data_nodes,
+      const std::vector<std::vector<std::pair<NodePtr, size_t>>> &classed_netoutput_nodes,
+      std::vector<std::vector<RefCell>> &node_refs) const;
+  void GetDataAndNetoutputOfSubGraph(const af::ComputeGraph &root_graph, std::vector<NodePtr> &graph_data_nodes,
+                                     std::vector<NodePtr> &netoutput_nodes,
+                                     const std::vector<std::string> &sub_graph_names,
+                                     const std::string &node_type) const;
 
   graphStatus GetRootGraph(af::ComputeGraph &graph, af::ComputeGraph &root_graph) const;
   graphStatus ProcessSubgraphDataNodes(std::vector<NodePtr> &graph_data_nodes,
                                        std::vector<std::vector<NodePtr>> &classed_data_nodes) const;
   graphStatus ProcessSubgraphNetoutput(
-                  const std::vector<NodePtr> &netoutput_nodes,
-                  std::vector<std::vector<std::pair<NodePtr, size_t>>> &classed_netoutput_nodes) const;
+      const std::vector<NodePtr> &netoutput_nodes,
+      std::vector<std::vector<std::pair<NodePtr, size_t>>> &classed_netoutput_nodes) const;
   void BuildRelationsForVariables(const af::ComputeGraph &root_graph);
 
   std::unordered_map<std::string, std::vector<RefCell>> look_up_table_;
@@ -92,8 +88,7 @@ private:
 
 // Node Level
 graphStatus RefRelations::Impl::BuildRefRelationsForBranch(
-    const NodePtr &root_node,
-    const std::vector<std::vector<NodePtr>> &classed_data_nodes,
+    const NodePtr &root_node, const std::vector<std::vector<NodePtr>> &classed_data_nodes,
     const std::vector<std::vector<std::pair<NodePtr, size_t>>> &classed_netoutput_nodes,
     std::vector<std::vector<RefCell>> &node_refs) const {
   GELOGD("Enter BuildRefRelationsForBranch!");
@@ -142,8 +137,7 @@ graphStatus RefRelations::Impl::BuildLookUpTables() {
 }
 
 graphStatus RefRelations::Impl::BuildRefRelationsForWhile(
-    const NodePtr &root_node,
-    const std::vector<std::vector<NodePtr>> &classed_data_nodes,
+    const NodePtr &root_node, const std::vector<std::vector<NodePtr>> &classed_data_nodes,
     const std::vector<std::vector<std::pair<NodePtr, size_t>>> &classed_netoutput_nodes,
     std::vector<std::vector<RefCell>> &node_refs) const {
   GELOGD("Enter BuildRefRelations for while op!");
@@ -228,8 +222,7 @@ graphStatus RefRelations::Impl::BuildRefRelationsForWhile(
 }
 // build ref relations according to diff func op type
 graphStatus RefRelations::Impl::BuildRelationsWithFuncNodeType(
-    const NodePtr &root_node,
-    const std::vector<std::vector<NodePtr>> &classed_data_nodes,
+    const NodePtr &root_node, const std::vector<std::vector<NodePtr>> &classed_data_nodes,
     const std::vector<std::vector<std::pair<NodePtr, size_t>>> &classed_netoutput_nodes,
     std::vector<std::vector<RefCell>> &node_refs) const {
   // data_nodes has been sorted
@@ -301,8 +294,7 @@ graphStatus RefRelations::Impl::ProcessSubgraphDataNodes(std::vector<NodePtr> &g
     is_exist = AttrUtils::GetInt(e->GetOpDesc(), kRefIdx, i);
     if (!is_exist) {
       REPORT_INNER_ERR_MSG("E18888", "Invalid SubGraph NetOutput node[%s].no attr %s", e->GetName().c_str(), kRefIdx);
-      GELOGE(GRAPH_FAILED, "[Get][Int] Invalid SubGraph NetOutput node[%s].no attr %s",
-             e->GetName().c_str(), kRefIdx);
+      GELOGE(GRAPH_FAILED, "[Get][Int] Invalid SubGraph NetOutput node[%s].no attr %s", e->GetName().c_str(), kRefIdx);
       return GRAPH_FAILED;
     }
     max_ref_idx = (i > max_ref_idx) ? i : max_ref_idx;
@@ -365,9 +357,8 @@ graphStatus RefRelations::Impl::ProcessSubgraphNetoutput(
         if (ref_o >= static_cast<int32_t>(classed_netoutput_nodes.size())) {
           return GRAPH_FAILED;
         }
-        classed_netoutput_nodes[static_cast<size_t>(ref_o)].emplace_back(std::pair<NodePtr, size_t>(
-            {sub_netoutput_node, static_cast<size_t>(in_data_anchor->GetIdx())}
-        ));
+        classed_netoutput_nodes[static_cast<size_t>(ref_o)].emplace_back(
+            std::pair<NodePtr, size_t>({sub_netoutput_node, static_cast<size_t>(in_data_anchor->GetIdx())}));
       }
     }
   }
@@ -399,7 +390,7 @@ void RefRelations::Impl::BuildRelationsForVariables(const af::ComputeGraph &root
       variable_all_refs.emplace_back(std::move(variable_ref));
     }
 
-    std::vector<std::vector<RefCell>> refs {variable_all_refs};
+    std::vector<std::vector<RefCell>> refs{variable_all_refs};
     values_.emplace_back(std::move(refs));
   }
 }
@@ -424,8 +415,8 @@ graphStatus RefRelations::Impl::BuildRefRelations(af::ComputeGraph &graph) {
     std::vector<NodePtr> netoutput_nodes;
     // Get data and netoutput of sub_graph
     GetDataAndNetoutputOfSubGraph(root_graph, graph_data_nodes, netoutput_nodes, sub_graph_names, node_type);
-    std::vector<std::vector<NodePtr>> classed_data_nodes;   // resize according to ref_idx
-    std::vector<std::vector<std::pair<NodePtr, size_t>>> classed_netoutput_nodes;   // resize according to ref_idx
+    std::vector<std::vector<NodePtr>> classed_data_nodes;                          // resize according to ref_idx
+    std::vector<std::vector<std::pair<NodePtr, size_t>>> classed_netoutput_nodes;  // resize according to ref_idx
     status = ProcessSubgraphDataNodes(graph_data_nodes, classed_data_nodes);
     if (status != GRAPH_SUCCESS) {
       GELOGE(GRAPH_FAILED, "[Process][SubgraphDataNodes] failed! ret:%d", status);
@@ -487,4 +478,4 @@ graphStatus RefRelations::Clear() {
   GE_CHECK_NOTNULL(impl_);
   return impl_->Clear();
 }
-}
+}  // namespace af

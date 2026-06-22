@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -79,10 +79,11 @@ VarInfo &ArgsManager::SetSizeInfo(VarInfo &info, const SymVarInfoPtr &var_info, 
   info.is_concat_inner_dim = arg_axis->is_concat_inner_dim;
   info.is_concat_outer_dim = arg_axis->is_concat_outer_dim;
   info.scopes = var_info->related_scope;
-  GELOGD("[PROMPT_ALIGN] SetSizeInfo for axis[%s]: prompt_align=%u, align=%s, data_type_size=%u, "
-         "is_concat_inner_dim=%d, is_concat_outer_dim=%d",
-         arg_axis->name.c_str(), info.prompt_align, Str(info.align).c_str(), info.data_type_size,
-         info.is_concat_inner_dim, info.is_concat_outer_dim);
+  GELOGD(
+      "[PROMPT_ALIGN] SetSizeInfo for axis[%s]: prompt_align=%u, align=%s, data_type_size=%u, "
+      "is_concat_inner_dim=%d, is_concat_outer_dim=%d",
+      arg_axis->name.c_str(), info.prompt_align, Str(info.align).c_str(), info.data_type_size, info.is_concat_inner_dim,
+      info.is_concat_outer_dim);
   if (IsValid(var_info->max_value)) {
     info.max_value = var_info->max_value;
   } else {
@@ -131,10 +132,11 @@ bool SplitVars(const AttAxisPtr &arg_axis, ExprInfoMap &var_infos) {
   if (arg_axis->axis_pos == AxisPosition::ORIGIN) {
     if (arg_axis->size->symbol_expr.GetExprType() == af::ExprType::kExprOperation) {
       auto args = arg_axis->size->symbol_expr.FreeSymbols();
-      GELOGD("[PROMPT_ALIGN] SplitVars: axis[%s] has %zu free variables, is_concat_inner_dim=%d, is_concat_outer_dim=%d, "
-             "prompt_align=%u, data_type_size=%u",
-             arg_axis->name.c_str(), args.size(), arg_axis->is_concat_inner_dim, arg_axis->is_concat_outer_dim,
-             arg_axis->size->prompt_align, arg_axis->size->data_type_size);
+      GELOGD(
+          "[PROMPT_ALIGN] SplitVars: axis[%s] has %zu free variables, is_concat_inner_dim=%d, is_concat_outer_dim=%d, "
+          "prompt_align=%u, data_type_size=%u",
+          arg_axis->name.c_str(), args.size(), arg_axis->is_concat_inner_dim, arg_axis->is_concat_outer_dim,
+          arg_axis->size->prompt_align, arg_axis->size->data_type_size);
       for (auto &arg : args) {
         if (arg.GetExprType() == af::ExprType::kExprVariable) {
           VarInfo info;
@@ -145,10 +147,11 @@ bool SplitVars(const AttAxisPtr &arg_axis, ExprInfoMap &var_infos) {
           info.is_concat_inner_dim = arg_axis->is_concat_inner_dim;
           info.is_concat_outer_dim = arg_axis->is_concat_outer_dim;
           var_infos.emplace(arg, info);
-          GELOGD("[PROMPT_ALIGN] SplitVars: created free variable[%s] with prompt_align=%u, data_type_size=%u, "
-                 "is_concat_inner_dim=%d, is_concat_outer_dim=%d",
-                 Str(arg).c_str(), info.prompt_align, info.data_type_size,
-                 info.is_concat_inner_dim, info.is_concat_outer_dim);
+          GELOGD(
+              "[PROMPT_ALIGN] SplitVars: created free variable[%s] with prompt_align=%u, data_type_size=%u, "
+              "is_concat_inner_dim=%d, is_concat_outer_dim=%d",
+              Str(arg).c_str(), info.prompt_align, info.data_type_size, info.is_concat_inner_dim,
+              info.is_concat_outer_dim);
         }
       }
       return true;
@@ -183,10 +186,11 @@ VarInfo ArgsManager::GetNaiveVarInfo(const AttAxis *arg_axis) {
     info.data_type_size = size_const_info->data_type_size;
     info = SetInitSize(info, arg_axis->is_last);
     info.value_range = size_const_info->value_range;
-    GELOGD("[PROMPT_ALIGN] GetNaiveVarInfo (const) axis[%s]: prompt_align=%u, data_type_size=%u, "
-           "is_concat_inner_dim=%d, is_concat_outer_dim=%d",
-           arg_axis->name.c_str(), info.prompt_align, info.data_type_size,
-           info.is_concat_inner_dim, info.is_concat_outer_dim);
+    GELOGD(
+        "[PROMPT_ALIGN] GetNaiveVarInfo (const) axis[%s]: prompt_align=%u, data_type_size=%u, "
+        "is_concat_inner_dim=%d, is_concat_outer_dim=%d",
+        arg_axis->name.c_str(), info.prompt_align, info.data_type_size, info.is_concat_inner_dim,
+        info.is_concat_outer_dim);
   } else {
     GELOGE(ge::FAILED, "Arg [%s] size type is not defined.", arg_axis->name.c_str());
   }
@@ -683,11 +687,11 @@ std::map<Expr, std::vector<Expr>, ExprCmp> ArgsManager::GetTernaryOpRelatedVars(
   return ConcursiveRelatedVars(ternary_op_);
 }
 
-const std::map<Expr, TernaryOp, ExprCmp>& ArgsManager::GetTernaryOps() const {
+const std::map<Expr, TernaryOp, ExprCmp> &ArgsManager::GetTernaryOps() const {
   return ternary_op_;
 }
 
-const std::vector<PerfBreakdownGroup>& ArgsManager::GetPerfBreakdowns() const {
+const std::vector<PerfBreakdownGroup> &ArgsManager::GetPerfBreakdowns() const {
   return perf_breakdowns_;
 }
 

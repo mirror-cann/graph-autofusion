@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -19,18 +19,18 @@
 #include "graph_metadef/common/ge_common/util.h"
 
 namespace af {
-#define TRACE_GEN_RECORD(owner, action, graph_name, node_name, node_data, tensor_index, tensor_data, content)      \
-  do {                                                                                                             \
-    if (TraceManager::GetInstance().IsTraceEnabled()) {                                                            \
-      if (TraceManager::GetTraceHeader().size() == 0) {                                                            \
-        GELOGD("[Check][Param] owner and stage have not been set");                                                \
-      } else {                                                                                                     \
-        std::stringstream ss;                                                                                      \
-        ss << owner << "," << action << "," << graph_name << "," << node_name << "," << node_data << ","           \
-           << tensor_index << "," << tensor_data << "," << content;                                                \
-        TraceManager::GetInstance().AddTrace(ss.str());                                                            \
-      }                                                                                                            \
-    }                                                                                                              \
+#define TRACE_GEN_RECORD(owner, action, graph_name, node_name, node_data, tensor_index, tensor_data, content) \
+  do {                                                                                                        \
+    if (TraceManager::GetInstance().IsTraceEnabled()) {                                                       \
+      if (TraceManager::GetTraceHeader().size() == 0) {                                                       \
+        GELOGD("[Check][Param] owner and stage have not been set");                                           \
+      } else {                                                                                                \
+        std::stringstream ss;                                                                                 \
+        ss << owner << "," << action << "," << graph_name << "," << node_name << "," << node_data << ","      \
+           << tensor_index << "," << tensor_data << "," << content;                                           \
+        TraceManager::GetInstance().AddTrace(ss.str());                                                       \
+      }                                                                                                       \
+    }                                                                                                         \
   } while (false)
 
 using char_t = char;
@@ -107,5 +107,5 @@ class TraceOwnerGuard {
 
 #define TRACE TraceManager::GetInstance()
 #define TRACE_HEADER TraceManager::GetTraceHeader()
-}  // namespace ge
+}  // namespace af
 #endif  // COMMON_UTIL_TRACE_MANAGER_TRACE_MANAGER_H_

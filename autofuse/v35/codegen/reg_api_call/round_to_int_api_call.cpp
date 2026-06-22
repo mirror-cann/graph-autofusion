@@ -26,9 +26,9 @@ using namespace af::ascir_op;
 using namespace ascgen_utils;
 
 Status RoundToIntApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
-                                  const std::vector<std::reference_wrapper<const Tensor>> &inputs,
-                                  const std::vector<std::reference_wrapper<const Tensor>> &outputs,
-                                  std::string &result) const {
+                                   const std::vector<std::reference_wrapper<const Tensor>> &inputs,
+                                   const std::vector<std::reference_wrapper<const Tensor>> &outputs,
+                                   std::string &result) const {
   (void)this->api_name_;
   auto x = inputs[0].get();
   auto y = outputs[0].get();
@@ -39,10 +39,9 @@ Status RoundToIntApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::
   stringstream ss;
 
   // 使用 AscendC::Cast 函数，设置 round 模式为 CAST_RINT
-  ss << "AscendC::Cast(" << y << "[" << tpipe.tiler.TensorVectorizedOffset(current_axis, y) << "], "
-     << x << "[" << tpipe.tiler.TensorVectorizedOffset(current_axis, x) << "], "
-     << "AscendC::RoundMode::CAST_RINT, "
-     << x.actual_size << ");" << std::endl;
+  ss << "AscendC::Cast(" << y << "[" << tpipe.tiler.TensorVectorizedOffset(current_axis, y) << "], " << x << "["
+     << tpipe.tiler.TensorVectorizedOffset(current_axis, x) << "], "
+     << "AscendC::RoundMode::CAST_RINT, " << x.actual_size << ");" << std::endl;
 
   result = ss.str();
   return ge::SUCCESS;
@@ -50,4 +49,4 @@ Status RoundToIntApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::
 
 static ApiCallRegister<RoundToIntApiCall> register_round_to_int_api_call("RoundToIntApiCall");
 
-} // namespace codegen
+}  // namespace codegen

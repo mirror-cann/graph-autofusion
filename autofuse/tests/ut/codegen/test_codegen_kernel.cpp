@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -40,7 +40,7 @@ namespace {
 std::string ToString(const af::Expression &e) {
   return std::string(e.Serialize().get());
 }
-}
+}  // namespace
 TEST(CodegenKernel, Type_StrWillReturnTypeName) {
   codegen::Type t{"int"};
 
@@ -145,7 +145,7 @@ TEST(CodegenKernel, Tiler_TensorVectorizedSize) {
   tensor.attr.axis = {z0.id, z1.id, z2.id};
   tensor.attr.vectorized_axis = {z1.id, z2.id};
   tensor.attr.repeats = {z0.size, z1.size, z2.size};
-  tensor.attr.strides = {z1.size*z2.size, z2.size, One};
+  tensor.attr.strides = {z1.size * z2.size, z2.size, One};
 
   vector<af::Expression> vectorized_strides{One, One};
   vectorized_strides[0] = z2.size;
@@ -210,8 +210,7 @@ TEST(CodegenKernel, Tiler_TensorVectorizedSize_WhenNotVectorized) {
 
   std::string dtype_name;
   codegen::Tensor::DtypeName(tensor.attr.dtype, dtype_name);
-  EXPECT_EQ(tiler.TensorVectorizedSize(codegen::Tensor(tensor, dtype_name)), std::string{
-    "1"});
+  EXPECT_EQ(tiler.TensorVectorizedSize(codegen::Tensor(tensor, dtype_name)), std::string{"1"});
 }
 
 TEST(CodegenKernel, Tiler_BlockOutterAxisDefine) {
@@ -233,15 +232,13 @@ TEST(CodegenKernel, Tiler_BlockOutterAxisDefine) {
   tiler.AddAxis(z2);
 
   auto result_code = tiler.BlockOutterAxisDefine();
-  EXPECT_EQ(result_code, std::string{
-     "int block_dim = GetBlockIdx();\n"
-     "if (block_dim >= t->block_dim) { \n"
-     "  return;\n"
-     "}\n"
-     "const int z0 = block_dim % z0_loop_size; \n"
-     "const int z1 = block_dim % z1_loop_size; \n"
-     "const int z2 = block_dim % z2_loop_size; \n"
-     });
+  EXPECT_EQ(result_code, std::string{"int block_dim = GetBlockIdx();\n"
+                                     "if (block_dim >= t->block_dim) { \n"
+                                     "  return;\n"
+                                     "}\n"
+                                     "const int z0 = block_dim % z0_loop_size; \n"
+                                     "const int z1 = block_dim % z1_loop_size; \n"
+                                     "const int z2 = block_dim % z2_loop_size; \n"});
 }
 
 TEST(CodegenKernel, Tiler_GetAxisVar) {
@@ -278,8 +275,10 @@ TEST(CodegenKernel, Tiler_TensorOffset_WhenGlobalTensor_WillOffsetAll) {
 
   EXPECT_EQ(tiler.Offset({}, tensor_axis, stride), std::string{"0"});
   EXPECT_EQ(tiler.Offset({z0.id}, tensor_axis, stride), std::string{"(int64_t)z0 * (int64_t)(t->s1 * t->s2)"});
-  EXPECT_EQ(tiler.Offset({z0.id, z1.id}, tensor_axis, stride), std::string{"(int64_t)z0 * (int64_t)(t->s1 * t->s2) + (int64_t)z1 * (int64_t)t->s2"});
-  EXPECT_EQ(tiler.Offset({z0.id, z1.id, z2.id}, tensor_axis, stride), std::string{"(int64_t)z0 * (int64_t)(t->s1 * t->s2) + (int64_t)z1 * (int64_t)t->s2 + (int64_t)z2"});
+  EXPECT_EQ(tiler.Offset({z0.id, z1.id}, tensor_axis, stride),
+            std::string{"(int64_t)z0 * (int64_t)(t->s1 * t->s2) + (int64_t)z1 * (int64_t)t->s2"});
+  EXPECT_EQ(tiler.Offset({z0.id, z1.id, z2.id}, tensor_axis, stride),
+            std::string{"(int64_t)z0 * (int64_t)(t->s1 * t->s2) + (int64_t)z1 * (int64_t)t->s2 + (int64_t)z2"});
 }
 
 TEST(CodegenKernel, Tiler_TensorOffset_WhenLocalTensor_VectorizedOnCurrentAxis) {
@@ -317,8 +316,10 @@ TEST(CodegenKernel, Tiler_TensorOffset_WhenLocalTensor_VectorizedOnCurrentAxis) 
   codegen::Tensor t(tensor, dtype_name, "t");
 
   EXPECT_EQ(tiler.TensorVectorizedOffset({z0.id}, codegen::Tensor(tensor, dtype_name)), "0");
-  EXPECT_EQ(tiler.TensorVectorizedOffset({z0.id, z1.id}, codegen::Tensor(tensor, dtype_name)), "(int64_t)z1 * (int64_t)t->s2");
-  EXPECT_EQ(tiler.TensorVectorizedOffset({z0.id, z1.id, z2.id}, codegen::Tensor(tensor, dtype_name)), "(int64_t)z1 * (int64_t)t->s2 + (int64_t)z2");
+  EXPECT_EQ(tiler.TensorVectorizedOffset({z0.id, z1.id}, codegen::Tensor(tensor, dtype_name)),
+            "(int64_t)z1 * (int64_t)t->s2");
+  EXPECT_EQ(tiler.TensorVectorizedOffset({z0.id, z1.id, z2.id}, codegen::Tensor(tensor, dtype_name)),
+            "(int64_t)z1 * (int64_t)t->s2 + (int64_t)z2");
 }
 
 TEST(CodegenKernel, ubScalarFalseTestWhenVecRepeateIsOneButNotAllOne) {
@@ -340,7 +341,7 @@ TEST(CodegenKernel, ubScalarFalseTestWhenVecRepeateIsOneButNotAllOne) {
   tiler.AddAxis(z1);
   tiler.AddAxis(z2);
 
-  //af::ascir_op::Load x("load", graph);
+  // af::ascir_op::Load x("load", graph);
   Load load("load");
   graph.AddNode(load);
   auto node = graph.FindNode("load");
@@ -381,7 +382,7 @@ TEST(CodegenKernel, Tensor_ubScalarVrInitTest) {
   tiler.AddAxis(z2);
 
   af::AscGraph graph("test");
-  //af::ascir_op::Load x("load", graph);
+  // af::ascir_op::Load x("load", graph);
   Load load("load");
   graph.AddNode(load);
   auto node = graph.FindNode("load");
@@ -431,14 +432,14 @@ TEST(CodegenKernel, OutputTensorIsUbScalar_test) {
   tiler.AddAxis(z1);
   tiler.AddAxis(z2);
 
-  //af::ascir_op::Load x("load", graph);
+  // af::ascir_op::Load x("load", graph);
   Load load("load");
   graph.AddNode(load);
   auto node = graph.FindNode("load");
   af::AscTensor tensor = node->outputs[0];
   tensor.attr.axis = {z0.id, z1.id, z2.id};
   tensor.attr.repeats = {s0, s1, s2};
-  tensor.attr.strides = {s1*s2, s2, One};
+  tensor.attr.strides = {s1 * s2, s2, One};
   tensor.attr.vectorized_axis = {z1.id, z2.id};
   tensor.attr.mem.tensor_id = 1;
 
@@ -477,14 +478,14 @@ TEST(CodegenKernel, OutputTensorIsScalarDuplicate_test) {
   tiler.AddAxis(z1);
   tiler.AddAxis(z2);
 
-  //af::ascir_op::Load x("load", graph);
+  // af::ascir_op::Load x("load", graph);
   Load load("load");
   graph.AddNode(load);
   auto node = graph.FindNode("load");
   af::AscTensor tensor = node->outputs[0];
   tensor.attr.axis = {z0.id, z1.id, z2.id};
   tensor.attr.repeats = {s0, s1, s2};
-  tensor.attr.strides = {s1*s2, s2, One};
+  tensor.attr.strides = {s1 * s2, s2, One};
   tensor.attr.vectorized_axis = {z1.id, z2.id};
   tensor.attr.mem.tensor_id = 1;
 
@@ -504,13 +505,15 @@ TEST(CodegenKernel, OutputTensorIsScalarDuplicate_test) {
   std::string result;
   Status ans = kernel.tpipe.BlkTensorAllocAndInit(result);
 
-  EXPECT_EQ(result, std::string{
-    "TBuf<TPosition::VECCALC> global_1_tbuf;\n"
-    "tpipe.InitBuffer(global_1_tbuf, 32);\n"
-    "LocalTensor<GlobalTensor<float>> local_blk_tensor_of_global_1 = global_1_tbuf.Get<GlobalTensor<float>>();\n"
-    "Duplicate(local_blk_tensor_of_global_1[0], static_cast<GlobalTensor<float>>(), static_cast<uint64_t>(32/sizeof(GlobalTensor<float>)));\n"
-    "AscendC::PipeBarrier<PIPE_V>();\n"
-  });
+  EXPECT_EQ(
+      result,
+      std::string{
+          "TBuf<TPosition::VECCALC> global_1_tbuf;\n"
+          "tpipe.InitBuffer(global_1_tbuf, 32);\n"
+          "LocalTensor<GlobalTensor<float>> local_blk_tensor_of_global_1 = global_1_tbuf.Get<GlobalTensor<float>>();\n"
+          "Duplicate(local_blk_tensor_of_global_1[0], static_cast<GlobalTensor<float>>(), "
+          "static_cast<uint64_t>(32/sizeof(GlobalTensor<float>)));\n"
+          "AscendC::PipeBarrier<PIPE_V>();\n"});
 }
 
 TEST(CodegenKernel, ReduceTensorForceNonUbScalar) {
@@ -532,7 +535,7 @@ TEST(CodegenKernel, ReduceTensorForceNonUbScalar) {
   tiler.AddAxis(z1);
   tiler.AddAxis(z2);
 
-  //af::ascir_op::Load x("load", graph);
+  // af::ascir_op::Load x("load", graph);
   Sum sum("sum");
   graph.AddNode(sum);
   auto node = graph.FindNode("sum");
@@ -579,7 +582,7 @@ TEST(CodegenKernel, ApiCallPreProcessTest) {
   tiler.AddAxis(z2);
 
   af::AscGraph graph("test");
-  //af::ascir_op::Load x("load", graph);
+  // af::ascir_op::Load x("load", graph);
   Load load("load");
   graph.AddNode(load);
   auto node = graph.FindNode("load");
@@ -601,27 +604,27 @@ TEST(CodegenKernel, ApiCallPreProcessTest) {
   // 定义api all
   codegen::ApiCall call("Load");
   EXPECT_EQ(call.Init(node), 0);
-  //1
+  // 1
   std::string result1, result2;
-  //2
+  // 2
   std::vector<std::reference_wrapper<const codegen::Tensor>> output_tensors;
   t.need_gen_get_value_of_ub_scalar = true;
   output_tensors.emplace_back(t);
-  //3
+  // 3
   std::vector<::ascir::AxisId> current_axis = {z0.id};
-  //4
+  // 4
   codegen::TPipe tpipe("tpipe", tiler);
 
   EXPECT_EQ(call.PreProcess(tpipe, current_axis, output_tensors, result1), 0);
   EXPECT_EQ(result1, "if (z0 < 1) {\n");
 
   EXPECT_EQ(call.PostProcess(tpipe, current_axis, output_tensors, result2), 0);
-  EXPECT_EQ(result2, std::string{
-    "event_t eventID = static_cast<event_t>(GetTPipePtr()->FetchEventID(HardEvent::MTE2_S));\n"
-    "SetFlag<HardEvent::MTE2_S>(eventID);\n"
-    "WaitFlag<HardEvent::MTE2_S>(eventID);\n"
-    "global_1_ub_scalar = global_1.GetValue(0);\n"
-    "}\n"});
+  EXPECT_EQ(result2,
+            std::string{"event_t eventID = static_cast<event_t>(GetTPipePtr()->FetchEventID(HardEvent::MTE2_S));\n"
+                        "SetFlag<HardEvent::MTE2_S>(eventID);\n"
+                        "WaitFlag<HardEvent::MTE2_S>(eventID);\n"
+                        "global_1_ub_scalar = global_1.GetValue(0);\n"
+                        "}\n"});
 }
 
 TEST(CodegenKernel, ApiCallPreProcessUbScalarTest) {
@@ -643,7 +646,7 @@ TEST(CodegenKernel, ApiCallPreProcessUbScalarTest) {
   tiler.AddAxis(z2);
 
   af::AscGraph graph("test");
-  //af::ascir_op::Load x("load", graph);
+  // af::ascir_op::Load x("load", graph);
   Load load("load");
   graph.AddNode(load);
   auto node = graph.FindNode("load");
@@ -665,28 +668,28 @@ TEST(CodegenKernel, ApiCallPreProcessUbScalarTest) {
   // 定义api all
   codegen::ApiCall call("Load");
   EXPECT_EQ(call.Init(node), 0);
-  //1
+  // 1
   std::string result1, result2;
-  //2
+  // 2
   std::vector<std::reference_wrapper<const codegen::Tensor>> output_tensors;
   t.need_gen_get_value_of_ub_scalar = true;
   t.need_duplicate_value_of_ub_scalar = true;
   output_tensors.emplace_back(t);
-  //3
+  // 3
   std::vector<::ascir::AxisId> current_axis = {z0.id};
-  //4
+  // 4
   codegen::TPipe tpipe("tpipe", tiler);
 
   EXPECT_EQ(call.PostProcess(tpipe, current_axis, output_tensors, result2), 0);
-  EXPECT_EQ(result2, std::string{
-    "event_t eventID = static_cast<event_t>(GetTPipePtr()->FetchEventID(HardEvent::MTE2_S));\n"
-    "SetFlag<HardEvent::MTE2_S>(eventID);\n"
-    "WaitFlag<HardEvent::MTE2_S>(eventID);\n"
-    "global_1_ub_scalar = global_1.GetValue(0);\n"
-    "AscendC::PipeBarrier<PIPE_ALL>();\n"
-    "Duplicate(global_1[0], global_1_ub_scalar, 32/sizeof(float));\n"
-    "AscendC::PipeBarrier<PIPE_V>();\n"
-    "}\n"});
+  EXPECT_EQ(result2,
+            std::string{"event_t eventID = static_cast<event_t>(GetTPipePtr()->FetchEventID(HardEvent::MTE2_S));\n"
+                        "SetFlag<HardEvent::MTE2_S>(eventID);\n"
+                        "WaitFlag<HardEvent::MTE2_S>(eventID);\n"
+                        "global_1_ub_scalar = global_1.GetValue(0);\n"
+                        "AscendC::PipeBarrier<PIPE_ALL>();\n"
+                        "Duplicate(global_1[0], global_1_ub_scalar, 32/sizeof(float));\n"
+                        "AscendC::PipeBarrier<PIPE_V>();\n"
+                        "}\n"});
 }
 
 TEST(CodegenKernel, ApiCallPreProcessLoadUbScalarTest) {
@@ -708,7 +711,7 @@ TEST(CodegenKernel, ApiCallPreProcessLoadUbScalarTest) {
   tiler.AddAxis(z2);
 
   af::AscGraph graph("test");
-  //af::ascir_op::Load x("load", graph);
+  // af::ascir_op::Load x("load", graph);
   Load load("load");
   graph.AddNode(load);
   auto node = graph.FindNode("load");
@@ -730,28 +733,28 @@ TEST(CodegenKernel, ApiCallPreProcessLoadUbScalarTest) {
   // 定义api all
   codegen::ApiCall call("Load");
   EXPECT_EQ(call.Init(node), 0);
-  //1
+  // 1
   std::string result1, result2;
-  //2
+  // 2
   std::vector<std::reference_wrapper<const codegen::Tensor>> output_tensors;
   t.need_gen_get_value_of_ub_scalar = true;
   t.need_duplicate_value_of_ub_scalar = true;
   output_tensors.emplace_back(t);
-  //3
+  // 3
   std::vector<::ascir::AxisId> current_axis = {z0.id};
-  //4
+  // 4
   codegen::TPipe tpipe("tpipe", tiler);
 
   EXPECT_EQ(call.PostProcess(tpipe, current_axis, output_tensors, result2), 0);
-  EXPECT_EQ(result2, std::string{
-    "event_t eventID = static_cast<event_t>(GetTPipePtr()->FetchEventID(HardEvent::MTE2_S));\n"
-    "SetFlag<HardEvent::MTE2_S>(eventID);\n"
-    "WaitFlag<HardEvent::MTE2_S>(eventID);\n"
-    "global_1_ub_scalar = global_1.GetValue(0);\n"
-    "AscendC::PipeBarrier<PIPE_ALL>();\n"
-    "Duplicate(global_1[0], global_1_ub_scalar, 32/sizeof(float));\n"
-    "AscendC::PipeBarrier<PIPE_V>();\n"
-    "}\n"});
+  EXPECT_EQ(result2,
+            std::string{"event_t eventID = static_cast<event_t>(GetTPipePtr()->FetchEventID(HardEvent::MTE2_S));\n"
+                        "SetFlag<HardEvent::MTE2_S>(eventID);\n"
+                        "WaitFlag<HardEvent::MTE2_S>(eventID);\n"
+                        "global_1_ub_scalar = global_1.GetValue(0);\n"
+                        "AscendC::PipeBarrier<PIPE_ALL>();\n"
+                        "Duplicate(global_1[0], global_1_ub_scalar, 32/sizeof(float));\n"
+                        "AscendC::PipeBarrier<PIPE_V>();\n"
+                        "}\n"});
 }
 
 TEST(CodegenKernel, kernelUbScalarVarDef) {
@@ -773,7 +776,7 @@ TEST(CodegenKernel, kernelUbScalarVarDef) {
   tiler.AddAxis(z2);
 
   af::AscGraph graph("test");
-  //af::ascir_op::Load x("load", graph);
+  // af::ascir_op::Load x("load", graph);
   Load load("load");
   graph.AddNode(load);
   auto node = graph.FindNode("load");
@@ -801,11 +804,11 @@ TEST(CodegenKernel, kernelUbScalarVarDef) {
 }
 
 TEST(CodegenKernel, Tiler_TensorOffset_WhenLocalTensor_VectorizedNestCurrentAxis) {
-    GTEST_SKIP();
+  GTEST_SKIP();
 }
 
 TEST(CodegenKernel, Tiler_TensorAlloc_WhenTensorFromQue_AndMerge) {
-    GTEST_SKIP();
+  GTEST_SKIP();
 }
 
 TEST(CodegenKernel, Tensor_SetGlobalBuffer) {
@@ -875,8 +878,7 @@ TEST(CodegenKernel, TPipe_TensorAlloc_WhenConstantTensor_WillNotAlloc) {
   std::string result;
   auto tensor_ptr = tpipe.GetTensor(tensor.attr.mem.tensor_id);
   tpipe.TensorAlloc(*tensor_ptr, result);
-  EXPECT_EQ(result,
-          std::string{});
+  EXPECT_EQ(result, std::string{});
 }
 
 TEST(CodegenKernel, TPipe_TensorAlloc_WhenTensorFromQue_AndNotMerge) {
@@ -901,10 +903,8 @@ TEST(CodegenKernel, TPipe_TensorAlloc_WhenTensorFromQue_AndNotMerge) {
   std::string result;
   auto tensor_ptr = tpipe.GetTensor(tensor.attr.mem.tensor_id);
   tpipe.TensorAlloc(*tensor_ptr, result);
-  EXPECT_EQ(result, std::string{
-    "LocalTensor<half> local_0;\n"
-    "local_0 = q1_buf[q1_reuse1_offset].template ReinterpretCast<half>();\n"
-    });
+  EXPECT_EQ(result, std::string{"LocalTensor<half> local_0;\n"
+                                "local_0 = q1_buf[q1_reuse1_offset].template ReinterpretCast<half>();\n"});
 }
 
 TEST(CodegenKernel, TPipe_TensorAlloc_WhenTensorFromBuf_AndNotMerge) {
@@ -928,10 +928,8 @@ TEST(CodegenKernel, TPipe_TensorAlloc_WhenTensorFromBuf_AndNotMerge) {
   std::string result;
   auto tensor_ptr = tpipe.GetTensor(tensor.attr.mem.tensor_id);
   tpipe.TensorAlloc(*tensor_ptr, result);
-  EXPECT_EQ(result, std::string{
-    "LocalTensor<half> local_0;\n"
-    "local_0 = b1_buf.template ReinterpretCast<half>();\n"
-    });
+  EXPECT_EQ(result, std::string{"LocalTensor<half> local_0;\n"
+                                "local_0 = b1_buf.template ReinterpretCast<half>();\n"});
 }
 
 TEST(CodegenKernel, AddTensor_InvalidName) {
@@ -957,10 +955,8 @@ TEST(CodegenKernel, AddTensor_InvalidName) {
     std::string result;
     auto tensor_ptr = tpipe.GetTensor(tensor.attr.mem.tensor_id);
     tpipe.TensorAlloc(*tensor_ptr, result);
-    EXPECT_EQ(result, std::string{
-      "LocalTensor<half> local_0;\n"
-      "local_0 = q1_buf[q1_reuse1_offset].template ReinterpretCast<half>();\n"
-      });
+    EXPECT_EQ(result, std::string{"LocalTensor<half> local_0;\n"
+                                  "local_0 = q1_buf[q1_reuse1_offset].template ReinterpretCast<half>();\n"});
   }
 
   {
@@ -980,10 +976,8 @@ TEST(CodegenKernel, AddTensor_InvalidName) {
     std::string result;
     auto tensor_ptr = tpipe.GetTensor(tensor.attr.mem.tensor_id);
     tpipe.TensorAlloc(*tensor_ptr, result);
-    EXPECT_EQ(result, std::string{
-      "LocalTensor<half> local_0;\n"
-      "local_0 = q1_buf[q1_reuse1_offset].template ReinterpretCast<half>();\n"
-      });
+    EXPECT_EQ(result, std::string{"LocalTensor<half> local_0;\n"
+                                  "local_0 = q1_buf[q1_reuse1_offset].template ReinterpretCast<half>();\n"});
   }
 }
 
@@ -1008,9 +1002,8 @@ TEST(CodegenKernel, TPipe_InitTQueBuffers) {
   ASSERT_NE(que, tpipe.ques.end());
   std::string result;
   tpipe.InitTQueBuffers(que->second, result);
-  EXPECT_EQ(result, std::string {
-    "// tpipe.InitBuffer(q1, q1_buf_num, KernelUtils::BlkAlign<uint8_t>(q1_size));\n"
-    "tpipe.InitBuffer(q1, q1_buf_num, t->q1_size);"});
+  EXPECT_EQ(result, std::string{"// tpipe.InitBuffer(q1, q1_buf_num, KernelUtils::BlkAlign<uint8_t>(q1_size));\n"
+                                "tpipe.InitBuffer(q1, q1_buf_num, t->q1_size);"});
 }
 
 TEST(CodegenKernel, TPipe_InitTBufBuffer) {
@@ -1033,9 +1026,8 @@ TEST(CodegenKernel, TPipe_InitTBufBuffer) {
   ASSERT_NE(buf, tpipe.bufs.end());
   std::string result;
   tpipe.InitTBufBuffer(buf->second, result);
-  EXPECT_EQ(result, std::string{
-    "// tpipe.InitBuffer(b1, KernelUtils::BlkAlign<uint8_t>(b1_size));\n"
-    "tpipe.InitBuffer(b1, t->b1_size);"});
+  EXPECT_EQ(result, std::string{"// tpipe.InitBuffer(b1, KernelUtils::BlkAlign<uint8_t>(b1_size));\n"
+                                "tpipe.InitBuffer(b1, t->b1_size);"});
 }
 
 TEST(CodegenKernel, TPipe_TensorSizeCalc_AllocFromBuf) {
@@ -1064,7 +1056,7 @@ TEST(CodegenKernel, TPipe_TensorSizeCalc_AllocFromBuf) {
   tensor.attr.axis = {z0.id, z1.id, z2.id};
   tensor.attr.vectorized_axis = {z1.id, z2.id};
   tensor.attr.repeats = {z0.size, z1.size, z2.size};
-  tensor.attr.strides = {z1.size*z2.size, z2.size, One};
+  tensor.attr.strides = {z1.size * z2.size, z2.size, One};
   tensor.attr.mem.tensor_id = 1;
   tensor.attr.mem.alloc_type = af::AllocType::kAllocTypeBuffer;
   tensor.attr.mem.position = af::Position::kPositionVecIn;
@@ -1078,9 +1070,10 @@ TEST(CodegenKernel, TPipe_TensorSizeCalc_AllocFromBuf) {
   tpipe.CollectQues(graph);
   tpipe.AddTensor(tensor);
 
-  EXPECT_EQ(tpipe.TensorSizeCalc(), std::string{
-      "const uint32_t local_1_size = KernelUtils::BlkAlign<float>((t->s1 - 1) * t->s2 + (t->s2 - 1) + 1);\n"
-  });
+  EXPECT_EQ(
+      tpipe.TensorSizeCalc(),
+      std::string{
+          "const uint32_t local_1_size = KernelUtils::BlkAlign<float>((t->s1 - 1) * t->s2 + (t->s2 - 1) + 1);\n"});
 }
 
 TEST(CodegenKernel, TPipe_TensorSizeCalc_AllocFromQue) {
@@ -1109,7 +1102,7 @@ TEST(CodegenKernel, TPipe_TensorSizeCalc_AllocFromQue) {
   tensor.attr.axis = {z0.id, z1.id, z2.id};
   tensor.attr.vectorized_axis = {z1.id, z2.id};
   tensor.attr.repeats = {z0.size, z1.size, z2.size};
-  tensor.attr.strides = {z1.size*z2.size, z2.size, One};
+  tensor.attr.strides = {z1.size * z2.size, z2.size, One};
   tensor.attr.mem.tensor_id = 1;
   tensor.attr.mem.alloc_type = af::AllocType::kAllocTypeQueue;
   tensor.attr.mem.position = af::Position::kPositionVecIn;
@@ -1124,10 +1117,10 @@ TEST(CodegenKernel, TPipe_TensorSizeCalc_AllocFromQue) {
   tpipe.CollectQues(graph);
   tpipe.AddTensor(tensor);
 
-  EXPECT_EQ(tpipe.TensorSizeCalc(), std::string{
-      "const uint32_t local_1_size = KernelUtils::BlkAlign<float>((t->s1 - 1) * t->s2 + (t->s2 - 1) + 1);\n"
-      "const uint32_t local_1_que_buf_num = 4;\n"
-  });
+  EXPECT_EQ(
+      tpipe.TensorSizeCalc(),
+      std::string{"const uint32_t local_1_size = KernelUtils::BlkAlign<float>((t->s1 - 1) * t->s2 + (t->s2 - 1) + 1);\n"
+                  "const uint32_t local_1_que_buf_num = 4;\n"});
 }
 
 TEST(CodegenKernel, TPipe_MergeScopeSizeCalc) {
@@ -1156,7 +1149,7 @@ TEST(CodegenKernel, TPipe_MergeScopeSizeCalc) {
   tensor.attr.axis = {z0.id, z1.id, z2.id};
   tensor.attr.vectorized_axis = {z1.id, z2.id};
   tensor.attr.repeats = {z0.size, z1.size, z2.size};
-  tensor.attr.strides = {z1.size*z2.size, z2.size, One};
+  tensor.attr.strides = {z1.size * z2.size, z2.size, One};
   tensor.attr.mem.position = af::Position::kPositionVecIn;
   tensor.attr.opt.merge_scope = 1;
   vector<af::Expression> vectorized_strides{One, One};
@@ -1182,10 +1175,11 @@ TEST(CodegenKernel, TPipe_MergeScopeSizeCalc) {
 
   std::string result;
   tpipe.MergeScopeSizeCalc(result);
-  EXPECT_EQ(result, std::string{
-      "const uint32_t m1_size = KernelUtils::Sum(local_0_size * sizeof(half), local_1_size * sizeof(float));\n"
-      "const uint32_t m1_que_buf_num = KernelUtils::Max(local_0_que_buf_num);\n"
-  });
+  EXPECT_EQ(
+      result,
+      std::string{
+          "const uint32_t m1_size = KernelUtils::Sum(local_0_size * sizeof(half), local_1_size * sizeof(float));\n"
+          "const uint32_t m1_que_buf_num = KernelUtils::Max(local_0_que_buf_num);\n"});
 }
 
 TEST(CodegenKernel, TPipe_LocalTBufAlloc) {
@@ -1214,7 +1208,7 @@ TEST(CodegenKernel, TPipe_LocalTBufAlloc) {
   tensor.attr.axis = {z0.id, z1.id, z2.id};
   tensor.attr.vectorized_axis = {z1.id, z2.id};
   tensor.attr.repeats = {z0.size, z1.size, z2.size};
-  tensor.attr.strides = {z1.size*z2.size, z2.size, One};
+  tensor.attr.strides = {z1.size * z2.size, z2.size, One};
   tensor.attr.mem.position = af::Position::kPositionVecIn;
   vector<af::Expression> vectorized_strides{One, One};
   vectorized_strides[0] = z2.size;
@@ -1240,12 +1234,10 @@ TEST(CodegenKernel, TPipe_LocalTBufAlloc) {
   std::string result;
   tpipe.SetUsingAttCalcQBTSizeConfig(false);
   tpipe.LocalTBufAllocLoopTwice(result);
-  EXPECT_EQ(result, std::string{
-    "const uint32_t b1_size = KernelUtils::Max(m1_size, local_1_size * sizeof(float));\n"
-    "TBuf<TPosition::VECIN> b1;\n"
-    "tpipe.InitBuffer(b1, KernelUtils::BlkAlign<uint8_t>(b1_size));\n"
-    "LocalTensor<float> local_1 = b1.Get<float>();\n\n"
-  });
+  EXPECT_EQ(result, std::string{"const uint32_t b1_size = KernelUtils::Max(m1_size, local_1_size * sizeof(float));\n"
+                                "TBuf<TPosition::VECIN> b1;\n"
+                                "tpipe.InitBuffer(b1, KernelUtils::BlkAlign<uint8_t>(b1_size));\n"
+                                "LocalTensor<float> local_1 = b1.Get<float>();\n\n"});
 }
 
 TEST(CodegenKernel, TPipe_LocalTBufAlloc_2) {
@@ -1274,7 +1266,7 @@ TEST(CodegenKernel, TPipe_LocalTBufAlloc_2) {
   tensor.attr.axis = {z0.id, z1.id, z2.id};
   tensor.attr.vectorized_axis = {z1.id, z2.id};
   tensor.attr.repeats = {z0.size, z1.size, z2.size};
-  tensor.attr.strides = {z1.size*z2.size, z2.size, One};
+  tensor.attr.strides = {z1.size * z2.size, z2.size, One};
   tensor.attr.mem.position = af::Position::kPositionVecIn;
   vector<af::Expression> vectorized_strides{One, One};
   vectorized_strides[0] = z2.size;
@@ -1328,7 +1320,7 @@ TEST(CodegenKernel, TPipe_LocalTBufAlloc_MergeScopes_ERROR) {
   tensor.attr.axis = {z0.id, z1.id, z2.id};
   tensor.attr.vectorized_axis = {z1.id, z2.id};
   tensor.attr.repeats = {z0.size, z1.size, z2.size};
-  tensor.attr.strides = {z1.size*z2.size, z2.size, One};
+  tensor.attr.strides = {z1.size * z2.size, z2.size, One};
   tensor.attr.mem.position = af::Position::kPositionVecIn;
   vector<af::Expression> vectorized_strides{One, One};
   vectorized_strides[0] = z2.size;
@@ -1381,7 +1373,7 @@ TEST(CodegenKernel, TPipe_LocalTBufAlloc_NotMergeTensors_ERROR) {
   tensor.attr.axis = {z0.id, z1.id, z2.id};
   tensor.attr.vectorized_axis = {z1.id, z2.id};
   tensor.attr.repeats = {z0.size, z1.size, z2.size};
-  tensor.attr.strides = {z1.size*z2.size, z2.size, One};
+  tensor.attr.strides = {z1.size * z2.size, z2.size, One};
   tensor.attr.mem.position = af::Position::kPositionVecIn;
   vector<af::Expression> vectorized_strides{One, One};
   vectorized_strides[0] = z2.size;
@@ -1434,7 +1426,7 @@ TEST(CodegenKernel, TPipe_LocalTQueAlloc) {
   tensor.attr.axis = {z0.id, z1.id, z2.id};
   tensor.attr.vectorized_axis = {z1.id, z2.id};
   tensor.attr.repeats = {z0.size, z1.size, z2.size};
-  tensor.attr.strides = {z1.size*z2.size, z2.size, One};
+  tensor.attr.strides = {z1.size * z2.size, z2.size, One};
   tensor.attr.mem.position = af::Position::kPositionVecIn;
   vector<af::Expression> vectorized_strides{One, One};
   vectorized_strides[0] = z2.size;
@@ -1463,13 +1455,11 @@ TEST(CodegenKernel, TPipe_LocalTQueAlloc) {
 
   std::string result;
   tpipe.LocalTQueAlloc(result);
-  EXPECT_EQ(result, std::string{
-    "// const uint32_t q1_size = KernelUtils::Max(m1_size, local_1_size * sizeof(float));\n"
-    "const uint32_t q1_buf_num = KernelUtils::Max(m1_que_buf_num, 2);\n"
-    "TQue<TPosition::VECIN, 1> q1;\n"
-    "// tpipe.InitBuffer(q1, q1_buf_num, KernelUtils::BlkAlign<uint8_t>(q1_size));\n"
-    "tpipe.InitBuffer(q1, q1_buf_num, t->q1_size);\n"
-  });
+  EXPECT_EQ(result, std::string{"// const uint32_t q1_size = KernelUtils::Max(m1_size, local_1_size * sizeof(float));\n"
+                                "const uint32_t q1_buf_num = KernelUtils::Max(m1_que_buf_num, 2);\n"
+                                "TQue<TPosition::VECIN, 1> q1;\n"
+                                "// tpipe.InitBuffer(q1, q1_buf_num, KernelUtils::BlkAlign<uint8_t>(q1_size));\n"
+                                "tpipe.InitBuffer(q1, q1_buf_num, t->q1_size);\n"});
 }
 
 TEST(CodegenKernel, ApiCall_Generate) {
@@ -1495,10 +1485,12 @@ TEST(CodegenKernel, Stage_AddCall_WillAddCall) {
 class MockApiCall : public virtual codegen::ApiCall {
  public:
   MockApiCall(const std::string &api_name) : codegen::ApiCall(api_name) {}
-  MockApiCall(const af::AscNodePtr &node, const std::string &api_name) :
-    codegen::ApiCall(api_name) {Init(node);}
+  MockApiCall(const af::AscNodePtr &node, const std::string &api_name) : codegen::ApiCall(api_name) {
+    Init(node);
+  }
 
-  Status Generate(const codegen::TPipe &tpipe, const std::vector<af::AxisId> &current_axis, std::string &result) const override{
+  Status Generate(const codegen::TPipe &tpipe, const std::vector<af::AxisId> &current_axis,
+                  std::string &result) const override {
     result = this->type + "();\n";
     return 0;
   }
@@ -1507,7 +1499,6 @@ class MockApiCall : public virtual codegen::ApiCall {
     ss << "func_test_Definition:" << api_name_ << std::endl;
     return ge::SUCCESS;
   };
-
 };
 
 class CodegenKernel_CallSync : public ::testing::Test {
@@ -1516,8 +1507,7 @@ class CodegenKernel_CallSync : public ::testing::Test {
   af::AscNodePtr x;
   int tensor_id = 0;
 
-  CodegenKernel_CallSync()
-      : graph("test_graph"), x(nullptr) {
+  CodegenKernel_CallSync() : graph("test_graph"), x(nullptr) {
     Data x_op("x", graph);
 
     x = graph.FindNode("x");
@@ -1525,7 +1515,8 @@ class CodegenKernel_CallSync : public ::testing::Test {
     x->outputs[0].attr.mem.tensor_id = this->tensor_id++;
   }
 
-  af::AscNodePtr AddNode(const char* name, const std::vector<af::AscNodePtr>& inputs, bool has_output=true, const af::AscNodePtr reuse_or_share = nullptr) {
+  af::AscNodePtr AddNode(const char *name, const std::vector<af::AscNodePtr> &inputs, bool has_output = true,
+                         const af::AscNodePtr reuse_or_share = nullptr) {
     auto op_desc = std::make_shared<af::OpDesc>(name, name);
     for (int i = 0; i < inputs.size(); i++) {
       op_desc->AddInputDesc(af::GeTensorDesc());
@@ -1542,7 +1533,6 @@ class CodegenKernel_CallSync : public ::testing::Test {
       af::GraphUtils::AddEdge(input->GetOutDataAnchor(0), node->GetInDataAnchor(in_index));
       in_index++;
     }
-
 
     auto n = graph.FindNode(name);
     if (has_output) {
@@ -1562,7 +1552,7 @@ class CodegenKernel_CallSync : public ::testing::Test {
     return n;
   }
 
-  af::AscNodePtr AddNode(const char* name, bool has_output=true, const af::AscNodePtr reuse=nullptr) {
+  af::AscNodePtr AddNode(const char *name, bool has_output = true, const af::AscNodePtr reuse = nullptr) {
     auto op_desc = std::make_shared<af::OpDesc>(name, name);
     if (has_output) {
       op_desc->AddOutputDesc(af::GeTensorDesc());
@@ -1589,7 +1579,7 @@ class CodegenKernel_CallSync : public ::testing::Test {
     return n;
   }
 
-  af::AscNodePtr Load(const char* name, const af::AscNodePtr& input, const af::AscNodePtr reuse=nullptr) {
+  af::AscNodePtr Load(const char *name, const af::AscNodePtr &input, const af::AscNodePtr reuse = nullptr) {
     auto n = AddNode(name, {input}, true, reuse);
     n->attr.api.unit = af::ComputeUnit::kUnitMTE2;
 
@@ -1603,7 +1593,7 @@ class CodegenKernel_CallSync : public ::testing::Test {
     return n;
   }
 
-  af::AscNodePtr LoadForShare(const char* name, const af::AscNodePtr& input, const af::AscNodePtr share_pre) {
+  af::AscNodePtr LoadForShare(const char *name, const af::AscNodePtr &input, const af::AscNodePtr share_pre) {
     auto n = AddNode(name, {input}, true, share_pre);
     n->attr.api.unit = af::ComputeUnit::kUnitMTE2;
 
@@ -1614,7 +1604,7 @@ class CodegenKernel_CallSync : public ::testing::Test {
     return n;
   }
 
-  af::AscNodePtr Vec(const char* name, bool has_output=true, const af::AscNodePtr reuse=nullptr) {
+  af::AscNodePtr Vec(const char *name, bool has_output = true, const af::AscNodePtr reuse = nullptr) {
     auto n = AddNode(name, has_output, reuse);
     n->attr.api.unit = af::ComputeUnit::kUnitVector;
     if (has_output) {
@@ -1628,7 +1618,8 @@ class CodegenKernel_CallSync : public ::testing::Test {
     return n;
   }
 
-  af::AscNodePtr Vec(const char* name, const std::vector<af::AscNodePtr>& inputs, bool has_output=true, const af::AscNodePtr reuse = nullptr) {
+  af::AscNodePtr Vec(const char *name, const std::vector<af::AscNodePtr> &inputs, bool has_output = true,
+                     const af::AscNodePtr reuse = nullptr) {
     auto n = AddNode(name, inputs, has_output, reuse);
     n->attr.api.unit = af::ComputeUnit::kUnitVector;
     if (has_output) {
@@ -1642,7 +1633,7 @@ class CodegenKernel_CallSync : public ::testing::Test {
     return n;
   }
 
-  af::AscNodePtr VecOut(const char* name, const af::AscNodePtr input=nullptr, const af::AscNodePtr reuse=nullptr) {
+  af::AscNodePtr VecOut(const char *name, const af::AscNodePtr input = nullptr, const af::AscNodePtr reuse = nullptr) {
     auto n = (input == nullptr) ? AddNode(name, true, reuse) : AddNode(name, {input}, true, reuse);
     n->attr.api.unit = af::ComputeUnit::kUnitVector;
     n->outputs[0].attr.mem.position = af::Position::kPositionVecOut;
@@ -1655,7 +1646,7 @@ class CodegenKernel_CallSync : public ::testing::Test {
     return n;
   }
 
-  af::AscNodePtr Store(const char* name, const af::AscNodePtr input, bool has_output=false) {
+  af::AscNodePtr Store(const char *name, const af::AscNodePtr input, bool has_output = false) {
     auto n = AddNode(name, {input}, has_output);
     n->attr.api.unit = af::ComputeUnit::kUnitMTE2;
     if (has_output) {
@@ -1692,11 +1683,11 @@ class CodegenKernel_CallSync : public ::testing::Test {
 
     codegen::Loop loop(af::kIdNone);
     map<int, MockApiCall> calls;
-    map<int64_t, codegen::ApiTensor*> buf_last_use;
-    map<int64_t, codegen::ApiTensor*> que_last_use;
-    map<int64_t, map<int64_t, codegen::ApiTensor*>> que_last_share;
+    map<int64_t, codegen::ApiTensor *> buf_last_use;
+    map<int64_t, codegen::ApiTensor *> que_last_use;
+    map<int64_t, map<int64_t, codegen::ApiTensor *>> que_last_share;
 
-    std::map<af::AscNode*, int64_t> node_to_order_;
+    std::map<af::AscNode *, int64_t> node_to_order_;
     int64_t top_id = 0UL;
     for (auto node : graph.GetAllNodes()) {
       node_to_order_[node.get()] = top_id++;
@@ -1714,7 +1705,7 @@ class CodegenKernel_CallSync : public ::testing::Test {
 
       InitApiCallInputs(calls, node_to_order_, node, it->second);
 
-      for (auto o: node->outputs()) {
+      for (auto o : node->outputs()) {
         auto o_index = af::ascir::AscTensorUtils::Index(*o);
         if (o->attr.mem.alloc_type == af::AllocType::kAllocTypeBuffer) {
           auto reused_tensor = buf_last_use.find(o->attr.buf.id);
@@ -1724,7 +1715,7 @@ class CodegenKernel_CallSync : public ::testing::Test {
           }
           buf_last_use.insert({o->attr.buf.id, &it->second.outputs[o_index]});
         } else if (o->attr.mem.alloc_type == af::AllocType::kAllocTypeQueue) {
-          map<int64_t, codegen::ApiTensor*>& last_share = que_last_share[o->attr.que.id];
+          map<int64_t, codegen::ApiTensor *> &last_share = que_last_share[o->attr.que.id];
           auto share_tensor = last_share.find(o->attr.mem.reuse_id);
           if (share_tensor != last_share.end()) {
             auto t_ptr = tpipe.GetTensor(o->attr.mem.tensor_id);
@@ -1745,7 +1736,7 @@ class CodegenKernel_CallSync : public ::testing::Test {
         }
       }
 
-      for (auto& o: it->second.outputs) {
+      for (auto &o : it->second.outputs) {
         o.write = &it->second;
       }
 
@@ -1763,26 +1754,24 @@ TEST_F(CodegenKernel_CallSync, Load_Store_ShouldSyncMte2ToMte3) {
   load->attr.api.compute_type = af::ComputeType::kComputeLoad;
   auto store = Store("Store", load);
 
-  EXPECT_EQ(Generate(), std::string{
-    "uint32_t q1_reuse1_offset = 0;\n"
-    "LocalTensor<uint8_t> q1_buf = q1.AllocTensor<uint8_t>();\n"
-    "const uint32_t local_1_actual_size = 1;\n"
-    "LocalTensor<half> local_1;\n"
-    "local_1 = q1_buf[q1_reuse1_offset].template ReinterpretCast<half>();\n"
-    "Load();\n"
-    "q1.EnQue(q1_buf);\n"
-    "\n"
-    "auto local_1_e = tpipe.AllocEventID<HardEvent::MTE2_MTE3>();\n"
-    "TQueSync<PIPE_MTE2, PIPE_MTE3> local_1_s;\n"
-    "local_1_s.SetFlag(local_1_e);\n"
-    "local_1_s.WaitFlag(local_1_e);\n"
-    "tpipe.ReleaseEventID<HardEvent::MTE2_MTE3>(local_1_e);\n"
-    "\n"
-    "q1_buf = q1.DeQue<uint8_t>();\n"
-    "Store();\n"
-    "q1.FreeTensor(q1_buf);\n"
-    "\n"
-  });
+  EXPECT_EQ(Generate(), std::string{"uint32_t q1_reuse1_offset = 0;\n"
+                                    "LocalTensor<uint8_t> q1_buf = q1.AllocTensor<uint8_t>();\n"
+                                    "const uint32_t local_1_actual_size = 1;\n"
+                                    "LocalTensor<half> local_1;\n"
+                                    "local_1 = q1_buf[q1_reuse1_offset].template ReinterpretCast<half>();\n"
+                                    "Load();\n"
+                                    "q1.EnQue(q1_buf);\n"
+                                    "\n"
+                                    "auto local_1_e = tpipe.AllocEventID<HardEvent::MTE2_MTE3>();\n"
+                                    "TQueSync<PIPE_MTE2, PIPE_MTE3> local_1_s;\n"
+                                    "local_1_s.SetFlag(local_1_e);\n"
+                                    "local_1_s.WaitFlag(local_1_e);\n"
+                                    "tpipe.ReleaseEventID<HardEvent::MTE2_MTE3>(local_1_e);\n"
+                                    "\n"
+                                    "q1_buf = q1.DeQue<uint8_t>();\n"
+                                    "Store();\n"
+                                    "q1.FreeTensor(q1_buf);\n"
+                                    "\n"});
 }
 
 TEST_F(CodegenKernel_CallSync, Vec_Store_ShouldAlloc) {
@@ -1794,23 +1783,21 @@ TEST_F(CodegenKernel_CallSync, Vec_Store_ShouldAlloc) {
   vec2->outputs[0].attr.que.id = vec2->outputs[0].attr.mem.tensor_id;
   vec2->outputs[0].attr.mem.reuse_id = vec2->outputs[0].attr.mem.tensor_id;
 
-  EXPECT_EQ(Generate(), std::string{
-    "const uint32_t local_1_actual_size = 1;\n"
-    "LocalTensor<half> local_1;\n"
-    "local_1 = b1_buf.template ReinterpretCast<half>();\n"
-    "vec1();\n\n"
-    "AscendC::PipeBarrier<PIPE_V>();\n"
-    "uint32_t q2_reuse2_offset = 0;\n"
-    "LocalTensor<uint8_t> q2_buf = q2.AllocTensor<uint8_t>();\n"
-    "const uint32_t local_2_actual_size = 1;\n"
-    "LocalTensor<half> local_2;\n"
-    "local_2 = q2_buf[q2_reuse2_offset].template ReinterpretCast<half>();\n"
-    "vec2();\n"
-    "q2.EnQue(q2_buf);\n\n"
-    "q2_buf = q2.DeQue<uint8_t>();\n"
-    "store();\n"
-    "q2.FreeTensor(q2_buf);\n\n"
-  });
+  EXPECT_EQ(Generate(), std::string{"const uint32_t local_1_actual_size = 1;\n"
+                                    "LocalTensor<half> local_1;\n"
+                                    "local_1 = b1_buf.template ReinterpretCast<half>();\n"
+                                    "vec1();\n\n"
+                                    "AscendC::PipeBarrier<PIPE_V>();\n"
+                                    "uint32_t q2_reuse2_offset = 0;\n"
+                                    "LocalTensor<uint8_t> q2_buf = q2.AllocTensor<uint8_t>();\n"
+                                    "const uint32_t local_2_actual_size = 1;\n"
+                                    "LocalTensor<half> local_2;\n"
+                                    "local_2 = q2_buf[q2_reuse2_offset].template ReinterpretCast<half>();\n"
+                                    "vec2();\n"
+                                    "q2.EnQue(q2_buf);\n\n"
+                                    "q2_buf = q2.DeQue<uint8_t>();\n"
+                                    "store();\n"
+                                    "q2.FreeTensor(q2_buf);\n\n"});
 }
 
 TEST_F(CodegenKernel_CallSync, VecOut_Unuse_ShouldFree) {
@@ -1818,91 +1805,83 @@ TEST_F(CodegenKernel_CallSync, VecOut_Unuse_ShouldFree) {
   auto vec2 = VecOut("vec2", {vec1});
   auto vec3 = VecOut("vec3", {vec1}, vec2);
 
-  EXPECT_EQ(Generate(), std::string{
-    "const uint32_t local_1_actual_size = 1;\n"
-    "LocalTensor<half> local_1;\n"
-    "local_1 = b1_buf.template ReinterpretCast<half>();\n"
-    "vec1();\n\n"
-    "AscendC::PipeBarrier<PIPE_V>();\n"
-    "uint32_t q2_reuse2_offset = 0;\n"
-    "LocalTensor<uint8_t> q2_buf = q2.AllocTensor<uint8_t>();\n"
-    "const uint32_t local_2_actual_size = 1;\n"
-    "LocalTensor<half> local_2;\n"
-    "local_2 = q2_buf[q2_reuse2_offset].template ReinterpretCast<half>();\n"
-    "vec2();\n"
-    "q2.EnQue(q2_buf);\n"
-    "q2.FreeTensor(q2_buf);\n\n"
-    "uint32_t q2_reuse3_offset = 0;\n"
-    "q2_buf = q2.AllocTensor<uint8_t>();\n"
-    "const uint32_t local_3_actual_size = 1;\n"
-    "LocalTensor<half> local_3;\n"
-    "local_3 = q2_buf[q2_reuse3_offset].template ReinterpretCast<half>();\n"
-    "vec3();\n"
-    "q2.EnQue(q2_buf);\n"
-    "q2.FreeTensor(q2_buf);\n\n"
-  });
+  EXPECT_EQ(Generate(), std::string{"const uint32_t local_1_actual_size = 1;\n"
+                                    "LocalTensor<half> local_1;\n"
+                                    "local_1 = b1_buf.template ReinterpretCast<half>();\n"
+                                    "vec1();\n\n"
+                                    "AscendC::PipeBarrier<PIPE_V>();\n"
+                                    "uint32_t q2_reuse2_offset = 0;\n"
+                                    "LocalTensor<uint8_t> q2_buf = q2.AllocTensor<uint8_t>();\n"
+                                    "const uint32_t local_2_actual_size = 1;\n"
+                                    "LocalTensor<half> local_2;\n"
+                                    "local_2 = q2_buf[q2_reuse2_offset].template ReinterpretCast<half>();\n"
+                                    "vec2();\n"
+                                    "q2.EnQue(q2_buf);\n"
+                                    "q2.FreeTensor(q2_buf);\n\n"
+                                    "uint32_t q2_reuse3_offset = 0;\n"
+                                    "q2_buf = q2.AllocTensor<uint8_t>();\n"
+                                    "const uint32_t local_3_actual_size = 1;\n"
+                                    "LocalTensor<half> local_3;\n"
+                                    "local_3 = q2_buf[q2_reuse3_offset].template ReinterpretCast<half>();\n"
+                                    "vec3();\n"
+                                    "q2.EnQue(q2_buf);\n"
+                                    "q2.FreeTensor(q2_buf);\n\n"});
 }
 
 TEST_F(CodegenKernel_CallSync, Load_Vec__ShouldAllocFromQue_Enq_Deq_Free) {
   auto load = Load("load1", x);
   auto vec = Vec("vec1", {load});
 
-  EXPECT_EQ(Generate(), std::string{
-    "uint32_t q1_reuse1_offset = 0;\n"
-    "LocalTensor<uint8_t> q1_buf = q1.AllocTensor<uint8_t>();\n"
-    "const uint32_t local_1_actual_size = 1;\n"
-    "LocalTensor<half> local_1;\n"
-    "local_1 = q1_buf[q1_reuse1_offset].template ReinterpretCast<half>();\n"
-    "load1();\n"
-    "q1.EnQue(q1_buf);\n"
-    "\n"
-    "q1_buf = q1.DeQue<uint8_t>();\n"
-    "const uint32_t local_2_actual_size = 1;\n"
-    "LocalTensor<half> local_2;\n"
-    "local_2 = b2_buf.template ReinterpretCast<half>();\n"
-    "vec1();\n"
-    "q1.FreeTensor(q1_buf);\n"
-    "\n"
-  });
+  EXPECT_EQ(Generate(), std::string{"uint32_t q1_reuse1_offset = 0;\n"
+                                    "LocalTensor<uint8_t> q1_buf = q1.AllocTensor<uint8_t>();\n"
+                                    "const uint32_t local_1_actual_size = 1;\n"
+                                    "LocalTensor<half> local_1;\n"
+                                    "local_1 = q1_buf[q1_reuse1_offset].template ReinterpretCast<half>();\n"
+                                    "load1();\n"
+                                    "q1.EnQue(q1_buf);\n"
+                                    "\n"
+                                    "q1_buf = q1.DeQue<uint8_t>();\n"
+                                    "const uint32_t local_2_actual_size = 1;\n"
+                                    "LocalTensor<half> local_2;\n"
+                                    "local_2 = b2_buf.template ReinterpretCast<half>();\n"
+                                    "vec1();\n"
+                                    "q1.FreeTensor(q1_buf);\n"
+                                    "\n"});
 }
 
 TEST_F(CodegenKernel_CallSync, Vec_Vec__Should_PipeBarrier) {
   auto vec1 = Vec("vec1");
   auto vec2 = Vec("vec2", {vec1});
 
-  EXPECT_EQ(Generate(), std::string{
-    "const uint32_t local_1_actual_size = 1;\n"
-    "LocalTensor<half> local_1;\n"
-    "local_1 = b1_buf.template ReinterpretCast<half>();\n"
-    "vec1();\n"
-    "\n"
-    "AscendC::PipeBarrier<PIPE_V>();\n"
-    "const uint32_t local_2_actual_size = 1;\n"
-    "LocalTensor<half> local_2;\n"
-    "local_2 = b2_buf.template ReinterpretCast<half>();\n"
-    "vec2();\n"
-    "\n"
-  });
+  EXPECT_EQ(Generate(), std::string{"const uint32_t local_1_actual_size = 1;\n"
+                                    "LocalTensor<half> local_1;\n"
+                                    "local_1 = b1_buf.template ReinterpretCast<half>();\n"
+                                    "vec1();\n"
+                                    "\n"
+                                    "AscendC::PipeBarrier<PIPE_V>();\n"
+                                    "const uint32_t local_2_actual_size = 1;\n"
+                                    "LocalTensor<half> local_2;\n"
+                                    "local_2 = b2_buf.template ReinterpretCast<half>();\n"
+                                    "vec2();\n"
+                                    "\n"});
 }
 
 TEST_F(CodegenKernel_CallSync, Vec_Store__Should_AllocFromQue_Enq_Deq_Free) {
   auto vec1 = VecOut("vec1");
   auto store = Store("store", vec1);
 
-  EXPECT_EQ(Generate(), std::string{
-    "uint32_t q1_reuse1_offset = 0;\n"
-    "LocalTensor<uint8_t> q1_buf = q1.AllocTensor<uint8_t>();\n"
-    "const uint32_t local_1_actual_size = 1;\n"
-    "LocalTensor<half> local_1;\n"
-    "local_1 = q1_buf[q1_reuse1_offset].template ReinterpretCast<half>();\n"
-    "vec1();\n"
-    "q1.EnQue(q1_buf);\n"
-    "\n"
-    "q1_buf = q1.DeQue<uint8_t>();\n"
-    "store();\n"
-    "q1.FreeTensor(q1_buf);\n"
-    "\n"
-  });
+  EXPECT_EQ(Generate(), std::string{"uint32_t q1_reuse1_offset = 0;\n"
+                                    "LocalTensor<uint8_t> q1_buf = q1.AllocTensor<uint8_t>();\n"
+                                    "const uint32_t local_1_actual_size = 1;\n"
+                                    "LocalTensor<half> local_1;\n"
+                                    "local_1 = q1_buf[q1_reuse1_offset].template ReinterpretCast<half>();\n"
+                                    "vec1();\n"
+                                    "q1.EnQue(q1_buf);\n"
+                                    "\n"
+                                    "q1_buf = q1.DeQue<uint8_t>();\n"
+                                    "store();\n"
+                                    "q1.FreeTensor(q1_buf);\n"
+                                    "\n"});
 }
 
 TEST_F(CodegenKernel_CallSync, Load_MulitVec__ShouldDequeFirstVec_FreeAfterLastVec) {
@@ -1911,24 +1890,22 @@ TEST_F(CodegenKernel_CallSync, Load_MulitVec__ShouldDequeFirstVec_FreeAfterLastV
   auto vec2 = Vec("vec2", {load}, false);
   auto vec3 = Vec("vec3", {load}, false);
 
-  EXPECT_EQ(Generate(), std::string{
-    "uint32_t q1_reuse1_offset = 0;\n"
-    "LocalTensor<uint8_t> q1_buf = q1.AllocTensor<uint8_t>();\n"
-    "const uint32_t local_1_actual_size = 1;\n"
-    "LocalTensor<half> local_1;\n"
-    "local_1 = q1_buf[q1_reuse1_offset].template ReinterpretCast<half>();\n"
-    "load1();\n"
-    "q1.EnQue(q1_buf);\n"
-    "\n"
-    "q1_buf = q1.DeQue<uint8_t>();\n"
-    "vec1();\n"
-    "\n"
-    "vec2();\n"
-    "\n"
-    "vec3();\n"
-    "q1.FreeTensor(q1_buf);\n"
-    "\n"
-  });
+  EXPECT_EQ(Generate(), std::string{"uint32_t q1_reuse1_offset = 0;\n"
+                                    "LocalTensor<uint8_t> q1_buf = q1.AllocTensor<uint8_t>();\n"
+                                    "const uint32_t local_1_actual_size = 1;\n"
+                                    "LocalTensor<half> local_1;\n"
+                                    "local_1 = q1_buf[q1_reuse1_offset].template ReinterpretCast<half>();\n"
+                                    "load1();\n"
+                                    "q1.EnQue(q1_buf);\n"
+                                    "\n"
+                                    "q1_buf = q1.DeQue<uint8_t>();\n"
+                                    "vec1();\n"
+                                    "\n"
+                                    "vec2();\n"
+                                    "\n"
+                                    "vec3();\n"
+                                    "q1.FreeTensor(q1_buf);\n"
+                                    "\n"});
 }
 
 TEST_F(CodegenKernel_CallSync, Load_Vec1_ReuseByVec1_WillPipeBeforeVec1_AnfFreeAfterVec2) {
@@ -1937,30 +1914,28 @@ TEST_F(CodegenKernel_CallSync, Load_Vec1_ReuseByVec1_WillPipeBeforeVec1_AnfFreeA
   auto vec2 = Vec("vec2", true, load);
   auto vec3 = Vec("vec3", {vec2}, false);
 
-  EXPECT_EQ(Generate(), std::string{
-    "uint32_t q1_reuse1_offset = 0;\n"
-    "LocalTensor<uint8_t> q1_buf = q1.AllocTensor<uint8_t>();\n"
-    "const uint32_t local_1_actual_size = 1;\n"
-    "LocalTensor<half> local_1;\n"
-    "local_1 = q1_buf[q1_reuse1_offset].template ReinterpretCast<half>();\n"
-    "load1();\n"
-    "q1.EnQue(q1_buf);\n"
-    "\n"
-    "q1_buf = q1.DeQue<uint8_t>();\n"
-    "vec1();\n"
-    "\n"
-    "uint32_t q1_reuse2_offset = 0;\n"
-    "AscendC::PipeBarrier<PIPE_V>();\n"
-    "const uint32_t local_2_actual_size = 1;\n"
-    "LocalTensor<half> local_2;\n"
-    "local_2 = q1_buf[q1_reuse2_offset].template ReinterpretCast<half>();\n"
-    "vec2();\n"
-    "\n"
-    "AscendC::PipeBarrier<PIPE_V>();\n"
-    "vec3();\n"
-    "q1.FreeTensor(q1_buf);\n"
-    "\n"
-  });
+  EXPECT_EQ(Generate(), std::string{"uint32_t q1_reuse1_offset = 0;\n"
+                                    "LocalTensor<uint8_t> q1_buf = q1.AllocTensor<uint8_t>();\n"
+                                    "const uint32_t local_1_actual_size = 1;\n"
+                                    "LocalTensor<half> local_1;\n"
+                                    "local_1 = q1_buf[q1_reuse1_offset].template ReinterpretCast<half>();\n"
+                                    "load1();\n"
+                                    "q1.EnQue(q1_buf);\n"
+                                    "\n"
+                                    "q1_buf = q1.DeQue<uint8_t>();\n"
+                                    "vec1();\n"
+                                    "\n"
+                                    "uint32_t q1_reuse2_offset = 0;\n"
+                                    "AscendC::PipeBarrier<PIPE_V>();\n"
+                                    "const uint32_t local_2_actual_size = 1;\n"
+                                    "LocalTensor<half> local_2;\n"
+                                    "local_2 = q1_buf[q1_reuse2_offset].template ReinterpretCast<half>();\n"
+                                    "vec2();\n"
+                                    "\n"
+                                    "AscendC::PipeBarrier<PIPE_V>();\n"
+                                    "vec3();\n"
+                                    "q1.FreeTensor(q1_buf);\n"
+                                    "\n"});
 }
 
 TEST_F(CodegenKernel_CallSync, Load1Vec1__Load2ReuseLoad1_ShouldFreeAlloc) {
@@ -1969,32 +1944,30 @@ TEST_F(CodegenKernel_CallSync, Load1Vec1__Load2ReuseLoad1_ShouldFreeAlloc) {
   auto load2 = Load("load2", x, load1);
   auto vec2 = Vec("vec2", {load2}, false);
 
-  EXPECT_EQ(Generate(), std::string{
-    "uint32_t q1_reuse1_offset = 0;\n"
-    "LocalTensor<uint8_t> q1_buf = q1.AllocTensor<uint8_t>();\n"
-    "const uint32_t local_1_actual_size = 1;\n"
-    "LocalTensor<half> local_1;\n"
-    "local_1 = q1_buf[q1_reuse1_offset].template ReinterpretCast<half>();\n"
-    "load1();\n"
-    "q1.EnQue(q1_buf);\n"
-    "\n"
-    "q1_buf = q1.DeQue<uint8_t>();\n"
-    "vec1();\n"
-    "q1.FreeTensor(q1_buf);\n"
-    "\n"
-    "uint32_t q1_reuse2_offset = 0;\n"
-    "q1_buf = q1.AllocTensor<uint8_t>();\n"
-    "const uint32_t local_2_actual_size = 1;\n"
-    "LocalTensor<half> local_2;\n"
-    "local_2 = q1_buf[q1_reuse2_offset].template ReinterpretCast<half>();\n"
-    "load2();\n"
-    "q1.EnQue(q1_buf);\n"
-    "\n"
-    "q1_buf = q1.DeQue<uint8_t>();\n"
-    "vec2();\n"
-    "q1.FreeTensor(q1_buf);\n"
-    "\n"
-  });
+  EXPECT_EQ(Generate(), std::string{"uint32_t q1_reuse1_offset = 0;\n"
+                                    "LocalTensor<uint8_t> q1_buf = q1.AllocTensor<uint8_t>();\n"
+                                    "const uint32_t local_1_actual_size = 1;\n"
+                                    "LocalTensor<half> local_1;\n"
+                                    "local_1 = q1_buf[q1_reuse1_offset].template ReinterpretCast<half>();\n"
+                                    "load1();\n"
+                                    "q1.EnQue(q1_buf);\n"
+                                    "\n"
+                                    "q1_buf = q1.DeQue<uint8_t>();\n"
+                                    "vec1();\n"
+                                    "q1.FreeTensor(q1_buf);\n"
+                                    "\n"
+                                    "uint32_t q1_reuse2_offset = 0;\n"
+                                    "q1_buf = q1.AllocTensor<uint8_t>();\n"
+                                    "const uint32_t local_2_actual_size = 1;\n"
+                                    "LocalTensor<half> local_2;\n"
+                                    "local_2 = q1_buf[q1_reuse2_offset].template ReinterpretCast<half>();\n"
+                                    "load2();\n"
+                                    "q1.EnQue(q1_buf);\n"
+                                    "\n"
+                                    "q1_buf = q1.DeQue<uint8_t>();\n"
+                                    "vec2();\n"
+                                    "q1.FreeTensor(q1_buf);\n"
+                                    "\n"});
 }
 
 TEST_F(CodegenKernel_CallSync, Vec_MulitVec__Should_PipeBarrierFirstVec) {
@@ -2002,24 +1975,22 @@ TEST_F(CodegenKernel_CallSync, Vec_MulitVec__Should_PipeBarrierFirstVec) {
   auto vec2 = Vec("vec2", {vec1});
   auto vec3 = Vec("vec3", {vec1});
 
-  EXPECT_EQ(Generate(), std::string{
-    "const uint32_t local_1_actual_size = 1;\n"
-    "LocalTensor<half> local_1;\n"
-    "local_1 = b1_buf.template ReinterpretCast<half>();\n"
-    "vec1();\n"
-    "\n"
-    "AscendC::PipeBarrier<PIPE_V>();\n"
-    "const uint32_t local_2_actual_size = 1;\n"
-    "LocalTensor<half> local_2;\n"
-    "local_2 = b2_buf.template ReinterpretCast<half>();\n"
-    "vec2();\n"
-    "\n"
-    "const uint32_t local_3_actual_size = 1;\n"
-    "LocalTensor<half> local_3;\n"
-    "local_3 = b3_buf.template ReinterpretCast<half>();\n"
-    "vec3();\n"
-    "\n"
-  });
+  EXPECT_EQ(Generate(), std::string{"const uint32_t local_1_actual_size = 1;\n"
+                                    "LocalTensor<half> local_1;\n"
+                                    "local_1 = b1_buf.template ReinterpretCast<half>();\n"
+                                    "vec1();\n"
+                                    "\n"
+                                    "AscendC::PipeBarrier<PIPE_V>();\n"
+                                    "const uint32_t local_2_actual_size = 1;\n"
+                                    "LocalTensor<half> local_2;\n"
+                                    "local_2 = b2_buf.template ReinterpretCast<half>();\n"
+                                    "vec2();\n"
+                                    "\n"
+                                    "const uint32_t local_3_actual_size = 1;\n"
+                                    "LocalTensor<half> local_3;\n"
+                                    "local_3 = b3_buf.template ReinterpretCast<half>();\n"
+                                    "vec3();\n"
+                                    "\n"});
 }
 
 TEST_F(CodegenKernel_CallSync, Vec_Store_Vec__Should_AllocFromQue_Enq_Deq_PipeBarrier_Free) {
@@ -2027,26 +1998,24 @@ TEST_F(CodegenKernel_CallSync, Vec_Store_Vec__Should_AllocFromQue_Enq_Deq_PipeBa
   auto store = Store("store", vec1);
   auto vec2 = Vec("vec2", {vec1});
 
-  EXPECT_EQ(Generate(), std::string{
-    "uint32_t q1_reuse1_offset = 0;\n"
-    "LocalTensor<uint8_t> q1_buf = q1.AllocTensor<uint8_t>();\n"
-    "const uint32_t local_1_actual_size = 1;\n"
-    "LocalTensor<half> local_1;\n"
-    "local_1 = q1_buf[q1_reuse1_offset].template ReinterpretCast<half>();\n"
-    "vec1();\n"
-    "q1.EnQue(q1_buf);\n"
-    "\n"
-    "q1_buf = q1.DeQue<uint8_t>();\n"
-    "store();\n"
-    "\n"
-    "AscendC::PipeBarrier<PIPE_V>();\n"
-    "const uint32_t local_2_actual_size = 1;\n"
-    "LocalTensor<half> local_2;\n"
-    "local_2 = b2_buf.template ReinterpretCast<half>();\n"
-    "vec2();\n"
-    "q1.FreeTensor(q1_buf);\n"
-    "\n"
-    });
+  EXPECT_EQ(Generate(), std::string{"uint32_t q1_reuse1_offset = 0;\n"
+                                    "LocalTensor<uint8_t> q1_buf = q1.AllocTensor<uint8_t>();\n"
+                                    "const uint32_t local_1_actual_size = 1;\n"
+                                    "LocalTensor<half> local_1;\n"
+                                    "local_1 = q1_buf[q1_reuse1_offset].template ReinterpretCast<half>();\n"
+                                    "vec1();\n"
+                                    "q1.EnQue(q1_buf);\n"
+                                    "\n"
+                                    "q1_buf = q1.DeQue<uint8_t>();\n"
+                                    "store();\n"
+                                    "\n"
+                                    "AscendC::PipeBarrier<PIPE_V>();\n"
+                                    "const uint32_t local_2_actual_size = 1;\n"
+                                    "LocalTensor<half> local_2;\n"
+                                    "local_2 = b2_buf.template ReinterpretCast<half>();\n"
+                                    "vec2();\n"
+                                    "q1.FreeTensor(q1_buf);\n"
+                                    "\n"});
 }
 
 TEST_F(CodegenKernel_CallSync, Vec_Vec_Store__Should_AllocFromQue_Enq_PipeBarrier_Deq_Free) {
@@ -2054,26 +2023,24 @@ TEST_F(CodegenKernel_CallSync, Vec_Vec_Store__Should_AllocFromQue_Enq_PipeBarrie
   auto vec2 = Vec("vec2", {vec1});
   auto store = Store("store", vec1);
 
-  EXPECT_EQ(Generate(), std::string{
-    "uint32_t q1_reuse1_offset = 0;\n"
-    "LocalTensor<uint8_t> q1_buf = q1.AllocTensor<uint8_t>();\n"
-    "const uint32_t local_1_actual_size = 1;\n"
-    "LocalTensor<half> local_1;\n"
-    "local_1 = q1_buf[q1_reuse1_offset].template ReinterpretCast<half>();\n"
-    "vec1();\n"
-    "q1.EnQue(q1_buf);\n"
-    "\n"
-    "AscendC::PipeBarrier<PIPE_V>();\n"
-    "const uint32_t local_2_actual_size = 1;\n"
-    "LocalTensor<half> local_2;\n"
-    "local_2 = b2_buf.template ReinterpretCast<half>();\n"
-    "vec2();\n"
-    "\n"
-    "q1_buf = q1.DeQue<uint8_t>();\n"
-    "store();\n"
-    "q1.FreeTensor(q1_buf);\n"
-    "\n"
-  });
+  EXPECT_EQ(Generate(), std::string{"uint32_t q1_reuse1_offset = 0;\n"
+                                    "LocalTensor<uint8_t> q1_buf = q1.AllocTensor<uint8_t>();\n"
+                                    "const uint32_t local_1_actual_size = 1;\n"
+                                    "LocalTensor<half> local_1;\n"
+                                    "local_1 = q1_buf[q1_reuse1_offset].template ReinterpretCast<half>();\n"
+                                    "vec1();\n"
+                                    "q1.EnQue(q1_buf);\n"
+                                    "\n"
+                                    "AscendC::PipeBarrier<PIPE_V>();\n"
+                                    "const uint32_t local_2_actual_size = 1;\n"
+                                    "LocalTensor<half> local_2;\n"
+                                    "local_2 = b2_buf.template ReinterpretCast<half>();\n"
+                                    "vec2();\n"
+                                    "\n"
+                                    "q1_buf = q1.DeQue<uint8_t>();\n"
+                                    "store();\n"
+                                    "q1.FreeTensor(q1_buf);\n"
+                                    "\n"});
 }
 
 TEST_F(CodegenKernel_CallSync, Vec1alloc_Vec2_Vec3ReuseVec1) {
@@ -2081,21 +2048,19 @@ TEST_F(CodegenKernel_CallSync, Vec1alloc_Vec2_Vec3ReuseVec1) {
   auto vec2 = Vec("vec2", {vec1}, false);
   auto vec3 = Vec("vec3", true, vec1);
 
-  EXPECT_EQ(Generate(), std::string{
-    "const uint32_t local_1_actual_size = 1;\n"
-    "LocalTensor<half> local_1;\n"
-    "local_1 = b1_buf.template ReinterpretCast<half>();\n"
-    "vec1();\n"
-    "\n"
-    "AscendC::PipeBarrier<PIPE_V>();\n"
-    "vec2();\n"
-    "\n"
-    "AscendC::PipeBarrier<PIPE_V>();\n"
-    "const uint32_t local_2_actual_size = 1;\n"
-    "LocalTensor<half> local_2;\n"
-    "local_2 = b1_buf.template ReinterpretCast<half>();\nvec3();\n"
-    "\n"
-  });
+  EXPECT_EQ(Generate(), std::string{"const uint32_t local_1_actual_size = 1;\n"
+                                    "LocalTensor<half> local_1;\n"
+                                    "local_1 = b1_buf.template ReinterpretCast<half>();\n"
+                                    "vec1();\n"
+                                    "\n"
+                                    "AscendC::PipeBarrier<PIPE_V>();\n"
+                                    "vec2();\n"
+                                    "\n"
+                                    "AscendC::PipeBarrier<PIPE_V>();\n"
+                                    "const uint32_t local_2_actual_size = 1;\n"
+                                    "LocalTensor<half> local_2;\n"
+                                    "local_2 = b1_buf.template ReinterpretCast<half>();\nvec3();\n"
+                                    "\n"});
 }
 
 TEST_F(CodegenKernel_CallSync, Vec1_Vec2_Vec3_Vec4ReuseVec1) {
@@ -2104,28 +2069,26 @@ TEST_F(CodegenKernel_CallSync, Vec1_Vec2_Vec3_Vec4ReuseVec1) {
   auto vec3 = Vec("vec3", true, vec1);
   auto vec4 = Vec("vec4", true, vec1);
 
-  EXPECT_EQ(Generate(), std::string{
-    "const uint32_t local_1_actual_size = 1;\n"
-    "LocalTensor<half> local_1;\n"
-    "local_1 = b1_buf.template ReinterpretCast<half>();\n"
-    "vec1();\n"
-    "\n"
-    "AscendC::PipeBarrier<PIPE_V>();\n"
-    "vec2();\n"
-    "\n"
-    "AscendC::PipeBarrier<PIPE_V>();\n"
-    "const uint32_t local_2_actual_size = 1;\n"
-    "LocalTensor<half> local_2;\n"
-    "local_2 = b1_buf.template ReinterpretCast<half>();\n"
-    "vec3();\n"
-    "\n"
-    "AscendC::PipeBarrier<PIPE_V>();\n"
-    "const uint32_t local_3_actual_size = 1;\n"
-    "LocalTensor<half> local_3;\n"
-    "local_3 = b1_buf.template ReinterpretCast<half>();\n"
-    "vec4();\n"
-    "\n"
-  });
+  EXPECT_EQ(Generate(), std::string{"const uint32_t local_1_actual_size = 1;\n"
+                                    "LocalTensor<half> local_1;\n"
+                                    "local_1 = b1_buf.template ReinterpretCast<half>();\n"
+                                    "vec1();\n"
+                                    "\n"
+                                    "AscendC::PipeBarrier<PIPE_V>();\n"
+                                    "vec2();\n"
+                                    "\n"
+                                    "AscendC::PipeBarrier<PIPE_V>();\n"
+                                    "const uint32_t local_2_actual_size = 1;\n"
+                                    "LocalTensor<half> local_2;\n"
+                                    "local_2 = b1_buf.template ReinterpretCast<half>();\n"
+                                    "vec3();\n"
+                                    "\n"
+                                    "AscendC::PipeBarrier<PIPE_V>();\n"
+                                    "const uint32_t local_3_actual_size = 1;\n"
+                                    "LocalTensor<half> local_3;\n"
+                                    "local_3 = b1_buf.template ReinterpretCast<half>();\n"
+                                    "vec4();\n"
+                                    "\n"});
 }
 
 TEST_F(CodegenKernel_CallSync, LoadEnq_DeqVec1_Vec23_PipeVec4ReuseLoad) {
@@ -2135,31 +2098,29 @@ TEST_F(CodegenKernel_CallSync, LoadEnq_DeqVec1_Vec23_PipeVec4ReuseLoad) {
   auto vec3 = Vec("vec3", {load}, false);
   auto vec4 = Vec("vec4", true, load);
 
-  EXPECT_EQ(Generate(), std::string{
-    "uint32_t q1_reuse1_offset = 0;\n"
-    "LocalTensor<uint8_t> q1_buf = q1.AllocTensor<uint8_t>();\n"
-    "const uint32_t local_1_actual_size = 1;\n"
-    "LocalTensor<half> local_1;\n"
-    "local_1 = q1_buf[q1_reuse1_offset].template ReinterpretCast<half>();\n"
-    "load1();\n"
-    "q1.EnQue(q1_buf);\n"
-    "\n"
-    "q1_buf = q1.DeQue<uint8_t>();\n"
-    "vec1();\n"
-    "\n"
-    "vec2();\n"
-    "\n"
-    "vec3();\n"
-    "\n"
-    "uint32_t q1_reuse2_offset = 0;\n"
-    "AscendC::PipeBarrier<PIPE_V>();\n"
-    "const uint32_t local_2_actual_size = 1;\n"
-    "LocalTensor<half> local_2;\n"
-    "local_2 = q1_buf[q1_reuse2_offset].template ReinterpretCast<half>();\n"
-    "vec4();\n"
-    "q1.FreeTensor(q1_buf);\n"
-    "\n"
-  });
+  EXPECT_EQ(Generate(), std::string{"uint32_t q1_reuse1_offset = 0;\n"
+                                    "LocalTensor<uint8_t> q1_buf = q1.AllocTensor<uint8_t>();\n"
+                                    "const uint32_t local_1_actual_size = 1;\n"
+                                    "LocalTensor<half> local_1;\n"
+                                    "local_1 = q1_buf[q1_reuse1_offset].template ReinterpretCast<half>();\n"
+                                    "load1();\n"
+                                    "q1.EnQue(q1_buf);\n"
+                                    "\n"
+                                    "q1_buf = q1.DeQue<uint8_t>();\n"
+                                    "vec1();\n"
+                                    "\n"
+                                    "vec2();\n"
+                                    "\n"
+                                    "vec3();\n"
+                                    "\n"
+                                    "uint32_t q1_reuse2_offset = 0;\n"
+                                    "AscendC::PipeBarrier<PIPE_V>();\n"
+                                    "const uint32_t local_2_actual_size = 1;\n"
+                                    "LocalTensor<half> local_2;\n"
+                                    "local_2 = q1_buf[q1_reuse2_offset].template ReinterpretCast<half>();\n"
+                                    "vec4();\n"
+                                    "q1.FreeTensor(q1_buf);\n"
+                                    "\n"});
 }
 
 TEST_F(CodegenKernel_CallSync, AllocVec1Enq_DeqStore1_Stroe23Free_Vec2ReuseVec1) {
@@ -2169,32 +2130,30 @@ TEST_F(CodegenKernel_CallSync, AllocVec1Enq_DeqStore1_Stroe23Free_Vec2ReuseVec1)
   auto store3 = Store("store3", vec1);
   auto vec2 = Vec("vec2", true, vec1);
 
-  EXPECT_EQ(Generate(), std::string{
-    "uint32_t q1_reuse1_offset = 0;\n"
-    "LocalTensor<uint8_t> q1_buf = q1.AllocTensor<uint8_t>();\n"
-    "const uint32_t local_1_actual_size = 1;\n"
-    "LocalTensor<half> local_1;\n"
-    "local_1 = q1_buf[q1_reuse1_offset].template ReinterpretCast<half>();\n"
-    "vec1();\n"
-    "q1.EnQue(q1_buf);\n"
-    "\n"
-    "q1_buf = q1.DeQue<uint8_t>();\n"
-    "store1();\n"
-    "\n"
-    "store2();\n"
-    "\n"
-    "store3();\n"
-    "q1.FreeTensor(q1_buf);\n"
-    "\n"
-    "uint32_t q1_reuse2_offset = 0;\n"
-    "q1_buf = q1.AllocTensor<uint8_t>();\n"
-    "const uint32_t local_2_actual_size = 1;\n"
-    "LocalTensor<half> local_2;\n"
-    "local_2 = q1_buf[q1_reuse2_offset].template ReinterpretCast<half>();\n"
-    "vec2();\n"
-    "q1.FreeTensor(q1_buf);\n"
-    "\n"
-  });
+  EXPECT_EQ(Generate(), std::string{"uint32_t q1_reuse1_offset = 0;\n"
+                                    "LocalTensor<uint8_t> q1_buf = q1.AllocTensor<uint8_t>();\n"
+                                    "const uint32_t local_1_actual_size = 1;\n"
+                                    "LocalTensor<half> local_1;\n"
+                                    "local_1 = q1_buf[q1_reuse1_offset].template ReinterpretCast<half>();\n"
+                                    "vec1();\n"
+                                    "q1.EnQue(q1_buf);\n"
+                                    "\n"
+                                    "q1_buf = q1.DeQue<uint8_t>();\n"
+                                    "store1();\n"
+                                    "\n"
+                                    "store2();\n"
+                                    "\n"
+                                    "store3();\n"
+                                    "q1.FreeTensor(q1_buf);\n"
+                                    "\n"
+                                    "uint32_t q1_reuse2_offset = 0;\n"
+                                    "q1_buf = q1.AllocTensor<uint8_t>();\n"
+                                    "const uint32_t local_2_actual_size = 1;\n"
+                                    "LocalTensor<half> local_2;\n"
+                                    "local_2 = q1_buf[q1_reuse2_offset].template ReinterpretCast<half>();\n"
+                                    "vec2();\n"
+                                    "q1.FreeTensor(q1_buf);\n"
+                                    "\n"});
 }
 
 TEST_F(CodegenKernel_CallSync, AllocVec1Enq_DeqStore1_Stroe23Free_Vec2OutReuseVec1Out) {
@@ -2206,36 +2165,34 @@ TEST_F(CodegenKernel_CallSync, AllocVec1Enq_DeqStore1_Stroe23Free_Vec2OutReuseVe
   auto store4 = Store("store4", vec2);
   auto res = Generate();
 
-  EXPECT_EQ(res, std::string{
-    "uint32_t q1_reuse1_offset = 0;\n"
-    "LocalTensor<uint8_t> q1_buf = q1.AllocTensor<uint8_t>();\n"
-    "const uint32_t local_1_actual_size = 1;\n"
-    "LocalTensor<half> local_1;\n"
-    "local_1 = q1_buf[q1_reuse1_offset].template ReinterpretCast<half>();\n"
-    "vec1();\n"
-    "q1.EnQue(q1_buf);\n"
-    "\n"
-    "q1_buf = q1.DeQue<uint8_t>();\n"
-    "store1();\n"
-    "\n"
-    "store2();\n"
-    "\n"
-    "store3();\n"
-    "q1.FreeTensor(q1_buf);\n"
-    "\n"
-    "uint32_t q1_reuse2_offset = 0;\n"
-    "q1_buf = q1.AllocTensor<uint8_t>();\n"
-    "const uint32_t local_2_actual_size = 1;\n"
-    "LocalTensor<half> local_2;\n"
-    "local_2 = q1_buf[q1_reuse2_offset].template ReinterpretCast<half>();\n"
-    "vec2();\n"
-    "q1.EnQue(q1_buf);\n"
-    "\n"
-    "q1_buf = q1.DeQue<uint8_t>();\n"
-    "store4();\n"
-    "q1.FreeTensor(q1_buf);\n"
-    "\n"
-  });
+  EXPECT_EQ(res, std::string{"uint32_t q1_reuse1_offset = 0;\n"
+                             "LocalTensor<uint8_t> q1_buf = q1.AllocTensor<uint8_t>();\n"
+                             "const uint32_t local_1_actual_size = 1;\n"
+                             "LocalTensor<half> local_1;\n"
+                             "local_1 = q1_buf[q1_reuse1_offset].template ReinterpretCast<half>();\n"
+                             "vec1();\n"
+                             "q1.EnQue(q1_buf);\n"
+                             "\n"
+                             "q1_buf = q1.DeQue<uint8_t>();\n"
+                             "store1();\n"
+                             "\n"
+                             "store2();\n"
+                             "\n"
+                             "store3();\n"
+                             "q1.FreeTensor(q1_buf);\n"
+                             "\n"
+                             "uint32_t q1_reuse2_offset = 0;\n"
+                             "q1_buf = q1.AllocTensor<uint8_t>();\n"
+                             "const uint32_t local_2_actual_size = 1;\n"
+                             "LocalTensor<half> local_2;\n"
+                             "local_2 = q1_buf[q1_reuse2_offset].template ReinterpretCast<half>();\n"
+                             "vec2();\n"
+                             "q1.EnQue(q1_buf);\n"
+                             "\n"
+                             "q1_buf = q1.DeQue<uint8_t>();\n"
+                             "store4();\n"
+                             "q1.FreeTensor(q1_buf);\n"
+                             "\n"});
 }
 
 TEST_F(CodegenKernel_CallSync, AllocVec1Enq_PipVec23_DeqStoreFree_Vec4ReuseVec1) {
@@ -2245,118 +2202,112 @@ TEST_F(CodegenKernel_CallSync, AllocVec1Enq_PipVec23_DeqStoreFree_Vec4ReuseVec1)
   auto store = Store("store", vec1);
   auto vec4 = Vec("vec4", true, vec1);
 
-  EXPECT_EQ(Generate(), std::string{
-    "uint32_t q1_reuse1_offset = 0;\n"
-    "LocalTensor<uint8_t> q1_buf = q1.AllocTensor<uint8_t>();\n"
-    "const uint32_t local_1_actual_size = 1;\n"
-    "LocalTensor<half> local_1;\n"
-    "local_1 = q1_buf[q1_reuse1_offset].template ReinterpretCast<half>();\n"
-    "vec1();\n"
-    "q1.EnQue(q1_buf);\n"
-    "\n"
-    "AscendC::PipeBarrier<PIPE_V>();\n"
-    "vec2();\n"
-    "\n"
-    "vec3();\n"
-    "\n"
-    "q1_buf = q1.DeQue<uint8_t>();\n"
-    "store();\n"
-    "q1.FreeTensor(q1_buf);\n"
-    "\n"
-    "uint32_t q1_reuse2_offset = 0;\n"
-    "q1_buf = q1.AllocTensor<uint8_t>();\n"
-    "const uint32_t local_2_actual_size = 1;\n"
-    "LocalTensor<half> local_2;\n"
-    "local_2 = q1_buf[q1_reuse2_offset].template ReinterpretCast<half>();\n"
-    "vec4();\n"
-    "q1.FreeTensor(q1_buf);\n"
-    "\n"
-  });
+  EXPECT_EQ(Generate(), std::string{"uint32_t q1_reuse1_offset = 0;\n"
+                                    "LocalTensor<uint8_t> q1_buf = q1.AllocTensor<uint8_t>();\n"
+                                    "const uint32_t local_1_actual_size = 1;\n"
+                                    "LocalTensor<half> local_1;\n"
+                                    "local_1 = q1_buf[q1_reuse1_offset].template ReinterpretCast<half>();\n"
+                                    "vec1();\n"
+                                    "q1.EnQue(q1_buf);\n"
+                                    "\n"
+                                    "AscendC::PipeBarrier<PIPE_V>();\n"
+                                    "vec2();\n"
+                                    "\n"
+                                    "vec3();\n"
+                                    "\n"
+                                    "q1_buf = q1.DeQue<uint8_t>();\n"
+                                    "store();\n"
+                                    "q1.FreeTensor(q1_buf);\n"
+                                    "\n"
+                                    "uint32_t q1_reuse2_offset = 0;\n"
+                                    "q1_buf = q1.AllocTensor<uint8_t>();\n"
+                                    "const uint32_t local_2_actual_size = 1;\n"
+                                    "LocalTensor<half> local_2;\n"
+                                    "local_2 = q1_buf[q1_reuse2_offset].template ReinterpretCast<half>();\n"
+                                    "vec4();\n"
+                                    "q1.FreeTensor(q1_buf);\n"
+                                    "\n"});
 }
 
 /*
-*    load1  load2
-*       \    /
-*         vec
-*   load1和load2共用
-*/
+ *    load1  load2
+ *       \    /
+ *         vec
+ *   load1和load2共用
+ */
 TEST_F(CodegenKernel_CallSync, AllocLoad1_ShareLoad2Enq_DeqVec) {
   auto load1 = Load("load1", x);
   auto load2 = LoadForShare("load2", x, load1);
   auto vec = Vec("vec", {load1, load2}, false);
 
-  EXPECT_EQ(Generate(), std::string{
-    "uint32_t q1_reuse1_offset = 0;\n"
-    "LocalTensor<uint8_t> q1_buf = q1.AllocTensor<uint8_t>();\n"
-    "const uint32_t local_1_actual_size = 1;\n"
-    "LocalTensor<half> local_1;\n"
-    "local_1 = q1_buf[q1_reuse1_offset].template ReinterpretCast<half>();\n"
-    "load1();\n\n"
-    "q1_reuse1_offset = q1_reuse1_offset + local_1_size * 2;\n"
-    "const uint32_t local_2_actual_size = 1;\n"
-    "LocalTensor<half> local_2;\n"
-    "local_2 = q1_buf[q1_reuse1_offset].template ReinterpretCast<half>();\n"
-    "load2();\n"
-    "q1.EnQue(q1_buf);\n\n"
-    "q1_buf = q1.DeQue<uint8_t>();\n"
-    "vec();\n"
-    "q1.FreeTensor(q1_buf);\n\n"
-  });
+  EXPECT_EQ(Generate(), std::string{"uint32_t q1_reuse1_offset = 0;\n"
+                                    "LocalTensor<uint8_t> q1_buf = q1.AllocTensor<uint8_t>();\n"
+                                    "const uint32_t local_1_actual_size = 1;\n"
+                                    "LocalTensor<half> local_1;\n"
+                                    "local_1 = q1_buf[q1_reuse1_offset].template ReinterpretCast<half>();\n"
+                                    "load1();\n\n"
+                                    "q1_reuse1_offset = q1_reuse1_offset + local_1_size * 2;\n"
+                                    "const uint32_t local_2_actual_size = 1;\n"
+                                    "LocalTensor<half> local_2;\n"
+                                    "local_2 = q1_buf[q1_reuse1_offset].template ReinterpretCast<half>();\n"
+                                    "load2();\n"
+                                    "q1.EnQue(q1_buf);\n\n"
+                                    "q1_buf = q1.DeQue<uint8_t>();\n"
+                                    "vec();\n"
+                                    "q1.FreeTensor(q1_buf);\n\n"});
 }
 
 /*
-*    load1  load2
-*       \    /
-*         vec
-*         ...
-*        load3
-*   load1和load2共用
-*   load3与load1/load2复用
-*/
+ *    load1  load2
+ *       \    /
+ *         vec
+ *         ...
+ *        load3
+ *   load1和load2共用
+ *   load3与load1/load2复用
+ */
 TEST_F(CodegenKernel_CallSync, AllocLoad1_ShareLoad2Enq_DeqVec_Load3ReuseLoad2) {
   auto load1 = Load("load1", x);
   auto load2 = LoadForShare("load2", x, load1);
   auto vec = Vec("vec", {load1, load2}, false);
   auto load3 = Load("load3", x, load2);
 
-  EXPECT_EQ(Generate(), std::string{
-    "uint32_t q1_reuse1_offset = 0;\n"
-    "LocalTensor<uint8_t> q1_buf = q1.AllocTensor<uint8_t>();\n"
-    "const uint32_t local_1_actual_size = 1;\n"
-    "LocalTensor<half> local_1;\n"
-    "local_1 = q1_buf[q1_reuse1_offset].template ReinterpretCast<half>();\n"
-    "load1();\n\n"
-    "q1_reuse1_offset = q1_reuse1_offset + local_1_size * 2;\n"
-    "const uint32_t local_2_actual_size = 1;\n"
-    "LocalTensor<half> local_2;\n"
-    "local_2 = q1_buf[q1_reuse1_offset].template ReinterpretCast<half>();\n"
-    "load2();\n"
-    "q1.EnQue(q1_buf);\n\n"
-    "q1_buf = q1.DeQue<uint8_t>();\n"
-    "vec();\n"
-    "q1.FreeTensor(q1_buf);\n\n"
-    "uint32_t q1_reuse3_offset = 0;\n"
-    "q1_buf = q1.AllocTensor<uint8_t>();\n"
-    "const uint32_t local_3_actual_size = 1;\n"
-    "LocalTensor<half> local_3;\n"
-    "local_3 = q1_buf[q1_reuse3_offset].template ReinterpretCast<half>();\n"
-    "load3();\n"
-    "q1.EnQue(q1_buf);\n"
-    "q1.FreeTensor(q1_buf);\n\n"
-  });
+  EXPECT_EQ(Generate(), std::string{"uint32_t q1_reuse1_offset = 0;\n"
+                                    "LocalTensor<uint8_t> q1_buf = q1.AllocTensor<uint8_t>();\n"
+                                    "const uint32_t local_1_actual_size = 1;\n"
+                                    "LocalTensor<half> local_1;\n"
+                                    "local_1 = q1_buf[q1_reuse1_offset].template ReinterpretCast<half>();\n"
+                                    "load1();\n\n"
+                                    "q1_reuse1_offset = q1_reuse1_offset + local_1_size * 2;\n"
+                                    "const uint32_t local_2_actual_size = 1;\n"
+                                    "LocalTensor<half> local_2;\n"
+                                    "local_2 = q1_buf[q1_reuse1_offset].template ReinterpretCast<half>();\n"
+                                    "load2();\n"
+                                    "q1.EnQue(q1_buf);\n\n"
+                                    "q1_buf = q1.DeQue<uint8_t>();\n"
+                                    "vec();\n"
+                                    "q1.FreeTensor(q1_buf);\n\n"
+                                    "uint32_t q1_reuse3_offset = 0;\n"
+                                    "q1_buf = q1.AllocTensor<uint8_t>();\n"
+                                    "const uint32_t local_3_actual_size = 1;\n"
+                                    "LocalTensor<half> local_3;\n"
+                                    "local_3 = q1_buf[q1_reuse3_offset].template ReinterpretCast<half>();\n"
+                                    "load3();\n"
+                                    "q1.EnQue(q1_buf);\n"
+                                    "q1.FreeTensor(q1_buf);\n\n"});
 }
 
 /*
-*      load1
-*        |
-*       vec1
-*       ...
-*    load2  load3
-*       \    /
-*        vec2
-*   load1与load2和load3复用
-*   load2和load3共用
-*/
+ *      load1
+ *        |
+ *       vec1
+ *       ...
+ *    load2  load3
+ *       \    /
+ *        vec2
+ *   load1与load2和load3复用
+ *   load2和load3共用
+ */
 TEST_F(CodegenKernel_CallSync, AllocLoad1Enq_DeqVec1_AllocLoad2_ShareLoad3Enq_DeqVec2) {
   auto load1 = Load("load1", x);
   auto vec1 = Vec("vec1", {load1}, false);
@@ -2364,41 +2315,39 @@ TEST_F(CodegenKernel_CallSync, AllocLoad1Enq_DeqVec1_AllocLoad2_ShareLoad3Enq_De
   auto load3 = LoadForShare("load3", x, load2);
   auto vec2 = Vec("vec2", {load2, load3}, false);
 
-  EXPECT_EQ(Generate(), std::string{
-    "uint32_t q1_reuse1_offset = 0;\n"
-    "LocalTensor<uint8_t> q1_buf = q1.AllocTensor<uint8_t>();\n"
-    "const uint32_t local_1_actual_size = 1;\n"
-    "LocalTensor<half> local_1;\n"
-    "local_1 = q1_buf[q1_reuse1_offset].template ReinterpretCast<half>();\n"
-    "load1();\n"
-    "q1.EnQue(q1_buf);\n\n"
-    "q1_buf = q1.DeQue<uint8_t>();\n"
-    "vec1();\n"
-    "q1.FreeTensor(q1_buf);\n\n"
-    "uint32_t q1_reuse2_offset = 0;\n"
-    "q1_buf = q1.AllocTensor<uint8_t>();\n"
-    "const uint32_t local_2_actual_size = 1;\n"
-    "LocalTensor<half> local_2;\n"
-    "local_2 = q1_buf[q1_reuse2_offset].template ReinterpretCast<half>();\n"
-    "load2();\n\n"
-    "q1_reuse2_offset = q1_reuse2_offset + local_2_size * 2;\n"
-    "const uint32_t local_3_actual_size = 1;\n"
-    "LocalTensor<half> local_3;\n"
-    "local_3 = q1_buf[q1_reuse2_offset].template ReinterpretCast<half>();\n"
-    "load3();\n"
-    "q1.EnQue(q1_buf);\n\n"
-    "q1_buf = q1.DeQue<uint8_t>();\n"
-    "vec2();\n"
-    "q1.FreeTensor(q1_buf);\n\n"
-  });
+  EXPECT_EQ(Generate(), std::string{"uint32_t q1_reuse1_offset = 0;\n"
+                                    "LocalTensor<uint8_t> q1_buf = q1.AllocTensor<uint8_t>();\n"
+                                    "const uint32_t local_1_actual_size = 1;\n"
+                                    "LocalTensor<half> local_1;\n"
+                                    "local_1 = q1_buf[q1_reuse1_offset].template ReinterpretCast<half>();\n"
+                                    "load1();\n"
+                                    "q1.EnQue(q1_buf);\n\n"
+                                    "q1_buf = q1.DeQue<uint8_t>();\n"
+                                    "vec1();\n"
+                                    "q1.FreeTensor(q1_buf);\n\n"
+                                    "uint32_t q1_reuse2_offset = 0;\n"
+                                    "q1_buf = q1.AllocTensor<uint8_t>();\n"
+                                    "const uint32_t local_2_actual_size = 1;\n"
+                                    "LocalTensor<half> local_2;\n"
+                                    "local_2 = q1_buf[q1_reuse2_offset].template ReinterpretCast<half>();\n"
+                                    "load2();\n\n"
+                                    "q1_reuse2_offset = q1_reuse2_offset + local_2_size * 2;\n"
+                                    "const uint32_t local_3_actual_size = 1;\n"
+                                    "LocalTensor<half> local_3;\n"
+                                    "local_3 = q1_buf[q1_reuse2_offset].template ReinterpretCast<half>();\n"
+                                    "load3();\n"
+                                    "q1.EnQue(q1_buf);\n\n"
+                                    "q1_buf = q1.DeQue<uint8_t>();\n"
+                                    "vec2();\n"
+                                    "q1.FreeTensor(q1_buf);\n\n"});
 }
 
 /*
-*    load1 load3  load2
-*       \   /       |
-*        vec1     vec2
-*   load1和load3共用, load2使用其他que，拓扑序为load1 - load2 - load3 - vec1 - vec2
-*/
+ *    load1 load3  load2
+ *       \   /       |
+ *        vec1     vec2
+ *   load1和load3共用, load2使用其他que，拓扑序为load1 - load2 - load3 - vec1 - vec2
+ */
 TEST_F(CodegenKernel_CallSync, AllocLoad1_AllocLoad2Enq_ShareLoad3Enq_DeqVec1_DeqVec2) {
   auto load1 = Load("load1", x);
   auto load2 = Load("load2", x);
@@ -2406,73 +2355,69 @@ TEST_F(CodegenKernel_CallSync, AllocLoad1_AllocLoad2Enq_ShareLoad3Enq_DeqVec1_De
   auto vec1 = Vec("vec1", {load1, load3}, false);
   auto vec2 = Vec("vec2", {load2}, false);
 
-  EXPECT_EQ(Generate(), std::string{
-    "uint32_t q1_reuse1_offset = 0;\n"
-    "LocalTensor<uint8_t> q1_buf = q1.AllocTensor<uint8_t>();\n"
-    "const uint32_t local_1_actual_size = 1;\n"
-    "LocalTensor<half> local_1;\n"
-    "local_1 = q1_buf[q1_reuse1_offset].template ReinterpretCast<half>();\n"
-    "load1();\n\n"
-    "uint32_t q2_reuse2_offset = 0;\n"
-    "LocalTensor<uint8_t> q2_buf = q2.AllocTensor<uint8_t>();\n"
-    "const uint32_t local_2_actual_size = 1;\n"
-    "LocalTensor<half> local_2;\n"
-    "local_2 = q2_buf[q2_reuse2_offset].template ReinterpretCast<half>();\n"
-    "load2();\n"
-    "q2.EnQue(q2_buf);\n\n"
-    "q1_reuse1_offset = q1_reuse1_offset + local_1_size * 2;\n"
-    "const uint32_t local_3_actual_size = 1;\n"
-    "LocalTensor<half> local_3;\n"
-    "local_3 = q1_buf[q1_reuse1_offset].template ReinterpretCast<half>();\n"
-    "load3();\n"
-    "q1.EnQue(q1_buf);\n\n"
-    "q1_buf = q1.DeQue<uint8_t>();\n"
-    "vec1();\n"
-    "q1.FreeTensor(q1_buf);\n\n"
-    "q2_buf = q2.DeQue<uint8_t>();\n"
-    "vec2();\n"
-    "q2.FreeTensor(q2_buf);\n\n"
-  });
+  EXPECT_EQ(Generate(), std::string{"uint32_t q1_reuse1_offset = 0;\n"
+                                    "LocalTensor<uint8_t> q1_buf = q1.AllocTensor<uint8_t>();\n"
+                                    "const uint32_t local_1_actual_size = 1;\n"
+                                    "LocalTensor<half> local_1;\n"
+                                    "local_1 = q1_buf[q1_reuse1_offset].template ReinterpretCast<half>();\n"
+                                    "load1();\n\n"
+                                    "uint32_t q2_reuse2_offset = 0;\n"
+                                    "LocalTensor<uint8_t> q2_buf = q2.AllocTensor<uint8_t>();\n"
+                                    "const uint32_t local_2_actual_size = 1;\n"
+                                    "LocalTensor<half> local_2;\n"
+                                    "local_2 = q2_buf[q2_reuse2_offset].template ReinterpretCast<half>();\n"
+                                    "load2();\n"
+                                    "q2.EnQue(q2_buf);\n\n"
+                                    "q1_reuse1_offset = q1_reuse1_offset + local_1_size * 2;\n"
+                                    "const uint32_t local_3_actual_size = 1;\n"
+                                    "LocalTensor<half> local_3;\n"
+                                    "local_3 = q1_buf[q1_reuse1_offset].template ReinterpretCast<half>();\n"
+                                    "load3();\n"
+                                    "q1.EnQue(q1_buf);\n\n"
+                                    "q1_buf = q1.DeQue<uint8_t>();\n"
+                                    "vec1();\n"
+                                    "q1.FreeTensor(q1_buf);\n\n"
+                                    "q2_buf = q2.DeQue<uint8_t>();\n"
+                                    "vec2();\n"
+                                    "q2.FreeTensor(q2_buf);\n\n"});
 }
 
 /*
-*    load1 load2 load3
-*        \   |   /
-*           vec
-*   load1和load3共用, load2使用其他que
-*/
+ *    load1 load2 load3
+ *        \   |   /
+ *           vec
+ *   load1和load3共用, load2使用其他que
+ */
 TEST_F(CodegenKernel_CallSync, AllocLoad1_AllocLoad2Enq_ShareLoad3Enq_DeqDeqVec) {
   auto load1 = Load("load1", x);
   auto load2 = Load("load2", x);
   auto load3 = LoadForShare("load3", x, load1);
   auto vec = Vec("vec", {load1, load2, load3}, false);
 
-  EXPECT_EQ(Generate(), std::string{
-    "uint32_t q1_reuse1_offset = 0;\n"
-    "LocalTensor<uint8_t> q1_buf = q1.AllocTensor<uint8_t>();\n"
-    "const uint32_t local_1_actual_size = 1;\n"
-    "LocalTensor<half> local_1;\n"
-    "local_1 = q1_buf[q1_reuse1_offset].template ReinterpretCast<half>();\n"
-    "load1();\n\n"
-    "uint32_t q2_reuse2_offset = 0;\n"
-    "LocalTensor<uint8_t> q2_buf = q2.AllocTensor<uint8_t>();\n"
-    "const uint32_t local_2_actual_size = 1;\n"
-    "LocalTensor<half> local_2;\n"
-    "local_2 = q2_buf[q2_reuse2_offset].template ReinterpretCast<half>();\n"
-    "load2();\n"
-    "q2.EnQue(q2_buf);\n\n"
-    "q1_reuse1_offset = q1_reuse1_offset + local_1_size * 2;\n"
-    "const uint32_t local_3_actual_size = 1;\n"
-    "LocalTensor<half> local_3;\n"
-    "local_3 = q1_buf[q1_reuse1_offset].template ReinterpretCast<half>();\n"
-    "load3();\n"
-    "q1.EnQue(q1_buf);\n\n"
-    "q1_buf = q1.DeQue<uint8_t>();\n"
-    "q2_buf = q2.DeQue<uint8_t>();\n"
-    "vec();\n"
-    "q2.FreeTensor(q2_buf);\n"
-    "q1.FreeTensor(q1_buf);\n\n"
-  });
+  EXPECT_EQ(Generate(), std::string{"uint32_t q1_reuse1_offset = 0;\n"
+                                    "LocalTensor<uint8_t> q1_buf = q1.AllocTensor<uint8_t>();\n"
+                                    "const uint32_t local_1_actual_size = 1;\n"
+                                    "LocalTensor<half> local_1;\n"
+                                    "local_1 = q1_buf[q1_reuse1_offset].template ReinterpretCast<half>();\n"
+                                    "load1();\n\n"
+                                    "uint32_t q2_reuse2_offset = 0;\n"
+                                    "LocalTensor<uint8_t> q2_buf = q2.AllocTensor<uint8_t>();\n"
+                                    "const uint32_t local_2_actual_size = 1;\n"
+                                    "LocalTensor<half> local_2;\n"
+                                    "local_2 = q2_buf[q2_reuse2_offset].template ReinterpretCast<half>();\n"
+                                    "load2();\n"
+                                    "q2.EnQue(q2_buf);\n\n"
+                                    "q1_reuse1_offset = q1_reuse1_offset + local_1_size * 2;\n"
+                                    "const uint32_t local_3_actual_size = 1;\n"
+                                    "LocalTensor<half> local_3;\n"
+                                    "local_3 = q1_buf[q1_reuse1_offset].template ReinterpretCast<half>();\n"
+                                    "load3();\n"
+                                    "q1.EnQue(q1_buf);\n\n"
+                                    "q1_buf = q1.DeQue<uint8_t>();\n"
+                                    "q2_buf = q2.DeQue<uint8_t>();\n"
+                                    "vec();\n"
+                                    "q2.FreeTensor(q2_buf);\n"
+                                    "q1.FreeTensor(q1_buf);\n\n"});
 }
 
 TEST(CodegenKernel, StageGenerate_WillNotDuplicatAllocTensorInSameStage) {
@@ -2487,7 +2432,6 @@ TEST(CodegenKernel, CompareApiCallNotThrowingFor) {
   auto s1 = graph.CreateSizeVar("s1");
   auto z0 = graph.CreateAxis("z0", s0);
   auto z1 = graph.CreateAxis("z1", s1);
-
 
   Data x_op("x", graph);
   Data x_op2("x2", graph);
@@ -2590,9 +2534,9 @@ TEST(CodegenKernel, CompareApiCallNotThrowingFor) {
   std::string result;
   call.Generate(tpipe, current_axis, result);
   std::cout << result << std::endl;
-  EXPECT_EQ(result, std::string{
-    "CompareExtend(local_3[0], local_0[0], local_1[0], CMPMODE::GT, local_0_actual_size, tmp_buf_0);\n"
-  });
+  EXPECT_EQ(
+      result,
+      std::string{"CompareExtend(local_3[0], local_0[0], local_1[0], CMPMODE::GT, local_0_actual_size, tmp_buf_0);\n"});
 }
 
 // 测试compare api需要外抛for循环的场景
@@ -2709,8 +2653,9 @@ TEST(CodegenKernel, CompareApiCallThrowingFor) {
 
   std::string result;
   call.Generate(tpipe, current_axis, result);
-  EXPECT_EQ(result, std::string{
-    "CompareExtend<int32_t, CMPMODE::GT>(local_3[0], local_0[0], local_1[0], t->s1, t->s2, ((16 * Ceiling((Rational(1 , 16) * t->s2))))/(1), ((16 * Ceiling((Rational(1 , 16) * t->s2))))/(1), tmp_buf_0);\n"});
+  EXPECT_EQ(result, std::string{"CompareExtend<int32_t, CMPMODE::GT>(local_3[0], local_0[0], local_1[0], t->s1, t->s2, "
+                                "((16 * Ceiling((Rational(1 , 16) * t->s2))))/(1), ((16 * Ceiling((Rational(1 , 16) * "
+                                "t->s2))))/(1), tmp_buf_0);\n"});
 }
 
 // 测试compare api需要外抛for循环的场景
@@ -2827,9 +2772,9 @@ TEST(CodegenKernel, CompareApiCallTwoAxis) {
 
   std::string result;
   call.Generate(tpipe, current_axis, result);
-  EXPECT_EQ(result, std::string{
-    "CompareExtend<float, CMPMODE::GT>(local_3[0], local_0[0], local_1[0], t->s1, t->s2, ((16 * Ceiling((Rational(1 , 16) * t->s2))))/(1), ((16 * Ceiling((Rational(1 , 16) * t->s2))))/(1), tmp_buf_0);\n"
-  });
+  EXPECT_EQ(result, std::string{"CompareExtend<float, CMPMODE::GT>(local_3[0], local_0[0], local_1[0], t->s1, t->s2, "
+                                "((16 * Ceiling((Rational(1 , 16) * t->s2))))/(1), ((16 * Ceiling((Rational(1 , 16) * "
+                                "t->s2))))/(1), tmp_buf_0);\n"});
 }
 
 // 测试compare api需要外抛for循环的场景
@@ -2956,11 +2901,12 @@ TEST(CodegenKernel, CompareApiCallThrowingForWithX2IsUbScalar) {
 
   std::string result;
   call.Generate(tpipe, current_axis, result);
-  EXPECT_EQ(result, std::string{
-    "CompareExtend<float, CMPMODE::GT>(local_3[0], local_0[0], local_1[0], t->s1, t->s2, ((8 * Ceiling((Rational(1 , 8) * t->s2))))/(1), ((16 * Ceiling((Rational(1 , 16) * t->s2))))/(1), tmp_buf_0);\n"
-  });
+  EXPECT_EQ(
+      result,
+      std::string{
+          "CompareExtend<float, CMPMODE::GT>(local_3[0], local_0[0], local_1[0], t->s1, t->s2, ((8 * "
+          "Ceiling((Rational(1 , 8) * t->s2))))/(1), ((16 * Ceiling((Rational(1 , 16) * t->s2))))/(1), tmp_buf_0);\n"});
 }
-
 
 // 测试compare api需要外抛for循环的场景
 TEST(CodegenKernel, CompareApiCallThrowingForWithX2IsUbScalarForUint32) {
@@ -3086,9 +3032,11 @@ TEST(CodegenKernel, CompareApiCallThrowingForWithX2IsUbScalarForUint32) {
 
   std::string result;
   call.Generate(tpipe, current_axis, result);
-  EXPECT_EQ(result, std::string{
-    "CompareExtend<uint32_t, CMPMODE::GT>(local_3[0], local_0[0], local_1[0], t->s1, t->s2, ((8 * Ceiling((Rational(1 , 8) * t->s2))))/(1), ((16 * Ceiling((Rational(1 , 16) * t->s2))))/(1), tmp_buf_0);\n"
-  });
+  EXPECT_EQ(
+      result,
+      std::string{
+          "CompareExtend<uint32_t, CMPMODE::GT>(local_3[0], local_0[0], local_1[0], t->s1, t->s2, ((8 * "
+          "Ceiling((Rational(1 , 8) * t->s2))))/(1), ((16 * Ceiling((Rational(1 , 16) * t->s2))))/(1), tmp_buf_0);\n"});
 }
 
 // 测试compare api需要外抛for循环的场景
@@ -3211,9 +3159,8 @@ TEST(CodegenKernel, CompareApiCallNotThrowingForWithX2IsUbScalar) {
 
   std::string result;
   call.Generate(tpipe, current_axis, result);
-  EXPECT_EQ(result, std::string{
-"CompareScalarExtend(local_3[0], local_0[0], (float)local_1_ub_scalar, CMPMODE::GT, local_0_actual_size, tmp_buf_0);\n"
-  });
+  EXPECT_EQ(result, std::string{"CompareScalarExtend(local_3[0], local_0[0], (float)local_1_ub_scalar, CMPMODE::GT, "
+                                "local_0_actual_size, tmp_buf_0);\n"});
 
   codegen::Kernel kernel("test");
   kernel.tpipe.CollectQues(graph);
@@ -3229,7 +3176,6 @@ TEST(CodegenKernel, IsnanExtendNotThrowingFor) {
   auto s1 = graph.CreateSizeVar("s1");
   auto z0 = graph.CreateAxis("z0", s0);
   auto z1 = graph.CreateAxis("z1", s1);
-
 
   Data x_op("x", graph);
   Load load_op("load");
@@ -3264,7 +3210,6 @@ TEST(CodegenKernel, IsnanExtendNotThrowingFor) {
   load->outputs[0].attr.mem.alloc_type = af::AllocType::kAllocTypeQueue;
   load->outputs[0].attr.que.id = 1;
   load->outputs[0].attr.opt.merge_scope = af::kIdNone;
-
 
   auto isnan_node = graph.FindNode("isnan");
   isnan_node->attr.api.compute_type = af::ComputeType::kComputeElewise;
@@ -3303,9 +3248,7 @@ TEST(CodegenKernel, IsnanExtendNotThrowingFor) {
   std::string result;
   call.Generate(tpipe, current_axis, result);
   std::cout << result << std::endl;
-  EXPECT_EQ(result, std::string{
-    "IsnanExtend(local_3[0], local_0[0], tmp_buf_0, local_0_actual_size);\n"
-  });
+  EXPECT_EQ(result, std::string{"IsnanExtend(local_3[0], local_0[0], tmp_buf_0, local_0_actual_size);\n"});
 }
 
 // 测试isnan api外抛for循环的场景
@@ -3319,7 +3262,6 @@ TEST(CodegenKernel, IsnanExtendThrowingFor) {
   auto z1 = graph.CreateAxis("z1", s1);
   auto z2 = graph.CreateAxis("z2", s2);
 
-
   Data x_op("x", graph);
   Load load_op("load");
   af::ascir_op::Isnan isnan("isnan");
@@ -3330,12 +3272,12 @@ TEST(CodegenKernel, IsnanExtendThrowingFor) {
   load_op.attr.sched.axis = {z0.id, z1.id, z2.id};
   *load_op.y.axis = {z0.id, z1.id, z2.id};
   *load_op.y.repeats = {s0, s1, s2};
-  *load_op.y.strides = {s1*s2, s2, One};
+  *load_op.y.strides = {s1 * s2, s2, One};
 
   isnan.x = load_op.y;
   *isnan.y.axis = {z0.id, z1.id, z2.id};
   *isnan.y.repeats = {s0, s1, s2};
-  *isnan.y.strides = {s1*s2, s2, One};
+  *isnan.y.strides = {s1 * s2, s2, One};
 
   auto load = graph.FindNode("load");
   load->attr.api.compute_type = af::ComputeType::kComputeLoad;
@@ -3353,7 +3295,6 @@ TEST(CodegenKernel, IsnanExtendThrowingFor) {
   load->outputs[0].attr.mem.alloc_type = af::AllocType::kAllocTypeQueue;
   load->outputs[0].attr.que.id = 1;
   load->outputs[0].attr.opt.merge_scope = af::kIdNone;
-
 
   auto isnan_node = graph.FindNode("isnan");
   isnan_node->attr.api.compute_type = af::ComputeType::kComputeElewise;
@@ -3394,9 +3335,11 @@ TEST(CodegenKernel, IsnanExtendThrowingFor) {
   std::string result;
   call.Generate(tpipe, current_axis, result);
   std::cout << result << std::endl;
-  EXPECT_EQ(result, std::string{
-    "for(int outer_for_0 = 0; outer_for_0 < t->s1; outer_for_0++) {\nIsnanExtend(local_3[outer_for_0 * ((16 * Ceiling((Rational(1 , 16) * t->s2))))/(1)], local_0[outer_for_0 * ((16 * Ceiling((Rational(1 , 16) * t->s2))))/(1)], tmp_buf_0, t->s2);\n\n}\n"
-  });
+  EXPECT_EQ(
+      result,
+      std::string{"for(int outer_for_0 = 0; outer_for_0 < t->s1; outer_for_0++) {\nIsnanExtend(local_3[outer_for_0 * "
+                  "((16 * Ceiling((Rational(1 , 16) * t->s2))))/(1)], local_0[outer_for_0 * ((16 * Ceiling((Rational(1 "
+                  ", 16) * t->s2))))/(1)], tmp_buf_0, t->s2);\n\n}\n"});
 }
 
 TEST(CodegenKernel, UnaryApiTmpCall) {
@@ -3409,7 +3352,6 @@ TEST(CodegenKernel, UnaryApiTmpCall) {
   auto z1 = graph.CreateAxis("z1", s1);
   auto z2 = graph.CreateAxis("z2", s2);
 
-
   Data x_op("x", graph);
   Load load_op("load");
   af::ascir_op::Sign sign("sign");
@@ -3420,12 +3362,12 @@ TEST(CodegenKernel, UnaryApiTmpCall) {
   load_op.attr.sched.axis = {z0.id, z1.id, z2.id};
   *load_op.y.axis = {z0.id, z1.id, z2.id};
   *load_op.y.repeats = {s0, s1, s2};
-  *load_op.y.strides = {s1*s2, s2, One};
+  *load_op.y.strides = {s1 * s2, s2, One};
 
   sign.x = load_op.y;
   *sign.y.axis = {z0.id, z1.id, z2.id};
   *sign.y.repeats = {s0, s1, s2};
-  *sign.y.strides = {s1*s2, s2, One};
+  *sign.y.strides = {s1 * s2, s2, One};
 
   auto load = graph.FindNode("load");
   load->attr.api.compute_type = af::ComputeType::kComputeLoad;
@@ -3443,7 +3385,6 @@ TEST(CodegenKernel, UnaryApiTmpCall) {
   load->outputs[0].attr.mem.alloc_type = af::AllocType::kAllocTypeQueue;
   load->outputs[0].attr.que.id = 1;
   load->outputs[0].attr.opt.merge_scope = af::kIdNone;
-
 
   auto sign_node = graph.FindNode("sign");
   sign_node->attr.api.compute_type = af::ComputeType::kComputeElewise;
@@ -3484,9 +3425,7 @@ TEST(CodegenKernel, UnaryApiTmpCall) {
   std::string result;
   call.Generate(tpipe, current_axis, result);
   std::cout << result << std::endl;
-  EXPECT_EQ(result, std::string{
-    "SignExtend(local_3[0], local_0[0], tmp_buf_0, local_0_actual_size);\n"
-  });
+  EXPECT_EQ(result, std::string{"SignExtend(local_3[0], local_0[0], tmp_buf_0, local_0_actual_size);\n"});
 }
 
 TEST(CodegenKernel, Ub2ubApiCall) {
@@ -3500,7 +3439,7 @@ TEST(CodegenKernel, Ub2ubApiCall) {
   Data x_op("x", graph);
   Load load_op("load");
   af::ascir_op::Ub2ub ub2ub_op("ub2ub");
-  //af::ascir_op::Cast cast_op("cast");
+  // af::ascir_op::Cast cast_op("cast");
   graph.AddNode(load_op);
   graph.AddNode(ub2ub_op);
 
@@ -3553,9 +3492,8 @@ TEST(CodegenKernel, Ub2ubApiCall) {
 
   std::string result;
   call.Generate(tpipe, vector<af::AxisId>{}, result);
-  EXPECT_EQ(result, std::string{
-    "DataCopy(local_1[0], local_0[0], KernelUtils::BlkAlign<float>(local_0_actual_size));\n"
-  });
+  EXPECT_EQ(result,
+            std::string{"DataCopy(local_1[0], local_0[0], KernelUtils::BlkAlign<float>(local_0_actual_size));\n"});
 }
 
 TEST(CodegenKernel, TwoWorkspaceCodegen) {
@@ -3620,8 +3558,8 @@ TEST(CodegenKernel, TwoWorkspaceCodegen) {
   y_op2.x = load_op2.y;
   y_op2.ir_attr.SetIndex(1);
 
-  //graph.SetInputs({x_op});
-  //graph.SetOutputs({y_op1, y_op2});
+  // graph.SetInputs({x_op});
+  // graph.SetOutputs({y_op1, y_op2});
 
   auto x = graph.FindNode("x");
   auto load1 = graph.FindNode("load1");
@@ -3683,18 +3621,18 @@ TEST(CodegenKernel, TwoWorkspaceCodegen) {
   codegen::Kernel::ParseGraph(graph, fused_schedule_result, kernel);
   std::string result;
   kernel.GlobalTensorInit(result);
-  EXPECT_EQ(result, std::string{
-    "GlobalTensor<half> global_0;\n"
-    "global_0.SetGlobalBuffer((__gm__ half*)x);\n"
-    "GlobalTensor<half> global_3;\n"
-    "global_3.SetGlobalBuffer((__gm__ half*)y1);\n"
-    "GlobalTensor<half> global_4;\n"
-    "global_4.SetGlobalBuffer((__gm__ half*)y2);\n"
-    "GlobalTensor<half> global_1;\n"
-    "global_1.SetGlobalBuffer((__gm__ half*)workspace);\n"
-    "GlobalTensor<half> global_2;\n"
-    "global_2.SetGlobalBuffer((__gm__ half*)((__gm__ uint8_t*)(workspace) + (0 + (workspace1))));\n"
-  });
+  EXPECT_EQ(
+      result,
+      std::string{"GlobalTensor<half> global_0;\n"
+                  "global_0.SetGlobalBuffer((__gm__ half*)x);\n"
+                  "GlobalTensor<half> global_3;\n"
+                  "global_3.SetGlobalBuffer((__gm__ half*)y1);\n"
+                  "GlobalTensor<half> global_4;\n"
+                  "global_4.SetGlobalBuffer((__gm__ half*)y2);\n"
+                  "GlobalTensor<half> global_1;\n"
+                  "global_1.SetGlobalBuffer((__gm__ half*)workspace);\n"
+                  "GlobalTensor<half> global_2;\n"
+                  "global_2.SetGlobalBuffer((__gm__ half*)((__gm__ uint8_t*)(workspace) + (0 + (workspace1))));\n"});
 }
 
 TEST(CodegenKernel, TwoWorkspaceReuseAsInputCodegen) {
@@ -3784,14 +3722,12 @@ TEST(CodegenKernel, TwoWorkspaceReuseAsInputCodegen) {
   codegen::Kernel::ParseGraph(graph, fused_schedule_result, kernel);
   std::string result;
   kernel.GlobalTensorInit(result);
-  EXPECT_EQ(result, std::string{
-    "GlobalTensor<half> global_3;\n"
-    "global_3.SetGlobalBuffer((__gm__ half*)y1);\n"
-    "GlobalTensor<half> global_4;\n"
-    "global_4.SetGlobalBuffer((__gm__ half*)y2);\n"
-    "GlobalTensor<half> global_1;\n"
-    "global_1.SetGlobalBuffer((__gm__ half*)workspace);\n"
-  });
+  EXPECT_EQ(result, std::string{"GlobalTensor<half> global_3;\n"
+                                "global_3.SetGlobalBuffer((__gm__ half*)y1);\n"
+                                "GlobalTensor<half> global_4;\n"
+                                "global_4.SetGlobalBuffer((__gm__ half*)y2);\n"
+                                "GlobalTensor<half> global_1;\n"
+                                "global_1.SetGlobalBuffer((__gm__ half*)workspace);\n"});
 }
 
 TEST(CodegenKernel, WorkspaceReuseOutputAsInputCodegen) {
@@ -3836,7 +3772,7 @@ TEST(CodegenKernel, WorkspaceReuseOutputAsInputCodegen) {
   auto load0 = graph0.FindNode("load0");
   auto y1 = graph0.FindNode("y1");
   load0->outputs[0].attr.mem.alloc_type = af::AllocType::kAllocTypeGlobal;
-  load0->outputs[0].attr.mem.tensor_id = 1;   // reuse output
+  load0->outputs[0].attr.mem.tensor_id = 1;  // reuse output
 
   y1->outputs[0].attr.mem.alloc_type = af::AllocType::kAllocTypeGlobal;
   y1->outputs[0].attr.mem.tensor_id = 1;  // reuse output
@@ -3846,7 +3782,7 @@ TEST(CodegenKernel, WorkspaceReuseOutputAsInputCodegen) {
   auto y2 = graph.FindNode("y2");
 
   workspace->outputs[0].attr.mem.alloc_type = af::AllocType::kAllocTypeGlobal;
-  workspace->outputs[0].attr.mem.tensor_id = 1;   // graph0 reuse output
+  workspace->outputs[0].attr.mem.tensor_id = 1;  // graph0 reuse output
   workspace->outputs[0].attr.repeats = {s0, s1};
 
   load->outputs[0].attr.mem.alloc_type = af::AllocType::kAllocTypeGlobal;
@@ -3867,12 +3803,10 @@ TEST(CodegenKernel, WorkspaceReuseOutputAsInputCodegen) {
   codegen::Kernel::ParseGraph(graph, fused_schedule_result, kernel);
   std::string result;
   kernel.GlobalTensorInit(result);
-  EXPECT_EQ(result, std::string{
-    "GlobalTensor<half> global_2;\n"
-    "global_2.SetGlobalBuffer((__gm__ half*)y2);\n"
-    "GlobalTensor<half> global_1;\n"
-    "global_1.SetGlobalBuffer((__gm__ half*)y1);\n"
-  });
+  EXPECT_EQ(result, std::string{"GlobalTensor<half> global_2;\n"
+                                "global_2.SetGlobalBuffer((__gm__ half*)y2);\n"
+                                "GlobalTensor<half> global_1;\n"
+                                "global_1.SetGlobalBuffer((__gm__ half*)y1);\n"});
 }
 
 TEST(CodegenKernel, Looper_GenerateLoop_WhenNestedLoop) {
@@ -3895,12 +3829,10 @@ TEST(CodegenKernel, Looper_GenerateLoop_WhenNestedLoop) {
   codegen::TPipe tpipe("t", tiler);
   std::string result;
   EXPECT_EQ(loop1.Generate(tiler, tpipe, result), ge::SUCCESS);
-  EXPECT_EQ(result, std::string{
-    "for (int z0 = 0; z0 < z0_loop_size; z0++) {\n"
-    "for (int z1 = 0; z1 < z1_loop_size; z1++) {\n"
-    "}\n"
-    "}\n"
-  });
+  EXPECT_EQ(result, std::string{"for (int z0 = 0; z0 < z0_loop_size; z0++) {\n"
+                                "for (int z1 = 0; z1 < z1_loop_size; z1++) {\n"
+                                "}\n"
+                                "}\n"});
 }
 
 TEST(CodegenKernel, Looper_GenerateLoop_WhenTwoLoop) {
@@ -3923,12 +3855,10 @@ TEST(CodegenKernel, Looper_GenerateLoop_WhenTwoLoop) {
   codegen::TPipe tpipe("t", tiler);
   std::string result;
   EXPECT_EQ(root_loop.Generate(tiler, tpipe, result), ge::SUCCESS);
-  EXPECT_EQ(result, std::string{
-    "for (int z0 = 0; z0 < z0_loop_size; z0++) {\n"
-    "}\n"
-    "for (int z1 = 0; z1 < z1_loop_size; z1++) {\n"
-    "}\n"
-  });
+  EXPECT_EQ(result, std::string{"for (int z0 = 0; z0 < z0_loop_size; z0++) {\n"
+                                "}\n"
+                                "for (int z1 = 0; z1 < z1_loop_size; z1++) {\n"
+                                "}\n"});
 }
 
 TEST(CodegenKernel, Kernel_GlobalTensorInit) {
@@ -3950,8 +3880,8 @@ TEST(CodegenKernel, Kernel_GlobalTensorInit) {
   y_op.x = store_op.y;
   y_op.ir_attr.SetIndex(0);
 
-  //graph.SetInputs({x_op});
-  //graph.SetOutputs({y_op});
+  // graph.SetInputs({x_op});
+  // graph.SetOutputs({y_op});
 
   auto x = graph.FindNode("x");
   auto load = graph.FindNode("load");
@@ -3974,12 +3904,10 @@ TEST(CodegenKernel, Kernel_GlobalTensorInit) {
 
   std::string result;
   kernel.GlobalTensorInit(result);
-  EXPECT_EQ(result, std::string{
-    "GlobalTensor<half> global_0;\n"
-    "global_0.SetGlobalBuffer((__gm__ half*)x);\n"
-    "GlobalTensor<half> global_2;\n"
-    "global_2.SetGlobalBuffer((__gm__ half*)y);\n"
-  });
+  EXPECT_EQ(result, std::string{"GlobalTensor<half> global_0;\n"
+                                "global_0.SetGlobalBuffer((__gm__ half*)x);\n"
+                                "GlobalTensor<half> global_2;\n"
+                                "global_2.SetGlobalBuffer((__gm__ half*)y);\n"});
 }
 
 TEST(CodegenKernel, Kernel_ConstantTensorInit) {
@@ -3999,9 +3927,7 @@ TEST(CodegenKernel, Kernel_ConstantTensorInit) {
   codegen::Kernel::ParseGraph(graph, fused_schedule_result, kernel);
   std::string result;
   kernel.GlobalTensorInit(result);
-  EXPECT_EQ(result, std::string{
-          "const half scalar_0 = 100.1;\n"
-          });
+  EXPECT_EQ(result, std::string{"const half scalar_0 = 100.1;\n"});
 }
 
 TEST(CodegenKernel, Kernel_IndexExprTensorInit) {
@@ -4013,7 +3939,7 @@ TEST(CodegenKernel, Kernel_IndexExprTensorInit) {
   index.ir_attr.SetExpr(0);
   index.y.dtype = ge::DT_FLOAT16;
 
-  //graph.SetInputs({index});
+  // graph.SetInputs({index});
 
   auto index_node = graph.FindNode("index");
   index_node->outputs[0].attr.mem.alloc_type = af::AllocType::kAllocTypeInvalid;
@@ -4025,9 +3951,7 @@ TEST(CodegenKernel, Kernel_IndexExprTensorInit) {
   codegen::Kernel::ParseGraph(graph, fused_schedule_result, kernel);
   std::string result;
   kernel.GlobalTensorInit(result);
-  EXPECT_EQ(result, std::string{
-          "const half scalar_0 = (t->s0)/(1);\n"
-          });
+  EXPECT_EQ(result, std::string{"const half scalar_0 = (t->s0)/(1);\n"});
 }
 
 TEST(CodegenKernel, Kernel_KernelFunctionDeclare) {
@@ -4050,8 +3974,8 @@ TEST(CodegenKernel, Kernel_KernelFunctionDeclare) {
   y1.x = x1.y;
   y2.x = x2.y;
   y3.x = x3.y;
-  //graph.SetInputs({x1, x2, x3});
-  //graph.SetOutputs({y1, y2, y3});
+  // graph.SetInputs({x1, x2, x3});
+  // graph.SetOutputs({y1, y2, y3});
 
   auto x1_node = graph.FindNode("x1");
   auto x2_node = graph.FindNode("x2");
@@ -4076,9 +4000,9 @@ TEST(CodegenKernel, Kernel_KernelFunctionDeclare) {
   fused_schedule_result.output_nodes.push_back(y3_node);
   codegen::Kernel kernel(graph.GetName());
   codegen::Kernel::ParseGraph(graph, fused_schedule_result, kernel);
-  EXPECT_EQ(kernel.TilingKeyFuncDeclare("test_kernel_general_0_nil_0_nil", "test_kernelTilingData"), std::string{
-    "inline __aicore__ void test_kernel_general_0_nil_0_nil(GM_ADDR x1, GM_ADDR x2, GM_ADDR x3, GM_ADDR y1, GM_ADDR y2, GM_ADDR y3, GM_ADDR workspace, const test_kernelTilingData *t)"
-  });
+  EXPECT_EQ(kernel.TilingKeyFuncDeclare("test_kernel_general_0_nil_0_nil", "test_kernelTilingData"),
+            std::string{"inline __aicore__ void test_kernel_general_0_nil_0_nil(GM_ADDR x1, GM_ADDR x2, GM_ADDR x3, "
+                        "GM_ADDR y1, GM_ADDR y2, GM_ADDR y3, GM_ADDR workspace, const test_kernelTilingData *t)"});
 }
 
 TEST(CodegenKernel, Kernel_LocalTensorQueBufAlloc) {
@@ -4139,22 +4063,20 @@ TEST(CodegenKernel, Kernel_LocalTensorQueBufAlloc) {
   codegen::Kernel::ParseGraph(graph, fused_schedule_result, kernel);
   std::string result;
   kernel.LocalTensorQueBufAlloc(result, graph);
-  EXPECT_EQ(result, std::string{
-    "TPipe tpipe;\n\n"
-    "const uint32_t local_1_size = KernelUtils::BlkAlign<half>((t->s0 - 1) + 1);\n"
-    "const uint32_t local_1_que_buf_num = 2;\n\n"
-    "// const uint32_t q0_size = KernelUtils::Max(local_1_size * sizeof(half));\n"
-    "const uint32_t q0_buf_num = KernelUtils::Max(2);\n"
-    "TQueBind<TPosition::VECIN, TPosition::VECOUT, 1> q0;\n"
-    "// tpipe.InitBuffer(q0, q0_buf_num, KernelUtils::BlkAlign<uint8_t>(q0_size));\n"
-    "tpipe.InitBuffer(q0, q0_buf_num, t->q0_size);\n"  
-    "// const uint32_t b0_size = KernelUtils::Max(8192);\n"
-    "TBuf<TPosition::VECCALC> b0;\n"
-    "// tpipe.InitBuffer(b0, KernelUtils::BlkAlign<uint8_t>(b0_size));\n"
-    "tpipe.InitBuffer(b0, t->b0_size);\n"
-    "LocalTensor<uint8_t> b0_buf = b0.Get<uint8_t>();\n"
-    "LocalTensor<uint8_t> tmp_buf_0 = b0.Get<uint8_t>();\n\n\n\n"
-  });
+  EXPECT_EQ(result, std::string{"TPipe tpipe;\n\n"
+                                "const uint32_t local_1_size = KernelUtils::BlkAlign<half>((t->s0 - 1) + 1);\n"
+                                "const uint32_t local_1_que_buf_num = 2;\n\n"
+                                "// const uint32_t q0_size = KernelUtils::Max(local_1_size * sizeof(half));\n"
+                                "const uint32_t q0_buf_num = KernelUtils::Max(2);\n"
+                                "TQueBind<TPosition::VECIN, TPosition::VECOUT, 1> q0;\n"
+                                "// tpipe.InitBuffer(q0, q0_buf_num, KernelUtils::BlkAlign<uint8_t>(q0_size));\n"
+                                "tpipe.InitBuffer(q0, q0_buf_num, t->q0_size);\n"
+                                "// const uint32_t b0_size = KernelUtils::Max(8192);\n"
+                                "TBuf<TPosition::VECCALC> b0;\n"
+                                "// tpipe.InitBuffer(b0, KernelUtils::BlkAlign<uint8_t>(b0_size));\n"
+                                "tpipe.InitBuffer(b0, t->b0_size);\n"
+                                "LocalTensor<uint8_t> b0_buf = b0.Get<uint8_t>();\n"
+                                "LocalTensor<uint8_t> tmp_buf_0 = b0.Get<uint8_t>();\n\n\n\n"});
 }
 
 TEST(CodegenKernel, Kernel_LocalTensorShareReuseQueAlloc) {
@@ -4291,28 +4213,29 @@ TEST(CodegenKernel, Kernel_LocalTensorShareReuseQueAlloc) {
   codegen::Kernel::ParseGraph(graph, fused_schedule_result, kernel);
   std::string result;
   kernel.LocalTensorQueBufAlloc(result, graph);
-  EXPECT_EQ(result, std::string{
-    "TPipe tpipe;\n\n"
-    "const uint32_t local_3_size = KernelUtils::BlkAlign<half>((t->s0 - 1) + 1);\n"
-    "const uint32_t local_3_que_buf_num = 2;\n"
-    "const uint32_t local_4_size = KernelUtils::BlkAlign<half>((t->s0 - 1) + 1);\n"
-    "const uint32_t local_4_que_buf_num = 2;\n"
-    "const uint32_t local_5_size = KernelUtils::BlkAlign<half>((t->s0 - 1) + 1);\n"
-    "const uint32_t local_5_que_buf_num = 2;\n"
-    "const uint32_t local_6_size = KernelUtils::BlkAlign<half>((t->s0 - 1) + 1);\n"
-    "const uint32_t local_6_que_buf_num = 2;\n\n"
-    "// const uint32_t q0_size = KernelUtils::Max(local_3_size * sizeof(half), local_4_size * sizeof(half), local_5_size * sizeof(half), local_6_size * sizeof(half), local_3_size * sizeof(half) + local_4_size * sizeof(half) + local_6_size * sizeof(half));\n"
-    "const uint32_t q0_buf_num = KernelUtils::Max(2);\n"
-    "TQue<TPosition::VECIN, 1> q0;\n"
-    "// tpipe.InitBuffer(q0, q0_buf_num, KernelUtils::BlkAlign<uint8_t>(q0_size));\n"
-    "tpipe.InitBuffer(q0, q0_buf_num, t->q0_size);\n"
-    "// const uint32_t b0_size = KernelUtils::Max(8192);\n"
-    "TBuf<TPosition::VECCALC> b0;\n"
-    "// tpipe.InitBuffer(b0, KernelUtils::BlkAlign<uint8_t>(b0_size));\n"
-    "tpipe.InitBuffer(b0, t->b0_size);\n"
-    "LocalTensor<uint8_t> b0_buf = b0.Get<uint8_t>();\n"
-    "LocalTensor<uint8_t> tmp_buf_0 = b0.Get<uint8_t>();\n\n\n\n"
-  });
+  EXPECT_EQ(result,
+            std::string{"TPipe tpipe;\n\n"
+                        "const uint32_t local_3_size = KernelUtils::BlkAlign<half>((t->s0 - 1) + 1);\n"
+                        "const uint32_t local_3_que_buf_num = 2;\n"
+                        "const uint32_t local_4_size = KernelUtils::BlkAlign<half>((t->s0 - 1) + 1);\n"
+                        "const uint32_t local_4_que_buf_num = 2;\n"
+                        "const uint32_t local_5_size = KernelUtils::BlkAlign<half>((t->s0 - 1) + 1);\n"
+                        "const uint32_t local_5_que_buf_num = 2;\n"
+                        "const uint32_t local_6_size = KernelUtils::BlkAlign<half>((t->s0 - 1) + 1);\n"
+                        "const uint32_t local_6_que_buf_num = 2;\n\n"
+                        "// const uint32_t q0_size = KernelUtils::Max(local_3_size * sizeof(half), local_4_size * "
+                        "sizeof(half), local_5_size * sizeof(half), local_6_size * sizeof(half), local_3_size * "
+                        "sizeof(half) + local_4_size * sizeof(half) + local_6_size * sizeof(half));\n"
+                        "const uint32_t q0_buf_num = KernelUtils::Max(2);\n"
+                        "TQue<TPosition::VECIN, 1> q0;\n"
+                        "// tpipe.InitBuffer(q0, q0_buf_num, KernelUtils::BlkAlign<uint8_t>(q0_size));\n"
+                        "tpipe.InitBuffer(q0, q0_buf_num, t->q0_size);\n"
+                        "// const uint32_t b0_size = KernelUtils::Max(8192);\n"
+                        "TBuf<TPosition::VECCALC> b0;\n"
+                        "// tpipe.InitBuffer(b0, KernelUtils::BlkAlign<uint8_t>(b0_size));\n"
+                        "tpipe.InitBuffer(b0, t->b0_size);\n"
+                        "LocalTensor<uint8_t> b0_buf = b0.Get<uint8_t>();\n"
+                        "LocalTensor<uint8_t> tmp_buf_0 = b0.Get<uint8_t>();\n\n\n\n"});
 }
 
 TEST(CodegenKernel, Kernel_GenerateKernel_Multi_ScheduleGroup) {
@@ -4357,13 +4280,14 @@ TEST(CodegenKernel, Kernel_GenerateKernel_Multi_ScheduleGroup) {
   store->outputs[0].attr.opt.merge_scope = 0;
 
   ::ascir::ScheduleGroup schedule_result0_group0 = {{af::AscGraph("test_kernel_general_0_nil_0_nil"),
-    af::AscGraph("test_kernel_general_1_nil_1_nil"), af::AscGraph("test_kernel_general_2_nil_2_nil")}};
+                                                     af::AscGraph("test_kernel_general_1_nil_1_nil"),
+                                                     af::AscGraph("test_kernel_general_2_nil_2_nil")}};
 
-  ::ascir::ScheduleGroup schedule_result0_group1 = {{af::AscGraph("test_kernel_general_3_nil_3_nil"),
-    af::AscGraph("test_kernel_general_4_nil_4_nil")}};
+  ::ascir::ScheduleGroup schedule_result0_group1 = {
+      {af::AscGraph("test_kernel_general_3_nil_3_nil"), af::AscGraph("test_kernel_general_4_nil_4_nil")}};
 
-  ::ascir::ScheduleGroup schedule_result1_group0 = {{af::AscGraph("test_kernel_general_5_nil_5_nil"),
-    af::AscGraph("test_kernel_general_6_nil_6_nil")}};
+  ::ascir::ScheduleGroup schedule_result1_group0 = {
+      {af::AscGraph("test_kernel_general_5_nil_5_nil"), af::AscGraph("test_kernel_general_6_nil_6_nil")}};
 
   ::ascir::ScheduledResult schedule_result0;
   schedule_result0.schedule_groups.push_back(schedule_result0_group0);
@@ -4395,232 +4319,249 @@ TEST(CodegenKernel, Kernel_GenerateKernel_Multi_ScheduleGroup) {
   codegen::Kernel::GenKernelFuncByTilingKey(fused_schedule_result, ss);
   string = ss.str();
 
-  EXPECT_EQ(string, std::string{
-    "\n"
-    "/**\n"
-    " * Copyright (c) 2025 Huawei Technologies Co., Ltd.\n"
-    " * This program is free software, you can redistribute it and/or modify it under the terms and conditions of \n"
-    " * CANN Open Software License Agreement Version 2.0 (the \"License\").\n"
-    " * Please refer to the License for details. You may not use this file except in compliance with the License.\n"
-    " * THIS SOFTWARE IS PROVIDED ON AN \"AS IS\" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, \n"
-    " * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.\n"
-    " * See LICENSE in the root of the software repository for the full text of the License.\n"
-    " */\n"
-    "#ifndef __ASCENDC_API_DATACOPY_H__\n"
-    "#define __ASCENDC_API_DATACOPY_H__\n"
-    "\n"
-    "template <typename T>\n"
-    "inline __aicore__ void DataCopyPadExtend(const AscendC::LocalTensor<T> &dst, const AscendC::GlobalTensor<T> &src,\n"
-    "                                         uint32_t block_count, uint32_t block_len, uint32_t src_stride,\n"
-    "                                         uint32_t dst_stride) {\n"
-    "  uint32_t align_num = ONE_BLK_SIZE / sizeof(T);\n"
-    "  AscendC::DataCopyExtParams param;\n"
-    "  param.blockCount = block_count;\n"
-    "  param.blockLen = block_len * sizeof(T);\n"
-    "  param.srcStride = src_stride * sizeof(T);\n"
-    "  param.dstStride = dst_stride / align_num;\n"
-    "\n"
-    "  AscendC::DataCopyPadExtParams<T> pad_params = {true, 0, 0, 0};\n"
-    "  AscendC::DataCopyPad(dst, src, param, pad_params);\n"
-    "}\n"
-    "\n"
-    "template <typename T>\n"
-    "inline __aicore__ void DataCopyPadExtend(const AscendC::GlobalTensor<T> &dst, const AscendC::LocalTensor<T> &src,\n"
-    "                                         uint32_t block_count, uint32_t block_len, uint32_t src_stride,\n"
-    "                                         uint32_t dst_stride) {\n"
-    "  uint32_t align_num = ONE_BLK_SIZE / sizeof(T);\n"
-    "  AscendC::DataCopyExtParams param;\n"
-    "  param.blockCount = block_count;\n"
-    "  param.blockLen = block_len * sizeof(T);\n"
-    "  param.srcStride = src_stride / align_num;\n"
-    "  param.dstStride = dst_stride * sizeof(T);\n"
-    "\n"
-    "  AscendC::DataCopyPad(dst, src, param);\n"
-    "}\n"
-    "\n"
-    "template <typename T>\n"
-    "inline __aicore__ void DataCopyExtend(const AscendC::LocalTensor<T> &dst, const AscendC::LocalTensor<T> &src,\n"
-    "                                      const uint32_t size) {\n"
-    "  AscendC::DataCopy(dst, src, size);\n"
-    "}\n"
-    "\n"
-    "#endif  // __ASCENDC_API_DATACOPY_H__\n"
-    "inline __aicore__ void test_kernel_general_0_nil_0_nil(GM_ADDR x, GM_ADDR y, GM_ADDR workspace, const AscGraph0ScheduleResult0G0TilingData *t) {\n"
-    "int block_dim = GetBlockIdx();\n"
-    "if (block_dim >= t->block_dim) { \n"
-    "  return;\n"
-    "}\n\n"
-    "GlobalTensor<half> global_0;\n"
-    "global_0.SetGlobalBuffer((__gm__ half*)x);\n"
-    "GlobalTensor<half> global_2;\n"
-    "global_2.SetGlobalBuffer((__gm__ half*)y);\n\n"
-    "TPipe tpipe;\n\n"
-    "const uint32_t local_1_size = 1;\n"
-    "const uint32_t m0_size = KernelUtils::Sum(local_1_size * sizeof(half));\n"
-    "const uint32_t m0_que_buf_num = KernelUtils::Max();\n\n"
-    "// const uint32_t b0_size = KernelUtils::Max(m0_size, 8192);\n"
-    "TBuf<TPosition::GM> b0;\n"
-    "// tpipe.InitBuffer(b0, KernelUtils::BlkAlign<uint8_t>(b0_size));\n"
-    "tpipe.InitBuffer(b0, t->b0_size);\n"
-    "LocalTensor<uint8_t> b0_buf = b0.Get<uint8_t>();\n"
-    "LocalTensor<uint8_t> tmp_buf_0 = b0.Get<uint8_t>();\n\n\n\n"
-    "}\n"
-    "inline __aicore__ void test_kernel_general_1_nil_1_nil(GM_ADDR x, GM_ADDR y, GM_ADDR workspace, const AscGraph0ScheduleResult0G0TilingData *t) {\n"
-    "int block_dim = GetBlockIdx();\n"
-    "if (block_dim >= t->block_dim) { \n"
-    "  return;\n"
-    "}\n\n"
-    "GlobalTensor<half> global_0;\n"
-    "global_0.SetGlobalBuffer((__gm__ half*)x);\n"
-    "GlobalTensor<half> global_2;\n"
-    "global_2.SetGlobalBuffer((__gm__ half*)y);\n\n"
-    "TPipe tpipe;\n\n"
-    "const uint32_t local_1_size = 1;\n"
-    "const uint32_t m0_size = KernelUtils::Sum(local_1_size * sizeof(half));\n"
-    "const uint32_t m0_que_buf_num = KernelUtils::Max();\n\n"
-    "// const uint32_t b0_size = KernelUtils::Max(m0_size, 8192);\n"
-    "TBuf<TPosition::GM> b0;\n"
-    "// tpipe.InitBuffer(b0, KernelUtils::BlkAlign<uint8_t>(b0_size));\n"
-    "tpipe.InitBuffer(b0, t->b0_size);\n"
-    "LocalTensor<uint8_t> b0_buf = b0.Get<uint8_t>();\n"
-    "LocalTensor<uint8_t> tmp_buf_0 = b0.Get<uint8_t>();\n\n\n\n"
-    "}\n"
-    "inline __aicore__ void test_kernel_general_2_nil_2_nil(GM_ADDR x, GM_ADDR y, GM_ADDR workspace, const AscGraph0ScheduleResult0G0TilingData *t) {\n"
-    "int block_dim = GetBlockIdx();\n"
-    "if (block_dim >= t->block_dim) { \n"
-    "  return;\n"
-    "}\n\n"
-    "GlobalTensor<half> global_0;\n"
-    "global_0.SetGlobalBuffer((__gm__ half*)x);\n"
-    "GlobalTensor<half> global_2;\n"
-    "global_2.SetGlobalBuffer((__gm__ half*)y);\n\n"
-    "TPipe tpipe;\n\n"
-    "const uint32_t local_1_size = 1;\n"
-    "const uint32_t m0_size = KernelUtils::Sum(local_1_size * sizeof(half));\n"
-    "const uint32_t m0_que_buf_num = KernelUtils::Max();\n\n"
-    "// const uint32_t b0_size = KernelUtils::Max(m0_size, 8192);\n"
-    "TBuf<TPosition::GM> b0;\n"
-    "// tpipe.InitBuffer(b0, KernelUtils::BlkAlign<uint8_t>(b0_size));\n"
-    "tpipe.InitBuffer(b0, t->b0_size);\n"
-    "LocalTensor<uint8_t> b0_buf = b0.Get<uint8_t>();\n"
-    "LocalTensor<uint8_t> tmp_buf_0 = b0.Get<uint8_t>();\n\n\n\n"
-    "}\n"
-    "inline __aicore__ void test_kernel_general_3_nil_3_nil(GM_ADDR x, GM_ADDR y, GM_ADDR workspace, const AscGraph0ScheduleResult0G1TilingData *t) {\n"
-    "int block_dim = GetBlockIdx();\n"
-    "if (block_dim >= t->block_dim) { \n"
-    "  return;\n"
-    "}\n\n"
-    "GlobalTensor<half> global_0;\n"
-    "global_0.SetGlobalBuffer((__gm__ half*)x);\n"
-    "GlobalTensor<half> global_2;\n"
-    "global_2.SetGlobalBuffer((__gm__ half*)y);\n\n"
-    "TPipe tpipe;\n\n"
-    "const uint32_t local_1_size = 1;\n"
-    "const uint32_t m0_size = KernelUtils::Sum(local_1_size * sizeof(half));\n"
-    "const uint32_t m0_que_buf_num = KernelUtils::Max();\n\n"
-    "// const uint32_t b0_size = KernelUtils::Max(m0_size, 8192);\n"
-    "TBuf<TPosition::GM> b0;\n"
-    "// tpipe.InitBuffer(b0, KernelUtils::BlkAlign<uint8_t>(b0_size));\n"
-    "tpipe.InitBuffer(b0, t->b0_size);\n"
-    "LocalTensor<uint8_t> b0_buf = b0.Get<uint8_t>();\n"
-    "LocalTensor<uint8_t> tmp_buf_0 = b0.Get<uint8_t>();\n\n\n\n"
-    "}\n"
-    "inline __aicore__ void test_kernel_general_4_nil_4_nil(GM_ADDR x, GM_ADDR y, GM_ADDR workspace, const AscGraph0ScheduleResult0G1TilingData *t) {\n"
-    "int block_dim = GetBlockIdx();\n"
-    "if (block_dim >= t->block_dim) { \n"
-    "  return;\n"
-    "}\n\n"
-    "GlobalTensor<half> global_0;\n"
-    "global_0.SetGlobalBuffer((__gm__ half*)x);\n"
-    "GlobalTensor<half> global_2;\n"
-    "global_2.SetGlobalBuffer((__gm__ half*)y);\n\n"
-    "TPipe tpipe;\n\n"
-    "const uint32_t local_1_size = 1;\n"
-    "const uint32_t m0_size = KernelUtils::Sum(local_1_size * sizeof(half));\n"
-    "const uint32_t m0_que_buf_num = KernelUtils::Max();\n\n"
-    "// const uint32_t b0_size = KernelUtils::Max(m0_size, 8192);\n"
-    "TBuf<TPosition::GM> b0;\n"
-    "// tpipe.InitBuffer(b0, KernelUtils::BlkAlign<uint8_t>(b0_size));\n"
-    "tpipe.InitBuffer(b0, t->b0_size);\n"
-    "LocalTensor<uint8_t> b0_buf = b0.Get<uint8_t>();\n"
-    "LocalTensor<uint8_t> tmp_buf_0 = b0.Get<uint8_t>();\n\n\n\n"
-    "}\n"
-    "inline __aicore__ void test_kernel_general_5_nil_5_nil(GM_ADDR x, GM_ADDR y, GM_ADDR workspace, const AscGraph0ScheduleResult1G0TilingData *t) {\n"
-    "int block_dim = GetBlockIdx();\n"
-    "if (block_dim >= t->block_dim) { \n"
-    "  return;\n"
-    "}\n\n"
-    "GlobalTensor<half> global_0;\n"
-    "global_0.SetGlobalBuffer((__gm__ half*)x);\n"
-    "GlobalTensor<half> global_2;\n"
-    "global_2.SetGlobalBuffer((__gm__ half*)y);\n\n"
-    "TPipe tpipe;\n\n"
-    "const uint32_t local_1_size = 1;\n"
-    "const uint32_t m0_size = KernelUtils::Sum(local_1_size * sizeof(half));\n"
-    "const uint32_t m0_que_buf_num = KernelUtils::Max();\n\n"
-    "// const uint32_t b0_size = KernelUtils::Max(m0_size, 8192);\n"
-    "TBuf<TPosition::GM> b0;\n"
-    "// tpipe.InitBuffer(b0, KernelUtils::BlkAlign<uint8_t>(b0_size));\n"
-    "tpipe.InitBuffer(b0, t->b0_size);\n"
-    "LocalTensor<uint8_t> b0_buf = b0.Get<uint8_t>();\n"
-    "LocalTensor<uint8_t> tmp_buf_0 = b0.Get<uint8_t>();\n\n\n\n"
-    "}\n"
-    "inline __aicore__ void test_kernel_general_6_nil_6_nil(GM_ADDR x, GM_ADDR y, GM_ADDR workspace, const AscGraph0ScheduleResult1G0TilingData *t) {\n"
-    "int block_dim = GetBlockIdx();\n"
-    "if (block_dim >= t->block_dim) { \n"
-    "  return;\n"
-    "}\n\n"
-    "GlobalTensor<half> global_0;\n"
-    "global_0.SetGlobalBuffer((__gm__ half*)x);\n"
-    "GlobalTensor<half> global_2;\n"
-    "global_2.SetGlobalBuffer((__gm__ half*)y);\n\n"
-    "TPipe tpipe;\n\n"
-    "const uint32_t local_1_size = 1;\n"
-    "const uint32_t m0_size = KernelUtils::Sum(local_1_size * sizeof(half));\n"
-    "const uint32_t m0_que_buf_num = KernelUtils::Max();\n\n"
-    "// const uint32_t b0_size = KernelUtils::Max(m0_size, 8192);\n"
-    "TBuf<TPosition::GM> b0;\n"
-    "// tpipe.InitBuffer(b0, KernelUtils::BlkAlign<uint8_t>(b0_size));\n"
-    "tpipe.InitBuffer(b0, t->b0_size);\n"
-    "LocalTensor<uint8_t> b0_buf = b0.Get<uint8_t>();\n"
-    "LocalTensor<uint8_t> tmp_buf_0 = b0.Get<uint8_t>();\n\n\n\n"
-    "}\n"
-    "extern \"C\" __global__ __aicore__ void test_kernel(GM_ADDR x, GM_ADDR y, GM_ADDR workspace, GM_ADDR gm_tiling_data) {\n"
-    "  REGISTER_TILING_DEFAULT(AutofuseTilingData);\n"
-    "  GET_TILING_DATA(t, gm_tiling_data);\n"
-    "  if (TILING_KEY_IS(0)) {\n"
-    "    test_kernel_general_0_nil_0_nil(x, y, workspace, &t.graph0_result0_g0_tiling_data);\n"
-    "    test_kernel_general_3_nil_3_nil(x, y, workspace, &t.graph0_result0_g1_tiling_data);\n"
-    "  } else if (TILING_KEY_IS(1)) {\n"
-    "    test_kernel_general_0_nil_0_nil(x, y, workspace, &t.graph0_result0_g0_tiling_data);\n"
-    "    test_kernel_general_4_nil_4_nil(x, y, workspace, &t.graph0_result0_g1_tiling_data);\n"
-    "  } else if (TILING_KEY_IS(2)) {\n"
-    "    test_kernel_general_1_nil_1_nil(x, y, workspace, &t.graph0_result0_g0_tiling_data);\n"
-    "    test_kernel_general_3_nil_3_nil(x, y, workspace, &t.graph0_result0_g1_tiling_data);\n"
-    "  } else if (TILING_KEY_IS(3)) {\n"
-    "    test_kernel_general_1_nil_1_nil(x, y, workspace, &t.graph0_result0_g0_tiling_data);\n"
-    "    test_kernel_general_4_nil_4_nil(x, y, workspace, &t.graph0_result0_g1_tiling_data);\n"
-    "  } else if (TILING_KEY_IS(4)) {\n"
-    "    test_kernel_general_2_nil_2_nil(x, y, workspace, &t.graph0_result0_g0_tiling_data);\n"
-    "    test_kernel_general_3_nil_3_nil(x, y, workspace, &t.graph0_result0_g1_tiling_data);\n"
-    "  } else if (TILING_KEY_IS(5)) {\n"
-    "    test_kernel_general_2_nil_2_nil(x, y, workspace, &t.graph0_result0_g0_tiling_data);\n"
-    "    test_kernel_general_4_nil_4_nil(x, y, workspace, &t.graph0_result0_g1_tiling_data);\n"
-    "  } else if (TILING_KEY_IS(6)) {\n"
-    "    test_kernel_general_5_nil_5_nil(x, y, workspace, &t.graph0_result1_g0_tiling_data);\n"
-    "  } else if (TILING_KEY_IS(7)) {\n"
-    "    test_kernel_general_6_nil_6_nil(x, y, workspace, &t.graph0_result1_g0_tiling_data);\n"
-    "  }\n"
-    "}\n"});
+  EXPECT_EQ(
+      string,
+      std::string{
+          "\n"
+          "/**\n"
+          " * Copyright (c) 2025 Huawei Technologies Co., Ltd.\n"
+          " * This program is free software, you can redistribute it and/or modify it under the terms and conditions "
+          "of\n"
+          " * CANN Open Software License Agreement Version 2.0 (the \"License\").\n"
+          " * Please refer to the License for details. You may not use this file except in compliance with the "
+          "License.\n"
+          " * THIS SOFTWARE IS PROVIDED ON AN \"AS IS\" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR "
+          "IMPLIED,\n"
+          " * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.\n"
+          " * See LICENSE in the root of the software repository for the full text of the License.\n"
+          " */\n"
+          "#ifndef __ASCENDC_API_DATACOPY_H__\n"
+          "#define __ASCENDC_API_DATACOPY_H__\n"
+          "\n"
+          "template <typename T>\n"
+          "inline __aicore__ void DataCopyPadExtend(const AscendC::LocalTensor<T> &dst, const AscendC::GlobalTensor<T> "
+          "&src,\n"
+          "                                         uint32_t block_count, uint32_t block_len, uint32_t src_stride,\n"
+          "                                         uint32_t dst_stride) {\n"
+          "  uint32_t align_num = ONE_BLK_SIZE / sizeof(T);\n"
+          "  AscendC::DataCopyExtParams param;\n"
+          "  param.blockCount = block_count;\n"
+          "  param.blockLen = block_len * sizeof(T);\n"
+          "  param.srcStride = src_stride * sizeof(T);\n"
+          "  param.dstStride = dst_stride / align_num;\n"
+          "\n"
+          "  AscendC::DataCopyPadExtParams<T> pad_params = {true, 0, 0, 0};\n"
+          "  AscendC::DataCopyPad(dst, src, param, pad_params);\n"
+          "}\n"
+          "\n"
+          "template <typename T>\n"
+          "inline __aicore__ void DataCopyPadExtend(const AscendC::GlobalTensor<T> &dst, const AscendC::LocalTensor<T> "
+          "&src,\n"
+          "                                         uint32_t block_count, uint32_t block_len, uint32_t src_stride,\n"
+          "                                         uint32_t dst_stride) {\n"
+          "  uint32_t align_num = ONE_BLK_SIZE / sizeof(T);\n"
+          "  AscendC::DataCopyExtParams param;\n"
+          "  param.blockCount = block_count;\n"
+          "  param.blockLen = block_len * sizeof(T);\n"
+          "  param.srcStride = src_stride / align_num;\n"
+          "  param.dstStride = dst_stride * sizeof(T);\n"
+          "\n"
+          "  AscendC::DataCopyPad(dst, src, param);\n"
+          "}\n"
+          "\n"
+          "template <typename T>\n"
+          "inline __aicore__ void DataCopyExtend(const AscendC::LocalTensor<T> &dst, const AscendC::LocalTensor<T> "
+          "&src,\n"
+          "                                      const uint32_t size) {\n"
+          "  AscendC::DataCopy(dst, src, size);\n"
+          "}\n"
+          "\n"
+          "#endif  // __ASCENDC_API_DATACOPY_H__\n"
+          "inline __aicore__ void test_kernel_general_0_nil_0_nil(GM_ADDR x, GM_ADDR y, GM_ADDR workspace, const "
+          "AscGraph0ScheduleResult0G0TilingData *t) {\n"
+          "int block_dim = GetBlockIdx();\n"
+          "if (block_dim >= t->block_dim) { \n"
+          "  return;\n"
+          "}\n\n"
+          "GlobalTensor<half> global_0;\n"
+          "global_0.SetGlobalBuffer((__gm__ half*)x);\n"
+          "GlobalTensor<half> global_2;\n"
+          "global_2.SetGlobalBuffer((__gm__ half*)y);\n\n"
+          "TPipe tpipe;\n\n"
+          "const uint32_t local_1_size = 1;\n"
+          "const uint32_t m0_size = KernelUtils::Sum(local_1_size * sizeof(half));\n"
+          "const uint32_t m0_que_buf_num = KernelUtils::Max();\n\n"
+          "// const uint32_t b0_size = KernelUtils::Max(m0_size, 8192);\n"
+          "TBuf<TPosition::GM> b0;\n"
+          "// tpipe.InitBuffer(b0, KernelUtils::BlkAlign<uint8_t>(b0_size));\n"
+          "tpipe.InitBuffer(b0, t->b0_size);\n"
+          "LocalTensor<uint8_t> b0_buf = b0.Get<uint8_t>();\n"
+          "LocalTensor<uint8_t> tmp_buf_0 = b0.Get<uint8_t>();\n\n\n\n"
+          "}\n"
+          "inline __aicore__ void test_kernel_general_1_nil_1_nil(GM_ADDR x, GM_ADDR y, GM_ADDR workspace, const "
+          "AscGraph0ScheduleResult0G0TilingData *t) {\n"
+          "int block_dim = GetBlockIdx();\n"
+          "if (block_dim >= t->block_dim) { \n"
+          "  return;\n"
+          "}\n\n"
+          "GlobalTensor<half> global_0;\n"
+          "global_0.SetGlobalBuffer((__gm__ half*)x);\n"
+          "GlobalTensor<half> global_2;\n"
+          "global_2.SetGlobalBuffer((__gm__ half*)y);\n\n"
+          "TPipe tpipe;\n\n"
+          "const uint32_t local_1_size = 1;\n"
+          "const uint32_t m0_size = KernelUtils::Sum(local_1_size * sizeof(half));\n"
+          "const uint32_t m0_que_buf_num = KernelUtils::Max();\n\n"
+          "// const uint32_t b0_size = KernelUtils::Max(m0_size, 8192);\n"
+          "TBuf<TPosition::GM> b0;\n"
+          "// tpipe.InitBuffer(b0, KernelUtils::BlkAlign<uint8_t>(b0_size));\n"
+          "tpipe.InitBuffer(b0, t->b0_size);\n"
+          "LocalTensor<uint8_t> b0_buf = b0.Get<uint8_t>();\n"
+          "LocalTensor<uint8_t> tmp_buf_0 = b0.Get<uint8_t>();\n\n\n\n"
+          "}\n"
+          "inline __aicore__ void test_kernel_general_2_nil_2_nil(GM_ADDR x, GM_ADDR y, GM_ADDR workspace, const "
+          "AscGraph0ScheduleResult0G0TilingData *t) {\n"
+          "int block_dim = GetBlockIdx();\n"
+          "if (block_dim >= t->block_dim) { \n"
+          "  return;\n"
+          "}\n\n"
+          "GlobalTensor<half> global_0;\n"
+          "global_0.SetGlobalBuffer((__gm__ half*)x);\n"
+          "GlobalTensor<half> global_2;\n"
+          "global_2.SetGlobalBuffer((__gm__ half*)y);\n\n"
+          "TPipe tpipe;\n\n"
+          "const uint32_t local_1_size = 1;\n"
+          "const uint32_t m0_size = KernelUtils::Sum(local_1_size * sizeof(half));\n"
+          "const uint32_t m0_que_buf_num = KernelUtils::Max();\n\n"
+          "// const uint32_t b0_size = KernelUtils::Max(m0_size, 8192);\n"
+          "TBuf<TPosition::GM> b0;\n"
+          "// tpipe.InitBuffer(b0, KernelUtils::BlkAlign<uint8_t>(b0_size));\n"
+          "tpipe.InitBuffer(b0, t->b0_size);\n"
+          "LocalTensor<uint8_t> b0_buf = b0.Get<uint8_t>();\n"
+          "LocalTensor<uint8_t> tmp_buf_0 = b0.Get<uint8_t>();\n\n\n\n"
+          "}\n"
+          "inline __aicore__ void test_kernel_general_3_nil_3_nil(GM_ADDR x, GM_ADDR y, GM_ADDR workspace, const "
+          "AscGraph0ScheduleResult0G1TilingData *t) {\n"
+          "int block_dim = GetBlockIdx();\n"
+          "if (block_dim >= t->block_dim) { \n"
+          "  return;\n"
+          "}\n\n"
+          "GlobalTensor<half> global_0;\n"
+          "global_0.SetGlobalBuffer((__gm__ half*)x);\n"
+          "GlobalTensor<half> global_2;\n"
+          "global_2.SetGlobalBuffer((__gm__ half*)y);\n\n"
+          "TPipe tpipe;\n\n"
+          "const uint32_t local_1_size = 1;\n"
+          "const uint32_t m0_size = KernelUtils::Sum(local_1_size * sizeof(half));\n"
+          "const uint32_t m0_que_buf_num = KernelUtils::Max();\n\n"
+          "// const uint32_t b0_size = KernelUtils::Max(m0_size, 8192);\n"
+          "TBuf<TPosition::GM> b0;\n"
+          "// tpipe.InitBuffer(b0, KernelUtils::BlkAlign<uint8_t>(b0_size));\n"
+          "tpipe.InitBuffer(b0, t->b0_size);\n"
+          "LocalTensor<uint8_t> b0_buf = b0.Get<uint8_t>();\n"
+          "LocalTensor<uint8_t> tmp_buf_0 = b0.Get<uint8_t>();\n\n\n\n"
+          "}\n"
+          "inline __aicore__ void test_kernel_general_4_nil_4_nil(GM_ADDR x, GM_ADDR y, GM_ADDR workspace, const "
+          "AscGraph0ScheduleResult0G1TilingData *t) {\n"
+          "int block_dim = GetBlockIdx();\n"
+          "if (block_dim >= t->block_dim) { \n"
+          "  return;\n"
+          "}\n\n"
+          "GlobalTensor<half> global_0;\n"
+          "global_0.SetGlobalBuffer((__gm__ half*)x);\n"
+          "GlobalTensor<half> global_2;\n"
+          "global_2.SetGlobalBuffer((__gm__ half*)y);\n\n"
+          "TPipe tpipe;\n\n"
+          "const uint32_t local_1_size = 1;\n"
+          "const uint32_t m0_size = KernelUtils::Sum(local_1_size * sizeof(half));\n"
+          "const uint32_t m0_que_buf_num = KernelUtils::Max();\n\n"
+          "// const uint32_t b0_size = KernelUtils::Max(m0_size, 8192);\n"
+          "TBuf<TPosition::GM> b0;\n"
+          "// tpipe.InitBuffer(b0, KernelUtils::BlkAlign<uint8_t>(b0_size));\n"
+          "tpipe.InitBuffer(b0, t->b0_size);\n"
+          "LocalTensor<uint8_t> b0_buf = b0.Get<uint8_t>();\n"
+          "LocalTensor<uint8_t> tmp_buf_0 = b0.Get<uint8_t>();\n\n\n\n"
+          "}\n"
+          "inline __aicore__ void test_kernel_general_5_nil_5_nil(GM_ADDR x, GM_ADDR y, GM_ADDR workspace, const "
+          "AscGraph0ScheduleResult1G0TilingData *t) {\n"
+          "int block_dim = GetBlockIdx();\n"
+          "if (block_dim >= t->block_dim) { \n"
+          "  return;\n"
+          "}\n\n"
+          "GlobalTensor<half> global_0;\n"
+          "global_0.SetGlobalBuffer((__gm__ half*)x);\n"
+          "GlobalTensor<half> global_2;\n"
+          "global_2.SetGlobalBuffer((__gm__ half*)y);\n\n"
+          "TPipe tpipe;\n\n"
+          "const uint32_t local_1_size = 1;\n"
+          "const uint32_t m0_size = KernelUtils::Sum(local_1_size * sizeof(half));\n"
+          "const uint32_t m0_que_buf_num = KernelUtils::Max();\n\n"
+          "// const uint32_t b0_size = KernelUtils::Max(m0_size, 8192);\n"
+          "TBuf<TPosition::GM> b0;\n"
+          "// tpipe.InitBuffer(b0, KernelUtils::BlkAlign<uint8_t>(b0_size));\n"
+          "tpipe.InitBuffer(b0, t->b0_size);\n"
+          "LocalTensor<uint8_t> b0_buf = b0.Get<uint8_t>();\n"
+          "LocalTensor<uint8_t> tmp_buf_0 = b0.Get<uint8_t>();\n\n\n\n"
+          "}\n"
+          "inline __aicore__ void test_kernel_general_6_nil_6_nil(GM_ADDR x, GM_ADDR y, GM_ADDR workspace, const "
+          "AscGraph0ScheduleResult1G0TilingData *t) {\n"
+          "int block_dim = GetBlockIdx();\n"
+          "if (block_dim >= t->block_dim) { \n"
+          "  return;\n"
+          "}\n\n"
+          "GlobalTensor<half> global_0;\n"
+          "global_0.SetGlobalBuffer((__gm__ half*)x);\n"
+          "GlobalTensor<half> global_2;\n"
+          "global_2.SetGlobalBuffer((__gm__ half*)y);\n\n"
+          "TPipe tpipe;\n\n"
+          "const uint32_t local_1_size = 1;\n"
+          "const uint32_t m0_size = KernelUtils::Sum(local_1_size * sizeof(half));\n"
+          "const uint32_t m0_que_buf_num = KernelUtils::Max();\n\n"
+          "// const uint32_t b0_size = KernelUtils::Max(m0_size, 8192);\n"
+          "TBuf<TPosition::GM> b0;\n"
+          "// tpipe.InitBuffer(b0, KernelUtils::BlkAlign<uint8_t>(b0_size));\n"
+          "tpipe.InitBuffer(b0, t->b0_size);\n"
+          "LocalTensor<uint8_t> b0_buf = b0.Get<uint8_t>();\n"
+          "LocalTensor<uint8_t> tmp_buf_0 = b0.Get<uint8_t>();\n\n\n\n"
+          "}\n"
+          "extern \"C\" __global__ __aicore__ void test_kernel(GM_ADDR x, GM_ADDR y, GM_ADDR workspace, GM_ADDR "
+          "gm_tiling_data) {\n"
+          "  REGISTER_TILING_DEFAULT(AutofuseTilingData);\n"
+          "  GET_TILING_DATA(t, gm_tiling_data);\n"
+          "  if (TILING_KEY_IS(0)) {\n"
+          "    test_kernel_general_0_nil_0_nil(x, y, workspace, &t.graph0_result0_g0_tiling_data);\n"
+          "    test_kernel_general_3_nil_3_nil(x, y, workspace, &t.graph0_result0_g1_tiling_data);\n"
+          "  } else if (TILING_KEY_IS(1)) {\n"
+          "    test_kernel_general_0_nil_0_nil(x, y, workspace, &t.graph0_result0_g0_tiling_data);\n"
+          "    test_kernel_general_4_nil_4_nil(x, y, workspace, &t.graph0_result0_g1_tiling_data);\n"
+          "  } else if (TILING_KEY_IS(2)) {\n"
+          "    test_kernel_general_1_nil_1_nil(x, y, workspace, &t.graph0_result0_g0_tiling_data);\n"
+          "    test_kernel_general_3_nil_3_nil(x, y, workspace, &t.graph0_result0_g1_tiling_data);\n"
+          "  } else if (TILING_KEY_IS(3)) {\n"
+          "    test_kernel_general_1_nil_1_nil(x, y, workspace, &t.graph0_result0_g0_tiling_data);\n"
+          "    test_kernel_general_4_nil_4_nil(x, y, workspace, &t.graph0_result0_g1_tiling_data);\n"
+          "  } else if (TILING_KEY_IS(4)) {\n"
+          "    test_kernel_general_2_nil_2_nil(x, y, workspace, &t.graph0_result0_g0_tiling_data);\n"
+          "    test_kernel_general_3_nil_3_nil(x, y, workspace, &t.graph0_result0_g1_tiling_data);\n"
+          "  } else if (TILING_KEY_IS(5)) {\n"
+          "    test_kernel_general_2_nil_2_nil(x, y, workspace, &t.graph0_result0_g0_tiling_data);\n"
+          "    test_kernel_general_4_nil_4_nil(x, y, workspace, &t.graph0_result0_g1_tiling_data);\n"
+          "  } else if (TILING_KEY_IS(6)) {\n"
+          "    test_kernel_general_5_nil_5_nil(x, y, workspace, &t.graph0_result1_g0_tiling_data);\n"
+          "  } else if (TILING_KEY_IS(7)) {\n"
+          "    test_kernel_general_6_nil_6_nil(x, y, workspace, &t.graph0_result1_g0_tiling_data);\n"
+          "  }\n"
+          "}\n"});
 
   fused_schedule_result.node_idx_to_scheduled_results[0][0].enable_group_parallel = true;
   std::stringstream ss1;
   std::string kernel_txt;
   codegen::Kernel::GenKernelFuncByTilingKey(fused_schedule_result, ss1);
   kernel_txt = ss1.str();
-  std::string expect_found = "const uint32_t block_offset = t->ub_size;  // resue as block_offset\n"
-                             "block_dim = block_dim >= block_offset ? "
-                             "block_dim - block_offset : block_dim + GetBlockNum() - block_offset;\n";
+  std::string expect_found =
+      "const uint32_t block_offset = t->ub_size;  // resue as block_offset\n"
+      "block_dim = block_dim >= block_offset ? "
+      "block_dim - block_offset : block_dim + GetBlockNum() - block_offset;\n";
   EXPECT_TRUE(kernel_txt.find(expect_found) != std::string::npos);
 }
 
@@ -4666,7 +4607,8 @@ TEST(CodegenKernel, Kernel_GenerateKernel_Single_ScheduleGroup) {
   store->outputs[0].attr.opt.merge_scope = 0;
 
   ::ascir::ScheduleGroup schedule_result0_group0 = {{af::AscGraph("test_kernel_general_0_nil_0_nil"),
-    af::AscGraph("test_kernel_general_1_nil_1_nil"), af::AscGraph("test_kernel_general_2_nil_2_nil")}};
+                                                     af::AscGraph("test_kernel_general_1_nil_1_nil"),
+                                                     af::AscGraph("test_kernel_general_2_nil_2_nil")}};
 
   ::ascir::ScheduledResult schedule_result0;
   schedule_result0.schedule_groups.push_back(schedule_result0_group0);
@@ -4692,127 +4634,139 @@ TEST(CodegenKernel, Kernel_GenerateKernel_Single_ScheduleGroup) {
   codegen::Kernel::GenKernelFuncByTilingKey(fused_schedule_result, ss);
   string = ss.str();
 
-  EXPECT_EQ(string, std::string{
-    "\n"
-    "/**\n"
-    " * Copyright (c) 2025 Huawei Technologies Co., Ltd.\n"
-    " * This program is free software, you can redistribute it and/or modify it under the terms and conditions of \n"
-    " * CANN Open Software License Agreement Version 2.0 (the \"License\").\n"
-    " * Please refer to the License for details. You may not use this file except in compliance with the License.\n"
-    " * THIS SOFTWARE IS PROVIDED ON AN \"AS IS\" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, \n"
-    " * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.\n"
-    " * See LICENSE in the root of the software repository for the full text of the License.\n"
-    " */\n"
-    "#ifndef __ASCENDC_API_DATACOPY_H__\n"
-    "#define __ASCENDC_API_DATACOPY_H__\n"
-    "\n"
-    "template <typename T>\n"
-    "inline __aicore__ void DataCopyPadExtend(const AscendC::LocalTensor<T> &dst, const AscendC::GlobalTensor<T> &src,\n"
-    "                                         uint32_t block_count, uint32_t block_len, uint32_t src_stride,\n"
-    "                                         uint32_t dst_stride) {\n"
-    "  uint32_t align_num = ONE_BLK_SIZE / sizeof(T);\n"
-    "  AscendC::DataCopyExtParams param;\n"
-    "  param.blockCount = block_count;\n"
-    "  param.blockLen = block_len * sizeof(T);\n"
-    "  param.srcStride = src_stride * sizeof(T);\n"
-    "  param.dstStride = dst_stride / align_num;\n"
-    "\n"
-    "  AscendC::DataCopyPadExtParams<T> pad_params = {true, 0, 0, 0};\n"
-    "  AscendC::DataCopyPad(dst, src, param, pad_params);\n"
-    "}\n"
-    "\n"
-    "template <typename T>\n"
-    "inline __aicore__ void DataCopyPadExtend(const AscendC::GlobalTensor<T> &dst, const AscendC::LocalTensor<T> &src,\n"
-    "                                         uint32_t block_count, uint32_t block_len, uint32_t src_stride,\n"
-    "                                         uint32_t dst_stride) {\n"
-    "  uint32_t align_num = ONE_BLK_SIZE / sizeof(T);\n"
-    "  AscendC::DataCopyExtParams param;\n"
-    "  param.blockCount = block_count;\n"
-    "  param.blockLen = block_len * sizeof(T);\n"
-    "  param.srcStride = src_stride / align_num;\n"
-    "  param.dstStride = dst_stride * sizeof(T);\n"
-    "\n"
-    "  AscendC::DataCopyPad(dst, src, param);\n"
-    "}\n"
-    "\n"
-    "template <typename T>\n"
-    "inline __aicore__ void DataCopyExtend(const AscendC::LocalTensor<T> &dst, const AscendC::LocalTensor<T> &src,\n"
-    "                                      const uint32_t size) {\n"
-    "  AscendC::DataCopy(dst, src, size);\n"
-    "}\n"
-    "\n"
-    "#endif  // __ASCENDC_API_DATACOPY_H__\n"
-    "inline __aicore__ void test_kernel_general_0_nil_0_nil(GM_ADDR x, GM_ADDR y, GM_ADDR workspace, const AutofuseTilingData *t) {\n"
-    "int block_dim = GetBlockIdx();\n"
-    "if (block_dim >= t->block_dim) { \n"
-    "  return;\n"
-    "}\n\n"
-    "GlobalTensor<half> global_0;\n"
-    "global_0.SetGlobalBuffer((__gm__ half*)x);\n"
-    "GlobalTensor<half> global_2;\n"
-    "global_2.SetGlobalBuffer((__gm__ half*)y);\n\n"
-    "TPipe tpipe;\n\n"
-    "const uint32_t local_1_size = 1;\n"
-    "const uint32_t m0_size = KernelUtils::Sum(local_1_size * sizeof(half));\n"
-    "const uint32_t m0_que_buf_num = KernelUtils::Max();\n\n"
-    "// const uint32_t b0_size = KernelUtils::Max(m0_size, 8192);\n"
-    "TBuf<TPosition::GM> b0;\n"
-    "// tpipe.InitBuffer(b0, KernelUtils::BlkAlign<uint8_t>(b0_size));\n"
-    "tpipe.InitBuffer(b0, t->b0_size);\n"
-    "LocalTensor<uint8_t> b0_buf = b0.Get<uint8_t>();\n"
-    "LocalTensor<uint8_t> tmp_buf_0 = b0.Get<uint8_t>();\n\n\n\n"
-    "}\n"
-    "inline __aicore__ void test_kernel_general_1_nil_1_nil(GM_ADDR x, GM_ADDR y, GM_ADDR workspace, const AutofuseTilingData *t) {\n"
-    "int block_dim = GetBlockIdx();\n"
-    "if (block_dim >= t->block_dim) { \n"
-    "  return;\n"
-    "}\n\n"
-    "GlobalTensor<half> global_0;\n"
-    "global_0.SetGlobalBuffer((__gm__ half*)x);\n"
-    "GlobalTensor<half> global_2;\n"
-    "global_2.SetGlobalBuffer((__gm__ half*)y);\n\n"
-    "TPipe tpipe;\n\n"
-    "const uint32_t local_1_size = 1;\n"
-    "const uint32_t m0_size = KernelUtils::Sum(local_1_size * sizeof(half));\n"
-    "const uint32_t m0_que_buf_num = KernelUtils::Max();\n\n"
-    "// const uint32_t b0_size = KernelUtils::Max(m0_size, 8192);\n"
-    "TBuf<TPosition::GM> b0;\n"
-    "// tpipe.InitBuffer(b0, KernelUtils::BlkAlign<uint8_t>(b0_size));\n"
-    "tpipe.InitBuffer(b0, t->b0_size);\n"
-    "LocalTensor<uint8_t> b0_buf = b0.Get<uint8_t>();\n"
-    "LocalTensor<uint8_t> tmp_buf_0 = b0.Get<uint8_t>();\n\n\n\n"
-    "}\n"
-    "inline __aicore__ void test_kernel_general_2_nil_2_nil(GM_ADDR x, GM_ADDR y, GM_ADDR workspace, const AutofuseTilingData *t) {\n"
-    "int block_dim = GetBlockIdx();\n"
-    "if (block_dim >= t->block_dim) { \n"
-    "  return;\n"
-    "}\n\n"
-    "GlobalTensor<half> global_0;\n"
-    "global_0.SetGlobalBuffer((__gm__ half*)x);\n"
-    "GlobalTensor<half> global_2;\n"
-    "global_2.SetGlobalBuffer((__gm__ half*)y);\n\n"
-    "TPipe tpipe;\n\n"
-    "const uint32_t local_1_size = 1;\n"
-    "const uint32_t m0_size = KernelUtils::Sum(local_1_size * sizeof(half));\n"
-    "const uint32_t m0_que_buf_num = KernelUtils::Max();\n\n"
-    "// const uint32_t b0_size = KernelUtils::Max(m0_size, 8192);\n"
-    "TBuf<TPosition::GM> b0;\n"
-    "// tpipe.InitBuffer(b0, KernelUtils::BlkAlign<uint8_t>(b0_size));\n"
-    "tpipe.InitBuffer(b0, t->b0_size);\n"
-    "LocalTensor<uint8_t> b0_buf = b0.Get<uint8_t>();\n"
-    "LocalTensor<uint8_t> tmp_buf_0 = b0.Get<uint8_t>();\n\n\n\n"
-    "}\n"
-    "extern \"C\" __global__ __aicore__ void test_kernel(GM_ADDR x, GM_ADDR y, GM_ADDR workspace, GM_ADDR gm_tiling_data) {\n"
-    "  REGISTER_TILING_DEFAULT(AutofuseTilingData);\n"
-    "  GET_TILING_DATA(t, gm_tiling_data);\n"
-    "  if (TILING_KEY_IS(0)) {\n"
-    "    test_kernel_general_0_nil_0_nil(x, y, workspace, &t);\n"
-    "  } else if (TILING_KEY_IS(1)) {\n"
-    "    test_kernel_general_1_nil_1_nil(x, y, workspace, &t);\n"
-    "  } else if (TILING_KEY_IS(2)) {\n"
-    "    test_kernel_general_2_nil_2_nil(x, y, workspace, &t);\n"
-    "  }\n"
-    "}\n"});
+  EXPECT_EQ(
+      string,
+      std::string{
+          "\n"
+          "/**\n"
+          " * Copyright (c) 2025 Huawei Technologies Co., Ltd.\n"
+          " * This program is free software, you can redistribute it and/or modify it under the terms and conditions "
+          "of\n"
+          " * CANN Open Software License Agreement Version 2.0 (the \"License\").\n"
+          " * Please refer to the License for details. You may not use this file except in compliance with the "
+          "License.\n"
+          " * THIS SOFTWARE IS PROVIDED ON AN \"AS IS\" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR "
+          "IMPLIED,\n"
+          " * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.\n"
+          " * See LICENSE in the root of the software repository for the full text of the License.\n"
+          " */\n"
+          "#ifndef __ASCENDC_API_DATACOPY_H__\n"
+          "#define __ASCENDC_API_DATACOPY_H__\n"
+          "\n"
+          "template <typename T>\n"
+          "inline __aicore__ void DataCopyPadExtend(const AscendC::LocalTensor<T> &dst, const AscendC::GlobalTensor<T> "
+          "&src,\n"
+          "                                         uint32_t block_count, uint32_t block_len, uint32_t src_stride,\n"
+          "                                         uint32_t dst_stride) {\n"
+          "  uint32_t align_num = ONE_BLK_SIZE / sizeof(T);\n"
+          "  AscendC::DataCopyExtParams param;\n"
+          "  param.blockCount = block_count;\n"
+          "  param.blockLen = block_len * sizeof(T);\n"
+          "  param.srcStride = src_stride * sizeof(T);\n"
+          "  param.dstStride = dst_stride / align_num;\n"
+          "\n"
+          "  AscendC::DataCopyPadExtParams<T> pad_params = {true, 0, 0, 0};\n"
+          "  AscendC::DataCopyPad(dst, src, param, pad_params);\n"
+          "}\n"
+          "\n"
+          "template <typename T>\n"
+          "inline __aicore__ void DataCopyPadExtend(const AscendC::GlobalTensor<T> &dst, const AscendC::LocalTensor<T> "
+          "&src,\n"
+          "                                         uint32_t block_count, uint32_t block_len, uint32_t src_stride,\n"
+          "                                         uint32_t dst_stride) {\n"
+          "  uint32_t align_num = ONE_BLK_SIZE / sizeof(T);\n"
+          "  AscendC::DataCopyExtParams param;\n"
+          "  param.blockCount = block_count;\n"
+          "  param.blockLen = block_len * sizeof(T);\n"
+          "  param.srcStride = src_stride / align_num;\n"
+          "  param.dstStride = dst_stride * sizeof(T);\n"
+          "\n"
+          "  AscendC::DataCopyPad(dst, src, param);\n"
+          "}\n"
+          "\n"
+          "template <typename T>\n"
+          "inline __aicore__ void DataCopyExtend(const AscendC::LocalTensor<T> &dst, const AscendC::LocalTensor<T> "
+          "&src,\n"
+          "                                      const uint32_t size) {\n"
+          "  AscendC::DataCopy(dst, src, size);\n"
+          "}\n"
+          "\n"
+          "#endif  // __ASCENDC_API_DATACOPY_H__\n"
+          "inline __aicore__ void test_kernel_general_0_nil_0_nil(GM_ADDR x, GM_ADDR y, GM_ADDR workspace, const "
+          "AutofuseTilingData *t) {\n"
+          "int block_dim = GetBlockIdx();\n"
+          "if (block_dim >= t->block_dim) { \n"
+          "  return;\n"
+          "}\n\n"
+          "GlobalTensor<half> global_0;\n"
+          "global_0.SetGlobalBuffer((__gm__ half*)x);\n"
+          "GlobalTensor<half> global_2;\n"
+          "global_2.SetGlobalBuffer((__gm__ half*)y);\n\n"
+          "TPipe tpipe;\n\n"
+          "const uint32_t local_1_size = 1;\n"
+          "const uint32_t m0_size = KernelUtils::Sum(local_1_size * sizeof(half));\n"
+          "const uint32_t m0_que_buf_num = KernelUtils::Max();\n\n"
+          "// const uint32_t b0_size = KernelUtils::Max(m0_size, 8192);\n"
+          "TBuf<TPosition::GM> b0;\n"
+          "// tpipe.InitBuffer(b0, KernelUtils::BlkAlign<uint8_t>(b0_size));\n"
+          "tpipe.InitBuffer(b0, t->b0_size);\n"
+          "LocalTensor<uint8_t> b0_buf = b0.Get<uint8_t>();\n"
+          "LocalTensor<uint8_t> tmp_buf_0 = b0.Get<uint8_t>();\n\n\n\n"
+          "}\n"
+          "inline __aicore__ void test_kernel_general_1_nil_1_nil(GM_ADDR x, GM_ADDR y, GM_ADDR workspace, const "
+          "AutofuseTilingData *t) {\n"
+          "int block_dim = GetBlockIdx();\n"
+          "if (block_dim >= t->block_dim) { \n"
+          "  return;\n"
+          "}\n\n"
+          "GlobalTensor<half> global_0;\n"
+          "global_0.SetGlobalBuffer((__gm__ half*)x);\n"
+          "GlobalTensor<half> global_2;\n"
+          "global_2.SetGlobalBuffer((__gm__ half*)y);\n\n"
+          "TPipe tpipe;\n\n"
+          "const uint32_t local_1_size = 1;\n"
+          "const uint32_t m0_size = KernelUtils::Sum(local_1_size * sizeof(half));\n"
+          "const uint32_t m0_que_buf_num = KernelUtils::Max();\n\n"
+          "// const uint32_t b0_size = KernelUtils::Max(m0_size, 8192);\n"
+          "TBuf<TPosition::GM> b0;\n"
+          "// tpipe.InitBuffer(b0, KernelUtils::BlkAlign<uint8_t>(b0_size));\n"
+          "tpipe.InitBuffer(b0, t->b0_size);\n"
+          "LocalTensor<uint8_t> b0_buf = b0.Get<uint8_t>();\n"
+          "LocalTensor<uint8_t> tmp_buf_0 = b0.Get<uint8_t>();\n\n\n\n"
+          "}\n"
+          "inline __aicore__ void test_kernel_general_2_nil_2_nil(GM_ADDR x, GM_ADDR y, GM_ADDR workspace, const "
+          "AutofuseTilingData *t) {\n"
+          "int block_dim = GetBlockIdx();\n"
+          "if (block_dim >= t->block_dim) { \n"
+          "  return;\n"
+          "}\n\n"
+          "GlobalTensor<half> global_0;\n"
+          "global_0.SetGlobalBuffer((__gm__ half*)x);\n"
+          "GlobalTensor<half> global_2;\n"
+          "global_2.SetGlobalBuffer((__gm__ half*)y);\n\n"
+          "TPipe tpipe;\n\n"
+          "const uint32_t local_1_size = 1;\n"
+          "const uint32_t m0_size = KernelUtils::Sum(local_1_size * sizeof(half));\n"
+          "const uint32_t m0_que_buf_num = KernelUtils::Max();\n\n"
+          "// const uint32_t b0_size = KernelUtils::Max(m0_size, 8192);\n"
+          "TBuf<TPosition::GM> b0;\n"
+          "// tpipe.InitBuffer(b0, KernelUtils::BlkAlign<uint8_t>(b0_size));\n"
+          "tpipe.InitBuffer(b0, t->b0_size);\n"
+          "LocalTensor<uint8_t> b0_buf = b0.Get<uint8_t>();\n"
+          "LocalTensor<uint8_t> tmp_buf_0 = b0.Get<uint8_t>();\n\n\n\n"
+          "}\n"
+          "extern \"C\" __global__ __aicore__ void test_kernel(GM_ADDR x, GM_ADDR y, GM_ADDR workspace, GM_ADDR "
+          "gm_tiling_data) {\n"
+          "  REGISTER_TILING_DEFAULT(AutofuseTilingData);\n"
+          "  GET_TILING_DATA(t, gm_tiling_data);\n"
+          "  if (TILING_KEY_IS(0)) {\n"
+          "    test_kernel_general_0_nil_0_nil(x, y, workspace, &t);\n"
+          "  } else if (TILING_KEY_IS(1)) {\n"
+          "    test_kernel_general_1_nil_1_nil(x, y, workspace, &t);\n"
+          "  } else if (TILING_KEY_IS(2)) {\n"
+          "    test_kernel_general_2_nil_2_nil(x, y, workspace, &t);\n"
+          "  }\n"
+          "}\n"});
 }
 
 TEST(CodegenKernel, DynamicInputsAndOutputs) {
@@ -4879,12 +4833,14 @@ TEST(CodegenKernel, DynamicInputsAndOutputs) {
   fused_schedule_result.output_nodes.push_back(y);
   codegen::Kernel kernel(graph.GetName());
   kernel.SetUseListTensor(true);
-  std::string include_and_defines = codegen::Kernel::IncludeAndDefines(fused_schedule_result, "KERNEL_TYPE_AIV_ONLY" , true);
+  std::string include_and_defines =
+      codegen::Kernel::IncludeAndDefines(fused_schedule_result, "KERNEL_TYPE_AIV_ONLY", true);
   EXPECT_TRUE(include_and_defines.find("kernel_operator_list_tensor_intf.h") != std::string::npos);
 
   auto declare = codegen::Kernel::KernelFuncDeclare("fused_graph", fused_schedule_result, true);
-  std::string expected = "extern \"C\" __global__ __aicore__ void "
-                         "fused_graph(GM_ADDR inputs, GM_ADDR outputs, GM_ADDR workspace, GM_ADDR gm_tiling_data)";
+  std::string expected =
+      "extern \"C\" __global__ __aicore__ void "
+      "fused_graph(GM_ADDR inputs, GM_ADDR outputs, GM_ADDR workspace, GM_ADDR gm_tiling_data)";
   EXPECT_EQ(declare, expected);
   kernel.SetUseListTensor(true);
   std::string global_tensor_init_result;
@@ -4972,16 +4928,16 @@ TEST(CodegenKernel, PackingFunctionCalls) {
   result = ss.str();
   EXPECT_EQ(ret, SUCCESS);
   std::cout << result;
-  EXPECT_TRUE(result.find("packed_functions_820000000(input_tensor_desc, output_tensor_desc, workspace, t)")
-                  != std::string::npos);
-  EXPECT_TRUE(result.find("packed_functions_820000001(input_tensor_desc, output_tensor_desc, workspace, t)")
-                  != std::string::npos);
-  EXPECT_TRUE(result.find("packed_functions_820000002(input_tensor_desc, output_tensor_desc, workspace, t)")
-                  != std::string::npos);
-  EXPECT_TRUE(result.find("packed_functions_820000003(input_tensor_desc, output_tensor_desc, workspace, t)")
-                  != std::string::npos);
-  EXPECT_TRUE(result.find("packed_functions_820000004(input_tensor_desc, output_tensor_desc, workspace, t)")
-                  == std::string::npos);
+  EXPECT_TRUE(result.find("packed_functions_820000000(input_tensor_desc, output_tensor_desc, workspace, t)") !=
+              std::string::npos);
+  EXPECT_TRUE(result.find("packed_functions_820000001(input_tensor_desc, output_tensor_desc, workspace, t)") !=
+              std::string::npos);
+  EXPECT_TRUE(result.find("packed_functions_820000002(input_tensor_desc, output_tensor_desc, workspace, t)") !=
+              std::string::npos);
+  EXPECT_TRUE(result.find("packed_functions_820000003(input_tensor_desc, output_tensor_desc, workspace, t)") !=
+              std::string::npos);
+  EXPECT_TRUE(result.find("packed_functions_820000004(input_tensor_desc, output_tensor_desc, workspace, t)") ==
+              std::string::npos);
   EXPECT_TRUE(result.find("if TILING_KEY_VAR == 20000000") != std::string::npos);
   EXPECT_TRUE(result.find("if TILING_KEY_VAR == 20000001") != std::string::npos);
   EXPECT_TRUE(result.find("if TILING_KEY_VAR == 20000002") != std::string::npos);
@@ -5040,7 +4996,8 @@ TEST(CodegenKernel, GenDuplicateBufAlloc) {
   std::string result;
   result = tpipe.GenDuplicateBufAlloc(pre_api_extract_dup);
 
-  EXPECT_EQ(result, "TBuf<TPosition::VECCALC> builtin_tmp_buffer_1;\n"
+  EXPECT_EQ(result,
+            "TBuf<TPosition::VECCALC> builtin_tmp_buffer_1;\n"
             "tpipe.InitBuffer(builtin_tmp_buffer_1, ONE_BLK_SIZE);\n"
             "LocalTensor<uint8_t> builtin_tmp_buf_1 = builtin_tmp_buffer_1.Get<uint8_t>();\n"
             "LocalTensor<float> local_blk_tensor_of_float_1 = builtin_tmp_buf_1.template ReinterpretCast<float>();\n"
@@ -5521,22 +5478,20 @@ TEST(CodegenKernel, GenerateTQueBind) {
   codegen::Kernel::ParseGraph(graph, fused_schedule_result, kernel);
   std::string result;
   kernel.LocalTensorQueBufAlloc(result, graph);
-  EXPECT_EQ(result, std::string{
-      "TPipe tpipe;\n\n"
-      "const uint32_t local_1_size = KernelUtils::BlkAlign<half>((t->s0 - 1) + 1);\n"
-      "const uint32_t local_1_que_buf_num = 2;\n\n"
-      "// const uint32_t q0_size = KernelUtils::Max(local_1_size * sizeof(half));\n"
-      "const uint32_t q0_buf_num = KernelUtils::Max(2);\n"
-      "TQueBind<TPosition::VECIN, TPosition::VECOUT, 1> q0;\n"
-      "// tpipe.InitBuffer(q0, q0_buf_num, KernelUtils::BlkAlign<uint8_t>(q0_size));\n"
-      "tpipe.InitBuffer(q0, q0_buf_num, t->q0_size);\n"
-      "// const uint32_t b0_size = KernelUtils::Max(8192);\n"
-      "TBuf<TPosition::VECCALC> b0;\n"
-      "// tpipe.InitBuffer(b0, KernelUtils::BlkAlign<uint8_t>(b0_size));\n"
-      "tpipe.InitBuffer(b0, t->b0_size);\n"
-      "LocalTensor<uint8_t> b0_buf = b0.Get<uint8_t>();\n"
-      "LocalTensor<uint8_t> tmp_buf_0 = b0.Get<uint8_t>();\n\n\n\n"
-  });
+  EXPECT_EQ(result, std::string{"TPipe tpipe;\n\n"
+                                "const uint32_t local_1_size = KernelUtils::BlkAlign<half>((t->s0 - 1) + 1);\n"
+                                "const uint32_t local_1_que_buf_num = 2;\n\n"
+                                "// const uint32_t q0_size = KernelUtils::Max(local_1_size * sizeof(half));\n"
+                                "const uint32_t q0_buf_num = KernelUtils::Max(2);\n"
+                                "TQueBind<TPosition::VECIN, TPosition::VECOUT, 1> q0;\n"
+                                "// tpipe.InitBuffer(q0, q0_buf_num, KernelUtils::BlkAlign<uint8_t>(q0_size));\n"
+                                "tpipe.InitBuffer(q0, q0_buf_num, t->q0_size);\n"
+                                "// const uint32_t b0_size = KernelUtils::Max(8192);\n"
+                                "TBuf<TPosition::VECCALC> b0;\n"
+                                "// tpipe.InitBuffer(b0, KernelUtils::BlkAlign<uint8_t>(b0_size));\n"
+                                "tpipe.InitBuffer(b0, t->b0_size);\n"
+                                "LocalTensor<uint8_t> b0_buf = b0.Get<uint8_t>();\n"
+                                "LocalTensor<uint8_t> tmp_buf_0 = b0.Get<uint8_t>();\n\n\n\n"});
 }
 
 TEST(CodegenKernel, CalculateWorkspaceSize_Test) {
@@ -5624,7 +5579,10 @@ TEST(CodegenKernel, CalculateWorkspaceSize_Test) {
 
   std::vector<af::AscNodePtr> workspace_nodes = {workspace1, workspace2};
   auto ws_size = ascgen_utils::CalculateWorkspaceSize(workspace_nodes);
-  EXPECT_EQ(ToString(ws_size), "(Max(Max(0, (2 * Max(Max(1, s1), (s0 * s1)))), (2 * Max(Max(Max(1, s2), (s1 * s2)), (s0 * s1 * s2)))) + Max(Max(0, (2 * Max(Max(Max(Max(1, s3), (s2 * s3)), (s0 * s1 * s2 * s3)), (s1 * s2 * s3)))), (2 * Max(Max(1, s3), (s2 * s3)))))");
+  EXPECT_EQ(ToString(ws_size),
+            "(Max(Max(0, (2 * Max(Max(1, s1), (s0 * s1)))), (2 * Max(Max(Max(1, s2), (s1 * s2)), (s0 * s1 * s2)))) + "
+            "Max(Max(0, (2 * Max(Max(Max(Max(1, s3), (s2 * s3)), (s0 * s1 * s2 * s3)), (s1 * s2 * s3)))), (2 * "
+            "Max(Max(1, s3), (s2 * s3)))))");
 }
 
 TEST(CodegenKernel, CalculateWorkspaceSize_Test2) {
@@ -5686,7 +5644,7 @@ TEST(CodegenKernel, CalculateWorkspaceSize_Test2) {
   {
     // ws size为完整大小4*8*16*32 * sizeof(fp16)
     store1->outputs[0].attr.repeats = {s0, s1, s2, s3};
-    store1->outputs[0].attr.strides= {s1 * s2 * s3, s2 * s3, s3, One};
+    store1->outputs[0].attr.strides = {s1 * s2 * s3, s2 * s3, s3, One};
     load1->outputs[0].attr.repeats = {s1, s3};
     load1->outputs[0].attr.strides = {s3, One};
     load2->outputs[0].attr.repeats = {s2, s3};
@@ -5722,7 +5680,6 @@ TEST(CodegenKernel, CalculateWorkspaceSize_Test2) {
     EXPECT_EQ(ToString(ws_size), "8192");
   }
 }
-
 
 TEST(CodegenKernel, CalculateWorkspaceSize_WarnTest) {
   af::AscGraph graph("test_graph");
@@ -5894,67 +5851,66 @@ TEST(CodegenKernel, BroadcastInlineWithExecCondition) {
   codegen::TPipe tpipe("t", tiler);
   std::string result;
   EXPECT_EQ(loop1.Generate(tiler, tpipe, result), ge::SUCCESS);
-  EXPECT_EQ(result, std::string{
-    "for (int z0 = 0; z0 < z0_loop_size; z0++) {\n"
-    "for (int z1 = 0; z1 < z1_loop_size; z1++) {\n"
-    "bool enable_cache_fused_brc_axis = (z1 < 1) || ((block_dim * 0 + z1) % z1_loop_size < 1);\n"
-    "bool enable_cache_origin_brc_axis = (z1 < 1);\n"
-    "if (enable_cache_fused_brc_axis) {\n"
-    "();\n"
-    "}\n\n"
-    "if (enable_cache_origin_brc_axis) {\n"
-    "();\n"
-    "}\n\n"
-    "}\n"
-    "}\n"
-  });
+  EXPECT_EQ(result,
+            std::string{"for (int z0 = 0; z0 < z0_loop_size; z0++) {\n"
+                        "for (int z1 = 0; z1 < z1_loop_size; z1++) {\n"
+                        "bool enable_cache_fused_brc_axis = (z1 < 1) || ((block_dim * 0 + z1) % z1_loop_size < 1);\n"
+                        "bool enable_cache_origin_brc_axis = (z1 < 1);\n"
+                        "if (enable_cache_fused_brc_axis) {\n"
+                        "();\n"
+                        "}\n\n"
+                        "if (enable_cache_origin_brc_axis) {\n"
+                        "();\n"
+                        "}\n\n"
+                        "}\n"
+                        "}\n"});
 }
 
 TEST(CodegenKernel, CalculateVectorizedAixsMergeStatus) {
-    af::SizeVar s0(af::Symbol("s0"));
-    af::SizeVar s1(af::Symbol("s1"));
-    af::SizeVar s2(af::Symbol("s2"));
-  
-    af::Axis z0{.id = 0, .name = "z0", .type = af::Axis::Type::kAxisTypeTileOuter, .size = s0.expr};
-    af::Axis z1{.id = 1, .name = "z1", .type = af::Axis::Type::kAxisTypeTileInner, .size = s1.expr};
-    af::Axis z2{.id = 2, .name = "z2", .type = af::Axis::Type::kAxisTypeOriginal, .size = s2.expr};
-  
-    codegen::Tiler tiler;
-    tiler.AddSizeVar(af::SizeVar(s0));
-    tiler.AddSizeVar(af::SizeVar(s1));
-    tiler.AddSizeVar(af::SizeVar(s2));
-    tiler.AddAxis(z0);
-    tiler.AddAxis(z1);
-    tiler.AddAxis(z2);
-  
-    codegen::TPipe tpipe("tpipe", tiler);
-    af::AscGraph graph("test");
-    af::ascir_op::Data x("x", graph);
-    auto node = graph.FindNode("x");
-    af::AscTensor tensor = node->outputs[0];
-  
-    tensor.attr.axis = {z0.id, z1.id, z2.id};
-    tensor.attr.vectorized_axis = {z1.id, z2.id};
-    tensor.attr.repeats = {z0.size, z1.size, z2.size};
-    tensor.attr.strides = {z1.size*z2.size, z2.size, One};
-  
-    vector<af::Expression> vectorized_strides{One, One};
-    vectorized_strides[0] = z2.size;
-    tensor.attr.vectorized_strides = vectorized_strides;
-    std::string dtype_name;
-    codegen::Tensor::DtypeName(tensor.attr.dtype, dtype_name);
-    codegen::Tensor t = codegen::Tensor(tensor, dtype_name);
-    t.vectorized_axis_pos = {1, 2};
-    std::vector<codegen::Tensor> inputs = {};
-    std::vector<codegen::Tensor> outputs = {t};
-    VectorizedAxisLoopMergeStatus merge_info;
-    GenerateVectorizedAxisMergeStatus(inputs, outputs, merge_info, tpipe);
-    EXPECT_EQ(merge_info.merge_repeats_str.size(), 1);
-    EXPECT_EQ(merge_info.merge_repeats_str[0], "t->s1 * t->s2");
+  af::SizeVar s0(af::Symbol("s0"));
+  af::SizeVar s1(af::Symbol("s1"));
+  af::SizeVar s2(af::Symbol("s2"));
+
+  af::Axis z0{.id = 0, .name = "z0", .type = af::Axis::Type::kAxisTypeTileOuter, .size = s0.expr};
+  af::Axis z1{.id = 1, .name = "z1", .type = af::Axis::Type::kAxisTypeTileInner, .size = s1.expr};
+  af::Axis z2{.id = 2, .name = "z2", .type = af::Axis::Type::kAxisTypeOriginal, .size = s2.expr};
+
+  codegen::Tiler tiler;
+  tiler.AddSizeVar(af::SizeVar(s0));
+  tiler.AddSizeVar(af::SizeVar(s1));
+  tiler.AddSizeVar(af::SizeVar(s2));
+  tiler.AddAxis(z0);
+  tiler.AddAxis(z1);
+  tiler.AddAxis(z2);
+
+  codegen::TPipe tpipe("tpipe", tiler);
+  af::AscGraph graph("test");
+  af::ascir_op::Data x("x", graph);
+  auto node = graph.FindNode("x");
+  af::AscTensor tensor = node->outputs[0];
+
+  tensor.attr.axis = {z0.id, z1.id, z2.id};
+  tensor.attr.vectorized_axis = {z1.id, z2.id};
+  tensor.attr.repeats = {z0.size, z1.size, z2.size};
+  tensor.attr.strides = {z1.size * z2.size, z2.size, One};
+
+  vector<af::Expression> vectorized_strides{One, One};
+  vectorized_strides[0] = z2.size;
+  tensor.attr.vectorized_strides = vectorized_strides;
+  std::string dtype_name;
+  codegen::Tensor::DtypeName(tensor.attr.dtype, dtype_name);
+  codegen::Tensor t = codegen::Tensor(tensor, dtype_name);
+  t.vectorized_axis_pos = {1, 2};
+  std::vector<codegen::Tensor> inputs = {};
+  std::vector<codegen::Tensor> outputs = {t};
+  VectorizedAxisLoopMergeStatus merge_info;
+  GenerateVectorizedAxisMergeStatus(inputs, outputs, merge_info, tpipe);
+  EXPECT_EQ(merge_info.merge_repeats_str.size(), 1);
+  EXPECT_EQ(merge_info.merge_repeats_str[0], "t->s1 * t->s2");
 }
 
 class CodegenKernelV2Test : public ::testing::Test {
-protected:
+ protected:
   void SetUp() override {
     dlog_setlevel(ASCGEN_MODULE_NAME, DLOG_ERROR, 0);
     ge::PlatformContext::GetInstance().Reset();
@@ -6176,18 +6132,18 @@ class CodegenKernelConv2DTest : public ::testing::Test {
 TEST_F(CodegenKernelConv2DTest, KernelFuncDeclare_ShouldGenerateConv2DTemplate_WhenIsConv2dTrue) {
   af::AscGraph graph("conv2d_graph");
   codegen::Kernel kernel("conv2d_kernel");
-  
+
   ::ascir::FusedScheduledResult fused_schedule_result;
   fused_schedule_result.fused_graph_name = af::AscendString("conv2d_fusion");
-  
+
   ::ascir::ScheduledResult scheduled_result;
   scheduled_result.cube_type = ::ascir::CubeTemplateType::kUBFuse;
   std::vector<::ascir::ScheduledResult> scheduled_results;
   scheduled_results.push_back(scheduled_result);
   fused_schedule_result.node_idx_to_scheduled_results.push_back(scheduled_results);
-  
+
   std::string declare = kernel.KernelFuncDeclare("conv2d_graph", fused_schedule_result, false, false, true);
-  
+
   EXPECT_NE(declare.find("FmapTiling"), std::string::npos);
   EXPECT_NE(declare.find("WeightTiling"), std::string::npos);
   EXPECT_NE(declare.find("L1PingPong"), std::string::npos);
@@ -6208,18 +6164,18 @@ TEST_F(CodegenKernelConv2DTest, KernelFuncDeclare_ShouldGenerateConv2DTemplate_W
 TEST_F(CodegenKernelConv2DTest, KernelFuncDeclare_ShouldGenerateMatMulTemplate_WhenIsConv2dFalse) {
   af::AscGraph graph("matmul_graph");
   codegen::Kernel kernel("matmul_kernel");
-  
+
   ::ascir::FusedScheduledResult fused_schedule_result;
   fused_schedule_result.fused_graph_name = af::AscendString("matmul_fusion");
-  
+
   ::ascir::ScheduledResult scheduled_result;
   scheduled_result.cube_type = ::ascir::CubeTemplateType::kUBFuse;
   std::vector<::ascir::ScheduledResult> scheduled_results;
   scheduled_results.push_back(scheduled_result);
   fused_schedule_result.node_idx_to_scheduled_results.push_back(scheduled_results);
-  
+
   std::string declare = kernel.KernelFuncDeclare("matmul_graph", fused_schedule_result, false, false, false);
-  
+
   EXPECT_NE(declare.find("API_LEVEL"), std::string::npos);
   EXPECT_NE(declare.find("A_TRANS"), std::string::npos);
   EXPECT_NE(declare.find("B_TRANS"), std::string::npos);
@@ -6233,10 +6189,10 @@ TEST_F(CodegenKernelConv2DTest, KernelFuncDeclare_ShouldGenerateMatMulTemplate_W
 
 TEST_F(CodegenKernelConv2DTest, GenCubeCommonTiling_ShouldGenerateConv2DAPI_WhenIsConv2dTrue) {
   codegen::Kernel kernel("conv2d_kernel");
-  
+
   std::stringstream ss;
   EXPECT_EQ(kernel.GenCubeCommonTiling(ss, false, true), ge::SUCCESS);
-  
+
   std::string result = ss.str();
   EXPECT_NE(result.find("AscendC::TPipe pipe"), std::string::npos);
   EXPECT_NE(result.find("conv2d_v2"), std::string::npos);
@@ -6253,10 +6209,10 @@ TEST_F(CodegenKernelConv2DTest, GenCubeCommonTiling_ShouldGenerateConv2DAPI_When
 
 TEST_F(CodegenKernelConv2DTest, GenCubeCommonTiling_ShouldGenerateMatMulAPI_WhenIsConv2dFalseAndNotBatch) {
   codegen::Kernel kernel("matmul_kernel");
-  
+
   std::stringstream ss;
   EXPECT_EQ(kernel.GenCubeCommonTiling(ss, false, false), ge::SUCCESS);
-  
+
   std::string result = ss.str();
   EXPECT_NE(result.find("mat_mul_v3"), std::string::npos);
   EXPECT_NE(result.find("API_LEVEL"), std::string::npos);
@@ -6272,10 +6228,10 @@ TEST_F(CodegenKernelConv2DTest, GenCubeCommonTiling_ShouldGenerateMatMulAPI_When
 
 TEST_F(CodegenKernelConv2DTest, GenCubeCommonTiling_ShouldGenerateBatchMatMulAPI_WhenIsConv2dFalseAndIsBatch) {
   codegen::Kernel kernel("batch_matmul_kernel");
-  
+
   std::stringstream ss;
   EXPECT_EQ(kernel.GenCubeCommonTiling(ss, true, false), ge::SUCCESS);
-  
+
   std::string result = ss.str();
   EXPECT_NE(result.find("batch_mat_mul_v3"), std::string::npos);
   EXPECT_NE(result.find("API_LEVEL"), std::string::npos);
@@ -6290,10 +6246,10 @@ TEST_F(CodegenKernelConv2DTest, GenCubeCommonTiling_ShouldGenerateBatchMatMulAPI
 
 TEST_F(CodegenKernelConv2DTest, SetUsingGlobalTpipe_ShouldSetFlagCorrectly) {
   codegen::Kernel kernel("test_kernel");
-  
+
   kernel.tpipe.SetUsingGlobalTpipe(true);
   kernel.tpipe.SetUsingGlobalTpipe(false);
-  
+
   // 通过设置验证功能正常工作
   EXPECT_TRUE(true);
 }

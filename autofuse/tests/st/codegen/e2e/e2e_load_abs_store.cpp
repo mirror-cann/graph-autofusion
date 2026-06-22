@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -40,14 +40,14 @@ void LoadAbsStore_BeforeAutofuse(af::AscGraph &graph) {
   load.attr.sched.axis = {z0.id, z1.id, z2.id};
   *load.y.axis = {z0.id, z1.id, z2.id};
   *load.y.repeats = {s0, s1, s2};
-  *load.y.strides = {s1*s2, s2, One};
+  *load.y.strides = {s1 * s2, s2, One};
 
   af::ascir_op::Abs abs("abs");
   graph.AddNode(abs);
   abs.x = load.y;
   abs.attr.sched.axis = {z0.id, z1.id, z2.id};
   *abs.y.repeats = {s0, s1, s2};
-  *abs.y.strides = {s1*s2, s2, One};
+  *abs.y.strides = {s1 * s2, s2, One};
   abs.attr.tmp_buffers = {{{af::Symbol(8192), -1}, MemAttr(), 0}};
 
   Store store("store");
@@ -57,7 +57,7 @@ void LoadAbsStore_BeforeAutofuse(af::AscGraph &graph) {
   store.y.dtype = ge::DT_FLOAT16;
   *store.y.axis = {z0.id, z1.id, z2.id};
   *store.y.repeats = {s0, s1, s2};
-  *store.y.strides = {s1*s2, s2, One};
+  *store.y.strides = {s1 * s2, s2, One};
 
   Output y("y");
   graph.AddNode(y);
@@ -88,14 +88,14 @@ void LoadAbsStore_BeforeAutofuse_DiscreteStore(af::AscGraph &graph) {
   load.attr.sched.axis = {z0.id, z1.id, z2.id};
   *load.y.axis = {z0.id, z1.id, z2.id};
   *load.y.repeats = {s0, s1, s2};
-  *load.y.strides = {s1*s2, s2, One};
+  *load.y.strides = {s1 * s2, s2, One};
 
   af::ascir_op::Abs abs("abs");
   graph.AddNode(abs);
   abs.x = load.y;
   abs.attr.sched.axis = {z0.id, z1.id, z2.id};
   *abs.y.repeats = {s0, s1, s2};
-  *abs.y.strides = {s1*s2, s2, One};
+  *abs.y.strides = {s1 * s2, s2, One};
   abs.attr.tmp_buffers = {{{af::Symbol(8192), -1}, MemAttr(), 0}};
 
   Store store("store");
@@ -105,7 +105,7 @@ void LoadAbsStore_BeforeAutofuse_DiscreteStore(af::AscGraph &graph) {
   store.y.dtype = ge::DT_FLOAT16;
   *store.y.axis = {z0.id, z1.id, z2.id};
   *store.y.repeats = {s0, s1, s2};
-  *store.y.strides = {s1*(s2+s2), (s2+s2), One};
+  *store.y.strides = {s1 * (s2 + s2), (s2 + s2), One};
 
   Output y("y");
   graph.AddNode(y);
@@ -140,14 +140,14 @@ void LoadAbsStore_BeforeAutofuse_DiscreteStoreMergeAxis(af::AscGraph &graph) {
   load.attr.sched.axis = {z0.id, z1.id, z2.id, z3.id, z4.id};
   *load.y.axis = {z0.id, z1.id, z2.id, z3.id, z4.id};
   *load.y.repeats = {s0, s1, s2, s3, s4};
-  *load.y.strides = {s1*s2*s3*s4, s2*s3*s4, s3*s4, s4, One};
+  *load.y.strides = {s1 * s2 * s3 * s4, s2 * s3 * s4, s3 * s4, s4, One};
 
   af::ascir_op::Abs abs("abs");
   graph.AddNode(abs);
   abs.x = load.y;
   abs.attr.sched.axis = {z0.id, z1.id, z2.id, z3.id, z4.id};
   *abs.y.repeats = {s0, s1, s2, s3, s4};
-  *abs.y.strides = {s1*s2*s3*s4, s2*s3*s4, s3*s4, s4, One};
+  *abs.y.strides = {s1 * s2 * s3 * s4, s2 * s3 * s4, s3 * s4, s4, One};
 
   Store store("store");
   graph.AddNode(store);
@@ -156,7 +156,7 @@ void LoadAbsStore_BeforeAutofuse_DiscreteStoreMergeAxis(af::AscGraph &graph) {
   store.y.dtype = ge::DT_FLOAT16;
   *store.y.axis = {z0.id, z1.id, z2.id, z3.id, z4.id};
   *store.y.repeats = {s0, s1, s2, s3, s4};
-  *store.y.strides = {s1*s2*(s3*s4+s3*s4), s2*(s3*s4+s3*s4), (s3*s4+s3*s4), s4, One};
+  *store.y.strides = {s1 * s2 * (s3 * s4 + s3 * s4), s2 * (s3 * s4 + s3 * s4), (s3 * s4 + s3 * s4), s4, One};
 
   Output y("y");
   graph.AddNode(y);
@@ -305,14 +305,14 @@ void LoadAbsStore_BeforeAutofuse_StoreEmptyTensor(af::AscGraph &graph) {
 
 void LoadAbsStore_AfterInferOutput(af::AscGraph &graph) {
   auto x = graph.FindNode("x");
-  x->attr.api.compute_type = ComputeType::kComputeInvalid; // ComputeType::COMPUTE_DATA;
+  x->attr.api.compute_type = ComputeType::kComputeInvalid;  // ComputeType::COMPUTE_DATA;
 
   auto load = graph.FindNode("load");
   load->outputs[0].attr.dtype = ge::DT_FLOAT16;
   load->attr.api.compute_type = ComputeType::kComputeLoad;
 
   auto abs = graph.FindNode("abs");
-  abs->outputs[0].attr.dtype =(ge::DataType)load->outputs[0].attr.dtype;
+  abs->outputs[0].attr.dtype = (ge::DataType)load->outputs[0].attr.dtype;
   abs->outputs[0].attr.axis = load->outputs[0].attr.axis;
   abs->outputs[0].attr.repeats = load->outputs[0].attr.repeats;
   abs->outputs[0].attr.strides = load->outputs[0].attr.strides;
@@ -543,7 +543,7 @@ void LoadAbsStore_AfterScheduler_DiscreteStoreMergeAxis(af::AscGraph &graph) {
   vector<AxisId> vectorized_axis{z1, z2, z3, z4};
   vector<af::Expression> vectorized_strides{One, One, One, One};
   auto size = ge::GetSizeByDataType(ge::DT_FLOAT16);
-  vectorized_strides[2] =  af::sym::Align(graph.FindAxis(vectorized_axis[3])->size, 32 / size);
+  vectorized_strides[2] = af::sym::Align(graph.FindAxis(vectorized_axis[3])->size, 32 / size);
   vectorized_strides[1] = graph.FindAxis(vectorized_axis[2])->size * vectorized_strides[2];
   vectorized_strides[0] = graph.FindAxis(vectorized_axis[1])->size * vectorized_strides[1];
 

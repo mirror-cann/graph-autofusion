@@ -1,5 +1,5 @@
 /**
-* Copyright (c) 2026 Huawei Technologies Co., Ltd.
+ * Copyright (c) 2026 Huawei Technologies Co., Ltd.
  * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
@@ -57,7 +57,7 @@ bool ConcatInputUnificationPass::CanOptimize(const af::AscNodePtr &concat_node, 
 }
 
 bool ConcatInputUnificationPass::CanOptimize(const af::AscNodePtr &concat_node, size_t concat_dim,
-                                               std::set<int32_t> &input_indices_need_copy) {
+                                             std::set<int32_t> &input_indices_need_copy) {
   const auto dtype_size = ge::GetSizeByDataType(concat_node->outputs[0].attr.dtype);
   GE_WARN_ASSERT(dtype_size > 0, "unsupported output data type");
   if (IsSrcColSizeOverLimit(concat_node, concat_dim, dtype_size)) {
@@ -104,8 +104,7 @@ bool ConcatInputUnificationPass::NeedOptimize(const af::AscNodePtr &concat_node,
   GELOGI("input repeat = %s, output repeat = %s, concat_dim = %zu, dtype_size = %d",
          af::ToString(concat_node->inputs[0].attr.repeats).c_str(),
          af::ToString(concat_node->outputs[0].attr.repeats).c_str(), concat_dim, dtype_size);
-  GE_CHK_BOOL_RET_SPECIAL_STATUS(IsSrcColSizeAlignedToB4(concat_node, concat_dim, dtype_size),
-                                 false,
+  GE_CHK_BOOL_RET_SPECIAL_STATUS(IsSrcColSizeAlignedToB4(concat_node, concat_dim, dtype_size), false,
                                  "src col size aligned to B32, no need for optimization");
 
   // 4. dst_col_size和ub2ub阈值检查
@@ -136,7 +135,7 @@ Status ConcatInputUnificationPass::DoOptimize(ascir::ImplGraph &graph, const af:
       continue;
     }
 
-    const std::string ub_name = asc_node->GetName()  + "_ub_cpy_input_" + std::to_string(in_anchor->GetIdx());
+    const std::string ub_name = asc_node->GetName() + "_ub_cpy_input_" + std::to_string(in_anchor->GetIdx());
     af::ascir_op::Ub2ub ub2ub(ub_name.c_str());
     af::AscNodePtr ub2ub_node = graph.AddNode(ub2ub);
     GE_ASSERT_NOTNULL(ub2ub_node);
@@ -227,4 +226,4 @@ af::Status ConcatInputUnificationPass::CollectSharedInputs(const af::AscNodePtr 
   }
   return af::SUCCESS;
 }
-}  // optimize
+}  // namespace optimize

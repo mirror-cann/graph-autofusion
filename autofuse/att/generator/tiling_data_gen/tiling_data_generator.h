@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -30,7 +30,7 @@ using TilingDataMap = std::unordered_map<std::string, std::pair<TilingDataType, 
 class TilingDataGenBase {
  public:
   explicit TilingDataGenBase(const TilingDataGenType tiling_data_gen_type, const ModelInfo &model_info)
-      : tiling_data_gen_type_(tiling_data_gen_type), model_info_(model_info){};
+      : tiling_data_gen_type_(tiling_data_gen_type), model_info_(model_info) {};
   virtual ~TilingDataGenBase() = default;
   virtual ge::Status Init() = 0;
   virtual std::vector<std::pair<std::string, std::string>> GetTilingDataWithAnnotation() const;
@@ -58,7 +58,7 @@ class AxesTilingDataGen : public TilingDataGenBase {
 
  public:
   explicit AxesTilingDataGen(const ModelInfo &model_info)
-      : TilingDataGenBase(TilingDataGenType::AXES_TILING_DATA_GEN, model_info){};
+      : TilingDataGenBase(TilingDataGenType::AXES_TILING_DATA_GEN, model_info) {};
   ~AxesTilingDataGen() override = default;
   // gen model info
   ge::Status Init() override;
@@ -98,7 +98,7 @@ class BlockDimTilingDataGen : public TilingDataGenBase {
   explicit BlockDimTilingDataGen(const std::shared_ptr<AxesTilingDataGen> &axes_tiling_data_gen,
                                  const ModelInfo &model_info)
       : TilingDataGenBase(TilingDataGenType::GENERAL_TILING_DATA_GEN, model_info),
-        axes_tiling_data_gen_(axes_tiling_data_gen){};
+        axes_tiling_data_gen_(axes_tiling_data_gen) {};
   ~BlockDimTilingDataGen() override = default;
   ge::Status Init() override;
   std::vector<std::string> GetTilingFuncImpl(const std::string &tiling_type) const override;
@@ -113,15 +113,15 @@ class BlockDimTilingDataGen : public TilingDataGenBase {
 class MemoryTilingDataGen : public TilingDataGenBase {
  public:
   explicit MemoryTilingDataGen(const ModelInfo &model_info)
-      : TilingDataGenBase(TilingDataGenType::MEMORY_TILING_DATA_GEN, model_info){};
+      : TilingDataGenBase(TilingDataGenType::MEMORY_TILING_DATA_GEN, model_info) {};
   ~MemoryTilingDataGen() override = default;
   ge::Status Init() override;
   std::vector<std::string> GetTilingFuncImpl(const std::string &tiling_type) const override;
   std::string GetTilingFuncInvoke() const override;
 
  private:
-  std::string GenFuncImpl(const std::pair<std::string, Expr> &var_name_to_expr,
-                          const std::string &tiling_type, const ExprExprMap &container_expr) const;
+  std::string GenFuncImpl(const std::pair<std::string, Expr> &var_name_to_expr, const std::string &tiling_type,
+                          const ExprExprMap &container_expr) const;
   std::string GenFuncInvoke(const std::string &var_name) const;
 };
 
@@ -129,7 +129,7 @@ using TilingDataGenPtr = std::shared_ptr<TilingDataGenBase>;
 class TilingDataGenerator {
  public:
   TilingDataGenerator(const std::vector<ModelInfo> &model_info_list, const ExtraInfoConfig &extra_info_config)
-      : model_info_list_(model_info_list), extra_info_config_(extra_info_config){};
+      : model_info_list_(model_info_list), extra_info_config_(extra_info_config) {};
   virtual ~TilingDataGenerator() = default;
   // gen model info
   ge::Status Init();

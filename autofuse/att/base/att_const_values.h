@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -70,58 +70,27 @@ inline const std::string kInt32 = "int32";
 inline const std::string kUInt64 = "uint64";
 inline const std::string kInt64 = "int64";
 inline const std::map<std::string, Expr> kBlkEleMap = {
-    {kInt8, CreateExpr(32)},
-    {kUInt8, CreateExpr(32)},
-    {kFloat16, CreateExpr(16)},
-    {kBfloat16, CreateExpr(16)},
-    {kUInt16, CreateExpr(16)},
-    {kInt16, CreateExpr(16)},
-    {kFloat32, CreateExpr(8)},
-    {kUInt32, CreateExpr(8)},
-    {kInt32, CreateExpr(8)},
-    {kUInt64, CreateExpr(4)},
-    {kInt64, CreateExpr(4)},
+    {kInt8, CreateExpr(32)},   {kUInt8, CreateExpr(32)}, {kFloat16, CreateExpr(16)}, {kBfloat16, CreateExpr(16)},
+    {kUInt16, CreateExpr(16)}, {kInt16, CreateExpr(16)}, {kFloat32, CreateExpr(8)},  {kUInt32, CreateExpr(8)},
+    {kInt32, CreateExpr(8)},   {kUInt64, CreateExpr(4)}, {kInt64, CreateExpr(4)},
 };
 
 inline const std::map<std::string, Expr> kDataTypeSizeMap = {
-    {kInt8, CreateExpr(1)},
-    {kUInt8, CreateExpr(1)},
-    {kFloat16, CreateExpr(2)},
-    {kBfloat16, CreateExpr(2)},
-    {kUInt16, CreateExpr(2)},
-    {kInt16, CreateExpr(2)},
-    {kFloat32, CreateExpr(4)},
-    {kUInt32, CreateExpr(4)},
-    {kInt32, CreateExpr(4)},
-    {kUInt64, CreateExpr(8)},
-    {kInt64, CreateExpr(8)},
+    {kInt8, CreateExpr(1)},   {kUInt8, CreateExpr(1)},  {kFloat16, CreateExpr(2)}, {kBfloat16, CreateExpr(2)},
+    {kUInt16, CreateExpr(2)}, {kInt16, CreateExpr(2)},  {kFloat32, CreateExpr(4)}, {kUInt32, CreateExpr(4)},
+    {kInt32, CreateExpr(4)},  {kUInt64, CreateExpr(8)}, {kInt64, CreateExpr(8)},
 };
 
 inline const std::map<std::string, Expr> kRptEleMap = {
-    {kInt8, CreateExpr(256)},
-    {kUInt8, CreateExpr(256)},
-    {kFloat16, CreateExpr(128)},
-    {kBfloat16, CreateExpr(128)},
-    {kUInt16, CreateExpr(128)},
-    {kInt16, CreateExpr(128)},
-    {kFloat32, CreateExpr(64)},
-    {kUInt32, CreateExpr(64)},
-    {kInt32, CreateExpr(64)},
-    {kUInt64, CreateExpr(32)},
-    {kInt64, CreateExpr(32)},
+    {kInt8, CreateExpr(256)},   {kUInt8, CreateExpr(256)}, {kFloat16, CreateExpr(128)}, {kBfloat16, CreateExpr(128)},
+    {kUInt16, CreateExpr(128)}, {kInt16, CreateExpr(128)}, {kFloat32, CreateExpr(64)},  {kUInt32, CreateExpr(64)},
+    {kInt32, CreateExpr(64)},   {kUInt64, CreateExpr(32)}, {kInt64, CreateExpr(32)},
 };
 
 inline const std::map<std::string, Expr> kBrcbRepeatMap = {
-    {kInt8, CreateExpr(254U)},
-    {kUInt8, CreateExpr(254U)},
-    {kFloat16, CreateExpr(254U)},
-    {kFloat32, CreateExpr(255U)},
-    {kUInt16, CreateExpr(254U)},
-    {kInt16, CreateExpr(254U)},
-    {kUInt32, CreateExpr(255U)},
-    {kInt32, CreateExpr(255U)},
-    {kUInt64, CreateExpr(255U)},
-    {kInt64, CreateExpr(255U)},
+    {kInt8, CreateExpr(254U)},   {kUInt8, CreateExpr(254U)}, {kFloat16, CreateExpr(254U)}, {kFloat32, CreateExpr(255U)},
+    {kUInt16, CreateExpr(254U)}, {kInt16, CreateExpr(254U)}, {kUInt32, CreateExpr(255U)},  {kInt32, CreateExpr(255U)},
+    {kUInt64, CreateExpr(255U)}, {kInt64, CreateExpr(255U)},
 };
 
 // options
@@ -149,7 +118,7 @@ const std::string kRegisterNoDefault = "";
 const std::string kGenConfigType = "solver_type";
 const std::string kGenConfigTypeDefault = "UNKNOWN";
 
-inline const std::string kVectorFunc = "VectorFunc"; // 表示VF function类型
+inline const std::string kVectorFunc = "VectorFunc";  // 表示VF function类型
 inline const std::string kConstant = "Constant";
 inline const std::string kFlashSoftmax = "FlashSoftmax";
 inline const std::string kDropOut = "Dropout";
@@ -176,13 +145,13 @@ inline const std::string kMoveL1ToL0a = "T_LoadA";
 inline const std::string kMoveL1ToL0b = "T_LoadB";
 inline const std::string kMoveL0cToL2 = "CopyL0CToL2";
 inline const std::string kMoveL0cToGm = "T_FixPipeTrans";
-inline const std::string kMoveGmToUb = "Load"; // ASCIR
-inline const std::string kMoveUbToGm = "Store"; // ASCIR
+inline const std::string kMoveGmToUb = "Load";   // ASCIR
+inline const std::string kMoveUbToGm = "Store";  // ASCIR
 // cube
 inline const std::string kComputeCube = "T_Mmad";
 inline const std::string kMatMul = "MatMul";
 // vec
-inline const std::string kComputeVector = "VectorCompute"; // 默认Vector性能评估公式
+inline const std::string kComputeVector = "VectorCompute";  // 默认Vector性能评估公式
 // ascendc api名
 inline const std::string kAdds = "Adds";
 inline const std::string kAnd = "And";
@@ -219,7 +188,7 @@ inline const std::string kSigmoid = "Sigmoid";
 inline const std::string kWholeReduceMax = "WholeReduceMax";
 inline const std::string kWholeReduceMin = "WholeReduceMin";
 inline const std::string kWholeReduceSum = "WholeReduceSum";
-inline const std::string kDefaultApi = "Load"; // 用于获取默认的AscIrAtt实现，用于获取和具体IR无关的信息
+inline const std::string kDefaultApi = "Load";  // 用于获取默认的AscIrAtt实现，用于获取和具体IR无关的信息
 inline const std::string kTruncate = "Truncate";
 inline const std::string kMulAddDst = "MulAddDst";
 inline const std::string kUpdateMask = "UpdateMask";

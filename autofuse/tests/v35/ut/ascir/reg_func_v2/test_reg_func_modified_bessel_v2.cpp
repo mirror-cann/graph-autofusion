@@ -60,8 +60,7 @@ void CheckApiLevelTmpBuffer(const std::vector<std::unique_ptr<TmpBufDesc>> &resu
   EXPECT_EQ(result[0]->life_time_axis_id, -1);
 }
 
-TEST(CalcModifiedBesselI0TmpSizeV2Test, ShouldReturnApiLevelTmpBuffer)
-{
+TEST(CalcModifiedBesselI0TmpSizeV2Test, ShouldReturnApiLevelTmpBuffer) {
   af::AscGraph graph("test");
   auto node = BuildUnaryFloatNode(graph);
   ASSERT_NE(node, nullptr);
@@ -69,8 +68,7 @@ TEST(CalcModifiedBesselI0TmpSizeV2Test, ShouldReturnApiLevelTmpBuffer)
   CheckApiLevelTmpBuffer(result);
 }
 
-TEST(CalcModifiedBesselI1TmpSizeV2Test, ShouldReturnApiLevelTmpBuffer)
-{
+TEST(CalcModifiedBesselI1TmpSizeV2Test, ShouldReturnApiLevelTmpBuffer) {
   af::AscGraph graph("test");
   auto node = BuildUnaryFloatNode(graph);
   ASSERT_NE(node, nullptr);
@@ -78,8 +76,7 @@ TEST(CalcModifiedBesselI1TmpSizeV2Test, ShouldReturnApiLevelTmpBuffer)
   CheckApiLevelTmpBuffer(i1_result);
 }
 
-TEST(CalcModifiedBesselK0TmpSizeV2Test, ShouldReturnApiLevelTmpBuffer)
-{
+TEST(CalcModifiedBesselK0TmpSizeV2Test, ShouldReturnApiLevelTmpBuffer) {
   af::AscGraph graph("test");
   auto node = BuildUnaryFloatNode(graph);
   ASSERT_NE(node, nullptr);
@@ -87,8 +84,7 @@ TEST(CalcModifiedBesselK0TmpSizeV2Test, ShouldReturnApiLevelTmpBuffer)
   CheckApiLevelTmpBuffer(k0_result);
 }
 
-TEST(CalcModifiedBesselK1TmpSizeV2Test, ShouldReturnApiLevelTmpBuffer)
-{
+TEST(CalcModifiedBesselK1TmpSizeV2Test, ShouldReturnApiLevelTmpBuffer) {
   af::AscGraph graph("test");
   auto node = BuildUnaryFloatNode(graph);
   ASSERT_NE(node, nullptr);

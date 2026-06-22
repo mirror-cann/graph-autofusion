@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -142,8 +142,8 @@ void GenConstructorDef(const AscIrDef &def, const std::string &attr_class, std::
   ss << " {" << std::endl;
   GenIrInputAndOutputDef(def, ss);
   GenOutTensorInitDef(def, ss);
-  ss << "    this->attr.api.compute_type =  static_cast<af::ComputeType>("
-     << static_cast<int32_t>(def.GetComputeType()) << ");" << std::endl;
+  ss << "    this->attr.api.compute_type =  static_cast<af::ComputeType>(" << static_cast<int32_t>(def.GetComputeType())
+     << ");" << std::endl;
   if (need_graph) {
     ss << "    graph.AddNode(*this) ;" << std::endl << "  }" << std::endl;
   } else {
@@ -291,7 +291,7 @@ class OutputHandler {
         ++out_index;
         continue;
       }
-      (void) syms_only_of_output_.insert(out_sym);
+      (void)syms_only_of_output_.insert(out_sym);
       auto support_types = out_sym->GetTensorType().tensor_type_impl_->GetMutableDateTypeSet();
       if (support_types.size() > 1U) {
         could_infer = false;
@@ -726,8 +726,8 @@ class OrderedSymbolProcessor : public SymbolProcessor {
 
   std::vector<SymDtype *> input_syms_{};
   std::vector<SymDtype *> only_out_syms_{};
-  // 每一个对key,value代表一个合法解， key是多个输入的实参dtype，value是多个输出的推导处理的dtype，之所以是multimap因为某个输出可能
-  // 有多个解
+  // 每一个对key,value代表一个合法解，
+  // key是多个输入的实参dtype，value是多个输出的推导处理的dtype，之所以是multimap因为某个输出可能 有多个解
   std::multimap<std::vector<ge::DataType>, std::vector<ge::DataType>> results2_{};
   size_t valid_dtype_nums_of_sym_;
   // 根据输入输出的个数和输出是否有唯一解需要实例化不同类型的容器
@@ -1073,8 +1073,8 @@ class SocOrderedSymbolProcessor : public SymbolProcessor {
   }
 
   struct SocMeta {
-    // 每一个对key,value代表一个合法解， key是多个输入的实参dtype，value是多个输出的推导处理的dtype，之所以是multimap因为某个输出可能
-    // 有多个解
+    // 每一个对key,value代表一个合法解，
+    // key是多个输入的实参dtype，value是多个输出的推导处理的dtype，之所以是multimap因为某个输出可能 有多个解
     std::multimap<std::vector<ge::DataType>, std::vector<ge::DataType>> results2{};
     size_t valid_dtype_nums_of_sym{0UL};
   };
@@ -1309,7 +1309,7 @@ void GenAscIr(const AscIrDef &def, std::stringstream &ss) {
     if (output_def.second == IrOutputType::kIrOutputDynamic) {
       ss << "  using af::Operator::DynamicOutputRegister;" << std::endl;
       break;
-    } 
+    }
   }
 
   ss << "  static constexpr const char *Type = \"" << ir_type << "\";" << std::endl;
@@ -1340,8 +1340,8 @@ void GenAscIr(const AscIrDef &def, std::stringstream &ss) {
     GenConstructorDef(def, ir_attr_class_name, ss, true);
   }
   GenConstructorDef(def, ir_attr_class_name, ss);
-  (void) GenInferDtypeFuncDef(def, ss);
-  (void) GenInferDtypeWithNoCheckFuncDef(def, ss);
+  (void)GenInferDtypeFuncDef(def, ss);
+  (void)GenInferDtypeWithNoCheckFuncDef(def, ss);
   GenCopyConstructor(def, ss);
   GenInstanceOutputy(def, ss);
   ss << "};" << std::endl;
@@ -1556,7 +1556,7 @@ class StartNodeFuncGenerator : public FunctionGenerator {
     FunctionGenerator::Gen(ss, has_optional_input);
   }
   void GenDefinition(std::stringstream &ss, const bool has_optional_input) const override {
-    (void) has_optional_input;
+    (void)has_optional_input;
     // inline ascir::ops::OpType OpType
     ss << "inline "
        << "af::AscOpOutput " << ' ' << def_.GetType() << "(const char *name, af::AscGraph &graph, ge::DataType dt"
@@ -1585,7 +1585,7 @@ class StoreNodeFuncGenerator : public FunctionGenerator {
  public:
   explicit StoreNodeFuncGenerator(const AscIrDef &def) : FunctionGenerator(def) {}
   void Gen(std::stringstream &ss, const bool has_optional_input) const override {
-    (void) has_optional_input;
+    (void)has_optional_input;
     if (def_.GetType() != "Store") {
       return;
     }
@@ -1623,9 +1623,10 @@ class ContiguousStartNodeFuncGenerator : FunctionGenerator {
     FunctionGenerator::Gen(ss, has_optional_input);
   }
   void GenDefinition(std::stringstream &ss, const bool has_optional_input) const override {
-    (void) has_optional_input;
+    (void)has_optional_input;
     ss << "inline "
-       << "af::AscOpOutput" << " Contiguous" << def_.GetType() << "(const char *name, af::AscGraph &graph, ge::DataType dt"
+       << "af::AscOpOutput" << " Contiguous" << def_.GetType()
+       << "(const char *name, af::AscGraph &graph, ge::DataType dt"
        << ", const std::vector<af::Axis> &axes";
     const auto &attr_defs = def_.GetAttrDefs();
     for (const auto &attr_def : attr_defs) {
@@ -1703,7 +1704,8 @@ void GenCalcBufFunc(std::stringstream &ss,
   ss << ss_calc_tmp_buff.str();
   ss << "inline std::vector<std::unique_ptr<af::TmpBufDesc>> CalcAscNodeTmpSize(const af::AscNode &node) {"
      << std::endl;
-  ss << "  typedef std::vector<std::unique_ptr<af::TmpBufDesc>> (*calc_func_ptr) (const af::AscNode &node);" << std::endl;
+  ss << "  typedef std::vector<std::unique_ptr<af::TmpBufDesc>> (*calc_func_ptr) (const af::AscNode &node);"
+     << std::endl;
   ss << "  static const std::unordered_map<std::string, calc_func_ptr> node_calc_tmp_buff_map = {" << std::endl;
   ss << ss_calc_tmp_buff_map.str();
   ss << "  };" << std::endl;
@@ -1715,9 +1717,9 @@ void GenCalcBufFunc(std::stringstream &ss,
   ss << "}" << std::endl;
 }
 
-void GenCommonInferDtypeBaseFunc(std::stringstream &ss,
-                                 const std::map<std::tuple<std::string, int64_t, std::string>, AscIrDef> &ordered_keys_to_def,
-                                 const string &extra_str = "") {
+void GenCommonInferDtypeBaseFunc(
+    std::stringstream &ss, const std::map<std::tuple<std::string, int64_t, std::string>, AscIrDef> &ordered_keys_to_def,
+    const string &extra_str = "") {
   std::stringstream func_table;
   for (const auto &key_and_def : ordered_keys_to_def) {
     const auto &node_type = key_and_def.second.GetType();
@@ -1748,13 +1750,15 @@ void GenCommonInferDtypeBaseFunc(std::stringstream &ss,
   ss << "}" << std::endl;
 }
 
-void GenCommonInferDtypeFunc(std::stringstream &ss,
-                             const std::map<std::tuple<std::string, int64_t, std::string>, AscIrDef> &ordered_keys_to_def) {
+void GenCommonInferDtypeFunc(
+    std::stringstream &ss,
+    const std::map<std::tuple<std::string, int64_t, std::string>, AscIrDef> &ordered_keys_to_def) {
   GenCommonInferDtypeBaseFunc(ss, ordered_keys_to_def);
 }
 
 void GenCommonInferDtypeWithNoCheckFunc(
-    std::stringstream &ss, const std::map<std::tuple<std::string, int64_t, std::string>, AscIrDef> &ordered_keys_to_def) {
+    std::stringstream &ss,
+    const std::map<std::tuple<std::string, int64_t, std::string>, AscIrDef> &ordered_keys_to_def) {
   GenCommonInferDtypeBaseFunc(ss, ordered_keys_to_def, "WithNoCheck");
 }
 
@@ -1792,7 +1796,7 @@ void GenAll(std::stringstream &ss) {
   ss << "namespace cg {" << std::endl;
   for (auto &key_and_def : ordered_keys_to_def) {
     const auto &ascir_def = key_and_def.second;
-    // 增加判断, 如果是动态输出, continue; 
+    // 增加判断, 如果是动态输出, continue;
     if (ascir_def.HasDynamicOutput()) {
       continue;
     }

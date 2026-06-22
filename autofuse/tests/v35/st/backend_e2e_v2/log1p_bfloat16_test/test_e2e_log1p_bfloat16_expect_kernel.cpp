@@ -13,14 +13,15 @@
 #include "tikicpulib.h"
 #include "autofuse_tiling_data.h"
 
-extern "C" __global__ __aicore__ void log1p_bfloat16_test(GM_ADDR x, GM_ADDR output, GM_ADDR workspace, GM_ADDR gm_tiling_data);
-extern "C" int64_t AutofuseTiling(uint32_t s0, uint32_t s1, AutofuseTilingData* tiling, uint32_t* workspaceSize, uint64_t *blockDim, uint32_t aiv_num, uint32_t ub_size);
+extern "C" __global__ __aicore__ void log1p_bfloat16_test(GM_ADDR x, GM_ADDR output, GM_ADDR workspace,
+                                                          GM_ADDR gm_tiling_data);
+extern "C" int64_t AutofuseTiling(uint32_t s0, uint32_t s1, AutofuseTilingData *tiling, uint32_t *workspaceSize,
+                                  uint64_t *blockDim, uint32_t aiv_num, uint32_t ub_size);
 
 namespace {
-class E2E_Log1pBfloat16_Code : public testing::Test, public testing::WithParamInterface<std::vector<int>> {
-};
+class E2E_Log1pBfloat16_Code : public testing::Test, public testing::WithParamInterface<std::vector<int>> {};
 
-TEST_P(E2E_Log1pBfloat16_Code, CalculateCorrect){
+TEST_P(E2E_Log1pBfloat16_Code, CalculateCorrect) {
   auto test_shape = GetParam();
 
   uint64_t block_dim = 48;
@@ -28,8 +29,8 @@ TEST_P(E2E_Log1pBfloat16_Code, CalculateCorrect){
   int test_size = test_shape[0] * test_shape[1];
 
   AutofuseTilingData tiling_data;
-  bfloat16_t* x = (bfloat16_t *)AscendC::GmAlloc(test_size * sizeof(bfloat16_t) + 32);
-  bfloat16_t* y = (bfloat16_t *)AscendC::GmAlloc(test_size * sizeof(bfloat16_t) + 32);
+  bfloat16_t *x = (bfloat16_t *)AscendC::GmAlloc(test_size * sizeof(bfloat16_t) + 32);
+  bfloat16_t *y = (bfloat16_t *)AscendC::GmAlloc(test_size * sizeof(bfloat16_t) + 32);
   bfloat16_t *expect = (bfloat16_t *)AscendC::GmAlloc(test_size * sizeof(bfloat16_t) + 32);
 
   for (int i = 0; i < test_size; i++) {
@@ -38,19 +39,18 @@ TEST_P(E2E_Log1pBfloat16_Code, CalculateCorrect){
   }
 
   uint32_t ws_size = 0;
-  AutofuseTiling(test_shape[0], test_shape[1], &tiling_data, &ws_size, &block_dim, 48, 192*1024);
+  AutofuseTiling(test_shape[0], test_shape[1], &tiling_data, &ws_size, &block_dim, 48, 192 * 1024);
   printf("tiling key: %d, core_num: %d\n", tiling_data.tiling_key, tiling_data.block_dim);
 
   AscendC::SetKernelMode(KernelMode::AIV_MODE);
-  ICPU_RUN_KF(log1p_bfloat16_test, tiling_data.block_dim, (uint8_t *)x, (uint8_t *)y, nullptr, (uint8_t*)&tiling_data);
+  ICPU_RUN_KF(log1p_bfloat16_test, tiling_data.block_dim, (uint8_t *)x, (uint8_t *)y, nullptr, (uint8_t *)&tiling_data);
 
   uint32_t diff_count = 0;
   for (int i = 0; i < test_size; i++) {
     auto diff = (double)(y[i] - expect[i]);
-    if(diff < -1e-2 || diff > 1e-2) {
+    if (diff < -1e-2 || diff > 1e-2) {
       printf("diff at index %d: x: %f, y: %f, expect: %f, diff: %f\n", i, static_cast<float>(x[i]),
-             static_cast<float>(y[i]),
-             static_cast<float>(expect[i]), diff);
+             static_cast<float>(y[i]), static_cast<float>(expect[i]), diff);
       diff_count++;
     }
   }
@@ -62,7 +62,6 @@ TEST_P(E2E_Log1pBfloat16_Code, CalculateCorrect){
   AscendC::GmFree(expect);
 }
 
-INSTANTIATE_TEST_SUITE_P(CalcWithDifferentShape, E2E_Log1pBfloat16_Code,
-                        ::testing::Values(std::vector<int>{2,8,16}));
+INSTANTIATE_TEST_SUITE_P(CalcWithDifferentShape, E2E_Log1pBfloat16_Code, ::testing::Values(std::vector<int>{2, 8, 16}));
 
-}
+}  // namespace

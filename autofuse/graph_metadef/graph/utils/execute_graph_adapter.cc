@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -96,7 +96,7 @@ graphStatus ExecuteGraphAdapter::CopyOpAndSubgraph(ExecuteGraph *src_graph, cons
       GE_ASSERT_GRAPH_SUCCESS(ConvertExecuteGraphToComputeGraph(src_subgraph, dst_subgraph, depth + 1),
                               "Copy subgraph from %s to %s failed.", src_subgraph->GetName().c_str(),
                               dst_subgraph->GetName().c_str());
-      (void) dst_root_graph->AddSubGraph(dst_subgraph);
+      (void)dst_root_graph->AddSubGraph(dst_subgraph);
       dst_subgraph->SetParentNode(dst_node);
     }
   }
@@ -176,7 +176,7 @@ graphStatus ExecuteGraphAdapter::CopyMembers(ExecuteGraph *src_graph, const Comp
     GE_ASSERT_NOTNULL(node);
     const auto &it = all_new_nodes.find(node);
     if (it != all_new_nodes.end()) {
-      (void) dst_graph->AddInputNode(it->second->shared_from_this());
+      (void)dst_graph->AddInputNode(it->second->shared_from_this());
     }
   }
 

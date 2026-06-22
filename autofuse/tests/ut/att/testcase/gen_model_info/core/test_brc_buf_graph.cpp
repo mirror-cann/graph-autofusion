@@ -78,9 +78,8 @@ void SetNodeMemAttr(af::AscNodePtr node, int32_t &tensor_id, const QueBufInfo &i
   }
 }
 
-void ApplyBrcSched(af::AscGraph &graph, int64_t z1T, int64_t z1t, int64_t z2T, int64_t z2t,
-                   int64_t z0z2T, int64_t z0z2TB, int64_t z0z2Tb, const char *name,
-                   const std::vector<int64_t> &vec_axis) {
+void ApplyBrcSched(af::AscGraph &graph, int64_t z1T, int64_t z1t, int64_t z2T, int64_t z2t, int64_t z0z2T,
+                   int64_t z0z2TB, int64_t z0z2Tb, const char *name, const std::vector<int64_t> &vec_axis) {
   auto node = graph.FindNode(name);
   graph.ApplySplit(node, z1T, z1t);
   graph.ApplySplit(node, z2T, z2t);
@@ -168,13 +167,10 @@ void BrcBufAfterQueBufAlloc1(af::AscGraph &graph) {
   int32_t cast1Buf = bufID++;
 
   QueBufInfo nodes[] = {
-    {"input_data", 0, 0, 0, -1, -1, false, false},
-    {"load", 1, 1, 1, loadQue, 2, false, false},
-    {"cast0", 2, 1, 2, cast0Buf, -1, false, false},
-    {"broadcast", 2, 1, 2, broadcastBuf, -1, false, false},
-    {"sum", 2, 1, 2, sumBuf, -1, false, false},
-    {"cast1", 2, 1, 2, cast1Buf, -1, false, false},
-    {"store", 3, 0, 0, -1, -1, false, true},
+      {"input_data", 0, 0, 0, -1, -1, false, false},  {"load", 1, 1, 1, loadQue, 2, false, false},
+      {"cast0", 2, 1, 2, cast0Buf, -1, false, false}, {"broadcast", 2, 1, 2, broadcastBuf, -1, false, false},
+      {"sum", 2, 1, 2, sumBuf, -1, false, false},     {"cast1", 2, 1, 2, cast1Buf, -1, false, false},
+      {"store", 3, 0, 0, -1, -1, false, true},
   };
   for (const auto &info : nodes) {
     SetNodeMemAttr(graph.FindNode(info.name), tensorID, info);
@@ -298,12 +294,9 @@ void BrcBufAfterQueBufAlloc3(af::AscGraph &graph) {
   int32_t cast1Buf = bufID++;
 
   QueBufInfo nodes[] = {
-    {"input_data", 0, 0, 0, -1, -1, false, false},
-    {"load", 1, 1, 1, loadQue, 2, false, false},
-    {"cast0", 2, 1, 2, cast0Buf, -1, false, false},
-    {"broadcast", 2, 1, 2, broadcastBuf, -1, false, false},
-    {"cast1", 2, 1, 2, cast1Buf, -1, false, false},
-    {"store", 3, 0, 0, -1, -1, false, true},
+      {"input_data", 0, 0, 0, -1, -1, false, false},  {"load", 1, 1, 1, loadQue, 2, false, false},
+      {"cast0", 2, 1, 2, cast0Buf, -1, false, false}, {"broadcast", 2, 1, 2, broadcastBuf, -1, false, false},
+      {"cast1", 2, 1, 2, cast1Buf, -1, false, false}, {"store", 3, 0, 0, -1, -1, false, true},
   };
   for (const auto &info : nodes) {
     SetNodeMemAttr(graph.FindNode(info.name), tensorID, info);
@@ -383,12 +376,9 @@ void BrcBufAfterQueBufAlloc4(af::AscGraph &graph) {
   int32_t cast1Buf = bufID++;
 
   QueBufInfo nodes[] = {
-    {"input_data", 0, 0, 0, -1, -1, false, false},
-    {"load", 1, 1, 1, loadQue, 2, false, false},
-    {"cast0", 2, 1, 2, cast0Buf, -1, false, false},
-    {"sum", 2, 1, 2, sumBuf, -1, false, false},
-    {"cast1", 2, 1, 2, cast1Buf, -1, false, false},
-    {"store", 3, 0, 0, -1, -1, false, true},
+      {"input_data", 0, 0, 0, -1, -1, false, false},  {"load", 1, 1, 1, loadQue, 2, false, false},
+      {"cast0", 2, 1, 2, cast0Buf, -1, false, false}, {"sum", 2, 1, 2, sumBuf, -1, false, false},
+      {"cast1", 2, 1, 2, cast1Buf, -1, false, false}, {"store", 3, 0, 0, -1, -1, false, true},
   };
   for (const auto &info : nodes) {
     SetNodeMemAttr(graph.FindNode(info.name), tensorID, info);

@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -35,8 +35,8 @@ inline __aicore__ void ClipByValue(const AscendC::LocalTensor<T> &dst, const Asc
 // 场景2，x是tensor，min, max是scalar
 template <typename T>
 inline __aicore__ void ClipByValue(const AscendC::LocalTensor<T> &dst, const AscendC::LocalTensor<T> &src_x,
-                                   const T &src_min, const T &src_max,
-                                   AscendC::LocalTensor<uint8_t> &tmp_buf, const uint32_t calCount) {
+                                   const T &src_min, const T &src_max, AscendC::LocalTensor<uint8_t> &tmp_buf,
+                                   const uint32_t calCount) {
   constexpr auto minSize = sizeof(T) * 32;
   const auto maxTmpSize = (tmp_buf.GetSize() - minSize) / sizeof(T);
   constexpr auto repeatSize = 256 / sizeof(T);

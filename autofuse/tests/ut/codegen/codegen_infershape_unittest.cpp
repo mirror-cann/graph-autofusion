@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -20,7 +20,7 @@
 using namespace ge;
 
 namespace {
-std::pair<int, std::string> execute_command(const std::string& command) {
+std::pair<int, std::string> execute_command(const std::string &command) {
   std::array<char, 128> buffer;
   std::string output;
   std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(command.c_str(), "r"), pclose);
@@ -36,7 +36,7 @@ std::pair<int, std::string> execute_command(const std::string& command) {
   return {WEXITSTATUS(pclose(pipe.release())), output};
 }
 
-bool CompileCodegenCode(const std::string& code) {
+bool CompileCodegenCode(const std::string &code) {
   std::string cmake_dir = CMAKE_BINARY_DIR;
   // 临时目录
   std::string temp_dir = cmake_dir + "/tests/ut/temp_compile_codegen_infershpe";
@@ -62,7 +62,7 @@ bool CompileCodegenCode(const std::string& code) {
   std::filesystem::remove_all(temp_dir);
   return compile_exit_code == 0;
 }
-}
+}  // namespace
 
 class UTestCodegenInfershape : public testing::Test {
  protected:
@@ -95,9 +95,7 @@ TEST(UTestCodegenInfershape, TestInfershapeFuncWithLambda) {
     return tensor->GetOriginShape().GetDim(1);
   }())";
 
-  std::map<std::string, std::string> shape_info = {{"s0", s0_source},
-                                                   {"s1", s1_source},
-                                                   {"s2", s2_source}};
+  std::map<std::string, std::string> shape_info = {{"s0", s0_source}, {"s1", s1_source}, {"s2", s2_source}};
   std::string code = testGen.GenInferShapeFunc(symbol_shape_str, shape_info);
   std::string expect = R"(
 #include <cmath>
@@ -206,9 +204,7 @@ TEST(UTestCodegenInfershape, TestInfershapeFunc_Compile_OK_WithLambda) {
     return tensor->GetOriginShape().GetDim(1);
   }())";
 
-  std::map<std::string, std::string> shape_info = {{"s0", s0_source},
-                                                   {"s1", s1_source},
-                                                   {"s2", s2_source}};
+  std::map<std::string, std::string> shape_info = {{"s0", s0_source}, {"s1", s1_source}, {"s2", s2_source}};
   std::string code = codegen.GenerateInferShape(symbol_shape_str, shape_info);
 
   ASSERT_TRUE(CompileCodegenCode(code));
@@ -237,7 +233,8 @@ TEST(UTestCodegenInfershape, TestInfershapeFunc_Compile_OK) {
 TEST(UTestCodegenInfershape, Test_WithRational) {
   codegen::CodegenOptions opt;
   codegen::Codegen codegen(opt);
-  vector<vector<std::string>> symbol_shape_str{{"(Rational(1 , 1800000) * s5 * s6 * s7)", "(Rational(1 , 1800000) * s5)"}};
+  vector<vector<std::string>> symbol_shape_str{
+      {"(Rational(1 , 1800000) * s5 * s6 * s7)", "(Rational(1 , 1800000) * s5)"}};
   std::map<std::string, std::string> shape_info;
   shape_info["s5"] = "3000";
   shape_info["s6"] = "300";
@@ -245,7 +242,7 @@ TEST(UTestCodegenInfershape, Test_WithRational) {
 
   std::string code = codegen.GenerateInferShape(symbol_shape_str, shape_info);
 
-  auto expect_code =R"(extern "C" ge::graphStatus InferShape(InferShapeSymbolEvalContext *context)
+  auto expect_code = R"(extern "C" ge::graphStatus InferShape(InferShapeSymbolEvalContext *context)
 {
   auto s5 = 3000;
   auto s6 = 300;

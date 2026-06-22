@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -22,7 +22,7 @@
 
 using namespace AscendC;
 
-namespace af{
+namespace af {
 template <typename T, uint8_t dim>
 struct WhereInputParam {
   T *y{};
@@ -47,14 +47,16 @@ struct WhereInputParam {
 
 class TestRegbaseApiWhereUT : public testing::Test {
  protected:
-// normal
+  // normal
   template <typename T, uint8_t dim>
   static void CreateNormalInput(WhereInputParam<T, dim> &param) {
     // 构造测试输入和预期结果
     uint32_t y_align = (param.size * sizeof(T) + ONE_BLK_SIZE - 1) / ONE_BLK_SIZE * ONE_BLK_SIZE;
     uint32_t x1_align = (param.size * sizeof(uint8_t) + ONE_BLK_SIZE - 1) / ONE_BLK_SIZE * ONE_BLK_SIZE;
-    uint32_t x2_align = param.x2_bcast ? ONE_BLK_SIZE : (param.x2_size * sizeof(T) + ONE_BLK_SIZE - 1) / ONE_BLK_SIZE * ONE_BLK_SIZE;
-    uint32_t x3_align = param.x3_bcast ? ONE_BLK_SIZE : (param.x3_size * sizeof(T) + ONE_BLK_SIZE - 1) / ONE_BLK_SIZE * ONE_BLK_SIZE;
+    uint32_t x2_align =
+        param.x2_bcast ? ONE_BLK_SIZE : (param.x2_size * sizeof(T) + ONE_BLK_SIZE - 1) / ONE_BLK_SIZE * ONE_BLK_SIZE;
+    uint32_t x3_align =
+        param.x3_bcast ? ONE_BLK_SIZE : (param.x3_size * sizeof(T) + ONE_BLK_SIZE - 1) / ONE_BLK_SIZE * ONE_BLK_SIZE;
 
     param.y_stride = y_align / sizeof(T);
     param.x1_stride = x1_align / sizeof(uint8_t);
@@ -88,23 +90,24 @@ class TestRegbaseApiWhereUT : public testing::Test {
         if (param.x2_bcast && param.x3_bcast) {
           uint32_t x2_index = i % param.x2_size;
           uint32_t x3_index = i % param.x3_size;
-          param.exp[k * param.y_stride + i] = param.x1[k * param.x1_stride + i] == 1 ?
-                                              static_cast<T>(param.x2_[x2_index]) : static_cast<T>(param.x3_[x3_index]);
+          param.exp[k * param.y_stride + i] = param.x1[k * param.x1_stride + i] == 1
+                                                  ? static_cast<T>(param.x2_[x2_index])
+                                                  : static_cast<T>(param.x3_[x3_index]);
         } else if (param.x2_bcast) {
           uint32_t x2_index = i % param.x2_size;
           uint32_t x3_index = k * param.x3_stride + i;
-          param.exp[k * param.y_stride + i] = param.x1[k * param.x1_stride + i] == 1 ?
-                                              static_cast<T>(param.x2_[x2_index]) : param.x3[x3_index];
+          param.exp[k * param.y_stride + i] =
+              param.x1[k * param.x1_stride + i] == 1 ? static_cast<T>(param.x2_[x2_index]) : param.x3[x3_index];
         } else if (param.x3_bcast) {
           uint32_t x2_index = k * param.x2_stride + i;
           uint32_t x3_index = i % param.x3_size;
-          param.exp[k * param.y_stride + i] = param.x1[k * param.x1_stride + i] == 1 ?
-                                              param.x2[x2_index] : static_cast<T>(param.x3_[x3_index]);
+          param.exp[k * param.y_stride + i] =
+              param.x1[k * param.x1_stride + i] == 1 ? param.x2[x2_index] : static_cast<T>(param.x3_[x3_index]);
         } else {
           uint32_t x2_index = k * param.x2_stride + i;
           uint32_t x3_index = k * param.x3_stride + i;
-          param.exp[k * param.y_stride + i] = param.x1[k * param.x1_stride + i] == 1 ?
-                                              param.x2[x2_index] : param.x3[x3_index];
+          param.exp[k * param.y_stride + i] =
+              param.x1[k * param.x1_stride + i] == 1 ? param.x2[x2_index] : param.x3[x3_index];
         }
       }
     }
@@ -139,7 +142,8 @@ class TestRegbaseApiWhereUT : public testing::Test {
           param.x2[i] = static_cast<int64_t>((0 + input_offset) % input_value_range) + 20000001;
         }
         if (!param.x3_bcast) {
-          param.x3[k * param.x3_stride + i] = static_cast<int64_t>(-((i + input_offset) % input_value_range)) - 20000001;
+          param.x3[k * param.x3_stride + i] =
+              static_cast<int64_t>(-((i + input_offset) % input_value_range)) - 20000001;
         } else if (i < param.x3_size) { /* scalar */
           param.x3[i] = static_cast<int64_t>(-((0 + input_offset) % input_value_range)) - 20000001;
         }
@@ -157,7 +161,8 @@ class TestRegbaseApiWhereUT : public testing::Test {
           x2_index = k * param.x2_stride + i;
           x3_index = k * param.x3_stride + i;
         }
-        param.exp[k * param.y_stride + i] = param.x1[k * param.x1_stride + i] == 1 ? param.x2[x2_index] : param.x3[x3_index];
+        param.exp[k * param.y_stride + i] =
+            param.x1[k * param.x1_stride + i] == 1 ? param.x2[x2_index] : param.x3[x3_index];
       }
     }
   }
@@ -184,12 +189,11 @@ class TestRegbaseApiWhereUT : public testing::Test {
     tpipe.InitBuffer(x3buf, param.x3_bcast ? ONE_BLK_SIZE : sizeof(T) * param.x3_stride * param.m);
     tpipe.InitBuffer(ybuf, sizeof(T) * param.y_stride * param.m);
 
-
     LocalTensor<uint8_t> l_x1 = x1buf.Get<uint8_t>();
     LocalTensor<T> l_x2 = x2buf.Get<T>();
     LocalTensor<T> l_x3 = x3buf.Get<T>();
     LocalTensor<T> l_y = ybuf.Get<T>();
- 
+
     LocalTensor<T> l_x2_ = x2buf.Get<T>();
     LocalTensor<T> l_x3_ = x3buf.Get<T>();
 
@@ -207,35 +211,43 @@ class TestRegbaseApiWhereUT : public testing::Test {
     GmToUb(l_y, param.y, param.y_stride * param.m);
 
     if constexpr (dim == 1) {
-        const uint16_t output_dims[dim] = {(uint16_t)param.size};
-        const uint16_t output_stride[dim] = {1};
-        const uint16_t mask_stride[dim] = {1};
-        const uint16_t input_stride[dim] = {1};
+      const uint16_t output_dims[dim] = {(uint16_t)param.size};
+      const uint16_t output_stride[dim] = {1};
+      const uint16_t mask_stride[dim] = {1};
+      const uint16_t input_stride[dim] = {1};
 
-        if (param.x2_bcast && param.x3_bcast) {
-          WhereExtend<true, true, 1, T, T, T>(l_y, l_x1, l_x2_, l_x3_, output_dims, output_stride, mask_stride, input_stride);
-        } else if (param.x2_bcast) {
-          WhereExtend<true, false, 1, T, T, T>(l_y, l_x1, l_x2_, l_x3, output_dims, output_stride, mask_stride, input_stride);
-        } else if (param.x3_bcast) {
-          WhereExtend<false, true, 1, T, T, T>(l_y, l_x1, l_x2, l_x3_, output_dims, output_stride, mask_stride, input_stride);
-        } else {
-          WhereExtend<false, false, 1, T, T, T>(l_y, l_x1, l_x2, l_x3, output_dims, output_stride, mask_stride, input_stride);
-        }
+      if (param.x2_bcast && param.x3_bcast) {
+        WhereExtend<true, true, 1, T, T, T>(l_y, l_x1, l_x2_, l_x3_, output_dims, output_stride, mask_stride,
+                                            input_stride);
+      } else if (param.x2_bcast) {
+        WhereExtend<true, false, 1, T, T, T>(l_y, l_x1, l_x2_, l_x3, output_dims, output_stride, mask_stride,
+                                             input_stride);
+      } else if (param.x3_bcast) {
+        WhereExtend<false, true, 1, T, T, T>(l_y, l_x1, l_x2, l_x3_, output_dims, output_stride, mask_stride,
+                                             input_stride);
+      } else {
+        WhereExtend<false, false, 1, T, T, T>(l_y, l_x1, l_x2, l_x3, output_dims, output_stride, mask_stride,
+                                              input_stride);
+      }
     } else if constexpr (dim == 2) {
-        const uint16_t output_dims[dim] = {(uint16_t)param.m, (uint16_t)param.size};
-        const uint16_t output_stride[dim] = {(uint16_t)param.y_stride, 1};
-        const uint16_t mask_stride[dim] = {(uint16_t)param.x1_stride, 1};
-        const uint16_t input_stride[dim] = {(uint16_t)param.x2_stride, 1};
-        
-        if (param.x2_bcast && param.x3_bcast) {
-          WhereExtend<true, true, 2, T, T, T>(l_y, l_x1, l_x2_, l_x3_, output_dims, output_stride, mask_stride, input_stride);
-        } else if (param.x2_bcast) {
-          WhereExtend<true, false, 2, T, T, T>(l_y, l_x1, l_x2_, l_x3, output_dims, output_stride, mask_stride, input_stride);
-        } else if (param.x3_bcast) {
-          WhereExtend<false, true, 2, T, T, T>(l_y, l_x1, l_x2, l_x3_, output_dims, output_stride, mask_stride, input_stride);
-        } else {
-          WhereExtend<false, false, 2, T, T, T>(l_y, l_x1, l_x2, l_x3, output_dims, output_stride, mask_stride, input_stride);
-        }
+      const uint16_t output_dims[dim] = {(uint16_t)param.m, (uint16_t)param.size};
+      const uint16_t output_stride[dim] = {(uint16_t)param.y_stride, 1};
+      const uint16_t mask_stride[dim] = {(uint16_t)param.x1_stride, 1};
+      const uint16_t input_stride[dim] = {(uint16_t)param.x2_stride, 1};
+
+      if (param.x2_bcast && param.x3_bcast) {
+        WhereExtend<true, true, 2, T, T, T>(l_y, l_x1, l_x2_, l_x3_, output_dims, output_stride, mask_stride,
+                                            input_stride);
+      } else if (param.x2_bcast) {
+        WhereExtend<true, false, 2, T, T, T>(l_y, l_x1, l_x2_, l_x3, output_dims, output_stride, mask_stride,
+                                             input_stride);
+      } else if (param.x3_bcast) {
+        WhereExtend<false, true, 2, T, T, T>(l_y, l_x1, l_x2, l_x3_, output_dims, output_stride, mask_stride,
+                                             input_stride);
+      } else {
+        WhereExtend<false, false, 2, T, T, T>(l_y, l_x1, l_x2, l_x3, output_dims, output_stride, mask_stride,
+                                              input_stride);
+      }
     }
 
     UbToGm(param.y, l_y, param.y_stride * param.m);
@@ -253,7 +265,7 @@ class TestRegbaseApiWhereUT : public testing::Test {
     LocalTensor<int64_t> l_x2 = x2buf.Get<int64_t>();
     LocalTensor<int64_t> l_x3 = x3buf.Get<int64_t>();
     LocalTensor<int64_t> l_y = ybuf.Get<int64_t>();
- 
+
     GmToUb<uint8_t>(l_x1, param.x1, param.x1_stride * param.m);
     if (param.x2_bcast) {
       GmToUb(l_x2, param.x2, param.x2_stride);
@@ -268,35 +280,43 @@ class TestRegbaseApiWhereUT : public testing::Test {
     GmToUb(l_y, param.y, param.y_stride * param.m);
 
     if constexpr (dim == 1) {
-        const uint16_t output_dims[dim] = {param.size};
-        const uint16_t output_stride[dim] = {1};
-        const uint16_t mask_stride[dim] = {1};
-        const uint16_t input_stride[dim] = {1};
+      const uint16_t output_dims[dim] = {param.size};
+      const uint16_t output_stride[dim] = {1};
+      const uint16_t mask_stride[dim] = {1};
+      const uint16_t input_stride[dim] = {1};
 
-        if (param.x2_bcast && param.x3_bcast) {
-          WhereExtend<true, true, 1, T, T, T>(l_y, l_x1, l_x2, l_x3, output_dims, output_stride, mask_stride, input_stride);
-        } else if (param.x2_bcast) {
-          WhereExtend<true, false, 1, T, T, T>(l_y, l_x1, l_x2, l_x3, output_dims, output_stride, mask_stride, input_stride);
-        } else if (param.x3_bcast) {
-          WhereExtend<false, true, 1, T, T, T>(l_y, l_x1, l_x2, l_x3, output_dims, output_stride, mask_stride, input_stride);
-        } else {
-          WhereExtend<false, false, 1, T, T, T>(l_y, l_x1, l_x2, l_x3, output_dims, output_stride, mask_stride, input_stride);
-        }
+      if (param.x2_bcast && param.x3_bcast) {
+        WhereExtend<true, true, 1, T, T, T>(l_y, l_x1, l_x2, l_x3, output_dims, output_stride, mask_stride,
+                                            input_stride);
+      } else if (param.x2_bcast) {
+        WhereExtend<true, false, 1, T, T, T>(l_y, l_x1, l_x2, l_x3, output_dims, output_stride, mask_stride,
+                                             input_stride);
+      } else if (param.x3_bcast) {
+        WhereExtend<false, true, 1, T, T, T>(l_y, l_x1, l_x2, l_x3, output_dims, output_stride, mask_stride,
+                                             input_stride);
+      } else {
+        WhereExtend<false, false, 1, T, T, T>(l_y, l_x1, l_x2, l_x3, output_dims, output_stride, mask_stride,
+                                              input_stride);
+      }
     } else if constexpr (dim == 2) {
-        const uint16_t output_dims[dim] = {param.m, param.size};
-        const uint16_t output_stride[dim] = {param.y_stride, 1};
-        const uint16_t mask_stride[dim] = {param.x1_stride, 1};
-        const uint16_t input_stride[dim] = {param.x2_stride, 1};
-        
-        if (param.x2_bcast && param.x3_bcast) {
-          WhereExtend<true, true, 2, T, T, T>(l_y, l_x1, l_x2, l_x3, output_dims, output_stride, mask_stride, input_stride);
-        } else if (param.x2_bcast) {
-          WhereExtend<true, false, 2, T, T, T>(l_y, l_x1, l_x2, l_x3, output_dims, output_stride, mask_stride, input_stride);
-        } else if (param.x3_bcast) {
-          WhereExtend<false, true, 2, T, T, T>(l_y, l_x1, l_x2, l_x3, output_dims, output_stride, mask_stride, input_stride);
-        } else {
-          WhereExtend<false, false, 2, T, T, T>(l_y, l_x1, l_x2, l_x3, output_dims, output_stride, mask_stride, input_stride);
-        }
+      const uint16_t output_dims[dim] = {param.m, param.size};
+      const uint16_t output_stride[dim] = {param.y_stride, 1};
+      const uint16_t mask_stride[dim] = {param.x1_stride, 1};
+      const uint16_t input_stride[dim] = {param.x2_stride, 1};
+
+      if (param.x2_bcast && param.x3_bcast) {
+        WhereExtend<true, true, 2, T, T, T>(l_y, l_x1, l_x2, l_x3, output_dims, output_stride, mask_stride,
+                                            input_stride);
+      } else if (param.x2_bcast) {
+        WhereExtend<true, false, 2, T, T, T>(l_y, l_x1, l_x2, l_x3, output_dims, output_stride, mask_stride,
+                                             input_stride);
+      } else if (param.x3_bcast) {
+        WhereExtend<false, true, 2, T, T, T>(l_y, l_x1, l_x2, l_x3, output_dims, output_stride, mask_stride,
+                                             input_stride);
+      } else {
+        WhereExtend<false, false, 2, T, T, T>(l_y, l_x1, l_x2, l_x3, output_dims, output_stride, mask_stride,
+                                              input_stride);
+      }
     }
 
     UbToGm(param.y, l_y, param.y_stride * param.m);
@@ -385,7 +405,6 @@ TEST_F(TestRegbaseApiWhereUT, Where_X2S_X3S_int64_count) {
 }
 
 TEST_F(TestRegbaseApiWhereUT, Where_X2S_X3S_int64_normal) {
-
   WhereNormalTestInt64<int64_t, 2>(3, ONE_BLK_SIZE / sizeof(int64_t), 1, 1);
   WhereNormalTestInt64<int64_t, 2>(4, ONE_REPEAT_BYTE_SIZE / sizeof(int64_t), 1, 1);
   WhereNormalTestInt64<int64_t, 2>(5, (ONE_BLK_SIZE - sizeof(int64_t)) / sizeof(int64_t), 1, 1);
@@ -393,8 +412,7 @@ TEST_F(TestRegbaseApiWhereUT, Where_X2S_X3S_int64_normal) {
 }
 
 // 场景2
-TEST_F(TestRegbaseApiWhereUT, Where_X2S_float_count) 
-{
+TEST_F(TestRegbaseApiWhereUT, Where_X2S_float_count) {
   WhereNormalTest<float, 1>(1, ONE_BLK_SIZE / sizeof(float), 1, 0);
   WhereNormalTest<float, 1>(1, ONE_REPEAT_BYTE_SIZE / sizeof(float), 1, 0);
   WhereNormalTest<float, 1>(1, (ONE_BLK_SIZE - sizeof(float)) / sizeof(float), 1, 0);
@@ -505,4 +523,4 @@ TEST_F(TestRegbaseApiWhereUT, Where_uint64_normal) {
   WhereNormalTest<uint64_t, 2>(71, (ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) / sizeof(uint64_t));
 }
 
-}  // namespace ge
+}  // namespace af

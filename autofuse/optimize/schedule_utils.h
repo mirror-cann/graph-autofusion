@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -309,7 +309,7 @@ class ScheduleUtils {
 
   static bool GetTailAxisDataSize(const af::AscNodePtr &node, uint32_t &size);
   static bool IsTailAxisLessThan(const af::AscNodePtr &node, const uint32_t value);
-  static bool IsTailAxisAlignedBy(const af::AscNodePtr &node, const uint32_t align_bytes=32);
+  static bool IsTailAxisAlignedBy(const af::AscNodePtr &node, const uint32_t align_bytes = 32);
 
   static bool IsStaticShape(const ascir::NodeView &node);
 
@@ -347,7 +347,7 @@ class ScheduleUtils {
   static bool IsScalarBrc(const af::AscNodePtr &node);
   static Status SwapInputIndex(const ascir::NodeView &node, const int32_t idx1, const int32_t idx2);
   static Status GetInputForTranspose(af::AscNode &node, std::vector<ascir::AxisId> &input_axis);
-  template<typename T>
+  template <typename T>
   static af::AscNodePtr FindFirstNodeOfType(const af::AscGraph &graph) {
     for (const auto &node : graph.GetAllNodes()) {
       if (af::ops::IsOps<T>(node)) {
@@ -357,17 +357,17 @@ class ScheduleUtils {
     return nullptr;
   }
   static Status RemoveNode(const ascir::ImplGraph &impl_graph, const af::AscNodePtr &node,
-    const af::OutDataAnchorPtr &pre_out_anchor);
+                           const af::OutDataAnchorPtr &pre_out_anchor);
   static Status RemoveNodeDst(const ascir::ImplGraph &impl_graph, const af::AscNodePtr &node,
-    const af::InDataAnchorPtr &next_in_anchor);
+                              const af::InDataAnchorPtr &next_in_anchor);
   static bool FindContinuesBroadcastNode(const ascir::NodeView &node, vector<af::AscNodePtr> &continues_brc_nodes);
 
   static Status AddRemovePadAfter(af::AscGraph &graph, const af::AscNodePtr &node, af::AscNodePtr &remove_pad_node,
-    const int32_t idx = 0);
+                                  const int32_t idx = 0);
   static bool IsOutNodeWithMultiInputs(const af::AscNodePtr &node);
   static Status ResolveDiffDim(const af::AscNodePtr &node, size_t &diff_dim, bool &is_first_dim);
   static Status RecalculateStridesFromRepeats(const std::vector<af::Expression> &repeats,
-                                       std::vector<af::Expression> &strides);
+                                              std::vector<af::Expression> &strides);
   static bool IsNeedDiscontinuousAligned(const af::AscTensorAttr &attr);
   static Status ClearAllSizeVar(const af::AscGraph &graph);
   // 判断节点的Micro API是否支持Scalar输入，用于scalar_broadcast优化

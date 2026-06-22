@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -21,8 +21,7 @@ const std::vector<std::string> &IRMetaData::GetIrAttrNames() const {
   return ir_attr_names_;
 }
 void IRMetaData::RemoveIrAttrName(const std::string &name) {
-  ir_attr_names_.erase(std::remove(ir_attr_names_.begin(), ir_attr_names_.end(), name),
-                       ir_attr_names_.end());
+  ir_attr_names_.erase(std::remove(ir_attr_names_.begin(), ir_attr_names_.end(), name), ir_attr_names_.end());
 }
 void IRMetaData::AppendIrInput(std::string name, IrInputType input_type) {
   ir_inputs_.AppendIrInput(std::move(name), input_type);
@@ -37,8 +36,8 @@ graphStatus IRMetaData::AddRegisterInputName(const std::string &name) {
   if (register_unique_name_.insert(name).second) {
     register_input_name_.emplace_back(name);
   }
-  TRACE_GEN_RECORD(TraceManager::GetTraceHeader(), "add", TraceManager::GetOutGraphName(),
-                   op_name_, "register_input_name", "", "", name);
+  TRACE_GEN_RECORD(TraceManager::GetTraceHeader(), "add", TraceManager::GetOutGraphName(), op_name_,
+                   "register_input_name", "", "", name);
   return GRAPH_SUCCESS;
 }
 
@@ -55,8 +54,8 @@ graphStatus IRMetaData::AddRegisterOutputName(const std::string &name) {
     register_output_name_.emplace_back(name);
   }
 
-  TRACE_GEN_RECORD(TraceManager::GetTraceHeader(), "add", TraceManager::GetOutGraphName(),
-                   op_name_, "register_output_name", "", "", name);
+  TRACE_GEN_RECORD(TraceManager::GetTraceHeader(), "add", TraceManager::GetOutGraphName(), op_name_,
+                   "register_output_name", "", "", name);
   return GRAPH_SUCCESS;
 }
 
@@ -98,8 +97,7 @@ graphStatus IRMetaData::AddRegisterOptionalInputName(const string &name) {
 }
 
 bool IRMetaData::operator==(const IRMetaData &other) const {
-  return IsEqual(this->optional_input_names_, other.optional_input_names_,
-                 "OpDesc.ir_meta.optional_input_names_");
+  return IsEqual(this->optional_input_names_, other.optional_input_names_, "OpDesc.ir_meta.optional_input_names_");
 }
 
 std::set<std::string> IRMetaData::GetOptionalInputName() const {
@@ -122,4 +120,4 @@ void IRMetaData::AppendIrOutput(std::string name, IrOutputType output_type) {
 const std::vector<std::pair<std::string, IrOutputType>> &IRMetaData::GetIrOutputs() const {
   return ir_outputs_.ir_outputs;
 }
-} // namespace ge
+}  // namespace af

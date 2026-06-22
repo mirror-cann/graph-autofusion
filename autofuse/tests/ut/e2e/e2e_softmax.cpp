@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -27,7 +27,6 @@ void Softmax_BeforeAutofuse(af::AscGraph &graph) {
 
   auto axis = {z0.id, z1.id};
 
-
   Data arg4_1("arg4_1");
   graph.AddNode(arg4_1);
   arg4_1.y.dtype = ge::DT_FLOAT16;
@@ -41,7 +40,7 @@ void Softmax_BeforeAutofuse(af::AscGraph &graph) {
   b0_load.attr.sched.axis = axis;
   b0_load.y.dtype = ge::DT_FLOAT16;
   *b0_load.y.axis = axis;
-  *b0_load.y.repeats = {s0*s1*s2, s3};
+  *b0_load.y.repeats = {s0 * s1 * s2, s3};
   *b0_load.y.strides = {s3, One};
 
   af::ascir_op::Max b0_max("b0_max");
@@ -50,7 +49,7 @@ void Softmax_BeforeAutofuse(af::AscGraph &graph) {
   b0_max.attr.sched.axis = axis;
   b0_max.y.dtype = ge::DT_FLOAT16;
   *b0_max.y.axis = axis;
-  *b0_max.y.repeats = {s0*s1*s2, s3};
+  *b0_max.y.repeats = {s0 * s1 * s2, s3};
   *b0_max.y.strides = {One, Zero};
 
   Store b0_store("b0_store");
@@ -59,7 +58,7 @@ void Softmax_BeforeAutofuse(af::AscGraph &graph) {
   b0_store.attr.sched.axis = axis;
   b0_store.y.dtype = ge::DT_FLOAT16;
   *b0_store.y.axis = axis;
-  *b0_store.y.repeats = {s0*s1*s2, s3};
+  *b0_store.y.repeats = {s0 * s1 * s2, s3};
   *b0_store.y.strides = {One, Zero};
 
   buf0.x = b0_store.y;
@@ -73,7 +72,7 @@ void Softmax_BeforeAutofuse(af::AscGraph &graph) {
   b1_load.attr.sched.axis = axis;
   b1_load.y.dtype = ge::DT_FLOAT16;
   *b1_load.y.axis = axis;
-  *b1_load.y.repeats = {s0*s1*s2, s3};
+  *b1_load.y.repeats = {s0 * s1 * s2, s3};
   *b1_load.y.strides = {s3, One};
 
   Load b1_load1("b1_load1");
@@ -82,7 +81,7 @@ void Softmax_BeforeAutofuse(af::AscGraph &graph) {
   b1_load1.attr.sched.axis = axis;
   b1_load1.y.dtype = ge::DT_FLOAT16;
   *b1_load1.y.axis = axis;
-  *b1_load1.y.repeats = {s0*s1*s2, s3};
+  *b1_load1.y.repeats = {s0 * s1 * s2, s3};
   *b1_load1.y.strides = {One, Zero};
 
   Broadcast b1_broadcast("b1_broadcast");
@@ -91,7 +90,7 @@ void Softmax_BeforeAutofuse(af::AscGraph &graph) {
   b1_broadcast.attr.sched.axis = axis;
   b1_broadcast.y.dtype = ge::DT_FLOAT16;
   *b1_broadcast.y.axis = axis;
-  *b1_broadcast.y.repeats = {s0*s1*s2, s3};
+  *b1_broadcast.y.repeats = {s0 * s1 * s2, s3};
   *b1_broadcast.y.strides = {s3, One};
 
   af::ascir_op::Sub b1_sub("b1_sub");
@@ -101,7 +100,7 @@ void Softmax_BeforeAutofuse(af::AscGraph &graph) {
   b1_sub.attr.sched.axis = axis;
   b1_sub.y.dtype = ge::DT_FLOAT16;
   *b1_sub.y.axis = axis;
-  *b1_sub.y.repeats = {s0*s1*s2, s3};
+  *b1_sub.y.repeats = {s0 * s1 * s2, s3};
   *b1_sub.y.strides = {s3, One};
 
   Exp b1_exp("b1_exp");
@@ -110,7 +109,7 @@ void Softmax_BeforeAutofuse(af::AscGraph &graph) {
   b1_exp.attr.sched.axis = axis;
   b1_exp.y.dtype = ge::DT_FLOAT16;
   *b1_exp.y.axis = axis;
-  *b1_exp.y.repeats = {s0*s1*s2, s3};
+  *b1_exp.y.repeats = {s0 * s1 * s2, s3};
   *b1_exp.y.strides = {s3, One};
 
   Store b1_store("b1_store");
@@ -119,7 +118,7 @@ void Softmax_BeforeAutofuse(af::AscGraph &graph) {
   b1_store.attr.sched.axis = axis;
   b1_store.y.dtype = ge::DT_FLOAT16;
   *b1_store.y.axis = axis;
-  *b1_store.y.repeats = {s0*s1*s2, s3};
+  *b1_store.y.repeats = {s0 * s1 * s2, s3};
   *b1_store.y.strides = {s3, One};
 
   buf1.x = b1_store.y;
@@ -133,7 +132,7 @@ void Softmax_BeforeAutofuse(af::AscGraph &graph) {
   b2_load.attr.sched.axis = axis;
   b2_load.y.dtype = ge::DT_FLOAT16;
   *b2_load.y.axis = axis;
-  *b2_load.y.repeats = {s0*s1*s2, s3};
+  *b2_load.y.repeats = {s0 * s1 * s2, s3};
   *b2_load.y.strides = {s3, One};
 
   Sum b2_sum("b2_sum");
@@ -142,7 +141,7 @@ void Softmax_BeforeAutofuse(af::AscGraph &graph) {
   b2_sum.attr.sched.axis = axis;
   b2_sum.y.dtype = ge::DT_FLOAT16;
   *b2_sum.y.axis = axis;
-  *b2_sum.y.repeats = {s0*s1*s2, s3};
+  *b2_sum.y.repeats = {s0 * s1 * s2, s3};
   *b2_sum.y.strides = {One, Zero};
 
   Store b2_store("b2_store");
@@ -151,7 +150,7 @@ void Softmax_BeforeAutofuse(af::AscGraph &graph) {
   b2_store.attr.sched.axis = axis;
   b2_store.y.dtype = ge::DT_FLOAT16;
   *b2_store.y.axis = axis;
-  *b2_store.y.repeats = {s0*s1*s2, s3};
+  *b2_store.y.repeats = {s0 * s1 * s2, s3};
   *b2_store.y.strides = {One, Zero};
 
   buf2.x = b2_store.y;
@@ -165,7 +164,7 @@ void Softmax_BeforeAutofuse(af::AscGraph &graph) {
   b3_load.attr.sched.axis = axis;
   b3_load.y.dtype = ge::DT_FLOAT16;
   *b3_load.y.axis = axis;
-  *b3_load.y.repeats = {s0*s1*s2, s3};
+  *b3_load.y.repeats = {s0 * s1 * s2, s3};
   *b3_load.y.strides = {s3, One};
 
   Load b3_load1("b3_load1");
@@ -174,7 +173,7 @@ void Softmax_BeforeAutofuse(af::AscGraph &graph) {
   b3_load1.attr.sched.axis = axis;
   b3_load1.y.dtype = ge::DT_FLOAT16;
   *b3_load1.y.axis = axis;
-  *b3_load1.y.repeats = {s0*s1*s2, s3};
+  *b3_load1.y.repeats = {s0 * s1 * s2, s3};
   *b3_load1.y.strides = {One, Zero};
 
   Broadcast b3_broadcast("b3_broadcast");
@@ -193,7 +192,7 @@ void Softmax_BeforeAutofuse(af::AscGraph &graph) {
   b3_div.attr.sched.axis = axis;
   b3_div.y.dtype = ge::DT_FLOAT16;
   *b3_div.y.axis = axis;
-  *b3_div.y.repeats = {s0*s1*s2, s3};
+  *b3_div.y.repeats = {s0 * s1 * s2, s3};
   *b3_div.y.strides = {s3, One};
 
   Store b3_store("b3_store");
@@ -202,7 +201,7 @@ void Softmax_BeforeAutofuse(af::AscGraph &graph) {
   b3_store.attr.sched.axis = axis;
   b3_store.y.dtype = ge::DT_FLOAT16;
   *b3_store.y.axis = axis;
-  *b3_store.y.repeats = {s0*s1*s2, s3};
+  *b3_store.y.repeats = {s0 * s1 * s2, s3};
   *b3_store.y.strides = {s3, One};
 
   buf3.x = b3_store.y;

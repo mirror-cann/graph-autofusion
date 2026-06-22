@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -15,15 +15,13 @@
 #undef private
 #include "autofuse_config/auto_fuse_config_utils.h"
 using namespace ge;
-namespace att
-{
-class AutoFuseConfigTest: public testing::Test {
+namespace att {
+class AutoFuseConfigTest : public testing::Test {
  public:
   void SetUp() override {
     att::AutoFuseConfig::MutableAttStrategyConfig().Reset();
   }
-  void TearDown() override {
-  }
+  void TearDown() override {}
 };
 
 TEST_F(AutoFuseConfigTest, SetTilingAlgorithmToAxesReorder) {
@@ -97,35 +95,35 @@ TEST_F(AutoFuseConfigTest, SetCorenumThresholdInvalidCharNumDefault) {
 TEST_F(AutoFuseConfigTest, ParseForceTilingCase) {
   std::vector<std::string> test_cases = {
       "g0_0_R,g1_0_R,g2_1",  // 有效分组格式 -> Group: {0:0, 1:0, 2:1}
-      "2_R",                // 有效单一格式 -> Single: 2
-      "g0_0",             // 单组有效格式 -> Group: {0:0}
-      "g10_25_R,g3_0",      // 多位数有效 -> Group: {10:25, 3:0}
-      "2",                    // 有效单一格式，无sub_tag
-      "",                 // 空字符串 -> -1 (错误)
-      "g0",               // 缺少下划线和case -> -1 (错误)
-      "g_1",              // 缺少组号 -> -1 (错误)
-      "g0_",              // 缺少case号 -> -1 (错误)
-      "g0_a",             // 非数字case -> -1 (错误)
-      "a0_0",             // 首字母不是g -> -1 (错误)
-      "0_0",              // 缺少g前缀 -> -1 (错误)
-      "g0_0,g0_1",       // 重复组号 -> -1 (错误)
-      "2a"               // 含非数字字符 -> -1 (错误)
+      "2_R",                 // 有效单一格式 -> Single: 2
+      "g0_0",                // 单组有效格式 -> Group: {0:0}
+      "g10_25_R,g3_0",       // 多位数有效 -> Group: {10:25, 3:0}
+      "2",                   // 有效单一格式，无sub_tag
+      "",                    // 空字符串 -> -1 (错误)
+      "g0",                  // 缺少下划线和case -> -1 (错误)
+      "g_1",                 // 缺少组号 -> -1 (错误)
+      "g0_",                 // 缺少case号 -> -1 (错误)
+      "g0_a",                // 非数字case -> -1 (错误)
+      "a0_0",                // 首字母不是g -> -1 (错误)
+      "0_0",                 // 缺少g前缀 -> -1 (错误)
+      "g0_0,g0_1",           // 重复组号 -> -1 (错误)
+      "2a"                   // 含非数字字符 -> -1 (错误)
   };
   std::vector<std::pair<bool, ge::ForceTilingCaseResult>> expect_results = {
-    {true, {false, -1, "", {{0, {0, "R"}}, {1, {0, "R"}}, {2, {1, ""}}}}},
-    {true, {true, 2, "R"}},
-    {true, {false, -1, "", {{0, {0, ""}}}}},
-    {true, {false, -1, "", {{10, {25, "R"}}, {3, {0, ""}}}}},
-    {true, {true, 2, ""}},
-    {false, {}},
-    {false, {}},
-    {false, {}},
-    {false, {}},
-    {false, {}},
-    {false, {}},
-    {false, {true, 0, ""}},
-    {false, {}},
-    {false, {}},
+      {true, {false, -1, "", {{0, {0, "R"}}, {1, {0, "R"}}, {2, {1, ""}}}}},
+      {true, {true, 2, "R"}},
+      {true, {false, -1, "", {{0, {0, ""}}}}},
+      {true, {false, -1, "", {{10, {25, "R"}}, {3, {0, ""}}}}},
+      {true, {true, 2, ""}},
+      {false, {}},
+      {false, {}},
+      {false, {}},
+      {false, {}},
+      {false, {}},
+      {false, {}},
+      {false, {true, 0, ""}},
+      {false, {}},
+      {false, {}},
   };
   ASSERT_EQ(expect_results.size(), test_cases.size());
   for (int32_t id = 0; id < static_cast<int32_t>(test_cases.size()); id++) {
@@ -163,7 +161,8 @@ TEST_F(AutoFuseConfigTest, ClearForceTilingCase) {
 TEST_F(AutoFuseConfigTest, GetForceGroupTilingCase) {
   ge::ForceTilingCaseResult test_case = {
       false,
-      -1, "",
+      -1,
+      "",
       {{0, {0, ""}}, {1, {0, ""}}, {2, {1, ""}}},
   };
   auto group_tiling_case = test_case.GetCase(0);
@@ -182,7 +181,8 @@ TEST_F(AutoFuseConfigTest, GetForceGroupTilingCase) {
 // Test for out_of_range exception in ParseInt64Config when value exceeds int64_t range
 TEST_F(AutoFuseConfigTest, SetSolutionAccuracyLevelOutOfRangePositive) {
   // int64_t max is 9223372036854775807, this value exceeds it
-  setenv("AUTOFUSE_DFX_FLAGS", "--att_accuracy_level=9999999999999999999999999999999999999999999999999999999999999999", 1);
+  setenv("AUTOFUSE_DFX_FLAGS", "--att_accuracy_level=9999999999999999999999999999999999999999999999999999999999999999",
+         1);
   ASSERT_EQ(att::AutoFuseConfig::Instance().att_strategy_config_.Init(), SUCCESS);
   // default is 1
   EXPECT_EQ(att::AutoFuseConfig::Instance().att_strategy_config_.solution_accuracy_level, 1);
@@ -192,7 +192,8 @@ TEST_F(AutoFuseConfigTest, SetSolutionAccuracyLevelOutOfRangePositive) {
 // Test for out_of_range exception in ParseInt64Config when value is below int64_t range
 TEST_F(AutoFuseConfigTest, SetSolutionAccuracyLevelOutOfRangeNegative) {
   // int64_t min is -9223372036854775808, this value is below it
-  setenv("AUTOFUSE_DFX_FLAGS", "--att_accuracy_level=-9999999999999999999999999999999999999999999999999999999999999999", 1);
+  setenv("AUTOFUSE_DFX_FLAGS", "--att_accuracy_level=-9999999999999999999999999999999999999999999999999999999999999999",
+         1);
   ASSERT_EQ(att::AutoFuseConfig::Instance().att_strategy_config_.Init(), SUCCESS);
   // default is 1
   EXPECT_EQ(att::AutoFuseConfig::Instance().att_strategy_config_.solution_accuracy_level, 1);
@@ -201,7 +202,8 @@ TEST_F(AutoFuseConfigTest, SetSolutionAccuracyLevelOutOfRangeNegative) {
 
 // Test for out_of_range exception in ParseInt64Config for ub_threshold
 TEST_F(AutoFuseConfigTest, SetUbThresholdOutOfRange) {
-  setenv("AUTOFUSE_DFX_FLAGS", "--att_ub_threshold=9999999999999999999999999999999999999999999999999999999999999999", 1);
+  setenv("AUTOFUSE_DFX_FLAGS", "--att_ub_threshold=9999999999999999999999999999999999999999999999999999999999999999",
+         1);
   ASSERT_EQ(att::AutoFuseConfig::Instance().att_strategy_config_.Init(), SUCCESS);
   // default is 20
   EXPECT_EQ(att::AutoFuseConfig::Instance().att_strategy_config_.ub_threshold, 20);
@@ -210,10 +212,11 @@ TEST_F(AutoFuseConfigTest, SetUbThresholdOutOfRange) {
 
 // Test for out_of_range exception in ParseInt64Config for corenum_threshold
 TEST_F(AutoFuseConfigTest, SetCorenumThresholdOutOfRange) {
-  setenv("AUTOFUSE_DFX_FLAGS", "--att_corenum_threshold=9999999999999999999999999999999999999999999999999999999999999999", 1);
+  setenv("AUTOFUSE_DFX_FLAGS",
+         "--att_corenum_threshold=9999999999999999999999999999999999999999999999999999999999999999", 1);
   ASSERT_EQ(att::AutoFuseConfig::Instance().att_strategy_config_.Init(), SUCCESS);
   // default is 40
   EXPECT_EQ(att::AutoFuseConfig::Instance().att_strategy_config_.corenum_threshold, 40);
   unsetenv("AUTOFUSE_DFX_FLAGS");
 }
-} //namespace
+}  // namespace att

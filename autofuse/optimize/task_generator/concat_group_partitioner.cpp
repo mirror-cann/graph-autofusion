@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -38,8 +38,7 @@ int64_t CeilDiv(const T1 n1, const T2 n2) {
 }  // namespace
 
 ConcatGroupPartitioner::ConcatGroupPartitioner(af::AscNodePtr concat_node, size_t concat_dim)
-    : concat_node_(std::move(concat_node)), concat_dim_(concat_dim) {
-}
+    : concat_node_(std::move(concat_node)), concat_dim_(concat_dim) {}
 
 Status ConcatGroupPartitioner::Initialize() {
   const auto backend_spec = BackendSpec::GetInstance();
@@ -76,7 +75,8 @@ Status ConcatGroupPartitioner::PartitionGroups(std::vector<ConcatGroup> &groups)
   for (size_t i = 0UL; i < all_in_data_anchors.size(); ++i) {
     const int64_t size = concat_dim_sizes_[i];
     const auto new_group_type = GetGroupType(size);
-    if (InputHasTransposeOrReduce(i) || (size < 0) || ((size * dtype_size_) > kGroupEltSizeThreshold) || (new_group_type == kGroupTypeNone)) {
+    if (InputHasTransposeOrReduce(i) || (size < 0) || ((size * dtype_size_) > kGroupEltSizeThreshold) ||
+        (new_group_type == kGroupTypeNone)) {
       if (index_start_ != -1) {
         GroupEnd(i);
       }
@@ -114,11 +114,9 @@ bool ConcatGroupPartitioner::HasRecompute() const {
 
 bool ConcatGroupPartitioner::NeedSubmit(size_t i, int64_t size, uint32_t new_group_type) {
   // 以下场景需要提交当前group: 1. 超过size上限, 2. 超过数量上限
-  if (((cur_size_ + size) > GetSizeLimitByGroupType(group_type_)) ||
-      (i - index_start_ >= max_input_num_per_group_)) {
+  if (((cur_size_ + size) > GetSizeLimitByGroupType(group_type_)) || (i - index_start_ >= max_input_num_per_group_)) {
     GELOGD("Size limit(%ld) or number limit(%u) reached, index = %zu, size = %ld, num = %zu",
-           GetSizeLimitByGroupType(group_type_), max_input_num_per_group_,
-           i, cur_size_ + size, i - index_start_);
+           GetSizeLimitByGroupType(group_type_), max_input_num_per_group_, i, cur_size_ + size, i - index_start_);
     return true;
   }
   if (new_group_type == group_type_) {
@@ -134,14 +132,14 @@ bool ConcatGroupPartitioner::NeedSubmit(size_t i, int64_t size, uint32_t new_gro
       group_type_ = kGroupTypeDefault;
       return false;
     }
-    GELOGD("Group type changed, index = %zu, group_type = [%s], new_group_type = [%s]",
-           i, GroupTypeToString(group_type_).c_str(), GroupTypeToString(new_group_type).c_str());
+    GELOGD("Group type changed, index = %zu, group_type = [%s], new_group_type = [%s]", i,
+           GroupTypeToString(group_type_).c_str(), GroupTypeToString(new_group_type).c_str());
     return true;
   }
   // small_and_algin & small -> small时，需要检查size是否会超过
   if ((merged_group_type == kGroupTypeSmallTail) && (cur_size_ + size) > GetSizeLimitByGroupType(kGroupTypeSmallTail)) {
-    GELOGD("Size limit(%ld) reached, index = %zu, size = %ld",
-           GetSizeLimitByGroupType(kGroupTypeSmallTail), i, cur_size_ + size);
+    GELOGD("Size limit(%ld) reached, index = %zu, size = %ld", GetSizeLimitByGroupType(kGroupTypeSmallTail), i,
+           cur_size_ + size);
     return true;
   }
   group_type_ = merged_group_type;
@@ -151,8 +149,8 @@ bool ConcatGroupPartitioner::NeedSubmit(size_t i, int64_t size, uint32_t new_gro
 void ConcatGroupPartitioner::UpdateStatus(int64_t size) {
   cur_size_ += size;
   if ((group_type_ == kGroupTypeSmallTailAndAligned) && (cur_size_ >= GetSizeLimitByGroupType(kGroupTypeSmallTail))) {
-    GELOGD("size(%ld) >= size limit(%ld), concat type from [AlignAndSmallTail] to [Aligned]",
-           cur_size_, GetSizeLimitByGroupType(kGroupTypeSmallTail));
+    GELOGD("size(%ld) >= size limit(%ld), concat type from [AlignAndSmallTail] to [Aligned]", cur_size_,
+           GetSizeLimitByGroupType(kGroupTypeSmallTail));
     group_type_ = kGroupTypeAligned;
   }
 }
@@ -165,8 +163,8 @@ void ConcatGroupPartitioner::GroupStart(int64_t index_start, uint32_t group_type
 }
 
 void ConcatGroupPartitioner::GroupEnd(size_t index_end) {
-  GELOGD("group end, start_index = %zu, end_index = %zu, type = [%s], size = %ld",
-         index_start_, index_end, GroupTypeToString(group_type_).c_str(), cur_size_);
+  GELOGD("group end, start_index = %zu, end_index = %zu, type = [%s], size = %ld", index_start_, index_end,
+         GroupTypeToString(group_type_).c_str(), cur_size_);
   groups_.emplace_back(ConcatGroup{static_cast<size_t>(index_start_), index_end, group_type_, cur_size_});
   index_start_ = -1;
   group_type_ = -1;
@@ -249,7 +247,7 @@ void ConcatGroupPartitioner::ConvertToDefaultIfTooSmall() {
 }
 
 std::string ConcatGroupPartitioner::GroupTypeToString(uint32_t group_type) {
-  static const std::map<uint32_t, std::string> kGroupTypeToStr {
+  static const std::map<uint32_t, std::string> kGroupTypeToStr{
       {ConcatGroupPartitioner::kGroupTypeDefault, "Default"},
       {ConcatGroupPartitioner::kGroupTypeAligned, "Aligned"},
       {ConcatGroupPartitioner::kGroupTypeSmallTailAndAligned, "AlignAndSmallTail"},
@@ -336,8 +334,7 @@ af::Status ConcatGroupPartitioner::FindFirstMultiOutputAnchors(const af::InDataA
 }
 
 af::Status ConcatGroupPartitioner::CheckIsAncestorOfConcat(const af::OutDataAnchorPtr &out_anchor, int32_t start_index,
-                                                           const af::Expression &concat_dim_size,
-                                                           bool search_backward,
+                                                           const af::Expression &concat_dim_size, bool search_backward,
                                                            bool &need_split) const {
   std::vector<const af::Node *> nodes;
   std::set<const af::Node *> visited;
@@ -369,7 +366,7 @@ af::Status ConcatGroupPartitioner::CheckIsAncestorOfConcat(const af::OutDataAnch
       }
     }
     if (search_backward) {
-      for (const auto &in_node: cur_node->GetInDataNodes()) {
+      for (const auto &in_node : cur_node->GetInDataNodes()) {
         if (visited.emplace(in_node.get()).second) {
           nodes.emplace_back(in_node.get());
         }
@@ -422,7 +419,7 @@ af::Status ConcatGroupPartitioner::RecomputeInNodes(const af::InDataAnchorPtr &i
     af::Operator op = af::OpDescUtils::CreateOperatorFromOpDesc(op_desc);
     dst_new_node = owner_graph.AddNode(op);
     GE_ASSERT_TRUE(af::AscGraph::CopyAscNodeTensorAttr(asc_node, dst_new_node),
-                 "DoCopyAscNodeTensorAttr failed, node = %s[%s]", asc_node->GetNamePtr(), asc_node->GetTypePtr());
+                   "DoCopyAscNodeTensorAttr failed, node = %s[%s]", asc_node->GetNamePtr(), asc_node->GetTypePtr());
     // restore input edges
     for (const auto &in_data_anchor : asc_node->GetAllInDataAnchorsPtr()) {
       if (in_data_anchor != nullptr) {

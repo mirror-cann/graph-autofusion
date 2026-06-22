@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -38,7 +38,7 @@ graphStatus ListListFloatSerializer::Deserialize(const GeIrAttrDef &def, AnyValu
   std::vector<std::vector<float>> values;
   for (auto idx = 0; idx < def.list_list_float().list_list_f_size(); ++idx) {
     std::vector<float> vec;
-    for (auto i = 0; i <  def.list_list_float().list_list_f(idx).list_f_size(); ++i) {
+    for (auto i = 0; i < def.list_list_float().list_list_f(idx).list_f_size(); ++i) {
       vec.push_back(def.list_list_float().list_list_f(idx).list_f(i));
     }
     values.push_back(vec);
@@ -47,6 +47,6 @@ graphStatus ListListFloatSerializer::Deserialize(const GeIrAttrDef &def, AnyValu
   return av.SetValue(std::move(values));
 }
 
-REG_GEIR_SERIALIZER(list_list_float_serializer, ListListFloatSerializer,
-                    GetTypeId<std::vector<std::vector<float>>>(), GeIrAttrDef::kListListFloat);
-}  // namespace ge
+REG_GEIR_SERIALIZER(list_list_float_serializer, ListListFloatSerializer, GetTypeId<std::vector<std::vector<float>>>(),
+                    GeIrAttrDef::kListListFloat);
+}  // namespace af

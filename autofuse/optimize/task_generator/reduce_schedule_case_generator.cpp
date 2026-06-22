@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -26,8 +26,8 @@ namespace {
 size_t TWO = 2;
 size_t kMaxFullLoadAxisSize = 3UL;
 size_t NODE_COUNT_AFTER_REDUCE = 4UL;
-std::string GetNewNodeName(const af::AscNodePtr &src_node, const af::AscNodePtr &dst_node,
-                           const std::string &type, int32_t idx) {
+std::string GetNewNodeName(const af::AscNodePtr &src_node, const af::AscNodePtr &dst_node, const std::string &type,
+                           int32_t idx) {
   return src_node->GetName() + "_to_" + dst_node->GetName() + "_" + type + "_" + to_string(idx);
 }
 
@@ -59,23 +59,32 @@ Status DoCopyWorkspaceTensorAttr(const af::AscNodePtr &src_node, af::AscNodePtr 
   return ge::SUCCESS;
 }
 
-const std::unordered_map<std::string, std::function<ReduceType(const char*)>> reducers = {
-  {"Max",  [](const char* n) { return ReduceType{std::in_place_type_t<af::ascir_op::Max>{}, n}; }},
-  {"ArgMax",  [](const char* n) { return ReduceType{std::in_place_type_t<af::ascir_op::ArgMaxMultiRPhase2>{}, n}; }},  // ArgMax 二阶段使用 ArgMaxMultiRPhase2
-  {"ArgMaxMultiRPhase1",  [](const char* n) { return ReduceType{std::in_place_type_t<af::ascir_op::ArgMaxMultiRPhase2>{}, n}; }},  // ArgMaxMultiRPhase1 二阶段使用 ArgMaxMultiRPhase2
-  {"ArgMaxMultiRPhase2",  [](const char* n) { return ReduceType{std::in_place_type_t<af::ascir_op::ArgMaxMultiRPhase2>{}, n}; }},  // ArgMaxMultiRPhase2 二阶段使用 ArgMaxMultiRPhase2
-  {"Sum",  [](const char* n) { return ReduceType{std::in_place_type_t<af::ascir_op::Sum>{}, n}; }},
-  {"Mean", [](const char* n) { return ReduceType{std::in_place_type_t<af::ascir_op::Sum>{}, n}; }},  // Mean 二阶段使用 Sum
-  {"Min",  [](const char* n) { return ReduceType{std::in_place_type_t<af::ascir_op::Min>{}, n}; }},
-  {"Prod", [](const char* n) { return ReduceType{std::in_place_type_t<af::ascir_op::Prod>{}, n}; }},
-  {"Any",  [](const char* n) { return ReduceType{std::in_place_type_t<af::ascir_op::Any>{}, n}; }},
-  {"All",  [](const char* n) { return ReduceType{std::in_place_type_t<af::ascir_op::All>{}, n}; }}
-};
+const std::unordered_map<std::string, std::function<ReduceType(const char *)>> reducers = {
+    {"Max", [](const char *n) { return ReduceType{std::in_place_type_t<af::ascir_op::Max>{}, n}; }},
+    {"ArgMax",
+     [](const char *n) {
+       return ReduceType{std::in_place_type_t<af::ascir_op::ArgMaxMultiRPhase2>{}, n};
+     }},  // ArgMax 二阶段使用 ArgMaxMultiRPhase2
+    {"ArgMaxMultiRPhase1",
+     [](const char *n) {
+       return ReduceType{std::in_place_type_t<af::ascir_op::ArgMaxMultiRPhase2>{}, n};
+     }},  // ArgMaxMultiRPhase1 二阶段使用 ArgMaxMultiRPhase2
+    {"ArgMaxMultiRPhase2",
+     [](const char *n) {
+       return ReduceType{std::in_place_type_t<af::ascir_op::ArgMaxMultiRPhase2>{}, n};
+     }},  // ArgMaxMultiRPhase2 二阶段使用 ArgMaxMultiRPhase2
+    {"Sum", [](const char *n) { return ReduceType{std::in_place_type_t<af::ascir_op::Sum>{}, n}; }},
+    {"Mean",
+     [](const char *n) { return ReduceType{std::in_place_type_t<af::ascir_op::Sum>{}, n}; }},  // Mean 二阶段使用 Sum
+    {"Min", [](const char *n) { return ReduceType{std::in_place_type_t<af::ascir_op::Min>{}, n}; }},
+    {"Prod", [](const char *n) { return ReduceType{std::in_place_type_t<af::ascir_op::Prod>{}, n}; }},
+    {"Any", [](const char *n) { return ReduceType{std::in_place_type_t<af::ascir_op::Any>{}, n}; }},
+    {"All", [](const char *n) { return ReduceType{std::in_place_type_t<af::ascir_op::All>{}, n}; }}};
 
 bool IsNotPartitionReduce(const af::AscNodePtr &reduce_node, size_t threshold) {
   std::queue<af::NodePtr> node_queue;
   size_t node_count = 0UL;
-  std::unordered_set<const af::Node*> visited;
+  std::unordered_set<const af::Node *> visited;
   visited.insert(reduce_node.get());
   for (const auto &reduce_out_node : reduce_node->GetOutNodes()) {
     node_queue.emplace(reduce_out_node);
@@ -97,8 +106,9 @@ bool IsNotPartitionReduce(const af::AscNodePtr &reduce_node, size_t threshold) {
 
     node_count += 1UL;
     if (node_count > threshold) {
-      GELOGW("The total count of nodes after the reduce node[%s](including the store node) is above the threshold[%zu].",
-             reduce_node->GetNamePtr(), threshold);
+      GELOGW(
+          "The total count of nodes after the reduce node[%s](including the store node) is above the threshold[%zu].",
+          reduce_node->GetNamePtr(), threshold);
       return false;
     }
     const auto &asc_current_node = std::dynamic_pointer_cast<af::AscNode>(current_node);
@@ -107,16 +117,16 @@ bool IsNotPartitionReduce(const af::AscNodePtr &reduce_node, size_t threshold) {
         asc_current_node->attr.api.type == af::ApiType::kAPITypeBuffer) {
       continue;
     }
-    
+
     if (!ScheduleUtils::IsElewise(asc_current_node)) {
-      GELOGW("The node[%s] after the reduce node[%s] is not elewise type.",
-             asc_current_node->GetNamePtr(), reduce_node->GetNamePtr());
+      GELOGW("The node[%s] after the reduce node[%s] is not elewise type.", asc_current_node->GetNamePtr(),
+             reduce_node->GetNamePtr());
       return false;
     }
 
     if (node_count > threshold - 1UL) {
-      GELOGW("The count of nodes after the reduce node[%s] is above the threshold[%zu].",
-             reduce_node->GetNamePtr(), threshold - 1UL);
+      GELOGW("The count of nodes after the reduce node[%s] is above the threshold[%zu].", reduce_node->GetNamePtr(),
+             threshold - 1UL);
       return false;
     }
 
@@ -129,7 +139,7 @@ bool IsNotPartitionReduce(const af::AscNodePtr &reduce_node, size_t threshold) {
   }
   return true;
 }
-}
+}  // namespace
 
 Status ReducePartitionCaseGenerator::GeneratorGeneralTask(ascir::HintGraph &optimize_graph,
                                                           std::vector<ScheduleTask> &tasks) {
@@ -219,19 +229,21 @@ Status ReducePartitionCaseGenerator::GeneratorRCoreTask(ascir::HintGraph &optimi
 }
 
 Status ReducePartitionCaseGenerator::GeneratorTask(ascir::HintGraph &optimize_graph, std::vector<ScheduleTask> &tasks,
-   	                                                    const OptimizerOptions &options) {
-   	   (void)options;
-   	   if (ShouldForceAllLoad(optimize_graph)) {
-   	     GELOGI("Graph %s satisfies force AllLoad conditions, only generate AllLoad tasks", optimize_graph.GetName().c_str());
-   	     GE_CHK_STATUS_RET(GeneratorAllLoadTask(optimize_graph, tasks));
-   	   } else {
-   	     GELOGI("Graph %s does not satisfy force AllLoad conditions, use general strategy", optimize_graph.GetName().c_str());
-   	     GE_CHK_STATUS_RET(GeneratorGeneralTask(optimize_graph, tasks));
-   	     GE_CHK_STATUS_RET(GeneratorRCoreTask(optimize_graph, tasks));
-   	     GE_CHK_STATUS_RET(GeneratorAllLoadTask(optimize_graph, tasks));
-   	   }
-   	   return ge::GRAPH_SUCCESS;
-   	 }
+                                                   const OptimizerOptions &options) {
+  (void)options;
+  if (ShouldForceAllLoad(optimize_graph)) {
+    GELOGI("Graph %s satisfies force AllLoad conditions, only generate AllLoad tasks",
+           optimize_graph.GetName().c_str());
+    GE_CHK_STATUS_RET(GeneratorAllLoadTask(optimize_graph, tasks));
+  } else {
+    GELOGI("Graph %s does not satisfy force AllLoad conditions, use general strategy",
+           optimize_graph.GetName().c_str());
+    GE_CHK_STATUS_RET(GeneratorGeneralTask(optimize_graph, tasks));
+    GE_CHK_STATUS_RET(GeneratorRCoreTask(optimize_graph, tasks));
+    GE_CHK_STATUS_RET(GeneratorAllLoadTask(optimize_graph, tasks));
+  }
+  return ge::GRAPH_SUCCESS;
+}
 
 Status ReducePartitionCaseGenerator::Generate([[maybe_unused]] ascir::HintGraph &graph,
                                               [[maybe_unused]] std::vector<ascir::ImplGraph> &graphs,
@@ -255,8 +267,7 @@ bool ReducePartitionCaseGenerator::ShouldForceAllLoad(ascir::HintGraph &graph) {
   return false;
 }
 
-Status ReducePartitionCaseGenerator::GenerateGeneralCase(ascir::HintGraph &graph,
-                                                         std::vector<ascir::ImplGraph> &graphs,
+Status ReducePartitionCaseGenerator::GenerateGeneralCase(ascir::HintGraph &graph, std::vector<ascir::ImplGraph> &graphs,
                                                          std::vector<std::string> &score_functions) {
   if (!HasReduce(graph)) {
     return ge::GRAPH_SUCCESS;
@@ -266,10 +277,11 @@ Status ReducePartitionCaseGenerator::GenerateGeneralCase(ascir::HintGraph &graph
 
   node_order_.clear();
   auto loop_start_end = FindNormLoops(optimize_graph);
-  std::sort(loop_start_end.begin(), loop_start_end.end(), [](
-    const std::pair<af::AscNodePtr, af::AscNodePtr> &lhs, const std::pair<af::AscNodePtr, af::AscNodePtr> &rhs) {
-    return lhs.second->GetOpDescBarePtr()->GetId() < rhs.second->GetOpDescBarePtr()->GetId();
-  });
+  std::sort(
+      loop_start_end.begin(), loop_start_end.end(),
+      [](const std::pair<af::AscNodePtr, af::AscNodePtr> &lhs, const std::pair<af::AscNodePtr, af::AscNodePtr> &rhs) {
+        return lhs.second->GetOpDescBarePtr()->GetId() < rhs.second->GetOpDescBarePtr()->GetId();
+      });
 
   // reduce 后融合切分
   GE_CHK_STATUS_RET(ReducePartitionPostFusion(optimize_graph));
@@ -296,8 +308,7 @@ Status ReducePartitionCaseGenerator::GenerateGeneralCase(ascir::HintGraph &graph
   return ge::GRAPH_SUCCESS;
 }
 
-Status ReducePartitionCaseGenerator::GenerateAllLoadCase(ascir::HintGraph &graph,
-                                                         std::vector<ascir::ImplGraph> &graphs,
+Status ReducePartitionCaseGenerator::GenerateAllLoadCase(ascir::HintGraph &graph, std::vector<ascir::ImplGraph> &graphs,
                                                          const std::vector<std::string> &score_functions) {
   (void)score_functions;
   if (!HasReduce(graph)) {
@@ -319,7 +330,7 @@ Status ReducePartitionCaseGenerator::ReducePartitionMultipleCitations(ascir::Imp
     }
   }
   std::sort(multi_output_nodes.begin(), multi_output_nodes.end(), [](const af::AscNodePtr &lhs, af::AscNodePtr &rhs) {
-      return lhs->GetOpDescBarePtr()->GetId() > rhs->GetOpDescBarePtr()->GetId();
+    return lhs->GetOpDescBarePtr()->GetId() > rhs->GetOpDescBarePtr()->GetId();
   });
   for (auto node : multi_output_nodes) {
     std::set<af::AscNodePtr> reduce_nodes;
@@ -419,8 +430,10 @@ Status ReducePartitionCaseGenerator::PartitionByNode(af::AscNodePtr &src_node, a
                      REPORT_INNER_ERR_MSG("E18888", "out data anchor is null, node:%s.", src_node->GetName().c_str());
                      return ge::GRAPH_FAILED, "[Check][Param] Out data anchor is null, node:%s",
                             src_node->GetName().c_str());
-    af::ascir_op::Workspace workspace_pre(GetNewNodeName(src_node, dst_node, "Workspace", out_anchor->GetIdx()).c_str());
-    af::ascir_op::Workspace workspace_post(GetNewNodeName(src_node, dst_node, "Workspace", out_anchor->GetIdx()).c_str());
+    af::ascir_op::Workspace workspace_pre(
+        GetNewNodeName(src_node, dst_node, "Workspace", out_anchor->GetIdx()).c_str());
+    af::ascir_op::Workspace workspace_post(
+        GetNewNodeName(src_node, dst_node, "Workspace", out_anchor->GetIdx()).c_str());
     af::ascir_op::Load load(GetNewNodeName(src_node, dst_node, "Load", out_anchor->GetIdx()).c_str());
     af::ascir_op::Store store(GetNewNodeName(src_node, dst_node, "Store", out_anchor->GetIdx()).c_str());
     auto workspace_pre_node = impl_graph.AddNode(workspace_pre);
@@ -440,18 +453,16 @@ Status ReducePartitionCaseGenerator::PartitionByNode(af::AscNodePtr &src_node, a
         // remove src->dst
         GE_CHK_STATUS_RET(af::GraphUtils::RemoveEdge(src_node->GetOutAnchor(out_anchor->GetIdx()),
                                                      dst_node->GetInAnchor(peer_in_anchor->GetIdx())));
-        GE_CHK_STATUS_RET(af::GraphUtils::AddEdge(load_node->GetOutAnchor(0UL),
-                                                  dst_node->GetInAnchor(peer_in_anchor->GetIdx())));
+        GE_CHK_STATUS_RET(
+            af::GraphUtils::AddEdge(load_node->GetOutAnchor(0UL), dst_node->GetInAnchor(peer_in_anchor->GetIdx())));
       }
     }
     // add src->store->workspace_pre_node
-    GE_CHK_STATUS_RET(af::GraphUtils::AddEdge(src_node->GetOutAnchor(out_anchor->GetIdx()),
-                                              store_node->GetInAnchor(0UL)));
-    GE_CHK_STATUS_RET(af::GraphUtils::AddEdge(store_node->GetOutAnchor(0UL),
-                                              workspace_pre_node->GetInAnchor(0UL)));
+    GE_CHK_STATUS_RET(
+        af::GraphUtils::AddEdge(src_node->GetOutAnchor(out_anchor->GetIdx()), store_node->GetInAnchor(0UL)));
+    GE_CHK_STATUS_RET(af::GraphUtils::AddEdge(store_node->GetOutAnchor(0UL), workspace_pre_node->GetInAnchor(0UL)));
     // add workspace_post_node->load->dst
-    GE_CHK_STATUS_RET(af::GraphUtils::AddEdge(workspace_post_node->GetOutAnchor(0UL),
-                                              load_node->GetInAnchor(0UL)));
+    GE_CHK_STATUS_RET(af::GraphUtils::AddEdge(workspace_post_node->GetOutAnchor(0UL), load_node->GetInAnchor(0UL)));
   }
   return ge::GRAPH_SUCCESS;
 }
@@ -460,7 +471,8 @@ Status ReducePartitionCaseGenerator::PartitionLoad(af::AscNodePtr &src_node, af:
                                                    ascir::ImplGraph &impl_graph) {
   auto load_input_node = src_node->GetInNodes().at(0UL);
   auto load_input_asc_node = std::dynamic_pointer_cast<af::AscNode>(load_input_node);
-  GE_ASSERT_TRUE(af::ops::IsOps<af::ascir_op::Data>(load_input_asc_node) || af::ops::IsOps<af::ascir_op::Workspace>(load_input_asc_node));
+  GE_ASSERT_TRUE(af::ops::IsOps<af::ascir_op::Data>(load_input_asc_node) ||
+                 af::ops::IsOps<af::ascir_op::Workspace>(load_input_asc_node));
   af::ascir_op::Load load(("copy_from_" + src_node->GetName()).c_str());
 
   af::AscNodePtr new_load_input_node;
@@ -477,7 +489,8 @@ Status ReducePartitionCaseGenerator::PartitionLoad(af::AscNodePtr &src_node, af:
   for (const auto &out_anchor : src_node->GetAllOutDataAnchors()) {
     GE_CHK_BOOL_EXEC(out_anchor != nullptr,
                      REPORT_INNER_ERR_MSG("E18888", "out data anchor is null, node:%s.", src_node->GetName().c_str());
-                     return ge::GRAPH_FAILED, "[Check][Param] Out data anchor is null, node:%s", src_node->GetName().c_str());
+                     return ge::GRAPH_FAILED, "[Check][Param] Out data anchor is null, node:%s",
+                            src_node->GetName().c_str());
     for (const auto &peer_in_anchor : out_anchor->GetPeerInDataAnchors()) {
       GE_CHECK_NOTNULL(peer_in_anchor);
       GE_CHK_BOOL_EXEC(peer_in_anchor->GetOwnerNodeBarePtr() != nullptr,
@@ -488,10 +501,9 @@ Status ReducePartitionCaseGenerator::PartitionLoad(af::AscNodePtr &src_node, af:
         GE_CHK_STATUS_RET(af::GraphUtils::RemoveEdge(src_node->GetOutAnchor(out_anchor->GetIdx()),
                                                      dst_node->GetInAnchor(peer_in_anchor->GetIdx())));
         // add new_load_input->new_load->dst
-        GE_CHK_STATUS_RET(af::GraphUtils::AddEdge(new_load_input_node->GetOutAnchor(0UL),
-                                                  load_node->GetInAnchor(0UL)));
-        GE_CHK_STATUS_RET(af::GraphUtils::AddEdge(load_node->GetOutAnchor(0UL),
-                                                  dst_node->GetInAnchor(peer_in_anchor->GetIdx())));
+        GE_CHK_STATUS_RET(af::GraphUtils::AddEdge(new_load_input_node->GetOutAnchor(0UL), load_node->GetInAnchor(0UL)));
+        GE_CHK_STATUS_RET(
+            af::GraphUtils::AddEdge(load_node->GetOutAnchor(0UL), dst_node->GetInAnchor(peer_in_anchor->GetIdx())));
         return ge::GRAPH_SUCCESS;
       }
     }
@@ -513,7 +525,8 @@ Status ReducePartitionCaseGenerator::PartitionScalar(af::AscNodePtr &src_node, a
   for (const auto &out_anchor : src_node->GetAllOutDataAnchors()) {
     GE_CHK_BOOL_EXEC(out_anchor != nullptr,
                      REPORT_INNER_ERR_MSG("E18888", "out data anchor is null, node:%s.", src_node->GetName().c_str());
-                     return ge::GRAPH_FAILED, "[Check][Param] Out data anchor is null, node:%s", src_node->GetName().c_str());
+                     return ge::GRAPH_FAILED, "[Check][Param] Out data anchor is null, node:%s",
+                            src_node->GetName().c_str());
     for (const auto &peer_in_anchor : out_anchor->GetPeerInDataAnchors()) {
       GE_CHECK_NOTNULL(peer_in_anchor);
       GE_CHK_BOOL_EXEC(peer_in_anchor->GetOwnerNodeBarePtr() != nullptr,
@@ -524,8 +537,8 @@ Status ReducePartitionCaseGenerator::PartitionScalar(af::AscNodePtr &src_node, a
         GE_CHK_STATUS_RET(af::GraphUtils::RemoveEdge(src_node->GetOutAnchor(out_anchor->GetIdx()),
                                                      dst_node->GetInAnchor(peer_in_anchor->GetIdx())));
         // add new_scalar->dst
-        GE_CHK_STATUS_RET(af::GraphUtils::AddEdge(scalar_node->GetOutAnchor(0UL),
-                                                  dst_node->GetInAnchor(peer_in_anchor->GetIdx())));
+        GE_CHK_STATUS_RET(
+            af::GraphUtils::AddEdge(scalar_node->GetOutAnchor(0UL), dst_node->GetInAnchor(peer_in_anchor->GetIdx())));
         return ge::GRAPH_SUCCESS;
       }
     }
@@ -533,8 +546,8 @@ Status ReducePartitionCaseGenerator::PartitionScalar(af::AscNodePtr &src_node, a
   return ge::GRAPH_SUCCESS;
 }
 
-bool ReducePartitionCaseGenerator::IsInputNodePartitioned(const std::shared_ptr<af::Node>& start,
-  const std::shared_ptr<af::Node>& node) {
+bool ReducePartitionCaseGenerator::IsInputNodePartitioned(const std::shared_ptr<af::Node> &start,
+                                                          const std::shared_ptr<af::Node> &node) {
   // 向前找 start 节点，如找到则未经过切分，到根节点未找到则已切分或不需要切分
   if (node == start) {
     return false;
@@ -584,14 +597,13 @@ Status ReducePartitionCaseGenerator::FindNormLoop(const af::AscNodePtr &start, s
       }
     }
   }
-  ends.erase(
-    std::remove_if(ends.begin(), ends.end(),
-      [start, this](const af::AscNodePtr &end) { return !IsNorm(start, end); }), ends.end()
-    );
+  ends.erase(std::remove_if(ends.begin(), ends.end(),
+                            [start, this](const af::AscNodePtr &end) { return !IsNorm(start, end); }),
+             ends.end());
   return ge::GRAPH_SUCCESS;
 }
 
-void ReducePartitionCaseGenerator::FindAllPath(const af::AscNodePtr& start, const af::AscNodePtr& end,
+void ReducePartitionCaseGenerator::FindAllPath(const af::AscNodePtr &start, const af::AscNodePtr &end,
                                                std::vector<af::AscNodePtr> &path,
                                                std::vector<std::vector<af::AscNodePtr>> &all_paths) {
   // 需保证图为有向无环图
@@ -615,7 +627,7 @@ bool ReducePartitionCaseGenerator::IsNorm(const af::AscNodePtr &start, const af:
   for (const auto &path_temp : all_paths) {
     for (const auto &node : path_temp) {
       if (ScheduleUtils::IsReduce(node)) {
-        is_norm =  true;
+        is_norm = true;
         break;
       }
     }
@@ -624,11 +636,11 @@ bool ReducePartitionCaseGenerator::IsNorm(const af::AscNodePtr &start, const af:
   return is_norm && end_in_nodes.size() > 1;
 }
 
-Status ReducePartitionCaseGenerator::PartitionNorm(ascir::ImplGraph &impl_graph, std::vector<std::pair<af::AscNodePtr,
-                                                   af::AscNodePtr>> &loop_start_end) {
+Status ReducePartitionCaseGenerator::PartitionNorm(
+    ascir::ImplGraph &impl_graph, std::vector<std::pair<af::AscNodePtr, af::AscNodePtr>> &loop_start_end) {
   for (auto loop : loop_start_end) {
     for (auto &in_node : loop.second->GetInNodes()) {
-      if(IsInputNodePartitioned(loop.first, in_node)) {
+      if (IsInputNodePartitioned(loop.first, in_node)) {
         continue;
       }
       af::AscNodePtr src_node = std::dynamic_pointer_cast<af::AscNode>(in_node);
@@ -695,11 +707,10 @@ bool ReducePartitionCaseGenerator::IsGroupGraphLegal(const ascir::ImplGraph &imp
 
 Status RMulticorePhase2Graph::Construct() {
   GE_ASSERT_TRUE(reducers.find(reduce_node->GetType()) != reducers.end());
-  ReduceType phase2graph_reduce = reducers.find(reduce_node->GetType())->
-                                  second((phase2graph.GetName() + "_" + reduce_node->GetName() + "_reduce").c_str());
-  std::visit([](auto&& reduce_op) {
-    reduce_op.attr.sched.axis = {0, 1};
-  }, phase2graph_reduce);
+  ReduceType phase2graph_reduce =
+      reducers.find(reduce_node->GetType())
+          ->second((phase2graph.GetName() + "_" + reduce_node->GetName() + "_reduce").c_str());
+  std::visit([](auto &&reduce_op) { reduce_op.attr.sched.axis = {0, 1}; }, phase2graph_reduce);
 
   // 对于ArgMax，需要在调用CompletePhaseGraph之前保存输入dtype（value类型）
   // 因为CompletePhaseGraph会调用PartitionByReduce，后者会删除reduce_node
@@ -732,7 +743,8 @@ Status RMulticorePhase2Graph::Construct() {
   // ArgMax特殊处理：需要设置load_index_node和workspace_index_node的属性
   GE_CHK_STATUS_RET(SetupArgMaxIndexNodes(reduce_node, phase2graph));
 
-  auto reduce_node_parse2graph = phase2graph.FindNode((phase2graph.GetName() + "_" + reduce_node->GetName() + "_reduce").c_str());
+  auto reduce_node_parse2graph =
+      phase2graph.FindNode((phase2graph.GetName() + "_" + reduce_node->GetName() + "_reduce").c_str());
   GE_ASSERT_NOTNULL(reduce_node_parse2graph);
   std::set<af::NodePtr> visited{reduce_node_parse2graph};
   std::list<af::NodePtr> next_nodes{reduce_node_parse2graph};
@@ -754,7 +766,7 @@ Status RMulticorePhase2Graph::Construct() {
 
 Status RMulticorePhase2Graph::CreateVarAxis() {
   // 创建符号：A轴符号：s1，R轴符号：s2
-  auto  compute_graph = af::AscGraphUtils::GetComputeGraph(phase2graph);
+  auto compute_graph = af::AscGraphUtils::GetComputeGraph(phase2graph);
   GE_ASSERT_NOTNULL(compute_graph);
   auto attr = compute_graph->GetOrCreateAttrsGroup<af::AscGraphAttr>();
   GE_ASSERT_NOTNULL(attr);
@@ -769,7 +781,7 @@ Status RMulticorePhase2Graph::CreateVarAxis() {
 }
 
 Status RMulticorePhase2Graph::CompleteNodeAttr(af::AscNodePtr &node, bool before_reduce,
-                                               const af::AscTensorDataType& data_type) {
+                                               const af::AscTensorDataType &data_type) {
   node->outputs[0].attr.dtype = data_type;
   node->outputs[0].attr.axis = {0, 1};
   if (before_reduce) {
@@ -789,8 +801,7 @@ Status RMulticorePhase2Graph::CompleteNodeAttrBeforeReduce(af::AscNodePtr &node)
   return ge::GRAPH_SUCCESS;
 }
 
-Status RMulticorePhase2Graph::SetupArgMaxIndexNodes(const af::AscNodePtr &reduce_node,
-                                                     ascir::ImplGraph &phase2graph) {
+Status RMulticorePhase2Graph::SetupArgMaxIndexNodes(const af::AscNodePtr &reduce_node, ascir::ImplGraph &phase2graph) {
   // ArgMax特殊处理：需要设置load_index_node和workspace_index_node的属性
   // 注意：虽然这些设置可能被后续的CopyFrom部分覆盖，但轴信息(strides, repeats等)需要保留
   if (reduce_node->GetType() == "ArgMax") {
@@ -814,7 +825,8 @@ Status RMulticorePhase2Graph::CompletePhaseGraph(ReduceType &phase2graph_reduce)
   GE_ASSERT_GRAPH_SUCCESS(PartitionByReduce(phase_graph, phase2graph_reduce, node_order));
   GE_ASSERT_GRAPH_SUCCESS(SetNodeOrder(node_order));
   std::vector<::ascir::ImplGraph> sub_optimize_graphs;
-  GE_ASSERT_GRAPH_SUCCESS(ScheduleGroupGraphPartitioner::PartitionByConnectivity(phase_graph, sub_optimize_graphs, node_order));
+  GE_ASSERT_GRAPH_SUCCESS(
+      ScheduleGroupGraphPartitioner::PartitionByConnectivity(phase_graph, sub_optimize_graphs, node_order));
   GE_ASSERT_EQ(sub_optimize_graphs.size(), 2UL);
   phase1graph.CopyFrom(sub_optimize_graphs[0]);
   phase2graph.CopyFrom(sub_optimize_graphs[1]);
@@ -825,9 +837,8 @@ Status RMulticorePhase2Graph::CompletePhaseGraph(ReduceType &phase2graph_reduce)
 // ArgMaxMultiRPhase1有2个输出：output[0]=value(T类型), output[1]=index(DT_INT64)
 // value的shape从原始ArgMax输出复制，dtype从输入复制
 // index的shape从原始ArgMax输出复制，dtype固定为DT_INT64
-static Status SetupArgMaxPhase1OutputAttrs(const af::AscNodePtr &phase1_node,
-                                    const af::AscTensorAttr &input_attr,
-                                    const af::AscTensorAttr &output_attr) {
+static Status SetupArgMaxPhase1OutputAttrs(const af::AscNodePtr &phase1_node, const af::AscTensorAttr &input_attr,
+                                           const af::AscTensorAttr &output_attr) {
   // 设置输出0（value）：shape从argmax_node输出复制，dtype从输入复制
   {
     auto op_desc = phase1_node->GetOpDesc();
@@ -867,11 +878,9 @@ static void CopyNodeLevelAttrs(const af::AscNodePtr &dst_node, const af::AscNode
 }
 
 // R轴分核时，在阶段1将ArgMax替换为ArgMaxMultiRPhase1
-Status ReplaceArgMaxInPhase1(ascir::ImplGraph &phase_graph,
-                              const af::AscNodePtr &argmax_node,
-                              af::AscNodePtr &store_node,
-                              af::AscNodePtr &workspace_pre_node,
-                              af::AscNodePtr &workspace_pre_index_node_out) {
+Status ReplaceArgMaxInPhase1(ascir::ImplGraph &phase_graph, const af::AscNodePtr &argmax_node,
+                             af::AscNodePtr &store_node, af::AscNodePtr &workspace_pre_node,
+                             af::AscNodePtr &workspace_pre_index_node_out) {
   // 创建ArgMaxMultiRPhase1节点替换原始ArgMax
   af::ascir_op::ArgMaxMultiRPhase1 argmax_phase1((argmax_node->GetName() + "_phase1").c_str());
   auto new_argmax_phase1_node = phase_graph.AddNode(argmax_phase1);
@@ -880,7 +889,7 @@ Status ReplaceArgMaxInPhase1(ascir::ImplGraph &phase_graph,
   CopyNodeLevelAttrs(new_argmax_phase1_node, argmax_node);
 
   // 保存输入和输出属性，因为后续重定向边会导致inputs被清空
-  const auto &saved_input_attr  = argmax_node->inputs[0].attr;
+  const auto &saved_input_attr = argmax_node->inputs[0].attr;
   const auto &saved_output_attr = argmax_node->outputs[0].attr;
 
   // 为ArgMaxMultiRPhase1的两个输出设置正确的tensor属性
@@ -936,16 +945,14 @@ Status ReplaceArgMaxInPhase1(ascir::ImplGraph &phase_graph,
   GE_ASSERT_GRAPH_SUCCESS(DoCopyWorkspaceTensorAttr(new_store_index_node, workspace_pre_index_node_out));
 
   // 连接ArgMaxMultiRPhase1的第一个输出（value）到store节点
-  GE_CHK_STATUS_RET(af::GraphUtils::AddEdge(new_argmax_phase1_node->GetOutAnchor(0UL),
-                                            store_node->GetInAnchor(0UL)));
-  GE_CHK_STATUS_RET(af::GraphUtils::AddEdge(store_node->GetOutAnchor(0UL),
-                                            workspace_pre_node->GetInAnchor(0UL)));
+  GE_CHK_STATUS_RET(af::GraphUtils::AddEdge(new_argmax_phase1_node->GetOutAnchor(0UL), store_node->GetInAnchor(0UL)));
+  GE_CHK_STATUS_RET(af::GraphUtils::AddEdge(store_node->GetOutAnchor(0UL), workspace_pre_node->GetInAnchor(0UL)));
 
   // 连接ArgMaxMultiRPhase1的第二个输出（index）到store_index和workspace
-  GE_CHK_STATUS_RET(af::GraphUtils::AddEdge(new_argmax_phase1_node->GetOutAnchor(1UL),
-                                            new_store_index_node->GetInAnchor(0UL)));
-  GE_CHK_STATUS_RET(af::GraphUtils::AddEdge(new_store_index_node->GetOutAnchor(0UL),
-                                            workspace_pre_index_node_out->GetInAnchor(0UL)));
+  GE_CHK_STATUS_RET(
+      af::GraphUtils::AddEdge(new_argmax_phase1_node->GetOutAnchor(1UL), new_store_index_node->GetInAnchor(0UL)));
+  GE_CHK_STATUS_RET(
+      af::GraphUtils::AddEdge(new_store_index_node->GetOutAnchor(0UL), workspace_pre_index_node_out->GetInAnchor(0UL)));
 
   // 删除原始的ArgMax节点，避免"not visited"错误
   // 输入边已被重定向到argmax_phase1_node
@@ -959,7 +966,7 @@ Status ReplaceArgMaxInPhase1(ascir::ImplGraph &phase_graph,
 // 已保存的节点属性（封装属性指针和属性值）
 struct ReduceSavedNodeAttrInfo {
   const af::AscNodeAttr *attr_ptr;  // 属性指针
-  af::AscNodeAttr attr_value;        // 属性值
+  af::AscNodeAttr attr_value;       // 属性值
 };
 
 // ArgMax的index路径节点
@@ -983,17 +990,15 @@ struct ReducePhase2Nodes {
 
 // 图上下文结构体
 struct ArgMaxPartitionGraphContext {
-  ascir::ImplGraph &impl_graph;              // 图
-  std::vector<af::AscNodePtr> &node_order;   // 节点顺序
-  std::string graph_name;                    // 图名称（使用值而非引用，避免悬空引用）
+  ascir::ImplGraph &impl_graph;             // 图
+  std::vector<af::AscNodePtr> &node_order;  // 节点顺序
+  std::string graph_name;                   // 图名称（使用值而非引用，避免悬空引用）
 };
 
 // 设置ArgMax Phase2的所有属性
-static Status SetupArgMaxPhase2Attrs(const ReduceSavedNodeAttrInfo &saved_attr,
-                                     const ReducePhase2Nodes &phase2_nodes,
+static Status SetupArgMaxPhase2Attrs(const ReduceSavedNodeAttrInfo &saved_attr, const ReducePhase2Nodes &phase2_nodes,
                                      const af::AscTensorAttr &reduce_input_attr,
-                                     const af::AscTensorAttr &reduce_output_attr,
-                                     const ArgMaxIndexNodes &index_nodes) {
+                                     const af::AscTensorAttr &reduce_output_attr, const ArgMaxIndexNodes &index_nodes) {
   // 复制节点级别的属性到new_reduce_node
   if (saved_attr.attr_ptr != nullptr) {
     auto op_desc = phase2_nodes.new_reduce_node->GetOpDesc();
@@ -1052,18 +1057,17 @@ static Status SetupArgMaxPhase2Attrs(const ReduceSavedNodeAttrInfo &saved_attr,
 // 连接ArgMax Phase2的所有边
 // 参数：1.输出锚点 2.输出边 3.Phase2节点集合 4.index workspace节点 5.index load节点
 static Status ConnectArgMaxPhase2Edges(af::OutDataAnchorPtr argmax_out_anchor,
-                                     const std::vector<af::InDataAnchorPtr> &argmax_out_edges,
-                                     const ReducePhase2Nodes &phase2_nodes,
-                                     const af::AscNodePtr &index_workspace_post_node,
-                                     const af::AscNodePtr &index_load_node) {
+                                       const std::vector<af::InDataAnchorPtr> &argmax_out_edges,
+                                       const ReducePhase2Nodes &phase2_nodes,
+                                       const af::AscNodePtr &index_workspace_post_node,
+                                       const af::AscNodePtr &index_load_node) {
   // 重定向原始ArgMax的输出边到new_reduce_node（ArgMaxMultiRPhase2）
   for (const auto &peer_in_anchor : argmax_out_edges) {
     // 移除原始边（虽然reduce_node已被删除，但移除边的操作应该还能执行）
     GE_CHK_STATUS_RET(af::GraphUtils::RemoveEdge(argmax_out_anchor, peer_in_anchor));
     // 添加新边：从new_reduce_node的输出0到下游节点
     // ArgMaxMultiRPhase2只有1个输出（最终的index），所以输出索引是0
-    GE_CHK_STATUS_RET(af::GraphUtils::AddEdge(phase2_nodes.new_reduce_node->GetOutAnchor(0UL),
-                                              peer_in_anchor));
+    GE_CHK_STATUS_RET(af::GraphUtils::AddEdge(phase2_nodes.new_reduce_node->GetOutAnchor(0UL), peer_in_anchor));
   }
 
   // 连接Phase2的所有边
@@ -1074,26 +1078,24 @@ static Status ConnectArgMaxPhase2Edges(af::OutDataAnchorPtr argmax_out_anchor,
                                             phase2_nodes.new_reduce_node->GetInAnchor(0UL)));
 
   // Phase2 index路径：workspace_post_index -> index_load -> new_reduce[输入1]
-  GE_CHK_STATUS_RET(af::GraphUtils::AddEdge(index_workspace_post_node->GetOutAnchor(0UL),
-                                            index_load_node->GetInAnchor(0UL)));
-  GE_CHK_STATUS_RET(af::GraphUtils::AddEdge(index_load_node->GetOutAnchor(0UL),
-                                            phase2_nodes.new_reduce_node->GetInAnchor(1UL)));
+  GE_CHK_STATUS_RET(
+      af::GraphUtils::AddEdge(index_workspace_post_node->GetOutAnchor(0UL), index_load_node->GetInAnchor(0UL)));
+  GE_CHK_STATUS_RET(
+      af::GraphUtils::AddEdge(index_load_node->GetOutAnchor(0UL), phase2_nodes.new_reduce_node->GetInAnchor(1UL)));
 
   return ge::GRAPH_SUCCESS;
 }
 
 // 处理ArgMax在R轴分核时的完整逻辑
 // 包括：创建index路径节点、替换为Phase1算子、设置属性、连接边等
-static Status HandleArgMaxPartition(const af::AscNodePtr &reduce_node,
-                                     ReducePhase1Nodes &phase1_nodes,
-                                     ReducePhase2Nodes &phase2_nodes,
-                                     const ArgMaxPartitionGraphContext &ctx) {
+static Status HandleArgMaxPartition(const af::AscNodePtr &reduce_node, ReducePhase1Nodes &phase1_nodes,
+                                    ReducePhase2Nodes &phase2_nodes, const ArgMaxPartitionGraphContext &ctx) {
   // ArgMax特殊处理：需要额外的workspace用于index
   af::ascir_op::Workspace index_workspace_pre((ctx.graph_name + "_workspace_index").c_str());
   af::ascir_op::Workspace index_workspace_post((ctx.graph_name + "_workspace_index").c_str());
 
   // 为index路径创建额外的workspace和load节点
-  af::AscNodePtr index_workspace_pre_node  = ctx.impl_graph.AddNode(index_workspace_pre);
+  af::AscNodePtr index_workspace_pre_node = ctx.impl_graph.AddNode(index_workspace_pre);
   af::AscNodePtr index_workspace_post_node = ctx.impl_graph.AddNode(index_workspace_post);
   ctx.node_order.emplace_back(index_workspace_pre_node);
 
@@ -1124,7 +1126,7 @@ static Status HandleArgMaxPartition(const af::AscNodePtr &reduce_node,
 
   // 在阶段1替换为ArgMaxMultiRPhase1，并处理额外的index输出
   GE_CHK_STATUS_RET(ReplaceArgMaxInPhase1(ctx.impl_graph, reduce_node, phase1_nodes.store_node,
-                                            phase1_nodes.workspace_pre_node, index_workspace_pre_node));
+                                          phase1_nodes.workspace_pre_node, index_workspace_pre_node));
 
   // 设置ArgMax Phase2的所有属性
   ReduceSavedNodeAttrInfo saved_attr_info = {src_asc_node_attr, saved_node_attr};
@@ -1138,16 +1140,14 @@ static Status HandleArgMaxPartition(const af::AscNodePtr &reduce_node,
   GE_ASSERT_GRAPH_SUCCESS(DoCopyWorkspaceTensorAttr(index_load_node, index_workspace_post_node));
 
   // 连接ArgMax Phase2的所有边
-  GE_CHK_STATUS_RET(ConnectArgMaxPhase2Edges(argmax_out_anchor, argmax_out_edges,
-                                            phase2_nodes, index_workspace_post_node,
-                                            index_load_node));
+  GE_CHK_STATUS_RET(ConnectArgMaxPhase2Edges(argmax_out_anchor, argmax_out_edges, phase2_nodes,
+                                             index_workspace_post_node, index_load_node));
 
   return ge::GRAPH_SUCCESS;
 }
 
 // R轴分核时，为ArgMax创建额外的workspace和load节点用于index
-Status RMulticorePhase2Graph::PartitionByReduce(ascir::ImplGraph &impl_graph,
-                                                ReduceType &phase2graph_reduce,
+Status RMulticorePhase2Graph::PartitionByReduce(ascir::ImplGraph &impl_graph, ReduceType &phase2graph_reduce,
                                                 std::vector<af::AscNodePtr> &node_order) {
   af::ascir_op::Workspace workspace_pre((phase2graph.GetName() + "_workspace").c_str());
   af::ascir_op::Workspace workspace_post((phase2graph.GetName() + "_workspace").c_str());
@@ -1155,9 +1155,8 @@ Status RMulticorePhase2Graph::PartitionByReduce(ascir::ImplGraph &impl_graph,
   af::ascir_op::Store store((phase1graph.GetName() + "Store").c_str());
 
   af::AscNodePtr new_reduce_node;
-  std::visit([&new_reduce_node, &impl_graph](auto&& reduce_op) {
-    new_reduce_node = impl_graph.AddNode(reduce_op);
-  }, phase2graph_reduce);
+  std::visit([&new_reduce_node, &impl_graph](auto &&reduce_op) { new_reduce_node = impl_graph.AddNode(reduce_op); },
+             phase2graph_reduce);
 
   auto workspace_pre_node = impl_graph.AddNode(workspace_pre);
   node_order.emplace_back(workspace_pre_node);
@@ -1186,28 +1185,25 @@ Status RMulticorePhase2Graph::PartitionByReduce(ascir::ImplGraph &impl_graph,
         auto reduce_out_node = peer_in_anchor->GetOwnerNode();
         GE_ASSERT_NOTNULL(reduce_out_node);
         GE_CHK_STATUS_RET(af::GraphUtils::RemoveEdge(reduce_node->GetOutAnchor(reduce_out_anchor->GetIdx()),
-                                                    reduce_out_node->GetInAnchor(peer_in_anchor->GetIdx())));
+                                                     reduce_out_node->GetInAnchor(peer_in_anchor->GetIdx())));
         GE_CHK_STATUS_RET(af::GraphUtils::AddEdge(new_reduce_node->GetOutAnchor(reduce_out_anchor->GetIdx()),
                                                   reduce_out_node->GetInAnchor(peer_in_anchor->GetIdx())));
       }
     }
     // add reduce->store->workspace_pre_node
-    GE_CHK_STATUS_RET(af::GraphUtils::AddEdge(reduce_node->GetOutAnchor(0UL),
-                                              store_node->GetInAnchor(0UL)));
-    GE_CHK_STATUS_RET(af::GraphUtils::AddEdge(store_node->GetOutAnchor(0UL),
-                                              workspace_pre_node->GetInAnchor(0UL)));
+    GE_CHK_STATUS_RET(af::GraphUtils::AddEdge(reduce_node->GetOutAnchor(0UL), store_node->GetInAnchor(0UL)));
+    GE_CHK_STATUS_RET(af::GraphUtils::AddEdge(store_node->GetOutAnchor(0UL), workspace_pre_node->GetInAnchor(0UL)));
     // add workspace_post_node->load->new reduce
-    GE_CHK_STATUS_RET(af::GraphUtils::AddEdge(workspace_post_node->GetOutAnchor(0UL),
-                                              load_node->GetInAnchor(0UL)));
-    GE_CHK_STATUS_RET(af::GraphUtils::AddEdge(load_node->GetOutAnchor(0UL),
-                                              new_reduce_node->GetInAnchor(0UL)));
+    GE_CHK_STATUS_RET(af::GraphUtils::AddEdge(workspace_post_node->GetOutAnchor(0UL), load_node->GetInAnchor(0UL)));
+    GE_CHK_STATUS_RET(af::GraphUtils::AddEdge(load_node->GetOutAnchor(0UL), new_reduce_node->GetInAnchor(0UL)));
   }
 
   return ge::GRAPH_SUCCESS;
 }
 
-Status RMulticorePhase2Graph::SetNodeOrder (std::vector<af::AscNodePtr> &node_order) {
-  auto new_reduce_node = phase_graph.FindNode((phase2graph.GetName() + "_" + reduce_node->GetName() + "_reduce").c_str());
+Status RMulticorePhase2Graph::SetNodeOrder(std::vector<af::AscNodePtr> &node_order) {
+  auto new_reduce_node =
+      phase_graph.FindNode((phase2graph.GetName() + "_" + reduce_node->GetName() + "_reduce").c_str());
   GE_ASSERT_NOTNULL(new_reduce_node);
   std::set<af::NodePtr> visited{new_reduce_node};
   std::list<af::NodePtr> next_nodes{new_reduce_node};
@@ -1227,4 +1223,4 @@ Status RMulticorePhase2Graph::SetNodeOrder (std::vector<af::AscNodePtr> &node_or
   }
   return ge::SUCCESS;
 }
-}
+}  // namespace optimize

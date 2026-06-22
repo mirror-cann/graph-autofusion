@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -16,14 +16,17 @@
 namespace af {
 namespace {
 bool HasIrIndex(AddrType type) {
-  return (type == AddrType::INPUT) || (type == AddrType::OUTPUT) ||
-      (type == AddrType::INPUT_DESC) || (type == AddrType::OUTPUT_DESC);
+  return (type == AddrType::INPUT) || (type == AddrType::OUTPUT) || (type == AddrType::INPUT_DESC) ||
+         (type == AddrType::OUTPUT_DESC);
 }
 AddrType TransToAddrType(ArgDescType args_type) {
   static const std::unordered_map<ArgDescType, AddrType> arg_desc_to_addr_type = {
-      {ArgDescType::kIrInput, AddrType::INPUT}, {ArgDescType::kIrOutput, AddrType::OUTPUT},
-      {ArgDescType::kWorkspace, AddrType::WORKSPACE}, {ArgDescType::kTiling, AddrType::TILING},
-      {ArgDescType::kIrInput, AddrType::INPUT_DESC}, {ArgDescType::kIrOutput, AddrType::OUTPUT_DESC},
+      {ArgDescType::kIrInput, AddrType::INPUT},
+      {ArgDescType::kIrOutput, AddrType::OUTPUT},
+      {ArgDescType::kWorkspace, AddrType::WORKSPACE},
+      {ArgDescType::kTiling, AddrType::TILING},
+      {ArgDescType::kIrInput, AddrType::INPUT_DESC},
+      {ArgDescType::kIrOutput, AddrType::OUTPUT_DESC},
       {ArgDescType::kHiddenInput, AddrType::HIDDEN_INPUT},
       {ArgDescType::kCustomValue, AddrType::CUSTOM_VALUE},
       {ArgDescType::kIrInputDesc, AddrType::INPUT_DESC},
@@ -39,15 +42,16 @@ AddrType TransToAddrType(ArgDescType args_type) {
 
 ArgDescType TransToArgDescType(AddrType addr_type) {
   static const std::unordered_map<AddrType, ArgDescType> addr_to_arg_desc_type = {
-      {AddrType::INPUT, ArgDescType::kIrInput}, {AddrType::OUTPUT, ArgDescType::kIrOutput},
-      {AddrType::WORKSPACE, ArgDescType::kWorkspace}, {AddrType::TILING, ArgDescType::kTiling},
+      {AddrType::INPUT, ArgDescType::kIrInput},
+      {AddrType::OUTPUT, ArgDescType::kIrOutput},
+      {AddrType::WORKSPACE, ArgDescType::kWorkspace},
+      {AddrType::TILING, ArgDescType::kTiling},
       {AddrType::HIDDEN_INPUT, ArgDescType::kHiddenInput},
       {AddrType::CUSTOM_VALUE, ArgDescType::kCustomValue},
       {AddrType::INPUT_DESC, ArgDescType::kIrInputDesc},
       {AddrType::INPUT_INSTANCE, ArgDescType::kInputInstance},
       {AddrType::OUTPUT_DESC, ArgDescType::kIrOutputDesc},
-      {AddrType::OUTPUT_INSTANCE, ArgDescType::kOutputInstance}
-  };
+      {AddrType::OUTPUT_INSTANCE, ArgDescType::kOutputInstance}};
   auto iter = addr_to_arg_desc_type.find(addr_type);
   if (iter != addr_to_arg_desc_type.end()) {
     return iter->second;
@@ -57,9 +61,7 @@ ArgDescType TransToArgDescType(AddrType addr_type) {
 
 HiddenInputsType TransToHiddenInputType(HiddenInputSubType hidden_sub_type) {
   static const std::unordered_map<HiddenInputSubType, HiddenInputsType> hidden_sub_types = {
-      {HiddenInputSubType::kHcom, HiddenInputsType::HCOM},
-      {HiddenInputSubType::kEnd, HiddenInputsType::MAX}
-  };
+      {HiddenInputSubType::kHcom, HiddenInputsType::HCOM}, {HiddenInputSubType::kEnd, HiddenInputsType::MAX}};
   auto iter = hidden_sub_types.find(hidden_sub_type);
   if (iter != hidden_sub_types.end()) {
     return iter->second;
@@ -68,16 +70,14 @@ HiddenInputsType TransToHiddenInputType(HiddenInputSubType hidden_sub_type) {
 }
 HiddenInputSubType TransToHiddenInputSubType(HiddenInputsType hidden_type) {
   static const std::unordered_map<HiddenInputsType, HiddenInputSubType> hidden_input_types = {
-      {HiddenInputsType::HCOM, HiddenInputSubType::kHcom},
-      {HiddenInputsType::MAX, HiddenInputSubType::kEnd}
-  };
+      {HiddenInputsType::HCOM, HiddenInputSubType::kHcom}, {HiddenInputsType::MAX, HiddenInputSubType::kEnd}};
   auto iter = hidden_input_types.find(hidden_type);
   if (iter != hidden_input_types.end()) {
     return iter->second;
   }
   return HiddenInputSubType::kEnd;
 }
-}
+}  // namespace
 AscendString ArgsFormatSerializer::Serialize(const std::vector<ArgDescInfo> &args_format) {
   // 将args_desc_info转成arg_desc
   std::vector<ArgDesc> arg_descs;
@@ -137,8 +137,8 @@ std::vector<ArgDescInfo> ArgsFormatSerializer::Deserialize(const AscendString &a
     if (desc.addr_type == AddrType::CUSTOM_VALUE) {
       arg_desc.SetCustomValue(*reinterpret_cast<const uint64_t *>(desc.reserved));
     } else if (desc.addr_type == AddrType::HIDDEN_INPUT) {
-      arg_desc.SetHiddenInputSubType(TransToHiddenInputSubType(
-          static_cast<HiddenInputsType>(*reinterpret_cast<const uint32_t *>(desc.reserved))));
+      arg_desc.SetHiddenInputSubType(
+          TransToHiddenInputSubType(static_cast<HiddenInputsType>(*reinterpret_cast<const uint32_t *>(desc.reserved))));
     } else {
       // static check
     }
@@ -146,4 +146,4 @@ std::vector<ArgDescInfo> ArgsFormatSerializer::Deserialize(const AscendString &a
   }
   return args_format;
 }
-}
+}  // namespace af

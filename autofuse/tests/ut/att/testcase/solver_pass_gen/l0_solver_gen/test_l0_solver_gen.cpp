@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -21,27 +21,24 @@ using namespace att;
 
 class TestL0SolverGen : public ::testing::Test {
  public:
-  static void TearDownTestCase()
-  {
+  static void TearDownTestCase() {
     std::cout << "Test end." << std::endl;
   }
-  static void SetUpTestCase()
-  {
+  static void SetUpTestCase() {
     std::cout << "Test begin." << std::endl;
   }
   void SetUp() override {
-     // Code here will be called immediately after the constructor (right
-     // before each test).
+    // Code here will be called immediately after the constructor (right
+    // before each test).
   }
 
   void TearDown() override {
-     // Code here will be called immediately after each test (right
-     // before the destructor).
+    // Code here will be called immediately after each test (right
+    // before the destructor).
   }
 };
 
-TEST_F(TestL0SolverGen, TEST_IS_MULTICORE_ARG)
-{
+TEST_F(TestL0SolverGen, TEST_IS_MULTICORE_ARG) {
   L0TileSolverGen solver_gen("case0", "TilingData");
   std::vector<Expr> mc_args;
   Expr null_expr;
@@ -54,15 +51,14 @@ TEST_F(TestL0SolverGen, TEST_IS_MULTICORE_ARG)
   bool case1_is_mc = solver_gen.IsMulticoreArg(tilen);
   bool case2_is_mc = solver_gen.IsMulticoreArg(basem);
   bool case3_is_mc = solver_gen.IsMulticoreArg(null_expr);
-  
+
   EXPECT_EQ(case0_is_mc, true);
   EXPECT_EQ(case1_is_mc, true);
   EXPECT_EQ(case2_is_mc, false);
   EXPECT_EQ(case3_is_mc, false);
 }
 
-TEST_F(TestL0SolverGen, TEST_IS_BIND_MULTICORE)
-{
+TEST_F(TestL0SolverGen, TEST_IS_BIND_MULTICORE) {
   L0TileSolverGen solver_gen("case0", "TilingData");
   std::vector<Expr> mc_args;
   Expr tilem = CreateExpr("tilem");
@@ -77,8 +73,7 @@ TEST_F(TestL0SolverGen, TEST_IS_BIND_MULTICORE)
   EXPECT_EQ(solver_gen.IsBindMulticore(basem), true);
 }
 
-TEST_F(TestL0SolverGen, TEST_GET_LARGEST_ALIGN)
-{
+TEST_F(TestL0SolverGen, TEST_GET_LARGEST_ALIGN) {
   L0TileSolverGen solver_gen("case0", "TilingData");
   std::vector<Expr> mc_args;
   Expr tilem = CreateExpr("tilem");
@@ -99,8 +94,7 @@ TEST_F(TestL0SolverGen, TEST_GET_LARGEST_ALIGN)
   EXPECT_EQ(max_align, 256);
 }
 
-TEST_F(TestL0SolverGen, TEST_GEN_SOLVER)
-{
+TEST_F(TestL0SolverGen, TEST_GEN_SOLVER) {
   L0TileSolverGen solver_gen("case0", "TilingData");
   std::vector<Expr> ori_args;
   std::vector<Expr> l0_args;
@@ -128,7 +122,6 @@ TEST_F(TestL0SolverGen, TEST_GEN_SOLVER)
   ori_args.emplace_back(n);
   ori_args.emplace_back(k);
 
-
   l0_args.emplace_back(basem);
   l0_args.emplace_back(basen);
   l0_args.emplace_back(basek);
@@ -142,7 +135,7 @@ TEST_F(TestL0SolverGen, TEST_GEN_SOLVER)
 
   father_args_map[basem] = tilem;
   father_args_map[basen] = tilen;
-  
+
   arg_align_map[basem] = ge::Symbol(16);
   arg_align_map[basen] = ge::Symbol(16);
   arg_align_map[basek] = ge::Symbol(16);
@@ -164,9 +157,7 @@ TEST_F(TestL0SolverGen, TEST_GEN_SOLVER)
   EXPECT_NE(invoke_code, "");
 }
 
-
-TEST_F(TestL0SolverGen, TEST_GEN_SOLVER_ERR)
-{
+TEST_F(TestL0SolverGen, TEST_GEN_SOLVER_ERR) {
   L0TileSolverGen solver_gen("case0", "TilingData");
   std::vector<Expr> ori_args;
   std::vector<Expr> l0_args;
@@ -194,7 +185,6 @@ TEST_F(TestL0SolverGen, TEST_GEN_SOLVER_ERR)
   ori_args.emplace_back(n);
   ori_args.emplace_back(k);
 
-
   l0_args.emplace_back(basem);
   l0_args.emplace_back(basen);
   l0_args.emplace_back(basek);
@@ -205,10 +195,9 @@ TEST_F(TestL0SolverGen, TEST_GEN_SOLVER_ERR)
   ori_arg_map[basem] = m;
   ori_arg_map[basen] = n;
 
-
   father_args_map[basem] = tilem;
   father_args_map[basen] = tilen;
-  
+
   arg_align_map[basem] = ge::Symbol(16);
   arg_align_map[basen] = ge::Symbol(16);
 
@@ -228,8 +217,7 @@ TEST_F(TestL0SolverGen, TEST_GEN_SOLVER_ERR)
   EXPECT_EQ(impl_code, "Solver Gen Error");
 }
 
-TEST_F(TestL0SolverGen, TEST_MAX_ALIGN_ZERO)
-{
+TEST_F(TestL0SolverGen, TEST_MAX_ALIGN_ZERO) {
   L0TileSolverGen solver_gen("case0", "TilingData");
   std::vector<Expr> ori_args;
   std::vector<Expr> l0_args;
@@ -257,7 +245,6 @@ TEST_F(TestL0SolverGen, TEST_MAX_ALIGN_ZERO)
   ori_args.emplace_back(n);
   ori_args.emplace_back(k);
 
-
   l0_args.emplace_back(basem);
   l0_args.emplace_back(basen);
   l0_args.emplace_back(basek);
@@ -271,7 +258,7 @@ TEST_F(TestL0SolverGen, TEST_MAX_ALIGN_ZERO)
 
   father_args_map[basem] = tilem;
   father_args_map[basen] = tilen;
-  
+
   arg_align_map[basem] = ge::Symbol(0);
   arg_align_map[basen] = ge::Symbol(16);
   arg_align_map[basek] = ge::Symbol(16);
@@ -289,5 +276,4 @@ TEST_F(TestL0SolverGen, TEST_MAX_ALIGN_ZERO)
   solver_gen.SetConstVars(const_args);
   std::string impl_code = solver_gen.GenInitTilingData();
   EXPECT_EQ(impl_code, "Solver Gen Error");
-
 }

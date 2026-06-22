@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -61,17 +61,16 @@ class FftsPlusUpdateManager {
   std::map<std::string, FftsCtxUpdateCreatorFun> creators_;
   std::unique_ptr<PluginManager> plugin_manager_;
 };
-} // namespace ge
+}  // namespace af
 
-#define REGISTER_FFTS_PLUS_CTX_UPDATER(core_type, task_clazz)             \
-    REGISTER_FFTS_PLUS_CTX_TASK_UPDATER_UNIQ_HELPER(__COUNTER__, core_type, task_clazz)
+#define REGISTER_FFTS_PLUS_CTX_UPDATER(core_type, task_clazz) \
+  REGISTER_FFTS_PLUS_CTX_TASK_UPDATER_UNIQ_HELPER(__COUNTER__, core_type, task_clazz)
 
 #define REGISTER_FFTS_PLUS_CTX_TASK_UPDATER_UNIQ_HELPER(ctr, type, clazz) \
-    REGISTER_FFTS_PLUS_CTX_TASK_UPDATER_UNIQ(ctr, type, clazz)
+  REGISTER_FFTS_PLUS_CTX_TASK_UPDATER_UNIQ(ctr, type, clazz)
 
-#define REGISTER_FFTS_PLUS_CTX_TASK_UPDATER_UNIQ(ctr, type, clazz)                              \
-    ge::FftsPlusUpdateManager::FftsPlusUpdateRegistrar g_##type##_creator##ctr((type), []() {   \
-      return std::shared_ptr<clazz>(new(std::nothrow) (clazz)());                             \
-    })
+#define REGISTER_FFTS_PLUS_CTX_TASK_UPDATER_UNIQ(ctr, type, clazz)            \
+  ge::FftsPlusUpdateManager::FftsPlusUpdateRegistrar g_##type##_creator##ctr( \
+      (type), []() { return std::shared_ptr<clazz>(new (std::nothrow)(clazz)()); })
 
-#endif // INC_REGISTER_FFTS_PLUS_UPDATE_MANAGER_H_
+#endif  // INC_REGISTER_FFTS_PLUS_UPDATE_MANAGER_H_

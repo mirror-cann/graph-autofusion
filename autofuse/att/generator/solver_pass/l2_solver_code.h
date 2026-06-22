@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -65,7 +65,9 @@ inline std::string GenL2TileSolverAnnotation() {
   std::string strs;
   strs += "// L2求解器的适用范围如下\n";
   strs += "// 举例如下，一个TileL2M * TileL2N的结果矩阵，每个小方格表示一个basem * basen的基本块\n";
-  strs += "// TileL2M 和 TileL2N大小的结果矩阵存储在L2中，以基本块为粒度分多核，如下图所示，假设有4个核，每个核计算两个基本块\n";
+  strs +=
+      "// TileL2M 和 "
+      "TileL2N大小的结果矩阵存储在L2中，以基本块为粒度分多核，如下图所示，假设有4个核，每个核计算两个基本块\n";
   strs += "//                             \n";
   strs += "//                         tileL2N      basen\n";
   strs += "//             .-------.-------.-------.-------.\n";
@@ -157,8 +159,12 @@ inline std::string GenL2CheckInput() {
   strs += " *\n";
   strs += " * 该函数用于检查 L2TileSolver 类的输入参数是否有效。\n";
   strs += " * 首先检查 l2_vars 指针是否为空。如果为空，将记录一条错误消息并返回 false，表示输入无效。\n";
-  strs += " * 然后检查 size、core_num 和 l2_size 参数是否都不为零。如果其中任何一个为零，将记录一条错误消息并返回 false，表示输入无效。\n";
-  strs += " * 最后遍历 l2_vars 指针数组中的所有 L2Var 结构。对于每个结构，检查 align、base_val 和 max_value 成员是否都不为零。如果其中任何一个为零，将记录一条错误消息并返回 false，表示输入无效。\n";
+  strs +=
+      " * 然后检查 size、core_num 和 l2_size 参数是否都不为零。如果其中任何一个为零，将记录一条错误消息并返回 "
+      "false，表示输入无效。\n";
+  strs +=
+      " * 最后遍历 l2_vars 指针数组中的所有 L2Var 结构。对于每个结构，检查 align、base_val 和 max_value "
+      "成员是否都不为零。如果其中任何一个为零，将记录一条错误消息并返回 false，表示输入无效。\n";
   strs += " * 如果所有检查都通过，该函数将返回 true，表示输入有效。\n";
   strs += " *\n";
   strs += " * @Return bool, 表示输入参数是否有效\n";
@@ -193,7 +199,9 @@ inline std::string GenL2CheckSolvable() {
   strs += " * 这个函数检查当前的问题是否可以根据输入参数的设置来解决。\n";
   strs += " * 首先，它初始化每个变量的值为 align 参数的值。\n";
   strs += " * 然后，它调用 GetL2Use() 函数来获得所需的 L2 使用量。\n";
-  strs += " * 如果所需的 L2 使用量超过了可用的缓存大小（input_.l2_size），它将记录一条警告消息并返回 false，表示没有解决方案。\n";
+  strs +=
+      " * 如果所需的 L2 使用量超过了可用的缓存大小（input_.l2_size），它将记录一条警告消息并返回 "
+      "false，表示没有解决方案。\n";
   strs += " * 如果所需的 L2 使用量小于或等于可用的缓存大小，函数将返回 true，表示问题可以被解决。\n";
   strs += " *\n";
   strs += " * @Return true 如果问题可以解决，false 否则。\n";
@@ -219,7 +227,10 @@ inline std::string GetL2InitInput() {
   strs += " * 初始化输入数据。\n";
   strs += " *\n";
   strs += " * 这个函数负责初始化 L2TileSolver 对象的输入数据。\n";
-  strs += " * 它首先为输入数据结构中的每个变量计算最大值，将其向上取整为对齐值的最近倍数。这确保了每个变量的最大值是其对齐值的倍数。\n";
+  strs +=
+      " * "
+      "它首先为输入数据结构中的每个变量计算最大值，将其向上取整为对齐值的最近倍数。这确保了每个变量的最大值是其对齐值的"
+      "倍数。\n";
   strs += " * 然后，它找出所有变量中的最大最大值，并将每个变量的值初始化为这个最大最大值。\n";
   strs += " *\n";
   strs += " * 初始化过程对于准备输入数据以进行后续处理步骤（如优化或分析）至关重要。\n";
@@ -238,7 +249,9 @@ inline std::string GetL2InitInput() {
 
 inline std::string GetHandleClash() {
   std::string strs;
-  strs += "void L2TileSolver::HandleClash(uint32_t loop_id, uint32_t *ori_val, uint32_t *best_val, uint64_t &max_l2_use) {\n";
+  strs +=
+      "void L2TileSolver::HandleClash(uint32_t loop_id, uint32_t *ori_val, uint32_t *best_val, uint64_t &max_l2_use) "
+      "{\n";
   strs += "  auto max_blocknum = ori_val[loop_id];\n";
   strs += "  auto &var = input_.l2_vars[loop_id];\n";
   strs += "  for (uint32_t i = max_blocknum; i >= 1u; i--) {\n";
@@ -373,5 +386,5 @@ inline std::string GetL2SolverFunc() {
 
 inline const std::string L2_SOLVER_CODE_HEAD = GetL2SolverHead();
 inline const std::string L2_SOLVER_CODE_FUNC = GetL2SolverFunc();
-} // namespace att
+}  // namespace att
 #endif
