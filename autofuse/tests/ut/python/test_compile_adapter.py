@@ -9,54 +9,31 @@
 # See LICENSE in the root of the software repository for the full text of the License.
 # -----------------------------------------------------------------------------------------------------------
 
-import importlib.util
 import os
-import sys
 import types
 
 import pytest
 
+from compile_test_utils import PYTHON_DIR, load_compile_module
 
-_BASE_DIR = os.path.dirname(
-    os.path.dirname(
-        os.path.dirname(
-            os.path.dirname(
-                os.path.dirname(os.path.realpath(__file__)))))
-)
-_PYTHON_DIR = os.path.join(_BASE_DIR, "autofuse/compiler/python")
 MODULE_NAME = "autofuse.compile_adapter"
-MODULE_PATH = os.path.join(_PYTHON_DIR, "compile_adapter.py")
+MODULE_PATH = os.path.join(PYTHON_DIR, "compile_adapter.py")
 
 
 @pytest.fixture()
 def compile_adapter_module():
-    original_autofuse = sys.modules.get("autofuse")
-    original_ascendc_compile = sys.modules.get("autofuse.ascendc_compile")
-    autofuse_module = types.ModuleType("autofuse")
     ascendc_compile_module = types.ModuleType("autofuse.ascendc_compile")
 
     def _noop_main(args):
         return None
 
     ascendc_compile_module.main = _noop_main
-    autofuse_module.ascendc_compile = ascendc_compile_module
-    sys.modules["autofuse"] = autofuse_module
-    sys.modules["autofuse.ascendc_compile"] = ascendc_compile_module
-
-    spec = importlib.util.spec_from_file_location(MODULE_NAME, MODULE_PATH)
-    module = importlib.util.module_from_spec(spec)
-    if spec is not None and spec.loader is not None:
-        spec.loader.exec_module(module)
-    yield module
-
-    if original_autofuse is None:
-        sys.modules.pop("autofuse", None)
-    else:
-        sys.modules["autofuse"] = original_autofuse
-    if original_ascendc_compile is None:
-        sys.modules.pop("autofuse.ascendc_compile", None)
-    else:
-        sys.modules["autofuse.ascendc_compile"] = original_ascendc_compile
+    with load_compile_module(
+            MODULE_NAME,
+            MODULE_PATH,
+            extra_autofuse_attrs={"ascendc_compile": ascendc_compile_module},
+            extra_modules={"autofuse.ascendc_compile": ascendc_compile_module}) as loaded_module:
+        yield loaded_module
 
 
 def test_host_compile_defaults_to_abi_1(compile_adapter_module):
@@ -89,3 +66,43 @@ def test_device_compile_does_not_add_host_default_abi(compile_adapter_module):
 
     assert args.compile_options == "-Werror"
     temp_dir_ctx.cleanup()
+
+
+def test_jit_compile_records_atrace_and_reports(compile_adapter_module, tmpdir, capsys):
+    output_file = tmpdir.join("jit.so")
+    argv = [f"--output_file={output_file}", f"--output_path={tmpdir}"]
+
+    compile_adapter_module.jit_compile("tiling", "host", "kernel", argv)
+
+    labels = [item[0] for item in compile_adapter_module.duration_records]
+    assert ["InductorCompile", "jit_compile", "GenerateHostSource", "autofuse"] in labels
+    assert ["InductorCompile", "jit_compile", "GenerateDeviceSource", "autofuse"] in labels
+    assert ["InductorCompile", "jit_compile", "AscendCCompile", "autofuse"] in labels
+    assert ["InductorCompile", "jit_compile", "Total", "autofuse"] in labels
+    assert compile_adapter_module.duration_reports == [True]
+    assert capsys.readouterr().out == ""
+
+
+def test_host_compile_records_duration_without_stdout(compile_adapter_module, tmpdir, capsys):
+    output_file = tmpdir.join("host.so")
+    argv = [f"--output_file={output_file}", f"--output_path={tmpdir}"]
+
+    compile_adapter_module.host_compile("tiling", "host", argv)
+
+    labels = [item[0] for item in compile_adapter_module.duration_records]
+    assert ["InductorCompile", "host_compile", "GenerateHostSource", "autofuse"] in labels
+    assert ["InductorCompile", "host_compile", "AscendCCompile", "autofuse"] in labels
+    assert ["InductorCompile", "host_compile", "Total", "autofuse"] in labels
+    assert capsys.readouterr().out == ""
+
+
+def test_kernel_compile_records_device_stage(compile_adapter_module, tmpdir):
+    output_file = tmpdir.join("kernel.so")
+    argv = [f"--output_file={output_file}", f"--output_path={tmpdir}"]
+
+    compile_adapter_module.kernel_compile("tiling", "kernel", argv, tiling_repr="AutofuseTilingData{}")
+
+    labels = [item[0] for item in compile_adapter_module.duration_records]
+    assert ["InductorCompile", "kernel_compile", "GenerateDeviceSource", "autofuse"] in labels
+    assert ["InductorCompile", "kernel_compile", "AscendCCompile", "autofuse"] in labels
+    assert ["InductorCompile", "kernel_compile", "Total", "autofuse"] in labels
